@@ -1078,6 +1078,8 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 			if (got_pic) {
 				ohevcdec_flush_picture(ctx);
+				//we are in direct output mode, wait for frame to be consummed before flushing next frame
+				if (ctx->frame_out) return GF_OK;
 			}
 			else
 				break;

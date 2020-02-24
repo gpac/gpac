@@ -510,6 +510,12 @@ void switch_bench(u32 is_on)
 	gf_term_set_option(term, GF_OPT_VIDEO_BENCH, is_on);
 }
 
+#ifdef GPAC_ENABLE_COVERAGE
+#define getch() 0
+#define read_line_input(_line, _maxSize, _showContent) GF_FALSE
+
+#else
+
 #ifndef WIN32
 #include <termios.h>
 int getch() {
@@ -542,7 +548,7 @@ int getch() {
  * @param maxSize the maximum size of the line to read
  * @param showContent boolean indicating if the line read should be printed on stderr or not
  */
-static const char * read_line_input(char * line, int maxSize, Bool showContent) {
+static Bool read_line_input(char * line, int maxSize, Bool showContent) {
 	char read;
 	int i = 0;
 	if (fflush( stderr ))
@@ -550,7 +556,7 @@ static const char * read_line_input(char * line, int maxSize, Bool showContent) 
 	do {
 		line[i] = '\0';
 		if (i >= maxSize - 1)
-			return line;
+			return GF_FALSE;
 		read = getch();
 		if (read == 8 || read == 127) {
 			if (i > 0) {
@@ -564,9 +570,10 @@ static const char * read_line_input(char * line, int maxSize, Bool showContent) 
 		fflush(stderr);
 	} while (read != '\n');
 	if (!read)
-		return 0;
-	return line;
+		return GF_FALSE;
+	return GF_TRUE;
 }
+#endif //!GPAC_ENABLE_COVERAGE
 
 static void do_set_speed(Fixed desired_speed)
 {
@@ -953,9 +960,11 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) >= 0) {
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stderr, "login   : ");
-			read_line_input(evt->auth.user, 50, 1);
+			if (!read_line_input(evt->auth.user, 50, 1))
+				continue;
 			fprintf(stderr, "\npassword: ");
-			read_line_input(evt->auth.password, 50, 0);
+			if (!read_line_input(evt->auth.password, 50, 0))
+				continue;
 			fprintf(stderr, "*********\n");
 		}
 		if (maxTries < 0) {

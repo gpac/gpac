@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Events management
@@ -127,12 +127,10 @@ typedef struct
 	/*indicates whether system memory for the backbuffer is desired (no video blitting)*/
 	Bool system_memory;
 	/*indicates whether opengl context shall be created. Values are:
-		0: no opengl context shall be created
-		1: opengl context shall be created for the main window and set as the current one
-		2: an extra opengl context shall be created for offscreen rendering and set as the current one
-			if not supported, mix of 2D (raster) and 3D (openGL) will be disabled
+		GF_FALSE: no opengl context shall be created
+		GF_TRUE: opengl context shall be created for the main window and set as the current one
 	*/
-	u32 opengl_mode;
+	Bool use_opengl;
 
 	Bool disable_vsync;
 

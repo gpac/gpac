@@ -44,7 +44,7 @@ typedef struct
 	u16 port;
 
 	/*scale from TimeStamps in media timescales to TimeStamps in microseconds*/
-	Double microsec_ts_scale;
+	GF_Fraction64 microsec_ts_scale_frac;
 
 	u32 id, codecid;
 	Bool is_encrypted;
@@ -56,6 +56,7 @@ typedef struct
 	u32 streamtype;
 	u32 timescale;
 	u32 nb_aus;
+	Bool is_playing;
 
 	u32 depends_on;
 	u32 cfg_crc;
@@ -96,7 +97,7 @@ typedef struct
 
 GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const char *info, const char *sess_name, const char *url, const char *email, u32 base_pid_id, FILE **sdp_tmp, u64 *session_id);
 
-GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id);
+GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id, u32 file_mode);
 
 GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Bool loop, s32 delay, u32 *active_stream_idx, u64 sys_clock_at_init, u64 *active_min_ts_microsec, u64 microsec_ts_init, Bool *wait_for_loop, u32 *repost_delay_us, Bool *first_RTCP_sent, u32 base_pid_id);
 

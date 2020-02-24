@@ -513,7 +513,10 @@ typedef enum
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
-	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D')
+	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D'),
+
+	//fake codec IDs for RTP
+	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
 } GF_CodecID;
 
 /*! Gets a textual description for the given codecID
@@ -643,34 +646,71 @@ enum
 	/*!LFE Audio Channel*/
 	GF_AUDIO_CH_LFE = (1<<3),
 	/*!Back Left Audio Channel*/
-	GF_AUDIO_CH_BACK_LEFT = (1 << 4),
+	GF_AUDIO_CH_SURROUND_LEFT = (1 << 4),
 	/*!Back Right Audio Channel*/
-	GF_AUDIO_CH_BACK_RIGHT = (1 << 5),
+	GF_AUDIO_CH_SURROUND_RIGHT = (1 << 5),
 	/*Between left and center in front Audio Channel*/
-	GF_AUDIO_CH_LEFT_CENTER = (1 << 6),
+	GF_AUDIO_CH_FRONT_CENTER_LEFT = (1 << 6),
 	/*Between right and center in front Audio Channel*/
-	GF_AUDIO_CH_RIGHT_CENTER = (1 << 7),
-	/*!Back Center Audio Channel*/
-	GF_AUDIO_CH_BACK_CENTER = (1 << 8),
+	GF_AUDIO_CH_FRONT_CENTER_RIGHT = (1 << 7),
 	/*!Side Left Audio Channel*/
-	GF_AUDIO_CH_SIDE_LEFT = (1<<9),
+	GF_AUDIO_CH_REAR_SURROUND_LEFT = (1<<8),
 	/*!Side Right Audio Channel*/
-	GF_AUDIO_CH_SIDE_RIGHT = (1<<10),
-	/*!top Audio Channel*/
-	GF_AUDIO_CH_TOP_CENTER = (1 << 11),
-	/*!between left and center above Audio Channel*/
-	GF_AUDIO_CH_TOP_FRONT_LEFT = (1 << 12),
-	/*!above center Audio Channel*/
-	GF_AUDIO_CH_TOP_FRONT_CENTER = (1 << 13),
-	/*!between right and center above Audio Channel*/
-	GF_AUDIO_CH_TOP_FRONT_RIGHT = (1 << 14),
-	/*!Back Left High Audio Channel*/
-	GF_AUDIO_CH_TOP_BACK_LEFT = (1 << 15),
-	/*!Back top High Audio Channel*/
-	GF_AUDIO_CH_TOP_BACK_CENTER = (1 << 16),
-	/*!Back Right High Audio Channel*/
-	GF_AUDIO_CH_TOP_BACK_RIGHT = (1 << 17)
+	GF_AUDIO_CH_REAR_SURROUND_RIGHT = (1<<9),
+	/*!Back Center Audio Channel*/
+	GF_AUDIO_CH_REAR_CENTER = (1 << 10),
+	/*!Left surround direct Channel*/
+	GF_AUDIO_CH_SURROUND_DIRECT_LEFT = (1 << 11),
+	/*!Right surround direct Channel*/
+	GF_AUDIO_CH_SURROUND_DIRECT_RIGHT = (1 << 12),
+	/*!Left side surround Channel*/
+	GF_AUDIO_CH_SIDE_SURROUND_LEFT = (1 << 13),
+	/*!Right side surround Channel*/
+	GF_AUDIO_CH_SIDE_SURROUND_RIGHT = (1 << 14),
+	/*!Left wide front Channel*/
+	GF_AUDIO_CH_WIDE_FRONT_LEFT = (1 << 15),
+	/*!Right wide front Channel*/
+	GF_AUDIO_CH_WIDE_FRONT_RIGHT = (1 << 16),
+	/*!Left front top Channel*/
+	GF_AUDIO_CH_FRONT_TOP_LEFT = (1 << 17),
+	/*!Right front top Channel*/
+	GF_AUDIO_CH_FRONT_TOP_RIGHT = (1 << 18),
+	/*!Center front top Channel*/
+	GF_AUDIO_CH_FRONT_TOP_CENTER = (1 << 19),
+	/*!Left surround top Channel*/
+	GF_AUDIO_CH_SURROUND_TOP_LEFT = (1 << 20),
+	/*!Right surround top Channel*/
+	GF_AUDIO_CH_SURROUND_TOP_RIGHT = (1 << 21),
+	/*!Center surround top Channel*/
+	GF_AUDIO_CH_REAR_CENTER_TOP = (1 << 22),
+	/*!Left side surround top Channel*/
+	GF_AUDIO_CH_SIDE_SURROUND_TOP_LEFT = (1 << 23),
+	/*!Left side surround top Channel*/
+	GF_AUDIO_CH_SIDE_SURROUND_TOP_RIGHT = (1 << 24),
+	/*!Center surround top Channel*/
+	GF_AUDIO_CH_CENTER_SURROUND_TOP = (1 << 25),
+	/*!LFE 2  Channel*/
+	GF_AUDIO_CH_LFE2 = (1 << 26),
+	/*!Left front bottom Channel*/
+	GF_AUDIO_CH_FRONT_BOTTOM_LEFT = (1 << 27),
+	/*!Right front bottom Channel*/
+	GF_AUDIO_CH_FRONT_BOTTOM_RIGHT = (1 << 28),
+	/*!Center front bottom Channel*/
+	GF_AUDIO_CH_FRONT_BOTTOM_CENTER = (1 << 29),
+	/*!Left surround bottom Channel*/
+	GF_AUDIO_CH_SURROUND_BOTTOM_LEFT = (1 << 30),
+	/*!Right surround bottom Channel*/
+	GF_AUDIO_CH_SURROUND_BOTTOM_RIGHT = 0x80000000 //(1 << 31)
 };
+/*64 bit flags are defined as macro to avoid msvc compil warnings*/
+/*!Left edge of screen Channel*/
+#define GF_AUDIO_CH_SCREEN_EDGE_LEFT	0x2000000000ULL
+/*!Right edge of screen Channel*/
+#define GF_AUDIO_CH_SCREEN_EDGE_RIGHT	0x4000000000ULL
+/*!left back surround Channel*/
+#define GF_AUDIO_CH_BACK_SURROUND_LEFT	0x20000000000ULL
+/*!right back surround Channel*/
+#define GF_AUDIO_CH_BACK_SURROUND_RIGHT	0x40000000000ULL 
 
 
 /*!
@@ -763,6 +803,31 @@ GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype);
 */
 GF_AudioFormat gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc);
 
+/*! get CICP layout code point from audio configuration
+\param nb_chan number of channels
+\param nb_surr number of surround channels
+\param nb_lfe number of LFE channels
+\return CICP layout code point format or 0 if unknown
+*/
+u32 gf_audio_fmt_get_cicp_layout(u32 nb_chan, u32 nb_surr, u32 nb_lfe);
+
+/*! get channel layout mask  from CICP layout
+\param cicp_layout channel layout CICP code point
+\return layout mask or 0 if unknown
+*/
+u64 gf_audio_fmt_get_layout_from_cicp(u32 cicp_layout);
+
+/*! get CICP layout name
+\param cicp_layout channel layout CICP code point
+\return name of layout of "unknown" if unknown
+*/
+const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout);
+
+/*! get CICP layout value from channel layout mask 
+\param chan_layout channel layout mask
+\return CICP code point or 255 if unknown
+*/
+u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout);
 
 /*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
   */

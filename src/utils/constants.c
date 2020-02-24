@@ -697,6 +697,100 @@ GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype)
 	return 0;
 }
 
+GF_EXPORT
+u32 gf_audio_fmt_get_cicp_layout(u32 nb_chan, u32 nb_surr, u32 nb_lfe)
+{
+	if ( !nb_chan && !nb_surr && !nb_lfe) return 0;
+	else if ((nb_chan==1) && !nb_surr && !nb_lfe) return 1;
+	else if ((nb_chan==2) && !nb_surr && !nb_lfe) return 2;
+	else if ((nb_chan==3) && !nb_surr && !nb_lfe) return 3;
+	else if ((nb_chan==3) && (nb_surr==1) && !nb_lfe) return 4;
+	else if ((nb_chan==3) && (nb_surr==2) && !nb_lfe) return 5;
+	else if ((nb_chan==3) && (nb_surr==2) && (nb_lfe==1)) return 6;
+	else if ((nb_chan==5) && (nb_surr==0) && (nb_lfe==1)) return 6;
+
+	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 7;
+	else if ((nb_chan==2) && (nb_surr==1) && !nb_lfe) return 9;
+	else if ((nb_chan==2) && (nb_surr==2) && !nb_lfe) return 10;
+	else if ((nb_chan==3) && (nb_surr==3) && (nb_lfe==1)) return 11;
+	else if ((nb_chan==3) && (nb_surr==4) && (nb_lfe==1)) return 12;
+	else if ((nb_chan==11) && (nb_surr==11) && (nb_lfe==2)) return 13;
+	//we miss left / right front center vs left / right front vertical to signal this one
+//	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 14;
+	else if ((nb_chan==5) && (nb_surr==5) && (nb_lfe==2)) return 15;
+	else if ((nb_chan==5) && (nb_surr==4) && (nb_lfe==1)) return 16;
+	else if ((nb_surr==5) && (nb_lfe==1) && (nb_chan==6)) return 17;
+	else if ((nb_surr==7) && (nb_lfe==1) && (nb_chan==6)) return 18;
+	else if ((nb_chan==5) && (nb_surr==6) && (nb_lfe==1)) return 19;
+	else if ((nb_chan==7) && (nb_surr==6) && (nb_lfe==1)) return 20;
+
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unkown CICP mapping for channel config %d/%d.%d\n", nb_chan, nb_surr, nb_lfe));
+	return 0;
+}
+
+typedef struct
+{
+	u32 cicp;
+	const char *name;
+	u64 channel_mask;
+} GF_CICPAudioLayout;
+
+static const GF_CICPAudioLayout GF_CICPLayouts[] =
+{
+	{1, "1/0.0", GF_AUDIO_CH_FRONT_CENTER },
+	{2, "2/0.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT },
+	{3, "3/0.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER },
+	{4, "3/1.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_CENTER },
+	{5, "3/2.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT },
+	{6, "3/2.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_LFE },
+	{7, "5/2.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_LFE },
+	{8, "1+1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT },
+	{9, "2/1.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_REAR_CENTER },
+	{10, "2/2.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT },
+	{11, "3/3.1", GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT | GF_AUDIO_CH_REAR_CENTER | GF_AUDIO_CH_LFE },
+	{12, "3/4.1", GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_LFE },
+	{13, "11/11.2", GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER_LEFT | GF_AUDIO_CH_FRONT_CENTER_RIGHT | GF_AUDIO_CH_SIDE_SURROUND_LEFT | GF_AUDIO_CH_SIDE_SURROUND_RIGHT | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_REAR_CENTER | GF_AUDIO_CH_LFE | GF_AUDIO_CH_LFE2 | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT | GF_AUDIO_CH_FRONT_TOP_CENTER | GF_AUDIO_CH_SURROUND_TOP_LEFT | GF_AUDIO_CH_SURROUND_TOP_RIGHT | GF_AUDIO_CH_REAR_CENTER_TOP | GF_AUDIO_CH_SIDE_SURROUND_TOP_LEFT | GF_AUDIO_CH_SIDE_SURROUND_TOP_RIGHT | GF_AUDIO_CH_CENTER_SURROUND_TOP | GF_AUDIO_CH_FRONT_BOTTOM_CENTER | GF_AUDIO_CH_FRONT_BOTTOM_LEFT | GF_AUDIO_CH_FRONT_BOTTOM_RIGHT },
+	{14, "5/2.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT },
+	{15, "5/5.2", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_SIDE_SURROUND_LEFT | GF_AUDIO_CH_SIDE_SURROUND_RIGHT | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT | GF_AUDIO_CH_CENTER_SURROUND_TOP | GF_AUDIO_CH_LFE | GF_AUDIO_CH_LFE2 },
+	{16, "5/4.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT | GF_AUDIO_CH_SURROUND_TOP_LEFT | GF_AUDIO_CH_SURROUND_TOP_RIGHT },
+	{17, "6/5.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT | GF_AUDIO_CH_FRONT_TOP_CENTER | GF_AUDIO_CH_SURROUND_TOP_LEFT | GF_AUDIO_CH_SURROUND_TOP_RIGHT | GF_AUDIO_CH_CENTER_SURROUND_TOP },
+	{18, "6/7.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT | GF_AUDIO_CH_BACK_SURROUND_LEFT | GF_AUDIO_CH_BACK_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT | GF_AUDIO_CH_FRONT_TOP_CENTER | GF_AUDIO_CH_SURROUND_TOP_LEFT | GF_AUDIO_CH_SURROUND_TOP_RIGHT | GF_AUDIO_CH_CENTER_SURROUND_TOP },
+	{19, "5/6.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SIDE_SURROUND_LEFT | GF_AUDIO_CH_SIDE_SURROUND_RIGHT | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT | GF_AUDIO_CH_SURROUND_TOP_LEFT | GF_AUDIO_CH_SURROUND_TOP_RIGHT },
+	{20, "7/6.1", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SCREEN_EDGE_LEFT | GF_AUDIO_CH_SCREEN_EDGE_RIGHT | GF_AUDIO_CH_SIDE_SURROUND_LEFT | GF_AUDIO_CH_SIDE_SURROUND_RIGHT | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT | GF_AUDIO_CH_SURROUND_TOP_LEFT | GF_AUDIO_CH_SURROUND_TOP_RIGHT }
+};
+
+GF_EXPORT
+u64 gf_audio_fmt_get_layout_from_cicp(u32 cicp_layout)
+{
+	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	for (i = 0; i < nb_cicp; i++) {
+		if (GF_CICPLayouts[i].cicp == cicp_layout) return GF_CICPLayouts[i].channel_mask;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout value %d\n", cicp_layout));
+	return 0;
+}
+
+GF_EXPORT
+const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout)
+{
+	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	for (i = 0; i < nb_cicp; i++) {
+		if (GF_CICPLayouts[i].cicp == cicp_layout) return GF_CICPLayouts[i].name;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout value %d\n", cicp_layout));
+	return "unknwon";
+}
+
+GF_EXPORT
+u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
+{
+	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	for (i = 0; i < nb_cicp; i++) {
+		if (GF_CICPLayouts[i].channel_mask == chan_layout) return GF_CICPLayouts[i].cicp;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout for channel layout "LLU"\n", chan_layout));
+	return 255;
+}
 
 typedef struct
 {

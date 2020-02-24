@@ -1333,7 +1333,10 @@ void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *vp9, GF_MediaBox *md
 	if (vp9->emul_esd) gf_odf_desc_del((GF_Descriptor *)vp9->emul_esd);
 	vp9->emul_esd = gf_odf_desc_esd_new(2);
 	vp9->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-	vp9->emul_esd->decoderConfig->objectTypeIndication = GF_CODECID_VP9;
+	if (vp9->type == GF_ISOM_BOX_TYPE_VP08)
+		vp9->emul_esd->decoderConfig->objectTypeIndication = GF_CODECID_VP8;
+	else
+		vp9->emul_esd->decoderConfig->objectTypeIndication = GF_CODECID_VP9;
 
 	if (btrt) {
 		vp9->emul_esd->decoderConfig->bufferSizeDB = btrt->bufferSizeDB;

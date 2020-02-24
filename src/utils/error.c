@@ -28,7 +28,7 @@
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
-static char szTYPE_BUF[NB_4CC_BUF][9];
+static char szTYPE_BUF[NB_4CC_BUF][GF_4CC_MSIZE];
 static u32 buf_4cc_idx=0;
 
 GF_EXPORT
@@ -181,6 +181,7 @@ static struct log_tool_info {
 	{ GF_LOG_DASH, "dash", GF_LOG_WARNING },
 	{ GF_LOG_FILTER, "filter", GF_LOG_WARNING },
 	{ GF_LOG_SCHEDULER, "sched", GF_LOG_WARNING },
+	{ GF_LOG_ATSC, "atsc", GF_LOG_WARNING },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
 };
@@ -1768,6 +1769,7 @@ struct __gf_file_io
 	void *udta;
 };
 
+GF_EXPORT
 GF_FileIO *gf_fileio_new(char *url, void *udta,
 	  GF_Err (*open)(GF_FileIO *fileio, const char *url, const char *mode),
 	  GF_Err (*seek)(GF_FileIO *fileio, u64 offset, s32 whence),
@@ -1800,31 +1802,41 @@ GF_FileIO *gf_fileio_new(char *url, void *udta,
 	return tmp;
 }
 
+GF_EXPORT
 const char * gf_fileio_url(GF_FileIO *gfio)
 {
 	return gfio ? gfio->url : NULL;
 }
+
+GF_EXPORT
 const char * gf_fileio_resource_url(GF_FileIO *gfio)
 {
 	return gfio ? gfio->res_url : NULL;
 }
 
+GF_EXPORT
 void gf_fileio_del(GF_FileIO *gfio)
 {
 	if (!gfio) return;
 	if (gfio->url) gf_free(gfio->url);
 	gf_free(gfio);
 }
+
+GF_EXPORT
 void *gf_fileio_get_udta(GF_FileIO *gfio)
 {
 	return gfio ? gfio->udta : NULL;
 }
+
+GF_EXPORT
 GF_Err gf_fileio_open_url(GF_FileIO *gfio, const char *url, const char *mode)
 {
 	if (!gfio) return GF_BAD_PARAM;
 	if (!gfio->open) return url ? GF_NOT_SUPPORTED : GF_OK;
 	return gfio->open(gfio, url, mode);
 }
+
+GF_EXPORT
 GF_Err gf_fileio_seek(GF_FileIO *gfio, u64 offset, s32 whence)
 {
 	if (!gfio) return GF_BAD_PARAM;
@@ -1832,6 +1844,7 @@ GF_Err gf_fileio_seek(GF_FileIO *gfio, u64 offset, s32 whence)
 	return GF_NOT_SUPPORTED;
 }
 
+GF_EXPORT
 u32 gf_fileio_read(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
 {
 	if (!gfio) return GF_BAD_PARAM;
@@ -1840,20 +1853,27 @@ u32 gf_fileio_read(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
 	return 0;
 }
 
+GF_EXPORT
 u32 gf_fileio_write(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
 {
 	if (!gfio) return GF_BAD_PARAM;
 	if (!gfio->write) return 0;
 	return gfio->write(gfio, buffer, nb_bytes);
 }
+
+GF_EXPORT
 Bool gf_fileio_write_mode(GF_FileIO *gfio)
 {
 	return (gfio && gfio->write) ? GF_TRUE : GF_FALSE;
 }
+
+GF_EXPORT
 Bool gf_fileio_read_mode(GF_FileIO *gfio)
 {
 	return (gfio && gfio->read) ? GF_TRUE : GF_FALSE;
 }
+
+GF_EXPORT
 GF_FileIO *gf_fileio_from_url(const char *url)
 {
 	char szURL[100];
@@ -1868,23 +1888,29 @@ GF_FileIO *gf_fileio_from_url(const char *url)
 	}
 	return NULL;
 }
+
+GF_EXPORT
 const char * gf_fileio_translate_url(const char *url)
 {
 	GF_FileIO *gfio = gf_fileio_from_url(url);
 	return gfio ? gfio->res_url : NULL;
 }
 
+GF_EXPORT
 s64 gf_fileio_tell(GF_FileIO *fileio)
 {
 	if (!fileio || !fileio->tell) return -1;
 	return fileio->tell(fileio);
 }
+
+GF_EXPORT
 Bool gf_fileio_eof(GF_FileIO *fileio)
 {
 	if (!fileio || !fileio->tell) return GF_TRUE;
 	return fileio->eof(fileio);
 }
 
+GF_EXPORT
 const char *gf_fileio_factory(GF_FileIO *gfio, const char *new_res_url)
 {
 	if (!gfio || !gfio->new_fileio) return NULL;

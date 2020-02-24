@@ -117,6 +117,10 @@ typedef struct
 	Bool has_seen_eods;
 	u32 pck_duration;
 
+	u64 loop_ts_offset;
+	u64 last_dts;
+	u32 last_dur;
+
 	char *pck_data_buf;
 } M2Pid;
 
@@ -351,8 +355,22 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (tspid->is_repeat)
 			es_pck.flags |= GF_ESI_DATA_REPEAT;
 
-		es_pck.cts = cts = gf_filter_pck_get_cts(pck);
+		cts = gf_filter_pck_get_cts(pck);
+		dts = gf_filter_pck_get_dts(pck);
+		if (dts != GF_FILTER_NO_TS) {
+			dts += tspid->loop_ts_offset;
+			//loop detected
+			if (tspid->last_dts && (dts<tspid->last_dts)) {
+				dts -= tspid->loop_ts_offset;
+				tspid->loop_ts_offset = tspid->last_dts - dts + tspid->last_dur;
+				dts += tspid->loop_ts_offset;
+			}
+		}
+		if (cts != GF_FILTER_NO_TS) {
+			cts += tspid->loop_ts_offset;
+		}
 
+		es_pck.cts = cts;
 		if (tspid->temi_id) {
 			u64 ntp=0;
 			//TOCHECK: do we want media timeline or composition timeline ?
@@ -387,8 +405,8 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 
 		es_pck.dts = es_pck.cts;
-		dts = gf_filter_pck_get_dts(pck);
 		if (dts != GF_FILTER_NO_TS) {
+			tspid->last_dts = dts;
 			es_pck.dts = dts;
 			es_pck.dts += tspid->prog->max_media_skip + tspid->media_delay;
 
@@ -415,6 +433,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 		es_pck.data = (char *) gf_filter_pck_get_data(pck, &es_pck.data_len);
 		es_pck.duration = gf_filter_pck_get_duration(pck);
+		tspid->last_dur = es_pck.duration;
 
 		if (tspid->rewrite_odf) {
 			tsmux_rewrite_odf(tspid->ctx, &es_pck);
@@ -680,10 +699,12 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//set output properties at init or reconfig
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ts") );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FAKE_MP2T));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_NO_TS_LOOP, &PROP_BOOL(GF_TRUE));
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DASH_MODE, &pe);
 	if (p) {
@@ -1065,6 +1086,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 	nb_pck_in_call = 0;
 	nb_pck_in_pack=0;
 	while (1) {
+		u64 pck_ts;
 		u8 *output;
 		u32 osize;
 		Bool is_pack_flush = GF_FALSE;
@@ -1106,6 +1128,10 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			ctx->next_is_start = GF_FALSE;
 		}
 
+		pck_ts = gf_m2ts_get_ts_clock_90k(ctx->mux);
+		gf_filter_pck_set_dts(pck, pck_ts);
+		gf_filter_pck_set_cts(pck, pck_ts);
+
 		gf_filter_pck_send(pck);
 		ctx->nb_pck += nb_pck_in_pack;
 		ctx->nb_pck_in_seg++;
@@ -1145,6 +1171,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		if (ctx->nb_pck_in_seg) {
 			tsmux_insert_sidx(ctx, GF_TRUE);
 			tsmux_send_seg_event(filter, ctx);
+			ctx->nb_pck_in_seg = 0;
 		}
 		return GF_EOS;
 	}
@@ -1238,6 +1265,22 @@ static void tsmux_finalize(GF_Filter *filter)
 	if (ctx->pack_buffer) gf_free(ctx->pack_buffer);
 	if (ctx->sidx_entries) gf_free(ctx->sidx_entries);
 	if (ctx->idx_bs) gf_bs_del(ctx->idx_bs);
+}
+
+static Bool tsmux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	if ((evt->base.type==GF_FEVT_STOP) || (evt->base.type==GF_FEVT_PLAY) ) {
+		u32 i;
+		GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+		for (i=0; i<gf_list_count(ctx->pids); i++) {
+			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			if (evt->base.type==GF_FEVT_STOP)
+				tspid->esi.caps |= GF_ESI_STREAM_IS_OVER;
+			else
+				tspid->esi.caps &= ~GF_ESI_STREAM_IS_OVER;
+		}
+	}
+	return GF_FALSE;
 }
 
 static const GF_FilterCapability TSMuxCaps[] =
@@ -1361,6 +1404,7 @@ GF_FilterRegister TSMuxRegister = {
 	SETCAPS(TSMuxCaps),
 	.configure_pid = tsmux_configure_pid,
 	.process = tsmux_process,
+	.process_event = tsmux_process_event,
 };
 
 

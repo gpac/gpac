@@ -150,6 +150,8 @@ print help. Use -help or -h for basic options, -ha for advanced options, -hx for
 .br
 * FNAME: print filter FNAME info (multiple FNAME can be given). For meta-filters, use FNAME:INST, eg ffavin:avfoundation. Use * to print info on all filters (big output!), *:* to print info on all filters including meta filter instances (really big output!). By default only basic filter options and description are shown. Use -ha to show advanced options and filter IO capabilities, -hx for expert options, -hh for all options and filter capbilities
 .br
+* FNAME.OPT: print option OPT in filter FNAME
+.br
 .TP
 .B \-p (string)
 .br
@@ -202,6 +204,11 @@ The following libgpac core options allow customizing the filter session:
 .B \-dbg-edges
 .br
 log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
+.br
+.TP
+.B \-full-link
+.br
+throw error if any pid in the filter graph cannot be linked)
 .br
 .TP
 .B \-no-block
@@ -597,14 +604,14 @@ enable accepting broken SSL certificates
 set user agent name for HTTP/RTSP
 .br
 .TP
-.B \-user-profileid,-upid (string)
+.B \-user-profileid (string)
 .br
-set user profile ID (through X-UserProfileID entity header)
+set user profile ID (through X-UserProfileID entity header) in HTTP requests
 .br
 .TP
-.B \-user-profile,-up (string)
+.B \-user-profile (string)
 .br
-set user profile filename. Content of file is appended as body to HEAD/GET requests
+set user profile filename. Content of file is appended as body to HTTP HEAD/GET requests, associated Mime is text/xml
 .br
 .TP
 .B \-query-string (string)
@@ -620,6 +627,11 @@ force using threads for async download requests rather than session scheduler
 .B \-dbg-edges
 .br
 log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
+.br
+.TP
+.B \-full-link
+.br
+throw error if any pid in the filter graph cannot be linked)
 .br
 .TP
 .B \-no-block
@@ -721,19 +733,6 @@ indicate if offscreen yuv->rgb is enabled. can be set to false to force disablin
 .B \-overlay-color-key (string)
 .br
 color to use for overlay keying, hex format
-.br
-.TP
-.B \-gl-offscreen (Enum, default: Window)
-.br
-openGL mode for offscreen rendering (will soon be deprecated).
-.br
-* Window: a hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work
-.br
-* VisibleWindow: a visible window is used to perform offscreen rendering. This can be useful while debugging
-.br
-* Pixmap: an X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player
-.br
-* PBuffer: use opengl PBuffers for drawing, not always supported
 .br
 .TP
 .B \-gl-bits-comp (int, default: 8)
@@ -960,6 +959,8 @@ toolX can be one of:
 .br
 * mutex: log all mutex calls
 .br
+* atsc: ATSC3 debugging
+.br
 * all: all tools logged - other tools can be specified afterwards.  
 .br
 The special keyword ncl can be set to disable color logs.  
@@ -979,7 +980,7 @@ This moves all log to info level, dash to debug level and disable color logs
 .br
 Filters are configurable processing units consuming and producing data packets. These packets are carried between filters through a data channel called pid. A PID is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).
 .br
-Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run.
+Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run, unless -full-link is set.
 .br
   
 .br
@@ -1821,9 +1822,9 @@ Number of audio channels
 Number of bits per sample in compressed source
 .br
 .TP
-.B ChannelLayout (CHLO,unsigned int,  )
+.B ChannelLayout (CHLO,unsigned long int,  )
 .br
-Channel Layout
+Channel Layout mask
 .br
 .TP
 .B AudioFormat (AFMT,audio format,  )
@@ -2476,6 +2477,16 @@ Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 Indicate a magic number to store in the track, only used by importers
 .br
 .TP
+.B TrackIndex (TIDX,unsigned long int,D )
+.br
+Indicate target track index in destination file, stored by lowest value first (not set by demuxers)
+.br
+.TP
+.B NoTSLoop (NTSL,boolean,  )
+.br
+Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)
+.br
+.TP
 .B FragStart (PFRB,unsigned int,D )
 .br
 Indicate if packet is a fragment start (value 1) or a segment start (value 2)
@@ -2582,6 +2593,11 @@ Planar YUV+alpha 420 8 bit
 .B yuvd (ext *.yuvd)
 .br
 Planar YUV+depth  420 8 bit
+.br
+.TP
+.B yuv444a (ext *.yp4a)
+.br
+Planar YUV+alpha 444 8 bit
 .br
 .TP
 .B grey (ext *.grey)
@@ -3340,7 +3356,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3181-gae43dc6e0-filters
+build: 0.9.0-DEV-rev3291-gcab89e8f5-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

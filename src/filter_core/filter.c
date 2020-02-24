@@ -253,11 +253,16 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->dst_args = dst_args ? gf_strdup(dst_args) : NULL;
 
 	if (e) {
-		if (!filter->setup_notified) {
+		if (!filter->setup_notified && (e<0) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),freg->name));
 			gf_filter_setup_failure(filter, e);
 		}
 		if (err) *err = e;
+		//filter requested cancelation of filter session upon init
+		if (e==GF_EOS) {
+			fsess->run_status = GF_EOS;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s requested cancelation of filter session\n", freg->name));
+		}
 		return NULL;
 	}
 	if (filter && src_striped) filter->orig_args = gf_strdup(src_striped);
@@ -468,7 +473,15 @@ static void gf_filter_set_id(GF_Filter *filter, const char *ID)
 }
 
 GF_EXPORT
-void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
+void gf_filter_reset_source(GF_Filter *filter)
+{
+	if (filter && filter->source_ids) {
+		gf_free(filter->source_ids);
+		filter->source_ids = NULL;
+	}
+}
+
+static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
 	assert(filter);
 	if (!sources_ID) {
@@ -882,8 +895,16 @@ static const char *gf_filter_load_arg_config(GF_FilterSession *session, const ch
 			const char *arg = gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
 			if (arg[1]!='-') continue;
+
 			if (!strncmp(arg+2, arg_name, alen)) {
+				u32 len=0;
 				char *sep = strchr(arg, '=');
+				if (sep) {
+					len = (u32) (sep - (arg+2));
+				} else {
+					len = (u32) strlen(arg+2);
+				}
+				if (len != alen) continue;
 				gf_fs_push_arg(session, arg_name, GF_TRUE, 0);
 
 				if (sep) return sep+1;
@@ -1024,6 +1045,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						|| !strncmp(args+4, "udp://", 6)
 						|| !strncmp(args+4, "tcpu://", 7)
 						|| !strncmp(args+4, "udpu://", 7)
+						|| !strncmp(args+4, "rtp://", 6)
 						|| !strncmp(args+4, "atsc://", 7)
 						|| !strncmp(args+4, "gfio://", 7)
 						)
@@ -1034,6 +1056,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							|| !strncmp(args+4, "udp://", 6)
 							|| !strncmp(args+4, "tcpu://", 7)
 							|| !strncmp(args+4, "udpu://", 7)
+							|| !strncmp(args+4, "rtp://", 6)
 						) {
 							char *sep2 = sep ? strchr(sep+1, ':') : NULL;
 							if (sep2) {
@@ -1513,6 +1536,8 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 	}
 	filter_dst = dst_pidinst->filter;
 
+	gf_fs_check_graph_load(cur_filter->session, GF_TRUE);
+
 	//walk down the filter chain and find the shortest path to our destination
 	//stop when the current filter is not a one-to-one filter
 	while (1) {
@@ -1536,8 +1561,11 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 		}
 		cur_filter = an_inpid->pid->filter;
 	}
-	if (!link_from_pid) return;
 
+	if (!link_from_pid) {
+		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
+		return;
+	}
 	//detach the pidinst, and relink from the new input pid
 	gf_filter_renegociate_output_dst(link_from_pid, link_from_pid->filter, filter_dst, dst_pidinst, src_pidinst);
 }
@@ -1572,11 +1600,16 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	}
 	//we are inserting a new chain
 	else if (reconfig_only) {
+		gf_fs_check_graph_load(filter_dst->session, GF_TRUE);
 		new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst);
 	} else {
 		Bool reassigned;
+		gf_fs_check_graph_load(filter_dst->session, GF_TRUE);
 		new_f = gf_filter_pid_resolve_link(pid, filter_dst, &reassigned);
 	}
+
+	gf_fs_check_graph_load(filter_dst->session, GF_FALSE);
+
 	if (! new_f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter to adapt caps between pid %s in filter %s to filter %s, disconnecting pid!\n", pid->name, filter->name, filter_dst->name));
 		filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
@@ -1867,7 +1900,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[Filter] %s in error / not responding properly: %d consecutive errors in "LLU" us with no packet discarded or sent\n\tdiscarding all inputs and notifying end of stream on all outputs\n", filter->name, filter->nb_consecutive_errors, diff));
 			kill_filter = GF_TRUE;
 		}
-	} else{
+	} else {
 		if ((!filter->nb_pck_io && filter->pending_packets && (filter->nb_pids_playing>0) ) || for_reconnection) {
 			filter->nb_consecutive_errors++;
 
@@ -1999,6 +2032,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
 	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
+	filter->in_process_callback = GF_TRUE;
+
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)
 		e = gf_filter_process_check_alloc(filter);
@@ -2006,6 +2041,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 #endif
 		e = filter->freg->process(filter);
 
+	filter->in_process_callback = GF_FALSE;
 	gf_rmt_end();
 
 	//flush all pending pid init requests following the call to init
@@ -2020,7 +2056,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (filter->session->run_status != GF_OK) {
 		return;
 	}
-	//if eos but we still have pending packets or proocess tasts queued, move to GF_OK so that
+	//if eos but we still have pending packets or process tasks queued, move to GF_OK so that
 	//we evaluate the blocking state
 	if (e==GF_EOS) {
 		if (filter->postponed_packets) {
@@ -2174,6 +2210,17 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 {
 	if (filter->finalized || filter->removed)
 		return;
+
+	//although this is theoretically OK, it breaks quite some tests. Need further investigation
+#if 0
+	//if regular posting (not direct) and our caller is the main process function, no need to lock task mutex, just increase
+	//the next scheduled time
+	if (!use_direct_dispatch && filter->in_process_callback) {
+		filter->schedule_next_time = 1 + gf_sys_clock_high_res();
+		return;
+	}
+#endif
+
 	//lock task mx to take the decision whether to post a new task or not (cf gf_filter_check_pending_tasks)
 	gf_mx_p(filter->tasks_mx);
 	assert((s32)filter->process_task_queued>=0);
@@ -2319,7 +2366,9 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 			GF_Filter *sfilter = pidinst->pid->filter;				
 			gf_list_del_item(filter->input_pids, pidinst);
 			pidinst->filter = NULL;
+			gf_mx_p(filter->tasks_mx);
 			filter->num_input_pids = gf_list_count(filter->input_pids);
+			gf_mx_v(filter->tasks_mx);
 
 			//post a pid_delete task to also trigger removal of the filter if needed
 			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
@@ -2543,7 +2592,9 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 		pid->destroyed = GF_TRUE;
 		gf_fs_post_task(filter->session, gf_filter_pid_del_task, filter, pid, "pid_delete", NULL);
 	}
+	gf_mx_p(filter->tasks_mx);
 	filter->num_output_pids = 0;
+	gf_mx_v(filter->tasks_mx);
 
 	if (filter->freg->finalize) {
 		FSESS_CHECK_THREAD(filter)
@@ -2986,7 +3037,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 					if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 					if (cap->code != GF_PROP_PID_FILE_EXT) continue;
 					value = cap->val.value.string;
-					while (value) {
+					while (value && ext_len) {
 						const char *match = strstr(value, tmp_ext);
 						if (!match) break;
 						if (!match[ext_len] || (match[ext_len]=='|')) {
@@ -3515,3 +3566,37 @@ Bool gf_filter_is_alias(GF_Filter *filter)
 	if (filter && filter->multi_sink_target) return GF_TRUE;
 	return GF_FALSE;
 }
+
+/*! checks if the some PID connection tasks are still pending at the session level
+\param filter target filter
+\return GF_TRUE if some connection tasks are pending, GF_FALSE otherwise
+*/
+Bool gf_filter_connections_pending(GF_Filter *filter)
+{
+	u32 i, count;
+	Bool res = GF_FALSE;
+	if (!filter) return GF_FALSE;
+	if (filter->session->pid_connect_tasks_pending) return GF_TRUE;
+	gf_mx_p(filter->session->filters_mx);
+	count = gf_list_count(filter->session->filters);
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(filter->session->filters, i);
+		if (f==filter) continue;
+
+		gf_mx_p(filter->tasks_mx);
+		if (f->num_input_pids && ! f->num_output_pids) {
+			if (f->forced_caps) {
+				res = gf_filter_has_out_caps(f->forced_caps, f->nb_forced_caps);
+			} else {
+				res = gf_filter_has_out_caps(f->freg->caps, f->freg->nb_caps);
+			}
+		}
+		gf_mx_v(filter->tasks_mx);
+		if (res)
+			break;
+	}
+	gf_mx_v(filter->session->filters_mx);
+
+	return res;
+}
+

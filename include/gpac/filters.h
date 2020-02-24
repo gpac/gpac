@@ -225,6 +225,8 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 #define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
 /*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
 #define GF_FS_FLAG_NO_RESERVOIR (1<<10)
+/*! Throws an error if any PID in the filter graph cannot be linked. The default behaviour is tu run the session even when some PIDs are not connected*/
+#define GF_FS_FLAG_FULL_LINK (1<<11)
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
@@ -979,10 +981,9 @@ enum
 	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
 	GF_PROP_PID_COLR_CHROMALOC = GF_4CC('C','L','O','C'),
 	GF_PROP_PID_COLR_SPACE = GF_4CC('C','S','P','C'),
-
-
 	GF_PROP_PID_SRC_MAGIC = GF_4CC('P','S','M','G'),
-
+	GF_PROP_PID_TRACK_INDEX = GF_4CC('T','I','D','X'),
+	GF_PROP_NO_TS_LOOP = GF_4CC('N','T','S','L'),
 	GF_PROP_PCK_FRAG_START = GF_4CC('P','F','R','B'),
 	GF_PROP_PCK_FRAG_RANGE = GF_4CC('P','F','R','R'),
 	GF_PROP_PCK_SIDX_RANGE = GF_4CC('P','F','S','R'),
@@ -1721,7 +1722,7 @@ struct __gf_filter_register
 
 	/*! optional - callback for filter initialization -  private stack of filter is allocated by framework)
 	\param filter the target filter
-	\return error if any.
+	\return error if any. A filter may return GF_EOS to indicate the filter session shall not be run, but that no error should be thrown (used by dasher in realtime regulation mode)
 	*/
 	GF_Err (*initialize)(GF_Filter *filter);
 
@@ -2051,7 +2052,7 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
 
 /*! Explicitly assigns a source ID to a filter. This shall be called before connecting the link_from filter
-If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem adress) will be used
+If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem address) will be used
 \param filter the target filter
 \param link_from the filter to link from
 \param link_ext any link extensions allowed in link syntax:
@@ -2065,6 +2066,14 @@ If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (
 \return error code if any
 */
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
+
+/*! Explicitly reset sourceID of a filter. This shall be called before connecting the filter (eg creating PIDs).
+
+ This is mostly used to reset a source ID of a filter created from a destination (e.g., dasher creating muxers from the MPD URL) where the destination arguments could have sourceIDs specified/
+
+\param filter the target filter
+*/
+void gf_filter_reset_source(GF_Filter *filter);
 
 /*! Explicitly assigns an ID to a filter. This shall be called before running the session, and cannot be called on a filter with ID assign
 \param filter the target filter
@@ -2332,6 +2341,14 @@ NOTE: this does not guarantee that no other PID remove or configure will happen 
 */
 Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_filter);
 
+/*! checks if the some PID connection tasks are still pending at the session level
+
+This can be needed by some filters needing to make sure all their inputs are known before starting producing packets.
+
+\param filter target filter
+\return GF_TRUE if some connection tasks are pending, GF_FALSE otherwise
+*/
+Bool gf_filter_connections_pending(GF_Filter *filter);
 
 /*! Checks if reporting is turned on at session level.
 \param filter target filter
@@ -3001,15 +3018,6 @@ the following process() call.
 */
 void gf_filter_pid_discard_block(GF_FilterPid *PID);
 
-/*! Force a built-in cap props on the output PID.
-A PID may hold one forced cap at most. When set it acts as a virtual property checked against filter caps.
-This is currently only used by DASH segmenter to enforce loading muxers with dashing capability - likely to change in the near future.
-\param PID the target filter PID
-\param cap_4cc of built-in property to force in linked filters
-\return error if any
-*/
-GF_Err gf_filter_pid_force_cap(GF_FilterPid *PID, u32 cap_4cc);
-
 /*! Gets URL argument of first destination of PID if any - memory shall be freed by caller.
 \param PID the target filter PID
 \return destination URL string or NULL if error
@@ -3604,7 +3612,7 @@ typedef struct _gf_filter_frame_interface
 	/*! get video frame plane
 	\param frame interface object for the video frame
 	\param plane_idx plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
-	\param outPlane adress of target color plane
+	\param outPlane address of target color plane
 	\param outStride stride in bytes of target color plane
 	\return error code if any
 	*/

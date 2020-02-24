@@ -802,21 +802,6 @@ static void gf_dump_vrml_simple_field(GF_SceneDumper *sdump, GF_FieldInfo field,
 	}
 }
 
-static Bool gf_dump_vrml_needs_container(GF_Node *node, GF_FieldInfo *fi)
-{
-	u32 i, count, nb_ndt;
-	GF_FieldInfo info;
-	if (!strcmp(fi->name, "children")) return 0;
-	nb_ndt = 0;
-	count = gf_node_get_field_count(node);
-	for (i=0; i<count; i++) {
-		gf_node_get_field(node, i, &info);
-		if ((info.eventType==GF_SG_EVENT_IN) || (info.eventType==GF_SG_EVENT_OUT)) continue;
-		if (info.NDTtype==fi->NDTtype) nb_ndt++;
-	}
-	return (nb_ndt>1) ? 1 : 0;
-}
-
 static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 {
 	u32 i, sf_type;
@@ -850,7 +835,23 @@ static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInf
 		return;
 	case GF_SG_VRML_MFNODE:
 		needs_field_container = 0;
-		if (sdump->XMLDump && sdump->X3DDump) needs_field_container = gf_dump_vrml_needs_container(node, &field);
+		if (sdump->XMLDump && sdump->X3DDump) {
+			u32 count, nb_ndt;
+			GF_FieldInfo info;
+			if (!strcmp(field.name, "children")) {
+				needs_field_container = 0;
+			} else {
+				nb_ndt = 0;
+				count = gf_node_get_field_count(node);
+				for (i=0; i<count; i++) {
+					gf_node_get_field(node, i, &info);
+					if ((info.eventType==GF_SG_EVENT_IN) || (info.eventType==GF_SG_EVENT_OUT)) continue;
+					if (info.NDTtype==field.NDTtype) nb_ndt++;
+				}
+				needs_field_container = (nb_ndt>1) ? 1 : 0;
+			}
+		}
+
 #ifndef GPAC_DISABLE_X3D
 		if (!sdump->X3DDump) {
 			if (gf_node_get_tag(node)==TAG_X3D_Switch) field.name = "choice";
@@ -1056,44 +1057,6 @@ static const char *GetXMTFieldTypeValueName(u32 fieldType)
 		return "rotationArrayValue";
 	case GF_SG_VRML_MFSTRING:
 		return "stringArrayValue";
-	default:
-		return "unknown";
-	}
-}
-
-static const char *SD_GetQuantCatName(u32 QP_Type)
-{
-	switch (QP_Type) {
-#ifndef GPAC_DISABLE_BIFS
-	case QC_3DPOS:
-		return "position3D";
-	case QC_2DPOS:
-		return "position2D";
-	case QC_ORDER:
-		return "drawingOrder";
-	case QC_COLOR:
-		return "color";
-	case QC_TEXTURE_COORD:
-		return "textureCoordinate";
-	case QC_ANGLE:
-		return "angle";
-	case QC_SCALE:
-		return "scale";
-	case QC_INTERPOL_KEYS:
-		return "keys";
-	case QC_NORMALS:
-		return "normals";
-	case QC_ROTATION:
-		return "rotations";
-	case QC_SIZE_3D:
-		return "size3D";
-	case QC_SIZE_2D:
-		return "size2D";
-	case QC_LINEAR_SCALAR:
-		return "linear";
-	case QC_COORD_INDEX:
-		return "coordIndex";
-#endif
 	default:
 		return "unknown";
 	}
@@ -2473,7 +2436,26 @@ static GF_Err DumpProtos(GF_SceneDumper *sdump, GF_List *protoList)
 			sdump->indent++;
 			DUMP_IND(sdump);
 			if (sdump->XMLDump) {
-				fprintf(sdump->trace, "<InterfaceCodingParameters quantCategoy=\"%s\"", SD_GetQuantCatName(pf->QP_Type));
+				const char *quant_catname = "unknown";
+#ifndef GPAC_DISABLE_BIFS
+				switch (pf->QP_Type) {
+				case QC_3DPOS: quant_catname = "position3D"; break;
+				case QC_2DPOS: quant_catname = "position2D"; break;
+				case QC_ORDER: quant_catname = "drawingOrder"; break;
+				case QC_COLOR: quant_catname = "color"; break;
+				case QC_TEXTURE_COORD: quant_catname = "textureCoordinate"; break;
+				case QC_ANGLE: quant_catname = "angle"; break;
+				case QC_SCALE: quant_catname = "scale"; break;
+				case QC_INTERPOL_KEYS: quant_catname = "keys"; break;
+				case QC_NORMALS: quant_catname = "normals"; break;
+				case QC_ROTATION: quant_catname = "rotations"; break;
+				case QC_SIZE_3D: quant_catname = "size3D"; break;
+				case QC_SIZE_2D: quant_catname = "size2D"; break;
+				case QC_LINEAR_SCALAR: quant_catname = "linear"; break;
+				case QC_COORD_INDEX:quant_catname = "coordIndex"; break;
+				}
+#endif
+				fprintf(sdump->trace, "<InterfaceCodingParameters quantCategoy=\"%s\"", quant_catname);
 			} else {
 				fprintf(sdump->trace, "{QP %d", pf->QP_Type);
 			}
@@ -2745,10 +2727,7 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 	fprintf(sdump->trace, "</%s%s>\n", lsrns, com_name);
 	return GF_OK;
 }
-static GF_Err DumpLSRClean(GF_SceneDumper *sdump, GF_Command *com)
-{
-	return GF_OK;
-}
+
 static GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
 {
 	char szID[1024];
@@ -2772,7 +2751,11 @@ static GF_Err SD_SetSceneGraph(GF_SceneDumper *sdump, GF_SceneGraph *sg)
 	if (sdump) sdump->sg = sg;
 	return GF_OK;
 }
-#endif /*GPAC_UNUSED_FUNC*/
+
+static GF_Err DumpLSRClean(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
 
 static GF_Err DumpLSRRestore(GF_SceneDumper *sdump, GF_Command *com)
 {
@@ -2782,6 +2765,8 @@ static GF_Err DumpLSRSave(GF_SceneDumper *sdump, GF_Command *com)
 {
 	return GF_OK;
 }
+#endif /*GPAC_UNUSED_FUNC*/
+
 static GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 {
 	char szID[1024];
@@ -2978,7 +2963,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			e = DumpLSRAddReplaceInsert(sdump, com);
 			break;
 		case GF_SG_LSR_CLEAN:
-			e = DumpLSRClean(sdump, com);
+			//e = DumpLSRClean(sdump, com);
 			break;
 		case GF_SG_LSR_REPLACE:
 			e = DumpLSRAddReplaceInsert(sdump, com);
@@ -2990,10 +2975,10 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			e = DumpLSRAddReplaceInsert(sdump, com);
 			break;
 		case GF_SG_LSR_RESTORE:
-			e = DumpLSRRestore(sdump, com);
+			//e = DumpLSRRestore(sdump, com);
 			break;
 		case GF_SG_LSR_SAVE:
-			e = DumpLSRSave(sdump, com);
+			//e = DumpLSRSave(sdump, com);
 			break;
 		case GF_SG_LSR_SEND_EVENT:
 			e = DumpLSRSendEvent(sdump, com);

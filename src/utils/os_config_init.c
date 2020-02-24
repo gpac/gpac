@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1024,6 +1024,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "- filter: filters debugging\n"\
 	        "- sched: filter session scheduler debugging\n"\
 	        "- mutex: log all mutex calls\n"\
+	        "- atsc: ATSC3 debugging\n"\
 	        "- all: all tools logged - other tools can be specified afterwards.  \n"\
 	        "The special keyword `ncl` can be set to disable color logs.  \n"\
 	        "The special keyword `strict` can be set to exit at first error.  \n"\
@@ -1060,12 +1061,13 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("req-timeout", NULL, "set HTTP/RTSP request timeout in milliseconds", "20000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("broken-cert", NULL, "enable accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-agent", "ua", "set user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("user-profileid", "upid", "set user profile ID (through **X-UserProfileID** entity header)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("user-profile", "up", "set user profile filename. Content of file is appended as body to HEAD/GET requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-profileid", NULL, "set user profile ID (through **X-UserProfileID** entity header) in HTTP requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("user-profile", NULL, "set user profile filename. Content of file is appended as body to HTTP HEAD/GET requests, associated Mime is **text/xml**", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("query-string", NULL, "insert query string (without `?`) to URL on requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("dm-threads", NULL, "force using threads for async download requests rather than session scheduler", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 
  GF_DEF_ARG("dbg-edges", NULL, "log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot be linked)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
@@ -1095,12 +1097,6 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("yuv-overlay", NULL, "indicate YUV overlay is possible on the video card. Always overriden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("offscreen-yuv", NULL, "indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("overlay-color-key", NULL, "color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("gl-offscreen", NULL, "openGL mode for offscreen rendering (will soon be deprecated).\n"\
-		"- Window: a hidden window is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work\n"\
-    	"- VisibleWindow: a visible window is used to perform offscreen rendering. This can be useful while debugging\n"\
-    	"- Pixmap: an X11 Pixmap is used to perform offscreen rendering. Depending on your video driver and X11 configuration, this may not work and can even crash the player\n"\
-    	"- PBuffer: use opengl PBuffers for drawing, not always supported"\
- 	, "Window", "Window|VisibleWindow|Pixmap|PBuffer", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in openGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in openGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-doublebuf", NULL, "enable openGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
@@ -1270,13 +1266,8 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 		arg = &GPAC_Args[i];
 		i++;
 		if (!strcmp(arg->name, arg_name)) break;
-		if (arg->altname) {
-			char *alt = strstr(arg->altname, arg_name);
-			if (alt) {
-				char c = alt[strlen(arg_name)];
-				if (!c || (c==' ')) break;
-			}
-		}
+		if (arg->altname && !strcmp(arg->altname, arg_name)) break;
+
 		arg = NULL;
 	}
 	if (!arg) return GF_FALSE;

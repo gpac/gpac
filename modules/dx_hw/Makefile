@@ -24,7 +24,7 @@ endif
 
 
 #common obj
-OBJS=dx_audio.o dx_video.o dx_window.o dx_2d.o copy_pixels.o
+OBJS=dx_audio.o dx_video.o dx_window.o dx_2d.o
 
 
 SRCS := $(OBJS:.o=.c) 

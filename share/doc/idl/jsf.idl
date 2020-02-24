@@ -85,50 +85,52 @@ See \ref __gf_filter_register.process_event.
 */
 attribute GF_Err update_arg(DOMString arg_name, DOMString arg_val);
 
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_max_extra_input_pids*/
 attribute long max_pids;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_block_enabled*/
 readonly attribute boolean block_enabled;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_output_buffer_max*/
 readonly attribute unsigned long output_buffer;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_output_buffer_max*/
 readonly attribute unsigned long output_playout;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_sep*/
 readonly attribute DOMString sep_args;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_sep*/
 readonly attribute DOMString sep_name;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_sep*/
 readonly attribute DOMString sep_list;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_dst_args*/
 readonly attribute DOMString dst_args;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_dst_name*/
 readonly attribute DOMString dst_name;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_all_sinks_done*/
 readonly attribute boolean sinks_done;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_reporting_enabled*/
 attribute boolean reports_on;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_screen_width;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_screen_height;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_screen_depth;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_screen_fps;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_screen_views;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_audio_channels;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_audio_samplerate;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_session_caps and \ref gf_filter_set_session_caps*/
 attribute unsigned long max_audio_depth;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_num_events_queued*/
 readonly attribute unsigned long events_queued;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_clock_hint*/
 readonly attribute unsigned long long readonly clock_hint_us;
-/*! see \ref GF_Filter help*/
+/*! see \ref gf_filter_get_clock_hint*/
 readonly attribute unsigned long long clock_hint_mediatime;
+/*! see \ref gf_filter_connections_pending*/
+readonly attribute unsigned long long connections_pending;
 
 /*! sets filter desciption as visible when checking filter info
 \param description description of filter*/
@@ -315,6 +317,8 @@ void disable_probe();
 /*! disables input on the filter - see \ref gf_filter_disable_inputs*/
 void disable_inputs();
 
+/*! reset source identifier for the filter - see \ref gf_filter_reset_source*/
+void reset_source();
 };
 
 /*! The FilterPid object is a binding for \ref GF_FilterPid*/

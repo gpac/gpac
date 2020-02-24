@@ -279,7 +279,7 @@ GF_GPACArg m4b_dash_args[] =
 	GF_DEF_ARG("ast-offset", NULL, "specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative", "0", NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("dash-scale", NULL, "specify that timing for [-dash]() and [-frag]() are expressed in given timexale (units per seconds)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("mem-frags", NULL, "fragmentation happens in memory rather than on disk before flushing to disk", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("pssh", NULL, "set pssh store mode.\n"
+	GF_DEF_ARG("pssh=", NULL, "set pssh store mode.\n"
 	"- v: initial movie\n"
 	"- f: movie fragments\n"
 	"- m: MPD\n"
@@ -347,10 +347,10 @@ void PrintDASHUsage()
 		"- #audio: only use the first audio track from the source file\n"
 		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs\n"
 		"- :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
-		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used period appear in the MPD in the same order as specified with this option\n"
+		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option\n"
 		"- :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs\nWarning: This does not modify generated files location (see segment template).\n"
 		"- :bandwidth=VALUE: set the representation's bandwidth to a given value\n"
-		"- :period_duration=VALUE: increase the duration of this period by the given duration in seconds. This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:duration=Y`\n"
+		"- :pdur=VALUE: increase the duration of this period by the given duration in seconds (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:pdur=Y`\n"
 		"- :duration=VALUE: override target DASH segment duration for this input\n"
 		"- :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used\n"
 		"- :asID=VALUE: set the AdaptationSet ID to NAME\n"
@@ -431,7 +431,10 @@ void PrintImportUsage()
 		"- #video, #audio: base import for most AV files\n"
 		"- #trackID=ID: track import for IsoMedia and other files\n"
 		"- #pid=ID: stream import from MPEG-2 TS\n"
-		"- :dur=D: `*` import only the first D seconds\n"
+		"- :dur=D: `*` import only the specified duration from the media. D can be:\n"
+		"  - positive float: specifies duration in seconds\n"
+		"  - fraction: specifies duration as NUM/DEN fraction\n"
+		"  - negative integer: specifies duration in number of coded frames\n"
 		"- :lang=LAN: set imported media language code\n"
 		"- :delay=delay_ms: set imported media initial delay in ms\n"
 		"- :par=PAR: set visual pixel aspect ratio (see [-par](MP4B_GEN) )\n"
@@ -744,7 +747,7 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("comp", NULL, "replace with compressed version all top level box types given as parameter, formated as `orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]`", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("bin", NULL, "convert input XML file using NHML bitstream syntax to binary", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("topcount", NULL, "print to stdout the number of top-level boxes matching box types given as parameter, formated as `4cc_1,4cc_2N`", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("topsize", NULL, "print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as `4cc_1,4cc_2N`", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("topsize", NULL, "print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as `4cc_1,4cc_2N` or `all` for all boxes", NULL, NULL, GF_ARG_STRING, 0),
  	{0}
 };
 
@@ -848,39 +851,6 @@ void PrintSWFUsage()
 	}
 }
 
-GF_GPACArg m4b_atsc_args[] =
-{
- 	GF_DEF_ARG("atsc", NULL, "enable ATSC 3.0 reader", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("ifce", NULL, "IP address of network interface to use", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("dir", NULL, "local filesystem path to which the files are written. If not set, nothing is written to disk", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("service", NULL, "ID of the service to grab\n"
- 	"- not set or -1: all services are dumped\n"
- 	"- 0: no services are dumped\n"
- 	"- -2: the first service found is used\n"
- 	"- positive: tunes to given service ID", NULL, NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("nb-segs", NULL, "set max segments to keep on disk per stream, `-1` keeps all", "-1", NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("atsc-stats", NULL, "print stats every N seconds", NULL, NULL, GF_ARG_INT, 0),
- 	{0}
-};
-
-void PrintATSCUsage()
-{
-	u32 i=0;
-	gf_sys_format_help(helpout, help_flags, "# ATSC 3.0 Grabber Options\n"
-	        "MP4Box can be used to grab files from an ATSC 3.0 ROUTE session and records them to disk.\n"
-	        "  \n"
-	        "Note: On OSX with VM packet replay you will need to force mcast routing\n"
-	        "EX route add -net 239.255.1.4/32 -interface vboxnet0\n"
-	        "  \n"
-	        "Options\n"
-	);
-	while (m4b_atsc_args[i].name) {
-		GF_GPACArg *arg = &m4b_atsc_args[i];
-		i++;
-		gf_sys_print_arg(helpout, help_flags, arg, "mp4box-extract");
-	}
-}
-
 GF_GPACArg m4b_liveenc_args[] =
 {
  	GF_DEF_ARG("dst", NULL, "destination IP", NULL, NULL, GF_ARG_STRING, 0),
@@ -944,7 +914,6 @@ GF_GPACArg m4b_usage_args[] =
 		"- crypt: ISMA E&A options help\n"
 		"- format: supported formats help\n"
 		"- live: BIFS streamer help\n"
-		"- atsc: ATSC3 reader help\n"
 		"- core: libgpac core options\n"
 		"- all: all options are printed\n", NULL, NULL, GF_ARG_STRING, 0),
 
@@ -1706,7 +1675,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":role=", 6) ||
 				        !strnicmp(sep, ":desc", 5) ||
 				        !strnicmp(sep, ":sscale", 7) ||
-				        !strnicmp(sep, ":duration=", 10) || /*legacy*/!strnicmp(sep, ":period_duration=", 10) ||
+				        !strnicmp(sep, ":duration=", 10) ||
+				        !strnicmp(sep, ":period_duration=", 10) ||
+				        !strnicmp(sep, ":pdur=", 6) ||
 				        !strnicmp(sep, ":xlink=", 7) ||
 				        !strnicmp(sep, ":asID=", 6) ||
 				        !strnicmp(sep, ":sn=", 4) ||
@@ -1780,11 +1751,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
 			else if (!strnicmp(opts, "sscale", 6)) di->sscale = GF_TRUE;
-			else if (!strnicmp(opts, "period_duration=", 16)) {
-				di->period_duration = (Double) atof(opts+16);
-			}	else if (!strnicmp(opts, "duration=", 9)) {
-				di->period_duration = (Double) atof(opts+9); /*legacy: use period_duration instead*/
-			}
+			else if (!strnicmp(opts, "pdur=", 5)) di->period_duration = (Double) atof(opts+5);
+			else if (!strnicmp(opts, "period_duration=", 16)) di->period_duration = (Double) atof(opts+16);
+			else if (!strnicmp(opts, "duration=", 9)) di->dash_duration = (Double) atof(opts+9);
 			else if (!strnicmp(opts, "asID=", 5)) di->asID = atoi(opts+5);
 			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = atoi(opts+3);
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
@@ -2325,14 +2294,6 @@ Bool frag_at_rap = GF_FALSE;
 Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
-#ifndef GPAC_DISABLE_ATSC
-Bool grab_atsc = GF_FALSE;
-s32 atsc_max_segs = -1;
-u32 atsc_stats_rate = 0;
-u32 atsc_debug_tsi = 0;
-const char *atsc_output_dir = NULL;
-s32 atsc_service = -1;
-#endif
 u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
@@ -3308,9 +3269,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
 			else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
 			else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
-#ifndef GPAC_DISABLE_ATSC
-			else if (!strcmp(argv[i + 1], "atsc")) PrintATSCUsage();
-#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 			else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
 			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
@@ -3327,9 +3285,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				PrintEncryptUsage();
 				PrintMetaUsage();
 				PrintSWFUsage();
-#ifndef GPAC_DISABLE_ATSC
-				PrintATSCUsage();
-#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 				PrintLiveUsage();
 #endif
@@ -3400,9 +3355,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 	 		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Other Features");
 	 		fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/mp4box/main.c -->\n");
 			PrintHintUsage();
-#ifndef GPAC_DISABLE_ATSC
-			PrintATSCUsage();
-#endif
 			gf_fclose(helpout);
 
 			gf_sys_close();
@@ -3425,9 +3377,6 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			PrintEncryptUsage();
 			PrintMetaUsage();
 			PrintSWFUsage();
-#ifndef GPAC_DISABLE_ATSC
-			PrintATSCUsage();
-#endif
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 			PrintLiveUsage();
 #endif
@@ -3535,42 +3484,14 @@ Bool mp4box_parse_args(int argc, char **argv)
 				info_track_id = 0;
 			}
 		}
-#if !defined(GPAC_DISABLE_STREAMING)
 		else if (!stricmp(arg, "-grab-ts")) {
 			fprintf(stderr, "Deprecated option - use gpac application\n");
 			return mp4box_cleanup(2);
 		}
-#endif
-#ifndef GPAC_DISABLE_ATSC
 		else if (!stricmp(arg, "-atsc")) {
-			grab_atsc = GF_TRUE;
+			fprintf(stderr, "Deprecated option - use gpac application\n");
+			return mp4box_cleanup(2);
 		}
-		else if (!stricmp(arg, "-dir")) {
-			CHECK_NEXT_ARG
-			atsc_output_dir = argv[i + 1];
-			i++;
-		}
-		else if (!stricmp(arg, "-service")) {
-			CHECK_NEXT_ARG
-			atsc_service = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-nb-segs")) {
-			CHECK_NEXT_ARG
-			atsc_max_segs = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-atsc-stats")) {
-			CHECK_NEXT_ARG
-			atsc_stats_rate = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-tsi")) {
-			CHECK_NEXT_ARG
-			atsc_debug_tsi = atoi(argv[i + 1]);
-			i++;
-		}
-#endif
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
@@ -4345,21 +4266,6 @@ int mp4boxMain(int argc, char **argv)
 	if (!inName && dump_std)
 		inName = "std";
 
-#ifndef GPAC_DISABLE_ATSC
-	if (grab_atsc) {
-		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
-		gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
-
-		e = gf_sys_set_args(argc, (const char **) argv);
-		if (e) {
-			fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
-			return mp4box_cleanup(1);
-		}
-
-		return grab_atsc3_session(atsc_output_dir, atsc_service, atsc_max_segs, atsc_stats_rate, atsc_debug_tsi);
-	}
-#endif
-
 	if (!inName) {
 		PrintUsage();
 		return mp4box_cleanup(1);
@@ -4711,6 +4617,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		for (ipass=0; ipass<nb_pass; ipass++) {
+			u32 tk_idx = 1;
 			for (i=0; i<(u32) argc; i++) {
 				char *src, *margs=NULL;
 				if (strcmp(argv[i], "-add")) continue;
@@ -4722,25 +4629,26 @@ int mp4boxMain(int argc, char **argv)
 						sep[0] = 0;
 					}
 
-					e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL);
+					e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL, tk_idx);
+					tk_idx++;
 
 					if (margs) {
 						gf_dynstrcat(&mux_args, margs, ":");
 						gf_free(margs);
 					}
 
-					if (sep) {
-						sep[0] = '+';
-						src = sep+1;
-					} else {
-						break;
-					}
 					if (e) {
 						fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
 						gf_isom_delete(file);
 						if (fs)
 							gf_fs_del(fs);
 						return mp4box_cleanup(1);
+					}
+					if (sep) {
+						sep[0] = '+';
+						src = sep+1;
+					} else {
+						break;
 					}
 				}
 				i++;
@@ -5127,8 +5035,8 @@ int mp4boxMain(int argc, char **argv)
 			omode =  (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
 
 			if (crypt) {
-				if (crypt==1)
-					omode = GF_ISOM_OPEN_CAT_FRAGMENTS;
+				//keep fragment signaling in moov
+				omode = GF_ISOM_OPEN_CAT_FRAGMENTS;
 				if (use_init_seg)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, tmpdir);
 			}
@@ -5535,7 +5443,7 @@ int mp4boxMain(int argc, char **argv)
 		{
 			u32 old_tk_count = gf_isom_get_track_count(file);
 			GF_Fraction _frac = {0,0};
-			e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL);
+			e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
 			if (e == GF_OK) {
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {
@@ -6149,7 +6057,11 @@ int mp4boxMain(int argc, char **argv)
 				e = gf_crypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
 			}
 		} else if (crypt ==2) {
-			e = gf_decrypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
+			if (use_init_seg) {
+				e = gf_decrypt_fragment(file, drm_file, outfile, inName, fs_dump_flags);
+			} else {
+				e = gf_decrypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
+			}
 		}
 		if (e) goto err_exit;
 		needSave = outName ? GF_FALSE : GF_TRUE;

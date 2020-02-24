@@ -706,6 +706,7 @@ static GF_List *gf_mpd_parse_segments_context(GF_MPD *mpd, GF_XMLNode *root)
 	u32 i, j;
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
+	i=0;
 	while ((child = gf_list_enum(root->content, &i))) {
 		GF_DASH_SegmentContext *sctx;
 		if (!gf_mpd_valid_child(mpd, child)) continue;
@@ -2351,10 +2352,11 @@ static void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, s32 inden
 	gf_mpd_nl(out, indent);
 	fprintf(out, "<BaseURL");
 	if (base_URL->service_location)
-		fprintf(out, " serviceLocation=\"%s\"", base_URL->service_location);
+		gf_xml_dump_string(out, " serviceLocation=\"", base_URL->service_location, "\"");
 	if (base_URL->byte_range)
 		fprintf(out, " byteRange=\""LLD"-"LLD"\"", base_URL->byte_range->start_range, base_URL->byte_range->end_range);
-	fprintf(out, ">%s</BaseURL>", base_URL->URL);
+
+	gf_xml_dump_string(out, ">", base_URL->URL, "</BaseURL>");
 	gf_mpd_lf(out, indent);
 }
 
@@ -2535,7 +2537,8 @@ static void gf_mpd_extensible_print_attr(FILE *out, GF_MPD_ExtensibleVirtual *it
 		while ((att = (GF_XMLAttribute *)gf_list_enum(item->attributes, &j))) {
 			if (!strcmp(att->name, "xmlns")) continue;
 			else if (!strcmp(att->name, "xmlns:gpac")) continue;
-			fprintf(out, " %s=\"%s\"", att->name, att->value);
+			fprintf(out, " %s=\"", att->name);
+			gf_xml_dump_string(out, NULL, att->value, "\"");
 		}
 	}
 }
@@ -2598,7 +2601,9 @@ static void gf_mpd_print_content_component(FILE *out, GF_List *content_component
 
 static void gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *ca)
 {
-	if (ca->profiles) fprintf(out, " profiles=\"%s\"", ca->profiles);
+	if (ca->profiles) {
+		gf_xml_dump_string(out, " profiles=\"", ca->profiles, "\"");
+	}
 	if (ca->mime_type) fprintf(out, " mimeType=\"%s\"", ca->mime_type);
 	if (ca->codecs) fprintf(out, " codecs=\"%s\"", ca->codecs);
 	if (ca->width) fprintf(out, " width=\"%d\"", ca->width);
@@ -2610,7 +2615,9 @@ static void gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *c
 	}
 	if (ca->sar) fprintf(out, " sar=\"%d:%d\"", ca->sar->num, ca->sar->den);
 	if (ca->samplerate) fprintf(out, " audioSamplingRate=\"%d\"", ca->samplerate);
-	if (ca->segmentProfiles) fprintf(out, " segmentProfiles=\"%s\"", ca->segmentProfiles);
+	if (ca->segmentProfiles) {
+		gf_xml_dump_string(out, " segmentProfiles=\"", ca->segmentProfiles, "\"");
+	}
 	if (ca->maximum_sap_period) fprintf(out, " maximumSAPPeriod=\"%d\"", ca->maximum_sap_period);
 	if (ca->starts_with_sap) fprintf(out, " startWithSAP=\"%d\"", ca->starts_with_sap);
 	if ((ca->max_playout_rate!=1.0)) fprintf(out, " maxPlayoutRate=\"%g\"", ca->max_playout_rate);
@@ -2810,7 +2817,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 {
 	u32 i;
 	GF_MPD_Representation *rep;
-	GF_MPD_other_descriptors *Asld;
+	GF_MPD_other_descriptors *o_desc;
 
 	gf_mpd_nl(out, indent);
 	fprintf(out, "<AdaptationSet");
@@ -2855,9 +2862,10 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	gf_mpd_lf(out, indent);
 
 	i=0;
-	while ( (Asld = (GF_MPD_other_descriptors*) gf_list_enum(as->other_descriptors, &i))) {
+	while ( (o_desc = (GF_MPD_other_descriptors*) gf_list_enum(as->other_descriptors, &i))) {
 		gf_mpd_nl(out, indent+1);
-		fprintf(out, "%s\n",Asld->xml_desc);
+		//do not use gf_xml_dump_string, this is already an XML escaped element
+		fprintf(out, "%s\n", o_desc->xml_desc);
 		gf_mpd_lf(out, indent);
 	}
 
@@ -2896,7 +2904,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context, s32 indent)
 {
 	GF_MPD_AdaptationSet *as;
-	GF_MPD_other_descriptors *pld;
+	GF_MPD_other_descriptors *o_desc;
 	u32 i;
 	gf_mpd_nl(out, indent);
 	fprintf(out, "<Period");
@@ -2918,9 +2926,10 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 	gf_mpd_lf(out, indent);
 
 	i=0;
-	while ( (pld = (GF_MPD_other_descriptors*) gf_list_enum(period->other_descriptors, &i))) {
+	while ( (o_desc = (GF_MPD_other_descriptors*) gf_list_enum(period->other_descriptors, &i))) {
 		gf_mpd_nl(out, indent+1);
-		fprintf(out, "%s",pld->xml_desc);
+		//do not use gf_xml_dump_stringn this is already an XML escape element
+		fprintf(out, "%s", o_desc->xml_desc);
 		gf_mpd_lf(out, indent);
 	}
 	
@@ -3292,8 +3301,9 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	if (mpd->max_subsegment_duration)
 		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration, GF_TRUE);
 
-	if (mpd->profiles)
-		fprintf(out, " profiles=\"%s\"", mpd->profiles);
+	if (mpd->profiles) {
+		gf_xml_dump_string(out, " profiles=\"", mpd->profiles, "\"");
+	}
 
 	if (mpd->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)mpd);
 
@@ -3321,23 +3331,23 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 			fprintf(out, " lang=\"%s\"", info->lang);
 		}
 		if (info->more_info_url) {
-			fprintf(out, " moreInformationURL=\"%s\"", info->more_info_url);
+			gf_xml_dump_string(out, " moreInformationURL=\"", info->more_info_url, "\"");
 		}
 		fprintf(out, ">");
 		gf_mpd_lf(out, indent);
 		if (info->title) {
 			gf_mpd_nl(out, indent+2);
-			fprintf(out, "<Title>%s</Title>", info->title);
+			gf_xml_dump_string(out, "<Title>", info->title, "</Title>");
 			gf_mpd_lf(out, indent);
 		}
 		if (info->source) {
 			gf_mpd_nl(out, indent+2);
-			fprintf(out, "<Source>%s</Source>", info->source);
+			gf_xml_dump_string(out, "<Source>", info->source, "</Source>");
 			gf_mpd_lf(out, indent);
 		}
 		if (info->copyright) {
 			gf_mpd_nl(out, indent+2);
-			fprintf(out, "<Copyright>%s</Copyright>", info->copyright);
+			gf_xml_dump_string(out, "<Copyright>", info->copyright, "</Copyright>");
 			gf_mpd_lf(out, indent);
 		}
 		gf_mpd_nl(out, indent+1);
@@ -3352,7 +3362,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	i=0;
 	while ((text = (char *)gf_list_enum(mpd->locations, &i))) {
 		gf_mpd_nl(out, indent+1);
-		fprintf(out, "<Location>%s</Location>\n", text);
+		gf_xml_dump_string(out, "<Location>", text, "</Location>");
 		gf_mpd_lf(out, indent);
 	}
 

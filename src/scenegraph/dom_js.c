@@ -708,7 +708,7 @@ static GF_Err sg_js_parse_event_args(JSContext *c, JSValue obj, int argc, JSValu
 err_exit:
 	if (type) JS_FreeCString(c, type);
 	if (inNS) JS_FreeCString(c, inNS);
-	if (callback) JS_FreeCString(c, *callback);
+	if (callback) gf_free(*callback);
 	*callback = NULL;
 	*evtType = GF_EVENT_UNKNOWN;
 	*funval = JS_NULL;
@@ -811,8 +811,10 @@ JSValue gf_sg_js_event_add_listener(JSContext *c, JSValueConst obj, int argc, JS
 	}
 
 err_exit:
-	if (callback) JS_FreeCString(c, callback);
-	return JS_TRUE;
+	if (callback) gf_free(callback);
+	if (e)
+		return js_throw_err(c, GF_DOM_EXC_SYNTAX_ERR);
+	return JS_UNDEFINED;
 }
 
 
@@ -884,7 +886,7 @@ JSValue gf_sg_js_event_remove_listener(JSContext *c, JSValueConst obj, int argc,
 
 err_exit:
 	if (callback) JS_FreeCString(c, callback);
-	return JS_TRUE;
+	return JS_UNDEFINED;
 }
 
 JSValue dom_event_remove_listener(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -1178,7 +1180,10 @@ static const char *node_lookup_namespace_by_tag(GF_Node *node, u32 tag)
 			if (datt->name && !strncmp(datt->name, "xmlns", 5)) {
 				char *xmlns = *(DOM_String *) datt->data;
 				u32 crc = gf_crc_32(xmlns, (u32) strlen(xmlns));
-				if (tag==crc) return xmlns;
+				if (tag==crc)
+					return xmlns;
+				if (!tag && !strcmp(datt->name, "xmlns"))
+					return xmlns;
 			}
 		}
 		att = att->next;
@@ -1300,12 +1305,11 @@ static JSValue dom_node_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 	case NODE_JSPROPERTY_NAMESPACEURI:
 		if (!sg) {
+			const char *xmlns;
 			tag = gf_xml_get_element_namespace(n);
-			if (tag) {
-				const char *xmlns = gf_sg_get_namespace(n->sgprivate->scenegraph, tag);
-				if (!xmlns) xmlns = node_lookup_namespace_by_tag(n, tag);
-				return xmlns ? JS_NewString(c, xmlns) : JS_NULL;
-			}
+			xmlns = gf_sg_get_namespace(n->sgprivate->scenegraph, tag);
+			if (!xmlns) xmlns = node_lookup_namespace_by_tag(n, tag);
+			return xmlns ? JS_NewString(c, xmlns) : JS_NULL;
 		}
 		return JS_NULL;
 	case NODE_JSPROPERTY_PREFIX:
@@ -1485,8 +1489,7 @@ static JSValue dom_document_setProperty(JSContext *c, JSValueConst obj, JSValueC
 {
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_EXCEPTION;
-	/*todo*/
-	return JS_EXCEPTION;
+	return js_throw_err(c, GF_DOM_EXC_NOT_SUPPORTED_ERR);
 }
 
 static JSValue xml_document_create_element(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -1820,9 +1823,12 @@ static JSValue xml_element_remove_attribute(JSContext *c, JSValueConst obj, int 
 
 	while (att) {
 		if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
+			DOM_String *s;
 			if (prev) prev->next = att->next;
 			else node->attributes = att->next;
-			if (att->data) gf_free(att->data);
+			s = att->data;
+			if (*s) gf_free(*s);
+			gf_free(s);
 			gf_free(att->name);
 			gf_free(att);
 			dom_node_changed(n, GF_FALSE, NULL);
@@ -1881,8 +1887,12 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 	GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 	while (att) {
 		if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, attribute_name)) {
-			if (att->data) gf_free(att->data);
-			att->data = gf_strdup(attribute_content);
+			DOM_String *s;
+			assert(att->data_type == DOM_String_datatype);
+			assert(att->data);
+			s = (DOM_String *) att->data;
+			if ( *s ) gf_free( *s);
+			*s = gf_strdup(attribute_content);
 			dom_node_changed((GF_Node *)node, GF_FALSE, NULL);
 			return;
 		}
@@ -1896,7 +1906,10 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 		return;
 	}
 	att->name = gf_strdup(attribute_name);
-	att->data = gf_strdup(attribute_content);
+	att->data_type = (u16) DOM_String_datatype;
+	att->data = gf_svg_create_attribute_value(att->data_type);
+	*((char **)att->data) = gf_strdup(attribute_content);
+
 	if (prev) prev->next = (GF_DOMAttribute*) att;
 	else node->attributes = (GF_DOMAttribute*) att;
 	return;
@@ -2137,7 +2150,7 @@ static JSValue xml_element_set_id(JSContext *c, JSValueConst obj, int argc, JSVa
 	if ((argc<2) || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
 
 	/*NS version*/
-	if (argc==2) {
+	if (argc==3) {
 		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
 		name = JS_ToCString(c, argv[1]);
 		is_id = JS_ToBool(c, argv[2]) ? GF_TRUE : GF_FALSE;
@@ -2647,17 +2660,6 @@ void domElement_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
 	if (!JS_IsUndefined(n->sgprivate->interact->js_binding->obj))
 		JS_MarkValue(rt, n->sgprivate->interact->js_binding->obj, mark_func);
 }
-void domNode_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
-{
-	GF_Node *n = (GF_Node *) JS_GetOpaque_Nocheck(obj);
-	/*the JS proto of the svgClass or a destroyed object*/
-	if (!n) return;
-	if (!n->sgprivate || !n->sgprivate->interact || !n->sgprivate->interact->js_binding) return;
-
-	if (!JS_IsUndefined(n->sgprivate->interact->js_binding->obj))
-		JS_MarkValue(rt, n->sgprivate->interact->js_binding->obj, mark_func);
-}
-
 
 void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 {
@@ -2674,7 +2676,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 
 	define_dom_exception(c, global);
 
-	domNodeClass.class.gc_mark = domNode_gc_mark;
+	domNodeClass.class.gc_mark = domElement_gc_mark;
 	SETUP_JSCLASS(domNodeClass, "Node", node_Funcs, NULL, dom_node_finalize, 0);
 	JS_SetPropertyStr(c, proto, "ELEMENT_NODE", JS_NewInt32(c, 1) );
 	JS_SetPropertyStr(c, proto, "TEXT_NODE", JS_NewInt32(c, 3));
@@ -2685,6 +2687,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 	SETUP_JSCLASS(domDocumentClass, "Document", document_Funcs, NULL, dom_document_finalize, domNodeClass.class_id);
 	domElementClass.class.gc_mark = domElement_gc_mark;
 	SETUP_JSCLASS(domElementClass, "Element", element_Funcs, NULL, dom_node_finalize, domNodeClass.class_id);
+	domTextClass.class.gc_mark = domElement_gc_mark;
 	SETUP_JSCLASS(domTextClass, "Text", text_Funcs, NULL, dom_node_finalize, domNodeClass.class_id);
 
 	SETUP_JSCLASS(domEventClass, "Event", event_Funcs, NULL, NULL, 0);
@@ -2849,7 +2852,9 @@ GF_Err gf_sg_new_from_xml_doc(const char *src, GF_SceneGraph **scene)
 }
 #endif
 
-#ifdef GPAC_HAS_QJS
+
+
+#if 0 //unused
 
 typedef struct
 {
@@ -3064,13 +3069,9 @@ static void xml_reload_text_content(void *sax_cbck, const char *content, Bool is
 	evt.relatedNode = (GF_Node*)par;
 	gf_dom_event_fire((GF_Node*)par, &evt);
 }
-#endif
 
 GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene)
 {
-#ifndef GPAC_HAS_QJS
-	return GF_NOT_SUPPORTED;
-#else
 	GF_Err e;
 	XMLReloadContext ctx;
 
@@ -3085,7 +3086,8 @@ GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene)
 	gf_xml_sax_del(ctx.sax);
 	if (e<0) return e;
 	return GF_OK;
-#endif
 }
+#endif
+
 
 #endif	/*GPAC_DISABLE_SVG*/

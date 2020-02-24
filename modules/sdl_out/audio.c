@@ -120,7 +120,7 @@ void SDL_DeleteAudio(void *ifce) {
 	gf_free( dr );
 }
 
-static GF_Err SDLAud_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg)
+static GF_Err SDLAud_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	s32 nb_samples;
 	SDL_AudioSpec want_format, got_format;

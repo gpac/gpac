@@ -510,7 +510,7 @@ Input media files to dash can use the following modifiers
 .br
 * :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.
 .br
-* :period=NAME: set the representation's period to NAME. Multiple periods may be used period appear in the MPD in the same order as specified with this option
+* :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option
 .br
 * :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs
 .br
@@ -518,7 +518,7 @@ Warning: This does not modify generated files location (see segment template).
 .br
 * :bandwidth=VALUE: set the representation's bandwidth to a given value
 .br
-* :period_duration=VALUE: increase the duration of this period by the given duration in seconds. This is only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y
+* :pdur=VALUE: increase the duration of this period by the given duration in seconds (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:pdur=Y
 .br
 * :duration=VALUE: override target DASH segment duration for this input
 .br
@@ -744,7 +744,7 @@ specify that timing for -dash and -frag are expressed in given timexale (units p
 fragmentation happens in memory rather than on disk before flushing to disk
 .br
 .TP
-.B \-pssh (Enum)
+.B \-pssh= (Enum)
 .br
 set pssh store mode.
 .br
@@ -1142,7 +1142,7 @@ print to stdout the number of top-level boxes matching box types given as parame
 .TP
 .B \-topsize (string)
 .br
-print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N
+print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N or all for all boxes
 .br
 .SH Importing Options
 .LP
@@ -1200,7 +1200,13 @@ Allowed per-file options:
 .br
 * #pid=ID: stream import from MPEG-2 TS
 .br
-* :dur=D: * import only the first D seconds
+* :dur=D: * import only the specified duration from the media. D can be:
+.br
+  * positive float: specifies duration in seconds
+.br
+  * fraction: specifies duration as NUM/DEN fraction
+.br
+  * negative integer: specifies duration in number of coded frames
 .br
 * :lang=LAN: set imported media language code
 .br
@@ -1924,63 +1930,6 @@ support for lines transparency and scalability
 .br
 complementary angle below which 2 lines are merged, value 0means no flattening
 .br
-.SH ATSC 3.0 Grabber Options
-.LP
-.br
-MP4Box can be used to grab files from an ATSC 3.0 ROUTE session and records them to disk.
-.br
-  
-.br
-Note: On OSX with VM packet replay you will need to force mcast routing
-.br
-Example
-.br
-route add -net 239.255.1.4/32 -interface vboxnet0
-.br
-
-.br
-  
-.br
-Options
-.br
-.TP
-.B \-atsc
-.br
-enable ATSC 3.0 reader
-.br
-.TP
-.B \-ifce (string)
-.br
-IP address of network interface to use
-.br
-.TP
-.B \-dir (string)
-.br
-local filesystem path to which the files are written. If not set, nothing is written to disk
-.br
-.TP
-.B \-service (int)
-.br
-ID of the service to grab
-.br
-* not set or -1: all services are dumped
-.br
-* 0: no services are dumped
-.br
-* -2: the first service found is used
-.br
-* positive: tunes to given service ID
-.br
-.TP
-.B \-nb-segs (int, default: -1)
-.br
-set max segments to keep on disk per stream, -1 keeps all
-.br
-.TP
-.B \-atsc-stats (int)
-.br
-print stats every N seconds
-.br
 .SH Live Scene Encoder Options
 .LP
 .br
@@ -2069,7 +2018,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3181-gae43dc6e0-filters
+build: 0.9.0-DEV-rev3291-gcab89e8f5-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

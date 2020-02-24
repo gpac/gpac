@@ -373,6 +373,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			stream->status = RTP_Connected;
 			stream->rtpin->last_ntp = 0;
+			stream->flags |= RTP_EOS;
 		}
 		ctx->last_start_range = -1.0;
 		stream->rtcp_init = GF_FALSE;
@@ -522,16 +523,20 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		u32 read=0;
 		//select both read and write
 		GF_Err e = gf_sk_group_select(ctx->sockgroup, 10, GF_SK_SELECT_BOTH);
-		if (e) break;
+		if (e) {
+			if ((e==GF_IP_NETWORK_EMPTY) && !ctx->eos_probe_start)
+				ctx->eos_probe_start = gf_sys_clock();
+			break;
+		}
 
 		ctx->eos_probe_start = 0;
 
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
-			if (stream->status!=RTP_Running) continue;
-
-			/*for interleaved channels don't read too fast, query the buffer occupancy*/
-			read += rtpin_stream_read(stream);
+			if (stream->status==RTP_Running) {
+				/*for interleaved channels don't read too fast, query the buffer occupancy*/
+				read += rtpin_stream_read(stream);
+			}
 
 			if (stream->flags & RTP_EOS) {
 				ctx->eos_probe_start = gf_sys_clock();
@@ -630,9 +635,41 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 		else if (!stricmp(the_ext, "#video")) ctx->stream_type = GF_STREAM_VISUAL;
 		the_ext[0] = 0;
 	}
-	ctx->session = rtpin_rtsp_new(ctx, (char *) ctx->src);
 	gf_filter_disable_inputs(filter);
 
+	if (!strnicmp(ctx->src, "rtp://", 6)) {
+		GF_RTPInStream *stream;
+		GF_Err e = GF_OK;
+		u32 port = 1234;
+		char *ip = ctx->src + 6;
+		char *sep = strchr(ip, ':');
+		if (sep) {
+			port = atoi(sep+1);
+			sep[0] = 0;
+			ip = gf_strdup(ip);
+			sep[0] = ':';
+		} else {
+			ip = gf_strdup(ip);
+		}
+		stream = rtpin_stream_new_standalone(ctx, ip, port);
+		gf_free(ip);
+		if (!stream)
+			e = GF_OUT_OF_MEM;
+
+		if (!e)
+			e = rtpin_add_stream(ctx, stream, NULL);
+
+		if (!e)
+			e = rtpin_stream_init(stream, GF_FALSE);
+
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPIn]] Couldn't setup RTP stream: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+		stream->status = RTP_Running;
+		return GF_OK;
+	}
+	ctx->session = rtpin_rtsp_new(ctx, (char *) ctx->src);
 	if (!strnicmp(ctx->src, "satip://", 8)) {
 		ctx->session->satip = GF_TRUE;
 		ctx->session->satip_server = gf_malloc(GF_MAX_PATH);
@@ -698,6 +735,10 @@ static const GF_FilterCapability RTPInCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_METADATA),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
+	{0},
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_RTPIn, _n)
@@ -736,7 +777,12 @@ static const GF_FilterArgs RTPInArgs[] =
 GF_FilterRegister RTPInRegister = {
 	.name = "rtpin",
 	GF_FS_SET_DESCRIPTION("RTP/RTSP/SDP input")
-	GF_FS_SET_HELP("This filter handles SDP file reading, rtp direct url and RTSP session and produces media PIDs and frames.")
+	GF_FS_SET_HELP("This filter handles SDP/RTSP/RTP input reading. It supports:\n"
+	"- SDP file reading\n"
+	"- RTP direct url through `rtp://` protocol scheme\n"
+	"- RTSP session processing through `rtsp://` and `satip://` protocol schemes\n"
+	" \n"
+	"The filter produces either media PIDs and compressed media frames, or file PIDs and multiplex data (e.g., MPEG-2 TS).")
 	.private_size = sizeof(GF_RTPIn),
 	.args = RTPInArgs,
 	.initialize = rtpin_initialize,

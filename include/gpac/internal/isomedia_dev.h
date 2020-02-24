@@ -495,6 +495,11 @@ enum
 	GF_ISOM_BOX_TYPE_MHM2 	= GF_4CC('m','h','m','2'),
 	GF_ISOM_BOX_TYPE_MHAC 	= GF_4CC('m','h','a','C'),
 
+	GF_ISOM_BOX_TYPE_IPCM 	= GF_4CC('i','p','c','m'),
+	GF_ISOM_BOX_TYPE_FPCM 	= GF_4CC('f','p','c','m'),
+	GF_ISOM_BOX_TYPE_PCMC 	= GF_4CC('p','c','m','C'),
+
+	GF_ISOM_BOX_TYPE_CHNL 	= GF_4CC('c','h','n','l'),
 
 	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
@@ -847,6 +852,7 @@ typedef struct
 	u32 pack_num_samples;
 
 	u64 magic;
+	u32 index;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u64 first_dts_chunk;
@@ -1165,6 +1171,13 @@ typedef struct
     u32 num_audio_description;
     GF_AudioChannelDescription *audio_descs;
 } GF_ChannelLayoutInfoBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+	GF_AudioChannelLayout layout;
+} GF_ChannelLayoutBox;
 
 typedef struct
 {
@@ -1546,6 +1559,14 @@ typedef struct
 	u16 mha_config_size;
 	char *mha_config;
 } GF_MHAConfigBox;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 format_flags;
+	u8 PCM_sample_size;
+} GF_PCMConfigBox;
 
 
 typedef struct
@@ -4244,7 +4265,7 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(u8 *da
 
 /*do not throw fatal errors if boxes are duplicated, just warn and remove extra ones*/
 #define ERROR_ON_DUPLICATED_BOX(__abox, __parent) {	\
-		char __ptype[5];\
+		char __ptype[GF_4CC_MSIZE];\
 		strcpy(__ptype, gf_4cc_to_str(__parent->type) );\
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] extra box %s found in %s, deleting\n", gf_4cc_to_str(__abox->type), __ptype)); \
 		gf_isom_box_del_parent(& (__parent->child_boxes), __abox);\

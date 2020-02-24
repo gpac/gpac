@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -591,9 +591,9 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	if (e) return e;
 
 	/*copy pixels to pool*/
-	dx_copy_pixels(&temp_surf, video_src, src_wnd);
+	e = gf_stretch_bits(&temp_surf, video_src, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 
-	e = DD_UnlockSurface(dd, pool->pSurface);
+	DD_UnlockSurface(dd, pool->pSurface);
 	if (e) return e;
 
 	if (overlay_type) {
@@ -865,7 +865,7 @@ GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_
 	GF_Err e;
 	DDCONTEXT;
 #ifndef GPAC_DISABLE_3D
-	if (dd->output_3d_type) return GF_BAD_PARAM;
+	if (dd->output_3d) return GF_BAD_PARAM;
 #endif
 	if (!dd->ddraw_init) {
 		e = InitDirectDraw(dr, width, height);

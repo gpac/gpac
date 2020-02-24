@@ -115,7 +115,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		}
 	}
 
-	mov->NextMoofNumber = moof->mfhd->sequence_number;
+	mov->NextMoofNumber = moof->mfhd ? moof->mfhd->sequence_number : 0;
 	//update movie duration
 	if (mov->moov->mvhd->duration < MaxDur) mov->moov->mvhd->duration = MaxDur;
 	return GF_OK;

@@ -75,7 +75,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 {
 	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode, nb_bps;
 	const char *name, *mimetype;
-	char szExt[10], szCodecExt[30], *sep;
+	char szExt[GF_4CC_MSIZE], szCodecExt[30], *sep;
 	const GF_PropertyValue *p;
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 
@@ -581,7 +581,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	if (!ctx->ipid) return GF_EOS;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
+	if (!pck || !ctx->codecid) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->is_wav) writegen_write_wav_header(ctx);
 			gf_filter_pid_set_eos(ctx->opid);

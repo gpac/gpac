@@ -273,7 +273,10 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	import.streamFormat = mux->streamFormat;
 	import.dest = mp4;
 	import.esd = src;
-	import.duration = mux->duration;
+	if (mux->duration) {
+		import.duration.num = mux->duration;
+		import.duration.den = 1000;
+	}
 	import.flags = mux->import_flags | GF_IMPORT_FORCE_MPEG4;
 	import.video_fps.num = (s32) (1000*mux->frame_rate);
 	import.video_fps.den = 1000;

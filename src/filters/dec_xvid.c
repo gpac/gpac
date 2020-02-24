@@ -393,7 +393,13 @@ packed_frame :
 		goto packed_frame;
 	}
 
-	if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+	if (pck) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+	}
+	//flush all frames if eos is detected
+	else if (gf_filter_pid_is_eos(ctx->ipid)) {
+		return xviddec_process(filter);
+	}
 
 	return GF_OK;
 }

@@ -132,16 +132,16 @@ static void a52dec_check_mc_config(GF_A52DecCtx *ctx)
 		channel_mask = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
 		break;
 	case A52_2F1R:
-		channel_mask = GF_AUDIO_CH_BACK_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
+		channel_mask = GF_AUDIO_CH_REAR_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
 		break;
 	case A52_3F1R:
-		channel_mask = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_CENTER;
+		channel_mask = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_REAR_CENTER;
 		break;
 	case A52_2F2R:
-		channel_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT;
+		channel_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT;
 		break;
 	case A52_3F2R:
-		channel_mask = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT;
+		channel_mask = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT;
 		break;
 	}
 	if (ctx->flags & A52_LFE)
@@ -149,7 +149,7 @@ static void a52dec_check_mc_config(GF_A52DecCtx *ctx)
 
 	if (ctx->channel_mask != channel_mask) {
 		ctx->channel_mask = channel_mask;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(channel_mask) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(channel_mask) );
 	}
 }
 

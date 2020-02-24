@@ -85,6 +85,10 @@ static void ffdmx_finalize(GF_Filter *filter)
 		av_dict_free(&ctx->options);
 	if (ctx->probe_times)
 		gf_free(ctx->probe_times);
+	if (ctx->demuxer) {
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
+	}
 	return;
 }
 
@@ -119,6 +123,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	ctx->pkt.stream_index = -1;
 	/*EOF*/
 	if (av_read_frame(ctx->demuxer, &ctx->pkt) <0) {
+		av_free_packet(&ctx->pkt);
 		if (!ctx->raw_data) {
 			for (i=0; i<ctx->demuxer->nb_streams; i++) {
 				if (ctx->pids[i]) gf_filter_pid_set_eos(ctx->pids[i]);
@@ -150,7 +155,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 			av_free_packet(&ctx->pkt);
 			return GF_OK;
 		}
-		
+
 		ctx->probe_times[ctx->probe_frames] = ctx->sclock ? sample_time : ctx->pkt.pts;
 		ctx->probe_frames++;
 		if (ctx->probe_frames==ctx->probes) {
@@ -391,7 +396,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
 				force_reframer = GF_TRUE;
 			}
-			
+
 			if (!force_reframer) {
 				//expose as const data
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
@@ -422,32 +427,43 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		if (codec->field_order>AV_FIELD_PROGRESSIVE)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_TRUE) );
 
-		if (codec->pix_fmt>0) {
+		if ((codec->codec_type==AVMEDIA_TYPE_VIDEO)
+			&& (codec->pix_fmt || ((codec->codec_id==AV_CODEC_ID_RAWVIDEO) && codec->codec_tag))
+		) {
 			u32 pfmt = 0;
-			switch (codec->pix_fmt) {
-			case AV_PIX_FMT_YUV420P: pfmt = GF_PIXEL_YUV; break;
-			case AV_PIX_FMT_YUV420P10LE: pfmt = GF_PIXEL_YUV_10; break;
-			case AV_PIX_FMT_YUV422P: pfmt = GF_PIXEL_YUV422; break;
-			case AV_PIX_FMT_YUV422P10LE: pfmt = GF_PIXEL_YUV422_10; break;
-			case AV_PIX_FMT_YUV444P: pfmt = GF_PIXEL_YUV444; break;
-			case AV_PIX_FMT_YUV444P10LE: pfmt = GF_PIXEL_YUV444_10; break;
-			case AV_PIX_FMT_RGBA: pfmt = GF_PIXEL_RGBA; break;
-			case AV_PIX_FMT_RGB24: pfmt = GF_PIXEL_RGB; break;
-			case AV_PIX_FMT_BGR24: pfmt = GF_PIXEL_BGR; break;
-			case AV_PIX_FMT_UYVY422: pfmt = GF_PIXEL_UYVY; break;
-			case AV_PIX_FMT_YUYV422: pfmt = GF_PIXEL_YUYV; break;
-			case AV_PIX_FMT_NV12: pfmt = GF_PIXEL_NV12; break;
-			case AV_PIX_FMT_NV21: pfmt = GF_PIXEL_NV21; break;
-			case AV_PIX_FMT_0RGB: pfmt = GF_PIXEL_XRGB; break;
-			case AV_PIX_FMT_RGB0: pfmt = GF_PIXEL_RGBX; break;
-			case AV_PIX_FMT_0BGR: pfmt = GF_PIXEL_XBGR; break;
-			case AV_PIX_FMT_BGR0: pfmt = GF_PIXEL_BGRX; break;
 
-			default:
+#define CHECK_FF_PFMT(__ff_cid, __gp_cid)\
+			if ((codec->pix_fmt && (codec->pix_fmt==__ff_cid)) \
+				|| (codec->codec_tag && (avcodec_pix_fmt_to_codec_tag(__ff_cid) == codec->codec_tag))) { \
+				pfmt = __gp_cid; \
+			} \
+
+			CHECK_FF_PFMT(AV_PIX_FMT_YUV420P, GF_PIXEL_YUV)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV420P10LE, GF_PIXEL_YUV_10)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV422P, GF_PIXEL_YUV422)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV422P10LE, GF_PIXEL_YUV422_10)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV444P, GF_PIXEL_YUV444)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUV444P10LE, GF_PIXEL_YUV444_10)
+			else CHECK_FF_PFMT(AV_PIX_FMT_RGBA, GF_PIXEL_RGBA)
+			else CHECK_FF_PFMT(AV_PIX_FMT_RGB24, GF_PIXEL_RGB)
+			else CHECK_FF_PFMT(AV_PIX_FMT_BGR24, GF_PIXEL_BGR)
+			else CHECK_FF_PFMT(AV_PIX_FMT_UYVY422, GF_PIXEL_UYVY)
+			else CHECK_FF_PFMT(AV_PIX_FMT_YUYV422, GF_PIXEL_YUYV)
+			else CHECK_FF_PFMT(AV_PIX_FMT_NV12, GF_PIXEL_NV12)
+			else CHECK_FF_PFMT(AV_PIX_FMT_NV21, GF_PIXEL_NV21)
+			else CHECK_FF_PFMT(AV_PIX_FMT_0RGB, GF_PIXEL_XRGB)
+			else CHECK_FF_PFMT(AV_PIX_FMT_RGB0, GF_PIXEL_RGBX)
+			else CHECK_FF_PFMT(AV_PIX_FMT_0BGR, GF_PIXEL_XBGR)
+			else CHECK_FF_PFMT(AV_PIX_FMT_BGR0, GF_PIXEL_BGRX)
+			else {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unsupported pixel format %d\n", ctx->fname, codec->pix_fmt));
 			}
 			gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT( pfmt) );
+
+#undef CHECK_FF_PFMT
 		}
+
+
 		if (codec->sample_fmt>0) {
 			u32 sfmt = 0;
 			switch (codec->sample_fmt) {
@@ -492,6 +508,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	ffmpeg_setup_logs(ctx->log_class);
 
 	ctx->initialized = GF_TRUE;
+#ifdef GPAC_ENABLE_COVERAGE
+	ffdmx_update_arg(filter, NULL, NULL);
+#endif
 	if (!ctx->src) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Missing file name, cannot open\n", ctx->fname));
 		return GF_SERVICE_ERROR;
@@ -521,7 +540,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		e = GF_URL_ERROR;
 		break;
 	case AVERROR_EOF:
-		e = GF_OK;
+		e = GF_EOS;
 		break;
 	default:
 		e = GF_NOT_SUPPORTED;
@@ -529,8 +548,11 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Fail to open %s - error %s\n", ctx->fname, ctx->src, av_err2str(res) ));
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
 		return e;
 	}
+
 
 	AVDictionaryEntry *prev_e = NULL;
 	while (1) {
@@ -540,10 +562,11 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
-
 	if (res <0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] cannot locate streams - error %s\n", ctx->fname, av_err2str(res)));
 		e = GF_NOT_SUPPORTED;
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
 		return e;
 	}
 	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
@@ -951,7 +974,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	return NULL;
 }
 
-const GF_FilterRegister *ffavin_register(GF_FilterSession *session) 
+const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
 	return NULL;
 }

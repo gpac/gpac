@@ -681,7 +681,7 @@ client channel, the client_port_* info designing the REMOTE client and port_* de
 the server channel
 \param ch the target RTP channel
 \param trans_info the transport info for this channel
-\param remote_address the remote / destination adress of the channel
+\param remote_address the remote / destination address of the channel
 \return error if any
 */
 GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, const char *remote_address);
@@ -1568,11 +1568,12 @@ typedef void (*gf_rtp_packet_cbk)(void *udta, u8 *payload, u32 size, GF_SLHeader
 typedef struct __tag_rtp_depacketizer GF_RTPDepacketizer;
 
 /*! creates a new depacketizer
-\param media the SDP media structure describing the RTP stream
+\param media the SDP media structure describing the RTP stream - can be NULL for static payload types
+\param hdr_payt the static RTP payload type when no SDP is used
 \param sl_packet_cbk callback function of the depacketizer to retrieves payload
 \param udta opaque data for the callback function
 \return a newly allocated RTP depacketizer, or NULL if not supported*/
-GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, gf_rtp_packet_cbk sl_packet_cbk, void *udta);
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf_rtp_packet_cbk sl_packet_cbk, void *udta);
 /*! destroys an RTP depacketizer
 \param rtpd the target RTP depacketizer
 */

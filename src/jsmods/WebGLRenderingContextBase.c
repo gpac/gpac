@@ -717,7 +717,11 @@ static JSValue wgl_drawElements(JSContext *ctx, JSValueConst this_val, int argc,
 	WGL_GET_U32(count, argv[1]);
 	WGL_GET_U32(type, argv[2]);
 	WGL_GET_U64(offset, argv[3]);
+#ifdef GPAC_64_BITS
 	glDrawElements(mode, count, type, (void *)offset);
+#else
+	glDrawElements(mode, count, type, (void *) (u32) offset);
+#endif
 	return ret_val_js;
 }
 
@@ -1718,7 +1722,11 @@ static JSValue wgl_vertexAttribPointer(JSContext *ctx, JSValueConst this_val, in
 	WGL_GET_BOOL(normalized, argv[3]);
 	WGL_GET_U32(stride, argv[4]);
 	WGL_GET_U64(offset, argv[5]);
+#ifdef GPAC_64_BITS
 	glVertexAttribPointer(indx, size, type, normalized, stride, (void *)offset);
+#else
+	glVertexAttribPointer(indx, size, type, normalized, stride, (void *)(u32)offset);
+#endif
 	return ret_val_js;
 }
 

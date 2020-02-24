@@ -1287,7 +1287,7 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 			gf_fileio_seek(bs->gfio, 0, SEEK_END);
 			bs->size = gf_fileio_tell(bs->gfio);
 			gf_fileio_seek(bs->gfio, offset, SEEK_SET);
-		} else {
+		} else if (bs->stream) {
 			offset = gf_ftell(bs->stream);
 			gf_fseek(bs->stream, 0, SEEK_END);
 			bs->size = gf_ftell(bs->stream);

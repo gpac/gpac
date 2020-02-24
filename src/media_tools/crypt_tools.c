@@ -408,6 +408,7 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 {
 	Double progress;
 	u32 *prev_progress = (u32 *)_udta;
+	if (!_udta) return GF_FALSE;
 	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
 	if (!evt->progress.total) return GF_FALSE;
 
@@ -420,8 +421,7 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 	return GF_FALSE;
 }
 
-GF_EXPORT
-GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, u32 fs_dump_flags)
+static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, const char *fragment_name, u32 fs_dump_flags)
 {
 	char szArgs[4096];
 	GF_Filter *src, *dst, *dcrypt;
@@ -435,6 +435,10 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 		return GF_OUT_OF_MEM;
 	}
 	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
+	if (fragment_name) {
+		strcat(szArgs, ":sigfrag:catseg=");
+		strcat(szArgs, fragment_name);
+	}
 	src = gf_fs_load_filter(fsess, szArgs, &e);
 	if (!src) {
 		gf_fs_del(fsess);
@@ -451,12 +455,16 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	}
 
 	sprintf(szArgs, "SID=1");
-	if (interleave_time) {
-		char an_arg[100];
-		sprintf(an_arg, ":cdur=%g", interleave_time);
-		strcat(szArgs, an_arg);
+	if (fragment_name) {
+		strcat(szArgs, ":sseg:noinit:store=frag:cdur=1000000000");
 	} else {
-		strcat(szArgs, ":store=flat");
+		if (interleave_time) {
+			char an_arg[100];
+			sprintf(an_arg, ":cdur=%g", interleave_time);
+			strcat(szArgs, an_arg);
+		} else {
+			strcat(szArgs, ":store=flat");
+		}
 	}
 
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
@@ -471,6 +479,11 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_decrypt_event, &progress);
 	}
+#ifdef GPAC_ENABLE_COVERAGE
+	else if (gf_sys_is_test_mode()) {
+		on_decrypt_event(NULL, NULL);
+	}
+#endif //GPAC_ENABLE_COVERAGE
 #endif
 
 	e = gf_fs_run(fsess);
@@ -485,10 +498,21 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_fi
 	return e;
 }
 
+GF_EXPORT
+GF_Err gf_decrypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *fragment_name, u32 fs_dump_flags)
+{
+	return gf_decrypt_file_ex(mp4, drm_file, dst_file, 0, fragment_name, fs_dump_flags);
+}
+GF_EXPORT
+GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, u32 fs_dump_flags)
+{
+	return gf_decrypt_file_ex(mp4, drm_file, dst_file, interleave_time, NULL, fs_dump_flags);
+}
 static Bool on_crypt_event(void *_udta, GF_Event *evt)
 {
 	Double progress;
 	u32 *prev_progress = (u32 *)_udta;
+	if (!_udta) return GF_FALSE;
 	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
 	if (!evt->progress.total) return GF_FALSE;
 
@@ -579,6 +603,11 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_crypt_event, &progress);
 	}
+#ifdef GPAC_ENABLE_COVERAGE
+	else if (gf_sys_is_test_mode()) {
+		on_crypt_event(NULL, NULL);
+	}
+#endif //GPAC_ENABLE_COVERAGE
 #endif
 	e = gf_fs_run(fsess);
 	if (e>GF_OK) e = GF_OK;
@@ -595,7 +624,6 @@ GF_EXPORT
 GF_Err gf_crypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *fragment_name, u32 fs_dump_flags)
 {
 	return gf_crypt_file_ex(mp4, drm_file, dst_file, 0, fragment_name, fs_dump_flags);
-
 }
 
 GF_EXPORT

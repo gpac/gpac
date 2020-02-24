@@ -956,7 +956,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	for(i=0; i<i_streams; i++) {
 		GF_M2TS_IP_Stream *ip_stream_buff = gf_list_get(ip_platform->ip_streams, i);
 		fprintf(stderr, "PID:%d \n",ip_stream_buff->PID);
-		fprintf(stderr, "Target IP Adress : \n");
+		fprintf(stderr, "Target IP address : \n");
 		/*Print the target IP address  */
 		i_targets = gf_list_count(ip_stream_buff->targets);
 		for(j=0; j<i_targets; j++)

@@ -513,7 +513,8 @@ struct __gf_filter
 	Bool has_out_caps;
 
 	Bool disabled;
-
+	//set to true before calling filter process() callback, and reset to false right after
+	Bool in_process_callback;
 	Bool no_probe;
 	Bool no_inputs;
 	
@@ -857,8 +858,6 @@ struct __gf_filter_pid
 	GF_List *adapters_blacklist;
 	GF_Filter *caps_dst_filter;
 
-	u32 forced_cap;
-
 	Bool ext_not_trusted;
 
 	Bool require_source_id;
@@ -960,6 +959,7 @@ typedef struct
 	u8 status;
 	u8 priority;
 	u8 loaded_filter_only;
+	u32 disabled_depth;
 	//stream type of the output cap of src. Might be:
 	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
 	// 0 if not specified
@@ -987,6 +987,8 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 
 //get next option after path, NULL if not found
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path);
+
+void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
 
 #endif //_GF_FILTER_SESSION_H_
 

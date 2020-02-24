@@ -238,7 +238,7 @@ void gf_mo_get_nb_layers(GF_MediaObject *mo, u32 *nb_layers)
 }
 
 GF_EXPORT
-Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config, Bool *forced_layout)
+Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u64 *channel_config, Bool *forced_layout)
 {
 	if (!mo->odm || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
 
@@ -257,7 +257,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d]: tagged as ambisonic channel %d but has %d channels, ignoring ambisonic tag\n",  mo->odm->ID, mo->odm->ambi_ch_id, mo->num_channels ));
 		} else {
 			if (num_channels) *num_channels = 1;
-			if (channel_config) *channel_config = 1 << (mo->odm->ambi_ch_id - 1);
+			if (channel_config) *channel_config = (u64) ( 1 << (mo->odm->ambi_ch_id - 1) );
 			if (forced_layout) *forced_layout = GF_TRUE;
 
 		}
@@ -325,7 +325,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_NUM_CHANNELS);
 		if (v) mo->num_channels = v->value.uint;
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CHANNEL_LAYOUT);
-		if (v) mo->channel_config = v->value.uint;
+		if (v) mo->channel_config = v->value.longuint;
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_AUDIO_FORMAT);
 		if (v) mo->afmt = v->value.uint;
 		else mo->afmt = GF_AUDIO_FMT_S16;
@@ -448,6 +448,7 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 			if (gf_filter_pid_is_eos(mo->odm->pid)) {
 				if (!mo->is_eos) {
 					mo->is_eos = GF_TRUE;
+					*eos = mo->is_eos;
 					mediasensor_update_timing(mo->odm, GF_TRUE);
 					gf_odm_on_eos(mo->odm, mo->odm->pid);
 					force_decode_mode=0;

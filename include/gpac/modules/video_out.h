@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / modules interfaces
@@ -90,7 +90,7 @@ typedef struct
 typedef struct _gf_sc_texture_handler GF_TextureH;
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','4')
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','5')
 
 /*
 			video output interface

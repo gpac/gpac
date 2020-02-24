@@ -459,6 +459,44 @@ static void mp4_mux_write_track_refs(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 	}
 }
 
+static void mp4mux_track_reorder(void *udta, u32 old_track_num, u32 new_track_num)
+{
+	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) udta;
+	u32 i, count;
+	count = gf_list_count(ctx->tracks);
+	for (i=0; i<count; i++) {
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (tkw->track_num==old_track_num) {
+			tkw->track_num = new_track_num;
+			return;
+		}
+	}
+}
+
+static void mp4mux_reorder_tracks(GF_MP4MuxCtx *ctx)
+{
+	u32 i, count, prev_num, prev_pos;
+	GF_List *new_tracks = gf_list_new();
+	prev_num = prev_pos = 0;
+	count = gf_list_count(ctx->tracks);
+	for (i=0; i<count; i++) {
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (tkw->track_num<prev_num) {
+			gf_list_insert(new_tracks, tkw, prev_pos);
+		} else {
+			gf_list_add(new_tracks, tkw);
+		}
+		prev_pos = gf_list_count(new_tracks) - 1;
+		prev_num = tkw->track_num;
+	}
+	if (gf_list_count(new_tracks)!=count) {
+		gf_list_del(new_tracks);
+		return;
+	}
+	gf_list_del(ctx->tracks);
+	ctx->tracks = new_tracks;
+}
+
 
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
 {
@@ -483,8 +521,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool is_text_subs = GF_FALSE;
 	Bool force_colr = GF_FALSE;
 	u32 m_subtype=0;
+	u32 m_subtype_alt_raw=0;
+	u32 raw_bitdepth=0;
 	u32 override_stype=0;
 	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
+	u64 ch_layout;
 	GF_Fraction fps, sar;
 	GF_List *multi_pid_stsd = NULL;
 	u32 multi_pid_idx = 0;
@@ -787,6 +828,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 	if (needs_track) {
 		u32 tkid=0;
+		u32 tk_idx=0;
 		u32 mtype=0;
 		u32 target_timescale = 0;
 
@@ -866,6 +908,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_isom_set_timescale(ctx->file, (u32) ctx->moovts);
 		}
 
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_TRACK_INDEX);
+		if (p) {
+			tk_idx = p->value.uint;
+		}
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE);
 		if (ctx->tktpl && p && p->value.data.ptr) {
 			Bool udta_only = (ctx->tktpl==2) ? GF_TRUE : GF_FALSE;
@@ -884,6 +931,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				mtype = GF_4CC('u','n','k','n');
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable to find ISOM media type for stream type %s codec %s\n", gf_stream_type_name(tkw->stream_type), gf_codecid_name(tkw->codecid) ));
 			}
+			if (!tkid) tkid = tk_idx;
+
 			tkw->track_num = gf_isom_new_track(ctx->file, tkid, mtype, tkw->tk_timescale);
 			if (!tkw->track_num) {
 				tkw->track_num = gf_isom_new_track(ctx->file, 0, mtype, tkw->tk_timescale);
@@ -936,6 +985,10 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_SRC_MAGIC);
 		if (p) {
 			gf_isom_set_track_magic(ctx->file, tkw->track_num, p->value.longuint);
+		}
+		if (tk_idx) {
+			gf_isom_set_track_index(ctx->file, tkw->track_num, tk_idx, mp4mux_track_reorder, ctx);
+			mp4mux_reorder_tracks(ctx);
 		}
 
 		//by default use cttsv1 (negative ctts)
@@ -1006,6 +1059,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 	width = height = sr = nb_chan = z_order = txt_fsize = 0;
 	nb_bps = 16;
+	ch_layout = 0;
 	fps.num = 25;
 	fps.den = 1;
 	sar.num = sar.den = 1;
@@ -1051,6 +1105,8 @@ sample_entry_setup:
 	if (p) nb_chan = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_BPS);
 	if (p) nb_bps = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+	if (p) ch_layout = p->value.longuint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
 	if (p) lang_name = p->value.string;
@@ -1306,26 +1362,31 @@ sample_entry_setup:
 			 	req_non_planar_type = GF_AUDIO_FMT_S16;
 			case GF_AUDIO_FMT_S16:
 				m_subtype = GF_QT_SUBTYPE_SOWT;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_IPCM;
 				break;
 			case GF_AUDIO_FMT_S24P:
 			 	req_non_planar_type = GF_AUDIO_FMT_S24;
 			case GF_AUDIO_FMT_S24:
 				m_subtype = GF_QT_SUBTYPE_IN24;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_IPCM;
 				break;
 			case GF_AUDIO_FMT_S32P:
 			 	req_non_planar_type = GF_AUDIO_FMT_S32P;
 			case GF_AUDIO_FMT_S32:
 				m_subtype = GF_QT_SUBTYPE_IN32;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_IPCM;
 				break;
 			case GF_AUDIO_FMT_FLTP:
 			 	req_non_planar_type = GF_AUDIO_FMT_FLTP;
 			case GF_AUDIO_FMT_FLT:
 				m_subtype = GF_QT_SUBTYPE_FL32;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_FPCM;
 				break;
 			case GF_AUDIO_FMT_DBLP:
 			 	req_non_planar_type = GF_AUDIO_FMT_DBL;
 			case GF_AUDIO_FMT_DBL:
 				m_subtype = GF_QT_SUBTYPE_FL64;
+				m_subtype_alt_raw = GF_ISOM_SUBTYPE_FPCM;
 				break;
 			default:
 				unknown_generic = GF_TRUE;
@@ -1340,7 +1401,8 @@ sample_entry_setup:
 					return GF_NOT_SUPPORTED;
 				}
 			}
-			tkw->raw_audio_bytes_per_sample = gf_audio_fmt_bit_depth(p->value.uint);
+			raw_bitdepth = gf_audio_fmt_bit_depth(p->value.uint);
+			tkw->raw_audio_bytes_per_sample = raw_bitdepth;
 			tkw->raw_audio_bytes_per_sample *= nb_chan;
 			tkw->raw_audio_bytes_per_sample /= 8;
 		}
@@ -1906,10 +1968,11 @@ sample_entry_setup:
 		}
 
 	} else if (use_gen_sample_entry) {
+		u8 isor_ext_buf[14];
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
-		udesc.codec_tag = m_subtype;
+
 		if (!comp_name) comp_name = "Unknown";
 		len = (u32) strlen(comp_name);
 		if (len>32) len = 32;
@@ -1921,11 +1984,25 @@ sample_entry_setup:
 		udesc.samplerate = sr;
 		udesc.nb_channels = nb_chan;
 		if (codec_id==GF_CODECID_RAW) {
-			udesc.is_qtff = GF_TRUE;
-			udesc.version = 1;
-			ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
+			if (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) {
+				m_subtype = m_subtype_alt_raw;
+				udesc.extension_buf_size = 14;
+				udesc.extension_buf = isor_ext_buf;
+				memset(isor_ext_buf, 0, sizeof(u8)*14);
+				isor_ext_buf[3] = 14;
+				isor_ext_buf[4] = 'p';
+				isor_ext_buf[5] = 'c';
+				isor_ext_buf[6] = 'm';
+				isor_ext_buf[7] = 'C';
+				isor_ext_buf[12] = 1; //little endian only for now
+				isor_ext_buf[13] = raw_bitdepth; //little endian only for now
+			} else {
+				udesc.is_qtff = GF_TRUE;
+				udesc.version = 1;
+				ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
+			}
 		}
-
+		udesc.codec_tag = m_subtype;
 		udesc.width = width;
 		udesc.height = height;
 		if (width) {
@@ -2160,6 +2237,17 @@ sample_entry_done:
 				}
 			}
 			gf_isom_set_audio_info(ctx->file, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps, ctx->make_qt ? GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF : ase_mode);
+			if ((m_subtype==GF_ISOM_SUBTYPE_IPCM) || (m_subtype==GF_ISOM_SUBTYPE_FPCM)) {
+				GF_AudioChannelLayout layout;
+				memset(&layout, 0, sizeof(GF_AudioChannelLayout));
+				layout.stream_structure = 1;
+				layout.channels_count = nb_chan;
+				if (ch_layout)
+					layout.definedLayout = gf_audio_fmt_get_cicp_from_layout(ch_layout);
+				else
+					layout.definedLayout = gf_audio_fmt_get_cicp_layout(nb_chan, 0, 0);
+				gf_isom_set_audio_layout(ctx->file, tkw->track_num, tkw->stsd_idx, &layout);
+			}
 		}
 		else if (width) {
 			u32 colour_type=0;
@@ -2923,19 +3011,34 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, duration);
 
 	if (ctx->idur.num) {
-		u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
+		Bool abort = GF_FALSE;
+		if (ctx->idur.num>0) {
+			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 
-		/*patch to align to old arch */
-		if (tkw->stream_type==GF_STREAM_VISUAL) {
-			mdur = tkw->sample.DTS;
+			/*patch to align to old arch */
+			if (gf_sys_is_test_mode() && (tkw->stream_type==GF_STREAM_VISUAL)) {
+				mdur = tkw->sample.DTS;
+			}
+
+			if (ctx->importer) {
+				tkw->prog_done = mdur * ctx->idur.den;
+				tkw->prog_total =  ((u64)tkw->tk_timescale) * ctx->idur.num;
+			}
+
+			/*patch to align to old arch */
+			if (gf_sys_is_test_mode()) {
+				if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num)
+					abort = GF_TRUE;
+			} else {
+				if (mdur * (u64) ctx->idur.den >= tkw->tk_timescale * (u64) ctx->idur.num)
+					abort = GF_TRUE;
+			}
+		} else {
+			if ((s32) tkw->nb_samples >= -ctx->idur.num)
+				abort = GF_TRUE;
 		}
 
-		if (ctx->importer) {
-			tkw->prog_done = mdur * ctx->idur.den;
-			tkw->prog_total =  ((u64)tkw->tk_timescale) * ctx->idur.num;
-		}
-
-		if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num) {
+		if (abort) {
 			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_STOP, tkw->ipid);
 			gf_filter_pid_send_event(tkw->ipid, &evt);
@@ -3254,7 +3357,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 		if (p && p->value.lfrac.num>0 && p->value.lfrac.den) {
 			tkw->pid_dur = p->value.lfrac;
-			if (max_dur.num * p->value.lfrac.den < max_dur.den * (u64) p->value.lfrac.num) {
+			if (max_dur.num * (s64) p->value.lfrac.den < (s64) max_dur.den * p->value.lfrac.num) {
 				max_dur.num = p->value.lfrac.num;
 				max_dur.den = p->value.lfrac.den;
 			}
@@ -3393,7 +3496,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	if (!ctx->abs_offset) {
 		u32 mval = ctx->dash_mode ? '6' : '5';
 		u32 mbrand, mcount, found=0;
-		u8 szB[5];
+		u8 szB[GF_4CC_MSIZE];
 		gf_isom_set_fragment_option(ctx->file, 0, GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET, 1);
 
 		gf_isom_get_brand_info(ctx->file, &mbrand, NULL, &mcount);
@@ -4167,10 +4270,14 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 			if (tkw->aborted) {
 				pc=10000;
 			} else if (ctx->idur.num) {
-				u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
-				u64 tk_done = mdur * ctx->idur.den;
-				u64 tk_total = ((u64)tkw->tk_timescale) * ctx->idur.num;
-				pc = (u32) ((tk_done*10000)/tk_total);
+				if (ctx->idur.num>0) {
+					u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
+					u64 tk_done = mdur * ctx->idur.den;
+					u64 tk_total = ((u64)tkw->tk_timescale) * ctx->idur.num;
+					pc = (u32) ((tk_done*10000)/tk_total);
+				} else {
+					pc = (u32) ( (10000 * (u64) tkw->nb_samples) / (-ctx->idur.num) );
+				}
 			} else {
 				if (tkw->nb_frames) {
 					pc = (u32) ( (10000 * (u64) tkw->nb_samples) / tkw->nb_frames);
@@ -4512,11 +4619,31 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
 
 
-static void mp4_mux_set_lhvc_base_layer(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
 	u32 avc_base_track, hevc_base_track, ref_track_id;
 	avc_base_track = hevc_base_track = 0;
 	u32 i;
+	GF_PropertyEntry *pe=NULL;
+	const GF_PropertyValue *p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:oinf", &pe);
+	if (p) {
+		u32 gi=0;
+		gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_OINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
+
+		p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:linf", &pe);
+		if (p) {
+			gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_LINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
+			gf_isom_set_track_group(ctx->file, tkw->track_num, 1000+gf_isom_get_track_id(ctx->file, tkw->track_num), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
+		}
+	}
+
+	gf_filter_release_property(pe);
+
+	p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
+	if ((!p || !p->value.uint) && (tkw->codecid!=GF_CODECID_LHVC)) {
+		return;
+	}
+	//set linf
 	for (i=0; i < gf_isom_get_track_count(ctx->file); i++) {
 		u32 subtype = gf_isom_get_media_subtype(ctx->file, i+1, 1);
 		switch (subtype) {
@@ -4555,31 +4682,6 @@ static void mp4_mux_set_lhvc_base_layer(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			ref_track_id = gf_isom_get_track_id(ctx->file, hevc_base_track);
 			gf_isom_set_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_OREF, ref_track_id);
 		}
-	}
-}
-
-static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
-{
-	GF_PropertyEntry *pe=NULL;
-	const GF_PropertyValue *p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:oinf", &pe);
-	if (p) {
-		u32 gi=0;
-		gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_OINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
-
-		p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:linf", &pe);
-		if (p) {
-			gf_isom_add_sample_group_info(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_LINF, p->value.data.ptr, p->value.data.size, GF_TRUE, &gi);
-			gf_isom_set_track_group(ctx->file, tkw->track_num, 1000+gf_isom_get_track_id(ctx->file, tkw->track_num), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
-		}
-	}
-
-	gf_filter_release_property(pe);
-
-	p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
-	if (p && p->value.uint) {
-		mp4_mux_set_lhvc_base_layer(ctx, tkw);
-	} else if (tkw->codecid==GF_CODECID_LHVC) {
-		mp4_mux_set_lhvc_base_layer(ctx, tkw);
 	}
 }
 
@@ -4654,7 +4756,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->file, tkw->track_num);
 
-		if ((tkw->nb_samples == 1) && ctx->idur.num && ctx->idur.den) {
+		if ((tkw->nb_samples == 1) && (ctx->idur.num>0) && ctx->idur.den) {
 			u32 dur = tkw->tk_timescale * ctx->idur.num;
 			dur /= ctx->idur.den;
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, dur);
@@ -4818,7 +4920,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- edit: uses edit lists to shift first frame to presentation time 0\n"
 	"- noedit: ignore edit lists and does not shift timeline\n"
 	"- negctts: uses ctts v1 with possibly negative offsets and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(idur), "only import the specified duration", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(idur), "only import the specified duration. If negative, specify the number of coded frames to import", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(pack3gp), "pack a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_nal), "repack NALU size length to minimum possible size for AVC/HEVC/...", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -4881,7 +4983,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"\
 			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
 			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
-			"- v1: use v1 signaling, ISOBMFF style\n"\
+			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"\
 			"- v1qt: use v1 signaling, QTFF style"\
 		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
 	{ OFFS(ssix), "create ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -44,6 +44,7 @@ typedef struct
 	Bool ts_rescale;
 	AVRational in_scale;
 	Bool in_seg_flush;
+	u32 cts_shift;
 } GF_FFMuxStream;
 
 typedef struct
@@ -105,6 +106,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	res = avformat_write_header(ctx->muxer, NULL);
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write %s header - error %s\n", ctx->dst, av_err2str(res) ));
+		ctx->status = 4;
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	return GF_OK;
@@ -381,6 +383,13 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			ffpck.stream_index = st->stream->index;
 			ffpck.dts = gf_filter_pck_get_dts(ipck);
 			ffpck.pts = gf_filter_pck_get_cts(ipck);
+			if (st->cts_shift) ffpck.pts += st->cts_shift;
+
+			if (ffpck.dts > ffpck.pts) {
+				st->cts_shift = (u32) (ffpck.dts - ffpck.pts);
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMux] Negative CTS offset -%d found, adjusting offset\n", st->cts_shift));
+				ffpck.pts = ffpck.dts;
+			}
 			ffpck.duration = gf_filter_pck_get_duration(ipck);
 			sap = gf_filter_pck_get_sap(ipck);
 			if (sap==GF_FILTER_SAP_1) ffpck.flags = AV_PKT_FLAG_KEY;
@@ -467,8 +476,49 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	codec_id = p->value.uint;
 
 	ff_st = ffmpeg_stream_type_from_gpac(streamtype);
-	ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
+	if (codec_id==GF_CODECID_RAW) {
+		ff_codec_tag = 0;
+		if (streamtype==GF_STREAM_VISUAL) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+			if (!p) return GF_NOT_SUPPORTED;
+			switch (p->value.uint) {
+			default:
+				ff_codec_id = AV_CODEC_ID_RAWVIDEO;
+				break;
+			}
+		} else {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+			if (!p) return GF_NOT_SUPPORTED;
 
+			switch (p->value.uint) {
+			case GF_AUDIO_FMT_U8:
+			case GF_AUDIO_FMT_U8P:
+				ff_codec_id = AV_CODEC_ID_PCM_U8;
+				break;
+			case GF_AUDIO_FMT_S16:
+			case GF_AUDIO_FMT_S16P:
+				ff_codec_id = AV_CODEC_ID_PCM_S16LE;
+				break;
+			case GF_AUDIO_FMT_S24:
+			case GF_AUDIO_FMT_S24P:
+				ff_codec_id = AV_CODEC_ID_PCM_S24LE;
+				break;
+			case GF_AUDIO_FMT_S32:
+			case GF_AUDIO_FMT_S32P:
+				ff_codec_id = AV_CODEC_ID_PCM_S32LE;
+				break;
+			case GF_AUDIO_FMT_FLT:
+			case GF_AUDIO_FMT_FLTP:
+				ff_codec_id = AV_CODEC_ID_PCM_F32LE;
+				break;
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Unmapped raw audio format %s to FFMPEG, patch welcome\n", gf_audio_fmt_name(p->value.uint) ));
+				return GF_NOT_SUPPORTED;
+			}
+		}
+	} else {
+		ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
+	}
 
 	if (ctx->muxer->oformat->query_codec) {
 		res = ctx->muxer->oformat->query_codec(ff_codec_id, 1);
@@ -547,6 +597,9 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
 	if (p) avst->codecpar->bit_rate = p->value.uint;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CTS_SHIFT);
+	if (p) st->cts_shift = p->value.uint;
+
 	if (streamtype==GF_STREAM_VISUAL) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 		if (p) avst->codecpar->width = p->value.uint;
@@ -561,7 +614,10 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		if (codec_id==GF_CODECID_RAW) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
-			if (p) avst->codecpar->format =  ffmpeg_pixfmt_from_gpac(p->value.uint);
+			if (p) {
+				avst->codecpar->format = ffmpeg_pixfmt_from_gpac(p->value.uint);
+				avst->codecpar->codec_tag = avcodec_pix_fmt_to_codec_tag(avst->codecpar->format);
+			}
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
@@ -593,7 +649,8 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	}
 	else if (streamtype==GF_STREAM_AUDIO) {
-		u32 ch_layout, samplerate=0;
+		u64 ch_layout;
+		u32 samplerate=0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (p) avst->codecpar->sample_rate = samplerate = p->value.uint;
@@ -611,7 +668,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ch_layout = AV_CH_LAYOUT_MONO;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p)
-			ch_layout = p->value.uint;
+			ch_layout = p->value.longuint;
 		else if (avst->codecpar->channels==2)
 			ch_layout = AV_CH_LAYOUT_STEREO;
 		avst->codecpar->channel_layout = ffmpeg_channel_layout_from_gpac(ch_layout);

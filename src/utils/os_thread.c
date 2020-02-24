@@ -622,6 +622,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 }
 
 
+GF_EXPORT
 s32 gf_mx_get_num_locks(GF_Mutex *mx)
 {
 	u32 caller;

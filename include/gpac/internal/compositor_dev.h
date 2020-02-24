@@ -814,7 +814,7 @@ typedef struct _gf_sc_texture_handler
 	/*image data for natural media*/
 	u8 *data;
 	//we need a local copy of width/height/etc since some textures may be defined without a stream object
-	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes;
+	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes, orig_pixelformat;
 	Bool is_flipped;
 
 	GF_FilterFrameInterface *frame_ifce;
@@ -1173,7 +1173,8 @@ typedef struct _audiointerface
 	You may return 0 to force parent user invalidation*/
 	Bool (*GetConfig)(struct _audiointerface *ai, Bool for_reconf);
 	/*updated cfg, or 0 otherwise*/
-	u32 chan, afmt, samplerate, ch_cfg;
+	u32 chan, afmt, samplerate;
+	u64 ch_layout;
 	Bool forced_layout;
 	//updated at each frame, used if frame fetch returns NULL
 	Bool is_buffering;
@@ -1196,9 +1197,9 @@ NOTE: this is called at each gf_mixer_get_output by the mixer. To call externall
 reconfiguration only*/
 Bool gf_mixer_reconfig(GF_AudioMixer *am);
 /*retrieves mixer cfg*/
-void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT, u32 *outChCfg);
+void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT, u64 *outChCfg);
 /*called by audio renderer in case the hardware used a different setup than requested*/
-void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u32 ch_cfg);
+void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u64 ch_cfg);
 Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce);
 u32 gf_mixer_get_src_count(GF_AudioMixer *am);
 void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
@@ -2306,7 +2307,8 @@ struct _mediaobj
 	/*currently valid properties of the object*/
 	u32 width, height, stride, pixel_ar, pixelformat;
 	Bool is_flipped;
-	u32 sample_rate, num_channels, afmt, channel_config, bytes_per_sec;
+	u32 sample_rate, num_channels, afmt, bytes_per_sec;
+	u64 channel_config;
 	Bool planar_audio;
 	u32 srd_x, srd_y, srd_w, srd_h, srd_full_w, srd_full_h;
 

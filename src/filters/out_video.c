@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2019
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -574,7 +574,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 #ifndef GPAC_DISABLE_3D
 		if (ctx->disp<MODE_2D) {
-			evt.setup.opengl_mode = 1;
+			evt.setup.use_opengl = GF_TRUE;
 			//always double buffer
 			evt.setup.back_buffer = gf_opts_get_bool("core", "gl-doublebuf");
 		} else
@@ -584,7 +584,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
-		if (evt.setup.opengl_mode) {
+		if (evt.setup.use_opengl) {
 			gf_opengl_init();
 		}
 		if (!ctx->in_fullscreen) {
@@ -594,12 +594,12 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->display_changed = GF_TRUE;
 
 #if !defined(GPAC_DISABLE_3D) && defined(WIN32)
-		if (evt.setup.opengl_mode)
+		if (evt.setup.use_opengl)
 			gf_opengl_init();
 
 		if ((ctx->disp<MODE_2D) && (glCompileShader == NULL)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load openGL, fallback to 2D blit\n"));
-			evt.setup.opengl_mode = 0;
+			evt.setup.use_opengl = GF_FALSE;
 			evt.setup.back_buffer = 1;
 			ctx->disp = MODE_2D;
 			ctx->video_out->ProcessEvent(ctx->video_out, &evt);
@@ -1172,12 +1172,12 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.width = 320;
 		evt.setup.height = 240;
-		evt.setup.opengl_mode = 1;
+		evt.setup.use_opengl = GF_TRUE;
 		evt.setup.back_buffer = 1;
 		evt.setup.disable_vsync = !ctx->vsync;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
-		if (evt.setup.opengl_mode) {
+		if (evt.setup.use_opengl) {
 			gf_opengl_init();
 		}
 		gf_filter_register_opengl_provider(filter, GF_TRUE);
@@ -2087,7 +2087,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			} else {
 				diff = 0;
 			}
-			
+
 			if (ctx->timescale != 1000000)
 				ref_clock = diff * ctx->timescale / 1000000 + cts;
 			else
@@ -2269,4 +2269,3 @@ const GF_FilterRegister *vout_register(GF_FilterSession *session)
 {
 	return &VideoOutRegister;
 }
-

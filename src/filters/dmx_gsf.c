@@ -485,13 +485,13 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 		if (!ctx->key.size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] stream is encrypted but no key provided\n" ));
 			ctx->tune_error = GF_TRUE;
-			return GF_NOT_SUPPORTED;
+			return GF_BAD_PARAM;
 		}
 		ctx->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 		if (!ctx->crypt) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] failed to create decryptor\n" ));
 			ctx->tune_error = GF_TRUE;
-			return GF_NOT_SUPPORTED;
+			return GF_IO_ERR;
 		}
 		gf_crypt_init(ctx->crypt, ctx->key.ptr, ctx->crypt_IV);
 
@@ -873,7 +873,7 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 	GF_Err e;
 
 	if (ctx->tune_error) {
-		return GF_OK;
+		return GF_SERVICE_ERROR;
 	}
 	while (1) {
 		gpck = gf_list_get(gst->packets, 0);
@@ -1081,9 +1081,8 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		}
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] error decoding packet %s:\n", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] error decoding packet: %s\n", gf_error_to_string(e) ));
 			if (ctx->tune_error) return e;
-
 		}
 		gf_bs_skip_bytes(ctx->bs_r, pck_len);
 		last_pck_end = (u32) gf_bs_get_position(ctx->bs_r);
@@ -1109,6 +1108,7 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	Bool is_eos = GF_FALSE;
 
 	if (ctx->wait_for_play) return GF_OK;
+	if (ctx->tune_error) return GF_SERVICE_ERROR;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -1135,6 +1135,9 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	data = gf_filter_pck_get_data(pck, &pkt_size);
 	e = gsfdmx_demux(filter, ctx, (char *) data, pkt_size);
 	gf_filter_pid_drop_packet(ctx->ipid);
+	if (ctx->tune_error)
+		gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
+
 	return e;
 }
 
@@ -1160,7 +1163,8 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 static void gsfdmx_not_enough_bytes(void *par)
 {
 	GSF_DemuxCtx *ctx = (GSF_DemuxCtx *)par;
-	ctx->buffer_too_small = GF_TRUE;
+	if (ctx)
+		ctx->buffer_too_small = GF_TRUE;
 }
 
 static GF_Err gsfdmx_initialize(GF_Filter *filter)
@@ -1170,6 +1174,11 @@ static GF_Err gsfdmx_initialize(GF_Filter *filter)
 	if (!ctx->streams) return GF_OUT_OF_MEM;
 	ctx->bs_r = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(ctx->bs_r, gsfdmx_not_enough_bytes, ctx);
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_test_mode())
+		gsfdmx_not_enough_bytes(NULL);
+#endif
 
 	ctx->bs_pck = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
 	ctx->pck_res = gf_list_new();

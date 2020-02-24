@@ -42,6 +42,7 @@ typedef struct
 {
 	//options
 	char *ip;
+	char *dst, *ext, *mime;
 	u32 port;
 	Bool loop, xps;
 	Bool mpeg4;
@@ -73,6 +74,10 @@ typedef struct
 
 	Bool wait_for_loop;
 	u64 microsec_ts_init;
+	//0: not single stream, 1: input is raw media, 2: input is TS
+	u32 single_stream;
+	GF_FilterCapability in_caps[2];
+	char szExt[10];
 } GF_RTPOutCtx;
 
 
@@ -253,7 +258,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	return GF_OK;
 }
 
-GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id)
+GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id, u32 file_mode)
 {
 	GF_Err e = GF_OK;
 	Bool disable_mpeg4 = GF_FALSE;
@@ -333,9 +338,17 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 		break;
 	case GF_STREAM_VISUAL:
 		break;
+	case GF_STREAM_FILE:
+		if (file_mode==2) {
+			stream->codecid = codecid = GF_CODECID_FAKE_MP2T;
+			stream->timescale = 90000;
+		}
+		break;
 	default:
 		break;
 	}
+
+	gf_filter_pid_set_framing_mode(stream->pid, (stream->streamtype==GF_STREAM_FILE) ? GF_FALSE : GF_TRUE);
 
 	/*get sample info*/
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_MAX_FRAME_SIZE);
@@ -470,8 +483,13 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	stream->ts_delay = p ? p->value.sint : 0;
 
 	payt++;
-	stream->microsec_ts_scale = 1000000;
-	stream->microsec_ts_scale /= stream->timescale;
+	stream->microsec_ts_scale_frac.num = 1000000;
+	stream->microsec_ts_scale_frac.den = stream->timescale;
+
+	while (! (stream->microsec_ts_scale_frac.num % 10) && ! (stream->microsec_ts_scale_frac.den % 10)) {
+		stream->microsec_ts_scale_frac.num /= 10;
+		stream->microsec_ts_scale_frac.den /= 10;
+	}
 
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DEPENDENCY_ID);
 	if (p) {
@@ -490,6 +508,8 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	u8 *output;
 	const char *ip = ctx->ip;
 	if (!ip) ip = "127.0.0.1";
+
+	if (ctx->single_stream) return GF_OK;
 
 	e = rtpout_create_sdp(ctx->streams, GF_FALSE, ip, ctx->info, "livesession", ctx->url, ctx->email, ctx->base_pid_id, &sdp_out, &sess_id);
 	if (e) return e;
@@ -581,7 +601,20 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_list_del_item(ctx->streams, stream);
 			rtpout_del_stream(stream);
 		}
-		return GF_FILTER_NOT_SUPPORTED;
+		if (!ctx->dst)
+			return GF_FILTER_NOT_SUPPORTED;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (p && p->value.string && !strcmp(p->value.string, "video/mpeg-2")) {
+			ctx->single_stream = 2;
+		} else {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+			if (p && p->value.string && !strcmp(p->value.string, "ts")) {
+				ctx->single_stream = 2;
+			} else {
+				return GF_FILTER_NOT_SUPPORTED;
+			}
+		}
+
 		break;
 	default:
 		break;
@@ -594,22 +627,39 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		stream->streamtype = streamType;
 		stream->min_dts = GF_FILTER_NO_TS;
 	 	gf_filter_pid_set_udta(pid, stream);
+		if (ctx->single_stream) {
+			GF_FilterEvent evt;
+			gf_filter_pid_init_play_event(pid, &evt, 0, 1.0, "RTPOut");
+			gf_filter_pid_send_event(pid, &evt);
+		}
 	}
-	if (!ctx->opid) {
-		ctx->opid = gf_filter_pid_new(filter);
+	if (!ctx->single_stream) {
+		if (!ctx->opid) {
+			ctx->opid = gf_filter_pid_new(filter);
+		}
+		gf_filter_pid_copy_properties(ctx->opid, pid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("sdp") );
+		gf_filter_pid_set_name(ctx->opid, "SDP");
+	} else {
+		char *dst = ctx->dst+6;
+		char *sep = strchr(dst, ':');
+		if (sep) {
+			first_port = ctx->port = atoi(sep+1);
+			sep[0] = 0;
+			if (ctx->ip) gf_free(ctx->ip);
+			ctx->ip = gf_strdup(dst);
+			sep[0] = ':';
+		}
 	}
-	gf_filter_pid_copy_properties(ctx->opid, pid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("sdp") );
-	gf_filter_pid_set_name(ctx->opid, "SDP");
 
 	stream->port = rtpout_check_next_port(ctx, first_port);
 
 	payt = ctx->payt + gf_list_find(ctx->streams, stream);
 	//init rtp
-	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id);
+	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id, ctx->single_stream);
 	if (e) return e;
 
 	stream->selected = GF_TRUE;
@@ -633,6 +683,28 @@ static GF_Err rtpout_initialize(GF_Filter *filter)
 	if (ctx->payt<96) ctx->payt = 96;
 	if (ctx->payt>127) ctx->payt = 127;
 	ctx->streams = gf_list_new();
+
+	if (ctx->dst && (ctx->ext || ctx->mime) ) {
+		//static cap, streamtype = file
+		ctx->in_caps[0].code = GF_PROP_PID_STREAM_TYPE;
+		ctx->in_caps[0].val = PROP_UINT(GF_STREAM_FILE);
+		ctx->in_caps[0].flags = GF_CAPS_INPUT_STATIC;
+
+		if (ctx->mime) {
+			ctx->in_caps[1].code = GF_PROP_PID_MIME;
+			ctx->in_caps[1].val = PROP_NAME( ctx->mime );
+			ctx->in_caps[1].flags = GF_CAPS_INPUT;
+		} else {
+			strncpy(ctx->szExt, ctx->ext, 9);
+			strlwr(ctx->szExt);
+			ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
+			ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
+			ctx->in_caps[1].flags = GF_CAPS_INPUT;
+		}
+		gf_filter_override_caps(filter, ctx->in_caps, 2);
+		gf_filter_set_max_extra_input_pids(filter, 0);
+		ctx->single_stream = GF_TRUE;
+	}
 	return GF_OK;
 }
 
@@ -739,6 +811,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 
 			/*load next AU*/
 			if (!stream->pck) {
+				u64 ts;
 				stream->pck = gf_filter_pid_get_packet(stream->pid);
 
 				if (!stream->pck) {
@@ -754,7 +827,11 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					continue;
 				}
 				stream->current_dts = gf_filter_pck_get_dts(stream->pck);
-				stream->current_cts = gf_filter_pck_get_cts(stream->pck);
+				//if CTS is not set, use prev packet CTS
+				ts = gf_filter_pck_get_cts(stream->pck);
+				if (ts==GF_FILTER_NO_TS) ts = stream->current_cts;
+				stream->current_cts = ts;
+
 				stream->current_sap = gf_filter_pck_get_sap(stream->pck);
 				duration = gf_filter_pck_get_duration(stream->pck);
 				if (duration) stream->current_duration = duration;
@@ -765,7 +842,10 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					stream->min_dts = stream->current_dts;
 				}
 
-				stream->microsec_dts = (u64) (stream->microsec_ts_scale * (s64) (stream->current_dts) + stream->microsec_ts_offset + sys_clock_at_init);
+				stream->microsec_dts = (u64) (stream->microsec_ts_scale_frac.num * (s64) stream->current_dts);
+				stream->microsec_dts /= stream->microsec_ts_scale_frac.den;
+				stream->microsec_dts += stream->microsec_ts_offset + sys_clock_at_init;
+
 				if (stream->microsec_dts < microsec_ts_init) {
 					stream->microsec_dts = 0;
 					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d) has a timestamp "LLU" less than initial timestamp "LLU" - forcing to 0\n", i+1, stream->microsec_dts, microsec_ts_init));
@@ -813,14 +893,17 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 				*wait_for_loop = GF_TRUE;
 				for (i=0; i<count; i++) {
 					GF_FilterEvent evt;
-					u64 new_ts;
+					const GF_PropertyValue *p;
 					stream = gf_list_get(streams, i);
-
-					new_ts = max_dur;
-					new_ts *= stream->timescale;
-					new_ts /= 1000000;
-					stream->ts_offset += new_ts;
-					stream->microsec_ts_offset = (u64) (stream->ts_offset*(1000000.0/stream->timescale) + sys_clock_at_init);
+					p = gf_filter_pid_get_property(stream->pid, GF_PROP_NO_TS_LOOP);
+					if (!p || !p->value.boolean) {
+						u64 new_ts;
+						new_ts = max_dur;
+						new_ts *= stream->timescale;
+						new_ts /= 1000000;
+						stream->ts_offset += new_ts;
+						stream->microsec_ts_offset = (u64) (stream->ts_offset*(1000000.0/stream->timescale) + sys_clock_at_init);
+					}
 
 					//loop pid: stop and play
 					GF_FEVT_INIT(evt, GF_FEVT_STOP, stream->pid);
@@ -835,7 +918,6 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 	}
 
 	stream = *active_stream;
-
 	clock = gf_sys_clock_high_res();
 	diff = (s64) *active_min_ts_microsec;
 	diff += ((s64) delay) * 1000;
@@ -844,15 +926,15 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 	if (diff > 1000) {
 		u64 repost_in;
 		//if more than 11 secs ahead of time, ask for delay minus one second, otherwise ask for half the delay
-		if (diff<=11000) repost_in = diff/2;
+		if (diff<=11000) repost_in = diff/3;
 		else repost_in = diff - 10000;
 		*repost_delay_us = (u32) repost_in;
-//		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d) scheduled in "LLU" us, requesting filter reschedule in "LLU" us - clock "LLU" us\n", ctx->active_stream_idx, diff, repost_in, clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d DTS "LLU") scheduled in "LLU" us, requesting filter reschedule in "LLU" us - clock "LLU" us\n", *active_stream_idx, stream->current_dts, diff, repost_in, clock));
 		return GF_OK;
 	} else if (diff<=-1000) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d too late by %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, -diff, clock));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS "LLU") too late by %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->current_dts, -diff, clock));
 	} else if (diff>0){
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d ahead of %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, diff, clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS "LLU") ahead of %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->current_dts, diff, clock));
 	}
 
 	/*send packets*/
@@ -1006,6 +1088,12 @@ static GF_Err rtpout_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static GF_FilterProbeScore rtpout_probe_url(const char *url, const char *mime)
+{
+	if (!strnicmp(url, "rtp://", 6)) return GF_FPROBE_SUPPORTED;
+	return GF_FPROBE_NOT_SUPPORTED;
+}
+
 static const GF_FilterCapability RTPOutCaps[] =
 {
 	//anything else (not file and framed) result in manifest PID
@@ -1020,26 +1108,33 @@ static const GF_FilterCapability RTPOutCaps[] =
 	//anything else (not file and framed) result in media pids not file
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
 };
 
 
 #define OFFS(_n)	#_n, offsetof(GF_RTPOutCtx, _n)
 static const GF_FilterArgs RTPOutArgs[] =
 {
-	{ OFFS(ip), "destination IP adress (NULL is 127.0.0.1)", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(ip), "destination IP address (NULL is 127.0.0.1)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(port), "port for first stream in session", GF_PROP_UINT, "7000", NULL, 0},
 	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
-	{ OFFS(ttl), "time-to-live for muticast packets", GF_PROP_UINT, "2", NULL, 0},
-	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(payt), "payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", 0},
+	{ OFFS(ttl), "time-to-live for muticast packets", GF_PROP_UINT, "2", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(payt), "payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, 0},
-	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, 0},
+	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(runfor), "run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
-	{ OFFS(tso), "set timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, 0},
-	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(latm), "use latm for AAC payload format", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(tso), "set timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(latm), "use latm for AAC payload format", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dst), "URL for direct RTP mode - see filter help", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(ext), "file extension for direct RTP mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mime), "set mime type for direct RTP mode - see filter help", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -1047,12 +1142,22 @@ static const GF_FilterArgs RTPOutArgs[] =
 GF_FilterRegister RTPOutRegister = {
 	.name = "rtpout",
 	GF_FS_SET_DESCRIPTION("RTP Streamer")
-	GF_FS_SET_HELP("The RTP streamer outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated port.\n"\
+	GF_FS_SET_HELP("The RTP streamer handles SDP/RTP output streaming.\n"
+	"# SDP mode\n"
+	"When the destination url is an SDP, the filter outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated [-port]().\n"
+	"# Direct RTP mode\n"
+	"When the destination url uses the protocol scheme `rtp://IP:PORT`, the filter does not output any SDP and streams a single input over RTP, using PORT indicated in the destination URL, or the first [-port]() configured.\n"
+	"In this mode, it is usually needed to specify the desired format using [-ext]() or [-mime]().\n"
+	"EX gpac -i src -o rtp://localhost:1234/:ext=ts\n"
+	"This will indicate that the RTP streamer expects a MPEG-2 TS mux as an input.\n"
+	"# RTP Packets\n"
 	"The RTP packets produced have a maximum payload set by the [-mtu]() option (IP packet will be MTU + 40 bytes of IP+UDP+RTP headers).\n"
-	"The real-time scheduling algorithm first initializes the clock by computing the smallest timestamp for all input pids and "
-	"mapping this media time to the system clock. It then determines the earliest packet to send next on each input pid, "
-	"adding [-delay]() if any. It finally compares the packet mapped timestamp __TS__ to the "
-	"system clock __SC__. When __TS__ - __SC__ is less than [-tt](), the RTP packets for the source packet are sent."
+	"The real-time scheduling algorithm works as follows:\n"
+	"- first initialize the clock by:\n"
+	" - computing the smallest timestamp for all input pids\n"
+	" - mapping this media time to the system clock\n"
+	"- determine the earliest packet to send next on each input pid, adding [-delay]() if any\n"
+	"- finally compare the packet mapped timestamp __TS__ to the system clock __SC__. When __TS__ - __SC__ is less than [-tt](), the RTP packets for the source packet are sent\n"
 	)
 	.private_size = sizeof(GF_RTPOutCtx),
 	.max_extra_pids = -1,
@@ -1063,6 +1168,7 @@ GF_FilterRegister RTPOutRegister = {
 	.finalize = rtpout_finalize,
 	SETCAPS(RTPOutCaps),
 	.configure_pid = rtpout_configure_pid,
+	.probe_url = rtpout_probe_url,
 	.process = rtpout_process
 };
 
