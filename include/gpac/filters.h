@@ -992,6 +992,16 @@ enum
 
 };
 
+/*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
+ 	\hideinitializer
+*/
+enum
+{
+	GF_PID_FILE_PATCH_NONE = 0,
+	GF_PID_FILE_PATCH_REPLACE = 1,
+	GF_PID_FILE_PATCH_INSERT = 2,
+};
+
 /*! Gets readable name of built-in property
 \param prop_4cc property built-in 4cc
 \return readable name
@@ -3431,10 +3441,11 @@ GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted);
 Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
 
 /*! Sets seek flag of packet.
-For PIDs of stream type FILE with GF_PROP_PID_DISABLE_PROGRESSIVE set, the seek flag indicates
-that the packet is a PATCH packet, replacing bytes located at gf_filter_pck_get_byte_offset in file.
+For PIDs of stream type FILE with GF_PROP_PID_DISABLE_PROGRESSIVE set, the seek flag set to GF_TRUE indicates
+that the packet is a PATCH packet, replacing bytes located at gf_filter_pck_get_byte_offset in file if the interlaced flag of the packet is not set, or
+inserting bytes located at gf_filter_pck_get_byte_offset in file if the interlaced flag of the packet is set.
 If the corrupted flag is set, this indicates the data will be replaced later on.
-A seek packet is not meant to be displayed but need for decoding.
+A seek packet is not meant to be displayed but is needed for decoding.
 \param pck target packet
 \param is_seek indicates packet is seek frame
 \return error code if any
