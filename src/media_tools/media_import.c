@@ -446,7 +446,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		break;
 	default:
 	{
-		char szT[5];
+		char szT[GF_4CC_MSIZE];
 		mstype = gf_isom_get_mpeg4_subtype(import->orig, track_in, di);
 		if (!mstype) mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
 		strcpy(szT, gf_4cc_to_str(mtype));
@@ -474,8 +474,11 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 
 	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
 	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
-	
-	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
+
+	duration = 0;
+	if ((import->duration.num>0) && import->duration.den) {
+		duration = (u64) (((Double)import->duration.num * gf_isom_get_media_timescale(import->orig, track_in)) / import->duration.den);
+	}
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 	if (import->xps_inband) {
@@ -1245,8 +1248,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 
-	if (importer->duration) {
-		sprintf(szSubArg, "idur=%d/1000", importer->duration);
+	if (importer->duration.den) {
+		sprintf(szSubArg, "idur=%d/%d", importer->duration.num, importer->duration.den);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->frames_per_sample) {
@@ -1361,6 +1364,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		sprintf(szSubArg, "#SrcMagic="LLU, importer->source_magic);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
+	if (importer->track_index) {
+		sprintf(szSubArg, "#TrackIndex=%d", importer->track_index);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
 
 	if (e) {
 		if (!importer->run_in_session)
@@ -1387,6 +1394,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return GF_OK;
 
 	gf_fs_run(fsess);
+
 	if (!importer->last_error) importer->last_error = gf_fs_get_last_connect_error(fsess);
 	if (!importer->last_error) importer->last_error = gf_fs_get_last_process_error(fsess);
 
@@ -1412,10 +1420,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 	}
 
-
 	if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
 	if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);
 	gf_fs_del(fsess);
+	if (!importer->final_trackID) {
+		return gf_import_message(importer, GF_NOT_SUPPORTED, "[Importer] No valid track to import in input file \"%s\"", importer->in_name);
+	}
 	return GF_OK;
 }
 

@@ -58,7 +58,7 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass);
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, u32 tk_idx);
 #else
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, Bool second_pass) {
 	return GF_NOT_SUPPORTED;
@@ -136,8 +136,6 @@ void PrintLiveUsage();
 #if !defined(GPAC_DISABLE_STREAMING)
 u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
 #endif
-
-u32 grab_atsc3_session(const char *dir, s32 serviceID, s32 max_segs, u32 stats_rate, u32 debug_tsi);
 
 GF_Err rip_mpd(const char *mpd, const char *dst_file);
 

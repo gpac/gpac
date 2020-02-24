@@ -513,7 +513,7 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 	}
 	//else original slice segment address = 0
 
-	//nothing to write for slice adress, we remove the adress
+	//nothing to write for slice address, we remove the address
 
 	//copy over until num_entry_points
 	while (num_entry_point_start != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in)) {

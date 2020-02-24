@@ -41,7 +41,8 @@ void gf_ar_rcfg_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 
 static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 {
-	u32 freq, a_fmt, nb_chan, ch_cfg;
+	u32 freq, a_fmt, nb_chan;
+	u64 ch_cfg;
 	u32 bsize;
 
 	freq = ar->compositor->asr;
@@ -81,7 +82,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_TIMESCALE, &PROP_UINT(freq) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chan) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(a_fmt) );
-		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_UINT(ch_cfg) );
+		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_cfg) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
 		gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_PAN, &PROP_UINT(ar->pan) );
 

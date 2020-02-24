@@ -899,8 +899,6 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event, GF_Node 
 Bool gf_sg_javascript_initialized();
 #endif	/*GPAC_HAS_QJS*/
 
-GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene);
-
 SVG_Element *gf_svg_create_node(u32 tag);
 Bool gf_svg_node_init(GF_Node *node);
 void gf_svg_node_del(GF_Node *node);

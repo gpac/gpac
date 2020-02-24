@@ -426,7 +426,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	const GF_PropertyValue *p;
-	u32 sr, o_fmt, nb_ch, cfg, afmt;
+	u32 sr, o_fmt, nb_ch, afmt;
+	u64 cfg;
 	Bool needs_reconfigure = GF_FALSE;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 

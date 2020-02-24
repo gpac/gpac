@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -107,7 +107,7 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 	}
 	gf_list_add(fsess->registry, (void *) freg);
 
-	if (fsess->init_done) {
+	if (fsess->init_done && fsess->links && gf_list_count( fsess->links)) {
 		gf_filter_sess_build_graph(fsess, freg);
 	}
 }
@@ -301,7 +301,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	fsess->gl_providers = gf_list_new();
 #endif
 
-	gf_filter_sess_build_graph(fsess, NULL);
+	if (! (fsess->flags & GF_FS_FLAG_NO_GRAPH_CACHE))
+		gf_filter_sess_build_graph(fsess, NULL);
 
 	fsess->init_done = GF_TRUE;
 
@@ -399,8 +400,14 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	if (inflags & GF_FS_FLAG_NO_MAIN_THREAD)
 		flags |= GF_FS_FLAG_NO_MAIN_THREAD;
 
+	if (inflags & GF_FS_FLAG_NO_GRAPH_CACHE)
+		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;
+
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
+
+	if (gf_opts_get_bool("core", "full-link"))
+		flags |= GF_FS_FLAG_FULL_LINK;
 
 	if (gf_opts_get_bool("core", "no-reg"))
 		flags |= GF_FS_FLAG_NO_REGULATION;
@@ -596,6 +603,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 			gf_filter_del(filter);
 		}
 		gf_list_del(fsess->filters);
+		fsess->filters = NULL;
 	}
 
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
@@ -729,7 +737,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 
 	//only flatten calls if in main thread (we still have some broken filters using threading
 	//that could trigger tasks
-	if ((force_direct_call || fsess->direct_mode) && fsess->tasks_in_process && gf_th_id()==fsess->main_th.th_id) {
+	if ((force_direct_call || fsess->direct_mode) && !filter->in_process && fsess->tasks_in_process && (gf_th_id()==fsess->main_th.th_id)) {
 		GF_FSTask atask;
 		u64 task_time = gf_sys_clock_high_res();
 		memset(&atask, 0, sizeof(GF_FSTask));
@@ -2849,7 +2857,8 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		if (!stats->stream_type)
 			stats->stream_type = pid->stream_type;
 
-		if (set_name) {
+		//set name if PID name is not a default generated one
+		if (set_name && strncmp(pid->name, "PID", 3)) {
 			stats->name = pid->name;
 			set_name = GF_FALSE;
 		}
@@ -2886,6 +2895,17 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 	ret = session->ui_event_proc(session->ui_opaque, uievt);
 	gf_mx_v(session->ui_mx);
 	return ret;
+}
+
+void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load)
+{
+	if (for_load) {
+		if (!fsess->links || ! gf_list_count( fsess->links))
+			gf_filter_sess_build_graph(fsess, NULL);
+	} else {
+		if (fsess->flags & GF_FS_FLAG_NO_GRAPH_CACHE)
+			gf_filter_sess_reset_graph(fsess, NULL);
+	}
 }
 
 #ifndef GPAC_DISABLE_3D
@@ -2936,13 +2956,13 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.setup.width = 128;
 	evt.setup.height = 128;
-	evt.setup.opengl_mode = 1;
+	evt.setup.use_opengl = GF_TRUE;
 	evt.setup.back_buffer = 1;
 	//we anyway should'nt call swapBuffer/flush on this object
 	evt.setup.disable_vsync = GF_TRUE;
 	session->gl_driver->ProcessEvent(session->gl_driver, &evt);
 
-	if (evt.setup.opengl_mode) {
+	if (evt.setup.use_opengl) {
 		gf_opengl_init();
 	}
 	return GF_OK;

@@ -1563,7 +1563,7 @@ ctmode (enum, default: edit):            set composition offset mode for video t
 .br
 
 .br
-idur (fraction, default: 0):             only import the specified duration
+idur (fraction, default: 0):             only import the specified duration. If negative, specify the number of coded frames to import
 .br
 pack3gp (unsigned int, default: 1):      pack a given number of 3GPP audio frames in one sample
 .br
@@ -1699,7 +1699,7 @@ ase (enum, default: v0):                 set audio sample entry mode for more th
 .br
 * v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels
 .br
-* v1: use v1 signaling, ISOBMFF style
+* v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)
 .br
 * v1qt: use v1 signaling, QTFF style
 .br
@@ -2061,7 +2061,17 @@ Description: RTP/RTSP/SDP input
 .br
 
 .br
-This filter handles SDP file reading, rtp direct url and RTSP session and produces media PIDs and frames.
+This filter handles SDP/RTSP/RTP input reading. It supports:
+.br
+- SDP file reading
+.br
+- RTP direct url through rtp:// protocol scheme
+.br
+- RTSP session processing through rtsp:// and satip:// protocol schemes
+.br
+ 
+.br
+The filter produces either media PIDs and compressed media frames, or file PIDs and multiplex data (e.g., MPEG-2 TS).
 .br
 
 .br
@@ -2282,7 +2292,7 @@ The writegen filter should usually not be explicetly loaded without a source ID 
 .br
 exporter (boolean, default: false):      compatibility with old exporter, displays export results
 .br
-pfmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for raw extract. If not set, derived from extension
+pfmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for raw extract. If not set, derived from extension
 .br
 afmt (audio format, default: none, minmax: none,u8,s16,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): audio format for raw extract. If not set, derived from extension
 .br
@@ -2712,7 +2722,7 @@ This filter parses raw YUV and RGB files/data and outputs corresponding raw vide
 .br
 size (vec2d int, default: 0x0):          source video resolution
 .br
-spfmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): source pixel format. When not set, derived from file extension
+spfmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): source pixel format. When not set, derived from file extension
 .br
 fps (fraction, default: 25/1):           number of frames per second
 .br
@@ -2834,9 +2844,9 @@ At each new source, the filter tries to remap input PIDs to already declared out
 .br
 
 .br
-When using a playlist, directives can be given in a comment line (starting with '#' before the file name).
+When using a playlist, directives can be given in a comment line (line starting with '#' before line with the file name).
 .br
-The following directives (separated with space or comma) are supported:
+The following directives, separated with space or comma, are supported:
 .br
 * repeat=N: repeats N times the content (hence played N+1)
 .br
@@ -2865,7 +2875,7 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .SH Options (expert):
 .LP
 .br
-loop (boolean, default: false):          continuously loop playlist/list of files - see filter help
+floop (boolean, default: false):         continuously loop playlist/list of files - see filter help
 .br
 srcs (string list):                      list of files to play - see filter help
 .br
@@ -3457,7 +3467,7 @@ muxtype (enum, default: auto):           muxtype to use for the segments
 .br
 
 .br
-asto (int, default: 0):                  availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations
+asto (number, default: 0):               availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
 profile (enum, default: auto):           target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.
 .br
@@ -3580,6 +3590,8 @@ sbound (enum, default: out):             indicate how the theoretical segment st
 
 .br
 reschedule (boolean):                    reschedule sources with no period ID assigned once done (dynamic mode only)
+.br
+sreg (boolean, default: false):          regulate the session when using subdur to only generate segments from the past up to live edge
 .br
 
 .br
@@ -4008,35 +4020,71 @@ Description: ATSC input
 .br
 This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
 .br
-The default behaviour is to populate GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
+The filter can work in cached mode, source mode or standalone mode.
 .br
-In -cache mode, repeated files are always send.
+.SH Cached mode
+.LP
+.br
+The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
+.br
+In cached mode, repeated files are always send.
 .br
   
 .br
 The cached MPD is assigned the following headers:
 .br
-* x-dash-atsc: integer value, indicates the ATSC service ID
+* x-dash-atsc: integer value, indicates the ATSC service ID.
 .br
-* x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast
+* x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast.
 .br
-* x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected
+* x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
 .br
   
 .br
 The cached files are assigned the following headers:
 .br
-* x-atsc: boolean value, if yes indicates the file comes from an ATSC session
+* x-atsc: boolean value, if yes indicates the file comes from an ATSC session.
 .br
 
 .br
-This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type file. The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.
+.SH Source mode
+.LP
+.br
+In source mode, the filter outputs files on a single output pid of type file. The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not sent unless requested.
 .br
 If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).
 .br
+Example
+.br
+gpac -i atsc://cache=false -o $ServiceID$/$File$:dynext
+.br
 
 .br
-On OSX with VM packet replay you will need to force multicast routing on ATSC 3.0 base multicast
+This will grab the files and forward them as output PIDs, consumed by the fout filter.
+.br
+
+.br
+.SH Standalone mode
+.LP
+.br
+In standalone mode, the filter does not produce any output pid and writes received files to the -odir directory.
+.br
+Example
+.br
+gpac -i atsc://odir=output
+.br
+
+.br
+This will grab the files and write them to output directory.
+.br
+
+.br
+.SH Interface setup
+.LP
+.br
+On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.
+.br
+You will have to do this for the base ATSC3 multicast (224.0.23.60):
 .br
 Example
 .br
@@ -4077,6 +4125,18 @@ sr (boolean, default: true):             skip repeated files - ignored in -cache
 .br
 stsi (boolean, default: false):          define one output pid per tsi/serviceID - ignored in -cache mode, see filter help
 .br
+stats (unsigned int, default: 1000):     log statistics at the given rate in ms (0 disables stats)
+.br
+tsidbg (unsigned int, default: 0):       gather only objects with given TSI (debug)
+.br
+max_segs (unsigned int, default: 0):     maximum number of segments to keep - ignored in -cache mode
+.br
+odir (string):                           output directory for stand-alone mode - see filter help
+.br
+reorder (boolean, default: false):       ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes
+.br
+rtimeout (unsigned int, default: 5000):  default timeout in ms to wait when gathering out-of-order packets
+.br
 
 .br
 .SH rtpout
@@ -4086,18 +4146,53 @@ Description: RTP Streamer
 .br
 
 .br
-The RTP streamer outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated port.
+The RTP streamer handles SDP/RTP output streaming.
+.br
+.SH SDP mode
+.LP
+.br
+When the destination url is an SDP, the filter outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated -port.
+.br
+.SH Direct RTP mode
+.LP
+.br
+When the destination url uses the protocol scheme rtp://IP:PORT, the filter does not output any SDP and streams a single input over RTP, using PORT indicated in the destination URL, or the first -port configured.
+.br
+In this mode, it is usually needed to specify the desired format using -ext or -mime.
+.br
+Example
+.br
+gpac -i src -o rtp://localhost:1234/:ext=ts
+.br
+
+.br
+This will indicate that the RTP streamer expects a MPEG-2 TS mux as an input.
+.br
+.SH RTP Packets
+.LP
 .br
 The RTP packets produced have a maximum payload set by the -mtu option (IP packet will be MTU + 40 bytes of IP+UDP+RTP headers).
 .br
-The real-time scheduling algorithm first initializes the clock by computing the smallest timestamp for all input pids and mapping this media time to the system clock. It then determines the earliest packet to send next on each input pid, adding -delay if any. It finally compares the packet mapped timestamp TS to the system clock SC. When TS - SC is less than -tt, the RTP packets for the source packet are sent.
+The real-time scheduling algorithm works as follows:
+.br
+- first initialize the clock by:
+.br
+ - computing the smallest timestamp for all input pids
+.br
+ - mapping this media time to the system clock
+.br
+- determine the earliest packet to send next on each input pid, adding -delay if any
+.br
+- finally compare the packet mapped timestamp TS to the system clock SC. When TS - SC is less than -tt, the RTP packets for the source packet are sent
+.br
+
 .br
 
 .br
 .SH Options (expert):
 .LP
 .br
-ip (string):                             destination IP adress (NULL is 127.0.0.1)
+ip (string):                             destination IP address (NULL is 127.0.0.1)
 .br
 port (unsigned int, default: 7000):      port for first stream in session
 .br
@@ -4124,6 +4219,12 @@ tso (int, default: -1):                  set timestamp offset in microsecs. Nega
 xps (boolean, default: false):           force parameter set injection at each SAP. If not set, only inject if different from SDP ones
 .br
 latm (boolean, default: false):          use latm for AAC payload format
+.br
+dst (string):                            URL for direct RTP mode - see filter help
+.br
+ext (string):                            file extension for direct RTP mode - see filter help
+.br
+mime (string):                           set mime type for direct RTP mode - see filter help
 .br
 
 .br
@@ -4484,6 +4585,10 @@ post (boolean, default: false):          use POST instead of PUT for uploading f
 .br
 dlist (boolean, default: false):         enable HTML listing for GET requests on directories
 .br
+sutc (boolean, default: false):          insert server UTC in response headers as Server-UTC: VAL_IN_MS
+.br
+cors (boolean, default: false):          insert CORS header allowing all domains
+.br
 
 .br
 .SH hevcsplit
@@ -4812,7 +4917,7 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .br
 osize (vec2d int):                       osize of output video. When not set, input osize is used
 .br
-ofmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for output video. When not set, input format is used
+ofmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for output video. When not set, input format is used
 .br
 scale (enum, default: bicubic):          scaling mode - see filter info
 .br
@@ -5090,7 +5195,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3181-gae43dc6e0-filters
+build: 0.9.0-DEV-rev3291-gcab89e8f5-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -38,6 +38,7 @@ LINKLIBS+= -ljpeg
 ifeq ($(CONFIG_JPEG), local)
 NEED_LOCAL_LIB="yes"
 MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
+FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
 endif
 endif
 
@@ -49,6 +50,7 @@ LINKLIBS+= -lpng
 ifeq ($(CONFIG_PNG), local)
 NEED_LOCAL_LIB="yes"
 MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
+FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
 endif
 endif
 
@@ -117,11 +119,6 @@ ifeq ($(CONFIG_ALSA), yes)
 OBJS+=../modules/alsa/alsa.o
 CFLAGS+=-DGPAC_HAS_ALSA
 EXTRALIBS+= -lasound
-endif
-
-ifneq ($(CONFIG_JS), no)
-CFLAGS+=$(JS_FLAGS)
-OBJS+=../modules/gpac_js/gpac_js.o
 endif
 
 OBJS+=../modules/validator/validator.o

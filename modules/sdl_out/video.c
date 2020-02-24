@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre - Romain Bouqueau
-*			Copyright (c) Telecom ParisTech 2000-2012
+*			Copyright (c) Telecom ParisTech 2000-2020
 *					All rights reserved
 *
 *  This file is part of GPAC / SDL audio and video module
@@ -207,373 +207,153 @@ SDL_Cursor *SDLVid_LoadCursor(char *maskdata)
 	return SDL_CreateCursor(data, mask, 32, 32, 0, 0);
 }
 
+typedef struct
+{
+	u32 sdl_key;
+	u32 gf_key;
+	u32 gf_flags;
+} SDLKeyToGPAC;
+
+static SDLKeyToGPAC SDLKeys[] =
+{
+	{SDLK_BACKSPACE, GF_KEY_BACKSPACE, 0},
+	{SDLK_TAB, GF_KEY_TAB, 0},
+	{SDLK_CLEAR, GF_KEY_CLEAR, 0},
+	{SDLK_PAUSE, GF_KEY_PAUSE, 0},
+	{SDLK_ESCAPE, GF_KEY_ESCAPE, 0},
+	{SDLK_SPACE, GF_KEY_SPACE, 0},
+	{SDLK_KP_ENTER, GF_KEY_EXT_NUMPAD, 0},
+	{SDLK_RETURN, GF_KEY_ENTER, 0},
+	{SDLK_KP_MULTIPLY, GF_KEY_EXT_NUMPAD, 0},
+	{SDLK_ASTERISK, GF_KEY_STAR, 0},
+	{SDLK_KP_PLUS, GF_KEY_EXT_NUMPAD, 0},
+	{SDLK_PLUS, GF_KEY_PLUS, 0},
+	{SDLK_KP_MINUS, GF_KEY_EXT_NUMPAD, 0},
+	{SDLK_MINUS, GF_KEY_HYPHEN, 0},
+	{SDLK_KP_DIVIDE, GF_KEY_EXT_NUMPAD, 0},
+	{SDLK_SLASH, GF_KEY_SLASH, 0},
+	{SDLK_KP_0, GF_KEY_0, GF_KEY_EXT_NUMPAD},
+	{SDLK_0, GF_KEY_0, 0},
+	{SDLK_KP_1, GF_KEY_1, GF_KEY_EXT_NUMPAD},
+	{SDLK_1, GF_KEY_1, 0},
+	{SDLK_KP_2, GF_KEY_2, GF_KEY_EXT_NUMPAD},
+	{SDLK_2, GF_KEY_2, 0},
+	{SDLK_KP_3, GF_KEY_3, GF_KEY_EXT_NUMPAD},
+	{SDLK_3, GF_KEY_3, 0},
+	{SDLK_KP_4, GF_KEY_4, GF_KEY_EXT_NUMPAD},
+	{SDLK_4, GF_KEY_4, 0},
+	{SDLK_KP_5, GF_KEY_5, GF_KEY_EXT_NUMPAD},
+	{SDLK_5, GF_KEY_5, 0},
+	{SDLK_KP_6, GF_KEY_6, GF_KEY_EXT_NUMPAD},
+	{SDLK_6, GF_KEY_6, 0},
+	{SDLK_KP_7, GF_KEY_7, GF_KEY_EXT_NUMPAD},
+	{SDLK_7, GF_KEY_7, 0},
+	{SDLK_KP_8, GF_KEY_8, GF_KEY_EXT_NUMPAD},
+	{SDLK_8, GF_KEY_8, 0},
+	{SDLK_KP_9, GF_KEY_9, GF_KEY_EXT_NUMPAD},
+	{SDLK_9, GF_KEY_9, 0},
+	{SDLK_KP_PERIOD, GF_KEY_FULLSTOP, GF_KEY_EXT_NUMPAD},
+	{SDLK_PERIOD, GF_KEY_FULLSTOP, 0},
+	{SDLK_KP_EQUALS, GF_KEY_EQUALS, GF_KEY_EXT_NUMPAD},
+	{SDLK_EQUALS, GF_KEY_EQUALS, 0},
+	{SDLK_EXCLAIM, GF_KEY_EXCLAMATION, 0},
+	{SDLK_QUOTEDBL, GF_KEY_QUOTATION, 0},
+	{SDLK_HASH, GF_KEY_NUMBER, 0},
+	{SDLK_DOLLAR, GF_KEY_DOLLAR, 0},
+	{SDLK_AMPERSAND, GF_KEY_AMPERSAND, 0},
+	{SDLK_QUOTE, GF_KEY_APOSTROPHE, 0},
+	{SDLK_LEFTPAREN, GF_KEY_LEFTPARENTHESIS, 0},
+	{SDLK_RIGHTPAREN, GF_KEY_RIGHTPARENTHESIS, 0},
+	{SDLK_COMMA, GF_KEY_COMMA, 0},
+	{SDLK_COLON, GF_KEY_COLON, 0},
+	{SDLK_SEMICOLON, GF_KEY_SEMICOLON, 0},
+	{SDLK_LESS, GF_KEY_LESSTHAN, 0},
+	{SDLK_GREATER, GF_KEY_GREATERTHAN, 0},
+	{SDLK_QUESTION, GF_KEY_QUESTION, 0},
+	{SDLK_AT, GF_KEY_AT, 0},
+	{SDLK_LEFTBRACKET, GF_KEY_LEFTSQUAREBRACKET, 0},
+	{SDLK_RIGHTBRACKET, GF_KEY_RIGHTSQUAREBRACKET, 0},
+	{SDLK_BACKSLASH, GF_KEY_BACKSLASH, 0},
+	{SDLK_UNDERSCORE, GF_KEY_UNDERSCORE, 0},
+	{SDLK_BACKQUOTE, GF_KEY_GRAVEACCENT, 0},
+	{SDLK_DELETE, GF_KEY_DEL, 0},
+	{SDLK_UNDO, GF_KEY_UNDO, 0},
+	{SDLK_UP, GF_KEY_UP, 0},
+	{SDLK_DOWN, GF_KEY_DOWN, 0},
+	{SDLK_RIGHT, GF_KEY_RIGHT, 0},
+	{SDLK_LEFT, GF_KEY_LEFT, 0},
+	{SDLK_INSERT, GF_KEY_INSERT, 0},
+	{SDLK_HOME, GF_KEY_HOME, 0},
+	{SDLK_END, GF_KEY_END, 0},
+	{SDLK_PAGEUP, GF_KEY_PAGEUP, 0},
+	{SDLK_PAGEDOWN, GF_KEY_PAGEDOWN, 0},
+	{SDLK_F1, GF_KEY_F1, 0},
+	{SDLK_F2, GF_KEY_F2, 0},
+	{SDLK_F3, GF_KEY_F3, 0},
+	{SDLK_F4, GF_KEY_F4, 0},
+	{SDLK_F5, GF_KEY_F5, 0},
+	{SDLK_F6, GF_KEY_F6, 0},
+	{SDLK_F7, GF_KEY_F7, 0},
+	{SDLK_F8, GF_KEY_F8, 0},
+	{SDLK_F9, GF_KEY_F9, 0},
+	{SDLK_F10, GF_KEY_F10, 0},
+	{SDLK_F11, GF_KEY_F11, 0},
+	{SDLK_F12, GF_KEY_F12, 0},
+	{SDLK_F13, GF_KEY_F13, 0},
+	{SDLK_F14, GF_KEY_F14, 0},
+	{SDLK_F15, GF_KEY_F15, 0},
+	{SDLK_NUMLOCKCLEAR, GF_KEY_NUMLOCK, 0},
+	{SDLK_CAPSLOCK, GF_KEY_CAPSLOCK, 0},
+	{SDLK_SCROLLLOCK, GF_KEY_SCROLL, 0},
+	{SDLK_RSHIFT, GF_KEY_SHIFT, GF_KEY_EXT_RIGHT},
+	{SDLK_LSHIFT, GF_KEY_SHIFT, GF_KEY_EXT_LEFT},
+	{SDLK_LCTRL, GF_KEY_CONTROL, GF_KEY_EXT_LEFT},
+	{SDLK_RCTRL, GF_KEY_CONTROL, GF_KEY_EXT_RIGHT},
+	{SDLK_LALT, GF_KEY_ALT, GF_KEY_EXT_LEFT},
+	{SDLK_RALT, GF_KEY_ALT, GF_KEY_EXT_RIGHT},
+#if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
+	{SDLK_LMETA, GF_KEY_META, GF_KEY_EXT_LEFT},
+	{SDLK_LSUPER, GF_KEY_META, GF_KEY_EXT_LEFT},
+#else
+	{SDLK_LGUI, GF_KEY_META, GF_KEY_EXT_LEFT},
+#endif
+
+#if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
+	{SDLK_RMETA, GF_KEY_META, GF_KEY_EXT_RIGHT},
+	{SDLK_RSUPER, GF_KEY_META, GF_KEY_EXT_RIGHT},
+#else
+	{SDLK_RGUI, GF_KEY_META, GF_KEY_EXT_RIGHT},
+#endif
+
+	{SDLK_MODE, GF_KEY_MODECHANGE, 0},
+	{SDLK_APPLICATION, GF_KEY_COMPOSE, 0},
+	{SDLK_HELP, GF_KEY_HELP, 0},
+	{SDLK_PRINTSCREEN, GF_KEY_PRINTSCREEN, 0}
+};
+
+static u32 num_sdl_keys = sizeof(SDLKeys) / sizeof(SDLKeyToGPAC);
 
 static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 {
+	u32 i;
 	evt->flags = 0;
 	evt->hw_code = SDLkey;
-	switch (SDLkey) {
-	case SDLK_BACKSPACE:
-		evt->key_code = GF_KEY_BACKSPACE;
-		break;
-	case SDLK_TAB:
-		evt->key_code = GF_KEY_TAB;
-		break;
-	case SDLK_CLEAR:
-		evt->key_code = GF_KEY_CLEAR;
-		break;
-	case SDLK_PAUSE:
-		evt->key_code = GF_KEY_PAUSE;
-		break;
-	case SDLK_ESCAPE:
-		evt->key_code = GF_KEY_ESCAPE;
-		break;
-	case SDLK_SPACE:
-		evt->key_code = GF_KEY_SPACE;
-		break;
-
-	case SDLK_KP_ENTER:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_RETURN:
-		evt->key_code = GF_KEY_ENTER;
-		break;
-
-	case SDLK_KP_MULTIPLY:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_ASTERISK:
-		evt->key_code = GF_KEY_STAR;
-		break;
-	case SDLK_KP_PLUS:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_PLUS:
-		evt->key_code = GF_KEY_PLUS;
-		break;
-	case SDLK_KP_MINUS:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_MINUS:
-		evt->key_code = GF_KEY_HYPHEN;
-		break;
-	case SDLK_KP_DIVIDE:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_SLASH:
-		evt->key_code = GF_KEY_SLASH;
-		break;
-
-	case SDLK_KP_0:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_0:
-		evt->key_code = GF_KEY_0;
-		break;
-	case SDLK_KP_1:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_1:
-		evt->key_code = GF_KEY_1;
-		break;
-	case SDLK_KP_2:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_2:
-		evt->key_code = GF_KEY_2;
-		break;
-	case SDLK_KP_3:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_3:
-		evt->key_code = GF_KEY_3;
-		break;
-	case SDLK_KP_4:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_4:
-		evt->key_code = GF_KEY_4;
-		break;
-	case SDLK_KP_5:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_5:
-		evt->key_code = GF_KEY_5;
-		break;
-	case SDLK_KP_6:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_6:
-		evt->key_code = GF_KEY_6;
-		break;
-	case SDLK_KP_7:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_7:
-		evt->key_code = GF_KEY_7;
-		break;
-	case SDLK_KP_8:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_8:
-		evt->key_code = GF_KEY_8;
-		break;
-	case SDLK_KP_9:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_9:
-		evt->key_code = GF_KEY_9;
-		break;
-	case SDLK_KP_PERIOD:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_PERIOD:
-		evt->key_code = GF_KEY_FULLSTOP;
-		break;
-	case SDLK_KP_EQUALS:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_EQUALS:
-		evt->key_code = GF_KEY_EQUALS;
-		break;
-
-	case SDLK_EXCLAIM:
-		evt->key_code = GF_KEY_EXCLAMATION;
-		break;
-	case SDLK_QUOTEDBL:
-		evt->key_code = GF_KEY_QUOTATION;
-		break;
-	case SDLK_HASH:
-		evt->key_code = GF_KEY_NUMBER;
-		break;
-	case SDLK_DOLLAR:
-		evt->key_code = GF_KEY_DOLLAR;
-		break;
-	case SDLK_AMPERSAND:
-		evt->key_code = GF_KEY_AMPERSAND;
-		break;
-	case SDLK_QUOTE:
-		evt->key_code = GF_KEY_APOSTROPHE;
-		break;
-	case SDLK_LEFTPAREN:
-		evt->key_code = GF_KEY_LEFTPARENTHESIS;
-		break;
-	case SDLK_RIGHTPAREN:
-		evt->key_code = GF_KEY_RIGHTPARENTHESIS;
-		break;
-	case SDLK_COMMA:
-		evt->key_code = GF_KEY_COMMA;
-		break;
-	case SDLK_COLON:
-		evt->key_code = GF_KEY_COLON;
-		break;
-	case SDLK_SEMICOLON:
-		evt->key_code = GF_KEY_SEMICOLON;
-		break;
-	case SDLK_LESS:
-		evt->key_code = GF_KEY_LESSTHAN;
-		break;
-	case SDLK_GREATER:
-		evt->key_code = GF_KEY_GREATERTHAN;
-		break;
-	case SDLK_QUESTION:
-		evt->key_code = GF_KEY_QUESTION;
-		break;
-	case SDLK_AT:
-		evt->key_code = GF_KEY_AT;
-		break;
-	case SDLK_LEFTBRACKET:
-		evt->key_code = GF_KEY_LEFTSQUAREBRACKET;
-		break;
-	case SDLK_RIGHTBRACKET:
-		evt->key_code = GF_KEY_RIGHTSQUAREBRACKET;
-		break;
-	case SDLK_BACKSLASH:
-		evt->key_code = GF_KEY_BACKSLASH;
-		break;
-	case SDLK_UNDERSCORE:
-		evt->key_code = GF_KEY_UNDERSCORE;
-		break;
-	case SDLK_BACKQUOTE:
-		evt->key_code = GF_KEY_GRAVEACCENT;
-		break;
-	case SDLK_DELETE:
-		evt->key_code = GF_KEY_DEL;
-		break;
-	case SDLK_UNDO:
-		evt->key_code = GF_KEY_UNDO;
-		break;
-
-	case SDLK_UP:
-		evt->key_code = GF_KEY_UP;
-		break;
-	case SDLK_DOWN:
-		evt->key_code = GF_KEY_DOWN;
-		break;
-	case SDLK_RIGHT:
-		evt->key_code = GF_KEY_RIGHT;
-		break;
-	case SDLK_LEFT:
-		evt->key_code = GF_KEY_LEFT;
-		break;
-	case SDLK_INSERT:
-		evt->key_code = GF_KEY_INSERT;
-		break;
-	case SDLK_HOME:
-		evt->key_code = GF_KEY_HOME;
-		break;
-	case SDLK_END:
-		evt->key_code = GF_KEY_END;
-		break;
-	case SDLK_PAGEUP:
-		evt->key_code = GF_KEY_PAGEUP;
-		break;
-	case SDLK_PAGEDOWN:
-		evt->key_code = GF_KEY_PAGEDOWN;
-		break;
-	case SDLK_F1:
-		evt->key_code = GF_KEY_F1;
-		break;
-	case SDLK_F2:
-		evt->key_code = GF_KEY_F2;
-		break;
-	case SDLK_F3:
-		evt->key_code = GF_KEY_F3;
-		break;
-	case SDLK_F4:
-		evt->key_code = GF_KEY_F4;
-		break;
-	case SDLK_F5:
-		evt->key_code = GF_KEY_F5;
-		break;
-	case SDLK_F6:
-		evt->key_code = GF_KEY_F6;
-		break;
-	case SDLK_F7:
-		evt->key_code = GF_KEY_F7;
-		break;
-	case SDLK_F8:
-		evt->key_code = GF_KEY_F8;
-		break;
-	case SDLK_F9:
-		evt->key_code = GF_KEY_F9;
-		break;
-	case SDLK_F10:
-		evt->key_code = GF_KEY_F10;
-		break;
-	case SDLK_F11:
-		evt->key_code = GF_KEY_F11;
-		break;
-	case SDLK_F12:
-		evt->key_code = GF_KEY_F12;
-		break;
-	case SDLK_F13:
-		evt->key_code = GF_KEY_F13;
-		break;
-	case SDLK_F14:
-		evt->key_code = GF_KEY_F14;
-		break;
-	case SDLK_F15:
-		evt->key_code = GF_KEY_F15;
-		break;
-	case SDLK_NUMLOCKCLEAR:
-		evt->key_code = GF_KEY_NUMLOCK;
-		break;
-	case SDLK_CAPSLOCK:
-		evt->key_code = GF_KEY_CAPSLOCK;
-		break;
-	case SDLK_SCROLLLOCK:
-		evt->key_code = GF_KEY_SCROLL;
-		break;
-
-	case SDLK_RSHIFT:
-		evt->key_code = GF_KEY_SHIFT;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	case SDLK_LSHIFT:
-		evt->key_code = GF_KEY_SHIFT;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case SDLK_LCTRL:
-		evt->key_code = GF_KEY_CONTROL;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case SDLK_RCTRL:
-		evt->key_code = GF_KEY_CONTROL;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	case SDLK_LALT:
-		evt->key_code = GF_KEY_ALT;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case SDLK_RALT:
-		evt->key_code = GF_KEY_ALT;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-#if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
-	case SDLK_LMETA:
-	case SDLK_LSUPER:
-#else
-	case SDLK_LGUI:
-#endif
-		evt->key_code = GF_KEY_META;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-#if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
-	case SDLK_RMETA:
-	case SDLK_RSUPER:
-#else
-	case SDLK_RGUI:
-#endif
-		evt->key_code = GF_KEY_META;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	case SDLK_MODE:
-		evt->key_code = GF_KEY_MODECHANGE;
-		break;
-	case SDLK_APPLICATION:
-		evt->key_code = GF_KEY_COMPOSE;
-		break;
-	case SDLK_HELP:
-		evt->key_code = GF_KEY_HELP;
-		break;
-	case SDLK_PRINTSCREEN:
-		evt->key_code = GF_KEY_PRINTSCREEN;
-		break;
-
-#if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
-	/*
-		SDLK_CARET		= 94,
-	 */
-	case SDLK_a:
-	case SDLK_b:
-	case SDLK_c:
-	case SDLK_d:
-	case SDLK_e:
-	case SDLK_f:
-	case SDLK_g:
-	case SDLK_h:
-	case SDLK_i:
-	case SDLK_j:
-	case SDLK_k:
-	case SDLK_l:
-	case SDLK_m:
-	case SDLK_n:
-	case SDLK_o:
-	case SDLK_p:
-	case SDLK_q:
-	case SDLK_r:
-	case SDLK_s:
-	case SDLK_t:
-	case SDLK_u:
-	case SDLK_v:
-	case SDLK_w:
-	case SDLK_x:
-	case SDLK_y:
-	case SDLK_z:
-		evt->key_code = GF_KEY_A + SDLkey - SDLK_a;
-		break;
-		/*
-		SDLK_DELETE		= 127,
-
-		SDLK_SYSREQ		= 317,
-		SDLK_POWER		= 320,
-
-		*/
-#endif
-
-	default:
-		if ((SDLkey>=0x30) && (SDLkey<=0x39))  evt->key_code = GF_KEY_0 + SDLkey-0x30;
-		else if ((SDLkey>=0x41) && (SDLkey<=0x5A))  evt->key_code = GF_KEY_A + SDLkey-0x41;
-		else if ((SDLkey>=0x61) && (SDLkey<=0x7A))  evt->key_code = GF_KEY_A + SDLkey-0x61;
-		else
-		{
-			evt->key_code = GF_KEY_UNIDENTIFIED;
+	for (i=0; i<num_sdl_keys; i++) {
+		if (SDLKeys[i].sdl_key == SDLkey) {
+			evt->key_code = SDLKeys[i].gf_key;
+			evt->flags = SDLKeys[i].gf_flags;
+			return;
 		}
-		break;
+	}
+	if ((SDLkey>=0x30) && (SDLkey<=0x39))
+		evt->key_code = GF_KEY_0 + SDLkey-0x30;
+	else if ((SDLkey>=0x41) && (SDLkey<=0x5A))
+		evt->key_code = GF_KEY_A + SDLkey-0x41;
+	else if ((SDLkey>=0x61) && (SDLkey<=0x7A))
+		evt->key_code = GF_KEY_A + SDLkey-0x61;
+	else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[SDL] Unrecognized key %X\n", SDLkey));
+		evt->key_code = GF_KEY_UNIDENTIFIED;
 	}
 }
 
@@ -661,7 +441,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Resizing window %dx%d\n", width, height));
 
-	if (ctx->output_3d_type) {
+	if (ctx->output_3d) {
 		u32 flags, nb_bits;
 		const char *opt;
 
@@ -1243,7 +1023,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 
 	ctx->os_handle = os_handle;
 	ctx->is_init = GF_FALSE;
-	ctx->output_3d_type = 0;
+	ctx->output_3d = GF_FALSE;
 	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
 	ctx->hidden = (init_flags & GF_TERM_INIT_HIDE) ? GF_TRUE : GF_FALSE;
 
@@ -1337,7 +1117,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 
 	if (ctx->fullscreen) {
 #if ! ( SDL_VERSION_ATLEAST(2,0,0) )
-		u32 flags = (ctx->output_3d_type==1) ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
+		u32 flags = ctx->output_3d ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 #endif
 		Bool switch_res = GF_FALSE;
 		switch_res = gf_opts_get_bool("core", "switch-vres");
@@ -1392,11 +1172,11 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 		*screen_width = ctx->fs_width;
 		*screen_height = ctx->fs_height;
 		/*GL has changed*/
-		if (ctx->output_3d_type==1) {
+		if (ctx->output_3d) {
 			GF_Event evt;
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_VIDEO_SETUP;
-			evt.setup.opengl_mode = 3;
+			evt.setup.use_opengl = GF_TRUE;
 			dr->on_event(dr->evt_cbk_hdl, &evt);
 		}
 	} else {
@@ -1422,7 +1202,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 	u32 col;
 #endif
 
-	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
+	if (ctx->output_3d) return GF_BAD_PARAM;
 
 	opt = gf_opts_get_key("core", "hwvmem");
 	if (system_mem) {
@@ -1556,7 +1336,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] swapping video buffers\n"));
 
-	if (ctx->output_3d_type==1) {
+	if (ctx->output_3d) {
 		//with SDL2 we have to disable vsync by overriding swap interval
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
 		if (ctx->disable_vsync) {
@@ -1600,7 +1380,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
 
-	if (ctx->output_3d_type==1) {
+	if (ctx->output_3d) {
 		SDL_GL_SwapBuffers();
 		return GF_OK;
 	}
@@ -1739,12 +1519,11 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	{
 		SDLVID();
 		ctx->disable_vsync=evt->setup.disable_vsync;
-		switch (evt->setup.opengl_mode) {
-		case 0:
+		if (!evt->setup.use_opengl) {
 			/*force a resetup of the window*/
-			if (ctx->output_3d_type) {
+			if (ctx->output_3d) {
 				ctx->width = ctx->height = 0;
-				ctx->output_3d_type = 0;
+				ctx->output_3d = GF_FALSE;
 				SDLVid_ResetWindow(ctx);
 				SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 			} else {
@@ -1752,15 +1531,15 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 #endif
 			}
-			ctx->output_3d_type = 0;
+			ctx->output_3d = GF_FALSE;
 			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
-		case 1:
+		} else {
 			/*force a resetup of the window*/
-			if (!ctx->output_3d_type) {
+			if (!ctx->output_3d) {
 				ctx->width = ctx->height = 0;
 				SDLVid_ResetWindow(ctx);
 			}
-			ctx->output_3d_type = 1;
+			ctx->output_3d = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
 #ifdef GPAC_CONFIG_IOS
 //            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
@@ -1768,16 +1547,8 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #else
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 #endif
-		case 2:
-			/*find a way to do that in SDL*/
-			ctx->output_3d_type = 2;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] 3D not supported with SDL.\n"));
-			return GF_NOT_SUPPORTED;
 		}
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Trying to set an Unknown Mode %d !\n", evt->setup.opengl_mode));
-			return GF_NOT_SUPPORTED;
-		}
+	}
 		break;
 	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32

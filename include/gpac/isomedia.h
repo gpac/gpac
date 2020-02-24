@@ -287,6 +287,8 @@ enum
 	GF_ISOM_SUBTYPE_MH3D_MHM1	= GF_4CC( 'm', 'h', 'm', '1' ),
 	GF_ISOM_SUBTYPE_MH3D_MHM2	= GF_4CC( 'm', 'h', 'm', '2' ),
 
+	GF_ISOM_SUBTYPE_IPCM		= GF_4CC( 'i', 'p', 'c', 'm' ),
+	GF_ISOM_SUBTYPE_FPCM		= GF_4CC( 'f', 'p', 'c', 'm' ),
 
 	/* on-screen colours */
 	GF_ISOM_SUBTYPE_NCLX 		= GF_4CC( 'n', 'c', 'l', 'x' ),
@@ -1311,6 +1313,40 @@ GF_Err gf_isom_get_visual_bit_depth(GF_ISOFile* isom_file, u32 trackNumber, u32 
 \return error if any*/
 GF_Err gf_isom_get_audio_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *SampleRate, u32 *Channels, u32 *bitsPerSample);
 
+/*! Audio channel layout description, ISOBMFF style*/
+typedef struct
+{
+	/*! stream structure flags, 1: has channel layout, 2: has objects*/
+	u8 stream_structure;
+
+	/*! defined CICP channel layout*/
+	u8 definedLayout;
+
+	/*! number of channels*/
+	u32 channels_count;
+	struct {
+		/*! speaker position*/
+		u8 position;
+		/*! speaker elevation if position==126*/
+		s8 elevation;
+		/*! speaker azimuth if position==126*/
+		s16 azimuth;
+	} layouts[64];
+	/*! bit-map of omitted channels using bit positions defined in CICP - only valid if definedLayout is not 0*/
+	u64 omittedChannelsMap;
+	/*! number of objects in the stream*/
+	u8 object_count;
+} GF_AudioChannelLayout;
+
+/*! get channel layout info for an audio track, ISOBMFF style
+ \param isom_file the target ISO file
+ \param trackNumber the target track
+ \param sampleDescriptionIndex the target sample description index (1-based)
+ \param layout set to the channel/object layout info for this track
+ \return GF_NOT_FOUND if not set in file, or other error if any*/
+GF_Err gf_isom_get_audio_layout(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AudioChannelLayout *layout);
+
+
 /*! gets visual track layout information
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -2194,6 +2230,16 @@ typedef enum {
 */
 GF_Err gf_isom_set_audio_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 sampleRate, u32 nbChannels, u8 bitsPerSample, GF_AudioSampleEntryImportMode asemode);
 
+
+/*! sets audio channel and object layout  information for a sample description, ISOBMFF style
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description index
+\param layout the layout information
+\return error if any
+*/
+GF_Err gf_isom_set_audio_layout(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AudioChannelLayout *layout);
+
 /*! sets CTS unpack mode (used for B-frames & like): in unpack mode, each sample uses one entry in CTTS tables
 
 \param isom_file the target ISO file
@@ -2260,6 +2306,16 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *isom_file, GF_ISOTrackID trackID, con
 \return error if any
 */
 GF_Err gf_isom_set_track_magic(GF_ISOFile *isom_file, u32 trackNumber, u64 magic);
+
+/*! sets track index in moov
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param index the 1-based index to set. Tracks will be reordered after this!
+\param track_num_changed callback function used to notify track changes during the call to this function
+\param udta opaque user data for the callback function
+\return error if any
+*/
+GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, void (*track_num_changed)(void *udta, u32 old_track_num, u32 new_track_num), void *udta);
 
 /*! removes a sample description with the given index
 \warning This does not remove any added samples for that stream description, nor rewrite the sample to chunk and other boxes referencing the sample description index !
@@ -3324,6 +3380,15 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *isom_file, u32 trackNumber, u32 fps_n
 */
 GF_Err gf_isom_get_tmcd_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *tmcd_flags, u32 *tmcd_fps_num, u32 *tmcd_fps_den, u32 *tmcd_fpt);
 
+/*! gets information of a raw PCM  sample description, ISOBMFF style
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param flags set to the pcm config flags (0: big endian, 1: little endian)
+\param pcm_size  set to PCM sample size (per channel, 16, 24, 32, 64
+\return error if any
+*/
+GF_Err gf_isom_get_pcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, u32 *flags, u32 *pcm_size);
 
 /*! @} */
 

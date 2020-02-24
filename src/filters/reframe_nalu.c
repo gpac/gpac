@@ -2919,7 +2919,9 @@ static void naludmx_del_param_list(GF_List *ps)
 static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 {
 	u32 i, count;
-	u32 nb_frames = (u32) (ctx->dts / ctx->cur_fps.den);
+	u32 nb_frames = 0;
+	if (ctx->cur_fps.den)
+		nb_frames = (u32) (ctx->dts / ctx->cur_fps.den);
 
 	if (ctx->nb_si || ctx->nb_sp) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Import results: %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));

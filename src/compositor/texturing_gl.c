@@ -119,6 +119,7 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 		if (txh->pixelformat == GF_PIXEL_YUV_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->orig_pixelformat = txh->pixelformat;
 			txh->pixelformat = GF_PIXEL_YUV;
 			if(txh->frame_ifce)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
@@ -126,6 +127,7 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 		else if (txh->pixelformat == GF_PIXEL_NV12_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->orig_pixelformat = txh->pixelformat;
 			txh->pixelformat = GF_PIXEL_NV12;
 			if(txh->frame_ifce)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
@@ -133,6 +135,7 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 		else if (txh->pixelformat == GF_PIXEL_YUV422_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->orig_pixelformat = txh->pixelformat;
 			txh->pixelformat = GF_PIXEL_YUV422;
 			
 			if (txh->frame_ifce)
@@ -141,6 +144,7 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 		else if (txh->pixelformat == GF_PIXEL_YUV444_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->orig_pixelformat = txh->pixelformat;
 			txh->pixelformat = GF_PIXEL_YUV444;
 			if (txh->frame_ifce)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height);
@@ -221,65 +225,58 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_3D
 	u32 y_stride = txh->stride;
+u8 *p_y=NULL, *p_u=NULL, *p_v=NULL;
 #endif
-	u8  *p_y, *p_u, *p_v;
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
-	p_y = txh->data;
-	p_u = p_v = NULL;
+#ifndef GPAC_DISABLE_3D
 	//10->8 bit conversion
 	if (txh->tx_io->conv_to_8bit) {
-		GF_VideoSurface dst;
-		u32 src_stride = txh->stride * 2;
+		GF_VideoSurface dst, src;
+		GF_Err e;
 		memset(&dst, 0, sizeof(GF_VideoSurface));
+		memset(&src, 0, sizeof(GF_VideoSurface));
 		dst.width = txh->width;
 		dst.height = txh->height;
 		dst.pitch_y = txh->stride;
 		dst.video_buffer = txh->frame_ifce ? txh->tx_io->conv_data : txh->data;
+		dst.pixel_format = txh->pixelformat;
 
-		p_u = p_v = NULL;
-		p_y = (u8 *)txh->data;
+		src.width = txh->width;
+		src.height = txh->height;
+		src.pitch_y = txh->stride * 2;
+		src.video_buffer = txh->data;
+		dst.pixel_format = txh->orig_pixelformat;
+
 		if (txh->frame_ifce) {
 			u32 st_y, st_u, st_v;
-			txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &p_y, &st_y);
-			txh->frame_ifce->get_plane(txh->frame_ifce, 1, (const u8 **) &p_u, &st_u);
-			txh->frame_ifce->get_plane(txh->frame_ifce, 2, (const u8 **) &p_v, &st_v);
-			if (p_y) src_stride = st_y;
+			txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &src.video_buffer, &st_y);
+			txh->frame_ifce->get_plane(txh->frame_ifce, 1, (const u8 **) &src.u_ptr, &st_u);
+			txh->frame_ifce->get_plane(txh->frame_ifce, 2, (const u8 **) &src.v_ptr, &st_v);
+			if (src.video_buffer) src.pitch_y = st_y;
 		}
 
+		e = gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, GF_FALSE, NULL, NULL);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D] Failed to convert 10-bits to 8-bit texture: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
 		if (txh->pixelformat == GF_PIXEL_YUV) {
-
-			gf_color_write_yv12_10_to_yuv(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
-
-			if (txh->frame_ifce) {
-				p_y = dst.video_buffer;
-				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
-				p_v = (u8*) dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
-			}
+			p_y = dst.video_buffer;
+			p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+			p_v = (u8*) dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV422) {
-
-			gf_color_write_yuv422_10_to_yuv422(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
-
-			if (txh->frame_ifce) {
-				p_y = dst.video_buffer;
-				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
-				p_v = (u8*) dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
-			}
-
+			p_y = dst.video_buffer;
+			p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+			p_v = (u8*) dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV444) {
-
-			gf_color_write_yuv444_10_to_yuv444(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
-
-			if (txh->frame_ifce) {
-				p_y = dst.video_buffer;
-				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
-				p_v = (u8*) dst.video_buffer + 2 * dst.pitch_y * txh->height;
-			}
+			p_y = dst.video_buffer;
+			p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+			p_v = (u8*) dst.video_buffer + 2 * dst.pitch_y * txh->height;
 		}
 	}
-#ifndef GPAC_DISABLE_3D
 	else if (txh->tx_io->pbo_id && txh->frame_ifce) {
 		u32 src_stride;
 		txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &p_y, &y_stride);

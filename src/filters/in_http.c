@@ -365,7 +365,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bytes_done) );
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size ? ctx->file_size : bytes_done) );
 	}
 
 	byte_offset = ctx->nb_read;
@@ -373,12 +373,6 @@ static GF_Err httpin_process(GF_Filter *filter)
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
 		ctx->is_end = GF_TRUE;
-
-		if (!ctx->cached) {
-			const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
-			if (cached)
-				gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
-		}
 	} else if (e==GF_EOS) {
 		ctx->is_end = GF_TRUE;
 	}
@@ -405,7 +399,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 	}
 
 	if (ctx->is_end) {
-		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
+		const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
+		if (cached)
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
+
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_EOS;
 	}

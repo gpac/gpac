@@ -492,8 +492,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		gf_isom_get_cenc_info(ch->owner->mov, ch->track, stsd_idx, NULL, &scheme_type, &scheme_version, NULL);
 
 		PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
-		//if no PSSH declared, don't update the properties
-		if (!PSSH_count) return;
+		//if no PSSH declared, DO update the properties (PSSH is not mandatory)
 	} else if (gf_isom_is_adobe_protection_media(mov, track, stsd_idx)) {
 		u32 ofmt;
 		scheme_version = 1;
@@ -870,6 +869,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	u32 i, count = gf_list_count(read->channels);
 	Bool is_active = GF_FALSE;
 	Bool in_is_eos = GF_FALSE;
+	Bool has_new_data = GF_FALSE;
 
 	if (read->pid) {
 		while (1) {
@@ -887,6 +887,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			}
 			read->wait_for_source = GF_FALSE;
 			gf_filter_pid_drop_packet(read->pid);
+			has_new_data = GF_TRUE;
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
 			in_is_eos = GF_TRUE;
@@ -902,33 +903,53 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	}
 
 	if (read->refresh_fragmented) {
-		u64 bytesMissing=0;
-		GF_Err e;
-		const char *new_url = NULL;
-		const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);
-		if (prop) new_url = prop->value.string;
+		const GF_PropertyValue *prop;
 
-		e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);
-
-		if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
+		if (in_is_eos) {
+			read->refresh_fragmented = GF_FALSE;
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refreshing current segment at UTC "LLU" - "LLU" bytes still missing\n", gf_net_get_utc(), bytesMissing ));
+			prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
+			if (prop && prop->value.boolean)
+				read->refresh_fragmented = GF_FALSE;
 		}
 
-		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
-		if (prop && prop->value.boolean)
-			read->refresh_fragmented = GF_FALSE;
+		if (has_new_data) {
+			u64 bytesMissing=0;
+			GF_Err e;
+			const char *new_url = NULL;
+			prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);
+			if (prop) new_url = prop->value.string;
+
+			e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);
+
+			if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
+				read->refresh_fragmented = GF_FALSE;
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refreshing current segment at UTC "LLU" - "LLU" bytes still missing - input is EOS %d\n", gf_net_get_utc(), bytesMissing, in_is_eos));
+			}
+
+			if (!read->refresh_fragmented && (e==GF_ISOM_INCOMPLETE_FILE)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received - "LLU" bytes missing but EOF found\n", bytesMissing ));
+			}
 
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
-			for (i=0; i<count; i++) {
-				ISOMChannel *ch = gf_list_get(read->channels, i);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+			if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
+				for (i=0; i<count; i++) {
+					ISOMChannel *ch = gf_list_get(read->channels, i);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
+
+					if (in_is_eos) {
+						u32 nbsamp = gf_isom_get_sample_count(ch->owner->mov, ch->track);
+						if (nbsamp % 25)
+							nbsamp = 0;
+
+					}
+				}
 			}
-		}
 #endif
-		isor_check_producer_ref_time(read);
+			isor_check_producer_ref_time(read);
+		}
 
 	}
 

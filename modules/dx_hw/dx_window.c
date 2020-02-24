@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -59,374 +59,141 @@ static void DD_GetCoordinates(LPARAM lParam, GF_Event *evt)
 }
 #endif
 
+typedef struct
+{
+	u32 win_key;
+	u32 gf_key;
+	u32 gf_flags;
+} WINKeyToGPAC;
+
+static WINKeyToGPAC WINKeys[] =
+{
+	{VK_BACK, GF_KEY_BACKSPACE, 0},
+	{VK_TAB, GF_KEY_TAB, 0 },
+	{VK_CLEAR, GF_KEY_CLEAR, 0 },
+	{VK_RETURN, GF_KEY_ENTER, 0 },
+	{VK_SHIFT, GF_KEY_SHIFT, 0 },
+	{VK_CONTROL, GF_KEY_CONTROL, 0 },
+	{VK_MENU, GF_KEY_ALT, 0 },
+	{VK_PAUSE, GF_KEY_PAUSE, 0 },
+	{VK_CAPITAL, GF_KEY_CAPSLOCK, 0 },
+	{VK_KANA, GF_KEY_KANAMODE, 0 },
+	{VK_JUNJA, GF_KEY_JUNJAMODE, 0 },
+	{VK_FINAL, GF_KEY_FINALMODE, 0 },
+	{VK_KANJI, GF_KEY_KANJIMODE, 0 },
+	{VK_ESCAPE, GF_KEY_ESCAPE, 0 },
+	{VK_CONVERT, GF_KEY_CONVERT, 0 },
+	{VK_SPACE, GF_KEY_SPACE, 0 },
+	{VK_PRIOR, GF_KEY_PAGEUP, 0 },
+	{VK_NEXT, GF_KEY_PAGEDOWN, 0 },
+	{VK_END, GF_KEY_END, 0 },
+	{VK_HOME, GF_KEY_HOME, 0 },
+	{VK_LEFT, GF_KEY_LEFT, 0 },
+	{VK_UP, GF_KEY_UP, 0 },
+	{VK_RIGHT, GF_KEY_RIGHT, 0 },
+	{VK_DOWN, GF_KEY_DOWN, 0 },
+	{VK_SELECT, GF_KEY_SELECT, 0 },
+	{VK_PRINT, GF_KEY_PRINTSCREEN, 0 },
+	{ VK_SNAPSHOT, GF_KEY_PRINTSCREEN, 0 },
+	{VK_EXECUTE, GF_KEY_EXECUTE, 0 },
+	{VK_INSERT, GF_KEY_INSERT, 0 },
+	{VK_DELETE, GF_KEY_DEL, 0 },
+	{VK_HELP, GF_KEY_HELP, 0 },
+#if !defined(_WIN32_WCE) && !defined(__GNUC__)
+	{VK_OEM_PLUS, GF_KEY_PLUS, 0 },
+	{VK_OEM_MINUS, GF_KEY_PLUS, 0 },
+#endif
+#ifndef _WIN32_WCE
+	{VK_NONCONVERT, GF_KEY_NONCONVERT, 0 },
+	{VK_ACCEPT, GF_KEY_ACCEPT, 0 },
+	{VK_MODECHANGE, GF_KEY_MODECHANGE, 0 },
+#endif
+	{VK_NUMPAD0, GF_KEY_0, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD1, GF_KEY_1, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD2, GF_KEY_2, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD3, GF_KEY_3, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD4, GF_KEY_4, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD5, GF_KEY_5, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD6, GF_KEY_6, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD7, GF_KEY_7, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD8, GF_KEY_8, GF_KEY_EXT_NUMPAD },
+	{VK_NUMPAD9, GF_KEY_9, GF_KEY_EXT_NUMPAD },
+	{VK_MULTIPLY, GF_KEY_STAR, GF_KEY_EXT_NUMPAD },
+	{VK_ADD, GF_KEY_PLUS, GF_KEY_EXT_NUMPAD },
+	{VK_SEPARATOR, GF_KEY_FULLSTOP, GF_KEY_EXT_NUMPAD },
+	{VK_SUBTRACT, GF_KEY_HYPHEN, GF_KEY_EXT_NUMPAD },
+	{VK_DECIMAL, GF_KEY_COMMA, GF_KEY_EXT_NUMPAD },
+	{VK_DIVIDE, GF_KEY_SLASH, GF_KEY_EXT_NUMPAD },
+	{VK_F1, GF_KEY_F1, 0},
+	{VK_F2, GF_KEY_F2, 0 },
+	{VK_F3, GF_KEY_F3, 0 },
+	{VK_F4, GF_KEY_F4, 0 },
+	{VK_F5, GF_KEY_F5, 0 },
+	{VK_F6, GF_KEY_F6, 0 },
+	{VK_F7, GF_KEY_F7, 0 },
+	{VK_F8, GF_KEY_F8, 0 },
+	{VK_F9, GF_KEY_F9, 0 },
+	{VK_F10, GF_KEY_F10, 0 },
+	{VK_F11, GF_KEY_F11, 0 },
+	{VK_F12, GF_KEY_F12, 0 },
+	{VK_F13, GF_KEY_F13, 0 },
+	{VK_F14, GF_KEY_F14, 0 },
+	{VK_F15, GF_KEY_F15, 0 },
+	{VK_F16, GF_KEY_F16, 0 },
+	{VK_F17, GF_KEY_F17, 0 },
+	{VK_F18, GF_KEY_F18, 0 },
+	{VK_F19, GF_KEY_F19, 0 },
+	{VK_F20, GF_KEY_F20, 0 },
+	{VK_F21, GF_KEY_F21, 0 },
+	{VK_F22, GF_KEY_F22, 0 },
+	{VK_F23, GF_KEY_F23, 0 },
+	{VK_F24, GF_KEY_F24, 0 },
+	{VK_NUMLOCK, GF_KEY_NUMLOCK, 0 },
+	{VK_SCROLL, GF_KEY_SCROLL, 0 },
+	{VK_LSHIFT, GF_KEY_SHIFT, GF_KEY_EXT_LEFT},
+	{VK_RSHIFT, GF_KEY_SHIFT, GF_KEY_EXT_RIGHT },
+	{VK_LCONTROL, GF_KEY_CONTROL, GF_KEY_EXT_LEFT },
+	{VK_RCONTROL, GF_KEY_CONTROL, GF_KEY_EXT_RIGHT },
+	{VK_LMENU, GF_KEY_ALT, GF_KEY_EXT_LEFT },
+	{VK_RMENU, GF_KEY_ALT, GF_KEY_EXT_RIGHT },
+#if(WINVER >= 0x0400)
+	{VK_PROCESSKEY, GF_KEY_PROCESS, 0},
+#endif /* WINVER >= 0x0400 */
+	{VK_ATTN, GF_KEY_ATTN, 0 },
+	{VK_CRSEL, GF_KEY_CRSEL, 0 },
+	{VK_EXSEL, GF_KEY_EXSEL, 0 },
+	{VK_EREOF, GF_KEY_ERASEEOF, 0 },
+	{VK_PLAY, GF_KEY_PLAY, 0 },
+	{VK_ZOOM, GF_KEY_ZOOM, 0 },
+	//{VK_NONAME, GF_KEY_NONAME, 0},
+	//{VK_PA1, GF_KEY_PA1, 0},
+	{VK_OEM_CLEAR, GF_KEY_CLEAR, 0 },
+};
+
+static u32 num_win_keys = sizeof(WINKeys) / sizeof(WINKeyToGPAC);
+
 static void w32_translate_key(WPARAM wParam, LPARAM lParam, GF_EventKey *evt)
 {
+	u32 i;
 	evt->flags = 0;
-	evt->hw_code = (u32) wParam;
-	switch (wParam) {
-	case VK_BACK:
-		evt->key_code = GF_KEY_BACKSPACE;
-		break;
-	case VK_TAB:
-		evt->key_code = GF_KEY_TAB;
-		break;
-	case VK_CLEAR:
-		evt->key_code = GF_KEY_CLEAR;
-		break;
-	case VK_RETURN:
-		evt->key_code = GF_KEY_ENTER;
-		break;
-	case VK_SHIFT:
-		evt->key_code = GF_KEY_SHIFT;
-		break;
-	case VK_CONTROL:
-		evt->key_code = GF_KEY_CONTROL;
-		break;
-	case VK_MENU:
-		evt->key_code = GF_KEY_ALT;
-		break;
-	case VK_PAUSE:
-		evt->key_code = GF_KEY_PAUSE;
-		break;
-	case VK_CAPITAL:
-		evt->key_code = GF_KEY_CAPSLOCK;
-		break;
-	case VK_KANA:
-		evt->key_code = GF_KEY_KANAMODE;
-		break;
-	case VK_JUNJA:
-		evt->key_code = GF_KEY_JUNJAMODE;
-		break;
-	case VK_FINAL:
-		evt->key_code = GF_KEY_FINALMODE;
-		break;
-	case VK_KANJI:
-		evt->key_code = GF_KEY_KANJIMODE;
-		break;
-	case VK_ESCAPE:
-		evt->key_code = GF_KEY_ESCAPE;
-		break;
-	case VK_CONVERT:
-		evt->key_code = GF_KEY_CONVERT;
-		break;
-	case VK_SPACE:
-		evt->key_code = GF_KEY_SPACE;
-		break;
-	case VK_PRIOR:
-		evt->key_code = GF_KEY_PAGEUP;
-		break;
-	case VK_NEXT:
-		evt->key_code = GF_KEY_PAGEDOWN;
-		break;
-	case VK_END:
-		evt->key_code = GF_KEY_END;
-		break;
-	case VK_HOME:
-		evt->key_code = GF_KEY_HOME;
-		break;
-	case VK_LEFT:
-		evt->key_code = GF_KEY_LEFT;
-		break;
-	case VK_UP:
-		evt->key_code = GF_KEY_UP;
-		break;
-	case VK_RIGHT:
-		evt->key_code = GF_KEY_RIGHT;
-		break;
-	case VK_DOWN:
-		evt->key_code = GF_KEY_DOWN;
-		break;
-	case VK_SELECT:
-		evt->key_code = GF_KEY_SELECT;
-		break;
-	case VK_PRINT:
-	case VK_SNAPSHOT:
-		evt->key_code = GF_KEY_PRINTSCREEN;
-		break;
-	case VK_EXECUTE:
-		evt->key_code = GF_KEY_EXECUTE;
-		break;
-	case VK_INSERT:
-		evt->key_code = GF_KEY_INSERT;
-		break;
-	case VK_DELETE:
-		evt->key_code = GF_KEY_DEL;
-		break;
-	case VK_HELP:
-		evt->key_code = GF_KEY_HELP;
-		break;
+	evt->hw_code = (u32)wParam;
 
-#if !defined(_WIN32_WCE) && !defined(__GNUC__)
-	case VK_OEM_PLUS:
-		evt->key_code = GF_KEY_PLUS;
-		break;
-	case VK_OEM_MINUS:
-		evt->key_code = GF_KEY_PLUS;
-		break;
-#endif
+	for (i = 0; i<num_win_keys; i++) {
+		if (WINKeys[i].win_key == (u32) wParam) {
+			evt->key_code = WINKeys[i].gf_key;
+			evt->flags = WINKeys[i].gf_flags;
+			return;
+		}
+	}
 
-#ifndef _WIN32_WCE
-	case VK_NONCONVERT:
-		evt->key_code = GF_KEY_NONCONVERT;
-		break;
-	case VK_ACCEPT:
-		evt->key_code = GF_KEY_ACCEPT;
-		break;
-	case VK_MODECHANGE:
-		evt->key_code = GF_KEY_MODECHANGE;
-		break;
-#endif
-
-	/*	case '!': evt->key_code = GF_KEY_EXCLAMATION; break;
-		case '"': evt->key_code = GF_KEY_QUOTATION; break;
-		case '#': evt->key_code = GF_KEY_NUMBER; break;
-		case '$': evt->key_code = GF_KEY_DOLLAR; break;
-		case '&': evt->key_code = GF_KEY_AMPERSAND; break;
-		case '\'': evt->key_code = GF_KEY_APOSTROPHE; break;
-		case '(': evt->key_code = GF_KEY_LEFTPARENTHESIS; break;
-		case ')': evt->key_code = GF_KEY_RIGHTPARENTHESIS; break;
-		case ',': evt->key_code = GF_KEY_COMMA; break;
-		case ':': evt->key_code = GF_KEY_COLON; break;
-		case ';': evt->key_code = GF_KEY_SEMICOLON; break;
-		case '<': evt->key_code = GF_KEY_LESSTHAN; break;
-		case '>': evt->key_code = GF_KEY_GREATERTHAN; break;
-		case '?': evt->key_code = GF_KEY_QUESTION; break;
-		case '@': evt->key_code = GF_KEY_AT; break;
-		case '[': evt->key_code = GF_KEY_LEFTSQUAREBRACKET; break;
-		case ']': evt->key_code = GF_KEY_RIGHTSQUAREBRACKET; break;
-		case '\\': evt->key_code = GF_KEY_BACKSLASH; break;
-		case '_': evt->key_code = GF_KEY_UNDERSCORE; break;
-		case '`': evt->key_code = GF_KEY_GRAVEACCENT; break;
-		case ' ': evt->key_code = GF_KEY_SPACE; break;
-		case '/': evt->key_code = GF_KEY_SLASH; break;
-		case '*': evt->key_code = GF_KEY_STAR; break;
-		case '-': evt->key_code = GF_KEY_HIPHEN; break;
-		case '+': evt->key_code = GF_KEY_PLUS; break;
-		case '=': evt->key_code = GF_KEY_EQUALS; break;
-		case '^': evt->key_code = GF_KEY_CIRCUM; break;
-		case '{': evt->key_code = GF_KEY_LEFTCURLYBRACKET; break;
-		case '}': evt->key_code = GF_KEY_RIGHTCURLYBRACKET; break;
-		case '|': evt->key_code = GF_KEY_PIPE; break;
-	*/
-
-
-	/*	case VK_LWIN: return ;
-		case VK_RWIN: return ;
-		case VK_APPS: return ;
-	*/
-	case VK_NUMPAD0:
-		evt->key_code = GF_KEY_0;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD1:
-		evt->key_code = GF_KEY_1;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD2:
-		evt->key_code = GF_KEY_2;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD3:
-		evt->key_code = GF_KEY_3;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD4:
-		evt->key_code = GF_KEY_4;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD5:
-		evt->key_code = GF_KEY_5;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD6:
-		evt->key_code = GF_KEY_6;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD7:
-		evt->key_code = GF_KEY_7;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD8:
-		evt->key_code = GF_KEY_8;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_NUMPAD9:
-		evt->key_code = GF_KEY_9;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_MULTIPLY:
-		evt->key_code = GF_KEY_STAR;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_ADD:
-		evt->key_code = GF_KEY_PLUS;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_SEPARATOR:
-		evt->key_code = GF_KEY_FULLSTOP;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_SUBTRACT:
-		evt->key_code = GF_KEY_HYPHEN;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_DECIMAL:
-		evt->key_code = GF_KEY_COMMA;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_DIVIDE:
-		evt->key_code = GF_KEY_SLASH;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_F1:
-		evt->key_code = GF_KEY_F1;
-		break;
-	case VK_F2:
-		evt->key_code = GF_KEY_F2;
-		break;
-	case VK_F3:
-		evt->key_code = GF_KEY_F3;
-		break;
-	case VK_F4:
-		evt->key_code = GF_KEY_F4;
-		break;
-	case VK_F5:
-		evt->key_code = GF_KEY_F5;
-		break;
-	case VK_F6:
-		evt->key_code = GF_KEY_F6;
-		break;
-	case VK_F7:
-		evt->key_code = GF_KEY_F7;
-		break;
-	case VK_F8:
-		evt->key_code = GF_KEY_F8;
-		break;
-	case VK_F9:
-		evt->key_code = GF_KEY_F9;
-		break;
-	case VK_F10:
-		evt->key_code = GF_KEY_F10;
-		break;
-	case VK_F11:
-		evt->key_code = GF_KEY_F11;
-		break;
-	case VK_F12:
-		evt->key_code = GF_KEY_F12;
-		break;
-	case VK_F13:
-		evt->key_code = GF_KEY_F13;
-		break;
-	case VK_F14:
-		evt->key_code = GF_KEY_F14;
-		break;
-	case VK_F15:
-		evt->key_code = GF_KEY_F15;
-		break;
-	case VK_F16:
-		evt->key_code = GF_KEY_F16;
-		break;
-	case VK_F17:
-		evt->key_code = GF_KEY_F17;
-		break;
-	case VK_F18:
-		evt->key_code = GF_KEY_F18;
-		break;
-	case VK_F19:
-		evt->key_code = GF_KEY_F19;
-		break;
-	case VK_F20:
-		evt->key_code = GF_KEY_F20;
-		break;
-	case VK_F21:
-		evt->key_code = GF_KEY_F21;
-		break;
-	case VK_F22:
-		evt->key_code = GF_KEY_F22;
-		break;
-	case VK_F23:
-		evt->key_code = GF_KEY_F23;
-		break;
-	case VK_F24:
-		evt->key_code = GF_KEY_F24;
-		break;
-
-	case VK_NUMLOCK:
-		evt->key_code = GF_KEY_NUMLOCK;
-		break;
-	case VK_SCROLL:
-		evt->key_code = GF_KEY_SCROLL;
-		break;
-
-	/*
-	 * VK_L* & VK_R* - left and right Alt, Ctrl and Shift virtual keys.
-	 * Used only as parameters to GetAsyncKeyState() and GetKeyState().
-	 * No other API or message will distinguish left and right keys in this way.
-	 */
-	case VK_LSHIFT:
-		evt->key_code = GF_KEY_SHIFT;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case VK_RSHIFT:
-		evt->key_code = GF_KEY_SHIFT;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	case VK_LCONTROL:
-		evt->key_code = GF_KEY_CONTROL;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case VK_RCONTROL:
-		evt->key_code = GF_KEY_CONTROL;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	case VK_LMENU:
-		evt->key_code = GF_KEY_ALT;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case VK_RMENU:
-		evt->key_code = GF_KEY_ALT;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-
-#if(WINVER >= 0x0400)
-	case VK_PROCESSKEY:
-		evt->key_code = GF_KEY_PROCESS;
-		break;
-#endif /* WINVER >= 0x0400 */
-
-	case VK_ATTN:
-		evt->key_code = GF_KEY_ATTN;
-		break;
-	case VK_CRSEL:
-		evt->key_code = GF_KEY_CRSEL;
-		break;
-	case VK_EXSEL:
-		evt->key_code = GF_KEY_EXSEL;
-		break;
-	case VK_EREOF:
-		evt->key_code = GF_KEY_ERASEEOF;
-		break;
-	case VK_PLAY:
-		evt->key_code = GF_KEY_PLAY;
-		break;
-	case VK_ZOOM:
-		evt->key_code = GF_KEY_ZOOM;
-		break;
-	//case VK_NONAME: evt->key_code = GF_KEY_NONAME; break;
-	//case VK_PA1: evt->key_code = GF_KEY_PA1; break;
-	case VK_OEM_CLEAR:
-		evt->key_code = GF_KEY_CLEAR;
-		break;
-
-	/*thru VK_9 are the same as ASCII '0' thru '9' (0x30 - 0x39) */
-	/* VK_A thru VK_Z are the same as ASCII 'A' thru 'Z' (0x41 - 0x5A) */
-	default:
-		if ((wParam>=0x30) && (wParam<=0x39))  evt->key_code = GF_KEY_0 + (u32) (wParam-0x30);
-		else if ((wParam>=0x41) && (wParam<=0x5A))  evt->key_code = GF_KEY_A + (u32) (wParam-0x41);
-		/*DOM 3 Events: Implementations that are unable to identify a key must use the key identifier "Unidentified".*/
-		else
-			evt->key_code = GF_KEY_UNIDENTIFIED;
-		break;
+	if ((wParam>=0x30) && (wParam<=0x39))
+		evt->key_code = GF_KEY_0 + (u32) (wParam-0x30);
+	else if ((wParam>=0x41) && (wParam<=0x5A))
+		evt->key_code = GF_KEY_A + (u32) (wParam-0x41);
+	/*DOM 3 Events: Implementations that are unable to identify a key must use the key identifier "Unidentified".*/
+	else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DX] Unrecognized key %X\n", wParam));
+		evt->key_code = GF_KEY_UNIDENTIFIED;
 	}
 }
 
@@ -530,9 +297,6 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_ACTIVATE:
 		if (!ctx->on_secondary_screen && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE)
 		        && (hWnd==ctx->fs_hwnd)
-#ifndef GPAC_DISABLE_3D
-		        && (ctx->output_3d_type!=2)
-#endif
 		   ) {
 			evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -1133,10 +897,6 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 #endif
 	}
 
-#ifndef GPAC_DISABLE_3D
-	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
-#endif
-
 	if (ctx->th) {
 		while (ctx->th_state!=2)
 			gf_sleep(10);
@@ -1164,9 +924,6 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 #endif
 	ctx->os_hwnd = NULL;
 	ctx->fs_hwnd = NULL;
-#ifndef GPAC_DISABLE_3D
-	ctx->gl_hwnd = NULL;
-#endif
 	the_video_output = NULL;
 }
 
@@ -1317,32 +1074,23 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			DestroyObjects(ctx);
 		}
 		ctx->is_setup = GF_TRUE;
-		switch (evt->setup.opengl_mode) {
-		case 0:
+		if (!evt->setup.use_opengl) {
 #ifndef GPAC_DISABLE_3D
-			ctx->output_3d_type = 0;
+			ctx->output_3d = GF_FALSE;
 #endif
 			return DD_SetBackBufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
+		} else {
 #ifndef GPAC_DISABLE_3D
-		case 1:
-			ctx->output_3d_type = 1;
+			ctx->output_3d = GF_TRUE;
 			ctx->width = evt->setup.width;
 			ctx->height = evt->setup.height;
 			ctx->gl_double_buffer = evt->setup.back_buffer;
 			return DD_SetupOpenGL(dr, 0, 0);
-		case 2:
-			ctx->output_3d_type = 2;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Attempting to resize Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
-			if (ctx->gl_hwnd)
-				SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Resizing Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
-			SetForegroundWindow(ctx->cur_hwnd);
-			ctx->gl_double_buffer = evt->setup.back_buffer;
-			return DD_SetupOpenGL(dr, evt->size.width, evt->size.height);
 #else
 			return GF_NOT_SUPPORTED;
 #endif
 		}
+
 	case GF_EVENT_SYS_COLORS:
 		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
 		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);

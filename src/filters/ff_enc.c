@@ -1179,7 +1179,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		//TODO
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (prop) {
-			ctx->encoder->channel_layout = ffmpeg_channel_layout_from_gpac(prop->value.uint);
+			ctx->encoder->channel_layout = ffmpeg_channel_layout_from_gpac(prop->value.longuint);
 		} else if (ctx->channels==1) {
 			ctx->encoder->channel_layout = AV_CH_LAYOUT_MONO;
 		} else if (ctx->channels==2) {

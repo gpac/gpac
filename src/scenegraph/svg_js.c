@@ -91,7 +91,8 @@ typedef struct __tag_svg_script_ctx
 
 void svg_mark_gc(struct __tag_svg_script_ctx *svg_js)
 {
-	svg_js->force_gc = 1;
+	if (svg_js)
+		svg_js->force_gc = 1;
 }
 
 void svg_free_node_binding(struct __tag_svg_script_ctx *svg_js, GF_Node *node)

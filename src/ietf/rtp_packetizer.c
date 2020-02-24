@@ -122,6 +122,8 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 	case GF_RTP_PAYT_HEVC:
 	case GF_RTP_PAYT_LHVC:
 		return gp_rtp_builder_do_hevc(builder, data, data_size, IsAUEnd, FullAUSize);
+	case GF_RTP_PAYT_MP2T:
+		return gp_rtp_builder_do_mp2t(builder, data, data_size, IsAUEnd, FullAUSize);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -415,6 +417,7 @@ check_header:
 
 void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_indicator, Bool is_encrypted)
 {
+	if (!builder) return;
 	if (!key_indicator) {
 		if (builder->key_indicator) {
 			/*force flush if no provision for keyIndicator per AU*/

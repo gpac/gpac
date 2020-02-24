@@ -5597,4 +5597,46 @@ GF_Err vwid_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_done("ViewIdentifierBox", a, trace);
 	return GF_OK;
 }
+
+GF_Err pcmC_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_PCMConfigBox *p = (GF_PCMConfigBox *) a;
+
+	gf_isom_box_dump_start(a, "PCMConfigurationBox", trace);
+	fprintf(trace, " format_flags=\"%d\" PCM_sample_size=\"%d\">\n", p->format_flags, p->PCM_sample_size);
+	gf_isom_box_dump_done("PCMConfigurationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err chnl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ChannelLayoutBox *p = (GF_ChannelLayoutBox *) a;
+	gf_isom_box_dump_start(a, "ChannelLayoutBox", trace);
+	fprintf(trace, " stream_structure=\"%d\"", p->layout.stream_structure);
+	if (p->layout.stream_structure & 2)
+		fprintf(trace, " object_count=\"%d\"", p->layout.object_count);
+
+	if (p->layout.stream_structure & 1) {
+		fprintf(trace, " definedLayout=\"%d\"", p->layout.definedLayout);
+		if (p->layout.definedLayout!=0) {
+			fprintf(trace, " omittedChannelsMap=\""LLU"\"", p->layout.omittedChannelsMap);
+		}
+	}
+
+	fprintf(trace, ">\n");
+	if ((p->layout.stream_structure & 1) && (p->layout.definedLayout==0)) {
+		u32 i;
+		for (i=0; i<p->layout.channels_count; i++) {
+			fprintf(trace, "<Speaker position=\"%d\"", p->layout.layouts[i].position);
+			if (p->layout.layouts[i].position==126) {
+				fprintf(trace, " azimuth=\"%d\" elevation=\"%d\"", p->layout.layouts[i].azimuth, p->layout.layouts[i].elevation);
+			}
+			fprintf(trace, "/>\n");
+		}
+	}
+
+	gf_isom_box_dump_done("ChannelLayoutBox", a, trace);
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

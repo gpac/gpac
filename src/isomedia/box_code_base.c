@@ -3686,11 +3686,11 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 	Bool drop_wave=GF_FALSE;
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 
-	ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_ESDS:
 		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->esd = (GF_ESDBox *)a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DAMR:
@@ -3701,15 +3701,18 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		ptr->cfg_3gpp = (GF_3GPPConfigBox *) a;
 		/*for 3GP config, remember sample entry type in config*/
 		ptr->cfg_3gpp->cfg.type = ptr->type;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 
 	case GF_ISOM_BOX_TYPE_DOPS:
 		if (ptr->cfg_opus) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_opus = (GF_OpusSpecificBox *)a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 	case GF_ISOM_BOX_TYPE_DEC3:
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -3721,10 +3724,12 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_MHM2:
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 	case GF_ISOM_BOX_TYPE_DFLA:
 		if (ptr->cfg_flac) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_flac = (GF_FLACConfigBox *) a;
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
@@ -3858,7 +3863,8 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<size-8; i++) {
 		if (GF_4CC((u32)data[i+4], (u8)data[i+5], (u8)data[i+6], (u8)data[i+7]) == GF_ISOM_BOX_TYPE_ESDS) {
 			GF_BitStream *mybs = gf_bs_new(data + i, size - i, GF_BITSTREAM_READ);
-			if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
+			if (ptr->esd) gf_isom_box_del_parent(&ptr->child_boxes, (GF_Box *)ptr->esd);
+			ptr->esd = NULL;
 			e = gf_isom_box_parse((GF_Box **)&ptr->esd, mybs);
 			gf_bs_del(mybs);
 			if (e==GF_OK) {
@@ -6259,6 +6265,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_QT_SUBTYPE_YUV444:
 		case GF_QT_SUBTYPE_YUV422_10:
 		case GF_QT_SUBTYPE_YUV444_10:
+		case GF_ISOM_BOX_TYPE_IPCM:
+		case GF_ISOM_BOX_TYPE_FPCM:
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
@@ -7757,7 +7765,6 @@ GF_Err void_box_size(GF_Box *s)
 GF_Box *pdin_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ProgressiveDownloadBox, GF_ISOM_BOX_TYPE_PDIN);
-	tmp->flags = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -7819,7 +7826,6 @@ GF_Err pdin_box_size(GF_Box *s)
 GF_Box *sdtp_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_SampleDependencyTypeBox, GF_ISOM_BOX_TYPE_SDTP);
-	tmp->flags = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -11493,5 +11499,153 @@ GF_Err vwid_box_size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+void pcmC_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err pcmC_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_PCMConfigBox *ptr = (GF_PCMConfigBox *) s;
+
+	ISOM_DECREASE_SIZE(s, 2)
+	ptr->format_flags = gf_bs_read_u8(bs);
+	ptr->PCM_sample_size = gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+GF_Box *pcmC_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_PCMConfigBox, GF_ISOM_BOX_TYPE_PCMC);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err pcmC_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_PCMConfigBox *ptr = (GF_PCMConfigBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->format_flags);
+	gf_bs_write_u8(bs, ptr->PCM_sample_size);
+	return GF_OK;
+}
+
+GF_Err pcmC_box_size(GF_Box *s)
+{
+	s->size += 2;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+void chnl_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err chnl_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_ChannelLayoutBox *ptr = (GF_ChannelLayoutBox *) s;
+
+	ISOM_DECREASE_SIZE(s, 1)
+	ptr->layout.stream_structure = gf_bs_read_u8(bs);
+	if (ptr->layout.stream_structure & 1) {
+		ISOM_DECREASE_SIZE(s, 1)
+		ptr->layout.definedLayout = gf_bs_read_u8(bs);
+		if (ptr->layout.definedLayout) {
+			u32 remain = (u32) ptr->size;
+			if (ptr->layout.stream_structure & 2) remain--;
+			ptr->layout.channels_count = 0;
+			while (remain) {
+				ISOM_DECREASE_SIZE(s, 1)
+				ptr->layout.layouts[ptr->layout.channels_count].position = gf_bs_read_u8(bs);
+				remain--;
+				if (ptr->layout.layouts[ptr->layout.channels_count].position == 126) {
+					ISOM_DECREASE_SIZE(s, 3)
+					ptr->layout.layouts[ptr->layout.channels_count].azimuth = gf_bs_read_int(bs, 16);
+					ptr->layout.layouts[ptr->layout.channels_count].elevation = gf_bs_read_int(bs, 8);
+					remain-=3;
+				}
+			}
+		} else {
+			ISOM_DECREASE_SIZE(s, 8)
+			ptr->layout.omittedChannelsMap = gf_bs_read_u64(bs);
+		}
+	}
+	if (ptr->layout.stream_structure & 2) {
+		ISOM_DECREASE_SIZE(s, 1)
+		ptr->layout.object_count = gf_bs_read_u8(bs);
+	}
+	return GF_OK;
+}
+
+GF_Box *chnl_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ChannelLayoutBox, GF_ISOM_BOX_TYPE_CHNL);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err chnl_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ChannelLayoutBox *ptr = (GF_ChannelLayoutBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->layout.stream_structure);
+	if (ptr->layout.stream_structure & 1) {
+		gf_bs_write_u8(bs, ptr->layout.definedLayout);
+		if (ptr->layout.definedLayout==0) {
+			u32 i;
+			for (i=0; i<ptr->layout.channels_count; i++) {
+				gf_bs_write_u8(bs, ptr->layout.layouts[i].position);
+				if (ptr->layout.layouts[i].position==126) {
+					gf_bs_write_int(bs, ptr->layout.layouts[i].azimuth, 16);
+					gf_bs_write_int(bs, ptr->layout.layouts[i].elevation, 8);
+				}
+			}
+		} else {
+			gf_bs_write_u64(bs, ptr->layout.omittedChannelsMap);
+		}
+	}
+	if (ptr->layout.stream_structure & 2) {
+		gf_bs_write_u8(bs, ptr->layout.object_count);
+	}
+	return GF_OK;
+}
+
+GF_Err chnl_box_size(GF_Box *s)
+{
+	GF_ChannelLayoutBox *ptr = (GF_ChannelLayoutBox *) s;
+	s->size += 1;
+	if (ptr->layout.stream_structure & 1) {
+		s->size += 1;
+		if (ptr->layout.definedLayout==0) {
+			u32 i;
+			for (i=0; i<ptr->layout.channels_count; i++) {
+				s->size+=1;
+				if (ptr->layout.layouts[i].position==126)
+					s->size+=3;
+			}
+		} else {
+			s->size += 8;
+		}
+	}
+	if (ptr->layout.stream_structure & 2) {
+		s->size += 1;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM*/

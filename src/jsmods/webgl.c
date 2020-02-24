@@ -930,7 +930,11 @@ static JSValue wgl_getVertexAttribOffset(JSContext *ctx, JSValueConst this_val, 
 	WGL_GET_U32(index, argv[0]);
 	WGL_GET_U32(pname, argv[1]);
 	glGetVertexAttribPointerv(index, pname, &ptr);
+#ifdef GPAC_64_BITS
 	return JS_NewInt64(ctx, (u64) ptr);
+#else
+	return JS_NewInt64(ctx, (u32) ptr);
+#endif
 }
 static JSValue wgl_readPixels(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {

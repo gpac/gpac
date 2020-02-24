@@ -73,6 +73,8 @@ Macro formating a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
+/*! minimum buffer size to hold any 4CC in string format*/
+#define GF_4CC_MSIZE	10
 
 /*! converts four character code to string
 \param type a four character code
@@ -506,6 +508,8 @@ typedef enum
 	GF_LOG_FILTER,
 	/*! Log for filter scheduler only */
 	GF_LOG_SCHEDULER,
+	/*! Log for all ATSC3 message */
+	GF_LOG_ATSC,
 	/*! Log for all messages coming from GF_Terminal or script alert()*/
 	GF_LOG_CONSOLE,
 	/*! Log for all messages coming the application, not used by libgpac or the modules*/
@@ -971,7 +975,7 @@ This section documents time functionalities and CPU management in GPAC.
 
 Reads a local file into memory, in binary open mode.
 \param file_name path on disk of the file to read
-\param out_data pointer to allocted adress, to be freed by caller
+\param out_data pointer to allocted address, to be freed by caller
 \param out_size pointer to allocted size
 \return error code if any
  */

@@ -233,7 +233,7 @@ GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip)
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = "RTP/AVP";
-	trans.source = gf_strdup(server_ip);
+	trans.source = (char *) server_ip;
 	trans.IsUnicast = GF_TRUE;
 	trans.client_port_first = 0;
 	trans.client_port_last = 0;
@@ -255,6 +255,43 @@ GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip)
 	tmp->range_start = 0;
 	tmp->range_end = 0;
 
+	return tmp;
+}
+
+GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, u32 port)
+{
+	GF_RTSPTransport trans;
+	GF_RTPInStream *tmp;
+	GF_SAFEALLOC(tmp, GF_RTPInStream);
+	if (!tmp) return NULL;
+	tmp->rtpin = rtp;
+	tmp->buffer = gf_malloc(sizeof(char) * rtp->block_size);
+
+	/*create an RTP channel*/
+	tmp->rtp_ch = gf_rtp_new();
+
+	memset(&trans, 0, sizeof(GF_RTSPTransport));
+	trans.Profile = "RTP/AVP";
+	trans.source = (char *) flow_ip;
+	trans.IsUnicast = gf_sk_is_multicast_address(flow_ip);
+	trans.client_port_first = port;
+	trans.client_port_last = port+1;
+	trans.port_first = port;
+	trans.port_last = port+1;
+
+	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
+		rtpin_stream_del(tmp);
+		return NULL;
+	}
+
+//	gf_rtp_setup_payload(tmp->rtp_ch, 33, 90000);
+
+	if (rtp->disable_rtcp) tmp->flags |= RTP_ENABLE_RTCP;
+
+	/*setup NAT keep-alive*/
+	gf_rtp_enable_nat_keepalive(tmp->rtp_ch, rtp->nat_keepalive ? rtp->nat_keepalive : 30000);
+	tmp->range_start = 0;
+	tmp->range_end = 0;
 	return tmp;
 }
 
@@ -388,7 +425,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		return NULL;
 	}
 	/*setup depacketizer*/
-	tmp->depacketizer = gf_rtp_depacketizer_new(media, rtp_sl_packet_cbk, tmp);
+	tmp->depacketizer = gf_rtp_depacketizer_new(media, 0, rtp_sl_packet_cbk, tmp);
 	if (!tmp->depacketizer) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to create RTP depacketizer for payload type %d/%s - ignoring stream)\n", map ? map->PayloadType : 0, media->fmt_list ? media->fmt_list : ""));
 		rtpin_stream_del(tmp);
@@ -506,6 +543,19 @@ void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
 		//gf_service_send_packet(stream->rtpin->service, stream->opid, NULL, 0, NULL, GF_CORRUPTED_DATA);
 		return;
 	}
+	if (!stream->opid && !stream->depacketizer) {
+		stream->depacketizer = gf_rtp_depacketizer_new(NULL, hdr.PayloadType, rtp_sl_packet_cbk, stream);
+		if (!stream->depacketizer) {
+			return;
+		}
+		stream->rtp_ch->PayloadType = hdr.PayloadType;
+		stream->rtp_ch->TimeScale = stream->depacketizer->clock_rate;
+		rtpin_declare_pid(stream, GF_FALSE, 0, NULL);
+	}
+	if (!stream->depacketizer) {
+		return;
+	}
+
 	/*first we only work with one payload type...*/
 	if (hdr.PayloadType != stream->rtp_ch->PayloadType) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Mismatched in packet payload type %d vs channel payload type %d, only one payload type per channel is currently supported\n", hdr.PayloadType, stream->rtp_ch->PayloadType));
@@ -617,7 +667,8 @@ static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size
 	GF_Err e;
 
 	if (stream->status == RTP_Connected) return;
-
+	//not configured yes
+	if (!stream->rtp_ch->TimeScale) return;
 	stream->rtcp_bytes += size;
 
 	e = gf_rtp_decode_rtcp(stream->rtp_ch, pck, size, &has_sr);

@@ -322,7 +322,7 @@ typedef struct __track_import
 	/*! media source - selects importer type based on extension*/
 	char *in_name;
 	/*! import duration if any*/
-	u32 duration;
+	GF_Fraction duration;
 	/*! importer flags*/
 	u32 flags;
 	/*! importer swf flags*/
@@ -405,6 +405,7 @@ typedef struct __track_import
 	u64 source_magic;
 	GF_FilterSession *run_in_session;
 	char *update_mux_args;
+	u32 track_index;
 } GF_MediaImporter;
 
 /*!
@@ -607,6 +608,8 @@ typedef struct
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
 	Double period_duration;
+	/*! forced dash target duration for this rep*/
+	Double dash_duration;
 	/*! sets default start number for this representation. if not set, assigned automatically */
 	u32 startNumber; 	//TODO: start number, template
 	/*! overrides template for this input*/
@@ -619,8 +622,10 @@ typedef struct
 	u32 track_id;
 	/*! non legacy options passed to dasher for source */
 	char *source_opts;
-	/*filter chain to instantiate between this source and the dasher*/
+	/*! filter chain to instantiate between this source and the dasher*/
 	char *filter_chain;
+	/*! period order, internal only*/
+	u32 period_order;
 } GF_DashSegmenterInput;
 
 /*!

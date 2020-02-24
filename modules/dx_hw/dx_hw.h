@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -173,11 +173,10 @@ typedef struct
 #else
 	HDC gl_HDC, pb_HDC;
 	HGLRC gl_HRC, pb_HRC;
-	void *pbuffer;
 	Bool glext_init;
 #endif
-	u32 output_3d_type;
-	HWND gl_hwnd, bound_hwnd;
+	Bool output_3d;
+	HWND bound_hwnd;
 	Bool gl_double_buffer;
 	/*0: not init, 1: used, 2: not used*/
 	u32 mode_high_bpp;
@@ -212,8 +211,6 @@ void DD_InitYUV(GF_VideoOutput *dr);
 GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_system_memory);
 
 GF_Err DD_FlushEx(GF_VideoOutput *dr, GF_Window *dest, Bool wait_for_sync);
-
-void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const GF_Window *src_wnd);
 
 #define MAKERECT(rc, dest)	{ rc.left = dest->x; rc.top = dest->y; rc.right = rc.left + dest->w; rc.bottom = rc.top + dest->h;	}
 

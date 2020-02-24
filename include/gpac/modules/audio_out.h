@@ -50,7 +50,7 @@ extern "C" {
 */
 
 /*interface name and version for audio output*/
-#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', '4')
+#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', '5')
 
 /*interface returned on query interface*/
 typedef struct _audiooutput
@@ -80,9 +80,9 @@ typedef struct _audiooutput
 	*SampleRate, *NbChannels, *audioFormat:
 		input: desired value
 		output: final values
-	channel_cfg is the channels output cfg, eg set of flags as specified in constants.h
+	channel_layout is the channels output cfg, eg set of flags as specified in constants.h
 	*/
-	GF_Err (*Configure) (struct _audiooutput *aout, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u32 channel_cfg);
+	GF_Err (*Configure) (struct _audiooutput *aout, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_layout);
 
 	/*returns total buffer size used in ms. This is needed to compute the min size of audio decoders output*/
 	u32 (*GetTotalBufferTime)(struct _audiooutput *aout);

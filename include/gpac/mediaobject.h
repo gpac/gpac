@@ -252,7 +252,7 @@ void gf_mo_get_nb_layers(GF_MediaObject *mo, u32 *nb_layers);
 \param channel_config set to the channel configuration
 \param forced_layout set to GF_TRUE if the channel layout is forced (prevents recomputing the layout for mono/stereo setups)
 \return GF_TRUE if success*/
-Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *afmt, u32 *num_channels, u32 *channel_config, Bool *forced_layout);
+Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *afmt, u32 *num_channels, u64 *channel_config, Bool *forced_layout);
 
 /*! gets current playback speed of a media object
 \param mo the target media object

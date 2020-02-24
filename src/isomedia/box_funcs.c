@@ -855,6 +855,8 @@ ISOM_BOX_IMPL_DECL(dvcC)
 ISOM_BOX_IMPL_DECL(dvhe)
 ISOM_BOX_IMPL_DECL(dfla)
 
+ISOM_BOX_IMPL_DECL(pcmC)
+ISOM_BOX_IMPL_DECL(chnl)
 
 
 
@@ -1069,6 +1071,9 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_METT, metx, "stsd"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STVI, stvi, "schi", 0),
 
+
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_CHNL, chnl, "audio_sample_entry", 0),
+
 	//FEC
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_FIIN, fiin, "meta", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_PAEN, paen, "fiin"),
@@ -1193,6 +1198,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM1, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM2, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHAC, mhac, "mha1 mha2 mhm1 mhm2", "mpegh3Daudio"),
+
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IPCM, audio_sample_entry, "stsd", "23003_5"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_FPCM, audio_sample_entry, "stsd", "23003_5"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PCMC, pcmC, "ipcm fpcm", 0, "23003_5"),
 
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),
@@ -1507,7 +1516,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 				if (is_root_box) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown top-level box type %s\n", gf_4cc_to_str(boxType)));
 				} else if (parentType) {
-					char szName[10];
+					char szName[GF_4CC_MSIZE];
 					strcpy(szName, gf_4cc_to_str(parentType));
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s in parent %s\n", gf_4cc_to_str(boxType), szName));
 				} else {
@@ -1713,7 +1722,6 @@ void gf_isom_check_position_list(GF_Box *s, GF_List *childlist, u32 *pos)
 }
 
 
-u32 in_write=0;
 GF_EXPORT
 GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 {
@@ -1728,22 +1736,8 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 		return GF_OK;
 	}
 
-	if (in_write) {
-		switch (in_write) {
-		case GF_ISOM_BOX_TYPE_UDTA:
-		case GF_ISOM_BOX_TYPE_EXTR:
-		case GF_ISOM_BOX_TYPE_ABST:
-			break;
-		default:
-			assert(!in_write);
-			break;
-		}
-	}
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box %s size %d write\n", gf_4cc_to_str(a->type), a->size));
-	in_write = a->type;
 	e = gf_isom_box_write_listing(a, bs);
-	in_write = 0;
 	if (e) return e;
 	if (a->child_boxes) {
 		e = gf_isom_box_array_write(a, a->child_boxes, bs);
@@ -1778,7 +1772,6 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	return a->registry->size_fn(a);
 }
 
-static u32 in_size = 0;
 GF_EXPORT
 GF_Err gf_isom_box_size(GF_Box *a)
 {
@@ -1787,22 +1780,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 		a->size = 0;
 		return GF_OK;
 	}
-	if (in_size) {
-		switch (in_size) {
-		case GF_ISOM_BOX_TYPE_UDTA:
-		case GF_ISOM_BOX_TYPE_EXTR:
-		case GF_ISOM_BOX_TYPE_ABST:
-			break;
-		default:
-			assert(!in_size);
-			break;
-		}
-	}
-
-	in_size = a->type;
-
 	e = gf_isom_box_size_listing(a);
-	in_size = 0;
 	if (e) return e;
 	//box size set to 0 (not even a header), abort traversal
 	if (!a->size) return GF_OK;

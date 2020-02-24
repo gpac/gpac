@@ -135,10 +135,10 @@ JSValue xml_dom3_not_implemented(JSContext *ctx, JSValueConst this_val, int argc
 
 /*dom event listener interface, exported for XHR module*/
 #define JS_DOM3_EVENT_TARGET_INTERFACE	\
-	JS_CFUNC_DEF("addEventListenerNS", 4, dom_event_add_listener),	\
-	JS_CFUNC_DEF("removeEventListenerNS", 4, dom_event_remove_listener),	\
-	JS_CFUNC_DEF("addEventListener", 3, dom_event_add_listener),		\
-	JS_CFUNC_DEF("removeEventListener", 3, dom_event_remove_listener),	\
+	JS_CFUNC_DEF("addEventListenerNS", 3, dom_event_add_listener),	\
+	JS_CFUNC_DEF("removeEventListenerNS", 3, dom_event_remove_listener),	\
+	JS_CFUNC_DEF("addEventListener", 2, dom_event_add_listener),		\
+	JS_CFUNC_DEF("removeEventListener", 2, dom_event_remove_listener),	\
 	JS_CFUNC_DEF("dispatchEvent", 1, xml_dom3_not_implemented),
 
 /*defines a new global object "evt" of type Event*/

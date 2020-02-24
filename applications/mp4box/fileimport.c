@@ -230,7 +230,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 	}
 }
 
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass)
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, u32 tk_idx)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode, nb_tracks;
 	s32 par_d, par_n, prog_id, delay, force_rate, moov_timescale;
@@ -333,7 +333,21 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
-		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32)( (atof(ext+5) * 1000) + 0.5 );
+		if (!strnicmp(ext+1, "dur=", 4)) {
+			s32 dur_n=0, dur_d=0;
+			if (strchr(ext, '/')) {
+				sscanf(ext+5, "%d/%d", &dur_n, &dur_d);
+			} else if (strchr(ext, '-')) {
+				dur_n = atoi(ext+5);
+				dur_d = 1;
+			} else {
+				//use 1/10 of millisecond precision
+				dur_n = (u32)( (atof(ext+5) * 10000) + 0.5 );
+				dur_d = 10000;
+			}
+			import.duration.num = dur_n;
+			import.duration.den = dur_d;
+		}
 		else if (!strnicmp(ext+1, "lang=", 5)) {
 			/* prevent leak if param is set twice */
 			if (szLan)
@@ -729,7 +743,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	/*check duration import (old syntax)*/
 	ext = strrchr(szName, '%');
 	if (ext) {
-		import.duration = (u32) (atof(ext+1) * 1000);
+		import.duration.num = (u32) (atof(ext+1) * 1000000);
+		import.duration.den = 1000000;
 		ext[0] = 0;
 	}
 
@@ -867,6 +882,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		import.prog_id = prog_id;
 		import.trackID = track_id;
 		import.source_magic = source_magic;
+		import.track_index = tk_idx;
 
 		import.run_in_session = fsess;
 		import.update_mux_args = NULL;
@@ -1941,9 +1957,9 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 s
 	avc_src = gf_isom_avc_config_get(orig, src_track, 1);
 	avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
 
-	if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) {
+	if (!force_cat && (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication)) {
 		dst_tk = 0;
-	} else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) {
+	} else if (!force_cat && (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication)) {
 		dst_tk = 0;
 	}
 	else {
@@ -2069,7 +2085,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 	if (!is_isom || opts) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
-		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL);
+		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
 		if (e) return e;
 	} else {
 		/*we open the original file in edit mode since we may have to rewrite AVC samples*/
@@ -2080,7 +2096,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		char *sep = strchr(multi_cat, '+');
 		if (sep) sep[0] = 0;
 
-		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL, NULL);
+		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
 		if (e) {
 			gf_isom_delete(orig);
 			return e;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -918,30 +918,6 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	if (!alpha) return GF_TRUE;
 
 	switch (ctx->aspect.fill_texture->pixelformat) {
-	case GF_PIXEL_ALPHAGREY:
-	case GF_PIXEL_GREYALPHA:
-	case GF_PIXEL_GREYSCALE:
-	case GF_PIXEL_RGB:
-	case GF_PIXEL_BGR:
-	case GF_PIXEL_RGB_555:
-	case GF_PIXEL_RGB_565:
-	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBA:
-	case GF_PIXEL_YUV:
-	case GF_PIXEL_YVYU:
-	case GF_PIXEL_YUYV:
-	case GF_PIXEL_NV21:
-	case GF_PIXEL_NV12:
-	case GF_PIXEL_NV12_10:
-	case GF_PIXEL_YUVA:
-	case GF_PIXEL_RGBS:
-	case GF_PIXEL_RGBAS:
-	case GF_PIXEL_YUV422:
-	case GF_PIXEL_YUV444:
-	case GF_PIXEL_YUV444_10:
-	case GF_PIXEL_YUV422_10:
-	case GF_PIXEL_YUV_10:
-		break;
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
@@ -952,10 +928,9 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			return GF_TRUE;
 		}
 #endif
-		break;
-	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
+		//fallthrought
 	default:
-		return GF_FALSE;
+		break;
 	}
 
 	/*direct drawing, no clippers */
@@ -1105,7 +1080,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.setup.width = compositor->vp_width;
 	evt.setup.height = compositor->vp_height;
-	evt.setup.opengl_mode = 0;
+	evt.setup.use_opengl = GF_FALSE;
 	evt.setup.disable_vsync = compositor->bench_mode ? GF_TRUE : GF_FALSE;
 	/*copy over settings*/
 	evt.setup.system_memory = compositor->video_memory ? GF_FALSE : GF_TRUE;
@@ -1114,7 +1089,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 
 #ifndef GPAC_DISABLE_3D
 	if (compositor->hybrid_opengl) {
-		evt.setup.opengl_mode = 1;
+		evt.setup.use_opengl = GF_TRUE;
 		evt.setup.system_memory = GF_FALSE;
 		evt.setup.back_buffer = GF_TRUE;
 	}
@@ -1123,12 +1098,12 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	if (compositor->was_system_memory != evt.setup.system_memory) changed = GF_TRUE;
 	else if (old_vp_width != compositor->vp_width) changed = GF_TRUE;
 	else if (old_vp_height != compositor->vp_height) changed = GF_TRUE;
-	else if (compositor->is_opengl != evt.setup.opengl_mode) changed = GF_TRUE;
+	else if (compositor->is_opengl != evt.setup.use_opengl) changed = GF_TRUE;
 
 
 	if (changed) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring display size %d x %d - opengl %s - use %s memory\n", evt.setup.width, evt.setup.height,
-		                                     (evt.setup.opengl_mode==2) ? "Offscreen" : (evt.setup.opengl_mode==1) ? "yes" : "no", evt.setup.system_memory ? "systems" : "video"
+		                                     evt.setup.use_opengl ? "yes" : "no", evt.setup.system_memory ? "systems" : "video"
 		                                    ));
 
 		e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
@@ -1149,10 +1124,10 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 			return e;
 		}
 
-		compositor->is_opengl = evt.setup.opengl_mode;
+		compositor->is_opengl = evt.setup.use_opengl;
 		compositor->was_system_memory = evt.setup.system_memory;
 
-		if (evt.setup.opengl_mode) {
+		if (evt.setup.use_opengl) {
 			gf_opengl_init();
 		}
 	}

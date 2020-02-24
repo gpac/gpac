@@ -284,6 +284,8 @@ struct __rtpin_stream
 GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, GF_RTPInStream *input_stream);
 /*creates new SAT>IP stream*/
 GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip);
+GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, u32 port);
+
 /*destroys RTP stream */
 void rtpin_stream_del(GF_RTPInStream *stream);
 /*resets stream state and inits RTP sockets if ResetOnly is false*/
@@ -308,6 +310,9 @@ u32 rtpin_stream_read(GF_RTPInStream *stream);
 /*load SDP and setup described media in SDP. If stream is null this is the root
 SDP and IOD will be extracted, otherwise this a channel SDP*/
 void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp, u32 sdp_len, GF_RTPInStream *stream);
+
+/*for standalone rtp streams*/
+void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *ocr_es_id);
 
 /*RTSP signaling is handled by stacking commands and processing them
 in the main session thread. Each RTSP command has an associated private stack as follows*/

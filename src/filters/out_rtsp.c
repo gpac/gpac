@@ -316,7 +316,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	payt = ctx->payt + gf_list_find(sess->streams, stream);
 
-	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id);
+	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id, 0);
 	if (e) return e;
 
 	if (ctx->loop) {
@@ -525,11 +525,13 @@ static void rtspout_send_event(GF_RTSPOutSession *sess, Bool send_stop, Bool sen
 		if (!stream->selected) continue;
 
 		fevt.base.on_pid = stream->pid;
-		if (send_stop) {
+		if (send_stop && stream->is_playing) {
+			stream->is_playing = GF_FALSE;
 			fevt.base.type = GF_FEVT_STOP;
 			gf_filter_pid_send_event(stream->pid, &fevt);
 		}
-		if (send_play) {
+		if (send_play && !stream->is_playing) {
+			stream->is_playing = GF_TRUE;
 			fevt.base.type = GF_FEVT_PLAY;
 			fevt.play.start_range = start_range;
 			gf_filter_pid_send_event(stream->pid, &fevt);
@@ -779,7 +781,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 
 				if (cmd_path && sname && !strncmp(cmd_path, sname, strlen(sname))) {
 					if (a_sess->service_name) {
-						//no session ID, match based on peer adress
+						//no session ID, match based on peer address
 						if (!strcmp(sess->peer_address, a_sess->peer_address))
 							swap_sess = GF_TRUE;
 					} else {

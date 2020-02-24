@@ -141,6 +141,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 		gf_odf_desc_del((GF_Descriptor *)an_esd);
 	} else {
+		u32 pcm_flags, pcm_size;
 		Bool load_default = GF_FALSE;
 		lang_desc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 		gf_isom_get_media_language(read->mov, track, &lang_desc->full_lang_code);
@@ -239,6 +240,20 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		case GF_QT_SUBTYPE_YUV444_10:
 			codec_id = GF_CODECID_RAW;
 			pix_fmt = GF_PIXEL_YUV444_10;
+			break;
+		case GF_ISOM_SUBTYPE_IPCM:
+			if (gf_isom_get_pcm_config(read->mov, track, stsd_idx, &pcm_flags, &pcm_size) == GF_OK) {
+				codec_id = GF_CODECID_RAW;
+				if (pcm_size==16) audio_fmt = GF_AUDIO_FMT_S16;
+				else if (pcm_size==24) audio_fmt = GF_AUDIO_FMT_S24;
+				else if (pcm_size==32) audio_fmt = GF_AUDIO_FMT_S32;
+			}
+			break;
+		case GF_ISOM_SUBTYPE_FPCM:
+			if (gf_isom_get_pcm_config(read->mov, track, stsd_idx, &pcm_flags, &pcm_size) == GF_OK) {
+				codec_id = GF_CODECID_RAW;
+				audio_fmt = (pcm_size==64) ? GF_AUDIO_FMT_DBL : GF_AUDIO_FMT_FLT;
+			}
 			break;
 
 		default:
@@ -745,8 +760,19 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 
 		//to remove once we deprecate master
-		if (!gf_sys_is_test_mode())
+		if (!gf_sys_is_test_mode()) {
+			GF_AudioChannelLayout layout;
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_BPS, &PROP_UINT(nb_bps));
+
+			if (gf_isom_get_audio_layout(read->mov, track, stsd_idx, &layout)==GF_OK) {
+				if (layout.definedLayout) {
+					u64 lay = gf_audio_fmt_get_layout_from_cicp(layout.definedLayout);
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(lay));
+				}
+
+			}
+
+		}
 
 		if (first_config ) {
 			d1 = gf_isom_get_sample_duration(read->mov, ch->track, 1);

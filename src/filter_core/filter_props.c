@@ -319,10 +319,12 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.data.ptr = gf_malloc(sizeof(char)*p.value.data.size);
 			for (i=0; i<p.value.data.size; i++) {
 				char szV[3];
+				u32 res;
 				szV[0] = value[2*i];
 				szV[1] = value[2*i + 1];
 				szV[2] = 0;
-				sscanf(szV, "%c", &p.value.data.ptr[i]);
+				sscanf(szV, "%x", &res);
+				p.value.data.ptr[i] = res;
 			}
 		} else if (!strnicmp(value, "bxml@", 5) ) {
 			GF_Err e = GF_OK;
@@ -1096,7 +1098,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "Number of audio sample in one coded frame", GF_PROP_UINT},
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "Number of audio channels", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_BPS, "BPS", "Number of bits per sample in compressed source", GF_PROP_UINT},
-	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
+	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout mask", GF_PROP_LUINT},
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "Audio sample format", GF_PROP_PCMFMT},
 	{ GF_PROP_PID_AUDIO_SPEED, "AudioPlaybackSpeed", "Audio playback speed, only used for audio output reconfiguration", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DELAY, "Delay", "Delay of presentation compared to composition timestamps, in media timescale. Positive value imply holding (delaying) the stream. Negative value imply skipping the beginning of stream", GF_PROP_SINT},
@@ -1238,10 +1240,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_COLR_MX, "ColorMatrixCoef", "Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_RANGE, "FullRange", "Indicate color full range flag for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_CHROMALOC, "ChromaLoc", "Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-
-
 	{ GF_PROP_PID_SRC_MAGIC, "SrcMagic", "Indicate a magic number to store in the track, only used by importers", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
-
+	{ GF_PROP_PID_TRACK_INDEX, "TrackIndex", "Indicate target track index in destination file, stored by lowest value first (not set by demuxers)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_NO_TS_LOOP, "NoTSLoop", "Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)", GF_PROP_BOOL, 0},
 
 
 	{ GF_PROP_PCK_FRAG_START, "FragStart", "Indicate if packet is a fragment start (value 1) or a segment start (value 2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
