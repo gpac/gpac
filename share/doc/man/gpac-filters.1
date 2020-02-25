@@ -2824,15 +2824,7 @@ Description: Sources concatenator
 .br
 
 .br
-This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:srcs=f1[,f2], where f1 can be a file or a directory to enum.
-.br
-Syntax for directory is:
-.br
-* dir/*: enumerates everything in dir
-.br
-* foo/*.png: enumerates all files with extension png in foo
-.br
-* foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo
+This filter can be used to play playlist files or a list of sources.
 .br
 
 .br
@@ -2844,7 +2836,23 @@ At each new source, the filter tries to remap input PIDs to already declared out
 .br
 
 .br
-When using a playlist, directives can be given in a comment line (line starting with '#' before line with the file name).
+.SH Source list modeThe source list mode is activated by using flist:srcs=f1[,f2], where f1 can be a file or a directory to enum.
+.LP
+.br
+The syntax for directory enum is:
+.br
+* dir/*: enumerates everything in dir
+.br
+* foo/*.png: enumerates all files with extension png in foo
+.br
+* foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo
+.br
+
+.br
+.SH Playlist modeThe playlost mode is activated when opening a playlist file (extension txt or m3u).
+.LP
+.br
+In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.
 .br
 The following directives, separated with space or comma, are supported:
 .br
@@ -2875,7 +2883,7 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .SH Options (expert):
 .LP
 .br
-floop (boolean, default: false):         continuously loop playlist/list of files - see filter help
+floop (int, default: 0):                 loop playlist/list of files, 0 for one time, n for n+1 times, -1 for indefinitely
 .br
 srcs (string list):                      list of files to play - see filter help
 .br
@@ -3292,17 +3300,17 @@ The segmenter can take a list of instructions, or Cues, to use for the segmentat
 .br
 Cue files can be specified for the entire segmenter, or per PID using DashCue property.
 .br
-Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:
+Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are one or more <Stream> elements, with attributes:
 .br
 * id: integer for stream/track/pid ID
 .br
 * timescale: integer giving the units of following timestamps
 .br
-* mode: if present and value is edit, the timestamp are in presentation time (edit list applied). Otherwise they are in media time
+* mode: if present and value is edit, the timestamp are in presentation time (edit list applied) otherwise they are in media time
 .br
 
 .br
-The children of <Stream> are <Cue> elements, with attributes:
+The children of <Stream> are one or more <Cue> elements, with attributes:
 .br
 * sample: integer giving the sample/frame number of a sample at which spliting shall happen
 .br
@@ -4819,7 +4827,7 @@ nb_pack (unsigned int, default: 10):     pack N packets before sending
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.35.100
+Version: Lavf58.39.101
 .br
 
 .br
@@ -4841,7 +4849,7 @@ src (string):                            location of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.62.100
+Version: Lavc58.73.102
 .br
 
 .br
@@ -4861,7 +4869,7 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd58.9.100
+Version: Lavd58.9.103
 .br
 
 .br
@@ -4953,7 +4961,7 @@ p2 (number, default: +I):                scaling algo param2 - see filter info
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.62.100
+Version: Lavc58.73.102
 .br
 
 .br
@@ -4989,7 +4997,7 @@ ffc (string):                            ffmpeg codec name. This allows enforcin
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf58.35.100
+Version: Lavf58.39.101
 .br
 
 .br
@@ -5023,7 +5031,7 @@ ffiles (boolean, default: false):        force complete files to be created for 
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf58.35.100
+Version: Lavf58.39.101
 .br
 
 .br
@@ -5214,7 +5222,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3304-g8db635b82-filters
+build: 0.9.0-DEV-rev3312-gf04b59a96-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
