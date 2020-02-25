@@ -2046,9 +2046,9 @@ Number of bytes downloaded - changes are signaled through pid info (no reconfigu
 Byte range of resource
 .br
 .TP
-.B DisableProgressive (NPRG,boolean,D )
+.B DisableProgressive (NPRG,unsigned int,  )
 .br
-stream/file cannot be progressivley uploaded because first blocks need patching upon closing
+indicates that some blocks in file need patching (replace or insertion) upon closing, potentially disabling progressive upload
 .br
 .TP
 .B IsoAltBrands (ABRD,uint list,D )
@@ -3356,7 +3356,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3291-gcab89e8f5-filters
+build: 0.9.0-DEV-rev3304-g8db635b82-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

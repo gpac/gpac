@@ -388,7 +388,7 @@ static Bool _ssl_is_initialized = GF_FALSE;
  * initialize the SSL library once for all download managers
 \param GF_FALSE if everyhing is OK, GF_TRUE otherwise
  */
-static Bool init_ssl_lib() {
+Bool gf_ssl_init_lib() {
 	if (_ssl_is_initialized)
 		return GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPS] Initializing SSL library...\n"));
@@ -429,7 +429,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 		return 1;
 	}
 	/* Init the PRNG.  If that fails, bail out.  */
-	if (init_ssl_lib()) {
+	if (gf_ssl_init_lib()) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPS] Failed to properly initialize SSL library\n"));
 		goto error;
 	}
@@ -480,6 +480,84 @@ error:
 	gf_mx_v(dm->cache_mx);
 	return 0;
 }
+
+
+void *gf_ssl_server_context_new(const char *cert, const char *key)
+{
+    const SSL_METHOD *method;
+    SSL_CTX *ctx;
+
+    method = SSLv23_server_method();
+
+    ctx = SSL_CTX_new(method);
+    if (!ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to create SSL context\n"));
+		ERR_print_errors_fp(stderr);
+		return NULL;
+    }
+    SSL_CTX_set_ecdh_auto(ctx, 1);
+	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) <= 0 ) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+    return ctx;
+}
+
+void gf_ssl_server_context_del(void *ssl_ctx)
+{
+	SSL_CTX_free(ssl_ctx);
+}
+void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
+{
+	SSL *ssl;
+	ssl = SSL_new(ssl_ctx);
+	if (!ssl) {
+		*e = GF_IO_ERR;
+		return NULL;
+	}
+	SSL_set_fd(ssl, gf_sk_get_handle(client_sock) );
+	if (SSL_accept(ssl) <= 0) {
+		ERR_print_errors_fp(stderr);
+		SSL_shutdown(ssl);
+        SSL_free(ssl);
+		*e = GF_AUTHENTICATION_FAILURE;
+		return NULL;
+	}
+	*e = GF_OK;
+	return ssl;
+}
+void gf_ssl_del(void *ssl)
+{
+	SSL_shutdown(ssl);
+	SSL_free(ssl);
+}
+
+GF_Err gf_ssl_write(void *ssl_ctx, const u8 *buffer, u32 size)
+{
+	u32 idx=0;
+	s32 nb_tls_blocks = size/16000;
+	while (nb_tls_blocks>=0) {
+		u32 len, to_write = 16000;
+		if (nb_tls_blocks==0)
+			to_write = size - idx*16000;
+
+		len = SSL_write(ssl_ctx, buffer + idx*16000, to_write);
+		nb_tls_blocks--;
+		idx++;
+
+		if (len != to_write) {
+			return GF_IP_NETWORK_FAILURE;
+		}
+	}
+	return GF_OK;
+}
+
 
 #endif /* GPAC_HAS_SSL */
 
@@ -1357,11 +1435,14 @@ static GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, cons
 
 GF_EXPORT
 GF_DownloadSession *gf_dm_sess_new_server(GF_Socket *server,
+		void *ssl_sock_ctx,
         gf_dm_user_io user_io,
         void *usr_cbk,
         GF_Err *e)
 {
-	return gf_dm_sess_new_internal(NULL, NULL, 0, user_io, usr_cbk, server, e);
+	GF_DownloadSession *sess = gf_dm_sess_new_internal(NULL, NULL, 0, user_io, usr_cbk, server, e);
+	if (sess) sess->ssl = ssl_sock_ctx;
+	return sess;
 }
 
 
@@ -2837,10 +2918,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
-			u32 writelen = len+par.size;
-			e = GF_OK;
-			if (writelen != SSL_write(sess->ssl, tmp_buf, writelen))
-				e = GF_IP_NETWORK_FAILURE;
+			e = gf_ssl_write(sess->ssl, tmp_buf, len+par.size);
 		} else
 #endif
 			e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
@@ -2855,9 +2933,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
-			e = GF_OK;
-			if (len != SSL_write(sess->ssl, sHTTP, len))
-				e = GF_IP_NETWORK_FAILURE;
+			e = gf_ssl_write(sess->ssl, sHTTP, len);
 		} else
 #endif
 			e = gf_sk_send(sess->sock, sHTTP, len);
@@ -3085,8 +3161,10 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		switch (e) {
 		case GF_IP_NETWORK_EMPTY:
 			if (!bytesRead) {
-				if (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout) {
-					sess->last_error = GF_IP_NETWORK_EMPTY;
+				e = gf_sk_probe(sess->sock);
+				if ((e==GF_IP_CONNECTION_CLOSED) || (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout)
+				) {
+					sess->last_error = (e==GF_IP_CONNECTION_CLOSED) ? e : GF_IP_NETWORK_EMPTY;
 					sess->status = GF_NETIO_STATE_ERROR;
 					return GF_IP_NETWORK_EMPTY;
 				}
@@ -4297,9 +4375,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
-		u32 len = SSL_write(sess->ssl, data, size);
-		if (len != size)
-			e = GF_IP_NETWORK_FAILURE;
+		e = gf_ssl_write(sess->ssl, data, size);
 	} else
 #endif
 		e = gf_sk_send(sess->sock, data, size);

@@ -33,8 +33,19 @@
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 
-GF_DownloadSession *gf_dm_sess_new_server(GF_Socket *server, gf_dm_user_io user_io, void *usr_cbk, GF_Err *e);
+GF_DownloadSession *gf_dm_sess_new_server(GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, GF_Err *e);
 GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
+
+#ifdef GPAC_HAS_SSL
+
+void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
+void gf_ssl_del(void *ssl_ctx);
+void *gf_ssl_server_context_new(const char *cert, const char *key);
+void gf_ssl_server_context_del(void *ssl_server_ctx);
+Bool gf_ssl_init_lib();
+GF_Err gf_ssl_write(void *ssl_ctx, const u8 *buffer, u32 size);
+
+#endif
 
 enum
 {
@@ -46,7 +57,7 @@ enum
 typedef struct
 {
 	//options
-	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir;
+	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey;
 	GF_List *rdirs;
 	Bool close, hold, quit, post, dlist;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors;
@@ -71,6 +82,8 @@ typedef struct
 
 	//set to true when no mounted dirs and not push mode
 	Bool single_mode;
+
+	void *ssl_ctx;
 } GF_HTTPOutCtx;
 
 typedef struct
@@ -112,6 +125,7 @@ typedef struct __httpout_session
 	GF_Socket *socket;
 	GF_DownloadSession *http_sess;
 	char peer_address[GF_MAX_IP_NAME_LEN];
+	void *ssl;
 
 	u32 play_state;
 	Double start_range;
@@ -142,10 +156,17 @@ typedef struct __httpout_session
 static void httpout_reset_socket(GF_HTTPOutSession *sess)
 {
 	gf_sk_group_unregister(sess->ctx->sg, sess->socket);
-	if (sess->socket)
+#ifdef GPAC_HAS_SSL
+	if (sess->ssl) {
+		gf_ssl_del(sess->ssl);
+		sess->ssl = NULL;
+	}
+#endif
+	if (sess->socket) {
 		gf_sk_del(sess->socket);
+		sess->socket = NULL;
+	}
 	if (sess->in_source) sess->in_source->nb_dest--;
-	sess->socket = NULL;
 	sess->ctx->nb_connections--;
 }
 
@@ -483,6 +504,19 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 	sess->file_pos = sess->ranges[0].start;
 	if (sess->resource) gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 	return GF_TRUE;
+}
+
+GF_Err httpout_sess_send(GF_HTTPOutSession *sess, const u8 *buffer, u32 length)
+{
+	GF_Err e;
+#ifdef GPAC_HAS_SSL
+	if (sess->ssl) {
+		e = gf_ssl_write(sess->ssl, buffer, length);
+	} else
+#endif
+		e = gf_sk_send(sess->socket, buffer, length);
+
+	return e;
 }
 
 static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
@@ -905,7 +939,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending response to %s:\n%s\n", sess->peer_address, rsp_buf));
-	gf_sk_send(sess->socket, rsp_buf, (u32) strlen(rsp_buf));
+	httpout_sess_send(sess, rsp_buf, (u32) strlen(rsp_buf));
 	gf_free(rsp_buf);
 	if (!sess->buffer) {
 		sess->buffer = gf_malloc(sizeof(u8)*sess->ctx->block_size);
@@ -957,7 +991,7 @@ exit:
 		gf_free(response_body);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending response to %s:\n%s\n", sess->peer_address, rsp_buf));
-	gf_sk_send(sess->socket, rsp_buf, (u32) strlen(rsp_buf));
+	httpout_sess_send(sess, rsp_buf, (u32) strlen(rsp_buf));
 	gf_free(rsp_buf);
 	sess->upload_type = 0;
 	httpout_reset_socket(sess);
@@ -1067,7 +1101,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 			if (ctx->hmode==MODE_PUSH) {
 				GF_Err e;
-				pctx->upload = gf_dm_sess_new(NULL, ctx_orig->dst, GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT, httpout_in_io, pctx, &e);
+				pctx->upload = gf_dm_sess_new(gf_filter_get_download_manager(filter), ctx_orig->dst, GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT, httpout_in_io, pctx, &e);
 				if (!pctx->upload) {
 					gf_free(pctx);
 					return e;
@@ -1135,7 +1169,21 @@ static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 	GF_SAFEALLOC(sess, GF_HTTPOutSession);
 	sess->socket = new_conn;
 	sess->ctx = ctx;
-	sess->http_sess = gf_dm_sess_new_server(new_conn, httpout_sess_io, sess, &e);
+
+#ifdef GPAC_HAS_SSL
+	if (ctx->ssl_ctx) {
+		GF_Err e;
+		sess->ssl = gf_ssl_new(ctx->ssl_ctx, new_conn, &e);
+		if (e) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Failed to create TLS session from %s: %s\n", sess->peer_address, gf_error_to_string(e) ));
+			gf_free(sess);
+			gf_sk_del(new_conn);
+			return;
+		}
+	}
+#endif
+
+	sess->http_sess = gf_dm_sess_new_server(new_conn, sess->ssl, httpout_sess_io, sess, &e);
 	if (!sess->http_sess) {
 		gf_sk_del(new_conn);
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Failed to create HTTP server session from %s: %s\n", sess->peer_address, gf_error_to_string(e) ));
@@ -1262,6 +1310,36 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 	ctx->port = port;
+	if (ctx->cert && !ctx->pkey) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] missing server private key file\n"));
+		return GF_BAD_PARAM;
+	}
+	if (!ctx->cert && ctx->pkey) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] missing server certificate file\n"));
+		return GF_BAD_PARAM;
+	}
+	if (ctx->cert && ctx->pkey) {
+#ifdef GPAC_HAS_SSL
+		if (!gf_file_exists(ctx->cert)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Certificate file %s not found\n", ctx->cert));
+			return GF_IO_ERR;
+		}
+		if (!gf_file_exists(ctx->pkey)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Provate key file %s not found\n", ctx->pkey));
+			return GF_IO_ERR;
+		}
+		if (gf_ssl_init_lib()) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to initialize OpenSSL library\n"));
+			return GF_IO_ERR;
+		}
+		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey);
+		if (!ctx->ssl_ctx) return GF_IO_ERR;
+#else
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] TLS key/certificate set but GPAC compiled without TLS support\n"));
+		return GF_NOT_SUPPORTED;
+
+#endif
+	}
 
 	ctx->server_sock = gf_sk_new(GF_SOCK_TYPE_TCP);
 	e = gf_sk_bind(ctx->server_sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT);
@@ -1315,7 +1393,6 @@ static void httpout_finalize(GF_Filter *filter)
 		if (tmp->path) gf_free(tmp->path);
 		if (tmp->mime) gf_free(tmp->mime);
 		if (tmp->resource) gf_fclose(tmp->resource);
-//		if (tmp->socket) gf_sk_del(tmp->socket);
 		if (tmp->upload) gf_dm_sess_del(tmp->upload);
 		if (tmp->file_deletes) {
 			while (gf_list_count(tmp->file_deletes)) {
@@ -1330,6 +1407,12 @@ static void httpout_finalize(GF_Filter *filter)
 	if (ctx->server_sock) gf_sk_del(ctx->server_sock);
 	if (ctx->sg) gf_sk_group_del(ctx->sg);
 	if (ctx->ip) gf_free(ctx->ip);
+
+#ifdef GPAC_HAS_SSL
+	if (ctx->ssl_ctx) {
+		gf_ssl_server_context_del(ctx->ssl_ctx);
+	}
+#endif
 }
 
 static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, u32 size)
@@ -1393,12 +1476,25 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 	}
 	return GF_OK;
 }
+static void httpout_check_connection(GF_HTTPOutSession *sess)
+{
+	GF_Err e = gf_sk_probe(sess->socket);
+	if (e==GF_IP_CONNECTION_CLOSED) {
+		sess->last_active_time = gf_sys_clock();
+		sess->done = GF_TRUE;
+		sess->upload_type = 0;
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Client %s disconnected, destroying session\n", sess->peer_address));
+		httpout_reset_socket(sess);
+		return;
+	}
+}
 
 static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HTTPOutSession *sess)
 {
 	u32 read, to_read=0;
 	GF_Err e = GF_OK;
 	Bool close_session = ctx->close;
+
 
 	if (sess->upload_type) {
 		GF_Err write_e=GF_OK;
@@ -1428,7 +1524,13 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		} else if (e==GF_IP_NETWORK_EMPTY) {
 			ctx->next_wake_us = 0;
 			sess->last_active_time = gf_sys_clock();
+			httpout_check_connection(sess);
 			return;
+		} else if (e==GF_IP_CONNECTION_CLOSED) {
+			sess->last_active_time = gf_sys_clock();
+			sess->done = GF_TRUE;
+			sess->upload_type = 0;
+			httpout_reset_socket(sess);
 		}
 		//done (error or end of upload)
 		if (sess->opid) {
@@ -1443,13 +1545,6 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			sess->resource = NULL;
 		}
 
-		if (e==GF_IP_CONNECTION_CLOSED) {
-			sess->last_active_time = gf_sys_clock();
-			sess->done = GF_TRUE;
-			sess->upload_type = 0;
-			httpout_reset_socket(sess);
-			return;
-		}
 
 		if (e==GF_EOS) {
 			if (sess->upload_type==2)
@@ -1473,15 +1568,19 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			gf_dynstrcat(&rsp_buf, "Connection: keep-alive\r\n", NULL);
 
 		if (e==GF_EOS) {
-			char *spath = strchr(sess->path, '/');
-			if (spath) spath = strchr(spath+1, '/');
 			gf_dynstrcat(&rsp_buf, "Content-Location: ", NULL);
-			gf_dynstrcat(&rsp_buf, spath, NULL);
+			if (ctx->hmode==MODE_SOURCE) {
+				gf_dynstrcat(&rsp_buf, sess->path, "/");
+			} else {
+				char *spath = strchr(sess->path, '/');
+				if (spath) spath = strchr(spath+1, '/');
+				gf_dynstrcat(&rsp_buf, spath, NULL);
+			}
 			gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 		}
 		gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending PUT response to %s:\n%s\n", sess->peer_address,  rsp_buf));
-		gf_sk_send(sess->socket, rsp_buf, (u32) strlen(rsp_buf));
+		httpout_sess_send(sess, rsp_buf, (u32) strlen(rsp_buf));
 		gf_free(rsp_buf);
 
 		sess->last_active_time = gf_sys_clock();
@@ -1490,9 +1589,9 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (close_session) {
 			httpout_reset_socket(sess);
 		} else {
-			//we keep alive, recreate an dm sess
+			//we keep alive, recreate a dm session
 			if (sess->http_sess) gf_dm_sess_del(sess->http_sess);
-			sess->http_sess = gf_dm_sess_new_server(sess->socket, httpout_sess_io, sess, &e);
+			sess->http_sess = gf_dm_sess_new_server(sess->socket, sess->ssl, httpout_sess_io, sess, &e);
 			if (e) {
 				httpout_reset_socket(sess);
 			}
@@ -1518,7 +1617,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			//no support for request pipeline yet, just remove the downloader session until done
 			gf_dm_sess_del(sess->http_sess);
 			sess->http_sess = NULL;
-			if (sess->done && sess->socket)
+			if (sess->done && sess->socket && (e!=GF_IP_NETWORK_EMPTY) )
 				goto session_done;
 		}
 
@@ -1581,11 +1680,11 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			sprintf(szHdr, "%X\r\n", read);
 			len = (u32) strlen(szHdr);
 
-			e = gf_sk_send(sess->socket, szHdr, len);
-			e |= gf_sk_send(sess->socket, sess->buffer, read);
-			e |= gf_sk_send(sess->socket, "\r\n", 2);
+			e = httpout_sess_send(sess, szHdr, len);
+			e |= httpout_sess_send(sess, sess->buffer, read);
+			e |= httpout_sess_send(sess, "\r\n", 2);
 		} else {
-			e = gf_sk_send(sess->socket, sess->buffer, read);
+			e = httpout_sess_send(sess, sess->buffer, read);
 		}
 		sess->last_active_time = gf_sys_clock();
 
@@ -1620,7 +1719,7 @@ session_done:
 	sess->last_active_time = gf_sys_clock();
 	if (!sess->done) {
 		if (sess->use_chunk_transfer) {
-			gf_sk_send(sess->socket, "0\r\n\r\n", 5);
+			httpout_sess_send(sess, "0\r\n\r\n", 5);
 		}
 		if (sess->resource) gf_fclose(sess->resource);
 		sess->resource = NULL;
@@ -1631,7 +1730,7 @@ session_done:
 		httpout_reset_socket(sess);
 	} else {
 		//we keep alive, recreate an dm sess
-		sess->http_sess = gf_dm_sess_new_server(sess->socket, httpout_sess_io, sess, &e);
+		sess->http_sess = gf_dm_sess_new_server(sess->socket, sess->ssl, httpout_sess_io, sess, &e);
 		if (e) {
 			httpout_reset_socket(sess);
 		}
@@ -1661,14 +1760,14 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		in->is_delete = is_delete;
 		in->path = gf_strdup(name);
 		if (old) gf_free(old);
-		e = gf_dm_sess_setup_from_url(in->upload, name, GF_TRUE);
+		e = gf_dm_sess_setup_from_url(in->upload, in->path, GF_TRUE);
 		if (!e) {
 			in->cur_header = 0;
 			e = gf_dm_sess_process(in->upload);
 		}
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to open output file %s: %s\n", name, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to open output file %s: %s\n", in->path, gf_error_to_string(e) ));
 			in->is_open = GF_FALSE;
 			return GF_FALSE;
 		}
@@ -1754,7 +1853,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 				GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
 				if (sess->in_source != in) continue;
 
-				gf_sk_send(sess->socket, "0\r\n\r\n", 5);
+				httpout_sess_send(sess, "0\r\n\r\n", 5);
 			}
 
 		}
@@ -1815,9 +1914,9 @@ retry:
 			}
 			/*source is not read from disk, write data*/
 			else {
-				gf_sk_send(sess->socket, szHdr, len);
-				gf_sk_send(sess->socket, pck_data, pck_size);
-				gf_sk_send(sess->socket, "\r\n", 2);
+				httpout_sess_send(sess, szHdr, len);
+				httpout_sess_send(sess, pck_data, pck_size);
+				httpout_sess_send(sess, "\r\n", 2);
 			}
 		}
 	}
@@ -2162,6 +2261,7 @@ static Bool httpout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static GF_FilterProbeScore httpout_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "http://", 7)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "https://", 8)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -2203,6 +2303,8 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rdirs), "list of directories to expose for read - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(wdir), "directory to expose for write - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(cert), "certificate file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(pkey), "private key file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read and write TCP socket", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(close), "close HTTP connection after each request", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -2242,6 +2344,8 @@ GF_FilterRegister HTTPOutRegister = {
 		"Single or multiple byte ranges are supported for both GET and PUT/POST methods.\n"
 		"- for GET, the resulting body is a single-part body formed by the concatenated byte ranges as requested (no overlap checking).\n"
 		"- for PUT/POST, the received data is pushed to the target file according to the byte ranges specified in the client request.\n"
+		"  \n"
+		"Warning: the partial PUT request is RFC2616 compliant but not compliant with RFC7230. PATCH method is not yet implemented in GPAC.\n"
 		"  \n"
 		"When a single read directory is specified, the server root `/` is the content of this directory.\n"
 		"When multiple read directories are specified, the server root `/` contains the list of the mount points with their directory names.\n"
@@ -2294,6 +2398,11 @@ GF_FilterRegister HTTPOutRegister = {
 		"The filter uses no read or write directories in this mode, and uploaded data is NOT stored by the server.\n"
 		"EX gpac httpout:hmode=source vout aout\n"
 		"In this example, the filter will try to play uploaded files through video and audio output.\n"
+		"  \n"
+		"# HTTPS server\n"
+		"The server can run over TLS (https) for all the server modes. TLS is enabled by specifying [-cert]() and [-pkey]() options.\n"
+		"Both certificate and key must be in PEM format.\n"
+		"Note: the server currently only operates in either HTTPS or HTTP mode and cannot run both modes at the same time. You will need to use two httpout filters for this, one operating in HTTPS and one operating in HTTP.\n"
 		)
 	.private_size = sizeof(GF_HTTPOutCtx),
 	.max_extra_pids = -1,
