@@ -2259,8 +2259,9 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s request for real-time reschedule but filter is not in process\n", filter->name));
 		return;
 	}
+	//if the filter requests rescheduling, consider it is in a valid state and increment pck IOs to avoid flagging it as broken
+	filter->nb_pck_io++;
 	if (!us_until_next) {
-		filter->nb_pck_io++;
 		return;
 	}
 	filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
