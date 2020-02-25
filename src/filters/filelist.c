@@ -54,7 +54,8 @@ typedef struct
 typedef struct
 {
 	//opts
-	Bool floop, revert;
+	Bool revert;
+	s32 floop;
 	GF_List *srcs;
 	GF_Fraction dur;
 	u32 timescale;
@@ -272,6 +273,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		if (ctx->revert) {
 			if (!ctx->file_list_idx) {
 				if (!ctx->floop) return GF_FALSE;
+				if (ctx->floop>0) ctx->floop--;
 				ctx->file_list_idx = gf_list_count(ctx->file_list);
 			}
 			ctx->file_list_idx --;
@@ -279,6 +281,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			ctx->file_list_idx ++;
 			if (ctx->file_list_idx >= (s32) gf_list_count(ctx->file_list)) {
 				if (!ctx->floop) return GF_FALSE;
+				if (ctx->floop>0) ctx->floop--;
 				ctx->file_list_idx = 0;
 			}
 		}
@@ -293,7 +296,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		u32 crc;
 		char *l = fgets(szURL, GF_MAX_PATH, f);
 		if (!l || feof(f)) {
-			if (ctx->floop) {
+			if (ctx->floop != 0) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
 				last_found = GF_TRUE;
@@ -692,7 +695,7 @@ void filelist_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_FileListCtx, _n)
 static const GF_FilterArgs GF_FileListArgs[] =
 {
-	{ OFFS(floop), "continuously loop playlist/list of files - see filter help", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(floop), "loop playlist/list of files, `0` for one time, `n` for n+1 times, `-1` for indefinitely", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(srcs), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -712,25 +715,30 @@ static const GF_FilterCapability FileListCaps[] =
 GF_FilterRegister FileListRegister = {
 	.name = "flist",
 	GF_FS_SET_DESCRIPTION("Sources concatenator")
-	GF_FS_SET_HELP("This filter can be used to play playlist files (extension txt or m3u) or a list of sources using `flist:srcs=f1[,f2]`, where f1 can be a file or a directory to enum.\n"\
-		"Syntax for directory is:\n"\
-		"- dir/*: enumerates everything in dir\n"\
-		"- foo/*.png: enumerates all files with extension png in foo\n"\
-		"- foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo\n"\
-		"\n"\
-		"The filter loads any source supported by GPAC, files (remote or local) or other.\n"\
-		"The filter forces input demultiplex (no streamtype FILE) and recomputes the input timestamps into a continuous timeline.\n"\
-		"At each new source, the filter tries to remap input PIDs to already declared output PIDs of the same type, if any, or declares new output PIDs otherwise. If no input PID matches the type of an output, no packets are send for that PID.\n"\
-		"\n"\
-		"When using a playlist, directives can be given in a comment line (line starting with '#' before line with the file name).\n"\
-		"The following directives, separated with space or comma, are supported:\n"\
-		"- repeat=N: repeats N times the content (hence played N+1)\n"\
-		"- start=T: tries to play the file from start time T seconds (double format only)\n"\
+	GF_FS_SET_HELP("This filter can be used to play playlist files or a list of sources.\n"
+		"\n"
+		"The filter loads any source supported by GPAC, files (remote or local) or other.\n"
+		"The filter forces input demultiplex (no streamtype FILE) and recomputes the input timestamps into a continuous timeline.\n"
+		"At each new source, the filter tries to remap input PIDs to already declared output PIDs of the same type, if any, or declares new output PIDs otherwise. If no input PID matches the type of an output, no packets are send for that PID.\n"
+		"\n"
+		"# Source list mode"
+		"The source list mode is activated by using `flist:srcs=f1[,f2]`, where f1 can be a file or a directory to enum.\n"
+		"The syntax for directory enum is:\n"
+		"- dir/*: enumerates everything in dir\n"
+		"- foo/*.png: enumerates all files with extension png in foo\n"
+		"- foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo\n"
+		"\n"
+		"# Playlist mode"
+		"The playlost mode is activated when opening a playlist file (extension txt or m3u).\n"
+		"In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.\n"
+		"The following directives, separated with space or comma, are supported:\n"
+		"- repeat=N: repeats N times the content (hence played N+1)\n"
+		"- start=T: tries to play the file from start time T seconds (double format only)\n"
 		"Warning: This may not work with some files/formats not supporting seeking\n"
-		"- stop=T: stops source playback after T seconds (double format only)\n"\
+		"- stop=T: stops source playback after T seconds (double format only)\n"
 		"This works on any source (implemented independently from seek support).\n"
-		"\n"\
-		"The source lines follow the usual source syntax, see `gpac -h`.\n"\
+		"\n"
+		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n")
