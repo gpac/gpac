@@ -357,8 +357,9 @@ typedef struct
 	GF_VideoOutput *video_out;
 
 	u32 pck_offset;
-	u64 first_cts;
+	u64 first_cts_plus_one;
 	u64 clock_at_first_cts, last_frame_clock, clock_at_first_frame;
+	u32 last_pck_dur_us;
 	Bool aborted;
 	u32 display_width, display_height;
 	Bool display_changed;
@@ -531,11 +532,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	vout_set_caption(ctx);
 
-	if (ctx->first_cts && ctx->timescale && (ctx->timescale != timescale) ) {
-		ctx->first_cts-=1;
-		ctx->first_cts *= timescale;
-		ctx->first_cts /= ctx->timescale;
-		ctx->first_cts+=1;
+	if (ctx->first_cts_plus_one && ctx->timescale && (ctx->timescale != timescale) ) {
+		ctx->first_cts_plus_one-=1;
+		ctx->first_cts_plus_one *= timescale;
+		ctx->first_cts_plus_one /= ctx->timescale;
+		ctx->first_cts_plus_one+=1;
 	}
 	if (!timescale) timescale = 1;
 	ctx->timescale = timescale;
@@ -1880,6 +1881,11 @@ static GF_Err vout_process(GF_Filter *filter)
 				gf_filter_pck_unref(ctx->last_pck);
 				ctx->last_pck = NULL;
 			}
+			if ((ctx->nb_frames>1) && ctx->last_pck_dur_us) {
+				gf_filter_ask_rt_reschedule(filter, ctx->last_pck_dur_us);
+				ctx->last_pck_dur_us = 0;
+				return GF_OK;
+			}
 			return GF_EOS;
 		}
 		//check if we have a clock hint from an audio output
@@ -1963,7 +1969,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		s64 delay;
 
 		if (ctx->dur.num) {
-			if ((cts - ctx->first_cts) * ctx->dur.den > (u64) (ctx->dur.num * ctx->timescale)) {
+			if ((cts - ctx->first_cts_plus_one + 1) * ctx->dur.den > (u64) (ctx->dur.num * ctx->timescale)) {
 				GF_FilterEvent evt;
 				if (ctx->last_pck) {
 					gf_filter_pck_unref(ctx->last_pck);
@@ -2004,7 +2010,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
-			ctx->first_cts = cts;
+			ctx->first_cts_plus_one = cts + 1;
 			cts *= 1000;
 			cts/=ctx->timescale;
 			ref_ts *= 1000;
@@ -2022,7 +2028,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame "LLU" ms latest reference clock "LLU" ms\n", gf_sys_clock(), cts, ref_ts));
 			ref_clock = ref_ts;
-		} else if (!ctx->first_cts) {
+		} else if (!ctx->first_cts_plus_one) {
 			//init clock on second frame, first frame likely will have large rendering time
 			//due to GPU config. While this is not important for recorded media, it may impact
 			//monitoring of live source (webcams) by consuming frame really late which may
@@ -2038,12 +2044,12 @@ static GF_Err vout_process(GF_Filter *filter)
 				diff /= ctx->timescale;
 				//diff less than 100ms (eg 10fps or more), init on the second frame
 				if (diff<100) {
-					ctx->first_cts = 1 + cts;
+					ctx->first_cts_plus_one = 1 + cts;
 					ctx->clock_at_first_cts = now;
 				}
 				//otherwise (low frame rate), init on the first frame
 				else {
-					ctx->first_cts = ctx->clock_at_first_cts - 1;
+					ctx->first_cts_plus_one = ctx->clock_at_first_cts /* - 1 + 1*/;
 					ctx->clock_at_first_cts = ctx->last_frame_clock;
 					check_clock = GF_TRUE;
 				}
@@ -2056,21 +2062,21 @@ static GF_Err vout_process(GF_Filter *filter)
 		if (check_clock) {
 			s64 diff;
 			if (ctx->speed>=0) {
-				if (cts<ctx->first_cts+1) cts = ctx->first_cts+1;
+				if (cts < ctx->first_cts_plus_one) cts = ctx->first_cts_plus_one;
 				diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
 
 				if (ctx->timescale != 1000000)
-					diff -= (s64) ( (cts-ctx->first_cts+1) * 1000000  / ctx->timescale);
+					diff -= (s64) ( (cts - ctx->first_cts_plus_one + 1) * 1000000  / ctx->timescale);
 				else
-					diff -= (s64) (cts-ctx->first_cts+1);
+					diff -= (s64) (cts - ctx->first_cts_plus_one + 1);
 
 			} else {
 				diff = (s64) ((now - ctx->clock_at_first_cts) * -ctx->speed);
 
 				if (ctx->timescale != 1000000)
-					diff -= (s64) ( (ctx->first_cts - cts) * 1000000  / ctx->timescale);
+					diff -= (s64) ( (ctx->first_cts_plus_one-1 - cts) * 1000000  / ctx->timescale);
 				else
-					diff -= (s64) (ctx->first_cts - cts);
+					diff -= (s64) (ctx->first_cts_plus_one-1 - cts);
 			}
 
 			if (!ctx->raw_grab && (diff < -2000)) {
@@ -2083,7 +2089,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				return GF_OK;
 			}
 			if (ABS(diff)>2000) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU" is "LLD" us too %s\n", gf_sys_clock(), cts, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU"/%d is "LLD" us too %s\n", gf_sys_clock(), cts, ctx->timescale, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
 			} else {
 				diff = 0;
 			}
@@ -2092,6 +2098,10 @@ static GF_Err vout_process(GF_Filter *filter)
 				ref_clock = diff * ctx->timescale / 1000000 + cts;
 			else
 				ref_clock = diff + cts;
+
+			ctx->last_pck_dur_us = gf_filter_pck_get_duration(pck);
+			ctx->last_pck_dur_us *= 1000000;
+			ctx->last_pck_dur_us /= ctx->timescale;
 		}
 		//detach packet from pid, so that we can query next cts
 		gf_filter_pck_ref(&pck);
