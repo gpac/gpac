@@ -53,9 +53,26 @@ typedef struct
 
 typedef struct
 {
+	char *file_name;
+	u64 last_mod_time;
+	u64 file_size;
+} FileListEntry;
+
+enum
+{
+	FL_SORT_NONE=0,
+	FL_SORT_NAME,
+	FL_SORT_SIZE,
+	FL_SORT_DATE,
+	FL_SORT_DATEX,
+};
+
+typedef struct
+{
 	//opts
 	Bool revert;
 	s32 floop;
+	u32 fsort;
 	GF_List *srcs;
 	GF_Fraction dur;
 	u32 timescale;
@@ -78,6 +95,8 @@ typedef struct
 
 	GF_List *file_list;
 	s32 file_list_idx;
+
+	u64 current_file_dur;
 
 	char szCom[GF_MAX_PATH];
 } GF_FileListCtx;
@@ -269,7 +288,8 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	Double start=0, stop=0;
 
 	if (ctx->file_list) {
-		char *url;
+		FileListEntry *fentry, *next;
+
 		if (ctx->revert) {
 			if (!ctx->file_list_idx) {
 				if (!ctx->floop) return GF_FALSE;
@@ -285,8 +305,11 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 				ctx->file_list_idx = 0;
 			}
 		}
-		url = gf_list_get(ctx->file_list, ctx->file_list_idx);
-		strncpy(szURL, url, sizeof(char)*(GF_MAX_PATH-1) );
+		fentry = gf_list_get(ctx->file_list, ctx->file_list_idx);
+		strncpy(szURL, fentry->file_name, sizeof(char)*(GF_MAX_PATH-1) );
+		next = gf_list_get(ctx->file_list, ctx->file_list_idx + 1);
+		if (next)
+			ctx->current_file_dur = next->last_mod_time - fentry->last_mod_time;
 		return GF_TRUE;
 	}
 
@@ -494,7 +517,11 @@ GF_Err filelist_process(GF_Filter *filter)
 			cts = gf_filter_pck_get_cts(pck);
 			if (cts==GF_FILTER_NO_TS) cts=0;
 
-			if (iopid->single_frame && ctx->dur.num && ctx->dur.den) {
+			if (iopid->single_frame && (ctx->fsort==FL_SORT_DATEX) ) {
+				dur = ctx->current_file_dur;
+				//move from second to input pid timescale
+				dur *= iopid->timescale;
+			} else if (iopid->single_frame && ctx->dur.num && ctx->dur.den) {
 				s64 pdur = ctx->dur.num;
 				pdur *= iopid->timescale;
 				pdur /= ctx->dur.den;
@@ -601,16 +628,53 @@ GF_Err filelist_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+void filelist_add_entry(GF_FileListCtx *ctx, FileListEntry *fentry)
+{
+	u32 i, count;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] Adding file %s to list\n", fentry->file_name));
+	if (ctx->fsort==FL_SORT_NONE) {
+		gf_list_add(ctx->file_list, fentry);
+		return;
+	}
+	count = gf_list_count(ctx->file_list);
+	for (i=0; i<count; i++) {
+		Bool insert=GF_FALSE;
+		FileListEntry *cur = gf_list_get(ctx->file_list, i);
+		switch (ctx->fsort) {
+		case FL_SORT_SIZE:
+			if (cur->file_size>fentry->file_size) insert = GF_TRUE;
+			break;
+		case FL_SORT_DATE:
+		case FL_SORT_DATEX:
+			if (cur->last_mod_time>fentry->last_mod_time) insert = GF_TRUE;
+			break;
+		case FL_SORT_NAME:
+			if (strcmp(cur->file_name, fentry->file_name) > 0) insert = GF_TRUE;
+			break;
+		}
+		if (insert) {
+			gf_list_insert(ctx->file_list, fentry, i);
+			return;
+		}
+	}
+	gf_list_add(ctx->file_list, fentry);
+}
+
 Bool filelist_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
+	FileListEntry *fentry;
 	GF_FileListCtx *ctx = cbck;
 	if (file_info->hidden) return GF_FALSE;
 	if (file_info->directory) return GF_FALSE;
 	if (file_info->drive) return GF_FALSE;
 	if (file_info->system) return GF_FALSE;
 
-	gf_list_add(ctx->file_list, gf_strdup(item_path));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] Adding file %s to list\n", item_path));
+	GF_SAFEALLOC(fentry, FileListEntry);
+	fentry->file_name = gf_strdup(item_path);
+	fentry->file_size = file_info->size;
+	fentry->last_mod_time = file_info->last_modified;
+	filelist_add_entry(ctx, fentry);
+
 	return GF_FALSE;
 }
 
@@ -653,7 +717,17 @@ GF_Err filelist_initialize(GF_Filter *filter)
 			if (c && sep_dir) sep_dir[0] = c;
 		} else {
 			if (gf_file_exists(list)) {
-				gf_list_add(ctx->file_list, gf_strdup(list));
+				FILE *fo;
+				FileListEntry *fentry;
+				GF_SAFEALLOC(fentry, FileListEntry);
+				fentry->file_name = gf_strdup(list);
+				fentry->last_mod_time = gf_file_modification_time(list);
+				fo = gf_fopen(list, "rb");
+				if (fo) {
+					gf_fseek(fo, 0, SEEK_END);
+					fentry->file_size = gf_ftell(fo);
+				}
+				filelist_add_entry(ctx, fentry);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] File %s not found, ignoring\n", list));
 			}
@@ -663,6 +737,12 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	if (!gf_list_count(ctx->file_list)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->srcs));
 		return GF_BAD_PARAM;
+	}
+	if (ctx->fsort==FL_SORT_DATEX) {
+		FileListEntry *first;
+		ctx->revert = GF_FALSE;
+		ctx->floop = 0;
+		first = gf_list_get(ctx->file_list, 0);
 	}
 	ctx->file_list_idx = ctx->revert ? gf_list_count(ctx->file_list) : -1;
 	ctx->load_next = GF_TRUE;
@@ -684,7 +764,9 @@ void filelist_finalize(GF_Filter *filter)
 	}
 	if (ctx->file_list) {
 		while (gf_list_count(ctx->file_list)) {
-			gf_free(gf_list_pop_back(ctx->file_list));
+			FileListEntry *fentry = gf_list_pop_back(ctx->file_list);
+			gf_free(fentry->file_name);
+			gf_free(fentry);
 		}
 		gf_list_del(ctx->file_list);
 	}
@@ -700,6 +782,14 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "force output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+
+	{ OFFS(fsort), "sort list of files\n"
+		"- no: no sorting, use default directory enumeration of OS\n"
+		"- name: sort by alphabetical name\n"
+		"- size: sort by increasing size\n"
+		"- date: sort by increasing modification time\n"
+		"- datex: sort by increasing modification time - see filter help"
+		, GF_PROP_UINT, "no", "no|name|size|date|datex", 0},
 	{0}
 };
 
@@ -727,6 +817,14 @@ GF_FilterRegister FileListRegister = {
 		"- dir/*: enumerates everything in dir\n"
 		"- foo/*.png: enumerates all files with extension png in foo\n"
 		"- foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo\n"
+		"\n"
+		"The resulting file list can be sorted using [-fsort]().\n"
+		"If the sort mode is `datex` and source files are images or single frame files, the following applies:\n"
+		"- options [-floop](), [-revert]() and [-dur]() are ignored\n"
+		"- the files are sorted by modification time\n"
+		"- the first frame is assigned a timestamp of 0\n"
+		"- each frame (coming from each file) is assigned a duration equal to the difference of modification time between the file and the next file\n"
+		"- the last frame is assigned the same duration as the previous one\n"
 		"\n"
 		"# Playlist mode\n"
 		"The playlist mode is activated when opening a playlist file (extension txt or m3u).\n"
