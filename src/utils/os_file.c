@@ -668,23 +668,23 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			short ext[30];
 			short *sep = wcsrchr(FindData.cFileName, (wchar_t) '.');
 			if (!sep) goto next;
-			wcscpy(ext, sep+1);
+			wcscpy(ext, sep);
 			wcslwr(ext);
 			if (!wcsstr(w_filter, ext)) goto next;
 #elif defined(WIN32)
 			wchar_t ext[30];
 			wchar_t *sep = wcsrchr(FindData.cFileName, L'.');
 			if (!sep) goto next;
-			wcscpy(ext, sep+1);
+			wcscpy(ext, sep);
 			wcslwr(ext);
 			if (!wcsstr(w_filter, ext)) goto next;
 #else
 			char ext[30];
 			char *sep = strrchr(the_file->d_name, '.');
 			if (!sep) goto next;
-			strcpy(ext, sep+1);
+			strcpy(ext, sep);
 			strlwr(ext);
-			if (!strstr(filter, sep+1)) goto next;
+			if (!strstr(filter, ext)) goto next;
 #endif
 		}
 
