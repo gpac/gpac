@@ -1441,7 +1441,9 @@ GF_DownloadSession *gf_dm_sess_new_server(GF_Socket *server,
         GF_Err *e)
 {
 	GF_DownloadSession *sess = gf_dm_sess_new_internal(NULL, NULL, 0, user_io, usr_cbk, server, e);
+#ifdef GPAC_HAS_SSL
 	if (sess) sess->ssl = ssl_sock_ctx;
+#endif
 	return sess;
 }
 
