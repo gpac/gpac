@@ -412,9 +412,14 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn)
 		if (res) return GF_SERVICE_ERROR;
 	}
 #else
-	s32 flag = fcntl(sock->socket, F_GETFL, 0);
 	if (sock->socket) {
-		res = fcntl(sock->socket, F_SETFL, flag | O_NONBLOCK);
+		s32 flags = fcntl(sock->socket, F_GETFL, 0);
+		if (NonBlockingOn)
+			flags |= O_NONBLOCK;
+		else
+			flags &= ~O_NONBLOCK;
+
+		res = fcntl(sock->socket, F_SETFL, flags);
 		if (res) return GF_SERVICE_ERROR;
 	}
 #endif
@@ -509,7 +514,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		if (!sock->socket) {
 			sock->socket = socket(AF_UNIX, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
 			if (sock->flags & GF_SOCK_NON_BLOCKING)
-				gf_sk_set_block_mode(sock, 1);
+				gf_sk_set_block_mode(sock, GF_TRUE);
 		}
 		server_add.sun_family = AF_UNIX;
 		strcpy(server_add.sun_path, PeerName);
@@ -549,8 +554,11 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 				sock->socket = NULL_SOCKET;
 				continue;
 			}
-			if (sock->flags & GF_SOCK_NON_BLOCKING)
-				gf_sk_set_block_mode(sock, GF_TRUE);
+			if (sock->flags & GF_SOCK_IS_TCP) {
+				if (sock->flags & GF_SOCK_NON_BLOCKING)
+					gf_sk_set_block_mode(sock, GF_TRUE);
+			}
+
 			if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 			else sock->flags &= ~GF_SOCK_IS_IPV6;
 
@@ -598,7 +606,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	if (!sock->socket) {
 		sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
 		if (sock->flags & GF_SOCK_NON_BLOCKING)
-			gf_sk_set_block_mode(sock, 1);
+			gf_sk_set_block_mode(sock, GF_TRUE);
 	}
 
 	/*setup the address*/
@@ -685,7 +693,8 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		struct sockaddr_un server_un;
 		if (!sock->socket) {
 			sock->socket = socket(AF_UNIX, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
-			if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
+			if (sock->flags & GF_SOCK_NON_BLOCKING)
+				gf_sk_set_block_mode(sock, GF_TRUE);
 		}
 		server_un.sun_family = AF_UNIX;
 		strcpy(server_un.sun_path, peer_name);
@@ -766,7 +775,8 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 #endif
 		}
 
-		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, GF_TRUE);
+		if (sock->flags & GF_SOCK_NON_BLOCKING)
+			gf_sk_set_block_mode(sock, GF_TRUE);
 
 		if (peer_name && peer_port)
 			sock->flags |= GF_SOCK_HAS_PEER;
@@ -793,7 +803,8 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 #else
 
 	sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
-	if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
+	if (sock->flags & GF_SOCK_NON_BLOCKING)
+		gf_sk_set_block_mode(sock, GF_TRUE);
 	sock->flags &= ~GF_SOCK_IS_IPV6;
 
 	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
@@ -1046,7 +1057,8 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 #endif
 
 			/*TODO: copy over other properties (recption buffer size & co)*/
-			if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, GF_TRUE);
+			if (sock->flags & GF_SOCK_NON_BLOCKING)
+				gf_sk_set_block_mode(sock, GF_TRUE);
 
 			memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 			sock->dest_addr_len = (u32) aip->ai_addrlen;
@@ -1113,7 +1125,8 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 	//IPv4 setup
 	sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
-	if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, GF_TRUE);
+	if (sock->flags & GF_SOCK_NON_BLOCKING)
+		gf_sk_set_block_mode(sock, GF_TRUE);
 	sock->flags &= ~GF_SOCK_IS_IPV6;
 
 	/*enable address reuse*/
@@ -1666,30 +1679,45 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 }
 #endif
 
-#if 0
 GF_EXPORT
 GF_Err gf_sk_probe(GF_Socket *sock)
 {
+#ifndef __SYMBIAN32__
+	s32 ready;
+	struct timeval timeout;
+	fd_set Group;
+#endif
 	s32 res;
 	u8 buffer[1];
 	if (!sock) return GF_BAD_PARAM;
 
-	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK | MSG_DONTWAIT);
-	if (res == SOCKET_ERROR) {
+#ifndef __SYMBIAN32__
+	//can we read?
+	FD_ZERO(&Group);
+	FD_SET(sock->socket, &Group);
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 100;
+
+	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
+	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
-			return GF_OK;
-		case EPIPE:
-		case ECONNRESET:
-			return GF_IP_CONNECTION_CLOSED;
+			return GF_IP_SOCK_WOULD_BLOCK;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] select error: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_NETWORK_FAILURE;
+			return GF_IP_CONNECTION_CLOSED;
 		}
+	}
+	if (!FD_ISSET(sock->socket, &Group)) {
+		return GF_IP_NETWORK_EMPTY;
+	}
+#endif
+	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK | MSG_DONTWAIT);
+	if (res == 0) {
+		return GF_IP_CONNECTION_CLOSED;
 	}
 	return GF_OK;
 }
-#endif
 
 GF_EXPORT
 GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRead, u32 Second )

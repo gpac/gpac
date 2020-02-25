@@ -2058,7 +2058,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	//patch for old arch: make sure we don't have any extra free box after the sidx
 	if (gf_sys_is_test_mode() && ctx->sseg) {
 		sprintf(szSRC, "%ccache", sep_args );
-		gf_dynstrcat(&szDST, szSRC, NULL);
+		if (!strstr(szDST, szSRC))
+			gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	sprintf(szSRC, "%cmime=%s", sep_args, rep->mime_type);
 	gf_dynstrcat(&szDST, szSRC, NULL);

@@ -4393,6 +4393,10 @@ Single or multiple byte ranges are supported for both GET and PUT/POST methods.
 .br
   
 .br
+Warning: the partial PUT request is RFC2616 compliant but not compliant with RFC7230. PATCH method is not yet implemented in GPAC.
+.br
+  
+.br
 When a single read directory is specified, the server root / is the content of this directory.
 .br
 When multiple read directories are specified, the server root / contains the list of the mount points with their directory names.
@@ -4532,6 +4536,17 @@ gpac httpout:hmode=source vout aout
 .br
 In this example, the filter will try to play uploaded files through video and audio output.
 .br
+  
+.br
+.SH HTTPS server
+.LP
+.br
+The server can run over TLS (https) for all the server modes. TLS is enabled by specifying -cert and -pkey options.
+.br
+Both certificate and key must be in PEM format.
+.br
+Note: the server currently only operates in either HTTPS or HTTP mode and cannot run both modes at the same time. You will need to use two httpout filters for this, one operating in HTTPS and one operating in HTTP.
+.br
 
 .br
 
@@ -4548,6 +4563,10 @@ ifce (string):                           default network inteface to use
 rdirs (string list):                     list of directories to expose for read - see filter help
 .br
 wdir (string):                           directory to expose for write - see filter help
+.br
+cert (string):                           certificate file in PEM format to use for TLS mode
+.br
+pkey (string):                           private key file in PEM format to use for TLS mode
 .br
 block_size (unsigned int, default: 10000): block size used to read and write TCP socket
 .br
@@ -5195,7 +5214,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3291-gcab89e8f5-filters
+build: 0.9.0-DEV-rev3304-g8db635b82-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

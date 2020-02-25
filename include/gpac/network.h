@@ -374,7 +374,7 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool send_buffer, u32 new_size);
 Sets the blocking mode of a socket on or off. A blocking socket will wait for the net operation to be possible
 while a non-blocking one would return an error. By default, sockets are created in blocking mode
 \param sock the socket object
-\param NonBlockingOn set to 1 to use on-blocking sockets, 0 otherwise
+\param NonBlockingOn set to 1 to use non-blocking sockets, 0 otherwise
 \return error if any
  */
 GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
@@ -576,6 +576,13 @@ Fetches data on a socket without performing any select (wait), to be used with s
 \return error if any, GF_IP_NETWORK_EMPTY if nothing to read
  */
 GF_Err gf_sk_receive_no_select(GF_Socket *sock, u8 *buffer, u32 length, u32 *read);
+
+/*!
+Checks if connection has been closed by remote peer
+\param sock the socket object
+\return error if any (GF_IP_CONNECTION_CLOSED if connection is closed)
+ */
+GF_Err gf_sk_probe(GF_Socket *sock);
 
 /*! @} */
 
