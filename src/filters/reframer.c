@@ -63,6 +63,9 @@ typedef struct
 
 	GF_List *streams;
 	RTStream *clock;
+
+	u64 reschedule_in;
+	u64 clock_val;
 } GF_ReframerCtx;
 
 GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -123,30 +126,43 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 	if (!ctx->rt) {
 		do_send = GF_TRUE;
 	} else {
-		u64 cts = gf_filter_pck_get_cts(pck);
-		if (cts==GF_FILTER_NO_TS) {
+		u64 cts_us = gf_filter_pck_get_dts(pck);
+		if (cts_us==GF_FILTER_NO_TS)
+			cts_us = gf_filter_pck_get_cts(pck);
+
+		if (cts_us==GF_FILTER_NO_TS) {
 			do_send = GF_TRUE;
 		} else {
-			u64 now = gf_sys_clock_high_res();
-			cts *= 1000000;
-			cts /= st->timescale;
+			u64 clock = ctx->clock_val;
+			cts_us *= 1000000;
+			cts_us /= st->timescale;
 			if (ctx->rt==REFRAME_RT_SYNC) {
 				if (!ctx->clock) ctx->clock = st;
 
 				st = ctx->clock;
 			}
 			if (!st->sys_clock_at_init) {
-				st->cts_at_init = cts;
-				st->sys_clock_at_init = now;
+				st->cts_at_init = cts_us;
+				st->sys_clock_at_init = clock;
 				do_send = GF_TRUE;
-			} else if (cts < st->cts_at_init) {
+			} else if (cts_us < st->cts_at_init) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] CTS less than CTS used to initialize clock, not delaying\n"));
 				do_send = GF_TRUE;
 			} else {
-				u64 diff = cts - st->cts_at_init;
+				u64 diff = cts_us - st->cts_at_init;
 				if (ctx->speed>0) diff = (u64) ( diff / ctx->speed);
-				if (now - st->sys_clock_at_init >= diff) {
+				else if (ctx->speed<0) diff = (u64) ( diff / -ctx->speed);
+
+				clock -= st->sys_clock_at_init;
+				if (clock + 1000 >= diff) {
 					do_send = GF_TRUE;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Reframer] Sending packet "LLU" us too late (clock diff "LLU" - CTS diff "LLU")\n", 1000+clock - diff, clock, diff));
+				} else {
+					diff -= clock;
+					if (!ctx->reschedule_in)
+						ctx->reschedule_in = diff;
+					else if (ctx->reschedule_in > diff)
+						ctx->reschedule_in = diff;
 				}
 			}
 		}
@@ -175,9 +191,6 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		st->nb_frames++;
 		return GF_TRUE;
 	}
-	if (ctx->rt) {
-		gf_filter_ask_rt_reschedule(filter, 100);
-	}
 	return GF_FALSE;
 }
 
@@ -187,6 +200,10 @@ GF_Err reframer_process(GF_Filter *filter)
 	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
 	u32 i, nb_eos, count = gf_filter_get_ipid_count(filter);
 
+	if (ctx->rt) {
+		ctx->reschedule_in = 0;
+		ctx->clock_val = gf_sys_clock_high_res();
+	}
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
@@ -244,7 +261,17 @@ GF_Err reframer_process(GF_Filter *filter)
 
 		}
 	}
+
 	if (nb_eos==count) return GF_EOS;
+
+	if (ctx->rt) {
+		if (ctx->reschedule_in>2000) {
+			gf_filter_ask_rt_reschedule(filter, ctx->reschedule_in - 2000);
+		} else if (ctx->reschedule_in>1000) {
+			gf_filter_ask_rt_reschedule(filter, ctx->reschedule_in / 2);
+		}
+	}
+
 	return GF_OK;
 }
 
