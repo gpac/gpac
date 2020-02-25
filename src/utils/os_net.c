@@ -1712,7 +1712,7 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 		return GF_IP_NETWORK_EMPTY;
 	}
 #endif
-	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK | MSG_DONTWAIT);
+	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK);
 	if (res == 0) {
 		return GF_IP_CONNECTION_CLOSED;
 	}
