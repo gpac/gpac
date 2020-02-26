@@ -208,7 +208,7 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 .TP
 .B \-full-link
 .br
-throw error if any pid in the filter graph cannot be linked)
+throw error if any pid in the filter graph cannot be linked
 .br
 .TP
 .B \-no-block
@@ -631,7 +631,7 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 .TP
 .B \-full-link
 .br
-throw error if any pid in the filter graph cannot be linked)
+throw error if any pid in the filter graph cannot be linked
 .br
 .TP
 .B \-no-block
@@ -1560,6 +1560,54 @@ Example
 .br
 This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4.
 .br
+
+.br
+PID properties may be conditionally assigned by checking other PID properties. The syntax uses paranthesis (not configurable) after the property assignment sign:
+.br
+#Prop=(CP=CV)VAL
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV.
+.br
+#Prop=(CP=CV)VAL,(CP2=CV2)VAL2
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV, and to VAL2 for PIDs with property CP2 equal to CV2.
+.br
+#Prop=(CP=CV)(CP2=CV2)VAL
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV and property CP2 equal to CV2.
+.br
+#Prop=(CP=CV)VAL,()DEFAULT
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV, or to DEFAULT for other PIDs.
+.br
+The condition syntax is the same as source ID fragment syntax.
+.br
+Note: When set, the default value (empty condition) always matches the PID, therefore it should be placed last in the list of conditions.
+.br
+Example
+.br
+gpac -i source.mp4:#MyProp=(audio)"Super Audio",(video)"Super Video"
+.br
+
+.br
+This will assign property MyProp to Super Audio for audio PIDs and to Super Video for video PIDs.
+.br
+Example
+.br
+gpac -i source.mp4:#MyProp=(audio1)"Super Audio"
+.br
+
+.br
+This will assign property MyProp to Super Audio for first audio PID declared.
+.br
+Example
+.br
+gpac -i source.mp4:#MyProp=(Width+1280)HD
+.br
+
+.br
+This will assign property MyProp to HD for PIDs with property Width greater than 1280.
+.br
 .SH Using option files
 .LP
 .br
@@ -1581,7 +1629,7 @@ src=source.mp4:myopts.txt:foo=bar dst
 .br
 
 .br
-Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options given in myopts.txt.
+Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options and PID properties given in myopts.txt.
 .br
 .SH Specific filter options
 .LP
@@ -1600,11 +1648,11 @@ Defined keywords:
 .br
 * $GUA: replaced by the global config user agent option -user-agent
 .br
-* $GINC(init_val[,inc]): replaced by init_val and increment init_val by inc (positive or negative number, 1 if not specified) each time a new filter using this string is created. This can be used to dynamically assign numbers in filter chains:
+* $GINC(init_val[,inc]): replaced by init_val and increment init_val by inc (positive or negative number, 1 if not specified) each time a new filter using this string is created.
 .br
 
 .br
-  
+The $GINC construct can be used to dynamically assign numbers in filter chains:
 .br
 Example
 .br
@@ -3356,7 +3404,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3316-g22bc069e0-filters
+build: 0.9.0-DEV-rev3319-g0b4216a21-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
