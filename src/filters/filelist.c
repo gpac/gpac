@@ -708,7 +708,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				c = sep_dir[0];
 				sep_dir[0] = 0;
 				dir = list;
-				pattern = sep_dir+1;
+				pattern = sep_dir+2;
 			} else {
 				dir = ".";
 				pattern = list;
