@@ -1025,7 +1025,20 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 \param type property type
 \return readable name
 */
-const char *gf_props_get_type_name(u32 type);
+const char *gf_props_get_type_name(GF_PropType type);
+
+/*! Gets the description for a property type
+\param type property type
+\return description
+*/
+const char *gf_props_get_type_desc(GF_PropType type);
+
+/*! Gets the description type for a given  property type name
+\param name property type name
+\return property type or GF_PROP_FORBIDEN
+*/
+GF_PropType gf_props_parse_type(const char *name);
+
 
 /*! Parses a property value from string
 \param type property type to parse
@@ -1047,7 +1060,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 \param min_max_enum optional, gives the min/max or enum string when the property is a filter argument
 \return string
 */
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum);
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum);
 
 /*! Dumps a property value to string, resolving any built-in types (pix formats, codec id, ...)
 \param p4cc property 4CC
@@ -1056,7 +1069,7 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 \param dump_data if set data will be dumped in hexadecimal. Otherwise, data buffer is not dumped
 \return string
 */
-const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
+const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
 /*! Resets a property value, freeing allocated data or strings depending on the property type
 \param prop property 4CC

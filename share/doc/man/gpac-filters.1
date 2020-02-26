@@ -123,7 +123,7 @@ Note: when dumping in interleaved mode, there is no guarantee that the packets w
 .SH Options (expert):
 .LP
 .br
-log (string, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
+log (str, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
 .br
 mode (enum, default: pck):               dump mode
 .br
@@ -137,37 +137,37 @@ mode (enum, default: pck):               dump mode
 .br
 
 .br
-interleave (boolean, default: true):     dump packets as they are received on each pid. If false, report per pid is generated
+interleave (bool, default: true):        dump packets as they are received on each pid. If false, report per pid is generated
 .br
-deep (boolean, default: false):          dump packets along with PID state change, implied when -fmt is set
+deep (bool, default: false):             dump packets along with PID state change, implied when -fmt is set
 .br
-props (boolean, default: true):          dump packet properties, ignored when -fmt is set (see filter help)
+props (bool, default: true):             dump packet properties, ignored when -fmt is set (see filter help)
 .br
-dump_data (boolean, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
+dump_data (bool, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
 .br
-fmt (string, updatable):                 set packet dump format (see filter help)
+fmt (str, updatable):                    set packet dump format (see filter help)
 .br
-hdr (boolean, default: true):            print a header corresponding to fmt string without '$ 'or "pid."
+hdr (bool, default: true):               print a header corresponding to fmt string without '$ 'or "pid."
 .br
-allp (boolean, default: false):          analyse for the entire duration, rather than stoping when all pids are found
+allp (bool, default: false):             analyse for the entire duration, rather than stoping when all pids are found
 .br
-info (boolean, default: false):          monitor PID info changes
+info (bool, default: false):             monitor PID info changes
 .br
-pcr (boolean, default: false):           dump M2TS PCR info
+pcr (bool, default: false):              dump M2TS PCR info
 .br
-speed (number, default: 1.0):            set playback command speed. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback command speed. If speed is negative and start is 0, start is set to -1
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-dur (fraction, default: 0/0):            set inspect duration
+dur (frac, default: 0/0):                set inspect duration
 .br
-analyze (boolean, default: false):       analyze sample content (NALU, OBU)
+analyze (bool, default: false):          analyze sample content (NALU, OBU)
 .br
-xml (boolean, default: false):           use xml formatting (implied if (-analyze]() is set) and disable -fmt
+xml (bool, default: false):              use xml formatting (implied if (-analyze]() is set) and disable -fmt
 .br
-fftmcd (boolean, default: false):        consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
+fftmcd (bool, default: false):           consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
-dtype (boolean, default: false):         dump property type
+dtype (bool, default: false):            dump property type
 .br
 test (enum, default: no):                skip predefined set of properties, used for test mode
 .br
@@ -199,7 +199,7 @@ The filter does not produce any output nor feedback, it is up to the app develop
 .SH Options (expert):
 .LP
 .br
-log (string, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
+log (str, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
 .br
 mode (enum, default: pck):               dump mode
 .br
@@ -213,37 +213,37 @@ mode (enum, default: pck):               dump mode
 .br
 
 .br
-interleave (boolean, default: true):     dump packets as they are received on each pid. If false, report per pid is generated
+interleave (bool, default: true):        dump packets as they are received on each pid. If false, report per pid is generated
 .br
-deep (boolean, default: false):          dump packets along with PID state change, implied when -fmt is set
+deep (bool, default: false):             dump packets along with PID state change, implied when -fmt is set
 .br
-props (boolean, default: true):          dump packet properties, ignored when -fmt is set (see filter help)
+props (bool, default: true):             dump packet properties, ignored when -fmt is set (see filter help)
 .br
-dump_data (boolean, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
+dump_data (bool, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
 .br
-fmt (string, updatable):                 set packet dump format (see filter help)
+fmt (str, updatable):                    set packet dump format (see filter help)
 .br
-hdr (boolean, default: true):            print a header corresponding to fmt string without '$ 'or "pid."
+hdr (bool, default: true):               print a header corresponding to fmt string without '$ 'or "pid."
 .br
-allp (boolean, default: false):          analyse for the entire duration, rather than stoping when all pids are found
+allp (bool, default: false):             analyse for the entire duration, rather than stoping when all pids are found
 .br
-info (boolean, default: false):          monitor PID info changes
+info (bool, default: false):             monitor PID info changes
 .br
-pcr (boolean, default: false):           dump M2TS PCR info
+pcr (bool, default: false):              dump M2TS PCR info
 .br
-speed (number, default: 1.0):            set playback command speed. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback command speed. If speed is negative and start is 0, start is set to -1
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-dur (fraction, default: 0/0):            set inspect duration
+dur (frac, default: 0/0):                set inspect duration
 .br
-analyze (boolean, default: false):       analyze sample content (NALU, OBU)
+analyze (bool, default: false):          analyze sample content (NALU, OBU)
 .br
-xml (boolean, default: false):           use xml formatting (implied if (-analyze]() is set) and disable -fmt
+xml (bool, default: false):              use xml formatting (implied if (-analyze]() is set) and disable -fmt
 .br
-fftmcd (boolean, default: false):        consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
+fftmcd (bool, default: false):           consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
-dtype (boolean, default: false):         dump property type
+dtype (bool, default: false):            dump property type
 .br
 test (enum, default: no):                skip predefined set of properties, used for test mode
 .br
@@ -338,25 +338,25 @@ aa (enum, default: all, updatable):      set anti-aliasing mode for raster graph
 .br
 
 .br
-hlfill (unsigned int, default: 0x0, updatable): set highlight fill color (ARGB)
+hlfill (uint, default: 0x0, updatable):  set highlight fill color (ARGB)
 .br
-hlline (unsigned int, default: 0xFF000000, updatable): set highlight stroke color (ARGB)
+hlline (uint, default: 0xFF000000, updatable): set highlight stroke color (ARGB)
 .br
-hllinew (float, default: 1.0, updatable): set highlight stroke width
+hllinew (flt, default: 1.0, updatable):  set highlight stroke width
 .br
-sz (boolean, default: true, updatable):  enable scalable zoom. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.
+sz (bool, default: true, updatable):     enable scalable zoom. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.
 .br
-bc (unsigned int, default: 0, updatable): default background color to use when displaying transparent images or video with no scene composition instructions
+bc (uint, default: 0, updatable):        default background color to use when displaying transparent images or video with no scene composition instructions
 .br
-yuvhw (boolean, default: true, updatable): enable YUV hardware for 2D blits
+yuvhw (bool, default: true, updatable):  enable YUV hardware for 2D blits
 .br
-blitp (boolean, default: true, updatable): partial hardware blits (if not set, will force more redraw)
+blitp (bool, default: true, updatable):  partial hardware blits (if not set, will force more redraw)
 .br
-softblt (boolean, default: true):        enable software blit/stretch in 2D. If disabled, vector graphics rasterizer will always be used
+softblt (bool, default: true):           enable software blit/stretch in 2D. If disabled, vector graphics rasterizer will always be used
 .br
-stress (boolean, default: false, updatable): enable stress mode of compositor (rebuild all vector graphics and texture states at each frame)
+stress (bool, default: false, updatable): enable stress mode of compositor (rebuild all vector graphics and texture states at each frame)
 .br
-fast (boolean, default: false, updatable): enable speed optimization - whether the setting is applied or not depends on the graphics module / graphic card
+fast (bool, default: false, updatable):  enable speed optimization - whether the setting is applied or not depends on the graphics module / graphic card
 .br
 bvol (enum, default: no, updatable):     draw bounding volume of objects.
 .br
@@ -378,29 +378,29 @@ textxt (enum, default: default, updatable): specify whether text shall be drawn 
 .br
 
 .br
-out8b (boolean, default: false, updatable): convert 10-bit video to 8 bit texture before GPU upload.
+out8b (bool, default: false, updatable): convert 10-bit video to 8 bit texture before GPU upload.
 .br
-drop (boolean, default: false, updatable): drop late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed
+drop (bool, default: false, updatable):  drop late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed
 .br
-sclock (boolean, default: false, updatable): force synchronizing all streams on a single clock
+sclock (bool, default: false, updatable): force synchronizing all streams on a single clock
 .br
-sgaze (boolean, default: false, updatable): simulate gaze events through mouse
+sgaze (bool, default: false, updatable): simulate gaze events through mouse
 .br
-ckey (unsigned int, default: 0, updatable): color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported.
+ckey (uint, default: 0, updatable):      color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported.
 .br
-timeout (unsigned int, default: 10000, updatable): timeout in ms after which a source is considered dead
+timeout (uint, default: 10000, updatable): timeout in ms after which a source is considered dead
 .br
-fps (fraction, default: 30/1, updatable): simulation frame rate when animation-only sources are played (ignored when video is present).
+fps (frac, default: 30/1, updatable):    simulation frame rate when animation-only sources are played (ignored when video is present).
 .br
-timescale (unsigned int, default: 0, updatable): timescale used for output packets when no input video pid. A value of 0 means fps numerator.
+timescale (uint, default: 0, updatable): timescale used for output packets when no input video pid. A value of 0 means fps numerator.
 .br
-autofps (boolean, default: true):        use video input fps for output. If no video or not set, uses -fps. Ignored in player mode
+autofps (bool, default: true):           use video input fps for output. If no video or not set, uses -fps. Ignored in player mode
 .br
-vfr (boolean, default: false):           only emit frames when changes are detected. Always true in player mode
+vfr (bool, default: false):              only emit frames when changes are detected. Always true in player mode
 .br
-dur (number, default: 0, updatable):     duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.
+dur (dbl, default: 0, updatable):        duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.
 .br
-fsize (boolean, default: false, updatable): force the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration
+fsize (bool, default: false, updatable): force the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration
 .br
 mode2d (enum, default: defer, updatable): specify whether immediate drawing should be used or not
 .br
@@ -414,33 +414,33 @@ Whether the setting is applied or not depends on the graphics module and player 
 .br
 
 .br
-amc (boolean, default: true):            audio multichannel support; if disabled always downmix to stereo. Useful if the multichannel output does not work properly
+amc (bool, default: true):               audio multichannel support; if disabled always downmix to stereo. Useful if the multichannel output does not work properly
 .br
-asr (unsigned int, default: 0):          force output sample rate - 0 for auto
+asr (uint, default: 0):                  force output sample rate - 0 for auto
 .br
-ach (unsigned int, default: 0):          force output channels - 0 for auto
+ach (uint, default: 0):                  force output channels - 0 for auto
 .br
-alayout (unsigned int, default: 0):      force output channel layout - 0 for auto
+alayout (uint, default: 0):              force output channel layout - 0 for auto
 .br
-afmt (audio format, default: s16, minmax: none,u8,s16,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): force output channel format - 0 for auto
+afmt (afmt, default: s16, minmax: none,u8,s16,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): force output channel format - 0 for auto
 .br
-asize (unsigned int, default: 1024):     audio output packet size in samples
+asize (uint, default: 1024):             audio output packet size in samples
 .br
-abuf (unsigned int, default: 100):       audio output buffer duration in ms - the audio renderer fills the output pid up to this value. A too low value will lower latency but can have real-time playback issues
+abuf (uint, default: 100):               audio output buffer duration in ms - the audio renderer fills the output pid up to this value. A too low value will lower latency but can have real-time playback issues
 .br
-avol (unsigned int, default: 100, updatable): audio volume in percent
+avol (uint, default: 100, updatable):    audio volume in percent
 .br
-apan (unsigned int, default: 50, updatable): audio pan in percent, 50 is no pan
+apan (uint, default: 50, updatable):     audio pan in percent, 50 is no pan
 .br
-async (boolean, default: true, updatable): audio resynchronization; if disabled, audio data is never dropped but may get out of sync
+async (bool, default: true, updatable):  audio resynchronization; if disabled, audio data is never dropped but may get out of sync
 .br
-buf (unsigned int, default: 3000, updatable): playout buffer in ms. Overriden by BufferLenth property of input pid
+buf (uint, default: 3000, updatable):    playout buffer in ms. Overriden by BufferLenth property of input pid
 .br
-rbuf (unsigned int, default: 1000, updatable): rebuffer trigger in ms. Overriden by RebufferLenth property of input pid
+rbuf (uint, default: 1000, updatable):   rebuffer trigger in ms. Overriden by RebufferLenth property of input pid
 .br
-mbuf (unsigned int, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid
+mbuf (uint, default: 3000, updatable):   max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid
 .br
-nojs (boolean, default: false):          disable javascript
+nojs (bool, default: false):             disable javascript
 .br
 ogl (enum, default: auto, updatable):    specify 2D rendering mode
 .br
@@ -454,7 +454,7 @@ ogl (enum, default: auto, updatable):    specify 2D rendering mode
 .br
 
 .br
-pbo (boolean, default: false, updatable): enable PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.
+pbo (bool, default: false, updatable):   enable PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.
 .br
 nav (enum, default: none, updatable):    override the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)
 .br
@@ -478,15 +478,15 @@ nav (enum, default: none, updatable):    override the default navigation mode of
 .br
 
 .br
-linegl (boolean, default: false, updatable): indicate that outlining shall be done through OpenGL pen width rather than vectorial outlining
+linegl (bool, default: false, updatable): indicate that outlining shall be done through OpenGL pen width rather than vectorial outlining
 .br
-epow2 (boolean, default: true, updatable): emulate power-of-2 textures for openGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled
+epow2 (bool, default: true, updatable):  emulate power-of-2 textures for openGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled
 .br
 * yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations
 .br
 * no: video is resized to a power of 2 texture when mapping to a shape
 .br
-paa (boolean, default: false, updatable): indicate whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.
+paa (bool, default: false, updatable):   indicate whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.
 .br
 bcull (enum, default: on, updatable):    indicate whether backface culling shall be disable or not
 .br
@@ -518,15 +518,15 @@ norms (enum, default: none, updatable):  normal vector drawing for debug
 .br
 
 .br
-glus (boolean, default: true, updatable): use GLU scale, which may be slower but nicer than GPAC software stretch routines.
+glus (bool, default: true, updatable):   use GLU scale, which may be slower but nicer than GPAC software stretch routines.
 .br
-rext (boolean, default: true, updatable): use non power of two (rectangular) texture GL extension
+rext (bool, default: true, updatable):   use non power of two (rectangular) texture GL extension
 .br
-cull (boolean, default: true, updatable): use aabb culling: large objects are rendered in multiple calls when not fully in viewport
+cull (bool, default: true, updatable):   use aabb culling: large objects are rendered in multiple calls when not fully in viewport
 .br
-yuvgl (boolean, default: true, updatable): enable YUV open GL pixel format support if hardware supports it. If not supported and shaders are available, YUV to RGB will be done on GPU
+yuvgl (bool, default: true, updatable):  enable YUV open GL pixel format support if hardware supports it. If not supported and shaders are available, YUV to RGB will be done on GPU
 .br
-depth_gl_scale (float, default: 100, updatable): set depth scaler
+depth_gl_scale (flt, default: 100, updatable): set depth scaler
 .br
 depth_gl_type (enum, default: none, updatable): set geometry type used to draw depth video
 .br
@@ -538,7 +538,7 @@ depth_gl_type (enum, default: none, updatable): set geometry type used to draw d
 .br
 
 .br
-nbviews (unsigned int, default: 0, updatable): number of views to use in stereo mode
+nbviews (uint, default: 0, updatable):   number of views to use in stereo mode
 .br
 stereo (enum, default: none, updatable): stereo output type. If your graphic card does not support OpenGL shaders, only top and side modes will be available.
 .br
@@ -562,7 +562,7 @@ stereo (enum, default: none, updatable): stereo output type. If your graphic car
 .br
 
 .br
-mvshader (string, updatable):            file path to the custom multiview interleaving shader
+mvshader (str, updatable):               file path to the custom multiview interleaving shader
 .br
 fpack (enum, default: none, updatable):  default frame packing of input video
 .br
@@ -586,41 +586,41 @@ camlay (enum, default: offaxis, updatable): camera layout in multiview modes
 .br
 
 .br
-iod (float, default: 6.4, updatable):    inter-occular distance (eye separation) in cm (distance between the cameras). 
+iod (flt, default: 6.4, updatable):      inter-occular distance (eye separation) in cm (distance between the cameras). 
 .br
-rview (boolean, default: false, updatable): reverse view order
+rview (bool, default: false, updatable): reverse view order
 .br
-tvtn (unsigned int, default: 30, updatable): number of point sampling for tile visibility algo
+tvtn (uint, default: 30, updatable):     number of point sampling for tile visibility algo
 .br
-tvtt (unsigned int, default: 0, updatable): number of points above which the tile is considered visible
+tvtt (uint, default: 0, updatable):      number of points above which the tile is considered visible
 .br
-tvtd (boolean, default: false, updatable): disable the tile having full coverage of the SRD, only displaying partial tiles
+tvtd (bool, default: false, updatable):  disable the tile having full coverage of the SRD, only displaying partial tiles
 .br
-tvtf (boolean, default: false, updatable): force all tiles to be considered visible, regardless of viewpoint
+tvtf (bool, default: false, updatable):  force all tiles to be considered visible, regardless of viewpoint
 .br
-fov (float, default: 1.570796326794897, updatable): default field of view for VR
+fov (flt, default: 1.570796326794897, updatable): default field of view for VR
 .br
-vertshader (string):                     path to vertex shader file
+vertshader (str):                        path to vertex shader file
 .br
-fragshader (string):                     path to fragment shader file
+fragshader (str):                        path to fragment shader file
 .br
-autocal (boolean, default: false, updatable): auto callibration of znear/zfar in depth rendering mode
+autocal (bool, default: false, updatable): auto callibration of znear/zfar in depth rendering mode
 .br
-dispdepth (int, default: -1, updatable): display depth, negative value uses default screen height
+dispdepth (sint, default: -1, updatable): display depth, negative value uses default screen height
 .br
-dispdist (float, default: 50, updatable): distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC
+dispdist (flt, default: 50, updatable):  distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC
 .br
-focdist (float, default: 0, updatable):  distance of focus point
+focdist (flt, default: 0, updatable):    distance of focus point
 .br
-osize (vec2d int, default: 0x0, updatable): force output size. If not set, size is derived from inputs
+osize (v2di, default: 0x0, updatable):   force output size. If not set, size is derived from inputs
 .br
-dpi (vec2d int, default: 96x96, updatable): default dpi if not indicated by video output
+dpi (v2di, default: 96x96, updatable):   default dpi if not indicated by video output
 .br
-dbgpvr (float, default: 0, updatable):   debug scene used by PVR addon
+dbgpvr (flt, default: 0, updatable):     debug scene used by PVR addon
 .br
-player (boolean, default: false):        set compositor in player mode, see filter help
+player (bool, default: false):           set compositor in player mode, see filter help
 .br
-opfmt (pixel format, default: none):     pixel format to use for output. Ignored in -player mode
+opfmt (pfmt, default: none):             pixel format to use for output. Ignored in -player mode
 .br
 drv (enum, default: auto):               indicate if graphics driver should be used. Ignored in player mode
 .br
@@ -664,15 +664,15 @@ Warning: smode=splitx will result in extractor NAL units still present in the ou
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content
+src (cstr):                              location of source content
 .br
-allt (boolean, default: false):          load all tracks even if unknown
+allt (bool, default: false):             load all tracks even if unknown
 .br
-noedit (boolean, default: false):        do not use edit lists
+noedit (bool, default: false):           do not use edit lists
 .br
-itt (boolean, default: false):           convert all items of root meta into a single PID
+itt (bool, default: false):              convert all items of root meta into a single PID
 .br
-itemid (boolean, default: true):         keep item IDs in PID properties
+itemid (bool, default: true):            keep item IDs in PID properties
 .br
 smode (enum, default: split):            load mode for scalable/tile tracks
 .br
@@ -684,15 +684,15 @@ smode (enum, default: split):            load mode for scalable/tile tracks
 .br
 
 .br
-alltk (boolean, default: false):         declare all tracks even disabled ones
+alltk (bool, default: false):            declare all tracks even disabled ones
 .br
-frame_size (unsigned int, default: 1024): frame size for raw audio samples (dispatches frame_size samples per packet)
+frame_size (uint, default: 1024):        frame size for raw audio samples (dispatches frame_size samples per packet)
 .br
-expart (boolean, default: true):         expose cover art as a dedicated video pid
+expart (bool, default: true):            expose cover art as a dedicated video pid
 .br
-sigfrag (boolean, default: false):       signal fragment and segment boundaries of source on output packets
+sigfrag (bool, default: false):          signal fragment and segment boundaries of source on output packets
 .br
-tkid (string):                           declare only track based on given param- integer value: declares track with the given ID
+tkid (str):                              declare only track based on given param- integer value: declares track with the given ID
 .br
 * audio: declares first audio track
 .br
@@ -700,7 +700,7 @@ tkid (string):                           declare only track based on given param
 .br
 * 4CC: declares first track with matching 4CC for handler type
 .br
-stsd (unsigned int, default: 0):         only extract sample mapped to the given sample desciption index. 0 means no filter
+stsd (uint, default: 0):                 only extract sample mapped to the given sample desciption index. 0 means no filter
 .br
 
 .br
@@ -762,15 +762,15 @@ The special file name randsc is used to generate random data with fake startcode
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content
+src (cstr):                              location of source content
 .br
-block_size (unsigned int, default: 0):   block size used to read file. 0 means 5000 if file less than 500m, 1M otherwise.
+block_size (uint, default: 0):           block size used to read file. 0 means 5000 if file less than 500m, 1M otherwise.
 .br
-range (64-bit fraction, default: 0-0):   byte range
+range (lfrac, default: 0-0):             byte range
 .br
-ext (string):                            override file extension
+ext (cstr):                              override file extension
 .br
-mime (string):                           set file mime type
+mime (cstr):                             set file mime type
 .br
 
 .br
@@ -788,9 +788,9 @@ This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files 
 .SH Options (expert):
 .LP
 .br
-progressive (boolean, default: false):   enable progressive loading
+progressive (bool, default: false):      enable progressive loading
 .br
-sax_dur (unsigned int, default: 1000):   loading duration for SAX parsing (XMT), 0 disables SAX parsing
+sax_dur (uint, default: 1000):           loading duration for SAX parsing (XMT), 0 disables SAX parsing
 .br
 
 .br
@@ -814,9 +814,9 @@ Note: Unless disabled at session level (see -no-probe ), file extensions are usu
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content
+src (cstr):                              location of source content
 .br
-block_size (unsigned int, default: 100000): block size used to read file
+block_size (uint, default: 100000):      block size used to read file
 .br
 cache (enum, default: disk):             set cache mode
 .br
@@ -830,11 +830,11 @@ cache (enum, default: disk):             set cache mode
 .br
 
 .br
-range (64-bit fraction, default: 0-0):   set byte range, as fraction
+range (lfrac, default: 0-0):             set byte range, as fraction
 .br
-ext (string):                            override file extension
+ext (cstr):                              override file extension
 .br
-mime (string):                           set file mime type
+mime (cstr):                             set file mime type
 .br
 
 .br
@@ -852,7 +852,7 @@ This filter parses SVG files directly into the scene graph of the compositor. It
 .SH Options (expert):
 .LP
 .br
-sax_dur (unsigned int, default: 0):      loading duration for SAX parsing, 0 disables SAX parsing
+sax_dur (uint, default: 0):              loading duration for SAX parsing, 0 disables SAX parsing
 .br
 
 .br
@@ -901,13 +901,13 @@ This filter parses AAC files/data and outputs corresponding audio PID and frames
 .SH Options (expert):
 .LP
 .br
-frame_size (unsigned int, default: 1024): size of AAC frame in audio samples
+frame_size (uint, default: 1024):        size of AAC frame in audio samples
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
-mpeg4 (boolean, default: false):         force signaling as MPEG-4 AAC
+mpeg4 (bool, default: false):            force signaling as MPEG-4 AAC
 .br
-ovsbr (boolean, default: false):         force oversampling SBR (does not multiply timescales by 2)
+ovsbr (bool, default: false):            force oversampling SBR (does not multiply timescales by 2)
 .br
 sbr (enum, default: no):                 set SBR signaling
 .br
@@ -945,9 +945,9 @@ This filter parses AAC in LATM files/data and outputs corresponding audio PID an
 .SH Options (expert):
 .LP
 .br
-frame_size (unsigned int, default: 1024): size of AAC frame in audio samples
+frame_size (uint, default: 1024):        size of AAC frame in audio samples
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -965,9 +965,9 @@ This filter parses MPEG-1/2 audio files/data and outputs corresponding audio PID
 .SH Options (expert):
 .LP
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
-expart (boolean, default: false):        expose pictures as a dedicated video pid
+expart (bool, default: false):           expose pictures as a dedicated video pid
 .br
 
 .br
@@ -1015,15 +1015,15 @@ This filter decodes MPEG-4 part 2 (and DivX) through libxvidcore library.
 .SH Options (expert):
 .LP
 .br
-deblock_y (boolean, default: false):     enable Y deblocking
+deblock_y (bool, default: false):        enable Y deblocking
 .br
-deblock_uv (boolean, default: false):    enable UV deblocking
+deblock_uv (bool, default: false):       enable UV deblocking
 .br
-film_effect (boolean, default: false):   enable film effect
+film_effect (bool, default: false):      enable film effect
 .br
-dering_y (boolean, default: false):      enable Y deblocking
+dering_y (bool, default: false):         enable Y deblocking
 .br
-dering_uv (boolean, default: false):     enable UV deblocking
+dering_uv (bool, default: false):        enable UV deblocking
 .br
 
 .br
@@ -1058,7 +1058,7 @@ This filter parses AC3 and E-AC3 files/data and outputs corresponding audio PID 
 .SH Options (expert):
 .LP
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -1091,7 +1091,7 @@ This filter parses AMR, AMR Wideband, EVRC and SMV files/data and outputs corres
 .SH Options (expert):
 .LP
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -1109,7 +1109,7 @@ This filter demultiplexes OGG files/data into a set of media PIDs and frames.
 .SH Options (expert):
 .LP
 .br
-index (number, default: 1.0):            indexing window length (unimplemented, only 0 disables stream probing for duration), 
+index (dbl, default: 1.0):               indexing window length (unimplemented, only 0 disables stream probing for duration), 
 .br
 
 .br
@@ -1157,9 +1157,9 @@ This filter demultiplexes MPEG-2 Transport Stream files/data into a set of media
 .SH Options (expert):
 .LP
 .br
-temi_url (string):                       force TEMI URL
+temi_url (cstr):                         force TEMI URL
 .br
-dsmcc (boolean, default: no):            enable DSMCC receiver
+dsmcc (bool, default: no):               enable DSMCC receiver
 .br
 
 .br
@@ -1195,35 +1195,35 @@ On OSX with VM packet replay you will need to force multicast routing, eg: route
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content
+src (cstr):                              location of source content
 .br
-block_size (unsigned int, default: 10000): block size used to read socket
+block_size (uint, default: 10000):       block size used to read socket
 .br
-sockbuf (unsigned int, default: 65536):  socket max buffer size
+sockbuf (uint, default: 65536):          socket max buffer size
 .br
-port (unsigned int, default: 1234):      default port if not specified
+port (uint, default: 1234):              default port if not specified
 .br
-ifce (string):                           default multicast interface
+ifce (cstr):                             default multicast interface
 .br
-listen (boolean, default: false):        indicate the input socket works in server mode
+listen (bool, default: false):           indicate the input socket works in server mode
 .br
-ka (boolean, default: false):            keep socket alive if no more connections
+ka (bool, default: false):               keep socket alive if no more connections
 .br
-maxc (unsigned int, default: +I):        max number of concurrent connections
+maxc (uint, default: +I):                max number of concurrent connections
 .br
-tsprobe (boolean, default: true):        probe for MPEG-2 TS data, either RTP or raw UDP. Disabled if mime or ext are given and do not match MPEG-2 TS mimes/extensions
+tsprobe (bool, default: true):           probe for MPEG-2 TS data, either RTP or raw UDP. Disabled if mime or ext are given and do not match MPEG-2 TS mimes/extensions
 .br
-ext (string):                            indicate file extension of udp data
+ext (str):                               indicate file extension of udp data
 .br
-mime (string):                           indicate mime type of udp data
+mime (str):                              indicate mime type of udp data
 .br
-block (boolean, default: false):         set blocking mode for socket(s)
+block (bool, default: false):            set blocking mode for socket(s)
 .br
-timeout (unsigned int, default: 5000):   set timeout in ms for UDP socket(s)
+timeout (uint, default: 5000):           set timeout in ms for UDP socket(s)
 .br
-reorder_pck (unsigned int, default: 100): number of packets delay for RTP reordering (M2TS over RTP) 
+reorder_pck (uint, default: 100):        number of packets delay for RTP reordering (M2TS over RTP) 
 .br
-reorder_delay (unsigned int, default: 10): number of ms delay for RTP reordering (M2TS over RTP)
+reorder_delay (uint, default: 10):       number of ms delay for RTP reordering (M2TS over RTP)
 .br
 
 .br
@@ -1256,13 +1256,13 @@ This filter decodes MPEG-2, H263, AVC|H264 and HEVC streams through VideoToolBox
 .SH Options (expert):
 .LP
 .br
-reorder (unsigned int, default: 6):      number of frames to wait for temporal re-ordering
+reorder (uint, default: 6):              number of frames to wait for temporal re-ordering
 .br
-no_copy (boolean, default: true):        dispatch VTB frames into filter chain (no copy)
+no_copy (bool, default: true):           dispatch VTB frames into filter chain (no copy)
 .br
-ofmt (pixel format, default: nv12):      set default pixel format for decoded video. If not matched default to nv12
+ofmt (pfmt, default: nv12):              set default pixel format for decoded video. If not matched default to nv12
 .br
-disable_hw (boolean, default: false):    disable hardware decoding
+disable_hw (bool, default: false):       disable hardware decoding
 .br
 
 .br
@@ -1310,7 +1310,7 @@ This filter reads MPEG-DASH, HLS and MS Smooth (on demand only for now) manifest
 .SH Options (expert):
 .LP
 .br
-auto_switch (unsigned int, default: 0):  switch quality every N segments, disabled if 0
+auto_switch (uint, default: 0):          switch quality every N segments, disabled if 0
 .br
 store (enum, default: mem):              enable file caching
 .br
@@ -1356,23 +1356,23 @@ start_with (enum, default: max_bw):      initial selection criteria
 .br
 
 .br
-max_res (boolean, default: true):        use max media resolution to configure display
+max_res (bool, default: true):           use max media resolution to configure display
 .br
-immediate (boolean, default: false):     when interactive switching is requested and immediate is set, the buffer segments are trashed
+immediate (bool, default: false):        when interactive switching is requested and immediate is set, the buffer segments are trashed
 .br
-abort (boolean, default: false):         allow abort during a segment download
+abort (bool, default: false):            allow abort during a segment download
 .br
-use_bmin (boolean, default: false):      use the indicated min buffer time of the MPD if true, otherwise uses default player settings
+use_bmin (bool, default: false):         use the indicated min buffer time of the MPD if true, otherwise uses default player settings
 .br
-shift_utc (int, default: 0):             shift DASH UTC clock
+shift_utc (sint, default: 0):            shift DASH UTC clock
 .br
-atsc_shift (int, default: 0):            shift ATSC requests time by given ms
+atsc_shift (sint, default: 0):           shift ATSC requests time by given ms
 .br
-server_utc (boolean, default: yes):      use ServerUTC: or Date: http headers instead of local UTC
+server_utc (bool, default: yes):         use ServerUTC: or Date: http headers instead of local UTC
 .br
-screen_res (boolean, default: yes):      use screen resolution in selection phase
+screen_res (bool, default: yes):         use screen resolution in selection phase
 .br
-timeshift (unsigned int, default: 0):    set initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)
+timeshift (uint, default: 0):            set initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)
 .br
 tile_mode (enum, default: none):         tile adaptation mode
 .br
@@ -1396,25 +1396,25 @@ tile_mode (enum, default: none):         tile adaptation mode
 .br
 
 .br
-tiles_rate (unsigned int, default: 100): indicate the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.
+tiles_rate (uint, default: 100):         indicate the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.
 .br
-delay40X (unsigned int, default: 500):   delay in millisconds to wait between two 40X on the same segment
+delay40X (uint, default: 500):           delay in millisconds to wait between two 40X on the same segment
 .br
-exp_threshold (unsigned int, default: 100): delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost
+exp_threshold (uint, default: 100):      delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost
 .br
-switch_count (unsigned int, default: 1): indicate how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations
+switch_count (uint, default: 1):         indicate how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations
 .br
-aggressive (boolean, default: no):       if enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)
+aggressive (bool, default: no):          if enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)
 .br
-debug_as (unsigned int, default: -1):    play only the adaptation set indicated by its index in the MPD; if negative, all sets are used
+debug_as (uint, default: -1):            play only the adaptation set indicated by its index in the MPD; if negative, all sets are used
 .br
-speedadapt (boolean, default: no):       enable adaptation based on playback speed
+speedadapt (bool, default: no):          enable adaptation based on playback speed
 .br
-noxlink (boolean, default: no):          disable xlink if period has both xlink and adaptation sets
+noxlink (bool, default: no):             disable xlink if period has both xlink and adaptation sets
 .br
-query (string):                          set query string (without initial '?') to append to xlink of periods
+query (str):                             set query string (without initial '?') to append to xlink of periods
 .br
-split_as (boolean, default: no):         separate all qualities into different adaptation sets and stream all qualities
+split_as (bool, default: no):            separate all qualities into different adaptation sets and stream all qualities
 .br
 
 .br
@@ -1438,7 +1438,7 @@ When the file is set per PID, the first CryptInfo with the same ID is used, othe
 .SH Options (expert):
 .LP
 .br
-cfile (string):                          crypt file location - see filter help
+cfile (str):                             crypt file location - see filter help
 .br
 
 .br
@@ -1449,20 +1449,26 @@ Description: CENC  encryptor
 .br
 
 .br
-The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a configuration file for declaring keys.
+The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.
 .br
 The syntax is available at https://wiki.gpac.io/Common-Encryption
 .br
-The file can be set per PID using the property CryptInfo, or set at the filter option level.
+The DRM config file can be set per PID using the property CryptInfo, or set at the filter level using -cfile.
 .br
-When the file is set per PID, the first CryptInfo with the same ID is used, otherwise the first CryptInfo is used.
+When the DRM config file is set per PID, the first CrypTrack in the DRM config file with the same ID is used, otherwise the first CrypTrack is used.
+.br
+If no DRM config file is defined for a given PID, this PID will not be encrypted, or an error will be thrown if -allc is specified.
+.br
+
 .br
 
 .br
 .SH Options (expert):
 .LP
 .br
-cfile (string):                          crypt file location - see filter help
+cfile (str):                             crypt file location - see filter help
+.br
+allc (str):                              throw error if no DRM config file is found for a PID - see filter help
 .br
 
 .br
@@ -1553,9 +1559,9 @@ The box patch can either be a filename or the full XML string.
 .SH Options (expert):
 .LP
 .br
-m4sys (boolean, default: false):         force MPEG-4 Systems signaling of tracks
+m4sys (bool, default: false):            force MPEG-4 Systems signaling of tracks
 .br
-dref (boolean, default: false):          only references data from source file - not compatible with all media sources
+dref (bool, default: false):             only references data from source file - not compatible with all media sources
 .br
 ctmode (enum, default: edit):            set composition offset mode for video tracks.
 .br
@@ -1567,13 +1573,13 @@ ctmode (enum, default: edit):            set composition offset mode for video t
 .br
 
 .br
-idur (fraction, default: 0):             only import the specified duration. If negative, specify the number of coded frames to import
+idur (frac, default: 0):                 only import the specified duration. If negative, specify the number of coded frames to import
 .br
-pack3gp (unsigned int, default: 1):      pack a given number of 3GPP audio frames in one sample
+pack3gp (uint, default: 1):              pack a given number of 3GPP audio frames in one sample
 .br
-importer (boolean, default: false):      compatibility with old importer, displays import progress
+importer (bool, default: false):         compatibility with old importer, displays import progress
 .br
-pack_nal (boolean, default: false):      repack NALU size length to minimum possible size for AVC/HEVC/...
+pack_nal (bool, default: false):         repack NALU size length to minimum possible size for AVC/HEVC/...
 .br
 xps_inband (enum, default: no):          use inband (in sample data) param set for AVC/HEVC/...
 .br
@@ -1603,39 +1609,39 @@ store (enum, default: inter):            file storage mode
 .br
 
 .br
-cdur (number, default: -1.0):            chunk duration for interleaving and fragmentation modes
+cdur (dbl, default: -1.0):               chunk duration for interleaving and fragmentation modes
 .br
 * 0: no specific interleaving but moov first
 .br
 * negative: defaults to 1.0 unless overriden by storage profile
 .br
-moovts (int, default: 600):              timescale to use for movie. A negative value picks the media timescale of the first track added
+moovts (sint, default: 600):             timescale to use for movie. A negative value picks the media timescale of the first track added
 .br
-moof_first (boolean, default: true):     generate fragments starting with moof then mdat
+moof_first (bool, default: true):        generate fragments starting with moof then mdat
 .br
-abs_offset (boolean, default: false):    use absolute file offset in fragments rather than offsets from moof
+abs_offset (bool, default: false):       use absolute file offset in fragments rather than offsets from moof
 .br
-fsap (boolean, default: true):           split truns in video fragments at SAPs to reduce file size
+fsap (bool, default: true):              split truns in video fragments at SAPs to reduce file size
 .br
-subs_sidx (int, default: -1):            number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source pid
+subs_sidx (sint, default: -1):           number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source pid
 .br
-m4cc (string):                           4 character code of empty box to appen at the end of a segment
+m4cc (str):                              4 character code of empty box to appen at the end of a segment
 .br
-chain_sidx (boolean, default: false):    use daisy-chaining of SIDX
+chain_sidx (bool, default: false):       use daisy-chaining of SIDX
 .br
-msn (unsigned int, default: 1):          sequence number of first moof to N
+msn (uint, default: 1):                  sequence number of first moof to N
 .br
-msninc (unsigned int, default: 1):       sequence number increase between moofs
+msninc (uint, default: 1):               sequence number increase between moofs
 .br
-tfdt (64-bit fraction, default: 0):      set TFDT of first traf
+tfdt (lfrac, default: 0):                set TFDT of first traf
 .br
-tfdt_traf (boolean, default: false):     set TFDT in each traf
+tfdt_traf (bool, default: false):        set TFDT in each traf
 .br
-nofragdef (boolean, default: false):     disable default flags in fragments
+nofragdef (bool, default: false):        disable default flags in fragments
 .br
-straf (boolean, default: false):         use a single traf per moov (smooth streaming and co)
+straf (bool, default: false):            use a single traf per moov (smooth streaming and co)
 .br
-strun (boolean, default: false):         use a single trun per traf (smooth streaming and co)
+strun (bool, default: false):            use a single trun per traf (smooth streaming and co)
 .br
 psshs (enum, default: moov):             set PSSH boxes store mode
 .br
@@ -1647,11 +1653,11 @@ psshs (enum, default: moov):             set PSSH boxes store mode
 .br
 
 .br
-sgpd_traf (boolean, default: false):     store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box
+sgpd_traf (bool, default: false):        store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box
 .br
-cache (boolean, default: false):         enable temp storage for VoD dash modes - see filter help
+cache (bool, default: false):            enable temp storage for VoD dash modes - see filter help
 .br
-noinit (boolean, default: false):        do not produce initial moov, used for DASH bitstream switching mode
+noinit (bool, default: false):           do not produce initial moov, used for DASH bitstream switching mode
 .br
 tktpl (enum, default: yes):              use track box from input if any as a template to create new track
 .br
@@ -1673,9 +1679,9 @@ mudta (enum, default: yes):              use udta and other moov extension boxes
 .br
 
 .br
-tmpd (string):                           set temp directory for intermediate file(s)
+tmpd (str):                              set temp directory for intermediate file(s)
 .br
-mvex (boolean, default: false):          set mvex after tracks
+mvex (bool, default: false):             set mvex after tracks
 .br
 sdtp_traf (enum, default: no):           use sdtp in traf rather than using flags in trun sample entries
 .br
@@ -1687,15 +1693,15 @@ sdtp_traf (enum, default: no):           use sdtp in traf rather than using flag
 .br
 
 .br
-tkid (unsigned int, default: 0):         track ID of created track for single track. Default 0 uses next available trackID
+tkid (uint, default: 0):                 track ID of created track for single track. Default 0 uses next available trackID
 .br
-fdur (boolean, default: false):          fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option
+fdur (bool, default: false):             fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option
 .br
-btrt (boolean, default: true):           set btrt box in sample description
+btrt (bool, default: true):              set btrt box in sample description
 .br
-styp (string):                           set segment styp major brand to the given 4CC[.version]
+styp (str):                              set segment styp major brand to the given 4CC[.version]
 .br
-mediats (int, default: 0):               set media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate
+mediats (sint, default: 0):              set media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate
 .br
 ase (enum, default: v0):                 set audio sample entry mode for more than stereo layouts
 .br
@@ -1709,19 +1715,19 @@ ase (enum, default: v0):                 set audio sample entry mode for more th
 .br
 
 .br
-ssix (boolean, default: false):          create ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest
+ssix (bool, default: false):             create ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest
 .br
-ccst (boolean, default: false):          insert coding constraint box for video tracks
+ccst (bool, default: false):             insert coding constraint box for video tracks
 .br
-maxchunk (unsigned int, default: 0):     set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints
+maxchunk (uint, default: 0):             set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints
 .br
-noroll (boolean, default: false):        disable roll sample grouping
+noroll (bool, default: false):           disable roll sample grouping
 .br
-saio32 (boolean, default: false):        set single segment mode for dash
+saio32 (bool, default: false):           set single segment mode for dash
 .br
-ctrn (boolean, default: false):          use compact track run (experimental)
+ctrn (bool, default: false):             use compact track run (experimental)
 .br
-ctrni (boolean, default: false):         use inheritance in compact track run for HEVC tile tracks (highly experimental)
+ctrni (bool, default: false):            use inheritance in compact track run for HEVC tile tracks (highly experimental)
 .br
 compress (enum, default: no):            set top-level box compression mode
 .br
@@ -1739,7 +1745,7 @@ compress (enum, default: no):            set top-level box compression mode
 .br
 
 .br
-fcomp (boolean, default: false):         force using compress box even when compressed size is larger than uncompressed
+fcomp (bool, default: false):            force using compress box even when compressed size is larger than uncompressed
 .br
 trun_inter (enum, default: no):          interleave samples in trun based on the temporal level, the lowest level are stored first
 .br
@@ -1751,11 +1757,11 @@ trun_inter (enum, default: no):          interleave samples in trun based on the
 .br
 
 .br
-block_size (unsigned int, default: 10000): target output block size, 0 for default internal value (10k)
+block_size (uint, default: 10000):       target output block size, 0 for default internal value (10k)
 .br
-boxpatch (string):                       apply box patch before writing
+boxpatch (str):                          apply box patch before writing
 .br
-deps (boolean, default: true):           add samples dependencies information
+deps (bool, default: true):              add samples dependencies information
 .br
 
 .br
@@ -1773,7 +1779,7 @@ This filter parses QCP files/data and outputs corresponding audio PID and frames
 .SH Options (expert):
 .LP
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -1791,9 +1797,9 @@ This filter parses H263 files/data and outputs corresponding visual PID and fram
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 15000/1000):     import frame rate
+fps (frac, default: 15000/1000):         import frame rate
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -1813,13 +1819,13 @@ Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may 
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
+fps (frac, default: 0/1000):             import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
-vfr (boolean, default: false):           set variable frame rate import
+vfr (bool, default: false):              set variable frame rate import
 .br
-importer (boolean, default: false):      compatibility with old importer, displays import results
+importer (bool, default: false):         compatibility with old importer, displays import results
 .br
 
 .br
@@ -1841,9 +1847,9 @@ NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
 .SH Options (expert):
 .LP
 .br
-reframe (boolean, default: false):       force reparsing of referenced content
+reframe (bool, default: false):          force reparsing of referenced content
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -1865,9 +1871,9 @@ NHML documentation is available at https://wiki.gpac.io/NHML-Format
 .SH Options (expert):
 .LP
 .br
-reframe (boolean, default: false):       force reparsing of referenced content
+reframe (bool, default: false):          force reparsing of referenced content
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -1889,31 +1895,31 @@ Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may 
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
+fps (frac, default: 0/1000):             import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
-index (number, default: -1.0):           indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
+index (dbl, default: -1.0):              indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
 .br
-explicit (boolean, default: false):      use explicit layered (SVC/LHVC) import
+explicit (bool, default: false):         use explicit layered (SVC/LHVC) import
 .br
-strict_poc (boolean, default: false):    delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes
+strict_poc (bool, default: false):       delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes
 .br
-nosei (boolean, default: false):         remove all sei messages
+nosei (bool, default: false):            remove all sei messages
 .br
-nosvc (boolean, default: false):         remove all SVC/MVC/LHVC data
+nosvc (bool, default: false):            remove all SVC/MVC/LHVC data
 .br
-novpsext (boolean, default: false):      remove all VPS extensions
+novpsext (bool, default: false):         remove all VPS extensions
 .br
-importer (boolean, default: false):      compatibility with old importer, displays import results
+importer (bool, default: false):         compatibility with old importer, displays import results
 .br
-nal_length (unsigned int, default: 4):   set number of bytes used to code length field: 1, 2 or 4
+nal_length (uint, default: 4):           set number of bytes used to code length field: 1, 2 or 4
 .br
-subsamples (boolean, default: false):    import subsamples information
+subsamples (bool, default: false):       import subsamples information
 .br
-deps (boolean, default: false):          import samples dependencies information
+deps (bool, default: false):             import samples dependencies information
 .br
-seirw (boolean, default: true):          rewrite AVC sei messages for ISOBMFF constraints
+seirw (bool, default: true):             rewrite AVC sei messages for ISOBMFF constraints
 .br
-audelim (boolean, default: false):       keep Access Unit delimiter in payload
+audelim (bool, default: false):          keep Access Unit delimiter in payload
 .br
 
 .br
@@ -1946,9 +1952,9 @@ This filter demultiplexes AVI files/data to produce media PIDs and frames.
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 1/0):            import frame rate, default is AVI one
+fps (frac, default: 1/0):                import frame rate, default is AVI one
 .br
-importer (boolean, default: false):      compatibility with old importer, displays import results
+importer (bool, default: false):         compatibility with old importer, displays import results
 .br
 
 .br
@@ -1970,29 +1976,29 @@ The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Document
 .SH Options (expert):
 .LP
 .br
-webvtt (boolean, default: false):        force WebVTT import of SRT files
+webvtt (bool, default: false):           force WebVTT import of SRT files
 .br
-nodefbox (boolean, default: false):      skip default text box
+nodefbox (bool, default: false):         skip default text box
 .br
-noflush (boolean, default: false):       skip final sample flush for srt
+noflush (bool, default: false):          skip final sample flush for srt
 .br
-fontname (string):                       default font to use
+fontname (str):                          default font to use
 .br
-fontsize (unsigned int, default: 18):    default font size
+fontsize (uint, default: 18):            default font size
 .br
-lang (string):                           default language to use
+lang (str):                              default language to use
 .br
-width (unsigned int, default: 0):        default width of text area, set to 0 to resolve against visual PIDs
+width (uint, default: 0):                default width of text area, set to 0 to resolve against visual PIDs
 .br
-height (unsigned int, default: 0):       default height of text area, set to 0 to resolve against visual PIDs
+height (uint, default: 0):               default height of text area, set to 0 to resolve against visual PIDs
 .br
-x (unsigned int, default: 0):            default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)
+x (uint, default: 0):                    default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)
 .br
-y (unsigned int, default: 0):            default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)
+y (uint, default: 0):                    default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)
 .br
-zorder (int, default: 0):                default z-order of the PID
+zorder (sint, default: 0):               default z-order of the PID
 .br
-timescale (unsigned int, default: 1000): default timescale of the PID
+timescale (uint, default: 1000):         default timescale of the PID
 .br
 
 .br
@@ -2014,13 +2020,13 @@ The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Document
 .SH Options (expert):
 .LP
 .br
-texture (boolean, default: false):       use texturing for output text
+texture (bool, default: false):          use texturing for output text
 .br
-outline (boolean, default: false):       draw text outline
+outline (bool, default: false):          draw text outline
 .br
-width (unsigned int, default: 400):      default width when standalone rendering
+width (uint, default: 400):              default width when standalone rendering
 .br
-height (unsigned int, default: 200):     default height when standalone rendering
+height (uint, default: 200):             default height when standalone rendering
 .br
 
 .br
@@ -2042,19 +2048,19 @@ The filter options are used to override the JS global variables of the WebVTT re
 .SH Options (expert):
 .LP
 .br
-script (string, default: $GSHARE/scripts/webvtt-renderer.js): location of WebVTT SVG JS renderer
+script (str, default: $GSHARE/scripts/webvtt-renderer.js): location of WebVTT SVG JS renderer
 .br
-font (string, default: SANS, updatable): font to use
+font (str, default: SANS, updatable):    font to use
 .br
-fontSize (float, default: 20, updatable): font size to use
+fontSize (flt, default: 20, updatable):  font size to use
 .br
-color (string, default: white, updatable): color to use
+color (str, default: white, updatable):  color to use
 .br
-lineSpacing (float, default: 1.0, updatable): line spacing as scaling factor to font size
+lineSpacing (flt, default: 1.0, updatable): line spacing as scaling factor to font size
 .br
-x (float, default: 5, updatable):        horizontal offset
+x (flt, default: 5, updatable):          horizontal offset
 .br
-y (float, default: 5, updatable):        vertical offset
+y (flt, default: 5, updatable):          vertical offset
 .br
 
 .br
@@ -2082,57 +2088,57 @@ The filter produces either media PIDs and compressed media frames, or file PIDs 
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content (SDP, RTP or RTSP URL)
+src (cstr):                              location of source content (SDP, RTP or RTSP URL)
 .br
-firstport (unsigned int, default: 0):    default first port number to use. 0 lets the filter decide
+firstport (uint, default: 0):            default first port number to use. 0 lets the filter decide
 .br
-ifce (string):                           default interface IP to use for multicast. If NULL, the default system interface will be used
+ifce (str):                              default interface IP to use for multicast. If NULL, the default system interface will be used
 .br
-ttl (unsigned int, default: 127, minmax: 0-127): multicast TTL
+ttl (uint, default: 127, minmax: 0-127): multicast TTL
 .br
-reorder_len (unsigned int, default: 1000): reorder length in packets
+reorder_len (uint, default: 1000):       reorder length in packets
 .br
-reorder_delay (unsigned int, default: 50): max delay in RTP reorderer, packets will be dispatched after that
+reorder_delay (uint, default: 50):       max delay in RTP reorderer, packets will be dispatched after that
 .br
-block_size (unsigned int, default: 0x200000): buffer size fur RTP/UDP or RTSP when interleaved
+block_size (uint, default: 0x200000):    buffer size fur RTP/UDP or RTSP when interleaved
 .br
-disable_rtcp (boolean, default: false):  disable RTCP reporting
+disable_rtcp (bool, default: false):     disable RTCP reporting
 .br
-nat_keepalive (unsigned int, default: 0): delay in ms of NAT keepalive, disabled by default (except for SatIP, set to 30s by default)
+nat_keepalive (uint, default: 0):        delay in ms of NAT keepalive, disabled by default (except for SatIP, set to 30s by default)
 .br
-force_mcast (string):                    force multicast on indicated IP in RTSP setup
+force_mcast (str):                       force multicast on indicated IP in RTSP setup
 .br
-use_client_ports (boolean, default: false): force using client ports  (hack for some RTSP servers overriding client ports)
+use_client_ports (bool, default: false): force using client ports  (hack for some RTSP servers overriding client ports)
 .br
-bandwidth (unsigned int, default: 0):    set bandwidth param for RTSP requests
+bandwidth (uint, default: 0):            set bandwidth param for RTSP requests
 .br
-default_port (unsigned int, default: 554, minmax: 0-65535): set default RTSP port
+default_port (uint, default: 554, minmax: 0-65535): set default RTSP port
 .br
-satip_port (unsigned int, default: 1400, minmax: 0-65535): set default port for SATIP
+satip_port (uint, default: 1400, minmax: 0-65535): set default port for SATIP
 .br
-interleave (boolean, default: false):    set RTP over RTSP
+interleave (bool, default: false):       set RTP over RTSP
 .br
-udp_timeout (unsigned int, default: 10000): default timeout before considering UDP is down
+udp_timeout (uint, default: 10000):      default timeout before considering UDP is down
 .br
-rtsp_timeout (unsigned int, default: 3000): default timeout before considering RTSP is down
+rtsp_timeout (uint, default: 3000):      default timeout before considering RTSP is down
 .br
-rtcp_timeout (unsigned int, default: 5000): default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP
+rtcp_timeout (uint, default: 5000):      default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP
 .br
-autortsp (boolean, default: true):       automatically reconfig RTSP interleaving if UDP timeout
+autortsp (bool, default: true):          automatically reconfig RTSP interleaving if UDP timeout
 .br
-first_packet_drop (unsigned int, default: 0): set number of first RTP packet to drop - 0 if no drop
+first_packet_drop (uint, default: 0):    set number of first RTP packet to drop - 0 if no drop
 .br
-frequency_drop (unsigned int, default: 0): drop 1 out of N packet - 0 disable droping
+frequency_drop (uint, default: 0):       drop 1 out of N packet - 0 disable droping
 .br
-user_agent (string, default: $GUA):      user agent string, by default solved from GPAC preferences
+user_agent (str, default: $GUA):         user agent string, by default solved from GPAC preferences
 .br
-languages (string, default: $GLANG):     user languages, by default solved from GPAC preferences
+languages (str, default: $GLANG):        user languages, by default solved from GPAC preferences
 .br
-stats (unsigned int, default: 500):      update statistics to the user every given MS, 0 disables reporting
+stats (uint, default: 500):              update statistics to the user every given MS, 0 disables reporting
 .br
-max_sleep (int, default: 1000):          set max sleep in milliseconds. A negative value -N means to always sleep for N ms, a positive value N means to sleep at most N ms but will sleep less if frame duration is shorter
+max_sleep (sint, default: 1000):         set max sleep in milliseconds. A negative value -N means to always sleep for N ms, a positive value N means to sleep at most N ms but will sleep less if frame duration is shorter
 .br
-rtcpsync (boolean, default: true):       use RTCP to adjust synchronization
+rtcpsync (bool, default: true):          use RTCP to adjust synchronization
 .br
 
 .br
@@ -2154,25 +2160,25 @@ The ouput file name can use gpac templating mechanism, see gpac help.
 .SH Options (expert):
 .LP
 .br
-dst (string):                            location of destination file - see filter help 
+dst (cstr):                              location of destination file - see filter help 
 .br
-append (boolean, default: false):        open in append mode
+append (bool, default: false):           open in append mode
 .br
-dynext (boolean, default: false):        indicate the file extension is set by filter chain, not dst
+dynext (bool, default: false):           indicate the file extension is set by filter chain, not dst
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-speed (number, default: 1.0):            set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1
 .br
-ext (string):                            set extension for graph resolution, regardless of file extension
+ext (cstr):                              set extension for graph resolution, regardless of file extension
 .br
-mime (string):                           set mime type for graph resolution
+mime (cstr):                             set mime type for graph resolution
 .br
-cat (boolean, default: false):           cat each file of input pid rather than creating one file per filename
+cat (bool, default: false):              cat each file of input pid rather than creating one file per filename
 .br
-ow (boolean, default: true):             overwrite output if existing
+ow (bool, default: true):                overwrite output if existing
 .br
-mvbk (unsigned int, default: 8192):      block size used when moving parts of the file around in patch mode
+mvbk (uint, default: 8192):              block size used when moving parts of the file around in patch mode
 .br
 
 .br
@@ -2190,7 +2196,7 @@ This filter converts AAC streams into LATM encapsulated data.
 .SH Options (expert):
 .LP
 .br
-fdsi (fraction, default: 0):             set delay between two LATM Audio Config
+fdsi (frac, default: 0):                 set delay between two LATM Audio Config
 .br
 
 .br
@@ -2252,7 +2258,7 @@ Example
 .SH Options (expert):
 .LP
 .br
-exporter (boolean, default: false):      compatibility with old exporter, displays export results
+exporter (bool, default: false):         compatibility with old exporter, displays export results
 .br
 rt (enum, default: off):                 real-time regulation mode of input
 .br
@@ -2264,17 +2270,17 @@ rt (enum, default: off):                 real-time regulation mode of input
 .br
 
 .br
-saps (uint list, minmax: 0|1|2|3|4):     drop non-SAP packets, off by default. The list gives the SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding
+saps (uintl, minmax: 0|1|2|3|4):         drop non-SAP packets, off by default. The list gives the SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding
 .br
 
 .br
-refs (boolean, default: false):          forward only frames used as reference frames, if indicated in the input stream
+refs (bool, default: false):             forward only frames used as reference frames, if indicated in the input stream
 .br
-speed (number, default: 1.0):            speed for real-time regulation mode - only positive value
+speed (dbl, default: 1.0):               speed for real-time regulation mode - only positive value
 .br
-raw (boolean, default: false):           force input streams to be in raw format (i.e. forces decoding of input)
+raw (bool, default: false):              force input streams to be in raw format (i.e. forces decoding of input)
 .br
-frames (uint list):                      drop all except listed frames (first being 1), off by default
+frames (uintl):                          drop all except listed frames (first being 1), off by default
 .br
 
 .br
@@ -2294,11 +2300,11 @@ The writegen filter should usually not be explicetly loaded without a source ID 
 .SH Options (expert):
 .LP
 .br
-exporter (boolean, default: false):      compatibility with old exporter, displays export results
+exporter (bool, default: false):         compatibility with old exporter, displays export results
 .br
-pfmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for raw extract. If not set, derived from extension
+pfmt (pfmt, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for raw extract. If not set, derived from extension
 .br
-afmt (audio format, default: none, minmax: none,u8,s16,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): audio format for raw extract. If not set, derived from extension
+afmt (afmt, default: none, minmax: none,u8,s16,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): audio format for raw extract. If not set, derived from extension
 .br
 decinfo (enum, default: auto):           decoder config insert mode
 .br
@@ -2312,13 +2318,13 @@ decinfo (enum, default: auto):           decoder config insert mode
 .br
 
 .br
-split (boolean, default: false):         force one file per decoded frame.
+split (bool, default: false):            force one file per decoded frame.
 .br
-frame (boolean, default: false):         force single frame dump with no rewrite. In this mode, all codecids are supported
+frame (bool, default: false):            force single frame dump with no rewrite. In this mode, all codecids are supported
 .br
-sstart (unsigned int, default: 0):       start number of frame to dump. If 0, all samples are dumped
+sstart (uint, default: 0):               start number of frame to dump. If 0, all samples are dumped
 .br
-send (unsigned int, default: 0):         end number of frame to dump. If less than start frame, all samples after start are dumped
+send (uint, default: 0):                 end number of frame to dump. If less than start frame, all samples after start are dumped
 .br
 
 .br
@@ -2336,7 +2342,7 @@ This filter converts AVC|H264 and HEVC streams into AnnexB format, with inband p
 .SH Options (expert):
 .LP
 .br
-rcfg (boolean, default: true):           force repeating decoder config at each I-frame
+rcfg (bool, default: true):              force repeating decoder config at each I-frame
 .br
 extract (enum, default: all):            layer extraction mode
 .br
@@ -2348,7 +2354,7 @@ extract (enum, default: all):            layer extraction mode
 .br
 
 .br
-delim (boolean, default: true):          insert AU Delimiter NAL
+delim (bool, default: true):             insert AU Delimiter NAL
 .br
 
 .br
@@ -2366,7 +2372,7 @@ This filter converts a single stream to a QCP output file.
 .SH Options (expert):
 .LP
 .br
-exporter (boolean, default: false):      compatibility with old exporter, displays export results
+exporter (bool, default: false):         compatibility with old exporter, displays export results
 .br
 
 .br
@@ -2384,9 +2390,9 @@ This filter converts a single stream to a WebVTT output file.
 .SH Options (expert):
 .LP
 .br
-exporter (boolean, default: false):      compatibility with old exporter, displays export results
+exporter (bool, default: false):         compatibility with old exporter, displays export results
 .br
-merge (boolean, default: false):         merge VTT cue if needed
+merge (bool, default: false):            merge VTT cue if needed
 .br
 
 .br
@@ -2408,9 +2414,9 @@ NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
 .SH Options (expert):
 .LP
 .br
-exporter (boolean, default: false):      compatibility with old exporter, displays export results
+exporter (bool, default: false):         compatibility with old exporter, displays export results
 .br
-large (boolean, default: false):         use large file mode
+large (bool, default: false):            use large file mode
 .br
 
 .br
@@ -2432,15 +2438,15 @@ NHML documentation is available at https://wiki.gpac.io/NHML-Format
 .SH Options (expert):
 .LP
 .br
-exporter (boolean, default: false):      compatibility with old exporter, displays export results
+exporter (bool, default: false):         compatibility with old exporter, displays export results
 .br
-dims (boolean, default: false):          use DIMS mode
+dims (bool, default: false):             use DIMS mode
 .br
-name (string, default: dump.nhml):       set output name of files produced (needed media/info files refered to from XML
+name (str, default: dump.nhml):          set output name of files produced (needed media/info files refered to from XML
 .br
-nhmlonly (boolean, default: false):      only dump NHML info, not media
+nhmlonly (bool, default: false):         only dump NHML info, not media
 .br
-full (boolean, default: false):          full NHML dump
+full (bool, default: false):             full NHML dump
 .br
 chksum (enum, default: none):            insert frame checksum
 .br
@@ -2468,7 +2474,7 @@ This filter demultiplexes VobSub files/data to produce media PIDs and frames.
 .SH Options (expert):
 .LP
 .br
-blankframe (boolean, default: true):     force inserting a blank frame if first subpic is not at 0
+blankframe (bool, default: true):        force inserting a blank frame if first subpic is not at 0
 .br
 
 .br
@@ -2486,11 +2492,11 @@ This filter multiplexes raw or compressed audio and video to produce an AVI outp
 .SH Options (expert):
 .LP
 .br
-dst (string):                            location of destination file
+dst (cstr):                              location of destination file
 .br
-fps (fraction, default: 25/1):           default framerate if none indicated in stream
+fps (frac, default: 25/1):               default framerate if none indicated in stream
 .br
-noraw (boolean, default: false):         disable raw output in AVI, only compressed ones allowed
+noraw (bool, default: false):            disable raw output in AVI, only compressed ones allowed
 .br
 
 .br
@@ -2508,27 +2514,27 @@ This filter outputs a single uncompressed audio PID to a soundcard.
 .SH Options (expert):
 .LP
 .br
-drv (string):                            audio driver name
+drv (cstr):                              audio driver name
 .br
-bnum (unsigned int, default: 2):         number of audio buffers - 0 for auto
+bnum (uint, default: 2):                 number of audio buffers - 0 for auto
 .br
-bdur (unsigned int, default: 100):       total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers
+bdur (uint, default: 100):               total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers
 .br
-threaded (boolean, default: true):       force dedicated thread creation if sound card driver is not threaded
+threaded (bool, default: true):          force dedicated thread creation if sound card driver is not threaded
 .br
-dur (fraction, default: 0):              only play the specified duration
+dur (frac, default: 0):                  only play the specified duration
 .br
-clock (boolean, default: true):          hint audio clock for this stream (reports system time and CTS), for other filters to use
+clock (bool, default: true):             hint audio clock for this stream (reports system time and CTS), for other filters to use
 .br
-speed (number, default: 1.0):            set playback speed. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback speed. If speed is negative and start is 0, start is set to -1
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-vol (unsigned int, default: 100, minmax: 0-100, updatable): set default audio volume, as a percentage between 0 and 100
+vol (uint, default: 100, minmax: 0-100, updatable): set default audio volume, as a percentage between 0 and 100
 .br
-pan (unsigned int, default: 50, minmax: 0-100, updatable): set stereo pan, as a percentage between 0 and 100, 50 being centered
+pan (uint, default: 50, minmax: 0-100, updatable): set stereo pan, as a percentage between 0 and 100, 50 being centered
 .br
-buffer (unsigned int, default: 100):     set buffer in ms
+buffer (uint, default: 100):             set buffer in ms
 .br
 
 .br
@@ -2546,7 +2552,7 @@ This filter converts MPEG-4 part 2 visual streams into dumpable format (reinsert
 .SH Options (expert):
 .LP
 .br
-rcfg (boolean, default: true):           force repeating decoder config at each I-frame
+rcfg (bool, default: true):              force repeating decoder config at each I-frame
 .br
 
 .br
@@ -2564,11 +2570,11 @@ This filter resamples raw audio to a target sample rate, number of channels or a
 .SH Options (expert):
 .LP
 .br
-ch (unsigned int, default: 0):           desired number of output audio channels - 0 for auto
+ch (uint, default: 0):                   desired number of output audio channels - 0 for auto
 .br
-sr (unsigned int, default: 0):           desired sample rate of output audio - 0 for auto
+sr (uint, default: 0):                   desired sample rate of output audio - 0 for auto
 .br
-fmt (audio format, default: none):       desired format of output audio - none for auto
+fmt (afmt, default: none):               desired format of output audio - none for auto
 .br
 
 .br
@@ -2602,11 +2608,11 @@ The pixel format of the dumped frame is always RGB in OpenGL and matches the vid
 .SH Options (expert):
 .LP
 .br
-drv (string):                            video driver name
+drv (cstr):                              video driver name
 .br
-vsync (boolean, default: true):          enable video screen sync
+vsync (bool, default: true):             enable video screen sync
 .br
-drop (boolean, default: false):          enable droping late frames
+drop (bool, default: false):             enable droping late frames
 .br
 disp (enum, default: gl):                display mode
 .br
@@ -2620,33 +2626,33 @@ disp (enum, default: gl):                display mode
 .br
 
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-dur (64-bit fraction, default: 0):       only play the specified duration
+dur (lfrac, default: 0):                 only play the specified duration
 .br
-speed (number, default: 1.0):            set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1
 .br
-hold (number, default: 1.0):             number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams
+hold (dbl, default: 1.0):                number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams
 .br
-linear (boolean, default: false):        use linear filtering instead of nearest pixel for GL mode
+linear (bool, default: false):           use linear filtering instead of nearest pixel for GL mode
 .br
-back (unsigned int, default: 0x808080):  back color for transparent images
+back (uint, default: 0x808080):          back color for transparent images
 .br
-wsize (vec2d int, default: -1x-1):       default init window size. 0x0 holds the window size of the first frame. Negative values indicate video media size
+wsize (v2di, default: -1x-1):            default init window size. 0x0 holds the window size of the first frame. Negative values indicate video media size
 .br
-wpos (vec2d int, default: -1x-1):        default position (0,0 top-left)
+wpos (v2di, default: -1x-1):             default position (0,0 top-left)
 .br
-delay (fraction, default: 0, updatable): set delay, positive value displays after audio clock
+delay (frac, default: 0, updatable):     set delay, positive value displays after audio clock
 .br
-hide (boolean, default: false):          hide output window
+hide (bool, default: false):             hide output window
 .br
-fullscreen (boolean, default: false):    use fullcreen
+fullscreen (bool, default: false):       use fullcreen
 .br
-buffer (unsigned int, default: 100):     set buffer in ms
+buffer (uint, default: 100):             set buffer in ms
 .br
-dumpframes (uint list):                  ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames.
+dumpframes (uintl):                      ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames.
 .br
-out (string, default: dump):             radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT.
+out (str, default: dump):                radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT.
 .br
 
 .br
@@ -2664,9 +2670,9 @@ This filter is used to crop raw video data.
 .SH Options (expert):
 .LP
 .br
-wnd (string):                            size of output to crop, indicated as TxLxWxH. If % is indicated after a number, the value is in percent of the source width (for L and W) or height (for T and H). An absolute offset (+x, -x) can be added after percent
+wnd (str):                               size of output to crop, indicated as TxLxWxH. If % is indicated after a number, the value is in percent of the source width (for L and W) or height (for T and H). An absolute offset (+x, -x) can be added after percent
 .br
-copy (boolean, default: false):          copy the source pixels. By default the filter will try to forward crop frames by adjusting offsets and strides of the source if possible (window contained in frame)
+copy (bool, default: false):             copy the source pixels. By default the filter will try to forward crop frames by adjusting offsets and strides of the source if possible (window contained in frame)
 .br
 round (enum, default: up):               adjust dimension to be a multiple of 2.
 .br
@@ -2724,13 +2730,13 @@ This filter parses raw YUV and RGB files/data and outputs corresponding raw vide
 .SH Options (expert):
 .LP
 .br
-size (vec2d int, default: 0x0):          source video resolution
+size (v2di, default: 0x0):               source video resolution
 .br
-spfmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): source pixel format. When not set, derived from file extension
+spfmt (pfmt, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): source pixel format. When not set, derived from file extension
 .br
-fps (fraction, default: 25/1):           number of frames per second
+fps (frac, default: 25/1):               number of frames per second
 .br
-copy (boolean, default: false):          copy source bytes into output frame. If not set, source bytes are referenced only
+copy (bool, default: false):             copy source bytes into output frame. If not set, source bytes are referenced only
 .br
 
 .br
@@ -2748,13 +2754,13 @@ This filter parses raw PCM file/data and outputs corresponding raw audio PID and
 .SH Options (expert):
 .LP
 .br
-sr (unsigned int, default: 44100):       sample rate
+sr (uint, default: 44100):               sample rate
 .br
-safmt (audio format, default: none, minmax: none,u8,s16,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): audio format
+safmt (afmt, default: none, minmax: none,u8,s16,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): audio format
 .br
-ch (unsigned int, default: 2):           number of channels
+ch (uint, default: 2):                   number of channels
 .br
-framelen (unsigned int, default: 1024):  number of samples to put in one audio frame. For planar formats, indicate plane size in samples
+framelen (uint, default: 1024):          number of samples to put in one audio frame. For planar formats, indicate plane size in samples
 .br
 
 .br
@@ -2782,7 +2788,7 @@ dctmode (enum, default: fast):           type of DCT used
 .br
 
 .br
-quality (unsigned int, default: 100, minmax: 0-100, updatable): compression quality
+quality (uint, default: 100, minmax: 0-100, updatable): compression quality
 .br
 
 .br
@@ -2817,7 +2823,7 @@ The filter is in passthrough if speed is positive. Otherwise, it reverts decoded
 .SH Options (expert):
 .LP
 .br
-rbuffer (unsigned int, default: 100):    size of video rewind buffer in frames. If more frames than this, flush is performed
+rbuffer (uint, default: 100):            size of video rewind buffer in frames. If more frames than this, flush is performed
 .br
 
 .br
@@ -2907,15 +2913,15 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .SH Options (expert):
 .LP
 .br
-floop (int, default: 0):                 loop playlist/list of files, 0 for one time, n for n+1 times, -1 for indefinitely
+floop (sint, default: 0):                loop playlist/list of files, 0 for one time, n for n+1 times, -1 for indefinitely
 .br
-srcs (string list):                      list of files to play - see filter help
+srcs (strl):                             list of files to play - see filter help
 .br
-dur (fraction, default: 1/25):           for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!
+dur (frac, default: 1/25):               for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!
 .br
-revert (boolean, default: false):        revert list of files (not playlist)
+revert (bool, default: false):           revert list of files (not playlist)
 .br
-timescale (unsigned int, default: 0):    force output timescale on all pids. 0 uses the timescale of the first pid found
+timescale (uint, default: 0):            force output timescale on all pids. 0 uses the timescale of the first pid found
 .br
 fsort (enum, default: no):               sort list of files
 .br
@@ -3012,17 +3018,17 @@ In DASH mode, the PCR is always initialized at 0, and -flush_rap is automaticall
 .SH Options (expert):
 .LP
 .br
-breq (unsigned int, default: 100):       buffer requirements in ms for input pids
+breq (uint, default: 100):               buffer requirements in ms for input pids
 .br
-pmt_id (unsigned int, default: 100):     define the ID of the first PMT to use in the mux
+pmt_id (uint, default: 100):             define the ID of the first PMT to use in the mux
 .br
-rate (unsigned int, default: 0):         target rate in bps of the multiplex. If not set, variable rate is used
+rate (uint, default: 0):                 target rate in bps of the multiplex. If not set, variable rate is used
 .br
-pmt_rate (unsigned int, default: 200):   interval between PMT in ms
+pmt_rate (uint, default: 200):           interval between PMT in ms
 .br
-pat_rate (unsigned int, default: 200):   interval between PAT in ms
+pat_rate (uint, default: 200):           interval between PAT in ms
 .br
-pcr_offset (unsigned int, default: -1):  offset all timestamps from PCR by V, in 90kHz. Default value is computed based on input media
+pcr_offset (uint, default: -1):          offset all timestamps from PCR by V, in 90kHz. Default value is computed based on input media
 .br
 mpeg4 (enum, default: none):             force usage of MPEG-4 signaling (IOD and SL Config).
 .br
@@ -3034,17 +3040,17 @@ mpeg4 (enum, default: none):             force usage of MPEG-4 signaling (IOD an
 .br
 
 .br
-pmt_version (unsigned int, default: 200): set version number of the PMT
+pmt_version (uint, default: 200):        set version number of the PMT
 .br
-disc (boolean, default: false):          set the discontinuity marker for the first packet of each stream
+disc (bool, default: false):             set the discontinuity marker for the first packet of each stream
 .br
-repeat_rate (unsigned int, default: 0):  interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined
+repeat_rate (uint, default: 0):          interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined
 .br
-repeat_img (unsigned int, default: 0):   interval in ms between resending (as PES) of single-image streams. If 0, image data is sent once only
+repeat_img (uint, default: 0):           interval in ms between resending (as PES) of single-image streams. If 0, image data is sent once only
 .br
-max_pcr (unsigned int, default: 100):    set max interval in ms between 2 PCR
+max_pcr (uint, default: 100):            set max interval in ms between 2 PCR
 .br
-nb_pack (unsigned int, default: 4):      pack N TS packets in output packets
+nb_pack (uint, default: 4):              pack N TS packets in output packets
 .br
 pes_pack (enum, default: audio):         set AU to PES packing mode.
 .br
@@ -3056,7 +3062,7 @@ pes_pack (enum, default: audio):         set AU to PES packing mode.
 .br
 
 .br
-rt (boolean, default: false):            use real-time output
+rt (bool, default: false):               use real-time output
 .br
 bifs_pes (enum, default: off):           select BIFS streams packetization (PES vs sections)
 .br
@@ -3068,33 +3074,33 @@ bifs_pes (enum, default: off):           select BIFS streams packetization (PES 
 .br
 
 .br
-flush_rap (boolean, default: false):     force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin
+flush_rap (bool, default: false):        force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin
 .br
-pcr_only (boolean, default: false):      enable PCR-only TS packets
+pcr_only (bool, default: false):         enable PCR-only TS packets
 .br
-pcr_init (long int, default: -1):        set initial PCR value for the programs. Negative value implies random value is picked
+pcr_init (lsint, default: -1):           set initial PCR value for the programs. Negative value implies random value is picked
 .br
-sid (unsigned int, default: 0):          set service ID for the program - see filter help
+sid (uint, default: 0):                  set service ID for the program - see filter help
 .br
-name (string):                           set service name for the program - see filter help
+name (str):                              set service name for the program - see filter help
 .br
-provider (string):                       set service provider name for the program - see filter help
+provider (str):                          set service provider name for the program - see filter help
 .br
-sdt_rate (unsigned int, default: 0):     interval in ms between two DVB SDT tables. If 0, SDT is disabled
+sdt_rate (uint, default: 0):             interval in ms between two DVB SDT tables. If 0, SDT is disabled
 .br
-temi (string):                           insert TEMI time codes in adaptation field - see filter help
+temi (str):                              insert TEMI time codes in adaptation field - see filter help
 .br
-temi_delay (unsigned int, default: 1000): set delay in ms between two TEMI url descriptors
+temi_delay (uint, default: 1000):        set delay in ms between two TEMI url descriptors
 .br
-temi_offset (unsigned int, default: 0):  set offset in ms  to add to TEMI timecodes
+temi_offset (uint, default: 0):          set offset in ms  to add to TEMI timecodes
 .br
-temi_ntp (boolean, default: false):      insert NTP timestamp in TEMI timeline descriptor
+temi_ntp (bool, default: false):         insert NTP timestamp in TEMI timeline descriptor
 .br
-log_freq (unsigned int, default: 500):   delay between logs for realtime mux
+log_freq (uint, default: 500):           delay between logs for realtime mux
 .br
-latm (boolean, default: false):          use LATM AAC encapsulation instead of regular ADTS
+latm (bool, default: false):             use LATM AAC encapsulation instead of regular ADTS
 .br
-subs_sidx (int, default: -1):            number of subsegments per sidx. negative value disables sidx
+subs_sidx (sint, default: -1):           number of subsegments per sidx. negative value disables sidx
 .br
 
 .br
@@ -3423,11 +3429,11 @@ The segmenter will add the following properties to the output PIDs:
 .SH Options (expert):
 .LP
 .br
-dur (number, default: 1.0):              target segment duration in seconds
+dur (dbl, default: 1.0):                 target segment duration in seconds
 .br
-tpl (boolean, default: true):            use template mode (multiple segment, template URLs)
+tpl (bool, default: true):               use template mode (multiple segment, template URLs)
 .br
-stl (boolean, default: false):           use segment timeline (ignored in on_demand mode)
+stl (bool, default: false):              use segment timeline (ignored in on_demand mode)
 .br
 dmode (enum, default: static, updatable): dash content mode
 .br
@@ -3439,15 +3445,15 @@ dmode (enum, default: static, updatable): dash content mode
 .br
 
 .br
-sseg (boolean, default: false):          single segment is used
+sseg (bool, default: false):             single segment is used
 .br
-sfile (boolean, default: false):         use a single file for all segments (default in on_demand)
+sfile (bool, default: false):            use a single file for all segments (default in on_demand)
 .br
-align (boolean, default: true):          enable segment time alignment between representations
+align (bool, default: true):             enable segment time alignment between representations
 .br
-sap (boolean, default: true):            enable spliting segments at SAP boundaries
+sap (bool, default: true):               enable spliting segments at SAP boundaries
 .br
-mix_codecs (boolean, default: false):    enable mixing different codecs in an adaptation set
+mix_codecs (bool, default: false):       enable mixing different codecs in an adaptation set
 .br
 ntp (enum, default: rem):                insert/override NTP clock at the begining of each segment
 .br
@@ -3459,11 +3465,11 @@ ntp (enum, default: rem):                insert/override NTP clock at the begini
 .br
 
 .br
-no_sar (boolean, default: false):        do not check for identical sample aspect ratio for adaptation sets
+no_sar (bool, default: false):           do not check for identical sample aspect ratio for adaptation sets
 .br
-m2ts (boolean, default: false):          generate MPEG-2 TS output
+m2ts (bool, default: false):             generate MPEG-2 TS output
 .br
-forcep (boolean, default: false):        force profile string for avc/hevc/aac
+forcep (bool, default: false):           force profile string for avc/hevc/aac
 .br
 bs_switch (enum, default: def):          bitstream switching mode (single init segment)
 .br
@@ -3481,21 +3487,21 @@ bs_switch (enum, default: def):          bitstream switching mode (single init s
 .br
 
 .br
-avcp (string):                           profile to use for AVC|H264 if no profile could be found. If forcep is set, enforces this profile
+avcp (str):                              profile to use for AVC|H264 if no profile could be found. If forcep is set, enforces this profile
 .br
-hvcp (string):                           profile to use for HEVC if no profile could be found. If forcep is set, enforces this profile
+hvcp (str):                              profile to use for HEVC if no profile could be found. If forcep is set, enforces this profile
 .br
-aacp (string):                           profile to use for AAC if no profile could be found. If forcep is set, enforces this profile
+aacp (str):                              profile to use for AAC if no profile could be found. If forcep is set, enforces this profile
 .br
-av1p (string):                           profile to use for AV1 if no profile could be found. If forcep is set, enforces this profile
+av1p (str):                              profile to use for AV1 if no profile could be found. If forcep is set, enforces this profile
 .br
-vpxp (string):                           profile to use for VP8/9 if no profile could be found. If forcep is set, enforces this profile
+vpxp (str):                              profile to use for VP8/9 if no profile could be found. If forcep is set, enforces this profile
 .br
-template (string):                       template string to use to generate segment name - see filter help
+template (str):                          template string to use to generate segment name - see filter help
 .br
-segext (string):                         file extension to use for segments
+segext (str):                            file extension to use for segments
 .br
-initext (string):                        file extension to use for the init segment
+initext (str):                           file extension to use for the init segment
 .br
 muxtype (enum, default: auto):           muxtype to use for the segments
 .br
@@ -3513,7 +3519,7 @@ muxtype (enum, default: auto):           muxtype to use for the segments
 .br
 
 .br
-asto (number, default: 0):               availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
+asto (dbl, default: 0):                  availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
 profile (enum, default: auto):           target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.
 .br
@@ -3535,7 +3541,7 @@ profile (enum, default: auto):           target DASH profile. This will set defa
 .br
 
 .br
-profX (string):                          list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used
+profX (str):                             list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used
 .br
 cp (enum, default: set):                 content protection element location
 .br
@@ -3563,47 +3569,47 @@ pssh (enum, default: v):                 storage mode for PSSH box
 .br
 
 .br
-buf (int, default: -100):                min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)
+buf (sint, default: -100):               min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)
 .br
-timescale (int, default: 0):             set timescale for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale
+timescale (sint, default: 0):            set timescale for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale
 .br
-check_dur (boolean, default: true):      check duration of sources in period, trying to have roughly equal duration. Enforced whenever period start times are used
+check_dur (bool, default: true):         check duration of sources in period, trying to have roughly equal duration. Enforced whenever period start times are used
 .br
-skip_seg (boolean, default: false):      increment segment number whenever an empty segment would be produced - NOT DASH COMPLIANT
+skip_seg (bool, default: false):         increment segment number whenever an empty segment would be produced - NOT DASH COMPLIANT
 .br
-title (string):                          MPD title
+title (str):                             MPD title
 .br
-source (string):                         MPD Source
+source (str):                            MPD Source
 .br
-info (string):                           MPD info url
+info (str):                              MPD info url
 .br
-cprt (string):                           MPD copyright string
+cprt (str):                              MPD copyright string
 .br
-lang (string):                           language of MPD Info
+lang (str):                              language of MPD Info
 .br
-location (string list):                  set MPD locations to given URL
+location (strl):                         set MPD locations to given URL
 .br
-base (string list):                      set base URLs of MPD
+base (strl):                             set base URLs of MPD
 .br
-refresh (number, default: 0):            refresh rate for dynamic manifests, in seconds. A negative value sets the MPD duration. If 0, uses dash duration
+refresh (dbl, default: 0):               refresh rate for dynamic manifests, in seconds. A negative value sets the MPD duration. If 0, uses dash duration
 .br
-tsb (number, default: 30):               time-shift buffer depth in seconds. A negative value means infinity
+tsb (dbl, default: 30):                  time-shift buffer depth in seconds. A negative value means infinity
 .br
-subdur (number, default: 0):             maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.
+subdur (dbl, default: 0):                maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.
 .br
-ast (string):                            set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!
+ast (str):                               set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!
 .br
-state (string):                          path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions
+state (str):                             path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions
 .br
-loop (boolean, default: false):          loop sources when dashing with subdur and state. If not set, a new period is created once the sources are over
+loop (bool, default: false):             loop sources when dashing with subdur and state. If not set, a new period is created once the sources are over
 .br
-split (boolean, default: true):          enable cloning samples for text/metadata/scene description streams, marking further clones as redundant
+split (bool, default: true):             enable cloning samples for text/metadata/scene description streams, marking further clones as redundant
 .br
-hlsc (boolean, default: false):          insert clock reference in variant playlist in live HLS
+hlsc (bool, default: false):             insert clock reference in variant playlist in live HLS
 .br
-cues (string):                           set cue file - see filter help
+cues (str):                              set cue file - see filter help
 .br
-strict_cues (boolean, default: false):   strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found
+strict_cues (bool, default: false):      strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found
 .br
 strict_sap (enum, default: off):         strict mode for sap
 .br
@@ -3615,15 +3621,15 @@ strict_sap (enum, default: off):         strict mode for sap
 .br
 
 .br
-subs_sidx (int, default: -1):            number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
+subs_sidx (sint, default: -1):           number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
 .br
-cmpd (boolean, default: false):          skip line feed and spaces in MPD XML for more compacity
+cmpd (bool, default: false):             skip line feed and spaces in MPD XML for more compacity
 .br
-styp (string):                           indicate the 4CC to use for styp boxes when using ISOBMFF output
+styp (str):                              indicate the 4CC to use for styp boxes when using ISOBMFF output
 .br
-dual (boolean):                          indicate to produce both MPD and M3U files
+dual (bool):                             indicate to produce both MPD and M3U files
 .br
-sigfrag (boolean):                       use manifest generation only mode - see filter help
+sigfrag (bool):                          use manifest generation only mode - see filter help
 .br
 sbound (enum, default: out):             indicate how the theoretical segment start TSS (= segment_number * duration) should be handled
 .br
@@ -3635,9 +3641,9 @@ sbound (enum, default: out):             indicate how the theoretical segment st
 .br
 
 .br
-reschedule (boolean):                    reschedule sources with no period ID assigned once done (dynamic mode only)
+reschedule (bool):                       reschedule sources with no period ID assigned once done (dynamic mode only)
 .br
-sreg (boolean, default: false):          regulate the session when using subdur to only generate segments from the past up to live edge
+sreg (bool, default: false):             regulate the session when using subdur to only generate segments from the past up to live edge
 .br
 
 .br
@@ -3655,7 +3661,7 @@ This filter reaggregates a set of split tiled HEVC streams (hvt1 or hvt2 in isob
 .SH Options (expert):
 .LP
 .br
-tiledrop (uint list, default: , updatable): specify indexes of tiles to drop
+tiledrop (uintl, default: , updatable):  specify indexes of tiles to drop
 .br
 
 .br
@@ -3723,19 +3729,19 @@ The pipe input can be created in blocking mode or non-blocking mode. If the filt
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content
+src (cstr):                              location of source content
 .br
-block_size (unsigned int, default: 5000): buffer size used to read pipe
+block_size (uint, default: 5000):        buffer size used to read pipe
 .br
-ext (string):                            indicate file extension of pipe data
+ext (str):                               indicate file extension of pipe data
 .br
-mime (string):                           indicate mime type of pipe data
+mime (str):                              indicate mime type of pipe data
 .br
-blk (boolean, default: false):           open pipe in block mode - see filter help
+blk (bool, default: false):              open pipe in block mode - see filter help
 .br
-ka (boolean, default: false):            keep-alive pipe when end of input is detected - see filter help
+ka (bool, default: false):               keep-alive pipe when end of input is detected - see filter help
 .br
-mkp (boolean, default: false):           create pipe if not found - see filter help
+mkp (bool, default: false):              create pipe if not found - see filter help
 .br
 
 .br
@@ -3785,21 +3791,21 @@ On non windows hosts, the created pipe will delete the pipe file upon filter des
 .SH Options (expert):
 .LP
 .br
-dst (string):                            location of destination file
+dst (cstr):                              location of destination file
 .br
-ext (string):                            indicate file extension of pipe data
+ext (str):                               indicate file extension of pipe data
 .br
-mime (string):                           indicate mime type of pipe data
+mime (str):                              indicate mime type of pipe data
 .br
-dynext (boolean, default: false):        indicate the file extension is set by filter chain, not dst
+dynext (bool, default: false):           indicate the file extension is set by filter chain, not dst
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-speed (number, default: 1.0):            set playback speed. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback speed. If speed is negative and start is 0, start is set to -1
 .br
-mkp (boolean, default: false):           create pipe if not found - see filter help
+mkp (bool, default: false):              create pipe if not found - see filter help
 .br
-block_size (unsigned int, default: 5000): buffer size used to write to pipe, windows only
+block_size (uint, default: 5000):        buffer size used to write to pipe, windows only
 .br
 
 .br
@@ -3855,13 +3861,13 @@ This will remove properties of type 4CC1 and properties (built-in or not) of nam
 .SH Options (expert):
 .LP
 .br
-sigsn (boolean, default: false):         signal packet sequence number after header field and before size field. Sequence number is per PID, encoded on 16 bits. Header packet does not have a SN
+sigsn (bool, default: false):            signal packet sequence number after header field and before size field. Sequence number is per PID, encoded on 16 bits. Header packet does not have a SN
 .br
-sigdur (boolean, default: true):         signal duration
+sigdur (bool, default: true):            signal duration
 .br
-sigbo (boolean, default: false):         signal byte offset
+sigbo (bool, default: false):            signal byte offset
 .br
-sigdts (boolean, default: true):         signal decoding timestamp
+sigdts (bool, default: true):            signal decoding timestamp
 .br
 dbg (enum, default: no):                 set debug mode
 .br
@@ -3873,21 +3879,21 @@ dbg (enum, default: no):                 set debug mode
 .br
 
 .br
-key (data):                              encrypt packets using given key - see filter helps
+key (mem):                               encrypt packets using given key - see filter helps
 .br
-IV (data):                               set IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)
+IV (mem):                                set IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)
 .br
-pattern (fraction, default: 1/0):        set nb crypt / nb_skip block pattern. default is all encrypted
+pattern (frac, default: 1/0):            set nb crypt / nb_skip block pattern. default is all encrypted
 .br
-mpck (unsigned int, default: 0):         set max packet size. 0 means no fragmentation (each AU is sent in one packet)
+mpck (uint, default: 0):                 set max packet size. 0 means no fragmentation (each AU is sent in one packet)
 .br
-magic (string):                          magic string to append in setup packet
+magic (str):                             magic string to append in setup packet
 .br
-skp (string):                            comma separated list of pid property names to skip - see filter help
+skp (str):                               comma separated list of pid property names to skip - see filter help
 .br
-minp (boolean, default: false):          include only the minimum set of properties required for stream processing - see filter help
+minp (bool, default: false):             include only the minimum set of properties required for stream processing - see filter help
 .br
-crate (number, default: 0):              carousel period for tune-in info in seconds - see filter help
+crate (dbl, default: 0):                 carousel period for tune-in info in seconds - see filter help
 .br
 
 .br
@@ -3913,13 +3919,13 @@ The stream format can be encrypted in AES 128 CBC mode, in which case the demux 
 .SH Options (expert):
 .LP
 .br
-key (data):                              key for decrypting packets
+key (mem):                               key for decrypting packets
 .br
-magic (string):                          magic string to check in setup packet
+magic (str):                             magic string to check in setup packet
 .br
-mq (unsigned int, default: 4):           set max packet queue length for loss detection. 0 will flush incomplete packet when a new one starts
+mq (uint, default: 4):                   set max packet queue length for loss detection. 0 will flush incomplete packet when a new one starts
 .br
-pad (unsigned int, default: 0, minmax: 0-255): byte value used to pad lost packets
+pad (uint, default: 0, minmax: 0-255):   byte value used to pad lost packets
 .br
 
 .br
@@ -3983,35 +3989,35 @@ This reverts the send order of one random packet in each 100 packet window.
 .SH Options (expert):
 .LP
 .br
-dst (string):                            location of destination file
+dst (cstr):                              location of destination file
 .br
-sockbuf (unsigned int, default: 65536):  block size used to read file
+sockbuf (uint, default: 65536):          block size used to read file
 .br
-port (unsigned int, default: 1234):      default port if not specified
+port (uint, default: 1234):              default port if not specified
 .br
-ifce (string):                           default multicast interface
+ifce (cstr):                             default multicast interface
 .br
-ext (string):                            file extension of pipe data - see filter help
+ext (str):                               file extension of pipe data - see filter help
 .br
-mime (string):                           mime type of pipe data - see filter help
+mime (str):                              mime type of pipe data - see filter help
 .br
-listen (boolean, default: false):        indicate the output socket works in server mode
+listen (bool, default: false):           indicate the output socket works in server mode
 .br
-maxc (unsigned int, default: +I):        max number of concurrent connections
+maxc (uint, default: +I):                max number of concurrent connections
 .br
-ka (boolean, default: false):            keep socket alive if no more connections
+ka (bool, default: false):               keep socket alive if no more connections
 .br
-kp (boolean, default: true):             keep packets in queue if no more clients
+kp (bool, default: true):                keep packets in queue if no more clients
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-speed (number, default: 1.0):            set playback speed. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback speed. If speed is negative and start is 0, start is set to -1
 .br
-rate (unsigned int, default: 0):         set send rate in bps, disabled by default (as fast as possible)
+rate (uint, default: 0):                 set send rate in bps, disabled by default (as fast as possible)
 .br
-pckr (fraction, default: 0/0):           reverse packet every N - see filter help
+pckr (frac, default: 0/0):               reverse packet every N - see filter help
 .br
-pckd (fraction, default: 0/0):           drop packet every N - see filter help
+pckd (frac, default: 0/0):               drop packet every N - see filter help
 .br
 
 .br
@@ -4029,13 +4035,13 @@ This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and out
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
+fps (frac, default: 0/1000):             import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
-index (number, default: -1.0):           indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
+index (dbl, default: -1.0):              indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value
 .br
-importer (boolean, default: false):      compatibility with old importer
+importer (bool, default: false):         compatibility with old importer
 .br
-deps (boolean, default: false):          import samples dependencies information
+deps (bool, default: false):             import samples dependencies information
 .br
 
 .br
@@ -4053,7 +4059,7 @@ This filter is used to rewrite AV1 OBU bitstream into IVF, annex B or OBU sequen
 .SH Options (expert):
 .LP
 .br
-rcfg (boolean, default: true):           force repeating decoder config at each I-frame
+rcfg (bool, default: true):              force repeating decoder config at each I-frame
 .br
 
 .br
@@ -4153,35 +4159,35 @@ route add -net 239.255.1.4/32 -interface vboxnet0
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content - see filter help
+src (cstr):                              location of source content - see filter help
 .br
-ifce (string):                           default interface to use for multicast. If NULL, the default system interface will be used
+ifce (str):                              default interface to use for multicast. If NULL, the default system interface will be used
 .br
-cache (boolean, default: true):          indicate the files should populate GPAC HTTP cache - see filter help
+cache (bool, default: true):             indicate the files should populate GPAC HTTP cache - see filter help
 .br
-tunein (int, default: -2):               service ID to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found
+tunein (sint, default: -2):              service ID to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found
 .br
-buffer (unsigned int, default: 0x80000): receive buffer size to use in bytes
+buffer (uint, default: 0x80000):         receive buffer size to use in bytes
 .br
-timeout (unsigned int, default: 5000):   timeout in ms after which tunein fails
+timeout (uint, default: 5000):           timeout in ms after which tunein fails
 .br
-kc (boolean, default: false):            keep corrupted file
+kc (bool, default: false):               keep corrupted file
 .br
-sr (boolean, default: true):             skip repeated files - ignored in -cache mode
+sr (bool, default: true):                skip repeated files - ignored in -cache mode
 .br
-stsi (boolean, default: false):          define one output pid per tsi/serviceID - ignored in -cache mode, see filter help
+stsi (bool, default: false):             define one output pid per tsi/serviceID - ignored in -cache mode, see filter help
 .br
-stats (unsigned int, default: 1000):     log statistics at the given rate in ms (0 disables stats)
+stats (uint, default: 1000):             log statistics at the given rate in ms (0 disables stats)
 .br
-tsidbg (unsigned int, default: 0):       gather only objects with given TSI (debug)
+tsidbg (uint, default: 0):               gather only objects with given TSI (debug)
 .br
-max_segs (unsigned int, default: 0):     maximum number of segments to keep - ignored in -cache mode
+max_segs (uint, default: 0):             maximum number of segments to keep - ignored in -cache mode
 .br
-odir (string):                           output directory for stand-alone mode - see filter help
+odir (str):                              output directory for stand-alone mode - see filter help
 .br
-reorder (boolean, default: false):       ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes
+reorder (bool, default: false):          ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes
 .br
-rtimeout (unsigned int, default: 5000):  default timeout in ms to wait when gathering out-of-order packets
+rtimeout (uint, default: 5000):          default timeout in ms to wait when gathering out-of-order packets
 .br
 
 .br
@@ -4238,39 +4244,39 @@ The real-time scheduling algorithm works as follows:
 .SH Options (expert):
 .LP
 .br
-ip (string):                             destination IP address (NULL is 127.0.0.1)
+ip (str):                                destination IP address (NULL is 127.0.0.1)
 .br
-port (unsigned int, default: 7000):      port for first stream in session
+port (uint, default: 7000):              port for first stream in session
 .br
-loop (boolean, default: true):           loop all streams in session (not always possible depending on source type)
+loop (bool, default: true):              loop all streams in session (not always possible depending on source type)
 .br
-mpeg4 (boolean, default: false):         send all streams using MPEG-4 generic payload format if posible
+mpeg4 (bool, default: false):            send all streams using MPEG-4 generic payload format if posible
 .br
-mtu (unsigned int, default: 1460):       size of RTP MTU in bytes
+mtu (uint, default: 1460):               size of RTP MTU in bytes
 .br
-ttl (unsigned int, default: 2):          time-to-live for muticast packets
+ttl (uint, default: 2):                  time-to-live for muticast packets
 .br
-ifce (string):                           default network inteface to use
+ifce (str):                              default network inteface to use
 .br
-payt (unsigned int, default: 96, minmax: 96-127): payload type to use for dynamic configs.
+payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs.
 .br
-delay (int, default: 0):                 send delay for packet (negative means send earlier)
+delay (sint, default: 0):                send delay for packet (negative means send earlier)
 .br
-tt (unsigned int, default: 1000):        time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away
+tt (uint, default: 1000):                time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away
 .br
-runfor (int, default: -1):               run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp
+runfor (sint, default: -1):              run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp
 .br
-tso (int, default: -1):                  set timestamp offset in microsecs. Negative value means random initial timestamp
+tso (sint, default: -1):                 set timestamp offset in microsecs. Negative value means random initial timestamp
 .br
-xps (boolean, default: false):           force parameter set injection at each SAP. If not set, only inject if different from SDP ones
+xps (bool, default: false):              force parameter set injection at each SAP. If not set, only inject if different from SDP ones
 .br
-latm (boolean, default: false):          use latm for AAC payload format
+latm (bool, default: false):             use latm for AAC payload format
 .br
-dst (string):                            URL for direct RTP mode - see filter help
+dst (cstr):                              URL for direct RTP mode - see filter help
 .br
-ext (string):                            file extension for direct RTP mode - see filter help
+ext (str):                               file extension for direct RTP mode - see filter help
 .br
-mime (string):                           set mime type for direct RTP mode - see filter help
+mime (cstr):                             set mime type for direct RTP mode - see filter help
 .br
 
 .br
@@ -4354,47 +4360,47 @@ The scheduling algorithm and RTP options are the same as the RTP output filter, 
 .SH Options (expert):
 .LP
 .br
-dst (string):                            location of destination file - see filter help 
+dst (cstr):                              location of destination file - see filter help 
 .br
-port (unsigned int, default: 554):       server port
+port (uint, default: 554):               server port
 .br
-firstport (unsigned int, default: 6000): port for first stream in session
+firstport (uint, default: 6000):         port for first stream in session
 .br
-mtu (unsigned int, default: 1460):       size of RTP MTU in bytes
+mtu (uint, default: 1460):               size of RTP MTU in bytes
 .br
-ttl (unsigned int, default: 0):          time-to-live for muticast packets. A value of 0 uses client requested TTL, or 1
+ttl (uint, default: 0):                  time-to-live for muticast packets. A value of 0 uses client requested TTL, or 1
 .br
-ifce (string):                           default network inteface to use
+ifce (str):                              default network inteface to use
 .br
-payt (unsigned int, default: 96, minmax: 96-127): payload type to use for dynamic configs.
+payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs.
 .br
-mpeg4 (boolean, default: false):         send all streams using MPEG-4 generic payload format if posible
+mpeg4 (bool, default: false):            send all streams using MPEG-4 generic payload format if posible
 .br
-delay (int, default: 0):                 send delay for packet (negative means send earlier)
+delay (sint, default: 0):                send delay for packet (negative means send earlier)
 .br
-tt (unsigned int, default: 1000):        time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away
+tt (uint, default: 1000):                time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away
 .br
-runfor (int, default: -1):               run the session for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp
+runfor (sint, default: -1):              run the session for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp
 .br
-tso (int, default: -1):                  set timestamp offset in microsecs. Negative value means random initial timestamp
+tso (sint, default: -1):                 set timestamp offset in microsecs. Negative value means random initial timestamp
 .br
-xps (boolean, default: false):           force parameter set injection at each SAP. If not set, only inject if different from SDP ones
+xps (bool, default: false):              force parameter set injection at each SAP. If not set, only inject if different from SDP ones
 .br
-latm (boolean, default: false):          use latm for AAC payload format
+latm (bool, default: false):             use latm for AAC payload format
 .br
-mounts (string list):                    list of directories to expose in server mode
+mounts (strl):                           list of directories to expose in server mode
 .br
-block_size (unsigned int, default: 10000): block size used to read TCP socket
+block_size (uint, default: 10000):       block size used to read TCP socket
 .br
-maxc (unsigned int, default: 100):       maximum number of connections
+maxc (uint, default: 100):               maximum number of connections
 .br
-user_agent (string, default: $GUA):      user agent string, by default solved from GPAC preferences
+user_agent (str, default: $GUA):         user agent string, by default solved from GPAC preferences
 .br
-close (boolean, default: true):          close RTSP connection after each request, except when RTP over RTSP is used
+close (bool, default: true):             close RTSP connection after each request, except when RTP over RTSP is used
 .br
-loop (boolean, default: true):           loop all streams in session (not always possible depending on source type) - see filter help.
+loop (bool, default: true):              loop all streams in session (not always possible depending on source type) - see filter help.
 .br
-dynurl (boolean, default: false):        allow dynamic service assembly - see filter help.
+dynurl (bool, default: false):           allow dynamic service assembly - see filter help.
 .br
 mcast (enum, default: off):              control multicast setup of a session.
 .br
@@ -4600,33 +4606,33 @@ Note: the server currently only operates in either HTTPS or HTTP mode and cannot
 .SH Options (expert):
 .LP
 .br
-dst (string):                            location of destination file - see filter help 
+dst (cstr):                              location of destination file - see filter help 
 .br
-port (unsigned int, default: 80):        server port
+port (uint, default: 80):                server port
 .br
-ifce (string):                           default network inteface to use
+ifce (str):                              default network inteface to use
 .br
-rdirs (string list):                     list of directories to expose for read - see filter help
+rdirs (strl):                            list of directories to expose for read - see filter help
 .br
-wdir (string):                           directory to expose for write - see filter help
+wdir (str):                              directory to expose for write - see filter help
 .br
-cert (string):                           certificate file in PEM format to use for TLS mode
+cert (str):                              certificate file in PEM format to use for TLS mode
 .br
-pkey (string):                           private key file in PEM format to use for TLS mode
+pkey (str):                              private key file in PEM format to use for TLS mode
 .br
-block_size (unsigned int, default: 10000): block size used to read and write TCP socket
+block_size (uint, default: 10000):       block size used to read and write TCP socket
 .br
-user_agent (string, default: $GUA):      user agent string, by default solved from GPAC preferences
+user_agent (str, default: $GUA):         user agent string, by default solved from GPAC preferences
 .br
-close (boolean, default: false):         close HTTP connection after each request
+close (bool, default: false):            close HTTP connection after each request
 .br
-maxc (unsigned int, default: 100):       maximum number of connections, 0 is unlimited
+maxc (uint, default: 100):               maximum number of connections, 0 is unlimited
 .br
-maxp (unsigned int, default: 6):         maximum number of connections for one peer, 0 is unlimited
+maxp (uint, default: 6):                 maximum number of connections for one peer, 0 is unlimited
 .br
-cache_control (string):                  specify the Cache-Control string to add; none disable ETag
+cache_control (str):                     specify the Cache-Control string to add; none disable ETag
 .br
-hold (boolean, default: false):          hold packets until one client connects
+hold (bool, default: false):             hold packets until one client connects
 .br
 hmode (enum, default: default):          filter operation mode, ignored if -wdir is set. See filter help for more details. Mode can be
 .br
@@ -4638,21 +4644,21 @@ hmode (enum, default: default):          filter operation mode, ignored if -wdir
 .br
 
 .br
-timeout (unsigned int, default: 30):     timeout in seconds for persistent connections; 0 disable timeout
+timeout (uint, default: 30):             timeout in seconds for persistent connections; 0 disable timeout
 .br
-ext (string):                            set extension for graph resolution, regardless of file extension
+ext (cstr):                              set extension for graph resolution, regardless of file extension
 .br
-mime (string):                           set mime type for graph resolution
+mime (cstr):                             set mime type for graph resolution
 .br
-quit (boolean, default: false):          exit server once all input PIDs are done and client disconnects (for test purposes)
+quit (bool, default: false):             exit server once all input PIDs are done and client disconnects (for test purposes)
 .br
-post (boolean, default: false):          use POST instead of PUT for uploading files
+post (bool, default: false):             use POST instead of PUT for uploading files
 .br
-dlist (boolean, default: false):         enable HTML listing for GET requests on directories
+dlist (bool, default: false):            enable HTML listing for GET requests on directories
 .br
-sutc (boolean, default: false):          insert server UTC in response headers as Server-UTC: VAL_IN_MS
+sutc (bool, default: false):             insert server UTC in response headers as Server-UTC: VAL_IN_MS
 .br
-cors (boolean, default: false):          insert CORS header allowing all domains
+cors (bool, default: false):             insert CORS header allowing all domains
 .br
 
 .br
@@ -4786,9 +4792,9 @@ Assuming the two sources are encoded at 320x240 and merged as src1 above src2, t
 .SH Options (expert):
 .LP
 .br
-strict (boolean, default: false):        strict comparison of SPS and PPS of input pids - see filter help
+strict (bool, default: false):           strict comparison of SPS and PPS of input pids - see filter help
 .br
-mrows (boolean, default: false):         signal multiple rows in tile grid when possible
+mrows (bool, default: false):            signal multiple rows in tile grid when possible
 .br
 
 .br
@@ -4806,7 +4812,7 @@ This filter parses FLAC files/data and outputs corresponding audio PID and frame
 .SH Options (expert):
 .LP
 .br
-index (number, default: 1.0):            indexing window length
+index (dbl, default: 1.0):               indexing window length
 .br
 
 .br
@@ -4824,11 +4830,11 @@ This filter parses ProRes raw files/data and outputs corresponding visual PID an
 .SH Options (expert):
 .LP
 .br
-fps (fraction, default: 0/1000):         import frame rate (0 default to FPS from bitstream or 25 Hz)
+fps (frac, default: 0/1000):             import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
-findex (boolean, default: true):         index frames. If true, filter will be able to work in rewind mode
+findex (bool, default: true):            index frames. If true, filter will be able to work in rewind mode
 .br
-cid (string):                            set QT 4CC for the imported media. If not set, defaults to 'ap4h' for YUV444 or 'apch' for YUV422
+cid (str):                               set QT 4CC for the imported media. If not set, defaults to 'ap4h' for YUV444 or 'apch' for YUV422
 .br
 
 .br
@@ -4850,13 +4856,13 @@ In -full mode, global DVB tables of the input multiplex are forwarded to each ou
 .SH Options (expert):
 .LP
 .br
-full (boolean, default: true):           forward all packets from global DVB PIDs
+full (bool, default: true):              forward all packets from global DVB PIDs
 .br
-mux_id (int, default: -1):               set initial ID of output mux; the first program will use mux_id, the second mux_id+1, etc. If not set, this value will be set to sourceMuxId*255
+mux_id (sint, default: -1):              set initial ID of output mux; the first program will use mux_id, the second mux_id+1, etc. If not set, this value will be set to sourceMuxId*255
 .br
-avonly (boolean, default: true):         do not forward programs with no AV component
+avonly (bool, default: true):            do not forward programs with no AV component
 .br
-nb_pack (unsigned int, default: 10):     pack N packets before sending
+nb_pack (uint, default: 10):             pack N packets before sending
 .br
 
 .br
@@ -4876,9 +4882,9 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .SH Options (expert):
 .LP
 .br
-src (string):                            location of source content
+src (cstr):                              location of source content
 .br
-* (string):                              any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffdmx and gpac -hx ffdmx:*
+* (str):                                 any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffdmx and gpac -hx ffdmx:*
 .br
 
 .br
@@ -4898,7 +4904,7 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .SH Options (expert):
 .LP
 .br
-* (string):                              any possible options defined for AVCodecContext and sub-classes. See gpac -hx ffdec and gpac -hx ffdec:*
+* (str):                                 any possible options defined for AVCodecContext and sub-classes. See gpac -hx ffdec and gpac -hx ffdec:*
 .br
 
 .br
@@ -4932,11 +4938,11 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .SH Options (expert):
 .LP
 .br
-src (string):                            url of device, video://, audio:// or av://
+src (str):                               url of device, video://, audio:// or av://
 .br
-fmt (string):                            name of device class - see filter help. If not set, defaults to first device class
+fmt (str):                               name of device class - see filter help. If not set, defaults to first device class
 .br
-dev (string, default: 0):                name of device or index of device - see filter help
+dev (str, default: 0):                   name of device or index of device - see filter help
 .br
 copy (enum, default: A):                 set copy mode of raw frames
 .br
@@ -4950,11 +4956,11 @@ copy (enum, default: A):                 set copy mode of raw frames
 .br
 
 .br
-sclock (boolean, default: false):        use system clock (us) instead of device timestamp (for buggy devices)
+sclock (bool, default: false):           use system clock (us) instead of device timestamp (for buggy devices)
 .br
-probes (unsigned int, default: 10, minmax: 0-100): probe a given number of video frames before emitting - this usually helps with bad timing of the first frames
+probes (uint, default: 10, minmax: 0-100): probe a given number of video frames before emitting - this usually helps with bad timing of the first frames
 .br
-* (string):                              any possible options defined for AVInputFormat and AVFormatContext. See gpac -hx ffavin and gpac -hx ffavin:*
+* (str):                                 any possible options defined for AVInputFormat and AVFormatContext. See gpac -hx ffavin and gpac -hx ffavin:*
 .br
 
 .br
@@ -4980,17 +4986,17 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .SH Options (expert):
 .LP
 .br
-osize (vec2d int):                       osize of output video. When not set, input osize is used
+osize (v2di):                            osize of output video. When not set, input osize is used
 .br
-ofmt (pixel format, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for output video. When not set, input format is used
+ofmt (pfmt, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for output video. When not set, input format is used
 .br
 scale (enum, default: bicubic):          scaling mode - see filter info
 .br
 
 .br
-p1 (number, default: +I):                scaling algo param1 - see filter info
+p1 (dbl, default: +I):                   scaling algo param1 - see filter info
 .br
-p2 (number, default: +I):                scaling algo param2 - see filter info
+p2 (dbl, default: +I):                   scaling algo param2 - see filter info
 .br
 
 .br
@@ -5014,19 +5020,19 @@ Note: if no codec is explicited through -ffc option and no pixel format is given
 .SH Options (expert):
 .LP
 .br
-c (string):                              codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name
+c (str):                                 codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name
 .br
-pfmt (pixel format, default: none):      pixel format for input video. When not set, input format is used
+pfmt (pfmt, default: none):              pixel format for input video. When not set, input format is used
 .br
-fintra (fraction, default: 0):           force intra / IDR frames at the given period in sec, eg fintra=60000/1001 will force an intra every 2 seconds on 29.97 fps video; ignored for audio
+fintra (frac, default: 0):               force intra / IDR frames at the given period in sec, eg fintra=60000/1001 will force an intra every 2 seconds on 29.97 fps video; ignored for audio
 .br
-all_intra (boolean, default: false, updatable): only produce intra frames
+all_intra (bool, default: false, updatable): only produce intra frames
 .br
-ls (boolean, default: false):            output log
+ls (bool, default: false):               output log
 .br
-ffc (string):                            ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)
+ffc (str):                               ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)
 .br
-* (string):                              any possible options defined for AVCodecContext and sub-classes. see gpac -hx ffenc and gpac -hx ffenc:*
+* (str):                                 any possible options defined for AVCodecContext and sub-classes. see gpac -hx ffenc and gpac -hx ffenc:*
 .br
 
 .br
@@ -5046,21 +5052,21 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .SH Options (expert):
 .LP
 .br
-dst (string):                            location of source content
+dst (cstr):                              location of source content
 .br
-start (number, default: 0.0):            set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0):               set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
-speed (number, default: 1.0):            set playback speed. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0):               set playback speed. If speed is negative and start is 0, start is set to -1
 .br
-interleave (boolean, default: true):     write frame in interleave mode
+interleave (bool, default: true):        write frame in interleave mode
 .br
-nodisc (boolean, default: false):        ignore stream configuration changes while muxing, may result in broken streams
+nodisc (bool, default: false):           ignore stream configuration changes while muxing, may result in broken streams
 .br
-mime (string):                           set mime type for graph resolution
+mime (cstr):                             set mime type for graph resolution
 .br
-ffiles (boolean, default: false):        force complete files to be created for each segment in DASH modes
+ffiles (bool, default: false):           force complete files to be created for each segment in DASH modes
 .br
-* (string):                              any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffmx and gpac -hx ffmx:*
+* (str):                                 any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffmx and gpac -hx ffmx:*
 .br
 
 .br
@@ -5171,19 +5177,19 @@ The filter handles option updates as commands passed to the AV filter graph. The
 .SH Options (expert):
 .LP
 .br
-f (string):                              filter or filter chain description - see filter help
+f (str):                                 filter or filter chain description - see filter help
 .br
-pfmt (pixel format, default: none):      pixel format of output. If not set, let AVFilter decide
+pfmt (pfmt, default: none):              pixel format of output. If not set, let AVFilter decide
 .br
-afmt (audio format, default: none):      audio format of output. If not set, let AVFilter decide
+afmt (afmt, default: none):              audio format of output. If not set, let AVFilter decide
 .br
-sr (unsigned int, default: 0):           sample rate of output. If not set, let AVFilter decide
+sr (uint, default: 0):                   sample rate of output. If not set, let AVFilter decide
 .br
-ch (unsigned int, default: 0):           number of channels of output. If not set, let AVFilter decide
+ch (uint, default: 0):                   number of channels of output. If not set, let AVFilter decide
 .br
-dump (boolean, default: false, updatable): dump graph as log madia@info or stderr if not set
+dump (bool, default: false, updatable):  dump graph as log madia@info or stderr if not set
 .br
-* (string):                              any possible options defined for AVFilter and sub-classes. See gpac -hx ffavf and gpac -hx ffavf:*
+* (str):                                 any possible options defined for AVFilter and sub-classes. See gpac -hx ffavf and gpac -hx ffavf:*
 .br
 
 .br
@@ -5207,9 +5213,9 @@ For more information on how to use JS filters, please check https://wiki.gpac.io
 .SH Options (expert):
 .LP
 .br
-js (string):                             location of script source
+js (cstr):                               location of script source
 .br
-* (string):                              any possible options defined for the script. See gpac -hx jsf:js=$YOURSCRIPT
+* (str):                                 any possible options defined for the script. See gpac -hx jsf:js=$YOURSCRIPT
 .br
 
 .br
@@ -5237,17 +5243,17 @@ threading (enum, default: frame):        set threading mode
 .br
 
 .br
-nb_threads (unsigned int, default: 0):   set number of threads. If 0, uses number of cores minus one
+nb_threads (uint, default: 0):           set number of threads. If 0, uses number of cores minus one
 .br
-no_copy (boolean, default: false):       directly dispatch internal decoded frame without copy
+no_copy (bool, default: false):          directly dispatch internal decoded frame without copy
 .br
-pack_hfr (boolean, default: false):      pack 4 consecutive frames in a single output
+pack_hfr (bool, default: false):         pack 4 consecutive frames in a single output
 .br
-seek_reset (boolean, default: false):    reset decoder when seeking
+seek_reset (bool, default: false):       reset decoder when seeking
 .br
-force_stereo (boolean, default: false):  force stereo output for multiview (top-bottom only)
+force_stereo (bool, default: false):     force stereo output for multiview (top-bottom only)
 .br
-reset_switch (boolean, default: false):  reset decoder at config change
+reset_switch (bool, default: false):     reset decoder at config change
 .br
 
 .br
@@ -5260,7 +5266,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3320-g84b903750-filters
+build: 0.9.0-DEV-rev3321-g1625a1e48-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
