@@ -1854,8 +1854,8 @@ GF_FilterRegister CENCEncRegister = {
 	GF_FS_SET_DESCRIPTION("CENC  encryptor")
 	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a configuration file for declaring keys.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
-	"The file can be set per PID using the property CryptFile, or set at the filter option level.\n"
-	"When the file is set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.")
+	"The file can be set per PID using the property `CryptInfo`, or set at the filter option level.\n"
+	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used.")
 	.private_size = sizeof(GF_CENCEncCtx),
 	.max_extra_pids=-1,
 	//encryptor shall be explicetely loaded
