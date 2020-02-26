@@ -1696,7 +1696,7 @@ static int gpac_main(int argc, char **argv)
 			if (arg_val) runfor = 1000*atoi(arg_val);
 		} else if (!strcmp(arg, "-uncache")) {
 			const char *cache_dir = gf_opts_get_key("core", "cache");
-			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, "*.txt");
+			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, ".txt");
 			fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
 			gpac_exit(0);
 		} else if (!strcmp(arg, "-cfg")) {
