@@ -1264,9 +1264,9 @@ GF_FilterRegister CENCDecRegister = {
 	GF_FS_SET_DESCRIPTION("CENC decryptor")
 	GF_FS_SET_HELP("The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
-	"The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority) "
+	"The file can be set per PID using the property `DecryptInfo` (highest priority), `CryptInfo` (lower priority) "
 	"or set at the filter level using [-cfile]() (lowest priority).\n"
-	"When the file is set per PID, the first `CrypTrack` with the same ID is used, otherwise the first `CrypTrack` is used.")
+	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used.")
 	.private_size = sizeof(GF_CENCDecCtx),
 	.max_extra_pids=-1,
 	.args = GF_CENCDecArgs,

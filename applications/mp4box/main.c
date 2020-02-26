@@ -606,9 +606,9 @@ void PrintEncodeUsage()
 
 GF_GPACArg m4b_crypt_args[] =
 {
- 	GF_DEF_ARG("crypt", NULL, "encrypt the input file using the given CryptFile", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("decrypt `[drm_file]`", NULL, "decrypt the input file, potentially using the given CryptFile. If not given, will fail if the key management system is not supported", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("set-kms", NULL, "change ISMA/OMA KMS location for all tracks, or for a given one if `ID=kms_uri`is used", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("crypt", NULL, "encrypt the input file using the given `CryptFile`", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("decrypt", NULL, "decrypt the input file, potentially using the given `CryptFile`. If `CryptFile` is not given, will fail if the key management system is not supported", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("set-kms", NULL, "change ISMA/OMA KMS location for all tracks, or for a given one if `ID=kms_uri` is used", NULL, NULL, GF_ARG_STRING, 0),
  	{0}
 };
 
