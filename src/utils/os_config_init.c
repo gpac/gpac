@@ -1067,7 +1067,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("dm-threads", NULL, "force using threads for async download requests rather than session scheduler", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 
  GF_DEF_ARG("dbg-edges", NULL, "log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
-GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot be linked)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot be linked", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
