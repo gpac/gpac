@@ -739,10 +739,8 @@ GF_Err filelist_initialize(GF_Filter *filter)
 		return GF_BAD_PARAM;
 	}
 	if (ctx->fsort==FL_SORT_DATEX) {
-		FileListEntry *first;
 		ctx->revert = GF_FALSE;
 		ctx->floop = 0;
-		first = gf_list_get(ctx->file_list, 0);
 	}
 	ctx->file_list_idx = ctx->revert ? gf_list_count(ctx->file_list) : -1;
 	ctx->load_next = GF_TRUE;
