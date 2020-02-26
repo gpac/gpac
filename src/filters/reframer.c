@@ -266,9 +266,9 @@ GF_Err reframer_process(GF_Filter *filter)
 
 	if (ctx->rt) {
 		if (ctx->reschedule_in>2000) {
-			gf_filter_ask_rt_reschedule(filter, ctx->reschedule_in - 2000);
+			gf_filter_ask_rt_reschedule(filter, (u32) (ctx->reschedule_in - 2000));
 		} else if (ctx->reschedule_in>1000) {
-			gf_filter_ask_rt_reschedule(filter, ctx->reschedule_in / 2);
+			gf_filter_ask_rt_reschedule(filter, (u32) (ctx->reschedule_in / 2));
 		}
 	}
 

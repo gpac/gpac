@@ -518,7 +518,7 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (cts==GF_FILTER_NO_TS) cts=0;
 
 			if (iopid->single_frame && (ctx->fsort==FL_SORT_DATEX) ) {
-				dur = ctx->current_file_dur;
+				dur = (u32) ctx->current_file_dur;
 				//move from second to input pid timescale
 				dur *= iopid->timescale;
 			} else if (iopid->single_frame && ctx->dur.num && ctx->dur.den) {
