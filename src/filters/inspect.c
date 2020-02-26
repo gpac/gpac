@@ -949,11 +949,11 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			} else if ((att->type==GF_PROP_STRING) || (att->type==GF_PROP_STRING_NO_COPY)) {
 				gf_xml_dump_string(dump, NULL, att->value.string, NULL);
 			} else {
-				fprintf(dump, " %s=\"%s\"", pname_no_space, gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
+				fprintf(dump, " %s=\"%s\"", pname_no_space, gf_props_dump(p4cc, att, szDump, ctx->dump_data));
 			}
 			gf_free(pname_no_space);
 		} else {
-			fprintf(dump, " %s=\"%s\"", pname ? pname : gf_4cc_to_str(p4cc), gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
+			fprintf(dump, " %s=\"%s\"", pname ? pname : gf_4cc_to_str(p4cc), gf_props_dump(p4cc, att, szDump, ctx->dump_data));
 		}
 	} else {
 		if (ctx->dtype) {
@@ -983,7 +983,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				fprintf(dump, "%s", (const char *) gf_list_get(att->value.string_list, k));
 			}
 		}else{
-			fprintf(dump, "%s", gf_prop_dump(p4cc, att, szDump, ctx->dump_data) );
+			fprintf(dump, "%s", gf_props_dump(p4cc, att, szDump, ctx->dump_data) );
 		}
 		fprintf(dump, "\n");
 	}
@@ -1141,7 +1141,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			if (!prop) prop = gf_filter_pid_get_property_str(pctx->src_pid, key);
 
 			if (prop) {
-				fprintf(dump, "%s", gf_prop_dump(prop_4cc, prop, szDump, ctx->dump_data) );
+				fprintf(dump, "%s", gf_props_dump(prop_4cc, prop, szDump, ctx->dump_data) );
 			}
 		}
 		else {
@@ -1155,7 +1155,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			if (!prop) prop = gf_filter_pck_get_property_str(pck, key);
 
 			if (prop) {
-				fprintf(dump, "%s", gf_prop_dump(prop_4cc, prop, szDump, ctx->dump_data) );
+				fprintf(dump, "%s", gf_props_dump(prop_4cc, prop, szDump, ctx->dump_data) );
 			}
 		}
 

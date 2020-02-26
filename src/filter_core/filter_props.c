@@ -1026,37 +1026,74 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 #endif
 }
 
-GF_EXPORT
-const char *gf_props_get_type_name(u32 type)
+typedef struct
 {
-	switch (type) {
-	case GF_PROP_SINT: return "int";
-	case GF_PROP_UINT: return "unsigned int";
-	case GF_PROP_LSINT: return "long int";
-	case GF_PROP_LUINT: return "unsigned long int";
-	case GF_PROP_FRACTION: return "fraction";
-	case GF_PROP_FRACTION64: return "64-bit fraction";
-	case GF_PROP_BOOL: return "boolean";
-	case GF_PROP_FLOAT: return "float";
-	case GF_PROP_DOUBLE: return "number";
-	case GF_PROP_NAME: return "string";
-	case GF_PROP_STRING: return "string";
-	case GF_PROP_DATA: return "data";
-	case GF_PROP_CONST_DATA: return "const data";
-	case GF_PROP_POINTER: return "pointer";
-	case GF_PROP_VEC2I: return "vec2d int";
-	case GF_PROP_VEC2: return "vec2d float";
-	case GF_PROP_VEC3I: return "vec3d int";
-	case GF_PROP_VEC3: return "vec3d float";
-	case GF_PROP_VEC4I: return "vec4d int";
-	case GF_PROP_VEC4: return "vec4d float";
-	case GF_PROP_PIXFMT: return "pixel format";
-	case GF_PROP_PCMFMT: return "audio format";
-	case GF_PROP_STRING_LIST: return "string list";
-	case GF_PROP_UINT_LIST: return "uint list";
+	GF_PropType type;
+	const char *name;
+	const char *desc;
+} GF_PropTypeDef;
+
+GF_PropTypeDef PropTypes[] =
+{
+	{GF_PROP_SINT, "sint", "signed 32 bit integer"},
+	{GF_PROP_UINT, "uint", "unsigned 32 bit integer"},
+	{GF_PROP_LSINT, "lsint", "signed 64 bit integer"},
+	{GF_PROP_LUINT, "luint", "unsigned 32 bit integer"},
+	{GF_PROP_FRACTION, "frac", "32/32 bit fraction"},
+	{GF_PROP_FRACTION64, "lfrac", "64/64 bit fraction"},
+	{GF_PROP_BOOL, "bool", "boolean"},
+	{GF_PROP_FLOAT, "flt", "32 bit float number"},
+	{GF_PROP_DOUBLE, "dbl", "64 bit float number"},
+	{GF_PROP_NAME, "cstr", "const UTF-8 string"},
+	{GF_PROP_STRING, "str", "UTF-8 string"},
+	{GF_PROP_STRING_NO_COPY, "str", "UTF-8 string"},
+	{GF_PROP_DATA, "mem", "data buffer"},
+	{GF_PROP_DATA_NO_COPY, "mem", "data buffer"},
+	{GF_PROP_CONST_DATA, "cmem", "const data buffer"},
+	{GF_PROP_POINTER, "ptr", "32 or 64 bit pointer"},
+	{GF_PROP_VEC2I, "v2di", "2D 32-bit integer vector"},
+	{GF_PROP_VEC2, "v2df", "2D 32-bit float vector"},
+	{GF_PROP_VEC3I, "v3di", "3D 32-bit integer vector"},
+	{GF_PROP_VEC3, "v3df", "3D 32-bit float vector"},
+	{GF_PROP_VEC4I, "v4di", "4D 32-bit integer vector"},
+	{GF_PROP_VEC4, "v4df", "4D 32-bit float vector"},
+	{GF_PROP_PIXFMT, "pfmt", "raw pixel format"},
+	{GF_PROP_PCMFMT, "afmt", "raw audio format"},
+	{GF_PROP_STRING_LIST, "strl", "UTF-8 string list"},
+	{GF_PROP_UINT_LIST, "uintl", "unsigned 32 bit integer list"}
+};
+
+GF_EXPORT
+const char *gf_props_get_type_name(GF_PropType type)
+{
+	u32 i, nb_props = sizeof(PropTypes) / sizeof(GF_PropTypeDef);
+	for (i=0; i<nb_props; i++) {
+		if (PropTypes[i].type == type) return PropTypes[i].name;
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
 	return "Undefined";
+}
+
+GF_EXPORT
+const char *gf_props_get_type_desc(GF_PropType type)
+{
+	u32 i, nb_props = sizeof(PropTypes) / sizeof(GF_PropTypeDef);
+	for (i=0; i<nb_props; i++) {
+		if (PropTypes[i].type == type) return PropTypes[i].desc;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
+	return "Undefined";
+}
+
+GF_EXPORT
+GF_PropType gf_props_parse_type(const char *name)
+{
+	u32 i, nb_props = sizeof(PropTypes) / sizeof(GF_PropTypeDef);
+	for (i=0; i<nb_props; i++) {
+		if (!strcmp(PropTypes[i].name, name)) return PropTypes[i].type;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %s\n", name));
+	return GF_PROP_FORBIDEN;
 }
 
 GF_BuiltInProperty GF_BuiltInProps [] =
@@ -1319,7 +1356,7 @@ Bool gf_props_4cc_check_props()
 	return res;
 }
 
-const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum, Bool is_4cc)
+const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum, Bool is_4cc)
 {
 	switch (att->type) {
 	case GF_PROP_NAME:
@@ -1495,13 +1532,13 @@ const char *gf_prop_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_D
 }
 
 GF_EXPORT
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum)
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum)
 {
-	return gf_prop_dump_val_ex(att, dump, dump_data, min_max_enum, GF_FALSE);
+	return gf_props_dump_val_ex(att, dump, dump_data, min_max_enum, GF_FALSE);
 }
 
 GF_EXPORT
-const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
+const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
 {
 	Bool is_4cc = GF_FALSE;
 
@@ -1530,7 +1567,7 @@ const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PRO
 		is_4cc = GF_TRUE;
 
 	default:
-		return gf_prop_dump_val_ex(att, dump, dump_data, NULL, is_4cc);
+		return gf_props_dump_val_ex(att, dump, dump_data, NULL, is_4cc);
 	}
 	return "";
 }

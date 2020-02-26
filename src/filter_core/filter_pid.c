@@ -1274,7 +1274,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	//check for dynamic assignment
 	if ( (psep[0]==src_pid->filter->session->sep_name) && ((psep[1]=='*') || (psep[1]=='\0') ) ) {
 		*needs_resolve = GF_TRUE;
-		gf_prop_dump_val(&pent->prop, prop_dump_buffer, GF_FALSE, NULL);
+		gf_props_dump_val(&pent->prop, prop_dump_buffer, GF_FALSE, NULL);
 		return GF_FALSE;
 	}
 
@@ -3251,6 +3251,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			}
 			gf_props_reset_single(&p);
 		} else if (value) {
+			Bool reset_prop=GF_FALSE;
 			GF_PropertyValue p;
 			if (!strncmp(value, "bxml@", 5)) {
 				p = gf_props_parse_value(GF_PROP_DATA_NO_COPY, name, value, NULL, pid->filter->session->sep_list);
@@ -3258,11 +3259,29 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				p = gf_props_parse_value(GF_PROP_STRING, name, value, NULL, pid->filter->session->sep_list);
 				p.type = GF_PROP_STRING_NO_COPY;
 			} else {
+				u32 ptype = GF_PROP_FORBIDEN;
+				char *type_sep = strchr(value, '@');
+				if (type_sep) {
+					type_sep[0] = 0;
+					ptype = gf_props_parse_type(value);
+					if (ptype==GF_PROP_FORBIDEN) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Unrecognized property type %s, defaulting to string\n", value));
+					} else {
+						value = type_sep+1;
+					}
+					type_sep[0] = '@';
+				}
 				memset(&p, 0, sizeof(GF_PropertyValue));
-				p.type = GF_PROP_STRING;
-				p.value.string = value;
+				if (ptype == GF_PROP_FORBIDEN) {
+					p.type = GF_PROP_STRING;
+					p.value.string = value;
+				} else {
+					p = gf_props_parse_value(ptype, name, value, NULL, pid->filter->session->sep_list);
+					reset_prop = GF_TRUE;
+				}
 			}
 			gf_filter_pid_set_property_dyn(pid, name, &p);
+			if (reset_prop) gf_props_reset_single(&p);
 		}
 		if (value_next_list)
 			value_next_list[0] = filter->session->sep_list;
@@ -3380,7 +3399,7 @@ static void dump_pid_props(GF_FilterPid *pid)
 	const GF_PropertyEntry *p;
 	GF_PropertyMap *pmap = gf_list_get(pid->properties, 0);
 	while (pmap && (p = gf_list_enum(pmap->properties, &idx))) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Pid prop %s: %s\n", gf_props_4cc_get_name(p->p4cc), gf_prop_dump(p->p4cc, &p->prop, szDump, GF_FALSE) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Pid prop %s: %s\n", gf_props_4cc_get_name(p->p4cc), gf_props_dump(p->p4cc, &p->prop, szDump, GF_FALSE) ));
 	}
 }
 #endif
@@ -6293,7 +6312,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				value = prop_val->value.uint;
 				has_val = GF_TRUE;
 			} else {
-				str_val = gf_prop_dump_val(prop_val, szPropVal, GF_FALSE, NULL);
+				str_val = gf_props_dump_val(prop_val, szPropVal, GF_FALSE, NULL);
 			}
 		}
 		szTemplateVal[0]=0;

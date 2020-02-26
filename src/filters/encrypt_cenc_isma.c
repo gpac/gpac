@@ -109,6 +109,7 @@ typedef struct
 {
 	//options
 	const char *cfile;
+	Bool allc;
 	
 	//internal
 	GF_CryptInfo *cinfo;
@@ -783,24 +784,26 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!cinfo) cinfo = ctx->cinfo;
 
 
-	if (!cinfo) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing XML crypto file\n") );
+	if (cinfo) {
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+		count = gf_list_count(cinfo->tcis);
+		for (i=0; i<count; i++) {
+			tci = gf_list_get(cinfo->tcis, i);
+			if (prop && tci->trackID && (tci->trackID==prop->value.uint)) break;
+			if (!tci_any && !tci->trackID) tci_any = tci;
+			if ((cinfo != ctx->cinfo) && !tci_any) tci_any = tci;
+			tci = NULL;
+		}
+		if (!tci) tci = tci_any;
+	} else if (ctx->allc) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing DRM config file\n") );
 		return GF_NOT_SUPPORTED;
 	}
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-	count = gf_list_count(cinfo->tcis);
-	for (i=0; i<count; i++) {
-		tci = gf_list_get(cinfo->tcis, i);
-		if (prop && tci->trackID && (tci->trackID==prop->value.uint)) break;
-		if (!tci_any && !tci->trackID) tci_any = tci;
-		if ((cinfo != ctx->cinfo) && !tci_any) tci_any = tci;
-		tci = NULL;
-	}
-	if (!tci) tci = tci_any;
-
 	if (!tci) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in file, PID will not be crypted\n") );
+		if (cinfo) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in DRM config file, PID will not be crypted\n") );
+		}
 	} else {
 		scheme_type = tci->scheme_type;
 
@@ -1846,19 +1849,22 @@ static const GF_FilterCapability CENCEncCaps[] =
 static const GF_FilterArgs GF_CENCEncArgs[] =
 {
 	{ OFFS(cfile), "crypt file location - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(allc), "throw error if no DRM config file is found for a PID - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{0}
 };
 
 GF_FilterRegister CENCEncRegister = {
 	.name = "cecrypt",
 	GF_FS_SET_DESCRIPTION("CENC  encryptor")
-	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a configuration file for declaring keys.\n"
+	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
-	"The file can be set per PID using the property `CryptInfo`, or set at the filter option level.\n"
-	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used.")
+	"The DRM config file can be set per PID using the property `CryptInfo`, or set at the filter level using [-cfile]().\n"
+	"When the DRM config file is set per PID, the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` is used.\n"
+	"If no DRM config file is defined for a given PID, this PID will not be encrypted, or an error will be thrown if [-allc]() is specified.\n"
+	)
 	.private_size = sizeof(GF_CENCEncCtx),
 	.max_extra_pids=-1,
-	//encryptor shall be explicetely loaded
+	//encryptor shall be explicitly loaded
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = GF_CENCEncArgs,
 	SETCAPS(CENCEncCaps),
