@@ -86,7 +86,7 @@ typedef struct
 	Double speed, start;
 	u32 test;
 	GF_Fraction dur;
-	Bool dump_crc;
+	Bool dump_crc, dtype;
 	Bool fftmcd;
 
 	FILE *dump;
@@ -915,6 +915,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	}
 
 	if (ctx->xml) {
+		if (ctx->dtype)
+			fprintf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
+			
 		if (pname && strchr(pname, ' ')) {
 			u32 i=0;
 			char *pname_no_space = gf_strdup(pname);
@@ -953,7 +956,11 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			fprintf(dump, " %s=\"%s\"", pname ? pname : gf_4cc_to_str(p4cc), gf_prop_dump(p4cc, att, szDump, ctx->dump_data));
 		}
 	} else {
-		fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
+		if (ctx->dtype) {
+			fprintf(dump, "\t%s (%s): ", pname ? pname : gf_4cc_to_str(p4cc), gf_props_get_type_name(att->type));
+		} else {
+			fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
+		}
 
 		if (att->type==GF_PROP_UINT_LIST) {
 			for (u32 k = 0; k < att->value.uint_list.nb_items; k++) {
@@ -2180,6 +2187,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(analyze), "analyze sample content (NALU, OBU)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dtype), "dump property type", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
