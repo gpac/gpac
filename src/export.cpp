@@ -339,6 +339,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_bool) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_filename) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_default_shared_directory) )
 
 
 #ifndef GPAC_DISABLE_PLAYER
@@ -2206,6 +2207,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_shortnames) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_enum) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_bytes_per_pixel) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_mime) )
