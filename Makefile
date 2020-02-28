@@ -158,6 +158,11 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/res/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac_cfg_test.mp4 $(DESTDIR)$(prefix)/share/gpac/res/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png $(DESTDIR)$(prefix)/share/gpac/res/
+
+ifneq ($(CONFIG_DARWIN),yes)
+	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)/usr/share/applications/"
+endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
@@ -198,6 +203,11 @@ else
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+
+	ln -s $(SRC_PATH)/share/ $(DESTDIR)$(prefix)/share/gpac
+	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png
+	ln -sf $(SRC_PATH)/share/gpac.desktop $(DESTDIR)/usr/share/applications/
+
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
 endif
@@ -218,6 +228,8 @@ endif
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac-filters.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
+	rm -rf $(DESTDIR)/usr/share/pixmaps/gpac.png
+	rm -rf $(DESTDIR)/usr/share/applications/gpac.desktop
 	rm -rf $(DESTDIR)$(prefix)/include/gpac
 
 installdylib:
