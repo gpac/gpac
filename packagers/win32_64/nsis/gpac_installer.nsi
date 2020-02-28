@@ -289,8 +289,10 @@ Section "GPAC Player" SecOsmo4
 
   ;copy GUI
   SetOutPath $INSTDIR\share
-  File "${GPAC_ROOT}\share\doc\gpac.mp4"
-  File "${GPAC_ROOT}\share\doc\gpac_cfg_test.mp4"
+  SetOutPath $INSTDIR\share\res
+  File "${GPAC_ROOT}\share\res\gpac.mp4"
+  File "${GPAC_ROOT}\share\res\gpac_cfg_test.mp4"
+  File "${GPAC_ROOT}\share\res\gpac.png"
   SetOutPath $INSTDIR\share\gui
   File "${GPAC_ROOT}\share\gui\gui.bt"
   File "${GPAC_ROOT}\share\gui\gui.js"

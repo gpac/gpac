@@ -429,6 +429,38 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 #endif
 #endif
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+#include <gpac/media_tools.h>
+void SDLVid_SetIcon(SDLVidCtx *ctx)
+{
+	u8 *buffer, *dec_buf;
+	u32 size, w, h, pf, Bpp, dst_size=0;
+	const char cfg[GF_MAX_PATH];
+	if (!gf_opts_default_shared_directory((char *) cfg))
+		return;
+
+	strcat((char *) cfg, "/res/gpac.png");
+	if (gf_file_load_data(cfg, &buffer, &size) != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDLOut] failed to load icon file %s\n", cfg ));
+		return;
+	}
+	gf_img_png_dec(buffer, size, &w, &h, &pf, NULL, &dst_size);
+	Bpp = gf_pixel_get_bytes_per_pixel(pf);
+	dec_buf = gf_malloc(sizeof(char)*dst_size);
+	gf_img_png_dec(buffer, size, &w, &h, &pf, dec_buf, &dst_size);
+	//RGBA only
+	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(dec_buf, w, h, Bpp*8, w*Bpp, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	if (!surface) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDLOut] failed to create surface from icon: %s\n", SDL_GetError() ));
+	} else {
+		SDL_SetWindowIcon(ctx->screen, surface);
+		SDL_FreeSurface(surface);
+	}
+	gf_free(buffer);
+	gf_free(dec_buf);
+}
+#endif
+
 
 GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 {
@@ -494,6 +526,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				return GF_IO_ERR;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
+
+			SDLVid_SetIcon(ctx);
 
 			/*creating a window, at least on OSX, changes the locale and screws up float parsing !!
 			force setting the local back and pray that it will be changed before any other atof/strtod is called
@@ -587,6 +621,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
+
+			SDLVid_SetIcon(ctx);
 
 			/*see above note*/
 #ifndef _WIN32_WCE
