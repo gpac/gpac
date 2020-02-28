@@ -5160,7 +5160,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 {
 	u32 count, i, j;
 	u64 duration=0;
-	if (pid->filter->session->in_final_flush)
+	if (!pid || pid->filter->session->in_final_flush)
 		return GF_FILTER_NO_TS;
 
 	if (PID_IS_INPUT(pid)) {
