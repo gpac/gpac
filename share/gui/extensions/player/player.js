@@ -233,6 +233,7 @@ extension = {
                 ext.initial_speed = 1;
                 ext.initial_start = 0;
 
+                gwlog(l_inf, 'URL connected');
 
                 if ((ext.current_url.indexOf('gpac://') == 0) && ((ext.current_url.indexOf('://') < 0) || (ext.current_url.indexOf('file://') == 0))) {
                     ext.local_url = true;
@@ -287,27 +288,22 @@ extension = {
             ext.root_odm = gpac.get_object_manager(ext.current_url);
             ext.set_state(ext.GF_STATE_PLAY);
 
+            //override scene size info
+            gpac.set_size(evt.width, evt.height, true);
+
             if (!gpac.fullscreen && evt.width && evt.height) {
-                var w, h, r_w, r_h;
+                var w, h;
                 w = evt.width;
                 h = evt.height;
-
-				gpac.set_size(w, h, true);
 
                 if (w > gpac.screen_width) w = gpac.screen_width;
                 if (h > gpac.screen_height) h = gpac.screen_height;
 
-				var min_width = this.extension.def_width;
-				var min_height = this.extension.def_height;
-                r_w = r_h = 1;
-                if (w < min_width) r_w = Math.ceil(min_width / w);
-                if (h < min_height) r_h = Math.ceil(min_height / h);
-                if (r_w < r_h) r_w = r_h;
-                w = r_w * w;
-                h = r_w * h;
+				if (w<this.extension.def_width)
+                    w = this.extension.def_width;
+
+                gwlog(l_inf, 'set output size to ' + w + 'x' + h);
                 gpac.set_size(w, h);
-            } else {
-                gpac.set_size(evt.width, evt.height, true);
             }
             ext.streamlist_changed();
 
