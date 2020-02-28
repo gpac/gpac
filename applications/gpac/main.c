@@ -2360,8 +2360,12 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 
 				sep = strchr(arg, '.');
 				if (sep) {
-					sep[0] = 0;
-					optname = sep+1;
+					if (!strncmp(sep, ".js.", 4)) sep = strchr(sep+1, '.');
+					else if (!strcmp(sep, ".js")) sep = NULL;
+					if (sep) {
+						sep[0] = 0;
+						optname = sep+1;
+					}
 				}
 				fname = arg;
 
