@@ -24,7 +24,7 @@
 ;config file
 "GPAC.cfg"        		-"c:\private\F01F9075\GPAC.cfg"
 ;startup file
-"..\..\..\doc\gpac.mp4"        		-"c:\private\F01F9075\gpac.mp4"
+"..\..\..\res\gpac.mp4"        		-"c:\private\F01F9075\gpac.mp4"
 ;cache setup
 ""        		-"c:\private\F01F9075\cache\", FN
 ;modules: on S60 3rd, librairies shall be in /sys/bin to load ...

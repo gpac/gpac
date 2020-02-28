@@ -148,13 +148,16 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac-filters.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/res"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/extensions"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/scripts"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/include"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/res/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac_cfg_test.mp4 $(DESTDIR)$(prefix)/share/gpac/res/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png $(DESTDIR)$(prefix)/share/gpac/res/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
