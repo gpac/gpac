@@ -2650,7 +2650,9 @@ fi
 
 #we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS_DIR $CFLAGS -Wno-deprecated"
+    CFLAGS="$CFLAGS_DIR $CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+else
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
 fi
 
 if test "$enable_sanitizer" = "yes" ; then
