@@ -184,9 +184,10 @@ typedef struct
 
 /*! loads a given crypto configuration file. Full doc is available at https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
 \param file name of the crypt XML file
+\param out_err set to return error
 \return the crypt info
 */
-GF_CryptInfo *gf_crypt_info_load(const char *file);
+GF_CryptInfo *gf_crypt_info_load(const char *file, GF_Err *out_err);
 
 /*! deletes crypto configuration file.
 \param info the target crypt info

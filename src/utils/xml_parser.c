@@ -381,7 +381,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					/*end of <!DOCTYPE>*/
 					if (parser->init_state) {
 						if (parser->init_state==1) {
-							format_sax_error(parser, 0, "Invalid DOCTYPE");
+							format_sax_error(parser, 0, "Invalid <!DOCTYPE...> or <?xml...?>");
 							return GF_TRUE;
 						}
 						parser->sax_state = SAX_STATE_ELEMENT;
@@ -395,7 +395,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					if (parser->init_state) {
 						parser->current_pos+=1;
 						if (parser->init_state==1) {
-							format_sax_error(parser, 0, "Invalid DOCTYPE");
+							format_sax_error(parser, 0, "Invalid <!DOCTYPE...> or <?xml...?>");
 							return GF_TRUE;
 						}
 						parser->sax_state = SAX_STATE_ELEMENT;
