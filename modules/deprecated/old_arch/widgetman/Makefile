@@ -29,17 +29,19 @@ ifeq ($(CONFIG_JS),no)
 else
 CFLAGS+=$(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
+# if local it is staticly linked with libgpac
 NEED_LOCAL_LIB="yes"
 LOCAL_LIB+= -L../../extra_lib/lib/gcc
-endif
+else
 LINKLIBS+= $(JS_LIBS)
 endif
+endif
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_widgetman$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols widgetman.def 
+#LDFLAGS+=-export-symbols widgetman.def
 endif
 
 
@@ -49,13 +51,13 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) $(LINKLIBS) $(LDFLAGS)
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

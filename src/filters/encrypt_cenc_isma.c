@@ -774,10 +774,10 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CRYPT_INFO);
 	if (prop) {
-		cinfo = gf_crypt_info_load(prop->value.string);
+		cinfo = gf_crypt_info_load(prop->value.string, &e);
 		if (!cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] failed to load crypt info file %s for pid %s\n", prop->value.string, gf_filter_pid_get_name(pid) ) );
-			return GF_NOT_SUPPORTED;
+			return e;
 		}
 		cfile_name = prop->value.string;
 	}
@@ -1803,7 +1803,8 @@ static GF_Err cenc_enc_initialize(GF_Filter *filter)
 	GF_CENCEncCtx *ctx = (GF_CENCEncCtx *)gf_filter_get_udta(filter);
 
 	if (ctx->cfile) {
-		ctx->cinfo = gf_crypt_info_load(ctx->cfile);
+		GF_Err e;
+		ctx->cinfo = gf_crypt_info_load(ctx->cfile, &e);
 		if (!ctx->cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENCCrypt] Cannot load config file %s\n", ctx->cfile ));
 			return GF_BAD_PARAM;
