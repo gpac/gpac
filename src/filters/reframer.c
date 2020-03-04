@@ -41,6 +41,7 @@ typedef struct
 	u64 cts_at_init;
 	u64 sys_clock_at_init;
 	u32 nb_frames;
+	u64 snap_last_ts_plus_one;
 } RTStream;
 
 typedef struct
@@ -50,6 +51,7 @@ typedef struct
 	GF_PropUIntList saps;
 	GF_PropUIntList frames;
 	Bool refs;
+	u32 snapdur;
 	u32 rt;
 	Double speed;
 	Bool raw;
@@ -93,6 +95,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_list_add(ctx->streams, st);
 		st->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, st);
+		gf_filter_pid_set_udta(st->opid, st);
 		st->ipid = pid;
 	}
 	//copy properties at init or reconfig
@@ -249,6 +252,22 @@ GF_Err reframer_process(GF_Filter *filter)
 					break;
 				}
 			}
+			if (forward && ctx->snapdur) {
+				u64 ts = gf_filter_pck_get_cts(pck);
+				if (ts==GF_FILTER_NO_TS)
+					ts = gf_filter_pck_get_dts(pck);
+
+				if (!st->snap_last_ts_plus_one) {
+					st->snap_last_ts_plus_one = ts + 1;
+				} else {
+					u64 diff = ts - st->snap_last_ts_plus_one - 1;
+					if (diff >= ((u64)ctx->snapdur) * st->timescale) {
+						st->snap_last_ts_plus_one = ts + 1;
+					} else {
+						forward = GF_FALSE;
+					}
+				}
+			}
 
 			if (!forward) {
 				gf_filter_pid_drop_packet(ipid);
@@ -294,6 +313,19 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	GF_FilterEvent fevt;
+	RTStream *st;
+	if (!evt->base.on_pid) return GF_FALSE;
+	st = gf_filter_pid_get_udta(evt->base.on_pid);
+	if (!st) return GF_TRUE;
+	//if we have a PID, we always cancel the event and forward the same event to the associated input pid
+	fevt = *evt;
+	fevt.base.on_pid = st->ipid;
+	gf_filter_pid_send_event(st->ipid, &fevt);
+	return GF_TRUE;
+}
 
 static void reframer_finalize(GF_Filter *filter)
 {
@@ -334,19 +366,28 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input streams to be in raw format (i.e. forces decoding of input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frames), "drop all except listed frames (first being 1), off by default", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(snapdur), "specify duration between two forward, 0 forward all frames otherwise frames in the middle of this interval are dropped", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+
 	{0}
 };
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
 	GF_FS_SET_DESCRIPTION("Media Reframer")
-	GF_FS_SET_HELP("Passthrough filter ensuring reframing, and optionally decoding, of inputs\n"
-		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
-		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frame (SAP 1,2,3) of a video.\n"\
-		"The filter can be used to only keep specific [-frames]() of the source.\n"\
-		"The filter can be used to force input media to be decoded.\n"\
-		"The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:\n"\
-		"EX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\
+	GF_FS_SET_HELP("Passthrough filter ensuring reframing, and optionally decoding, of inputs.\n"
+		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"
+		"# SAP Extraction\n"
+		"The filter can remove packets based on their SAP types using [-saps]() option.\n"
+		"This can be useful to extract only the key frame (SAP 1,2,3) of a video to create a trick mode version.\n"
+		"# Frame Extraction\n"
+		"This filter can keep only specific of the source using [-frames]() option.\n"
+		"This can be useful to extract only specific key frame of a video to create a HEIF collection.\n"
+		"# Frame Decoding\n"
+		"This filter can force input media streams to be decoded using the [-raw]() option.\n"
+		"# Real-time Regulation\n"
+		"The filter can be perform real-time regulation of input packets, based on their timescale and timestamps.\n"
+		"For example to simulate a live DASH:\n"
+		"EX gpac src=m.mp4 reframer:rt=on @ dst=live.mpd:dynamic\n"
 		)
 	.private_size = sizeof(GF_ReframerCtx),
 	.max_extra_pids = (u32) -1,
@@ -358,6 +399,7 @@ GF_FilterRegister ReframerRegister = {
 	.finalize = reframer_finalize,
 	.configure_pid = reframer_configure_pid,
 	.process = reframer_process,
+	.process_event = reframer_process_event,
 };
 
 
