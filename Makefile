@@ -160,8 +160,17 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png $(DESTDIR)$(prefix)/share/gpac/res/
 
 ifneq ($(CONFIG_DARWIN),yes)
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/pixmaps"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/applications"
+
+ifeq ($(IS_DEB_MAKE),undefined)
 	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)/usr/share/applications/"
+else
+	dh_link $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)$(prefix)/share/pixmaps/gpac.png
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)$(prefix)/share/applications/"
+endif
+
 endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
@@ -211,6 +220,7 @@ else
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
 endif
+
 endif
 
 uninstall:
