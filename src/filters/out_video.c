@@ -522,6 +522,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_send_event(pid, &fevt);
 
 		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
+		if (ctx->dur.num && ctx->dur.den) {
+			fevt.play.end_range = ((Double)ctx->dur.num) / ctx->dur.den;
+			fevt.play.end_range += fevt.play.start_range;
+		}
 		gf_filter_pid_send_event(pid, &fevt);
 
 		ctx->start = fevt.play.start_range;

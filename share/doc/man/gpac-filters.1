@@ -2233,21 +2233,39 @@ Description: Media Reframer
 .br
 
 .br
-Passthrough filter ensuring reframing, and optionally decoding, of inputs
+Passthrough filter ensuring reframing, and optionally decoding, of inputs.
 .br
 This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.
 .br
-The filter can be used to filter out packets based on SAP types, for example to extract only the key frame (SAP 1,2,3) of a video.
+.SH SAP Extraction
+.LP
 .br
-The filter can be used to only keep specific -frames of the source.
+The filter can remove packets based on their SAP types using -saps option.
 .br
-The filter can be used to force input media to be decoded.
+This can be useful to extract only the key frame (SAP 1,2,3) of a video to create a trick mode version.
 .br
-The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:
+.SH Frame Extraction
+.LP
+.br
+This filter can keep only specific of the source using -frames option.
+.br
+This can be useful to extract only specific key frame of a video to create a HEIF collection.
+.br
+.SH Frame Decoding
+.LP
+.br
+This filter can force input media streams to be decoded using the -raw option.
+.br
+.SH Real-time Regulation
+.LP
+.br
+The filter can be perform real-time regulation of input packets, based on their timescale and timestamps.
+.br
+For example to simulate a live DASH:
 .br
 Example
 .br
-"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic"
+gpac src=m.mp4 reframer:rt=on @ dst=live.mpd:dynamic
 .br
 
 .br
@@ -2281,6 +2299,8 @@ speed (dbl, default: 1.0):               speed for real-time regulation mode - o
 raw (bool, default: false):              force input streams to be in raw format (i.e. forces decoding of input)
 .br
 frames (uintl):                          drop all except listed frames (first being 1), off by default
+.br
+snapdur (uint, default: 0):              specify duration between two forward, 0 forward all frames otherwise frames in the middle of this interval are dropped
 .br
 
 .br
@@ -5266,7 +5286,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3321-g1625a1e48-filters
+build: 0.9.0-DEV-rev3344-g6241bba21-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
