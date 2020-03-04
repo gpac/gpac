@@ -3915,6 +3915,7 @@ single_retry:
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
+		pid->not_connected = 1;
 	} else {
 		//no filter found for this pid !
 		if (!pid->not_connected_ok && (filter->session->flags & GF_FS_FLAG_FULL_LINK) ) {
@@ -3932,6 +3933,7 @@ single_retry:
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
 		}
+		pid->not_connected = 1;
 	}
 	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
@@ -5391,8 +5393,12 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 				gf_filter_pid_would_block(evt->base.on_pid);
 			canceled = GF_TRUE;
 		}
-	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY) && evt->base.on_pid->pid->is_playing) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY)
+		&& (evt->base.on_pid->pid->is_playing || (((GF_FilterPid *) evt->base.on_pid->pid)->not_connected==2))
+		) {
+		if (evt->base.on_pid->pid->is_playing) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+		}
 		free_evt(evt);
 		return;
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
@@ -5414,6 +5420,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
 		}
+		if (pid->not_connected)
+			pid->not_connected = 2;
 		return;
 	} else if (f->freg->process_event) {
 		FSESS_CHECK_THREAD(f)
@@ -5443,6 +5451,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		} else if (evt->base.type==GF_FEVT_STOP) {
 			pid->is_playing = GF_FALSE;
 			pid->filter->nb_pids_playing--;
+
+			if (pid->not_connected)
+				pid->not_connected = 2;
 		} else if (evt->base.type==GF_FEVT_SOURCE_SEEK) {
 			pid->is_playing = GF_TRUE;
 			pid->filter->nb_pids_playing++;
