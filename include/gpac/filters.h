@@ -1725,7 +1725,14 @@ struct __gf_filter_register
 	/*! optional - filter arguments if any*/
 	const GF_FilterArgs *args;
 
-	/*! mandatory - callback for filter processing*/
+	/*! mandatory - callback for filter processing
+		This function is called whenever packets are available on the input PID and buffer space is available on the output.
+	The session will by default monitor a filter for errors, and throw en error if a filter is not consuming nor producing packets for a given amount of process calls.
+	In some cases, it might be needed to not consume nor produce a packet for a given time (for example, waiting for a packet drop before reconfiguring a filter).
+	A filter must signal this using \ref gf_filter_ask_rt_reschedule, possibly with no timeout.
+
+	A filter may return GF_EOS to indicate no more data is expected to be produced by this filter
+	*/
 	GF_Err (*process)(GF_Filter *filter);
 
 	/*! optional for sources, mandatory for filters and sinks - callback for PID update may be called several times
