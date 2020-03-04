@@ -57,8 +57,8 @@ struct __tag_bitstream
 	void *par;
 
 
-	char *buffer_io;
-	u32 buffer_io_size, buffer_written;
+	char *cache_write;
+	u32 cache_write_size, buffer_written;
 
 	Bool remove_emul_prevention_byte;
 	u32 nb_zeros;
@@ -69,6 +69,10 @@ struct __tag_bitstream
 	u32 prevent_dispatch;
 
 	u64 cookie;
+
+	u8 *cache_read;
+	u32 cache_read_size, cache_read_pos, cache_read_alloc;
+
 };
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
@@ -186,6 +190,16 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	gf_fseek(f, 0, SEEK_END);
 	tmp->size = gf_ftell(f);
 	gf_fseek(f, tmp->position, SEEK_SET);
+
+
+	if (mode==GF_BITSTREAM_FILE_READ) {
+		tmp->cache_read_alloc = gf_opts_get_int("core", "bs-cache-size");
+		if (tmp->cache_read_alloc) {
+			tmp->cache_read_pos = tmp->cache_read_size = tmp->cache_read_alloc;
+			tmp->cache_read = gf_malloc(tmp->cache_read_alloc);
+		}
+	}
+
 	return tmp;
 }
 
@@ -245,10 +259,10 @@ void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch)
 	}
 }
 
-static void bs_flush_cache(GF_BitStream *bs)
+static void bs_flush_write_cache(GF_BitStream *bs)
 {
 	if (bs->buffer_written) {
-		u32 nb_write = (u32) fwrite(bs->buffer_io, 1, bs->buffer_written, bs->stream);
+		u32 nb_write = (u32) fwrite(bs->cache_write, 1, bs->buffer_written, bs->stream);
 		bs->size += nb_write;
 		bs->position += nb_write;
 		bs->buffer_written = 0;
@@ -263,10 +277,10 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size)
 	if (bs->bsmode != GF_BITSTREAM_FILE_WRITE) {
 		return GF_OK;
 	}
-	bs_flush_cache(bs);
-	bs->buffer_io = (char*)gf_realloc(bs->buffer_io, size);
-	if (!bs->buffer_io) return GF_IO_ERR;
-	bs->buffer_io_size = size;
+	bs_flush_write_cache(bs);
+	bs->cache_write = (char*)gf_realloc(bs->cache_write, size);
+	if (!bs->cache_write) return GF_IO_ERR;
+	bs->cache_write_size = size;
 	bs->buffer_written = 0;
 	return GF_OK;
 }
@@ -275,7 +289,7 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size)
 GF_EXPORT
 u32 gf_bs_get_output_buffering(GF_BitStream *bs)
 {
-	return bs ? bs->buffer_io_size : 0;
+	return bs ? bs->cache_write_size : 0;
 }
 
 GF_EXPORT
@@ -287,10 +301,12 @@ void gf_bs_del(GF_BitStream *bs)
 	}
 	/*if we are in dynamic mode (alloc done by the bitstream), free the buffer if still present*/
 	if ((bs->bsmode == GF_BITSTREAM_WRITE_DYN) && bs->original) gf_free(bs->original);
-	if (bs->buffer_io) {
-		bs_flush_cache(bs);
-		gf_free(bs->buffer_io);
+	if (bs->cache_write) {
+		bs_flush_write_cache(bs);
+		gf_free(bs->cache_write);
 	}
+	if (bs->cache_read)
+		gf_free(bs->cache_read);
 	gf_free(bs);
 }
 
@@ -315,6 +331,25 @@ Bool gf_bs_is_align(GF_BitStream *bs)
 	}
 }
 
+static GFINLINE u8 gf_bs_load_byte(GF_BitStream *bs, Bool *is_eos)
+{
+	u8 res;
+	if (bs->cache_read) {
+		if (bs->cache_read_pos == bs->cache_read_size) {
+			bs->cache_read_size = fread(bs->cache_read, 1, bs->cache_read_alloc, bs->stream);
+			bs->cache_read_pos = 0;
+			if (!bs->cache_read_size) {
+				*is_eos = GF_TRUE;
+				return 0;
+			}
+		}
+		res = bs->cache_read[bs->cache_read_pos];
+		bs->cache_read_pos++;
+	} else {
+		res = fgetc(bs->stream);
+	}
+	return res;
+}
 
 /*fetch a new byte in the bitstream switch between packets*/
 static u8 BS_ReadByte(GF_BitStream *bs)
@@ -337,19 +372,22 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 		}
 		return res;
 	}
-	if (bs->buffer_io)
-		bs_flush_cache(bs);
+	if (bs->cache_write)
+		bs_flush_write_cache(bs);
 
 	/*we are in FILE mode, test for end of file*/
-	if (!feof(bs->stream)) {
+	if (!feof(bs->stream) || bs->cache_read) {
 		u8 res;
+		Bool is_eos=GF_FALSE;
 		assert(bs->position<=bs->size);
 		bs->position++;
-		res = fgetc(bs->stream);
+
+		res = gf_bs_load_byte(bs, &is_eos);
+		if (is_eos) goto bs_eof;
 
 		if (bs->remove_emul_prevention_byte) {
 			if ((bs->nb_zeros==2) && (res==0x03) && (bs->position<bs->size)) {
-				u8 next = fgetc(bs->stream);
+				u8 next = gf_bs_load_byte(bs, &is_eos);
 				if (next < 0x04) {
 					bs->nb_zeros = 0;
 					res = next;
@@ -363,6 +401,8 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 		}
 		return res;
 	}
+
+bs_eof:
 	if (bs->EndOfStream) {
 		bs->EndOfStream(bs->par);
 	} else {
@@ -424,6 +464,13 @@ GF_EXPORT
 u32 gf_bs_read_u8(GF_BitStream *bs)
 {
 	assert(bs->nbBits==8);
+	if (bs->cache_read && (bs->cache_read_pos+1<bs->cache_read_size) ) {
+		u32 ret = bs->cache_read[bs->cache_read_pos];
+		bs->cache_read_pos+=1;
+		bs->position+=1;
+		return ret;
+	}
+
 	return (u32) BS_ReadByte(bs);
 }
 
@@ -457,6 +504,15 @@ u32 gf_bs_read_u16(GF_BitStream *bs)
 {
 	u32 ret;
 	assert(bs->nbBits==8);
+	if (bs->cache_read && (bs->cache_read_pos+2<bs->cache_read_size) ) {
+		ret = bs->cache_read[bs->cache_read_pos];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+1];
+		bs->cache_read_pos+=2;
+		bs->position+=2;
+		return ret;
+	}
+
 	ret = BS_ReadByte(bs);
 	ret<<=8;
 	ret |= BS_ReadByte(bs);
@@ -469,6 +525,18 @@ u32 gf_bs_read_u24(GF_BitStream *bs)
 {
 	u32 ret;
 	assert(bs->nbBits==8);
+
+	if (bs->cache_read && (bs->cache_read_pos+3<bs->cache_read_size) ) {
+		ret = bs->cache_read[bs->cache_read_pos];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+1];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+2];
+		bs->cache_read_pos+=3;
+		bs->position+=3;
+		return ret;
+	}
+
 	ret = BS_ReadByte(bs);
 	ret<<=8;
 	ret |= BS_ReadByte(bs);
@@ -482,6 +550,19 @@ u32 gf_bs_read_u32(GF_BitStream *bs)
 {
 	u32 ret;
 	assert(bs->nbBits==8);
+
+	if (bs->cache_read && (bs->cache_read_pos+4<bs->cache_read_size) ) {
+		ret = bs->cache_read[bs->cache_read_pos];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+1];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+2];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+3];
+		bs->cache_read_pos+=4;
+		bs->position+=4;
+		return ret;
+	}
 	ret = BS_ReadByte(bs);
 	ret<<=8;
 	ret |= BS_ReadByte(bs);
@@ -496,6 +577,27 @@ GF_EXPORT
 u64 gf_bs_read_u64(GF_BitStream *bs)
 {
 	u64 ret;
+
+	if (bs->cache_read && (bs->cache_read_pos+8<bs->cache_read_size) ) {
+		ret = bs->cache_read[bs->cache_read_pos];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+1];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+2];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+3];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+4];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+5];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+6];
+		ret<<=8;
+		ret |= bs->cache_read[bs->cache_read_pos+7];
+		bs->cache_read_pos+=8;
+		bs->position+=8;
+		return ret;
+	}
 	ret = gf_bs_read_u32(bs);
 	ret<<=32;
 	ret |= gf_bs_read_u32(bs);
@@ -554,7 +656,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes)
 	if (bs->position+nbBytes > bs->size) return 0;
 
 	if (gf_bs_is_align(bs) ) {
-		s32 bytes_read;
+		s32 bytes_read, bytes_read_cache;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
 		case GF_BITSTREAM_WRITE:
@@ -564,12 +666,24 @@ u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes)
 			return nbBytes;
 		case GF_BITSTREAM_FILE_READ:
 		case GF_BITSTREAM_FILE_WRITE:
-			if (bs->buffer_io)
-				bs_flush_cache(bs);
-			bytes_read = (s32) fread(data, 1, nbBytes, bs->stream);
-			if (bytes_read<0) return 0;
-			bs->position += bytes_read;
-			return bytes_read;
+			if (bs->cache_write)
+				bs_flush_write_cache(bs);
+
+			bytes_read = bytes_read_cache = 0;
+			if (bs->cache_read) {
+				u32 csize = bs->cache_read_size-bs->cache_read_pos;
+				if (csize>nbBytes) csize = nbBytes;
+				memcpy(data, bs->cache_read + bs->cache_read_pos, csize);
+				bs->cache_read_pos += csize;
+				nbBytes -= csize;
+				bytes_read_cache = csize;
+			}
+			if (nbBytes) {
+				bytes_read = (s32) fread(data + bytes_read_cache, 1, nbBytes, bs->stream);
+				if (bytes_read<0) return bytes_read_cache;
+			}
+			bs->position += bytes_read + bytes_read_cache;
+			return bytes_read + bytes_read_cache;
 		default:
 			return 0;
 		}
@@ -625,14 +739,14 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 		bs->position++;
 		return;
 	}
-	if (bs->buffer_io) {
-		if (bs->buffer_written == bs->buffer_io_size) {
-			bs_flush_cache(bs);
+	if (bs->cache_write) {
+		if (bs->buffer_written == bs->cache_write_size) {
+			bs_flush_write_cache(bs);
 		}
-		bs->buffer_io[bs->buffer_written] = val;
+		bs->cache_write[bs->buffer_written] = val;
 		bs->buffer_written++;
-		if (bs->buffer_written == bs->buffer_io_size) {
-			bs_flush_cache(bs);
+		if (bs->buffer_written == bs->cache_write_size) {
+			bs_flush_write_cache(bs);
 		}
 		return;
 	}
@@ -748,7 +862,7 @@ void gf_bs_write_u64(GF_BitStream *bs, u64 value)
 GF_EXPORT
 u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 repeat_count)
 {
-	if (!gf_bs_is_align(bs) || bs->buffer_io) {
+	if (!gf_bs_is_align(bs) || bs->cache_write) {
 		u32 count = 0;
 		while (count<repeat_count) {
 			gf_bs_write_int(bs, byte, 8);
@@ -881,15 +995,15 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 			return nbBytes;
 		case GF_BITSTREAM_FILE_READ:
 		case GF_BITSTREAM_FILE_WRITE:
-			if (bs->buffer_io) {
-				if (bs->buffer_written + nbBytes > bs->buffer_io_size) {
-					bs_flush_cache(bs);
-					if (nbBytes>bs->buffer_io_size) {
-						bs->buffer_io = (char*)gf_realloc(bs->buffer_io, 2*nbBytes);
-						bs->buffer_io_size = 2*nbBytes;
+			if (bs->cache_write) {
+				if (bs->buffer_written + nbBytes > bs->cache_write_size) {
+					bs_flush_write_cache(bs);
+					if (nbBytes>bs->cache_write_size) {
+						bs->cache_write = (char*)gf_realloc(bs->cache_write, 2*nbBytes);
+						bs->cache_write_size = 2*nbBytes;
 					}
 				}
-				memcpy(bs->buffer_io+bs->buffer_written, data, nbBytes);
+				memcpy(bs->cache_write+bs->buffer_written, data, nbBytes);
 				bs->buffer_written+=nbBytes;
 				return nbBytes;
 			}
@@ -953,8 +1067,8 @@ u64 gf_bs_available(GF_BitStream *bs)
 		if (bs->position>bs->size) return 0;
 		return (bs->size - bs->position);
 	}
-	if (bs->buffer_io)
-		bs_flush_cache(bs);
+	if (bs->cache_write)
+		bs_flush_write_cache(bs);
 
 	cur = gf_ftell(bs->stream);
 	gf_fseek(bs->stream, 0, SEEK_END);
@@ -1047,8 +1161,20 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 
 	/*special case for file skipping...*/
 	if ((bs->bsmode == GF_BITSTREAM_FILE_WRITE) || (bs->bsmode == GF_BITSTREAM_FILE_READ)) {
-		if (bs->buffer_io)
-			bs_flush_cache(bs);
+		if (bs->cache_write)
+			bs_flush_write_cache(bs);
+
+		if (bs->cache_read) {
+			u32 csize = bs->cache_read_size - bs->cache_read_pos;
+			if (csize>nbBytes) {
+				bs->cache_read_pos += nbBytes;
+				bs->position += nbBytes;
+				return;
+			}
+			nbBytes -= csize;
+			bs->position += csize;
+			bs->cache_read_pos = bs->cache_read_size;
+		}
 		gf_fseek(bs->stream, nbBytes, SEEK_CUR);
 		bs->position += nbBytes;
 		return;
@@ -1118,8 +1244,12 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 		return GF_OK;
 	}
 
-	if (bs->buffer_io)
-		bs_flush_cache(bs);
+	if (bs->cache_write)
+		bs_flush_write_cache(bs);
+
+	if (bs->cache_read) {
+		bs->cache_read_pos = bs->cache_read_size;
+	}
 
 	gf_fseek(bs->stream, offset, SEEK_SET);
 
@@ -1203,8 +1333,8 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 		return bs->size;
 
 	default:
-		if (bs->buffer_io)
-			bs_flush_cache(bs);
+		if (bs->cache_write)
+			bs_flush_write_cache(bs);
 		if (bs->stream) {
 			offset = gf_ftell(bs->stream);
 			gf_fseek(bs->stream, 0, SEEK_END);
@@ -1218,7 +1348,7 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 GF_EXPORT
 u64 gf_bs_get_size(GF_BitStream *bs)
 {
-	if (bs->buffer_io)
+	if (bs->cache_write)
 		return bs->size + bs->buffer_written;
 	if (bs->on_block_out)
 		return bs->position;
@@ -1228,7 +1358,7 @@ u64 gf_bs_get_size(GF_BitStream *bs)
 GF_EXPORT
 u64 gf_bs_get_position(GF_BitStream *bs)
 {
-	if (bs->buffer_io)
+	if (bs->cache_write)
 		return bs->position + bs->buffer_written;
 	return bs->position;
 }
@@ -1389,8 +1519,8 @@ GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src)
 GF_EXPORT
 void gf_bs_flush(GF_BitStream *bs)
 {
-	if (bs->buffer_io)
-		bs_flush_cache(bs);
+	if (bs->cache_write)
+		bs_flush_write_cache(bs);
 
 	if (!bs->stream) return;
 
