@@ -4167,7 +4167,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 int mp4boxMain(int argc, char **argv)
 {
 	u32 i, j;
-	const char *gpac_profile = NULL;
+	const char *gpac_profile = "0";
 	GF_Err e = GF_OK;
 	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 

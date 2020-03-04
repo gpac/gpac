@@ -771,7 +771,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 	char szPath[GF_MAX_PATH];
 
 	if (profile && !strlen(profile))
-		profile = "0";
+		profile = NULL;
 
 	if (profile && (strchr(profile, '/') || strchr(profile, '\\')) ) {
 		if (!gf_file_exists(profile)) {
