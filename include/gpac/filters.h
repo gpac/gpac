@@ -1767,6 +1767,8 @@ struct __gf_filter_register
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
 	/*! optional - process a given event. Retruns TRUE if the event has to be canceled, FALSE otherwise
+		If a downstream (towards source)  event is not canceled, it will be forwarded to each input PID of the filter.
+		If you need to forward the event only to one input pid, send a copy of the event to the desired input and cancel the event.
 	\param filter the target filter
 	\param evt the event to process
 	\return GF_TRUE if the event should be canceled, GF_FALSE otherwise
