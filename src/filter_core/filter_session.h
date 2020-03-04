@@ -807,6 +807,7 @@ struct __gf_filter_pid
 	Bool request_property_map;
 	Bool pid_info_changed;
 	Bool destroyed;
+	u32 not_connected;
 	Bool not_connected_ok;
 	Bool removed;
 	Bool direct_dispatch;
