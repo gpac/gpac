@@ -191,6 +191,9 @@ GF_Err ilst_item_box_write(GF_Box *s, GF_BitStream *bs)
 	/*generic box list*/
 	if (ptr->child_boxes && !ptr->data) {
 	}
+	//empty ilst
+	else if (!ptr->data) {
+	}
 	/*iTune way: data-box-encapsulated box list*/
 	else if (!ptr->data->qt_style) {
 	}
