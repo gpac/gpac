@@ -16,6 +16,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/jpeg/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/png/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/ffmpeg_android/
+LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/openjpeg
 
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
