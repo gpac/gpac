@@ -819,10 +819,12 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->bytes_per_pix = (ctx->bit_depth > 8) ? 2 : 1;
 	}
 
-	memset(&evt, 0, sizeof(GF_Event));
-	evt.type = GF_EVENT_SET_GL;
-	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
-
+	if (ctx->disp<MODE_2D) {
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_SET_GL;
+		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	}
+	
 	DEL_SHADER(ctx->vertex_shader);
 	DEL_SHADER(ctx->fragment_shader);
 	DEL_PROGRAM(ctx->glsl_program );
