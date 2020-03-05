@@ -54,16 +54,16 @@ LOCAL_LIB=-L../../extra_lib/lib/gcc
 endif
 
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_ffmpeg_in$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols ffmpeg_in.def 
+#LDFLAGS+=-export-symbols ffmpeg_in.def
 endif
 
 #need to add cross-libraries if not local
 ifeq ($(CROSS_COMPILING),yes)
-LINKFLAGS+=-L$(prefix)/lib
+LINKFLAGS+=-L$(prefix)/$(libdir)
 endif
 
 
@@ -73,13 +73,13 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LOCAL_LIB) $(LDFLAGS) $(LINKFLAGS)
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

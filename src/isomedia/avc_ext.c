@@ -66,6 +66,9 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 		break;
 	}
 
+	if (!gf_isom_is_video_handler_type(entry->internal_type))
+		return GF_FALSE;
+
 	if (entry->avc_config || entry->svc_config || entry->mvc_config || entry->hevc_config || entry->lhvc_config) {
 		GF_ProtectionSchemeInfoBox *schi = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (!schi || !schi->scheme_type) return GF_TRUE;

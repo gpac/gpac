@@ -752,8 +752,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		else if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
-			if ((e==GF_BAD_PARAM) || (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter reassignment disabled, skippping chain reload for filter %s PID %s\n", pid->filter->name, pid->name ));
+			if ((e==GF_BAD_PARAM) || (e==GF_FILTER_NOT_SUPPORTED) || (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)) {
+				if (e!=GF_FILTER_NOT_SUPPORTED) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter reassignment disabled, skippping chain reload for filter %s PID %s\n", pid->filter->name, pid->name ));
+				}
 				filter->session->last_connect_error = e;
 
 				if (ctype==GF_PID_CONF_CONNECT) {
@@ -765,6 +767,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 					gf_filter_pid_set_eos(pid);
+
+					if (pid->filter->freg->process_event) {
+						GF_FilterEvent evt;
+						GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+						gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+					}
 				}
 			} else if (filter->has_out_caps) {
 				Bool unload_filter = GF_TRUE;
@@ -1136,7 +1144,7 @@ void *gf_filter_pid_get_udta(GF_FilterPid *pid)
 	}
 }
 
-static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF_Filter *dst_filter, Bool *pid_excluded, Bool *needs_resolve, char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE])
+static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bool *pid_excluded, Bool *needs_resolve, Bool *prop_not_found, char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE])
 {
 	char *psep;
 	u32 comp_type=0;
@@ -1144,6 +1152,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF
 	const GF_PropertyEntry *pent;
 
 	*needs_resolve = GF_FALSE;
+	*prop_not_found = GF_FALSE;
 
 	if (frag_name[0] == src_pid->filter->session->sep_neg) {
 		frag_name++;
@@ -1174,6 +1183,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF
 			//special case: if we request a non-file stream but the pid is a file, we will need a demux to
 			//move from file to A/V/... streams, so we accept any #MEDIA from file streams
 			if (pent->prop.value.uint == GF_STREAM_FILE) {
+				*prop_not_found = GF_TRUE;
 				return GF_TRUE;
 			}
 			*pid_excluded = GF_TRUE;
@@ -1227,6 +1237,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF
 	}
 
 	if (!psep) {
+		*prop_not_found = GF_TRUE;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID addressing %s not recognized, ignoring and assuming match\n", frag_name ));
 		return GF_TRUE;
 	}
@@ -1257,12 +1268,13 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, GF
 
 	//if the property is not found, we accept the connection
 	if (!pent) {
+		*prop_not_found = GF_TRUE;
 		return GF_TRUE;
 	}
 	//check for dynamic assignment
 	if ( (psep[0]==src_pid->filter->session->sep_name) && ((psep[1]=='*') || (psep[1]=='\0') ) ) {
 		*needs_resolve = GF_TRUE;
-		gf_prop_dump_val(&pent->prop, prop_dump_buffer, GF_FALSE, NULL);
+		gf_props_dump_val(&pent->prop, prop_dump_buffer, GF_FALSE, NULL);
 		return GF_FALSE;
 	}
 
@@ -1378,10 +1390,11 @@ sourceid_reassign:
 		while (frag_name && all_matched) {
 			char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE];
 			Bool needs_resolve = GF_FALSE;
+			Bool prop_not_found = GF_FALSE;
 			char *next_frag = strchr(frag_name, src_pid->filter->session->sep_frag);
 			if (next_frag) next_frag[0] = 0;
 
-			if (! filter_pid_check_fragment(src_pid, frag_name, dst_filter, pid_excluded, &needs_resolve, prop_dump_buffer)) {
+			if (! filter_pid_check_fragment(src_pid, frag_name, pid_excluded, &needs_resolve, &prop_not_found, prop_dump_buffer)) {
 				if (needs_resolve) {
 					if (first_pass) {
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
@@ -3085,7 +3098,9 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 	while (args) {
 		u32 p4cc=0;
 		u32 prop_type=GF_PROP_FORBIDEN;
-		char *eq;
+		Bool parse_prop = GF_TRUE;
+		char *value_next_list = NULL;
+		char *value_sep = NULL;
 		char *value, *name;
 		//look for our arg separator
 
@@ -3150,10 +3165,10 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		}
 
 		value = NULL;
-		eq = strchr(args, filter->session->sep_name);
-		if (eq) {
-			eq[0]=0;
-			value = eq+1;
+		value_sep = strchr(args, filter->session->sep_name);
+		if (value_sep) {
+			value_sep[0]=0;
+			value = value_sep+1;
 		}
 		name = args+1;
 
@@ -3165,6 +3180,59 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			p4cc = gf_props_get_id(name);
 			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
 		}
+
+		//look for conditional statements: "(PROP=VAL)VALUE"
+		while (value && (value[0]=='(')) {
+			Bool pid_excluded, needs_resolve, prop_not_found, prop_matched;
+			char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE];
+
+			char *next_val = NULL;
+			char *closing = strchr(value, ')');
+			if (!closing) break;
+
+			if (!strncmp(value, "()", 2)) {
+				value = closing+1;
+				parse_prop = GF_TRUE;
+				value_next_list = next_val;
+				break;
+			}
+
+			parse_prop = GF_FALSE;
+
+			next_val = strchr(closing, filter->session->sep_list);
+			if (next_val) next_val[0] = 0;
+
+			while (closing) {
+				char *next_closing;
+				closing[0] = 0;
+				prop_matched = filter_pid_check_fragment(pid, value+1, &pid_excluded, &needs_resolve, &prop_not_found, prop_dump_buffer);
+				if (prop_not_found) prop_matched = GF_FALSE;
+				closing[0] = ')';
+
+				if (!prop_matched)
+					break;
+				if (strncmp(closing, ")(", 2)) break;
+				next_closing = strchr(closing+2, ')');
+				if (!closing) break;
+
+				value = closing+1;
+				closing = next_closing;
+			}
+
+			if (prop_matched) {
+				value = closing+1;
+				parse_prop = GF_TRUE;
+				value_next_list = next_val;
+				break;
+			}
+			if (!next_val) break;
+			next_val[0] = filter->session->sep_list;
+			value = next_val+1;
+		}
+
+		if (!parse_prop)
+			goto skip_arg;
+
 
 		if (prop_type != GF_PROP_FORBIDEN) {
 			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL, pid->filter->session->sep_list);
@@ -3182,24 +3250,46 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				p.value.uint_list.vals = NULL;
 			}
 			gf_props_reset_single(&p);
-		} else if (eq) {
+		} else if (value) {
+			Bool reset_prop=GF_FALSE;
 			GF_PropertyValue p;
-			if (!strncmp(eq+1, "bxml@", 5)) {
-				p = gf_props_parse_value(GF_PROP_DATA_NO_COPY, name, eq+1, NULL, pid->filter->session->sep_list);
-			} else if (!strncmp(eq+1, "file@", 5)) {
-				p = gf_props_parse_value(GF_PROP_STRING, name, eq+1, NULL, pid->filter->session->sep_list);
+			if (!strncmp(value, "bxml@", 5)) {
+				p = gf_props_parse_value(GF_PROP_DATA_NO_COPY, name, value, NULL, pid->filter->session->sep_list);
+			} else if (!strncmp(value, "file@", 5)) {
+				p = gf_props_parse_value(GF_PROP_STRING, name, value, NULL, pid->filter->session->sep_list);
 				p.type = GF_PROP_STRING_NO_COPY;
 			} else {
+				u32 ptype = GF_PROP_FORBIDEN;
+				char *type_sep = strchr(value, '@');
+				if (type_sep) {
+					type_sep[0] = 0;
+					ptype = gf_props_parse_type(value);
+					if (ptype==GF_PROP_FORBIDEN) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Unrecognized property type %s, defaulting to string\n", value));
+					} else {
+						value = type_sep+1;
+					}
+					type_sep[0] = '@';
+				}
 				memset(&p, 0, sizeof(GF_PropertyValue));
-				p.type = GF_PROP_STRING;
-				p.value.string = eq+1;
+				if (ptype == GF_PROP_FORBIDEN) {
+					p.type = GF_PROP_STRING;
+					p.value.string = value;
+				} else {
+					p = gf_props_parse_value(ptype, name, value, NULL, pid->filter->session->sep_list);
+					reset_prop = GF_TRUE;
+				}
 			}
 			gf_filter_pid_set_property_dyn(pid, name, &p);
+			if (reset_prop) gf_props_reset_single(&p);
 		}
-		if (eq)
-			eq[0] = filter->session->sep_name;
+		if (value_next_list)
+			value_next_list[0] = filter->session->sep_list;
 
 skip_arg:
+		if (value_sep)
+			value_sep[0] = filter->session->sep_name;
+
 		if (sep) {
 			sep[0]=0;
 			args=sep+1;
@@ -3309,7 +3399,7 @@ static void dump_pid_props(GF_FilterPid *pid)
 	const GF_PropertyEntry *p;
 	GF_PropertyMap *pmap = gf_list_get(pid->properties, 0);
 	while (pmap && (p = gf_list_enum(pmap->properties, &idx))) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Pid prop %s: %s\n", gf_props_4cc_get_name(p->p4cc), gf_prop_dump(p->p4cc, &p->prop, szDump, GF_FALSE) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Pid prop %s: %s\n", gf_props_4cc_get_name(p->p4cc), gf_props_dump(p->p4cc, &p->prop, szDump, GF_FALSE) ));
 	}
 }
 #endif
@@ -3825,6 +3915,7 @@ single_retry:
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s in filter %s not connected to any loaded filter due to source directives\n", pid->name, pid->filter->name));
+		pid->not_connected = 1;
 	} else {
 		//no filter found for this pid !
 		if (!pid->not_connected_ok && (filter->session->flags & GF_FS_FLAG_FULL_LINK) ) {
@@ -3842,6 +3933,7 @@ single_retry:
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
 		}
+		pid->not_connected = 1;
 	}
 	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
@@ -5070,7 +5162,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 {
 	u32 count, i, j;
 	u64 duration=0;
-	if (pid->filter->session->in_final_flush)
+	if (!pid || pid->filter->session->in_final_flush)
 		return GF_FILTER_NO_TS;
 
 	if (PID_IS_INPUT(pid)) {
@@ -5301,8 +5393,12 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 				gf_filter_pid_would_block(evt->base.on_pid);
 			canceled = GF_TRUE;
 		}
-	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY) && evt->base.on_pid->pid->is_playing) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY)
+		&& (evt->base.on_pid->pid->is_playing || (((GF_FilterPid *) evt->base.on_pid->pid)->not_connected==2))
+		) {
+		if (evt->base.on_pid->pid->is_playing) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+		}
 		free_evt(evt);
 		return;
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
@@ -5324,6 +5420,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
 		}
+		if (pid->not_connected)
+			pid->not_connected = 2;
 		return;
 	} else if (f->freg->process_event) {
 		FSESS_CHECK_THREAD(f)
@@ -5353,6 +5451,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		} else if (evt->base.type==GF_FEVT_STOP) {
 			pid->is_playing = GF_FALSE;
 			pid->filter->nb_pids_playing--;
+
+			if (pid->not_connected)
+				pid->not_connected = 2;
 		} else if (evt->base.type==GF_FEVT_SOURCE_SEEK) {
 			pid->is_playing = GF_TRUE;
 			pid->filter->nb_pids_playing++;
@@ -6222,7 +6323,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				value = prop_val->value.uint;
 				has_val = GF_TRUE;
 			} else {
-				str_val = gf_prop_dump_val(prop_val, szPropVal, GF_FALSE, NULL);
+				str_val = gf_props_dump_val(prop_val, szPropVal, GF_FALSE, NULL);
 			}
 		}
 		szTemplateVal[0]=0;

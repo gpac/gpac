@@ -97,8 +97,8 @@ static GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key
 	GF_CryptInfo *info;
 
 	e = GF_OK;
-	info = gf_crypt_info_load(drm_file);
-	if (!info) return GF_NOT_SUPPORTED;
+	info = gf_crypt_info_load(drm_file, &e);
+	if (!info) return e;
 	count = gf_list_count(info->tcis);
 	for (i=0; i<count; i++) {
 		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *) gf_list_get(info->tcis, i);
@@ -559,10 +559,11 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	}
 
 	if (cinfo_prop) {
-		cinfo = gf_crypt_info_load(prop->value.string);
+		GF_Err e;
+		cinfo = gf_crypt_info_load(prop->value.string, &e);
 		if (!cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", prop->value.string));
-			return GF_BAD_PARAM;
+			return e;
 		}
 	}
 	if (!cinfo) cinfo = ctx->cinfo;
@@ -625,10 +626,11 @@ static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u
 	if (!prop) prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CRYPT_INFO);
 
 	if (prop) {
-		cinfo = gf_crypt_info_load(prop->value.string);
+		GF_Err e;
+		cinfo = gf_crypt_info_load(prop->value.string, &e);
 		if (!cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", prop->value.string));
-			return GF_BAD_PARAM;
+			return e;
 		}
 	}
 	if (!cinfo) cinfo = ctx->cinfo;
@@ -1207,10 +1209,11 @@ static GF_Err cenc_dec_initialize(GF_Filter *filter)
 	if (!ctx->streams) return GF_OUT_OF_MEM;
 
 	if (ctx->cfile) {
-		ctx->cinfo = gf_crypt_info_load(ctx->cfile);
+		GF_Err e;
+		ctx->cinfo = gf_crypt_info_load(ctx->cfile, &e);
 		if (!ctx->cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENCCrypt] Cannot load config file %s\n", ctx->cfile ));
-			return GF_BAD_PARAM;
+			return e;
 		}
 	}
 	ctx->bs_r = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
@@ -1264,9 +1267,9 @@ GF_FilterRegister CENCDecRegister = {
 	GF_FS_SET_DESCRIPTION("CENC decryptor")
 	GF_FS_SET_HELP("The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
-	"The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority) "
+	"The file can be set per PID using the property `DecryptInfo` (highest priority), `CryptInfo` (lower priority) "
 	"or set at the filter level using [-cfile]() (lowest priority).\n"
-	"When the file is set per PID, the first `CrypTrack` with the same ID is used, otherwise the first `CrypTrack` is used.")
+	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used.")
 	.private_size = sizeof(GF_CENCDecCtx),
 	.max_extra_pids=-1,
 	.args = GF_CENCDecArgs,

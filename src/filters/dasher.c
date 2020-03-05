@@ -2091,7 +2091,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	//patch for old arch: make sure we don't have any extra free box after the sidx
 	if (gf_sys_is_test_mode() && ctx->sseg) {
 		sprintf(szSRC, "%ccache", sep_args );
-		gf_dynstrcat(&szDST, szSRC, NULL);
+		if (!strstr(szDST, szSRC))
+			gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	sprintf(szSRC, "%cmime=%s", sep_args, rep->mime_type);
 	gf_dynstrcat(&szDST, szSRC, NULL);
@@ -5844,6 +5845,9 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 	if (evt->base.type == GF_FEVT_CONNECT_FAIL) {
 		ctx->in_error = GF_TRUE;
+		gf_filter_pid_set_eos(ctx->opid);
+		if (ctx->opid_alt)
+			gf_filter_pid_set_eos(ctx->opid_alt);
 		return GF_TRUE;
 	}
 
@@ -6410,11 +6414,11 @@ GF_FilterRegister DasherRegister = {
 			"## Cue-driven segmentation\n"
 			"The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.\n"
 			"Cue files can be specified for the entire segmenter, or per PID using DashCue property.\n"
-			"Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:\n"
+			"Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are one or more <Stream> elements, with attributes:\n"
 			"- id: integer for stream/track/pid ID\n"
 			"- timescale: integer giving the units of following timestamps\n"
-			"- mode: if present and value is `edit`, the timestamp are in presentation time (edit list applied). Otherwise they are in media time\n"
-			"\nThe children of <Stream> are <Cue> elements, with attributes:\n"
+			"- mode: if present and value is `edit`, the timestamp are in presentation time (edit list applied) otherwise they are in media time\n"
+			"\nThe children of <Stream> are one or more <Cue> elements, with attributes:\n"
 			"- sample: integer giving the sample/frame number of a sample at which spliting shall happen\n"
 			"- dts: long integer giving the decoding time stamp of a sample at which spliting shall happen\n"
 			"- cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"

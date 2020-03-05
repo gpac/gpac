@@ -9609,7 +9609,10 @@ GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->default_sample_info_size);
 	gf_bs_write_u32(bs, ptr->sample_count);
 	if (!ptr->default_sample_info_size) {
-		gf_bs_write_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
+		if (!ptr->sample_info_size)
+			gf_bs_write_u8(bs, 0);
+		else
+			gf_bs_write_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
 	}
 	return GF_OK;
 }

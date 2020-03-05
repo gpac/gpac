@@ -808,9 +808,11 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 
 	if (res < 0) {
 		if (ctx->options) {
+			av_dict_free(&ctx->options);
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying without options\n", ctx->fname, res));
 			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, NULL);
-		} else {
+		}
+		if (res<0) {
 			av_dict_set(&ctx->options, "framerate", "30", 0);
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 30 fps\n", ctx->fname, res));
 			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &ctx->options);

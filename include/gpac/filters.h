@@ -992,6 +992,16 @@ enum
 
 };
 
+/*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
+ 	\hideinitializer
+*/
+enum
+{
+	GF_PID_FILE_PATCH_NONE = 0,
+	GF_PID_FILE_PATCH_REPLACE = 1,
+	GF_PID_FILE_PATCH_INSERT = 2,
+};
+
 /*! Gets readable name of built-in property
 \param prop_4cc property built-in 4cc
 \return readable name
@@ -1015,7 +1025,20 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 \param type property type
 \return readable name
 */
-const char *gf_props_get_type_name(u32 type);
+const char *gf_props_get_type_name(GF_PropType type);
+
+/*! Gets the description for a property type
+\param type property type
+\return description
+*/
+const char *gf_props_get_type_desc(GF_PropType type);
+
+/*! Gets the description type for a given  property type name
+\param name property type name
+\return property type or GF_PROP_FORBIDEN
+*/
+GF_PropType gf_props_parse_type(const char *name);
+
 
 /*! Parses a property value from string
 \param type property type to parse
@@ -1037,7 +1060,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 \param min_max_enum optional, gives the min/max or enum string when the property is a filter argument
 \return string
 */
-const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum);
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum);
 
 /*! Dumps a property value to string, resolving any built-in types (pix formats, codec id, ...)
 \param p4cc property 4CC
@@ -1046,7 +1069,7 @@ const char *gf_prop_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP
 \param dump_data if set data will be dumped in hexadecimal. Otherwise, data buffer is not dumped
 \return string
 */
-const char *gf_prop_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
+const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
 
 /*! Resets a property value, freeing allocated data or strings depending on the property type
 \param prop property 4CC
@@ -1702,7 +1725,14 @@ struct __gf_filter_register
 	/*! optional - filter arguments if any*/
 	const GF_FilterArgs *args;
 
-	/*! mandatory - callback for filter processing*/
+	/*! mandatory - callback for filter processing
+		This function is called whenever packets are available on the input PID and buffer space is available on the output.
+	The session will by default monitor a filter for errors, and throw en error if a filter is not consuming nor producing packets for a given amount of process calls.
+	In some cases, it might be needed to not consume nor produce a packet for a given time (for example, waiting for a packet drop before reconfiguring a filter).
+	A filter must signal this using \ref gf_filter_ask_rt_reschedule, possibly with no timeout.
+
+	A filter may return GF_EOS to indicate no more data is expected to be produced by this filter
+	*/
 	GF_Err (*process)(GF_Filter *filter);
 
 	/*! optional for sources, mandatory for filters and sinks - callback for PID update may be called several times
@@ -1744,6 +1774,8 @@ struct __gf_filter_register
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
 	/*! optional - process a given event. Retruns TRUE if the event has to be canceled, FALSE otherwise
+		If a downstream (towards source)  event is not canceled, it will be forwarded to each input PID of the filter.
+		If you need to forward the event only to one input pid, send a copy of the event to the desired input and cancel the event.
 	\param filter the target filter
 	\param evt the event to process
 	\return GF_TRUE if the event should be canceled, GF_FALSE otherwise
@@ -3431,10 +3463,11 @@ GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted);
 Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
 
 /*! Sets seek flag of packet.
-For PIDs of stream type FILE with GF_PROP_PID_DISABLE_PROGRESSIVE set, the seek flag indicates
-that the packet is a PATCH packet, replacing bytes located at gf_filter_pck_get_byte_offset in file.
+For PIDs of stream type FILE with GF_PROP_PID_DISABLE_PROGRESSIVE set, the seek flag set to GF_TRUE indicates
+that the packet is a PATCH packet, replacing bytes located at gf_filter_pck_get_byte_offset in file if the interlaced flag of the packet is not set, or
+inserting bytes located at gf_filter_pck_get_byte_offset in file if the interlaced flag of the packet is set.
 If the corrupted flag is set, this indicates the data will be replaced later on.
-A seek packet is not meant to be displayed but need for decoding.
+A seek packet is not meant to be displayed but is needed for decoding.
 \param pck target packet
 \param is_seek indicates packet is seek frame
 \return error code if any

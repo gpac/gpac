@@ -536,6 +536,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 	case AV_OPT_TYPE_COLOR://color is a string in libavfilter
 	case AV_OPT_TYPE_STRING:
+	case AV_OPT_TYPE_DICT:
 		arg.arg_type = GF_PROP_STRING;
 		if (opt->default_val.str)
 			arg.arg_default_val = gf_strdup(opt->default_val.str);
@@ -584,9 +585,6 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		}
 		arg.min_max_enum = enum_val;
 		}
-		break;
-	case AV_OPT_TYPE_DICT:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unhandled option type dict (%d)\n", opt->type));
 		break;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unknown ffmpeg option type %d\n", opt->type));

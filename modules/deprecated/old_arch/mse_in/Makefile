@@ -24,7 +24,7 @@ LOCAL_LIB+=-L../../extra_lib/lib/gcc
 endif
 ifeq ($(CONFIG_JS),prefix)
 NEED_LOCAL_LIB="yes"
-LOCAL_LIB+=-L$(prefix)/lib
+LOCAL_LIB+=-L$(prefix)/$(libdir)
 endif
 LINKLIBS+= $(JS_LIBS)
 endif
@@ -32,7 +32,7 @@ endif
 #common obj
 OBJS=mse_in.o
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_mse_in$(DYN_LIB_SUFFIX)
 
@@ -44,13 +44,13 @@ ifeq ($(STATICBUILD),yes)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/gm_mse_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(LDFLAGS)
 endif
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

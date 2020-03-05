@@ -1548,8 +1548,9 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		while (gf_list_count(ctx->frames)) {
 			vtbdec_flush_frame(filter, ctx);
 		}
-		//waiting for last frame to be discarded - this needs checking with the new arch (compositor might not release the last frame)
+		//waiting for last frame to be discarded
 		if (ctx->no_copy && ctx->decoded_frames_pending) {
+			gf_filter_ask_rt_reschedule(filter, 0);
 			return GF_OK;
 		}
 		if (ctx->fmt_desc) {
