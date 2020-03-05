@@ -1364,6 +1364,7 @@ GF_Err senc_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->bs_offset = gf_bs_get_position(bs);
 	gf_bs_skip_bytes(bs, ptr->size);
 	ptr->size = 0;
+	ptr->load_needed = GF_TRUE;
 	return GF_OK;
 }
 
