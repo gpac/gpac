@@ -112,11 +112,11 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 			esd->decoderConfig->maxBitrate = (u32) max_rate;
 			esd->decoderConfig->bufferSizeDB = db_size;
 			gf_isom_change_mpeg4_description(file, track, 1, esd);
-			gf_odf_desc_del((GF_Descriptor *)esd);
 		} else {
 			/*move to bps*/
 			gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
 		}
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 	}
 	
 #endif
