@@ -107,7 +107,7 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 		if (!max_rate) max_rate = bitrate;
 
 		if (use_esd) esd = gf_isom_get_esd(file, track, 1);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			esd->decoderConfig->avgBitrate = (u32) bitrate;
 			esd->decoderConfig->maxBitrate = (u32) max_rate;
 			esd->decoderConfig->bufferSizeDB = db_size;
@@ -357,7 +357,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		ps = GF_FALSE;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4)) {
+		if (origin_esd && origin_esd->decoderConfig && (origin_esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4)) {
 			if (origin_esd->decoderConfig->decoderSpecificInfo) {
 				GF_M4ADecSpecInfo dsi;
 				gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
