@@ -278,7 +278,9 @@ static void bs_flush_write_cache(GF_BitStream *bs)
 {
 	if (bs->buffer_written) {
 		u32 nb_write = (u32) fwrite(bs->cache_write, 1, bs->buffer_written, bs->stream);
-		bs->size += nb_write;
+		//check we didn't rewind the bitstream
+		if (bs->size == bs->position)
+			bs->size += nb_write;
 		bs->position += nb_write;
 		bs->buffer_written = 0;
 	}
