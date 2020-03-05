@@ -726,6 +726,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				if (fo) {
 					gf_fseek(fo, 0, SEEK_END);
 					fentry->file_size = gf_ftell(fo);
+					gf_fclose(fo);
 				}
 				filelist_add_entry(ctx, fentry);
 			} else {
