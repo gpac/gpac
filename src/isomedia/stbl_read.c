@@ -461,7 +461,8 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 		//equivalent to the ebove loop without the loop
 		u32 max_chunks_in_entry = stbl->SampleToChunk->ghostNumber - k;
 		u32 nb_chunks_for_sample = sampleNumber - stbl->SampleToChunk->firstSampleInCurrentChunk;
-		nb_chunks_for_sample /= ent->samplesPerChunk;
+		if (ent->samplesPerChunk) 
+			nb_chunks_for_sample /= ent->samplesPerChunk;
 
 		if (
 			(nb_chunks_for_sample <= max_chunks_in_entry)
