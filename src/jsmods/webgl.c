@@ -1709,7 +1709,8 @@ static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activa
 {
 	if (activate) {
 		u32 i, count;
-		GL_CHECK_ERR()
+		//clear error
+		glGetError();
 		jsf_set_gl_active(ctx);
 
 		if (glc->creation_attrs.primary) {
@@ -1722,7 +1723,7 @@ static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activa
 			case GL_FRAMEBUFFER_COMPLETE:
 				break;
 			default:
-				return js_throw_err_msg(ctx, GF_IO_ERR, "Failed to bind OpenGL FBO:  %08x", status );
+				return js_throw_err_msg(ctx, GF_IO_ERR, "Failed to bind OpenGL FBO:  %X", status );
 			}
 		}
 
@@ -1745,7 +1746,8 @@ static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activa
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_TEXTURE_2D);
-		GL_CHECK_ERR()
+		//clear error
+		glGetError();
 	}
 	return JS_UNDEFINED;
 }

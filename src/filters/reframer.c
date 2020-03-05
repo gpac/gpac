@@ -41,6 +41,7 @@ typedef struct
 	u64 cts_at_init;
 	u64 sys_clock_at_init;
 	u32 nb_frames;
+	u64 snap_last_ts_plus_one;
 } RTStream;
 
 typedef struct
@@ -50,6 +51,7 @@ typedef struct
 	GF_PropUIntList saps;
 	GF_PropUIntList frames;
 	Bool refs;
+	u32 snapdur;
 	u32 rt;
 	Double speed;
 	Bool raw;
@@ -63,6 +65,9 @@ typedef struct
 
 	GF_List *streams;
 	RTStream *clock;
+
+	u64 reschedule_in;
+	u64 clock_val;
 } GF_ReframerCtx;
 
 GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -90,6 +95,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_list_add(ctx->streams, st);
 		st->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, st);
+		gf_filter_pid_set_udta(st->opid, st);
 		st->ipid = pid;
 	}
 	//copy properties at init or reconfig
@@ -123,30 +129,43 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 	if (!ctx->rt) {
 		do_send = GF_TRUE;
 	} else {
-		u64 cts = gf_filter_pck_get_cts(pck);
-		if (cts==GF_FILTER_NO_TS) {
+		u64 cts_us = gf_filter_pck_get_dts(pck);
+		if (cts_us==GF_FILTER_NO_TS)
+			cts_us = gf_filter_pck_get_cts(pck);
+
+		if (cts_us==GF_FILTER_NO_TS) {
 			do_send = GF_TRUE;
 		} else {
-			u64 now = gf_sys_clock_high_res();
-			cts *= 1000000;
-			cts /= st->timescale;
+			u64 clock = ctx->clock_val;
+			cts_us *= 1000000;
+			cts_us /= st->timescale;
 			if (ctx->rt==REFRAME_RT_SYNC) {
 				if (!ctx->clock) ctx->clock = st;
 
 				st = ctx->clock;
 			}
 			if (!st->sys_clock_at_init) {
-				st->cts_at_init = cts;
-				st->sys_clock_at_init = now;
+				st->cts_at_init = cts_us;
+				st->sys_clock_at_init = clock;
 				do_send = GF_TRUE;
-			} else if (cts < st->cts_at_init) {
+			} else if (cts_us < st->cts_at_init) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] CTS less than CTS used to initialize clock, not delaying\n"));
 				do_send = GF_TRUE;
 			} else {
-				u64 diff = cts - st->cts_at_init;
+				u64 diff = cts_us - st->cts_at_init;
 				if (ctx->speed>0) diff = (u64) ( diff / ctx->speed);
-				if (now - st->sys_clock_at_init >= diff) {
+				else if (ctx->speed<0) diff = (u64) ( diff / -ctx->speed);
+
+				clock -= st->sys_clock_at_init;
+				if (clock + 1000 >= diff) {
 					do_send = GF_TRUE;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Reframer] Sending packet "LLU" us too late (clock diff "LLU" - CTS diff "LLU")\n", 1000+clock - diff, clock, diff));
+				} else {
+					diff -= clock;
+					if (!ctx->reschedule_in)
+						ctx->reschedule_in = diff;
+					else if (ctx->reschedule_in > diff)
+						ctx->reschedule_in = diff;
 				}
 			}
 		}
@@ -175,9 +194,6 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		st->nb_frames++;
 		return GF_TRUE;
 	}
-	if (ctx->rt) {
-		gf_filter_ask_rt_reschedule(filter, 100);
-	}
 	return GF_FALSE;
 }
 
@@ -187,6 +203,10 @@ GF_Err reframer_process(GF_Filter *filter)
 	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
 	u32 i, nb_eos, count = gf_filter_get_ipid_count(filter);
 
+	if (ctx->rt) {
+		ctx->reschedule_in = 0;
+		ctx->clock_val = gf_sys_clock_high_res();
+	}
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
@@ -232,6 +252,22 @@ GF_Err reframer_process(GF_Filter *filter)
 					break;
 				}
 			}
+			if (forward && ctx->snapdur) {
+				u64 ts = gf_filter_pck_get_cts(pck);
+				if (ts==GF_FILTER_NO_TS)
+					ts = gf_filter_pck_get_dts(pck);
+
+				if (!st->snap_last_ts_plus_one) {
+					st->snap_last_ts_plus_one = ts + 1;
+				} else {
+					u64 diff = ts - st->snap_last_ts_plus_one - 1;
+					if (diff >= ((u64)ctx->snapdur) * st->timescale) {
+						st->snap_last_ts_plus_one = ts + 1;
+					} else {
+						forward = GF_FALSE;
+					}
+				}
+			}
 
 			if (!forward) {
 				gf_filter_pid_drop_packet(ipid);
@@ -244,7 +280,17 @@ GF_Err reframer_process(GF_Filter *filter)
 
 		}
 	}
+
 	if (nb_eos==count) return GF_EOS;
+
+	if (ctx->rt) {
+		if (ctx->reschedule_in>2000) {
+			gf_filter_ask_rt_reschedule(filter, (u32) (ctx->reschedule_in - 2000));
+		} else if (ctx->reschedule_in>1000) {
+			gf_filter_ask_rt_reschedule(filter, (u32) (ctx->reschedule_in / 2));
+		}
+	}
+
 	return GF_OK;
 }
 
@@ -267,6 +313,19 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	GF_FilterEvent fevt;
+	RTStream *st;
+	if (!evt->base.on_pid) return GF_FALSE;
+	st = gf_filter_pid_get_udta(evt->base.on_pid);
+	if (!st) return GF_TRUE;
+	//if we have a PID, we always cancel the event and forward the same event to the associated input pid
+	fevt = *evt;
+	fevt.base.on_pid = st->ipid;
+	gf_filter_pid_send_event(st->ipid, &fevt);
+	return GF_TRUE;
+}
 
 static void reframer_finalize(GF_Filter *filter)
 {
@@ -307,19 +366,28 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input streams to be in raw format (i.e. forces decoding of input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frames), "drop all except listed frames (first being 1), off by default", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(snapdur), "specify duration between two forward, 0 forward all frames otherwise frames in the middle of this interval are dropped", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+
 	{0}
 };
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
 	GF_FS_SET_DESCRIPTION("Media Reframer")
-	GF_FS_SET_HELP("Passthrough filter ensuring reframing, and optionally decoding, of inputs\n"
-		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"\
-		"The filter can be used to filter out packets based on SAP types, for example to extract only the key frame (SAP 1,2,3) of a video.\n"\
-		"The filter can be used to only keep specific [-frames]() of the source.\n"\
-		"The filter can be used to force input media to be decoded.\n"\
-		"The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:\n"\
-		"EX \"src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\"\n"\
+	GF_FS_SET_HELP("Passthrough filter ensuring reframing, and optionally decoding, of inputs.\n"
+		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.\n"
+		"# SAP Extraction\n"
+		"The filter can remove packets based on their SAP types using [-saps]() option.\n"
+		"This can be useful to extract only the key frame (SAP 1,2,3) of a video to create a trick mode version.\n"
+		"# Frame Extraction\n"
+		"This filter can keep only specific of the source using [-frames]() option.\n"
+		"This can be useful to extract only specific key frame of a video to create a HEIF collection.\n"
+		"# Frame Decoding\n"
+		"This filter can force input media streams to be decoded using the [-raw]() option.\n"
+		"# Real-time Regulation\n"
+		"The filter can be perform real-time regulation of input packets, based on their timescale and timestamps.\n"
+		"For example to simulate a live DASH:\n"
+		"EX gpac src=m.mp4 reframer:rt=on @ dst=live.mpd:dynamic\n"
 		)
 	.private_size = sizeof(GF_ReframerCtx),
 	.max_extra_pids = (u32) -1,
@@ -331,6 +399,7 @@ GF_FilterRegister ReframerRegister = {
 	.finalize = reframer_finalize,
 	.configure_pid = reframer_configure_pid,
 	.process = reframer_process,
+	.process_event = reframer_process_event,
 };
 
 

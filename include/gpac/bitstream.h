@@ -109,16 +109,6 @@ Deletes the bitstream object. If the buffer was created by the bitstream, it is 
 void gf_bs_del(GF_BitStream *bs);
 
 /*!
-\brief sets bitstream write cache size
-
-Sets the write cache size for file-based bitstreams.
-\param bs the target bitstream
-\param size size of the write cache in bytes
-\return error if any.
- */
-GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
-
-/*!
 \brief bitstream constructor from callback output
 
 Creates a bitstream from in write mode suing output callback.
@@ -150,15 +140,6 @@ Prevents byte dispatching in callback mode. This is used when seek operations ar
  */
 void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch);
 
-
-/*!
-\brief gets bitstream write cache size
-
-Gets the write cache size for file-based bitstreams.
-\param bs the target bitstream
-\return size of the write cache in bytes, 0 if no cache
- */
-u32 gf_bs_get_output_buffering(GF_BitStream *bs);
 
 /*!
 \brief integer reading

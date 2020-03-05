@@ -978,7 +978,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				u32 sample_dur;
 				u8 dep_flags;
 				GF_FilterPacket *pck;
-
 				if (ch->needs_pid_reconfig) {
 					isor_update_channel_config(ch);
 					ch->needs_pid_reconfig = GF_FALSE;
@@ -1008,7 +1007,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pck_set_roll_info(pck, ch->roll);
 				}
 
-				sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
+				sample_dur = ch->au_duration;
 				if (ch->sample->nb_pack)
 					sample_dur *= ch->sample->nb_pack;
 				gf_filter_pck_set_duration(pck, sample_dur);
@@ -1070,6 +1069,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
+
+				if (!ch->play_state && (ch->last_state==GF_EOS)) {
+					gf_filter_pid_set_eos(ch->pid);
+					read->eos_signaled = GF_TRUE;
+				}
 			} else if (ch->last_state==GF_EOS) {
 				if (in_is_eos && (ch->play_state==1)) {
 					assert(!read->pid || gf_filter_pid_is_eos(read->pid));

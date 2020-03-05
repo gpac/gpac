@@ -308,11 +308,34 @@ const char *gpac_doc =
 "The syntax is the same as filter option, and uses the fragment separator to identify properties, eg `#Name=Value`.\n"
 "This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans "
 "(defaults to true, eg `:#Alpha`).\n"
-"If a non built-in property is used, the value will be declared as string or as data for `file@` and `bxml@` property values.\n"
+"Non built-in properties are parsed as follows:\n"
+"- `file@FOO` will be declared as string with a value set to the content of `FOO`.\n"
+"- `bxml@FOO` will be declared as data with a value set to the binarized content of `FOO`.\n"
+"- `FOO` will be declared as string with a value set to `FOO`.\n"
+"- `TYPE@FOO` will be parsed according to `TYPE`. If the type is not recognized, the entire value is copied as string. See `gpac -h props` for defined types.\n"
+
 "Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break "
 "the session by overriding core properties such as width/height/samplerate/... !\n"
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
 "This will mux the streams in `dump.ts`, using `ServiceID` 4 for PIDs from `v1.mp4` and `ServiceID` 2 for PIDs from `v2.mp4`.\n"
+"\n"
+"PID properties may be conditionally assigned by checking other PID properties. The syntax uses paranthesis (not configurable) after the property assignment sign:\n"
+"`#Prop=(CP=CV)VAL`\n"
+"This will assign PID property `Prop` to `VAL` for PIDs with property `CP` equal to `CV`.\n"
+"`#Prop=(CP=CV)VAL,(CP2=CV2)VAL2`\n"
+"This will assign PID property `Prop` to `VAL` for PIDs with property `CP` equal to `CV`, and to `VAL2` for PIDs with property `CP2` equal to `CV2`.\n"
+"`#Prop=(CP=CV)(CP2=CV2)VAL`\n"
+"This will assign PID property `Prop` to `VAL` for PIDs with property `CP` equal to `CV` and property `CP2` equal to `CV2`.\n"
+"`#Prop=(CP=CV)VAL,()DEFAULT`\n"
+"This will assign PID property `Prop` to `VAL` for PIDs with property `CP` equal to `CV`, or to `DEFAULT` for other PIDs.\n"
+"The condition syntax is the same as source ID fragment syntax.\n"
+"Note: When set, the default value (empty condition) always matches the PID, therefore it should be placed last in the list of conditions.\n"
+"EX gpac -i source.mp4:#MyProp=(audio)\"Super Audio\",(video)\"Super Video\"\n"
+"This will assign property `MyProp` to `Super Audio` for audio PIDs and to `Super Video` for video PIDs.\n"
+"EX gpac -i source.mp4:#MyProp=(audio1)\"Super Audio\"\n"
+"This will assign property `MyProp` to `Super Audio` for first audio PID declared.\n"
+"EX gpac -i source.mp4:#MyProp=(Width+1280)HD\n"
+"This will assign property `MyProp` to `HD` for PIDs with property `Width` greater than 1280.\n"
 "# Using option files\n"
 "It is possible to use a file to define options of a filter, by specifying the target file name as an option without value, i.e. `:myopts.txt`.\n"
 "Warning: Only local files are allowed.\n"
@@ -321,7 +344,7 @@ const char *gpac_doc =
 "Options in an option file may point to other option files, with a maximum redirection level of 5.\n"
 "An option file declaration (`filter:myopts.txt`) follows the same inheritance rules as regular options.\n"
 "EX src=source.mp4:myopts.txt:foo=bar dst\n"
-"Any filter loaded between `source.mp4` and `dst` will inherit both `myopts.txt` and `foo` options and will resolve options given in `myopts.txt`.\n"
+"Any filter loaded between `source.mp4` and `dst` will inherit both `myopts.txt` and `foo` options and will resolve options and PID properties given in `myopts.txt`.\n"
 "# Specific filter options\n"
 "Some specific keywords are replaced when processing filter options.\n"
 "Warning: These keywords do not apply to PID properties. Multiple keywords cannot be defined for a single option.\n"
@@ -330,8 +353,9 @@ const char *gpac_doc =
 "- $GJS: replaced by the first path specified by global config option [-js-dirs](CORE) that contains the file name following the macro, e.g. $GJS/source.js\n"
 "- $GLANG: replaced by the global config language option [-lang](CORE)\n"
 "- $GUA: replaced by the global config user agent option [-user-agent](CORE)\n"
-"- $GINC(init_val[,inc]): replaced by `init_val` and increment `init_val` by `inc` (positive or negative number, 1 if not specified) each time a new filter using this string is created. This can be used to dynamically assign numbers in filter chains:\n"
-"\n  \n"
+"- $GINC(init_val[,inc]): replaced by `init_val` and increment `init_val` by `inc` (positive or negative number, 1 if not specified) each time a new filter using this string is created.\n"
+"\n"
+"The $GINC construct can be used to dynamically assign numbers in filter chains:\n"
 "EX gpac -i source.ts tssplit @#ServiceID= -o dump_$GINC(10,2).ts\n"
 "This will dump first service in dump_10.ts, second service in dump_12.ts, etc...\n"
 "# External filters\n"
@@ -1676,7 +1700,7 @@ static int gpac_main(int argc, char **argv)
 			if (arg_val) runfor = 1000*atoi(arg_val);
 		} else if (!strcmp(arg, "-uncache")) {
 			const char *cache_dir = gf_opts_get_key("core", "cache");
-			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, "*.txt");
+			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, ".txt");
 			fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
 			gpac_exit(0);
 		} else if (!strcmp(arg, "-cfg")) {
@@ -2006,7 +2030,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		//dump some interesting predefined ones which are not mapped to types
 		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);
 		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
-		else szVal = gf_prop_dump_val(&cap->val, szDump, GF_FALSE, NULL);
+		else szVal = gf_props_dump_val(&cap->val, szDump, GF_FALSE, NULL);
 
 		gf_sys_format_help(helpout, help_flags, " %s=\"%s\"", szName,  szVal);
 		if (cap->priority) gf_sys_format_help(helpout, help_flags, ", priority=%d", cap->priority);
@@ -2360,8 +2384,12 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 
 				sep = strchr(arg, '.');
 				if (sep) {
-					sep[0] = 0;
-					optname = sep+1;
+					if (!strncmp(sep, ".js.", 4)) sep = strchr(sep+1, '.');
+					else if (!strcmp(sep, ".js")) sep = NULL;
+					if (sep) {
+						sep[0] = 0;
+						optname = sep+1;
+					}
 				}
 				fname = arg;
 
@@ -2426,44 +2454,24 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	return found;
 }
 
-static const char *get_prop_short_type_name(u32 type)
-{
-	switch (type) {
-	case GF_PROP_SINT: return "s32";
-	case GF_PROP_UINT: return "u32";
-	case GF_PROP_LSINT: return "s64";
-	case GF_PROP_LUINT: return "u64";
-	case GF_PROP_FRACTION: return "frac";
-	case GF_PROP_FRACTION64: return "fr64";
-	case GF_PROP_BOOL: return "bool";
-	case GF_PROP_FLOAT: return "flt";
-	case GF_PROP_DOUBLE: return "dbl";
-	case GF_PROP_NAME: return "str";
-	case GF_PROP_STRING: return "str";
-	case GF_PROP_DATA: return "mem";
-	case GF_PROP_CONST_DATA: return "cmem";
-	case GF_PROP_POINTER: return "ptr";
-	case GF_PROP_VEC2I: return "v2di";
-	case GF_PROP_VEC2: return "v2df";
-	case GF_PROP_VEC3I: return "v3di";
-	case GF_PROP_VEC3: return "v3df";
-	case GF_PROP_VEC4I: return "v4di";
-	case GF_PROP_VEC4: return "v4df";
-	case GF_PROP_PIXFMT: return "pfmt";
-	case GF_PROP_PCMFMT: return "afmt";
-	case GF_PROP_STRING_LIST: return "str[]";
-	case GF_PROP_UINT_LIST: return "u32[]";
-	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %d\n", type));
-	return "UNK";
-}
 static void dump_all_props(void)
 {
 	u32 i=0;
 	const GF_BuiltInProperty *prop_info;
 
 	if (gen_doc==1) {
-		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets, pixel formats and audio formats.\n"
+		gf_sys_format_help(helpout, help_flags, "## Built-in property types\n"
+		"  \n");
+
+		gf_sys_format_help(helpout, help_flags, "Name | Description  \n");
+		gf_sys_format_help(helpout, help_flags, "--- | ---  \n");
+		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
+			if (i==GF_PROP_STRING_NO_COPY) continue;
+			if (i==GF_PROP_DATA_NO_COPY) continue;
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s  \n", gf_props_get_type_name(i), gf_props_get_type_desc(i) );
+		}
+
+		gf_sys_format_help(helpout, help_flags, "## Built-in properties for PIDs and packets, pixel formats and audio formats\n"
 		"  \n"
 		"Flags can be:\n"
 		"- D: dropable property, see [GSF mux](gsfmx) filter help for more info\n"
@@ -2472,8 +2480,22 @@ static void dump_all_props(void)
 		gf_sys_format_help(helpout, help_flags, "Name | type | Flags | Description | 4CC  \n");
 		gf_sys_format_help(helpout, help_flags, "--- | --- | --- | --- | ---  \n");
 	} else {
+		gf_sys_format_help(helpout, help_flags, "Built-in property types\n");
+		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED-1; i++) {
+			if (i==GF_PROP_STRING_NO_COPY) continue;
+			if (i==GF_PROP_DATA_NO_COPY) continue;
+
+			if (gen_doc==2) {
+				gf_sys_format_help(helpout, help_flags, ".TP\n.B %s\n%s\n", gf_props_get_type_name(i), gf_props_get_type_desc(i));
+			} else {
+				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s : %s\n", gf_props_get_type_name(i), gf_props_get_type_desc(i) );
+			}
+		}
+		gf_sys_format_help(helpout, help_flags, "\n\n");
+
 		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (dropable - see GSF mux filter help), P (packet property)\n");
 	}
+	i=0;
 	while ((prop_info = gf_props_get_description(i))) {
 		i++;
 		char szFlags[10];
@@ -2507,7 +2529,7 @@ static void dump_all_props(void)
 				gf_sys_format_help(helpout, help_flags, " ");
 				len++;
 			}
-			ptype = get_prop_short_type_name(prop_info->data_type);
+			ptype = gf_props_get_type_name(prop_info->data_type);
 			gf_sys_format_help(helpout, help_flags, " (%s %s %s):", gf_4cc_to_str(prop_info->type), ptype, szFlags);
 			len = (u32) strlen(ptype);
 			while (len<6) {

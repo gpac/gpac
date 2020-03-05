@@ -208,7 +208,7 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 .TP
 .B \-full-link
 .br
-throw error if any pid in the filter graph cannot be linked)
+throw error if any pid in the filter graph cannot be linked
 .br
 .TP
 .B \-no-block
@@ -539,6 +539,11 @@ unload / reload module shared libs when no longer used
 disable all creation/modif dates and GPAC versions in files
 .br
 .TP
+.B \-bs-cache-size (int, default: 512)
+.br
+cache size for bitstream read and write from file (0 disable cache, slower IOs)
+.br
+.TP
 .B \-cache (string)
 .br
 cache directory location
@@ -631,7 +636,7 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 .TP
 .B \-full-link
 .br
-throw error if any pid in the filter graph cannot be linked)
+throw error if any pid in the filter graph cannot be linked
 .br
 .TP
 .B \-no-block
@@ -1548,7 +1553,15 @@ It is possible to define properties on output PIDs that will be declared by a fi
 .br
 This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans (defaults to true, eg :#Alpha).
 .br
-If a non built-in property is used, the value will be declared as string or as data for file@ and bxml@ property values.
+Non built-in properties are parsed as follows:
+.br
+- file@FOO will be declared as string with a value set to the content of FOO.
+.br
+- bxml@FOO will be declared as data with a value set to the binarized content of FOO.
+.br
+- FOO will be declared as string with a value set to FOO.
+.br
+- TYPE@FOO will be parsed according to TYPE. If the type is not recognized, the entire value is copied as string. See gpac -h props for defined types.
 .br
 Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break the session by overriding core properties such as width/height/samplerate/... !
 .br
@@ -1559,6 +1572,54 @@ Example
 
 .br
 This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4.
+.br
+
+.br
+PID properties may be conditionally assigned by checking other PID properties. The syntax uses paranthesis (not configurable) after the property assignment sign:
+.br
+#Prop=(CP=CV)VAL
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV.
+.br
+#Prop=(CP=CV)VAL,(CP2=CV2)VAL2
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV, and to VAL2 for PIDs with property CP2 equal to CV2.
+.br
+#Prop=(CP=CV)(CP2=CV2)VAL
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV and property CP2 equal to CV2.
+.br
+#Prop=(CP=CV)VAL,()DEFAULT
+.br
+This will assign PID property Prop to VAL for PIDs with property CP equal to CV, or to DEFAULT for other PIDs.
+.br
+The condition syntax is the same as source ID fragment syntax.
+.br
+Note: When set, the default value (empty condition) always matches the PID, therefore it should be placed last in the list of conditions.
+.br
+Example
+.br
+gpac -i source.mp4:#MyProp=(audio)"Super Audio",(video)"Super Video"
+.br
+
+.br
+This will assign property MyProp to Super Audio for audio PIDs and to Super Video for video PIDs.
+.br
+Example
+.br
+gpac -i source.mp4:#MyProp=(audio1)"Super Audio"
+.br
+
+.br
+This will assign property MyProp to Super Audio for first audio PID declared.
+.br
+Example
+.br
+gpac -i source.mp4:#MyProp=(Width+1280)HD
+.br
+
+.br
+This will assign property MyProp to HD for PIDs with property Width greater than 1280.
 .br
 .SH Using option files
 .LP
@@ -1581,7 +1642,7 @@ src=source.mp4:myopts.txt:foo=bar dst
 .br
 
 .br
-Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options given in myopts.txt.
+Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options and PID properties given in myopts.txt.
 .br
 .SH Specific filter options
 .LP
@@ -1600,11 +1661,11 @@ Defined keywords:
 .br
 * $GUA: replaced by the global config user agent option -user-agent
 .br
-* $GINC(init_val[,inc]): replaced by init_val and increment init_val by inc (positive or negative number, 1 if not specified) each time a new filter using this string is created. This can be used to dynamically assign numbers in filter chains:
+* $GINC(init_val[,inc]): replaced by init_val and increment init_val by inc (positive or negative number, 1 if not specified) each time a new filter using this string is created.
 .br
 
 .br
-  
+The $GINC construct can be used to dynamically assign numbers in filter chains:
 .br
 Example
 .br
@@ -1624,47 +1685,168 @@ GPAC comes with a set of built-in filters in libgpac. It may also load external 
 .SH GPAC Built-in properties
 .LP
 .br
+Built-in property types
+.br
+.TP
+.B sint
+.br
+signed 32 bit integer
+.br
+.TP
+.B uint
+.br
+unsigned 32 bit integer
+.br
+.TP
+.B lsint
+.br
+signed 64 bit integer
+.br
+.TP
+.B luint
+.br
+unsigned 32 bit integer
+.br
+.TP
+.B bool
+.br
+boolean
+.br
+.TP
+.B frac
+.br
+32/32 bit fraction
+.br
+.TP
+.B lfrac
+.br
+64/64 bit fraction
+.br
+.TP
+.B flt
+.br
+32 bit float number
+.br
+.TP
+.B dbl
+.br
+64 bit float number
+.br
+.TP
+.B v2di
+.br
+2D 32-bit integer vector
+.br
+.TP
+.B v2df
+.br
+2D 32-bit float vector
+.br
+.TP
+.B v3di
+.br
+3D 32-bit integer vector
+.br
+.TP
+.B v3df
+.br
+3D 32-bit float vector
+.br
+.TP
+.B v4di
+.br
+4D 32-bit integer vector
+.br
+.TP
+.B v4df
+.br
+4D 32-bit float vector
+.br
+.TP
+.B pfmt
+.br
+raw pixel format
+.br
+.TP
+.B afmt
+.br
+raw audio format
+.br
+.TP
+.B str
+.br
+UTF-8 string
+.br
+.TP
+.B mem
+.br
+data buffer
+.br
+.TP
+.B cstr
+.br
+const UTF-8 string
+.br
+.TP
+.B cmem
+.br
+const data buffer
+.br
+.TP
+.B ptr
+.br
+32 or 64 bit pointer
+.br
+.TP
+.B strl
+.br
+UTF-8 string list
+.br
+
+.br
+
+.br
 Built-in properties for PIDs and packets listed as Name (4CC type FLAGS): description
 .br
 FLAGS can be D (dropable - see GSF mux filter help), P (packet property)
 .br
 .TP
-.B ID (PIDI,unsigned int,  )
+.B ID (PIDI,uint,  )
 .br
 Stream ID
 .br
 .TP
-.B ESID (ESID,unsigned int,D )
+.B ESID (ESID,uint,D )
 .br
 MPEG-4 ESID of pid
 .br
 .TP
-.B ItemID (ITID,unsigned int,  )
+.B ItemID (ITID,uint,  )
 .br
 ID of image item in HEIF, same value as ID
 .br
 .TP
-.B ServiceID (PSID,unsigned int,D )
+.B ServiceID (PSID,uint,D )
 .br
 ID of parent service
 .br
 .TP
-.B ClockID (CKID,unsigned int,D )
+.B ClockID (CKID,uint,D )
 .br
 ID of clock reference pid
 .br
 .TP
-.B DependencyID (DPID,unsigned int,  )
+.B DependencyID (DPID,uint,  )
 .br
 ID of layer dependended on
 .br
 .TP
-.B SubLayer (DPSL,boolean,  )
+.B SubLayer (DPSL,bool,  )
 .br
 pid is a sublayer of the stream depended on rather than an enhancement layer
 .br
 .TP
-.B PlaybackMode (PBKM,unsigned int,D )
+.B PlaybackMode (PBKM,uint,D )
 .br
 Playback mode supported:
 .br
@@ -1677,282 +1859,282 @@ Playback mode supported:
 * 3: play/pause/seek, reverse playback
 .br
 .TP
-.B Scalable (SCAL,boolean,  )
+.B Scalable (SCAL,bool,  )
 .br
 Scalable stream
 .br
 .TP
-.B TileBase (SABT,boolean,  )
+.B TileBase (SABT,bool,  )
 .br
 Tile base stream
 .br
 .TP
-.B Language (LANG,string,  )
+.B Language (LANG,cstr,  )
 .br
 Language code: ISO639 2/3 character code or RFC 4646
 .br
 .TP
-.B ServiceName (SNAM,string,D )
+.B ServiceName (SNAM,str,D )
 .br
 Name of parent service
 .br
 .TP
-.B ServiceProvider (SPRO,string,D )
+.B ServiceProvider (SPRO,str,D )
 .br
 Provider of parent service
 .br
 .TP
-.B StreamType (PMST,unsigned int,  )
+.B StreamType (PMST,uint,  )
 .br
 Media stream type
 .br
 .TP
-.B StreamSubtype (PSST,unsigned int,D )
+.B StreamSubtype (PSST,uint,D )
 .br
 Media subtype 4CC (auxiliary, pic sequence, etc ..)
 .br
 .TP
-.B ISOMSubtype (PIST,unsigned int,D )
+.B ISOMSubtype (PIST,uint,D )
 .br
 ISOM media subtype 4CC (avc1 avc2...)
 .br
 .TP
-.B OrigStreamType (POST,unsigned int,  )
+.B OrigStreamType (POST,uint,  )
 .br
 Original stream type before encryption
 .br
 .TP
-.B CodecID (POTI,unsigned int,  )
+.B CodecID (POTI,uint,  )
 .br
 Codec ID (MPEG-4 OTI or ISOBMFF 4CC)
 .br
 .TP
-.B InitialObjectDescriptor (PIOD,boolean,  )
+.B InitialObjectDescriptor (PIOD,bool,  )
 .br
 Indicates if pid is declared in the IOD for MPEG-4
 .br
 .TP
-.B Unframed (PFRM,boolean,  )
+.B Unframed (PFRM,bool,  )
 .br
 Indicates that the media data is not framed, i.e. each packet is not a complete AU/frame or is not in internal format (eg annexB for avc/hevc, adts for aac)
 .br
 .TP
-.B UnframedAU (PFRF,boolean,  )
+.B UnframedAU (PFRF,bool,  )
 .br
 Indicates that the unframed media still has correct AU boundaries: one packet is one full AU, but the packet format might not be the internal one (eg annexB for avc/hevc, adts for aac)
 .br
 .TP
-.B LATM (LATM,boolean,  )
+.B LATM (LATM,bool,  )
 .br
 Indicates media is unframed AAC in LATM format
 .br
 .TP
-.B Duration (PDUR,64-bit fraction,  )
+.B Duration (PDUR,lfrac,  )
 .br
 Media duration
 .br
 .TP
-.B NumFrames (NFRM,unsigned int,D )
+.B NumFrames (NFRM,uint,D )
 .br
 Number of frames in the stream
 .br
 .TP
-.B ConstantFrameSize (CFRS,unsigned int,  )
+.B ConstantFrameSize (CFRS,uint,  )
 .br
 Size of the frames for constant frame size streams
 .br
 .TP
-.B TimeshiftDepth (PTSD,fraction,D )
+.B TimeshiftDepth (PTSD,frac,D )
 .br
 Depth of the timeshift buffer
 .br
 .TP
-.B TimeshiftTime (PTST,number,D )
+.B TimeshiftTime (PTST,dbl,D )
 .br
 Time in the timeshift buffer in seconds - changes are signaled through pid info (no reconfigure)
 .br
 .TP
-.B TimeshiftState (PTSS,unsigned int,D )
+.B TimeshiftState (PTSS,uint,D )
 .br
 State of timeshift buffer: 0 is OK, 1 is underflow, 2 is overflow - changes are signaled through pid info (no reconfigure)
 .br
 .TP
-.B Timescale (TIMS,unsigned int,  )
+.B Timescale (TIMS,uint,  )
 .br
 Media timescale (a timestamp delta of N is N/timescale seconds)
 .br
 .TP
-.B ProfileLevel (PRPL,unsigned int,D )
+.B ProfileLevel (PRPL,uint,D )
 .br
 MPEG-4 profile and level
 .br
 .TP
-.B DecoderConfig (DCFG,data,  )
+.B DecoderConfig (DCFG,mem,  )
 .br
 Decoder configuration data
 .br
 .TP
-.B DecoderConfigEnhancement (ECFG,data,  )
+.B DecoderConfigEnhancement (ECFG,mem,  )
 .br
 Decoder configuration data of the enhancement layer(s). Also used by 3GPP/Apple text streams to give the full sample description table used in SDP.
 .br
 .TP
-.B DecoderConfigIndex (ICFG,unsigned int,  )
+.B DecoderConfigIndex (ICFG,uint,  )
 .br
 1-based index of decoder config for ISO base media files
 .br
 .TP
-.B SampleRate (AUSR,unsigned int,  )
+.B SampleRate (AUSR,uint,  )
 .br
 Audio sample rate
 .br
 .TP
-.B SamplesPerFrame (FRMS,unsigned int,  )
+.B SamplesPerFrame (FRMS,uint,  )
 .br
 Number of audio sample in one coded frame
 .br
 .TP
-.B NumChannels (CHNB,unsigned int,  )
+.B NumChannels (CHNB,uint,  )
 .br
 Number of audio channels
 .br
 .TP
-.B BPS (ABPS,unsigned int,  )
+.B BPS (ABPS,uint,  )
 .br
 Number of bits per sample in compressed source
 .br
 .TP
-.B ChannelLayout (CHLO,unsigned long int,  )
+.B ChannelLayout (CHLO,luint,  )
 .br
 Channel Layout mask
 .br
 .TP
-.B AudioFormat (AFMT,audio format,  )
+.B AudioFormat (AFMT,afmt,  )
 .br
 Audio sample format
 .br
 .TP
-.B AudioPlaybackSpeed (ASPD,number,D )
+.B AudioPlaybackSpeed (ASPD,dbl,D )
 .br
 Audio playback speed, only used for audio output reconfiguration
 .br
 .TP
-.B Delay (MDLY,int,  )
+.B Delay (MDLY,sint,  )
 .br
 Delay of presentation compared to composition timestamps, in media timescale. Positive value imply holding (delaying) the stream. Negative value imply skipping the beginning of stream
 .br
 .TP
-.B CTSShift (MDTS,unsigned int,  )
+.B CTSShift (MDTS,uint,  )
 .br
 CTS offset to apply in case of negative ctts
 .br
 .TP
-.B Width (WIDT,unsigned int,  )
+.B Width (WIDT,uint,  )
 .br
 Visual Width (video / text / graphics)
 .br
 .TP
-.B Height (HEIG,unsigned int,  )
+.B Height (HEIG,uint,  )
 .br
 Visual Height (video / text / graphics)
 .br
 .TP
-.B PixelFormat (PFMT,pixel format,  )
+.B PixelFormat (PFMT,pfmt,  )
 .br
 Pixel format
 .br
 .TP
-.B Stride (VSTY,unsigned int,  )
+.B Stride (VSTY,uint,  )
 .br
 Image or Y/alpha plane stride
 .br
 .TP
-.B StrideUV (VSTC,unsigned int,  )
+.B StrideUV (VSTC,uint,  )
 .br
 UV plane or U/V planes stride
 .br
 .TP
-.B BitDepthLuma (YBPS,unsigned int,  )
+.B BitDepthLuma (YBPS,uint,  )
 .br
 Bit depth for luma components
 .br
 .TP
-.B BitDepthChroma (CBPS,unsigned int,  )
+.B BitDepthChroma (CBPS,uint,  )
 .br
 Bit depth for chroma components
 .br
 .TP
-.B FPS (VFPF,fraction,  )
+.B FPS (VFPF,frac,  )
 .br
 Video framerate
 .br
 .TP
-.B Interlaced (VILC,boolean,  )
+.B Interlaced (VILC,bool,  )
 .br
 Video is interlaced
 .br
 .TP
-.B SAR (PSAR,fraction,  )
+.B SAR (PSAR,frac,  )
 .br
 Sample (ie pixel) aspect ratio
 .br
 .TP
-.B PAR (VPAR,fraction,D )
+.B PAR (VPAR,frac,D )
 .br
 Picture aspect ratio
 .br
 .TP
-.B MaxWidth (MWID,unsigned int,  )
+.B MaxWidth (MWID,uint,  )
 .br
 Maximum width (video / text / graphics) of all enhancement layers
 .br
 .TP
-.B MaxHeight (MHEI,unsigned int,  )
+.B MaxHeight (MHEI,uint,  )
 .br
 Maximum height (video / text / graphics) of all enhancement layers
 .br
 .TP
-.B ZOrder (VZIX,unsigned int,  )
+.B ZOrder (VZIX,uint,  )
 .br
 Z-order of the video, from 0 (first) to max int (last)
 .br
 .TP
-.B TransX (VTRX,int,  )
+.B TransX (VTRX,sint,  )
 .br
 Horizontal translation of the video
 .br
 .TP
-.B TransY (VTRY,int,  )
+.B TransY (VTRY,sint,  )
 .br
 Vertical translation of the video
 .br
 .TP
-.B Hidden (HIDE,boolean,  )
+.B Hidden (HIDE,bool,  )
 .br
 Indicates the PID is hidden in visual/audio rendering
 .br
 .TP
-.B CropOrigin (VCXY,vec2d int,  )
+.B CropOrigin (VCXY,v2di,  )
 .br
 Position in source window, X,Y indicates coord in source
 .br
 .TP
-.B OriginalSize (VOWH,vec2d int,  )
+.B OriginalSize (VOWH,v2di,  )
 .br
 Original resolution of video
 .br
 .TP
-.B SRD (SRD ,vec4d int,  )
+.B SRD (SRD ,v4di,  )
 .br
 Position and size of the video in the referential given by SRDRef
 .br
 .TP
-.B SRDRef (SRDR,vec2d int,  )
+.B SRDRef (SRDR,v2di,  )
 .br
 Width and Height of the SRD referential
 .br
 .TP
-.B SRDMap (SRDM,uint list,  )
+.B SRDMap (SRDM,uintl,  )
 .br
 Mapping of input videos in reconstructed video, expressed as {Ox,Oy,Ow,Oh,Dx,Dy,Dw,Dh} per input, with:
 .br
@@ -1961,272 +2143,272 @@ Mapping of input videos in reconstructed video, expressed as {Ox,Oy,Ow,Oh,Dx,Dy,
 * Dx,Dy,Dw,Dh: Position and Size of the input video in the reconstructed output, expressed in the output referential given by SRDRef
 .br
 .TP
-.B Alpha (VALP,boolean,  )
+.B Alpha (VALP,bool,  )
 .br
 Indicates the video in this pid is an alpha map
 .br
 .TP
-.B Bitrate (RATE,unsigned int,  )
+.B Bitrate (RATE,uint,  )
 .br
 Bitrate in bps
 .br
 .TP
-.B Maxrate (MRAT,unsigned int,  )
+.B Maxrate (MRAT,uint,  )
 .br
 Max bitrate in bps
 .br
 .TP
-.B DBSize (DBSZ,unsigned int,  )
+.B DBSize (DBSZ,uint,  )
 .br
 Decode buffer size in bytes
 .br
 .TP
-.B MediaDataSize (MDSZ,unsigned long int,D )
+.B MediaDataSize (MDSZ,luint,D )
 .br
 Size in bytes of media data
 .br
 .TP
-.B DataRef (DREF,boolean,D )
+.B DataRef (DREF,bool,D )
 .br
 Data referencing is possible (each compressed frame is a continuous set of bytes in source, with no transformation)
 .br
 .TP
-.B URL (FURL,string,D )
+.B URL (FURL,str,D )
 .br
 URL of source
 .br
 .TP
-.B RemoteURL (RURL,string,D )
+.B RemoteURL (RURL,str,D )
 .br
 Remote URL of source - used for MPEG-4 systems
 .br
 .TP
-.B RedirectURL (RELO,string,D )
+.B RedirectURL (RELO,str,D )
 .br
 Redirection URL of source
 .br
 .TP
-.B SourcePath (FSRC,string,D )
+.B SourcePath (FSRC,str,D )
 .br
 Path of source file on file system
 .br
 .TP
-.B MIMEType (MIME,string,D )
+.B MIMEType (MIME,str,D )
 .br
 MIME type of source
 .br
 .TP
-.B Extension (FEXT,string,D )
+.B Extension (FEXT,str,D )
 .br
 File extension of source
 .br
 .TP
-.B Cached (CACH,boolean,D )
+.B Cached (CACH,bool,D )
 .br
 indicates the file is completely cached
 .br
 .TP
-.B DownloadRate (DLBW,unsigned int,D )
+.B DownloadRate (DLBW,uint,D )
 .br
 Dowload rate of resource in bits per second - changes are signaled through pid info (no reconfigure)
 .br
 .TP
-.B DownloadSize (DLSZ,unsigned long int,D )
+.B DownloadSize (DLSZ,luint,D )
 .br
 Size of resource in bytes
 .br
 .TP
-.B DownBytes (DLBD,unsigned long int,D )
+.B DownBytes (DLBD,luint,D )
 .br
 Number of bytes downloaded - changes are signaled through pid info (no reconfigure)
 .br
 .TP
-.B ByteRange (FBRA,64-bit fraction,D )
+.B ByteRange (FBRA,lfrac,D )
 .br
 Byte range of resource
 .br
 .TP
-.B DisableProgressive (NPRG,boolean,D )
+.B DisableProgressive (NPRG,uint,  )
 .br
-stream/file cannot be progressivley uploaded because first blocks need patching upon closing
+indicates that some blocks in file need patching (replace or insertion) upon closing, potentially disabling progressive upload
 .br
 .TP
-.B IsoAltBrands (ABRD,uint list,D )
+.B IsoAltBrands (ABRD,uintl,D )
 .br
 indicates ISOBMFF brands associated with PID/file
 .br
 .TP
-.B IsoBrand (MBRD,unsigned int,D )
+.B IsoBrand (MBRD,uint,D )
 .br
 indicates ISOBMFF major brand associated with PID/file
 .br
 .TP
-.B MovieTime (MHTS,64-bit fraction,D )
+.B MovieTime (MHTS,lfrac,D )
 .br
 indicates ISOBMFF movie header duration and timescale
 .br
 .TP
-.B HasSync (PSYN,boolean,D )
+.B HasSync (PSYN,bool,D )
 .br
 indicates ISOBMFF track has sync points
 .br
 .TP
-.B ServiceWidth (DWDT,unsigned int,D )
+.B ServiceWidth (DWDT,uint,D )
 .br
 Display width of service
 .br
 .TP
-.B ServiceHeight (DHGT,unsigned int,D )
+.B ServiceHeight (DHGT,uint,D )
 .br
 Display height of service
 .br
 .TP
-.B CarouselRate (CARA,unsigned int,D )
+.B CarouselRate (CARA,uint,D )
 .br
 Repeat rate in ms for systems carousel data
 .br
 .TP
-.B UTC (UTCD,unsigned long int,D )
+.B UTC (UTCD,luint,D )
 .br
 UTC date and time of PID
 .br
 .TP
-.B UTCTimestamp (UTCT,unsigned long int,D )
+.B UTCTimestamp (UTCT,luint,D )
 .br
 Timestamp corresponding to UTC date and time
 .br
 .TP
-.B AudioVolume (AVOL,unsigned int,D )
+.B AudioVolume (AVOL,uint,D )
 .br
 Volume of audio
 .br
 .TP
-.B AudioPan (APAN,unsigned int,D )
+.B AudioPan (APAN,uint,D )
 .br
 Balance/Pan of audio
 .br
 .TP
-.B AudioPriority (APRI,unsigned int,D )
+.B AudioPriority (APRI,uint,D )
 .br
 Audio thread priority
 .br
 .TP
-.B ProtectionScheme (SCHT,unsigned int,  )
+.B ProtectionScheme (SCHT,uint,  )
 .br
 Protection scheme type (4CC) used
 .br
 .TP
-.B SchemeVersion (SCHV,unsigned int,  )
+.B SchemeVersion (SCHV,uint,  )
 .br
 Protection scheme version used
 .br
 .TP
-.B SchemeURI (SCHU,string,  )
+.B SchemeURI (SCHU,str,  )
 .br
 Protection scheme URI
 .br
 .TP
-.B KMS_URI (KMSU,string,  )
+.B KMS_URI (KMSU,str,  )
 .br
 URI for key management system
 .br
 .TP
-.B SelectiveEncryption (ISSE,boolean,  )
+.B SelectiveEncryption (ISSE,bool,  )
 .br
 Indicates if ISMA/OMA selective encryption is used
 .br
 .TP
-.B IVLength (ISIV,unsigned int,  )
+.B IVLength (ISIV,uint,  )
 .br
 ISMA IV size
 .br
 .TP
-.B KILength (ISKI,unsigned int,  )
+.B KILength (ISKI,uint,  )
 .br
 ISMA KeyIndication size
 .br
 .TP
-.B CryptType (OMCT,unsigned int,  )
+.B CryptType (OMCT,uint,  )
 .br
 OMA encryption type
 .br
 .TP
-.B ContentID (OMID,string,  )
+.B ContentID (OMID,str,  )
 .br
 OMA Content ID
 .br
 .TP
-.B TextualHeaders (OMTH,string,  )
+.B TextualHeaders (OMTH,str,  )
 .br
 OMA textual headers
 .br
 .TP
-.B PlaintextLen (OMPT,unsigned long int,  )
+.B PlaintextLen (OMPT,luint,  )
 .br
 OMA size of plaintext data
 .br
 .TP
-.B CryptInfo (ECRI,string,D )
+.B CryptInfo (ECRI,str,D )
 .br
 URL (local file only) of crypt info file for this pid
 .br
 .TP
-.B DecryptInfo (EDRI,string,D )
+.B DecryptInfo (EDRI,str,D )
 .br
 URL (local file only) of crypt info file for this pid - see decrypter help
 .br
 .TP
-.B SenderNTP (NTPS,unsigned long int,DP)
+.B SenderNTP (NTPS,luint,DP)
 .br
 Sender NTP time
 .br
 .TP
-.B Encrypted (EPCK,boolean,  )
+.B Encrypted (EPCK,bool,  )
 .br
 Packets for the stream are by default encrypted (however the encryption state is carried in packet crypt flags) - changes are signaled through pid_set_info (no reconfigure)
 .br
 .TP
-.B OMAPreview (ODPR,unsigned long int,  )
+.B OMAPreview (ODPR,luint,  )
 .br
 OMA Preview range 
 .br
 .TP
-.B CENC_PSSH (PSSH,data,  )
+.B CENC_PSSH (PSSH,mem,  )
 .br
 PSSH blob for CENC, formatted as (u32)NbSystems [ (bin128)SystemID(u32)version(u32)KID_count[ (bin128)keyID ] (u32)priv_size(char*priv_size)priv_data]
 .br
 .TP
-.B CENC_SAI (SAIS,data, P)
+.B CENC_SAI (SAIS,mem, P)
 .br
 CENC SAI for the packet, formated as (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]
 .br
 .TP
-.B KID (SKID,data,  )
+.B KID (SKID,mem,  )
 .br
 Key ID for packets of the PID - changes are signaled through pid_set_info (no reconfigure)
 .br
 .TP
-.B IVSize (SAIV,unsigned int,  )
+.B IVSize (SAIV,uint,  )
 .br
 IV size for packets of the PID
 .br
 .TP
-.B ConstantIV (CBIV,data,  )
+.B ConstantIV (CBIV,mem,  )
 .br
 Constant IV for packets of the PID
 .br
 .TP
-.B CENCPattern (CPTR,fraction,  )
+.B CENCPattern (CPTR,frac,  )
 .br
 CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den
 .br
 .TP
-.B CENCStore (CSTR,unsigned int,  )
+.B CENCStore (CSTR,uint,  )
 .br
 Storage location 4CC of SAI data
 .br
 .TP
-.B CENCstsdMode (CSTM,unsigned int,  )
+.B CENCstsdMode (CSTM,uint,  )
 .br
 Mode for CENC sample description when using clear samples:
 .br
@@ -2237,277 +2419,277 @@ Mode for CENC sample description when using clear samples:
 * 2: a clear clone of the sample description is created, inserted after the CENC sample description
 .br
 .TP
-.B AMRModeSet (AMST,unsigned int,  )
+.B AMRModeSet (AMST,uint,  )
 .br
 ModeSet for AMR and AMR-WideBand
 .br
 .TP
-.B SubSampleInfo (SUBS,data,  )
+.B SubSampleInfo (SUBS,mem,  )
 .br
 Binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
 .br
 .TP
-.B NALUMaxSize (NALS,unsigned int,  )
+.B NALUMaxSize (NALS,uint,  )
 .br
 Max size of NAL units in stream - changes are signaled through pid_set_info (no reconfigure)
 .br
 .TP
-.B FileNumber (FNUM,unsigned int, P)
+.B FileNumber (FNUM,uint, P)
 .br
 Index of file when dumping to files
 .br
 .TP
-.B FileName (FNAM,string, P)
+.B FileName (FNAM,str, P)
 .br
 Name of output file when dumping / dashing. Must be set on first packet belonging to new file
 .br
 .TP
-.B IDXName (INAM,string, P)
+.B IDXName (INAM,str, P)
 .br
 Name of index file when dashing MPEG-2 TS. Must be set on first packet belonging to new file
 .br
 .TP
-.B EODS (EODS,boolean, P)
+.B EODS (EODS,bool, P)
 .br
 End of DASH segment
 .br
 .TP
-.B MaxFrameSize (MFRS,unsigned int,D )
+.B MaxFrameSize (MFRS,uint,D )
 .br
 Max size of frame in stream - changes are signaled through pid_set_info (no reconfigure)
 .br
 .TP
-.B AvgFrameSize (AFRS,unsigned int,D )
+.B AvgFrameSize (AFRS,uint,D )
 .br
 Average size of frame in stream (isobmff only, static property)
 .br
 .TP
-.B MaxTSDelta (MTSD,unsigned int,D )
+.B MaxTSDelta (MTSD,uint,D )
 .br
 Maximum DTS delta between frames (isobmff only, static property)
 .br
 .TP
-.B MaxCTSOffset (MCTO,unsigned int,D )
+.B MaxCTSOffset (MCTO,uint,D )
 .br
 Maximum absolute CTS offset (isobmff only, static property)
 .br
 .TP
-.B ConstantDuration (SCTD,unsigned int,D )
+.B ConstantDuration (SCTD,uint,D )
 .br
 Constant duration of samples, 0 means variable duration (isobmff only, static property)
 .br
 .TP
-.B TrackTemplate (ITKT,data,D )
+.B TrackTemplate (ITKT,mem,D )
 .br
 ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to reinject specific boxes of input ISOBMFF track
 .br
 .TP
-.B TrexTemplate (ITXT,data,D )
+.B TrexTemplate (ITXT,mem,D )
 .br
 ISOBMFF serialized trex box for this PID - used by isomuxer to remux empty init segments
 .br
 .TP
-.B STSDTemplate (ISTD,data,D )
+.B STSDTemplate (ISTD,mem,D )
 .br
 ISOBMFF serialized sample description box (stsd entry) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF track
 .br
 .TP
-.B MovieUserData (IMUD,data,D )
+.B MovieUserData (IMUD,mem,D )
 .br
 ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to reinject specific boxes of input ISOBMFF moov
 .br
 .TP
-.B TrackHandler (IHDL,string,D )
+.B TrackHandler (IHDL,str,D )
 .br
 ISOBMFF track handler name
 .br
 .TP
-.B TrackFlags (ITKF,unsigned int,D )
+.B TrackFlags (ITKF,uint,D )
 .br
 ISOBMFF track header flags
 .br
 .TP
-.B TrackMatrix (ITKM,uint list,D )
+.B TrackMatrix (ITKM,uintl,D )
 .br
 ISOBMFF track header matrix
 .br
 .TP
-.B Period (PEID,string,D )
+.B Period (PEID,str,D )
 .br
 ID of DASH period
 .br
 .TP
-.B PStart (PEST,number,D )
+.B PStart (PEST,dbl,D )
 .br
 DASH Period start - cf dasher help
 .br
 .TP
-.B PDur (PEDU,number,D )
+.B PDur (PEDU,dbl,D )
 .br
 DASH Period duration - cf dasher help
 .br
 .TP
-.B Representation (DRID,string,D )
+.B Representation (DRID,str,D )
 .br
 ID of DASH representation
 .br
 .TP
-.B ASID (DAID,unsigned int,D )
+.B ASID (DAID,uint,D )
 .br
 ID of parent DASH AS
 .br
 .TP
-.B MuxSrc (MSRC,string,D )
+.B MuxSrc (MSRC,str,D )
 .br
 Name of mux source(s), set by dasher to direct its outputs
 .br
 .TP
-.B DashMode (DMOD,unsigned int,D )
+.B DashMode (DMOD,uint,D )
 .br
 DASH mode to be used by muxer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD
 .br
 .TP
-.B DashDur (DDUR,number,D )
+.B DashDur (DDUR,dbl,D )
 .br
 DASH target segment duration in seconds to muxer if any, set by dasher
 .br
 .TP
-.B Role (ROLE,string list,D )
+.B Role (ROLE,strl,D )
 .br
 List of roles for this pid
 .br
 .TP
-.B PDesc (PDES,string list,D )
+.B PDesc (PDES,strl,D )
 .br
 List of descriptors for the DASH period containing this pid
 .br
 .TP
-.B ASDesc (ACDS,string list,D )
+.B ASDesc (ACDS,strl,D )
 .br
 List of conditional descriptors for the DASH AdaptationSet containing this pid. If a pid with the same property type but different value is found, the pids will be in different AdaptationSets
 .br
 .TP
-.B ASCDesc (AADS,string list,D )
+.B ASCDesc (AADS,strl,D )
 .br
 List of common descriptors for the DASH AdaptationSet containing this pid
 .br
 .TP
-.B RDesc (RDES,string list,D )
+.B RDesc (RDES,strl,D )
 .br
 List of descriptors for the DASH Representation containing this pid
 .br
 .TP
-.B BUrl (BURL,string list,D )
+.B BUrl (BURL,strl,D )
 .br
 List of base URLs for this pid
 .br
 .TP
-.B Template (DTPL,string,D )
+.B Template (DTPL,str,D )
 .br
 Template to use for DASH generation for this pid
 .br
 .TP
-.B StartNumber (DRSN,unsigned int,D )
+.B StartNumber (DRSN,uint,D )
 .br
 Start number to use for this pid - cf dasher help
 .br
 .TP
-.B xlink (XLNK,string,D )
+.B xlink (XLNK,str,D )
 .br
 Remote period URL for DASH - cf dasher help
 .br
 .TP
-.B CDur (DCMD,number,D )
+.B CDur (DCMD,dbl,D )
 .br
 Max media duration to process from pid in DASH mode
 .br
 .TP
-.B HLSPL (HLVP,string,D )
+.B HLSPL (HLVP,str,D )
 .br
 Name of the HLS variant playlist for this media
 .br
 .TP
-.B DCue (DCUE,string,D )
+.B DCue (DCUE,str,D )
 .br
 Name of a cue list file for this pid - see dasher help
 .br
 .TP
-.B SingleScale (DSTS,boolean,D )
+.B SingleScale (DSTS,bool,D )
 .br
 Indicates the movie header should use the media timescale of the first track added
 .br
 .TP
-.B RequireReorder (PUDP,boolean,D )
+.B RequireReorder (PUDP,bool,D )
 .br
 Indicates the PID packets come from source with losses and reordering happening (UDP)
 .br
 .TP
-.B Primary (PITM,boolean,D )
+.B Primary (PITM,bool,D )
 .br
 Indicates this is a primary item in isobmf
 .br
 .TP
-.B ColorPrimaries (CPRM,unsigned int,D )
+.B ColorPrimaries (CPRM,uint,D )
 .br
 Indicate color primaries for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
-.B ColorTransfer (CTRC,unsigned int,D )
+.B ColorTransfer (CTRC,uint,D )
 .br
 Indicate color transfer characteristics for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
-.B ColorMatrixCoef (CMXC,unsigned int,D )
+.B ColorMatrixCoef (CMXC,uint,D )
 .br
 Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
-.B FullRange (CFRA,unsigned int,D )
+.B FullRange (CFRA,uint,D )
 .br
 Indicate color full range flag for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
-.B ChromaLoc (CLOC,unsigned int,D )
+.B ChromaLoc (CLOC,uint,D )
 .br
 Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
-.B SrcMagic (PSMG,unsigned long int,D )
+.B SrcMagic (PSMG,luint,D )
 .br
 Indicate a magic number to store in the track, only used by importers
 .br
 .TP
-.B TrackIndex (TIDX,unsigned long int,D )
+.B TrackIndex (TIDX,luint,D )
 .br
 Indicate target track index in destination file, stored by lowest value first (not set by demuxers)
 .br
 .TP
-.B NoTSLoop (NTSL,boolean,  )
+.B NoTSLoop (NTSL,bool,  )
 .br
 Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)
 .br
 .TP
-.B FragStart (PFRB,unsigned int,D )
+.B FragStart (PFRB,uint,D )
 .br
 Indicate if packet is a fragment start (value 1) or a segment start (value 2)
 .br
 .TP
-.B FragRange (PFRR,64-bit fraction,D )
+.B FragRange (PFRR,lfrac,D )
 .br
 Indicate start and end position in bytes of fragment if packet is a fragment or segment start
 .br
 .TP
-.B SIDXRange (PFSR,64-bit fraction,D )
+.B SIDXRange (PFSR,lfrac,D )
 .br
 Indicate start and end position in bytes of sidx if packet is a fragment or segment start
 .br
 .TP
-.B MoofTemplate (MFTP,data,D )
+.B MoofTemplate (MFTP,mem,D )
 .br
 Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)
 .br
 .TP
-.B RawGrab (PGRB,boolean,D )
+.B RawGrab (PGRB,bool,D )
 .br
 Indicate PID is a raw media grabber (webcam, microphone, etc...)
 .br
@@ -3356,7 +3538,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3291-gcab89e8f5-filters
+build: 0.9.0-DEV-rev3356-g4fcf4cbdb-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

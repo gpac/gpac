@@ -173,7 +173,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	ctx->pid = pid;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
-	if (p && p->value.boolean) ctx->patch_blocks = GF_TRUE;
+	if (p && p->value.uint) ctx->patch_blocks = GF_TRUE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
 	if (p && p->value.uint) ctx->dash_mode = 1;

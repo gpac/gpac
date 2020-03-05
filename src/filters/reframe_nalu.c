@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU (AVC & HEVC)  reframer filter
@@ -60,6 +60,7 @@ typedef struct
 	Double index;
 	Bool explicit, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
 	u32 nal_length;
+	GF_Fraction idur;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -206,7 +207,7 @@ typedef struct
 	Bool has_initial_aud;
 	char init_aud[3];
 
-	Bool interlaced;
+	Bool interlaced, eos_in_bs;
 } GF_NALUDmxCtx;
 
 
@@ -1257,6 +1258,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->in_seek = GF_TRUE;
 
 		if (ctx->start_range) {
+			ctx->nb_nalus = ctx->nb_i = ctx->nb_p = ctx->nb_b = ctx->nb_sp = ctx->nb_si = ctx->nb_sei = ctx->nb_idr = 0;
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
 					ctx->cts = ctx->dts = (u64) (ctx->indexes[i-1].duration * ctx->cur_fps.num);
@@ -1756,6 +1758,8 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	*skip_nal = GF_FALSE;
 	res = gf_media_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
+	if (ctx->eos_in_bs)
+		return -1;
 	if (res < 0) {
 		if (res == -1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
@@ -1916,6 +1920,12 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	return res;
 }
 
+static void naludmx_on_eos(void *par)
+{
+	GF_NALUDmxCtx *ctx = (GF_NALUDmxCtx *)par;
+	ctx->eos_in_bs = GF_TRUE;
+}
+
 GF_Err naludmx_process(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
@@ -2037,6 +2047,9 @@ naldmx_flush:
 	} else {
 		gf_bs_reassign_buffer(ctx->bs_r, start, remain);
 	}
+	if (is_eos)
+		gf_bs_set_eos_callback(ctx->bs_r, naludmx_on_eos, ctx);
+	ctx->eos_in_bs = GF_FALSE;
 
     assert(remain>=0);
     
@@ -2416,6 +2429,11 @@ naldmx_flush:
 		} else {
 			nal_parse_result = naludmx_parse_nal_avc(ctx, hdr_start, hdr_avail, nal_type, &skip_nal, &is_slice, &is_islice);
 		}
+
+		if (ctx->eos_in_bs && is_eos) {
+			break;
+		}
+
 
 		if (ctx->analyze) {
 			skip_nal = GF_FALSE;
@@ -2919,15 +2937,23 @@ static void naludmx_del_param_list(GF_List *ps)
 static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 {
 	u32 i, count;
+	const char *msg_import;
 	u32 nb_frames = 0;
 	if (ctx->cur_fps.den)
 		nb_frames = (u32) (ctx->dts / ctx->cur_fps.den);
 
-	if (ctx->nb_si || ctx->nb_sp) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Import results: %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
+	if (ctx->idur.den && ctx->idur.num) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s duration specified at import time, may have parsed more frames than imported\n", ctx->log_name));
+		msg_import = "parsed";
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR\n",
-			                  ctx->log_name, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei, ctx->nb_idr));
+		msg_import = "Import results:";
+	}
+
+	if (ctx->nb_si || ctx->nb_sp) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR\n",
+			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei, ctx->nb_idr));
 	}
 
 	if (!ctx->is_hevc) {
@@ -2937,11 +2963,11 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 			GF_AVCConfigSlot *svcc = (GF_AVCConfigSlot*)gf_list_get(ctx->sps, i);
 			sps = & ctx->avc_state->sps[svcc->id];
 			if (sps->nb_ei || sps->nb_ep) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s SVC (SSPS ID %d, %dx%d) Import results: Slices: %d I %d P %d B\n", ctx->log_name, svcc->id - GF_SVC_SSPS_ID_SHIFT, sps->width, sps->height, sps->nb_ei, sps->nb_ep, sps->nb_eb ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s SVC (SSPS ID %d, %dx%d) %s Slices: %d I %d P %d B\n", ctx->log_name, svcc->id - GF_SVC_SSPS_ID_SHIFT, sps->width, sps->height, msg_import, sps->nb_ei, sps->nb_ep, sps->nb_eb ));
 			}
 		}
 	} else if (ctx->nb_e_i || ctx->nb_e_p || ctx->nb_e_b) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s L-HEVC Import results: Slices: %d I %d P %d B\n", ctx->log_name, ctx->nb_e_i, ctx->nb_e_p, ctx->nb_e_b ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s L-HEVC %s Slices: %d I %d P %d B\n", ctx->log_name, msg_import, ctx->nb_e_i, ctx->nb_e_p, ctx->nb_e_b ));
 	}
 
 	if (ctx->max_total_delay>1) {
@@ -3105,6 +3131,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(idur), "compatibility with old importer to log imported frames only", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(nal_length), "set number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},

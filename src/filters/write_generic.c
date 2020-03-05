@@ -336,7 +336,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 		if (ctx->is_bmp) strcpy(szExt, "bmp");
 		else if (ctx->is_wav) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_BOOL(GF_TRUE) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_REPLACE) );
 			strcpy(szExt, "wav");
 		} else if (!strlen(szExt)) strcpy(szExt, "raw");
 
@@ -567,7 +567,7 @@ static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 
 	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_set_byte_offset(dst_pck, 0);
-	gf_filter_pck_set_seek_flag(dst_pck, 1);
+	gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 	gf_filter_pck_send(dst_pck);
 }
 

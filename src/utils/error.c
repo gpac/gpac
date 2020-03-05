@@ -886,6 +886,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "Unsupported codec profile";
 	case GF_REQUIRES_NEW_INSTANCE:
 		return "Requires a new instance of the filter to be supported";
+	case GF_FILTER_NOT_SUPPORTED:
+		return "Not supported by any filter chain";
 	default:
 		sprintf(szErrMsg, "Unknown Error (%d)", e);
 		return szErrMsg;

@@ -283,7 +283,10 @@ GF_Err gf_odf_read_esd(GF_BitStream *bs, GF_ESD *esd, u32 DescSize)
 		if (e) return e;
 		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
 		e = AddDescriptorToESD(esd, tmp);
-		if (e) return e;
+		if (e) {
+			gf_odf_desc_del(tmp);
+			return e;
+		}
 		nbBytes += tmp_size + gf_odf_size_field_size(tmp_size);
 
 		//apple fix
@@ -500,7 +503,10 @@ GF_Err gf_odf_read_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod, u32 De
 		if (e) return e;
 		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
 		e = AddDescriptorToIOD(iod, tmp);
-		if (e) return e;
+		if (e) {
+			gf_odf_desc_del(tmp);
+			return e;
+		}
 		nbBytes += tmp_size + gf_odf_size_field_size(tmp_size);
 	}
 	if (DescSize != nbBytes) return GF_ODF_INVALID_DESCRIPTOR;
@@ -669,7 +675,10 @@ GF_Err gf_odf_read_od(GF_BitStream *bs, GF_ObjectDescriptor *od, u32 DescSize)
 		if (e) return e;
 		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
 		e = AddDescriptorToOD(od, tmp);
-		if (e) return e;
+		if (e) {
+			gf_odf_desc_del(tmp);
+			return e;
+		}
 		nbBytes += tmpSize + gf_odf_size_field_size(tmpSize);
 	}
 	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
@@ -839,7 +848,10 @@ GF_Err gf_odf_read_isom_iod(GF_BitStream *bs, GF_IsomInitialObjectDescriptor *io
 		if (e) return e;
 		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
 		e = AddDescriptorToIsomIOD(iod, tmp);
-		if (e) return e;
+		if (e) {
+			gf_odf_desc_del(tmp);
+			return e;
+		}
 		nbBytes += tmpSize + gf_odf_size_field_size(tmpSize);
 	}
 	if (DescSize != nbBytes) return GF_ODF_INVALID_DESCRIPTOR;
@@ -1019,7 +1031,10 @@ GF_Err gf_odf_read_isom_od(GF_BitStream *bs, GF_IsomObjectDescriptor *od, u32 De
 		if (e) return e;
 		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
 		e = AddDescriptorToIsomOD(od, tmp);
-		if (e) return e;
+		if (e) {
+			gf_odf_desc_del(tmp);
+			return e;
+		}
 		nbBytes += tmpSize + gf_odf_size_field_size(tmpSize);
 	}
 	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;

@@ -336,10 +336,8 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 	if (*dst_size < *height * *width * jpx.cinfo.num_components) {
 		*dst_size = *height * *width * jpx.cinfo.num_components;
 		jpeg_destroy_decompress(&jpx.cinfo);
-		fprintf(stderr, "jpg header: %d x %d, size %d\n", *width, *height, *dst_size);
 		return GF_BUFFER_TOO_SMALL;
 	}
-	fprintf(stderr, "jpg header: %d x %d\n", *width, *height);
 	if (!dst_nb_comp) dst_nb_comp = jpx.cinfo.num_components;
 
 	scan_line = NULL;

@@ -667,24 +667,39 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #if defined (_WIN32_WCE)
 			short ext[30];
 			short *sep = wcsrchr(FindData.cFileName, (wchar_t) '.');
+			short *found_ext;
+			u32 ext_len;
 			if (!sep) goto next;
 			wcscpy(ext, sep+1);
 			wcslwr(ext);
-			if (!wcsstr(w_filter, ext)) goto next;
+			ext_len = (u32) wcslen(ext);
+			found_ext = wcsstr(w_filter, ext);
+			if (!found_ext) goto next;
+			if (found_ext[ext_len] && (found_ext[ext_len] != (wchar_t) ';')) goto next;
 #elif defined(WIN32)
 			wchar_t ext[30];
 			wchar_t *sep = wcsrchr(FindData.cFileName, L'.');
+			wchar_t *found_ext;
+			u32 ext_len;
 			if (!sep) goto next;
 			wcscpy(ext, sep+1);
 			wcslwr(ext);
-			if (!wcsstr(w_filter, ext)) goto next;
+			ext_len = (u32) wcslen(ext);
+			found_ext = wcsstr(w_filter, ext);
+			if (!found_ext) goto next;
+			if (found_ext[ext_len] && (found_ext[ext_len] != L';')) goto next;
 #else
 			char ext[30];
 			char *sep = strrchr(the_file->d_name, '.');
+			char *found_ext;
+			u32 ext_len;
 			if (!sep) goto next;
 			strcpy(ext, sep+1);
 			strlwr(ext);
-			if (!strstr(filter, sep+1)) goto next;
+			ext_len = (u32) strlen(ext);
+			found_ext = strstr(filter, ext);
+			if (!found_ext) goto next;
+			if (found_ext[ext_len] && (found_ext[ext_len]!=';')) goto next;
 #endif
 		}
 
@@ -793,8 +808,8 @@ GF_EXPORT
 u64 gf_ftell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
-	return (u64) gf_ftell(fp);
-#elif defined(GPAC_CONFIG_WIN32) && defined(__CYGWIN__)	/* mingw or cygwin */
+	return (u64) ftell(fp);
+#elif defined(GPAC_CONFIG_WIN32) && (defined(__CYGWIN__) || defined(__MINGW32__))
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else

@@ -41,6 +41,7 @@ mkdir -p tmpdmg/GPAC.app/Contents/MacOS/modules
 mkdir -p tmpdmg/GPAC.app/Contents/MacOS/lib
 
 cp bin/gcc/gm* tmpdmg/GPAC.app/Contents/MacOS/modules
+cp bin/gcc/gf_* tmpdmg/GPAC.app/Contents/MacOS/modules
 cp bin/gcc/libgpac.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
 if [ -f bin/gcc/libopenhevc.1.dylib ]; then
     cp bin/gcc/libopenhevc.1.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
@@ -78,6 +79,7 @@ install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.
 cd ../../../..
 
 echo Copying GUI
+rsync -r --exclude=.git $source_path/share/res ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/gui ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/shaders ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/scripts ./tmpdmg/GPAC.app/Contents/MacOS/share/

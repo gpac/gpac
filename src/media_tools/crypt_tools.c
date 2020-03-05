@@ -386,21 +386,28 @@ void gf_crypt_info_del(GF_CryptInfo *info)
 	gf_free(info);
 }
 
-GF_CryptInfo *gf_crypt_info_load(const char *file)
+GF_CryptInfo *gf_crypt_info_load(const char *file, GF_Err *out_err)
 {
 	GF_Err e;
 	GF_CryptInfo *info;
 	GF_SAXParser *sax;
 	GF_SAFEALLOC(info, GF_CryptInfo);
-	if (!info) return NULL;
+	if (!info) {
+		if (out_err) *out_err = GF_OUT_OF_MEM;
+		return NULL;
+	}
 	info->tcis = gf_list_new();
 	sax = gf_xml_sax_new(cryptinfo_node_start, cryptinfo_node_end, cryptinfo_text, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);
-	gf_xml_sax_del(sax);
 	if (e<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[DRM] Failed to parse DRM config file: %s", gf_xml_sax_get_error(sax) ));
+		if (out_err) *out_err = e;
 		gf_crypt_info_del(info);
-		return NULL;
+		info = NULL;
+	} else {
+		if (out_err) *out_err = GF_OK;
 	}
+	gf_xml_sax_del(sax);
 	return info;
 }
 

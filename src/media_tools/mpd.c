@@ -2622,7 +2622,7 @@ static void gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *c
 	if (ca->starts_with_sap) fprintf(out, " startWithSAP=\"%d\"", ca->starts_with_sap);
 	if ((ca->max_playout_rate!=1.0)) fprintf(out, " maxPlayoutRate=\"%g\"", ca->max_playout_rate);
 	if (ca->coding_dependency) fprintf(out, " codingDependency=\"true\"");
-	if (ca->scan_type!=GF_MPD_SCANTYPE_UNKNWON) fprintf(out, " scanType=\"%s\"", ca->scan_type==GF_MPD_SCANTYPE_PROGRESSIVE ? "progressive" : "interlaced");
+	if (ca->scan_type != GF_MPD_SCANTYPE_UNKNOWN) fprintf(out, " scanType=\"%s\"", ca->scan_type == GF_MPD_SCANTYPE_PROGRESSIVE ? "progressive" : "interlaced");
 }
 
 static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, s32 indent)

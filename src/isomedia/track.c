@@ -86,6 +86,7 @@ GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_
 
 	e = Media_GetESD(trak->Media, StreamDescIndex, &esd, 0);
 	if (e) return e;
+	if (!esd) return GF_NON_COMPLIANT_BITSTREAM;
 
 	e = Media_GetSampleDesc(trak->Media, StreamDescIndex, (GF_SampleEntryBox **) &entry, NULL);
 	if (e) return e;
