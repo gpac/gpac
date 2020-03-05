@@ -4747,7 +4747,8 @@ u32 gf_bs_get_ue(GF_BitStream *bs)
 		if (read) break;
 		//check whether we still have bits once the peek is done since we may have less than 8 bits available
 		if (!gf_bs_available(bs)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC/HEVC] Not enough bits in bitstream !!\n"));
+			//log moved as debug, erro log thrown by gf_bs_read_*
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AVC/HEVC] Not enough bits in bitstream !!\n"));
 			return 0;
 		}
 		gf_bs_read_int(bs, 8);
