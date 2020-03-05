@@ -1299,6 +1299,9 @@ GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 		bs->position += bs->bytes_out;
 		return e;
 	}
+	if (bs->cache_write)
+		bs_flush_write_cache(bs);
+
 	/*warning: we allow offset = bs->size for WRITE buffers*/
 	if (offset > bs->size) return GF_BAD_PARAM;
 
