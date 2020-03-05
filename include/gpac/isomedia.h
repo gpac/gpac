@@ -1537,16 +1537,6 @@ New created tracks or meta items will not have a frozen order of boxes, but the 
 */
 GF_Err gf_isom_freeze_order(GF_ISOFile *isom_file);
 
-
-/*! sets write cache size for files when creating them. If size is 0, writing
-only relies on the underlying OS fwrite/fgetc. Not used in fast start mode
-If movie is NULL, assigns the default write cache size for any new movie
-\param isom_file the target ISO file
-\param size desired cached size
-\return error if any
-*/
-GF_Err gf_isom_set_output_buffering(GF_ISOFile *isom_file, u32 size);
-
 /*! keeps UTC edit times when storing
 \param isom_file the target ISO file
 \param keep_utc if GF_TRUE, do not edit times

@@ -1752,7 +1752,6 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 		}
 	} else {
 		FILE *stream=NULL;
-		u32 buffer_size = movie->editFileMap ? gf_bs_get_output_buffering(movie->editFileMap->bs) : 0;
 		Bool is_stdout = GF_FALSE;
 		GF_BitStream *bs=NULL;
 		if (!strcmp(movie->finalName, "_gpac_isobmff_redirect")) {
@@ -1776,10 +1775,6 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			if (!is_stdout)
 				gf_fclose(stream);
 			return GF_OUT_OF_MEM;
-		}
-
-		if (buffer_size) {
-			gf_bs_set_output_buffering(bs, buffer_size);
 		}
 
 		switch (movie->storageMode) {
