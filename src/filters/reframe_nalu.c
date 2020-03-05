@@ -2044,10 +2044,11 @@ GF_Err naludmx_process(GF_Filter *filter)
 naldmx_flush:
 	if (!ctx->bs_r) {
 		ctx->bs_r = gf_bs_new(start, remain, GF_BITSTREAM_READ);
-		gf_bs_set_eos_callback(ctx->bs_r, naludmx_on_eos, ctx);
 	} else {
 		gf_bs_reassign_buffer(ctx->bs_r, start, remain);
 	}
+	if (is_eos)
+		gf_bs_set_eos_callback(ctx->bs_r, naludmx_on_eos, ctx);
 	ctx->eos_in_bs = GF_FALSE;
 
     assert(remain>=0);
