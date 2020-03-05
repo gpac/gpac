@@ -5322,8 +5322,6 @@ int mp4boxMain(int argc, char **argv)
 		} else {
 			char szName[GF_MAX_PATH+10];
 			FILE *iodf;
-			GF_BitStream *bs = NULL;
-
 			sprintf(szName, "%s.iod", outfile);
 			iodf = gf_fopen(szName, "wb");
 			if (!iodf) {
@@ -5331,7 +5329,7 @@ int mp4boxMain(int argc, char **argv)
 			} else {
 				u8 *desc;
 				u32 size;
-				bs = gf_bs_from_file(iodf, GF_BITSTREAM_WRITE);
+				GF_BitStream *bs = gf_bs_from_file(iodf, GF_BITSTREAM_WRITE);
 				if (gf_odf_desc_write((GF_Descriptor *)iod, &desc, &size)==GF_OK) {
 					gf_fwrite(desc, 1, size, iodf);
 					gf_free(desc);
@@ -5339,8 +5337,8 @@ int mp4boxMain(int argc, char **argv)
 					fprintf(stderr, "Error writing IOD %s\n", szName);
 				}
 				gf_fclose(iodf);
+				gf_bs_del(bs);
 			}
-			gf_free(bs);
 			gf_odf_desc_del((GF_Descriptor*)iod);
 		}
 	}
