@@ -4731,6 +4731,16 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			gf_isom_update_edit_list_duration(ctx->file, tkw->track_num);
 		}
 
+		if (ctx->importer && ctx->idur.num && ctx->idur.den) {
+			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
+			u64 pdur = gf_isom_get_track_duration(ctx->file, tkw->track_num);
+			if (pdur==mdur) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Imported %d frames - duration %g\n", tkw->nb_samples, ((Double)mdur)/tkw->tk_timescale ));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Imported %d frames - media duration %g - track duration %g\n", tkw->nb_samples, ((Double)mdur)/tkw->tk_timescale, ((Double)pdur)/ctx->moovts ));
+			}
+		}
+
 		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
 		 we force the system video_pl to ASP@L5 since we have I, P, B in base layer*/
 		if (tkw->codecid == GF_CODECID_MPEG4_PART2) {
