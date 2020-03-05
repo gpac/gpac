@@ -3305,6 +3305,7 @@ typedef struct __sample_encryption_box
 
 	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
+	Bool load_needed;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*pointer to container traf*/

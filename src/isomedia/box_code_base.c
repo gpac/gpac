@@ -6473,7 +6473,7 @@ GF_Err trak_box_size(GF_Box *s)
 	u32 pos=0;
 	GF_TrackBox *ptr = (GF_TrackBox *)s;
 
-	if (ptr->sample_encryption && !gf_list_count(ptr->sample_encryption->samp_aux_info)) {
+	if (ptr->sample_encryption && ptr->sample_encryption->load_needed) {
 		GF_Err e = senc_Parse(ptr->moov->mov->movieFileMap->bs, ptr, NULL, ptr->sample_encryption);
 		if (e) return e;
 	}
