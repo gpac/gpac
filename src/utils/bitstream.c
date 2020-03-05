@@ -197,6 +197,21 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 		if (tmp->cache_read_alloc) {
 			tmp->cache_read_pos = tmp->cache_read_size = tmp->cache_read_alloc;
 			tmp->cache_read = gf_malloc(tmp->cache_read_alloc);
+			if (!tmp->cache_read) {
+				gf_free(tmp);
+				return NULL;
+			}
+		}
+	}
+	if (mode == GF_BITSTREAM_FILE_WRITE) {
+		tmp->cache_write_size = gf_opts_get_int("core", "bs-cache-size");
+		if (tmp->cache_write_size) {
+			tmp->cache_write = (char*)gf_malloc(tmp->cache_write_size);
+			if (!tmp->cache_write) {
+				gf_free(tmp);
+				return NULL;
+			}
+			tmp->buffer_written = 0;
 		}
 	}
 
@@ -270,27 +285,6 @@ static void bs_flush_write_cache(GF_BitStream *bs)
 }
 
 
-GF_EXPORT
-GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size)
-{
-	if (!bs->stream) return GF_OK;
-	if (bs->bsmode != GF_BITSTREAM_FILE_WRITE) {
-		return GF_OK;
-	}
-	bs_flush_write_cache(bs);
-	bs->cache_write = (char*)gf_realloc(bs->cache_write, size);
-	if (!bs->cache_write) return GF_IO_ERR;
-	bs->cache_write_size = size;
-	bs->buffer_written = 0;
-	return GF_OK;
-}
-
-
-GF_EXPORT
-u32 gf_bs_get_output_buffering(GF_BitStream *bs)
-{
-	return bs ? bs->cache_write_size : 0;
-}
 
 GF_EXPORT
 void gf_bs_del(GF_BitStream *bs)
@@ -822,34 +816,61 @@ GF_EXPORT
 void gf_bs_write_u8(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
-	BS_WriteByte(bs, (u8) value);
+
+	if (bs->cache_write && (bs->buffer_written+1 < bs->cache_write_size) ) {
+		bs->cache_write[bs->buffer_written] = (u8) value;
+		bs->buffer_written += 1;
+	} else {
+		BS_WriteByte(bs, (u8) value);
+	}
 }
 
 GF_EXPORT
 void gf_bs_write_u16(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
-	BS_WriteByte(bs, (u8) ((value>>8)&0xff));
-	BS_WriteByte(bs, (u8) ((value)&0xff));
+	if (bs->cache_write && (bs->buffer_written+2 < bs->cache_write_size) ) {
+		bs->cache_write[bs->buffer_written] = (u8) ((value>>8)&0xff);
+		bs->cache_write[bs->buffer_written+1] = (u8) ((value)&0xff);
+		bs->buffer_written += 2;
+	} else {
+		BS_WriteByte(bs, (u8) ((value>>8)&0xff));
+		BS_WriteByte(bs, (u8) ((value)&0xff));
+	}
 }
 
 GF_EXPORT
 void gf_bs_write_u24(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
-	BS_WriteByte(bs, (u8) ((value>>16)&0xff));
-	BS_WriteByte(bs, (u8) ((value>>8)&0xff));
-	BS_WriteByte(bs, (u8) ((value)&0xff));
+	if (bs->cache_write && (bs->buffer_written+3 < bs->cache_write_size) ) {
+		bs->cache_write[bs->buffer_written] = (u8) ((value>>16)&0xff);
+		bs->cache_write[bs->buffer_written+1] = (u8) ((value>>8)&0xff);
+		bs->cache_write[bs->buffer_written+2] = (u8) ((value)&0xff);
+		bs->buffer_written += 3;
+	} else {
+		BS_WriteByte(bs, (u8) ((value>>16)&0xff));
+		BS_WriteByte(bs, (u8) ((value>>8)&0xff));
+		BS_WriteByte(bs, (u8) ((value)&0xff));
+	}
 }
 
 GF_EXPORT
 void gf_bs_write_u32(GF_BitStream *bs, u32 value)
 {
 	assert(!bs->nbBits);
-	BS_WriteByte(bs, (u8) ((value>>24)&0xff));
-	BS_WriteByte(bs, (u8) ((value>>16)&0xff));
-	BS_WriteByte(bs, (u8) ((value>>8)&0xff));
-	BS_WriteByte(bs, (u8) ((value)&0xff));
+	if (bs->cache_write && (bs->buffer_written+4 < bs->cache_write_size) ) {
+		bs->cache_write[bs->buffer_written] = (u8) ((value>>24)&0xff);
+		bs->cache_write[bs->buffer_written+1] = (u8) ((value>>16)&0xff);
+		bs->cache_write[bs->buffer_written+2] = (u8) ((value>>8)&0xff);
+		bs->cache_write[bs->buffer_written+3] = (u8) ((value)&0xff);
+		bs->buffer_written += 4;
+	} else {
+		BS_WriteByte(bs, (u8) ((value>>24)&0xff));
+		BS_WriteByte(bs, (u8) ((value>>16)&0xff));
+		BS_WriteByte(bs, (u8) ((value>>8)&0xff));
+		BS_WriteByte(bs, (u8) ((value)&0xff));
+	}
 }
 
 GF_EXPORT
@@ -997,17 +1018,16 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 		case GF_BITSTREAM_FILE_READ:
 		case GF_BITSTREAM_FILE_WRITE:
 			if (bs->cache_write) {
-				if (bs->buffer_written + nbBytes > bs->cache_write_size) {
-					bs_flush_write_cache(bs);
-					if (nbBytes>bs->cache_write_size) {
-						bs->cache_write = (char*)gf_realloc(bs->cache_write, 2*nbBytes);
-						bs->cache_write_size = 2*nbBytes;
-					}
+				//if block fits in our write cache, write it
+				if (bs->buffer_written + nbBytes < bs->cache_write_size) {
+					memcpy(bs->cache_write+bs->buffer_written, data, nbBytes);
+					bs->buffer_written+=nbBytes;
+					return nbBytes;
 				}
-				memcpy(bs->cache_write+bs->buffer_written, data, nbBytes);
-				bs->buffer_written+=nbBytes;
-				return nbBytes;
+				//otherwise flush cache and use fwrite
+				bs_flush_write_cache(bs);
 			}
+
 			if (gf_fwrite(data, nbBytes, 1, bs->stream) != 1) return 0;
 			if (bs->size == bs->position) bs->size += nbBytes;
 			bs->position += nbBytes;
@@ -1520,12 +1540,12 @@ GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src)
 GF_EXPORT
 void gf_bs_flush(GF_BitStream *bs)
 {
+	if (!bs->stream) return;
+	if (bs->bsmode != GF_BITSTREAM_FILE_WRITE) return;
+
 	if (bs->cache_write)
 		bs_flush_write_cache(bs);
 
-	if (!bs->stream) return;
-
-	if (bs->bsmode != GF_BITSTREAM_FILE_WRITE) return;
 	fflush(bs->stream);
 }
 

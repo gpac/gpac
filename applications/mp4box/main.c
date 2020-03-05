@@ -125,7 +125,6 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("out", NULL, "specify output file name. By default input file is overwritten", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("tmp", NULL, "specify directory for temporary file creation", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("co64", NULL, "force usage of 64-bit chunk offsets for ISOBMF files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("write-buffer", NULL, "specify write buffer in bytes for ISOBMF files to reduce disk IO", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("new", NULL, "force creation of a new destination file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("newfs", NULL, "force creation of a new destination file without temp file but interleaving support", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("no-sys", NULL, "remove all MPEG-4 Systems info except IOD, kept for profiles. This is the default when creating regular AV content", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
@@ -3837,7 +3836,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-write-buffer")) {
 			CHECK_NEXT_ARG
-			gf_isom_set_output_buffering(NULL, atoi(argv[i + 1]));
+			fprintf(stderr, "\tWARNING: \"-write-buffer\" deprecated and will soon be removed, use -bs-cache-size=%s\n", argv[i + 1]);
+			gf_opts_set_key("temp", "bs-cache-size", argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-cprt")) {
@@ -6161,19 +6161,24 @@ int mp4boxMain(int argc, char **argv)
 
 	if (!encode && !force_new) gf_isom_set_final_name(file, outfile);
 	if (needSave) {
-		if (outName) {
-			fprintf(stderr, "Saving to %s: ", outfile);
-			gf_isom_set_final_name(file, outfile);
-		} else if (encode || pack_file) {
-			fprintf(stderr, "Saving to %s: ", gf_isom_get_filename(file) );
+
+		if (!gf_sys_is_quiet()) {
+			if (outName) {
+				gf_isom_set_final_name(file, outfile);
+			} else if (encode || pack_file) {
+				fprintf(stderr, "Saving to %s: ", gf_isom_get_filename(file) );
+			} else {
+				fprintf(stderr, "Saving %s: ", inName);
+			}
+			if (HintIt && FullInter) fprintf(stderr, "Hinted file - Full Interleaving\n");
+			else if (FullInter) fprintf(stderr, "Full Interleaving\n");
+			else if ((force_new==2) && interleaving_time) fprintf(stderr, "Fast-start interleaved storage\n");
+			else if (do_flat || !interleaving_time) fprintf(stderr, "Flat storage\n");
+			else fprintf(stderr, "%.3f secs Interleaving%s\n", interleaving_time, old_interleave ? " - no drift control" : "");
 		} else {
-			fprintf(stderr, "Saving %s: ", inName);
+			if (outName)
+				gf_isom_set_final_name(file, outfile);
 		}
-		if (HintIt && FullInter) fprintf(stderr, "Hinted file - Full Interleaving\n");
-		else if (FullInter) fprintf(stderr, "Full Interleaving\n");
-		else if ((force_new==2) && interleaving_time) fprintf(stderr, "Fast-start interleaved storage\n");
-		else if (do_flat || !interleaving_time) fprintf(stderr, "Flat storage\n");
-		else fprintf(stderr, "%.3f secs Interleaving%s\n", interleaving_time, old_interleave ? " - no drift control" : "");
 
 		e = gf_isom_close(file);
 		file = NULL;
