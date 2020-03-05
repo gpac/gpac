@@ -970,6 +970,8 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 			}
 			break;
 		case GF_EVENT_SET_GL:
+			if (!xWindow->output_3d) return GF_OK;
+
 			if ( ! glXMakeCurrent(xWindow->display, xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd, xWindow->glx_context) ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Cannot make context current\n"));
 				return GF_IO_ERR;
@@ -1149,7 +1151,17 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		xWindow->pixel_format = GF_PIXEL_RGB_565;
 		break;
 	case 24:
-		xWindow->pixel_format = GF_PIXEL_RGB;
+#ifdef GPAC_BIG_ENDIAN
+		if (xWindow->visual->red_mask==0x00FF0000)	
+			xWindow->pixel_format = GF_PIXEL_RGB;
+		else
+			xWindow->pixel_format = GF_PIXEL_BGR;
+#else
+		if (xWindow->visual->red_mask==0x00FF0000)	
+			xWindow->pixel_format = GF_PIXEL_BGR;
+		else
+			xWindow->pixel_format = GF_PIXEL_RGB;
+#endif
 		break;
 	default:
 		xWindow->pixel_format = GF_PIXEL_GREYSCALE;
