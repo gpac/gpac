@@ -96,6 +96,11 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const u8 *data, u32 da
 */
 GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, u8 *data, u32 data_length, GF_List *com_list);
 
+/*! checks if conditionnals have been defined for the decoder
+\param codec the BIFS decoder to check
+\return GF_TRUE if the decoder has conditionnal nodes attached
+*/
+Bool gf_bifs_decode_has_conditionnals(GF_BifsDecoder *codec);
 
 #ifndef GPAC_DISABLE_BIFS_ENC
 /*! BIFS encoder*/

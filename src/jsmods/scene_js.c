@@ -1266,6 +1266,8 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
 #endif
 
+	if (!odm->pid) return JS_NULL;
+
 	prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
 	if (!prop || (prop->type!=GF_PROP_STRING_LIST)) {
 		gf_filter_release_property(pe);

@@ -107,6 +107,11 @@ GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const u8 *data, u32 da
 */
 GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, u8 *data, u32 data_length, GF_List *com_list);
 
+/*! checks if a LASeR decoder has associated conditionnals
+ \param codec the target LASeR decoder
+\return GF_TRUE if conditionnals are attached to this decoder
+*/
+Bool gf_laser_decode_has_conditionnals(GF_LASeRCodec *codec);
 
 /*! creates a new LASeR encoder
 \param scenegraph the scenegraph on which the encoder operates
