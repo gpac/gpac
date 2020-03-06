@@ -2869,6 +2869,9 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		if (par.data && par.size) {
 			sprintf(range_buf, "Content-Length: %d\r\n", par.size);
 			strcat(sHTTP, range_buf);
+		} else {
+			par.data = NULL;
+			par.size = 0;
 		}
 	}
 
