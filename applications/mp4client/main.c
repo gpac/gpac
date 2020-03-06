@@ -225,7 +225,7 @@ void PrintUsage(Bool show_all)
 			"Specific URLs shortcuts are available, see [GPAC Compositor (gpac -h compositor)](compositor)\n"
 			"Version: %s\n"
 			"%s\n"
-			"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`)  \n  \n"
+			"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`  \n  \n"
 			"# Options  \n  \n",
 			gf_gpac_version(),
 			gf_gpac_copyright()
