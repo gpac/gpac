@@ -4307,7 +4307,7 @@ u32 gf_mp3_get_next_header_mem(const char *buffer, u32 size, u32 *pos)
 		if (state==3) {
 			u32 val;
 			bytes[state] = b;
-			val = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
+			val = GF_4CC((u32)bytes[0], bytes[1], bytes[2], bytes[3]);
 			if (gf_mp3_frame_size(val)) {
 				*pos = dropped;
 				return val;
