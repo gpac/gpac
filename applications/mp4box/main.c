@@ -4648,12 +4648,12 @@ int mp4boxMain(int argc, char **argv)
 		/*setup dash*/
 		dasher = gf_dasher_new(szMPD, dash_profile, tmpdir, dash_scale, dash_ctx);
 		if (!dasher) {
-			return mp4box_cleanup(1);
-			return GF_OUT_OF_MEM;
+			return mp4box_cleanup(GF_OUT_OF_MEM);
 		}
 		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source);
 		if (e) {
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
+			gf_dasher_del(dasher);
 			return mp4box_cleanup(1);
 		}
 		if (dash_start_date) gf_dasher_set_start_date(dasher, dash_start_date);
@@ -4664,6 +4664,7 @@ int mp4boxMain(int argc, char **argv)
 			e = gf_dasher_add_base_url(dasher, mpd_base_urls[i]);
 			if (e) {
 				fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
+				gf_dasher_del(dasher);
 				return mp4box_cleanup(1);
 			}
 		}
@@ -4705,6 +4706,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (e) {
 			fprintf(stderr, "DASH Setup Error: %s\n", gf_error_to_string(e));
+			gf_dasher_del(dasher);
 			return mp4box_cleanup(1);
 		}
 

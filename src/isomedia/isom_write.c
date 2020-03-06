@@ -673,9 +673,6 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 		gf_odf_desc_del((GF_Descriptor *)new_esd);
 		return e;
 	}
-	if (new_esd->URLString) {
-
-	}
 	return e;
 }
 

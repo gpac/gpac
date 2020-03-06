@@ -5437,7 +5437,7 @@ restart_import:
 			if (nal_ref_idc) {
 				sample_is_ref = GF_TRUE;
 			}
-			
+
 			if (is_islice)
 				sample_has_islice = GF_TRUE;
 
@@ -8225,7 +8225,7 @@ static GF_Err vorbis_process(ogg_audio_codec_desc *codec, char *data, u32 data_l
 				*duration = (u64)d;
 			}
 		}
-		
+
 		*block_size = 0;
 		return GF_OK;
 	}
@@ -11058,5 +11058,3 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 }
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
-
-
