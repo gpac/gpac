@@ -167,6 +167,12 @@ void lsr_end_of_stream(void *co)
 }
 
 GF_EXPORT
+Bool gf_laser_decode_has_conditionnals(GF_LASeRCodec *codec)
+{
+	return codec && codec->has_conditionnals ? GF_TRUE : GF_FALSE;
+}
+
+GF_EXPORT
 GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const u8 *data, u32 data_len)
 {
 	GF_Err e;
@@ -3300,6 +3306,7 @@ static GF_Node *lsr_read_conditional(GF_LASeRCodec *lsr)
 	lsr_read_any_attribute(lsr, elt, 1);
 	lsr_read_command_list(lsr, NULL, (SVG_Element*)elt, 0);
 
+	lsr->has_conditionnals = GF_TRUE;
 	gf_node_init(elt);
 	return elt;
 }

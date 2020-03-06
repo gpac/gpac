@@ -989,6 +989,7 @@ enum
 	GF_PROP_PCK_SIDX_RANGE = GF_4CC('P','F','S','R'),
 	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
 	GF_PROP_PID_RAWGRAB = GF_4CC('P','G','R','B'),
+	GF_PROP_PID_KEEP_AFTER_EOS = GF_4CC('P','K','A','E'),
 
 };
 
@@ -2553,7 +2554,9 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 /*! Sets a new property on an output PID for built-in property names.
 Previous properties (ones set before last packet dispatch) will still be valid. Property with same type/name will be reassigned
 You need to remove them one by one using \ref gf_filter_pid_set_property with NULL property, or reset the properties with \ref gf_filter_pid_reset_properties.
-Setting a new property will trigger a PID reconfigure.
+Setting a new property will trigger a PID reconfigure at the consumption point of the next dispatched packet.
+
+Warning: changing a property before the final end of stream (i.e. if no more packets are sent) will have no effect. You must use \ref gf_filter_pid_set_info and  \ref gf_filter_pid_get_info for this.
 
 \param PID the target filter PID
 \param prop_4cc the built-in property code to modify

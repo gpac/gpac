@@ -97,6 +97,7 @@ struct __tag_bifs_dec
 	BIFSStreamInfo *info;
 
 	Bool UseName;
+	Bool has_conditionnals;
 
 	GF_SceneGraph *scenegraph;
 	/*modified during conditional execution / proto parsing*/
