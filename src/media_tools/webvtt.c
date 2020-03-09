@@ -567,7 +567,7 @@ GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicod
 	parser->state = WEBVTT_PARSER_STATE_WAITING_SIGNATURE;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_webvtt_parser_restart(parser);
 	}
 #endif

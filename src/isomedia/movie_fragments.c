@@ -2720,13 +2720,32 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	if (!sai) return GF_OUT_OF_MEM;
 	sai->IV_size = IV_size;
 	if (sai_b && sai_b_size) {
-		GF_BitStream *bs = gf_bs_new(sai_b, sai_b_size, GF_BITSTREAM_READ);
+		GF_BitStream *bs;
+		if (sai_b_size < IV_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isofile] corrupted SAI info size %d but IV size %d\n", sai_b_size, IV_size ));
+			gf_free(sai);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		bs = gf_bs_new(sai_b, sai_b_size, GF_BITSTREAM_READ);
 		gf_bs_read_data(bs, sai->IV, IV_size);
-		sai->subsample_count = gf_bs_read_u16(bs);
-		sai->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
-		for (i=0; i<sai->subsample_count; i++) {
-			sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
-			sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
+		if (use_subsamples) {
+			sai->subsample_count = gf_bs_read_u16(bs);
+			if (sai_b_size < IV_size + 2 + sai->subsample_count*6) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isofile] corrupted SAI info size %d but IV size %d subsamples %d (6 bytes each)\n", sai_b_size, IV_size, sai->subsample_count));
+				gf_bs_del(bs);
+				gf_free(sai);
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+
+			sai->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
+			if (!sai->subsamples) {
+				gf_free(sai);
+				return GF_OUT_OF_MEM;
+			}
+			for (i=0; i<sai->subsample_count; i++) {
+				sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
+				sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
+			}
 		}
 		gf_bs_del(bs);
 	} else if (sai_b_size) {

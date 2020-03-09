@@ -121,6 +121,26 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	if (!strnicmp(ctx->src, "file://", 7)) src += 7;
 	else if (!strnicmp(ctx->src, "file:", 5)) src += 5;
 
+	if (!ctx->file)
+		ctx->file = gf_fopen(src, "rb");
+
+	if (!ctx->file) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Failed to open %s\n", src));
+
+		if (frag_par) frag_par[0] = '#';
+		if (cgi_par) cgi_par[0] = '?';
+
+		gf_filter_setup_failure(filter, GF_URL_ERROR);
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_cov_mode() && !strcmp(src, "blob"))
+			return GF_OK;
+#endif
+		return GF_URL_ERROR;
+	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] opening %s\n", src));
+	gf_fseek(ctx->file, 0, SEEK_END);
+	ctx->file_size = gf_ftell(ctx->file);
+
 	ctx->file_pos = ctx->range.num;
 	if (ctx->range.den) {
 		ctx->end_pos = ctx->range.den;

@@ -427,7 +427,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
 			//these are not used in the test suite (require JS)
 			gf_dash_switch_quality(ctx->dash, GF_TRUE, GF_TRUE);
@@ -442,7 +442,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	if (dash_evt==GF_DASH_EVENT_CREATE_PLAYBACK) {
 		//coverage of a few functions from old arch not deprecated (yet)
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			Bool done;
 			gf_dash_is_group_selected(ctx->dash, 0);
 			gf_dash_get_url(ctx->dash);
@@ -1085,7 +1085,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 	//for coverage
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		dashdmx_on_filter_setup_error(NULL, NULL, GF_OK);
 	}
 #endif

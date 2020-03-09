@@ -274,7 +274,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 	JPGCtx jpx;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_jpeg_fatal_error(NULL);
 		gf_jpeg_output_message(NULL);
 		gf_jpeg_nonfatal_error2(NULL, 0);
@@ -456,7 +456,7 @@ GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel
 	udta.rows=NULL;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_png_user_error_fn(NULL, NULL);
 	}
 #endif
@@ -595,7 +595,7 @@ GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_for
 	if (png_ptr == NULL) return GF_IO_ERR;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_png_flush(NULL);
 	}
 #endif

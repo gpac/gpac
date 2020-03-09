@@ -520,7 +520,7 @@ Bool InitValuator(M_Valuator *node)
 
 #ifdef GPAC_ENABLE_COVERAGE
 	//we are a bit lazy here
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		Valuator_SetInSFRotation(NULL, NULL);
 		Valuator_SetInMFColor(NULL, NULL);
 		Valuator_SetInMFFloat(NULL, NULL);

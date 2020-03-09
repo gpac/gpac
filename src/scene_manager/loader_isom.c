@@ -402,7 +402,7 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	esd = NULL;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		mp4_report(load, GF_OK, NULL);
 		gf_sm_isom_suspend(load, GF_TRUE);
 		gf_sm_isom_suspend(load, GF_FALSE);

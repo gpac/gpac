@@ -3756,7 +3756,7 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 	load->parse_string = load_bt_parse_string;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_bt_report(parser, GF_OK, NULL);
 	}
 #endif

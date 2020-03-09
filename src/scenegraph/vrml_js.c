@@ -509,6 +509,7 @@ static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
 static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
 {
     int i=0;
+    Bool first=GF_TRUE;
     u32 logl = GF_LOG_INFO;
     JSValue v, g;
     const char *str, *c_logname=NULL;
@@ -525,25 +526,39 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
 		c_logname = JS_ToCString(ctx, v);
 		JS_FreeValue(ctx, v);
-		if (c_logname)
+		if (c_logname) {
 			log_name = c_logname;
+			if (!strlen(log_name))
+				log_name = NULL;
+		}
 	}
 	JS_FreeValue(ctx, g);
 
+	if (log_name) {
 #ifndef GPAC_DISABLE_LOG
- 	GF_LOG(logl, ltool, ("[%s] %s", log_name, (error_type==2) ? "Throw " : ""));
+		GF_LOG(logl, ltool, ("[%s]", log_name));
 #else
- 	fprintf(stderr, "[%s] %s", log_name, (error_type==2) ? "Throw " : "");
+		fprintf(stderr, "[%s]", log_name);
 #endif
+	}
+	if (error_type==2) {
+#ifndef GPAC_DISABLE_LOG
+		GF_LOG(logl, ltool, (" Throw"));
+#else
+		fprintf(stderr, " Throw");
+#endif
+	}
+
     for (; i < argc; i++) {
         str = JS_ToCString(ctx, argv[i]);
         if (!str) return JS_EXCEPTION;
 #ifndef GPAC_DISABLE_LOG
- 		GF_LOG(logl, ltool, ("%s%s", (i != 0) ? " " : "", str));
+ 		GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
 #else
- 		fprintf(stderr, "%s%s", (i != 0) ? " " : "", str));
+ 		fprintf(stderr, "%s%s", (first) ? "" : " ", str));
 #endif
         JS_FreeCString(ctx, str);
+        first=GF_FALSE;
     }
 #ifndef GPAC_DISABLE_LOG
  	GF_LOG(logl, ltool, ("\n"));

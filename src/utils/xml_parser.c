@@ -1123,7 +1123,7 @@ GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		format_sax_error(NULL, 0, "");
 	}
 #endif

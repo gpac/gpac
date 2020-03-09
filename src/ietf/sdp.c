@@ -482,7 +482,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	if (!sdp) return GF_BAD_PARAM;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		SDP_MakeSeconds("30m");
 	}
 #endif

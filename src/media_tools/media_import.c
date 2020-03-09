@@ -1128,7 +1128,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			return gf_import_message(importer, e, "[Importer] Cannot load filter for input file \"%s\"", importer->in_name);
 		}
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			on_import_setup_failure(NULL, NULL, GF_OK);
 		}
 #endif
@@ -1430,5 +1430,3 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 }
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
-
-

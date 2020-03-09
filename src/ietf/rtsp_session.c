@@ -284,7 +284,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, GF_FALSE, sess->SockBufferSize);
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode())
+	if (gf_sys_is_cov_mode())
 		gf_rtsp_http_tunnel_start(NULL, NULL);
 #endif
 

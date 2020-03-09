@@ -1626,7 +1626,7 @@ void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node)
 	envtest->on_evaluate = envtest_evaluate;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		compositor_envtest_modified(node);
 	}
 #endif

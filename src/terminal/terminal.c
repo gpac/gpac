@@ -40,7 +40,7 @@
 #include <gpac/terminal.h>
 #include <gpac/scene_manager.h>
 
-void gf_filter_reconnect_output(GF_Filter *filter);
+//void gf_filter_reconnect_output(GF_Filter *filter);
 
 
 u32 gf_term_sample_clocks(GF_Terminal *term);
@@ -369,8 +369,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 		tmp->compositor->audio_renderer->non_rt_output = GF_FALSE;
 		if (!audio_out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
-		} else {
-			gf_filter_reconnect_output(tmp->compositor->filter);
+//		} else {
+//			gf_filter_reconnect_output(tmp->compositor->filter);
 		}
 	}
 
@@ -1740,7 +1740,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 		e = gf_sm_dump_graph(dumper, skip_protos, 0);
 	}
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_sm_dumper_set_extra_graph(dumper, NULL);
 		gf_sm_dump_get_name(dumper);
 	}

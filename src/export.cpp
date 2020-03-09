@@ -45,6 +45,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_argv) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_test_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_old_arch_compat) )
+
+#ifdef GPAC_ENABLE_COVERAGE
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_cov_mode) )
+#endif
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_quiet) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_copyright) )
