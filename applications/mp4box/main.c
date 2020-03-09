@@ -4564,36 +4564,43 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 #if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_ISOM_WRITE)
-	if (nb_add) {
+	if (nb_add || nb_cat) {
 		u32 ipass, nb_pass = 1;
 		char *mux_args=NULL;
 		GF_FilterSession *fs = NULL;
+		if (nb_add) {
 
-		GF_ISOOpenMode open_mode = GF_ISOM_OPEN_EDIT;
-		if (force_new) {
-			open_mode = (do_flat || (force_new==2)) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
-		} else {
-			FILE *test = gf_fopen(inName, "rb");
-			if (!test) {
-				open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
-				if (!outName) outName = inName;
+			GF_ISOOpenMode open_mode = GF_ISOM_OPEN_EDIT;
+			if (force_new) {
+				open_mode = (do_flat || (force_new==2)) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 			} else {
-				gf_fclose(test);
-				if (! gf_isom_probe_file(inName) ) {
+				FILE *test = gf_fopen(inName, "rb");
+				if (!test) {
 					open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
-					if (!outName) outName = inName;
+				} else {
+					FILE *test = gf_fopen(inName, "rb");
+					if (!test) {
+						open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
+						if (!outName) outName = inName;
+					} else {
+						gf_fclose(test);
+						if (! gf_isom_probe_file(inName) ) {
+							open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
+							if (!outName) outName = inName;
+						}
+					}
 				}
 			}
-		}
+			open_edit = do_flat ? GF_FALSE : GF_TRUE;
+			file = gf_isom_open(inName, open_mode, tmpdir);
+			if (!file) {
+				fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
+				return mp4box_cleanup(1);
+			}
 
-		open_edit = do_flat ? GF_FALSE : GF_TRUE;
-		file = gf_isom_open(inName, open_mode, tmpdir);
-		if (!file) {
-			fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
-			return mp4box_cleanup(1);
+			if (freeze_box_order)
+				gf_isom_freeze_order(file);
 		}
-		if (freeze_box_order)
-			gf_isom_freeze_order(file);
 
 		if (do_flat && interleaving_time) {
 			char szSubArg[100];
@@ -4620,38 +4627,72 @@ int mp4boxMain(int argc, char **argv)
 			u32 tk_idx = 1;
 			for (i=0; i<(u32) argc; i++) {
 				char *src, *margs=NULL;
-				if (strcmp(argv[i], "-add")) continue;
-				src = argv[i+1];
+				if (!strcmp(argv[i], "-add")) {
+					src = argv[i+1];
 
-				while (src) {
-					char *sep = strchr(src, '+');
-					if (sep) {
-						sep[0] = 0;
+					while (src) {
+						char *sep = strchr(src, '+');
+						if (sep) {
+							sep[0] = 0;
+						}
+
+						e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL, tk_idx);
+						tk_idx++;
+
+						if (margs) {
+							gf_dynstrcat(&mux_args, margs, ":");
+							gf_free(margs);
+						}
+
+						if (e) {
+							fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
+							gf_isom_delete(file);
+							if (fs)
+								gf_fs_del(fs);
+							return mp4box_cleanup(1);
+						}
+						if (sep) {
+							sep[0] = '+';
+							src = sep+1;
+						} else {
+							break;
+						}
 					}
-
-					e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL, tk_idx);
-					tk_idx++;
-
-					if (margs) {
-						gf_dynstrcat(&mux_args, margs, ":");
-						gf_free(margs);
-					}
-
-					if (e) {
-						fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
-						gf_isom_delete(file);
-						if (fs)
-							gf_fs_del(fs);
+					i++;
+				} else if (!strcmp(argv[i], "-cat") || !strcmp(argv[i], "-catx") || !strcmp(argv[i], "-catpl")) {
+					if (nb_pass == 2) {
+						fprintf(stderr, "Cannot cat files when using -newfs mode\n");
 						return mp4box_cleanup(1);
 					}
-					if (sep) {
-						sep[0] = '+';
-						src = sep+1;
-					} else {
-						break;
+					if (!file) {
+						u8 open_mode = GF_ISOM_OPEN_EDIT;
+						if (force_new) {
+							open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
+						} else {
+							FILE *test = gf_fopen(inName, "rb");
+							if (!test) {
+								open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
+								if (!outName) outName = inName;
+							}
+							else gf_fclose(test);
+						}
+
+						open_edit = GF_TRUE;
+						file = gf_isom_open(inName, open_mode, tmpdir);
+						if (!file) {
+							fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
+							return mp4box_cleanup(1);
+						}
 					}
+
+					e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat, align_cat, !strcmp(argv[i], "-catx") ? GF_TRUE : GF_FALSE, !strcmp(argv[i], "-catpl") ? GF_TRUE : GF_FALSE);
+					if (e) {
+						fprintf(stderr, "Error appending %s: %s\n", argv[i+1], gf_error_to_string(e));
+						gf_isom_delete(file);
+						return mp4box_cleanup(1);
+					}
+					i++;
 				}
-				i++;
 			}
 			if ((nb_pass == 2) && !ipass) {
 				GF_Filter *mux_filter = gf_fs_load_filter(fs, mux_args, NULL);
@@ -4687,48 +4728,6 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (!keep_sys_tracks) remove_systems_tracks(file);
 #endif
-		needSave = GF_TRUE;
-	}
-
-	if (nb_cat) {
-		if (!file) {
-			u8 open_mode = GF_ISOM_OPEN_EDIT;
-			if (force_new) {
-				open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
-			} else {
-				FILE *test = gf_fopen(inName, "rb");
-				if (!test) {
-					open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
-					if (!outName) outName = inName;
-				}
-				else gf_fclose(test);
-			}
-
-			open_edit = GF_TRUE;
-			file = gf_isom_open(inName, open_mode, tmpdir);
-			if (!file) {
-				fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
-				return mp4box_cleanup(1);
-			}
-			if (freeze_box_order)
-				gf_isom_freeze_order(file);
-		}
-		for (i=0; i<(u32)argc; i++) {
-			if (!strcmp(argv[i], "-cat") || !strcmp(argv[i], "-catx") || !strcmp(argv[i], "-catpl")) {
-				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat, align_cat, !strcmp(argv[i], "-catx") ? GF_TRUE : GF_FALSE, !strcmp(argv[i], "-catpl") ? GF_TRUE : GF_FALSE);
-				if (e) {
-					fprintf(stderr, "Error appending %s: %s\n", argv[i+1], gf_error_to_string(e));
-					gf_isom_delete(file);
-					return mp4box_cleanup(1);
-				}
-				i++;
-			}
-		}
-#ifndef GPAC_DISABLE_AV_PARSERS
-		/*unless explicitly asked, remove all systems tracks*/
-		if (!keep_sys_tracks) remove_systems_tracks(file);
-#endif
-
 		needSave = GF_TRUE;
 	}
 #endif /*!GPAC_DISABLE_MEDIA_IMPORT && !GPAC_DISABLE_ISOM_WRITE*/
@@ -6185,14 +6184,16 @@ int mp4boxMain(int argc, char **argv)
 		file = NULL;
 
 		if (!e && !outName && !encode && !force_new && !pack_file) {
-			e = gf_file_delete(inName);
-			if (e) {
-				fprintf(stderr, "Error removing file %s\n", inName);
-			} else {
-				e = gf_file_move(outfile, inName);
+			if (gf_file_exists(inName)) {
+				e = gf_file_delete(inName);
 				if (e) {
-					fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+					fprintf(stderr, "Error removing file %s\n", inName);
 				}
+			}
+			
+			e = gf_file_move(outfile, inName);
+			if (e) {
+				fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
 			}
 		}
 	} else {
