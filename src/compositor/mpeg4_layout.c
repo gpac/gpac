@@ -825,7 +825,7 @@ void compositor_init_layout(GF_Compositor *compositor, GF_Node *node)
 	stack->hdl.IsEnabled = layout_is_enabled;
 	stack->hdl.OnUserEvent = OnLayout;
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		OnLayout(NULL, GF_FALSE, GF_FALSE, NULL, NULL);
 		layout_is_enabled(node);
 		compositor_mpeg4_layout_get_sensor_handler(node);

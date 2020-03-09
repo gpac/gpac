@@ -1403,14 +1403,14 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 					//small check for first 2 samples (DTS = 0)
 					//only in the old mode can chunkdur be 0 for dts 0
-					if (tmp->sampleNumber == 2 && !tmp->chunkDur && gf_sys_is_test_mode() ) {
+					if (tmp->sampleNumber == 2 && !tmp->chunkDur && gf_sys_old_arch_compat() ) {
 						forceNewChunk = 0;
 					}
 
 					chunk_prev_dur = tmp->chunkDur;
 					//FIXME we do not apply patch in test mode for now since this breaks all our hashes, remove this
 					//once we move to filters permanently
-					if (!gf_sys_is_test_mode()) {
+					if (!gf_sys_old_arch_compat()) {
 						tmp->chunkDur += sample_dur;
 					} else {
 						//old style, compute based on DTS diff

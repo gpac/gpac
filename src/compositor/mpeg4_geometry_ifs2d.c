@@ -346,7 +346,7 @@ void compositor_init_indexed_face_set2d(GF_Compositor *compositor, GF_Node *node
 	ifs2D->on_set_coordIndex = IFS2D_SetCoordIndex;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		IFS2D_SetCoordIndex(NULL, NULL);
 		IFS2D_SetColorIndex(NULL, NULL);
 	}

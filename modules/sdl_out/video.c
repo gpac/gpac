@@ -1089,7 +1089,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 
 	//coverage
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		GF_Event evt;
 		sdl_translate_key(SDLK_BACKSPACE, &evt.key);
 		SDLVid_SetCursor(dr, GF_CURSOR_NORMAL);

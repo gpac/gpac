@@ -2621,7 +2621,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	if (!load->ctx || !load->scene_graph || !load->fileName) return GF_BAD_PARAM;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		swf_func_skip(NULL);
 		swf_def_hdr_jpeg(NULL);
 		swf_get_tag_name(SWF_FREECHARACTER);

@@ -2056,7 +2056,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	gf_dynstrcat(&szDST, szSRC, NULL);
 
 	//patch for old arch: make sure we don't have any extra free box after the sidx
-	if (gf_sys_is_test_mode() && ctx->sseg) {
+	if (gf_sys_old_arch_compat() && ctx->sseg) {
 		sprintf(szSRC, "%ccache", sep_args );
 		if (!strstr(szDST, szSRC))
 			gf_dynstrcat(&szDST, szSRC, NULL);
@@ -2611,7 +2611,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		//patch for old arch, override template name for init segment UGLY, to remove asap
-		if (gf_sys_is_test_mode() && ds->tile_base && !ctx->sseg && !ctx->sfile ) {
+		if (gf_sys_old_arch_compat() && ds->tile_base && !ctx->sseg && !ctx->sfile ) {
 			char *sep;
 			char szTemp[100];
 			const char *out_path = gf_file_basename(ctx->out_path);
@@ -3029,7 +3029,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	//UGLY PATCH, to remove - we don't have the same algos in old arch and new arch, which result in slightly different max segment duration
 	//on audio for our test suite - patch it manually to avoid hash failures :(
 	//TODO, remove as soon as we switch archs
-	if (gf_sys_is_test_mode() && (ctx->mpd->max_segment_duration==1022) && (ctx->mpd->media_presentation_duration==10160) ) {
+	if (gf_sys_old_arch_compat() && (ctx->mpd->max_segment_duration==1022) && (ctx->mpd->media_presentation_duration==10160) ) {
 		ctx->mpd->max_segment_duration = 1080;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] patch for old regression tests hit, changing max seg dur from 1022 to 1080\nPlease notify GPAC devs to remove this, and do not use fot_test modes in dash filter\n"));
 	}
@@ -3372,6 +3372,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 	ctx->mpd = gf_mpd_new();
 	e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), ctx->mpd, ctx->state);
 	gf_xml_dom_del(mpd_parser);
+	//test mode, strip URL path
 	if (gf_sys_is_test_mode()) {
 		count = gf_list_count(ctx->mpd->program_infos);
 		for (i=0; i<count; i++) {
@@ -5918,7 +5919,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				url->media_range->end_range = evt->seg_size.media_range_end;
 			}
 			//patch in test mode, old arch was not generating the index size for segment lists
-			if (evt->seg_size.idx_range_end && (!gf_sys_is_test_mode() || ctx->sfile) ) {
+			if (evt->seg_size.idx_range_end && (!gf_sys_old_arch_compat() || ctx->sfile) ) {
 				GF_SAFEALLOC(url->index_range, GF_MPD_ByteRange);
 				url->index_range->start_range = evt->seg_size.idx_range_start;
 				url->index_range->end_range = evt->seg_size.idx_range_end;

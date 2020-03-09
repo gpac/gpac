@@ -1259,7 +1259,7 @@ void gf_mpd_del(GF_MPD *mpd)
 {
 	if (!mpd) return;
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_mpd_string_free(NULL);
 	}
 #endif

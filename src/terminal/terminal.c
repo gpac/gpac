@@ -1740,7 +1740,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 		e = gf_sm_dump_graph(dumper, skip_protos, 0);
 	}
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_sm_dumper_set_extra_graph(dumper, NULL);
 		gf_sm_dump_get_name(dumper);
 	}

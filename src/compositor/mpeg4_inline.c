@@ -749,14 +749,14 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 	gf_list_add(scene->storages, node);
 	if (storage->_auto) gf_storage_load(storage);
 
-	if (gf_sys_is_test_mode()) {
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
 		Bool aptr;
 		on_force_save(NULL, NULL);
 		on_force_restore(NULL, NULL);
 		storage_parse_sf(&aptr, GF_SG_VRML_SFBOOL, "true");
 
 	}
-#ifdef GPAC_ENABLE_COVERAGE
 #endif
 }
 

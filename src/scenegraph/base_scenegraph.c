@@ -80,7 +80,7 @@ GF_SceneGraph *gf_sg_new()
 
 	//test some functions only used in weird smil anim or dom JS, and not addressed in test suite
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		node_modif_stub(NULL, NULL, NULL, NULL);
 		gf_node_remove_id(NULL);
 		gf_node_list_get_child(NULL, 0);

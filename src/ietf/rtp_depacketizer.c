@@ -1750,7 +1750,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 	if (media && (gf_list_count(media->RTPMaps) > 1)) return NULL;
 
 #ifdef GPAC_ENABEL_COVERAGE
-	if (gf_sys_is_test_mode())
+	if (gf_sys_is_cov_mode())
 		gf_rtp_is_valid_static_payt(22);
 #endif
 

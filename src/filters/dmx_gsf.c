@@ -1176,7 +1176,7 @@ static GF_Err gsfdmx_initialize(GF_Filter *filter)
 	gf_bs_set_eos_callback(ctx->bs_r, gsfdmx_not_enough_bytes, ctx);
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode())
+	if (gf_sys_is_cov_mode())
 		gsfdmx_not_enough_bytes(NULL);
 #endif
 

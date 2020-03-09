@@ -4188,7 +4188,7 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 		if (dm->limit_data_rate) dm->read_buf_size = 1024;
 
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			dm_exceeds_cap_rate(dm);
 		}
 #endif
@@ -4343,7 +4343,7 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (!count && gf_sys_is_test_mode()) {
+	if (!count && gf_sys_is_cov_mode()) {
 		gf_dm_sess_reload_cached_headers(NULL);
 		gf_dm_refresh_cache_entry(NULL);
 		gf_dm_session_thread(NULL);

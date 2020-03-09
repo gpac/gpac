@@ -117,7 +117,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode())
+	if (gf_sys_is_cov_mode())
 		httpin_notify_error(NULL, NULL, GF_OK);
 #endif
 

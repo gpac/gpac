@@ -1236,7 +1236,7 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	if (ctx->nb_pack>1) ctx->pack_buffer = gf_malloc(sizeof(char)*188*ctx->nb_pack);
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_m2ts_get_sys_clock(ctx->mux);
 	}
 #endif

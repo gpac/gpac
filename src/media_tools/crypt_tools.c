@@ -487,7 +487,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		gf_fs_set_ui_callback(fsess, on_decrypt_event, &progress);
 	}
 #ifdef GPAC_ENABLE_COVERAGE
-	else if (gf_sys_is_test_mode()) {
+	else if (gf_sys_is_cov_mode()) {
 		on_decrypt_event(NULL, NULL);
 	}
 #endif //GPAC_ENABLE_COVERAGE
@@ -611,7 +611,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		gf_fs_set_ui_callback(fsess, on_crypt_event, &progress);
 	}
 #ifdef GPAC_ENABLE_COVERAGE
-	else if (gf_sys_is_test_mode()) {
+	else if (gf_sys_is_cov_mode()) {
 		on_crypt_event(NULL, NULL);
 	}
 #endif //GPAC_ENABLE_COVERAGE

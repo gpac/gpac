@@ -263,7 +263,7 @@ void gf_scene_on_node_init(void *_scene, GF_Node *node)
 		gf_list_add(scene->keynavigators, node);
 		((M_KeyNavigator*)node)->on_setFocus = on_kn_set_focus;
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			on_kn_set_focus(NULL, NULL);
 		}
 #endif

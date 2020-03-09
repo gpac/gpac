@@ -1930,7 +1930,7 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 	parser->current_ns = GF_XMLNS_SVG;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		svg_report(parser, GF_OK, NULL);
 	}
 #endif

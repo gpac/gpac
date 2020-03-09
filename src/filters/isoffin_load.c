@@ -760,7 +760,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 
 		//to remove once we deprecate master
-		if (!gf_sys_is_test_mode()) {
+		if (!gf_sys_old_arch_compat()) {
 			GF_AudioChannelLayout layout;
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_AUDIO_BPS, &PROP_UINT(nb_bps));
 
