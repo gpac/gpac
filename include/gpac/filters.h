@@ -253,7 +253,7 @@ Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provi
 
 \param session filter session
 \param name name and arguments of the filter register to instantiate.
-\param err_code set to error code if any - may be NULL.
+\param err_code set to error code if any - may be NULL. If initially set to GF_EOS, disables log messages.
 \return created filter or NULL if filter register cannot be found
 */
 GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name, GF_Err *err_code);
