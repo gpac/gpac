@@ -1430,5 +1430,3 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 }
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
-
-
