@@ -225,7 +225,7 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	gf_bbox_refresh(&mesh->bounds);
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		mesh_tess_error(0);
 	}
 #endif

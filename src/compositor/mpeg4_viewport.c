@@ -564,7 +564,7 @@ void compositor_init_navigation_info(GF_Compositor *compositor, GF_Node *node)
 	((M_NavigationInfo*)node)->on_set_bind = navinfo_set_bind;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		navinfo_set_bind(NULL, NULL);
 	}
 #endif

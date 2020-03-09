@@ -313,7 +313,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 		gf_filter_pid_set_udta(sock_c->pid, sock_c);
 
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			GF_FilterEvent evt;
 			memset(&evt, 0, sizeof(GF_FilterEvent));
 			evt.base.type = GF_FEVT_PLAY;

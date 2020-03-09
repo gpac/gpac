@@ -7358,7 +7358,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, GF_DASHThreadMode thread_mode
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Client created\n"));
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		on_group_download_error(NULL, NULL, NULL, GF_OK, NULL, NULL, NULL, GF_FALSE);
 		dash_download_threaded(NULL);
 		dash_main_thread_proc(NULL);

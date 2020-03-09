@@ -665,7 +665,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_filter_pid_set_udta(pid, tkw);
 
 #ifdef GPAC_ENABLE_COVERAGE
-			if (gf_sys_is_test_mode()) {
+			if (gf_sys_is_cov_mode()) {
 				gf_filter_pid_get_min_pck_duration(pid);
 			}
 #endif
@@ -3028,7 +3028,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 
 			/*patch to align to old arch */
-			if (gf_sys_is_test_mode() && (tkw->stream_type==GF_STREAM_VISUAL)) {
+			if (gf_sys_old_arch_compat() && (tkw->stream_type==GF_STREAM_VISUAL)) {
 				mdur = tkw->sample.DTS;
 			}
 
@@ -3038,7 +3038,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 
 			/*patch to align to old arch */
-			if (gf_sys_is_test_mode()) {
+			if (gf_sys_old_arch_compat()) {
 				if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num)
 					abort = GF_TRUE;
 			} else {

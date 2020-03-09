@@ -615,7 +615,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	//for coverage
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		compose_update_arg(filter, NULL, NULL);
 	}
 #endif

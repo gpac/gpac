@@ -318,7 +318,7 @@ void compositor_init_indexed_line_set2d(GF_Compositor *compositor, GF_Node *node
 	ils2D->on_set_coordIndex = ILS2D_SetCoordIndex;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		ILS2D_SetCoordIndex(NULL, NULL);
 		ILS2D_SetColorIndex(NULL, NULL);
 	}

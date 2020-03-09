@@ -729,6 +729,7 @@ static u64 memory_at_gpac_startup = 0;
 static u32 gpac_argc = 0;
 const char **gpac_argv = NULL;
 static Bool gpac_test_mode = GF_FALSE;
+static Bool gpac_old_arch = GF_FALSE;
 static Bool gpac_discard_config = GF_FALSE;
 
 //in error.c
@@ -754,6 +755,20 @@ Bool gf_sys_is_test_mode()
 {
 	return gpac_test_mode;
 }
+
+GF_EXPORT
+Bool gf_sys_old_arch_compat()
+{
+	return gpac_old_arch;
+}
+
+#ifdef GPAC_ENABLE_COVERAGE
+GF_EXPORT
+Bool gf_sys_is_cov_mode()
+{
+	return gpac_test_mode;
+}
+#endif
 
 const char *gpac_log_file_name=NULL;
 
@@ -832,6 +847,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				if (!gpac_quiet) gpac_quiet = 1;
 			} else if (!stricmp(arg, "-for-test")) {
 				gpac_test_mode = GF_TRUE;
+			} else if (!stricmp(arg, "-old-arch")) {
+				gpac_old_arch = GF_TRUE;
 			} else if (!stricmp(arg, "-no-save")) {
 				gpac_discard_config = GF_TRUE;
 
@@ -948,7 +965,7 @@ static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown)
 			gpac_prev_default_logs = gf_log_set_callback(NULL, gpac_rmt_log_callback);
 		}
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			gpac_rmt_input_handler(NULL, NULL);
 		}
 #endif

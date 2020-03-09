@@ -294,7 +294,7 @@ void compositor_init_ifs(GF_Compositor *compositor, GF_Node *node)
 	ifs->on_set_texCoordIndex = IFS_SetTexCoordIndex;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		IFS_SetCoordIndex(NULL, NULL);
 		IFS_SetColorIndex(NULL, NULL);
 		IFS_SetNormalIndex(NULL, NULL);
@@ -342,7 +342,7 @@ void compositor_init_ils(GF_Compositor *compositor, GF_Node *node)
 	ils->on_set_coordIndex = ILS_SetCoordIndex;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		ILS_SetCoordIndex(NULL, NULL);
 		ILS_SetColorIndex(NULL, NULL);
 	}
@@ -377,7 +377,7 @@ void compositor_init_elevation_grid(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseElevationGrid);
 	eg->on_set_height = ElevationGrid_SetHeight;
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		ElevationGrid_SetHeight(NULL, NULL);
 	}
 #endif
@@ -436,7 +436,7 @@ void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
 	ext->on_set_spine = Extrusion_SetSpine;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		Extrusion_SetCrossSection(NULL, NULL);
 		Extrusion_SetOrientation(NULL, NULL);
 		Extrusion_SetScale(NULL, NULL);

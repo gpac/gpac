@@ -2078,7 +2078,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	read->finalize = swf_bifs_finalize;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		swf_nstart(NULL, NULL, NULL, NULL, 0);
 		swf_nend(NULL, NULL, NULL);
 		swf_ntext(NULL, NULL, GF_FALSE);

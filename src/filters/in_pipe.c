@@ -217,7 +217,7 @@ err_exit:
 	gf_filter_post_process_task(filter);
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		pipein_process_event(NULL, NULL);
 	}
 #endif

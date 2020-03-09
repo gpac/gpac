@@ -731,7 +731,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				ch->next_track = isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
 			}
 #ifdef GPAC_ENABLE_COVERAGE
-			else if (gf_sys_is_test_mode()) {
+			else if (gf_sys_is_cov_mode()) {
 				isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
 			}
 #endif

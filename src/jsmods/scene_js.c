@@ -375,7 +375,7 @@ static JSValue gpac_getProperty(JSContext *ctx, JSValueConst this_val, int prop_
 			memset(&jspar, 0, sizeof(GF_JSAPIParam));
 			compositor->root_scene->graph->script_action(compositor->root_scene->graph->script_action_cbck, GF_JSAPI_OP_GET_SCALE, NULL, &jspar);
 #ifdef GPAC_ENABLE_COVERAGE
-			if (gf_sys_is_test_mode()) {
+			if (gf_sys_is_cov_mode()) {
 				compositor->root_scene->graph->script_action(compositor->root_scene->graph->script_action_cbck, GF_JSAPI_OP_GET_VIEWPORT, NULL, &jspar);
 			}
 #endif
@@ -1536,7 +1536,7 @@ static JSValue gjs_odm_enable_addon(JSContext *ctx, JSValueConst this_val, int a
 
 	if (! JS_IsString(argv[0]) ) {
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			do_enable_addon(odm, NULL, GF_TRUE, GF_FALSE);
 		}
 #endif

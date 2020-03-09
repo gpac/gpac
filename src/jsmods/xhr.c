@@ -1481,7 +1481,7 @@ void qjs_module_init_xhr(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "XMLHttpRequest");
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		qjs_module_init_xhr_global(NULL, JS_TRUE);
 		xhr_get_event_target(NULL, JS_TRUE, NULL, NULL);
 	}
