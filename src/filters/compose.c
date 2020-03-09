@@ -574,7 +574,10 @@ GF_Err compose_initialize(GF_Filter *filter)
 	ctx->magic_ptr = (void *) ctx;
 	ctx->filter = filter;
 	
-	e = gf_sc_load(ctx);
+    if (ctx->player && (ctx->ogl == GF_SC_GLMODE_AUTO))
+        ctx->ogl = GF_SC_GLMODE_HYBRID;
+	
+    e = gf_sc_load(ctx);
 	if (e) return e;
 
 	gf_filter_get_session_caps(filter, &sess_caps);
@@ -612,7 +615,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	//for coverage
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		compose_update_arg(filter, NULL, NULL);
 	}
 #endif

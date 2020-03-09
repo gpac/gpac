@@ -567,7 +567,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (!pid) pid = odm->pid;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode() && pid) {
+	if (gf_sys_is_cov_mode() && pid) {
 		GF_FilterPidStatistics stats;
 		gf_filter_pid_get_statistics(pid, &stats, GF_STATS_DECODER_SOURCE);
 		gf_filter_pid_get_packet_count(pid);
@@ -1097,21 +1097,30 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 	//the filter chain once the scene is loaded
 	//TODO: further optimize to disconnect scenes with static resources (images, logo, ...)
 	if (odm->subscene && !gf_list_count(odm->subscene->resources)) {
-		GF_FilterEvent fevt;
+		Bool skip = GF_FALSE;
+		GF_PropertyEntry *pe=NULL;
+		const GF_PropertyValue *p = gf_filter_pid_get_info(odm->pid, GF_PROP_PID_KEEP_AFTER_EOS, &pe);
+		if (p && p->value.boolean) skip = GF_TRUE;
+		gf_filter_release_property(pe);
 
-		GF_FEVT_INIT(fevt, GF_FEVT_RESET_SCENE, odm->pid);
-		fevt.attach_scene.object_manager = odm;
-		gf_filter_pid_exec_event(odm->pid, &fevt);
+		//if PID disabled auto-remove, do not destroy filter chain
+		if (!skip) {
+			GF_FilterEvent fevt;
 
-		gf_filter_pid_set_udta(odm->pid, NULL);
-		odm->pid = NULL;
-		for (i=0; i<count; i++) {
-			GF_ODMExtraPid *xpid = gf_list_get(odm->extra_pids, i);
-			gf_filter_pid_set_udta(xpid->pid, NULL);
-			xpid->pid = NULL;
+			GF_FEVT_INIT(fevt, GF_FEVT_RESET_SCENE, odm->pid);
+			fevt.attach_scene.object_manager = odm;
+			gf_filter_pid_exec_event(odm->pid, &fevt);
+
+			gf_filter_pid_set_udta(odm->pid, NULL);
+			odm->pid = NULL;
+			for (i=0; i<count; i++) {
+				GF_ODMExtraPid *xpid = gf_list_get(odm->extra_pids, i);
+				gf_filter_pid_set_udta(xpid->pid, NULL);
+				xpid->pid = NULL;
+			}
+			gf_filter_remove_src(odm->subscene->compositor->filter, odm->scene_ns->source_filter);
+			odm->scene_ns->source_filter = NULL;
 		}
-		gf_filter_remove_src(odm->subscene->compositor->filter, odm->scene_ns->source_filter);
-		odm->scene_ns->source_filter = NULL;
 	}
 
 	gf_odm_signal_eos_reached(odm);

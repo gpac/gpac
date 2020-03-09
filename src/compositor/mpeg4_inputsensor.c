@@ -235,7 +235,7 @@ GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd)
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		isdev_add_field(NULL, 0, NULL);
 		isdev_dispatch_frame(NULL, NULL, 0);
 	}

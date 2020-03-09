@@ -336,6 +336,23 @@ Checks if test mode is enabled (no date nor GPAC version should be written).
  */
 Bool gf_sys_is_test_mode();
 
+/*!
+\brief checks if compatibility with old arch is enabled
+
+Checks if compatibility with old arch is enabled - this function will be removed when master will be moved to filters branch
+\return GF_TRUE if old arch compat is enabled, GF_FALSE otherwise.
+ */
+Bool gf_sys_old_arch_compat();
+
+#ifdef GPAC_ENABLE_COVERAGE
+/*!
+\brief checks if coverage tests are enabled
+
+Checks if coverage tests are enabled
+\return GF_TRUE if coverage is enabled, GF_FALSE otherwise.
+ */
+Bool gf_sys_is_cov_mode();
+#endif
 
 /*!
 \brief checks if running in quiet mode

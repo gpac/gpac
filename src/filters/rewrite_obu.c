@@ -86,8 +86,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	}
 	//copy properties at init or reconfig
 #ifdef GPAC_ENABLE_COVERAGE
-	//for coverage
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		gf_filter_pid_merge_properties(ctx->opid, pid, obumx_test_filter_prop, NULL);
 	} else
 #endif

@@ -927,7 +927,7 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
 	if (embed_resources) seng->loader.flags |= GF_SM_LOAD_EMBEDS_RES;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		seng_conditional_activate(NULL, NULL);
 		seng_conditional_reverse_activate(NULL, NULL);
 		gf_seng_create_new_au(NULL, 0);

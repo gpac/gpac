@@ -965,6 +965,8 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 {
 	const char *args=NULL;
 	u32 i, len, count = gf_list_count(fsess->registry);
+	Bool quiet = (err_code && (*err_code == GF_EOS)) ? GF_TRUE : GF_FALSE;
+
 	char *sep;
 
 	assert(fsess);
@@ -978,7 +980,9 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	} else len = (u32) strlen(name);
 
 	if (!len) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing filter name in %s\n", name));
+		if (!quiet) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing filter name in %s\n", name));
+		}
 		return NULL;
 	}
 
@@ -1016,7 +1020,9 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 		}
 	}
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
+	if (!quiet) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
+	}
 	if (err_code) *err_code = GF_FILTER_NOT_FOUND;
 	return NULL;
 }

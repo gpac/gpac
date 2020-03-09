@@ -202,7 +202,7 @@ static Bool live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 	if (iod64) gf_free(iod64);
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		GF_Descriptor *desc = gf_seng_get_iod(livesess->seng);
 		if (desc) gf_odf_desc_del(desc);
 	}
@@ -476,7 +476,7 @@ int live_session(int argc, char **argv)
 
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		aggregate_on_stream = (u16) -1;
 		adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
 		aggregate_au = version_inc = 1;
@@ -738,7 +738,7 @@ int live_session(int argc, char **argv)
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 /*		gf_seng_save_context(livesess.seng, NULL);
 		gf_seng_aggregate_context
 		gf_seng_encode_from_string

@@ -677,8 +677,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, &ff_codectag);
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
-		if (!codec) return GF_NOT_SUPPORTED;
-
+		if (!codec) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] No decoder found for codec %s\n", gf_codecid_name(gpac_codecid) ));
+			return GF_NOT_SUPPORTED;
+		}
 
 		ctx->decoder = avcodec_alloc_context3(NULL);
 		if (! ctx->decoder) return GF_OUT_OF_MEM;

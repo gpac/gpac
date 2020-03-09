@@ -163,6 +163,9 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 
 	if (!scene) {
 		if (ctx->is_playing) {
+			if (ctx->out_pid && gf_laser_decode_has_conditionnals(ctx->codec)) {
+				gf_filter_pid_set_info(ctx->out_pid, GF_PROP_PID_KEEP_AFTER_EOS, &PROP_BOOL(GF_TRUE));
+			}
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
 		}
@@ -184,8 +187,12 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 		pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {
 			Bool is_eos = gf_filter_pid_is_eos(pid);
-			if (is_eos)
+			if (is_eos) {
+				if (ctx->out_pid && gf_laser_decode_has_conditionnals(ctx->codec)) {
+					gf_filter_pid_set_info(ctx->out_pid, GF_PROP_PID_KEEP_AFTER_EOS, &PROP_BOOL(GF_TRUE));
+				}
 				gf_filter_pid_set_eos(opid);
+			}
 			continue;
 		}
 		data = gf_filter_pck_get_data(pck, &size);

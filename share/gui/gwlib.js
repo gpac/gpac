@@ -1058,9 +1058,7 @@ function gwlib_init(root_node) {
             return this._to_string(obj);
         }
         gwskin.parse = function (serial_obj) {
-            if (serial_obj.charAt(0) != '(') {
-                return eval('(' + serial_obj + ')' );
-            }
+            gwlog(l_deb, 'JSON eval ' + serial_obj);
             return eval(serial_obj);
         }
 }

@@ -230,7 +230,7 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 		gf_rtp_set_interleave_callbacks(stream->rtp_ch, rtpin_rtsp_tcp_send_report, stream, stream);
 		sess->flags |= RTSP_TCP_FLUSH;
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode())
+		if (gf_sys_is_cov_mode())
 			rtpin_rtsp_tcp_send_report(NULL, NULL, GF_FALSE, NULL, 0);
 #endif
 	}

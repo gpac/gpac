@@ -3942,7 +3942,7 @@ single_retry:
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 	gf_filter_pid_set_eos(pid);
-	if (!(pid->filter->freg->flags & GF_FS_REG_DYNAMIC_PIDS ) && (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)) {
+	if (!pid->not_connected_ok && !(pid->filter->freg->flags & GF_FS_REG_DYNAMIC_PIDS ) && (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)) {
 		pid->filter->disabled = GF_TRUE;
 
 		if (can_reassign_filter) {
@@ -3979,6 +3979,7 @@ void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
 	gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 }
 
+#if 0
 void gf_filter_reconnect_output(GF_Filter *filter)
 {
 	u32 i;
@@ -3987,6 +3988,7 @@ void gf_filter_reconnect_output(GF_Filter *filter)
 		gf_filter_pid_post_init_task(filter, pid);
 	}
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks)

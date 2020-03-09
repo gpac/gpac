@@ -566,7 +566,7 @@ void compositor_init_indexed_triangle_set(GF_Compositor *compositor, GF_Node *no
 	its->on_set_index = ITS_SetIndex;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		ITS_SetIndex(NULL, NULL);
 	}
 #endif
@@ -832,7 +832,7 @@ void compositor_init_indexed_triangle_strip_set(GF_Compositor *compositor, GF_No
 	itss->on_set_index = ITSS_SetIndex;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		ITSS_SetIndex(NULL, NULL);
 	}
 #endif
@@ -1069,7 +1069,7 @@ void compositor_init_indexed_triangle_fan_set(GF_Compositor *compositor, GF_Node
 	itfs->on_set_index = ITFS_SetIndex;
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		ITFS_SetIndex(NULL, NULL);
 	}
 #endif

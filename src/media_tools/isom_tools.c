@@ -3466,7 +3466,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode())
+	if (gf_sys_is_cov_mode())
 		on_frag_event(NULL, NULL);
 #endif
 

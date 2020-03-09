@@ -588,7 +588,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 		compositor->video_out = &null_vout;
 
 #ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_test_mode()) {
+		if (gf_sys_is_cov_mode()) {
 			nullvout_setup(NULL, NULL, NULL, 0);
 			nullvout_fullscreen(NULL, GF_FALSE, NULL, NULL);
 			nullvout_evt(NULL, NULL);

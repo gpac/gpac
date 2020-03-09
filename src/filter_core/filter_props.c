@@ -1289,6 +1289,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PCK_MOOF_TEMPLATE, "MoofTemplate", "Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_RAWGRAB, "RawGrab", "Indicate PID is a raw media grabber (webcam, microphone, etc...)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_KEEP_AFTER_EOS, "KeepAfterEOS", "Indicate the PID must be kept alive after EOS (LASeR and BIFS)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 };
 
 GF_EXPORT

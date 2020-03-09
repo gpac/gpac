@@ -62,6 +62,7 @@ typedef struct
 	Bool analyze;
 	char *catseg;
 	Bool sigfrag;
+	Bool nocrypt;
 
 	//internal
 

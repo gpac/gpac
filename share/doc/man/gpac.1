@@ -539,6 +539,11 @@ unload / reload module shared libs when no longer used
 disable all creation/modif dates and GPAC versions in files
 .br
 .TP
+.B \-old-arch
+.br
+enable compatibility with pre-filters versions of GPAC
+.br
+.TP
 .B \-bs-cache-size (int, default: 512)
 .br
 cache size for bitstream read and write from file (0 disable cache, slower IOs)
@@ -2693,6 +2698,11 @@ Serialized moof box corresponding to the start of a movie fragment or segment (w
 .br
 Indicate PID is a raw media grabber (webcam, microphone, etc...)
 .br
+.TP
+.B KeepAfterEOS (PKAE,bool,D )
+.br
+Indicate the PID must be kept alive after EOS (LASeR and BIFS)
+.br
 .SH Pixel formats
 .LP
 .br
@@ -3538,7 +3548,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3356-g4fcf4cbdb-filters
+build: 0.9.0-DEV-rev3384-g773d9de1e-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

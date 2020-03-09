@@ -151,6 +151,9 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 
 	if (!scene) {
 		if (ctx->is_playing) {
+			if (ctx->out_pid && gf_bifs_decode_has_conditionnals(ctx->bifs_dec)) {
+				gf_filter_pid_set_info(ctx->out_pid, GF_PROP_PID_KEEP_AFTER_EOS, &PROP_BOOL(GF_TRUE));
+			}
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
 		}
@@ -171,8 +174,12 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 		pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {
 			Bool is_eos = gf_filter_pid_is_eos(pid);
-			if (is_eos)
+			if (is_eos) {
+				if (opid && gf_bifs_decode_has_conditionnals(ctx->bifs_dec)) {
+					gf_filter_pid_set_info(opid, GF_PROP_PID_KEEP_AFTER_EOS, &PROP_BOOL(GF_TRUE));
+				}
 				gf_filter_pid_set_eos(opid);
+			}
 			continue;
 		}
 		data = gf_filter_pck_get_data(pck, &size);
@@ -227,6 +234,9 @@ static Bool bifs_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	case GF_FEVT_PLAY:
 		ctx->is_playing = GF_TRUE;
 		return GF_FALSE;
+	case GF_FEVT_RESET_SCENE:
+		return GF_FALSE;
+
 	default:
 		return GF_FALSE;
 	}

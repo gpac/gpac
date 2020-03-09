@@ -90,6 +90,8 @@ struct __tag_laser_codec
 	*/
 	Bool memory_dec;
 
+	Bool has_conditionnals;
+	
 	GF_List *deferred_hrefs;
 	GF_List *deferred_anims;
 	GF_List *deferred_listeners;

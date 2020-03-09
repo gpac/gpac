@@ -809,7 +809,7 @@ void compositor_init_bitwrapper(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseBitWrapper);
 
 #ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_test_mode()) {
+	if (gf_sys_is_cov_mode()) {
 		TraverseBitWrapper(node, NULL, GF_FALSE);
 	}
 #endif
