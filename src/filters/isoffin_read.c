@@ -73,14 +73,14 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	read->src_crc = gf_crc_32(src, (u32) strlen(src));
 
 	strcpy(szURL, src);
-	tmp = strrchr(szURL, '.');
+	tmp = gf_file_ext_start(szURL);
 	if (tmp) {
 		Bool truncate = GF_TRUE;
 		tmp = strchr(tmp, '#');
 		if (!tmp && read->pid) {
 			prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);
 			if (prop && prop->value.string) {
-				tmp = strrchr(prop->value.string, '.');
+				tmp = gf_file_ext_start(prop->value.string);
 				if (tmp) tmp = strchr(tmp, '#');
 				truncate = GF_FALSE;
 			}

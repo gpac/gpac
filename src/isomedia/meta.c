@@ -1045,14 +1045,12 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 				if (src) {
 					char cache_data[4096];
 					u64 remain;
-					gf_fseek(src, 0, SEEK_END);
-					entry->extent_length = gf_ftell(src);
-					gf_fseek(src, 0, SEEK_SET);
+					entry->extent_length = gf_fsize(src);
 
 					remain = entry->extent_length;
 					while (remain) {
 						u32 size_cache = (remain > 4096) ? 4096 : (u32)remain;
-						size_t read = fread(cache_data, 1, size_cache, src);
+						size_t read = gf_fread(cache_data, 1, size_cache, src);
 						if (read == (size_t)-1) break;
 						gf_bs_write_data(file->editFileMap->bs, cache_data, (u32)read);
 						remain -= (u32)read;

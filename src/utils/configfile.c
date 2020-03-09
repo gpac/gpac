@@ -133,18 +133,18 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			}\
 			nb_empty_lines=0;\
 
-	while (!feof(file)) {
+	while (!gf_feof(file)) {
 		char *ret;
 		u32 read, nb_pass;
 		char *fsep;
-		ret = fgets(line, line_alloc, file);
+		ret = gf_fgets(line, line_alloc, file);
 		read = (u32) strlen(line);
 
 		nb_pass = 1;
 		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
 			line = (char*)gf_realloc(line, sizeof(char)*line_alloc);
-			ret = fgets(line+read, MAX_INI_LINE, file);
+			ret = gf_fgets(line+read, MAX_INI_LINE, file);
 			read = (u32) strlen(line);
 			nb_pass++;
 		}
@@ -299,13 +299,13 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 		/*Temporary sections are not saved*/
 		if (!strnicmp(sec->section_name, "temp", 4)) continue;
 
-		fprintf(file, "[%s]\n", sec->section_name);
+		gf_fprintf(file, "[%s]\n", sec->section_name);
 		j=0;
 		while ( (key = (IniKey *) gf_list_enum(sec->keys, &j)) ) {
 			if (strchr(key->value, '\n')) {
-				fprintf(file, "%s=@%s@\n", key->name, key->value);
+				gf_fprintf(file, "%s=@%s@\n", key->name, key->value);
 			} else {
-				fprintf(file, "%s=%s\n", key->name, key->value);
+				gf_fprintf(file, "%s=%s\n", key->name, key->value);
 			}
 		}
 	}

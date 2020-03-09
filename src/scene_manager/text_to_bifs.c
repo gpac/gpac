@@ -56,7 +56,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	FILE *test = gf_fopen(filename, "rt");
 	if (!test) return GF_URL_ERROR;
 
-	while (fgets(szLine, 2048, test) != NULL) {
+	while (gf_fgets(szLine, 2048, test) != NULL) {
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 		if (strlen(szLine)) break;
@@ -68,12 +68,12 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		if (!strcmp(szTest, szLine)) *fmt = GF_TEXT_IMPORT_SRT;
 	}
 	else if (!strnicmp(szLine, "<?xml ", 6)) {
-		char *ext = strrchr(filename, '.');
+		char *ext = gf_file_ext_start(filename);
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
 		if (ext && !ext[0]) {
-			if (!fgets(szLine, 2048, test))
+			if (!gf_fgets(szLine, 2048, test))
 				szLine[0] = '\0';
 		}
 		if (strstr(szLine, "x-quicktime-tx3g")) *fmt = GF_TEXT_IMPORT_TEXML;
@@ -166,7 +166,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	inf = NULL;
 
 	while (1) {
-		char *sOK = fgets(szLine, 2048, srt_in);
+		char *sOK = gf_fgets(szLine, 2048, srt_in);
 
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
@@ -418,7 +418,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	line = 0;
 	first_samp = 1;
 	while (1) {
-		char *sOK = fgets(szLine, 2048, sub_in);
+		char *sOK = gf_fgets(szLine, 2048, sub_in);
 		if (!sOK) break;
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 

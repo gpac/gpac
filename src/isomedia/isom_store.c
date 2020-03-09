@@ -591,9 +591,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				if (!iinf->data_len) {
 					src = gf_fopen(iinf->full_path, "rb");
 					if (!src) continue;
-					gf_fseek(src, 0, SEEK_END);
-					it_size = gf_ftell(src);
-					gf_fseek(src, 0, SEEK_SET);
+					it_size = gf_fsize(src);
 				} else {
 					it_size = iinf->data_len;
 				}
@@ -614,7 +612,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 						u64 remain = entry->extent_length;
 						while (remain) {
 							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-							size_t read = fread(cache_data, sizeof(char), size_cache, src);
+							size_t read = gf_fread(cache_data, sizeof(char), size_cache, src);
 							if (read ==(size_t) -1) break;
 							gf_bs_write_data(bs, cache_data, (u32) read);
 							remain -= (u32) read;
@@ -1295,9 +1293,11 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		memset(blank, 0, sizeof(char)*1024*1024);
 		while (i<count) {
 			u32 res = gf_bs_write_data(bs, blank, 1024*1024);
-			if (res != 1024*1024) fprintf(stderr, "error writing to disk: only %d bytes written\n", res);
+			if (res != 1024*1024) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("error writing to disk: only %d bytes written\n", res));
+			}
 			i++;
-			fprintf(stderr, "writing blank block: %.02f done - %d/%d \r", (100.0*i)/count , i, count);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("writing blank block: %.02f done - %d/%d \r", (100.0*i)/count , i, count));
 		}
 		gf_free(blank);
 	}

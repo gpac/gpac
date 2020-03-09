@@ -136,7 +136,7 @@ s32 gf_text_get_utf_type(FILE *in_src)
 {
 	u32 read;
 	unsigned char BOM[5];
-	read = (u32) fread(BOM, sizeof(char), 5, in_src);
+	read = (u32) gf_fread(BOM, sizeof(char), 5, in_src);
 	if ((s32) read < 1)
 		return -1;
 
@@ -179,7 +179,7 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 	if (uni_type>1) {
 		const u16 *sptr;
 		char szUTF[1024];
-		u32 read = (u32) fread(szUTF, 1, 1023, test);
+		u32 read = (u32) gf_fread(szUTF, 1, 1023, test);
 		if ((s32) read < 0) {
 			gf_fclose(test);
 			return GF_IO_ERR;
@@ -188,7 +188,7 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 		sptr = (u16*)szUTF;
 		/*read = (u32) */gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
-		val = (u32) fread(szLine, 1, 1024, test);
+		val = (u32) gf_fread(szLine, 1, 1024, test);
 		if ((s32) val<0) return GF_IO_ERR;
 		
 		szLine[val]=0;
@@ -198,13 +198,13 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 	*fmt = GF_TXTIN_MODE_NONE;
 	if ((szLine[0]=='{') && strstr(szLine, "}{")) *fmt = GF_TXTIN_MODE_SUB;
 	else if (szLine[0] == '<') {
-		char *ext = strrchr(filename, '.');
+		char *ext = gf_file_ext_start(filename);
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TXTIN_MODE_TTXT;
 		else if (!strnicmp(ext, ".ttml", 5)) *fmt = GF_TXTIN_MODE_TTML;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
 		if (ext && !ext[0]) {
-			if (!fgets(szLine, 2048, test))
+			if (!gf_fgets(szLine, 2048, test))
 				szLine[0] = '\0';
 		}
 		if (strstr(szLine, "x-quicktime-tx3g") || strstr(szLine, "text3GTrack")) *fmt = GF_TXTIN_MODE_TEXML;
@@ -233,7 +233,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 	unsigned short *sptr;
 
 	memset(szLine, 0, sizeof(char)*lineSize);
-	sOK = fgets(szLine, lineSize, txt_in);
+	sOK = gf_fgets(szLine, lineSize, txt_in);
 	if (!sOK) return NULL;
 	if (unicode_type<=1) {
 		j=0;
@@ -304,8 +304,8 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 	i = (u32) gf_utf8_wcstombs(szLineConv, 1024, (const unsigned short **) &sptr);
 	szLineConv[i] = 0;
 	strcpy(szLine, szLineConv);
-	/*this is ugly indeed: since input is UTF16-LE, there are many chances the fgets never reads the \0 after a \n*/
-	if (unicode_type==3) fgetc(txt_in);
+	/*this is ugly indeed: since input is UTF16-LE, there are many chances the gf_fgets never reads the \0 after a \n*/
+	if (unicode_type==3) gf_fgetc(txt_in);
 	return sOK;
 }
 
@@ -331,7 +331,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 	if ((ctx->fmt == GF_TXTIN_MODE_SRT) || (ctx->fmt == GF_TXTIN_MODE_WEBVTT)  || (ctx->fmt == GF_TXTIN_MODE_SUB)) {
 		u64 pos = gf_ftell(ctx->src);
 		gf_fseek(ctx->src, 0, SEEK_SET);
-		while (!feof(ctx->src)) {
+		while (!gf_feof(ctx->src)) {
 			u64 end;
 			char szLine[2048];
 			char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
@@ -466,9 +466,7 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	ctx->src = gf_fopen(ctx->file_name, "rt");
 	if (!ctx->src) return GF_URL_ERROR;
 
-	gf_fseek(ctx->src, 0, SEEK_END);
-	file_size = (u32) gf_ftell(ctx->src);
-	gf_fseek(ctx->src, 0, SEEK_SET);
+	file_size = (u32) gf_fsize(ctx->src);
 
 	ctx->unicode_type = gf_text_get_utf_type(ctx->src);
 	if (ctx->unicode_type<0) {
@@ -601,7 +599,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 			u32 nb_empty = 1;
 			u32 pos = (u32) gf_ftell(ctx->src);
 			if (ctx->state) {
-				while (!feof(ctx->src)) {
+				while (!gf_feof(ctx->src)) {
 					sOK = gf_text_get_utf8_line(szLine+nb_empty, 2048-nb_empty, ctx->src, ctx->unicode_type);
 					if (sOK) REM_TRAIL_MARKS((szLine+nb_empty), "\r\n\t ")
 
@@ -982,9 +980,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	ctx->src = gf_fopen(ctx->file_name, "rt");
 	if (!ctx->src) return GF_URL_ERROR;
 
-	gf_fseek(ctx->src, 0, SEEK_END);
-	file_size = (u32) gf_ftell(ctx->src);
-	gf_fseek(ctx->src, 0, SEEK_SET);
+	file_size = (u32) gf_fsize(ctx->src);
 
 	ctx->unicode_type = gf_text_get_utf_type(ctx->src);
 	if (ctx->unicode_type<0) {
@@ -993,7 +989,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Unsupported SRT UTF encoding\n"));
 		return GF_NOT_SUPPORTED;
 	}
-	ext = strrchr(ctx->file_name, '.');
+	ext = gf_file_ext_start(ctx->file_name);
 	is_srt = (ext && !strnicmp(ext, ".srt", 4)) ? GF_TRUE : GF_FALSE;
 
 
@@ -1597,11 +1593,14 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 
 #else
 
+#ifndef GPAC_DISABLE_ZLIB
 static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Warning: GPAC was compiled without SWF import support, can't import file.\n"));
 	return GF_NOT_SUPPORTED;
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 

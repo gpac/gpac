@@ -99,6 +99,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 
 	if (ctx->idx_pid==pid) {
 		GF_Err e;
+		Bool use_gfio = GF_FALSE;
 		char sURL[GF_MAX_PATH], *ext;
 		crc = gf_crc_32(p->value.string, (u32) strlen(p->value.string));
 		if (ctx->idx_file_crc == crc) return GF_OK;
@@ -108,10 +109,23 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 			gf_filter_remove_src(filter, ctx->sub_filter);
 			ctx->sub_filter = NULL;
 		}
-		strcpy(sURL, p->value.string);
-		ext = strrchr(sURL, '.');
+		if (!strncmp(p->value.string, "gfio://", 7)) {
+			use_gfio = GF_TRUE;
+			strcpy(sURL, gf_fileio_translate_url(p->value.string) );
+		} else {
+			strcpy(sURL, p->value.string);
+		}
+		ext = gf_file_ext_start(sURL);
 		if (ext) ext[0] = 0;
 		strcat(sURL, ".sub");
+		if (use_gfio) {
+			GF_FileIO *gfio = gf_fileio_from_url(p->value.string);
+			char *base = gf_file_basename(sURL);
+			const char *new_url = gf_fileio_factory(gfio, base ? base : sURL);
+			if (new_url) {
+				strcpy(sURL, new_url);
+			}
+		}
 
 		ctx->sub_filter = gf_filter_connect_source(filter, sURL, NULL, &e);
 		if (e) return e;
@@ -265,7 +279,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 			return GF_IO_ERR;
 		}
 
-		if (!fread(buf, sizeof(buf), 1, ctx->mdia)) {
+		if (!gf_fread(buf, sizeof(buf), 1, ctx->mdia)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Could not read from file\n"));
 			return GF_IO_ERR;
 		}
@@ -308,7 +322,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 			memcpy(packet + i, buf + hsize, size);
 
 			if (size != left) {
-				while (fread(buf, 1, sizeof(buf), ctx->mdia)) {
+				while (gf_fread(buf, 1, sizeof(buf), ctx->mdia)) {
 					if (buf[buf[0x16] + 0x17] == (vslang->idx | 0x20)) {
 						break;
 					}

@@ -714,9 +714,9 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->is_file = GF_TRUE;
 		ctx->ts->seek_mode = GF_TRUE;
 		ctx->ts->on_event = m2tsdmx_on_event_duration_probe;
-		while (!feof(stream)) {
+		while (!gf_feof(stream)) {
 			char buf[1880];
-			u32 nb_read = (u32) fread(buf, 1, 1880, stream);
+			u32 nb_read = (u32) gf_fread(buf, 1, 1880, stream);
 			gf_m2ts_process_data(ctx->ts, buf, nb_read);
 			if (ctx->duration.num || (nb_read!=1880)) break;
 		}

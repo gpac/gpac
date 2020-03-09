@@ -126,7 +126,7 @@ static char *validator_get_snapshot_name(GF_Validator *validator, Bool is_refere
 	char *name = validator->test_filename ? validator->test_filename : validator->xvs_filename;
 	char *dot;
 	char dumpname[GF_MAX_PATH];
-	dot = strrchr(name, '.');
+	dot = gf_file_ext_start(name);
 	dot[0] = 0;
 	sprintf(dumpname, "%s-%s-%03d.png", name, (is_reference?"reference":"newest"), number);
 	dot[0] = '.';
@@ -177,7 +177,7 @@ static GF_Err validator_file_dec(char *png_filename, u32 *hint_codecid, u32 *wid
 
 	codecid = 0;
 	if (!hint_codecid || ! *hint_codecid) {
-		char *ext = strrchr(png_filename, '.');
+		char *ext = gf_file_ext_start(png_filename);
 		if (!ext) return GF_NOT_SUPPORTED;
 		if (!stricmp(ext, ".png")) codecid = GF_CODECID_PNG;
 		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) codecid = GF_CODECID_JPEG;
@@ -624,7 +624,7 @@ static void validator_xvl_close(GF_Validator *validator)
 			char result_filename[GF_MAX_PATH];
 			char *dot;
 			xvl_content = gf_xml_dom_serialize(validator->xvl_node, GF_FALSE);
-			dot = strrchr(validator->xvl_filename, '.');
+			dot = gf_file_ext_start(validator->xvl_filename);
 			dot[0] = 0;
 			sprintf(result_filename, "%s-result.xml", validator->xvl_filename);
 			dot[0] = '.';

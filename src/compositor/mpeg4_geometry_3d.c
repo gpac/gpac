@@ -187,8 +187,6 @@ static void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandl
 	}
 	*min_coord= (u32) (min_tx*dim);
 	*max_coord= (u32) (max_tx*dim);
-
-//	fprintf(stderr, "%s Angle is %g (%g <-> %g) - min tx %g (%u) - max tx %g (%u)\n", horizontal ? "X" : "Y", theta_angle, angle_start, angle_end, min_tx, *min_coord, max_tx, *max_coord);
 }
 
 static void TraverseSphere(GF_Node *n, void *rs, Bool is_destroy)

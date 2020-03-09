@@ -266,6 +266,7 @@ Software stretch of source surface onto destination surface.
 GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
 
 
+/*! @} */
 
 #ifdef __cplusplus
 }

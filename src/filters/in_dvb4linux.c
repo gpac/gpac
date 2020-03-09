@@ -119,8 +119,8 @@ static GF_Err dvblin_tune(GF_DVBLinuxCtx *ctx)
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Channel name %s\n", chan_name));
 
-	while(!feof(chanfile)) {
-		if ( fgets(line, 255, chanfile) != NULL) {
+	while(!gf_feof(chanfile)) {
+		if ( gf_fgets(line, 255, chanfile) != NULL) {
 			if (line[0]=='#') continue;
 			if (line[0]=='\r') continue;
 			if (line[0]=='\n') continue;
@@ -260,8 +260,8 @@ static u32 gf_dvblin_get_freq_from_url(GF_DVBLinuxCtx *ctx, const char *url)
 	if (!chcfgig_file) return GF_BAD_PARAM;
 
 	freq = 0;
-	while(!feof(chcfgig_file)) {
-		if ( fgets(line, 255, chcfgig_file) != NULL) {
+	while(!gf_feof(chcfgig_file)) {
+		if ( gf_fgets(line, 255, chcfgig_file) != NULL) {
 			if (line[0]=='#') continue;
 			if (line[0]=='\r') continue;
 			if (line[0]=='\n') continue;

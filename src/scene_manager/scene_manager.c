@@ -630,17 +630,10 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 #endif
 		{
 			char szExt[50];
-			ext = (char *)strrchr(load->fileName, '.');
+			ext = gf_file_ext_start(load->fileName);
 			if (!ext) return GF_NOT_SUPPORTED;
-			if (!stricmp(ext, ".gz")) {
-				char *anext;
-				ext[0] = 0;
-				anext = (char *)strrchr(load->fileName, '.');
-				ext[0] = '.';
-				ext = anext;
-			}
 			if (strlen(ext) < 2 || strlen(ext) > sizeof(szExt)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] invalid extension in file name %s\n", load->fileName));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] invalid extension %s in file name %s\n", ext, load->fileName));
 				return GF_NOT_SUPPORTED;
 			}
 			strcpy(szExt, &ext[1]);

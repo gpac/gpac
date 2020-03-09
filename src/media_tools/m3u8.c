@@ -1003,7 +1003,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		char *eof;
 		int len;
 		if (f) {
-			if (!fgets(currentLine, sizeof(currentLine), f))
+			if (!gf_fgets(currentLine, sizeof(currentLine), f))
 				break;
 		} else {
 			u32 __idx = 0;

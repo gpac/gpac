@@ -163,8 +163,14 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 
 	if (!strncmp(pathName, "data:", 5)) return gf_strdup(pathName);
 	if (!strncmp(parentName, "gmem://", 7)) return NULL;
-	if (!strncmp(parentName, "gfio://", 7)) return NULL;
-
+	if (!strncmp(parentName, "gfio://", 7)) {
+		GF_Err e;
+		GF_FileIO *gfio = gf_fileio_from_url(parentName);
+		GF_FileIO *gfio_new = gf_fileio_open_url(gfio, pathName, "url", &e);
+		if (!gfio_new)
+			return NULL;
+		return gf_strdup( gf_fileio_url(gfio_new) );
+	}
 	if ((strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("URL too long for concatenation: \n%s\n", pathName));
 		return NULL;

@@ -744,7 +744,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	FILE *f = gf_fopen(import->in_name, "rt");
 	if (!f) return GF_URL_ERROR;
 
-	read = (s32) fread(line, 1, 4, f);
+	read = (s32) gf_fread(line, 1, 4, f);
 	if (read < 0) {
 		e = GF_IO_ERR;
 		goto err_exit;
@@ -777,7 +777,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		Bool is_chap_or_sub = GF_FALSE;
 		import->nb_tracks = 0;
-		while (!is_chap_or_sub && (fgets(line, 1024, f) != NULL)) {
+		while (!is_chap_or_sub && (gf_fgets(line, 1024, f) != NULL)) {
 			char *sep;
 			strlwr(line);
 
@@ -831,7 +831,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	cur_chap = 0;
 	ts = 0;
 	state = 0;
-	while (fgets(line, 1024, f) != NULL) {
+	while (gf_fgets(line, 1024, f) != NULL) {
 		char *title = NULL;
 		u32 off = 0;
 		char *sL;
@@ -1073,7 +1073,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->force_ext) {
 		ext = importer->force_ext;
 	} else {
-		ext = strrchr(importer->in_name, '.');
+		ext = gf_file_ext_start(importer->in_name);
 		if (!ext) ext = "";
 	}
 

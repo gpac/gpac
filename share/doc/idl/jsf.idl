@@ -51,6 +51,7 @@ See \ref __gf_filter_register.initialize.
 attribute GF_Err initialize();
 /*! finalize the filter. This is a callback function assignable by the script. It is called immediately before destruction of the JavaScript context.
 See \ref __gf_filter_register.finalize.
+\return void
 */
 attribute void finalize();
 /*! configures or reconfigures an input pid
@@ -266,6 +267,7 @@ interface FilterInstance {
 
 /*! setup failure notification. This is a callback function assignable by the script. It is when loading a source or destination filter fails asynchronously
 \param e error code if any
+\return void
 */
 attribute void on_setup_failure(GF_Err e);
 
@@ -362,8 +364,6 @@ readonly attribute unsigned long timescale;
 writeonly unsigned long clock_mode;
 /*! sets discard mode of pid - see \ref gf_filter_pid_set_discard*/
 writeonly unsigned boolean discard;
-/*! sets forced capapbility type of the pid - see \ref gf_filter_pid_force_cap*/
-writeonly unsigned unsigned long forced_cap;
 /*! source URL of input pids*/
 readonly attribute DOMString src_url;
 /*! destination URL of output pids*/
@@ -633,7 +633,7 @@ readonly attribute unsigned long size;
 	\warning This arraybuffer will be detached whenever the packet data is modified for a destination packet
 */
 readonly attribute ArrayBuffer data;
-/*! set to true if data of the packet is available through a \ref GF_FilterFrameInterface object*/
+/*! set to true if data of the packet is available through a GF_FilterFrameInterface object*/
 readonly attribute boolean frame_ifce;
 
 /*! sets packet readonly - see gf_filter_pck_set_readonly*/

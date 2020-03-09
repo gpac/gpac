@@ -141,7 +141,7 @@ static void atscin_send_file(ATSCInCtx *ctx, u32 service_id, GF_ATSCEventFileInf
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(tsio ? tsio->tsi : service_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(finfo->filename));
-		ext = strrchr(finfo->filename, '.');
+		ext = gf_file_ext_start(finfo->filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
 
 		pck = gf_filter_pck_new_alloc(pid, finfo->size, &output);

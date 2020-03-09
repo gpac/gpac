@@ -759,6 +759,10 @@ The special file name randsc is used to generate random data with fake startcode
 .br
 
 .br
+The filter handles both files and GF_FileIO objects as input URL.
+.br
+
+.br
 
 .br
 .SH Options (expert):
@@ -2464,7 +2468,7 @@ exporter (bool, default: false):         compatibility with old exporter, displa
 .br
 dims (bool, default: false):             use DIMS mode
 .br
-name (str, default: dump.nhml):          set output name of files produced (needed media/info files refered to from XML
+name (str):                              set output name of files produced (needed media/info files refered to from XML
 .br
 nhmlonly (bool, default: false):         only dump NHML info, not media
 .br
@@ -4893,7 +4897,7 @@ nb_pack (uint, default: 10):             pack N packets before sending
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.39.101
+Version: Lavf58.41.100
 .br
 
 .br
@@ -4915,7 +4919,7 @@ src (cstr):                              location of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.73.102
+Version: Lavc58.75.100
 .br
 
 .br
@@ -4982,6 +4986,8 @@ sclock (bool, default: false):           use system clock (us) instead of device
 .br
 probes (uint, default: 10, minmax: 0-100): probe a given number of video frames before emitting - this usually helps with bad timing of the first frames
 .br
+block_size (uint, default: 4096):        block size used to read file when using avio context
+.br
 * (str):                                 any possible options defined for AVInputFormat and AVFormatContext. See gpac -hx ffavin and gpac -hx ffavin:*
 .br
 
@@ -5027,7 +5033,7 @@ p2 (dbl, default: +I):                   scaling algo param2 - see filter info
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.73.102
+Version: Lavc58.75.100
 .br
 
 .br
@@ -5063,7 +5069,7 @@ ffc (str):                               ffmpeg codec name. This allows enforcin
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf58.39.101
+Version: Lavf58.41.100
 .br
 
 .br
@@ -5088,6 +5094,8 @@ mime (cstr):                             set mime type for graph resolution
 .br
 ffiles (bool, default: false):           force complete files to be created for each segment in DASH modes
 .br
+block_size (uint, default: 4096):        block size used to read file when using avio context
+.br
 * (str):                                 any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffmx and gpac -hx ffmx:*
 .br
 
@@ -5097,7 +5105,7 @@ ffiles (bool, default: false):           force complete files to be created for 
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf58.39.101
+Version: Lavf58.41.100
 .br
 
 .br
@@ -5288,7 +5296,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3384-g773d9de1e-filters
+build: 0.9.0-DEV-rev3398-gc2b9f6ad5-file_io
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

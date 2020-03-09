@@ -411,16 +411,16 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			char *buffer;
 			u32 bytes;
 
-			if (feof(stream))
+			if (gf_feof(stream))
 				break;
 
-			bytes = (u32) fread(buf, 1, 10000, stream);
+			bytes = (u32) gf_fread(buf, 1, 10000, stream);
 			if (!bytes) break;
 			buffer = ogg_sync_buffer(&oy, bytes);
 			memcpy(buffer, buf, bytes);
 			ogg_sync_wrote(&oy, bytes);
 		}
-		if (feof(stream))
+		if (gf_feof(stream))
 			break;
 
 		if (ogg_page_bos(&oggpage)) {

@@ -380,6 +380,7 @@
 		929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929816EF8BC200B7C64F /* icon_ipad.png */; };
 		929A929F16EF8BC200B7C64F /* icon_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929916EF8BC200B7C64F /* icon_retina.png */; };
 		929A92A016EF8BC200B7C64F /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929A16EF8BC200B7C64F /* icon.png */; };
+		929DE74924183FB40056AFA7 /* gzio.c in Sources */ = {isa = PBXBuildFile; fileRef = 929DE74824183FB40056AFA7 /* gzio.c */; };
 		929FA64321A3E83F000455A7 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 929FA64221A3E83E000455A7 /* reframe_latm.c */; };
 		92B039F716F2050100B2568F /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B039F616F2050100B2568F /* libSDL2.a */; };
 		92B2A4A7229C0F47002A65A7 /* out_rtsp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A6229C0F47002A65A7 /* out_rtsp.c */; };
@@ -959,6 +960,7 @@
 		929A929816EF8BC200B7C64F /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad.png; path = ../../applications/osmo4_ios/Resources/icon_ipad.png; sourceTree = SOURCE_ROOT; };
 		929A929916EF8BC200B7C64F /* icon_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_retina.png; path = ../../applications/osmo4_ios/Resources/icon_retina.png; sourceTree = SOURCE_ROOT; };
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
+		929DE74824183FB40056AFA7 /* gzio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gzio.c; sourceTree = "<group>"; };
 		929FA64221A3E83E000455A7 /* reframe_latm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_latm.c; path = ../../src/filters/reframe_latm.c; sourceTree = "<group>"; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
 		92B2A4A6229C0F47002A65A7 /* out_rtsp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtsp.c; path = ../../src/filters/out_rtsp.c; sourceTree = "<group>"; };
@@ -1602,12 +1604,8 @@
 		71CCF2291277045100339E12 /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				9298677E235A1587008A2CC6 /* gltools.c */,
 				8959AC8E211C9C77004D2C87 /* Remotery.c */,
 				92EB6E3A20E4EBDB00A97A49 /* constants.c */,
-				92F930841A5ADC1A0072A85C /* os_divers.c */,
-				92F930851A5ADC1A0072A85C /* os_file.c */,
-				97DDAFEE1569631900528219 /* sha1.c */,
 				97FF065F138CE4C400D6C707 /* os_config_init.c */,
 				970A26D613434DAC0007362C /* unicode.c */,
 				7147425F12B918C900DB5A59 /* cache.c */,
@@ -1618,9 +1616,13 @@
 				71CCF22D1277045100339E12 /* configfile.c */,
 				71CCF22F1277045100339E12 /* downloader.c */,
 				71CCF2301277045100339E12 /* error.c */,
+				929DE74824183FB40056AFA7 /* gzio.c */,
+				9298677E235A1587008A2CC6 /* gltools.c */,
 				71CCF2321277045100339E12 /* list.c */,
 				71CCF2331277045100339E12 /* math.c */,
 				71CCF2341277045100339E12 /* module.c */,
+				92F930841A5ADC1A0072A85C /* os_divers.c */,
+				92F930851A5ADC1A0072A85C /* os_file.c */,
 				71CCF2351277045100339E12 /* module_wrap.h */,
 				71CCF2361277045100339E12 /* os_file.c */,
 				71CCF2371277045100339E12 /* os_module.c */,
@@ -1628,6 +1630,7 @@
 				71CCF2391277045100339E12 /* os_thread.c */,
 				71CCF23A1277045100339E12 /* path2d.c */,
 				71CCF23B1277045100339E12 /* path2d_stroker.c */,
+				97DDAFEE1569631900528219 /* sha1.c */,
 				71CCF23E1277045100339E12 /* token.c */,
 				71CCF23F1277045100339E12 /* uni_bidi.c */,
 				71CCF2401277045100339E12 /* url.c */,
@@ -2546,6 +2549,7 @@
 				92EB6DCE20E4E19700A97A49 /* filelist.c in Sources */,
 				92EB6DE320E4E19700A97A49 /* compose.c in Sources */,
 				92E9DFAF2215CEA700628420 /* raster_rgb.c in Sources */,
+				929DE74924183FB40056AFA7 /* gzio.c in Sources */,
 				92EB6DF320E4E19700A97A49 /* dmx_avi.c in Sources */,
 				92EB6DFD20E4E19700A97A49 /* reframe_mp3.c in Sources */,
 				71CCF32A1277045100339E12 /* terminal.c in Sources */,

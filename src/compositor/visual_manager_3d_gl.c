@@ -392,11 +392,10 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 	if (src) {
 		size_t size;
 		char *shader_src;
-		gf_fseek(src, 0, SEEK_END);
-		size = (size_t) gf_ftell(src);
-		gf_fseek(src, 0, SEEK_SET);
+		size = (size_t) gf_fsize(src);
+
 		shader_src = gf_malloc(sizeof(char)*(size+1));
-		size = fread(shader_src, 1, size, src);
+		size = gf_fread(shader_src, 1, size, src);
 		gf_fclose(src);
 		if (size != (size_t) -1) {
 			shader_src[size]=0;
@@ -472,11 +471,10 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	if (src) {
 		char *shader_src, *tmp;
 		size_t size;
-		gf_fseek(src, 0, SEEK_END);
-		size = (size_t) gf_ftell(src);
-		gf_fseek(src, 0, SEEK_SET);
+
+		size = (size_t) gf_fsize(src);
 		shader_src = gf_malloc(sizeof(char)*(size+1));
-		size = fread(shader_src, 1, size, src);
+		size = gf_fread(shader_src, 1, size, src);
 		tmp = (char *) gf_malloc(sizeof(char)*(size+str_size+2));
 		strcpy(tmp, defs);
 		strncat(tmp, shader_src, (size));

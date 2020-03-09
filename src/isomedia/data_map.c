@@ -89,8 +89,7 @@ static Bool IsLargeFile(char *path)
 	s64 size;
 	stream = gf_fopen(path, "rb");
 	if (!stream) return 0;
-	gf_fseek(stream, 0, SEEK_END);
-	size = gf_ftell(stream);
+	size = gf_fsize(stream);
 	gf_fclose(stream);
 	if (size == -1L) return 0;
 	if (size > 0xFFFFFFFF) return 1;
@@ -395,16 +394,6 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		if (gf_blob_get_data(sPath, &mem_address, &size) != GF_OK)
 			return NULL;
 		tmp->bs = gf_bs_new((const char *)mem_address, size, GF_BITSTREAM_READ);
-		if (!tmp->bs) {
-			gf_free(tmp);
-			return NULL;
-		}
-		return (GF_DataMap *)tmp;
-	}
-	if (!strncmp(sPath, "gfio://", 7)) {
-		GF_BitStream *gf_bs_from_gfio(const char *url, u32 mode);
-
-		tmp->bs = gf_bs_from_gfio(sPath, GF_BITSTREAM_READ);
 		if (!tmp->bs) {
 			gf_free(tmp);
 			return NULL;

@@ -1865,7 +1865,7 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 	}
 
 	if (dump_std) {
-		fwrite(data, 1, data_size, stdout);
+		gf_fwrite(data, 1, data_size, stdout);
 	} else {
 		FILE *t;
 		char szFile[GF_MAX_PATH];
@@ -1880,7 +1880,7 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 			fprintf(stderr, "Failed to open file %s\n", szFile);
 			e = GF_IO_ERR;
 		} else {
-			if (fwrite(data, 1, data_size, t) != data_size) {
+			if (gf_fwrite(data, 1, data_size, t) != data_size) {
 				fprintf(stderr, "Failed to write output to file %s\n", szFile);
 				e = GF_IO_ERR;
 			}
@@ -2193,7 +2193,7 @@ static GF_Err hash_file(char *name, u32 dump_std)
 	GF_Err e = gf_media_get_file_hash(name, hash);
 	if (e) return e;
 	if (dump_std==2) {
-		fwrite(hash, 1, 20, stdout);
+		gf_fwrite(hash, 1, 20, stdout);
 	} else if (dump_std==1) {
 		for (i=0; i<20; i++) fprintf(stdout, "%02X", hash[i]);
 	}
@@ -4342,7 +4342,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_fseek(fin, 0, SEEK_SET);
 		done = 0;
 		while (1) {
-			u32 nb_bytes = (u32) fread(chunk, 1, 4096, fin);
+			u32 nb_bytes = (u32) gf_fread(chunk, 1, 4096, fin);
 			gf_fwrite(chunk, 1, nb_bytes, fout);
 			done += nb_bytes;
 			fprintf(stderr, "Appending file %s - %02.2f done\r", raw_cat, 100.0*done/to_copy);
@@ -4451,7 +4451,7 @@ int mp4boxMain(int argc, char **argv)
 			char szDATA[1000];
 			s32 read;
 			szDATA[999]=0;
-			read = (s32) fread(szDATA, 1, 999, f);
+			read = (s32) gf_fread(szDATA, 1, 999, f);
 			if (read<0) read = 0;
 			szDATA[read]=0;
 			gf_fclose(f);

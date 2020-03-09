@@ -235,7 +235,7 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 			break;
 
 		if (size<fsize) {
-			fprintf(stderr, "Broken ID3 frame tag %s, size %d but remaining bytes %d\n", gf_4cc_to_str(ftag), fsize, size);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] Broken ID3 frame tag %s, size %d but remaining bytes %d\n", gf_4cc_to_str(ftag), fsize, size));
 			break;
 		}
 

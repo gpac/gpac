@@ -167,7 +167,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 		pos = gf_ftell(stream);
 		/*get frame rate idx*/
 		if (ctx->vrat_rate_flag) {
-			idx = fgetc(stream);
+			idx = gf_fgetc(stream);
 			chunk_size-=1;
 			for (i=0; i<ctx->rate_table_count; i++) {
 				if (ctx->rate_table[i].rate_idx==idx) {

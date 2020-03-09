@@ -1167,9 +1167,9 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 
 	while (!parser->suspended) {
 #ifdef NO_GZIP
-		s32 read = (s32)fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
+		s32 read = (s32)gf_fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
 #else
-		s32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
+		s32 read = gf_gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 #endif
 		if ((read<=0) /*&& !parser->node_depth*/) break;
 		szLine[read] = 0;
@@ -1181,9 +1181,9 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 	}
 
 #ifdef NO_GZIP
-	if (feof(parser->f_in)) {
+	if (gf_feof(parser->f_in)) {
 #else
-	if (gzeof(parser->gz_in)) {
+	if (gf_gzeof(parser->gz_in)) {
 #endif
 		if (!e) e = GF_EOS;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_size, parser->file_size);
@@ -1192,7 +1192,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		gf_fclose(parser->f_in);
 		parser->f_in = NULL;
 #else
-		gzclose(parser->gz_in);
+		gf_gzclose(parser->gz_in);
 		parser->gz_in = 0;
 #endif
 
@@ -1214,6 +1214,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 {
 	FILE *test;
 	GF_Err e;
+	u64 filesize;
 #ifndef NO_GZIP
 	gzFile gzInput;
 #endif
@@ -1255,57 +1256,13 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		return e;
 	}
 
-	if (!strncmp(fileName, "gfio://", 7)) {
-		u32 size, pos;
-		u8 buffer[1026];
-		GF_FileIO *gfio = gf_fileio_from_url(fileName);
-		if (!gfio) return GF_BAD_PARAM;
-
-		pos = gf_fileio_seek(gfio, 0, SEEK_SET);
-		size = gf_fileio_read(gfio, buffer, 4);
-		if (size != 4) return GF_NON_COMPLIANT_BITSTREAM;
-
-		parser->file_size = 4;
-		//copy possible BOM
-		buffer[4] = buffer[5] = 0;
-
-		parser->file_pos = 0;
-		parser->elt_start_pos = 0;
-		parser->current_pos = 0;
-
-		e = gf_xml_sax_init(parser, buffer);
-		if (e) return e;
-		parser->file_pos = 4;
-
-		while (1) {
-			size = gf_fileio_read(gfio, buffer, 1024);
-			if (!size) break;
-			buffer[1024] = buffer[1025] = 0;
-			parser->file_size += size;
-
-			e = gf_xml_sax_parse(parser, buffer);
-			if (e) break;
-			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
-			parser->file_pos += size;
-		}
-		parser->elt_start_pos = parser->elt_end_pos = 0;
-		parser->elt_name_start = parser->elt_name_end = 0;
-		parser->att_name_start = 0;
-		parser->current_pos = 0;
-		parser->line_size = 0;
-		parser->att_sep = 0;
-		parser->file_pos = 0;
-		parser->file_size = 0;
-		parser->line_size = 0;
-		return e;
-	}
-
 	/*check file exists and gets its size (zlib doesn't support SEEK_END)*/
 	test = gf_fopen(fileName, "rb");
 	if (!test) return GF_URL_ERROR;
-	gf_fseek(test, 0, SEEK_END);
-	assert(gf_ftell(test) < 0x80000000);
-	parser->file_size = (u32) gf_ftell(test);
+
+	filesize = gf_fsize(test);
+	assert(filesize < 0x80000000);
+	parser->file_size = (u32) filesize;
 	gf_fclose(test);
 
 	parser->file_pos = 0;
@@ -1314,15 +1271,15 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	//open file and copy possible BOM
 #ifdef NO_GZIP
 	parser->f_in = gf_fopen(fileName, "rt");
-	if (fread(szLine, 1, 4, parser->f_in) != 4) {
+	if (gf_fread(szLine, 1, 4, parser->f_in) != 4) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Error loading BOM\n"));
 	}
 #else
-	gzInput = gzopen(fileName, "rb");
+	gzInput = gf_gzopen(fileName, "rb");
 	if (!gzInput) return GF_IO_ERR;
 	parser->gz_in = gzInput;
 	/*init SAX parser (unicode setup)*/
-	gzread(gzInput, szLine, 4);
+	gf_gzread(gzInput, szLine, 4);
 #endif
 
 	szLine[4] = szLine[5] = 0;
@@ -1370,7 +1327,7 @@ void gf_xml_sax_del(GF_SAXParser *parser)
 #ifdef NO_GZIP
 	if (parser->f_in) gf_fclose(parser->f_in);
 #else
-	if (parser->gz_in) gzclose(parser->gz_in);
+	if (parser->gz_in) gf_gzclose(parser->gz_in);
 #endif
 	gf_free(parser);
 }
@@ -1456,7 +1413,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #ifdef NO_GZIP
 		pos = gf_ftell(parser->f_in);
 #else
-		pos = gztell(parser->gz_in);
+		pos = gf_gztell(parser->gz_in);
 #endif
 	}
 	att_len = (u32) strlen(parser->buffer + parser->att_name_start);
@@ -1474,9 +1431,9 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		u8 sep_char;
 		if (!from_buffer) {
 #ifdef NO_GZIP
-			if (feof(parser->f_in)) break;
+			if (gf_feof(parser->f_in)) break;
 #else
-			if (gzeof(parser->gz_in)) break;
+			if (gf_gzeof(parser->gz_in)) break;
 #endif
 		}
 
@@ -1491,9 +1448,9 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 			dobreak=GF_TRUE;
 		} else {
 #ifdef NO_GZIP
-			read = (u32)fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
+			read = (u32)gf_fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
 #else
-			read = gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
+			read = gf_gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
 #endif
 			cur_line[read] = cur_line[read+1] = 0;
 
@@ -1592,8 +1549,8 @@ exit:
 #ifdef NO_GZIP
 		gf_fseek(parser->f_in, pos, SEEK_SET);
 #else
-		gzrewind(parser->gz_in);
-		gzseek(parser->gz_in, pos, SEEK_SET);
+		gf_gzrewind(parser->gz_in);
+		gf_gzseek(parser->gz_in, pos, SEEK_SET);
 #endif
 	}
 	return result;
@@ -2232,8 +2189,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			}
 
 			if (!size) {
-				gf_fseek(_tmp, 0, SEEK_END);
-				size = (u32) gf_ftell(_tmp);
+				size = (u32) gf_fsize(_tmp);
 				//if offset only copy from offset until end
 				if ((u64) size > offset)
 					size -= (u32) offset;
@@ -2241,7 +2197,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			remain = size;
 			gf_fseek(_tmp, offset, SEEK_SET);
 			while (remain) {
-				read = (u32) fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
+				read = (u32) gf_fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
 				if ((s32) read < 0) {
 					gf_fclose(_tmp);
 					return GF_IO_ERR;
@@ -2316,35 +2272,35 @@ void gf_xml_dump_string(FILE* file, const char *before, const char *str, const c
 	size_t len=str?strlen(str):0;
 
 	if (before) {
-		fprintf(file, "%s", before);
+		gf_fprintf(file, "%s", before);
 	}
 
 	for (i = 0; i < len; i++) {
 		switch (str[i]) {
 		case '&':
-			fprintf(file, "%s", "&amp;");
+			gf_fprintf(file, "%s", "&amp;");
 			break;
 		case '<':
-			fprintf(file, "%s", "&lt;");
+			gf_fprintf(file, "%s", "&lt;");
 			break;
 		case '>':
-			fprintf(file, "%s", "&gt;");
+			gf_fprintf(file, "%s", "&gt;");
 			break;
 		case '\'':
-			fprintf(file, "&apos;");
+			gf_fprintf(file, "&apos;");
 			break;
 		case '\"':
-			fprintf(file, "&quot;");
+			gf_fprintf(file, "&quot;");
 			break;
 
 		default:
-			fprintf(file, "%c", str[i]);
+			gf_fprintf(file, "%c", str[i]);
 			break;
 		}
 	}
 
 	if (after) {
-		fprintf(file, "%s", after);
+		gf_fprintf(file, "%s", after);
 	}
 }
 

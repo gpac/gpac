@@ -709,7 +709,6 @@ struct tm *gf_gmtime(const time_t *time)
 	FileTimeToSystemTime(&filet, &syst);
 	if (syst.wSecond>60)
 		syst.wSecond=60;
-//	fprintf(out, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) ms);
 #endif
 
 	struct tm *tm = gmtime(time);
@@ -1619,7 +1618,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (f) {
 		char line[2048];
 		u32 k_time, nice_time, u_time;
-		if (fgets(line, 128, f) != NULL) {
+		if (gf_fgets(line, 128, f) != NULL) {
 			if (sscanf(line, "cpu  %u %u %u %u\n", &u_time, &k_time, &nice_time, &idle_time) == 4) {
 				u_k_time = u_time + k_time + nice_time;
 			}
@@ -1635,8 +1634,8 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	sprintf(szProc, "/proc/%d/stat", the_rti.pid);
 	f = gf_fopen(szProc, "r");
 	if (f) {
-		fflush(f);
-		if (fgets(line, 2048, f) != NULL) {
+		gf_fflush(f);
+		if (gf_fgets(line, 2048, f) != NULL) {
 			char state;
 			char *start;
 			long cutime, cstime, priority, nice, itrealvalue, rss;
@@ -1672,7 +1671,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	sprintf(szProc, "/proc/%d/status", the_rti.pid);
 	f = gf_fopen(szProc, "r");
 	if (f) {
-		while (fgets(line, 1024, f) != NULL) {
+		while (gf_fgets(line, 1024, f) != NULL) {
 			if (!strnicmp(line, "VmSize:", 7)) {
 				sscanf(line, "VmSize: %"LLD" kB",  &the_rti.process_memory);
 				the_rti.process_memory *= 1024;
@@ -1690,7 +1689,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	f = gf_fopen("/proc/meminfo", "r");
 	if (f) {
 		char line[2048];
-		while (fgets(line, 1024, f) != NULL) {
+		while (gf_fgets(line, 1024, f) != NULL) {
 			if (!strnicmp(line, "MemTotal:", 9)) {
 				sscanf(line, "MemTotal: "LLU" kB",  &the_rti.physical_memory);
 				the_rti.physical_memory *= 1024;
@@ -2430,44 +2429,33 @@ GF_Err gf_bin128_parse(const char *string, bin128 value)
 
 
 GF_EXPORT
-GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
+GF_Err gf_file_load_data_filep(FILE *file, u8 **out_data, u32 *out_size)
 {
 	u64 fsize;
-	FILE *file = gf_fopen(file_name, "rb");
 	*out_data = NULL;
 	*out_size = 0;
 
-	if (!file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open file %s\n", file_name));
-		return GF_IO_ERR;
-	}
-	gf_fseek(file, 0, SEEK_END);
-	fsize = gf_ftell(file);
+	fsize = gf_fsize(file);
 	if (fsize>0xFFFFFFFFUL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file %s is too big to load in memory ("LLU" bytes)\n", fsize));
-		gf_fclose(file);
 		return GF_OUT_OF_MEM;
 	}
 
 	*out_size = (u32) fsize;
 	if (fsize == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file %s is empty\n", file_name));
-		gf_fclose(file);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file is empty\n"));
 		return GF_OK;
 	}
 
 	/* First, read the dump in a buffer */
 	*out_data = gf_malloc((size_t)(fsize+1) * sizeof(char));
 	if (! *out_data) {
-		gf_fclose(file);
 		return GF_OUT_OF_MEM;
 	}
-	gf_fseek(file, 0, SEEK_SET);
-	fsize = fread(*out_data, sizeof(char), (size_t)fsize, file);
-	gf_fclose(file);
+	fsize = gf_fread(*out_data, sizeof(char), (size_t)fsize, file);
+
 	if ((u32) fsize != *out_size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file %s read failed\n", file_name));
-		gf_fclose(file);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file read failed\n"));
 		gf_free(*out_data);
 		*out_data = NULL;
 		*out_size = 0;
@@ -2475,6 +2463,21 @@ GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
 	}
 	(*out_data)[fsize] = 0;
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
+{
+	GF_Err e;
+	FILE *file = gf_fopen(file_name, "rb");
+
+	if (!file) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open file %s\n", file_name));
+		return GF_IO_ERR;
+	}
+	e = gf_file_load_data_filep(file, out_data, out_size);
+	gf_fclose(file);
+	return e;
 }
 
 #ifndef WIN32

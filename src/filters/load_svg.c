@@ -46,7 +46,7 @@ typedef struct
 	u32 file_size;
 	u16 base_es_id;
 	u32 file_pos;
-	gzFile src;
+	void *src;
 	Bool is_playing;
 } SVGIn;
 
@@ -110,7 +110,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 
 #ifdef FILTER_FIXME
 	if (stream_time==(u32)-1) {
-		if (svgin->src) gzclose(svgin->src);
+		if (svgin->src) gf_gzclose(svgin->src);
 		svgin->src = NULL;
 		gf_sm_load_done(&svgin->loader);
 		svgin->loader.fileName = NULL;
@@ -207,7 +207,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 			char file_buf[SVG_PROGRESSIVE_BUFFER_SIZE+2];
 			/*initial load*/
 			if (!svgin->src && !svgin->file_pos) {
-				svgin->src = gzopen(svgin->file_name, "rb");
+				svgin->src = gf_gzopen(svgin->file_name, "rb");
 				if (!svgin->src) return GF_URL_ERROR;
 				svgin->loader.fileName = svgin->file_name;
 				gf_sm_load_init(&svgin->loader);
@@ -218,12 +218,12 @@ static GF_Err svgin_process(GF_Filter *filter)
 			while (1) {
 				u32 diff;
 				s32 nb_read;
-				nb_read = gzread(svgin->src, file_buf, SVG_PROGRESSIVE_BUFFER_SIZE);
+				nb_read = gf_gzread(svgin->src, file_buf, SVG_PROGRESSIVE_BUFFER_SIZE);
 				/*we may have read nothing but we still need to call parse in case the parser got suspended*/
 				if (nb_read<=0) {
-					if ((e==GF_EOS) && gzeof(svgin->src)) {
+					if ((e==GF_EOS) && gf_gzeof(svgin->src)) {
 						gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
-						gzclose(svgin->src);
+						gf_gzclose(svgin->src);
 						svgin->src = NULL;
 						gf_sm_load_done(&svgin->loader);
 					}

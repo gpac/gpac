@@ -93,7 +93,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 
 	count = gf_list_count(streams);
 
-	fprintf(sdp_out, "v=0\n");
+	gf_fprintf(sdp_out, "v=0\n");
 	if (gf_sys_is_test_mode()) {
 		*session_id = 0;
 		session_version = 0;
@@ -101,11 +101,11 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		if (! *session_id) *session_id = gf_net_get_ntp_ts();
 		session_version = gf_net_get_ntp_ts();
 	}
-	fprintf(sdp_out, "o=gpac "LLU" "LLU" IN IP%d %s\n", *session_id, session_version, gf_net_is_ipv6(ip) ? 6 : 4, ip);
-	fprintf(sdp_out, "s=%s\n", sess_name);
+	gf_fprintf(sdp_out, "o=gpac "LLU" "LLU" IN IP%d %s\n", *session_id, session_version, gf_net_is_ipv6(ip) ? 6 : 4, ip);
+	gf_fprintf(sdp_out, "s=%s\n", sess_name);
 
 	if (info) {
-		fprintf(sdp_out, "i=%s\n", info);
+		gf_fprintf(sdp_out, "i=%s\n", info);
 	} else {
 		GF_RTPOutStream *stream = gf_list_get(streams, 0);
 		const char *src = gf_filter_pid_orig_src_args(stream->pid);
@@ -114,27 +114,27 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 			src = gf_file_basename(src);
 		}
 		if (src)
-			fprintf(sdp_out, "i=%s\n", src);
+			gf_fprintf(sdp_out, "i=%s\n", src);
 	}
-	fprintf(sdp_out, "u=%s\n", url ? url : "http://gpac.io");
+	gf_fprintf(sdp_out, "u=%s\n", url ? url : "http://gpac.io");
 	if (email) {
-		fprintf(sdp_out, "e=%s\n", email);
+		gf_fprintf(sdp_out, "e=%s\n", email);
 	}
 	if (is_rtsp) {
-		fprintf(sdp_out, "c=IN IP4 0.0.0.0\n");
+		gf_fprintf(sdp_out, "c=IN IP4 0.0.0.0\n");
 	} else {
-		fprintf(sdp_out, "c=IN IP%d %s\n", gf_net_is_ipv6(ip) ? 6 : 4, ip);
+		gf_fprintf(sdp_out, "c=IN IP%d %s\n", gf_net_is_ipv6(ip) ? 6 : 4, ip);
 	}
-	fprintf(sdp_out, "t=0 0\n");
+	gf_fprintf(sdp_out, "t=0 0\n");
 
 	if (is_rtsp) {
-		fprintf(sdp_out, "a=control=*\n");
+		gf_fprintf(sdp_out, "a=control=*\n");
 	}
 
 	if (gf_sys_is_test_mode()) {
-		fprintf(sdp_out, "a=x-copyright: Streamed with GPAC - http://gpac.io\n");
+		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC - http://gpac.io\n");
 	} else {
-		fprintf(sdp_out, "a=x-copyright: Streamed with GPAC %s - %s\n", gf_gpac_version(), gf_gpac_copyright() );
+		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC %s - %s\n", gf_gpac_version(), gf_gpac_copyright() );
 	}
 
 	if (is_rtsp) {
@@ -157,19 +157,19 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		}
 
 		if (!disable_seek && max_dur) {
-			fprintf(sdp_out, "a=range:npt=0-%g\n", max_dur);
+			gf_fprintf(sdp_out, "a=range:npt=0-%g\n", max_dur);
 		}
 	}
 	
 	if (base_pid_id) {
-		fprintf(sdp_out, "a=group:DDP L%d", base_pid_id);
+		gf_fprintf(sdp_out, "a=group:DDP L%d", base_pid_id);
 		for (i = 0; i < count; i++) {
 			GF_RTPOutStream *st = gf_list_get(streams, i);
 			if (st->depends_on == base_pid_id) {
-				fprintf(sdp_out, " L%d", i+1);
+				gf_fprintf(sdp_out, " L%d", i+1);
 			}
 		}
-		fprintf(sdp_out, "\n");
+		gf_fprintf(sdp_out, "\n");
 	}
 
 	for (i=0; i<count; i++) {
@@ -231,30 +231,30 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		gf_rtp_streamer_append_sdp_extended(stream->rtp, stream->id, dsi, dsi_len, dsi_enh, dsi_enh_len, (char *)KMS, w, h, tw, th, tx, ty, tl, is_rtsp, &sdp_media);
 
 		if (sdp_media) {
-			fprintf(sdp_out, "%s", sdp_media);
+			gf_fprintf(sdp_out, "%s", sdp_media);
 			gf_free(sdp_media);
 		}
 		if (base_pid_id) {
 			u32 j;
 
-			fprintf(sdp_out, "a=mid:L%d\n", i+1);
-			fprintf(sdp_out, "a=depend:%d lay", gf_rtp_streamer_get_payload_type(stream->rtp) );
+			gf_fprintf(sdp_out, "a=mid:L%d\n", i+1);
+			gf_fprintf(sdp_out, "a=depend:%d lay", gf_rtp_streamer_get_payload_type(stream->rtp) );
 
 			for (j=0; j<count; j++) {
 				GF_RTPOutStream *tk = gf_list_get(streams, j);
 				if (tk == stream) continue;
 				if (tk->depends_on == stream->id) {
-					fprintf(sdp_out, " L%d:%d", j+1, gf_rtp_streamer_get_payload_type(tk->rtp) );
+					gf_fprintf(sdp_out, " L%d:%d", j+1, gf_rtp_streamer_get_payload_type(tk->rtp) );
 				}
 			}
-			fprintf(sdp_out, "\n");
+			gf_fprintf(sdp_out, "\n");
 		}
 
 		if (is_rtsp) {
-			fprintf(sdp_out, "a=control:trackID=%d\n", stream->ctrl_id);
+			gf_fprintf(sdp_out, "a=control:trackID=%d\n", stream->ctrl_id);
 		}
 	}
-	fprintf(sdp_out, "\n");
+	gf_fprintf(sdp_out, "\n");
 	return GF_OK;
 }
 
@@ -518,7 +518,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, fsize, &output);
 	if (pck) {
 		gf_fseek(sdp_out, 0, SEEK_SET);
-		u32 read = (u32) fread(output, 1, fsize, sdp_out);
+		u32 read = (u32) gf_fread(output, 1, fsize, sdp_out);
 		if (read != fsize) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Failed to read SDP from temp file, got %d bytes but expecting %d\n", read, fsize));
 			gf_filter_pck_discard(pck);

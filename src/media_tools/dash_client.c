@@ -3560,8 +3560,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 					return gf_dash_download_init_segment(dash, group);
 				}
 			} else {
-				gf_fseek(ftest, 0, SEEK_END);
-				file_size = (u32) gf_ftell(ftest);
+				file_size = (u32) gf_fsize(ftest);
 				gf_fclose(ftest);
 			}
 		}
@@ -4484,9 +4483,9 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 		if (!f) return GF_IO_ERR;
 		if (gf_fseek(f, offset, SEEK_SET))
 			return GF_IO_ERR;
-		if (fread(data, 1, 4, f) == 4) {
+		if (gf_fread(data, 1, 4, f) == 4) {
 			*box_size = GF_4CC(data[0], data[1], data[2], data[3]);
-			if (fread(data, 1, 4, f) == 4) {
+			if (gf_fread(data, 1, 4, f) == 4) {
 				*box_type = GF_4CC(data[0], data[1], data[2], data[3]);
 			}
 		}
@@ -4697,12 +4696,10 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						FILE *t = gf_fopen(cache_name, "rb");
 						if (t) {
 							s32 res;
-							gf_fseek(t, 0, SEEK_END);
-							rep->playback.init_segment.size = (u32) gf_ftell(t);
-							gf_fseek(t, 0, SEEK_SET);
+							rep->playback.init_segment.size = (u32) gf_fsize(t);
 
 							rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
-							res = (s32) fread(rep->playback.init_segment.data, sizeof(char), rep->playback.init_segment.size, t);
+							res = (s32) gf_fread(rep->playback.init_segment.data, sizeof(char), rep->playback.init_segment.size, t);
 							if (res != rep->playback.init_segment.size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
 							} else if (rep->segment_list && rep->segment_list->initialization_segment) {
@@ -5873,8 +5870,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				return on_group_download_error(dash, group, base_group, GF_NOT_FOUND, rep, new_base_seg_url, key_url, has_dep_following);
 			}
 		} else {
-			gf_fseek(ftest, 0, SEEK_END);
-			file_size = (u32) gf_ftell(ftest);
+			file_size = (u32) gf_fsize(ftest);
 			gf_fclose(ftest);
 		}
 		group->current_base_url_idx = 0;
@@ -7184,7 +7180,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		if (is_local) {
 			char *sep;
 			strcpy(local_path, local_url);
-			sep = strrchr(local_path, '.');
+			sep = gf_file_ext_start(local_path);
 			if (sep) sep[0]=0;
 			strcat(local_path, ".mpd");
 

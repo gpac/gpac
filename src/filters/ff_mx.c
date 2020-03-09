@@ -52,6 +52,7 @@ typedef struct
 	//options
 	char *dst, *mime;
 	Double start, speed;
+	u32 block_size;
 	Bool interleave, nodisc, ffiles, noinit;
 
 	AVFormatContext *muxer;
@@ -67,6 +68,10 @@ typedef struct
 	u32 nb_pck_in_seg;
 	u32 dash_seg_num;
 	u64 offset_at_seg_start;
+
+	u8 *avio_ctx_buffer;
+	AVIOContext *avio_ctx;
+	FILE *gfio;
 } GF_FFMuxCtx;
 
 static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
@@ -112,8 +117,23 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	return GF_OK;
 }
 
+
+static int ffavio_write_packet(void *opaque, uint8_t *buf, int buf_size)
+{
+	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *)opaque;
+	return gf_fwrite(buf, 1, buf_size, ctx->gfio);
+}
+
+static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)
+{
+	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *)opaque;
+	return gf_fseek(ctx->gfio, offset, whence);
+}
+
 static GF_Err ffmx_initialize(GF_Filter *filter)
 {
+	const char *url;
+	Bool use_gfio=GF_FALSE;
 	AVOutputFormat *ofmt;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
 
@@ -122,19 +142,44 @@ static GF_Err ffmx_initialize(GF_Filter *filter)
 	ctx->muxer = avformat_alloc_context();
 	if (!ctx->muxer) return GF_OUT_OF_MEM;
 
-	ofmt = av_guess_format(NULL, ctx->dst, ctx->mime);
+	url = ctx->dst;
+	if (!strncmp(ctx->dst, "gfio://", 7)) {
+		url = gf_fileio_translate_url(ctx->dst);
+		use_gfio = GF_TRUE;
+	}
+	ofmt = av_guess_format(NULL, url, ctx->mime);
 	if (!ofmt) return GF_FILTER_NOT_SUPPORTED;
 
 	ctx->muxer->oformat = ofmt;
-	if (!(ofmt->flags & AVFMT_NOFILE) ) {
-		//handle local urls some_dir/some_other_dir/file.ext, ffmpeg doesn't create the dirs for us
-		if (gf_url_is_local(ctx->dst)) {
-			FILE *f = gf_fopen(ctx->dst, "wb");
-			gf_fclose(f);
+	ctx->streams = gf_list_new();
+
+	if (ofmt->flags & AVFMT_NOFILE) return GF_OK;
+
+
+	//handle local urls some_dir/some_other_dir/file.ext, ffmpeg doesn't create the dirs for us
+	if (gf_url_is_local(ctx->dst)) {
+		FILE *f = gf_fopen(ctx->dst, "wb");
+		gf_fclose(f);
+	}
+
+	if (use_gfio) {
+		ctx->gfio = gf_fopen(ctx->dst, "wb");
+		if (!ctx->gfio) return GF_URL_ERROR;
+		ctx->avio_ctx_buffer = av_malloc(ctx->block_size);
+		if (!ctx->avio_ctx_buffer) return GF_OUT_OF_MEM;
+
+		ctx->avio_ctx = avio_alloc_context(ctx->avio_ctx_buffer, ctx->block_size,
+									  1, ctx, NULL, &ffavio_write_packet, &ffavio_seek);
+
+		if (!ctx->avio_ctx) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to create AVIO context for %s\n", ctx->dst));
+			return GF_OUT_OF_MEM;
 		}
+		ctx->muxer->pb = ctx->avio_ctx;
+	} else {
 		avio_open(&ctx->muxer->pb, ctx->dst, AVIO_FLAG_WRITE);
 	}
-	ctx->streams = gf_list_new();
+
 	return GF_OK;
 }
 
@@ -717,6 +762,11 @@ static void ffmx_finalize(GF_Filter *filter)
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);
+	if (ctx->avio_ctx) {
+		if (ctx->avio_ctx->buffer) av_freep(&ctx->avio_ctx->buffer);
+		av_freep(&ctx->avio_ctx);
+	}
+	if (ctx->gfio) gf_fclose(ctx->gfio);
 	return;
 }
 
@@ -746,6 +796,9 @@ static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_
 
 static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 {
+	if (!strncmp(url, "gfio://", 7))
+		url = gf_fileio_translate_url(url);
+
 	AVOutputFormat *ofmt = av_guess_format(NULL, url, mime);
 	if (!ofmt && mime) ofmt = av_guess_format(NULL, NULL, mime);
 	if (!ofmt && url) ofmt = av_guess_format(NULL, url, NULL);
@@ -801,6 +854,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffmx` and `gpac -hx ffmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };

@@ -1499,8 +1499,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					st->nhml_info = mux->file_name;
 					nhml = gf_fopen(st->nhml_info, "wt");
 					if (nhml) {
-						fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
-						fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, codecid, st->id);
+						gf_fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+						gf_fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, codecid, st->id);
 						gf_fclose(nhml);
 					} else {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[LASeR Parser] Error opening nhml file %s while preparing import\n", st->nhml_info));
@@ -1531,13 +1531,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				return;
 			}
 			nhml = gf_fopen(st->nhml_info, "a+t");
-			fprintf(nhml, "<NHNTSample ");
-			if (time) fprintf(nhml, "DTS=\"%d\" ", time);
-			if (length) fprintf(nhml, "dataLength=\"%d\" ", length);
-			if (offset) fprintf(nhml, "mediaOffset=\"%d\" ", offset);
-			if (rap) fprintf(nhml, "isRAP=\"yes\" ");
-			if (src) fprintf(nhml, "mediaFile=\"%s\" ", src);
-			fprintf(nhml, "/>\n");
+			gf_fprintf(nhml, "<NHNTSample ");
+			if (time) gf_fprintf(nhml, "DTS=\"%d\" ", time);
+			if (length) gf_fprintf(nhml, "dataLength=\"%d\" ", length);
+			if (offset) gf_fprintf(nhml, "mediaOffset=\"%d\" ", offset);
+			if (rap) gf_fprintf(nhml, "isRAP=\"yes\" ");
+			if (src) gf_fprintf(nhml, "mediaFile=\"%s\" ", src);
+			gf_fprintf(nhml, "/>\n");
 			gf_fclose(nhml);
 			return;
 		}
@@ -1555,7 +1555,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				return;
 			}
 			nhml = gf_fopen(st->nhml_info, "a+t");
-			fprintf(nhml, "</NHNTStream>\n");
+			gf_fprintf(nhml, "</NHNTStream>\n");
 			gf_fclose(nhml);
 			return;
 		}

@@ -302,7 +302,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->pid);
 			return GF_EOS;
 		}
-		nb_read = (u32) fread(ctx->block, 1, to_read, ctx->cached);
+		nb_read = (u32) gf_fread(ctx->block, 1, to_read, ctx->cached);
 		bytes_per_sec = 0;
 
 	}
@@ -337,7 +337,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			if ((e==GF_EOS) && cached && strnicmp(cached, "gmem://", 7)) {
 				ctx->cached = gf_fopen(cached, "rb");
 				if (ctx->cached) {
-					nb_read = (u32) fread(ctx->block, 1, ctx->block_size, ctx->cached);
+					nb_read = (u32) gf_fread(ctx->block, 1, ctx->block_size, ctx->cached);
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Failed to open cached file %s\n", cached));
 				}

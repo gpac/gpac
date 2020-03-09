@@ -317,8 +317,8 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
 		u32 crc;
-		char *l = fgets(szURL, GF_MAX_PATH, f);
-		if (!l || feof(f)) {
+		char *l = gf_fgets(szURL, GF_MAX_PATH, f);
+		if (!l || gf_feof(f)) {
 			if (ctx->floop != 0) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
@@ -724,8 +724,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				fentry->last_mod_time = gf_file_modification_time(list);
 				fo = gf_fopen(list, "rb");
 				if (fo) {
-					gf_fseek(fo, 0, SEEK_END);
-					fentry->file_size = gf_ftell(fo);
+					fentry->file_size = gf_fsize(fo);
 					gf_fclose(fo);
 				}
 				filelist_add_entry(ctx, fentry);

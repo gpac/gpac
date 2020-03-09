@@ -43,9 +43,9 @@ static void StartList(FILE *trace, const char *name, u32 indent, Bool XMTDump)
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
 	if (XMTDump) {
-		fprintf(trace, "%s<%s>\n", ind_buf, name);
+		gf_fprintf(trace, "%s<%s>\n", ind_buf, name);
 	} else {
-		fprintf(trace, "%s%s [\n", ind_buf, name);
+		gf_fprintf(trace, "%s%s [\n", ind_buf, name);
 	}
 }
 static void EndList(FILE *trace, const char *name, u32 indent, Bool XMTDump)
@@ -53,9 +53,9 @@ static void EndList(FILE *trace, const char *name, u32 indent, Bool XMTDump)
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
 	if (XMTDump) {
-		fprintf(trace, "%s</%s>\n", ind_buf, name);
+		gf_fprintf(trace, "%s</%s>\n", ind_buf, name);
 	} else {
-		fprintf(trace, "%s]\n", ind_buf);
+		gf_fprintf(trace, "%s]\n", ind_buf);
 	}
 }
 
@@ -64,11 +64,11 @@ static void StartElement(FILE *trace, const char *descName, u32 indent, Bool XMT
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
 
-	fprintf(trace, "%s", ind_buf);
+	gf_fprintf(trace, "%s", ind_buf);
 	if (!XMTDump) {
-		fprintf(trace, "%s {\n", descName);
+		gf_fprintf(trace, "%s {\n", descName);
 	} else {
-		fprintf(trace, "<%s ", descName);
+		gf_fprintf(trace, "<%s ", descName);
 	}
 }
 
@@ -76,9 +76,9 @@ static void EndAttributes(FILE *trace, Bool XMTDump, Bool has_children)
 {
 	if (XMTDump) {
 		if (has_children) {
-			fprintf(trace, ">\n");
+			gf_fprintf(trace, ">\n");
 		} else {
-			fprintf(trace, "/>\n");
+			gf_fprintf(trace, "/>\n");
 		}
 	}
 }
@@ -88,11 +88,11 @@ static void EndElement(FILE *trace, const char *descName, u32 indent, Bool XMTDu
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
 
-	fprintf(trace, "%s", ind_buf);
+	gf_fprintf(trace, "%s", ind_buf);
 	if (!XMTDump) {
-		fprintf(trace, "}\n");
+		gf_fprintf(trace, "}\n");
 	} else {
-		fprintf(trace, "</%s>\n", descName);
+		gf_fprintf(trace, "</%s>\n", descName);
 	}
 }
 
@@ -101,17 +101,17 @@ static void StartAttribute(FILE *trace, const char *attName, u32 indent, Bool XM
 	char ind_buf[GF_IPMPX_MAX_TREE];
 	GF_IPMPX_FORMAT_INDENT(ind_buf, indent);
 	if (!XMTDump) {
-		fprintf(trace, "%s%s ", ind_buf, attName);
+		gf_fprintf(trace, "%s%s ", ind_buf, attName);
 	} else {
-		fprintf(trace, "%s=\"", attName);
+		gf_fprintf(trace, "%s=\"", attName);
 	}
 }
 static void EndAttribute(FILE *trace, u32 indent, Bool XMTDump)
 {
 	if (!XMTDump) {
-		fprintf(trace, "\n");
+		gf_fprintf(trace, "\n");
 	} else {
-		fprintf(trace, "\" ");
+		gf_fprintf(trace, "\" ");
 	}
 }
 
@@ -119,7 +119,7 @@ static void DumpInt(FILE *trace, char *attName, u32  val, u32 indent, Bool XMTDu
 {
 	if (!val) return;
 	StartAttribute(trace, attName, indent, XMTDump);
-	fprintf(trace, "%d", val);
+	gf_fprintf(trace, "%d", val);
 	EndAttribute(trace, indent, XMTDump);
 }
 
@@ -127,7 +127,7 @@ static void DumpLargeInt(FILE *trace, char *attName, u64  val, u32 indent, Bool 
 {
 	if (!val) return;
 	StartAttribute(trace, attName, indent, XMTDump);
-	fprintf(trace, LLU, val);
+	gf_fprintf(trace, LLU, val);
 	EndAttribute(trace, indent, XMTDump);
 }
 
@@ -136,7 +136,7 @@ static void DumpBool(FILE *trace, char *attName, u32  val, u32 indent, Bool XMTD
 	if (!val) return;
 
 	StartAttribute(trace, attName, indent, XMTDump);
-	fprintf(trace, "%s", val ? "true" : "false");
+	gf_fprintf(trace, "%s", val ? "true" : "false");
 	EndAttribute(trace, indent, XMTDump);
 }
 
@@ -147,7 +147,7 @@ static void DumpData(FILE *trace, const char *name, char *data, u32 dataLength, 
 	if (!name && !data) return;
 
 	if (name) StartAttribute(trace, name, indent, XMTDump);
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 
 	ASCII_Dump = GF_TRUE;
 	for (i=0; i<dataLength; i++) {
@@ -156,16 +156,16 @@ static void DumpData(FILE *trace, const char *name, char *data, u32 dataLength, 
 			break;
 		}
 	}
-	if (!ASCII_Dump && XMTDump) fprintf(trace, "data:application/octet-string,");
+	if (!ASCII_Dump && XMTDump) gf_fprintf(trace, "data:application/octet-string,");
 	for (i=0; i<dataLength; i++) {
 		if (ASCII_Dump) {
-			fprintf(trace, "%c", (unsigned char) data[i]);
+			gf_fprintf(trace, "%c", (unsigned char) data[i]);
 		} else {
-			fprintf(trace, "%%");
-			fprintf(trace, "%02X", (unsigned char) data[i]);
+			gf_fprintf(trace, "%%");
+			gf_fprintf(trace, "%02X", (unsigned char) data[i]);
 		}
 	}
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 	if (name) EndAttribute(trace, indent, XMTDump);
 }
 static void DumpData_16(FILE *trace, char *name, u16 *data, u16 dataLength, u32 indent, Bool XMTDump)
@@ -173,17 +173,17 @@ static void DumpData_16(FILE *trace, char *name, u16 *data, u16 dataLength, u32 
 	u32 i;
 	if (!name && !data) return;
 	if (name) StartAttribute(trace, name, indent, XMTDump);
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 	for (i=0; i<dataLength; i++) {
 		if (XMTDump) {
-			fprintf(trace, "\'%d\'", data[i]);
-			if (i+1<dataLength) fprintf(trace, " ");
+			gf_fprintf(trace, "\'%d\'", data[i]);
+			if (i+1<dataLength) gf_fprintf(trace, " ");
 		} else {
-			fprintf(trace, "%d", data[i]);
-			if (i+1<dataLength) fprintf(trace, ", ");
+			gf_fprintf(trace, "%d", data[i]);
+			if (i+1<dataLength) gf_fprintf(trace, ", ");
 		}
 	}
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 	if (name) EndAttribute(trace, indent, XMTDump);
 }
 static void DumpBin128(FILE *trace, char *name, char *data, u32 indent, Bool XMTDump)
@@ -191,13 +191,13 @@ static void DumpBin128(FILE *trace, char *name, char *data, u32 indent, Bool XMT
 	u32 i;
 	if (!name ||!data) return;
 	StartAttribute(trace, name, indent, XMTDump);
-	fprintf(trace, "0x");
+	gf_fprintf(trace, "0x");
 	i=0;
 	while (!data[i] && (i<16)) i++;
 	if (i==16) {
-		fprintf(trace, "00");
+		gf_fprintf(trace, "00");
 	} else {
-		for (; i<16; i++) fprintf(trace, "%02X", (unsigned char) data[i]);
+		for (; i<16; i++) gf_fprintf(trace, "%02X", (unsigned char) data[i]);
 	}
 	EndAttribute(trace, indent, XMTDump);
 }
@@ -208,8 +208,8 @@ static void DumpDate(FILE *trace, char *name, char *data, u32 indent, Bool XMTDu
 	u32 i;
 	if (!name ||!data) return;
 	StartAttribute(trace, name, indent, XMTDump);
-	fprintf(trace, "0x");
-	for (i=0; i<5; i++) fprintf(trace, "%02X", (unsigned char) data[i]);
+	gf_fprintf(trace, "0x");
+	for (i=0; i<5; i++) gf_fprintf(trace, "%02X", (unsigned char) data[i]);
 	EndAttribute(trace, indent, XMTDump);
 }
 
@@ -435,8 +435,8 @@ GF_Err gf_ipmpx_dump_MutualAuthentication(GF_IPMPX_Data *_p, FILE *trace, u32 in
 				} else {
 					StartAttribute(trace, "", indent, GF_FALSE);
 					DumpData(trace, NULL, ipd->data, ipd->length, indent, GF_FALSE);
-					if (i+1<count) fprintf(trace, ",");
-					fprintf(trace, "\n");
+					if (i+1<count) gf_fprintf(trace, ",");
+					gf_fprintf(trace, "\n");
 				}
 			}
 			EndList(trace, "certificates", indent, XMTDump);
@@ -608,17 +608,17 @@ GF_Err gf_ipmpx_dump_AddToolNotificationListener(GF_IPMPX_Data *_p, FILE *trace,
 	indent++;
 	DumpInt(trace, "scope", p->scope, indent, XMTDump);
 	StartAttribute(trace, "eventType", indent, XMTDump);
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 	for (i=0; i<p->eventTypeCount; i++) {
 		if (XMTDump) {
-			fprintf(trace, "\'%d\'", p->eventType[i]);
-			if (i+1<p->eventTypeCount) fprintf(trace, " ");
+			gf_fprintf(trace, "\'%d\'", p->eventType[i]);
+			if (i+1<p->eventTypeCount) gf_fprintf(trace, " ");
 		} else {
-			fprintf(trace, "%d", p->eventType[i]);
-			if (i+1<p->eventTypeCount) fprintf(trace, ",");
+			gf_fprintf(trace, "%d", p->eventType[i]);
+			if (i+1<p->eventTypeCount) gf_fprintf(trace, ",");
 		}
 	}
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 	EndAttribute(trace, indent, XMTDump);
 	EndAttributes(trace, XMTDump, GF_TRUE);
 	gf_ipmpx_dump_BaseData(_p, trace, indent, XMTDump);
@@ -633,17 +633,17 @@ GF_Err gf_ipmpx_dump_RemoveToolNotificationListener(GF_IPMPX_Data *_p, FILE *tra
 	StartElement(trace, "IPMP_RemoveToolNotificationListener", indent, XMTDump);
 	indent++;
 	StartAttribute(trace, "eventType", indent, XMTDump);
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 	for (i=0; i<p->eventTypeCount; i++) {
 		if (XMTDump) {
-			fprintf(trace, "\'%d\'", p->eventType[i]);
-			if (i+1<p->eventTypeCount) fprintf(trace, " ");
+			gf_fprintf(trace, "\'%d\'", p->eventType[i]);
+			if (i+1<p->eventTypeCount) gf_fprintf(trace, " ");
 		} else {
-			fprintf(trace, "%d", p->eventType[i]);
-			if (i+1<p->eventTypeCount) fprintf(trace, ",");
+			gf_fprintf(trace, "%d", p->eventType[i]);
+			if (i+1<p->eventTypeCount) gf_fprintf(trace, ",");
 		}
 	}
-	if (!XMTDump) fprintf(trace, "\"");
+	if (!XMTDump) gf_fprintf(trace, "\"");
 	EndAttribute(trace, indent, XMTDump);
 	EndAttributes(trace, XMTDump, GF_TRUE);
 	gf_ipmpx_dump_BaseData(_p, trace, indent, XMTDump);

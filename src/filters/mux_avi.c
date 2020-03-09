@@ -415,7 +415,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 
 static GF_FilterProbeScore avimux_probe_url(const char *url, const char *mime)
 {
-	char *fext = strrchr(url, '.');
+	char *fext = gf_file_ext_start(url);
 	if (fext && !stricmp(fext, ".avi")) return GF_FPROBE_FORCE;
 	if (mime) {
 		if (!stricmp(mime, "video/avi")) return GF_FPROBE_FORCE;

@@ -465,11 +465,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			} else {
 				segext = NULL;
 				if (ctx->out_path) {
-					char *mpath = ctx->out_path;
-					if (!strncmp(mpath, "gfio://", 7)) {
-						mpath = (char *) gf_fileio_translate_url(mpath);
-					}
-					segext = strrchr(mpath, '.');
+					segext = gf_file_ext_start(ctx->out_path);
 				}
 				if (!segext) segext = "mpd";
 				else segext++;
@@ -1994,30 +1990,19 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 	gf_dynstrcat(&szDST, szInitURL, NULL);
 	if (ctx->out_path) {
-		if (!strncmp(ctx->out_path, "gfio://", 7)) {
-			GF_FileIO *gfio = gf_fileio_from_url(ctx->out_path);
-			if (gfio) {
-				const char *rel = gf_fileio_factory(gfio, szInitURL);
-				if (rel) {
-					gf_free(szDST);
-					szDST = gf_strdup(rel);
-				}
+		char *rel = NULL;
+		if (ctx->do_m3u8 && ds->hls_vp_name) {
+			char *tmp = gf_url_concatenate(ctx->out_path, ds->hls_vp_name);
+			if (tmp) {
+				rel = gf_url_concatenate(tmp, szInitURL);
+				gf_free(tmp);
 			}
-		} else {
-			char *rel = NULL;
-			if (ctx->do_m3u8 && ds->hls_vp_name) {
-				char *tmp = gf_url_concatenate(ctx->out_path, ds->hls_vp_name);
-				if (tmp) {
-					rel = gf_url_concatenate(tmp, szInitURL);
-					gf_free(tmp);
-				}
-			}
-			if (!rel)
-				rel = gf_url_concatenate(ctx->out_path, szInitURL);
-			if (rel) {
-				gf_free(szDST);
-				szDST = rel;
-			}
+		}
+		if (!rel)
+			rel = gf_url_concatenate(ctx->out_path, szInitURL);
+		if (rel) {
+			gf_free(szDST);
+			szDST = rel;
 		}
 	}
 
@@ -3035,12 +3020,10 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 	u32 size, nb_read;
 	u8 *output;
 
-	gf_fseek(f, 0, SEEK_END);
-	size = (u32) gf_ftell(f);
-	gf_fseek(f, 0, SEEK_SET);
+	size = (u32) gf_fsize(f);
 
 	pck = gf_filter_pck_new_alloc(opid, size, &output);
-	nb_read = (u32) fread(output, 1, size, f);
+	nb_read = (u32) gf_fread(output, 1, size, f);
 	if (nb_read != size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
 	}
