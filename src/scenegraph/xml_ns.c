@@ -1051,14 +1051,13 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 	f = gf_fopen(szFile, "rb");
 	if (!f) return 0;
 
-	gf_fseek(f, 0, SEEK_END);
-	fsize = gf_ftell(f);
+	fsize = gf_fsize(f);
 	if (fsize==data_size) {
 		u32 offset=0;
 		char cache[1024];
-		gf_fseek(f, 0, SEEK_SET);
+
 		while (fsize) {
-			u32 read = (u32) fread(cache, 1, 1024, f);
+			u32 read = (u32) gf_fread(cache, 1, 1024, f);
 			if ((s32) read < 0) return 0;
 			fsize -= read;
 			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
@@ -1100,7 +1099,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 		else sep += 1;
 		strcat(szFile, sep);
 	}
-	sep = strrchr(szFile, '.');
+	sep = gf_file_ext_start(szFile);
 	if (sep) sep[0] = 0;
 	strcat(szFile, "_img_");
 

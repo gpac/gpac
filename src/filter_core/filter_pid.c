@@ -3134,11 +3134,11 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 					char szLine[2001];
 					FILE *arg_file = gf_fopen(args, "rt");
 					szLine[2000]=0;
-					while (!feof(arg_file)) {
+					while (!gf_feof(arg_file)) {
 						u32 llen;
 						char *subarg, *res;
 						szLine[0] = 0;
-						res = fgets(szLine, 2000, arg_file);
+						res = gf_fgets(szLine, 2000, arg_file);
 						if (!res) break;
 						llen = (u32) strlen(szLine);
 						while (llen && strchr(" \n\r\t", szLine[llen-1])) {
@@ -6335,7 +6335,12 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		} else if (str_val) {
 			if (is_file_str) {
 				char *ext;
-				char *sname = strrchr(str_val, '/');
+				char *sname;
+
+				if (!strncmp(str_val, "gfio://", 7))
+					str_val = gf_fileio_translate_url(str_val);
+
+				sname = strrchr(str_val, '/');
 				if (!sname) sname = strrchr(str_val, '\\');
 				if (!sname) sname = (char *) str_val;
 				else sname++;

@@ -139,7 +139,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 	ctx->start_offset = 6;
 	ctx->sample_rate = 8000;
 	ctx->block_size = 160;
-	i = (u32) fread(magic, 1, 20, stream);
+	i = (u32) gf_fread(magic, 1, 20, stream);
 	if (i != 20) return;
 
 	if (!strnicmp(magic, "#!AMR\n", 6)) {
@@ -170,11 +170,11 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 
 	cur_dur = 0;
 	duration = 0;
-	while (!feof(stream)) {
+	while (!gf_feof(stream)) {
 		u32 size=0;
 		u64 pos;
 		u8 toc, ft;
-		toc = fgetc(stream);
+		toc = gf_fgetc(stream);
 
 		switch (ctx->codecid) {
 		case GF_CODECID_AMR:

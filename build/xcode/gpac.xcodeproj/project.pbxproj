@@ -263,6 +263,7 @@
 		929867752355DED1008A2CC6 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		929867772357320B008A2CC6 /* webgl_pixfmt.c in Sources */ = {isa = PBXBuildFile; fileRef = 929867762357320A008A2CC6 /* webgl_pixfmt.c */; };
 		9298677D235A146E008A2CC6 /* gltools.c in Sources */ = {isa = PBXBuildFile; fileRef = 9298677C235A146D008A2CC6 /* gltools.c */; };
+		929DE7472417DC020056AFA7 /* gzio.c in Sources */ = {isa = PBXBuildFile; fileRef = 929DE7462417DC020056AFA7 /* gzio.c */; };
 		92A08DBD20D946B7003589FF /* tileagg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A08DBC20D946B6003589FF /* tileagg.c */; };
 		92A505BA20FC833800049B29 /* in_atsc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A505B920FC833800049B29 /* in_atsc.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
@@ -912,6 +913,7 @@
 		9296BF2122CF7F5300DC9742 /* reframe_flac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_flac.c; path = filters/reframe_flac.c; sourceTree = "<group>"; };
 		929867762357320A008A2CC6 /* webgl_pixfmt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = webgl_pixfmt.c; path = jsmods/webgl_pixfmt.c; sourceTree = "<group>"; };
 		9298677C235A146D008A2CC6 /* gltools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gltools.c; sourceTree = "<group>"; };
+		929DE7462417DC020056AFA7 /* gzio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gzio.c; sourceTree = "<group>"; };
 		92A08DBC20D946B6003589FF /* tileagg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tileagg.c; path = filters/tileagg.c; sourceTree = "<group>"; };
 		92A505B920FC833800049B29 /* in_atsc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_atsc.c; path = filters/in_atsc.c; sourceTree = "<group>"; };
 		92A7E95C2003BAAA000C22DE /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
@@ -1374,6 +1376,7 @@
 		9201008C18D5A444003D1ACA /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				929DE7462417DC020056AFA7 /* gzio.c */,
 				9298677C235A146D008A2CC6 /* gltools.c */,
 				9201008D18D5A444003D1ACA /* alloc.c */,
 				9201008E18D5A444003D1ACA /* base_encoding.c */,
@@ -2547,6 +2550,7 @@
 				924FEE821BA6C63A003F77A6 /* iff.c in Sources */,
 				9201011418D5A444003D1ACA /* avc_ext.c in Sources */,
 				9201011518D5A444003D1ACA /* box_code_3gpp.c in Sources */,
+				929DE7472417DC020056AFA7 /* gzio.c in Sources */,
 				9201011618D5A444003D1ACA /* box_code_adobe.c in Sources */,
 				92D6C5A02343BEFF00262217 /* svg_js.c in Sources */,
 				9201011718D5A444003D1ACA /* box_code_apple.c in Sources */,

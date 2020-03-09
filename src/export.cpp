@@ -116,6 +116,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fclose) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fseek) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ftell) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fread) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fgets) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_exists) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_basename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_ext_start) )

@@ -58,8 +58,6 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *p
 	hdr_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 	aux_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 
-//	fprintf(stderr, "parsing packet %d size %d ts %d M %d\n", hdr->SequenceNumber, size, hdr->TimeStamp, hdr->Marker);
-
 	/*global AU header len*/
 	au_hdr_size = 0;
 	if (rtp->sl_map.auh_first_min_len) {

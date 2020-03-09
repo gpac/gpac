@@ -635,9 +635,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&response_body, "No content length specified and chunked transfer not enabled", NULL);
 				goto exit;
 			}
-			gf_fseek(sess->resource, 0, SEEK_END);
-			sess->file_size = gf_ftell(sess->resource);
-			gf_fseek(sess->resource, 0, SEEK_SET);
+			sess->file_size = gf_fsize(sess->resource);
 		}
 		sess->file_pos = 0;
 
@@ -812,7 +810,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 			if (!sess->in_source) {
 				u8 probe_buf[5001];
-				u32 read = (u32) fread(probe_buf, 1, 5000, sess->resource);
+				u32 read = (u32) gf_fread(probe_buf, 1, 5000, sess->resource);
 				if ((s32) read < 0) {
 					response = "HTTP/1.1 500 Internal Server Error\r\n";
 					gf_dynstrcat(&response_body, "File opened but read operation failed", NULL);
@@ -821,9 +819,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				probe_buf[read] = 0;
 				mime = gf_filter_probe_data(sess->ctx->filter, probe_buf, read);
 
-				gf_fseek(sess->resource, 0, SEEK_END);
-				sess->file_size = gf_ftell(sess->resource);
-				gf_fseek(sess->resource, 0, SEEK_SET);
+				sess->file_size = gf_fsize(sess->resource);
 			} else {
 				mime = source_pid->mime;
 				sess->file_size = 0;
@@ -1245,7 +1241,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (url) {
 		if (ctx->ext) ext = ctx->ext;
 		else {
-			ext = strrchr(url, '.');
+			ext = gf_file_ext_start(url);
 			if (!ext) ext = ".*";
 			ext += 1;
 		}
@@ -1440,7 +1436,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		assert(0);
 	}
 	if (!sess->nb_ranges) {
-		write = (u32) fwrite(data, 1, size, sess->resource);
+		write = (u32) gf_fwrite(data, 1, size, sess->resource);
 		if (write != size) {
 			return GF_IO_ERR;
 		}
@@ -1453,7 +1449,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		to_write = (u32) (sess->ranges[sess->range_idx].end + 1 - sess->file_pos);
 		if (to_write>=remain) {
 			to_write = remain;
-			write = (u32) fwrite(data, 1, remain, sess->resource);
+			write = (u32) gf_fwrite(data, 1, remain, sess->resource);
 			if (write != remain) {
 				return GF_IO_ERR;
 			}
@@ -1462,7 +1458,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 			remain = 0;
 			break;
 		}
-		write = (u32) fwrite(data, 1, to_write, sess->resource);
+		write = (u32) gf_fwrite(data, 1, to_write, sess->resource);
 		sess->nb_bytes += write;
 		remain -= to_write;
 		sess->range_idx++;
@@ -1671,7 +1667,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (to_read > sess->ctx->block_size)
 			to_read = sess->ctx->block_size;
 
-		read = (u32) fread(sess->buffer, 1, to_read, sess->resource);
+		read = (u32) gf_fread(sess->buffer, 1, to_read, sess->resource);
 
 		//transfer of file being uploaded, use chunk transfer
 		if (sess->use_chunk_transfer) {
@@ -1900,7 +1896,7 @@ retry:
 		u32 i, count = gf_list_count(ctx->active_sessions);
 
 		if (in->resource) {
-			out = (u32) fwrite(pck_data, 1, pck_size, in->resource);
+			out = (u32) gf_fwrite(pck_data, 1, pck_size, in->resource);
 		}
 
 		for (i=0; i<count; i++) {

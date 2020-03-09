@@ -711,7 +711,7 @@ GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 
 	ctx  = gf_sha1_starts();
 
-	while( ( n = fread( buf, 1, sizeof( buf ), f ) ) > 0 )
+	while( ( n = gf_fread( buf, 1, sizeof( buf ), f ) ) > 0 )
 		gf_sha1_update(ctx, buf, (s32) n );
 
 	gf_sha1_finish(ctx, output );

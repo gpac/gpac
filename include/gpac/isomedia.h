@@ -2305,7 +2305,7 @@ GF_Err gf_isom_set_track_magic(GF_ISOFile *isom_file, u32 trackNumber, u64 magic
 \param udta opaque user data for the callback function
 \return error if any
 */
-GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, void (*track_num_changed)(void *udta, u32 old_track_num, u32 new_track_num), void *udta);
+GF_Err gf_isom_set_track_index(GF_ISOFile *isom_file, u32 trackNumber, u32 index, void (*track_num_changed)(void *udta, u32 old_track_num, u32 new_track_num), void *udta);
 
 /*! removes a sample description with the given index
 \warning This does not remove any added samples for that stream description, nor rewrite the sample to chunk and other boxes referencing the sample description index !
@@ -3378,7 +3378,7 @@ GF_Err gf_isom_get_tmcd_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampl
 \param pcm_size  set to PCM sample size (per channel, 16, 24, 32, 64
 \return error if any
 */
-GF_Err gf_isom_get_pcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, u32 *flags, u32 *pcm_size);
+GF_Err gf_isom_get_pcm_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *flags, u32 *pcm_size);
 
 /*! @} */
 

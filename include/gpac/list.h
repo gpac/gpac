@@ -113,6 +113,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 position);
 Gets an item from the list given its position
 \param ptr target list object
 \param position position of the item to get. It is expressed between 0 and gf_list_count-1.
+\return the item or NULL if not found
  */
 void *gf_list_get(GF_List *ptr, u32 position);
 
@@ -150,6 +151,7 @@ void gf_list_reset(GF_List *ptr);
 
 Gets last item o fthe list
 \param ptr target list object
+\return the last item
  */
 void *gf_list_last(GF_List *ptr);
 
@@ -171,7 +173,8 @@ Retrieves given list item and increment current position
 \param ptr target list object
 \param pos target item position. The position is automatically incremented regardless of the return value
 \note A typical enumeration will start with a value of 0 until NULL is returned.
- */
+\return the current item for the given index
+*/
 void *gf_list_enum(GF_List *ptr, u32 *pos);
 
 /*!

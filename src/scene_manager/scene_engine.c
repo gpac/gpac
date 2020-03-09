@@ -589,7 +589,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 	ext = NULL;
 	if (ctxFileName) {
 		strcpy(szF, ctxFileName);
-		ext = strrchr(szF, '.');
+		ext = gf_file_ext_start(szF);
 	}
 	d_mode = GF_SM_DUMP_BT;
 	do_enc = 0;

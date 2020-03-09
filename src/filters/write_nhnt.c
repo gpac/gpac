@@ -52,7 +52,93 @@ typedef struct
 
 	GF_BitStream *bs;
 	u64 mdia_pos;
+	Bool configure_side_streams;
 } GF_NHNTDumpCtx;
+
+GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
+{
+	const GF_PropertyValue *p;
+	char *name, *url, *res_name;
+	char fileName[1024];
+	GF_FileIO *gfio = NULL;
+	GF_Err e;
+
+	url = gf_filter_pid_get_destination(ctx->opid_nhnt);
+	if (url) {
+		if (!strncmp(url, "gfio://", 7)) {
+			gfio = gf_fileio_from_url(url);
+			strncpy(fileName, gf_fileio_translate_url(url), 1024);
+		} else {
+			strncpy(fileName, url, 1024);
+		}
+		gf_free(url);
+	} else {
+		strcpy(fileName, "dump");
+	}
+
+	name = gf_file_ext_start(fileName);
+	if (name) {
+		name[0] = 0;
+	}
+	if (!ctx->opid_mdia)
+		ctx->opid_mdia = gf_filter_pid_new(filter);
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DECODER_CONFIG);
+	if (p) {
+		ctx->dcfg = p->value.data.ptr;
+		ctx->dcfg_size = p->value.data.size;
+
+		if (!ctx->opid_info)
+			ctx->opid_info = gf_filter_pid_new(filter);
+
+	} else if (ctx->opid_info) {
+		gf_filter_pid_remove(ctx->opid_info);
+	}
+
+	gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+	gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_FILE_EXT, &PROP_STRING("media") );
+	gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_MIME, &PROP_STRING("application/x-nhnt") );
+
+	if (!ctx->exporter) {
+		name = gf_file_ext_start(fileName);
+		if (name) name[0] = 0;
+		strcat(fileName, ".media");
+		if (gfio) {
+			res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
+		} else {
+			res_name = fileName;
+		}
+		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_OUTPATH, &PROP_STRING(res_name) );
+
+		GF_Filter *o_media = gf_filter_connect_destination(filter, res_name, &e);
+		if (o_media) gf_filter_set_source(o_media, filter, NULL);
+	}
+
+
+	if (ctx->opid_info) {
+		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_FILE_EXT, &PROP_STRING("info") );
+		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_MIME, &PROP_STRING("application/x-nhnt") );
+
+		if (!ctx->exporter) {
+			name = gf_file_ext_start(fileName);
+			if (name) name[0] = 0;
+			strcat(fileName, ".info");
+			if (gfio) {
+				res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
+			} else {
+				res_name = fileName;
+			}
+			gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_OUTPATH, &PROP_STRING(res_name) );
+
+			GF_Filter *o_info = gf_filter_connect_destination(filter, res_name, &e);
+			if (o_info) gf_filter_set_source(o_info, filter, NULL);
+		}
+
+	}
+	ctx->configure_side_streams = GF_FALSE;
+	return GF_OK;
+}
 
 GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -79,6 +165,7 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		return GF_OK;
 	}
 	ctx->codecid = cid;
+	ctx->configure_side_streams = GF_TRUE;
 
 	if (ctx->codecid<GF_CODECID_LAST_MPEG4_MAPPING) ctx->oti = ctx->codecid;
 	else {
@@ -95,9 +182,6 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (!ctx->opid_nhnt)
 		ctx->opid_nhnt = gf_filter_pid_new(filter);
 
-	if (!ctx->opid_mdia)
-		ctx->opid_mdia = gf_filter_pid_new(filter);
-
 	ctx->ipid = pid;
 
 
@@ -112,17 +196,6 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 	h = p ? p->value.uint : 0;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (p) {
-		ctx->dcfg = p->value.data.ptr;
-		ctx->dcfg_size = p->value.data.size;
-
-		if (!ctx->opid_info)
-			ctx->opid_info = gf_filter_pid_new(filter);
-
-	} else if (ctx->opid_info) {
-		gf_filter_pid_remove(ctx->opid_info);
-	}
 
 	name = gf_codecid_name(ctx->codecid);
 	if (ctx->exporter) {
@@ -139,15 +212,6 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	gf_filter_pid_set_property(ctx->opid_nhnt, GF_PROP_PID_FILE_EXT, &PROP_STRING("nhnt") );
 	gf_filter_pid_set_property(ctx->opid_nhnt, GF_PROP_PID_MIME, &PROP_STRING("application/x-nhnt") );
 
-	gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-	gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_FILE_EXT, &PROP_STRING("media") );
-	gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_MIME, &PROP_STRING("application/x-nhnt") );
-
-	if (ctx->opid_info) {
-		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_FILE_EXT, &PROP_STRING("info") );
-		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_MIME, &PROP_STRING("application/x-nhnt") );
-	}
 
 	ctx->first = GF_TRUE;
 
@@ -165,6 +229,10 @@ GF_Err nhntdump_process(GF_Filter *filter)
 	u8 *output;
 	u32 size, pck_size;
 	u64 dts, cts;
+
+	if (ctx->configure_side_streams) {
+		return nhntdump_config_side_streams(filter, ctx);
+	}
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {

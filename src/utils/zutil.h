@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 #define ZLIB_INTERNAL
-#include "zlib.h"
+#include <zlib.h>
 
 #ifdef STDC
 #  ifndef _WIN32_WCE

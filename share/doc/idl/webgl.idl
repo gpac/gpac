@@ -444,7 +444,7 @@ void upload(Texture tx);
 /*! The FilterPid object is extended as follows*/
 interface FilterPid {
 
-/*! creates a new output packet using the underlying texture attachement of the context as a texture source (see \ref GF_FilterFrameInterface).
+/*! creates a new output packet using the underlying texture attachement of the context as a texture source (see GF_FilterFrameInterface).
 \warning This will throw an error if called more than once on a given context but the associated packet has not been consumed yet!
 \param gl the WebGL context used to create the packet.  
 \param on_frame_consumed a callback function notified when the associated packet has been consummed

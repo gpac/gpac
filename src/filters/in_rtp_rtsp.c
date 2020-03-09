@@ -216,7 +216,7 @@ GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
 
 	/*little fix: some servers don't understand DESCRIBE URL/trackID=, so remove the trackID...*/
 	szCtrl = gf_strdup(session_control);
-	szExt = szCtrl ? strrchr(szCtrl, '.') : NULL;
+	szExt = szCtrl ? gf_file_ext_start(szCtrl) : NULL;
 	if (szExt) {
 		szExt = strchr(szExt, '/');
 		if (szExt) {

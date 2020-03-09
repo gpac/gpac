@@ -541,6 +541,7 @@
     <ClCompile Include="..\..\src\utils\downloader.c" />
     <ClCompile Include="..\..\src\utils\error.c" />
     <ClCompile Include="..\..\src\utils\gltools.c" />
+    <ClCompile Include="..\..\src\utils\gzio.c" />
     <ClCompile Include="..\..\src\utils\list.c" />
     <ClCompile Include="..\..\src\utils\math.c" />
     <ClCompile Include="..\..\src\utils\module.c" />

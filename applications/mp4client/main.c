@@ -564,7 +564,7 @@ static Bool read_line_input(char * line, int maxSize, Bool showContent) {
 				i--;
 			}
 		} else if (read > 32) {
-			fputc(showContent ? read : '*', stderr);
+			gf_fputc(showContent ? read : '*', stderr);
 			line[i++] = read;
 		}
 		fflush(stderr);

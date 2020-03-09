@@ -214,7 +214,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *infile, const char *drm_file, const char *out
 \param fs_dump_flags flags for session stats (1) and session graph (1<<1) dumping
 \return error code if any
 */
-GF_Err gf_decrypt_fragment(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, const char *frag_name, u32 fs_dump_flags);
+GF_Err gf_decrypt_fragment(GF_ISOFile *infile, const char *drm_file, const char *dst_file, const char *frag_name, u32 fs_dump_flags);
 
 /*! encrypts a file
 \param infile source MP4 file to encrypt

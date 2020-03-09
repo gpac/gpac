@@ -706,20 +706,18 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 	if (!tmp) return NULL;
 
 	/* write SDP header*/
-	fprintf(tmp, "v=0\n");
-	fprintf(tmp, "o=%s 3326096807 1117107880000 IN IP%d %s\n", app_name, gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
-	fprintf(tmp, "s=%s\n", (session_name ? session_name : "GPAC Scene Streaming Session"));
-	fprintf(tmp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
-	fprintf(tmp, "t=0 0\n");
+	gf_fprintf(tmp, "v=0\n");
+	gf_fprintf(tmp, "o=%s 3326096807 1117107880000 IN IP%d %s\n", app_name, gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
+	gf_fprintf(tmp, "s=%s\n", (session_name ? session_name : "GPAC Scene Streaming Session"));
+	gf_fprintf(tmp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
+	gf_fprintf(tmp, "t=0 0\n");
 
 	if (iod64)
-		fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
+		gf_fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
 
-	gf_fseek(tmp, 0, SEEK_END);
-	size = gf_ftell(tmp);
-	gf_fseek(tmp, 0, SEEK_SET);
+	size = gf_fsize(tmp);
 	sdp = (char*)gf_malloc(sizeof(char) * (size_t)(size+1));
-	size = fread(sdp, 1, (size_t)size, tmp);
+	size = gf_fread(sdp, 1, (size_t)size, tmp);
 	sdp[size] = 0;
 	gf_fclose(tmp);
 	gf_file_delete(tmp_fn);

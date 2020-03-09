@@ -67,7 +67,120 @@ typedef struct
 	u32 b64_buffer_size;
 	u64 mdia_pos;
 	u32 pck_num;
+
+	Bool side_streams_config;
 } GF_NHMLDumpCtx;
+
+GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
+{
+	char *mime=NULL, *name, *url;
+	char fileName[1024];
+	const GF_PropertyValue *p;
+	GF_FileIO *gfio = NULL;
+
+	if (ctx->name) {
+		strncpy(fileName, ctx->name, 1024);
+	} else {
+		url = gf_filter_pid_get_destination(ctx->opid_nhml);
+		if (url) {
+			if (!strncmp(url, "gfio://", 7)) {
+				gfio = gf_fileio_from_url(url);
+				strncpy(fileName, gf_fileio_translate_url(url), 1024);
+			} else {
+				strncpy(fileName, url, 1024);
+			}
+			gf_free(url);
+ 		} else {
+			strcpy(fileName, "dump");
+		}
+	}
+	name = gf_file_ext_start(fileName);
+	if (name) {
+		name[0] = 0;
+	}
+
+	if (!ctx->opid_mdia && !ctx->nhmlonly)
+		ctx->opid_mdia = gf_filter_pid_new(filter);
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DECODER_CONFIG);
+	if (p) {
+		ctx->dcfg = p->value.data.ptr;
+		ctx->dcfg_size = p->value.data.size;
+
+		if (!ctx->opid_info && !ctx->nhmlonly) {
+			ctx->opid_info = gf_filter_pid_new(filter);
+		}
+
+	} else if (ctx->opid_info) {
+		gf_filter_pid_remove(ctx->opid_info);
+	}
+	if (ctx->info_file) gf_free(ctx->info_file);
+	ctx->info_file = NULL;
+
+	if (ctx->opid_mdia) {
+		GF_Err e;
+		char *res_name;
+		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_MIME, &PROP_STRING(mime) );
+
+		name = gf_file_ext_start(fileName);
+		if (name) name[0] = 0;
+		strcat(fileName, ".media");
+		if (gfio) {
+			res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
+		} else {
+			res_name = fileName;
+		}
+		if (!ctx->exporter) {
+			gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_OUTPATH, &PROP_STRING(res_name) );
+		}
+
+		if (ctx->media_file) gf_free(ctx->media_file);
+		ctx->media_file = gf_strdup(fileName);
+		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_FILE_EXT, &PROP_STRING("media") );
+
+		if (!ctx->exporter) {
+			GF_Filter *o_media = gf_filter_connect_destination(filter, res_name, &e);
+			if (o_media) gf_filter_set_source(o_media, filter, NULL);
+		}
+	}
+
+	if (ctx->opid_info) {
+		char *res_name;
+		GF_Err e;
+		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_MIME, &PROP_STRING(mime) );
+
+		name = gf_file_ext_start(fileName);
+		if (name) name[0] = 0;
+		strcat(fileName, ".info");
+		if (gfio) {
+			res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
+		} else {
+			res_name = fileName;
+		}
+		if (!ctx->exporter) {
+			gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_OUTPATH, &PROP_STRING(res_name) );
+		}
+
+		if (ctx->info_file) gf_free(ctx->info_file);
+		ctx->info_file = gf_strdup(fileName);
+		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_FILE_EXT, &PROP_STRING("info") );
+
+		if (!ctx->exporter) {
+			GF_Filter *o_info = gf_filter_connect_destination(filter, res_name, &e);
+			if (o_info) gf_filter_set_source(o_info, filter, NULL);
+		}
+	}
+
+	if (ctx->opid_mdia)
+		gf_filter_pid_set_name(ctx->opid_mdia, "media");
+	if (ctx->opid_info)
+		gf_filter_pid_set_name(ctx->opid_info, "info");
+
+	ctx->side_streams_config = GF_TRUE;
+	return GF_OK;
+}
 
 GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -108,13 +221,17 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (!ctx->opid_nhml && !ctx->filep)
 		ctx->opid_nhml = gf_filter_pid_new(filter);
 
+	ctx->side_streams_config = GF_FALSE;
+	if (ctx->nhmlonly)
+		ctx->side_streams_config = GF_TRUE;
+
 	ctx->is_dims = GF_FALSE;
 	if ((ctx->codecid == GF_CODECID_DIMS) && ctx->dims) {
 		gf_filter_pid_remove(ctx->opid_mdia);
 		ctx->opid_mdia = NULL;
 		ctx->is_dims = GF_TRUE;
-	} else if (!ctx->opid_mdia && !ctx->nhmlonly)
-		ctx->opid_mdia = gf_filter_pid_new(filter);
+		ctx->side_streams_config = GF_TRUE;
+	}
 
 	//file pointer set, we act as a sink, send play
 	if (!ctx->ipid && ctx->filep) {
@@ -136,21 +253,6 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 	ctx->h = p ? p->value.uint : 0;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (p) {
-		ctx->dcfg = p->value.data.ptr;
-		ctx->dcfg_size = p->value.data.size;
-
-		if (!ctx->opid_info && !ctx->nhmlonly) {
-			ctx->opid_info = gf_filter_pid_new(filter);
-		}
-
-	} else if (ctx->opid_info) {
-		gf_filter_pid_remove(ctx->opid_info);
-	}
-	if (ctx->info_file) gf_free(ctx->info_file);
-	ctx->info_file = NULL;
-
 	name = (char*) gf_codecid_name(ctx->codecid);
 	if (ctx->exporter) {
 		if (ctx->w && ctx->h) {
@@ -167,15 +269,17 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		mime = ctx->dims ? "application/dims" : "application/x-nhml";
 		ext = ctx->dims ? "dims" : "nhml";
 
-		strncpy(fileName, ctx->name, 1024);
-		name = gf_file_ext_start(fileName);
-		if (name) {
-			name[0] = 0;
-			gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(ctx->name) );
-		} else {
-			strcat(fileName, ".nhml");
-			gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
-			name = strrchr(fileName, '.');
+		if (ctx->name) {
+			strncpy(fileName, ctx->name, 1024);
+			name = gf_file_ext_start(fileName);
+			if (name) {
+				name[0] = 0;
+				gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(ctx->name) );
+			} else {
+				strcat(fileName, ".nhml");
+				gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
+				name = gf_file_ext_start(fileName);
+			}
 		}
 
 		gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
@@ -183,26 +287,6 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext) );
 	}
 
-	if (ctx->opid_mdia) {
-		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_MIME, &PROP_STRING(mime) );
-		name[0] = 0;
-		strcat(fileName, ".media");
-		gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
-		if (ctx->media_file) gf_free(ctx->media_file);
-		ctx->media_file = gf_strdup(fileName);
-		gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_FILE_EXT, &PROP_STRING("media") );
-	}
-
-	if (ctx->opid_info) {
-		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_MIME, &PROP_STRING(mime) );
-		name[0] = 0;
-		strcat(fileName, ".info");
-		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
-		ctx->info_file = gf_strdup(fileName);
-		gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_FILE_EXT, &PROP_STRING("info") );
-	}
 
 	ctx->first = GF_TRUE;
 	ctx->is_stpp = (cid==GF_CODECID_SUBS_XML) ? GF_TRUE : GF_FALSE;
@@ -213,10 +297,6 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (ctx->opid_nhml)
 		gf_filter_pid_set_name(ctx->opid_nhml, "nhml");
-	if (ctx->opid_mdia)
-		gf_filter_pid_set_name(ctx->opid_mdia, "media");
-	if (ctx->opid_info)
-		gf_filter_pid_set_name(ctx->opid_info, "info");
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
@@ -393,7 +473,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+		gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
 		return;
 	}
 
@@ -508,7 +588,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+		gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
 		return;
 	}
 
@@ -707,7 +787,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+		gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
 		return;
 	}
 
@@ -738,6 +818,10 @@ GF_Err nhmldump_process(GF_Filter *filter)
 	char *data;
 	u32 pck_size;
 
+	if (!ctx->side_streams_config) {
+		return nhmldump_config_side_stream(filter, ctx);
+	}
+
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
@@ -751,7 +835,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 				gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 				if (ctx->filep) {
-					fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+					gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
 				} else {
 					GF_FilterPacket *dst_pck;
 					u8 *output;
@@ -803,11 +887,6 @@ GF_Err nhmldump_process(GF_Filter *filter)
 
 static GF_Err nhmldump_initialize(GF_Filter *filter)
 {
-	GF_NHMLDumpCtx *ctx = gf_filter_get_udta(filter);
-	if (!ctx->name) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHMLMx] output name missing, cannot generate NHML\n"));
-		return GF_NOT_SUPPORTED;
-	}
 	return GF_OK;
 }
 
@@ -837,7 +916,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dims), "use DIMS mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(name), "set output name of files produced (needed media/info files refered to from XML", GF_PROP_STRING, "dump.nhml", NULL, 0},
+	{ OFFS(name), "set output name of files produced (needed media/info files refered to from XML", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(nhmlonly), "only dump NHML info, not media", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(full), "full NHML dump", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chksum), "insert frame checksum\n"

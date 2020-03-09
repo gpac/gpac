@@ -982,7 +982,20 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 \addtogroup osfile_grp
 \brief File System tools
 
-This section documents time functionalities and CPU management in GPAC.
+This section documents file system tools used in GPAC.
+
+FILE objects are wrapped in GPAC for direct memory or callback operations. All file functions not using stderr/stdout must use the gf_ prefixed versions, eg:
+\code
+//bad design, will fail when using wrapped memory IOs
+FILE *t = fopen(url, "rb");
+fputs(t, mystring);
+fclose(t);
+
+//good design, will work fine when using wrapped memory IOs
+FILE *t = gf_fopen(url, "rb");
+gf_fputs(t, mystring);
+gf_fclose(t);
+\endcode
 
 @{
  */
@@ -997,6 +1010,17 @@ Reads a local file into memory, in binary open mode.
 \return error code if any
  */
 GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size);
+
+/*!
+\brief reads a file into memory
+
+Reads a local file into memory, in binary open mode.
+\param file stream object to read (no seek is performed)
+\param out_data pointer to allocted address, to be freed by caller
+\param out_size pointer to allocted size
+\return error code if any
+ */
+GF_Err gf_file_load_data_filep(FILE *file, u8 **out_data, u32 *out_size);
 
 /*!
 \brief Delete Directory
@@ -1057,20 +1081,130 @@ Wrapper to properly handle calls to fwrite(), ensuring proper error handling is 
 \param nmemb same as fwrite
 \param stream same as fwrite
 \return same as fwrite
- *
 */
 size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
 /*!
-\brief large file opening
+\brief file reading helper
 
-Opens a large file (>4GB)
+Wrapper to properly handle calls to fread()
+\param ptr same as fread
+\param size same as fread
+\param nmemb same as fread
+\param stream same as fread
+\return same as fread
+*/
+size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+
+/*!
+\brief file reading helper
+
+Wrapper to properly handle calls to fgets()
+\param buf same as fgets
+\param size same as fgets
+\param stream same as fgets
+\return same as fgets
+*/
+char *gf_fgets(char *buf, size_t size, FILE *stream);
+/*!
+\brief file reading helper
+
+Wrapper to properly handle calls to fgetc()
+\param stream same as fgetc
+\return same as fgetc
+*/
+int gf_fgetc(FILE *stream);
+/*!
+\brief file writing helper
+
+Wrapper to properly handle calls to fputc()
+\param val same as fputc
+\param stream same as fputc
+\return same as fputc
+*/
+int gf_fputc(int val, FILE *stream);
+/*!
+\brief file writing helper
+
+Wrapper to properly handle calls to fputs()
+\param buf same as fputs
+\param stream same as fputs
+\return same as fputs
+*/
+int	gf_fputs(const char *buf, FILE *stream);
+/*!
+\brief file writing helper
+
+Wrapper to properly handle calls to fprintf()
+\param stream same as fprintf
+\param format same as fprintf
+\return same as fprintf
+*/
+int gf_fprintf(FILE *stream, const char *format, ...);
+/*!
+\brief file flush helper
+
+Wrapper to properly handle calls to fflush()
+\param stream same as fflush
+\return same as fflush
+*/
+int gf_fflush(FILE *stream);
+/*!
+\brief end of file helper
+
+Wrapper to properly handle calls to feof()
+\param stream same as feof
+\return same as feof
+*/
+int gf_feof(FILE *stream);
+/*!
+\brief file error helper
+
+Wrapper to properly handle calls to ferror()
+\param stream same as ferror
+\return same as ferror
+*/
+int gf_ferror(FILE *stream);
+
+/*!
+\brief file size helper
+
+Gets the file size given a FILE object. The FILE object position will be reset to 0 after this call
+\param fp FILE object to check
+\return file size in bytes
+*/
+u64 gf_fsize(FILE *fp);
+
+/*!
+\brief file IO helper
+
+Checks if the given FILE object is a native FILE or a GF_FileIO wrapper.
+\param fp FILE object to check
+\return GF_TRUE if the FILE object is a wrapper to GF_FileIO
+*/
+Bool gf_fileio_check(FILE *fp);
+
+/*!
+\brief file opening
+
+Opens a file, potentially bigger than 4GB
 \param file_name same as fopen
 \param mode same as fopen
 \return stream handle of the file object
-\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
 FILE *gf_fopen(const char *file_name, const char *mode);
+
+/*!
+\brief file opening
+
+Opens a file, potentially using file IO if the parent URL is a File IO wrapper
+\param file_name same as fopen
+\param parent_url URL of parent file. If not a file io wrapper (gfio://), the function is equivalent to gf_fopen
+\param mode same as fopen
+\return stream handle of the file object
+\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
+\return stream habdle of the file or file IO object*/
+FILE *gf_fopen_ex(const char *file_name, const char *parent_url, const char *mode);
 
 /*!
 \brief file closing
@@ -1205,11 +1339,189 @@ u64 gf_file_modification_time(const char *filename);
 /*!
 \brief File existence check
 
-Moves or renames a file or directory.
-\param fileName absolute path of the file / directory to move or rename
-\return GF_TRUE if file exists
- */
+Checks if file with given name exists
+\param fileName path of the file to check
+\return GF_TRUE if file exists */
 Bool gf_file_exists(const char *fileName);
+
+/*!
+\brief File existence check
+
+Checks if file with given name exists, for regular files or File IO wrapper
+\param file_name path of the file to check
+\param par_name  name of the parent file
+\return GF_TRUE if file exists */
+Bool gf_file_exists_ex(const char *file_name, const char *par_name);
+
+/*! File IO wrapper object*/
+typedef struct __gf_file_io GF_FileIO;
+
+
+/*! open proc for memory file IO
+\param fileio_ref reference file_io. A file can be opened multiple times for the same reference, your code must handle this
+\param url target file name.
+\param mode opening mode of file, same as fopen mode. The following additionnal modes are defined:
+	- "ref": indicates this FileIO object is used by some part of the code and must not be destroyed upon closing of the file. Associated URL is null
+	- "unref": indicates this FileIO object is not used by some part of the code and may be destroyed if no more references to this object are set. Associated URL is null
+	- "url": indicates to create a new FileIO object for the given URL without opening the output file. The resulting FileIO object must be garbage collected by the app in case its is never used by the callers
+	- "probe": checks if the file exists, but no need to open the file. The function should return NULL in this case. If file does not exist, set out_error to GF_URL_ERROR
+\param out_error must be set to error code if any (never NULL)
+\return the opened GF_FileIO if success, or NULL otherwise
+ */
+typedef GF_FileIO *(*gfio_open_proc)(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_error);
+
+/*! seek proc for memory file IO
+\param fileio target file IO object
+\param offset offset in file
+\param whence position from offset, same as fseek
+\return error if any
+ */
+typedef GF_Err (*gfio_seek_proc)(GF_FileIO *fileio, u64 offset, s32 whence);
+
+/*! read proc for memory file IO
+\param fileio target file IO object
+\param buffer buffer to read.
+\param bytes number of bytes to read.
+\return number of bytes read, 0 if error.
+ */
+typedef u32 (*gfio_read_proc)(GF_FileIO *fileio, u8 *buffer, u32 bytes);
+
+/*! write proc for memory file IO
+\param fileio target file IO object
+\param buffer buffer to write.
+\param bytes number of bytes to write. If 0, acts as fflush
+\return number of bytes write, 0 if error
+ */
+typedef u32 (*gfio_write_proc)(GF_FileIO *fileio, u8 *buffer, u32 bytes);
+
+/*! positon tell proc for memory file IO
+\param fileio target file IO object
+\return position in bytes from file start
+ */
+typedef s64 (*gfio_tell_proc)(GF_FileIO *fileio);
+/*! end of file proc for memory file IO
+\param fileio target file IO object
+\return GF_TRUE if end of file, GF_FALSE otherwise
+ */
+typedef Bool (*gfio_eof_proc)(GF_FileIO *fileio);
+/*! printf proc for memory file IO
+\param fileio target file IO object
+\param format format string to use
+\param args variable argument list for printf, already initialized (va_start called)
+\return same as vfprint
+ */
+typedef int (*gfio_printf_proc)(GF_FileIO *fileio, const char *format, va_list args);
+
+/*! Creates a new file IO object
+
+There is no guarantee that the corresponding resource will be opened by the framework, it is therefore the caller responsability to track objects created by
+gf_fileio_new or as a response to open with mode "url".
+
+\param url the original URL this file IO object wraps
+\param udta opaque data for caller
+\param open open proc for IO, must not be NULL
+\param seek seek proc for IO, must not be NULL
+\param read read proc for IO - if NULL the file is considered write only
+\param write write proc for IO - if NULL the file is considered read only
+\param tell tell proc for IO, must not be NULL
+\param eof eof proc for IO, must not be NULL
+\param printf printf proc for IO, may be NULL
+\return the newly created file IO wrapper
+ */
+GF_FileIO *gf_fileio_new(char *url, void *udta,
+	gfio_open_proc open,
+	gfio_seek_proc seek,
+	gfio_read_proc read,
+	gfio_write_proc write,
+	gfio_tell_proc tell,
+	gfio_eof_proc eof,
+	gfio_printf_proc printf);
+
+/*! Deletes a new fileIO object
+\param fileio the File IO object to delete
+*/
+void gf_fileio_del(GF_FileIO *fileio);
+
+/*! Gets associated user data of a fileIO object
+\param fileio target file IO object
+\return the associated user data
+*/
+void *gf_fileio_get_udta(GF_FileIO *fileio);
+
+/*! Gets URL of a fileIO object.
+ The url uses the protocol scheme "gfio://"
+\param fileio target file IO object
+\return the file IO url to use
+*/
+const char * gf_fileio_url(GF_FileIO *fileio);
+
+/*! Sets statistics on a fileIO object.
+\param fileio target file IO object
+\param bytes_done number of bytes fetched for this file
+\param file_size total size of this file, 0 if unknown
+\param cache_complete if GF_TRUE, means the file is completely available
+\param bytes_per_sec reception bytes per second, 0 if unknown
+*/
+void gf_fileio_set_stats(GF_FileIO *fileio, u64 bytes_done, u64 file_size, Bool cache_complete, u32 bytes_per_sec);
+
+/*! Gets statistics on a fileIO object.
+\param fileio target file IO object
+\param bytes_done number of bytes fetched for this file (may be NULL)
+\param file_size total size of this file, 0 if unknown (may be NULL)
+\param cache_complete if GF_TRUE, means the file is completely available (may be NULL)
+\param bytes_per_sec reception bytes per second, 0 if unknown (may be NULL)
+\return GF_TRUE if success, GF_FALSE otherwise
+*/
+Bool gf_fileio_get_stats(GF_FileIO *fileio, u64 *bytes_done, u64 *file_size, Bool *cache_complete, u32 *bytes_per_sec);
+
+/*! Checks if a FileIO object can write
+\param fileio target file IO object
+\param url the original resource URL to open
+\param mode the desired open mode
+\param out_err set to error code if any, must not be NULL
+\return file IO object for this resource
+*/
+GF_FileIO *gf_fileio_open_url(GF_FileIO *fileio, const char *url, const char *mode, GF_Err *out_err);
+
+/*! Gets GF_FileIO object from its URL
+ The url uses the protocol scheme "gfio://"
+\param url the URL of  the File IO object
+\return the file IO object
+*/
+GF_FileIO *gf_fileio_from_url(const char *url);
+
+/*! Constructs a new GF_FileIO object from a URL
+ The url can be absolute or relative to the parent GF_FileIO. This is typcically needed by filters (dash input, dasher, NHML/NHNT writers...) generating or consuming additionnal files associated with the main file IO object but being written or read by other filters.
+ The function will not open the associated resource, only create the file IO wrapper for later usage
+ If you need to create a new fileIO to be opened immediately, use \ref gf_fopen_ex.
+
+\param fileio parent file IO object
+\param new_res_url the original URL of  the new object to create
+\return the url (gfio://) of the created file IO object, NULL otherwise
+*/
+const char *gf_fileio_factory(GF_FileIO *fileio, const char *new_res_url);
+
+/*! Translates a FileIO object URL into the original resource URL
+\param url the URL of  the File IO object
+\return the original resource URL associated with the file IO object
+*/
+const char * gf_fileio_translate_url(const char *url);
+/*! Gets a FileIO  original resource URL
+\param fileio target file IO object
+\return the original resource URL associated with the file IO object
+*/
+const char * gf_fileio_resource_url(GF_FileIO *fileio);
+
+/*! Checks if a FileIO object can read
+\param fileio target file IO object
+\return GF_TRUE if read is enabled on this object
+*/
+Bool gf_fileio_read_mode(GF_FileIO *fileio);
+/*! Checks if a FileIO object can write
+\param fileio target file IO object
+\return GF_TRUE if write is enabled on this object
+*/
+Bool gf_fileio_write_mode(GF_FileIO *fileio);
 
 /*!	@} */
 
@@ -1284,6 +1596,77 @@ Decompresses a data buffer using LZMA.
 \return error if any
  */
 GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size);
+
+
+#ifndef GPAC_DISABLE_ZLIB
+/*! Wrapper around gzseek, same parameters
+\param file target gzfile
+\param offset offset in file
+\param whence same as gzseek
+\return same as gzseek
+*/
+u64 gf_gzseek(void *file, u64 offset, int whence);
+/*! Wrapper around gf_gztell, same parameters
+ \param file target gzfile
+ \return postion in file
+ */
+u64 gf_gztell(void *file);
+/*! Wrapper around gzrewind, same parameters
+ \param file target gzfile
+ \return same as gzrewind
+ */
+u64 gf_gzrewind(void *file);
+/*! Wrapper around gzeof, same parameters
+ \param file target gzfile
+ \return same as gzeof
+ */
+int gf_gzeof(void *file);
+/*! Wrapper around gzclose, same parameters
+\param file target gzfile
+\return same as gzclose
+*/
+int gf_gzclose(void *file);
+/*! Wrapper around gzerror, same parameters
+\param file target gzfile
+\param errnum same as gzerror
+\return same as gzerror
+ */
+const char * gf_gzerror (void *file, int *errnum);
+/*! Wrapper around gzclearerr, same parameters
+ \param file target gzfile
+ */
+void gf_gzclearerr(void *file);
+/*! Wrapper around gzopen, same parameters
+\param path the file name to open
+\param mode the file open mode
+\return open file
+ */
+void *gf_gzopen(const char *path, const char *mode);
+/*! Wrapper around gzread, same parameters
+ \param file target gzfile
+ \param buf same as gzread
+ \param len same as gzread
+ \return same as gzread
+ */
+int gf_gzread(void *file, void *buf, unsigned len);
+/*! Wrapper around gzdirect, same parameters
+ \param file target gzfile
+ \return same as gzdirect
+ */
+int gf_gzdirect(void *file);
+/*! Wrapper around gzgetc, same parameters
+ \param file target gzfile
+ \return same as gzgetc
+ */
+int gf_gzgetc(void *file);
+/*! Wrapper around gzgets, same parameters
+ \param file target gzfile
+ \param buf same as gzread
+ \param len same as gzread
+ \return same as gzgets
+*/
+char * gf_gzgets(void *file, char *buf, int len);
+#endif
 
 
 /*! SHA1 context*/
@@ -1413,37 +1796,6 @@ Bool gf_opts_default_shared_directory(char *path_buffer);
 /*! @} */
 
 
-typedef struct __gf_file_io GF_FileIO;
-
-GF_FileIO *gf_fileio_new(char *url, void *udta,
-  GF_Err (*open)(GF_FileIO *fileio, const char *url, const char *mode),
-  GF_Err (*seek)(GF_FileIO *fileio, u64 offset, s32 whence),
-  u32 (*read)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
-  u32 (*write)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
-  s64 (*tell)(GF_FileIO *fileio),
-  Bool (*eof)(GF_FileIO *fileio),
-  const char *(*new_fileio)(GF_FileIO *gfio, const char *new_res_url)
-);
-
-void gf_fileio_del(GF_FileIO *gfio);
-void *gf_fileio_get_udta(GF_FileIO *gfio);
-const char * gf_fileio_url(GF_FileIO *gfio);
-GF_Err gf_fileio_open_url(GF_FileIO *gfio, const char *url, const char *mode);
-GF_Err gf_fileio_seek(GF_FileIO *gfio, u64 offset, s32 whence);
-u32 gf_fileio_read(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes);
-u32 gf_fileio_write(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes);
-Bool gf_fileio_write_mode(GF_FileIO *gfio);
-Bool gf_fileio_read_mode(GF_FileIO *gfio);
-GF_FileIO *gf_fileio_from_url(const char *url);
-s64 gf_fileio_tell(GF_FileIO *fileio);
-Bool gf_fileio_eof(GF_FileIO *fileio);
-
-const char *gf_fileio_factory(GF_FileIO *gfio, const char *new_res_url);
-const char * gf_fileio_translate_url(const char *url);
-const char * gf_fileio_resource_url(GF_FileIO *gfio);
-
-
-
 //! @cond Doxygen_Suppress
 
 #ifdef GPAC_DISABLE_3D
@@ -1492,6 +1844,7 @@ calls are made by the caller*/
 void gf_opengl_init();
 
 /* \endcond */
+
 
 /*! macros to get the size of an array of struct*/
 #define GF_ARRAY_LENGTH(a) (sizeof(a) / sizeof((a)[0]))

@@ -292,7 +292,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	}
 	//we cannot use files with BOM since the XML position we get from the parser are offsets in the UTF-8 version of the XML.
 	//TODO: to support files with BOM we would need to serialize on the fly the callback from the sax parser
-	read = (u32) fread(szBOM, 1, 3, xml);
+	read = (u32) gf_fread(szBOM, 1, 3, xml);
 	if (read==3) {
 		gf_fseek(xml, 0, SEEK_SET);
 		if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
@@ -329,9 +329,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	if (e<0) goto exit;
 
 	if (!breaker.to_id) {
-		gf_fseek(xml, 0, SEEK_END);
-		breaker.to_pos = gf_ftell(xml);
-		gf_fseek(xml, 0, SEEK_SET);
+		breaker.to_pos = gf_fsize(xml);
 	}
 	if (breaker.to_pos < breaker.from_pos) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: xmlFrom %s is located after xmlTo %s", xmlFrom, xmlTo));
@@ -347,7 +345,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 	}
 	gf_fseek(xml, breaker.from_pos, SEEK_SET);
-	if (0 == fread(ctx->samp_buffer, 1, ctx->samp_buffer_size, xml)) {
+	if (0 == gf_fread(ctx->samp_buffer, 1, ctx->samp_buffer_size, xml)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to read samp->dataLength\n"));
 	}
 	e = GF_OK;
@@ -463,7 +461,9 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	u8 *specInfo;
 	char compressor_name[100];
 	GF_XMLNode *node;
+	FILE *finfo;
 	u64 media_size, last_dts;
+	Bool use_gfio=GF_FALSE;
 	char *szRootName, *szSampleName, *szImpName;
 
 	szRootName = ctx->is_dims ? "DIMSStream" : "NHNTStream";
@@ -482,13 +482,19 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_URL_ERROR;
 	}
 
-	strcpy(szName, ctx->src_url);
-	ext = strrchr(szName, '.');
+	szName[0] = 0;
+	if (!strncmp(ctx->src_url, "gfio://", 7)) {
+		use_gfio = GF_TRUE;
+		char *base = gf_file_basename( gf_fileio_translate_url(ctx->src_url) );
+		if (base) strcpy(szName, base);
+	} else {
+		strcpy(szName, ctx->src_url);
+	}
+	ext = gf_file_ext_start(szName);
 	if (ext) ext[0] = 0;
-
 	strcpy(ctx->szMedia, szName);
-	strcat(ctx->szMedia, ".media");
 	strcpy(szInfo, szName);
+	strcat(ctx->szMedia, ".media");
 	strcat(szInfo, ".info");
 
 	ctx->parser = gf_xml_dom_new();
@@ -681,8 +687,8 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		codec_tag=GF_ISOM_SUBTYPE_3GP_DIMS;
 		streamType = 0;
 	}
-
-	ctx->mdia = gf_fopen(ctx->szMedia, "rb");
+	if (gf_file_exists_ex(ctx->szMedia, ctx->src_url))
+		ctx->mdia = gf_fopen_ex(ctx->szMedia, ctx->src_url, "rb");
 
 	specInfoSize = 0;
 	if (!streamType && !mtype && !codec_tag) {
@@ -690,14 +696,19 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	if (gf_file_exists(szInfo)) {
-		e = gf_file_load_data(szInfo, (u8 **)&specInfo, &specInfoSize);
+	finfo = NULL;
+	if (gf_file_exists_ex(szInfo, ctx->src_url))
+		finfo = gf_fopen_ex(szInfo, ctx->src_url, "rb");
+
+	if (finfo) {
+		e = gf_file_load_data_filep(finfo, (u8 **)&specInfo, &specInfoSize);
+		gf_fclose(finfo);
 		if (e) return e;
 	} else if (ctx->header_end) {
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = ctx->header_end;
 		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
-		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, ctx->mdia);
+		specInfoSize = (u32) gf_fread(specInfo, sizeof(char), specInfoSize, ctx->mdia);
 		specInfo[specInfoSize] = 0;
 		ctx->header_end = specInfoSize;
 	} else if (strlen(szXmlHeaderEnd)) {
@@ -851,9 +862,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILEPATH, & PROP_STRING(ctx->szMedia));
 
 	if (ctx->mdia) {
-		gf_fseek(ctx->mdia, 0, SEEK_END);
-		media_size = gf_ftell(ctx->mdia);
-		gf_fseek(ctx->mdia, 0, SEEK_SET);
+		media_size = gf_fsize(ctx->mdia);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, & PROP_LONGUINT(media_size) );
 	}
 
@@ -1105,9 +1114,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 			if (f) {
 				if (!ctx->samp_buffer_size) {
-					gf_fseek(f, 0, SEEK_END);
-					assert(gf_ftell(f) < 0x80000000);
-					ctx->samp_buffer_size = (u32) gf_ftell(f);
+					u64 ssize = gf_fsize(f);
+					assert(ssize < 0x80000000);
+					ctx->samp_buffer_size = (u32) ssize;
 				}
 				gf_fseek(f, offset, SEEK_SET);
 
@@ -1120,7 +1129,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 					nhml_get_bs(&ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_alloc, GF_BITSTREAM_WRITE);
 					gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size+1);
 					gf_bs_write_u8(ctx->bs_w, (u8) dims_flags);
-					read = (u32) fread( ctx->samp_buffer + 3, sizeof(char), ctx->samp_buffer_size, f);
+					read = (u32) gf_fread( ctx->samp_buffer + 3, sizeof(char), ctx->samp_buffer_size, f);
 					if (ctx->samp_buffer_size != read) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to fully read sample %d: dataLength %d read %d\n", ctx->sample_num, ctx->samp_buffer_size, read));
 					}
@@ -1135,14 +1144,18 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						ctx->samp_buffer_alloc = ctx->samp_buffer_size;
 						ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char) * ctx->samp_buffer_alloc);
 					}
-					read = (u32) fread(ctx->samp_buffer, sizeof(char), ctx->samp_buffer_size, f);
+					read = (u32) gf_fread(ctx->samp_buffer, sizeof(char), ctx->samp_buffer_size, f);
 					if (ctx->samp_buffer_size != read) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to fully read sample %d: dataLength %d read %d\n", ctx->sample_num, ctx->samp_buffer_size, read));
 					}
 				}
 				if (close) gf_fclose(f);
+			} else if (!nb_subsamples) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] No media file associated with sample %d!\n", ctx->sample_num));
+				e = GF_URL_ERROR;
 			}
 		}
+
 		if (e) return e;
 
 		//override DIMS flags
@@ -1215,23 +1228,24 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				u32 k = 0;
 				while ((att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &k))) {
 					if (!stricmp(att->name, "mediaFile")) {
-						u32 subsMediaFileSize = 0;
+						u64 subsMediaFileSize = 0;
+						FILE *f = NULL;
 						char *sub_file_url = gf_url_concatenate(ctx->src_url, att->value);
-						FILE *f = sub_file_url ? gf_fopen(sub_file_url, "rb") : NULL;
-						if (sub_file_url) gf_free(sub_file_url);
+						if (sub_file_url) {
+							f = gf_fopen(sub_file_url, "rb");
+							gf_free(sub_file_url);
+						}
 
 						if (!f) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error: mediaFile \"%s\" not found for subsample in sample %d. Abort.\n", att->value, ctx->sample_num));
 							return GF_URL_ERROR;
 						}
-						gf_fseek(f, 0, SEEK_END);
-						assert(gf_ftell(f) < 0x80000000);
-						subsMediaFileSize = (u32)gf_ftell(f);
+						subsMediaFileSize = gf_fsize(f);
+						assert(subsMediaFileSize < 0x80000000);
 
 						//send continuation frame
-						pck = gf_filter_pck_new_alloc(ctx->opid, subsMediaFileSize, &data);
-						gf_fseek(f, 0, SEEK_SET);
-						subsMediaFileSize = (u32) fread(data, 1, subsMediaFileSize, f);
+						pck = gf_filter_pck_new_alloc(ctx->opid, (u32) subsMediaFileSize, &data);
+						subsMediaFileSize = (u32) gf_fread(data, 1, (u32) subsMediaFileSize, f);
 						gf_fclose(f);
 
 						nb_subsamples--;
@@ -1319,7 +1333,8 @@ GF_Err nhmldmx_process(GF_Filter *filter)
 	case 1:
 		if (!ctx->is_playing) return GF_OK;
 
-		nhmldmx_send_sample(filter, ctx);
+		e = nhmldmx_send_sample(filter, ctx);
+		if (e) return e;
 		break;
 	case 2:
 	default:

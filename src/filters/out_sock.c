@@ -120,7 +120,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	}
 	if (ctx->ext) ext = ctx->ext;
 	else {
-		ext = strrchr(ctx->dst, '.');
+		ext = gf_file_ext_start(ctx->dst);
 		if (ext) ext++;
 	}
 

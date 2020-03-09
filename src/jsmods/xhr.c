@@ -849,14 +849,12 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	par.msg_type = GF_NETIO_WAIT_FOR_REPLY;
 	xml_http_on_data(ctx, &par);
 
-	gf_fseek(responseFile, 0, SEEK_END);
-	fsize = gf_ftell(responseFile);
-	gf_fseek(responseFile, 0, SEEK_SET);
+	fsize = gf_fsize(responseFile);
 
 	ctx->html_status = 200;
 
 	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
-	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
+	fsize = gf_fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
 	gf_fclose(responseFile);
 	ctx->data[fsize] = 0;
 	ctx->size = (u32)fsize;

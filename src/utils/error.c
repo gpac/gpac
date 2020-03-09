@@ -227,7 +227,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 				val += 6;
 				continue;
 			} else {
-				fprintf(stderr, "Unrecognized log format %s - expecting logTool@logLevel\n", val);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unrecognized log format %s - expecting logTool@logLevel\n", val));
 				return GF_BAD_PARAM;
 			}
 		}
@@ -253,7 +253,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 			next_val = sep_level+1 + 5;
 		}
 		else {
-			fprintf(stderr, "Unknown log level specified: %s\n", sep_level+1);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown log level specified: %s\n", sep_level+1));
 			return GF_BAD_PARAM;
 		}
 
@@ -283,7 +283,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 					}
 				}
 				if (!found) {
-					fprintf(stderr, "Unknown log tool specified: %s\n", tools);
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown log tool specified: %s\n", tools));
 					sep_level[0] = '@';
 					if (sep) sep[0] = ':';
 					return GF_BAD_PARAM;
@@ -611,7 +611,7 @@ static void do_log_time(FILE *logs)
 {
 	if (gpac_log_time_start) {
 		u64 now = gf_sys_clock_high_res();
-		fprintf(logs, "At "LLD" (diff %d) - ", now, (u32) (now - gpac_last_log_time) );
+		gf_fprintf(logs, "At "LLD" (diff %d) - ", now, (u32) (now - gpac_last_log_time) );
 		gpac_last_log_time = now;
 	}
 	if (gpac_log_utc_time) {
@@ -619,16 +619,22 @@ static void do_log_time(FILE *logs)
 		time_t secs = utc_clock/1000;
 		struct tm t;
 		t = *gf_gmtime(&secs);
-		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
+		gf_fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
 	}
 }
 
 void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
+	int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args);
 	FILE *logs = gpac_log_file ? gpac_log_file : stderr;
 	do_log_time(logs);
-	vfprintf(logs, fmt, vlist);
-	fflush(logs);
+
+	if (gf_fileio_check(logs)) {
+		gf_fileio_printf((GF_FileIO *)logs, fmt, vlist);
+	} else {
+		vfprintf(logs, fmt, vlist);
+	}
+	gf_fflush(logs);
 }
 
 void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
@@ -1753,169 +1759,5 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 	if (l1 && sep) strcat((*str), sep);
 	strcat((*str), to_append);
 	return GF_OK;
-}
-
-
-struct __gf_file_io
-{
-	GF_Err (*open)(GF_FileIO *fileio, const char *url, const char *mode);
-	GF_Err (*seek)(GF_FileIO *fileio, u64 offset, s32 whence);
-	u32 (*read)(GF_FileIO *fileio, u8 *buffer, u32 bytes);
-	u32 (*write)(GF_FileIO *fileio, u8 *buffer, u32 bytes);
-	s64 (*tell)(GF_FileIO *fileio);
-	Bool (*eof)(GF_FileIO *fileio);
-	const char *(*new_fileio)(GF_FileIO *gfio, const char *new_res_url);
-
-	char *url;
-	char *res_url;
-	void *udta;
-};
-
-GF_EXPORT
-GF_FileIO *gf_fileio_new(char *url, void *udta,
-	  GF_Err (*open)(GF_FileIO *fileio, const char *url, const char *mode),
-	  GF_Err (*seek)(GF_FileIO *fileio, u64 offset, s32 whence),
-	  u32 (*read)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
-	  u32 (*write)(GF_FileIO *fileio, u8 *buffer, u32 bytes),
-	  s64 (*tell)(GF_FileIO *fileio),
-	  Bool (*eof)(GF_FileIO *fileio),
-	  const char *(*new_fileio)(GF_FileIO *gfio, const char *new_res_url)
-	)
-{
-	char szURL[100];
-	GF_FileIO *tmp;
-	if (!write && !read) return NULL;
-	GF_SAFEALLOC(tmp, GF_FileIO);
-	if (!tmp) return NULL;
-	tmp->open = open;
-	tmp->seek = seek;
-	tmp->write = write;
-	tmp->read = read;
-	tmp->tell = tell;
-	tmp->eof = eof;
-	tmp->new_fileio = new_fileio;
-
-	tmp->udta = udta;
-	if (url)
-		tmp->res_url = gf_strdup(url);
-
-	sprintf(szURL, "gfio://%p", tmp);
-	tmp->url = gf_strdup(szURL);
-	return tmp;
-}
-
-GF_EXPORT
-const char * gf_fileio_url(GF_FileIO *gfio)
-{
-	return gfio ? gfio->url : NULL;
-}
-
-GF_EXPORT
-const char * gf_fileio_resource_url(GF_FileIO *gfio)
-{
-	return gfio ? gfio->res_url : NULL;
-}
-
-GF_EXPORT
-void gf_fileio_del(GF_FileIO *gfio)
-{
-	if (!gfio) return;
-	if (gfio->url) gf_free(gfio->url);
-	gf_free(gfio);
-}
-
-GF_EXPORT
-void *gf_fileio_get_udta(GF_FileIO *gfio)
-{
-	return gfio ? gfio->udta : NULL;
-}
-
-GF_EXPORT
-GF_Err gf_fileio_open_url(GF_FileIO *gfio, const char *url, const char *mode)
-{
-	if (!gfio) return GF_BAD_PARAM;
-	if (!gfio->open) return url ? GF_NOT_SUPPORTED : GF_OK;
-	return gfio->open(gfio, url, mode);
-}
-
-GF_EXPORT
-GF_Err gf_fileio_seek(GF_FileIO *gfio, u64 offset, s32 whence)
-{
-	if (!gfio) return GF_BAD_PARAM;
-	if (gfio->seek) return gfio->seek(gfio, offset, whence);
-	return GF_NOT_SUPPORTED;
-}
-
-GF_EXPORT
-u32 gf_fileio_read(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
-{
-	if (!gfio) return GF_BAD_PARAM;
-	if (gfio->read)
-		return gfio->read(gfio, buffer, nb_bytes);
-	return 0;
-}
-
-GF_EXPORT
-u32 gf_fileio_write(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
-{
-	if (!gfio) return GF_BAD_PARAM;
-	if (!gfio->write) return 0;
-	return gfio->write(gfio, buffer, nb_bytes);
-}
-
-GF_EXPORT
-Bool gf_fileio_write_mode(GF_FileIO *gfio)
-{
-	return (gfio && gfio->write) ? GF_TRUE : GF_FALSE;
-}
-
-GF_EXPORT
-Bool gf_fileio_read_mode(GF_FileIO *gfio)
-{
-	return (gfio && gfio->read) ? GF_TRUE : GF_FALSE;
-}
-
-GF_EXPORT
-GF_FileIO *gf_fileio_from_url(const char *url)
-{
-	char szURL[100];
-	GF_FileIO *ptr=NULL;
-	sscanf(url, "gfio://%p", &ptr);
-	sprintf(szURL, "gfio://%p", ptr);
-	if (strcmp(url, szURL))
-		return NULL;
-		
-	if (ptr && ptr->url && !strcmp(ptr->url, url) ) {
-		return ptr;
-	}
-	return NULL;
-}
-
-GF_EXPORT
-const char * gf_fileio_translate_url(const char *url)
-{
-	GF_FileIO *gfio = gf_fileio_from_url(url);
-	return gfio ? gfio->res_url : NULL;
-}
-
-GF_EXPORT
-s64 gf_fileio_tell(GF_FileIO *fileio)
-{
-	if (!fileio || !fileio->tell) return -1;
-	return fileio->tell(fileio);
-}
-
-GF_EXPORT
-Bool gf_fileio_eof(GF_FileIO *fileio)
-{
-	if (!fileio || !fileio->tell) return GF_TRUE;
-	return fileio->eof(fileio);
-}
-
-GF_EXPORT
-const char *gf_fileio_factory(GF_FileIO *gfio, const char *new_res_url)
-{
-	if (!gfio || !gfio->new_fileio) return NULL;
-	return gfio->new_fileio(gfio, new_res_url);
 }
 

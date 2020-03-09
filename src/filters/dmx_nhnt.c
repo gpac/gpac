@@ -70,9 +70,9 @@ typedef struct
 	FILE *mdia;
 	GF_BitStream *bs;
 
-
 	NHNTIdx *indexes;
 	u32 index_alloc_size, index_size;
+	GF_Err in_error;
 } GF_NHNTDmxCtx;
 
 
@@ -258,6 +258,8 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 	u32 pkt_size;
 	Bool start, end;
 	u8 *data;
+	if (ctx->in_error)
+		return ctx->in_error;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -290,15 +292,27 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			u32 dsi_size;
 			u32 val, oti;
 			u64 media_size;
+			Bool use_gfio = GF_FALSE;
+			FILE *finfo;
 
-			strcpy(szMedia, p->value.string);
+
+			if (!strncmp(p->value.string, "gfio://", 7)) {
+				use_gfio = GF_TRUE;
+				strcpy(szMedia, gf_fileio_translate_url(p->value.string) );
+			} else {
+				strcpy(szMedia, p->value.string);
+			}
+
 			ext = strrchr(szMedia, '.');
 			if (ext) ext[0] = 0;
 			strcat(szMedia, ".media");
-			ctx->mdia = gf_fopen(szMedia, "rb");
+			ctx->mdia = gf_fopen_ex(szMedia, p->value.string, "rb");
+
 			if (!ctx->mdia) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Cannot find MEDIA file %s", szMedia));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Cannot find MEDIA file %s\n", szMedia));
 				gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
+				ctx->in_error = GF_URL_ERROR;
 				return GF_URL_ERROR;
 			}
 
@@ -308,6 +322,8 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Invalid NHNT signature %s\n", gf_4cc_to_str(ctx->sig) ));
 				gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
+				ctx->in_error = GF_NON_COMPLIANT_BITSTREAM;
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			ctx->opid = gf_filter_pid_new(filter);
@@ -315,9 +331,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			//we change the file path of the pid to point to the media stream, not the nhnt stream
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILEPATH, & PROP_STRING(szMedia));
 
-			gf_fseek(ctx->mdia, 0, SEEK_END);
-			media_size = gf_ftell(ctx->mdia);
-			gf_fseek(ctx->mdia, 0, SEEK_SET);
+			media_size = gf_fsize(ctx->mdia);
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, & PROP_LONGUINT(media_size) );
 
 			/*version*/
@@ -340,30 +354,38 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			ctx->timescale = gf_bs_read_u32(ctx->bs);
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale));
 
-			strcpy(szMedia, p->value.string);
-			ext = strrchr(szMedia, '.');
+			if (use_gfio) {
+				strcpy(szMedia, gf_fileio_translate_url(p->value.string) );
+			} else {
+				strcpy(szMedia, p->value.string);
+			}
+			ext = gf_file_ext_start(szMedia);
 			if (ext) ext[0] = 0;
 			strcat(szMedia, ".info");
 
+			finfo = gf_fopen_ex(szMedia, p->value.string, "rb");
 			dsi = NULL;
-			if ( gf_file_load_data(szMedia, (u8 **) &dsi, &dsi_size) != GF_OK) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[NHNT] Failed to read decoder config\n"));
-			} else {
+			if (finfo) {
+				if ( gf_file_load_data_filep(finfo, (u8 **) &dsi, &dsi_size) != GF_OK) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[NHNT] Failed to read decoder config\n"));
+				} else {
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-				if (oti==GF_CODECID_MPEG4_PART2) {
-					GF_M4VDecSpecInfo cfg;
-					GF_Err e = gf_m4v_get_config(dsi, dsi_size, &cfg);
-					if (e>=0) {
-						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(cfg.width) );
-						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(cfg.height) );
-						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(cfg.VideoPL) );
-						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(cfg.par_num, cfg.par_den) );
+					if (oti==GF_CODECID_MPEG4_PART2) {
+						GF_M4VDecSpecInfo cfg;
+						GF_Err e = gf_m4v_get_config(dsi, dsi_size, &cfg);
+						if (e>=0) {
+							gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(cfg.width) );
+							gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(cfg.height) );
+							gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(cfg.VideoPL) );
+							gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(cfg.par_num, cfg.par_den) );
+						}
 					}
-				}
 #endif
 
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
+					gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
+				}
+				gf_fclose(finfo);
 			}
 
 			if (ctx->reframe)
@@ -412,7 +434,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		gf_fseek(ctx->mdia, offset, SEEK_SET);
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, len, &output);
-		res = (u32) fread(output, 1, len, ctx->mdia);
+		res = (u32) gf_fread(output, 1, len, ctx->mdia);
 		if (res != len) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Read failure, expecting %d bytes got %d", len, res));
 		}

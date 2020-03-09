@@ -1720,7 +1720,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 
 	mode = xml_dump ? GF_SM_DUMP_AUTO_XML : GF_SM_DUMP_AUTO_TXT;
 	/*figure out best dump format based on extension*/
-	ext = odm->scene_ns ? strrchr(odm->scene_ns->url, '.') : NULL;
+	ext = odm->scene_ns ? gf_file_ext_start(odm->scene_ns->url) : NULL;
 	if (ext) {
 		char szExt[20];
 		strcpy(szExt, ext);

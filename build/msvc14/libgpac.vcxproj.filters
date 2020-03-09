@@ -1091,6 +1091,9 @@
     <ClCompile Include="..\..\src\utils\os_file.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\gzio.c">
+      <Filter>utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\isomedia\iff.c">
       <Filter>isomedia</Filter>
     </ClCompile>

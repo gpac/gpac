@@ -719,7 +719,7 @@ interface Stencil {
 
 	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
 	\param pos position between 0.0 and 1.0
-	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
 	*/
 	void set_stop(double pos, DOMString color);
 
@@ -890,7 +890,7 @@ interface Texture {
 	\param as_array if true, the return object is an array of 4 components, otherwise it is a Color object
 	\return the converted value
 	*/
-	Object get_pixel(Float s, Float t, optional bool as_array=false);
+	Object get_pixel(unsigned long x, unsigned long y, optional bool as_array=false);
 };
 
 /*! convolution kernel interface*/

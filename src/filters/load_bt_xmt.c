@@ -457,7 +457,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			gf_fseek(priv->src, priv->file_pos, SEEK_SET);
 			while (1) {
 				u32 diff;
-				s32 nb_read = (s32) fread(file_buf, 1, 4096, priv->src);
+				s32 nb_read = (s32) gf_fread(file_buf, 1, 4096, priv->src);
 				if (nb_read<0) {
 					return GF_IO_ERR;
 				}
@@ -810,6 +810,12 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	const char *mime_type = NULL;
 	char *dst = NULL;
 	u8 *res;
+
+	/* check gzip magic header */
+	if ((size>2) && (probe_data[0] == 0x1f) && (probe_data[1] == 0x8b)) {
+		*score = GF_FPROBE_EXT_MATCH;
+		return "btz|bt.gz|xmt.gz|xmtz|wrl.gz|x3dv.gz|x3dvz|x3d.gz|x3dz";
+	}
 
 	res = gf_utf_get_utf8_string_from_bom((char *)probe_data, size, &dst);
 	if (res) probe_data = res;

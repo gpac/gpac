@@ -525,17 +525,26 @@ Forces HTTP headers for a given cache entry
 */
 GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry entry, const char *headers);
 
-
+/*! HTTP methods*/
 enum
 {
+	/*! unsupported*/
 	GF_HTTP_UNKNOWN = 0,
+	/*! GET*/
 	GF_HTTP_GET,
+	/*! HEAD*/
 	GF_HTTP_HEAD,
+	/*! OPTIONS*/
 	GF_HTTP_OPTIONS,
+	/*! CONNECT*/
 	GF_HTTP_CONNECT,
+	/*! TRACE*/
 	GF_HTTP_TRACE,
+	/*! PUT*/
 	GF_HTTP_PUT,
+	/*! POST*/
 	GF_HTTP_POST,
+	/*! DELETE*/
 	GF_HTTP_DELETE
 };
 

@@ -928,7 +928,7 @@ void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 				txt = hdl->children ? (GF_DOMText*)hdl->children->node : NULL;
 				if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) continue;
 				if (gf_node_get_attribute_by_tag((GF_Node*)hdl, TAG_XMLEV_ATT_event, GF_FALSE, GF_FALSE, &info)==GF_OK) {
-					fprintf(f, " on%s=\"%s\"", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
+					gf_fprintf(f, " on%s=\"%s\"", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
 				}
 			}
 		}

@@ -4291,7 +4291,7 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSV
 		if (opt_file) gf_free(_url);
 		url = (char *)par.uri.url;
 
-		ext = strrchr(url, '.');
+		ext = gf_file_ext_start(url);
 		if (ext && strnicmp(ext, ".js", 3)) {
 			gf_free(url);
 			continue;

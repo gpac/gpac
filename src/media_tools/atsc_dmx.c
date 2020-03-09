@@ -653,7 +653,7 @@ static GF_Err gf_atsc3_dmx_process_object(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 		return GF_IO_ERR;
 	} else {
 		u32 bytes;
-		bytes = (u32) fwrite(obj->payload, 1, (size_t) obj->total_length, out);
+		bytes = (u32) gf_fwrite(obj->payload, 1, (size_t) obj->total_length, out);
 		gf_fclose(out);
 		if (bytes != obj->total_length) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ATSC, ("[ATSC3] Service %d failed to write DASH resource file %d written for %d total\n", s->service_id, bytes, obj->total_length));
@@ -986,7 +986,7 @@ static GF_Err gf_atsc3_service_setup_dash(GF_ATSCDmx *atscd, GF_ATSCService *s, 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ATSC, ("[ATSC3] Service %d failed to create MPD file %s\n", s->service_id, szPath ));
 			return GF_IO_ERR;
 		} else {
-			u32 bytes = (u32) fwrite(content, 1, (size_t) len, out);
+			u32 bytes = (u32) gf_fwrite(content, 1, (size_t) len, out);
 			gf_fclose(out);
 			if (bytes != len) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ATSC, ("[ATSC3] Service %d failed to write MPD file %d written for %d total\n", s->service_id, bytes, len));

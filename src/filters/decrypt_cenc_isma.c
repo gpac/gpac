@@ -159,7 +159,7 @@ static GF_Err cenc_dec_get_gpac_kms(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 {
-	char szPath[1024], catKey[24];
+	char szPath[1024], catKey[24], line[101];
 	u32 i, x;
 	Bool got_it;
 	FILE *kms;
@@ -167,12 +167,18 @@ static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	strcat(szPath , "/.kms_data");
 	got_it = 0;
 	kms = gf_fopen(szPath, "rt");
-	while (kms && !feof(kms)) {
-		if (!fgets(szPath, 1024, kms)) break;
+	while (kms && !gf_feof(kms)) {
+		if (!gf_fgets(szPath, 1024, kms)) break;
 		szPath[strlen(szPath) - 1] = 0;
 		if (stricmp(szPath, kms_uri)) continue;
+		gf_fgets(line, 1, 100, kms);
+		line[100] = 0;
 		for (i=0; i<24; i++) {
-			if (!fscanf(kms, "%x", &x)) break;
+			char szV[3];
+			szV[0] = line[2*i];
+			szV[1] = line[2*i + 1];
+			szV[2] = 0;
+			if (!sscanf(szV, "%x", &x)) break;
 			catKey[i] = x;
 		}
 		if (i==24) got_it = 1;

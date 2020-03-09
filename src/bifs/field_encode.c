@@ -106,14 +106,13 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 				return GF_URL_ERROR;
 			}
 			if (res_src) gf_free(res_src);
-			gf_fseek(f, 0, SEEK_END);
-			size = (u32) gf_ftell(f);
+			size = gf_fsize(f);
 			val = gf_get_bit_size(size);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);
-			gf_fseek(f, 0, SEEK_SET);
+
 			while (size) {
-				u32 read = (u32) fread(buf, 1, 4096, f);
+				u32 read = (u32) gf_fread(buf, 1, 4096, f);
 				gf_bs_write_data(bs, buf, read);
 				size -= read;
 			}

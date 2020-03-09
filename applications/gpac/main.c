@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -49,7 +49,7 @@ static u32 help_flags = 0;
 
 //coverage for FileIO
 static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e);
-static void del_fileio();
+static void cleanup_file_io();
 
 FILE *sidebar_md=NULL;
 static FILE *helpout = NULL;
@@ -555,6 +555,8 @@ GF_GPACArg gpac_args[] =
 
 	GF_DEF_ARG("i", "src", "specify an input file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("ib", NULL, "specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("ob", NULL, "specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all. String parameter can be:\n"\
 			"- empty: print command line options help\n"\
 			"- doc: print the general filter info\n"\
@@ -1984,7 +1986,7 @@ exit:
 	gf_fs_del(tmp_sess);
 	if (loaded_filters) gf_list_del(loaded_filters);
 
-	del_fileio();
+	cleanup_file_io();
 
 	if (!e && nb_loops) {
 		if (nb_loops>0) nb_loops--;
@@ -2138,7 +2140,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 					sidebar_md = gf_fopen("_Sidebar.md", "r");
 					gf_fseek(sidebar_md, 0, SEEK_SET);
 					while (!feof(sidebar_md)) {
-						char *read = fgets(szLine, 1024, sidebar_md);
+						char *read = gf_fgets(szLine, 1024, sidebar_md);
 						if (!read) break;
 						if (!strncmp(szLine, "**Filters Help**", 16)) {
 							end_pos = gf_ftell(sidebar_md);
@@ -2149,7 +2151,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 					if (end_pos) {
 						sbbuf = gf_malloc(end_pos+1);
 						gf_fseek(sidebar_md, 0, SEEK_SET);
-						end_pos = (u32) fread(sbbuf, 1, end_pos, sidebar_md);
+						end_pos = (u32) gf_fread(sbbuf, 1, end_pos, sidebar_md);
 						sbbuf[end_pos]=0;
 						gf_fclose(sidebar_md);
 					}
@@ -3483,27 +3485,13 @@ typedef struct
 	FILE *filep;
 	char *path;
 	Bool write;
+	u32 nb_refs;
 } FileIOCtx;
 
-static GF_Err fio_open(GF_FileIO *fileio, const char *url, const char *mode)
-{
-	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+static GF_List *all_gfio_defined = NULL;
 
-	if (ioctx->filep) gf_fclose(ioctx->filep);
-	ioctx->filep = NULL;
-	if (!url)
-		return GF_OK;
+static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_err);
 
-	if (strnicmp(url, "gfio://", 7)) {
-		char *out_path = gf_url_concatenate(ioctx->path, url);
-		ioctx->filep = gf_fopen(out_path, mode);
-		gf_free(out_path);
-	} else {
-		ioctx->filep = gf_fopen(ioctx->path, mode);
-	}
-	if (!ioctx->filep) return GF_IO_ERR;
-	return GF_OK;
-}
 static GF_Err fio_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
@@ -3515,13 +3503,17 @@ static u32 fio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
 	if (!ioctx->filep) return 0;
-	return fread(buffer, 1, bytes, ioctx->filep);
+	return gf_fread(buffer, 1, bytes, ioctx->filep);
 }
 static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return GF_BAD_PARAM;
-	return fwrite(buffer, 1, bytes, ioctx->filep);
+	if (!ioctx->filep) return 0;
+	if (!bytes) {
+		fflush(ioctx->filep);
+		return 0;
+	}
+	return gf_fwrite(buffer, 1, bytes, ioctx->filep);
 }
 static s64 fio_tell(GF_FileIO *fileio)
 {
@@ -3532,43 +3524,150 @@ static s64 fio_tell(GF_FileIO *fileio)
 static Bool fio_eof(GF_FileIO *fileio)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return GF_BAD_PARAM;
+	if (!ioctx->filep) return GF_TRUE;
 	return feof(ioctx->filep);
 }
-
-static const char *fio_factory(GF_FileIO *fileio, const char *new_res)
+static int fio_printf(GF_FileIO *fileio, const char *format, va_list args)
 {
-	FileIOCtx *ioctx, *parent_ioctx = gf_fileio_get_udta(fileio);
-
-	GF_SAFEALLOC(ioctx, FileIOCtx);
-	ioctx->path = gf_url_concatenate(parent_ioctx->path, new_res);
-	GF_FileIO *an_outio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_factory);
-	return an_outio ? gf_fileio_url(an_outio) : NULL;
+	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx->filep) return -1;
+	return vfprintf(ioctx->filep, format, args);
 }
+
+static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_err)
+{
+	GF_FileIO *gfio;
+	FileIOCtx *ioctx;
+	u64 file_size;
+	FileIOCtx *ioctx_ref = gf_fileio_get_udta(fileio_ref);
+
+	*out_err = GF_OK;
+
+	if (!strcmp(mode, "ref")) {
+		ioctx_ref->nb_refs++;
+		return fileio_ref;
+	}
+	if (!strcmp(mode, "unref")) {
+		if (!ioctx_ref->nb_refs) return NULL;
+		ioctx_ref->nb_refs--;
+		if (ioctx_ref->nb_refs)
+			return fileio_ref;
+
+		url = NULL;
+	}
+
+	if (!strcmp(mode, "url")) {
+		if (!url) return NULL;
+		GF_SAFEALLOC(ioctx, FileIOCtx);
+		ioctx->path = gf_url_concatenate(ioctx_ref->path, url);
+		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
+		//remember it but no need to keep a ref on it
+		gf_list_add(all_gfio_defined, gfio);
+		return gfio;
+	}
+	if (!strcmp(mode, "probe")) {
+		if (!gf_file_exists(url)) *out_err = GF_URL_ERROR;
+		return NULL;
+	}
+
+	if (!url) {
+		if (ioctx_ref->filep) gf_fclose(ioctx_ref->filep);
+		ioctx_ref->filep = NULL;
+
+		if (!ioctx_ref->nb_refs) {
+			gf_list_del_item(all_gfio_defined, fileio_ref);
+			gf_fileio_del(fileio_ref);
+			if (ioctx_ref->path) gf_free(ioctx_ref->path);
+			gf_free(ioctx_ref);
+		}
+		return NULL;
+	}
+
+	//file handle not opened, we can use the current gfio
+	if (!ioctx_ref->filep && (!strnicmp(url, "gfio://", 7) || !strcmp(url, ioctx_ref->path)) ) {
+		ioctx_ref->filep = gf_fopen(ioctx_ref->path, mode);
+		if (!ioctx_ref->filep) {
+			*out_err = GF_IO_ERR;
+			return NULL;
+		}
+		file_size = gf_fsize(ioctx_ref->filep);
+		if (strchr(mode, 'r'))
+			gf_fileio_set_stats(fileio_ref, file_size,file_size, GF_TRUE, 0);
+		return fileio_ref;
+	}
+
+	//file handle already open (file is being opened twice), create a new gfio
+	GF_SAFEALLOC(ioctx, FileIOCtx);
+
+	if (strnicmp(url, "gfio://", 7)) {
+		ioctx->path = gf_url_concatenate(ioctx_ref->path, url);
+		ioctx->filep = gf_fopen(ioctx->path, mode);
+	} else {
+		ioctx->path = gf_strdup(ioctx_ref->path);
+		ioctx->filep = gf_fopen(ioctx_ref->path, mode);
+	}
+	if (!ioctx->filep) {
+		*out_err = GF_IO_ERR;
+		if (ioctx->path) gf_free(ioctx->path);
+		gf_free(ioctx);
+		return NULL;
+	}
+	gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
+	if (!gfio) {
+		*out_err = GF_OUT_OF_MEM;
+	}
+
+	file_size = gf_fsize(ioctx->filep);
+	if (strchr(mode, 'r'))
+		gf_fileio_set_stats(gfio, file_size,file_size, GF_TRUE, 0);
+	return gfio;
+}
+
 
 static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e)
 {
-	FileIOCtx *octx;
+	FileIOCtx *ioctx;
 	GF_FileIO *fio;
 	char *sep = (char *) gf_url_colon_suffix(inargs);
 	*out_arg = NULL;
 	if (sep) sep[0] = 0;
 
-	GF_SAFEALLOC(octx, FileIOCtx);
-	octx->path = gf_strdup(inargs);
+	GF_SAFEALLOC(ioctx, FileIOCtx);
+	ioctx->path = gf_strdup(inargs);
 	if (sep) {
 		sep[0] = ':';
 		*out_arg = sep+1;
 	}
-	fio = gf_fileio_new(octx->path, octx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_factory);
+	fio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
 	if (!fio) {
 		*e = GF_OUT_OF_MEM;
 		return NULL;
 	}
+	if (!all_gfio_defined) {
+		all_gfio_defined = gf_list_new();
+		if (!all_gfio_defined) return NULL;
+	}
+	gf_list_add(all_gfio_defined, fio);
+	//keep alive until end
+	ioctx->nb_refs = 1;
 	return gf_fileio_url(fio);
 }
 
-static void del_fileio()
+static void cleanup_file_io()
 {
-
+	if (!all_gfio_defined) return;
+	while (gf_list_count(all_gfio_defined)) {
+		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);
+		FileIOCtx *ioctx = gf_fileio_get_udta(gfio);
+		gf_fileio_del(gfio);
+		
+		if (ioctx->filep) {
+			fprintf(stderr, "Warning: file IO for %s still opened!\n", ioctx->path);
+			gf_fclose(ioctx->filep);
+		}
+		if (ioctx->path) gf_free(ioctx->path);
+		gf_free(ioctx);
+	}
+	gf_list_del(all_gfio_defined);
+	all_gfio_defined = NULL;
 }

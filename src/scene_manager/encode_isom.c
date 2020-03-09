@@ -241,7 +241,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	} else {
 		strcpy(szName, mux->file_name);
 	}
-	ext = strrchr(szName, '.');
+	ext = gf_file_ext_start(szName);
 
 	/*get track types for AVI*/
 	if (ext && !strnicmp(ext, ".avi", 4)) {

@@ -577,7 +577,7 @@ int live_session(int argc, char **argv)
 				if (!srcf) continue;
 
 				/*checks if we have a broadcast config*/
-				if (!fgets(flag_buf, 200, srcf))
+				if (!gf_fgets(flag_buf, 200, srcf))
 					flag_buf[0] = '\0';
 				gf_fclose(srcf);
 

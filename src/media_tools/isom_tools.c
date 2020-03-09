@@ -221,9 +221,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 
 	in = gf_fopen(file, "rb");
     if (!in) return GF_URL_ERROR;
-	gf_fseek(in, 0, SEEK_END);
-	size = gf_ftell(in);
-	gf_fseek(in, 0, SEEK_SET);
+	size = gf_fsize(in);
 
 	ctx = gf_sha1_starts();
 	tot = 0;
@@ -252,7 +250,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 					u32 to_read = (u32) ((box_size-bsize<4096) ? (box_size-bsize) : 4096);
 					read = gf_bs_read_data(bs, (char *) block, to_read);
 					if (!read || (read != to_read) ) {
-						fprintf(stderr, "corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size));
 						break;
 					}
 					gf_sha1_update(ctx, block, to_read);
@@ -263,7 +261,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 		} else
 #endif
 		{
-			read = (u32) fread(block, 1, 4096, in);
+			read = (u32) gf_fread(block, 1, 4096, in);
 			if ((s32) read <= 0) {
 				if (ferror(in))
 					e = GF_IO_ERR;

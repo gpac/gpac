@@ -1823,7 +1823,7 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 	} else {
 		t = stdout;
 	}
-	res = (u32) fwrite(data+8, 1, count-8, t);
+	res = (u32) gf_fwrite(data+8, 1, count-8, t);
 	if (inName) gf_fclose(t);
 	gf_free(data);
 	if (count-8 != res) {
@@ -3369,7 +3369,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 	/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
 	while (!feof(src)) {
-		size = (u32) fread(data, 1, 188, src);
+		size = (u32) gf_fread(data, 1, 188, src);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);
@@ -3402,7 +3402,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	fdone = 0;
 
 	while (!feof(src)) {
-		size = (u32) fread(data, 1, 188, src);
+		size = (u32) gf_fread(data, 1, 188, src);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);

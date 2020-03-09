@@ -677,7 +677,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 						icc_size = (u32) gf_ftell(f);
 						icc_data = gf_malloc(sizeof(char)*icc_size);
 						gf_fseek(f, 0, SEEK_SET);
-						icc_size = (u32) fread(icc_data, 1, icc_size, f);
+						icc_size = (u32) gf_fread(icc_data, 1, icc_size, f);
 						gf_fclose(f);
 					}
 				} else {
@@ -2660,7 +2660,7 @@ GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_F
 		char *url;
 		u32 len;
 		szLine[0] = 0;
-		if (fgets(szLine, 10000, pl) == NULL) break;
+		if (gf_fgets(szLine, 10000, pl) == NULL) break;
 		if (szLine[0]=='#') continue;
 		len = (u32) strlen(szLine);
 		while (len && strchr("\r\n \t", szLine[len-1])) {
@@ -3208,15 +3208,16 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		count = gf_list_count(imports);
 		for (i=0; i<count; i++) {
 			char *item = gf_list_get(imports, i);
+			char *res_url = NULL;
 
 			FILE *test = gf_fopen(item, "rb");
 			if (!test) {
-				char *resurl = gf_url_concatenate(file_name, item);
-				test = gf_fopen(resurl, "rb");
-				gf_free(resurl);
+				res_url = gf_url_concatenate(file_name, item);
+				test = gf_fopen(res_url, "rb");
 			}
 
 			if (!test) {
+				if (res_url) gf_free(res_url);
 				gf_list_rem(imports, i);
 				i--;
 				count--;
@@ -3224,7 +3225,8 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 				continue;
 			}
 			gf_fclose(test);
-			if (gf_isom_probe_file(item)) {
+			if (gf_isom_probe_file(res_url)) {
+				if (res_url) gf_free(res_url);
 				if (isom_src) {
 					fprintf(stderr, "Cannot package several IsoMedia files together\n");
 					e = GF_NOT_SUPPORTED;
@@ -3236,6 +3238,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 				isom_src = item;
 				continue;
 			}
+			if (res_url) gf_free(res_url);
 		}
 	}
 

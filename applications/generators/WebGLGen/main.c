@@ -47,8 +47,8 @@ static void end_ctx(FILE *ifce_c, FILE *func_c, char *ctx_name)
 	while (!feof(func_c)) {
 		char szLine[4001];
 		szLine[0] = 0;
-		fgets(szLine, 4000, func_c);
-		fputs(szLine, ifce_c);
+		gf_fgets(szLine, 4000, func_c);
+		gf_fputs(szLine, ifce_c);
 	}
 	gf_fclose(func_c);
 	fprintf(ifce_c, "};\n");
@@ -527,7 +527,7 @@ static void load_idl(const char *file)
 	FILE *fun_defs=NULL;
 
 	while (!feof(idl)) {
-		fgets(szLine, 4000, idl);
+		gf_fgets(szLine, 4000, idl);
 		if (strstr(szLine, "implements"))
 			continue;
 		len = strlen(szLine);

@@ -912,6 +912,7 @@ typedef enum
 \param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
 \param tfdt_per_traf if set, each traf will contain a tfdt. Only applicable when single_traf_per_moof is GF_TRUE. Default value is GF_FALSE
 \param mvex_after_traks if set, the mvex box will be written after all track boxes
+\param sdtp_in_traf mode for sdtp storage in traf (smooth compatibility): 0: not allowed, 1: only stdp, no trun flags, 2: both (trun for sync, stdp for the rest)
 \return error code if any
 */
 GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, GF_DASHPSSHMode pssh_mode, Bool samplegroups_in_traf, Bool single_traf_per_moof, Bool tfdt_per_traf, Bool mvex_after_traks, u32 sdtp_in_traf);

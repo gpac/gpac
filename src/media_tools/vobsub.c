@@ -257,7 +257,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 	s32   line, id =-1, delay = 0;
 	Bool  error = 0;
 
-	for (line = 0; !error && fgets(strbuf, sizeof(strbuf), file); line++)
+	for (line = 0; !error && gf_fgets(strbuf, sizeof(strbuf), file); line++)
 	{
 		str = strtrim(strbuf);
 

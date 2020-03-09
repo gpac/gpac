@@ -44,7 +44,7 @@ typedef struct
 {
 	//options
 	const char *src;
-	u32 buffer_size;
+	u32 block_size;
 	u32 copy, probes;
 	Bool sclock;
 	const char *fmt, *dev;
@@ -74,6 +74,10 @@ typedef struct
 	u64 *probe_times;
 
 	Bool copy_audio, copy_video;
+
+	u8 *avio_ctx_buffer;
+	AVIOContext *avio_ctx;
+	FILE *gfio;
 } GF_FFDemuxCtx;
 
 static void ffdmx_finalize(GF_Filter *filter)
@@ -89,6 +93,11 @@ static void ffdmx_finalize(GF_Filter *filter)
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
 	}
+	if (ctx->avio_ctx) {
+		if (ctx->avio_ctx->buffer) av_freep(&ctx->avio_ctx->buffer);
+		av_freep(&ctx->avio_ctx);
+	}
+	if (ctx->gfio) gf_fclose(ctx->gfio);
 	return;
 }
 
@@ -495,12 +504,25 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 	return GF_OK;
 }
 
+static int ffavio_read_packet(void *opaque, uint8_t *buf, int buf_size)
+{
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
+	return gf_fread(buf, 1, buf_size, ctx->gfio);
+}
+
+static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)
+{
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
+	return gf_fseek(ctx->gfio, offset, whence);
+}
+
 static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
 	s32 res;
 	char *ext;
+	const char *url;
 	AVInputFormat *av_in = NULL;
 	ctx->fname = "FFDmx";
 	ctx->log_class = GF_LOG_CONTAINER;
@@ -526,7 +548,29 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	ctx->demuxer = avformat_alloc_context();
 	ffmpeg_set_mx_dmx_flags(ctx->options, ctx->demuxer);
 
-	res = avformat_open_input(&ctx->demuxer, ctx->src, av_in, ctx->options ? &ctx->options : NULL);
+	url = ctx->src;
+	if (!strncmp(ctx->src, "gfio://", 7)) {
+		ctx->gfio = gf_fopen(ctx->src, "rb");
+		if (!ctx->gfio) {
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Failed to open %s\n", ctx->fname, ctx->src));
+			return GF_URL_ERROR;
+		}
+		ctx->avio_ctx_buffer = av_malloc(ctx->block_size);
+		if (!ctx->avio_ctx_buffer) {
+			return GF_OUT_OF_MEM;
+		}
+		ctx->avio_ctx = avio_alloc_context(ctx->avio_ctx_buffer, ctx->block_size,
+									  0, ctx, &ffavio_read_packet, NULL, &ffavio_seek);
+
+		if (!ctx->avio_ctx) {
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Failed to create AVIO context for %s\n", ctx->fname, ctx->src));
+			return GF_OUT_OF_MEM;
+		}
+		ctx->demuxer->pb = ctx->avio_ctx;
+		url = gf_fileio_translate_url(ctx->src);
+	}
+
+	res = avformat_open_input(&ctx->demuxer, url, av_in, ctx->options ? &ctx->options : NULL);
 
 	switch (res) {
 	case 0:
@@ -953,6 +997,7 @@ static const GF_FilterArgs FFAVInArgs[] =
 		"", GF_PROP_UINT, "A", "N|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sclock), "use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(probes), "probe a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible options defined for AVInputFormat and AVFormatContext. See `gpac -hx ffavin` and `gpac -hx ffavin:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };

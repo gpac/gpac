@@ -574,7 +574,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE,
 		       ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
 
-		if (fflush( entry->writeFilePtr ) || gf_fclose( entry->writeFilePtr )) {
+		if (gf_fflush( entry->writeFilePtr ) || gf_fclose( entry->writeFilePtr )) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CACHE, ("[CACHE] Failed to flush/close file on disk\n"));
 			e = GF_IO_ERR;
 		}
@@ -708,7 +708,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		gf_file_delete(entry->cache_filename);
 		return GF_IO_ERR;
 	}
-	if (fflush(entry->writeFilePtr)) {
+	if (gf_fflush(entry->writeFilePtr)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CACHE,
 		       ("[CACHE] Error while flushing data bytes to cache file : %s.", entry->cache_filename));
 		gf_cache_close_write_cache(entry, sess, GF_FALSE);
@@ -813,8 +813,7 @@ Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry)
 		char * endPtr;
 		const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_CONTENT_SIZE );
 
-		gf_fseek ( the_cache, 0, SEEK_END );
-		entry->cacheSize = ( u32 ) gf_ftell ( the_cache );
+		entry->cacheSize = ( u32 ) gf_fsize(the_cache);
 		gf_fclose ( the_cache );
 		if (keyValue) {
 			entry->contentLength = (u32) strtoul( keyValue, &endPtr, 10);

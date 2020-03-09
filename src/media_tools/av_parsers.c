@@ -4521,7 +4521,7 @@ u32 gf_mp3_get_next_header(FILE* in)
 	bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0;
 
 	while (1) {
-		if (fread(&b, 1, 1, in) == 0) return 0;
+		if (gf_fread(&b, 1, 1, in) == 0) return 0;
 
 		if (state == 3) {
 			bytes[state] = b;
