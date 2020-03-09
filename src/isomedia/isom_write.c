@@ -79,7 +79,8 @@ GF_Err FlushCaptureMode(GF_ISOFile *movie)
 	/*we have a trick here: the data will be stored on the fly, so the first
 	thing in the file is the MDAT. As we don't know if we have a large file (>4 GB) or not
 	do as if we had one and write 16 bytes: 4 (type) + 4 (size) + 8 (largeSize)...*/
-	gf_bs_write_int(movie->editFileMap->bs, 0, 128);
+	gf_bs_write_long_int(movie->editFileMap->bs, 0, 64);
+	gf_bs_write_long_int(movie->editFileMap->bs, 0, 64);
 	return GF_OK;
 }
 
