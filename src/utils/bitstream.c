@@ -546,7 +546,7 @@ void gf_bs_write_int(GF_BitStream *bs, s32 _value, s32 nBits)
 	s32 max_shift = sizeof(s32) * 8;
 	if (!nBits) return;
 	if (nBits > max_shift) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to write %d bits, when max is %d\n", nBits, max_shift));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[BS] Attempt to write %d bits, when max is %d\n", nBits, max_shift));
 	}
 	while (nBits > max_shift) {
 		gf_bs_write_int(bs, 0, max_shift);
