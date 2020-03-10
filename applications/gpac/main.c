@@ -1743,7 +1743,7 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
 		} else if (arg[0]=='-') {
-			if (!strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") || !strcmp(arg, "-p") ) {
+			if (!strcmp(arg, "-") || !strcmp(arg, "-i") || !strcmp(arg, "-src") || !strcmp(arg, "-o") || !strcmp(arg, "-dst") || !strcmp(arg, "-p") ) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
 				gpac_suggest_arg(arg);
 				gpac_exit(1);
