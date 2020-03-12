@@ -106,7 +106,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 				return GF_URL_ERROR;
 			}
 			if (res_src) gf_free(res_src);
-			size = gf_fsize(f);
+			size = (u32) gf_fsize(f);
 			val = gf_get_bit_size(size);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);

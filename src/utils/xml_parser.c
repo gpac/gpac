@@ -1413,7 +1413,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #ifdef NO_GZIP
 		pos = gf_ftell(parser->f_in);
 #else
-		pos = gf_gztell(parser->gz_in);
+		pos = (u32) gf_gztell(parser->gz_in);
 #endif
 	}
 	att_len = (u32) strlen(parser->buffer + parser->att_name_start);

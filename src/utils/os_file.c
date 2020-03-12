@@ -965,7 +965,7 @@ static u32 gf_fileio_write(GF_FileIO *gfio, u8 *buffer, u32 nb_bytes)
 {
 	if (!gfio) return GF_BAD_PARAM;
 	if (!gfio->write) return 0;
-	return gfio->write(gfio, buffer, nb_bytes);
+	return gfio->write(gfio, buffer, (u32) nb_bytes);
 }
 
 int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args)
@@ -1102,12 +1102,16 @@ u64 gf_ftell(FILE *fp)
 }
 
 GF_EXPORT
-u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
+s32 gf_fseek(FILE *fp, s64 offset, s32 whence)
 {
 	if (!fp) return -1;
 	if (gf_fileio_check(fp)) {
 		GF_FileIO *gfio = (GF_FileIO *)fp;
-		if (gfio->seek) return gfio->seek(gfio, offset, whence);
+		if (gfio->seek) {
+			GF_Err e = gfio->seek(gfio, offset, whence);
+			if (e) return -1;
+			return 0;
+		}
 		return -1;
 	}
 
@@ -1271,7 +1275,7 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
 	size_t result;
 
 	if (gf_fileio_check(stream)) {
-		return gf_fileio_write((GF_FileIO *)stream, (u8 *) ptr, size*nmemb);
+		return(size_t) gf_fileio_write((GF_FileIO *)stream, (u8 *) ptr, (u32) (size*nmemb));
 	}
 
 	result = fwrite(ptr, size, nmemb, stream);
@@ -1309,7 +1313,7 @@ size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
 	size_t result;
 	if (gf_fileio_check(stream)) {
-		return gf_fileio_read((GF_FileIO *)stream, ptr, size*nmemb);
+		return (size_t) gf_fileio_read((GF_FileIO *)stream, ptr, (u32) (size*nmemb));
 	}
 	result = fread(ptr, size, nmemb, stream);
 	return result;
@@ -1323,7 +1327,7 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 		u32 i, read, nb_read=0;
 		for (i=0; i<size; i++) {
 			u8 buf[1];
-			read = gf_fileio_read(fio, buf, 1);
+			read = (u32) gf_fileio_read(fio, buf, 1);
 			if (!read) break;
 
 			ptr[nb_read] = buf[0];
@@ -1333,7 +1337,7 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 		if (!nb_read) return NULL;
 		return ptr;
 	}
-	return fgets(ptr, size, stream);
+	return fgets(ptr, (u32) size, stream);
 }
 
 GF_EXPORT

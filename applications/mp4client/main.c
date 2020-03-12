@@ -564,7 +564,7 @@ static Bool read_line_input(char * line, int maxSize, Bool showContent) {
 				i--;
 			}
 		} else if (read > 32) {
-			gf_fputc(showContent ? read : '*', stderr);
+			fputc(showContent ? read : '*', stderr);
 			line[i++] = read;
 		}
 		fflush(stderr);
@@ -904,7 +904,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			readonly_playlist = 0;
 			playlist = gf_file_temp(NULL);
 		}
-		pos = gf_ftell(playlist);
+		pos = (u32) gf_ftell(playlist);
 		i=0;
 		while (i<evt->open_file.nb_files) {
 			if (evt->open_file.files[i] != NULL) {

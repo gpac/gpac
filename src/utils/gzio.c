@@ -59,7 +59,7 @@ static int const gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 #define COMMENT      0x10 /* bit 4 set: file comment present */
 #define RESERVED     0xE0 /* bits 5..7: reserved */
 
-
+#if 0
 const char * const z_errmsg[10] = {
 	"need dictionary",     /* Z_NEED_DICT       2  */
 	"stream end",          /* Z_STREAM_END      1  */
@@ -72,6 +72,8 @@ const char * const z_errmsg[10] = {
 	"incompatible version",/* Z_VERSION_ERROR (-6) */
 	""
 };
+
+#endif
 
 typedef struct gz_stream {
 	z_stream stream;
@@ -227,7 +229,7 @@ void *gf_gzopen(const char *path, const char *mode)
 
 	} else {
 		check_header(s); /* skip the .gz header */
-		s->start = gf_ftell(s->file) - s->stream.avail_in;
+		s->start = (long) (gf_ftell(s->file) - s->stream.avail_in);
 	}
 
 	return (gzFile)s;
@@ -796,7 +798,7 @@ u64 gf_gzseek(void *file, u64 offset, int whence)
 		s->stream.next_in = s->inbuf;
 		if (gf_fseek(s->file, offset, SEEK_SET) < 0) return -1L;
 
-		s->in = s->out = offset;
+		s->in = s->out = (long) offset;
 		return offset;
 	}
 

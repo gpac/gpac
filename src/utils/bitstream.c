@@ -327,7 +327,7 @@ static GFINLINE u8 gf_bs_load_byte(GF_BitStream *bs, Bool *is_eos)
 	u8 res;
 	if (bs->cache_read) {
 		if (bs->cache_read_pos == bs->cache_read_size) {
-			bs->cache_read_size = gf_fread(bs->cache_read, 1, bs->cache_read_alloc, bs->stream);
+			bs->cache_read_size = (u32) gf_fread(bs->cache_read, 1, bs->cache_read_alloc, bs->stream);
 			bs->cache_read_pos = 0;
 			if (!bs->cache_read_size) {
 				*is_eos = GF_TRUE;
@@ -1190,7 +1190,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 		if (bs->cache_read) {
 			u32 csize = bs->cache_read_size - bs->cache_read_pos;
 			if (csize>nbBytes) {
-				bs->cache_read_pos += nbBytes;
+				bs->cache_read_pos += (u32) nbBytes;
 				bs->position += nbBytes;
 				return;
 			}

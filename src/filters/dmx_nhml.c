@@ -1274,7 +1274,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 
 						gf_bs_write_u32(ctx->bs_w, 0); //flags
-						gf_bs_write_u32(ctx->bs_w, subsMediaFileSize);
+						gf_bs_write_u32(ctx->bs_w, (u32) subsMediaFileSize);
 						gf_bs_write_u32(ctx->bs_w, 0); //reserved
 						gf_bs_write_u8(ctx->bs_w, 0); //priority
 						gf_bs_write_u8(ctx->bs_w, 0); //discardable

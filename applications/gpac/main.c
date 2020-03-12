@@ -2143,11 +2143,11 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 						char *read = gf_fgets(szLine, 1024, sidebar_md);
 						if (!read) break;
 						if (!strncmp(szLine, "**Filters Help**", 16)) {
-							end_pos = gf_ftell(sidebar_md);
+							end_pos = (u32) gf_ftell(sidebar_md);
 							break;
 						}
 					}
-					if (!end_pos) end_pos = gf_ftell(sidebar_md);
+					if (!end_pos) end_pos = (u32) gf_ftell(sidebar_md);
 					if (end_pos) {
 						sbbuf = gf_malloc(end_pos+1);
 						gf_fseek(sidebar_md, 0, SEEK_SET);
@@ -3503,7 +3503,7 @@ static u32 fio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
 	if (!ioctx->filep) return 0;
-	return gf_fread(buffer, 1, bytes, ioctx->filep);
+	return (u32) gf_fread(buffer, 1, bytes, ioctx->filep);
 }
 static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
@@ -3513,7 +3513,7 @@ static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 		fflush(ioctx->filep);
 		return 0;
 	}
-	return gf_fwrite(buffer, 1, bytes, ioctx->filep);
+	return (u32) gf_fwrite(buffer, 1, bytes, ioctx->filep);
 }
 static s64 fio_tell(GF_FileIO *fileio)
 {

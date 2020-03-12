@@ -155,7 +155,7 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 		if (!f) return 0;
 		if (start_range) gf_fseek(f, start_range, SEEK_SET);
 		type = 0;
-		nb_read = gf_fread(data, 1, 4, f);
+		nb_read = (u32) gf_fread(data, 1, 4, f);
 		if (nb_read == 4) {
 			if (gf_fread(data, 1, 4, f) == 4) {
 				type = GF_4CC(data[0], data[1], data[2], data[3]);
