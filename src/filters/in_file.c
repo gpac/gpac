@@ -203,6 +203,9 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 	char *cgi_par = NULL;
 	char *src = (char *) url;
 	Bool res;
+
+	if (!strcmp(url, "-") || !strcmp(url, "stdin")) return GF_FPROBE_NOT_SUPPORTED;
+
 	if (!strnicmp(url, "file://", 7)) src += 7;
 	else if (!strnicmp(url, "file:", 5)) src += 5;
 

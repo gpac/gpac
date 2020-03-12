@@ -2058,10 +2058,10 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 				if (in->patch_blocks && gf_filter_pck_get_seek_flag(pck)) {
 					u64 bo = gf_filter_pck_get_byte_offset(pck);
 					if (bo==GF_FILTER_NO_BO) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Cannot patch file, wrong byte offset\n"));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Cannot patch file, wrong byte offset\n"));
 					} else {
 						if (gf_filter_pck_get_interlaced(pck)) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Cannot patch file by byte insertion, not supported by HTTP\n"));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Cannot patch file by byte insertion, not supported by HTTP\n"));
 						} else {
 							u64 pos = in->nb_write;
 							//close file
@@ -2073,7 +2073,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 
 							nb_write = httpout_write_input(ctx, in, pck_data, pck_size, start);
 							if (nb_write!=pck_size) {
-								GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+								GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 							}
 							httpout_close_input(ctx, in);
 
@@ -2088,7 +2088,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 
 					nb_write = httpout_write_input(ctx, in, pck_data, pck_size, start);
 					if (nb_write!=pck_size) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 					}
 					in->nb_write += nb_write;
 				}
@@ -2113,7 +2113,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 						u32 out_stride = i ? stride_uv : stride;
 						GF_Err e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
 						if (e) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Failed to fetch plane data from hardware frame, cannot write\n"));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to fetch plane data from hardware frame, cannot write\n"));
 							break;
 						}
 						if (i) {
@@ -2126,7 +2126,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 						for (j=0; j<write_h; j++) {
 							nb_write = (u32) httpout_write_input(ctx, in, out_ptr, lsize, start);
 							if (nb_write!=lsize) {
-								GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
+								GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
 							}
 							in->nb_write += nb_write;
 							out_ptr += out_stride;
@@ -2135,10 +2135,10 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 					}
 				}
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[HTTPOut] No data associated with packet, cannot write\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] No data associated with packet, cannot write\n"));
 			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] output file handle is not opened, discarding %d bytes\n", pck_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] output file handle is not opened, discarding %d bytes\n", pck_size));
 		}
 		gf_filter_pid_drop_packet(in->ipid);
 		if (end) {
