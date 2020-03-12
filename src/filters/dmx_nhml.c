@@ -463,7 +463,6 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	GF_XMLNode *node;
 	FILE *finfo;
 	u64 media_size, last_dts;
-	Bool use_gfio=GF_FALSE;
 	char *szRootName, *szSampleName, *szImpName;
 
 	szRootName = ctx->is_dims ? "DIMSStream" : "NHNTStream";
@@ -484,7 +483,6 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	szName[0] = 0;
 	if (!strncmp(ctx->src_url, "gfio://", 7)) {
-		use_gfio = GF_TRUE;
 		char *base = gf_file_basename( gf_fileio_translate_url(ctx->src_url) );
 		if (base) strcpy(szName, base);
 	} else {
