@@ -99,8 +99,16 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	char fileName[GF_MAX_PATH];
 	Bool line_done = GF_FALSE;
 	u32 nb_empty_lines=0;
+	Bool is_opts_probe = GF_FALSE;
 	Bool in_multiline = GF_FALSE;;
 	gf_cfg_clear(tmp);
+
+	if (strstr(file_name, "/all_opts.txt")) {
+		if (filePath && !strcmp(filePath, "probe")) {
+			filePath = NULL;
+			is_opts_probe = GF_TRUE;
+		}
+	}
 
 	if (filePath && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
 		strcpy(fileName, filePath);
@@ -219,6 +227,13 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			gf_list_add(p->keys, k);
 			if (line_done) k=NULL;
 			line_done=GF_FALSE;
+
+			if (is_opts_probe) {
+				if (!strcmp(p->section_name, "version") && !strcmp(k->name, "version")) {
+					break;
+				}
+			}
+
 		} else if (k) {
 			u32 l1 = (u32) strlen(k->value);
 			u32 l2 = (u32) strlen(line);

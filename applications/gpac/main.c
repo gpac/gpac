@@ -1127,7 +1127,7 @@ static void gpac_load_suggested_filter_args()
 	cfg_path = gf_opts_get_filename();
 	all_opts = gf_url_concatenate(cfg_path, "all_opts.txt");
 
-	opts = gf_cfg_force_new(NULL, all_opts);
+	opts = gf_cfg_force_new("probe", all_opts);
 	gf_free(all_opts);
 
 	version = gf_cfg_get_key(opts, "version", "version");
@@ -1467,8 +1467,6 @@ static int gpac_main(int argc, char **argv)
 
 	gf_sys_init(mem_track, profile);
 
-	gpac_load_suggested_filter_args();
-
 //	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
 
@@ -1496,6 +1494,9 @@ static int gpac_main(int argc, char **argv)
 		fprintf(stderr, "Error assigning libgpac arguments: %s\n", gf_error_to_string(e) );
 		gpac_exit(1);
 	}
+
+	if (!profile || strcmp(profile, "0") )
+		gpac_load_suggested_filter_args();
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_APP, GF_LOG_DEBUG)) {
