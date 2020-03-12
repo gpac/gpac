@@ -3467,13 +3467,11 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 static char *gf_dash_get_fileio_url(const char *base_url, char *res_url)
 {
 	const char *new_res;
-	char *mpath;
 	GF_FileIO *gfio;
 	if (strncmp(base_url, "gfio://", 7))
 		return res_url;
 
 	gfio = gf_fileio_from_url(base_url);
-	mpath = (char *) gf_file_basename(gf_fileio_resource_url(gfio));
 
 	new_res = gf_fileio_factory(gfio, res_url);
 	if (!new_res) return res_url;

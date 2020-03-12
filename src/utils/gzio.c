@@ -7,8 +7,6 @@
 
 /* @(#) $Id: gzio.cpp,v 1.4 2010-02-23 16:24:20 jeanlf Exp $ */
 
-#include <stdio.h>
-
 #include <gpac/tools.h>
 
 #ifndef GPAC_DISABLE_ZLIB
@@ -113,8 +111,10 @@ GF_EXPORT
 void *gf_gzopen(const char *path, const char *mode)
 {
 	int err;
+#ifndef NO_GZCOMPRESS
 	int level = Z_DEFAULT_COMPRESSION; /* compression level */
 	int strategy = Z_DEFAULT_STRATEGY; /* compression strategy */
+#endif
 	char *p = (char*)mode;
 	gz_stream *s;
 	char fmode[80]; /* copy of mode, without the compression level */
@@ -153,13 +153,20 @@ void *gf_gzopen(const char *path, const char *mode)
 		if (*p == 'r') s->mode = 'r';
 		if (*p == 'w' || *p == 'a') s->mode = 'w';
 		if (*p >= '0' && *p <= '9') {
+#ifndef NO_GZCOMPRESS
 			level = *p - '0';
-		} else if (*p == 'f') {
+#endif
+		}
+		else if (*p == 'f') {
+#ifndef NO_GZCOMPRESS
 			strategy = Z_FILTERED;
+#endif
 		} else if (*p == 'h') {
+#ifndef NO_GZCOMPRESS
 			strategy = Z_HUFFMAN_ONLY;
 			//} else if (*p == 'R') {
 			//  strategy = Z_RLE;
+#endif
 		} else {
 			*m++ = *p; /* copy the mode */
 		}
