@@ -1613,7 +1613,7 @@ u64 gf_gztell(void *file);
  \param file target gzfile
  \return same as gzrewind
  */
-u64 gf_gzrewind(void *file);
+s64 gf_gzrewind(void *file);
 /*! Wrapper around gzeof, same parameters
  \param file target gzfile
  \return same as gzeof

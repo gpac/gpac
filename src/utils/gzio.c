@@ -59,8 +59,7 @@ static int const gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 #define COMMENT      0x10 /* bit 4 set: file comment present */
 #define RESERVED     0xE0 /* bits 5..7: reserved */
 
-#if 0
-const char * const z_errmsg[10] = {
+const char * const gf_z_errmsg[10] = {
 	"need dictionary",     /* Z_NEED_DICT       2  */
 	"stream end",          /* Z_STREAM_END      1  */
 	"",                    /* Z_OK              0  */
@@ -72,8 +71,6 @@ const char * const z_errmsg[10] = {
 	"incompatible version",/* Z_VERSION_ERROR (-6) */
 	""
 };
-
-#endif
 
 typedef struct gz_stream {
 	z_stream stream;
@@ -720,7 +717,7 @@ int gf_gzflush (gzFile file, int flush)
      Rewinds input file.
 */
 GF_EXPORT
-u64 gf_gzrewind(void *file)
+s64 gf_gzrewind(void *file)
 {
 	gz_stream *s = (gz_stream*)file;
 
@@ -735,7 +732,7 @@ u64 gf_gzrewind(void *file)
 	if (!s->transparent) (void)inflateReset(&s->stream);
 	s->in = 0;
 	s->out = 0;
-	return gf_fseek(s->file, s->start, SEEK_SET);
+	return (s64) gf_fseek(s->file, s->start, SEEK_SET);
 }
 
 /* ===========================================================================
@@ -747,9 +744,10 @@ u64 gf_gzrewind(void *file)
       In this version of the library, gf_gzseek can be extremely slow.
 */
 GF_EXPORT
-u64 gf_gzseek(void *file, u64 offset, int whence)
+u64 gf_gzseek(void *file, u64 _offset, int whence)
 {
 	gz_stream *s = (gz_stream*)file;
+	s64 offset = (s64) _offset;
 
 	if (s == NULL || whence == SEEK_END ||
 	        s->z_err == Z_ERRNO || s->z_err == Z_DATA_ERROR) {
