@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -104,6 +104,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_va_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_lt) )
 #endif
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_fsize) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_get_udta) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_set_stats) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )

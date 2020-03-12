@@ -1232,10 +1232,10 @@ Seeks the current read/write position in a large file
 \param f Same semantics as fseek
 \param pos Same semantics as fseek
 \param whence Same semantics as fseek
-\return new position in the file
+\return 0 if success, -1 if error
 \note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
-u64 gf_fseek(FILE *f, s64 pos, s32 whence);
+s32 gf_fseek(FILE *f, s64 pos, s32 whence);
 
 
 /*! gets basename from filename/path
