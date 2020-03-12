@@ -1752,7 +1752,7 @@ static int gpac_main(int argc, char **argv)
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src")
 				|| !strcmp(arg, "-o") || !strcmp(arg, "-dst")
 				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
-				|| !strcmp(arg, "-p")
+				|| !strcmp(arg, "-p") || !strcmp(arg, "-")
 			) {
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
 				gpac_suggest_arg(arg);

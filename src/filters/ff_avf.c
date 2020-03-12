@@ -25,7 +25,7 @@
 
 #include <gpac/setup.h>
 
-#ifdef GPAC_HAS_FFMPEG 
+#ifdef GPAC_HAS_FFMPEG
 
 #include "ff_common.h"
 #include <gpac/network.h>
@@ -33,7 +33,7 @@
 #include <libavfilter/buffersrc.h>
 #include <libavfilter/buffersink.h>
 
-#if (LIBAVFILTER_VERSION_MAJOR <= 5)
+#if (LIBAVFILTER_VERSION_MAJOR < 7)
 #undef GPAC_HAS_FFMPEG
 #endif
 
@@ -1022,4 +1022,3 @@ const GF_FilterRegister *ffavf_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif
-

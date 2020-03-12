@@ -1370,7 +1370,7 @@ abort (bool, default: false):            allow abort during a segment download
 .br
 use_bmin (bool, default: false):         use the indicated min buffer time of the MPD if true, otherwise uses default player settings
 .br
-shift_utc (sint, default: 0):            shift DASH UTC clock
+shift_utc (sint, default: 0):            shift DASH UTC clock in ms
 .br
 atsc_shift (sint, default: 0):           shift ATSC requests time by given ms
 .br
@@ -3156,6 +3156,18 @@ The segmenter currently supports:
 .br
 - context store and reload for batch processing of live/dynamic sessions
 .br
+
+.br
+Warning: the filter does not perform any real-time regulation, even in dynamic offering mode.
+.br
+If your inputs are not real-time, insert a reframer before to perform real-time regulation.
+.br
+Example
+.br
+src=file.mp4 reframer:rt=on @ -o live.mpd:dmode=dynamic
+.br
+
+.br
 .P
 .B
 Template strings
@@ -3702,15 +3714,37 @@ This filter handles generic input pipes (mono-directional) in blocking or non bl
 .br
 Warning: Input pipes cannot seek.
 .br
-The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name).
-.br
-Data format of the pipe should be specified using extension (either in file name or through -ext) or MIME type through -mime.
+Data format of the pipe may be specified using extension (either in file name or through -ext) or MIME type through -mime.
 .br
 Note: Unless disabled at session level (see -no-probe ), file extensions are usually ignored and format probing is done on the first data block.
 .br
 
 .br
-On Windows hosts, the default pipe prefix is \\.\pipe\gpac\ if no prefix is set 
+.SH stdin pipe
+.LP
+.br
+The filter can handle reading from stdin, by using -or stdin as input file name.
+.br
+Example
+.br
+gpac -i - vout
+.br
+
+.br
+Example
+.br
+gpac -i stdin vout
+.br
+
+.br
+
+.br
+.SH Named pipes
+.LP
+.br
+The filter can handle reading from named pipes. The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name).
+.br
+On Windows hosts, the default pipe prefix is \\.\pipe\gpac\ if no prefix is set.
 .br
 Example
 .br
@@ -3732,7 +3766,7 @@ Input pipes are created by default in non-blocking mode.
 .br
 
 .br
-The pipe input can create the pipe if not found using -mkp. On windows hosts, this will create a pipe server.
+The filter can create the pipe if not found using -mkp. On windows hosts, this will create a pipe server.
 .br
 On non windows hosts, the created pipe will delete the pipe file upon filter destruction.
 .br
@@ -5296,7 +5330,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3398-gc2b9f6ad5-file_io
+build: 0.9.0-DEV-rev3400-ga4e85b940-file_io
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -2170,7 +2170,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			gf_url_to_fs_path(sURL);
 			char *sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
 			if (sep) sep[0] = 0;
-			if (strcmp(sURL, "null") && ! gf_file_exists(sURL)) {
+			if (strcmp(sURL, "null") && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
 				if (sep) sep[0] = fsess->sep_args;
 				if (err) *err = GF_URL_ERROR;
 				gf_free(sURL);
