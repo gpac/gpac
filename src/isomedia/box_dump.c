@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1857,7 +1857,7 @@ GF_Err xml_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, ">\n");
 	gf_fprintf(trace, "<![CDATA[\n");
 	if (p->xml)
-		gf_fwrite(p->xml, strlen(p->xml), 1, trace);
+		gf_fwrite(p->xml, strlen(p->xml), trace);
 	gf_fprintf(trace, "]]>\n");
 	gf_isom_box_dump_done("XMLBox", a, trace);
 	return GF_OK;

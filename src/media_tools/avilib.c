@@ -67,7 +67,7 @@ static u32 avi_read(FILE *fd, char *buf, u32 len)
 	u32 r = 0;
 
 	while (r < len) {
-		n = (s32) gf_fread(buf + r, 1, len - r, fd);
+		n = (s32) gf_fread(buf + r, len - r, fd);
 		if (n == 0) break;
 		if (n < 0) return r;
 		r += n;
@@ -82,7 +82,7 @@ static u32 avi_write (FILE *fd, char *buf, u32 len)
 	u32 r = 0;
 
 	while (r < len) {
-		n = (u32) gf_fwrite (buf + r, 1, len - r, fd);
+		n = (u32) gf_fwrite (buf + r, len - r, fd);
 		if (n < 0)
 			return n;
 

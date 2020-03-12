@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -112,7 +112,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);
 
 			while (size) {
-				u32 read = (u32) gf_fread(buf, 1, 4096, f);
+				u32 read = (u32) gf_fread(buf, 4096, f);
 				gf_bs_write_data(bs, buf, read);
 				size -= read;
 			}

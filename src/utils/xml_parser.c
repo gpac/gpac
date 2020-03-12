@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1167,7 +1167,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 
 	while (!parser->suspended) {
 #ifdef NO_GZIP
-		s32 read = (s32)gf_fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
+		s32 read = (s32)gf_fread(szLine, XML_INPUT_SIZE, parser->f_in);
 #else
 		s32 read = gf_gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 #endif
@@ -1271,7 +1271,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	//open file and copy possible BOM
 #ifdef NO_GZIP
 	parser->f_in = gf_fopen(fileName, "rt");
-	if (gf_fread(szLine, 1, 4, parser->f_in) != 4) {
+	if (gf_fread(szLine, 4, parser->f_in) != 4) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Error loading BOM\n"));
 	}
 #else
@@ -1448,7 +1448,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 			dobreak=GF_TRUE;
 		} else {
 #ifdef NO_GZIP
-			read = (u32)gf_fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
+			read = (u32)gf_fread(cur_line, XML_INPUT_SIZE, parser->f_in);
 #else
 			read = gf_gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
 #endif
@@ -2197,7 +2197,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			remain = size;
 			gf_fseek(_tmp, offset, SEEK_SET);
 			while (remain) {
-				read = (u32) gf_fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
+				read = (u32) gf_fread(block, (remain>1024) ? 1024 : remain, _tmp);
 				if ((s32) read < 0) {
 					gf_fclose(_tmp);
 					return GF_IO_ERR;

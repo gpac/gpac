@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jonathan Sillan
- *			Copyright (c) Telecom ParisTech 2011-2012
+ *			Copyright (c) Telecom ParisTech 2011-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / media tools sub-project
@@ -1013,7 +1013,7 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Fichier: %s module_Id %d place :%d \n",File->Path,moduleId,File->objectKey_data));
 		pFile = gf_fopen(File->Path,"wb");
 		if (pFile!=NULL) {
-			gf_fwrite(BIOP_File->content_byte,1,BIOP_File->content_length ,pFile);
+			gf_fwrite(BIOP_File->content_byte, BIOP_File->content_length ,pFile);
 			gf_fclose(pFile);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[DSMCC] File created\n"));
 			if(!strcmp(File->name,"index.html")) {

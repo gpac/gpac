@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -1836,7 +1836,7 @@ static GF_Err swf_def_sound(SWFReader *read)
 			u32 toread = read->size - tot_size;
 			if (toread>alloc_size) toread = alloc_size;
 			swf_read_data(read, frame, toread);
-			gf_fwrite(frame, sizeof(char)*toread, 1, snd->output);
+			gf_fwrite(frame, sizeof(char)*toread, snd->output);
 			tot_size += toread;
 		}
 
@@ -2023,8 +2023,8 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		if (tot_size + size >= read->size) size = read->size - tot_size;
 
 		swf_read_data(read, frame, size-4);
-		gf_fwrite(bytes, sizeof(char)*4, 1, read->sound_stream->output);
-		gf_fwrite(frame, sizeof(char)*(size-4), 1, read->sound_stream->output);
+		gf_fwrite(bytes, sizeof(char)*4, read->sound_stream->output);
+		gf_fwrite(frame, sizeof(char)*(size-4), read->sound_stream->output);
 		if (tot_size + size >= read->size) break;
 		tot_size += size;
 	}
@@ -2080,7 +2080,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 	if (version==1 && read->jpeg_hdr_size) {
 		/*remove JPEG EOI*/
-		gf_fwrite(read->jpeg_hdr, 1, read->jpeg_hdr_size-2, file);
+		gf_fwrite(read->jpeg_hdr, read->jpeg_hdr_size-2, file);
 		/*remove JPEG SOI*/
 		swf_get_16(read);
 		size-=2;
@@ -2088,7 +2088,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	buf = gf_malloc(sizeof(u8)*size);
 	swf_read_data(read, (char *) buf, size);
 	if (version==1) {
-		gf_fwrite(buf, 1, size, file);
+		gf_fwrite(buf, size, file);
 	} else {
 		u32 i;
 		for (i=0; i<size; i++) {
@@ -2105,7 +2105,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 			skip = 2;
 		}
 		if (version==2)
-			gf_fwrite(buf+skip, 1, size-skip, file);
+			gf_fwrite(buf+skip, size-skip, file);
 	}
 	if (version!=3)
 		gf_fclose(file);
@@ -2156,7 +2156,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		gf_img_png_enc(raw, w, h, h*4, GF_PIXEL_RGBA, (char *)buf, &osize);
 
 		file = gf_fopen(szName, "wb");
-		gf_fwrite(buf, 1, osize, file);
+		gf_fwrite(buf, osize, file);
 		gf_fclose(file);
 
 		gf_free(raw);

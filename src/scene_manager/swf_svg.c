@@ -1,8 +1,8 @@
 /*
  *          GPAC - Multimedia Framework C SDK
  *
- *          Authors: Cyril Concolato
- *          Copyright (c) Telecom ParisTech 2000-2012
+ *          Authors: Cyril Concolato, Jean Le Feuvre
+ *          Copyright (c) Telecom ParisTech 2000-2020
  *                  All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -534,7 +534,7 @@ GF_Err swf_svg_write_text_sample(void *user, const u8 *data, u32 length, u64 tim
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;
 
-	lengthWritten = (u32) gf_fwrite(data, 1, length, svgFile);
+	lengthWritten = (u32) gf_fwrite(data, length, svgFile);
 	if (length != lengthWritten) {
 		return GF_BAD_PARAM;
 	} else {
@@ -547,7 +547,7 @@ GF_Err swf_svg_write_text_header(void *user, const u8 *data, u32 length, Bool is
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;
 
-	lengthWritten = (u32) gf_fwrite(data, 1, length, svgFile);
+	lengthWritten = (u32) gf_fwrite(data, length, svgFile);
 	if (length != lengthWritten) {
 		return GF_BAD_PARAM;
 	} else {

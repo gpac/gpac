@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -2903,7 +2903,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			assert (user_profile);
 			profile = gf_fopen(user_profile, "rt");
 			if (profile) {
-				s32 read = (s32) gf_fread(tmp_buf+len, sizeof(char), par.size, profile);
+				s32 read = (s32) gf_fread(tmp_buf+len, par.size, profile);
 				if ((read<0) || (read< (s32) par.size)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP,
 					       ("[HTTP] Error while loading UserProfile, size=%d, should be %d.", read, par.size));
@@ -3553,7 +3553,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				s32 read = 0;
 				total_size = gf_cache_get_cache_filesize(sess->cache_entry);
 				do {
-					read = (s32) gf_fread(file_cache_buff, sizeof(char), 16384, f);
+					read = (s32) gf_fread(file_cache_buff, 16384, f);
 					if (read > 0) {
 						sess->bytes_done += read;
 						sess->total_size = total_size;
@@ -3840,7 +3840,7 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	/*handle service message*/
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
-		s32 written = (u32) gf_fwrite( param->data, sizeof(char), param->size, f);
+		s32 written = (u32) gf_fwrite( param->data, param->size, f);
 		if (written != param->size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("Failed to write data on disk\n"));
 		}
@@ -3953,7 +3953,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		*out_size = size;
 		*out_data = (char*)gf_malloc(sizeof(char)* ( 1 + size));
 		gf_fseek(f, 0, SEEK_SET);
-		read = (s32) gf_fread(*out_data, 1, size, f);
+		read = (s32) gf_fread(*out_data, size, f);
 		if (read != size) {
 			gf_free(*out_data);
 			e = GF_IO_ERR;
@@ -4094,10 +4094,10 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 				return NULL;
 			}
 			do {
-				read = gf_fread(copyBuff, sizeof(char), MIN(sizeof(copyBuff), (size_t)  total), fr);
+				read = gf_fread(copyBuff, MIN(sizeof(copyBuff), (size_t)  total), fr);
 				if (read > 0) {
 					total-= read;
-					write = gf_fwrite(copyBuff, sizeof(char), (size_t) read, fw);
+					write = gf_fwrite(copyBuff, (size_t) read, fw);
 					if (write != read) {
 						/* Something bad happened */
 						gf_fclose( fw );

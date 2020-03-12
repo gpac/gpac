@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML demuxer filter
@@ -292,7 +292,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	}
 	//we cannot use files with BOM since the XML position we get from the parser are offsets in the UTF-8 version of the XML.
 	//TODO: to support files with BOM we would need to serialize on the fly the callback from the sax parser
-	read = (u32) gf_fread(szBOM, 1, 3, xml);
+	read = (u32) gf_fread(szBOM, 3, xml);
 	if (read==3) {
 		gf_fseek(xml, 0, SEEK_SET);
 		if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
@@ -345,7 +345,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 	}
 	gf_fseek(xml, breaker.from_pos, SEEK_SET);
-	if (0 == gf_fread(ctx->samp_buffer, 1, ctx->samp_buffer_size, xml)) {
+	if (0 == gf_fread(ctx->samp_buffer, ctx->samp_buffer_size, xml)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to read samp->dataLength\n"));
 	}
 	e = GF_OK;
@@ -708,7 +708,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = ctx->header_end;
 		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
-		specInfoSize = (u32) gf_fread(specInfo, sizeof(char), specInfoSize, ctx->mdia);
+		specInfoSize = (u32) gf_fread(specInfo, specInfoSize, ctx->mdia);
 		specInfo[specInfoSize] = 0;
 		ctx->header_end = specInfoSize;
 	} else if (strlen(szXmlHeaderEnd)) {
@@ -1129,7 +1129,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 					nhml_get_bs(&ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_alloc, GF_BITSTREAM_WRITE);
 					gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size+1);
 					gf_bs_write_u8(ctx->bs_w, (u8) dims_flags);
-					read = (u32) gf_fread( ctx->samp_buffer + 3, sizeof(char), ctx->samp_buffer_size, f);
+					read = (u32) gf_fread( ctx->samp_buffer + 3, ctx->samp_buffer_size, f);
 					if (ctx->samp_buffer_size != read) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to fully read sample %d: dataLength %d read %d\n", ctx->sample_num, ctx->samp_buffer_size, read));
 					}
@@ -1144,7 +1144,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						ctx->samp_buffer_alloc = ctx->samp_buffer_size;
 						ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char) * ctx->samp_buffer_alloc);
 					}
-					read = (u32) gf_fread(ctx->samp_buffer, sizeof(char), ctx->samp_buffer_size, f);
+					read = (u32) gf_fread(ctx->samp_buffer, ctx->samp_buffer_size, f);
 					if (ctx->samp_buffer_size != read) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to fully read sample %d: dataLength %d read %d\n", ctx->sample_num, ctx->samp_buffer_size, read));
 					}
@@ -1245,7 +1245,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 						//send continuation frame
 						pck = gf_filter_pck_new_alloc(ctx->opid, (u32) subsMediaFileSize, &data);
-						subsMediaFileSize = (u32) gf_fread(data, 1, (u32) subsMediaFileSize, f);
+						subsMediaFileSize = (u32) gf_fread(data, (u32) subsMediaFileSize, f);
 						gf_fclose(f);
 
 						nb_subsamples--;

@@ -1269,19 +1269,18 @@ s32 gf_fclose(FILE *file)
 #endif
 
 GF_EXPORT
-size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
-                 FILE *stream)
+size_t gf_fwrite(const void *ptr, size_t nb_bytes, FILE *stream)
 {
 	size_t result;
 
 	if (gf_fileio_check(stream)) {
-		return(size_t) gf_fileio_write((GF_FileIO *)stream, (u8 *) ptr, (u32) (size*nmemb));
+		return(size_t) gf_fileio_write((GF_FileIO *)stream, (u8 *) ptr, (u32) nb_bytes);
 	}
 
-	result = fwrite(ptr, size, nmemb, stream);
-	if (result != nmemb) {
+	result = fwrite(ptr, 1, nb_bytes, stream);
+	if (result != nb_bytes) {
 #ifdef _WIN32_WCE
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data: %d blocks to write but %d blocks written\n", nmemb, result));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data: %d blocks to write but %d blocks written\n", nb_bytes, result));
 #else
 #if defined WIN32 && !defined(GPAC_CONFIG_WIN32)
 		errno_t errno_save;
@@ -1301,7 +1300,7 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
 #else
 			char *errstr = (char*)strerror(errno_save);
 #endif
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data (%s): %d blocks to write but %d blocks written\n", errstr, nmemb, result));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data (%s): %d blocks to write but %d blocks written\n", errstr, nb_bytes, result));
 		}
 #endif
 	}
@@ -1309,13 +1308,13 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
 }
 
 GF_EXPORT
-size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+size_t gf_fread(void *ptr, size_t nbytes, FILE *stream)
 {
 	size_t result;
 	if (gf_fileio_check(stream)) {
-		return (size_t) gf_fileio_read((GF_FileIO *)stream, ptr, (u32) (size*nmemb));
+		return (size_t) gf_fileio_read((GF_FileIO *)stream, ptr, (u32) nbytes);
 	}
-	result = fread(ptr, size, nmemb, stream);
+	result = fread(ptr, 1, nbytes, stream);
 	return result;
 }
 

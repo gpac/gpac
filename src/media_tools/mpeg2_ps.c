@@ -160,7 +160,7 @@ static Bool file_read_bytes(FILE *fd,
                             u8 *buffer,
                             u32 len)
 {
-	u32 readval = (u32) gf_fread(buffer, 1, len, fd);
+	u32 readval = (u32) gf_fread(buffer, len, fd);
 	return readval == len;
 }
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -507,7 +507,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 static int ffavio_read_packet(void *opaque, uint8_t *buf, int buf_size)
 {
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
-	return (int) gf_fread(buf, 1, buf_size, ctx->gfio);
+	return (int) gf_fread(buf, buf_size, ctx->gfio);
 }
 
 static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)

@@ -2,6 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Copyright (c) by  Falco (Ivan Vecera) 2006
+ *          Copyright (c) Jean Le Feuvre - Telecom ParisTech 2018_2020
  *                  All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -647,7 +648,7 @@ GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, u8 *data, u32 dataSize)
 		}
 
 		/* Write packet into file */
-		if (gf_fwrite(buf, sizeof(buf), 1, fsub) != 1) {
+		if (gf_fwrite(buf, sizeof(buf), fsub) != sizeof(buf)) {
 			return GF_IO_ERR;
 		}
 

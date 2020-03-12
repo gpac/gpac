@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -2990,7 +2990,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 	} else {
 		FILE *t = gf_fopen(fileName, "rb");
 		if (!t) return 0;
-		size = (u32) gf_fread(buf, 1, M2TS_PROBE_SIZE, t);
+		size = (u32) gf_fread(buf, M2TS_PROBE_SIZE, t);
 		gf_fclose(t);
 		if ((s32) size <= 0) return 0;
 	}

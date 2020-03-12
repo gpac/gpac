@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -387,27 +387,20 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 }
 static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 shader_type)
 {
-	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
-	if (src) {
-		size_t size;
-		char *shader_src;
-		size = (size_t) gf_fsize(src);
+	u32 size;
+	char *shader_src;
 
-		shader_src = gf_malloc(sizeof(char)*(size+1));
-		size = gf_fread(shader_src, 1, size, src);
-		gf_fclose(src);
-		if (size != (size_t) -1) {
-			shader_src[size]=0;
-			shader = glCreateShader(shader_type);
-			if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", shader_src)==GF_FALSE) {
-				glDeleteShader(shader);
-				shader = 0;
-			}
+	GF_Err e = gf_file_load_data(src_path, (u8 **) &shader_src, &size);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to open shader file %s: %s\n", src_path, gf_error_to_string(e) ));
+	} else {
+		shader = glCreateShader(shader_type);
+		if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", shader_src)==GF_FALSE) {
+			glDeleteShader(shader);
+			shader = 0;
 		}
 		gf_free(shader_src);
-	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to open shader file %s\n", src_path));
 	}
 	return shader;
 }
@@ -420,7 +413,6 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 
 static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_type, u32 flags) {
 
-	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
 	char *defs, szKey[100];
 	size_t str_size;
@@ -468,30 +460,29 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 		}
 	}
 
-	if (src) {
-		char *shader_src, *tmp;
-		size_t size;
+	char *shader_src;
+	u32 size;
+	GF_Err e = gf_file_load_data(src_path ,(u8 **) &shader_src, &size);
 
-		size = (size_t) gf_fsize(src);
-		shader_src = gf_malloc(sizeof(char)*(size+1));
-		size = gf_fread(shader_src, 1, size, src);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to open shader file %s: %s\n", src_path, gf_error_to_string(e)));
+	} else {
+		char *tmp;
+
 		tmp = (char *) gf_malloc(sizeof(char)*(size+str_size+2));
 		strcpy(tmp, defs);
 		strncat(tmp, shader_src, (size));
-		gf_fclose(src);
-		if (size != (size_t) -1) {
-			tmp[size+str_size]=0;
-			shader = glCreateShader(shader_type);
-			if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", tmp)==GF_FALSE) {
-				glDeleteShader(shader);
-				shader = 0;
-			}
+
+		tmp[size+str_size]=0;
+		shader = glCreateShader(shader_type);
+		if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", tmp)==GF_FALSE) {
+			glDeleteShader(shader);
+			shader = 0;
 		}
+
 		gf_free(shader_src);
 		gf_free(tmp);
 		gf_free(defs);
-	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to open shader file %s\n", src_path));
 	}
 	return shader;
 }

@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -612,7 +612,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 						u64 remain = entry->extent_length;
 						while (remain) {
 							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-							size_t read = gf_fread(cache_data, sizeof(char), size_cache, src);
+							size_t read = gf_fread(cache_data, size_cache, src);
 							if (read ==(size_t) -1) break;
 							gf_bs_write_data(bs, cache_data, (u32) read);
 							remain -= (u32) read;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -5178,7 +5178,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		u64 size;
 		if (!f) return GF_URL_ERROR;
 		size = gf_fsize(f);
-		if (3!=gf_fread(BOM, sizeof(char), 3, f)) {
+		if (3!=gf_fread(BOM, 3, f)) {
 			gf_fclose(f);
 			return GF_CORRUPTED_DATA;
 		}
@@ -5190,7 +5190,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		}
 		else gf_fseek(f, 0, SEEK_SET);
 		trak->Media->handler->nameUTF8 = (char*)gf_malloc(sizeof(char)*(size_t)(size+1));
-		size = gf_fread(trak->Media->handler->nameUTF8, sizeof(char), (size_t)size, f);
+		size = gf_fread(trak->Media->handler->nameUTF8, (size_t)size, f);
 		trak->Media->handler->nameUTF8[size] = 0;
 		gf_fclose(f);
 	} else {

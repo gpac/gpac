@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -271,7 +271,7 @@ static void bs_flush_write_cache(GF_BitStream *bs)
 {
 	if (bs->buffer_written) {
 		u32 nb_write;
-		nb_write = (u32) gf_fwrite(bs->cache_write, 1, bs->buffer_written, bs->stream);
+		nb_write = (u32) gf_fwrite(bs->cache_write, bs->buffer_written, bs->stream);
 
 		//check we didn't rewind the bitstream
 		if (bs->size == bs->position)
@@ -327,7 +327,7 @@ static GFINLINE u8 gf_bs_load_byte(GF_BitStream *bs, Bool *is_eos)
 	u8 res;
 	if (bs->cache_read) {
 		if (bs->cache_read_pos == bs->cache_read_size) {
-			bs->cache_read_size = (u32) gf_fread(bs->cache_read, 1, bs->cache_read_alloc, bs->stream);
+			bs->cache_read_size = (u32) gf_fread(bs->cache_read, bs->cache_read_alloc, bs->stream);
 			bs->cache_read_pos = 0;
 			if (!bs->cache_read_size) {
 				*is_eos = GF_TRUE;
@@ -673,7 +673,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes)
 				bytes_read_cache = csize;
 			}
 			if (nbBytes) {
-				bytes_read = (s32) gf_fread(data + bytes_read_cache, 1, nbBytes, bs->stream);
+				bytes_read = (s32) gf_fread(data + bytes_read_cache, nbBytes, bs->stream);
 				if (bytes_read<0) return bytes_read_cache;
 			}
 			bs->position += bytes_read + bytes_read_cache;
@@ -921,7 +921,7 @@ u32 gf_bs_write_byte(GF_BitStream *bs, u8 byte, u32 repeat_count)
 		return repeat_count;
 	case GF_BITSTREAM_FILE_READ:
 	case GF_BITSTREAM_FILE_WRITE:
-		if (gf_fwrite(&byte, 1, repeat_count, bs->stream) != repeat_count)
+		if (gf_fwrite(&byte, repeat_count, bs->stream) != repeat_count)
 			return 0;
 		if (bs->size == bs->position) bs->size += repeat_count;
 		bs->position += repeat_count;
@@ -1029,7 +1029,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 				bs_flush_write_cache(bs);
 			}
 
-			if (gf_fwrite(data, nbBytes, 1, bs->stream) != 1) return 0;
+			if (gf_fwrite(data, nbBytes, bs->stream) != nbBytes) return 0;
 
 			if (bs->size == bs->position) bs->size += nbBytes;
 			bs->position += nbBytes;

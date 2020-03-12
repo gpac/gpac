@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -109,7 +109,7 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 	} else {
 		t = stdout;
 	}
-	gf_fwrite(tag, tag_len & 0x7FFFFFFF, 1, t);
+	gf_fwrite(tag, tag_len & 0x7FFFFFFF, t);
 
 	if (inName) gf_fclose(t);
 	return GF_OK;
@@ -1823,7 +1823,7 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 	} else {
 		t = stdout;
 	}
-	res = (u32) gf_fwrite(data+8, 1, count-8, t);
+	res = (u32) gf_fwrite(data+8, count-8, t);
 	if (inName) gf_fclose(t);
 	gf_free(data);
 	if (count-8 != res) {
@@ -3281,7 +3281,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 
 		if (dumper->has_seen_pat && dumper->pes_out && (dumper->dump_pid == pck->stream->pid)) {
-			gf_fwrite(pck->data, pck->data_len, 1, dumper->pes_out);
+			gf_fwrite(pck->data, pck->data_len, dumper->pes_out);
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
@@ -3302,7 +3302,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (sl_pck->stream->mpeg4_es_id) {
 				GF_ESD *esd = ((GF_M2TS_PES*)sl_pck->stream)->esd;
 				if (!dumper->is_info_dumped) {
-					if (esd->decoderConfig->decoderSpecificInfo) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, dumper->pes_out_info);
+					if (esd->decoderConfig->decoderSpecificInfo) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, dumper->pes_out_info);
 					dumper->is_info_dumped = 1;
 					fprintf(dumper->pes_out_nhml, "<NHNTStream version=\"1.0\" ");
 					fprintf(dumper->pes_out_nhml, "timeScale=\"%d\" ", esd->slConfig->timestampResolution);
@@ -3313,7 +3313,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					fprintf(dumper->pes_out_nhml, "inRootOD=\"yes\">\n");
 				}
 				gf_sl_depacketize(esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
-				gf_fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, 1, dumper->pes_out);
+				gf_fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, dumper->pes_out);
 				fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
 			}
 		}
@@ -3369,7 +3369,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 	/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
 	while (!feof(src)) {
-		size = (u32) gf_fread(data, 1, 188, src);
+		size = (u32) gf_fread(data, 188, src);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);
@@ -3402,7 +3402,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	fdone = 0;
 
 	while (!feof(src)) {
-		size = (u32) gf_fread(data, 1, 188, src);
+		size = (u32) gf_fread(data, 188, src);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);

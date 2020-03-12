@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019
+ *			Copyright (c) Telecom Paris 2019-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg muxer filter
@@ -121,7 +121,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 static int ffavio_write_packet(void *opaque, uint8_t *buf, int buf_size)
 {
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *)opaque;
-	return (int) gf_fwrite(buf, 1, buf_size, ctx->gfio);
+	return (int) gf_fwrite(buf, buf_size, ctx->gfio);
 }
 
 static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)

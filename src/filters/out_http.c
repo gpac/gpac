@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / http server and output filter
@@ -810,7 +810,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 			if (!sess->in_source) {
 				u8 probe_buf[5001];
-				u32 read = (u32) gf_fread(probe_buf, 1, 5000, sess->resource);
+				u32 read = (u32) gf_fread(probe_buf, 5000, sess->resource);
 				if ((s32) read < 0) {
 					response = "HTTP/1.1 500 Internal Server Error\r\n";
 					gf_dynstrcat(&response_body, "File opened but read operation failed", NULL);
@@ -1436,7 +1436,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		assert(0);
 	}
 	if (!sess->nb_ranges) {
-		write = (u32) gf_fwrite(data, 1, size, sess->resource);
+		write = (u32) gf_fwrite(data, size, sess->resource);
 		if (write != size) {
 			return GF_IO_ERR;
 		}
@@ -1449,7 +1449,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		to_write = (u32) (sess->ranges[sess->range_idx].end + 1 - sess->file_pos);
 		if (to_write>=remain) {
 			to_write = remain;
-			write = (u32) gf_fwrite(data, 1, remain, sess->resource);
+			write = (u32) gf_fwrite(data, remain, sess->resource);
 			if (write != remain) {
 				return GF_IO_ERR;
 			}
@@ -1458,7 +1458,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 			remain = 0;
 			break;
 		}
-		write = (u32) gf_fwrite(data, 1, to_write, sess->resource);
+		write = (u32) gf_fwrite(data, to_write, sess->resource);
 		sess->nb_bytes += write;
 		remain -= to_write;
 		sess->range_idx++;
@@ -1667,7 +1667,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (to_read > sess->ctx->block_size)
 			to_read = sess->ctx->block_size;
 
-		read = (u32) gf_fread(sess->buffer, 1, to_read, sess->resource);
+		read = (u32) gf_fread(sess->buffer, to_read, sess->resource);
 
 		//transfer of file being uploaded, use chunk transfer
 		if (sess->use_chunk_transfer) {
@@ -1896,7 +1896,7 @@ retry:
 		u32 i, count = gf_list_count(ctx->active_sessions);
 
 		if (in->resource) {
-			out = (u32) gf_fwrite(pck_data, 1, pck_size, in->resource);
+			out = (u32) gf_fwrite(pck_data, pck_size, in->resource);
 		}
 
 		for (i=0; i<count; i++) {

@@ -1,8 +1,8 @@
 /**
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre, Cyril COncolato
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Authors: Jean Le Feuvre, Cyril Concolato
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -4801,7 +4801,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				size = (u32) gf_ftell(f);
 				data = gf_malloc(size+1);
 				gf_fseek(f, 0, SEEK_SET);
-				size = (u32) gf_fread(data, 1, size, f);
+				size = (u32) gf_fread(data, size, f);
 				data[size]=0;
 				blob.data = data;
 				blob.size = size;

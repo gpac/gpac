@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Pierre Souchay
- *			Copyright (c) Telecom ParisTech 2010-2019
+ *			Copyright (c) Telecom ParisTech 2010-2020
  *					All rights reserved
  *
  *   This file is part of GPAC / common tools sub-project
@@ -697,7 +697,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		return GF_OK;
 	}
 
-	read = (u32) gf_fwrite(data, sizeof(char), size, entry->writeFilePtr);
+	read = (u32) gf_fwrite(data, size, entry->writeFilePtr);
 	if (read > 0)
 		entry->written_in_cache+= read;
 	if (read != size) {

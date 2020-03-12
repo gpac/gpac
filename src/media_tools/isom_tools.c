@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -261,7 +261,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 		} else
 #endif
 		{
-			read = (u32) gf_fread(block, 1, 4096, in);
+			read = (u32) gf_fread(block, 4096, in);
 			if ((s32) read <= 0) {
 				if (ferror(in))
 					e = GF_IO_ERR;

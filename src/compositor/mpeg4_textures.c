@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -377,7 +377,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				strcat(szExtractName, ct->cacheURL.buffer);
 				cached_texture = gf_fopen(szExtractName, "wb");
 				if (cached_texture) {
-					gf_fwrite(ct->data, 1, ct->data_len, cached_texture);
+					gf_fwrite(ct->data, ct->data_len, cached_texture);
 					gf_fclose(cached_texture);
 				}
 

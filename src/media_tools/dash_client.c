@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-
+ *			Copyright (c) Telecom ParisTech 2010-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -4483,9 +4483,9 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 		if (!f) return GF_IO_ERR;
 		if (gf_fseek(f, offset, SEEK_SET))
 			return GF_IO_ERR;
-		if (gf_fread(data, 1, 4, f) == 4) {
+		if (gf_fread(data, 4, f) == 4) {
 			*box_size = GF_4CC(data[0], data[1], data[2], data[3]);
-			if (gf_fread(data, 1, 4, f) == 4) {
+			if (gf_fread(data, 4, f) == 4) {
 				*box_type = GF_4CC(data[0], data[1], data[2], data[3]);
 			}
 		}
@@ -4699,7 +4699,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							rep->playback.init_segment.size = (u32) gf_fsize(t);
 
 							rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
-							res = (s32) gf_fread(rep->playback.init_segment.data, sizeof(char), rep->playback.init_segment.size, t);
+							res = (s32) gf_fread(rep->playback.init_segment.data, rep->playback.init_segment.size, t);
 							if (res != rep->playback.init_segment.size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
 							} else if (rep->segment_list && rep->segment_list->initialization_segment) {

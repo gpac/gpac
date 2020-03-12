@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -2452,7 +2452,7 @@ GF_Err gf_file_load_data_filep(FILE *file, u8 **out_data, u32 *out_size)
 	if (! *out_data) {
 		return GF_OUT_OF_MEM;
 	}
-	fsize = gf_fread(*out_data, sizeof(char), (size_t)fsize, file);
+	fsize = gf_fread(*out_data, (size_t)fsize, file);
 
 	if ((u32) fsize != *out_size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file read failed\n"));

@@ -246,7 +246,7 @@ local int get_byte(gz_stream *s)
 	if (s->z_eof) return EOF;
 	if (s->stream.avail_in == 0) {
 		errno = 0;
-		s->stream.avail_in = (uInt)gf_fread(s->inbuf, 1, Z_BUFSIZE, s->file);
+		s->stream.avail_in = (uInt)gf_fread(s->inbuf, Z_BUFSIZE, s->file);
 		if (s->stream.avail_in == 0) {
 			s->z_eof = 1;
 			if (gf_ferror(s->file)) s->z_err = Z_ERRNO;
@@ -281,7 +281,7 @@ local void check_header(gz_stream *s)
 	if (len < 2) {
 		if (len) s->inbuf[0] = s->stream.next_in[0];
 		errno = 0;
-		len = (uInt)gf_fread(s->inbuf + len, 1, Z_BUFSIZE >> len, s->file);
+		len = (uInt)gf_fread(s->inbuf + len, Z_BUFSIZE >> len, s->file);
 		if (len == 0 && gf_ferror(s->file)) s->z_err = Z_ERRNO;
 		s->stream.avail_in += len;
 		s->stream.next_in = s->inbuf;
@@ -412,7 +412,7 @@ int gf_gzread(void *file, voidp buf, unsigned len)
 			}
 			if (s->stream.avail_out > 0) {
 				s->stream.avail_out -=
-				    (uInt)gf_fread(next_out, 1, s->stream.avail_out, s->file);
+				    (uInt)gf_fread(next_out, s->stream.avail_out, s->file);
 			}
 			len -= s->stream.avail_out;
 			s->in  += len;
@@ -423,7 +423,7 @@ int gf_gzread(void *file, voidp buf, unsigned len)
 		if (s->stream.avail_in == 0 && !s->z_eof) {
 
 			errno = 0;
-			s->stream.avail_in = (uInt)gf_fread(s->inbuf, 1, Z_BUFSIZE, s->file);
+			s->stream.avail_in = (uInt)gf_fread(s->inbuf, Z_BUFSIZE, s->file);
 			if (s->stream.avail_in == 0) {
 				s->z_eof = 1;
 				if (gf_ferror(s->file)) {

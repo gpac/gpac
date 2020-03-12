@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -3023,7 +3023,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 	size = (u32) gf_fsize(f);
 
 	pck = gf_filter_pck_new_alloc(opid, size, &output);
-	nb_read = (u32) gf_fread(output, 1, size, f);
+	nb_read = (u32) gf_fread(output, size, f);
 	if (nb_read != size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
 	}

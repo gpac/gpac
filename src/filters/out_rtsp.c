@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / rtsp output filter
@@ -180,7 +180,7 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 	fsize = (u32) gf_ftell(sdp_out);
 	char *sdp_output = gf_malloc(sizeof(char)*(fsize+1));
 	gf_fseek(sdp_out, 0, SEEK_SET);
-	u32 read = (u32) gf_fread(sdp_output, 1, fsize, sdp_out);
+	u32 read = (u32) gf_fread(sdp_output, fsize, sdp_out);
 	sdp_output[read]=0;
 	gf_fclose(sdp_out);
 

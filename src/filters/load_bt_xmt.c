@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Context loader filter
@@ -457,7 +457,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			gf_fseek(priv->src, priv->file_pos, SEEK_SET);
 			while (1) {
 				u32 diff;
-				s32 nb_read = (s32) gf_fread(file_buf, 1, 4096, priv->src);
+				s32 nb_read = (s32) gf_fread(file_buf, 4096, priv->src);
 				if (nb_read<0) {
 					return GF_IO_ERR;
 				}

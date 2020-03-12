@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -677,7 +677,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 						icc_size = (u32) gf_ftell(f);
 						icc_data = gf_malloc(sizeof(char)*icc_size);
 						gf_fseek(f, 0, SEEK_SET);
-						icc_size = (u32) gf_fread(icc_data, 1, icc_size, f);
+						icc_size = (u32) gf_fread(icc_data, icc_size, f);
 						gf_fclose(f);
 					}
 				} else {
@@ -2970,7 +2970,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			if (data) {
 				sprintf(szName, "%s-%02d-%02d.bifs", szRad, sc->ESID, j);
 				f = gf_fopen(szName, "wb");
-				gf_fwrite(data, data_len, 1, f);
+				gf_fwrite(data, data_len, f);
 				gf_fclose(f);
 				gf_free(data);
 			}

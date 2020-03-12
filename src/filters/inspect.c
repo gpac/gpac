@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -852,8 +852,8 @@ static void inspect_finalize(GF_Filter *filter)
 			if (concat) {
 				gf_fseek(pctx->tmp, 0, SEEK_SET);
 				while (!gf_feof(pctx->tmp)) {
-					u32 read = (u32) gf_fread(szLine, 1, 1024, pctx->tmp);
-					gf_fwrite(szLine, 1, read, ctx->dump);
+					u32 read = (u32) gf_fread(szLine, 1024, pctx->tmp);
+					gf_fwrite(szLine, read, ctx->dump);
 				}
 			}
 			gf_fclose(pctx->tmp);
