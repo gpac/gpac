@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -136,7 +136,7 @@ s32 gf_text_get_utf_type(FILE *in_src)
 {
 	u32 read;
 	unsigned char BOM[5];
-	read = (u32) gf_fread(BOM, sizeof(char), 5, in_src);
+	read = (u32) gf_fread(BOM, 5, in_src);
 	if ((s32) read < 1)
 		return -1;
 
@@ -179,7 +179,7 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 	if (uni_type>1) {
 		const u16 *sptr;
 		char szUTF[1024];
-		u32 read = (u32) gf_fread(szUTF, 1, 1023, test);
+		u32 read = (u32) gf_fread(szUTF, 1023, test);
 		if ((s32) read < 0) {
 			gf_fclose(test);
 			return GF_IO_ERR;
@@ -188,7 +188,7 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 		sptr = (u16*)szUTF;
 		/*read = (u32) */gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
-		val = (u32) gf_fread(szLine, 1, 1024, test);
+		val = (u32) gf_fread(szLine, 1024, test);
 		if ((s32) val<0) return GF_IO_ERR;
 		
 		szLine[val]=0;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML stream to file filter
@@ -473,7 +473,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+		gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
 		return;
 	}
 
@@ -588,7 +588,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+		gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
 		return;
 	}
 
@@ -787,7 +787,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+		gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
 		return;
 	}
 
@@ -835,7 +835,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 				gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 				if (ctx->filep) {
-					gf_fwrite(ctx->nhml_buffer, 1, size, ctx->filep);
+					gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
 				} else {
 					GF_FilterPacket *dst_pck;
 					u8 *output;

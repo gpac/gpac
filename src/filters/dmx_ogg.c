@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH OGG demux filter
@@ -414,7 +414,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			if (gf_feof(stream))
 				break;
 
-			bytes = (u32) gf_fread(buf, 1, 10000, stream);
+			bytes = (u32) gf_fread(buf, 10000, stream);
 			if (!bytes) break;
 			buffer = ogg_sync_buffer(&oy, bytes);
 			memcpy(buffer, buf, bytes);

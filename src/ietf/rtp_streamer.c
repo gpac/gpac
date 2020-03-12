@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -717,7 +717,7 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 
 	size = gf_fsize(tmp);
 	sdp = (char*)gf_malloc(sizeof(char) * (size_t)(size+1));
-	size = gf_fread(sdp, 1, (size_t)size, tmp);
+	size = gf_fread(sdp, (size_t)size, tmp);
 	sdp[size] = 0;
 	gf_fclose(tmp);
 	gf_file_delete(tmp_fn);

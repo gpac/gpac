@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2019
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / command-line client
@@ -2191,7 +2191,7 @@ static void MakeScreenshot(Bool for_coverage)
 					fprintf(stderr, "Error writing file %s\n", szFileName);
 					nb_pass = 0;
 				} else {
-					gf_fwrite(dst, dst_size, 1, png);
+					gf_fwrite(dst, dst_size, png);
 					gf_fclose(png);
 					fprintf(stderr, "Dump to %s\n", szFileName);
 				}

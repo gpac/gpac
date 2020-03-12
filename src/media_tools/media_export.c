@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -135,8 +135,8 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 
 			if (flush_first) {
 				ogg_stream_pageout(&os, &og);
-				gf_fwrite(og.header, 1, og.header_len, out);
-				gf_fwrite(og.body, 1, og.body_len, out);
+				gf_fwrite(og.header, og.header_len, out);
+				gf_fwrite(og.body, og.body_len, out);
 				flush_first = 0;
 
 				if (esd->decoderConfig->objectTypeIndication==GF_CODECID_THEORA) {
@@ -163,8 +163,8 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	gf_odf_desc_del((GF_Descriptor *)esd);
 
 	while (ogg_stream_pageout(&os, &og)>0) {
-		gf_fwrite(og.header, 1, og.header_len, out);
-		gf_fwrite(og.body, 1, og.body_len, out);
+		gf_fwrite(og.header, og.header_len, out);
+		gf_fwrite(og.body, og.body_len, out);
 	}
 
 	op.granulepos = -1;
@@ -204,15 +204,15 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 
 		while (ogg_stream_pageout(&os, &og)>0) {
-			gf_fwrite(og.header, 1, og.header_len, out);
-			gf_fwrite(og.body, 1, og.body_len, out);
+			gf_fwrite(og.header, og.header_len, out);
+			gf_fwrite(og.body, og.body_len, out);
 		}
 	}
 	if (samp) gf_isom_sample_del(&samp);
 
 	while (ogg_stream_flush(&os, &og)>0) {
-		gf_fwrite(og.header, 1, og.header_len, out);
-		gf_fwrite(og.body, 1, og.body_len, out);
+		gf_fwrite(og.header, og.header_len, out);
+		gf_fwrite(og.body, og.body_len, out);
 	}
 	ogg_stream_clear(&os);
 	if (szName) gf_fclose(out);
@@ -789,7 +789,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 			gf_fprintf(vtt, "\n");
 		}
 		if (med) {
-			gf_fwrite(samp->data, samp->dataLength, 1, med);
+			gf_fwrite(samp->data, samp->dataLength, med);
 		} else if (dumper->flags & GF_EXPORT_WEBVTT_META_EMBEDDED) {
 			if (isText) {
 				samp->data = (char *)gf_realloc(samp->data, samp->dataLength+1);
@@ -888,7 +888,7 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 			} else
 #endif
 			{
-				gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, media);
+				gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, media);
 				header_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			}
 		}
@@ -909,7 +909,7 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 		if (!samp) break;
 
 		if (media) {
-			gf_fwrite(samp->data, samp->dataLength, 1, media);
+			gf_fwrite(samp->data, samp->dataLength, media);
 		}
 
 		gf_fprintf(six, "<unit time=\""LLU"\" ", samp->DTS);
@@ -1039,7 +1039,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		while (1) {
 			gf_saf_mux_for_time(mux, (u32) -1, 0, &data, &size);
 			if (!data) break;
-			gf_fwrite(data, size, 1, saf_f);
+			gf_fwrite(data, size, saf_f);
 			gf_free(data);
 		}
 		gf_set_progress("SAF Export", samp_done, tot_samp);
@@ -1047,7 +1047,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	}
 	gf_saf_mux_for_time(mux, (u32) -1, 1, &data, &size);
 	if (data) {
-		gf_fwrite(data, size, 1, saf_f);
+		gf_fwrite(data, size, saf_f);
 		gf_free(data);
 	}
 	if (!is_stdout)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2019
+ *			Copyright (c) Telecom ParisTech 2007-2020
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript XmlHttpRequest bindings
@@ -854,7 +854,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	ctx->html_status = 200;
 
 	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
-	fsize = gf_fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
+	fsize = gf_fread(ctx->data, (size_t)fsize, responseFile);
 	gf_fclose(responseFile);
 	ctx->data[fsize] = 0;
 	ctx->size = (u32)fsize;

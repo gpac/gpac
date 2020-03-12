@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -279,7 +279,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 			return GF_IO_ERR;
 		}
 
-		if (!gf_fread(buf, sizeof(buf), 1, ctx->mdia)) {
+		if (!gf_fread(buf, sizeof(buf), ctx->mdia)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Could not read from file\n"));
 			return GF_IO_ERR;
 		}
@@ -322,7 +322,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 			memcpy(packet + i, buf + hsize, size);
 
 			if (size != left) {
-				while (gf_fread(buf, 1, sizeof(buf), ctx->mdia)) {
+				while (gf_fread(buf, sizeof(buf), ctx->mdia)) {
 					if (buf[buf[0x16] + 0x17] == (vslang->idx | 0x20)) {
 						break;
 					}

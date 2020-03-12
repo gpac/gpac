@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1076,25 +1076,23 @@ u32 gf_file_handles_count();
 \brief file writing helper
 
 Wrapper to properly handle calls to fwrite(), ensuring proper error handling is invoked when it fails.
-\param ptr same as fwrite
-\param size same as fwrite
-\param nmemb same as fwrite
-\param stream same as fwrite
-\return same as fwrite
+\param ptr data buffer to write
+\param nb_bytes number of bytes to write
+\param stream stream object
+\return number of bytes to written
 */
-size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+size_t gf_fwrite(const void *ptr, size_t nb_bytes, FILE *stream);
 
 /*!
 \brief file reading helper
 
 Wrapper to properly handle calls to fread()
-\param ptr same as fread
-\param size same as fread
-\param nmemb same as fread
-\param stream same as fread
-\return same as fread
+\param ptr data buffer to read
+\param nbytes number of bytes to read
+\param stream stream object
+\return number of bytes read
 */
-size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+size_t gf_fread(void *ptr, size_t nbytes, FILE *stream);
 
 /*!
 \brief file reading helper

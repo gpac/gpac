@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -3716,7 +3716,7 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	}
 	if (!blocksize) return GF_EOS;
 	pck = gf_filter_pck_new_alloc(ctx->opid, blocksize, &output);
-	nb_read = (u32) gf_fread(output, 1, blocksize, ctx->tmp_store);
+	nb_read = (u32) gf_fread(output, blocksize, ctx->tmp_store);
 	ctx->flush_done += nb_read;
 	if (nb_read != blocksize) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error flushing fragmented file, read %d bytes but asked %d bytes\n", nb_read, blocksize));
@@ -4482,7 +4482,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 	}
 
 	if (ctx->store_output) {
-		u32 nb_write = (u32) gf_fwrite(data, 1, block_size, ctx->tmp_store);
+		u32 nb_write = (u32) gf_fwrite(data, block_size, ctx->tmp_store);
 		if (nb_write != block_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error writing to temp cache: %d bytes write instead of %d\n", nb_write, block_size));
 			return GF_IO_ERR;

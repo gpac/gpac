@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE output filter
@@ -416,7 +416,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 					if (ilaced) {
 						u8 *block;
 						u64 cur_r, cur_w;
-						nb_write = (u32) gf_fwrite(pck_data, 1, pck_size, ctx->file);
+						nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
 
 						if (nb_write!=pck_size) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
@@ -437,14 +437,14 @@ static GF_Err fileout_process(GF_Filter *filter)
 									move_bytes = (u32) (cur_r - bo);
 
 								gf_fseek(ctx->file, cur_r - move_bytes, SEEK_SET);
-								nb_write = (u32) gf_fread(block, 1, (size_t) move_bytes, ctx->file);
+								nb_write = (u32) gf_fread(block, (size_t) move_bytes, ctx->file);
 
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Read error, got %d bytes but had %d to read\n", nb_write, move_bytes));
 								}
 
 								gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
-								nb_write = (u32) gf_fwrite(block, 1, (size_t) move_bytes, ctx->file);
+								nb_write = (u32) gf_fwrite(block, (size_t) move_bytes, ctx->file);
 
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
@@ -457,7 +457,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 					}
 
 					gf_fseek(ctx->file, bo, SEEK_SET);
-					nb_write = (u32) gf_fwrite(pck_data, 1, pck_size, ctx->file);
+					nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
 					gf_fseek(ctx->file, pos, SEEK_SET);
 
 					if (nb_write!=pck_size) {
@@ -465,7 +465,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 					}
 				}
 			} else {
-				nb_write = (u32) gf_fwrite(pck_data, 1, pck_size, ctx->file);
+				nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
 				if (nb_write!=pck_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 				}
@@ -502,7 +502,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 						lsize = stride;
 					}
 					for (j=0; j<write_h; j++) {
-						nb_write = (u32) gf_fwrite(out_ptr, 1, lsize, ctx->file);
+						nb_write = (u32) gf_fwrite(out_ptr, lsize, ctx->file);
 						if (nb_write!=lsize) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
 						}

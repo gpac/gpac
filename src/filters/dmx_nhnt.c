@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -434,7 +434,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		gf_fseek(ctx->mdia, offset, SEEK_SET);
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, len, &output);
-		res = (u32) gf_fread(output, 1, len, ctx->mdia);
+		res = (u32) gf_fread(output, len, ctx->mdia);
 		if (res != len) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Read failure, expecting %d bytes got %d", len, res));
 		}

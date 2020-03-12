@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2012
+ *			Copyright (c) Telecom ParisTech 2010-2020
  *			All rights reserved
  *
  *  This file is part of GPAC / Test Suite Validator Recorder sub-project
@@ -157,7 +157,7 @@ static char *validator_create_snapshot(GF_Validator *validator)
 			if (!png) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error writing file %s\n", dumpname));
 			} else {
-				gf_fwrite(dst, dst_size, 1, png);
+				gf_fwrite(dst, dst_size, png);
 				gf_fclose(png);
 				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Validator] Writing file %s\n", dumpname));
 			}
@@ -629,7 +629,7 @@ static void validator_xvl_close(GF_Validator *validator)
 			sprintf(result_filename, "%s-result.xml", validator->xvl_filename);
 			dot[0] = '.';
 			xvl_fp = gf_fopen(result_filename, "wt");
-			gf_fwrite(xvl_content, strlen(xvl_content), 1, xvl_fp);
+			gf_fwrite(xvl_content, strlen(xvl_content), xvl_fp);
 			gf_fclose(xvl_fp);
 			gf_free(xvl_content);
 		}
@@ -799,7 +799,7 @@ static void validator_xvs_close(GF_Validator *validator)
             }
 			xvs_content = gf_xml_dom_serialize(validator->xvs_node, GF_FALSE);
 			xvs_fp = gf_fopen(validator->xvs_filename, "wt");
-			gf_fwrite(xvs_content, strlen(xvs_content), 1, xvs_fp);
+			gf_fwrite(xvs_content, strlen(xvs_content), xvs_fp);
 			gf_fclose(xvs_fp);
 			gf_free(xvs_content);
             if (validator->owns_root)

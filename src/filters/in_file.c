@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE input filter
@@ -417,7 +417,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (to_read > ctx->block_size)
 		to_read = ctx->block_size;
 
-	nb_read = (u32) gf_fread(ctx->block, 1, to_read, ctx->file);
+	nb_read = (u32) gf_fread(ctx->block, to_read, ctx->file);
 	if (!nb_read) ctx->file_size = ctx->file_pos;
 
 	ctx->block[nb_read] = 0;
