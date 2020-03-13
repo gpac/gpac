@@ -95,6 +95,7 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 		e = gf_sc_texture_open(txh, url, lock_scene_timeline);
 		if (e != GF_OK) return e;
 	}
+	txh->is_open = 1;
 
 	/*request play*/
 	gf_mo_play(txh->stream, start_offset, end_offset, can_loop);
