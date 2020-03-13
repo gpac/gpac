@@ -1759,6 +1759,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	if (!txh || !txh->tx_io)
 		return 0;
 
+	if (txh->stream && !txh->stream->pck)
+		return 0;
+
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 #endif
