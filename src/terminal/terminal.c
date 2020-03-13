@@ -40,9 +40,6 @@
 #include <gpac/terminal.h>
 #include <gpac/scene_manager.h>
 
-//void gf_filter_reconnect_output(GF_Filter *filter);
-
-
 u32 gf_term_sample_clocks(GF_Terminal *term);
 
 
@@ -346,9 +343,9 @@ GF_Terminal *gf_term_new(GF_User *user)
 	def_h = opt ? atoi(opt) : 0;
 
 	if (def_w && def_h) {
-		sprintf(szArgs, "compositor:FID=compose:player:size=%dx%d", def_w, def_h);
+		sprintf(szArgs, "compositor:FID=compose:player=base:size=%dx%d", def_w, def_h);
 	} else {
-		strcpy(szArgs, "compositor:FID=compose:player");
+		strcpy(szArgs, "compositor:FID=compose:player=base");
 	}
 
 	comp_filter = gf_fs_load_filter(tmp->fsess, szArgs, &e);
@@ -359,20 +356,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 		gf_free(tmp);
 		return NULL;
 	}
-	gf_filter_make_sticky(comp_filter);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
-
-	//load audio filter chain
-	if (! (user->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
-		GF_Filter *audio_out = gf_fs_load_filter(tmp->fsess, "aout:SID=compose#audio", &e);
-		tmp->compositor->audio_renderer->non_rt_output = GF_FALSE;
-		if (!audio_out) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
-//		} else {
-//			gf_filter_reconnect_output(tmp->compositor->filter);
-		}
-	}
 
 #ifdef FILTER_FIXME
 	gf_dm_set_auth_callback(tmp->downloader, gf_term_get_user_pass, tmp);
@@ -384,8 +369,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 #endif
 
 	gf_term_refresh_cache();
-
-	gf_filter_post_process_task(comp_filter);
 	gf_fs_run(tmp->fsess);
 
 	return tmp;
