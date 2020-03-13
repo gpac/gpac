@@ -534,7 +534,7 @@ GF_GPACArg gpac_args[] =
  	GF_DEF_ARG("mem-track-stack", NULL, "enable memory tracker with stack dumping", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 #endif
 	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("loop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("sloop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("stats", NULL, "print stats after execution", NULL, NULL, GF_ARG_BOOL, 0),
@@ -588,6 +588,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("wfx", NULL, "write all filter options and all meta filter arguments in the config file unless already set (__large config file !__)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("unit-tests", NULL, "enable unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
+	GF_DEF_ARG("xopt", NULL, "do not throw error on any unrecognized options following this option - used to pass arguments to GUI", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	{0}
 };
 
@@ -1446,7 +1447,7 @@ static int gpac_main(int argc, char **argv)
 	Bool alias_set = GF_FALSE;
 	GF_FilterSession *tmp_sess;
 	u32 loops_done = 0;
-
+	Bool has_xopt = GF_FALSE;
 	helpout = stdout;
 
 	//look for mem track and profile, and also process all helpers
@@ -1517,7 +1518,7 @@ static int gpac_main(int argc, char **argv)
 			arg_val++;
 		}
 
-		if (!strcmp(arg, "-h") || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
+		if ((!has_xopt && !strcmp(arg, "-h")) || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
 			if (!strcmp(arg, "-ha")) argmode = GF_ARGMODE_ADVANCED;
 			else if (!strcmp(arg, "-hx")) argmode = GF_ARGMODE_EXPERT;
 			else if (!strcmp(arg, "-hh")) argmode = GF_ARGMODE_ALL;
@@ -1581,6 +1582,9 @@ static int gpac_main(int argc, char **argv)
 				print_filter_info = 1;
 				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 			}
+		}
+		else if (has_xopt && !strcmp(arg, "-h")) {
+			gf_opts_set_key("temp", "gpac-help", "yes");
 		}
 		else if (!strcmp(arg, "-genmd") || !strcmp(arg, "-genman")) {
 			argmode = GF_ARGMODE_ALL;
@@ -1696,7 +1700,7 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-wfx")) {
 			write_profile = GF_TRUE;
 			sflags |= GF_FS_FLAG_LOAD_META;
-		} else if (!strcmp(arg, "-loop")) {
+		} else if (!strcmp(arg, "-sloop")) {
 			nb_loops = -1;
 			if (arg_val) nb_loops = atoi(arg_val);
 		} else if (!strcmp(arg, "-runfor")) {
@@ -1749,13 +1753,15 @@ static int gpac_main(int argc, char **argv)
 			}
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
+		} else if (!strcmp(arg, "-xopt")) {
+			has_xopt = GF_TRUE;
 		} else if (arg[0]=='-') {
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src")
 				|| !strcmp(arg, "-o") || !strcmp(arg, "-dst")
 				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
 				|| !strcmp(arg, "-p") || !strcmp(arg, "-")
 			) {
-			} else if (!gf_sys_is_gpac_arg(arg) ) {
+			} else if (!has_xopt && !gf_sys_is_gpac_arg(arg) ) {
 				gpac_suggest_arg(arg);
 				gpac_exit(1);
 			}
@@ -1818,6 +1824,7 @@ restart:
 	}
 
 	//all good to go, load filters
+	has_xopt = GF_FALSE;
 	loaded_filters = gf_list_new();
 	for (i=1; i<argc; i++) {
 		GF_Filter *filter=NULL;
@@ -1852,6 +1859,7 @@ restart:
 		}
 		//appart from the above src/dst, other args starting with - are not filters
 		else if (arg[0]=='-') {
+			if (!strcmp(arg, "-xopt")) has_xopt = GF_TRUE;
 			continue;
 		}
 		if (!f_loaded) {
@@ -1880,8 +1888,11 @@ restart:
 			} else if (!strncmp(arg, "dst=", 4) ) {
 				filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
 			} else {
+				e = (has_xopt) ? GF_EOS : GF_OK;
 				filter = gf_fs_load_filter(session, arg, &e);
 				is_simple=GF_TRUE;
+				if (!filter && has_xopt)
+					continue;
 			}
 		}
 

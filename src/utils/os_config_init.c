@@ -1479,7 +1479,7 @@ void gf_sys_print_core_help(FILE *helpout, u32 flags, GF_SysArgMode mode, u32 su
 }
 
 
-#define LINE_OFFSET_DESCR 40
+#define LINE_OFFSET_DESCR 30
 
 static char *help_buf = NULL;
 static u32 help_buf_size=0;
