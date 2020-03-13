@@ -960,12 +960,13 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 	for (i=0; i<count; i++) {
 		u8 *data;
+		u32 nb_pck=50;
 		ISOMChannel *ch;
 		ch = gf_list_get(read->channels, i);
 		if (ch->play_state != 1) continue;
 		is_active = GF_TRUE;
 
-		while (1) {
+		while (nb_pck) {
 			if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )
 				break;
 
@@ -1079,6 +1080,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pid_set_eos(ch->pid);
 					read->eos_signaled = GF_TRUE;
 				}
+				nb_pck--;
 			} else if (ch->last_state==GF_EOS) {
 				if (in_is_eos && (ch->play_state==1)) {
 					assert(!read->pid || gf_filter_pid_is_eos(read->pid));
@@ -1160,7 +1162,20 @@ static const GF_FilterCapability ISOFFInCaps[] =
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
 	GF_FS_SET_DESCRIPTION("ISOBMFF/QT demuxer")
-	GF_FS_SET_HELP("When scalable tracks are present in a file, the reader can operate in 3 modes using [-smode]() option:\n"\
+	GF_FS_SET_HELP("This filter demultiplexes ISOBMF and QT files (regular or fragmented).\n"
+		"# Track Selection\n"
+		"The filter can use fragment identifiers of source to select a single track for playback. The allowed fragments are:\n"
+		" - #audio: only use the first audio track\n"
+		" - #video: only use the first video track\n"
+		" - #auxv: only use the first auxiliary video track\n"
+		" - #pict: only use the first picture track\n"
+		" - #text: only use the first text track\n"
+		" - #trackID=VAL: only use the track with given ID\n"
+		" - #ID=VAL: only use the track with given ID\n"
+		" - #VAL: only use the track with given ID\n"
+		"\n"
+		"# Scalable Tracks\n"
+		"When scalable tracks are present in a file, the reader can operate in 3 modes using [-smode]() option:\n"\
 	 	"- smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
 	 	"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"\
 	 	"- smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"
