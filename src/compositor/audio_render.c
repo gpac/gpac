@@ -274,7 +274,12 @@ static void gf_ar_pck_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 void gf_ar_send_packets(GF_AudioRenderer *ar)
 {
 	u32 written, max_send=100;
-	if (!ar->aout) return;
+	if (!ar->aout) {
+		if (ar->compositor->player) {
+			ar->current_time = (u32) ( (gf_sys_clock_high_res() - ar->start_time)/1000);
+		}
+		return;
+	}
 	if (!ar->scene_ready) return;
 	if (ar->need_reconfig) return;
 	if (ar->Frozen) return;
