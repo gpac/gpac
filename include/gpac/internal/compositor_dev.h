@@ -320,7 +320,7 @@ struct __tag_compositor
 
 	//player option, by default disabled. In player mode the video driver is always loaded
 	//and no passthrough checks are done
-	Bool player;
+	u32 player;
 	//output pixel format option for passthrough mode, none by default
 	u32 opfmt;
 	//allocated framebuffer and size for passthrough mode
@@ -707,7 +707,8 @@ struct __tag_compositor
 	GF_VideoSurface fb;
 
 	Bool dbgpvr;
-
+	Bool noaudio;
+	
 	/*all X3D key/mouse/string sensors*/
 	GF_List *x3d_sensors;
 	/*all input stream decoders*/

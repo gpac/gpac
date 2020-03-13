@@ -722,6 +722,8 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	sOpt = gf_opts_get_key("Temp", "InitFlags");
 	if (sOpt) compositor->init_flags = atoi(sOpt);
 
+	if (compositor->noaudio)
+		compositor->init_flags |= GF_TERM_NO_AUDIO;
 
 	/*force initial for 2D/3D setup*/
 	compositor->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
@@ -734,6 +736,10 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 
 	if (!compositor->player)
 		compositor->init_flags = GF_TERM_INIT_HIDE;
+
+	if (gf_opts_get_bool("temp", "gpac-help")) {
+		compositor->init_flags |= GF_TERM_NO_VIDEO | GF_TERM_NO_AUDIO;
+	}
 
 	if (compositor->init_flags & GF_TERM_NO_VIDEO) {
 		compositor->video_out = &null_vout;

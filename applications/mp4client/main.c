@@ -169,7 +169,7 @@ GF_GPACArg mp4client_args[] =
 #endif
 	 GF_DEF_ARG("rti", NULL, "log run-time info (FPS, CPU, Mem usage) to given file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	 GF_DEF_ARG("rtix", NULL, "same as -rti but driven by GPAC logs", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
-	 GF_DEF_ARG("size", NULL, "specifie visual size WxH? If not set, scene size or video size is used", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	 GF_DEF_ARG("size", NULL, "specify visual size WxH. If not set, scene size or video size is used", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
  	GF_DEF_ARG("no-thread", NULL, "disable thread usage (except for depending on driver audio)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("no-audio", NULL, "disable audio", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),

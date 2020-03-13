@@ -576,7 +576,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 	
     if (ctx->player && (ctx->ogl == GF_SC_GLMODE_AUTO))
         ctx->ogl = GF_SC_GLMODE_HYBRID;
-	
+
     e = gf_sc_load(ctx);
 	if (e) return e;
 
@@ -588,8 +588,23 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_set_session_caps(filter, &sess_caps);
 
+	if (ctx->player) {
+		gf_filter_make_sticky(filter);
+	}
+
 	//declare audio output pid first
 	if (ctx->player) {
+		//load audio filter chain
+		if (! (ctx->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
+			GF_Filter *audio_out = gf_filter_load_filter(filter, "aout", &e);
+			ctx->audio_renderer->non_rt_output = GF_FALSE;
+			if (!audio_out) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
+			}
+//			else {
+//				gf_filter_reconnect_output(filter);
+//			}
+		}
 		compositor_setup_aout(ctx);
 	}
 	
@@ -622,6 +637,12 @@ GF_Err compose_initialize(GF_Filter *filter)
 
 	//always request a process task since we don't depend on input packets arrival (animations, pure scene presentations)
 	gf_filter_post_process_task(filter);
+
+	if (ctx->player==2) {
+		const char *gui_path = gf_opts_get_key("General", "StartupFile");
+		if (gui_path)
+			gf_sc_connect_from_time_ex(ctx, gui_path, 0, 0, 0, NULL);
+	}
 	return GF_OK;
 }
 
@@ -793,7 +814,8 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(osize), "force output size. If not set, size is derived from inputs", GF_PROP_VEC2I, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dpi), "default dpi if not indicated by video output", GF_PROP_VEC2I, "96x96", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dbgpvr), "debug scene used by PVR addon", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(player), "set compositor in player mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(player), "set compositor in player mode, see filter help", GF_PROP_UINT, "no", "no|base|gui", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(noaudio), "disable audio output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(opfmt), "pixel format to use for output. Ignored in [-player]() mode", GF_PROP_PIXFMT, "none", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(drv), "indicate if graphics driver should be used. Ignored in player mode\n"\
 				"- no: never loads a graphics driver (software blitting used, no 3D possible)\n"\
