@@ -409,9 +409,9 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 		}
 		is_first = GF_TRUE;
 	}
-	*eos = mo->is_eos;
 	assert(mo->pck);
 	mo->first_frame_fetched = GF_TRUE;
+	mo->is_eos = GF_FALSE;
 
 	/*data = */gf_filter_pck_get_data(mo->pck, size);
 	timescale = gf_filter_pck_get_timescale(mo->pck);
