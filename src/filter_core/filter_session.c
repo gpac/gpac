@@ -2167,15 +2167,33 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		}
 
 		if (for_source && gf_url_is_local(sURL)) {
+			char *sep, *frag_par, *cgi, *ext_start;
+			char f_c=0;
 			gf_url_to_fs_path(sURL);
-			char *sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
+			sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
 			if (sep) sep[0] = 0;
+
+			ext_start = gf_file_ext_start(sURL);
+			if (!ext_start) ext_start = sURL;
+			frag_par = strchr(ext_start, '#');
+			cgi = strchr(ext_start, '?');
+			if (frag_par && cgi && (cgi<frag_par))
+				frag_par = cgi;
+
+			if (frag_par) {
+				f_c = frag_par[0];
+				frag_par[0] = 0;
+			}
+
 			if (strcmp(sURL, "null") && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
 				if (sep) sep[0] = fsess->sep_args;
+				if (frag_par) frag_par[0] = f_c;
+
 				if (err) *err = GF_URL_ERROR;
 				gf_free(sURL);
 				return NULL;
 			}
+			if (frag_par) frag_par[0] = f_c;
 			if (sep) sep[0] = fsess->sep_args;
 		}
 	}
