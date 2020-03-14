@@ -2807,7 +2807,7 @@ u32 gf_filter_get_num_events_queued(GF_Filter *filter)
 }
 
 GF_EXPORT
-void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp)
+void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, GF_Fraction64 media_timestamp)
 {
 	//for now only one clock hint possible ...
 	filter->session->hint_clock_us = time_in_us;
@@ -2815,7 +2815,7 @@ void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media
 }
 
 GF_EXPORT
-void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp)
+void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, GF_Fraction64 *media_timestamp)
 {
 	//for now only one clock hint possible ...
 	if (time_in_us) *time_in_us = filter->session->hint_clock_us;

@@ -942,7 +942,11 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 		gf_filter_get_clock_hint(jsf->filter, &lival, NULL);
 		return JS_NewInt64(ctx, lival);
 	case JSF_FILTER_CLOCK_HINT_MEDIATIME:
-		gf_filter_get_clock_hint(jsf->filter, NULL, &dval);
+	{
+		GF_Fraction64 frac;
+		gf_filter_get_clock_hint(jsf->filter, NULL, &frac);
+		dval = ((Double)frac.num) / frac.den;
+	}
 		return JS_NewFloat64(ctx, dval);
 	case JSF_FILTER_CONNECTIONS_PENDING:
 		return JS_NewBool(ctx, gf_filter_connections_pending(jsf->filter) );
@@ -1401,14 +1405,23 @@ static JSValue jsf_filter_notify_failure(JSContext *ctx, JSValueConst this_val, 
 static JSValue jsf_filter_hint_clock(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s64 time_in_us=0;
-	Double media_timestamp=0;
+	GF_Fraction64 media_timestamp;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
     if (!jsf || (argc<2))  return JS_EXCEPTION;
 	if (JS_ToInt64(ctx, &time_in_us, argv[0]))
 		return JS_EXCEPTION;
-	if (JS_ToFloat64(ctx, &media_timestamp, argv[0]))
-		return JS_EXCEPTION;
-
+	if (argc==2) {
+		Double t=0;
+		if (JS_ToFloat64(ctx, &t, argv[0]))
+			return JS_EXCEPTION;
+		media_timestamp.den = 1000000;
+		media_timestamp.num = t*media_timestamp.den;
+	} else {
+		if (JS_ToInt64(ctx, &media_timestamp.num, argv[0]))
+			return JS_EXCEPTION;
+		if (JS_ToInt64(ctx, &media_timestamp.den, argv[0]))
+			return JS_EXCEPTION;
+	}
 	gf_filter_hint_single_clock(jsf->filter, time_in_us, media_timestamp);
 	return JS_UNDEFINED;
 }

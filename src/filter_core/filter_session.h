@@ -413,7 +413,7 @@ struct __gf_filter_session
 	GF_FilterSessionCaps caps;
 
 	u64 hint_clock_us;
-	Double hint_timestamp;
+	GF_Fraction64 hint_timestamp;
 
 	//max filter chain allowed in the link resolution process
 	u32 max_resolve_chain_len;
