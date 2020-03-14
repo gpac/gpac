@@ -2076,14 +2076,14 @@ void gf_filter_get_output_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_p
 \param time_in_us the system time in us, see \ref gf_sys_clock_high_res
 \param media_timestamp the media timestamp associated with this time.
 */
-void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, Double media_timestamp);
+void gf_filter_hint_single_clock(GF_Filter *filter, u64 time_in_us, GF_Fraction64 media_timestamp);
 
 /*! Retrieves the clock state at session level, as set by \ref gf_filter_hint_single_clock
 \param filter the target filter
 \param time_in_us will be set to the system time in us, see \ref gf_sys_clock_high_res - may be NULL
 \param media_timestamp will be set to the media timestamp associated with this time - may be NULL.
 */
-void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, Double *media_timestamp);
+void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, GF_Fraction64 *media_timestamp);
 
 /*! Explicitly assigns a source ID to a filter. This shall be called before connecting the link_from filter
 If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem address) will be used

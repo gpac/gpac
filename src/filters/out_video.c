@@ -345,7 +345,7 @@ typedef struct
 	GF_PropVec2i wpos;
 	Double start;
 	u32 buffer;
-	GF_Fraction delay;
+	GF_Fraction vdelay;
 	const char *out;
 	GF_PropUIntList dumpframes;
 
@@ -1971,7 +1971,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u64 clock_us, now = gf_sys_clock_high_res();
 		Bool check_clock = GF_FALSE;
-		Double media_ts;
+		GF_Fraction64 media_ts;
 		s64 delay;
 
 		if (ctx->dur.num) {
@@ -1990,12 +1990,20 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 
 		delay = ctx->pid_delay;
-		if (ctx->delay.den)
-			delay += ctx->delay.num * (s32)ctx->timescale / (s32)ctx->delay.den;
+		if (ctx->vdelay.den)
+			delay += ctx->vdelay.num * (s32)ctx->timescale / (s32)ctx->vdelay.den;
 
-		if (delay>0) {
+		if (delay>=0) {
 			cts += delay;
 		} else if (cts < (u64) (-delay) ) {
+			if (ctx->vsync) {
+				if (ctx->last_pck) {
+					gf_filter_pck_unref(ctx->last_pck);
+					ctx->last_pck = NULL;
+				}
+				gf_filter_pid_drop_packet(ctx->pid);
+				return GF_OK;
+			}
 			cts = 0;
 		} else {
 			cts -= (u64) -delay;
@@ -2003,9 +2011,11 @@ static GF_Err vout_process(GF_Filter *filter)
 
 		//check if we have a clock hint from an audio output
 		gf_filter_get_clock_hint(filter, &clock_us, &media_ts);
-		if (clock_us) {
+		if (clock_us && media_ts.den) {
+			u32 safety;
 			//ref frame TS in video stream timescale
-			s64 ref_ts = (s64) (media_ts * ctx->timescale);
+			s64 ref_ts = (s64) (media_ts.num * ctx->timescale);
+			ref_ts /= media_ts.den;
 			//compute time ellapsed since last clock ref in timescale
 			s64 diff = now;
 			diff -= (s64) clock_us;
@@ -2017,23 +2027,21 @@ static GF_Err vout_process(GF_Filter *filter)
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
 			ctx->first_cts_plus_one = cts + 1;
-			cts *= 1000;
-			cts/=ctx->timescale;
-			ref_ts *= 1000;
-			ref_ts /= ctx->timescale;
 
 			//allow 10ms video advance
-#define DEF_VIDEO_AUDIO_ADVANCE_MS	15
-			if (!ctx->raw_grab && ((s64) cts > ref_ts + DEF_VIDEO_AUDIO_ADVANCE_MS)) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame "LLU" ms greater than reference clock "LLU" ms, waiting\n", gf_sys_clock(), cts, ref_ts));
+			#define DEF_VIDEO_AUDIO_ADVANCE_MS	15
+			safety = DEF_VIDEO_AUDIO_ADVANCE_MS * ctx->timescale / 1000;
+			if (!ctx->raw_grab && ((s64) cts > ref_ts + safety)) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame CTS "LLU" CTS greater than reference clock CTS "LLU" (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
-				gf_filter_ask_rt_reschedule(filter, (u32) ((cts-ref_ts) * 1000 - DEF_VIDEO_AUDIO_ADVANCE_MS*1000) );
+				gf_filter_ask_rt_reschedule(filter, (u32) ((cts-ref_ts - safety) * 1000000 / ctx->timescale) );
 				//not ready yet
 				return GF_OK;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame "LLU" ms latest reference clock "LLU" ms\n", gf_sys_clock(), cts, ref_ts));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame CTS "LLU" latest reference clock CTS "LLU" (%g sec)\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 			ref_clock = ref_ts;
+			check_clock = GF_TRUE;
 		} else if (!ctx->first_cts_plus_one) {
 			//init clock on second frame, first frame likely will have large rendering time
 			//due to GPU config. While this is not important for recorded media, it may impact
@@ -2242,7 +2250,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(back), "back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(wsize), "default init window size. 0x0 holds the window size of the first frame. Negative values indicate video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(wpos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(delay), "set delay, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(vdelay), "set delay in sec, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "100", NULL, 0},
