@@ -222,7 +222,6 @@ extension = {
                     ext.movie_control.mediaStopTime = ext.initial_start;
                 }
                 ext.movie_control.loop = ext.initial_loop;
-                alert('mc.mST is ' + ext.movie_control.mediaStopTime);
 
                 ext.movie_control.url[0] = ext.current_url;
                 ext.movie_sensor.url[0] = ext.current_url;
@@ -233,7 +232,7 @@ extension = {
                 ext.initial_speed = 1;
                 ext.initial_start = 0;
 
-                gwlog(l_inf, 'URL connected');
+                gwlog(l_deb, 'URL connected');
 
                 if ((ext.current_url.indexOf('gpac://') == 0) && ((ext.current_url.indexOf('://') < 0) || (ext.current_url.indexOf('file://') == 0))) {
                     ext.local_url = true;
@@ -302,7 +301,7 @@ extension = {
 				if (w<this.extension.def_width)
                     w = this.extension.def_width;
 
-                gwlog(l_inf, 'set output size to ' + w + 'x' + h);
+                gwlog(l_deb, 'set output size to ' + w + 'x' + h);
                 gpac.set_size(w, h);
             }
             ext.streamlist_changed();
@@ -376,6 +375,7 @@ extension = {
         }
 
         this.movie.children[0].on_media_end = function (evt) {
+            gwlog(l_err, 'end of media');
             if (this.extension.duration>1) {
                 if (this.extension.movie_control.loop) {
                     this.extension.movie_control.mediaStartTime = 0;
@@ -992,10 +992,20 @@ extension = {
             //check our args
             var i, argc = gpac.argc;
             var url_arg = null;
-
+            var prog_name = gpac.get_arg(0); 
+            var check_gpac_args = 0;
+            if (prog_name  && (prog_name.indexOf('gpac')>=0))
+                check_gpac_args = 1;
+            
             for (i = 1; i < argc; i++) {
                 var arg = gpac.get_arg(i);
                 if (!arg) break;
+
+                if (check_gpac_args==1) {
+                    if (arg=='-xopt') check_gpac_args=2;
+                    continue;
+                }
+
 
                 //that's our file
                 if (arg.charAt(0) != '-') {
@@ -1004,32 +1014,31 @@ extension = {
 
                     if (arg.indexOf('://') < 0) url_arg = 'gpac://' + arg;
                     else url_arg = arg;
+
+                    continue;
                 }
 
                 //MP4Client options taking 2 args
-                else if ((arg == '-rti') || (arg == '-rtix') || (arg == '-p') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
-                    || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-mosaic') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift')
-                    || (arg == '-fps') || (arg == '-scale') || (arg == '-run-for') || (arg == '-bl')
-                ) {
-        			i++;
-                } else if (arg == '-service') {
-                    this.initial_service_id = parseInt(gpac.get_arg(i + 1));
-                    i++;
-                } else if (arg == '-com') {
-                    arg = gpac.get_arg(i + 1);
-                    var idx = arg.indexOf('gpac add ');
-
-                    if (idx == 0) {
-                        this.default_addon = arg.substring(9);
+                if (!check_gpac_args) {
+                    if ((arg == '-rti') || (arg == '-rtix') || (arg == '-p') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
+                        || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-mosaic') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift')
+                        || (arg == '-fps') || (arg == '-scale') || (arg == '-run-for') || (arg == '-bl')
+                    ) {
+                        i++;
+                        continue;
                     }
 
+                }
+
+                if (arg == '-service') {
+                    this.initial_service_id = parseInt(gpac.get_arg(i + 1));
                     i++;
                 } else if (arg == '-addon') {
                     this.default_addon = gpac.get_arg(i + 1);
                     i++;
                 } else if (arg == '-loop') {
                     this.initial_loop = true;
-                } else if (arg == '-stats') {
+                } else if ((arg == '-stats') || (arg == '-stat')) {
                     this.show_stats_init = true;
                 } else if (arg == '-gui-test') {
                     this.test_mode = true;

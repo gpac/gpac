@@ -53,7 +53,7 @@ enable memory tracker with stack dumping
 load test-unit filters (used for for unit tests only)
 .br
 .TP
-.B \-loop (int)
+.B \-sloop (int)
 .br
 loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever
 .br
@@ -201,6 +201,11 @@ write all filter options in the config file unless already set
 .B \-wfx
 .br
 write all filter options and all meta filter arguments in the config file unless already set (large config file !)
+.br
+.TP
+.B \-xopt
+.br
+do not throw error on any unrecognized options following this option - used to pass arguments to GUI
 .br
 
 .br
@@ -3558,7 +3563,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3400-ga4e85b940-file_io
+build: 0.9.0-DEV-rev3418-gcf548ce22-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

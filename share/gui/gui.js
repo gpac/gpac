@@ -64,7 +64,7 @@ function extension_option_getter(_ext) {
 
 function setup_extension_storage(extension) {
     var storage_name = 'config:' + extension.path + '' + extension.name;
-    gwlog(l_inf, 'loading storage for extension ' + storage_name);
+    gwlog(l_deb, 'loading storage for extension ' + storage_name);
 
     extension.jsobj.__gpac_storage = new Storage(storage_name);
 
@@ -178,7 +178,6 @@ globalThis.initialize = function () {
                       Browser.loadScript(extension.path + extension.execjs[i]);
                   }
               }
-
           }
           if (!extension.compatible) {
               var w = gw_new_message(null, 'Error', 'Extension ' + extension.name + ' is not compatible');
@@ -190,6 +189,17 @@ globalThis.initialize = function () {
 
           if (extension.jsobj && (typeof extension.jsobj.start != 'undefined')) extension.jsobj.start();
       } 
+    }
+
+    var i, argc = gpac.argc;
+          
+    for (i = 1; i < argc; i++) {
+      var arg = gpac.get_arg(i);
+      if (arg=='-h') {
+          print_help();
+          gpac.exit();                    
+          return;
+        }
     }
 
     dock.set_size(gw_display_width, gw_display_height);
@@ -207,7 +217,45 @@ globalThis.initialize = function () {
 
      //let's do the layout   
     layout();
+
 }
+
+function print_help()
+{
+    globalThis._gpac_log_name = "";
+    print(-2, "GPAC GUI Help\nOptions are specified as '-opt' or '-opt value'.\n");
+
+    //launch all default ext
+    var i;
+    for (i=0; i<all_extensions.length; i++) {
+      if ((typeof all_extensions[i].icon.ext_description.autostart != 'undefined')
+          && (typeof all_extensions[i].clopts != 'undefined')
+          && all_extensions[i].icon.ext_description.autostart) {
+         
+        print(-2, '' + all_extensions[i].icon.ext_description.name + ' extension');
+
+        if (typeof all_extensions[i].clusage != 'undefined')
+          print(-2, 'Usage: ' + all_extensions[i].clusage);
+
+        print(-2, 'Options: ');
+
+        all_extensions[i].clopts.forEach( (opt) => {
+          var s = "" + opt.name;
+          if (opt.type.length)
+            s += " (" + opt.type + ")";
+          s += ": ";
+          let olen = s.length;
+          while (olen<=30) {
+            olen++;
+            s+= ' ';
+          }
+          s += opt.description;
+          print(-1, s);
+        });
+      }
+    }
+    globalThis._gpac_log_name = null;
+} 
 
 //performs layout on all contents
 function layout() 

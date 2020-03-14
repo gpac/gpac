@@ -814,7 +814,10 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(osize), "force output size. If not set, size is derived from inputs", GF_PROP_VEC2I, "0x0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dpi), "default dpi if not indicated by video output", GF_PROP_VEC2I, "96x96", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dbgpvr), "debug scene used by PVR addon", GF_PROP_FLOAT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(player), "set compositor in player mode, see filter help", GF_PROP_UINT, "no", "no|base|gui", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(player), "set compositor in player mode, see filter help\n"
+	"- no: regular mode\n"
+	"- base: player mode\n"
+	"- gui: player mode with GUI auto-start", GF_PROP_UINT, "no", "no|base|gui", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(noaudio), "disable audio output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(opfmt), "pixel format to use for output. Ignored in [-player]() mode", GF_PROP_PIXFMT, "none", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(drv), "indicate if graphics driver should be used. Ignored in player mode\n"\
