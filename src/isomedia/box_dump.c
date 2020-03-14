@@ -103,8 +103,9 @@ GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace)
 	return GF_OK;
 }
 
+static Bool dump_skip_samples = GF_FALSE;
 GF_EXPORT
-GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init)
+GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_samples)
 {
 	u32 i;
 	const char *fname;
@@ -119,6 +120,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init)
 	else fname+=1;
 	gf_fprintf(trace, "<IsoMediaFile xmlns=\"urn:mpeg:isobmff:schema:file:2016\" Name=\"%s\">\n", fname);
 
+	dump_skip_samples = skip_samples;
 	i=0;
 	if (skip_init)
 		i = mov->nb_box_init_seg;
@@ -861,6 +863,9 @@ GF_Err stts_box_dump(GF_Box *a, FILE * trace)
 	GF_TimeToSampleBox *p;
 	u32 i, nb_samples;
 
+	if (dump_skip_samples)
+		return GF_OK;
+
 	p = (GF_TimeToSampleBox *)a;
 	gf_isom_box_dump_start(a, "TimeToSampleBox", trace);
 	gf_fprintf(trace, "EntryCount=\"%d\">\n", p->nb_entries);
@@ -884,6 +889,10 @@ GF_Err ctts_box_dump(GF_Box *a, FILE * trace)
 	GF_CompositionOffsetBox *p;
 	u32 i, nb_samples;
 	p = (GF_CompositionOffsetBox *)a;
+
+	if (dump_skip_samples)
+		return GF_OK;
+
 	gf_isom_box_dump_start(a, "CompositionOffsetBox", trace);
 	gf_fprintf(trace, "EntryCount=\"%d\">\n", p->nb_entries);
 
@@ -967,6 +976,9 @@ GF_Err stsc_box_dump(GF_Box *a, FILE * trace)
 	GF_SampleToChunkBox *p;
 	u32 i, nb_samples;
 
+	if (dump_skip_samples)
+		return GF_OK;
+
 	p = (GF_SampleToChunkBox *)a;
 	gf_isom_box_dump_start(a, "SampleToChunkBox", trace);
 	gf_fprintf(trace, "EntryCount=\"%d\">\n", p->nb_entries);
@@ -994,6 +1006,8 @@ GF_Err stsz_box_dump(GF_Box *a, FILE * trace)
 	GF_SampleSizeBox *p;
 	u32 i;
 	p = (GF_SampleSizeBox *)a;
+	if (dump_skip_samples)
+		return GF_OK;
 
 	if (a->type == GF_ISOM_BOX_TYPE_STSZ) {
 		gf_isom_box_dump_start(a, "SampleSizeBox", trace);
@@ -1033,6 +1047,9 @@ GF_Err stco_box_dump(GF_Box *a, FILE * trace)
 	GF_ChunkOffsetBox *p;
 	u32 i;
 
+	if (dump_skip_samples)
+		return GF_OK;
+
 	p = (GF_ChunkOffsetBox *)a;
 	gf_isom_box_dump_start(a, "ChunkOffsetBox", trace);
 	gf_fprintf(trace, "EntryCount=\"%d\">\n", p->nb_entries);
@@ -1056,6 +1073,9 @@ GF_Err stss_box_dump(GF_Box *a, FILE * trace)
 	GF_SyncSampleBox *p;
 	u32 i;
 
+	if (dump_skip_samples)
+		return GF_OK;
+
 	p = (GF_SyncSampleBox *)a;
 	gf_isom_box_dump_start(a, "SyncSampleBox", trace);
 	gf_fprintf(trace, "EntryCount=\"%d\">\n", p->nb_entries);
@@ -1078,6 +1098,9 @@ GF_Err stdp_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DegradationPriorityBox *p;
 	u32 i;
+
+	if (dump_skip_samples)
+		return GF_OK;
 
 	p = (GF_DegradationPriorityBox *)a;
 	gf_isom_box_dump_start(a, "DegradationPriorityBox", trace);
@@ -1161,6 +1184,9 @@ GF_Err co64_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_ChunkLargeOffsetBox *p;
 	u32 i;
+
+	if (dump_skip_samples)
+		return GF_OK;
 
 	p = (GF_ChunkLargeOffsetBox *)a;
 	gf_isom_box_dump_start(a, "ChunkLargeOffsetBox", trace);
@@ -4257,6 +4283,9 @@ GF_Err sbgp_box_dump(GF_Box *a, FILE * trace)
 	GF_SampleGroupBox *ptr = (GF_SampleGroupBox*) a;
 	if (!a) return GF_BAD_PARAM;
 
+	if (dump_skip_samples)
+		return GF_OK;
+
 	gf_isom_box_dump_start(a, "SampleGroupBox", trace);
 
 	if (ptr->grouping_type)
@@ -4577,6 +4606,9 @@ GF_Err saiz_box_dump(GF_Box *a, FILE * trace)
 	GF_SampleAuxiliaryInfoSizeBox *ptr = (GF_SampleAuxiliaryInfoSizeBox*) a;
 	if (!a) return GF_BAD_PARAM;
 
+	if (dump_skip_samples)
+		return GF_OK;
+
 	gf_isom_box_dump_start(a, "SampleAuxiliaryInfoSizeBox", trace);
 
 	gf_fprintf(trace, "default_sample_info_size=\"%d\" sample_count=\"%d\"", ptr->default_sample_info_size, ptr->sample_count);
@@ -4605,6 +4637,9 @@ GF_Err saio_box_dump(GF_Box *a, FILE * trace)
 	u32 i;
 	GF_SampleAuxiliaryInfoOffsetBox *ptr = (GF_SampleAuxiliaryInfoOffsetBox*) a;
 	if (!a) return GF_BAD_PARAM;
+
+	if (dump_skip_samples)
+		return GF_OK;
 
 	gf_isom_box_dump_start(a, "SampleAuxiliaryInfoOffsetBox", trace);
 
@@ -4775,6 +4810,9 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 	u32 i, j, sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) a;
 	if (!a) return GF_BAD_PARAM;
+
+	if (dump_skip_samples)
+		return GF_OK;
 
 	gf_isom_box_dump_start(a, "SampleEncryptionBox", trace);
 	sample_count = gf_list_count(ptr->samp_aux_info);
