@@ -1486,7 +1486,7 @@ GF_Err gf_isom_get_trex_template(GF_ISOFile *isom_file, u32 trackNumber, u8 **ou
 \param skip_init does not dump init segment structure
 \return error if any
 */
-GF_Err gf_isom_dump(GF_ISOFile *isom_file, FILE *trace, Bool skip_init);
+GF_Err gf_isom_dump(GF_ISOFile *isom_file, FILE *trace, Bool skip_init, Bool skip_samples);
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 

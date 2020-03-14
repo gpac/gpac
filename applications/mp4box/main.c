@@ -711,6 +711,7 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("infon", NULL, "print track info for given track number, 1 being the first track in the file", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("diso", NULL, "dump IsoMedia file boxes in XML output", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dxml", NULL, "dump IsoMedia file boxes and known track samples in XML output", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("disox", NULL, "dump IsoMedia file boxes except sample tables in XML output", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("bt", NULL, "dump scene to BT format", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("xmt", NULL, "dump scene to XMT format", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("wrl", NULL, "dump scene to VRML format", NULL, NULL, GF_ARG_BOOL, 0),
@@ -3630,6 +3631,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-statx")) stat_level = 3;
 		else if (!stricmp(arg, "-diso")) dump_isom = 1;
 		else if (!stricmp(arg, "-dxml")) dump_isom = 2;
+		else if (!stricmp(arg, "-disox")) dump_isom = 3;
 		else if (!stricmp(arg, "-mergevtt")) merge_vtt_cues = GF_TRUE;
 		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
@@ -5272,7 +5274,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) {
-		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE, merge_vtt_cues, use_init_seg ? GF_TRUE : GF_FALSE);
+		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE, merge_vtt_cues, use_init_seg ? GF_TRUE : GF_FALSE, (dump_isom==3) ? GF_TRUE : GF_FALSE);
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
