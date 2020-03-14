@@ -510,7 +510,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 {
     int i=0;
     Bool first=GF_TRUE;
-    u32 logl = GF_LOG_INFO;
+    s32 logl = GF_LOG_INFO;
     JSValue v, g;
     const char *str, *c_logname=NULL;
     const char *log_name = "JS";
@@ -536,9 +536,9 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 	if (log_name) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("[%s]", log_name));
+		GF_LOG(logl, ltool, ("[%s] ", log_name));
 #else
-		fprintf(stderr, "[%s]", log_name);
+		fprintf(stderr, "[%s] ", log_name);
 #endif
 	}
 	if (error_type==2) {
@@ -552,11 +552,18 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
     for (; i < argc; i++) {
         str = JS_ToCString(ctx, argv[i]);
         if (!str) return JS_EXCEPTION;
+
+        if (logl==-1) {
+			gf_sys_format_help(stderr, GF_PRINTARG_HIGHLIGHT_FIRST, "%s\n", str);
+		} else if (logl==-2) {
+			gf_sys_format_help(stderr, 0, "%s\n", str);
+		} else {
 #ifndef GPAC_DISABLE_LOG
- 		GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
+			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
 #else
- 		fprintf(stderr, "%s%s", (first) ? "" : " ", str));
+			fprintf(stderr, "%s%s", (first) ? "" : " ", str));
 #endif
+		}
         JS_FreeCString(ctx, str);
         first=GF_FALSE;
     }

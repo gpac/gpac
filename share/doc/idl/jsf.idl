@@ -31,7 +31,7 @@ attribute JSFilter filter;
 */
 void print(DOMString log);
 /*! global context function for printing 
-\param log_level the log level to use (eg, GF_LOG_INFO, GF_LOG_ERROR ...)
+\param log_level the log level to use: GF_LOG_DEBUG, GF_LOG_INFO, GF_LOG_WARNING, GF_LOG_ERROR. The special value -2 means print as gf_sys_format_help without highlight, the special value -1 means print as gf_sys_format_help with hightlight of first)
 \param log_str the string to write
 */
 void print(long log_level, DOMString log_str);
