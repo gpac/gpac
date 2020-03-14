@@ -1088,7 +1088,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 #endif
 
-
 	if (for2d) {
 		Bool load_tx = 0;
 		if (!txh->data) return 0;
@@ -1148,7 +1147,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	if (txh->tx_io->fbo_id) {
 		return 1;
 	}
-
 	GL_CHECK_ERR()
 
 	/*in case the ID has been lost, resetup*/
@@ -1920,6 +1918,8 @@ void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh)
 		case 1:
 			gf_sc_ar_control(txh->compositor->audio_renderer, GF_SC_AR_RESUME);
 			txh->tx_io->init_pause_status = 2;
+			if (txh->stream)
+				txh->stream->flags |= GF_MO_IN_RESYNC;
 			break;
 		default:
 			break;

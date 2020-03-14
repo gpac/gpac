@@ -672,6 +672,16 @@ clock_setup:
 	odm->ck = ck;
 	odm->clock_inherited = clock_inherited;
 
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	if (prop) {
+		odm->delay = prop->value.sint;
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		if (prop) {
+			odm->delay *= 1000;
+			odm->delay /= (s32) prop->value.uint;
+		}
+	}
+
 	gf_odm_update_duration(odm, pid);
 	/*regular setup*/
 	return GF_OK;
@@ -1002,7 +1012,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	odm->has_seen_eos = GF_FALSE;
 	odm->state = GF_ODM_STATE_STOP;
 	GF_FEVT_INIT(com, GF_FEVT_STOP, odm->pid)
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] PID %s At OTB %u requesting STOP\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(odm->ck) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] PID %s At OTB %u requesting STOP\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), odm->ck ? gf_clock_time(odm->ck) : 0 ));
 
 	gf_filter_pid_send_event(odm->pid, &com);
 	gf_list_del_item(scene->compositor->systems_pids, odm->pid);
@@ -1437,6 +1447,14 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("No timestamp on first packet, using 0\n"));
 			time = 0;
 		}
+		if (odm->delay<0) {
+			if (time < (u64) -odm->delay) {
+				gf_filter_pid_drop_packet(pid);
+				return GF_TRUE;
+			}
+			time-= -odm->delay;
+		}
+
 		time *= 1000;
 		time /= timescale;
 		gf_clock_set_time(odm->ck, (u32) time);

@@ -274,9 +274,11 @@ static void gf_ar_pck_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 void gf_ar_send_packets(GF_AudioRenderer *ar)
 {
 	u32 written, max_send=100;
+	u64 now = gf_sys_clock_high_res();
+
 	if (!ar->aout) {
 		if (ar->compositor->player) {
-			ar->current_time = (u32) ( (gf_sys_clock_high_res() - ar->start_time)/1000);
+			ar->current_time = (u32) ( (now - ar->start_time)/1000);
 		}
 		return;
 	}
@@ -291,18 +293,18 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 	}
 	if (ar->scene_ready) {
 		if (!ar->start_time) {
-			ar->start_time = gf_sys_clock_high_res();
+			ar->start_time = now;
 		}
 		if (!ar->nb_audio_objects && !ar->non_rt_output) {
-			ar->current_time = (u32) ( (gf_sys_clock_high_res() - ar->start_time)/1000);
+			ar->current_time = (u32) ( (now - ar->start_time)/1000);
 			return;
 		}
 	}
 
 	while (max_send) {
+		u32 delay_ms = 0;
 		u8 *data;
 		u32 dur;
-		u32 delay_ms = 0;
 		GF_FilterPacket *pck;
 
 		if (gf_filter_pid_would_block(ar->aout))
@@ -346,6 +348,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		ar->current_time = ar->time_at_last_config + (u32) (ar->bytes_requested * 1000 / ar->bytes_per_second);
 
 		max_send--;
+		delay_ms=0;
 
 		//this is a safety for non blocking mode, otherwise the pid_would_block is enough
 		if (ar->nb_bytes_out > ar->max_bytes_out)
