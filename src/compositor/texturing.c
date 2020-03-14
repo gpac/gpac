@@ -299,7 +299,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		}
 		return;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] Updated new frame time TS %u\n", txh, ts));
+	GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[Texture %p] Updated new frame at clock time %d (%d ms) time %u ms\n", txh, gf_clock_time(txh->stream->odm->ck), gf_sys_clock(), ts));
 	txh->stream_finished = 0;
 	txh->needs_release = 1;
 	txh->last_frame_time = ts;

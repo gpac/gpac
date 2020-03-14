@@ -708,7 +708,7 @@ struct __tag_compositor
 
 	Bool dbgpvr;
 	Bool noaudio;
-	
+
 	/*all X3D key/mouse/string sensors*/
 	GF_List *x3d_sensors;
 	/*all input stream decoders*/
@@ -2123,7 +2123,8 @@ struct _od_manager
 	u32 timeshift_depth;
 
 	u32 action_type;
-
+	s32 delay;
+	
 	Fixed set_speed;
 	Bool disable_buffer_at_next_play;
 
