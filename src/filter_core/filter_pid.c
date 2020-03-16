@@ -3576,7 +3576,7 @@ single_retry:
 		//so only attempt to relink the chain if dst_filter is the expected target
 		if (!pid->filter->dst_filter && pid->filter->target_filter && (filter_dst != pid->filter->target_filter)) {
 			if (filter_dst->target_filter != pid->filter->target_filter) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has target filter %s not matching %s->%s\n", pid->name, pid->filter->target_filter->name, filter_dst->name, filter_dst->target_filter->name));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has target filter %s not matching %s->%s\n", pid->name, pid->filter->target_filter->name, filter_dst->name, filter_dst->target_filter ? filter_dst->target_filter->name : "null"));
 				continue;
 			}
 			//if the target filter of this filter is the same as ours, try to connect - typically scalable streams decoding
