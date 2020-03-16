@@ -124,7 +124,7 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 			return gf_audio_input_fetch_frame(callback, size, planar_size, audio_delay_ms);
 		}
 		if (ai->stream->odm && ai->stream->odm->ck)
-			resync_delay = ai->stream->odm->ck->drift - drift;
+			resync_delay = ai->stream->odm->ck->audio_delay - drift;
 		else
 			resync_delay = -drift;
 			
