@@ -47,6 +47,7 @@ typedef struct
 	GF_Thread *th;
 	u32 audio_th_state;
 	Bool needs_recfg, wait_recfg;
+	u32 bytes_per_sample;
 
 	u32 pck_offset;
 	u64 first_cts;
@@ -118,6 +119,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		ctx->needs_recfg = GF_FALSE;
 		ctx->wait_recfg = GF_FALSE;
 	}
+	ctx->bytes_per_sample = gf_audio_fmt_bit_depth(afmt) * nb_ch / 8;
 	ctx->hwdelay_us = 0;
 	if (ctx->audio_out->GetAudioDelay) {
 		ctx->hwdelay_us = ctx->audio_out->GetAudioDelay(ctx->audio_out);
@@ -165,14 +167,14 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 	memset(buffer, 0, buffer_size);
 	if (!ctx->pid || ctx->aborted) return 0;
 
-	//query full buffer duration in us
-	u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
-
 	if (!ctx->buffer_done) {
 		u32 size;
 		GF_FilterPacket *pck;
+
+		//query full buffer duration in us
+		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 
 		/*the compositor sends empty packets after its reconfiguration to check when the config is active
 		we therefore probe the first packet before probing the buffer fullness*/
@@ -253,6 +255,9 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		if (!done && ctx->clock && data && size) {
 			GF_Fraction64 timestamp;
 			timestamp.num = cts;
+			if (ctx->pck_offset)
+				timestamp.num += ctx->pck_offset/ctx->bytes_per_sample;
+
 			timestamp.num -= (ctx->hwdelay_us*ctx->timescale)/1000000;
 			if (timestamp.num<0) timestamp.num = 0;
 			timestamp.den = ctx->timescale;
