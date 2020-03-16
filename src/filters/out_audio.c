@@ -211,7 +211,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			if (gf_filter_pid_is_eos(ctx->pid)) {
 				ctx->is_eos = GF_TRUE;
 			} else if (!is_first_pck) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
 			}
 			return done;
 		}
