@@ -1734,6 +1734,8 @@ struct __gf_filter_register
 	A filter must signal this using \ref gf_filter_ask_rt_reschedule, possibly with no timeout.
 
 	A filter may return GF_EOS to indicate no more data is expected to be produced by this filter
+
+	A filter may return GF_PROFILE_NOT_SUPPORTED to indicate that the filter is not supported (when unable to detect this at configure) and trigger a relink of the filter graph.
 	*/
 	GF_Err (*process)(GF_Filter *filter);
 
