@@ -182,10 +182,15 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 
     if (!image) {
 		if (status != kCVReturnSuccess) {
-			ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
+			//if filter reassignment is not disabled and out frame is a SAP, consider this a wrong profile
+			//and request a change
+			if (!gf_opts_get_bool("core", "no-reassign") && gf_filter_pck_get_sap(ctx->cur_pck))
+				ctx->last_error = GF_PROFILE_NOT_SUPPORTED;
+			else
+				ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Decode error - status %d\n", status));
 		}
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer - status %d\n", status));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer\n"));
         return;
     }
 	if (gf_filter_pck_get_seek_flag(ctx->cur_pck) ) {
@@ -1599,10 +1604,17 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	CFRelease(block_buffer);
 	CFRelease(sample);
 
+	//profile not supported, request codec change - do not discard input frame
+	if (ctx->last_error==GF_PROFILE_NOT_SUPPORTED) {
+		ctx->cur_pck = NULL;
+		return ctx->last_error;
+	}
+	
 	gf_filter_pid_drop_packet(ref_pid);
 	ctx->cur_pck = NULL;
 
 	if (ctx->last_error) return ctx->last_error;
+
 	if (status)
 		return GF_NON_COMPLIANT_BITSTREAM;
 

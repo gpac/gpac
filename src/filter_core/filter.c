@@ -2073,6 +2073,24 @@ static void gf_filter_process_task(GF_FSTask *task)
 		gf_mx_v(filter->tasks_mx);
 		return;
 	}
+
+	if ((e==GF_PROFILE_NOT_SUPPORTED) && filter->has_out_caps && !(filter->session->flags & GF_FS_FLAG_NO_REASSIGN)) {
+		u32 i;
+		//disconnect all other inputs, and post a re-init
+		gf_mx_p(filter->tasks_mx);
+		for (i=0; i<filter->num_input_pids; i++) {
+			GF_FilterPidInst *a_pidinst = gf_list_get(filter->input_pids, i);
+
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Not supported profile for filter %s - blacklisting as output from %s and retrying connections\n", filter->name, a_pidinst->pid->filter->name));
+
+			gf_list_add(a_pidinst->pid->filter->blacklisted, (void *) filter->freg);
+
+			gf_filter_relink_dst(a_pidinst);
+		}
+		filter->process_task_queued = 0;
+		gf_mx_v(filter->tasks_mx);
+		return;
+	}
 	check_filter_error(filter, e, GF_FALSE);
 
 	//source filters, flush data if enough space available.
