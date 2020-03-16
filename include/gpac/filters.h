@@ -2384,6 +2384,16 @@ This can be needed by some filters needing to make sure all their inputs are kno
 */
 Bool gf_filter_connections_pending(GF_Filter *filter);
 
+/*! Disables blocking check for a given filter
+
+This can be needed by some filters internally managing their blocking state because one of their output is not managed by the filter session.
+
+\param filter target filter
+\param prevent_blocking_enabled if GF_TRUE, filter will still be called even if one of its output is in blocking mode
+\return error if any
+*/
+GF_Err gf_filter_prevent_blocking(GF_Filter *filter, Bool prevent_blocking_enabled);
+
 /*! Checks if reporting is turned on at session level.
 \param filter target filter
 \return GF_TRUE if reporting is enabled, GF_FALSE otherwise

@@ -1972,7 +1972,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 
 	//blocking filter: remove filter process task - task will be reinserted upon unblock()
-	if (filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids ) ) {
+	if (!filter->prevent_blocking && filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids ) ) {
 		gf_mx_p(task->filter->tasks_mx);
 		//it may happen that by the time we get the lock, the filter has been unblocked by another thread. If so, don't skip task
 		if (filter->would_block) {
@@ -3594,3 +3594,10 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 	return res;
 }
 
+GF_EXPORT
+GF_Err gf_filter_prevent_blocking(GF_Filter *filter, Bool prevent_blocking_enabled)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->prevent_blocking = prevent_blocking_enabled;
+	return GF_OK;
+}
