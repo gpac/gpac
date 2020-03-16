@@ -603,6 +603,8 @@ struct __gf_filter
 	volatile u32 would_block; //concurrent inc/dec
 	//sets once broken blocking mode has been detected
 	Bool blockmode_broken;
+	//requested by a filter to disable blocking
+	Bool prevent_blocking;
 
 	//filter destroy task has been posted
 	Bool finalized;

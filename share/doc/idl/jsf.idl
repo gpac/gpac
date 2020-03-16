@@ -257,8 +257,13 @@ FilterInstance add_destination(DOMString destination, optional DOMString mux_mim
 */
 FilterInstance add_filter(DOMString args);
 
-/*! lmakes the filter sticky - see \ref gf_filter_make_sticky*/
+/*! makes the filter sticky - see \ref gf_filter_make_sticky*/
 void make_sticky();
+
+/*! makes the filter unblocking - see \ref gf_filter_prevent_blocking
+\param do_prevent if true, filter will not be blocking if all oits output pids are blocking
+*/
+void prevent_blocking(boolean do_prevent);
 
 };
 
