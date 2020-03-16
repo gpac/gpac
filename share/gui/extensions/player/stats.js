@@ -239,7 +239,7 @@ extension.view_stats = function () {
                     label += '' + m.samplerate + 'Hz ' + m.channels + ' channels';
                 }
                 label += '\n'
-                label += 'Status: ' + m.status + ' - clock time: ' + m.clock_time + ' (drift ' + m.clock_drift + ')';
+                label += 'Status: ' + m.status + ' - clock time: ' + m.clock_time; // + ' (drift ' + m.clock_drift + ')';
 
                 label += '\n'
                 label += 'Composition Memory: ' + m.cb_unit_count + '/' + m.cb_capacity;
