@@ -148,7 +148,8 @@ typedef struct
 	u32 cb_unit_count, cb_max_count;
 	/*inidciate that thye composition memory is bypassed for this decoder (video only) */
 	Bool direct_video_memory;
-	/*clock drift in ms of object clock: this is the delay set by the audio renderer to keep AV in sync*/
+	/*clock delay in ms of object clock: this is the delay set by the audio renderer to keep AV in sync
+	and corresponds to the amount of ms to delay non-audio streams to keep sync*/
 	s32 clock_drift;
 	/*codec name*/
 	const char *codec_name;

@@ -1259,7 +1259,7 @@ void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift)
 {
 	if (!mo || !mo->odm) return;
 	if (mo->odm->type != GF_STREAM_AUDIO) return;
-	gf_clock_adjust_drift(mo->odm->ck, ms_drift);
+	gf_clock_set_audio_delay(mo->odm->ck, ms_drift);
 }
 
 GF_EXPORT

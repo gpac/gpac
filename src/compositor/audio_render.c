@@ -314,7 +314,21 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		if (!pck) break;
 
 		if (ar->compositor->async) {
-			delay_ms = (1000*ar->nb_bytes_out) / ar->bytes_per_second;
+			GF_Fraction64 ref_ts;
+			gf_filter_get_clock_hint(ar->compositor->filter, NULL, &ref_ts);
+			//valid clock hint, compute delay between last known playback point and current time
+			if (ref_ts.den) {
+				if (ref_ts.den != ar->samplerate) {
+					delay_ms = (u32) (1000 * ar->current_time_sr / ar->samplerate);
+					delay_ms -= (u32) (1000 * ref_ts.num / ref_ts.den);
+				} else {
+					delay_ms = (u32) (1000 * (ar->current_time_sr - ref_ts.num) / ar->samplerate);
+				}
+			}
+			//unknown clock hint, use number of bytes out as delay
+			else {
+				delay_ms = (1000*ar->nb_bytes_out) / ar->bytes_per_second;
+			}
 		}
 
 		gf_mixer_lock(ar->mixer, GF_TRUE);
@@ -338,7 +352,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		gf_filter_pck_set_cts(pck, ar->current_time_sr);
 		dur = written / ar->bytes_per_samp;
 		gf_filter_pck_set_duration(pck, dur);
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS "LLU" nb samples %d - AR clock %u\n", ar->current_time_sr, dur, ar->current_time));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS "LLU" nb samples %d - AR clock %u - delay %d ms\n", ar->current_time_sr, dur, ar->current_time, delay_ms));
 
 		ar->nb_bytes_out += written;
 		gf_filter_pck_send(pck);
@@ -348,7 +362,6 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		ar->current_time = ar->time_at_last_config + (u32) (ar->bytes_requested * 1000 / ar->bytes_per_second);
 
 		max_send--;
-		delay_ms=0;
 
 		//this is a safety for non blocking mode, otherwise the pid_would_block is enough
 		if (ar->nb_bytes_out > ar->max_bytes_out)

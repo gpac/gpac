@@ -135,7 +135,7 @@ GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clock_id, u16 ES
 void gf_clock_reset(GF_Clock *ck)
 {
 	ck->clock_init = 0;
-	ck->drift = 0;
+	ck->audio_delay = 0;
 	ck->speed_set_time = 0;
 	//do NOT reset buffering flag, because RESET scene called only
 	//for the stream owning the clock, and other streams may
@@ -153,7 +153,7 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 	if (!ck->clock_init) {
 		ck->init_timestamp = TS;
 		ck->clock_init = 1;
-		ck->drift = 0;
+		ck->audio_delay = 0;
 		/*update starttime and pausetime even in pause mode*/
 		ck->pause_time = ck->start_time = gf_sc_get_clock(ck->compositor);
 	}
@@ -222,8 +222,8 @@ GF_EXPORT
 u32 gf_clock_time(GF_Clock *ck)
 {
 	u32 time = gf_clock_real_time(ck);
-	if ((ck->drift>0) && (time < (u32) ck->drift)) return 0;
-	return time - ck->drift;
+	if ((ck->audio_delay>0) && (time < (u32) ck->audio_delay)) return 0;
+	return time - ck->audio_delay;
 }
 
 u32 gf_clock_to_media_time(GF_Clock *ck, u32 clock_val)
@@ -291,8 +291,8 @@ void gf_clock_set_speed(GF_Clock *ck, Fixed speed)
 	ck->speed = speed;
 }
 
-void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift)
+void gf_clock_set_audio_delay(GF_Clock *ck, s32 ms_delay)
 {
-	if (ck) ck->drift = ms_drift;
+	if (ck) ck->audio_delay = ms_delay;
 }
 

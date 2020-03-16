@@ -574,8 +574,14 @@ GF_Err compose_initialize(GF_Filter *filter)
 	ctx->magic_ptr = (void *) ctx;
 	ctx->filter = filter;
 	
-    if (ctx->player && (ctx->ogl == GF_SC_GLMODE_AUTO))
-        ctx->ogl = GF_SC_GLMODE_HYBRID;
+    if (ctx->player) {
+		if (ctx->ogl == GF_SC_GLMODE_AUTO)
+			ctx->ogl = GF_SC_GLMODE_HYBRID;
+
+		//we operate video output directly and dispatch audio output, we need to disable blocking mode
+		//otherwise we will only get called when audio output is not blocking, and we will likely missed video frames
+		gf_filter_prevent_blocking(filter, GF_TRUE);
+	}
 
     e = gf_sc_load(ctx);
 	if (e) return e;

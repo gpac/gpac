@@ -1840,7 +1840,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			info->status = 4;
 		} else {
 			info->status = gf_clock_is_started(ck) ? 1 : 2;
-			info->clock_drift = ck->drift;
+			info->clock_drift = ck->audio_delay;
 
 			info->buffer = -1;
 			info->min_buffer = -1;

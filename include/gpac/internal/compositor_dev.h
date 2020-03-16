@@ -1928,7 +1928,7 @@ struct _object_clock
 	Fixed speed;
 	//whenever speed is changed we store the time at this instant
 	u32 speed_set_time;
-	s32 drift;
+	s32 audio_delay;
 
 	u32 last_ts_rendered;
 	u32 service_id;
@@ -1981,8 +1981,10 @@ void gf_clock_buffer_on(GF_Clock *ck);
 void gf_clock_buffer_off(GF_Clock *ck);
 /*set clock speed scaling factor*/
 void gf_clock_set_speed(GF_Clock *ck, Fixed speed);
-/*set clock drift - used to resync audio*/
-void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift);
+
+/*set audio delay, i.e. amount of ms to delay non-audio streams
+audio is usually send to the sound card quite ahead of time, depending on the output compositor settings*/
+void gf_clock_set_audio_delay(GF_Clock *ck, s32 ms_delay);
 
 
 /*OD manager*/
