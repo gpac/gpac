@@ -1309,20 +1309,34 @@ static void gpac_suggest_filter(char *fname, Bool is_help)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s\n", freg->name));
 		}
 	}
-	if (!found && is_help) {
-		const char *doc_helps[] = {
-			"log", "core", "modules", "doc", "alias", "props", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", NULL
-		};
-		i=0;
-		while (doc_helps[i]) {
-			if (word_match(fname, doc_helps[i])) {
-				if (!found) {
-					found = GF_TRUE;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest help command: \n"));
+	if (!found) {
+		if (is_help) {
+			const char *doc_helps[] = {
+				"log", "core", "modules", "doc", "alias", "props", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", NULL
+			};
+			i=0;
+			while (doc_helps[i]) {
+				if (word_match(fname, doc_helps[i])) {
+					if (!found) {
+						found = GF_TRUE;
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest help command: \n"));
+					}
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("-h %s\n", doc_helps[i]));
 				}
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("-h %s\n", doc_helps[i]));
+				i++;
 			}
-			i++;
+		} else {
+			u32 nb_alias = gf_opts_get_key_count("gpac.alias");
+			for (i=0; i<nb_alias; i++) {
+				const char *alias = gf_opts_get_key_name("gpac.alias", i);
+				if (word_match(fname, alias)) {
+					if (!found) {
+						found = GF_TRUE;
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest alias: \n"));
+					}
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", alias));
+				}
+			}
 		}
 	}
 	if (!found) {
@@ -1888,7 +1902,7 @@ restart:
 			} else if (!strncmp(arg, "dst=", 4) ) {
 				filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
 			} else {
-				e = (has_xopt) ? GF_EOS : GF_OK;
+				e = GF_EOS;
 				filter = gf_fs_load_filter(session, arg, &e);
 				is_simple=GF_TRUE;
 				if (!filter && has_xopt)
@@ -1897,13 +1911,16 @@ restart:
 		}
 
 		if (!filter) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s %s: %s\n", is_simple ? "" : " for",  arg, gf_error_to_string(e) ));
 			if (!e) e = GF_FILTER_NOT_FOUND;
-			nb_filters=0;
 
-			if (e==GF_FILTER_NOT_FOUND)
+			if (e!=GF_FILTER_NOT_FOUND) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s \"%s\": %s\n", is_simple ? "" : " for",  arg, gf_error_to_string(e) ));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to find filter%s \"%s\"\n", is_simple ? "" : " for",  arg));
+
 				gpac_suggest_filter(arg, GF_FALSE);
-
+			}
+			nb_filters=0;
 			goto exit;
 		}
 		nb_filters++;
