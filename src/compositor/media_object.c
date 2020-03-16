@@ -447,7 +447,11 @@ retry:
 	timescale = gf_filter_pck_get_timescale(mo->pck);
 
 	pck_ts = convert_ts_to_ms(mo, gf_filter_pck_get_cts(mo->pck), timescale, &discard);
-	if (discard) goto retry;
+	if (discard) {
+		gf_filter_pck_unref(mo->pck);
+		mo->pck = NULL;
+		goto retry;
+	}
 
 	if (resync==GF_MO_FETCH_PAUSED)
 		resync=GF_MO_FETCH;
@@ -483,7 +487,7 @@ retry:
 		gf_filter_pid_try_pull(mo->odm->pid);
 	}
 	if (!retry_pull && (force_decode_mode==1)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
 	}
 
 	/*resync*/
