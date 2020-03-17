@@ -2631,7 +2631,14 @@ static Double gf_dash_get_max_available_speed(GF_DashClient *dash, GF_DASH_Group
 	max_dl_speed = 8.0*bytes_per_sec / rep->bandwidth;
 
 	//if framerate is not in MPD, suppose that it is 25 fps
-	framerate = rep->framerate ? rep->framerate->num : 25;
+	framerate = 25;
+	if (rep->framerate) {
+		framerate = rep->framerate->num;
+		if (rep->framerate->den) {
+			framerate /= rep->framerate->den;
+		}
+	}
+
 	if (group->decode_only_rap)
 		max_decoding_speed = group->irap_max_dec_time ? 1000000.0 / group->irap_max_dec_time : 0;
 	else
