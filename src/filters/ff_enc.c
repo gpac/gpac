@@ -46,6 +46,7 @@ typedef struct _gf_ffenc_ctx
 	Bool initialized;
 
 	u32 gop_size;
+	u32 target_rate;
 
 	AVCodecContext *encoder;
 	//decode options
@@ -934,6 +935,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	ffenc_copy_pid_props(ctx);
+	if (ctx->target_rate)
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->target_rate));
 
 
 #define GET_PROP(_a, _code, _name) \
@@ -1289,6 +1292,14 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 	if (!strcmp(arg_name, "g") || !strcmp(arg_name, "gop"))
 		ctx->gop_size = arg_val->value.string ? atoi(arg_val->value.string) : 25;
+
+	if (!strcmp(arg_name, "b") && arg_val->value.string) {
+		ctx->target_rate = atoi(arg_val->value.string);
+		if (strchr(arg_val->value.string, 'm') || strchr(arg_val->value.string, 'M'))
+			ctx->target_rate *= 1000000;
+		else if (strchr(arg_val->value.string, 'k') || strchr(arg_val->value.string, 'K'))
+			ctx->target_rate *= 1000;
+	}
 
 	//initial parsing of arguments
 	if (!ctx->initialized) {

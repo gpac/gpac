@@ -574,6 +574,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP(GF_PROP_PID_TIMESCALE, ds->timescale, GF_NOT_SUPPORTED)
 		CHECK_PROP(GF_PROP_PID_BITRATE, ds->bitrate, GF_EOS)
 
+		if (!ds->bitrate) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] No bitrate property assigned to PID %s, defaulting to 1Mbps\n\tTry specifying bitrate property after your source, e.g. -i source.raw:#Bitrate=VAL\n", gf_filter_pid_get_name(ds->ipid)));
+			ds->bitrate = 1000000;
+		}
+
 		if (ds->stream_type==GF_STREAM_VISUAL) {
 			CHECK_PROP(GF_PROP_PID_WIDTH, ds->width, GF_EOS)
 			CHECK_PROP(GF_PROP_PID_HEIGHT, ds->height, GF_EOS)
@@ -3042,6 +3047,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	FILE *tmp;
 	u64 store_mpd_dur=0;
 	u64 max_seg_dur=0;
+	u64 last_period_dur;
 	//UGLY PATCH, to remove - we don't have the same algos in old arch and new arch, which result in slightly different max segment duration
 	//on audio for our test suite - patch it manually to avoid hash failures :(
 	//TODO, remove as soon as we switch archs
@@ -3066,6 +3072,15 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		ctx->mpd->max_segment_duration = 0;
 	}
 
+	last_period_dur = 0;
+	if (ctx->current_period->period) {
+		last_period_dur = ctx->current_period->period->duration;
+		if (ctx->dmode==GF_DASH_DYNAMIC) {
+			ctx->current_period->period->duration = 0;
+			ctx->mpd->media_presentation_duration = 0;
+		}
+	}
+
 	max_opid = (ctx->dual && ctx->opid_alt) ? 2 : 1;
 	for (i=0; i < max_opid; i++) {
 		Bool do_m3u8 = GF_FALSE;
@@ -3085,7 +3100,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		}
 
 		if (do_m3u8) {
-			if (for_mpd_only) return GF_OK;
+			if (for_mpd_only) continue;
 			ctx->mpd->m3u8_time = ctx->hlsc;
 			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
 		} else {
@@ -3095,6 +3110,8 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write %s file: %s\n", do_m3u8 ? "M3U8" : "MPD", gf_error_to_string(e) ));
 			gf_fclose(tmp);
+			if (ctx->current_period->period)
+				ctx->current_period->period->duration = last_period_dur;
 			return e;
 		}
 
@@ -3102,6 +3119,8 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		gf_fclose(tmp);
 	}
 
+	if (ctx->current_period->period)
+		ctx->current_period->period->duration = last_period_dur;
 
 	if (store_mpd_dur) {
 		ctx->mpd->media_presentation_duration = store_mpd_dur;
