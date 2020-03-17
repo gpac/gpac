@@ -556,8 +556,6 @@ static JSValue gpac_set_option(JSContext *ctx, JSValueConst this_val, int argc, 
 static JSValue gpac_get_arg(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 idx;
-	GF_Compositor *compositor = gpac_get_compositor(ctx, this_val);
-	if (!compositor) return JS_EXCEPTION;
 	if (argc < 1) return JS_EXCEPTION;
 
 	if (JS_ToInt32(ctx, &idx, argv[0]))
@@ -568,6 +566,20 @@ static JSValue gpac_get_arg(JSContext *ctx, JSValueConst this_val, int argc, JSV
 		return JS_NewString(ctx, arg);
 	}
 	return JS_NULL;
+}
+
+static JSValue gpac_set_arg_used(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 idx;
+	Bool used;
+	if (argc < 2) return JS_EXCEPTION;
+
+	if (JS_ToInt32(ctx, &idx, argv[0]))
+		return JS_EXCEPTION;
+	used = JS_ToBool(ctx, argv[1]);
+
+	gf_sys_mark_arg_used(idx, used);
+	return JS_UNDEFINED;
 }
 
 static JSValue gpac_set_back_color(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1910,6 +1922,7 @@ static const JSCFunctionListEntry gpac_funcs[] = {
 	JS_CFUNC_DEF("get_option", 0, gpac_get_option),
 	JS_CFUNC_DEF("set_option", 0, gpac_set_option),
 	JS_CFUNC_DEF("get_arg", 0, gpac_get_arg),
+	JS_CFUNC_DEF("set_arg_used", 0, gpac_set_arg_used),
 	JS_CFUNC_DEF("enum_directory", 0, gpac_enum_directory),
 	JS_CFUNC_DEF("set_size", 0, gpac_set_size),
 	JS_CFUNC_DEF("exit", 0, gpac_exit),

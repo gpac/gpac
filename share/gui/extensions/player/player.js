@@ -1008,7 +1008,6 @@ extension = {
                     continue;
                 }
 
-
                 //that's our file
                 if (arg.charAt(0) != '-') {
                     //do not reopen ourselves !
@@ -1016,7 +1015,6 @@ extension = {
 
                     if (arg.indexOf('://') < 0) url_arg = 'gpac://' + arg;
                     else url_arg = arg;
-
                     continue;
                 }
 
@@ -1029,15 +1027,12 @@ extension = {
                         i++;
                         continue;
                     }
-
                 }
 
-                if (arg == '-service') {
-                    this.initial_service_id = parseInt(gpac.get_arg(i + 1));
-                    i++;
-                } else if (arg == '-addon') {
-                    this.default_addon = gpac.get_arg(i + 1);
-                    i++;
+                if (arg.startsWith('-service=')) {
+                    this.initial_service_id = parseInt(arg.substring(9));
+                } else if (arg.startsWith('-addon=')) {
+                    this.default_addon = arg.substring(7);
                 } else if (arg == '-loop') {
                     this.initial_loop = true;
                 } else if ((arg == '-stats') || (arg == '-stat')) {
@@ -1045,13 +1040,15 @@ extension = {
                 } else if (arg == '-gui-test') {
                     this.test_mode = true;
                     this.show_stats_init = true;
-                } else if (arg == '-speed') {
-                    this.initial_speed = Number(gpac.get_arg(i + 1));
-                    i++;
-                } else if (arg == '-play-from') {
-                    this.initial_start = Number(gpac.get_arg(i + 1));
-                    i++;
+                } else if (arg.startsWith('-speed=')) {
+                    this.initial_speed = Number(arg.substring(7));
+                } else if (arg.startsWith('-play-from=')) {
+                    this.initial_start = Number(arg.substring(11));
+                } else {
+                    gpac.set_arg_used(i, false);
+                    continue;
                 }
+                gpac.set_arg_used(i, true);
             }
 
             gwskin.media_url = '';
