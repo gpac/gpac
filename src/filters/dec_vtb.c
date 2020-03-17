@@ -108,6 +108,7 @@ typedef struct
 	u8 chroma_format, luma_bit_depth, chroma_bit_depth;
 	Bool frame_size_changed;
 	Bool reorder_detected;
+	Bool drop_non_refs;
 
 	u32 decoded_frames_pending;
 	u32 reorder_probe;
@@ -1465,6 +1466,11 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ref_pid);
 	assert(pck);
 
+	if (ctx->drop_non_refs && !gf_filter_pck_get_sap(pck)) {
+		gf_filter_pid_drop_packet(ref_pid);
+		return GF_OK;
+	}
+
 	in_buffer = (char *) gf_filter_pck_get_data(pck, &in_buffer_size);
 
 	//discard empty packets
@@ -1835,6 +1841,10 @@ static Bool vtbdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_VTBHWFrame *f = gf_list_pop_back(ctx->frames);
 			gf_list_add(ctx->frames_res, f);
 		}
+		ctx->drop_non_refs = evt->play.drop_non_ref;
+	}
+	else if ((evt->base.type==GF_FEVT_SET_SPEED) || (evt->base.type==GF_FEVT_RESUME)) {
+		ctx->drop_non_refs = evt->play.drop_non_ref;
 	}
 	return GF_FALSE;
 }

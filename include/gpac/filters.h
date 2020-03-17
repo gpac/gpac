@@ -1287,6 +1287,8 @@ typedef struct
 	u8 full_file_only;
 	/*! indicates any current download should be aborted*/
 	u8 forced_dash_segment_switch;
+	/*! indicates non ref frames should be drawn for faster processing*/
+	u8 drop_non_ref;
 
 	/*! indicates playback should start from given packet number - used by dasher when reloading sources*/
 	u32 from_pck;

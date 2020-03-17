@@ -74,6 +74,8 @@ struct __audiomix
 	/*set to non null if this outputs directly to the driver, in which case audio formats have to be checked*/
 	struct _audio_render *ar;
 
+	Fixed max_speed;
+
 	s32 *output;
 	u32 output_size;
 };
@@ -99,12 +101,18 @@ GF_AudioMixer *gf_mixer_new(struct _audio_render *ar)
 	am->nb_channels = 2;
 	am->output = NULL;
 	am->output_size = 0;
+	am->max_speed = FIX_MAX;
 	return am;
 }
 
 Bool gf_mixer_must_reconfig(GF_AudioMixer *am)
 {
 	return am->must_reconfig;
+}
+
+void gf_mixer_set_max_speed(GF_AudioMixer *am, Double max_speed)
+{
+	am->max_speed = FLT2FIX(max_speed);
 }
 
 GF_EXPORT
@@ -651,7 +659,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	u32 planar_stride=0;
 	s8 *in_data = NULL;
 	s32 frac, inChan[GF_AUDIO_MIXER_MAX_CHANNELS], inChanNext[GF_AUDIO_MIXER_MAX_CHANNELS];
-	
+
 	in_data = (s8 *) in->src->FetchFrame(in->src->callback, &src_size, &planar_stride, audio_delay);
 	if (!in_data || !src_size) {
 		in->has_prev = GF_FALSE;
@@ -704,14 +712,20 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 			}
 		}
 
+		if (in->speed <= am->max_speed) {
+			//map inChannel to the output channel config
+			gf_mixer_map_channels(inChan, in_ch, in->src->ch_layout, in->src->forced_layout, out_ch, am->channel_layout);
 
-		//map inChannel to the output channel config
-		gf_mixer_map_channels(inChan, in_ch, in->src->ch_layout, in->src->forced_layout, out_ch, am->channel_layout);
+			for (j=0; j<out_ch ; j++) {
+				*(in->ch_buf[j] + in->out_samples_written) = (s32) inChan[j];
+			}
+		} else {
+			for (j=0; j<out_ch ; j++) {
+				*(in->ch_buf[j] + in->out_samples_written) = 0;
+			}
 
-		for (j=0; j<out_ch ; j++) {
-			*(in->ch_buf[j] + in->out_samples_written) = (s32) inChan[j];
 		}
-
+		
 		in->out_samples_written ++;
 		if (in->out_samples_written == in->out_samples_to_write) break;
 		i++;
@@ -861,7 +875,6 @@ do_mix:
 		}
 		in->speed = in->src->GetSpeed(in->src->callback);
 		if (in->speed<0) in->speed *= -1;
-
 		in->out_samples_written = 0;
 		in->in_bytes_used = 0;
 
