@@ -994,6 +994,14 @@ exit:
 	return;
 }
 
+enum
+{
+	HTTP_PUT_HEADER_ENCODING=0,
+	HTTP_PUT_HEADER_MIME,
+	HTTP_PUT_HEADER_RANGE,
+	HTTP_PUT_HEADER_DONE
+};
+
 static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	GF_HTTPOutInput *in =usr_cbk;
@@ -1003,7 +1011,7 @@ static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			parameter->name = "DELETE";
 		else
 			parameter->name = in->ctx->post ? "POST" : "PUT";
-		in->cur_header = 0;
+		in->cur_header = HTTP_PUT_HEADER_ENCODING;
 		return;
 	}
 	if (parameter->msg_type==GF_NETIO_GET_HEADER) {
@@ -1012,20 +1020,22 @@ static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (in->is_delete) return;
 
 		switch (in->cur_header) {
-		case 0:
+		case HTTP_PUT_HEADER_ENCODING:
 			parameter->name = "Transfer-Encoding";
 			parameter->value = "chunked";
-			if (in->mime) in->cur_header = 1;
-			else in->cur_header = 2;
+			if (in->mime)
+				in->cur_header = HTTP_PUT_HEADER_MIME;
+			else
+				in->cur_header = in->write_start_range ? HTTP_PUT_HEADER_RANGE : HTTP_PUT_HEADER_DONE;
 			break;
-		case 1:
+		case HTTP_PUT_HEADER_MIME:
 			parameter->name = "Content-Type";
 			parameter->value = in->mime;
-			in->cur_header = 3;
+			in->cur_header = HTTP_PUT_HEADER_DONE;
 			if (in->write_start_range)
-				in->cur_header = 2;
+				in->cur_header = HTTP_PUT_HEADER_MIME;
 			break;
-		case 2:
+		case HTTP_PUT_HEADER_RANGE:
 			parameter->name = "Range";
 			if (in->write_end_range) {
 				sprintf(in->range_hdr, "bytes="LLU"-"LLU, in->write_start_range, in->write_end_range);
@@ -1033,7 +1043,7 @@ static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				sprintf(in->range_hdr, "bytes="LLU"-", in->write_start_range);
 			}
 			parameter->value = in->range_hdr;
-			in->cur_header = 3;
+			in->cur_header = HTTP_PUT_HEADER_DONE;
 			break;
 		default:
 			parameter->name = NULL;
