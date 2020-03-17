@@ -2112,6 +2112,8 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 				if (! *sample) return GF_OUT_OF_MEM;
 			}
 			(*sample)->DTS = movieTime;
+			(*sample)->dataLength = 0;
+			(*sample)->CTS_Offset = 0;
 		}
 		return GF_OK;
 	}
