@@ -727,6 +727,7 @@ static u64 memory_at_gpac_startup = 0;
 
 static u32 gpac_argc = 0;
 const char **gpac_argv = NULL;
+Bool *gpac_argv_state = NULL;
 static Bool gpac_test_mode = GF_FALSE;
 static Bool gpac_old_arch = GF_FALSE;
 static Bool gpac_discard_config = GF_FALSE;
@@ -799,8 +800,8 @@ static u32 gpac_quiet = 0;
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
 {
+	s32 i;
 	if (!gpac_argc) {
-		s32 i;
 		Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e);
 		void gf_cfg_load_restrict();
 
@@ -885,8 +886,26 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 	{
 		gpac_argc = (u32) argc;
 		gpac_argv = argv;
+		gpac_argv_state = gf_realloc(gpac_argv_state, sizeof(Bool) * argc);
+		for (i=0; i<argc; i++)
+			gpac_argv_state[i] = GF_TRUE;
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+void gf_sys_mark_arg_used(s32 arg_idx, Bool used)
+{
+	if (arg_idx<gpac_argc)
+		gpac_argv_state[arg_idx] = used;
+}
+
+GF_EXPORT
+Bool gf_sys_is_arg_used(s32 arg_idx)
+{
+	if (arg_idx<gpac_argc)
+		return  gpac_argv_state[arg_idx];
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -1193,6 +1212,10 @@ void gf_sys_close()
 		logs_mx = NULL;
 		gf_mx_del(old_log_mx);
 
+		if (gpac_argv_state) {
+			gf_free(gpac_argv_state);
+			gpac_argv_state = NULL;
+		}
 	}
 }
 

@@ -223,7 +223,7 @@ globalThis.initialize = function () {
 function print_help()
 {
     globalThis._gpac_log_name = "";
-    print(-2, "GPAC GUI Help\nOptions are specified as '-opt' or '-opt value'.\n");
+    print(-2, "GPAC GUI Help\nOptions are specified as '-opt' or '-opt=value'.\n");
 
     //launch all default ext
     var i;

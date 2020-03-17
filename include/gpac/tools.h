@@ -328,6 +328,25 @@ Gets the number of argument of the user application if any
  */
 const char *gf_sys_get_arg(u32 arg);
 
+
+/*!
+\brief Mark arg as used
+
+Marks the argument at given index as used. By default all args are marked as used when assigning args
+\param arg_idx Index of argument to mark
+\param used flag to set
+*/
+void gf_sys_mark_arg_used(s32 arg_idx, Bool used);
+
+/*!
+\brief Check if arg is marked as used
+
+Marks the argument at given index as used
+\param arg_idx Index of argument to mark
+\return used flag of the arg
+*/
+Bool gf_sys_is_arg_used(s32 arg_idx);
+
 /*!
 \brief checks if test mode is enabled
 

@@ -1064,6 +1064,14 @@ static void parse_sep_set(const char *arg, Bool *override_seps)
 
 static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 {
+	s32 i;
+	for (i=1; i<gf_sys_get_argc(); i++) {
+		if (!gf_sys_is_arg_used(i)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Warning: argument %s set but not used\n", gf_sys_get_arg(i) ));
+		}
+	}
+
+
 	if (alias_argv) {
 		while (gf_list_count(args_alloc)) {
 			gf_free(gf_list_pop_back(args_alloc));
@@ -1097,7 +1105,6 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 		}
 		gf_free(static_logs);
 	}
-
 	gf_sys_close();
 	if (code) return code;
 
@@ -1752,7 +1759,7 @@ static int gpac_main(int argc, char **argv)
 			if (alias_val) alias_val[0] = ' ';
 			alias_set = GF_TRUE;
 		}
-		else if (!strncmp(arg, "-seps=", 3)) {
+		else if (!strncmp(arg, "-seps=", 6)) {
 			parse_sep_set(arg_val, &override_seps);
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
@@ -1775,9 +1782,13 @@ static int gpac_main(int argc, char **argv)
 				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
 				|| !strcmp(arg, "-p") || !strcmp(arg, "-")
 			) {
-			} else if (!has_xopt && !gf_sys_is_gpac_arg(arg) ) {
-				gpac_suggest_arg(arg);
-				gpac_exit(1);
+			} else if (!gf_sys_is_gpac_arg(arg) ) {
+				if (!has_xopt) {
+					gpac_suggest_arg(arg);
+					gpac_exit(1);
+				} else {
+					gf_sys_mark_arg_used(i, GF_FALSE);
+				}
 			}
 		}
 
@@ -2455,7 +2466,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						break;
 					}
 					//quick shortcuts
-					else if (!strcmp(reg->name, "jsf") && (!strncmp(arg, "jsf:", 3) || strstr(arg, ".js")) ) {
+					else if (!strcmp(reg->name, "jsf") && (!strncmp(arg, "jsf:", 4) || strstr(arg, ".js")) ) {
 						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 						if (f) {
 							if (optname)
