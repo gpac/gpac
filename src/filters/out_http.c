@@ -529,7 +529,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	char szETag[100];
 	u64 modif_time=0;
 	u32 body_size=0;
-	const char *etag, *range;
+	const char *etag=NULL, *range=NULL;
 	const char *mime = NULL;
 	char *response_body = NULL;
 	GF_Err e;

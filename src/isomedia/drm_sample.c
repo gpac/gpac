@@ -483,7 +483,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	sinf->scheme_type->flags = flags;
 	sinf->scheme_type->scheme_type = scheme_type;
 	sinf->scheme_type->scheme_version = scheme_version;
-	if (sinf->scheme_type->flags == 1) {
+	if (scheme_uri && (sinf->scheme_type->flags == 1)) {
 		sinf->scheme_type->URI = (char *)gf_malloc(sizeof(char)*strlen(scheme_uri));
 		memmove(sinf->scheme_type->URI, scheme_uri, strlen(scheme_uri));
 	}
