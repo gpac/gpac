@@ -1759,7 +1759,7 @@ static int gpac_main(int argc, char **argv)
 			if (alias_val) alias_val[0] = ' ';
 			alias_set = GF_TRUE;
 		}
-		else if (!strncmp(arg, "-seps=", 6)) {
+		else if (!strncmp(arg, "-seps", 5)) {
 			parse_sep_set(arg_val, &override_seps);
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
