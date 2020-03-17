@@ -222,6 +222,8 @@ extension = {
                     ext.movie_control.mediaStopTime = ext.initial_start;
                 }
                 ext.movie_control.loop = ext.initial_loop;
+                ext.controler.loop.switch_icon(ext.movie_control.loop ? 1 : 0);
+
 
                 ext.movie_control.url[0] = ext.current_url;
                 ext.movie_sensor.url[0] = ext.current_url;
