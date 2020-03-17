@@ -989,8 +989,11 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 					memcpy(bs->original + bs->position - bs->bytes_out, data, nbBytes);
 					bs->position += nbBytes;
 				} else {
-					bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out) );
-					bs->on_block_out(bs->usr_data, (char *) data, nbBytes);
+					if (bs->position > bs->bytes_out)
+						bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out) );
+					if (nbBytes)
+						bs->on_block_out(bs->usr_data, (char *) data, nbBytes);
+
 					bs->position += nbBytes;
 					bs->bytes_out = bs->position;
 				}
