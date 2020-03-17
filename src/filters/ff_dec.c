@@ -85,6 +85,8 @@ typedef struct _gf_ffdec_ctx
 	struct SwsContext *sws_ctx;
 
 	GF_List *src_packets;
+
+	Bool drop_non_refs;
 } GF_FFDecodeCtx;
 
 static GF_Err ffdec_initialize(GF_Filter *filter)
@@ -140,6 +142,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	} else if (!pck) {
 		is_eos = gf_filter_pid_is_eos(ctx->in_pid);
 		if (!is_eos) return GF_OK;
+	}
+
+	if (pck && ctx->drop_non_refs && !gf_filter_pck_get_sap(pck)) {
+		gf_filter_pid_drop_packet(ctx->in_pid);
+		return GF_OK;
 	}
 
 	frame = ctx->frame;
@@ -841,6 +848,16 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
+static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
+
+	if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED) || (evt->base.type==GF_FEVT_RESUME)) {
+		ctx->drop_non_refs = evt->play.drop_non_ref;
+	}
+	return GF_FALSE;
+}
+
 static const GF_FilterCapability FFDecodeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
@@ -884,6 +901,7 @@ GF_FilterRegister FFDecodeRegister = {
 	.configure_pid = ffdec_configure_pid,
 	.process = ffdec_process,
 	.update_arg = ffdec_update_arg,
+	.process_event = ffdec_process_event,
 	.flags = GF_FS_REG_META,
 	//use middle priorty, so that hardware decs/other native impl in gpac can take over if needed
 	//don't use lowest one since we use this for scalable codecs

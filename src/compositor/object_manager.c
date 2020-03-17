@@ -844,6 +844,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 
 	com.play.speed = clock->speed;
+	if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+		com.play.drop_non_ref = GF_TRUE;
 
 #ifndef GPAC_DISABLE_VRML
 	ctrl = parent_ck ? parent_ck->mc : gf_odm_get_mediacontrol(odm);
@@ -859,6 +861,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 
 		com.play.speed = FIX2FLT(ctrl->control->mediaSpeed);
+		if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+			com.play.drop_non_ref = GF_TRUE;
 		/*if the channel doesn't control the clock, jump to current time in the controled range, not just the beginning*/
 		if ((ctrl->stream != odm->mo) && (ck_time>com.play.start_range) && (com.play.end_range>com.play.start_range)
 		&& (ck_time<com.play.end_range)) {
@@ -1264,7 +1268,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	MediaSensorStack *media_sens;
 	MediaControlStack *ctrl;
 #endif
-
+	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 	GF_ODMExtraPid *xpid;
 	GF_FilterEvent com;
 
@@ -1285,6 +1289,10 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(odm->ck), odm->ck->clock_init ));
 
 	GF_FEVT_INIT(com, GF_FEVT_RESUME, odm->pid);
+	com.play.speed = odm->ck->speed;
+	if (ctrl) com.play.speed  = ctrl->control->mediaSpeed;
+	if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+		com.play.drop_non_ref = GF_TRUE;
 
 	gf_clock_resume(odm->ck);
 	if (odm->state == GF_ODM_STATE_PLAY)
@@ -1322,6 +1330,7 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 	u32 i;
 	GF_ODMExtraPid *xpid;
 	GF_FilterEvent com;
+	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 	if (!odm->pid) return;
@@ -1332,6 +1341,9 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 	GF_FEVT_INIT(com, GF_FEVT_SET_SPEED, odm->pid);
 
 	com.play.speed = FIX2FLT(speed);
+	if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+		com.play.drop_non_ref = GF_TRUE;
+
 	gf_filter_pid_send_event(odm->pid, &com);
 
 	i=0;

@@ -434,6 +434,10 @@ apan (uint, default: 50, updatable): audio pan in percent, 50 is no pan
 .br
 async (bool, default: true, updatable): audio resynchronization; if disabled, audio data is never dropped but may get out of sync
 .br
+max_aspeed (dbl, default: 2.0, updatable): silence audio if playback speed is greater than sepcified value
+.br
+max_vspeed (dbl, default: 4.0, updatable): move to i-frame only decoding if playback speed is greater than sepcified value
+.br
 buf (uint, default: 3000, updatable): playout buffer in ms. Overriden by BufferLenth property of input pid
 .br
 rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. Overriden by RebufferLenth property of input pid
@@ -5370,7 +5374,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3418-gcf548ce22-filters
+build: 0.9.0-DEV-rev3431-gf43aba013-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

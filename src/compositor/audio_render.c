@@ -149,7 +149,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor, u32 init_flags)
 	if (! (init_flags & GF_TERM_NO_AUDIO) ) {
 		gf_ar_setup_output_format(ar);
 	}
-
+	gf_mixer_set_max_speed(ar->mixer, compositor->max_aspeed);
 	ar->current_time = 0;
 	return ar;
 }

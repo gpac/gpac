@@ -114,6 +114,7 @@ typedef struct
 	Bool signal_reconfig;
 
 	GF_List *src_packets;
+	Bool drop_non_refs;
 } GF_OHEVCDecCtx;
 
 static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid)
@@ -687,6 +688,9 @@ static Bool ohevcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt
 			}
 		}
 	}
+	else if ((fevt->base.type==GF_FEVT_PLAY) || (fevt->base.type==GF_FEVT_SET_SPEED) || (fevt->base.type==GF_FEVT_RESUME)) {
+		ctx->drop_non_refs = fevt->play.drop_non_ref;
+	}
 	return GF_FALSE;
 }
 
@@ -1038,6 +1042,10 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenHEVC] no input packets on running pid %s - postponing decode\n", gf_filter_pid_get_name(ctx->streams[idx].ipid) ) );
 				return GF_OK;
 			}
+			continue;
+		}
+		if (ctx->drop_non_refs && !gf_filter_pck_get_sap(pck)) {
+			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
 			continue;
 		}
 

@@ -185,6 +185,7 @@ typedef struct
 	u32 dsi_crc;
 
 	Bool needs_pid_reconfig;
+	u32 sap_only;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);

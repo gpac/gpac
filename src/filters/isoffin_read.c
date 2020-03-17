@@ -800,6 +800,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		ch->play_state = 1;
 		ch->sample_num = com->play.from_pck;
 
+		ch->sap_only = com->play.drop_non_ref ? GF_TRUE : GF_FALSE;
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 
 		if (!read->nb_playing)
@@ -858,7 +860,13 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:
+	case GF_FEVT_RESUME:
 		ch->speed = com->play.speed;
+		if (ch->sap_only && !com->play.drop_non_ref) {
+			ch->sap_only = 2;
+		} else {
+			ch->sap_only = com->play.drop_non_ref ? GF_TRUE : GF_FALSE;
+		}
 		//cancel event
 		return GF_TRUE;
 	default:

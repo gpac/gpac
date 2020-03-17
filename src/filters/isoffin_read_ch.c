@@ -325,15 +325,32 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			}
 		}
 	} else {
+		Bool do_fetch = GF_TRUE;
 		ch->sample_num++;
 
-		ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
-		/*if sync shadow / carousel RAP skip*/
-		if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
-			ch->sample = NULL;
-			ch->sample_num++;
-			isor_reader_get_sample(ch);
-			return;
+		if (ch->sap_only) {
+			Bool is_rap = gf_isom_get_sample_sync(ch->owner->mov, ch->track, ch->sample_num);
+			if (!is_rap) {
+				Bool has_roll;
+				gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &is_rap, &has_roll, NULL);
+				if (has_roll) is_rap = GF_TRUE;
+			}
+
+			if (!is_rap) {
+				do_fetch = GF_FALSE;
+			} else if (ch->sap_only==2) {
+				ch->sap_only = 0;
+			}
+		}
+		if (do_fetch) {
+			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
+			/*if sync shadow / carousel RAP skip*/
+			if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
+				ch->sample = NULL;
+				ch->sample_num++;
+				isor_reader_get_sample(ch);
+				return;
+			}
 		}
 	}
 

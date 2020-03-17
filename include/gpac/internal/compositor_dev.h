@@ -288,7 +288,7 @@ struct __tag_compositor
 	
 	Bool amc, async;
 	u32 asr, ach, alayout, afmt, asize, avol, apan, abuf;
-
+	Double max_aspeed, max_vspeed;
 	u32 buf, rbuf, mbuf;
 	
 	u32 ogl, mode2d;
@@ -1190,6 +1190,7 @@ void gf_mixer_remove_all(GF_AudioMixer *am);
 void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src);
 void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src);
 void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt);
+void gf_mixer_set_max_speed(GF_AudioMixer *am, Double max_speed);
 
 /*mix inputs in buffer, return number of bytes written to output*/
 u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 delay_ms);
