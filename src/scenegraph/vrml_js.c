@@ -224,30 +224,30 @@ typedef JSModuleDef *(JSInitModuleFunc)(JSContext *ctx, const char *module_name)
 static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
                                         const char *module_name)
 {
-    JSModuleDef *m=NULL;
-    void *hd;
-    JSInitModuleFunc *init;
-    char *filename;
+	JSModuleDef *m=NULL;
+	void *hd;
+	JSInitModuleFunc *init;
+	char *filename;
 
-    if (!strchr(module_name, '/') || !strchr(module_name, '\\')) {
-        /* must add a '/' so that the DLL is not searched in the system library paths */
-        filename = gf_malloc(strlen(module_name) + 2 + 1);
-        if (!filename) return NULL;
-        strcpy(filename, "./");
-        strcpy(filename + 2, module_name);
-    } else {
-        filename = (char *)module_name;
-    }
+	if (!strchr(module_name, '/') || !strchr(module_name, '\\')) {
+		/* must add a '/' so that the DLL is not searched in the system library paths */
+		filename = gf_malloc(strlen(module_name) + 2 + 1);
+		if (!filename) return NULL;
+		strcpy(filename, "./");
+		strcpy(filename + 2, module_name);
+	} else {
+		filename = (char *)module_name;
+	}
 
-    /* load dynamic lib */
+	/* load dynamic lib */
 #ifdef WIN32
 	hd = LoadLibrary(filename);
 #else
-    hd = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
+	hd = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
 #endif
 
-    if (filename != module_name)
-        gf_free(filename);
+	if (filename != module_name)
+		gf_free(filename);
 
 	if (!hd) {
 		JS_ThrowReferenceError(ctx, "could not load module filename '%s' as shared library", module_name);
@@ -255,7 +255,7 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 #ifdef WIN32
 		init = (JSInitModuleFunc *) GetProcAddress(hd, "js_init_module");
 #else
-    	init = (JSInitModuleFunc *) dlsym(hd, "js_init_module");
+		init = (JSInitModuleFunc *) dlsym(hd, "js_init_module");
 #endif
 
 		if (!init) {
@@ -277,34 +277,33 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 
 JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
 {
-    JSModuleDef *m;
-    const char *fext = gf_file_ext_start(module_name);
+	JSModuleDef *m;
+	const char *fext = gf_file_ext_start(module_name);
 
-    if (fext && (!strcmp(fext, ".so") || !strcmp(fext, ".dll") || !strcmp(fext, ".dylib")) )  {
-        m = qjs_module_loader_dyn_lib(ctx, module_name);
-    } else {
-        u32 buf_len;
-        u8 *buf;
-        JSValue func_val;
+	if (fext && (!strcmp(fext, ".so") || !strcmp(fext, ".dll") || !strcmp(fext, ".dylib")) )  {
+		m = qjs_module_loader_dyn_lib(ctx, module_name);
+	} else {
+		u32 buf_len;
+		u8 *buf;
+		JSValue func_val;
 		gf_file_load_data(module_name, &buf, &buf_len);
 
 		if (!buf) {
-            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
-                                   module_name);
-            return NULL;
-        }
-        /* compile the module */
-        func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-        js_free(ctx, buf);
-        if (JS_IsException(func_val))
-            return NULL;
-        /* XXX: could propagate the exception */
-        qjs_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
-        /* the module is already referenced, so we must free it */
-        m = JS_VALUE_GET_PTR(func_val);
-        JS_FreeValue(ctx, func_val);
-    }
-    return m;
+			JS_ThrowReferenceError(ctx, "could not load module filename '%s'", module_name);
+			return NULL;
+		}
+		/* compile the module */
+		func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+		js_free(ctx, buf);
+		if (JS_IsException(func_val))
+			return NULL;
+		/* XXX: could propagate the exception */
+		qjs_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
+		/* the module is already referenced, so we must free it */
+		m = JS_VALUE_GET_PTR(func_val);
+		JS_FreeValue(ctx, func_val);
+	}
+	return m;
 }
 
 JSContext *gf_js_create_context()
