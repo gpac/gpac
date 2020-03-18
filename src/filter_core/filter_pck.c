@@ -1623,8 +1623,13 @@ Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck)
 	pck = pck->pck;
 
 	while (pck) {
-		if (pck->destructor && pck->filter_owns_mem) return GF_TRUE;
-		if (pck->frame_ifce && (pck->frame_ifce->flags & GF_FRAME_IFCE_BLOCKING) ) return GF_TRUE;
+		if (pck->frame_ifce) {
+			if (pck->frame_ifce->flags & GF_FRAME_IFCE_BLOCKING)
+				return GF_TRUE;
+		} else {
+			if (pck->destructor && pck->filter_owns_mem)
+				return GF_TRUE;
+		}
 		pck = pck->reference;
 	}
 	return GF_FALSE;
