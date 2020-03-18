@@ -383,7 +383,8 @@ u32 call_tool = 0;
 GF_EXPORT
 Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
-	if (log_tool>=GF_LOG_TOOL_MAX) return GF_FALSE;
+	if (log_tool==GF_LOG_TOOL_MAX) return GF_TRUE;
+	if (log_tool>GF_LOG_TOOL_MAX) return GF_FALSE;
 	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
 	return GF_FALSE;
 }
