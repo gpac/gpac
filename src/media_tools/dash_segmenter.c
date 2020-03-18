@@ -1013,7 +1013,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		if (frag) frag[0] = '#';
 
 		if (!src) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load source filer for %s\n", di->file_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load source filter for %s\n", di->file_name));
 			return e;
 		}
 
