@@ -57,7 +57,7 @@ enum
 typedef struct
 {
 	//options
-	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey;
+	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
 	GF_List *rdirs;
 	Bool close, hold, quit, post, dlist;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors;
@@ -84,6 +84,8 @@ typedef struct
 	Bool single_mode;
 
 	void *ssl_ctx;
+
+	u64 req_id;
 } GF_HTTPOutCtx;
 
 typedef struct
@@ -137,7 +139,8 @@ typedef struct __httpout_session
 	Bool done;
 	u64 last_file_modif;
 
-	u32 last_active_time;
+	u64 req_start_time;
+	u64 last_active_time;
 	Bool is_head;
 	Bool file_in_progress;
 	Bool use_chunk_transfer;
@@ -151,6 +154,10 @@ typedef struct __httpout_session
 
 	u32 nb_ranges, alloc_ranges, range_idx;
 	HTTByteRange *ranges;
+
+	Bool do_log;
+	u64 req_id;
+	u32 method_type, reply_code;
 } GF_HTTPOutSession;
 
 static void httpout_reset_socket(GF_HTTPOutSession *sess)
@@ -519,6 +526,51 @@ GF_Err httpout_sess_send(GF_HTTPOutSession *sess, const u8 *buffer, u32 length)
 	return e;
 }
 
+static Bool httpout_do_log(GF_HTTPOutSession *sess, u32 method)
+{
+	if (!sess->ctx->reqlog) return GF_FALSE;
+
+	if (!strcmp(sess->ctx->reqlog, "*")) return GF_TRUE;
+
+	switch (method) {
+	case GF_HTTP_GET:
+		if (strstr(sess->ctx->reqlog, "GET") || strstr(sess->ctx->reqlog, "get")) return GF_TRUE;
+		break;
+	case GF_HTTP_PUT:
+		if (strstr(sess->ctx->reqlog, "PUT") || strstr(sess->ctx->reqlog, "put")) return GF_TRUE;
+		break;
+	case GF_HTTP_POST:
+		if (strstr(sess->ctx->reqlog, "POST") || strstr(sess->ctx->reqlog, "post")) return GF_TRUE;
+		break;
+	case GF_HTTP_DELETE:
+		if (strstr(sess->ctx->reqlog, "DEL") || strstr(sess->ctx->reqlog, "del")) return GF_TRUE;
+		break;
+	case GF_HTTP_HEAD:
+		if (strstr(sess->ctx->reqlog, "HEAD") || strstr(sess->ctx->reqlog, "head")) return GF_TRUE;
+		break;
+	case GF_HTTP_OPTIONS:
+		if (strstr(sess->ctx->reqlog, "OPT") || strstr(sess->ctx->reqlog, "opt")) return GF_TRUE;
+		break;
+	default:
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static const char *get_method_name(u32 method)
+{
+	switch (method) {
+	case GF_HTTP_GET: return "GET";
+	case GF_HTTP_HEAD: return "HEAD";
+	case GF_HTTP_PUT: return "PUT";
+	case GF_HTTP_POST: return "POST";
+	case GF_HTTP_DELETE: return "DELETE";
+	case GF_HTTP_TRACE: return "TRACE";
+	case GF_HTTP_CONNECT: return "CONNECT";
+	case GF_HTTP_OPTIONS: return "OPTIONS";
+	default: return "UNKNOWN";
+	}
+}
 static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	char *rsp_buf = NULL;
@@ -560,6 +612,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	url = gf_dm_sess_get_resource_name(sess->http_sess);
 	if (!url) e = GF_BAD_PARAM;
 	if (url[0]!='/') e = GF_BAD_PARAM;
+
+	sess->do_log = httpout_do_log(sess, parameter->reply);
 
 	//resolve name against upload dir
 	if (is_upload) {
@@ -654,7 +708,18 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_list_add(sess->ctx->active_sessions, sess);
 			gf_sk_group_register(sess->ctx->sg, sess->socket);
 		}
-		sess->last_active_time = gf_sys_clock();
+		sess->last_active_time = gf_sys_clock_high_res();
+
+		if (sess->do_log) {
+			sess->req_id = ++sess->ctx->req_id;
+			sess->method_type = parameter->reply;
+			if (range) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s [range: %s] start\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, range));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s start\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1));
+			}
+		}
+		sess->req_start_time = gf_sys_clock_high_res();
 		//send reply once we are done recieving
 		return;
 	}
@@ -748,6 +813,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				goto exit;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Deleting file %s (full path %s)\n", url, full_path));
+			}
+
+			if (sess->do_log) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] %s DELETE %s\n", sess->peer_address, url+1));
 			}
 		} else {
 			e = GF_URL_ERROR;
@@ -843,12 +912,16 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	if (not_modified) {
 		gf_dynstrcat(&rsp_buf, "HTTP/1.1 304 Not Modified\r\n", NULL);
+		sess->reply_code = 304;
 	} else if (sess->nb_ranges) {
 		gf_dynstrcat(&rsp_buf, "HTTP/1.1 206 Partial Content\r\n", NULL);
+		sess->reply_code = 206;
 	} else if ((parameter->reply==GF_HTTP_DELETE) && (e==GF_URL_ERROR)) {
 		gf_dynstrcat(&rsp_buf, "HTTP/1.1 204 No Content\r\n", NULL);
+		sess->reply_code = 204;
 	} else {
 		gf_dynstrcat(&rsp_buf, "HTTP/1.1 200 OK\r\n", NULL);
+		sess->reply_code = 200;
 	}
 	gf_dynstrcat(&rsp_buf, "Server: ", NULL);
 	gf_dynstrcat(&rsp_buf, sess->ctx->user_agent, NULL);
@@ -935,6 +1008,20 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending response to %s:\n%s\n", sess->peer_address, rsp_buf));
+
+	if (sess->do_log) {
+		sess->req_id = ++sess->ctx->req_id;
+		sess->method_type = parameter->reply;
+		sess->req_start_time = gf_sys_clock_high_res();
+		if (not_modified) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s: reply %d\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, sess->reply_code));
+		} else if (range) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s [range: %s] start\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, range));
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s start\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1));
+		}
+	}
+
 	httpout_sess_send(sess, rsp_buf, (u32) strlen(rsp_buf));
 	gf_free(rsp_buf);
 	if (!sess->buffer) {
@@ -958,8 +1045,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_sk_group_register(sess->ctx->sg, sess->socket);
 		}
 		sess->is_head = GF_FALSE;
+		if (not_modified)
+			sess->done = GF_TRUE;
 	}
-	sess->last_active_time = gf_sys_clock();
+	sess->last_active_time = gf_sys_clock_high_res();
 	return;
 
 exit:
@@ -1486,13 +1575,30 @@ static void httpout_check_connection(GF_HTTPOutSession *sess)
 {
 	GF_Err e = gf_sk_probe(sess->socket);
 	if (e==GF_IP_CONNECTION_CLOSED) {
-		sess->last_active_time = gf_sys_clock();
+		sess->last_active_time = gf_sys_clock_high_res();
 		sess->done = GF_TRUE;
 		sess->upload_type = 0;
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Client %s disconnected, destroying session\n", sess->peer_address));
 		httpout_reset_socket(sess);
 		return;
 	}
+}
+
+static void log_request_done(GF_HTTPOutSession *sess)
+{
+	if (!sess->do_log) return;
+	char *unit = "bps";
+	u64 diff_us = (gf_sys_clock_high_res() - sess->req_start_time);
+	Double bps = sess->nb_bytes * 8000000;
+	bps /= diff_us;
+	if (bps>1000000) {
+		unit = "mbps";
+		bps/=1000000;
+	} else if (bps>1000) {
+		unit = "kbps";
+		bps/=1000;
+	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s done: reply %d - %d bytes in %d ms at %g %s\n", sess->req_id, get_method_name(sess->method_type), sess->reply_code, sess->nb_bytes, (u32) (diff_us/1000), bps, unit));
 }
 
 static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HTTPOutSession *sess)
@@ -1505,6 +1611,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	if (sess->upload_type) {
 		GF_Err write_e=GF_OK;
 		char *rsp_buf = NULL;
+		char *spath = "";
 		assert(sess->path);
 		if (sess->done)
 			return;
@@ -1519,7 +1626,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 				write_e = GF_OK;
 
 			if (!write_e) {
-				sess->last_active_time = gf_sys_clock();
+				sess->last_active_time = gf_sys_clock_high_res();
 				ctx->next_wake_us = 0;
 				//we way be in end of stream
 				if (e==GF_OK)
@@ -1529,11 +1636,11 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			}
 		} else if (e==GF_IP_NETWORK_EMPTY) {
 			ctx->next_wake_us = 0;
-			sess->last_active_time = gf_sys_clock();
+			sess->last_active_time = gf_sys_clock_high_res();
 			httpout_check_connection(sess);
 			return;
 		} else if (e==GF_IP_CONNECTION_CLOSED) {
-			sess->last_active_time = gf_sys_clock();
+			sess->last_active_time = gf_sys_clock_high_res();
 			sess->done = GF_TRUE;
 			sess->upload_type = 0;
 			httpout_reset_socket(sess);
@@ -1553,16 +1660,21 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 
 
 		if (e==GF_EOS) {
-			if (sess->upload_type==2)
+			if (sess->upload_type==2) {
+				sess->reply_code = 200;
 				gf_dynstrcat(&rsp_buf, "HTTP/1.1 200 OK\r\n", NULL);
-			else
+			} else {
 				gf_dynstrcat(&rsp_buf, "HTTP/1.1 201 Created\r\n", NULL);
+				sess->reply_code = 201;
+			}
 		} else if (write_e==GF_BAD_PARAM) {
 			gf_dynstrcat(&rsp_buf, "HTTP/1.1 416 Requested Range Not Satisfiable\r\n", NULL);
 			close_session = GF_TRUE;
+			sess->reply_code = 416;
 		} else {
 			gf_dynstrcat(&rsp_buf, "HTTP/1.1 500 Internal Server error\r\n", NULL);
 			close_session = GF_TRUE;
+			sess->reply_code = 500;
 		}
 		gf_dynstrcat(&rsp_buf, "Server: ", NULL);
 		gf_dynstrcat(&rsp_buf, sess->ctx->user_agent, NULL);
@@ -1576,20 +1688,26 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (e==GF_EOS) {
 			gf_dynstrcat(&rsp_buf, "Content-Location: ", NULL);
 			if (ctx->hmode==MODE_SOURCE) {
+				spath = sess->path;
 				gf_dynstrcat(&rsp_buf, sess->path, "/");
 			} else {
-				char *spath = strchr(sess->path, '/');
-				if (spath) spath = strchr(spath+1, '/');
+				spath = strchr(sess->path, '/');
+				if (spath) spath = spath+1;
+				else spath = sess->path;
 				gf_dynstrcat(&rsp_buf, spath, NULL);
 			}
 			gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 		}
 		gf_dynstrcat(&rsp_buf, "\r\n", NULL);
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending PUT response to %s:\n%s\n", sess->peer_address,  rsp_buf));
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending PUT response to %s:\n%s\n", sess->peer_address, rsp_buf));
+
+		log_request_done(sess);
+
 		httpout_sess_send(sess, rsp_buf, (u32) strlen(rsp_buf));
 		gf_free(rsp_buf);
 
-		sess->last_active_time = gf_sys_clock();
+		sess->last_active_time = gf_sys_clock_high_res();
 		sess->done = GF_TRUE;
 		sess->upload_type = 0;
 		if (close_session) {
@@ -1617,6 +1735,9 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			return;
 		}
 
+		sess->last_active_time = gf_sys_clock_high_res();
+		ctx->next_wake_us = 0;
+
 		//request has been process, if not an upload we don't need the session anymore
 		//otherwise we use the session to parse transfered data
 		if (!sess->upload_type) {
@@ -1625,11 +1746,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			sess->http_sess = NULL;
 			if (sess->done && sess->socket && (e!=GF_IP_NETWORK_EMPTY) )
 				goto session_done;
-		}
-
-		sess->last_active_time = gf_sys_clock();
-		ctx->next_wake_us = 0;
-		if (sess->upload_type) {
+		} else {
 			//flush any data received
 			httpout_process_session(filter, ctx, sess);
 			return;
@@ -1639,18 +1756,18 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	if (sess->done) return;
 	if (sess->in_source) return;
 
-	if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE))
+	if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE)) {
 		return;
-
+	}
 	//resource is not set
 	if (!sess->resource && sess->path) {
 		if (sess->in_source && !sess->in_source->nb_write) {
-			sess->last_active_time = gf_sys_clock();
+			sess->last_active_time = gf_sys_clock_high_res();
 			return;
 		}
 		sess->resource = gf_fopen(sess->path, "rb");
 		if (!sess->resource) return;
-		sess->last_active_time = gf_sys_clock();
+		sess->last_active_time = gf_sys_clock_high_res();
 		gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 	}
 	//we have ranges
@@ -1692,7 +1809,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		} else {
 			e = httpout_sess_send(sess, sess->buffer, read);
 		}
-		sess->last_active_time = gf_sys_clock();
+		sess->last_active_time = gf_sys_clock_high_res();
 
 		sess->file_pos += read;
 		sess->nb_bytes += read;
@@ -1712,17 +1829,20 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	}
 	//file not done yet ...
 	if (sess->file_in_progress) {
-		sess->last_active_time = gf_sys_clock();
+		sess->last_active_time = gf_sys_clock_high_res();
 		return;
 	}
 
 	if (!sess->is_head) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Done sending %s to %s ("LLU"/"LLU" bytes)\n", sess->path, sess->peer_address, sess->nb_bytes, sess->bytes_in_req));
 	}
+
+	log_request_done(sess);
+
 session_done:
 
 	sess->file_pos = sess->file_size;
-	sess->last_active_time = gf_sys_clock();
+	sess->last_active_time = gf_sys_clock_high_res();
 	if (!sess->done) {
 		if (sess->use_chunk_transfer) {
 			httpout_sess_send(sess, "0\r\n\r\n", 5);
@@ -2218,7 +2338,7 @@ static GF_Err httpout_process(GF_Filter *filter)
 			GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
 			if (!sess->done) continue;
 
-			diff_sec = (u32) (gf_sys_clock() - sess->last_active_time)/1000;
+			diff_sec = (u32) (gf_sys_clock_high_res() - sess->last_active_time)/1000000;
 			if (diff_sec>ctx->timeout) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Timeout for peer %s after %d sec, closing connection (last request %s)\n", sess->peer_address, diff_sec, sess->in_source ? sess->in_source->path : sess->path ));
 
@@ -2330,6 +2450,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(dlist), "enable HTML listing for GET requests on directories", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sutc), "insert server UTC in response headers as `Server-UTC: VAL_IN_MS`", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cors), "insert CORS header allowing all domains", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
