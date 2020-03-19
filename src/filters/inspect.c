@@ -51,7 +51,8 @@ typedef struct
 
 	Bool has_svcc;
 	u32 nalu_size_length;
-	Bool is_adobe_protection;
+	Bool is_adobe_protected;
+	Bool is_cenc_protected;
 
 	GF_Fraction tmcd_rate;
 	u32 tmcd_flags;
@@ -181,9 +182,9 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 }
 
 GF_EXPORT
-void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
 {
-	s32 res;
+	s32 res = 0;
 	u8 type, nal_ref_idc;
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
@@ -191,7 +192,6 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 	u32 data_offset, data_size;
 	s32 idx;
 	GF_BitStream *bs;
-
 
 	if (!ptr_size) {
 		gf_fprintf(dump, "error=\"invalid nal size 0\"");
@@ -209,6 +209,7 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		res = gf_media_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
 
 		gf_fprintf(dump, "code=\"%d\" type=\"", type);
+
 		switch (type) {
 		case GF_HEVC_NALU_SLICE_TRAIL_N:
 			gf_fputs("TRAIL_N slice segment", dump);
@@ -442,6 +443,7 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 			char *s = ptr+2;
 
 			gf_fputs("HEVCExtractor ", dump);
+
 			while (remain) {
 				u32 mode = s[0];
 				remain -= 1;
@@ -478,14 +480,13 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		}
 		gf_fputs("\"", dump);
 
-		if ((type==GF_HEVC_NALU_SEI_PREFIX) || (type==GF_HEVC_NALU_SEI_SUFFIX)) {
+		if ((type == GF_HEVC_NALU_SEI_PREFIX) || (type == GF_HEVC_NALU_SEI_SUFFIX)) {
 			bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			dump_sei(dump, bs, GF_TRUE);
 			gf_bs_del(bs);
 		}
 
-		if (type<GF_HEVC_NALU_VID_PARAM) {
-
+		if (type < GF_HEVC_NALU_VID_PARAM) {
 			gf_fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
 			gf_fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
 			gf_fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
@@ -512,8 +513,9 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 	switch (type) {
 	case GF_AVC_NALU_NON_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, avc);
 		gf_fputs("Non IDR slice", dump);
+		if (is_encrypted) break;
+		res = gf_media_avc_parse_nalu(bs, avc);
 		break;
 	case GF_AVC_NALU_DP_A_SLICE:
 		gf_fputs("DP Type A slice", dump);
@@ -525,14 +527,16 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		gf_fputs("DP Type C slice", dump);
 		break;
 	case GF_AVC_NALU_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, avc);
 		gf_fputs("IDR slice", dump);
+		if (is_encrypted) break;
+		res = gf_media_avc_parse_nalu(bs, avc);
 		break;
 	case GF_AVC_NALU_SEI:
 		gf_fputs("SEI Message", dump);
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 		gf_fputs("SequenceParameterSet", dump);
+		if (is_encrypted) break;
 		idx = gf_media_avc_read_sps_bs(bs, avc, 0, NULL);
 		if (idx<0) gf_fprintf(dump, "\" sps_id=\"PARSING FAILURE");
 		else gf_fprintf(dump, "\" sps_id=\"%d", idx);
@@ -572,6 +576,7 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		break;
 	case GF_AVC_NALU_PIC_PARAM:
 		gf_fputs("PictureParameterSet", dump);
+		if (is_encrypted) break;
 		idx = gf_media_avc_read_pps_bs(bs, avc);
 		if (idx<0) gf_fprintf(dump, "\" pps_id=\"PARSING FAILURE\" ");
 		else gf_fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
@@ -591,6 +596,7 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT:
 		gf_fputs("AccessUnit delimiter", dump);
+		if (is_encrypted) break;
 		gf_fprintf(dump, "\" primary_pic_type=\"%d", gf_bs_read_u8(bs) >> 5);
 		break;
 	case GF_AVC_NALU_END_OF_SEQ:
@@ -610,6 +616,7 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		break;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		gf_fputs("SVCSubsequenceParameterSet", dump);
+		if (is_encrypted) break;
 		idx = gf_media_avc_read_sps_bs(bs, avc, 1, NULL);
 		assert (idx >= 0);
 		gf_fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
@@ -619,8 +626,9 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		break;
 
 	case GF_AVC_NALU_SVC_SLICE:
-		gf_media_avc_parse_nalu(bs, avc);
 		gf_fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
+		if (is_encrypted) break;
+		gf_media_avc_parse_nalu(bs, avc);
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);
 		temporal_id = (ptr[3] & 0xE0) >> 5;
@@ -632,6 +640,7 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		break;
 	case 31:
 		gf_fputs("SVCExtractor", dump);
+		if (is_encrypted) break;
 		track_ref_index = (u8) ptr[4];
 		sample_offset = (s8) ptr[5];
 		data_offset = inspect_get_nal_size(&ptr[6], nalh_size);
@@ -652,11 +661,13 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		gf_fprintf(dump, " poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d\"", avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
 	}
 
-	if (type==GF_AVC_NALU_SEI) {
-		dump_sei(dump, bs, GF_FALSE);
+	if (!is_encrypted) {
+		if (type == GF_AVC_NALU_SEI) {
+			dump_sei(dump, bs, GF_FALSE);
+		}
 	}
 
-	if (res==-1)
+	if (res == -1)
 		gf_fprintf(dump, " status=\"error decoding slice\"");
 
 	if (bs) gf_bs_del(bs);
@@ -1480,7 +1491,7 @@ props_done:
 	if (pctx->hevc_state || pctx->avc_state) {
 		idx=1;
 
-		if (pctx->is_adobe_protection) {
+		if (pctx->is_adobe_protected) {
 			u8 encrypted_au = data[0];
 			if (encrypted_au) {
 				gf_fprintf(dump, "   <!-- Packet is an Adobe's protected frame and can not be dumped -->\n");
@@ -1501,7 +1512,7 @@ props_done:
 				break;
 			} else {
 				gf_fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
-				gf_inspect_dump_nalu(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->nalu_size_length, ctx->dump_crc);
+				gf_inspect_dump_nalu(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->nalu_size_length, ctx->dump_crc, pctx->is_cenc_protected);
 				gf_fprintf(dump, "/>\n");
 			}
 			idx++;
@@ -1588,7 +1599,7 @@ props_done:
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			gf_fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, nalh_size, ctx->dump_crc);\
+			gf_inspect_dump_nalu(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, nalh_size, ctx->dump_crc, GF_FALSE);\
 			gf_fprintf(dump, "/>\n");\
 		}\
 		gf_fprintf(dump, "  </%sArray>\n", name);\
@@ -1636,7 +1647,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 	//disconnect of src pid (not yet supported)
 	if (ctx->xml) {
-
 		if (is_info) {
 			elt_name = "PIDInfoUpdate";
 		} else if (is_remove) {
@@ -1648,7 +1658,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 		if (pck_for_config)
 			gf_fprintf(dump, " packetsSinceLastConfig=\""LLU"\"", pck_for_config);
-
 	} else {
 		if (is_info) {
 			gf_fprintf(dump, "PID %d name %s info update\n", pid_idx, gf_filter_pid_get_name(pid) );
@@ -1661,7 +1670,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			gf_fprintf(dump, " - properties:\n");
 		}
 	}
-
 
 	if (!is_info) {
 		while (1) {
@@ -1697,7 +1705,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		}
 		return;
 	}
-
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) {
@@ -2023,7 +2030,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 {
 	GF_FilterEvent evt;
 	PidCtx *pctx;
-	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
+	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx->src_pids) ctx->src_pids = gf_list_new();
 

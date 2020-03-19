@@ -964,16 +964,16 @@ static u32 read_nal_size_hdr(u8 *ptr, u32 nalh_size)
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc);
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc, Bool is_encrypted);
 #endif
 
 
-void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
+static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
 	u32 i, j, count, nb_descs, track, nalh_size, timescale, cur_extract_mode;
 	s32 countRef;
-	Bool is_adobe_protection = GF_FALSE;
-	Bool is_cenc_protection = GF_FALSE;
+	Bool is_adobe_protected = GF_FALSE;
+	Bool is_cenc_protected = GF_FALSE;
 	Bool is_hevc = GF_FALSE;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	AVCState avc;
@@ -1013,7 +1013,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, (u8 *) slc->data, slc->size, _is_svc, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
+			gf_inspect_dump_nalu(dump, (u8 *) slc->data, slc->size, _is_svc, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, GF_FALSE);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
@@ -1144,8 +1144,8 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 
 	fprintf(dump, " <NALUSamples>\n");
 	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
-	is_adobe_protection = gf_isom_is_adobe_protection_media(file, track, 1);
-	is_cenc_protection = gf_isom_is_cenc_media(file, track, 1);
+	is_adobe_protected = gf_isom_is_adobe_protection_media(file, track, 1);
+	is_cenc_protected = gf_isom_is_cenc_media(file, track, 1);
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
 		Bool is_rap;
@@ -1171,7 +1171,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 		idx = 1;
 		ptr = samp->data;
 		size = samp->dataLength;
-		if (is_adobe_protection) {
+		if (is_adobe_protected) {
 			u8 encrypted_au = ptr[0];
 			if (encrypted_au) {
 				fprintf(dump, "   <!-- Sample number %d is an Adobe's protected sample: can not be dumped -->\n", i+1);
@@ -1194,10 +1194,13 @@ void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool 
 				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
 				{
-					Bool is_vcl = (ptr[0] & 0x1F) <= 5;
-					/*don't parse vcl as slice header is likely encrypted (we'd need to check clear bytes to be sure)*/
-					if (!(is_cenc_protection && is_vcl))
-						gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
+					Bool is_encrypted = 0;
+					if (is_cenc_protected) {
+						GF_Err e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
+						assert(!e);
+					}
+
+					gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, is_encrypted);
 				}
 #endif
 				fprintf(dump, "/>\n");
@@ -1280,7 +1283,7 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
 #endif
 
-void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
+static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
@@ -1363,7 +1366,7 @@ void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dum
 #endif
 }
 
-void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+static void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
