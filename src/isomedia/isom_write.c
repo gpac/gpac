@@ -6880,7 +6880,7 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 	}
 	gf_isom_box_del(tpl_ent);
 
-	//pacth for old export
+	//patch for old export
 	GF_Box *abox = gf_isom_box_find_child(ent->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 	if (abox) {
 		gf_list_del_item(ent->child_boxes, abox);
