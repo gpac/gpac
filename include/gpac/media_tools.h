@@ -838,7 +838,7 @@ GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker
 \param enable_sidx enable or disable
 \param subsegs_per_sidx number of subsegments per segment
 \param daisy_chain_sidx enable daisy chaining of sidx
-\param use_ssix enables ssix generation, level 1 for I-frames, the rest of the segement not  mapped
+\param use_ssix enables ssix generation, level 1 for I-frames, the rest of the segment not mapped
 \return error code if any
 */
 GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_ssix);
@@ -929,7 +929,7 @@ GF_Err gf_dasher_enable_utc_ref(GF_DASHSegmenter *dasher, Bool insert_utc);
 /*!
  Enables real-time generation of media segments.
 \param dasher the DASH segmenter object
-\param real_time if set, segemnts are generated in real time. Only supported for single representation (potentially multiplexed) DASH session. Default is disabled.
+\param real_time if set, segments are generated in real time. Only supported for single representation (potentially multiplexed) DASH session. Default is disabled.
 \return error code if any
 */
 GF_Err gf_dasher_enable_real_time(GF_DASHSegmenter *dasher, Bool real_time);

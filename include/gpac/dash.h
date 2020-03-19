@@ -345,7 +345,7 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 /*! returns the mime type of the media resources in this group
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
-\return the mime type of the segemnts in this group
+\return the mime type of the segments in this group
 */
 const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 group_idx);
 
@@ -467,7 +467,7 @@ Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDe
 \param url set to the URL of the next segment
 \param start_range set to the start byte offset in the segment (optional, may be NULL)
 \param end_range set to the end byte offset in the segment (optional, may be NULL)
-\param switching_index set to the quality index of the segemnt (optional, may be NULL)
+\param switching_index set to the quality index of the segment (optional, may be NULL)
 \param switching_url set to the URL of the switching segment if needed (optional, may be NULL)
 \param switching_start_range set to start byte offset of the switching segment if needed (optional, may be NULL)
 \param switching_end_range set to end byte offset of the switching segment if needed (optional, may be NULL)
@@ -485,7 +485,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
 \param url set to the URL of the next segment
-\param switching_index set to the quality index of the segemnt (optional, may be NULL)
+\param switching_index set to the quality index of the segment (optional, may be NULL)
 \param switching_url set to the URL of the switching segment if needed (optional, may be NULL)
 \param original_url set to original URL value of the segment (optional, may be NULL)
 \param switched set to GF_TRUE if current segment being downloaded follows an aborted download (optional, may be NULL)
