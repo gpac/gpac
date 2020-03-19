@@ -3503,7 +3503,7 @@ This is mostly used to recreate identical segment information when refragmenting
 */
 void gf_isom_enable_traf_map_templates(GF_ISOFile *isom_file);
 
-/*! Segement boundary information*/
+/*! Segment boundary information*/
 typedef struct
 {
 	/*! fragment start offset*/

@@ -795,7 +795,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if (!segtime) {
 				start_segtime = segtime = ent->start_time;
 
-				//if current time is before the start of the previous segement, consider our timing is broken
+				//if current time is before the start of the previous segment, consider our timing is broken
 				if (current_time_rescale + ent->duration < segtime) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] current time "LLU" is before start time "LLU" of first segment in timeline (timescale %d) by %g sec - using first segment as starting point\n", current_time_rescale, segtime, timescale, (segtime-current_time_rescale)*1.0/timescale));
 					group->download_segment_index = seg_idx;
@@ -2801,7 +2801,7 @@ static GF_Err dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *g
 				"segment\n"));
 	} else {
 		u32 target_rate;
-		//compute min bitrate needed to fetch the segement in another rep, with the time remaining
+		//compute min bitrate needed to fetch the segment in another rep, with the time remaining
 		Double ratio = ((u32)group->current_downloaded_segment_duration - time_since_start);
 		ratio /= (u32)group->current_downloaded_segment_duration;
 
@@ -4605,7 +4605,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					sidx_file = (char *)init_url;
 				}
 			}
-			/*we need to download the init segement, at least partially*/
+			/*we need to download the init segment, at least partially*/
 			else {
 				u32 offset = 0;
 				u32 box_type = 0;
