@@ -1508,8 +1508,8 @@ static void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dum
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 }
 
-void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc);
-void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc);
+static void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc);
+static void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc);
 
 void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool dump_crc)
 {
