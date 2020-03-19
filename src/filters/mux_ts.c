@@ -45,7 +45,7 @@ typedef struct
 	u32 pmt_id, pmt_rate, pcr_offset, pmt_version, sdt_rate, breq, mpeg4;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes, temi_delay, temi_offset;
 	GF_M2TS_PackMode pes_pack;
-	Bool flush_rap, rt, pcr_only, disc, temi_ntp, latm;
+	Bool flush_rap, realtime, pcr_only, disc, temi_ntp, latm;
 	s64 pcr_init;
 	char *name, *provider, *temi;
 	u32 log_freq;
@@ -290,7 +290,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tspid->ipid)) {
-				if (tspid->ctx->rt
+				if (tspid->ctx->realtime
 					&& tspid->ctx->repeat_img
 					&& (tspid->nb_pck==1)
 					&& (tspid->esi.stream_type==GF_STREAM_VISUAL)
@@ -1176,7 +1176,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 
-	if (ctx->rt) {
+	if (ctx->realtime) {
 		u32 now = gf_sys_clock();
 		if (!ctx->last_log_time)
 			ctx->last_log_time = now;
@@ -1211,7 +1211,7 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
 	gf_filter_set_max_extra_input_pids(filter, -1);
 
-	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->rt);
+	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->realtime);
 	ctx->mux->flush_pes_at_rap = ctx->flush_rap;
 
 	if (gf_sys_is_test_mode() && ctx->pcr_init<0)
@@ -1345,7 +1345,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 		"- audio: will pack only multiple audio AUs in a PES\n"\
 		"- none: make exactly one AU per PES\n"\
 		"- all: will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(rt), "use real-time output", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(realtime), "use real-time output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(bifs_pes), "select BIFS streams packetization (PES vs sections)\n"
 	"- on: uses BIFS PES\n"
 	"- off: uses BIFS sections\n"
