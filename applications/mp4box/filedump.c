@@ -970,13 +970,13 @@ static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 	}
 	if (i != sei_no_epb_size) {
 		fprintf(dump, "(garbage at end)");
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("dump_sei(): garbage at end for index=%u (size of SEI(s)=%u)", i, ptr_size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("dump_sei(): garbage at end for index=%u (size of SEI(s)=%u)\n", i, ptr_size));
 	}
 	fprintf(dump, "\"");
 	gf_free(sei_no_epb);
 }
 
-static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc)
+static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
 {
 	s32 res;
 	u8 type, nal_ref_idc, hdr;
@@ -986,7 +986,6 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	u32 data_offset, data_size;
 	s32 idx;
 	GF_BitStream *bs;
-
 
 	if (!ptr_size) {
 		fprintf(dump, "error=\"invalid nal size 0\"");
@@ -1000,6 +999,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		res = gf_media_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
 
 		fprintf(dump, "code=\"%d\" type=\"", type);
+
 		switch (type) {
 		case GF_HEVC_NALU_SLICE_TRAIL_N:
 			fputs("TRAIL_N slice segment", dump);
@@ -1051,20 +1051,20 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			break;
 
 		case GF_HEVC_NALU_VID_PARAM:
-			gf_media_hevc_read_vps(ptr, ptr_size, hevc);
+			if (!is_encrypted) gf_media_hevc_read_vps(ptr, ptr_size, hevc);
 			fputs("Video Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
-			gf_media_hevc_read_sps(ptr, ptr_size, hevc);
+			if (!is_encrypted) gf_media_hevc_read_sps(ptr, ptr_size, hevc);
 			fputs("Sequence Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
-			gf_media_hevc_read_pps(ptr, ptr_size, hevc);
+			if (!is_encrypted) gf_media_hevc_read_pps(ptr, ptr_size, hevc);
 			fputs("Picture Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
 			fputs("AU Delimiter", dump);
-			fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
+			if (!is_encrypted) fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
 			break;
 		case GF_HEVC_NALU_END_OF_SEQ:
 			fputs("End of Sequence", dump);
@@ -1090,6 +1090,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			char *s = ptr+2;
 
 			fputs("HEVCExtractor ", dump);
+			if (is_encrypted) break;
+
 			while (remain) {
 				u32 mode = s[0];
 				remain -= 1;
@@ -1126,18 +1128,19 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		}
 		fputs("\"", dump);
 
-		if ((type==GF_HEVC_NALU_SEI_PREFIX) || (type==GF_HEVC_NALU_SEI_SUFFIX)) {
-			dump_sei(dump, (u8 *) ptr, ptr_size, hevc ? GF_TRUE : GF_FALSE);
+		if (!is_encrypted) {
+			if ((type == GF_HEVC_NALU_SEI_PREFIX) || (type == GF_HEVC_NALU_SEI_SUFFIX)) {
+				dump_sei(dump, (u8 *) ptr, ptr_size, hevc ? GF_TRUE : GF_FALSE);
+			}
+
+			if (type < GF_HEVC_NALU_VID_PARAM) {
+				fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
+				fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
+				fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
+			}
+
+			fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
 		}
-
-		if (type<GF_HEVC_NALU_VID_PARAM) {
-
-			fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
-			fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
-			fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
-		}
-
-		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
 
 #endif //GPAC_DISABLE_HEVC
 		return;
@@ -1152,9 +1155,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	res = 0;
 	switch (type) {
 	case GF_AVC_NALU_NON_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fputs("Non IDR slice", dump);
+		if (is_encrypted) break;
 
+		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		if (res>=0)
 			fprintf(dump, "\" poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d", avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
 		break;
@@ -1168,8 +1172,9 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		fputs("DP Type C slice", dump);
 		break;
 	case GF_AVC_NALU_IDR_SLICE:
-		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fputs("IDR slice", dump);
+		if (is_encrypted) break;
+		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		if (res>=0)
 			fprintf(dump, "\" poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d", avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
 		break;
@@ -1178,6 +1183,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 		fputs("SequenceParameterSet", dump);
+		if (is_encrypted) break;
 		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 0, NULL);
 		assert (idx >= 0);
 		fprintf(dump, "\" sps_id=\"%d", idx);
@@ -1211,6 +1217,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case GF_AVC_NALU_PIC_PARAM:
 		fputs("PictureParameterSet", dump);
+		if (is_encrypted) break;
 		idx = gf_media_avc_read_pps(ptr, ptr_size, avc);
 		assert (idx >= 0);
 		fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
@@ -1219,7 +1226,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT:
 		fputs("AccessUnit delimiter", dump);
-		fprintf(dump, "\" primary_pic_type=\"%d", gf_bs_read_u8(bs) >> 5);
+		if (!is_encrypted) fprintf(dump, "\" primary_pic_type=\"%d", gf_bs_read_u8(bs) >> 5);
 		break;
 	case GF_AVC_NALU_END_OF_SEQ:
 		fputs("EndOfSequence", dump);
@@ -1238,6 +1245,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		fputs("SVCSubsequenceParameterSet", dump);
+		if (is_encrypted) break;
 		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 1, NULL);
 		assert (idx >= 0);
 		fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
@@ -1247,12 +1255,13 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 
 	case GF_AVC_NALU_SVC_SLICE:
-		gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);
 		temporal_id = (ptr[3] & 0xE0) >> 5;
 		fprintf(dump, "\" dependency_id=\"%d\" quality_id=\"%d\" temporal_id=\"%d", dependency_id, quality_id, temporal_id);
+		if (is_encrypted) break;
+		gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
 		break;
 	case 30:
@@ -1260,6 +1269,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		break;
 	case 31:
 		fputs("SVCExtractor", dump);
+		if (is_encrypted) break;
 		track_ref_index = (u8) ptr[4];
 		sample_offset = (s8) ptr[5];
 		data_offset = read_nal_size_hdr(&ptr[6], nalh_size);
@@ -1276,19 +1286,20 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	if (nal_ref_idc) {
 		fprintf(dump, " nal_ref_idc=\"%d\"", nal_ref_idc);
 	}
-
-	if (type==GF_AVC_NALU_SEI) {
-		dump_sei(dump, (u8 *) ptr, ptr_size, GF_FALSE);
+	if (!is_encrypted) {
+		if (type == GF_AVC_NALU_SEI) {
+			dump_sei(dump, (u8*)ptr, ptr_size, GF_FALSE);
+		}
 	}
 
-	if (res<0)
+	if (res < 0)
 		fprintf(dump, " status=\"error decoding slice\"");
 
 	if (bs) gf_bs_del(bs);
 }
 #endif
 
-void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+static void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
 	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
 	s32 countRef;
@@ -1341,7 +1352,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", i+1, slc->size);\
-			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);\
+			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, GF_FALSE);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
@@ -1465,10 +1476,13 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				Bool is_vcl = (ptr[0] & 0x1F) <= 5;
-				/*don't parse cenc avc vcl nalus as the slice header is likely encrypted (we would need to check clear bytes to be sure)*/
-				if ( !(is_cenc_protection && is_vcl) )
-					dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc);
+				u32 is_encrypted = 0;
+				if (is_cenc_protection) {
+					GF_Err e = gf_isom_get_sample_cenc_info(file, track, i+1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
+					assert(!e);
+				}
+
+				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, (Bool)is_encrypted);
 #endif
 				fprintf(dump, "/>\n");
 			}
@@ -1620,7 +1634,7 @@ static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_leng
 }
 #endif
 
-void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+static void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
@@ -1707,7 +1721,7 @@ void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 #endif
 }
 
-void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+static void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
