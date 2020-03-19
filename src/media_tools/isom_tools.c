@@ -970,7 +970,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		gf_isom_set_pixel_aspect_ratio(mp4, video_tk, 1, 1, 1, GF_TRUE);
 	}
 
-	//pacth enof/prof/clef
+	//patch enof/prof/clef
 	if (prores_type) {
 		gf_isom_update_aperture_info(mp4, video_tk, GF_FALSE);
 	}

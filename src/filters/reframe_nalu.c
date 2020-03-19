@@ -161,7 +161,7 @@ typedef struct
 	u32 use_opengop_gdr;
 	//poc compute variables
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
-	//set to TRUE once 3 frames with same min poc diff are found, enabling dispacth of the frames
+	//set to TRUE once 3 frames with same min poc diff are found, enabling dispatch of the frames
 	Bool poc_probe_done;
 	//pointer to the first packet of the current frame (the one holding timing info)
 	//this packet is in the packet queue
@@ -485,7 +485,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref)
 {
-	//TODO: we are dispacthing frames in "negctts mode", ie we may have DTS>CTS
+	//TODO: we are dispatching frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
 	if (flush_ref && ctx->pck_queue && ctx->poc_diff) {
 		//send all reference packet queued

@@ -106,7 +106,7 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream
 
 
 	if (gf_sys_old_arch_compat()) {
-		//pacth for old export
+		//patch for old export
 		GF_Box *clap = gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_CLAP);
 		GF_Box *pasp = gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_PASP);
 		GF_Box *colr = gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_COLR);

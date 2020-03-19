@@ -1704,7 +1704,7 @@ sample_entry_setup:
 				gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
 				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
 			}
-			//pacth for old arch
+			//patch for old arch
 			else if (ctx->dash_mode) {
 				Bool force_brand=GF_FALSE;
 				if (((ctx->major_brand_set>>24)=='i') && (((ctx->major_brand_set>>16)&0xFF)=='s') && (((ctx->major_brand_set>>8)&0xFF)=='o')) {
