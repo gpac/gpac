@@ -690,6 +690,20 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (key_frame) {
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	}
+
+	if (ctx->deps) {
+		u8 flags = 0;
+		//dependsOn
+		flags = (key_frame) ? 2 : 1;
+		flags <<= 2;
+		//dependedOn
+		//flags |= 2;
+		flags <<= 2;
+		//hasRedundant
+		//flags |= ctx->has_redundant ? 1 : 2;
+		gf_filter_pck_set_dependency_flags(pck, flags);
+	}
+
 	gf_bs_seek(ctx->bs, pos);
 	gf_bs_read_data(ctx->bs, output, pck_size);
 	gf_filter_pck_send(pck);
@@ -715,10 +729,8 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
 
 	gf_filter_pck_set_cts(pck, ctx->cts);
-	if (ctx->is_vp9) {
-	} else {
-		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
-	}
+	gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+
 	memcpy(output, ctx->state.frame_obus, pck_size);
 
 	if (ctx->deps) {
