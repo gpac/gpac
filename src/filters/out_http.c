@@ -59,7 +59,7 @@ typedef struct
 	//options
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
 	GF_List *rdirs;
-	Bool close, hold, quit, post, dlist;
+	Bool close, hold, quit, post, dlist, ice;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors;
 
 	//internal
@@ -96,6 +96,7 @@ typedef struct
 	Bool dash_mode;
 	char *mime;
 	u32 nb_dest;
+	Bool hold;
 
 	Bool is_open, done, is_delete;
 	Bool patch_blocks;
@@ -851,7 +852,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (sess->path) gf_free(sess->path);
 		sess->path = NULL;
 		sess->in_source = source_pid;
-		sess->in_source->nb_dest++;
+		source_pid->nb_dest++;
+		source_pid->hold = GF_FALSE;
+
 		sess->file_pos = sess->file_size = 0;
 		sess->use_chunk_transfer = GF_TRUE;
 	}
@@ -869,7 +872,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (sess->path) gf_free(sess->path);
 		if (source_pid) {
 			sess->in_source = source_pid;
-			sess->in_source->nb_dest++;
+			source_pid->nb_dest++;
+			source_pid->hold = GF_FALSE;
+
 			sess->file_in_progress = GF_TRUE;
 			assert(!full_path);
 			assert(source_pid->local_path);
@@ -936,7 +941,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->last_file_modif = gf_file_modification_time(full_path);
 	}
 
-	if (! httpout_sess_parse_range(sess, (char *) range) ) {
+	if (!sess->in_source && ! httpout_sess_parse_range(sess, (char *) range) ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Unsupported Range format: %s", range));
 		response = "416 Requested Range Not Satisfiable\r\n";
 		gf_dynstrcat(&response_body, "Range format is not supported, only \"bytes\" units allowed: ", NULL);
@@ -1003,6 +1008,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&rsp_buf, sess->ctx->cache_control, NULL);
 				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 			}
+		} else if (sess->in_source) {
+			sess->nb_ranges = 0;
+			gf_dynstrcat(&rsp_buf, "Cache-Control: no-cache, no-store\r\n", NULL);
 		}
 		if (sess->bytes_in_req) {
 			sprintf(szFmt, LLU, sess->bytes_in_req);
@@ -1021,6 +1029,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (!sess->is_head && sess->use_chunk_transfer) {
 			gf_dynstrcat(&rsp_buf, "Transfer-Encoding: chunked\r\n", NULL);
 		}
+
 		if (!sess->is_head && sess->nb_ranges) {
 			u32 i;
 			gf_dynstrcat(&rsp_buf, "Content-Range: bytes=", NULL);
@@ -1033,6 +1042,79 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&rsp_buf, szFmt, i ? ", " : NULL);
 			}
 			gf_dynstrcat(&rsp_buf, "\r\n", NULL);
+		}
+
+		if (sess->in_source && sess->ctx->ice) {
+			char szFmt[40];
+			const GF_PropertyValue *p;
+			u32 sr=0, br=0, nb_ch=0, p_idx;
+			u32 w=0, h=0;
+			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_SAMPLE_RATE);
+			if (p) sr = p->value.uint;
+			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_NUM_CHANNELS);
+			if (p) nb_ch = p->value.uint;
+			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_BITRATE);
+			if (p) br = p->value.uint;
+
+			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_WIDTH);
+			if (p) w = p->value.uint;
+			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_HEIGHT);
+			if (p) h = p->value.uint;
+
+			if (sr || br || nb_ch) {
+				Bool first=GF_TRUE;
+				gf_dynstrcat(&rsp_buf, "ice-audio-info: ", NULL);
+				if (sr) {
+					gf_dynstrcat(&rsp_buf, "samplerate=", NULL);
+					sprintf(szFmt, "%d", sr);
+					gf_dynstrcat(&rsp_buf, szFmt, NULL);
+					first=GF_FALSE;
+				}
+				if (nb_ch) {
+					gf_dynstrcat(&rsp_buf, "channels=", first ? NULL : ";");
+					sprintf(szFmt, "%d", nb_ch);
+					gf_dynstrcat(&rsp_buf, szFmt, NULL);
+					first=GF_FALSE;
+				}
+				if (br) {
+					gf_dynstrcat(&rsp_buf, "bitrate=", first ? NULL : ";");
+					sprintf(szFmt, "%d", br);
+					gf_dynstrcat(&rsp_buf, szFmt, NULL);
+					first=GF_FALSE;
+				}
+				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
+			}
+			if (w&&h) {
+				gf_dynstrcat(&rsp_buf, "ice-video-info: ", NULL);
+				sprintf(szFmt, "width=%d;height=%d", w, h);
+				gf_dynstrcat(&rsp_buf, szFmt, NULL);
+				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
+			}
+
+			if (br) {
+				gf_dynstrcat(&rsp_buf, "icy-br: ", NULL);
+				sprintf(szFmt, "%d", br);
+				gf_dynstrcat(&rsp_buf, szFmt, NULL);
+				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
+			}
+			gf_dynstrcat(&rsp_buf, "icy-pub: 1\r\n", NULL);
+			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_SERVICE_NAME);
+			if (p && p->value.string) {
+				gf_dynstrcat(&rsp_buf, "icy-name: ", NULL);
+				gf_dynstrcat(&rsp_buf, p->value.string, NULL);
+				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
+			}
+			p_idx = 0;
+			while (1) {
+				const char *pname;
+				p = gf_filter_pid_enum_properties(sess->in_source->ipid, &p_idx, NULL, &pname);
+				if (!p) break;
+				if (!pname || strncmp(pname, "ice-", 4)) continue;
+				if (!p->value.string) continue;
+				gf_dynstrcat(&rsp_buf, pname, NULL);
+				gf_dynstrcat(&rsp_buf, p->value.string, ": ");
+				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
+			}
 		}
 	}
 	gf_dynstrcat(&rsp_buf, "\r\n", NULL);
@@ -1232,6 +1314,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		pctx->ipid = pid;
 		pctx->ctx = ctx;
 		pctx->patch_blocks = patch_blocks;
+		pctx->hold = ctx->hold;
 
 		if (ctx_orig->dst) {
 			char *path = strstr(ctx_orig->dst, "://");
@@ -2206,12 +2289,6 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			continue;
 		}
 
-		if (ctx->hold && !in->nb_dest) continue;
-
-		if (!httpout_input_write_ready(ctx, in))
-			continue;
-
-
 		gf_filter_pck_get_framing(pck, &start, &end);
 
 		if (in->dash_mode) {
@@ -2254,6 +2331,17 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			}
 
 			httpout_open_input(ctx, in, name, GF_FALSE);
+		}
+
+		//no destination and holding for first connect, don't drop
+		if (!in->nb_dest) {
+			//not holding packets (either first connection not here or disbaled), trash packet
+			if (!in->hold)
+				gf_filter_pid_drop_packet(in->ipid);
+			continue;
+		}
+		if (!httpout_input_write_ready(ctx, in)) {
+			continue;
 		}
 
 		pck_data = gf_filter_pck_get_data(pck, &pck_size);
@@ -2527,7 +2615,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(sutc), "insert server UTC in response headers as `Server-UTC: VAL_IN_MS`", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cors), "insert CORS header allowing all domains", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-
+	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -2579,6 +2667,11 @@ GF_FilterRegister HTTPOutRegister = {
 		"If the source is not real-time, you can inject a reframer filter performing realtime regulation.\n"
 		"EX gpac -i MP3_SOURCE reframer:rt=on @ -o http://localhost/live.mp3\n"
 		"In this example, the server will push each input packet to all connected clients, or trash the packet if no connected clients.\n"
+		"  \n"
+		"In this mode, ICECast meta-data can be inserted using [-ice](). The default inserted values are `ice-audio-info`, `icy-br`, `icy-pub` (set to 1) and `icy-name` if input `ServiceName` property is set.\n"
+		"The server will also look for any property called `ice-*` on the input pid and inject them.\n"
+		"EX gpac -i source.mp3:#ice-Genre=CoolRock -o http://IP/live.mp3:ice\n"
+		"This will inject the header `ice-Genre: CoolRock` in the response."
 		"  \n"
 		"# HTTP server file sink\n"
 		"In this mode, the filter will write input PIDs to files in the first read directory specified, acting as a file output sink.\n"
