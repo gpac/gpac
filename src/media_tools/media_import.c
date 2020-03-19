@@ -7746,11 +7746,23 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 
 			e = gf_isom_add_sample(import->dest, track_num, di, samp);
 			if (e) goto exit;
+			cur_samp++;
+
+			//write sample deps
+			if (import->flags & GF_IMPORT_SAMPLE_DEPS) {
+				u32 isLeading, dependsOn, dependedOn, hasRedundant;
+				isLeading = 0;
+				dependsOn = samp->IsRAP ? 2 : 1;
+				dependedOn = 0; 
+				hasRedundant = 0;
+
+				e = gf_isom_sample_set_dep_info(import->dest, track_num, cur_samp, isLeading, dependsOn, dependedOn, hasRedundant);
+				if (e) goto exit;
+			}
 
 			gf_isom_sample_del(&samp);
 
 			gf_set_progress("Importing VP9", gf_bs_get_position(bs), fsize);
-			cur_samp++;
 		}
 	}
 
