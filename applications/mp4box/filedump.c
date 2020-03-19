@@ -1051,20 +1051,20 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			break;
 
 		case GF_HEVC_NALU_VID_PARAM:
-			if (!is_encrypted) gf_media_hevc_read_vps(ptr, ptr_size, hevc);
+			gf_media_hevc_read_vps(ptr, ptr_size, hevc);
 			fputs("Video Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
-			if (!is_encrypted) gf_media_hevc_read_sps(ptr, ptr_size, hevc);
+			gf_media_hevc_read_sps(ptr, ptr_size, hevc);
 			fputs("Sequence Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
-			if (!is_encrypted) gf_media_hevc_read_pps(ptr, ptr_size, hevc);
+			gf_media_hevc_read_pps(ptr, ptr_size, hevc);
 			fputs("Picture Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
 			fputs("AU Delimiter", dump);
-			if (!is_encrypted) fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
+			fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
 			break;
 		case GF_HEVC_NALU_END_OF_SEQ:
 			fputs("End of Sequence", dump);
@@ -1090,7 +1090,6 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			char *s = ptr+2;
 
 			fputs("HEVCExtractor ", dump);
-			if (is_encrypted) break;
 
 			while (remain) {
 				u32 mode = s[0];
@@ -1128,19 +1127,17 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		}
 		fputs("\"", dump);
 
-		if (!is_encrypted) {
-			if ((type == GF_HEVC_NALU_SEI_PREFIX) || (type == GF_HEVC_NALU_SEI_SUFFIX)) {
-				dump_sei(dump, (u8 *) ptr, ptr_size, hevc ? GF_TRUE : GF_FALSE);
-			}
-
-			if (type < GF_HEVC_NALU_VID_PARAM) {
-				fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
-				fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
-				fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
-			}
-
-			fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
+		if ((type == GF_HEVC_NALU_SEI_PREFIX) || (type == GF_HEVC_NALU_SEI_SUFFIX)) {
+			dump_sei(dump, (u8 *) ptr, ptr_size, hevc ? GF_TRUE : GF_FALSE);
 		}
+
+		if (type < GF_HEVC_NALU_VID_PARAM) {
+			fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type == GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
+			fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
+			fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
+		}
+
+		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
 
 #endif //GPAC_DISABLE_HEVC
 		return;
