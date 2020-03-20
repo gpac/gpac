@@ -2392,6 +2392,7 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 			//post a pid_delete task to also trigger removal of the filter if needed
 			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
 		}
+		filter->session->last_connect_error = reason;
 		return;
 	}
 
