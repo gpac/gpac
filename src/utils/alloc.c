@@ -842,7 +842,7 @@ void gf_memory_print()
 		assert(!gpac_allocations_lock);
 		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized.\n");
 	} else {
-		int i=0;
+		int i=0, j;
 		assert(gpac_allocations_lock);
 
 		gf_memory_log(GF_MEMORY_INFO, "\n[MemTracker] Printing the current state of allocations (%d open file handles) :\n", gf_file_handles_count());
@@ -858,14 +858,21 @@ void gf_memory_print()
 #endif
 			while (curr_element) {
 				char szVal[51];
+				char szHexVal[101];
 				u32 size;
 				next_element = curr_element->next;
 				size = curr_element->size>=50 ? 50 : curr_element->size;
-				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
+				for (j=0 ; j<size ; j++) {
+					unsigned char byte = *(unsigned char*)(curr_element->ptr + j);
+					szVal[j] = (byte > 31 && byte < 127) ? byte : '.';
+					sprintf(szHexVal+2*j, "%02X", byte);
+				}
 				szVal[size] = 0;
+				szHexVal[2*size] = 0;
 				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block %p (size %d) allocated in:\n", curr_element->ptr, curr_element->size);
 				log_backtrace(GF_MEMORY_INFO, curr_element);
 				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
+				gf_memory_log(GF_MEMORY_INFO, "             hex dump: %s\n", szHexVal);
 				curr_element = next_element;
 			}
 		}
