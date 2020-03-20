@@ -112,7 +112,7 @@ static void init_reader(ISOMChannel *ch)
 		ch->sample->DTS = ch->start;
 		ch->last_state=GF_OK;
 	} else if (ch->sample_num) {
-		ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
+		ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
 		ch->disable_seek = GF_TRUE;
 		ch->au_seq_num = ch->sample_num;
 	} else {
@@ -121,12 +121,12 @@ static void init_reader(ISOMChannel *ch)
 
 		/*take care of seeking out of the track range*/
 		if (!ch->owner->frag_type && (ch->duration<ch->start)) {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration-1, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, NULL);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration-1, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 		} else if (ch->start || ch->has_edit_list) {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, NULL);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 		} else {
 			ch->sample_num = 1;
-			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
+			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
 			if (!ch->sample) ch->last_state = GF_EOS;
 		}
 		if (ch->last_state) {
@@ -143,7 +143,7 @@ static void init_reader(ISOMChannel *ch)
 		if (ch->sample && !ch->sample->data && ch->owner->frag_type && !ch->has_edit_list) {
 			ch->sample = NULL;
 			ch->sample_num = 1;
-			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
+			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
 		}
 	}
 
@@ -261,7 +261,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	} else if (ch->has_edit_list) {
 		u32 prev_sample = ch->sample_num;
-		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, NULL);
+		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 
 		if (e == GF_OK) {
 			ch->sample = ch->static_sample;
@@ -270,7 +270,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (ch->edit_sync_frame) {
 				ch->edit_sync_frame++;
 				if (ch->edit_sync_frame < ch->sample_num) {
-					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->edit_sync_frame, &sample_desc_index, ch->static_sample);
+					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->edit_sync_frame, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
 					ch->sample->DTS = ch->sample_time;
 					ch->sample->CTS_Offset = 0;
 				} else {
@@ -290,7 +290,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 							//e = GF_EOS;
 						} else {
 							time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
-							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, NULL);
+							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 							if (e==GF_OK) {
 								ch->sample = ch->static_sample;
 							}
@@ -304,7 +304,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					GF_ISOSample *found = ch->static_sample;
 					u32 samp_num = ch->sample_num;
 					ch->sample = NULL;
-					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->static_sample, &ch->sample_num, NULL);
+					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 
 					if (e == GF_OK) ch->sample = ch->static_sample;
 
@@ -343,7 +343,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			}
 		}
 		if (do_fetch) {
-			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
+			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
 			/*if sync shadow / carousel RAP skip*/
 			if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
 				ch->sample = NULL;
@@ -365,6 +365,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (!ch->sample) {
 		u32 sample_count = gf_isom_get_sample_count(ch->owner->mov, ch->track);
+		ch->sample_data_offset = 0;
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;

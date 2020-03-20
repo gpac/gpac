@@ -746,6 +746,12 @@ stsd (uint, default: 0):       only extract sample mapped to the given sample de
 .br
 nocrypt (bool):                signal encrypted tracks as non encrypted (mostly used for export)
 .br
+mstore_size (uint, default: 1000000): target buffer size in bytes
+.br
+mstore_purge (uint, default: 50000): minimum size in bytes between memory purges when reading from memory stream (pipe etc...), 0 means purge as sonn as possible
+.br
+mstore_samples (uint, default: 50): minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible
+.br
 
 .br
 .SH bifsdec
@@ -3132,7 +3138,7 @@ pes_pack (enum, default: audio): set AU to PES packing mode.
 .br
 
 .br
-rt (bool, default: false):     use real-time output
+realtime (bool, default: false): use real-time output
 .br
 bifs_pes (enum, default: off): select BIFS streams packetization (PES vs sections)
 .br
@@ -4635,6 +4641,18 @@ In this example, the server will push each input packet to all connected clients
 .br
   
 .br
+In this mode, ICECast meta-data can be inserted using -ice. The default inserted values are ice-audio-info, icy-br, icy-pub (set to 1) and icy-name if input ServiceName property is set.
+.br
+The server will also look for any property called ice-* on the input pid and inject them.
+.br
+Example
+.br
+gpac -i source.mp3:#ice-Genre=CoolRock -o http://IP/live.mp3:ice
+.br
+
+.br
+This will inject the header ice-Genre: CoolRock in the response.  
+.br
 .SH HTTP server file sink
 .LP
 .br
@@ -4765,6 +4783,8 @@ sutc (bool, default: false):   insert server UTC in response headers as Server-U
 cors (bool, default: false):   insert CORS header allowing all domains
 .br
 reqlog (str):                  provide short log of the requests indicated in this option (comma separated list, * for all) regardless of HTTP log settings
+.br
+ice (bool, default: false):    insert ICE meta-data in response headers in sink mode - see filter help
 .br
 
 .br
@@ -5376,7 +5396,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3442-g5715709e5-filters
+build: 0.9.0-DEV-rev3447-gaf4fd0da0-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

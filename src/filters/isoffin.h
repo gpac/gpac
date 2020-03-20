@@ -63,6 +63,7 @@ typedef struct
 	char *catseg;
 	Bool sigfrag;
 	Bool nocrypt;
+	u32 mstore_purge, mstore_samples, mstore_size;
 
 	//internal
 
@@ -110,6 +111,13 @@ typedef struct
 	GF_FilterPid *pid;
 
 	Bool eos_signaled;
+	u32 mem_load_mode;
+	u8 *mem_url;
+	GF_Blob mem_blob;
+	u64 bytes_removed;
+	u64 last_min_offset;
+	GF_Err in_error;
+	Bool force_fetch;
 } ISOMReader;
 
 
@@ -128,7 +136,7 @@ typedef struct
 	/*current sample*/
 	GF_ISOSample *static_sample;
 	GF_ISOSample *sample;
-
+	u64 sample_data_offset, last_valid_sample_data_offset;
 	GF_Err last_state;
 	Bool sap_3, sap_4;
 	s32 roll;

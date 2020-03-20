@@ -379,7 +379,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 			the file map is regular (through FILE handles)
 **************************************************************/
 GF_EXPORT
-GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, Bool enable_frag_bounds, GF_ISOFile **the_file, u64 *BytesMissing)
+GF_Err gf_isom_open_progressive_ex(const char *fileName, u64 start_range, u64 end_range, Bool enable_frag_bounds, GF_ISOFile **the_file, u64 *BytesMissing, u32 *outBoxType)
 {
 	GF_Err e;
 	GF_ISOFile *movie;
@@ -417,7 +417,7 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 			gf_bs_truncate(movie->movieFileMap->bs);
 			gf_bs_seek(movie->movieFileMap->bs, start_range);
 		}
-		e = gf_isom_parse_movie_boxes(movie, BytesMissing, GF_TRUE);
+		e = gf_isom_parse_movie_boxes(movie, outBoxType, BytesMissing, GF_TRUE);
 
 	}
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
@@ -438,6 +438,12 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 	//OK, let's return
 	*the_file = (GF_ISOFile *)movie;
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, Bool enable_frag_bounds, GF_ISOFile **the_file, u64 *BytesMissing)
+{
+	return gf_isom_open_progressive_ex(fileName, start_range, end_range, enable_frag_bounds, the_file, BytesMissing, NULL);
 }
 
 /**************************************************************
@@ -1654,7 +1660,7 @@ GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 //this index allows to retrieve the stream description if needed (2 media in 1 track)
 //return NULL if error
 GF_EXPORT
-GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, GF_ISOSample *static_sample)
+GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, GF_ISOSample *static_sample, u64 *data_offset)
 {
 	GF_Err e;
 	u32 descIndex;
@@ -1679,7 +1685,7 @@ GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 s
 	sampleNumber -= trak->sample_count_at_seg_start;
 #endif
 
-	e = Media_GetSample(trak->Media, sampleNumber, &samp, &descIndex, GF_FALSE, NULL);
+	e = Media_GetSample(trak->Media, sampleNumber, &samp, &descIndex, GF_FALSE, data_offset);
 	if (static_sample && !static_sample->alloc_size)
 		static_sample->alloc_size = static_sample->dataLength;
 
@@ -1699,7 +1705,7 @@ GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 s
 GF_EXPORT
 GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex)
 {
-	return gf_isom_get_sample_ex(the_file, trackNumber, sampleNumber, sampleDescriptionIndex, NULL);
+	return gf_isom_get_sample_ex(the_file, trackNumber, sampleNumber, sampleDescriptionIndex, NULL, NULL);
 }
 
 GF_EXPORT
@@ -2742,7 +2748,7 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 #else
 	u64 prevsize, size;
 	u32 i;
-	if (!movie || !movie->movieFileMap || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+	if (!movie || !movie->movieFileMap || !movie->moov) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
 
 	/*refresh size*/
@@ -2779,8 +2785,10 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	prevsize = gf_bs_get_refreshed_size(movie->movieFileMap->bs);
 	if (prevsize==size) return GF_OK;
 
+	if (!movie->moov->mvex)
+		return GF_OK;
 	//ok parse root boxes
-	return gf_isom_parse_movie_boxes(movie, MissingBytes, GF_TRUE);
+	return gf_isom_parse_movie_boxes(movie, NULL, MissingBytes, GF_TRUE);
 #endif
 }
 
@@ -2805,6 +2813,72 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 #endif
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_isom_get_current_top_box_offset(GF_ISOFile *movie, u64 *current_top_box_offset)
+{
+	if (!movie || !movie->moov || !current_top_box_offset) return GF_BAD_PARAM;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	*current_top_box_offset = movie->current_top_box_start;
+	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_removed_bytes(GF_ISOFile *movie, u64 bytes_removed)
+{
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
+	movie->bytes_removed = bytes_removed;
+	return GF_OK;
+}
+
+GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_samples)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_TrackExtendsBox *trex;
+#endif
+	GF_SampleTableBox *stbl;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	/*if trex is already set, restore flags*/
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	trex = the_file->moov->mvex ? GetTrex(the_file->moov, gf_isom_get_track_id(the_file,trackNumber) ) : NULL;
+	if (!trex) return GF_BAD_PARAM;
+
+	//first unpack chunk offsets and CTS
+	e = stbl_UnpackOffsets(trak->Media->information->sampleTable);
+	if (e) return e;
+	e = stbl_unpackCTS(trak->Media->information->sampleTable);
+	if (e) return e;
+
+	stbl = trak->Media->information->sampleTable;
+	if (!stbl->TimeToSample || !stbl->SampleSize || !stbl->SampleToChunk) return GF_ISOM_INVALID_FILE;
+	//then remove first sample
+	while (nb_samples) {
+		//do NOT change the order DTS, CTS, size chunk
+		stbl_RemoveDTS(stbl, 1, 0);
+		stbl_RemoveCTS(stbl, 1);
+		stbl_RemoveSize(stbl, 1);
+		stbl_RemoveChunk(stbl, 1);
+		stbl_RemoveRAP(stbl, 1);
+		stbl_RemoveShadow(stbl, 1);
+		stbl_RemoveRedundant(stbl, 1);
+		stbl_RemoveSubSample(stbl, 1);
+		stbl_RemovePaddingBits(stbl, 1);
+		stbl_RemoveSampleGroup(stbl, 1);
+		nb_samples--;
+	}
+	return GF_OK;
+#else
+	return GF_BAD_PARAM;
+#endif
+}
+
 
 #define RECREATE_BOX(_a, __cast)	\
     if (_a) {	\
@@ -3072,7 +3146,7 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 	if (no_order_check) movie->NextMoofNumber = 0;
 
 	//ok parse root boxes
-	e = gf_isom_parse_movie_boxes(movie, &MissingBytes, GF_TRUE);
+	e = gf_isom_parse_movie_boxes(movie, NULL, &MissingBytes, GF_TRUE);
 
 	if (!is_scalable_segment)
 		return e;
@@ -4563,7 +4637,7 @@ Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPoints
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_byte_offset(GF_ISOFile *file, u64 byte_offset)
+GF_Err gf_isom_set_byte_offset(GF_ISOFile *file, s64 byte_offset)
 {
 	if (!file) return GF_BAD_PARAM;
 	file->read_byte_offset = byte_offset;

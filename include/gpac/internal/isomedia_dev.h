@@ -3729,7 +3729,8 @@ struct __tag_isom {
 	/*meta box if any*/
 	GF_MetaBox *meta;
 
-	u64 read_byte_offset;
+	s64 read_byte_offset;
+	u64 bytes_removed;
 
 	GF_ISOCompressMode compress_mode;
 	Bool force_compress;
@@ -3806,7 +3807,7 @@ struct __tag_isom {
 u64 gf_isom_get_mp4time();
 /*set the last error of the file. if file is NULL, set the static error (used for IO errors*/
 void gf_isom_set_last_error(GF_ISOFile *the_file, GF_Err error);
-GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progressive_mode);
+GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode);
 GF_ISOFile *gf_isom_new_movie();
 /*Movie and Track access functions*/
 GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *the_file, u32 trackNumber);
@@ -3939,12 +3940,11 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
 /*REMOVE functions*/
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDuration);
 GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber);
-GF_Err stbl_RemoveSize(GF_SampleSizeBox *stsz, u32 sampleNumber);
+GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber);
-GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber);
+GF_Err stbl_RemoveShadow(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
-GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);

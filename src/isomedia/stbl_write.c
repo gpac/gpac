@@ -1101,6 +1101,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 {
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
+	if (!ctts) return GF_OK;
+
 	assert(ctts->unpack_mode);
 
 	//last one...
@@ -1122,8 +1124,9 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 	return GF_OK;
 }
 
-GF_Err stbl_RemoveSize(GF_SampleSizeBox *stsz, u32 sampleNumber)
+GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber)
 {
+	GF_SampleSizeBox *stsz = stbl->SampleSize;
 	//last sample
 	if (stsz->sampleCount == 1) {
 		if (stsz->sizes) gf_free(stsz->sizes);
@@ -1246,6 +1249,8 @@ GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber)
 	u32 i;
 
 	GF_SyncSampleBox *stss = stbl->SyncSample;
+	if (!stss) return GF_OK;
+
 	//we remove the only one around...
 	if (stss->nb_entries == 1) {
 		if (stss->sampleNumbers[0] != sampleNumber) return GF_OK;
@@ -1286,10 +1291,13 @@ GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber)
 	return GF_OK;
 }
 
-GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber)
+GF_Err stbl_RemoveShadow(GF_SampleTableBox *stbl, u32 sampleNumber)
 {
 	u32 i;
+	GF_ShadowSyncBox *stsh;
 	GF_StshEntry *ent;
+	if (!stbl->ShadowSync) return GF_OK;
+	stsh = stbl->ShadowSync;
 
 	//we loop for the whole chain cause the spec doesn't say if we can have several
 	//shadows for 1 sample...

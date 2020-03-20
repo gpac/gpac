@@ -485,18 +485,19 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (e) return e;
 	}
 
-	if ( mdia->mediaTrack->moov->mov->read_byte_offset) {
+	if ( mdia->mediaTrack->moov->mov->read_byte_offset || mdia->mediaTrack->moov->mov->bytes_removed) {
 		GF_DataEntryBox *ent = (GF_DataEntryBox*)gf_list_get(mdia->information->dataInformation->dref->child_boxes, dataRefIndex - 1);
 		if (ent && (ent->flags&1)) {
-
-			if (offset < mdia->mediaTrack->moov->mov->read_byte_offset) return GF_IO_ERR;
+			u64 real_offset = mdia->mediaTrack->moov->mov->read_byte_offset + mdia->mediaTrack->moov->mov->bytes_removed;
+			if (offset < real_offset)
+				return GF_IO_ERR;
 
 			if (mdia->information->dataHandler->last_read_offset != mdia->mediaTrack->moov->mov->read_byte_offset) {
 				mdia->information->dataHandler->last_read_offset = mdia->mediaTrack->moov->mov->read_byte_offset;
 				gf_bs_get_refreshed_size(mdia->information->dataHandler->bs);
 			}
 
-			offset -= mdia->mediaTrack->moov->mov->read_byte_offset;
+			offset -= real_offset;
 		}
 	}
 	if ((*samp)->dataLength != 0) {
