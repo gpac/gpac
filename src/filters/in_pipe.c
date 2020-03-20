@@ -383,6 +383,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 				gf_filter_pid_set_eos(ctx->pid);
 				CloseHandle(ctx->pipe);
 				ctx->pipe = INVALID_HANDLE_VALUE;
+				ctx->is_end = GF_TRUE;
 				return GF_EOS;
 			}
 			else if (error = ERROR_BROKEN_PIPE) {
@@ -407,6 +408,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 				if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
 				close(ctx->fd);
 				ctx->fd=-1;
+				ctx->is_end = GF_TRUE;
 				return GF_EOS;
 			}
 			return GF_OK;
