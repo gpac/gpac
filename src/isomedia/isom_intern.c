@@ -283,7 +283,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 #endif
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
-               
+
 			totSize += a->size;
 
             if (!mov->moov->mvhd) {
@@ -496,8 +496,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			} else {
 				/*merge all info*/
 				e = MergeFragment((GF_MovieFragmentBox *)a, mov);
-				if (e) return e;
-				gf_isom_box_del(a);
+				if (e) {
+					gf_isom_box_del(a);
+					return e;
+				}
 			}
 
 			//done with moov
