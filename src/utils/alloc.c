@@ -842,7 +842,7 @@ void gf_memory_print()
 		assert(!gpac_allocations_lock);
 		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized.\n");
 	} else {
-		int i=0, j;
+		int i=0;
 		assert(gpac_allocations_lock);
 
 		gf_memory_log(GF_MEMORY_INFO, "\n[MemTracker] Printing the current state of allocations (%d open file handles) :\n", gf_file_handles_count());
@@ -859,11 +859,11 @@ void gf_memory_print()
 			while (curr_element) {
 				char szVal[51];
 				char szHexVal[101];
-				u32 size;
+				u32 size, j;
 				next_element = curr_element->next;
 				size = curr_element->size>=50 ? 50 : curr_element->size;
 				for (j=0 ; j<size ; j++) {
-					unsigned char byte = *(unsigned char*)(curr_element->ptr + j);
+					unsigned char byte = *((unsigned char*)(curr_element->ptr) + j);
 					szVal[j] = (byte > 31 && byte < 127) ? byte : '.';
 					sprintf(szHexVal+2*j, "%02X", byte);
 				}
