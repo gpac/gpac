@@ -2639,6 +2639,7 @@ const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
 	if (!sess) return NULL;
 	if (! sess->cache_entry || sess->needs_cache_reconfig) return NULL;
+	if (!sess->use_cache_file) return NULL;
 	return gf_cache_get_cache_filename(sess->cache_entry);
 }
 
@@ -3384,6 +3385,13 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				}
 			}
 			else if (!stricmp(hdrp->name, "Cache-Control")) {
+				if (strstr(hdrp->value, "no-store")) {
+					sess->use_cache_file = GF_FALSE;
+					if (sess->cache_entry) {
+						gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
+						sess->cache_entry = NULL;
+					}
+				}
 			}
 			else if (!stricmp(hdrp->name, "ETag")) {
 				if (rsp_code<300)
