@@ -1185,7 +1185,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 GF_EXPORT
 void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 {
-	if (samp) return;
+	if (!samp) return;
 	if (samp->subsamples) gf_free(samp->subsamples);
 	gf_free(samp);
 }
