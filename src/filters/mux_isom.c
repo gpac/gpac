@@ -3279,7 +3279,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	return GF_OK;
 }
 
-static void mp4_mux_flush_frag(GF_MP4MuxCtx *ctx, u32 type, u64 idx_start_range, u64 idx_end_range)
+static void mp4_mux_flush_frag(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_range, u64 idx_end_range)
 {
 	GF_FilterEvent evt;
 	TrackWriter *tkw = NULL;
@@ -3292,6 +3292,10 @@ static void mp4_mux_flush_frag(GF_MP4MuxCtx *ctx, u32 type, u64 idx_start_range,
 			ctx->first_pck_sent = GF_FALSE;
 			ctx->current_offset = 0;
 		}
+		if (is_init) {
+			gf_filter_pck_set_dependency_flags(ctx->dst_pck, 0xFF);
+			gf_filter_pck_set_carousel_version(ctx->dst_pck, 1);
+		}
 		gf_filter_pck_send(ctx->dst_pck);
 		ctx->dst_pck = NULL;
 	}
@@ -3301,8 +3305,8 @@ static void mp4_mux_flush_frag(GF_MP4MuxCtx *ctx, u32 type, u64 idx_start_range,
 		tkw = gf_list_get(ctx->tracks, 0);
 		GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, tkw->ipid);
 		evt.seg_size.seg_url = NULL;
-		evt.seg_size.is_init = type ? GF_TRUE : GF_FALSE;
-		if (!type || !idx_end_range) {
+		evt.seg_size.is_init = is_init ? GF_TRUE : GF_FALSE;
+		if (!is_init || !idx_end_range) {
 			evt.seg_size.media_range_start = ctx->current_offset;
 			evt.seg_size.media_range_end = ctx->current_offset + ctx->current_size - 1;
 		}
@@ -3576,7 +3580,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		ctx->current_size = ctx->current_offset = 0;
 		ctx->first_pck_sent = GF_FALSE;
 	} else {
-		mp4_mux_flush_frag(ctx, 1, 0, 0);
+		mp4_mux_flush_frag(ctx, GF_TRUE, 0, 0);
 	}
 	assert(!ctx->dst_pck);
 
@@ -4062,9 +4066,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num, ref_start, ctx->next_frag_start ));
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
-				mp4_mux_flush_frag(ctx, 0, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
+				mp4_mux_flush_frag(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
 			} else if (!ctx->cache) {
-				mp4_mux_flush_frag(ctx, 0, 0, 0);
+				mp4_mux_flush_frag(ctx, GF_FALSE, 0, 0);
 			} else {
 				if (ctx->nb_seg_sizes == ctx->alloc_seg_sizes) {
 					 ctx->alloc_seg_sizes *= 2;
@@ -4081,7 +4085,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
 
 			if (!ctx->dash_mode || ctx->flush_seg)
-				mp4_mux_flush_frag(ctx, 0, 0, 0);
+				mp4_mux_flush_frag(ctx, GF_FALSE, 0, 0);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ctx->next_frag_start ));
 		}
@@ -4110,7 +4114,7 @@ check_eos:
 				//flush sidx packet
 				if (ctx->dst_pck) gf_filter_pck_send(ctx->dst_pck);
 				ctx->dst_pck = NULL;
-				mp4_mux_flush_frag(ctx, 1, ctx->current_offset, ctx->current_offset + ctx->current_size - 1);
+				mp4_mux_flush_frag(ctx, GF_TRUE, ctx->current_offset, ctx->current_offset + ctx->current_size - 1);
 
 				ctx->flush_size = gf_ftell(ctx->tmp_store);
 				ctx->flush_done = 0;
@@ -4120,7 +4124,7 @@ check_eos:
 					start_offset = ctx->current_offset;
 					for (i=0; i<ctx->nb_seg_sizes; i++) {
 						ctx->current_size = ctx->seg_sizes[i];
-						mp4_mux_flush_frag(ctx, 0, 0, 0);
+						mp4_mux_flush_frag(ctx, GF_FALSE, 0, 0);
 					}
 					ctx->current_offset = start_offset;
 					ctx->current_size = 0;
@@ -4477,7 +4481,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 		gf_bs_write_data(bs, data, block_size);
 		gf_bs_del(bs);
 		gf_filter_pck_send(pck);
-		mp4_mux_flush_frag(ctx, 1, ctx->sidx_chunk_offset+free_size, ctx->sidx_chunk_offset+free_size + block_size - 1);
+		mp4_mux_flush_frag(ctx, GF_TRUE, ctx->sidx_chunk_offset+free_size, ctx->sidx_chunk_offset+free_size + block_size - 1);
 		return GF_OK;
 	}
 

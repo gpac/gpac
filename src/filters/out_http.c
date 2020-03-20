@@ -113,6 +113,9 @@ typedef struct
 	//for server mode, recording
 	char *local_path;
 	FILE *resource;
+
+	u8 *tunein_data;
+	u32 tunein_data_size;
 } GF_HTTPOutInput;
 
 typedef struct
@@ -153,6 +156,7 @@ typedef struct __httpout_session
 	Bool reconfigure_output;
 
 	GF_HTTPOutInput *in_source;
+	Bool send_init_data;
 
 	u32 nb_ranges, alloc_ranges, range_idx;
 	HTTByteRange *ranges;
@@ -852,6 +856,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (sess->path) gf_free(sess->path);
 		sess->path = NULL;
 		sess->in_source = source_pid;
+		sess->send_init_data = GF_TRUE;
 		source_pid->nb_dest++;
 		source_pid->hold = GF_FALSE;
 
@@ -874,6 +879,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			sess->in_source = source_pid;
 			source_pid->nb_dest++;
 			source_pid->hold = GF_FALSE;
+			sess->send_init_data = GF_TRUE;
 
 			sess->file_in_progress = GF_TRUE;
 			assert(!full_path);
@@ -2191,6 +2197,16 @@ retry:
 		for (i=0; i<count; i++) {
 			GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
 			if (sess->in_source != in) continue;
+
+			if (sess->send_init_data && in->tunein_data_size && !sess->file_in_progress) {
+				char szHdrInit[100];
+				sprintf(szHdrInit, "%X\r\n", in->tunein_data_size);
+				u32 len_hdr = (u32) strlen(szHdrInit);
+				httpout_sess_send(sess, szHdrInit, len_hdr);
+				httpout_sess_send(sess, in->tunein_data, in->tunein_data_size);
+				httpout_sess_send(sess, "\r\n", 2);
+			}
+			sess->send_init_data = GF_FALSE;
 			out = pck_size;
 
 			/*source is read from disk, but update file size (this avoids refreshing the file size at each process)*/
@@ -2331,6 +2347,15 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			}
 
 			httpout_open_input(ctx, in, name, GF_FALSE);
+
+			if ((gf_filter_pck_get_dependency_flags(pck)==0xFF) && (gf_filter_pck_get_carousel_version(pck)==1)) {
+				pck_data = gf_filter_pck_get_data(pck, &pck_size);
+				if (pck_data) {
+					in->tunein_data_size = pck_size;
+					in->tunein_data = gf_realloc(in->tunein_data, pck_size);
+					memcpy(in->tunein_data, pck_data, pck_size);
+				}
+			}
 		}
 
 		//no destination and holding for first connect, don't drop
