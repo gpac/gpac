@@ -349,7 +349,7 @@ GF_Err kind_box_write(GF_Box *s, GF_BitStream *bs)
         gf_bs_write_data(bs, ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
     else
         gf_bs_write_u8(bs, 0);
-    
+
     if (ptr->value) {
 		gf_bs_write_data(bs, ptr->value, (u32) (strlen(ptr->value) + 1) );
 	}
@@ -3870,6 +3870,9 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 			if (e==GF_OK) {
 				if (!ptr->child_boxes) ptr->child_boxes = gf_list_new();
 				gf_list_add(ptr->child_boxes, ptr->esd);
+			} else if (ptr->esd) {
+				gf_isom_box_del((GF_Box *)ptr->esd);
+				ptr->esd = NULL;
 			}
 			break;
 		}
