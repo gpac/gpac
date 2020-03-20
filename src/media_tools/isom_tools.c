@@ -908,7 +908,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 
 		//remove bitrate info (isobmff)
 		gf_isom_update_bitrate(mp4, i+1, 1, 0, 0, 0);
-		
+
 		if (mtype==GF_ISOM_MEDIA_AUDIO) {
 			u32 sr, nb_ch, bps;
 			gf_isom_get_audio_info(mp4, i+1, 1, &sr, &nb_ch, &bps);
@@ -3565,6 +3565,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			return GF_OK;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find ESD. Aborting.\n"));
+			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 			return GF_ISOM_INVALID_FILE;
 		}
 	case GF_ISOM_SUBTYPE_AVC_H264:
@@ -3770,7 +3771,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		gf_odf_vp_cfg_del(vpcc);
 		return GF_OK;
 	}
-	
+
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
@@ -3780,4 +3781,3 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 }
 
 #endif //GPAC_DISABLE_ISOM
-
