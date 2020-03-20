@@ -1352,6 +1352,7 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 
 	e = unpack_track(trak);
 	if (e) return e;
+	//do NOT change the order DTS, CTS, size chunk
 
 	//remove DTS
 	e = stbl_RemoveDTS(trak->Media->information->sampleTable, sampleNumber, trak->Media->mediaHeader->timeScale);
@@ -1362,7 +1363,7 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 		if (e) return e;
 	}
 	//remove size
-	e = stbl_RemoveSize(trak->Media->information->sampleTable->SampleSize, sampleNumber);
+	e = stbl_RemoveSize(trak->Media->information->sampleTable, sampleNumber);
 	if (e) return e;
 	//remove sampleToChunk and chunk
 	e = stbl_RemoveChunk(trak->Media->information->sampleTable, sampleNumber);
@@ -1378,10 +1379,9 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 		if (e) return e;
 	}
 	//remove shadow
-	if (trak->Media->information->sampleTable->ShadowSync) {
-		e = stbl_RemoveShadow(trak->Media->information->sampleTable->ShadowSync, sampleNumber);
-		if (e) return e;
-	}
+	e = stbl_RemoveShadow(trak->Media->information->sampleTable, sampleNumber);
+	if (e) return e;
+
 	//remove padding
 	e = stbl_RemovePaddingBits(trak->Media->information->sampleTable, sampleNumber);
 	if (e) return e;

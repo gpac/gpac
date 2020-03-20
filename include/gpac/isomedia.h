@@ -550,13 +550,13 @@ typedef enum
 } GF_ISOOpenMode;
 
 /*! indicates if target file is an IsoMedia file
-\param fileName the target local file name or path to probe
+\param fileName the target local file name or path to probe, gmem:// or gfio:// resource
 \return 1 if it is a non-special file, 2 if an init segment, 3 if a media segment, 0 otherwise
 */
 u32 gf_isom_probe_file(const char *fileName);
 
 /*! indicates if target file is an IsoMedia file
-\param fileName the target local file name or path to probe
+\param fileName the target local file name or path to probe, gmem:// or gfio:// resource
 \param start_range the offset in the file to start probing from
 \param end_range the offset in the file at which probing shall stop
 \return 1 if it is a non-special file, 2 if an init segment, 3 if a media segment, 4 if empty or no file, 0 otherwise
@@ -572,7 +572,7 @@ u32 gf_isom_probe_data(const u8*inBuf, u32 inSize);
 
 /*! opens an isoMedia File.
 If fileName is NULL data will be written in memory ; write with gf_isom_write() ; use gf_isom_get_bs() to get the data ; use gf_isom_delete() to delete the internal data.
-\param fileName name of the file to open. The special name "_gpac_isobmff_redirect" is used to indicate that segment shall be written to a memory buffer passed to callback function set through \ref gf_isom_set_write_callback
+\param fileName name of the file to open, , gmem:// or gfio:// resource. The special name "_gpac_isobmff_redirect" is used to indicate that segment shall be written to a memory buffer passed to callback function set through \ref gf_isom_set_write_callback.
 \param OpenMode file opening mode
 \param tmp_dir for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default
 OS temporary file management schemes.
@@ -668,7 +668,7 @@ Bool gf_isom_moov_first(GF_ISOFile *isom_file);
 \param byte_offset number of bytes not present at the begining of the file
 \return error if any
 */
-GF_Err gf_isom_set_byte_offset(GF_ISOFile *isom_file, u64 byte_offset);
+GF_Err gf_isom_set_byte_offset(GF_ISOFile *isom_file, s64 byte_offset);
 
 
 /*! opens a movie that can be uncomplete in READ_ONLY mode
@@ -677,10 +677,9 @@ to use for http streaming & co
 start_range and end_range restricts the media byte range in the URL (used by DASH)
 if 0 or end_range<=start_range, the entire URL is used when parsing
 
-NOTE: you must buffer the data to a local file, this mode DOES NOT handle
-http/ftp/... streaming
+If the url indicates a gfio or gmem resource, the file can be played from the associated underlying buffer. For gmem, you must call \ref gf_isom_refresh_fragmented and gf_isom_set_removed_bytes whenever the underlying buffer is modified.
 
-\param fileName the name of the local file or cache to open
+\param fileName the name of the local file or cache to open, gmem:// or gfio://
 \param start_range only loads starting from indicated byte range
 \param end_range loading stops at indicated byte range
 \param enable_frag_templates loads fragment and segment boundaries in an internal table
@@ -691,6 +690,22 @@ If the movie is successfully loaded (isom_file non-NULL), BytesMissing is zero
 \return error if any
 */
 GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_range, Bool enable_frag_templates, GF_ISOFile **isom_file, u64 *BytesMissing);
+
+
+/*! same as  \ref gf_isom_open_progressive but allows fetching the incomplete box type
+
+\param fileName the name of the local file or cache to open
+\param start_range only loads starting from indicated byte range
+\param end_range loading stops at indicated byte range
+\param enable_frag_templates loads fragment and segment boundaries in an internal table
+\param isom_file pointer set to the opened file if success
+\param BytesMissing is set to the predicted number of bytes missing for the file to be loaded
+\param topBoxType is set to the 4CC of the incomplete top-level box found - may be NULL
+Note that if the file is not optimized for streaming, this number is not accurate
+If the movie is successfully loaded (isom_file non-NULL), BytesMissing is zero
+\return error if any
+*/
+GF_Err gf_isom_open_progressive_ex(const char *fileName, u64 start_range, u64 end_range, Bool enable_frag_templates, GF_ISOFile **isom_file, u64 *BytesMissing, u32 *topBoxType);
 
 /*! retrieves number of bytes missing.
 if requesting a sample fails with error GF_ISOM_INCOMPLETE_FILE, use this function
@@ -940,10 +955,11 @@ This function is the same as \ref gf_isom_get_sample except that it fills in the
 \param sampleNumber the desired sample number (1-based index)
 \param sampleDescriptionIndex set to the sample description index corresponding to this sample
 \param static_sample a caller-allocated ISO sample to use as the returned sample
+\param data_offset set to data offset in file / current bitstream - may be NULL
 \return the ISO sample or NULL if not found or end of stream or incomplete file. Use \ref gf_isom_last_error to check the error code
 \note If the function returns NULL, the static_sample and its associated data are NOT destroyed
 */
-GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, GF_ISOSample *static_sample);
+GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, GF_ISOSample *static_sample, u64 *data_offset);
 
 /*! gets sample information. This is the same as \ref gf_isom_get_sample but doesn't fetch media data
 
@@ -1477,6 +1493,33 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *isom_file, u32 trackNumber, u8 **o
 \return error if any
 */
 GF_Err gf_isom_get_trex_template(GF_ISOFile *isom_file, u32 trackNumber, u8 **output, u32 *output_size);
+
+/*! sets the number of removed bytes form the input bitstream when using gmem:// url
+ The number of bytes shall be the total number since the opening of the movie
+\param isom_file the target ISO file
+\param bytes_removed number of bytes removed
+\return error if any
+*/
+GF_Err gf_isom_set_removed_bytes(GF_ISOFile *isom_file, u64 bytes_removed);
+
+/*! gets the current file offset of the current incomplete top level box not parsed
+ This shall be checked to avoid discarding bytes at or after the current top box header
+\param isom_file the target ISO file
+\param current_top_box_offset set to the offset from file first byte
+\return error if any
+*/
+GF_Err gf_isom_get_current_top_box_offset(GF_ISOFile *isom_file, u64 *current_top_box_offset);
+
+/*! purges the given number of samples, starting from the first sample, from a track of a fragmented file.
+ This avoids having sample tables growing in size when reading a fragmented file in pure streaming mode (no seek).
+ You should always keep one sample in the track
+\param isom_file the target ISO file
+\param trackNumber the desired track to purge
+\param nb_samples the number of samples to remove
+\return error if any
+*/
+GF_Err gf_isom_purge_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 nb_samples);
+
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
@@ -3443,9 +3486,12 @@ void gf_isom_set_single_moof_mode(GF_ISOFile *isom_file, Bool mode);
 A file being downloaded may be a fragmented file. In this case only partial info
 is available once the file is successfully open (gf_isom_open_progressive), and since there is
 no information wrt number fragments (which could actually be generated on the fly
-at the sender side), you must call this function on regular bases in order to
+at the sender side), you must call this function on regular basis in order to
 load newly downloaded fragments. Note this may result in Track/Movie duration changes
 and SampleCount change too ...
+
+This function should also be called when using memory read (gmem://) to refresh the underlying bitstream after appendin data to your blob.
+In the case where the file is not fragmented, no further box parsing will be done.
 
 \param isom_file the target ISO file
 \param MissingBytes set to the number of missing bytes to parse the last incomplete top-level box found
@@ -3550,6 +3596,7 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *isom_file, Bool reset_sample_count);
 \return error if any
 */
 GF_Err gf_isom_reset_data_offset(GF_ISOFile *isom_file, u64 *top_box_start);
+
 
 /*! releases current movie segment. This closes the associated file IO object.
 \note seeking in the file is no longer possible when tables are rested

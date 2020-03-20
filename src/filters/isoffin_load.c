@@ -426,15 +426,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (!ch->duration) {
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
-		if (!ch->has_edit_list) {
-			u64 dur = gf_isom_get_media_duration(read->mov, ch->track) - (s32) ch->ts_offset;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
-		} else {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->time_scale));
-		}
 
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
+
+		if (!read->mem_load_mode) {
+			if (!ch->has_edit_list) {
+				u64 dur = gf_isom_get_media_duration(read->mov, ch->track) - (s32) ch->ts_offset;
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
+			} else {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->time_scale));
+			}
+			gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
+		}
 
 		if (sample_count && (streamtype==GF_STREAM_VISUAL)) {
 			u64 mdur = gf_isom_get_media_duration(read->mov, track);
@@ -452,14 +455,20 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		mtype = gf_isom_get_media_type(read->mov, track);
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SUBTYPE, &PROP_UINT(mtype) );
 
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, track) ) );
+		if (!read->mem_load_mode) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, track) ) );
+		}
+
 
 		w = gf_isom_get_constant_sample_size(read->mov, track);
 		if (w)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
 
-		gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
-
+		if (read->mem_load_mode) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE) );
+		} else {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
+		}
 
 		GF_PropertyValue brands;
 		brands.type = GF_PROP_UINT_LIST;

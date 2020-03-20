@@ -31,7 +31,7 @@
 /**************************************************************
 		Some Local functions for movie creation
 **************************************************************/
-GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected, Bool progressive_mode);
+GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *boxType, u64 *bytesExpected, Bool progressive_mode);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
@@ -219,7 +219,7 @@ void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 
 #endif
 
-GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progressive_mode)
+GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
 	u64 totSize;
@@ -232,7 +232,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 
 	/*restart from where we stopped last*/
 	totSize = mov->current_top_box_start;
-	gf_bs_seek(mov->movieFileMap->bs, mov->current_top_box_start);
+	if (mov->bytes_removed) {
+		assert(totSize >= mov->bytes_removed);
+		totSize -= mov->bytes_removed;
+	}
+	gf_bs_seek(mov->movieFileMap->bs, totSize);
 #endif
 
 
@@ -240,11 +244,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 	while (gf_bs_available(mov->movieFileMap->bs)) {
 		*bytesMissing = 0;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
+		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Starting to parse a top-level box at position %d\n", mov->current_top_box_start));
 #endif
 
-		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, bytesMissing, progressive_mode);
+		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, boxType, bytesMissing, progressive_mode);
 
 		if (e >= 0) {
 
@@ -555,7 +559,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		/*remember where we left, in case we append an entire number of movie fragments*/
-		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
+		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;
 #endif
 	}
 
@@ -709,7 +713,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 	}
 
 	//OK, let's parse the movie...
-	mov->LastError = gf_isom_parse_movie_boxes(mov, &bytes, 0);
+	mov->LastError = gf_isom_parse_movie_boxes(mov, NULL, &bytes, 0);
 
 	if (!mov->LastError && (OpenMode == GF_ISOM_OPEN_CAT_FRAGMENTS)) {
 		gf_isom_datamap_del(mov->movieFileMap);

@@ -332,14 +332,15 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		isoffin_disconnect(read);
 		return GF_OK;
 	}
-	//we must have a file path for now
+	//we must have a file path for now, if not this is a pure stream of boxes (no local file cache)
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
-	if (!prop || ! prop->value.string) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Reconfiguring pid but no file path property on PID\n\n"));
-		return GF_NOT_SUPPORTED;
+	if (!prop || !prop->value.string) {
+		read->mem_load_mode = 1;
+		if (!read->pid) read->pid = pid;
+		return GF_OK;
 	}
 
-	if (read->pid) {
+	if (read->pid && prop->value.string) {
 		const char *next_url = prop->value.string;
 		u64 sr, er;
 		u32 crc = gf_crc_32(next_url, (u32) strlen(next_url) );
@@ -374,7 +375,6 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		evt.play.full_file_only=1;
 		gf_filter_pid_send_event(pid, &evt);
 	}
-
 	return isoffin_setup(filter, read);
 }
 
@@ -751,22 +751,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		return GF_FALSE;
 
 	switch (com->base.type) {
-#ifdef FILTER_FIXME
-	case GF_NET_CHAN_NALU_MODE:
-		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
-
-		//when this is set, we work in real scalable (eg N streams reassembled by the player) so only extract the layer. This wll need refinements if we plan to support
-		//several scalable layers ...
-		if (com->nalu_mode.extract_mode>=1) {
-			if (com->nalu_mode.extract_mode==2) {
-				ch->disable_seek = 1;
-			}
-			ch->nalu_extract_mode |= GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG | GF_ISOM_NALU_EXTRACT_LAYER_ONLY;
-		}
-		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
-		break;
-#endif
-
 	case GF_FEVT_PLAY:
 		isor_reset_reader(ch);
 		ch->speed = com->play.speed;
@@ -876,6 +860,111 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	return GF_FALSE;
 }
 
+static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *pck_data, u32 data_size)
+{
+	u64 bytes_missing;
+	GF_Err e;
+
+	if (!read->mem_url) {
+		char szPath[200];
+		sprintf(szPath, "gmem://%p", &read->mem_blob);
+		read->mem_url = gf_strdup(szPath);
+	}
+	read->mem_blob.data = gf_realloc(read->mem_blob.data, read->mem_blob.size + data_size);
+	memcpy(read->mem_blob.data + read->mem_blob.size, pck_data, data_size);
+	read->mem_blob.size += data_size;
+
+	if (read->mem_load_mode==1) {
+		u32 box_type;
+		e = gf_isom_open_progressive_ex(read->mem_url, 0, 0, GF_FALSE, &read->mov, &bytes_missing, &box_type);
+
+		if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
+			gf_filter_setup_failure(filter, e);
+			read->mem_load_mode = 0;
+			read->in_error = e;
+			return;
+		}
+		if (!read->mov) {
+			switch (box_type) {
+			case GF_4CC('m','d','a','t'):
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] non fragmented ISOBMFF with moof after mdat and no underlying file cache (pipe or other stream input), not supported !\n"));
+				gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
+				read->mem_load_mode = 0;
+				read->in_error = GF_NOT_SUPPORTED;
+				break;
+			default:
+				read->moov_not_loaded = GF_TRUE;
+				break;
+			}
+			return;
+		}
+
+		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
+		read->time_scale = gf_isom_get_timescale(read->mov);
+		isor_declare_objects(read);
+		read->mem_load_mode = 2;
+		read->moov_not_loaded = GF_FALSE;
+		return;
+	}
+	//refresh file
+	gf_isom_refresh_fragmented(read->mov, &bytes_missing, read->mem_url);
+}
+
+static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
+{
+	u32 i, count;
+	u64 top_offset;
+	u32 nb_bytes_to_purge;
+	u64 bytes_missing;
+
+	//purge every
+	if (read->mstore_purge && (min_offset - read->last_min_offset < read->mstore_purge))
+		return;
+
+	if (read->frag_type) {
+		//get position of current box being parsed - if new offset is greater than this box we cannot remove
+		//bytes (we would trash the top-level box header)
+		gf_isom_get_current_top_box_offset(read->mov, &top_offset);
+		if (top_offset<min_offset) {
+			return;
+		}
+	}
+	read->last_min_offset = min_offset;
+
+	assert(min_offset>=read->bytes_removed);
+	//min_offset is given in absolute file position
+	nb_bytes_to_purge = min_offset - read->bytes_removed;
+	assert(nb_bytes_to_purge<=read->mem_blob.size);
+
+	memmove(read->mem_blob.data, read->mem_blob.data+nb_bytes_to_purge, read->mem_blob.size - nb_bytes_to_purge);
+	read->mem_blob.size -= nb_bytes_to_purge;
+	read->bytes_removed += nb_bytes_to_purge;
+	gf_isom_set_removed_bytes(read->mov, read->bytes_removed);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d bytes in mem, "LLU" bytes trashed since start\n", read->mem_blob.size, read->bytes_removed));
+
+	//force a refresh
+	gf_isom_refresh_fragmented(read->mov, &bytes_missing, read->mem_url);
+
+	if (!read->frag_type)
+		return;
+
+	//fragmented file, cleanup sample tables
+	count = gf_list_count(read->channels);
+	for (i=0; i<count; i++) {
+		ISOMChannel *ch = gf_list_get(read->channels, i);
+		u32 num_samples, prev_samples = gf_isom_get_sample_count(read->mov, ch->track);
+		//don't run this too often
+		if (ch->sample_num<=1+read->mstore_samples) continue;
+
+		if (gf_isom_purge_samples(read->mov, ch->track, ch->sample_num-1) == GF_OK)
+			ch->sample_num = 1;
+
+		num_samples = gf_isom_get_sample_count(read->mov, ch->track);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d samples now in track %d (prev %d)\n", num_samples, ch->track_id, prev_samples));
+	}
+}
+
 static GF_Err isoffin_process(GF_Filter *filter)
 {
 	ISOMReader *read = gf_filter_get_udta(filter);
@@ -883,9 +972,20 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	Bool is_active = GF_FALSE;
 	Bool in_is_eos = GF_FALSE;
 	Bool has_new_data = GF_FALSE;
+	u64 min_offset_plus_one = 0;
+
+	if (read->in_error)
+		return read->in_error;
 
 	if (read->pid) {
-		while (1) {
+		Bool fetch_input = GF_TRUE;
+		if (read->mem_load_mode==2) {
+			if (!read->force_fetch && read->mem_blob.size > read->mstore_size) {
+				fetch_input = GF_FALSE;
+			}
+			read->force_fetch = GF_FALSE;
+		}
+		while (fetch_input) {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(read->pid);
 			if (!pck) {
 				//we issued a seek, wait for the first packet to be received before fetching channels
@@ -899,8 +999,16 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				break;
 			}
 			read->wait_for_source = GF_FALSE;
+
+			if (read->mem_load_mode) {
+				u32 data_size;
+				const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);
+				isoffin_push_buffer(filter, read, pck_data, data_size);
+			}
 			gf_filter_pid_drop_packet(read->pid);
 			has_new_data = GF_TRUE;
+			if (read->in_error)
+				return read->in_error;
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
 			in_is_eos = GF_TRUE;
@@ -911,6 +1019,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		read->input_loaded = GF_TRUE;
 	}
 	if (read->moov_not_loaded) {
+		if (read->mem_load_mode)
+			return GF_OK;
 		read->moov_not_loaded = GF_FALSE;
 		return isoffin_setup(filter, read);
 	}
@@ -975,6 +1085,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		is_active = GF_TRUE;
 
 		while (nb_pck) {
+			ch->sample_data_offset = 0;
 			if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )
 				break;
 
@@ -1088,6 +1199,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pid_set_eos(ch->pid);
 					read->eos_signaled = GF_TRUE;
 				}
+				ch->last_valid_sample_data_offset = ch->sample_data_offset;
 				nb_pck--;
 			} else if (ch->last_state==GF_EOS) {
 				if (in_is_eos && (ch->play_state==1)) {
@@ -1098,10 +1210,17 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			} else {
+				read->force_fetch = GF_TRUE;
 				break;
 			}
 		}
+		if (!min_offset_plus_one || (min_offset_plus_one - 1 > ch->last_valid_sample_data_offset))
+			min_offset_plus_one = 1 + ch->last_valid_sample_data_offset;
 	}
+	if (read->mem_load_mode && min_offset_plus_one) {
+		isoffin_purge_mem(read, min_offset_plus_one-1);
+	}
+
 	if (!is_active)
 		return GF_EOS;
 	if (in_is_eos) gf_filter_ask_rt_reschedule(filter, 100);
@@ -1146,6 +1265,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(catseg), "append the given segment to the movie at init time (only local file supported)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(nocrypt), "signal encrypted tracks as non encrypted (mostly used for export)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mstore_size), "target buffer size in bytes", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream (pipe etc...), 0 means purge as sonn as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
