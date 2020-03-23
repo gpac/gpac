@@ -2188,6 +2188,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
 				u32 size;
 				GF_BitStream *iod_bs;
+				if (len<2)
+					break;
 				iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);
 				if (pmt->program->pmt_iod) {
 					gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
@@ -2249,7 +2251,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	}
 
 	nb_hevc = nb_hevc_temp = nb_shvc = nb_shvc_temp = nb_mhvc = nb_mhvc_temp = 0;
-	while (pos<data_size-5) {
+	while (data_size>4 && pos<data_size-5) {
 		GF_M2TS_PES *pes = NULL;
 		GF_M2TS_SECTION_ES *ses = NULL;
 		GF_M2TS_ES *es = NULL;
@@ -2522,7 +2524,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			}
 			desc_len-=len+2;
 		}
-
 		if (es && !es->stream_type) {
 			gf_free(es);
 			es = NULL;
@@ -2569,14 +2570,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if (!(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 
 			nb_es++;
-		}
 
-		if (es->stream_type == GF_M2TS_VIDEO_HEVC) nb_hevc++;
-		else if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) nb_hevc_temp++;
-		else if (es->stream_type == GF_M2TS_VIDEO_SHVC) nb_shvc++;
-		else if (es->stream_type == GF_M2TS_VIDEO_SHVC_TEMPORAL) nb_shvc_temp++;
-		else if (es->stream_type == GF_M2TS_VIDEO_MHVC) nb_mhvc++;
-		else if (es->stream_type == GF_M2TS_VIDEO_MHVC_TEMPORAL) nb_mhvc_temp++;
+			if (es->stream_type == GF_M2TS_VIDEO_HEVC) nb_hevc++;
+			else if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) nb_hevc_temp++;
+			else if (es->stream_type == GF_M2TS_VIDEO_SHVC) nb_shvc++;
+			else if (es->stream_type == GF_M2TS_VIDEO_SHVC_TEMPORAL) nb_shvc_temp++;
+			else if (es->stream_type == GF_M2TS_VIDEO_MHVC) nb_mhvc++;
+			else if (es->stream_type == GF_M2TS_VIDEO_MHVC_TEMPORAL) nb_mhvc_temp++;
+		}
 	}
 
 	//Table 2-139, implied hierarchy indexes
@@ -3879,6 +3880,12 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	while (gf_list_count(ts->programs)) {
 		GF_M2TS_Program *p = (GF_M2TS_Program *)gf_list_last(ts->programs);
 		gf_list_rem_last(ts->programs);
+
+		while (gf_list_count(p->streams)) {
+			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_last(p->streams);
+			gf_list_rem_last(p->streams);
+			gf_free(es);
+		}
 		gf_list_del(p->streams);
 		/*reset OD list*/
 		if (p->additional_ods) {
