@@ -457,6 +457,7 @@ enum
 
 	/* apple QT box */
 	GF_QT_BOX_TYPE_ALIS = GF_4CC('a','l','i','s'),
+	GF_QT_BOX_TYPE_LOAD = GF_4CC('l','o','a','d'),
 	GF_QT_BOX_TYPE_WIDE = GF_4CC('w','i','d','e'),
 	GF_QT_BOX_TYPE_GMIN	= GF_4CC( 'g', 'm', 'i', 'n' ),
 	GF_QT_BOX_TYPE_TAPT	= GF_4CC( 't', 'a', 'p', 't' ),
@@ -1123,6 +1124,18 @@ typedef struct
     u8 *ext_data;
     u32 ext_data_size;
 } GF_ChannelLayoutInfoBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+    u32 preload_start_time;
+    u32 preload_duration;
+    u32 preload_flags;
+    u32 default_hints;
+} GF_TrackLoadBox;
+
 
 typedef struct
 {

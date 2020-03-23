@@ -891,4 +891,53 @@ GF_Err chan_Size(GF_Box *s)
 
 
 
+void load_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+
+GF_Err load_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TrackLoadBox *ptr = (GF_TrackLoadBox *)s;
+	ISOM_DECREASE_SIZE(s, 16);
+	ptr->preload_start_time = gf_bs_read_u32(bs);
+	ptr->preload_duration = gf_bs_read_u32(bs);
+	ptr->preload_flags = gf_bs_read_u32(bs);
+	ptr->default_hints = gf_bs_read_u32(bs);
+	return GF_OK;
+}
+
+GF_Box *load_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrackLoadBox, GF_QT_BOX_TYPE_LOAD);
+	return (GF_Box *)tmp;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err load_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TrackLoadBox *ptr = (GF_TrackLoadBox *)s;
+
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	
+	gf_bs_write_u32(bs, ptr->preload_start_time);
+	gf_bs_write_u32(bs, ptr->preload_duration);
+	gf_bs_write_u32(bs, ptr->preload_flags);
+	gf_bs_write_u32(bs, ptr->default_hints);
+	return GF_OK;
+}
+
+GF_Err load_Size(GF_Box *s)
+{
+	s->size += 16;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
 #endif /*GPAC_DISABLE_ISOM*/
