@@ -5671,8 +5671,9 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 GF_EXPORT
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
-	if (evt && (evt->base.type==GF_FEVT_RESET_SCENE))
-		return;
+	if (!evt) return;
+	if (evt->base.type==GF_FEVT_RESET_SCENE) return;
+	if (evt->base.type==GF_FEVT_INFO_UPDATE) return;
 
 	gf_filter_pid_send_event_internal(pid, evt, GF_FALSE);
 }
