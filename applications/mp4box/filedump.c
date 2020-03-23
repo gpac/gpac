@@ -1193,15 +1193,13 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 			} else {
 				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				{
-					Bool is_encrypted = 0;
-					if (is_cenc_protected) {
-						GF_Err e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
-						assert(!e);
-					}
-
-					gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, is_encrypted);
+				Bool is_encrypted = 0;
+				if (is_cenc_protected) {
+					GF_Err e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
+					assert(!e);
 				}
+
+				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, is_encrypted);
 #endif
 				fprintf(dump, "/>\n");
 			}

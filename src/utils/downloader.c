@@ -2708,7 +2708,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	GF_NETIO_Parameter par;
 	Bool no_cache = GF_FALSE;
 	char range_buf[1024];
-	char pass_buf[1100];
+	char pass_buf[1124];
 	const char *user_agent;
 	const char *url;
 	const char *user_profile;
@@ -3160,7 +3160,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	sess->last_chunk_found = GF_FALSE;
 //	gf_sk_reset(sess->sock);
 	sHTTP[0] = 0;
-	
+
 	while (1) {
 		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 		switch (e) {

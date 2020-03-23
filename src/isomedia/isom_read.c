@@ -4523,7 +4523,7 @@ exit:
 			}
 			assert(senc->IV_size);
 			if (IV_size) *IV_size = senc->IV_size;
-			if (IsEncrypted) *IsEncrypted = 1;
+			if (IsEncrypted) *IsEncrypted = GF_TRUE;
 		}
 	}
 
