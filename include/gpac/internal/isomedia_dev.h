@@ -1120,6 +1120,8 @@ typedef struct
     u32 bitmap;
     u32 num_audio_description;
     GF_AudioChannelDescription *audio_descs;
+    u8 *ext_data;
+    u32 ext_data_size;
 } GF_ChannelLayoutInfoBox;
 
 typedef struct
