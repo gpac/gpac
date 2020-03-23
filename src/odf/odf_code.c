@@ -2423,6 +2423,7 @@ GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize
 	/*IPMPX escape*/
 	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
 		ipmp->IPMP_DescriptorIDEx = gf_bs_read_int(bs, 16);
+		if (gf_bs_available(bs) < 16) return GF_ODF_INVALID_DESCRIPTOR;
 		gf_bs_read_data(bs, (char*)ipmp->IPMP_ToolID, 16);
 		ipmp->control_point = gf_bs_read_int(bs, 8);
 		nbBytes += 19;
