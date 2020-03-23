@@ -1939,6 +1939,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 static void gf_filter_process_task(GF_FSTask *task)
 {
 	GF_Err e;
+	Bool skip_block_mode = GF_FALSE;
 	GF_Filter *filter = task->filter;
 	Bool force_block_state_check=GF_FALSE;
 	assert(task->filter);
@@ -1971,8 +1972,11 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 
+	if (filter->prevent_blocking) skip_block_mode = GF_TRUE;
+	else if (filter->session->in_final_flush) skip_block_mode = GF_TRUE;
+
 	//blocking filter: remove filter process task - task will be reinserted upon unblock()
-	if (!filter->prevent_blocking && filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids ) ) {
+	if (!skip_block_mode && filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids ) ) {
 		gf_mx_p(task->filter->tasks_mx);
 		//it may happen that by the time we get the lock, the filter has been unblocked by another thread. If so, don't skip task
 		if (filter->would_block) {
@@ -2278,6 +2282,9 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s request for real-time reschedule but filter is not in process\n", filter->name));
 		return;
 	}
+	if (filter->session->in_final_flush)
+		us_until_next = 0;
+
 	//if the filter requests rescheduling, consider it is in a valid state and increment pck IOs to avoid flagging it as broken
 	filter->nb_pck_io++;
 	if (!us_until_next) {
