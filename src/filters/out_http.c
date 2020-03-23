@@ -168,6 +168,11 @@ typedef struct __httpout_session
 
 static void httpout_reset_socket(GF_HTTPOutSession *sess)
 {
+	if (!sess->socket) return;
+
+	assert(sess->ctx->nb_connections);
+	sess->ctx->nb_connections--;
+
 	gf_sk_group_unregister(sess->ctx->sg, sess->socket);
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
@@ -175,12 +180,9 @@ static void httpout_reset_socket(GF_HTTPOutSession *sess)
 		sess->ssl = NULL;
 	}
 #endif
-	if (sess->socket) {
-		gf_sk_del(sess->socket);
-		sess->socket = NULL;
-	}
+	gf_sk_del(sess->socket);
+	sess->socket = NULL;
 	if (sess->in_source) sess->in_source->nb_dest--;
-	sess->ctx->nb_connections--;
 }
 
 static void httpout_insert_date(u64 time, char **headers, Bool for_listing)
@@ -1580,6 +1582,9 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 
 	gf_sk_server_mode(ctx->server_sock, GF_TRUE);
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Server running on port %d\n", ctx->port));
+	if (ctx->reqlog) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Server running on port %d\n", ctx->port));
+	}
 	gf_filter_post_process_task(filter);
 	return GF_OK;
 }
@@ -1720,18 +1725,23 @@ static void httpout_check_connection(GF_HTTPOutSession *sess)
 static void log_request_done(GF_HTTPOutSession *sess)
 {
 	if (!sess->do_log) return;
-	char *unit = "bps";
-	u64 diff_us = (gf_sys_clock_high_res() - sess->req_start_time);
-	Double bps = sess->nb_bytes * 8000000;
-	bps /= diff_us;
-	if (bps>1000000) {
-		unit = "mbps";
-		bps/=1000000;
-	} else if (bps>1000) {
-		unit = "kbps";
-		bps/=1000;
+
+	if (!sess->socket) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s aborted!\n", sess->req_id, get_method_name(sess->method_type)));
+	} else {
+		char *unit = "bps";
+		u64 diff_us = (gf_sys_clock_high_res() - sess->req_start_time);
+		Double bps = sess->nb_bytes * 8000000;
+		bps /= diff_us;
+		if (bps>1000000) {
+			unit = "mbps";
+			bps/=1000000;
+		} else if (bps>1000) {
+			unit = "kbps";
+			bps/=1000;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s done: reply %d - %d bytes in %d ms at %g %s\n", sess->req_id, get_method_name(sess->method_type), sess->reply_code, sess->nb_bytes, (u32) (diff_us/1000), bps, unit));
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s done: reply %d - %d bytes in %d ms at %g %s\n", sess->req_id, get_method_name(sess->method_type), sess->reply_code, sess->nb_bytes, (u32) (diff_us/1000), bps, unit));
 }
 
 static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HTTPOutSession *sess)
@@ -1778,6 +1788,8 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			sess->done = GF_TRUE;
 			sess->upload_type = 0;
 			httpout_reset_socket(sess);
+			log_request_done(sess);
+			return;
 		}
 		//done (error or end of upload)
 		if (sess->opid) {
@@ -1885,6 +1897,8 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (e==GF_IP_CONNECTION_CLOSED) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Connection to %s closed\n", sess->peer_address));
 			httpout_reset_socket(sess);
+			if (!sess->done)
+				log_request_done(sess);
 			return;
 		}
 
@@ -1979,6 +1993,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Connection to %s for %s closed\n", sess->peer_address, sess->path));
 				sess->done = GF_TRUE;
 				httpout_reset_socket(sess);
+				log_request_done(sess);
 				return;
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s for %s: %s\n", sess->peer_address, sess->path, gf_error_to_string(e) ));
@@ -2359,7 +2374,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		}
 
 		//no destination and holding for first connect, don't drop
-		if (!in->nb_dest) {
+		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest) {
 			//not holding packets (either first connection not here or disbaled), trash packet
 			if (!in->hold)
 				gf_filter_pid_drop_packet(in->ipid);
