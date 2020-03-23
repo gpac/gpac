@@ -3863,11 +3863,13 @@ void audio_sample_entry_del(GF_Box *s)
 	if (ptr == NULL) return;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 
-	if (ptr->esd && (ptr->is_qtff!=2))
-		gf_isom_box_del((GF_Box *)ptr->esd);
+	if (ptr->is_qtff!=2) {
+		if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
+		if (ptr->cfg_opus) gf_isom_box_del((GF_Box *)ptr->cfg_opus);
+		if (ptr->cfg_ac3) gf_isom_box_del((GF_Box *)ptr->cfg_ac3);
+		if (ptr->cfg_mha) gf_isom_box_del((GF_Box *)ptr->cfg_mha);
+	}
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
-	if (ptr->cfg_opus) gf_isom_box_del((GF_Box *)ptr->cfg_opus);
-	if (ptr->cfg_ac3) gf_isom_box_del((GF_Box *)ptr->cfg_ac3);
 	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
 	gf_free(ptr);
 }
@@ -3954,16 +3956,40 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 		}
 		return gf_isom_box_add_default(s, a);
 	case GF_QT_BOX_TYPE_WAVE:
+	{
+		u32 subtype = 0;
+		GF_Box **cfg_ptr = NULL;
 		if (s->type == GF_ISOM_BOX_TYPE_MP4A) {
-			if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			cfg_ptr = (GF_Box **) &ptr->esd;
+			subtype = GF_ISOM_BOX_TYPE_ESDS;
+		}
+		else if (s->type == GF_ISOM_BOX_TYPE_AC3) {
+			cfg_ptr = (GF_Box **) &ptr->cfg_ac3;
+			subtype = GF_ISOM_BOX_TYPE_DAC3;
+		}
+		else if (s->type == GF_ISOM_BOX_TYPE_EC3) {
+			cfg_ptr = (GF_Box **) &ptr->cfg_ac3;
+			subtype = GF_ISOM_BOX_TYPE_DEC3;
+		}
+		else if (s->type == GF_ISOM_BOX_TYPE_OPUS) {
+			cfg_ptr = (GF_Box **) &ptr->cfg_opus;
+			subtype = GF_ISOM_BOX_TYPE_DOPS;
+		}
+		else if ((s->type == GF_ISOM_BOX_TYPE_MHA1) || (s->type == GF_ISOM_BOX_TYPE_MHA2)) {
+			cfg_ptr = (GF_Box **) &ptr->cfg_mha;
+			subtype = GF_ISOM_BOX_TYPE_MHAC;
+		}
+
+		if (cfg_ptr) {
+			if (*cfg_ptr) ERROR_ON_DUPLICATED_BOX(a, ptr)
 
 			//wave subboxes may have been properly parsed
  			if (gf_list_count(a->other_boxes)) {
  				u32 i;
                 for (i =0; i<gf_list_count(a->other_boxes); i++) {
                     GF_Box *inner_box = (GF_Box *)gf_list_get(a->other_boxes, i);
-                    if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
-                        ptr->esd = (GF_ESDBox *)inner_box;
+                    if (inner_box->type == subtype) {
+						*cfg_ptr = inner_box;
  						if (ptr->is_qtff & 1<<16) {
                         	gf_list_rem(a->other_boxes, i);
                         	drop_wave=GF_TRUE;
@@ -3980,6 +4006,7 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
                 return gf_isom_box_add_default(s, a);
             }
 		}
+	}
  		ptr->is_qtff = 2;
 		return gf_isom_box_add_default(s, a);
 	default:

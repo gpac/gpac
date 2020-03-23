@@ -1067,7 +1067,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHA2, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM1, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM2, audio_sample_entry, "stsd", "mpegh3Daudio"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHAC, mhac, "mha1 mha2 mhm1 mhm2", "mpegh3Daudio"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHAC, mhac, "mha1 mha2 mhm1 mhm2 wave", "mpegh3Daudio"),
 
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),
@@ -1083,7 +1083,7 @@ static struct box_registry_entry {
 	//Opus in ISOBMFF boxes
 #ifndef GPAC_DISABLE_OGG
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_OPUS, audio_sample_entry, "stsd", "Opus"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DOPS, dOps, "Opus", "Opus"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DOPS, dOps, "Opus wave", "Opus"),
 #endif
 
 	//part20 boxes
@@ -1262,8 +1262,8 @@ static struct box_registry_entry {
 	//dolby boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3", "dolby"),
-	{GF_ISOM_BOX_TYPE_DEC3, dec3_New, dac3_del, dac3_Read, dac3_Write, dac3_Size, dac3_dump, 0, 0, 0, "ec-3 enca", "dolby" },
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3 wave", "dolby"),
+	{GF_ISOM_BOX_TYPE_DEC3, dec3_New, dac3_del, dac3_Read, dac3_Write, dac3_Size, dac3_dump, 0, 0, 0, "ec-3 wave enca", "dolby" },
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVCC, dvcC, "dvhe dvav dva1 dvh1 avc1 avc2 avc3 avc4 hev1 encv resv", "DolbyVision"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVHE, video_sample_entry, "stsd", "DolbyVision"),
 
