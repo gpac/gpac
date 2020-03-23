@@ -821,6 +821,7 @@ void chan_box_del(GF_Box *s)
 {
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
 	if (ptr->audio_descs) gf_free(ptr->audio_descs);
+	if (ptr->ext_data) gf_free(ptr->ext_data);
 	gf_free(s);
 }
 
@@ -851,6 +852,13 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size==20) {
 		ptr->size=0;
 		gf_bs_skip_bytes(bs, 20);
+	}
+	if (ptr->size<10000) {
+		ptr->ext_data_size = ptr->size;
+		ptr->ext_data = gf_malloc(sizeof(u8)*ptr->size);
+		if (!ptr->ext_data) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, (char *)ptr->ext_data, ptr->size);
+		ptr->size = 0;
 	}
 	return GF_OK;
 }
@@ -885,7 +893,9 @@ GF_Err chan_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_float(bs, adesc->coordinates[1]);
 		gf_bs_write_float(bs, adesc->coordinates[2]);
 	}
-
+	if (ptr->ext_data) {
+		gf_bs_write_data(bs, ptr->ext_data, ptr->ext_data_size);
+	}
 	return GF_OK;
 }
 
@@ -893,11 +903,63 @@ GF_Err chan_box_size(GF_Box *s)
 {
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
 	s->size += 12 + 20 * ptr->num_audio_description;
+	if (ptr->ext_data) {
+		s->size += ptr->ext_data_size;
+	}
 	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+
+void load_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+
+GF_Err load_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TrackLoadBox *ptr = (GF_TrackLoadBox *)s;
+	ISOM_DECREASE_SIZE(s, 16);
+	ptr->preload_start_time = gf_bs_read_u32(bs);
+	ptr->preload_duration = gf_bs_read_u32(bs);
+	ptr->preload_flags = gf_bs_read_u32(bs);
+	ptr->default_hints = gf_bs_read_u32(bs);
+	return GF_OK;
+}
+
+GF_Box *load_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrackLoadBox, GF_QT_BOX_TYPE_LOAD);
+	return (GF_Box *)tmp;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err load_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TrackLoadBox *ptr = (GF_TrackLoadBox *)s;
+
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	
+	gf_bs_write_u32(bs, ptr->preload_start_time);
+	gf_bs_write_u32(bs, ptr->preload_duration);
+	gf_bs_write_u32(bs, ptr->preload_flags);
+	gf_bs_write_u32(bs, ptr->default_hints);
+	return GF_OK;
+}
+
+GF_Err load_box_size(GF_Box *s)
+{
+	s->size += 16;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 #endif /*GPAC_DISABLE_ISOM*/

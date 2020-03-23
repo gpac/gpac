@@ -462,7 +462,7 @@ void PrintImportUsage()
 		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
 		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
 		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
-		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2)\n"
+		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks\n"
 		"- :audio_roll=N: add a roll sample group with roll_distance `N`\n"
 		"- :mpeg4: `*` same as [-mpeg4]() option\n"
 		"- :nosei: discard all SEI messages during import\n"

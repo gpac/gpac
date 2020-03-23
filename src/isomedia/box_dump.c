@@ -5677,4 +5677,15 @@ GF_Err chnl_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err load_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_TrackLoadBox *p = (GF_TrackLoadBox *) a;
+
+	gf_isom_box_dump_start(a, "TrackLoadBox", trace);
+	fprintf(trace, "preload_start_time=\"%d\" preload_duration=\"%d\" preload_flags=\"%d\" default_hints=\"%d\">\n", p->preload_start_time, p->preload_duration, p->preload_flags, p->default_hints);
+	gf_isom_box_dump_done("TrackLoadBox", a, trace);
+	return GF_OK;
+}
+
+
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
