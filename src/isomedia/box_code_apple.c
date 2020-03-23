@@ -175,6 +175,7 @@ GF_Err ilst_item_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
+	if (!ptr->data) return GF_BAD_PARAM;
 
 	/*iTune way*/
 	if (ptr->data->type) return gf_isom_box_write((GF_Box* )ptr->data, bs);
