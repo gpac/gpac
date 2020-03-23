@@ -2134,7 +2134,10 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 		if (! description) return GF_OUT_OF_MEM;
 		description->text = NULL;
 		e = OD_ReadUTF8String(bs, & description->text, etd->isUTF8, &len);
-		if (e) return e;
+		if (e) {
+			gf_free(description);
+			return e;
+		}
 		e = gf_list_add(etd->itemDescriptionList, description);
 		if (e) return e;
 		nbBytes += len;

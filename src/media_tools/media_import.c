@@ -2267,7 +2267,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		char szT[5];
 		mstype = gf_isom_get_mpeg4_subtype(import->orig, track_in, di);
 		if (!mstype) mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
-		strcpy(szT, gf_4cc_to_str(mtype));
+		strncpy(szT, gf_4cc_to_str(mtype), 4);
+		szT[4] = 0;
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - media type \"%s:%s\"", orig_name, trackID, szT, gf_4cc_to_str(mstype));
 	}
 	break;
