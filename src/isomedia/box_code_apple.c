@@ -799,6 +799,7 @@ void chan_del(GF_Box *s)
 {
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
 	if (ptr->audio_descs) gf_free(ptr->audio_descs);
+	if (ptr->ext_data) gf_free(ptr->ext_data);
 	gf_free(s);
 }
 
@@ -829,6 +830,13 @@ GF_Err chan_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size==20) {
 		ptr->size=0;
 		gf_bs_skip_bytes(bs, 20);
+	}
+	if (ptr->size<10000) {
+		ptr->ext_data_size = ptr->size;
+		ptr->ext_data = gf_malloc(sizeof(u8)*ptr->size);
+		if (!ptr->ext_data) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, (char *)ptr->ext_data, ptr->size);
+		ptr->size = 0;
 	}
 	return GF_OK;
 }
@@ -863,7 +871,9 @@ GF_Err chan_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_float(bs, adesc->coordinates[1]);
 		gf_bs_write_float(bs, adesc->coordinates[2]);
 	}
-
+	if (ptr->ext_data) {
+		gf_bs_write_data(bs, ptr->ext_data, ptr->ext_data_size);
+	}
 	return GF_OK;
 }
 
@@ -871,6 +881,9 @@ GF_Err chan_Size(GF_Box *s)
 {
 	GF_ChannelLayoutInfoBox *ptr = (GF_ChannelLayoutInfoBox *)s;
 	s->size += 12 + 20 * ptr->num_audio_description;
+	if (ptr->ext_data) {
+		s->size += ptr->ext_data_size;
+	}
 	return GF_OK;
 }
 
