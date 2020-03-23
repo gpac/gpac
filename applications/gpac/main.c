@@ -36,6 +36,7 @@ static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
+Bool runfor_exit = GF_FALSE;
 Bool enable_prompt = GF_FALSE;
 u32 enable_reports = 0;
 char *report_filter = NULL;
@@ -536,6 +537,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("sloop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("runforx", NULL, "run for the given amount of milliseconds and exit with no cleanup", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("stats", NULL, "print stats after execution", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", NULL, "print graph after execution", NULL, NULL, GF_ARG_BOOL, 0),
@@ -987,6 +989,9 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		u64 now = gf_sys_clock_high_res();
 		if (!run_start_time) run_start_time = now;
 		else if (now - run_start_time > runfor) {
+			if (runfor_exit)
+				exit(0);
+
 			gf_fs_abort(fsess, GF_TRUE);
 			nb_loops = 0;
 			return GF_FALSE;
@@ -1726,6 +1731,9 @@ static int gpac_main(int argc, char **argv)
 			if (arg_val) nb_loops = atoi(arg_val);
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*atoi(arg_val);
+		} else if (!strcmp(arg, "-runforx")) {
+			if (arg_val) runfor = 1000*atoi(arg_val);
+			runfor_exit = GF_TRUE;
 		} else if (!strcmp(arg, "-uncache")) {
 			const char *cache_dir = gf_opts_get_key("core", "cache");
 			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, ".txt");
