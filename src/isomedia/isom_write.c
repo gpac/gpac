@@ -3228,6 +3228,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		}
 	}
 
+	if (!new_tk->Media->information->dataInformation->dref) return GF_BAD_PARAM;
+
 	/*reset data ref*/
 	if (! (flags & GF_ISOM_CLONE_TRACK_KEEP_DREF) ) {
 		Bool use_alis = GF_FALSE;

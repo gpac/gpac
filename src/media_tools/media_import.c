@@ -2176,7 +2176,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		ps = GF_FALSE;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
 #ifndef GPAC_DISABLE_AV_PARSERS
-        if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4)) {
+        if (origin_esd && origin_esd->decoderConfig && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4)) {
             if (origin_esd->decoderConfig->decoderSpecificInfo) {
                 GF_M4ADecSpecInfo dsi;
                 gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);

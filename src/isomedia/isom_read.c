@@ -643,7 +643,7 @@ u32 gf_isom_get_track_id(GF_ISOFile *movie, u32 trackNumber)
 	GF_TrackBox *trak;
 	if (!movie) return 0;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return 0;
+	if (!trak || !trak->Header) return 0;
 	return trak->Header->trackID;
 }
 
@@ -660,7 +660,7 @@ u32 gf_isom_get_track_by_id(GF_ISOFile *the_file, u32 trackID)
 	if (!count) return 0;
 	for (i = 0; i < count; i++) {
 		trak = gf_isom_get_track_from_file(the_file, i+1);
-		if (!trak) return 0;
+		if (!trak || !trak->Header) return 0;
 		if (trak->Header->trackID == trackID) return i+1;
 	}
 	return 0;
@@ -891,7 +891,7 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **
 	}
 	*lang = NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
 	count = gf_list_count(trak->Media->other_boxes);
 	if (count>0) {
 		u32 i;
