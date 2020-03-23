@@ -3230,13 +3230,19 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 
 	/*reset data ref*/
 	if (! (flags & GF_ISOM_CLONE_TRACK_KEEP_DREF) ) {
+		Bool use_alis = GF_FALSE;
+		if (! (flags & GF_ISOM_CLONE_TRACK_NO_QT)) {
+			GF_Box *b = gf_list_get(new_tk->Media->information->dataInformation->dref->other_boxes, 0);
+			if (b && b->type==GF_QT_BOX_TYPE_ALIS)
+				use_alis = GF_TRUE;
+		}
 		gf_isom_box_array_del(new_tk->Media->information->dataInformation->dref->other_boxes);
 		new_tk->Media->information->dataInformation->dref->other_boxes = gf_list_new();
 		/*update data ref*/
 		entry = (GF_SampleEntryBox*)gf_list_get(new_tk->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 		if (entry) {
 			u32 dref;
-			Media_CreateDataRef(dest_file, new_tk->Media->information->dataInformation->dref, NULL, NULL, &dref);
+			Media_CreateDataRef(dest_file, new_tk->Media->information->dataInformation->dref, use_alis ?  "alis" : NULL, NULL, &dref);
 			entry->dataReferenceIndex = dref;
 		}
 	} else {
