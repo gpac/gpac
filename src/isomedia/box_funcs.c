@@ -729,6 +729,8 @@ ISOM_BOX_IMPL_DECL(mhac)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
+ISOM_BOX_IMPL_DECL(load)
+
 
 /* Dolby Vision */
 ISOM_BOX_IMPL_DECL(dvcC)
@@ -1214,6 +1216,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_COVR, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_GMHD, def_cont_box, "minf", "apple"),
+	BOX_DEFINE_S(GF_QT_BOX_TYPE_LOAD, load, "trak", "apple"),
 	BOX_DEFINE_S(GF_QT_BOX_TYPE_TAPT, def_cont_box, "trak", "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_GMIN, gmin, "gmhd", 0, "apple"),
 	FBOX_DEFINE_FLAGS_S( GF_QT_BOX_TYPE_ALIS, alis, "dref", 0, 1, "apple"),
