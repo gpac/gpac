@@ -503,7 +503,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (bs->size > 0xFFFFFFFF) return;
 			bs->size = bs->size ? (bs->size * 2) : BS_MEM_BLOCK_ALLOC_SIZE;
 			bs->original = (char*)gf_realloc(bs->original, (u32)bs->size);
-			if (!bs->original) return;	
+			if (!bs->original) return;
 		}
 		if (bs->original)
 			bs->original[bs->position] = val;
@@ -1035,10 +1035,12 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 	default:
 		if (bs->buffer_io)
 			bs_flush_cache(bs);
-		offset = gf_ftell(bs->stream);
-		gf_fseek(bs->stream, 0, SEEK_END);
-		bs->size = gf_ftell(bs->stream);
-		gf_fseek(bs->stream, offset, SEEK_SET);
+		if (bs->stream) {
+			offset = gf_ftell(bs->stream);
+			gf_fseek(bs->stream, 0, SEEK_END);
+			bs->size = gf_ftell(bs->stream);
+			gf_fseek(bs->stream, offset, SEEK_SET);
+		}
 		return bs->size;
 	}
 }

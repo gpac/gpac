@@ -676,5 +676,3 @@ u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLen
 #endif
 
 #endif /*GPAC_DISABLE_ISOM*/
-
-
