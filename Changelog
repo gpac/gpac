@@ -1,3 +1,104 @@
+27/06/2019: GPAC 0.8.0
+ - General
+    * Many security fixes (static compile and fuzzing through AFL, always ongoing).
+    * Many bugs fixes
+    * Added :ncl option in log levels to disable color logs
+    * More tests and coverage
+ - File Formats
+    * Better support of QTFF / ProRes files
+    * Support for AV1
+       - import and export
+       - source formats: OBUs (Section 5), IVF and AnnexB
+       - AV1 in HEIF
+    * Support for color (nclc, nclx and ICC profiles) in HEIF and ISOBMFF
+    * Support for HDR (mdcv, clli) info in HEIF and ISOBMFF
+    * Support for alpha in HEIF
+    * Support for enforcing pasp presence even for 1:1 ratios
+    * HEVC temporal sublayer split in MP4Box
+    * Allow meta storage before mdat for meta-only files (heif and co)
+    * Added option to keep AU delimiter in isobmff samples
+    * Support for opus import
+    * Support for pixi and ccst in HEIF
+    * DolbyVision 'dvcC' and partial 'dvhe' boxes for HDR
+    * Support for VP9 import and playback
+    * Sample dependency in avc and hevc importers, and track thinner for non-refs images
+    * Support for audio_roll signaling
+    * New audio import mode to control AudioSampleEntry creation (v0, v1 ISOBMFF, v1 QTFF)
+    * xHE-AAC import with detection of sync samples
+    * Added support for MPEG-H 3D audio boxes (no import yet)
+    * Handle Vobsub empty SPU packets
+    * Added auxv and pict support
+ - Common Encryption
+    * Fully compliant CENC supporting cenc, cens, cbc1 and cbcs
+    * CENC for AV1
+    * Improved DASH+CENC support, pssh in MPD
+    * ForceClear mode for CENC to skip encryption without sample groups
+    * Made senc in movie fragments always stored before truns
+    * Added default values handling for cbcs and possibility to set protection system per track
+    * Compatibility with OpenSSL 1.1.x
+ - Streaming and Adaptive Streaming
+    * Support for ATSC3.0 both US and Korean versions !
+    * Support for for live splices (xlink period insertions) in DASH client
+    * Automatic period continuity in DASH when no codec change between periods
+    * Added DASH cue-base segmentation (XML based) and -dsap option to generate cue files from source
+    * Support for BBA-0 and BOLA implementations
+    * Write fragment defaults in trex even when not using them
+    * Support for simple ssix for keyframe data byterange at the start of a segment
+    * Moved segment template at AdaptationSet level if only one representation
+    * Changed default bsmode in dasher if single input file
+    * Added init-seg-ext option
+    * Added -mvex-after-traks option to MP4Box when dashing for CMAF
+    * Added segmentation option to insert a tfdt per traf
+    * Added -closest mode for DASH segmentation
+    * Added -bound option to use audio segmenting method for video
+    * Renamed -dash-run-for to -run-for
+    * Added '=' in dash templates
+    * Improved bandwith estimation when using HTTP 1.1 chunk transfer
+    * Add option to force moof base offsets
+ - MP4Box
+    * Added -catpl to concatenate from playlist in MP4Box
+    * Added options to set movie timescale at import and dash time
+    * Added mpd rip option and top-level box compressor in MP4Box
+    * Made -dts skip timing check and added -dtsc for that
+    * Made force-cat option more agressive
+    * Support for MovieFragmentRandomAccess using -mfra option
+    * Added -dtsx to dump timing without offset
+    * Added -dnalc opt for nal CRC dump
+    * Added chunk extraction up to time until end
+    * ISOBMFF single track import now removes references by default
+ - Decoders
+    * Updated ffmpeg to 4.0.2
+    * Moved to openHEVC 3.0 API
+    * Added nvdec support (windows, linux) with reuse of decoder context for tiled VR
+    * Added HEVC support to mediacodec on android
+    * AV1 playback through ffmpeg
+    * Opus playback through ffmpeg
+ - 3D, VR and 360
+    * Added vrhud for multiviewpoint 360
+    * Added forced visibility mode of tiles in VR
+    * Added tile visibility debug mode
+    * Added forced stereo output for openhevc
+    * Disable face nav if mouse grabbed
+    * Added simple face tracking vr navigation based on udp commands
+    * Added PSVR support
+    * Added mouse move emulation at window border to force sphere rotation when inactive
+    * Changed tile visibility algo to sample points in mesh
+ - Players (Mobile and Desktop)
+    * Added about extension
+    * Added multiple audio objects in dynamic scene
+    * Added addon splicing of main content
+    * Added mosaic://v1:.:vN url support
+    * Added gaze simulation through mouse and gaze-sphere visibility test
+ - Subtitles
+    * Allow * as argument of -srt|ttxt to dump all possible tracks (#925)
+    * Improved support for WebVTT import
+    * Improved support for WebVTT DASHing/fragmentation
+ - Misc
+    * OSX install now done through PKG and modify PATH env in/etc/paths
+    * Added initial PMT version and disc marker to TS muxer
+    * Moved dektec output to matrix API, added SDI clipping
+    * Added temi periodic toggle and manual toggle in MP42TS
+
 26/04/2017: GPAC 0.7.1
  - Full changelog at https://github.com/gpac/gpac/wiki/GPAC-0.7.0
  - Many security fixes (static compile and fuzzing through [AFL](http://lcamtuf.coredump.cx/afl/), always ongoing)
@@ -374,7 +475,7 @@
 	- added support for nero chapters in MP4 ('chpl' box), in MP4Box (-chap file.chp) and selection in players (chapters mapped to MPEG-4 SegmentDescriptors).
 		note regarding chp files: not sure about file syntax, currently support for (one chapter entry per line):
 			 ZoomPlayer syntax: AddChapter (-fps for import framerate selection), AddChapterBySecond and AddChapterByTime
-			 Regular time code … la SRT: HH:MM:SS[:ms or .ms] [Chapter Name]
+			 Regular time code â€¦ la SRT: HH:MM:SS[:ms or .ms] [Chapter Name]
 			 SMPTE time code: HH:MM:SS;fr/fps [Chapter Name] - if fps is omitted, use '-fps' if specified or 25 fps default.
 			 
 	- fixed avi packed bitstream flag removal bug with beta versions of DivX.
