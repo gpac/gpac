@@ -225,6 +225,23 @@ GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_Box *gf_isom_audio_sample_get_audio_codec_cfg_box(GF_AudioSampleEntryBox *ptr)
+{
+	GF_MPEGAudioSampleEntryBox *mpga = (GF_MPEGAudioSampleEntryBox *) ptr;
+	switch (ptr->type) {
+	case GF_ISOM_BOX_TYPE_MP4A:
+		return (GF_Box *)mpga->esd;
+	case GF_ISOM_BOX_TYPE_AC3:
+	case GF_ISOM_BOX_TYPE_EC3:
+		return (GF_Box *)mpga->cfg_ac3;
+	case GF_ISOM_BOX_TYPE_OPUS:
+		return (GF_Box *)mpga->cfg_opus;
+	case GF_ISOM_BOX_TYPE_MHA1:
+	case GF_ISOM_BOX_TYPE_MHA2:
+		return (GF_Box *)mpga->cfg_mha;
+	}
+	return NULL;
+}
 void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs)
 {
 	gf_bs_write_data(bs, ptr->reserved, 6);
@@ -241,11 +258,9 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->samplerate_lo);
 
 	if (ptr->qtff_mode) {
-		GF_Box *esds = NULL;
+		GF_Box *codec_ext = NULL;
 		if (ptr->qtff_mode==GF_ISOM_AUDIO_QTFF_ON_NOEXT) {
-			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
-				esds = (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)ptr)->esd;
-			}
+			codec_ext = gf_isom_audio_sample_get_audio_codec_cfg_box(ptr);
 		}
 
 		if (ptr->version==1) {
@@ -253,10 +268,10 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 			if (ptr->qtff_mode==GF_ISOM_AUDIO_QTFF_ON_EXT_VALID) {
 				gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
 			} else {
-				gf_bs_write_u32(bs, esds ? 1024 : 1);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8*ptr->channel_count);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample <= 16 ? ptr->bitspersample/8 : 2);
+				gf_bs_write_u32(bs, codec_ext ? 1024 : 1);
+				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample/8);
+				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample/8*ptr->channel_count);
+				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample <= 16 ? ptr->bitspersample/8 : 2);
 			}
 		} else if (ptr->version==2) {
 			gf_bs_write_data(bs,  (char *) ptr->extensions, 36);

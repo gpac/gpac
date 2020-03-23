@@ -2009,6 +2009,8 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	GF_AudioSampleEntryBox*aud_entry;
 	GF_SampleDescriptionBox *stsd;
 	GF_Box *wave_box = NULL;
+	GF_Box *gf_isom_audio_sample_get_audio_codec_cfg_box(GF_AudioSampleEntryBox *ptr);
+	GF_Box *codec_ext = NULL;
 #if 0
 	GF_ChannelLayoutInfoBox *chan=NULL;
 #endif
@@ -2093,12 +2095,9 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 
 	if (aud_entry->type==GF_ISOM_BOX_TYPE_MP4A)
 		aud_entry->compression_id = -2;
-		
+
 	if (!aud_entry->child_boxes) aud_entry->child_boxes = gf_list_new();
 
-	if (!wave_box) {
-		wave_box = gf_isom_box_new_parent(&aud_entry->child_boxes, GF_QT_BOX_TYPE_WAVE);
-	}
 #if 0
 	if (!chan) {
 		chan = (GF_ChannelLayoutInfoBox *) gf_isom_box_new_parent(&aud_entry->child_boxes, GF_QT_BOX_TYPE_CHAN);
@@ -2106,6 +2105,13 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	//TODO, proper channel mapping
 	chan->layout_tag = (nbChannels==2) ? 6750210 : 6553601;
 #endif
+
+	codec_ext = gf_isom_audio_sample_get_audio_codec_cfg_box((GF_AudioSampleEntryBox *)aud_entry);
+	if (!codec_ext) return GF_OK;
+
+	if (!wave_box) {
+		wave_box = gf_isom_box_new_parent(&aud_entry->child_boxes, GF_QT_BOX_TYPE_WAVE);
+	}
 
 	for (i=0; i<gf_list_count(wave_box->child_boxes); i++) {
 		GF_Box *b = gf_list_get(wave_box->child_boxes, i);
@@ -3868,13 +3874,19 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	/*reset data ref*/
 	if (! (flags & GF_ISOM_CLONE_TRACK_KEEP_DREF) ) {
 		GF_SampleEntryBox *entry;
+		Bool use_alis = GF_FALSE;
+		if (! (flags & GF_ISOM_CLONE_TRACK_NO_QT)) {
+			GF_Box *b = gf_list_get(new_tk->Media->information->dataInformation->dref->child_boxes, 0);
+			if (b && b->type==GF_QT_BOX_TYPE_ALIS)
+				use_alis = GF_TRUE;
+		}
 		gf_isom_box_array_del(new_tk->Media->information->dataInformation->dref->child_boxes);
 		new_tk->Media->information->dataInformation->dref->child_boxes = gf_list_new();
 		/*update data ref*/
 		entry = (GF_SampleEntryBox*)gf_list_get(new_tk->Media->information->sampleTable->SampleDescription->child_boxes, 0);
 		if (entry) {
 			u32 dref;
-			Media_CreateDataRef(dest_file, new_tk->Media->information->dataInformation->dref, NULL, NULL, &dref);
+			Media_CreateDataRef(dest_file, new_tk->Media->information->dataInformation->dref, use_alis ?  "alis" : NULL, NULL, &dref);
 			entry->dataReferenceIndex = dref;
 		}
 	} else {

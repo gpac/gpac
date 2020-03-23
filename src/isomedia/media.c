@@ -850,14 +850,18 @@ GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, co
 GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex)
 {
 	GF_Err e;
+	Bool use_alis=GF_FALSE;
 	GF_DataEntryURLBox *entry;
+
+	if (URLname && !strcmp(URLname, "alis")) {
+		URLname = NULL;
+		use_alis=GF_TRUE;
+	}
 
 	if (!URLname && !URNname) {
 		//THIS IS SELF CONTAIN, create a regular entry if needed
-		entry = (GF_DataEntryURLBox *) gf_isom_box_new_parent(&dref->child_boxes, GF_ISOM_BOX_TYPE_URL);
-		entry->location = NULL;
-		entry->flags = 0;
-		entry->flags |= 1;
+		entry = (GF_DataEntryURLBox *) gf_isom_box_new_parent(&dref->child_boxes, use_alis ? GF_QT_BOX_TYPE_ALIS : GF_ISOM_BOX_TYPE_URL);
+		entry->flags = 1;
 		*dataRefIndex = gf_list_count(dref->child_boxes);
 		return GF_OK;
 	} else if (!URNname && URLname) {
