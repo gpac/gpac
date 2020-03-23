@@ -160,6 +160,23 @@ GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+static GF_Box *get_audio_codec_cfg_box(GF_AudioSampleEntryBox *ptr)
+{
+	GF_MPEGAudioSampleEntryBox *mpga = (GF_MPEGAudioSampleEntryBox *) ptr;
+	switch (ptr->type) {
+	case GF_ISOM_BOX_TYPE_MP4A:
+		return (GF_Box *)mpga->esd;
+	case GF_ISOM_BOX_TYPE_AC3:
+	case GF_ISOM_BOX_TYPE_EC3:
+		return (GF_Box *)mpga->cfg_ac3;
+	case GF_ISOM_BOX_TYPE_OPUS:
+		return (GF_Box *)mpga->cfg_opus;
+	case GF_ISOM_BOX_TYPE_MHA1:
+	case GF_ISOM_BOX_TYPE_MHA2:
+		return (GF_Box *)mpga->cfg_mha;
+	}
+	return NULL;
+}
 void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs)
 {
 	gf_bs_write_data(bs, ptr->reserved, 6);
@@ -176,37 +193,37 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->samplerate_lo);
 
 	if (ptr->is_qtff) {
-		GF_Box *esds = NULL;
+		GF_Box *codec_ext = NULL;
 		if (ptr->is_qtff==1) {
-			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
-				esds = (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)ptr)->esd;
-			}
+			codec_ext = get_audio_codec_cfg_box(ptr);
 		}
 
 		if (ptr->version==1) {
 			if (ptr->is_qtff==2) {
 				gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
 			} else {
-				gf_bs_write_u32(bs, esds ? 1024 : 1);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample/8*ptr->channel_count);
-				gf_bs_write_u32(bs, esds ? 0 : ptr->bitspersample <= 16 ? ptr->bitspersample/8 : 2);
+				gf_bs_write_u32(bs, codec_ext ? 1024 : 1);
+				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample/8);
+				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample/8*ptr->channel_count);
+				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample <= 16 ? ptr->bitspersample/8 : 2);
 			}
 		} else if (ptr->version==2) {
 			gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
 		}
 
-		if (ptr->is_qtff==1) {
+		//we consider WAVE/FRMA/ENDA/terminator are only needed for mp4a/ac3/ec3/opus/..., not for raw
+		//qtff spec is quite obscur here
+		if ((ptr->is_qtff==1) && codec_ext) {
 			u64 wave_size = 8 + 12 + 10 + 8;
-			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
-				wave_size += esds->size;
-			}
+
+			wave_size += codec_ext->size;
+
 			gf_bs_write_u32(bs, (u32) wave_size);
 			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_WAVE);
 			gf_bs_write_u32(bs, 12);
 			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_FRMA);
 			gf_bs_write_u32(bs, ptr->type);
-			if (esds) gf_isom_box_write(esds, bs);
+			gf_isom_box_write(codec_ext, bs);
 
 			gf_bs_write_u32(bs, 10);
 			gf_bs_write_u32(bs, GF_QT_BOX_TYPE_ENDA);
@@ -221,19 +238,24 @@ void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr)
 {
 	ptr->size += 28;
 	if (ptr->is_qtff) {
+		GF_Box *codec_ext = NULL;
 		if (ptr->version==1) {
 			ptr->size+=16;
 		} else if (ptr->version==2) {
 			ptr->size += 36;
 		}
-
 		if (ptr->is_qtff==1) {
+			codec_ext = get_audio_codec_cfg_box(ptr);
+		}
+
+		//we consider WAVE/FRMA/ENDA/terminator are only needed for mp4a/ac3/ec3/opus/..., not for raw
+		//qtff spec is quite obscur here
+		if ((ptr->is_qtff==1) && codec_ext) {
 			//add wave: 12 (frma) +10(enda)+8(term null)+ 8 header for wave
 			ptr->size += 8 + 12 + 10 + 8;
-			if ((ptr->type==GF_ISOM_BOX_TYPE_MP4A) && ((GF_MPEGAudioSampleEntryBox*)ptr)->esd) {
-				GF_Box *esds = (GF_Box *) ((GF_MPEGAudioSampleEntryBox*)ptr)->esd;
-				gf_isom_box_size(esds);
-				ptr->size += esds->size;
+			if (codec_ext) {
+				gf_isom_box_size(codec_ext);
+				ptr->size += codec_ext->size;
 				ptr->compression_id=-2;
 			}
 		}
