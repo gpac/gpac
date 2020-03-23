@@ -169,15 +169,16 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 	if (!max_rate) max_rate = bitrate;
 
 	/*move to bps*/
-	if (esd) {
+	if (esd && esd->decoderConfig) {
 		esd->decoderConfig->avgBitrate = (u32) bitrate;
 		esd->decoderConfig->maxBitrate = (u32) max_rate;
 		esd->decoderConfig->bufferSizeDB = db_size;
 		gf_isom_change_mpeg4_description(file, track, 1, esd);
-		gf_odf_desc_del((GF_Descriptor *)esd);
 	} else {
 		gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
 	}
+
+	if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 
 #endif
 }
@@ -7753,7 +7754,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 				u32 isLeading, dependsOn, dependedOn, hasRedundant;
 				isLeading = 0;
 				dependsOn = samp->IsRAP ? 2 : 1;
-				dependedOn = 0; 
+				dependedOn = 0;
 				hasRedundant = 0;
 
 				e = gf_isom_sample_set_dep_info(import->dest, track_num, cur_samp, isLeading, dependsOn, dependedOn, hasRedundant);
