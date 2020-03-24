@@ -1016,7 +1016,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&rsp_buf, sess->ctx->cache_control, NULL);
 				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 			}
-		} else if (sess->in_source) {
+		} else if (sess->in_source && !sess->ctx->rdirs) {
 			sess->nb_ranges = 0;
 			gf_dynstrcat(&rsp_buf, "Cache-Control: no-cache, no-store\r\n", NULL);
 		}
@@ -1256,7 +1256,7 @@ static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			parameter->value = in->mime;
 			in->cur_header = HTTP_PUT_HEADER_DONE;
 			if (in->write_start_range)
-				in->cur_header = HTTP_PUT_HEADER_MIME;
+				in->cur_header = HTTP_PUT_HEADER_RANGE;
 			break;
 		case HTTP_PUT_HEADER_RANGE:
 			parameter->name = "Range";
