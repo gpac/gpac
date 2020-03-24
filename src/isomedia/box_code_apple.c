@@ -833,10 +833,10 @@ GF_Err chan_Read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_skip_bytes(bs, 20);
 	}
 	if (ptr->size<10000) {
-		ptr->ext_data_size = ptr->size;
+		ptr->ext_data_size = (u32) ptr->size;
 		ptr->ext_data = gf_malloc(sizeof(u8)*ptr->size);
 		if (!ptr->ext_data) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, (char *)ptr->ext_data, ptr->size);
+		gf_bs_read_data(bs, (char *)ptr->ext_data, (u32) ptr->size);
 		ptr->size = 0;
 	}
 	return GF_OK;
