@@ -2940,8 +2940,8 @@ const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *PID, const char
 */
 void gf_filter_pid_set_eos(GF_FilterPid *PID);
 
-/*! Checks for end of stream signaling on a PID input chain.
-This is a recursive call on input chain
+/*! Checks for end of stream has been signaled a PID input chain.
+This is a recursive call on input chain. The function is typically used to abort buffering or synchronisation init in muxers.
 \param PID the target filter PID
 \return GF_TRUE if end of stream was signaled on the input chain
 */
