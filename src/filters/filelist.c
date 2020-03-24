@@ -78,12 +78,12 @@ typedef struct
 	u32 timescale;
 
 	GF_FilterPid *file_pid;
-	const char *file_path;
+	char *file_path;
 	u32 last_url_crc;
 	u32 last_url_lineno;
 	Bool load_next;
 
-	GF_Filter *filter_src;
+	GF_List *filter_srcs;
 	GF_List *io_pids;
 	Bool is_eos;
 
@@ -394,28 +394,35 @@ GF_Err filelist_process(GF_Filter *filter)
 	if (ctx->is_eos)
 		return GF_EOS;
 
-	if (!ctx->file_path && !ctx->file_list) {
+	if (!ctx->file_list) {
 		GF_FilterPacket *pck;
 		if (!ctx->file_pid) {
 			return GF_EOS;
 		}
 		pck = gf_filter_pid_get_packet(ctx->file_pid);
-		if (!pck) return GF_OK;
-		gf_filter_pck_get_framing(pck, &start, &end);
-		gf_filter_pid_drop_packet(ctx->file_pid);
-		if (end) {
-			FILE *f=NULL;
-			p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_FILEPATH);
-			if (p) {
-				ctx->file_path = p->value.string;
-				f = gf_fopen(p->value.string, "rt");
-			}
-			if (!f) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
-				return GF_SERVICE_ERROR;
-			} else {
-				gf_fclose(f);
-				ctx->load_next = GF_TRUE;
+		if (pck) {
+			gf_filter_pck_get_framing(pck, &start, &end);
+			gf_filter_pid_drop_packet(ctx->file_pid);
+
+			if (end) {
+				Bool is_first = GF_TRUE;
+				FILE *f=NULL;
+				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_FILEPATH);
+				if (p) {
+					if (ctx->file_path) {
+						gf_free(ctx->file_path);
+						is_first = GF_FALSE;
+					}
+					ctx->file_path = gf_strdup(p->value.string);
+					f = gf_fopen(p->value.string, "rt");
+				}
+				if (!f) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
+					return GF_SERVICE_ERROR;
+				} else {
+					gf_fclose(f);
+					ctx->load_next = is_first;
+				}
 			}
 		}
 	}
@@ -423,10 +430,14 @@ GF_Err filelist_process(GF_Filter *filter)
 	count = gf_list_count(ctx->io_pids);
 
 	if (ctx->load_next) {
+		GF_Filter *fsrc;
+		char *url;
 		char szURL[GF_MAX_PATH];
 
-		if (ctx->filter_src) gf_filter_remove_src(filter, ctx->filter_src);
-		ctx->filter_src = NULL;
+		while (gf_list_count(ctx->filter_srcs)) {
+			fsrc = gf_list_pop_back(ctx->filter_srcs);
+			gf_filter_remove_src(filter, fsrc);
+		}
 		ctx->load_next = GF_FALSE;
 
 		if (! filelist_next_url(ctx, szURL)) {
@@ -438,10 +449,22 @@ GF_Err filelist_process(GF_Filter *filter)
 			ctx->is_eos = GF_TRUE;
 			return GF_EOS;
 		}
-		ctx->filter_src = gf_filter_connect_source(filter, szURL, ctx->file_path, &e);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to open file %s: %s\n", szURL, gf_error_to_string(e) ));
-			return GF_SERVICE_ERROR;
+		url = szURL;
+		while (url) {
+			char *sep = strstr(url, " && ");
+			if (sep) sep[0] = 0;
+
+			fsrc = gf_filter_connect_source(filter, url, ctx->file_path, &e);
+			if (e) {
+				if (sep) sep[0] = ' ';
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to open file %s: %s\n", szURL, gf_error_to_string(e) ));
+				return GF_SERVICE_ERROR;
+			}
+			gf_list_add(ctx->filter_srcs, fsrc);
+
+			if (!sep) break;
+			sep[0] = ' ';
+			url = sep+4;
 		}
 		//wait for PIDs to connect
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Switching to file %s\n", szURL));
@@ -696,6 +719,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 #endif
 		return GF_OK;
 	}
+	ctx->filter_srcs = gf_list_new();
 	ctx->file_list = gf_list_new();
 	count = gf_list_count(ctx->srcs);
 	for (i=0; i<count; i++) {
@@ -769,6 +793,8 @@ void filelist_finalize(GF_Filter *filter)
 		gf_list_del(ctx->file_list);
 	}
 	gf_list_del(ctx->io_pids);
+	gf_list_del(ctx->filter_srcs);
+	if (ctx->file_path) gf_free(ctx->file_path);
 }
 
 
@@ -836,6 +862,10 @@ GF_FilterRegister FileListRegister = {
 		"\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
+		"\n"
+		"The URL given can either be a single URL, or a list of URLs separated by \" && \" to load several sources for the active entry.\n"
+		"EX audio.mp4 && video.mp4\n"
+		"\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n")
 	.private_size = sizeof(GF_FileListCtx),
