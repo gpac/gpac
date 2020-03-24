@@ -2160,8 +2160,8 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 				if (sess->in_source != in) continue;
 
 				httpout_sess_send(sess, "0\r\n\r\n", 5);
+				log_request_done(sess);
 			}
-
 		}
 	}
 	in->nb_write = 0;
@@ -2220,6 +2220,7 @@ retry:
 				httpout_sess_send(sess, szHdrInit, len_hdr);
 				httpout_sess_send(sess, in->tunein_data, in->tunein_data_size);
 				httpout_sess_send(sess, "\r\n", 2);
+				sess->nb_bytes += in->tunein_data_size;
 			}
 			sess->send_init_data = GF_FALSE;
 			out = pck_size;
@@ -2233,6 +2234,7 @@ retry:
 				httpout_sess_send(sess, szHdr, len);
 				httpout_sess_send(sess, pck_data, pck_size);
 				httpout_sess_send(sess, "\r\n", 2);
+				sess->nb_bytes += pck_size;
 			}
 		}
 	}
@@ -2306,6 +2308,11 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			in->file_deletes = NULL;
 		}
 
+		//no destination and holding for first connect, don't drop
+		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest && in->hold) {
+			continue;
+		}
+
 		pck = gf_filter_pid_get_packet(in->ipid);
 		if (!pck) {
 			nb_nopck++;
@@ -2319,6 +2326,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			}
 			continue;
 		}
+
 
 		gf_filter_pck_get_framing(pck, &start, &end);
 
@@ -2363,23 +2371,24 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 
 			httpout_open_input(ctx, in, name, GF_FALSE);
 
-			if ((gf_filter_pck_get_dependency_flags(pck)==0xFF) && (gf_filter_pck_get_carousel_version(pck)==1)) {
-				pck_data = gf_filter_pck_get_data(pck, &pck_size);
-				if (pck_data) {
-					in->tunein_data_size = pck_size;
-					in->tunein_data = gf_realloc(in->tunein_data, pck_size);
-					memcpy(in->tunein_data, pck_data, pck_size);
+			if (!ctx->hmode && !ctx->rdirs && !in->nb_dest) {
+				if ((gf_filter_pck_get_dependency_flags(pck)==0xFF) && (gf_filter_pck_get_carousel_version(pck)==1)) {
+					pck_data = gf_filter_pck_get_data(pck, &pck_size);
+					if (pck_data) {
+						in->tunein_data_size = pck_size;
+						in->tunein_data = gf_realloc(in->tunein_data, pck_size);
+						memcpy(in->tunein_data, pck_data, pck_size);
+					}
 				}
 			}
 		}
 
-		//no destination and holding for first connect, don't drop
-		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest) {
-			//not holding packets (either first connection not here or disbaled), trash packet
-			if (!in->hold)
-				gf_filter_pid_drop_packet(in->ipid);
+		//no destination and holding for first connect and not holding packets (either first connection not here or disabled), trash packet
+		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest && in->hold) {
+			gf_filter_pid_drop_packet(in->ipid);
 			continue;
 		}
+
 		if (!httpout_input_write_ready(ctx, in)) {
 			continue;
 		}
