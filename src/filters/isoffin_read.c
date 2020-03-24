@@ -305,8 +305,11 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 				}
 			}
 
-			/*we changed our moov struc`ture, sample_num now starts from 0*/
+			/*we changed our moov structure, sample_num now starts from 0*/
 			ch->sample_num = 0;
+			//this may happen if we reload moov before initializing the channel
+			if (!ch->last_sample_desc_index)
+				ch->last_sample_desc_index = 1;
 			//and update channel config
 			isor_update_channel_config(ch);
 
@@ -351,6 +354,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			sr = prop->value.lfrac.num;
 			er = prop->value.lfrac.den;
 		}
+
 		//if eos is signaled, don't check for crc since we might have the same blob address (same alloc)
 		if (!read->eos_signaled && (read->src_crc == crc) && (read->start_range==sr) && (read->end_range==er)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] same URL crc and range for %s, skipping reconfigure\n", next_url));
