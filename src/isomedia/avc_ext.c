@@ -67,7 +67,15 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	}
 	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
 	if (!entry) return GF_FALSE;
-	if (entry->avc_config || entry->svc_config || entry->mvc_config || entry->hevc_config || entry->lhvc_config) return GF_TRUE;
+	switch (entry->internal_type) {
+		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUXV:
+		case GF_ISOM_MEDIA_PICT:
+			if (entry->avc_config || entry->svc_config || entry->mvc_config || entry->hevc_config || entry->lhvc_config) return GF_TRUE;
+			break;
+		default:
+			break;
+	}
 	return GF_FALSE;
 }
 
