@@ -5231,7 +5231,6 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 	if (pid->pid->has_seen_eos) return GF_TRUE;
 	for (i=0; i<pid->pid->filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->pid->filter->input_pids, i);
-		if (!pidi->is_end_of_stream) continue;
 		if (gf_filter_pid_has_seen_eos((GF_FilterPid *) pidi)) return GF_TRUE;
 	}
 	return GF_FALSE;
