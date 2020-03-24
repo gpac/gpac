@@ -2068,7 +2068,8 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		aud_entry->version = 1;
 		aud_entry->channel_count = nbChannels;
 		old_qtff_mode = aud_entry->qtff_mode;
-		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_NOEXT;
+		if (aud_entry->qtff_mode != GF_ISOM_AUDIO_QTFF_ON_EXT_VALID)
+			aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_NOEXT;
 		break;
 	}
 
