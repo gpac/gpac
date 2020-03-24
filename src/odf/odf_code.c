@@ -2154,7 +2154,10 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 		if (! description) return GF_OUT_OF_MEM;
 		description->text = NULL;
 		e = OD_ReadUTF8String(bs, & description->text, etd->isUTF8, &len);
-		if (e) return e;
+		if (e) {
+			gf_free(description);
+			return e;
+		}
 		e = gf_list_add(etd->itemDescriptionList, description);
 		if (e) return e;
 		nbBytes += len;
@@ -2438,6 +2441,7 @@ GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize
 	/*IPMPX escape*/
 	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
 		ipmp->IPMP_DescriptorIDEx = gf_bs_read_int(bs, 16);
+		if (gf_bs_available(bs) < 16) return GF_ODF_INVALID_DESCRIPTOR;
 		gf_bs_read_data(bs, (char*)ipmp->IPMP_ToolID, 16);
 		ipmp->control_point = gf_bs_read_int(bs, 8);
 		nbBytes += 19;

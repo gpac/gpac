@@ -726,7 +726,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (bs->size > 0xFFFFFFFF) return;
 			bs->size = bs->size ? (bs->size * 2) : BS_MEM_BLOCK_ALLOC_SIZE;
 			bs->original = (char*)gf_realloc(bs->original, (u32)bs->size);
-			if (!bs->original) return;	
+			if (!bs->original) return;
 		}
 		if (bs->original)
 			bs->original[bs->position - bs->bytes_out] = val;
