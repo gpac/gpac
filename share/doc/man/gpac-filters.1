@@ -2978,6 +2978,18 @@ The source lines follow the usual source syntax, see gpac -h.
 .br
 Additional pid properties can be added per source (see gpac -h doc), but are valid only for the current source, and reset at next source.
 .br
+
+.br
+The URL given can either be a single URL, or a list of URLs separated by " && " to load several sources for the active entry.
+.br
+Example
+.br
+audio.mp4 && video.mp4
+.br
+
+.br
+
+.br
 The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.
 .br
 If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.
@@ -5396,7 +5408,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3486-g9f611c498-filters
+build: 0.9.0-DEV-rev3503-gaa10f4f8c-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
