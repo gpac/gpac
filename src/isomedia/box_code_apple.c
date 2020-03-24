@@ -187,6 +187,7 @@ GF_Err ilst_item_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
+	if (!ptr->data) return GF_BAD_PARAM;
 
 	/*generic box list*/
 	if (ptr->child_boxes && !ptr->data) {
@@ -854,10 +855,10 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_skip_bytes(bs, 20);
 	}
 	if (ptr->size<10000) {
-		ptr->ext_data_size = ptr->size;
+		ptr->ext_data_size = (u32) ptr->size;
 		ptr->ext_data = gf_malloc(sizeof(u8)*ptr->size);
 		if (!ptr->ext_data) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, (char *)ptr->ext_data, ptr->size);
+		gf_bs_read_data(bs, (char *)ptr->ext_data, (u32) ptr->size);
 		ptr->size = 0;
 	}
 	return GF_OK;

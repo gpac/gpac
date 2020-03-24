@@ -1781,6 +1781,7 @@ GF_EXPORT
 GF_Err gf_isom_box_size(GF_Box *a)
 {
 	GF_Err e;
+	if (!a) return GF_BAD_PARAM;
 	if (a->registry->disabled) {
 		a->size = 0;
 		return GF_OK;

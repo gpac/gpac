@@ -1524,7 +1524,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			}
 			desc_len-=len+2;
 		}
-
 		if (es && !es->stream_type) {
 			gf_free(es);
 			es = NULL;
@@ -2895,6 +2894,12 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	while (gf_list_count(ts->programs)) {
 		GF_M2TS_Program *p = (GF_M2TS_Program *)gf_list_last(ts->programs);
 		gf_list_rem_last(ts->programs);
+
+		while (gf_list_count(p->streams)) {
+			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_last(p->streams);
+			gf_list_rem_last(p->streams);
+			gf_free(es);
+		}
 		gf_list_del(p->streams);
 		/*reset OD list*/
 		if (p->additional_ods) {

@@ -118,7 +118,6 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 	}
-	
 #endif
 }
 
