@@ -2977,35 +2977,120 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	return GF_OK;
 }
 
-static Bool gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep, FILE *out, char *m3u8_name, u32 nb_audio)
+static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Representation *rep, char *m3u8_name, const char *codec_ext, const char *g_type, const char *g_id_pref, u32 g_as_idx, const char *g2_type, const char *g2_id_pref, u32 g2_as_idx)
 {
-	if (!rep->mime_type) return GF_FALSE;
+	gf_fprintf(out, "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=\"%s", rep->bandwidth, rep->codecs);
+	if (codec_ext)
+		gf_fprintf(out, ",%s", codec_ext);
+	gf_fprintf(out, "\"");
 
-	if (!strncmp(rep->mime_type, "audio/", 6)) {
-		if (nb_audio>1) {
-			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", rep->id, as->lang, m3u8_name);
-			if (rep->nb_chan)
-				gf_fprintf(out,",CHANNELS=\"%d\"", rep->nb_chan);
-			gf_fprintf(out,"\n");
+	if (rep->width && rep->height)
+		gf_fprintf(out, ",RESOLUTION=%dx%d", rep->width, rep->height);
+	if (rep->fps)
+		gf_fprintf(out,",FRAME-RATE=\"%.03g\"", rep->fps);
+
+	if (g_type && g_id_pref)
+		gf_fprintf(out,",%s=\"%s%d\"", g_type, g_id_pref, g_as_idx);
+	if (g2_type && g2_id_pref)
+		gf_fprintf(out,",%s=\"%s%d\"", g2_type, g2_id_pref, g2_as_idx);
+	gf_fprintf(out,"\n");
+
+	gf_fprintf(out, "%s\n",m3u8_name);
+
+}
+
+static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 as_idx, const GF_MPD_Representation *rep, FILE *out, char *m3u8_name, GF_MPD_Period *period, u32 nb_audio, u32 nb_subs, u32 nb_cc)
+{
+	u32 i, j;
+	GF_MPD_AdaptationSet *r_as;
+	GF_MPD_Representation *r_rep;
+
+	if (!rep->mime_type) return;
+
+	//no period, this is a component description
+	if (!period) {
+		u32 group_id;
+		const char *g_type = NULL;
+		const char *g_id = NULL;
+
+		if (rep->streamtype==GF_STREAM_AUDIO) {
+			g_type = "AUDIO";
+			g_id = "audio";
 		}
+		else if (rep->streamtype==GF_STREAM_TEXT) {
+			g_type = "SUBTITLE";
+			g_id = "subs";
+		}
+		if (!g_type || !g_id)
+			return;
 
-		gf_fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=\"%s\"\n", rep->bandwidth, rep->codecs);
-		gf_fprintf(out, "%s\n",m3u8_name);
-		return GF_TRUE;
+		group_id = (as->group>0) ? as->group : as_idx;
+		gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s%d\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, g_id, as_idx, rep->id, as->lang, m3u8_name);
+		if (rep->nb_chan)
+			gf_fprintf(out,",CHANNELS=\"%d\"", rep->nb_chan);
+		return;
 	}
 
-	if (!strncmp(rep->mime_type, "video/", 6)) {
-		gf_fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=\"%s\",RESOLUTION=%dx%d", rep->bandwidth, rep->codecs, rep->width, rep->height);
-		if (nb_audio>1)
-			gf_fprintf(out,",AUDIO=\"audio\"");
-		if (rep->fps)
-			gf_fprintf(out,",FRAME-RATE=\"%.03g\"", rep->fps);
-		gf_fprintf(out,"\n");
-
-		gf_fprintf(out, "%s\n",m3u8_name);
-		return GF_TRUE;
+	//no other streams, directly write the entry
+	if (!nb_audio && !nb_subs && !nb_cc) {
+		gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, NULL, NULL, NULL, 0, NULL, NULL, 0);
+		return;
 	}
-	return GF_FALSE;
+	//otherwise browse all adaptation sets
+	i=0;
+	while ( (r_as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		u32 g_as_idx;
+		Bool is_audio = GF_FALSE;
+		GF_MPD_AdaptationSet *r2_as;
+		GF_MPD_Representation *r2_rep;
+		const char *g_type = NULL;
+		const char *g_id = NULL;
+		const char *g_codec = NULL;
+		if (as==r_as) continue;
+
+		g_as_idx = (r_as->group>0) ? r_as->group : i;
+		r_rep = (GF_MPD_Representation *) gf_list_get(r_as->representations, 0);
+
+		//if audio streams are present, the first pass gather audio and we will need a second loop to get subs
+		if (nb_audio) {
+			if (r_rep->streamtype==GF_STREAM_AUDIO) {
+				g_type = "AUDIO";
+				g_id = "audio";
+				g_codec = r_rep->codecs;
+			}
+			is_audio = GF_TRUE;
+		} else {
+			if (r_rep->streamtype==GF_STREAM_TEXT) {
+				g_type = "SUBTITLE";
+				g_id = "subs";
+			}
+		}
+		//not our type
+		if (!g_type) continue;
+		//no audio, or no subs
+		if (!is_audio || !nb_subs) {
+			gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, g_codec, g_type, g_id, g_as_idx, NULL, NULL, 0);
+			continue;
+		}
+		//audio and subs, we need a second loop on audio to get all subs
+		j=0;
+		while ( (r2_as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &j))) {
+			u32 g2_as_idx;
+			const char *g2_type = NULL;
+			const char *g2_id = NULL;
+			if (r_as==r2_as) continue;
+			g2_as_idx = (r2_as->group>0) ? r2_as->group : j;
+
+			r2_rep = (GF_MPD_Representation *) gf_list_get(r2_as->representations, 0);
+			if (r2_rep->streamtype==GF_STREAM_TEXT) {
+				g2_type = "SUBTITLE";
+				g2_id = "subs";
+			}
+			if (!g2_type) continue;
+
+			gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, g_codec, g_type, g_id, g_as_idx, g2_type, g2_id, g2_as_idx);
+		}
+	}
 }
 
 static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep)
@@ -3129,16 +3214,20 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Bool use_range = GF_FALSE;
 	Bool use_init = GF_FALSE;
 	Bool use_ind_segments = GF_TRUE;
-	u32 nb_audio = 0;
 	Bool is_fmp4 = GF_FALSE;
 	char *szVariantName;
 	char *m3u8_name_rad, *sep;
+	u32 nb_audio=0;
+	u32 nb_cc=0;
+	u32 nb_subs=0;
+	Bool has_muxed_comp = GF_FALSE;
+	Bool has_video = GF_FALSE;
+	Bool has_audio = GF_FALSE;
 
 	if (!m3u8_name) return GF_BAD_PARAM;
 
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-		Bool as_has_audio = GF_FALSE;
 		if (gf_list_count(as->content_protection)) { /*use_crypt = GF_TRUE; */ }
 		if (as->starts_with_sap>2) use_ind_segments = GF_FALSE;
 
@@ -3146,7 +3235,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
 			GF_DASH_SegmentContext *sctx;
 			const char *init_seg;
-			if (!rep) continue;
 			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] No segment state in representation, MPD cannot be translated to M3U8\n"));
 				return GF_BAD_PARAM;
@@ -3159,11 +3247,12 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			init_seg = gf_mpd_m3u8_get_init_seg(period, as, rep);
 			if (init_seg) use_init = GF_TRUE;
 			if (rep->mime_type) {
-				if (!strncmp(rep->mime_type, "audio/", 6)) as_has_audio = GF_TRUE;
 				if (strstr(rep->mime_type, "mp4")) is_fmp4 = GF_TRUE;
 			}
+
+			if (rep->streamtype==GF_STREAM_AUDIO) nb_audio++;
+			else if (rep->streamtype==GF_STREAM_TEXT) nb_subs++;
 		}
-		if (as_has_audio) nb_audio++;
 	}
 	//we by default use floating point durations
 	hls_version = 3;
@@ -3190,16 +3279,30 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	szVariantName = gf_malloc(sizeof(char) * (100 + strlen(m3u8_name_rad)) );
 
 
+	//first pass, generate all subplaylists, and check if we have muxed components, or video or audio
 	var_idx = 1;
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		if (as->content_component && gf_list_count(as->content_component)>1) {
+			has_muxed_comp = GF_TRUE;
+		}
+		if (as->max_width && as->max_height) {
+			has_video = GF_TRUE;
+		}
+		if (as->samplerate)
+			has_audio = GF_TRUE;
+
 		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
 			char *name = (char *) rep->m3u8_name;
-			if (!rep) continue;
+
 			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] No segment state in representation, MPD cannot be translated to M3U8, ignoring representation\n"));
 				continue;
+			}
+			if (rep->mime_type) {
+				if (!strncmp(rep->mime_type, "video/", 6)) has_video = GF_TRUE;
+				else if (!strncmp(rep->mime_type, "audio/", 6)) has_audio = GF_TRUE;
 			}
 
 			if (!name) {
@@ -3208,10 +3311,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 				rep->m3u8_var_name = gf_strdup(szVariantName);
 				name = gf_file_basename(rep->m3u8_var_name);
 			}
-			if (!gf_mpd_write_m3u8_playlist_tags(as, rep, out, name, nb_audio)) continue;
-
-
-			gf_fprintf(out, "\n");
 			var_idx++;
 
 
@@ -3220,6 +3319,61 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
 				return GF_IO_ERR;
 			}
+		}
+	}
+
+	//no muxed comp, no video, the audio is the main media we will list, force nb_audio=0 for gf_mpd_write_m3u8_playlist_tags
+	if (!has_video && !has_muxed_comp)
+		nb_audio = 0;
+
+	//second pass, generate master playlists with the right groups
+	i=0;
+	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		Bool is_video = GF_FALSE;
+		Bool is_audio = GF_FALSE;
+		Bool is_muxed_comp = GF_FALSE;
+		Bool is_primary = GF_TRUE;
+		if (as->content_component && gf_list_count(as->content_component)>1) {
+			is_muxed_comp = GF_TRUE;
+		}
+		if (as->max_width && as->max_height) {
+			is_video = GF_TRUE;
+		}
+		if (as->samplerate) {
+			is_audio = GF_TRUE;
+		}
+
+		//check if we have audio or video
+		j=0;
+		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			if (rep->mime_type) {
+				if (!strncmp(rep->mime_type, "video/", 6)) is_video = GF_TRUE;
+				else if (!strncmp(rep->mime_type, "audio/", 6)) is_audio = GF_TRUE;
+				break;
+			}
+		}
+		//figure out if this is the primary media or an associated media with the content
+		if (has_muxed_comp) {
+			if (!is_muxed_comp) is_primary = GF_FALSE;
+		} else if (has_video) {
+			if (!is_video) is_primary = GF_FALSE;
+		} else if (has_audio) {
+			if (!is_audio) is_primary = GF_FALSE;
+		}
+
+		j=0;
+		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			char *name = (char *) rep->m3u8_name;
+			if (!rep) continue;
+			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
+				continue;
+			}
+			if (rep->m3u8_var_name) {
+				name = gf_file_basename(rep->m3u8_var_name);
+			}
+
+			gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, name, is_primary ? period : NULL, nb_audio, nb_subs, nb_cc);
+			gf_fprintf(out, "\n");
 		}
 	}
 

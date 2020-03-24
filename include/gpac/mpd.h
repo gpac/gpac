@@ -541,6 +541,8 @@ typedef struct {
 	GF_List *state_seg_list;
 	/*! segment timescale (for HLS)*/
 	u32 timescale;
+	/*! stream type (for HLS)*/
+	u32 streamtype;
 	/*! segment manifest timescale (for HLS)*/
 	u32 timescale_mpd;
 	/*! dash duration*/

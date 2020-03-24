@@ -4661,6 +4661,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		}
 		if (!ds->rep->dash_dur) {
 			ds->rep->timescale = ds->timescale;
+			ds->rep->streamtype = ds->stream_type;
 			ds->rep->timescale_mpd = ds->mpd_timescale;
 			ds->rep->dash_dur = ds->dash_dur;
 			ds->rep->hls_single_file_name = ds->init_seg;
@@ -5050,9 +5051,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 	if (ctx->streams_not_ready) {
 		if (! dasher_check_streams_ready(ctx)) return GF_OK;
-		if (gf_filter_connections_pending(filter))
-			return GF_OK;
 	}
+	if (gf_filter_connections_pending(filter))
+		return GF_OK;
 
 	if (ctx->is_eos)
 		return GF_EOS;
