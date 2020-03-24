@@ -5123,7 +5123,9 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			&& (gf_list_count(dash->groups)>1)
 		) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
-			if ((!rep->segment_template || !rep->segment_template->initialization) && (!rep->segment_list || !rep->segment_list->initialization_segment)) {
+			if ((!rep->segment_template || !rep->segment_template->initialization)
+				&& (!rep->segment_list || (!rep->segment_list->initialization_segment && !rep->segment_list->xlink_href))
+			) {
 				group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
 				continue;
 			}
