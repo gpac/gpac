@@ -2188,8 +2188,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
 				u32 size;
 				GF_BitStream *iod_bs;
-				if (len<2)
+				if (len<2 || data_size <= 8 || data_size-8 < len-2)
 					break;
+
 				iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);
 				if (pmt->program->pmt_iod) {
 					gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
@@ -3129,6 +3130,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 	paf->adaptation_field_extension_flag = (data[0] & 0x1) ? 1 : 0;
 
 	af_extension = data + 1;
+
 	if (paf->PCR_flag == 1) {
 		u32 base = ((u32)data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4];
 		u64 PCR = (u64) base;
@@ -3151,6 +3153,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 			af_extension += 1 + priv_bytes;
 		}
 
+		if (af_extension-data >= size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
+			return;
+		}
 		afext_bytes = af_extension[0];
 		ltw_flag = af_extension[1] & 0x80 ? 1 : 0;
 		pwr_flag = af_extension[1] & 0x40 ? 1 : 0;
@@ -3884,9 +3890,9 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 		gf_list_rem_last(ts->programs);
 
 		while (gf_list_count(p->streams)) {
-			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_last(p->streams);
+			GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_last(p->streams);
 			gf_list_rem_last(p->streams);
-			gf_free(es);
+			gf_m2ts_es_del(es, ts);
 		}
 		gf_list_del(p->streams);
 		/*reset OD list*/

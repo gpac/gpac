@@ -845,10 +845,16 @@ GF_Err gf_odf_read_isom_iod(GF_BitStream *bs, GF_IsomInitialObjectDescriptor *io
 	while (nbBytes < DescSize) {
 		GF_Descriptor *tmp = NULL;
 		e = gf_odf_parse_descriptor(bs, &tmp, &tmpSize);
-		if (e) return e;
+		if (e) {
+			if (tmp) gf_odf_desc_del((GF_Descriptor *) tmp);
+			return e;
+		}
 		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
 		e = AddDescriptorToIsomIOD(iod, tmp);
-		if (e) return e;
+		if (e) {
+			if (tmp) gf_odf_desc_del((GF_Descriptor *) tmp);
+			return e;
+		}
 		nbBytes += tmpSize + gf_odf_size_field_size(tmpSize);
 	}
 	if (DescSize != nbBytes) return GF_ODF_INVALID_DESCRIPTOR;
@@ -2629,7 +2635,10 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 		GF_KeyWordItem *tmp = (GF_KeyWordItem*)gf_malloc(sizeof(GF_KeyWordItem));
 		if (! tmp) return GF_OUT_OF_MEM;
 		e = OD_ReadUTF8String(bs, & tmp->keyWord, kwd->isUTF8, &len);
-		if (e) return e;
+		if (e) {
+			if (tmp) gf_free(tmp);
+			return e;
+		}
 		nbBytes += len;
 		if (nbBytes > DescSize) {
 			gf_free(tmp->keyWord);
@@ -2637,7 +2646,10 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 			return GF_ODF_INVALID_DESCRIPTOR;
 		}
 		e = gf_list_add(kwd->keyWordsList, tmp);
-		if (e) return e;
+		if (e) {
+			if (tmp) gf_free(tmp);
+			return e;
+		}
 	}
 	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
 	return GF_OK;
@@ -2775,7 +2787,10 @@ GF_Err gf_odf_read_oci_name(GF_BitStream *bs, GF_OCICreators *ocn, u32 DescSize)
 		/*aligned = */gf_bs_read_int(bs, 7);
 		nbBytes += 4;
 		e = OD_ReadUTF8String(bs, & tmp->OCICreatorName, tmp->isUTF8, &len);
-		if (e) return e;
+		if (e) {
+			gf_free(tmp);
+			return e;
+		}
 		nbBytes += len;
 		e = gf_list_add(ocn->OCICreators, tmp);
 		if (e) return e;

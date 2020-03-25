@@ -2400,7 +2400,7 @@ u64 read_leb128(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	u8 Leb128Bytes = 0, i = 0;
 	for (i = 0; i < 8; i++) {
 		u8 leb128_byte = gf_bs_read_u8(bs);
-		value |= ((leb128_byte & 0x7f) << (i * 7));
+		value |= (((u64)(leb128_byte & 0x7f)) << (i * 7));
 		Leb128Bytes += 1;
 		if (!(leb128_byte & 0x80)) {
 			break;
@@ -2756,7 +2756,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			maxTileAreaSb = (sbRows * sbCols) >> (minLog2Tiles + 1);
 		else
 			maxTileAreaSb = sbRows * sbCols;
-		maxTileHeightSb = MAX(maxTileAreaSb / widestTileSb, 1);
+		maxTileHeightSb = widestTileSb ? MAX(maxTileAreaSb / widestTileSb, 1) : 1;
 
 		startSb = 0;
 		for (i = 0; startSb < sbRows; i++) {
