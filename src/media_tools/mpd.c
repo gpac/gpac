@@ -2149,6 +2149,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	PlaylistElement *pe;
 	u32 k, count_elements;
 	u64 start_time=0;
+	u32 base_url_len = 0;
+	char *base_url = NULL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
 
@@ -2188,6 +2190,14 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		*duration = (u32) (stream->computed_duration * 1000);
 	}
 
+	if (gf_list_count(rep->base_URLs)) {
+		GF_MPD_BaseURL *burl = gf_list_get(rep->base_URLs, 0);
+		if (burl->URL) {
+			base_url = burl->URL;
+			base_url_len = (u32) strlen(base_url);
+		}
+	}
+
 	if (pe->init_segment_url) {
 		if (!rep->segment_list->initialization_segment) {
 			GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
@@ -2217,8 +2227,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	count_elements = gf_list_count(pe->element.playlist.elements);
 	for (k=0; k<count_elements; k++) {
 		GF_MPD_SegmentURL *segment_url;
-		char *last_sep=NULL;
-		u32 check_len=0;
+		char *seg_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
 		if (!elt)
 			continue;
@@ -2234,14 +2243,14 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 			return GF_OUT_OF_MEM;
 		}
 		gf_list_add(rep->segment_list->segment_URLs, segment_url);
-		last_sep = strrchr(pe->url, '/');
-		if (last_sep)
-			check_len = (u32) (last_sep - pe->url);
 
-		if (check_len && !strncmp(pe->url, elt->url, check_len)) {
-			segment_url->media = gf_strdup(elt->url + check_len + 1);
+		//get absolute url, and remove base from it if we have a baseURL
+		seg_url = gf_url_concatenate(pe->url, elt->url);
+		if (base_url && !strncmp(seg_url, base_url, base_url_len)) {
+			segment_url->media = gf_strdup(seg_url + base_url_len);
+			gf_free(seg_url);
 		} else {
-			segment_url->media = gf_url_concatenate(pe->url, elt->url);
+			segment_url->media = seg_url;
 		}
 
 		if (! elt->utc_start_time) elt->utc_start_time = start_time;
