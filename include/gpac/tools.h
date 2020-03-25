@@ -1204,7 +1204,7 @@ Bool gf_fileio_check(FILE *fp);
 /*!
 \brief file opening
 
-Opens a file, potentially bigger than 4GB
+Opens a file, potentially bigger than 4GB. if filename identifies a blob (gmem://), the blob will be opened
 \param file_name same as fopen
 \param mode same as fopen
 \return stream handle of the file object

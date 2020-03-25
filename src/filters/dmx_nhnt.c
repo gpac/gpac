@@ -88,8 +88,10 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 	u64 cur_dur=0;
 	const GF_PropertyValue *p;
 
+	if (ctx->duration.num) return;
+
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
-	if (!p || !p->value.string) {
+	if (!p || !p->value.string || !strncmp(p->value.string, "gmem://", 7)) {
 		ctx->duration.num = 1;
 		return;
 	}
