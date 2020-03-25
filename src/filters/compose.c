@@ -660,7 +660,7 @@ static GF_Err compose_initialize_ex(GF_Filter *filter, Bool is_txt_rend)
 
 GF_Err compose_initialize(GF_Filter *filter)
 {
-	return compose_initialize_ex(filter, GF_TRUE);
+	return compose_initialize_ex(filter, GF_FALSE);
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_Compositor, _n)
