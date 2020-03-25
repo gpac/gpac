@@ -808,7 +808,10 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 
 Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry)
 {
-	FILE *the_cache = gf_fopen ( entry->cache_filename, "rb" );
+	FILE *the_cache = NULL;
+	if (entry->cache_filename && strncmp(entry->cache_filename, "gmem://", 7))
+		the_cache = gf_fopen ( entry->cache_filename, "rb" );
+
 	if ( the_cache ) {
 		char * endPtr;
 		const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_CONTENT_SIZE );

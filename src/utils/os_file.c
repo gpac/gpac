@@ -873,6 +873,56 @@ Bool gf_fileio_check(FILE *fp)
 	return GF_FALSE;
 }
 
+typedef struct
+{
+	u8 *data;
+	u32 size;
+	u32 pos;
+} GF_FileIOBlob;
+
+static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_error)
+{
+	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio_ref);
+	if (!url) {
+		gf_free(blob);
+		gf_fileio_del(fileio_ref);
+	}
+	return NULL;
+}
+
+static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
+{
+	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	if (whence==SEEK_END) blob->pos = blob->pos;
+	else if (whence==SEEK_SET) blob->pos = 0;
+	else {
+		if (blob->pos + offset > blob->size) return GF_BAD_PARAM;
+		blob->pos += offset;
+	}
+	return GF_OK;
+}
+static u32 gfio_blob_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
+{
+	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	if (bytes + blob->pos > blob->size)
+		bytes = blob->size - blob->pos;
+	if (bytes) {
+		memcpy(buffer, blob->data+blob->pos, bytes);
+		blob->pos += bytes;
+	}
+	return bytes;
+}
+static s64 gfio_blob_tell(GF_FileIO *fileio)
+{
+	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	return (s64) blob->pos;
+}
+static Bool gfio_blob_eof(GF_FileIO *fileio)
+{
+	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	if (blob->pos==blob->size) return GF_TRUE;
+	return GF_FALSE;
+}
 
 GF_EXPORT
 GF_FileIO *gf_fileio_new(char *url, void *udta,
@@ -1134,6 +1184,21 @@ s32 gf_fseek(FILE *fp, s64 offset, s32 whence)
 #endif
 }
 
+
+static GF_FileIO *gf_fileio_from_blob(const char *file_name)
+{
+	u8 *blob_data;
+	u32 blob_size;
+	GF_FileIOBlob *gfio_blob;
+	GF_Err e = gf_blob_get_data(file_name, &blob_data, &blob_size);
+	if (e || !blob_data) return NULL;
+
+	GF_SAFEALLOC(gfio_blob, GF_FileIOBlob);
+	if (!gfio_blob) return NULL;
+	gfio_blob->data = blob_data;
+	gfio_blob->size = blob_size;
+	return gf_fileio_new((char *) file_name, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
+}
 GF_EXPORT
 FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mode)
 {
@@ -1141,6 +1206,17 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 	u32 gfio_type = 0;
 
 	if (!file_name) return NULL;
+
+	if (!strncmp(file_name, "gmem://", 7)) {
+		GF_FileIO *new_gfio;
+		if (strstr(mode, "w"))
+			return NULL;
+		new_gfio = gf_fileio_from_blob(file_name);
+		if (new_gfio)
+			gf_register_file_handle(file_name, (FILE *) new_gfio);
+		return (FILE *) new_gfio;
+
+	}
 
 	if (!strncmp(file_name, "gfio://", 7))
 		gfio_type = 1;
