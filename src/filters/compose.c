@@ -936,7 +936,7 @@ const GF_FilterRegister TextRenderRegister = {
 	.name = "txtrend",
 	GF_FS_SET_DESCRIPTION("TextRenderer")
 	GF_FS_SET_HELP("The TextRenderer filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text to video conversion.\n"
-	"The default output pixel format used will be RGBA if not specified."
+	"The default output pixel format used will be RGBA if not specified.\n"
 	"See `gpac -h compositor` for available options."
 	)
 	.private_size = sizeof(GF_Compositor),
