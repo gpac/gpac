@@ -2227,11 +2227,15 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 #endif
 		}
 
-		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->description);
 #ifndef GPAC_DISABLE_DOC
-		gf_sys_format_help(helpout, help_flags, "Register name used to load filter: **%s**\n", reg->name);
+		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->description);
 #endif
-
+		gf_sys_format_help(helpout, help_flags, "Register name used to load filter: **%s**\n", reg->name);
+		if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) {
+			gf_sys_format_help(helpout, help_flags, "This filter is not checked during graph resolution and needs explicit loading.\n");
+		} else {
+			gf_sys_format_help(helpout, help_flags, "This filter may be automatically loaded during graph resolution.\n");
+		}
 	} else {
 		gf_sys_format_help(helpout, help_flags, "# %s\n", filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
 		if (filter_inst)

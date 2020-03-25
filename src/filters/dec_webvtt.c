@@ -44,6 +44,7 @@ typedef struct
 	char *script;
 	char *color, *font;
 	Float fontSize, lineSpacing, x, y;
+	u32 tw, th;
 
 	GF_FilterPid *ipid, *opid;
 
@@ -88,8 +89,8 @@ void vttd_update_size_info(GF_VTTDec *ctx)
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_HEIGHT);
 		if (p) h = p->value.uint;
 
-		if (!w) w = 1280;
-		if (!h) h = 720;
+		if (!w) w = ctx->tw;
+		if (!h) h = ctx->th;
 
 		gf_sg_set_scene_size_info(ctx->scenegraph, w, h, GF_TRUE);
 		gf_scene_force_size(ctx->scene, w, h);
@@ -465,6 +466,8 @@ static const GF_FilterArgs VTTDecArgs[] =
 	{ OFFS(lineSpacing), "line spacing as scaling factor to font size", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(x), "horizontal offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(y), "vertical offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(tw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, 0},
+	{ OFFS(th), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, 0},
 	{0}
 };
 
