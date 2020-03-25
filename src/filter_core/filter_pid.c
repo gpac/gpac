@@ -2237,9 +2237,15 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 		//if stream types are know (>0) and not source files, do not mark the edges if they mismatch
 		//moving from non-file type A to non-file type B requires an explicit filter
 		if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type)) {
-			edge->status = EDGE_STATUS_DISABLED;
-			edge->disabled_depth = rlevel+1;
-			continue;
+
+			//exception: we allow text->video for txtrend
+			if (!(reg_desc->freg->flags & GF_FS_REG_EXPLICIT_ONLY) && (source_stream_type==GF_STREAM_TEXT)  && (dst_stream_type==GF_STREAM_VISUAL) ) {
+
+			} else {
+				edge->status = EDGE_STATUS_DISABLED;
+				edge->disabled_depth = rlevel+1;
+				continue;
+			}
 		}
 
 		res = gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, src_freg, rlevel+1, source_stream_type, reg_desc, pid, pid_stream_type);
@@ -3348,24 +3354,41 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	u32 i;
 	const GF_FilterCapability *caps;
 	u32 nb_caps;
-	const GF_PropertyValue *p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
-	if (!p) return GF_TRUE;
+	Bool dst_has_raw_cid_in = GF_FALSE;
+	const GF_PropertyValue *stream_type = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
+	if (!stream_type) return GF_TRUE;
 
-	if (p->value.uint==GF_STREAM_FILE) return GF_FALSE;
-	if (p->value.uint==GF_STREAM_ENCRYPTED) {
-		p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
-		if (!p) return GF_TRUE;
+	if (stream_type->value.uint==GF_STREAM_FILE) return GF_FALSE;
+	if (stream_type->value.uint==GF_STREAM_ENCRYPTED) {
+		stream_type = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+		if (!stream_type) return GF_TRUE;
 	}
 
 	caps = dst->forced_caps ? dst->forced_caps : dst->freg->caps;
 	nb_caps = dst->forced_caps ? dst->nb_forced_caps : dst->freg->nb_caps;
+
+	nb_caps = dst->forced_caps ? dst->nb_forced_caps : dst->freg->nb_caps;
+	for (i=0; i<nb_caps; i++) {
+		const GF_FilterCapability *cap = &caps[i];
+		if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
+
+		if (cap->code != GF_PROP_PID_CODECID) continue;
+		if (cap->val.value.uint==GF_CODECID_RAW)
+			dst_has_raw_cid_in = GF_TRUE;
+	}
+
+
 	for (i=0; i<nb_caps; i++) {
 		const GF_FilterCapability *cap = &caps[i];
 		if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 
 		if (cap->code != GF_PROP_PID_STREAM_TYPE) continue;
 		//output type is file or same media type, allow looking for filter chains
-		if ((cap->val.value.uint==GF_STREAM_FILE) || (cap->val.value.uint==p->value.uint)) return GF_FALSE;
+		if ((cap->val.value.uint==GF_STREAM_FILE) || (cap->val.value.uint==stream_type->value.uint)) return GF_FALSE;
+		//allow text -> raw video for txtrend
+		if (dst_has_raw_cid_in) {
+			if ((stream_type->value.uint==GF_STREAM_TEXT) && (cap->val.value.uint==GF_STREAM_VISUAL)) return GF_FALSE;
+		}
 	}
 	//no mathing type found, we will need an explicit filter to solve this link (ie the link will be to the explicit filter)
 	return GF_TRUE;

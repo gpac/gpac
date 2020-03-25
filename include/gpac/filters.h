@@ -1699,6 +1699,9 @@ typedef enum
 		This is typically used by mux filters
 	*/
 	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
+	/*! Indicates that this filter is an alias for another filter and doc should not be generated
+	*/
+	GF_FS_REG_ALIAS = 1<<11,
 
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000

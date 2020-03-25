@@ -634,7 +634,7 @@ player (enum, default: no):    set compositor in player mode, see filter help
 .br
 noaudio (bool, default: false): disable audio output
 .br
-opfmt (pfmt, default: none):   pixel format to use for output. Ignored in -player mode
+opfmt (pfmt, default: none, minmax: none,yuv420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format to use for output. Ignored in -player mode
 .br
 drv (enum, default: auto):     indicate if graphics driver should be used. Ignored in player mode
 .br
@@ -5361,6 +5361,21 @@ js (cstr):                     location of script source
 .br
 
 .br
+.SH txtrend
+.LP
+.br
+Description: TextRenderer
+.br
+
+.br
+The TextRenderer filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text to video conversion.
+.br
+See gpac -h compositor for available options.
+.br
+
+.br
+
+.br
 .SH ohevcdec
 .LP
 .br
@@ -5408,7 +5423,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3503-gaa10f4f8c-filters
+build: 0.9.0-DEV-rev3508-gefe77c360-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

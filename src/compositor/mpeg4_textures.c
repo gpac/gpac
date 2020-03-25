@@ -171,6 +171,8 @@ static void movietexture_update_time(GF_TimeNode *st)
 
 	if (! mt->isActive) movietexture_activate(stack, mt, time);
 	stack->txh.stream_finished = GF_FALSE;
+	if (!mt->url.count)
+		stack->txh.stream_finished = GF_TRUE;
 }
 
 void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node)

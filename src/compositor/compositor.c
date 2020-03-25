@@ -2781,7 +2781,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			if (!compositor->passthrough_txh) {
 				if (!compositor->vfr) {
 					//in CFR and no texture associated, always force a redraw
-					if (!has_tx_streams)
+					if (!has_tx_streams && has_timed_nodes)
 						compositor->frame_draw_type = GF_SC_DRAW_FRAME;
 					//otherwise if texture(s) but not all done, force a redraw
 					else if (!all_tx_done)

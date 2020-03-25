@@ -2687,6 +2687,8 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 			af->removed = GF_TRUE;
 		}
 	}
+	if (e==GF_NOT_SUPPORTED)
+		e = GF_FILTER_NOT_FOUND;
 	//nope ...
 	gf_filter_setup_failure(filter, e);
 	gf_free(src_url);
