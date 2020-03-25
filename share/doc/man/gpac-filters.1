@@ -2078,9 +2078,9 @@ texture (bool, default: false): use texturing for output text
 .br
 outline (bool, default: false): draw text outline
 .br
-tw (uint, default: 400):       default width in standalone rendering
+txtw (uint, default: 400):     default width in standalone rendering
 .br
-th (uint, default: 200):       default height in standalone rendering
+txth (uint, default: 200):     default height in standalone rendering
 .br
 
 .br
@@ -2116,9 +2116,9 @@ x (flt, default: 5, updatable): horizontal offset
 .br
 y (flt, default: 5, updatable): vertical offset
 .br
-tw (uint, default: 400):       default width in standalone rendering
+txtw (uint, default: 400):     default width in standalone rendering
 .br
-th (uint, default: 200):       default height in standalone rendering
+txth (uint, default: 200):     default height in standalone rendering
 .br
 
 .br
@@ -5374,7 +5374,7 @@ Description: TextRenderer
 .br
 The TextRenderer filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text to video conversion.
 .br
-See gpac -h compositor for available options.
+The default output pixel format used will be RGBA if not specified.See gpac -h compositor for available options.
 .br
 
 .br
@@ -5427,7 +5427,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3509-gaf71f5a90-filters
+build: 0.9.0-DEV-rev3510-gb9c5ce3c7-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

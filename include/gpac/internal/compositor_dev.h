@@ -262,6 +262,7 @@ struct __tag_compositor
 	//autofps option
 	Bool vfr;
 	Bool nojs;
+	Bool txt_render;
 
 	//frame duration in ms, used to match closest frame in input video streams
 	u32 frame_duration;
