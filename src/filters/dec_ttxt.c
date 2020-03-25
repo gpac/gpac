@@ -74,7 +74,7 @@ typedef struct
 {
 	//opts
 	Bool texture, outline;
-	u32 width, height;
+	u32 tw, th;
 
 	GF_FilterPid *ipid, *opid;
 
@@ -125,7 +125,7 @@ static void ttd_update_size_info(GF_TTXTDec *ctx)
 		} else if (ctx->cfg->text_width && ctx->cfg->text_height) {
 			gf_sg_set_scene_size_info(ctx->scenegraph, ctx->cfg->text_width, ctx->cfg->text_height, GF_TRUE);
 		} else {
-			gf_sg_set_scene_size_info(ctx->scenegraph, ctx->width, ctx->height, GF_TRUE);
+			gf_sg_set_scene_size_info(ctx->scenegraph, ctx->tw, ctx->th, GF_TRUE);
 		}
 		gf_sg_get_scene_size_info(ctx->scenegraph, &w, &h);
 		if (!w || !h) return;
@@ -1303,8 +1303,8 @@ static const GF_FilterArgs TTXTDecArgs[] =
 {
 	{ OFFS(texture), "use texturing for output text", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(outline), "draw text outline", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(width), "default width when standalone rendering", GF_PROP_UINT, "400", NULL, 0},
-	{ OFFS(height), "default height when standalone rendering", GF_PROP_UINT, "200", NULL, 0},
+	{ OFFS(tw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, 0},
+	{ OFFS(th), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, 0},
 	{0}
 };
 
