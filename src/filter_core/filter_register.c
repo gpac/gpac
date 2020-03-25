@@ -151,6 +151,8 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session);
 const GF_FilterRegister *flac_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *proresdmx_register(GF_FilterSession *session);
 
+const GF_FilterRegister *txtrend_filter_register(GF_FilterSession *session);
+
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
 	gf_fs_add_filter_register(fsess, inspect_register(a_sess) );
@@ -271,6 +273,9 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, ffavf_register(a_sess) );
 
 	gf_fs_add_filter_register(fsess, jsfilter_register(a_sess) );
+
+	gf_fs_add_filter_register(fsess, txtrend_filter_register(a_sess) );
+
 }
 
 GF_EXPORT

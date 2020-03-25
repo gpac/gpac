@@ -2287,6 +2287,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		gf_sys_format_help(helpout, help_flags, "\n");
 	}
 
+	if (reg->flags & GF_FS_REG_ALIAS)
+		goto skip_opts;
+
 	if (filter_inst) args = gf_filter_get_args(filter_inst);
 	else args = reg->args;
 
@@ -2403,6 +2406,8 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	} else {
 		gf_sys_format_help(helpout, help_flags, "No options\n");
 	}
+
+skip_opts:
 
 	if (reg->nb_caps) {
 		if (!gen_doc && (argmode==GF_ARGMODE_ALL)) {

@@ -96,7 +96,10 @@ static void audioclip_update_time(GF_TimeNode *tn)
 	M_AudioClip *ac = (M_AudioClip *)tn->udta;
 	AudioClipStack *st = (AudioClipStack *)gf_node_get_private((GF_Node*)tn->udta);
 
-	if (st->failure) return;
+	if (st->failure) {
+		st->time_handle.needs_unregister = GF_TRUE;
+		return;
+	}
 	if (! ac->isActive) {
 		st->start_time = ac->startTime;
 		st->input.speed = ac->pitch;

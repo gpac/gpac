@@ -139,14 +139,18 @@ static GF_Err compose_process(GF_Filter *filter)
 					gf_filter_pid_set_eos(ctx->audio_renderer->aout);
 			}
 			//send stop
-			for (i=0; i<count; i++) {
-				GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
-				if (!gf_filter_pid_is_eos(pid)) {
-					GF_FilterEvent evt;
-					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-					gf_filter_pid_send_event(pid, &evt);
-					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
-					gf_filter_pid_send_event(pid, &evt);
+			if (ctx->dur) {
+				for (i=0; i<count; i++) {
+					GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
+					if (!gf_filter_pid_is_eos(pid)) {
+						GF_FilterEvent evt;
+						GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+						gf_filter_pid_send_event(pid, &evt);
+						GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+						gf_filter_pid_send_event(pid, &evt);
+						//and discard every incoming packet
+						gf_filter_pid_set_discard(pid, GF_TRUE);
+					}
 				}
 			}
 			return forced_eos ? GF_SERVICE_ERROR : GF_EOS;
@@ -900,9 +904,8 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 	for (i=0; i<nb_args; i++) {
 		if (!strcmp(CompositorArgs[i].arg_name, "afmt")) {
 			CompositorArgs[i].min_max_enum = gf_audio_fmt_all_names();
-			break;
 		}
-		else if (!strcmp(CompositorArgs[i].arg_name, "pfmt")) {
+		else if (!strcmp(CompositorArgs[i].arg_name, "opfmt")) {
 			CompositorArgs[i].min_max_enum =  gf_pixel_fmt_all_names();
 		}
 	}
@@ -910,4 +913,37 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 }
 
 
+
+
+static const GF_FilterCapability TextRenderCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+};
+
+const GF_FilterRegister TextRenderRegister = {
+	.name = "txtrend",
+	GF_FS_SET_DESCRIPTION("TextRenderer")
+	GF_FS_SET_HELP("The TextRenderer filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text to video conversion.\n"
+	"See `gpac -h compositor` for available options."
+	)
+	.private_size = sizeof(GF_Compositor),
+	.flags = GF_FS_REG_MAIN_THREAD|GF_FS_REG_ALIAS,
+	.max_extra_pids = (u32) 0,
+	SETCAPS(TextRenderCaps),
+	.args = CompositorArgs,
+	.initialize = compose_initialize,
+	.finalize = compose_finalize,
+	.process = compose_process,
+	.process_event = compose_process_event,
+	.configure_pid = compose_configure_pid,
+	.reconfigure_output = compose_reconfig_output,
+	.update_arg = compose_update_arg
+};
+
+const GF_FilterRegister *txtrend_filter_register(GF_FilterSession *session)
+{
+	return &TextRenderRegister;
+}
 

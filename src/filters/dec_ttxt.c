@@ -82,7 +82,7 @@ typedef struct
 	GF_Scene *scene;
 	u32 dsi_crc;
 	Bool is_tx3g;
-	Bool is_playing, graph_registered;
+	Bool is_playing, graph_registered, is_eos;
 
 
 	GF_TextConfig *cfg;
@@ -1205,11 +1205,19 @@ static GF_Err ttd_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			gf_filter_pid_set_eos(ctx->opid);
+			if (!ctx->is_eos) {
+				gf_filter_pid_set_eos(ctx->opid);
+				ctx->ts_blink->stopTime = gf_node_get_scene_time((GF_Node *) ctx->ts_blink);
+				gf_node_changed((GF_Node *) ctx->ts_blink, NULL);
+				ctx->ts_scroll->stopTime = gf_node_get_scene_time((GF_Node *) ctx->ts_scroll);
+				gf_node_changed((GF_Node *) ctx->ts_scroll, NULL);
+				ctx->is_eos = GF_TRUE;
+			}
 			return GF_EOS;
 		}
 		return GF_OK;
 	}
+	ctx->is_eos = GF_FALSE;
 
 	//object clock shall be valid
 	assert(ctx->odm->ck);

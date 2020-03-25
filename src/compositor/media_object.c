@@ -1194,6 +1194,7 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 	MediaControlStack *ctrl;
 #endif
 
+	if (!mo || !mo->odm) return GF_TRUE;
 	if (!mo->odm->state) return GF_FALSE;
 	//if dynamic scene we can deactivate
 	if (mo->odm->parentscene && mo->odm->parentscene->is_dynamic_scene) {
