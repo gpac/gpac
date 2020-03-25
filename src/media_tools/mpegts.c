@@ -3713,6 +3713,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			gf_m2ts_set_pes_framing(o_pes, GF_M2TS_PES_FRAMING_SKIP);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Reassinging PID %d from program %d to program %d\n", pes->pid, o_pes->program->number, pes->program->number) );
+		gf_m2ts_es_del((GF_M2TS_ES*)o_pes, pes->program->ts);
+
 		pes->program->ts->ess[pes->pid] = (GF_M2TS_ES *) pes;
 	}
 
