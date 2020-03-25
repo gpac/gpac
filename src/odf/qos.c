@@ -84,7 +84,7 @@ void gf_odf_delete_qos_qual(GF_QoS_Default *qos)
 		return;
 
 	default:
-		if ( ((GF_QoS_Private *)qos)->DataLength)
+		if ( ((GF_QoS_Private *)qos)->Data)
 			gf_free(((GF_QoS_Private *)qos)->Data);
 		gf_free( (GF_QoS_Private *) qos);
 		return;
@@ -250,10 +250,13 @@ GF_Err gf_odf_parse_qos(GF_BitStream *bs, GF_QoS_Default **qos_qual, u32 *qual_s
 	default:
 		//we defined the private qos...
 		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Private));
+		((GF_QoS_Private *)newQoS)->Data = NULL;
 		((GF_QoS_Private *)newQoS)->DataLength = qos_size;
-		((GF_QoS_Private *)newQoS)->Data = (char *) gf_malloc( qos_size );
-		gf_bs_read_data(bs, ((GF_QoS_Private *)newQoS)->Data, ((GF_QoS_Private *)newQoS)->DataLength);
-		bytesParsed += ((GF_QoS_Private *)newQoS)->DataLength;
+		if (qos_size > 0) {
+			((GF_QoS_Private *)newQoS)->Data = (char *) gf_malloc( qos_size );
+			gf_bs_read_data(bs, ((GF_QoS_Private *)newQoS)->Data, ((GF_QoS_Private *)newQoS)->DataLength);
+			bytesParsed += ((GF_QoS_Private *)newQoS)->DataLength;
+		}
 		break;
 	}
 	newQoS->size = qos_size;
@@ -446,4 +449,3 @@ GF_Err gf_odf_write_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos)
 
 
 #endif /*GPAC_MINIMAL_ODF*/
-

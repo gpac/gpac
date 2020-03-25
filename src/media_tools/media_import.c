@@ -9358,7 +9358,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				mtype = GF_ISOM_MEDIA_VISUAL;
 				stype = GF_STREAM_VISUAL;
 				oti = GPAC_OTI_VIDEO_AVC;
-				tsimp->avccfg = gf_odf_avc_cfg_new();
+				if (!tsimp->avccfg)
+					tsimp->avccfg = gf_odf_avc_cfg_new();
 				break;
 			case GF_M2TS_VIDEO_HEVC:
 			case GF_M2TS_VIDEO_HEVC_TEMPORAL:
@@ -9371,7 +9372,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				stype = GF_STREAM_VISUAL;
 				oti = GPAC_OTI_VIDEO_HEVC;
 #ifndef GPAC_DISABLE_HEVC
-				tsimp->hevccfg = gf_odf_hevc_cfg_new();
+				if (!tsimp->hevccfg)
+					tsimp->hevccfg = gf_odf_hevc_cfg_new();
 				if (es->stream_type != GF_M2TS_VIDEO_HEVC) tsimp->is_substream = GF_TRUE;
 #endif //GPAC_DISABLE_HEVC
 				break;
