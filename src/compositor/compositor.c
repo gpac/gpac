@@ -462,7 +462,9 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		pfmt = compositor->opfmt;
 		if (!pfmt && compositor->passthrough_txh) pfmt = compositor->passthrough_txh->pixelformat;
 
-		if (!pfmt) pfmt = GF_PIXEL_RGB;
+		if (!pfmt) {
+			pfmt = compositor->txt_render ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+		}
 
 		memset(vi, 0, sizeof(GF_VideoSurface));
 		vi->width = compositor->display_width;
@@ -486,15 +488,23 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 
 static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 {
-	u32 pfmt;
+	u32 pfmt, stride;
 	GF_Compositor *compositor = (GF_Compositor *)vout->opaque;
 	if (!evt || (evt->type != GF_EVENT_VIDEO_SETUP)) return GF_OK;
 
 	pfmt = compositor->opfmt;
-	if (!pfmt) pfmt = GF_PIXEL_RGB;
+	if (!pfmt) {
+		pfmt = compositor->txt_render ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+	}
 
 	compositor->passthrough_pfmt = pfmt;
-	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, NULL, NULL, NULL, NULL);
+	stride=0;
+	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, &stride, NULL, NULL, NULL);
+
+	if (compositor->vout) {
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt));
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
+	}
 
 	if (compositor->framebuffer_size > compositor->framebuffer_alloc) {
 		compositor->framebuffer_alloc = compositor->framebuffer_size;

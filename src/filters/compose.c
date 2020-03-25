@@ -567,7 +567,8 @@ void compositor_setup_aout(GF_Compositor *ctx)
 		gf_filter_pid_set_loose_connect(pid);
 	}
 }
-GF_Err compose_initialize(GF_Filter *filter)
+
+static GF_Err compose_initialize_ex(GF_Filter *filter, Bool is_txt_rend)
 {
 	GF_Err e;
 	GF_FilterSessionCaps sess_caps;
@@ -577,6 +578,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 	ctx->magic = COMPOSITOR_MAGIC;
 	ctx->magic_ptr = (void *) ctx;
 	ctx->filter = filter;
+	ctx->txt_render = is_txt_rend;
 	
     if (ctx->player) {
 		if (ctx->ogl == GF_SC_GLMODE_AUTO)
@@ -654,6 +656,11 @@ GF_Err compose_initialize(GF_Filter *filter)
 			gf_sc_connect_from_time_ex(ctx, gui_path, 0, 0, 0, NULL);
 	}
 	return GF_OK;
+}
+
+GF_Err compose_initialize(GF_Filter *filter)
+{
+	return compose_initialize_ex(filter, GF_TRUE);
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_Compositor, _n)
@@ -913,7 +920,10 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 }
 
 
-
+GF_Err txtrend_initialize(GF_Filter *filter)
+{
+	return compose_initialize_ex(filter, GF_TRUE);
+}
 
 static const GF_FilterCapability TextRenderCaps[] =
 {
@@ -926,6 +936,7 @@ const GF_FilterRegister TextRenderRegister = {
 	.name = "txtrend",
 	GF_FS_SET_DESCRIPTION("TextRenderer")
 	GF_FS_SET_HELP("The TextRenderer filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text to video conversion.\n"
+	"The default output pixel format used will be RGBA if not specified."
 	"See `gpac -h compositor` for available options."
 	)
 	.private_size = sizeof(GF_Compositor),
@@ -933,7 +944,7 @@ const GF_FilterRegister TextRenderRegister = {
 	.max_extra_pids = (u32) 0,
 	SETCAPS(TextRenderCaps),
 	.args = CompositorArgs,
-	.initialize = compose_initialize,
+	.initialize = txtrend_initialize,
 	.finalize = compose_finalize,
 	.process = compose_process,
 	.process_event = compose_process_event,
