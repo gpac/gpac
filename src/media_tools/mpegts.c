@@ -2217,6 +2217,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			} else if (tag == GF_M2TS_METADATA_POINTER_DESCRIPTOR) {
 				GF_BitStream *metadatapd_bs;
 				GF_M2TS_MetadataPointerDescriptor *metapd;
+
+				if (data_size <= 8 || data_size-6 < (u32)len)
+					break;
+
 				metadatapd_bs = gf_bs_new((char *)data+6, len, GF_BITSTREAM_READ);
 				metapd = gf_m2ts_read_metadata_pointer_descriptor(metadatapd_bs, len);
 				gf_bs_del(metadatapd_bs);
