@@ -834,7 +834,7 @@ GF_Err chan_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (ptr->size<10000) {
 		ptr->ext_data_size = (u32) ptr->size;
-		ptr->ext_data = gf_malloc(sizeof(u8)*ptr->size);
+		ptr->ext_data = gf_malloc((size_t)(sizeof(u8)*ptr->size));
 		if (!ptr->ext_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (char *)ptr->ext_data, (u32) ptr->size);
 		ptr->size = 0;
@@ -924,7 +924,7 @@ GF_Err load_Write(GF_Box *s, GF_BitStream *bs)
 
 	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	gf_bs_write_u32(bs, ptr->preload_start_time);
 	gf_bs_write_u32(bs, ptr->preload_duration);
 	gf_bs_write_u32(bs, ptr->preload_flags);

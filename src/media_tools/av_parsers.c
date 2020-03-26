@@ -3362,12 +3362,13 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 				if (!frame_refs_short_signaling)
 					ref_frame_idx[i] = gf_bs_read_int(bs, 3);
-					if (state->frame_id_numbers_present_flag) {
-						u32 n = state->delta_frame_id_length_minus_2 + 2;
-						/*delta_frame_id_minus_1 =*/ gf_bs_read_int(bs, n);
-						//DeltaFrameId = delta_frame_id_minus_1 + 1;
-						//expectedFrameId[i] = ((current_frame_id + (1 << idLen) - DeltaFrameId) % (1 << idLen));
-					}
+
+				if (state->frame_id_numbers_present_flag) {
+					u32 n = state->delta_frame_id_length_minus_2 + 2;
+					/*delta_frame_id_minus_1 =*/ gf_bs_read_int(bs, n);
+					//DeltaFrameId = delta_frame_id_minus_1 + 1;
+					//expectedFrameId[i] = ((current_frame_id + (1 << idLen) - DeltaFrameId) % (1 << idLen));
+				}
 			}
 			if (frame_size_override_flag && !error_resilient_mode) {
 				frame_size_with_refs(bs, state, frame_size_override_flag);

@@ -129,7 +129,8 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 		if (no_allocation) {
 			cu->data = NULL;
 		} else {
-			cu->data = UnitSize ? (char*)my_large_alloc(sizeof(char)*UnitSize) : NULL;
+			cu->data = NULL;
+			if (UnitSize) cu->data = (char*)my_large_alloc(sizeof(char)*UnitSize);
 			if (cu->data) memset(cu->data, 0, sizeof(char)*UnitSize);
 		}
 		prev = cu;
@@ -362,7 +363,7 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 		if ( (cb->Status == CB_BUFFER) && (cb->UnitCount >= cb->Capacity) ) {
 			/*done with buffering*/
 			cb->Status = CB_BUFFER_DONE;
-			
+
 			//for audio, turn off buffering now. For video, we will wait for the first frame to be drawn
 			if (cb->odm->codec->type == GF_STREAM_AUDIO)
 				cb_set_buffer_off(cb);
@@ -446,7 +447,7 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
-	
+
 	while (1) {
 		if (cu->frame) {
 			cu->frame->Release(cu->frame);
@@ -467,7 +468,7 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 		cu = cu->next;
 		if (cu == cb->input) break;
 	}
-	
+
 	cb->UnitCount = 0;
 	cb->output = cb->input;
 	gf_odm_lock(cb->odm, 0);

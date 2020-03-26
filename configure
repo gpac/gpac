@@ -2968,9 +2968,13 @@ if test "$gprof_build" = "yes"; then
     fi
 fi
 
+#we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS_DIR $CFLAGS"
+    CFLAGS="$CFLAGS_DIR $CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+else
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi
+
 
 if test "$enable_sanitizer" = "yes" ; then
     CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g"

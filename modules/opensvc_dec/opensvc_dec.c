@@ -95,7 +95,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 					ctx->width = w;
 					ctx->height = h;
 					if ( ((s32)par_n>0) && ((s32)par_d>0) )
-						ctx->pixel_ar = (par_n<<16) || par_d;
+						ctx->pixel_ar = (par_n<<16) | (par_d & 0x0000FFFF);
 				}
 			}
 			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, Layer);
@@ -455,4 +455,3 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 GPAC_MODULE_STATIC_DECLARATION( opensvc )
-
