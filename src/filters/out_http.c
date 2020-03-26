@@ -2383,8 +2383,8 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			}
 		}
 
-		//no destination and holding for first connect and not holding packets (either first connection not here or disabled), trash packet
-		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest && in->hold) {
+		//no destination and not holding packets (either first connection not here or disabled), trash packet
+		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest && !in->hold) {
 			gf_filter_pid_drop_packet(in->ipid);
 			continue;
 		}
