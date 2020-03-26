@@ -33,7 +33,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool append, dynext, cat, ow;
+	Bool append, dynext, cat, ow, redund;
 	u32 mvbk;
 
 	//only one input pid
@@ -261,7 +261,6 @@ static GF_Err fileout_process(GF_Filter *filter)
 	Bool start, end;
 	const u8 *pck_data;
 	u32 pck_size, nb_write;
-	u32 dep_flags;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->is_error) {
@@ -307,11 +306,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 	}
 
 	gf_filter_pck_get_framing(pck, &start, &end);
-	dep_flags = gf_filter_pck_get_dependency_flags(pck);
-	//redundant packet, do not store
-	if ((dep_flags & 0x3) == 1) {
-		gf_filter_pid_drop_packet(ctx->pid);
-		return GF_OK;
+	if (!ctx->redund) {
+		u32 dep_flags = gf_filter_pck_get_dependency_flags(pck);
+		//redundant packet, do not store
+		if ((dep_flags & 0x3) == 1) {
+			gf_filter_pid_drop_packet(ctx->pid);
+			return GF_OK;
+		}
 	}
 
 	if (ctx->is_null) {
@@ -572,6 +573,8 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(cat), "cat each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ow), "overwrite output if existing", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mvbk), "block size used when moving parts of the file around in patch mode", GF_PROP_UINT, "8192", NULL, 0},
+	{ OFFS(redund), "keep redundant packet in output file", GF_PROP_BOOL, "false", NULL, 0},
+
 	{0}
 };
 
