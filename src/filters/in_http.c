@@ -28,9 +28,6 @@
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
-enum {
-	GF_GPAC_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
-};
 
 typedef enum
 {
@@ -351,7 +348,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 			if (!ctx->initial_ack_done) {
 				ctx->initial_ack_done = GF_TRUE;
-				gf_filter_pid_set_property(ctx->pid, GF_GPAC_DOWNLOAD_SESSION, &PROP_POINTER( (void*)ctx->sess ) );
+				gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWNLOAD_SESSION, &PROP_POINTER( (void*)ctx->sess ) );
 			}
 
 			/*in test mode don't expose http headers (they contain date/version/etc)*/
