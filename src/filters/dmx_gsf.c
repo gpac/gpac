@@ -935,6 +935,7 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 		gf_list_rem(gst->packets, 0);
 		gsfdmx_pck_reset(gpck);
 		gf_list_add(ctx->pck_res, gpck);
+		if (e>GF_OK) e = GF_OK;
 		if (e) return e;
 	}
 	return GF_OK;
