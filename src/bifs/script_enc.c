@@ -57,7 +57,7 @@ typedef struct
 
 #define SFE_WRITE_INT(sc_enc, val, nbBits, str1, str2)	\
 		if (!sc_enc->emul) GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, val, nbBits, str1, str2);	\
- 
+
 
 static GF_Err EncScriptFields(ScriptEnc *sc_enc)
 {
@@ -1175,7 +1175,7 @@ void SFE_PutBoolean(ScriptEnc *sc_enc, char *str)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Token %s read, %s expected\n", tok_names[curTok], tok_names[x])); \
 		sc_enc->err = GF_BAD_PARAM;	\
 	}	\
- 
+
 
 u32 TOK_To_ET(u32 tok)
 {
@@ -1708,7 +1708,7 @@ skip_token:
 		SFE_CheckToken(sc_enc, TOK_SEMICOLON);
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal expression type %s\n", expr_name[expr]));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal expression type %s\n", expr < ARRAY_LENGTH(expr_name) ? expr_name[expr] : ""));
 		sc_enc->err = GF_BAD_PARAM;
 		break;
 	}

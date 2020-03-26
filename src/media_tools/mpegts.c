@@ -2188,7 +2188,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
 				u32 size;
 				GF_BitStream *iod_bs;
-				if (len<2 || data_size <= 8 || data_size-8 < len-2)
+				if (len<2 || data_size <= 8 || data_size-8 < (u32)len-2)
 					break;
 
 				iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);

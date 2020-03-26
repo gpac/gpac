@@ -1475,8 +1475,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dum
 #ifndef GPAC_DISABLE_AV_PARSERS
 				u32 is_encrypted = 0;
 				if (is_cenc_protection) {
-					GF_Err e = gf_isom_get_sample_cenc_info(file, track, i+1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
-					assert(!e);
+					gf_isom_get_sample_cenc_info(file, track, i+1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
 				}
 
 				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, (Bool)is_encrypted);

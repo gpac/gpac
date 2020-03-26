@@ -4706,7 +4706,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	u8 is_pes[GF_M2TS_MAX_STREAMS];
 	char szOpt[100];
 	char SegName[GF_MAX_PATH], IdxName[GF_MAX_PATH];
-	char szSectionName[100], szRepURLsSecName[100];
+	char szSectionName[128], szRepURLsSecName[128];
 	char szCodecs[100];
 	const char *opt;
 	u32 i;
@@ -4770,8 +4770,8 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 	szSectionName[0] = 0;
 	if (dasher->dash_ctx) {
-		sprintf(szSectionName, "Representation_%s", dash_input->representationID);
-		sprintf(szRepURLsSecName, "URLs_%s", dash_input->representationID);
+		snprintf(szSectionName, ARRAY_LENGTH(szSectionName), "Representation_%s", dash_input->representationID);
+		snprintf(szRepURLsSecName, ARRAY_LENGTH(szRepURLsSecName), "URLs_%s", dash_input->representationID);
 
 		/*restart where we left last time*/
 		opt = gf_cfg_get_key(dasher->dash_ctx, szSectionName, "ByteOffset");
@@ -5386,7 +5386,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 			memcpy(di, dash_input, sizeof(GF_DashSegInput));
 
 			/*representationID*/
-			snprintf(di->representationID, sizeof(di->representationID), "%s_%d", dep_representation_id, cur_idx);
+			snprintf(di->representationID, sizeof(di->representationID), "%s_%u", dep_representation_id, cur_idx);
 			di->trackNum = j+1;
 
 			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 0);
