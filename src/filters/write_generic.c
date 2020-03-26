@@ -43,6 +43,7 @@ typedef struct
 	Bool exporter, frame, split;
 	u32 sstart, send;
 	u32 pfmt, afmt, decinfo;
+	GF_Fraction dur;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -68,6 +69,7 @@ typedef struct
 	u32 w, h, stride;
 	u64 nb_bytes;
 
+	u64 first_dts_plus_one;
 } GF_GenDumpCtx;
 
 
@@ -577,6 +579,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck;
 	char *data;
 	u32 pck_size;
+	Bool do_abort = GF_FALSE;
 	Bool split = ctx->split;
 	if (!ctx->ipid) return GF_EOS;
 
@@ -597,12 +600,28 @@ GF_Err writegen_process(GF_Filter *filter)
 			return GF_OK;
 		}
 		if ((ctx->sstart <= ctx->send) && (ctx->sample_num>ctx->send) ) {
-			GF_FilterEvent evt;
-			gf_filter_pid_drop_packet(ctx->ipid);
-			GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
-			gf_filter_pid_send_event(ctx->ipid, &evt);
-			return GF_OK;
+			do_abort = GF_TRUE;
 		}
+	} else if (ctx->dur.num && ctx->dur.den) {
+		u64 dts = gf_filter_pck_get_dts(pck);
+		if (dts==GF_FILTER_NO_TS)
+		dts = gf_filter_pck_get_cts(pck);
+
+		if (!ctx->first_dts_plus_one) {
+			ctx->first_dts_plus_one = dts+1;
+		} else {
+			if (ctx->dur.den * (dts + 1 - ctx->first_dts_plus_one) > ctx->dur.num * gf_filter_pck_get_timescale(pck)) {
+				do_abort = GF_TRUE;
+			}
+		}
+	}
+	if (do_abort) {
+		do_abort = GF_TRUE;
+		GF_FilterEvent evt;
+		gf_filter_pid_drop_packet(ctx->ipid);
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
+		gf_filter_pid_send_event(ctx->ipid, &evt);
+		return GF_OK;
 	}
 
 	if (ctx->frame) {
@@ -971,8 +990,9 @@ static GF_FilterArgs GenDumpArgs[] =
 	"- auto: selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split), "force one file per decoded frame.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame), "force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(sstart), "start number of frame to dump. If 0, all samples are dumped", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(send), "end number of frame to dump. If less than start frame, all samples after start are dumped", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(sstart), "start number of frame to forward. If 0, all samples are forwarded", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(send), "end number of frame to forward. If less than start frame, all samples after start are forwarded", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(dur), "duration of media to forward after first sample. If 0, all samples are forwarded", GF_PROP_FRACTION, "0", NULL, 0},
 	{0}
 };
 

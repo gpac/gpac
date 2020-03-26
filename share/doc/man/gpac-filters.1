@@ -2400,9 +2400,11 @@ split (bool, default: false):  force one file per decoded frame.
 .br
 frame (bool, default: false):  force single frame dump with no rewrite. In this mode, all codecids are supported
 .br
-sstart (uint, default: 0):     start number of frame to dump. If 0, all samples are dumped
+sstart (uint, default: 0):     start number of frame to forward. If 0, all samples are forwarded
 .br
-send (uint, default: 0):       end number of frame to dump. If less than start frame, all samples after start are dumped
+send (uint, default: 0):       end number of frame to forward. If less than start frame, all samples after start are forwarded
+.br
+dur (frac, default: 0):        duration of media to forward after first sample. If 0, all samples are forwarded
 .br
 
 .br
@@ -5429,7 +5431,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3511-g141ffd881-filters
+build: 0.9.0-DEV-rev3515-ge48a2369d-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br
