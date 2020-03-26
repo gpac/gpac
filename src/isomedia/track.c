@@ -271,7 +271,7 @@ default_sync:
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		    moov->mvex &&
 #endif
-		    esd->decoderConfig->streamType &&
+		    esd->decoderConfig && esd->decoderConfig->streamType &&
 		    (esd->decoderConfig->streamType==GF_STREAM_VISUAL)
 		) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
