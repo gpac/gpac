@@ -529,7 +529,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	xmlfile = gf_fopen(XMLFileName, "rb");
 	if (!xmlfile) return GF_URL_ERROR;
 	gf_fseek(xmlfile, 0, SEEK_END);
-	assert(gf_ftell(xmlfile) < 1<<31);
+	assert(gf_ftell(xmlfile) < (u64)1<<31);
 	length = (u32) gf_ftell(xmlfile);
 	gf_fseek(xmlfile, 0, SEEK_SET);
 	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*(length+1));
@@ -738,7 +738,7 @@ static void meta_add_item_property_association(GF_ItemPropertyAssociationBox *ip
 	gf_list_add(found_entry->essential, ess);
 	gf_list_add(found_entry->property_index, index);
 }
-	
+
 static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_ImageItemProperties *image_props) {
 	GF_ImageItemProperties searchprop;
 	GF_ItemPropertyAssociationBox *ipma;

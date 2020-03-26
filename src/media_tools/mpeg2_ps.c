@@ -273,7 +273,7 @@ int MPEG12_ParseSeqHdr(unsigned char *pbuffer, u32 buflen, s32 *have_mpeg2, u32 
 	buflen -= 6;
 	bitrate_int = 0;
 	for (ix = 0; ix < buflen; ix++, pbuffer++) {
-		scode = (pbuffer[0] << 24) | (pbuffer[1] << 16) | (pbuffer[2] << 8) |
+		scode = ((u32)pbuffer[0] << 24) | (pbuffer[1] << 16) | (pbuffer[2] << 8) |
 		        pbuffer[3];
 
 		if (scode == MPEG12_SEQUENCE_START_CODE) {
@@ -1035,7 +1035,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 
 	if (sptr->m_stream_id >= 0xc0) {
 		// mpeg audio
-		u32 hdr = GF_4CC(buffer[0],buffer[1],buffer[2],buffer[3]);
+		u32 hdr = GF_4CC((u32)buffer[0],buffer[1],buffer[2],buffer[3]);
 
 		sptr->channels = gf_mp3_num_channels(hdr);
 		sptr->freq = gf_mp3_sampling_rate(hdr);

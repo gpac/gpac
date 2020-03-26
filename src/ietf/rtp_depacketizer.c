@@ -268,7 +268,7 @@ static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 		/*new frame, store size*/
 		rtp->sl_hdr.compositionTimeStampFlag = 0;
 		if (rtp->sl_hdr.accessUnitStartFlag) {
-			mp3hdr = GF_4CC((u8) payload[0], (u8) payload[1], (u8) payload[2], (u8) payload[3]);
+			mp3hdr = GF_4CC((u32) payload[0], (u8) payload[1], (u8) payload[2], (u8) payload[3]);
 			rtp->sl_hdr.accessUnitLength = gf_mp3_frame_size(mp3hdr);
 			rtp->sl_hdr.compositionTimeStampFlag = 1;
 		}
