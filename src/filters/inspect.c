@@ -897,6 +897,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
+	if (p4cc==GF_PROP_PID_DOWNLOAD_SESSION)
+		return;
+
 	if (gf_sys_is_test_mode() || ctx->test) {
 		switch (p4cc) {
 		case GF_PROP_PID_FILEPATH:

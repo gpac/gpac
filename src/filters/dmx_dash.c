@@ -30,10 +30,6 @@
 
 #include <gpac/dash.h>
 
-enum {
-	GF_GPAC_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
-};
-
 typedef struct
 {
 	//opts
@@ -321,7 +317,7 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 
 	//crude hack when using gpac downloader to initialize the MPD pid: get the pointer to the download session
 	//this should be safe unless the mpd_pid is destroyed, which should only happen upon destruction of the DASH session
-	p = gf_filter_pid_get_property(ctx->mpd_pid, GF_GPAC_DOWNLOAD_SESSION);
+	p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
 	if (p) {
 		sess = (GF_DownloadSession *) p->value.ptr;
 		if (!ctx->store) {
