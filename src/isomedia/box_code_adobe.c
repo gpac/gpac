@@ -90,7 +90,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->smpte_time_code_offset = gf_bs_read_u64(bs);
 
 	i=0;
-	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
+	if (ptr->size<=8) return GF_ISOM_INVALID_FILE;
 	strsize = tmp_strsize=(u32)ptr->size-8;
 	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
 
