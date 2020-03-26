@@ -857,7 +857,7 @@ u8 gf_isom_is_track_enabled(GF_ISOFile *the_file, u32 trackNumber)
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 
-	if (!trak) return 2;
+	if (!trak || !trak->Header) return 2;
 	return (trak->Header->flags & 1) ? 1 : 0;
 }
 
@@ -1180,7 +1180,7 @@ u64 gf_isom_get_media_original_duration(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return 0;
+	if (!trak || !trak->Media || !trak->Media->mediaHeader) return 0;
 
 	return trak->Media->mediaHeader->original_duration;
 }
@@ -1191,7 +1191,7 @@ u32 gf_isom_get_media_timescale(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
+	if (!trak || !trak->Media || !trak->Media->mediaHeader) return 0;
 	return trak->Media->mediaHeader->timeScale;
 }
 
@@ -1392,10 +1392,11 @@ GF_EXPORT
 u32 gf_isom_get_mpeg4_subtype(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_Box *entry;
+	GF_Box *entry=NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !DescriptionIndex) return 0;
-	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	if (trak->Media && trak->Media->information && trak->Media->information->sampleTable && trak->Media->information->sampleTable->SampleDescription)
+		entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return 0;
 
 	//filter MPEG sub-types
@@ -1437,7 +1438,7 @@ GF_EXPORT
 GF_Err gf_isom_get_data_reference(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const char **outURL, const char **outURN)
 {
 	GF_TrackBox *trak;
-	GF_DataEntryURLBox *url;
+	GF_DataEntryURLBox *url=NULL;
 	GF_DataEntryURNBox *urn;
 	u32 drefIndex;
 	GF_Err e;
@@ -1452,7 +1453,8 @@ GF_Err gf_isom_get_data_reference(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 	if (e) return e;
 	if (!drefIndex) return GF_BAD_PARAM;
 
-	url = (GF_DataEntryURLBox*)gf_list_get(trak->Media->information->dataInformation->dref->other_boxes, drefIndex - 1);
+	if (trak->Media && trak->Media->information && trak->Media->information->dataInformation && trak->Media->information->dataInformation->dref)
+		url = (GF_DataEntryURLBox*)gf_list_get(trak->Media->information->dataInformation->dref->other_boxes, drefIndex - 1);
 	if (!url) return GF_ISOM_INVALID_FILE;
 
 	*outURL = *outURN = NULL;
@@ -1477,7 +1479,7 @@ u32 gf_isom_get_sample_count(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !trak->Media->information->sampleTable->SampleSize) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleSize) return 0;
 	return trak->Media->information->sampleTable->SampleSize->sampleCount
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	       + trak->sample_count_at_seg_start
@@ -2143,7 +2145,7 @@ u8 gf_isom_has_sync_points(GF_ISOFile *the_file, u32 trackNumber)
 	GF_TrackBox *trak;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable) return 0;
 	if (trak->Media->information->sampleTable->SyncSample) {
 		if (!trak->Media->information->sampleTable->SyncSample->nb_entries) return 2;
 		return 1;
@@ -3153,12 +3155,13 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 {
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *entry;
-	GF_SampleDescriptionBox *stsd;
+	GF_SampleDescriptionBox *stsd = NULL;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
-	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (trak->Media && trak->Media->information && trak->Media->information->sampleTable && trak->Media->information->sampleTable->SampleDescription)
+		stsd = trak->Media->information->sampleTable->SampleDescription;
 	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
 	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) return movie->LastError = GF_BAD_PARAM;
 
@@ -3608,7 +3611,7 @@ GF_Err gf_isom_get_track_switch_group_count(GF_ISOFile *movie, u32 trackNumber, 
 	GF_TrackBox *trak;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
+	if (!trak || !trak->Header) return GF_BAD_PARAM;
 	*alternateGroupID = trak->Header->alternate_group;
 	*nb_groups = 0;
 	if (!trak->udta) return GF_OK;
