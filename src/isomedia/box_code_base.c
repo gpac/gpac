@@ -4069,9 +4069,10 @@ GF_Err audio_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, data, size);
 	for (i=0; i<size-8; i++) {
 		if (GF_4CC((u32)data[i+4], (u8)data[i+5], (u8)data[i+6], (u8)data[i+7]) == GF_ISOM_BOX_TYPE_ESDS) {
+			extern Bool use_dump_mode;
 			GF_BitStream *mybs = gf_bs_new(data + i, size - i, GF_BITSTREAM_READ);
 			if (ptr->esd) {
-				gf_isom_box_del((GF_Box *)ptr->esd);
+				if (!use_dump_mode) gf_isom_box_del((GF_Box *)ptr->esd);
 				ptr->esd=NULL;
 			}
 
