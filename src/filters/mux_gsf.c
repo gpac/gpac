@@ -531,7 +531,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 
 
 
-static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx)
+static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx, Bool is_carousel_update)
 {
 	u32 mlen=0;
 
@@ -566,14 +566,14 @@ static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx)
 		gf_bs_write_data(ctx->bs_w, ctx->magic, mlen);
 	}
 
-	gsfmx_send_packets(ctx, NULL, GFS_PCKTYPE_HDR, GF_FALSE, GF_FALSE, 0, 0);
+	gsfmx_send_packets(ctx, NULL, GFS_PCKTYPE_HDR, GF_FALSE, is_carousel_update ? GF_TRUE : GF_FALSE, 0, 0);
 	ctx->is_start = GF_FALSE;
 }
 
 static void gsfmx_send_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *gst, Bool is_info, Bool is_carousel_update)
 {
 	if (ctx->is_start) {
-		gsfmx_send_header(filter, ctx);
+		gsfmx_send_header(filter, ctx, GF_FALSE);
 	}
 
 	gf_bs_reassign_buffer(ctx->bs_w, ctx->buffer, ctx->alloc_size);
@@ -967,7 +967,7 @@ GF_Err gsfmx_process(GF_Filter *filter)
 	}
 	if (ctx->regenerate_tunein_info) {
 		ctx->regenerate_tunein_info = GF_FALSE;
-		gsfmx_send_header(filter, ctx);
+		gsfmx_send_header(filter, ctx, GF_TRUE);
 		for (i=0; i<count; i++) {
 			GSFStream *gst = gf_list_get(ctx->streams, i);
 			gsfmx_send_pid_config(filter, ctx, gst, GF_FALSE, GF_TRUE);
