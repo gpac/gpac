@@ -104,9 +104,11 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
 				GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PSSH);
 				memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
-				pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
-				pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
-				memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
+				if (((GF_ProtectionSystemHeaderBox *)a)->KIDs && ((GF_ProtectionSystemHeaderBox *)a)->KID_count > 0) {
+					pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
+					pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+					memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
+				}
 				pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
 				pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
 				memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);

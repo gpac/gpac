@@ -98,7 +98,7 @@ static void swf_init_decompress(SWFReader *read)
 	uLongf destLen;
 	char *src, *dst;
 
-	assert(gf_bs_get_size(read->bs)-8 < 1<<31); /*must fit within 32 bits*/
+	assert(gf_bs_get_size(read->bs)-8 < (u64)1<<31); /*must fit within 32 bits*/
 	size = (u32) gf_bs_get_size(read->bs)-8;
 	dst_size = read->length;
 	src = gf_malloc(sizeof(char)*size);
@@ -2661,4 +2661,3 @@ exit:
 }
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
-

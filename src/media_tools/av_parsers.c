@@ -379,7 +379,7 @@ void gf_m4v_rewrite_pl(char **o_data, u32 *o_dataLen, u8 PL)
 static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 {
 	gf_bs_seek(m4v->bs, start);
-	assert(start < 1<<31);
+	assert(start < (u64)1<<31);
 	m4v->current_object_start = (u32) start;
 	m4v->current_object_type = 0;
 	return GF_OK;
@@ -801,7 +801,7 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 		size = end - start;
 		/*store previous object*/
 		if (size) {
-			assert (size < 1<<31);
+			assert (size < (u64)1<<31);
 			if (size) gf_bs_write_data(mod, *o_data + start, (u32) size);
 			start = end;
 		}
@@ -4252,7 +4252,7 @@ u32 gf_mp3_get_next_header(FILE* in)
 
 		if (state==3) {
 			bytes[state] = b;
-			return GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
+			return GF_4CC((u32)bytes[0], bytes[1], bytes[2], bytes[3]);
 		}
 		if (state==2) {
 			if (((b & 0xF0) == 0) || ((b & 0xF0) == 0xF0) || ((b & 0x0C) == 0x0C)) {

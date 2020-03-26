@@ -2858,7 +2858,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump, Bool is_track_
 #ifndef GPAC_DISABLE_AV_PARSERS
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
 						if (samp) {
-							oti = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+							oti = GF_4CC((u32)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 							if (full_dump) fprintf(stderr, "\t");
 							fprintf(stderr, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
 							        gf_mp3_version_name(oti),
