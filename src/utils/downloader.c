@@ -654,6 +654,7 @@ static void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
 				if (ex == sess->cache_entry) {
 					gf_list_rem(sess->dm->cache_entries, i);
 					gf_cache_delete_entry( sess->cache_entry );
+					sess->cache_entry = NULL;
 					break;
 				}
 			}
@@ -691,6 +692,16 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 				sess->cache_entry = NULL;
 				sess->last_error = GF_URL_ERROR;
 				return;
+			}
+			if (sess->cache_entry) {
+				/* We found the existing session */
+				gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
+				if (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)) {
+					/* No session attached anymore... we can delete it */
+					gf_list_del_item(sess->dm->cache_entries, sess->cache_entry);
+					gf_cache_delete_entry(sess->cache_entry);
+				}
+				sess->cache_entry = NULL;
 			}
 			entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, (sess->flags&GF_NETIO_SESSION_MEMORY_CACHE) ? GF_TRUE : GF_FALSE);
 			gf_mx_p( sess->dm->cache_mx );
