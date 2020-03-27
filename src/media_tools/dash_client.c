@@ -7173,6 +7173,8 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	}
 	dash->mpd_fetch_time = dash_get_fetch_time(dash);
 
+	gf_dash_reset_groups(dash);
+
 	if (dash->mpd)
 		gf_mpd_del(dash->mpd);
 
