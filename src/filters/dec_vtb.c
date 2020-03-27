@@ -88,7 +88,7 @@ typedef struct
 //	GF_FilterPid *ipid;
 	GF_List *streams;
 	GF_FilterPid *opid;
-	u32 width, height;
+	u32 width, height, stride;
 	GF_Fraction pixel_ar;
 	u32 pix_fmt;
 	u32 out_size;
@@ -304,7 +304,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	CFDataRef data = NULL;
 	u8 *dsi_data=NULL;
 	u32 dsi_data_size=0;
-	u32 w, h, stride;
+	u32 w, h;
 	GF_FilterPid *pid;
 	w = h = 0;
 	
@@ -745,14 +745,14 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
     }
 	
 	//good to go !
-	stride = ctx->width;
+	ctx->stride = ctx->width;
 	if (ctx->pix_fmt == GF_PIXEL_YUV422) {
 		ctx->out_size = ctx->width*ctx->height*2;
 	} else if (ctx->pix_fmt == GF_PIXEL_YUV444) {
 		ctx->out_size = ctx->width*ctx->height*3;
 	} else if (ctx->pix_fmt == GF_PIXEL_RGB) {
 		ctx->out_size = ctx->width*ctx->height*3;
-		stride *= 3;
+		ctx->stride *= 3;
 	} else {
 		// (ctx->pix_fmt == GF_PIXEL_YUV)
 		ctx->out_size = ctx->width*ctx->height*3/2;
@@ -761,10 +761,9 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		ctx->out_size *= 2;
 	}
 	ctx->frame_size_changed = GF_TRUE;
-
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(stride) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
 
@@ -960,8 +959,18 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
-	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc) && ctx->width && ctx->height) return GF_OK;
-
+	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc) && ctx->width && ctx->height) {
+		gf_filter_pid_copy_properties(ctx->opid, pid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+		return GF_OK;
+	}
 	//need a reset !
 	if (ctx->vtb_session) {
 		//flush all pending frames and mark reconfigure as pending
