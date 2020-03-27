@@ -1276,6 +1276,9 @@ typedef struct
 	/*! params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
 	Double speed;
 
+	/*! indicates playback should start from given packet number - used by dasher when reloading sources*/
+	u32 from_pck;
+
 	/*! set when PLAY event is sent upstream to audio out, indicates HW buffer reset*/
 	u8 hw_buffer_reset;
 	/*! params for GF_FEVT_PLAY only: indicates this is the first PLAY on an element inserted from bcast*/
@@ -1292,9 +1295,9 @@ typedef struct
 	u8 forced_dash_segment_switch;
 	/*! indicates non ref frames should be drawn for faster processing*/
 	u8 drop_non_ref;
-
-	/*! indicates playback should start from given packet number - used by dasher when reloading sources*/
-	u32 from_pck;
+	/*! indicates  that a demuxer must not forward this event as a source seek because seek has already been done
+	(typically this play request is a segment play and byte range access within the file has already been performed by DASH client)*/
+	u8 no_byterange_forward;
 } GF_FEVT_Play;
 
 /*! Event structure for GF_FEVT_SOURCE_SEEK and GF_FEVT_SOURCE_SWITCH*/

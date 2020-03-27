@@ -354,11 +354,15 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 		return;
 	}
+	//still some input to the filter, cannot destroy the output pid
+	if (gf_list_count(filter->input_pids))
+		return;
 	//no more destinations on pid, destroy it
 	if (pid->would_block) {
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 	}
+	
 	gf_mx_p(filter->tasks_mx);
 	gf_list_del_item(filter->output_pids, pid);
 	filter->num_output_pids = gf_list_count(filter->output_pids);
@@ -3509,7 +3513,7 @@ single_retry:
 		filter_dst = gf_list_get(filter->session->filters, i);
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
-		if (filter_dst->finalized || filter_dst->removed || filter_dst->no_inputs) continue;
+		if (filter_dst->finalized || filter_dst->removed || filter_dst->marked_for_removal || filter_dst->no_inputs) continue;
 		if (filter_dst->target_filter == pid->filter) continue;
 
 		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
@@ -5916,7 +5920,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 		return;
 	}
 	pid->removed = GF_TRUE;
-	if (pid->has_seen_eos && !pid->nb_buffer_unit) {
+	if (pid->filter->marked_for_removal || (pid->has_seen_eos && !pid->nb_buffer_unit)) {
 		u32 i;
 		for (i=0; i<pid->num_destinations; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
@@ -5925,7 +5929,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 		return;
 	}
 
-	//we create a fake packet for eos signaling
+	//we create a fake packet for removal signaling
 	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_REM;

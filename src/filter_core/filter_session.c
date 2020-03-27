@@ -1070,6 +1070,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		GF_FSTask *task=NULL;
 #ifdef CHECK_TASK_LIST_INTEGRITY
 		GF_Filter *prev_current_filter = NULL;
+		Bool skip_filter_task_check = GF_FALSE;
 #endif
 
 #ifndef GPAC_DISABLE_REMOTERY
@@ -1275,9 +1276,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #ifdef CHECK_TASK_LIST_INTEGRITY
 					next = gf_fq_head(current_filter->tasks);
 					assert(next == task);
-#endif
-#ifdef CHECK_TASK_LIST_INTEGRITY
-					check_task_list(current_filter->tasks, task);
 					check_task_list(fsess->main_thread_tasks, task);
 					check_task_list(fsess->tasks_reservoir, task);
 #endif
@@ -1484,12 +1482,15 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 						//ans swap task for later requeing
 						if (next_task) task = next_task;
-
 					}
 					//otherwise (can't swap) keep task first in the list
 
 					//don't reset scheduled_for_next_task flag if requeued to make sure no other task posted from
 					//another thread will post to main sched
+
+#ifdef CHECK_TASK_LIST_INTEGRITY
+					skip_filter_task_check = GF_TRUE;
+#endif
 				} else {
 					//no requeue, filter no longer scheduled and drop task
 					current_filter->scheduled_for_next_task = GF_FALSE;
@@ -1500,8 +1501,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 				current_filter->process_th_id = 0;
 				current_filter->in_process = GF_FALSE;
+
 				//unlock once we modified in_process, otherwise this will make our assert fail
 				gf_mx_v(current_filter->tasks_mx);
+#ifdef CHECK_TASK_LIST_INTEGRITY
+				if (requeue && !skip_filter_task_check) check_task_list(current_filter->tasks, task);
+#endif
 				current_filter = NULL;
 			} else {
 				//drop task from filter task list
@@ -1548,7 +1553,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				check_task_list(fsess->main_thread_tasks, task);
 				check_task_list(fsess->tasks, task);
 				check_task_list(fsess->tasks_reservoir, task);
-				if (prev_current_filter) check_task_list(prev_current_filter->tasks, task);
+				if (prev_current_filter && !skip_filter_task_check) check_task_list(prev_current_filter->tasks, task);
 #endif
 
 				//main thread
@@ -1568,11 +1573,13 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				check_task_list(prev_current_filter->tasks, task);
 
 			{
+				gf_mx_p(fsess->filters_mx);
 				u32 k, c2 = gf_list_count(fsess->filters);
 				for (k=0; k<c2; k++) {
 					GF_Filter *af = gf_list_get(fsess->filters, k);
 					check_task_list(af->tasks, task);
 				}
+				gf_mx_v(fsess->filters_mx);
 			}
 #endif
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u task#%d %p pushed to reservoir\n", sys_thid, sess_thread->nb_tasks, task));

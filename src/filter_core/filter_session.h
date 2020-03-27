@@ -615,6 +615,9 @@ struct __gf_filter
 	Bool setup_notified;
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
+	//set when one input pid of the filter has been marked for removal through gf_filter_remove_src
+	//this prevents dispatching pid_remove as packets that would no longer be consumed
+	Bool marked_for_removal;
 	//sticky filters won't unload if all inputs are deconnected. Useful for sink filters
 	//2 means temporary sticky, used when reconfiguring filter chain
 	u32 sticky;
