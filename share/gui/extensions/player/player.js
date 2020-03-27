@@ -995,9 +995,9 @@ extension = {
             var i, argc = gpac.argc;
             var url_arg = null;
             var prog_name = gpac.get_arg(0); 
-            var check_gpac_args = 0;
-            if (prog_name  && (prog_name.indexOf('gpac')>=0))
-                check_gpac_args = 1;
+            var check_gpac_args = 1;
+            if (prog_name && (prog_name.indexOf('MP4Client')>=0))
+                check_gpac_args = 0;
             
             for (i = 1; i < argc; i++) {
                 var arg = gpac.get_arg(i);
