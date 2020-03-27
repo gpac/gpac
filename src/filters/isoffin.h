@@ -120,6 +120,20 @@ typedef struct
 	Bool force_fetch;
 } ISOMReader;
 
+enum
+{
+	CH_STATE_STOP=0,
+	CH_STATE_PLAY,
+	CH_STATE_EOS_PROBE
+};
+
+enum
+{
+	CH_EOS_NOT_SEND,
+	CH_EOS_SENT,
+	CH_EOS_FORCE_SEND
+};
+
 
 typedef struct
 {
@@ -129,7 +143,7 @@ typedef struct
 	u32 base_track;
 	u32 next_track;
 	GF_FilterPid *pid;
-
+	u32 state_eos;
 	ISOMReader *owner;
 	u64 duration;
 

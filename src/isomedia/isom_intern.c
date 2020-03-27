@@ -430,6 +430,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 					gf_isom_box_del(a);
 				}
 				gf_isom_push_mdat_end(mov, mov->current_top_box_start);
+			} else if (!mov->NextMoofNumber && (a->type==GF_ISOM_BOX_TYPE_SIDX)) {
+				if (mov->main_sidx) gf_isom_box_del( (GF_Box *) mov->main_sidx);
+				mov->main_sidx = (GF_SegmentIndexBox *) a;
+				mov->main_sidx_end_pos = mov->current_top_box_start + a->size;
 			} else {
 				gf_isom_box_del(a);
 			}
@@ -784,6 +788,9 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 		gf_free(mov->sidx_pts_store);
 	if (mov->sidx_pts_next_store)
 		gf_free(mov->sidx_pts_next_store);
+
+	if (mov->main_sidx)
+		gf_isom_box_del((GF_Box*)mov->main_sidx);
 
 	if (mov->block_buffer)
 		gf_free(mov->block_buffer);
