@@ -927,11 +927,22 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (is_remove) {
 		//TODO
 		if (pid==ctx->mpd_pid) {
+			u32 i;
+			for (i=0; i<gf_filter_get_opid_count(filter); i++) {
+				opid = gf_filter_get_opid(filter, i);
+				group = gf_filter_pid_get_udta(opid);
+				if (group->seg_filter_src) {
+					gf_filter_remove_src(filter, group->seg_filter_src);
+				}
+			}
+			gf_dash_close(ctx->dash);
 			ctx->mpd_pid = NULL;
 		} else {
 			opid = gf_filter_pid_get_udta(pid);
 			if (opid) {
-				if (gf_dash_all_groups_done(ctx->dash) && gf_dash_in_last_period(ctx->dash, GF_TRUE)) {
+				if (!ctx->mpd_pid) {
+					gf_filter_pid_remove(opid);
+				} else if (gf_dash_all_groups_done(ctx->dash) && gf_dash_in_last_period(ctx->dash, GF_TRUE)) {
 					gf_filter_pid_remove(opid);
 				} else {
 					gf_filter_pid_set_udta(opid, NULL);
@@ -1256,6 +1267,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		src_evt.play.start_range = gf_dash_group_get_start_range(ctx->dash, group->idx);
 		gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &timescale);
 		src_evt.play.start_range += ((Double)pto) / timescale;
+		src_evt.play.no_byterange_forward = 1;
 
 		dashdmx_setup_buffer(ctx, group);
 
@@ -1263,6 +1275,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		//forward new event to source pid
 		src_evt.base.on_pid = ipid;
 		gf_filter_pid_send_event(ipid, &src_evt);
+		gf_filter_post_process_task(filter);
 		//cancel the event
 		return GF_TRUE;
 
