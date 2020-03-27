@@ -2485,6 +2485,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 {
 	u32 i, count, j, nb_inst;
 	u32 nb_rem_inst=0;
+	Bool mark_only = GF_FALSE;
 	if (filter==until_filter) return;
 
 	count = gf_list_count(filter->input_pids);
@@ -2492,21 +2493,28 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		if (pidi->pid->filter==source_filter) nb_rem_inst++;
 	}
-	if (nb_rem_inst != count) return;
+	if (!nb_rem_inst)
+		return;
+	filter->marked_for_removal = GF_TRUE;
+	if (nb_rem_inst != count)
+		mark_only = GF_TRUE;
 	//already removed
 	if (filter->removed) return;
 	
 	//filter will be removed, propagate on all output pids
-	filter->removed = GF_TRUE;
+	if (!mark_only)
+		filter->removed = GF_TRUE;
 
 	count = gf_list_count(filter->output_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		pid->has_seen_eos = GF_TRUE;
 		nb_inst = pid->num_destinations;
 		for (j=0; j<nb_inst; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			gf_filter_tag_remove(pidi->filter, filter, until_filter);
-			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
+			if (!mark_only)
+				gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
 		}
 	}
 }
