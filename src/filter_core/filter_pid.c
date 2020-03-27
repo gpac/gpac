@@ -5290,13 +5290,20 @@ const char *gf_filter_event_name(GF_FEventType type)
 	}
 }
 
-static void gf_filter_pid_reset_task(GF_FSTask *task)
+static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)task->udta;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s input PID %s (from %s) reseting buffer\n", task->filter->name, pidi->pid->name, pidi->pid->filter->name ));
 	assert(pidi->pid->discard_input_packets);
 
+	if (had_eos) *had_eos = GF_FALSE;
+	
 	while (gf_fq_count(pidi->packets)) {
+		GF_FilterPacketInstance *pcki = gf_fq_head(pidi->packets);
+		if ( (pcki->pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {
+			if (had_eos)
+				*had_eos = GF_TRUE;
+		}
 		gf_filter_pid_drop_packet((GF_FilterPid *) pidi);
 	}
 	while (gf_list_count(pidi->pck_reassembly)) {
@@ -5322,14 +5329,18 @@ static void gf_filter_pid_reset_task(GF_FSTask *task)
 
 	safe_int_dec(& pidi->pid->discard_input_packets );
 }
+static void gf_filter_pid_reset_task(GF_FSTask *task)
+{
+	gf_filter_pid_reset_task_ex(task, NULL);
+}
+
 static void gf_filter_pid_reset_stop_task(GF_FSTask *task)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)task->udta;
-	Bool was_eos_pidi = pidi->is_end_of_stream;
-	Bool was_eos_pid = pidi->pid->has_seen_eos;
-	gf_filter_pid_reset_task(task);
-	pidi->is_end_of_stream = was_eos_pidi;
-	pidi->pid->has_seen_eos = was_eos_pid;
+	Bool has_eos;
+	gf_filter_pid_reset_task_ex(task, &has_eos);
+	pidi->is_end_of_stream = has_eos;
+	pidi->pid->has_seen_eos = has_eos;
 }
 
 typedef struct

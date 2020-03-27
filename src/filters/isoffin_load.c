@@ -288,6 +288,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 	//first setup, creation of PID and channel
 	if (!ch) {
+		Bool use_sidx_dur = GF_FALSE;
 		GF_FilterPid *pid;
 		first_config = GF_TRUE;
 
@@ -426,11 +427,22 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (!ch->duration) {
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
+		if (read->frag_type && !read->input_loaded) {
+			u32 ts;
+			u64 dur;
+			if (gf_isom_get_sidx_duration(read->mov, &dur, &ts)==GF_OK) {
+				dur *= read->time_scale;
+				dur /= ts;
+				ch->duration = dur;
+				use_sidx_dur = GF_TRUE;
+				sample_count = 0;
+			}
+		}
 
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
 
 		if (!read->mem_load_mode) {
-			if (!ch->has_edit_list) {
+			if (!ch->has_edit_list && !use_sidx_dur) {
 				u64 dur = gf_isom_get_media_duration(read->mov, ch->track) - (s32) ch->ts_offset;
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
 			} else {

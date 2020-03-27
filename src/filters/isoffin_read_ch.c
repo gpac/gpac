@@ -43,7 +43,7 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->speed = 1.0;
 	ch->start = ch->end = 0;
 	ch->to_init = 1;
-	ch->play_state = 0;
+	ch->play_state = CH_STATE_STOP;
 	if (ch->sai_buffer) gf_free(ch->sai_buffer);
 	ch->sai_buffer = NULL;
 	ch->sai_alloc_size = 0;
@@ -433,7 +433,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset + ch->au_duration)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
 		ch->last_state = GF_EOS;
-		ch->play_state = 0;
+		ch->play_state = CH_STATE_STOP;
 	}
 	if (ch->owner->last_sender_ntp && ch->cts==ch->owner->cts_for_last_sender_ntp) {
 		ch->sender_ntp = ch->owner->last_sender_ntp;

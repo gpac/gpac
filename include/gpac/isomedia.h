@@ -3481,6 +3481,9 @@ u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *isom_file, u32 mo
 */
 void gf_isom_set_single_moof_mode(GF_ISOFile *isom_file, Bool mode);
 
+GF_Err gf_isom_get_file_offset_for_time(GF_ISOFile *movie, Double start_time, u64 *max_offset);
+GF_Err gf_isom_get_sidx_duration(GF_ISOFile *movie, u64 *sidx_dur, u32 *sidx_timescale);
+
 
 /*! refreshes a fragmented file
 A file being downloaded may be a fragmented file. In this case only partial info

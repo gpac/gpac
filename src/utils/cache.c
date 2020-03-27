@@ -922,6 +922,7 @@ Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_ra
 	entry->range_start = start_range;
 	entry->range_end = end_range;
 	entry->contentLength = (u32) size;
+	entry->continue_file = GF_FALSE;
 	return GF_TRUE;
 }
 

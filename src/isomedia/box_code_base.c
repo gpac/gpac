@@ -5894,6 +5894,7 @@ GF_Err tkhd_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->reserved1 = gf_bs_read_u32(bs);
 		ptr->duration = gf_bs_read_u32(bs);
 	}
+	ptr->initial_duration = ptr->duration;
 	ptr->reserved2[0] = gf_bs_read_u32(bs);
 	ptr->reserved2[1] = gf_bs_read_u32(bs);
 	ptr->layer = gf_bs_read_u16(bs);

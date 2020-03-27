@@ -631,6 +631,13 @@ DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char 
  */
 s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 
+Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime);
+Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range);
+Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size, Bool copy);
+Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers);
+Bool gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
+
+
 /**
  * Removes a cache entry from cache and performs a cleanup if possible.
  * If the cache entry is marked for deletion and has no sessions associated with it, it will be
@@ -727,6 +734,8 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 			gf_cache_close_write_cache(sess->cache_entry, sess, GF_FALSE);
 		}
 		gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
+		if (sess->needs_range)
+			gf_cache_set_range(sess->cache_entry, 0, sess->range_start, sess->range_end);
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 
 
@@ -1872,7 +1881,7 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 	if (sess->cache_entry) {
 		if (!discontinue_cache) {
 			if (gf_cache_get_end_range(sess->cache_entry) + 1 != start_range)
-				return GF_NOT_SUPPORTED;
+				discontinue_cache = GF_TRUE;
 		}
 		if (sess->sock) {
 			if (sess->status != GF_NETIO_CONNECTED) {
@@ -2041,7 +2050,7 @@ static void gf_dm_clean_cache(GF_DownloadManager *dm)
 {
 	u64 out_size = gf_cache_get_size(dm->cache_directory);
 	if (out_size >= dm->max_cache_size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[Cache] Cache size %d exceeds max allowed %d, deleting entire cache\n", out_size, dm->max_cache_size));
+		GF_LOG(dm->max_cache_size ? GF_LOG_WARNING : GF_LOG_INFO, GF_LOG_HTTP, ("[Cache] Cache size %d exceeds max allowed %d, deleting entire cache\n", out_size, dm->max_cache_size));
 		gf_cache_delete_all_cached_files(dm->cache_directory);
 	}
 }
@@ -4299,12 +4308,6 @@ GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_
 	return GF_OK;
 
 }
-
-Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime);
-Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range);
-Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size, Bool copy);
-Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers);
-Bool gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
 
 GF_EXPORT
 const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, u8 *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms)

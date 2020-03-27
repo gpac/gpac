@@ -2075,19 +2075,11 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
-	//check 0-duration tracks (BIFS and co). Check we're not searching forward
-	if (!trak->Header->duration) {
-		if (movieTime && ( (SearchMode == GF_ISOM_SEARCH_SYNC_FORWARD) || (SearchMode == GF_ISOM_SEARCH_FORWARD)) ) {
-			if (sampleNumber) *sampleNumber = 0;
-			*StreamDescriptionIndex = 0;
-			return GF_EOS;
-		}
-	}
-	else if ((movieTime * trak->moov->mvhd->timeScale > trak->Header->duration * trak->Media->mediaHeader->timeScale)
-#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-	         && !trak->dts_at_seg_start
-#endif
-	        ) {
+	//only check duration if initially set - do not check duration as updated after fragment merge since that duration does not take
+	//into account tfdt
+	if (trak->Header->initial_duration
+		&& (movieTime * trak->moov->mvhd->timeScale > trak->Header->initial_duration * trak->Media->mediaHeader->timeScale)
+	) {
 		if (sampleNumber) *sampleNumber = 0;
 		*StreamDescriptionIndex = 0;
 		return GF_EOS;
@@ -2805,11 +2797,18 @@ GF_EXPORT
 GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	u32 i, count;
 	if (!movie || !movie->moov) return GF_BAD_PARAM;
-	*top_box_start = movie->current_top_box_start;
+	if (top_box_start) *top_box_start = movie->current_top_box_start;
 	movie->current_top_box_start = 0;
+	movie->NextMoofNumber = 0;
 	if (movie->moov->mvex && movie->single_moof_mode) {
 		movie->single_moof_state = 0;
+	}
+	count = gf_list_count(movie->moov->trackList);
+	for (i=0; i<count; i++) {
+		GF_TrackBox *tk = gf_list_get(movie->moov->trackList, i);
+		tk->first_traf_merged = GF_FALSE;
 	}
 #endif
 	return GF_OK;
@@ -2952,11 +2951,15 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 			trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			trak->sample_count_at_seg_start = 0;
+			trak->dts_at_seg_start = 0;
+			trak->first_traf_merged = GF_FALSE;
 #endif
 		}
 
 	}
-
+	if (reset_sample_count) {
+		movie->NextMoofNumber = 0;
+	}
 #endif
 	return GF_OK;
 
@@ -4863,6 +4866,50 @@ u64 gf_isom_get_track_magic(GF_ISOFile *movie, u32 trackNumber)
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return 0;
 	return trak->magic;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_file_offset_for_time(GF_ISOFile *movie, Double start_time, u64 *max_offset)
+{
+	u32 i;
+	u64 start_ts, cur_start_time;
+	u64 offset=0;
+	if (!movie || !movie->moov)
+		return GF_BAD_PARAM;
+
+	if (!movie->main_sidx) return GF_NOT_SUPPORTED;
+	start_ts = start_time * movie->main_sidx->timescale;
+	cur_start_time = 0;
+	offset = movie->main_sidx->first_offset + movie->main_sidx_end_pos;
+
+	for (i=0; i<movie->main_sidx->nb_refs; i++) {
+		if (cur_start_time >= start_ts) {
+			*max_offset = offset;
+			return GF_OK;
+		}
+		cur_start_time += movie->main_sidx->refs[i].subsegment_duration;
+		offset += movie->main_sidx->refs[i].reference_size;
+	}
+
+	return GF_EOS;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_sidx_duration(GF_ISOFile *movie, u64 *sidx_dur, u32 *sidx_timescale)
+{
+	u64 dur=0;
+	u32 i;
+	if (!movie || !movie->moov || !sidx_timescale || !sidx_dur)
+		return GF_BAD_PARAM;
+
+	if (!movie->main_sidx) return GF_NOT_SUPPORTED;
+	*sidx_timescale = movie->main_sidx->timescale;
+
+	for (i=0; i<movie->main_sidx->nb_refs; i++) {
+		dur += movie->main_sidx->refs[i].subsegment_duration;
+	}
+	*sidx_dur = dur;
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

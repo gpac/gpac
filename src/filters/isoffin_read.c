@@ -132,6 +132,8 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 
 	read->time_scale = gf_isom_get_timescale(read->mov);
+	if (!read->input_loaded && read->frag_type)
+		read->refresh_fragmented = GF_TRUE;
 
 	return isor_declare_objects(read);
 }
@@ -151,6 +153,7 @@ static void isoffin_disconnect(ISOMReader *read)
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
+		gf_filter_pid_remove(ch->pid);
 		isoffin_delete_channel(ch);
 	}
 
@@ -273,7 +276,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		ch->last_state = GF_OK;
 		if (ch->play_state)
-			ch->play_state = 1;
+			ch->play_state = CH_STATE_PLAY;
 		
 		if (ch->base_track) {
 #ifdef FILTER_FIXME
@@ -726,7 +729,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 	return next_track;
 }
 
-static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
+static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 count, i;
 	ISOMChannel *ch;
@@ -734,16 +737,16 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 	if (!read || read->disconnected) return GF_FALSE;
 
-	if (com->base.type == GF_FEVT_QUALITY_SWITCH) {
+	if (evt->base.type == GF_FEVT_QUALITY_SWITCH) {
 		count = gf_list_count(read->channels);
 		for (i = 0; i < count; i++) {
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
-				ch->next_track = isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
+				ch->next_track = isoffin_channel_switch_quality(ch, read->mov, evt->quality_switch.up);
 			}
 #ifdef GPAC_ENABLE_COVERAGE
 			else if (gf_sys_is_cov_mode()) {
-				isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
+				isoffin_channel_switch_quality(ch, read->mov, evt->quality_switch.up);
 			}
 #endif
 
@@ -751,112 +754,146 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		return GF_TRUE;
 	}
 
-	if (!com->base.on_pid) return GF_FALSE;
+	if (!evt->base.on_pid) return GF_FALSE;
 
-	ch = isor_get_channel(read, com->base.on_pid);
+	ch = isor_get_channel(read, evt->base.on_pid);
 	if (!ch)
 		return GF_FALSE;
 
-	switch (com->base.type) {
+	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		isor_reset_reader(ch);
-		ch->speed = com->play.speed;
+		ch->speed = evt->play.speed;
 		read->reset_frag_state = 1;
 		if (read->frag_type)
 			read->frag_type = 1;
 
 		ch->start = ch->end = 0;
-		if (com->play.speed>0) {
+		if (evt->play.speed>0) {
 			Double t;
-			if (com->play.start_range>=0) {
-				t = com->play.start_range;
+			if (evt->play.start_range>=0) {
+				t = evt->play.start_range;
 				t *= ch->time_scale;
 				ch->start = (u64) t;
 			}
-			if (com->play.end_range >= com->play.start_range) {
+			if (evt->play.end_range >= evt->play.start_range) {
 				ch->end = (u64) -1;
-				if (com->play.end_range<FLT_MAX) {
-					t = com->play.end_range;
+				if (evt->play.end_range<FLT_MAX) {
+					t = evt->play.end_range;
 					t *= ch->time_scale;
 					ch->end = (u64) t;
 				}
 			}
-		} else if (com->play.speed<0) {
-			Double end = com->play.end_range;
+		} else if (evt->play.speed<0) {
+			Double end = evt->play.end_range;
 			if (end==-1) end = 0;
-			ch->start = (u64) (s64) (com->play.start_range * ch->time_scale);
-			if (end <= com->play.start_range)
+			ch->start = (u64) (s64) (evt->play.start_range * ch->time_scale);
+			if (end <= evt->play.start_range)
 				ch->end = (u64) (s64) (end  * ch->time_scale);
 		}
-		ch->play_state = 1;
-		ch->sample_num = com->play.from_pck;
+		ch->play_state = CH_STATE_PLAY;
+		if (ch->state_eos != CH_EOS_FORCE_SEND)
+			ch->state_eos = CH_EOS_NOT_SEND;
+		ch->sample_num = evt->play.from_pck;
 
-		ch->sap_only = com->play.drop_non_ref ? GF_TRUE : GF_FALSE;
+		ch->sap_only = evt->play.drop_non_ref ? GF_TRUE : GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, evt->play.start_range, evt->play.end_range));
 
 		if (!read->nb_playing)
 			gf_isom_reset_seq_num(read->mov);
 
 		if (read->is_partial_download) read->input_loaded = GF_FALSE;
 
-		if (!read->nb_playing && read->pid && !read->input_loaded) {
+		if (evt->play.no_byterange_forward) {
+			//new segment will be loaded, reset
+			gf_isom_reset_tables(read->mov, GF_TRUE);
+			gf_isom_reset_data_offset(read->mov, NULL);
+			read->refresh_fragmented = GF_TRUE;
+		} else if (!read->nb_playing && read->pid && !read->input_loaded) {
 			GF_FilterEvent fevt;
+			Bool is_sidx_seek = GF_FALSE;
 			u64 max_offset = GF_FILTER_NO_BO;
 			count = gf_list_count(read->channels);
-			for (i=0; i< count; i++) {
-				u32 mode, sample_desc_index, sample_num;
-				u64 data_offset;
-				GF_Err e;
-				u64 time;
-				ch = gf_list_get(read->channels, i);
-				mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
-				time = (u64) (com->play.start_range * ch->time_scale);
 
-				/*take care of seeking out of the track range*/
-				if (!read->frag_type && (ch->duration < time)) {
-					e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, ch->duration, 	&sample_desc_index, mode, NULL, &sample_num, &data_offset);
-				} else {
-					e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, time, &sample_desc_index, mode, NULL, &sample_num, &data_offset);
+			//try sidx
+			if (read->frag_type) {
+				u32 ts;
+				u64 dur=0;
+				GF_Err e = gf_isom_get_file_offset_for_time(read->mov, evt->play.start_range, &max_offset);
+				if (e==GF_OK) {
+					gf_isom_reset_tables(read->mov, GF_TRUE);
+					is_sidx_seek = GF_TRUE;
+					//in case we loaded moov but not sidx, update duration
+					if ((gf_isom_get_sidx_duration(read->mov, &dur, &ts)==GF_OK) && dur) {
+						dur *= read->time_scale;
+						dur /= ts;
+						if (ch->duration != dur) {
+							ch->duration = dur;
+							gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->time_scale));
+						}
+					}
 				}
-				if ((e == GF_OK) && (data_offset<max_offset))
-					max_offset = data_offset;
 			}
 
-			if ((com->play.start_range || read->is_partial_download)  && (max_offset != GF_FILTER_NO_BO) ) {
+			if (!is_sidx_seek) {
+				for (i=0; i< count; i++) {
+					u32 mode, sample_desc_index, sample_num;
+					u64 data_offset;
+					GF_Err e;
+					u64 time;
+					ch = gf_list_get(read->channels, i);
+					mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
+					time = (u64) (evt->play.start_range * ch->time_scale);
+
+					/*take care of seeking out of the track range*/
+					if (!read->frag_type && (ch->duration < time)) {
+						e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, ch->duration, 	&sample_desc_index, mode, NULL, &sample_num, &data_offset);
+					} else {
+						e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, time, &sample_desc_index, mode, NULL, &sample_num, &data_offset);
+					}
+					if ((e == GF_OK) && (data_offset<max_offset))
+						max_offset = data_offset;
+				}
+			}
+
+			if ((evt->play.start_range || read->is_partial_download)  && (max_offset != GF_FILTER_NO_BO) ) {
 
 				//send a seek request
 				read->is_partial_download = GF_TRUE;
 				read->wait_for_source = GF_TRUE;
+				read->refresh_fragmented = GF_TRUE;
 
 				//post a seek from offset - TODO we could build a map of byte offsets
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = max_offset;
 				gf_filter_pid_send_event(read->pid, &fevt);
-				gf_isom_set_byte_offset(read->mov, max_offset);
+				gf_isom_set_byte_offset(read->mov, is_sidx_seek ? 0 : max_offset);
 
 			}
 		}
 		//always request a process task upon a play
 		gf_filter_post_process_task(read->filter);
-
 		read->nb_playing++;
 		//cancel event
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
 		if (read->nb_playing) read->nb_playing--;
+		//stop but we didn't send EOS yet, remember to do it when in eos for input (fragmented case)
+		if (!ch->state_eos)
+			ch->state_eos = CH_EOS_FORCE_SEND;
 		isor_reset_reader(ch);
 		//cancel event
 		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:
 	case GF_FEVT_RESUME:
-		ch->speed = com->play.speed;
-		if (ch->sap_only && !com->play.drop_non_ref) {
+		ch->speed = evt->play.speed;
+		if (ch->sap_only && !evt->play.drop_non_ref) {
 			ch->sap_only = 2;
 		} else {
-			ch->sap_only = com->play.drop_non_ref ? GF_TRUE : GF_FALSE;
+			ch->sap_only = evt->play.drop_non_ref ? GF_TRUE : GF_FALSE;
 		}
 		//cancel event
 		return GF_TRUE;
@@ -1079,8 +1116,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			}
 #endif
 			isor_check_producer_ref_time(read);
+			if (!read->frag_type)
+				read->refresh_fragmented = GF_FALSE;
 		}
-
 	}
 
 	for (i=0; i<count; i++) {
@@ -1088,7 +1126,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		u32 nb_pck=50;
 		ISOMChannel *ch;
 		ch = gf_list_get(read->channels, i);
-		if (ch->play_state != 1) continue;
+		//end of stream was not sent at previous stop, forward it
+		if (read->frag_type && in_is_eos && !read->eos_signaled && (ch->state_eos==CH_EOS_FORCE_SEND)) {
+			ch->state_eos = CH_EOS_NOT_SEND;
+			gf_filter_pid_set_eos(ch->pid);
+		}
+		if (ch->play_state != CH_STATE_PLAY) {
+			continue;
+		}
 		is_active = GF_TRUE;
 
 		while (nb_pck) {
@@ -1201,17 +1246,20 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
+				ch->state_eos = CH_EOS_NOT_SEND;
 
-				if (!ch->play_state && (ch->last_state==GF_EOS)) {
+				if ((ch->play_state==CH_STATE_STOP) && (ch->last_state==GF_EOS)) {
 					gf_filter_pid_set_eos(ch->pid);
+					ch->state_eos = CH_EOS_SENT;
 					read->eos_signaled = GF_TRUE;
 				}
 				ch->last_valid_sample_data_offset = ch->sample_data_offset;
 				nb_pck--;
 			} else if (ch->last_state==GF_EOS) {
-				if (in_is_eos && (ch->play_state==1)) {
+				if (in_is_eos && (ch->play_state==CH_STATE_PLAY)) {
 					assert(!read->pid || gf_filter_pid_is_eos(read->pid));
-					ch->play_state = 2;
+					ch->play_state = CH_STATE_EOS_PROBE;
+					ch->state_eos = CH_EOS_SENT;
 					gf_filter_pid_set_eos(ch->pid);
 					read->eos_signaled = GF_TRUE;
 				}
@@ -1228,9 +1276,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		isoffin_purge_mem(read, min_offset_plus_one-1);
 	}
 
-	if (!is_active)
+	if (!is_active) {
 		return GF_EOS;
-	if (in_is_eos) gf_filter_ask_rt_reschedule(filter, 100);
+	}
+	//if (in_is_eos)
+	gf_filter_ask_rt_reschedule(filter, 100);
 	return GF_OK;
 
 }
