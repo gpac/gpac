@@ -926,6 +926,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD, &srd);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD_REF, &srdref);
 	}
+
+	//setup initial quality
+	dashdmx_io_on_dash_event(&ctx->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->idx, GF_OK);
+
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
