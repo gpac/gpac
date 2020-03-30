@@ -1196,9 +1196,11 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 				Bool is_encrypted = 0;
 				if (is_cenc_protected) {
 					GF_Err e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
-					assert(!e);
+					if (e != GF_OK) {
+						fprintf(dump, "dump_msg=\"Error %s while fetching encryption info for sample, assuming sample is encrypted\" ", gf_error_to_string(e) );
+						is_encrypted = GF_TRUE;
+					}
 				}
-
 				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, is_encrypted);
 #endif
 				fprintf(dump, "/>\n");
