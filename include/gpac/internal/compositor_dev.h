@@ -2164,6 +2164,7 @@ struct _od_manager
 	u32 skip_disconnect_state;
 
 	Bool ignore_sys;
+	u64 last_filesize_signaled;
 };
 
 GF_ObjectManager *gf_odm_new();

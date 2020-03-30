@@ -352,6 +352,10 @@ extension = {
                 var percent_dload = 100 * evt.loaded / evt.total;
                 if (percent_dload >= 100) percent_dload = 0;
                 this.extension.controler.media_line.set_progress(percent_dload);
+            } else if (evt.bufferLevel && (evt.bufferRemainingTime>1000) ) {
+                var buf_lev = evt.bufferLevel;
+                if (evt.bufferLevel >= 100) buf_lev = 0;
+                this.extension.controler.media_line.set_progress(buf_lev);
             }
         }
 

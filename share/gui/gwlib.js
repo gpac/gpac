@@ -2672,7 +2672,7 @@ function gw_new_progress_bar(parent, vertical, with_progress, class_name) {
                 this.children[1].move(0, (this.height - pheight) / 2, 0);
             } else {
                 var pwidth = prog * this.width;
-                this.children[1].set_size(pwidth, this.height);
+                this.children[1].set_size(pwidth, this.height/3);
                 this.children[1].move((pwidth - this.width) / 2, 0);
             }
         }
