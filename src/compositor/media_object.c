@@ -668,6 +668,7 @@ retry:
 		mo->frame_dur = (u32) dur;
 		mo->last_fetch_time = obj_time;
 
+		mo->timestamp = (u32) pck_ts;
 		media_time = gf_clock_to_media_time(mo->odm->ck, mo->timestamp);
 		
 		if (mo->odm->media_current_time <= media_time)
@@ -695,7 +696,6 @@ retry:
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, ntp_diff));
 		}
 
-		mo->timestamp = (u32) pck_ts;
 		/*signal EOS after rendering last frame, not while rendering it*/
 		*eos = GF_FALSE;
 
