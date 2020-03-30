@@ -176,6 +176,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_dm_sess_abort(ctx->sess);
 				gf_dm_sess_set_range(ctx->sess, ctx->nb_read, 0, GF_TRUE);
 			}
+			ctx->range.den = 0;
+			ctx->range.num = ctx->nb_read;
 			ctx->last_state = GF_OK;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Requested seek outside file range !\n") );
@@ -309,6 +311,9 @@ static GF_Err httpin_process(GF_Filter *filter)
 		e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
 		if (e<0) {
 			if (e==GF_IP_NETWORK_EMPTY) {
+				gf_dm_sess_get_stats(ctx->sess, NULL, NULL, NULL, NULL, &bytes_per_sec, NULL);
+				gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
+				gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
 			if (! ctx->nb_read)
@@ -361,8 +366,13 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bytes_done) );
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size ? ctx->file_size : bytes_done) );
+		if (ctx->range.num && ctx->file_size) {
+			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bytes_done + ctx->range.num) );
+			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
+		} else {
+			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bytes_done) );
+			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size ? ctx->file_size : bytes_done) );
+		}
 	}
 
 	byte_offset = ctx->nb_read;
