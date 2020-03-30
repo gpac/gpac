@@ -1470,9 +1470,11 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		time *= 1000;
 		time /= timescale;
 		gf_clock_set_time(odm->ck, (u32) time);
-		if (odm->parentscene)
+		odm->media_current_time = 0;
+		if (odm->parentscene) {
 			odm->parentscene->root_od->media_start_time = 0;
-
+			odm->parentscene->root_od->media_current_time = 0;
+		}
 		gf_odm_check_clock_mediatime(odm);
 
 	}
