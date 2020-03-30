@@ -1749,7 +1749,7 @@ sdtp_traf (enum, default: no): use sdtp in traf rather than using flags in trun 
 .br
 tkid (uint, default: 0):       track ID of created track for single track. Default 0 uses next available trackID
 .br
-fdur (bool, default: false):   fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option
+fragdur (bool, default: false): fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option
 .br
 btrt (bool, default: true):    set btrt box in sample description
 .br
@@ -3013,7 +3013,7 @@ floop (sint, default: 0):      loop playlist/list of files, 0 for one time, n fo
 .br
 srcs (strl):                   list of files to play - see filter help
 .br
-dur (frac, default: 1/25):     for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!
+fdur (frac, default: 1/25):    for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!
 .br
 revert (bool, default: false): revert list of files (not playlist)
 .br
@@ -3537,7 +3537,7 @@ The segmenter will add the following properties to the output PIDs:
 .SH Options (expert):
 .LP
 .br
-dur (dbl, default: 1.0):       target segment duration in seconds
+segdur (dbl, default: 1.0):    target segment duration in seconds
 .br
 tpl (bool, default: true):     use template mode (multiple segment, template URLs)
 .br
@@ -5433,7 +5433,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3524-gf598d9f89-filters
+build: 0.9.0-DEV-rev3529-g298ce5b7b-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

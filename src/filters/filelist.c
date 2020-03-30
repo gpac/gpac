@@ -74,7 +74,7 @@ typedef struct
 	s32 floop;
 	u32 fsort;
 	GF_List *srcs;
-	GF_Fraction dur;
+	GF_Fraction fdur;
 	u32 timescale;
 
 	GF_FilterPid *file_pid;
@@ -544,10 +544,10 @@ GF_Err filelist_process(GF_Filter *filter)
 				dur = (u32) ctx->current_file_dur;
 				//move from second to input pid timescale
 				dur *= iopid->timescale;
-			} else if (iopid->single_frame && ctx->dur.num && ctx->dur.den) {
-				s64 pdur = ctx->dur.num;
+			} else if (iopid->single_frame && ctx->fdur.num && ctx->fdur.den) {
+				s64 pdur = ctx->fdur.num;
 				pdur *= iopid->timescale;
-				pdur /= ctx->dur.den;
+				pdur /= ctx->fdur.den;
 				dur = (u32) pdur;
 			} else {
 				dur = gf_filter_pck_get_duration(pck);
@@ -803,7 +803,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 {
 	{ OFFS(floop), "loop playlist/list of files, `0` for one time, `n` for n+1 times, `-1` for indefinitely", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(srcs), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
-	{ OFFS(dur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
+	{ OFFS(fdur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "force output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 
