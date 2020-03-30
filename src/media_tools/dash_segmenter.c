@@ -542,7 +542,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		sep_ext[0] = 0;
 	}
 
-	sprintf(szArg, "dur=%g", dasher->segment_duration);
+	sprintf(szArg, "segdur=%g", dasher->segment_duration);
 	e = gf_dynstrcat(&args, szArg, ":");
 
 	if (sep_ext)

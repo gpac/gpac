@@ -195,7 +195,7 @@ typedef struct
 	Bool nofragdef, straf, strun, sgpd_traf, cache, noinit;
 	u32 psshs;
 	u32 tkid;
-	Bool fdur;
+	Bool fragdur;
 	Bool btrt;
 	Bool ssix;
 	Bool ccst;
@@ -810,10 +810,10 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			else {
 				ctx->cdur = 1.0;
 				if (ctx->dash_mode)
-					ctx->fdur = GF_FALSE;
+					ctx->fragdur = GF_FALSE;
 			}
 		} else if (ctx->dash_mode)
-			ctx->fdur = GF_TRUE;
+			ctx->fragdur = GF_TRUE;
 	}
 
 	if (needs_track) {
@@ -3943,7 +3943,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				tkw->samples_in_frag = 0;
 				tkw->dur_in_frag = 0;
 				break;
-			} else if (ctx->fdur && (!ctx->dash_mode || !tkw->fragment_done) ) {
+			} else if (ctx->fragdur && (!ctx->dash_mode || !tkw->fragment_done) ) {
 				u32 dur = gf_filter_pck_get_duration(pck);
 				if (tkw->dur_in_frag && (tkw->dur_in_frag >= ctx->cdur * tkw->src_timescale)) {
 					tkw->fragment_done = GF_TRUE;
@@ -5001,7 +5001,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		"- sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
 		"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags", GF_PROP_UINT, "no", "no|sdtp|both", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(fdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fragdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "set btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(styp), "set segment styp major brand to the given 4CC[.version]", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},

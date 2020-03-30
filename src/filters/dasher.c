@@ -90,7 +90,7 @@ typedef struct
 	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues;
 	u32 strict_sap;
 	u32 pssh;
-	Double dur;
+	Double segdur;
 	u32 dmode;
 	char *avcp;
 	char *hvcp;
@@ -680,7 +680,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		ds->startNumber = 1;
 		CHECK_PROP(GF_PROP_PID_START_NUMBER, ds->startNumber, GF_EOS)
-		ds->dash_dur = ctx->dur;
+		ds->dash_dur = ctx->segdur;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_DUR);
 		if (p) ds->dash_dur = p->value.number;
 		//this avoids very weird cases where (u64) (dash_dur*timescale) is 0. we limit the max segment duration to 1M sec, a bit more than 11.5 days
@@ -937,7 +937,7 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		if (ctx->tsb>=0) ctx->mpd->time_shift_buffer_depth = (u32) (1000*ctx->tsb);
 
 		if (ctx->refresh>=0) {
-			ctx->mpd->minimum_update_period = (u32) (1000*(ctx->refresh ? ctx->refresh : ctx->dur) );
+			ctx->mpd->minimum_update_period = (u32) (1000*(ctx->refresh ? ctx->refresh : ctx->segdur) );
 		} else {
 			ctx->mpd->minimum_update_period = 0;
 		}
@@ -957,7 +957,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	ctx->mpd->attributes = gf_list_new();
 	if (ctx->buf<0) {
 		s32 buf = -ctx->buf;
-		ctx->mpd->min_buffer_time = (u32) ( ctx->dur*10 * buf ); //*1000 (ms) / 100 (percent)
+		ctx->mpd->min_buffer_time = (u32) ( ctx->segdur*10 * buf ); //*1000 (ms) / 100 (percent)
 	}
 	else ctx->mpd->min_buffer_time = ctx->buf;
 
@@ -4191,13 +4191,13 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to regular DASH AVC/264 live profile\n"));
 			ctx->profile = GF_DASH_PROFILE_AVC264_LIVE;
 		}
-		if (ctx->dur < 1.0) {
+		if (ctx->segdur < 1.0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
-			ctx->dur = 1.0;
+			ctx->segdur = 1.0;
 		}
-		if (ctx->dur > 15.0) {
+		if (ctx->segdur > 15.0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
-			ctx->dur = 15.0;
+			ctx->segdur = 15.0;
 		}
 	}
 
@@ -6226,7 +6226,7 @@ static const GF_FilterCapability DasherCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_DasherCtx, _n)
 static const GF_FilterArgs DasherArgs[] =
 {
-	{ OFFS(dur), "target segment duration in seconds", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(segdur), "target segment duration in seconds", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(tpl), "use template mode (multiple segment, template URLs)", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(stl), "use segment timeline (ignored in on_demand mode)", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(dmode), "dash content mode\n"
