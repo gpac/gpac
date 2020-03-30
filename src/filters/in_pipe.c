@@ -331,13 +331,17 @@ static GF_Err pipein_process(GF_Filter *filter)
 	if (ctx->is_stdin) {
 		nb_read = 0;
 		if (feof(stdin)) {
-			if (!ctx->ka)
+			if (!ctx->ka) {
+				gf_filter_pid_set_eos(ctx->pid);
 				return GF_EOS;
+			}
 		} else {
 			nb_read = (s32) fread(ctx->buffer, 1, to_read, stdin);
 			if (nb_read<0) {
-				if (!ctx->ka)
+				if (!ctx->ka) {
+					gf_filter_pid_set_eos(ctx->pid);
 					return GF_EOS;
+				}
 			}
 		}
 	} else {
@@ -519,4 +523,3 @@ const GF_FilterRegister *pipein_register(GF_FilterSession *session)
 {
 	return &PipeInRegister;
 }
-
