@@ -144,7 +144,7 @@ struct __gf_download_session
 	u32 total_size, bytes_done, icy_metaint, icy_count, icy_bytes;
 	u64 start_time;
 	u64 chunk_run_time;
-	u64 active_time, in_time;
+	u64 active_time, in_time, idle_time;
 
 	u32 bytes_per_sec;
 	u64 start_time_utc;
@@ -2546,6 +2546,29 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	}
 }
 
+static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
+{
+	u32 cumul_rate = 0;
+	u32 nb_sess = 0;
+	u32 i, count = gf_list_count(dm->sessions);
+
+	//check if this fits with all other sessions
+	for (i=0; i<count; i++) {
+		GF_DownloadSession * sess = (GF_DownloadSession*)gf_list_get(dm->sessions, i);
+
+		//session not running done
+		if (sess->status != GF_NETIO_DATA_EXCHANGE) continue;
+
+		dm_sess_update_download_rate(sess, GF_FALSE);
+		cumul_rate += sess->bytes_per_sec;
+		nb_sess ++;
+	}
+	if ( cumul_rate >= nb_sess * dm->limit_data_rate)
+		return GF_TRUE;
+
+	return GF_FALSE;
+}
+
 
 GF_EXPORT
 GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
@@ -2603,6 +2626,13 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			e = GF_OK;
 		}
 	} else {
+
+		if (sess->dm && sess->dm->limit_data_rate && dm_exceeds_cap_rate(sess->dm)) {
+			if (sess->idle_time) sess->active_time += sess->in_time - sess->idle_time;
+			sess->idle_time = sess->in_time;
+			return GF_IP_NETWORK_EMPTY;
+		}
+
 		if (sess->remaining_data && sess->remaining_data_size) {
 			if (sess->remaining_data_size >= buffer_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] No HTTP chunk header found for %d bytes, assuming broken chunk transfer and aborting\n", sess->remaining_data_size));
@@ -2989,30 +3019,6 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	return GF_OK;
 }
 
-
-
-static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
-{
-	u32 cumul_rate = 0;
-	u32 nb_sess = 0;
-	u32 i, count = gf_list_count(dm->sessions);
-
-	//check if this fits with all other sessions
-	for (i=0; i<count; i++) {
-		GF_DownloadSession * sess = (GF_DownloadSession*)gf_list_get(dm->sessions, i);
-
-		//session not running done
-		if (sess->status != GF_NETIO_DATA_EXCHANGE) continue;
-
-		dm_sess_update_download_rate(sess, GF_FALSE);
-		cumul_rate += sess->bytes_per_sec;
-		nb_sess ++;
-	}
-	if ( cumul_rate >= nb_sess * dm->limit_data_rate)
-		return GF_TRUE;
-
-	return GF_FALSE;
-}
 
 /*!
  * Parse the remaining part of body
