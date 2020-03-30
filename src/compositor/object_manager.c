@@ -1633,6 +1633,9 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("Clock %d (ODM %d) received "LLU" type %d clock time %d no pending packets\n", odm->ck->clock_id, odm->ID, clock_reference, ck_type, gf_clock_time(odm->ck)));
 	}
+	if (!odm->ck->nb_buffering) {
+		gf_odm_service_media_event(odm, GF_EVENT_MEDIA_PROGRESS);
+	}
 	return odm->ck->nb_buffering ? GF_TRUE : GF_FALSE;
 }
 
@@ -1642,9 +1645,6 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 	GF_ODMExtraPid *xpid;
 	u32 i, val;
 	u64 buf_val;
-
-	*min_time = 0;
-	*min_buffer = 0;
 
 	if (!odm->pid) return;
 	if (odm->scene_ns != scene_ns) return;
@@ -1657,8 +1657,8 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 		media_event->bufferValid = GF_TRUE;
 
 	buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
-	if (buf_val > odm->buffer_playout_us) buf_val = odm->buffer_playout_us;
-	val = (u32) ((buf_val * 100) / odm->buffer_playout_us);
+	if (buf_val > odm->buffer_max_us) buf_val = odm->buffer_max_us;
+	val = (u32) ((buf_val * 100) / odm->buffer_max_us);
 	if (*min_buffer > val) (*min_buffer) = val;
 
 	if (*min_time > (u32) buf_val / 1000)
@@ -1668,7 +1668,7 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 	while ((xpid = gf_list_enum(odm->extra_pids, &i))) {
 
 		buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
-		if (buf_val > odm->buffer_playout_us) buf_val = odm->buffer_playout_us;
+		if (buf_val > odm->buffer_max_us) buf_val = odm->buffer_max_us;
 		val = (u32) ((buf_val * 100) / odm->buffer_playout_us);
 		if (*min_buffer > val) (*min_buffer) = val;
 
@@ -1724,8 +1724,9 @@ void gf_odm_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTyp
 			gf_odm_collect_buffer_info(odm->scene_ns, an_od, &evt.media_event, &min_time, &min_buffer);
 	}
 
-	if (min_buffer != (u32) -1)
+	if (min_buffer != (u32) -1) {
 		evt.media_event.level = min_buffer;
+	}
 	if (min_time != (u32) -1)
 		evt.media_event.remaining_time = INT2FIX(min_time) / 60;
 	evt.media_event.status = 0;

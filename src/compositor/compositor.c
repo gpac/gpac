@@ -3857,7 +3857,10 @@ void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *ev
 	for (i=0; i<count; i++) {
 		qev = gf_list_get(compositor->event_queue, i);
 		if ((qev->target==target) && (qev->dom_evt.type==evt->type) && (qev->sg==sg) ) {
-			qev->dom_evt = *evt;
+			//do not override any pending dowload progress event by new buffer state events
+			if ((evt->type!=GF_EVENT_MEDIA_PROGRESS) || !qev->dom_evt.media_event.loaded_size) {
+				qev->dom_evt = *evt;
+			}
 			gf_mx_v(compositor->evq_mx);
 			return;
 		}
