@@ -4404,7 +4404,7 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
 		if (!pidinst->pid) continue;
 		
-		prop = gf_filter_pid_get_info_internal(pidinst->pid, prop_4cc, prop_name, GF_FALSE, propentry);
+		prop = gf_filter_pid_get_info_internal((GF_FilterPid *)pidinst, prop_4cc, prop_name, GF_FALSE, propentry);
 		if (prop) {
 			prop_ent = *propentry;
 			goto exit;
