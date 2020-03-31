@@ -373,7 +373,6 @@
 		929383A72355AECE00AAAFA8 /* webgl.c in Sources */ = {isa = PBXBuildFile; fileRef = 929383A62355AECE00AAAFA8 /* webgl.c */; };
 		9296BF2422CFBB3900DC9742 /* reframe_flac.c in Sources */ = {isa = PBXBuildFile; fileRef = 9296BF2322CFBB3900DC9742 /* reframe_flac.c */; };
 		9298677A2357A0DA008A2CC6 /* webgl.h in Headers */ = {isa = PBXBuildFile; fileRef = 929867782357A0DA008A2CC6 /* webgl.h */; };
-		9298677B2357A0DA008A2CC6 /* webgl_pixfmt.c in Sources */ = {isa = PBXBuildFile; fileRef = 929867792357A0DA008A2CC6 /* webgl_pixfmt.c */; };
 		9298677F235A1587008A2CC6 /* gltools.c in Sources */ = {isa = PBXBuildFile; fileRef = 9298677E235A1587008A2CC6 /* gltools.c */; };
 		929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929616EF8BC200B7C64F /* Default-568h@2x.png */; };
 		929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929716EF8BC200B7C64F /* icon_ipad_retina.png */; };
@@ -953,7 +952,6 @@
 		929383A62355AECE00AAAFA8 /* webgl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = webgl.c; path = ../../src/jsmods/webgl.c; sourceTree = "<group>"; };
 		9296BF2322CFBB3900DC9742 /* reframe_flac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_flac.c; path = ../../src/filters/reframe_flac.c; sourceTree = "<group>"; };
 		929867782357A0DA008A2CC6 /* webgl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = webgl.h; path = ../../src/jsmods/webgl.h; sourceTree = "<group>"; };
-		929867792357A0DA008A2CC6 /* webgl_pixfmt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = webgl_pixfmt.c; path = ../../src/jsmods/webgl_pixfmt.c; sourceTree = "<group>"; };
 		9298677E235A1587008A2CC6 /* gltools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gltools.c; sourceTree = "<group>"; };
 		929A929616EF8BC200B7C64F /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../../applications/osmo4_ios/Resources/Default-568h@2x.png"; sourceTree = SOURCE_ROOT; };
 		929A929716EF8BC200B7C64F /* icon_ipad_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad_retina.png; path = ../../applications/osmo4_ios/Resources/icon_ipad_retina.png; sourceTree = SOURCE_ROOT; };
@@ -1796,7 +1794,6 @@
 		92D6C5A32343BF5000262217 /* jsmods */ = {
 			isa = PBXGroup;
 			children = (
-				929867792357A0DA008A2CC6 /* webgl_pixfmt.c */,
 				929867782357A0DA008A2CC6 /* webgl.h */,
 				9210BA1C234A909400ED2DFF /* evg.c */,
 				92D6C5A52343BF6A00262217 /* scene_js.c */,
@@ -2438,7 +2435,6 @@
 				92EB6E0C20E4E19700A97A49 /* rewrite_nalu.c in Sources */,
 				92D6C5A62343BF6A00262217 /* xhr.c in Sources */,
 				71CCF2D51277045100339E12 /* avilib.c in Sources */,
-				9298677B2357A0DA008A2CC6 /* webgl_pixfmt.c in Sources */,
 				71CCF2D61277045100339E12 /* dvb_mpe.c in Sources */,
 				9298677F235A1587008A2CC6 /* gltools.c in Sources */,
 				8959AC79211C9B29004D2C87 /* reframe_av1.c in Sources */,

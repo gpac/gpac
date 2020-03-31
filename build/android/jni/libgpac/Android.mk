@@ -297,7 +297,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/jsmods/scene_js.c \
 	../../../../src/jsmods/storage.c \
 	../../../../src/jsmods/webgl.c \
-	../../../../src/jsmods/webgl_pixfmt.c \
 	../../../../src/jsmods/xhr.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \

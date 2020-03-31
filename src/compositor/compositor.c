@@ -2149,7 +2149,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 				//enable hybrid mode by default
-				if (!compositor->visual->compositor->shader_only_mode && (mode==GF_SC_GLMODE_HYBRID) ) {
+				if (compositor->visual->compositor->shader_mode_disabled && (mode==GF_SC_GLMODE_HYBRID) ) {
 					mode = GF_SC_GLMODE_OFF;
 				}
 #endif

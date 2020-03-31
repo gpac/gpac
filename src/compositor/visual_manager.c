@@ -72,6 +72,7 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->fog_stack = gf_list_new();
 #endif /*GPAC_DISABLE_VRML*/
 	tmp->alpha_nodes_to_draw = gf_list_new();
+	tmp->compiled_programs = gf_list_new();
 #endif
 
 	return tmp;
@@ -112,6 +113,7 @@ void visual_del(GF_VisualManager *visual)
 #endif /*GPAC_DISABLE_VRML*/
 
 	gf_list_del(visual->alpha_nodes_to_draw);
+	gf_list_del(visual->compiled_programs);
 #endif
 	gf_free(visual);
 }

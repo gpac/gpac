@@ -1477,9 +1477,12 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		}
 		gf_odm_check_clock_mediatime(odm);
 
+		if (pck && gf_filter_pck_is_blocking_ref(pck))
+			odm->blocking_media = GF_TRUE;
 	}
+
 	//TODO abort buffering when errors are found on the input chain !!
-	if (buffer_duration >= odm->buffer_playout_us) {
+	if (odm->blocking_media || (buffer_duration >= odm->buffer_playout_us)) {
 		odm->nb_buffering --;
 		assert(scene->nb_buffering);
 		scene->nb_buffering--;
@@ -1556,7 +1559,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (an_odm->nb_buffering)
 	 			odm_update_buffer(scene, an_odm, an_odm->pid, &signal_eob);
 		}
-	} else if (odm->buffer_min_us && odm->pid && odm->ck && odm->ck->clock_init && !gf_filter_pid_has_seen_eos(odm->pid) ) {
+	} else if (!odm->blocking_media && odm->buffer_min_us && odm->pid && odm->ck && odm->ck->clock_init && !gf_filter_pid_has_seen_eos(odm->pid) ) {
 		u64 buffer_duration = gf_filter_pid_query_buffer_duration(odm->pid, GF_TRUE);
 		if (buffer_duration < odm->buffer_min_us) {
 			gf_clock_buffer_on(odm->ck);

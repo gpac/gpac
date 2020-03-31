@@ -99,6 +99,9 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		compositor->gl_caps.bgra_texture = 1;
 	if (CHECK_GL_EXT("GL_EXT_framebuffer_object") || CHECK_GL_EXT("GL_ARB_framebuffer_object"))
 		compositor->gl_caps.fbo = 1;
+	if (CHECK_GL_EXT("GL_ARB_texture_non_power_of_two"))
+		compositor->gl_caps.npot = 1;
+
 
 	if (CHECK_GL_EXT("GL_ARB_point_parameters")) {
 		compositor->gl_caps.point_sprite = 1;
@@ -119,8 +122,6 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #ifndef GPAC_USE_GLES1X
 	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
 		compositor->gl_caps.rect_texture = 1;
-		if (CHECK_GL_EXT("GL_MESA_ycbcr_texture")) compositor->gl_caps.yuv_texture = YCBCR_MESA;
-		else if (CHECK_GL_EXT("GL_APPLE_ycbcr_422")) compositor->gl_caps.yuv_texture = YCBCR_422_APPLE;
 	}
 #endif
 
@@ -143,8 +144,8 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		compositor->gl_caps.has_shaders = 1;
 
 #ifndef GPAC_CONFIG_ANDROID
-		if (glGetAttribLocation != NULL) {
-			compositor->shader_only_mode = GF_TRUE;
+		if (glGetAttribLocation == NULL) {
+			compositor->shader_mode_disabled = GF_TRUE;
 		}
 #endif
 
@@ -157,34 +158,30 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 #ifdef GPAC_USE_GLES2
 	compositor->gl_caps.has_shaders = GF_TRUE;
-	compositor->shader_only_mode = GF_TRUE;
 #elif defined (GL_VERSION_2_0)
 	compositor->gl_caps.has_shaders = GF_TRUE;
-	compositor->shader_only_mode = GF_TRUE;
 #endif
-
-	if (!compositor->gl_caps.has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
-		compositor->visual->nb_views=1;
-		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
-		compositor->visual->camlay = GF_3D_CAMERA_STRAIGHT;
+	if (!compositor->gl_caps.has_shaders) {
+		compositor->shader_mode_disabled = GF_TRUE;
+		if (compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
+			compositor->visual->nb_views=1;
+			compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
+			compositor->visual->camlay = GF_3D_CAMERA_STRAIGHT;
+		}
 	}
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
-	if (compositor->shader_only_mode && compositor->vertshader && compositor->fragshader) {
-		FILE *t = gf_fopen(compositor->vertshader, "rt");
-		if (!t) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Vertex shader not found, disabling shaders\n"));
-			compositor->shader_only_mode = GF_FALSE;
+	if (!compositor->shader_mode_disabled && compositor->vertshader && compositor->fragshader) {
+		if (!gf_file_exists(compositor->vertshader)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Vertex shader %s not found, disabling shaders\n", compositor->vertshader));
+			compositor->shader_mode_disabled = GF_TRUE;
 		}
-		if (t) gf_fclose(t);
 
-		t =gf_fopen(compositor->fragshader, "rt");
-		if (!t) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Fragment shader not found, disabling shaders\n"));
-			compositor->shader_only_mode = GF_FALSE;
+		if (!gf_file_exists(compositor->fragshader)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Fragment shader %s not found, disabling shaders\n", compositor->fragshader));
+			compositor->shader_mode_disabled = GF_TRUE;
 		}
-		if (t) gf_fclose(t);
 	}
 #endif
 }
@@ -411,7 +408,7 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 #endif
 
 
-static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_type, u32 flags) {
+static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_type, u32 flags, u32 pixfmt) {
 
 	GF_SHADERID shader = 0;
 	char *defs, szKey[100];
@@ -467,60 +464,38 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to open shader file %s: %s\n", src_path, gf_error_to_string(e)));
 	} else {
-		char *tmp;
+		char *final_src = NULL;
 
-		tmp = (char *) gf_malloc(sizeof(char)*(size+str_size+2));
-		strcpy(tmp, defs);
-		strncat(tmp, shader_src, (size));
+		gf_dynstrcat(&final_src, defs, NULL);
 
-		tmp[size+str_size]=0;
+		if ((shader_type==GL_FRAGMENT_SHADER) && (flags & GF_GL_HAS_TEXTURE)) {
+			char *sep = strstr(shader_src, "void main(");
+			if (sep) sep[0] = 0;
+			gf_dynstrcat(&final_src, shader_src, NULL);
+
+			//add texture code
+			gf_gl_txw_insert_fragment_shader(pixfmt, "maintx", &final_src);
+
+			//append the rest
+			if (sep) {
+				sep[0] = 'v';
+				gf_dynstrcat(&final_src, sep, "\n");
+			}
+		} else {
+			gf_dynstrcat(&final_src, shader_src, "\n");
+		}
 		shader = glCreateShader(shader_type);
-		if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", tmp)==GF_FALSE) {
+
+		if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", final_src)==GF_FALSE) {
 			glDeleteShader(shader);
 			shader = 0;
 		}
 
 		gf_free(shader_src);
-		gf_free(tmp);
+		gf_free(final_src);
 		gf_free(defs);
 	}
 	return shader;
-}
-
-static void visual_3d_set_tx_planes(GF_VisualManager *visual)
-{
-	GLint i,j, loc;
-
-	for(i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
-		if (! (i & GF_GL_HAS_TEXTURE))
-			continue;
-
-		glUseProgram(visual->glsl_programs[i]);
-		if (i & GF_GL_IS_YUV) {
-			for (j=0; j<3; j++) {
-				const char *txname = (j==0) ? "y_plane" : (j==1) ? "u_plane" : "v_plane";
-				loc = glGetUniformLocation(visual->glsl_programs[i], txname);
-				if (loc == -1) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
-					continue;
-				}
-				glUniform1i(loc, j);
-			}
-		} else if (i & GF_GL_IS_ExternalOES)  {
-			loc = glGetUniformLocation(visual->glsl_programs[i], "imgOES");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture imgOES in ExternalOES shader\n"));
-			}
-			glUniform1i(loc, 0);
-		} else {
-			loc = glGetUniformLocation(visual->glsl_programs[i], "img");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture img in RGB shader\n"));
-			}
-			glUniform1i(loc, 0);
-
-		}
-	}
 }
 
 void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
@@ -796,119 +771,80 @@ void visual_3d_clean_state(GF_VisualManager *visual)
 	glGetError();
 }
 
+static GF_GLProgInstance *visual_3d_build_program(GF_VisualManager *visual, u32 flags, u32 pix_fmt)
+{
+	s32 linked;
+	GF_GLProgInstance *pi;
+
+	GF_SAFEALLOC(pi, GF_GLProgInstance);
+	if (!pi) return NULL;
+	pi->flags = flags;
+	pi->pix_fmt = pix_fmt;
+
+	glGetError();
+	pi->prog = glCreateProgram();
+	if (!pi->prog) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to create program\n"));
+		gf_free(pi);
+		return NULL;
+	}
+	pi->vertex = visual_3d_shader_with_flags(visual->compositor->vertshader , GL_VERTEX_SHADER, flags, 0);
+	if (!pi->vertex) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader\n"));
+		DEL_PROGRAM(pi->prog)
+		gf_free(pi);
+		return NULL;
+	}
+	pi->fragment = visual_3d_shader_with_flags(visual->compositor->fragshader , GL_FRAGMENT_SHADER, flags, pix_fmt);
+	if (!pi->fragment) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader\n"));
+		DEL_PROGRAM(pi->prog)
+		DEL_SHADER(pi->vertex);
+		gf_free(pi);
+		return NULL;
+	}
+	glAttachShader(pi->prog, pi->vertex);
+	GL_CHECK_ERR();
+	glAttachShader(pi->prog, pi->fragment);
+	GL_CHECK_ERR();
+
+	glLinkProgram(pi->prog);
+	GL_CHECK_ERR();
+
+	glGetProgramiv(pi->prog, GL_LINK_STATUS, &linked);
+	if (!linked) {
+		int i32CharsWritten, i32InfoLogLength;
+		char pszInfoLog[2048];
+		glGetProgramiv(pi->prog, GL_INFO_LOG_LENGTH, &i32InfoLogLength);
+		glGetProgramInfoLog(pi->prog, i32InfoLogLength, &i32CharsWritten, pszInfoLog);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
+		DEL_PROGRAM(pi->prog)
+		DEL_SHADER(pi->vertex);
+		DEL_SHADER(pi->fragment);
+		gf_free(pi);
+		return NULL;
+	}
+	return pi;
+}
+
 static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
-	u32 i;
-	GLint err_log = -10;
-	const char *shader_file;
-
-	//FIXME: Clear error log - for Android we will always have an GL_INVALID_VALUE error
-	glGetError();
-
-	/* test if programs exist (by using flags 0)
-	 *  this check was introduced due to losing program objects when switching rasterization modes
-	 *  (hit '3' in runtime to recreate issue)
-	 *  the program objects were not deleted though
-	 */
-	if (visual->glsl_programs[0]) {
-		glGetProgramiv(visual->glsl_programs[0], GL_VALIDATE_STATUS, &err_log);
-		if(err_log==-10) {
-			for (i=0; i<GF_GL_NB_VERT_SHADERS; i++) {
-				DEL_SHADER(visual->glsl_vertex_shaders[i]);
-			}
-			for (i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
-				DEL_SHADER(visual->glsl_fragment_shaders[i]);
-				DEL_PROGRAM(visual->glsl_programs[i]);
-			}
-			visual->glsl_has_shaders=0;
-			//Clear error log (if the program is lost we will always have an GL_INVALID_VALUE error)
-			glGetError();
-		}
-	} else {
-		visual->glsl_has_shaders=0;
-		GL_CHECK_ERR();
-	}
-
-	//Clear error log (if the program is lost we will always have an GL_INVALID_VALUE error)
-	glGetError();
-	//nothing to do
-	if (visual->glsl_has_shaders) {
+	GF_GLProgInstance *pi;
+	if (gf_list_count(visual->compiled_programs))
 		return GF_TRUE;
-	}
+	if (!gf_file_exists(visual->compositor->vertshader))
+		return GF_FALSE;
+	if (!gf_file_exists(visual->compositor->fragshader))
+		return GF_FALSE;
 
-	GL_CHECK_ERR()
-	//Creating Program for the shaders
-	for(i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
-		visual->glsl_programs[i] = glCreateProgram();
-	}
-	visual->glsl_has_shaders = GF_TRUE;
-	GL_CHECK_ERR()
 
-	shader_file = visual->compositor->vertshader;
-	if (!shader_file) return GF_FALSE;
+	pi = visual_3d_build_program(visual, 0, 0);
+	if (!pi) return GF_FALSE;
 
-	for (i=0; i<GF_GL_NB_VERT_SHADERS; i++) {
-		GL_CHECK_ERR();
-		visual->glsl_vertex_shaders[i] = visual_3d_shader_with_flags(shader_file , GL_VERTEX_SHADER, i);
-		if (!visual->glsl_vertex_shaders[i]) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader\n"));
-			return GF_FALSE;
-		}
-	}
-
-	shader_file = visual->compositor->fragshader;
-	if (!shader_file) return GF_FALSE;
-
-	for (i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
-		GLint linked;
-		u32 vert_id;
-		GL_CHECK_ERR();
-		//discard unused flags combination (ie YUV with no texture)
-		if ( (i& (GF_GL_IS_YUV | GF_GL_IS_ExternalOES)) && ! (i & GF_GL_HAS_TEXTURE)) {
-			DEL_PROGRAM(visual->glsl_programs[i]);
-			visual->glsl_programs[i]=0;
-			visual->glsl_fragment_shaders[i] = 0;
-			continue;
-		}
-
-		visual->glsl_fragment_shaders[i] = visual_3d_shader_with_flags(shader_file , GL_FRAGMENT_SHADER, i);
-		if (!visual->glsl_fragment_shaders[i]) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader\n"));
-			continue;
-		}
-		GL_CHECK_ERR();
-
-		//compute vertex shader for this fragment: all YUV frag shaders are texture vert shaders
-		vert_id = i;
-		if (i & (GF_GL_IS_YUV | GF_GL_IS_ExternalOES)) {
-			vert_id &= ~(GF_GL_IS_YUV | GF_GL_IS_ExternalOES);
-			vert_id |= GF_GL_HAS_TEXTURE;
-			assert(vert_id<GF_GL_NB_VERT_SHADERS);
-		}
-		glAttachShader(visual->glsl_programs[i], visual->glsl_vertex_shaders[vert_id]);
-		GL_CHECK_ERR();
-
-		glAttachShader(visual->glsl_programs[i], visual->glsl_fragment_shaders[i]);
-		GL_CHECK_ERR();
-
-		glLinkProgram(visual->glsl_programs[i]);
-		GL_CHECK_ERR();
-
-		glGetProgramiv(visual->glsl_programs[i], GL_LINK_STATUS, &linked);
-		if (!linked) {
-			int i32CharsWritten, i32InfoLogLength;
-			char pszInfoLog[2048];
-			glGetProgramiv(visual->glsl_programs[i], GL_INFO_LOG_LENGTH, &i32InfoLogLength);
-			glGetProgramInfoLog(visual->glsl_programs[i], i32InfoLogLength, &i32CharsWritten, pszInfoLog);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
-		}
-
-		glUseProgram(visual->glsl_programs[i]);
-		GL_CHECK_ERR();
-	}
-
-	/* Set texture planes*/
-	visual_3d_set_tx_planes(visual);
+	glDeleteShader(pi->vertex);
+	glDeleteShader(pi->fragment);
+	glDeleteProgram(pi->prog);
+	gf_free(pi);
 	return GF_TRUE;
 }
 
@@ -920,7 +856,7 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 	if (!visual->compositor->gl_caps.has_shaders)
 		return;
 
-	if (visual->compositor->shader_only_mode) {
+	if (!visual->compositor->shader_mode_disabled) {
 		//If we fail to configure shaders, force 2D mode
 		if (! visual_3d_init_generic_shaders(visual)) {
 			visual->compositor->hybrid_opengl = GF_FALSE;
@@ -941,9 +877,6 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 void visual_3d_reset_graphics(GF_VisualManager *visual)
 {
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
-
-	u32 i;
-
 	if (visual->compositor->visual != visual)
 		return;
 
@@ -961,15 +894,13 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 		visual->autostereo_mesh = NULL;
 	}
 
-	for (i=0; i<GF_GL_NB_VERT_SHADERS; i++) {
-		DEL_SHADER(visual->glsl_vertex_shaders[i]);
+	while (gf_list_count(visual->compiled_programs)) {
+		GF_GLProgInstance *gi = gf_list_pop_back(visual->compiled_programs);
+		DEL_SHADER(gi->vertex);
+		DEL_SHADER(gi->fragment);
+		DEL_PROGRAM(gi->prog);
+		gf_free(gi);
 	}
-	for (i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
-		DEL_SHADER(visual->glsl_fragment_shaders[i]);
-		DEL_PROGRAM(visual->glsl_programs[i]);
-	}
-	visual->glsl_has_shaders=0;
-
 #endif
 }
 
@@ -2250,6 +2181,28 @@ static void visual_3d_set_clippers_shaders(GF_VisualManager *visual, GF_Traverse
 	}
 }
 
+GF_GLProgInstance *visual_3d_check_program_exists(GF_VisualManager *root_visual, u32 flags, u32 pix_fmt)
+{
+	u32 i, count;
+	GF_GLProgInstance *prog = NULL;
+	if (root_visual->compositor->shader_mode_disabled)
+		return NULL;
+
+	count = gf_list_count(root_visual->compiled_programs);
+	for (i=0; i<count; i++) {
+		prog = gf_list_get(root_visual->compiled_programs, i);
+		if ((prog->flags==flags) && (prog->pix_fmt==pix_fmt)) break;
+		prog = NULL;
+	}
+
+	if (!prog) {
+		prog = visual_3d_build_program(root_visual, flags, pix_fmt);
+		if (!prog) return NULL;
+		gf_list_add(root_visual->compiled_programs, prog);
+	}
+	return prog;
+}
+
 static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	void *vertex_buffer_address;
@@ -2259,8 +2212,9 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	u32 flags;
 	u32 num_lights = visual->num_lights;
 	Bool is_debug_bounds = GF_FALSE;
+	GF_GLProgInstance *prog = NULL;
 
-	flags = root_visual->glsl_flags;
+	flags = root_visual->active_glsl_flags;
 
 	if (!mesh) {
 		is_debug_bounds = GF_TRUE;
@@ -2297,16 +2251,19 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		flags &= ~GF_GL_HAS_CLIP;
 	}
 
-	root_visual->glsl_flags = visual->glsl_flags = flags;
+	root_visual->active_glsl_flags = visual->active_glsl_flags = flags;
+
+	prog = visual_3d_check_program_exists(root_visual, flags, root_visual->bound_tx_pix_fmt);
+	if (!prog) return;
 
 	//check if we are using a different program than last time, if so force matrices updates
-	if ((visual->glsl_program != root_visual->glsl_programs[visual->glsl_flags])
-	        || !root_visual->glsl_programs[visual->glsl_flags]) {
+	if (visual->glsl_program != prog->prog) {
 		tr_state->visual->needs_projection_matrix_reload = GF_TRUE;
 	}
 
 	GL_CHECK_ERR()
-	visual->glsl_program = root_visual->glsl_programs[visual->glsl_flags];
+	visual->glsl_program = prog->prog;
+
 	glUseProgram(visual->glsl_program);
 	GL_CHECK_ERR()
 
@@ -2499,12 +2456,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	//setup mesh normal vertex attribute - only available for some shaders
 	if (tr_state->mesh_num_textures && (mesh->mesh_type==MESH_TRIANGLES) && !(mesh->flags & MESH_NO_TEXTURE)) {
-		loc = glGetUniformLocation(visual->glsl_program, "gfNumTextures");
-		if (loc>=0) {
-			glUniform1i(loc, tr_state->mesh_num_textures);
-		}
-		GL_CHECK_ERR()
-
 		if (visual->has_tx_matrix) {
 			//parsing texture matrix
 			loc = glGetUniformLocation(visual->glsl_program, "gfTextureMatrix");
@@ -2661,7 +2612,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	if (loc_textcoord_array>=0) glDisableVertexAttribArray(loc_textcoord_array);
 
 	//instead of visual_3d_reset_lights(visual);
-	if(visual->compositor->visual->glsl_flags & GF_GL_HAS_LIGHT) {
+	if(root_visual->active_glsl_flags & GF_GL_HAS_LIGHT) {
 		loc = glGetUniformLocation(visual->glsl_program, "gfNumLights");
 		if (loc>=0)	glUniform1i(loc, 0);
 		GL_CHECK_ERR()
@@ -2672,8 +2623,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	}
 
 	visual->has_material_2d = 0;
-	visual->glsl_flags = visual->compositor->visual->glsl_flags;
-	root_visual->glsl_flags &= ~ (GF_GL_IS_ExternalOES | GF_GL_IS_YUV | GF_GL_HAS_COLOR);
+	visual->active_glsl_flags = root_visual->active_glsl_flags;
+	root_visual->active_glsl_flags &= ~ GF_GL_HAS_COLOR;
 	visual->has_material = 0;
 	visual->state_color_on = 0;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
@@ -2719,7 +2670,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #else
 
 #if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_CONFIG_IOS) && !defined(GPAC_FIXED_POINT)
-	if (visual->compositor->shader_only_mode) {
+	if (!visual->compositor->shader_mode_disabled) {
 		visual_3d_draw_mesh_shader_only(tr_state, mesh);
 		return;
 	}
@@ -2780,48 +2731,23 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	*/
 	if (visual->has_material_2d) {
 		glDisable(GL_LIGHTING);
-
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
-		if (visual->compositor->visual->current_texture_glsl_program) {
-			int loc = glGetUniformLocation(visual->compositor->visual->current_texture_glsl_program, "alpha");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate uniform \"alpha\" in YUV shader\n"));
-			} else {
-				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha) );
-			}
-		} else
-#endif
-		{
-			if (visual->mat_2d.alpha != FIX_ONE) {
-				glEnable(GL_BLEND);
-				visual_3d_enable_antialias(visual, 0);
-			} else {
-				//disable blending only if no texture !
-				if (!tr_state->mesh_num_textures)
-					glDisable(GL_BLEND);
-				visual_3d_enable_antialias(visual, visual->compositor->aa ? 1 : 0);
-			}
-#ifdef GPAC_USE_GLES1X
-			glColor4x( FIX2INT(visual->mat_2d.red * 255), FIX2INT(visual->mat_2d.green * 255), FIX2INT(visual->mat_2d.blue * 255), FIX2INT(visual->mat_2d.alpha * 255));
-#elif defined(GPAC_FIXED_POINT)
-			glColor4f(FIX2FLT(visual->mat_2d.red), FIX2FLT(visual->mat_2d.green), FIX2FLT(visual->mat_2d.blue), FIX2FLT(visual->mat_2d.alpha));
-#else
-			glColor4f(visual->mat_2d.red, visual->mat_2d.green, visual->mat_2d.blue, visual->mat_2d.alpha);
-#endif
-		}
-	}
-
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
-	else if (visual->compositor->visual->current_texture_glsl_program) {
-		int loc = glGetUniformLocation(visual->compositor->visual->current_texture_glsl_program, "alpha");
-		if (loc == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate uniform \"alpha\" in YUV shader\n"));
+		if (visual->mat_2d.alpha != FIX_ONE) {
+			glEnable(GL_BLEND);
+			visual_3d_enable_antialias(visual, 0);
 		} else {
-			glUniform1f(loc, 1.0 );
+			//disable blending only if no texture !
+			if (!tr_state->mesh_num_textures)
+				glDisable(GL_BLEND);
+			visual_3d_enable_antialias(visual, visual->compositor->aa ? 1 : 0);
 		}
-	}
+#ifdef GPAC_USE_GLES1X
+		glColor4x( FIX2INT(visual->mat_2d.red * 255), FIX2INT(visual->mat_2d.green * 255), FIX2INT(visual->mat_2d.blue * 255), FIX2INT(visual->mat_2d.alpha * 255));
+#elif defined(GPAC_FIXED_POINT)
+		glColor4f(FIX2FLT(visual->mat_2d.red), FIX2FLT(visual->mat_2d.green), FIX2FLT(visual->mat_2d.blue), FIX2FLT(visual->mat_2d.alpha));
+#else
+		glColor4f(visual->mat_2d.red, visual->mat_2d.green, visual->mat_2d.blue, visual->mat_2d.alpha);
 #endif
-
+	}
 
 	//setup material color
 	if (visual->has_material) {
@@ -3113,7 +3039,7 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	visual_3d_set_debug_color(0);
 	//in shader mode force pushing projection and modelview using fixed pipeline API
-	if (tr_state->visual->compositor->shader_only_mode) {
+	if (!tr_state->visual->compositor->shader_mode_disabled) {
 		tr_state->visual->needs_projection_matrix_reload=GF_TRUE;
 		visual_3d_update_matrices(tr_state);
 	}

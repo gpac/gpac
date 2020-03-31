@@ -261,7 +261,6 @@
 		9293839E2354A10800AAAFA8 /* webgl.h in Headers */ = {isa = PBXBuildFile; fileRef = 9293839D2354A10800AAAFA8 /* webgl.h */; };
 		9296BF2222CF7F5300DC9742 /* reframe_flac.c in Sources */ = {isa = PBXBuildFile; fileRef = 9296BF2122CF7F5300DC9742 /* reframe_flac.c */; };
 		929867752355DED1008A2CC6 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
-		929867772357320B008A2CC6 /* webgl_pixfmt.c in Sources */ = {isa = PBXBuildFile; fileRef = 929867762357320A008A2CC6 /* webgl_pixfmt.c */; };
 		9298677D235A146E008A2CC6 /* gltools.c in Sources */ = {isa = PBXBuildFile; fileRef = 9298677C235A146D008A2CC6 /* gltools.c */; };
 		929DE7472417DC020056AFA7 /* gzio.c in Sources */ = {isa = PBXBuildFile; fileRef = 929DE7462417DC020056AFA7 /* gzio.c */; };
 		92A08DBD20D946B7003589FF /* tileagg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A08DBC20D946B6003589FF /* tileagg.c */; };
@@ -911,7 +910,6 @@
 		9293839F2354DBDB00AAAFA8 /* WebGLRenderingContextBase.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = WebGLRenderingContextBase.c; path = jsmods/WebGLRenderingContextBase.c; sourceTree = "<group>"; };
 		929383A32355A86F00AAAFA8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/generators/WebGLGen/main.c; sourceTree = "<group>"; };
 		9296BF2122CF7F5300DC9742 /* reframe_flac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_flac.c; path = filters/reframe_flac.c; sourceTree = "<group>"; };
-		929867762357320A008A2CC6 /* webgl_pixfmt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = webgl_pixfmt.c; path = jsmods/webgl_pixfmt.c; sourceTree = "<group>"; };
 		9298677C235A146D008A2CC6 /* gltools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gltools.c; sourceTree = "<group>"; };
 		929DE7462417DC020056AFA7 /* gzio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gzio.c; sourceTree = "<group>"; };
 		92A08DBC20D946B6003589FF /* tileagg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tileagg.c; path = filters/tileagg.c; sourceTree = "<group>"; };
@@ -1714,7 +1712,6 @@
 		929383A22355A6EF00AAAFA8 /* WebGL */ = {
 			isa = PBXGroup;
 			children = (
-				929867762357320A008A2CC6 /* webgl_pixfmt.c */,
 				9293839F2354DBDB00AAAFA8 /* WebGLRenderingContextBase.c */,
 				9293839D2354A10800AAAFA8 /* webgl.h */,
 				9293839B23548C8F00AAAFA8 /* webgl.c */,
@@ -2624,7 +2621,6 @@
 				92860707238690D700FDA1ED /* reframe_prores.c in Sources */,
 				92EB479320F6333900E1F2DD /* rewrite_obu.c in Sources */,
 				92D6C5A22343BEFF00262217 /* dom_js.c in Sources */,
-				929867772357320B008A2CC6 /* webgl_pixfmt.c in Sources */,
 				9201014818D5A445003D1ACA /* dvb_mpe.c in Sources */,
 				9201014A18D5A445003D1ACA /* gpac_ogg.c in Sources */,
 				9201014D18D5A445003D1ACA /* img.c in Sources */,

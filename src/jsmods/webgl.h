@@ -89,35 +89,20 @@ typedef struct
 	JSClassID class_id; //object class
 } GF_WebGLObject;
 
+
 typedef struct _wgl_named_texture
 {
-	GLuint textures[4];
-	GLuint PBOs[4];
-
-	u32 nb_textures;
+	Bool shader_attached;
 	GF_WebGLContext *par_ctx;
 	char *tx_name;
-	u32 width, height, pix_fmt, stride, uv_stride;
-	Bool is_yuv;
-	u32 bit_depth, uv_w, uv_h;
 
-	u32 gl_format;
-	u32 bytes_per_pix;
-	Bool has_alpha;
-	Bool internal_textures;
-	Bool uniform_setup;
-	u32 memory_format;
-	Bool shader_attached;
-	GF_FilterFrameInterface *frame_ifce;
-	Bool first_tx_load;
-	Bool use_pbo;
+	GF_GLTextureWrapper tx;
 } GF_WebGLNamedTexture;
 
 Bool js_evg_get_texture_info(JSContext *ctx, JSValue this_obj, u32 *width, u32 *height, u32 *pixfmt, u8 **p_data, u32 *stride, u8 **p_u, u8 **p_v, u32 *stride_uv, u8 **p_a);
 
 Bool js_evg_is_texture(JSContext *ctx, JSValue this_obj);
 
-JSValue wgl_named_texture_upload(JSContext *ctx, JSValueConst pck_obj, GF_WebGLNamedTexture *named_tx);
 
 typedef GLuint WebGLContextAttributes;
 typedef GF_WebGLObject *WebGLProgram;
@@ -141,9 +126,6 @@ enum
 	WebGLRenderingContextBase_PROP_drawingBufferWidth,
 	WebGLRenderingContextBase_PROP_drawingBufferHeight,
 };
-
-void wgl_insert_fragment_shader(GF_WebGLNamedTexture *tx, char **f_source);
-
 
 
 #define WGL_GET_BOOL(_name, _jsval) _name = JS_ToBool(ctx, _jsval)
