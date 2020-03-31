@@ -407,7 +407,6 @@
     <ClCompile Include="..\..\src\jsmods\webgl.c">
       <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">OnlyExplicitInline</InlineFunctionExpansion>
     </ClCompile>
-    <ClCompile Include="..\..\src\jsmods\webgl_pixfmt.c" />
     <ClCompile Include="..\..\src\jsmods\xhr.c" />
     <ClCompile Include="..\..\src\laser\lsr_dec.c" />
     <ClCompile Include="..\..\src\laser\lsr_enc.c" />

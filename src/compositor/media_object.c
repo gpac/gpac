@@ -775,7 +775,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		
 		if (drop_mode==3)
 			drop_mode=0;
-		else if (gf_filter_pck_is_blocking_ref(mo->pck) && gf_clock_is_started(mo->odm->ck))
+		else if (gf_filter_pck_is_blocking_ref(mo->pck) )
 			drop_mode = 1;
 
 		if (drop_mode) {

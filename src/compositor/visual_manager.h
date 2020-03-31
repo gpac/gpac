@@ -66,6 +66,26 @@ enum
 	GF_3D_CAMERA_CIRCULAR,
 };
 
+
+#ifndef GPAC_DISABLE_3D
+
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
+#define GF_SHADERID u64
+#else
+#define GF_SHADERID u32
+#endif
+
+typedef struct _gl_prog
+{
+	GF_SHADERID vertex;
+	GF_SHADERID fragment;
+	GF_SHADERID prog;
+	u32 flags;
+	u32 pix_fmt;
+} GF_GLProgInstance;
+#endif
+
+
 struct _visual_manager
 {
 	GF_Compositor *compositor;
@@ -160,12 +180,6 @@ struct _visual_manager
 	 *	Visual Manager part for 3D drawing
 	 */
 
-#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
-#define GF_SHADERID u64
-#else
-#define GF_SHADERID u32
-#endif
-
 #ifndef GPAC_DISABLE_VRML
 	/*navigation stack*/
 	GF_List *navigation_stack;
@@ -205,9 +219,6 @@ struct _visual_manager
 	GF_SHADERID autostereo_glsl_program;
 	GF_SHADERID autostereo_glsl_fragment;
 
-	GF_SHADERID current_texture_glsl_program;
-
-
 	Bool needs_projection_matrix_reload;
 
 	/*GL state to emulate with GLSL [ES2.0]*/
@@ -235,22 +246,12 @@ struct _visual_manager
 
 	/*end of GL state to emulate with GLSL*/
 
-//startof GL3/ES2.0 elements
 	/* shaders used for shader-only drawing */
 	GF_SHADERID glsl_program;
+	GF_List *compiled_programs;
+	u32 bound_tx_pix_fmt; //only one texture currently supported
 
-	/* Storing Compiled Shaders */
-	GF_SHADERID glsl_programs[GF_GL_NB_FRAG_SHADERS];
-	GF_SHADERID glsl_vertex_shaders[GF_GL_NB_VERT_SHADERS];
-	GF_SHADERID glsl_fragment_shaders[GF_GL_NB_FRAG_SHADERS];
-
-	/* If GF_TRUE the Array of Shaders is built */
-	Bool glsl_has_shaders;
-
-	/* Compilation/Features Flags for dynamic shader */
-	u32 glsl_flags;
-//endof
-
+	u32 active_glsl_flags;
 #endif	//!GPAC_DISABLE_3D
 
 #ifdef GF_SR_USE_DEPTH
@@ -277,6 +278,10 @@ void visual_clean_contexts(GF_VisualManager *visual);
 
 
 void visual_reset_graphics(GF_VisualManager *visual);
+
+#ifndef GPAC_DISABLE_3D
+GF_GLProgInstance *visual_3d_check_program_exists(GF_VisualManager *root_visual, u32 flags, u32 pix_fmt);
+#endif
 
 #endif	/*_VISUAL_MANAGER_H_*/
 

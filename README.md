@@ -75,7 +75,7 @@ Remaining before release
 - [x] add Remotery support
 - [x] filter API documentation
 - [x] add segmentation handling in TS muxer
-- [ ] unify vout / WebGL color handling (complete) and compositor GLSL shaders (partial color support)
+- [x] unify vout / WebGL color handling (complete) and compositor GLSL shaders (partial color support)
 - [x] pass all master test suite
 - [x] extend coverage and test suite
 - [x] update doxygen

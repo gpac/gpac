@@ -97,32 +97,6 @@ uniform float gfKeyLow;
 uniform float gfKeyHigh;
 uniform bool hasColorKey;
 
-#ifdef GF_GL_HAS_TEXTURE
-
-uniform int gfNumTextures;
-
-//Texture samplers
-#if defined(GF_GL_IS_YUV)
-uniform int yuvPixelFormat;
-uniform sampler2D y_plane;
-uniform sampler2D u_plane;
-uniform sampler2D v_plane;
-#elif defined(GF_GL_IS_ExternalOES)
-uniform samplerExternalOES imgOES;
-#else
-uniform sampler2D img;
-#endif
-
-//Texture other
-uniform float alpha;
-const vec3 offset = vec3(-0.0625, -0.5, -0.5);
-const vec3 R_mul = vec3(1.164,  0.000,  1.596);
-const vec3 G_mul = vec3(1.164, -0.391, -0.813);
-const vec3 B_mul = vec3(1.164,  2.018,  0.000);
-
-#endif
-
-
 //Varyings
 #ifdef GF_GL_HAS_LIGHT
 varying vec3 m_normal;
@@ -297,59 +271,32 @@ void main()
 #ifdef GF_GL_HAS_TEXTURE
 	
 	//currently supporting 1 texture
-	if (gfNumTextures>0) {
-#if defined(GF_GL_IS_YUV)
-		texc = TexCoord.st;
-		yuv.x = texture2D(y_plane, texc).r;
-		if (yuvPixelFormat==2) {
-			yuv.y = texture2D(u_plane, texc).r;
-			yuv.z = texture2D(u_plane, texc).a;
-		}
-		else if (yuvPixelFormat==1) {
-			yuv.y = texture2D(u_plane, texc).a;
-			yuv.z = texture2D(u_plane, texc).r;
-		}
-		else {
-			yuv.y = texture2D(u_plane, texc).r;
-			yuv.z = texture2D(v_plane, texc).r;
-		}
-		yuv += offset;
-		rgb.r = dot(yuv, R_mul);
-		rgb.g = dot(yuv, G_mul);
-		rgb.b = dot(yuv, B_mul);
-
-		rgba = vec4(rgb, alpha);
-
-#elif defined(GF_GL_IS_ExternalOES)
-		rgba = texture2D(imgOES, TexCoord);
-#else
-		rgba = texture2D(img, TexCoord);
-#endif
+	rgba = maintx_sample(TexCoord);
 
 #ifdef GF_GL_HAS_LIGHT
-		if (gfNumLights>0) {	//RGB texture
-			fragColor *= rgba;
-		}
-		//RGB texture with material 2D [TODO: check]
-		else if(gfNumLights==0)
+	if (gfNumLights>0) {	//RGB texture
+		fragColor *= rgba;
+	}
+	//RGB texture with material 2D [TODO: check]
+	else if(gfNumLights==0)
 #endif
-		{
-			fragColor = rgba;
-		}
+	{
+		fragColor = rgba;
+	}
 
 		//we have mat 2D + texture
 #ifndef GF_GL_IS_ExternalOES
-		if (hasMaterial2D) {
-			if (gfEmissionColor.a > 0.0) {
-				fragColor *= gfEmissionColor;
-			}
-			//hack - if full transparency on texture with material2D, use material color
-			else if (fragColor.rgb == vec3(0.0, 0.0, 0.0)){
-				fragColor.rgb = gfEmissionColor.rgb;
-			}
+	if (hasMaterial2D) {
+		if (gfEmissionColor.a > 0.0) {
+			fragColor *= gfEmissionColor;
 		}
-#endif // GF_GL_IS_ExternalOES
+		//hack - if full transparency on texture with material2D, use material color
+		else if (fragColor.rgb == vec3(0.0, 0.0, 0.0)){
+			fragColor.rgb = gfEmissionColor.rgb;
+		}
 	}
+#endif // GF_GL_IS_ExternalOES
+
 	
 #endif // GF_GL_HAS_TEXTURE
 	

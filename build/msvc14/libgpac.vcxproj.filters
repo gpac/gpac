@@ -1532,9 +1532,6 @@
     <ClCompile Include="..\..\src\jsmods\webgl.c">
       <Filter>jsmods</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\jsmods\webgl_pixfmt.c">
-      <Filter>jsmods</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\utils\gltools.c">
       <Filter>utils</Filter>
     </ClCompile>

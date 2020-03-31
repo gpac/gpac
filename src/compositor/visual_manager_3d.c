@@ -962,7 +962,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 		compositor_3d_enable_fbo(visual->compositor, GF_TRUE);
 
 	visual_3d_setup(visual);
-	visual->glsl_flags = 0;
+	visual->active_glsl_flags = 0;
 
 	/*setup our traversing state*/
 	visual_3d_setup_traversing_state(visual, tr_state);
@@ -1930,10 +1930,6 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 			}
 			tr_state->mesh_is_transparent = 1;
 			break;
-			/*			case GF_PIXEL_GREYSCALE:
-							tr_state->mesh_num_textures = 2;
-							break;
-			*/
 		}
 	}
 	return tr_state->mesh_num_textures ? GF_TRUE : GF_FALSE;

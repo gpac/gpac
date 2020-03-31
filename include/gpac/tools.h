@@ -1860,6 +1860,48 @@ not exported, and not included in src/compositor/gl_inc.h since it may be needed
 calls are made by the caller*/
 void gf_opengl_init();
 
+typedef enum
+{
+	//pbo not enabled
+	GF_GL_PBO_NONE=0,
+	//pbo enabled, both push and glTexImage textures are done in gf_gl_txw_upload
+	GF_GL_PBO_BOTH,
+	//push only is done in gf_gl_txw_upload
+	GF_GL_PBO_PUSH,
+	// glTexImage textures only is done in gf_gl_txw_upload
+	GF_GL_PBO_TEXIMG,
+} GF_GLPBOState;
+
+typedef struct _gl_texture_wrap
+{
+	u32 textures[4];
+	u32 PBOs[4];
+
+	u32 nb_textures;
+	u32 width, height, pix_fmt, stride, uv_stride;
+	Bool is_yuv;
+	u32 bit_depth, uv_w, uv_h;
+
+	u32 gl_format;
+	u32 bytes_per_pix;
+	Bool has_alpha;
+	Bool internal_textures;
+	Bool uniform_setup;
+	u32 memory_format;
+	struct _gf_filter_frame_interface *frame_ifce;
+	Bool first_tx_load;
+
+	//PBO state - must be managed by caller, especially if using seperated push and texImg steps through gf_gl_txw_setup calls
+	GF_GLPBOState pbo_state;
+
+} GF_GLTextureWrapper;
+
+Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source);
+Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height, u32 stride, u32 uv_stride, Bool linear_interp, struct _gf_filter_frame_interface *frame_ifce);
+Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, struct _gf_filter_frame_interface *frame_ifce);
+Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program, u32 texture_unit);
+void gf_gl_txw_reset(GF_GLTextureWrapper *tx);
+
 /* \endcond */
 
 

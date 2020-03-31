@@ -784,16 +784,8 @@ static GF_FilterArgs CompositorArgs[] =
 	"- face: one normal per face drawn\n"
 	"- vertex: one normal per vertex drawn"
 	"", GF_PROP_UINT, "none", "none|face|vertex", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(glus), "use GLU scale, which may be slower but nicer than GPAC software stretch routines.", GF_PROP_BOOL,
-#ifdef GPAC_CONFIG_IOS
-	"false",
-#else
-	"true",
-#endif
-	 NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rext), "use non power of two (rectangular) texture GL extension", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cull), "use aabb culling: large objects are rendered in multiple calls when not fully in viewport", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(yuvgl), "enable YUV open GL pixel format support if hardware supports it. If not supported and shaders are available, YUV to RGB will be done on GPU", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(depth_gl_scale), "set depth scaler", GF_PROP_FLOAT, "100", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(depth_gl_type), "set geometry type used to draw depth video\n"
 	"- none: no geometric conversion\n"

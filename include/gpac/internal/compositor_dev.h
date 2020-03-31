@@ -141,8 +141,8 @@ typedef struct
 	Bool point_sprite;
 	Bool vbo, pbo, fbo;
 	Bool gles2_unpack;
-	u32 yuv_texture;
 	Bool has_shaders;
+	Bool npot;
 	s32 max_texture_size;
 } GLCaps;
 
@@ -592,8 +592,6 @@ struct __tag_compositor
 	u32 bcull;
 	/*polygon atialiasing*/
 	Bool paa;
-	/*disable gluScaleImage*/
-	Bool glus;
 	/*wireframe/solid mode*/
 	u32 wire;
 	/*collision detection mode*/
@@ -602,8 +600,6 @@ struct __tag_compositor
 	Bool gravity_on;
 	/*AABB tree-based culling is disabled*/
 	Bool cull;
-	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
-	Bool yuvgl;
 	//use PBO to start pushing textures at the beginning of the render pass
 	Bool pbo;
 
@@ -620,7 +616,7 @@ struct __tag_compositor
 	u32 offscreen_width, offscreen_height;
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
-	Bool shader_only_mode;
+	u32 shader_mode_disabled;
 #endif
 	char *vertshader, *fragshader;
 
@@ -816,7 +812,7 @@ typedef struct _gf_sc_texture_handler
 	/*image data for natural media*/
 	u8 *data;
 	//we need a local copy of width/height/etc since some textures may be defined without a stream object
-	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes, orig_pixelformat;
+	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma, nb_planes;
 	Bool is_flipped;
 
 	GF_FilterFrameInterface *frame_ifce;
@@ -2095,6 +2091,7 @@ struct _od_manager
 	//0 or 1, except for IOD where we may have several BIFS/OD streams
 	u32 nb_buffering, nb_rebuffer;
 	u32 buffer_max_us, buffer_min_us, buffer_playout_us;
+	Bool blocking_media;
 
 	//internal hash for source allowing to distinguish input PIDs sources
 	u32 source_id;
