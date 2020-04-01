@@ -397,7 +397,14 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
 	if (ctx->sar.den)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+	if (ctx->surface_rendering) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_GL_EXTERNAL) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT_WRAPPED, &PROP_UINT(ctx->pix_fmt) );
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT_WRAPPED, NULL );
+	}
+
 	switch (ctx->codecid) {
 	case GF_CODECID_AVC:
 		gf_filter_set_name(ctx->filter, "MediaCodec hardware AVC|H264");

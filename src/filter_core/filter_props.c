@@ -1143,6 +1143,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_WIDTH, "Width", "Visual Width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visual Height (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_PIXFMT},
+	{ GF_PROP_PID_PIXFMT_WRAPPED, "PixelFormatWrapped", "Underlying pixel format of video stream if pixel format is external GL texture", GF_PROP_PIXFMT},
 	{ GF_PROP_PID_STRIDE, "Stride", "Image or Y/alpha plane stride", GF_PROP_UINT},
 	{ GF_PROP_PID_STRIDE_UV, "StrideUV", "UV plane or U/V planes stride", GF_PROP_UINT},
 	{ GF_PROP_PID_BIT_DEPTH_Y, "BitDepthLuma", "Bit depth for luma components", GF_PROP_UINT},

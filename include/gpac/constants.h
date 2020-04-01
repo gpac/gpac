@@ -224,8 +224,10 @@ typedef enum
 	/*!444 YUV*/
 	GF_PIXEL_YUV444		=	GF_4CC('Y','4','4','4'),
 	/*!444 YUV, 10 bits, little endian*/
-	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0')
+	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0'),
 
+	/*!Unknown format exposed a single openGL texture to be consumed using samplerExternalOES*/
+	GF_PIXEL_GL_EXTERNAL	=	GF_4CC('E','X','G','L')
 } GF_PixelFormat;
 
 

@@ -853,6 +853,7 @@ enum
 	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),
 	GF_PROP_PID_HEIGHT = GF_4CC('H','E','I','G'),
 	GF_PROP_PID_PIXFMT = GF_4CC('P','F','M','T'),
+	GF_PROP_PID_PIXFMT_WRAPPED = GF_4CC('P','F','M','W'),
 	GF_PROP_PID_STRIDE = GF_4CC('V','S','T','Y'),
 	GF_PROP_PID_STRIDE_UV = GF_4CC('V','S','T','C'),
 	GF_PROP_PID_BIT_DEPTH_Y = GF_4CC('Y','B','P','S'),

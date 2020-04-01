@@ -2069,6 +2069,11 @@ Visual Height (video / text / graphics)
 Pixel format
 .br
 .TP
+.B PixelFormatWrapped (PFMW,pfmt,  )
+.br
+Underlying pixel format of video stream if pixel format is external GL texture
+.br
+.TP
 .B Stride (VSTY,uint,  )
 .br
 Image or Y/alpha plane stride
@@ -2915,6 +2920,13 @@ RGBA 32 bits stereo (side-by-side) - to be removed
 .br
 
 .br
+.TP
+.B extgl (ext *.extgl)
+.br
+External OpenGL texture of unknown format, to be used with samplerExternalOES
+.br
+
+.br
 .SH Audio formats
 .LP
 .br
@@ -3568,7 +3580,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3536-g87d1b76e7-filters
+build: 0.9.0-DEV-rev3539-gb76857462-filters
 .br
 Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
 .br

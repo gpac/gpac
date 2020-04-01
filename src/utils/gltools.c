@@ -726,7 +726,7 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 	tx->pix_fmt = pix_fmt;
 	tx->stride = stride;
 	tx->uv_stride = uv_stride;
-	tx->internal_textures = GF_FALSE;
+	tx->internal_textures = GF_TRUE;
 	tx->nb_textures = 1;
 	tx->is_yuv = GF_FALSE;
 	tx->bit_depth = 8;
@@ -846,6 +846,9 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 		tx->gl_format = GL_LUMINANCE_ALPHA;
 		tx->bytes_per_pix = 2;
 		break;
+	case GF_PIXEL_GL_EXTERNAL:
+		tx->internal_textures = GF_FALSE;
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Pixel format %s unknown, cannot setup texture wrapper\n", gf_4cc_to_str(tx->pix_fmt)));
 		return GF_FALSE;
@@ -854,14 +857,17 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 	if (tx->bit_depth>8)
 		tx->bytes_per_pix = 2;
 
+	if (frame_ifce && frame_ifce->get_gl_texture) {
+		tx->internal_textures = GF_FALSE;
+	}
+
 	/*create textures*/
-	if (!frame_ifce || !frame_ifce->get_gl_texture) {
+	if (tx->internal_textures) {
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		u32 glmode = GL_NEAREST;
 		if ((tx->nb_textures==1) && linear_interp && !tx->is_yuv)
 			glmode = GL_LINEAR;
 #endif
-		tx->internal_textures = GF_TRUE;
 		tx->first_tx_load = GF_TRUE;
 		glGenTextures(tx->nb_textures, tx->textures);
 		for (i=0; i<tx->nb_textures; i++) {
@@ -951,11 +957,13 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 
 	if (!frame_ifce && !data) return GF_FALSE;
 
-	if (frame_ifce && frame_ifce->get_gl_texture) {
-		tx->frame_ifce = frame_ifce;
-		return GF_TRUE;
+	if (!tx->internal_textures) {
+		if (frame_ifce && frame_ifce->get_gl_texture) {
+			tx->frame_ifce = frame_ifce;
+			return GF_TRUE;
+		}
+		return GF_FALSE;
 	}
-
 
 	stride_luma = tx->stride;
 	stride_chroma = tx->uv_stride;
@@ -1239,9 +1247,12 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 	}
 	GL_CHECK_ERR()
 
-	if (tx->frame_ifce) {
+	if (!tx->internal_textures) {
 		u32 i;
 		GF_Matrix txmx;
+		if (!tx->frame_ifce)
+			return GF_FALSE;
+
 		gf_mx_init(txmx);
 		for (i=0; i<tx->nb_textures; i++) {
 			u32 gl_format;
