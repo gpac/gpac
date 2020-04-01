@@ -196,67 +196,6 @@ The filter does not produce any output nor feedback, it is up to the app develop
 .br
 
 .br
-.SH Options (expert):
-.LP
-.br
-log (str, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
-.br
-mode (enum, default: pck):     dump mode
-.br
-* pck: dump full packet
-.br
-* blk: dump packets before reconstruction
-.br
-* frame: force reframer
-.br
-* raw: dump source packets without demuxing
-.br
-
-.br
-interleave (bool, default: true): dump packets as they are received on each pid. If false, report per pid is generated
-.br
-deep (bool, default: false):   dump packets along with PID state change, implied when -fmt is set
-.br
-props (bool, default: true):   dump packet properties, ignored when -fmt is set (see filter help)
-.br
-dump_data (bool, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
-.br
-fmt (str, updatable):          set packet dump format (see filter help)
-.br
-hdr (bool, default: true):     print a header corresponding to fmt string without '$ 'or "pid."
-.br
-allp (bool, default: false):   analyse for the entire duration, rather than stoping when all pids are found
-.br
-info (bool, default: false):   monitor PID info changes
-.br
-pcr (bool, default: false):    dump M2TS PCR info
-.br
-speed (dbl, default: 1.0):     set playback command speed. If speed is negative and start is 0, start is set to -1
-.br
-start (dbl, default: 0.0):     set playback start offset. Negative value means percent of media dur with -1 <=> dur
-.br
-dur (frac, default: 0/0):      set inspect duration
-.br
-analyze (bool, default: false): analyze sample content (NALU, OBU)
-.br
-xml (bool, default: false):    use xml formatting (implied if (-analyze]() is set) and disable -fmt
-.br
-fftmcd (bool, default: false): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
-.br
-dtype (bool, default: false):  dump property type
-.br
-test (enum, default: no):      skip predefined set of properties, used for test mode
-.br
-* no: no properties skipped
-.br
-* noprop: all properties/info changes on pid are skipped, only packets are dumped
-.br
-* network: URL/path dump, cache state, file size properties skipped (used for hashing network results)
-.br
-* encode: same as network plus skip decoder config (used for hashing encoding results)
-.br
-
-.br
 
 .br
 .SH compositor
@@ -814,7 +753,7 @@ The filter handles both files and GF_FileIO objects as input URL.
 .br
 src (cstr):                    location of source content
 .br
-block_size (uint, default: 0): block size used to read file. 0 means 5000 if file less than 500m, 1M otherwise.
+block_size (uint, default: 0): block size used to read file. 0 means 5000 if file less than 500m, 1M otherwise
 .br
 range (lfrac, default: 0-0):   byte range
 .br
@@ -2042,9 +1981,9 @@ width (uint, default: 0):      default width of text area, set to 0 to resolve a
 .br
 height (uint, default: 0):     default height of text area, set to 0 to resolve against visual PIDs
 .br
-x (uint, default: 0):          default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)
+txtx (uint, default: 0):       default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)
 .br
-y (uint, default: 0):          default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)
+txty (uint, default: 0):       default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)
 .br
 zorder (sint, default: 0):     default z-order of the PID
 .br
@@ -2108,9 +2047,9 @@ color (str, default: white, updatable): color to use
 .br
 lineSpacing (flt, default: 1.0, updatable): line spacing as scaling factor to font size
 .br
-x (flt, default: 5, updatable): horizontal offset
+txtx (flt, default: 5, updatable): horizontal offset
 .br
-y (flt, default: 5, updatable): vertical offset
+txty (flt, default: 5, updatable): vertical offset
 .br
 txtw (uint, default: 400):     default width in standalone rendering
 .br
@@ -5429,9 +5368,9 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3539-gb76857462-filters
+build: 0.9.0-DEV-rev3543-g82b914a64-filters
 .br
-Copyright: (c) 2000-2019 Telecom ParisTech distributed under LGPL v2.1+ - http://gpac.io
+Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
 .SH SEE ALSO
 .LP

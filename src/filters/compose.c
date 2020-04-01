@@ -587,18 +587,22 @@ void compositor_setup_aout(GF_Compositor *ctx)
 	}
 }
 
-static GF_Err compose_initialize_ex(GF_Filter *filter, Bool is_txt_rend)
+static GF_Err compose_initialize(GF_Filter *filter)
 {
 	GF_Err e;
 	GF_FilterSessionCaps sess_caps;
 	GF_FilterPid *pid;
 	GF_Compositor *ctx = gf_filter_get_udta(filter);
+	const char *name = gf_filter_get_name(filter);
 
 	ctx->magic = COMPOSITOR_MAGIC;
 	ctx->magic_ptr = (void *) ctx;
 	ctx->filter = filter;
-	ctx->txt_render = is_txt_rend;
-	
+
+	if (name && !strcmp(name, "txtrend") ) {
+		ctx->txt_render = GF_TRUE;
+	}
+
     if (ctx->player) {
 		if (ctx->ogl == GF_SC_GLMODE_AUTO)
 			ctx->ogl = GF_SC_GLMODE_HYBRID;
@@ -675,11 +679,6 @@ static GF_Err compose_initialize_ex(GF_Filter *filter, Bool is_txt_rend)
 			gf_sc_connect_from_time_ex(ctx, gui_path, 0, 0, 0, NULL);
 	}
 	return GF_OK;
-}
-
-GF_Err compose_initialize(GF_Filter *filter)
-{
-	return compose_initialize_ex(filter, GF_FALSE);
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_Compositor, _n)
@@ -930,12 +929,6 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 	return &CompositorFilterRegister;
 }
 
-
-GF_Err txtrend_initialize(GF_Filter *filter)
-{
-	return compose_initialize_ex(filter, GF_TRUE);
-}
-
 static const GF_FilterCapability TextRenderCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
@@ -955,7 +948,7 @@ const GF_FilterRegister TextRenderRegister = {
 	.max_extra_pids = (u32) 0,
 	SETCAPS(TextRenderCaps),
 	.args = CompositorArgs,
-	.initialize = txtrend_initialize,
+	.initialize = compose_initialize,
 	.finalize = compose_finalize,
 	.process = compose_process,
 	.process_event = compose_process_event,
