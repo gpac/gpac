@@ -53,7 +53,7 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *hdl, GF_EVGStencil * stencil);
 
 Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh);
 
-void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh);
+void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh, Bool do_freeze);
 
 /* configures conversion parameters and allocates the conv data buffer*/
 GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh);
