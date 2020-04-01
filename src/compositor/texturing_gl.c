@@ -76,14 +76,15 @@ struct __texture_wrapper
 	u8 *conv_data;
 	GF_Matrix texcoordmatrix;
 
-	/*3D OpenGL texturing*/
-#ifndef GPAC_DISABLE_3D
-	/*opengl texture id*/
-	u32 blend_mode;
 	//format of converted texture for 10->8 bit or non RGB->RGB if no shader support
 	u32 conv_format;
 	//size info of converted data
 	u32 conv_w, conv_h, conv_stride;
+
+	/*3D OpenGL texturing*/
+#ifndef GPAC_DISABLE_3D
+	/*opengl texture id*/
+	u32 blend_mode;
 	//scaling factor when emulating pow2
 	Fixed conv_wscale, conv_hscale;
 
@@ -211,8 +212,8 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_3D
 	u8 *data=NULL;
-#endif
 	GF_FilterFrameInterface *fifce = txh->frame_ifce;
+#endif
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
 #ifndef GPAC_DISABLE_3D
@@ -406,7 +407,7 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 static Bool tx_setup_format(GF_TextureHandler *txh)
 {
 	u32 npow_w, npow_h;
-	Bool is_pow2, use_rect, flip, use_yuv_shaders;
+	Bool is_pow2, use_rect, flip;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 
 	/*first setup, this will force recompute bounds in case used with bitmap - we could refine and only
@@ -444,7 +445,6 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	}
 #endif
 
-	use_yuv_shaders = 0;
 	txh->tx_io->gl_format = 0;
 	switch (txh->pixelformat) {
 	case GF_PIXEL_GREYSCALE:
@@ -490,7 +490,6 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_GL_EXTERNAL:
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 		if (!compositor->visual->compositor->shader_mode_disabled) {
-			use_yuv_shaders = 1;
 			break;
 		}
 #endif
@@ -504,7 +503,6 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YUVD:
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 		if (!compositor->visual->compositor->shader_mode_disabled) {
-			use_yuv_shaders = 1;
 			break;
 		}
 #endif
@@ -734,16 +732,16 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 {
 #ifndef GPAC_DISABLE_3D
 	char *data;
-	u32 pixel_format, w, h;
-	int nb_views = 1, nb_layers = 1, nb_frames = 1;
+	u32 pixel_format;
+	int nb_views = 1, nb_layers = 1;
 	u32 push_time;
 
 	if (txh->stream) {
 		gf_mo_get_nb_views(txh->stream, &nb_views);
 		gf_mo_get_nb_layers(txh->stream, &nb_layers);
 	}
-	if (txh->frame_ifce || nb_views == 1) nb_frames = 1;
-	else if (nb_layers) nb_frames = nb_layers;
+//	if (txh->frame_ifce || nb_views == 1) nb_frames = 1;
+//	else if (nb_layers) nb_frames = nb_layers;
 
 #endif
 
@@ -831,13 +829,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	data = gf_sc_texture_get_data(txh, &pixel_format);
 	if (!data) return 0;
 
-	if (txh->tx_io->flags & TX_EMULE_POW2) {
-		w = txh->tx_io->conv_w;
-		h = txh->tx_io->conv_h;
-	} else {
-		w = txh->width;
-		h = txh->height * nb_frames;
-	}
 	push_time = gf_sys_clock();
 
 #ifdef GPAC_USE_TINYGL

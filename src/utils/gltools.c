@@ -24,11 +24,11 @@
  */
 
 #include <gpac/tools.h>
+#include <gpac/filters.h>
 
 #ifndef GPAC_DISABLE_3D
 
 #include "../compositor/gl_inc.h"
-#include <gpac/filters.h>
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 # if defined(GPAC_USE_TINYGL)

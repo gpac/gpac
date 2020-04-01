@@ -582,7 +582,7 @@ static const char *get_method_name(u32 method)
 static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	char *rsp_buf = NULL;
-	const char *url;
+	const char *url="";
 	char *full_path=NULL;
 	char *response = NULL;
 	char szFmt[100];
