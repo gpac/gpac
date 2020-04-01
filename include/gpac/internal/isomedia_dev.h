@@ -3796,7 +3796,7 @@ struct __tag_isom {
 	u64 *sidx_pts_store, *sidx_pts_next_store;
 
 	GF_SegmentIndexBox *main_sidx;
-	u32 main_sidx_end_pos;
+	u64 main_sidx_end_pos;
 
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;

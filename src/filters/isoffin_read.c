@@ -977,7 +977,7 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 
 	assert(min_offset>=read->bytes_removed);
 	//min_offset is given in absolute file position
-	nb_bytes_to_purge = min_offset - read->bytes_removed;
+	nb_bytes_to_purge = (u32) (min_offset - read->bytes_removed);
 	assert(nb_bytes_to_purge<=read->mem_blob.size);
 
 	memmove(read->mem_blob.data, read->mem_blob.data+nb_bytes_to_purge, read->mem_blob.size - nb_bytes_to_purge);

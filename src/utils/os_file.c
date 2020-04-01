@@ -897,7 +897,7 @@ static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 	else if (whence==SEEK_SET) blob->pos = 0;
 	else {
 		if (blob->pos + offset > blob->size) return GF_BAD_PARAM;
-		blob->pos += offset;
+		blob->pos += (u32) offset;
 	}
 	return GF_OK;
 }

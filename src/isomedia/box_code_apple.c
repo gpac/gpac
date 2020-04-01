@@ -856,7 +856,7 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (ptr->size<10000) {
 		ptr->ext_data_size = (u32) ptr->size;
-		ptr->ext_data = gf_malloc(sizeof(u8)*ptr->size);
+		ptr->ext_data = gf_malloc(sizeof(u8) * ptr->ext_data_size);
 		if (!ptr->ext_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, (char *)ptr->ext_data, (u32) ptr->size);
 		ptr->size = 0;

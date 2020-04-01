@@ -896,14 +896,14 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 GF_EXPORT
 void gf_sys_mark_arg_used(s32 arg_idx, Bool used)
 {
-	if (arg_idx<gpac_argc)
+	if (arg_idx < (s32) gpac_argc)
 		gpac_argv_state[arg_idx] = used;
 }
 
 GF_EXPORT
 Bool gf_sys_is_arg_used(s32 arg_idx)
 {
-	if (arg_idx<gpac_argc)
+	if (arg_idx < (s32) gpac_argc)
 		return  gpac_argv_state[arg_idx];
 	return GF_FALSE;
 }
