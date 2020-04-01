@@ -1389,6 +1389,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 	if (e == GF_EOS) {
 		group->eos_detected = GF_TRUE;
+		group->input_in_eos = GF_TRUE;
 		return;
 	}
 	if (e != GF_OK) {
@@ -1635,7 +1636,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			if (!group->eos_detected && (group->play_state==GROUP_STATE_PLAY) ) {
 				all_groups_done = GF_FALSE;
 			} else if (is_in_last_period) {
-				if (gf_filter_pid_is_eos(ipid))
+				if (gf_filter_pid_is_eos(ipid) || group->input_in_eos)
 					gf_filter_pid_set_eos(opid);
 				else
 					all_groups_done = GF_FALSE;
