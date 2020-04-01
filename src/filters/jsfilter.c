@@ -2183,7 +2183,7 @@ void jsf_pck_shared_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *p
 }
 
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 JSValue webgl_get_frame_interface(JSContext *ctx, int argc, JSValueConst *argv, gf_fsess_packet_destructor *pck_del, GF_FilterFrameInterface **f_ifce);
 #endif
 
@@ -2302,7 +2302,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 		goto pck_done;
 	}
 	/*try WebGL canvas*/
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	gf_fsess_packet_destructor pck_del = NULL;
 	GF_FilterFrameInterface *f_ifce = NULL;
 	JSValue res = webgl_get_frame_interface(ctx, argc, argv, &pck_del, &f_ifce);

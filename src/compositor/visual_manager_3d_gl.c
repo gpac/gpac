@@ -162,7 +162,9 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	compositor->gl_caps.has_shaders = GF_TRUE;
 #endif
 	if (!compositor->gl_caps.has_shaders) {
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 		compositor->shader_mode_disabled = GF_TRUE;
+#endif
 		if (compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
 			compositor->visual->nb_views=1;
@@ -765,11 +767,6 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 	gf_free(attributeName);
 }
 #endif
-
-void visual_3d_clean_state(GF_VisualManager *visual)
-{
-	glGetError();
-}
 
 static GF_GLProgInstance *visual_3d_build_program(GF_VisualManager *visual, u32 flags, u32 pix_fmt)
 {
@@ -3038,11 +3035,14 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	visual_3d_set_debug_color(0);
+
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	//in shader mode force pushing projection and modelview using fixed pipeline API
 	if (!tr_state->visual->compositor->shader_mode_disabled) {
 		tr_state->visual->needs_projection_matrix_reload=GF_TRUE;
 		visual_3d_update_matrices(tr_state);
 	}
+#endif
 
 	if (tr_state->visual->compositor->norms==GF_NORMALS_VERTEX) {
 		IDX_TYPE *idx = mesh->indices;
@@ -4012,5 +4012,9 @@ void compositor_3d_enable_fbo(GF_Compositor *compositor, Bool enable)
 
 }
 
+void visual_3d_clean_state(GF_VisualManager *visual)
+{
+	glGetError();
+}
 
 #endif // GPAC_DISABLE_3D

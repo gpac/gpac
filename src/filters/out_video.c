@@ -32,7 +32,8 @@
 
 //#define GPAC_DISABLE_3D
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+#define VOUT_USE_OPENGL
 
 //include openGL
 #include "../compositor/gl_inc.h"
@@ -111,13 +112,13 @@ typedef struct
 	//hold the frame until its CTS is reached, triggering drops at capture time
 	Bool raw_grab;
 
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 	GLint glsl_program;
 	GF_SHADERID vertex_shader;
 	GF_SHADERID fragment_shader;
 
 	GF_GLTextureWrapper tx;
-#endif // GPAC_DISABLE_3D
+#endif // VOUT_USE_OPENGL
 
 	u32 num_textures;
 
@@ -141,7 +142,7 @@ typedef struct
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
 
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {
 	GLint blen = 0;
@@ -168,7 +169,8 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 	}
 	return 1;
 }
-#endif
+#endif // VOUT_USE_OPENGL
+
 
 static void vout_set_caption(GF_VideoOutCtx *ctx)
 {
@@ -304,7 +306,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		evt.setup.width = dw;
 		evt.setup.height = dh;
 
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 		if (ctx->disp<MODE_2D) {
 			evt.setup.use_opengl = GF_TRUE;
 			//always double buffer
@@ -325,7 +327,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		ctx->display_changed = GF_TRUE;
 
-#if !defined(GPAC_DISABLE_3D) && defined(WIN32)
+#if defined(VOUT_USE_OPENGL) && defined(WIN32)
 		if (evt.setup.use_opengl)
 			gf_opengl_init();
 
@@ -468,7 +470,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 	if (ctx->disp<MODE_2D) {
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_SET_GL;
@@ -546,7 +548,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			glDisable(GL_BLEND);
 		}
 	} else
-#endif
+#endif //VOUT_USE_OPENGL
 	{
 		switch (ctx->pfmt) {
 		case GF_PIXEL_NV12:
@@ -665,7 +667,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	}
 
 	if ( !(ctx->video_out->hw_caps & GF_VIDEO_HW_OPENGL)
-#ifdef GPAC_DISABLE_3D
+#ifndef VOUT_USE_OPENGL
 	|| (1)
 #endif
 	) {
@@ -674,7 +676,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 			ctx->disp = MODE_2D;
 		}
 	}
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 	if (ctx->disp <= MODE_GL_PBO) {
 		GF_Event evt;
 		memset(&evt, 0, sizeof(GF_Event));
@@ -710,12 +712,12 @@ static void vout_finalize(GF_Filter *filter)
 		gf_sleep(holdms);
 	}
 
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 	DEL_SHADER(ctx->vertex_shader);
 	DEL_SHADER(ctx->fragment_shader);
 	DEL_PROGRAM(ctx->glsl_program );
 	gf_gl_txw_reset(&ctx->tx);
-#endif //GPAC_DISABLE_3D
+#endif //VOUT_USE_OPENGL
 
 	/*stop and shutdown*/
 	if (ctx->video_out) {
@@ -727,7 +729,7 @@ static void vout_finalize(GF_Filter *filter)
 
 }
 
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 
 static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool from_textures)
 {
@@ -1371,7 +1373,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		gf_filter_pck_ref(&pck);
 		gf_filter_pid_drop_packet(ctx->pid);
 
-#ifndef GPAC_DISABLE_LOG
+#ifdef VOUT_USE_OPENGL
 		u64 cts = gf_filter_pck_get_cts(pck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d  "LLU" ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
 #endif
@@ -1409,7 +1411,7 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 {
 	ctx->force_release = GF_TRUE;
 	if (ctx->pfmt && ctx->last_pck) {
-#ifndef GPAC_DISABLE_3D
+#ifdef VOUT_USE_OPENGL
 		if (ctx->disp < MODE_2D) {
 			gf_rmt_begin_gl(vout_draw_gl);
 			glGetError();

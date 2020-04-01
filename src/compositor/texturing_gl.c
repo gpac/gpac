@@ -29,19 +29,6 @@
 #include "nodes_stacks.h"
 #include "gl_inc.h"
 
-#ifdef GPAC_USE_TINYGL
-# define GLTEXENV	glTexEnvi
-# define GLTEXPARAM	glTexParameteri
-# define TexEnvType u32
-#elif defined (GPAC_USE_GLES1X)
-# define GLTEXENV	glTexEnvx
-# define GLTEXPARAM	glTexParameterx
-# define TexEnvType Fixed
-#else
-# define GLTEXENV	glTexEnvf
-# define GLTEXPARAM	glTexParameteri
-# define TexEnvType Float
-#endif
 
 
 /*tx flags*/
@@ -556,10 +543,12 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 
 	if (!txh->needs_refresh) return 1;
 
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (!txh->compositor->shader_mode_disabled) {
 		txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 		return 1;
 	}
+#endif
 
 	switch (txh->pixelformat) {
 	case GF_PIXEL_ARGB:
@@ -1156,7 +1145,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 {
 	GF_Matrix mx;
 	Bool res;
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	GF_GLProgInstance *prog;
+#endif
 	GF_VisualManager *root_visual = (GF_VisualManager *) txh->compositor->visual;
 
 	if (!txh || !txh->tx_io) return 0;
@@ -1208,13 +1199,16 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	root_visual->active_glsl_flags |= GF_GL_HAS_TEXTURE;
 	root_visual->bound_tx_pix_fmt = txh->pixelformat;
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	prog = visual_3d_check_program_exists(root_visual, root_visual->active_glsl_flags, txh->pixelformat);
 
 	if (prog) {
 		glUseProgram(prog->prog);
 		GL_CHECK_ERR()
 		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 0, prog->prog);
-	} else {
+	} else
+#endif
+	{
 		tx_bind(txh);
 	}
 
