@@ -1415,7 +1415,7 @@ static JSValue jsf_filter_hint_clock(JSContext *ctx, JSValueConst this_val, int 
 		if (JS_ToFloat64(ctx, &t, argv[0]))
 			return JS_EXCEPTION;
 		media_timestamp.den = 1000000;
-		media_timestamp.num = t*media_timestamp.den;
+		media_timestamp.num = (s64) (t*media_timestamp.den);
 	} else {
 		if (JS_ToInt64(ctx, &media_timestamp.num, argv[0]))
 			return JS_EXCEPTION;

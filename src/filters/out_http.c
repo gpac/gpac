@@ -1731,7 +1731,7 @@ static void log_request_done(GF_HTTPOutSession *sess)
 	} else {
 		char *unit = "bps";
 		u64 diff_us = (gf_sys_clock_high_res() - sess->req_start_time);
-		Double bps = sess->nb_bytes * 8000000;
+		Double bps = (Double)sess->nb_bytes * 8000000;
 		bps /= diff_us;
 		if (bps>1000000) {
 			unit = "mbps";

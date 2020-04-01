@@ -1068,9 +1068,11 @@ Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y)
 	s32 wn;
 	GF_Point2D start, s, e, pt;
 	GF_Rect rc;
+	GF_Err err;
 
 	/*check if not in bounds*/
-	gf_path_get_bounds(gp, &rc);
+	err = gf_path_get_bounds(gp, &rc);
+	if (err) return GF_FALSE;
 	if ((x<rc.x) || (y>rc.y) || (x>rc.x+rc.width) || (y<rc.y-rc.height)) return GF_FALSE;
 
 	if (!gp || (gp->n_points<2)) return GF_FALSE;
