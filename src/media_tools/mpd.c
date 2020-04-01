@@ -3018,7 +3018,6 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 
 	//no period, this is a component description
 	if (!period) {
-		u32 group_id;
 		const char *g_type = NULL;
 		const char *g_id = NULL;
 
@@ -3033,7 +3032,6 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 		if (!g_type || !g_id)
 			return;
 
-		group_id = (as->group>0) ? as->group : as_idx;
 		gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s%d\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, g_id, as_idx, rep->id, as->lang, m3u8_name);
 		if (rep->nb_chan)
 			gf_fprintf(out,",CHANNELS=\"%d\"", rep->nb_chan);
