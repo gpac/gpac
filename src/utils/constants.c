@@ -839,6 +839,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_RGBDS, "rgbds", "RGB+depth+bit shape (8 bits / RGB component, 7 bit depth (low bits) + 1 bit shape)"},
 	{GF_PIXEL_RGBS, "rgbs", "RGB 24 bits stereo (side-by-side) - to be removed\n"},
 	{GF_PIXEL_RGBAS, "rgbas", "RGBA 32 bits stereo (side-by-side) - to be removed\n"},
+	{GF_PIXEL_GL_EXTERNAL, "extgl", "External OpenGL texture of unknown format, to be used with samplerExternalOES\n"},
 	{0}
 };
 
@@ -912,7 +913,15 @@ const char *gf_pixel_fmt_all_names()
 		u32 tot_len=4;
 		strcpy(szAllPixelFormats, "none");
 		while (GF_PixelFormats[i].pixfmt) {
-			u32 len = (u32) strlen(GF_PixelFormats[i].name);
+			u32 len;
+
+			//we don't expose this one
+			if (GF_PixelFormats[i].pixfmt==GF_PIXEL_GL_EXTERNAL) {
+				i++;
+				continue;
+			}
+
+			len = (u32) strlen(GF_PixelFormats[i].name);
 			if (len+tot_len+2>=5000) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
@@ -936,8 +945,15 @@ const char *gf_pixel_fmt_all_shortnames()
 		u32 i=0;
 		u32 tot_len=0;
 		while (GF_PixelFormats[i].pixfmt) {
-			const char * n = GF_PixelFormats[i].sname ? GF_PixelFormats[i].sname : GF_PixelFormats[i].name;
-			u32 len = (u32) strlen(n);
+			u32 len;
+			const char *n;
+			//we don't expose this one
+			if (GF_PixelFormats[i].pixfmt==GF_PIXEL_GL_EXTERNAL) {
+				i++;
+				continue;
+			}
+			n = GF_PixelFormats[i].sname ? GF_PixelFormats[i].sname : GF_PixelFormats[i].name;
+			len = (u32) strlen(n);
 			if (len+tot_len+1>=5000) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
@@ -1105,6 +1121,13 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		planes=1;
 		size = height * stride;
 		break;
+	case GF_PIXEL_GL_EXTERNAL:
+		planes = 1;
+		size = 0;
+		stride = 0;
+		stride_uv = 0;
+		uv_height = 0;
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get size info\n", gf_pixel_fmt_name(pixfmt) ));
 		return GF_FALSE;
@@ -1171,6 +1194,8 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_VYUY:
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
+		return 1;
+	case GF_PIXEL_GL_EXTERNAL:
 		return 1;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get bytes per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
@@ -1242,6 +1267,8 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
 		return 3;
+	case GF_PIXEL_GL_EXTERNAL:
+		return 1;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get number of components per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
 		break;

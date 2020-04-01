@@ -487,6 +487,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YVYU:
 	case GF_PIXEL_VYUY:
 	case GF_PIXEL_UYVY:
+	case GF_PIXEL_GL_EXTERNAL:
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 		if (!compositor->visual->compositor->shader_mode_disabled) {
 			use_yuv_shaders = 1;
