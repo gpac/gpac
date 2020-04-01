@@ -43,7 +43,7 @@ typedef struct
 	//opts
 	char *script;
 	char *color, *font;
-	Float fontSize, lineSpacing, x, y;
+	Float fontSize, lineSpacing, txtx, txty;
 	u32 txtw, txth;
 
 	GF_FilterPid *ipid, *opid;
@@ -281,8 +281,8 @@ JSContext *vtt_script_get_context(GF_VTTDec *ctx, GF_SceneGraph *sg)
 		JS_SetPropertyStr(c, global, "fontFamily", JS_NewString(c, ctx->font));
 		JS_SetPropertyStr(c, global, "textColor", JS_NewString(c, ctx->color));
 		JS_SetPropertyStr(c, global, "lineSpaceFactor", JS_NewFloat64(c, ctx->lineSpacing));
-		JS_SetPropertyStr(c, global, "xOffset", JS_NewFloat64(c, ctx->x));
-		JS_SetPropertyStr(c, global, "yOffset", JS_NewFloat64(c, ctx->y));
+		JS_SetPropertyStr(c, global, "xOffset", JS_NewFloat64(c, ctx->txtx));
+		JS_SetPropertyStr(c, global, "yOffset", JS_NewFloat64(c, ctx->txty));
 
 		JS_FreeValue(c, global);
 		ctx->update_args = GF_FALSE;
@@ -464,8 +464,8 @@ static const GF_FilterArgs VTTDecArgs[] =
 	{ OFFS(fontSize), "font size to use", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(color), "color to use", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(lineSpacing), "line spacing as scaling factor to font size", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(x), "horizontal offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(y), "vertical offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(txtx), "horizontal offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(txty), "vertical offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(txtw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, 0},
 	{ OFFS(txth), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, 0},
 	{0}

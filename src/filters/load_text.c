@@ -46,7 +46,7 @@ typedef struct __txtin_ctx GF_TXTIn;
 struct __txtin_ctx
 {
 	//opts
-	u32 width, height, x, y, fontsize;
+	u32 width, height, txtx, txty, fontsize;
 	s32 zorder;
 	const char *fontname, *lang;
 	Bool nodefbox, noflush, webvtt;
@@ -509,8 +509,8 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	if (ctx->nodefbox) {
 		sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
 	} else if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
-		sd->default_pos.left = ctx->x;
-		sd->default_pos.top = ctx->y;
+		sd->default_pos.left = ctx->txtx;
+		sd->default_pos.top = ctx->txty;
 		sd->default_pos.right = ctx->width + sd->default_pos.left;
 		sd->default_pos.bottom = ctx->height + sd->default_pos.top;
 	}
@@ -1838,8 +1838,8 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 			GF_XMLAttribute *att;
 			w = ctx->width;
 			h = ctx->height;
-			tx = ctx->x;
-			ty = ctx->y;
+			tx = ctx->txtx;
+			ty = ctx->txty;
 			layer = ctx->zorder;
 			tref_id = 0;
 
@@ -2254,8 +2254,8 @@ static GF_Err txtin_texml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		else if (!strcmp(att->name, "transform")) {
 			Float fx, fy;
 			sscanf(att->value, "translate(%f,%f)", &fx, &fy);
-			ctx->x = (u32) fx;
-			ctx->y = (u32) fy;
+			ctx->txtx = (u32) fx;
+			ctx->txty = (u32) fy;
 		}
 	}
 
@@ -2453,8 +2453,8 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 
 				}
 				if ((td.default_pos.bottom==td.default_pos.top) || (td.default_pos.right==td.default_pos.left)) {
-					td.default_pos.top = ctx->y;
-					td.default_pos.left = ctx->x;
+					td.default_pos.top = ctx->txty;
+					td.default_pos.left = ctx->txtx;
 					td.default_pos.right = ctx->width;
 					td.default_pos.bottom = ctx->height;
 				}
@@ -2876,8 +2876,8 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(lang), "default language to use", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(width), "default width of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(height), "default height of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(x), "default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(y), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(txtx), "default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}

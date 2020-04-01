@@ -188,6 +188,8 @@ typedef enum
 	GF_PRINTARG_OPT_DESC = 1<<2,
 	/*! the format string is an application string, not a gpac core one*/
 	GF_PRINTARG_IS_APP = 1<<3,
+	/*! insert an extra '-' at the begining*/
+	GF_PRINTARG_ADD_DASH = 1<<4,
 	/*! the generation is for markdown*/
 	GF_PRINTARG_MD = 1<<16,
 	/*! the generation is for man pages*/
@@ -229,6 +231,13 @@ const char *gf_sys_localized(const char *sec_name, const char *str_name, const c
 \param fmt arguments of the format
 */
 void gf_sys_format_help(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...);
+
+/*! very basic word match, check the number of source characters in order in dest
+\param orig word to test
+\param dest word to compare to
+\return GF_TRUE if words are similar, GF_FALSE otherwise
+*/
+Bool gf_sys_word_match(const char *orig, const char *dst);
 
 /*! @} */
 

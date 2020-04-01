@@ -1411,11 +1411,11 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
 		gf_sys_format_help(helpout, flags, "</a>");
 	} else {
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s-%s", (flags&GF_PRINTARG_ADD_DASH) ? "-" : "", arg_name ? arg_name : arg->name);
 	}
 	if (arg->altname) {
 		gf_sys_format_help(helpout, flags, ",");
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg->altname);
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s-%s", (flags&GF_PRINTARG_ADD_DASH) ? "-" : "", arg->altname);
 	}
 	if (syntax) {
 		gf_sys_format_help(helpout, flags, " %s", syntax);
@@ -1940,6 +1940,83 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 			fprintf(helpout, (line[0] && (flags & GF_PRINTARG_NL_TO_BR)) ? "<br/>" : "\n");
 		line_pos=0;
 	}
+}
+
+
+GF_EXPORT
+Bool gf_sys_word_match(const char *orig, const char *dst)
+{
+	s32 dist = 0;
+	u32 match = 0;
+	u32 i;
+	u32 olen = (u32) strlen(orig);
+	u32 dlen = (u32) strlen(dst);
+	u32 *run;
+	if (olen*2 < dlen) {
+		char *s1 = strchr(orig, ':');
+		char *s2 = strchr(dst, ':');
+		if (s1 && !s2) return GF_FALSE;
+		if (!s1 && s2) return GF_FALSE;
+
+		if (strstr(dst, orig))
+			return GF_TRUE;
+		return GF_FALSE;
+	}
+	run = gf_malloc(sizeof(u32) * olen);
+	memset(run, 0, sizeof(u32) * olen);
+
+	for (i=0; i<dlen; i++) {
+		u32 dist_char;
+		u32 offset=0;
+		char *pos;
+
+retry_char:
+		pos = strchr(orig+offset, dst[i]);
+		if (!pos) continue;
+		dist_char = (u32) (pos - orig);
+		if (!run[dist_char]) {
+			run[dist_char] = i+1;
+			match++;
+		} else if (run[dist_char] > i) {
+			run[dist_char] = i+1;
+			match++;
+		} else {
+			//this can be a repeated character
+			offset++;
+			goto retry_char;
+
+		}
+	}
+	if (match*2<olen) {
+		gf_free(run);
+		return GF_FALSE;
+	}
+	//if 4/5 of characters are matched, suggest it
+	if (match * 5 >= 4 * dlen ) {
+		gf_free(run);
+		return GF_TRUE;
+	}
+/*	if ((olen<=4) && (match>=3) && (dlen*2<olen*3) ) {
+		gf_free(run);
+		return GF_TRUE;
+	}
+*/
+	for (i=0; i<olen; i++) {
+		if (!i) {
+			if (run[0]==1)
+				dist++;
+		} else if (run[i-1] + 1 == run[i]) {
+			dist++;
+		}
+	}
+	gf_free(run);
+	//if half the characters are in order, consider a match
+	//if arg is small only check dst
+	if ((olen<=4) && (dist >= 2))
+		return GF_TRUE;
+	if ((dist*2 >= (s32) olen) && (dist*2 >= (s32) dlen))
+		return GF_TRUE;
+	return GF_FALSE;
 }
 
 #endif

@@ -378,7 +378,7 @@ void PrintDASHUsage()
 
 GF_GPACArg m4b_imp_args[] =
 {
- 	GF_DEF_ARG("add", NULL, "add given file tracks to file. Multiple inputs can be specified using `+`(eg `-add url1+url2)", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("add", NULL, "add given file tracks to file. Multiple inputs can be specified using `+`, eg `-add url1+url2", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("cat", NULL, "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`(eg `-cat url1+url2).\nNote: Note: This aligns initial timestamp of the file to be concatenated", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("catx", NULL, "same as [-cat]() but new tracks can be imported before concatenation by specifying `+ADD_COMMAND` where `ADD_COMMAND` is a regular [-add]() syntax", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("catpl", NULL, "concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).\nNote: Each listed file is concatenated as if called with -cat", NULL, NULL, GF_ARG_STRING, 0),
@@ -915,7 +915,9 @@ GF_GPACArg m4b_usage_args[] =
 		"- format: supported formats help\n"
 		"- live: BIFS streamer help\n"
 		"- core: libgpac core options\n"
-		"- all: all options are printed\n", NULL, NULL, GF_ARG_STRING, 0),
+		"- all: all options are printed\n"
+		"- VAL: search for option named `VAL` (without `-` or `--`) in MP4Box, libgpac core and all filters\n"
+		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("nodes", NULL, "list supported MPEG4 nodes", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("node", NULL, "get given MPEG4 node syntax and QP infolist", NULL, NULL, GF_ARG_STRING, 0),
@@ -946,6 +948,131 @@ void PrintUsage()
 	}
 }
 
+static u32 PrintHelpForArgs(char *arg_name, GF_GPACArg *args, Bool exact_match)
+{
+	u32 res=0;
+	u32 i=0;
+	while (args[i].name) {
+		GF_GPACArg *arg = &args[i];
+		GF_GPACArg an_arg;
+		if (exact_match && strcmp(arg_name, arg->name)) {
+			i++;
+			continue;
+		}
+		if (!exact_match && !gf_sys_word_match(arg_name, arg->name)) {
+			i++;
+			continue;
+		}
+		an_arg = *arg;
+		if (!exact_match) {
+			an_arg.description = NULL;
+			an_arg.type = GF_ARG_BOOL;
+		}
+		gf_sys_print_arg(helpout, 0, &an_arg, "");
+		res++;
+		i++;
+	}
+	return res;
+}
+static Bool PrintHelpArg(char *arg_name, Bool exact_match, GF_FilterSession *fs)
+{
+	Bool first=GF_TRUE;
+	GF_GPACArg an_arg;
+	u32 i, count;
+	u32 res = 0;
+	res += PrintHelpForArgs(arg_name, m4b_gen_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_dash_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_imp_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_senc_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_crypt_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_hint_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_extr_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_dump_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_meta_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_swf_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_liveenc_args, exact_match);
+	res += PrintHelpForArgs(arg_name, m4b_usage_args, exact_match);
+	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) gf_sys_get_options(), exact_match);
+
+	if (!fs) return res;
+
+	memset(&an_arg, 0, sizeof(GF_GPACArg));
+	count = gf_fs_filters_registers_count(fs);
+	for (i=0; i<count; i++) {
+		u32 j=0;
+		const GF_FilterRegister *reg = gf_fs_get_filter_register(fs, i);
+		if (reg->flags & GF_FS_REG_ALIAS) continue;
+
+		while (reg->args) {
+			u32 len;
+			const GF_FilterArgs *arg = &reg->args[j];
+			if (!arg || !arg->arg_name) break;
+			j++;
+			if (exact_match && strcmp(arg->arg_name, arg_name)) continue;
+			if (!exact_match && !gf_sys_word_match(arg->arg_name, arg_name)) continue;
+
+			an_arg.name = arg->arg_name;
+			if (exact_match) {
+				an_arg.description = arg->arg_desc;
+				switch (arg->arg_type) {
+				case GF_PROP_BOOL:
+					an_arg.type = GF_ARG_BOOL;
+					break;
+				case GF_PROP_UINT:
+				case GF_PROP_SINT:
+					an_arg.type = GF_ARG_INT;
+					break;
+				case GF_PROP_DOUBLE:
+					an_arg.type = GF_ARG_DOUBLE;
+					break;
+				case GF_PROP_STRING_LIST:
+				case GF_PROP_UINT_LIST:
+					an_arg.type = GF_ARG_STRINGS;
+					break;
+				default:
+					an_arg.type = GF_ARG_STRING;
+					break;
+				}
+			}
+			if (exact_match) {
+				if (first) {
+					first = GF_FALSE;
+					gf_sys_format_help(helpout, 0, "\nGlobal filter session arguments. Syntax is `--arg` or `--arg=VAL`. `[F]` indicates filter name. See `gpac -h` and `gpac -h F` for more info.\n");
+				}
+				fprintf(helpout, "[%s]", reg->name);
+				len = strlen(reg->name);
+				while (len<10) {
+					len++;
+					fprintf(helpout, " ");
+				}
+				fprintf(helpout, " ");
+			}
+
+			gf_sys_print_arg(helpout, GF_PRINTARG_ADD_DASH, &an_arg, "TEST");
+			res++;
+		}
+	}
+	if (res) return GF_TRUE;
+	return GF_FALSE;
+}
+
+static void PrintHelp(char *arg_name)
+{
+	GF_FilterSession *fs;
+	Bool res;
+
+	fs = gf_fs_new_defaults(0);
+
+	res = PrintHelpArg(arg_name, GF_TRUE, fs);
+	if (!res) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Option %s unknown, please check usage.\n", arg_name));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options are:\n"));
+
+		PrintHelpArg(arg_name, GF_FALSE, fs);
+	}
+	if (fs)
+		gf_fs_del(fs);
+}
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist)
 {
@@ -3290,7 +3417,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 #endif
 				PrintCoreUsage();
 			} else {
-				PrintUsage();
+				PrintHelp(argv[i+1]);
 			}
 			return 1;
 		}
@@ -3405,7 +3532,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!live_scene) {
 			u32 res = gf_sys_is_gpac_arg(arg);
 			if (res==0) {
-				fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
+				PrintHelp(arg);
 				return 2;
 			} else if (res==2) {
 				i++;
