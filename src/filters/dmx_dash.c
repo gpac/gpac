@@ -927,9 +927,9 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD_REF, &srdref);
 	}
 
-	//setup initial quality
-	dashdmx_io_on_dash_event(&ctx->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->idx, GF_OK);
-
+	//setup initial quality - this is disabled in test mode for the time being (invalidates all dash playback hashes)
+	if (!gf_sys_is_test_mode())
+		dashdmx_io_on_dash_event(&ctx->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->idx, GF_OK);
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -1561,7 +1561,6 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						}
 						if (nb_block == group->nb_pids) {
 							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but %d output pid(s) would block, postponing\n", nb_block, group->idx));
-							gf_filter_ask_rt_reschedule(ctx->filter, 10000);
 							break;
 						}
 
