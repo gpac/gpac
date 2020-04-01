@@ -104,6 +104,21 @@
 #define GL_CHECK_ERR()
 #endif
 
+#ifdef GPAC_USE_TINYGL
+# define GLTEXENV	glTexEnvi
+# define GLTEXPARAM	glTexParameteri
+# define TexEnvType u32
+#elif defined (GPAC_USE_GLES1X)
+# define GLTEXENV	glTexEnvx
+# define GLTEXPARAM	glTexParameterx
+# define TexEnvType Fixed
+#else
+# define GLTEXENV	glTexEnvf
+# define GLTEXPARAM	glTexParameteri
+# define TexEnvType Float
+#endif
+
+
 /*macros for GL proto and fun declaration*/
 #ifdef _WIN32_WCE
 #define GLAPICAST *

@@ -32,7 +32,7 @@
 #include <gpac/setup.h>
 #ifdef GPAC_HAS_QJS
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 #include "webgl.h"
 
@@ -1984,7 +1984,7 @@ void qjs_module_init_webgl(JSContext *ctx)
 void qjs_module_init_webgl(JSContext *ctx)
 {
 }
-#endif // GPAC_DISABLE_3D
+#endif // !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 
 #endif //GPAC_HAS_QJS

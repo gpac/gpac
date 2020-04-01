@@ -1210,6 +1210,7 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 	if (!texture_unit)
 		texture_unit = GL_TEXTURE0;
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (!tx->uniform_setup && gl_program) {
 		char szName[100];
 		u32 i;
@@ -1245,6 +1246,8 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 		}
 		tx->uniform_setup = GF_TRUE;
 	}
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+
 	GL_CHECK_ERR()
 
 	if (!tx->internal_textures) {
@@ -1272,8 +1275,10 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 			/*todo pass matrix to shader !!*/
 		}
 		if (tx->nb_textures) {
+#ifndef GPAC_USE_GLES2
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 			glClientActiveTexture(texture_unit);
+#endif
 		}
 		return GF_TRUE;
 	}
@@ -1289,8 +1294,10 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 		glActiveTexture(texture_unit);
 		glBindTexture(GL_TEXTURE_2D, tx->textures[0]);
 
+#ifndef GPAC_USE_GLES2
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		glClientActiveTexture(texture_unit);
+#endif
 	}
 	glEnable(GL_TEXTURE_2D);
 	GL_CHECK_ERR()
