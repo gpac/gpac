@@ -49,6 +49,9 @@ enum
 	TX_IS_FLIPPED = (1<<12),
 	/*texture must be converted*/
 	TX_CONV_8BITS = (1<<13),
+
+	TX_FIRST_UPLOAD_FREEZE = (1<<14),
+	TX_FIRST_UPLOAD_FREEZE_DONE = (1<<15),
 };
 
 
@@ -58,8 +61,6 @@ struct __texture_wrapper
 
 	/*2D texturing*/
 	GF_EVGStencil * tx_raster;
-	//0: not paused, 1: paused, 2: initial pause has been done
-	u32 init_pause_status;
 	u8 *conv_data;
 	GF_Matrix texcoordmatrix;
 
@@ -292,6 +293,9 @@ void gf_sc_texture_set_blend_mode(GF_TextureHandler *txh, u32 mode)
 
 void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode, Bool no_bind, u32 glsl_prog_id)
 {
+	if (!txh->tx_io->gl_type)
+		return;
+
 #ifndef GPAC_USE_GLES2
 	if (!no_bind)
 		glEnable(txh->tx_io->gl_type);
@@ -353,7 +357,7 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 
 	if (txh->transparent) glDisable(GL_BLEND);
 
-	gf_sc_texture_check_pause_on_first_load(txh);
+	gf_sc_texture_check_pause_on_first_load(txh, GF_FALSE);
 	txh->compositor->visual->bound_tx_pix_fmt = 0;
 }
 
@@ -820,12 +824,12 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 	push_time = gf_sys_clock();
 
+	gf_sc_texture_check_pause_on_first_load(txh, GF_TRUE);
+
 #ifdef GPAC_USE_TINYGL
 	glTexImage2D(txh->tx_io->gl_type, 0, txh->tx_io->gl_format, w, h, 0, txh->tx_io->gl_format, GL_UNSIGNED_BYTE, (unsigned char *) data);
 
 #else
-
-	gf_sc_texture_check_pause_on_first_load(txh);
 
 	if (txh->frame_ifce && txh->frame_ifce->get_gl_texture ) {
 		if (txh->tx_io->tx.internal_textures) {
@@ -1243,22 +1247,21 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_EVGStencil * stencil)
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 }
 
-void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh)
+void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh, Bool do_freeze)
 {
-	if (txh->stream && txh->tx_io) {
-		switch (txh->tx_io->init_pause_status) {
-		case 0:
+	if (!txh->stream || !txh->tx_io)
+		return;
+
+	if (do_freeze) {
+		if (! (txh->tx_io->flags & TX_FIRST_UPLOAD_FREEZE) ) {
+			txh->tx_io->flags |= TX_FIRST_UPLOAD_FREEZE;
 			gf_sc_ar_control(txh->compositor->audio_renderer, GF_SC_AR_PAUSE);
-			txh->tx_io->init_pause_status = 1;
-			break;
-		case 1:
+		}
+	} else {
+		if (!(txh->tx_io->flags & TX_FIRST_UPLOAD_FREEZE_DONE)) {
+			txh->tx_io->flags |= TX_FIRST_UPLOAD_FREEZE_DONE;
 			gf_sc_ar_control(txh->compositor->audio_renderer, GF_SC_AR_RESUME);
-			txh->tx_io->init_pause_status = 2;
-			if (txh->stream)
-				txh->stream->flags |= GF_MO_IN_RESYNC;
-			break;
-		default:
-			break;
+			txh->stream->flags |= GF_MO_IN_RESYNC;
 		}
 	}
 }

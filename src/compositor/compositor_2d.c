@@ -782,7 +782,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	//will pause clock if first HW load
-	gf_sc_texture_check_pause_on_first_load(txh);
+	gf_sc_texture_check_pause_on_first_load(txh, GF_TRUE);
 
 	if (overlay_type) {
 		u32 push_time;
@@ -810,7 +810,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			visual->has_overlays = GF_TRUE;
 
 			//will resume clock if first HW load
-			gf_sc_texture_check_pause_on_first_load(txh);
+			gf_sc_texture_check_pause_on_first_load(txh, GF_FALSE);
 			return GF_TRUE;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during overlay blit - trying with soft one\n"));
@@ -845,7 +845,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	//will resume clock if first HW load
-	gf_sc_texture_check_pause_on_first_load(txh);
+	gf_sc_texture_check_pause_on_first_load(txh, GF_FALSE);
 
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;
