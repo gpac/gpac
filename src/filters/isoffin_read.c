@@ -275,9 +275,8 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		ch->last_state = GF_OK;
-		if (ch->play_state)
-			ch->play_state = CH_STATE_PLAY;
-		
+		ch->eos_sent = GF_FALSE;
+
 		if (ch->base_track) {
 #ifdef FILTER_FIXME
 			if (scalable_segment)
@@ -732,6 +731,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 count, i;
+	Bool cancel_event = GF_TRUE;
 	ISOMChannel *ch;
 	ISOMReader *read = gf_filter_get_udta(filter);
 
@@ -763,6 +763,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		isor_reset_reader(ch);
+		ch->eos_sent = GF_FALSE;
 		ch->speed = evt->play.speed;
 		read->reset_frag_state = 1;
 		if (read->frag_type)
@@ -791,9 +792,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (end <= evt->play.start_range)
 				ch->end = (u64) (s64) (end  * ch->time_scale);
 		}
-		ch->play_state = CH_STATE_PLAY;
-		if (ch->state_eos != CH_EOS_FORCE_SEND)
-			ch->state_eos = CH_EOS_NOT_SEND;
+		ch->playing = GF_TRUE;
 		ch->sample_num = evt->play.from_pck;
 
 		ch->sap_only = evt->play.drop_non_ref ? GF_TRUE : GF_FALSE;
@@ -810,6 +809,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_isom_reset_tables(read->mov, GF_TRUE);
 			gf_isom_reset_data_offset(read->mov, NULL);
 			read->refresh_fragmented = GF_TRUE;
+			//send play event
+			cancel_event = GF_FALSE;
 		} else if (!read->nb_playing && read->pid && !read->input_loaded) {
 			GF_FilterEvent fevt;
 			Bool is_sidx_seek = GF_FALSE;
@@ -864,7 +865,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				read->wait_for_source = GF_TRUE;
 				read->refresh_fragmented = GF_TRUE;
 
-				//post a seek from offset - TODO we could build a map of byte offsets
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = max_offset;
 				gf_filter_pid_send_event(read->pid, &fevt);
@@ -875,17 +875,14 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//always request a process task upon a play
 		gf_filter_post_process_task(read->filter);
 		read->nb_playing++;
-		//cancel event
-		return GF_TRUE;
+		//cancel event unless dash mode
+		return cancel_event;
 
 	case GF_FEVT_STOP:
 		if (read->nb_playing) read->nb_playing--;
-		//stop but we didn't send EOS yet, remember to do it when in eos for input (fragmented case)
-		if (!ch->state_eos)
-			ch->state_eos = CH_EOS_FORCE_SEND;
 		isor_reset_reader(ch);
-		//cancel event
-		return GF_TRUE;
+		//cancel event if nothing playing
+		return read->nb_playing ? GF_TRUE : GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
 	case GF_FEVT_RESUME:
@@ -1017,7 +1014,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	Bool in_is_eos = GF_FALSE;
 	Bool has_new_data = GF_FALSE;
 	u64 min_offset_plus_one = 0;
-
 	if (read->in_error)
 		return read->in_error;
 
@@ -1055,9 +1051,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				return read->in_error;
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
-			in_is_eos = GF_TRUE;
 			read->input_loaded = GF_TRUE;
 		}
+		if (read->input_loaded)
+			in_is_eos = GF_TRUE;
 	} else if (read->extern_mov) {
 		in_is_eos = GF_TRUE;
 		read->input_loaded = GF_TRUE;
@@ -1126,15 +1123,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		u32 nb_pck=50;
 		ISOMChannel *ch;
 		ch = gf_list_get(read->channels, i);
-		//end of stream was not sent at previous stop, forward it
-		if (read->frag_type && in_is_eos && !read->eos_signaled && (ch->state_eos==CH_EOS_FORCE_SEND)) {
-			ch->state_eos = CH_EOS_NOT_SEND;
-			gf_filter_pid_set_eos(ch->pid);
-		}
-		if (ch->play_state != CH_STATE_PLAY) {
+		if (!ch->playing) {
 			continue;
 		}
-		is_active = GF_TRUE;
+		//eos not sent on this channel, we are active
+		if (!ch->eos_sent)
+			is_active = GF_TRUE;
 
 		while (nb_pck) {
 			ch->sample_data_offset = 0;
@@ -1242,26 +1236,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(finfo.sidx_start , finfo.sidx_end));
 						}
 					}
-
 				}
+				ch->eos_sent = GF_FALSE;
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
-				ch->state_eos = CH_EOS_NOT_SEND;
 
-				if ((ch->play_state==CH_STATE_STOP) && (ch->last_state==GF_EOS)) {
-					gf_filter_pid_set_eos(ch->pid);
-					ch->state_eos = CH_EOS_SENT;
-					read->eos_signaled = GF_TRUE;
-				}
 				ch->last_valid_sample_data_offset = ch->sample_data_offset;
 				nb_pck--;
 			} else if (ch->last_state==GF_EOS) {
-				if (in_is_eos && (ch->play_state==CH_STATE_PLAY)) {
-					assert(!read->pid || gf_filter_pid_is_eos(read->pid));
-					ch->play_state = CH_STATE_EOS_PROBE;
-					ch->state_eos = CH_EOS_SENT;
-					gf_filter_pid_set_eos(ch->pid);
+				if (in_is_eos && !ch->eos_sent) {
+					ch->eos_sent = GF_TRUE;
 					read->eos_signaled = GF_TRUE;
+					gf_filter_pid_set_eos(ch->pid);
 				}
 				break;
 			} else {
@@ -1280,7 +1266,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 	//if (in_is_eos)
-	gf_filter_ask_rt_reschedule(filter, 100);
+	gf_filter_ask_rt_reschedule(filter, 1);
 	return GF_OK;
 
 }

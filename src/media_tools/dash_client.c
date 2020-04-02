@@ -3963,7 +3963,7 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 		group->segment_download = NULL;
 	}
 	while (group->nb_cached_segments) {
-		group->nb_cached_segments --;
+		group->nb_cached_segments--;
 		if (!dash->keep_files && !group->local_files)
 			gf_file_delete(group->cached[group->nb_cached_segments].cache);
 
@@ -6966,7 +6966,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 		group->segment_download = NULL;
 	}
 	while (group->nb_cached_segments) {
-		group->nb_cached_segments --;
+		group->nb_cached_segments--;
 		if (!dash->keep_files && !group->local_files && !group->segment_must_be_streamed)
 			gf_file_delete(group->cached[group->nb_cached_segments].cache);
 
@@ -7410,6 +7410,8 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, GF_DASHThreadMode thread_mode
 GF_EXPORT
 void gf_dash_del(GF_DashClient *dash)
 {
+	//force group cleanup
+	dash->dash_state = GF_DASH_STATE_STOPPED;
 	gf_dash_close(dash);
 	if (dash->dash_thread)
 		gf_th_del(dash->dash_thread);
@@ -7563,7 +7565,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 					for remote, we should let the user decide*/
 					while (group->nb_cached_segments > keep_seg_index + 1) {
 						group->nb_cached_segments--;
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[group->nb_cached_segments].url));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group %d switching quality - delete cached segment: %s\n", i, group->cached[group->nb_cached_segments].url));
 
 						if (!group->local_files && group->cached[group->nb_cached_segments].cache) {
 							gf_file_delete( group->cached[group->nb_cached_segments].cache );
@@ -7594,7 +7596,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 						while (group->nb_cached_segments > keep_seg_index + 1) {
 							Bool decrease_download_segment_index = (group->cached[group->nb_cached_segments-1].representation_index == current_idx) ? GF_TRUE : GF_FALSE;
 							group->nb_cached_segments--;
-							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[group->nb_cached_segments].url));
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group %d switching quality - delete cached segment: %s\n", i, group->cached[group->nb_cached_segments].url));
 
 							if (!group->local_files && group->cached[group->nb_cached_segments].cache) {
 								gf_file_delete( group->cached[group->nb_cached_segments].cache );
@@ -7618,7 +7620,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 							if (group->cached[k].representation_index != current_idx)
 								continue;
 							group->nb_cached_segments--;
-							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Switching quality - delete cached segment: %s\n", group->cached[k].url));
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group %d switching quality - delete cached segment: %s\n", i, group->cached[k].url));
 							if (k != group->nb_cached_segments) {
 								memmove(&group->cached[k], &group->cached[k+1], (group->nb_cached_segments-k)*sizeof(segment_cache_entry));
 							}
@@ -7897,6 +7899,7 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed)
 	u32 i;
 	if (!dash) return;
 	if (!speed) speed = 1.0;
+	if (dash->speed == speed) return;
 
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, i);
@@ -8987,7 +8990,7 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, GF_Err err)
 	key_url = group->cached[0].key_url;
 	url = group->cached[0].url;
 	gf_free(group->cached[0].cache);
-	group->nb_cached_segments --;
+	group->nb_cached_segments--;
 	assert(!group->nb_cached_segments);
 
 	on_group_download_error(dash, group, NULL, err, rep, url, key_url, has_dep_following);
