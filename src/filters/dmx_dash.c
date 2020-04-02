@@ -66,6 +66,7 @@ typedef struct
 	Bool mpd_open;
 	Bool initial_play;
 	Bool check_eos;
+	Bool force_seg_switch;
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -92,22 +93,11 @@ typedef struct
 
 	Bool seg_was_not_ready;
 	Bool in_error;
-	Bool input_in_eos;
-	u32 play_state;
+	Bool is_playing;
+	Bool force_seg_switch;
 	u32 nb_group_deps, current_group_dep;
 } GF_DASHGroup;
 
-enum
-{
-	//group not playing
-	GROUP_STATE_STOP=0,
-	//group playing
-	GROUP_STATE_PLAY,
-	//group has been stoped, waitng for input EOS to be detected
-	GROUP_STATE_STOP_WAIT_EOS,
-	//group has been started while waitng for input EOS of previous STOP to be detected
-	GROUP_STATE_RESTART_WAIT_EOS,
-};
 
 void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_FilterPid *in_pid, GF_FilterPid *out_pid, GF_DASHGroup *group)
 {
@@ -1022,7 +1012,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 			gf_filter_pid_send_event(pid, &evt);
-			group->play_state = GROUP_STATE_PLAY;
+			group->is_playing = GF_TRUE;
 			gf_dash_group_select(ctx->dash, group->idx, GF_TRUE);
 
 			if (run_status==2) {
@@ -1031,7 +1021,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
 				gf_filter_pid_send_event(pid, &evt);
-				group->play_state = GROUP_STATE_STOP_WAIT_EOS;
+				group->is_playing = GF_FALSE;
 			}
 		}
 	}
@@ -1200,10 +1190,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 	case GF_FEVT_PLAY:
 		src_evt = *fevt;
-		if (group->play_state==GROUP_STATE_STOP_WAIT_EOS)
-			group->play_state = GROUP_STATE_RESTART_WAIT_EOS;
-		else
-			group->play_state = GROUP_STATE_PLAY;
+		group->is_playing = GF_TRUE;
 		ctx->check_eos = GF_FALSE;
 
 		//adjust play range from media timestamps to MPD time
@@ -1261,6 +1248,10 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 					gf_dash_set_timeshift(ctx->dash, ms);
 				}
 				gf_dash_seek(ctx->dash, fevt->play.start_range);
+				//not initial play, the playback has been canceled by a STOP so no EOS will be fetched, force a switch
+				if (!initial_play) {
+					ctx->force_seg_switch = GF_TRUE;
+				}
 
 				//to remove once we manage to keep the service alive
 				/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
@@ -1276,6 +1267,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 			gf_dash_group_seek(ctx->dash, group->idx, fevt->play.start_range);
 		}
+
+		group->force_seg_switch = ctx->force_seg_switch;
 
 		//check if current segment playback should be aborted
 		src_evt.play.forced_dash_segment_switch = gf_dash_group_segment_switch_forced(ctx->dash, group->idx);
@@ -1297,10 +1290,6 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		//forward new event to source pid
 		src_evt.base.on_pid = ipid;
 
-		//check if eos was already signaled on this pid - if so, don't wait for EOS dispatch
-		if (gf_filter_pid_is_eos(ipid))
-			group->input_in_eos = GF_TRUE;
-
 		gf_filter_pid_send_event(ipid, &src_evt);
 		gf_filter_post_process_task(filter);
 		//cancel the event
@@ -1309,7 +1298,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	case GF_FEVT_STOP:
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 1);
 		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
-		group->play_state = GROUP_STATE_STOP_WAIT_EOS;
+		group->is_playing = GF_FALSE;
+		ctx->force_seg_switch = GF_TRUE;
 		if (ctx->nb_playing) {
 			ctx->nb_playing--;
 			if (!ctx->nb_playing) ctx->check_eos = GF_TRUE;
@@ -1355,9 +1345,9 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
 	group->wait_for_pck = GF_TRUE;
 	group->in_error = GF_FALSE;
-	group->input_in_eos = GF_FALSE;
-
+	ctx->force_seg_switch = GF_FALSE;
 	if (group->segment_sent) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d drop current segment\n", group->idx));
 		if (!group->current_group_dep)
 			gf_dash_group_discard_segment(ctx->dash, group->idx);
 
@@ -1389,9 +1379,10 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 	if (e == GF_EOS) {
 		group->eos_detected = GF_TRUE;
-		group->input_in_eos = GF_TRUE;
 		return;
 	}
+	group->eos_detected = GF_FALSE;
+
 	if (e != GF_OK) {
 		if (e == GF_BUFFER_TOO_SMALL) {
 			group->seg_was_not_ready = GF_TRUE;
@@ -1536,12 +1527,21 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		opid = gf_filter_pid_get_udta(ipid);
 		group = gf_filter_pid_get_udta(opid);
 
-		if (!group || (group->play_state==GROUP_STATE_STOP) ) continue;
+		if (!group)
+			continue;
 
 		while (1) {
 			pck = gf_filter_pid_get_packet(ipid);
+			if (!group->is_playing) {
+				if (pck) {
+					gf_filter_pid_drop_packet(ipid);
+					continue;
+				}
+				break;
+			}
+
 			if (!pck) {
-				if (gf_filter_pid_is_eos(ipid) || !gf_filter_pid_is_playing(opid)) {
+				if (gf_filter_pid_is_eos(ipid) || !gf_filter_pid_is_playing(opid) || group->force_seg_switch) {
 					group->nb_eos++;
 
 					//wait until all our inputs are done
@@ -1576,33 +1576,20 @@ GF_Err dashdmx_process(GF_Filter *filter)
 							if (!agroup || (agroup != group)) continue;
 
 							if (gf_filter_pid_is_eos(an_ipid)) {
-								group->input_in_eos = GF_TRUE;
 								gf_filter_pid_clear_eos(an_ipid, GF_TRUE);
+								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Clearing EOS on pids from group %d\n", group->idx));
 							}
 						}
 						dashdmx_update_group_stats(ctx, group);
-						if (group->play_state==GROUP_STATE_RESTART_WAIT_EOS)
-							group->play_state = GROUP_STATE_PLAY;
-
-						if (group->play_state==GROUP_STATE_PLAY)
-							dashdmx_switch_segment(ctx, group);
-						else {
-							group->play_state = GROUP_STATE_STOP;
-							group->eos_detected = GF_TRUE;
-							group->input_in_eos = GF_TRUE;
-						}
+						group->stats_uploaded = GF_TRUE;
+						group->force_seg_switch = GF_FALSE;
+						dashdmx_switch_segment(ctx, group);
 
 						gf_filter_prevent_blocking(filter, GF_FALSE);
 						if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
 					}
 				}
-				//no packet and group EOS was received before last play request, force segment switch
-				else if (group->input_in_eos && (group->play_state==GROUP_STATE_PLAY) ) {
-					group->input_in_eos = GF_FALSE;
-					group->nb_eos = group->nb_pids;
-					dashdmx_switch_segment(ctx, group);
-					gf_filter_prevent_blocking(filter, GF_FALSE);
-				} else {
+				else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] No source packet group %d and not in end of stream\n", group->idx));
 				}
 				if (group->in_error || group->seg_was_not_ready) {
@@ -1611,11 +1598,6 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
 				}
 				break;
-			}
-			//not out packets (either stop or restarting but waiting for EOS)
-			if (group->play_state > GROUP_STATE_PLAY) {
-				gf_filter_pid_drop_packet(ipid);
-				continue;
 			}
 			has_pck = GF_TRUE;
 			check_eos = GF_FALSE;
@@ -1640,7 +1622,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 				opid = gf_filter_pid_get_udta(ipid);
 				group = gf_filter_pid_get_udta(opid);
 				if (!group) continue;
-				if (!group->play_state && (group->eos_detected || group->input_in_eos)) continue;
+				if (!group->is_playing && group->eos_detected) continue;
 				groups_done=GF_FALSE;
 			}
 			if (groups_done)
@@ -1659,10 +1641,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 				all_groups_done = GF_FALSE;
 				continue;
 			}
-			if (!group->eos_detected && (group->play_state==GROUP_STATE_PLAY) ) {
+			if (!group->eos_detected && group->is_playing) {
 				all_groups_done = GF_FALSE;
 			} else if (is_in_last_period) {
-				if (gf_filter_pid_is_eos(ipid) || group->input_in_eos)
+				if (gf_filter_pid_is_eos(ipid) || group->eos_detected)
 					gf_filter_pid_set_eos(opid);
 				else
 					all_groups_done = GF_FALSE;

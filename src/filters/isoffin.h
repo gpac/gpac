@@ -120,21 +120,6 @@ typedef struct
 	Bool force_fetch;
 } ISOMReader;
 
-enum
-{
-	CH_STATE_STOP=0,
-	CH_STATE_PLAY,
-	CH_STATE_EOS_PROBE
-};
-
-enum
-{
-	CH_EOS_NOT_SEND,
-	CH_EOS_SENT,
-	CH_EOS_FORCE_SEND
-};
-
-
 typedef struct
 {
 	u32 track, track_id;
@@ -143,7 +128,6 @@ typedef struct
 	u32 base_track;
 	u32 next_track;
 	GF_FilterPid *pid;
-	u32 state_eos;
 	ISOMReader *owner;
 	u64 duration;
 
@@ -170,7 +154,7 @@ typedef struct
 
 	u32 time_scale;
 	Bool to_init, has_rap;
-	u32 play_state;
+	Bool playing, eos_sent;
 	u8 streamType;
 
 	Bool is_encrypted, is_cenc;
