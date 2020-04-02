@@ -41,10 +41,11 @@ typedef struct {
 
 enum
 {
-	DMX_TUNE_INIT=0,
+	DMX_TUNE_DONE=0,
+	DMX_TUNE_INIT,
 	DMX_TUNE_WAIT_PROGS,
 	DMX_TUNE_WAIT_SEEK,
-	DMX_TUNE_DONE
+
 };
 
 typedef struct
@@ -591,12 +592,15 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
+		if (ctx->mux_tune_state) break;
 		m2tsdmx_send_packet(ctx, param);
 		break;
 	case GF_M2TS_EVT_SL_PCK: /* DMB specific */
+		if (ctx->mux_tune_state) break;
 		m2tsdmx_send_sl_packet(ctx, param);
 		break;
 	case GF_M2TS_EVT_PES_PCR:
+		if (ctx->mux_tune_state) break;
 	{
 		u64 pcr;
 		Bool map_time = GF_FALSE;
@@ -637,6 +641,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		break;
 
 	case GF_M2TS_EVT_TDT:
+		if (ctx->mux_tune_state) break;
 	{
 		GF_M2TS_TDT_TOT *tdt = (GF_M2TS_TDT_TOT *)param;
 		u64 utc_ts = gf_net_get_utc_ts(tdt->year, tdt->month, tdt->day, tdt->hour, tdt->minute, tdt->second);
@@ -1002,6 +1007,7 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
 		ctx->mux_tune_state = DMX_TUNE_DONE;
+		gf_m2ts_reset_parsers(ctx->ts);
 	}
 	return GF_OK;
 }
