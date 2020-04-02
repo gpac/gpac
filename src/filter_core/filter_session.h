@@ -869,6 +869,7 @@ struct __gf_filter_pid
 	Bool require_source_id;
 	//only used in filter_check_caps
 	GF_PropertyMap *local_props;
+	volatile u32 num_pidinst_del_pending;
 };
 
 
