@@ -5351,13 +5351,26 @@ typedef struct
 
 #define TO_REFSTRING(_v) (GF_RefString *) (_v - offsetof(GF_RefString, string))
 
+static GF_RefString *evt_get_refstr(GF_FilterEvent *evt)
+{
+	if (evt->base.type == GF_FEVT_FILE_DELETE) {
+		return TO_REFSTRING(evt->file_del.url);
+	}
+	if (evt->base.type == GF_FEVT_SOURCE_SWITCH) {
+		return TO_REFSTRING(evt->seek.source_switch);
+	}
+	if (evt->base.type == GF_FEVT_SEGMENT_SIZE) {
+		return TO_REFSTRING(evt->seg_size.seg_url);
+	}
+	return NULL;
+}
 static GF_FilterEvent *dup_evt(GF_FilterEvent *evt)
 {
 	GF_FilterEvent *an_evt;
+	GF_RefString *rstr = evt_get_refstr(evt);
 	an_evt = gf_malloc(sizeof(GF_FilterEvent));
 	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
-	if (evt->base.type == GF_FEVT_FILE_DELETE) {
-		GF_RefString *rstr = TO_REFSTRING(evt->file_del.url);
+	if (rstr) {
 		safe_int_inc(&rstr->ref_count);
 	}
 	return an_evt;
@@ -5365,8 +5378,9 @@ static GF_FilterEvent *dup_evt(GF_FilterEvent *evt)
 
 static void free_evt(GF_FilterEvent *evt)
 {
-	if (evt->base.type == GF_FEVT_FILE_DELETE) {
-		GF_RefString *rstr = TO_REFSTRING(evt->file_del.url);
+	GF_RefString *rstr = evt_get_refstr(evt);
+	if (rstr) {
+		assert(rstr->ref_count);
 		if (safe_int_dec(&rstr->ref_count) == 0) {
 			gf_free(rstr);
 		}
@@ -5376,15 +5390,28 @@ static void free_evt(GF_FilterEvent *evt)
 
 static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 {
+	char **url_addr_src = NULL;
+	char **url_addr_dst = NULL;
 	GF_FilterEvent *an_evt = gf_malloc(sizeof(GF_FilterEvent));
 	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
 
 	if (evt->base.type==GF_FEVT_FILE_DELETE) {
-		u32 len = evt->file_del.url ? (u32) strlen(evt->file_del.url) : 0;
+		url_addr_src = (char **) &evt->file_del.url;
+		url_addr_dst = (char **) &an_evt->file_del.url;
+	} else if (evt->base.type==GF_FEVT_SOURCE_SWITCH) {
+		url_addr_src = (char **) &evt->seek.source_switch;
+		url_addr_dst = (char **) &an_evt->seek.source_switch;
+	} else if (evt->base.type==GF_FEVT_SEGMENT_SIZE) {
+		url_addr_src = (char **) &evt->seg_size.seg_url;
+		url_addr_dst = (char **) &an_evt->seg_size.seg_url;
+	}
+	if (url_addr_src) {
+		char *url = *url_addr_src;
+		u32 len = url ? (u32) strlen(url) : 0;
 		GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
 		rstr->ref_count=1;
-		strcpy( (char *) &rstr->string[0], evt->file_del.url ? evt->file_del.url : "");
-		an_evt->file_del.url = (char *) &rstr->string[0];
+		strcpy( (char *) &rstr->string[0], url ? url : "");
+		*url_addr_dst = (char *) &rstr->string[0];
 	}
 	return an_evt;
 }
