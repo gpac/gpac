@@ -39,11 +39,19 @@ typedef struct {
 	u32 pid;
 } GF_M2TSDmxCtx_Prog;
 
+enum
+{
+	DMX_TUNE_INIT=0,
+	DMX_TUNE_WAIT_PROGS,
+	DMX_TUNE_WAIT_SEEK,
+	DMX_TUNE_DONE
+};
+
 typedef struct
 {
 	//opts
 	const char *temi_url;
-	Bool dsmcc;
+	Bool dsmcc, seeksrc;
 
 	GF_Filter *filter;
 	GF_FilterPid *ipid;
@@ -66,6 +74,9 @@ typedef struct
 
 	u32 map_time_on_prog_id;
 	Double media_start_range;
+
+	u32 mux_tune_state;
+	u32 wait_for_progs;
 } GF_M2TSDmxCtx;
 
 
@@ -522,11 +533,22 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_AIT_FOUND:
 		break;
 	case GF_M2TS_EVT_PAT_FOUND:
+		if (ctx->mux_tune_state==DMX_TUNE_INIT) {
+			ctx->mux_tune_state = DMX_TUNE_WAIT_PROGS;
+			ctx->wait_for_progs = gf_list_count(ts->programs);
+		}
 		break;
 	case GF_M2TS_EVT_DSMCC_FOUND:
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 		m2tsdmx_setup_program(ctx, param);
+		if (ctx->mux_tune_state == DMX_TUNE_WAIT_PROGS) {
+			assert(ctx->wait_for_progs);
+			ctx->wait_for_progs--;
+			if (!ctx->wait_for_progs) {
+				ctx->mux_tune_state = DMX_TUNE_WAIT_SEEK;
+			}
+		}
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
 		break;
@@ -705,12 +727,23 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+	//by default for all URLs, send packets as soon as the program is configured
+	ctx->mux_tune_state = DMX_TUNE_DONE;
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (p && p->value.string && !ctx->duration.num) {
 		stream = gf_fopen(p->value.string, "rb");
 	}
 
 	if (stream) {
+		if (ctx->seeksrc) {
+			//for local file we will send a seek and stop once all programs are configured, and reparse from start
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
+			if (p && p->value.string && gf_file_exists(p->value.string)) {
+				ctx->mux_tune_state = DMX_TUNE_INIT;
+			}
+		}
+		
 		ctx->ipid = pid;
 		ctx->is_file = GF_TRUE;
 		ctx->ts->seek_mode = GF_TRUE;
@@ -856,6 +889,8 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 		//file and seek, cancel the event and post a seek event to source
 		ctx->in_seek = GF_TRUE;
+		//we seek so consider the mux tuned in
+		ctx->mux_tune_state = DMX_TUNE_DONE;
 
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
@@ -961,6 +996,13 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 		gf_m2ts_process_data(ctx->ts, (char*) data, size);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
+
+	if (ctx->mux_tune_state==DMX_TUNE_WAIT_SEEK) {
+		GF_FilterEvent fevt;
+		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+		ctx->mux_tune_state = DMX_TUNE_DONE;
+	}
 	return GF_OK;
 }
 
@@ -991,6 +1033,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 {
 	{ OFFS(temi_url), "force TEMI URL", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
