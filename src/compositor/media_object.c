@@ -306,7 +306,17 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 					mo->odm->parentscene->srd_type = 1;
 				}
 				if (old_type != mo->odm->parentscene->srd_type) {
+					//reset scene graph but prevent object stop/start
+					u32 i, count = gf_list_count(mo->odm->parentscene->scene_objects);
+					for (i=0; i<count; i++) {
+						GF_MediaObject *an_mo = gf_list_get(mo->odm->parentscene->scene_objects, i);
+						an_mo->num_open++;
+					}
 					gf_sg_reset(mo->odm->parentscene->graph);
+					for (i=0; i<count; i++) {
+						GF_MediaObject *an_mo = gf_list_get(mo->odm->parentscene->scene_objects, i);
+						an_mo->num_open--;
+					}
 					gf_scene_regenerate(mo->odm->parentscene);
 				}
 			}
@@ -341,7 +351,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 	} else if (mo->odm->type==GF_STREAM_TEXT) {
 		//nothing to do
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unknwon scene object type %d\n", mo->odm->type));
 	}
 }
 
@@ -817,7 +827,6 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 				mo->num_open++;
 				return;
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS\n"));
 		}
 		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
 			mo->odm->media_start_time = 0;
