@@ -1040,7 +1040,7 @@ static Bool PrintHelpArg(char *arg_name, Bool exact_match, GF_FilterSession *fs)
 					gf_sys_format_help(helpout, 0, "\nGlobal filter session arguments. Syntax is `--arg` or `--arg=VAL`. `[F]` indicates filter name. See `gpac -h` and `gpac -h F` for more info.\n");
 				}
 				fprintf(helpout, "[%s]", reg->name);
-				len = strlen(reg->name);
+				len = (u32)strlen(reg->name);
 				while (len<10) {
 					len++;
 					fprintf(helpout, " ");
