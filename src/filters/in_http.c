@@ -156,8 +156,11 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			//abort session
 			gf_filter_pid_set_eos(ctx->pid);
 			ctx->is_end = GF_TRUE;
-			if (ctx->sess)
+			if (ctx->sess) {
 				gf_dm_sess_abort(ctx->sess);
+				gf_dm_sess_del(ctx->sess);
+				ctx->sess = NULL;
+			}
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SEEK:
