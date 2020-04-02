@@ -947,7 +947,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			for (i=0; i<gf_filter_get_opid_count(filter); i++) {
 				opid = gf_filter_get_opid(filter, i);
 				group = gf_filter_pid_get_udta(opid);
-				if (group->seg_filter_src) {
+				if (group && group->seg_filter_src) {
 					gf_filter_remove_src(filter, group->seg_filter_src);
 				}
 			}
@@ -1586,8 +1586,11 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 						if (group->play_state==GROUP_STATE_PLAY)
 							dashdmx_switch_segment(ctx, group);
-						else
+						else {
 							group->play_state = GROUP_STATE_STOP;
+							group->eos_detected = GF_TRUE;
+							group->input_in_eos = GF_TRUE;
+						}
 
 						gf_filter_prevent_blocking(filter, GF_FALSE);
 						if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
@@ -1626,6 +1629,24 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		Bool all_groups_done = GF_TRUE;
 		Bool is_in_last_period = gf_dash_in_last_period(ctx->dash, GF_TRUE);
 
+		//not last period, check if we are done playing all groups due to stop requests
+		if (!is_in_last_period && !ctx->nb_playing) {
+			Bool groups_done=GF_TRUE;
+			for (i=0; i<count; i++) {
+				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+				GF_FilterPid *opid;
+				GF_DASHGroup *group;
+				if (ipid == ctx->mpd_pid) continue;
+				opid = gf_filter_pid_get_udta(ipid);
+				group = gf_filter_pid_get_udta(opid);
+				if (!group) continue;
+				if (!group->play_state && (group->eos_detected || group->input_in_eos)) continue;
+				groups_done=GF_FALSE;
+			}
+			if (groups_done)
+				is_in_last_period = GF_TRUE;
+		}
+
 		for (i=0; i<count; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 			GF_FilterPid *opid;
@@ -1633,6 +1654,11 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			if (ipid == ctx->mpd_pid) continue;
 			opid = gf_filter_pid_get_udta(ipid);
 			group = gf_filter_pid_get_udta(opid);
+			//reset in progress
+			if (!group) {
+				all_groups_done = GF_FALSE;
+				continue;
+			}
 			if (!group->eos_detected && (group->play_state==GROUP_STATE_PLAY) ) {
 				all_groups_done = GF_FALSE;
 			} else if (is_in_last_period) {

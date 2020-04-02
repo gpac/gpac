@@ -311,8 +311,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 		e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
 		if (e<0) {
 			if (e==GF_IP_NETWORK_EMPTY) {
-				gf_dm_sess_get_stats(ctx->sess, NULL, NULL, NULL, NULL, &bytes_per_sec, NULL);
-				gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
+				if (ctx->pid) {
+					gf_dm_sess_get_stats(ctx->sess, NULL, NULL, NULL, NULL, &bytes_per_sec, NULL);
+					gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
+				}
 				gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
