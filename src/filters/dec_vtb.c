@@ -1666,6 +1666,7 @@ void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck
 	
 	if (f->frame) {
         CVPixelBufferRelease(f->frame);
+        f->frame = NULL;
     }
 	f->ctx->decoded_frames_pending--;
 	gf_list_add(f->ctx->frames_res, f);
@@ -1678,7 +1679,7 @@ GF_Err vtbframe_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u
 	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
 	*outPlane = NULL;
-
+	assert(f->frame);
 	if (!f->locked) {
 		status = CVPixelBufferLockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
 		if (status != kCVReturnSuccess) {
@@ -1848,6 +1849,8 @@ static Bool vtbdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (evt->base.type==GF_FEVT_PLAY) {
 		while (gf_list_count(ctx->frames) ) {
 			GF_VTBHWFrame *f = gf_list_pop_back(ctx->frames);
+			if (f->pck_src) gf_filter_pck_unref(f->pck_src);
+			f->pck_src = NULL;
 			gf_list_add(ctx->frames_res, f);
 		}
 		ctx->drop_non_refs = evt->play.drop_non_ref;
