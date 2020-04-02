@@ -704,8 +704,10 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 				/* We found the existing session */
 				gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
 				if (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)) {
+					gf_mx_p( sess->dm->cache_mx );
 					/* No session attached anymore... we can delete it */
 					gf_list_del_item(sess->dm->cache_entries, sess->cache_entry);
+					gf_mx_v( sess->dm->cache_mx );
 					gf_cache_delete_entry(sess->cache_entry);
 				}
 				sess->cache_entry = NULL;
@@ -1055,6 +1057,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 
 				if (!info->remotePath) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[Network] No supported protocol for url %s\n", url));
+					gf_dm_url_info_del(info);
 					return GF_BAD_PARAM;
 				}
 				for (i=0; i<strlen(info->remotePath); i++)
@@ -1070,6 +1073,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 			}
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[Network] No supported protocol for url %s\n", url));
+			gf_dm_url_info_del(info);
 			return GF_BAD_PARAM;
 		}
 	}
@@ -1199,6 +1203,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 
 	if (!strstr(url, "://")) {
 		char c, *sep;
+		gf_dm_url_info_del(&info);
 		info.port = sess->port;
 		info.server_name = sess->server_name ? gf_strdup(sess->server_name) : NULL;
 		info.remotePath = gf_strdup(url);
