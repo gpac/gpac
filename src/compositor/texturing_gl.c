@@ -1155,7 +1155,10 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	GF_VisualManager *root_visual = (GF_VisualManager *) txh->compositor->visual;
 
 	if (!txh || !txh->tx_io) return 0;
-	if (txh->stream && !txh->stream->pck && !txh->tx_io->tx.nb_textures) {
+	if (txh->stream && !txh->stream->pck) {
+		if (txh->tx_io->tx.nb_textures) {
+			goto skip_push;
+		}
 		return 0;
 	}
 	if (root_visual->has_material_2d) {	// mat2d (hence no lights)
@@ -1183,6 +1186,8 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		glGetError();
 		if (!res) return 0;
 	}
+
+skip_push:
 
 	gf_rmt_begin_gl(gf_sc_texture_enable);
 	glGetError();
