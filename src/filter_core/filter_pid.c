@@ -294,6 +294,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	GF_FilterPid *pid = task->pid;
 	GF_FilterPidInst *pidinst = task->udta;
 	GF_Filter *filter = pid->filter;
+	Bool pid_still_alive = GF_FALSE;
 
 	assert(filter);
 	//reset in process
@@ -314,10 +315,15 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	}
 
 	//WARNING at this point pidinst->filter may be destroyed
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s destruction\n",  filter->name, pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s destruction (%d fan-out)\n",  filter->name, pid->name, pid->num_destinations));
 	gf_mx_p(filter->tasks_mx);
 	gf_list_del_item(pid->destinations, pidinst);
 	pid->num_destinations = gf_list_count(pid->destinations);
+	if (pidinst->pid->num_pidinst_del_pending) {
+		pidinst->pid->num_pidinst_del_pending--;
+		if (pidinst->pid->num_pidinst_del_pending)
+			pid_still_alive = GF_TRUE;
+	}
 	gf_mx_v(filter->tasks_mx);
 
 	if (pidinst->is_decoder_input) {
@@ -344,6 +350,9 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	}
 
 	assert(pid->filter == filter);
+
+	if (pid_still_alive)
+		return;
 
 	//some more destinations on pid, update blocking state
 	if (pid->num_destinations || pid->init_task_pending) {
@@ -792,7 +801,6 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					filter->freg->configure_pid(filter, (GF_FilterPid *) a_pidinst, GF_TRUE);
 
 					gf_filter_pid_post_init_task(a_pidinst->pid->filter, a_pidinst->pid);
-
 					gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, a_pidinst->pid->filter, a_pidinst->pid, "pid_inst_delete", a_pidinst);
 
 					unload_filter = GF_FALSE;
@@ -881,7 +889,14 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		gf_mx_v(filter->tasks_mx);
 
+		//PID instance is no longer in graph, we must remove it from pid destination to avoid propagating events
+		//on to-be freed pid instance.
+		//however we must have fan-outs (N>1 pid instance per PID), and removing the pid inst would trigger a pid destruction
+		//on the first gf_filter_pid_inst_delete_task executed.
+		//we therefore track at the PID level the number of gf_filter_pid_inst_delete_task tasks pending and
+		//won't destroy the PID until that number is O
 		gf_mx_p(pidinst->pid->filter->tasks_mx);
+		pidinst->pid->num_pidinst_del_pending ++;
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
 		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
 		pidinst->filter = NULL;
@@ -4063,7 +4078,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 
 void gf_filter_pid_del(GF_FilterPid *pid)
 {
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s destruction\n", pid->filter->name, pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s destruction (%p)\n", pid->filter->name, pid->name, pid));
 	while (gf_list_count(pid->destinations)) {
 		gf_filter_pid_inst_del(gf_list_pop_back(pid->destinations));
 	}
