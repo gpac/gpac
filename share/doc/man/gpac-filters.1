@@ -4132,6 +4132,54 @@ rcfg (bool, default: true):    force repeating decoder config at each I-frame
 .br
 
 .br
+.SH nvdec
+.LP
+.br
+Description: NVidia decoder
+.br
+
+.br
+This filter decodes MPEG-2, MPEG-4 Part 2, AVC|H264 and HEVC streams through NVideia decoder. It allows GPU frame dispatch or direct frame copy.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+num_surfaces (uint, default: 20): number of hardware surfaces to allocate
+.br
+unload (enum, default: no):    decoder unload mode
+.br
+* no: keep inactive decoder alive
+.br
+* destroy: destroy inactive decoder
+.br
+* reuse: detach decoder from inactive PIDs and reattach to active ones
+.br
+
+.br
+vmode (enum, default: cuvid):  video decoder backend
+.br
+* cuvid: use dedicated video engines directly
+.br
+* cuda: use a CUDA-based decoder if faster than dedicated engines
+.br
+* dxva: go through DXVA internally if possible (requires D3D9 interop)
+.br
+
+.br
+fmode (enum, default: gl):     frame output mode
+.br
+* copy: each frame is copied and dispatched
+.br
+* single: frame data is only retrieved when used, single memory space for all frames (not safe if multiple consummers)
+.br
+* gl: frame data is mapped to an OpenGL texture
+.br
+
+.br
+
+.br
 .SH atscin
 .LP
 .br
@@ -5372,7 +5420,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3559-g1fe04ada8-filters
+build: 0.9.0-DEV-rev3565-g0bf53c781-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

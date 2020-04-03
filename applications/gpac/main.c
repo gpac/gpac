@@ -1559,6 +1559,7 @@ static int gpac_main(int argc, char **argv)
 		else if (!strcmp(arg, "-genmd") || !strcmp(arg, "-genman")) {
 			argmode = GF_ARGMODE_ALL;
 			if (!strcmp(arg, "-genmd")) {
+				gf_opts_set_key("temp", "gendoc", "yes");
 				gen_doc = 1;
 				help_flags = GF_PRINTARG_MD;
 				helpout = gf_fopen("gpac_general.md", "w");
@@ -1566,6 +1567,7 @@ static int gpac_main(int argc, char **argv)
 				fprintf(helpout, "%s", auto_gen_md_warning);
 				fprintf(helpout, "# General Usage of gpac\n");
 			} else {
+				gf_opts_set_key("temp", "gendoc", "yes");
 				gen_doc = 2;
 				help_flags = GF_PRINTARG_MAN;
 				helpout = gf_fopen("gpac.1", "w");
@@ -1762,6 +1764,10 @@ static int gpac_main(int argc, char **argv)
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
 	}
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
+
+	if (list_filters || print_filter_info || view_filter_conn) {
+		gf_opts_set_key("temp", "gendoc", "yes");
+	}
 
 restart:
 
@@ -2194,9 +2200,8 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		if (filter_inst)
 			gf_sys_format_help(helpout, help_flags, "Version: %s\n", gf_filter_get_version(filter_inst) );
 		else {
-#ifndef GPAC_DISABLE_DOC
-			if (reg->version) gf_sys_format_help(helpout, help_flags, "Version: %s\n", reg->version);
-#endif
+			if (reg->version && strncmp(reg->version, "! ", 2))
+				gf_sys_format_help(helpout, help_flags, "Version: %s\n", reg->version);
 		}
 	}
 
@@ -2370,6 +2375,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	Bool found = GF_FALSE;
 	char *fname = NULL;
 	u32 i, count = gf_fs_filters_registers_count(session);
+
 	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
