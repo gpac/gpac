@@ -118,8 +118,8 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, u8 *data, u32 d
 {
 	u32 startcode, pic_type, max_pck_size, offset, prev_slice, next_slice;
 	Bool start_with_slice, slices_done, got_slice, first_slice, have_seq;
-	char mpv_hdr[4];
-	char *payload, *buffer;
+	u8 mpv_hdr[4];
+	u8 *payload, *buffer;
 
 	/*no flsuh (no aggregation)*/
 	if (!data) return GF_OK;
@@ -152,7 +152,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, u8 *data, u32 d
 	mpv_hdr[3] = 0;
 
 	if ((pic_type==2) || (pic_type== 3)) {
-		mpv_hdr[3] = (((u32)payload[3]) << 5) & 0xf;
+		mpv_hdr[3] = (char)((u32)payload[3] << 5);
 		if ((payload[4] & 0x80) != 0) mpv_hdr[3] |= 0x10;
 		if (pic_type == 3) mpv_hdr[3] |= (payload[4] >> 3) & 0xf;
 	}

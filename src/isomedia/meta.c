@@ -719,7 +719,7 @@ static void meta_add_item_property_association(GF_ItemPropertyAssociationBox *ip
 	found_entry->associations[found_entry->nb_associations].index = prop_index;
 	found_entry->nb_associations++;
 }
-	
+
 static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_ImageItemProperties *image_props) {
 	GF_ImageItemProperties searchprop;
 	GF_ItemPropertyAssociationBox *ipma;

@@ -403,7 +403,7 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 	if (!stbl || !sampleNumber) return GF_BAD_PARAM;
 	if (!stbl->ChunkOffset || !stbl->SampleToChunk || !stbl->SampleSize) return GF_ISOM_INVALID_FILE;
 
-	if (stbl->SampleToChunk->nb_entries == stbl->SampleSize->sampleCount) {
+	if (stbl->SampleSize && stbl->SampleToChunk->nb_entries == stbl->SampleSize->sampleCount) {
 		ent = &stbl->SampleToChunk->entries[sampleNumber-1];
 		if (!ent) return GF_BAD_PARAM;
 		(*descIndex) = ent->sampleDescriptionIndex;
@@ -509,7 +509,7 @@ sample_found:
 	//ok, get the size of all the previous samples in the chunk
 	offsetInChunk = 0;
 	//constant size
-	if (stbl->SampleSize->sampleSize) {
+	if (stbl->SampleSize && stbl->SampleSize->sampleSize) {
 		u32 diff = sampleNumber - stbl->SampleToChunk->firstSampleInCurrentChunk;
 		offsetInChunk += diff * stbl->SampleSize->sampleSize;
 	} else {

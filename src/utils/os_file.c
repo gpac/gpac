@@ -1347,13 +1347,14 @@ s32 gf_fclose(FILE *file)
 GF_EXPORT
 size_t gf_fwrite(const void *ptr, size_t nb_bytes, FILE *stream)
 {
-	size_t result;
+	size_t result=0;
 
 	if (gf_fileio_check(stream)) {
 		return(size_t) gf_fileio_write((GF_FileIO *)stream, (u8 *) ptr, (u32) nb_bytes);
 	}
 
-	result = fwrite(ptr, 1, nb_bytes, stream);
+	if (ptr)
+		result = fwrite(ptr, 1, nb_bytes, stream);
 	if (result != nb_bytes) {
 #ifdef _WIN32_WCE
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data: %d blocks to write but %d blocks written\n", nb_bytes, result));

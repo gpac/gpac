@@ -946,7 +946,7 @@ GF_Err load_box_write(GF_Box *s, GF_BitStream *bs)
 
 	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	gf_bs_write_u32(bs, ptr->preload_start_time);
 	gf_bs_write_u32(bs, ptr->preload_duration);
 	gf_bs_write_u32(bs, ptr->preload_flags);

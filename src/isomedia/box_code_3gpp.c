@@ -995,7 +995,7 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 
 	i=0;
 	str[0]=0;
-	while (1) {
+	while (i < GF_ARRAY_LENGTH(str)) {
 		str[i] = gf_bs_read_u8(bs);
 		if (!str[i]) break;
 		i++;

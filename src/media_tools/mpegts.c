@@ -1199,6 +1199,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			} else if (tag == GF_M2TS_METADATA_POINTER_DESCRIPTOR) {
 				GF_BitStream *metadatapd_bs;
 				GF_M2TS_MetadataPointerDescriptor *metapd;
+
+				if (data_size <= 8 || data_size-6 < (u32)len)
+					break;
+
 				metadatapd_bs = gf_bs_new((char *)data+6, len, GF_BITSTREAM_READ);
 				metapd = gf_m2ts_read_metadata_pointer_descriptor(metadatapd_bs, len);
 				gf_bs_del(metadatapd_bs);
@@ -2148,6 +2152,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 	paf->adaptation_field_extension_flag = (data[0] & 0x1) ? 1 : 0;
 
 	af_extension = data + 1;
+
 	if (paf->PCR_flag == 1) {
 		u32 base = (data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4];
 		u64 PCR = (u64) base;
@@ -2170,6 +2175,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 			af_extension += 1 + priv_bytes;
 		}
 
+		if ((u32)(af_extension-data) >= size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
+			return;
+		}
 		afext_bytes = af_extension[0];
 		ltw_flag = (af_extension[1] & 0x80) ? 1 : 0;
 		pwr_flag = (af_extension[1] & 0x40) ? 1 : 0;
@@ -2768,6 +2777,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 			gf_m2ts_set_pes_framing(o_pes, GF_M2TS_PES_FRAMING_SKIP);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Reassinging PID %d from program %d to program %d\n", pes->pid, o_pes->program->number, pes->program->number) );
+		gf_m2ts_es_del((GF_M2TS_ES*)o_pes, pes->program->ts);
+
 		pes->program->ts->ess[pes->pid] = (GF_M2TS_ES *) pes;
 	}
 
@@ -2896,9 +2907,9 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 		gf_list_rem_last(ts->programs);
 
 		while (gf_list_count(p->streams)) {
-			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_last(p->streams);
+			GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_last(p->streams);
 			gf_list_rem_last(p->streams);
-			gf_free(es);
+			gf_m2ts_es_del(es, ts);
 		}
 		gf_list_del(p->streams);
 		/*reset OD list*/
