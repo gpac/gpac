@@ -1831,7 +1831,7 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleN
 \param new_timescale the new timescale to set
 \param new_tsinc if not 0, changes sample duration and composition offsets to new_tsinc/new_timescale. If non-constant sample dur is used, uses the samllest sample dur in the track. Otherwise, only changes the timescale
 \param force_rescale if set to GF_TRUE, only the media timescale is changed but media times are not updated. Ignored if new_tsinc is not 0.
-\return error if any
+\return GF_EOS if no action taken (same config), or error if any
 */
 GF_Err gf_isom_set_media_timescale(GF_ISOFile *isom_file, u32 trackNumber, u32 new_timescale, u32 new_tsinc, Bool force_rescale);
 
