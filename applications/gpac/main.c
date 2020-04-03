@@ -1069,7 +1069,7 @@ static void parse_sep_set(const char *arg, Bool *override_seps)
 
 static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 {
-	s32 i;
+	u32 i;
 	for (i=1; i<gf_sys_get_argc(); i++) {
 		if (!gf_sys_is_arg_used(i)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Warning: argument %s set but not used\n", gf_sys_get_arg(i) ));
