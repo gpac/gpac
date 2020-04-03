@@ -147,6 +147,8 @@ typedef struct
 	HEVCState hevc;
 	Bool is_hevc;
 
+	Bool profile_supported, can_reconfig;
+	u32 nb_consecutive_errors;
 	//openGL output
 #ifdef VTB_GL_TEXTURE
 	Bool use_gl_textures;
@@ -183,13 +185,18 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 
     if (!image) {
 		if (status != kCVReturnSuccess) {
-			//if filter reassignment is not disabled and out frame is a SAP, consider this a wrong profile
-			//and request a change
-			if (!gf_opts_get_bool("core", "no-reassign") && gf_filter_pck_get_sap(ctx->cur_pck))
+			ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
+			ctx->nb_consecutive_errors++;
+			//if we can reconfigure and this is a SAP, reconfig if too many errors or first frame after reconfig
+			if (ctx->can_reconfig && gf_filter_pck_get_sap(ctx->cur_pck)
+				&& (!ctx->profile_supported || (ctx->nb_consecutive_errors>10))
+			) {
 				ctx->last_error = GF_PROFILE_NOT_SUPPORTED;
-			else
-				ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Decode error - status %d\n", status));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Decode error - status %d - trying filter chain reload\n", status));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Decode error - status %d\n", status));
+			}
+			return;
 		}
         GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer\n"));
         return;
@@ -199,6 +206,8 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 		return;
 	}
 
+	ctx->profile_supported = GF_TRUE;
+	ctx->nb_consecutive_errors=0;
 	frame = gf_list_pop_back(ctx->frames_res);
 	if (!frame) {
 		GF_SAFEALLOC(frame, GF_VTBHWFrame);
@@ -766,6 +775,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+	ctx->profile_supported = GF_FALSE;
+	ctx->can_reconfig = !gf_opts_get_bool("core", "no-reassign");
 
 	switch (ctx->vtb_type) {
 	case kCMVideoCodecType_H264:
