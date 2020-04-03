@@ -4186,6 +4186,11 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 			}
 			return;
 		}
+		//we may have reorder tracks after the get_packet, redo
+		if (gf_list_find(ctx->tracks, tkw) != i) {
+			mp4_mux_config_timing(ctx);
+			return;
+		}
 		ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
 			ts = gf_filter_pck_get_cts(pck);
