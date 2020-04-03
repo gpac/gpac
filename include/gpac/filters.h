@@ -1862,7 +1862,9 @@ struct __gf_filter_register
 	Bool (*use_alias)(GF_Filter *filter, const char *url, const char *mime);
 
 
-	/*! version of the filter, usually only for external libs*/
+	/*! version of the filter, usually only for external libs
+		Note: If this strings starts with "! " it indicates an error message at load time of the registry. This should only be set when \code gf_opts_get_bool("temp", "gendoc"); \endcode returns true, indicating the filter session is only loaded for documentation purposes (man/md generation and command line help).
+	*/
 	const char *version;
 #ifndef GPAC_DISABLE_DOC
 	/*! short description of the filter. Conventions:

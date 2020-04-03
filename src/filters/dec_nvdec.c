@@ -1485,7 +1485,7 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 		// this is man / md generation, load filter
 		if (!gf_opts_get_bool("temp", "gendoc"))
 			return NULL;
-		NVDecRegister.version = "! CUVID SDK NOT AVAILABLE ON THIS SYSTEM";
+		NVDecRegister.version = "! Warning: CUVID SDK NOT AVAILABLE ON THIS SYSTEM !";
 	}
 
 	return &NVDecRegister;
