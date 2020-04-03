@@ -3998,15 +3998,19 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 {
 	Double scale;
 	u32 old_ts_inc=0;
+	u32 old_timescale;
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media | !trak->Media->mediaHeader) return GF_BAD_PARAM;
-	if (trak->Media->mediaHeader->timeScale==newTS) return GF_OK;
+
+	if ((trak->Media->mediaHeader->timeScale==newTS) && !new_tsinc)
+		return GF_EOS;
 
 	scale = newTS;
 	scale /= trak->Media->mediaHeader->timeScale;
+	old_timescale = trak->Media->mediaHeader->timeScale;
 	trak->Media->mediaHeader->timeScale = newTS;
 
 	stbl = trak->Media->information->sampleTable;
@@ -4021,6 +4025,9 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 			else if (old_ts_inc<stbl->TimeToSample->entries[i].sampleDelta)
 				old_ts_inc = stbl->TimeToSample->entries[i].sampleDelta;
 		}
+		if ((old_timescale==newTS) && (old_ts_inc==new_tsinc))
+			return GF_EOS;
+
 		force_rescale = GF_TRUE;
 		stbl->TimeToSample->entries[0].sampleDelta = new_tsinc;
 		if (stbl->CompositionOffset) {
