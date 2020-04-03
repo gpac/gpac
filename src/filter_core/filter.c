@@ -3336,7 +3336,8 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter)
 		filter->main_thread_forced = GF_FALSE;
 		return e;
 	}
-	filter->main_thread_forced = GF_TRUE;
+	if (!(filter->freg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD))
+		filter->main_thread_forced = GF_TRUE;
 	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;
