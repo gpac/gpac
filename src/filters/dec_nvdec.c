@@ -47,24 +47,25 @@ GLDECL_EXTERN(glBufferData);
 
 typedef struct _nv_dec_inst NVDecInstance;
 
-enum
+typedef enum
 {
 	NVDEC_COPY = 0,
 	NVDEC_SINGLE,
 	NVDEC_GL
-};
+} NVDecFrameMode ;
 
-enum
+typedef enum
 {
 	NVDEC_CUVID = 0,
 	NVDEC_CUDA,
 	NVDEC_DXVA
-};
+} NVDecVideoMode;
 
 typedef struct _nv_dec_ctx
 {
 	u32 unload;
-	u32 vmode, fmode;
+	NVDecFrameMode fmode;
+	NVDecVideoMode vmode;
 	u32 num_surfaces;
 
 	GF_FilterPid *ipid, *opid;
