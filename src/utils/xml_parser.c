@@ -2197,14 +2197,16 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			remain = size;
 			gf_fseek(_tmp, offset, SEEK_SET);
 			while (remain) {
-				read = (u32) gf_fread(block, (remain>1024) ? 1024 : remain, _tmp);
+				u32 bsize = remain;
+				if (bsize>1024) bsize=1024;
+				read = (u32) gf_fread(block, bsize, _tmp);
 				if ((s32) read < 0) {
 					gf_fclose(_tmp);
 					return GF_IO_ERR;
 				}
 
 				gf_bs_write_data(bs, block, read);
-				remain -= size;
+				remain -= bsize;
 			}
 			gf_fclose(_tmp);
 		} else if (use_word128) {
