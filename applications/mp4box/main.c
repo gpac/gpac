@@ -725,6 +725,8 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("dtsxc", NULL, "same as [-dtsc]() but does not print offset (__slow !__)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dnal", NULL, "print NAL sample info of given track", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("dnalc", NULL, "print NAL sample info of given track, adding CRC for each nal", NULL, NULL, GF_ARG_INT, 0),
+ 	GF_DEF_ARG("dnald", NULL, "print NAL sample info of given track without DTS and CTS info", NULL, NULL, GF_ARG_INT, 0),
+ 	GF_DEF_ARG("dnalx", NULL, "print NAL sample info of given track without DTS and CTS info and adding CRC for each nal", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("sdp", NULL, "dump SDP description of hinted file", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dsap", NULL, "dump DASH SAP cues (see -cues) for a given track", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("dsaps", NULL, "same as [-dsap]() but only print sample number", NULL, NULL, GF_ARG_INT, 0),
@@ -2356,9 +2358,9 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, remove_root_od;
-Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, dump_nal_crc, hls_clock, do_mpd_rip, merge_vtt_cues, compress_moov, get_nb_tracks;
+Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, hls_clock, do_mpd_rip, merge_vtt_cues, compress_moov, get_nb_tracks;
 char *inName, *outName, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg, *box_patch_filename;
-u32 track_dump_type, dump_isom, dump_timestamps;
+u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type;
 GF_ISOTrackID trackID;
 u32 do_flat, box_patch_trackID=0, print_info;
 Bool comp_lzma=GF_FALSE;
@@ -3849,15 +3851,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dtsxc")) {
 			dump_timestamps = 4;
 		}
-		else if (!stricmp(arg, "-dnal")) {
+		else if (!strnicmp(arg, "-dnal", 5)) {
 			CHECK_NEXT_ARG
 			dump_nal = atoi(argv[i + 1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-dnalc")) {
-			CHECK_NEXT_ARG
-			dump_nal = atoi(argv[i + 1]);
-			dump_nal_crc = GF_TRUE;
+			if (arg[5] == 'c') dump_nal_type |= 1;
+			else if (arg[5] == 'd') dump_nal_type |= 2;
+			else if (arg[5] == 'x') dump_nal_type |= 2|1;
 			i++;
 		}
 		else if (!strnicmp(arg, "-dsap", 5)) {
@@ -4318,7 +4317,7 @@ int mp4boxMain(int argc, char **argv)
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = hls_clock = GF_FALSE;
     tfdt_per_traf = GF_FALSE;
-	dump_nal_crc = GF_FALSE;
+	dump_nal_type = 0;
 	dump_isom = 0;
 	print_info = 0;
 	/*align cat is the new default behaviour for -cat*/
@@ -5428,7 +5427,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 
 	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_timestamps);
-	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_crc);
+	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_type);
 	if (dump_saps) dump_isom_saps(file, dump_saps, dump_saps_mode, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 
 	if (do_hash) {

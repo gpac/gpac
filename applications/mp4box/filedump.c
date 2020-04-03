@@ -968,7 +968,7 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 #endif
 
 
-static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
+static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, u32 dump_flags)
 {
 	u32 i, j, count, nb_descs, track, nalh_size, timescale, cur_extract_mode;
 	s32 countRef;
@@ -1013,7 +1013,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, (u8 *) slc->data, slc->size, _is_svc, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, GF_FALSE);\
+			gf_inspect_dump_nalu(dump, (u8 *) slc->data, slc->size, _is_svc, is_hevc ? &hevc : NULL, &avc, nalh_size, (dump_flags&1) ? GF_TRUE : GF_FALSE, GF_FALSE);\
 			fprintf(dump, "/>\n");\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
@@ -1161,7 +1161,11 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 		is_rap = samp->IsRAP;
 		if (!is_rap) gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, NULL, NULL);
 
-		fprintf(dump, "  <Sample DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\"", dts, cts, samp->dataLength, is_rap);
+		if (dump_flags&2) {
+			fprintf(dump, "  <Sample size=\"%d\" RAP=\"%d\"", samp->dataLength, is_rap);
+		} else {
+			fprintf(dump, "  <Sample DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\"", dts, cts, samp->dataLength, is_rap);
+		}
 		if (nb_descs>1)
 			fprintf(dump, " sample_description=\"%d\"", di);
 		fprintf(dump, " >\n");
@@ -1201,7 +1205,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 						is_encrypted = GF_TRUE;
 					}
 				}
-				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_crc, is_encrypted);
+				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size, dump_flags, is_encrypted);
 #endif
 				fprintf(dump, "/>\n");
 			}
@@ -1224,7 +1228,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
 static void dump_qt_prores(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
 
-void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, Bool dump_crc)
+void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, u32 dump_flags)
 {
 	Bool is_av1 = GF_FALSE;
 	Bool is_prores = GF_FALSE;
@@ -1270,11 +1274,11 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 	}
 
 	if (is_av1)
-		dump_isom_obu(file, trackID, dump, dump_crc);
+		dump_isom_obu(file, trackID, dump, dump_flags);
 	else if (is_prores)
-		dump_qt_prores(file, trackID, dump, dump_crc);
+		dump_qt_prores(file, trackID, dump, dump_flags);
 	else
-		dump_isom_nal_ex(file, trackID, dump, dump_crc);
+		dump_isom_nal_ex(file, trackID, dump, dump_flags);
 
 	if (inName) gf_fclose(dump);
 }
