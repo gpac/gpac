@@ -243,7 +243,7 @@ GF_EXPORT
 Bool gf_file_exists_ex(const char *fileName, const char *par_name)
 {
 	u32 gfio_type = 0;
-	if (!strncmp(fileName, "gfio://", 7))
+	if (fileName && !strncmp(fileName, "gfio://", 7))
 		gfio_type = 1;
 	else if (par_name && !strncmp(par_name, "gfio://", 7))
 		gfio_type = 2;
