@@ -57,6 +57,7 @@ typedef struct
 	char *block;
 	u32 is_random;
 	Bool cached_set;
+	Bool no_failure;
 } GF_FileInCtx;
 
 
@@ -144,6 +145,12 @@ static GF_Err filein_initialize(GF_Filter *filter)
 
 		if (frag_par) frag_par[0] = '#';
 		if (cgi_par) cgi_par[0] = '?';
+
+		if (ctx->no_failure) {
+			gf_filter_notification_failure(filter, GF_URL_ERROR, GF_FALSE);
+			ctx->is_end = GF_TRUE;
+			return GF_OK;
+		}
 
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
 #ifdef GPAC_ENABLE_COVERAGE
@@ -299,6 +306,8 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->do_reconfigure = GF_TRUE;
 		}
+		//don't send a setup failure on source switch (this would destroy ourselves which we don't want in DASH)
+		ctx->no_failure = GF_TRUE;
 		filein_initialize(filter);
 		gf_filter_post_process_task(filter);
 		break;

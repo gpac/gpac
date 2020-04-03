@@ -3531,20 +3531,20 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 static GF_Err fio_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return GF_BAD_PARAM;
+	if (!ioctx || !ioctx->filep) return GF_BAD_PARAM;
 	gf_fseek(ioctx->filep, offset, whence);
 	return GF_OK;
 }
 static u32 fio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return 0;
+	if (!ioctx || !ioctx->filep) return 0;
 	return (u32) gf_fread(buffer, bytes, ioctx->filep);
 }
 static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return 0;
+	if (!ioctx || !ioctx->filep) return 0;
 	if (!bytes) {
 		fflush(ioctx->filep);
 		return 0;
@@ -3554,19 +3554,19 @@ static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 static s64 fio_tell(GF_FileIO *fileio)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return -1;
+	if (!ioctx || !ioctx->filep) return -1;
 	return gf_ftell(ioctx->filep);
 }
 static Bool fio_eof(GF_FileIO *fileio)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return GF_TRUE;
+	if (!ioctx || !ioctx->filep) return GF_TRUE;
 	return feof(ioctx->filep);
 }
 static int fio_printf(GF_FileIO *fileio, const char *format, va_list args)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx->filep) return -1;
+	if (!ioctx || !ioctx->filep) return -1;
 	return vfprintf(ioctx->filep, format, args);
 }
 
@@ -3574,7 +3574,9 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 {
 	GF_FileIO *gfio;
 	FileIOCtx *ioctx;
+	u32 i, count;
 	u64 file_size;
+	Bool no_concatenate = GF_FALSE;
 	FileIOCtx *ioctx_ref = gf_fileio_get_udta(fileio_ref);
 
 	*out_err = GF_OK;
@@ -3627,30 +3629,66 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 			return NULL;
 		}
 		file_size = gf_fsize(ioctx_ref->filep);
-		if (strchr(mode, 'r'))
-			gf_fileio_set_stats(fileio_ref, file_size,file_size, GF_TRUE, 0);
+		//in test mode we want to use our ftell and fseek wrappers
+		if (strchr(mode, 'r')) {
+			gf_fileio_set_stats(fileio_ref, file_size, file_size, GF_TRUE, 0);
+
+#ifdef GPAC_ENABLE_COVERAGE
+			if (gf_sys_is_test_mode()) {
+				va_list args;
+				fio_printf(NULL, "", args);
+			}
+#endif
+		}
 		return fileio_ref;
 	}
 
-	//file handle already open (file is being opened twice), create a new gfio
-	GF_SAFEALLOC(ioctx, FileIOCtx);
+	//file handle already open (file is being opened twice), create a new gfio or check if we have already created one
+	gfio = NULL;
+	ioctx = NULL;
+	count = gf_list_count(all_gfio_defined);
+	for (i=0; i<count; i++) {
+		GF_FileIO *a_gfio = gf_list_get(all_gfio_defined, i);
+		ioctx = gf_fileio_get_udta(a_gfio);
+		if (ioctx && !strcmp(ioctx->path, url)) {
+			if (ioctx->filep) {
+				no_concatenate = GF_TRUE;
+				ioctx = NULL;
+			}
+			gfio = a_gfio;
+			break;
+		}
+		ioctx = NULL;
+	}
+	if (!ioctx) {
+		GF_SAFEALLOC(ioctx, FileIOCtx);
+		if (strnicmp(url, "gfio://", 7)) {
+			if (no_concatenate)
+				ioctx->path = gf_strdup(url);
+			else
+				ioctx->path = gf_url_concatenate(ioctx_ref->path, url);
+		} else {
+			ioctx->path = gf_strdup(ioctx_ref->path);
+		}
+		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
+		if (!gfio) {
+			*out_err = GF_OUT_OF_MEM;
+		}
+	}
 
 	if (strnicmp(url, "gfio://", 7)) {
-		ioctx->path = gf_url_concatenate(ioctx_ref->path, url);
 		ioctx->filep = gf_fopen(ioctx->path, mode);
 	} else {
-		ioctx->path = gf_strdup(ioctx_ref->path);
 		ioctx->filep = gf_fopen(ioctx_ref->path, mode);
 	}
+
 	if (!ioctx->filep) {
 		*out_err = GF_IO_ERR;
+		gf_list_del_item(all_gfio_defined, gfio);
+		gf_fileio_del(gfio);
 		if (ioctx->path) gf_free(ioctx->path);
 		gf_free(ioctx);
 		return NULL;
-	}
-	gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
-	if (!gfio) {
-		*out_err = GF_OUT_OF_MEM;
 	}
 
 	file_size = gf_fsize(ioctx->filep);
