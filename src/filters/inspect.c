@@ -1042,6 +1042,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		if (!pck) {
 			if (!strcmp(key, "lf")) gf_fprintf(dump, "\n" );
 			else if (!strcmp(key, "cr")) gf_fprintf(dump, "\r" );
+			else if (!strcmp(key, "t")) gf_fprintf(dump, "\t" );
 			else if (!strncmp(key, "pid.", 4)) gf_fprintf(dump, "%s", key+4);
 			else gf_fprintf(dump, "%s", key);
 			sep[0] = csep;
@@ -1113,6 +1114,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		else if (!strcmp(key, "crc")) gf_fprintf(dump, "0x%08X", gf_crc_32(data, size) );
 		else if (!strcmp(key, "lf")) gf_fprintf(dump, "\n" );
 		else if (!strcmp(key, "cr")) gf_fprintf(dump, "\r" );
+		else if (!strcmp(key, "t")) gf_fprintf(dump, "\t" );
 		else if (!strcmp(key, "data")) {
 			u32 i;
 			for (i=0; i<size; i++) {
@@ -2244,6 +2246,7 @@ const GF_FilterRegister InspectRegister = {
 				"- crc: 32 bit CRC of packet\n"\
 				"- lf: insert linefeed\n"\
 				"- cr: insert carriage return\n"\
+				"- t: insert tab\n"\
 				"- data: hex dump of packet (** WARNING, BIG OUTPUT !! **)\n"\
 				"- lp: leading picture flag\n"\
 				"- depo: depends on other packet flag\n"\
