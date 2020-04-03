@@ -2200,8 +2200,14 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		if (filter_inst)
 			gf_sys_format_help(helpout, help_flags, "Version: %s\n", gf_filter_get_version(filter_inst) );
 		else {
-			if (reg->version && strncmp(reg->version, "! ", 2))
-				gf_sys_format_help(helpout, help_flags, "Version: %s\n", reg->version);
+			if (reg->version) {
+				if (!strncmp(reg->version, "! ", 2)) {
+					if (!gen_doc)
+						gf_sys_format_help(helpout, help_flags, "%s\n", reg->version+2);
+				} else {
+					gf_sys_format_help(helpout, help_flags, "Version: %s\n", reg->version);
+				}
+			}
 		}
 	}
 
