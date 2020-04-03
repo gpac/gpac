@@ -508,9 +508,11 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 				gf_list_add(dst->pck_reassembly, pcki);
 			}
 		}
+		//copy over state
 		dst->is_end_of_stream = src->is_end_of_stream;
 		dst->nb_eos_signaled = src->nb_eos_signaled;
 		dst->buffer_duration = src->buffer_duration;
+		dst->nb_clocks_signaled = src->nb_clocks_signaled;
 
 		//switch previous src property map to this new pid (this avoids rewriting props of already dispatched packets)
 		//it may happen that we already have props on dest, due to configure of the pid
