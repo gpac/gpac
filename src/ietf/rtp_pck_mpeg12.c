@@ -152,7 +152,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, u8 *data, u32 d
 	mpv_hdr[3] = 0;
 
 	if ((pic_type==2) || (pic_type== 3)) {
-		mpv_hdr[3] = (char)((u32)payload[3] << 5);
+		mpv_hdr[3] = (u8) ((((u32)payload[3]) << 5) & 0xf);
 		if ((payload[4] & 0x80) != 0) mpv_hdr[3] |= 0x10;
 		if (pic_type == 3) mpv_hdr[3] |= (payload[4] >> 3) & 0xf;
 	}
