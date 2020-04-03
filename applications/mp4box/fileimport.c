@@ -1026,7 +1026,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
 				break;
 			default:
-				gf_isom_set_media_timescale(dest, track, rescale_num, rescale_den, 1);
+				e = gf_isom_set_media_timescale(dest, track, rescale_num, rescale_den, 1);
+                if (e==GF_EOS) {
+					fprintf(stderr, "Rescale ignored, same config in source file\n");
+					e = GF_OK;
+				} else if (e) {
+					fprintf(stderr, "Error rescaling media track %d\n", track);
+					goto exit;
+				}
 				break;
 			}
 		}
