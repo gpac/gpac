@@ -517,8 +517,6 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				//poc is stored as diff since last IDR which has min_poc
 				cts = ( (ctx->min_poc + (s32) poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
-				/*old importer code, seems wrong so commented for now*/
-#if 0
 				/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
 				if (ctx->is_paff) {
 					cts /= 2;
@@ -527,7 +525,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 						cts = ((cts/ctx->cur_fps.den)+1) * ctx->cur_fps.den;
 					}
 				}
-#endif
+
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
@@ -1416,7 +1414,8 @@ void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		gf_filter_pck_set_sap(ctx->first_pck_in_au, ctx->au_sap);
 		if (ctx->au_sap == GF_FILTER_SAP_1) {
 			ctx->dts_last_IDR = gf_filter_pck_get_dts(ctx->first_pck_in_au);
-			if (ctx->is_paff) ctx->dts_last_IDR *= 2;
+			if (ctx->is_paff)
+				ctx->dts_last_IDR *= 2;
 		}
 		if (ctx->au_sap <= GF_FILTER_SAP_3) {
 			is_rap = GF_TRUE;
@@ -1985,7 +1984,12 @@ GF_Err naludmx_process(GF_Filter *filter)
 			ctx->cts = ts;
 		ts = gf_filter_pck_get_dts(pck);
 		if (ts != GF_FILTER_NO_TS) {
-			ctx->dts = ts;
+			GF_FilterClockType ck_type = gf_filter_pid_get_clock_info(ctx->ipid, NULL, NULL);
+			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
+				ctx->dts = ts;
+			else if (ctx->dts<ts)
+				ctx->dts=ts;
+
 			if (!ctx->prev_dts) ctx->prev_dts = ts;
 			else if (ctx->prev_dts != ts) {
 				u64 diff = ts;
@@ -2193,7 +2197,7 @@ naldmx_flush:
 			if (current<0) {
 				u8 b3, b2, b1;
 				if (! ctx->first_pck_in_au) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] no start code in block and no frame started, discarding data\n", ctx->log_name));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] no start code in block and no frame started, discarding data\n", ctx->log_name));
 					break;
 				}
 				size = remain;

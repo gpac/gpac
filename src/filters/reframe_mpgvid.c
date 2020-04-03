@@ -677,7 +677,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			if (current<0) {
 				u8 b3, b2, b1;
 				if (! ctx->frame_started) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] no start code in block and no frame started, discarding data\n" ));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MPGVid] no start code in block and no frame started, discarding data\n" ));
 					break;
 				}
 				size = remain;
