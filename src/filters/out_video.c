@@ -734,7 +734,6 @@ static void vout_finalize(GF_Filter *filter)
 static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool from_textures)
 {
 	Float dw, dh;
-	glUseProgram(ctx->glsl_program);
 
 	gf_gl_txw_bind(&ctx->tx, "maintx", ctx->glsl_program, 0);
 
@@ -914,6 +913,8 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
+	glUseProgram(ctx->glsl_program);
+
 	if (frame_ifce && frame_ifce->get_gl_texture) {
 		vout_draw_gl_hw_textures(ctx, frame_ifce);
 		return;
@@ -926,7 +927,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	//and draw
 	vout_draw_gl_quad(ctx, GF_FALSE);
-
 }
 #endif
 

@@ -2259,8 +2259,10 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 		//moving from non-file type A to non-file type B requires an explicit filter
 		if ((dst_stream_type>0) && (source_stream_type>0) && (source_stream_type != GF_STREAM_FILE) && (dst_stream_type != GF_STREAM_FILE) && (source_stream_type != dst_stream_type)) {
 
-			//exception: we allow text->video for txtrend
-			if (!(reg_desc->freg->flags & GF_FS_REG_EXPLICIT_ONLY) && (source_stream_type==GF_STREAM_TEXT)  && (dst_stream_type==GF_STREAM_VISUAL) ) {
+			//exception: we allow text|scene|od ->video for dynamic compositor
+			if (!(reg_desc->freg->flags & GF_FS_REG_EXPLICIT_ONLY) && (dst_stream_type==GF_STREAM_VISUAL)
+				&& ((source_stream_type==GF_STREAM_TEXT) || (source_stream_type==GF_STREAM_SCENE) || (source_stream_type==GF_STREAM_OD) )
+			) {
 
 			} else {
 				edge->status = EDGE_STATUS_DISABLED;
@@ -3406,9 +3408,16 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 		if (cap->code != GF_PROP_PID_STREAM_TYPE) continue;
 		//output type is file or same media type, allow looking for filter chains
 		if ((cap->val.value.uint==GF_STREAM_FILE) || (cap->val.value.uint==stream_type->value.uint)) return GF_FALSE;
-		//allow text -> raw video for txtrend
-		if (dst_has_raw_cid_in) {
-			if ((stream_type->value.uint==GF_STREAM_TEXT) && (cap->val.value.uint==GF_STREAM_VISUAL)) return GF_FALSE;
+		//allow text|scene|video -> raw video for dynamic compositor
+		if (dst_has_raw_cid_in  && (cap->val.value.uint==GF_STREAM_VISUAL)) {
+			switch (stream_type->value.uint) {
+			case GF_STREAM_TEXT:
+			case GF_STREAM_SCENE:
+			case GF_STREAM_OD:
+				return GF_FALSE;
+			default:
+				break;
+			}
 		}
 	}
 	//no mathing type found, we will need an explicit filter to solve this link (ie the link will be to the explicit filter)

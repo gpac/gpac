@@ -599,8 +599,17 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	ctx->magic_ptr = (void *) ctx;
 	ctx->filter = filter;
 
-	if (name && !strcmp(name, "txtrend") ) {
+	if (name && !strcmp(name, "dyncomp") ) {
+		const char *shader_path;
 		ctx->txt_render = GF_TRUE;
+		if (!ctx->vertshader) {
+			shader_path = gf_opts_get_key("filter@compositor", "vertshader");
+			if (shader_path) ctx->vertshader = gf_strdup(shader_path);
+		}
+		if (!ctx->fragshader) {
+			shader_path = gf_opts_get_key("filter@compositor", "fragshader");
+			if (shader_path) ctx->fragshader = gf_strdup(shader_path);
+		}
 	}
 
     if (ctx->player) {
@@ -932,14 +941,16 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 static const GF_FilterCapability TextRenderCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
-const GF_FilterRegister TextRenderRegister = {
-	.name = "txtrend",
-	GF_FS_SET_DESCRIPTION("TextRenderer")
-	GF_FS_SET_HELP("The TextRenderer filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text to video conversion.\n"
+const GF_FilterRegister DynamicCompositorRegister = {
+	.name = "dyncomp",
+	GF_FS_SET_DESCRIPTION("DynCompositor")
+	GF_FS_SET_HELP("The DynCompositor filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text and scene (BIFS, SVG) to raw video conversion.\n"
 	"The default output pixel format used will be RGBA if not specified.\n"
 	"See `gpac -h compositor` for available options."
 	)
@@ -957,8 +968,8 @@ const GF_FilterRegister TextRenderRegister = {
 	.update_arg = compose_update_arg
 };
 
-const GF_FilterRegister *txtrend_filter_register(GF_FilterSession *session)
+const GF_FilterRegister *dyncomp_filter_register(GF_FilterSession *session)
 {
-	return &TextRenderRegister;
+	return &DynamicCompositorRegister;
 }
 
