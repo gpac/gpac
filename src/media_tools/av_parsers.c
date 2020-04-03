@@ -391,7 +391,8 @@ void gf_m4v_rewrite_pl(u8 **o_data, u32 *o_dataLen, u8 PL)
 static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 {
 	gf_bs_seek(m4v->bs, start);
-	assert(start < 0xFFFFFFFF);
+
+	assert(start < (u64)1<<31);
 	m4v->current_object_start = (u32)start;
 	m4v->current_object_type = 0;
 	return GF_OK;
@@ -843,7 +844,7 @@ GF_Err gf_m4v_rewrite_par(u8 **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 		size = end - start;
 		/*store previous object*/
 		if (size) {
-			assert(size < 0x80000000);
+			assert (size < (u64)1<<31);
 			gf_bs_write_data(mod, *o_data + start, (u32)size);
 			start = end;
 		}
@@ -2914,7 +2915,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			maxTileAreaSb = (sbRows * sbCols) >> (minLog2Tiles + 1);
 		else
 			maxTileAreaSb = sbRows * sbCols;
-		maxTileHeightSb = MAX(maxTileAreaSb / widestTileSb, 1);
+		maxTileHeightSb = widestTileSb ? MAX(maxTileAreaSb / widestTileSb, 1) : 1;
 
 		startSb = 0;
 		for (i = 0; startSb < sbRows; i++) {
@@ -4525,7 +4526,7 @@ u32 gf_mp3_get_next_header(FILE* in)
 
 		if (state == 3) {
 			bytes[state] = b;
-			return GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
+			return GF_4CC((u32)bytes[0], bytes[1], bytes[2], bytes[3]);
 		}
 		if (state == 2) {
 			if (((b & 0xF0) == 0) || ((b & 0xF0) == 0xF0) || ((b & 0x0C) == 0x0C)) {

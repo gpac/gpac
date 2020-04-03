@@ -2650,8 +2650,9 @@ fi
 if test "$darwin" = "yes" ; then
     CFLAGS="$CFLAGS_DIR $CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
 else
-    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi
+
 
 if test "$enable_sanitizer" = "yes" ; then
     CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g"

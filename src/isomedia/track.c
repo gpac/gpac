@@ -1501,16 +1501,19 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				if (!opus) return GF_OUT_OF_MEM;
 				opus->cfg_opus = (GF_OpusSpecificBox *)gf_isom_box_new_parent(&opus->child_boxes, GF_ISOM_BOX_TYPE_DOPS);
 				entry = (GF_MPEGSampleEntryBox*)opus;
+				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AC3) {
 				GF_MPEGAudioSampleEntryBox *ac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 				if (!ac3) return GF_OUT_OF_MEM;
 				ac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new_parent(&ac3->child_boxes, GF_ISOM_BOX_TYPE_DAC3);
 				entry = (GF_MPEGSampleEntryBox*) ac3;
+				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_EAC3) {
 				GF_MPEGAudioSampleEntryBox *eac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EC3);
 				if (!eac3) return GF_OUT_OF_MEM;
 				eac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new_parent(&eac3->child_boxes, GF_ISOM_BOX_TYPE_DEC3);
 				entry = (GF_MPEGSampleEntryBox*) eac3;
+				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else {
 				entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
 				if (!entry_a) return GF_OUT_OF_MEM;
