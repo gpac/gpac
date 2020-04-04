@@ -364,6 +364,10 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			vp_fill = tr_state->svg_props->viewport_fill;
 			vp_opacity = tr_state->svg_props->viewport_fill_opacity ? tr_state->svg_props->viewport_fill_opacity->value : FIX_ONE;
 		}
+		if (tr_state->visual->compositor->noback) {
+			vp_fill = NULL;
+			vp_opacity = 0;
+		}
 
 		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE) && vp_opacity) {
 			Bool col_dirty = 0;

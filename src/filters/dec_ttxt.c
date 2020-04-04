@@ -1321,7 +1321,7 @@ static const GF_FilterCapability TTXTDecCaps[] =
 GF_FilterRegister TTXTDecRegister = {
 	.name = "ttxtdec",
 	GF_FS_SET_DESCRIPTION("TTXT/TX3G decoder")
-	GF_FS_SET_HELP("This filter decodes TTXT/TX3G streams directly into the scene graph of the compositor. It cannot be used to dump TTXT/TX3G content.\n"
+	GF_FS_SET_HELP("This filter decodes TTXT/TX3G streams into a BIFS scene graph of the compositor filter.\n"
 	"The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation\n")
 	.private_size = sizeof(GF_TTXTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,

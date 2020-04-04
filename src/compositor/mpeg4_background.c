@@ -278,6 +278,8 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		DestroyBackground(node);
 		return;
 	}
+	if (tr_state->visual->compositor->noback)
+		return;
 
 	gf_node_dirty_clear(node, 0);
 	bck = (M_Background *)node;

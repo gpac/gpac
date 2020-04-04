@@ -114,7 +114,7 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 	return res;
 }
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target, Bool is_dynamic_filter)
 {
 	char szName[200];
 	const char *dst_striped = NULL;
@@ -132,6 +132,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->freg = freg;
 	filter->session = fsess;
 	filter->max_extra_pids = freg->max_extra_pids;
+	filter->dynamic_filter = is_dynamic_filter;
 
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
@@ -2196,7 +2197,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL, NULL);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL, NULL, GF_FALSE);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (register %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
@@ -3637,4 +3638,10 @@ GF_Err gf_filter_prevent_blocking(GF_Filter *filter, Bool prevent_blocking_enabl
 	if (!filter) return GF_BAD_PARAM;
 	filter->prevent_blocking = prevent_blocking_enabled;
 	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_filter_is_dynamic(GF_Filter *filter)
+{
+	return filter ? filter->dynamic_filter : GF_FALSE;
 }

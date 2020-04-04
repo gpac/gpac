@@ -2302,7 +2302,7 @@ const GF_FilterRegister ProbeRegister = {
 	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demuxed pids available in a source chain.\n"
 	"The filter does not produce any output nor feedback, it is up to the app developper to query input pids of the prober and take appropriated decisions.")
 	.private_size = sizeof(GF_InspectCtx),
-	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALIAS,
+	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
 	.args = InspectArgs,
 	.initialize = inspect_initialize,

@@ -447,6 +447,8 @@ static void visual_3d_draw_background(GF_TraverseState *tr_state, u32 layer_type
 				alpha = FIX_ONE;
 				if (tr_state->visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT) {
 					alpha = 0;
+				} else if (tr_state->visual->compositor->dyn_filter_mode) {
+					alpha = 0;
 				}
 			}
 			visual_3d_clear(tr_state->visual, col, alpha);

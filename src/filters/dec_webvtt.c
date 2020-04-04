@@ -483,8 +483,8 @@ static const GF_FilterCapability VTTDecCaps[] =
 GF_FilterRegister VTTDecRegister = {
 	.name = "vttdec",
 	GF_FS_SET_DESCRIPTION("WebVTT decoder")
-	GF_FS_SET_HELP("This filter decodes WebVTT streams into a javascript context of the compositor.\n"
-		"Warning: It cannot be used to dump WebVTT content.\n"
+	GF_FS_SET_HELP("This filter decodes WebVTT streams into a SVG scene graph of the compositor filter.\n"
+		"The scene graph creation is done through JavaScript.\n"
 		"The filter options are used to override the JS global variables of the WebVTT renderer.")
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,

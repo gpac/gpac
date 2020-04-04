@@ -439,8 +439,11 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 		u32 w, h;
 		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_PIXFMT);
 		if (p) {
+			u32 stride;
 			ctx->opfmt = p->value.uint;
 			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt) );
+			gf_pixel_get_size_info(ctx->opfmt, ctx->display_width, ctx->display_height, NULL, &stride, NULL, NULL, NULL);
+			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride) );
 		}
 		
 		w = h = 0;
@@ -452,9 +455,9 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 		if (w && h) {
 			ctx->osize.x = w;
 			ctx->osize.y = h;
-			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
+/*			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
 			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
-		}
+*/		}
 		return GF_OK;
 	}
 
@@ -593,23 +596,13 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	GF_FilterSessionCaps sess_caps;
 	GF_FilterPid *pid;
 	GF_Compositor *ctx = gf_filter_get_udta(filter);
-	const char *name = gf_filter_get_name(filter);
 
 	ctx->magic = COMPOSITOR_MAGIC;
 	ctx->magic_ptr = (void *) ctx;
 	ctx->filter = filter;
 
-	if (name && !strcmp(name, "dyncomp") ) {
-		const char *shader_path;
-		ctx->txt_render = GF_TRUE;
-		if (!ctx->vertshader) {
-			shader_path = gf_opts_get_key("filter@compositor", "vertshader");
-			if (shader_path) ctx->vertshader = gf_strdup(shader_path);
-		}
-		if (!ctx->fragshader) {
-			shader_path = gf_opts_get_key("filter@compositor", "fragshader");
-			if (shader_path) ctx->fragshader = gf_strdup(shader_path);
-		}
+	if (gf_filter_is_dynamic(filter)) {
+		ctx->dyn_filter_mode = GF_TRUE;
 	}
 
     if (ctx->player) {
@@ -753,6 +746,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 
 	{ OFFS(nojs), "disable javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noback), "ignore background nodes and viewport fill (usefull when dumping to PNG)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specify 2D rendering mode\n"\
@@ -868,39 +862,57 @@ static GF_FilterArgs CompositorArgs[] =
 
 static const GF_FilterCapability CompositorCaps[] =
 {
+	/*first cap bundle for explicitly loaded compositor: accepts audio and video as well as scene/od*/
+	CAP_UINT(GF_CAPS_INPUT|GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_INPUT|GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_UINT(GF_CAPS_INPUT|GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED|GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT|GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT|GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT|GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	/*second cap bundle for dynmac loaded compositor: only accepts text/scene/od*/
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
+
 
 const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
 	GF_FS_SET_DESCRIPTION("Compositor")
-	GF_FS_SET_HELP("The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion.\n"\
-	"The filter is explicit only and is never loaded during link resolution.\n"
-	"The compositor operates either in media-client or filter-only mode.\n"\
-	"\n"\
-	"In media-client mode, the compositor acts as a pseudo-sink for the video side and creates its own output window.\n"\
-	"The video frames are dispatched to the output video pid in the form of frame pointers requiring later GPU read if used.\n"\
-	"The audio part acts as a regular filter, potentially mixing and resampling the audio inputs to generate its output.\n"\
-	"\n"\
-	"In filter-only mode, the compositor acts as a regular filter generating frames based on the loaded scene.\n"\
-	"It will generate its outputs based on the input video frames.\n"\
-	"If no input video frames (e.g. pure BIFS / SVG / VRML), the filter will generate frames based on the [-fps](), at constant or variable frame rate.\n"\
+	GF_FS_SET_HELP("The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion.\n"
+	"The compositor operates either in media-client or filter-only mode.\n"
+	"\n"
+	"# Media-client mode\n"
+	"In this mode, the compositor acts as a pseudo-sink for the video side and creates its own output window.\n"
+	"The video frames are dispatched to the output video pid in the form of frame pointers requiring later GPU read if used.\n"
+	"The audio part acts as a regular filter, potentially mixing and resampling the audio inputs to generate its output.\n"
+	"User events are directly processed by the filter in this mode.\n"
+	"\n"
+	"# Filter mode\n"
+	"In this mode, the compositor acts as a regular filter generating frames based on the loaded scene.\n"
+	"It will generate its outputs based on the input video frames and will not process any user event.\n"
+	"If no input video frames (e.g. pure BIFS / SVG / VRML), the filter will generate frames based on the [-fps](), at constant or variable frame rate.\n"
 	"It will stop generating frames as soon as all input streams are done, unless extended/reduced by [-dur]().\n"
 	"If audio streams are loaded, an audio output pid is created.\n"
-	"In filter-only mode, the special URL `gpid://` is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"\
-	"When such a pid is associated to a `Background2D` node in BIFS (no SVG mapping yet), the compositor operates in passthrough mode.\n"\
-	"In this mode, only new input frames on the passthrough pid will generate new frames, and the scene clock matches the input packet time.\n"\
-	"The output size and pixel format will be set to the input size and pixel format, unless specified otherwise in the filter options.\n"\
-	"\n"\
-	"If only 2D graphics are used and display driver is not forced, 2D rasterizer will happen in the output pixel format (including YUV pixel formats).\n"\
+	"\n"
+	"The default output pixel format in filter mode is:\n"
+	"- `rgb` when the filter is explictly loaded by the application\n"
+	"- `rgba` when the filter is loaded during a link resolution\n"
+	"This can be changed by assigning the [-opfmt]() option.\n"
+	"\n"
+	"In filter-only mode, the special URL `gpid://` is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"
+	"When such a pid is associated to a `Background2D` node in BIFS (no SVG mapping yet), the compositor operates in passthrough mode.\n"
+	"In this mode, only new input frames on the passthrough pid will generate new frames, and the scene clock matches the input packet time.\n"
+	"The output size and pixel format will be set to the input size and pixel format, unless specified otherwise in the filter options.\n"
+	"\n"
+	"If only 2D graphics are used and display driver is not forced, 2D rasterizer will happen in the output pixel format (including YUV pixel formats).\n"
 	"In this case, inplace processing (rasterizing over the input frame data) will be used whenever allowed by input data.\n"\
-	"\n"\
-	"If 3D graphics are used or display driver is forced, OpenGL will be used on offscreen surface and the output packet will be an OpenGL texture.\n"\
+	"\n"
+	"If 3D graphics are used or display driver is forced, OpenGL will be used on offscreen surface and the output packet will be an OpenGL texture.\n"
 	"\n"
 	"# Specific URL syntaxes\n"
 	"The compositor accepts any URL type supported by GPAC. It also accepts the following syntaxes for URLs:\n"
@@ -909,7 +921,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"\n"
 	)
 	.private_size = sizeof(GF_Compositor),
-	.flags = GF_FS_REG_MAIN_THREAD | GF_FS_REG_EXPLICIT_ONLY,
+	.flags = GF_FS_REG_MAIN_THREAD,
 	.max_extra_pids = (u32) -1,
 	SETCAPS(CompositorCaps),
 	.args = CompositorArgs,
@@ -936,40 +948,5 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 		}
 	}
 	return &CompositorFilterRegister;
-}
-
-static const GF_FilterCapability TextRenderCaps[] =
-{
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-};
-
-const GF_FilterRegister DynamicCompositorRegister = {
-	.name = "dyncomp",
-	GF_FS_SET_DESCRIPTION("DynCompositor")
-	GF_FS_SET_HELP("The DynCompositor filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text and scene (BIFS, SVG) to raw video conversion.\n"
-	"The default output pixel format used will be RGBA if not specified.\n"
-	"See `gpac -h compositor` for available options."
-	)
-	.private_size = sizeof(GF_Compositor),
-	.flags = GF_FS_REG_MAIN_THREAD|GF_FS_REG_ALIAS,
-	.max_extra_pids = (u32) 0,
-	SETCAPS(TextRenderCaps),
-	.args = CompositorArgs,
-	.initialize = compose_initialize,
-	.finalize = compose_finalize,
-	.process = compose_process,
-	.process_event = compose_process_event,
-	.configure_pid = compose_configure_pid,
-	.reconfigure_output = compose_reconfig_output,
-	.update_arg = compose_update_arg
-};
-
-const GF_FilterRegister *dyncomp_filter_register(GF_FilterSession *session)
-{
-	return &DynamicCompositorRegister;
 }
 

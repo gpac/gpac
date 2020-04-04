@@ -1277,7 +1277,6 @@ static void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 			for (i=0; i<count; i++) {
 				u32 j=0;
 				const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
-				if (reg->flags & GF_FS_REG_ALIAS) continue;
 
 				while (reg->args) {
 					const GF_FilterArgs *arg = &reg->args[j];
@@ -2246,9 +2245,6 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		gf_sys_format_help(helpout, help_flags, "\n");
 	}
 
-	if (reg->flags & GF_FS_REG_ALIAS)
-		goto skip_opts;
-
 	if (filter_inst) args = gf_filter_get_args(filter_inst);
 	else args = reg->args;
 
@@ -2366,8 +2362,6 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		gf_sys_format_help(helpout, help_flags, "No options\n");
 	}
 
-skip_opts:
-
 	if (reg->nb_caps) {
 		if (!gen_doc && (argmode==GF_ARGMODE_ALL)) {
 			dump_caps(reg->nb_caps, reg->caps);
@@ -2470,7 +2464,6 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	for (i=0; i<count; i++) {
 		u32 j=0;
 		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
-		if (reg->flags & GF_FS_REG_ALIAS) continue;
 
 		while (reg->args) {
 			const GF_FilterArgs *arg = &reg->args[j];

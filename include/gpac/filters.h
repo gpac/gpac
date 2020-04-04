@@ -1686,8 +1686,7 @@ typedef enum
 	GF_FS_REG_CONFIGURE_MAIN_THREAD = 1<<2,
 	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter*/
 	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
-	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing
-	e.g. nvdec wants annex B format, so that the weight of the reframer+decoder is the same as the weight of other decoders*/
+	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing so that the weight of the reframer+decoder is the same as the weight of other decoders*/
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
 	/*! Usually set for filters acting as sources but without exposing an src argument. This prevents throwing warnings on arguments not handled by the filter*/
 	GF_FS_REG_ACT_AS_SOURCE = 1<<5,
@@ -1706,10 +1705,7 @@ typedef enum
 		This is typically used by mux filters
 	*/
 	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
-	/*! Indicates that this filter is an alias for another filter and doc should not be generated
-	*/
-	GF_FS_REG_ALIAS = 1<<11,
-
+	
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000
 } GF_FSRegisterFlags;
@@ -2409,6 +2405,12 @@ This can be needed by some filters internally managing their blocking state beca
 \return error if any
 */
 GF_Err gf_filter_prevent_blocking(GF_Filter *filter, Bool prevent_blocking_enabled);
+
+/*! Checks if filter was loaded as part of a link resolution or explicitly loaded by application
+\param filter target filter
+\return GF_TRUE if filter was loaded for link resolution, GF_FALSE if filter was explicitly loaded by the application
+*/
+Bool gf_filter_is_dynamic(GF_Filter *filter);
 
 /*! Checks if reporting is turned on at session level.
 \param filter target filter
