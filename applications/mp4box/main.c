@@ -1003,7 +1003,6 @@ static Bool PrintHelpArg(char *arg_name, Bool exact_match, GF_FilterSession *fs)
 	for (i=0; i<count; i++) {
 		u32 j=0;
 		const GF_FilterRegister *reg = gf_fs_get_filter_register(fs, i);
-		if (reg->flags & GF_FS_REG_ALIAS) continue;
 
 		while (reg->args) {
 			u32 len;

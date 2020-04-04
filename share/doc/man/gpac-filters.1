@@ -198,6 +198,67 @@ The filter does not produce any output nor feedback, it is up to the app develop
 .br
 
 .br
+.SH Options (expert):
+.LP
+.br
+log (str, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
+.br
+mode (enum, default: pck):     dump mode
+.br
+* pck: dump full packet
+.br
+* blk: dump packets before reconstruction
+.br
+* frame: force reframer
+.br
+* raw: dump source packets without demuxing
+.br
+
+.br
+interleave (bool, default: true): dump packets as they are received on each pid. If false, report per pid is generated
+.br
+deep (bool, default: false):   dump packets along with PID state change, implied when -fmt is set
+.br
+props (bool, default: true):   dump packet properties, ignored when -fmt is set (see filter help)
+.br
+dump_data (bool, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
+.br
+fmt (str, updatable):          set packet dump format (see filter help)
+.br
+hdr (bool, default: true):     print a header corresponding to fmt string without '$ 'or "pid."
+.br
+allp (bool, default: false):   analyse for the entire duration, rather than stoping when all pids are found
+.br
+info (bool, default: false):   monitor PID info changes
+.br
+pcr (bool, default: false):    dump M2TS PCR info
+.br
+speed (dbl, default: 1.0):     set playback command speed. If speed is negative and start is 0, start is set to -1
+.br
+start (dbl, default: 0.0):     set playback start offset. Negative value means percent of media dur with -1 <=> dur
+.br
+dur (frac, default: 0/0):      set inspect duration
+.br
+analyze (bool, default: false): analyze sample content (NALU, OBU)
+.br
+xml (bool, default: false):    use xml formatting (implied if (-analyze]() is set) and disable -fmt
+.br
+fftmcd (bool, default: false): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
+.br
+dtype (bool, default: false):  dump property type
+.br
+test (enum, default: no):      skip predefined set of properties, used for test mode
+.br
+* no: no properties skipped
+.br
+* noprop: all properties/info changes on pid are skipped, only packets are dumped
+.br
+* network: URL/path dump, cache state, file size properties skipped (used for hashing network results)
+.br
+* encode: same as network plus skip decoder config (used for hashing encoding results)
+.br
+
+.br
 
 .br
 .SH compositor
@@ -209,29 +270,47 @@ Description: Compositor
 .br
 The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion.
 .br
-The filter is explicit only and is never loaded during link resolution.
-.br
 The compositor operates either in media-client or filter-only mode.
 .br
 
 .br
-In media-client mode, the compositor acts as a pseudo-sink for the video side and creates its own output window.
+.SH Media-client mode
+.LP
+.br
+In this mode, the compositor acts as a pseudo-sink for the video side and creates its own output window.
 .br
 The video frames are dispatched to the output video pid in the form of frame pointers requiring later GPU read if used.
 .br
 The audio part acts as a regular filter, potentially mixing and resampling the audio inputs to generate its output.
 .br
+User events are directly processed by the filter in this mode.
+.br
 
 .br
-In filter-only mode, the compositor acts as a regular filter generating frames based on the loaded scene.
+.SH Filter mode
+.LP
 .br
-It will generate its outputs based on the input video frames.
+In this mode, the compositor acts as a regular filter generating frames based on the loaded scene.
+.br
+It will generate its outputs based on the input video frames and will not process any user event.
 .br
 If no input video frames (e.g. pure BIFS / SVG / VRML), the filter will generate frames based on the -fps, at constant or variable frame rate.
 .br
 It will stop generating frames as soon as all input streams are done, unless extended/reduced by -dur.
 .br
 If audio streams are loaded, an audio output pid is created.
+.br
+
+.br
+The default output pixel format in filter mode is:
+.br
+- rgb when the filter is explictly loaded by the application
+.br
+- rgba when the filter is loaded during a link resolution
+.br
+This can be changed by assigning the -opfmt option.
+.br
+
 .br
 In filter-only mode, the special URL gpid:// is used to locate PIDs in the scene description, in order to design scenes independently from source media.
 .br
@@ -386,6 +465,8 @@ rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. Overriden by Rebu
 mbuf (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid
 .br
 nojs (bool, default: false):   disable javascript
+.br
+noback (bool, default: false): ignore background nodes and viewport fill (usefull when dumping to PNG)
 .br
 ogl (enum, default: auto, updatable): specify 2D rendering mode
 .br
@@ -2002,7 +2083,7 @@ Description: TTXT/TX3G decoder
 .br
 
 .br
-This filter decodes TTXT/TX3G streams directly into the scene graph of the compositor. It cannot be used to dump TTXT/TX3G content.
+This filter decodes TTXT/TX3G streams into a BIFS scene graph of the compositor filter.
 .br
 The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation
 .br
@@ -2030,9 +2111,9 @@ Description: WebVTT decoder
 .br
 
 .br
-This filter decodes WebVTT streams into a javascript context of the compositor.
+This filter decodes WebVTT streams into a SVG scene graph of the compositor filter.
 .br
-Warning: It cannot be used to dump WebVTT content.
+The scene graph creation is done through JavaScript.
 .br
 The filter options are used to override the JS global variables of the WebVTT renderer.
 .br
@@ -5356,23 +5437,6 @@ js (cstr):                     location of script source
 .br
 
 .br
-.SH dyncomp
-.LP
-.br
-Description: DynCompositor
-.br
-
-.br
-The DynCompositor filter is the same as compositor filter except it is enabled in dynamic graph resolutions for text and scene (BIFS, SVG) to raw video conversion.
-.br
-The default output pixel format used will be RGBA if not specified.
-.br
-See gpac -h compositor for available options.
-.br
-
-.br
-
-.br
 .SH ohevcdec
 .LP
 .br
@@ -5420,7 +5484,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3586-g3f0733635-filters
+build: 0.9.0-DEV-rev3588-gb26f0acff-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

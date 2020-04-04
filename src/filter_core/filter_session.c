@@ -934,7 +934,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot find any filter providing encoding for %s\n", cid));
 		return NULL;
 	}
-	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL);
+	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL, GF_FALSE);
 	if (!filter) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", candidate->name, gf_error_to_string(e) ));
 	} else {
@@ -996,7 +996,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 			GF_Filter *filter;
 			GF_FilterArgType argtype = GF_FILTER_ARG_EXPLICIT;
 			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
-			filter = gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL);
+			filter = gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL, GF_FALSE);
 			if (!filter) return NULL;
 			if (filter && !filter->num_output_pids) {
 				const char *src_url = strstr(name, "src");
@@ -2320,7 +2320,7 @@ restart:
 	}
 
 	if (!filter) {
-		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err, alias_for_filter);
+		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err, alias_for_filter, GF_FALSE);
 	} else {
 		filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, arg_type);

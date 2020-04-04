@@ -55,7 +55,7 @@ void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackCol
 #endif
 	if (! visual->CheckAttached(visual) ) return;
 
-	if (!BackColor && !visual->offscreen && !visual->compositor->txt_render) {
+	if (!BackColor && !visual->offscreen && !visual->compositor->dyn_filter_mode) {
 		if ( !(visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
 			BackColor = visual->compositor->back_color;
 		}

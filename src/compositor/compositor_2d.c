@@ -862,7 +862,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			store_blit_times(txh, push_time);
 			visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 			if (e) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor2D] Cannot soft blit surface (error %s) - will try using software rasterizer\n", gf_error_to_string(e) ));
+				if (e != GF_NOT_SUPPORTED) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor2D] Cannot soft blit surface (error %s) - will try using software rasterizer\n", gf_error_to_string(e) ));
+				}
 				if (is_attached) visual_2d_init_raster(visual);
 				visual->compositor->last_error = e;
 				txh->flags |= GF_SR_TEXTURE_DISABLE_BLIT;

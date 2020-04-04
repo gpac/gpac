@@ -428,9 +428,10 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 	pfmt = compositor->opfmt;
 	if (!pfmt) pfmt = GF_PIXEL_RGB;
 	if (!compositor->player && (compositor->passthrough_pfmt != GF_PIXEL_RGB)) {
-		compositor->passthrough_pfmt = GF_PIXEL_RGB;
+		u32 pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+		compositor->passthrough_pfmt = pfmt;
 		if (compositor->vout)
-			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt));
 	}
 
 	
@@ -463,7 +464,7 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		if (!pfmt && compositor->passthrough_txh) pfmt = compositor->passthrough_txh->pixelformat;
 
 		if (!pfmt) {
-			pfmt = compositor->txt_render ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+			pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 		}
 
 		memset(vi, 0, sizeof(GF_VideoSurface));
@@ -488,22 +489,24 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 
 static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 {
-	u32 pfmt, stride;
+	u32 pfmt, stride, stride_uv;
 	GF_Compositor *compositor = (GF_Compositor *)vout->opaque;
 	if (!evt || (evt->type != GF_EVENT_VIDEO_SETUP)) return GF_OK;
 
 	pfmt = compositor->opfmt;
 	if (!pfmt) {
-		pfmt = compositor->txt_render ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+		pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 	}
 
 	compositor->passthrough_pfmt = pfmt;
 	stride=0;
-	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, &stride, NULL, NULL, NULL);
+	stride_uv = 0;
+	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, &stride, &stride_uv, NULL, NULL);
 
 	if (compositor->vout) {
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE_UV, stride_uv ? &PROP_UINT(stride_uv) : NULL);
 	}
 
 	if (compositor->framebuffer_size > compositor->framebuffer_alloc) {

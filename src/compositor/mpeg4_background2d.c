@@ -322,6 +322,8 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		DestroyBackground2D(node);
 		return;
 	}
+	if (tr_state->visual->compositor->noback)
+		return;
 
 	bck = (M_Background2D *)node;
 

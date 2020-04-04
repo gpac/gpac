@@ -891,7 +891,15 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	glClearColor(0, 0, 0, 1.0);
+	if (ctx->has_alpha) {
+		Float r, g, b;
+		r = GF_COL_R(ctx->back); r /= 255;
+		g = GF_COL_G(ctx->back); g /= 255;
+		b = GF_COL_B(ctx->back); b /= 255;
+		glClearColor(r, g, b, 1.0);
+	} else {
+		glClearColor(0, 0, 0, 1.0);
+	}
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	//we are not sure if we are the only ones using the gl context, reset our defaults
