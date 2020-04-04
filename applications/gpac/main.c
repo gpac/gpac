@@ -1764,10 +1764,6 @@ static int gpac_main(int argc, char **argv)
 	}
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 
-	if (list_filters || print_filter_info || view_filter_conn) {
-		gf_opts_set_key("temp", "gendoc", "yes");
-	}
-
 restart:
 
 	session = gf_fs_new_defaults(sflags);
