@@ -1028,10 +1028,10 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, odi.max_bitrate);
 	case GJS_OM_PROP_SERVICE_HANDLER:
 		gf_odm_get_object_info(odm, &odi);
-		return JS_NewString(ctx, odi.service_handler);
+            return JS_NewString(ctx, odi.service_handler ? odi.service_handler : "unloaded");
 	case GJS_OM_PROP_CODEC:
 		gf_odm_get_object_info(odm, &odi);
-		return JS_NewString(ctx, odi.codec_name);
+            return JS_NewString(ctx, odi.codec_name ? odi.codec_name : "unloaded");
 	case GJS_OM_PROP_NB_QUALITIES:
 		//use HAS qualities
 		if (odm->pid) {
@@ -1083,13 +1083,14 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx,  (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
 		break;
 	case GJS_OM_PROP_BANDWIDTH_DOWN:
-	{
-		GF_PropertyEntry *pe=NULL;
-		const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
-		ret = JS_NewInt32(ctx, prop ? prop->value.uint/1000 : 0);
-		gf_filter_release_property(pe);
-		return ret;
-	}
+        if (odm->scene_ns->source_filter) {
+            GF_PropertyEntry *pe=NULL;
+            const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
+            ret = JS_NewInt32(ctx, prop ? prop->value.uint/1000 : 0);
+            gf_filter_release_property(pe);
+            return ret;
+        }
+        return JS_NewInt32(ctx, 0);
 
 	case GJS_OM_PROP_NB_HTTP:
 		if (odm->scene_ns->source_filter) {
