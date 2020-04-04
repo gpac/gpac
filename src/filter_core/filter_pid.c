@@ -2111,6 +2111,7 @@ static void concat_reg(GF_FilterSession *sess, char prefRegister[1001], const ch
 static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *freg, u32 bundle_idx)
 {
 	u32 i, k, cur_bundle_idx = 0;
+    u32 nb_out_caps=0;
 	for (i=0; i<freg->nb_caps; i++) {
 		u32 nb_caps = 0;
 		const GF_FilterCapability *cap = &freg->caps[i];
@@ -2139,7 +2140,11 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 			if (nb_caps>1)
 				return GF_TRUE;
 		}
+        if (nb_caps && !(cap->flags & GF_CAPFLAG_EXCLUDED))
+            nb_out_caps++;
 	}
+    if (!nb_out_caps)
+        return GF_TRUE;
 	return GF_FALSE;
 }
 
