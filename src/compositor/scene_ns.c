@@ -583,7 +583,9 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		}
 		return;
 	}
-
+    //make sure we only connect this filter to ourselves 
+    gf_filter_set_source(scene->compositor->filter, odm->scene_ns->source_filter, NULL);
+    
 	gf_filter_set_setup_failure_callback(scene->compositor->filter, odm->scene_ns->source_filter, scene_ns_on_setup_error, odm);
 
 	/*OK connect*/
