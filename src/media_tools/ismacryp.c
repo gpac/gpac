@@ -1392,7 +1392,9 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						unit_size = clear_bytes = ranges[range_idx].clear;
 						assert(ranges[range_idx].encrypted == 0);
 					}
-					prev_entry = NULL; //a subsample SHALL be created for each tile.
+					//a subsample SHALL be created for each encrypted tile.
+					if (prev_entry->bytes_encrypted_data)
+						prev_entry = NULL;
 					break;
 				default:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Detected unexpected subrange in bitstream format %d\n", bs_type));
