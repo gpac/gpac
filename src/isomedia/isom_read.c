@@ -113,6 +113,7 @@ static u32 gf_isom_probe_type(u32 type)
 	case GF_ISOM_BOX_TYPE_STYP:
 	case GF_ISOM_BOX_TYPE_SIDX:
 	case GF_ISOM_BOX_TYPE_EMSG:
+	case GF_ISOM_BOX_TYPE_PRFT:
 		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
