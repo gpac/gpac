@@ -6469,6 +6469,12 @@ GF_Err trak_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid MediaBox\n"));
 		return GF_ISOM_INVALID_FILE;
 	}
+	if (!ptr->Media->information->sampleTable->SampleSize || (ptr->Media->information->sampleTable->SampleSize->sampleCount==0)) {
+		if (ptr->Header->initial_duration) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Track with no samples but duration defined, ignoring duration\n"));
+			ptr->Header->initial_duration = 0;
+		}
+	}
 
 	for (i=0; i<gf_list_count(ptr->Media->information->sampleTable->child_boxes); i++) {
 		GF_Box *a = gf_list_get(ptr->Media->information->sampleTable->child_boxes, i);
