@@ -272,6 +272,7 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\modules\dektec_out\dektec_video_decl.c" />
     <ClCompile Include="..\..\modules\dektec_out\dektec_video.cpp" />
     <ClCompile Include="..\..\modules\filter_export.cpp" />
   </ItemGroup>

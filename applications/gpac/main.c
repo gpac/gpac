@@ -574,7 +574,10 @@ GF_GPACArg gpac_args[] =
 			"- props: print the supported builtin PID and packet properties\n"\
 			"- links: print possible connections between each supported filters.\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
-			"- FNAME: print filter `FNAME` info (multiple FNAME can be given). For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`. Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__). By default only basic filter options and description are shown. Use `-ha` to show advanced options and filter IO capabilities, `-hx` for expert options, `-hh` for all options and filter capbilities\n"\
+			"- FNAME: print filter `FNAME` info (multiple FNAME can be given).\n"
+			"  - For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`.\n"
+			"  - Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__).\n"
+			"  - By default only basic filter options and description are shown. Use `-ha` to show advanced options capabilities, `-hx` for expert options, `-hh` for all options and filter capabilities including on filters disabled in this build.\n"\
 			"- FNAME.OPT: print option `OPT` in filter `FNAME`"
 		, NULL, NULL, GF_ARG_STRING, 0),
 
@@ -1763,6 +1766,10 @@ static int gpac_main(int argc, char **argv)
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
 	}
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
+
+	if (view_filter_conn || list_filters || (print_filter_info && (argmode == GF_ARGMODE_ALL)) )
+		gf_opts_set_key("temp", "gendoc", "yes");
+
 
 restart:
 

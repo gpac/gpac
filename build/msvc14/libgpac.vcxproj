@@ -261,6 +261,7 @@
     <ClCompile Include="..\..\src\filters\dec_j2k.c" />
     <ClCompile Include="..\..\src\filters\dec_laser.c" />
     <ClCompile Include="..\..\src\filters\dec_mad.c" />
+    <ClCompile Include="..\..\src\filters\dec_mediacodec.c" />
     <ClCompile Include="..\..\src\filters\dec_odf.c" />
     <ClCompile Include="..\..\src\filters\dec_openhevc.c" />
     <ClCompile Include="..\..\src\filters\dec_opensvc.c" />
