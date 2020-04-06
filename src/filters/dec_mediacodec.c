@@ -1225,7 +1225,7 @@ static const GF_FilterCapability MCDecCaps[] =
 static const GF_FilterArgs MCDecArgs[] =
 {
 	{ OFFS(disable_gl), "disable OpenGL texture transfer", GF_PROP_BOOL, "false", NULL, 0},
-	{}
+	{0}
 };
 
 GF_FilterRegister GF_MCDecCtxRegister = {

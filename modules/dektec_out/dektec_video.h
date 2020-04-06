@@ -29,9 +29,6 @@
 
 #include <gpac/filters.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 
 //#define FAKE_DT_API
@@ -91,10 +88,6 @@ void dtout_finalize(GF_Filter *filter);
 GF_Err dtout_process(GF_Filter *filter);
 #endif
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif //_GF_DEKTECVID_H_
 
