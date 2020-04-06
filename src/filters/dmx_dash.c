@@ -890,6 +890,9 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	if (title)
 		gf_filter_pid_set_property_str(opid, "rating", &PROP_STRING(title) );
 
+	if (!gf_sys_is_test_mode()) {
+		gf_filter_pid_set_info_str(opid, "ntpdiff", &PROP_SINT(gf_dash_get_utc_drift_estimate(ctx->dash) ) );
+	}
 
 #ifdef FILTER_FIXME
 	//need to implement back dependent group SRD and qualities (fir HEVC tiles)

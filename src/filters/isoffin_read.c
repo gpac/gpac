@@ -1237,6 +1237,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						}
 					}
 				}
+				if (ch->sender_ntp) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ch->sender_ntp));
+				}
 				ch->eos_sent = GF_FALSE;
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);

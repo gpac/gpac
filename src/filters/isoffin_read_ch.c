@@ -27,6 +27,7 @@
 #include "isoffin.h"
 
 #ifndef GPAC_DISABLE_ISOM
+#include <gpac/network.h>
 
 
 void isor_reset_reader(ISOMChannel *ch)
@@ -57,37 +58,25 @@ void isor_check_producer_ref_time(ISOMReader *read)
 	u64 ntp;
 	u64 timestamp;
 
+	if (gf_sys_is_test_mode()) {
+		return;
+	}
+
 	if (gf_isom_get_last_producer_time_box(read->mov, &trackID, &ntp, &timestamp, GF_TRUE)) {
 #if !defined(_WIN32_WCE) && !defined(GPAC_DISABLE_LOG)
 
 		if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
-#ifdef FILTER_FIXME
 			time_t secs;
 			struct tm t;
 
 			s32 diff = gf_net_get_ntp_diff_ms(ntp);
 
-			if (read->input->query_proxy) {
-				GF_NetworkCommand param;
-				GF_Err e;
-				memset(&param, 0, sizeof(GF_NetworkCommand));
-				param.command_type = GF_NET_SERVICE_QUERY_UTC_DELAY;
-				e = read->input->query_proxy(read->input, &param);
-				if (e == GF_OK) {
-					diff -= param.utc_delay.delay;
-				}
-			}
-
 			secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
 			t = *gf_gmtime(&secs);
 
-
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp "LLU" matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ - NTP clock diff (local - remote): %d ms\n", trackID, timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, diff));
-
-#endif
 		}
 #endif
-
 		read->last_sender_ntp = ntp;
 		read->cts_for_last_sender_ntp = timestamp;
 	}
@@ -436,6 +425,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		ch->playing = GF_FALSE;
 	}
 	if (ch->owner->last_sender_ntp && ch->cts==ch->owner->cts_for_last_sender_ntp) {
+		ch->sender_ntp = ch->owner->last_sender_ntp;
+	} else if (ch->owner->last_sender_ntp && ch->dts==ch->owner->cts_for_last_sender_ntp) {
 		ch->sender_ntp = ch->owner->last_sender_ntp;
 	} else {
 		ch->sender_ntp = 0;
