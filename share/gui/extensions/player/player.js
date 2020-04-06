@@ -1049,7 +1049,6 @@ extension = {
                 } else if (arg.startsWith('-play-from=')) {
                     this.initial_start = Number(arg.substring(11));
                 } else {
-                    gpac.set_arg_used(i, false);
                     continue;
                 }
                 gpac.set_arg_used(i, true);

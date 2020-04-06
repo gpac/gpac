@@ -1490,6 +1490,8 @@ static int gpac_main(int argc, char **argv)
 			arg_val++;
 		}
 
+		gf_sys_mark_arg_used(i, GF_TRUE);
+		
 		if ((!has_xopt && !strcmp(arg, "-h")) || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
 			if (!strcmp(arg, "-ha")) argmode = GF_ARGMODE_ADVANCED;
 			else if (!strcmp(arg, "-hx")) argmode = GF_ARGMODE_EXPERT;

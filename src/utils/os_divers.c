@@ -888,7 +888,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		gpac_argv = argv;
 		gpac_argv_state = gf_realloc(gpac_argv_state, sizeof(Bool) * argc);
 		for (i=0; i<argc; i++)
-			gpac_argv_state[i] = GF_TRUE;
+			gpac_argv_state[i] = GF_FALSE;
 	}
 	return GF_OK;
 }
