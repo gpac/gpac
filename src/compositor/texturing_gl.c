@@ -295,7 +295,6 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 {
 	if (!txh->tx_io->gl_type)
 		return;
-
 #ifndef GPAC_USE_GLES2
 	if (!no_bind)
 		glEnable(txh->tx_io->gl_type);
@@ -355,7 +354,8 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 	glDisable(txh->tx_io->gl_type);
 #endif
 
-	if (txh->transparent) glDisable(GL_BLEND);
+	if (txh->transparent)
+		glDisable(GL_BLEND);
 
 	gf_sc_texture_check_pause_on_first_load(txh, GF_FALSE);
 	txh->compositor->visual->bound_tx_pix_fmt = 0;

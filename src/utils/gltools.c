@@ -869,37 +869,28 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 			glmode = GL_LINEAR;
 #endif
 		tx->first_tx_load = GF_TRUE;
+		tx->scale_10bit = 0;
+
+		tx->memory_format = GL_UNSIGNED_BYTE;
+		if (tx->is_yuv && tx->bit_depth>8) {
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+			//we use x bits but GL will normalise using 16 bits, so we need to multiply the normalized result by 2^(16-x)
+			u32 nb_bits = (16 - tx->bit_depth);
+			u32 scale = 1;
+			while (nb_bits) {
+				scale*=2;
+				nb_bits--;
+			}
+			tx->scale_10bit = scale;
+#endif
+			tx->memory_format = GL_UNSIGNED_SHORT;
+		}
+
+
 		glGenTextures(tx->nb_textures, tx->textures);
 		for (i=0; i<tx->nb_textures; i++) {
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, tx->textures[i] );
-
-			if (tx->is_yuv && tx->bit_depth>8) {
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-				//we use x bits but GL will normalise using 16 bits, so we need to multiply the normalized result by 2^(16-x)
-				u32 nb_bits = (16 - tx->bit_depth);
-				u32 scale = 1;
-				while (nb_bits) {
-					scale*=2;
-					nb_bits--;
-				}
-				glPixelTransferi(GL_RED_SCALE, scale);
-				if ((tx->nb_textures==2) && (i==1))
-					glPixelTransferi(GL_ALPHA_SCALE, scale);
-
-				glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
-#endif
-				tx->memory_format = GL_UNSIGNED_SHORT;
-
-			} else {
-				tx->memory_format = GL_UNSIGNED_BYTE;
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-				glPixelTransferi(GL_RED_SCALE, 1);
-				glPixelTransferi(GL_ALPHA_SCALE, 1);
-				glPixelStorei(GL_UNPACK_LSB_FIRST, 0);
-#endif
-				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			}
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -998,6 +989,24 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 
 	//push data
 	glEnable(GL_TEXTURE_2D);
+
+	if (tx->scale_10bit) {
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+		glPixelTransferi(GL_RED_SCALE, tx->scale_10bit);
+		if (tx->nb_textures==2)
+			glPixelTransferi(GL_ALPHA_SCALE, tx->scale_10bit);
+
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+#endif
+	} else {
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+		glPixelTransferi(GL_RED_SCALE, 1);
+		glPixelTransferi(GL_ALPHA_SCALE, 1);
+		glPixelStorei(GL_UNPACK_LSB_FIRST, 0);
+#endif
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	}
+
 
 	if (!tx->is_yuv) {
 		glBindTexture(GL_TEXTURE_2D, tx->textures[0] );

@@ -332,7 +332,7 @@ const char *gf_sys_get_arg(u32 arg);
 /*!
 \brief Mark arg as used
 
-Marks the argument at given index as used. By default all args are marked as used when assigning args
+Marks the argument at given index as used. By default all args are marked as not used when assigning args
 \param arg_idx Index of argument to mark
 \param used flag to set
 */
@@ -1881,6 +1881,7 @@ typedef struct _gl_texture_wrap
 	u32 width, height, pix_fmt, stride, uv_stride;
 	Bool is_yuv;
 	u32 bit_depth, uv_w, uv_h;
+	u32 scale_10bit;
 
 	u32 gl_format;
 	u32 bytes_per_pix;
