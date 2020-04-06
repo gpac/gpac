@@ -3352,6 +3352,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	}
 
 	if (!sess->server_mode) {
+		Bool cache_no_store = GF_FALSE;
 		//default pre-processing of headers - needs cleanup, not all of these have to be parsed before checking reply code
 		for (i=0; i<gf_list_count(sess->headers); i++) {
 			char *val;
@@ -3418,11 +3419,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			}
 			else if (!stricmp(hdrp->name, "Cache-Control")) {
 				if (strstr(hdrp->value, "no-store")) {
-					sess->use_cache_file = GF_FALSE;
-					if (sess->cache_entry) {
-						gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
-						sess->cache_entry = NULL;
-					}
+					cache_no_store = GF_TRUE;
 				}
 			}
 			else if (!stricmp(hdrp->name, "ETag")) {
@@ -3447,7 +3444,17 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
 			if (sess->status==GF_NETIO_DISCONNECTED) return GF_OK;
 		}
+
+		if (cache_no_store) {
+			if (sess->cache_entry && !ContentLength && (rsp_code<300) ) {
+				sess->use_cache_file = GF_FALSE;
+				gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
+				sess->cache_entry = NULL;
+			}
+		}
+
 		if (no_range) first_byte = 0;
+
 
 		gf_cache_set_headers_processed(sess->cache_entry);
 	}
