@@ -118,7 +118,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
 	if (evt->type==GF_EVENT_QUIT) {
 		GF_FilterSession *fsess = (GF_FilterSession *)ptr;
-		gf_fs_abort(fsess, GF_TRUE);
+		gf_fs_abort(fsess, GF_FALSE);
 	}
 	return 0;
 }
