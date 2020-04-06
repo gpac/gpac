@@ -1,10 +1,9 @@
 /*
 *			GPAC - Multimedia Framework C SDK
 *
-*			Authors: Romain Bouqueau
-*			Copyright (c) 
-*                  Romain Bouqueau @ GPAC Licensing
-*			        Jean Le Feuvre
+*			Authors: Romain Bouqueau, Jean Le Feuvre
+*			Copyright (c) 2014-2016 GPAC Licensing
+*			Copyright (c) 2016-2020 Telecom Paris
 *					All rights reserved
 *
 *  This file is part of GPAC / Dektec SDI video output filter
@@ -25,58 +24,9 @@
 *
 */
 
-#include <gpac/filters.h>
+#include "dektec_video.h"
 
 #ifdef GPAC_HAS_DTAPI
-
-//#define FAKE_DT_API
-
-#ifndef FAKE_DT_API
-#include <DTAPI.h>
-#endif
-
-#include <gpac/constants.h>
-#include <gpac/color.h>
-#include <gpac/thread.h>
-
-#if defined(WIN32) && !defined(__GNUC__)
-# include <intrin.h>
-#else
-#  include <emmintrin.h>
-#endif
-
-
-typedef struct {
-	struct _dtout_ctx *ctx;
-	GF_FilterPid *video; //null if audio callback
-	GF_FilterPid *audio; //null if video callback
-} DtCbkCtx;
-
-typedef struct _dtout_ctx
-{
-	//opts
-	s32 bus, slot;
-	GF_Fraction fps;
-	Bool clip;
-	u32 port;
-	Double start;
-
-	u32 width, height, pix_fmt, stride, stride_uv, uv_height, nb_planes;
-	GF_Fraction framerate;
-	Bool is_sending, is_configured, is_10b, is_eos;
-
-#ifndef FAKE_DT_API
-	DtMxProcess *dt_matrix;
-	DtDevice *dt_device;
-	DtCbkCtx audio_cbk, video_cbk;
-#endif
-
-	s64 frameNum;
-	u64 init_clock, last_frame_time;
-
-	u32 frame_dur, frame_scale;
-	Bool needs_reconfigure;
-} GF_DTOutCtx;
 
 #ifndef FAKE_DT_API
 
@@ -838,69 +788,6 @@ static GF_Err dtout_process(GF_Filter *filter)
 		return GF_EOS;
 	gf_filter_ask_rt_reschedule(filter, 200000);
 	return GF_OK;
-}
-
-
-
-#define OFFS(_n)	#_n, offsetof(GF_DTOutCtx, _n)
-
-static const GF_FilterArgs DTOutArgs[] =
-{
-	{ OFFS(bus), "PCI bus number - if not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(slot), "PCI bus number - if not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT },
-	{ OFFS(fps), "default FPS to use if input stream fps cannot be detected", GF_PROP_FRACTION, "30/1", NULL, GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(clip), "clip YUV data to valid SDI range, slower", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(port), "set sdi output port of card", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_NORMAL },
-	{ 0 }
-};
-
-static GF_FilterCapability DTOutCaps[3];
-
-GF_FilterRegister DTOutRegister;
-
-extern "C" {
-
-GPAC_MODULE_EXPORT
-GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
-{
-	memset(DTOutCaps, 0, sizeof(DTOutCaps));
-	DTOutCaps[0].code = GF_PROP_PID_STREAM_TYPE;
-	DTOutCaps[0].flags = GF_CAPS_INPUT;
-	DTOutCaps[0].val.type = GF_PROP_UINT;
-	DTOutCaps[0].val.value.uint = GF_STREAM_VISUAL;
-
-	DTOutCaps[1].code = GF_PROP_PID_STREAM_TYPE;
-	DTOutCaps[1].flags = GF_CAPS_INPUT;
-	DTOutCaps[1].val.type = GF_PROP_UINT;
-	DTOutCaps[1].val.value.uint = GF_STREAM_AUDIO;
-
-	DTOutCaps[2].code = GF_PROP_PID_CODECID;
-	DTOutCaps[2].flags = GF_CAPS_INPUT;
-	DTOutCaps[2].val.type = GF_PROP_UINT;
-	DTOutCaps[2].val.value.uint = GF_CODECID_RAW;
-
-	memset(&DTOutRegister, 0, sizeof(GF_FilterRegister));
-	DTOutRegister.name = "dtout";
-#ifndef GPAC_DISABLE_DOC
-	DTOutRegister.description = "DekTec SDIOut";
-	DTOutRegister.help = "This filter provides SDI output to be used with __DTA 2174__ or __DTA 2154__ cards.";
-#endif
-	DTOutRegister.private_size = sizeof(GF_DTOutCtx);
-	DTOutRegister.args = DTOutArgs;
-	DTOutRegister.caps = DTOutCaps;
-	DTOutRegister.nb_caps = 3;
-#ifndef FAKE_DT_API
-	DTOutRegister.initialize = dtout_initialize;
-	DTOutRegister.finalize = dtout_finalize;
-	DTOutRegister.configure_pid = dtout_configure_pid;
-#endif
-	DTOutRegister.process = dtout_process;
-
-
-	return &DTOutRegister;
-}
-
 }
 
 #endif //GPAC_HAS_DTAPI

@@ -140,11 +140,11 @@ const GF_FilterRegister *jsfilter_register(GF_FilterSession *session);
 const GF_FilterRegister *m2tssplit_register(GF_FilterSession *session);
 const GF_FilterRegister *httpout_register(GF_FilterSession *session);
 
-#ifdef GPAC_HAVE_DTAPI
-const GF_FilterRegister *dtout_register(GF_FilterSession *session)
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_HAVE_DTAPI)
+const GF_FilterRegister *dtout_register(GF_FilterSession *session);
 #endif
 
-#ifdef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_IOS)
 const GF_FilterRegister *mcdec_register(GF_FilterSession *session);
 #endif
 
@@ -184,7 +184,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, osvcdec_register(a_sess) );
 	gf_fs_add_filter_register(fsess, vtbdec_register(a_sess) );
 
-#ifdef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_IOS)
 	gf_fs_add_filter_register(fsess, mcdec_register(a_sess) );
 #endif
 
@@ -271,6 +271,10 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, ffavf_register(a_sess) );
 
 	gf_fs_add_filter_register(fsess, jsfilter_register(a_sess) );
+
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_HAVE_DTAPI)
+	gf_fs_add_filter_register(fsess, dtout_register(a_sess) );
+#endif
 }
 
 GF_EXPORT

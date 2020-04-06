@@ -1301,6 +1301,28 @@ reorder_delay (uint, default: 10): number of ms delay for RTP reordering (M2TS o
 .br
 
 .br
+.SH dvbin
+.LP
+.br
+Description: DVB for Linux
+.br
+
+.br
+Experimental DVB support for linux, requires a channel config file through -chcfg
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+src (cstr):                    location of source content
+.br
+block_size (uint, default: 65536): block size used to read file
+.br
+chcfg (cstr):                  path to channels.conf file
+.br
+
+.br
 .SH osvcdec
 .LP
 .br
@@ -1337,6 +1359,24 @@ no_copy (bool, default: true): dispatch VTB frames into filter chain (no copy)
 ofmt (pfmt, default: nv12):    set default pixel format for decoded video. If not matched default to nv12
 .br
 disable_hw (bool, default: false): disable hardware decoding
+.br
+
+.br
+.SH mcdec
+.LP
+.br
+Description: MediaCodec decoder
+.br
+
+.br
+This filter decodes video streams using hardware decoder on android devices
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+disable_gl (bool, default: false): disable OpenGL texture transfer
 .br
 
 .br
@@ -5437,6 +5477,34 @@ js (cstr):                     location of script source
 .br
 
 .br
+.SH dtout
+.LP
+.br
+Description: DekTec SDIOut
+.br
+
+.br
+This filter provides SDI output to be used with DTA 2174 or DTA 2154 cards.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+bus (sint, default: -1):       PCI bus number - if not set, device discovery is used
+.br
+slot (sint, default: -1):      PCI bus number - if not set, device discovery is used
+.br
+fps (frac, default: 30/1):     default FPS to use if input stream fps cannot be detected
+.br
+clip (bool, default: false):   clip YUV data to valid SDI range, slower
+.br
+port (uint, default: 1):       set sdi output port of card
+.br
+start (dbl, default: 0.0):     set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur
+.br
+
+.br
 .SH ohevcdec
 .LP
 .br
@@ -5484,7 +5552,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3588-gb26f0acff-filters
+build: 0.9.0-DEV-rev3611-g3d380ecc1-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

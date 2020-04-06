@@ -1497,6 +1497,6 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // defined(WIN32) || defined(GPAC_CONFIG_LINUX)
+#endif // defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
 
 

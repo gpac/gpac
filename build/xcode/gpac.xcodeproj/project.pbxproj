@@ -362,6 +362,8 @@
 		92B9A5BD1F868D0000A24FE4 /* dec_laser.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */; };
 		92B9A5BF1F8695FA00A24FE4 /* dmx_saf.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */; };
 		92B9A5C11F86ACDF00A24FE4 /* dec_opensvc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */; };
+		92BA0AD5243B68AF006FC74E /* dec_mediacodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BA0AD3243B68AF006FC74E /* dec_mediacodec.c */; };
+		92BA0ADA243B6E2B006FC74E /* dektec_video_decl.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BA0AD9243B6E2B006FC74E /* dektec_video_decl.c */; };
 		92BB85661F7BFB63009BC9C8 /* ff_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85501F7BFB60009BC9C8 /* ff_dec.c */; };
 		92BB85671F7BFB63009BC9C8 /* dec_odf.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85511F7BFB60009BC9C8 /* dec_odf.c */; };
 		92BB85681F7BFB63009BC9C8 /* dec_bifs.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85521F7BFB60009BC9C8 /* dec_bifs.c */; };
@@ -1014,6 +1016,8 @@
 		92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_laser.c; path = filters/dec_laser.c; sourceTree = "<group>"; };
 		92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_saf.c; path = filters/dmx_saf.c; sourceTree = "<group>"; };
 		92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_opensvc.c; path = filters/dec_opensvc.c; sourceTree = "<group>"; };
+		92BA0AD3243B68AF006FC74E /* dec_mediacodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_mediacodec.c; path = filters/dec_mediacodec.c; sourceTree = "<group>"; };
+		92BA0AD9243B6E2B006FC74E /* dektec_video_decl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dektec_video_decl.c; path = ../modules/dektec_out/dektec_video_decl.c; sourceTree = "<group>"; };
 		92BB854C1F7BE2BA009BC9C8 /*  */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "\U0001"; path = "../../../../../../../\U0001"; sourceTree = "<group>"; };
 		92BB85501F7BFB60009BC9C8 /* ff_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_dec.c; path = filters/ff_dec.c; sourceTree = "<group>"; };
 		92BB85511F7BFB60009BC9C8 /* dec_odf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_odf.c; path = filters/dec_odf.c; sourceTree = "<group>"; };
@@ -1977,6 +1981,7 @@
 				92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */,
 				92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
+				92BA0AD3243B68AF006FC74E /* dec_mediacodec.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
 				92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */,
 				926656C31F7D3DF700299CC6 /* dec_theora.c */,
@@ -1986,6 +1991,7 @@
 				9234CF3E1FD8311400CCDFA1 /* dec_webvtt.c */,
 				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
 				925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */,
+				92BA0AD9243B6E2B006FC74E /* dektec_video_decl.c */,
 				922CF1261FCF169900F2F6A4 /* dmx_avi.c */,
 				92BB9A661F9C827600524E5B /* dmx_dash.c */,
 				9203644A20ECF67C0087883E /* dmx_gsf.c */,
@@ -2580,6 +2586,7 @@
 				9201012718D5A444003D1ACA /* media_odf.c in Sources */,
 				9201012818D5A444003D1ACA /* meta.c in Sources */,
 				9201012918D5A444003D1ACA /* movie_fragments.c in Sources */,
+				92BA0AD5243B68AF006FC74E /* dec_mediacodec.c in Sources */,
 				9201012A18D5A444003D1ACA /* sample_descs.c in Sources */,
 				9201012B18D5A444003D1ACA /* stbl_read.c in Sources */,
 				92B9A5AE1F8660D700A24FE4 /* mpeg4_viewport.c in Sources */,
@@ -2593,6 +2600,7 @@
 				9201012F18D5A444003D1ACA /* tx3g.c in Sources */,
 				9201013018D5A444003D1ACA /* lsr_dec.c in Sources */,
 				9257307F2056948D009DB328 /* rewrite_adts.c in Sources */,
+				92BA0ADA243B6E2B006FC74E /* dektec_video_decl.c in Sources */,
 				9201013118D5A444003D1ACA /* lsr_enc.c in Sources */,
 				9201013218D5A445003D1ACA /* lsr_tables.c in Sources */,
 				92E164AB20F8EBAE0024A9CA /* dec_nvdec_sdk.c in Sources */,

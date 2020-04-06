@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / mediacodec decoder filter
@@ -26,6 +26,9 @@
 
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
+
+#ifdef GPAC_CONFIG_ANDROID
+
 #include "dec_mediacodec.h"
 
 typedef struct
@@ -1192,6 +1195,12 @@ void mcdec_finalize(GF_Filter *filter)
 	gf_list_del(ctx->frames_res);
 }
 
+#else
+static GF_Err mcdec_process(GF_Filter *filter)
+{
+	return GF_EOS;
+}
+#endif
 
 
 static const GF_FilterCapability MCDecCaps[] =
@@ -1207,29 +1216,41 @@ static const GF_FilterCapability MCDecCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
+#ifdef GPAC_CONFIG_ANDROID
 #define OFFS(_n)	#_n, offsetof(GF_MCDecCtx, _n)
+#else
+#define OFFS(_n)	#_n, -1
+#endif
 
 static const GF_FilterArgs MCDecArgs[] =
 {
-	{ OFFS(disable_gl), "Disables OpenGL texture transfer", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(disable_gl), "Disables OpenGL texture transfer", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(disable_gl), "disable OpenGL texture transfer", GF_PROP_BOOL, "false", NULL, 0},
 	{}
 };
 
 GF_FilterRegister GF_MCDecCtxRegister = {
 	.name = "mcdec",
 	GF_FS_SET_DESCRIPTION("MediaCodec decoder")
-	.private_size = sizeof(GF_MCDecCtx),
+	GF_FS_SET_HELP("This filter decodes video streams using hardware decoder on android devices")
 	.args = MCDecArgs,
 	SETCAPS(MCDecCaps),
+#ifdef GPAC_CONFIG_ANDROID
+	.private_size = sizeof(GF_MCDecCtx),
 	.initialize = mcdec_initialize,
 	.finalize = mcdec_finalize,
 	.configure_pid = mcdec_configure_pid,
+#else
 	.process = mcdec_process,
+#endif
 };
 
 
 const GF_FilterRegister *mcdec_register(GF_FilterSession *session)
 {
+#ifndef GPAC_CONFIG_ANDROID
+	if (!gf_opts_get_bool("temp", "gendoc"))
+		return NULL;
+	GF_MCDecCtxRegister.version = "! Warning: MediaCodec SDK NOT AVAILABLE IN THIS BUILD !";
+#endif
 	return &GF_MCDecCtxRegister;
 }

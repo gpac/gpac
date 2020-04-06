@@ -385,9 +385,19 @@ static GF_Err dvblin_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+#else
+static GF_Err dvblin_process(GF_Filter *filter)
+{
+	return GF_EOS;
+}
+#endif //GPAC_HAS_LINUX_DVB
 
 
+#ifdef GPAC_HAS_LINUX_DVB
 #define OFFS(_n)	#_n, offsetof(GF_DVBLinuxCtx, _n)
+#else
+#define OFFS(_n)	#_n, -1
+#endif
 
 static const GF_FilterArgs DVBLinuxArgs[] =
 {
@@ -401,24 +411,26 @@ GF_FilterRegister DVBLinuxRegister = {
 	.name = "dvbin",
 	GF_FS_SET_DESCRIPTION("DVB for Linux")
 	GF_FS_SET_HELP("Experimental DVB support for linux, requires a channel config file through [-chcfg]()")
-	.private_size = sizeof(GF_DVBLinuxCtx),
 	.args = DVBLinuxArgs,
+#ifdef GPAC_HAS_LINUX_DVB
+	.private_size = sizeof(GF_DVBLinuxCtx),
 	.initialize = dvblin_initialize,
 	.finalize = dvblin_finalize,
 	.process = dvblin_process,
 	.process_event = dvblin_process_event,
 	.probe_url = dvblin_probe_url
-};
-
+#else
+	.process = dvblin_process,
 #endif
+};
 
 const GF_FilterRegister *dvblin_register(GF_FilterSession *session)
 {
-#if defined(GPAC_HAS_LINUX_DVB) && !defined(GPAC_SIM_LINUX_DVB)
-	return &DVBLinuxRegister;
-#else
-	return NULL;
+#if !defined(GPAC_HAS_LINUX_DVB) || defined(GPAC_SIM_LINUX_DVB)
+	if (!gf_opts_get_bool("temp", "gendoc"))
+		return NULL;
+	DVBLinuxRegister.version = "! Warning: DVB4Linux NOT AVAILABLE IN THIS BUILD !";
 #endif
-
+	return &DVBLinuxRegister;
 }
 
