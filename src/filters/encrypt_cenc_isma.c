@@ -1535,8 +1535,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				case CENC_AV1:
 					clear_bytes = ranges[range_idx].clear;
 					nalu_size = clear_bytes + ranges[range_idx].encrypted;
-					//A subsample SHALL be created for each tile.
-					prev_entry_bytes_clear = prev_entry_bytes_crypt = 0;
 					break;
 				case CENC_VPX:
 					if (nb_ranges > 1) {
@@ -1546,8 +1544,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						nalu_size = clear_bytes = ranges[range_idx].clear;
 						assert(ranges[range_idx].encrypted == 0);
 					}
-					//A subsample SHALL be created for each tile.
-					prev_entry_bytes_clear = prev_entry_bytes_crypt = 0;
 					break;
 				default:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unexpected subrange for sample format, only allowed for VPX and AV1\n"));
