@@ -52,7 +52,7 @@ typedef enum {
 	CENC_AVC, /*AVC, nalu-based*/
 	CENC_HEVC, /*HEVC, nalu-based*/
 	CENC_AV1,  /*AV1, OBU-based*/
-	CENC_VPX,  /*VPX, custom, see https://www.webmproject.org/vp9/mp4/*/
+	CENC_VPX,  /*VPX, custom, see https://www.webmproject.org/vp9/mp4/ */
 } CENCCodecMode;
 
 
@@ -1321,21 +1321,20 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						clear_bytes = ranges[0].clear;
 						nalu_size = clear_bytes + ranges[0].encrypted;
 
+						/* A subsample SHALL be created for each tile even if less than 16 bytes
+							see https://github.com/AOMediaCodec/av1-isobmff/pull/116#discussion_r340176740
 
-						//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, other wise merge in prev
-						if (ranges[0].encrypted >= 16) {
-							if (prev_entry_bytes_crypt) {
-								if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
-								nb_subsamples++;
-								gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
-								gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
-								sai_size+=6;
+						If previous range had encrypted bytes, create a new one, otherwise merge in prev
+						*/
+						if (prev_entry_bytes_crypt) {
+							if (!nb_subsamples) gf_bs_write_u16(sai_bs, 0);
+							nb_subsamples++;
+							gf_bs_write_u16(sai_bs, prev_entry_bytes_clear);
+							gf_bs_write_u32(sai_bs, prev_entry_bytes_crypt);
+							sai_size+=6;
 
-								prev_entry_bytes_crypt = 0;
-								prev_entry_bytes_clear = 0;
-							}
-						} else {
-							clear_bytes = nalu_size;
+							prev_entry_bytes_crypt = 0;
+							prev_entry_bytes_clear = 0;
 						}
 					}
 					break;
@@ -1447,12 +1446,12 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					}
 				} else {
 					//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
-					//except in AV1, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
-					if ((cstr->cenc_codec != CENC_AV1) && (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+					//except in VPX, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
+					if ((cstr->cenc_codec != CENC_VPX) && (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
 						u32 ret = (nalu_size - clear_bytes) % 16;
 						clear_bytes_at_end = ret;
 					}
-					//in cbc1, we adjust bytes_encrypted_data to be a multiple of 16 bytes
+					//in cbc1 or cbcs+VPX, we adjust bytes_encrypted_data to be a multiple of 16 bytes
 					else {
 						u32 ret = (nalu_size - clear_bytes) % 16;
 						clear_bytes += ret;
