@@ -605,6 +605,13 @@ static GF_Err compose_initialize(GF_Filter *filter)
 		ctx->dyn_filter_mode = GF_TRUE;
 	}
 
+	if (ctx->buf > ctx->mbuf)
+		ctx->buf = ctx->mbuf;
+	if (ctx->rbuf > ctx->mbuf)
+		ctx->buf = ctx->mbuf;
+	if (ctx->rbuf >= ctx->buf)
+		ctx->rbuf = 0;
+
     if (ctx->player) {
 		if (ctx->ogl == GF_SC_GLMODE_AUTO)
 			ctx->ogl = GF_SC_GLMODE_HYBRID;
