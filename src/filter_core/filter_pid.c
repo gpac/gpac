@@ -2114,10 +2114,12 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
     u32 nb_out_caps=0;
 	for (i=0; i<freg->nb_caps; i++) {
 		u32 nb_caps = 0;
+        u32 cap_bundle_idx = 0;
 		const GF_FilterCapability *cap = &freg->caps[i];
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			cur_bundle_idx++;
 			if (cur_bundle_idx>bundle_idx) return GF_FALSE;
+            continue;
 		}
 		if (!(cap->flags & GF_CAPFLAG_STATIC) && (bundle_idx>cur_bundle_idx)) continue;
 		if (!(cap->flags & GF_CAPFLAG_OUTPUT)) continue;
@@ -2126,10 +2128,13 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 
 		for (k=0; k<freg->nb_caps; k++) {
 			const GF_FilterCapability *acap = &freg->caps[k];
-			if (!(acap->flags & GF_CAPFLAG_IN_BUNDLE)) break;
+            if (!(acap->flags & GF_CAPFLAG_IN_BUNDLE)) {
+                cap_bundle_idx++;
+                continue;
+            }
 			if (!(acap->flags & GF_CAPFLAG_OUTPUT)) continue;
 			if (acap->flags & GF_CAPFLAG_OPTIONAL) continue;
-			if (!(acap->flags & GF_CAPFLAG_STATIC) && (k<i) ) continue;
+			if (!(acap->flags & GF_CAPFLAG_STATIC) && (cap_bundle_idx!=bundle_idx) ) continue;
 
 			if (cap->code && (acap->code==cap->code)) {
 				nb_caps++;
@@ -3477,8 +3482,10 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	u32 num_pass=0;
 	GF_List *loaded_filters = NULL;
 	GF_List *linked_dest_filters = NULL;
-	GF_List *force_link_resolutions = NULL;
-	GF_List *possible_linked_resolutions = NULL;
+#if 0
+    GF_List *force_link_resolutions = NULL;
+#endif
+    GF_List *possible_linked_resolutions = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
@@ -3519,8 +3526,10 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	if (filter->session->filters_mx) gf_mx_p(filter->session->filters_mx);
 
 	linked_dest_filters = gf_list_new();
+#if 0
 	force_link_resolutions = gf_list_new();
-	possible_linked_resolutions = gf_list_new();
+#endif
+    possible_linked_resolutions = gf_list_new();
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init\n", pid->filter->name, pid->name));
 
@@ -3780,10 +3789,15 @@ single_retry:
 				}
 			}
 			if (!num_pass) {
-				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
-				if (filter_dst->source_ids) {
-					gf_list_add(force_link_resolutions, filter_dst);
-				} else {
+                //this is wrong, breaks tileagg and other filters (cf scripts/dash-srd-hevc.sh) when the source was loaded with sourceID
+                //as is the case with compositor filter
+#if 0
+                //we have an explicit link instruction so we must try dynamic link even if we connect to another filter
+				if (0&&filter_dst->source_ids) {
+                    gf_list_add(force_link_resolutions, filter_dst);
+				} else
+#endif
+                {
 					//register as possible destination link. If a filter already registered is a destination of this possible link
 					//only the possible link will be kept
 					add_possible_link_destination(possible_linked_resolutions, filter_dst);
@@ -3811,8 +3825,10 @@ single_retry:
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
-					gf_list_del(force_link_resolutions);
-					gf_list_del(possible_linked_resolutions);
+#if 0
+                    gf_list_del(force_link_resolutions);
+#endif
+                    gf_list_del(possible_linked_resolutions);
 					return;
 				}
 
@@ -3827,8 +3843,10 @@ single_retry:
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
-					gf_list_del(force_link_resolutions);
-					gf_list_del(possible_linked_resolutions);
+#if 0
+                    gf_list_del(force_link_resolutions);
+#endif
+                    gf_list_del(possible_linked_resolutions);
 					return;
 				}
 				//we might had it wrong solving the chain initially, break the chain
@@ -3851,8 +3869,10 @@ single_retry:
 							safe_int_dec(&pid->init_task_pending);
 							if (loaded_filters) gf_list_del(loaded_filters);
 							gf_list_del(linked_dest_filters);
-							gf_list_del(force_link_resolutions);
-							gf_list_del(possible_linked_resolutions);
+#if 0
+                            gf_list_del(force_link_resolutions);
+#endif
+                            gf_list_del(possible_linked_resolutions);
 							return;
 						} else {
 							continue;
@@ -3885,7 +3905,8 @@ single_retry:
 			}
 		}
 
-		if (!num_pass) {
+#if 0
+        if (!num_pass) {
 			u32 k=0;
 			for (k=0; k<gf_list_count(force_link_resolutions); k++) {
 				GF_Filter *dst_link = gf_list_get(force_link_resolutions, k);
@@ -3901,7 +3922,8 @@ single_retry:
 				}
 			}
 		}
-	}
+#endif
+    }
 
 	if (loaded_filters) {
 		gf_list_del(loaded_filters);
@@ -3913,21 +3935,25 @@ single_retry:
 		num_pass = 1;
 		goto restart;
 	}
-	//we must do the second pass if a filter has an explicit link set through source ID
+#if 0
+    //we must do the second pass if a filter has an explicit link set through source ID
 	if (!num_pass && gf_list_count(force_link_resolutions)) {
 		num_pass = 1;
 		goto restart;
 	}
+#endif
 
-	//connection task posted, nothing left to do
+    //connection task posted, nothing left to do
 	if (found_dest) {
 		assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 		pid->filter->disabled = GF_FALSE;
 		gf_list_del(linked_dest_filters);
-		gf_list_del(force_link_resolutions);
-		gf_list_del(possible_linked_resolutions);
+#if 0
+        gf_list_del(force_link_resolutions);
+#endif
+        gf_list_del(possible_linked_resolutions);
 		gf_fs_check_graph_load(filter->session, GF_FALSE);
 		return;
 	}
@@ -3966,8 +3992,10 @@ single_retry:
 	gf_fs_check_graph_load(filter->session, GF_FALSE);
 
 	gf_list_del(linked_dest_filters);
-	gf_list_del(force_link_resolutions);
-	gf_list_del(possible_linked_resolutions);
+#if 0
+    gf_list_del(force_link_resolutions);
+#endif
+    gf_list_del(possible_linked_resolutions);
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
 
