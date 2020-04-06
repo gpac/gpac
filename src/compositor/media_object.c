@@ -702,8 +702,14 @@ retry:
 
 		v = gf_filter_pck_get_property(mo->pck, GF_PROP_PCK_SENDER_NTP);
 		if (v) {
-			s32 ntp_diff = gf_net_get_ntp_diff_ms(v->value.longuint);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, ntp_diff));
+			GF_PropertyEntry *pe = NULL;
+			mo->odm->last_drawn_frame_ntp_diff = gf_net_get_ntp_diff_ms(v->value.longuint);
+			v = gf_filter_pid_get_info_str(mo->odm->pid, "ntpdiff", &pe);
+			if (v) {
+				mo->odm->last_drawn_frame_ntp_diff -= v->value.sint;
+			}
+			gf_filter_release_property(pe);
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, mo->odm->last_drawn_frame_ntp_diff));
 		}
 
 		/*signal EOS after rendering last frame, not while rendering it*/
