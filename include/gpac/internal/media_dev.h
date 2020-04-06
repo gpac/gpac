@@ -565,16 +565,19 @@ typedef enum {
 
 typedef struct
 {
+	//offset in bytes after first byte of obu, including its header
+	u32 obu_start_offset;
+	u32 size;
+} AV1Tile;
+
+typedef struct
+{
 	Bool is_first_frame;
 	Bool seen_frame_header, seen_seq_header;
 	Bool key_frame, show_frame;
 	AV1FrameType frame_type;
 	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
-	struct {
-		//offset in bytes after first byte of obu, including its header
-		u32 obu_start_offset;
-		u32 size;
-	} tiles[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
+	AV1Tile tiles[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 	u32 nb_tiles_in_obu;
 	u8 refresh_frame_flags;
 	u8 order_hint;

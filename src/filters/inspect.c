@@ -673,6 +673,11 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 	if (bs) gf_bs_del(bs);
 }
 
+static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
+{
+	gf_fprintf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
+}
+
 GF_EXPORT
 void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
 {
@@ -721,16 +726,23 @@ void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, Obu
 
 	case OBU_TILE_GROUP:
 		if (av1->frame_state.nb_tiles_in_obu) {
+			u32 i;
 			DUMP_OBU_INT2("nb_tiles", av1->frame_state.nb_tiles_in_obu)
+			fprintf(dump, ">\n");
+			for (i = 0; i < av1->frame_state.nb_tiles_in_obu; i++) {
+				av1_dump_tile(dump, i, &av1->frame_state.tiles[i]);
+			}
 		} else {
-			gf_fprintf(dump, "nb_tiles=\"unknown\" ");
+			gf_fprintf(dump, "nb_tiles=\"unknown\">\n");
 		}
+		gf_fprintf(dump, "</OBU>\n");
 		break;
 	default:
 		break;
 
 	}
-	gf_fprintf(dump, "/>\n");
+	if (obu_type != OBU_TILE_GROUP)
+		gf_fprintf(dump, "/>\n");
 }
 
 GF_EXPORT
