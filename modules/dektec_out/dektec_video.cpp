@@ -792,4 +792,13 @@ static GF_Err dtout_process(GF_Filter *filter)
 
 #endif //GPAC_HAS_DTAPI
 
- 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "dektec_video_decl.c"
+
+
+#ifdef __cplusplus
+}
+#endif
