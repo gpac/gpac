@@ -2397,7 +2397,7 @@ GF_Err gf_filter_remove_event_listener(GF_Filter *filter, GF_FSEventListener *el
 GF_EXPORT
 Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed, Bool skip_user)
 {
-	if (!filter || !filter->session) return GF_FALSE;
+	if (!filter || !filter->session || filter->session->in_final_flush) return GF_FALSE;
 
 	if (filter->session->event_listeners) {
 		GF_FSEventListener *el;
