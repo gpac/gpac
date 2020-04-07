@@ -36,9 +36,11 @@
 #include <gpac/modules/video_out.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
-#include <gpac/thread.h>
 
+//define before thread.h which includes windows.h and winbase.h
 #define INITGUID
+
+#include <gpac/thread.h>
 
 
 
