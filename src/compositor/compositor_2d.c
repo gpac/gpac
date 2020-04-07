@@ -95,7 +95,7 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 	visual_3d_enable_antialias(compositor->visual, GF_FALSE);
 	gf_sc_texture_set_blend_mode(compositor->hybgl_txh, TX_MODULATE);
 	//visual_3d_set_material_2d_argb(compositor->visual, 0xFFFFFFFF);
-	compositor->visual->has_material_2d = 0;
+	compositor->visual->has_material_2d = GF_FALSE;
 	a_tr_state.mesh_num_textures = gf_sc_texture_enable(compositor->hybgl_txh, NULL);
 	if (a_tr_state.mesh_num_textures ) {
 		if (area) {
