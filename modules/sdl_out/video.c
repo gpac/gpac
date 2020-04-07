@@ -429,7 +429,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 #endif
 #endif
 
-#if SDL_VERSION_ATLEAST(2,0,0)
+#if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS)
 #include <gpac/media_tools.h>
 void SDLVid_SetIcon(SDLVidCtx *ctx)
 {
@@ -527,7 +527,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 
+#if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS)
 			SDLVid_SetIcon(ctx);
+#endif
 
 			/*creating a window, at least on OSX, changes the locale and screws up float parsing !!
 			force setting the local back and pray that it will be changed before any other atof/strtod is called
@@ -622,7 +624,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				return GF_IO_ERR;
 			}
 
+#if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS)
 			SDLVid_SetIcon(ctx);
+#endif
 
 			/*see above note*/
 #ifndef _WIN32_WCE
@@ -982,6 +986,17 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			gpac_evt.type = GF_EVENT_MOUSEWHEEL;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
+
+		case SDL_MULTIGESTURE:
+			gpac_evt.mtouch.x = FLT2FIX(sdl_evt.mgesture.x);
+			gpac_evt.mtouch.y = FLT2FIX(sdl_evt.mgesture.y);
+			gpac_evt.mtouch.num_fingers = sdl_evt.mgesture.numFingers;
+			gpac_evt.mtouch.rotation = sdl_evt.mgesture.dTheta;
+			gpac_evt.mtouch.pinch = sdl_evt.mgesture.dDist;
+			gpac_evt.type = GF_EVENT_MULTITOUCH;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			break;
+
 #endif
 
 		}

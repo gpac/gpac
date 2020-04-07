@@ -484,6 +484,34 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		}
 		return 1;
 
+	case GF_EVENT_MULTITOUCH:
+		compositor->auto_rotate=0;
+		compositor->navigation_state = 0;
+		if (ev->mtouch.num_fingers==2) {
+			if( ABS(ev->mtouch.pinch) * 100 > 2 ) {
+				if (cam->is_3D) {
+					view_translate_z(compositor, cam, gf_mulfix(cam->width, compositor->visual->width* ev->mtouch.pinch));
+				} else {
+					nav_set_zoom_trans_2d(compositor->visual, zoom + gf_mulfix(trans_scale, ev->mtouch.pinch), 0, 0);
+				}
+				return 1;
+			}
+			if( ABS(ev->mtouch.rotation) > GF_PI/40 ) {
+				view_roll(compositor, cam, gf_mulfix(ev->mtouch.rotation, trans_scale));
+				return 1;
+			}
+		} else if (ev->mtouch.num_fingers==3) {
+			compositor->visual->camera.start_zoom = compositor->zoom;
+			compositor->zoom = FIX_ONE;
+			compositor->interoccular_offset = 0;
+			compositor->focdist = 0;
+			compositor->interoccular_offset = 0;
+			compositor->focdist = 0;
+			compositor_3d_reset_camera(compositor);
+			return 1;
+		}
+		return 0;
+
 	case GF_EVENT_MOUSEUP:
 		compositor->auto_rotate=0;
 		if (ev->mouse.button==GF_MOUSE_LEFT) compositor->navigation_state = 0;
@@ -763,6 +791,26 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 			return 0;
 		}
 		break;
+	case GF_EVENT_MULTITOUCH:
+		if (ev->mtouch.num_fingers==2) {
+			if( ABS(ev->mtouch.pinch) * 100 > 2 ) {
+				new_zoom = zoom + ev->mtouch.pinch * MIN(visual->width, visual->height)/100;
+				nav_set_zoom_trans_2d(visual, new_zoom, 0, 0);
+				return 1;
+			}
+			if( ABS(ev->mtouch.rotation) > GF_PI/40 ) {
+				visual->compositor->rotation -= ev->mtouch.rotation;
+				nav_set_zoom_trans_2d(visual, zoom, 0, 0);
+				return 1;
+			}
+		} else if (ev->mtouch.num_fingers==3) {
+			visual->compositor->trans_x = visual->compositor->trans_y = 0;
+			visual->compositor->rotation = 0;
+			visual->compositor->zoom = FIX_ONE;
+			nav_set_zoom_trans_2d(visual, FIX_ONE, 0, 0);
+			return 1;
+		}
+		return 0;
 
 	case GF_EVENT_MOUSEWHEEL:
 		switch (navigation_mode) {

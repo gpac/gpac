@@ -3483,6 +3483,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_MOUSEWHEEL:
 		event->mouse.key_states = compositor->key_states;
 	case GF_EVENT_SENSOR_ORIENTATION:
+	case GF_EVENT_MULTITOUCH:
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 
 	case GF_EVENT_PASTE_TEXT:
@@ -4011,9 +4012,9 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 ob
 
 		if (!compositor->ms_until_next_frame || ((s32) wait_ms < compositor->ms_until_next_frame)) {
 			compositor->ms_until_next_frame = (s32) wait_ms;
-			if (from_filter) {
-				gf_filter_ask_rt_reschedule(from_filter, wait_ms*500);
-			}
+		}
+		if (from_filter) {
+			gf_filter_ask_rt_reschedule(from_filter, wait_ms*500);
 		}
 	}
 }
