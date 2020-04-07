@@ -206,9 +206,10 @@ extension = {
 
                 //switch back inline nodes and remove from dictionary
                 gw_detach_child(this);
-                //force detach, we don't know when GC will be done
-                ext.movie.children[0].url[0] = '';
+                let old_inline = ext.movie.children[0];
                 ext.movie.children[0] = this;
+                //force detach, we don't know when GC will be done
+                old_inline.url[0] = '';
                 if (evt.error) return;
 
 
@@ -256,9 +257,8 @@ extension = {
 				gwskin.enable_background(false);
                 ext.declare_addons();
 
-                if (ext.initial_service_id) {
-                    var odm = gpac.get_object_manager(ext.current_url);
-                    if (odm) odm.select_service(ext.initial_service_id);
+                if (ext.initial_service_id && ext.root_odm) {
+                    ext.root_odm.select_service(ext.initial_service_id);
                     ext.initial_service_id = 0;
                 }
 
@@ -286,7 +286,7 @@ extension = {
                 ext.controler.on_display_size(ext.controler.width, ext.controler.height);
             }
 
-            ext.root_odm = gpac.get_object_manager(ext.current_url);
+//            ext.root_odm = gpac.get_object_manager(ext.current_url);
             ext.set_state(ext.GF_STATE_PLAY);
 
             //override scene size info
@@ -367,9 +367,6 @@ extension = {
 
                 this.extension.controler.play.switch_icon(this.extension.icon_pause);
 
-                if (!this.extension.root_odm) {
-                    this.extension.root_odm = gpac.get_object_manager(this.extension.current_url);
-                }
                 if (this.extension.root_odm) {
                     this.extension.declare_addons();
                 }
@@ -381,7 +378,6 @@ extension = {
         }
 
         this.movie.children[0].on_media_end = function (evt) {
-            gwlog(l_err, 'end of media');
             if (this.extension.duration>1) {
                 if (this.extension.movie_control.loop) {
                     this.extension.movie_control.mediaStartTime = 0;
@@ -768,7 +764,6 @@ extension = {
             var control_icon_size = gwskin.default_icon_height;
             var is_over = true;
             var show_navigate = false;
-
             if (arguments.length == 0) {
                 width = this.width;
                 height = this.height;
@@ -791,7 +786,6 @@ extension = {
             if (this.snd_ctrl) full_w += this.snd_ctrl.width;
             if (this.fullscreen) full_w += control_icon_size;
 
-
             if (this.navigate) {
                 this.navigate.hide();
 
@@ -813,7 +807,6 @@ extension = {
 						this.extension.select_navigation_type();
 					}
                 }
- 
             }
 
             if (this.extension.movie_connected) {
@@ -848,7 +841,7 @@ extension = {
                 this.stop.hide();
                 this.play.hide();
             }
-
+ 
             if (this.extension.duration) {
 				if (this.forward) full_w += control_icon_size;
 				if (this.extension.duration>1) {
@@ -868,7 +861,6 @@ extension = {
             } else {
                 this.back_live.hide();
             }
-
 
             if (this.remote && UPnP.MediaRenderersCount && (this.extension.current_url != '')) {
                 full_w += control_icon_size;
@@ -1427,11 +1419,13 @@ extension = {
                 this.movie_control.url[0] = url;
                 this.movie_sensor.url[0] = url;
                 this.movie.children[0].url[0] = url;
+                this.root_odm = null;
                 return;
             }
 
             this.default_addon = null;
             this.root_odm = null;
+            this.stoped_url = null;
 
             /*create a temp inline holding the previous scene, use it as the main movie and use the old inline to test the resource. 
             This avoids messing up with event targets already setup*/
