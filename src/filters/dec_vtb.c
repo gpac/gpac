@@ -26,7 +26,7 @@
 //do not include math.h we would have a conflict with Fixed ... we're lucky we don't need maths routines here
 #define _GF_MATH_H_
 
-#include <gpac/setup.h>
+#include <gpac/thread.h>
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) )
 
@@ -110,7 +110,7 @@ typedef struct
 	Bool reorder_detected;
 	Bool drop_non_refs;
 
-	u32 decoded_frames_pending;
+	volatile u32 decoded_frames_pending;
 	u32 reorder_probe;
 	Bool reconfig_needed;
 	u64 last_cts_out;
@@ -1679,7 +1679,8 @@ void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck
         CVPixelBufferRelease(f->frame);
         f->frame = NULL;
     }
-	f->ctx->decoded_frames_pending--;
+
+    safe_int_dec(&f->ctx->decoded_frames_pending);
 	gf_list_add(f->ctx->frames_res, f);
 }
 
@@ -1837,7 +1838,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	if (!gf_list_count(ctx->frames) && ctx->reconfig_needed)
 		vtb_frame->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 
-	ctx->decoded_frames_pending++;
+	safe_int_inc(&ctx->decoded_frames_pending);
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vtb_frame->frame_ifce, vtbframe_release);
 
