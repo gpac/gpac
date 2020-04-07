@@ -332,7 +332,12 @@ GF_CodecID gf_codecid_alt(GF_CodecID codecid)
 GF_EXPORT
 GF_CodecID gf_codecid_from_oti(u32 stream_type, u32 oti)
 {
-	CodecIDReg *r = gf_codecid_reg_find_oti(stream_type, oti);
+	CodecIDReg *r;
+	if (!oti) {
+		if ((stream_type==GF_STREAM_OD) || (stream_type==GF_STREAM_SCENE))
+			oti = 1;
+	}
+	r = gf_codecid_reg_find_oti(stream_type, oti);
 	if (!r) return GF_CODECID_NONE;
 	return r->codecid;
 }
