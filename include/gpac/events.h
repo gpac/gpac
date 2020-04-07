@@ -76,6 +76,23 @@ typedef struct
 	u32 key_states;
 } GF_EventMouse;
 
+/*! Mouse event structure
+	event proc return value: ignored
+*/
+typedef struct
+{
+	/*GF_EVENT_MULTITOUCH*/
+	u8 type;
+	/*normalized center of multitouch event*/
+	Fixed x, y;
+	/*finger rotation*/
+	Fixed rotation;
+	/*finger pinch*/
+	Fixed pinch;
+	/*number of fingers detected*/
+	u32 num_fingers;
+} GF_EventMultiTouch;
+
 /*! Keyboard key event
 	event proc return value: ignored
 */
@@ -358,6 +375,7 @@ typedef union
 {
 	u8 type;
 	GF_EventMouse mouse;
+	GF_EventMultiTouch mtouch;
 	GF_EventKey key;
 	GF_EventChar character;
 	GF_EventSensor sensor;

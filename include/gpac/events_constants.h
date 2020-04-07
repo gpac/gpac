@@ -71,6 +71,7 @@ typedef enum {
 	/*character input*/
 	GF_EVENT_TEXTINPUT,
 
+	GF_EVENT_MULTITOUCH,
 
 	/******************************************************
 
