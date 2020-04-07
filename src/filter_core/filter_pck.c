@@ -321,6 +321,7 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *
 	pck->filter_owns_mem = 1;
 	if (!intern_pck) {
 		safe_int_inc(&pid->nb_shared_packets_out);
+		safe_int_inc(&pid->filter->nb_shared_packets_out);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pid->filter->name, pid->name, pid->nb_shared_packets_out));
 	}
 	gf_filter_pck_reset_props(pck, pid);
@@ -353,6 +354,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const u8 *data, u32 da
 		pck->frame_ifce = reference->frame_ifce;
 	}
 	safe_int_inc(&reference->pid->nb_shared_packets_out);
+	safe_int_inc(&reference->pid->filter->nb_shared_packets_out);
 	return pck;
 }
 
@@ -392,6 +394,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 	assert(reference->reference_count);
 	safe_int_inc(&reference->reference_count);
 	safe_int_inc(&reference->pid->nb_shared_packets_out);
+	safe_int_inc(&reference->pid->filter->nb_shared_packets_out);
 
 	gf_filter_pck_merge_properties(reference, pck);
 	pck->data = reference->data;
@@ -476,7 +479,9 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	if (pck->filter_owns_mem && !(pck->info.flags & GF_PCK_CMD_MASK) ) {
 		assert(pck->pid);
 		assert(pck->pid->nb_shared_packets_out);
+		assert(pck->pid->filter->nb_shared_packets_out);
 		safe_int_dec(&pck->pid->nb_shared_packets_out);
+		safe_int_dec(&pck->pid->filter->nb_shared_packets_out);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pck->pid->filter->name, pck->pid->name, pck->pid->nb_shared_packets_out));
 	}
 
@@ -485,8 +490,10 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 
 	if (pck->reference) {
 		assert(pck->reference->pid->nb_shared_packets_out);
+		assert(pck->reference->pid->filter->nb_shared_packets_out);
 		safe_int_dec(&pck->reference->pid->nb_shared_packets_out);
-		
+		safe_int_dec(&pck->reference->pid->filter->nb_shared_packets_out);
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pck->reference->pid->filter->name, pck->reference->pid->name, pck->reference->pid->nb_shared_packets_out));
 		assert(pck->reference->reference_count);
 		if (safe_int_dec(&pck->reference->reference_count) == 0) {

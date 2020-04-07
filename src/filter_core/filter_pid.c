@@ -442,7 +442,10 @@ void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 	GF_FilterPidInst *dst_swapinst = pidinst->filter->swap_pidinst_dst;
 
 	//reset in process
-	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
+	if ((pidinst->filter && pidinst->discard_packets)
+		|| filter->stream_reset_pending
+		|| filter->nb_shared_packets_out
+	) {
 		TASK_REQUEUE(task)
 		return;
 	}
