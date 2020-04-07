@@ -104,6 +104,7 @@ globalThis.initialize = function () {
     Browser.loadScript('gwlib.js', false);
     gwlib_init(ui_root);
 
+    gwskin.enable_focus(false);    
 	  gwskin.enable_background(true);
 
     //what do we do with tooltips ?
@@ -217,6 +218,7 @@ globalThis.initialize = function () {
 
      //let's do the layout   
     layout();
+    gwskin.enable_focus(true);    
 
 }
 
