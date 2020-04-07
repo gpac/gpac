@@ -800,9 +800,24 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	GL_CHECK_ERR()
 
 	if (txh->data) {
+		//reconfig from GL textures to non-GL output
+		if (!txh->frame_ifce && !txh->tx_io->tx.internal_textures) {
+			gf_gl_txw_reset(&txh->tx_io->tx);
+		}
+		//reconfig from non-GL output to GL textures
+		else if (txh->tx_io->tx.internal_textures
+			&& txh->frame_ifce
+			&& txh->frame_ifce->get_gl_texture
+		) {
+			gf_gl_txw_reset(&txh->tx_io->tx);
+		}
+	}
+	if (txh->data) {
 		/*convert image*/
 		gf_sc_texture_convert(txh);
 	}
+
+	txh->tx_io->tx.frame_ifce = txh->frame_ifce;
 
 	/*in case the ID has been lost, resetup*/
 	if (!txh->tx_io->tx.nb_textures) {
@@ -840,6 +855,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	if (txh->tx_io->tx.pbo_state == GF_GL_PBO_PUSH)
 		txh->tx_io->tx.pbo_state = GF_GL_PBO_TEXIMG;
 
+	GL_CHECK_ERR()
 	gf_gl_txw_upload(&txh->tx_io->tx, data, txh->frame_ifce);
 	GL_CHECK_ERR()
 	
@@ -1157,6 +1173,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	if (!txh || !txh->tx_io) return 0;
 	if (txh->stream && !txh->stream->pck) {
 		if (txh->tx_io->tx.nb_textures) {
+			txh->tx_io->tx.frame_ifce = NULL;
 			goto skip_push;
 		}
 		return 0;

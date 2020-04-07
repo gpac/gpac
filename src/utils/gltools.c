@@ -606,12 +606,9 @@ static char *gl_shader_fun_rgb = \
 "return texture2D(_gf_%s_1, _gpacTexCoord.st);\
 ";
 
-//TODO!
-#if 0
 static char *gl_shader_vars_externalOES = \
 "uniform samplerExternalOES _gf_%s_1;\n\
 ";
-#endif
 
 
 
@@ -692,6 +689,10 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 	case GF_PIXEL_YUV444_10:
 		shader_vars = gl_shader_vars_yuv;
 		shader_fun = gl_shader_fun_yuv;
+		break;
+	case GF_PIXEL_GL_EXTERNAL:
+		shader_vars = gl_shader_vars_externalOES;
+		shader_fun = gl_shader_fun_rgb;
 		break;
 	default:
 		shader_vars = gl_shader_vars_rgb;
@@ -863,7 +864,7 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 
 	/*create textures*/
 	if (tx->internal_textures) {
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_USE_GLES1X)
 		u32 glmode = GL_NEAREST;
 		if ((tx->nb_textures==1) && linear_interp && !tx->is_yuv)
 			glmode = GL_LINEAR;
@@ -887,20 +888,31 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 		}
 
 
+		GL_CHECK_ERR()
 		glGenTextures(tx->nb_textures, tx->textures);
-		for (i=0; i<tx->nb_textures; i++) {
-			glEnable(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, tx->textures[i] );
+		GL_CHECK_ERR()
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#ifndef GPAC_USE_GLES2
+		glEnable(GL_TEXTURE_2D);
+		GL_CHECK_ERR()
+#endif
+
+		for (i=0; i<tx->nb_textures; i++) {
+#if !defined(GPAC_USE_GLES1X)
+			glBindTexture(GL_TEXTURE_2D, tx->textures[i] );
+			GL_CHECK_ERR()
+#if defined(GPAC_USE_GLES2)
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#else
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+#endif
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glmode);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glmode);
 #endif
-
-			glDisable(GL_TEXTURE_2D);
 		}
+
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 		if (tx->is_yuv && tx->pbo_state) {
@@ -932,8 +944,12 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 		}
 #endif
-	}
 
+#ifndef GPAC_USE_GLES2
+		glDisable(GL_TEXTURE_2D);
+		GL_CHECK_ERR()
+#endif
+	}
 	return GF_TRUE;
 }
 
@@ -988,7 +1004,11 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 	GL_CHECK_ERR()
 
 	//push data
+#ifndef GPAC_USE_GLES2
 	glEnable(GL_TEXTURE_2D);
+	GL_CHECK_ERR()
+#endif
+
 
 	if (tx->scale_10bit) {
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
@@ -1006,10 +1026,12 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 #endif
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	}
+	GL_CHECK_ERR()
 
 
 	if (!tx->is_yuv) {
 		glBindTexture(GL_TEXTURE_2D, tx->textures[0] );
+		GL_CHECK_ERR()
 		if (use_stride) {
 #if !defined(GPAC_GL_NO_STRIDE)
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, tx->stride / tx->bytes_per_pix);
@@ -1024,6 +1046,8 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 #if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
+
+		GL_CHECK_ERR()
 	}
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	else if (tx->pbo_state && tx->PBOs[0]) {
@@ -1262,25 +1286,29 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 	if (!tx->internal_textures) {
 		u32 i;
 		GF_Matrix txmx;
-		if (!tx->frame_ifce)
-			return GF_FALSE;
 
 		gf_mx_init(txmx);
 		for (i=0; i<tx->nb_textures; i++) {
 			u32 gl_format;
-			if (tx->frame_ifce->get_gl_texture(tx->frame_ifce, 0, &gl_format, &tx->textures[i], &txmx) != GF_OK) {
+			if (tx->frame_ifce && tx->frame_ifce->get_gl_texture(tx->frame_ifce, i, &gl_format, &tx->textures[i], &txmx) != GF_OK) {
 				if (!i) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[GL] Failed to get frame interface OpenGL texture ID for plane %d\n", i));
 					return GF_FALSE;
 				}
 				break;
 			}
-			glEnable(gl_format);
+#ifndef GPAC_USE_GLES2
+			if (!gl_program)
+				glEnable(gl_format);
+#endif
+			if (!tx->textures[i])
+				break;
 			glActiveTexture(texture_unit + i);
 			glBindTexture(gl_format, tx->textures[i]);
 			glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glTexParameteri(gl_format, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			/*todo pass matrix to shader !!*/
 		}
 		if (tx->nb_textures) {
@@ -1308,7 +1336,11 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 		glClientActiveTexture(texture_unit);
 #endif
 	}
+
+#ifndef GPAC_USE_GLES2
 	glEnable(GL_TEXTURE_2D);
+#endif
+
 	GL_CHECK_ERR()
 	return GF_TRUE;
 }

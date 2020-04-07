@@ -941,7 +941,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 
 			if (tr_state->text_split_idx) break;
 		}
-		tr_state->visual->has_material_2d = 0;
+		tr_state->visual->has_material_2d = GF_FALSE;
 
 		/*reset texturing in case of line texture*/
 		if (!asp) visual_3d_disable_texture(tr_state);

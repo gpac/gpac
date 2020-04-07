@@ -2006,8 +2006,8 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 
 void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
 {
-	visual->has_material_2d = alpha ? 1 : 0;
-	visual->has_material=0;
+	visual->has_material_2d = alpha ? GF_TRUE : GF_FALSE;
+	visual->has_material = 0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = col.red;
 		visual->mat_2d.green = col.green;
@@ -2020,8 +2020,8 @@ void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alph
 void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 {
 	u32 a = GF_COL_A(col);
-	visual->has_material_2d = a ? 1 : 0;
-	visual->has_material=0;
+	visual->has_material_2d = a ? GF_TRUE : GF_FALSE;
+	visual->has_material = 0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;

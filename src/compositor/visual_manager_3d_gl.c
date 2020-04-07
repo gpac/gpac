@@ -2619,7 +2619,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		glDisable(GL_SCISSOR_TEST);
 	}
 
-	visual->has_material_2d = 0;
+	visual->has_material_2d = GF_FALSE;
 	visual->active_glsl_flags = root_visual->active_glsl_flags;
 	root_visual->active_glsl_flags &= ~ GF_GL_HAS_COLOR;
 	visual->has_material = 0;
@@ -2994,7 +2994,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	//reset all our states
 	visual_3d_reset_clippers(visual);
-	visual->has_material_2d = 0;
+	visual->has_material_2d = GF_FALSE;
 	visual->has_material = 0;
 	visual->state_color_on = 0;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
