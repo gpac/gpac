@@ -453,6 +453,10 @@ gwskin.enable_background = function(do_enable) {
  }
 }
 
+gwskin.enable_focus = function(do_enable) {
+    this.focus_on = do_enable;
+}
+
 //static
 function gw_get_abs_pos(child) {
     var pos = new SFVec2f(0, 0);
@@ -961,7 +965,8 @@ function gwlib_init(root_node) {
             gw_ui_top_wnd = wnd;
         }
         if (typeof (wnd._no_focus) == 'boolean') return;
-        gpac.set_focus(gw_ui_top_wnd);
+        if (gwskin.focus_on)
+            gpac.set_focus(gw_ui_top_wnd);
     }
 
     gw_ui_root.remove_focus = function(wnd) {
@@ -977,7 +982,8 @@ function gwlib_init(root_node) {
             }
         }
         if (typeof (wnd._no_focus) == 'boolean') return;
-        gpac.set_focus(gw_ui_top_wnd);
+        if (gwskin.focus_on)
+            gpac.set_focus(gw_ui_top_wnd);
     }
     
     gw_ui_root.add_child = function (child) {
