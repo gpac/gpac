@@ -128,20 +128,84 @@ Float scale = 1;
 static Bool shell_visible = GF_TRUE;
 #if defined(WIN32) && !defined(_WIN32_WCE)
 
-void w32_hide_shell(u32 cmd_type)
+static HWND console_hwnd = NULL;
+static Bool owns_wnd = GF_FALSE;
+#include <tlhelp32.h>
+#include <Psapi.h>
+static DWORD getParentPID(DWORD pid)
 {
+	HANDLE h = NULL;
+	PROCESSENTRY32 pe = { 0 };
+	DWORD ppid = 0;
+	pe.dwSize = sizeof(PROCESSENTRY32);
+	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (Process32First(h, &pe)) {
+		do {
+			if (pe.th32ProcessID == pid) {
+				ppid = pe.th32ParentProcessID;
+				break;
+			}
+		} while (Process32Next(h, &pe));
+	}
+	CloseHandle(h);
+	return (ppid);
+}
+
+static void getProcessName(DWORD pid, PUCHAR fname, DWORD sz)
+{
+	HANDLE h = NULL;
+	h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+	if (h) {
+		GetModuleFileNameEx(h, NULL, fname, sz);
+		CloseHandle(h);
+	}
+}
+static void w32_hide_shell(u32 cmd_type)
+{
+	char parentName[GF_MAX_PATH];
 	typedef HWND (WINAPI *GetConsoleWindowT)(void);
 	HMODULE hk32 = GetModuleHandle("kernel32.dll");
-	GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT ) GetProcAddress(hk32,"GetConsoleWindow");
+	if (!console_hwnd) {
+		DWORD dwProcessId = 0;
+		DWORD dwParentProcessId = 0;
+		DWORD dwParentParentProcessId = 0;
+		GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT)GetProcAddress(hk32, "GetConsoleWindow");
+		console_hwnd = GetConsoleWindow();
+		dwProcessId = GetCurrentProcessId();
+		dwParentProcessId = getParentPID(dwProcessId);
+		if (dwParentProcessId)
+				dwParentParentProcessId = getParentPID(dwParentProcessId);
+		//get parent process name, check for explorer
+		parentName[0] = 0;
+		getProcessName(dwParentProcessId, parentName, GF_MAX_PATH);
+		if (strstr(parentName, "explorer")) {
+			owns_wnd = GF_TRUE;
+		}
+		//get parent parent process name, check for devenv (or any other ide name ...)
+		else if (dwParentParentProcessId) {
+			owns_wnd = GF_FALSE;
+			parentName[0] = 0;
+			getProcessName(dwParentParentProcessId, parentName, GF_MAX_PATH);
+			if (strstr(parentName, "devenv")) {
+				owns_wnd = GF_TRUE;
+			}
+		} else {
+			owns_wnd = GF_FALSE;
+		}
+	}
+	if (!owns_wnd || !console_hwnd) return;
+
 	if (cmd_type==0) {
-		ShowWindow( GetConsoleWindow(), SW_SHOW);
+		ShowWindow(console_hwnd, SW_SHOW);
 		shell_visible = GF_TRUE;
 	}
 	else if (cmd_type==1) {
-		ShowWindow( GetConsoleWindow(), SW_HIDE);
+		ShowWindow(console_hwnd, SW_HIDE);
 		shell_visible = GF_FALSE;
 	}
-	else if (cmd_type==2) PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+	else if (cmd_type == 2) {
+		PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+	}
 }
 
 #define hide_shell w32_hide_shell
