@@ -1300,7 +1300,7 @@ GF_Err piff_pssh_Size(GF_Box *s)
 {
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*)s;
 
-	ptr->size += 24 + ptr->private_data_size;
+	ptr->size += 20 + ptr->private_data_size;
 	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
