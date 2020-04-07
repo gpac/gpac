@@ -52,11 +52,10 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	compositor->vp_y = 0;
 
 	scaleX = scaleY = FIX_ONE;
-	if (!compositor->has_size_info) {
+	if (!compositor->has_size_info || compositor->inherit_type_3d) {
 		compositor->visual->width = compositor->vp_width;
 		compositor->visual->height = compositor->vp_height;
 	} else {
-
 		switch (compositor->aspect_ratio) {
 		case GF_ASPECT_RATIO_FILL_SCREEN:
 			break;
@@ -209,7 +208,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
 
 	visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
-	
+		
 	if (alpha && (alpha != 0xFF)) {
 		gf_sc_texture_set_blend_mode(txh, TX_MODULATE);
 	} else if (gf_sc_texture_is_transparent(txh)) {
