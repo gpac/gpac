@@ -819,6 +819,7 @@ static JSValue gpac_set_size(JSContext *ctx, JSValueConst this_val, int argc, JS
 			compositor->scene_width = w;
 			compositor->scene_height = h;
 			compositor->has_size_info = 1;
+			compositor->recompute_ar = 1;
 			return JS_UNDEFINED;
 		}
 		if (compositor->os_wnd) {
