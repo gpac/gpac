@@ -4731,6 +4731,7 @@ GF_Err piff_pssh_box_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	gf_isom_box_dump_start(a, "PIFFProtectionSystemHeaderBox", trace);
+	fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ptr->version, ptr->flags);
 
 	gf_fprintf(trace, "SystemID=\"");
 	dump_data_hex(trace, (char *) ptr->SystemID, 16);
@@ -4747,6 +4748,7 @@ GF_Err piff_tenc_box_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	gf_isom_box_dump_start(a, "PIFFTrackEncryptionBox", trace);
+	fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ptr->version, ptr->flags);
 
 	gf_fprintf(trace, "AlgorithmID=\"%d\" IV_size=\"%d\" KID=\"", ptr->AlgorithmID, ptr->IV_size);
 	dump_data_hex(trace,(char *) ptr->KID, 16);
@@ -4762,6 +4764,7 @@ GF_Err piff_psec_box_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	gf_isom_box_dump_start(a, "PIFFSampleEncryptionBox", trace);
+	fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ptr->version, ptr->flags);
 	sample_count = gf_list_count(ptr->samp_aux_info);
 	gf_fprintf(trace, "sampleCount=\"%d\"", sample_count);
 	if (ptr->flags & 1) {
