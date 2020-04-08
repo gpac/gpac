@@ -935,6 +935,7 @@ GF_Err piff_tenc_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_PIFFTrackEncryptionBox *ptr = (GF_PIFFTrackEncryptionBox*)s;
 
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+	//PIFF TENC extends UUID and fullbox
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
@@ -999,6 +1000,7 @@ GF_Err piff_psec_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+	//PIFF PSEC extends UUID and fullbox
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
@@ -1162,10 +1164,13 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*)s;
 
+	//PIFF PSSH extends UUID and fullbox
+	ptr->version = gf_bs_read_u8(bs);
+	ptr->flags = gf_bs_read_u24(bs);
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->private_data_size = gf_bs_read_u32(bs);
 
-	ISOM_DECREASE_SIZE(ptr, 20);
+	ISOM_DECREASE_SIZE(ptr, 24);
 
 	if (ptr->size < sizeof(char)*ptr->private_data_size)
 	    return GF_ISOM_INVALID_FILE;
@@ -1182,8 +1187,10 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Err piff_pssh_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox *) s;
-	GF_Err e = gf_isom_full_box_write(s, bs);
+	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
+	gf_bs_write_u8(bs, ptr->version);
+	gf_bs_write_u24(bs, ptr->flags);
 
 	gf_bs_write_data(bs, (char *) ptr->SystemID, 16);
 	gf_bs_write_u32(bs, ptr->private_data_size);
