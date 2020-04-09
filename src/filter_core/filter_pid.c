@@ -5322,6 +5322,7 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 		return GF_FALSE;
 	}
 	if (pid->pid->has_seen_eos) return GF_TRUE;
+	if (pid->pid->filter->block_eos) return GF_FALSE;
 	for (i=0; i<pid->pid->filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->pid->filter->input_pids, i);
 		if (gf_filter_pid_has_seen_eos((GF_FilterPid *) pidi)) return GF_TRUE;

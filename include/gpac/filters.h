@@ -2011,6 +2011,12 @@ u32 gf_filter_get_max_extra_input_pids(GF_Filter *filter);
 */
 Bool gf_filter_block_enabled(GF_Filter *filter);
 
+/*! Indicates the EOS status on input PIDs of this filter shall not be checked when probing for end of stream in the chain
+\param filter the target filter
+\param do_block if GF_TRUE, prevents EOS checking on input stream, otherwise enables it (default is FALSE upon creation)
+*/
+void gf_filter_block_eos(GF_Filter *filter, Bool do_block);
+
 
 /*! Connects a source to this filter.
 Note:

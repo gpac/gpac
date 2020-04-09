@@ -1529,6 +1529,14 @@ static JSValue jsf_filter_prevent_blocking(JSContext *ctx, JSValueConst this_val
 	gf_filter_prevent_blocking(jsf->filter, JS_ToBool(ctx, argv[0]) ? GF_TRUE : GF_FALSE);
 	return JS_UNDEFINED;
 }
+static JSValue jsf_filter_block_eos(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+    if (!jsf || !argc) return JS_EXCEPTION;
+	gf_filter_block_eos(jsf->filter, JS_ToBool(ctx, argv[0]) ? GF_TRUE : GF_FALSE);
+	return JS_UNDEFINED;
+}
+
 
 
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
@@ -1590,6 +1598,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("add_filter", 0, jsf_filter_add_filter),
     JS_CFUNC_DEF("make_sticky", 0, jsf_filter_make_sticky),
 	JS_CFUNC_DEF("prevent_blocking", 1, jsf_filter_prevent_blocking),
+	JS_CFUNC_DEF("block_eos", 1, jsf_filter_block_eos),
 };
 
 
