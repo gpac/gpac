@@ -73,6 +73,8 @@ enum
 	GF_CRYPT_TYPE_CBCS	= GF_4CC('c','b','c','s'),
 	/*Adobe CBC-128 encryption*/
 	GF_CRYPT_TYPE_ADOBE	= GF_4CC('a','d','k','m'),
+	/*PIFF encryption*/
+	GF_CRYPT_TYPE_PIFF	= GF_4CC('p','i','f','f'),
 };
 
 enum

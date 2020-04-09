@@ -52,11 +52,12 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: %s not received before merging fragment\n", mov->moov ? "mvex" : "moov" ));
 		return GF_ISOM_INVALID_FILE;
 	}
-	//and all fragments must be continous - we do not throw an error as we may still want to be able to concatenate dependent representations in DASH and
-	//we will likely a-have R1(moofSN 1, 3, 5, 7) plus R2(moofSN 2, 4, 6, 8)
+	//and all fragments should be continous but:
+	//- dash with dependent representations may likely give R1(moofSN 1, 3, 5, 7) plus R2(moofSN 2, 4, 6, 8)
+	//- smooth muxed in a single file may end up with V(1),A(1), V(2),A(2) ...
+	//we do not throw an error if not as we may still want to be able to concatenate dependent representations in DASH and
 	if (mov->NextMoofNumber && moof->mfhd && (mov->NextMoofNumber >= moof->mfhd->sequence_number)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: wrong sequence number: got %d but last one was %d\n", moof->mfhd->sequence_number, mov->NextMoofNumber));
-//		return GF_ISOM_INVALID_FILE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] wrong sequence number: got %d but last one was %d\n", moof->mfhd->sequence_number, mov->NextMoofNumber));
 	}
 
 	base_data_offset = mov->current_top_box_start;
