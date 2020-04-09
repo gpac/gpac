@@ -2179,7 +2179,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
 
-	memset(blank_key, 0, 15);
+	memset(blank_key, 0, 16);
 	/* decrypt each sample */
 	count = gf_isom_get_sample_count(mp4, track);
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
