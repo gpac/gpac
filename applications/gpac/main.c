@@ -1497,6 +1497,9 @@ static int gpac_main(int argc, char **argv)
 			else if (!strcmp(arg, "-hx")) argmode = GF_ARGMODE_EXPERT;
 			else if (!strcmp(arg, "-hh")) argmode = GF_ARGMODE_ALL;
 
+			if (i+1<argc)
+				gf_sys_mark_arg_used(i+1, GF_TRUE);
+
 			if ((i+1==argc) || (argv[i+1][0]=='-')) {
 				gpac_usage(argmode);
 				gpac_exit(0);
