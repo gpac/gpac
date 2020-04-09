@@ -3082,8 +3082,18 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				af->source_ids = gf_strdup(dst->source_ids);
 
 			//remember our target filter
-			if (prev_af) gf_list_add(prev_af->destination_filters, af);
-			if (i+2==count) gf_list_add(af->destination_filters, dst);
+			if (prev_af)
+				gf_list_add(prev_af->destination_filters, af);
+
+			//last in chain, add dst
+			if (i+2==count) {
+				gf_list_add(af->destination_filters, dst);
+			}
+			//first in chain and we will load several filters in chain, add destination so that we remember what was this filter target
+			//this avoids browing the chain of filters->destination_filters when doing link resolution
+			else if (!i && !load_first_only) {
+				gf_list_add(af->destination_filters, dst);
+			}
 
 			//also remember our original target in case we got the link wrong
 			af->target_filter = pid->filter->target_filter;
@@ -3485,9 +3495,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	u32 num_pass=0;
 	GF_List *loaded_filters = NULL;
 	GF_List *linked_dest_filters = NULL;
-#if 0
     GF_List *force_link_resolutions = NULL;
-#endif
     GF_List *possible_linked_resolutions = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
@@ -3529,9 +3537,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	if (filter->session->filters_mx) gf_mx_p(filter->session->filters_mx);
 
 	linked_dest_filters = gf_list_new();
-#if 0
 	force_link_resolutions = gf_list_new();
-#endif
     possible_linked_resolutions = gf_list_new();
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init\n", pid->filter->name, pid->name));
@@ -3794,13 +3800,10 @@ single_retry:
 			if (!num_pass) {
                 //this is wrong, breaks tileagg and other filters (cf scripts/dash-srd-hevc.sh) when the source was loaded with sourceID
                 //as is the case with compositor filter
-#if 0
                 //we have an explicit link instruction so we must try dynamic link even if we connect to another filter
-				if (0&&filter_dst->source_ids) {
+				if (filter_dst->source_ids) {
                     gf_list_add(force_link_resolutions, filter_dst);
-				} else
-#endif
-                {
+				} else {
 					//register as possible destination link. If a filter already registered is a destination of this possible link
 					//only the possible link will be kept
 					add_possible_link_destination(possible_linked_resolutions, filter_dst);
@@ -3828,9 +3831,7 @@ single_retry:
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
-#if 0
                     gf_list_del(force_link_resolutions);
-#endif
                     gf_list_del(possible_linked_resolutions);
 					return;
 				}
@@ -3846,9 +3847,7 @@ single_retry:
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
-#if 0
                     gf_list_del(force_link_resolutions);
-#endif
                     gf_list_del(possible_linked_resolutions);
 					return;
 				}
@@ -3872,9 +3871,7 @@ single_retry:
 							safe_int_dec(&pid->init_task_pending);
 							if (loaded_filters) gf_list_del(loaded_filters);
 							gf_list_del(linked_dest_filters);
-#if 0
                             gf_list_del(force_link_resolutions);
-#endif
                             gf_list_del(possible_linked_resolutions);
 							return;
 						} else {
@@ -3908,7 +3905,6 @@ single_retry:
 			}
 		}
 
-#if 0
         if (!num_pass) {
 			u32 k=0;
 			for (k=0; k<gf_list_count(force_link_resolutions); k++) {
@@ -3925,7 +3921,6 @@ single_retry:
 				}
 			}
 		}
-#endif
     }
 
 	if (loaded_filters) {
@@ -3938,13 +3933,11 @@ single_retry:
 		num_pass = 1;
 		goto restart;
 	}
-#if 0
     //we must do the second pass if a filter has an explicit link set through source ID
 	if (!num_pass && gf_list_count(force_link_resolutions)) {
 		num_pass = 1;
 		goto restart;
 	}
-#endif
 
     //connection task posted, nothing left to do
 	if (found_dest) {
@@ -3953,9 +3946,7 @@ single_retry:
 		if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 		pid->filter->disabled = GF_FALSE;
 		gf_list_del(linked_dest_filters);
-#if 0
         gf_list_del(force_link_resolutions);
-#endif
         gf_list_del(possible_linked_resolutions);
 		gf_fs_check_graph_load(filter->session, GF_FALSE);
 		return;
@@ -3995,9 +3986,7 @@ single_retry:
 	gf_fs_check_graph_load(filter->session, GF_FALSE);
 
 	gf_list_del(linked_dest_filters);
-#if 0
     gf_list_del(force_link_resolutions);
-#endif
     gf_list_del(possible_linked_resolutions);
 	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
 
