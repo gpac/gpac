@@ -5165,7 +5165,7 @@ int mp4boxMain(int argc, char **argv)
 
 			if (crypt) {
 				//keep fragment signaling in moov
-				omode = GF_ISOM_OPEN_KEEP_FRAGMENTS;
+				omode = GF_ISOM_OPEN_READ;
 				if (use_init_seg)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, tmpdir);
 			}
