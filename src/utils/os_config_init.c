@@ -426,14 +426,13 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (path_type==GF_PATH_MODULES) {
 		/*look in gpac compilation tree (modules are output in the same folder as apps) */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
-			if (strstr(app_path, "/gpac/bin") || strstr(app_path, "\\gpac\\bin")) {
-				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
-				/*on OSX check modules subdirectory */
-				strcat(app_path, "/modules");
-				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
-				/*modules not found*/
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
-			}
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			/*on OSX check modules subdirectory */
+			strcat(app_path, "/modules");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+
+			/*modules not found*/
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
 		}
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
