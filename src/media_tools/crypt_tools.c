@@ -41,6 +41,8 @@ static u32 cryptinfo_get_crypt_type(char *cr_type)
 		return GF_CRYPT_TYPE_ISMA;
 	else if (!stricmp(cr_type, "CENC AES-CTR") || !stricmp(cr_type, "cenc"))
 		return GF_CRYPT_TYPE_CENC;
+	else if (!stricmp(cr_type, "piff"))
+		return GF_CRYPT_TYPE_PIFF;
 	else if (!stricmp(cr_type, "CENC AES-CBC") || !stricmp(cr_type, "cbc1"))
 		return GF_CRYPT_TYPE_CBC1;
 	else if (!stricmp(cr_type, "ADOBE") || !stricmp(cr_type, "adkm"))
@@ -280,7 +282,9 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				else tkc->block_align = 0;
 			}
 		}
-
+		if (tkc->scheme_type==GF_CRYPT_TYPE_PIFF) {
+			tkc->sai_saved_box_type = tkc->sai_saved_box_type = GF_ISOM_BOX_UUID_PSEC;
+		}
 		if (has_common_key) info->has_common_key = 1;
 
 		if ((tkc->IV_size != 0) && (tkc->IV_size != 8) && (tkc->IV_size != 16)) {

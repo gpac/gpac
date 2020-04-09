@@ -545,8 +545,8 @@ typedef enum
 	GF_ISOM_OPEN_EDIT,
 	/*! Creates a new file in EDIT mode*/
 	GF_ISOM_WRITE_EDIT,
-	/*! Opens an existing file for fragment concatenation*/
-	GF_ISOM_OPEN_CAT_FRAGMENTS,
+	/*! Opens an existing file and keep fragment information*/
+	GF_ISOM_OPEN_KEEP_FRAGMENTS,
 } GF_ISOOpenMode;
 
 /*! indicates if target file is an IsoMedia file
@@ -4853,6 +4853,8 @@ enum
 	GF_ISOM_CENS_SCHEME	= GF_4CC('c','e','n','s'),
 	/*! CENC AES-CBC Pattern Encryption Scheme Type in the SchemeTypeInfoBox */
 	GF_ISOM_CBCS_SCHEME	= GF_4CC('c','b','c','s'),
+	/*! PIFF Scheme Type in the SchemeTypeInfoBox */
+	GF_ISOM_PIFF_SCHEME	= GF_4CC('p','i','f','f'),
 };
 
 /*! checks if a track is encrypted or protected
@@ -5140,9 +5142,10 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 \param KID the list of key IDs
 \param data opaque data for the protection system
 \param len size of the opaque data
+\param use_piff if GF_TRUE, use PIFF pssh UUID box when creating the pssh
 \return error if any
 */
-GF_Err gf_cenc_set_pssh(GF_ISOFile *isom_file, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, u8 *data, u32 len);
+GF_Err gf_cenc_set_pssh(GF_ISOFile *isom_file, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, u8 *data, u32 len, Bool use_piff);
 
 /*! removes CENC SAI size info
 \param isom_file the target ISO file

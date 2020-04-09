@@ -68,7 +68,7 @@ typedef struct
 	bin128 *KIDs;
 	bin128 *keys;
 
-	/*adobe*/
+	/*adobe and CENC*/
 	Bool crypt_init;
 } GF_CENCDecStream;
 
@@ -467,8 +467,14 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 
 	cstr->state = DECRYPT_STATE_ERROR;
 
-	if ((scheme_type != GF_ISOM_CENC_SCHEME) && (scheme_type != GF_ISOM_CBC_SCHEME) && (scheme_type != GF_ISOM_CENS_SCHEME) && (scheme_type != GF_ISOM_CBCS_SCHEME))
+	if ((scheme_type != GF_ISOM_CENC_SCHEME)
+		&& (scheme_type != GF_ISOM_CBC_SCHEME)
+		&& (scheme_type != GF_ISOM_CENS_SCHEME)
+		&& (scheme_type != GF_ISOM_CBCS_SCHEME)
+		&& (scheme_type != GF_ISOM_PIFF_SCHEME)
+	)
 		return GF_NOT_SUPPORTED;
+
 	if (scheme_version != 0x00010000) return GF_NOT_SUPPORTED;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_PSSH);
@@ -483,7 +489,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	cstr->scheme_type = scheme_type;
 	cstr->pssh_crc = pssh_crc;
 
-	if ((scheme_type == GF_ISOM_CENC_SCHEME) || (scheme_type == GF_ISOM_CENS_SCHEME))
+	if ((scheme_type == GF_ISOM_CENC_SCHEME) || (scheme_type == GF_ISOM_PIFF_SCHEME) || (scheme_type == GF_ISOM_CENS_SCHEME))
 		cstr->is_cenc = GF_TRUE;
 	else
 		cstr->is_cbc = GF_TRUE;
@@ -823,6 +829,11 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			goto exit;
 		}
 		crypt_reinit = GF_TRUE;
+		cstr->crypt_init  =GF_TRUE;
+	}
+	if (!cstr->crypt_init) {
+		crypt_reinit = GF_TRUE;
+		cstr->crypt_init = GF_TRUE;
 	}
 
 	if (crypt_reinit) {
@@ -1087,6 +1098,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 #endif
 		break;
 	case GF_ISOM_CENC_SCHEME:
+	case GF_ISOM_PIFF_SCHEME:
 	case GF_ISOM_CBC_SCHEME:
 	case GF_ISOM_CENS_SCHEME:
 	case GF_ISOM_CBCS_SCHEME:
@@ -1252,6 +1264,7 @@ static const GF_FilterCapability CENCDecCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBC_SCHEME),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBCS_SCHEME),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ADOBE_SCHEME),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_PIFF_SCHEME),
 
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),

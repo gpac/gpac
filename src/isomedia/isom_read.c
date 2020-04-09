@@ -469,7 +469,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, GF_ISOOpenMode OpenMode, const ch
 		movie = gf_isom_create_movie(fileName, OpenMode, tmp_dir);
 		break;
 	case GF_ISOM_OPEN_EDIT:
-	case GF_ISOM_OPEN_CAT_FRAGMENTS:
+	case GF_ISOM_OPEN_KEEP_FRAGMENTS:
 		movie = gf_isom_open_file(fileName, OpenMode, tmp_dir);
 		break;
 	case GF_ISOM_WRITE_EDIT:

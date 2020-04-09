@@ -87,12 +87,15 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, 
 	GF_TrackExtendsBox *trex;
 	if (!movie || !movie->moov) return GF_BAD_PARAM;
 
+#if 0
 	if (movie->openMode==GF_ISOM_OPEN_CAT_FRAGMENTS) {
 		/*from now on we are in write mode*/
 		movie->openMode = GF_ISOM_OPEN_WRITE;
 		store_file = GF_FALSE;
 		movie->append_segment = GF_TRUE;
-	} else {
+	} else
+#endif
+	{
 		movie->NextMoofNumber = 1;
 	}
 	movie->moov->mvex_after_traks = mvex_after_tracks;

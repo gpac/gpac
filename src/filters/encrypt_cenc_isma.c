@@ -815,6 +815,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		case GF_CRYPT_TYPE_CBC1:
 		case GF_CRYPT_TYPE_CENS:
 		case GF_CRYPT_TYPE_CBCS:
+		case GF_CRYPT_TYPE_PIFF:
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Unsupported scheme type %s\n", gf_4cc_to_str(scheme_type) ));
@@ -891,6 +892,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		return adobe_enc_configure(ctx, cstr);
 	case GF_CRYPT_TYPE_CENC:
 	case GF_CRYPT_TYPE_CENS:
+	case GF_CRYPT_TYPE_PIFF:
 		cstr->ctr_mode = GF_TRUE;
 	case GF_CRYPT_TYPE_CBC1:
 	case GF_CRYPT_TYPE_CBCS:
@@ -1428,7 +1430,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 							clear_bytes += ret;
 						}
 						//for CENC (should),
-						else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CENC) {
+						else if ((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENC) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_PIFF))  {
 							//do it if not disabled by user
 							if (cstr->tci->block_align != 1) {
 								//always align even if sample is not encrypted in the end
