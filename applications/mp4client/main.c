@@ -264,7 +264,6 @@ GF_GPACArg mp4client_args[] =
 	GF_DEF_ARG("no-save", NULL, "do not save configuration file on exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("no-addon", NULL, "disable automatic loading of media addons declared in source URL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("gui", NULL, "start in GUI mode. The GUI is indicated in the [configuration](core_config) file __[General]StartupFile__", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("ntp-shift", NULL, "shift NTP clock of the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk. Works using -p=NAME or -p NAME", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("stats", NULL, "dump filter session stats after playback", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("graph", NULL, "dump filter session graph after playback", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -1291,11 +1290,6 @@ int mp4client_main(int argc, char **argv)
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else if (!stricmp(arg, "-no-save") || !stricmp(arg, "--no-save") /*old versions used --n-save ...*/) {
 			no_cfg_save=1;
-		}
-		else if (!stricmp(arg, "-ntp-shift")) {
-			s32 shift = atoi(argv[i+1]);
-			i++;
-			gf_net_set_ntp_shift(shift);
 		}
 		else if (!stricmp(arg, "-run-for")) {
 			simulation_time_in_ms = (u32) (atof(argv[i+1]) * 1000);
