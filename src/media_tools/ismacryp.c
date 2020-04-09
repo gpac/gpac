@@ -2142,6 +2142,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	GF_ISOSample *samp = NULL;
 	GF_Crypt *mc;
 	char IV[17];
+	bin128 blank_key;
 	Bool prev_sample_encrypted;
 	GF_BitStream *plaintext_bs, *cyphertext_bs;
 	GF_CENCSampleAuxInfo *sai;
@@ -2178,6 +2179,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
 
+	memset(blank_key, 0, 15);
 	/* decrypt each sample */
 	count = gf_isom_get_sample_count(mp4, track);
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
@@ -2197,13 +2199,18 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 		/*select key*/
 		for (j = 0; j < tci->KID_count; j++) {
-			if (!strncmp((const char *)tci->KIDs[j], (const char *)KID, 16)) {
+			if (!strncmp((const char *)tci->KIDs[j], (const char *)KID, 16)
+				|| !strncmp((const char *)tci->KIDs[j], (const char *)blank_key, 16)
+			) {
 				memcpy(tci->key, tci->keys[j], 16);
 				break;
 			}
 		}
-		if (j == tci->KID_count)
-			memcpy(tci->key, tci->keys[tci->defaultKeyIdx], 16);
+		if (j == tci->KID_count) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot locate key for given KID\n") );
+			e = GF_SERVICE_ERROR;
+			goto exit;
+		}
 
 		memset(IV, 0, 17);
 		memset(buffer, 0, max_size);
