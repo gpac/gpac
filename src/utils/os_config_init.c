@@ -426,12 +426,14 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (path_type==GF_PATH_MODULES) {
 		/*look in gpac compilation tree (modules are output in the same folder as apps) */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
-			/*on OSX check modules subdirectory */
-			strcat(app_path, "/modules");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
-			/*modules not found*/
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
+			if (strstr(app_path, "/gpac/bin") || strstr(app_path, "\\gpac\\bin")) {
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+				/*on OSX check modules subdirectory */
+				strcat(app_path, "/modules");
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+				/*modules not found*/
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
+			}
 		}
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
@@ -440,7 +442,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 		}
 		/*modules not found, failure*/
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
 		return 0;
 	}
 
@@ -1049,9 +1051,10 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("mod-reload", NULL, "unload / reload module shared libs when no longer used", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("for-test", NULL, "disable all creation/modif dates and GPAC versions in files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("old-arch", NULL, "enable compatibility with pre-filters versions of GPAC", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("ntp-shift", NULL, "shift NTP clock by given amount in seconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+
  GF_DEF_ARG("bs-cache-size", NULL, "cache size for bitstream read and write from file (0 disable cache, slower IOs)", "512", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
-
  GF_DEF_ARG("proxy-on", NULL, "enable HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-name", NULL, "set HTTP proxy address", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-port", NULL, "set HTTP proxy port", "80", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
