@@ -195,7 +195,7 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 
 		/*non-encrypted or non-ISMA*/
 		if (!sinf || !sinf->scheme_type) return 0;
-		if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
+		if (sinf->scheme_type->scheme_type == GF_ISOM_PIFF_SCHEME) return GF_ISOM_CENC_SCHEME;
 		return sinf->scheme_type->scheme_type;
 	}
 	return 0;
@@ -346,6 +346,7 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ISMACRYP_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_OMADRM_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ADOBE_SCHEME, &sea);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, &sea);
 	if (!sinf) return GF_OK;
 
 	sea->type = sinf->original_format->data_format;
@@ -666,18 +667,26 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
 	if (e) return e;
 
-	sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TENC);
-	sinf->info->tenc->isProtected = default_IsEncrypted;
-	sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
-	memcpy(sinf->info->tenc->KID, default_KID, 16*sizeof(char));
-	if ((scheme_type == GF_ISOM_CENS_SCHEME) || (scheme_type == GF_ISOM_CBCS_SCHEME)) {
-		sinf->info->tenc->version = 1;
-		sinf->info->tenc->crypt_byte_block = default_crypt_byte_block;
-		sinf->info->tenc->skip_byte_block = default_skip_byte_block;
-	}
-	if (scheme_type == GF_ISOM_CBCS_SCHEME) {
-		sinf->info->tenc->constant_IV_size = default_constant_IV_size;
-		memcpy(sinf->info->tenc->constant_IV, default_constant_IV, 16*sizeof(char));
+	if (scheme_type==GF_ISOM_PIFF_SCHEME) {
+		sinf->info->piff_tenc = (GF_PIFFTrackEncryptionBox *) gf_isom_box_new(GF_ISOM_BOX_UUID_TENC);
+		sinf->info->piff_tenc->AlgorithmID = 1;
+		sinf->info->piff_tenc->IV_size = default_IV_size;
+		memcpy(sinf->info->piff_tenc->KID, default_KID, 16*sizeof(char));
+	} else {
+		sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TENC);
+
+		sinf->info->tenc->isProtected = default_IsEncrypted;
+		sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
+		memcpy(sinf->info->tenc->KID, default_KID, 16*sizeof(char));
+		if ((scheme_type == GF_ISOM_CENS_SCHEME) || (scheme_type == GF_ISOM_CBCS_SCHEME)) {
+			sinf->info->tenc->version = 1;
+			sinf->info->tenc->crypt_byte_block = default_crypt_byte_block;
+			sinf->info->tenc->skip_byte_block = default_skip_byte_block;
+		}
+		if (scheme_type == GF_ISOM_CBCS_SCHEME) {
+			sinf->info->tenc->constant_IV_size = default_constant_IV_size;
+			memcpy(sinf->info->tenc->constant_IV, default_constant_IV, 16*sizeof(char));
+		}
 	}
 	return GF_OK;
 }
@@ -894,7 +903,10 @@ GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
 	u32 i;
 	for (i = 0; i < gf_list_count(the_file->moov->other_boxes); i++) {
 		GF_Box *a = (GF_Box *)gf_list_get(the_file->moov->other_boxes, i);
-		if ((a->type == GF_ISOM_BOX_UUID_PSSH) || (a->type == GF_ISOM_BOX_TYPE_PSSH)) {
+		GF_UUIDBox *uuid = (GF_UUIDBox *)a;
+		if ((a->type == GF_ISOM_BOX_TYPE_PSSH)
+			|| ((a->type == GF_ISOM_BOX_TYPE_UUID) && (uuid->internal_4cc == GF_ISOM_BOX_UUID_PSSH))
+		) {
 			gf_list_rem(the_file->moov->other_boxes, i);
 			gf_isom_box_del(a);
 			i--;

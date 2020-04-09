@@ -277,6 +277,9 @@ enum
 
 	GF_ISOM_ISMA_SCHEME = GF_4CC('i','s','m','a'),
 	GF_ISOM_ODRM_SCHEME = GF_4CC('o','d','r','m'),
+
+	/* PIFF Encryption Scheme */
+	GF_ISOM_PIFF_SCHEME	= GF_4CC('p','i','f','f'),
 };
 
 
