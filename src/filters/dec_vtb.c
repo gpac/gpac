@@ -155,10 +155,12 @@ typedef struct
 	GF_CVGLTextureCacheREF cache_texture;
 #endif
 	void *gl_context;
+
+	struct __vtb_frame_ifce *last_frame_sent;
 } GF_VTBDecCtx;
 
 
-typedef struct
+typedef struct __vtb_frame_ifce
 {
 	GF_FilterFrameInterface frame_ifce;
 
@@ -1581,6 +1583,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		}
 		//waiting for last frame to be discarded
 		if (ctx->no_copy && ctx->decoded_frames_pending) {
+			ctx->last_frame_sent->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 			gf_filter_ask_rt_reschedule(filter, 0);
 			return GF_OK;
 		}
@@ -1835,7 +1838,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		vtb_frame->frame_ifce.get_gl_texture = vtbframe_get_gl_texture;
 #endif
 
-	if (!gf_list_count(ctx->frames) && ctx->reconfig_needed)
+	if (ctx->reconfig_needed)
 		vtb_frame->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 
 	safe_int_inc(&ctx->decoded_frames_pending);
@@ -1847,7 +1850,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	ctx->last_timescale_out = gf_filter_pck_get_timescale(vtb_frame->pck_src);
 	gf_filter_pck_unref(vtb_frame->pck_src);
 	vtb_frame->pck_src = NULL;
-
+	ctx->last_frame_sent = vtb_frame;
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
 }
