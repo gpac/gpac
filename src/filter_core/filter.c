@@ -3645,3 +3645,9 @@ Bool gf_filter_is_dynamic(GF_Filter *filter)
 {
 	return filter ? filter->dynamic_filter : GF_FALSE;
 }
+
+GF_EXPORT
+void gf_filter_block_eos(GF_Filter *filter, Bool do_block)
+{
+	if (filter) filter->block_eos = do_block;
+}

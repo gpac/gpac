@@ -261,9 +261,14 @@ FilterInstance add_filter(DOMString args);
 void make_sticky();
 
 /*! makes the filter unblocking - see \ref gf_filter_prevent_blocking
-\param do_prevent if true, filter will not be blocking if all oits output pids are blocking
+\param do_prevent if true, filter will not be blocking if all its output pids are blocking
 */
 void prevent_blocking(boolean do_prevent);
+
+/*! makes the filter prevent EOS queries - see \ref gf_filter_block_eos
+\param do_block if true, filter input pids cannot be checked for end of stream during EOS queries
+*/
+void prevent_blocking(boolean do_block);
 
 };
 

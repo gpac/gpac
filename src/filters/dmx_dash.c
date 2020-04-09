@@ -1098,6 +1098,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 		gf_dash_split_adaptation_sets(ctx->dash);
 
 	ctx->initial_play = GF_TRUE;
+	gf_filter_block_eos(filter, GF_TRUE);
 
 	//for coverage
 #ifdef GPAC_ENABLE_COVERAGE
