@@ -309,7 +309,7 @@ extension.view_stats = function () {
                 nb_buffering++;
                 m.gui.buffer = gw_new_gauge(wnd.area, 'Buffer');
             }
-            if (m.ntp_diff) nb_ntp_diff++;
+            if (m.ntp_diff || this.show_stats_init) nb_ntp_diff++;
         } else if (!m.is_addon) {
             m.gui.play = gw_new_icon(wnd.area, 'play');
             m.gui.play.odm = m;
@@ -519,7 +519,7 @@ extension.view_stats = function () {
             wnd.s_buf = null;
 
         if (nb_ntp_diff)
-            wnd.s_ntp = wnd.plot.add_serie('E2E delay', 's', 0, 0.3, 0.8);
+            wnd.s_ntp = wnd.plot.add_serie('E2E delay', 'ms', 0, 0.3, 0.8);
         else
             wnd.s_ntp = null;
 

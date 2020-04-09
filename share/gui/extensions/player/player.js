@@ -41,7 +41,7 @@ extension = {
     initial_loop: false,
     initial_speed: 1,
     initial_start: 0,
-    show_stats_init: 0,
+    show_stats_init: false,
 	def_width: 600,
 	def_height: 600,
 	disabled: false,
