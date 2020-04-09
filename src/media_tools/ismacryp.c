@@ -53,6 +53,8 @@ static u32 get_crypt_type(char *cr_type)
 		return GF_CRYPT_TYPE_ISMA;
 	else if (!stricmp(cr_type, "CENC AES-CTR") || !stricmp(cr_type, "cenc"))
 		return GF_CRYPT_TYPE_CENC;
+	else if (!stricmp(cr_type, "piff"))
+		return GF_CRYPT_TYPE_PIFF;
 	else if (!stricmp(cr_type, "CENC AES-CBC") || !stricmp(cr_type, "cbc1"))
 		return GF_CRYPT_TYPE_CBC1;
 	else if (!stricmp(cr_type, "ADOBE") || !stricmp(cr_type, "adkm"))
@@ -285,6 +287,8 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				else tkc->block_align = 0;
 			}
 		}
+		if (tkc->scheme_type == GF_CRYPT_TYPE_PIFF)
+			tkc->sai_saved_box_type = GF_ISOM_BOX_UUID_PSEC;
 
 		if (has_common_key) info->has_common_key = 1;
 
@@ -293,14 +297,14 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			tkc->IV_size = 16;
 		}
 
-		if ((tkc->scheme_type == GF_CRYPT_TYPE_CENC) || (tkc->scheme_type == GF_CRYPT_TYPE_CBC1)) {
+		if ((tkc->scheme_type == GF_CRYPT_TYPE_CENC) || (tkc->scheme_type == GF_CRYPT_TYPE_PIFF) || (tkc->scheme_type == GF_CRYPT_TYPE_CBC1)) {
 			if (tkc->crypt_byte_block || tkc->skip_byte_block) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, crypt_byte_block and skip_byte_block shall be 0\n", gf_4cc_to_str(tkc->scheme_type) ));
 				tkc->crypt_byte_block = tkc->skip_byte_block = 0;
 			}
 		}
 
-		if ((tkc->scheme_type == GF_CRYPT_TYPE_CENC) || (tkc->scheme_type == GF_CRYPT_TYPE_CBC1) || (tkc->scheme_type == GF_CRYPT_TYPE_CENS)) {
+		if ((tkc->scheme_type == GF_CRYPT_TYPE_CENC) || (tkc->scheme_type == GF_CRYPT_TYPE_PIFF) || (tkc->scheme_type == GF_CRYPT_TYPE_CBC1) || (tkc->scheme_type == GF_CRYPT_TYPE_CENS)) {
 			if (tkc->constant_IV_size) {
 				if (!tkc->IV_size) {
 					tkc->IV_size = tkc->constant_IV_size;
@@ -1304,7 +1308,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_TrackCryptInfo *tci, G
 						clear_bytes += ret;
 					}
 					//for CENC (should),
-					else if (tci->scheme_type == GF_CRYPT_TYPE_CENC) {
+					else if ((tci->scheme_type == GF_CRYPT_TYPE_CENC) || (tci->scheme_type == GF_CRYPT_TYPE_PIFF)) {
 						//do it if not disabled by user
 						if (tci->block_align != 1) {
 							//always align even if sample is not encrypted in the end
@@ -2159,7 +2163,7 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	scheme_type = gf_isom_is_media_encrypted(mp4, track, 0);
-	if ((scheme_type==GF_CRYPT_TYPE_CENC) || (scheme_type==GF_CRYPT_TYPE_CENS))
+	if ((scheme_type==GF_CRYPT_TYPE_CENC) || (scheme_type==GF_CRYPT_TYPE_PIFF) || (scheme_type==GF_CRYPT_TYPE_CENS))
 		is_ctr_mode = GF_TRUE;
 
 	if (is_ctr_mode)
@@ -2775,6 +2779,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			break;
 		case GF_CRYPT_TYPE_CENC:
 		case GF_CRYPT_TYPE_CENS:
+		case GF_CRYPT_TYPE_PIFF:
 			tci.ctr_mode = GF_TRUE;
 		case GF_CRYPT_TYPE_CBC1:
 		case GF_CRYPT_TYPE_CBCS:
@@ -3014,7 +3019,12 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	for (i=0; i<count; i++) {
 		tci = (GF_TrackCryptInfo *)gf_list_get(info->tcis, i);
 		/*write pssh box in case of CENC*/
-		if ((tci->scheme_type == GF_CRYPT_TYPE_CENC) || (tci->scheme_type == GF_CRYPT_TYPE_CBC1) || (tci->scheme_type == GF_CRYPT_TYPE_CENS) || (tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+		if ((tci->scheme_type == GF_CRYPT_TYPE_CENC)
+			|| (tci->scheme_type == GF_CRYPT_TYPE_CBC1)
+			|| (tci->scheme_type == GF_CRYPT_TYPE_CENS)
+			|| (tci->scheme_type == GF_CRYPT_TYPE_CBCS)
+			|| (tci->scheme_type == GF_CRYPT_TYPE_PIFF)
+		) {
 			check_pssh = GF_TRUE;
 		}
 	}
@@ -3054,6 +3064,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 			break;
 		case GF_CRYPT_TYPE_CENC:
 		case GF_CRYPT_TYPE_CENS:
+		case GF_CRYPT_TYPE_PIFF:
 			tci->ctr_mode = GF_TRUE;
 		case GF_CRYPT_TYPE_CBC1:
 		case GF_CRYPT_TYPE_CBCS:

@@ -196,8 +196,8 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 		if (!sinf) continue;
 
 		/*non-encrypted or non-ISMA*/
-		if (!sinf->scheme_type) return 0;
-		if (sinf->scheme_type->scheme_type == GF_4CC('p','i','f','f')) return GF_4CC('c','e','n','c');
+		if (!sinf || !sinf->scheme_type) return 0;
+		if (sinf->scheme_type->scheme_type == GF_ISOM_PIFF_SCHEME) return GF_ISOM_CENC_SCHEME;
 		return sinf->scheme_type->scheme_type;
 	}
 	return 0;
@@ -348,6 +348,7 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ISMACRYP_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_OMADRM_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ADOBE_SCHEME, &sea);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, &sea);
 	if (!sinf) return GF_OK;
 
 	sea->type = sinf->original_format->data_format;
@@ -627,11 +628,12 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CBC_SCHEME, NULL);
 		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CENS_SCHEME, NULL);
 		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CBCS_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_PIFF_SCHEME, NULL);
 
 		if (!sinf) continue;
 
 		/*non-encrypted or non-CENC*/
-		if (!sinf->info || !sinf->info->tenc || !sinf->scheme_type)
+		if (!sinf->info || (!sinf->info->tenc && !sinf->info->piff_tenc) || !sinf->scheme_type)
 			return GF_FALSE;
 
 		//TODO: validate the fields in tenc for each scheme type
@@ -656,6 +658,7 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, NULL);
 
 	if (!sinf) return GF_BAD_PARAM;
 
@@ -690,18 +693,25 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
 	if (e) return e;
 
-	sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_TYPE_TENC);
-	sinf->info->tenc->isProtected = default_IsEncrypted;
-	sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
-	memcpy(sinf->info->tenc->KID, default_KID, 16*sizeof(char));
-	if ((scheme_type == GF_ISOM_CENS_SCHEME) || (scheme_type == GF_ISOM_CBCS_SCHEME)) {
-		sinf->info->tenc->version = 1;
-		sinf->info->tenc->crypt_byte_block = default_crypt_byte_block;
-		sinf->info->tenc->skip_byte_block = default_skip_byte_block;
-	}
-	if (scheme_type == GF_ISOM_CBCS_SCHEME) {
-		sinf->info->tenc->constant_IV_size = default_constant_IV_size;
-		memcpy(sinf->info->tenc->constant_IV, default_constant_IV, 16*sizeof(char));
+	if (scheme_type==GF_ISOM_PIFF_SCHEME) {
+		sinf->info->piff_tenc = (GF_PIFFTrackEncryptionBox *) gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_UUID_TENC);
+		sinf->info->piff_tenc->AlgorithmID = 1;
+		sinf->info->piff_tenc->IV_size = default_IV_size;
+		memcpy(sinf->info->piff_tenc->KID, default_KID, 16*sizeof(char));
+	} else {
+		sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_TYPE_TENC);
+		sinf->info->tenc->isProtected = default_IsEncrypted;
+		sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
+		memcpy(sinf->info->tenc->KID, default_KID, 16*sizeof(char));
+		if ((scheme_type == GF_ISOM_CENS_SCHEME) || (scheme_type == GF_ISOM_CBCS_SCHEME)) {
+			sinf->info->tenc->version = 1;
+			sinf->info->tenc->crypt_byte_block = default_crypt_byte_block;
+			sinf->info->tenc->skip_byte_block = default_skip_byte_block;
+		}
+		if (scheme_type == GF_ISOM_CBCS_SCHEME) {
+			sinf->info->tenc->constant_IV_size = default_constant_IV_size;
+			memcpy(sinf->info->tenc->constant_IV, default_constant_IV, 16*sizeof(char));
+		}
 	}
 	return GF_OK;
 }
@@ -779,9 +789,10 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
-GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len)
+GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len, Bool use_piff)
 {
 	GF_ProtectionSystemHeaderBox *pssh = NULL;
+	GF_PIFFProtectionSystemHeaderBox *pssh_piff = NULL;
 	u32 i=0;
 	GF_Box *a;
 	GF_List **child_boxes = NULL;
@@ -795,25 +806,40 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	}
 
 	while ((a = gf_list_enum(*child_boxes, &i))) {
-		if (a->type!=GF_ISOM_BOX_TYPE_PSSH) continue;
-		pssh = (GF_ProtectionSystemHeaderBox *)a;
-		if (!memcmp(pssh->SystemID, systemID, sizeof(bin128))) break;
-		pssh = NULL;
+		GF_UUIDBox *uuid = (GF_UUIDBox *)a;
+		if (a->type==GF_ISOM_BOX_TYPE_PSSH) {
+			pssh = (GF_ProtectionSystemHeaderBox *)a;
+			if (!memcmp(pssh->SystemID, systemID, sizeof(bin128))) break;
+			pssh = NULL;
+		} else if ((a->type==GF_ISOM_BOX_TYPE_UUID) && (uuid->internal_4cc==GF_ISOM_BOX_UUID_PSSH)) {
+			pssh_piff = (GF_PIFFProtectionSystemHeaderBox *)a;
+			if (!memcmp(pssh_piff->SystemID, systemID, sizeof(bin128))) break;
+			pssh_piff = NULL;
+		}
 	}
 	//we had a pssh with same ID but different private data, keep both...
 	if (pssh && pssh->private_data && len && memcmp(pssh->private_data, data, sizeof(char)*len) ) {
 		pssh = NULL;
 	}
-
-	if (!pssh) {
-		pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_PSSH);
-		if (!pssh) return GF_IO_ERR;
-
-		memcpy((char *)pssh->SystemID, systemID, sizeof(bin128));
-		pssh->version = version;
+	else if (pssh_piff && pssh_piff->private_data && len && memcmp(pssh_piff->private_data, data, sizeof(char)*len) ) {
+		pssh_piff = NULL;
 	}
 
-	if (KID_count) {
+	if (!pssh && !pssh_piff) {
+		if (use_piff) {
+			pssh_piff = (GF_PIFFProtectionSystemHeaderBox *)gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_UUID_PSSH);
+			if (!pssh_piff) return GF_IO_ERR;
+			memcpy((char *)pssh_piff->SystemID, systemID, sizeof(bin128));
+			pssh_piff->version = version;
+		} else {
+			pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_PSSH);
+			if (!pssh) return GF_IO_ERR;
+			memcpy((char *)pssh->SystemID, systemID, sizeof(bin128));
+			pssh->version = version;
+		}
+	}
+
+	if (pssh && KID_count) {
 		u32 j;
 		for (j=0; j<KID_count; j++) {
 			Bool found = GF_FALSE;
@@ -831,13 +857,19 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 			pssh->version = 1;
 	}
 
-	if (!pssh->private_data_size) {
-		pssh->private_data_size = len;
-		if (!pssh->private_data && len)
-			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
-		memcpy((char *)pssh->private_data, data, pssh->private_data_size);
+	if (pssh) {
+		if (!pssh->private_data_size) {
+			pssh->private_data_size = len;
+			if (!pssh->private_data && len) pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+			memcpy((char *)pssh->private_data, data, pssh->private_data_size);
+		}
+	} else if (pssh_piff) {
+		if (!pssh_piff->private_data_size) {
+			pssh_piff->private_data_size = len;
+			if (!pssh_piff->private_data && len) pssh_piff->private_data = (u8 *)gf_malloc(pssh_piff->private_data_size*sizeof(char));
+			memcpy((char *)pssh_piff->private_data, data, pssh_piff->private_data_size);
+		}
 	}
-
 	return GF_OK;
 }
 
@@ -927,7 +959,10 @@ GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
 	u32 i;
 	for (i = 0; i < gf_list_count(the_file->moov->child_boxes); i++) {
 		GF_Box *a = (GF_Box *)gf_list_get(the_file->moov->child_boxes, i);
-		if ((a->type == GF_ISOM_BOX_UUID_PSSH) || (a->type == GF_ISOM_BOX_TYPE_PSSH)) {
+		GF_UUIDBox *uuid = (GF_UUIDBox *)a;
+		if ((a->type == GF_ISOM_BOX_TYPE_PSSH)
+			|| ((a->type == GF_ISOM_BOX_TYPE_UUID) && (uuid->internal_4cc == GF_ISOM_BOX_UUID_PSSH))
+		) {
 			gf_isom_box_del_parent(&the_file->moov->child_boxes, a);
 			i--;
 		}
@@ -1248,6 +1283,7 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_PIFF_SCHEME:
 			has_saiz = GF_TRUE;
 			break;
 		}
@@ -1287,6 +1323,7 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_PIFF_SCHEME:
 			has_saio = GF_TRUE;
 			break;
 		}
@@ -1327,6 +1364,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_PIFF_SCHEME:
 			break;
 		default:
 			continue;
@@ -1352,6 +1390,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_PIFF_SCHEME:
 			break;
 		default:
 			continue;
@@ -1548,6 +1587,7 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, NULL);
 
 	if (!sinf) {
 		Bool has_protected_sample_desc = GF_FALSE;
@@ -1582,7 +1622,10 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 		if (constant_IV) memmove(*constant_IV, sinf->info->tenc->constant_IV, 16);
 		if (crypt_byte_block) *crypt_byte_block = sinf->info->tenc->crypt_byte_block;
 		if (skip_byte_block) *skip_byte_block = sinf->info->tenc->skip_byte_block;
-
+	} else if (sinf && sinf->info && sinf->info->piff_tenc) {
+		if (default_IsEncrypted) *default_IsEncrypted = 1;
+		if (default_IV_size) *default_IV_size = sinf->info->piff_tenc->IV_size;
+		if (default_KID) memmove(*default_KID, sinf->info->piff_tenc->KID, 16);
 	} else {
 		if (! trak->moov->mov->is_smooth) {
 			trak->moov->mov->is_smooth = GF_TRUE;

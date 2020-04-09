@@ -104,6 +104,7 @@ typedef struct
 	u32 IV_size, constant_IV_size;
 	bin128 constant_IV, KID;
 	Bool cenc_subsamples;
+	u32 scheme_type;
 
 	Bool fake_track;
 
@@ -2140,6 +2141,7 @@ multipid_stsd_setup:
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISMA_KI_LENGTH);
 		if (p) KI_length = p->value.uint;
 
+		tkw->scheme_type = scheme_type;
 		switch (scheme_type) {
 		case GF_ISOM_ISMACRYP_SCHEME:
 			gf_isom_set_ismacryp_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, (char *) scheme_uri, (char *) kms_uri, is_sel_enc, KI_length, IV_length);
@@ -2162,6 +2164,7 @@ multipid_stsd_setup:
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ADOBE_CRYPT_META);
 			gf_isom_set_adobe_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, 1/*scheme_version*/, 1/*is_sel_enc*/,p ? p->value.data.ptr : NULL, p ? p->value.data.size : 0);
 			break;
+		case GF_ISOM_PIFF_SCHEME:
 		case GF_ISOM_CENC_SCHEME:
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBC_SCHEME:
@@ -2538,7 +2541,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 		len = gf_bs_read_u32(ctx->bs_r);
 		data = p->value.data.ptr + gf_bs_get_position(ctx->bs_r);
-		gf_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len);
+		gf_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len, (tkw->scheme_type==GF_ISOM_PIFF_SCHEME) ? GF_TRUE : GF_FALSE);
 		gf_bs_skip_bytes(ctx->bs_r, len);
 	}
 	if (keyIDs) gf_free(keyIDs);
