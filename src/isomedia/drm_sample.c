@@ -1451,6 +1451,7 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, NULL);
 
 	if (!sinf) {
 		Bool has_protected_sample_desc = GF_FALSE;
@@ -1484,7 +1485,10 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 		if (constant_IV) memmove(*constant_IV, sinf->info->tenc->constant_IV, 16);
 		if (crypt_byte_block) *crypt_byte_block = sinf->info->tenc->crypt_byte_block;
 		if (skip_byte_block) *skip_byte_block = sinf->info->tenc->skip_byte_block;
-
+	} else if (sinf && sinf->info && sinf->info->piff_tenc) {
+		if (default_IsEncrypted) *default_IsEncrypted = 1;
+		if (default_IV_size) *default_IV_size = sinf->info->piff_tenc->IV_size;
+		if (default_KID) memmove(*default_KID, sinf->info->piff_tenc->KID, 16);
 	} else {
 		if (! trak->moov->mov->is_smooth) {
 			trak->moov->mov->is_smooth = GF_TRUE;
