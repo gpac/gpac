@@ -732,6 +732,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_mx_p(filter->tasks_mx);
 		gf_list_del_item(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
+		filter->freg->configure_pid(filter, (GF_FilterPid *) pidinst, GF_TRUE);
 		gf_mx_v(filter->tasks_mx);
 
 		gf_mx_p(pidinst->pid->filter->tasks_mx);
@@ -811,6 +812,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					unload_filter = GF_FALSE;
 				}
 				filter->num_input_pids = 0;
+				filter->removed = GF_TRUE;
+				filter->has_pending_pids = GF_FALSE;
 				gf_mx_v(filter->tasks_mx);
 
 				//do not assign session->last_connect_error since we are retrying a connection
@@ -3504,7 +3507,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	Bool ignore_source_ids = GF_FALSE;
 	const char *filter_id;
 
-	if (pid->destroyed) {
+	if (pid->destroyed || pid->removed) {
 		assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		return;
@@ -6007,6 +6010,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s removed output PID %s\n", pid->filter->name, pid->pid->name));
 
+	pid->udta = NULL;
 	if (pid->filter->removed) {
 		return;
 	}
