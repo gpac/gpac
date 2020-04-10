@@ -6517,7 +6517,12 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 		}
 		pidi->is_end_of_stream = GF_TRUE;
 	} else {
-		pidi->is_end_of_stream = pid->pid->has_seen_eos;
+		//no more packets in queue or postponed, we can trust the EOS signal on the PID
+		//otherwise even though the PID has seen the EOS, it is not yet processed by the pid instance, signaling it
+		//would break up filters (for example dash demux) relying on precise EOS signals which must be toggled at the EOS packet
+		//once all previous packets have been processed
+		if (!gf_fq_count(pidi->packets) && !pid->pid->filter->postponed_packets)
+			pidi->is_end_of_stream = pid->pid->has_seen_eos;
 	}
 	pidi->discard_inputs = discard_on;
 	return GF_OK;
