@@ -2197,6 +2197,14 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 			base_url_len = (u32) strlen(base_url);
 		}
 	}
+	if (!base_url) {
+		base_url = rep->segment_list->xlink_href;
+		if (base_url) {
+			char *sep = gf_file_basename(base_url);
+			if (sep)
+				base_url_len = (u32) (sep - base_url);
+		}
+	}
 
 	if (pe->init_segment_url) {
 		if (!rep->segment_list->initialization_segment) {
@@ -2245,12 +2253,16 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		gf_list_add(rep->segment_list->segment_URLs, segment_url);
 
 		//get absolute url, and remove base from it if we have a baseURL
-		seg_url = gf_url_concatenate(pe->url, elt->url);
-		if (base_url && !strncmp(seg_url, base_url, base_url_len)) {
-			segment_url->media = gf_strdup(seg_url + base_url_len);
-			gf_free(seg_url);
+		if (base_url && !strncmp(elt->url, base_url, base_url_len)) {
+			segment_url->media = gf_strdup(elt->url + base_url_len);
 		} else {
-			segment_url->media = seg_url;
+			seg_url = gf_url_concatenate(pe->url, elt->url);
+			if (base_url && !strncmp(seg_url, base_url, base_url_len)) {
+				segment_url->media = gf_strdup(seg_url + base_url_len);
+				gf_free(seg_url);
+			} else {
+				segment_url->media = seg_url;
+			}
 		}
 
 		if (! elt->utc_start_time) elt->utc_start_time = start_time;
