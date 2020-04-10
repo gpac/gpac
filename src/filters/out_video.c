@@ -754,11 +754,14 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool from_textures)
 		0.0f,  1.0f,
 		0.0f,  0.0f,
 	};
-	//drawing from textures, don't flip y coordinates
+	//drawing textures, also flip y coordinates
+	//but drawing from GL framebuffer do NOT flip coordinates - TODO
+#if 0
 	if (from_textures) {
 		textureVertices[1] = textureVertices[7] = 1.0f;
 		textureVertices[3] = textureVertices[5] = 0.0f;
 	}
+#endif
 
 	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
 	if (loc >= 0) {

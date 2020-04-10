@@ -378,20 +378,14 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 	NVDecFrame *f;
 	NVDecInstance *inst = (NVDecInstance *)pUserData;
 	NVDecCtx *ctx = (NVDecCtx *)inst->ctx;
-
-	if (pPicParams->timestamp > 0xFFFFFFFF) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS %u seek flag, discarding\n", pPicParams->picture_index, (u32) (pPicParams->timestamp & 0xFFFFFFFF)) );
-		return 1;
-	}
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS %u ready for display, queuing it\n", pPicParams->picture_index, (u32) (pPicParams->timestamp & 0xFFFFFFFF)) );
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS "LLU" ready for display, queuing it\n", pPicParams->picture_index, pPicParams->timestamp) );
 
 	f = gf_list_pop_back(ctx->frames_res);
 	if (!f) {
 		GF_SAFEALLOC(f, NVDecFrame);
 	}
 	f->frame_info = *pPicParams;
-	f->frame_info.timestamp = (u32) (pPicParams->timestamp & 0xFFFFFFFF);
+	f->frame_info.timestamp = pPicParams->timestamp;
 	f->ctx = ctx;
 	count = gf_list_count(ctx->frames);
 	for (i=0; i<count; i++) {
@@ -553,7 +547,7 @@ static GF_Err nvdec_configure_stream(GF_Filter *filter, NVDecCtx *ctx)
 
 static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	const GF_PropertyValue *cid;
+	const GF_PropertyValue *prop;
 #ifndef EMUL_NV_DLL
 	CUresult res;
 #endif
@@ -596,9 +590,10 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 #endif
 
-	cid = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (!cid) return GF_NOT_SUPPORTED;
-	ctx->codec_id = cid->value.uint;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!prop) return GF_NOT_SUPPORTED;
+	ctx->codec_id = prop->value.uint;
+
 	switch (ctx->codec_id) {
 	case GF_CODECID_MPEG1:
 	case GF_CODECID_MPEG2_SIMPLE:
@@ -608,11 +603,8 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	case GF_CODECID_MPEG2_HIGH:
 	case GF_CODECID_MPEG2_422:
 	case GF_CODECID_MPEG4_PART2:
-		break;
 	case GF_CODECID_AVC:
 	case GF_CODECID_HEVC:
-		cid = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-		if (cid) return GF_BAD_PARAM;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -626,6 +618,17 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
+
+	switch (ctx->codec_id) {
+	case GF_CODECID_AVC:
+	case GF_CODECID_HEVC:
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		//not ready yet
+		if (!prop) return GF_OK;
+		break;
+	}
 
 #ifdef GPAC_DISABLE_3D
 	ctx->use_gl_texture = GF_FALSE;
