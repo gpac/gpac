@@ -1283,7 +1283,6 @@ void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh, Bool do_fre
 		if (!(txh->tx_io->flags & TX_FIRST_UPLOAD_FREEZE_DONE)) {
 			txh->tx_io->flags |= TX_FIRST_UPLOAD_FREEZE_DONE;
 			gf_sc_ar_control(txh->compositor->audio_renderer, GF_SC_AR_RESUME);
-			txh->stream->flags |= GF_MO_IN_RESYNC;
 		}
 	}
 }

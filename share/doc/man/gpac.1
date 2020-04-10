@@ -176,7 +176,7 @@ print help. Use -help or -h for basic options, -ha for advanced options, -hx for
 .TP
 .B \-p (string)
 .br
-use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk
+use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Appending :reload to the profile name will force recreating a new configuration file
 .br
 .TP
 .B \-alias (string)
@@ -2401,7 +2401,12 @@ URL (local file only) of crypt info file for this pid - see decrypter help
 .TP
 .B SenderNTP (NTPS,luint,DP)
 .br
-Sender NTP time
+NTP time at sender side or grabber side
+.br
+.TP
+.B ReceiverNTP (NTPR,luint,DP)
+.br
+Receiver NTP time (usually associated with the sender NTP property)
 .br
 .TP
 .B Encrypted (EPCK,bool,  )
@@ -3591,7 +3596,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3648-g661cedd98-filters
+build: 0.9.0-DEV-rev3659-g794a0d14d-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

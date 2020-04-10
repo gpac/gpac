@@ -79,6 +79,7 @@ void isor_check_producer_ref_time(ISOMReader *read)
 #endif
 		read->last_sender_ntp = ntp;
 		read->cts_for_last_sender_ntp = timestamp;
+		read->ntp_at_last_sender_ntp = gf_net_get_ntp_ts();
 	}
 }
 
@@ -426,10 +427,12 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 	if (ch->owner->last_sender_ntp && ch->cts==ch->owner->cts_for_last_sender_ntp) {
 		ch->sender_ntp = ch->owner->last_sender_ntp;
+		ch->ntp_at_server_ntp = ch->owner->ntp_at_last_sender_ntp;
 	} else if (ch->owner->last_sender_ntp && ch->dts==ch->owner->cts_for_last_sender_ntp) {
 		ch->sender_ntp = ch->owner->last_sender_ntp;
+		ch->ntp_at_server_ntp = ch->owner->ntp_at_last_sender_ntp;
 	} else {
-		ch->sender_ntp = 0;
+		ch->sender_ntp = ch->ntp_at_server_ntp = 0;
 	}
 
 	if (!ch->sample_num) return;

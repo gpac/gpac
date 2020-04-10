@@ -290,7 +290,7 @@ struct __tag_compositor
 	Bool amc, async;
 	u32 asr, ach, alayout, afmt, asize, avol, apan, abuf;
 	Double max_aspeed, max_vspeed;
-	u32 buf, rbuf, mbuf;
+	u32 buf, rbuf, mbuf, ntpsync;
 	
 	u32 ogl, mode2d;
 
@@ -2154,6 +2154,7 @@ struct _od_manager
 	struct _od_manager *lower_layer_odm;
 
 	s32 last_drawn_frame_ntp_diff;
+	u64 last_drawn_frame_ntp_sender, last_drawn_frame_ntp_receive;
 	u32 ambi_ch_id;
 
 	const char *redirect_url;

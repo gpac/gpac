@@ -103,7 +103,7 @@ typedef struct
 	Bool no_order_check;
 	Bool moov_not_loaded;
 
-	u64 last_sender_ntp, cts_for_last_sender_ntp;
+	u64 last_sender_ntp, ntp_at_last_sender_ntp, cts_for_last_sender_ntp;
 	Bool is_partial_download, wait_for_source;
 
 	u32 src_crc;
@@ -172,7 +172,7 @@ typedef struct
 	bin128 constant_IV;
 	u8 IV_size;
 	u32 au_seq_num;
-	u64 sender_ntp;
+	u64 sender_ntp, ntp_at_server_ntp;
 	u32 seek_flag;
 	u32 au_duration;
 	Bool set_disc;

@@ -680,6 +680,23 @@ void gf_dash_debug_group(GF_DashClient *dash, s32 group_idx);
 */
 void gf_dash_split_adaptation_sets(GF_DashClient *dash);
 
+/*! low latency mode of dash client*/
+typedef enum
+{
+	/*! disable low latency*/
+	GF_DASH_LL_DISABLE = 0,
+	/*! strict respect of segment availability start time*/
+	GF_DASH_LL_STRICT,
+	/*! allow fetching segments earlier than their availability start time in case of empty demux*/
+	GF_DASH_LL_EARLY_FETCH,
+} GF_DASHLowLatencyMode;
+
+/*! allow early segment fetch in low latency mode
+\param dash the target dash client
+\param low_lat_mode low latency mode
+*/
+void gf_dash_set_low_latency_mode(GF_DashClient *dash, GF_DASHLowLatencyMode low_lat_mode);
+
 /*! indicates typical buffering used by the user app before playback starts.
  This allows fetching data earlier in live mode, if the timeshiftbuffer allows for it
 \param dash the target dash client
