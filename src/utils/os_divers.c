@@ -2108,6 +2108,28 @@ u64 gf_net_get_ntp_ts()
 }
 
 GF_EXPORT
+s32 gf_net_ntp_diff_ms(u64 ntp_a, u64 ntp_b)
+{
+	u32 ntp_a_s, ntp_a_f, ntp_b_s, ntp_b_f;
+	s64 ntp_a_ms, ntp_b_ms;
+
+	ntp_a_s = (ntp_a >> 32);
+	ntp_a_f = (u32) (ntp_a & 0xFFFFFFFFULL);
+	ntp_b_s = (ntp_b >> 32);
+	ntp_b_f = (u32) (ntp_b & 0xFFFFFFFFULL);
+
+	ntp_a_ms = ntp_a_s;
+	ntp_a_ms *= 1000;
+	ntp_a_ms += ((u64) ntp_a_f)*1000 / 0xFFFFFFFFULL;
+
+	ntp_b_ms = ntp_b_s;
+	ntp_b_ms *= 1000;
+	ntp_b_ms += ((u64) ntp_b_f)*1000 / 0xFFFFFFFFULL;
+
+	return (s32) (ntp_a_ms - ntp_b_ms);
+}
+
+GF_EXPORT
 s32 gf_net_get_ntp_diff_ms(u64 ntp)
 {
 	u32 remote_s, remote_f, local_s, local_f;
