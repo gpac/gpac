@@ -1894,7 +1894,7 @@ typedef struct _gl_texture_wrap
 
 	//PBO state - must be managed by caller, especially if using seperated push and texImg steps through gf_gl_txw_setup calls
 	GF_GLPBOState pbo_state;
-
+	Bool flip;
 } GF_GLTextureWrapper;
 
 Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source);

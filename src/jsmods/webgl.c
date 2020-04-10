@@ -1557,6 +1557,7 @@ static GF_Err webgl_get_texture(GF_FilterFrameInterface *ifce, u32 plane_idx, u3
 	if (plane_idx) return GF_BAD_PARAM;
 	*gl_tex_id = glc->tex_id;
 	*gl_tex_format = GL_TEXTURE_2D;
+	gf_mx_add_scale(texcoordmatrix, FIX_ONE, -FIX_ONE, FIX_ONE);
 	return GF_OK;
 }
 static GF_Err webgl_get_depth(GF_FilterFrameInterface *ifce, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix *texcoordmatrix)

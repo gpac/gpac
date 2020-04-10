@@ -1850,11 +1850,6 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	gf_filter_pck_merge_properties(vtb_frame->pck_src, dst_pck);
 
-	static u64 last_cts = 0;
-	u64 pcts = gf_filter_pck_get_cts(vtb_frame->pck_src);
-	assert(last_cts<pcts);
-	last_cts = pcts;
-
 	ctx->last_cts_out = gf_filter_pck_get_cts(vtb_frame->pck_src);
 	ctx->last_timescale_out = gf_filter_pck_get_timescale(vtb_frame->pck_src);
 	gf_filter_pck_unref(vtb_frame->pck_src);
