@@ -11609,4 +11609,122 @@ GF_Err dvcC_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+
+GF_Box *emsg_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_EventMessageBox, GF_ISOM_BOX_TYPE_EMSG);
+	return (GF_Box *)tmp;
+}
+
+void emsg_del(GF_Box *s)
+{
+	GF_EventMessageBox *ptr = (GF_EventMessageBox *) s;
+	if (ptr == NULL) return;
+	if (ptr->scheme_id_uri) gf_free(ptr->scheme_id_uri);
+	if (ptr->value) gf_free(ptr->value);
+	if (ptr->message_data) gf_free(ptr->message_data);
+	gf_free(ptr);
+}
+
+GF_Err emsg_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_EventMessageBox *ptr = (GF_EventMessageBox*) s;
+
+	if (ptr->version==0) {
+		e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->scheme_id_uri);
+		if (e) return e;
+		e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->value);
+		if (e) return e;
+
+		ISOM_DECREASE_SIZE(ptr, 16);
+		ptr->timescale = gf_bs_read_u32(bs);
+		ptr->presentation_time_delta = gf_bs_read_u32(bs);
+		ptr->event_duration = gf_bs_read_u32(bs);
+		ptr->event_id = gf_bs_read_u32(bs);
+	} else if (ptr->version==1) {
+		ISOM_DECREASE_SIZE(ptr, 20);
+		ptr->timescale = gf_bs_read_u32(bs);
+		ptr->presentation_time_delta = gf_bs_read_u64(bs);
+		ptr->event_duration = gf_bs_read_u32(bs);
+		ptr->event_id = gf_bs_read_u32(bs);
+
+		e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->scheme_id_uri);
+		if (e) return e;
+		e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->value);
+		if (e) return e;
+	} else {
+		return GF_OK;
+	}
+	if (ptr->size) {
+		if (ptr->size>0xFFFFFFFUL) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] emsg message data size too big ("LLU") to be loaded\n", ptr->size));
+			return GF_OUT_OF_MEM;
+		}
+		ptr->message_data_size = ptr->size;
+		ptr->message_data = gf_malloc(ptr->size);
+		if (!ptr->message_data) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, (char*) ptr->message_data, ptr->message_data_size);
+		ptr->size = 0;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err emsg_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 len;
+	GF_EventMessageBox *ptr = (GF_EventMessageBox*) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	if (ptr->version==1) {
+		gf_bs_write_u32(bs, ptr->timescale);
+		gf_bs_write_u64(bs, ptr->presentation_time_delta);
+		gf_bs_write_u32(bs, ptr->event_duration);
+		gf_bs_write_u32(bs, ptr->event_id);
+	}
+
+	len = ptr->scheme_id_uri ? strlen(ptr->scheme_id_uri) : 0;
+	if (len) gf_bs_write_data(bs, ptr->scheme_id_uri, len);
+	gf_bs_write_u8(bs, 0);
+
+	len = ptr->value ? strlen(ptr->value) : 0;
+	if (len) gf_bs_write_data(bs, ptr->value, len);
+	gf_bs_write_u8(bs, 0);
+
+	if (ptr->version==0) {
+		gf_bs_write_u32(bs, ptr->timescale);
+		gf_bs_write_u32(bs, ptr->presentation_time_delta);
+		gf_bs_write_u32(bs, ptr->event_duration);
+		gf_bs_write_u32(bs, ptr->event_id);
+	}
+	if (ptr->message_data)
+		gf_bs_write_data(bs, (char *) ptr->message_data, ptr->message_data_size);
+	return GF_OK;
+}
+
+GF_Err emsg_Size(GF_Box *s)
+{
+	GF_EventMessageBox *ptr = (GF_EventMessageBox*) s;
+
+	ptr->size += 4;
+	if (ptr->version) {
+		ptr->size += 20;
+	} else {
+		ptr->size += 16;
+	}
+	ptr->size+=2; //1 NULL-terminated strings
+	if (ptr->scheme_id_uri) ptr->size += strlen(ptr->scheme_id_uri);
+	if (ptr->value) ptr->size += strlen(ptr->value);
+	if (ptr->message_data)
+		ptr->size += ptr->message_data_size;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 #endif /*GPAC_DISABLE_ISOM*/
