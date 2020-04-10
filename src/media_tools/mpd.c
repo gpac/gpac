@@ -3180,12 +3180,12 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		if (as->segment_list && as->segment_list->initialization_segment) init = as->segment_list->initialization_segment;
 		if (period->segment_list && period->segment_list->initialization_segment) init = period->segment_list->initialization_segment;
 
-		if (init) {
-			gf_fprintf(out,"#EXT-X-MAP:BYTERANGE=\"%d@"LLU"\"\n", (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
-		}
-
 		base_url = gf_list_get(rep->base_URLs, 0);
 		assert(base_url);
+
+		if (init) {
+			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+		}
 
 		for (i=0; i<count; i++) {
 			Double dur;
