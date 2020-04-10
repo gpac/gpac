@@ -766,31 +766,50 @@ static void check_modules_dir(GF_Config *cfg)
 \param profile name or path to existing config file
 \return the configuration file object, NULL if the file could not be created
  */
+ #include <gpac/network.h>
+
 static GF_Config *gf_cfg_init(const char *profile)
 {
-	GF_Config *cfg;
+	GF_Config *cfg=NULL;
+	u32 prof_len=0;
+	Bool force_new_cfg=GF_FALSE;
 	char szPath[GF_MAX_PATH];
+	char *prof_opt = NULL;
 
-	if (profile && !strlen(profile))
+	if (profile) {
+		prof_len = strlen(profile);
+		prof_opt = gf_url_colon_suffix(profile);
+		if (prof_opt) {
+			prof_len -= strlen(prof_opt);
+			if (strstr(prof_opt, "reload")) force_new_cfg = GF_TRUE;
+
+			prof_opt[0] = 0;
+		}
+	}
+	if (profile && !prof_len)
 		profile = NULL;
 
 	if (profile && (strchr(profile, '/') || strchr(profile, '\\')) ) {
 		if (!gf_file_exists(profile)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Config file %s does not exist\n", profile));
-			return NULL;
+			goto exit;
 		}
 		cfg = gf_cfg_new(NULL, profile);
 		if (!cfg) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Failed to load existing config file %s\n", profile));
-			return NULL;
+			goto exit;
+		}
+		if (force_new_cfg) {
+			gf_cfg_del(cfg);
+			cfg = create_default_config(NULL, profile);
 		}
 		check_modules_dir(cfg);
-		return cfg;
+		goto exit;
 	}
 
 	if (!get_default_install_path(szPath, GF_PATH_CFG)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] Fatal error: Cannot create global config file in application or user home directory - no write access\n"));
-		return NULL;
+		goto exit;
 	}
 
 	if (profile) {
@@ -809,8 +828,8 @@ static GF_Config *gf_cfg_init(const char *profile)
 		if (! gf_cfg_get_key_count(cfg, "core"))
 			nb_old_sec += 1;
 
-		if (nb_old_sec) {
-			if (!profile || strcmp(profile, "0")) {
+		if (nb_old_sec || force_new_cfg) {
+			if (nb_old_sec && (!profile || strcmp(profile, "0"))) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[core] Incompatible (0.8.0 or older) config file %s found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
 			}
 			gf_cfg_del(cfg);
@@ -826,7 +845,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 	}
 	if (!cfg) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath));
-		return NULL;
+		goto exit;
 	}
 
 #ifndef GPAC_CONFIG_IOS
@@ -845,6 +864,9 @@ static GF_Config *gf_cfg_init(const char *profile)
 		if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
 		gf_cfg_set_key(cfg, "core", "store-dir", szPath);
 	}
+
+exit:
+	if (prof_opt) prof_opt[0] = ':';
 	return cfg;
 }
 
