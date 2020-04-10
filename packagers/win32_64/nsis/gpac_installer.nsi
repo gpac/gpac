@@ -289,6 +289,7 @@ Section "GPAC Player" SecOsmo4
 
   ;copy GUI
   SetOutPath $INSTDIR\share
+  File "${GPAC_ROOT}\share\default.cfg"
   SetOutPath $INSTDIR\share\res
   File "${GPAC_ROOT}\share\res\gpac.mp4"
   File "${GPAC_ROOT}\share\res\gpac_cfg_test.mp4"

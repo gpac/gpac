@@ -49,10 +49,6 @@ fi
 cp bin/gcc/MP4Client tmpdmg/GPAC.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/GPAC.app/Contents/MacOS/MP4Box
 cp bin/gcc/gpac tmpdmg/GPAC.app/Contents/MacOS/gpac
-if [ -f bin/gcc/DashCast ]
-then
-cp bin/gcc/DashCast tmpdmg/GPAC.app/Contents/MacOS/DashCast
-fi
 
 cd tmpdmg/GPAC.app/Contents/MacOS/
 
@@ -62,11 +58,6 @@ for dylib in lib/*.dylib modules/*.dylib
 do
   rewrite_deps $dylib
 done
-
-if [ -f DashCast ]
-then
-  rewrite_deps DashCast
-fi
 
 echo rewriting APPS dependencies
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
@@ -81,8 +72,10 @@ cd ../../../..
 echo Copying GUI
 rsync -r --exclude=.git $source_path/share/res ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/gui ./tmpdmg/GPAC.app/Contents/MacOS/share/
+rsync -r --exclude=.git $source_path/share/vis ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/shaders ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/scripts ./tmpdmg/GPAC.app/Contents/MacOS/share/
+cp $source_path/share/default.cfg ./tmpdmg/GPAC.app/Contents/MacOS/share/
 
 echo Building DMG
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`
