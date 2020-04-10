@@ -1054,6 +1054,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			read->input_loaded = GF_TRUE;
 			in_is_eos = GF_TRUE;
 		}
+		if (!read->frag_type && read->input_loaded) {
+			in_is_eos = GF_TRUE;
+		}
 	} else if (read->extern_mov) {
 		in_is_eos = GF_TRUE;
 		read->input_loaded = GF_TRUE;
