@@ -2869,7 +2869,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 	return e;
 }
 
-static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_file) {
+static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_file, u32 crypt_type) {
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node;
 	u32 i;
@@ -2988,7 +2988,9 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 			gf_crypt_encrypt(gc, data+cypherOffset, len-cypherOffset);
 			gf_crypt_close(gc);
 		}
-		if (!e) e = gf_cenc_set_pssh(mp4, systemID, version, KID_count, KIDs, data, len);
+		if (!e) {
+			e = gf_cenc_set_pssh(mp4, systemID, version, KID_count, KIDs, data, len, (crypt_type==GF_CRYPT_TYPE_PIFF) ? GF_TRUE : GF_FALSE);
+		}
 		if (specInfo) gf_free(specInfo);
 		if (data) gf_free(data);
 		if (KIDs) gf_free(KIDs);
@@ -3036,7 +3038,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 	}
 	if (check_pssh) {
-		e = gf_cenc_parse_drm_system_info(mp4, drm_file);
+		e = gf_cenc_parse_drm_system_info(mp4, drm_file, info->def_crypt_type);
 		if (e) return e;
 	}
 
