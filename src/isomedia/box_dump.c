@@ -51,7 +51,7 @@ static void dump_data_hex(FILE *trace, char *data, u32 dataLength)
 	}
 }
 
-static void dump_data_attribute(FILE *trace, char *name, char *data, u32 data_size)
+static void dump_data_attribute(FILE *trace, char *name, u8 *data, u32 data_size)
 {
 	u32 i;
 	if (!data || !data_size) {
@@ -5687,6 +5687,25 @@ GF_Err load_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "TrackLoadBox", trace);
 	fprintf(trace, "preload_start_time=\"%d\" preload_duration=\"%d\" preload_flags=\"%d\" default_hints=\"%d\">\n", p->preload_start_time, p->preload_duration, p->preload_flags, p->default_hints);
 	gf_isom_box_dump_done("TrackLoadBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err emsg_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_EventMessageBox *p = (GF_EventMessageBox *) a;
+
+	gf_isom_box_dump_start(a, "EventMessageBox", trace);
+	fprintf(trace, "timescale=\"%u\" presentation_time_delta=\""LLU"\" event_duration=\"%u\" event_id=\"%u\">\n", p->timescale, p->presentation_time_delta, p->event_duration, p->event_id);
+
+	if (p->scheme_id_uri)
+		fprintf(trace, " scheme_id_uri=\"%s\"", p->scheme_id_uri);
+	if (p->value)
+		fprintf(trace, " value=\"%s\"", p->value);
+
+	if (p->message_data)
+		dump_data_attribute(trace, " message_data", p->message_data, p->message_data_size);
+
+	gf_isom_box_dump_done("EventMessageBox", a, trace);
 	return GF_OK;
 }
 

@@ -762,6 +762,7 @@ ISOM_BOX_IMPL_DECL(ssix)
 ISOM_BOX_IMPL_DECL(leva)
 ISOM_BOX_IMPL_DECL(pcrb)
 ISOM_BOX_IMPL_DECL(tfdt)
+ISOM_BOX_IMPL_DECL(emsg)
 
 #endif
 
@@ -1161,7 +1162,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PRFT, prft, "file", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SIDX, sidx, "file", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SSIX, ssix, "file", 0),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_PCRB, pcrb, "file"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PCRB, pcrb, "file", "dash"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMSG, emsg, "file", 1, "dash"),
 #endif
 
 
