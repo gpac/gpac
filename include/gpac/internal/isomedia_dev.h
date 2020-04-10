@@ -218,6 +218,7 @@ enum
 	GF_ISOM_BOX_TYPE_SSIX	= GF_4CC( 's', 's', 'i', 'x' ),
 	GF_ISOM_BOX_TYPE_LEVA   = GF_4CC( 'l', 'e', 'v', 'a' ),
 	GF_ISOM_BOX_TYPE_PCRB	= GF_4CC( 'p', 'c', 'r', 'b' ),
+	GF_ISOM_BOX_TYPE_EMSG	= GF_4CC( 'e', 'm', 's', 'g' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -2803,6 +2804,21 @@ typedef struct __pcrInfo_box
 	u32	subsegment_count;
 	u64 *pcr_values;
 } GF_PcrInfoBox;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	char *scheme_id_uri;
+	char *value;
+	u32 timescale;
+	u64 presentation_time_delta;
+	u32 event_duration;
+	u32 event_id;
+	u8 *message_data;
+	u32 message_data_size;
+} GF_EventMessageBox;
+
 
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 
