@@ -5343,7 +5343,7 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 		goto exit;
 	}
-	if (!open_edit  && track_dump_type && !gf_isom_probe_file(inName)) {
+	if (!open_edit && track_dump_type && !gf_isom_probe_file(inName)) {
 		GF_MediaExporter mdump;
 		char szFile[GF_MAX_PATH+24];
 		for (i=0; i<nb_track_act; i++) {
