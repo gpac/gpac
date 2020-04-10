@@ -208,6 +208,10 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 		return;
 	}
 
+	if (ctx->reorder_probe) {
+		ctx->reorder_probe--;
+	}
+
 	ctx->profile_supported = GF_TRUE;
 	ctx->nb_consecutive_errors=0;
 	frame = gf_list_pop_back(ctx->frames_res);
@@ -1653,7 +1657,6 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	}
 	//probing for reordering, or reordering is on but not enough frames: wait before we dispatch
 	if (ctx->reorder_probe) {
-		ctx->reorder_probe--;
 		return GF_OK;
 	}
 
@@ -1846,6 +1849,12 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vtb_frame->frame_ifce, vtbframe_release);
 
 	gf_filter_pck_merge_properties(vtb_frame->pck_src, dst_pck);
+
+	static u64 last_cts = 0;
+	u64 pcts = gf_filter_pck_get_cts(vtb_frame->pck_src);
+	assert(last_cts<pcts);
+	last_cts = pcts;
+
 	ctx->last_cts_out = gf_filter_pck_get_cts(vtb_frame->pck_src);
 	ctx->last_timescale_out = gf_filter_pck_get_timescale(vtb_frame->pck_src);
 	gf_filter_pck_unref(vtb_frame->pck_src);
