@@ -1502,24 +1502,25 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		if (group->eos_detected) check_eos = GF_TRUE;
 	}
 
-	if (ctx->mpd_pid) {
-		//check MPD pid
-		pck = gf_filter_pid_get_packet(ctx->mpd_pid);
-		if (pck) {
-			gf_filter_pid_drop_packet(ctx->mpd_pid);
-		}
-		e = gf_dash_process(ctx->dash);
-		if (e == GF_IP_NETWORK_EMPTY) {
-			gf_filter_ask_rt_reschedule(filter, 100000);
-			return GF_OK;
-		}
-		if (e)
-			return e;
+	if (!ctx->mpd_pid)
+		return GF_EOS;
 
-		next_time_ms = gf_dash_get_min_wait_ms(ctx->dash);
-		if (next_time_ms>1000)
-			next_time_ms=1000;
+	//check MPD pid
+	pck = gf_filter_pid_get_packet(ctx->mpd_pid);
+	if (pck) {
+		gf_filter_pid_drop_packet(ctx->mpd_pid);
 	}
+	e = gf_dash_process(ctx->dash);
+	if (e == GF_IP_NETWORK_EMPTY) {
+		gf_filter_ask_rt_reschedule(filter, 100000);
+		return GF_OK;
+	}
+	if (e)
+		return e;
+
+	next_time_ms = gf_dash_get_min_wait_ms(ctx->dash);
+	if (next_time_ms>1000)
+		next_time_ms=1000;
 
 	//flush all media input
 	count = gf_filter_get_ipid_count(filter);
