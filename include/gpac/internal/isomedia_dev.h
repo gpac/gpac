@@ -3008,6 +3008,21 @@ typedef struct __pcrInfo_box
 	u64 *pcr_values;
 } GF_PcrInfoBox;
 
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	char *scheme_id_uri;
+	char *value;
+	u32 timescale;
+	u64 presentation_time_delta;
+	u32 event_duration;
+	u32 event_id;
+	u8 *message_data;
+	u32 message_data_size;
+} GF_EventMessageBox;
+
+
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 
 /*Adobe specific boxes*/
