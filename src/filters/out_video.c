@@ -731,7 +731,7 @@ static void vout_finalize(GF_Filter *filter)
 
 #ifdef VOUT_USE_OPENGL
 
-static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool from_textures)
+static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 {
 	Float dw, dh;
 
@@ -754,14 +754,11 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool from_textures)
 		0.0f,  1.0f,
 		0.0f,  0.0f,
 	};
-	//drawing textures, also flip y coordinates
-	//but drawing from GL framebuffer do NOT flip coordinates - TODO
-#if 0
-	if (from_textures) {
+
+	if (flip_texture) {
 		textureVertices[1] = textureVertices[7] = 1.0f;
 		textureVertices[3] = textureVertices[5] = 0.0f;
 	}
-#endif
 
 	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
 	if (loc >= 0) {
@@ -828,7 +825,7 @@ static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterfac
 	glLoadIdentity();
 
 	//and draw
-	vout_draw_gl_quad(ctx, GF_TRUE);
+	vout_draw_gl_quad(ctx, ctx->tx.flip ? GF_TRUE : GF_FALSE);
 	GL_CHECK_ERR()
 }
 

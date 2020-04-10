@@ -1311,6 +1311,8 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 			glTexParameteri(gl_format, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			/*todo pass matrix to shader !!*/
 		}
+		tx->flip = (txmx.m[5]<0) ? GF_TRUE : GF_FALSE;
+
 		if (tx->nb_textures) {
 #ifndef GPAC_USE_GLES2
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);

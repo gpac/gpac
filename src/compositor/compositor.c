@@ -298,6 +298,8 @@ GF_Err gf_sc_frame_ifce_get_gl_texture(GF_FilterFrameInterface *frame_ifce, u32 
 	if (plane_idx) return GF_BAD_PARAM;
 	if (gl_tex_id) *gl_tex_id = compositor->fbo_tx_id;
 	if (gl_tex_format) *gl_tex_format = compositor_3d_get_fbo_pixfmt();
+	//framebuffer is already oriented as a GL texture not as an image
+	gf_mx_add_scale(texcoordmatrix, FIX_ONE, -FIX_ONE, FIX_ONE);
 	return GF_OK;
 }
 #endif
