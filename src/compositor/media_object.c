@@ -554,7 +554,7 @@ retry:
 			//if the next AU is at most 300 ms from the current clock use no drop mode
 			else if (next_ts + 300 >= obj_time) {
 				skip_resync = GF_TRUE;
-			} else {
+			} else if (next_ts) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->ID, obj_time, pck_ts, next_ts, resync));
 				mo->flags |= GF_MO_IN_RESYNC;
 			}
@@ -703,13 +703,31 @@ retry:
 		v = gf_filter_pck_get_property(mo->pck, GF_PROP_PCK_SENDER_NTP);
 		if (v) {
 			GF_PropertyEntry *pe = NULL;
-			mo->odm->last_drawn_frame_ntp_diff = gf_net_get_ntp_diff_ms(v->value.longuint);
+
+			mo->odm->last_drawn_frame_ntp_sender = v->value.longuint;
+
+			v = gf_filter_pck_get_property(mo->pck, GF_PROP_PCK_RECEIVER_NTP);
+			if (v) {
+				mo->odm->last_drawn_frame_ntp_receive = v->value.longuint;
+			}
+
+			mo->odm->last_drawn_frame_ntp_diff = gf_net_get_ntp_diff_ms(mo->odm->last_drawn_frame_ntp_sender);
 			v = gf_filter_pid_get_info_str(mo->odm->pid, "ntpdiff", &pe);
 			if (v) {
 				mo->odm->last_drawn_frame_ntp_diff -= v->value.sint;
 			}
 			gf_filter_release_property(pe);
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, mo->odm->last_drawn_frame_ntp_diff));
+
+			if (mo->odm->parentscene->compositor->ntpsync
+				&& (mo->odm->last_drawn_frame_ntp_diff > mo->odm->parentscene->compositor->ntpsync)
+//				&& first_ntp
+			) {
+//					first_ntp = GF_FALSE;
+					u32 diff = mo->odm->last_drawn_frame_ntp_diff - mo->odm->parentscene->compositor->ntpsync;
+					mo->odm->ck->init_timestamp += diff;
+					mo->flags |= GF_MO_IN_RESYNC;
+			}
 		}
 
 		/*signal EOS after rendering last frame, not while rendering it*/

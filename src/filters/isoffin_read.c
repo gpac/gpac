@@ -1052,9 +1052,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
 			read->input_loaded = GF_TRUE;
-		}
-		if (read->input_loaded)
 			in_is_eos = GF_TRUE;
+		}
 	} else if (read->extern_mov) {
 		in_is_eos = GF_TRUE;
 		read->input_loaded = GF_TRUE;
@@ -1239,6 +1238,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				if (ch->sender_ntp) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ch->sender_ntp));
+					if (ch->ntp_at_server_ntp) {
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_RECEIVER_NTP, &PROP_LONGUINT(ch->ntp_at_server_ntp));
+					}
 				}
 				ch->eos_sent = GF_FALSE;
 				gf_filter_pck_send(pck);

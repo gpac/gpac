@@ -1211,7 +1211,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_OMA_CLEAR_LEN, "PlaintextLen", "OMA size of plaintext data", GF_PROP_LUINT},
 	{ GF_PROP_PID_CRYPT_INFO, "CryptInfo", "URL (local file only) of crypt info file for this pid", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DECRYPT_INFO, "DecryptInfo", "URL (local file only) of crypt info file for this pid - see decrypter help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Sender NTP time", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "NTP time at sender side or grabber side", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_RECEIVER_NTP, "ReceiverNTP", "Receiver NTP time (usually associated with the sender NTP property)", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
+
 	{ GF_PROP_PID_ENCRYPTED, "Encrypted", "Packets for the stream are by default encrypted (however the encryption state is carried in packet crypt flags) - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_BOOL},
 	{ GF_PROP_PID_OMA_PREVIEW_RANGE, "OMAPreview", "OMA Preview range ", GF_PROP_LUINT},
 	{ GF_PROP_PID_CENC_PSSH, "CENC_PSSH", "PSSH blob for CENC, formatted as (u32)NbSystems [ (bin128)SystemID(u32)version(u32)KID_count[ (bin128)keyID ] (u32)priv_size(char*priv_size)priv_data]", GF_PROP_DATA},

@@ -189,6 +189,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
+		assert(ctx->is_end);
+		assert(!ctx->pck_out);
 		if (evt->seek.source_switch) {
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src);
@@ -211,8 +213,6 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->last_state = GF_OK;
 			return GF_TRUE;
 		}
-		assert(ctx->is_end);
-		assert(!ctx->pck_out);
 		ctx->last_state = GF_OK;
 		if (ctx->sess) {
 			e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration);

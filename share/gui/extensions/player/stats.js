@@ -275,6 +275,11 @@ extension.view_stats = function () {
                     if (bw < 8000) label += '' + bw + ' Kbps';
                     else label += '' + Math.round(bw / 1000) + ' Mbps';
                 }
+                var sender_diff = odm.ntp_sender_diff;
+                if (sender_diff != null) {
+                    label += '\n'
+                    label += 'NTP transmission diff: ' + sender_diff + ' ms';                    
+                }
 
                 label += '\n'
                 label += 'Codec: ' + m.codec;

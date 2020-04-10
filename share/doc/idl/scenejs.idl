@@ -335,6 +335,8 @@ readonly atttribute boolean dynamic_scene;
 readonly atttribute DOMString service_name;
 /*! current NTP diff between composition of a frame and indicated NTP target*/
 readonly atttribute unsigned long ntp_diff;
+/*! NTP diff last packet reception time and its sent time. If unknown, attribute value is null*/
+readonly atttribute unsigned long ntp_sender_diff;
 /*! URL of main addon*/
 readonly atttribute DOMString main_addon_url;
 /*! indicates reverse playback is supported*/

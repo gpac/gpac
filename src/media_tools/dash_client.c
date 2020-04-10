@@ -80,6 +80,7 @@ struct __dash_client
 	Bool keep_files, disable_switching, allow_local_mpd_update, estimate_utc_drift, ntp_forced;
 	Bool is_m3u8, is_smooth;
 	Bool split_adaptation_set;
+	GF_DASHLowLatencyMode low_latency_mode;
 	//set when MPD downloading fails. Will resetup DASH live once MPD is sync again
 	Bool in_error;
 
@@ -131,6 +132,7 @@ struct __dash_client
 	Double start_range_period;
 
 	Double speed;
+	Bool is_rt_speed;
 	u32 probe_times_before_switch;
 	Bool agressive_switching;
 	u32 min_wait_ms_before_next_request;
@@ -346,6 +348,10 @@ struct __dash_group
 
 	/* current segment index in BBA and BOLA algorithm */
 	u32 current_index;
+
+	//in non-threaded mode, indicates that the demux for this group has nothing to do...
+	Bool force_early_fetch;
+	Bool is_low_latency;
 };
 
 static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list, u32 period_idx);
@@ -585,13 +591,20 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->dash->utc_drift_estimate = ((s64) fetch_time - (s64) utc);
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU"\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime));
 		} else {
+			s64 drift_estimate = 0;
+			u64 utc = 0;
 			val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Date");
-			if (val) {
-				u64 utc = gf_net_parse_date(val);
-				if (utc) {
-					group->dash->utc_drift_estimate = ((s64) fetch_time - (s64) utc);
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU"\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime));
-				}
+			if (val)
+				utc = gf_net_parse_date(val);
+			if (utc)
+				drift_estimate = ((s64) fetch_time - (s64) utc);
+
+			//HTTP date is in second - if the clock diff is less than 1 sec, we cannot infer anything
+			if (ABS(drift_estimate) > 1000) {
+				group->dash->utc_drift_estimate = drift_estimate;
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU"\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] No UTC diff between client and server (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU"\n", fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime));
 			}
 		}
 	}
@@ -754,6 +767,12 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		if (rep->segment_template->availability_time_offset) ast_offset = rep->segment_template->availability_time_offset;
 	}
 
+	group->is_low_latency = GF_FALSE;
+	if (group->dash->low_latency_mode==GF_DASH_LL_DISABLE) {
+		ast_offset = 0;
+	} else if (ast_offset>0) {
+		group->is_low_latency = GF_TRUE;
+	}
 	if (timeline) {
 		u64 start_segtime = 0;
 		u64 segtime = 0;
@@ -894,11 +913,12 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		//not time shifting, we are at the live edge, we must stick to start of segment otherwise we won't have enough data to play until next segment is ready
 
 		if (!group->dash->initial_time_shift_value) {
-			Double ms_in_seg;
+			Double time_in_seg;
+			//by default playback starts at begining of segment
 			group->start_playback_range = shift * group->segment_duration;
 
-			ms_in_seg = (Double) current_time/1000.0;
-			ms_in_seg -= group->start_playback_range;
+			time_in_seg = (Double) current_time/1000.0;
+			time_in_seg -= group->start_playback_range;
 
 			//if low latency, try to adjust
 			if (ast_offset) {
@@ -911,8 +931,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				//hence S(n) + ms_in_seg + R = S(n+1) + Aoffset
 				//which gives us R = S(n+1) + Aoffset - S(n) - ms_in_seg = D + Aoffset - ms_in_seg
 				//seek = D - R = D - (D + Aoffset - ms_in_seg) = ms_in_seg - Ao
-				if (ms_in_seg > ast_diff) {
-					group->start_playback_range += ms_in_seg - ast_diff_d;
+				if (time_in_seg > ast_diff_d) {
+					group->start_playback_range += time_in_seg - ast_diff_d;
 				}
 			}
 		} else {
@@ -926,7 +946,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AST at init "LLD"\n", group->ast_at_init));
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%f - %.03f seconds in segment\n", current_time, start_number, shift, group->segment_duration, group->start_playback_range ? group->start_playback_range - shift*group->segment_duration : 0));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%f - %.03f seconds in segment (start range %g)\n", current_time, start_number, shift, group->segment_duration, group->start_playback_range ? group->start_playback_range - shift*group->segment_duration : 0, group->start_playback_range));
 		} else {
 			group->download_segment_index += start_number;
 			if (group->download_segment_index > group->start_number_at_last_ast) {
@@ -1377,8 +1397,7 @@ static u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Grou
 	seg_ast += seg_dur;
 	seg_ast *= 1000;
 	seg_ast += group->period->start + group->ast_at_init;
-
-	return (u64) seg_ast;
+ 	return (u64) seg_ast;
 }
 
 static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 segment_start, u64 start_timescale, u64 timescale)
@@ -5799,9 +5818,19 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		clock_time = gf_sys_clock();
 		to_wait = (s32) (segment_ast - now);
 
+		if (group->force_early_fetch) {
+			if (to_wait>1) {
+				fprintf(stderr, "[DASH] Set #%d demux empty but wait time for segment %d is still %d ms, forcing scheduling\n", 1+gf_list_find(dash->groups, group), group->download_segment_index + start_number, to_wait);
+				to_wait = 0;
+			} else {
+				//we officially reached segment AST
+				group->force_early_fetch = GF_FALSE;
+			}
+		}
+
 		/*if segment AST is greater than now, it is not yet available - we would need an estimate on how long the request takes to be sent to the server in order to be more reactive ...*/
 		if (to_wait > 1) {
-
+fprintf(stderr, "dash will wait %d ms for segment %d\n", to_wait, group->download_segment_index + start_number);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) is not yet available on server - requesting later in %d ms\n", 1+gf_list_find(dash->groups, group), gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init)/1000.0, to_wait));
 			if (group->last_segment_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
@@ -7370,7 +7399,9 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, GF_DASHThreadMode thread_mode
 	if (!dash) return NULL;
 	dash->dash_io = dash_io;
 	dash->speed = 1.0;
+	dash->is_rt_speed = GF_TRUE;
 	dash->thread_mode = thread_mode;
+	dash->low_latency_mode = GF_DASH_LL_STRICT;
 
 	//wait one segment to validate we have enough bandwidth
 	dash->probe_times_before_switch = 1;
@@ -7936,6 +7967,8 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed)
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing at %f speed \n", speed));
 		dash->speed = speed;
+		dash->is_rt_speed = (ABS(speed - 1.0)<0.1) ? GF_TRUE : GF_FALSE;
+
 	}
 }
 
@@ -8095,7 +8128,16 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	if (!group->nb_cached_segments) {
 		if (group->cache_mutex) gf_mx_v(group->cache_mutex);
 		if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
-		return group->done ? GF_EOS : GF_BUFFER_TOO_SMALL;
+		if (group->done) return GF_EOS;
+		if ((dash->low_latency_mode==GF_DASH_LL_EARLY_FETCH)
+			&& group->is_low_latency
+			&& dash->is_rt_speed
+			&& !dash->time_in_tsb
+		) {
+			group->force_early_fetch = GF_TRUE;
+			dash->min_wait_ms_before_next_request = 1;
+		}
+		return GF_BUFFER_TOO_SMALL;
 	}
 
 	/*check the dependent rep is in the cache and does not target next segment (next in time)*/
@@ -8524,6 +8566,13 @@ void gf_dash_split_adaptation_sets(GF_DashClient *dash)
 {
 	dash->split_adaptation_set = GF_TRUE;
 }
+
+GF_EXPORT
+void gf_dash_set_low_latency_mode(GF_DashClient *dash, GF_DASHLowLatencyMode low_lat_mode)
+{
+	dash->low_latency_mode = low_lat_mode;
+}
+
 
 GF_EXPORT
 void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms)
@@ -8982,7 +9031,16 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, GF_Err err)
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (dash->thread_mode) return;
 	if (!group) return;
-	if (!err) return;
+
+	//we forced early fetch because demux was empty, consider all errors as 404
+	if (group->force_early_fetch && err) {
+		err = GF_URL_ERROR;
+	}
+
+	if (!err) {
+		group->force_early_fetch = GF_FALSE;
+		return;
+	}
 	if (!group->nb_cached_segments) return;
 	rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);
 	//FILTER_FIXME: find base group and current cache idx for scalability

@@ -464,6 +464,8 @@ rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. Overriden by Rebu
 .br
 mbuf (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid
 .br
+ntpsync (uint, default: 0, updatable): ntp resync threshold (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop
+.br
 nojs (bool, default: false):   disable javascript
 .br
 noback (bool, default: false): ignore background nodes and viewport fill (usefull when dumping to PNG)
@@ -1529,6 +1531,16 @@ noxlink (bool, default: no):   disable xlink if period has both xlink and adapta
 query (str):                   set query string (without initial '?') to append to xlink of periods
 .br
 split_as (bool, default: no):  separate all qualities into different adaptation sets and stream all qualities
+.br
+lowlat (enum, default: early): segment scheduling policy in low latency mode
+.br
+* no: disable low latency
+.br
+* strict: strict respect of AST offset in low latency
+.br
+* early: allow fetching segments earlier than their AST in low latency when input demux is empty
+.br
+
 .br
 
 .br
@@ -5552,7 +5564,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3648-g661cedd98-filters
+build: 0.9.0-DEV-rev3659-g794a0d14d-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

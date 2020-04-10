@@ -42,6 +42,7 @@ typedef struct
 	Bool max_res, immediate, abort, use_bmin;
 	char *query;
 	Bool noxlink, split_as;
+	u32 lowlat;
 
 	GF_FilterPid *mpd_pid;
 	GF_Filter *filter;
@@ -66,7 +67,6 @@ typedef struct
 	Bool mpd_open;
 	Bool initial_play;
 	Bool check_eos;
-	Bool force_seg_switch;
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -1094,6 +1094,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_disable_speed_adaptation(ctx->dash, ctx->speedadapt);
 	gf_dash_ignore_xlink(ctx->dash, ctx->noxlink);
 	gf_dash_set_period_xlink_query_string(ctx->dash, ctx->query);
+	gf_dash_set_low_latency_mode(ctx->dash, ctx->lowlat);
 	if (ctx->split_as)
 		gf_dash_split_adaptation_sets(ctx->dash);
 
@@ -1242,7 +1243,6 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		/*don't seek if this command is the first PLAY request of objects declared by the subservice, unless start range is not default one (0) */
 		if (!ctx->nb_playing) {
 			if (!initial_play || (fevt->play.start_range>1.0)) {
-				ctx->initial_play = GF_FALSE;
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Received Play command on group %d\n", group->idx));
 
@@ -1252,10 +1252,6 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 					gf_dash_set_timeshift(ctx->dash, ms);
 				}
 				gf_dash_seek(ctx->dash, fevt->play.start_range);
-				//not initial play, the playback has been canceled by a STOP so no EOS will be fetched, force a switch
-				if (!initial_play) {
-					ctx->force_seg_switch = GF_TRUE;
-				}
 
 				//to remove once we manage to keep the service alive
 				/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
@@ -1271,8 +1267,6 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 			gf_dash_group_seek(ctx->dash, group->idx, fevt->play.start_range);
 		}
-
-		group->force_seg_switch = ctx->force_seg_switch;
 
 		//check if current segment playback should be aborted
 		src_evt.play.forced_dash_segment_switch = gf_dash_group_segment_switch_forced(ctx->dash, group->idx);
@@ -1303,12 +1297,12 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 1);
 		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
 		group->is_playing = GF_FALSE;
-		ctx->force_seg_switch = GF_TRUE;
 		if (ctx->nb_playing) {
+			ctx->initial_play = GF_FALSE;
+			group->force_seg_switch = GF_TRUE;
 			ctx->nb_playing--;
 			if (!ctx->nb_playing) ctx->check_eos = GF_TRUE;
 		}
-
 		//forward new event to source pid
 		src_evt = *fevt;
 		src_evt.base.on_pid = ipid;
@@ -1349,7 +1343,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
 	group->wait_for_pck = GF_TRUE;
 	group->in_error = GF_FALSE;
-	ctx->force_seg_switch = GF_FALSE;
 	if (group->segment_sent) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d drop current segment\n", group->idx));
 		if (!group->current_group_dep)
@@ -1762,7 +1755,10 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(noxlink), "disable xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(query), "set query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split_as), "separate all qualities into different adaptation sets and stream all qualities", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
-
+	{ OFFS(lowlat), "segment scheduling policy in low latency mode\n"
+			"- no: disable low latency\n"
+			"- strict: strict respect of AST offset in low latency\n"
+			"- early: allow fetching segments earlier than their AST in low latency when input demux is empty", GF_PROP_UINT, "early", "no|strict|early", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
