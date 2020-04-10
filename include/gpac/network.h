@@ -271,6 +271,16 @@ Gets diff in milliseconds between NTP time and current time
  */
 s32 gf_net_get_ntp_diff_ms(u64 ntp);
 
+
+/*!
+
+Gets diff in milliseconds between two NTP times  time and current time
+\param ntp_a first NTP timestamp
+\param ntp_b second NTP timestamp
+\return diff ntp_a minus ntp_b in milliseconds
+ */
+s32 gf_net_ntp_diff_ms(u64 ntp_a, u64 ntp_b);
+
 /*! @} */
 
 /*!
