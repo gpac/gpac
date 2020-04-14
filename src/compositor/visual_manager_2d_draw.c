@@ -91,8 +91,8 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	Bool has_modif = GF_FALSE;
 	GF_IRect clip;
 
-	/*background & direct drawing : use ctx clip*/
-	if ((ctx->flags & CTX_IS_BACKGROUND) || tr_state->immediate_draw) {
+	/*direct drawing : use ctx clip*/
+	if (tr_state->immediate_draw) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s [%s] (direct draw)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node) ));
 
