@@ -799,9 +799,8 @@ static void ctxload_finalize(GF_Filter *filter)
 {
 	CTXLoadPriv *priv = gf_filter_get_udta(filter);
 
-	if (priv->files_to_delete)
-		gf_list_del(priv->files_to_delete);
-	priv->files_to_delete = NULL;
+	if (priv->ctx) gf_sm_del(priv->ctx);
+	if (priv->files_to_delete) gf_list_del(priv->files_to_delete);
 }
 
 #include <gpac/utf.h>
