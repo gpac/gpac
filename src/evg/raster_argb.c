@@ -38,7 +38,7 @@ mul255(s32 a, s32 b)
 		32 bit ARGB/BGRA/RGBA
 */
 
-u32 do_composite_mode(GF_EVGCompositeMode comp_mode, u8 *srca, u8 *dsta)
+u32 do_composite_mode(GF_EVGCompositeMode comp_mode, s32 *srca, s32 *dsta)
 {
 	switch (comp_mode) {
 	case GF_EVG_SRC_ATOP:
@@ -87,11 +87,11 @@ u32 do_composite_mode(GF_EVGCompositeMode comp_mode, u8 *srca, u8 *dsta)
 GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *surf)
 {
 	u32 res;
-	u8 srca = GF_COL_A(src);
-	u8 srcr = GF_COL_R(src);
-	u8 srcg = GF_COL_G(src);
-	u8 srcb = GF_COL_B(src);
-	u8 dsta = dst[surf->idx_a];
+	s32 srca = GF_COL_A(src);
+	s32 srcr = GF_COL_R(src);
+	s32 srcg = GF_COL_G(src);
+	s32 srcb = GF_COL_B(src);
+	s32 dsta = dst[surf->idx_a];
 
 	srca = mul255(srca, alpha);
 
@@ -108,20 +108,20 @@ GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *s
 		if (srcg>0xFF) srcg = 0xFF;
 		dstb += srcb;
 		if (srcb>0xFF) srcb = 0xFF;
-		dst[surf->idx_a] = srca;
-		dst[surf->idx_r] = dstr;
-		dst[surf->idx_g] = dstg;
-		dst[surf->idx_b] = dstb;
+		dst[surf->idx_a] = (u8) srca;
+		dst[surf->idx_r] = (u8) dstr;
+		dst[surf->idx_g] = (u8) dstg;
+		dst[surf->idx_b] = (u8) dstb;
 		return;
 	}
 	if (res==2) {
 		u8 dstr = dst[surf->idx_r];
 		u8 dstg = dst[surf->idx_g];
 		u8 dstb = dst[surf->idx_b];
-		dst[surf->idx_a] = srca;
-		dst[surf->idx_r] = dstr^srcr;
-		dst[surf->idx_g] = dstg^srcg;
-		dst[surf->idx_b] = dstb^srcb;
+		dst[surf->idx_a] = (u8) srca;
+		dst[surf->idx_r] = (u8) (dstr^srcr);
+		dst[surf->idx_g] = (u8) (dstg^srcg);
+		dst[surf->idx_b] = (u8) (dstb^srcb);
 		return;
 	}
 
@@ -130,41 +130,46 @@ GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *s
 		if source alpha is 0xFF erase the entire pixel
 	*/
 	if (dsta && (srca!=0xFF) ) {
-		u8 final_a;
-		u8 dstr = dst[surf->idx_r];
-		u8 dstg = dst[surf->idx_g];
-		u8 dstb = dst[surf->idx_b];
+		s32 final_a;
+		s32 dstr = dst[surf->idx_r];
+		s32 dstg = dst[surf->idx_g];
+		s32 dstb = dst[surf->idx_b];
 
 		//do the maths , so that the result of the blend follows the same DST = SRC*apha + DST(1-alpha)
 		//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
 		//and an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
 		final_a = dsta + srca - mul255(dsta, srca);
 		if (final_a) {
+			s32 res;
 			dst[surf->idx_a] = final_a;
-			dst[surf->idx_r] = (u8) ((srcr*srca + dstr*(dsta-srca)) / final_a);
-			dst[surf->idx_g] = (u8) ((srcg*srca + dstg*(dsta-srca)) / final_a);
-			dst[surf->idx_b] = (u8) ((srcb*srca + dstb*(dsta-srca)) / final_a);
-		} else {
-			assert(0);
+			res = (srcr*srca + dstr*(dsta-srca)) / final_a;
+			if (res<0) res=0;
+			dst[surf->idx_r] = (u8) (res);
+			res = (srcg*srca + dstg*(dsta-srca)) / final_a;
+			if (res<0) res=0;
+			dst[surf->idx_g] = (u8) (res);
+			res = (srcb*srca + dstb*(dsta-srca)) / final_a;
+			if (res<0) res=0;
+			dst[surf->idx_b] = (u8) (res);
 		}
 	} else {
-		dst[surf->idx_a] = srca;
-		dst[surf->idx_r] = srcr;
-		dst[surf->idx_g] = srcg;
-		dst[surf->idx_b] = srcb;
+		dst[surf->idx_a] = (u8) srca;
+		dst[surf->idx_r] = (u8) srcr;
+		dst[surf->idx_g] = (u8) srcg;
+		dst[surf->idx_b] = (u8) srcb;
 	}
 }
 
 GFINLINE static void overmask_argb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count, GF_EVGSurface *surf)
 {
 	u8 const_srca = GF_COL_A(src);
-	u8 srcr = GF_COL_R(src);
-	u8 srcg = GF_COL_G(src);
-	u8 srcb = GF_COL_B(src);
+	s32 srcr = GF_COL_R(src);
+	s32 srcg = GF_COL_G(src);
+	s32 srcb = GF_COL_B(src);
 
 	while (count) {
-		u8 srca = const_srca;
-		u8 dsta = dst[surf->idx_a];
+		s32 srca = const_srca;
+		s32 dsta = dst[surf->idx_a];
 
 		do_composite_mode(surf->comp_mode, &srca, &dsta);
 
@@ -173,28 +178,33 @@ GFINLINE static void overmask_argb_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 			if source alpha is 0xFF erase the entire pixel
 		*/
 		if ((dsta != 0) && (srca != 0xFF)) {
-			u8 final_a;
-			u8 dstr = dst[surf->idx_r];
-			u8 dstg = dst[surf->idx_g];
-			u8 dstb = dst[surf->idx_b];
+			s32 final_a;
+			s32 dstr = dst[surf->idx_r];
+			s32 dstg = dst[surf->idx_g];
+			s32 dstb = dst[surf->idx_b];
 
 			//do the maths , so that the result of the blend follows the same DST = SRC*apha + DST(1-alpha)
 			//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
 			//and an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
 			final_a = dsta + srca - mul255(dsta, srca);
 			if (final_a) {
+				s32 res;
 				dst[surf->idx_a] = final_a;
-				dst[surf->idx_r] = (u8) ((srcr*srca + dstr*(dsta-srca)) / final_a);
-				dst[surf->idx_g] = (u8) ((srcg*srca + dstg*(dsta-srca)) / final_a);
-				dst[surf->idx_b] = (u8) ((srcb*srca + dstb*(dsta-srca)) / final_a);
-			} else {
-				assert(0);
+				res = (srcr*srca + dstr*(dsta-srca)) / final_a;
+				if (res<0) res=0;
+				dst[surf->idx_r] = (u8) (res);
+				res = (srcg*srca + dstg*(dsta-srca)) / final_a;
+				if (res<0) res=0;
+				dst[surf->idx_g] = (u8) (res);
+				res = (srcb*srca + dstb*(dsta-srca)) / final_a;
+				if (res<0) res=0;
+				dst[surf->idx_b] = (u8) (res);
 			}
 		} else {
-			dst[surf->idx_a] = srca;
-			dst[surf->idx_r] = srcr;
-			dst[surf->idx_g] = srcg;
-			dst[surf->idx_b] = srcb;
+			dst[surf->idx_a] = (u8) srca;
+			dst[surf->idx_r] = (u8) srcr;
+			dst[surf->idx_g] = (u8) srcg;
+			dst[surf->idx_b] = (u8) srcb;
 		}
 		dst+=dst_pitch_x;
 		count--;
