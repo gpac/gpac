@@ -864,16 +864,18 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			if (e) {
 				if (e != GF_NOT_SUPPORTED) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor2D] Cannot soft blit surface (error %s) - will try using software rasterizer\n", gf_error_to_string(e) ));
+					visual->compositor->last_error = e;
 				}
 				if (is_attached) visual_2d_init_raster(visual);
-				visual->compositor->last_error = e;
 				txh->flags |= GF_SR_TEXTURE_DISABLE_BLIT;
 				return GF_FALSE;
 			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
+			if (e != GF_NOT_SUPPORTED) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
+				visual->compositor->last_error = e;
+			}
 			if (is_attached) visual_2d_init_raster(visual);
-			visual->compositor->last_error = e;
 			return GF_FALSE;
 		}
 		if (!visual->compositor->video_memory) {
