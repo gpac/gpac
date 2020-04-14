@@ -280,15 +280,17 @@ static void gf_sc_frame_ifce_done(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 
 GF_Err gf_sc_frame_ifce_get_plane(GF_FilterFrameInterface *frame_ifce, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
+	GF_Err e = GF_BAD_PARAM;
 	GF_Compositor *compositor = frame_ifce->user_data;
 
 	if (plane_idx==0) {
+		e = GF_OK;
 		if (!compositor->fb.video_buffer)
-			gf_sc_get_screen_buffer(compositor, &compositor->fb, 0);
+			e = gf_sc_get_screen_buffer(compositor, &compositor->fb, 0);
 	}
 	*outPlane = compositor->fb.video_buffer;
 	*outStride = compositor->fb.pitch_y;
-	return GF_OK;
+	return e;
 }
 #ifndef GPAC_DISABLE_3D
 GF_Err gf_sc_frame_ifce_get_gl_texture(GF_FilterFrameInterface *frame_ifce, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix_unexposed * texcoordmatrix)
@@ -433,8 +435,12 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 	if (!compositor->player && (compositor->passthrough_pfmt != GF_PIXEL_RGB)) {
 		u32 pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 		compositor->passthrough_pfmt = pfmt;
-		if (compositor->vout)
+		compositor->opfmt = pfmt;
+		if (compositor->vout) {
+			u32 stride = compositor->output_width * ( (pfmt == GF_PIXEL_RGBA) ? 4 : 3 );
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt));
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
+		}
 	}
 
 	
