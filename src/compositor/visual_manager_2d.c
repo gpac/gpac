@@ -850,7 +850,7 @@ skip_background:
 			dr.list[i] = visual->to_redraw.list[i].rect;
 		}
 		visual->compositor->video_out->FlushRectangles(visual->compositor->video_out, &dr);
-		visual->compositor->skip_flush=1;
+		visual->compositor->skip_flush = 1;
 		gf_free(dr.list);
 	}
 

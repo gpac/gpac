@@ -1309,6 +1309,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	compositor->scene = scene_graph;
 	do_notif = GF_FALSE;
 	if (scene_graph) {
+		GF_Scene *scene_ctx = gf_sg_get_private(scene_graph);
 #ifndef GPAC_DISABLE_SVG
 		SVG_Length *w, *h;
 		SVG_ViewBox *vb;
@@ -1317,6 +1318,10 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		GF_Node *top_node;
 #endif
 		Bool had_size_info = compositor->has_size_info;
+
+		compositor->timed_nodes_valid = GF_TRUE;
+		if (scene_ctx && scene_ctx->is_dynamic_scene)
+			compositor->timed_nodes_valid = GF_FALSE;
 
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(compositor->scene, &width, &height);
@@ -2615,7 +2620,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			count--;
 			continue;
 		}
-		has_timed_nodes = GF_TRUE;
+		has_timed_nodes = compositor->timed_nodes_valid;
 	}
 #ifndef GPAC_DISABLE_LOG
 	time_node_time = gf_sys_clock() - time_node_time;
@@ -2929,7 +2934,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				ts /= compositor->passthrough_timescale;
 				frame_ts = (u32) ts;
 			}
-
 			gf_filter_pck_send(pck);
 			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
 

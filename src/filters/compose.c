@@ -603,6 +603,7 @@ static GF_Err compose_initialize(GF_Filter *filter)
 
 	if (gf_filter_is_dynamic(filter)) {
 		ctx->dyn_filter_mode = GF_TRUE;
+		ctx->vfr = GF_TRUE;
 	}
 
 	if (ctx->buf > ctx->mbuf)
@@ -726,7 +727,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(fps), "simulation frame rate when animation-only sources are played (ignored when video is present).", GF_PROP_FRACTION, "30/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(timescale), "timescale used for output packets when no input video pid. A value of 0 means fps numerator.", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(autofps), "use video input fps for output. If no video or not set, uses [-fps](). Ignored in player mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(vfr), "only emit frames when changes are detected. Always true in player mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(vfr), "only emit frames when changes are detected. Always true in player mode and when filter is dynamically loaded", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(dur), "duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fsize), "force the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},

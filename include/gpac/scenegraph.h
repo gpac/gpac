@@ -1015,6 +1015,17 @@ GF_CommandField *gf_sg_command_field_new(GF_Command *com);
 */
 GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com);
 
+/*! XML node from DOM parser */
+typedef struct _xml_node *GF_DOMXMLNODE;
+
+/*! Creates a GF_SceneGraph from an XML root node. This is mostly used to allow using DOM API on an XML doc
+ \param document an empty scene graph object
+ \param root_node the root node of an XML document
+ \return error if any
+ */
+GF_Err gf_sg_init_from_xml_node(GF_SceneGraph *document, GF_DOMXMLNODE root_node);
+
+
 /*! @} */
 
 #ifdef __cplusplus

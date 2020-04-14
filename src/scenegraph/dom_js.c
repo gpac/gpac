@@ -1333,8 +1333,8 @@ static JSValue dom_node_getProperty(JSContext *c, JSValueConst obj, int magic)
 	case NODE_JSPROPERTY_TEXTCONTENT:
 		if (!sg)  {
 			char *res = gf_dom_flatten_textContent(n);
-			JSValue ret = JS_NewString(c, res);
-			gf_free(res);
+			JSValue ret = JS_NewString(c, res ? res : "");
+			if (res) gf_free(res);
 			return ret;
 		}
 		return JS_NewString(c, "");

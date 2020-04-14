@@ -416,7 +416,7 @@ timescale (uint, default: 0, updatable): timescale used for output packets when 
 .br
 autofps (bool, default: true): use video input fps for output. If no video or not set, uses -fps. Ignored in player mode
 .br
-vfr (bool, default: false):    only emit frames when changes are detected. Always true in player mode
+vfr (bool, default: false):    only emit frames when changes are detected. Always true in player mode and when filter is dynamically loaded
 .br
 dur (dbl, default: 0, updatable): duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.
 .br
@@ -2181,6 +2181,54 @@ font (str, default: SANS, updatable): font to use
 fontSize (flt, default: 20, updatable): font size to use
 .br
 color (str, default: white, updatable): color to use
+.br
+lineSpacing (flt, default: 1.0, updatable): line spacing as scaling factor to font size
+.br
+txtx (flt, default: 5, updatable): horizontal offset
+.br
+txty (flt, default: 5, updatable): vertical offset
+.br
+txtw (uint, default: 400):     default width in standalone rendering
+.br
+txth (uint, default: 200):     default height in standalone rendering
+.br
+
+.br
+.SH ttmldec
+.LP
+.br
+Description: TTML decoder
+.br
+
+.br
+This filter decodes TTML streams into a SVG scene graph of the compositor filter.
+.br
+The scene graph creation is done through JavaScript.
+.br
+The filter options are used to override the JS global variables of the TTML renderer.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+script (str, default: $GSHARE/scripts/ttml-renderer.js): location of TTML SVG JS renderer
+.br
+font (str, default: SANS, updatable): font to use
+.br
+fontSize (flt, default: 20, updatable): font size to use
+.br
+color (str, default: white, updatable): color to use
+.br
+valign (enum, default: bottom, updatable): vertical alignment
+.br
+* bottom: align text at bottom of text area
+.br
+* center: align text at center of text area
+.br
+* top: align text at top of text area
+.br
+
 .br
 lineSpacing (flt, default: 1.0, updatable): line spacing as scaling factor to font size
 .br
@@ -5564,7 +5612,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev3659-g794a0d14d-filters
+build: 0.9.0-DEV-rev3672-g8efbb95b3-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

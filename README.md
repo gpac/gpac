@@ -94,14 +94,15 @@ Targets:
 - [x] add 2D vector graphics for JS filters
 - [x] add WebGL vector graphics for JS filters
 - [x] JS modules API documentation
-- [ ] improve mp4 demux from pipe
+- [x] improve mp4 demux from pipe
 - [x] support for HTTP output (server and put/post)
 - [x] add TS spliter filter
-- [ ] move input sensors to filter ?
+- [x] add ttml simple renderer
 - [-] split test suite from main repo and handle PRs with attachements
 
 ## Future Roadmap
 - [ ] filters scriptable through other languages (python) ?
+- [ ] move input sensors to filter ?
 
 # Testing
 GPAC has a test suite exercicing most features of the framework. As of 0.9.0, the test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.

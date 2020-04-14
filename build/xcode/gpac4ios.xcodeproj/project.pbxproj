@@ -337,6 +337,7 @@
 		921FEBA61CF881DE00B437C2 /* sensors.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA31CF881DE00B437C2 /* sensors.h */; };
 		921FEBA71CF881DE00B437C2 /* sensors.m in Sources */ = {isa = PBXBuildFile; fileRef = 921FEBA41CF881DE00B437C2 /* sensors.m */; };
 		92261A89239E326900C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A88239E326900C14199 /* out_http.c */; };
+		922B2774244625B0001D4F72 /* dec_ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B2773244625B0001D4F72 /* dec_ttml.c */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -917,6 +918,7 @@
 		921FEBA31CF881DE00B437C2 /* sensors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors.h; path = ../../applications/osmo4_ios/sensors.h; sourceTree = "<group>"; };
 		921FEBA41CF881DE00B437C2 /* sensors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = sensors.m; path = ../../applications/osmo4_ios/sensors.m; sourceTree = "<group>"; };
 		92261A88239E326900C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = ../../src/filters/out_http.c; sourceTree = "<group>"; };
+		922B2773244625B0001D4F72 /* dec_ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ttml.c; path = ../../src/filters/dec_ttml.c; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
 		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
@@ -1863,6 +1865,7 @@
 				92EB6D7420E4E19200A97A49 /* dec_openhevc.c */,
 				92EB6DC020E4E19700A97A49 /* dec_opensvc.c */,
 				92EB6DB920E4E19600A97A49 /* dec_theora.c */,
+				922B2773244625B0001D4F72 /* dec_ttml.c */,
 				92EB6D7E20E4E19200A97A49 /* dec_ttxt.c */,
 				92EB6D9820E4E19400A97A49 /* dec_vorbis.c */,
 				92EB6D7F20E4E19300A97A49 /* dec_vtb_glctx.m */,
@@ -2505,6 +2508,7 @@
 				8959AC8D211C9C3C004D2C87 /* rewrite_obu.c in Sources */,
 				71CCF3031277045100339E12 /* dom_events.c in Sources */,
 				71CCF3051277045100339E12 /* mpeg4_animators.c in Sources */,
+				922B2774244625B0001D4F72 /* dec_ttml.c in Sources */,
 				71CCF3061277045100339E12 /* mpeg4_nodes.c in Sources */,
 				71CCF3071277045100339E12 /* mpeg4_valuator.c in Sources */,
 				71CCF3081277045100339E12 /* smil_anim.c in Sources */,
