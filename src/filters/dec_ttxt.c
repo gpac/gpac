@@ -359,6 +359,8 @@ static void ttd_setup_scene(GF_TTXTDec *ctx)
 
 static void ttd_reset_scene(GF_TTXTDec *ctx)
 {
+	if (!ctx->scenegraph) return;
+
 	gf_scene_register_extra_graph(ctx->scene, ctx->scenegraph, GF_TRUE);
 
 	gf_node_unregister((GF_Node *) ctx->ts_blink, NULL);
@@ -1144,16 +1146,16 @@ static void ttd_toggle_display(GF_TTXTDec *ctx)
 	}
 }
 
-static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
+static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
 
 	//check for scene attach
-	switch (com->base.type) {
+	switch (evt->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
 		break;
 	case GF_FEVT_RESET_SCENE:
-		if (ctx->opid != com->attach_scene.on_pid) return GF_TRUE;
+		if (ctx->opid != evt->attach_scene.on_pid) return GF_TRUE;
 		ctx->is_playing = GF_FALSE;
 		ttd_toggle_display(ctx);
 		ttd_reset_scene(ctx);
@@ -1170,9 +1172,9 @@ static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	default:
 		return GF_FALSE;
 	}
-	if (ctx->opid != com->attach_scene.on_pid) return GF_TRUE;
+	if (ctx->opid != evt->attach_scene.on_pid) return GF_TRUE;
 
-	ctx->odm = com->attach_scene.object_manager;
+	ctx->odm = evt->attach_scene.object_manager;
 	ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 
 	/*timedtext cannot be a root scene object*/
@@ -1292,6 +1294,8 @@ static GF_Err ttd_initialize(GF_Filter *filter)
 void ttd_finalize(GF_Filter *filter)
 {
 	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
+
+	ttd_reset_scene(ctx);
 
 	if (ctx->cfg) gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
 	gf_bs_del(ctx->bs_r);
