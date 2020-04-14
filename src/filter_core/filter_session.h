@@ -974,6 +974,8 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path);
 
 void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
 
+void gf_filter_renegociate_output_task(GF_FSTask *task);
+
 #endif //_GF_FILTER_SESSION_H_
 
 

@@ -1599,11 +1599,16 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		filter_dst->swap_pidinst_dst = a_dst_pidi;
 
 	}
-	//we are inserting a new chain
+	//we are inserting a new chain for reconfiguration only
 	else if (reconfig_only) {
 		gf_fs_check_graph_load(filter_dst->session, GF_TRUE);
+		//make sure we don't try the PID parent filter since we just failed reconfiguring it
+		gf_list_add(pid->filter->blacklisted, (void *) pid->filter->freg);
 		new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst);
-	} else {
+		gf_list_del_item(pid->filter->blacklisted, (void *)pid->filter->freg);
+	}
+	//we are inserting a new chain
+	else {
 		Bool reassigned;
 		gf_fs_check_graph_load(filter_dst->session, GF_TRUE);
 		new_f = gf_filter_pid_resolve_link(pid, filter_dst, &reassigned);
@@ -1713,11 +1718,12 @@ void gf_filter_reconfigure_output_task(GF_FSTask *task)
 }
 
 
-static void gf_filter_renegociate_output(GF_Filter *filter)
+static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_insert)
 {
 	u32 i, j;
 	assert(filter->nb_caps_renegociate );
 	safe_int_dec(& filter->nb_caps_renegociate );
+
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		if (pid->caps_negociate) {
@@ -1726,7 +1732,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 			//the property map is create with ref count 1
 
 			//we cannot reconfigure output if more than one destination
-			if ((pid->num_destinations<=1) && filter->freg->reconfigure_output) {
+			if ((pid->num_destinations<=1) && filter->freg->reconfigure_output && !force_afchain_insert) {
 				GF_Err e = filter->freg->reconfigure_output(filter, pid);
 				if (e) {
 					if (filter->is_pid_adaptation_filter) {
@@ -1764,7 +1770,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 							filter_dst->caps_negociate = pid->caps_negociate;
 							safe_int_inc(&filter_dst->caps_negociate->reference_count);
 
-							gf_fs_post_task(filter->session, gf_filter_reconfigure_output_task, filter_dst, NULL, "filter renegociate", NULL);
+							gf_fs_post_task(filter->session, gf_filter_reconfigure_output_task, filter_dst, NULL, "filter reconfigure output", NULL);
 						} else {
 							//disconnect pid, but prevent filter from unloading
 							if (!filter_dst->sticky) filter_dst->sticky = 2;
@@ -1788,6 +1794,11 @@ static void gf_filter_renegociate_output(GF_Filter *filter)
 			pid->caps_negociate_pidi = NULL;
 		}
 	}
+}
+
+void gf_filter_renegociate_output_task(GF_FSTask *task)
+{
+	gf_filter_renegociate_output(task->filter, GF_TRUE);
 }
 
 static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
@@ -2030,8 +2041,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 
 	filter->nb_pck_io = 0;
 
-	if (task->filter->nb_caps_renegociate) {
-		gf_filter_renegociate_output(task->filter);
+	if (filter->nb_caps_renegociate) {
+		gf_filter_renegociate_output(filter, GF_FALSE);
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
