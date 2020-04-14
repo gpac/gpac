@@ -1193,6 +1193,9 @@
     <ClCompile Include="..\..\src\filters\dec_theora.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_ttml.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_ttxt.c">
       <Filter>filters</Filter>
     </ClCompile>

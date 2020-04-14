@@ -88,6 +88,7 @@ const GF_FilterRegister *avidmx_register(GF_FilterSession *session);
 const GF_FilterRegister *txtin_register(GF_FilterSession *session);
 const GF_FilterRegister *ttxtdec_register(GF_FilterSession *session);
 const GF_FilterRegister *vttdec_register(GF_FilterSession *session);
+const GF_FilterRegister *ttmldec_register(GF_FilterSession *session);
 const GF_FilterRegister *rtpin_register(GF_FilterSession *session);
 const GF_FilterRegister *fileout_register(GF_FilterSession *session);
 const GF_FilterRegister *adtsmx_register(GF_FilterSession *session);
@@ -208,6 +209,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, txtin_register(a_sess) );
 	gf_fs_add_filter_register(fsess, ttxtdec_register(a_sess) );
 	gf_fs_add_filter_register(fsess, vttdec_register(a_sess) );
+	gf_fs_add_filter_register(fsess, ttmldec_register(a_sess) );
 	gf_fs_add_filter_register(fsess, rtpin_register(a_sess) );
 	gf_fs_add_filter_register(fsess, fileout_register(a_sess) );
 	gf_fs_add_filter_register(fsess, latm_mx_register(a_sess) );

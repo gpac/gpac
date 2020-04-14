@@ -318,7 +318,7 @@ struct __tag_compositor
 	u32 force_next_frame_redraw;
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
-
+	Bool timed_nodes_valid;
 	//player option, by default disabled. In player mode the video driver is always loaded
 	//and no passthrough checks are done
 	u32 player;

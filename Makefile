@@ -178,6 +178,7 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/scripts/webvtt-renderer.js "$(DESTDIR)$(prefix)/share/gpac/scripts/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/scripts/ttml-renderer.js "$(DESTDIR)$(prefix)/share/gpac/scripts/"
 
 
 ifeq ($(CONFIG_DARWIN),yes)

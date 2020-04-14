@@ -2429,3 +2429,81 @@ GF_SceneGraph *gf_sg_get_parent(GF_SceneGraph *scene)
 	return scene ? scene->parent_scene : NULL;
 }
 
+
+#include <gpac/xml.h>
+
+static GF_Err gf_sg_load_dom_node(GF_SceneGraph *document, GF_XMLNode *n, GF_DOMFullNode *par)
+{
+	u32 i, count;
+	GF_DOMFullAttribute *prev = NULL;
+	GF_DOMFullNode *node;
+
+	if (!n) return GF_OK;
+	if (!par && document->RootNode) {
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	/*construct text / cdata node*/
+	if (n->type != GF_XML_NODE_TYPE) {
+		u32 i, len;
+		GF_DOMText *txt;
+		/*basic check, remove all empty text nodes*/
+		len = (u32) strlen(n->name);
+		for (i=0; i<len; i++) {
+			if (!strchr(" \n\r\t", n->name[i])) break;
+		}
+		if (i==len) return GF_OK;
+		txt = gf_dom_add_text_node((GF_Node *)par, gf_strdup(n->name) );
+		txt->type = (n->type==GF_XML_CDATA_TYPE) ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
+		return GF_OK;
+	}
+	/*construct DOM node*/
+	node = (GF_DOMFullNode *) gf_node_new(document, TAG_DOMFullNode);
+	node->name = gf_strdup(n->name);
+	if (n->ns)
+		node->ns = gf_sg_get_namespace_code(document, n->ns);
+
+	count = gf_list_count(n->attributes);
+	for (i=0; i<count; i++) {
+		GF_XMLAttribute *src_att = gf_list_get(n->attributes, i);
+		/* special case for 'xml:id' to be parsed as an ID
+		NOTE: we do not test for the 'id' attribute because without DTD we are not sure that it's an ID */
+		if (!stricmp(src_att->name, "xml:id")) {
+			u32 id = gf_sg_get_max_node_id(document) + 1;
+			gf_node_set_id((GF_Node *)node, id, src_att->value);
+		} else {
+			GF_DOMFullAttribute *att;
+			GF_SAFEALLOC(att, GF_DOMFullAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XHR] Fail to allocate DOM attribute\n"));
+				continue;
+			}
+			att->tag = TAG_DOM_ATT_any;
+			att->name = gf_strdup(src_att->name);
+			att->data_type = (u16) DOM_String_datatype;
+			att->data = gf_svg_create_attribute_value(att->data_type);
+			*((char **)att->data) = gf_strdup(src_att->value);
+			if (prev) prev->next = (GF_DOMAttribute*)att;
+			else node->attributes = (GF_DOMAttribute*)att;
+			prev = att;
+		}
+	}
+	gf_node_register((GF_Node*)node, (GF_Node*)par);
+	if (par) {
+		gf_node_list_add_child(&par->children, (GF_Node*)node);
+	} else {
+		document->RootNode = (GF_Node*)node;
+	}
+	count = gf_list_count(n->content);
+	for (i=0; i<count; i++) {
+		GF_XMLNode *child = gf_list_get(n->content, i);
+		GF_Err e = gf_sg_load_dom_node(document, child, node);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_sg_init_from_xml_node(GF_SceneGraph *document, GF_DOMXMLNODE root_node)
+{
+	return gf_sg_load_dom_node(document, root_node, NULL);
+}
+
