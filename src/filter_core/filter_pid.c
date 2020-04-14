@@ -2600,7 +2600,9 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//blacklisted filter
 		else if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0) {
 			assert(freg != dst->freg);
-			assert(freg != pid->filter->freg);
+			if (!reconfigurable_only) {
+				assert(freg != pid->filter->freg);
+			}
 			disable_filter = GF_TRUE;
 		}
 		//blacklisted adaptation filter
@@ -4318,6 +4320,9 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 			pid->adapters_blacklist = NULL;
 		}
 		safe_int_inc(&pid->filter->nb_caps_renegociate);
+	}
+	if (pid->has_seen_eos) {
+		gf_fs_post_task(pid->filter->session, gf_filter_renegociate_output_task, pid->filter, NULL, "filter renegociate", NULL);
 	}
 	return gf_props_set_property(pid->caps_negociate, prop_4cc, prop_name, dyn_name, value);
 }
