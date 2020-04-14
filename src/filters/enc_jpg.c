@@ -206,7 +206,7 @@ static GF_Err jpgenc_process(GF_Filter *filter)
     GF_JPGEncCtx *ctx = (GF_JPGEncCtx *) gf_filter_get_udta(filter);
 	GF_Err e = GF_OK;
 	struct jpeg_compress_struct cinfo;
-	GF_FilterPacket *pck;
+	GF_FilterPacket *pck = NULL;
 	char *in_data;
 	GF_FilterFrameInterface *frame_ifce = NULL;
 	u32 size, stride, stride_uv;
@@ -215,7 +215,11 @@ static GF_Err jpgenc_process(GF_Filter *filter)
     JSAMPROW y[16],cb[16],cr[16];
     JSAMPARRAY block[3];
 
-	pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (ctx->ipid)
+		pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (!ctx->ipid)
+		return GF_EOS;
+
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
