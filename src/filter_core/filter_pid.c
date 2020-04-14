@@ -6010,7 +6010,6 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s removed output PID %s\n", pid->filter->name, pid->pid->name));
 
-	pid->udta = NULL;
 	if (pid->filter->removed) {
 		return;
 	}
@@ -6183,7 +6182,9 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 	if (PID_IS_INPUT(pid)) {
 		u32 k;
 		GF_Filter *dst = pid->filter->cap_dst_filter;
-		if (!dst) dst = gf_list_get(pid->filter->destination_filters, 0);
+		//the first entry in destination filters may be the fnal destination and won't hold any caps query
+		//we therefore use the last entry which points to the next filter in the chain
+		if (!dst) dst = gf_list_last(pid->filter->destination_filters);
 		if (!dst) dst = gf_list_get(pid->filter->destination_links, 0);
 
 		if (!dst || (dst->cap_idx_at_resolution<0) ) {
