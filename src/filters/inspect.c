@@ -1454,8 +1454,10 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		}
 		for (i=0; i<4; i++) {
 			if (fifce->get_gl_texture) {
+				GF_Matrix mx;
+				gf_mx_init(mx);
 				u32 gl_tex_format, gl_tex_id;
-				if (fifce->get_gl_texture(fifce, i, &gl_tex_format, &gl_tex_id, NULL) != GF_OK)
+				if (fifce->get_gl_texture(fifce, i, &gl_tex_format, &gl_tex_id, &mx) != GF_OK)
 					break;
 				if (i) gf_fprintf(dump, ",");
 				gf_fprintf(dump, "%d", gl_tex_id);

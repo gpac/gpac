@@ -3695,8 +3695,7 @@ typedef struct _gf_filter_frame_interface
 	\param plane_idx plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
 	\param gl_tex_format GL texture format used
 	\param gl_tex_id GL texture ID used
-	\param texcoordmatrix texture transform to fill. The texture is expected to be layed out as an image (first pixel is top-first). If not the case, add a vertical flip (eg dispatching an OpenGL FBO)
-	\return error code if any
+	\param texcoordmatrix texture transform to fill. The texture is expected to be layed out as an image (first pixel is top-first). If not the case, add a vertical flip (eg dispatching an OpenGL FBO). 	\return error code if any
 	*/
 	GF_Err (*get_gl_texture)(struct _gf_filter_frame_interface *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix_unexposed * texcoordmatrix);
 
