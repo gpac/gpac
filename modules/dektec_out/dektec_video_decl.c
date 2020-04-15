@@ -32,9 +32,9 @@
 #else
 #define OFFS(_n)	#_n, -1
 
-static GF_Err dtout_process(GF_Filter *filter)
+static GF_Err dtout_process_dummy(GF_Filter *filter)
 {
-	return GF_EOS;
+	return GF_OK;
 }
 #endif
 
@@ -98,7 +98,14 @@ GF_FilterRegister *dtout_register(GF_FilterSession *session)
 	DTOutRegister.initialize = dtout_initialize;
 	DTOutRegister.finalize = dtout_finalize;
 	DTOutRegister.configure_pid = dtout_configure_pid;
-#endif
 	DTOutRegister.process = dtout_process;
+#else
+	DTOutRegister.process = dtout_process_dummy;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	dtout_process_dummy(NULL);
+#endif
+
+#endif
 	return &DTOutRegister;
 }
