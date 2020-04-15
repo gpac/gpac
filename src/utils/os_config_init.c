@@ -777,10 +777,10 @@ static GF_Config *gf_cfg_init(const char *profile)
 	char *prof_opt = NULL;
 
 	if (profile) {
-		prof_len = strlen(profile);
+		prof_len = (u32) strlen(profile);
 		prof_opt = gf_url_colon_suffix(profile);
 		if (prof_opt) {
-			prof_len -= strlen(prof_opt);
+			prof_len -= (u32) strlen(prof_opt);
 			if (strstr(prof_opt, "reload")) force_new_cfg = GF_TRUE;
 
 			prof_opt[0] = 0;

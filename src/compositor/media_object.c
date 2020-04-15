@@ -720,7 +720,7 @@ retry:
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, mo->odm->last_drawn_frame_ntp_diff));
 
 			if (mo->odm->parentscene->compositor->ntpsync
-				&& (mo->odm->last_drawn_frame_ntp_diff > mo->odm->parentscene->compositor->ntpsync)
+				&& (mo->odm->last_drawn_frame_ntp_diff > (s32) mo->odm->parentscene->compositor->ntpsync)
 //				&& first_ntp
 			) {
 //					first_ntp = GF_FALSE;
