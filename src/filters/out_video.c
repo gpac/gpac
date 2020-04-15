@@ -1121,16 +1121,17 @@ static GF_Err vout_process(GF_Filter *filter)
 				ctx->last_pck_dur_us = 0;
 				return GF_OK;
 			}
-			return GF_EOS;
+			//fallthrough
 		}
-		//check if we have a clock hint from an audio output
+		//check if all sinks are done - if not keep requesting a process to pump window event loop
 		if (!gf_filter_all_sinks_done(filter)) {
 			gf_filter_ask_rt_reschedule(filter, 100000);
 			if (ctx->display_changed) goto draw_frame;
 			return GF_OK;
 		}
-		return GF_OK;
+		return ctx->aborted ? GF_EOS : GF_OK;
 	}
+	
 	if (!ctx->width || !ctx->height) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] pid display wsize unknown, discarding packet\n"));
 		gf_filter_pid_drop_packet(ctx->pid);
