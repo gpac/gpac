@@ -993,6 +993,7 @@ enum
 	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
 	GF_PROP_PID_RAWGRAB = GF_4CC('P','G','R','B'),
 	GF_PROP_PID_KEEP_AFTER_EOS = GF_4CC('P','K','A','E'),
+	GF_PROP_PID_COVER_ART = GF_4CC('P','C','O','V'),
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
 
