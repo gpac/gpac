@@ -1314,7 +1314,9 @@ int mp4client_main(int argc, char **argv)
 			i++;
 		}
 		/* already parsed */
-		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack") || !strcmp(arg, "-gui") || !strcmp(arg, "-guid")) {
+		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack") || !strcmp(arg, "-gui") || !strcmp(arg, "-guid")
+			 || !strncmp(arg, "-p=", 3)
+		) {
 		}
 
 		/*arguments only used in non-gui mode*/
