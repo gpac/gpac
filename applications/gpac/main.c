@@ -899,7 +899,8 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 
 typedef enum
 {
-	GPAC_QUIT = 0,
+	GPAC_COM_UNDEF = 0,
+	GPAC_QUIT,
 	GPAC_EXIT,
 	GPAC_PRINT_STATS,
 	GPAC_PRINT_GRAPH,
@@ -931,7 +932,7 @@ static GPAC_Command get_cmd(u8 char_code)
 			return GPAC_Keys[i].cmd_type;
 		i++;
 	}
-	return 0;
+	return GPAC_COM_UNDEF;
 }
 
 static void gpac_fsess_task_help()
