@@ -271,7 +271,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	char *pck_alloc=NULL, *ttml_doc;
 	u64 cts;
 	u32 timescale, obj_time;
-	u32 pck_size, ttml_len;
+	u32 pck_size;
 	JSValue fun_val;
 	JSValue global;
 	JSContext *c;
@@ -348,7 +348,6 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 
 	ttml_doc = (char *) pck_data;
-	ttml_len = pck_size;
 	if (subs) {
 		Bool first = GF_TRUE;
 		gf_bs_reassign_buffer(ctx->subs_bs, subs->value.data.ptr, subs->value.data.size);
@@ -366,7 +365,6 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[TTMLDec] Invalid subsample size %d for packet size %d\n", subs_size, pck_size));
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
-				ttml_len = subs_size;
 				pck_alloc = gf_malloc(sizeof(char)*subs_size+2);
 				memcpy(pck_alloc, pck_data, sizeof(char)*subs_size);
 				pck_alloc[subs_size] = 0;
