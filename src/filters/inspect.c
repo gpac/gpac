@@ -73,6 +73,7 @@ enum
 	INSPECT_TEST_NOPROP,
 	INSPECT_TEST_NETWORK,
 	INSPECT_TEST_ENCODE,
+	INSPECT_TEST_ENCX,
 };
 
 typedef struct
@@ -925,9 +926,18 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		case GF_PROP_PID_DECODER_CONFIG:
 		case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 		case GF_PROP_PID_DOWN_SIZE:
-			if (ctx->test==INSPECT_TEST_ENCODE)
+			if (ctx->test>=INSPECT_TEST_ENCODE)
 				return;
 			break;
+		case GF_PROP_PID_MEDIA_DATA_SIZE:
+		case GF_PROP_PID_BITRATE:
+		case GF_PROP_PID_MAXRATE:
+		case GF_PROP_PID_AVG_FRAME_SIZE:
+		case GF_PROP_PID_DBSIZE:
+			if (ctx->test==INSPECT_TEST_ENCX)
+				return;
+			break;
+
 		case GF_PROP_PID_ISOM_TREX_TEMPLATE:
 		case GF_PROP_PID_ISOM_STSD_TEMPLATE:
 			//TODO once all OK: remove this test and regenerate all hashes
@@ -2218,7 +2228,8 @@ static const GF_FilterArgs InspectArgs[] =
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
 		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
-		"- encode: same as network plus skip decoder config (used for hashing encoding results)", GF_PROP_UINT, "no", "no|noprop|network|encode", GF_FS_ARG_HINT_EXPERT},
+		"- encode: same as network plus skip decoder config (used for hashing encoding results)\n"
+		"- encx: same as encode and skip bitrates, media data size and co", GF_PROP_UINT, "no", "no|noprop|network|encode|encx", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
