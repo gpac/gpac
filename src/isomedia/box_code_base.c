@@ -11744,8 +11744,8 @@ GF_Err emsg_box_read(GF_Box *s,GF_BitStream *bs)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] emsg message data size too big ("LLU") to be loaded\n", ptr->size));
 			return GF_OUT_OF_MEM;
 		}
-		ptr->message_data_size = ptr->size;
-		ptr->message_data = gf_malloc(ptr->size);
+		ptr->message_data_size = (u32) ptr->size;
+		ptr->message_data = gf_malloc(ptr->message_data_size);
 		if (!ptr->message_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->message_data, ptr->message_data_size);
 		ptr->size = 0;
@@ -11771,17 +11771,17 @@ GF_Err emsg_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->event_id);
 	}
 
-	len = ptr->scheme_id_uri ? strlen(ptr->scheme_id_uri) : 0;
+	len = ptr->scheme_id_uri ? (u32) strlen(ptr->scheme_id_uri) : 0;
 	if (len) gf_bs_write_data(bs, ptr->scheme_id_uri, len);
 	gf_bs_write_u8(bs, 0);
 
-	len = ptr->value ? strlen(ptr->value) : 0;
+	len = ptr->value ? (u32) strlen(ptr->value) : 0;
 	if (len) gf_bs_write_data(bs, ptr->value, len);
 	gf_bs_write_u8(bs, 0);
 
 	if (ptr->version==0) {
 		gf_bs_write_u32(bs, ptr->timescale);
-		gf_bs_write_u32(bs, ptr->presentation_time_delta);
+		gf_bs_write_u32(bs, (u32) ptr->presentation_time_delta);
 		gf_bs_write_u32(bs, ptr->event_duration);
 		gf_bs_write_u32(bs, ptr->event_id);
 	}
