@@ -3352,7 +3352,7 @@ skip_arg:
 			value_sep[0] = filter->session->sep_name;
 
 		if (sep) {
-			sep[0]=0;
+			sep[0] = filter->session->sep_args;
 			args=sep+1;
 		} else {
 			break;
