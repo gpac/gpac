@@ -1293,6 +1293,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	{ GF_PROP_PID_RAWGRAB, "RawGrab", "Indicate PID is a raw media grabber (webcam, microphone, etc...)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_KEEP_AFTER_EOS, "KeepAfterEOS", "Indicate the PID must be kept alive after EOS (LASeR and BIFS)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COVER_ART, "CoverArt", "Indicate PID cover art image data. If associated data is NULL, the data is carried in the PID", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
+
 };
 
 GF_EXPORT

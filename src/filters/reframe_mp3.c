@@ -185,7 +185,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 
 #include <gpac/utf.h>
-static void mp3_dmx_id3_set_string(GF_MP3DmxCtx *ctx, char *name, u8 *buf)
+static void id3dmx_set_string(GF_FilterPid *apid, char *name, u8 *buf)
 {
 	if ((buf[0]==0xFF) || (buf[0]==0xFE)) {
 		const u16 *sptr = (u16 *) (buf+2);
@@ -194,19 +194,20 @@ static void mp3_dmx_id3_set_string(GF_MP3DmxCtx *ctx, char *name, u8 *buf)
 		len = (s32) gf_utf8_wcstombs(tmp, len, &sptr);
 		if (len>=0) {
 			tmp[len] = 0;
-			gf_filter_pid_set_property_dyn(ctx->opid, name, &PROP_STRING(tmp) );
+			gf_filter_pid_set_property_dyn(apid, name, &PROP_STRING(tmp) );
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] Corrupted ID3 text frame %s\n", name));
 		}
 		gf_free(tmp);
 	} else {
-		gf_filter_pid_set_property_dyn(ctx->opid, name, &PROP_STRING(buf) );
+		gf_filter_pid_set_property_dyn(apid, name, &PROP_STRING(buf) );
 	}
 }
 
-static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
+void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid *audio_pid, GF_FilterPid **video_pid_p)
 {
-	GF_BitStream *bs = gf_bs_new(ctx->id3_buffer, ctx->id3_buffer_size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new(id3_buf, id3_buf_size, GF_BITSTREAM_READ);
+	char *sep_desc;
 	char *buf=NULL;
 	u32 buf_alloc=0;
 	gf_bs_skip_bytes(bs, 3);
@@ -251,85 +252,89 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 		switch (ftag) {
 		case ID3V2_FRAME_TIT2:
-			mp3_dmx_id3_set_string(ctx, "tag:title", buf+1);
+			id3dmx_set_string(audio_pid, "tag:title", buf+1);
 			break;
 		case ID3V2_FRAME_TPE1:
-			mp3_dmx_id3_set_string(ctx, "tag:artist", buf+1);
+			id3dmx_set_string(audio_pid, "tag:artist", buf+1);
 			break;
 		case ID3V2_FRAME_TALB:
-			mp3_dmx_id3_set_string(ctx, "tag:album", buf+1);
+			id3dmx_set_string(audio_pid, "tag:album", buf+1);
 			break;
 		case ID3V2_FRAME_TCON:
-			mp3_dmx_id3_set_string(ctx, "tag:genre", buf+1);
+			id3dmx_set_string(audio_pid, "tag:genre", buf+1);
 			break;
 		case ID3V2_FRAME_TDRC:
-			mp3_dmx_id3_set_string(ctx, "tag:recdate", buf+1);
+			id3dmx_set_string(audio_pid, "tag:recdate", buf+1);
 			break;
 		case ID3V2_FRAME_TRCK:
-			mp3_dmx_id3_set_string(ctx, "tag:tracknum", buf+1);
+			id3dmx_set_string(audio_pid, "tag:tracknum", buf+1);
 			break;
 		case ID3V2_FRAME_TSSE:
-			mp3_dmx_id3_set_string(ctx, "tag:encoder", buf+1);
+			id3dmx_set_string(audio_pid, "tag:encoder", buf+1);
 			break;
 		case ID3V2_FRAME_TXXX:
 			sep = memchr(buf, 0, fsize);
 			if (sep) {
 				strcpy(szTag, "tag:");
 				strncat(szTag, buf+1, 1023);
-				mp3_dmx_id3_set_string(ctx, szTag, sep+1);
+				id3dmx_set_string(audio_pid, szTag, sep+1);
 			}
 			break;
 
-		//we forward as is the APIC tag for now
 		case ID3V2_FRAME_APIC:
-			if (ctx->expart) {
-				char *sep_desc;
-				//first char is text encoding
-				//then mime
-				sep = memchr(buf+1, 0, fsize-1);
-				/*pic_type = sep[1];*/
-				sep_desc = memchr(sep+2, 0, fsize-1);
+			//first char is text encoding
+			//then mime
+			sep = memchr(buf+1, 0, fsize-1);
+			/*pic_type = sep[1];*/
+			sep_desc = memchr(sep+2, 0, fsize-1);
 
-				if (sep_desc) {
-					GF_Err e;
-					pic_size = (u32) ( (sep_desc + 1) - buf);
-					pic_size = fsize - pic_size;
+			if (sep_desc) {
+				GF_Err e;
+				pic_size = (u32) ( (sep_desc + 1) - buf);
+				pic_size = fsize - pic_size;
 
-					e = gf_filter_pid_raw_new(filter, NULL, NULL, buf+1, NULL, sep_desc+1, pic_size, GF_FALSE, &ctx->vpid);
+				if (video_pid_p) {
+					e = gf_filter_pid_raw_new(filter, NULL, NULL, buf+1, NULL, sep_desc+1, pic_size, GF_FALSE, video_pid_p);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 					}
-					if (ctx->vpid) {
+					if (*video_pid_p) {
 						u8 *out_buffer;
 						GF_FilterPacket *dst_pck;
-						gf_filter_pid_set_name(ctx->vpid, "CoverArt");
-						dst_pck = gf_filter_pck_new_alloc(ctx->vpid, pic_size, &out_buffer);
+						gf_filter_pid_set_name(*video_pid_p, "CoverArt");
+						gf_filter_pid_set_property(*video_pid_p, GF_PROP_PID_COVER_ART, &PROP_BOOL(GF_TRUE));
+						dst_pck = gf_filter_pck_new_alloc(*video_pid_p, pic_size, &out_buffer);
 						gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 						memcpy(out_buffer, sep_desc+1, pic_size);
 						gf_filter_pck_send(dst_pck);
+
+						gf_filter_pid_set_eos(*video_pid_p);
 					}
+				} else {
+					gf_filter_pid_set_property(audio_pid, GF_PROP_PID_COVER_ART, &PROP_DATA(sep_desc+1, pic_size) );
 				}
 			}
-			//fallthrough
+			break;
+
 		default:
 			sprintf(szTag, "tag:%s", gf_4cc_to_str(ftag));
 
 			if ((ftag>>24) == 'T') {
-				mp3_dmx_id3_set_string(ctx, szTag, buf+1);
+				id3dmx_set_string(audio_pid, szTag, buf+1);
 			} else {
-				gf_filter_pid_set_property_str(ctx->opid, szTag, &PROP_DATA(buf, fsize) );
+				gf_filter_pid_set_property_str(audio_pid, szTag, &PROP_DATA(buf, fsize) );
 			}
 			break;
 		}
 		size -= fsize;
 	}
-
 	gf_bs_del(bs);
 	if (buf) gf_free(buf);
+}
+static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
+{
+	id3dmx_flush(filter, ctx->id3_buffer, ctx->id3_buffer_size, ctx->opid, ctx->expart ? &ctx->vpid : NULL);
 	ctx->id3_buffer_size = 0;
-	if (ctx->vpid)
-		gf_filter_pid_set_eos(ctx->vpid);
-
 }
 
 static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
@@ -706,21 +711,28 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 nb_frames=0;
 	u32 pos=0;
 	u32 prev_pos=0;
+	Bool has_id3 = GF_FALSE;
 
-	//For new we assume id3 to be set only for mp3 files
-	//FIXME this isn't really true, we have seen ADTS with ID3 header in front - we would need a bigger probe size
-	//to detect the format ...
+	/* Check for ID3 */
 	if (size>= 10) {
-		/* Did we read an ID3v2 ? */
 		if (data[0] == 'I' && data[1] == 'D' && data[2] == '3') {
-			*score = GF_FPROBE_MAYBE_SUPPORTED;
-			return "audio/mp3";
+			u32 tag_size = ((data[9] & 0x7f) + ((data[8] & 0x7f) << 7) + ((data[7] & 0x7f) << 14) + ((data[6] & 0x7f) << 21));
+
+			if (tag_size+10>size) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("ID3 tag detected size %d but probe data only %d bytes, will rely on file extension (try increasing probe size using --block_size)\n", tag_size+10, size));
+				*score = GF_FPROBE_EXT_MATCH;
+				return "mp3|mp2|mp1";
+			}
+			data += tag_size+10;
+			size -= tag_size+10;
+			has_id3 = GF_TRUE;
 		}
 	}
 
 	while (1) {
 		u32 hdr = gf_mp3_get_next_header_mem(data, size, &pos);
 		if (!hdr) break;
+
 		if (gf_mp3_version(hdr) > 3)
 			break;
 		u8 sampleRateIndex = (hdr >> 10) & 0x3;
@@ -747,6 +759,10 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 	if (nb_frames>=2) {
 		*score = GF_FPROBE_SUPPORTED;
+		return "audio/mp3";
+	}
+	if (nb_frames && has_id3) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return "audio/mp3";
 	}
 	return NULL;
