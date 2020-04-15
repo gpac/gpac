@@ -933,6 +933,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		case GF_PROP_PID_BITRATE:
 		case GF_PROP_PID_MAXRATE:
 		case GF_PROP_PID_AVG_FRAME_SIZE:
+		case GF_PROP_PID_MAX_FRAME_SIZE:
 		case GF_PROP_PID_DBSIZE:
 			if (ctx->test==INSPECT_TEST_ENCX)
 				return;
