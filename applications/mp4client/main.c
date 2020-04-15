@@ -458,6 +458,7 @@ static void UpdateRTInfo(const char *legend)
 	GF_SystemRTInfo rti;
 
 	/*refresh every second*/
+	if (!Run) return;
 	if (!display_rti && !rti_logs) return;
 	if (!gf_sys_get_rti(rti_update_time_ms, &rti, 0) && !legend)
 		return;
@@ -2104,8 +2105,6 @@ force_input:
 
 		gf_term_scene_update(term, NULL, "REPLACE DYN_TRANS.translation BY 10 10");
 		gf_term_add_object(term, NULL, GF_TRUE);
-
-		gf_term_play_from_time(term, 1000, GF_TRUE);
 
 		gf_term_get_viewpoint(term, 1, &outName, &is_bound);
 		gf_term_set_viewpoint(term, 1, "testvp");
