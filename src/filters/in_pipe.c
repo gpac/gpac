@@ -78,6 +78,11 @@ typedef struct
 
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt);
 
+#ifdef WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif //WIN32
+
 static GF_Err pipein_initialize(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
@@ -97,6 +102,9 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	if (!strcmp(ctx->src, "-") || !strcmp(ctx->src, "stdin")) {
 		ctx->is_stdin = GF_TRUE;
 		ctx->mkp = GF_FALSE;
+#ifdef WIN32
+		_setmode(_fileno(stdin), _O_BINARY);
+#endif
 	}
 	else if (strnicmp(ctx->src, "pipe:/", 6) && strstr(ctx->src, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
@@ -422,7 +430,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 
 	if (!nb_read)
 		return GF_OK;
-
+	
 	ctx->buffer[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] configuring stream %d probe bytes\n", nb_read));
@@ -439,6 +447,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 	if (!pck)
 		return GF_OK;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] sending %d bytes\n", nb_read));
 	gf_filter_pck_set_framing(pck, ctx->is_first, ctx->is_end);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
