@@ -283,7 +283,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 		}
 		if (tkc->scheme_type==GF_CRYPT_TYPE_PIFF) {
-			tkc->sai_saved_box_type = tkc->sai_saved_box_type = GF_ISOM_BOX_UUID_PSEC;
+			tkc->sai_saved_box_type = GF_ISOM_BOX_UUID_PSEC;
 		}
 		if (has_common_key) info->has_common_key = 1;
 

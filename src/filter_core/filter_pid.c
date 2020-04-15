@@ -2154,8 +2154,8 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
         if (nb_caps && !(cap->flags & GF_CAPFLAG_EXCLUDED))
             nb_out_caps++;
 	}
-    if (!nb_out_caps)
-        return GF_TRUE;
+	if (!nb_out_caps)
+		return GF_TRUE;
 	return GF_FALSE;
 }
 
