@@ -56,6 +56,10 @@ typedef struct
 	GF_FileIO *gfio_ref;
 } GF_FileOutCtx;
 
+#ifdef WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif //WIN32
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
 {
@@ -75,6 +79,10 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 	if (ctx->is_std) {
 		ctx->file = stdout;
+#ifdef WIN32
+		_setmode(_fileno(stdout), _O_BINARY);
+#endif
+
 	} else {
 		char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 		Bool append = ctx->append;
