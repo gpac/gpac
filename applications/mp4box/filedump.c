@@ -938,11 +938,10 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 						has_ctts_error = 1;
 					}
 				}
+				timings[nb_timings].dts = dts;
+				timings[nb_timings].cts = cts;
+				nb_timings++;
 			}
-
-			timings[nb_timings].dts = dts;
-			timings[nb_timings].cts = cts;
-			nb_timings++;
 
 			gf_isom_sample_del(&samp);
 
