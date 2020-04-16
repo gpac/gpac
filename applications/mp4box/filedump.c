@@ -841,10 +841,17 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
 {
 	u32 i, j, k, count;
-	Bool has_error, is_fragmented=0;
+	Bool has_ctts_error, is_fragmented=GF_FALSE;
 	FILE *dump;
 	Bool skip_offset = ((dump_mode==2) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
 	Bool check_ts = ((dump_mode==3) || (dump_mode==4)) ? GF_TRUE : GF_FALSE;
+	struct _ts_info {
+		u64 dts;
+		s64 cts;
+	};
+	struct _ts_info *timings = NULL;
+	u32 nb_timings, nb_timings_alloc = 0;
+
 
 	if (inName) {
 		char szBuf[1024];
@@ -859,9 +866,9 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 		dump = stdout;
 	}
 	if (gf_isom_is_fragmented(file))
-		is_fragmented = 1;
+		is_fragmented = GF_TRUE;
 
-	has_error = 0;
+	has_ctts_error = GF_FALSE;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		s64 cts_dts_shift = gf_isom_get_cts_to_dts_shift(file, i+1);
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
@@ -875,9 +882,17 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 
 
 		count = gf_isom_get_sample_count(file, i+1);
+		if (has_cts_offset && check_ts) {
+			if (nb_timings_alloc<count) {
+				nb_timings_alloc = count;
+				timings = gf_realloc(timings, sizeof (struct _ts_info) * count);
+			}
+			nb_timings = 0;
+		}
 
 		for (j=0; j<count; j++) {
-			u64 dts, cts, offset;
+			s64 cts;
+			u64 dts, offset;
 			u32 isLeading, dependsOn, dependedOn, redundant;
 			Bool is_rap, has_roll;
 			s32 roll_distance;
@@ -891,10 +906,10 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &has_roll, &roll_distance);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
-			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d", j+1, dts, cts, samp->dataLength, samp->IsRAP);
+			fprintf(dump, "Sample %d\tDTS "LLU"\tCTS "LLD"\t%d\t%d", j+1, dts, cts, samp->dataLength, samp->IsRAP);
 
 			if (!skip_offset)
-				fprintf(dump, "\t"LLD, offset);
+				fprintf(dump, "\t"LLU, offset);
 
 			fprintf(dump, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d", isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
 
@@ -902,38 +917,34 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 				if (has_cts_offset==2) {
 					if (cts_dts_shift && (cts+cts_dts_shift<dts)) {
 						fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
-						has_error = 1;
+						has_ctts_error = 1;
 					} else if (!cts_dts_shift) {
 						fprintf(dump, " #possible negative CTS offset (no cslg in file)");
 					}
 				} else {
 					fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
-					has_error = 1;
+					has_ctts_error = 1;
 				}
 			}
+			if (has_cts_offset && check_ts) {
+				for (k=0; k<nb_timings; k++) {
+
+					if (timings[k].dts==dts) {
+						fprintf(dump, " #SAME DTS USED!!!");
+						has_ctts_error = 1;
+					}
+					if (timings[k].cts==cts) {
+						fprintf(dump, " #SAME CTS USED!!! ");
+						has_ctts_error = 1;
+					}
+				}
+			}
+
+			timings[nb_timings].dts = dts;
+			timings[nb_timings].cts = cts;
+			nb_timings++;
 
 			gf_isom_sample_del(&samp);
-
-			if (has_cts_offset && check_ts) {
-				for (k=0; k<count; k++) {
-					u64 adts, acts;
-					if (k==j) continue;
-					samp = gf_isom_get_sample_info(file, i+1, k+1, NULL, NULL);
-					adts = samp->DTS;
-					acts = adts + (s32) samp->CTS_Offset;
-
-					if (adts==dts) {
-						fprintf(dump, " #SAME DTS USED!!!");
-						has_error = 1;
-					}
-					if (acts==cts) {
-						fprintf(dump, " #SAME CTS USED!!! ");
-						has_error = 1;
-					}
-
-					gf_isom_sample_del(&samp);
-				}
-			}
 
 			if (is_fragmented) {
 				fprintf(dump, "\t%d", gf_isom_sample_is_fragment_start(file, i+1, j+1, NULL) );
@@ -944,8 +955,10 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 		fprintf(dump, "\n\n");
 		gf_set_progress("Dumping track timing", count, count);
 	}
+	if (timings) gf_free(timings);
+
 	if (inName) gf_fclose(dump);
-	if (has_error) fprintf(stderr, "\tFile has CTTS table errors\n");
+	if (has_ctts_error) fprintf(stderr, "\tFile has CTTS table errors\n");
 }
 
 
