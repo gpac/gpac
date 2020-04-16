@@ -1810,7 +1810,9 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 
 void gf_filter_renegociate_output_task(GF_FSTask *task)
 {
-	gf_filter_renegociate_output(task->filter, GF_TRUE);
+	//it is possible that the cap renegociation was already done at the time we process this task
+	if (task->filter->nb_caps_renegociate)
+		gf_filter_renegociate_output(task->filter, GF_TRUE);
 }
 
 static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
