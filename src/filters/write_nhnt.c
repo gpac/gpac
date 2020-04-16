@@ -59,7 +59,7 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 {
 	const GF_PropertyValue *p;
 	char *name, *url, *res_name;
-	char fileName[1024];
+	char fileName[GF_MAX_PATH+1];
 	GF_FileIO *gfio = NULL;
 	GF_Err e;
 
@@ -67,10 +67,11 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 	if (url) {
 		if (!strncmp(url, "gfio://", 7)) {
 			gfio = gf_fileio_from_url(url);
-			strncpy(fileName, gf_fileio_translate_url(url), 1024);
+			strncpy(fileName, gf_fileio_translate_url(url), GF_MAX_PATH);
 		} else {
-			strncpy(fileName, url, 1024);
+			strncpy(fileName, url, GF_MAX_PATH);
 		}
+		fileName[GF_MAX_PATH] = 0;
 		gf_free(url);
 	} else {
 		strcpy(fileName, "dump");

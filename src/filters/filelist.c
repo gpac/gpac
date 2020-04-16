@@ -307,6 +307,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		}
 		fentry = gf_list_get(ctx->file_list, ctx->file_list_idx);
 		strncpy(szURL, fentry->file_name, sizeof(char)*(GF_MAX_PATH-1) );
+		szURL[GF_MAX_PATH-1] = 0;
 		next = gf_list_get(ctx->file_list, ctx->file_list_idx + 1);
 		if (next)
 			ctx->current_file_dur = next->last_mod_time - fentry->last_mod_time;

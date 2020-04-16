@@ -218,6 +218,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	SHGetSpecialFolderPathW(NULL, wtmp_file_path, CSIDL_APPDATA, 1);
 	tmp_file_path = gf_wcs_to_utf8(wtmp_file_path);
 	strncpy(file_path, tmp_file_path, GF_MAX_PATH);
+	file_path[GF_MAX_PATH-1] = 0;
 	gf_free(tmp_file_path);
 
 	if (file_path[strlen(file_path)-1] != '\\') strcat(file_path, "\\");

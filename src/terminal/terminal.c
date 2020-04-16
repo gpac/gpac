@@ -1235,6 +1235,7 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 		if (!name || !val) continue;
 
 		strncpy(szVal, val, 50);
+		szVal[50] = 0;
 		strlwr(szVal);
 		val = szVal;
 

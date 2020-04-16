@@ -2600,6 +2600,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			else if (ctx->muxtype==DASHER_MUX_RAW) {
 				char *ext = (char *) gf_codecid_file_ext(ds->codec_id);
 				strncpy(szRawExt, ext ? ext : "raw", 19);
+				szRawExt[19] = 0;
 				ext = strchr(szRawExt, '|');
 				if (ext) ext[0] = 0;
 				def_ext = szRawExt;

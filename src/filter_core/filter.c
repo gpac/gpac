@@ -750,7 +750,10 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 			while (dirs && dirs[0]) {
 				char *sep = strchr(dirs, ',');
 				if (sep) {
-					strncpy(szPath, dirs, sep-dirs);
+					u32 cplen = sep-dirs;
+					if (cplen>=GF_MAX_PATH) cplen = GF_MAX_PATH-1;
+					strncpy(szPath, dirs, cplen);
+					szPath[cplen]=0;
 					dirs = sep+1;
 				} else {
 					strcpy(szPath, dirs);
@@ -966,7 +969,8 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 
 	key_count = gf_sys_get_argc();
 	for (i=0; i<key_count; i++) {
-		char szArg[100];
+#define META_MAX_ARG	1000
+		char szArg[META_MAX_ARG+1];
 		GF_Err e;
 		const char *sep, *arg = gf_sys_get_arg(i);
 		if (arg[0] != '-') continue;
@@ -976,11 +980,19 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
 		if (sep) {
+			u32 cplen = (u32) (sep - arg);
+			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
 			strncpy(szArg, arg, sizeof(char)* (sep - arg) );
+			szArg[META_MAX_ARG] = 0;
 			argv.value.string = (char *) sep+1;
 		} else {
+			u32 cplen = (u32) strlen(arg);
+			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
 			strncpy(szArg, arg, sizeof(char)* strlen(arg) );
+			szArg[META_MAX_ARG] = 0;
 		}
+#undef META_MAX_ARG
+
 		e = filter->freg->update_arg(filter, szArg, &argv);
 		gf_fs_push_arg(filter->session, szArg, (e==GF_OK) ? GF_TRUE : GF_FALSE, 2);
 	}
@@ -3036,6 +3048,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 
 		if (fext) {
 			strncpy(tmp_ext, fext, 20);
+			tmp_ext[20] = 0;
 			strlwr(tmp_ext);
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 			ext_len = (u32) strlen(tmp_ext);
@@ -3048,6 +3061,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				if (s) s[0] = 0;
 
 				strncpy(tmp_ext, ext, 20);
+				tmp_ext[20] = 0;
 				strlwr(tmp_ext);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 				ext_len = (u32) strlen(tmp_ext);
@@ -3115,6 +3129,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	}
 	if (mime_type) {
 		strncpy(tmp_ext, mime_type, 50);
+		tmp_ext[49] = 0;
 		strlwr(tmp_ext);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp_ext ));
 		//we have a mime, disable extension checking

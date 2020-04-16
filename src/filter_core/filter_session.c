@@ -2145,6 +2145,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		if (mime_type) {
 			char *sep;
 			strncpy(szMime, mime_type+6, 49);
+			szMime[49]=0;
 			sep = strchr(szMime, fsess->sep_args);
 			if (sep) sep[0] = 0;
 			mime_type = szMime;

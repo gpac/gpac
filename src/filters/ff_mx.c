@@ -251,6 +251,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 //	av_freep(&ctx->muxer->url);
 //	ctx->muxer->url = av_strdup(seg_name);
 	strncpy(ctx->muxer->filename, seg_name, 1023);
+	ctx->muxer->filename[1023]=0;
 	ctx->offset_at_seg_start = 0;
 
 	if (!(ctx->muxer->oformat->flags & AVFMT_NOFILE)) {

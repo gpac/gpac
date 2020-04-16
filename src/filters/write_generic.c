@@ -262,7 +262,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt ? ctx->target_pfmt : pf));
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
-				strncpy(szExt, p->value.string, 10);
+				strncpy(szExt, p->value.string, GF_4CC_MSIZE-1);
+				szExt[GF_4CC_MSIZE-1] = 0;
 				if (!strcmp(szExt, "bmp")) {
 					ctx->is_bmp = GF_TRUE;
 					//request BGR
@@ -305,7 +306,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			strcpy(szExt, gf_audio_fmt_sname(ctx->target_pfmt ? ctx->target_afmt : sfmt));
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
-				strncpy(szExt, p->value.string, 10);
+				strncpy(szExt, p->value.string, GF_4CC_MSIZE-1);
+				szExt[GF_4CC_MSIZE-1] = 0;
 				if (!strcmp(szExt, "wav")) {
 					ctx->is_wav = GF_TRUE;
 					//request PCMs16 ?

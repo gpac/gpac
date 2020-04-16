@@ -893,7 +893,8 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			}
 			else {
 				char szTS[20], *tok;
-				strncpy(szTS, sL, 18);
+				strncpy(szTS, sL, 19);
+				szTS[19]=0;
 				tok = strrchr(szTS, ' ');
 				if (tok) {
 					title = strchr(sL, ' ') + 1;
@@ -931,6 +932,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			u32 idx;
 			char szTemp[20], *str;
 			strncpy(szTemp, sL, 19);
+			szTemp[19] = 0;
 			str = strrchr(szTemp, '=');
 			if (!str) continue;
 			str[0] = 0;
