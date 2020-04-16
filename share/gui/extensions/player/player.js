@@ -992,8 +992,10 @@ extension = {
             var url_arg = null;
             var prog_name = gpac.get_arg(0); 
             var check_gpac_args = 1;
-            if (prog_name && (prog_name.indexOf('MP4Client')>=0))
+            //check mp4client or MP4Client
+            if (prog_name && (prog_name.indexOf('lient')>=0))
                 check_gpac_args = 0;
+                    alert('parsing args for ' + prog_name);
             
             for (i = 1; i < argc; i++) {
                 var arg = gpac.get_arg(i);
@@ -1011,6 +1013,7 @@ extension = {
 
                     if (arg.indexOf('://') < 0) url_arg = 'gpac://' + arg;
                     else url_arg = arg;
+                    alert('url arg is ' + arg);
                     continue;
                 }
 
@@ -1203,7 +1206,7 @@ extension = {
                 str = '-';
             }
         }
-        if (this.test_mode && (value>2)) {
+        if (this.test_mode && (value>3)) {
             gpac.exit();                    
         }
 
