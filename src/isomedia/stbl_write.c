@@ -152,9 +152,9 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		return GF_BAD_PARAM;
 	}
 
-	/*we will at most insert 2 new entries*/
-	if (stts->nb_entries+2 >= stts->alloc_size) {
-		stts->alloc_size += 2;
+	/*we will at most insert 3 new entries*/
+	if (stts->nb_entries+3 >= stts->alloc_size) {
+		stts->alloc_size += 3;
 		stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
 		if (!stts->entries) return GF_OUT_OF_MEM;
 		memset(&stts->entries[stts->nb_entries], 0, sizeof(GF_SttsEntry)*(stts->alloc_size - stts->nb_entries) );
@@ -164,7 +164,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 	j=0;
 	stts->nb_entries = 1;
 	stts->entries[0].sampleCount = 1;
-	stts->entries[0].sampleDelta = (u32) DTSs[1] /* - (DTS[0] wichis 0)*/;
+	stts->entries[0].sampleDelta = (u32) DTSs[1] /* - (DTS[0] which is 0)*/;
 	for (i=1; i<stbl->SampleSize->sampleCount+1; i++) {
 		if (i == stbl->SampleSize->sampleCount) {
 			//and by default, our last sample has the same delta as the prev

@@ -1238,7 +1238,10 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 
 exit:
 	if (e) {
-		if (proto) gf_sg_proto_del(proto);
+		if (proto) {
+			if (proto_list) gf_list_del_item(proto_list, proto);
+			gf_sg_proto_del(proto);
+		}
 		codec->current_graph = rootSG;
 	}
 	/*restore original parent proto at codec level*/
