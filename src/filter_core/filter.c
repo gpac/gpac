@@ -750,7 +750,7 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 			while (dirs && dirs[0]) {
 				char *sep = strchr(dirs, ',');
 				if (sep) {
-					u32 cplen = sep-dirs;
+					u32 cplen = (u32) (sep-dirs);
 					if (cplen>=GF_MAX_PATH) cplen = GF_MAX_PATH-1;
 					strncpy(szPath, dirs, cplen);
 					szPath[cplen]=0;

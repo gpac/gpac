@@ -731,6 +731,7 @@ void *gf_list_enum(GF_List *ptr, u32 *pos)
 {
 	void *res;
 	if (!ptr || !pos) return NULL;
+	if (*pos >= ptr->entryCount) return NULL;
 	res = gf_list_get(ptr, *pos);
 	(*pos)++;
 	return res;

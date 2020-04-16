@@ -913,9 +913,9 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 
 			fprintf(dump, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d", isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
 
-			if (cts<dts) {
+			if (cts< (s64) dts) {
 				if (has_cts_offset==2) {
-					if (cts_dts_shift && (cts+cts_dts_shift<dts)) {
+					if (cts_dts_shift && (cts+cts_dts_shift < (s64) dts)) {
 						fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
 						has_ctts_error = 1;
 					} else if (!cts_dts_shift) {

@@ -1461,7 +1461,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (sep) {
 		u32 cplen;
 		url = sep+1;
-		cplen = sep-ctx->dst-7;
+		cplen = (u32) (sep-ctx->dst-7);
 		if (cplen>1023) cplen=1023;
 		strncpy(szIP, ctx->dst+7, cplen);
 		szIP[1023] = 0;

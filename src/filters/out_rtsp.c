@@ -387,7 +387,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 		GF_RTSPOutSession *sess;
 		char *sep = strchr(ctx->dst+7, '/');
 		if (sep) {
-			u32 cplen = sep-ctx->dst-7;
+			u32 cplen = (u32) (sep-ctx->dst-7);
 			if (cplen>1023) cplen = 1023;
 			strncpy(szIP, ctx->dst+7, cplen);
 			szIP[1023] = 0;
