@@ -1256,6 +1256,9 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 	GF_Socket *sock;
 	fd_set *rgroup=NULL, *wgroup=NULL;
 
+	if (!gf_list_count(sg->sockets))
+		return GF_IP_NETWORK_EMPTY;
+		
 	FD_ZERO(&sg->rgroup);
 	FD_ZERO(&sg->wgroup);
 
@@ -1280,8 +1283,6 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 
 		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
 	}
-	if (!i)
-		return GF_IP_NETWORK_EMPTY;
 	if (usec_wait>=1000000) {
 		timeout.tv_sec = usec_wait/1000000;
 		timeout.tv_usec = (u32) (usec_wait - (timeout.tv_sec*1000000));
