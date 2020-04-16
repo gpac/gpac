@@ -48,7 +48,7 @@ struct _tag_terminal
 	GF_User *user;
 	GF_Compositor *compositor;
 	GF_FilterSession *fsess;
-
+	Bool in_destroy;
 	u32 reload_state;
 	char *reload_url;
 };
@@ -384,6 +384,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_term_disconnect(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] main service disconnected\n"));
 
+	term->in_destroy = GF_TRUE;
 	/*stop the media manager */
 	gf_fs_del(term->fsess);
 
@@ -613,7 +614,7 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_
 GF_EXPORT
 Bool gf_term_user_event(GF_Terminal * term, GF_Event *evt)
 {
-	if (term) return gf_sc_user_event(term->compositor, evt);
+	if (term && !term->in_destroy) return gf_sc_user_event(term->compositor, evt);
 	return GF_FALSE;
 }
 
