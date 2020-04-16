@@ -696,6 +696,7 @@ static GF_Err rtpout_initialize(GF_Filter *filter)
 			ctx->in_caps[1].flags = GF_CAPS_INPUT;
 		} else {
 			strncpy(ctx->szExt, ctx->ext, 9);
+			ctx->szExt[9] = 0;
 			strlwr(ctx->szExt);
 			ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 			ctx->in_caps[1].val = PROP_NAME( ctx->szExt );

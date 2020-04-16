@@ -916,6 +916,7 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 			u32 len = (u32) (target - arg_name);
 			if (len>=100) len=100;
 			strncpy(szTargetName, arg_name, len);
+			szTargetName[100] = 0;
 			arg = target+1;
 		} else {
 			strcpy(szTargetName, "all");

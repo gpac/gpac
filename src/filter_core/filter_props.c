@@ -428,6 +428,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			 	len = (u32) strlen(v);
 			if (len>=99) len=99;
 			strncpy(szV, v, len);
+			szV[len] = 0;
 			sscanf(szV, "%u", &val_uint);
 			p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
 			p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
@@ -1486,6 +1487,7 @@ const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_
 	{
 		u32 i, count = gf_list_count(att->value.string_list);
 		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
+		dump[len]=0;
 		for (i=0; i<count; i++) {
 			char *s = gf_list_get(att->value.string_list, i);
 			if (!i) {
@@ -1506,6 +1508,7 @@ const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_
 	{
 		u32 i, count = att->value.uint_list.nb_items;
 		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
+		dump[len]=0;
 		for (i=0; i<count; i++) {
 			char szItem[1024];
 			if (is_4cc) {

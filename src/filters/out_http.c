@@ -1459,8 +1459,12 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		}
 	}
 	if (sep) {
+		u32 cplen;
 		url = sep+1;
-		strncpy(szIP, ctx->dst+7, sep-ctx->dst-7);
+		cplen = sep-ctx->dst-7;
+		if (cplen>1023) cplen=1023;
+		strncpy(szIP, ctx->dst+7, cplen);
+		szIP[1023] = 0;
 		sep = strchr(szIP, ':');
 		if (sep) {
 			port = atoi(sep+1);
@@ -1494,6 +1498,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 				ctx->in_caps[1].flags = GF_CAPS_INPUT;
 			} else {
 				strncpy(ctx->szExt, ext, 9);
+				ctx->szExt[9] = 0;
 				strlwr(ctx->szExt);
 				ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 				ctx->in_caps[1].val = PROP_NAME( ctx->szExt );

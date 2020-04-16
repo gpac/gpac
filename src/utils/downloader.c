@@ -364,7 +364,8 @@ static gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadMana
 		gf_list_insert(dm->credentials, creds, 0);
 	}
 	creds->valid = valid;
-	strncpy(creds->username, username ? username : "", 50);
+	strncpy(creds->username, username ? username : "", 49);
+	creds->username[49] = 0;
 	strcpy(creds->site, server_name);
 	if (username && password && valid)
 		gf_user_credentials_save_digest(dm, creds, password);

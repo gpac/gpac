@@ -1157,8 +1157,10 @@ import_next_sample:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Warning sample description index for sync sample differ from config\n"));
 	}
 	if (e || !sample || !sample->IsRAP) {
-		if (image_props->time<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error some imported samples are not sync samples\n", image_props->time));
+		if (!sample) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("No sample found%s\n", (image_props->time<0) ? "" : " for requested time"));
+		} else if (image_props->time<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: imported sample %d (DTS "LLU") is not a sync sample (RAP %d size %d)\n", sample_number, sample->DTS, sample->IsRAP, sample->dataLength));
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error no sync sample found after time %g\n", image_props->time));
 		}

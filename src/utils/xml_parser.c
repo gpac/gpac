@@ -66,6 +66,7 @@ static char *xml_translate_xml_string(char *str)
 				u32 val;
 				const unsigned short *srcp;
 				strncpy(szChar, str+i, 10);
+				szChar[10] = 0;
 				end = strchr(szChar, ';');
 				if (!end) break;
 				end[1] = 0;
