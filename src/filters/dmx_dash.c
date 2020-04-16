@@ -961,14 +961,17 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		return GF_OK;
 	}
-	if (! gf_filter_pid_check_caps(pid))
+	if (! gf_filter_pid_check_caps(pid)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Mismatch in input pid caps\n"));
 		return GF_NOT_SUPPORTED;
+	}
 
 	//configure MPD pid
 	if (!ctx->mpd_pid) {
 		const GF_PropertyValue *p;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 		if (!p || !p->value.string) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] no URL on MPD pid\n"));
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -995,8 +998,10 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	//figure out group for this pid
 	group_idx = dashdmx_group_idx_from_pid(ctx, pid);
-	if (group_idx<0) return GF_NOT_SUPPORTED;
-
+	if (group_idx<0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Failed to locat adaptation set for input pid\n"));
+		return GF_SERVICE_ERROR;
+	}
 	group = gf_dash_get_group_udta(ctx->dash, group_idx);
 
 	//initial configure
