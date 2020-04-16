@@ -427,6 +427,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	return GF_OK;
 }
 
+#include "../compositor/visual_manager.h"
+
 static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	const GF_PropertyValue *p;
@@ -440,6 +442,17 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_PIXFMT);
 		if (p) {
 			u32 stride;
+#ifndef GPAC_DISABLE_3D
+			if (ctx->scene && (ctx->hybrid_opengl || ctx->visual->type_3d)) {
+				switch (p->value.uint) {
+				case GF_PIXEL_RGBA:
+				case GF_PIXEL_RGB:
+					break;
+				default:
+					return GF_NOT_SUPPORTED;
+				}
+			}
+#endif
 			ctx->opfmt = p->value.uint;
 			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt) );
 			gf_pixel_get_size_info(ctx->opfmt, ctx->display_width, ctx->display_height, NULL, &stride, NULL, NULL, NULL);

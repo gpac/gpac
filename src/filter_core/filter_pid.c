@@ -4321,7 +4321,8 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 		}
 		safe_int_inc(&pid->filter->nb_caps_renegociate);
 	}
-	if (pid->has_seen_eos) {
+	//pid is end of stream of pid instance has packet pendings, we will need a new chain to adapt these packets formats
+	if (pid->has_seen_eos || gf_fq_count(pidi->packets)) {
 		gf_fs_post_task(pid->filter->session, gf_filter_renegociate_output_task, pid->filter, NULL, "filter renegociate", NULL);
 	}
 	return gf_props_set_property(pid->caps_negociate, prop_4cc, prop_name, dyn_name, value);
