@@ -1066,7 +1066,7 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 			movie->root_ssix->subsegments[i].ranges = gf_malloc(sizeof(GF_SubsegmentRangeInfo)*2);
 			movie->root_ssix->subsegments[i].ranges[0].level = 0;
 			movie->root_ssix->subsegments[i].ranges[0].range_size = 0;
-			movie->root_ssix->subsegments[i].ranges[1].level = 0xFF;
+			movie->root_ssix->subsegments[i].ranges[1].level = 1;
 			movie->root_ssix->subsegments[i].ranges[1].range_size = 0;
 		}
 	}
@@ -1555,7 +1555,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 					subs->range_count = 2;
 					subs->ranges = gf_malloc(sizeof(GF_SubsegmentRangeInfo)*2);
 					subs->ranges[0].level = 1;
-					subs->ranges[1].level = 0xFF;
+					subs->ranges[1].level = 2;
 					subs->ranges[0].range_size = subs->ranges[1].range_size = 0;
 				}
 
@@ -1709,8 +1709,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 					ssix->subsegments[cur_index].ranges[0].level = 1;
 					ssix->subsegments[cur_index].ranges[0].range_size = moof_get_first_sap_end(movie->moof);
 
-					ssix->subsegments[cur_index].ranges[1].level = 0xFF;
-					ssix->subsegments[cur_index].ranges[1].range_size = sidx->refs[cur_index].reference_size - ssix->subsegments[count-1].ranges[0].range_size;
+					ssix->subsegments[cur_index].ranges[1].level = 2;
+					ssix->subsegments[cur_index].ranges[1].range_size = sidx->refs[cur_index].reference_size - ssix->subsegments[cur_index].ranges[0].range_size;
 
 					if (movie->root_ssix)
 						ssix = NULL;
