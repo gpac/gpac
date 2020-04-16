@@ -717,6 +717,9 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 					//insert
 					else {
 						for (j=0; j<max_cols; j++) {
+							if (ctx->grid[j].pos_x == (u32) tile1->pos_x) {
+								break;
+							}
 							if (ctx->grid[j].pos_x > (u32) tile1->pos_x) {
 								ctx->grid = gf_realloc(ctx->grid, sizeof(HEVCGridInfo) * (max_cols+1) );
 								memmove(&ctx->grid[j+1], &ctx->grid[j], sizeof(HEVCGridInfo) * (max_cols-j));
@@ -1276,6 +1279,16 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, pid);
+		//remove all SRD related properties
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_REF, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_MAP, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CROP_POS, NULL);
+		//TODO, we might want to compute a cumulate of these properties on the output ?
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_SIZE, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_RATE, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_BYTES, NULL);
 	}
 
 	if ((pid_width != tile_pid->width) || (pid_height != tile_pid->height)) {
