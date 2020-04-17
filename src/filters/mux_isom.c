@@ -133,7 +133,6 @@ typedef struct
 	u32 prev_tid_group;
 
 	Bool box_patched;
-	u32 track_num_retry;
 } TrackWriter;
 
 enum
@@ -4179,15 +4178,9 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		//check this after fetching a packet since it may reconfigure the track
 		if (!tkw->track_num) {
-			tkw->track_num_retry++;
-			if (tkw->track_num_retry>10) {
-				if (!pck) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has no input packet and configuration not known after 10 retries, aborting initial timing sync\n"));
-					continue;
-				}
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has input packet but no knwon configuration, droping packet\n"));
-				gf_filter_pid_drop_packet(tkw->ipid);
-				tkw->track_num_retry = 0;
+			if (gf_filter_pid_is_eos(tkw->ipid)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has no input packet and configuration not known after 10 retries, aborting initial timing sync\n"));
+				continue;
 			}
 			return;
 		}
