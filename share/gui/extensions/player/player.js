@@ -1207,7 +1207,7 @@ extension = {
             }
         }
         if (this.test_mode && (value>3)) {
-            gpac.exit();                    
+            gpac.exit(3);                    
         }
 
         h = Math.floor(value / 3600);

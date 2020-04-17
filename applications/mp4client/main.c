@@ -2156,13 +2156,19 @@ force_input:
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
 
-	fprintf(stderr, "Deleting terminal... ");
 	if (playlist) gf_fclose(playlist);
 
 #if defined(__DARWIN__) || defined(__APPLE__)
 	carbon_uninit();
 #endif
 
+	//special condition for immediate exit without terminal deletion
+	if ((ret_val==3)) {
+		fprintf(stderr, "Exit forced, no cleanup\n");
+		exit(0);
+	}
+
+	fprintf(stderr, "Deleting terminal... ");
 	gf_term_del(term);
 	fprintf(stderr, "done (in %d ms) - ran for %d ms\n", gf_sys_clock() - i, gf_sys_clock());
 
