@@ -91,7 +91,6 @@ static u32 bench_mode_start = 0;
 static u32 bench_buffer = 0;
 static Bool eos_seen = GF_FALSE;
 static Bool addon_visible = GF_TRUE;
-
 Bool is_connected = GF_FALSE;
 Bool startup_file = GF_FALSE;
 GF_User user;
@@ -234,6 +233,7 @@ GF_GPACArg mp4client_args[] =
 	 GF_DEF_ARG("rti", NULL, "log run-time info (FPS, CPU, Mem usage) to given file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	 GF_DEF_ARG("rtix", NULL, "same as -rti but driven by GPAC logs", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	 GF_DEF_ARG("size", NULL, "specify visual size WxH. If not set, scene size or video size is used", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	 GF_DEF_ARG("rti-refresh", NULL, "set refresh time in ms between two runt-time counters queries (default is 200)", NULL, NULL, GF_ARG_INT, 0),
 
  	GF_DEF_ARG("no-thread", NULL, "disable thread usage (except for depending on driver audio)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("no-audio", NULL, "disable audio", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
@@ -1270,6 +1270,9 @@ int mp4client_main(int argc, char **argv)
 			rti_file = argv[i+1];
 			i++;
 			use_rtix = GF_TRUE;
+		} else if (!strcmp(arg, "-rti-refresh")) {
+			rti_update_time_ms = atoi(argv[i+1]);
+			i++;
 		} else if (!stricmp(arg, "-size")) {
 			/*usage of %ud breaks sscanf on MSVC*/
 			if (sscanf(argv[i+1], "%dx%d", &forced_width, &forced_height) != 2) {
@@ -1479,11 +1482,6 @@ int mp4client_main(int argc, char **argv)
 	}
 
 	if (rti_file) {
-		rti_update_time_ms = gf_opts_get_int("General", "RTIRefreshPeriod");
-		if (!rti_update_time_ms) {
-			rti_update_time_ms = 200;
-			gf_opts_set_key("General", "RTIRefreshPeriod", "200");
-		}
 		UpdateRTInfo("At GPAC load time\n");
 	}
 
@@ -2163,7 +2161,7 @@ force_input:
 #endif
 
 	//special condition for immediate exit without terminal deletion
-	if ((ret_val==3)) {
+	if (ret_val==3) {
 		fprintf(stderr, "Exit forced, no cleanup\n");
 		exit(0);
 	}
