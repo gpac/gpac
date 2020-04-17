@@ -4032,6 +4032,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-insert-utc")) {
 			insert_utc = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-old-arch")) { //compat for running tests with old mp4box in filters branch
+		}
 		else if (!stricmp(arg, "-udp-write")) {
 			udp_dest = argv[i+1];
 			i++;
