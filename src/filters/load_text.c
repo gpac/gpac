@@ -2664,6 +2664,20 @@ static GF_Err txtin_process(GF_Filter *filter)
 	return e;
 }
 
+static void ttxtin_reset(GF_TXTIn *ctx)
+{
+	if (ctx->samp) gf_isom_delete_text_sample(ctx->samp);
+	ctx->samp = NULL;
+	if (ctx->src) gf_fclose(ctx->src);
+	ctx->src = NULL;
+	if (ctx->vttparser) gf_webvtt_parser_del(ctx->vttparser);
+	ctx->vttparser = NULL;
+	if (ctx->parser) gf_xml_dom_del(ctx->parser);
+	ctx->parser = NULL;
+	if (ctx->parser_working_copy) gf_xml_dom_del(ctx->parser_working_copy);
+	ctx->parser_working_copy = NULL;
+}
+
 static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Err e;
@@ -2701,9 +2715,9 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			return GF_REQUIRES_NEW_INSTANCE;
 		}
 		if (!strcmp(ctx->file_name, src)) return GF_OK;
-		//TODO reset context
-		ctx->is_setup = GF_FALSE;
 
+		ttxtin_reset(ctx);
+		ctx->is_setup = GF_FALSE;
 		ctx->file_name = src;
 	}
 	//guess type
@@ -2780,16 +2794,13 @@ GF_Err txtin_initialize(GF_Filter *filter)
 	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
 	return GF_OK;
 }
+
 void txtin_finalize(GF_Filter *filter)
 {
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 
-	if (ctx->samp) gf_isom_delete_text_sample(ctx->samp);
-	if (ctx->src) gf_fclose(ctx->src);
+	ttxtin_reset(ctx);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
-	if (ctx->vttparser) gf_webvtt_parser_del(ctx->vttparser);
-	if (ctx->parser) gf_xml_dom_del(ctx->parser);
-	if (ctx->parser_working_copy) gf_xml_dom_del(ctx->parser_working_copy);
 
 	if (ctx->text_descs) {
 		while (gf_list_count(ctx->text_descs)) {
