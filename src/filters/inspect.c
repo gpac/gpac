@@ -40,6 +40,7 @@ typedef struct
 	u64 pck_for_config;
 	u64 prev_dts, prev_cts, init_ts;
 	u32 codec_id;
+	u32 stream_type;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	HEVCState *hevc_state;
@@ -857,11 +858,33 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 #endif
 
 
+static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
+{
+	char szLine[1025];
+	u32 i, count = gf_list_count(ctx->src_pids);
+	for (i=0; i<count; i++) {
+		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+		//already done
+		if (!pctx->tmp) continue;
+		//not our streamtype
+		if (streamtype && (pctx->stream_type!=streamtype)) continue;
+
+		if (concat) {
+			gf_fseek(pctx->tmp, 0, SEEK_SET);
+			while (!gf_feof(pctx->tmp)) {
+				u32 read = (u32) gf_fread(szLine, 1024, pctx->tmp);
+				gf_fwrite(szLine, read, ctx->dump);
+			}
+		}
+		gf_fclose(pctx->tmp);
+		if (ctx->xml)
+			gf_fprintf(ctx->dump, "</PIDInspect>");
+		pctx->tmp = NULL;
+	}
+}
 
 static void inspect_finalize(GF_Filter *filter)
 {
-	char szLine[1025];
-
 	Bool concat=GF_FALSE;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
@@ -869,21 +892,18 @@ static void inspect_finalize(GF_Filter *filter)
 		if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) concat=GF_TRUE;
 		else if (!ctx->interleave) concat=GF_TRUE;
 	}
+	if (!ctx->interleave) {
+		finalize_dump(ctx, GF_STREAM_AUDIO, concat);
+		finalize_dump(ctx, GF_STREAM_VISUAL, concat);
+		finalize_dump(ctx, GF_STREAM_SCENE, concat);
+		finalize_dump(ctx, GF_STREAM_OD, concat);
+		finalize_dump(ctx, GF_STREAM_TEXT, concat);
+		finalize_dump(ctx, 0, concat);
+	}
+
 	while (gf_list_count(ctx->src_pids)) {
 		PidCtx *pctx = gf_list_pop_front(ctx->src_pids);
 
-		if (!ctx->interleave && pctx->tmp) {
-			if (concat) {
-				gf_fseek(pctx->tmp, 0, SEEK_SET);
-				while (!gf_feof(pctx->tmp)) {
-					u32 read = (u32) gf_fread(szLine, 1024, pctx->tmp);
-					gf_fwrite(szLine, read, ctx->dump);
-				}
-			}
-			gf_fclose(pctx->tmp);
-			if (ctx->xml)
-				gf_fprintf(ctx->dump, "</PIDInspect>");
-		}
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (pctx->avc_state) gf_free(pctx->avc_state);
 		if (pctx->hevc_state) gf_free(pctx->hevc_state);
@@ -2060,6 +2080,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 {
 	GF_FilterEvent evt;
 	PidCtx *pctx;
+	const GF_PropertyValue *p;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx->src_pids) ctx->src_pids = gf_list_new();
@@ -2073,21 +2094,33 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_SAFEALLOC(pctx, PidCtx);
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
+
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	pctx->stream_type = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	pctx->codec_id = p ? p->value.uint : 0;
+
 	if (! ctx->interleave) {
-		const GF_PropertyValue *p;
+		u32 insert_idx = 0;
+		u32 i;
+		//sort all PIDs by codec IDs
+		for (i=0; i<gf_list_count(ctx->src_pids); i++) {
+			const GF_PropertyValue *p;
+			PidCtx *actx = gf_list_get(ctx->src_pids, i);
+			insert_idx = i;
 
-		//in non interleave mode, log audio first and video after - mostly used for tests where we always need th same output
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-		if (p && (p->value.uint==GF_STREAM_AUDIO)) {
-			u32 i;
-			gf_list_insert(ctx->src_pids, pctx, 0);
-
-			for (i=0; i<gf_list_count(ctx->src_pids); i++) {
-				PidCtx *actx = gf_list_get(ctx->src_pids, i);
-				actx->idx = i+1;
+			p = gf_filter_pid_get_property(actx->src_pid, GF_PROP_PID_CODECID);
+			if (!p || (pctx->codec_id < p->value.uint)) {
+				break;
 			}
-		} else {
-			gf_list_add(ctx->src_pids, pctx);
+		}
+
+		gf_list_insert(ctx->src_pids, pctx, insert_idx);
+
+		for (i=insert_idx+1; i<gf_list_count(ctx->src_pids); i++) {
+			PidCtx *actx = gf_list_get(ctx->src_pids, i);
+			actx->idx = i+1;
 		}
 	} else {
 		pctx->tmp = ctx->dump;
