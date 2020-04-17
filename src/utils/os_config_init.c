@@ -547,11 +547,11 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 #endif
 
 #if defined(GPAC_CONFIG_IOS)
-	gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
+	gf_cfg_set_key(cfg, "core", "devclass", "ios");
 #elif defined(GPAC_CONFIG_ANDROID)
-	gf_cfg_set_key(cfg, "General", "DeviceType", "Android");
+	gf_cfg_set_key(cfg, "core", "devclass", "android");
 #else
-	gf_cfg_set_key(cfg, "General", "DeviceType", "Desktop");
+	gf_cfg_set_key(cfg, "core", "devclass", "desktop");
 #endif
 
 
@@ -1074,6 +1074,10 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("for-test", NULL, "disable all creation/modif dates and GPAC versions in files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("old-arch", NULL, "enable compatibility with pre-filters versions of GPAC", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("ntp-shift", NULL, "shift NTP clock by given amount in seconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("devclass", NULL, "set device class\n"
+ "- ios: iOS-based mobile device\n"
+ "- android: Android-based mobile device\n"
+ "- desktop: desktop device", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
 
  GF_DEF_ARG("bs-cache-size", NULL, "cache size for bitstream read and write from file (0 disable cache, slower IOs)", "512", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),

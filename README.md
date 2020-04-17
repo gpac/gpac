@@ -115,45 +115,6 @@ Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.
 
 Please visit the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
 
-# Source code tree
-This is a short overview of the gpac source repository. 
-
-- *gpac/applications/* various apps of GPAC, including MP4Box, MP4Client, gpac and other players for iOS and Android
-- *gpac/bin/* output path of build system
-- *gpac/build/* various build systems (MSVC, Android, XCode, ...)
-- *gpac/debian/* files for debian packaging
-- *gpac/extra_lib/* external lib directory used by different build systems
-- *gpac/include/gpac/* all exported files of the lib (high level APIs, full documentation available).
-- *gpac/include/gpac/internal/* all development files of the lib (low level access).
-- *gpac/include/gpac/modules/* all module APIs defined in GPAC.
-- *gpac/packagers/* installer scripts for Windows and OSX
-- *gpac/modules/* various modules of GPAC (video and audio output, font engine,  sensors, ...)
-- *gpac/share/doc* doxygen for GPAC
-- *gpac/share/doc/man* man pages for GPAC
-- *gpac/share/gui/* BIFS+SVG based GUI used by client.
-- *gpac/share/lang/* Language files (under development) for GPAC options and help
-- *gpac/share/scripts/* various JS scripts used by GPAC.
-- *gpac/share/shaders/* GLSL shaders used by the compositor.
-- *gpac/share/vis/* Remotery web client.
-- *gpac/src/bifs/* BInary Format for Scene coding (decoder and encoder) (BIFS tables are with MPEG4Gen application in gpac/applications/generators/MPEG4)
-- *gpac/src/compositor/* interactive composition engine  for 2D & 3D drawing - handles MPEG-4, X3D/VRML and SVG.
-- *gpac/src/crypto/* cryptographic tools (AES 128 CBC and CTR only)
-- *gpac/src/evg/* anti-aliased software rasterizer for 2D vector graphics
-- *gpac/src/filter_core/* filter engine of GPAC, in charge of filter graph resolution, filter scheduling, packets handling.
-- *gpac/src/filters/* filters defined in GPAC. This include encoders, decoders, av output, wrapper for GPAC's compositor, ISOBMF, RTP, M2TS muxers and demuxers, etc ...
-- *gpac/src/ietf/* small RTP/RTSP/SDP library, plus media packetizers.
-- *gpac/src/isomedia/* ISOBMFF (Iso Base Media File Format), features file reading/writing/editing, precise interleaving, hint track creation and movie fragments (read/write). Includes 3GPP/3GPP2 ,  AVC/SVC, HEVC/L-HEVC and JPEG2000 support.
-- *gpac/src/jsmods/* Various JavaScript modules
-- *gpac/src/laser/* MPEG-4 LAsER (Lightweight Application Scene Representation)
-- *gpac/src/media_tools/* media tools for authoring: ISMA & 3GPP tools, AV parsers, media importing and exporting, hinting ...
-- *gpac/src/odf/* MPEG-4 Object Descriptor Framework: encoding/decoding of all descriptors, OD codec and OCI codec
-- *gpac/src/quickjs/* QuickJS javascript engine sources
-- *gpac/src/scene_manager/* memory representation of the scene, importers (BT/XMT/SWF/QT), dumpers and encoding
-- *gpac/src/scenegraph/* scene Graph API (MPEG4/VRML/X3D/SVG) - BIFS/VRML/X3D nodes are generated using gpac/applications/generators/*
-- *gpac/src/terminal/* client application engine. This is a simple wrapper around the filter engine of GPAC.
-- *gpac/src/utils/* all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* .
-- *gpac/testsuite/* tests suite for GPAC - this is a GIT submodule.
-
 For more information, visit:
 - the GPAC website: http://gpac.io
 - the GPAC wiki: https://wiki.gpac.io

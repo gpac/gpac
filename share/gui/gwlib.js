@@ -1013,9 +1013,9 @@ function gwlib_init(root_node) {
         gwskin.disable_transparency = true;
         gwskin.default_window_alpha = 1;
     }
-    var device = gpac.get_option('General', 'DeviceType');
+    var device = gpac.get_option('core', 'devclass');
 
-    if ((device == 'iOS') || (device == 'Android')) gwskin.mobile_device = true;
+    if ((device == 'ios') || (device == 'android')) gwskin.mobile_device = true;
     else gwskin.mobile_device = false;
     
     if (gwskin.mobile_device) {

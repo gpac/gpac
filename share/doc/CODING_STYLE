@@ -1,8 +1,7 @@
 GPAC coding style
 
 Introduction
-  coding styles only concern the GPAC library (M4Systems in GPAC<=0.3.0, libgpac now), and, although recommended, are not mandatory for plugins 
-  or applications development.
+  coding styles only concern the GPAC core library (libgpac), and should be used for external filters and modules development.
   
   AStyle is a code beautifier tool. Code should be compliant with the following pattern provided by AStyle :
   AStyle -r --indent=tab '*.c' '*.h' '*.cpp' '*.hpp'
@@ -14,13 +13,13 @@ Introduction
 
   1.1 typedef of structures - typedef of base types - typedef of functions
 
-All symbols defined within libgpac library and exported for application development purposes shall begin be named GF_* 
+All symbols defined within libgpac library and exported for application development purposes shall begin with GF_* 
 with the first character of "*" being in capital, regardless of their functionality.
 For example, GF_Thread (structure), GF_Err (redefined type), GF_LineCap (enum typedef)
     
 All structure typedefs, whether defined (declaration exported through ehaders) or not (declaration intern to the GPAC core lib), must follow
 this principle.
-Furthermore, typedef of non exported structure shall only apply to the structure itself, not a pointer to it. 
+Furthermore, typedef of non-exported structure shall only apply to the structure itself, not a pointer to it. 
     typedef struct _my_gpac_thingy *GF_LPMYGPACSTUFF;    /*this is FORBIDDEN*/
     typedef struct _my_gpac_thingy GF_MyGPACStuff;    /*this is OK*/
 This will allow easy exporting of structure declaration if needed at some point in the development.
@@ -39,7 +38,7 @@ For example,
   1.3 functions
 
 All exported functions and pointer to functions shall begin with "gf_". The name shall refer to the main module they are sued in 
-through a keyword right after the gf_ when reasonable (gf_isom_, gf_odf_, gf_term_), or to the tool they refer to (gf_bs_, gf_url, ...)
+through a keyword right after the gf_ when reasonable (gf_isom_, gf_odf_, gf_filter_), or to the tool they refer to (gf_bs_, gf_url, ...)
   
 2 Miscalleanous
 
@@ -52,82 +51,87 @@ All exported header files shall be in lower case
 All source files within the gpac core shall be in lower case
 
 All comments should be C-like ones (/**/) not C++ ones (//)
-All exported headers documentation should be written with dowygen syntax
+All exported headers documentation should be written with doxygen syntax
 All constructor-like functions should be of style gf_zzz_new
 All destructor like functions should be of style gf_zzz_del
 
-3 Rearchitecture of the GPAC repository
+3 Current structure of the GPAC repository
   
-  This recaps the changes between gpac 0.3.0 and gpac 0.4.0 as far as the core architecture is concerned.
-  
-  
-  The former M4Systems library is now simply libGPAC (eg libgpac.lib, libgpac.dll, libgpac.so, libgpac.a)
-  Currently no decision has been taken regarding splitting of this library in smaller packages, this still needs discussion.
-  
-  directory architecture:
-  /gpac
-  /gpac/applications/
-     former Applications/, misc renames
-  /gpac/applications/generators: former SceneGenerators
-  /gpac/applications/testapps:   added for apps testing some features of gpac (currently only BIFSEngine tester)
-  /gpac/bin
-    rename of directories:
-      arm_debug -> arm_ppc02_deb
-      arm_release -> arm_ppc02_rel
-      Debug -> w32_deb
-      Release -> w32_rel
-  /gpac/build: former IDEs directory, with project files for MS eVC*/VC*
-  /gpac/doc
-  /gpac/doc/libgpac: future place for doc of all exported functions from libgpac
-  /gpac/extra_lib
-  /gpac/extra_lib/include
-    unchanged
-  /gpac/extra_lib/lib
-    rename of directories:
-      arm_debug -> arm_ppc02_deb
-      arm_release -> arm_ppc02_rel
-      w32_debug -> w32_deb
-      w32_release -> w32_rel
-    
+This is a short overview of the gpac source repository. 
 
-  /gpac/src: former M4Systems directory, source for the gpac core lib
-  /gpac/src/utils: 
-    former Tools - function names: gf_* 
-  /gpac/src/isomedia: 
-    former MP4 - code for isomedia - function names: gf_isom_*
-  /gpac/src/odf: 
-    former OD - code for MPEG-4 OD Framework - function names: gf_odf_* 
-  /gpac/src/ietf: 
-    former IETF - code for IETF SDP/RTP/RTCP/RTSP protocols - function names: (or gf_sdp_*, gf_rtp_*, gf_rtsp_*)  
-    moved packetizers in this place since payloads are quite related to IETF...
-  /gpac/src/bifs: 
-    former BIFS - code for BIFS encoding and decoding - exported function names: gf_bifs_*
-  /gpac/src/terminal: 
-    former ESM - code for terminal module - exported function names: gf_term_*
-  /gpac/src/crypto: 
-    unchanged - function names: gf_crypt_*
-  /gpac/src/renderer: 
-    former renderer - function names: gf_sr_*
-  /gpac/src/scenegraph:
-    former SceneGraph - function names: gf_sg_* for all common code (base nodes and graph handling),
-                                        gf_sg_vrml_*: MPEG4, VRML, X3D related
-                                        gf_sg_svg_*: SVG related (maybe laser-related)
-    
-  /gpac/src/media_tools: 
-    former authoring on media import/export and IsoMedia file stuff. function names: gf_media_*, gf_hinter_
+- *gpac/applications/*
+    various apps of GPAC, including MP4Box, MP4Client, gpac and other players for iOS and Android
+- *gpac/bin/*
+    output path of build system
+- *gpac/build/*
+    various build systems (MSVC, Android, XCode, ...)
+- *gpac/debian/*
+    files for debian packaging
+- *gpac/extra_lib/*
+    external lib directory used by different build systems
+- *gpac/include/gpac/*
+    all exported files of the lib (high level APIs, full documentation available).
+- *gpac/include/gpac/internal/*
+    all development files of the lib (low level access).
+- *gpac/include/gpac/modules/*
+    all module APIs defined in GPAC.
+- *gpac/packagers/*
+    installer scripts for Windows and OSX
+- *gpac/modules/*
+    various modules of GPAC (video and audio output, font engine,  sensors, ...)
+- *gpac/share/doc*
+    doxygen for GPAC
+- *gpac/share/doc/idl
+    doxygen for JS APIs developped in GPAC
+- *gpac/share/doc/man*
+    man pages for GPAC
+- *gpac/share/gui/*
+    BIFS+SVG based GUI used by client.
+- *gpac/share/lang/*
+    Language files (under development) for GPAC options and help
+- *gpac/share/res/*
+    various resource files used in installers
+- *gpac/share/scripts/*
+    various JS scripts used by GPAC.
+- *gpac/share/shaders/*
+    GLSL shaders used by the compositor.
+- *gpac/share/vis/*
+    Remotery web client.
+- *gpac/src/bifs/*
+    BInary Format for Scene coding (decoder and encoder) (BIFS tables are with MPEG4Gen application in gpac/applications/generators/MPEG4)
+- *gpac/src/compositor/*
+    interactive composition engine  for 2D & 3D drawing - handles MPEG-4, X3D/VRML and SVG.
+- *gpac/src/crypto/*
+    cryptographic tools (AES 128 CBC and CTR only)
+- *gpac/src/evg/*
+    anti-aliased software rasterizer for 2D vector graphics
+- *gpac/src/filter_core/*
+    filter engine of GPAC, in charge of filter graph resolution, filter scheduling, packets handling.
+- *gpac/src/filters/*
+    filters defined in GPAC. This include encoders, decoders, av output, wrapper for GPAC's compositor, ISOBMF, RTP, M2TS muxers and demuxers, etc ...
+- *gpac/src/ietf/*
+    small RTP/RTSP/SDP library, plus media packetizers.
+- *gpac/src/isomedia/*
+    ISOBMFF (Iso Base Media File Format), features file reading/writing/editing, precise interleaving, hint track creation and movie fragments (read/write). Includes 3GPP/3GPP2 ,  AVC/SVC, HEVC/L-HEVC and JPEG2000 support.
+- *gpac/src/jsmods/*
+    Various JavaScript modules
+- *gpac/src/laser/*
+    MPEG-4 LAsER (Lightweight Application Scene Representation)
+- *gpac/src/media_tools/*
+    media tools for authoring: ISMA & 3GPP tools, AV parsers, media importing and exporting, hinting ...
+- *gpac/src/odf/*
+    MPEG-4 Object Descriptor Framework: encoding/decoding of all descriptors, OD codec and OCI codec
+- *gpac/src/quickjs/*
+    QuickJS javascript engine sources
+- *gpac/src/scene_manager/*
+    memory representation of the scene, importers (BT/XMT/SWF/QT), dumpers and encoding
+- *gpac/src/scenegraph/*
+    scene Graph API (MPEG4/VRML/X3D/SVG) - BIFS/VRML/X3D nodes are generated using gpac/applications/generators/*
+- *gpac/src/terminal/*
+    client application engine. This is a simple wrapper around the filter engine of GPAC.
+- *gpac/src/utils/*
+    all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* .
+- *gpac/testsuite/*
+    tests suite for GPAC - this is a GIT submodulen repository URL is https://github.com/gpac/testsuite.
 
-  /gpac/src/scene_manager: 
-    former authoring on scene manager. function names: gf_sm_*
-
-    
-  /gpac/include
-  /gpac/include/gpac: 
-    splitting of former m4_tools.h into dedicated headers, and for some other modules too (media parsers, ...)
-    
-  /gpac/include/gpac/internal:
-    former intern , no big changes 
-  
-  /gpac/modules:
-    former Plugins directory.
-    
     
