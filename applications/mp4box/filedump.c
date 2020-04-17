@@ -850,7 +850,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 		s64 cts;
 	};
 	struct _ts_info *timings = NULL;
-	u32 nb_timings, nb_timings_alloc = 0;
+	u32 nb_timings=0, nb_timings_alloc = 0;
 
 
 	if (inName) {
