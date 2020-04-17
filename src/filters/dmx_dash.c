@@ -999,7 +999,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//figure out group for this pid
 	group_idx = dashdmx_group_idx_from_pid(ctx, pid);
 	if (group_idx<0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Failed to locat adaptation set for input pid\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Failed to locate adaptation set for input pid\n"));
 		return GF_SERVICE_ERROR;
 	}
 	group = gf_dash_get_group_udta(ctx->dash, group_idx);
@@ -1612,6 +1612,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 	if (check_eos) {
 		Bool all_groups_done = GF_TRUE;
+		Bool groups_not_playing = GF_TRUE;
 		Bool is_in_last_period = gf_dash_in_last_period(ctx->dash, GF_TRUE);
 
 		//not last period, check if we are done playing all groups due to stop requests
@@ -1644,6 +1645,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 				all_groups_done = GF_FALSE;
 				continue;
 			}
+			if (group->is_playing)
+				groups_not_playing = GF_FALSE;
+
 			if (!group->eos_detected && group->is_playing) {
 				all_groups_done = GF_FALSE;
 			} else if (is_in_last_period) {
@@ -1654,7 +1658,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			}
 		}
 		if (all_groups_done) {
-			if (is_in_last_period)
+			if (is_in_last_period || groups_not_playing)
 				return GF_EOS;
 			if (!gf_dash_get_period_switch_status(ctx->dash)) {
 				for (i=0; i<count; i++) {
