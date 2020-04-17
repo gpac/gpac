@@ -133,6 +133,7 @@ typedef struct
 	u32 prev_tid_group;
 
 	Bool box_patched;
+	u32 track_num_retry;
 } TrackWriter;
 
 enum
@@ -2778,13 +2779,19 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	//tkw->ts_shift is in source timescale, apply it before rescaling TSs/duration
 	if (tkw->ts_shift) {
 		if (ctx->is_rewind) {
-			assert (tkw->sample.DTS <= tkw->ts_shift);
-			tkw->sample.DTS = tkw->ts_shift - tkw->sample.DTS;
-			cts = tkw->ts_shift - cts;
+			if (tkw->sample.DTS <= tkw->ts_shift) {
+				tkw->sample.DTS = tkw->ts_shift - tkw->sample.DTS;
+				cts = tkw->ts_shift - cts;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] broken timing in track, initial ts LLU less than TS LLU\n", tkw->ts_shift, tkw->sample.DTS));
+			}
 		} else {
-			assert (tkw->sample.DTS >= tkw->ts_shift);
-			tkw->sample.DTS -= tkw->ts_shift;
-			cts -= tkw->ts_shift;
+			if (tkw->sample.DTS >= tkw->ts_shift) {
+				tkw->sample.DTS -= tkw->ts_shift;
+				cts -= tkw->ts_shift;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] broken timing in track, initial ts LLU gretaer than TS LLU\n", tkw->ts_shift, tkw->sample.DTS));
+			}
 		}
 	}
 
@@ -4171,8 +4178,19 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		if (tkw->fake_track) continue;
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		//check this after fetching a packet since it may reconfigure the track
-		if (!tkw->track_num) return;
-
+		if (!tkw->track_num) {
+			tkw->track_num_retry++;
+			if (tkw->track_num_retry>10) {
+				if (!pck) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has no input packet and configuration not known after 10 retries, aborting initial timing sync\n"));
+					continue;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has input packet but no knwon configuration, droping packet\n"));
+				gf_filter_pid_drop_packet(tkw->ipid);
+				tkw->track_num_retry = 0;
+			}
+			return;
+		}
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
@@ -4197,7 +4215,8 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
 			ts = gf_filter_pck_get_cts(pck);
-
+		if (ts==GF_FILTER_NO_TS)
+			ts=0;
 
 		dts_min = ts * 1000000;
 		dts_min /= tkw->src_timescale;
