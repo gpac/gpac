@@ -3129,7 +3129,11 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			mime_type = probe_mime;
 		}
 	}
-	if (mime_type) {
+	//we ignore mime type on pid reconfigure - some server will overwrite valid type to application/octet-string or binary/octet-string
+	//on a byte-range request or secondary fetch
+	//this is safe for now as the only reconfig we do is in HTTP streaming context
+	//we furthermore blacklist *octet-* mimes
+	if (mime_type && is_new_pid && !strstr(mime_type, "/octet-")) {
 		strncpy(tmp_ext, mime_type, 50);
 		tmp_ext[49] = 0;
 		strlwr(tmp_ext);
