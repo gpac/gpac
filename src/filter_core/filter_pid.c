@@ -712,7 +712,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	filter->in_connect_err = GF_OK;
 	
 	if (e==GF_OK) {
-		//if new, register the new pid instance, and the source pid as input to this filer
+		//if new, register the new pid instance, and the source pid as input to this filter
 		if (new_pid_inst) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Connected filter %s (%p) PID %s (%p) (%d fan-out) to filter %s (%p)\n", pid->filter->name, pid->filter, pid->name, pid, pid->num_destinations, filter->name, filter));
 		}
@@ -877,7 +877,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 
 		//try to run filter no matter what
-		if (filter->session->requires_solved_graph )
+		if (filter->session->requires_solved_graph)
 			return e;
 	}
 
