@@ -182,7 +182,7 @@ typedef enum
 	GF_AUTHENTICATION_FAILURE				= -50,
 	/*! Script not ready for playback */
 	GF_SCRIPT_NOT_READY						= -51,
-	/*! Bad configuration for the current contex */
+	/*! Bad configuration for the current context */
 	GF_INVALID_CONFIGURATION				= -52,
 	/*! The element has not been found */
 	GF_NOT_FOUND							= -53,
