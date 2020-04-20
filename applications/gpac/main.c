@@ -1536,6 +1536,7 @@ static int gpac_main(int argc, char **argv)
 				view_filter_conn = GF_TRUE;
 				if ((i+2<argc)	&& (argv[i+2][0] != '-')) {
 					view_conn_for_filter = argv[i+2];
+					gf_sys_mark_arg_used(i+2, GF_TRUE);
 					i++;
 				}
 
