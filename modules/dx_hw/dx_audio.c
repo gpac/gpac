@@ -167,6 +167,9 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 	ctx->format.nBlockAlign = ctx->format.nChannels * ctx->format.wBitsPerSample / 8;
 	ctx->format.nAvgBytesPerSec = ctx->format.nSamplesPerSec * ctx->format.nBlockAlign;
 
+	if (!ctx->format.nBlockAlign)
+		return GF_BAD_PARAM;
+
 	if (!ctx->force_config) {
 		ctx->buffer_size = ctx->format.nBlockAlign * 1024;
 		ctx->num_audio_buffer = 2;
@@ -398,6 +401,7 @@ static void DS_SetVolume(GF_AudioOutput *dr, u32 Volume)
 {
 	LONG Vol;
 	DSCONTEXT();
+	if (!ctx->pOutput) return;
 	if (Volume > 100) Volume = DSBVOLUME_MAX;
 	else if(Volume == 0) Vol = DSBVOLUME_MIN;
 	else Vol = DSBVOLUME_MIN/2 + Volume * (DSBVOLUME_MAX-DSBVOLUME_MIN/2) / 100;
@@ -408,6 +412,7 @@ static void DS_SetPan(GF_AudioOutput *dr, u32 Pan)
 {
 	LONG dspan;
 	DSCONTEXT();
+	if (!ctx->pOutput) return;
 
 	if (Pan > 100) Pan = 100;
 	if (Pan > 50) {
