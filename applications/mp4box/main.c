@@ -3358,7 +3358,12 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			CHECK_NEXT_ARG
 			major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
 			open_edit = GF_TRUE;
-			if (b[4] == ':') minor_version = atoi(b + 5);
+			if (b[4] == ':') {
+				if (!strncmp(b+5, "0x", 2))
+					sscanf(b+5, "0x%x", &minor_version);
+				else
+					minor_version = atoi(b + 5);
+			}
 			i++;
 		}
 		else if (!stricmp(arg, "-ab")) {
