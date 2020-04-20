@@ -41,10 +41,14 @@
 #include <gpac/color.h>
 #include <gpac/thread.h>
 
+#if defined(GPAC_HAS_DTAPI) && !defined(FAKE_DT_API)
+
 #if defined(WIN32) && !defined(__GNUC__)
 # include <intrin.h>
 #else
 #  include <emmintrin.h>
+#endif
+
 #endif
 
 
