@@ -75,6 +75,14 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	afmt = old_afmt = ctx->afmt;
 	ch_cfg = ctx->ch_cfg;
 
+	//config not ready, wait
+	if (!nb_ch || !sr || !afmt) {
+		//if threaded output, force a get_packet to trigger reconfigure
+		if (ctx->th)
+			gf_filter_pid_get_packet(ctx->pid);
+		return;
+	}
+
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
@@ -364,6 +372,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->wait_recfg = GF_FALSE;
 		return GF_OK;
 	}
+
 	//whenever change of sample rate / format / channel, force buffer requirements and speed setup
 	if ((ctx->sr!=sr) || (ctx->afmt != afmt) || (ctx->nb_ch != nb_ch)) {
 		GF_FilterEvent evt;

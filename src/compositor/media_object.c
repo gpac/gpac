@@ -242,6 +242,9 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 {
 	if (!mo->odm || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
 
+	if (mo->odm->pid && (!mo->sample_rate || !mo->num_channels))
+		gf_filter_pid_get_packet(mo->odm->pid);
+
 	if (mo->config_changed) {
 		gf_mo_update_caps(mo);
 	}
