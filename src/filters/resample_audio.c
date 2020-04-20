@@ -40,11 +40,12 @@ typedef struct
 	//output config
 	u32 freq, nb_ch, afmt;
 	u64 ch_cfg;
+	u64 out_cts;
 	//source is planar
 	Bool src_is_planar;
 	GF_AudioInterface input_ai;
 	Bool passthrough;
-
+	u32 timescale;
 	const char *data;
 	u32 size, bytes_consumed;
 	Fixed speed;
@@ -86,6 +87,7 @@ static void resample_release_frame(void *callback, u32 nb_bytes)
 		if (!ctx->in_pck) {
 			return;
 		}
+		ctx->out_cts = gf_filter_pck_get_cts(ctx->in_pck);
 		ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
 		ctx->bytes_consumed = 0;
 	}
@@ -182,6 +184,10 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (p) ch_cfg = p->value.longuint;
 	if (!ch_cfg) ch_cfg = (nb_ch==1) ? GF_AUDIO_CH_FRONT_CENTER : (GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
 
+	ctx->timescale = sr;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	if (p) ctx->timescale = p->value.longuint;
+
 	//initial config
 	if (!ctx->freq || !ctx->nb_ch || !ctx->afmt) {
 		ctx->afmt = ctx->fmt ? ctx->fmt : afmt;
@@ -223,10 +229,11 @@ static GF_Err resample_process(GF_Filter *filter)
 	u32 osize, written;
 	GF_FilterPacket *dstpck;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
-	u32 bps;
+	u32 bps, bytes_per_samp;
 	if (!ctx->ipid) return GF_OK;
 
 	bps = gf_audio_fmt_bit_depth(ctx->afmt);
+	bytes_per_samp = ctx->nb_ch * bps / 8;
 
 	while (1) {
 		if (!ctx->in_pck) {
@@ -240,6 +247,7 @@ static GF_Err resample_process(GF_Filter *filter)
 				return GF_OK;
 			}
 			ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
+			ctx->out_cts = gf_filter_pck_get_cts(ctx->in_pck);
 		}
 
 		if (ctx->passthrough) {
@@ -260,8 +268,20 @@ static GF_Err resample_process(GF_Filter *filter)
 		if (written != osize) {
 			gf_filter_pck_truncate(dstpck, written);
 		}
+		gf_filter_pck_set_dts(dstpck, ctx->out_cts);
+		gf_filter_pck_set_cts(dstpck, ctx->out_cts);
 		gf_filter_pck_send(dstpck);
 
+		if (ctx->timescale==ctx->freq) {
+			ctx->out_cts += written / bytes_per_samp;
+		} else {
+			u64 ts_inc = written / bytes_per_samp;
+			ts_inc *= ctx->timescale;
+			ts_inc /= ctx->freq;
+
+			ctx->out_cts += ts_inc;
+
+		}
 		//still some bytes to use from packet, do not discard
 		if (ctx->bytes_consumed<ctx->size) {
 			continue;
