@@ -77,9 +77,8 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	//config not ready, wait
 	if (!nb_ch || !sr || !afmt) {
-		//if threaded output, force a get_packet to trigger reconfigure
-		if (ctx->th)
-			gf_filter_pid_get_packet(ctx->pid);
+		//force a get_packet to trigger reconfigure
+		gf_filter_pid_get_packet(ctx->pid);
 		return;
 	}
 
