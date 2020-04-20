@@ -1751,7 +1751,8 @@ static void log_request_done(GF_HTTPOutSession *sess)
 
 static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HTTPOutSession *sess)
 {
-	u32 read, to_read=0;
+	u32 read;
+	u64 to_read=0;
 	GF_Err e = GF_OK;
 	Bool close_session = ctx->close;
 
@@ -1961,19 +1962,19 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			}
 		}
 		if (sess->range_idx<sess->nb_ranges) {
-			to_read = (u32) (sess->ranges[sess->range_idx].end + 1 - sess->file_pos);
+			to_read = sess->ranges[sess->range_idx].end + 1 - sess->file_pos;
 		}
 	} else if (sess->file_pos < sess->file_size) {
-		to_read = (u32) (sess->file_size - sess->file_pos);
+		to_read = sess->file_size - sess->file_pos;
 	}
 
 	if (to_read) {
 		ctx->next_wake_us = 0;
 
-		if (to_read > sess->ctx->block_size)
-			to_read = sess->ctx->block_size;
+		if (to_read > (u64) sess->ctx->block_size)
+			to_read = (u64) sess->ctx->block_size;
 
-		read = (u32) gf_fread(sess->buffer, to_read, sess->resource);
+		read = (u32) gf_fread(sess->buffer, (u32) to_read, sess->resource);
 
 		//transfer of file being uploaded, use chunk transfer
 		if (sess->use_chunk_transfer) {

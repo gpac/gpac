@@ -289,8 +289,12 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	//we read from cache file
 	if (ctx->cached) {
-		u32 to_read = (u32) (ctx->file_size - ctx->nb_read);
-		if (to_read>ctx->block_size) to_read = ctx->block_size;
+		u32 to_read, lto_read = ctx->file_size - ctx->nb_read;
+
+		if (lto_read > (u64) ctx->block_size)
+			to_read = (u64) ctx->block_size;
+		else
+			to_read = (u32) lto_read;
 
 		if (ctx->full_file_only) {
 			ctx->is_end = GF_TRUE;

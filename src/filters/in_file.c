@@ -329,6 +329,7 @@ static GF_Err filein_process(GF_Filter *filter)
 {
 	GF_Err e;
 	u32 nb_read, to_read;
+	u64 lto_read;
 	GF_FilterPacket *pck;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
@@ -417,19 +418,23 @@ static GF_Err filein_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-
+	//compute size to read as u64 (large file)
 	if (ctx->end_pos > ctx->file_pos)
-		to_read = (u32) (ctx->end_pos - ctx->file_pos);
+		lto_read = ctx->end_pos - ctx->file_pos;
 	else if (ctx->file_size)
-		to_read = (u32) (ctx->file_size - ctx->file_pos);
+		lto_read = ctx->file_size - ctx->file_pos;
 	else
-		to_read = ctx->block_size;
-	
-	if (to_read > ctx->block_size)
-		to_read = ctx->block_size;
+		lto_read = ctx->block_size;
+
+	//and clamp based on blocksize as u32
+	if (lto_read > (u64) ctx->block_size)
+		to_read = (u64) ctx->block_size;
+	else
+		to_read = (u32) lto_read;
 
 	nb_read = (u32) gf_fread(ctx->block, to_read, ctx->file);
-	if (!nb_read) ctx->file_size = ctx->file_pos;
+	if (!nb_read)
+		ctx->file_size = ctx->file_pos;
 
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
