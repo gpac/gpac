@@ -546,28 +546,18 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	return GF_OK;
 }
 
-static void ffenc_audio_discard_samples(struct _gf_ffenc_ctx *ctx, u32 nb_samples)
+static void ffenc_audio_discard_samples(struct _gf_ffenc_ctx *ctx)
 {
-	u32 i, bytes_per_chan, len;
-	if (!ctx->planar_audio) {
-		u32 offset = nb_samples * ctx->bytes_per_sample;
-		len = (ctx->samples_in_audio_buffer - nb_samples) * ctx->bytes_per_sample;
-		assert(ctx->samples_in_audio_buffer >= nb_samples);
-		memmove(ctx->audio_buffer, ctx->audio_buffer + offset, sizeof(char)*len);
-		ctx->samples_in_audio_buffer = ctx->samples_in_audio_buffer - nb_samples;
-		return;
-	}
+	u32 offset, len, nb_samples_to_drop;
 
-	bytes_per_chan = ctx->bytes_per_sample / ctx->channels;
-	assert(ctx->samples_in_audio_buffer >= nb_samples);
+	//we always drop a complete encoder frame size, so same code for planar and packed
+	nb_samples_to_drop = ctx->encoder->frame_size;
 
-	len = ctx->samples_in_audio_buffer - nb_samples;
-	if (len) {
-		for (i=0; i<ctx->channels; i++) {
-			u8 *dst = ctx->audio_buffer + i*ctx->encoder->frame_size + bytes_per_chan * ctx->samples_in_audio_buffer;
-			memmove(dst, dst+nb_samples, len*bytes_per_chan);
-		}
-		ctx->samples_in_audio_buffer -= nb_samples;
+	if (ctx->samples_in_audio_buffer > nb_samples_to_drop) {
+		offset = nb_samples_to_drop * ctx->bytes_per_sample;
+		len = (ctx->samples_in_audio_buffer - nb_samples_to_drop) * ctx->bytes_per_sample;
+		memmove(ctx->audio_buffer, ctx->audio_buffer + offset, sizeof(u8)*len);
+		ctx->samples_in_audio_buffer -= nb_samples_to_drop;
 	} else {
 		ctx->samples_in_audio_buffer = 0;
 	}
@@ -575,26 +565,50 @@ static void ffenc_audio_discard_samples(struct _gf_ffenc_ctx *ctx, u32 nb_sample
 
 static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data, u32 size, u32 sample_offset, u32 nb_samples)
 {
+	u8 *dst;
+	u32 f_idx, s_idx;
 	u32 i, bytes_per_chan, src_frame_size;
 	if (!ctx->planar_audio) {
 		u32 offset_src = sample_offset * ctx->bytes_per_sample;
 		u32 offset_dst = ctx->samples_in_audio_buffer * ctx->bytes_per_sample;
 		u32 len = nb_samples * ctx->bytes_per_sample;
-		memcpy(ctx->audio_buffer + offset_dst, data + offset_src, sizeof(char)*len);
+		memcpy(ctx->audio_buffer + offset_dst, data + offset_src, sizeof(u8)*len);
 		ctx->samples_in_audio_buffer += nb_samples;
 		return;
 	}
 
 	bytes_per_chan = ctx->bytes_per_sample / ctx->channels;
 	src_frame_size = size / ctx->bytes_per_sample;
-	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->encoder->frame_size);
+	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->audio_buffer_size);
+	assert(sample_offset + nb_samples <= src_frame_size);
 
-	for (i=0; i<ctx->channels; i++) {
-		u8 *dst = ctx->audio_buffer + (i*ctx->encoder->frame_size + ctx->samples_in_audio_buffer) * bytes_per_chan;
-		const u8 *src = data + (i*src_frame_size + sample_offset) * bytes_per_chan;
-		memcpy(dst, src, nb_samples * bytes_per_chan);
+	f_idx = ctx->samples_in_audio_buffer / ctx->encoder->frame_size;
+	s_idx = ctx->samples_in_audio_buffer % ctx->encoder->frame_size;
+	if (s_idx) {
+		assert(s_idx + nb_samples <= ctx->encoder->frame_size);
 	}
-	ctx->samples_in_audio_buffer += nb_samples;
+	dst = ctx->audio_buffer + (f_idx * ctx->channels * ctx->encoder->frame_size + s_idx) * bytes_per_chan;
+
+	while (nb_samples) {
+		const u8 *src;
+		u32 nb_samples_to_copy = nb_samples;
+		if (nb_samples_to_copy > ctx->encoder->frame_size)
+			nb_samples_to_copy = ctx->encoder->frame_size;
+
+		assert(sample_offset<src_frame_size);
+
+		src = data + sample_offset * bytes_per_chan;
+
+		for (i=0; i<ctx->channels; i++) {
+			memcpy(dst, src, sizeof(u8) * nb_samples_to_copy * bytes_per_chan);
+
+			dst += ctx->encoder->frame_size * bytes_per_chan;
+			src += src_frame_size * bytes_per_chan;
+		}
+		ctx->samples_in_audio_buffer += nb_samples_to_copy;
+		nb_samples -= nb_samples_to_copy;
+		sample_offset += nb_samples_to_copy;
+	}
 }
 
 static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
@@ -603,9 +617,10 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	s32 gotpck;
 	const char *data = NULL;
 	u32 size=0, nb_copy=0, i, count;
-	Bool from_buffer_only = GF_FALSE;
+	Bool from_internal_buffer_only = GF_FALSE;
 	s32 res;
 	u32 nb_samples=0;
+	u64 ts_diff;
 	u8 *output;
 	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck;
@@ -631,8 +646,9 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (ctx->encoder->frame_size && (ctx->encoder->frame_size <= (s32) ctx->samples_in_audio_buffer)) {
 		res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->bytes_per_sample * ctx->encoder->frame_size, 0);
-		ffenc_audio_discard_samples(ctx, ctx->encoder->frame_size);
-		from_buffer_only = GF_TRUE;
+
+		from_internal_buffer_only = GF_TRUE;
+
 	} else if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
 		if (!data) {
@@ -661,8 +677,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			ffenc_audio_append_samples(ctx, data, size, 0, nb_copy);
 
 			ctx->frame->nb_samples = ctx->encoder->frame_size;
-
 			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->encoder->frame_size*ctx->bytes_per_sample, 0);
+
 		} else {
 			ctx->frame->nb_samples = size / ctx->bytes_per_sample;
 			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, data, size, 0);
@@ -674,8 +690,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			//discard
 			ctx->samples_in_audio_buffer = 0;
 			if (nb_samples > nb_copy) {
-				u64 ts_diff = nb_copy;
 				ffenc_audio_append_samples(ctx, data, size, nb_copy, nb_samples - nb_copy);
+				ts_diff = nb_copy;
 				ts_diff *= ctx->timescale;
 				ts_diff /= ctx->sample_rate;
 				ctx->first_byte_cts = gf_filter_pck_get_cts(pck) + ts_diff;
@@ -689,10 +705,13 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	pkt.data = (uint8_t*)ctx->enc_buffer;
 	pkt.size = ctx->enc_buffer_size;
 
+	ctx->frame->nb_samples = ctx->encoder->frame_size;
+	ctx->frame->format = ctx->encoder->sample_fmt;
+	ctx->frame->channels = ctx->encoder->channels;
+	ctx->frame->channel_layout = ctx->encoder->channel_layout;
 	gotpck = 0;
 	if (pck) {
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts = ctx->first_byte_cts;
-
 		res = avcodec_encode_audio2(ctx->encoder, &pkt, ctx->frame, &gotpck);
 	} else {
 		res = avcodec_encode_audio2(ctx->encoder, &pkt, NULL, &gotpck);
@@ -711,13 +730,22 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 	}
 
-	if (pck && !from_buffer_only) {
+	if (from_internal_buffer_only) {
+		//avcodec_fill_audio_frame does not perform copy, so make sure we discard internal buffer AFTER we encode
+		ffenc_audio_discard_samples(ctx);
+	}
+
+	//increase timestamp
+	ts_diff = ctx->frame->nb_samples;
+	if (ctx->timescale!=ctx->sample_rate) {
+		ts_diff *= ctx->timescale;
+		ts_diff /= ctx->sample_rate;
+	}
+	ctx->first_byte_cts += ts_diff;
+
+	if (pck && !from_internal_buffer_only) {
 		ctx->samples_in_audio_buffer = 0;
 		if (nb_samples > nb_copy) {
-			u64 ts_diff = nb_copy;
-			ts_diff *= ctx->timescale;
-			ts_diff /= ctx->sample_rate;
-			ctx->first_byte_cts = gf_filter_pck_get_cts(pck) + ts_diff;
 			ffenc_audio_append_samples(ctx, data, size, nb_copy, nb_samples - nb_copy);
 		}
 		gf_filter_pid_drop_packet(ctx->in_pid);
@@ -942,7 +970,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 #define GET_PROP(_a, _code, _name) \
 	prop = gf_filter_pid_get_property(pid, _code); \
 	if (!prop) {\
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Input %s unknown, waiting for reconfigure\n", _name)); \
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Input %s unknown, waiting for reconfigure\n", _name)); \
 		return GF_OK; \
 	}\
 	_a  =prop->value.uint;
@@ -1173,6 +1201,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		ctx->encoder->pix_fmt = ctx->pixel_fmt;
 		ctx->init_cts_setup = GF_TRUE;
+		ctx->frame->format = ctx->encoder->pix_fmt;
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffenc_process_audio;
 
@@ -1218,6 +1247,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		ctx->encoder->sample_fmt = ctx->sample_fmt;
 		ctx->planar_audio = gf_audio_fmt_is_planar(afmt);
+		ctx->frame->format = ctx->encoder->sample_fmt;
 
 		ctx->audio_buffer_size = ctx->sample_rate;
 		ctx->audio_buffer = gf_realloc(ctx->audio_buffer, sizeof(char) * ctx->enc_buffer_size);
@@ -1327,10 +1357,12 @@ static const GF_FilterCapability FFEncodeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	//some video encoding dumps in unframe mode, we declare the pid property at runtime
 	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 
