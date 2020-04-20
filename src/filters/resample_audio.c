@@ -186,7 +186,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	ctx->timescale = sr;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	if (p) ctx->timescale = p->value.longuint;
+	if (p) ctx->timescale = p->value.uint;
 
 	//initial config
 	if (!ctx->freq || !ctx->nb_ch || !ctx->afmt) {
