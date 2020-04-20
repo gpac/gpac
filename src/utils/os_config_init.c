@@ -597,7 +597,8 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 #elif defined(GPAC_CONFIG_ANDROID)
 	strcpy(szPath, "/system/fonts/");
 #else
-	strcpy(szPath, "/usr/share/fonts/truetype/");
+	//scan all /usr/share/fonts, not just /usr/share/fonts/truetype/ which does not exist in some distrros
+	strcpy(szPath, "/usr/share/fonts/");
 #endif
 	gf_cfg_set_key(cfg, "core", "font-dirs", szPath);
 
