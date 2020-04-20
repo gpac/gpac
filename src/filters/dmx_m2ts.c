@@ -652,8 +652,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			for (j=0; j<count2; j++) {
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
 				if (stream->user) {
-					gf_filter_pid_set_property(stream->user, GF_PROP_PID_UTC_TIME, & PROP_LONGUINT(utc_ts) );
-					gf_filter_pid_set_property(stream->user, GF_PROP_PID_UTC_TIMESTAMP, & PROP_LONGUINT(prog->last_pcr_value / 300) );
+					gf_filter_pid_set_info(stream->user, GF_PROP_PID_UTC_TIME, & PROP_LONGUINT(utc_ts) );
+					gf_filter_pid_set_info(stream->user, GF_PROP_PID_UTC_TIMESTAMP, & PROP_LONGUINT(prog->last_pcr_value / 300) );
 				}
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n",
@@ -997,7 +997,7 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 	}
 
 	data = gf_filter_pck_get_data(pck, &size);
-	if (data)
+	if (data && size)
 		gf_m2ts_process_data(ctx->ts, (char*) data, size);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
