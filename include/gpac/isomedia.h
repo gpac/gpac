@@ -1749,6 +1749,18 @@ you must modify this using \ref gf_isom_set_edit
 */
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *isom_file, u32 trackNumber, u32 duration);
 
+/*! sets the duration of the last media sample. If not set, the duration of the last sample is the
+duration of the previous one if any, or media TimeScale (default value). This does not modify the edit list if any,
+you must modify this using \ref gf_isom_set_edit.
+If both dur_num and dur_den are both zero, forces last sample duration to be the same as previous sample
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param dur_num duration num value
+\param dur_den duration num value
+\return error if any
+*/
+GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 dur_num, u32 dur_den);
+
 /*! patches last stts entry to make sure the cumulated duration equals the given next_dts value
 \param isom_file the target ISO file
 \param trackNumber the target track

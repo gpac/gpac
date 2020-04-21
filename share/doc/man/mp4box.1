@@ -1432,6 +1432,14 @@ Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in m
 .br
   * : the framespertick is optional and defaults to round(framerate); it indicates the number of frames per counter tick
 .br
+- :lastsampdur[=VAL]" sets duration of the last sample. VAL is formated as:
+.br
+  * no value: use the previous sample duration
+.br
+  * integer: indicate the duration in milliseconds
+.br
+  * N/D: indicate the duration as fractional second
+.br
 * :fstat: print filter session stats after import
 .br
 * :fgraph: print filter session graph after import
@@ -2028,7 +2036,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev38-g4f9600e8b-filters
+build: 0.9.0-DEV-rev55-g98f819d1f-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

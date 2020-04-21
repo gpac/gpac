@@ -271,6 +271,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	char *opt_dst = NULL;
 	char *fchain = NULL;
 	Bool set_ccst=GF_FALSE;
+	Bool has_last_sample_dur=GF_FALSE;
+	GF_Fraction last_sample_dur = {0,0};
 
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 
@@ -721,7 +723,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				fprintf(stderr, "Bad format %s for timecode, ignoring\n", ext+1);
 			}
 		}
-
+		else if (!strnicmp(ext+1, "lastsampdur", 11)) {
+			has_last_sample_dur = GF_TRUE;
+			if (!strnicmp(ext+1, "lastsampdur=", 12)) {
+				if (sscanf(ext+13, "%d/%u", &last_sample_dur.num, &last_sample_dur.den)==2) {
+				} else {
+					last_sample_dur.num = atoi(ext+13);
+					last_sample_dur.den = 1000;
+				}
+			}
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			fprintf(stderr, "Unrecognized import option %s, ignoring\n", ext+1);
@@ -927,6 +938,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (szLan) gf_isom_set_media_language(dest, track, (char *) szLan);
 		if (disable) gf_isom_set_track_enabled(dest, track, GF_FALSE);
 
+        if (import_flags & GF_IMPORT_NO_EDIT_LIST)
+			gf_isom_remove_edits(dest, track);
+
 		if (delay) {
 			u64 tk_dur;
 			gf_isom_remove_edits(dest, track);
@@ -1038,6 +1052,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 
+        if (has_last_sample_dur) {
+			gf_isom_set_last_sample_duration_ex(dest, track, last_sample_dur.num, last_sample_dur.den);
+		}
 		if (rvc_config) {
 			u8 *data;
 			u32 size;
@@ -2491,7 +2508,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				segmentDuration = (u64) (dest_track_dur_before_cat * rescale);
 				editTime = 0;
 				mediaTime = 0;
-				gf_isom_set_edit(dest, dst_tk, editTime, segmentDuration, mediaTime, GF_ISOM_EDIT_NORMAL);
+				if (segmentDuration)
+					gf_isom_set_edit(dest, dst_tk, editTime, segmentDuration, mediaTime, GF_ISOM_EDIT_NORMAL);
 			} else {
 				editTime = 0;
 				segmentDuration = 0;

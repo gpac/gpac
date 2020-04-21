@@ -63,7 +63,11 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 				e = gf_isom_avc_config_update(file, track, 1, avcc);
 			} else {
 				GF_AVCConfigSlot *sl = gf_list_get(avcc->sequenceParameterSets, 0);
-				gf_avc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+				if (sl) {
+					gf_avc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+				} else {
+					ar_num = ar_den = 0;
+				}
 			}
 			gf_odf_avc_cfg_del(avcc);
 			if (e) return e;
@@ -78,10 +82,12 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			} else {
 				u32 i=0;
 				GF_HEVCParamArray *ar;
+				ar_num = ar_den = 0;
 				while ( (ar = gf_list_enum(hvcc->param_array, &i))) {
 					if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 						GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, 0);
-						gf_hevc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+						if (sl)
+							gf_hevc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
 						break;
 					}
 				}
@@ -139,6 +145,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 					return GF_BAD_PARAM;
 				}
 			}
+		}
+		if (get_par_info && (!ar_num || !ar_den)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMF] No sample AR info present in sample description, ignoring SAR update\n"));
+			return GF_OK;
 		}
 	}
 	e = gf_isom_set_pixel_aspect_ratio(file, track, 1, ar_num, ar_den, force_par);
@@ -978,8 +988,36 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	//todo: patch colr
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 	if (e==GF_NOT_FOUND) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
-		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
+		u32 color_primaries = 0;
+		u32 transfer_characteristics = 0;
+		u32 matrix_coefs = 0;
+		if (prores_type) {
+			u32 di;
+			GF_ISOSample *s = gf_isom_get_sample(mp4, video_tk, 1, &di);
+			if (s && s->dataLength>24) {
+				GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
+				gf_bs_read_u32(bs); //frame size
+				gf_bs_read_u32(bs); //frame ID
+				gf_bs_read_u32(bs); //frame header size + reserved + bs version
+				gf_bs_read_u32(bs); //encoder id
+				gf_bs_read_u32(bs); //w and h
+				gf_bs_read_u16(bs); //bunch of flags
+				color_primaries = gf_bs_read_u8(bs);
+				transfer_characteristics = gf_bs_read_u8(bs);
+				matrix_coefs = gf_bs_read_u8(bs);
+				gf_bs_del(bs);
+			}
+			gf_isom_sample_del(&s);
+		}
+		if (!color_primaries) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+			color_primaries = 1;
+			transfer_characteristics = 1;
+			matrix_coefs = 1;
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, extracting from first ProRes frame\n"));
+		}
+		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), color_primaries, transfer_characteristics, matrix_coefs, GF_FALSE, NULL, 0);
 	} else if (e) {
 		return e;
 	}
