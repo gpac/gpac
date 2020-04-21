@@ -1185,7 +1185,7 @@ GF_Err gf_isom_add_sample_reference(GF_ISOFile *movie, u32 trackNumber, u32 Stre
 
 //set the duration of the last media sample. If not set, the duration of the last sample is the
 //duration of the previous one if any, or 1000 (default value).
-static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 trackNumber, u32 dur_num, u32 dur_den, u32 mode)
+static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 trackNumber, u64 dur_num, u32 dur_den, u32 mode)
 {
 	GF_TrackBox *trak;
 	GF_SttsEntry *ent;
@@ -1202,9 +1202,9 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 	if (!trak) return GF_BAD_PARAM;
 
 	if (mode==0) {
-		duration = dur_num;
+		duration = (u32) dur_num;
 	} else if (mode==1) {
-		duration = dur_num;
+		duration = (u32) dur_num;
 		if (dur_den) {
 			duration *= trak->Media->mediaHeader->timeScale;
 			duration /= dur_den;
@@ -1224,14 +1224,14 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 			cum_dur += ent->sampleCount*ent->sampleDelta;
 			nb_samp += ent->sampleCount;
 		}
-		if (cum_dur <= duration || !nb_samp) return GF_OK;
-		avg_dur = (u32) (duration/nb_samp);
+		if (cum_dur <= dur_num || !nb_samp) return GF_OK;
+		avg_dur = (u32) (dur_num / nb_samp);
 
 		for (i=0; i<stts->nb_entries; i++) {
 			ent = (GF_SttsEntry*) &stts->entries[i];
 			ent->sampleDelta = avg_dur;
 		}
-		stts->w_LastDTS = duration-avg_dur;
+		stts->w_LastDTS = dur_num - avg_dur;
 		return GF_OK;
 	}
 	//get the last entry
