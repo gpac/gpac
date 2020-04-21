@@ -850,6 +850,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
         if (szLan) gf_isom_set_media_language(import.dest, track, (char *) szLan);
         if (disable) gf_isom_set_track_enabled(import.dest, track, 0);
 
+        if (import_flags & GF_IMPORT_NO_EDIT_LIST)
+			gf_isom_remove_edit_segments(import.dest, track);
+
         if (delay) {
             u64 tk_dur;
             gf_isom_remove_edit_segments(import.dest, track);
@@ -2392,7 +2395,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				segmentDuration = (u64) (dest_track_dur_before_cat * rescale);
 				editTime = 0;
 				mediaTime = 0;
-				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, GF_ISOM_EDIT_NORMAL);
+				if (segmentDuration)
+					gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, GF_ISOM_EDIT_NORMAL);
 			} else {
 				editTime = 0;
 				segmentDuration = 0;
