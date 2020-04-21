@@ -1185,13 +1185,15 @@ GF_Err gf_isom_add_sample_reference(GF_ISOFile *movie, u32 trackNumber, u32 Stre
 
 //set the duration of the last media sample. If not set, the duration of the last sample is the
 //duration of the previous one if any, or 1000 (default value).
-static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNumber, u64 duration, Bool is_patch)
+static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 trackNumber, u32 dur_num, u32 dur_den, u32 mode)
 {
 	GF_TrackBox *trak;
 	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *stts;
 	u64 mdur;
+	u32 duration;
 	GF_Err e;
+	Bool is_patch = GF_FALSE;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -1199,6 +1201,17 @@ static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNu
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
+	if (mode==0) {
+		duration = dur_num;
+	} else if (mode==1) {
+		duration = dur_num;
+		if (dur_den) {
+			duration *= trak->Media->mediaHeader->timeScale;
+			duration /= dur_den;
+		}
+	} else {
+		is_patch = GF_TRUE;
+	}
 	mdur = trak->Media->mediaHeader->duration;
 	stts = trak->Media->information->sampleTable->TimeToSample;
 	if (!stts->nb_entries) return GF_BAD_PARAM;
@@ -1223,6 +1236,12 @@ static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNu
 	}
 	//get the last entry
 	ent = (GF_SttsEntry*) &stts->entries[stts->nb_entries-1];
+	if ((mode==1) && !duration && !dur_den) {
+		//same as previous, nothing to adjust
+		if (ent->sampleCount>1) return GF_OK;
+		if (stts->nb_entries==1) return GF_OK;
+		duration = stts->entries[stts->nb_entries-2].sampleDelta;
+	}
 
 	mdur -= ent->sampleDelta;
 	mdur += duration;
@@ -1230,6 +1249,12 @@ static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNu
 	//we only have one sample
 	if (ent->sampleCount == 1) {
 		ent->sampleDelta = (u32) duration;
+		if (mode && (stts->nb_entries>1) && (stts->entries[stts->nb_entries-2].sampleDelta==duration)) {
+			stts->entries[stts->nb_entries-2].sampleCount++;
+			stts->nb_entries--;
+			//and update the write cache
+			stts->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
+		}
 	} else {
 		if (ent->sampleDelta == duration) return GF_OK;
 		ent->sampleCount -= 1;
@@ -1254,13 +1279,19 @@ static GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNu
 GF_EXPORT
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 duration)
 {
-	return gf_isom_set_last_sample_duration_ex(movie, trackNumber, duration, GF_FALSE);
+	return gf_isom_set_last_sample_duration_internal(movie, trackNumber, duration, 0, 0);
 }
 
 GF_EXPORT
 GF_Err gf_isom_patch_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u64 next_dts)
 {
-	return gf_isom_set_last_sample_duration_ex(movie, trackNumber, next_dts, GF_TRUE);
+	return gf_isom_set_last_sample_duration_internal(movie, trackNumber, next_dts, 0, 2);
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNumber, u32 dur_num, u32 dur_den)
+{
+	return gf_isom_set_last_sample_duration_internal(movie, trackNumber, dur_num, dur_den, 1);
 }
 
 //update a sample data in the media. Note that the sample MUST exists

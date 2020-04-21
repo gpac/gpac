@@ -541,8 +541,10 @@ void PrintImportUsage()
 		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
 		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick\n"
-
-
+		"- :lastsampdur[=VAL]\" sets duration of the last sample. `VAL` is formated as:\n"
+		"  - no value: use the previous sample duration\n"
+		"  - integer: indicate the duration in milliseconds\n"
+		"  - N/D: indicate the duration as fractional second\n"
 		"- :fstat: print filter session stats after import\n"
 		"- :fgraph: print filter session graph after import\n"
 		"- :sopt:[OPTS]: set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
