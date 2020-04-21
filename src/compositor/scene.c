@@ -2256,6 +2256,10 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 	to_restart = gf_list_new();
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+		//do not restart not selected objects
+		if (odm->state != GF_ODM_STATE_PLAY)
+			continue;
+
 		if (gf_odm_shares_clock(odm, ck)) {
 			//object is not an addon and main addon is selected, do not add
 			if (!odm->addon && scene->main_addon_selected) {
@@ -2269,12 +2273,9 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 				} else {
 					gf_list_add(to_restart, odm);
 				}
-			} else if (!scene->selected_service_id || (scene->selected_service_id==odm->ServiceID)) {
-				gf_list_add(to_restart, odm);
-			}
-
-			if (odm->state == GF_ODM_STATE_PLAY) {
+			} else if (!scene->selected_service_id || (scene->selected_service_id==odm->ServiceID) ) {
 				gf_odm_stop(odm, 1);
+				gf_list_add(to_restart, odm);
 			}
 		}
 	}

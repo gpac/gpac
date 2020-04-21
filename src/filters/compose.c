@@ -524,6 +524,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	{
 		u32 bps=0;
 		u64 tot_size=0, down_size=0;
+		GF_ObjectManager *odm = gf_filter_pid_get_udta(evt->base.on_pid);
 		GF_PropertyEntry *pe=NULL;
 		GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_info(evt->base.on_pid, GF_PROP_PID_TIMESHIFT_STATE, &pe);
 		if (p && p->value.uint) {
@@ -549,7 +550,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (p) down_size = p->value.longuint;
 
 		if (bps && down_size && tot_size)  {
-			GF_ObjectManager *odm = gf_filter_pid_get_udta(evt->base.on_pid);
+			odm = gf_filter_pid_get_udta(evt->base.on_pid);
 			if ((down_size!=odm->last_filesize_signaled) || (down_size != tot_size)) {
 				odm->last_filesize_signaled = down_size;
 				gf_odm_service_media_event_with_download(odm, GF_EVENT_MEDIA_PROGRESS, down_size, tot_size, bps/8);
@@ -557,6 +558,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 
 		gf_filter_release_property(pe);
+		gf_odm_check_clock_mediatime(odm);
 	}
 		return GF_TRUE;
 
