@@ -670,9 +670,9 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	GF_HEVCSplitCtx *ctx = (GF_HEVCSplitCtx*)gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		u32 count;
+		u32 i, count;
 		count = gf_filter_get_opid_count(filter);
-		for (u32 i=0; i<count; i++) {
+		for (i=0; i<count; i++) {
 			GF_FilterPid *opid;
 			HEVCTilePid  *tpid;
 			opid = gf_filter_get_opid(filter, i);
@@ -875,8 +875,8 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
 	// done rewriting all nals from input, send all output
-	for (u32 idx = 0; idx < ctx->num_tiles; idx++) {
-		opid = gf_filter_get_opid(filter, idx);
+	for (i=0; i < ctx->num_tiles; i++) {
+		opid = gf_filter_get_opid(filter, i);
 		tpid = gf_filter_pid_get_udta(opid);
 
 		if (!tpid->opid) continue;
