@@ -279,6 +279,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0, tc_frames_per_tick = 0;
 	Bool tc_force_counter=GF_FALSE;
 	Bool tc_drop_frame = GF_FALSE;
+	Bool has_last_sample_dur=GF_FALSE;
+	GF_Fraction last_sample_dur = {0,0};
 
 	rvc_predefined = 0;
 	chapter_name = NULL;
@@ -690,7 +692,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				fprintf(stderr, "Bad format %s for timecode, ignoring\n", ext+1);
 			}
 		}
-
+		else if (!strnicmp(ext+1, "lastsampdur", 11)) {
+			has_last_sample_dur = GF_TRUE;
+			if (!strnicmp(ext+1, "lastsampdur=", 12)) {
+				if (sscanf(ext+13, LLD"/"LLU, &last_sample_dur.num, &last_sample_dur.den)==2) {
+				} else {
+					last_sample_dur.num = atoi(ext+13);
+					last_sample_dur.den = 1000;
+				}
+			}
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			fprintf(stderr, "Unrecognized import option %s, ignoring\n", ext+1);
@@ -955,6 +966,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
                 break;
             }
         }
+
+        if (has_last_sample_dur) {
+			gf_isom_set_last_sample_duration_ex(import.dest, track, last_sample_dur.num, last_sample_dur.den);
+		}
 
         if (rvc_config) {
             FILE *f = gf_fopen(rvc_config, "rb");

@@ -643,6 +643,8 @@ void PrintImportUsage()
 	        "                         - \"[d]FPS[/FPS_den][,h,m,s],f[,framespertick]\" : hours, minutes, seconds and frame number\n"
 	        "                        The framerate is required as integer (FPS) or fractional (FPS/FPS_den). The drop flag is optional.\n"
 			"						 The framespertick is optional and defaults to round(framerate)\n"
+			" \":lastsampdur[=VAL]\" sets duration of the last sample. If no value is given, uses the previous sample duration.\n"
+			"                         Otherwise the value indicates the duration in milliseconds (VAL=100) or as fractional second (VAL=100/44100)"
 	        " -add file              add file tracks to (new) output file\n"
 	        " -cat file              concatenates file samples to (new) output file\n"
 	        "                         * Note: creates tracks if needed\n"

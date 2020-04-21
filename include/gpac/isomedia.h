@@ -1169,6 +1169,10 @@ duration of the previous one if any, or media TimeScale (default value). This do
 you must modify this using gf_isom_set_edit_segment*/
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 duration);
 
+/*set the duration of the last media sample. If dur_num and dur_den are both zero, forces last sample duration to be the same as previous sample
+*/
+GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *movie, u32 trackNumber, u32 dur_num, u32 dur_den);
+
 /*sets a track reference*/
 GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferencedTrackID);
 

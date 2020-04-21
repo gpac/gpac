@@ -949,6 +949,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_refresh_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_last_sample_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_last_sample_duration_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_references) )
