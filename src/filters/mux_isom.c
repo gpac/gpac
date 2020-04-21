@@ -193,7 +193,7 @@ typedef struct
 	Bool chain_sidx;
 	u32 msn, msninc;
 	GF_Fraction64 tfdt;
-	Bool nofragdef, straf, strun, sgpd_traf, cache, noinit;
+	Bool nofragdef, straf, strun, sgpd_traf, vodcache, noinit;
 	u32 psshs;
 	u32 tkid;
 	Bool fragdur;
@@ -294,7 +294,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 	}
 	ctx->dash_mode = MP4MX_DASH_VOD;
-	if (ctx->cache && !ctx->tmp_store) {
+	if (ctx->vodcache && !ctx->tmp_store) {
 		ctx->tmp_store = gf_file_temp(NULL);
 		if (!ctx->tmp_store) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot allocate temp file for VOD sidx generation\n"));
@@ -1027,8 +1027,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 
 		if (ctx->dash_mode==MP4MX_DASH_VOD) {
-			Bool use_cache = ctx->cache;
-			if (!ctx->cache && (!ctx->media_dur || !ctx->dash_dur) ) {
+			Bool use_cache = ctx->vodcache;
+			if (!ctx->vodcache && (!ctx->media_dur || !ctx->dash_dur) ) {
 				use_cache = GF_TRUE;
 			}
 
@@ -3603,14 +3603,14 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	}
 
 	if (ctx->dash_mode==MP4MX_DASH_VOD) {
-		if (!ctx->cache && (!ctx->media_dur || !ctx->dash_dur) ) {
+		if (!ctx->vodcache && (!ctx->media_dur || !ctx->dash_dur) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Media duration unknown, cannot use nocache mode, using temp file for VoD storage\n"));
-			ctx->cache = GF_TRUE;
+			ctx->vodcache = GF_TRUE;
 			e = mp4mx_setup_dash_vod(ctx, NULL);
 			if (e) return e;
 		}
 
-		if (!ctx->cache) {
+		if (!ctx->vodcache) {
 			GF_BitStream *bs;
 			u8 *output;
 			char *msg;
@@ -4076,7 +4076,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
 				mp4_mux_flush_frag(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
-			} else if (!ctx->cache) {
+			} else if (!ctx->vodcache) {
 				mp4_mux_flush_frag(ctx, GF_FALSE, 0, 0);
 			} else {
 				if (ctx->nb_seg_sizes == ctx->alloc_seg_sizes) {
@@ -4111,7 +4111,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 check_eos:
 	if (count == nb_eos) {
 		if (ctx->dash_mode==MP4MX_DASH_VOD) {
-			if (!ctx->cache) {
+			if (!ctx->vodcache) {
 				ctx->final_sidx_flush = GF_TRUE;
 				//flush SIDX in given space, reserve 8 bytes for free box
 				gf_isom_flush_sidx(ctx->file, ctx->sidx_max_size - 8);
@@ -5004,7 +5004,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- moov: in movie box\n"
 	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(cache), "enable temp storage for VoD dash modes - see filter help", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(vodcache), "enable temp storage for VoD dash modes - see filter help", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(noinit), "do not produce initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tktpl), "use track box from input if any as a template to create new track\n"
 	"- no: disables template\n"
@@ -5077,7 +5077,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"# Storage\n"
 	"The `store` mode allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
 	"  \n"
-	"The `cache` mode allows controling how DASH onDemand segments are generated:\n"
+	"The `vodcache` mode allows controling how DASH onDemand segments are generated:\n"
 	"-  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX.\n"
 	"- When enabled, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
 	"  \n"

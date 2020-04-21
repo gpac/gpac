@@ -1647,7 +1647,7 @@ The store mode allows controling if the file is fragmented ot not, and when not 
 .br
   
 .br
-The cache mode allows controling how DASH onDemand segments are generated:
+The vodcache mode allows controling how DASH onDemand segments are generated:
 .br
 -  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX.
 .br
@@ -1787,7 +1787,7 @@ psshs (enum, default: moov):   set PSSH boxes store mode
 .br
 sgpd_traf (bool, default: false): store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box
 .br
-cache (bool, default: false):  enable temp storage for VoD dash modes - see filter help
+vodcache (bool, default: false): enable temp storage for VoD dash modes - see filter help
 .br
 noinit (bool, default: false): do not produce initial moov, used for DASH bitstream switching mode
 .br
@@ -5618,7 +5618,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev55-g98f819d1f-filters
+build: 0.9.0-DEV-rev62-g879f91f35-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
