@@ -63,7 +63,11 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 				e = gf_isom_avc_config_update(file, track, 1, avcc);
 			} else {
 				GF_AVCConfigSlot *sl = gf_list_get(avcc->sequenceParameterSets, 0);
-				gf_avc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+				if (sl) {
+					gf_avc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+				} else {
+					ar_num = ar_den = 0;
+				}
 			}
 			gf_odf_avc_cfg_del(avcc);
 			if (e) return e;
@@ -78,10 +82,12 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			} else {
 				u32 i=0;
 				GF_HEVCParamArray *ar;
+				ar_num = ar_den = 0;
 				while ( (ar = gf_list_enum(hvcc->param_array, &i))) {
 					if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 						GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, 0);
-						gf_hevc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+						if (sl)
+							gf_hevc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
 						break;
 					}
 				}
@@ -92,7 +98,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 #endif
 #if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
 		else if (stype == GF_ISOM_SUBTYPE_AV01) {
-			assert(0);
+			e = GF_NOT_SUPPORTED;
 			//GF_AV1Config *av1c = gf_isom_av1_config_get(file, track, 1);
 			//gf_media_hevc_change_par(av1c, ar_num, ar_den);
 			//TODO: e = gf_isom_av1_config_update(file, track, 1, av1c);
@@ -129,9 +135,13 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 					("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
 						gf_4cc_to_str(stype) ));
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track\n"));
 				return GF_BAD_PARAM;
 			}
+		}
+		if (get_par_info && (!ar_num || !ar_den)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMF] No sample AR info present in sample description, ignoring SAR update\n"));
+			return GF_OK;
 		}
 	}
 
