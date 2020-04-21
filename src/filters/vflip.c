@@ -91,12 +91,12 @@ static void swap_2Ys_YUVpixel(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 
 
 static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_dst, u32 plane_idx, u32 wiB)
 {
-	u32 line_size = wiB;
+	u32 j, line_size = wiB;
 
 	if( ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){
 		//to avoid "3*j > line_size - 3*j - 3" or "4*j > line_size - 4*j - 4"
 		//jmax=line_size/(2*3) or jmax=line_size/(2*4)
-		for (u32 j = 0; j < line_size/(2*ctx->bps); j++) {
+		for (j=0; j < line_size/(2*ctx->bps); j++) {
 			u8 pix[4];
 			memcpy(pix, line_src + line_size - ctx->bps*(j+1), ctx->bps);
 			memcpy(line_dst + line_size - ctx->bps*(j+1), line_src + ctx->bps*j, ctx->bps);
@@ -114,11 +114,11 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 
 		//reversing of 4-bytes sequences
 		u32 fourBytesSize = wiB/4;
-		for (u32 j = 0; j < fourBytesSize; j++) {
+		for (j=0; j < fourBytesSize; j++) {
 			//buffer = last 4 columns
 			u32 last_4bytes_index = wiB-4-(4*j);
-			u32 first_4bytes_index = 4*j;
-			for (u32 p = 0; p < 4; p++) {
+			u32 p, first_4bytes_index = 4*j;
+			for (p = 0; p < 4; p++) {
 				line_dst[first_4bytes_index+p] = ctx->line_buffer_hf[last_4bytes_index+p];
 			}
 			//exchanging of Ys within a yuv pixel
@@ -130,7 +130,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 		if (ctx->nb_planes==2 && plane_idx==1){
 			if (ctx->bps==1) {
 				//to avoid "line_size - 2*j - 2 > 2*j", jmax=line_size/4
-				for (u32 j = 0; j < line_size/4; j++) {
+				for (j=0; j < line_size/4; j++) {
 					u8 u_comp, v_comp;
 					u_comp = line_src[line_size - 2*j - 2];
 					v_comp = line_src[line_size - 2*j - 1];
@@ -143,7 +143,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 				}
 			}
 			else{
-				for (u32 j = 0; j < line_size/4; j++) {
+				for (j=0; j < line_size/4; j++) {
 					u16 u_comp, v_comp;
 					u_comp = line_src[line_size - 2*j - 2];
 					v_comp = line_src[line_size - 2*j - 1];
@@ -158,7 +158,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 		} else if (ctx->bps==1) {
 			u32 wx = line_size/2;
 			u8 tmp;
-			for (u32 j = 0; j < wx; j++) {
+			for (j=0; j < wx; j++) {
 				//tmp = last column
 				tmp = line_src[line_size-1-j];
 
@@ -172,7 +172,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 			line_size /= 2;
 			u32 wx = line_size/2;
 			u16 tmp;
-			for (u32 j = 0; j < wx; j++) {
+			for (j=0; j < wx; j++) {
 				//tmp = last column
 				tmp = (u16) ( ((u16 *)line_src) [line_size-1-j] );
 
@@ -188,7 +188,8 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 
 static void horizontal_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 height, u32 plane_idx, u32 wiB, u32 *src_stride)
 {
-	for (u32 i=0; i<height; i++) {
+	u32 i;
+	for (i=0; i<height; i++) {
 		u8 *src_first_line = src_plane + i * src_stride[plane_idx];
 		u8 *dst_first_line = dst_plane + i * ctx->dst_stride[plane_idx];
 

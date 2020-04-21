@@ -976,7 +976,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			gf_fprintf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
 			
 		if (pname && strchr(pname, ' ')) {
-			u32 i=0;
+			u32 i=0, k;
 			char *pname_no_space = gf_strdup(pname);
 			while (pname_no_space[i]) {
 				if (pname_no_space[i]==' ') pname_no_space[i]='_';
@@ -984,7 +984,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			}
 
 			if (att->type==GF_PROP_UINT_LIST) {
-				for (u32 k = 0; k < att->value.uint_list.nb_items; k++) {
+				for (k=0; k < att->value.uint_list.nb_items; k++) {
 					if (k) gf_fprintf(dump, ", ");
 					switch (p4cc) {
 					case GF_PROP_PID_ISOM_BRANDS:
@@ -999,7 +999,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				}
 			} else if (att->type==GF_PROP_STRING_LIST) {
 				u32 plist_count = gf_list_count(att->value.string_list);
-				for (u32 k = 0; k < plist_count; k++) {
+				for (k=0; k < plist_count; k++) {
 					if (k) gf_fprintf(dump, ", ");
 					gf_xml_dump_string(dump, NULL, (char *) gf_list_get(att->value.string_list, k), NULL);
 				}
@@ -1020,7 +1020,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		}
 
 		if (att->type==GF_PROP_UINT_LIST) {
-			for (u32 k = 0; k < att->value.uint_list.nb_items; k++) {
+			u32 k;
+			for (k=0; k < att->value.uint_list.nb_items; k++) {
 				if (k) gf_fprintf(dump, ", ");
 				switch (p4cc) {
 				case GF_PROP_PID_ISOM_BRANDS:
@@ -1034,8 +1035,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				}
 			}
 		} else if (att->type==GF_PROP_STRING_LIST) {
-			u32 plist_count = gf_list_count(att->value.string_list);
-			for (u32 k = 0; k < plist_count; k++) {
+			u32 k, plist_count = gf_list_count(att->value.string_list);
+			for (k=0; k < plist_count; k++) {
 				if (k) gf_fprintf(dump, ", ");
 				gf_fprintf(dump, "%s", (const char *) gf_list_get(att->value.string_list, k));
 			}

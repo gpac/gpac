@@ -220,7 +220,8 @@ static void jsf_filter_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_f
 {
     GF_JSFilterCtx *jsf = JS_GetOpaque(val, jsf_filter_class_id);
     if (jsf) {
-        for (u32 i=0; i<JSF_EVT_LAST_DEFINED; i++) {
+        u32 i;
+        for (i=0; i<JSF_EVT_LAST_DEFINED; i++) {
             JS_MarkValue(rt, jsf->funcs[i], mark_func);
 		}
     }
