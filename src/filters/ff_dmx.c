@@ -598,12 +598,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 
 
-	AVDictionaryEntry *prev_e = NULL;
-	while (1) {
-		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
-		if (!prev_e) break;
-		gf_filter_report_unused_meta_option(filter, prev_e->key);
-	}
+	ffmpeg_report_unused_options(filter, ctx->options);
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
 	if (res <0) {
@@ -873,12 +868,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		return -1;
 	}
 
-	AVDictionaryEntry *prev_e = NULL;
-	while (1) {
-		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
-		if (!prev_e) break;
-		gf_filter_report_unused_meta_option(filter, prev_e->key);
-	}
+	ffmpeg_report_unused_options(filter, ctx->options);
 
 	av_dump_format(ctx->demuxer, 0, ctx->dev, 0);
 	ctx->raw_data = GF_TRUE;

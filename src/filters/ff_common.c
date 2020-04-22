@@ -609,17 +609,16 @@ static u32 ff_streamtype(u32 st)
 static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
 {
 	u32 i=0, idx=0, flags=0;
+	Bool protocol_pass = GF_FALSE;
 	const struct AVOption *opt;
 	GF_List *all_filters = gf_list_new();
 	AVInputFormat *fmt = NULL;
-	AVOutputFormat *ofmt = NULL;
+	const AVOutputFormat *ofmt = NULL;
 	AVCodec *codec = NULL;
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
 	const AVFilter *avf = NULL;
-#if (LIBAVFILTER_VERSION_MAJOR > 6)
-	void *avf_it = NULL;
 #endif
-#endif
+	void *av_it;
 
 	const char *fname = "";
 	if (type==FF_REG_TYPE_DEMUX) fname = "ffdmx";
@@ -647,6 +646,11 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 
 	((GF_FFRegistryExt *)orig_reg->udta)->all_filters = all_filters;
 
+
+second_pass:
+
+	av_it = NULL;
+
 	while (1) {
 		const AVClass *av_class=NULL;
 		const char *subname = NULL;
@@ -656,13 +660,22 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 		char szDef[100];
 		GF_FilterRegister *freg;
 		if (type==FF_REG_TYPE_DEMUX) {
-			fmt = av_iformat_next(fmt);
-			if (!fmt) break;
-			av_class = fmt->priv_class;
-			subname = fmt->name;
+			if (protocol_pass) {
+				subname = avio_enum_protocols(&av_it, 0);
+				if (!subname) break;
+				av_class = avio_protocol_get_class(subname);
 #ifndef GPAC_DISABLE_DOC
-			description = fmt->long_name;
+				description = "Input protocol";
 #endif
+			} else {
+				fmt = av_iformat_next(fmt);
+				if (!fmt) break;
+				av_class = fmt->priv_class;
+				subname = fmt->name;
+#ifndef GPAC_DISABLE_DOC
+				description = fmt->long_name;
+#endif
+			}
 		} else if (type==FF_REG_TYPE_DECODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
@@ -719,17 +732,30 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 			description = codec->long_name;
 #endif
 		} else if (type==FF_REG_TYPE_MUX) {
-			ofmt = av_oformat_next(ofmt);
-			if (!ofmt) break;
-			av_class = ofmt->priv_class;
-			subname = ofmt->name;
+			if (protocol_pass) {
+				subname = avio_enum_protocols(&av_it, 1);
+				if (!subname) break;
+				av_class = avio_protocol_get_class(subname);
 #ifndef GPAC_DISABLE_DOC
-			description = ofmt->long_name;
+				description = "Output protocol";
 #endif
+			} else {
+#if (LIBAVFILTER_VERSION_MAJOR > 6)
+				ofmt = av_muxer_iterate(&av_it);
+#else
+				ofmt = av_oformat_next(ofmt);
+#endif
+				if (!ofmt) break;
+				av_class = ofmt->priv_class;
+				subname = ofmt->name;
+#ifndef GPAC_DISABLE_DOC
+				description = ofmt->long_name;
+#endif
+			}
 		} else if (type==FF_REG_TYPE_AVF) {
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
 #if (LIBAVFILTER_VERSION_MAJOR > 6)
-			avf = av_filter_iterate(&avf_it);
+			avf = av_filter_iterate(&av_it);
 #else
 			avf = avfilter_next(avf);
 #endif
@@ -786,6 +812,7 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 		 	freg->caps =  caps;
 		}
 		else if ((type==FF_REG_TYPE_DEMUX)
+			&& fmt
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 			&& (fmt->mime_type || fmt->extensions)
 #else
@@ -827,6 +854,7 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 		 	freg->caps =  caps;
 		}
 		else if ((type==FF_REG_TYPE_MUX)
+			&& ofmt
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 			&& (ofmt->mime_type || ofmt->extensions)
 #else
@@ -960,8 +988,14 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 				idx++;
 			}
 		}
-
 		gf_fs_add_filter_register(session, freg);
+	}
+
+	if ((type==FF_REG_TYPE_MUX) || (type==FF_REG_TYPE_DEMUX)) {
+		if (!protocol_pass) {
+			protocol_pass = GF_TRUE;
+			goto second_pass;
+		}
 	}
 }
 
@@ -1180,5 +1214,14 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
 	}
 }
 
+void ffmpeg_report_unused_options(GF_Filter *filter, AVDictionary *options)
+{
+	AVDictionaryEntry *prev_e = NULL;
+	while (1) {
+		prev_e = av_dict_get(options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+		if (!prev_e) break;
+		gf_filter_report_unused_meta_option(filter, prev_e->key);
+	}
 
+}
 #endif
