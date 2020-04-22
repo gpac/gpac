@@ -79,7 +79,7 @@ man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && MP4Client -genman && gpac -genman
 
 test_suite:
-	@cd $(SRC_PATH)/tests && ./make_tests.sh
+	@cd $(SRC_PATH)/testsuite && ./make_tests.sh
 
 lcov_clean:
 	lcov --directory . --zerocounters
@@ -99,12 +99,12 @@ lcov:	lcov_only
 	@genhtml -q -o coverage coverage.info
 
 travis_tests:
-	@echo "Running tests"
-	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn -sync-before
+	@echo "Running tests in $(SRC_PATH)/testsuite"
+	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -warn -sync-before
 
 travis_deploy:
 	@echo "Deploying results"
-	@cd $(SRC_PATH)/tests && ./ghp_deploy.sh
+	@cd $(SRC_PATH)/testsuite && ./ghp_deploy.sh
 
 travis: travis_tests lcov travis_deploy
 
