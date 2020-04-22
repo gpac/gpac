@@ -559,7 +559,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ib", NULL, "specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("ob", NULL, "specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all. String parameter can be:\n"\
+	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all.\nNote: The `@` character can be used in place of the `*` character.\n String parameter can be:\n"\
 			"- empty: print command line options help\n"\
 			"- doc: print the general filter info\n"\
 			"- alias: print the gpac alias syntax\n"\
@@ -1252,7 +1252,7 @@ static void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 	}
 	if (!found && is_help) {
 		const char *doc_helps[] = {
-			"log", "core", "modules", "doc", "alias", "props", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", NULL
+			"log", "core", "modules", "doc", "alias", "props", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
 		};
 		i=0;
 		while (doc_helps[i]) {
@@ -1553,7 +1553,7 @@ static int gpac_main(int argc, char **argv)
 				list_filters = 1;
 				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 				i++;
-			} else if (!strcmp(argv[i+1], "filters:*")) {
+			} else if (!strcmp(argv[i+1], "filters:*") || !strcmp(argv[i+1], "filters:@")) {
 				list_filters = 2;
 				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 				i++;
@@ -1668,10 +1668,11 @@ static int gpac_main(int argc, char **argv)
 			dump_stats = GF_TRUE;
 		} else if (!strcmp(arg, "-graph")) {
 			dump_graph = GF_TRUE;
-		} else if (strstr(arg, ":*") && list_filters) {
-			list_filters = 3;
-		} else if (strstr(arg, ":*")) {
-			print_meta_filters = GF_TRUE;
+		} else if (strstr(arg, ":*") || strstr(arg, ":@")) {
+			if (list_filters)
+				list_filters = 3;
+			else
+				print_meta_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-wc")) {
 			write_core_opts = GF_TRUE;
 		} else if (!strcmp(arg, "-we")) {
@@ -2430,9 +2431,9 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 								patch_meta = GF_TRUE;
 						}
 					}
-					if (!strcmp(arg, "*:*")
-						|| (!sep && !strcmp(arg, "*"))
-					 	|| (sep && !strcmp(sep, ":*") && !strncmp(reg->name, arg, 1+sep - arg) )
+					if (!strcmp(arg, "*:*") || !strcmp(arg, "@:@")
+						|| (!sep && (!strcmp(arg, "*") || !strcmp(arg, "@")) )
+					 	|| (sep && (!strcmp(sep, ":*") || !strcmp(sep, ":@"))  && !strncmp(reg->name, arg, 1+sep - arg) )
 					 	|| patch_meta
 					) {
 						if (optname)
