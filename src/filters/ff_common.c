@@ -606,10 +606,15 @@ static u32 ff_streamtype(u32 st)
 	return GF_STREAM_UNKNOWN;
 }
 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 58) && (LIBAVFORMAT_VERSION_MINOR>=30)
+#else
+#define NO_AVIO_PROTO
+#endif
+
 static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
 {
 	u32 i=0, idx=0, flags=0;
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+#ifndef NO_AVIO_PROTO
 	Bool protocol_pass = GF_FALSE;
 #endif
 	const struct AVOption *opt;
@@ -649,7 +654,7 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 	((GF_FFRegistryExt *)orig_reg->udta)->all_filters = all_filters;
 
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+#ifndef NO_AVIO_PROTO
 second_pass:
 #endif
 
@@ -664,7 +669,7 @@ second_pass:
 		char szDef[100];
 		GF_FilterRegister *freg;
 		if (type==FF_REG_TYPE_DEMUX) {
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+#ifndef NO_AVIO_PROTO
 			if (protocol_pass) {
 				subname = avio_enum_protocols(&av_it, 0);
 				if (!subname) break;
@@ -739,7 +744,7 @@ second_pass:
 			description = codec->long_name;
 #endif
 		} else if (type==FF_REG_TYPE_MUX) {
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+#ifndef NO_AVIO_PROTO
 			if (protocol_pass) {
 				subname = avio_enum_protocols(&av_it, 1);
 				if (!subname) break;
@@ -1002,7 +1007,7 @@ second_pass:
 		gf_fs_add_filter_register(session, freg);
 	}
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+#ifndef NO_AVIO_PROTO
 	if ((type==FF_REG_TYPE_MUX) || (type==FF_REG_TYPE_DEMUX)) {
 		if (!protocol_pass) {
 			protocol_pass = GF_TRUE;
