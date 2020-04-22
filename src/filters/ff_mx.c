@@ -50,7 +50,7 @@ typedef struct
 typedef struct
 {
 	//options
-	char *dst, *mime;
+	char *dst, *mime, *ffmt;
 	Double start, speed;
 	u32 block_size;
 	Bool interleave, nodisc, ffiles, noinit;
@@ -88,13 +88,6 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 		return GF_NOT_SUPPORTED;
 	}
 
-	AVDictionaryEntry *prev_e = NULL;
-	while (1) {
-		prev_e = av_dict_get(ctx->options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
-		if (!prev_e) break;
-		gf_filter_report_unused_meta_option(filter, prev_e->key);
-	}
-
 	nb_pids = gf_filter_get_ipid_count(filter);
 	for (i=0; i<nb_pids; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
@@ -108,12 +101,15 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 		}
 	}
 
-	res = avformat_write_header(ctx->muxer, NULL);
+	res = avformat_write_header(ctx->muxer, &ctx->options);
 	if (res<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write %s header - error %s\n", ctx->dst, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write header for %s - error %s\n", ctx->dst, av_err2str(res) ));
 		ctx->status = 4;
-		return GF_NON_COMPLIANT_BITSTREAM;
+		return GF_SERVICE_ERROR;
 	}
+
+	ffmpeg_report_unused_options(filter, ctx->options);
+
 	return GF_OK;
 }
 
@@ -147,19 +143,39 @@ static GF_Err ffmx_initialize(GF_Filter *filter)
 		url = gf_fileio_translate_url(ctx->dst);
 		use_gfio = GF_TRUE;
 	}
-	ofmt = av_guess_format(NULL, url, ctx->mime);
-	if (!ofmt) return GF_FILTER_NOT_SUPPORTED;
+
+	ofmt = av_guess_format(ctx->ffmt, url, ctx->mime);
+	//if protocol is present, we may fail at guessing the format
+	if (!ofmt && !ctx->ffmt) {
+		u32 len;
+		char szProto[20];
+		char *proto = strstr(url, "://");
+		if (!proto)
+			return GF_FILTER_NOT_SUPPORTED;
+		szProto[19] = 0;
+		len = (u32) (proto - url);
+		if (len>19) len=19;
+		strncpy(szProto, url, len);
+		szProto[len] = 0;
+		ofmt = av_guess_format(szProto, url, ctx->mime);
+	}
+	if (!ofmt) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to guess output format for %s, cannot run\n", ctx->dst));
+		if (!ctx->ffmt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Try specifying the format through :ffmt option\n"));
+		}
+		return GF_SERVICE_ERROR;
+	}
 
 	ctx->muxer->oformat = ofmt;
 	ctx->streams = gf_list_new();
 
-	if (ofmt->flags & AVFMT_NOFILE) return GF_OK;
-
-
-	//handle local urls some_dir/some_other_dir/file.ext, ffmpeg doesn't create the dirs for us
-	if (gf_url_is_local(ctx->dst)) {
-		FILE *f = gf_fopen(ctx->dst, "wb");
-		gf_fclose(f);
+	if (ofmt) {
+		//handle local urls some_dir/some_other_dir/file.ext, ffmpeg doesn't create the dirs for us
+		if (! (ofmt->flags & AVFMT_NOFILE) && gf_url_is_local(ctx->dst)) {
+			FILE *f = gf_fopen(ctx->dst, "wb");
+			gf_fclose(f);
+		}
 	}
 
 	if (use_gfio) {
@@ -176,8 +192,12 @@ static GF_Err ffmx_initialize(GF_Filter *filter)
 			return GF_OUT_OF_MEM;
 		}
 		ctx->muxer->pb = ctx->avio_ctx;
-	} else {
-		avio_open(&ctx->muxer->pb, ctx->dst, AVIO_FLAG_WRITE);
+	} else if (!ofmt || !(ofmt->flags & AVFMT_NOFILE) ) {
+		int res = avio_open2(&ctx->muxer->pb, ctx->dst, AVIO_FLAG_WRITE, NULL, &ctx->options);
+		if (res<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to open AVIO context for %s - error %s\n", ctx->dst, av_err2str(res) ));
+			return GF_FILTER_NOT_SUPPORTED;
+		}
 	}
 
 	return GF_OK;
@@ -566,7 +586,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
 	}
 
-	if (ctx->muxer->oformat->query_codec) {
+	if (ctx->muxer->oformat && ctx->muxer->oformat->query_codec) {
 		res = ctx->muxer->oformat->query_codec(ff_codec_id, 1);
 		if (!res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Codec %s not supported in container %s\n", gf_codecid_name(codec_id), ctx->muxer->oformat->name));
@@ -797,6 +817,7 @@ static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_
 
 static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 {
+	const char *proto;
 	if (!strncmp(url, "gfio://", 7))
 		url = gf_fileio_translate_url(url);
 
@@ -804,8 +825,16 @@ static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 	if (!ofmt && mime) ofmt = av_guess_format(NULL, NULL, mime);
 	if (!ofmt && url) ofmt = av_guess_format(NULL, url, NULL);
 
-	if (!ofmt) return GF_FPROBE_NOT_SUPPORTED;
-	return GF_FPROBE_SUPPORTED;
+	if (ofmt) return GF_FPROBE_SUPPORTED;
+
+	proto = strstr(url, "://");
+	if (!proto)
+		return GF_FPROBE_NOT_SUPPORTED;
+
+	proto = avio_find_protocol_name(url);
+	if (proto)
+		return GF_FPROBE_MAYBE_SUPPORTED;
+	return GF_FPROBE_NOT_SUPPORTED;
 }
 
 static const GF_FilterCapability FFMuxCaps[] =
@@ -855,6 +884,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ffmt), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffmx` and `gpac -hx ffmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
