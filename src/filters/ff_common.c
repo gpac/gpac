@@ -609,7 +609,9 @@ static u32 ff_streamtype(u32 st)
 static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
 {
 	u32 i=0, idx=0, flags=0;
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	Bool protocol_pass = GF_FALSE;
+#endif
 	const struct AVOption *opt;
 	GF_List *all_filters = gf_list_new();
 	AVInputFormat *fmt = NULL;
@@ -647,7 +649,9 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 	((GF_FFRegistryExt *)orig_reg->udta)->all_filters = all_filters;
 
 
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 second_pass:
+#endif
 
 	av_it = NULL;
 
@@ -660,6 +664,7 @@ second_pass:
 		char szDef[100];
 		GF_FilterRegister *freg;
 		if (type==FF_REG_TYPE_DEMUX) {
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 			if (protocol_pass) {
 				subname = avio_enum_protocols(&av_it, 0);
 				if (!subname) break;
@@ -667,7 +672,9 @@ second_pass:
 #ifndef GPAC_DISABLE_DOC
 				description = "Input protocol";
 #endif
-			} else {
+			} else
+#endif
+			{
 				fmt = av_iformat_next(fmt);
 				if (!fmt) break;
 				av_class = fmt->priv_class;
@@ -732,6 +739,7 @@ second_pass:
 			description = codec->long_name;
 #endif
 		} else if (type==FF_REG_TYPE_MUX) {
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 			if (protocol_pass) {
 				subname = avio_enum_protocols(&av_it, 1);
 				if (!subname) break;
@@ -739,7 +747,10 @@ second_pass:
 #ifndef GPAC_DISABLE_DOC
 				description = "Output protocol";
 #endif
-			} else {
+			} else
+#endif
+
+			{
 #if (LIBAVFILTER_VERSION_MAJOR > 6)
 				ofmt = av_muxer_iterate(&av_it);
 #else
@@ -991,12 +1002,15 @@ second_pass:
 		gf_fs_add_filter_register(session, freg);
 	}
 
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	if ((type==FF_REG_TYPE_MUX) || (type==FF_REG_TYPE_DEMUX)) {
 		if (!protocol_pass) {
 			protocol_pass = GF_TRUE;
 			goto second_pass;
 		}
 	}
+#endif
+
 }
 
 void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type)
