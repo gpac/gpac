@@ -100,7 +100,7 @@ lcov:	lcov_only
 
 travis_tests:
 	@echo "Running tests in $(SRC_PATH)/testsuite"
-	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -warn -sync-before
+	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -precommit -p=0
 
 travis_deploy:
 	@echo "Deploying results"
