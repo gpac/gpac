@@ -130,6 +130,7 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	const GF_PropertyValue *p;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
+	Bool is_first = GF_FALSE;
 #ifdef XVID_USE_OLD_API
 	XVID_DEC_FRAME frame;
 	XVID_DEC_PARAM par;
@@ -148,6 +149,16 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+	ctx->ipid = pid;
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
+		is_first = GF_TRUE;
+	}
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
 		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
@@ -158,9 +169,11 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->codec = NULL;
 
 		ctx->cfg_crc = ex_crc;
-	} else {
+	} else if (!is_first) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[XVID] Reconfiguring without DSI not yet supported\n"));
 		return GF_NOT_SUPPORTED;
+	} else {
+		return GF_OK;
 	}
 
 	/*decode DSI*/
@@ -203,15 +216,6 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	ctx->first_frame = GF_TRUE;
 	ctx->out_size = ctx->width * ctx->height * 3 / 2;
 
-	ctx->ipid = pid;
-	if (!ctx->opid) {
-		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
-	}
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->width) );
@@ -249,9 +253,11 @@ static GF_Err xviddec_process(GF_Filter *filter)
 	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *pck_ref, *src_pck, *dst_pck;
 
-	if (!ctx->codec) return GF_SERVICE_ERROR;
-
 	pck = gf_filter_pid_get_packet(ctx->ipid);
+
+	if (!ctx->codec)
+		return ctx->cfg_crc ? GF_SERVICE_ERROR : GF_OK;
+
 	memset(&frame, 0, sizeof(frame));
 	if (pck) {
 		u64 cts = gf_filter_pck_get_cts(pck);;
