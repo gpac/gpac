@@ -1643,11 +1643,11 @@ Example
 .SH Storage
 .LP
 .br
-The store mode allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either flat or fstart modes.
+The -store option allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either flat or fstart modes.
 .br
   
 .br
-The vodcache mode allows controling how DASH onDemand segments are generated:
+The -vodcache option allows controling how DASH onDemand segments are generated:
 .br
 -  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX.
 .br
@@ -1683,6 +1683,13 @@ src=source:1ItemID=1:#boxpatch=myfile.xml dst=mux.mp4
 The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.
 .br
 The box patch can either be a filename or the full XML string.
+.br
+  
+.br
+.SH Notes
+.LP
+.br
+The filter  watches the property FileNumber on incoming packets to create new files or new segments in DASH mode.
 .br
 
 .br
@@ -2333,11 +2340,15 @@ Description: File output
 .br
 
 .br
-The file output filter can work as a null sink when its destination is null, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.
+The file output filter is used to write output to disk, and does not produce any output PID.
 .br
-In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a frame_start flag set, unless operating in -cat mode.
+It can work as a null sink when its destination is null, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.
 .br
-The ouput file name can use gpac templating mechanism, see gpac help.
+In regular mode, the filter only accept pid of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a frame_start flag set, unless operating in -cat mode.
+.br
+The ouput file name can use gpac templating mechanism, see gpac -h doc.The filter watches the property FileNumber on incoming packets to create new files.
+.br
+
 .br
 
 .br
@@ -2419,9 +2430,23 @@ Description: Media Reframer
 .br
 
 .br
-Passthrough filter ensuring reframing, and optionally decoding, of inputs.
+This filter provides various compressed domain tools on inputs:
 .br
-This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.
+- ensure reframing
+.br
+- optionally force decoding
+.br
+- real-time regulation
+.br
+- packet filtering based on SAP types or frame numbers
+.br
+- time-range extraction
+.br
+This filter forces input pids to be properly framed (1 packet = 1 Access Unit).
+.br
+It can be usefull for file to file operations when source and destination files use the same format.
+.br
+  
 .br
 .SH SAP Extraction
 .LP
@@ -2430,12 +2455,16 @@ The filter can remove packets based on their SAP types using -saps option.
 .br
 This can be useful to extract only the key frame (SAP 1,2,3) of a video to create a trick mode version.
 .br
+  
+.br
 .SH Frame Extraction
 .LP
 .br
 This filter can keep only specific of the source using -frames option.
 .br
 This can be useful to extract only specific key frame of a video to create a HEIF collection.
+.br
+  
 .br
 .SH Frame Decoding
 .LP
@@ -2445,7 +2474,7 @@ This filter can force input media streams to be decoded using the -raw option.
 .SH Real-time Regulation
 .LP
 .br
-The filter can be perform real-time regulation of input packets, based on their timescale and timestamps.
+The filter can perform real-time regulation of input packets, based on their timescale and timestamps.
 .br
 For example to simulate a live DASH:
 .br
@@ -2454,6 +2483,59 @@ Example
 gpac src=m.mp4 reframer:rt=on @ dst=live.mpd:dynamic
 .br
 
+.br
+  
+.br
+.SH Range extraction
+.LP
+.br
+The filter can perform time range extraction of the source using -xs and  -xe options.
+.br
+The formats allowed for times specifiers are:
+.br
+* TH:M:S: specify time in hours, minutes, seconds
+.br
+* TH:M:S.MS: specify time in hours, minutes, seconds and milliseconds
+.br
+* INT: specify time in millisecond
+.br
+* NUM/DEN: specify time in seconds as fraction
+.br
+* FNUM: specify time as frame number
+.br
+In this mode, the timestamps are rewritten to form a continuous timeline.
+.br
+When multiple ranges are given, the filter will try to seek if supported by source.
+.br
+Example
+.br
+gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xs=T00:00:20,T00:01:20 [dst]
+.br
+
+.br
+This will extract the time ranges [10s,20s], [1m10s,1m20s] and all media starting from 2m
+.br
+
+.br
+It is possible to signal range boundaries in output packets using -splitrange.
+.br
+This will expose on the first packet of each range in each pid the following properties:
+.br
+* FileNumber: starting at 1 for the first range, to be used as replacement for $num$ in templates
+.br
+* FileSuffix: corresponding to StartRange_EndRange or StartRange for open ranges, to be used as replacement for $FS$ in templates
+.br
+
+.br
+Example
+.br
+gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10:xe=T00:00:20:splitrange -o dump_$FS$.264
+.br
+
+.br
+This will create two output files dump_T00.00.10_T00.02.00.264 and dump_T00.01.10.264.
+.br
+Note: the : and / characters are replaced by . in FileSuffix property.
 .br
 
 .br
@@ -2486,7 +2568,25 @@ raw (bool, default: false):    force input streams to be in raw format (i.e. for
 .br
 frames (uintl):                drop all except listed frames (first being 1), off by default
 .br
-snapdur (uint, default: 0):    specify duration between two forward, 0 forward all frames otherwise frames in the middle of this interval are dropped
+xs (strl):                     extraction start time(s)
+.br
+xe (strl):                     extraction end time(s). If less values than start times, the last time interval extracted is an open range
+.br
+cround (enum, default: before): adjustment of extraction start range I-frame
+.br
+* before: use first I-frame preceeding or equal to start range
+.br
+* after: use first I-frame (if any) following or equal to start range
+.br
+* closest: use I-frame closest to start range
+.br
+
+.br
+nosap (bool, default: false):  do not cut at SAP when extracting range (may result in broken streams)
+.br
+splitrange (bool, default: false): signal file boundary at each extraction first packet for template-base file generation
+.br
+seeksafe (dbl, default: 30.0): rewind play requests by given seconds (to make sur I-frame preceeding start is catched)
 .br
 
 .br
@@ -2694,6 +2794,16 @@ Description: AVI muxer
 
 .br
 This filter multiplexes raw or compressed audio and video to produce an AVI output.
+.br
+
+.br
+Unlike other multiplexing filters in GPAC, this filter is a sink filter and does not produce any PID to be redirected in the graph.
+.br
+The filter can however use template names for its output, using the first input PID to resolve the final name.
+.br
+The filter watches the property FileNumber on incoming packets to create new files.
+.br
+
 .br
 
 .br
@@ -3231,7 +3341,12 @@ Inserts an external TEMI with ID 4 in the first stream of program with ServiceID
 .br
 
 .br
+.SH Notes
+.LP
+.br
 In DASH mode, the PCR is always initialized at 0, and -flush_rap is automatically set.
+.br
+The filter  watches the property FileNumber on incoming packets to create new files or new segments in DASH mode.
 .br
 
 .br
@@ -3412,7 +3527,7 @@ Additional replacement strings (not DASH, not generic GPAC replacements but may 
 .br
 * $Segment=NAME$: replaced by NAME for media segments, ignored for init segments
 .br
-* $DS$ (Dash Suffix): replaced by _trackN in case the input is an AV multiplex, or kept empty otherwise
+* $FS$ (FileSuffix): replaced by _trackN in case the input is an AV multiplex, or kept empty otherwise
 .br
 Note: these strings are replaced in the manifest templates elements.
 .br
@@ -5191,7 +5306,7 @@ nb_pack (uint, default: 10):   pack N packets before sending
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.41.100
+Version: Lavf58.42.101
 .br
 
 .br
@@ -5213,7 +5328,7 @@ src (cstr):                    location of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.75.100
+Version: Lavc58.81.100
 .br
 
 .br
@@ -5291,7 +5406,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS5.6.100
+Version: SwS5.6.101
 .br
 
 .br
@@ -5327,13 +5442,19 @@ p2 (dbl, default: +I):         scaling algo param2 - see filter info
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.75.100
+Version: Lavc58.81.100
 .br
 
+.br
+Encodes audio and video streams.
 .br
 See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 Note: if no codec is explicited through -ffc option and no pixel format is given, codecs will be enumerated to find a matching pixel format.
+.br
+
+.br
+The encoder will force a closed gop boundary at each packet with a FileNumber property set.
 .br
 
 .br
@@ -5350,7 +5471,7 @@ fintra (frac, default: 0):     force intra / IDR frames at the given period in s
 .br
 all_intra (bool, default: false, updatable): only produce intra frames
 .br
-ls (bool, default: false):     output log
+ls (bool, default: false):     log stats
 .br
 ffc (str):                     ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)
 .br
@@ -5363,11 +5484,27 @@ ffc (str):                     ffmpeg codec name. This allows enforcing a given 
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf58.41.100
+Version: Lavf58.42.101
 .br
 
 .br
+FFMPEG output for files and streamers.
+.br
 See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+.br
+
+.br
+Note: Some URL formats may not be sufficient to derive the multiplexing format, you must then use -ffmt to specify the desired format.
+.br
+
+.br
+Unlike other multiplexing filters in GPAC, this filter is a sink filter and does not produce any PID to be redirected in the graph.
+.br
+The filter can however use template names for its output, using the first input PID to resolve the final name.
+.br
+The filter watches the property FileNumber on incoming packets to create new files.
+.br
+
 .br
 
 .br
@@ -5401,7 +5538,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf58.41.100
+Version: Lavf58.42.101
 .br
 
 .br
@@ -5620,7 +5757,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev65-g78a672d66-filters
+build: 0.9.0-DEV-rev73-gfc3518d84-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

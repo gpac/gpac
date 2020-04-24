@@ -68,6 +68,7 @@ typedef struct
 	u32 is_wav;
 	u32 w, h, stride;
 	u64 nb_bytes;
+	Bool dash_mode;
 
 	u64 first_dts_plus_one;
 } GF_GenDumpCtx;
@@ -133,6 +134,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		ctx->dcfg = p->value.data.ptr;
 		ctx->dcfg_size = p->value.data.size;
 	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
+	ctx->dash_mode = (p && p->value.uint) ? GF_TRUE : GF_FALSE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
@@ -624,6 +627,12 @@ GF_Err writegen_process(GF_Filter *filter)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
 		gf_filter_pid_send_event(ctx->ipid, &evt);
 		return GF_OK;
+	}
+
+	//except in dash mode, force a new file if GF_PROP_PCK_FILENUM is set
+	if (!ctx->dash_mode && (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM) != NULL)) {
+		ctx->cfg_sent = GF_FALSE;
+		ctx->first = GF_TRUE;
 	}
 
 	if (ctx->frame) {

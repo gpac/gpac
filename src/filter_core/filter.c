@@ -1101,18 +1101,35 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 				while (sep && (sep[1]=='\\' || sep[1]=='/')) {
 					sep = strchr(sep+1, ':');
 				}
+				//escape data/time
 				if (sep) {
-					char *prev = sep-3;
-					if (prev[0]=='T') {}
-					else if (prev[1]=='T') { prev ++; }
-					else { prev = NULL; }
+					char *prev_date = sep-3;
+					if (prev_date[0]=='T') {}
+					else if (prev_date[1]=='T') { prev_date ++; }
+					else { prev_date = NULL; }
 
-					if (prev) {
+skip_date:
+					if (prev_date) {
+						char *search_after = NULL;
 						//assume date Th:m:s or Th:mm:s or Thh:m:s or Thh:mm:s
-						if ((prev[2] == ':') && (prev[4] == ':')) sep = strchr(prev+5, ':');
-						else if ((prev[2] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
-						else if ((prev[3] == ':') && (prev[5] == ':')) sep = strchr(prev+6, ':');
-						else if ((prev[3] == ':') && (prev[6] == ':')) sep = strchr(prev+7, ':');
+						if ((prev_date[2] == ':') && (prev_date[4] == ':')) search_after = prev_date+5;
+						else if ((prev_date[2] == ':') && (prev_date[5] == ':')) search_after = prev_date+6;
+						else if ((prev_date[3] == ':') && (prev_date[5] == ':')) search_after = prev_date+6;
+						else if ((prev_date[3] == ':') && (prev_date[6] == ':')) search_after = prev_date+7;
+
+						if (search_after) {
+							//take care of lists
+							char *next_date = strchr(search_after, 'T');
+							char *next_sep = strchr(search_after, ':');
+							if (next_date && next_sep && (next_date<next_sep)) {
+								prev_date = next_date - 1;
+								if (prev_date[0] == filter->session->sep_list) {
+									prev_date = next_date;
+									goto skip_date;
+								}
+							}
+							sep = strchr(search_after, ':');
+						}
 					}
 				}
 			}

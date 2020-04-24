@@ -85,6 +85,10 @@ typedef struct
 	GF_BitStream *idx_bs;
 	u32 nb_pck_in_file, nb_pck_first_sidx, ref_pid;
 	u64 total_bytes_in;
+
+	u32 nb_suspended, cur_file_idx_plus_one;
+	char *cur_file_suffix;
+	Bool notify_filename;
 } GF_TSMuxCtx;
 
 typedef struct
@@ -122,6 +126,8 @@ typedef struct
 	u32 last_dur;
 
 	char *pck_data_buf;
+
+	u32 suspended;
 } M2Pid;
 
 static u32 tsmux_format_af_descriptor(char *af_data, u32 timeline_id, u64 timecode, u32 timescale, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
@@ -282,7 +288,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	{
 		u64 dts;
 		GF_ESIPacket es_pck;
-		//current pck
+		const GF_PropertyValue *p;
 		GF_FilterPacket *pck;
 		pck = gf_filter_pid_get_packet(tspid->ipid);
 		//if PMT update is pending after this packet fetch (reconfigure), don't send the packet
@@ -306,8 +312,8 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			}
 			return GF_OK;
 		}
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (tspid->ctx->dash_mode) {
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (p && tspid->ctx->dash_seg_num && (tspid->ctx->dash_seg_num != p->value.uint)) {
 				tspid->has_seen_eods = GF_TRUE;
 				tspid->ctx->wait_dash_flush = GF_TRUE;
@@ -338,6 +344,29 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				tspid->has_seen_eods = GF_TRUE;
 				tspid->ctx->wait_dash_flush = GF_TRUE;
 				gf_filter_pid_drop_packet(tspid->ipid);
+				return GF_OK;
+			}
+		} else if (p) {
+			if (!tspid->ctx->cur_file_idx_plus_one) {
+				tspid->ctx->cur_file_idx_plus_one = p->value.uint + 1;
+				if (!tspid->ctx->cur_file_suffix) {
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILESUF);
+					if (p && p->value.string) tspid->ctx->cur_file_suffix = gf_strdup(p->value.string);
+				}
+				tspid->ctx->notify_filename = GF_TRUE;
+			} else if (tspid->ctx->cur_file_idx_plus_one == p->value.uint+1) {
+			} else if (tspid->suspended) {
+				return GF_OK;
+			} else {
+				tspid->suspended = GF_TRUE;
+				tspid->ctx->nb_suspended++;
+				if (tspid->ctx->nb_suspended==1) {
+					tspid->ctx->cur_file_idx_plus_one = p->value.uint + 1;
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILESUF);
+					if (p && p->value.string && !tspid->ctx->cur_file_suffix)
+						tspid->ctx->cur_file_suffix = gf_strdup(p->value.string);
+				}
+				ifce->caps |= GF_ESI_STREAM_IS_OVER;
 				return GF_OK;
 			}
 		}
@@ -1132,6 +1161,15 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		gf_filter_pck_set_dts(pck, pck_ts);
 		gf_filter_pck_set_cts(pck, pck_ts);
 
+		if (ctx->notify_filename) {
+			gf_filter_pck_set_framing(pck, GF_TRUE, (status==GF_M2TS_STATE_EOS) ? GF_TRUE : GF_FALSE);
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->cur_file_idx_plus_one-1));
+			if (ctx->cur_file_suffix) {
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(ctx->cur_file_suffix));
+				ctx->cur_file_suffix = NULL;
+			}
+			ctx->notify_filename = GF_FALSE;
+		}
 		gf_filter_pck_send(pck);
 		ctx->nb_pck += nb_pck_in_pack;
 		ctx->nb_pck_in_seg++;
@@ -1148,6 +1186,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		if (nb_pck_in_call>100)
 			break;
 	}
+
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 		if (status==GF_M2TS_STATE_EOS) {
@@ -1164,6 +1203,19 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			sprintf(szStatus, "sysclock % 6d ms TS clock % 6d ms bitrate % 8d kbps", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000);
 			gf_filter_update_status(filter, -1, szStatus);
 		}
+	}
+
+	if (ctx->nb_suspended && (ctx->nb_suspended==gf_list_count(ctx->pids)) ) {
+		u32 i, count = gf_list_count(ctx->pids);
+		for (i=0; i<count; i++) {
+			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			tspid->esi.caps &= ~GF_ESI_STREAM_IS_OVER;
+			tspid->suspended = GF_FALSE;
+		}
+		ctx->nb_suspended = GF_FALSE;
+		ctx->mux->force_pat = GF_TRUE;
+		ctx->notify_filename = GF_TRUE;
+		status = GF_M2TS_STATE_IDLE;
 	}
 
 	if (status==GF_M2TS_STATE_EOS) {
@@ -1265,6 +1317,7 @@ static void tsmux_finalize(GF_Filter *filter)
 	if (ctx->pack_buffer) gf_free(ctx->pack_buffer);
 	if (ctx->sidx_entries) gf_free(ctx->sidx_entries);
 	if (ctx->idx_bs) gf_bs_del(ctx->idx_bs);
+	if (ctx->cur_file_suffix) gf_free(ctx->cur_file_suffix);
 }
 
 static Bool tsmux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -1394,7 +1447,9 @@ GF_FilterRegister TSMuxRegister = {
 		"EX temi=\"#20#4,,#10#URL\"\n"
 		"Inserts an external TEMI with ID 4 in the first stream of program with ServiceID 20 and a TEMI URL to the third stream of program with ServiceID 10 (and nothing on second stream).\n"
 		"\n"
+		"# Notes\n"
 		"In DASH mode, the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"
+		"The filter  watches the property `FileNumber` on incoming packets to create new files or new segments in DASH mode.\n"
 	)
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,

@@ -61,7 +61,7 @@ typedef struct
 #include <fcntl.h>
 #endif //WIN32
 
-static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
+static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite, char *file_suffix)
 {
 	GF_Err e = GF_OK;
 	if (ctx->file && !ctx->is_std) {
@@ -102,7 +102,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		} else {
 			strcpy(szName, url);
 		}
-		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, NULL);
+		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
 
 		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
@@ -142,16 +142,16 @@ static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 	ext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 
 	if (p && p->value.string) {
-		fileout_open_close(ctx, p->value.string, (ext && ctx->dynext) ? ext->value.string : NULL, 0, explicit_overwrite);
+		fileout_open_close(ctx, p->value.string, (ext && ctx->dynext) ? ext->value.string : NULL, 0, explicit_overwrite, NULL);
 	} else if (ctx->dynext) {
 		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
 		if (!p) {
 			if (ext && ext->value.string) {
-				fileout_open_close(ctx, ctx->dst, ext->value.string, 0, explicit_overwrite);
+				fileout_open_close(ctx, ctx->dst, ext->value.string, 0, explicit_overwrite, NULL);
 			}
 		}
 	} else {
-		fileout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite);
+		fileout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite, NULL);
 	}
 }
 static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -160,7 +160,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 	if (is_remove) {
 		ctx->pid = NULL;
-		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
+		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 		return GF_OK;
 	}
 	gf_filter_pid_check_caps(pid);
@@ -258,7 +258,7 @@ static void fileout_finalize(GF_Filter *filter)
 {
 	GF_Err e;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
-	fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
+	fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 	if (ctx->gfio_ref)
 		gf_fileio_open_url((GF_FileIO *)ctx->gfio_ref, NULL, "unref", &e);
 }
@@ -308,7 +308,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 					gf_filter_pid_send_event(ctx->pid, &evt);
 				}
 			}
-			fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
+			fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -378,7 +378,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	}
 
 	if (start) {
-		const GF_PropertyValue *ext, *fnum;
+		const GF_PropertyValue *ext, *fnum, *fsuf;
 		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
 		fname = ext = NULL;
@@ -395,11 +395,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 		if (!ext) ext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
 
+		fsuf = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILESUF);
+
 		if (end && gf_filter_pck_get_seek_flag(pck))
 			explicit_overwrite = GF_TRUE;
 
 		if (name) {
-			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite);
+			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite, fsuf ? fsuf->value.string : NULL);
 		} else if (!ctx->file) {
 			fileout_setup_file(ctx, explicit_overwrite);
 		}
@@ -529,7 +531,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
 	if (end && !ctx->cat) {
-		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
+		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 	}
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
@@ -597,9 +599,12 @@ static const GF_FilterCapability FileOutCaps[] =
 GF_FilterRegister FileOutRegister = {
 	.name = "fout",
 	GF_FS_SET_DESCRIPTION("File output")
-	GF_FS_SET_HELP("The file output filter can work as a null sink when its destination is `null`, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"\
-	"In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"\
-	"The ouput file name can use gpac templating mechanism, see gpac help.")
+	GF_FS_SET_HELP("The file output filter is used to write output to disk, and does not produce any output PID.\n"
+		"It can work as a null sink when its destination is `null`, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"
+		"In regular mode, the filter only accept pid of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"
+		"The ouput file name can use gpac templating mechanism, see `gpac -h doc`."
+		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
+	)
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
 	SETCAPS(FileOutCaps),
