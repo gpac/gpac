@@ -968,7 +968,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
         }
 
         if (has_last_sample_dur) {
-			gf_isom_set_last_sample_duration_ex(import.dest, track, last_sample_dur.num, last_sample_dur.den);
+			gf_isom_set_last_sample_duration_ex(import.dest, track, (u32)last_sample_dur.num, (u32)last_sample_dur.den);
 		}
 
         if (rvc_config) {
