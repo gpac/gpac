@@ -6094,7 +6094,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 
 	//check we have a segment template
 	if (!ctx->template) {
-		ctx->template = gf_strdup( ctx->sfile ? "$File$$DS$_dash" : (ctx->stl ? "$File$_dash$DS$$Time$" : "$File$_dash$DS$$Number$") );
+		ctx->template = gf_strdup( ctx->sfile ? "$File$$FS$_dash" : (ctx->stl ? "$File$_dash$FS$$Time$" : "$File$_dash$FS$$Number$") );
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] No template assigned, using %s\n", ctx->template));
 		if (ctx->profile == GF_DASH_PROFILE_FULL) {
 			ctx->sfile = GF_TRUE;
@@ -6377,7 +6377,7 @@ GF_FilterRegister DasherRegister = {
 	        "- $Index=NAME$: replaced by NAME for index segments, ignored otherwise\n"
 	        "- $Path=PATH$: replaced by PATH when creating segments, ignored otherwise\n"
 	        "- $Segment=NAME$: replaced by NAME for media segments, ignored for init segments\n"
-	        "- $DS$ (Dash Suffix): replaced by `_trackN` in case the input is an AV multiplex, or kept empty otherwise\n"
+	        "- $FS$ (FileSuffix): replaced by `_trackN` in case the input is an AV multiplex, or kept empty otherwise\n"
 	        "Note: these strings are replaced in the manifest templates elements.\n"
 			"\n"
 			"## PID assignment\n"

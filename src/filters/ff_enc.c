@@ -107,6 +107,7 @@ typedef struct _gf_ffenc_ctx
 	Bool reconfig_pending;
 	Bool infmt_negociate;
 	Bool remap_ts;
+	Bool force_reconfig;
 
 	u32 dsi_crc;
 
@@ -230,6 +231,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	s32 res;
 	u64 now;
 	u8 *output;
+	u32 force_intra = 0;
 	Bool insert_jp2c = GF_FALSE;
 	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck;
@@ -263,9 +265,56 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	ctx->frame->width = ctx->width;
 	ctx->frame->height = ctx->height;
 	ctx->frame->format = ctx->pixel_fmt;
+
+	ctx->frame->pict_type = AV_PICTURE_TYPE_NONE;
+
 	//force picture type
 	if (ctx->all_intra)
 		ctx->frame->pict_type = AV_PICTURE_TYPE_I;
+
+	//if PCK_FILENUM is set on input, this is a file boundary, force IDR sync
+	if (pck && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
+		force_intra = 2;
+	}
+	//check if we need to force a closed gop
+	if (pck && (ctx->fintra.den && ctx->fintra.num) && !ctx->force_reconfig) {
+		u64 cts = gf_filter_pck_get_cts(pck);
+		if (!ctx->fintra_setup) {
+			ctx->fintra_setup = GF_TRUE;
+			ctx->orig_ts = cts;
+			force_intra = 1;
+			ctx->nb_forced=1;
+		} else if (cts < ctx->orig_ts) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] timestamps not increasing monotonuously, reseting forced intra state !\n"));
+			ctx->orig_ts = cts;
+			force_intra = 1;
+			ctx->nb_forced=1;
+		} else {
+			u64 ts_diff = cts - ctx->orig_ts;
+			if (ts_diff * ctx->fintra.den >= ctx->nb_forced * ctx->fintra.num * ctx->timescale) {
+				force_intra = 1;
+				ctx->nb_forced++;
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Forcing IDR at frame %d (CTS %d / %d)\n", ctx->nb_frames_in, cts, ctx->timescale));
+			}
+		}
+	}
+	if (force_intra) {
+		//file switch we force a full reset to force injecting xPS in the stream
+		//we could also inject them manually but we don't have them !!
+		if (force_intra==2) {
+			if (!ctx->force_reconfig) {
+				ctx->reconfig_pending = GF_TRUE;
+				ctx->force_reconfig = GF_TRUE;
+				pck = NULL;
+			} else if (ctx->force_reconfig) {
+				ctx->force_reconfig = GF_FALSE;
+			} else {
+				pck = NULL;
+			}
+		}
+		ctx->frame->pict_type = AV_PICTURE_TYPE_I;
+	}
+
 
 	now = gf_sys_clock_high_res();
 	gotpck = 0;
@@ -332,30 +381,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts;
 
-		ctx->frame->pict_type = AV_PICTURE_TYPE_NONE;
-
-		if (ctx->fintra.den && ctx->fintra.num) {
-			u64 cts = gf_filter_pck_get_cts(pck);
-			if (!ctx->fintra_setup) {
-				ctx->fintra_setup = GF_TRUE;
-				ctx->orig_ts = cts;
-				ctx->frame->pict_type = AV_PICTURE_TYPE_I;
-				ctx->nb_forced=1;
-			} else if (cts < ctx->orig_ts) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] timestamps not increasing monotonuously, reseting forced intra state !\n"));
-				ctx->orig_ts = cts;
-				ctx->frame->pict_type = AV_PICTURE_TYPE_I;
-				ctx->nb_forced=1;
-			} else {
-				u64 ts_diff = cts - ctx->orig_ts;
-				if (ts_diff * ctx->fintra.den >= ctx->nb_forced * ctx->fintra.num * ctx->timescale) {
-					ctx->frame->pict_type = AV_PICTURE_TYPE_I;
-					ctx->nb_forced++;
-					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Forcing IDR at frame %d (CTS %d / %d)\n", ctx->nb_frames_in, cts, ctx->timescale));
-				}
-			}
-		}
-
 		res = avcodec_encode_video2(ctx->encoder, &pkt, ctx->frame, &gotpck);
 		ctx->nb_frames_in++;
 
@@ -384,7 +409,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				return ffenc_configure_pid(filter, ctx->in_pid, GF_FALSE);
 			}
-			ctx->flush_done = GF_TRUE;
+			ctx->flush_done = 1;
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
 		}
@@ -724,7 +749,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				return ffenc_configure_pid(filter, ctx->in_pid, GF_FALSE);
 			}
-			ctx->flush_done = GF_TRUE;
+			ctx->flush_done = 1;
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
 		}
@@ -1112,6 +1137,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->infmt_negociate = GF_FALSE;
 		}
 	} else {
+		u32 change_input_sr = 0;
 		//check audio format
 		ctx->sample_fmt = ffmpeg_audio_fmt_from_gpac(afmt);
 		change_input_fmt = 0;
@@ -1123,10 +1149,27 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 			i++;
 		}
-		if (ctx->sample_fmt != change_input_fmt) {
-			ctx->sample_fmt = codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
-			afmt = ffmpeg_audio_fmt_to_gpac(ctx->sample_fmt);
-			gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
+		i=0;
+		if (!codec->supported_samplerates)
+			change_input_sr = ctx->sample_rate;
+
+		while (codec->supported_samplerates) {
+			if (!codec->supported_samplerates[i]) break;
+			if (codec->supported_samplerates[i]==ctx->sample_rate) {
+				change_input_sr = ctx->sample_rate;
+				break;
+			}
+			i++;
+		}
+		if ((ctx->sample_fmt != change_input_fmt) || (ctx->sample_rate != change_input_sr)) {
+			if (ctx->sample_fmt != change_input_fmt) {
+				ctx->sample_fmt = codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
+				afmt = ffmpeg_audio_fmt_to_gpac(ctx->sample_fmt);
+				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
+			}
+			if (ctx->sample_rate != change_input_sr) {
+				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codec->supported_samplerates[0]) );
+			}
 			ctx->infmt_negociate = GF_TRUE;
 		} else {
 			ctx->infmt_negociate = GF_FALSE;
@@ -1367,10 +1410,11 @@ GF_FilterRegister FFEncodeRegister = {
 	.name = "ffenc",
 	.version=LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG encoder")
-	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details"
+	GF_FS_SET_HELP("Encodes audio and video streams.\nSee FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details"
 		"\n"
 		"Note: if no codec is explicited through [-ffc]() option and no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
-
+		"\n"
+		"The encoder will force a closed gop boundary at each packet with a `FileNumber` property set.\n"
 	)
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
@@ -1390,7 +1434,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, eg `fintra=60000/1001` will force an intra every 2 seconds on 29.97 fps video; ignored for audio", GF_PROP_FRACTION, "0", NULL, 0},
 
 	{ OFFS(all_intra), "only produce intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ls), "output log", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ls), "log stats", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ffc), "ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)", GF_PROP_STRING, NULL, NULL, 0},
 
 	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. see `gpac -hx ffenc` and `gpac -hx ffenc:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},

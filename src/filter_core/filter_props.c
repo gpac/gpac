@@ -1234,6 +1234,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PCK_FILENUM, "FileNumber", "Index of file when dumping to files", GF_PROP_UINT, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_FILENAME, "FileName", "Name of output file when dumping / dashing. Must be set on first packet belonging to new file", GF_PROP_STRING, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_IDXFILENAME, "IDXName", "Name of index file when dashing MPEG-2 TS. Must be set on first packet belonging to new file", GF_PROP_STRING, GF_PROP_FLAG_PCK},
+	{ GF_PROP_PCK_FILESUF, "FileSuffix", "File suffix name, replacement for $FS$ in tile templates", GF_PROP_STRING, GF_PROP_FLAG_PCK},
+
 	{ GF_PROP_PCK_EODS, "EODS", "End of DASH segment", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AVG_FRAME_SIZE, "AvgFrameSize", "Average size of frame in stream (isobmff only, static property)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},

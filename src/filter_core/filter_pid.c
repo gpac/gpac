@@ -3094,9 +3094,9 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			if (i+2==count) {
 				gf_list_add(af->destination_filters, dst);
 			}
-			//first in chain and we will load several filters in chain, add destination so that we remember what was this filter target
+			//we will load several filters in chain, add destination to each of the loaded filter so that we remember what was this filter target
 			//this avoids browing the chain of filters->destination_filters when doing link resolution
-			else if (!i && !load_first_only) {
+			else if (!load_first_only) {
 				gf_list_add(af->destination_filters, dst);
 			}
 
@@ -3803,8 +3803,6 @@ single_retry:
 				}
 			}
 			if (!num_pass) {
-                //this is wrong, breaks tileagg and other filters (cf scripts/dash-srd-hevc.sh) when the source was loaded with sourceID
-                //as is the case with compositor filter
                 //we have an explicit link instruction so we must try dynamic link even if we connect to another filter
 				if (filter_dst->source_ids) {
                     gf_list_add(force_link_resolutions, filter_dst);
@@ -6337,7 +6335,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "PID")) {
 			prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ID);
-		} else if (!strcmp(name, "DS")) {
+		} else if (!strcmp(name, "FS")) {
 			str_val = file_suffix ? file_suffix : "";
 			is_ok = GF_TRUE;
 		} else if (!strncmp(name, "p4cc=", 5)) {
