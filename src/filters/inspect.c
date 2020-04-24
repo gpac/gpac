@@ -1108,6 +1108,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		else if (!strcmp(key, "ddts")) {
 			u64 ts = gf_filter_pck_get_dts(pck);
 			if ((ts==GF_FILTER_NO_TS) || (pctx->prev_dts==GF_FILTER_NO_TS)) gf_fprintf(dump, "N/A");
+			else if (pctx->pck_num<=1) gf_fprintf(dump, "N/A");
 			else {
 				s64 diff = ts;
 				diff -= pctx->prev_dts;
@@ -1118,6 +1119,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		else if (!strcmp(key, "dcts")) {
 			u64 ts = gf_filter_pck_get_cts(pck);
 			if ((ts==GF_FILTER_NO_TS) || (pctx->prev_cts==GF_FILTER_NO_TS)) gf_fprintf(dump, "N/A");
+			else if (pctx->pck_num<=1) gf_fprintf(dump, "N/A");
 			else {
 				s64 diff = ts;
 				diff -= pctx->prev_cts;
