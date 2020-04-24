@@ -770,7 +770,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			read->frag_type = 1;
 
 		ch->start = ch->end = 0;
-		if (evt->play.speed>0) {
+		if (evt->play.speed>=0) {
 			Double t;
 			if (evt->play.start_range>=0) {
 				t = evt->play.start_range;
