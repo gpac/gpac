@@ -363,6 +363,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				ch->last_state = GF_OK;
 				if (!ch->has_edit_list && ch->sample_num)
 					ch->sample_num--;
+			} else {
+				if (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)) {
+					ch->last_state = GF_EOS;
+				}
 			}
 		}
 		else if (!ch->sample_num
