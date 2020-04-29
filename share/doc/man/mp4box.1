@@ -275,7 +275,7 @@ print the set of supported iTunes tags
 .TP
 .B \-split (string)
 .br
-split in files of given max duration. Set [-rap] to start each file at RAP
+split in files of given max duration
 .br
 .TP
 .B \-split-size,-splits (string)
@@ -288,9 +288,13 @@ split in files of given max size (in kb)
 split in files at each new RAP
 .br
 .TP
-.B \-split-chunk,-splitx  S:E (string)
+.B \-split-chunk,-splitx  VAL (string)
 .br
-extract a new file from S (number of seconds) to E with E a number (in seconds), end or end-N, N being the desired number of seconds before the end
+extract a new file from source. VAL can be formated as:
+.br
+* `S:E`: S (number of seconds) to E with E a number (in seconds), end or end-N, N  number of seconds before the end
+.br
+* `S-E`: start and end dates, each formatted as HH:MM:SS.ms or MM:SS.ms
 .br
 .TP
 .B \-splitz  S:E (string)
@@ -2036,7 +2040,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev76-gdafa40780-filters
+build: 0.9.0-DEV-rev78-g99930d0ca-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

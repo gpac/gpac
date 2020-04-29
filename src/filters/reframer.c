@@ -498,9 +498,9 @@ static void reframer_update_ts_shift(GF_ReframerCtx *ctx, s64 diff_ts, u32 times
 		s64 ts_shift;
 		RTStream *st = gf_list_get(ctx->streams, i);
 		ts_shift = diff_ts;
-		diff_ts *= st->timescale;
-		diff_ts /= timescale;
-		st->cts_init -= diff_ts;
+		ts_shift *= st->timescale;
+		ts_shift /= timescale;
+		st->cts_init -= ts_shift;
 	}
 }
 void reframer_drop_packet(GF_ReframerCtx *ctx, RTStream *st, GF_FilterPacket *pck, Bool pck_is_ref)
@@ -587,7 +587,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 	//range processing
 	if (st->ts_at_range_start_plus_one) {
-		s64 ts, o_ts;
+		s64 ts;
 		GF_FilterPacket *new_pck = gf_filter_pck_new_ref(st->opid, NULL, 0, pck);
 		gf_filter_pck_merge_properties(pck, new_pck);
 
@@ -632,7 +632,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		}
 
 		//rewrite timestamps
-		o_ts = ts = gf_filter_pck_get_cts(pck);
+		ts = gf_filter_pck_get_cts(pck);
 
 		if (ts != GF_FILTER_NO_TS) {
 			ts += st->tk_delay;
@@ -798,9 +798,9 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 
 	if (!ctx->min_ts_scale) {
 		u64 min_ts = 0;
-		u32 min_timescale;
+		u32 min_timescale=0;
 		u64 min_ts_a = 0;
-		u32 min_timescale_a;
+		u32 min_timescale_a=0;
 		u32 nb_eos = 0;
 		Bool has_empty_streams = GF_FALSE;
 		Bool wait_for_sap = GF_FALSE;
@@ -943,7 +943,6 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			for (j=0; j<nb_pck; j++) {
 				u64 ts;
 				u32 size;
-				const u8 *data;
 				GF_FilterPacket *pck = gf_list_get(st->pck_queue, j);
 
 				ts = gf_filter_pck_get_dts(pck);
@@ -956,7 +955,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 					found = GF_TRUE;
 					break;
 				}
-				data = gf_filter_pck_get_data(pck, &size);
+				gf_filter_pck_get_data(pck, &size);
 				cumulated_size += size;
 			}
 			if ((j==nb_pck) && st->in_eos && !found) {
@@ -1345,12 +1344,11 @@ GF_Err reframer_process(GF_Filter *filter)
 			&& ctx->is_range_extraction
 		) {
 			u64 min_ts = 0;
-			u32 min_timescale;
+			u32 min_timescale=0;
 			u64 min_ts_a = 0;
-			u32 min_timescale_a;
+			u32 min_timescale_a=0;
 			u64 min_ts_split = 0;
-			u32 min_timescale_split;
-			Bool in_eos = GF_FALSE;
+			u32 min_timescale_split=0;
 			Bool purge_all = GF_FALSE;
 			for (i=0; i<count; i++) {
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
@@ -1359,7 +1357,6 @@ GF_Err reframer_process(GF_Filter *filter)
 				assert(st->range_start_computed);
 				//eos
 				if (st->range_start_computed==2) {
-					in_eos = GF_TRUE;
 					continue;
 				}
 				//packet will be reinserted at cut time, do not check its timestamp

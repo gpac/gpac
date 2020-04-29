@@ -166,10 +166,12 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("name `tkID=NAME`", NULL, "set track handler name to NAME (UTF-8 string)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("itags `tag1[:tag2]`", NULL, "set iTunes tags to file, see [-tag-list]()", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("tag-list", NULL, "print the set of supported iTunes tags", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("split", NULL, "split in files of given max duration. Set [-rap] to start each file at RAP", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("split", NULL, "split in files of given max duration", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("split-size", "splits", "split in files of given max size (in kb)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("split-rap", "splitr", "split in files at each new RAP", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("split-chunk `S:E`", "splitx", "extract a new file from `S` (number of seconds) to `E` with `E` a number (in seconds), `end` or `end-N`, N being the desired number of seconds before the end", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("split-chunk VAL", "splitx", "extract a new file from source. `VAL` can be formated as:\n"
+	"- `S:E`: `S` (number of seconds) to `E` with `E` a number (in seconds), `end` or `end-N`, N  number of seconds before the end\n"
+	"- `S-E`: start and end dates, each formatted as `HH:MM:SS.ms` or `MM:SS.ms`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("splitz `S:E`", NULL, "same as -split-chunk, but adjust the end time to be before the last RAP sample", NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("group-add", NULL, "create a new grouping information in the file. Format is a colon-separated list of following options:\n"
@@ -2351,6 +2353,7 @@ u64 movie_time, initial_tfdt;
 s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
+const char *split_range_str = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
 u32 stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps, dump_saps_mode, force_new;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
@@ -3248,8 +3251,12 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				}
 			}
 			else {
-				sscanf(argv[i + 1], "%lf:%lf", &split_start, &split_duration);
-				split_duration -= split_start;
+				if (strchr(argv[i + 1], '-')) {
+					split_range_str = argv[i + 1];
+				} else {
+					sscanf(argv[i + 1], "%lf:%lf", &split_start, &split_duration);
+					split_duration -= split_start;
+				}
 			}
 			split_size = 0;
 			if (!stricmp(arg, "-splitz")) adjust_split_end = 1;
@@ -5480,8 +5487,8 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
-	if (split_duration || split_size) {
-		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir, seg_at_rap);
+	if (split_duration || split_size || split_range_str) {
+		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir, seg_at_rap, split_range_str);
 		/*never save file when splitting is desired*/
 		open_edit = GF_FALSE;
 		needSave = GF_FALSE;

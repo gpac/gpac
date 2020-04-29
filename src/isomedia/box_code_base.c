@@ -6470,7 +6470,7 @@ GF_Err trak_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (!ptr->Media->information->sampleTable->SampleSize || (ptr->Media->information->sampleTable->SampleSize->sampleCount==0)) {
 		if (ptr->Header->initial_duration) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Track with no samples but duration defined, ignoring duration\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Track with no samples but duration defined, ignoring duration\n"));
 			ptr->Header->initial_duration = 0;
 		}
 	}
