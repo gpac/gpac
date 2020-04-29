@@ -423,16 +423,17 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 		return GF_OK;
 	}
 
-	//check our cache
+	//check our cache: if desired sample is at or above current cache entry, start from here
 	if (stbl->SampleToChunk->firstSampleInCurrentChunk &&
-	        (stbl->SampleToChunk->firstSampleInCurrentChunk < sampleNumber)) {
+	        (stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber)) {
 
 		i = stbl->SampleToChunk->currentIndex;
-//		ent = gf_list_get(stbl->SampleToChunk->entryList, i);
 		ent = &stbl->SampleToChunk->entries[stbl->SampleToChunk->currentIndex];
 		GetGhostNum(ent, i, stbl->SampleToChunk->nb_entries, stbl);
 		k = stbl->SampleToChunk->currentChunk;
-	} else {
+	}
+	//otherwise start from first entry
+	else {
 		i = 0;
 		stbl->SampleToChunk->currentIndex = 0;
 		stbl->SampleToChunk->currentChunk = 1;
@@ -447,22 +448,8 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 		assert(stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber);
 		assert (k <= stbl->SampleToChunk->ghostNumber);
 
-#if 0
-		//browse from the current chunk we're browsing from index 1
-		for (; k <= stbl->SampleToChunk->ghostNumber; k++) {
-			if ((stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber)
-				&& (stbl->SampleToChunk->firstSampleInCurrentChunk + ent->samplesPerChunk > sampleNumber)
-			) {
-				goto sample_found;
-			}
 
-			//nope, get to next chunk
-			stbl->SampleToChunk->firstSampleInCurrentChunk += ent->samplesPerChunk;
-			stbl->SampleToChunk->currentChunk ++;
-		}
-#else
-
-		//equivalent to the ebove loop without the loop
+		//check if sample is in current chunk
 		u32 max_chunks_in_entry = stbl->SampleToChunk->ghostNumber - k;
 		u32 nb_chunks_for_sample = sampleNumber - stbl->SampleToChunk->firstSampleInCurrentChunk;
 		if (ent->samplesPerChunk) 
@@ -480,9 +467,6 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 		max_chunks_in_entry += 1;
 		stbl->SampleToChunk->firstSampleInCurrentChunk += max_chunks_in_entry * ent->samplesPerChunk;
 		stbl->SampleToChunk->currentChunk += max_chunks_in_entry;
-
-#endif
-
 
 		//not in this entry, get the next entry if not the last one
 		if (i+1 != stbl->SampleToChunk->nb_entries) {
