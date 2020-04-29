@@ -357,7 +357,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			} else if (tspid->ctx->cur_file_idx_plus_one == p->value.uint+1) {
 			} else if (tspid->suspended) {
 				return GF_OK;
-			} else {
+			} else if (!tspid->ctx->notify_filename) {
 				tspid->suspended = GF_TRUE;
 				tspid->ctx->nb_suspended++;
 				if (tspid->ctx->nb_suspended==1) {
@@ -367,6 +367,9 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 						tspid->ctx->cur_file_suffix = gf_strdup(p->value.string);
 				}
 				ifce->caps |= GF_ESI_STREAM_IS_OVER;
+				return GF_OK;
+			} else {
+				//notify filename pending
 				return GF_OK;
 			}
 		}
@@ -1212,7 +1215,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			tspid->esi.caps &= ~GF_ESI_STREAM_IS_OVER;
 			tspid->suspended = GF_FALSE;
 		}
-		ctx->nb_suspended = GF_FALSE;
+		ctx->nb_suspended = 0;
 		ctx->mux->force_pat = GF_TRUE;
 		ctx->notify_filename = GF_TRUE;
 		status = GF_M2TS_STATE_IDLE;

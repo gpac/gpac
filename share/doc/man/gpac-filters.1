@@ -2440,36 +2440,42 @@ This filter provides various compressed domain tools on inputs:
 .br
 - packet filtering based on SAP types or frame numbers
 .br
-- time-range extraction
+- time-range extraction and spliting
 .br
 This filter forces input pids to be properly framed (1 packet = 1 Access Unit).
 .br
-It can be usefull for file to file operations when source and destination files use the same format.
+It is typcially needed to force remultiplexing in file to file operations when source and destination files use the same format.
 .br
   
 .br
-.SH SAP Extraction
+.SH SAP filtering
 .LP
 .br
 The filter can remove packets based on their SAP types using -saps option.
 .br
-This can be useful to extract only the key frame (SAP 1,2,3) of a video to create a trick mode version.
+For example, this can be used to extract only the key frame (SAP 1,2,3) of a video to create a trick mode version.
 .br
   
 .br
-.SH Frame Extraction
+.SH Frame filtering
 .LP
 .br
-This filter can keep only specific of the source using -frames option.
+This filter can keep only specific Access Units of the source using -frames option.
 .br
-This can be useful to extract only specific key frame of a video to create a HEIF collection.
+For example, this can be used to extract only specific key frame of a video to create a HEIF collection.
 .br
   
 .br
-.SH Frame Decoding
+.SH Frame decoding
 .LP
 .br
 This filter can force input media streams to be decoded using the -raw option.
+.br
+Example
+.br
+gpac src=m.mp4 reframer:raw @ [dst]
+.br
+
 .br
 .SH Real-time Regulation
 .LP
@@ -2489,13 +2495,13 @@ gpac src=m.mp4 reframer:rt=on @ dst=live.mpd:dynamic
 .SH Range extraction
 .LP
 .br
-The filter can perform time range extraction of the source using -xs and  -xe options.
+The filter can perform time range extraction of the source using -xs and -xe options.
 .br
 The formats allowed for times specifiers are:
 .br
-* TH:M:S: specify time in hours, minutes, seconds
+* 'T'H:M:S: specify time in hours, minutes, seconds
 .br
-* TH:M:S.MS: specify time in hours, minutes, seconds and milliseconds
+* 'T'H:M:S.MS: specify time in hours, minutes, seconds and milliseconds
 .br
 * INT: specify time in millisecond
 .br
@@ -2535,7 +2541,28 @@ gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10:xe=T00:00:20:splitrange -o dump_$
 .br
 This will create two output files dump_T00.00.10_T00.02.00.264 and dump_T00.01.10.264.
 .br
-Note: the : and / characters are replaced by . in FileSuffix property.
+Note: The : and / characters are replaced by . in FileSuffix property.
+.br
+
+.br
+.SH Other split actions
+.LP
+.br
+The filter can perform splitting of the source using -xs option.
+.br
+The additional formats allowed for -xs option are:
+.br
+* 'SAP': split source at each SAP/RAP
+.br
+* 'D'VAL: split source by chunks of VAL ms
+.br
+* 'D'NUM/DEN: split source by chunks of NUM/DEN seconds
+.br
+* 'S'VAL: split source by chunks of estimated size VAL bytes, VAL can use property multipliers
+.br
+
+.br
+Note: In these modes, -splitrange and -xadjust are implicitly set.
 .br
 
 .br
@@ -2568,11 +2595,11 @@ raw (bool, default: false):    force input streams to be in raw format (i.e. for
 .br
 frames (uintl):                drop all except listed frames (first being 1), off by default
 .br
-xs (strl):                     extraction start time(s)
+xs (strl):                     extraction start time(s), see filter help
 .br
 xe (strl):                     extraction end time(s). If less values than start times, the last time interval extracted is an open range
 .br
-cround (enum, default: before): adjustment of extraction start range I-frame
+xround (enum, default: before): adjustment of extraction start range I-frame
 .br
 * before: use first I-frame preceeding or equal to start range
 .br
@@ -2582,11 +2609,13 @@ cround (enum, default: before): adjustment of extraction start range I-frame
 .br
 
 .br
+xadjust (bool, default: false): adjust end time of extraction range to be before next I-frame
+.br
 nosap (bool, default: false):  do not cut at SAP when extracting range (may result in broken streams)
 .br
 splitrange (bool, default: false): signal file boundary at each extraction first packet for template-base file generation
 .br
-seeksafe (dbl, default: 30.0): rewind play requests by given seconds (to make sur I-frame preceeding start is catched)
+seeksafe (dbl, default: 10.0): rewind play requests by given seconds (to make sur I-frame preceeding start is catched)
 .br
 
 .br
@@ -5757,7 +5786,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev73-gfc3518d84-filters
+build: 0.9.0-DEV-rev76-gdafa40780-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
