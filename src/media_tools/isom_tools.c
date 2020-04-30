@@ -129,10 +129,12 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 		} else {
 			u32 mtype = gf_isom_get_media_type(file, track);
 			if (gf_isom_is_video_handler_type(mtype)) {
-				u32 mstype = gf_isom_get_media_subtype(file, track, 1);
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
-					("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
-						gf_4cc_to_str(mstype) ));
+				if (rewrite_bs) {
+					u32 mstype = gf_isom_get_media_subtype(file, track, 1);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
+						("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
+							gf_4cc_to_str(mstype) ));
+				}
 			} else {
 				u32 mtype = gf_isom_get_media_type(file, track);
 				if (gf_isom_is_video_handler_type(mtype)) {
@@ -146,7 +148,8 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 				}
 			}
 		}
-		if (get_par_info && (!ar_num || !ar_den)) {
+		//auto mode
+		if (get_par_info && ((ar_num<=0) || (ar_num<=0))) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMF] No sample AR info present in sample description, ignoring SAR update\n"));
 			return GF_OK;
 		}
