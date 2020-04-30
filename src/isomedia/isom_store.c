@@ -697,7 +697,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 
 
 //write the file track by track, with moov box before or after the mdat
-GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, GF_BitStream *moov_bs)
+static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, GF_BitStream *moov_bs)
 {
 	GF_Err e;
 	u32 i;
@@ -1454,6 +1454,8 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 		if (movie->storageMode==GF_ISOM_STORE_STREAMABLE) {
 			moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		}
+		//seek at end in case we had a read of the file
+		gf_bs_seek(movie->editFileMap->bs, gf_bs_get_size(movie->editFileMap->bs) );
 		e = WriteFlat(&mw, 0, movie->editFileMap->bs, moov_bs);
 		if (moov_bs) {
 			char *moov_data;
