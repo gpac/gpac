@@ -1694,6 +1694,8 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 				gf_bs_del(bs);
 				return e;
 			}
+			//seek at end in case we had a read of the file
+			gf_bs_seek(movie->editFileMap->bs, gf_bs_get_size(movie->editFileMap->bs) );
 
 			if ((movie->storageMode==GF_ISOM_STORE_FASTSTART) && mdat_start && mdat_size) {
 				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
