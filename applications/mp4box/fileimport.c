@@ -412,15 +412,16 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (!group) group = gf_isom_get_next_alternate_group_id(dest);
 		}
 		else if (!strnicmp(ext+1, "fps=", 4)) {
-			if (!strcmp(ext+5, "auto")) force_fps = GF_IMPORT_AUTO_FPS;
-			else if (strchr(ext+5, '-')) {
-				u32 ticks, dts_inc;
-				sscanf(ext+5, "%u-%u", &ticks, &dts_inc);
+			u32 ticks, dts_inc;
+			if (!strcmp(ext+5, "auto")) {
+				force_fps = GF_IMPORT_AUTO_FPS;
+			} else if ((sscanf(ext+5, "%u-%u", &ticks, &dts_inc) == 2) || (sscanf(ext+5, "%u/%u", &ticks, &dts_inc) == 2)) {
 				if (!dts_inc) dts_inc=1;
 				force_fps = ticks;
 				force_fps /= dts_inc;
+			} else {
+				force_fps = atof(ext+5);
 			}
-			else force_fps = atof(ext+5);
 		}
 		else if (!stricmp(ext+1, "rap")) rap_only = 1;
 		else if (!stricmp(ext+1, "refs")) refs_only = 1;
