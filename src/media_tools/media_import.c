@@ -5802,6 +5802,9 @@ restart_import:
 	avccfg->nal_unit_size = size_length/8;
 	svccfg->nal_unit_size = size_length/8;
 
+	//update par before switching to inband config which will remove SPS
+	e = gf_media_update_par(import->dest, track);
+	if (e) goto exit;
 
 	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
@@ -5824,8 +5827,6 @@ restart_import:
 		if (e) goto exit;
 	}
 
-	e = gf_media_update_par(import->dest, track);
-	if (e) goto exit;
 	/*arbitrary: use the last active SPS*/
 	if (avc.sps[avc.sps_active_idx].vui_parameters_present_flag && avc.sps[avc.sps_active_idx].vui.colour_description_present_flag) {
 		e = gf_isom_set_visual_color_info(import->dest, track, di, GF_ISOM_SUBTYPE_NCLX, avc.sps[avc.sps_active_idx].vui.colour_primaries, avc.sps[avc.sps_active_idx].vui.transfer_characteristics, avc.sps[avc.sps_active_idx].vui.matrix_coefficients, avc.sps[avc.sps_active_idx].vui.video_full_range_flag, NULL, 0);
@@ -6130,6 +6131,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	u32 min_layer_id = (u32) -1;
 	LHVCLayerInfo linf[64];
 	Bool sample_is_ref;
+	u32 sar_w, sar_h;
 
 
 	Double FPS;
@@ -6184,6 +6186,7 @@ restart_import:
 	hevc_base_track = 0;
 	/*has_hevc = */has_lhvc = GF_FALSE;
 	sample_is_ref = 0;
+	sar_w = sar_h = 0;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -6410,6 +6413,17 @@ restart_import:
 					copy_size = nal_size;
 					assert(spss);
 					spss->array_completeness = 0;
+				}
+			}
+
+			if (hevc.sps[idx].sar_width && hevc.sps[idx].sar_width) {
+				if (!sar_w || !sar_h) {
+					sar_w = hevc.sps[idx].sar_width;
+					sar_h = hevc.sps[idx].sar_height;
+				} else if ((import->flags & GF_IMPORT_FORCE_XPS_INBAND)
+					&& ((sar_w != hevc.sps[idx].sar_width) || (sar_h != hevc.sps[idx].sar_height))
+				) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[HEVCImport] Multiple SAR in xps inband mode, defaulting to first SAR found %d/%d\n", sar_w, sar_h));
 				}
 			}
 
@@ -7181,6 +7195,10 @@ next_nal:
 
 	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 		gf_isom_hevc_set_inband_config(import->dest, track, 1);
+	}
+
+	if (sar_w && sar_h) {
+		gf_isom_set_pixel_aspect_ratio(import->dest, track, 1, sar_w, sar_h, GF_FALSE);
 	}
 
 	if (import->flags & GF_IMPORT_USE_CCST) {
