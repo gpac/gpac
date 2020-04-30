@@ -1318,7 +1318,12 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 		use_not_equal = GF_TRUE;
 	}
 	//parse the property, based on its property type
-	prop_val = gf_props_parse_value(pent->prop.type, frag_name, psep+1, NULL, src_pid->filter->session->sep_list);
+	if (pent->p4cc==GF_PROP_PID_CODECID) {
+		prop_val.type = GF_PROP_UINT;
+		prop_val.value.uint = gf_codec_parse(psep+1);
+	} else {
+		prop_val = gf_props_parse_value(pent->prop.type, frag_name, psep+1, NULL, src_pid->filter->session->sep_list);
+	}
 	if (!comp_type) {
 		is_equal = gf_props_equal(&pent->prop, &prop_val);
 		if (use_not_equal) is_equal = !is_equal;
@@ -1374,6 +1379,8 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, GF_Fil
 	char *resolved_source_ids = NULL;
 	Bool result = GF_FALSE;
 	Bool first_pass = GF_TRUE;
+	Bool has_default_match;
+	Bool is_pid_excluded;
 	*pid_excluded = GF_FALSE;
 	if (!dst_filter->source_ids)
 		return GF_TRUE;
@@ -1386,13 +1393,16 @@ sourceid_reassign:
 		assert(dst_filter->dynamic_source_ids);
 		source_ids = dst_filter->dynamic_source_ids;
 	}
+	has_default_match = GF_FALSE;
+	is_pid_excluded = GF_FALSE;
 
 	while (source_ids) {
 		Bool all_matched = GF_TRUE;
+		Bool all_frags_not_found = GF_TRUE;
 		u32 len, sublen;
 		Bool last=GF_FALSE;
 		char *sep = strchr(source_ids, src_pid->filter->session->sep_list);
-		char *frag_name;
+		char *frag_name, *frag_clone;
 		if (sep) {
 			len = (u32) (sep - source_ids);
 		} else {
@@ -1419,16 +1429,25 @@ sourceid_reassign:
 			result = GF_TRUE;
 			break;
 		}
+		frag_clone = NULL;
+		if (!last && frag_name) {
+			frag_clone = gf_strdup(frag_name);
+			char *nsep = strchr(frag_clone, src_pid->filter->session->sep_list);
+			assert(nsep);
+			nsep[0] = 0;
+			frag_name = frag_clone;
+		}
 
 		//for all listed fragment extensions
 		while (frag_name && all_matched) {
 			char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE];
 			Bool needs_resolve = GF_FALSE;
 			Bool prop_not_found = GF_FALSE;
+			Bool local_pid_excluded = GF_FALSE;
 			char *next_frag = strchr(frag_name, src_pid->filter->session->sep_frag);
 			if (next_frag) next_frag[0] = 0;
 
-			if (! filter_pid_check_fragment(src_pid, frag_name, pid_excluded, &needs_resolve, &prop_not_found, prop_dump_buffer)) {
+			if (! filter_pid_check_fragment(src_pid, frag_name, &local_pid_excluded, &needs_resolve, &prop_not_found, prop_dump_buffer)) {
 				if (needs_resolve) {
 					if (first_pass) {
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
@@ -1445,11 +1464,20 @@ sourceid_reassign:
 
 						if (resolved_source_ids) gf_free(resolved_source_ids);
 						resolved_source_ids = new_source_ids;
+						if (frag_clone) gf_free(frag_clone);
 						goto sourceid_reassign;
 					}
 				}
-				else
+				else {
 					all_matched = GF_FALSE;
+					//remember we failed because PID was excluded by sourceID
+					if (local_pid_excluded)
+						is_pid_excluded = GF_TRUE;
+				}
+			} else {
+				//remember we succeed because PID has no matching property
+				if (!prop_not_found)
+					all_frags_not_found = GF_FALSE;
 			}
 
 			if (!next_frag) break;
@@ -1457,13 +1485,25 @@ sourceid_reassign:
 			next_frag[0] = src_pid->filter->session->sep_frag;
 			frag_name = next_frag+1;
 		}
+		if (frag_clone) gf_free(frag_clone);
 		if (all_matched) {
-			result = GF_TRUE;
-			break;
+			//exact match on one or more properties, don't look any further
+			if (!all_frags_not_found) {
+				result = GF_TRUE;
+				break;
+			}
+			//remember we had a default match, but don't set result yet and parse other SIDs
+			has_default_match = GF_TRUE;
 		}
 		*needs_clone = GF_FALSE;
 		if (!sep) break;
 		source_ids = sep+1;
+	}
+
+	if (!result) {
+		//we had a default match and pid was not excluded by any SIDs, consider we pass
+		if (has_default_match && !is_pid_excluded)
+			result = GF_TRUE;
 	}
 
 	if (!result) {
@@ -1472,6 +1512,7 @@ sourceid_reassign:
 			first_pass = GF_FALSE;
 			goto sourceid_reassign;
 		}
+		*pid_excluded = is_pid_excluded;
 		return GF_FALSE;
 	}
 	if (resolved_source_ids) {
