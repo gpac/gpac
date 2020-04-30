@@ -702,7 +702,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 		if (e) goto err_exit;
 		e = trak_on_child_box((GF_Box*)trak, (GF_Box *) mdia);
 		if (e) goto err_exit;
-		movie->last_created_track_id = tkhd->trackID = trakID;
+		tkhd->trackID = trakID;
 
 		if (gf_sys_is_test_mode() ) {
 			tkhd->creationTime = 0;
@@ -750,7 +750,8 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 			break;
 		}
 	}
-
+	movie->last_created_track_id = tkhd->trackID;
+	
 	if (!movie->keep_utc && !gf_sys_is_test_mode() ) {
 		tkhd->modificationTime = now;
 	 	mdia->mediaHeader->modificationTime = now;
