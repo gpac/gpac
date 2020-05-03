@@ -146,14 +146,12 @@ static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)
 
 static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 {
-	const char *url, *dst;
+	const char *dst;
 	Bool use_gfio=GF_FALSE;
 	AVOutputFormat *ofmt = ctx->muxer->oformat;
 
 	dst = final_name ? final_name : ctx->dst;
-	url = dst;
 	if (!strncmp(dst, "gfio://", 7)) {
-		url = gf_fileio_translate_url(dst);
 		use_gfio = GF_TRUE;
 	}
 
@@ -192,7 +190,6 @@ static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 static GF_Err ffmx_initialize(GF_Filter *filter)
 {
 	const char *url, *sep;
-	Bool use_gfio=GF_FALSE;
 	Bool use_templates=GF_FALSE;
 	AVOutputFormat *ofmt;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
@@ -209,7 +206,6 @@ static GF_Err ffmx_initialize(GF_Filter *filter)
 
 	if (!strncmp(ctx->dst, "gfio://", 7)) {
 		url = gf_fileio_translate_url(ctx->dst);
-		use_gfio = GF_TRUE;
 	}
 	sep = strchr(url, '$');
 	if (sep && strchr(sep+1, '$'))
@@ -402,8 +398,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
-	u32 nb_done, nb_segs_done, nb_suspended, next_file_idx=0, i, nb_pids = gf_filter_get_ipid_count(filter);
-	char *next_file_suffix = NULL;
+	u32 nb_done, nb_segs_done, nb_suspended, i, nb_pids = gf_filter_get_ipid_count(filter);
 
 	if (ctx->status<FFMX_STATE_HDR_DONE) {
 		Bool all_ready = GF_TRUE;
@@ -511,10 +506,6 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				} else if (!st->suspended) {
 					st->suspended = GF_TRUE;
 					nb_suspended++;
-					next_file_idx =  p->value.uint + 1;
-					p = gf_filter_pck_get_property(ipck, GF_PROP_PCK_FILESUF);
-					if (p && p->value.string)
-						next_file_suffix = p->value.string;
 					break;
 				}
 			}
