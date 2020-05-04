@@ -388,8 +388,13 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		gf_isom_set_timescale(import->dest, timescale);
 	}
 	clone_flags = GF_ISOM_CLONE_TRACK_NO_QT;
-	if (import->asemode == GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF)
+	if (import->asemode == GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) {
 		clone_flags = 0;
+	} else {
+		const char *dst = gf_isom_get_filename(import->dest);
+		if (dst && strstr(dst, ".mov"))
+			clone_flags = 0;
+	}
 
 	if (import->flags & GF_IMPORT_USE_DATAREF) clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
