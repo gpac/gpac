@@ -46,6 +46,15 @@ enum{
 	NALU_HEVC
 };
 
+
+enum
+{
+	CENC_NONE=0,
+	CENC_NEED_SETUP,
+	CENC_SETUP_DONE,
+	CENC_SETUP_ERROR
+};
+
 typedef struct
 {
 	GF_FilterPid *ipid;
@@ -2176,7 +2185,7 @@ multipid_stsd_setup:
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
-			tkw->cenc_state = 1;
+			tkw->cenc_state = CENC_NEED_SETUP;
 			if (tkw->is_nalu || tkw->is_av1 || tkw->is_vpx) tkw->cenc_subsamples = GF_TRUE;
 			break;
 		default:
@@ -2569,6 +2578,9 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	Bool needs_seig = GF_FALSE;
 	u32 sample_num;
 
+	if (tkw->cenc_state == CENC_SETUP_ERROR)
+		return GF_SERVICE_ERROR;
+
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PATTERN);
 	if (p) {
 		skip_byte_block = p->value.frac.num;
@@ -2603,7 +2615,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	if (p) scheme_version = p->value.uint;
 
 	//initial setup
-	if (tkw->cenc_state==1) {
+	if (tkw->cenc_state==CENC_NEED_SETUP) {
 		u32 cenc_stsd_mode=0;
 		u32 container_type = GF_ISOM_BOX_TYPE_SENC;
 
@@ -2637,10 +2649,11 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			}
 		}
 
-		tkw->cenc_state = 2;
+		tkw->cenc_state = CENC_SETUP_DONE;
 		e = gf_isom_set_cenc_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, pck_is_encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC information: %s\n", gf_error_to_string(e) ));
+			tkw->cenc_state = CENC_SETUP_ERROR;
 			return e;
 		}
 
@@ -2659,7 +2672,11 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 
 		e = gf_isom_cenc_allocate_storage(ctx->file, tkw->track_num, container_type, 0, 0, NULL);
-		if (e) return e;
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC storage: %s\n", gf_error_to_string(e) ));
+			tkw->cenc_state = CENC_SETUP_ERROR;
+			return e;
+		}
 	}
 	if (act_type==CENC_CONFIG) return GF_OK;
 
@@ -3407,7 +3424,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			}
 		}
 
-		if (tkw->cenc_state==1) {
+		if (tkw->cenc_state==CENC_NEED_SETUP) {
 			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
 		}
 
@@ -4315,7 +4332,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
-				if (tkw->cenc_state==1)
+				if (tkw->cenc_state==CENC_NEED_SETUP)
 					mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0);
 
 				if (!tkw->nb_samples) {
@@ -4572,7 +4589,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			}
 		}
 
-		if (tkw->cenc_state==1) mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
+		if (tkw->cenc_state==CENC_NEED_SETUP)
+			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
 
 		if (tkw->is_item) {
 			mp4_mux_process_item(ctx, tkw, pck);
