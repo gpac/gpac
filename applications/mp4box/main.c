@@ -338,7 +338,6 @@ void PrintDASHUsage()
 		"Also see:\n"
 		"- the [dasher `gpac -h dash`](dasher) filter documentation\n"
 		"- [[online DASH Intro doc|DASH Introduction]].\n"
-		"- [[online MP4Box DASH support doc|DASH Support in MP4Box]].\n"
 		"\n"
 		"# Specifying input files\n"
 		"Input media files to dash can use the following modifiers\n"
