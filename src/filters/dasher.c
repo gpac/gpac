@@ -1986,6 +1986,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	Bool has_frag=GF_FALSE;
 	Bool has_subs=GF_FALSE;
 	Bool has_strun=GF_FALSE;
+	Bool has_vodcache=GF_FALSE;
 	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
 	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
 	const char *dst_args;
@@ -2039,6 +2040,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 		sprintf(szKey, "%cstrun", sep_args);
 		if (strstr(dst_args, szKey)) has_strun = GF_TRUE;
+
+		sprintf(szKey, "%cvodcache", sep_args);
+		if (strstr(dst_args, szKey)) has_vodcache = GF_TRUE;
 	}
 
 	if (trash_init) {
@@ -2083,9 +2087,10 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 	gf_dynstrcat(&szDST, szSRC, NULL);
 
-	//patch for old arch: make sure we don't have any extra free box after the sidx
-	if (gf_sys_old_arch_compat() && ctx->sseg) {
-		sprintf(szSRC, "%cvodcache", sep_args );
+	//patch for old arch: make sure we don't have any extra free box before the sidx
+	//we could also use vodcache=insert but this might break http outputs
+	if (gf_sys_old_arch_compat() && !has_vodcache && ctx->sseg) {
+		sprintf(szSRC, "%cvodcache=on", sep_args );
 		if (!strstr(szDST, szSRC))
 			gf_dynstrcat(&szDST, szSRC, NULL);
 	}
@@ -2180,7 +2185,13 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*"));
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_MIME, &PROP_STRING(ds->rep->mime_type));
 	}
-	
+	if (ds->nb_cues) {
+		u32 ncues = ds->nb_cues;
+		if ((ds->cues[0].sample_num>0) || (ds->cues[0].cts>0) || (ds->cues[0].dts>0))
+			ncues++;
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_SEGMENTS, &PROP_UINT(ncues) );
+	}
+
 	gf_filter_pid_require_source_id(ds->opid);
 
 	if (ctx->pssh == GF_DASH_PSSH_MPD) {

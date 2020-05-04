@@ -184,6 +184,13 @@ enum
 	MP4MX_TRUN_INTER_MERGE,
 };
 
+enum
+{
+	MP4MX_VODCACHE_ON=0,
+	MP4MX_VODCACHE_INSERT,
+	MP4MX_VODCACHE_REPLACE,
+};
+
 typedef struct
 {
 	//filter args
@@ -203,7 +210,8 @@ typedef struct
 	Bool chain_sidx;
 	u32 msn, msninc;
 	GF_Fraction64 tfdt;
-	Bool nofragdef, straf, strun, sgpd_traf, vodcache, noinit;
+	Bool nofragdef, straf, strun, sgpd_traf, noinit;
+	u32 vodcache;
 	u32 psshs;
 	u32 tkid;
 	Bool fragdur;
@@ -259,6 +267,7 @@ typedef struct
 	Double media_dur;
 	u32 sidx_max_size, sidx_chunk_offset;
 	Bool final_sidx_flush;
+	Bool sidx_size_exact;
 
 	u32 *seg_sizes;
 	u32 nb_seg_sizes, alloc_seg_sizes;
@@ -310,7 +319,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 	}
 	ctx->dash_mode = MP4MX_DASH_VOD;
-	if (ctx->vodcache && !ctx->tmp_store) {
+	if ((ctx->vodcache==MP4MX_VODCACHE_ON) && !ctx->tmp_store) {
 		ctx->tmp_store = gf_file_temp(NULL);
 		if (!ctx->tmp_store) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot allocate temp file for VOD sidx generation\n"));
@@ -1043,12 +1052,15 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 
 		if (ctx->dash_mode==MP4MX_DASH_VOD) {
-			Bool use_cache = ctx->vodcache;
-			if (!ctx->vodcache && (!ctx->media_dur || !ctx->dash_dur) ) {
+			Bool use_cache = (ctx->vodcache == MP4MX_VODCACHE_ON) ? GF_TRUE : GF_FALSE;
+			if ((ctx->vodcache == MP4MX_VODCACHE_REPLACE) && (!ctx->media_dur || !ctx->dash_dur) ) {
 				use_cache = GF_TRUE;
 			}
 
-			if (!use_cache) {
+			if (ctx->vodcache==MP4MX_VODCACHE_INSERT) {
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_INSERT) );
+			}
+			else if (!use_cache) {
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_REPLACE) );
 			}
 		}
@@ -3384,6 +3396,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	u32 def_fake_dur=0;
 	u32 def_fake_scale=0;
 	u32 traf_inherit_base_id=0;
+	u32 nb_segments=0;
 	GF_Fraction64 max_dur;
 	ctx->single_file = GF_TRUE;
 	ctx->current_offset = ctx->current_size = 0;
@@ -3561,6 +3574,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			}
 			tkw->box_patched = GF_TRUE;
 		}
+
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_SEGMENTS);
+		if (p && (p->value.uint>nb_segments))
+			nb_segments = p->value.uint;
 	}
 
 	if (max_dur.num) {
@@ -3662,31 +3679,48 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	}
 
 	if (ctx->dash_mode==MP4MX_DASH_VOD) {
-		if (!ctx->vodcache && (!ctx->media_dur || !ctx->dash_dur) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Media duration unknown, cannot use nocache mode, using temp file for VoD storage\n"));
-			ctx->vodcache = GF_TRUE;
+		if ((ctx->vodcache==MP4MX_VODCACHE_REPLACE) && !nb_segments && (!ctx->media_dur || !ctx->dash_dur) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Media duration unknown, cannot use replace mode of vodcache, using temp file for VoD storage\n"));
+			ctx->vodcache = MP4MX_VODCACHE_ON;
 			e = mp4mx_setup_dash_vod(ctx, NULL);
 			if (e) return e;
 		}
 
-		if (!ctx->vodcache) {
+		if (ctx->vodcache==MP4MX_VODCACHE_REPLACE) {
 			GF_BitStream *bs;
 			u8 *output;
 			char *msg;
 			GF_FilterPacket *pck;
-			u32 len, nb_segs = (u32) ( ctx->media_dur / ctx->dash_dur);
-			//always add an extra segment
-			nb_segs ++;
-			//and safety alloc of 10%
-			if (nb_segs>10)
-				nb_segs += 10*nb_segs/100;
-			else
-				nb_segs ++;
+			u32 len;
+			Bool exact_sidx = GF_TRUE;
+
+			if (!nb_segments) {
+				exact_sidx = GF_FALSE;
+				nb_segments = (u32) ( ctx->media_dur / ctx->dash_dur);
+				//always add an extra segment
+				nb_segments ++;
+				//and safety alloc of 10%
+				if (nb_segments>10)
+					nb_segments += 10*nb_segments/100;
+				else
+					nb_segments ++;
+			}
 
 			//max sidx size: full box + sidx fields + timing 64 bit + nb segs (each 12 bytes)
-			ctx->sidx_max_size = 12 + 12 + 16 + 12 * nb_segs;
-			//and a free box
-			ctx->sidx_max_size += 8;
+			ctx->sidx_max_size = 12 + (12 + 16) + 12 * nb_segments;
+
+			//we produce an ssix, add full box + nb subsegs + nb_segments * (range_count=2 + 2*(range+size))
+			if (ctx->ssix) {
+				ctx->sidx_max_size += 12 + 4 + nb_segments * 12;
+			}
+
+			if (!exact_sidx) {
+				//and a free box
+				ctx->sidx_max_size += 8;
+				ctx->sidx_size_exact = GF_FALSE;
+			} else {
+				ctx->sidx_size_exact = GF_TRUE;
+			}
 			ctx->sidx_chunk_offset = (u32) (ctx->current_offset + ctx->current_size);
 			//send a dummy packet
 			pck = gf_filter_pck_new_alloc(ctx->opid, ctx->sidx_max_size, &output);
@@ -3701,8 +3735,11 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			gf_bs_write_data(bs, msg, len );
 			gf_bs_del(bs);
 			gf_filter_pck_send(pck);
-		} else {
+		} else if (ctx->vodcache==MP4MX_VODCACHE_ON) {
 			ctx->store_output = GF_TRUE;
+		} else {
+			ctx->store_output = GF_FALSE;
+			ctx->sidx_chunk_offset = (u32) (ctx->current_offset + ctx->current_size);
 		}
 		gf_isom_allocate_sidx(ctx->file, ctx->subs_sidx, ctx->chain_sidx, 0, NULL, NULL, NULL, ctx->ssix);
 	}
@@ -4218,7 +4255,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
 				mp4_mux_flush_frag(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
-			} else if (!ctx->vodcache) {
+			} else if (ctx->vodcache==MP4MX_VODCACHE_REPLACE) {
 				mp4_mux_flush_frag(ctx, GF_FALSE, 0, 0);
 			} else {
 				if (ctx->nb_seg_sizes == ctx->alloc_seg_sizes) {
@@ -4258,15 +4295,15 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 check_eos:
 	if (count == nb_eos) {
 		if (ctx->dash_mode==MP4MX_DASH_VOD) {
-			if (!ctx->vodcache) {
+			if (ctx->vodcache!=MP4MX_VODCACHE_ON) {
 				ctx->final_sidx_flush = GF_TRUE;
-				//flush SIDX in given space, reserve 8 bytes for free box
-				gf_isom_flush_sidx(ctx->file, ctx->sidx_max_size - 8);
+				//flush SIDX in given space - this will reserve 8 bytes for free box if not fitting
+				gf_isom_flush_sidx(ctx->file, ctx->sidx_max_size, ctx->sidx_size_exact);
 			} else {
 				u64 start_offset;
 				//reenable packet dispatch
 				ctx->store_output = GF_FALSE;
-				gf_isom_flush_sidx(ctx->file, 0);
+				gf_isom_flush_sidx(ctx->file, 0, GF_FALSE);
 				//flush sidx packet
 				mp4mux_send_output(ctx);
 
@@ -4664,25 +4701,39 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 
 	if (ctx->final_sidx_flush) {
 		GF_FilterPacket *pck;
-		GF_BitStream *bs;
-		u32 free_size;
-		assert(!ctx->dst_pck);
-		if (block_size > ctx->sidx_max_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Final SIDX chunk larger than preallocated block, will not flush SIDX (output file still readable). Try disabling nocache mode\n"));
-			return GF_OK;
+		u32 free_size=0;
+
+		if (ctx->vodcache==MP4MX_VODCACHE_INSERT) {
+			pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
+			memcpy(output, data, block_size);
+			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
+			gf_filter_pck_set_byte_offset(pck, ctx->sidx_chunk_offset);
+			gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+			gf_filter_pck_set_interlaced(pck, 1);
+			gf_filter_pck_send(pck);
+		} else {
+			GF_BitStream *bs;
+			assert(!ctx->dst_pck);
+
+			if (block_size > ctx->sidx_max_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Final SIDX chunk larger than preallocated block, will not flush SIDX (output file still readable). Try disabling nocache mode\n"));
+				return GF_OK;
+			}
+			free_size = ctx->sidx_max_size - block_size;
+			pck = gf_filter_pck_new_alloc(ctx->opid, ctx->sidx_max_size, &output);
+			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
+			gf_filter_pck_set_byte_offset(pck, ctx->sidx_chunk_offset);
+			gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+			bs = gf_bs_new(output, ctx->sidx_max_size, GF_BITSTREAM_WRITE);
+			if (free_size) {
+				gf_bs_write_u32(bs, free_size);
+				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FREE);
+				gf_bs_skip_bytes(bs, free_size-8);
+			}
+			gf_bs_write_data(bs, data, block_size);
+			gf_bs_del(bs);
+			gf_filter_pck_send(pck);
 		}
-		free_size = ctx->sidx_max_size - block_size;
-		pck = gf_filter_pck_new_alloc(ctx->opid, ctx->sidx_max_size, &output);
-		gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
-		gf_filter_pck_set_byte_offset(pck, ctx->sidx_chunk_offset);
-		gf_filter_pck_set_seek_flag(pck, GF_TRUE);
-		bs = gf_bs_new(output, ctx->sidx_max_size, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(bs, free_size);
-		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FREE);
-		gf_bs_skip_bytes(bs, free_size-8);
-		gf_bs_write_data(bs, data, block_size);
-		gf_bs_del(bs);
-		gf_filter_pck_send(pck);
 		mp4_mux_flush_frag(ctx, GF_TRUE, ctx->sidx_chunk_offset+free_size, ctx->sidx_chunk_offset+free_size + block_size - 1);
 		return GF_OK;
 	}
@@ -5191,7 +5242,10 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- moov: in movie box\n"
 	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(vodcache), "enable temp storage for VoD dash modes - see filter help", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(vodcache), "enable temp storage for VoD dash modes - see filter help\n"
+		"- on: use temp storage of complete file for sidx and ssix injection\n"
+		"- insert: insert sidx and ssix by shifting bytes in output file\n"
+		"- replace: precompute pace requirements for sidx and ssix and rewrite file range at end", GF_PROP_UINT, "replace", "on|insert|replace", 0},
 	{ OFFS(noinit), "do not produce initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tktpl), "use track box from input if any as a template to create new track\n"
 	"- no: disables template\n"
@@ -5265,8 +5319,10 @@ GF_FilterRegister MP4MuxRegister = {
 	"The [-store]() option allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
 	"  \n"
 	"The [-vodcache]() option allows controling how DASH onDemand segments are generated:\n"
-	"-  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX.\n"
-	"- When enabled, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
+	"- If set to `on`, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
+	"- If set to `insert`, SIDX/SSIX will be injected upon completion of the file by shifting bytes in file. In this case, no padding is required but this might not be compatible with all output sinks and will take longer to write the file.\n"
+	"- If set to `replace`, SIDX/SSIX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX. If input pids have the properties `DSegs` set, this will be as the number of segments.\n"
+	"The `on` and `insert` modes will produce exactly the same file, while the mode `replace` may inject a `free` box before the sidx.\n"
 	"  \n"
 	"# Custom boxes\n"
 	"Custom boxes can be specified as box patches:\n"
