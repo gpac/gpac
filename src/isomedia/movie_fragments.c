@@ -1962,6 +1962,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 				count++;
 
 				if (generate_ssix) {
+					u32 last_sseg_range0_size, remain_size;
 					if (movie->root_ssix) {
 						ssix = movie->root_ssix;
 						if (ssix->subsegment_count <= cur_index) {
@@ -1976,10 +1977,13 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 					ssix->subsegments[cur_index].ranges[0].level = 1;
 					ssix->subsegments[cur_index].ranges[0].range_size = moof_get_first_sap_end(movie->moof);
 
-					{
-						u32 last_sseg_range0_size = (cur_index < ssix->subsegment_count) ? ssix->subsegments[cur_index].ranges[0].range_size : 0;
-						ssix->subsegments[cur_index].ranges[1].level = 2;
-						ssix->subsegments[cur_index].ranges[1].range_size = sidx->refs[cur_index].reference_size - last_sseg_range0_size;
+					last_sseg_range0_size = (cur_index < ssix->subsegment_count) ? ssix->subsegments[cur_index].ranges[0].range_size : 0;
+					ssix->subsegments[cur_index].ranges[1].level = 2;
+
+					remain_size = sidx->refs[cur_index].reference_size - last_sseg_range0_size;
+					ssix->subsegments[cur_index].ranges[1].range_size = remain_size;
+					if (remain_size>0xFFFFFF) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Remaining subsegment size %d larger than max ssix range size 0xFFFFFF, file might be broken\n", remain_size));
 					}
 
 					if (movie->root_ssix)
