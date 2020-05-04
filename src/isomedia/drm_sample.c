@@ -474,7 +474,14 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] cannot set protection entry: file is already encrypted.\n"));
 		return GF_BAD_PARAM;
 	default:
-		return GF_BAD_PARAM;
+		if (sea->internal_type == GF_ISOM_SAMPLE_ENTRY_AUDIO) {
+			sea->type = GF_ISOM_BOX_TYPE_ENCA;
+		} else if (sea->internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
+			sea->type = GF_ISOM_BOX_TYPE_ENCV;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] unsupported entry type %s for CENC.\n", gf_4cc_to_str(sea->type) ));
+			return GF_BAD_PARAM;
+		}
 	}
 
 	sinf = (GF_ProtectionSchemeInfoBox *)gf_isom_box_new_parent(&sea->child_boxes, GF_ISOM_BOX_TYPE_SINF);
