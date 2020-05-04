@@ -3987,7 +3987,7 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
 #endif
 
-GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size);
+GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

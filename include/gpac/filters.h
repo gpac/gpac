@@ -974,6 +974,7 @@ enum
 	GF_PROP_PID_CLAMP_DUR = GF_4CC('D','C','M','D'),
 	GF_PROP_PID_HLS_PLAYLIST = GF_4CC('H','L','V','P'),
 	GF_PROP_PID_DASH_CUE = GF_4CC('D','C','U','E'),
+	GF_PROP_PID_DASH_SEGMENTS = GF_4CC('D','C','N','S'),
 	GF_PROP_PID_SINGLE_SCALE = GF_4CC('D','S','T','S'),
 	GF_PROP_PID_UDP = GF_4CC('P','U','D','P'),
 

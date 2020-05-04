@@ -1649,9 +1649,13 @@ The -store option allows controling if the file is fragmented ot not, and when n
 .br
 The -vodcache option allows controling how DASH onDemand segments are generated:
 .br
--  When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX.
+- If set to on, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.
 .br
-- When enabled, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.
+- If set to insert, SIDX/SSIX will be injected upon completion of the file by shifting bytes in file. In this case, no padding is required but this might not be compatible with all output sinks and will take longer to write the file.
+.br
+- If set to replace, SIDX/SSIX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. If input pids have the properties DSegs set, this will be as the number of segments.
+.br
+The on and insert modes will produce exactly the same file, while the mode replace may inject a free box before the sidx.
 .br
   
 .br
@@ -1794,7 +1798,15 @@ psshs (enum, default: moov):   set PSSH boxes store mode
 .br
 sgpd_traf (bool, default: false): store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box
 .br
-vodcache (bool, default: false): enable temp storage for VoD dash modes - see filter help
+vodcache (enum, default: replace): enable temp storage for VoD dash modes - see filter help
+.br
+* on: use temp storage of complete file for sidx and ssix injection
+.br
+* insert: insert sidx and ssix by shifting bytes in output file
+.br
+* replace: precompute pace requirements for sidx and ssix and rewrite file range at end
+.br
+
 .br
 noinit (bool, default: false): do not produce initial moov, used for DASH bitstream switching mode
 .br
@@ -5786,7 +5798,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev78-g99930d0ca-filters
+build: 0.9.0-DEV-rev94-ga490654d6-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

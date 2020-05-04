@@ -2166,7 +2166,7 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
+GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -2185,6 +2185,9 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 	
 	assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
+	if (exact_range)
+		movie->root_sidx->version = 1;
+		
 	e = gf_isom_box_size((GF_Box*)movie->root_sidx);
 	size = (u32) movie->root_sidx->size;
 	if (movie->root_ssix) {
@@ -2195,6 +2198,8 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size)
 
 	if (sidx_max_size && (size > sidx_max_size) ) {
 		u32 orig_seg_count = movie->root_sidx->nb_refs;
+		//trash 8 bytes to be able to write a free box before
+		sidx_max_size -= 8;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] SIDX size %d is larger than allocated SIDX block %d, merging final segments\n", movie->root_sidx->size, sidx_max_size));
 		while (movie->root_sidx->nb_refs>2) {
 			movie->root_sidx->refs[movie->root_sidx->nb_refs-2].subsegment_duration += movie->root_sidx->refs[movie->root_sidx->nb_refs-1].subsegment_duration;
