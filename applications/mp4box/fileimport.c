@@ -1346,7 +1346,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		} else if (split_until_end) {
 			Double end=0;
 			if (split_dur<-2) {
-				end = gf_isom_get_duration(mp4);
+				end = (Double) gf_isom_get_duration(mp4);
 				end /= gf_isom_get_timescale(mp4);
 				split_dur = -2 - split_dur;
 				if (end > split_dur) end-=split_dur;
