@@ -3380,6 +3380,16 @@ GF_Err gf_isom_flac_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampl
 GF_Err gf_isom_flac_config_new(GF_ISOFile *isom_file, u32 trackNumber, u8 *metadata, u32 metadata_size, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+/*! gets a OPUS  sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param dsi set to the OPUS decoder config - shall be freeed by caller
+\param dsi_size set to the size of the OPUS decoder config
+\return error if any
+*/
+GF_Err gf_isom_opus_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u8 **dsi, u32 *dsi_size);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*! creates a motion jpeg 2000 sample description
