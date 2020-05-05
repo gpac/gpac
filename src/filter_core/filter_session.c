@@ -126,6 +126,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 GF_EXPORT
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
 {
+	const char *opt;
 	Bool gf_sys_has_filter_global_args();
 	Bool gf_sys_has_filter_global_meta_args();
 
@@ -284,7 +285,16 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
 
-	fsess->disable_blocking = (flags & GF_FS_FLAG_NO_BLOCKING) ? GF_TRUE : GF_FALSE;
+	fsess->blocking_mode = GF_FS_BLOCK_ALL;
+	opt = gf_opts_get_key("core", "no-block");
+	if (opt) {
+		if (!strcmp(opt, "fanout")) {
+			fsess->blocking_mode = GF_FS_NOBLOCK_FANOUT;
+		}
+		else if (!strcmp(opt, "all")) {
+			fsess->blocking_mode = GF_FS_NOBLOCK;
+		}
+	}
 	fsess->run_status = GF_EOS;
 	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;
@@ -414,9 +424,6 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 
 	if (gf_opts_get_bool("core", "no-reassign"))
 		flags |= GF_FS_FLAG_NO_REASSIGN;
-
-	if (gf_opts_get_bool("core", "no-block"))
-		flags |= GF_FS_FLAG_NO_BLOCKING;
 
 	if (gf_opts_get_bool("core", "no-graph-cache"))
 		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;

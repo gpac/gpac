@@ -3024,7 +3024,7 @@ u32 gf_filter_get_max_extra_input_pids(GF_Filter *filter)
 Bool gf_filter_block_enabled(GF_Filter *filter)
 {
 	if (!filter) return GF_FALSE;
-	return filter->session->disable_blocking ? GF_FALSE : GF_TRUE;
+	return (filter->session->blocking_mode==GF_FS_NOBLOCK) ? GF_FALSE : GF_TRUE;
 }
 
 GF_EXPORT

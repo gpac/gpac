@@ -241,9 +241,15 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 throw error if any pid in the filter graph cannot be linked
 .br
 .TP
-.B \-no-block
+.B \-no-block (Enum, default: no)
 .br
 disable blocking mode of filters
+.br
+* no: enable blocking mode
+.br
+* fanout: disable blocking on fanout, unblocking the PID as soon as one of its destinations requires a packet
+.br
+* all: disable blocking
 .br
 .TP
 .B \-no-reg
@@ -679,9 +685,15 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 throw error if any pid in the filter graph cannot be linked
 .br
 .TP
-.B \-no-block
+.B \-no-block (Enum, default: no)
 .br
 disable blocking mode of filters
+.br
+* no: enable blocking mode
+.br
+* fanout: disable blocking on fanout, unblocking the PID as soon as one of its destinations requires a packet
+.br
+* all: disable blocking
 .br
 .TP
 .B \-no-reg
@@ -3615,7 +3627,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev95-gd9c289d5c-filters
+build: 0.9.0-DEV-rev100-g612dacb7a-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

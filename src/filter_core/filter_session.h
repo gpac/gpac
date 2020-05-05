@@ -293,6 +293,13 @@ typedef struct
 
 void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, u32 type);
 
+enum
+{
+	GF_FS_BLOCK_ALL=0,
+	GF_FS_NOBLOCK_FANOUT,
+	GF_FS_NOBLOCK
+};
+
 struct __gf_filter_session
 {
 	u32 flags;
@@ -355,7 +362,7 @@ struct __gf_filter_session
 
 	u32 nb_threads_stopped;
 	GF_Err run_status;
-	Bool disable_blocking;
+	u32 blocking_mode;
 	Bool in_final_flush;
 
 	Bool reporting_on;
