@@ -5081,11 +5081,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
 	//if one thread (the caller here) consumes one packet while the dispatching thread is still upddating the state for that pid
 	gf_mx_p(pid->filter->tasks_mx);
-	nb_pck=gf_fq_count(pidinst->packets);
-
-	if (nb_pck<pid->nb_buffer_unit) {
-		pid->nb_buffer_unit = nb_pck;
-	}
+	nb_pck = gf_fq_count(pidinst->packets);
 
 	if (!nb_pck) {
 		safe_int64_sub(&pidinst->buffer_duration, pidinst->buffer_duration);
@@ -5100,8 +5096,31 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		safe_int64_sub(&pidinst->buffer_duration, (s32) d);
 	}
 
-	if (!pid->buffer_duration || (pidinst->buffer_duration < (s64) pid->buffer_duration)) {
-		pid->buffer_duration = pidinst->buffer_duration;
+	if ( (pid->num_destinations==1) || (pid->filter->session->blocking_mode==GF_FS_NOBLOCK_FANOUT)) {
+		if (nb_pck<pid->nb_buffer_unit) {
+			pid->nb_buffer_unit = nb_pck;
+		}
+		if (!pid->buffer_duration || (pidinst->buffer_duration < (s64) pid->buffer_duration)) {
+			pid->buffer_duration = pidinst->buffer_duration;
+		}
+	}
+	//handle fan-out: we must browse all other pid instances and compute max buffer/nb_pck per pids
+	//so that we don't unblock the PID if some instance is still blocking
+	else {
+		u32 i;
+		u32 min_pck = nb_pck;
+		s64 min_dur = pidinst->buffer_duration;
+		for (i=0; i<pid->num_destinations; i++) {
+			GF_FilterPidInst *a_pidi = gf_list_get(pid->destinations, i);
+			if (a_pidi==pidinst) continue;
+			if (a_pidi->buffer_duration > min_dur)
+				min_dur = a_pidi->buffer_duration;
+			nb_pck = gf_fq_count(a_pidi->packets);
+			if (nb_pck>min_pck)
+				min_pck = nb_pck;
+		}
+		pid->buffer_duration = min_dur;
+		pid->nb_buffer_unit = min_pck;
 	}
 	gf_filter_pid_check_unblock(pid);
 
@@ -5242,7 +5261,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		return GF_FALSE;
 	}
 
-	if (pid->filter->session->disable_blocking)
+	if (pid->filter->session->blocking_mode==GF_FS_NOBLOCK)
 		return GF_FALSE;
 
 	gf_mx_p(pid->filter->tasks_mx);
