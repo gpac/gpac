@@ -408,6 +408,13 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (e) return e;
 
 	original_format = sea->type;
+	if (original_format==GF_ISOM_BOX_TYPE_GNRA) {
+		original_format = ((GF_GenericAudioSampleEntryBox*)sea)->EntryType;
+	} else if (original_format==GF_ISOM_BOX_TYPE_GNRV) {
+		original_format = ((GF_GenericVisualSampleEntryBox*)sea)->EntryType;
+	} else if (original_format==GF_ISOM_BOX_TYPE_GNRM) {
+		original_format = ((GF_GenericSampleEntryBox*)sea)->EntryType;
+	}
 
 	/* Replacing the Media Type */
 	switch (sea->type) {

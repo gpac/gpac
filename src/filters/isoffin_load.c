@@ -259,7 +259,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				audio_fmt = (pcm_size==64) ? GF_AUDIO_FMT_DBL : GF_AUDIO_FMT_FLT;
 			}
 			break;
-
+		case GF_ISOM_SUBTYPE_MP3:
+			codec_id = GF_CODECID_MPEG_AUDIO;
+			break;
+			
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id)

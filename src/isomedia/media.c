@@ -70,12 +70,12 @@ GF_Err Media_GetSampleDescIndex(GF_MediaBox *mdia, u64 DTS, u32 *sampleDescIndex
 	return stbl_GetSampleInfos(mdia->information->sampleTable, ( sampleNumber ? sampleNumber : prevSampleNumber), &offset, &num, sampleDescIndex, NULL);
 }
 
-static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudioSampleEntryBox *entry, GF_ESD **out_esd)
+static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, u32 type, GF_GenericAudioSampleEntryBox *entry, GF_ESD **out_esd)
 {
 	(*out_esd) = gf_odf_desc_esd_new(2);
 	(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 	/*official mapping to MPEG-4*/
-	switch (entry->type) {
+	switch (type) {
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_EVRC;
 		return GF_OK;
@@ -143,9 +143,11 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 
 GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bool true_desc_only)
 {
+	u32 type;
 	GF_ESD *esd;
 	GF_MPEGSampleEntryBox *entry = NULL;
 	GF_ESDBox *ESDa;
+	GF_ProtectionSchemeInfoBox *sinf;
 	GF_SampleDescriptionBox *stsd = mdia->information->sampleTable->SampleDescription;
 
 	*out_esd = NULL;
@@ -158,9 +160,29 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 
 	*out_esd = NULL;
 	ESDa = NULL;
-	switch (entry->type) {
-	case GF_ISOM_BOX_TYPE_MP4V:
+	type = entry->type;
+	switch (type) {
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_ENCA:
+	case GF_ISOM_BOX_TYPE_ENCS:
+	case GF_ISOM_BOX_TYPE_ENCF:
+	case GF_ISOM_BOX_TYPE_ENCM:
+	case GF_ISOM_BOX_TYPE_ENCT:
+		sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
+		if (sinf && sinf->original_format) {
+			type = sinf->original_format->data_format;
+		}
+		break;
+	case GF_ISOM_BOX_TYPE_RESV:
+		sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_RINF);
+		if (sinf && sinf->original_format) {
+			type = sinf->original_format->data_format;
+		}
+		break;
+	}
+
+	switch (type) {
+	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_RESV:
 		ESDa = ((GF_MPEGVisualSampleEntryBox*)entry)->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
@@ -204,7 +226,6 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd = ((GF_MPEGVisualSampleEntryBox*)entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4A:
-	case GF_ISOM_BOX_TYPE_ENCA:
         {
             GF_MPEGAudioSampleEntryBox *ase = (GF_MPEGAudioSampleEntryBox*)entry;
             ESDa = ase->esd;
@@ -237,7 +258,6 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
         }
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:
-	case GF_ISOM_BOX_TYPE_ENCS:
 		ESDa = entry->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
 		break;
@@ -279,7 +299,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 		if (!true_desc_only) {
-			GF_Err e = gf_isom_get_3gpp_audio_esd(mdia->information->sampleTable, (GF_GenericAudioSampleEntryBox*)entry, out_esd);
+			GF_Err e = gf_isom_get_3gpp_audio_esd(mdia->information->sampleTable, type, (GF_GenericAudioSampleEntryBox*)entry, out_esd);
 			if (e) return e;
 			break;
 		} else return GF_ISOM_INVALID_MEDIA;
