@@ -310,7 +310,8 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 	//we still have packets out there!
 	if (pidinst->pid->nb_shared_packets_out) {
-		if ((pid->num_destinations==1) && (gf_list_find(pid->destinations, pidinst)>=0)) {
+		//special case for disconnect of fanouts, destroy even if shared packets out
+		if (!pid->num_destinations || ((pid->num_destinations>=1) && (gf_list_find(pid->destinations, pidinst)>=0))) {
 			TASK_REQUEUE(task)
 			return;
 		}
