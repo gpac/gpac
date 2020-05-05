@@ -905,6 +905,9 @@ typedef enum
 	GPAC_PRINT_STATS,
 	GPAC_PRINT_GRAPH,
 	GPAC_SEND_UPDATE,
+	GPAC_LIST_FILTERS,
+	GPAC_INSERT_FILTER,
+	GPAC_REMOVE_FILTER,
 	GPAC_PRINT_HELP
 } GPAC_Command;
 
@@ -919,7 +922,10 @@ struct _gpac_key
 	{'x', GPAC_EXIT, "exit with no flush (may break output files)", 0},
 	{'s', GPAC_PRINT_STATS, "print statistics", 0},
 	{'g', GPAC_PRINT_GRAPH, "print filter graph", 0},
-	{'u', GPAC_SEND_UPDATE, "update argument in filter(s)", 0},
+	{'l', GPAC_LIST_FILTERS, "list filters", 0},
+	{'u', GPAC_SEND_UPDATE, "update argument of filter", 0},
+	{'i', GPAC_INSERT_FILTER, "insert a filter in the chain", 0},
+	{'r', GPAC_REMOVE_FILTER, "remove a filter from the chain", 0},
 	{'h', GPAC_PRINT_HELP, "print this help", 0},
 	{0}
 };
@@ -951,8 +957,12 @@ char szCom[2048];
 static u64 run_start_time = 0;
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
-
 	if (enable_prompt && gf_prompt_has_input()) {
+		u32 i, count;
+		GF_Filter *filter;
+		const GF_Filter *link_from=NULL;
+		GF_Err e;
+		char *link_args = NULL;
 		GPAC_Command c = get_cmd(gf_prompt_get_char());
 		switch (c) {
 		case GPAC_QUIT:
@@ -973,9 +983,24 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 			gpac_fsess_task_help();
 			break;
 		case GPAC_SEND_UPDATE:
-			fprintf(stderr, "Sending filter update - enter the target filter ID or press enter for any:\n");
+			fprintf(stderr, "Sending filter update - enter the target filter ID, name, registry name or #N with N the 0-based index in loaded filter list:\n");
+
 			if (1 > scanf("%99s", szFilter)) {
 				fprintf(stderr, "Cannot read the filter ID, aborting.\n");
+				break;
+			}
+			e = GF_OK;
+			if (szFilter[0]=='#') {
+				GF_FilterStats stats;
+				u32 idx = atoi(szFilter+1);
+				gf_fs_lock_filters(fsess, GF_TRUE);
+				e = gf_fs_get_filter_stats(fsess, idx, &stats);
+				gf_fs_lock_filters(fsess, GF_FALSE);
+				if (e==GF_OK)
+					strncpy(szFilter, stats.filter_id ? stats.filter_id : stats.name, 99);
+			}
+			if (e) {
+				fprintf(stderr, "Cannot get filter for ID %s, aborting.\n", szFilter);
 				break;
 			}
 			fprintf(stderr, "Enter the command to send\n");
@@ -984,6 +1009,92 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 				break;
 			}
 			gf_fs_send_update(fsess, szFilter, NULL, szCom, NULL, 0);
+			break;
+		case GPAC_LIST_FILTERS:
+			gf_fs_lock_filters(fsess, GF_TRUE);
+			count = gf_fs_get_filters_count(fsess);
+			fprintf(stderr, "Loaded filters:\n");
+			for (i=0; i<count; i++) {
+				GF_FilterStats stats;
+				gf_fs_get_filter_stats(fsess, i, &stats);
+				if (stats.filter_id)
+					fprintf(stderr, "%s (%s) ID %s\n", stats.name, stats.reg_name, stats.filter_id);
+				else
+					fprintf(stderr, "%s (%s)\n", stats.name, stats.reg_name);
+			}
+			gf_fs_lock_filters(fsess, GF_FALSE);
+			break;
+		case GPAC_INSERT_FILTER:
+		case GPAC_REMOVE_FILTER:
+			fprintf(stderr, "%s filter ID, name, registry name or #N with N the 0-based index in loaded filter list:\n",
+					(c==GPAC_INSERT_FILTER) ? "Inserting filter - enter the source" : "Removing filter - enter the");
+
+			if (1 > scanf("%99s", szFilter)) {
+				fprintf(stderr, "Cannot read the filter ID or index, aborting.\n");
+				break;
+			}
+			link_args = strchr(szFilter, separator_set[SEP_LINK]);
+			if (link_args) {
+				link_args[0] = 0;
+				link_args++;
+			}
+			if (szFilter[0]=='#') {
+				GF_FilterStats stats;
+				u32 idx = atoi(szFilter+1);
+				gf_fs_lock_filters(fsess, GF_TRUE);
+				gf_fs_get_filter_stats(fsess, idx, &stats);
+				gf_fs_lock_filters(fsess, GF_FALSE);
+				link_from = stats.filter;
+			} else {
+				const GF_Filter *link_from_by_reg=NULL;
+				gf_fs_lock_filters(fsess, GF_TRUE);
+				count = gf_fs_get_filters_count(fsess);
+				for (i=0; i<count; i++) {
+					GF_FilterStats stats;
+					gf_fs_get_filter_stats(fsess, i, &stats);
+					if (!strcmp(stats.name, szFilter)) {
+						link_from = stats.filter;
+						break;
+					}
+					if (!link_from_by_reg && !strcmp(stats.reg_name, szFilter)) {
+						link_from_by_reg = stats.filter;
+					}
+				}
+				gf_fs_lock_filters(fsess, GF_FALSE);
+				if (!link_from)
+					link_from = link_from_by_reg;
+			}
+			if (!link_from) {
+				fprintf(stderr, "Failed to get filter %s, not found\n", szFilter);
+				break;
+			}
+
+			if (c==GPAC_REMOVE_FILTER) {
+				gf_filter_remove((GF_Filter *) link_from);
+				break;
+			}
+
+			fprintf(stderr, "Enter the filter to insert\n");
+			if (1 > scanf("%2047s", szCom)) {
+				fprintf(stderr, "Cannot read the filter to insert, aborting.\n");
+				break;
+			}
+
+			if (!strncmp(szCom, "src=", 4)) {
+				filter = gf_fs_load_source(fsess, szCom+4, NULL, NULL, &e);
+			} else if (!strncmp(szCom, "dst=", 4)) {
+				filter = gf_fs_load_destination(fsess, szCom+4, NULL, NULL, &e);
+			} else {
+				filter = gf_fs_load_filter(fsess, szCom, &e);
+			}
+
+			if (!filter) {
+				fprintf(stderr, "Cannot load filter %s: %s\n", szCom, gf_error_to_string(e));
+				break;
+			}
+			gf_filter_set_source(filter, (GF_Filter *) link_from, link_args);
+			//reconnect outputs of source
+			gf_filter_reconnect_output((GF_Filter *) link_from);
 			break;
 		default:
 			break;
