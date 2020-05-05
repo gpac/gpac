@@ -97,6 +97,7 @@ typedef struct
 	GF_List *src_pids;
 
 	Bool is_prober, probe_done, hdr_done, dump_pck;
+	Bool args_updated;
 } GF_InspectCtx;
 
 #define DUMP_ATT_STR(_name, _val) if (ctx->xml) { \
@@ -2014,6 +2015,29 @@ static GF_Err inspect_process(GF_Filter *filter)
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
 	count = gf_list_count(ctx->src_pids);
+
+	if (ctx->args_updated) {
+		ctx->args_updated = GF_FALSE;
+		for (i=0; i<count; i++) {
+			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+			switch (ctx->mode) {
+			case INSPECT_MODE_PCK:
+			case INSPECT_MODE_REFRAME:
+				gf_filter_pid_set_framing_mode(pctx->src_pid, GF_TRUE);
+				break;
+			default:
+				gf_filter_pid_set_framing_mode(pctx->src_pid, GF_FALSE);
+				break;
+			}
+			gf_filter_pid_set_clock_mode(pctx->src_pid, ctx->pcr);
+		}
+		if (ctx->is_prober || ctx->deep || ctx->fmt) {
+			ctx->dump_pck = GF_TRUE;
+		} else {
+			ctx->dump_pck = GF_FALSE;
+		}
+	}
+	count = gf_list_count(ctx->src_pids);
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
@@ -2235,38 +2259,44 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_TRUE;
 }
 
+static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
+{
+	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
+	ctx->args_updated = GF_TRUE;
+	return GF_OK;
+}
 
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName, stderr or stdout", 0},
+	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName, stderr or stdout", GF_FS_ARG_UPDATE},
 	{ OFFS(mode), "dump mode\n"
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"
 	"- frame: force reframer\n"
 	"- raw: dump source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
 	{ OFFS(interleave), "dump packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(deep), "dump packets along with PID state change, implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(props), "dump packet properties, ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dump_data), "enable full data dump (__WARNING__ heavy!), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(deep), "dump packets along with PID state change, implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(props), "dump packet properties, ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(dump_data), "enable full data dump (__WARNING__ heavy!), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(fmt), "set packet dump format (see filter help)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hdr), "print a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(allp), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(analyze), "analyze sample content (NALU, OBU)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dtype), "dump property type", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(analyze), "analyze sample content (NALU, OBU)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(dtype), "dump property type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
 		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
 		"- encode: same as network plus skip decoder config (used for hashing encoding results)\n"
-		"- encx: same as encode and skip bitrates, media data size and co", GF_PROP_UINT, "no", "no|noprop|network|encode|encx", GF_FS_ARG_HINT_EXPERT},
+		"- encx: same as encode and skip bitrates, media data size and co", GF_PROP_UINT, "no", "no|noprop|network|encode|encx", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -2336,6 +2366,7 @@ const GF_FilterRegister InspectRegister = {
 	.process = inspect_process,
 	.process_event = inspect_process_event,
 	.configure_pid = inspect_config_input,
+	.update_arg = inspect_update_arg,
 };
 
 static const GF_FilterCapability ProberCaps[] =
