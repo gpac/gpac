@@ -1712,6 +1712,8 @@ GF_Err vtbframe_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u
 		*outPlane = CVPixelBufferGetBaseAddressOfPlane(f->frame, plane_idx);
 		if (*outPlane)
 			*outStride = (u32) CVPixelBufferGetBytesPerRowOfPlane(f->frame, plane_idx);
+		else
+			e = GF_EOS;
 	} else if (plane_idx==0) {
 		*outStride = (u32) CVPixelBufferGetBytesPerRow(f->frame);
 		*outPlane = CVPixelBufferGetBaseAddress(f->frame);
