@@ -310,8 +310,10 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 	//we still have packets out there!
 	if (pidinst->pid->nb_shared_packets_out) {
-		TASK_REQUEUE(task)
-		return;
+		if ((pid->num_destinations==1) && (gf_list_find(pid->destinations, pidinst)>=0)) {
+			TASK_REQUEUE(task)
+			return;
+		}
 	}
 
 	//WARNING at this point pidinst->filter may be destroyed
@@ -4104,17 +4106,6 @@ void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
 	safe_int_inc(&pid->init_task_pending);
 	gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 }
-
-#if 0
-void gf_filter_reconnect_output(GF_Filter *filter)
-{
-	u32 i;
-	for (i=0; i<filter->num_output_pids; i++) {
-		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		gf_filter_pid_post_init_task(filter, pid);
-	}
-}
-#endif
 
 GF_EXPORT
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks)

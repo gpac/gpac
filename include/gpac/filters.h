@@ -490,6 +490,9 @@ typedef enum
 /*! Filter statistics object*/
 typedef struct
 {
+	/*!filter object*/
+	const GF_Filter *filter;
+	
 	/*!number of tasks executed by this filter*/
 	u64 nb_tasks_done;
 	/*!number of packets processed by this filter*/
@@ -517,6 +520,8 @@ typedef struct
 	const char *name;
 	/*!filter register name*/
 	const char *reg_name;
+	/*!filter register ID*/
+	const char *filter_id;
 	/*!set to GF_TRUE if filter is done processing*/
 	Bool done;
 	/*!number of input PIDs*/
@@ -1996,6 +2001,11 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 */
 void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter);
 
+/*! Disconnects a filter from fthe chain
+\param filter the filter to remove
+*/
+void gf_filter_remove(GF_Filter *filter);
+
 /*! Sets the number of additional input PID a filter can accept. This overrides the default value of the filter register
 \param filter the target filter
 \param max_extra_pids the number of additional PIDs this filter can accept
@@ -2193,6 +2203,12 @@ char *gf_filter_get_dst_name(GF_Filter *filter);
 \param upstream send the even upstream
 */
 void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream);
+
+/*! Trigger reconnection of output PIDs of a filter. This is needed when inserting a filter in the chain while the session is running
+\param filter the target filter
+\return error if any
+*/
+GF_Err gf_filter_reconnect_output(GF_Filter *filter);
 
 /*! Looks for a built-in property value marked as informative on a filter on all PIDs (inputs and output)
 This is a recursive call on both input and ouput chain.

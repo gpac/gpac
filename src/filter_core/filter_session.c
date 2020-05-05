@@ -2019,6 +2019,9 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 			if (filter->id && !strcmp(filter->id, fid)) {
 				break;
 			}
+			if (filter->name && !strcmp(filter->name, fid)) {
+				break;
+			}
 			if (!reg_filter && !strcmp(filter->freg->name, fid))
 				reg_filter = filter;
 			filter = NULL;
@@ -2037,11 +2040,11 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
 	if (!val) {
-		char *sep = strchr(name, fsess->sep_args);
+		char *sep = strchr(name, fsess->sep_name);
 		if (sep) sep[0] = 0;
 		upd->name = gf_strdup(name);
 		upd->val = sep ? gf_strdup(sep+1) : NULL;
-		if (sep) sep[0] = fsess->sep_args;
+		if (sep) sep[0] = fsess->sep_name;
 	} else {
 		upd->name = gf_strdup(name);
 		upd->val = gf_strdup(val);
@@ -2862,6 +2865,7 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 	memset(stats, 0, sizeof(GF_FilterStats));
 	f = gf_list_get(session->filters, idx);
 	if (!f) return GF_BAD_PARAM;
+	stats->filter = f;
 	stats->percent = f->status_percent>10000 ? -1 : (s32) f->status_percent;
 	stats->status = f->status_str;
 	stats->nb_pck_processed = f->nb_pck_processed;
@@ -2874,6 +2878,7 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 	stats->nb_errors = f->nb_errors;
 	stats->name = f->name;
 	stats->reg_name = f->freg->name;
+	stats->filter_id = f->id;
 	stats->done = f->removed || f->finalized;
 	if (stats->name && !strcmp(stats->name, stats->reg_name)) {
 		set_name=GF_TRUE;

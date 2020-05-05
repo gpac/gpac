@@ -2628,6 +2628,34 @@ void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter)
 	gf_filter_remove_internal(src_filter, filter, GF_FALSE);
 }
 
+static void gf_filter_remove_sources(GF_Filter *filter)
+{
+	u32 i;
+	//locate source filter(s)
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		//fanout, only disconnect this pid instance
+		if (pidi->pid->num_destinations>1) {
+			//post disconnect
+			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, filter, pidi->pid, "pidinst_disconnect", NULL);
+		}
+		//this is a source for the chain
+		else if (!pidi->pid->filter->num_input_pids) {
+			gf_filter_remove_internal(pidi->pid->filter, NULL, GF_FALSE);
+		}
+		//otherwise walk down the chain
+		else {
+			gf_filter_remove_sources(pidi->pid->filter);
+		}
+	}
+
+}
+GF_EXPORT
+void gf_filter_remove(GF_Filter *filter)
+{
+	gf_filter_remove_sources(filter);
+}
+
 #if 0
 GF_EXPORT
 void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter)
@@ -2933,8 +2961,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	if (filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
 
 	if (!link_from->id) {
-		sprintf(szID, "_%p_", link_from);
-		gf_filter_set_id(link_from, szID);
+		gf_filter_assign_id(link_from, NULL);
 	}
 	if (link_ext) {
 		sprintf(szID, "%s%c%s", link_from->id, link_from->session->sep_frag, link_ext);
@@ -3699,4 +3726,16 @@ GF_EXPORT
 void gf_filter_block_eos(GF_Filter *filter, Bool do_block)
 {
 	if (filter) filter->block_eos = do_block;
+}
+
+GF_EXPORT
+GF_Err gf_filter_reconnect_output(GF_Filter *filter)
+{
+	u32 i;
+	if (!filter) return GF_BAD_PARAM;
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		gf_filter_pid_post_init_task(filter, pid);
+	}
+	return GF_OK;
 }

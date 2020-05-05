@@ -2275,11 +2275,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_ui_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_enum_unmapped_options) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_send_update) )
-
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_reconnect_output) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_event_listener ) )
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_author) )
@@ -2408,6 +2406,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_setup_failure ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_post_task ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_src ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_connect_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_connect_destination ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_load_filter ) )
