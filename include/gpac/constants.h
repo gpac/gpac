@@ -370,10 +370,11 @@ typedef enum
 	GF_CODECID_JPEG = 0x6C,
 	/*! codecid for PNG streams*/
 	GF_CODECID_PNG = 0x6D,
-	/*! codecid for JPEG-2000 streams*/
-	GF_CODECID_J2K = 0x6E,
 
 	GF_CODECID_LAST_MPEG4_MAPPING = 0xFF,
+
+	/*! codecid for JPEG-2000 streams*/
+	GF_CODECID_J2K = GF_4CC('j','p','2','k'),
 
 	/*!H263 visual streams*/
 	GF_CODECID_S263 = GF_4CC('s','2','6','3'),

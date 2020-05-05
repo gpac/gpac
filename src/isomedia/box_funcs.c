@@ -1282,15 +1282,15 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_SUBTYPE_3GP_EVRC, audio_sample_entry, "stsd", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_SUBTYPE_3GP_SMV, audio_sample_entry, "stsd", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_SUBTYPE_3GP_H263, video_sample_entry, "stsd", "3gpp"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAMR, gppc, "samr sawb", "3gpp"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DEVC, gppc, "sevc", "3gpp"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DQCP, gppc, "sqcp", "3gpp"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DSMV, gppc, "ssmv", "3gpp"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_D263, gppc, "s263", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAMR, gppc, "samr sawb enca", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DEVC, gppc, "sevc enca", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DQCP, gppc, "sqcp enca", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DSMV, gppc, "ssmv enca", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_D263, gppc, "s263 encv", "3gpp"),
 	//3gpp timed text
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_TX3G, tx3g, "stsd", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_TEXT, text, "stsd", "apple"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_FTAB, ftab, "tx3g text", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_FTAB, ftab, "tx3g text enct", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_STYL, styl, "text_sample", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HLIT, hlit, "text_sample", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HCLR, hclr, "text_sample", "3gpp"),
@@ -1302,7 +1302,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_TWRP, twrp, "text_sample", "3gpp"),
 	//3GPP dims
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIMS, dims, "stsd", "3gpp"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIMC, dimC, "stsd", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIMC, dimC, "dims encs", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIST, diST, "stsd", "3gpp"),
 
 
@@ -1444,7 +1444,7 @@ static struct box_registry_entry {
 
 	//J2K boxes
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_MJP2, video_sample_entry, "stsd", "j2k"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2H, jp2h, "mjp2", "j2k"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2H, jp2h, "mjp2 encv", "j2k"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_IHDR, ihdr, "jp2h", "j2k"),
 
 	/* Image tracks */
@@ -1455,7 +1455,7 @@ static struct box_registry_entry {
 
 	//Opus in ISOBMFF boxes
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_FLAC, audio_sample_entry, "stsd", "Flac"),
-	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_DFLA, dfla, "fLaC", 0, "Flac"),
+	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_DFLA, dfla, "fLaC enca", 0, "Flac"),
 
 };
 
