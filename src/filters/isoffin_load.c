@@ -203,6 +203,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_FLAC;
 			gf_isom_flac_config_get(read->mov, track, stsd_idx, &dsi, &dsi_size);
 			break;
+		case GF_ISOM_SUBTYPE_OPUS:
+			codec_id = GF_CODECID_OPUS;
+			gf_isom_opus_config_get(read->mov, track, stsd_idx, &dsi, &dsi_size);
+			break;
 
 		case GF_QT_SUBTYPE_TWOS:
 		case GF_QT_SUBTYPE_SOWT:

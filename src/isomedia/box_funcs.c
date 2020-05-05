@@ -1223,7 +1223,7 @@ static struct box_registry_entry {
 	//Opus in ISOBMFF boxes
 #ifndef GPAC_DISABLE_OGG
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_OPUS, audio_sample_entry, "stsd", "Opus"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DOPS, dOps, "Opus wave", "Opus"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DOPS, dOps, "Opus wave enca", "Opus"),
 #endif
 
 	//part20 boxes
