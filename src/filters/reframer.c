@@ -333,7 +333,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 {
 	u32 i, count;
 	Bool do_seek = ctx->seekable;
-	u32 prev_frame = ctx->start_frame_idx_plus_one;
+	u64 prev_frame = ctx->start_frame_idx_plus_one;
 	GF_Fraction64 prev_end;
 	char *start_date=NULL, *end_date=NULL;
 
@@ -448,7 +448,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (ctx->rt || do_seek) {
 		Double start_range = 0;
 		if (do_seek) {
-			start_range = ctx->cur_start.num;
+			start_range = (Double) ctx->cur_start.num;
 			start_range /= ctx->cur_start.den;
 			if (start_range > ctx->seeksafe)
 				start_range -= ctx->seeksafe;
@@ -606,7 +606,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				if (end)
 					gf_dynstrcat(&file_suf_name, end, "_");
 
-				len = strlen(file_suf_name);
+				len = (u32) strlen(file_suf_name);
 				//replace : and / characters
 				for (i=0; i<len; i++) {
 					switch (file_suf_name[i]) {
@@ -742,11 +742,11 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 		Bool after = GF_FALSE;
 
 		//ts not after our range start
-		if (ts * ctx->cur_start.den < ctx->cur_start.num * st->timescale) {
+		if ((s64) (ts * ctx->cur_start.den) < ctx->cur_start.num * st->timescale) {
 			before = GF_TRUE;
 		}
 		//closed range, check
-		if ((ctx->range_type!=RANGE_OPEN) && ((ts+dur) * ctx->cur_end.den >= ctx->cur_end.num * st->timescale)) {
+		if ((ctx->range_type!=RANGE_OPEN) && ((s64) ((ts+dur) * ctx->cur_end.den) >= ctx->cur_end.num * st->timescale)) {
 			after = GF_TRUE;
 		}
 		if (before) {
@@ -1229,8 +1229,8 @@ GF_Err reframer_process(GF_Filter *filter)
 						Bool cur_closer = GF_FALSE;
 						//check which frame is closer
 						if (ctx->start_frame_idx_plus_one) {
-							s32 diff_prev = ctx->start_frame_idx_plus_one-1;
-							s32 diff_cur = ctx->start_frame_idx_plus_one-1;
+							s64 diff_prev = ctx->start_frame_idx_plus_one-1;
+							s64 diff_cur = ctx->start_frame_idx_plus_one-1;
 							diff_prev -= st->prev_sap_frame_idx;
 							diff_cur -= st->nb_frames_range;
 							if (ABS(diff_cur) < ABS(diff_prev)) cur_closer = GF_TRUE;
@@ -1290,10 +1290,10 @@ GF_Err reframer_process(GF_Filter *filter)
 
 					//time-based extraction or dur split, try to clone packet
 					if (st->can_split && !ctx->start_frame_idx_plus_one) {
-						if (ts * ctx->cur_end.den < ctx->cur_end.num * st->timescale) {
+						if ((s64) (ts * ctx->cur_end.den) < ctx->cur_end.num * st->timescale) {
 							//force enqueing this packet
 							enqueue = GF_TRUE;
-							st->split_end = (ctx->cur_end.num * st->timescale) / ctx->cur_end.den - ts;
+							st->split_end = (u32) ( (ctx->cur_end.num * st->timescale) / ctx->cur_end.den - ts);
 							st->range_end_reached_ts += st->split_end;
 							//and remember it for next chunk - note that we dequeue the input to get proper eos notification
 							gf_filter_pck_ref(&pck);
@@ -1447,7 +1447,7 @@ GF_Err reframer_process(GF_Filter *filter)
 							}
 							st->split_start = 0;
 							if (is_start==2) {
-								st->split_start = min_ts - ts;
+								st->split_start = (u32) (min_ts - ts);
 								if (min_timescale != st->timescale) {
 									st->split_start *= st->timescale;
 									st->split_start /= min_timescale;
@@ -1456,7 +1456,7 @@ GF_Err reframer_process(GF_Filter *filter)
 							st->ts_at_range_start_plus_one = ots + 1;
 
 							if ((st->range_start_computed==1)
-								&& (orig < ots)
+								&& (orig < (s64) ots)
 								&& ctx->splitrange
 								&& (ctx->cur_range_idx>1)
 							) {
@@ -1684,7 +1684,7 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	//if range extraction based on time, adjust start range
 	if (evt->base.type==GF_FEVT_PLAY) {
 		if (ctx->range_type && !ctx->start_frame_idx_plus_one) {
-			Double start_range = start_range = ctx->cur_start.num;
+			Double start_range = (Double) ctx->cur_start.num;
 			start_range /= ctx->cur_start.den;
 			//rewind safety offset
 			if (start_range > ctx->seeksafe)
