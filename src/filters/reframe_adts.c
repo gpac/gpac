@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS reframer filter
@@ -55,7 +55,7 @@ typedef struct
 	Double index;
 	u32 sbr;
 	u32 ps;
-	Bool mpeg4;
+//	Bool mpeg4;
 	Bool ovsbr;
 	Bool expart;
 
@@ -637,7 +637,10 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		gf_bs_read_int(ctx->bs, 4);
 
 		ctx->hdr.is_mp2 = (Bool)gf_bs_read_int(ctx->bs, 1);
-		if (ctx->mpeg4) ctx->hdr.is_mp2 = 0;
+		//if (ctx->mpeg4)
+		//we deprecate old MPEG-2 signaling for AAC in ISOBMFF, as it is not well supported anyway and we don't write adif_header as
+		//supposed to be for these types
+		ctx->hdr.is_mp2 = 0;
 
 		gf_bs_read_int(ctx->bs, 2);
 		ctx->hdr.no_crc = (Bool)gf_bs_read_int(ctx->bs, 1);
@@ -861,7 +864,7 @@ static const GF_FilterArgs ADTSDmxArgs[] =
 {
 	{ OFFS(frame_size), "size of AAC frame in audio samples", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(mpeg4), "force signaling as MPEG-4 AAC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+//	{ OFFS(mpeg4), "force signaling as MPEG-4 AAC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ovsbr), "force oversampling SBR (does not multiply timescales by 2)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sbr), "set SBR signaling\n"\
 				"- no: no SBR signaling at all\n"\

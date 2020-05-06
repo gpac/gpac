@@ -125,7 +125,7 @@ Note: when dumping in interleaved mode, there is no guarantee that the packets w
 .SH Options (expert):
 .LP
 .br
-log (str, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
+log (str, default: stderr, minmax: fileName, stderr or stdout, updatable): set inspect log filename
 .br
 mode (enum, default: pck):     dump mode
 .br
@@ -141,9 +141,9 @@ mode (enum, default: pck):     dump mode
 .br
 interleave (bool, default: true): dump packets as they are received on each pid. If false, report per pid is generated
 .br
-deep (bool, default: false):   dump packets along with PID state change, implied when -fmt is set
+deep (bool, default: false, updatable): dump packets along with PID state change, implied when -fmt is set
 .br
-props (bool, default: true):   dump packet properties, ignored when -fmt is set (see filter help)
+props (bool, default: true, updatable): dump packet properties, ignored when -fmt is set (see filter help)
 .br
 dump_data (bool, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
 .br
@@ -153,9 +153,9 @@ hdr (bool, default: true):     print a header corresponding to fmt string withou
 .br
 allp (bool, default: false):   analyse for the entire duration, rather than stoping when all pids are found
 .br
-info (bool, default: false):   monitor PID info changes
+info (bool, default: false, updatable): monitor PID info changes
 .br
-pcr (bool, default: false):    dump M2TS PCR info
+pcr (bool, default: false, updatable): dump M2TS PCR info
 .br
 speed (dbl, default: 1.0):     set playback command speed. If speed is negative and start is 0, start is set to -1
 .br
@@ -163,15 +163,15 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (bool, default: false): analyze sample content (NALU, OBU)
+analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
 .br
-xml (bool, default: false):    use xml formatting (implied if (-analyze]() is set) and disable -fmt
+xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable -fmt
 .br
-fftmcd (bool, default: false): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
+fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
-dtype (bool, default: false):  dump property type
+dtype (bool, default: false, updatable): dump property type
 .br
-test (enum, default: no):      skip predefined set of properties, used for test mode
+test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
 .br
@@ -203,7 +203,7 @@ The filter does not produce any output nor feedback, it is up to the app develop
 .SH Options (expert):
 .LP
 .br
-log (str, default: stderr, minmax: fileName, stderr or stdout): set inspect log filename
+log (str, default: stderr, minmax: fileName, stderr or stdout, updatable): set inspect log filename
 .br
 mode (enum, default: pck):     dump mode
 .br
@@ -219,9 +219,9 @@ mode (enum, default: pck):     dump mode
 .br
 interleave (bool, default: true): dump packets as they are received on each pid. If false, report per pid is generated
 .br
-deep (bool, default: false):   dump packets along with PID state change, implied when -fmt is set
+deep (bool, default: false, updatable): dump packets along with PID state change, implied when -fmt is set
 .br
-props (bool, default: true):   dump packet properties, ignored when -fmt is set (see filter help)
+props (bool, default: true, updatable): dump packet properties, ignored when -fmt is set (see filter help)
 .br
 dump_data (bool, default: false, updatable): enable full data dump (WARNING heavy!), ignored when -fmt is set (see filter help)
 .br
@@ -231,9 +231,9 @@ hdr (bool, default: true):     print a header corresponding to fmt string withou
 .br
 allp (bool, default: false):   analyse for the entire duration, rather than stoping when all pids are found
 .br
-info (bool, default: false):   monitor PID info changes
+info (bool, default: false, updatable): monitor PID info changes
 .br
-pcr (bool, default: false):    dump M2TS PCR info
+pcr (bool, default: false, updatable): dump M2TS PCR info
 .br
 speed (dbl, default: 1.0):     set playback command speed. If speed is negative and start is 0, start is set to -1
 .br
@@ -241,15 +241,15 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (bool, default: false): analyze sample content (NALU, OBU)
+analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
 .br
-xml (bool, default: false):    use xml formatting (implied if (-analyze]() is set) and disable -fmt
+xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable -fmt
 .br
-fftmcd (bool, default: false): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
+fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
-dtype (bool, default: false):  dump property type
+dtype (bool, default: false, updatable): dump property type
 .br
-test (enum, default: no):      skip predefined set of properties, used for test mode
+test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
 .br
@@ -982,8 +982,6 @@ This filter parses AAC files/data and outputs corresponding audio PID and frames
 frame_size (uint, default: 1024): size of AAC frame in audio samples
 .br
 index (dbl, default: 1.0):     indexing window length
-.br
-mpeg4 (bool, default: false):  force signaling as MPEG-4 AAC
 .br
 ovsbr (bool, default: false):  force oversampling SBR (does not multiply timescales by 2)
 .br
@@ -5798,7 +5796,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev100-g612dacb7a-filters
+build: 0.9.0-DEV-rev112-g2fe5c1e75-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
