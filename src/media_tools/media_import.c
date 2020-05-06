@@ -1012,7 +1012,10 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		}
 	}
 
-	if (import->flags & GF_IMPORT_FORCE_MPEG4) hdr.is_mp2 = GF_FALSE;
+	//if (import->flags & GF_IMPORT_FORCE_MPEG4)
+	//we deprecate old MPEG-2 signaling for AAC in ISOBMFF, as it is not well supported anyway and we don't write adif_header as it's supposed to be
+	//for these types
+	hdr.is_mp2 = GF_FALSE;
 
 	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
 	oti = hdr.is_mp2 ? hdr.profile+GPAC_OTI_AUDIO_AAC_MPEG2_MP-1 : GPAC_OTI_AUDIO_AAC_MPEG4;
@@ -1021,7 +1024,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
 		import->tk_info[0].type = GF_ISOM_MEDIA_AUDIO;
-		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_SBR_IMPLICIT | GF_IMPORT_SBR_EXPLICIT | GF_IMPORT_PS_IMPLICIT | GF_IMPORT_PS_EXPLICIT | GF_IMPORT_FORCE_MPEG4;
+		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_SBR_IMPLICIT | GF_IMPORT_SBR_EXPLICIT | GF_IMPORT_PS_IMPLICIT | GF_IMPORT_PS_EXPLICIT;
 		import->nb_tracks = 1;
 		import->tk_info[0].audio_info.sample_rate = sr;
 		import->tk_info[0].audio_info.nb_channels = hdr.nb_ch;
