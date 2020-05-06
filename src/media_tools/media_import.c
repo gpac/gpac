@@ -5322,10 +5322,14 @@ restart_import:
 			}
 			break;
 
-		case GF_AVC_NALU_SLICE_AUX:
+		case GF_AVC_NALU_DV_RPU:
+		case GF_AVC_NALU_DV_EL:
+			copy_size = nal_size;
+			break;
 
+		case GF_AVC_NALU_SLICE_AUX:
 		default:
-			gf_import_message(import, GF_OK, "WARNING: NAL Unit type %d not handled - adding", nal_type);
+			gf_import_message(import, GF_OK, "Warning: AVC/H264 NAL Unit type %d not handled - adding", nal_type);
 			copy_size = nal_size;
 			break;
 		}
@@ -6642,8 +6646,13 @@ restart_import:
 		case GF_HEVC_NALU_END_OF_STREAM:
 			break;
 
+		case GF_HEVC_NALU_DV_RPU:
+		case GF_HEVC_NALU_DV_EL:
+			copy_size = nal_size;
+			break;
+
 		default:
-			gf_import_message(import, GF_OK, "WARNING: NAL Unit type %d not handled - adding", nal_unit_type);
+			gf_import_message(import, GF_OK, "Warning: HEVC NAL Unit type %d not handled - adding", nal_unit_type);
 			copy_size = nal_size;
 			break;
 		}
