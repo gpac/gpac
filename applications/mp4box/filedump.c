@@ -2564,7 +2564,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump, Bool is_track_
 
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		gf_isom_get_visual_bit_depth(file, trackNum, 1, &bit_depth);
-		fprintf(stderr, "Visual Info: width=%d height=%d (depth=%d bits)\n", w, h, (int)bit_depth);
+		fprintf(stderr, "Visual Sample Entry Info: width=%d height=%d (depth=%d bits)\n", w, h, (int)bit_depth);
 
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
 		fprintf(stderr, "Visual Track layout: x=%d y=%d width=%d height=%d\n", tx, ty, w, h);

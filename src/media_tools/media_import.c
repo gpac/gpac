@@ -5082,7 +5082,10 @@ restart_import:
 
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					copy_size = nal_size;
-				} else {
+				}
+
+				//we keep the SPS in the config record for later PAR update
+				{
 					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 					slc->size = nal_size;
 					slc->id = idx;
@@ -5806,20 +5809,23 @@ restart_import:
 	avccfg->nal_unit_size = size_length/8;
 	svccfg->nal_unit_size = size_length/8;
 
-	//update par before switching to inband config which will remove SPS
-	e = gf_media_update_par(import->dest, track);
-	if (e) goto exit;
-
 	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
+		//update par before switching to inband config which will remove SPS
+		e = gf_media_update_par(import->dest, track);
+		if (e) goto exit;
 		gf_isom_avc_set_inband_config(import->dest, track, 1);
-	} else if (gf_list_count(avccfg->sequenceParameterSets) || !gf_list_count(svccfg->sequenceParameterSets) ) {
-		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
-		if (gf_list_count(svccfg->sequenceParameterSets)) {
-			gf_isom_svc_config_update(import->dest, track, 1, svccfg, GF_TRUE);
-		}
 	} else {
-		gf_isom_svc_config_update(import->dest, track, 1, svccfg, GF_FALSE);
+		if (gf_list_count(avccfg->sequenceParameterSets) || !gf_list_count(svccfg->sequenceParameterSets) ) {
+			gf_isom_avc_config_update(import->dest, track, 1, avccfg);
+			if (gf_list_count(svccfg->sequenceParameterSets)) {
+				gf_isom_svc_config_update(import->dest, track, 1, svccfg, GF_TRUE);
+			}
+		} else {
+			gf_isom_svc_config_update(import->dest, track, 1, svccfg, GF_FALSE);
+		}
+		e = gf_media_update_par(import->dest, track);
+		if (e) goto exit;
 	}
 
 	if (import->flags & GF_IMPORT_USE_CCST) {
@@ -7202,7 +7208,14 @@ next_nal:
 	}
 
 	if (sar_w && sar_h) {
+		u32 tw, th;
+		gf_isom_get_track_layout_info(import->dest, track, &tw, &th, NULL, NULL, NULL);
 		gf_isom_set_pixel_aspect_ratio(import->dest, track, 1, sar_w, sar_h, GF_FALSE);
+		if (sar_w != sar_h) {
+			tw *= sar_w;
+			tw /= sar_h;
+			gf_isom_set_track_layout_info(import->dest, track, tw<<16, th<<16, 0, 0, 0);
+		}
 	}
 
 	if (import->flags & GF_IMPORT_USE_CCST) {
@@ -7214,15 +7227,12 @@ next_nal:
 		if (e) goto exit;
 	}
 
-	e = gf_media_update_par(import->dest, track);
-	if (e) goto exit;
-	{
-		/*arbitrary: use the last active SPS*/
-		if (hevc.sps[hevc.sps_active_idx].colour_description_present_flag) {
-			e = gf_isom_set_visual_color_info(import->dest, track, di, GF_ISOM_SUBTYPE_NCLX, hevc.sps[hevc.sps_active_idx].colour_primaries, hevc.sps[hevc.sps_active_idx].transfer_characteristic, hevc.sps[hevc.sps_active_idx].matrix_coeffs, hevc.sps[hevc.sps_active_idx].video_full_range_flag, NULL, 0);
-			if (e) goto exit;
-		}
+	/*arbitrary: use the last active SPS*/
+	if (hevc.sps[hevc.sps_active_idx].colour_description_present_flag) {
+		e = gf_isom_set_visual_color_info(import->dest, track, di, GF_ISOM_SUBTYPE_NCLX, hevc.sps[hevc.sps_active_idx].colour_primaries, hevc.sps[hevc.sps_active_idx].transfer_characteristic, hevc.sps[hevc.sps_active_idx].matrix_coeffs, hevc.sps[hevc.sps_active_idx].video_full_range_flag, NULL, 0);
+		if (e) goto exit;
 	}
+
 	gf_media_update_bitrate(import->dest, track);
 
 	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_ISO4, 1);
