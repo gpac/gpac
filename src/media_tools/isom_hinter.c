@@ -717,7 +717,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 			gf_free(samp->data);
 			samp->data = s->data;
 			samp->dataLength = s->dataLength;
-			gp_rtp_builder_set_cryp_info(tkHint->rtp_p, s->IV, (char*)s->key_indicator, (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0);
+			gf_rtp_builder_set_cryp_info(tkHint->rtp_p, s->IV, (char*)s->key_indicator, (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0);
 			s->data = NULL;
 			s->dataLength = 0;
 			gf_isom_ismacryp_delete_sample(s);

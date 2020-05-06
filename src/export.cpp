@@ -1279,7 +1279,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_builder_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_builder_format_sdp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_builder_get_payload_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gp_rtp_builder_set_cryp_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_builder_set_cryp_info) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_depacketizer_del) )

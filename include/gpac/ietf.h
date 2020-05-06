@@ -1492,7 +1492,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 MaxPaylo
 \param key_indicator key indicator
 \param is_encrypted encrypted flag
 */
-void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_indicator, Bool is_encrypted);
+void gf_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_indicator, Bool is_encrypted);
 /*! packetizes input buffer
 \param builder the target RTP packetizer
 \param data input buffer
