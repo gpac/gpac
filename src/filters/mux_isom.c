@@ -1860,11 +1860,16 @@ sample_entry_setup:
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 
 		if (!tkw->has_brands) {
-			if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_QCELP) {
+			switch (gpp_cfg.type) {
+			case GF_ISOM_SUBTYPE_3GP_QCELP:
+			case GF_ISOM_SUBTYPE_3GP_EVRC:
+			case GF_ISOM_SUBTYPE_3GP_SMV:
 				gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_3G2A, 65536);
-			} else if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_H263) {
+				break;
+			case GF_ISOM_SUBTYPE_3GP_H263:
 				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_3GG6, GF_TRUE);
 				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_3GG5, GF_TRUE);
+				break;
 			}
 		}
 		tkw->skip_bitrate_update = GF_TRUE;

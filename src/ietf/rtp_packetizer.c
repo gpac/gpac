@@ -513,7 +513,11 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 		return GF_TRUE;
 	case GF_RTP_PAYT_EVRC_SMV:
 		strcpy(szMediaName, "audio");
-		strcpy(szPayloadName, (rtpb->slMap.CodecID==0xA0) ? "EVRC" : "SMV");
+		if ((rtpb->slMap.CodecID==0xA0) || (rtpb->slMap.CodecID==GF_CODECID_EVRC))
+			strcpy(szPayloadName, "EVRC");
+		else
+			strcpy(szPayloadName, "SMV");
+
 		/*header-free version*/
 		if (rtpb->auh_size<=1) strcat(szPayloadName, "0");
 		return GF_TRUE;
