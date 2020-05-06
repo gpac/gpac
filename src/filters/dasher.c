@@ -6111,6 +6111,20 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 			ctx->sfile = GF_TRUE;
 		}
 	}
+	//backward compatibility with old arch using %s
+	else {
+		char *sep = strstr(ctx->template, "%s");
+		if (sep) {
+			char *new_template = NULL;
+			sep[0] = 0;
+			gf_dynstrcat(&new_template, ctx->template, NULL);
+			gf_dynstrcat(&new_template, "$File$", NULL);
+			gf_dynstrcat(&new_template, sep+2, NULL);
+			gf_free(ctx->template);
+			ctx->template = new_template;
+		}
+
+	}
 	return GF_OK;
 }
 
