@@ -363,6 +363,24 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 		break;
 	}
 
+	switch (finfo->aspect_ratio_information) {
+	case 0:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL);
+		break;
+	case 1:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC_INT(1, 1) );
+		break;
+	case 2:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC_INT(4, 3) );
+		break;
+	case 3:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC_INT(16, 9) );
+		break;
+	default:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL);
+		break;
+	}
+
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 

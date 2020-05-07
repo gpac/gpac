@@ -242,6 +242,7 @@
 		926F15551FE964D000C40779 /* write_nhnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15541FE964CF00C40779 /* write_nhnt.c */; };
 		926F15571FE986B000C40779 /* write_nhml.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15561FE986B000C40779 /* write_nhml.c */; };
 		9273463323506D370081AF74 /* storage.c in Sources */ = {isa = PBXBuildFile; fileRef = 9273463223506D370081AF74 /* storage.c */; };
+		9274295824647AB8009ADD8D /* bsrw.c in Sources */ = {isa = PBXBuildFile; fileRef = 9274295724647AB8009ADD8D /* bsrw.c */; };
 		92754D60207D24F600170383 /* filelist.c in Sources */ = {isa = PBXBuildFile; fileRef = 92754D5F207D24F600170383 /* filelist.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		927DB14C21A3C7100032D205 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 927DB14B21A3C7100032D205 /* reframe_latm.c */; };
@@ -891,6 +892,7 @@
 		926F15541FE964CF00C40779 /* write_nhnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_nhnt.c; path = filters/write_nhnt.c; sourceTree = "<group>"; };
 		926F15561FE986B000C40779 /* write_nhml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_nhml.c; path = filters/write_nhml.c; sourceTree = "<group>"; };
 		9273463223506D370081AF74 /* storage.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = storage.c; path = jsmods/storage.c; sourceTree = "<group>"; };
+		9274295724647AB8009ADD8D /* bsrw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bsrw.c; path = filters/bsrw.c; sourceTree = "<group>"; };
 		92754D5F207D24F600170383 /* filelist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filelist.c; path = filters/filelist.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1974,6 +1976,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				9274295724647AB8009ADD8D /* bsrw.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
@@ -2589,6 +2592,7 @@
 				9201012618D5A444003D1ACA /* media.c in Sources */,
 				9201012718D5A444003D1ACA /* media_odf.c in Sources */,
 				9201012818D5A444003D1ACA /* meta.c in Sources */,
+				9274295824647AB8009ADD8D /* bsrw.c in Sources */,
 				9201012918D5A444003D1ACA /* movie_fragments.c in Sources */,
 				92BA0AD5243B68AF006FC74E /* dec_mediacodec.c in Sources */,
 				9201012A18D5A444003D1ACA /* sample_descs.c in Sources */,
