@@ -275,6 +275,7 @@ for i in $* ; do
  "-keep-avi")
   keep_avi=1;;
  "-keep-tmp")
+ "-tmp")
   keep_temp_dir=1;;
  "-no-hash")
   disable_hash=1;;
