@@ -387,7 +387,9 @@ enum
 	/* Image File Format */
 	GF_ISOM_BRAND_MIF1 = GF_4CC('m', 'i', 'f', '1'),
 	GF_ISOM_BRAND_HEIC = GF_4CC('h', 'e', 'i', 'c'),
-
+	GF_ISOM_BRAND_HEIM = GF_4CC('h', 'e', 'i', 'm'),
+	GF_ISOM_BRAND_AVIF = GF_4CC('a', 'v', 'i', 'f'),
+	GF_ISOM_BRAND_AVCI = GF_4CC('a', 'v', 'c', 'i'),
 	/*other iso media brands */
 	GF_ISOM_BRAND_ISO1 = GF_4CC( 'i', 's', 'o', '1' ),
 	GF_ISOM_BRAND_ISO3 = GF_4CC( 'i', 's', 'o', '3' ),
