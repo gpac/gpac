@@ -3137,7 +3137,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck)
 {
 	GF_Err e;
-	u32 meta_type, item_id, size, item_type, nb_items;
+	u32 meta_type, item_id, size, item_type, nb_items, media_brand;
 	GF_ImageItemProperties image_props;
 	const char *data, *item_name=NULL;
 	const GF_PropertyValue *p, *dsi, *dsi_enh;
@@ -3192,6 +3192,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	dsi = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_enh = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 
+	media_brand = 0;
 
 	switch (tkw->codecid) {
 	case GF_CODECID_AVC:
@@ -3219,8 +3220,8 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		image_props.bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
 		image_props.bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 		image_props.bits_per_channel[2] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+		media_brand = GF_ISOM_BRAND_AVCI;
 		break;
-
 
 	case GF_CODECID_HEVC:
 	case GF_CODECID_HEVC_TILES:
@@ -3247,7 +3248,10 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		image_props.bits_per_channel[0] = ((GF_HEVCConfigurationBox *)config_box)->config->luma_bit_depth;
 		image_props.bits_per_channel[1] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 		image_props.bits_per_channel[2] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-		//media_brand = GF_ISOM_BRAND_HEIC;
+		media_brand = GF_ISOM_BRAND_HEIC;
+		if (tkw->codecid==GF_CODECID_LHVC) {
+			media_brand = GF_ISOM_BRAND_HEIM;
+		}
 		break;
 	case GF_CODECID_AV1:
 		if (!dsi) return GF_OK;
@@ -3270,16 +3274,20 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 			image_props.bits_per_channel[1] = depth;
 			image_props.bits_per_channel[2] = depth;
 		}
-		//media_brand = GF_ISOM_BRAND_AVIF;
+		media_brand = GF_ISOM_BRAND_AVIF;
 		break;
 	case GF_CODECID_JPEG:
 		item_type = GF_ISOM_SUBTYPE_JPEG;
+		media_brand = GF_ISOM_SUBTYPE_JPEG /* == GF_4CC('j', 'p', 'e', 'g') */;
 		break;
 	case GF_CODECID_J2K:
 		item_type = GF_ISOM_SUBTYPE_JP2K;
+		media_brand = GF_4CC('j', '2', 'k', 'i');
 		break;
 	case GF_CODECID_PNG:
 		item_type = GF_ISOM_SUBTYPE_PNG;
+		//not defined !
+		media_brand = GF_ISOM_SUBTYPE_PNG /* == GF_4CC('j', 'p', 'e', 'g') */;
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec %s not supported to create HEIF image items\n", gf_codecid_name(tkw->codecid) ));
@@ -3320,7 +3328,20 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		e = gf_isom_set_meta_primary_item(ctx->file, GF_TRUE, 0, item_id);
 		if (e) return e;
 	}
+	//if primary item is not set, assign one
+	else if (! gf_isom_get_meta_primary_item_id(ctx->file, GF_TRUE, 0)) {
+		e = gf_isom_set_meta_primary_item(ctx->file, GF_TRUE, 0, item_id);
+		if (e) return e;
+	}
 
+	if (!ctx->major_brand_set) {
+		gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_MIF1, 0);
+		gf_isom_reset_alt_brands(ctx->file);
+		ctx->major_brand_set = 2;
+	}
+	if (media_brand && (ctx->major_brand_set==2)) {
+		gf_isom_modify_alternate_brand(ctx->file, media_brand, 1);
+	}
 #if 0
 	if (e == GF_OK && meta->ref_type) {
 		e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
