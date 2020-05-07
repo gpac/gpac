@@ -79,8 +79,10 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		if (slc) gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, NULL, &par_n, &par_d);
 		gf_odf_avc_cfg_del(avcc);
 
-		if ((par_n>1) && (par_d>1))
+		if ((par_n>1) && (par_d>1)) {
+			gf_isom_set_pixel_aspect_ratio(file, track, 1, par_n, par_d, GF_FALSE);
 			tk_w = tk_w * par_n / par_d;
+		}
 	}
 	else if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP) ) {
 		GF_M4VDecSpecInfo dsi;
