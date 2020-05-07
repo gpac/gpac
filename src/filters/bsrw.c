@@ -423,7 +423,7 @@ static const GF_FilterCapability BSRWCaps[] =
 
 GF_FilterRegister BSRWRegister = {
 	.name = "bsrw",
-	GF_FS_SET_DESCRIPTION("COmpressed bitstream rewriter")
+	GF_FS_SET_DESCRIPTION("Compressed bitstream rewriter")
 	GF_FS_SET_HELP("This filter rewrites some metadata of various bitstream formats.\n"
 	"The filter can currently modify the following properties in the bitstream:\n"
 	"- MPEG-4 Visual: aspect ratio and profile/level\n"
