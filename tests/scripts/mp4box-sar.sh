@@ -41,3 +41,31 @@ test_sar $MEDIA_DIR/auxiliary_files/count_video.cmp
 test_sar $MEDIA_DIR/auxiliary_files/counter.hvc
 
 
+test_sar_2()
+{
+
+name=$(basename $1)
+name=${name%.*}
+test_begin "mp4box-sar2-$name"
+
+if [ "$test_skip" = 1 ] ; then
+return
+fi
+
+mp4file="$TEMP_DIR/outofband.mp4"
+do_test "$MP4BOX -add $1 -new $mp4file" "outofband"
+do_hash_test $mp4file "outofband"
+
+mp4file="$TEMP_DIR/inband.mp4"
+do_test "$MP4BOX -add $1:xps_inband -new $mp4file" "inband"
+do_hash_test $mp4file "inband"
+
+test_end
+}
+
+ if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
+  return
+ fi
+
+test_sar_2 $EXTERNAL_MEDIA_DIR/pasp/counter_avc_4_3.avc
+test_sar_2 $EXTERNAL_MEDIA_DIR/pasp/counter_hevc_4_3.hvc
