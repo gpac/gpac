@@ -357,6 +357,7 @@
 		925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A41ABC53F30085B04C /* smjs_api.h */; };
 		925FF2A71ABC55030085B04C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
 		92734635235084A50081AF74 /* storage.c in Sources */ = {isa = PBXBuildFile; fileRef = 92734634235084A50081AF74 /* storage.c */; };
+		9274295A24647B98009ADD8D /* bsrw.c in Sources */ = {isa = PBXBuildFile; fileRef = 9274295924647B98009ADD8D /* bsrw.c */; };
 		9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 9236FDEF1DD23F1400B3E86F /* iTunesArtwork */; };
 		9281B63021C92D00006B0FD5 /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62E21C92D00006B0FD5 /* gui */; };
 		9281B63121C92D00006B0FD5 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62F21C92D00006B0FD5 /* shaders */; };
@@ -938,6 +939,7 @@
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
 		925FF2A41ABC53F30085B04C /* smjs_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smjs_api.h; sourceTree = "<group>"; };
 		92734634235084A50081AF74 /* storage.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = storage.c; path = ../../src/jsmods/storage.c; sourceTree = "<group>"; };
+		9274295924647B98009ADD8D /* bsrw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bsrw.c; path = ../../src/filters/bsrw.c; sourceTree = "<group>"; };
 		9281B62E21C92D00006B0FD5 /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../share/gui; sourceTree = "<group>"; };
 		9281B62F21C92D00006B0FD5 /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../share/shaders; sourceTree = "<group>"; };
 		92852442237ACC2700165130 /* raster3d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster3d.c; path = ../../src/evg/raster3d.c; sourceTree = "<group>"; };
@@ -1852,6 +1854,7 @@
 		92EB6D5E20E4E16700A97A49 /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				9274295924647B98009ADD8D /* bsrw.c */,
 				92EB6D8B20E4E19300A97A49 /* compose.c */,
 				92EB6D9420E4E19400A97A49 /* dasher.c */,
 				92EB6DB020E4E19600A97A49 /* dec_ac52.c */,
@@ -2567,6 +2570,7 @@
 				71CCF3341277045100339E12 /* math.c in Sources */,
 				92EB6E1020E4E19700A97A49 /* in_file.c in Sources */,
 				92EB6DF020E4E19700A97A49 /* dec_vorbis.c in Sources */,
+				9274295A24647B98009ADD8D /* bsrw.c in Sources */,
 				71CCF3351277045100339E12 /* module.c in Sources */,
 				71CCF3381277045100339E12 /* os_module.c in Sources */,
 				92E9DFA62215CE9A00628420 /* g_crypt_openssl.c in Sources */,

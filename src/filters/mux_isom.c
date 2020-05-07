@@ -866,9 +866,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				else if (inc * 2400 == ts * 100) target_timescale = 2400;
 				else if (inc * 2500 == ts * 100) target_timescale = 2500;
 				else if (inc * 30000 == ts * 1001) target_timescale = 30000;
+				else if (inc * 2997 == ts * 100) target_timescale = 30000;
 				else if (inc * 3000 == ts * 100) target_timescale = 3000;
 				else if (inc * 5000 == ts * 100) target_timescale = 5000;
 				else if (inc * 60000 == ts * 1001) target_timescale = 60000;
+				else if (inc * 5994 == ts * 100) target_timescale = 60000;
 				else if (is_prores) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)ts)/inc ));
 					return GF_NON_COMPLIANT_BITSTREAM;

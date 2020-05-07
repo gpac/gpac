@@ -5340,6 +5340,64 @@ nb_pack (uint, default: 10):   pack N packets before sending
 .br
 
 .br
+.SH bsrw
+.LP
+.br
+Description: COmpressed bitstream rewriter
+.br
+
+.br
+This filter rewrites some metadata of various bitstream formats.
+.br
+The filter can currently modify the following properties in the bitstream:
+.br
+* MPEG-4 Visual: aspect ratio and profile/level
+.br
+* AVC|H264: aspect ratio
+.br
+* HEVC: aspect ratio
+.br
+* ProRes: aspect ratio, color primaries, transfer characteristics and matrix coefficients
+.br
+  
+.br
+The filter can currently modify the following properties in the stream configuration but not in the bitstream:
+.br
+* AVC|H264: profile, level, profile compatibility
+.br
+* HEVC: profile IDC, profile space, general compatibility flags
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+sar (frac, default: 0/0, updatable): aspect ratio to rewrite
+.br
+m4vpl (sint, default: -1, updatable): set ProfileLevel for MPEG-4 video part two
+.br
+clrp (str, updatable):         color primaries according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) BT709, BT601-625, BT601-525, BT2020, P3 or P3-D65
+.br
+txchar (str, updatable):       transfer characteristics according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) BT709, ST2084 or STDB67
+.br
+mxcoef (str, updatable):       matrix coeficients according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) BT709, BT601 or BT2020
+.br
+prof (sint, default: -1, updatable): profile indication for AVC|H264
+.br
+lev (sint, default: -1, updatable): level indication for AVC|H264
+.br
+pcomp (sint, default: -1, updatable): profile compatibility for AVC|H264
+.br
+pidc (sint, default: -1, updatable): profile IDC for HEVC
+.br
+pspace (sint, default: -1, updatable): profile space for HEVC
+.br
+gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
+.br
+
+.br
 .SH ffdmx
 .LP
 .br
@@ -5796,7 +5854,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev112-g2fe5c1e75-filters
+build: 0.9.0-DEV-rev120-g8b377eb69-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

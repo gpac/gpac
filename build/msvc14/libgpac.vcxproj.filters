@@ -1403,6 +1403,9 @@
     <ClCompile Include="..\..\src\filters\dasher.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\bsrw.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dmx_gsf.c">
       <Filter>filters</Filter>
     </ClCompile>

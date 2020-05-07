@@ -788,6 +788,7 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 	case 0: gf_fprintf(dump, " aspectRatio=\"unknown\""); break;
 	case 1: gf_fprintf(dump, " aspectRatio=\"1:1\""); break;
 	case 2: gf_fprintf(dump, " aspectRatio=\"4:3\""); break;
+	case 3: gf_fprintf(dump, " aspectRatio=\"16:9\""); break;
 	default: gf_fprintf(dump, " aspectRatio=\"reserved(%d)\"", prores_frame.aspect_ratio_information); break;
 	}
 	switch (prores_frame.framerate_code) {
@@ -827,6 +828,15 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 	case 1: gf_fprintf(dump, " alphaChannel=\"8bits\""); break;
 	case 2: gf_fprintf(dump, " alphaChannel=\"16bits\""); break;
 	default: gf_fprintf(dump, " alphaChannel=\"reserved(%d)\"", prores_frame.alpha_channel_type); break;
+	}
+	switch (prores_frame.transfer_characteristics) {
+	case 0: gf_fprintf(dump, " transferCharacteristics=\"unknown\""); break;
+	case 1: gf_fprintf(dump, " transferCharacteristics=\"BT-709\""); break;
+	case 16: gf_fprintf(dump, " transferCharacteristics=\"ST-2084\""); break;
+	case 18: gf_fprintf(dump, " transferCharacteristics=\"STD-B67\""); break;
+	case 2:
+	default:
+		gf_fprintf(dump, " transferCharacteristics=\"unspecified\""); break;
 	}
 	gf_fprintf(dump, " transferCharacteristics=\"%d\" numPictures=\"%d\"" , prores_frame.transfer_characteristics, prores_frame.nb_pic);
 
