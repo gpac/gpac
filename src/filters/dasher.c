@@ -5176,6 +5176,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					base_ds->nb_comp_done ++;
 					if (base_ds->nb_comp_done == base_ds->nb_comp) {
 						dasher_flush_segment(ctx, base_ds);
+						base_ds->nb_comp_done = 0;
 					}
 					//loop on the entire source, mark as done for subdur and check if all other streams are done
 					if (!ds->done) {
@@ -6504,6 +6505,7 @@ GF_FilterRegister DasherRegister = {
 	.initialize = dasher_initialize,
 	.finalize = dasher_finalize,
 	SETCAPS(DasherCaps),
+	.flags = GF_FS_REG_REQUIRES_RESOLVER,
 	.configure_pid = dasher_configure_pid,
 	.process = dasher_process,
 	.process_event = dasher_process_event,

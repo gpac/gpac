@@ -1002,6 +1002,13 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 		if ((strlen(f_reg->name)==len) && !strncmp(f_reg->name, name, len)) {
 			GF_Filter *filter;
 			GF_FilterArgType argtype = GF_FILTER_ARG_EXPLICIT;
+
+			if ((f_reg->flags & GF_FS_REG_REQUIRES_RESOLVER) && !fsess->max_resolve_chain_len) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s requires graph resolver but it is disabled\n", name));
+				*err_code = GF_BAD_PARAM;
+				return NULL;
+			}
+
 			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
 			filter = gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL, GF_FALSE);
 			if (!filter) return NULL;
