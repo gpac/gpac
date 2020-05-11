@@ -1801,6 +1801,7 @@ GF_FilterRegister DASHDmxRegister = {
 	.finalize = dashdmx_finalize,
 	.args = DASHDmxArgs,
 	SETCAPS(DASHDmxCaps),
+	.flags = GF_FS_REG_REQUIRES_RESOLVER,
 	.configure_pid = dashdmx_configure_pid,
 	.process = dashdmx_process,
 	.process_event = dashdmx_process_event,

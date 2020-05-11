@@ -871,7 +871,7 @@ GF_FilterRegister FileListRegister = {
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n")
 	.private_size = sizeof(GF_FileListCtx),
 	.max_extra_pids = -1,
-	.flags = GF_FS_REG_ACT_AS_SOURCE,
+	.flags = GF_FS_REG_ACT_AS_SOURCE | GF_FS_REG_REQUIRES_RESOLVER,
 	.args = GF_FileListArgs,
 	.initialize = filelist_initialize,
 	.finalize = filelist_finalize,
