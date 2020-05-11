@@ -1254,11 +1254,10 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 					snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%01u.%01u.%01u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
 					strcat(szCodec, tmp);
 				} else {
-					if (av1_state.color_primaries == 1 && av1_state.transfer_characteristics == 1 && av1_state.matrix_coefficients == 1 && av1_state.color_range == GF_FALSE) {
+					if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
 
 					} else {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
-		//				assert(0);
 					}
 				}
 				gf_odf_av1_cfg_del(av1c);
@@ -5241,13 +5240,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 				set_start_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
+					//force sap type to 1 for non-visual streams if strict_sap is set to off
+					if ((ds->stream_type!=GF_STREAM_VISUAL) && (ctx->strict_sap==DASHER_SAP_OFF) ) {
+						sap_type = 1;
+					}
 					//set AS sap type
 					if (!set_start_with_sap) {
-
-						if ((ds->stream_type!=GF_STREAM_VISUAL) && (ctx->strict_sap==DASHER_SAP_OFF) ) {
-							sap_type = 1;
-						}
-
 						//don't set SAP type if not a base rep - could be further checked
 						//if (!gf_list_count(ds->complementary_streams) )
 						{
