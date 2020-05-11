@@ -823,12 +823,6 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 	case 9: gf_fprintf(dump, " matrixCoefficients=\"BT.2020\""); break;
 	default: gf_fprintf(dump, " matrixCoefficients=\"reserved(%d)\"", prores_frame.matrix_coefficients); break;
 	}
-	switch (prores_frame.alpha_channel_type) {
-	case 0: gf_fprintf(dump, " alphaChannel=\"none\""); break;
-	case 1: gf_fprintf(dump, " alphaChannel=\"8bits\""); break;
-	case 2: gf_fprintf(dump, " alphaChannel=\"16bits\""); break;
-	default: gf_fprintf(dump, " alphaChannel=\"reserved(%d)\"", prores_frame.alpha_channel_type); break;
-	}
 	switch (prores_frame.transfer_characteristics) {
 	case 0: gf_fprintf(dump, " transferCharacteristics=\"unknown\""); break;
 	case 1: gf_fprintf(dump, " transferCharacteristics=\"BT-709\""); break;
@@ -838,7 +832,13 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 	default:
 		gf_fprintf(dump, " transferCharacteristics=\"unspecified\""); break;
 	}
-	gf_fprintf(dump, " transferCharacteristics=\"%d\" numPictures=\"%d\"" , prores_frame.transfer_characteristics, prores_frame.nb_pic);
+	switch (prores_frame.alpha_channel_type) {
+	case 0: gf_fprintf(dump, " alphaChannel=\"none\""); break;
+	case 1: gf_fprintf(dump, " alphaChannel=\"8bits\""); break;
+	case 2: gf_fprintf(dump, " alphaChannel=\"16bits\""); break;
+	default: gf_fprintf(dump, " alphaChannel=\"reserved(%d)\"", prores_frame.alpha_channel_type); break;
+	}
+	gf_fprintf(dump, " numPictures=\"%d\"" , prores_frame.transfer_characteristics, prores_frame.nb_pic);
 
 	if (!prores_frame.load_luma_quant_matrix && !prores_frame.load_chroma_quant_matrix) {
 		gf_fprintf(dump, "/>\n");
