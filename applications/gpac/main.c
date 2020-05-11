@@ -2307,6 +2307,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		} else {
 			gf_sys_format_help(helpout, help_flags, "This filter may be automatically loaded during graph resolution.\n");
 		}
+		if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) {
+			gf_sys_format_help(helpout, help_flags, "This filter requires the graph resolver to be activated.\n");
+		}
 	} else {
 		gf_sys_format_help(helpout, help_flags, "# %s\n", filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
 		if (filter_inst)
@@ -2357,6 +2360,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		if (reg->flags & GF_FS_REG_MAIN_THREAD) gf_sys_format_help(helpout, help_flags, " MainThread");
 		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) gf_sys_format_help(helpout, help_flags, " ConfigureMainThread");
 		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) gf_sys_format_help(helpout, help_flags, " HideWeight");
+		if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) gf_sys_format_help(helpout, help_flags, " RequireResolver");
 		if (reg->flags & GF_FS_REG_DYNLIB) gf_sys_format_help(helpout, help_flags, " DynamicLib");
 		if (reg->probe_url) gf_sys_format_help(helpout, help_flags, " URLMimeProber");
 		if (reg->probe_data) gf_sys_format_help(helpout, help_flags, " DataProber");
