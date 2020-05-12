@@ -151,6 +151,8 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 		//auto mode
 		if (get_par_info && ((ar_num<=0) || (ar_num<=0))) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMF] No sample AR info present in sample description, ignoring SAR update\n"));
+			if (force_par)
+				return gf_isom_set_pixel_aspect_ratio(file, track, 1, 1, 1, force_par);
 			return GF_OK;
 		}
 	}
