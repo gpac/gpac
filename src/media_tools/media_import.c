@@ -79,8 +79,8 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		if (slc) gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, NULL, &par_n, &par_d);
 		gf_odf_avc_cfg_del(avcc);
 
-		if ((par_n>1) && (par_d>1)) {
-			gf_isom_set_pixel_aspect_ratio(file, track, 1, par_n, par_d, GF_FALSE);
+		if ((par_n>=1) && (par_d>=1)) {
+			gf_isom_set_pixel_aspect_ratio(file, track, 1, par_n, par_d, GF_TRUE);
 			tk_w = tk_w * par_n / par_d;
 		}
 	}
@@ -7215,7 +7215,7 @@ next_nal:
 	if (sar_w && sar_h) {
 		u32 tw, th;
 		gf_isom_get_track_layout_info(import->dest, track, &tw, &th, NULL, NULL, NULL);
-		gf_isom_set_pixel_aspect_ratio(import->dest, track, 1, sar_w, sar_h, GF_FALSE);
+		gf_isom_set_pixel_aspect_ratio(import->dest, track, 1, sar_w, sar_h, GF_TRUE);
 		if (sar_w != sar_h) {
 			tw *= sar_w;
 			tw /= sar_h;
