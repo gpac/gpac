@@ -3951,8 +3951,12 @@ single_retry:
 				gf_list_del_item(filter->destination_links, dst_f);
 			}
 		}
+    }
 
-        if (!num_pass) {
+	if (!num_pass) {
+		//cleanup forced link resolution
+		for (i=0; i< gf_list_count(linked_dest_filters); i++) {
+			GF_Filter *filter_dst = gf_list_get(linked_dest_filters, i);
 			u32 k=0;
 			for (k=0; k<gf_list_count(force_link_resolutions); k++) {
 				GF_Filter *dst_link = gf_list_get(force_link_resolutions, k);
@@ -3962,13 +3966,15 @@ single_retry:
 					//if forced filter is in destination of filter (connection pending), don't force a link
 					|| (gf_list_find(filter_dst->destination_filters, dst_link)>=0)
 					|| (gf_list_find(filter_dst->destination_links, dst_link)>=0)
+					//if forced filter's target is the same as what we connected to, don't force a link
+					|| (dst_link->target_filter == filter_dst)
 				) {
 					gf_list_rem(force_link_resolutions, k);
 					k--;
 				}
 			}
 		}
-    }
+	}
 
 	if (loaded_filters) {
 		gf_list_del(loaded_filters);
