@@ -783,7 +783,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 
 	max_w = max_h = 0;
 	max_ew = max_eh = 0;
-	sar->num = sar->den = 1;
+	sar->num = sar->den = 0;
 
 	hvcc = gf_odf_hevc_cfg_new();
 	lvcc = gf_odf_hevc_cfg_new();
@@ -945,7 +945,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 
 
 	max_w = max_h = max_ew = max_eh = 0;
-	sar->num = sar->den = 1;
+	sar->num = sar->den = 0;
 
 	avcc = gf_odf_avc_cfg_new();
 	svcc = gf_odf_avc_cfg_new();
@@ -1162,7 +1162,11 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH_MAX, & PROP_UINT( ew ));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT_MAX, & PROP_UINT( eh ));
 	}
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC(ctx->sar));
+	if (ctx->sar.den)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC(ctx->sar));
+	else
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL);
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
 

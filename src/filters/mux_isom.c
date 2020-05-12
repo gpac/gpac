@@ -1105,7 +1105,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	ch_layout = 0;
 	fps.num = 25;
 	fps.den = 1;
-	sar.num = sar.den = 1;
+	sar.num = sar.den = 0;
 	codec_id = tkw->codecid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_PID);
 	if (p) {
@@ -2305,9 +2305,15 @@ sample_entry_done:
 			Bool full_range_flag=GF_FALSE;
 
 			gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
-			if (sar.den && (sar.num != sar.den)) {
-				gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, sar.num, sar.den, GF_FALSE);
-				width = width * sar.num / sar.den;
+			if (sar.den) {
+				if (sar.num != sar.den) {
+					gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, sar.num, sar.den, GF_FALSE);
+					width = width * sar.num / sar.den;
+				}
+				//old importer did not set PASP for
+				else if (!gf_sys_old_arch_compat() || (codec_id!=GF_CODECID_MPEG4_PART2) ) {
+					gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, 1, 1, GF_TRUE);
+				}
 			}
 
 			gf_isom_set_track_layout_info(ctx->file, tkw->track_num, width<<16, height<<16, 0, 0, z_order);
