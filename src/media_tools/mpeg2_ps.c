@@ -1058,7 +1058,7 @@ static u64 convert_ts (mpeg2ps_stream_t *sptr,
 	if (sptr->is_video) {
 		// video
 		ret += frames_since_ts * sptr->ticks_per_frame;
-	} else {
+	} else if (sptr->freq) {
 		// audio
 		calc = (frames_since_ts * 90000 * sptr->samples_per_frame) / sptr->freq;
 		ret += calc;

@@ -458,7 +458,9 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 
 		bytes_to_drop = sync_pos + ctx->hdr.framesize;
 		if (ctx->timescale && !prev_pck_size &&  (cts != GF_FILTER_NO_TS) ) {
-			ctx->cts = cts;
+			//trust input CTS if diff is more than one sec
+			if ((cts > ctx->cts + ctx->timescale) || (ctx->cts > cts + ctx->timescale))
+				ctx->cts = cts;
 			cts = GF_FILTER_NO_TS;
 		}
 
