@@ -562,7 +562,7 @@ static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
 		if (!strnicmp(url, "gfio://", 7)) {
 			if (!gf_fileio_write_mode(gf_fileio_from_url(url)))
 				return GF_FPROBE_NOT_SUPPORTED;
-			return GF_FPROBE_SUPPORTED;
+			return GF_FPROBE_MAYBE_SUPPORTED;
 		}
 		return GF_FPROBE_NOT_SUPPORTED;
 	}

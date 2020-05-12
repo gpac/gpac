@@ -1251,6 +1251,11 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session)
 	if (!gf_opts_get_bool("temp", "gendoc"))
 		return NULL;
 	GF_MCDecCtxRegister.version = "! Warning: MediaCodec SDK NOT AVAILABLE IN THIS BUILD !";
+
+#ifdef GPAC_ENABLE_COVERAGE
+	mcdec_process(NULL);
+#endif
+
 #endif
 	return &GF_MCDecCtxRegister;
 }
