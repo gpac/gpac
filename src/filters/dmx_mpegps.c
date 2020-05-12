@@ -166,6 +166,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 			break;
 		case MPEG_AUDIO_AC3:
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT( GF_CODECID_AC3) );
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE) );
 			break;
 		case MPEG_AUDIO_LPCM:
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_4CC('L','P','C','M') ) );
