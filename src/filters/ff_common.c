@@ -628,7 +628,10 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
 	const AVFilter *avf = NULL;
 #endif
+
+#if !defined(NO_AVIO_PROTO) || (LIBAVFILTER_VERSION_MAJOR > 6)
 	void *av_it;
+#endif
 
 	const char *fname = "";
 	if (type==FF_REG_TYPE_DEMUX) fname = "ffdmx";
@@ -661,7 +664,9 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 second_pass:
 #endif
 
+#if !defined(NO_AVIO_PROTO) || (LIBAVFILTER_VERSION_MAJOR > 6)
 	av_it = NULL;
+#endif
 
 	while (1) {
 		const AVClass *av_class=NULL;
