@@ -8749,20 +8749,10 @@ static u32 vorbis_book_maptype1_quantvals(u32 entries, u32 dim)
 	}
 }
 
-u32 _ilog_(u32 v)
+static u32 ilog(u32 v, Bool dec)
 {
 	u32 ret = 0;
-	while (v) {
-		ret++;
-		v >>= 1;
-	}
-	return(ret);
-}
-
-static u32 ilog(u32 v)
-{
-	u32 ret = 0;
-	if (v) --v;
+	if (dec && v) --v;
 	while (v) {
 		ret++;
 		v >>= 1;
@@ -8859,7 +8849,7 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 		else {
 			oggpack_read(&opb, 5);
 			for (j = 0; j < entries;) {
-				u32 num = oggpack_read(&opb, _ilog_(entries - j));
+				u32 num = oggpack_read(&opb, ilog(entries - j, GF_FALSE));
 				for (k = 0; k < num && j < entries; k++, j++) {
 				}
 			}
@@ -8943,8 +8933,8 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 		if (oggpack_read(&opb, 1)) {
 			u32 nb_steps = oggpack_read(&opb, 8) + 1;
 			for (j = 0; j < nb_steps; j++) {
-				oggpack_read(&opb, ilog(vp->channels));
-				oggpack_read(&opb, ilog(vp->channels));
+				oggpack_read(&opb, ilog(vp->channels, GF_TRUE));
+				oggpack_read(&opb, ilog(vp->channels, GF_TRUE));
 			}
 		}
 		oggpack_read(&opb, 2);
