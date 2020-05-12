@@ -800,7 +800,8 @@ GF_Err gf_isom_remove_stream_description(GF_ISOFile *movie, u32 trackNumber, u32
 
 	entry = (GF_SampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex - 1);
 	if (!entry) return GF_BAD_PARAM;
-	gf_isom_box_del_parent(&trak->Media->information->sampleTable->SampleDescription->child_boxes, (GF_Box *)entry);
+	gf_list_rem(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex - 1);
+	gf_isom_box_del((GF_Box *)entry);
 	return GF_OK;
 }
 
