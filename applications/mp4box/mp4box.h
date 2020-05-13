@@ -85,7 +85,7 @@ u32 id3_get_genre_tag(const char *name);
 
 /*in filedump.c*/
 #ifndef GPAC_DISABLE_SCENE_DUMP
-GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDumpFormat dump_mode, Bool do_log);
+GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDumpFormat dump_mode, Bool do_log, Bool no_odf_conv);
 //void gf_check_isom_files(char *conf_rules, char *inName);
 #endif
 #ifndef GPAC_DISABLE_SCENE_STATS

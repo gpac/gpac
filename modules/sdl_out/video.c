@@ -1302,7 +1302,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format, Bool force_alpha)
 {
-	if (format->palette) return 0;
+	if (!format || format->palette) return 0;
 	switch (format->BitsPerPixel) {
 	case 16:
 		if ((format->Rmask==0x7c00) && (format->Gmask==0x03e0) && (format->Bmask==0x001f) ) return GF_PIXEL_RGB_555;
@@ -2015,6 +2015,9 @@ void *SDL_NewVideo()
 #endif
 
 
+#ifdef GPAC_ENABLE_COVERAGE
+	SDLVid_MapPixelFormat(NULL, GF_FALSE);
+#endif
 
 	driv->Blit = SDL_Blit;
 	driv->LockBackBuffer = SDLVid_LockBackBuffer;

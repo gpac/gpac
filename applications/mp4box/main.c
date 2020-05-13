@@ -715,6 +715,7 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("diso", NULL, "dump IsoMedia file boxes in XML output", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dxml", NULL, "dump IsoMedia file boxes and known track samples in XML output", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("disox", NULL, "dump IsoMedia file boxes except sample tables in XML output", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("keep-ods", NULL, "do not translate ISOM ODs and ESDs tags (debug purpose only)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("bt", NULL, "dump scene to BT format", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("xmt", NULL, "dump scene to XMT format", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("wrl", NULL, "dump scene to VRML format", NULL, NULL, GF_ARG_BOOL, 0),
@@ -2369,6 +2370,7 @@ u32 do_flat, box_patch_trackID=0, print_info;
 Bool comp_lzma=GF_FALSE;
 Bool freeze_box_order=GF_FALSE;
 Bool chap_qt=GF_FALSE;
+Bool no_odf_conf=GF_FALSE;
 Double min_buffer = 1.5;
 u32 comp_top_box_version = 0;
 u32 size_top_box = 0;
@@ -3758,6 +3760,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-fgraph")) fs_dump_flags |= 1<<1;
 
 #if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)
+		else if (!stricmp(arg, "-keep-ods")) no_odf_conf = GF_TRUE;
 		else if (!stricmp(arg, "-bt")) dump_mode = GF_SM_DUMP_BT;
 		else if (!stricmp(arg, "-xmt")) dump_mode = GF_SM_DUMP_XMTA;
 		else if (!stricmp(arg, "-wrl")) dump_mode = GF_SM_DUMP_VRML;
@@ -5387,7 +5390,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	if (dump_mode != GF_SM_DUMP_NONE) {
-		e = dump_isom_scene(inName, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_mode, do_log);
+		e = dump_isom_scene(inName, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_mode, do_log, no_odf_conf);
 		if (e) goto err_exit;
 	}
 #endif

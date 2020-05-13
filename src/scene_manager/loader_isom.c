@@ -183,12 +183,16 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 	nb_samp = 0;
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
+		u32 subtype = gf_isom_get_mpeg4_subtype(load->isom, i+1, 1);
 		switch (type) {
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OD:
 			nb_samp += gf_isom_get_sample_count(load->isom, i+1);
 			break;
 		default:
+			if (subtype==GF_ISOM_SUBTYPE_MP4S) {
+				nb_samp += gf_isom_get_sample_count(load->isom, i+1);
+			}
 			break;
 		}
 	}
@@ -197,12 +201,15 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
+		u32 subtype = gf_isom_get_mpeg4_subtype(load->isom, i+1, 1);
 		switch (type) {
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OD:
 			break;
 		default:
-			continue;
+			if (subtype!=GF_ISOM_SUBTYPE_MP4S)
+				continue;
+			break;
 		}
 		esd = gf_isom_get_esd(load->isom, i+1, 1);
 		if (!esd) continue;
@@ -345,9 +352,19 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	if (!load->ctx->root_od) {
 		e = gf_isom_last_error(load->isom);
 		if (e) return e;
-	} else if ((load->ctx->root_od->tag != GF_ODF_OD_TAG) && (load->ctx->root_od->tag != GF_ODF_IOD_TAG)) {
-		gf_odf_desc_del((GF_Descriptor *) load->ctx->root_od);
-		load->ctx->root_od = NULL;
+	}
+	else {
+		switch (load->ctx->root_od->tag) {
+		case GF_ODF_OD_TAG:
+		case GF_ODF_IOD_TAG:
+		case GF_ODF_ISOM_OD_TAG:
+		case GF_ODF_ISOM_IOD_TAG:
+			break;
+		default:
+			gf_odf_desc_del((GF_Descriptor *) load->ctx->root_od);
+			load->ctx->root_od = NULL;
+			break;
+		}
 	}
 
 	esd = NULL;

@@ -758,6 +758,7 @@ GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMT
 {
 	u32 i, count;
 	char ind_buf[OD_MAX_TREE];
+	if (!trace || !desc) return GF_BAD_PARAM;
 	StartDescDump(trace, "TextConfig", indent, XMTDump);
 	indent++;
 	DumpIntHex(trace, "3GPPBaseFormat", desc->Base3GPPFormat, indent, XMTDump, GF_TRUE);
@@ -817,17 +818,6 @@ GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMT
 	EndDescDump(trace, "TextConfig", indent, XMTDump);
 	return GF_OK;
 }
-
-GF_Err DumpRawTextConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDump, u32 oti)
-{
-	GF_TextConfig *cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
-	GF_Err e = gf_odf_get_text_config(dsi->data, dsi->dataLength, (u8) oti, cfg);
-	if (!e) gf_odf_dump_desc((GF_Descriptor*)cfg, trace, indent, XMTDump);
-	gf_odf_desc_del((GF_Descriptor *) cfg);
-	return e;
-}
-
-
 
 GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *uid, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -951,7 +941,12 @@ GF_Err OD_DumpDSI(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDu
 	case GF_STREAM_INTERACT:
 		return DumpRawUIConfig(dsi, trace, indent, XMTDump, oti);
 	case GF_STREAM_TEXT:
-		if (oti==0x08) return DumpRawTextConfig(dsi, trace, indent, XMTDump, oti);
+		if (oti==0x08) {
+			GF_TextConfig *cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
+			GF_Err e = gf_odf_get_text_config(dsi->data, dsi->dataLength, (u8) oti, cfg);
+			if (!e) gf_odf_dump_desc((GF_Descriptor*)cfg, trace, indent, XMTDump);
+			gf_odf_desc_del((GF_Descriptor *) cfg);
+		}
 		break;
 	default:
 		break;
