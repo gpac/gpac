@@ -143,6 +143,7 @@ GF_Err gf_odf_del_bifs_cfg(GF_BIFSConfig *desc);
 GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc);
 GF_Err gf_odf_del_laser_cfg(GF_LASERConfig *desc);
 GF_Err gf_odf_del_auxvid(GF_AuxVideoDescriptor *ld);
+GF_Err gf_odf_del_ElemMask(GF_ElementaryMask *desc);
 
 GF_Err gf_odf_read_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod, u32 DescSize);
 GF_Err gf_odf_read_esd(GF_BitStream *bs, GF_ESD *esd, u32 DescSize);
