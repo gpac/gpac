@@ -6646,8 +6646,13 @@ restart_import:
 		case GF_HEVC_NALU_END_OF_STREAM:
 			break;
 
+		//parsing is partial, see https://github.com/DolbyLaboratories/dlb_mp4base/blob/70a2e1d4d99a8439b7b8087bf50dd503eeea2291/src/esparser/parser_hevc.c#L1233
 		case GF_HEVC_NALU_DV_RPU:
+			hevc.dv_rpu = GF_TRUE;
+			copy_size = nal_size;
+			break;
 		case GF_HEVC_NALU_DV_EL:
+			hevc.dv_el = GF_TRUE;
 			copy_size = nal_size;
 			break;
 

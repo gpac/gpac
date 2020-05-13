@@ -483,6 +483,10 @@ typedef struct _hevc_state
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
+
+	// Dolby Vision
+	Bool dv_rpu;
+	Bool dv_el;
 } HEVCState;
 
 enum
