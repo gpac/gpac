@@ -1286,7 +1286,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		e = gf_dynstrcat(&args, "nhmlw:exporter:name=", NULL);
 		e |= gf_dynstrcat(&args, dumper->out_name, NULL);
 		if (dumper->flags & GF_EXPORT_NHML_FULL)
-			e |= gf_dynstrcat(&args, ":full", NULL);
+			e |= gf_dynstrcat(&args, ":pckp", NULL);
 		if (dumper->dump_file) {
 			sprintf(szSubArgs, ":nhmlonly:filep=%p", dumper->dump_file);
 			e |= gf_dynstrcat(&args, szSubArgs, NULL);

@@ -427,7 +427,7 @@ extract given track to NHNT format
 .TP
 .B \-nhml (string)
 .br
-extract given track to NHML format. Use tkID:full for full NHML dump
+extract given track to NHML format. Use tkID:full for full NHML dump with all packet properties
 .br
 .TP
 .B \-webvtt-raw (string)
@@ -965,6 +965,11 @@ dump IsoMedia file boxes and known track samples in XML output
 .B \-disox
 .br
 dump IsoMedia file boxes except sample tables in XML output
+.br
+.TP
+.B \-keep-ods
+.br
+do not translate ISOM ODs and ESDs tags (debug purpose only)
 .br
 .TP
 .B \-bt
@@ -2038,7 +2043,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev122-g73f1f3e31-filters
+build: 0.9.0-DEV-rev144-gae46bd917-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
