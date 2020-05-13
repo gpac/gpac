@@ -45,6 +45,9 @@ mp4_test ()
  # flac not supported in < 0.9.0
  *.flac )
   return ;;
+ # ac3 in mpg not supported in < 0.9.0
+ *ac3.mpg )
+  return ;;
  *.jpg )
   do_hint=0 ;;
  *.jpeg )
