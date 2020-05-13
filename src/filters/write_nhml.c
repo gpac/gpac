@@ -38,7 +38,7 @@ typedef struct
 {
 	//opts
 	const char *name;
-	Bool exporter, dims, full, nhmlonly, chksum;
+	Bool exporter, dims, pckp, nhmlonly, chksum;
 	FILE *filep;
 
 
@@ -614,8 +614,6 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 	sprintf(nhml, "%s=\"", pname ? pname : gf_4cc_to_str(p4cc));
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
-
-
 	switch (att->type) {
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
@@ -654,7 +652,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	ctx->pck_num++;
 	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\""LLU"\" dataLength=\"%d\" ", ctx->pck_num, dts, data_size);
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-	if (ctx->full || (cts != dts) ) {
+	if (ctx->pckp || (cts != dts) ) {
 		sprintf(nhml, "CTSOffset=\"%d\" ", (s32) ((s64)cts - (s64)dts));
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
@@ -664,7 +662,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	} else if (sap) {
 		sprintf(nhml, "SAPType=\"%d\" ", sap);
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-	} else if (ctx->full) {
+	} else if (ctx->pckp) {
 		sprintf(nhml, "isRAP=\"no\" ");
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		if (sap==GF_FILTER_SAP_4) {
@@ -674,7 +672,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 		}
 	}
 
-	if (ctx->full) {
+	if (ctx->pckp) {
 		u64 bo;
 		u32 duration, idx;
 		sprintf(nhml, "mediaOffset=\""LLU"\" ", ctx->mdia_pos);
@@ -923,7 +921,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 	{ OFFS(dims), "use DIMS mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(name), "set output name of files produced (needed media/info files refered to from XML", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(nhmlonly), "only dump NHML info, not media", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(full), "full NHML dump", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pckp), "full NHML dump", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chksum), "insert frame checksum\n"
 	"- none: no checksum\n"
 	"- crc: CRC32 checksum\n"

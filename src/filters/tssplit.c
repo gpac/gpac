@@ -46,7 +46,7 @@ typedef struct
 typedef struct
 {
 	//options
-	Bool full;
+	Bool dvb;
 	s32 mux_id;
 	Bool avonly;
 	u32 nb_pack;
@@ -370,7 +370,7 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			return;
 		}
 
-		if (!ctx->full) return;
+		if (!ctx->dvb) return;
 
 		do_fwd = GF_FALSE;
 		switch (tspck->pid) {
@@ -446,7 +446,7 @@ static const GF_FilterCapability M2TSSplitCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_M2TSSplitCtx, _n)
 static const GF_FilterArgs M2TSSplitArgs[] =
 {
-	{ OFFS(full), "forward all packets from global DVB PIDs", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dvb), "forward all packets from global DVB PIDs", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mux_id), "set initial ID of output mux; the first program will use mux_id, the second mux_id+1, etc. If not set, this value will be set to sourceMuxId*255", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(avonly), "do not forward programs with no AV component", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nb_pack), "pack N packets before sending", GF_PROP_UINT, "10", NULL, GF_FS_ARG_HINT_ADVANCED},

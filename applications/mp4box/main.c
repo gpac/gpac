@@ -676,7 +676,7 @@ GF_GPACArg m4b_extr_args[] =
  	GF_DEF_ARG("raw", NULL, "extract given track in raw format when supported. Use `tkID:output=FileName` to set output file name", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("raws", NULL, "extract each sample of the given track to a file. Use `tkID:N`to extract the Nth sample", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("nhnt", NULL, "extract given track to [NHNT](nhntr) format", NULL, NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("nhml", NULL, "extract given track to [NHML](nhmlr) format. Use `tkID:full` for full NHML dump", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("nhml", NULL, "extract given track to [NHML](nhmlr) format. Use `tkID:full` for full NHML dump with all packet properties", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("webvtt-raw", NULL, "extract given track as raw media in WebVTT as metadata. Use `tkID:embedded` to include media data in the WebVTT file", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("single", NULL, "extract given track to a new mp4 file", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("six", NULL, "extract given track as raw media in **experimental** XML streaming instructions", NULL, NULL, GF_ARG_INT, 0),
@@ -1728,7 +1728,12 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 #endif // GPAC_DISABLE_ISOM_WRITE
 
 
-#define CHECK_NEXT_ARG	if (i+1==(u32)argc) { fprintf(stderr, "Missing arg - please check usage\n"); return mp4box_cleanup(1); }
+#define CHECK_NEXT_ARG	if (i+1==(u32)argc) {\
+		fprintf(stderr, "Missing arg - please check usage\n"); return mp4box_cleanup(1);\
+	} else { \
+		has_next_arg = GF_TRUE;\
+	}
+
 
 typedef enum {
 	TRAC_ACTION_REM_TRACK		= 0,
@@ -2432,6 +2437,7 @@ Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
 u32 timescale = 0;
+Bool has_next_arg=GF_FALSE;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
 u32 nb_dash_inputs = 0;
@@ -4413,7 +4419,11 @@ int mp4boxMain(int argc, char **argv)
 		inName = "std";
 
 	if (!inName) {
-		PrintUsage();
+		if (has_next_arg) {
+			fprintf(stderr, "Broken argument specifier or file name missing - check usage with -h\n");
+		} else {
+			PrintUsage();
+		}
 		return mp4box_cleanup(1);
 	}
 	if (!strcmp(inName, "std")) dump_std = 2;

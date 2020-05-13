@@ -2793,7 +2793,7 @@ name (str):                    set output name of files produced (needed media/i
 .br
 nhmlonly (bool, default: false): only dump NHML info, not media
 .br
-full (bool, default: false):   full NHML dump
+pckp (bool, default: false):   full NHML dump
 .br
 chksum (enum, default: none):  insert frame checksum
 .br
@@ -5330,7 +5330,7 @@ In -full mode, global DVB tables of the input multiplex are forwarded to each ou
 .SH Options (expert):
 .LP
 .br
-full (bool, default: true):    forward all packets from global DVB PIDs
+dvb (bool, default: true):     forward all packets from global DVB PIDs
 .br
 mux_id (sint, default: -1):    set initial ID of output mux; the first program will use mux_id, the second mux_id+1, etc. If not set, this value will be set to sourceMuxId*255
 .br
@@ -5353,7 +5353,7 @@ The filter can currently modify the following properties in the bitstream:
 .br
 * MPEG-4 Visual: aspect ratio and profile/level
 .br
-* AVC|H264: aspect ratio
+* AVC|H264: aspect ratio, profile, level, profile compatibility
 .br
 * HEVC: aspect ratio
 .br
@@ -5362,8 +5362,6 @@ The filter can currently modify the following properties in the bitstream:
   
 .br
 The filter can currently modify the following properties in the stream configuration but not in the bitstream:
-.br
-* AVC|H264: profile, level, profile compatibility
 .br
 * HEVC: profile IDC, profile space, general compatibility flags
 .br
@@ -5395,6 +5393,8 @@ pidc (sint, default: -1, updatable): profile IDC for HEVC
 pspace (sint, default: -1, updatable): profile space for HEVC
 .br
 gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
+.br
+remsei (bool, default: false, updatable): remove SEI messages from bitstream
 .br
 
 .br
@@ -5854,7 +5854,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev122-g73f1f3e31-filters
+build: 0.9.0-DEV-rev144-gae46bd917-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
