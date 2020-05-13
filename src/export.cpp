@@ -2288,6 +2288,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_release_property) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_udta ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_max_extra_input_pids ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref_props ) )

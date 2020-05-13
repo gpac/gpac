@@ -2517,7 +2517,8 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 				char *optname = NULL;
 				if (arg[0]=='-') continue;
 
-				sep = strchr(arg, '.');
+				sep = gf_file_basename(arg);
+				if (sep) sep = strchr(sep, '.');
 				if (sep) {
 					if (!strncmp(sep, ".js.", 4)) sep = strchr(sep+1, '.');
 					else if (!strcmp(sep, ".js")) sep = NULL;
@@ -3385,7 +3386,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
 	gf_net_get_timezone();
 	gf_net_get_utc_ts(70, 1, 0, 0, 0, 0);
-
+	gf_net_ntp_diff_ms(1000000, 1000000);
 	gf_lang_get_count();
 	gf_lang_get_2cc(2);
 	GF_Blob b;
@@ -3574,8 +3575,16 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	get_cmd('h');
 	gpac_suggest_arg("blcksize");
 	gpac_suggest_filter("outf", GF_FALSE, GF_FALSE);
+	//todo: build tests for these two
 	gf_filter_pid_negociate_property_str(NULL, NULL, NULL);
 	gf_filter_pid_negociate_property_dyn(NULL, NULL, NULL);
+
+	gf_props_parse_type("uint");
+	//this one is just a wrapper around an internal function
+	gf_filter_pck_new_copy(NULL, NULL, NULL);
+	gf_filter_get_max_extra_input_pids(NULL);
+	gf_filter_remove(NULL);
+	gf_filter_reconnect_output(NULL);
 
 	gf_audio_fmt_get_cicp_layout(2, 1, 1);
 	gf_audio_fmt_get_layout_from_cicp(3);
