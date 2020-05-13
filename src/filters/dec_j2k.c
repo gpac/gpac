@@ -240,6 +240,8 @@ static OPJ_SIZE_T j2kdec_stream_read(void *out_buffer, OPJ_SIZE_T nb_bytes, void
 static OPJ_OFF_T j2kdec_stream_skip(OPJ_OFF_T nb_bytes, void *user_data)
 {
     OJP2Frame *frame = user_data;
+    if (!user_data) return 0;
+
     if (nb_bytes < 0) {
         if (frame->pos == 0) return (OPJ_SIZE_T)-1;
         if (nb_bytes + (s32) frame->pos < 0) {
@@ -567,6 +569,7 @@ static GF_Err j2kdec_initialize(GF_Filter *filter)
 		error_callback(NULL, NULL);
 		warning_callback(NULL, NULL);
 		info_callback(NULL, NULL);
+		j2kdec_stream_skip(0, NULL);
 	}
 #endif
 	return GF_OK;

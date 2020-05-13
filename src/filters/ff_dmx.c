@@ -531,7 +531,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 	ctx->initialized = GF_TRUE;
 #ifdef GPAC_ENABLE_COVERAGE
-	ffdmx_update_arg(filter, NULL, NULL);
+	if (gf_sys_is_cov_mode()) {
+		ffdmx_update_arg(filter, NULL, NULL);
+	}
 #endif
 	if (!ctx->src) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Missing file name, cannot open\n", ctx->fname));

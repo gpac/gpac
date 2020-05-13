@@ -248,7 +248,7 @@ enum
 	/* in this mode, each root svg tag will be interpreted as a REPLACE SCENE */
 	GF_SM_LOAD_CONTEXT_STREAMING = 1<<3,
 	/*indicates that external resources in the content should be embedded as if possible*/
-	GF_SM_LOAD_EMBEDS_RES = 1<<4,
+	GF_SM_LOAD_EMBEDS_RES = 1<<4
 };
 
 /*! loader type, usually detected based on file ext*/

@@ -571,22 +571,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	return GF_OK;
 }
 
-static void ffenc_audio_discard_samples(struct _gf_ffenc_ctx *ctx)
-{
-	u32 offset, len, nb_samples_to_drop;
 
-	//we always drop a complete encoder frame size, so same code for planar and packed
-	nb_samples_to_drop = ctx->encoder->frame_size;
-
-	if (ctx->samples_in_audio_buffer > nb_samples_to_drop) {
-		offset = nb_samples_to_drop * ctx->bytes_per_sample;
-		len = (ctx->samples_in_audio_buffer - nb_samples_to_drop) * ctx->bytes_per_sample;
-		memmove(ctx->audio_buffer, ctx->audio_buffer + offset, sizeof(u8)*len);
-		ctx->samples_in_audio_buffer -= nb_samples_to_drop;
-	} else {
-		ctx->samples_in_audio_buffer = 0;
-	}
-}
 
 static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data, u32 size, u32 sample_offset, u32 nb_samples)
 {
@@ -757,7 +742,20 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (from_internal_buffer_only) {
 		//avcodec_fill_audio_frame does not perform copy, so make sure we discard internal buffer AFTER we encode
-		ffenc_audio_discard_samples(ctx);
+		u32 offset, len, nb_samples_to_drop;
+
+		//we always drop a complete encoder frame size, so same code for planar and packed
+		nb_samples_to_drop = ctx->encoder->frame_size;
+
+		if (ctx->samples_in_audio_buffer > nb_samples_to_drop) {
+			offset = nb_samples_to_drop * ctx->bytes_per_sample;
+			len = (ctx->samples_in_audio_buffer - nb_samples_to_drop) * ctx->bytes_per_sample;
+			memmove(ctx->audio_buffer, ctx->audio_buffer + offset, sizeof(u8)*len);
+			ctx->samples_in_audio_buffer -= nb_samples_to_drop;
+		} else {
+			ctx->samples_in_audio_buffer = 0;
+		}
+
 	}
 
 	//increase timestamp

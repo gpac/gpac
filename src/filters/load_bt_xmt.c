@@ -839,14 +839,14 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		|| strstr(probe_data, "mpeg4:LASeR:2005")
 	) {
 		mime_type = "application/x-LASeR+xml";
+	} else if (strstr(probe_data, "DIMSStream") ) {
+		mime_type = "application/dims";
 	} else if (strstr(probe_data, "<svg") || strstr(probe_data, "w3.org/2000/svg") ) {
 		mime_type = "image/svg+xml";
 	} else if (strstr(probe_data, "<widget")  ) {
 		mime_type = "application/widget";
 	} else if (strstr(probe_data, "<NHNTStream")) {
 		mime_type = "application/x-nhml";
-	} else if (strstr(probe_data, "DIMSStream") ) {
-		mime_type = "application/dims";
 	} else if (strstr(probe_data, "TextStream") ) {
 		mime_type = "text/ttxt";
 	} else if (strstr(probe_data, "text3GTrack") ) {

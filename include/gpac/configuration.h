@@ -229,7 +229,7 @@ this macro is currently defined in setup.h */
 //#define GPAC_DISABLE_LASER
 //#define GPAC_DISABLE_SAF
 
-/*disables BIFS Engine support - TODO - merge DIMS and LASeR into BENG and rename it*/
+/*disables BIFS Engine support*/
 //#define GPAC_DISABLE_SENG
 
 /*disables Cubic QTVR importing*/

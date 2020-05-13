@@ -1068,9 +1068,12 @@ static void PrintHelp(char *arg_name)
 
 	fs = gf_fs_new_defaults(0);
 
+	if (arg_name[0]=='-')
+		arg_name++;
+
 	res = PrintHelpArg(arg_name, GF_TRUE, fs);
 	if (!res) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Option %s unknown, please check usage.\n", arg_name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Option -%s unknown, please check usage.\n", arg_name));
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options are:\n"));
 
 		PrintHelpArg(arg_name, GF_FALSE, fs);

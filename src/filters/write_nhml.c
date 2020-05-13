@@ -229,8 +229,10 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	ctx->is_dims = GF_FALSE;
 	if ((ctx->codecid == GF_CODECID_DIMS) && ctx->dims) {
-		gf_filter_pid_remove(ctx->opid_mdia);
-		ctx->opid_mdia = NULL;
+		if (ctx->opid_mdia) {
+			gf_filter_pid_remove(ctx->opid_mdia);
+			ctx->opid_mdia = NULL;
+		}
 		ctx->is_dims = GF_TRUE;
 		ctx->side_streams_config = GF_TRUE;
 	}
@@ -868,7 +870,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 	//get media data
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
-	//send nhnt data
+	//send data
 	if (ctx->is_dims) {
 		nhmldump_send_dims(ctx, data, pck_size, pck);
 	} else {
