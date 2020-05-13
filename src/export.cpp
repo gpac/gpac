@@ -779,6 +779,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sync_point_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_root_od) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_root_od) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_disable_odf_conversion) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_in_root_od) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_esd) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_decoder_config) )

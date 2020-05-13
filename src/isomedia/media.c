@@ -565,8 +565,10 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	//finally rewrite the sample if this is an OD Access Unit or NAL-based one
 	//we do this even if sample size is zero because of sample implicit reconstruction rules (especially tile tracks)
 	if (mdia->handler->handlerType == GF_ISOM_MEDIA_OD) {
-		e = Media_RewriteODFrame(mdia, *samp);
-		if (e) return e;
+		if (!mdia->mediaTrack->moov->mov->disable_odf_translate) {
+			e = Media_RewriteODFrame(mdia, *samp);
+			if (e) return e;
+		}
 	}
 	else if (gf_isom_is_nalu_based_entry(mdia, entry)
 		&& !gf_isom_is_encrypted_entry(entry->type)

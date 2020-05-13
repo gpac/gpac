@@ -579,6 +579,12 @@ Bool gf_isom_has_root_od(GF_ISOFile *movie)
 	return GF_TRUE;
 }
 
+GF_EXPORT
+void gf_isom_disable_odf_conversion(GF_ISOFile *movie, Bool disable)
+{
+	if (movie) movie->disable_odf_translate = disable;
+}
+
 //this funct is used for exchange files, where the iods contains an OD
 GF_EXPORT
 GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
@@ -596,6 +602,12 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
 	if (!movie || !movie->moov) return NULL;
 	if (!movie->moov->iods) return NULL;
 
+	if (movie->disable_odf_translate) {
+		//duplicate our descriptor
+		movie->LastError = gf_odf_desc_copy((GF_Descriptor *) movie->moov->iods->descriptor, &desc);
+		if (movie->LastError) return NULL;
+		return desc;
+	}
 	od = NULL;
 	iod = NULL;
 

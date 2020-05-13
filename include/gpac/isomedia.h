@@ -254,6 +254,7 @@ enum
 	GF_ISOM_SUBTYPE_EC3			= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_SUBTYPE_MP3			= GF_4CC( '.', 'm', 'p', '3' ),
 	GF_ISOM_SUBTYPE_MP4A		= GF_4CC( 'm', 'p', '4', 'a' ),
+	GF_ISOM_SUBTYPE_MP4S		= GF_4CC( 'm', 'p', '4', 's' ),
 
 	GF_ISOM_SUBTYPE_LSR1		= GF_4CC( 'l', 's', 'r', '1' ),
 	GF_ISOM_SUBTYPE_WVTT		= GF_4CC( 'w', 'v', 't', 't' ),
@@ -2515,6 +2516,12 @@ Bool gf_isom_has_root_od(GF_ISOFile *isom_file);
 \return the OD/IOD if any. Caller must destroy the descriptor
 */
 GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *isom_file);
+
+/*! disable OD conversion from ISOM internal to regular OD tags
+\param isom_file the target ISO file
+\param disable if TRUE, ODs and ESDs will not be converted
+*/
+void gf_isom_disable_odf_conversion(GF_ISOFile *movie, Bool disable);
 
 /*! checks the presence of a track in rood OD/IOD
 \param isom_file the target ISO file

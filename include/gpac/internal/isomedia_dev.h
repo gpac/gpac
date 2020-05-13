@@ -3761,6 +3761,8 @@ struct __tag_isom {
 	s64 read_byte_offset;
 	u64 bytes_removed;
 
+	Bool disable_odf_translate;
+
 	GF_ISOCompressMode compress_mode;
 	Bool force_compress;
 

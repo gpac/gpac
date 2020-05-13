@@ -3238,6 +3238,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/avparse.h>
 #include <gpac/mpegts.h>
 #include <gpac/rtp_streamer.h>
+#include <gpac/internal/odf_dev.h>
 #endif
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
@@ -3580,6 +3581,13 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_audio_fmt_get_layout_from_cicp(3);
 	gf_audio_fmt_get_layout_name_from_cicp(3);
 	gf_audio_fmt_get_cicp_from_layout(GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
+
+	//old bifs parsing stuff
+	gf_odf_desc_del(gf_odf_desc_new(GF_ODF_ELEM_MASK_TAG));
+	GF_TextConfig *txtc = (GF_TextConfig *)gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
+	gf_odf_get_text_config(NULL, 0, 0, txtc);
+	gf_odf_dump_txtcfg(txtc, NULL, 0, GF_FALSE);
+	gf_odf_desc_del((GF_Descriptor *) txtc);
 #endif
 	return 0;
 }

@@ -117,7 +117,7 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
 
-GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDumpFormat dump_mode, Bool do_log)
+GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDumpFormat dump_mode, Bool do_log, Bool no_odf_conv)
 {
 	GF_Err e;
 	GF_SceneManager *ctx;
@@ -149,6 +149,9 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 			gf_sg_del(sg);
 			return e;
 		}
+		if (no_odf_conv)
+			gf_isom_disable_odf_conversion(load.isom, GF_TRUE);
+
 	} else if (ftype==GF_FILE_TYPE_LSR_SAF) {
 		load.isom = gf_isom_open("saf_conv", GF_ISOM_WRITE_EDIT, NULL);
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
