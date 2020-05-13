@@ -2479,7 +2479,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		task->can_swap = GF_TRUE;
 #ifndef GPAC_DISABLE_LOGS
-		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO) ) {
+		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG) ) {
 			gf_fq_enum(f->tasks, task_postponed_log, NULL);
 		}
 #endif //GPAC_DISABLE_LOGS
@@ -2628,9 +2628,12 @@ void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter)
 	gf_filter_remove_internal(src_filter, filter, GF_FALSE);
 }
 
-static void gf_filter_remove_sources(GF_Filter *filter)
+GF_EXPORT
+void gf_filter_remove(GF_Filter *filter)
 {
 	u32 i;
+	if (!filter) return;
+
 	//locate source filter(s)
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
@@ -2645,15 +2648,9 @@ static void gf_filter_remove_sources(GF_Filter *filter)
 		}
 		//otherwise walk down the chain
 		else {
-			gf_filter_remove_sources(pidi->pid->filter);
+			gf_filter_remove(pidi->pid->filter);
 		}
 	}
-
-}
-GF_EXPORT
-void gf_filter_remove(GF_Filter *filter)
-{
-	gf_filter_remove_sources(filter);
 }
 
 #if 0
@@ -3042,6 +3039,7 @@ void gf_filter_set_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids)
 {
 	if (filter) filter->max_extra_pids = max_extra_pids;
 }
+GF_EXPORT
 u32 gf_filter_get_max_extra_input_pids(GF_Filter *filter)
 {
 	if (filter) return filter->max_extra_pids;
