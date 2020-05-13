@@ -194,6 +194,8 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 		return gf_odf_del_text_cfg((GF_TextConfig *)desc);
 	case GF_ODF_TX3G_TAG:
 		return gf_odf_del_tx3g((GF_TextSampleDescriptor*)desc);
+	case GF_ODF_ELEM_MASK_TAG:
+		return gf_odf_del_ElemMask((GF_ElementaryMask*)desc);
 	case GF_ODF_LASER_CFG_TAG:
 		return gf_odf_del_laser_cfg((GF_LASERConfig *)desc);
 
