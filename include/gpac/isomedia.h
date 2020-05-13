@@ -322,6 +322,9 @@ enum
 	GF_ISOM_SUBTYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_SUBTYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
 
+	/* Dolby Vision */
+	GF_ISOM_SUBTYPE_DVHE = GF_4CC('d', 'v', 'h', 'e'),
+
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263	= GF_4CC( 's', '2', '6', '3' ),
 	GF_ISOM_SUBTYPE_3GP_AMR		= GF_4CC( 's', 'a', 'm', 'r' ),
@@ -2068,6 +2071,9 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 
 /*gets VP config - user is responsible for deleting it*/
 GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+/*gets DOVI config - user is responsible for deleting it*/
+GF_DOVIDecoderConfigurationRecord* gf_isom_dovi_config_get(GF_ISOFile* the_file, u32 trackNumber, u32 DescriptionIndex);
 
 /*return true if track dependencies implying extractors or implicit reconstruction are found*/
 Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file);

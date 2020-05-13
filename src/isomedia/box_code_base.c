@@ -4327,6 +4327,7 @@ void video_sample_entry_del(GF_Box *s)
 	if (ptr->lhvc_config) gf_isom_box_del((GF_Box *) ptr->lhvc_config);
 	if (ptr->av1_config) gf_isom_box_del((GF_Box *)ptr->av1_config);
 	if (ptr->vp_config) gf_isom_box_del((GF_Box *)ptr->vp_config);
+	if (ptr->dovi_config) gf_isom_box_del((GF_Box*)ptr->dovi_config);
 	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
 
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
@@ -4388,6 +4389,10 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_VPCC:
 		if (ptr->vp_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->vp_config = (GF_VPConfigurationBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_DVCC:
+		if (ptr->dovi_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->dovi_config = (GF_DOVIConfigurationBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_M4DS:
 		if (ptr->descr) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4533,6 +4538,10 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 			e = gf_isom_box_write((GF_Box *)ptr->vp_config, bs);
 			if (e) return e;
 		}
+		if (ptr->dovi_config) {
+			e = gf_isom_box_write((GF_Box*)ptr->dovi_config, bs);
+			if (e) return e;
+		}
 	}
 	if (ptr->clap) {
 		e = gf_isom_box_write((GF_Box*)ptr->clap, bs);
@@ -4625,6 +4634,11 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 				return GF_ISOM_INVALID_FILE;
 			}
 			break;
+		case GF_ISOM_BOX_TYPE_DVHE:
+			if (!ptr->dovi_config) {
+				return GF_ISOM_INVALID_FILE;
+			}
+			break;
 		default:
 			break;
 		}
@@ -4669,6 +4683,12 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 			e = gf_isom_box_size((GF_Box *)ptr->vp_config);
 			if (e) return e;
 			ptr->size += ptr->vp_config->size;
+		}
+
+		if (ptr->dovi_config) {
+			e = gf_isom_box_size((GF_Box*)ptr->dovi_config);
+			if (e) return e;
+			ptr->size += ptr->dovi_config->size;
 		}
 
 		if (ptr->ipod_ext) {
