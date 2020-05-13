@@ -49,17 +49,21 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 			GF_ESD *esd;
 			j=0;
 			while ((esd = (GF_ESD *)gf_list_enum(od->ESDescriptors, &j))) {
-				Bool import = 1;
+				//can happen when dumping with keep-ods
+				if (esd->tag!=GF_ODF_ESD_TAG) {
+					continue;
+				}
 				if (esd->URLString) continue;
+
 				switch (esd->decoderConfig->streamType) {
 				case GF_STREAM_OD:
-					import = 0;
-					break;
+					continue;
+
 				case GF_STREAM_SCENE:
 					if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
 					        (esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
 					   ) {
-						import = 0;
+						continue;
 					}
 					break;
 				/*dump the OCR track duration in case the OCR is used by media controls & co*/
@@ -73,19 +77,18 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 					dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
 					dur /= gf_isom_get_timescale(mp4);
 					mi->duration = (u32) (dur * 1000);
-					import = 0;
+					continue;;
 				}
 				break;
 				default:
 					break;
 				}
-				if (import) {
-					GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
-					gf_list_add(esd->extensionDescriptors, mi);
-					sprintf(szPath, "%s#%d", szName, esd->ESID);
-					mi->file_name = gf_strdup(szPath);
-					mi->streamFormat = gf_strdup("MP4");
-				}
+
+				GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
+				gf_list_add(esd->extensionDescriptors, mi);
+				sprintf(szPath, "%s#%d", szName, esd->ESID);
+				mi->file_name = gf_strdup(szPath);
+				mi->streamFormat = gf_strdup("MP4");
 			}
 		}
 		return;
