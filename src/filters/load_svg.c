@@ -53,22 +53,26 @@ typedef struct
 
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
-static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
+//static
+GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len, Bool is_dims)
 {
 	GF_Err e;
 	char svg_data[2049];
 	int err;
 	u32 done = 0;
 	z_stream d_stream;
-	d_stream.zalloc = (alloc_func)0;
-	d_stream.zfree = (free_func)0;
-	d_stream.opaque = (voidpf)0;
+	memset(&d_stream, 0, sizeof(z_stream));
 	d_stream.next_in  = (Bytef*)buffer;
 	d_stream.avail_in = buffer_len;
 	d_stream.next_out = (Bytef*)svg_data;
 	d_stream.avail_out = 2048;
 
-	err = inflateInit(&d_stream);
+	if (is_dims==1) {
+		err = inflateInit2(&d_stream, 16+MAX_WBITS);
+	} else {
+		err = inflateInit(&d_stream);
+	}
+
 	if (err == Z_OK) {
 		e = GF_OK;
 		while (d_stream.total_in < buffer_len) {
@@ -124,7 +128,13 @@ static GF_Err svgin_process(GF_Filter *filter)
 	/*! streaming SVG*/
 	case GF_CODECID_SVG:
 		pck = gf_filter_pid_get_packet(svgin->in_pid);
-		if (!pck) return GF_OK;
+		if (!pck) {
+			if (gf_filter_pid_is_eos(svgin->in_pid)) {
+				gf_filter_pid_set_eos(svgin->out_pid);
+				return GF_EOS;
+			}
+			return GF_OK;
+		}
 		data = gf_filter_pck_get_data(pck, &size);
 		e = gf_sm_load_string(&svgin->loader, data, GF_FALSE);
 		gf_filter_pid_drop_packet(svgin->in_pid);
@@ -133,9 +143,15 @@ static GF_Err svgin_process(GF_Filter *filter)
 	/*! streaming SVG + gz*/
 	case GF_CODECID_SVG_GZ:
 		pck = gf_filter_pid_get_packet(svgin->in_pid);
-		if (!pck) return GF_OK;
+		if (!pck) {
+			if (gf_filter_pid_is_eos(svgin->in_pid)) {
+				gf_filter_pid_set_eos(svgin->out_pid);
+				return GF_EOS;
+			}
+			return GF_OK;
+		}
 		data = gf_filter_pck_get_data(pck, &size);
-		e = svgin_deflate(svgin, data, size);
+		e = svgin_deflate(svgin, data, size, GF_FALSE);
 		gf_filter_pid_drop_packet(svgin->in_pid);
 		break;
 
@@ -149,7 +165,13 @@ static GF_Err svgin_process(GF_Filter *filter)
 		GF_BitStream *bs;
 
 		pck = gf_filter_pid_get_packet(svgin->in_pid);
-		if (!pck) return GF_OK;
+		if (!pck) {
+			if (gf_filter_pid_is_eos(svgin->in_pid)) {
+				gf_filter_pid_set_eos(svgin->out_pid);
+				return GF_EOS;
+			}
+			return GF_OK;
+		}
 		data = gf_filter_pck_get_data(pck, &size);
 
 		buf2 = gf_malloc(size);
@@ -157,7 +179,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 		memcpy(buf2, data, size);
 
 		gf_filter_pid_drop_packet(svgin->in_pid);
-		
+		e = GF_OK;
 		while (gf_bs_available(bs)) {
 			pos = gf_bs_get_position(bs);
 			size = gf_bs_read_u16(bs);
@@ -173,15 +195,19 @@ static GF_Err svgin_process(GF_Filter *filter)
 
 			buf2[pos + nb_bytes + size] = 0;
 			if (dims_hdr & GF_DIMS_UNIT_C) {
-				e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1);
+				e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1, GF_TRUE);
 			} else {
 				e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, GF_FALSE);
 			}
 			buf2[pos + nb_bytes + size] = prev;
 			gf_bs_skip_bytes(bs, size-1);
+			if (e) break;
 
 		}
 		gf_bs_del(bs);
+		gf_free(buf2);
+		
+		if (e) goto exit;
 	}
 	break;
 
@@ -260,7 +286,6 @@ exit:
 		gf_sm_load_done(&svgin->loader);
 		svgin->loader.fileName = NULL;
 		gf_filter_pid_set_eos(svgin->out_pid);
-		e = GF_EOS;
 	}
 	return e;
 }
@@ -281,9 +306,13 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (prop && prop->value.uint) svgin->codecid = prop->value.uint;
 
-	//we must have a file path or codecid
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
-	if (prop && prop->value.string) svgin->file_name = prop->value.string;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	if (prop && (prop->value.uint==GF_STREAM_FILE)) {
+		//we must have a file path or codecid
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+		if (prop && prop->value.string) svgin->file_name = prop->value.string;
+	}
+
 	if (!svgin->codecid && !svgin->file_name)
 		return GF_NOT_SUPPORTED;
 
@@ -415,6 +444,7 @@ static const GF_FilterCapability SVGInCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVG),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SVG_GZ),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_DIMS),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 
