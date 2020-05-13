@@ -6573,7 +6573,7 @@ restart_import:
 				copy_size = 0;
 			} else {
 				if (hevc.sps_active_idx != -1) {
-					//todo: inspect SEI and decide what we import
+					gf_media_hevc_parse_sei(buffer, nal_size, &hevc);
 					copy_size = nal_size;
 				} else {
 					//if no state yet, import SEI
