@@ -2072,6 +2072,8 @@ force_input:
 		set_navigation();
 		get_cmd('v');
 
+		gf_term_play_from_time(term, 0, 0);
+
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_MOUSEUP;
 		evt.mouse.x = 20;

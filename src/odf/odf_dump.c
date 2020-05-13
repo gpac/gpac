@@ -753,7 +753,7 @@ GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool 
 }
 
 
-
+GF_EXPORT
 GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMTDump)
 {
 	u32 i, count;
