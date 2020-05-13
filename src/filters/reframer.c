@@ -1666,6 +1666,12 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	if (ctx->raw) {
 		gf_filter_override_caps(filter, ReframerRAWCaps, sizeof(ReframerRAWCaps) / sizeof(GF_FilterCapability) );
 	}
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		reframer_update_ts_shift(ctx, -1, 1000);
+	}
+#endif
 	return GF_OK;
 }
 

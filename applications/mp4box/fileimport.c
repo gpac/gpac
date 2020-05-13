@@ -2201,6 +2201,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	load.swf_flatten_limit = swf_flatten_angle;
 	/*since we're encoding we must get MPEG4 nodes only*/
 	load.flags = GF_SM_LOAD_MPEG4_STRICT;
+	
 	e = gf_sm_load_init(&load);
 	if (e<0) {
 		gf_sm_load_done(&load);

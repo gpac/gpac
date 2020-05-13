@@ -162,12 +162,6 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 
 void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid *audio_pid, GF_FilterPid **video_pid_p);
 
-static void adts_dmx_flush_id3(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
-{
-	id3dmx_flush(filter, ctx->id3_buffer, ctx->id3_buffer_size, ctx->opid, ctx->expart ? &ctx->vpid : NULL);
-	ctx->id3_buffer_size = 0;
-}
-
 
 GF_Err adts_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -409,8 +403,10 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : timescale));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
-	if (ctx->id3_buffer_size)
-		adts_dmx_flush_id3(filter, ctx);
+	if (ctx->id3_buffer_size) {
+		id3dmx_flush(filter, ctx->id3_buffer, ctx->id3_buffer_size, ctx->opid, ctx->expart ? &ctx->vpid : NULL);
+		ctx->id3_buffer_size = 0;
+	}
 
 }
 
@@ -607,7 +603,8 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			ctx->id3_buffer_size += bytes_to_drop;
 
 			if (!ctx->tag_size && ctx->opid) {
-				adts_dmx_flush_id3(filter, ctx);
+				id3dmx_flush(filter, ctx->id3_buffer, ctx->id3_buffer_size, ctx->opid, ctx->expart ? &ctx->vpid : NULL);
+				ctx->id3_buffer_size = 0;
 			}
 			goto drop_byte;
 

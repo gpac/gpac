@@ -2216,6 +2216,13 @@ static const GF_FilterCapability InspecterReframeCaps[] =
 	{0},
 };
 
+static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
+{
+	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
+	ctx->args_updated = GF_TRUE;
+	return GF_OK;
+}
+
 GF_Err inspect_initialize(GF_Filter *filter)
 {
 	const char *name = gf_filter_get_name(filter);
@@ -2256,6 +2263,13 @@ GF_Err inspect_initialize(GF_Filter *filter)
 		gf_filter_override_caps(filter, InspecterDemuxedCaps,  sizeof(InspecterDemuxedCaps)/sizeof(GF_FilterCapability) );
 		break;
 	}
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		inspect_update_arg(filter, NULL, NULL);
+		ctx->args_updated = GF_FALSE;
+	}
+#endif
 	return GF_OK;
 }
 
@@ -2267,13 +2281,6 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	PidCtx *pctx = gf_filter_pid_get_udta(evt->base.on_pid);
 	pctx->dump_pid = 2;
 	return GF_TRUE;
-}
-
-static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
-{
-	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
-	ctx->args_updated = GF_TRUE;
-	return GF_OK;
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)

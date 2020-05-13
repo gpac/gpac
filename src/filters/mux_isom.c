@@ -2014,7 +2014,34 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new tmcd sample description: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
+	} else if (codec_id==GF_CODECID_DIMS) {
+		GF_DIMSDescription dims_c;
+		memset(&dims_c, 0, sizeof(GF_DIMSDescription));
+		dims_c.contentEncoding = meta_content_encoding;
+		dims_c.mime_type = meta_mime;
+		dims_c.textEncoding = meta_encoding;
+		dims_c.xml_schema_loc = meta_xmlns;
 
+		p = gf_filter_pid_get_property_str(tkw->ipid, "dims:profile");
+		if (p) dims_c.profile = p->value.uint;
+		p = gf_filter_pid_get_property_str(tkw->ipid, "dims:level");
+		if (p) dims_c.level = p->value.uint;
+		p = gf_filter_pid_get_property_str(tkw->ipid, "dims:pathComponents");
+		if (p) dims_c.pathComponents = p->value.uint;
+		p = gf_filter_pid_get_property_str(tkw->ipid, "dims:fullRequestHost");
+		if (p) dims_c.fullRequestHost = p->value.uint;
+		p = gf_filter_pid_get_property_str(tkw->ipid, "dims:streamType");
+		if (p) dims_c.streamType = p->value.boolean;
+		p = gf_filter_pid_get_property_str(tkw->ipid, "dims:redundant");
+		if (p) dims_c.containsRedundant = p->value.uint;
+		p = gf_filter_pid_get_property_str(tkw->ipid, "dims:scriptTypes");
+		if (p) dims_c.content_script_types = p->value.string;
+
+		e = gf_isom_new_dims_description(ctx->file, tkw->track_num, &dims_c, NULL, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new DIMS sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
 	} else if (use_gen_sample_entry) {
 		u8 isor_ext_buf[14];
 		u32 len = 0;
