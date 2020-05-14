@@ -1292,6 +1292,23 @@ void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1)
 }
 
 
+static GF_DOVIDecoderConfigurationRecord* DOVI_DuplicateConfig(GF_DOVIDecoderConfigurationRecord *cfg)
+{
+	GF_DOVIDecoderConfigurationRecord* out = NULL;
+	GF_SAFEALLOC(out, GF_DOVIDecoderConfigurationRecord);
+	if (!out) return NULL;
+
+	out->dv_version_major = cfg->dv_version_major;
+	out->dv_version_minor = cfg->dv_version_minor;
+	out->dv_profile = cfg->dv_profile;
+	out->dv_level = cfg->dv_level;
+	out->rpu_present_flag = cfg->rpu_present_flag;
+	out->el_present_flag = cfg->el_present_flag;
+	out->bl_present_flag = cfg->bl_present_flag;
+
+	return out;
+}
+
 
 static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg)
 {
@@ -2219,6 +2236,17 @@ GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 	return lhvc;
 }
 
+GF_EXPORT
+GF_DOVIDecoderConfigurationRecord *gf_isom_dovi_config_get(GF_ISOFile* the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	GF_TrackBox* trak;
+	GF_MPEGVisualSampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex - 1);
+	if (!entry || !entry->dovi_config) return NULL;
+	return DOVI_DuplicateConfig(&entry->dovi_config->DOVIConfig);
+}
 
 void btrt_del(GF_Box *s)
 {

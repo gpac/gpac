@@ -1348,17 +1348,6 @@ typedef struct {
 } GF_VPContentLightLevelBox;
 
 typedef struct {
-	u8 dv_version_major;
-	u8 dv_version_minor;
-	u8 dv_profile; //7 bits
-	u8 dv_level;   //6 bits
-	Bool rpu_present_flag;
-	Bool el_present_flag;
-	Bool bl_present_flag;
-	//const unsigned int (32)[5] reserved = 0;
-} GF_DOVIDecoderConfigurationRecord;
-
-typedef struct {
 	GF_ISOM_BOX
 	GF_DOVIDecoderConfigurationRecord DOVIConfig;
 } GF_DOVIConfigurationBox;
@@ -1397,6 +1386,8 @@ typedef struct
 	GF_AV1ConfigurationBox *av1_config;
 	/*vp8-9 extension*/
 	GF_VPConfigurationBox *vp_config;
+	/*dolbyvision extension*/
+	GF_DOVIConfigurationBox *dovi_config;
 
 
 	/*ext descriptors*/

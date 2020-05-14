@@ -1046,6 +1046,19 @@ typedef struct
 	int RefFrameHeight[VP9_NUM_REF_FRAMES];
 } GF_VPConfig;
 
+
+/*! DolbyVision config dvcC */
+typedef struct {
+	u8 dv_version_major;
+	u8 dv_version_minor;
+	u8 dv_profile; //7 bits
+	u8 dv_level;   //6 bits
+	Bool rpu_present_flag;
+	Bool el_present_flag;
+	Bool bl_present_flag;
+	//const unsigned int (32)[5] reserved = 0;
+} GF_DOVIDecoderConfigurationRecord;
+
 /*! Media Segment Descriptor used for Media Control Extensions*/
 typedef struct
 {
