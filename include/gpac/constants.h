@@ -642,7 +642,12 @@ enum
 	/*! SVC slice*/
 	GF_AVC_NALU_SVC_SLICE = 20,
 	/*! View and dependency representation delimiter */
-	GF_AVC_NALU_VDRD = 24
+	GF_AVC_NALU_VDRD = 24,
+
+	/*! Dolby Vision RPU */
+	GF_AVC_NALU_DV_RPU = 28,
+	/*! Dolby Vision EL */
+	GF_AVC_NALU_DV_EL = 30
 };
 
 
@@ -736,6 +741,11 @@ enum
 	GF_HEVC_NALU_SEI_PREFIX = 39,
 	/*! suffix SEI message*/
 	GF_HEVC_NALU_SEI_SUFFIX = 40,
+
+	/*! Dolby Vision RPU */
+	GF_HEVC_NALU_DV_RPU = 62,
+	/*! Dolby Vision EL */
+	GF_HEVC_NALU_DV_EL = 63
 };
 
 
