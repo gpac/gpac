@@ -1079,6 +1079,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	cstr = gf_filter_pid_get_udta(pid);
 	if (!cstr) {
 		GF_SAFEALLOC(cstr, GF_CENCDecStream);
+		if (!cstr) return GF_OUT_OF_MEM;
 		cstr->opid = gf_filter_pid_new(filter);
 		cstr->ipid = pid;
 		gf_list_add(ctx->streams, cstr);

@@ -1183,6 +1183,8 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	}
 
 	GF_SAFEALLOC(ffregext, GF_FFRegistryExt);
+	if (!ffregext) return;
+	
 	orig_reg->udta = ffregext;
 	ffregext->nb_arg_skip = nb_def_args-1;
 	orig_reg->register_free = ffmpeg_register_free;

@@ -74,6 +74,7 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 {
 	GF_FilterPidInst *pidinst;
 	GF_SAFEALLOC(pidinst, GF_FilterPidInst);
+	if (!pidinst) return NULL;
 	pidinst->pid = pid;
 	pidinst->filter = filter;
 
@@ -2380,6 +2381,8 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	freg_has_output = gf_filter_has_out_caps(caps, nb_caps);
 
 	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
+	if (!reg_desc) return NULL;
+
 	reg_desc->freg = freg;
 
 	nb_dst_caps = gf_filter_caps_bundle_count(caps, nb_caps);
@@ -4137,6 +4140,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	char szName[30];
 	GF_FilterPid *pid;
 	GF_SAFEALLOC(pid, GF_FilterPid);
+	if (!pid) return NULL;
 	pid->filter = filter;
 	pid->destinations = gf_list_new();
 	pid->properties = gf_list_new();

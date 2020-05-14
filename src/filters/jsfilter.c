@@ -1183,6 +1183,8 @@ static JSValue jsf_filter_new_pid(JSContext *ctx, JSValueConst this_val, int arg
 	if (!opid) return JS_EXCEPTION;
 
 	GF_SAFEALLOC(pctx, GF_JSPidCtx);
+	if (!pctx)
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
 	gf_list_add(jsf->pids, pctx);
 	pctx->jsf = jsf;
 	pctx->pid = opid;
@@ -3553,6 +3555,8 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (!pctx) {
 		GF_SAFEALLOC(pctx, GF_JSPidCtx);
+		if (!pctx) return GF_OUT_OF_MEM;
+		
 		pctx->jsf = jsf;
 		pctx->pid = pid;
 		pctx->jsobj = JS_NewObjectClass(jsf->ctx, jsf_pid_class_id);

@@ -559,9 +559,11 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 		}
 		if (!hvca) {
 			GF_SAFEALLOC(hvca, GF_HEVCParamArray);
-			list = hvca->nalus = gf_list_new();
-			hvca->type = nal_type;
-			gf_list_add(hvcc->param_array, hvca);
+			if (hvca) {
+				list = hvca->nalus = gf_list_new();
+				hvca->type = nal_type;
+				gf_list_add(hvcc->param_array, hvca);
+			}
 		}
 		switch (nal_type) {
 		case GF_HEVC_NALU_VID_PARAM:
@@ -586,6 +588,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 		*reset_state |= state;
 	}
 	GF_SAFEALLOC(sl, GF_AVCConfigSlot);
+	if (!sl) return;
 	sl->data = gf_malloc(sizeof(char)*size);
 	memcpy(sl->data, data, size);
 	sl->size = size;

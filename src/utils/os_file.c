@@ -441,9 +441,11 @@ static void gf_register_file_handle(const char *filename, FILE *ptr)
 		GF_FileHandle *h;
 		if (!gpac_open_files) gpac_open_files = gf_list_new();
 		GF_SAFEALLOC(h, GF_FileHandle);
-		h->ptr = ptr;
-		h->url = gf_strdup(filename);
-		gf_list_add(gpac_open_files, h);
+		if (h) {
+			h->ptr = ptr;
+			h->url = gf_strdup(filename);
+			gf_list_add(gpac_open_files, h);
+		}
 	}
 #endif
 	gpac_file_handles++;

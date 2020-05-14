@@ -1731,6 +1731,7 @@ static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content)
 		char c, prev_c = 'M';
 #ifdef REMOVE_ALLOC
 		GF_SAFEALLOC(pt, SVG_Point)
+		if (!pt) return;
 #endif
 		i = 0;
 		cur_pt.x = cur_pt.y = 0;
@@ -1746,10 +1747,12 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_M;
 
 				GF_SAFEALLOC(pt, SVG_Point)
+				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
 				i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1768,10 +1771,12 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
 
 				GF_SAFEALLOC(pt, SVG_Point)
+				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
 				i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1789,10 +1794,12 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
 
 				GF_SAFEALLOC(pt, SVG_Point)
+				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
 				i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1808,10 +1815,12 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
 
 				GF_SAFEALLOC(pt, SVG_Point)
+				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
 				i += svg_parse_number(&(d[i]), &(pt->y), 0);
@@ -1827,6 +1836,7 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_C;
 #endif
@@ -1834,6 +1844,7 @@ next_command:
 				for (k=0; k<3; k++) {
 #ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
+					if (!pt) return;
 					gf_list_add(d_points, pt);
 #endif
 					i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1852,6 +1863,7 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_S;
 #endif
@@ -1859,6 +1871,7 @@ next_command:
 				for (k=0; k<2; k++) {
 #ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
+					if (!pt) return;
 					gf_list_add(d_points, pt);
 #endif
 					i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1877,6 +1890,7 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_Q;
 #endif
@@ -1884,6 +1898,7 @@ next_command:
 				for (k=0; k<2; k++) {
 #ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
+					if (!pt) return;
 					gf_list_add(d_points, pt);
 #endif
 					i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1902,10 +1917,12 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_T;
 
 				GF_SAFEALLOC(pt, SVG_Point)
+				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
 				i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1925,10 +1942,12 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_A;
 
 				GF_SAFEALLOC(pt, SVG_Point)
+				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
 				i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1940,6 +1959,7 @@ next_command:
 
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(pt, SVG_Point)
+				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
 				i += svg_parse_number(&(d[i]), &(pt->x), 0);
@@ -1958,6 +1978,7 @@ next_command:
 				i++;
 #ifndef REMOVE_ALLOC
 				GF_SAFEALLOC(command, u8)
+				if (!command) return;
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_Z;
 #endif
@@ -2453,6 +2474,7 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 		value_string[len] = 0;
 
 		GF_SAFEALLOC(value, SMIL_Time)
+		if (!value) break;
 		gf_list_add(values, value);
 
 		if (smil_parse_time(e, value, value_string) != GF_OK) goto err;
@@ -2699,6 +2721,7 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 	while (i < len) {
 		u32 sub;
 		GF_SAFEALLOC(c, SVG_Coordinate)
+		if (!c) break;
 		sub = svg_parse_length(c, &(str[i]), 0);
 		if (!sub) {
 			gf_free(c);
@@ -2743,6 +2766,7 @@ static void svg_parse_points(GF_List *values, char *value_string)
 	while (i < len) {
 		SVG_Point *p;
 		GF_SAFEALLOC(p, SVG_Point)
+		if (!p) break;
 		j = svg_parse_point(p, &str[i]);
 		if (j == 0) {
 			/* cf. http://www.w3.org/TR/SVGMobile12/shapes.html#PolygonElement
@@ -2770,6 +2794,7 @@ static void svg_parse_numbers(GF_List *values, char *value_string, Bool is_angle
 	while (i < len) {
 		Fixed *f;
 		GF_SAFEALLOC(f, Fixed)
+		if (!f) break;
 		read_chars = svg_parse_number(&(str[i]), f, is_angle);
 		if (!read_chars) {
 			gf_free(f);
@@ -2842,6 +2867,7 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 		while (i < len) {
 			SVG_Length *f;
 			GF_SAFEALLOC(f, SVG_Length)
+			if (!f) break;
 			read_chars = svg_parse_length(f, &(str[i]), 0);
 			if (!read_chars) {
 				gf_free(f);
@@ -3577,7 +3603,8 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	{
 		GF_Matrix2D *p;
 		GF_SAFEALLOC(p, GF_Matrix2D)
-		gf_mx2d_init(*p);
+		if (p)
+			gf_mx2d_init(*p);
 		return p;
 	}
 	break;
@@ -3586,7 +3613,8 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	{
 		SVG_Transform *p;
 		GF_SAFEALLOC(p, SVG_Transform)
-		gf_mx2d_init(p->mat);
+		if (p)
+			gf_mx2d_init(p->mat);
 		return p;
 	}
 	break;
@@ -5459,6 +5487,7 @@ static GF_Err svg_points_muladd(Fixed alpha, SVG_Points *a, Fixed beta, SVG_Poin
 		SVG_Point *pta = (SVG_Point *)gf_list_get(*a, i);
 		SVG_Point *ptb = (SVG_Point *)gf_list_get(*b, i);
 		GF_SAFEALLOC(ptc, SVG_Point)
+		if (!ptc) break;
 		svg_point_muladd(alpha, pta, beta, ptb, ptc);
 		gf_list_add(*c, ptc);
 	}
@@ -5482,6 +5511,7 @@ static GF_Err svg_points_copy(SVG_Points *a, SVG_Points *b)
 		SVG_Point *ptb = (SVG_Point *)gf_list_get(*b, i);
 		SVG_Point *pta;
 		GF_SAFEALLOC(pta, SVG_Point)
+		if (!pta) break;
 		if (!pta) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot allocate SVG point\n"));
 			continue;
@@ -5506,6 +5536,7 @@ static GF_Err svg_numbers_muladd(Fixed alpha, SVG_Numbers *a, Fixed beta, SVG_Nu
 		SVG_Number *na = (SVG_Number *)gf_list_get(*a, i);
 		SVG_Number *nb = (SVG_Number *)gf_list_get(*b, i);
 		GF_SAFEALLOC(nc, SVG_Number)
+		if (!nc) break;
 		svg_number_muladd(alpha, na, beta, nb, nc);
 		gf_list_add(*c, nc);
 	}
@@ -5527,6 +5558,7 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 	for (i = 0; i < count; i ++) {
 		SVG_Number *na;
 		GF_SAFEALLOC(na, SVG_Number)
+		if (!na) break;
 		if (!na) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot allocate SVG number\n"));
 			continue;
@@ -5584,6 +5616,7 @@ static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 	for (i = 0; i < count; i ++) {
 		SVG_Point *pta;
 		GF_SAFEALLOC(pta, SVG_Point)
+		if (!pta) break;
 		*pta = *(SVG_Point *)gf_list_get(b->points, i);
 		gf_list_add(a->points, pta);
 	}
@@ -5647,6 +5680,7 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 		SVG_Point *ptb = (SVG_Point *)gf_list_get(b->points, i);
 		SVG_Point *ptc;
 		GF_SAFEALLOC(ptc, SVG_Point)
+		if (!ptc) break;
 		svg_point_muladd(alpha, pta, beta, ptb, ptc);
 		gf_list_add(c->points, ptc);
 	}

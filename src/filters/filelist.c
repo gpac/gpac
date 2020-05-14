@@ -182,6 +182,7 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (!iopid) {
 		GF_SAFEALLOC(iopid, FileListPid);
+		if (!iopid) return GF_OUT_OF_MEM;
 		iopid->ipid = pid;
 		if (ctx->timescale) iopid->o_timescale = ctx->timescale;
 		else {
@@ -694,6 +695,8 @@ Bool filelist_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo
 	if (file_info->system) return GF_FALSE;
 
 	GF_SAFEALLOC(fentry, FileListEntry);
+	if (!fentry) return GF_TRUE;
+
 	fentry->file_name = gf_strdup(item_path);
 	fentry->file_size = file_info->size;
 	fentry->last_mod_time = file_info->last_modified;
@@ -745,14 +748,16 @@ GF_Err filelist_initialize(GF_Filter *filter)
 				FILE *fo;
 				FileListEntry *fentry;
 				GF_SAFEALLOC(fentry, FileListEntry);
-				fentry->file_name = gf_strdup(list);
-				fentry->last_mod_time = gf_file_modification_time(list);
-				fo = gf_fopen(list, "rb");
-				if (fo) {
-					fentry->file_size = gf_fsize(fo);
-					gf_fclose(fo);
+				if (fentry) {
+					fentry->file_name = gf_strdup(list);
+					fentry->last_mod_time = gf_file_modification_time(list);
+					fo = gf_fopen(list, "rb");
+					if (fo) {
+						fentry->file_size = gf_fsize(fo);
+						gf_fclose(fo);
+					}
+					filelist_add_entry(ctx, fentry);
 				}
-				filelist_add_entry(ctx, fentry);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] File %s not found, ignoring\n", list));
 			}

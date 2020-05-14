@@ -1159,6 +1159,7 @@ static void gf_dm_sess_reload_cached_headers(GF_DownloadSession *sess)
 		if (sep2) {
 			GF_HTTPHeader *hdr;
 			GF_SAFEALLOC(hdr, GF_HTTPHeader);
+			if (!hdr) break;
 			sep2[0]=0;
 			hdr->name = gf_strdup(hdrs);
 			sep2[0]=':';
@@ -1930,6 +1931,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 	if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED)) {
 		if (sess->dm->filter_session && !gf_opts_get_bool("core", "dm-threads")) {
 			GF_SAFEALLOC(sess->ftask, GF_SessTask);
+			if (!sess->ftask) return GF_OUT_OF_MEM;
 			sess->ftask->sess = sess;
 			gf_fs_post_user_task(sess->dm->filter_session, gf_dm_session_task, sess->ftask, "download");
 			return GF_OK;

@@ -355,9 +355,11 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		if (!afound) {
 			GF_FSArgItem *ai;
 			GF_SAFEALLOC(ai, GF_FSArgItem);
-			ai->argname = gf_strdup(szArg);
-			ai->type = type;
-			gf_list_add(session->parsed_args, ai );
+			if (ai) {
+				ai->argname = gf_strdup(szArg);
+				ai->type = type;
+				gf_list_add(session->parsed_args, ai );
+			}
 		}
 	} else {
 		u32 k, acount;
@@ -375,10 +377,12 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		if (!found) {
 			GF_FSArgItem *ai;
 			GF_SAFEALLOC(ai, GF_FSArgItem);
-			ai->argname = gf_strdup(szArg);
-			ai->type = type;
-			ai->found = GF_TRUE;
-			gf_list_add(session->parsed_args, ai );
+			if (ai) {
+				ai->argname = gf_strdup(szArg);
+				ai->type = type;
+				ai->found = GF_TRUE;
+				gf_list_add(session->parsed_args, ai );
+			}
 		}
 	}
 }
@@ -2795,6 +2799,7 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 	GF_UserTask *utask;
 	if (!fsess || !task_execute) return GF_BAD_PARAM;
 	GF_SAFEALLOC(utask, GF_UserTask);
+	if (!utask) return GF_OUT_OF_MEM;
 	utask->fsess = fsess;
 	utask->callback = udta_callback;
 	utask->task_execute = task_execute;
@@ -2808,6 +2813,7 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 	GF_UserTask *utask;
 	if (!filter || !task_execute) return GF_BAD_PARAM;
 	GF_SAFEALLOC(utask, GF_UserTask);
+	if (!utask) return GF_OUT_OF_MEM;
 	utask->callback = udta;
 	utask->task_execute_filter = task_execute;
 	utask->fsess = filter->session;

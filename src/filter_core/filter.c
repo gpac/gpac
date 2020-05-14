@@ -714,11 +714,13 @@ static void filter_translate_autoinc(GF_Filter *filter, char *value)
 		}
 		if (!auto_int) {
 			GF_SAFEALLOC(auto_int, GF_FSAutoIncNum);
-			auto_int->filter = filter;
-			auto_int->crc = ainc_crc;
-			if (assigned) auto_int->inc_val = max_int + increment;
-			else sscanf(szInt, "%d", &auto_int->inc_val);
-			gf_list_add(filter->session->auto_inc_nums, auto_int);
+			if (auto_int) {
+				auto_int->filter = filter;
+				auto_int->crc = ainc_crc;
+				if (assigned) auto_int->inc_val = max_int + increment;
+				else sscanf(szInt, "%d", &auto_int->inc_val);
+				gf_list_add(filter->session->auto_inc_nums, auto_int);
+			}
 		}
 		sprintf(szInt, "%d", auto_int->inc_val);
 		strcat(value, szInt);

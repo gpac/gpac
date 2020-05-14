@@ -154,6 +154,8 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 		}
 		if (!opid) {
 			GF_SAFEALLOC(opid, GF_FFAVPid);
+			if (!opid) continue;
+
 			gf_list_add(ctx->opids, opid);
 			opid->io_pid = gf_filter_pid_new(filter);
 			opid->is_video = i<ctx->nb_v_out ? GF_TRUE : GF_FALSE;
@@ -729,6 +731,8 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	pid_ctx = gf_filter_pid_get_udta(pid);
 	if (!pid_ctx) {
 		GF_SAFEALLOC(pid_ctx, GF_FFAVPid);
+		if (!pid_ctx) return GF_OUT_OF_MEM;
+		
 		pid_ctx->io_pid = pid;
 		gf_filter_pid_set_udta(pid, pid_ctx);
 		gf_list_add(ctx->ipids, pid_ctx);

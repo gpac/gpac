@@ -70,6 +70,7 @@ GF_SHA1Context *gf_sha1_starts()
 {
 	GF_SHA1Context *ctx;
 	GF_SAFEALLOC(ctx, GF_SHA1Context);
+	if (!ctx) return NULL;
 	ctx->total[0] = 0;
 	ctx->total[1] = 0;
 

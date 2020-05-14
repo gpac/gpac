@@ -265,6 +265,7 @@ void compositor_init_transformmatrix2d(GF_Compositor *compositor, GF_Node *node)
 {
 	Transform2DStack *stack;
 	GF_SAFEALLOC(stack, Transform2DStack);
+	if (!stack) return;
 
 	gf_mx2d_init(stack->mat);
 	gf_node_set_private(node, stack);
@@ -337,6 +338,7 @@ void compositor_init_colortransform(GF_Compositor *compositor, GF_Node *node)
 {
 	ColorTransformStack *stack;
 	GF_SAFEALLOC(stack, ColorTransformStack);
+	if (!stack) return;
 
 	gf_cmx_init(&stack->cmat);
 	gf_node_set_private(node, stack);
@@ -417,6 +419,8 @@ void compositor_init_orderedgroup(GF_Compositor *compositor, GF_Node *node)
 {
 	OrderedGroupStack *ptr;
 	GF_SAFEALLOC(ptr, OrderedGroupStack);
+	if (!ptr) return;
+	
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseOrderedGroup);
 }

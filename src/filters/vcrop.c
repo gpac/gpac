@@ -183,6 +183,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		GF_VCropFrame *vframe = gf_list_pop_back(ctx->frames_res);
 		if (!vframe) {
 			GF_SAFEALLOC(vframe, GF_VCropFrame);
+			if (!vframe) return GF_OUT_OF_MEM;
 		}
 		vframe->ctx = ctx;
 		memcpy(vframe->stride, ctx->src_stride, sizeof(vframe->stride));

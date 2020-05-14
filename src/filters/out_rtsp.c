@@ -341,6 +341,10 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	}
 
 	GF_SAFEALLOC(sess, GF_RTSPOutSession);
+	if (!sess) {
+		gf_rtsp_session_del(new_sess);
+		return GF_OUT_OF_MEM;
+	}
 	sess->rtsp = new_sess;
 	sess->command = gf_rtsp_command_new();
 	sess->response = gf_rtsp_response_new();
@@ -501,15 +505,19 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 		stream->send_rtpinfo = GF_FALSE;
 
 		GF_SAFEALLOC(rtpi, GF_RTPInfo);
-		rtpi->url = gf_malloc(sizeof(char) * (strlen(sess->service_name)+50));
-		sprintf(rtpi->url, "%s/trackID=%d", sess->service_name, stream->ctrl_id);
-		rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
-		rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
+		if (rtpi) {
+			rtpi->url = gf_malloc(sizeof(char) * (strlen(sess->service_name)+50));
+			sprintf(rtpi->url, "%s/trackID=%d", sess->service_name, stream->ctrl_id);
+			rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
+			rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
 
-		gf_list_add(sess->response->RTP_Infos, rtpi);
+			gf_list_add(sess->response->RTP_Infos, rtpi);
+		}
 	}
 	GF_SAFEALLOC(sess->response->Range, GF_RTSPRange);
-	sess->response->Range->start = sess->start_range;
+	if (sess->response->Range)
+		sess->response->Range->start = sess->start_range;
+
 	sess->response->CSeq = sess->last_cseq;
 	rtspout_send_response(ctx, sess);
 	sess->request_pending = GF_FALSE;

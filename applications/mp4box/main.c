@@ -1527,13 +1527,16 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!strnicmp(szSlot, "image-size=", 11)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
+
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->width, &meta->image_props->height);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "image-pasp=", 11)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->hSpacing, &meta->image_props->vSpacing);
 			ret = 1;
@@ -1541,6 +1544,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!strnicmp(szSlot, "image-rloc=", 11)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->hOffset, &meta->image_props->vOffset);
 			ret = 1;
@@ -1548,6 +1552,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!strnicmp(szSlot, "rotation=", 9)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			meta->image_props->angle = atoi(szSlot+9);
 			ret = 1;
@@ -1555,6 +1560,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!stricmp(szSlot, "hidden")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			meta->image_props->hidden = GF_TRUE;
 			ret = 1;
@@ -1562,6 +1568,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!stricmp(szSlot, "alpha")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			meta->image_props->alpha = GF_TRUE;
 			ret = 1;
@@ -1569,6 +1576,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!strnicmp(szSlot, "time=", 5)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			meta->image_props->time = atof(szSlot+5);
 			ret = 1;
@@ -1576,6 +1584,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!stricmp(szSlot, "split_tiles")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
 			ret = 1;
@@ -1595,6 +1604,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		else if (!strnicmp(szSlot, "icc_path=", 9)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
 			}
 			strcpy(meta->image_props->iccPath, szSlot+9);
 			ret = 1;

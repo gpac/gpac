@@ -259,6 +259,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			}
 			if (!st) {
 				GF_SAFEALLOC(st, AVIAstream);
+				if (!st) continue;
 				st->opid = gf_filter_pid_new(filter);
 				gf_list_add(ctx->audios, st);
 			}

@@ -593,6 +593,8 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 
 	if (!map) {
 		GF_SAFEALLOC(map, GF_PropertyMap);
+		if (!map) return NULL;
+		
 		map->session = filter->session;
 #if GF_PROPS_HASHTABLE_SIZE
 #else

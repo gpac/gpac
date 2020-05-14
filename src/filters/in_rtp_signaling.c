@@ -240,8 +240,10 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 		GF_RTSPCommand *com = gf_rtsp_command_new();
 		com->method = gf_strdup(GF_RTSP_PLAY);
 		GF_SAFEALLOC(ch_ctrl, RTPIn_StreamControl);
-		ch_ctrl->stream = stream;
-		com->user_data = ch_ctrl;
+		if (ch_ctrl) {
+			ch_ctrl->stream = stream;
+			com->user_data = ch_ctrl;
+		}
 		rtpin_rtsp_queue_command(sess, stream, com, GF_TRUE);
 	}
 
@@ -388,12 +390,14 @@ void rtpin_rtsp_describe_send(GF_RTPInRTSP *sess, char *esd_url, GF_FilterPid *o
 
 		/*setup transport ports*/
 		GF_SAFEALLOC(trans, GF_RTSPTransport);
-		trans->IsUnicast = GF_TRUE;
-		trans->client_port_first = sess->rtpin->satip_port;
-		trans->client_port_last = sess->rtpin->satip_port+1;
-		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
-		gf_list_add(com->Transports, trans);
-
+		if (trans) {
+			trans->IsUnicast = GF_TRUE;
+			trans->client_port_first = sess->rtpin->satip_port;
+			trans->client_port_last = sess->rtpin->satip_port+1;
+			trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
+			gf_list_add(com->Transports, trans);
+		}
+		
 		/*hardcoded channel*/
 		stream = rtpin_stream_new_satip(sess->rtpin, sess->satip_server);
 		if (!stream) {

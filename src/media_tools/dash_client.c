@@ -2631,6 +2631,8 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 			sep+=8;
 			len = (u32)strlen(sep) + 1;
 			GF_SAFEALLOC(blob, GF_Blob);
+			if (!blob) return GF_OUT_OF_MEM;
+
 			blob->data = (char *)gf_malloc(len);
 			blob->size = gf_base64_decode(sep, len, blob->data, len);
 			sprintf(*out_url, "gmem://%p", blob);
@@ -4485,7 +4487,8 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 
 			if (needs_mov_range && (type==GF_ISOM_BOX_TYPE_MOOV )) {
 				GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
-				rep->segment_list->initialization_segment->byte_range->end_range = gf_bs_get_position(bs);
+				if (rep->segment_list->initialization_segment->byte_range)
+					rep->segment_list->initialization_segment->byte_range->end_range = gf_bs_get_position(bs);
 			}
 			continue;
 		}
@@ -4713,9 +4716,10 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					if (!group->dash->thread_mode) {
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(init_url);
 						GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
-						rep->segment_list->initialization_segment->byte_range->start_range = init_start_range;
-						rep->segment_list->initialization_segment->byte_range->end_range = init_end_range ? init_end_range : (sidx_start-1);
-
+						if (rep->segment_list->initialization_segment->byte_range) {
+							rep->segment_list->initialization_segment->byte_range->start_range = init_start_range;
+							rep->segment_list->initialization_segment->byte_range->end_range = init_end_range ? init_end_range : (sidx_start-1);
+						}
 					}
 					//we need to store the init segment since it has the same name as the rest of the segments and will be destroyed when cleaning up the cache ..
 					else if (!strnicmp(cache_name, "gmem://", 7)) {

@@ -378,6 +378,7 @@ static GSF_Stream *gsfdmx_get_stream(GF_Filter *filter, GSF_DemuxCtx *ctx, u32 i
 
 	if ((pkt_type==GFS_PCKTYPE_PID_CONFIG) || (pkt_type==GFS_PCKTYPE_PID_INFO_UPDATE) ) {
 		GF_SAFEALLOC(gst, GSF_Stream);
+		if (!gst) return NULL;
 		gst->packets = gf_list_new();
 		gst->idx = idx;
 		gf_list_add(ctx->streams, gst);
@@ -545,6 +546,7 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 		gpck = gf_list_pop_back(ctx->pck_res);
 		if (!gpck) {
  			GF_SAFEALLOC(gpck, GSF_Packet);
+ 			if (!gpck) return NULL;
  			gpck->nb_alloc_frags = 10;
  			gpck->frags = gf_malloc(sizeof(GSF_PacketFragment) * gpck->nb_alloc_frags);
 		}
