@@ -788,19 +788,20 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (_nb_ch > ds->nb_ch) ds->nb_ch = _nb_ch;
 		}
 
+		//only reload queues if we detected a period switch
+		if (period_switch) {
+			cue_file = ctx->cues;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_CUE);
+			if (p) cue_file = p->value.string;
 
-		cue_file = ctx->cues;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_CUE);
-		if (p) cue_file = p->value.string;
-
-		if (ds->cues) gf_free(ds->cues);
-		ds->cues = NULL;
-		ds->nb_cues = 0;
-		if (cue_file) {
-			GF_Err e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues, &ds->nb_cues);
-			if (e) return e;
+			if (ds->cues) gf_free(ds->cues);
+			ds->cues = NULL;
+			ds->nb_cues = 0;
+			if (cue_file) {
+				GF_Err e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues, &ds->nb_cues);
+				if (e) return e;
+			}
 		}
-
 	} else {
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
