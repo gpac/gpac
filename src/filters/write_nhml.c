@@ -345,11 +345,12 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	ctx->szRootName = "NHNTStream";
 	if (ctx->dims) {
 		ctx->szRootName = "DIMSStream";
-	} else if (!ctx->filep) {
-		sprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	}
 
-	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	if (!ctx->filep) {
+		sprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	}
 
 	/*write header*/
 	sprintf(nhml, "<%s version=\"1.0\" ", ctx->szRootName);
