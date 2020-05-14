@@ -110,7 +110,7 @@ static void init_reader(ISOMChannel *ch)
 		u32 mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
 
 		/*take care of seeking out of the track range*/
-		if (!ch->owner->frag_type && (ch->duration<ch->start)) {
+		if (!ch->owner->frag_type && (ch->duration<=ch->start)) {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration-1, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 		} else if (ch->start || ch->has_edit_list) {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
