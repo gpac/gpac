@@ -867,6 +867,7 @@ typedef struct
 	u32 sample_count_at_seg_start;
 	Bool first_traf_merged;
 	Bool present_in_scalable_segment;
+	u32 current_traf_stsd_idx;
 #endif
 } GF_TrackBox;
 
