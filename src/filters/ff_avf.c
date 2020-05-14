@@ -371,7 +371,7 @@ static void ffavf_dump_graph(GF_FFAVFilterCtx *ctx, const char *opt)
 	char *graphdump = avfilter_graph_dump(ctx->filter_graph, opt);
 
 	if (graphdump) {
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_MEDIA, GF_LOG_INFO)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFAVF] Graph dump:\n%s\n\n", graphdump ));
 		} else

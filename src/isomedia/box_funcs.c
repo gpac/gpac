@@ -1510,7 +1510,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 	GF_Box *a;
 	s32 idx = get_box_reg_idx(boxType, parentType);
 	if (idx==0) {
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 		if (!skip_logs && (boxType != GF_ISOM_BOX_TYPE_UNKNOWN) && (boxType != GF_ISOM_BOX_TYPE_UUID)) {
 			switch (parentType) {
 			case GF_ISOM_BOX_TYPE_ILST:

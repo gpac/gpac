@@ -499,6 +499,7 @@ static GF_Err gf_atsc3_dmx_process_slt(GF_ATSCDmx *atscd, GF_XMLNode *root)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_LOG
 static const char *get_lct_obj_status_name(GF_LCTObjectStatus status)
 {
 	switch (status) {
@@ -510,6 +511,7 @@ static const char *get_lct_obj_status_name(GF_LCTObjectStatus status)
 	}
 	return "unknown";
 }
+#endif // GPAC_DISABLE_LOG
 
 static void gf_atsc3_obj_to_reservoir(GF_ATSCDmx *atscd, GF_ATSCService *s, GF_LCTObject *obj)
 {

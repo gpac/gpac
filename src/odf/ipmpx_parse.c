@@ -326,10 +326,10 @@ GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
 			ret = 1;
 		}
 		else if (!stricmp(fieldName, "startDTS")) GET_U64(p->startDTS)
-			else if (!stricmp(fieldName, "startPacketID")) GET_U32(p->startPacketID)
-				else if (!stricmp(fieldName, "expireDTS")) GET_U32(p->expireDTS)
-					else if (!stricmp(fieldName, "expirePacketID")) GET_U32(p->expirePacketID)
-					}
+		else if (!stricmp(fieldName, "startPacketID")) GET_U32(p->startPacketID)
+		else if (!stricmp(fieldName, "expireDTS")) GET_U32(p->expireDTS)
+		else if (!stricmp(fieldName, "expirePacketID")) GET_U32(p->expirePacketID)
+		}
 	break;
 	case GF_IPMPX_SECURE_CONTAINER_TAG:
 	{

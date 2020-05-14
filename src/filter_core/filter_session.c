@@ -1054,7 +1054,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	u32 thid =  1 + gf_list_find(fsess->threads, sess_thread);
 	u64 enter_time = gf_sys_clock_high_res();
 	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
+#ifndef GPAC_DISABLE_LOG
 	u32 sys_thid = gf_th_id();
+#endif
 	u64 next_task_schedule_time = 0;
 	Bool do_regulate = (fsess->flags & GF_FS_FLAG_NO_REGULATION) ? GF_FALSE : GF_TRUE;
 	u32 consecutive_filter_tasks=0;
@@ -1872,6 +1874,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 			if (!pid->pid) continue;
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent));
 		}
+#ifndef GPAC_DISABLE_LOG
 		for (k=0; k<opids; k++) {
 			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent));
@@ -1879,6 +1882,8 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		if (f->nb_errors) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t%d errors while processing\n", f->nb_errors));
 		}
+#endif
+
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 

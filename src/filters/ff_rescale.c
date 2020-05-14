@@ -306,9 +306,11 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->swscaler = sws_getCachedContext(ctx->swscaler, w, h, ff_src_pfmt, ctx->ow, ctx->oh, ff_dst_pfmt, mode, NULL, NULL, par_p);
 
 		if (!ctx->swscaler) {
+#ifndef GPAC_DISABLE_LOG
 			Bool in_ok = sws_isSupportedInput(ff_src_pfmt);
 			Bool out_ok = sws_isSupportedInput(ff_dst_pfmt);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Cannot allocate context for required format - input %s output %s\n", in_ok ? "OK" : "not supported" , out_ok ? "OK" : "not supported"));
+#endif
 			return GF_NOT_SUPPORTED;
 		}
 		ctx->w = w;

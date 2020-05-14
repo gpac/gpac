@@ -994,7 +994,10 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	count = gf_list_count(read->channels);
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
-		u32 num_samples, prev_samples = gf_isom_get_sample_count(read->mov, ch->track);
+		u32 num_samples;
+#ifndef GPAC_DISABLE_LOG
+		u32 prev_samples = gf_isom_get_sample_count(read->mov, ch->track);
+#endif
 		//don't run this too often
 		if (ch->sample_num<=1+read->mstore_samples) continue;
 

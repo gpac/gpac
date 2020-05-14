@@ -3237,20 +3237,24 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		break;
 	case GF_M2TS_EVT_SDT_FOUND:
+#ifndef GPAC_DISABLE_LOG
 		count = gf_list_count(ts->SDTs) ;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program Description found - %d desc:\n", count));
 		for (i=0; i<count; i++) {
 			GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\tServiceID %d - Provider %s - Name %s\n", sdt->service_id, sdt->provider, sdt->service));
 		}
+#endif
 		break;
 	case GF_M2TS_EVT_SDT_UPDATE:
+#ifndef GPAC_DISABLE_LOG
 		count = gf_list_count(ts->SDTs) ;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program Description updated - %d desc\n", count));
 		for (i=0; i<count; i++) {
 			GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\tServiceID %d - Provider %s - Name %s\n", sdt->service_id, sdt->provider, sdt->service));
 		}
+#endif
 		break;
 	case GF_M2TS_EVT_SDT_REPEAT:
 		break;

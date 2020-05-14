@@ -2197,7 +2197,9 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 	}
 
 	if (sidx_max_size && (size > sidx_max_size) ) {
+#ifndef GPAC_DISABLE_LOG
 		u32 orig_seg_count = movie->root_sidx->nb_refs;
+#endif
 		//trash 8 bytes to be able to write a free box before
 		sidx_max_size -= 8;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] SIDX size %d is larger than allocated SIDX block %d, merging final segments\n", movie->root_sidx->size, sidx_max_size));
