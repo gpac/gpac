@@ -372,6 +372,17 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (!start_date)
 		goto range_done;
 
+	ctx->cur_range_idx++;
+	if (!end_date) ctx->range_type = RANGE_OPEN;
+	else ctx->range_type = RANGE_CLOSED;
+
+	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse start date, assuming end of ranges\n"));
+		//done
+		ctx->range_type = RANGE_DONE;
+		return;
+	}
+
 	//range in frame
 	if (ctx->start_frame_idx_plus_one) {
 		//either range is before or prev range was not frame-based
@@ -391,7 +402,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 			do_seek = GF_FALSE;
 	}
 	//do not issue seek on first range, done when catching play requests
-	if (!ctx->cur_range_idx) {
+	if (ctx->cur_range_idx==1) {
 		do_seek = GF_FALSE;
 	}
 
@@ -400,16 +411,6 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 		goto range_done;
 	}
 
-	ctx->cur_range_idx++;
-	if (!end_date) ctx->range_type = RANGE_OPEN;
-	else ctx->range_type = RANGE_CLOSED;
-
-	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse start date, assuming end of ranges\n"));
-		//done
-		ctx->range_type = RANGE_DONE;
-		return;
-	}
 	ctx->is_range_extraction = ((ctx->extract_mode==EXTRACT_RANGE) || (ctx->extract_mode==EXTRACT_DUR)) ? GF_TRUE : GF_FALSE;
 
 	if (ctx->extract_mode != EXTRACT_RANGE) {
