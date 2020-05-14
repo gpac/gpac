@@ -866,7 +866,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	txh->nb_frames ++;
 	txh->upload_time += push_time;
 
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 	if (txh->stream) {
 		u32 ck;
 		gf_mo_get_object_time(txh->stream, &ck);

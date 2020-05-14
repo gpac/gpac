@@ -2412,7 +2412,9 @@ sample_entry_done:
 	}
 
 	if (is_true_pid && ctx->importer && !tkw->import_msg_header_done) {
+#ifndef GPAC_DISABLE_LOG
 		const char *dst_type = tkw->is_item ? "Item Importing" : "Track Importing";
+#endif
 		tkw->import_msg_header_done = GF_TRUE;
 		if (!imp_name) imp_name = comp_name;
 		if (sr) {

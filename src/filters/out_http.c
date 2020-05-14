@@ -565,6 +565,7 @@ static Bool httpout_do_log(GF_HTTPOutSession *sess, u32 method)
 	return GF_FALSE;
 }
 
+#ifndef GPAC_DISABLE_LOG
 static const char *get_method_name(u32 method)
 {
 	switch (method) {
@@ -579,6 +580,8 @@ static const char *get_method_name(u32 method)
 	default: return "UNKNOWN";
 	}
 }
+#endif //GPAC_DISABLE_LOG
+
 static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	char *rsp_buf = NULL;

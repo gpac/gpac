@@ -1302,8 +1302,9 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 static void tsmux_finalize(GF_Filter *filter)
 {
 	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
-
+#ifndef GPAC_DISABLE_LOG
 	u64 bits = ctx->mux->tot_pck_sent*8*188;
+#endif
 	u64 dur_ms = gf_m2ts_get_ts_clock(ctx->mux);
 	if (!dur_ms) dur_ms = 1;
 	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[M2TSMux] Done muxing - %.02f sec - %sbitrate %d kbps "LLD" packets written\nPadding: "LLD" packets (%g kbps) - "LLD" PES padded bytes (%g kbps)\n",

@@ -1377,7 +1377,13 @@ size_t gf_fwrite(const void *ptr, size_t nb_bytes, FILE *stream)
 #else
 			char *errstr = (char*)strerror(errno_save);
 #endif
+
+#ifndef GPAC_DISABLE_LOG
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data (%s): %d blocks to write but %d blocks written\n", errstr, nb_bytes, result));
+#else
+			fprintf(stderr, "Error writing data (%s): %d blocks to write but %d blocks written\n", errstr, (u32) nb_bytes, (u32) result);
+#endif
+
 		}
 #endif
 	}

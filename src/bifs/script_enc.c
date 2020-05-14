@@ -1262,6 +1262,7 @@ u32 TOK_To_ET(u32 tok)
 	}
 }
 
+#ifndef GPAC_DISABLE_LOG
 static const char *expr_name[] = {
 	"ET_CURVED_EXPR",
 	"ET_NEGATIVE",
@@ -1315,6 +1316,8 @@ static const char *expr_name[] = {
 	"ET_VAR",
 	"NUMBER_OF_EXPR_TYPE"
 };
+#endif
+
 
 #define NUMBER_OF_RANK	15
 static s32 ET_Rank[NUMBER_OF_EXPR_TYPE] =

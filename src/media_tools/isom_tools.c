@@ -130,18 +130,16 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			u32 mtype = gf_isom_get_media_type(file, track);
 			if (gf_isom_is_video_handler_type(mtype)) {
 				if (rewrite_bs) {
-					u32 mstype = gf_isom_get_media_subtype(file, track, 1);
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
 						("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
-							gf_4cc_to_str(mstype) ));
+							gf_4cc_to_str(gf_isom_get_media_subtype(file, track, 1)) ));
 				}
 			} else {
 				u32 mtype = gf_isom_get_media_type(file, track);
 				if (gf_isom_is_video_handler_type(mtype)) {
-					u32 stype = gf_isom_get_media_subtype(file, track, 1);
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
 						("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
-							gf_4cc_to_str(stype) ));
+							gf_4cc_to_str(gf_isom_get_media_subtype(file, track, 1)) ));
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
 					return GF_BAD_PARAM;
@@ -3463,7 +3461,11 @@ static Bool on_frag_event(void *_udta, GF_Event *evt)
 	if (stats.percent/100 == fc->last_prog) return GF_FALSE;
 	fc->last_prog = stats.percent / 100;
 
+#ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Fragmenting: % 2.2f %%\r", ((Double)stats.percent) / 100));
+#else
+	fprintf(stderr, "Fragmenting: % 2.2f %%\r", ((Double)stats.percent) / 100);
+#endif
 	return GF_FALSE;
 }
 
@@ -3497,8 +3499,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	f = gf_fs_load_destination(fsess, szArgs, NULL, NULL, &e);
 	if (!f) return e;
 
+	if (!gf_sys_is_test_mode()
 #ifndef GPAC_DISABLE_LOG
-	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) && !gf_sys_is_quiet() ) {
+		&& (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)
+#endif
+		&& !gf_sys_is_quiet()
+	) {
 		fc.last_prog=0;
 		fc.fsess=fsess;
 		fc.filter_idx_plus_one=0;
@@ -3509,8 +3515,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode())
 		on_frag_event(NULL, NULL);
-#endif
-
 #endif
 
 	e = gf_fs_run(fsess);

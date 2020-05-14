@@ -63,9 +63,13 @@ static void rtp_stream_on_packet_done(void *cbk, GF_RTPHeader *header)
 
 #ifndef GPAC_DISABLE_LOG
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Error %s sending RTP packet\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Error %s sending RTP packet SN %u - TS %u\n", gf_error_to_string(e), header->SequenceNumber, header->TimeStamp));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("RTP SN %u - TS %u - M %u - Size %u\n", header->SequenceNumber, header->TimeStamp, header->Marker, rtp->payload_len + 12));
+	}
+#else
+	if (e) {
+		fprintf(stderr, "Error %s sending RTP packet SN %u - TS %u\n", gf_error_to_string(e), header->SequenceNumber, header->TimeStamp);
 	}
 #endif
 	rtp->payload_len = 0;

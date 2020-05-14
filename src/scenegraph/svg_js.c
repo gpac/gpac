@@ -203,12 +203,12 @@ static JSValue svg_nav_to_location(JSContext *c, JSValueConst obj, int argc, JSV
 	return JS_UNDEFINED;
 }
 
+GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *sg, char *svg_str);
 static JSValue svg_parse_xml(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_SceneGraph *sg;
 	GF_Node *node;
 	const char *str;
-	GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *sg, char *svg_str);
 
 	if (!JS_IsObject(argv[1])) {
 		return js_throw_err(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);

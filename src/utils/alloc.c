@@ -822,8 +822,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 /*prints allocations sum-up*/
 static void print_memory_size()
 {
-	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO;
-	GF_LOG(level, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
+	GF_LOG(gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
 }
 
 GF_EXPORT

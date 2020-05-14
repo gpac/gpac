@@ -1772,10 +1772,12 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 						} else {
 							GF_LOG(success ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names, try using -broken-cert: expected %s\n", 	sess->server_name));
 						}
+#ifndef GPAC_DISABLE_LOG
 						for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
 							const char *valid_name = (const char*) gf_list_get(valid_names, i);
 							GF_LOG(success ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Tried name: %s\n", valid_name));
 						}
+#endif
 					}
 
 					gf_list_del(valid_names);
@@ -3737,7 +3739,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->use_cache_file = GF_FALSE;
 	}
 
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] Error processing rely from %s: %s\n", sess->server_name, gf_error_to_string(e) ) );
 	} else {

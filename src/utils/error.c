@@ -147,6 +147,8 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 	user_cbk = _user_cbk;
 }
 
+#ifndef GPAC_DISABLE_LOG
+
 /*ENTRIES MUST BE IN THE SAME ORDER AS LOG_TOOL DECLARATION IN <gpac/tools.h>*/
 static struct log_tool_info {
 	u32 type;
@@ -187,6 +189,8 @@ static struct log_tool_info {
 };
 
 #define GF_LOG_TOOL_MAX_NAME_SIZE (GF_LOG_TOOL_MAX*10)
+
+#endif
 
 GF_EXPORT
 GF_Err gf_log_modify_tools_levels(const char *val_)
@@ -376,25 +380,6 @@ char *gf_log_get_tools_levels()
 	return gf_strdup("all@quiet");
 }
 
-#ifndef GPAC_DISABLE_LOG
-u32 call_lev = 0;
-u32 call_tool = 0;
-
-GF_EXPORT
-Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
-{
-	if (log_tool==GF_LOG_TOOL_MAX) return GF_TRUE;
-	if (log_tool>GF_LOG_TOOL_MAX) return GF_FALSE;
-	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
-	return GF_FALSE;
-}
-
-GF_EXPORT
-u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
-{
-	if (log_tool>=GF_LOG_TOOL_MAX) return GF_LOG_ERROR;
-	return global_log_tools[log_tool].level;
-}
 
 #if defined(GPAC_CONFIG_WIN32)
 #include <windows.h>
@@ -470,7 +455,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 
 			res = GetConsoleScreenBufferInfo(console, &cbck_console);
 			if (res) res = GetConsoleCursorInfo(console, &cbck_cursor);
-			
+
 			if (!res) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to save win32 console info\n"));
 				return;
@@ -509,7 +494,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 			if (res) res = SetConsoleWindowInfo(console, TRUE, &cbck_console.srWindow);
 			if (res) res = SetConsoleCursorPosition(console, cbck_console.dwCursorPosition);
 			if (res) res = SetConsoleTextAttribute(console, cbck_console.wAttributes);
-			
+
 			if (!res) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to restore win32 console info\n"));
 				return;
@@ -601,6 +586,26 @@ win32_ismtty:
 		if (code & GF_CONSOLE_STRIKE) fprintf(std, "\x1b[9m");
 	}
 #endif
+}
+
+#ifndef GPAC_DISABLE_LOG
+u32 call_lev = 0;
+u32 call_tool = 0;
+
+GF_EXPORT
+Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
+{
+	if (log_tool==GF_LOG_TOOL_MAX) return GF_TRUE;
+	if (log_tool>GF_LOG_TOOL_MAX) return GF_FALSE;
+	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
+	return GF_FALSE;
+}
+
+GF_EXPORT
+u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
+{
+	if (log_tool>=GF_LOG_TOOL_MAX) return GF_LOG_ERROR;
+	return global_log_tools[log_tool].level;
 }
 
 FILE *gpac_log_file = NULL;
@@ -755,6 +760,7 @@ void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt)
 GF_EXPORT
 Bool gf_log_set_strict_error(Bool strict)
 {
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -769,22 +775,11 @@ void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level)
 }
 
 GF_EXPORT
-char *gf_log_get_tools_levels()
-{
-	return "all@disabled";
-}
-
-GF_EXPORT
 u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 {
 	return 0;
 }
 
-GF_EXPORT
-GF_Err gf_log_set_tools_levels(const char *val, Bool reset_all)
-{
-	return GF_OK;
-}
 GF_EXPORT
 Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
