@@ -449,10 +449,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
 
 		if (!read->mem_load_mode) {
-			if (!ch->has_edit_list && !use_sidx_dur) {
-				u64 dur = gf_isom_get_media_duration(read->mov, ch->track) - (s32) ch->ts_offset;
+			//if no edit list (whether complex or simple TS offset) and no sidx, use media duration
+			if (!ch->has_edit_list && !use_sidx_dur && !ch->ts_offset) {
+				u64 dur = gf_isom_get_media_duration(read->mov, ch->track);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
-			} else {
+			}
+			//otherwise trust track duration
+			else {
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->time_scale));
 			}
 			gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
