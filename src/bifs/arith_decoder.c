@@ -138,7 +138,8 @@ GF_AADecoder *gp_bifs_aa_dec_new(GF_BitStream *bs)
 {
 	GF_AADecoder *tmp;
 	GF_SAFEALLOC(tmp, GF_AADecoder);
-	tmp->bs = bs;
+	if (tmp)
+		tmp->bs = bs;
 	return tmp;
 }
 void gp_bifs_aa_dec_del(GF_AADecoder *dec)

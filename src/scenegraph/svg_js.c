@@ -1585,6 +1585,7 @@ static JSValue svg_new_path_object(JSContext *c, SVG_PathData *d)
 	JSValue obj;
 	pathCI *p;
 	GF_SAFEALLOC(p, pathCI);
+	if (!p) return JS_EXCEPTION;
 	if (d) {
 		u32 i, count;
 		p->nb_coms = gf_list_count(d->commands);

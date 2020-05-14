@@ -1944,11 +1944,13 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 						td.fonts[0].fontName = gf_strdup("Serif");
 					}
 					GF_SAFEALLOC(dcd, GF_PropertyValue);
-					dcd->type = GF_PROP_DATA;
+					if (dcd) {
+						dcd->type = GF_PROP_DATA;
 
-					gf_odf_tx3g_write(&td, &dcd->value.data.ptr, &dcd->value.data.size);
-					if (!ctx->text_descs) ctx->text_descs = gf_list_new();
-					gf_list_add(ctx->text_descs, dcd);
+						gf_odf_tx3g_write(&td, &dcd->value.data.ptr, &dcd->value.data.size);
+						if (!ctx->text_descs) ctx->text_descs = gf_list_new();
+						gf_list_add(ctx->text_descs, dcd);
+					}
 
 					for (k=0; k<td.font_count; k++) gf_free(td.fonts[k].fontName);
 					gf_free(td.fonts);
@@ -2480,6 +2482,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 				} else {
 					GF_PropertyValue *d;
 					GF_SAFEALLOC(d, GF_PropertyValue);
+					if (!d) return GF_OUT_OF_MEM;
 					d->type = GF_PROP_DATA;
 					d->value.data.ptr = dsi;
 					d->value.data.size = dsi_len;

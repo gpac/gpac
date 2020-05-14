@@ -1221,6 +1221,7 @@ GF_SockGroup *gf_sk_group_new()
 {
 	GF_SockGroup *tmp;
 	GF_SAFEALLOC(tmp, GF_SockGroup);
+	if (!tmp) return NULL;
 	tmp->sockets = gf_list_new();
 	FD_ZERO(&tmp->rgroup);
 	FD_ZERO(&tmp->wgroup);

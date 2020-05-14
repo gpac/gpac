@@ -1206,6 +1206,8 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	//not set, first time we see this pid
 	if (!tile_pid) {
 		GF_SAFEALLOC(tile_pid, HEVCTilePidCtx);
+		if (!tile_pid) return GF_OUT_OF_MEM;
+		
 		gf_filter_pid_set_udta(pid, tile_pid);
 		tile_pid->pid = pid;
 		tile_pid->hevc_state.full_slice_header_parse = GF_TRUE;

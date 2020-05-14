@@ -42,8 +42,10 @@ GF_M2TS_ES *gf_ait_section_new(u32 service_id)
 	GF_M2TS_AIT_CARRY *ses;
 	GF_SAFEALLOC(ses, GF_M2TS_AIT_CARRY);
 	es = (GF_M2TS_ES *)ses;
-	es->flags = GF_M2TS_ES_IS_SECTION;
-	ses->service_id = service_id;
+	if (es) {
+		es->flags = GF_M2TS_ES_IS_SECTION;
+		ses->service_id = service_id;
+	}
 	return es;
 }
 
@@ -64,6 +66,7 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if(!check_ait_already_received(ts->ChannelAppList,ait_carry->pid,data)) {
 			GF_M2TS_AIT* ait;
 			GF_SAFEALLOC(ait, GF_M2TS_AIT);
+			if (!ait) return;
 			u32_data_size = pck->data_len;
 			u32_table_id = data[0];
 			ait->pid = ait_carry->pid;
@@ -142,6 +145,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 
 		GF_M2TS_AIT_APPLICATION_DECODE* application;
 		GF_SAFEALLOC(application,GF_M2TS_AIT_APPLICATION_DECODE);
+		if (!application) break;
+
 		application->application_descriptors = gf_list_new();
 		application->index_app_desc_id = 0;
 
@@ -165,6 +170,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				u8 i;
 				GF_M2TS_APPLICATION_DESCRIPTOR *application_descriptor;
 				GF_SAFEALLOC(application_descriptor, GF_M2TS_APPLICATION_DESCRIPTOR);
+				if (!application_descriptor) break;
+
 				application_descriptor->descriptor_tag = temp_descriptor_tag;
 				application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
 				application->index_app_desc_id++;
@@ -200,6 +207,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				u64 pre_processing_pos;
 				GF_M2TS_APPLICATION_NAME_DESCRIPTOR* name_descriptor;
 				GF_SAFEALLOC(name_descriptor, GF_M2TS_APPLICATION_NAME_DESCRIPTOR);
+				if (!name_descriptor) break;
+
 				application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
 				application->index_app_desc_id++;
 				name_descriptor->descriptor_tag = temp_descriptor_tag;
@@ -225,6 +234,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				u64 pre_processing_pos;
 				GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR* protocol_descriptor;
 				GF_SAFEALLOC(protocol_descriptor, GF_M2TS_TRANSPORT_PROTOCOL_DESCRIPTOR);
+				if (!protocol_descriptor) break;
+
 				application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
 				application->index_app_desc_id++;
 				nb_of_protocol++;
@@ -238,6 +249,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				{
 					GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE* Carousel_selector_byte;
 					GF_SAFEALLOC(Carousel_selector_byte, GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE);
+					if (!Carousel_selector_byte) break;
+
 					Carousel_selector_byte->remote_connection = gf_bs_read_int(bs,1);
 					gf_bs_read_int(bs,7); /* bit shifting */
 					if (Carousel_selector_byte->remote_connection) {
@@ -254,6 +267,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 					u32 i;
 					GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte;
 					GF_SAFEALLOC(Transport_http_selector_byte, GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE);
+					if (!Transport_http_selector_byte) break;
+
 					Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
 
 					Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length+1,sizeof(char));
@@ -303,6 +318,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				u64 pre_processing_pos;
 				GF_M2TS_SIMPLE_APPLICATION_LOCATION* Simple_application_location;
 				GF_SAFEALLOC(Simple_application_location, GF_M2TS_SIMPLE_APPLICATION_LOCATION);
+				if (!Simple_application_location) break;
+
 				application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
 				application->index_app_desc_id++;
 				Simple_application_location->descriptor_tag = temp_descriptor_tag;
@@ -326,6 +343,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				u64 pre_processing_pos;
 				GF_M2TS_APPLICATION_USAGE* Application_usage;
 				GF_SAFEALLOC(Application_usage, GF_M2TS_APPLICATION_USAGE);
+				if (!Application_usage) break;
+
 				application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
 				application->index_app_desc_id++;
 				Application_usage->descriptor_tag = temp_descriptor_tag;
@@ -347,6 +366,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				u32 i;
 				GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR* boundary_descriptor;
 				GF_SAFEALLOC(boundary_descriptor, GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR);
+				if (!boundary_descriptor) break;
+
 				application->application_descriptors_id[application->index_app_desc_id] = temp_descriptor_tag;
 				application->index_app_desc_id++;
 				boundary_descriptor->descriptor_tag = temp_descriptor_tag;
@@ -427,6 +448,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 
 	if(!ChanAppInfo) {
 		GF_SAFEALLOC(ChanAppInfo,GF_M2TS_CHANNEL_APPLICATION_INFO);
+		if (!ChanAppInfo) return;
 		ChanAppInfo->service_id = ait->service_id;
 		ChanAppInfo->Application = gf_list_new();
 		ChanAppInfo->ait_pid = ait->pid;
@@ -441,6 +463,8 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 		GF_M2TS_AIT_APPLICATION* Application;
 		GF_M2TS_AIT_APPLICATION_DECODE* application_decoded;
 		GF_SAFEALLOC(Application,GF_M2TS_AIT_APPLICATION);
+		if (!Application) break;
+		
 		gf_list_add(ChanAppInfo->Application,Application);
 		Application->http_url = NULL;
 		Application->carousel_url = NULL;

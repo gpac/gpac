@@ -196,6 +196,7 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			}
 			if (!stream) {
 				GF_SAFEALLOC(stream, GF_M2TSSplit_SPTS);
+				if (!stream) return;
 				stream->pmt_pid = prog->pmt_pid;
 				first_pck = GF_TRUE;
 				prog->user = stream;

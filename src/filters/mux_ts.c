@@ -752,6 +752,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	tspid = gf_filter_pid_get_udta(pid);
 	if (!tspid) {
 		GF_SAFEALLOC(tspid, M2Pid);
+		if (!tspid) return GF_OUT_OF_MEM;
 		gf_filter_pid_set_udta(pid, tspid);
 		tspid->ipid = pid;
 		tspid->sid = service_id;

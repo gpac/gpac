@@ -684,6 +684,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	if (!tkw) {
 		GF_FilterEvent evt;
 		GF_SAFEALLOC(tkw, TrackWriter);
+		if (!tkw) return GF_OUT_OF_MEM;
+		
 		gf_list_add(ctx->tracks, tkw);
 		tkw->ipid = pid;
 		tkw->fake_track = !is_true_pid;

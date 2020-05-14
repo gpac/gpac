@@ -7152,6 +7152,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 							}
 							if (!entry) {
 								GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
+								if (!entry) return GF_OUT_OF_MEM;
 								gf_list_add(ipma->entries, entry);
 								entry->item_id = item_id;
 							}

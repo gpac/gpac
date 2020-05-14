@@ -2557,7 +2557,12 @@ reparse:
 					s_ar->array_completeness = ar->array_completeness;
 
 					GF_SAFEALLOC(sl2, GF_AVCConfigSlot);
+					if (!sl2) break;
 					sl2->data = gf_malloc(sl->size);
+					if (!sl2->data) {
+						gf_free(sl2);
+						break;
+					}
 					memcpy(sl2->data, sl->data, sl->size);
 					sl2->id = sl->id;
 					sl2->size = sl->size;

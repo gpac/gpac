@@ -761,7 +761,8 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	/*FIXME - only needed for texture*/
 	if (!tr_state->color_mat.identity) {
 		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
-		gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
+		if (ctx->col_mat)
+			gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
 	}
 
 	/*IndexedLineSet2D and PointSet2D ignores fill flag and texturing*/
@@ -1518,7 +1519,8 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	/*FIXME - only needed for texture*/
 	if (!tr_state->color_mat.identity) {
 		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
-		gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
+		if (ctx->col_mat)
+			gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
 	}
 
 	switch (gf_node_get_tag(ctx->drawable->node) ) {

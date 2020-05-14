@@ -64,6 +64,7 @@ SVG_Element *gf_svg_create_node(u32 ElementTag)
 	} else {
 		GF_SAFEALLOC(p, SVG_Element);
 	}
+	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, ElementTag);
 	gf_sg_parent_setup((GF_Node *) p);
 	return p;

@@ -1090,6 +1090,8 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 		}
 
 		GF_SAFEALLOC(rsess, GF_ATSCRouteSession);
+		if (!rsess) return GF_OUT_OF_MEM;
+
 		rsess->channels = gf_list_new();
 
 		//need a new socket for the session
@@ -1209,6 +1211,8 @@ static GF_Err gf_atsc3_service_setup_stsid(GF_ATSCDmx *atscd, GF_ATSCService *s,
 
 			//OK setup LCT channel for route
 			GF_SAFEALLOC(rlct, GF_ATSCLCTChannel);
+			if (!rlct) return GF_OUT_OF_MEM;
+			
 			rlct->init_toi = init_file_toi;
 			rlct->tsi = tsi;
 			rlct->init_filename = init_file_name ? gf_strdup(init_file_name) : NULL;

@@ -1322,6 +1322,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 
 		GF_SAFEALLOC(pctx, GF_HTTPOutInput);
+		if (!pctx) return GF_OUT_OF_MEM;
 		pctx->ipid = pid;
 		pctx->ctx = ctx;
 		pctx->patch_blocks = patch_blocks;
@@ -1400,6 +1401,11 @@ static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 		}
 	}
 	GF_SAFEALLOC(sess, GF_HTTPOutSession);
+	if (!sess) {
+		gf_sk_del(new_conn);
+		return;
+	}
+	
 	sess->socket = new_conn;
 	sess->ctx = ctx;
 

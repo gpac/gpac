@@ -559,6 +559,8 @@ static void naludmx_hevc_add_param(GF_HEVCConfig *cfg, GF_AVCConfigSlot *sl, u8 
 	}
 	if (!pa) {
 		GF_SAFEALLOC(pa, GF_HEVCParamArray);
+		if (!pa) return;
+
 		pa->array_completeness = 1;
 		pa->type = nal_type;
 		pa->nalus = gf_list_new();
@@ -630,6 +632,8 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 		HEVC_ProfileTierLevel ptl = (i == 0) ? vps->ptl : vps->ext_ptl[i-1];
 		LHEVC_ProfileTierLevel *lhevc_ptl;
 		GF_SAFEALLOC(lhevc_ptl, LHEVC_ProfileTierLevel);
+		if (!lhevc_ptl) return GF_OUT_OF_MEM;
+
 		lhevc_ptl->general_profile_space = ptl.profile_space;
 		lhevc_ptl->general_tier_flag = ptl.tier_flag;
 		lhevc_ptl->general_profile_idc = ptl.profile_idc;
@@ -655,6 +659,8 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 		u8 maxChromaFormat, maxBitDepth;
 		u8 maxTemporalId;
 		GF_SAFEALLOC(op, LHEVC_OperatingPoint);
+		if (!op) return GF_OUT_OF_MEM;
+
 		op->output_layer_set_idx = i;
 		op->layer_count = vps->num_necessary_layers[i];
 		minPicWidth = minPicHeight = maxPicWidth = maxPicHeight = maxTemporalId = 0;
@@ -706,6 +712,8 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 		LHEVC_DependentLayer *dep;
 		u32 j, k;
 		GF_SAFEALLOC(dep, LHEVC_DependentLayer);
+		if (!dep) return GF_OUT_OF_MEM;
+
 		dep->dependent_layerID = vps->layer_id_in_nuh[i];
 		for (j = 0; j < vps->max_layers; j++) {
 			if (vps->direct_dependency_flag[dep->dependent_layerID][j]) {
@@ -1397,7 +1405,12 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 	//TODO we might want to purge the list after a while !!
 
 	GF_SAFEALLOC(sl, GF_AVCConfigSlot);
+	if (!sl) return;
 	sl->data = gf_malloc(sizeof(char) * size);
+	if (!sl->data) {
+		gf_free(sl);
+		return;
+	}
 	memcpy(sl->data, data, size);
 	sl->size = size;
 	sl->id = ps_id;

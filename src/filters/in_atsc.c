@@ -120,6 +120,8 @@ static void atscin_send_file(ATSCInCtx *ctx, u32 service_id, GF_ATSCEventFileInf
 			}
 			if (!tsio) {
 				GF_SAFEALLOC(tsio, TSI_Output);
+				if (!tsio) return;
+
 				tsio->tsi = finfo->tsi;
 				tsio->sid = service_id;
 				gf_list_add(ctx->tsi_outs, tsio);
@@ -152,6 +154,7 @@ static void atscin_send_file(ATSCInCtx *ctx, u32 service_id, GF_ATSCEventFileInf
 		if (ctx->received_seg_names && (evt_type==GF_ATSC_EVT_SEG)) {
 			SegInfo *si;
 			GF_SAFEALLOC(si, SegInfo);
+			if (!si) return;
 			si->opid = pid;
 			si->seg_name = gf_strdup(finfo->filename);
 			gf_list_add(ctx->received_seg_names, si);

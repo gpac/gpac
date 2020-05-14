@@ -1992,12 +1992,14 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	else if (tag == TAG_DOMText) {
 		GF_DOMText *n;
 		GF_SAFEALLOC(n, GF_DOMText);
+		if (!n) return NULL;
 		node = (GF_Node*)n;
 		gf_node_setup(node, TAG_DOMText);
 	}
 	else if (tag == TAG_DOMFullNode) {
 		GF_DOMFullNode*n;
 		GF_SAFEALLOC(n, GF_DOMFullNode);
+		if (!n) return NULL;
 		node = (GF_Node*)n;
 		gf_node_setup(node, TAG_DOMFullNode);
 	}

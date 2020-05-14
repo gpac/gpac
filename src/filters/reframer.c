@@ -184,6 +184,8 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_reset_properties(st->opid);
 	} else {
 		GF_SAFEALLOC(st, RTStream);
+		if (!st) return GF_OUT_OF_MEM;
+		
 		gf_list_add(ctx->streams, st);
 		st->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, st);

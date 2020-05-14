@@ -1819,6 +1819,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 			if (daisy_sidx) {
 				SIDXEntry *entry;
 				GF_SAFEALLOC(entry, SIDXEntry);
+				if (!entry) {
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
 				entry->sidx = sidx;
 				entry->start_offset = sidx_start;
 				gf_list_add(daisy_sidx, entry);

@@ -646,6 +646,7 @@ static void swf_resort_path(SWFPath *a, SWFReader *read)
 			break;
 		case 0:
 			GF_SAFEALLOC(sorted , SWFPath);
+			if (!sorted) return;
 			swf_path_realloc_pts(sorted, 1);
 			sorted->pts[sorted->nbPts] = a->pts[idx];
 			sorted->nbPts++;
@@ -1056,6 +1057,7 @@ static DispShape *swf_get_depth_entry(SWFReader *read, u32 Depth, Bool create)
 	}
 	if (!create) return NULL;
 	GF_SAFEALLOC(tmp , DispShape);
+	if (!tmp) return NULL;
 	tmp->depth = Depth;
 	tmp->char_id = 0;
 	gf_list_add(read->display_list, tmp);
