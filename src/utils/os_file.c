@@ -1022,7 +1022,7 @@ int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args)
 {
 	va_list args_copy;
 	if (!gfio) return -1;
-	if (!gfio->printf) return gfio->printf(gfio, format, args);
+	if (gfio->printf) return gfio->printf(gfio, format, args);
 
 	if (!gfio->write) return -1;
 
@@ -1030,7 +1030,7 @@ int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args)
 	u32 len=vsnprintf(NULL, 0, format, args_copy);
 	va_end(args_copy);
 
-	if (len<=gfio->printf_alloc) {
+	if (len>=gfio->printf_alloc) {
 		gfio->printf_alloc = len+1;
 		gfio->printf_buf = gf_realloc(gfio->printf_buf, gfio->printf_alloc);
 	}

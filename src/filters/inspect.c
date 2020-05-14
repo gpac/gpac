@@ -929,8 +929,16 @@ static void inspect_finalize(GF_Filter *filter)
 
 	if (ctx->dump) {
 		if (ctx->xml) gf_fprintf(ctx->dump, "</GPACInspect>\n");
-		if ((ctx->dump!=stderr) && (ctx->dump!=stdout))
+		if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) {
+
+#ifdef GPAC_ENABLE_COVERAGE
+			if (gf_sys_is_cov_mode()) {
+				gf_fflush(ctx->dump);
+				gf_ferror(ctx->dump);
+			}
+#endif
 			gf_fclose(ctx->dump);
+		}
 	}
 
 }
