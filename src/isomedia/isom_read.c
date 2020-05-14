@@ -4452,8 +4452,9 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	if (trak && trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
 		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, NULL);
 	} else {
-		//this is dump mode of fragments, we haven't merged tables yet :(
-		descIndex = 1;
+		//this is dump mode of fragments, we haven't merged tables yet - use current stsd idx indicated in trak
+		descIndex = trak->current_traf_stsd_idx;
+		if (!descIndex) descIndex = 1;
 	}
 	gf_isom_cenc_get_default_info_ex(trak, descIndex, NULL, IsEncrypted, IV_size, KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
 
