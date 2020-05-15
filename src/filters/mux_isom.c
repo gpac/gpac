@@ -2684,7 +2684,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_STORE);
-		if (p) container_type = p->value.uint;
+		if (p && p->value.uint) container_type = p->value.uint;
 
 		tkw->clear_stsd_idx = 0;
 		if (cenc_stsd_mode) {
