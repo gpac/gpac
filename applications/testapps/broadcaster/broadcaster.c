@@ -62,7 +62,7 @@ static int command_line_parsing(int argc, const char** argv, unsigned short * tc
 		}
 		else if (!strcmp("-m", a) || !strcmp("--mtu", a))
 		{
-			if (mtu_size)
+			if (mtu_size) {
 				*mtu_size = atoi(argv[counter+1]);
 				if (! (*mtu_size)) return -3;
 			}

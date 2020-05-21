@@ -922,6 +922,7 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	gst = gf_filter_pid_get_udta(pid);
 	if (!gst) {
 		GF_SAFEALLOC(gst, GSFStream);
+		if (!gst) return GF_OUT_OF_MEM;
 		gf_list_add(ctx->streams, gst);
 		gst->pid = pid;
 		gf_filter_pid_set_udta(pid, gst);

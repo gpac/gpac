@@ -1142,6 +1142,10 @@ GF_CompositorExt *validator_new()
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_COMPOSITOR_EXT_INTERFACE, "GPAC Test Validator", "gpac distribution");
 
 	GF_SAFEALLOC(validator, GF_Validator);
+	if (!validator) {
+		gf_free(dr);
+		return NULL;
+	}
 	dr->process = validator_process;
 	dr->udta = validator;
 	return dr;

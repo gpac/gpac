@@ -984,6 +984,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	if (self_reference) {
 		GF_ItemExtentEntry *entry;
 		GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+		if (!entry) return GF_OUT_OF_MEM;
 		gf_list_add(location_entry->extent_entries, entry);
 		if (!infe->item_name) infe->item_name = gf_strdup("");
 		return GF_OK;
@@ -1012,6 +1013,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			u32 *item_index;
 			GF_ItemExtentEntry *entry;
 			GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+			if (!entry) return GF_OUT_OF_MEM;
 			gf_list_add(location_entry->extent_entries, entry);
 			item_index = (u32 *)gf_list_get(item_extent_refs, i);
 			gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, *item_index, GF_ISOM_REF_ILOC, &(entry->extent_index));
@@ -1023,6 +1025,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			FILE *src;
 			GF_ItemExtentEntry *entry;
 			GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+			if (!entry) return GF_OUT_OF_MEM;
 
 			location_entry->base_offset = gf_bs_get_position(file->editFileMap->bs);
 

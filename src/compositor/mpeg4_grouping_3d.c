@@ -50,6 +50,7 @@ void compositor_init_group(GF_Compositor *compositor, GF_Node *node)
 {
 	GroupingNode2D *ptr;
 	GF_SAFEALLOC(ptr, GroupingNode2D);
+	if (!ptr) return;
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseGroup);
 }
@@ -168,6 +169,7 @@ static void NewTransformStack(GF_Compositor *compositor, GF_Node *node, GF_Child
 {
 	TransformStack *st;
 	GF_SAFEALLOC(st, TransformStack);
+	if (!st) return;
 
 	gf_mx_init(st->mx);
 	gf_node_set_private(node, st);

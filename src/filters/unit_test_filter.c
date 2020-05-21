@@ -507,6 +507,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	//new PID
 	GF_SAFEALLOC(pidctx, PIDCtx);
+	if (!pidctx) return GF_OUT_OF_MEM;
 	pidctx->src_pid = pid;
 	gf_list_add(stack->pids, pidctx);
 	assert(pidctx->src_pid);
@@ -570,6 +571,7 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 	for (i=0; i<stack->nb_pids; i++) {
 		//create a pid
 		GF_SAFEALLOC(pidctx, PIDCtx);
+		if (!pidctx) return GF_OUT_OF_MEM;
 		gf_list_add(stack->pids, pidctx);
 		pidctx->dst_pid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pidctx->dst_pid, pidctx);

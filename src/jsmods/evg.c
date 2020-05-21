@@ -2597,6 +2597,8 @@ static JSValue canvas3d_new_shader(JSContext *ctx, JSValueConst obj, int argc, J
 	if (!argc) return JS_EXCEPTION;
 	JS_ToInt32(ctx, &mode, argv[0]);
 	GF_SAFEALLOC(shader, EVGShader);
+	if (!shader)
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
 	shader->mode = mode;
 	res = JS_NewObjectClass(ctx, shader_class_id);
 	JS_SetOpaque(res, shader);
@@ -3382,7 +3384,8 @@ static JSValue mx2d_copy(JSContext *c, JSValueConst obj, int argc, JSValueConst 
 	GF_Matrix2D *mx = JS_GetOpaque(obj, mx2d_class_id);
 	if (!mx) return JS_EXCEPTION;
 	GF_SAFEALLOC(nmx, GF_Matrix2D);
-	if (!nmx) return JS_EXCEPTION;
+	if (!nmx)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	gf_mx2d_copy(*nmx, *mx);
 	nobj = JS_NewObjectClass(c, mx2d_class_id);
 	JS_SetOpaque(nobj, nmx);
@@ -3458,7 +3461,8 @@ static JSValue mx2d_constructor(JSContext *c, JSValueConst new_target, int argc,
 	JSValue obj;
 	GF_Matrix2D *mx;
 	GF_SAFEALLOC(mx, GF_Matrix2D);
-	if (!mx) return JS_EXCEPTION;
+	if (!mx)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	mx->m[MX2D_XX] = mx->m[MX2D_YY] = FIX_ONE;
 	obj = JS_NewObjectClass(c, mx2d_class_id);
 	JS_SetOpaque(obj, mx);
@@ -3493,7 +3497,8 @@ static JSValue colmx_constructor(JSContext *c, JSValueConst new_target, int argc
 	JSValue obj;
 	GF_ColorMatrix *cmx;
 	GF_SAFEALLOC(cmx, GF_ColorMatrix);
-	if (!cmx) return JS_EXCEPTION;
+	if (!cmx)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	gf_cmx_init(cmx);
 	obj = JS_NewObjectClass(c, colmx_class_id);
 	JS_SetOpaque(obj, cmx);
@@ -4804,6 +4809,8 @@ static JSValue texture_convert(JSContext *c, JSValueConst obj, int argc, JSValue
 	}
 
 	GF_SAFEALLOC(tx_hsv, GF_JSTexture);
+	if (!tx_hsv)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	tx_hsv->width = tx->width;
 	tx_hsv->height = tx->height;
 	tx_hsv->pf = dst_pf;
@@ -4912,6 +4919,8 @@ static JSValue texture_split(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	}
 
 	GF_SAFEALLOC(tx_split, GF_JSTexture);
+	if (!tx_split)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	tx_split->width = src.width;
 	tx_split->height = src.height;
 	tx_split->pf = GF_PIXEL_GREYSCALE;
@@ -4996,6 +5005,8 @@ static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSV
 	JS_FreeValue(c, k);
 
 	GF_SAFEALLOC(tx_conv, GF_JSTexture);
+	if (!tx_conv)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	tx_conv->width = tx->width;
 	tx_conv->height = tx->height;
 	tx_conv->pf = GF_PIXEL_RGB;
@@ -5320,7 +5331,8 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 	u8 *p_a=NULL;
 	GF_JSTexture *tx;
 	GF_SAFEALLOC(tx, GF_JSTexture);
-	if (!tx) return JS_EXCEPTION;
+	if (!tx)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	tx->stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 	if (!tx->stencil) {
 		gf_free(tx);
@@ -5836,7 +5848,8 @@ static JSValue text_constructor(JSContext *c, JSValueConst new_target, int argc,
 	JSValue obj;
 	GF_JSText *txt;
 	GF_SAFEALLOC(txt, GF_JSText);
-	if (!txt) return JS_EXCEPTION;
+	if (!txt)
+		return js_throw_err(c, GF_OUT_OF_MEM);
 	txt->fm = jsf_get_font_manager(c);
 
 	if (!txt->fm) {
@@ -6292,6 +6305,8 @@ static JSValue mx_constructor(JSContext *ctx, JSValueConst new_target, int argc,
 	JSValue res;
 	GF_Matrix *mx;
 	GF_SAFEALLOC(mx, GF_Matrix);
+	if (!mx)
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
 	gf_mx_init(*mx);
 	res = JS_NewObjectClass(ctx, matrix_class_id);
 	JS_SetOpaque(res, mx);

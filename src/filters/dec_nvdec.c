@@ -235,6 +235,8 @@ Bool load_inactive_dec(NVDecCtx *ctx)
 	}
 	if (!ctx->dec_inst) {
 		GF_SAFEALLOC(ctx->dec_inst, NVDecInstance);
+		if (!ctx->dec_inst)
+			return GF_FALSE;
 	}
 	ctx->dec_inst->ctx = ctx;
 	return GF_FALSE;
@@ -383,6 +385,7 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 	f = gf_list_pop_back(ctx->frames_res);
 	if (!f) {
 		GF_SAFEALLOC(f, NVDecFrame);
+		if (!f) return 0;
 	}
 	f->frame_info = *pPicParams;
 	f->frame_info.timestamp = pPicParams->timestamp;

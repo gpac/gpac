@@ -257,13 +257,15 @@ static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *childre
 
 	if (!tr_state->svg_props) {
 		GF_SAFEALLOC(svgp, SVGPropertiesPointers);
-		gf_svg_properties_init_pointers(svgp);
-		tr_state->svg_props = svgp;
+		if (svgp) {
+			gf_svg_properties_init_pointers(svgp);
+			tr_state->svg_props = svgp;
 
-		svg_gradient_traverse(node, tr_state, GF_FALSE);
+			svg_gradient_traverse(node, tr_state, GF_FALSE);
 
-		gf_svg_properties_reset_pointers(svgp);
-		gf_free(svgp);
+			gf_svg_properties_reset_pointers(svgp);
+			gf_free(svgp);
+		}
 		tr_state->svg_props = NULL;
 	} else {
 		svg_gradient_traverse(node, tr_state, GF_FALSE);
@@ -777,6 +779,7 @@ void compositor_init_svg_solidColor(GF_Compositor *compositor, GF_Node *node)
 {
 	GF_SolidColorStack *st;
 	GF_SAFEALLOC(st, GF_SolidColorStack);
+	if (!st) return;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, svg_traverse_solidColor);
 }

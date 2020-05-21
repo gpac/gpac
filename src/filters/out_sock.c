@@ -338,6 +338,8 @@ static GF_Err sockout_process(GF_Filter *filter)
 		if ((e==GF_OK) && new_conn) {
 			GF_SockOutClient *sc;
 			GF_SAFEALLOC(sc, GF_SockOutClient);
+			if (!sc) return GF_OUT_OF_MEM;
+			
 			sc->socket = new_conn;
 			strcpy(sc->address, "unknown");
 			gf_sk_get_remote_address(new_conn, sc->address);

@@ -459,7 +459,12 @@ static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u
 	if (add) {
 		GF_AVCConfigSlot *slc;
 		GF_SAFEALLOC(slc, GF_AVCConfigSlot);
+		if (!slc) return;
 		slc->data = gf_malloc(size);
+		if (!slc->data) {
+			gf_free(slc);
+			return;
+		}
 		memcpy(slc->data, data, size);
 		slc->size = size;
 		slc->id = ps_id;
@@ -517,7 +522,12 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 	if (add && dest) {
 		GF_AVCConfigSlot *slc;
 		GF_SAFEALLOC(slc, GF_AVCConfigSlot);
+		if (!slc) return;
 		slc->data = gf_malloc(size);
+		if (!slc->data) {
+			gf_free(slc);
+			return;
+		}
 		memcpy(slc->data, data, size);
 		slc->size = size;
 		slc->id = ps_id;

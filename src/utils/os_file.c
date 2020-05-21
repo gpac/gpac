@@ -441,9 +441,11 @@ static void gf_register_file_handle(const char *filename, FILE *ptr)
 		GF_FileHandle *h;
 		if (!gpac_open_files) gpac_open_files = gf_list_new();
 		GF_SAFEALLOC(h, GF_FileHandle);
-		h->ptr = ptr;
-		h->url = gf_strdup(filename);
-		gf_list_add(gpac_open_files, h);
+		if (h) {
+			h->ptr = ptr;
+			h->url = gf_strdup(filename);
+			gf_list_add(gpac_open_files, h);
+		}
 	}
 #endif
 	gpac_file_handles++;
@@ -1022,7 +1024,7 @@ int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args)
 {
 	va_list args_copy;
 	if (!gfio) return -1;
-	if (!gfio->printf) return gfio->printf(gfio, format, args);
+	if (gfio->printf) return gfio->printf(gfio, format, args);
 
 	if (!gfio->write) return -1;
 
@@ -1030,7 +1032,7 @@ int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args)
 	u32 len=vsnprintf(NULL, 0, format, args_copy);
 	va_end(args_copy);
 
-	if (len<=gfio->printf_alloc) {
+	if (len>=gfio->printf_alloc) {
 		gfio->printf_alloc = len+1;
 		gfio->printf_buf = gf_realloc(gfio->printf_buf, gfio->printf_alloc);
 	}
@@ -1377,7 +1379,13 @@ size_t gf_fwrite(const void *ptr, size_t nb_bytes, FILE *stream)
 #else
 			char *errstr = (char*)strerror(errno_save);
 #endif
+
+#ifndef GPAC_DISABLE_LOG
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error writing data (%s): %d blocks to write but %d blocks written\n", errstr, nb_bytes, result));
+#else
+			fprintf(stderr, "Error writing data (%s): %d blocks to write but %d blocks written\n", errstr, (u32) nb_bytes, (u32) result);
+#endif
+
 		}
 #endif
 	}

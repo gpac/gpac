@@ -133,6 +133,7 @@ GF_Err gf_crypt_init_tinyaes_ctr(GF_Crypt* td, void *key, const void *iv)
 	struct AES_ctx* ctx = (struct AES_ctx* ) td->context;
 	if (!ctx) {
 		GF_SAFEALLOC(ctx, struct AES_ctx);
+		if (ctx == NULL) return GF_OUT_OF_MEM;
 		td->context = ctx;
 	}
 

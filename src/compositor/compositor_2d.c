@@ -432,7 +432,7 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 
 static void store_blit_times(GF_TextureHandler *txh, u32 push_time)
 {
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 	u32 ck;
 #endif
 
@@ -440,7 +440,7 @@ static void store_blit_times(GF_TextureHandler *txh, u32 push_time)
 	txh->nb_frames ++;
 	txh->upload_time += push_time;
 
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 	gf_mo_get_object_time(txh->stream, &ck);
 	if (ck>txh->last_frame_time) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));

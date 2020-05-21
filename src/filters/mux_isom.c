@@ -684,6 +684,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	if (!tkw) {
 		GF_FilterEvent evt;
 		GF_SAFEALLOC(tkw, TrackWriter);
+		if (!tkw) return GF_OUT_OF_MEM;
+		
 		gf_list_add(ctx->tracks, tkw);
 		tkw->ipid = pid;
 		tkw->fake_track = !is_true_pid;
@@ -2412,7 +2414,9 @@ sample_entry_done:
 	}
 
 	if (is_true_pid && ctx->importer && !tkw->import_msg_header_done) {
+#ifndef GPAC_DISABLE_LOG
 		const char *dst_type = tkw->is_item ? "Item Importing" : "Track Importing";
+#endif
 		tkw->import_msg_header_done = GF_TRUE;
 		if (!imp_name) imp_name = comp_name;
 		if (sr) {
@@ -2680,7 +2684,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_STORE);
-		if (p) container_type = p->value.uint;
+		if (p && p->value.uint) container_type = p->value.uint;
 
 		tkw->clear_stsd_idx = 0;
 		if (cenc_stsd_mode) {

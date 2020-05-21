@@ -1384,6 +1384,7 @@ static JSValue wgl_createTexture(JSContext *ctx, JSValueConst this_val, int argc
 		if (!tx_name) return js_throw_err(ctx, WGL_INVALID_VALUE);
 
 		GF_SAFEALLOC(named_tx, GF_WebGLNamedTexture);
+		if (!named_tx) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
 		named_tx->par_ctx = glc;
 		named_tx->tx_name = gf_strdup(tx_name);
 		JS_FreeCString(ctx, tx_name);

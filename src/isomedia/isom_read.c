@@ -324,6 +324,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 			if (!end) end = CodecParamLen;
 
 			GF_SAFEALLOC(slc, GF_AVCConfigSlot);
+			if (!slc) break;
 			slc->size = end;
 			slc->data = gf_malloc(sizeof(char)*slc->size);
 			memcpy(slc->data, nal, sizeof(char)*slc->size);

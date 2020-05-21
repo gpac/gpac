@@ -1630,10 +1630,14 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 		if (constant_IV) memmove(*constant_IV, sinf->info->tenc->constant_IV, 16);
 		if (crypt_byte_block) *crypt_byte_block = sinf->info->tenc->crypt_byte_block;
 		if (skip_byte_block) *skip_byte_block = sinf->info->tenc->skip_byte_block;
+		//set default value, overwritten below
+		if (container_type) *container_type = GF_ISOM_BOX_TYPE_SENC;
 	} else if (sinf && sinf->info && sinf->info->piff_tenc) {
 		if (default_IsEncrypted) *default_IsEncrypted = 1;
 		if (default_IV_size) *default_IV_size = sinf->info->piff_tenc->IV_size;
 		if (default_KID) memmove(*default_KID, sinf->info->piff_tenc->KID, 16);
+		//set default value, overwritten below
+		if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
 	} else {
 		if (! trak->moov->mov->is_smooth) {
 			trak->moov->mov->is_smooth = GF_TRUE;
@@ -1642,6 +1646,8 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 		if (default_IsEncrypted) *default_IsEncrypted = GF_TRUE;
 		//leave as 0 to make sure we use the default IV size from PIFF_PSEC if any ...
 		if (default_IV_size) *default_IV_size = 0;
+		//set default value, overwritten below
+		if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
 	}
 
 	if (container_type && trak->sample_encryption) {

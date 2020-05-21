@@ -87,6 +87,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		}
 		if (!st) {
 			GF_SAFEALLOC(st, M2PSStream);
+			if (!st) continue;
 			st->opid = gf_filter_pid_new(filter);
 			st->stream_type = GF_STREAM_VISUAL;
 			gf_list_add(ctx->streams, st);
@@ -150,6 +151,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		}
 		if (!st) {
 			GF_SAFEALLOC(st, M2PSStream);
+			if (!st) continue;
 			st->opid = gf_filter_pid_new(filter);
 			st->stream_type = GF_STREAM_AUDIO;
 			gf_list_add(ctx->streams, st);

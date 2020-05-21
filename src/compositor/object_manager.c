@@ -120,9 +120,11 @@ void gf_odm_register_pid(GF_ObjectManager *odm, GF_FilterPid *pid, Bool register
 		GF_ODMExtraPid *xpid;
 		if (!odm->extra_pids) odm->extra_pids = gf_list_new();
 		GF_SAFEALLOC(xpid, GF_ODMExtraPid);
-		xpid->pid = pid;
-		xpid->pid_id = es_id;
-		gf_list_add(odm->extra_pids, xpid);
+		if (xpid) {
+			xpid->pid = pid;
+			xpid->pid_id = es_id;
+			gf_list_add(odm->extra_pids, xpid);
+		}
 	}
 
 	if (register_only) return;

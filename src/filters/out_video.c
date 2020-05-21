@@ -1382,9 +1382,11 @@ static GF_Err vout_process(GF_Filter *filter)
 		gf_filter_pck_ref(&pck);
 		gf_filter_pid_drop_packet(ctx->pid);
 
+#ifndef GPAC_DISABLE_LOG
 #ifdef VOUT_USE_OPENGL
 		u64 cts = gf_filter_pck_get_cts(pck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d  "LLU" ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
+#endif
 #endif
 
 	}

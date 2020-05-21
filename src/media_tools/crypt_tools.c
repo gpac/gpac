@@ -428,7 +428,11 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 		return GF_FALSE;
 
 	*prev_progress = (u32) progress;
+#ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Decrypting: % 2.2f %%\r", progress));
+#else
+	fprintf(stderr, "Decrypting: % 2.2f %%\r", progress);
+#endif
 	return GF_FALSE;
 }
 
@@ -485,8 +489,12 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		return GF_FILTER_NOT_FOUND;
 	}
 
+	if (!gf_sys_is_test_mode()
 #ifndef GPAC_DISABLE_LOG
-	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) && !gf_sys_is_quiet() ) {
+		&& (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)
+#endif
+		&& !gf_sys_is_quiet()
+	) {
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_decrypt_event, &progress);
 	}
@@ -495,7 +503,6 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		on_decrypt_event(NULL, NULL);
 	}
 #endif //GPAC_ENABLE_COVERAGE
-#endif
 
 	e = gf_fs_run(fsess);
 	if (e>GF_OK) e = GF_OK;
@@ -532,7 +539,11 @@ static Bool on_crypt_event(void *_udta, GF_Event *evt)
 		return GF_FALSE;
 
 	*prev_progress = (u32) progress;
+#ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Encrypting: % 2.2f %%\r", progress));
+#else
+	fprintf(stderr, "Encrypting: % 2.2f %%\r", progress);
+#endif
 	return GF_FALSE;
 }
 
@@ -609,8 +620,12 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		return GF_FILTER_NOT_FOUND;
 	}
 
+	if (!gf_sys_is_test_mode()
 #ifndef GPAC_DISABLE_LOG
-	if (!gf_sys_is_test_mode() && (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET) && !gf_sys_is_quiet() ) {
+		&& (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)
+#endif
+		&& !gf_sys_is_quiet()
+	) {
 		gf_fs_enable_reporting(fsess, GF_TRUE);
 		gf_fs_set_ui_callback(fsess, on_crypt_event, &progress);
 	}
@@ -619,7 +634,6 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		on_crypt_event(NULL, NULL);
 	}
 #endif //GPAC_ENABLE_COVERAGE
-#endif
 	e = gf_fs_run(fsess);
 	if (e>GF_OK) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(fsess);

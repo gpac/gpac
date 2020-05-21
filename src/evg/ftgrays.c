@@ -667,8 +667,13 @@ EVG_Raster evg_raster_new()
 {
 	TRaster *raster;
 	GF_SAFEALLOC(raster , TRaster);
+	if (!raster) return NULL;
 	raster->max_gray_spans = raster->alloc_gray_spans = FT_MAX_GRAY_SPANS;
 	raster->gray_spans = gf_malloc(sizeof(EVG_Span)* raster->max_gray_spans);
+	if (!raster->gray_spans) {
+		gf_free(raster);
+		return NULL;
+	}
 	return raster;
 }
 
