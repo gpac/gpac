@@ -378,6 +378,21 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(streamtype));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT( gf_isom_get_media_timescale(read->mov, track) ) );
 
+		//Dolby Vision
+		if (m_subtype == GF_ISOM_SUBTYPE_DVHE) {
+			GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(read->mov, track, 1);
+			if (dovi) {
+				u8 *data = NULL;
+				u32 size = 0;
+				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				gf_odf_dovi_cfg_write_bs(dovi, bs);
+				gf_bs_get_content(bs, &data, &size);
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DOLBY_VISION, &PROP_DATA_NO_COPY(data, size));
+				gf_bs_del(bs);
+				gf_odf_dovi_cfg_del(dovi);
+			}
+		}
+
 		//create our channel
 		ch = isor_create_channel(read, pid, track, 0, (codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 

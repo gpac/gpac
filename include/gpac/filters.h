@@ -879,6 +879,7 @@ enum
 	GF_PROP_PID_SRD_REF = GF_4CC('S','R','D','R'),
 	GF_PROP_PID_SRD_MAP = GF_4CC('S','R','D','M'),
 	GF_PROP_PID_ALPHA = GF_4CC('V','A','L','P'),
+	GF_PROP_PID_DOLBY_VISION = GF_4CC('D','O','V','I'),
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 	GF_PROP_PID_MAXRATE = GF_4CC('M','R','A','T'),
 	GF_PROP_PID_DBSIZE = GF_4CC('D','B','S','Z'),

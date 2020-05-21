@@ -1363,6 +1363,25 @@ void VP9_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *vp9)
 
 
 
+static GF_DOVIDecoderConfigurationRecord* DOVI_DuplicateConfig(GF_DOVIDecoderConfigurationRecord *cfg)
+{
+	GF_DOVIDecoderConfigurationRecord* out = NULL;
+	GF_SAFEALLOC(out, GF_DOVIDecoderConfigurationRecord);
+	if (!out) return NULL;
+
+	out->dv_version_major = cfg->dv_version_major;
+	out->dv_version_minor = cfg->dv_version_minor;
+	out->dv_profile = cfg->dv_profile;
+	out->dv_level = cfg->dv_level;
+	out->rpu_present_flag = cfg->rpu_present_flag;
+	out->el_present_flag = cfg->el_present_flag;
+	out->bl_present_flag = cfg->bl_present_flag;
+
+	return out;
+}
+
+
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
@@ -2142,6 +2161,18 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 De
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
 	if (!entry || !entry->vp_config) return NULL;
 	return VP_DuplicateConfig(entry->vp_config->config);
+}
+
+GF_EXPORT
+GF_DOVIDecoderConfigurationRecord *gf_isom_dovi_config_get(GF_ISOFile* the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	GF_TrackBox* trak;
+	GF_MPEGVisualSampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
+	if (!entry || !entry->dovi_config) return NULL;
+	return DOVI_DuplicateConfig(&entry->dovi_config->DOVIConfig);
 }
 
 GF_EXPORT
