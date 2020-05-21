@@ -226,8 +226,14 @@ typedef struct
 
 typedef struct
 {
+	Bool rpu_flag;
+} AVCSeiItuTT35DolbyVision;
+
+typedef struct
+{
 	AVCSeiRecoveryPoint recovery_point;
 	AVCSeiPicTiming pic_timing;
+	AVCSeiItuTT35DolbyVision dovi;
 	/*to be eventually completed by other sei*/
 } AVCSei;
 
@@ -455,7 +461,7 @@ typedef struct
 {
 	AVCSeiRecoveryPoint recovery_point;
 	AVCSeiPicTiming pic_timing;
-
+	AVCSeiItuTT35DolbyVision dovi;
 } HEVC_SEI;
 
 typedef struct
@@ -509,6 +515,9 @@ typedef struct _hevc_state
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
 
+	// Dolby Vision
+	Bool dv_rpu;
+	Bool dv_el;
 } HEVCState;
 
 typedef struct hevc_combine{
@@ -540,6 +549,8 @@ s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
+/*parses HEVC SEI and fill state accordingly*/
+void gf_media_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
 
 
 GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames);

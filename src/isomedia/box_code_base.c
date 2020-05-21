@@ -4143,6 +4143,10 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->vp_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->vp_config = (GF_VPConfigurationBox *)a;
 		break;
+	case GF_ISOM_BOX_TYPE_DVCC:
+		if (ptr->dovi_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->dovi_config = (GF_DOVIConfigurationBox*)a;
+		break;
 	case GF_ISOM_BOX_TYPE_UUID:
 		if (! memcmp(((GF_UnknownUUIDBox*)a)->uuid, GF_ISOM_IPOD_EXT, 16)) {
 			if (ptr->ipod_ext) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4197,7 +4201,7 @@ GF_Err video_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 	/*this is an AV1 sample desc*/
 	if (mp4v->av1_config)
 		AV1_RewriteESDescriptor(mp4v);
-	/*this is an AV1 sample desc*/
+	/*this is a VP8-9 sample desc*/
 	if (mp4v->vp_config)
 		VP9_RewriteESDescriptor(mp4v);
 
@@ -4266,6 +4270,9 @@ GF_Err video_sample_entry_box_size(GF_Box *s)
 
 	/*JP2H*/
 	gf_isom_check_position(s, (GF_Box *)ptr->jp2h, &pos);
+
+	/*DolbyVision*/
+	gf_isom_check_position(s, (GF_Box *)ptr->dovi_config, &pos);
 
 	return GF_OK;
 }

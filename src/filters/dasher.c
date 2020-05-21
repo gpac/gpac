@@ -1010,10 +1010,26 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *ds, char *szCodec, Bool force_inband, Bool force_sbr)
 {
 	u32 subtype=0;
-	const GF_PropertyValue *dcd, *dcd_enh;
+	const GF_PropertyValue *dcd, *dcd_enh, *dovi;
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dcd_enh = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
+	dovi = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DOLBY_VISION);
+	if (dovi) {
+		GF_BitStream *bs = gf_bs_new(dovi->value.data.ptr, dovi->value.data.size, GF_BITSTREAM_READ);
+		GF_DOVIDecoderConfigurationRecord *dvcc = gf_odf_dovi_cfg_read_bs(bs);
+		gf_bs_del(bs);
+		if (!dvcc) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_BAD_PARAM;
+		}
+
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(subtype), dvcc->dv_profile, dvcc->dv_level);
+		gf_odf_dovi_cfg_del(dvcc);
+
+		return GF_OK;
+	}
 
 	switch (ds->codec_id) {
 	case GF_CODECID_AAC_MPEG4:

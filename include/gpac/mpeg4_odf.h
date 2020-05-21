@@ -1056,6 +1056,18 @@ typedef struct
 	int RefFrameHeight[VP9_NUM_REF_FRAMES];
 } GF_VPConfig;
 
+/*! DolbyVision config dvcC */
+typedef struct {
+	u8 dv_version_major;
+	u8 dv_version_minor;
+	u8 dv_profile; //7 bits
+	u8 dv_level;   //6 bits
+	Bool rpu_present_flag;
+	Bool el_present_flag;
+	Bool bl_present_flag;
+	//const unsigned int (32)[5] reserved = 0;
+} GF_DOVIDecoderConfigurationRecord;
+
 /*! Media Segment Descriptor used for Media Control Extensions*/
 typedef struct
 {
@@ -1446,6 +1458,22 @@ GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs, Bool is_v0);
 \return the decoded VPx config
 */
 GF_VPConfig *gf_odf_vp_cfg_read(u8 *dsi, u32 dsi_size);
+
+/*! gets DolbyVision config to bitstream
+\param bs bitstream containing the encoded VPx decoder specific info
+\return the decoded DolbyVision config
+*/
+GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs);
+/*! writes DolbyVision config to buffer
+\param cfg the DolbyVision config to write
+\param outData set to an allocated encoded buffer - it is the caller responsability to free this
+\param outSize set to the encoded buffer size
+\return error if any
+*/
+GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitStream *bs);
+/*! destroys a DolbyVision config
+\param cfg the DolbyVision config to destroy*/
+void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg);
 
 /*! destroy the descriptors in a list but not the list
 \param descList descriptor list to destroy

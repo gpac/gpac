@@ -1651,6 +1651,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		*skip_nal = GF_TRUE;
 		break;
 	case GF_HEVC_NALU_SEI_PREFIX:
+		gf_media_hevc_parse_sei(data, size, ctx->hevc_state);
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
 
@@ -1731,6 +1732,14 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_END_OF_SEQ:
 	case GF_HEVC_NALU_END_OF_STREAM:
 		*skip_nal = GF_TRUE;
+		break;
+
+	//parsing is partial, see https://github.com/DolbyLaboratories/dlb_mp4base/blob/70a2e1d4d99a8439b7b8087bf50dd503eeea2291/src/esparser/parser_hevc.c#L1233
+	case GF_HEVC_NALU_DV_RPU:
+		ctx->hevc_state->dv_rpu = GF_TRUE;
+		break;
+	case GF_HEVC_NALU_DV_EL:
+		ctx->hevc_state->dv_el = GF_TRUE;
 		break;
 
 	default:

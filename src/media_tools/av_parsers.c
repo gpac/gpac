@@ -5934,6 +5934,18 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 }
 
 
+static void avc_parse_itu_t_t35_sei(GF_BitStream* bs, AVCSeiItuTT35DolbyVision *dovi)
+{
+	u8 itu_t_t35_country_code = gf_bs_read_u8(bs);
+	u16 terminal_provider_code = gf_bs_read_u16(bs);
+	u32 user_id = gf_bs_read_u32(bs);
+	u8 data_type_code = gf_bs_read_u8(bs);
+	if (itu_t_t35_country_code == 0xB5 && terminal_provider_code == 0x31 && user_id == 0x47413934 && (data_type_code == 0x8 || data_type_code == 0x9)) {
+		dovi->rpu_flag = GF_TRUE;
+	}
+}
+
+
 static void avc_compute_poc(AVCSliceInfo *si)
 {
 	enum {
@@ -6951,6 +6963,64 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	gf_bs_align(bs);
 	si->payload_start_offset = (s32)gf_bs_get_position(bs);
 	return 0;
+}
+
+void gf_media_hevc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc)
+{
+	u32 ptype, psize, hdr;
+	u64 start;
+	GF_BitStream *bs;
+	char *sei_without_emulation_bytes = NULL;
+	u32 sei_without_emulation_bytes_size = 0;
+
+	hdr = buffer[0];
+	if (((hdr & 0x7e) >> 1) != GF_HEVC_NALU_SEI_PREFIX) return;
+
+	/*PPS still contains emulation bytes*/
+	sei_without_emulation_bytes = gf_malloc(nal_size + 1/*for SEI null string termination*/);
+	sei_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(buffer, sei_without_emulation_bytes, nal_size);
+
+	bs = gf_bs_new(sei_without_emulation_bytes, sei_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	gf_bs_read_int(bs, 16);
+
+	/*parse SEI*/
+	while (gf_bs_available(bs)) {
+		ptype = 0;
+		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
+			gf_bs_read_int(bs, 8);
+			ptype += 255;
+		}
+		ptype += gf_bs_read_int(bs, 8);
+		psize = 0;
+		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
+			gf_bs_read_int(bs, 8);
+			psize += 255;
+		}
+		psize += gf_bs_read_int(bs, 8);
+
+		start = gf_bs_get_position(bs);
+		if (start+psize >= nal_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[hevc-h265] SEI user message type %d size error (%d but %d remain), skipping SEI message\n", ptype, psize, nal_size-start));
+			break;
+		}
+
+		switch (ptype) {
+		case 4: /*user registered ITU-T T35*/
+		{
+			GF_BitStream * itu_t_t35_bs = gf_bs_new(sei_without_emulation_bytes + start, psize, GF_BITSTREAM_READ);
+			avc_parse_itu_t_t35_sei(itu_t_t35_bs, &hevc->sei.dovi);
+			gf_bs_del(itu_t_t35_bs);
+		}
+		default: break;
+		}
+
+		gf_bs_skip_bytes(bs, (u64) psize);
+		gf_bs_align(bs);
+		if (gf_bs_available(bs) <= 2)
+			break;
+	}
+	gf_bs_del(bs);
+	gf_free(sei_without_emulation_bytes);
 }
 
 static void hevc_compute_poc(HEVCSliceInfo *si)
