@@ -305,7 +305,8 @@ static void dom_js_define_document_ex(JSContext *c, JSValue global, GF_SceneGrap
 	obj = JS_NewObjectClass(c, __class);
 	JS_SetOpaque(obj, doc);
 	GF_SAFEALLOC(doc->js_data, GF_DOMJSData);
-	doc->js_data->document = JS_DupValue(c, obj);
+	if (doc->js_data)
+		doc->js_data->document = JS_DupValue(c, obj);
 
 	JS_SetPropertyStr(c, global, name, obj);
 }
@@ -341,7 +342,8 @@ JSValue dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 	new_obj = JS_NewObjectClass(c, __class);
 	JS_SetOpaque(new_obj, sg);
 	GF_SAFEALLOC(sg->js_data, GF_DOMJSData);
-	sg->js_data->document = JS_DupValue(c, new_obj);
+	if (sg->js_data)
+		sg->js_data->document = JS_DupValue(c, new_obj);
 	return new_obj;
 }
 
@@ -736,15 +738,17 @@ static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node
 
 	if (!callback) {
 		GF_SAFEALLOC(handler->js_data, struct js_handler_context)
-		handler->js_data->fun_val = funval;
-		handler->js_data->ctx = c;
-		if (JS_IsFunction(c, funval)) {
-			/*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
-			handler->js_data->fun_val = JS_DupValue(c, funval);
-			handler->sgprivate->UserCallback = dom_handler_remove;
-			gf_list_add(dom_rt->handlers, handler);
+		if (handler->js_data) {
+			handler->js_data->fun_val = funval;
+			handler->js_data->ctx = c;
+			if (JS_IsFunction(c, funval)) {
+				/*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
+				handler->js_data->fun_val = JS_DupValue(c, funval);
+				handler->sgprivate->UserCallback = dom_handler_remove;
+				gf_list_add(dom_rt->handlers, handler);
+			}
+			handler->js_data->evt_listen_obj = evt_handler;
 		}
-		handler->js_data->evt_listen_obj = evt_handler;
 	}
 
 	/*create attributes if needed*/
@@ -1596,6 +1600,8 @@ static JSValue xml_document_elements_by_tag(JSContext *c, JSValueConst obj, int 
 	}
 
 	GF_SAFEALLOC(nl, DOMNodeList);
+	if (!nl) return JS_EXCEPTION;
+
 	if (name && !strcmp(name, "*"))
 		xml_doc_gather_nodes((GF_ParentNode*)sg->RootNode, NULL, nl);
 	else
@@ -2127,6 +2133,8 @@ static JSValue xml_element_elements_by_tag(JSContext *c, JSValueConst obj, int a
 		name = JS_ToCString(c, argv[0]);
 	}
 	GF_SAFEALLOC(nl, DOMNodeList);
+	if (!nl) return JS_EXCEPTION;
+
 	if (name && !strcmp(name, "*")) {
 		JS_FreeCString(c, name);
 		name = NULL;
@@ -2669,6 +2677,10 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 
 	if (!dom_rt) {
 		GF_SAFEALLOC(dom_rt, GF_DOMRuntime);
+		if (!dom_rt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOMJS] Failed to allocate DOM runtime\n"));
+			return;
+		}
 		dom_rt->handlers = gf_list_new();
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] dom run-time allocated\n"));
 	}

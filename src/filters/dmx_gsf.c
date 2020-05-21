@@ -378,6 +378,7 @@ static GSF_Stream *gsfdmx_get_stream(GF_Filter *filter, GSF_DemuxCtx *ctx, u32 i
 
 	if ((pkt_type==GFS_PCKTYPE_PID_CONFIG) || (pkt_type==GFS_PCKTYPE_PID_INFO_UPDATE) ) {
 		GF_SAFEALLOC(gst, GSF_Stream);
+		if (!gst) return NULL;
 		gst->packets = gf_list_new();
 		gst->idx = idx;
 		gf_list_add(ctx->streams, gst);
@@ -545,6 +546,7 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 		gpck = gf_list_pop_back(ctx->pck_res);
 		if (!gpck) {
  			GF_SAFEALLOC(gpck, GSF_Packet);
+ 			if (!gpck) return NULL;
  			gpck->nb_alloc_frags = 10;
  			gpck->frags = gf_malloc(sizeof(GSF_PacketFragment) * gpck->nb_alloc_frags);
 		}
@@ -821,6 +823,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_LOG
 static const char *gsfdmx_pck_name(u32 pck_type)
 {
 	switch (pck_type) {
@@ -833,6 +836,7 @@ static const char *gsfdmx_pck_name(u32 pck_type)
 	default: return "FORBIDDEN";
 	}
 }
+#endif
 
 static GFINLINE void gsfdmx_pck_reset(GSF_Packet *pck)
 {
@@ -961,12 +965,16 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 	while (gf_bs_available(ctx->bs_r) > 4) { //1 byte header + 3 vlen field at least 1 bytes
 		GF_Err e = GF_OK;
 		u32 pck_len, block_size, block_offset;
+#ifndef GPAC_DISABLE_LOG
 		u32 hdr_pos = (u32) gf_bs_get_position(ctx->bs_r);
+#endif
 		/*Bool reserved =*/ gf_bs_read_int(ctx->bs_r, 1);
 		u32 frag_flags = gf_bs_read_int(ctx->bs_r, 2);
 		Bool is_crypted = gf_bs_read_int(ctx->bs_r, 1);
 		u32 pck_type = gf_bs_read_int(ctx->bs_r, 4);
+#ifndef GPAC_DISABLE_LOG
 		u16 sn = 0;
+#endif
 		u32 st_idx;
 		Bool needs_agg = GF_FALSE;
 		u16 frame_sn = 0;

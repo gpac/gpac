@@ -544,9 +544,11 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		if (!sep) {
 			if (is_iri) {
 				GF_SAFEALLOC(iri, XMLRI);
-				iri->string = gf_strdup(cur);
-				iri->type = XMLRI_STRING;
-				gf_list_add(l, iri);
+				if (iri) {
+					iri->string = gf_strdup(cur);
+					iri->type = XMLRI_STRING;
+					gf_list_add(l, iri);
+				}
 			} else {
 				gf_list_add(l, gf_strdup(cur));
 			}
@@ -556,9 +558,11 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		if (!sep2 && !is_font) {
 			if (is_iri) {
 				GF_SAFEALLOC(iri, XMLRI);
-				iri->string = gf_strdup(cur);
-				iri->type = XMLRI_STRING;
-				gf_list_add(l, iri);
+				if (iri) {
+					iri->string = gf_strdup(cur);
+					iri->type = XMLRI_STRING;
+					gf_list_add(l, iri);
+				}
 			} else {
 				gf_list_add(l, gf_strdup(cur));
 			}
@@ -570,9 +574,11 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 			sep[0] = 0;
 		if (is_iri) {
 			GF_SAFEALLOC(iri, XMLRI);
-			iri->string = gf_strdup(sep+1);
-			iri->type = XMLRI_STRING;
-			gf_list_add(l, iri);
+			if (iri) {
+				iri->string = gf_strdup(sep+1);
+				iri->type = XMLRI_STRING;
+				gf_list_add(l, iri);
+			}
 		} else {
 			gf_list_add(l, gf_strdup(sep+1));
 		}
@@ -1816,11 +1822,13 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 			GF_Matrix2D *mat;
 			SVG_Point *pt = (SVG_Point *)val->value;
 			GF_SAFEALLOC(mat, GF_Matrix2D);
-			gf_mx2d_init(*mat);
-			mat->m[2] = pt->x;
-			mat->m[5] = pt->y;
+			if (mat) {
+				gf_mx2d_init(*mat);
+				mat->m[2] = pt->x;
+				mat->m[5] = pt->y;
+				val->value = mat;
+			}
 			gf_free(pt);
-			val->value = mat;
 		}
 		break;
 	}
@@ -2266,7 +2274,8 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 	}
 	case 12:
 		GF_SAFEALLOC(iri, XMLRI);
-		lsr_read_any_uri(lsr, iri, name);
+		if (iri)
+			lsr_read_any_uri(lsr, iri, name);
 		return iri;
 	default:
 		lsr_read_extension(lsr, name);

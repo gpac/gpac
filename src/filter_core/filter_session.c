@@ -355,9 +355,11 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		if (!afound) {
 			GF_FSArgItem *ai;
 			GF_SAFEALLOC(ai, GF_FSArgItem);
-			ai->argname = gf_strdup(szArg);
-			ai->type = type;
-			gf_list_add(session->parsed_args, ai );
+			if (ai) {
+				ai->argname = gf_strdup(szArg);
+				ai->type = type;
+				gf_list_add(session->parsed_args, ai );
+			}
 		}
 	} else {
 		u32 k, acount;
@@ -375,10 +377,12 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		if (!found) {
 			GF_FSArgItem *ai;
 			GF_SAFEALLOC(ai, GF_FSArgItem);
-			ai->argname = gf_strdup(szArg);
-			ai->type = type;
-			ai->found = GF_TRUE;
-			gf_list_add(session->parsed_args, ai );
+			if (ai) {
+				ai->argname = gf_strdup(szArg);
+				ai->type = type;
+				ai->found = GF_TRUE;
+				gf_list_add(session->parsed_args, ai );
+			}
 		}
 	}
 }
@@ -1054,7 +1058,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	u32 thid =  1 + gf_list_find(fsess->threads, sess_thread);
 	u64 enter_time = gf_sys_clock_high_res();
 	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
+#ifndef GPAC_DISABLE_LOG
 	u32 sys_thid = gf_th_id();
+#endif
 	u64 next_task_schedule_time = 0;
 	Bool do_regulate = (fsess->flags & GF_FS_FLAG_NO_REGULATION) ? GF_FALSE : GF_TRUE;
 	u32 consecutive_filter_tasks=0;
@@ -1872,6 +1878,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 			if (!pid->pid) continue;
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent));
 		}
+#ifndef GPAC_DISABLE_LOG
 		for (k=0; k<opids; k++) {
 			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent));
@@ -1879,6 +1886,8 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		if (f->nb_errors) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t%d errors while processing\n", f->nb_errors));
 		}
+#endif
+
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
@@ -2790,6 +2799,7 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 	GF_UserTask *utask;
 	if (!fsess || !task_execute) return GF_BAD_PARAM;
 	GF_SAFEALLOC(utask, GF_UserTask);
+	if (!utask) return GF_OUT_OF_MEM;
 	utask->fsess = fsess;
 	utask->callback = udta_callback;
 	utask->task_execute = task_execute;
@@ -2803,6 +2813,7 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 	GF_UserTask *utask;
 	if (!filter || !task_execute) return GF_BAD_PARAM;
 	GF_SAFEALLOC(utask, GF_UserTask);
+	if (!utask) return GF_OUT_OF_MEM;
 	utask->callback = udta;
 	utask->task_execute_filter = task_execute;
 	utask->fsess = filter->session;

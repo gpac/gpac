@@ -164,7 +164,9 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 	u16 i;
 	u32 type;
 	GF_Err e;
+#ifndef GPAC_DISABLE_LOG
 	char *szName = (ptr->hint_subtype==GF_ISOM_BOX_TYPE_RTCP_STSD) ? "RTCP" : "RTP";
+#endif
 	u64 sizeIn, sizeOut;
 
 	sizeIn = gf_bs_available(bs);

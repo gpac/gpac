@@ -1993,7 +1993,29 @@ restart:
 				filter = gf_fs_load_destination(session, arg+4, NULL, NULL, &e);
 			} else {
 				e = GF_EOS;
-				filter = gf_fs_load_filter(session, arg, &e);
+				char *need_gfio = strstr(arg, "@gfi://");
+				if (!need_gfio) need_gfio = strstr(arg, "@gfo://");
+				if (need_gfio) {
+					const char *fargs=NULL;
+					const char *fio_url;
+					char *updated_args = NULL;
+					u32 len = (u32) (need_gfio - arg);
+					updated_args = gf_malloc(sizeof(char)*(len+1));
+					strncpy(updated_args, arg, len);
+					updated_args[len]=0;
+
+					fio_url = make_fileio(need_gfio+7, &fargs, need_gfio[3]=='i' ? GF_TRUE : GF_FALSE, &e);
+					if (fio_url) {
+						gf_dynstrcat(&updated_args, fio_url, NULL);
+						if (fargs)
+							gf_dynstrcat(&updated_args, fargs, NULL);
+
+						filter = gf_fs_load_filter(session, updated_args, &e);
+					}
+					gf_free(updated_args);
+				} else {
+					filter = gf_fs_load_filter(session, arg, &e);
+				}
 				is_simple=GF_TRUE;
 				if (!filter && has_xopt)
 					continue;
@@ -3733,8 +3755,14 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	if (!strcmp(mode, "url")) {
 		if (!url) return NULL;
 		GF_SAFEALLOC(ioctx, FileIOCtx);
+		if (!ioctx) return NULL;
 		ioctx->path = gf_url_concatenate(ioctx_ref->path, url);
 		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
+		if (!gfio) {
+			if (ioctx->path) gf_free(ioctx->path);
+			gf_free(ioctx);
+			return NULL;
+		}
 		//remember it but no need to keep a ref on it
 		gf_list_add(all_gfio_defined, gfio);
 		return gfio;
@@ -3768,13 +3796,6 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		//in test mode we want to use our ftell and fseek wrappers
 		if (strchr(mode, 'r')) {
 			gf_fileio_set_stats(fileio_ref, file_size, file_size, GF_TRUE, 0);
-
-#ifdef GPAC_ENABLE_COVERAGE
-			if (gf_sys_is_test_mode()) {
-				va_list args;
-				fio_printf(NULL, "", args);
-			}
-#endif
 		}
 		return fileio_ref;
 	}
@@ -3798,6 +3819,10 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	}
 	if (!ioctx) {
 		GF_SAFEALLOC(ioctx, FileIOCtx);
+		if (!ioctx) {
+			*out_err = GF_OUT_OF_MEM;
+			return NULL;
+		}
 		if (strnicmp(url, "gfio://", 7)) {
 			if (no_concatenate)
 				ioctx->path = gf_strdup(url);
@@ -3808,6 +3833,8 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		}
 		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
 		if (!gfio) {
+			if (ioctx->path) gf_free(ioctx->path);
+			gf_free(ioctx);
 			*out_err = GF_OUT_OF_MEM;
 		}
 	}
@@ -3843,13 +3870,20 @@ static const char *make_fileio(const char *inargs, const char **out_arg, Bool is
 	if (sep) sep[0] = 0;
 
 	GF_SAFEALLOC(ioctx, FileIOCtx);
+	if (!ioctx) return NULL;
 	ioctx->path = gf_strdup(inargs);
+	if (!ioctx->path) {
+		gf_free(ioctx);
+		return NULL;
+	}
 	if (sep) {
 		sep[0] = ':';
 		*out_arg = sep+1;
 	}
 	fio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
 	if (!fio) {
+		gf_free(ioctx->path);
+		gf_free(ioctx);
 		*e = GF_OUT_OF_MEM;
 		return NULL;
 	}

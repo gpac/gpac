@@ -1007,6 +1007,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
 
 					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+					if (!sai) return GF_OUT_OF_MEM;
 
 					e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, i+1, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
 					if (e) {

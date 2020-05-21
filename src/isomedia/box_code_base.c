@@ -7054,6 +7054,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 	/*no sample dur/sample_flag/size/ctso for first or following, create a pack sample */
 	if (! (flags & 0x00FFFF00)) {
 		GF_SAFEALLOC(ent, GF_TrunEntry);
+		if (!ent) return GF_OUT_OF_MEM;
 		ent->nb_pack = ptr->sample_count;
 		gf_list_add(ptr->entries, ent);
 		return GF_OK;
@@ -7061,6 +7062,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 	/*allocate all entries*/
 	for (i=0; i<ptr->sample_count; i++) {
 		GF_SAFEALLOC(ent, GF_TrunEntry);
+		if (!ent) return GF_OUT_OF_MEM;
 		gf_list_add(ptr->entries, ent);
 	}
 	//unpack flags
@@ -7169,6 +7171,7 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
 		GF_SAFEALLOC(p, GF_TrunEntry);
+		if (!p) return GF_OUT_OF_MEM;
 		p->nb_pack = ptr->sample_count;
 		gf_list_add(ptr->entries, p);
 	} else {

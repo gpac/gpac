@@ -599,6 +599,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 
 				if (!gf_list_count(iloc->extent_entries)) {
 					GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+					if (!entry) return GF_OUT_OF_MEM;
 					gf_list_add(iloc->extent_entries, entry);
 				}
 				entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
@@ -655,6 +656,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			/*we MUST have at least one extent for the dref data*/
 			if (!gf_list_count(iloc->extent_entries)) {
 				GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+				if (!entry) return GF_OUT_OF_MEM;
 				gf_list_add(iloc->extent_entries, entry);
 			}
 			entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);

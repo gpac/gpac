@@ -756,7 +756,7 @@ void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool sl
 {
 	SVG_audio_stack *stack;
 	GF_SAFEALLOC(stack, SVG_audio_stack)
-
+	if (!stack) return;
 	gf_sc_audio_setup(&stack->input, compositor, node);
 
 	/*force first processing of xlink-href*/

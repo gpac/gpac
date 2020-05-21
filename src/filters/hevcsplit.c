@@ -768,6 +768,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 				assert(gf_list_count(ctx->outputs) == tile_idx);
 
 				GF_SAFEALLOC(tpid, HEVCTilePid);
+				if (!tpid) return GF_OUT_OF_MEM;
 				gf_list_add(ctx->outputs, tpid);
 				tpid->opid = gf_filter_pid_new(filter);
 				gf_filter_pid_set_udta(tpid->opid, tpid);

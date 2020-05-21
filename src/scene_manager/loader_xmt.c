@@ -1499,8 +1499,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			else {
 				XMTNodeStack *pf_stack;
 				GF_SAFEALLOC(pf_stack, XMTNodeStack);
-				gf_sg_proto_field_get_field(parser->proto_field, &pf_stack->container_field);
-				gf_list_add(parser->nodes, pf_stack);
+				if (pf_stack) {
+					gf_sg_proto_field_get_field(parser->proto_field, &pf_stack->container_field);
+					gf_list_add(parser->nodes, pf_stack);
+				}
 			}
 			return NULL;
 		}

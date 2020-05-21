@@ -217,6 +217,7 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	frame = gf_list_pop_back(ctx->frames_res);
 	if (!frame) {
 		GF_SAFEALLOC(frame, GF_VTBHWFrame);
+		if (!frame) return;
 	} else {
 		memset(frame, 0, sizeof(GF_VTBHWFrame));
 	}
@@ -570,6 +571,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			cfg->nal_unit_size = 4;
 
 			GF_SAFEALLOC(vpsa, GF_HEVCParamArray);
+			if (!vpsa) return GF_OUT_OF_MEM;
 			vpsa->array_completeness = 1;
 			vpsa->type = GF_HEVC_NALU_VID_PARAM;
 			vpsa->nalus = gf_list_new();
@@ -577,6 +579,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			gf_list_add(cfg->param_array, vpsa);
 
 			GF_SAFEALLOC(spsa, GF_HEVCParamArray);
+			if (!spsa) return GF_OUT_OF_MEM;
 			spsa->array_completeness = 1;
 			spsa->type = GF_HEVC_NALU_SEQ_PARAM;
 			spsa->nalus = gf_list_new();
@@ -584,6 +587,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			gf_list_add(cfg->param_array, spsa);
 
 			GF_SAFEALLOC(ppsa, GF_HEVCParamArray);
+			if (!ppsa) return GF_OUT_OF_MEM;
 			ppsa->array_completeness = 1;
 			ppsa->type = GF_HEVC_NALU_PIC_PARAM;
 			//we send all PPS
@@ -863,7 +867,12 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 	if (add) {
 		GF_AVCConfigSlot *slc;
 		GF_SAFEALLOC(slc, GF_AVCConfigSlot);
+		if (!slc) return;
 		slc->data = gf_malloc(size);
+		if (!slc->data) {
+			gf_free(slc);
+			return;
+		}
 		memcpy(slc->data, data, size);
 		slc->size = size;
 		slc->id = ps_id;

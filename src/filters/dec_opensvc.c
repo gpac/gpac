@@ -376,7 +376,9 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
 #ifndef GPAC_DISABLE_AV_PARSERS
+#ifndef GPAC_DISABLE_LOG
 		u32 sps_id, pps_id;
+#endif
 #endif
 		u32 maxDqIdInAU;
 		if (!ctx->streams[idx].ipid) continue;

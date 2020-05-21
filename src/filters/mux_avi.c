@@ -204,6 +204,7 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!stream) {
 		GF_SAFEALLOC(stream, AVIStream);
+		if (!stream) return GF_OUT_OF_MEM;
 		stream->pid = pid;
 		gf_filter_pid_set_udta(pid, stream);
 		gf_list_add(ctx->streams, stream);

@@ -560,7 +560,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 #ifndef GPAC_DISABLE_LOG
 			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
 #else
-			fprintf(stderr, "%s%s", (first) ? "" : " ", str));
+			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
 #endif
 		}
         JS_FreeCString(ctx, str);

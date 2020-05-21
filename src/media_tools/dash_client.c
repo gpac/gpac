@@ -1485,7 +1485,9 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 	}
 
 	if (group) {
+#ifndef GPAC_DISABLE_LOG
 		u32 prev_idx = group->download_segment_index;
+#endif
 		group->nb_segments_in_rep = nb_new_segs;
 		group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, group->current_start_time, group->current_timescale, timescale ? timescale : group->current_timescale);
 
@@ -1493,7 +1495,9 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 	} else {
 		for (i=0; i<gf_list_count(dash->groups); i++) {
 			GF_DASH_Group *a_group = gf_list_get(dash->groups, i);
+#ifndef GPAC_DISABLE_LOG
 			u32 prev_idx = a_group->download_segment_index;
+#endif
 			a_group->nb_segments_in_rep = nb_new_segs;
 			a_group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, a_group->current_start_time, a_group->current_timescale, timescale ? timescale : a_group->current_timescale);
 
@@ -1862,11 +1866,13 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 	if (fetch_only  && !period) goto exit;
 
+#ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updated manifest:\n"));
 	for (i=0; i<gf_list_count(new_mpd->periods); i++) {
 		GF_MPD_Period *ap = gf_list_get(new_mpd->periods, i);
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tP#%d: start "LLU" - duration " LLU" - xlink %s\n", i+1, ap->start, ap->duration, ap->xlink_href ? ap->xlink_href : "none"));
 	}
+#endif
 
 	//if current period was a remote period, do a pass on the new manifest periods, check for xlink
 	if (period->origin_base_url) {
@@ -2323,11 +2329,13 @@ exit:
 	dash->last_update_time = gf_sys_clock();
 	dash->mpd_fetch_time = fetch_time;
 
+#ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Manifest after update:\n"));
 	for (i=0; i<gf_list_count(new_mpd->periods); i++) {
 		GF_MPD_Period *ap = gf_list_get(new_mpd->periods, i);
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tP#%d: start "LLU" - duration " LLU" - xlink %s\n", i+1, ap->start, ap->duration, ap->xlink_href ? ap->xlink_href : ap->origin_base_url ? ap->origin_base_url : "none"));
 	}
+#endif
 
 	return GF_OK;
 }
@@ -2623,6 +2631,8 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 			sep+=8;
 			len = (u32)strlen(sep) + 1;
 			GF_SAFEALLOC(blob, GF_Blob);
+			if (!blob) return GF_OUT_OF_MEM;
+
 			blob->data = (char *)gf_malloc(len);
 			blob->size = gf_base64_decode(sep, len, blob->data, len);
 			sprintf(*out_url, "gmem://%p", blob);
@@ -3177,7 +3187,9 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	}
 
 	if (new_index != -1) {
+#ifndef GPAC_DISABLE_LOG
 		GF_MPD_Representation *result = gf_list_get(group->adaptation_set->representations, (u32)new_index);
+#endif
 		// increment the segment number for debug purposes
 		group->current_index++;
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] BBA-0: buffer %d ms, segment number %d, new quality %d with rate %d\n", group->buffer_occupancy_ms, group->current_index, new_index, result->bandwidth));
@@ -3312,7 +3324,9 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 	}
 
 	if (new_index != -1) {
+#ifndef GPAC_DISABLE_LOG
 		GF_MPD_Representation *result = gf_list_get(group->adaptation_set->representations, (u32)new_index);
+#endif
 		// increment the segment number for debug purposes
 		group->current_index++;
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] BOLA: buffer %d ms, segment number %d, new quality %d with rate %d\n", group->buffer_occupancy_ms, group->current_index, new_index, result->bandwidth));
@@ -4030,6 +4044,7 @@ static void gf_dash_reset_groups(GF_DashClient *dash)
 	dash->SRDs = NULL;
 }
 
+#ifndef GPAC_DISABLE_LOG
 static u32 gf_dash_get_start_number(GF_DASH_Group *group, GF_MPD_Representation *rep)
 {
 	if (rep->segment_list && rep->segment_list->start_number) return rep->segment_list->start_number;
@@ -4042,6 +4057,7 @@ static u32 gf_dash_get_start_number(GF_DASH_Group *group, GF_MPD_Representation 
 
 	return 0;
 }
+#endif
 
 static GF_MPD_Representation *gf_dash_find_rep(GF_DashClient *dash, const char *dependency_id, GF_DASH_Group **rep_group)
 {
@@ -4471,7 +4487,8 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 
 			if (needs_mov_range && (type==GF_ISOM_BOX_TYPE_MOOV )) {
 				GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
-				rep->segment_list->initialization_segment->byte_range->end_range = gf_bs_get_position(bs);
+				if (rep->segment_list->initialization_segment->byte_range)
+					rep->segment_list->initialization_segment->byte_range->end_range = gf_bs_get_position(bs);
 			}
 			continue;
 		}
@@ -4699,9 +4716,10 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					if (!group->dash->thread_mode) {
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(init_url);
 						GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
-						rep->segment_list->initialization_segment->byte_range->start_range = init_start_range;
-						rep->segment_list->initialization_segment->byte_range->end_range = init_end_range ? init_end_range : (sidx_start-1);
-
+						if (rep->segment_list->initialization_segment->byte_range) {
+							rep->segment_list->initialization_segment->byte_range->start_range = init_start_range;
+							rep->segment_list->initialization_segment->byte_range->end_range = init_end_range ? init_end_range : (sidx_start-1);
+						}
 					}
 					//we need to store the init segment since it has the same name as the rest of the segments and will be destroyed when cleaning up the cache ..
 					else if (!strnicmp(cache_name, "gmem://", 7)) {
@@ -5820,7 +5838,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 		if (group->force_early_fetch) {
 			if (to_wait>1) {
-				fprintf(stderr, "[DASH] Set #%d demux empty but wait time for segment %d is still %d ms, forcing scheduling\n", 1+gf_list_find(dash->groups, group), group->download_segment_index + start_number, to_wait);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Set #%d demux empty but wait time for segment %d is still %d ms, forcing scheduling\n", 1+gf_list_find(dash->groups, group), group->download_segment_index + start_number, to_wait));
 				to_wait = 0;
 			} else {
 				//we officially reached segment AST
@@ -5830,7 +5848,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 		/*if segment AST is greater than now, it is not yet available - we would need an estimate on how long the request takes to be sent to the server in order to be more reactive ...*/
 		if (to_wait > 1) {
-fprintf(stderr, "dash will wait %d ms for segment %d\n", to_wait, group->download_segment_index + start_number);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) is not yet available on server - requesting later in %d ms\n", 1+gf_list_find(dash->groups, group), gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init)/1000.0, to_wait));
 			if (group->last_segment_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));

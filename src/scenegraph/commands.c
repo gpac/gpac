@@ -889,7 +889,8 @@ GF_CommandField *gf_sg_command_field_new(GF_Command *com)
 {
 	GF_CommandField *ptr;
 	GF_SAFEALLOC(ptr, GF_CommandField);
-	gf_list_add(com->command_fields, ptr);
+	if (ptr)
+		gf_list_add(com->command_fields, ptr);
 	return ptr;
 }
 

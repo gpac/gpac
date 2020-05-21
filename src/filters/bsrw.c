@@ -453,12 +453,14 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (!pctx) {
 		GF_SAFEALLOC(pctx, BSRWPid);
+		if (!pctx) return GF_OUT_OF_MEM;
 		pctx->ipid = pid;
-		pctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, pctx);
 		pctx->rewrite_pid_config = none_rewrite_pid_config;
 		pctx->rewrite_packet = none_rewrite_packet;
 		gf_list_add(ctx->pids, pctx);
+		pctx->opid = gf_filter_pid_new(filter);
+		if (!pctx->opid) return GF_OUT_OF_MEM;
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);

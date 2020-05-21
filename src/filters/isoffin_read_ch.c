@@ -110,7 +110,7 @@ static void init_reader(ISOMChannel *ch)
 		u32 mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
 
 		/*take care of seeking out of the track range*/
-		if (!ch->owner->frag_type && (ch->duration<ch->start)) {
+		if (!ch->owner->frag_type && (ch->duration<=ch->start)) {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration-1, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 		} else if (ch->start || ch->has_edit_list) {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
@@ -559,9 +559,11 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 		}
 		if (!hvca) {
 			GF_SAFEALLOC(hvca, GF_HEVCParamArray);
-			list = hvca->nalus = gf_list_new();
-			hvca->type = nal_type;
-			gf_list_add(hvcc->param_array, hvca);
+			if (hvca) {
+				list = hvca->nalus = gf_list_new();
+				hvca->type = nal_type;
+				gf_list_add(hvcc->param_array, hvca);
+			}
 		}
 		switch (nal_type) {
 		case GF_HEVC_NALU_VID_PARAM:
@@ -586,6 +588,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 		*reset_state |= state;
 	}
 	GF_SAFEALLOC(sl, GF_AVCConfigSlot);
+	if (!sl) return;
 	sl->data = gf_malloc(sizeof(char)*size);
 	memcpy(sl->data, data, size);
 	sl->size = size;

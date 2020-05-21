@@ -929,8 +929,16 @@ static void inspect_finalize(GF_Filter *filter)
 
 	if (ctx->dump) {
 		if (ctx->xml) gf_fprintf(ctx->dump, "</GPACInspect>\n");
-		if ((ctx->dump!=stderr) && (ctx->dump!=stdout))
+		if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) {
+
+#ifdef GPAC_ENABLE_COVERAGE
+			if (gf_sys_is_cov_mode()) {
+				gf_fflush(ctx->dump);
+				gf_ferror(ctx->dump);
+			}
+#endif
 			gf_fclose(ctx->dump);
+		}
 	}
 
 }
@@ -1801,6 +1809,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 		if (!pctx->avc_state) {
 			GF_SAFEALLOC(pctx->avc_state, AVCState);
+			if (!pctx->avc_state) return;
 		}
 #endif
 		gf_fprintf(dump, ">\n");
@@ -1851,6 +1860,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 		if (!pctx->hevc_state) {
 			GF_SAFEALLOC(pctx->hevc_state, HEVCState);
+			if (!pctx->hevc_state) return;
 		}
 #endif
 
@@ -1912,6 +1922,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		inspect_reset_parsers(pctx, &pctx->av1_state);
 		if (!pctx->av1_state) {
 			GF_SAFEALLOC(pctx->av1_state, AV1State);
+			if (!pctx->av1_state) return;
 		}
 #endif
 		if (!dsi) {
@@ -2129,6 +2140,8 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_OK;
 	}
 	GF_SAFEALLOC(pctx, PidCtx);
+	if (!pctx) return GF_OUT_OF_MEM;
+	
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
 

@@ -66,8 +66,8 @@ static LineInfo *new_line_info(LayoutStack *st)
 {
 	LineInfo *li;
 	GF_SAFEALLOC(li, LineInfo);
-
-	gf_list_add(st->lines, li);
+	if (li)
+		gf_list_add(st->lines, li);
 	return li;
 }
 

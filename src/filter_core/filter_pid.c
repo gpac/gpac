@@ -74,6 +74,7 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 {
 	GF_FilterPidInst *pidinst;
 	GF_SAFEALLOC(pidinst, GF_FilterPidInst);
+	if (!pidinst) return NULL;
 	pidinst->pid = pid;
 	pidinst->filter = filter;
 
@@ -2380,6 +2381,8 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	freg_has_output = gf_filter_has_out_caps(caps, nb_caps);
 
 	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
+	if (!reg_desc) return NULL;
+
 	reg_desc->freg = freg;
 
 	nb_dst_caps = gf_filter_caps_bundle_count(caps, nb_caps);
@@ -2477,7 +2480,9 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 			gf_list_add(fsess->links, freg_desc);
 		}
 	} else {
+#ifndef GPAC_DISABLE_LOG
 		u64 start_time = gf_sys_clock_high_res();
+#endif
 		count = gf_list_count(fsess->registry);
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
@@ -2782,6 +2787,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			count--;
 		}
 	}
+#ifndef GPAC_DISABLE_LOG
 	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filters in dijkstra set:"));
 		count = gf_list_count(dijkstra_nodes);
@@ -2791,6 +2797,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
 	}
+#endif
 
 	sort_time_us = gf_sys_clock_high_res();
 
@@ -3047,7 +3054,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			a_pid = pidi->pid;
 		}
 
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved %sfilter chain from filter %s PID %s to filter %s - dumping chain:\n", reconfigurable_only ? "adaptation " : "", pid->filter->name, pid->name, dst->freg->name));
 		}
@@ -4133,6 +4140,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	char szName[30];
 	GF_FilterPid *pid;
 	GF_SAFEALLOC(pid, GF_FilterPid);
+	if (!pid) return NULL;
 	pid->filter = filter;
 	pid->destinations = gf_list_new();
 	pid->properties = gf_list_new();

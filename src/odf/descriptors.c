@@ -1308,7 +1308,12 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
+		if (!a) break;
 		a->obu = gf_malloc((size_t)obu_size);
+		if (!a->obu) {
+			gf_free(a);
+			break;
+		}
 		gf_bs_seek(bs, pos);
 		gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);
 		a->obu_length = obu_size;

@@ -736,14 +736,20 @@ static Bool gpac_old_arch = GF_FALSE;
 static Bool gpac_discard_config = GF_FALSE;
 
 //in error.c
+#ifndef GPAC_DISABLE_LOG
 extern FILE *gpac_log_file;
 extern Bool gpac_log_time_start;
 extern Bool gpac_log_utc_time;
+#endif
 
 GF_EXPORT
 Bool gf_log_use_file()
 {
+#ifndef GPAC_DISABLE_LOG
 	return gpac_log_file ? GF_TRUE : GF_FALSE;
+#else
+	return GF_FALSE;
+#endif
 }
 
 static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
@@ -778,10 +784,12 @@ const char *gpac_log_file_name=NULL;
 GF_EXPORT
 void gf_log_reset_file()
 {
+#ifndef GPAC_DISABLE_LOG
 	if (gpac_log_file_name) {
 		if (gpac_log_file) gf_fclose(gpac_log_file);
 		gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
 	}
+#endif
 }
 
 static Bool gpac_has_global_filter_args=GF_FALSE;
@@ -833,7 +841,9 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			} else if (arg[1]=='+') {
 				gpac_has_global_filter_meta_args = GF_TRUE;
 			} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
+#ifndef GPAC_DISABLE_LOG
 				gpac_log_file_name = arg_val;
+#endif
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-logs") ) {
 				e = gf_log_set_tools_levels(arg_val, GF_FALSE);
@@ -841,9 +851,13 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
+#ifndef GPAC_DISABLE_LOG
 				gpac_log_time_start = GF_TRUE;
+#endif
 			} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
+#ifndef GPAC_DISABLE_LOG
 				gpac_log_utc_time = GF_TRUE;
+#endif
 			} else if (!strcmp(arg, "-quiet")) {
 				gpac_quiet = 2;
 			} else if (!strcmp(arg, "-noprog")) {
@@ -870,10 +884,11 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			}
 		}
 
+#ifndef GPAC_DISABLE_LOG
 		if (gpac_log_file_name) {
 			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
 		}
-
+#endif
 		if (gf_opts_get_bool("core", "rmt"))
 			gf_sys_enable_profiling(GF_TRUE, GF_FALSE);
 
@@ -1205,10 +1220,12 @@ void gf_sys_close()
 		
 		gf_uninit_global_config(gpac_discard_config);
 
+#ifndef GPAC_DISABLE_LOG
 		if (gpac_log_file) {
 			gf_fclose(gpac_log_file);
 			gpac_log_file = NULL;
 		}
+#endif
 		if (gpac_lang_file) gf_cfg_del(gpac_lang_file);
 		gpac_lang_file = NULL;
 

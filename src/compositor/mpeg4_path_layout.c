@@ -272,7 +272,8 @@ void compositor_init_path_layout(GF_Compositor *compositor, GF_Node *node)
 {
 	PathLayoutStack *stack;
 	GF_SAFEALLOC(stack, PathLayoutStack);
-
+	if (!stack) return;
+	
 	parent_node_setup((ParentNode2D*)stack);
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraversePathLayout);

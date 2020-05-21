@@ -136,6 +136,8 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 
 	if (!pck) {
 		GF_SAFEALLOC(pck, GF_FilterPacket);
+		if (!pck)
+			return NULL;
 		pck->data = gf_malloc(sizeof(char)*data_size);
 		pck->alloc_size = data_size;
 #ifdef GPAC_MEMORY_TRACKING
