@@ -26,7 +26,7 @@ endif
 
 ifeq ($(CONFIG_FREENECT), no)
 else
-PLUGDIRS+=freenect
+#PLUGDIRS+=freenect
 endif
 
 ifeq ($(CONFIG_ALSA), yes)
