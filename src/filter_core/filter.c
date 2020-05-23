@@ -2013,7 +2013,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 	if (filter->removed || filter->finalized) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been %s, skiping process\n", filter->name, filter->finalized ? "finalized" : "removed"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been %s, skipping process\n", filter->name, filter->finalized ? "finalized" : "removed"));
 		return;
 	}
 
@@ -2027,7 +2027,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		if (filter->would_block) {
 			filter->nb_tasks_done--;
 			task->filter->process_task_queued = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping process\n", filter->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skipping process\n", filter->name));
 			gf_mx_v(task->filter->tasks_mx);
 			return;
 		}
@@ -2048,7 +2048,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	//we could add a filter cap for that, but for now we simply rely on the blocking mode algo only
 #if 0
 	if (filter->num_output_pids && (filter->num_out_pids_not_connected==filter->num_output_pids)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no valid connected outputs, skiping process\n", filter->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no valid connected outputs, skipping process\n", filter->name));
 		return;
 	}
 #endif
