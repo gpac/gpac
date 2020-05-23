@@ -6970,17 +6970,13 @@ void gf_media_hevc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc)
 	u32 ptype, psize, hdr;
 	u64 start;
 	GF_BitStream *bs;
-	char *sei_without_emulation_bytes = NULL;
-	u32 sei_without_emulation_bytes_size = 0;
 
 	hdr = buffer[0];
 	if (((hdr & 0x7e) >> 1) != GF_HEVC_NALU_SEI_PREFIX) return;
 
-	/*PPS still contains emulation bytes*/
-	sei_without_emulation_bytes = gf_malloc(nal_size + 1/*for SEI null string termination*/);
-	sei_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(buffer, sei_without_emulation_bytes, nal_size);
+	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
-	bs = gf_bs_new(sei_without_emulation_bytes, sei_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	gf_bs_read_int(bs, 16);
 
 	/*parse SEI*/
@@ -7007,7 +7003,7 @@ void gf_media_hevc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc)
 		switch (ptype) {
 		case 4: /*user registered ITU-T T35*/
 		{
-			GF_BitStream * itu_t_t35_bs = gf_bs_new(sei_without_emulation_bytes + start, psize, GF_BITSTREAM_READ);
+			GF_BitStream * itu_t_t35_bs = gf_bs_new(buffer + start, psize, GF_BITSTREAM_READ);
 			avc_parse_itu_t_t35_sei(itu_t_t35_bs, &hevc->sei.dovi);
 			gf_bs_del(itu_t_t35_bs);
 		}
@@ -7020,7 +7016,6 @@ void gf_media_hevc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc)
 			break;
 	}
 	gf_bs_del(bs);
-	gf_free(sei_without_emulation_bytes);
 }
 
 static void hevc_compute_poc(HEVCSliceInfo *si)
