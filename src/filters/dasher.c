@@ -1030,6 +1030,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			return GF_BAD_PARAM;
 		}
 
+		subtype = GF_ISOM_SUBTYPE_DVHE;
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(subtype), dvcc->dv_profile, dvcc->dv_level);
 		gf_odf_dovi_cfg_del(dvcc);
 
