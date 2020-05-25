@@ -569,7 +569,9 @@ static GF_Err j2kdec_initialize(GF_Filter *filter)
 		error_callback(NULL, NULL);
 		warning_callback(NULL, NULL);
 		info_callback(NULL, NULL);
+#if OPENJP2
 		j2kdec_stream_skip(0, NULL);
+#endif
 	}
 #endif
 	return GF_OK;

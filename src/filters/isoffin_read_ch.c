@@ -125,11 +125,11 @@ static void init_reader(ISOMChannel *ch)
 		} else {
 			ch->sample = ch->static_sample;
 		}
-		
+
 		if (ch->has_rap && ch->has_edit_list) {
 			ch->edit_sync_frame = ch->sample_num;
 		}
-		
+
 		if (ch->sample && !ch->sample->data && ch->owner->frag_type && !ch->has_edit_list) {
 			ch->sample = NULL;
 			ch->sample_num = 1;
@@ -534,7 +534,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 {
 	u32 i, count, state=0;
 	GF_AVCConfigSlot *sl;
-	GF_List *list;
+	GF_List *list=NULL;
 	if (avcc) {
 		if (nal_type==GF_AVC_NALU_PIC_PARAM) {
 			list = avcc->pictureParameterSets;
