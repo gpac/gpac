@@ -202,6 +202,8 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 		return GF_ISOM_INVALID_MEDIA;
 
 	minf = mdia->information;
+	if (!minf->dataInformation || !minf->dataInformation->dref)
+		return GF_ISOM_INVALID_MEDIA;
 
 	count = gf_list_count(minf->dataInformation->dref->child_boxes);
 	if (!count) {
