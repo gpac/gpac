@@ -355,7 +355,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					u32 sample_rate;
 					GF_ISOSample *samp = NULL;
 					if (!is_crypted)
-						 gf_isom_get_sample(file, TrackNum, 1, NULL);
+						 samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
 
 					if (samp && (samp->dataLength>3)) {
 						u32 hdr = GF_4CC((u32)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
