@@ -187,10 +187,9 @@ static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 	ctx->status = FFMX_STATE_AVIO_OPEN;
 	return GF_OK;
 }
-static GF_Err ffmx_initialize(GF_Filter *filter)
+static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 {
 	const char *url, *sep;
-	Bool use_templates=GF_FALSE;
 	AVOutputFormat *ofmt;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
 
@@ -243,7 +242,10 @@ static GF_Err ffmx_initialize(GF_Filter *filter)
 	return ffmx_open_url(ctx, NULL);
 }
 
-
+static GF_Err ffmx_initialize(GF_Filter *filter)
+{
+	return ffmx_initialize_ex(filter, GF_FALSE);
+}
 static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *seg_name)
 {
 	int i;
@@ -551,7 +553,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 		if (ctx->muxer)	avformat_free_context(ctx->muxer);
 		ctx->muxer = NULL;
 		ctx->status = FFMX_STATE_ALLOC;
-		ffmx_initialize(filter);
+		ffmx_initialize_ex(filter, GF_TRUE);
 		for (i=0; i<nb_pids; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 			GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
@@ -619,6 +621,12 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!p) return GF_NOT_SUPPORTED;
 	streamtype = p->value.uint;
+
+	//not supported yet
+	if (streamtype==GF_STREAM_ENCRYPTED) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Cannot import protected stream, not supported\n"));
+		return GF_NOT_SUPPORTED;
+	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
