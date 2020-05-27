@@ -272,7 +272,7 @@ typedef struct _dash_stream
 	//dependency ID of output pid (renumbered)
 	u32 dep_pid_id;
 	u32 nb_samples_in_source;
-
+	Bool has_sync_points;
 	//seg urls not yet handled (waiting for size/index callbacks)
 	GF_List *pending_segment_urls;
 	//segment states not yet handled (waiting for size/index/etc callbacks), used for M3U8 and state mode
@@ -616,6 +616,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_NB_FRAMES, ds->nb_samples_in_source, GF_EOS)
 		CHECK_PROP_FRAC64(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
+		CHECK_PROP_BOOL(GF_PROP_PID_HAS_SYNC, ds->has_sync_points, GF_EOS)
 
 		dc_crc = 0;
 		dsi = p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
@@ -5620,8 +5621,16 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			if (ds->muxed_base && ds->muxed_base->done) {
 				seg_over = GF_FALSE;
-			//temp hack: if flushing now will result in a one sample fragment afterwards, don't flush unless we have an asto set (low latency)
-			} else if (seg_over && ds->nb_samples_in_source && !ctx->loop && (ds->nb_pck+1 == ds->nb_samples_in_source) && !ctx->asto) {
+			}
+			//if flushing now will result in a one sample fragment afterwards
+			//because this is the before-last sample, don't flush unless:
+			//- we have an asto set (low latency)
+			//- this is not an audio stream or all samples are SAPs
+			else if (seg_over && ds->nb_samples_in_source && !ctx->loop
+				&& (ds->nb_pck+1 == ds->nb_samples_in_source)
+				&& !ctx->asto
+				&& !(!ds->has_sync_points && (ds->stream_type!=GF_STREAM_AUDIO))
+			) {
 				seg_over = GF_FALSE;
 			}
 			//if dur=0 (some text streams), don't flush segment
