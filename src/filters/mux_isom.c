@@ -2726,12 +2726,13 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		if (!tkw->has_brands && (scheme_type==GF_ISOM_OMADRM_SCHEME))
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_OPF2, GF_TRUE);
 
-
-		e = gf_isom_cenc_allocate_storage(ctx->file, tkw->track_num, container_type, 0, 0, NULL);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC storage: %s\n", gf_error_to_string(e) ));
-			tkw->cenc_state = CENC_SETUP_ERROR;
-			return e;
+		if (container_type) {
+			e = gf_isom_cenc_allocate_storage(ctx->file, tkw->track_num, container_type, 0, 0, NULL);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC storage: %s\n", gf_error_to_string(e) ));
+				tkw->cenc_state = CENC_SETUP_ERROR;
+				return e;
+			}
 		}
 	}
 	if (act_type==CENC_CONFIG) return GF_OK;
@@ -2782,6 +2783,8 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	}
 
 	if (!sai) {
+		if (tkw->constant_IV_size && !tkw->cenc_subsamples)
+			return GF_OK;
 		sai_size = pck_size;
 	}
 
@@ -3011,7 +3014,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
 		}
 
-		if (tkw->cenc_state) {
+		if (!e && tkw->cenc_state) {
 			e = mp4_mux_cenc_update(ctx, tkw, pck, for_fragment ? CENC_ADD_FRAG : CENC_ADD_NORMAL, tkw->sample.dataLength);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample CENC information: %s\n", gf_error_to_string(e) ));
@@ -3022,6 +3025,8 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	tkw->nb_samples++;
 	tkw->samples_in_stsd++;
 	tkw->samples_in_frag++;
+
+	if (e) return e;
 
 	//compat with old arch: write sample to group info for all samples
 	if ((sap_type==3) || tkw->has_open_gop)  {
@@ -4247,10 +4252,12 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 
 			//process packet
-			mp4_mux_process_sample(ctx, tkw, pck, GF_TRUE);
+			e = mp4_mux_process_sample(ctx, tkw, pck, GF_TRUE);
 
 			//discard
 			gf_filter_pid_drop_packet(tkw->ipid);
+
+			if (e) return e;
 		}
 		//done with this track - if single track per moof, request new fragment but don't touch the
 		//fragmentation state of the track writers
