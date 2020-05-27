@@ -52,6 +52,8 @@ void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize
 
 	for (i=0; i<count; i++) {
 		samp = gf_isom_get_sample_info(file, Track, i+1, NULL, NULL);
+		if (!samp) break;
+		
 		//get the size
 		*avgSize += samp->dataLength;
 		if (*MaxSize < samp->dataLength) *MaxSize = samp->dataLength;
@@ -289,12 +291,13 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_MPEG4:
 			esd = gf_isom_get_esd(file, TrackNum, 1);
 			hintType = GF_RTP_PAYT_MPEG4;
-			if (esd) {
+			if (esd && esd->decoderConfig) {
 				streamType = esd->decoderConfig->streamType;
 				codecid = esd->decoderConfig->objectTypeIndication;
 				if (esd->URLString) hintType = 0;
 				/*AAC*/
-				if ((streamType==GF_STREAM_AUDIO) && esd->decoderConfig->decoderSpecificInfo
+				if ((streamType==GF_STREAM_AUDIO)
+					&& esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data
 				        /*(nb: we use mpeg4 for MPEG-2 AAC)*/
 				        && ((codecid==GF_CODECID_AAC_MPEG4) || (codecid==GF_CODECID_AAC_MPEG2_MP) || (codecid==GF_CODECID_AAC_MPEG2_LCP) || (codecid==GF_CODECID_AAC_MPEG2_SSRP)) ) {
 
@@ -330,12 +333,14 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				/*MPEG1/2 audio*/
 				else if ((streamType==GF_STREAM_AUDIO) && ((codecid==GF_CODECID_MPEG2_PART3) || (codecid==GF_CODECID_MPEG_AUDIO))) {
 					u32 sample_rate;
-					if (!is_crypted) {
-						GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
+					GF_ISOSample *samp = NULL;
+					if (!is_crypted)
+						 gf_isom_get_sample(file, TrackNum, 1, NULL);
+
+					if (samp && (samp->dataLength>3)) {
 						u32 hdr = GF_4CC((u32)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 						nb_ch = gf_mp3_num_channels(hdr);
 						sample_rate = gf_mp3_sampling_rate(hdr);
-						gf_isom_sample_del(&samp);
 						hintType = GF_RTP_PAYT_MPEG12_AUDIO;
 						/*use official RTP/AVP payload type*/
 						OfficialPayloadID = 14;
@@ -346,6 +351,9 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 						gf_isom_get_audio_info(file, TrackNum, 1, &sample_rate, &nb_ch, NULL);
 						required_rate = sample_rate;
 					}
+					if (samp)
+						gf_isom_sample_del(&samp);
+
 				}
 				/*QCELP audio*/
 				else if ((streamType==GF_STREAM_AUDIO) && (codecid==GF_CODECID_QCELP)) {
@@ -364,7 +372,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				}
 				/*visual streams*/
 				else if (streamType==GF_STREAM_VISUAL) {
-					if (codecid==GF_CODECID_MPEG4_PART2) {
+					if ((codecid==GF_CODECID_MPEG4_PART2) && esd->decoderConfig->decoderSpecificInfo) {
 						GF_M4VDecSpecInfo dsi;
 						gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 						PL_ID = dsi.VideoPL;
@@ -429,6 +437,12 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
 			GF_AVCConfig *svcc = gf_isom_svc_config_get(file, TrackNum, 1);
 			GF_AVCConfig *mvcc = gf_isom_mvc_config_get(file, TrackNum, 1);
+
+			if (!avcc && !svcc && !mvcc) {
+				*e = GF_NON_COMPLIANT_BITSTREAM;
+				return NULL;
+			}
+
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			hintType = GF_RTP_PAYT_H264_AVC;
 			if (TrackMediaSubType==GF_ISOM_SUBTYPE_SVC_H264)
@@ -450,6 +464,10 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		{
 			GF_HEVCConfig *hevcc = NULL;
 			hevcc = gf_isom_hevc_config_get(file, TrackNum, 1);
+			if (!hevcc) {
+				*e = GF_NON_COMPLIANT_BITSTREAM;
+				return NULL;
+			}
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			hintType = GF_RTP_PAYT_HEVC;
 			streamType = GF_STREAM_VISUAL;
@@ -494,13 +512,20 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_MP3:
 		{
 			GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
-			u32 hdr = GF_4CC((u32)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
-			nb_ch = gf_mp3_num_channels(hdr);
-			gf_isom_sample_del(&samp);
+			if (samp && (samp->dataLength>3)) {
+				u32 hdr = GF_4CC((u32)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+				nb_ch = gf_mp3_num_channels(hdr);
+			} else {
+				u32 bps;
+				gf_isom_get_audio_info(file, TrackNum, 1, &required_rate, &nb_ch, &bps);
+			}
 			hintType = GF_RTP_PAYT_MPEG12_AUDIO;
 			/*use official RTP/AVP payload type*/
 			OfficialPayloadID = 14;
 			required_rate = 90000;
+
+			if (samp)
+				gf_isom_sample_del(&samp);
 		}
 		break;
 		default:
@@ -688,7 +713,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	e = GF_OK;
 	for (i=0; i<tkHint->TotalSample; i++) {
 		samp = gf_isom_get_sample(tkHint->file, tkHint->TrackNum, i+1, &descIndex);
-		if (!samp) return GF_IO_ERR;
+		if (!samp) return gf_isom_last_error(tkHint->file);
 
 		//setup SL
 		tkHint->CurrentSample = i + 1;
