@@ -875,6 +875,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 					pid->filter->freg->process_event(pid->filter, &evt);
 				}
+				filter->session->last_connect_error = e;
 			}
 		} else {
 			filter->session->last_connect_error = GF_OK;
