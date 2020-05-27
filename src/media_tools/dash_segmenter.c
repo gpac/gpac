@@ -782,11 +782,11 @@ typedef struct
 	Bool cues_use_edits;
 } GF_ISOMTrackFragmenter;
 
-static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num, Bool *is_eos)
+static u64 isom_get_next_sap_time(GF_ISOFile *input, GF_ISOMTrackFragmenter *tf, u32 track, u32 sample_count, u32 sample_num, Bool *is_eos)
 {
 	GF_ISOSample *samp;
 	u64 time;
-	Bool is_rap, has_roll;
+	Bool is_rap, has_roll, adj_dur=GF_FALSE;
 	u32 i, found_sample = 0;
 	for (i=sample_num; i<=sample_count; i++) {
 		if (gf_isom_get_sample_sync(input, track, i)) {
@@ -803,10 +803,14 @@ static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count
 	if (!found_sample) {
 		found_sample = sample_count;
 		*is_eos = GF_TRUE;
+		if (gf_isom_is_video_subtype(tf->MediaType))
+			adj_dur = GF_TRUE;
 	}
 	samp = gf_isom_get_sample_info(input, track, found_sample, NULL, NULL);
 	time = samp->DTS;
 	gf_isom_sample_del(&samp);
+	if (adj_dur)
+		time += gf_isom_get_sample_duration(input, track, found_sample);
 	return time;
 }
 
@@ -2267,7 +2271,7 @@ restart_fragmentation_pass:
 							frag_dur = (tf->FragmentLength+next_dur)*dasher->dash_scale / tf->TimeScale;
 							cur_frag_dur = (tf->FragmentLength)*dasher->dash_scale / tf->TimeScale;
 							next_sample_rap = GF_TRUE;
-							next_sap_time = isom_get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2, &next_sap_is_eos);
+							next_sap_time = isom_get_next_sap_time(input, tf, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2, &next_sap_is_eos);
 
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
