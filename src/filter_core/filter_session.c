@@ -2069,13 +2069,35 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }
 
-static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fsess, GF_FilterRegister *freg, const char *url, const char *mime)
+static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fsess, GF_FilterRegister *freg, const char *url, const char *mime, char *fargs)
 {
+	char szExt[100];
 	const char *ext = gf_file_ext_start(url);
 	u32 len=0, i, j, count = gf_list_count(fsess->registry);
 	if (ext) {
 		ext++;
 		len = (u32) strlen(ext);
+	}
+	//check in filter args if we have a format set, in which case replace URL ext by the given format
+	if (fargs) {
+		char szExtN[10];
+		char *ext_arg;
+		sprintf(szExtN, "ext%c", fsess->sep_name);
+		ext_arg = strstr(fargs, szExtN);
+		if (ext_arg) {
+			char *next_arg;
+			ext_arg+=4;
+			next_arg = strchr(ext_arg, fsess->sep_args);
+			if (next_arg) {
+				len = next_arg-ext_arg;
+			} else {
+				len = strlen(ext_arg);
+			}
+			if (len>99) len=99;
+			strncpy(szExt, ext_arg, len);
+			szExt[len] = 0;
+			ext = szExt;
+		}
 	}
 
 	if (mime) {
@@ -2103,7 +2125,8 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 		if (dst_arg) {
 			if (reg->probe_url) {
 				GF_FilterProbeScore s = reg->probe_url(url, mime);
-				if (s==GF_FPROBE_SUPPORTED) return GF_FPROBE_MAYBE_SUPPORTED;
+				if (s==GF_FPROBE_SUPPORTED)
+					return GF_FPROBE_MAYBE_SUPPORTED;
 			}
 			continue;
 		}
@@ -2276,7 +2299,7 @@ restart:
 		/* destination meta filter: change GF_FPROBE_SUPPORTED to GF_FPROBE_MAYBE_SUPPORTED for internal mux formats
 		in order to avoid always giving the hand to the meta filter*/
 		if (!for_source && (s == GF_FPROBE_SUPPORTED) && (freg->flags & GF_FS_REG_META)) {
-			s = probe_meta_check_builtin_format(fsess, freg, sURL, mime_type);
+			s = probe_meta_check_builtin_format(fsess, freg, sURL, mime_type, sep ? sep+1 : NULL);
 		}
 		//higher score, use this new registry
 		if (s > score) {
