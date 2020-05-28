@@ -4132,9 +4132,8 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 	u32 i;
 	GF_SegmentIndexBox *p = (GF_SegmentIndexBox *)a;
 	gf_isom_box_dump_start(a, "SegmentIndexBox", trace);
-	fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\" ", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
+	fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\">\n", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
 
-	fprintf(trace, ">\n");
 	for (i=0; i<p->nb_refs; i++) {
 		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" startsWithSAP=\"%d\" SAP_type=\"%d\" SAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].starts_with_SAP, p->refs[i].SAP_type, p->refs[i].SAP_delta_time);
 	}
@@ -4151,7 +4150,7 @@ GF_Err ssix_dump(GF_Box *a, FILE * trace)
 	GF_SubsegmentIndexBox *p = (GF_SubsegmentIndexBox *)a;
 	gf_isom_box_dump_start(a, "SubsegmentIndexBox", trace);
 
-	fprintf(trace, "subsegment_count=\"%d\" >\n", p->subsegment_count);
+	fprintf(trace, "subsegment_count=\"%d\">\n", p->subsegment_count);
 	for (i = 0; i < p->subsegment_count; i++) {
 		fprintf(trace, "<Subsegment range_count=\"%d\">\n", p->subsegments[i].range_count);
 		for (j = 0; j < p->subsegments[i].range_count; j++) {
