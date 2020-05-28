@@ -345,10 +345,15 @@ static GF_DasherPeriod *dasher_new_period()
 static GF_Err dasher_get_audio_info_with_m4a_sbr_ps(GF_DashStream *ds, const GF_PropertyValue *dsi, u32 *SampleRate, u32 *Channels)
 {
 	GF_M4ADecSpecInfo a_cfg;
-	GF_Err e = gf_m4a_get_config(dsi->value.data.ptr, dsi->value.data.size, &a_cfg);
+	GF_Err e;
 	if (SampleRate) *SampleRate = ds->sr;
 	if (Channels) *Channels = ds->nb_ch;
 
+	if (!dsi) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] missing AAC config\n"));
+		return GF_OK;
+	}
+	e = gf_m4a_get_config(dsi->value.data.ptr, dsi->value.data.size, &a_cfg);
 	if (e) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] corrupted AAC Config, %s\n", gf_error_to_string(e)));
 		return GF_NOT_SUPPORTED;
@@ -744,13 +749,15 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				AVCState avc;
 				GF_AVCConfig* avccfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avccfg->sequenceParameterSets, 0);
-				s32 idx;
-				memset(&avc, 0, sizeof(AVCState));
-				idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
-				if (idx>=0) {
-					Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
-					if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
-					ds->interlaced = is_interlaced;
+				if (sl) {
+					s32 idx;
+					memset(&avc, 0, sizeof(AVCState));
+					idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
+					if (idx>=0) {
+						Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
+						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+						ds->interlaced = is_interlaced;
+					}
 				}
 				gf_odf_avc_cfg_del(avccfg);
 			}
@@ -1026,6 +1033,26 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dcd_enh = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
+	if (!force_inband) {
+		force_inband = ds->inband_params;
+	}
+	if (!force_inband) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
+		if (p) {
+			//input uses inband parameters, force it on output regardless of bitstream switching mode
+			switch (p->value.uint) {
+			case GF_ISOM_SUBTYPE_AVC3_H264:
+			case GF_ISOM_SUBTYPE_AVC4_H264:
+			case GF_ISOM_SUBTYPE_LHE1:
+			case GF_ISOM_SUBTYPE_HEV1:
+				force_inband = GF_TRUE;
+				ds->inband_params = GF_TRUE;
+				break;
+			}
+		}
+	}
+
 
 	dovi = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DOLBY_VISION);
 	if (dovi) {
@@ -2377,8 +2404,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	const char *template;
 	u32 as_id = 0;
 	Bool single_template = GF_TRUE;
-	GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
-	GF_DashStream *ds = rep->playback.udta;
 	u32 i, j, count, nb_base, nb_streams;
 	GF_List *multi_pids = NULL;
 	u32 set_timescale = 0;
@@ -2387,6 +2412,13 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	Bool template_use_source = GF_FALSE;
 	Bool split_rep_names = GF_FALSE;
 	Bool split_set_names = GF_FALSE;
+	GF_DashStream *ds;
+	GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
+	if (!rep) {
+		assert(0);
+		return;
+	}
+	ds = rep->playback.udta;
 
 	count = gf_list_count(set->representations);
 
@@ -2630,7 +2662,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ds->template) strcpy(szTemplate, ds->template);
 		else strcpy(szTemplate, ctx->template);
 
-		if (use_inband) ds->inband_params = GF_TRUE;
+		if (use_inband)
+			ds->inband_params = GF_TRUE;
 
 		//if bitstream switching and templating, only set for the first one
 		if (i && set->bitstream_switching && ctx->stl && single_template) continue;
@@ -2899,6 +2932,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 static void dahser_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimeline *stl, GF_DASH_SegmentContext *sctx)
 {
 	GF_MPD_SegmentTimelineEntry *stl_e = gf_list_get(stl->entries, 0);
+	if (!stl_e) return;
+
 	if (stl_e->repeat_count) {
 		stl_e->repeat_count--;
 		stl_e->start_time += stl_e->duration;
@@ -3240,6 +3275,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		GF_MPD_Period *period = gf_list_get(ctx->mpd->periods, 0);
 		GF_MPD_AdaptationSet *as;
 		GF_MPD_Representation *rep;
+		assert(period);
 		i=0;
 		while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
 			j=0;
@@ -4253,9 +4289,13 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	//in case we use file name in templates
 	nb_sets = gf_list_count(ctx->current_period->period->adaptation_sets);
 	for (i=0; i<nb_sets; i++) {
+		GF_DashStream *ds;
+		GF_MPD_Representation *rep;
 		GF_MPD_AdaptationSet *set = gf_list_get(ctx->current_period->period->adaptation_sets, i);
-		GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
-		GF_DashStream *ds = rep->playback.udta;
+		assert(set);
+		rep = gf_list_get(set->representations, 0);
+		assert(rep);
+		ds = rep->playback.udta;
 
 		if (!dasher_template_use_source_url(ds->template ? ds->template : ctx->template))
 			continue;
@@ -4267,6 +4307,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			set = gf_list_get(ctx->current_period->period->adaptation_sets, j);
 			rep = gf_list_get(set->representations, 0);
+			assert(rep);
 			a_ds = rep->playback.udta;
 
 			if (!dasher_template_use_source_url(a_ds->template ? a_ds->template : ctx->template))

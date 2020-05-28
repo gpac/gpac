@@ -3263,7 +3263,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Bool has_video = GF_FALSE;
 	Bool has_audio = GF_FALSE;
 
-	if (!m3u8_name) return GF_BAD_PARAM;
+	if (!m3u8_name || !period) return GF_BAD_PARAM;
 
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
