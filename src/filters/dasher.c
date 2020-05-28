@@ -108,7 +108,7 @@ typedef struct
 	char *cues;
 	char *title, *source, *info, *cprt, *lang;
 	GF_List *location, *base;
-	Bool check_dur, skip_seg, loop, reschedule;
+	Bool check_dur, skip_seg, loop, reschedule, scope_deps;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool m2ts;
@@ -183,7 +183,7 @@ typedef struct _dash_stream
 	GF_FilterPid *ipid, *opid;
 
 	//stream properties
-	u32 codec_id, timescale, stream_type, dsi_crc, dsi_enh_crc, id, dep_id;
+	u32 codec_id, timescale, stream_type, dsi_crc, dsi_enh_crc, id, dep_id, src_id;
 	GF_Fraction sar, fps;
 	u32 width, height;
 	u32 sr, nb_ch;
@@ -618,6 +618,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_FRAC64(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_HAS_SYNC, ds->has_sync_points, GF_EOS)
 
+		if (ctx->scope_deps) {
+			const char *src_args = gf_filter_pid_orig_src_args(pid);
+			if (src_args) {
+				ds->src_id = gf_crc_32(src_args, strlen(src_args));
+			}
+		}
 		dc_crc = 0;
 		dsi = p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (p) dc_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
@@ -1763,7 +1769,14 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 {
 	const char *lang1, *lang2;
 	//muxed representations
-	if (ds_test->muxed_base == ds) return GF_TRUE;
+	if (ds_test->muxed_base) {
+		if (ds_test->muxed_base == ds)
+			return GF_TRUE;
+		//if muxed base rep has been registered with this AdaptationSet, also register this stream
+		if (gf_list_find(ds->set->representations, ds_test->muxed_base->rep)>=0)
+			return GF_TRUE;
+	}
+
 	//otherwise we have to be of same type
 	if (ds->stream_type != ds_test->stream_type) return GF_FALSE;
 
@@ -1829,9 +1842,10 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	}
 	//ok, we are video or audio with mixed codecs
 	if (ctx->mix_codecs) return GF_TRUE;
-	//we need dependencies
-	if (ds_test->dep_id && gf_list_find(ds->complementary_streams, ds_test) < 0)
+	//we need dependencies, unless SRD case
+	if (ds_test->dep_id && (ds_test->src_id==ds->src_id) && gf_list_find(ds->complementary_streams, ds_test) < 0) {
 		return GF_FALSE;
+	}
 	//we should be good
 	return GF_TRUE;
 }
@@ -1915,8 +1929,11 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
 				gf_list_add(set->supplemental_properties, desc);
 			} else {
-//				sprintf(value, "1,0,0,0,0,%d,%d", ds->srd.z, ds->srd.w);
-				sprintf(value, "1,0,0,0,0"); //compat with old arch, don't set W and H
+				if (gf_sys_old_arch_compat()) {
+					sprintf(value, "1,0,0,0,0"); //compat with old arch, don't set W and H
+				} else {
+					sprintf(value, "1,0,0,0,0,%d,%d", ds->srd.z, ds->srd.w);
+				}
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
 				gf_list_add(set->essential_properties, desc);
 			}
@@ -2207,6 +2224,25 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		} else {
 			gf_list_rem(ctx->postponed_pids, res);
 		}
+	} else if (!ds->tile_base) {
+		gf_list_del_item(ctx->postponed_pids, ds);
+	}
+
+	//tile base not live profile, make sure all our deps are ready
+	if (ds->tile_base && !ctx->sseg) {
+		u32 i, count = gf_list_count(ds->complementary_streams);
+		for (i=0; i<count; i++) {
+			GF_DashStream *a_ds = gf_list_get(ds->complementary_streams, i);
+			//dep not ready
+			if (!a_ds->opid) {
+				if (gf_list_find(ctx->postponed_pids, a_ds)<0) {
+					gf_list_add(ctx->postponed_pids, a_ds);
+				}
+				gf_list_del_item(ctx->postponed_pids, ds);
+				gf_list_add(ctx->postponed_pids, ds);
+				return;
+			}
+		}
 	}
 
 	if (ctx->sigfrag)
@@ -2260,7 +2296,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	}
 
 
-	if (ds->tile_base && !ctx->sseg) {
+	if (ds->tile_base && !ctx->sseg && !ctx->sfile) {
 		u32 i, count = gf_list_count(ds->complementary_streams);
 		if (!ds->multi_tracks) ds->multi_tracks = gf_list_new();
 		gf_list_reset(ds->multi_tracks);
@@ -4065,7 +4101,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			GF_DashStream *a_ds;
 			if (i==j) continue;
 			a_ds = gf_list_get(ctx->current_period->streams, j);
-			if (a_ds->dep_id && (a_ds->dep_id==ds->id) ) {
+			if (a_ds->dep_id && (a_ds->src_id==ds->src_id) && (a_ds->dep_id==ds->id) ) {
 				gf_list_add(ds->complementary_streams, a_ds);
 				has_deps = GF_TRUE;
 				if (!a_ds->rep->dependency_id) a_ds->rep->dependency_id = gf_strdup(ds->rep->id);
@@ -4131,7 +4167,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		for (i=0; i<count; i++) {
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 			//assign rep bitrates
-			if (ds->dep_id) ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
+			if (ds->dep_id)
+				ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
 
 			if (gf_list_count(ds->complementary_streams)) {
 				u32 nb_str = gf_list_count(ds->complementary_streams);
@@ -5315,7 +5352,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
 				if (p) ds->pts_minus_cts = p->value.sint;
 
-				set_start_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
+				set_start_with_sap = ctx->sseg ? base_ds->set->subsegment_starts_with_sap : base_ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
 					//force sap type to 1 for non-visual streams if strict_sap is set to off
 					if ((ds->stream_type!=GF_STREAM_VISUAL) && (ctx->strict_sap==DASHER_SAP_OFF) ) {
@@ -6453,8 +6490,9 @@ static const GF_FilterArgs DasherArgs[] =
 				"- out: segment split as soon as `TSS` is exceeded (`TSS` <= segment_start)\n"
 				"- closest: segment split at closest SAP to theoretical bound\n"
 				"- in: `TSS` is always in segment (`TSS` >= segment_start)", GF_PROP_UINT, "out", "out|closest|in", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(reschedule), "reschedule sources with no period ID assigned once done (dynamic mode only)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(reschedule), "reschedule sources with no period ID assigned once done (dynamic mode only)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sreg), "regulate the session when using subdur to only generate segments from the past up to live edge", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(scope_deps), "scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
