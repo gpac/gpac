@@ -752,7 +752,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
     case kVTVideoDecoderMalfunctionErr:
         return GF_IO_ERR;
     case kVTVideoDecoderBadDataErr :
-        return GF_BAD_PARAM;
+        return GF_NOT_SUPPORTED;
 
 	case kVTPixelTransferNotSupportedErr:
 	case kVTCouldNotFindVideoDecoderErr:
