@@ -1563,7 +1563,7 @@ sample_entry_setup:
 			}
 			if (!ctx->xps_inband) {
 				if (ctx->init_movie_done) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] AVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] AVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant)\n"));
 				}
 				ctx->xps_inband = 2;
 			}
@@ -1580,7 +1580,7 @@ sample_entry_setup:
 			}
 			if (!ctx->xps_inband) {
 				if (ctx->init_movie_done) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] HEVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] HEVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant)\n"));
 				}
 				ctx->xps_inband = 2;
 			}
