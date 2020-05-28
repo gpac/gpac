@@ -1753,7 +1753,7 @@ struct __gf_filter_register
 
 	A filter may return GF_EOS to indicate no more data is expected to be produced by this filter
 
-	A filter may return GF_PROFILE_NOT_SUPPORTED to indicate that the filter is not supported (when unable to detect this at configure) and trigger a relink of the filter graph.
+	A filter may return GF_PROFILE_NOT_SUPPORTED to indicate that the filter is not supported (when unable to detect this at configure) and trigger a relink of the filter graph unless disabled at session level.
 	*/
 	GF_Err (*process)(GF_Filter *filter);
 
@@ -1765,10 +1765,11 @@ struct __gf_filter_register
 	\param filter the target filter
 	\param PID the input PID to configure
 	\param is_remove indicates the input PID is removed
-	\return error if any. A filter returning an error will trigger a reconfigure of the chain to find another filter.
-	a filter may return GF_REQUIRES_NEW_INSTANCE to indicate the PID cannot be processed
-	in this instance but could be in a clone of the filter.
-	a filter may return GF_FILTER_NOT_SUPPORTED to indicate the PID cannot be processed and no alternate chain resolution would help
+	\return error if any.
+	a return error of GF_REQUIRES_NEW_INSTANCE indicates the PID cannot be processed in this instance but could be in a clone of the filter.
+	a return error of GF_FILTER_NOT_SUPPORTED indicates the PID cannot be processed and no alternate chain resolution would help
+	a return error of GF_BAD_PARAM indicates the PID cannot be processed and no alternate chain resolution would help, and throws a log error message
+	ano other return error will trigger a reconfigure of the chain to find another filter unless disabled at session level.
 	*/
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *PID, Bool is_remove);
 
