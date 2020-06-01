@@ -538,6 +538,7 @@ void PrintImportUsage()
 		"  - nclx,p,t,m,r: same as `nclx` with r full range flag\n"
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile\n"
+		"- :dv-profile=VAL: set the Dolby Vision profile\n"
 		"- :tc=VAL: inject a single QT timecode. `VAL` is formated as:\n"
 		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"

@@ -965,6 +965,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_color_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_bit_depth) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_dolby_vision_profile) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_pixel_aspect_ratio) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_layout_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_matrix) )
