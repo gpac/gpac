@@ -1356,6 +1356,9 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 /*since v2 you must specify w/h of video tracks for authoring tools (no decode the video cfg / first sample)*/
 GF_Err gf_isom_set_visual_bit_depth(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u16 bitDepth);
 
+/*force Dolby Vision profile: mainly used when the bitstream doesn't contain all the necessary information*/
+GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 dvProfile);
+
 /*mainly used for 3GPP text since most ISO-based formats ignore these (except MJ2K)
 all coord values are expressed as 16.16 fixed point floats*/
 GF_Err gf_isom_set_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 width, u32 height, s32 translation_x, s32 translation_y, s16 layer);
