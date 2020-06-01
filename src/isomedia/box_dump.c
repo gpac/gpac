@@ -4090,12 +4090,12 @@ GF_Err sidx_box_dump(GF_Box *a, FILE * trace)
 	u32 i;
 	GF_SegmentIndexBox *p = (GF_SegmentIndexBox *)a;
 	gf_isom_box_dump_start(a, "SegmentIndexBox", trace);
+
 	gf_fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\"", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
-
-	if (p->compressed_diff)
+		if (p->compressed_diff)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
-
 	gf_fprintf(trace, ">\n");
+
 	for (i=0; i<p->nb_refs; i++) {
 		gf_fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" startsWithSAP=\"%d\" SAP_type=\"%d\" SAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].starts_with_SAP, p->refs[i].SAP_type, p->refs[i].SAP_delta_time);
 	}
@@ -4115,8 +4115,8 @@ GF_Err ssix_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, "subsegment_count=\"%d\"", p->subsegment_count);
 	if (p->compressed_diff)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
-
 	gf_fprintf(trace, ">\n");
+
 	for (i = 0; i < p->subsegment_count; i++) {
 		gf_fprintf(trace, "<Subsegment range_count=\"%d\">\n", p->subsegments[i].range_count);
 		for (j = 0; j < p->subsegments[i].range_count; j++) {

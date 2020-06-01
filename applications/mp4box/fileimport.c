@@ -253,6 +253,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool has_mx=GF_FALSE;
 	s32 mx[9];
 	u32 bitdepth=0;
+	u32 dv_profile=0; /*Dolby Vision*/
 	u32 clr_type=0;
 	u32 clr_prim;
 	u32 clr_tranf;
@@ -693,6 +694,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				goto exit;
 			}
 		}
+		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
+			dv_profile = atoi(ext + 12);
+		}
 		else if (!strnicmp(ext+1, "tc=", 3)) {
 			char *tc_str = ext+4;
 			if (tc_str[0] == 'd') {
@@ -970,6 +974,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 			if (clr_type) {
 				gf_isom_set_visual_color_info(dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
+			}
+			if (dv_profile) {
+				gf_isom_set_dolby_vision_profile(dest, track, 1, dv_profile);
 			}
 
 			if (set_ccst) {
