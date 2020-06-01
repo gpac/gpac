@@ -1700,7 +1700,7 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	//create a new entry
-	entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HVC1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVC1);
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
 	entry->hevc_config->config = HEVC_DuplicateConfig(cfg);

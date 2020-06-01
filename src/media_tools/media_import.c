@@ -9374,7 +9374,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			/*this PMT is not the one of our stream*/
 			if (!found || !ts->ess[import->trackID]) return;
 
-			/*make sure all the streams in this programe are in RAW pes framing mode, so that we get notified of the
+			/*make sure all the streams in this program are in RAW pes framing mode, so that we get notified of the
 			DTS/PTS*/
 			for (i=0; i<count; i++) {
 				es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
