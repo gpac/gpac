@@ -1792,7 +1792,7 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		return GF_OK;
 	}
 	if (!dovi) {
-		dovi = (GF_DOVIConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_DVCC);
+		dovi = (GF_DOVIConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DVCC);
 		((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config = dovi;
 	}
 	entry->type = GF_ISOM_BOX_TYPE_DVHE;
