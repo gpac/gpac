@@ -3947,8 +3947,10 @@ typedef enum
 {
 	/*! moof is stored before mdat - will require temporary storage of data in memory*/
 	GF_ISOM_FRAG_MOOF_FIRST = 1,
+#ifdef GF_ENABLE_CTRN
 	/*! use compact fragment syntax*/
 	GF_ISOM_FRAG_USE_COMPACT = 1<<1,
+#endif
 } GF_ISOStartFragmentFlags;
 /*! starts a new movie fragment
 \param isom_file the target ISO file
@@ -4105,10 +4107,6 @@ typedef enum
 	This will enable data cache
 	param: interleave ID*/
 	GF_ISOM_TRUN_SET_INTERLEAVE_ID,
-	/*! merge truns when using sample interleaving - EXPERIMENTAL
-	param: ignored*/
-	GF_ISOM_TRUN_MERGE_INTERLEAVE,
-
 } GF_ISOTrackFragmentOption;
 
 /*! sets a track fragment option. Options can be set at the beginning of each new fragment only, and for the

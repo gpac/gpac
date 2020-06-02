@@ -129,7 +129,10 @@ enum
 	GF_ISOM_BOX_TYPE_TRAF	= GF_4CC( 't', 'r', 'a', 'f' ),
 	GF_ISOM_BOX_TYPE_TFHD	= GF_4CC( 't', 'f', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_TRUN	= GF_4CC( 't', 'r', 'u', 'n' ),
+#ifdef GF_ENABLE_CTRN
 	GF_ISOM_BOX_TYPE_CTRN	= GF_4CC( 'c', 't', 'r', 'n' ),
+#endif
+
 #endif
 
 
@@ -2510,8 +2513,10 @@ typedef struct
 	GF_TFBaseMediaDecodeTimeBox *tfdt;
 
 	u64 moof_start_in_bs;
+#ifdef GF_ENABLE_CTRN
 	Bool use_ctrn;
 	Bool use_inherit;
+#endif
 
 	u32 interleave_id;
 	u8 merge_sample_interleave;
@@ -2534,6 +2539,8 @@ enum
 	GF_ISOM_TRUN_SIZE			= 0x200,
 	GF_ISOM_TRUN_FLAGS			= 0x400,
 	GF_ISOM_TRUN_CTS_OFFSET		= 0x800,
+
+#ifdef GF_ENABLE_CTRN
 	/*compact trun flags (not all of them, field indices are stored in trun box)*/
 	GF_ISOM_CTRN_FIRST_SAMPLE = 1<<1, //0x00000002
 	GF_ISOM_CTRN_DATAOFFSET_16 = 1<<2, //0x00000004
@@ -2543,6 +2550,8 @@ enum
 	GF_ISOM_CTRN_INHERIT_FLAGS = 1<<5,
 	GF_ISOM_CTRN_INHERIT_SIZE = 1<<6,
 	GF_ISOM_CTRN_INHERIT_DUR = 1<<7
+#endif
+
 };
 
 typedef struct
@@ -2561,6 +2570,7 @@ typedef struct
 	/*in write mode with data caching*/
 	GF_BitStream *cache;
 
+#ifdef GF_ENABLE_CTRN
 	/*the remaining is internal for compact trun*/
 	/*use compact mode*/
 	Bool use_ctrn;
@@ -2573,13 +2583,16 @@ typedef struct
 	u8 ctrn_dur, ctrn_size, ctrn_sample_flags, ctrn_ctts;
 	/*use inherit in write mode- in the current version, only size will be set and all other fields inherited*/
 	Bool use_inherit;
+#endif
 
 	u32 interleave_id;
 	u32 first_sample_idx;
 	u32 *sample_order;
 } GF_TrackFragmentRunBox;
 
+#ifdef GF_ENABLE_CTRN
 u32 gf_isom_ctrn_field_size_bits(u32 field_idx);
+#endif
 
 typedef struct
 {

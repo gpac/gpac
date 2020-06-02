@@ -7005,6 +7005,8 @@ void trun_box_del(GF_Box *s)
 	gf_free(ptr);
 }
 
+#ifdef GF_ENABLE_CTRN
+
 static u32 ctrn_field_size(u32 field_idx)
 {
 	if (field_idx==3) return 4;
@@ -7140,6 +7142,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 
 	return GF_OK;
 }
+#endif
 
 GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 {
@@ -7147,11 +7150,13 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_TrunEntry *p;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 
+#ifdef GF_ENABLE_CTRN
 	if (ptr->type == GF_ISOM_BOX_TYPE_CTRN) {
 		ptr->type = GF_ISOM_BOX_TYPE_TRUN;
 		ptr->use_ctrn = GF_TRUE;
 		return ctrn_box_read(s, bs);
 	}
+#endif
 
 	//check this is a good file
 	if ((ptr->flags & GF_ISOM_TRUN_FIRST_FLAG) && (ptr->flags & GF_ISOM_TRUN_FLAGS))
@@ -7226,6 +7231,7 @@ GF_Box *trun_box_new()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+#ifdef GF_ENABLE_CTRN
 static void ctrn_write_sample_flags(GF_BitStream *bs, u32 flags, u32 field_size)
 {
 	if (!field_size) return;
@@ -7313,6 +7319,7 @@ GF_Err ctrn_box_write(GF_Box *s, GF_BitStream *bs)
 
 	return GF_OK;
 }
+#endif
 
 GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7321,8 +7328,10 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
+#ifdef GF_ENABLE_CTRN
 	if (ptr->use_ctrn)
 		return ctrn_box_write(s, bs);
+#endif
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
@@ -7376,6 +7385,7 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+#ifdef GF_ENABLE_CTRN
 static u32 ctrn_sample_flags_to_index(u32 val)
 {
 	if (!val) return 0;
@@ -7538,14 +7548,17 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 	}
 	return GF_OK;
 }
+#endif
 
 GF_Err trun_box_size(GF_Box *s)
 {
 	u32 i, count;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 
+#ifdef GF_ENABLE_CTRN
 	if (ptr->use_ctrn)
 		return ctrn_box_size(ptr);
+#endif
 
 	ptr->size += 4;
 	//The rest depends on the flags

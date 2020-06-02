@@ -179,13 +179,6 @@ enum
 
 enum
 {
-	MP4MX_TRUN_INTER_NO=0,
-	MP4MX_TRUN_INTER_RUNS,
-	MP4MX_TRUN_INTER_MERGE,
-};
-
-enum
-{
 	MP4MX_VODCACHE_ON=0,
 	MP4MX_VODCACHE_INSERT,
 	MP4MX_VODCACHE_REPLACE,
@@ -225,14 +218,16 @@ typedef struct
 	Bool noroll;
 	Bool saio32;
 	u32 compress;
-	u32 trun_inter;
+	Bool trun_inter;
 	char *boxpatch;
 	Bool fcomp;
 	Bool deps;
 	Bool mvex;
 	u32 sdtp_traf;
+#ifdef GF_ENABLE_CTRN
 	Bool ctrn;
 	Bool ctrni;
+#endif
 
 	//internal
 	Bool owns_mov;
@@ -3600,8 +3595,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			case GF_CODECID_J2K:
 				break;
 			case GF_CODECID_HEVC_TILES:
+#ifdef GF_ENABLE_CTRN
 				if (ctx->ctrn && ctx->ctrni)
 					inherit_traf_from_track = traf_inherit_base_id;
+#endif
 				break;
 			default:
 				if (!ref_tkw) ref_tkw = tkw;
@@ -3837,7 +3834,9 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 	ctx->msn += ctx->msninc;
 
 	if (ctx->moof_first) flags |= GF_ISOM_FRAG_MOOF_FIRST;
+#ifdef GF_ENABLE_CTRN
 	if (ctx->ctrn) flags |= GF_ISOM_FRAG_USE_COMPACT;
+#endif
 
 	e = gf_isom_start_fragment(ctx->file, flags);
 	if (e) {
@@ -3877,8 +3876,6 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 
 		if (ctx->trun_inter) {
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRUN_SET_INTERLEAVE_ID, 0);
-			if (ctx->trun_inter==MP4MX_TRUN_INTER_MERGE)
-				gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRUN_MERGE_INTERLEAVE, 0);
 		}
 
 		if (ctx->sdtp_traf)
@@ -4273,8 +4270,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (ctx->straf && (i+1 < count)) {
 			GF_ISOStartFragmentFlags flags = 0;
 			if (ctx->moof_first) flags |= GF_ISOM_FRAG_MOOF_FIRST;
+#ifdef GF_ENABLE_CTRN
 			if (ctx->ctrn) flags |= GF_ISOM_FRAG_USE_COMPACT;
-
+#endif
 			e = gf_isom_start_fragment(ctx->file, flags);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to start new fragment: %s\n", gf_error_to_string(e) ));
@@ -4902,9 +4900,11 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	if (!ctx->tracks)
 		ctx->tracks = gf_list_new();
 
+#ifdef GF_ENABLE_CTRN
 	if (ctx->ctrni)
 		ctx->ctrn = GF_TRUE;
-		
+#endif
+
 	if (ctx->m4cc) {
 		if (strlen(ctx->m4cc)==4)
 			ctx->eos_marker = GF_4CC(ctx->m4cc[0], ctx->m4cc[1], ctx->m4cc[2], ctx->m4cc[3]);
@@ -5358,8 +5358,10 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(saio32), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+#ifdef GF_ENABLE_CTRN
 	{ OFFS(ctrn), "use compact track run (experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctrni), "use inheritance in compact track run for HEVC tile tracks (highly experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+#endif
 	{ OFFS(sseg), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 
 	{ OFFS(compress), "set top-level box compression mode\n"
@@ -5371,11 +5373,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 						"- all: compress moov, moof, sidx and ssix boxes", GF_PROP_UINT, "no", "no|moov|moof|sidx|ssix|all", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fcomp), "force using compress box even when compressed size is larger than uncompressed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
-	{ OFFS(trun_inter), "interleave samples in trun based on the temporal level, the lowest level are stored first\n"
-		"- no: disable sample interleaving\n"
-		"- runs: create multiple track runs to reorder sample (vanilla ISOBMFF)\n"
-		"- merge: create a single track run with a sample reorder map - EXPERIMENTAL"
-		, GF_PROP_UINT, "no", "no|runs|merge", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(trun_inter), "interleave samples in trun based on the temporal level, the lowest level are stored first - this will create as many trun as required", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},

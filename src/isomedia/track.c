@@ -616,6 +616,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			//we just need to overrite its value if inherited
 			cts_offset = ent->CTS_Offset;
 
+#ifdef GF_ENABLE_CTRN
 			if (trun->use_ctrn) {
 				if (!j && (trun->ctrn_flags & GF_ISOM_CTRN_FIRST_SAMPLE) ) {
 					if (trun->ctrn_first_dur) duration = ent->Duration;
@@ -648,7 +649,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 						cts_offset = ref_entry->CTS_Offset;
 				}
 
-			} else {
+			} else
+#endif
+			{
 				if (trun->flags & GF_ISOM_TRUN_DURATION) duration = ent->Duration;
 				if (trun->flags & GF_ISOM_TRUN_SIZE) size = ent->size;
 				if (trun->flags & GF_ISOM_TRUN_FLAGS) {
