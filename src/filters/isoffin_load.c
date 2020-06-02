@@ -366,6 +366,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (depends_on_id && (depends_on_id != esid))
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(depends_on_id));
 
+		if (gf_isom_get_track_count(read->mov)>1) {
+			char szPName[1024];
+			const char *szST = gf_stream_type_name(streamtype);
+			sprintf(szPName, "%c%d", szST[0], esid);
+			gf_filter_pid_set_name(pid, szPName);
+		}
+
 		//MPEG-4 systems present
 		if (use_iod)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_ESID, &PROP_UINT(esid));

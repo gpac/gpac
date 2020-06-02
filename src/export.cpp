@@ -1011,7 +1011,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_add_blink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_wrap) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_to_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_display_flags) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ismacryp_protection) )
