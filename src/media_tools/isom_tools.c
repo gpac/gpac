@@ -1131,7 +1131,10 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 		gf_bs_del(bs);
 		return esd;
 	}
-
+	if (mp4->convert_streaming_text && ((subtype == GF_ISOM_SUBTYPE_TEXT) || (subtype == GF_ISOM_SUBTYPE_TX3G))
+	) {
+		return gf_isom_get_esd(mp4, track, stsd_idx);
+	}
 	return NULL;
 }
 

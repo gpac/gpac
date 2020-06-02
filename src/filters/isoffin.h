@@ -62,7 +62,7 @@ typedef struct
 	Bool analyze;
 	char *catseg;
 	Bool sigfrag;
-	Bool nocrypt;
+	Bool nocrypt, strtxt;
 	u32 mstore_purge, mstore_samples, mstore_size;
 
 	//internal

@@ -1423,7 +1423,13 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			importer->esd->slConfig = esd->slConfig;
 			esd->slConfig = NULL;
 		}
-		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+		if (esd) {
+			gf_odf_desc_del((GF_Descriptor *) esd);
+		}
+
+		if (!importer->esd->ESID) {
+			importer->esd->ESID = importer->final_trackID;
+		}
 	}
 
 	if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);

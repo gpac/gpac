@@ -135,6 +135,9 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	if (!read->input_loaded && read->frag_type)
 		read->refresh_fragmented = GF_TRUE;
 
+	if (read->strtxt)
+		gf_isom_text_set_streaming_mode(read->mov, GF_TRUE);
+
 	return isor_declare_objects(read);
 }
 
@@ -1322,6 +1325,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(mstore_size), "target buffer size in bytes", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };

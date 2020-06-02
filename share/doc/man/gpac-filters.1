@@ -776,6 +776,8 @@ mstore_purge (uint, default: 50000): minimum size in bytes between memory purges
 .br
 mstore_samples (uint, default: 50): minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible
 .br
+strtxt (bool, default: false): load text tracks (apple/tx3g) as MPEG-4 streaming text tracks
+.br
 
 .br
 .SH bifsdec
@@ -4029,9 +4031,11 @@ sbound (enum, default: out):   indicate how the theoretical segment start TSS (=
 .br
 
 .br
-reschedule (bool):             reschedule sources with no period ID assigned once done (dynamic mode only)
+reschedule (bool, default: false): reschedule sources with no period ID assigned once done (dynamic mode only)
 .br
 sreg (bool, default: false):   regulate the session when using subdur to only generate segments from the past up to live edge
+.br
+scope_deps (bool, default: true): scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources
 .br
 
 .br
@@ -5854,7 +5858,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev144-gae46bd917-filters
+build: 0.9.0-DEV-rev194-ga49bad5c8-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
