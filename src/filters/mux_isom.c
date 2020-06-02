@@ -1343,7 +1343,11 @@ sample_entry_setup:
 		override_stype = GF_STREAM_ND_SUBPIC;
 		comp_name = "VobSub";
 		break;
-
+	case GF_CODECID_TEXT_MPEG4:
+		use_m4sys = GF_TRUE;
+		gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_MEDIA_SCENE);
+		comp_name = "MPEG4 Streaming Text";
+		break;
 	case GF_CODECID_AV1:
 		use_gen_sample_entry = GF_FALSE;
 		m_subtype = GF_ISOM_SUBTYPE_AV01;
@@ -1600,7 +1604,9 @@ sample_entry_setup:
 
 	if (!use_dref) src_url = NULL;
 
-
+	if (use_m4sys && !gf_codecid_oti(codec_id)) {
+		use_m4sys = GF_FALSE;
+	}
 	//nope, create sample entry
 	if (use_m4sys) {
 		GF_ESD *esd = gf_odf_desc_esd_new(2);

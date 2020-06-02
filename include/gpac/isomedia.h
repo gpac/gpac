@@ -4710,16 +4710,6 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *isom_file, u32 trackNumber, u32 
 */
 GF_Err gf_isom_new_text_description(GF_ISOFile *isom_file, u32 trackNumber, GF_TextSampleDescriptor *desc, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
 
-/*! updates text sample description
-\param isom_file the target ISO file
-\param trackNumber the target track
-\param sampleDescriptionIndex the target sample description index
-\param desc the text sample descriptor to use
-\return error if any
-*/
-GF_Err gf_isom_update_text_description(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_TextSampleDescriptor *desc);
-
-
 /*! resets text sample content
 \param tx_samp the target text sample
 \return error if any
@@ -4731,13 +4721,6 @@ GF_Err gf_isom_text_reset(GF_TextSample * tx_samp);
 */
 GF_Err gf_isom_text_reset_styles(GF_TextSample *tx_samp);
 
-/*! sets UTF16 marker for text data. This MUST be called on an empty sample. If text data added later
-on (cf below) is not formatted as UTF16 data(2 bytes char) the resulting text sample won't be compliant,
-but this library won't warn
-\param tx_samp the target text sample
-\return error if any
-*/
-GF_Err gf_isom_text_set_utf16_marker(GF_TextSample *tx_samp);
 /*! appends text to sample - text_len is the number of bytes to be written from text_data. This allows
 handling UTF8 and UTF16 strings in a transparent manner
 \param tx_samp the target text sample
@@ -4759,21 +4742,13 @@ GF_Err gf_isom_text_add_style(GF_TextSample *tx_samp, GF_StyleRecord *rec);
 \return error if any
 */
 GF_Err gf_isom_text_add_highlight(GF_TextSample *tx_samp, u16 start_char, u16 end_char);
-/*! sets highlight color for the whole sample
-\param tx_samp the target text sample
-\param r red component value
-\param g green component value
-\param b blue component value
-\param a alpha component value
-\return error if any
-*/
-GF_Err gf_isom_text_set_highlight_color(GF_TextSample *tx_samp, u8 r, u8 g, u8 b, u8 a);
+
 /*! sets highlight color for the whole sample
 \param tx_samp the target text sample
 \param argb color value
 \return error if any
 */
-GF_Err gf_isom_text_set_highlight_color_argb(GF_TextSample *tx_samp, u32 argb);
+GF_Err gf_isom_text_set_highlight_color(GF_TextSample *tx_samp, u32 argb);
 /*! appends a new karaoke sequence in the sample
 \param tx_samp the target text sample
 \param start_time karaoke start time expressed in text stream timescale, but relative to the sample media time
@@ -4826,12 +4801,6 @@ GF_Err gf_isom_text_add_blink(GF_TextSample *tx_samp, u16 start_char, u16 end_ch
 */
 GF_Err gf_isom_text_set_wrap(GF_TextSample *tx_samp, u8 wrap_flags);
 
-/*! formats sample as a regular GF_ISOSample.
-The resulting sample will always be marked as random access
-\param tx_samp the target text sample
-\return the corresponding serialized ISO sample
-*/
-GF_ISOSample *gf_isom_text_to_sample(const GF_TextSample *tx_samp);
 /*! formats sample as a regular GF_ISOSample payload in a bitstream object.
 \param tx_samp the target text sample
 \param bs thetarget bitstream

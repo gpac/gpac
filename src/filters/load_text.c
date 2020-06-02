@@ -2036,7 +2036,7 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 				has_text = GF_TRUE;
 			}
 			else if (!strcmp(att->name, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, (u32) (1000*atoi(att->value)));
-			else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, ttxt_get_color(att->value));
+			else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color(samp, ttxt_get_color(att->value));
 			else if (!strcmp(att->name, "wrap") && !strcmp(att->value, "Automatic")) gf_isom_text_set_wrap(samp, 0x01);
 		}
 
@@ -2515,7 +2515,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 				while ((att=(GF_XMLAttribute *)gf_list_enum(desc->attributes, &k))) {
 					if (!strcmp(att->name, "targetEncoding") && !strcmp(att->value, "utf16")) ;//is_utf16 = 1;
 					else if (!strcmp(att->name, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, atoi(att->value) );
-					else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, tx3g_get_color(att->value));
+					else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color(samp, tx3g_get_color(att->value));
 				}
 				start = end = 0;
 				k=0;

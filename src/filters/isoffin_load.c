@@ -109,8 +109,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	} else {
 		m_subtype = gf_isom_get_media_subtype(read->mov, track, stsd_idx);
 	}
-
-
+	
 	audio_fmt = 0;
 	pix_fmt = 0;
 	ocr_es_id = 0;
