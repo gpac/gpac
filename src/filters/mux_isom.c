@@ -607,6 +607,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	if (ctx->opid && is_true_pid) {
 		Bool found=GF_FALSE;
 		gf_filter_pid_copy_properties(ctx->opid, pid);
+		if (gf_list_count(ctx->tracks)>1)
+			gf_filter_pid_set_name(ctx->opid, "isobmf_mux");
+
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
@@ -4598,7 +4601,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 				strcat(szStatus, szTK);
 				status_changed = GF_TRUE;
 				if (pc) {
-					sprintf(szTK, " %d %%", pc);
+					sprintf(szTK, " %d %%", pc/100);
 					strcat(szStatus, szTK);
 				}
 			} else {

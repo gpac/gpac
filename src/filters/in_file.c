@@ -352,6 +352,14 @@ static GF_Err filein_process(GF_Filter *filter)
 		ctx->pck_out = GF_TRUE;
 		gf_filter_pck_send(pck);
 		gf_filter_pid_set_eos(ctx->pid);
+
+		if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
+			char szStatus[1024], *szSrc;
+			szSrc = gf_file_basename(ctx->src);
+
+			sprintf(szStatus, "%s: EOS (dispatch canceled after "LLD" b, file size "LLD" b)", szSrc, (s64) ctx->file_pos, (s64) ctx->file_size);
+			gf_filter_update_status(filter, 10000, szStatus);
+		}
 		return GF_OK;
 	}
 	if (ctx->is_random) {

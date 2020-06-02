@@ -4296,7 +4296,7 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	}
 	if (prop_4cc==GF_PROP_PID_TIMESCALE) map->timescale = value->value.uint;
 
-	if (value && (prop_4cc == GF_PROP_PID_ID)) {
+	if (value && (prop_4cc == GF_PROP_PID_ID) && !pid->name) {
 		char szName[100];
 		sprintf(szName, "PID%d", value->value.uint);
 		gf_filter_pid_set_name(pid, szName);

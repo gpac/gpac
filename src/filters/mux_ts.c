@@ -727,6 +727,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_name(ctx->opid, "ts_mux");
 	}
 	//set output properties at init or reconfig
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
@@ -947,6 +948,7 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
+			gf_filter_pid_set_name(ctx->idx_opid, "ts_idx");
 		}
 		idx_pck = gf_filter_pck_new_alloc(ctx->idx_opid, segidx_size, &output);
 

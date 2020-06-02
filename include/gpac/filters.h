@@ -492,7 +492,9 @@ typedef struct
 {
 	/*!filter object*/
 	const GF_Filter *filter;
-	
+	/*!set if filter is only an alias, in which case all remaining fields of the structure are not set*/
+	const GF_Filter *filter_alias;
+
 	/*!number of tasks executed by this filter*/
 	u64 nb_tasks_done;
 	/*!number of packets processed by this filter*/
@@ -536,9 +538,9 @@ typedef struct
 	Bool in_eos;
 	/*!set to GF_TRUE if filter has seen end of stream*/
 	GF_FSFilterType type;
-	/*!set to streamtype of output PID if this is not a demux*/
+	/*!set to streamtype of output PID if single output, GF_STREAM_UNKNOWN otherwise*/
 	u32 stream_type;
-	/*!set to codecid of output PID*/
+	/*!set to codecid of output PID if single output, GF_CODECID_NONE otherwise*/
 	u32 codecid;
 } GF_FilterStats;
 

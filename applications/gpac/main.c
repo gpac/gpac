@@ -817,24 +817,25 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	for (i=0; i<count; i++) {
 		GF_FilterStats stats;
 		gf_fs_get_filter_stats(fsess, i, &stats);
-		if (stats.done) {
+		if (stats.done || stats.filter_alias) {
 			nb_active--;
 			continue;
 		}
 		if (report_filter && (!strstr(report_filter, stats.reg_name)))
 			continue;
+
+		gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
+		fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
+		gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+		if (stats.name && strcmp(stats.name, stats.reg_name))
+			fprintf(stderr, " (%s)", stats.reg_name);
+		fprintf(stderr, ": ");
+
 		if (stats.status) {
-			gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
-			fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
-			gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
-			fprintf(stderr, ": %s\n", stats.status);
+			fprintf(stderr, "%s\n", stats.status);
 		} else {
-			gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
-			fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
-			gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
-			if (stats.name && strcmp(stats.name, stats.reg_name))
-				fprintf(stderr, " (%s)", stats.reg_name);
-			fprintf(stderr, ": %s ", gf_stream_type_name(stats.stream_type));
+			if (stats.stream_type)
+				fprintf(stderr, "%s ", gf_stream_type_name(stats.stream_type));
 			if (stats.codecid)
 			 	fprintf(stderr, "(%s) ", gf_codecid_name(stats.codecid) );
 
@@ -846,9 +847,9 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 				fprintf(stderr, "% 10"LLD_SUF" pck %02.02f FPS ", (s64) stats.nb_out_pck, pck_per_sec);
 			} else {
 				if (stats.nb_pid_in)
-					fprintf(stderr, "in %d PIDs % 10"LLD_SUF" pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
+					fprintf(stderr, "%d input PIDs % 10"LLD_SUF" pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
 				if (stats.nb_pid_out)
-					fprintf(stderr, "out %d PIDs % 10"LLD_SUF" pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
+					fprintf(stderr, "%d output PIDs % 10"LLD_SUF" pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
 			}
 			if (stats.in_eos)
 				fprintf(stderr, "- EOS");
