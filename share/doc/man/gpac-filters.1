@@ -1876,10 +1876,6 @@ noroll (bool, default: false): disable roll sample grouping
 .br
 saio32 (bool, default: false): set single segment mode for dash
 .br
-ctrn (bool, default: false):   use compact track run (experimental)
-.br
-ctrni (bool, default: false):  use inheritance in compact track run for HEVC tile tracks (highly experimental)
-.br
 compress (enum, default: no):  set top-level box compression mode
 .br
 * no: disable box compression
@@ -1898,15 +1894,7 @@ compress (enum, default: no):  set top-level box compression mode
 .br
 fcomp (bool, default: false):  force using compress box even when compressed size is larger than uncompressed
 .br
-trun_inter (enum, default: no): interleave samples in trun based on the temporal level, the lowest level are stored first
-.br
-* no: disable sample interleaving
-.br
-* runs: create multiple track runs to reorder sample (vanilla ISOBMFF)
-.br
-* merge: create a single track run with a sample reorder map - EXPERIMENTAL
-.br
-
+trun_inter (bool, default: false): interleave samples in trun based on the temporal level, the lowest level are stored first - this will create as many trun as required
 .br
 block_size (uint, default: 10000): target output block size, 0 for default internal value (10k)
 .br
@@ -5858,7 +5846,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 0.9.0-DEV-rev194-ga49bad5c8-filters
+build: 0.9.0-DEV-rev196-gdbab7c3a0-filters
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

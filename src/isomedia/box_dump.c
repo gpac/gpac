@@ -2419,12 +2419,15 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 
 	p = (GF_TrackFragmentRunBox *)a;
 	flags = p->flags;
+#ifdef GF_ENABLE_CTRN
 	if (p->use_ctrn) {
 		p->flags = p->ctrn_flags;
 		p->type = GF_ISOM_BOX_TYPE_CTRN;
 	}
-
 	gf_isom_box_dump_start(a, p->use_ctrn ? "CompactTrackRunBox" : "TrackRunBox", trace);
+#else
+	gf_isom_box_dump_start(a, "TrackRunBox", trace);
+#endif
 	p->flags = flags;
 	p->type = GF_ISOM_BOX_TYPE_TRUN;
 	gf_fprintf(trace, "SampleCount=\"%d\"", p->sample_count);
@@ -2432,6 +2435,7 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 	if (p->flags & GF_ISOM_TRUN_DATA_OFFSET)
 		gf_fprintf(trace, " DataOffset=\"%d\"", p->data_offset);
 
+#ifdef GF_ENABLE_CTRN
 	if (p->use_ctrn) {
 		if (p->ctrn_flags & GF_ISOM_CTRN_DATAOFFSET_16)
 			gf_fprintf(trace, " dataOffset16Bits=\"yes\"");
@@ -2460,7 +2464,9 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 			full_dump = GF_TRUE;
 
 		gf_fprintf(trace, ">\n");
-	} else {
+	} else
+#endif
+	{
 		gf_fprintf(trace, ">\n");
 
 		if (p->flags & GF_ISOM_TRUN_FIRST_FLAG) {
@@ -2478,6 +2484,7 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 
 			gf_fprintf(trace, "<TrackRunEntry");
 
+#ifdef GF_ENABLE_CTRN
 			if (p->use_ctrn) {
 				if ((i==1) && (p->ctrn_flags&GF_ISOM_CTRN_FIRST_SAMPLE) ) {
 					if (p->ctrn_first_dur)
@@ -2506,7 +2513,9 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 					if (p->ctrn_sample_flags)
 						frag_dump_sample_flags(trace, ent->flags, p->ctrn_sample_flags);
 				}
-			} else {
+			} else
+#endif
+			{
 
 				if (p->flags & GF_ISOM_TRUN_DURATION)
 					gf_fprintf(trace, " Duration=\"%u\"", ent->Duration);
@@ -2534,7 +2543,11 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, "/>\n");
 	}
 
+#ifdef GF_ENABLE_CTRN
 	gf_isom_box_dump_done(p->use_ctrn ? "CompactTrackRunBox" : "TrackRunBox", a, trace);
+#else
+	gf_isom_box_dump_done("TrackRunBox", a, trace);
+#endif
 	return GF_OK;
 }
 

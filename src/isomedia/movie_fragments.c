@@ -507,11 +507,6 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 		if (!traf) return GF_BAD_PARAM;
 		traf->force_new_trun = 1;
 		break;
-	case GF_ISOM_TRUN_MERGE_INTERLEAVE:
-		traf = gf_isom_get_traf(movie, TrackID);
-		if (!traf) return GF_BAD_PARAM;
-		traf->merge_sample_interleave = 1;
-		break;
 	case GF_ISOM_TRUN_SET_INTERLEAVE_ID:
 		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
@@ -2361,7 +2356,9 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, GF_ISOStartFragmentFlags flags)
 	GF_TrackFragmentBox *traf;
 	GF_Err e;
 	Bool moof_first = flags & GF_ISOM_FRAG_MOOF_FIRST ? GF_TRUE : GF_FALSE;
+#ifdef GF_ENABLE_CTRN
 	Bool use_ctrn = flags & GF_ISOM_FRAG_USE_COMPACT ? GF_TRUE : GF_FALSE;
+#endif
 
 	//and only at setup
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) )
@@ -2407,9 +2404,11 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, GF_ISOStartFragmentFlags flags)
 		traf->tfhd->trackID = trex->trackID;
 		//add 8 bytes (MDAT size+type) to avoid the data_offset in the first trun
 		traf->tfhd->base_data_offset = movie->moof->fragment_offset + 8;
+#ifdef GF_ENABLE_CTRN
 		traf->use_ctrn = use_ctrn;
 		if (trex->inherit_from_traf_id)
 			traf->use_inherit = GF_TRUE;
+#endif
 		gf_list_add(movie->moof->TrackList, traf);
 
 		if (movie->mfra) {
@@ -2627,9 +2626,11 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		//store data offset (we have the 8 btyes offset of the MDAT)
 		trun->data_offset = (u32) (pos - movie->moof->fragment_offset - 8);
 		gf_list_add(traf->TrackRuns, trun);
+#ifdef GF_ENABLE_CTRN
 		trun->use_ctrn = traf->use_ctrn;
 		trun->use_inherit = traf->use_inherit;
 		trun->ctso_multiplier = traf->trex->def_sample_duration;
+#endif
 		trun->interleave_id = traf->interleave_id;
 
 		//if we use data caching, create a bitstream
