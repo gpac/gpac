@@ -161,10 +161,10 @@ static void getProcessName(DWORD pid, PUCHAR fname, DWORD sz)
 }
 static void w32_hide_shell(u32 cmd_type)
 {
-	char parentName[GF_MAX_PATH];
 	typedef HWND (WINAPI *GetConsoleWindowT)(void);
 	HMODULE hk32 = GetModuleHandle("kernel32.dll");
 	if (!console_hwnd) {
+		char parentName[GF_MAX_PATH];
 		DWORD dwProcessId = 0;
 		DWORD dwParentProcessId = 0;
 		DWORD dwParentParentProcessId = 0;
@@ -2041,7 +2041,7 @@ force_input:
 	}
 
 	if (print_graph || print_stats) {
-		u32 ll = gf_log_get_tool_level(GF_LOG_APP);
+		ll = gf_log_get_tool_level(GF_LOG_APP);
 		gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
 		if (print_graph)
 			gf_term_print_graph(term);
@@ -2279,8 +2279,8 @@ static u32 last_odm_count = 0;
 static void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
-	Double avg_dec_time=0;
-	u32 tot_time=0;
+	Double avg_dec_time;
+	u32 tot_time;
 
 	if (scene_odm) {
 		GF_ObjectManager *root_odm = gf_term_get_root_object(term);

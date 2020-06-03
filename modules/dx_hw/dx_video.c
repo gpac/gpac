@@ -353,7 +353,6 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		int pformats[200];
 		u32 nbformats=0;
 		Bool found = GF_FALSE;
-		float fattribs[1] = { 0.0f };
 
 		int hdcAttributes[] = {
 			WGL_SUPPORT_OPENGL_ARB, TRUE,
@@ -681,7 +680,7 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	}
 
 	if (!dd->disable_vsync)
-		hr = dd->pDD->lpVtbl->WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKBEGIN, NULL);
+		dd->pDD->lpVtbl->WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKBEGIN, NULL);
 
 	if (dest) {
 		POINT pt;

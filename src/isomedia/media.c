@@ -260,8 +260,10 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
         }
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:
-		ESDa = entry->esd;
-		if (ESDa) esd = (GF_ESD *) ESDa->desc;
+		if (entry->internal_type==GF_ISOM_SAMPLE_ENTRY_MP4S) {
+			ESDa = entry->esd;
+			if (ESDa) esd = (GF_ESD *) ESDa->desc;
+		}
 		break;
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_TX3G:

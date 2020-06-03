@@ -181,7 +181,7 @@ static GF_Err validator_file_dec(char *png_filename, u32 *hint_codecid, u32 *wid
 		if (!ext) return GF_NOT_SUPPORTED;
 		if (!stricmp(ext, ".png")) codecid = GF_CODECID_PNG;
 		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) codecid = GF_CODECID_JPEG;
-	} else if (hint_codecid) {
+	} else {
 		codecid = *hint_codecid;
 	}
 

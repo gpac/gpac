@@ -612,9 +612,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 		dst.y = pt.y;
 		MAKERECT(dst_rc, (&dst));
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] Blit surface to dest %d x %d - overlay type %s\n", dst.w, dst.h,
-		                                   (overlay_type==0)? "none" : ((overlay_type==1) ? "Top-Level" : "ColorKey")
-		                                  ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] Blit surface to dest %d x %d - overlay type %s\n", dst.w, dst.h, (overlay_type==1) ? "Top-Level" : "ColorKey" ));
 
 #if 1
 		if (overlay_type==1) {

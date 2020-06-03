@@ -2098,7 +2098,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	for (i = 0; i < count; i++) {
 		char *kind_scheme, *kind_value;
 		gf_isom_get_track_kind(file, trackNum, i, &kind_scheme, &kind_value);
-		fprintf(stderr, "Kind: %s - %s\n", kind_scheme, kind_value);
+		fprintf(stderr, "Kind: %s - %s\n", kind_scheme ? kind_scheme : "null", kind_value ? kind_value : "null");
 		if (kind_scheme) gf_free(kind_scheme);
 		if (kind_value) gf_free(kind_value);
 	}
@@ -2643,7 +2643,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	} else if ((msub_type == GF_ISOM_SUBTYPE_AC3) || (msub_type == GF_ISOM_SUBTYPE_EC3)) {
 		u32 br = 0;
 		Bool lfe = 0;
-		Bool is_ec3 = 0;
+		Bool is_ec3 = (msub_type == GF_ISOM_SUBTYPE_EC3) ? GF_TRUE : GF_FALSE;
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
 		if (ac3) {
@@ -3699,7 +3699,7 @@ GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 					fprintf(stderr, "Downloading %s\n", seg_url);
 					sess = get_file(seg_url, dm, &e);
 					if (e) {
-						if (seg_url) gf_free(seg_url);
+						gf_free(seg_url);
 						if (e != GF_URL_ERROR) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Error downloading segment %s: %s\n", seg_url, gf_error_to_string(e)));
 						} else {

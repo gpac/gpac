@@ -51,7 +51,7 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 		opt = gf_opts_get_key("DirectFB", "WindowMode");
 		if (!opt) gf_opts_set_key("DirectFB", "WindowMode", "X11");
 		if (!opt || !strcmp(opt, "X11")) window_mode = WINDOW_X11;
-		else if (opt && !strcmp(opt, "SDL")) window_mode = WINDOW_SDL;
+		else if (!strcmp(opt, "SDL")) window_mode = WINDOW_SDL;
 		DirectFBVid_InitAndCreateSurface(ctx, window_mode);
 	}
 
@@ -73,9 +73,9 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 		opt = gf_opts_get_key("DirectFB", "FlipSyncMode");
 		if (!opt) gf_opts_set_key("DirectFB", "FlipSyncMode", "waitsync");
 		if (!opt || !strcmp(opt, "waitsync")) flip_mode |= FLIP_WAITFORSYNC;
-		else if (opt && !strcmp(opt, "wait")) flip_mode |= FLIP_WAIT;
-		else if (opt && !strcmp(opt, "sync")) flip_mode |= FLIP_ONSYNC;
-		else if (opt && !strcmp(opt, "swap")) flip_mode |= FLIP_SWAP;
+		else if (!strcmp(opt, "wait")) flip_mode |= FLIP_WAIT;
+		else if (!strcmp(opt, "sync")) flip_mode |= FLIP_ONSYNC;
+		else if (!strcmp(opt, "swap")) flip_mode |= FLIP_SWAP;
 
 		DirectFBVid_CtxSetFlipMode(ctx, flip_mode);
 	}

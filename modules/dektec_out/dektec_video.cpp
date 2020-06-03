@@ -30,9 +30,8 @@
 
 #ifndef FAKE_DT_API
 
-static void OnNewFrameAudio(DtMxData *pData, const DtCbkCtx *ctx) {
-	DTAPI_RESULT  dr;
-
+static void OnNewFrameAudio(DtMxData *pData, const DtCbkCtx *ctx)
+{
 	// Must have a valid frame
 	DtMxRowData &OurRow = pData->m_Rows[0];
 	if (OurRow.m_CurFrame->m_Status != DT_FRMSTATUS_OK) {
@@ -43,13 +42,13 @@ static void OnNewFrameAudio(DtMxData *pData, const DtCbkCtx *ctx) {
 	DtMxAudioData&  AudioData = OurRow.m_CurFrame->m_Audio;
 
 	// Init channel status word for all (valid) audio channels
-	dr = AudioData.InitChannelStatus();
+	AudioData.InitChannelStatus();
 }
 
 static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 {
 	u64 now = gf_sys_clock_high_res();
-	DtMxRowData&  OurRow = pData->m_Rows[0];
+	const DtMxRowData&  OurRow = pData->m_Rows[0];
 	GF_DTOutCtx *ctx = cbck->ctx;
 	GF_FilterPacket *pck;
 	
@@ -120,7 +119,7 @@ static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 
 	//TODO - move all this into color convertion code in libgpac !
 
-	DtMxVideoBuf&  VideoBuf = OurRow.m_CurFrame->m_Video[0];
+	const DtMxVideoBuf&  VideoBuf = OurRow.m_CurFrame->m_Video[0];
 	u8* pDstY = VideoBuf.m_Planes[0].m_pBuf;
 	u8* pDstU = VideoBuf.m_Planes[1].m_pBuf;
 	u8* pDstV = VideoBuf.m_Planes[2].m_pBuf;
@@ -687,7 +686,7 @@ static GF_Err dtout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	int  DefEnd2EndDelay = 0;
 	double CbFrames = 0.0;    // Time available for the call-back method
-	res = ctx->dt_matrix->GetDefEndToEndDelay(DefEnd2EndDelay, CbFrames);
+	ctx->dt_matrix->GetDefEndToEndDelay(DefEnd2EndDelay, CbFrames);
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut]  Default end-to-end delay = %d Frames\n", DefEnd2EndDelay));
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut]  Time-for-Callback = %.1f Frame Period\n", CbFrames));
 	// Apply the default end-to-end delay

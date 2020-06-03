@@ -1313,7 +1313,6 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	strcpy(szName, inName);
 	ext = strrchr(szName, '.');
 	if (ext) ext[0] = 0;
-	ext = strrchr(inName, '.');
 
 	fs = gf_fs_new_defaults(0);
 	if (!fs) {
@@ -2275,7 +2274,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 				if ((stats->count_3f+stats->count_3d) &&  opts->resolution) {
 					qp->position3DMin = stats->min_3d;
 					qp->position3DMax = stats->max_3d;
-					qp->position3DQuant = opts->resolution;
+					qp->position3DNbBits = opts->resolution;
 					qp->position3DQuant = 1;
 					qp->textureCoordinateQuant = 1;
 				}

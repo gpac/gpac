@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -343,7 +343,6 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	break;
 	case GF_ODF_SLC_TAG:
 	{
-		u32 ts;
 		GF_SLConfig *slc = (GF_SLConfig*)desc;
 		if (!stricmp(fieldName, "predefined")) GET_U8(slc->predefined)
 		else if (!stricmp(fieldName, "useAccessUnitStartFlag")) GET_BOOL(slc->useAccessUnitStartFlag)
@@ -365,14 +364,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "timeScale")) ret += sscanf(val, "%u", &slc->timeScale);
 		else if (!stricmp(fieldName, "accessUnitDuration")) ret += sscanf(val, "%hu", &slc->AUDuration);
 		else if (!stricmp(fieldName, "compositionUnitDuration")) ret += sscanf(val, "%hu", &slc->CUDuration);
-		else if (!stricmp(fieldName, "startDecodingTimeStamp")) {
-			ret += sscanf(val, "%u", &ts);
-			slc->startDTS = ts;
-		}
-		else if (!stricmp(fieldName, "startCompositionTimeStamp")) {
-			ret += sscanf(val, "%u", &ts);
-			slc->startCTS = ts;
-		}
+		else if (!stricmp(fieldName, "startDecodingTimeStamp")) GET_U64(slc->startDTS)
+		else if (!stricmp(fieldName, "startCompositionTimeStamp"))  GET_U64(slc->startCTS)
 		else if (!stricmp(fieldName, "durationFlag")) ret = 1;
 	}
 	break;
