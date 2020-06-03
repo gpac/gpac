@@ -528,15 +528,15 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		GF_PropertyEntry *pe=NULL;
 		GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_info(evt->base.on_pid, GF_PROP_PID_TIMESHIFT_STATE, &pe);
 		if (p && p->value.uint) {
-			GF_Event evt;
-			memset(&evt, 0, sizeof(evt));
+			GF_Event an_evt;
+			memset(&an_evt, 0, sizeof(GF_Event));
 			GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 			if (p->value.uint==1) {
-				evt.type = GF_EVENT_TIMESHIFT_UNDERRUN;
-				gf_sc_send_event(ctx, &evt);
+				an_evt.type = GF_EVENT_TIMESHIFT_UNDERRUN;
+				gf_sc_send_event(ctx, &an_evt);
 			} else if (p->value.uint==2) {
-				evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
-				gf_sc_send_event(ctx, &evt);
+				an_evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
+				gf_sc_send_event(ctx, &an_evt);
 			}
 			p->value.uint = 0;
 		}
@@ -649,12 +649,13 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	gf_filter_set_session_caps(filter, &sess_caps);
 
 	if (ctx->player) {
-		gf_filter_make_sticky(filter);
 	}
 
-	//declare audio output pid first
 	if (ctx->player) {
-		//load audio filter chain
+		//make filter sticky (no shutdown at eos)
+		gf_filter_make_sticky(filter);
+
+		//load audio filter chain, declaring audio output pid first
 		if (! (ctx->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
 			GF_Filter *audio_out = gf_filter_load_filter(filter, "aout", &e);
 			ctx->audio_renderer->non_rt_output = GF_FALSE;

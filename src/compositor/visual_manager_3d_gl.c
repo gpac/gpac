@@ -2028,7 +2028,6 @@ static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
 			vals[1] = -FIX2FLT(pt.y);
 			vals[2] = -FIX2FLT(pt.z);
 			vals[3] = 0;
-			pt = li->position;
 		} else {	//we have a spot or point light
 			pt = li->position;
 			gf_mx_apply_vec(&mx, &pt);
@@ -3700,8 +3699,6 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 	Fixed x, y;
 	Float inc, scale;
 	Bool in_strip;
-	Float delta = 0;
-	Bool first_pass = 2;
 	GF_Node *txtrans = NULL;
 
 	if ((visual->compositor->depth_gl_type==GF_SC_DEPTH_GL_POINTS) && visual->compositor->gl_caps.point_sprite) {
@@ -3759,7 +3756,8 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 	}
 
 	if (visual->compositor->depth_gl_type==GF_SC_DEPTH_GL_STRIPS) {
-		delta = FIX2FLT(visual->compositor->depth_gl_strips_filter);
+		u32 first_pass;
+		Float delta = FIX2FLT(visual->compositor->depth_gl_strips_filter);
 		if (!delta) first_pass = 2;
 		else first_pass = 1;
 

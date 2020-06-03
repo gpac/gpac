@@ -382,8 +382,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 					u32 xml_len = (u32) (xml_end - v);
 					if (xml_len > len) {
 						sep = strchr(xml_end, list_sep_char);
-						if (sep)
-							len = (u32) (sep - v);
+						//assigned below
+//						if (sep)
+//							len = (u32) (sep - v);
 					}
 				}
 			}
@@ -397,8 +398,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			nv[len] = 0;
 			if (!strnicmp(nv, "file@", 5) ) {
 				u8 *data;
-				u32 len;
-				GF_Err e = gf_file_load_data(nv+5, (u8 **) &data, &len);
+				u32 flen;
+				GF_Err e = gf_file_load_data(nv+5, (u8 **) &data, &flen);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", nv+5));
 				} else {

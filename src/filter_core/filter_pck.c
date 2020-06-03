@@ -150,11 +150,11 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		//were added to the list
 
 		GF_FilterPacket *head_pck = gf_fq_pop(pid->filter->pcks_alloc_reservoir);
-		char *data = pck->data;
+		char *pck_data = pck->data;
 		u32 alloc_size = pck->alloc_size;
 		pck->data = head_pck->data;
 		pck->alloc_size = head_pck->alloc_size;
-		head_pck->data = data;
+		head_pck->data = pck_data;
 		head_pck->alloc_size = alloc_size;
 		pck = head_pck;
 	}

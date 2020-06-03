@@ -80,7 +80,7 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	dsi = gf_malloc(sizeof(u8) * dsi_size);
 	memcpy(dsi, prop->value.data.ptr, sizeof(u8) * dsi_size);
 
-	if (ctx->sar.num && ctx->sar.num) {
+	if (ctx->sar.num && ctx->sar.den) {
 		e = gf_m4v_rewrite_par(&dsi, &dsi_size, ctx->sar.num, ctx->sar.den);
 		if (e) {
 			gf_free(dsi);

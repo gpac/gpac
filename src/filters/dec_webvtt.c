@@ -363,7 +363,6 @@ static GF_Err vttd_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
 	GF_FilterPacket *pck;
-	char start[100], end[100];
 	GF_List *cues;
 	const char *pck_data;
 	u64 cts;
@@ -409,6 +408,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
 	if (gf_list_count(cues)) {
 		while (gf_list_count(cues)) {
+			char start[100], end[100];
 			GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
 			gf_list_rem(cues, 0);
 			sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);

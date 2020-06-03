@@ -392,11 +392,10 @@ void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 
 	if (surf->get_alpha) {
 		for (i=0; i<count; i++) {
-			char *s_pY;
 			u32 fin, j;
 			for (j=0; j<spans[i].len; j++) {
 				s32 x = spans[i].x + j;
-				s_pY = pY + x;
+				char *s_pY = pY + x;
 				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
 				fin = mul255(aa, spans[i].coverage);
 
@@ -1115,7 +1114,7 @@ void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 			if (a==0xFF) {
 				pY[surf->idx_u] = cu;
 				pY[surf->idx_v] = cv;
-			} else if (a) {
+			} else {
 				overmask_yuvy(pY + surf->idx_u, cu, a);
 				overmask_yuvy(pY + surf->idx_v, cv, a);
 			}

@@ -428,8 +428,6 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 
 	has_changed = grad->updated;
 
-	do_yuv = GF_FALSE;
-
 	if (surf->yuv_type) {
 		if (grad->yuv_prof != surf->yuv_prof) {
 			grad->yuv_prof = surf->yuv_prof;
@@ -782,7 +780,7 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 			}
 		}
 		//texture is RGB
-		else if (!_this->is_yuv) {
+		else {
 			//apply cmat
 			if (has_cmat)
 				pix = gf_cmx_apply(&_this->cmat, pix);
@@ -1027,7 +1025,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32
 			}
 		}
 		//texture is RGB
-		else if (!_this->is_yuv) {
+		else {
 			//apply cmat
 			if (has_cmat)
 				pix = gf_cmx_apply_wide(&_this->cmat, pix);

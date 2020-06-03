@@ -247,7 +247,7 @@ mad_resync:
 		ptr++;
 		*ptr = (rs >> 8) & 0xff;
 		ptr++;
-		outSize += 2;
+		//outSize += 2;
 
 		if (ctx->num_channels == 2) {
 			MAD_SCALE(rs, (*right_ch++) );
@@ -255,7 +255,7 @@ mad_resync:
 			ptr++;
 			*ptr = (rs >> 8) & 0xff;
 			ptr++;
-			outSize += 2;
+			//outSize += 2;
 		}
 	}
 	gf_filter_pck_send(dst_pck);

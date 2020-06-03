@@ -507,8 +507,6 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 					opt = gf_opts_get_key(name, "cacheFile");
 					if (opt) gf_file_delete((char*) opt);
 					gf_opts_del_section(name);
-					i--;
-					count--;
 					service_cache = NULL;
 				}
 			}

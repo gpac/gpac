@@ -338,6 +338,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		JS_FreeValue(c, global);
 		JS_FreeValue(c, fun_val);
 		gf_js_lock(c, GF_FALSE);
+		if (e) return e;
 	}
 
 	if (cts * 1000 > obj_time * timescale) {

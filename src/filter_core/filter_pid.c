@@ -425,12 +425,12 @@ void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_Fil
 
 	//filter no longer used, disconnect chain
 	for (i=0; i<filter->num_output_pids; i++) {
-		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		for (j=0; j<pid->num_destinations; j++) {
-			GF_FilterPidInst *a_pidi = gf_list_get(pid->destinations, j);
+		GF_FilterPid *a_pid = gf_list_get(filter->output_pids, i);
+		for (j=0; j<a_pid->num_destinations; j++) {
+			GF_FilterPidInst *a_pidi = gf_list_get(a_pid->destinations, j);
 			if (a_pidi == dst_swapinst) continue;
 
-			gf_filter_pid_inst_swap_delete(a_pidi->filter, pid, a_pidi, dst_swapinst);
+			gf_filter_pid_inst_swap_delete(a_pidi->filter, a_pid, a_pidi, dst_swapinst);
 		}
 	}
 	filter->swap_pidinst_dst = NULL;
@@ -453,7 +453,8 @@ void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 		TASK_REQUEUE(task)
 		return;
 	}
-	pidinst->filter->swap_pidinst_dst = NULL;
+	if (pidinst->filter)
+		pidinst->filter->swap_pidinst_dst = NULL;
 
 	gf_filter_pid_inst_swap_delete(filter, pid, pidinst, dst_swapinst);
 }
@@ -792,7 +793,6 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					gf_filter_pid_set_eos(pid);
 
 					if (pid->filter->freg->process_event) {
-						GF_FilterEvent evt;
 						GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 						gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 					}
@@ -890,9 +890,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	if (filter->has_pending_pids) {
 		filter->has_pending_pids = GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
-			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
+			GF_FilterPid *a_pid=gf_fq_pop(filter->pending_pids);
 
-			gf_filter_pid_post_init_task(filter, pid);
+			gf_filter_pid_post_init_task(filter, a_pid);
 		}
 	}
 
@@ -2590,7 +2590,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	GF_List *dijkstra_nodes;
 	GF_FilterSession *fsess = pid->filter->session;
 	//build all edges
-	u32 i, dijsktra_node_count, dijsktra_edge_count, count = gf_list_count(fsess->registry);
+	u32 i, dijsktra_node_count, dijsktra_edge_count, count;
 	GF_CapsBundleStore capstore;
 	Bool first;
 	u32 path_weight, pid_stream_type, max_weight=0;
@@ -2608,7 +2608,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	if (p) pid_stream_type = p->value.uint;
 
 	//1: select all elligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
-	count = gf_list_count( fsess->links);
+	count = gf_list_count(fsess->links);
 	for (i=0; i<count; i++) {
 		u32 j;
 		Bool disable_filter = GF_FALSE;
@@ -3326,7 +3326,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 					break;
 				if (strncmp(closing, ")(", 2)) break;
 				next_closing = strchr(closing+2, ')');
-				if (!closing) break;
+				if (!next_closing) break;
 
 				value = closing+1;
 				closing = next_closing;
@@ -3474,7 +3474,6 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	caps = dst->forced_caps ? dst->forced_caps : dst->freg->caps;
 	nb_caps = dst->forced_caps ? dst->nb_forced_caps : dst->freg->nb_caps;
 
-	nb_caps = dst->forced_caps ? dst->nb_forced_caps : dst->freg->nb_caps;
 	for (i=0; i<nb_caps; i++) {
 		const GF_FilterCapability *cap = &caps[i];
 		if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;

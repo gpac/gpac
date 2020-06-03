@@ -162,13 +162,8 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 	raster->area = 0;
 	raster->first_scanline = raster->max_ey;
 
-	raster->ex = (int) (raster->max_ex+1);
-	raster->ey = (int) (raster->max_ey+1);
-	raster->cover = 0;
-	raster->area = 0;
 	dir.x = dir.y = 0;
 	dir.z = -FIX_ONE;
-
 
 	first = 0;
 	for ( n = 0; n < outline->n_contours; n++ ) {

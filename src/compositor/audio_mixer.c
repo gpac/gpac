@@ -926,7 +926,7 @@ do_mix:
 	if ((nb_act_src==1) && single_source) goto single_source_mix;
 
 	/*step 2, fill all buffers*/
-	while (nb_act_src) {
+	while (1) {
 		u32 nb_to_fill = 0;
 		/*fill*/
 		for (i=0; i<count; i++) {

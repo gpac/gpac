@@ -95,7 +95,7 @@ char *gf_scene_resolve_xlink(GF_Node *node, char *the_url)
 {
 	char *url;
 	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
-	if (!scene) return NULL;
+	if (!scene) return gf_strdup(the_url);
 
 	url = gf_strdup(the_url);
 #ifndef GPAC_DISABLE_SVG
@@ -116,28 +116,25 @@ char *gf_scene_resolve_xlink(GF_Node *node, char *the_url)
 	/*if this is a fragment and no XML:BASE was found, this is a fragment of the current document*/
 	if (url[0]=='#') return url;
 
-	if (scene) {
-		char *the_url;
-		if (scene->redirect_xml_base) {
-			the_url = gf_url_concatenate(scene->redirect_xml_base, url);
-		} else {
+	if (scene->redirect_xml_base) {
+		the_url = gf_url_concatenate(scene->redirect_xml_base, url);
+	} else {
 //			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
-			/*the root url of a document should be "." if not specified, so that the final URL resolve happens only once
-			at the service level*/
-			the_url = gf_strdup(url);
-		}
-		gf_free(url);
-		return the_url;
+		/*the root url of a document should be "." if not specified, so that the final URL resolve happens only once
+		at the service level*/
+		the_url = gf_strdup(url);
 	}
-	return url;
+	gf_free(url);
+	return the_url;
 }
 
 static Bool gf_scene_script_action(void *opaque, GF_JSAPIActionType type, GF_Node *n, GF_JSAPIParam *param)
 {
 	Bool ret;
+	GF_Scene *root_scene;
 	GF_Scene *scene = (GF_Scene *) opaque;
-	GF_Scene *root_scene = gf_scene_get_root_scene(scene);
 	if (!scene) return GF_FALSE;
+	root_scene = gf_scene_get_root_scene(scene);
 
 	if (type==GF_JSAPI_OP_MESSAGE) {
 		gf_scene_message_ex(scene, scene->root_od->scene_ns->url, param->info.msg, param->info.e, 1);
@@ -279,7 +276,8 @@ Bool gf_scene_is_root(GF_Scene *scene)
 
 GF_Scene *gf_scene_get_root_scene(GF_Scene *scene)
 {
-	while (scene->root_od->parentscene) scene = scene->root_od->parentscene;
+	while (scene && scene->root_od && scene->root_od->parentscene)
+		scene = scene->root_od->parentscene;
 	return scene;
 }
 
@@ -444,7 +442,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	if (for_shutdown) {
 		i = 0;
 		while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
-			if (for_shutdown && odm->mo) {
+			if (odm->mo) {
 				odm->ck = NULL;
 				obj = odm->mo;
 				while (gf_mo_event_target_count(obj)) {
@@ -556,7 +554,6 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	mo->odm = odm;
 	odm->parentscene = scene;
 	odm->ID = GF_MEDIA_EXTERNAL_ID;
-	odm->parentscene = scene;
 	if (scene->force_single_timeline) lock_timelines = GF_TRUE;
 
 	url = mo->URLs.vals[0].url;
@@ -1559,10 +1556,11 @@ void gf_scene_regenerate(GF_Scene *scene)
 		if (scene->vr_type) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
-			((M_Viewpoint *)n2)->fieldOfView = GF_PI/2;
 
 #ifndef GPAC_DISABLE_3D
 			((M_Viewpoint *)n2)->fieldOfView = scene->compositor->fov;
+#else
+			((M_Viewpoint *)n2)->fieldOfView = GF_PI/2;
 #endif
 
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);

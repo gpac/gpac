@@ -793,7 +793,6 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		return GF_SERVICE_ERROR;
 	}
 
-	IV_size = 8;
 	//memset to 0 in case we use <16 byte key
 	memset(IV, 0, sizeof(char)*17);
 	prop = NULL;
@@ -868,7 +867,6 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			goto exit;
 		}
 	} else {
-		e = GF_OK;
 		//always restore IV at begining of sample regardless of the mode (const IV or IV CBC or CTR
 		if (!cstr->is_cbc) {
 			memmove(&IV[1], &IV[0], sizeof(char) * IV_size);
@@ -984,7 +982,6 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 	u8 *out_data;
 	GF_FilterPacket *out_pck;
 	GF_Err e;
-	u32 trim_bytes = 0;
 	u32 offset, size;
 	Bool encrypted_au;
 
@@ -996,11 +993,11 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 
 	memcpy(out_data, in_data, data_size);
 
-	trim_bytes = 0;
 	offset=0;
 	size = data_size;
 	encrypted_au = out_data[0] ? GF_TRUE : GF_FALSE;
 	if (encrypted_au) {
+		u32 trim_bytes;
 		char IV[17];
 		if (size<17) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Error in sample size, %d bytes remain but at least 17 are required\n", size ) );
