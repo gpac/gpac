@@ -393,7 +393,7 @@ static void svg_text_area_apply_diff_baselines(GF_TraverseState *tr_state, Fixed
 static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state, GF_List *spans)
 {
 	GF_DOMText *dom_text = (GF_DOMText *)node;
-	u32 word_start, word_end;
+	u32 word_start;
 	u32 i, j;
 	Fixed line_spacing;
 	GF_Font *font;
@@ -424,7 +424,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 
 	line_spacing = gf_mulfix(span->font_size, FLT2FIX(1.0) );
 
-	word_start = word_end = 0;
+	word_start = 0;
 	i = 0;
 	/* boucle principale: mot par mot */
 	while (i<span->nb_glyphs) {
@@ -556,7 +556,6 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 		if ((tr_state->count_x==1)||(tr_state->count_y==1)
 		        || !gf_list_count(tr_state->x_anchors) ) {
 			entry = (Fixed*)gf_malloc(sizeof(Fixed));
-			*entry = block_width;
 
 			if (span->flags & GF_TEXT_SPAN_RIGHT_TO_LEFT) *entry = -block_width;
 			else *entry = block_width;

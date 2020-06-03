@@ -967,8 +967,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	odm->disable_buffer_at_next_play = GF_FALSE;
 
-	odm->disable_buffer_at_next_play = GF_FALSE;
-
 	if (odm->flags & GF_ODM_PAUSE_QUEUED) {
 		odm->flags &= ~GF_ODM_PAUSE_QUEUED;
 		media_control_paused = 1;
@@ -1172,9 +1170,10 @@ void gf_odm_signal_eos_reached(GF_ObjectManager *odm)
 void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, u32 stream_timeshift)
 {
 	GF_Scene *scene;
-	if (odm->timeshift_depth != stream_timeshift)
-		odm->timeshift_depth = stream_timeshift;
+	if (odm->timeshift_depth == stream_timeshift)
+		return;
 
+	odm->timeshift_depth = stream_timeshift;
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 	/*update scene duration*/
@@ -1253,7 +1252,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	/*mediaSensor  shall generate isActive false when paused*/
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ) {
-		if (media_sens && media_sens->sensor->isActive) {
+		if (media_sens->sensor->isActive) {
 			media_sens->sensor->isActive = 0;
 			gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
 		}
@@ -1319,7 +1318,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	/*mediaSensor shall generate isActive TRUE when resumed*/
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ) {
-		if (media_sens && !media_sens->sensor->isActive) {
+		if (!media_sens->sensor->isActive) {
 			media_sens->sensor->isActive = 1;
 			gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
 		}

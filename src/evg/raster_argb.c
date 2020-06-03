@@ -86,7 +86,7 @@ u32 do_composite_mode(GF_EVGCompositeMode comp_mode, s32 *srca, s32 *dsta)
 
 GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *surf)
 {
-	u32 res;
+	u32 cmode;
 	s32 srca = GF_COL_A(src);
 	s32 srcr = GF_COL_R(src);
 	s32 srcg = GF_COL_G(src);
@@ -95,26 +95,26 @@ GFINLINE static void overmask_argb(u32 src, u8 *dst, u32 alpha, GF_EVGSurface *s
 
 	srca = mul255(srca, alpha);
 
-	res = do_composite_mode(surf->comp_mode, &srca, &dsta);
-	if (res==1) {
+	cmode = do_composite_mode(surf->comp_mode, &srca, &dsta);
+	if (cmode==1) {
 		u8 dstr = dst[surf->idx_r];
 		u8 dstg = dst[surf->idx_g];
 		u8 dstb = dst[surf->idx_b];
 //		dsta += srca;
 //		if (srca>0xFF) srca = 0xFF;
 		dstr += srcr;
-		if (srcr>0xFF) srcr = 0xFF;
-		dstr += srcg;
-		if (srcg>0xFF) srcg = 0xFF;
+		if (dstr>0xFF) dstr = 0xFF;
+		dstg += srcg;
+		if (dstg>0xFF) dstg = 0xFF;
 		dstb += srcb;
-		if (srcb>0xFF) srcb = 0xFF;
+		if (dstb>0xFF) dstb = 0xFF;
 		dst[surf->idx_a] = (u8) srca;
 		dst[surf->idx_r] = (u8) dstr;
 		dst[surf->idx_g] = (u8) dstg;
 		dst[surf->idx_b] = (u8) dstb;
 		return;
 	}
-	if (res==2) {
+	if (cmode==2) {
 		u8 dstr = dst[surf->idx_r];
 		u8 dstg = dst[surf->idx_g];
 		u8 dstb = dst[surf->idx_b];

@@ -180,9 +180,9 @@ void gp_bifs_aa_dec_resync(GF_AADecoder *dec)
 {
 	u32 rewind;
 	if (!dec->needs_flush) return;
-	rewind = dec->read_bits - 1 - (dec->used_bits+1);
 	/*magic number from IM1 (spec is wrong there)*/
 	rewind = 14;
+	//spec: rewind = dec->read_bits - 1 - (dec->used_bits+1);
 	if (dec->skip_bits < rewind) gf_bs_rewind_bits(dec->bs, rewind - dec->skip_bits);
 
 	dec->needs_flush = 0;

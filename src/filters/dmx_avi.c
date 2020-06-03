@@ -72,7 +72,6 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 {
 	u32 sync_id = 0;
 	u32 codecid = 0;
-	u32 a_fmt = 0;
 	Bool unframed;
 	u32 i, count, pfmt=0;
 	GF_Fraction64 dur;
@@ -165,7 +164,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	unframed = GF_FALSE;
 	count = AVI_audio_tracks(ctx->avi);
 	for (i=0; i<count; i++) {
-		u32 afmt=0, nb_bits;
+		u32 a_fmt, afmt=0, nb_bits;
 		AVI_set_audio_track(ctx->avi, i);
 
 		codecid = 0;

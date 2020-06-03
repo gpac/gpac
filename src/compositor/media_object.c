@@ -580,9 +580,8 @@ retry:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to CU CTS %u (next %d) now %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
 		}
 	}
-	if (resync) {
+	if (resync!=GF_MO_FETCH) {
 		u32 nb_dropped = 0;
-		move_to_next_only=0;
 		while (next_ts) {
 			if (!move_to_next_only) {
 				if (mo->odm->ck->speed > 0 ? pck_ts >= obj_time : pck_ts <= obj_time )
@@ -727,8 +726,8 @@ retry:
 //				&& first_ntp
 			) {
 //					first_ntp = GF_FALSE;
-					u32 diff = mo->odm->last_drawn_frame_ntp_diff - mo->odm->parentscene->compositor->ntpsync;
-					mo->odm->ck->init_timestamp += diff;
+					u32 ntp_diff = mo->odm->last_drawn_frame_ntp_diff - mo->odm->parentscene->compositor->ntpsync;
+					mo->odm->ck->init_timestamp += ntp_diff;
 					mo->flags |= GF_MO_IN_RESYNC;
 			}
 		}

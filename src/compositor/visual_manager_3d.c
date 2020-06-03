@@ -675,12 +675,10 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 
 static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *geom)
 {
-	Bool is_mat3D;
 	Drawable3D *stack;
 
-
-	is_mat3D = 0;
 #ifndef GPAC_DISABLE_VRML
+	Bool is_mat3D = GF_FALSE;
 	if (tr_state->appear) {
 		GF_Node *mat = ((M_Appearance *)tr_state->appear)->material;
 		if (mat) {
@@ -694,7 +692,7 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 #ifndef GPAC_DISABLE_X3D
 			case TAG_X3D_Material:
 #endif
-				is_mat3D = 1;
+				is_mat3D = GF_TRUE;
 				if ( ((M_Material *)mat)->transparency) return 1;
 				break;
 			case TAG_MPEG4_MaterialKey:
@@ -999,7 +997,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 				visual_3d_end_auto_stereo_pass(visual);
 			}
 
-			if (is_root_visual) visual->compositor->reset_graphics = 0;
+			visual->compositor->reset_graphics = 0;
 		}
 
 	} else {
@@ -1290,6 +1288,7 @@ Bool visual_3d_setup_ray(GF_VisualManager *visual, GF_TraverseState *tr_state, s
 		y = gf_mulfix(y, scale);
 	}
 
+#if 0
 	start.z = visual->camera.z_near;
 	end.z = visual->camera.z_far;
 	if (!tr_state->camera->is_3D && !tr_state->pixel_metrics) {
@@ -1299,6 +1298,7 @@ Bool visual_3d_setup_ray(GF_VisualManager *visual, GF_TraverseState *tr_state, s
 		start.x = end.x = x;
 		start.y = end.y = y;
 	}
+#endif
 
 	/*unproject to world coords*/
 	in_x = 2*x/ (s32) visual->width;

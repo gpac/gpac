@@ -748,7 +748,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 
 	//only flatten calls if in main thread (we still have some broken filters using threading
 	//that could trigger tasks
-	if ((force_direct_call || fsess->direct_mode) && !filter->in_process && fsess->tasks_in_process && (gf_th_id()==fsess->main_th.th_id)) {
+	if ((force_direct_call || fsess->direct_mode) && filter && !filter->in_process && fsess->tasks_in_process && (gf_th_id()==fsess->main_th.th_id)) {
 		GF_FSTask atask;
 		u64 task_time = gf_sys_clock_high_res();
 		memset(&atask, 0, sizeof(GF_FSTask));
@@ -1016,7 +1016,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 			if (f_reg->flags & GF_FS_REG_ACT_AS_SOURCE) argtype = GF_FILTER_ARG_EXPLICIT_SOURCE;
 			filter = gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL, GF_FALSE);
 			if (!filter) return NULL;
-			if (filter && !filter->num_output_pids) {
+			if (!filter->num_output_pids) {
 				const char *src_url = strstr(name, "src");
 				if (src_url && (src_url[3]==fsess->sep_name))
 					gf_filter_post_process_task(filter);
@@ -2193,7 +2193,6 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			mime_type = strstr(user_args, szMime);
 
 		if (mime_type) {
-			char *sep;
 			strncpy(szMime, mime_type+6, 49);
 			szMime[49]=0;
 			sep = strchr(szMime, fsess->sep_args);
@@ -2225,7 +2224,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		}
 
 		if (for_source && gf_url_is_local(sURL)) {
-			char *sep, *frag_par, *cgi, *ext_start;
+			char *frag_par, *cgi, *ext_start;
 			char f_c=0;
 			gf_url_to_fs_path(sURL);
 			sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
@@ -2359,8 +2358,8 @@ restart:
 	}
 
 	if (!for_source && candidate_freg->use_alias) {
-		u32 count = gf_list_count(fsess->filters);
-		for (i=0; i<count; i++) {
+		u32 fcount = gf_list_count(fsess->filters);
+		for (i=0; i<fcount; i++) {
 			GF_Filter *f = gf_list_get(fsess->filters, i);
 			if (f->freg != candidate_freg) continue;
 			if (f->freg->use_alias(f, sURL, mime_type)) {

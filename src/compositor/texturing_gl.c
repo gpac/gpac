@@ -779,7 +779,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				return 0;
 			}
 
-			e = gf_evg_stencil_set_texture_planes(txh->tx_io->tx_raster, txh->width, txh->height, (GF_PixelFormat) txh->pixelformat, pData, txh->stride, pU, pV, stride_uv, pA, stride_alpha);
+			if (!e)
+				e = gf_evg_stencil_set_texture_planes(txh->tx_io->tx_raster, txh->width, txh->height, (GF_PixelFormat) txh->pixelformat, pData, txh->stride, pU, pV, stride_uv, pA, stride_alpha);
 
 			if (e != GF_OK) {
 				if (!txh->compositor->last_error)
@@ -1169,9 +1170,11 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	GF_GLProgInstance *prog;
 #endif
-	GF_VisualManager *root_visual = (GF_VisualManager *) txh->compositor->visual;
+	GF_VisualManager *root_visual;
 
 	if (!txh || !txh->tx_io) return 0;
+	root_visual = (GF_VisualManager *) txh->compositor->visual;
+
 	if (txh->stream && !txh->stream->pck) {
 		if (txh->tx_io->tx.nb_textures) {
 			txh->tx_io->tx.frame_ifce = NULL;

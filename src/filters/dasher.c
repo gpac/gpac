@@ -860,25 +860,26 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			dasher_update_rep(ctx, ds);
 		return GF_OK;
 	}
-	if (period_switch) {
-		s32 res = gf_list_del_item(ctx->current_period->streams, ds);
-		//force end of segment if stream is not yet done and in current period
-		if ((res>=0) && !ds->done && !ds->seg_done) {
-			GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s config changed during active period, forcing period switch\n", gf_filter_pid_get_name(ds->ipid) ));
-			ds->seg_done = GF_TRUE;
-			assert(base_ds->nb_comp_done < base_ds->nb_comp);
-			base_ds->nb_comp_done ++;
-			ds->first_cts_in_next_seg = ds->est_next_dts;;
 
-			if (base_ds->nb_comp_done == base_ds->nb_comp) {
-				dasher_flush_segment(ctx, base_ds);
-			}
-			ctx->force_period_switch = GF_TRUE;
+	//period switching
+	s32 res = gf_list_del_item(ctx->current_period->streams, ds);
+	//force end of segment if stream is not yet done and in current period
+	if ((res>=0) && !ds->done && !ds->seg_done) {
+		GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s config changed during active period, forcing period switch\n", gf_filter_pid_get_name(ds->ipid) ));
+		ds->seg_done = GF_TRUE;
+		assert(base_ds->nb_comp_done < base_ds->nb_comp);
+		base_ds->nb_comp_done ++;
+		ds->first_cts_in_next_seg = ds->est_next_dts;;
+
+		if (base_ds->nb_comp_done == base_ds->nb_comp) {
+			dasher_flush_segment(ctx, base_ds);
 		}
-		gf_list_add(ctx->next_period->streams, ds);
-		ds->period = ctx->next_period;
+		ctx->force_period_switch = GF_TRUE;
 	}
+	gf_list_add(ctx->next_period->streams, ds);
+	ds->period = ctx->next_period;
+
 
 	return GF_OK;
 }
@@ -1270,15 +1271,13 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		if (!subtype) subtype = GF_ISOM_SUBTYPE_AV01;
 
 		if (dcd && (!ctx->forcep || !ctx->av1p)) {
-			GF_AV1Config *av1c = NULL;
-
-			av1c = dcd ? gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size) : NULL;
+			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 
 			if (!av1c) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] Error loading config for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			} else {
 #ifndef GPAC_DISABLE_AV_PARSERS
-				GF_Err e = GF_OK;
+				GF_Err e;
 				u32 i = 0;
 				AV1State av1_state;
 				memset(&av1_state, 0, sizeof(AV1State));
@@ -1524,7 +1523,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			for (j=0; j<nb_pssh; j++) {
 				u32 pssh_idx;
 				bin128 sysID;
-				GF_XMLNode *node, *pnode;
+				GF_XMLNode *node;
 				u32 version, k_count;
 				u8 *pssh_data=NULL;
 				u32 pssh_len, size_64;
@@ -1572,6 +1571,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 
 				GF_SAFEALLOC(node, GF_XMLNode);
 				if (node) {
+					GF_XMLNode *pnode;
 					node->type = GF_XML_NODE_TYPE;
 					node->name = gf_strdup("cenc:pssh");
 					node->content = gf_list_new();
@@ -2704,13 +2704,16 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			strcat(szDASHTemplate, szStrName);
 		}
 
-		seg_ext = init_ext = idx_ext = NULL;
+		idx_ext = NULL;
 		if (ctx->m2ts) {
 			seg_ext = init_ext = "ts";
 			if (!ctx->do_m3u8 && (ctx->subs_sidx>=0) )
 				idx_ext = "idx";
 		} else {
 			const char *def_ext = NULL;
+
+			seg_ext = init_ext = NULL;
+
 			if (ctx->muxtype==DASHER_MUX_TS) def_ext = "ts";
 			else if (ctx->muxtype==DASHER_MUX_MKV) def_ext = "mkv";
 			else if (ctx->muxtype==DASHER_MUX_WEBM) def_ext = "webm";
@@ -3099,10 +3102,10 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 		if (ctx->current_period->period->start) {
 			ctx->mpd->media_presentation_duration = ctx->current_period->period->start + pdur;
 		} else {
-			u32 i, count = gf_list_count(ctx->mpd->periods);
+			u32 k, pcount = gf_list_count(ctx->mpd->periods);
 			ctx->mpd->media_presentation_duration = 0;
-			for (i=0; i<count; i++) {
-				GF_MPD_Period *p = gf_list_get(ctx->mpd->periods, i);
+			for (k=0; k<pcount; k++) {
+				GF_MPD_Period *p = gf_list_get(ctx->mpd->periods, k);
 				if (p->start)
 					ctx->mpd->media_presentation_duration = p->start + p->duration;
 				else
@@ -3146,8 +3149,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 	for (i=0; i<count; i++) {
 		GF_MPD_Period *p = gf_list_get(ctx->mpd->periods, i);
 		if (p->start) {
-			if (p_start != p->start)
-				p_start = p->start;
+			p_start = p->start;
 		} else {
 			p->start = p_start;
 		}
@@ -4418,9 +4420,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			nb_skip = (u32) (period_dur / seg_dur);
 			ds->ts_offset += nb_skip*seg_dur;
-			ds->max_period_dur += nb_skip*seg_dur;
 			ds->seg_number += nb_skip;
 
+//			ds->max_period_dur += nb_skip*seg_dur;
 			ds->max_period_dur = ds->cumulated_dur;
 			ds->adjusted_next_seg_start += ds->ts_offset;
 			ds->next_seg_start += ds->ts_offset;

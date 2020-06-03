@@ -352,7 +352,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 		ch = faaddec_get_channel_pos(ctx, GF_AUDIO_CH_REAR_SURROUND_RIGHT);
 		if (ch>=0) {
 			ctx->ch_reorder[idx] = ch;
-			idx++;
+			//last one, no need to increment idx++;
 		}
 		faaddec_check_mc_config(ctx);
 	}

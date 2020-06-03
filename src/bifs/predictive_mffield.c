@@ -226,7 +226,7 @@ GF_Err PMF_ParsePValue(PredMF *pmf, GF_BitStream *bs, GF_FieldInfo *field)
 		if (diff_ori != 0) {
 			s32 k=0;
 			for (i=0; i< pmf->num_comp - diff_ori; i++) {
-				k = (i + diff_ori) % pmf->num_comp;
+				//k = (i + diff_ori) % pmf->num_comp;
 				temp_val[i] = inv * ( pmf->previous_val[i] + pmf->current_val[i]);
 			}
 			k = diff_ori - 1;

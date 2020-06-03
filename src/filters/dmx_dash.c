@@ -273,7 +273,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 	if (start_range || end_range) {
 		char szRange[500];
-		if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
+		if (!has_sep) { strcat(sURL, ":gpac"); /* has_sep = GF_TRUE; */ }
 		snprintf(szRange, 500, ":range="LLU"-"LLU, start_range, end_range);
 		strcat(sURL, szRange);
 	}
@@ -929,7 +929,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 {
 	s32 group_idx;
 	GF_FilterPid *opid;
-	GF_Err e=GF_OK;
+	GF_Err e;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
 	GF_DASHGroup *group;
 

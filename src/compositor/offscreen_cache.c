@@ -850,7 +850,7 @@ void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 			cache->traverse_time = 0;
 			gf_list_rem(compositor->cached_groups_queue, last_cache_idx);
 		}
-		priority = INT2FIX (group->nb_objects*1024*1024*avg_time) / group->cached_size;
+		//priority = INT2FIX (group->nb_objects*1024*1024*avg_time) / group->cached_size;
 
 		/*when the memory exceeds the constraint, remove the subgroups that have the lowest deltas*/
 		while (compositor->video_cache_current_size > compositor->vcsize)	{

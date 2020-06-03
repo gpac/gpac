@@ -1916,9 +1916,10 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 			case GF_KEY_RIGHT:
 				if (compositor->focus_uses_dom_events) {
 					ret += gf_sc_svg_focus_navigate(compositor, ev->key.key_code);
-				} else if (compositor->keynav_node) {
-					GF_Node *next_nav = NULL;
+				}
 #ifndef GPAC_DISABLE_VRML
+				else if (compositor->keynav_node) {
+					GF_Node *next_nav = NULL;
 					switch (ev->key.key_code) {
 					case GF_KEY_UP:
 						next_nav = ((M_KeyNavigator*)compositor->keynav_node)->up;
@@ -1933,12 +1934,12 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 						next_nav = ((M_KeyNavigator*)compositor->keynav_node)->right;
 						break;
 					}
-#endif
 					if (next_nav) {
 						gf_sc_change_key_navigator(compositor, next_nav);
 						ret = GF_TRUE;
 					}
 				}
+#endif
 				break;
 			}
 		}

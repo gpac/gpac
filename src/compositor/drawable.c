@@ -167,7 +167,6 @@ void drawable_reset_bounds(Drawable *dr, GF_VisualManager *visual)
 void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 {
 	StrikeInfo2D *si;
-	Bool is_reg = 0;
 	DRInfo *dri;
 	BoundInfo *bi, *_cur;
 
@@ -176,7 +175,7 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 	dri = dr->dri;
 	while (dri) {
 		DRInfo *cur;
-		is_reg = compositor ? gf_sc_visual_is_registered(compositor, dri->visual) : 0;
+		Bool is_reg = compositor ? gf_sc_visual_is_registered(compositor, dri->visual) : 0;
 
 		bi = dri->current_bounds;
 		while (bi) {
@@ -1082,7 +1081,9 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 {
 	StrikeInfo2D *si, *prev;
 	GF_Node *lp;
+#ifndef GPAC_DISABLE_VRML
 	Bool dirty;
+#endif
 	if (!asp->pen_props.width) return NULL;
 	if (path && !path->n_points) return NULL;
 
@@ -1146,11 +1147,13 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	/*node changed or outline not build*/
 #ifndef GPAC_DISABLE_VRML
 	dirty = lp ? drawable_lineprops_dirty(lp) : 0;
-#else
-	dirty = 0;
 #endif
 
-	if (!si->outline || dirty || (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {
+	if (!si->outline
+#ifndef GPAC_DISABLE_VRML
+		|| dirty
+#endif
+		|| (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {
 		u32 i;
 		Fixed w = asp->pen_props.width;
 		Fixed dash_o = asp->pen_props.dash_offset;

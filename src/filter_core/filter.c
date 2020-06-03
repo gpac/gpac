@@ -646,7 +646,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 	case GF_PROP_UINT_LIST:
 		if (a->offset_in_private + sizeof(void *) <= filter->freg->private_size) {
 			GF_PropUIntList *l = (GF_PropUIntList *)ptr;
-			if (l) gf_free(l->vals);
+			if (l->vals) gf_free(l->vals);
 			*l = argv->value.uint_list;
 			res = GF_TRUE;
 		}
@@ -665,16 +665,16 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 static void filter_translate_autoinc(GF_Filter *filter, char *value)
 {
 	u32 ainc_crc, i;
-	char *step_sep;
 	GF_FSAutoIncNum *auto_int=NULL;
 	u32 inc_count;
 	Bool assigned=GF_FALSE;
 	s32 max_int = 0;
 	s32 increment=1;
 	char szInt[100];
-	char *inc_end, *inc_sep;
 
 	while (1) {
+		char *step_sep;
+		char *inc_end, *inc_sep;
 		inc_sep = strstr(value, "$GINC(");
 		if (!inc_sep) return;
 		inc_end = strstr(inc_sep, ")");
@@ -1655,7 +1655,9 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 			gf_list_del(pid->adapters_blacklist);
 			pid->adapters_blacklist = NULL;
 		}
-		gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, dst_pidi->filter, dst_pidi->pid, "pidinst_disconnect", NULL);
+		if (dst_pidi) {
+			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, dst_pidi->filter, dst_pidi->pid, "pidinst_disconnect", NULL);
+		}
 		return;
 	}
 	//detach pid instance from its source pid
@@ -2953,7 +2955,6 @@ const char *gf_filter_get_id(GF_Filter *filter)
 GF_EXPORT
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext)
 {
-	char szID[1024];
 	if (!filter || !link_from) return GF_BAD_PARAM;
 	if (filter == link_from) return GF_OK;
 	//don't allow loops
@@ -2963,6 +2964,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 		gf_filter_assign_id(link_from, NULL);
 	}
 	if (link_ext) {
+		char szID[1024];
 		sprintf(szID, "%s%c%s", link_from->id, link_from->session->sep_frag, link_ext);
 		gf_filter_set_sources(filter, szID);
 	} else {

@@ -194,8 +194,8 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			u32 w=0, h=0;
 #ifndef GPAC_DISABLE_AV_PARSERS
 			u32 sid;
-#endif
 			s32 par_n=0, par_d=0;
+#endif
 			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -206,10 +206,12 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				if ((ctx->width<w) || (ctx->height<h)) {
 					ctx->width = w;
 					ctx->height = h;
+#ifndef GPAC_DISABLE_AV_PARSERS
 					if ( ((s32)par_n>0) && ((s32)par_d>0) ) {
 						ctx->pixel_ar.num = par_n;
 						ctx->pixel_ar.den = par_d;
 					}
+#endif
 				}
 			}
 			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, ctx->layers);
