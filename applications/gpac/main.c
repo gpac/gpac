@@ -1219,7 +1219,6 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 		gf_fclose(sidebar_md);
 
 	if (static_logs) {
-		u32 i;
 		for (i=0; i<nb_log_entries; i++) {
 			if (static_logs[i].szMsg)
 				gf_free(static_logs[i].szMsg);
@@ -1321,7 +1320,6 @@ static void gpac_suggest_arg(char *aname)
 	u32 k;
 	const GF_GPACArg *args;
 	if (!aname) return;
-	args = gf_sys_get_options();
 	Bool found=GF_FALSE;
 	for (k=0; k<2; k++) {
 		u32 i=0;
@@ -2229,7 +2227,9 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 	if (filter_inst) args = gf_filter_get_args(filter_inst);
 	else args = reg->args;
 
-	while (args) {
+	if (!args) return;
+
+	while (1) {
 		const GF_FilterArgs *a = & args[idx];
 		if (!a || !a->arg_name) break;
 		idx++;
@@ -2242,7 +2242,7 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 	if (found) return;
 
 	idx = 0;
-	while (args) {
+	while (1) {
 		const GF_FilterArgs *a = & args[idx];
 		if (!a || !a->arg_name) break;
 		idx++;
@@ -2536,18 +2536,18 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			//all good to go, load filters
 			for (k=1; k<(u32) argc; k++) {
 				char *arg = argv[k];
-				char *sep;
+				char *sepe;
 				char *optname = NULL;
 				if (arg[0]=='-') continue;
 
-				sep = gf_file_basename(arg);
-				if (sep) sep = strchr(sep, '.');
-				if (sep) {
-					if (!strncmp(sep, ".js.", 4)) sep = strchr(sep+1, '.');
-					else if (!strcmp(sep, ".js")) sep = NULL;
-					if (sep) {
-						sep[0] = 0;
-						optname = sep+1;
+				sepe = gf_file_basename(arg);
+				if (sepe) sepe = strchr(sepe, '.');
+				if (sepe) {
+					if (!strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
+					else if (!strcmp(sepe, ".js")) sepe = NULL;
+					if (sepe) {
+						sepe[0] = 0;
+						optname = sepe+1;
 					}
 				}
 				fname = arg;
@@ -2559,20 +2559,20 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						print_filter(reg, argmode, NULL);
 					found = GF_TRUE;
 				} else {
-					char *sep = strchr(arg, ':');
+					char *sepo = strchr(arg, ':');
 					char *sepd = strchr(reg->name, ':');
 					Bool patch_meta = GF_FALSE;
-					if (sep && sepd) {
-						char *subf = strstr(reg->name, sep+1);
+					if (sepo && sepd) {
+						char *subf = strstr(reg->name, sepo+1);
 						if (subf) {
-							u32 slen = (u32) strlen(sep+1);
+							u32 slen = (u32) strlen(sepo+1);
 							if ((subf[slen]==0) || (subf[slen]==','))
 								patch_meta = GF_TRUE;
 						}
 					}
 					if (!strcmp(arg, "*:*") || !strcmp(arg, "@:@")
-						|| (!sep && (!strcmp(arg, "*") || !strcmp(arg, "@")) )
-					 	|| (sep && (!strcmp(sep, ":*") || !strcmp(sep, ":@"))  && !strncmp(reg->name, arg, 1+sep - arg) )
+						|| (!sepo && (!strcmp(arg, "*") || !strcmp(arg, "@")) )
+					 	|| (sepo && (!strcmp(sepo, ":*") || !strcmp(sepo, ":@"))  && !strncmp(reg->name, arg, 1+sepo - arg) )
 					 	|| patch_meta
 					) {
 						if (optname)
@@ -2594,7 +2594,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						}
 					}
 				}
-				if (sep) sep[0] = '.';
+				if (sepe) sepe[0] = '.';
 			}
 		} else {
 #ifndef GPAC_DISABLE_DOC

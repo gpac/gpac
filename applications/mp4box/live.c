@@ -156,7 +156,7 @@ static void live_session_callback(void *calling_object, u16 ESID, u8 *data, u32 
 static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 {
 	u32 now = gf_sys_clock();
-	u64 ts=0;
+	u64 ts;
 	if (ch) {
 		if (ch->carousel_size) {
 			ts = ch->carousel_ts + ch->timescale * ( (ch->adjust_carousel_time ? (u64)gf_sys_clock() : ch->time_at_carousel_store) - ch->init_time + ch->ts_delta)/1000;

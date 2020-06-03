@@ -1039,8 +1039,6 @@ static Bool PrintHelpArg(char *arg_name, Bool exact_match, GF_FilterSession *fs)
 					an_arg.type = GF_ARG_STRING;
 					break;
 				}
-			}
-			if (exact_match) {
 				if (first) {
 					first = GF_FALSE;
 					gf_sys_format_help(helpout, 0, "\nGlobal filter session arguments. Syntax is `--arg` or `--arg=VAL`. `[F]` indicates filter name. See `gpac -h` and `gpac -h F` for more info.\n");
@@ -3851,7 +3849,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 				dump_udta_type = GF_4CC(code[0], code[1], code[2], code[3]);
 			} else if (strlen(code) == 8) {
 				// hex representation on 8 chars
-				int hex1, hex2, hex3, hex4;
+				u32 hex1, hex2, hex3, hex4;
 				if (sscanf(code, "%02x%02x%02x%02x", &hex1, &hex2, &hex3, &hex4) != 4) {
 					fprintf(stderr, "udta code is either a 4CC or 8 hex chars for non-printable 4CC\n");
 					return mp4box_cleanup(1);
@@ -4348,7 +4346,7 @@ int mp4boxMain(int argc, char **argv)
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = compress_moov = GF_FALSE;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
+	conv_type = HintIt = needSave = print_sdp = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = hls_clock = GF_FALSE;
     tfdt_per_traf = GF_FALSE;
@@ -4744,17 +4742,12 @@ int mp4boxMain(int argc, char **argv)
 				FILE *test = gf_fopen(inName, "rb");
 				if (!test) {
 					open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
+					if (!outName) outName = inName;
 				} else {
-					FILE *test = gf_fopen(inName, "rb");
-					if (!test) {
+					gf_fclose(test);
+					if (! gf_isom_probe_file(inName) ) {
 						open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 						if (!outName) outName = inName;
-					} else {
-						gf_fclose(test);
-						if (! gf_isom_probe_file(inName) ) {
-							open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
-							if (!outName) outName = inName;
-						}
 					}
 				}
 			}
@@ -4793,9 +4786,9 @@ int mp4boxMain(int argc, char **argv)
 		for (ipass=0; ipass<nb_pass; ipass++) {
 			u32 tk_idx = 1;
 			for (i=0; i<(u32) argc; i++) {
-				char *src, *margs=NULL;
+				char *margs=NULL;
 				if (!strcmp(argv[i], "-add")) {
-					src = argv[i+1];
+					char *src = argv[i+1];
 
 					while (src) {
 						char *sep = strchr(src, '+');
@@ -6077,10 +6070,8 @@ int mp4boxMain(int argc, char **argv)
 				tags = NULL;
 				continue;
 			}
-			if (val) {
-				val ++;
-				if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
-			}
+			val ++;
+			if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 
 			tlen = val ? (u32) strlen(val) : 0;
 			switch (itag) {

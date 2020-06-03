@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -327,7 +327,7 @@ GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
 		}
 		else if (!stricmp(fieldName, "startDTS")) GET_U64(p->startDTS)
 		else if (!stricmp(fieldName, "startPacketID")) GET_U32(p->startPacketID)
-		else if (!stricmp(fieldName, "expireDTS")) GET_U32(p->expireDTS)
+		else if (!stricmp(fieldName, "expireDTS")) GET_U64(p->expireDTS)
 		else if (!stricmp(fieldName, "expirePacketID")) GET_U32(p->expirePacketID)
 		}
 	break;

@@ -1016,6 +1016,7 @@ u32 SDLVid_EventProc(void *par)
 
 	if (!SDLVid_InitializeWindow(ctx, dr)) {
 		ctx->sdl_th_state = SDL_STATE_STOP_REQ;
+		return 1;
 	}
 
 	ctx->sdl_th_state = SDL_STATE_RUNNING;
