@@ -760,7 +760,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			u32 stride = txh->stride;
 			u32 stride_uv=0;
 			u32 stride_alpha=0;
-			GF_Err e;
+			GF_Err e=GF_OK;
 			if (txh->frame_ifce) {
 				pData=NULL;
 				if (txh->frame_ifce->get_plane) {
