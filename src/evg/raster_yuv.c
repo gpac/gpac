@@ -1114,7 +1114,7 @@ void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf)
 			if (a==0xFF) {
 				pY[surf->idx_u] = cu;
 				pY[surf->idx_v] = cv;
-			} else {
+			} else if (a) {
 				overmask_yuvy(pY + surf->idx_u, cu, a);
 				overmask_yuvy(pY + surf->idx_v, cv, a);
 			}
