@@ -97,6 +97,8 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		id = 0x100 | mpeg2ps_get_video_stream_id(ctx->ps, st->stream_num);
 		if (!sync_id) sync_id = id;
 
+		gf_filter_pid_copy_properties(st->opid, ctx->ipid);
+		gf_filter_pid_set_name(st->opid, "Video");
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->stream_type) );
 		switch (mpeg2ps_get_video_stream_type(ctx->ps, st->stream_num)) {
 		case MPEG_VIDEO_MPEG1:
@@ -137,6 +139,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 	nb_streams = mpeg2ps_get_audio_stream_count(ctx->ps);
 	for (i=0; i<nb_streams; i++) {
 		u32 id;
+		char szName[20];
 		M2PSStream *st = NULL;
 		u32 j, count = gf_list_count(ctx->streams);
 
@@ -161,6 +164,9 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		id = 0x100 | mpeg2ps_get_audio_stream_id(ctx->ps, st->stream_num);
 		if (!sync_id) sync_id = id;
 
+		gf_filter_pid_copy_properties(st->opid, ctx->ipid);
+		sprintf(szName, "Audio%d", i+1);
+		gf_filter_pid_set_name(st->opid, szName);
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->stream_type) );
 		switch (mpeg2ps_get_audio_stream_type(ctx->ps, st->stream_num)) {
 		case MPEG_AUDIO_MPEG:

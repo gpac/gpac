@@ -161,6 +161,8 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	Bool m4sys_iod_stream = GF_FALSE;
 	Bool has_scal_layer = GF_FALSE;
 	Bool unframed = GF_FALSE;
+	char szName[20];
+	const char *stname;
 	if (stream->user) return;
 
 	if (stream->flags & GF_M2TS_GPAC_CODEC_ID) {
@@ -284,6 +286,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	stream->user = opid;
 	gf_filter_pid_set_udta(opid, stream);
 	stream->flags |= GF_M2TS_ES_ALREADY_DECLARED;
+
+	stname = gf_stream_type_name(stype);
+	sprintf(szName, "P%d%c%d", stream->program->number, stname[0], 1+gf_list_find(stream->program->streams, stream));
+	gf_filter_pid_set_name(opid, szName);
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(stream->pid) );
 	if (stream->mpeg4_es_id)
