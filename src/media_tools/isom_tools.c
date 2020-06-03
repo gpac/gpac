@@ -2074,7 +2074,9 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	}
 
 	list_track_sorted = (u32 *) gf_malloc(num_track * sizeof(u32));
+	memset(list_track_sorted, 0, num_track * sizeof(u32));
 	DQId = (s32 *) gf_malloc(num_track * sizeof(s32));
+	memset(DQId, 0, num_track * sizeof(s32));
 	count = 0;
 	for (t = 1; t <= num_track; t++) {
 		u32 pos = 0;
@@ -2167,22 +2169,17 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 	}
 
 	DTS_offset = (u64 *) gf_malloc(count * sizeof(u64));
-	for (t = 0; t < count; t++)
-	{
+	for (t = 0; t < count; t++) {
+		DTS_offset[t] = 0;
 		nb_EditList = gf_isom_get_edit_segment_count(file, list_track_sorted[t]);
-		if (!nb_EditList)
-			DTS_offset[t] = 0;
-		else
-		{
+		if (nb_EditList) {
 			media_ts = gf_isom_get_media_timescale(file, list_track_sorted[t]);
 			moov_ts = gf_isom_get_timescale(file);
-			for (i = 1; i <= nb_EditList; i++)
-			{
+			for (i = 1; i <= nb_EditList; i++) {
 				e = gf_isom_get_edit_segment(file, list_track_sorted[t], i, &EditTime, &SegmentDuration, &MediaTime, &EditMode);
 				if (e) goto exit;
 
-				if (!EditMode)
-				{
+				if (!EditMode) {
 					DTS_offset[t] = SegmentDuration * media_ts / moov_ts;
 				}
 			}
