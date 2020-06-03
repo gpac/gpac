@@ -462,7 +462,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				svc_mode = 2;
 			else if (!stricmp(mode, "splitbase"))
 				svc_mode = 1;
-			else if (!stricmp(mode, "merged"))
+			else if (!stricmp(mode, "merged") || !stricmp(mode, "merge"))
 				svc_mode = 0;
 		}
 		/*split SHVC temporal sublayers*/
