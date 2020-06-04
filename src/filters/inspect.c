@@ -1922,6 +1922,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		inspect_reset_parsers(pctx, &pctx->av1_state);
 		if (!pctx->av1_state) {
 			GF_SAFEALLOC(pctx->av1_state, AV1State);
+			av1_reset_state(pctx->av1_state, GF_FALSE);
 			if (!pctx->av1_state) return;
 		}
 #endif

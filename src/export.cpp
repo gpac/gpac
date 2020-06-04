@@ -650,6 +650,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
 
 #pragma comment (linker, EXPORT_SYMBOL(av1_get_obu_name) )
+#pragma comment (linker, EXPORT_SYMBOL(av1_reset_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write) )

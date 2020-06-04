@@ -1281,6 +1281,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				u32 i = 0;
 				AV1State av1_state;
 				memset(&av1_state, 0, sizeof(AV1State));
+				av1_reset_state(&av1_state, GF_FALSE);
 				av1_state.config = av1c;
 
 				for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {

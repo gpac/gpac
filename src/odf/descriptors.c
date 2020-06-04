@@ -1261,6 +1261,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 
 	cfg = gf_odf_av1_cfg_new();
 	memset(&state, 0, sizeof(AV1State));
+	av1_reset_state(&state, GF_FALSE);
 	state.config = cfg;
 
 	cfg->marker = gf_bs_read_int(bs, 1);
