@@ -1656,7 +1656,7 @@ static void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_c
 
 	track = gf_isom_get_track_by_id(file, trackID);
 
-	memset(&av1, 0, sizeof(AV1State));
+	av1_reset_state(&av1);
 	av1.config = gf_isom_av1_config_get(file, track, 1);
 	if (!av1.config) {
 		fprintf(stderr, "Error: Track #%d is not AV1!\n", trackID);

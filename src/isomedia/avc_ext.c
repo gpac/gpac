@@ -2668,7 +2668,7 @@ GF_Err av1c_Read(GF_Box *s, GF_BitStream *bs) {
 
 	if (ptr->config) gf_odf_av1_cfg_del(ptr->config);
 	GF_SAFEALLOC(ptr->config, GF_AV1Config);
-	memset(&state, 0, sizeof(AV1State));
+	av1_reset_state(&state);
 	state.config = ptr->config;
 
 	ptr->config->marker = gf_bs_read_int(bs, 1);

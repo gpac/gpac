@@ -644,6 +644,7 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
 
 Bool av1_is_obu_header(ObuType obu_type);
+void av1_reset_state(AV1State *state);
 void av1_reset_frame_state(AV1StateFrame *frame_state);
 
 typedef struct
