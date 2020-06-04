@@ -4034,6 +4034,11 @@ void av1_reset_state(AV1State *state, Bool is_destroy)
 		if (state->bs)
 			gf_bs_seek(state->bs, 0);
 	}
+
+	memset(state, 0, sizeof(AV1State));
+	state->color_primaries = 2;
+	state->transfer_characteristics = 2;
+	state->matrix_coefficients = 2;
 }
 
 static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)

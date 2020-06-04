@@ -282,6 +282,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_bs_seek(bs, ctx->file_hdr_size);
 	}
 	memset(&av1state, 0, sizeof(AV1State));
+	av1_reset_state(&av1state, GF_FALSE);
 	av1state.skip_frames = GF_TRUE;
 	av1state.config = gf_odf_av1_cfg_new();
 
@@ -1021,6 +1022,7 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			u32 nb_units = 0;
 
 			memset(&state, 0, sizeof(AV1State));
+			av1_reset_state(&state, GF_FALSE);
 			state.config = gf_odf_av1_cfg_new();
 			while (gf_bs_available(bs)) {
 				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
