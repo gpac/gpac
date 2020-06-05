@@ -2577,17 +2577,17 @@ static void lsr_read_float_list(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SVG_Coo
 	count = lsr_read_vluimsbf5(lsr, "count");
 	if (tag == TAG_SVG_ATT_text_rotate) {
 		for (i=0; i<count; i++) {
-			SVG_Number *n = (SVG_Number *)gf_malloc(sizeof(SVG_Number));
-			n->type = SVG_NUMBER_VALUE;
-			n->value = lsr_read_fixed_16_8(lsr, "val");
-			gf_list_add(*coords, n);
+			SVG_Number *num = (SVG_Number *)gf_malloc(sizeof(SVG_Number));
+			num->type = SVG_NUMBER_VALUE;
+			num->value = lsr_read_fixed_16_8(lsr, "val");
+			gf_list_add(*coords, num);
 		}
 	}
 	else {
 		for (i=0; i<count; i++) {
-			Fixed *n = (Fixed *)gf_malloc(sizeof(Fixed));
-			*n = lsr_read_fixed_16_8(lsr, "val");
-			gf_list_add(*coords, n);
+			Fixed *num = (Fixed *)gf_malloc(sizeof(Fixed));
+			*num = lsr_read_fixed_16_8(lsr, "val");
+			gf_list_add(*coords, num);
 		}
 	}
 }
@@ -2753,6 +2753,10 @@ exit:
 
 #else
 	u32 i, count, c;
+	if (!path) {
+		lsr->last_error = GF_BAD_PARAM;
+		return;
+	}
 	lsr_read_point_sequence(lsr, path->points, "seq");
 	while (gf_list_count(path->commands)) {
 		u8 *v = (u8 *)gf_list_last(path->commands);
@@ -5331,13 +5335,12 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 			}
 		}
 	} else {
-		s32 fieldIndex = -1;
 		SVG_Element *elt = (SVG_Element *) gf_sg_find_node(lsr->sg, idref);
 		if (!elt)
 			return GF_NON_COMPLIANT_BITSTREAM;
 
 		if (att_type>=0) {
-			fieldIndex = gf_lsr_anim_type_to_attribute(att_type);
+			s32 fieldIndex = gf_lsr_anim_type_to_attribute(att_type);
 			gf_node_get_field((GF_Node*)elt, fieldIndex, &info);
 			/*TODO implement*/
 		}

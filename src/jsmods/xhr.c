@@ -914,7 +914,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	scene = xml_get_scenegraph(c);
 	if (scene) {
 		par.dnld_man = NULL;
-		if (scene && scene->script_action)
+		if (scene->script_action)
 			scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
 	} else {
 		par.dnld_man = jsf_get_download_manager(c);
@@ -1370,9 +1370,7 @@ static JSValue xhr_load_class(JSContext *c)
 		xhrClass.class.gc_mark = xml_http_gc_mark;
 		JS_NewClass(JS_GetRuntime(c), xhrClass.class_id, &xhrClass.class);
 	}
-	JSValue proto = JS_UNDEFINED;
-
-	proto = JS_NewObjectClass(c, xhrClass.class_id);
+	JSValue proto = JS_NewObjectClass(c, xhrClass.class_id);
 	JS_SetPropertyFunctionList(c, proto, xhr_Funcs, countof(xhr_Funcs));
 	JS_SetClassProto(c, xhrClass.class_id, proto);
 	JS_SetPropertyStr(c, proto, "UNSENT",	JS_NewInt32(c, XHR_STATIC_UNSENT));

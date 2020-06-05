@@ -1717,12 +1717,12 @@ static u32 uvlc(GF_BitStream *bs) {
 }
 
 static void timing_info(GF_BitStream *bs, AV1State *state) {
-	u32 num_ticks_per_picture_minus_1 = 0, time_scale = 0;
+	u32 time_scale = 0;
 	/*num_units_in_display_tick*/ gf_bs_read_int(bs, 32);
 	time_scale = gf_bs_read_int(bs, 32);
 	state->equal_picture_interval = gf_bs_read_int(bs, 1);
 	if (state->equal_picture_interval) {
-		num_ticks_per_picture_minus_1 = uvlc(bs);
+		u32 num_ticks_per_picture_minus_1 = uvlc(bs);
 		state->tb_num = (num_ticks_per_picture_minus_1 + 1);
 		state->tb_den = time_scale;
 	}
@@ -1749,20 +1749,20 @@ static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 b
 static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 {
 	u8 buffer_delay_length_minus_1 = 0;
-	Bool timing_info_present_flag, initial_display_delay_present_flag;
 	state->frame_state.seen_seq_header = GF_TRUE;
 	state->config->seq_profile = gf_bs_read_int(bs, 3);
 	state->still_picture = gf_bs_read_int(bs, 1);
 	state->reduced_still_picture_header = gf_bs_read_int(bs, 1);
 	if (state->reduced_still_picture_header) {
-		timing_info_present_flag = GF_FALSE;
-		initial_display_delay_present_flag = GF_FALSE;
+		//timing_info_present_flag = GF_FALSE;
+		//initial_display_delay_present_flag = GF_FALSE;
 		state->operating_points_count = 1;
 		state->config->seq_level_idx_0 = gf_bs_read_int(bs, 5);
 	}
 	else {
 		u8 i = 0;
-		timing_info_present_flag = gf_bs_read_int(bs, 1);
+		Bool initial_display_delay_present_flag;
+		Bool timing_info_present_flag = gf_bs_read_int(bs, 1);
 		if (timing_info_present_flag) {
 			timing_info(bs, state);
 			state->decoder_model_info_present_flag = gf_bs_read_int(bs, 1);
@@ -2232,8 +2232,8 @@ static void vp9_tile_info(GF_BitStream *bs, int Sb64Cols)
 	}
 	tile_rows_log2 = gf_bs_read_int(bs, 1);
 	if (tile_rows_log2) {
-		Bool increment_tile_rows_log2 = gf_bs_read_int(bs, 1);
-		tile_rows_log2 += increment_tile_rows_log2;
+		/*Bool increment_tile_rows_log2 = */gf_bs_read_int(bs, 1);
+		//tile_rows_log2 += increment_tile_rows_log2;
 	}
 }
 
@@ -2275,7 +2275,7 @@ GF_Err gf_media_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *k
 {
 	Bool FrameIsIntra = GF_FALSE, profile_low_bit = GF_FALSE, profile_high_bit = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
 	/*u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0*/;
-	int Sb64Cols = 0, Sb64Rows = 0, i = 0;
+	int Sb64Cols = 0, Sb64Rows = 0, i;
 	u8 refresh_frame_flags = 0;
 
 	assert(bs && key_frame);
@@ -2346,7 +2346,6 @@ GF_Err gf_media_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *k
 			vp9_render_size(bs, *FrameWidth, *FrameHeight, renderWidth, renderHeight);
 		}
 		else {
-			int i;
 			refresh_frame_flags = gf_bs_read_int(bs, 8);
 			u8 ref_frame_idx[3];
 			for (i = 0; i < 3; i++) {
@@ -2511,6 +2510,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 	Bool has_size_field = 0, obu_extension_flag = 0;
 	u8 temporal_id, spatial_id;
 	GF_AV1_OBUArrayEntry *a = NULL;
+	assert(obu_list);
 
 	if (state && state->mem_mode) {
 		if (!state->bs) state->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2596,7 +2596,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 		}
 	}
 	a->obu_type = obu_type;
-	if (!*obu_list)
+	if (! *obu_list)
 		*obu_list = gf_list_new();
 	gf_list_add(*obu_list, a);
 }
@@ -2622,13 +2622,11 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 	state->obu_type = -1;
 
 	while (state->obu_type != OBU_TEMPORAL_DELIMITER) {
+		GF_Err e;
 		if (!gf_bs_available(bs))
 			return state->unframed ? GF_BUFFER_TOO_SMALL : GF_OK;
 
 		u64 pos = gf_bs_get_position(bs), obu_length = 0;
-		GF_Err e;
-		if (gf_bs_available(bs)==1)
-			e=GF_OK;
 
 		e = gf_media_aom_av1_parse_obu(bs, &state->obu_type, &obu_length, NULL, state);
 		if (e)
@@ -2715,7 +2713,7 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs)
 
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state)
 {
-	GF_Err e = GF_OK;
+	GF_Err e;
 	u64 tupos;
 	u64 tusize, sz;
 	if (!bs || !state) return GF_BAD_PARAM;
@@ -2915,7 +2913,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 			maxTileAreaSb = (sbRows * sbCols) >> (minLog2Tiles + 1);
 		else
 			maxTileAreaSb = sbRows * sbCols;
-		maxTileHeightSb = widestTileSb ? MAX(maxTileAreaSb / widestTileSb, 1) : 1;
+		maxTileHeightSb = MAX(maxTileAreaSb / widestTileSb, 1);
 
 		startSb = 0;
 		for (i = 0; startSb < sbRows; i++) {
@@ -3635,11 +3633,10 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	//segmentation_params( ):
 	u8 segmentation_enabled = gf_bs_read_int(bs, 1);
 	if (segmentation_enabled) {
-		u8 segmentation_update_map = 1;
 		/*u8 segmentation_temporal_update = 0;*/
 		u8 segmentation_update_data = 1;
 		if (primary_ref_frame != AV1_PRIMARY_REF_NONE) {
-			segmentation_update_map = gf_bs_read_int(bs, 1);
+			u8 segmentation_update_map = gf_bs_read_int(bs, 1);
 			if (segmentation_update_map == 1)
 				/*segmentation_temporal_update = */gf_bs_read_int(bs, 1);
 			segmentation_update_data = gf_bs_read_int(bs, 1);
@@ -3771,8 +3768,8 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			else {
 				u8 lr_unit_shift = gf_bs_read_int(bs, 1);
 				if (lr_unit_shift) {
-					u8 lr_unit_extra_shift = gf_bs_read_int(bs, 1);
-					lr_unit_shift += lr_unit_extra_shift;
+					/*u8 lr_unit_extra_shift = */gf_bs_read_int(bs, 1);
+					//lr_unit_shift += lr_unit_extra_shift;
 				}
 			}
 			if (state->config->chroma_subsampling_x && state->config->chroma_subsampling_y && usesChromaLr) {
@@ -6103,7 +6100,6 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 
 	case GF_AVC_NALU_SVC_SLICE:
 		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
-		slice = 1;
 		// slice buffer - read the info and compare.
 		/*ret = */svc_parse_slice(bs, avc, &n_state);
 		if (avc->s_info.nal_ref_idc) {
@@ -6624,7 +6620,7 @@ static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 id
 		rps->num_positive_pics = k1;
 	}
 	else {
-		s32 prev = 0, poc = 0;
+		s32 prev = 0, poc;
 		sps->rps[idx_rps].num_negative_pics = gf_bs_get_ue(bs);
 		sps->rps[idx_rps].num_positive_pics = gf_bs_get_ue(bs);
 		if (sps->rps[idx_rps].num_negative_pics > 16)
@@ -6784,8 +6780,6 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 		gf_bs_read_int(bs, pps->num_extra_slice_header_bits);
 
 		si->slice_type = gf_bs_get_ue(bs);
-		if (si->slice_type == GF_HEVC_SLICE_TYPE_P)
-			si->slice_type = GF_HEVC_SLICE_TYPE_P;
 
 		if (pps->output_flag_present_flag)
 			/*pic_output_flag = */gf_bs_read_int(bs, 1);
@@ -8741,7 +8735,7 @@ block:
 	hdr->bitrate = 0;
 	hdr->sample_rate = freq;
 	hdr->framesize = framesize;
-	if (strmtyp!=0x1) {
+	if (strmtyp != 1) {
 		hdr->channels = channels;
 		hdr->streams[substreamid].lfon = lfon;
 		if (full_parse) {
@@ -8758,7 +8752,7 @@ block:
 		if (lfon)
 			hdr->channels += 1;
 
-	} else if (strmtyp==1) {
+	} else {
 		hdr->streams[substreamid].num_dep_sub = substreamid;
 		hdr->streams[substreamid].chan_loc |= chanmap;
 	}

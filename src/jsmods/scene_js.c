@@ -781,14 +781,6 @@ static JSValue gpac_enum_directory(JSContext *ctx, JSValueConst this_val, int ar
 	if (!dir_only) {
 		cbk.is_dir = 0;
 		err = gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
-		if (dir_only && (err==GF_IO_ERR)) {
-			GF_Compositor *compositor = gpac_get_compositor(ctx, this_val);
-			/*try to concatenate with service url*/
-			char *an_url = gf_url_concatenate(compositor->root_scene->root_od->scene_ns->url, url ? url : dir);
-			gf_free(url);
-			url = an_url;
-			gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
-		}
 	}
 
 	if (url) gf_free(url);
@@ -937,7 +929,6 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 	GF_ObjectManager *odm = JS_GetOpaque(this_val, odm_class_id);
 	GF_MediaInfo odi;
 	char *str;
-	JSValue ret;
 	GF_Scene *scene;
 	Double dval;
 	u32 i, count;
@@ -1052,7 +1043,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		}
 		//use number of scalable addons
 		if (odm->upper_layer_odm) {
-			u32 count = 0;
+			count = 0;
 			while (odm) {
 				odm = odm->upper_layer_odm;
 				count++;
@@ -1086,6 +1077,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		break;
 	case GJS_OM_PROP_BANDWIDTH_DOWN:
         if (odm->scene_ns->source_filter) {
+			JSValue ret;
             GF_PropertyEntry *pe=NULL;
             const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
             ret = JS_NewInt32(ctx, prop ? prop->value.uint/1000 : 0);
@@ -1114,7 +1106,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		scene = odm->subscene ? odm->subscene : odm->parentscene;
 		//we may need to check the main addon for timeshifting
 		if (scene->main_addon_selected) {
-			u32 i, count = gf_list_count(scene->resources);
+			count = gf_list_count(scene->resources);
 			for (i=0; i < count; i++) {
 				GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
 				if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
@@ -2094,7 +2086,6 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 	gjs->gpac_obj = JS_NewObjectClass(c, gpac_class_id);
 	JS_SetPropertyFunctionList(c, gjs->gpac_obj, gpac_funcs, countof(gpac_funcs));
 	JS_SetOpaque(gjs->gpac_obj, gjs);
-	gjs->gpac_obj = gjs->gpac_obj;
 //	JS_SetPropertyStr(c, global, "gpac", gjs->gpac_obj);
 
 	if (scene->script_action) {
