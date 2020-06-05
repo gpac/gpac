@@ -2347,7 +2347,7 @@ static GF_Err av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *ob
 }
 
 GF_EXPORT
-const char *av1_get_obu_name(ObuType obu_type)
+const char *gf_av1_get_obu_name(ObuType obu_type)
 {
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER: return "seq_header";

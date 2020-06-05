@@ -363,7 +363,7 @@ typedef enum {
 	OBU_METADATA_TYPE_TIMECODE = 5
 } ObuMetadataType;
 
-const char *av1_get_obu_name(ObuType obu_type);
+const char *gf_av1_get_obu_name(ObuType obu_type);
 
 /*! @} */
 

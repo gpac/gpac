@@ -1577,7 +1577,7 @@ static void dump_obu(FILE *dump, u32 idx, AV1State *av1, char *obu, u32 obu_leng
 #define DUMP_OBU_INT(_v) fprintf(dump, #_v"=\"%d\" ", av1->_v);
 #define DUMP_OBU_INT2(_n, _v) fprintf(dump, _n"=\"%d\" ", _v);
 
-	fprintf(dump, "   <OBU number=\"%d\" size=\"%d\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", idx, (u32) obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
+	fprintf(dump, "   <OBU number=\"%d\" size=\"%d\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", idx, (u32) obu_size, gf_av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
 	if (dump_crc) fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, obu_length) );
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
@@ -1656,7 +1656,7 @@ static void dump_isom_obu(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_c
 
 	track = gf_isom_get_track_by_id(file, trackID);
 
-	av1_reset_state(&av1);
+	gf_av1_reset_state(&av1);
 	av1.config = gf_isom_av1_config_get(file, track, 1);
 	if (!av1.config) {
 		fprintf(stderr, "Error: Track #%d is not AV1!\n", trackID);
@@ -3042,7 +3042,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump, Bool is_track_
 			u32 j;
 			GF_AV1_OBUArrayEntry *obu = gf_list_get(av1c->obu_array, i);
 			gf_sha1_csum((u8*)obu->obu, (u32)obu->obu_length, hash);
-			fprintf(stderr, "\tOBU#%d %s hash: ", i+1, av1_get_obu_name(obu->obu_type) );
+			fprintf(stderr, "\tOBU#%d %s hash: ", i+1, gf_av1_get_obu_name(obu->obu_type) );
 			for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
 			fprintf(stderr, "\n");
 		}

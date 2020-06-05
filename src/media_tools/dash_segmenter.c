@@ -659,7 +659,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		GF_Err e = GF_OK;
 		u32 i = 0;
 
-		av1_reset_state(&av1_state);
+		gf_av1_reset_state(&av1_state);
 		av1c = gf_isom_av1_config_get(movie, track, 1);
 		if (!av1c) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
