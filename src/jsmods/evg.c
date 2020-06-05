@@ -4106,7 +4106,7 @@ static JSValue path_outline(JSContext *c, JSValueConst obj, int argc, JSValueCon
 		JS_FreeValue(c, v);
 		pen.dash_set = &dash;
 		dash.dashes = gf_malloc(sizeof(Fixed)*dash.num_dash);
-		for (i=0; i<dash.num_dash; i++) {
+		for (i=0; i<(int) dash.num_dash; i++) {
 			v = JS_GetPropertyUint32(c, dashes, i);
 			JS_ToFloat64(c, &d, v);
 			dash.dashes[i] = FLT2FIX(d);

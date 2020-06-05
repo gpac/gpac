@@ -2095,9 +2095,9 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 			ext_arg+=4;
 			next_arg = strchr(ext_arg, fsess->sep_args);
 			if (next_arg) {
-				len = next_arg-ext_arg;
+				len = (u32) (next_arg - ext_arg);
 			} else {
-				len = strlen(ext_arg);
+				len = (u32) strlen(ext_arg);
 			}
 			if (len>99) len=99;
 			strncpy(szExt, ext_arg, len);

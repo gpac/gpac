@@ -312,7 +312,6 @@ static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels
 static void WAV_WriteAudio(GF_AudioOutput *dr)
 {
 	LPWAVEHDR hdr;
-	HRESULT hr;
 	u32 i;
 	WAVCTX();
 
