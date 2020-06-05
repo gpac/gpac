@@ -84,12 +84,10 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 {
 
 	GF_BitStream *bs;
-	u8 temp_descriptor_tag;
 	u32 data_shift, app_desc_data_shift, ait_app_data_shift;
 	u32 nb_of_protocol;
 
 	data_shift = 0;
-	temp_descriptor_tag = 0;
 	ait_app_data_shift = 0;
 	bs = gf_bs_new(data,data_size,GF_BITSTREAM_READ);
 
@@ -162,7 +160,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 		nb_of_protocol = 0;
 
 		while (app_desc_data_shift< application->application_descriptors_loop_length) {
-			temp_descriptor_tag = gf_bs_read_int(bs,8);
+			u8 temp_descriptor_tag = gf_bs_read_int(bs,8);
 			switch (temp_descriptor_tag) {
 			case APPLICATION_DESCRIPTOR:
 			{

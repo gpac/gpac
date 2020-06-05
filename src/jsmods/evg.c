@@ -1003,7 +1003,7 @@ static JSValue canvas3d_set_matrix(JSContext *c, JSValueConst obj, int argc, JSV
 			if (len < 16) return JS_EXCEPTION;
 			for (i=0; i<16; i++) {
 				Double val=0;
-				JSValue v = JS_GetPropertyUint32(c, argv[0], i);
+				v = JS_GetPropertyUint32(c, argv[0], i);
 				s32 res = JS_ToFloat64(c, &val, v);
 				JS_FreeValue(c, v);
 				if (res) return JS_EXCEPTION;
@@ -1357,10 +1357,10 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 			left_val_type = COMP_V4;
 			norm_result = op->vai.vai->normalize;
 		} else if (op->left_value) {
-			u32 var_idx = op->left_value - EVG_FIRST_VAR_ID-1;
-			left_val = &shader->vars[var_idx].vecval;
-			left_val_type = shader->vars[var_idx].value_type;
-			left_val_type_ptr = & shader->vars[var_idx].value_type;
+			u32 l_var_idx = op->left_value - EVG_FIRST_VAR_ID-1;
+			left_val = &shader->vars[l_var_idx].vecval;
+			left_val_type = shader->vars[l_var_idx].value_type;
+			left_val_type_ptr = & shader->vars[l_var_idx].value_type;
 		}
 
 		if (op->right_value>EVG_FIRST_VAR_ID) {
@@ -4101,7 +4101,6 @@ static JSValue path_outline(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	dash.dashes = NULL;
 	dashes = JS_GetPropertyStr(c, argv[0], "dashes");
 	if (JS_IsArray(c, dashes) && !JS_IsNull(v)) {
-		u32 i;
 		v = JS_GetPropertyStr(c, dashes, "length");
 		JS_ToInt32(c, &dash.num_dash, v);
 		JS_FreeValue(c, v);
@@ -4268,7 +4267,6 @@ static JSValue stencil_set_linear(JSContext *c, GF_EVGStencil *stencil, int argc
 	} else if (JS_IsObject(argv[idx])) {
 		GETIT(argv[idx], "x", end_x)
 		GETIT(argv[idx], "y", end_y)
-		idx=1;
 	} else if (argc>idx+1) {
 		if (JS_ToFloat64(c, &d, argv[idx])) return JS_EXCEPTION;
 		end_x = FLT2FIX(d);
@@ -4323,13 +4321,11 @@ static JSValue stencil_set_radial(JSContext *c, GF_EVGStencil *stencil, int argc
 	if (JS_IsObject(argv[idx])) {
 		GETIT(argv[idx], "x", rx)
 		GETIT(argv[idx], "y", ry)
-		idx+=1;
 	} else if (argc>idx+1) {
 		if (JS_ToFloat64(c, &d, argv[idx])) return JS_EXCEPTION;
 		rx = FLT2FIX(d);
 		if (JS_ToFloat64(c, &d, argv[idx+1])) return JS_EXCEPTION;
 		ry = FLT2FIX(d);
-		idx+=2;
 	}
 #undef GETIT
 	gf_evg_stencil_set_radial_gradient(stencil, cx, cy, fx, fy, rx, ry);
@@ -4956,7 +4952,7 @@ static JSValue texture_split(JSContext *c, JSValueConst obj, int argc, JSValueCo
 }
 static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	JSValue v, k, nobj;
+	JSValue v, kernv, nobj;
 	u32 i, j, kw=0, kh=0, kl=0, hkh, hkw;
 	s32 *kdata;
 	s32 knorm=0;
@@ -4981,15 +4977,15 @@ static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSV
 		return JS_EXCEPTION;
 	if (!(kh%2) || !(kw%2))
 		return JS_EXCEPTION;
-	k = JS_GetPropertyStr(c, argv[0], "k");
-	if (JS_IsUndefined(k))
+	kernv = JS_GetPropertyStr(c, argv[0], "k");
+	if (JS_IsUndefined(kernv))
 		return JS_EXCEPTION;
 
-	v = JS_GetPropertyStr(c, k, "length");
+	v = JS_GetPropertyStr(c, kernv, "length");
 	JS_ToInt32(c, &kl, v);
 	JS_FreeValue(c, v);
 	if (kl < kw * kh) {
-		JS_FreeValue(c, k);
+		JS_FreeValue(c, kernv);
 		return JS_EXCEPTION;
 	}
 	kl = kw*kh;
@@ -4997,12 +4993,12 @@ static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSV
 	for (j=0; j<kh; j++) {
 		for (i=0; i<kw; i++) {
 			u32 idx = j*kw + i;
-			v = JS_GetPropertyUint32(c, k, idx);
+			v = JS_GetPropertyUint32(c, kernv, idx);
 			JS_ToInt32(c, &kdata[idx] , v);
 			JS_FreeValue(c, v);
 		}
 	}
-	JS_FreeValue(c, k);
+	JS_FreeValue(c, kernv);
 
 	GF_SAFEALLOC(tx_conv, GF_JSTexture);
 	if (!tx_conv)
@@ -5100,7 +5096,7 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 		}
 		//create from filter packet
 		else if (jsf_is_packet(c, argv[0])) {
-			GF_Err e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (const u8 **)&data, (const u8 **)&p_u, (const u8 **)&p_v, (const u8 **)&p_a);
+			e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (const u8 **)&data, (const u8 **)&p_u, (const u8 **)&p_v, (const u8 **)&p_a);
 			if (e) return js_throw_err(c, e);
 		} else {
 			return js_throw_err(c, GF_BAD_PARAM);

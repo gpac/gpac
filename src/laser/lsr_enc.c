@@ -1789,12 +1789,12 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 		{
 			SVG_Number  *n = (SVG_Number *) val;
 			if (n->type != SVG_NUMBER_VALUE) {
-				u8 val = 0;
-				if (n->type==SVG_NUMBER_INHERIT) val=1;
+				u8 value = 0;
+				if (n->type==SVG_NUMBER_INHERIT) value=1;
 				/*fixe me spec is not clear here regarding what values should be used ...*/
 				
 				GF_LSR_WRITE_INT(lsr, 1, 1, "escapeFlag");
-				GF_LSR_WRITE_INT(lsr, val, 2, "escapeEnum");
+				GF_LSR_WRITE_INT(lsr, value, 2, "escapeEnum");
 				return;
 			} else {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag");
