@@ -1030,7 +1030,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		GF_Filter *prev_filter=src;
 		char *fargs = (char *) di->filter_chain;
 		while (fargs) {
-			GF_Err e;
 			GF_Filter *f;
 			char *sep = strstr(fargs, "@@");
 			if (sep) sep[0] = 0;

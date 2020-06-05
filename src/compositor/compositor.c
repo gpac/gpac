@@ -426,14 +426,11 @@ GF_VideoOutput null_vout = {
 
 static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 {
-	u32 pfmt;
 	GF_Compositor *compositor = (GF_Compositor *)vout->opaque;
 	if (!evt || (evt->type != GF_EVENT_VIDEO_SETUP)) return GF_OK;
 
-	pfmt = compositor->opfmt;
-	if (!pfmt) pfmt = GF_PIXEL_RGB;
 	if (!compositor->player && (compositor->passthrough_pfmt != GF_PIXEL_RGB)) {
-		pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+		u32 pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 		compositor->passthrough_pfmt = pfmt;
 		compositor->opfmt = pfmt;
 		if (compositor->vout) {

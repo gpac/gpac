@@ -721,8 +721,8 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 GF_EXPORT
 GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 {
-	GF_Compositor *compositor = term ? term->compositor : NULL;
 #ifndef GPAC_DISABLE_SMGR
+	GF_Compositor *compositor = term ? term->compositor : NULL;
 	GF_Err e;
 	GF_StreamContext *sc;
 	Bool is_xml = 0;
@@ -790,7 +790,6 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			addon_info.is_splicing = GF_TRUE;
 			addon_info.timeline_id = -100;
 			addon_info.splice_start_time = start;
-			addon_info.splice_end_time = end;
 			addon_info.splice_end_time = end;
 			addon_info.splice_time_pts = is_pts;
 			gf_scene_register_associated_media(term->root_scene, &addon_info);

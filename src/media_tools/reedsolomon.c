@@ -45,9 +45,9 @@ static void
 init_exp_table (void)
 {
 	int i, z;
-	int pinit,p1,p2,p3,p4,p5,p6,p7,p8;
+	int p1,p2,p3,p4,p5,p6,p7,p8;
 
-	pinit = p2 = p3 = p4 = p5 = p6 = p7 = p8 = 0;
+	p2 = p3 = p4 = p5 = p6 = p7 = p8 = 0;
 	p1 = 1;
 
 	gexp[0] = 1;
@@ -55,7 +55,7 @@ init_exp_table (void)
 	glog[0] = 0;			/* shouldn't log[0] be an error? */
 
 	for (i = 1; i < 256; i++) {
-		pinit = p8;
+		int pinit = p8;
 		p8 = p7;
 		p7 = p6;
 		p6 = p5;

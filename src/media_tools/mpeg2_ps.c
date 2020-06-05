@@ -590,7 +590,7 @@ static Bool read_pes_header_data (FILE *fd,
 
 	ts->have_pts = 0;
 	ts->have_dts = 0;
-	*have_ts = 0;
+	if (have_ts) *have_ts = 0;
 	if (file_read_bytes(fd, local, 1) == 0) {
 		return 0;
 	}

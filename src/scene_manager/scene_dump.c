@@ -100,7 +100,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 		}
 		if (_rad_name) {
 			const char* ext_name = tmp->LSRDump ? ".xsr" : ".svg";
-			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
+			tmp->filename = (char *)gf_malloc(strlen(_rad_name) + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name);
 			if (!is_final_name) strcat(tmp->filename, ext_name);
 			tmp->trace = gf_fopen(tmp->filename, "wt");
@@ -342,7 +342,7 @@ static void StartElement(GF_SceneDumper *sdump, const char *name)
 	DUMP_IND(sdump);
 	if (!sdump->XMLDump) {
 		gf_fprintf(sdump->trace, "%s {\n", name);
-	} else if (sdump->XMLDump) {
+	} else {
 		gf_fprintf(sdump->trace, "<%s", name);
 	}
 }
@@ -1326,7 +1326,6 @@ static void gf_dump_vrml_IS_field(GF_SceneDumper *sdump, GF_Node *node, GF_Field
 static Bool scene_dump_vrml_can_dump(GF_SceneDumper *sdump, GF_Node *node)
 {
 #ifndef GPAC_DISABLE_VRML
-	const char *name;
 	u32 tag;
 
 	if (node->sgprivate->tag==TAG_ProtoNode) return 1;
@@ -1335,9 +1334,8 @@ static Bool scene_dump_vrml_can_dump(GF_SceneDumper *sdump, GF_Node *node)
 		if (node->sgprivate->tag>=GF_NODE_RANGE_FIRST_X3D) return 1;
 		if (node->sgprivate->tag==TAG_MPEG4_Rectangle) return 1;
 		if (node->sgprivate->tag==TAG_MPEG4_Circle) return 1;
-		name = gf_node_get_class_name(node);
 #ifndef GPAC_DISABLE_X3D
-		tag = gf_node_x3d_type_by_class_name(name);
+		tag = gf_node_x3d_type_by_class_name(gf_node_get_class_name(node));
 		return tag ? 1 : 0;
 #else
 		return 0;
@@ -1348,8 +1346,7 @@ static Bool scene_dump_vrml_can_dump(GF_SceneDumper *sdump, GF_Node *node)
 		if (node->sgprivate->tag==TAG_X3D_Rectangle2D) return 1;
 		if (node->sgprivate->tag==TAG_X3D_Circle2D) return 1;
 #endif
-		name = gf_node_get_class_name(node);
-		tag = gf_node_mpeg4_type_by_class_name(name);
+		tag = gf_node_mpeg4_type_by_class_name(gf_node_get_class_name(node));
 		return tag ? 1 : 0;
 	}
 #else
@@ -1387,7 +1384,7 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 		if (node->sgprivate->tag == TAG_MPEG4_Circle) name = "Circle2D";
 		else if (node->sgprivate->tag == TAG_MPEG4_Rectangle) name = "Rectangle2D";
 #ifndef GPAC_DISABLE_X3D
-	} else if (!sdump->X3DDump) {
+	} else {
 		if (node->sgprivate->tag == TAG_X3D_Circle2D) name = "Circle";
 		else if (node->sgprivate->tag == TAG_X3D_Rectangle2D) name = "Rectangle";
 #endif
@@ -3287,13 +3284,12 @@ GF_EXPORT
 GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes)
 {
 	u32 tag;
-	GF_Err e = GF_OK;
 	if (!sdump->trace || !sdump->sg || !sdump->sg->RootNode) return GF_BAD_PARAM;
-
 
 	tag = sdump->sg->RootNode->sgprivate->tag;
 
 	if (tag<=GF_NODE_RANGE_LAST_X3D) {
+		GF_Err e;
 		gf_dump_setup(sdump, NULL);
 
 		if (sdump->XMLDump) {

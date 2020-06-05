@@ -1337,16 +1337,13 @@ static GF_ESD *lsr_parse_header(GF_SVG_Parser *parser, const char *name, const c
 
 static void svg_node_start(void *sax_cbck, const char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
+#ifndef SKIP_ALL
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)sax_cbck;
 	SVG_NodeStack *stack, *parent;
 	SVG_Element *elt;
 	SVG_Element *cond = NULL;
 	u32 xmlns;
 	Bool has_ns;
-
-#ifdef SKIP_ALL
-	return;
-#endif
 
 	parent = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 
@@ -1669,7 +1666,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				gf_node_list_add_child( & field->node_list, (GF_Node*) elt);
 			} else if (field->node_list) {
 				gf_node_list_add_child(& field->node_list, (GF_Node*) elt);
-			} else if (!field->new_node) {
+			} else {
 				field->new_node = (GF_Node*)elt;
 				field->field_ptr = &field->new_node;
 			}
@@ -1686,19 +1683,17 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	} else if ((parser->has_root==2) && !parser->fragment_root) {
 		parser->fragment_root = (GF_Node *)elt;
 	}
+#endif
 }
 
 static void svg_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
+#ifndef SKIP_ALL
 #ifdef SKIP_UNKNOWN_NODES
 	u32 ns;
 #endif
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)sax_cbck;
 	SVG_NodeStack *top = (SVG_NodeStack *)gf_list_last(parser->node_stack);
-
-#ifdef SKIP_ALL
-	return;
-#endif
 
 	if (!top) {
 		if (parser->laser_au && !strcmp(name, "sceneUnit")) {
@@ -1809,20 +1804,19 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		}
 	}
 #endif
+
+#endif //SKIP_ALL
 }
 
 static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_cdata)
 {
+#ifndef SKIP_ALL
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)sax_cbck;
 	SVG_NodeStack *top = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 	SVG_Element *elt = (top ? top->node : NULL);
 	GF_DOMText *text;
 	Bool skip_text;
 	u32 tag;
-
-#ifdef SKIP_ALL
-	return;
-#endif
 
 	if (top && top->unknown_depth && !parser->command_depth) return;
 	if (!elt && !parser->command) return;
@@ -1856,7 +1850,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 			gf_node_list_add_child( & field->node_list, (GF_Node*) text);
 		} else if (field->node_list) {
 			gf_node_list_add_child(& field->node_list, (GF_Node*) text);
-		} else if (!field->new_node) {
+		} else {
 			field->new_node = (GF_Node*)text;
 			field->field_ptr = &field->new_node;
 		}
@@ -1894,6 +1888,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 		text->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 		gf_node_changed((GF_Node *)text, NULL);
 	}
+#endif
 }
 
 static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)

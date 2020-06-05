@@ -629,9 +629,10 @@ static void do_log_time(FILE *logs)
 	}
 }
 
+int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args);
+
 void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
-	int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args);
 	FILE *logs = gpac_log_file ? gpac_log_file : stderr;
 	do_log_time(logs);
 

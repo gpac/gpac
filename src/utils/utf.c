@@ -665,7 +665,7 @@ wchar_t* gf_utf8_to_wcs(const char* str)
 	result = gf_calloc(source_len + 1, sizeof(wchar_t));
 	if (!result)
 		return 0;
-	if (gf_utf8_mbstowcs(result, source_len, &str) < 0) {
+	if (gf_utf8_mbstowcs(result, source_len, &str) == (size_t)-1) {
 		gf_free(result);
 		return 0;
 	}

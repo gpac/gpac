@@ -724,7 +724,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 		u8 *payload;
 		u32 i;
 		u32 length, nb_streams=0;
-		u32 info_length = 0, es_info_length = 0;
+		u32 info_length = 0;
 		GF_BitStream *bs;
 
 		if (!stream->program->pcr)
@@ -802,10 +802,9 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 		es = stream->program->streams;
 		while (es) {
 			Bool has_lang = GF_FALSE;
+			u32 es_info_length = 0;
 			u8 type = es->mpeg2_stream_type;
 			nb_streams++;
-			es_info_length = 0;
-
 
 			switch (es->mpeg2_stream_type) {
 			case GF_M2TS_AUDIO_AC3:

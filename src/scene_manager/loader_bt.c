@@ -1611,7 +1611,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 
 		if ( (!prev_is_insert && !strcmp(str, "AT")) || !strcmp(str, "PROTO") ) {
 			/*only check in current command (but be aware of conditionals..)*/
-			if (!the_node && gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
+			if (gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
 				break;
 			}
 			continue;

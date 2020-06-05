@@ -781,6 +781,7 @@ static JSValue gpac_enum_directory(JSContext *ctx, JSValueConst this_val, int ar
 	if (!dir_only) {
 		cbk.is_dir = 0;
 		err = gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
+		if (err) return JS_EXCEPTION;
 	}
 
 	if (url) gf_free(url);

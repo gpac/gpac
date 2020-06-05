@@ -546,7 +546,7 @@ static GF_Err dsmcc_create_module_validation(GF_M2TS_DSMCC_INFO_MODULES* InfoMod
 			if (InfoModules->moduleVersion <= dsmcc_process.version_number) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Module already intialized \n"));
 				return GF_CORRUPTED_DATA;
-			} else if (InfoModules->moduleVersion > dsmcc_process.version_number) {
+			} else {
 				GF_M2TS_DSMCC_MODULE* dsmcc_module = (GF_M2TS_DSMCC_MODULE*)gf_list_get(dsmcc_overlord->dsmcc_modules,i);
 				dsmcc_module_delete(dsmcc_module);
 				gf_list_rem(dsmcc_overlord->dsmcc_modules,i);
@@ -1176,11 +1176,8 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 	u32 i;
 	GF_M2TS_DSMCC_BIOP_STREAM_EVENT* BIOP_StreamEvent;
 	//GF_M2TS_DSMCC_FILE* File;
-	u32 eventdata;
 
 	GF_SAFEALLOC(BIOP_StreamEvent,GF_M2TS_DSMCC_BIOP_STREAM_EVENT);
-
-	eventdata = 0;
 
 	BIOP_StreamEvent->Header = BIOP_Header;
 	/* Get Info */
@@ -1201,7 +1198,7 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 		BIOP_StreamEvent->EventList = (GF_M2TS_DSMCC_BIOP_EVENT_LIST*)gf_calloc(BIOP_StreamEvent->eventNames_count,sizeof(GF_M2TS_DSMCC_BIOP_EVENT_LIST));
 		for(i=0; i<BIOP_StreamEvent->eventNames_count; i++) {
 			BIOP_StreamEvent->EventList[i].eventName_length = gf_bs_read_int(bs,8);
-			eventdata += BIOP_StreamEvent->EventList[i].eventName_length;
+			BIOP_StreamEvent->EventList[i].eventName_length;
 			if(BIOP_StreamEvent->EventList[i].eventName_length) {
 				BIOP_StreamEvent->EventList[i].eventName_data_byte = (char*)gf_calloc(BIOP_StreamEvent->EventList[i].eventName_length,sizeof(char));
 				gf_bs_read_data(bs,BIOP_StreamEvent->EventList[i].eventName_data_byte,(u8)(BIOP_StreamEvent->EventList[i].eventName_length));
@@ -1360,11 +1357,11 @@ static void dsmcc_biop_descriptor(GF_BitStream* bs,GF_List* list,u32 size) {
 		}
 		default:
 		{
-			u32 size;
+			u32 dsize;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Unsupported Descriptor Type \n"));
 			/* byte shift - in descriptors length is on thr second byte*/
-			size = gf_bs_read_int(bs,8);
-			gf_bs_read_int(bs,8*size);
+			dsize = gf_bs_read_int(bs,8);
+			gf_bs_read_int(bs,8*dsize);
 			break;
 		}
 		}
@@ -1390,7 +1387,6 @@ static GF_Err dsmcc_biop_get_ior(GF_BitStream* bs,GF_M2TS_DSMCC_IOR* IOR)
 {
 	u32 i,j,left_lite_component;
 	/* IOR */
-	left_lite_component = 0;
 	IOR->type_id_length = gf_bs_read_int(bs,32);
 	if(IOR->type_id_length > 0xA) {
 		//return GF_CORRUPTED_DATA;

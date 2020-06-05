@@ -128,15 +128,14 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	FILE *f;
 	char szPath[GF_MAX_PATH];
 
-	wchar_t wtmp_file_path[GF_MAX_PATH];
-	char* tmp_file_path;
-
-
 #ifdef _WIN32_WCE
 	TCHAR w_szPath[GF_MAX_PATH];
 	GetModuleFileName(NULL, w_szPath, GF_MAX_PATH);
 	CE_WideToChar((u16 *) w_szPath, file_path);
 #else
+	wchar_t wtmp_file_path[GF_MAX_PATH];
+	char* tmp_file_path;
+
 	GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
 #endif
 
@@ -242,6 +241,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
+	if (!file_path) return 0;
+
 	if (path_type==GF_PATH_APP) {
 		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
 		return 1;
@@ -291,7 +292,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 {
 	char app_path[GF_MAX_PATH];
 	char *sep;
-	u32 size = GF_MAX_PATH;
+	u32 size;
 
 	/*on OSX, Linux & co, user home is where we store the cfg file*/
 	if (path_type==GF_PATH_CFG) {
@@ -507,7 +508,6 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_pat
 
 static GF_Config *create_default_config(char *file_path, const char *profile)
 {
-	FILE *f;
 	GF_Config *cfg;
 	char szProfilePath[GF_MAX_PATH];
 	char szPath[GF_MAX_PATH];
@@ -525,7 +525,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	if (profile && !strcmp(profile, "0")) {
 		cfg = gf_cfg_new(NULL, NULL);
 	} else {
-		f = gf_fopen(szPath, "wt");
+		FILE *f = gf_fopen(szPath, "wt");
 		if (!f) return NULL;
 		gf_fclose(f);
 

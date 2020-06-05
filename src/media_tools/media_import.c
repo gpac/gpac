@@ -54,12 +54,12 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 i, count, timescale, db_size, cdur, csize;
-	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
+	u64 time_wnd, max_rate, avg_rate, bitrate;
 	Double br;
 	GF_ISOSample sample;
 
 	db_size = 0;
-	rate = max_rate = avg_rate = time_wnd = bitrate = 0;
+	max_rate = avg_rate = time_wnd = bitrate = 0;
 
 	csize = 0;
 	cdur = 0;
@@ -76,10 +76,10 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 	if (csize && cdur) {
 		db_size = 0;
 		avg_rate = 8 * csize * timescale / cdur;
-		bitrate = rate = avg_rate;
+		bitrate = avg_rate;
 	} else {
 		for (i=0; i<count; i++) {
-			u32 di;
+			u32 di, rate = 0;
 			GF_ISOSample *samp = gf_isom_get_sample_info_ex(file, track, i+1, &di, NULL, &sample);
 			if (!samp) break;
 
@@ -1125,7 +1125,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (!fsess) {
 			return gf_import_message(importer, GF_BAD_PARAM, "[Importer] Cannot load filter session for import");
 		}
-
+		importer->flags = 0;
 		prober = gf_fs_load_filter(fsess, "probe", &e);
 		src_filter = gf_fs_load_source(fsess, importer->in_name, "index=0", NULL, &e);
 		if (e) {
@@ -1197,6 +1197,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 				if (p) tki->audio_info.samples_per_frame = p->value.uint;
 			}
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_CAN_DATAREF);
+			if (p) importer->flags |= GF_IMPORT_USE_DATAREF;
+
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
 			if (p) tki->media_subtype = p->value.uint;
 

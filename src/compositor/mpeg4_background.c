@@ -132,14 +132,15 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	mesh_reset(mesh);
 
 	start_col.red = start_col.green = start_col.blue = 0;
+	start_col.alpha = FIX_ONE;
 	end_col = start_col;
+
 	if (color->count) {
 		COL_TO_RGBA(start_col, color->vals[0]);
 		end_col = start_col;
 		if (color->count>1) COL_TO_RGBA(end_col, color->vals[1]);
 	}
 
-	start_col.alpha = end_col.alpha = FIX_ONE;
 	vx.texcoords.x = vx.texcoords.y = 0;
 	vx.color = MESH_MAKE_COL(start_col);
 	vx.pos.x = vx.pos.z = 0;

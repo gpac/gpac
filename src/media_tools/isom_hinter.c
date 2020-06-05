@@ -332,7 +332,6 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				}
 				/*MPEG1/2 audio*/
 				else if ((streamType==GF_STREAM_AUDIO) && ((codecid==GF_CODECID_MPEG2_PART3) || (codecid==GF_CODECID_MPEG_AUDIO))) {
-					u32 sample_rate;
 					GF_ISOSample *samp = NULL;
 					if (!is_crypted)
 						 samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
@@ -340,7 +339,6 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					if (samp && (samp->dataLength>3)) {
 						u32 hdr = GF_4CC((u32)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 						nb_ch = gf_mp3_num_channels(hdr);
-						sample_rate = gf_mp3_sampling_rate(hdr);
 						hintType = GF_RTP_PAYT_MPEG12_AUDIO;
 						/*use official RTP/AVP payload type*/
 						OfficialPayloadID = 14;
@@ -348,6 +346,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					}
 					/*encrypted MP3 must be sent through MPEG-4 generic to signal all ISMACryp stuff*/
 					else {
+						u32 sample_rate;
 						gf_isom_get_audio_info(file, TrackNum, 1, &sample_rate, &nb_ch, NULL);
 						required_rate = sample_rate;
 					}

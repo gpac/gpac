@@ -479,7 +479,6 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	char *buffer, temp[50];
 
 	*out_buffer = NULL;
-	temp[0]=0;
 
 	size = RTSP_WRITE_STEPALLOC;
 	buffer = (char *) gf_malloc(size);

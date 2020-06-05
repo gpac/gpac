@@ -63,11 +63,10 @@ static char id_str[MAX_INFO_STRLEN];
 
 static u32 avi_read(FILE *fd, char *buf, u32 len)
 {
-	s32 n = 0;
 	u32 r = 0;
 
 	while (r < len) {
-		n = (s32) gf_fread(buf + r, len - r, fd);
+		s32 n = (s32) gf_fread(buf + r, len - r, fd);
 		if (n == 0) break;
 		if (n < 0) return r;
 		r += n;
@@ -78,11 +77,10 @@ static u32 avi_read(FILE *fd, char *buf, u32 len)
 
 static u32 avi_write (FILE *fd, char *buf, u32 len)
 {
-	s32 n = 0;
 	u32 r = 0;
 
 	while (r < len) {
-		n = (u32) gf_fwrite (buf + r, len - r, fd);
+		s32 n = (u32) gf_fwrite (buf + r, len - r, fd);
 		if (n < 0)
 			return n;
 
@@ -793,8 +791,10 @@ int avi_update_header(avi_t *AVI)
 	OUTLONG(0);                  /* PaddingGranularity (whatever that might be) */
 	/* Other sources call it 'reserved' */
 	flag = AVIF_ISINTERLEAVED;
-	if(hasIndex) flag |= AVIF_HASINDEX;
-	if(hasIndex && AVI->must_use_index) flag |= AVIF_MUSTUSEINDEX;
+	if (hasIndex)
+		flag |= AVIF_HASINDEX;
+	if (hasIndex && AVI->must_use_index)
+		flag |= AVIF_MUSTUSEINDEX;
 	OUTLONG(flag);               /* Flags */
 	OUTLONG(0);                  // no frames yet
 	OUTLONG(0);                  /* InitialFrames */
@@ -1898,19 +1898,21 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 	s64 oldpos=-1, newpos=-1;
 
 	int aud_chunks = 0;
+	if (!AVI)
+		ERR_EXIT(AVI_ERR_OPEN)
+
 	/* Read first 12 bytes and check that this is an AVI file */
+	if (avi_read(AVI->fdes,data,12) != 12 )
+		ERR_EXIT(AVI_ERR_READ)
 
-	if( avi_read(AVI->fdes,data,12) != 12 ) ERR_EXIT(AVI_ERR_READ)
+	if (strnicmp(data  ,"RIFF",4) !=0 || strnicmp(data+8,"AVI ",4) !=0 )
+		ERR_EXIT(AVI_ERR_NO_AVI)
 
-		if( strnicmp(data  ,"RIFF",4) !=0 ||
-		        strnicmp(data+8,"AVI ",4) !=0 ) ERR_EXIT(AVI_ERR_NO_AVI)
+	/* Go through the AVI file and extract the header list,
+	   the start position of the 'movi' list and an optionally
+	   present idx1 tag */
 
-			/* Go through the AVI file and extract the header list,
-			   the start position of the 'movi' list and an optionally
-			   present idx1 tag */
-
-			hdrl_data = 0;
-
+	hdrl_data = 0;
 
 	while(1)
 	{
@@ -2970,7 +2972,7 @@ int AVI_set_audio_position_index(avi_t *AVI, int indexpos)
 
 int AVI_set_audio_position(avi_t *AVI, int byte)
 {
-	int n0, n1, n;
+	int n0, n1;
 
 	if(AVI->mode==AVI_MODE_WRITE) {
 		AVI_errno = AVI_ERR_NOT_PERM;
@@ -2990,7 +2992,7 @@ int AVI_set_audio_position(avi_t *AVI, int byte)
 
 	while(n0<n1-1)
 	{
-		n = (n0+n1)/2;
+		int n = (n0+n1)/2;
 		if(AVI->track[AVI->aptr].audio_index[n].tot>(u32) byte)
 			n1 = n;
 		else

@@ -988,8 +988,7 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 			tmp = tmp1;
 		}
 		if ((tmp1 = strchr(tmp, ':')) ) {
-			char *tmp2;
-			if ((tmp2 = strchr(tmp1, ':')) ) {
+			if (strchr(tmp1, ':')) {
 				/* HHMMSS */
 				sscanf(tmp, "%u:%u:%f", &hours, &minutes, &seconds);
 			} else {
@@ -1355,7 +1354,7 @@ static GF_Err svg_parse_transform(SVG_Transform *t, char *attribute_content)
 				if (str[i] == ',') {
 					i++;
 				} else if (str[i] == ')') {
-					i++;
+					//i++;
 					return GF_OK;
 				}
 				read_chars = svg_parse_number(&(str[i]), &(t->mat.m[2]), 0);
@@ -1374,8 +1373,9 @@ static GF_Err svg_parse_transform(SVG_Transform *t, char *attribute_content)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Unsupported syntax for ref transform attribute"));
 			}
 			while (str[i] == ' ') i++;
-			if (str[i] == ')') i++;
-			else {
+			if (str[i] == ')') {
+				//i++;
+			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
 			}
 			return GF_OK;
@@ -2490,11 +2490,11 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 		SMIL_Time *sv;
 		GF_List *sorted = gf_list_new();
 		u32 i, count;
-		u8 added = 0;
 		do {
+			u8 added = 0;
 			SMIL_Time *v = (SMIL_Time*)gf_list_get(values, 0);
 			gf_list_rem(values, 0);
-			added = 0;
+
 			count = gf_list_count(sorted);
 			for (i=0; i<count; i++) {
 				sv = (SMIL_Time*)gf_list_get(sorted, i);
@@ -3918,8 +3918,8 @@ static char *svg_dump_path(SVG_PathData *path)
 			} else if (path->tags[i]==GF_PATH_CLOSE) {
 				sprintf(szT, "z");
 			} else {
-				if (i && (last_pt.x==pt->x)) sprintf(szT, "V%g", _FIX2FLT(pt->y));
-				else if (i && (last_pt.y==pt->y)) sprintf(szT, "H%g", _FIX2FLT(pt->x));
+				if (last_pt.x==pt->x) sprintf(szT, "V%g", _FIX2FLT(pt->y));
+				else if (last_pt.y==pt->y) sprintf(szT, "H%g", _FIX2FLT(pt->x));
 				else sprintf(szT, "L%g %g", _FIX2FLT(pt->x), _FIX2FLT(pt->y));
 			}
 			last_pt = *pt;
@@ -5511,11 +5511,7 @@ static GF_Err svg_points_copy(SVG_Points *a, SVG_Points *b)
 		SVG_Point *ptb = (SVG_Point *)gf_list_get(*b, i);
 		SVG_Point *pta;
 		GF_SAFEALLOC(pta, SVG_Point)
-		if (!pta) break;
-		if (!pta) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot allocate SVG point\n"));
-			continue;
-		}
+		if (!pta) return GF_OUT_OF_MEM;
 		*pta = *ptb;
 		gf_list_add(*a, pta);
 	}
@@ -5536,7 +5532,7 @@ static GF_Err svg_numbers_muladd(Fixed alpha, SVG_Numbers *a, Fixed beta, SVG_Nu
 		SVG_Number *na = (SVG_Number *)gf_list_get(*a, i);
 		SVG_Number *nb = (SVG_Number *)gf_list_get(*b, i);
 		GF_SAFEALLOC(nc, SVG_Number)
-		if (!nc) break;
+		if (!nc) return GF_OUT_OF_MEM;
 		svg_number_muladd(alpha, na, beta, nb, nc);
 		gf_list_add(*c, nc);
 	}
@@ -5558,11 +5554,7 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 	for (i = 0; i < count; i ++) {
 		SVG_Number *na;
 		GF_SAFEALLOC(na, SVG_Number)
-		if (!na) break;
-		if (!na) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot allocate SVG number\n"));
-			continue;
-		}
+		if (!na) return GF_OUT_OF_MEM;
 		*na = *(SVG_Number *)gf_list_get(*b, i);
 		gf_list_add(*a, na);
 	}

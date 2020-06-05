@@ -410,7 +410,9 @@ void gf_sg_reset(GF_SceneGraph *sg)
 restart:
 	reg_node = sg->id_node;
 	while (reg_node) {
+#if 0
 		Bool ignore = 0;
+#endif
 		GF_Node *node = reg_node->node;
 		if (!node
 #ifndef GPAC_DISABLE_VRML
@@ -453,10 +455,12 @@ restart:
 				gf_free(nlist);
 				nlist = next;
 			}
+#if 0
 			if (ignore) {
 				node->sgprivate->parents = nlist;
 				continue;
 			}
+#endif
 
 			node->sgprivate->parents = NULL;
 		}
@@ -2446,7 +2450,7 @@ static GF_Err gf_sg_load_dom_node(GF_SceneGraph *document, GF_XMLNode *n, GF_DOM
 	}
 	/*construct text / cdata node*/
 	if (n->type != GF_XML_NODE_TYPE) {
-		u32 i, len;
+		u32 len;
 		GF_DOMText *txt;
 		/*basic check, remove all empty text nodes*/
 		len = (u32) strlen(n->name);

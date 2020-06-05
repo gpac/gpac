@@ -650,7 +650,7 @@ const char *gf_xml_get_element_name(GF_Node *n)
 	for (i=0; i<count; i++) {
 		if (n && n->sgprivate && (n->sgprivate->tag==xml_elements[i].tag)) {
 			char *xmlns;
-			if (!n || (ns == xml_elements[i].xmlns))
+			if (ns == xml_elements[i].xmlns)
 				return xml_elements[i].name;
 
 			xmlns = (char *) gf_sg_get_namespace_qname(n->sgprivate->scenegraph, xml_elements[i].xmlns);
@@ -1090,15 +1090,15 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 		szFile[data_size] = GF_PATH_SEPARATOR;
 		szFile[data_size+1] = 0;
 	}
-	if (base_filename) {
-		sep = strrchr(base_filename, GF_PATH_SEPARATOR);
+
+	sep = strrchr(base_filename, GF_PATH_SEPARATOR);
 #ifdef WIN32
-		if (!sep) sep = strrchr(base_filename, '/');
+	if (!sep) sep = strrchr(base_filename, '/');
 #endif
-		if (!sep) sep = (char *) base_filename;
-		else sep += 1;
-		strcat(szFile, sep);
-	}
+	if (!sep) sep = (char *) base_filename;
+	else sep += 1;
+	strcat(szFile, sep);
+
 	sep = gf_file_ext_start(szFile);
 	if (sep) sep[0] = 0;
 	strcat(szFile, "_img_");
