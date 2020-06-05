@@ -2445,6 +2445,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_read_pps_bs ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_hls_clock ) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_get_obu_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_init_state) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_reset_state) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_next_pow2) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_htonl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_htons) )

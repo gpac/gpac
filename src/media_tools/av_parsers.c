@@ -2413,7 +2413,7 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 #endif // GPAC_DISABLE_AV_PARSERS
 
 GF_EXPORT
-const char *av1_get_obu_name(ObuType obu_type)
+const char *gf_av1_get_obu_name(ObuType obu_type)
 {
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER: return "seq_header";
@@ -3992,7 +3992,17 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 }
 
 GF_EXPORT
-void av1_reset_state(AV1State *state, Bool is_destroy)
+void gf_av1_init_state(AV1State *state)
+{
+	if (!state) return;
+	memset(state, 0, sizeof(AV1State));
+	state->color_primaries = 2;
+	state->transfer_characteristics = 2;
+	state->matrix_coefficients = 2;
+}
+
+GF_EXPORT
+void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 {
 	GF_List *l1, *l2;
 
@@ -4034,11 +4044,6 @@ void av1_reset_state(AV1State *state, Bool is_destroy)
 		if (state->bs)
 			gf_bs_seek(state->bs, 0);
 	}
-
-	memset(state, 0, sizeof(AV1State));
-	state->color_primaries = 2;
-	state->transfer_characteristics = 2;
-	state->matrix_coefficients = 2;
 }
 
 static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)

@@ -687,7 +687,7 @@ void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, Obu
 #define DUMP_OBU_INT(_v) gf_fprintf(dump, #_v"=\"%d\" ", av1->_v);
 #define DUMP_OBU_INT2(_n, _v) gf_fprintf(dump, _n"=\"%d\" ", _v);
 
-	gf_fprintf(dump, "   <OBU size=\""LLU"\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", obu_size, av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
+	gf_fprintf(dump, "   <OBU size=\""LLU"\" type=\"%s\" header_size=\"%d\" has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", obu_size, gf_av1_get_obu_name(obu_type), hdr_size, av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
 	if (dump_crc && (obu_length<0xFFFFFFFFUL))
 		gf_fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, (u32) obu_length) );
 	switch (obu_type) {
@@ -920,6 +920,7 @@ static void inspect_finalize(GF_Filter *filter)
 		if (pctx->hevc_state) gf_free(pctx->hevc_state);
 		if (pctx->av1_state) {
 			if (pctx->av1_state->config) gf_odf_av1_cfg_del(pctx->av1_state->config);
+			gf_av1_reset_state(pctx->av1_state, GF_TRUE);
 			gf_free(pctx->av1_state);
 		}
 #endif
@@ -1922,8 +1923,8 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		inspect_reset_parsers(pctx, &pctx->av1_state);
 		if (!pctx->av1_state) {
 			GF_SAFEALLOC(pctx->av1_state, AV1State);
-			av1_reset_state(pctx->av1_state, GF_FALSE);
 			if (!pctx->av1_state) return;
+			gf_av1_init_state(pctx->av1_state);
 		}
 #endif
 		if (!dsi) {

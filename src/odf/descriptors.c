@@ -1260,8 +1260,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	if (!size) return NULL;
 
 	cfg = gf_odf_av1_cfg_new();
-	memset(&state, 0, sizeof(AV1State));
-	av1_reset_state(&state, GF_FALSE);
+	gf_av1_init_state(&state);
 	state.config = cfg;
 
 	cfg->marker = gf_bs_read_int(bs, 1);
@@ -1327,7 +1326,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		}
 		size -= (u32) obu_size;
 	}
-	av1_reset_state(& state, GF_TRUE);
+	gf_av1_reset_state(& state, GF_TRUE);
 	return cfg;
 #else
 	return NULL;

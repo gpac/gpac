@@ -614,6 +614,7 @@ typedef struct
 	Bool skip_frames;
 	//if set, frame OBUs are not pushed to the frame_obus OBU list but are written in the below bitstream
 	Bool mem_mode;
+	/*bitstream object for mem mode - this bitstream is NOT destroyed by gf_av1_reset_state(state, GF_TRUE) */
 	GF_BitStream *bs;
 	Bool bs_overread, unframed;
 	u8 *frame_obus;
@@ -659,7 +660,8 @@ typedef struct
 	Bool color_description_present_flag;
 	u8 color_primaries, transfer_characteristics, matrix_coefficients;
 	Bool color_range;
-	/*shall not be null*/
+
+	/*AV1 config record - shall not be null when parsing - this is NOT destroyed by gf_av1_reset_state(state, GF_TRUE) */
 	GF_AV1Config *config;
 
 	/*OBU parsing state, reset at each obu*/
@@ -694,7 +696,17 @@ Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
 GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
 
 Bool av1_is_obu_header(ObuType obu_type);
-void av1_reset_state(AV1State *state, Bool is_destroy);
+
+/*! init av1 frame parsing state
+\param state the frame parser
+*/
+void gf_av1_init_state(AV1State *state);
+
+/*! reset av1 frame parsing state - this does not destroy the structure.
+\param state the frame parser
+\param is_destroy if TRUE, destroy internal reference picture lists
+*/
+void gf_av1_reset_state(AV1State *state, Bool is_destroy);
 
 u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes);
 u32 gf_av1_leb128_size(u64 value);
