@@ -626,7 +626,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (ctx->scope_deps) {
 			const char *src_args = gf_filter_pid_orig_src_args(pid);
 			if (src_args) {
-				ds->src_id = gf_crc_32(src_args, strlen(src_args));
+				ds->src_id = gf_crc_32(src_args, (u32) strlen(src_args));
 			}
 		}
 		dc_crc = 0;

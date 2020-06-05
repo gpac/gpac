@@ -649,8 +649,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
 
-#pragma comment (linker, EXPORT_SYMBOL(av1_get_obu_name) )
-#pragma comment (linker, EXPORT_SYMBOL(av1_reset_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write) )
@@ -2446,8 +2444,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_hls_clock ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_av1_get_obu_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_av1_init_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_av1_reset_state) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_init_state) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_next_pow2) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_htonl) )
