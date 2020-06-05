@@ -7378,12 +7378,17 @@ void av1_reset_frame_state(AV1StateFrame *frame_state) {
 	frame_state->is_first_frame = GF_TRUE;
 }
 
-void av1_reset_state(AV1State* state)
+GF_EXPORT
+void gf_av1_reset_state(AV1State* state)
 {
-	memset(&state, 0, sizeof(AV1State));
-	state->color_primaries = 2; /*unspecified*/
-	state->transfer_characteristics = 2; /*unspecified*/
-	state->matrix_coefficients = 2; /*unspecified*/
+	if (state) {
+		GF_AV1Config *av1cfg = state->config;
+		memset(state, 0, sizeof(AV1State));
+		state->config = av1cfg;
+		state->color_primaries = 2; /*unspecified*/
+		state->transfer_characteristics = 2; /*unspecified*/
+		state->matrix_coefficients = 2; /*unspecified*/
+	}
 }
 
 static Bool probe_webm_matrovska(GF_BitStream *bs)
@@ -7445,7 +7450,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 		return GF_OK;
 	}
 
-	av1_reset_state(&state);
+	gf_av1_reset_state(&state);
 	av1_cfg = gf_odf_av1_cfg_new();
 	state.config = av1_cfg;
 	if (import->flags & GF_IMPORT_KEEP_AV1_TEMPORAL_OBU)

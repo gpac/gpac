@@ -1712,7 +1712,7 @@ GF_Err av1c_dump(GF_Box *a, FILE *trace) {
 
 		for (i=0; i<obu_count; i++) {
 			GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
-			fprintf(trace, "<OBU type=\"%d\" name=\"%s\" size=\"%d\" content=\"", a->obu_type, av1_get_obu_name(a->obu_type), (u32) a->obu_length);
+			fprintf(trace, "<OBU type=\"%d\" name=\"%s\" size=\"%d\" content=\"", a->obu_type, gf_av1_get_obu_name(a->obu_type), (u32) a->obu_length);
 			dump_data(trace, (char *)a->obu, (u32) a->obu_length);
 			fprintf(trace, "\"/>\n");
 		}

@@ -2359,7 +2359,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_service_get_dm) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_localcache_provider) )
 
-#pragma comment (linker, EXPORT_SYMBOL(av1_get_obu_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_get_obu_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_reset_state) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_next_pow2) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_htonl) )
