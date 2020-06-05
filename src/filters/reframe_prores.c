@@ -52,7 +52,7 @@ typedef struct
 	u32 timescale;
 	GF_Fraction cur_fps;
 
-	char *buffer;
+	u8 *buffer;
 	u32 buf_size, alloc_size;
 
 	GF_ProResFrameInfo cur_cfg;
@@ -105,7 +105,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	u64 duration, cur_dur, last_cdur;
+	u64 duration, last_cdur;
 	u32 idx_size;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
@@ -144,7 +144,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 	ctx->file_size = gf_bs_available(bs);
 
 	duration = 0;
-	cur_dur = last_cdur = 0;
+	last_cdur = 0;
 	while (gf_bs_available(bs)) {
 		u64 frame_start = gf_bs_get_position(bs);
 		u32 fsize = gf_bs_read_u32(bs);
@@ -154,7 +154,6 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 			break;
 
 		duration += ctx->cur_fps.den;
-		cur_dur += ctx->cur_fps.den;
 
 		if (!idx_size) idx_size = 10;
 		else if (idx_size == ctx->nb_frames) idx_size += 10;
@@ -399,7 +398,7 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 
 
 
-GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
+GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u8 *data, u32 data_size, Bool is_copy)
 {
 	u32 last_frame_end = 0;
 	GF_Err e = GF_OK;
@@ -408,7 +407,7 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const c
 	else gf_bs_reassign_buffer(ctx->bs, data, data_size);
 
 	while (gf_bs_available(ctx->bs)) {
-		u8 *data;
+		u8 *output;
 		GF_FilterPacket *pck;
 		GF_ProResFrameInfo finfo;
 		e = gf_media_prores_parse_bs(ctx->bs, &finfo);
@@ -424,9 +423,9 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const c
 		if (gf_bs_available(ctx->bs)<finfo.frame_size)
 			break;
 
-		pck = gf_filter_pck_new_alloc(ctx->opid, finfo.frame_size, &data);
+		pck = gf_filter_pck_new_alloc(ctx->opid, finfo.frame_size, &output);
 		if (!pck) break;
-		gf_bs_read_data(ctx->bs, data, finfo.frame_size);
+		gf_bs_read_data(ctx->bs, output, finfo.frame_size);
 
 		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
 

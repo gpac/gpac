@@ -76,9 +76,10 @@ typedef struct
 	Bool isma_oma;
 	u64 BSO;
 	u64 range_end;
-	Bool prev_sample_encryped;
+	Bool prev_pck_encryped;
 	u32 KI_length;
 	u32 isma_IV_size;
+	Bool has_crypted_pck;
 
 	Bool is_adobe;
 	bin128 key;
@@ -257,7 +258,8 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	}
 
 	cstr->isma_oma = GF_TRUE;
-	cstr->prev_sample_encryped = GF_TRUE;
+	cstr->prev_pck_encryped = GF_TRUE;
+	cstr->has_crypted_pck = GF_FALSE;
 
 	//we drop IPMPX support for now
 #if GPAC_DEPRECTAED
@@ -707,7 +709,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			memcpy(cstr->default_KID, cstr->tci->KIDs[0], 16);
 			cstr->kidx = 0;
 		}
-		cstr->prev_sample_encryped = cstr->tci->IsEncrypted;
+		cstr->prev_pck_encryped = cstr->tci->IsEncrypted;
 	}
 
 	/*set CENC protection properties*/
@@ -914,7 +916,6 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	u8 *output;
 	u32 size, rand, flags;
 	u64 cts = gf_filter_pck_get_cts(pck);
-	Bool has_crypted_samp = GF_FALSE;
 	u8 sap = gf_filter_pck_get_sap(pck);
 
 
@@ -934,15 +935,15 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		break;
 	/*random every sel_freq samples*/
 	case GF_CRYPT_SELENC_RAND_RANGE:
-		if (! (cstr->nb_pck % cstr->tci->sel_enc_range) ) has_crypted_samp = 0;
-		if (! has_crypted_samp) {
+		if (! (cstr->nb_pck % cstr->tci->sel_enc_range) ) cstr->has_crypted_pck = 0;
+		if (! cstr->has_crypted_pck) {
 			rand = gf_rand();
 			if (!(rand % cstr->tci->sel_enc_range)) flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
 
 			if (!(flags & GF_ISOM_ISMA_IS_ENCRYPTED) && !( (1+cstr->nb_pck) % cstr->tci->sel_enc_range)) {
 				flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
 			}
-			has_crypted_samp = (flags & GF_ISOM_ISMA_IS_ENCRYPTED);
+			cstr->has_crypted_pck = (flags & GF_ISOM_ISMA_IS_ENCRYPTED);
 		}
 		break;
 	/*every sel_freq samples*/
@@ -991,7 +992,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	//encrypt
 	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		/*resync IV*/
-		if (!cstr->prev_sample_encryped) {
+		if (!cstr->prev_pck_encryped) {
 			char IV[17];
 			u64 count;
 			u32 remain;
@@ -1014,9 +1015,9 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 			}
 		}
 		gf_crypt_encrypt(cstr->crypt, output+isma_hdr_size, size);
-		cstr->prev_sample_encryped = GF_TRUE;
+		cstr->prev_pck_encryped = GF_TRUE;
 	} else {
-		cstr->prev_sample_encryped = GF_FALSE;
+		cstr->prev_pck_encryped = GF_FALSE;
 	}
 
 	//rewrite ISMA header
@@ -1082,10 +1083,10 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 
 
 	if (is_encrypted) {
-		if (!cstr->prev_sample_encryped) {
+		if (!cstr->prev_pck_encryped) {
 			memcpy(IV, cstr->tci->first_IV, sizeof(char)*16);
 			e = gf_crypt_init(cstr->crypt, cstr->key, IV);
-			cstr->prev_sample_encryped = GF_TRUE;
+			cstr->prev_pck_encryped = GF_TRUE;
 		} else {
 			cstr->isma_IV_size = 16;
 			e = gf_crypt_get_IV(cstr->crypt, IV, &cstr->isma_IV_size);
@@ -1309,7 +1310,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				//we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
-					clear_bytes = hdr_size;
 					if (!cstr->av1.frame_state.nb_tiles_in_obu) {
 						clear_bytes = (u32) obu_size;
 					} else {
@@ -1534,6 +1534,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				if (!nb_ranges) break;
 
 				range_idx++;
+				if (range_idx >= AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] More ranges than tiles allowed spec, bitstream error ?\n"));
+					return GF_BAD_PARAM;
+				}
 				switch (cstr->cenc_codec) {
 				case CENC_AV1:
 					clear_bytes = ranges[range_idx].clear;

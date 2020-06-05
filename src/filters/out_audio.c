@@ -85,9 +85,9 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
-		if (afmt != GF_AUDIO_FMT_S16) afmt = GF_AUDIO_FMT_S16;
-		if (sr != 44100) sr = 44100;
-		if (nb_ch != 2) nb_ch = 2;
+		afmt = GF_AUDIO_FMT_S16;
+		sr = 44100;
+		nb_ch = 2;
 	}
 	if (ctx->speed == FIX_ONE) ctx->speed_set = GF_TRUE;
 
@@ -188,9 +188,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		pck = gf_filter_pid_get_packet(ctx->pid);
 		if (!pck) return 0;
 
-		if (gf_filter_pck_is_blocking_ref(pck)) {
-			ctx->buffer_done = GF_TRUE;
-		} else {
+		if (! gf_filter_pck_is_blocking_ref(pck)) {
 			if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
 				return 0;
 			gf_filter_pck_get_data(pck, &size);

@@ -1168,10 +1168,6 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx*)gf_filter_get_udta(filter);
 	HEVCTilePidCtx *tile_pid;
 
-	pid_width = sizeof(HEVCState);
-	pid_width = sizeof(HEVC_SPS);
-	pid_width = sizeof(HEVC_PPS);
-
 	if (ctx->in_error)
 		return GF_BAD_PARAM;
 

@@ -328,7 +328,7 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 		res = (res<<6) + tmp;
 		top <<= 5;
 	}
-	res &= (top << 1) - 1;
+	//res &= (top << 1) - 1;
 
 	if (block_size==6) block_size = 1 + gf_bs_read_int(ctx->bs, 8);
 	else if (block_size==7) block_size = 1 + gf_bs_read_int(ctx->bs, 16);

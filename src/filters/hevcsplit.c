@@ -73,7 +73,7 @@ static u32 hevcsplit_get_slice_tile_index(HEVCState *hevc)
 	u32 tile_x, tile_y;
 
 	HEVCSliceInfo si = hevc->s_info;
-	u32 i, tbX = 0, tbY = 0, slX, slY, PicWidthInCtbsY, PicHeightInCtbsX, valX = 0, valY = 0;
+	u32 i, tbX = 0, tbY = 0, slX, slY, PicWidthInCtbsY, PicHeightInCtbsX;
 
 	PicWidthInCtbsY = (si.sps->width + si.sps->max_CU_width - 1) / si.sps->max_CU_width;
 	PicHeightInCtbsX = (si.sps->height + si.sps->max_CU_height - 1) / si.sps->max_CU_height;
@@ -83,6 +83,7 @@ static u32 hevcsplit_get_slice_tile_index(HEVCState *hevc)
 	tile_x = 0;
 	tile_y = 0;
 	if (si.pps->tiles_enabled_flag) {
+		u32 valX, valY;
 		if (si.pps->uniform_spacing_flag) {
 			for (i = 0; i < si.pps->num_tile_rows; i++) {
 				if (i < si.pps->num_tile_rows - 1)
@@ -157,8 +158,7 @@ static void hevcsplit_get_tile_pixel_coords(HEVCState *hevc, u32 index_row, u32 
 	if (!hevc->pps[pps_id].tiles_enabled_flag) {
  		*width = hevc->sps[sps_id].width;
  		*height = hevc->sps[sps_id].height;
- 		*tx = 0;
- 		*ty = 0;
+ 		return;
 	}
 
 	if (hevc->pps[pps_id].uniform_spacing_flag) {
@@ -795,7 +795,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 static GF_Err hevcsplit_process(GF_Filter *filter)
 {
-	u32 nb_eos = 0, hevc_nalu_size_length;
+	u32 hevc_nalu_size_length;
 	u32 data_size, nal_length, opid_idx = 0;
 	u8 temporal_id, layer_id, nal_unit_type, i;
 	u8 *data;
@@ -807,7 +807,6 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck_src) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			nb_eos++;
 			return GF_EOS;
 		}
 		return GF_OK;

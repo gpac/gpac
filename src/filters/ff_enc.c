@@ -165,7 +165,7 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 	u32 i;
 	u8 nb_errors = 0;
 #endif
-	const char *ptype;
+	const char *ptype = "U";
 
 	if (!ctx->ls && !do_reporting) return;
 
@@ -197,7 +197,6 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 	case AV_PICTURE_TYPE_SP: ptype = "SP"; break;
 	case AV_PICTURE_TYPE_B: ptype = "B"; break;
 	case AV_PICTURE_TYPE_BI: ptype = "B"; break;
-	default: ptype = "U"; break;
 	}
 
 	if (ctx->ls) {
@@ -306,10 +305,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				ctx->reconfig_pending = GF_TRUE;
 				ctx->force_reconfig = GF_TRUE;
 				pck = NULL;
-			} else if (ctx->force_reconfig) {
-				ctx->force_reconfig = GF_FALSE;
 			} else {
-				pck = NULL;
+				ctx->force_reconfig = GF_FALSE;
 			}
 		}
 		ctx->frame->pict_type = AV_PICTURE_TYPE_I;
@@ -655,7 +652,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (ctx->reconfig_pending) pck = NULL;
 
 	if (ctx->encoder->frame_size && (ctx->encoder->frame_size <= (s32) ctx->samples_in_audio_buffer)) {
-		res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->bytes_per_sample * ctx->encoder->frame_size, 0);
+		avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->bytes_per_sample * ctx->encoder->frame_size, 0);
 
 		from_internal_buffer_only = GF_TRUE;
 
@@ -1204,7 +1201,6 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (prop) {
-			ctx->encoder->gop_size = 1;
 			ctx->encoder->gop_size = prop->value.frac.num / prop->value.frac.den;
 			ctx->encoder->time_base.num = prop->value.frac.den;
 			ctx->encoder->time_base.den = prop->value.frac.num;
@@ -1322,7 +1318,9 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	ffmpeg_set_enc_dec_flags(ctx->options, ctx->encoder);
-	if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
+
+	if (ctx->all_intra) ctx->encoder->gop_size = 0;
+	else if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
 
 	res = avcodec_open2(ctx->encoder, codec, &ctx->options );
 	if (res < 0) {

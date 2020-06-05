@@ -1997,7 +1997,7 @@ restart:
 				if (need_gfio) {
 					const char *fargs=NULL;
 					const char *fio_url;
-					char *updated_args = NULL;
+					char *updated_args;
 					u32 len = (u32) (need_gfio - arg);
 					updated_args = gf_malloc(sizeof(char)*(len+1));
 					strncpy(updated_args, arg, len);

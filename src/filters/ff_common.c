@@ -1110,7 +1110,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	//do not reset i
 
 	idx=0;
-	while (av_class->option) {
+	while (av_class && av_class->option) {
 		opt = &av_class->option[idx];
 		if (!opt || !opt->name) break;
 

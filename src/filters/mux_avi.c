@@ -262,7 +262,6 @@ check_mx:
 	if (!ctx->avi_out) {
 		char szPath[GF_MAX_PATH];
 		const char *cur_file_suffix=NULL;
-		const GF_PropertyValue *p;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(pid)) return GF_EOS;

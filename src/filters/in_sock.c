@@ -140,10 +140,12 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		) {
 		e = gf_sk_bind(ctx->sock_c.socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT);
 		ctx->listen = GF_FALSE;
-		e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
+		if (!e)
+			e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
 	} else if (ctx->listen) {
 		e = gf_sk_bind(ctx->sock_c.socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
-		if (!e) e = gf_sk_listen(ctx->sock_c.socket, ctx->maxc);
+		if (!e)
+			e = gf_sk_listen(ctx->sock_c.socket, ctx->maxc);
 		if (!e) {
 			gf_filter_post_process_task(filter);
 			gf_sk_server_mode(ctx->sock_c.socket, GF_TRUE);

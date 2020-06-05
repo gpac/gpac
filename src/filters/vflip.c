@@ -93,7 +93,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 {
 	u32 j, line_size = wiB;
 
-	if( ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){
+	if (ctx->s_pfmt == GF_PIXEL_RGB || ctx->s_pfmt == GF_PIXEL_BGR || ctx->s_pfmt == GF_PIXEL_XRGB || ctx->s_pfmt == GF_PIXEL_RGBX || ctx->s_pfmt == GF_PIXEL_XBGR || ctx->s_pfmt == GF_PIXEL_BGRX){
 		//to avoid "3*j > line_size - 3*j - 3" or "4*j > line_size - 4*j - 4"
 		//jmax=line_size/(2*3) or jmax=line_size/(2*4)
 		for (j=0; j < line_size/(2*ctx->bps); j++) {
@@ -102,11 +102,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 			memcpy(line_dst + line_size - ctx->bps*(j+1), line_src + ctx->bps*j, ctx->bps);
 			memcpy(line_dst + ctx->bps*j, pix, ctx->bps);
 		}
-
-	}else if (ctx->packed_422) {
-
-		line_size = wiB/2;
-
+	} else if (ctx->packed_422) {
 		//If the source data is assigned to the output packet during the destination pack allocation
 		//i.e dst_planes[0]= src_planes[0], line_src is going to change while reading it as far as writing on line_dst=line_src
 		//To avoid this situation, ctx->line_buffer_hf keeps the values of line_src
@@ -124,7 +120,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 			//exchanging of Ys within a yuv pixel
 			swap_2Ys_YUVpixel(ctx, line_dst, line_dst, first_4bytes_index);
 		}
-	}else {
+	} else {
 		//nv12/21
 		//second plane is U-plane={u1,v1, u2,v2...}
 		if (ctx->nb_planes==2 && plane_idx==1){
@@ -141,8 +137,7 @@ static void horizontal_flip_per_line(GF_VFlipCtx *ctx, u8 *line_src, u8 *line_ds
 					line_dst[2*j] = u_comp;
 					line_dst[2*j + 1] = v_comp;
 				}
-			}
-			else{
+			} else {
 				for (j=0; j < line_size/4; j++) {
 					u16 u_comp, v_comp;
 					u_comp = line_src[line_size - 2*j - 2];
@@ -393,7 +388,6 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
 	}
-	ctx->passthrough = GF_FALSE;
 
 	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == pfmt) && (ctx->stride == stride)) {
 		//nothing to reconfigure

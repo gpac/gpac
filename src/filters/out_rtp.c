@@ -1002,21 +1002,27 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		const char *ptr = pck_data;
 
 		au_start = 1;
+		e = GF_OK;
 
 		if (stream->avcc && stream->current_sap) {
 			e = rtpout_send_xps(stream, stream->avcc->sequenceParameterSets, &au_start, pck_size, cts, dts, duration);
-			e = rtpout_send_xps(stream, stream->avcc->sequenceParameterSetExtensions, &au_start, pck_size, cts, dts, duration);
-			e = rtpout_send_xps(stream, stream->avcc->pictureParameterSets, &au_start, pck_size, cts, dts, duration);
+			if (!e)
+				e = rtpout_send_xps(stream, stream->avcc->sequenceParameterSetExtensions, &au_start, pck_size, cts, dts, duration);
+
+			if (!e)
+				e = rtpout_send_xps(stream, stream->avcc->pictureParameterSets, &au_start, pck_size, cts, dts, duration);
 		}
 		else if (stream->hvcc && stream->current_sap) {
 			u32 nbps = gf_list_count(stream->hvcc->param_array);
 			for (i=0; i<nbps; i++) {
 				GF_HEVCParamArray *pa = gf_list_get(stream->hvcc->param_array, i);
-				e = rtpout_send_xps(stream, pa->nalus, &au_start, pck_size, cts, dts, duration);
+
+				if (!e)
+					e = rtpout_send_xps(stream, pa->nalus, &au_start, pck_size, cts, dts, duration);
 			}
 		}
 
-		while (remain) {
+		while (!e && remain) {
 			size = 0;
 			v = (*active_stream)->avc_nalu_size;
 			while (v) {

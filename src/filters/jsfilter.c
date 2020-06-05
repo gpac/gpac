@@ -262,7 +262,7 @@ static void jsf_evt_finalizer(JSRuntime *rt, JSValue val)
 {
 	GF_FilterEvent *evt = JS_GetOpaque(val, jsf_event_class_id);
     if (!evt) return;
-	if (evt) gf_free(evt);
+	gf_free(evt);
 }
 static JSClassDef jsf_event_class = {
     "FilterEvent",
@@ -613,7 +613,7 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 	else if (JS_IsArray(ctx, value)) {
 		u64 len = 0;
 		u32 i;
-		u32 type = 0;
+		u32 atype = 0;
 		JSValue js_length = JS_GetPropertyStr(ctx, value, "length");
 		if (JS_ToIndex(ctx, &len, js_length)) {
 			JS_FreeValue(ctx, js_length);
@@ -623,14 +623,14 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 		for (i=0; i<len; i++) {
 			JSValue v = JS_GetPropertyUint32(ctx, value, i);
 			if (JS_IsString(v)) {
-				if (!i) type = 1;
-				else if (type!=1) {
+				if (!i) atype = 1;
+				else if (atype!=1) {
 					JS_FreeValue(ctx, v);
 					return GF_BAD_PARAM;
 				}
 			} else if (JS_IsInteger(v)) {
-				if (!i) type = 2;
-				else if (type!=2) {
+				if (!i) atype = 2;
+				else if (atype!=2) {
 					JS_FreeValue(ctx, v);
 					return GF_BAD_PARAM;
 				}
@@ -640,14 +640,14 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 				return GF_BAD_PARAM;
 			}
 			if (!i) {
-				if (type==1) {
+				if (atype==1) {
 					prop->value.string_list = gf_list_new();
 				}
 			} else {
 				prop->value.uint_list.nb_items = (u32) len;
 				prop->value.uint_list.vals = gf_malloc((u32) (sizeof(s32)*len));
 			}
-			if (type==1) {
+			if (atype==1) {
 				const char *str = JS_ToCString(ctx, v);
 				gf_list_add(prop->value.string_list, gf_strdup(str));
 				JS_FreeCString(ctx, str);
@@ -1022,7 +1022,6 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 static JSValue jsf_filter_set_cap(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 prop_id = 0;
-	u32 prop_type = 0;
 	Bool is_output=GF_FALSE;
 	Bool is_inputoutput=GF_FALSE;
 	Bool is_excluded=GF_FALSE;
@@ -1035,6 +1034,7 @@ static JSValue jsf_filter_set_cap(JSContext *ctx, JSValueConst this_val, int arg
 
 	memset(&p, 0, sizeof(GF_PropertyValue));
     if (argc) {
+		u32 prop_type;
     	JSValue v;
 		const char *name = NULL;
 
@@ -1703,7 +1703,6 @@ static JSValue jsf_filter_inst_get_arg(JSContext *ctx, JSValueConst this_val, in
 	const char *arg_name=NULL;
 	JSValue res;
 	GF_JSFilterInstanceCtx *f_inst = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
-    if (!f_inst) return JS_EXCEPTION;
     if (!f_inst || !argc) return JS_EXCEPTION;
     arg_name = JS_ToCString(ctx, argv[0]);
 	if (!arg_name) return JS_EXCEPTION;
@@ -2098,7 +2097,6 @@ static JSValue jsf_pid_query_caps(JSContext *ctx, JSValueConst this_val, int arg
 {
 	const char *name=NULL;
 	const GF_PropertyValue *prop;
-	JSValue res;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
     if (!pctx || !argc) return JS_EXCEPTION;
 
@@ -2106,6 +2104,7 @@ static JSValue jsf_pid_query_caps(JSContext *ctx, JSValueConst this_val, int arg
 	if (!name) return JS_EXCEPTION;
 
 	if ((argc>1) && JS_ToBool(ctx, argv[1])) {
+		JSValue res;
 		prop = gf_filter_pid_caps_query_str(pctx->pid, name);
 		JS_FreeCString(ctx, name);
 		if (!prop) return JS_NULL;
@@ -2237,7 +2236,6 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	}
 	/*string or true alloc*/
 	if (JS_IsString(argv[0]) || JS_IsInteger(argv[0]) ) {
-		u8 *data=NULL;
 		u32 len;
 		const char *str = NULL;
 		if (JS_IsInteger(argv[0]) ) {
@@ -2261,9 +2259,10 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			if ((argc>2) && JS_IsFunction(ctx, argv[2]))
 				pckc->cbck_val = JS_DupValue(ctx, argv[2]);
 		} else {
-			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, len, &data);
+			u8 *pdata=NULL;
+			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, len, &pdata);
 			if (str) {
-				memcpy(data, str, len);
+				memcpy(pdata, str, len);
 				JS_FreeCString(ctx, str);
 			}
 		}
@@ -3106,7 +3105,6 @@ static JSValue jsf_pck_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 	Bool a1, a2;
 	u64 lival;
 	u32 ival;
-	const u8 *data;
 	GF_FilterPacket *pck;
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
     if (!pckctx || !pckctx->pck) return JS_EXCEPTION;
@@ -3172,7 +3170,7 @@ static JSValue jsf_pck_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		return JS_NewInt32(ctx, ival);
 	case JSF_PCK_DATA:
 		if (JS_IsUndefined(pckctx->data_ab)) {
-			data = gf_filter_pck_get_data(pck, &ival);
+			const u8 *data = gf_filter_pck_get_data(pck, &ival);
 			if (!data) return JS_NULL;
 			pckctx->data_ab = JS_NewArrayBuffer(ctx, (u8 *) data, ival, NULL, NULL, GF_TRUE);
 		}

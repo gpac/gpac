@@ -73,7 +73,7 @@ typedef struct
 
 GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 {
-	char *mime=NULL, *name, *url;
+	char *mime=NULL, *name;
 	char fileName[GF_MAX_PATH+1];
 	const GF_PropertyValue *p;
 	GF_FileIO *gfio = NULL;
@@ -82,7 +82,7 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 		strncpy(fileName, ctx->name, GF_MAX_PATH);
 		fileName[GF_MAX_PATH] = 0;
 	} else {
-		url = gf_filter_pid_get_destination(ctx->opid_nhml);
+		char *url = gf_filter_pid_get_destination(ctx->opid_nhml);
 		if (url) {
 			if (!strncmp(url, "gfio://", 7)) {
 				gfio = gf_fileio_from_url(url);
@@ -188,7 +188,6 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 {
 	u32 cid;
 	char *mime=NULL, *name;
-	char fileName[GF_MAX_PATH+1];
 	const GF_PropertyValue *p;
 	GF_NHMLDumpCtx *ctx = gf_filter_get_udta(filter);
 
@@ -274,6 +273,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		ext = ctx->dims ? "dims" : "nhml";
 
 		if (ctx->name) {
+			char fileName[GF_MAX_PATH+1];
 			strncpy(fileName, ctx->name, GF_MAX_PATH);
 			fileName[GF_MAX_PATH] = 0;
 			name = gf_file_ext_start(fileName);

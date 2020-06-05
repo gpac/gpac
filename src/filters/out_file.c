@@ -327,15 +327,15 @@ static GF_Err fileout_process(GF_Filter *filter)
 	if (ctx->is_null) {
 		if (start) {
 			u32 fnum=0;
-			const char *fname=NULL;
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+			const char *filename=NULL;
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (p) fnum = p->value.uint;
 			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_URL);
 			if (!p) p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
 			if (!p) p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-			if (p) fname = p->value.string;
-			if (fname) {
-				strcpy(ctx->szFileName, fname);
+			if (p) filename = p->value.string;
+			if (filename) {
+				strcpy(ctx->szFileName, filename);
 			} else {
 				sprintf(ctx->szFileName, "%d", fnum);
 			}
@@ -352,7 +352,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 		start = GF_FALSE;
 
 	if (ctx->dash_mode) {
-		const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (p) {
 			GF_FilterEvent evt;
 

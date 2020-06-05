@@ -191,11 +191,8 @@ static void httpout_insert_date(u64 time, char **headers, Bool for_listing)
 	time_t gtime;
 	struct tm *t;
 	const char *wday, *month;
-	u32 sec; //, ms;
+	u32 sec;
 	gtime = time / 1000;
-	sec = (u32)(time / 1000);
-//	ms = (u32)(time - ((u64)sec) * 1000);
-
 	t = gf_gmtime(&gtime);
 	sec = t->tm_sec;
 	//see issue #859, no clue how this happened...
@@ -268,7 +265,7 @@ static Bool httpout_dir_file_enum(void *cbck, char *item_name, char *item_path, 
 	if (file_info)
 		httpout_insert_date(file_info->last_modified*1000, listing, GF_TRUE);
 
-	if (is_dir) {
+	if (is_dir || !file_info) {
 		gf_dynstrcat(listing, "    -\n", NULL);
 		return GF_FALSE;
 	}
@@ -321,8 +318,8 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 		gf_dynstrcat(&listing, ".. <a href=\"", NULL);
 		for (i=0; i<count; i++) {
 			dir = gf_list_get(ctx->rdirs, i);
-			u32 len = (u32) strlen(dir);
-			if (!strncmp(dir, name, len) && ((name[len]=='/') || (name[len]==0))) {
+			u32 dlen = (u32) strlen(dir);
+			if (!strncmp(dir, name, dlen) && ((name[dlen]=='/') || (name[dlen]==0))) {
 				gf_dynstrcat(&listing, "/", NULL);
 				if (count==1) name = NULL;
 				break;
@@ -622,8 +619,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		goto exit;
 	}
 	url = gf_dm_sess_get_resource_name(sess->http_sess);
-	if (!url) e = GF_BAD_PARAM;
-	if (url[0]!='/') e = GF_BAD_PARAM;
+	if (!url || (url[0] != '/'))
+		e = GF_BAD_PARAM;
 
 	sess->do_log = httpout_do_log(sess, parameter->reply);
 
@@ -940,7 +937,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 					sess->put_in_progress = 1;
 				}
 			} else {
-				mime = source_pid->mime;
+				mime = source_pid ? source_pid->mime : NULL;
 				sess->file_size = 0;
 			}
 		}
@@ -1042,7 +1039,6 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 
 		if (!sess->is_head && sess->nb_ranges) {
-			u32 i;
 			gf_dynstrcat(&rsp_buf, "Content-Range: bytes=", NULL);
 			for (i=0; i<sess->nb_ranges; i++) {
 				if (sess->in_source || !sess->file_size) {
@@ -1056,7 +1052,6 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 
 		if (sess->in_source && sess->ctx->ice) {
-			char szFmt[40];
 			const GF_PropertyValue *p;
 			u32 sr=0, br=0, nb_ch=0, p_idx;
 			u32 w=0, h=0;
@@ -1284,7 +1279,6 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	const GF_PropertyValue *p;
 	GF_HTTPOutInput *pctx;
 	GF_HTTPOutCtx *ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
-	GF_HTTPOutCtx *ctx_orig;
 
 	if (!is_remove) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -1294,6 +1288,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	pctx = gf_filter_pid_get_udta(pid);
 	if (!pctx) {
+		GF_HTTPOutCtx *ctx_orig;
 		Bool patch_blocks = GF_FALSE;
 		GF_FilterEvent evt;
 
@@ -1391,7 +1386,7 @@ static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 	if (ctx->maxp) {
 		u32 i, nb_conn=0, count = gf_list_count(ctx->sessions);
 		for (i=0; i<count; i++) {
-			GF_HTTPOutSession *sess = gf_list_get(ctx->sessions, i);
+			sess = gf_list_get(ctx->sessions, i);
 			if (!strcmp(sess->peer_address, peer_address)) nb_conn++;
 		}
 		if (nb_conn>=ctx->maxp) {
@@ -1411,7 +1406,6 @@ static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 
 #ifdef GPAC_HAS_SSL
 	if (ctx->ssl_ctx) {
-		GF_Err e;
 		sess->ssl = gf_ssl_new(ctx->ssl_ctx, new_conn, &e);
 		if (e) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Failed to create TLS session from %s: %s\n", sess->peer_address, gf_error_to_string(e) ));
@@ -1699,7 +1693,6 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 	while (remain) {
 		to_write = (u32) (sess->ranges[sess->range_idx].end + 1 - sess->file_pos);
 		if (to_write>=remain) {
-			to_write = remain;
 			write = (u32) gf_fwrite(data, remain, sess->resource);
 			if (write != remain) {
 				return GF_IO_ERR;
@@ -2141,6 +2134,9 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Closing output file %s\n", in->local_path ? in->local_path : in->path));
 	if (in->upload) {
 		GF_Err e = gf_dm_sess_send(in->upload, "0\r\n\r\n", 5);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error writing last chunk to output file %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+		}
 		//signal we're done sending the body
 		gf_dm_sess_send(in->upload, NULL, 0);
 
@@ -2464,17 +2460,17 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 				stride = stride_uv = 0;
 
 				if (gf_pixel_get_size_info(pf, w, h, NULL, &stride, &stride_uv, &nb_planes, &uv_height) == GF_TRUE) {
-					u32 i;
-					for (i=0; i<nb_planes; i++) {
+					u32 k;
+					for (k=0; k<nb_planes; k++) {
 						u32 j, write_h, lsize;
 						const u8 *out_ptr;
-						u32 out_stride = i ? stride_uv : stride;
-						GF_Err e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
+						u32 out_stride = k ? stride_uv : stride;
+						GF_Err e = hwf->get_plane(hwf, k, &out_ptr, &out_stride);
 						if (e) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to fetch plane data from hardware frame, cannot write\n"));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to fetch plane #%d data from hardware frame, cannot write\n", k));
 							break;
 						}
-						if (i) {
+						if (k) {
 							write_h = uv_height;
 							lsize = stride_uv;
 						} else {

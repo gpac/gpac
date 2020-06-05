@@ -635,7 +635,6 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 	if (!turl) return;
 	u32 idx = 0;
 	u32 temi_id=0;
-	assert(idx>=0);
 
 	//find our stream index
 	a_stream = tspid->mstream->program->streams;
@@ -1041,7 +1040,6 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 	ctx->sidx_entries[ctx->nb_sidx_entries].sap_type = ctx->mux->sap_type;
 	ctx->sidx_entries[ctx->nb_sidx_entries].min_pts_plus_one  = ctx->mux->sap_time + 1;
 	ctx->sidx_entries[ctx->nb_sidx_entries].max_pts  = ctx->mux->sap_time;
-	ctx->sidx_entries[ctx->nb_sidx_entries].sap_time = ctx->mux->sap_time;
 	ctx->sidx_entries[ctx->nb_sidx_entries].nb_pck = ctx->nb_sidx_entries ? ctx->nb_pck_in_seg : 0;
 	ctx->sidx_entries[ctx->nb_sidx_entries].offset = ctx->nb_sidx_entries ? 0 : ctx->nb_pck_first_sidx;
 	ctx->nb_sidx_entries ++;

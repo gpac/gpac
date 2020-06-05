@@ -1084,7 +1084,8 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 							gsfdmx_packet_append_frag(gpck, pck_len, block_offset);
 						}
 					}
-					e = gsfdmx_process_packets(filter, ctx, gst);
+					if (!e)
+						e = gsfdmx_process_packets(filter, ctx, gst);
 				}
 			}
 		}

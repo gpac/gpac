@@ -343,7 +343,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 {
 	GF_AC3DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data, *output;
+	u8 *output;
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;
@@ -372,7 +372,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 
 	prev_pck_size = ctx->ac3_buffer_size;
 	if (pck && !ctx->resume_from) {
-		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+		const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
 		if (!pck_size) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;

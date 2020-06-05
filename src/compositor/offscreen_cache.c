@@ -805,7 +805,6 @@ group_reject:
 void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, DrawableContext *first_child, Bool skip_first_child, u32 last_cache_idx)
 {
 	u32 nb_cache_added, i;
-	Fixed priority;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
 	/*first frame is unusable for stats because lot of time is being spent building the path and allocating
@@ -850,7 +849,7 @@ void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 			cache->traverse_time = 0;
 			gf_list_rem(compositor->cached_groups_queue, last_cache_idx);
 		}
-		//priority = INT2FIX (group->nb_objects*1024*1024*avg_time) / group->cached_size;
+		group->priority = INT2FIX (group->nb_objects*1024*1024*avg_time) / group->cached_size;
 
 		/*when the memory exceeds the constraint, remove the subgroups that have the lowest deltas*/
 		while (compositor->video_cache_current_size > compositor->vcsize)	{

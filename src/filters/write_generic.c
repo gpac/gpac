@@ -621,7 +621,6 @@ GF_Err writegen_process(GF_Filter *filter)
 		}
 	}
 	if (do_abort) {
-		do_abort = GF_TRUE;
 		GF_FilterEvent evt;
 		gf_filter_pid_drop_packet(ctx->ipid);
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);

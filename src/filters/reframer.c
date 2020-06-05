@@ -621,15 +621,15 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				}
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 			} else {
-				u64 start, end;
+				u64 start_t, end_t;
 				char szFileSuf[1000];
-				start = ctx->cur_start.num * 1000;
-				start /= ctx->cur_start.den;
-				end = ctx->cur_end.num * 1000;
-				end /= ctx->cur_end.den;
+				start_t = ctx->cur_start.num * 1000;
+				start_t /= ctx->cur_start.den;
+				end_t = ctx->cur_end.num * 1000;
+				end_t /= ctx->cur_end.den;
 
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->file_idx) );
-				sprintf(szFileSuf, LLU"-"LLU, start, end);
+				sprintf(szFileSuf, LLU"-"LLU, start_t, end_t);
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING(szFileSuf) );
 			}
 		}
@@ -716,6 +716,7 @@ static Bool reframer_init_timing(GF_Filter *filter, GF_ReframerCtx *ctx)
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		RTStream *st = ipid ? gf_filter_pid_get_udta(ipid) : NULL;
+		if (!st) continue;
 
 		st->cts_init = min_dts_plus_one-1;
 		if (st->timescale != pid_scale) {
@@ -1000,7 +1001,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			use_prev = GF_FALSE;
 
 		if (use_prev) {
-			ctx->est_file_size = ctx->est_file_size;
+			//ctx->est_file_size = ctx->est_file_size;
 			ctx->min_ts_computed = ctx->prev_min_ts_computed;
 			ctx->min_ts_scale = ctx->prev_min_ts_scale;
 		} else {
