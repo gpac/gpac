@@ -3469,7 +3469,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	u32 min_dts_scale=0;
 	u32 def_fake_dur=0;
 	u32 def_fake_scale=0;
+#ifdef GF_ENABLE_CTRN
 	u32 traf_inherit_base_id=0;
+#endif
 	u32 nb_segments=0;
 	GF_Fraction64 max_dur;
 	ctx->single_file = GF_TRUE;
@@ -3529,8 +3531,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 				max_dur.den = p->value.lfrac.den;
 			}
 		}
+#ifdef GF_ENABLE_CTRN
 		if (tkw->codecid==GF_CODECID_HEVC)
 			traf_inherit_base_id = tkw->track_id;
+#endif
 	}
 	//good to go, finalize for fragments
 	for (i=0; i<count; i++) {

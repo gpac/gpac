@@ -2510,13 +2510,13 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 	Bool has_size_field = 0, obu_extension_flag = 0;
 	u8 temporal_id, spatial_id;
 	GF_AV1_OBUArrayEntry *a = NULL;
-	assert(obu_list);
 
 	if (state && state->mem_mode) {
 		if (!state->bs) state->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		else gf_bs_reassign_buffer(state->bs, state->frame_obus, state->frame_obus_alloc);
 	}
 	else {
+		assert(obu_list);
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		if (!a) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] Failed to allocate OBU\n"));

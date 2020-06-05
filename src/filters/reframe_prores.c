@@ -105,7 +105,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	u64 duration, last_cdur;
+	u64 duration;
 	u32 idx_size;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
@@ -144,7 +144,6 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 	ctx->file_size = gf_bs_available(bs);
 
 	duration = 0;
-	last_cdur = 0;
 	while (gf_bs_available(bs)) {
 		u64 frame_start = gf_bs_get_position(bs);
 		u32 fsize = gf_bs_read_u32(bs);
