@@ -1136,12 +1136,11 @@ GF_Err piff_psec_box_size(GF_Box *s)
 		ptr->size += 20;
 	}
 	ptr->size += 4;
-	if (sample_count) {
-		for (i = 0; i < sample_count; i++) {
-			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
-			if (! sai->IV_size) continue;
-			ptr->size += 2 + sai->IV_size + 6*sai->subsample_count;
-		}
+
+	for (i = 0; i < sample_count; i++) {
+		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+		if (! sai->IV_size) continue;
+		ptr->size += 2 + sai->IV_size + 6*sai->subsample_count;
 	}
 	return GF_OK;
 }
@@ -1438,15 +1437,13 @@ GF_Err senc_box_size(GF_Box *s)
 	ptr->size += 4; //version and flags
 
 	ptr->size += 4; //sample count
-	if (sample_count) {
-		for (i = 0; i < sample_count; i++) {
-			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+	for (i = 0; i < sample_count; i++) {
+		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
-			ptr->size += sai->IV_size;
+		ptr->size += sai->IV_size;
 
-			if (ptr->flags & 0x00000002)
-				ptr->size += 2 + 6*sai->subsample_count;
-		}
+		if (ptr->flags & 0x00000002)
+			ptr->size += 2 + 6*sai->subsample_count;
 	}
 	return GF_OK;
 }

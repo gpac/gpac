@@ -1830,6 +1830,7 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile* movie, u32 trackNumber, u
 	GF_MasteringDisplayColourVolumeBox *mdcvb = (GF_MasteringDisplayColourVolumeBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_MDCV);
 	if (!mdcvb) {
 		mdcvb = (GF_MasteringDisplayColourVolumeBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MDCV);
+		if (!mdcvb) return GF_OUT_OF_MEM;
 	}
 	mdcvb->mdcv = *mdcv;
 
@@ -1837,9 +1838,10 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile* movie, u32 trackNumber, u
 	GF_ContentLightLevelBox *cllib = (GF_ContentLightLevelBox *)gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_CLLI);
 	if (!cllib) {
 		cllib = (GF_ContentLightLevelBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_CLLI);
+		if (!cllib) return GF_OUT_OF_MEM;
 	}
 	cllib->clli = *clli;
-	return e;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -3771,10 +3773,9 @@ GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, u8 **output, u32 *
 		trexprop = NULL;
 	}
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (trex) {
-		gf_isom_box_size( (GF_Box *) trex);
-		gf_isom_box_write((GF_Box *) trex, bs);
-	}
+	gf_isom_box_size( (GF_Box *) trex);
+	gf_isom_box_write((GF_Box *) trex, bs);
+
 	if (trexprop) {
 		gf_isom_box_size( (GF_Box *) trexprop);
 		gf_isom_box_write((GF_Box *) trexprop, bs);
@@ -4721,7 +4722,6 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		if (stbl->SampleSize->sampleCount) {
 			stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
 			memset(stbl->TimeToSample->entries, 0, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
-			stbl->TimeToSample->nb_entries = 1;
 			stbl->TimeToSample->entries[0].sampleDelta = (u32) DTSs[0];
 			stbl->TimeToSample->entries[0].sampleCount = 1;
 			idx=0;
@@ -4751,7 +4751,6 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 			//repack CTS
 			stbl->CompositionOffset->entries = gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
 			memset(stbl->CompositionOffset->entries, 0, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
-			stbl->CompositionOffset->nb_entries = 1;
 			stbl->CompositionOffset->entries[0].decodingOffset = (s32) (CTSs[0] - DTSs[0]);
 			stbl->CompositionOffset->entries[0].sampleCount = 1;
 			idx=0;
@@ -7059,7 +7058,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 		}
 
 		if (!box_path) continue;
-		path_len = box_path ? (u32) strlen(box_path) : 0;
+		path_len = (u32) strlen(box_path);
 
 		is_frag_box = !strncmp(box_path, "traf", 4) ? GF_TRUE : GF_FALSE;
 

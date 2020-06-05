@@ -289,16 +289,6 @@ default_sync:
 		//signal we are NOT using sync points if no info is present in the table
 		esd->slConfig->useRandomAccessPointFlag = stbl->SyncSample->nb_entries ? 1 : 0;
 	}
-	//do we have DegradationPriority ?
-	if (stbl->DegradationPriority) {
-		esd->slConfig->degradationPriorityLength = 15;
-	} else {
-		esd->slConfig->degradationPriorityLength = 0;
-	}
-	//paddingBits
-	if (stbl->PaddingBits) {
-		esd->slConfig->usePaddingFlag = 1;
-	}
 	//change to support reflecting OD streams
 	esd->slConfig->useAccessUnitEndFlag = 1;
 	esd->slConfig->useAccessUnitStartFlag = 1;
@@ -1457,7 +1447,6 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		case GF_ISOM_BOX_TYPE_WVTT:
 		case GF_ISOM_BOX_TYPE_STPP:
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
-			e = GF_OK;
 			break;
 
 		default:

@@ -1023,12 +1023,12 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	size -= 2;
 
 	if (!ft) {
-		GF_AC3Header hdr;
-		memset(&hdr, 0, sizeof(GF_AC3Header));
+		GF_AC3Header ac3hdr;
+		memset(&ac3hdr, 0, sizeof(GF_AC3Header));
 		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
 		while (size) {
 			u32 offset;
-			if (!gf_ac3_parser((u8*)payload, size, &offset, &hdr, GF_FALSE)) {
+			if (!gf_ac3_parser((u8*)payload, size, &offset, &ac3hdr, GF_FALSE)) {
 				return;
 			}
 			if (offset) {
@@ -1036,10 +1036,10 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 				payload+=offset;
 				size-=offset;
 			}
-			rtp->on_sl_packet(rtp->udta, payload, hdr.framesize, &rtp->sl_hdr, GF_OK);
-			if (size < hdr.framesize) return;
-			size -= hdr.framesize;
-			payload += hdr.framesize;
+			rtp->on_sl_packet(rtp->udta, payload, ac3hdr.framesize, &rtp->sl_hdr, GF_OK);
+			if (size < ac3hdr.framesize) return;
+			size -= ac3hdr.framesize;
+			payload += ac3hdr.framesize;
 			rtp->sl_hdr.compositionTimeStamp += 1536;
 		}
 		rtp->flags |= GF_RTP_NEW_AU;
@@ -1340,16 +1340,14 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if ((rtp->sl_map.CodecID == GF_CODECID_AAC_MPEG4) && !rtp->sl_map.config) {
 			GF_M4ADecSpecInfo cfg;
-			GF_RTPMap*map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
+			GF_RTPMap *a_map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 
 			memset(&cfg, 0, sizeof(GF_M4ADecSpecInfo));
 			cfg.audioPL = rtp->sl_map.PL_ID;
-			cfg.nb_chan = map->AudioChannels;
-			cfg.nb_chan = 1;
-			cfg.base_sr = map->ClockRate/2;
-			cfg.sbr_sr = map->ClockRate;
-			cfg.base_object_type = GF_M4A_AAC_LC;
-			cfg.base_object_type = 5;
+			cfg.nb_chan = a_map->AudioChannels ? a_map->AudioChannels : 1;
+			cfg.base_sr = a_map->ClockRate/2;
+			cfg.sbr_sr = a_map->ClockRate;
+			cfg.base_object_type = GF_M4A_AAC_SBR;
 			cfg.sbr_object_type = GF_M4A_AAC_MAIN;
 			gf_m4a_write_config(&cfg, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		}

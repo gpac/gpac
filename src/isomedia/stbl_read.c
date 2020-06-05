@@ -58,6 +58,7 @@ GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *s
 		stbl->TimeToSample->r_currentEntryIndex = 0;
 	}
 
+#if 0
 	//we need to validate our cache if we are using CTS because of B-frames and co...
 	if (i && useCTS) {
 		while (1) {
@@ -80,14 +81,18 @@ GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *s
 			}
 		}
 	}
+#endif
 
 	//look for the DTS from this entry
 	count = stbl->TimeToSample->nb_entries;
 	for (; i<count; i++) {
 		ent = &stbl->TimeToSample->entries[i];
+#if 0
 		if (useCTS) {
 			stbl_GetSampleCTS(stbl->CompositionOffset, curSampNum, &CTSOffset);
-		} else {
+		} else
+#endif
+		{
 			CTSOffset = 0;
 		}
 		for (j=0; j<ent->sampleCount; j++) {
