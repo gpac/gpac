@@ -95,7 +95,6 @@ cache_calassloader_failed:
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
 	JNIEnv* env = NULL;
-	jint res = 0;
 	javaVM = vm;
 	
 	if ((*javaVM)->GetEnv(javaVM, (void**)&env, JNI_VERSION_1_2) != JNI_OK) {

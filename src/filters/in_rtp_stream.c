@@ -305,7 +305,6 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	Double Start, End;
 	u16 rvc_predef = 0;
 	char *rvc_config_att = NULL;
-	u32 s_port_first, s_port_last;
 	GF_X_Attribute *att;
 	char *ctrl;
 	GF_SDPConnection *conn;
@@ -319,7 +318,6 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	ESID = 0;
 	ctrl = NULL;
 	range = NULL;
-	s_port_first = s_port_last = 0;
 	mid = prev_stream = base_stream = 0;
 	i=0;
 	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
@@ -416,8 +414,8 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	} else {
 		trans.client_port_first = media->PortNumber;
 		trans.client_port_last = media->PortNumber + 1;
-		trans.port_first = s_port_first ? s_port_first : trans.client_port_first;
-		trans.port_last = s_port_last ? s_port_last : trans.client_port_last;
+		trans.port_first = trans.client_port_first;
+		trans.port_last = trans.client_port_last;
 	}
 
 	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {

@@ -344,12 +344,12 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 		if (is_isma_1) iod_str = NULL;
 
 		if (!iod_str) {
-			GF_RTPInStream *stream;
+			GF_RTPInStream *a_stream;
 			i=0;
-			while (!force_in_iod && (stream = (GF_RTPInStream *)gf_list_enum(rtp->streams, &i))) {
-				if (!stream->depacketizer) continue;
-				if (stream->depacketizer->payt!=GF_RTP_PAYT_MPEG4) continue;
-				switch (stream->depacketizer->sl_map.StreamType) {
+			while (!force_in_iod && (a_stream = (GF_RTPInStream *)gf_list_enum(rtp->streams, &i))) {
+				if (!a_stream->depacketizer) continue;
+				if (a_stream->depacketizer->payt!=GF_RTP_PAYT_MPEG4) continue;
+				switch (a_stream->depacketizer->sl_map.StreamType) {
 				case GF_STREAM_SCENE:
 				case GF_STREAM_OD:
 					force_in_iod = GF_TRUE;

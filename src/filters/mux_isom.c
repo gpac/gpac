@@ -3037,7 +3037,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (for_fragment) {
 			e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
 		} else if (sap_type==3) {
-			e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
+			e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE /*(sap_type==3) ? GF_TRUE : GF_FALSE*/, 0);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
@@ -3640,7 +3640,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			gf_isom_enable_traf_inherit(ctx->file, tkw->track_id, inherit_traf_from_track);
 
 		if (!tkw->box_patched) {
-			const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
+			p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
 			if (p && p->value.string) {
 				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id, p->value.string, GF_FALSE);
 				if (e) {
@@ -4244,10 +4244,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					tkw->prev_tid_group = 0;
 				} else {
 					s64 dts_diff;
-					s64 dts = gf_filter_pck_get_dts(pck);
-					s64 cts = gf_filter_pck_get_cts(pck);
-					s64 cts_o = cts - dts;
-					dts_diff = dts - tkw->sample.DTS;
+					s64 p_dts = gf_filter_pck_get_dts(pck);
+					s64 p_cts = gf_filter_pck_get_cts(pck);
+					s64 cts_o = p_cts - p_dts;
+					dts_diff = p_dts - tkw->sample.DTS;
 					tid_group = (s32) (cts_o / dts_diff);
 					tid_group = 20 - tid_group;
 					if (tid_group != tkw->prev_tid_group) {
@@ -4309,7 +4309,6 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 		//end of DASH segment
 		if (ctx->dash_mode && (ctx->flush_seg || is_eos) ) {
-			GF_Err e;
 			u64 offset = ctx->single_file ? ctx->current_offset : 0;
 			u64 idx_start_range, idx_end_range, segment_size_in_bytes;
 			s32 subs_sidx = -1;
@@ -4485,7 +4484,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 
 	//for all packets with dts greater than min dts, we need to add a pause
 	for (i=0; i<count; i++) {
-		s64 dts_diff;
+		s64 dts_diff, dur;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
 		//compute offsets
@@ -4497,18 +4496,16 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		//negative could happen due to rounding, ignore them
 		if (dts_diff<=0) continue;
 
-		//if dts_diff > 0, we need to delay the track
-		if (dts_diff) {
-			s64 dur = dts_diff;
-			dur *= (u32) ctx->moovts;
-			dur /= tkw->src_timescale;
-			if (dur) {
-				gf_isom_remove_edits(ctx->file, tkw->track_num);
+		// dts_diff > 0, we need to delay the track
+		dur = dts_diff;
+		dur *= (u32) ctx->moovts;
+		dur /= tkw->src_timescale;
+		if (dur) {
+			gf_isom_remove_edits(ctx->file, tkw->track_num);
 
-				gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
-				gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
-				tkw->empty_init_dur = (u64) dur;
-			}
+			gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+			tkw->empty_init_dur = (u64) dur;
 		}
 	}
 
@@ -5172,7 +5169,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			gf_media_update_bitrate(ctx->file, tkw->track_num);
 
 		if (!tkw->box_patched) {
-			const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
+			p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
 			if (p && p->value.string) {
 				e = gf_isom_apply_box_patch(ctx->file, tkw->track_id ? tkw->track_id : tkw->item_id, p->value.string, GF_FALSE);
 				if (e) {

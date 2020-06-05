@@ -237,14 +237,14 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 
 	if (sess->satip) {
 		RTPIn_StreamControl *ch_ctrl = NULL;
-		GF_RTSPCommand *com = gf_rtsp_command_new();
-		com->method = gf_strdup(GF_RTSP_PLAY);
+		GF_RTSPCommand *a_com = gf_rtsp_command_new();
+		a_com->method = gf_strdup(GF_RTSP_PLAY);
 		GF_SAFEALLOC(ch_ctrl, RTPIn_StreamControl);
 		if (ch_ctrl) {
 			ch_ctrl->stream = stream;
-			com->user_data = ch_ctrl;
+			a_com->user_data = ch_ctrl;
 		}
-		rtpin_rtsp_queue_command(sess, stream, com, GF_TRUE);
+		rtpin_rtsp_queue_command(sess, stream, a_com, GF_TRUE);
 	}
 
 exit:

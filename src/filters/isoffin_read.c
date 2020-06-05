@@ -532,7 +532,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	if (ch->is_cenc) {
 		u8 *psshd;
 		GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		u32 i, s, container_type;
+		u32 s, container_type;
 
 		gf_bs_write_u32(pssh_bs, PSSH_count);
 
@@ -788,7 +788,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					ch->end = (u64) t;
 				}
 			}
-		} else if (evt->play.speed<0) {
+		} else {
 			Double end = evt->play.end_range;
 			if (end==-1) end = 0;
 			ch->start = (u64) (s64) (evt->play.start_range * ch->time_scale);

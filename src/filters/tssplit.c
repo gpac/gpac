@@ -184,7 +184,6 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			u32 j, pck_size, tot_len=188, crc, offset=5, mux_id;
 			u8 *buffer;
 			Bool first_pck=GF_FALSE;
-			GF_FilterPacket *pck;
 			GF_M2TS_Program *prog = gf_list_get(ctx->dmx->programs, i);
 			assert(prog->pmt_pid);
 
@@ -269,7 +268,7 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 
 			//output new PAT
 			if (stream->opid) {
-				pck = gf_filter_pck_new_alloc(stream->opid, tot_len, &buffer);
+				GF_FilterPacket *pck = gf_filter_pck_new_alloc(stream->opid, tot_len, &buffer);
 				gf_filter_pck_set_framing(pck, first_pck, GF_FALSE);
 				memcpy(buffer, ctx->tsbuf, tot_len);
 				gf_filter_pck_send(pck);
@@ -391,9 +390,9 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			do_fwd = GF_TRUE;
 		}
 		if (do_fwd) {
-			u32 i, count = gf_list_count(ctx->streams);
+			u32 count = gf_list_count(ctx->streams);
 			for (i=0; i<count; i++) {
-				GF_M2TSSplit_SPTS *stream = gf_list_get(ctx->streams, i);
+				stream = gf_list_get(ctx->streams, i);
 				if (!stream->opid) continue;
 
 				if (ctx->dmx->prefix_present) {

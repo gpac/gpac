@@ -1481,7 +1481,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	DUMP_ATT_U("crypt", gf_filter_pck_get_crypt_flags(pck) )
 	DUMP_ATT_U("vers", gf_filter_pck_get_carousel_version(pck) )
 
-	if (!ck_type && !fifce) {
+	if (!fifce) {
 		DUMP_ATT_U("size", size )
 	}
 	dflags = gf_filter_pck_get_dependency_flags(pck);
@@ -2157,7 +2157,6 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		u32 i;
 		//sort all PIDs by codec IDs
 		for (i=0; i<gf_list_count(ctx->src_pids); i++) {
-			const GF_PropertyValue *p;
 			PidCtx *actx = gf_list_get(ctx->src_pids, i);
 			insert_idx = i;
 

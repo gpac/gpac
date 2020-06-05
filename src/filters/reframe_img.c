@@ -290,10 +290,10 @@ GF_Err img_process(GF_Filter *filter)
 
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 
-	fh.bfType = gf_bs_read_u16(bs);
-	fh.bfSize = gf_bs_read_u32(bs);
-	fh.bfReserved1 = gf_bs_read_u16(bs);
-	fh.bfReserved2 = gf_bs_read_u16(bs);
+	/*fh.bfType = */ gf_bs_read_u16(bs);
+	/*fh.bfSize = */ gf_bs_read_u32(bs);
+	/*fh.bfReserved1 = */ gf_bs_read_u16(bs);
+	/*fh.bfReserved2 = */ gf_bs_read_u16(bs);
 	fh.bfOffBits = gf_bs_read_u32(bs);
 	fh.bfOffBits = ntohl(fh.bfOffBits);
 

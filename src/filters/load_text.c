@@ -423,7 +423,6 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 			u64 ts_end=0;
 			h = m = s = ms = 0;
 			while ( (att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &p_idx))) {
-				if (!att) continue;
 				if (strcmp(att->name, "end")) continue;
 
 				if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
@@ -437,7 +436,6 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 			while ( (p_node = (GF_XMLNode*)gf_list_enum(node->content, &p_idx))) {
 				u32 span_idx = 0;
 				while ( (att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
-					if (!att) continue;
 					if (strcmp(att->name, "end")) continue;
 					if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 						ts_end = (h*3600 + m*60+s)*1000+ms;
@@ -1079,7 +1077,7 @@ static char *ttxt_parse_string(char *str, Bool strip_lines)
 					k++;
 				}
 				state = 1; //!state;
-			} else if (state) {
+			} else {
 				if ( (i+1==len) ||
 				        ((str[i+1]==' ') || (str[i+1]=='\n') || (str[i+1]=='\r') || (str[i+1]=='\t') || (str[i+1]=='\''))
 				   ) {
@@ -1100,7 +1098,7 @@ static char *ttxt_parse_string(char *str, Bool strip_lines)
 
 static void GF_TXTIN_MODE_ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **sample_list_node)
 {
-	u32 idx = 0, body_num = 0;
+	u32 idx = 0;
 	GF_XMLNode *node = NULL;
 	*sample_list_node = NULL;
 	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &idx))) {
@@ -1109,6 +1107,7 @@ static void GF_TXTIN_MODE_ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **
 			u32 body_idx = 0;
 			while ( (body_node = (GF_XMLNode*)gf_list_enum(node->content, &body_idx))) {
 				if (!strcmp(body_node->name, "div")) {
+					u32 body_num;
 					*sample_list_node = body_node;
 					body_num = gf_list_count(body_node->content);
 					while (body_num--) {
@@ -1303,7 +1302,6 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 
 		//sample is either in the <p> ...
 		while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_child->attributes, &p_idx))) {
-			if (!p_att) continue;
 
 			if (!strcmp(p_att->name, "begin")) {
 				if (ts_begin != -1) {
@@ -1331,7 +1329,6 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			if ((ts_begin != -1) && (ts_end != -1) && !samp_text && ctx->sample_list_node) {
 				e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
 				assert(e == GF_OK);
-				assert(!samp_text);
 				samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
 				e = gf_xml_dom_rem_child(ctx->sample_list_node, div_child);
 				assert(e == GF_OK);
@@ -1348,7 +1345,6 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 				u32 span_idx = 0;
 				GF_XMLAttribute *span_att;
 				while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
-					if (!span_att) continue;
 
 					if (!strcmp(span_att->name, "begin")) {
 						if (ts_begin != -1) {

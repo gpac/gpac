@@ -163,12 +163,12 @@ static void gsfmx_encrypt(GSFMxCtx *ctx, char *data, u32 nb_crypt_bytes)
 	//reset IV at each packet
 	gf_crypt_set_IV(ctx->crypt, ctx->crypt_IV, 16);
 	if (ctx->pattern.den && ctx->pattern.num) {
-		u32 pos = 0;
+		//u32 pos = 0;
 		while (nb_crypt_bytes) {
 			u32 bbytes = 16 * (ctx->pattern.num + ctx->pattern.den);
 			gf_crypt_encrypt(ctx->crypt, data, nb_crypt_bytes >= (u32) (16*ctx->pattern.num) ? 16*ctx->pattern.num : nb_crypt_bytes);
 			if (nb_crypt_bytes >= bbytes) {
-				pos += bbytes;
+				//pos += bbytes;
 				nb_crypt_bytes -= bbytes;
 			} else {
 				nb_crypt_bytes = 0;

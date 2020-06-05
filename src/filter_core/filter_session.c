@@ -748,7 +748,11 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 
 	//only flatten calls if in main thread (we still have some broken filters using threading
 	//that could trigger tasks
-	if ((force_direct_call || fsess->direct_mode) && filter && !filter->in_process && fsess->tasks_in_process && (gf_th_id()==fsess->main_th.th_id)) {
+	if ((force_direct_call || fsess->direct_mode)
+		&& (!filter || !filter->in_process)
+		&& fsess->tasks_in_process
+		&& (gf_th_id()==fsess->main_th.th_id)
+	) {
 		GF_FSTask atask;
 		u64 task_time = gf_sys_clock_high_res();
 		memset(&atask, 0, sizeof(GF_FSTask));

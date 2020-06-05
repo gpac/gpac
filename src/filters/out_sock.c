@@ -272,9 +272,9 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 	h = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_PIXFMT);
 	pf = p ? p->value.uint : 0;
-	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_STRIDE);
-	stride = stride_uv = 0;
 
+	//get stride/stride_uv with no padding
+	stride = stride_uv = 0;
 	if (gf_pixel_get_size_info(pf, w, h, NULL, &stride, &stride_uv, &nb_planes, &uv_height) == GF_TRUE) {
 		u32 i;
 		for (i=0; i<nb_planes; i++) {

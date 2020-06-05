@@ -107,7 +107,6 @@ process_callback (jack_nframes_t nframes, void *arg)
 	unsigned int channel, i;
 	size_t toRead;
 	size_t bytesToRead;
-	size_t readen;
 	GF_AudioOutput *dr = (GF_AudioOutput *) arg;
 	JackContext *ctx;
 	if (dr == NULL)
@@ -118,7 +117,7 @@ process_callback (jack_nframes_t nframes, void *arg)
 	ctx = dr->opaque;
 	toRead = nframes * ctx->numChannels;
 	bytesToRead = toRead * ctx->bytesPerSample;
-	readen = dr->FillBuffer (dr->audio_renderer, (void *) ctx->buffer,
+	dr->FillBuffer (dr->audio_renderer, (void *) ctx->buffer,
 	                         bytesToRead);
 
 	if (ctx->bytesPerSample == 2)

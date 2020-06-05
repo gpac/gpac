@@ -309,11 +309,10 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 GF_Err m2psdmx_process(GF_Filter *filter)
 {
 	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck;
 	Bool start, end;
 	u32 i, count, nb_done;
 	if (!ctx->ps) {
-		pck = gf_filter_pid_get_packet(ctx->ipid);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 		if (!pck) {
 			return GF_OK;
 		}

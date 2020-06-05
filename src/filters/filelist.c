@@ -213,12 +213,14 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	iopid->timescale = gf_filter_pid_get_timescale(pid);
 	if (!iopid->timescale) iopid->timescale = 1000;
 
+#if 0
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (p) {
 		s64 delay = p->value.sint;
 		delay *= iopid->timescale;
 		delay /= iopid->o_timescale;
 	}
+#endif
 
 	//if we reattached the input, we must send a play request
 	if (reassign) {
@@ -388,7 +390,6 @@ GF_Err filelist_process(GF_Filter *filter)
 {
 	Bool start, end;
 	GF_Err e;
-	const GF_PropertyValue *p;
 	u32 i, count, nb_done, nb_inactive;
 	FileListPid *iopid;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
@@ -407,6 +408,7 @@ GF_Err filelist_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->file_pid);
 
 			if (end) {
+				const GF_PropertyValue *p;
 				Bool is_first = GF_TRUE;
 				FILE *f=NULL;
 				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_FILEPATH);
@@ -745,10 +747,10 @@ GF_Err filelist_initialize(GF_Filter *filter)
 			if (c && sep_dir) sep_dir[0] = c;
 		} else {
 			if (gf_file_exists(list)) {
-				FILE *fo;
 				FileListEntry *fentry;
 				GF_SAFEALLOC(fentry, FileListEntry);
 				if (fentry) {
+					FILE *fo;
 					fentry->file_name = gf_strdup(list);
 					fentry->last_mod_time = gf_file_modification_time(list);
 					fo = gf_fopen(list, "rb");

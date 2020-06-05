@@ -805,7 +805,7 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		hdr.frame_size = 0;
 		if (!adts_dmx_sync_frame_bs(bs, &hdr)) {
 			if (hdr.frame_size) {
-				nb_frames++;
+				//nb_frames++;
 				max_consecutive_frames++;
 			}
 			break;

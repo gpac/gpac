@@ -158,7 +158,7 @@ static GF_Err maddec_process(GF_Filter *filter)
 	mad_fixed_t *left_ch, *right_ch, chan;
 	u8 *ptr;
 	u8 *data;
-	u32 num, in_size, outSize=0;
+	u32 num, in_size; //, outSize=0;
 	GF_MADCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);

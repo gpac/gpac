@@ -143,13 +143,13 @@ static void pngenc_write(png_structp png, png_bytep data, png_size_t size)
 		while (ctx->alloc_size<size) ctx->alloc_size+=PNG_BLOCK_SIZE;
 		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->alloc_size, &ctx->output);
 	} else if (ctx->pos + size > ctx->alloc_size) {
-		u8 *data;
+		u8 *new_data;
 		u32 new_size;
 		u32 old_size = ctx->alloc_size;
 		while (ctx->pos + size > ctx->alloc_size)
 			ctx->alloc_size += PNG_BLOCK_SIZE;
 		
-		if (gf_filter_pck_expand(ctx->dst_pck, ctx->alloc_size - old_size, &ctx->output, &data, &new_size) != GF_OK) {
+		if (gf_filter_pck_expand(ctx->dst_pck, ctx->alloc_size - old_size, &ctx->output, &new_data, &new_size) != GF_OK) {
 			return;
 		}
 	}

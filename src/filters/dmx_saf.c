@@ -200,7 +200,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 		case 5:
 			i=0;
 			while ((st = (GF_SAFStream *)gf_list_enum(ctx->streams, &i))) {
-				if (st && st->opid) gf_filter_pid_set_eos(st->opid);
+				if (st->opid) gf_filter_pid_set_eos(st->opid);
 			}
 			break;
 		}

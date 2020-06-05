@@ -273,13 +273,12 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					if (ch->owner->frag_type && (ch->sample_num==gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
 						ch->sample = NULL;
 					} else {
-						u32 time_diff = 2;
 						u32 sample_num = ch->sample_num ? ch->sample_num : 1;
 
 						if (sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track) ) {
 							//e = GF_EOS;
 						} else {
-							time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
+							u32 time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
 							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 							if (e==GF_OK) {
 								ch->sample = ch->static_sample;
@@ -474,7 +473,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					ch->skip_byte_block = skip_byte_block;
 					ch->cenc_state_changed = 1;
 				}
-				if (Is_Encrypted && !ch->IV_size) {
+				if (!ch->IV_size) {
 					if (ch->constant_IV_size != constant_IV_size) {
 						ch->constant_IV_size = constant_IV_size;
 						ch->cenc_state_changed = 1;

@@ -649,9 +649,6 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	gf_filter_set_session_caps(filter, &sess_caps);
 
 	if (ctx->player) {
-	}
-
-	if (ctx->player) {
 		//make filter sticky (no shutdown at eos)
 		gf_filter_make_sticky(filter);
 
