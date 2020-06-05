@@ -319,7 +319,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 {
 	GF_SceneGraph *sg;
 	SMIL_Timing_RTI *rti;
-	SMILTimingAttributesPointers *timingp = NULL;
+	SMILTimingAttributesPointers *timingp;
 	u32 tag = gf_node_get_tag(timed_elt);
 	SVGAllAttributes all_atts;
 	SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)timed_elt;
@@ -440,8 +440,7 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 GF_EXPORT
 Bool gf_smil_timing_is_active(GF_Node *node)
 {
-	SMILTimingAttributesPointers *timingp = NULL;
-	timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
+	SMILTimingAttributesPointers *timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
 	if (!timingp || !timingp->runtime) return 0;
 	return (timingp->runtime->status == SMIL_STATUS_ACTIVE);
 }
@@ -902,10 +901,8 @@ end:
 /* This function is called when a modification to the node has been made (scripts, updates or events ...) */
 void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 {
-	SMILTimingAttributesPointers *timingp = NULL;
 	SMIL_Timing_RTI *rti;
-
-	timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
+	SMILTimingAttributesPointers *timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
 
 	if (!timingp) return;
 	rti = timingp->runtime;

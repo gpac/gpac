@@ -93,7 +93,7 @@ static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 	u8 *pY, *pU, *pV;
 	u32 pck_size = 0;
 	u32 stride = ctx->stride, stride_uv= ctx->stride_uv;
-	pY = pU = pV = NULL;
+	pU = pV = NULL;
 	pY = (u8 *) gf_filter_pck_get_data(pck, &pck_size);
 	if (!pY) {
 		GF_FilterFrameInterface *hwframe = gf_filter_pck_get_frame_interface(pck);

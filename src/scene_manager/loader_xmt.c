@@ -1310,11 +1310,11 @@ static void xmt_parse_script_field(GF_XMTParser *parser, GF_Node *node, const GF
 {
 	GF_ScriptField *scfield;
 	GF_FieldInfo field;
-	char *val = NULL;
 	u32 fieldType, eventType, i;
+	char *val = NULL;
 	char *fieldName = NULL;
 	fieldType = eventType = 0;
-	val = NULL;
+
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 		if (!att->value || !strlen(att->value)) continue;

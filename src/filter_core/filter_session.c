@@ -2490,7 +2490,7 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_name, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) )
 {
 	GF_CapsBundleStore capstore;
-	GF_Filter *js_filter = NULL;
+	GF_Filter *js_filter;
 	const char *js_name = NULL;
 	GF_Err e=GF_OK;
 	u32 i, j, count, nb_js_caps;

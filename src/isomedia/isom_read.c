@@ -1671,7 +1671,7 @@ Bool gf_isom_has_sample_dependency(GF_ISOFile *the_file, u32 trackNumber)
 GF_EXPORT
 GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *isLeading, u32 *dependsOn, u32 *dependedOn, u32 *redundant)
 {
-	GF_TrackBox *trak = NULL;
+	GF_TrackBox *trak;
 	*isLeading = 0;
 	*dependsOn = 0;
 	*dependedOn = 0;

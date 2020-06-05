@@ -724,7 +724,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				if (hevccfg) {
 					Bool is_interlaced;
 					HEVCState hevc;
-					HEVC_SPS* sps = NULL;
+					HEVC_SPS* sps;
 					memset(&hevc, 0, sizeof(HEVCState));
 					gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
 					gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
@@ -1466,7 +1466,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 	u32 i, count;
 	const GF_PropertyValue *p;
 	GF_List *res = NULL;
-	GF_BitStream *bs_r=NULL;
+	GF_BitStream *bs_r;
 
 	count = gf_list_count(ctx->current_period->streams);
 	bs_r = gf_bs_new((const char *) &count, 1, GF_BITSTREAM_READ);
@@ -1968,7 +1968,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		//set HDR
 		if (ds->hdr_type > DASHER_HDR_NONE) {
 			char value[256];
-			GF_MPD_Descriptor* desc = NULL;
+			GF_MPD_Descriptor* desc;
 			sprintf(value, "9");
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ColourPrimaries", value);
 			gf_list_add(set->essential_properties, desc);
@@ -5260,7 +5260,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			Bool seg_over = GF_FALSE;
 			Bool is_packet_split = GF_FALSE;
 			Bool is_queue_flush = GF_FALSE;
-			GF_FilterPacket *pck = NULL;
+			GF_FilterPacket *pck;
 			GF_FilterPacket *dst;
 
 			assert(ds->period == ctx->current_period);

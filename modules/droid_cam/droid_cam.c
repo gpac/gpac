@@ -377,7 +377,6 @@ static GF_Descriptor *CAM_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	if (!plug || !plug->priv) return NULL;
 	read = (ISOMReader *) plug->priv;
 
-	trackID = 0;
 	trackID = read->base_track_id;
 	read->base_track_id = 0;
 
@@ -473,8 +472,8 @@ void Java_com_gpac_Osmo4_Preview_processFrameBuf( JNIEnv* env, jobject thiz, jby
 		u32 datasize;
 		GF_SLHeader hdr;
 		u32 cts = 0;
-		u32 convTime = 0;
-		u32 j = 0;
+		//u32 convTime = 0;
+		//u32 j = 0;
 		jbyte *jdata;
 		jsize len;
 
@@ -534,7 +533,7 @@ void CallCamMethod(ISOMReader *read, jmethodID methodID)
 
 void camStartCamera(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 	jboolean isPortrait = JNI_FALSE;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] startCamera: %d\n", gf_th_id()));
@@ -570,7 +569,7 @@ void resumeCamera(ISOMReader *read)
 
 u32 getWidth(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getWidth: %d\n", gf_th_id()));
 
@@ -582,7 +581,7 @@ u32 getWidth(ISOMReader *read)
 
 u32 getHeight(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getHeight: %d\n", gf_th_id()));
 
@@ -594,7 +593,7 @@ u32 getHeight(ISOMReader *read)
 
 u32 getFormat(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 	u32 pixel_format;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getFormat: %d\n", gf_th_id()));
@@ -615,7 +614,7 @@ u32 getFormat(ISOMReader *read)
 
 u32 getBitsPerPix(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getBitsPerPix: %d\n", gf_th_id()));
 

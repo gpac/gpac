@@ -1510,7 +1510,7 @@ static GF_Err swf_svg_add_iso_header(void *user, const u8 *data, u32 length, Boo
 
 static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
-	GF_Err e = GF_OK;
+	GF_Err e;
 	u32 ID;
 
 	ctx->swf_parse = gf_swf_reader_new(NULL, ctx->file_name);

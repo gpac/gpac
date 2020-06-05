@@ -356,9 +356,9 @@ static void WAV_SetPan(GF_AudioOutput *dr, u32 Pan)
 /* Called by the audio thread */
 static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
 {
+#ifdef TEST_QUERY_SAMPLE
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = ctx->env;
-#ifdef TEST_QUERY_SAMPLE
 	u32 sampleRateInHz, channelConfig, audioFormat;
 #endif
 

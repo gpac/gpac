@@ -624,8 +624,6 @@ static Bool check_ait_already_received(GF_List* ChannelAppList,u32 pid,char* dat
 	u32 nb_of_ait;
 	u32 version_number;
 
-	nb_of_ait = 0;
-
 	nb_of_ait = gf_list_count(ChannelAppList);
 
 	if(nb_of_ait) {
@@ -662,7 +660,6 @@ static void gf_ait_destroy(GF_M2TS_AIT* ait)
 	u32 common_descr_numb, app_numb;
 
 	/* delete de Elementary Stream part of the AIT structure */
-	common_descr_numb = 0;
 	app_numb = 0;
 
 	/* delete the common descriptors */
@@ -689,7 +686,7 @@ static void gf_ait_application_decode_destroy(GF_M2TS_AIT_APPLICATION_DECODE* ap
 
 	u32 app_desc_num,i,app_descr_index;
 
-	app_desc_num = app_descr_index = i = 0;
+	app_descr_index = i = 0;
 	app_desc_num = gf_list_count(application_decode->application_descriptors);
 
 	while (app_desc_num != 0) {

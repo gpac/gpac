@@ -1444,8 +1444,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	u16 port;
 	char *ip;
 	const char *ext = NULL;
-	char *sep = NULL;
-	char *url = NULL;
+	char *sep, *url;
 	GF_HTTPOutCtx *ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
 
 
@@ -2618,7 +2617,7 @@ static GF_FilterProbeScore httpout_probe_url(const char *url, const char *mime)
 static Bool httpout_use_alias(GF_Filter *filter, const char *url, const char *mime)
 {
 	u32 len;
-	char *sep = NULL;
+	char *sep;
 	GF_HTTPOutCtx *ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
 
 	//check we have same hostname. If so, accept this destination as a source for our filter

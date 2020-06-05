@@ -129,7 +129,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	ctx->nb_write = 0;
 	if (!ctx->file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] cannot open output file %s\n", ctx->szFileName));
-		return ctx->is_error = e = GF_IO_ERR;;
+		return ctx->is_error = GF_IO_ERR;;
 	}
 
 	return GF_OK;

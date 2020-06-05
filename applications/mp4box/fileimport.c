@@ -2756,7 +2756,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 	skip_chars = (u32) strlen(root_dir);
 	count = gf_list_count(imports);
 	for (i=0; i<count; i++) {
-		char *ext, *mime, *encoding, *name = NULL, *itemurl;
+		char *ext, *mime, *encoding, *name, *itemurl;
 		char *item = gf_list_get(imports, i);
 
 		name = gf_strdup(item + skip_chars);

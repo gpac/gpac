@@ -735,7 +735,6 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	int m_Width = width;
 	int m_Height = height;
 
-	int first_launch = 0;
 	const char *opt;
 
 	m_window = env;
@@ -924,7 +923,7 @@ void CNativeWrapper::onMouseDown(float x, float y) {
 	evt.mouse.x = x;
 	evt.mouse.y = y;
 
-	int ret = gf_term_user_event(m_term, &evt);
+	gf_term_user_event(m_term, &evt);
 	debug_log("onMouseDown end");
 }
 //-----------------------------------------------------
@@ -942,7 +941,7 @@ void CNativeWrapper::onMouseUp(float x, float y) {
 	evt.mouse.x = x;
 	evt.mouse.y = y;
 
-	int ret = gf_term_user_event(m_term, &evt);
+	gf_term_user_event(m_term, &evt);
 	debug_log("onMouseUp end");
 }
 //-----------------------------------------------------
@@ -955,7 +954,7 @@ void CNativeWrapper::onMouseMove(float x, float y) {
 	evt.mouse.x = x;
 	evt.mouse.y = y;
 
-	int ret = gf_term_user_event(m_term, &evt);
+	gf_term_user_event(m_term, &evt);
 }
 //-----------------------------------------------------
 void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode) {
@@ -978,7 +977,7 @@ void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag, i
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_TEXTINPUT;
 		evt.character.unicode_char = unicode;
-		ret = gf_term_user_event(m_term, &evt);
+		gf_term_user_event(m_term, &evt);
 	}
 }
 //-----------------------------------------------------
@@ -1103,7 +1102,7 @@ void CNativeWrapper::onOrientationChange(float x, float y, float z) {
 	evt.sensor.z = z;
 	evt.sensor.w = 0;
 
-	int ret = gf_term_user_event(m_term, &evt);
+	gf_term_user_event(m_term, &evt);
 }
 //-----------------------------------------------------
 void CNativeWrapper::setGpacLogs(const char *tools_at_level)

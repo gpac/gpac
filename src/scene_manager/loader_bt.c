@@ -2244,7 +2244,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		GF_Node *targetNode, *idxNode, *childNode, *fromNode;
 		GF_FieldInfo targetField, idxField, childField, fromField;
 
-		targetNode = idxNode = childNode = fromNode = NULL;
+		idxNode = childNode = fromNode = NULL;
 		str = gf_bt_get_next(parser, 1);
 		/*get source node*/
 		strcpy(field, str);

@@ -304,7 +304,6 @@ static GF_Err gf_m2ts_dsmcc_download_data(GF_M2TS_DSMCC_OVERLORD *dsmcc_overlord
 		GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK* DownloadDataBlock;
 		GF_SAFEALLOC(DownloadDataBlock,GF_M2TS_DSMCC_DOWNLOAD_DATA_BLOCK);
 		DataMessage->dataMessagePayload = DownloadDataBlock;
-		modules_count = 0;
 		modules_count = gf_list_count(dsmcc_overlord->dsmcc_modules);
 
 		if(!modules_count) {

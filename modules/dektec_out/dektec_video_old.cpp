@@ -182,7 +182,7 @@ extern "C" {
 
 	static GF_Err Dektec_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	{
-		DtFrameBuffer *dtf = (DtFrameBuffer*)(((DtContext*)dr->opaque)->dtf);
+		//DtFrameBuffer *dtf = (DtFrameBuffer*)(((DtContext*)dr->opaque)->dtf);
 
 		if (evt) {
 			switch (evt->type) {

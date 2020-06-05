@@ -2681,7 +2681,7 @@ GF_Err srpp_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->encryption_algorithm_rtp = gf_bs_read_u32(bs);
 	ptr->encryption_algorithm_rtcp = gf_bs_read_u32(bs);
 	ptr->integrity_algorithm_rtp = gf_bs_read_u32(bs);
-	ptr->integrity_algorithm_rtp = gf_bs_read_u32(bs);
+	ptr->integrity_algorithm_rtcp = gf_bs_read_u32(bs);
 	return gf_isom_box_array_read(s, bs, srpp_on_child_box);
 }
 GF_Box *srpp_box_new()
@@ -6156,7 +6156,7 @@ GF_Err tfxd_box_read(GF_Box *s, GF_BitStream *bs)
 
 GF_Err tfxd_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e = GF_OK;
+	GF_Err e;
 	GF_MSSTimeExtBox *uuid = (GF_MSSTimeExtBox*)s;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -7429,11 +7429,11 @@ static u32 ctrn_ctts_to_index(GF_TrackFragmentRunBox *ctrn, s32 ctts)
 
 static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 {
-	Bool use_ctso_multi = GF_FALSE;
+	Bool use_ctso_multi = GF_TRUE;
 	u32 i, count;
 	GF_TrunEntry *ent;
+
 	ctrn->ctrn_flags = 0;
-	use_ctso_multi = GF_TRUE;
 	ctrn->ctrn_first_dur = ctrn->ctrn_first_size = ctrn->ctrn_first_sample_flags = ctrn->ctrn_first_ctts = 0;
 	ctrn->ctrn_dur = ctrn->ctrn_size = ctrn->ctrn_sample_flags = ctrn->ctrn_ctts = 0;
 

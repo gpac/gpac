@@ -340,7 +340,8 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*first traverse, bound if needed*/
 	if (gf_list_find(tr_state->backgrounds, node) < 0) {
-		M_Background2D *top_bck = (M_Background2D *)node;
+		M_Background2D *top_bck;
+
 		gf_list_add(tr_state->backgrounds, node);
 		assert(gf_list_find(stack->reg_stacks, tr_state->backgrounds)==-1);
 		gf_list_add(stack->reg_stacks, tr_state->backgrounds);
