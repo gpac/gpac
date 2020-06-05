@@ -1315,8 +1315,7 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 
 	track = gf_isom_get_track_by_id(file, trackID);
 
-	memset(&av1, 0, sizeof(AV1State));
-	av1_reset_state(&av1, GF_FALSE);
+	gf_av1_init_state(&av1);
 	av1.config = gf_isom_av1_config_get(file, track, 1);
 	if (!av1.config) {
 		fprintf(stderr, "Error: Track #%d is not AV1!\n", trackID);
@@ -1383,6 +1382,7 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 	fprintf(dump, "</OBUTrack>\n");
 
 	if (av1.config) gf_odf_av1_cfg_del(av1.config);
+	gf_av1_reset_state(&av1, GF_TRUE);
 #endif
 }
 
@@ -2620,7 +2620,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			u8 hash[20];
 			GF_AV1_OBUArrayEntry *obu = gf_list_get(av1c->obu_array, i);
 			gf_sha1_csum((u8*)obu->obu, (u32)obu->obu_length, hash);
-			fprintf(stderr, "\tOBU#%d %s hash: ", i+1, av1_get_obu_name(obu->obu_type) );
+			fprintf(stderr, "\tOBU#%d %s hash: ", i+1, gf_av1_get_obu_name(obu->obu_type) );
 			for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
 			fprintf(stderr, "\n");
 		}

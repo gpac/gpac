@@ -804,7 +804,7 @@ typedef enum {
 \param obu_type the OBU type
 \return the OBU name
 */
-const char *av1_get_obu_name(ObuType obu_type);
+const char *gf_av1_get_obu_name(ObuType obu_type);
 
 /*! @} */
 

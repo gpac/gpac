@@ -3750,8 +3750,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		GF_Err e = GF_OK;
 		u32 i = 0;
 
-		memset(&av1_state, 0, sizeof(AV1State));
-		av1_reset_state(&av1_state, GF_FALSE);
+		gf_av1_init_state(&av1_state);
 		av1c = gf_isom_av1_config_get(movie, track, 1);
 		if (!av1c) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
@@ -3769,7 +3768,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			gf_bs_del(bs); bs = NULL;
 			if (e) {
 				gf_odf_av1_cfg_del(av1c);
-				av1_reset_state(&av1_state, GF_TRUE);
+				gf_av1_reset_state(&av1_state, GF_TRUE);
 				return e;
 			}
 		}
@@ -3793,7 +3792,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		}
 
 		gf_odf_av1_cfg_del(av1c);
-		av1_reset_state(&av1_state, GF_TRUE);
+		gf_av1_reset_state(&av1_state, GF_TRUE);
 		return GF_OK;
 	}
 #endif /*!defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)*/
