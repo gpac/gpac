@@ -1449,7 +1449,6 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber)
 GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 {
 	u32 i;
-	u32 single_size = 0;
 	if (!stsz || !stsz->sampleCount) return GF_BAD_PARAM;
 
 	//we must realloc our table
@@ -1462,6 +1461,7 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 	if (!stsz->sizes) {
 		stsz->sampleSize = data_size;
 	} else {
+		u32 single_size;
 		stsz->sizes[stsz->sampleCount-1] += data_size;
 
 		single_size = stsz->sizes[0];

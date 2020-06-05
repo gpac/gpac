@@ -235,7 +235,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 				esd = (GF_ESD *) ESDa->desc;
             } else if (!true_desc_only) {
 				Bool make_mp4a = GF_FALSE;
-				GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
+				sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 
 				if (sinf && sinf->original_format) {
 					if (sinf->original_format->data_format==GF_ISOM_BOX_TYPE_MP4A) {
@@ -502,8 +502,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 			e = gf_isom_datamap_open(mdia, dataRefIndex, stsc_entry->isEdited);
 			if (e) return e;
 		}
-		if (mdia->information->dataEntryIndex != dataRefIndex)
-			mdia->information->dataEntryIndex = dataRefIndex;
+		mdia->information->dataEntryIndex = dataRefIndex;
 	} else {
 		e = gf_isom_datamap_open(mdia, dataRefIndex, stsc_entry->isEdited);
 		if (e) return e;

@@ -1302,9 +1302,9 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 
 static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 {
-	GF_Err e = GF_OK;
 	/*write STYP if we write to a different file or if we write the last segment*/
 	if (movie->use_segments && !movie->append_segment && !movie->segment_start && !movie->styp_written) {
+		GF_Err e;
 
 		/*modify brands STYP*/
 
@@ -1453,11 +1453,10 @@ static void compute_seg_size(GF_ISOFile *movie, u64 *out_seg_size)
 static u32 moof_get_first_sap_end(GF_MovieFragmentBox *moof)
 {
 	u32 i, count = gf_list_count(moof->TrackList);
-	u32 base_offset = 0;
 	for (i=0; i<count; i++) {
 		u32 j, nb_trun;
 		GF_TrackFragmentBox *traf = gf_list_get(moof->TrackList, i);
-		base_offset = (u32) traf->tfhd->base_data_offset;
+		u32 base_offset = (u32) traf->tfhd->base_data_offset;
 
 		nb_trun = gf_list_count(traf->TrackRuns);
 		for (j=0; j<nb_trun; j++) {
@@ -2174,7 +2173,6 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 
-	bs = movie->editFileMap->bs;
 	if (! movie->on_block_out) return GF_BAD_PARAM;
 	if (! movie->root_sidx) return GF_BAD_PARAM;
 
@@ -2230,7 +2228,6 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 		}
 	}
 	if (!e) {
-
 		if (movie->root_ssix) {
 			gf_isom_box_size((GF_Box *) movie->root_ssix);
 
@@ -2244,11 +2241,12 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 				movie->root_sidx->first_offset = (u32) movie->root_ssix->size;
 			}
 		}
-
-		if (movie->compress_mode>=GF_ISO_COMP_MOOF_SIDX) {
-			e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_sidx, GF_4CC('!', 's', 'i', 'x'), bs, NULL);
-		} else {
-			e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
+		if (!e) {
+			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SIDX) {
+				e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_sidx, GF_4CC('!', 's', 'i', 'x'), bs, NULL);
+			} else {
+				e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
+			}
 		}
 
 		if (!e && movie->root_ssix) {
@@ -2269,7 +2267,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 
 	gf_bs_get_content_no_truncate(bs, &movie->block_buffer, &size, &movie->block_buffer_size);
 	gf_bs_del(bs);
-	return GF_OK;
+	return e;
 }
 
 GF_EXPORT
@@ -2355,9 +2353,9 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, GF_ISOStartFragmentFlags flags)
 	GF_TrackExtendsBox *trex;
 	GF_TrackFragmentBox *traf;
 	GF_Err e;
-	Bool moof_first = flags & GF_ISOM_FRAG_MOOF_FIRST ? GF_TRUE : GF_FALSE;
+	Bool moof_first = (flags & GF_ISOM_FRAG_MOOF_FIRST) ? GF_TRUE : GF_FALSE;
 #ifdef GF_ENABLE_CTRN
-	Bool use_ctrn = flags & GF_ISOM_FRAG_USE_COMPACT ? GF_TRUE : GF_FALSE;
+	Bool use_ctrn = (flags & GF_ISOM_FRAG_USE_COMPACT) ? GF_TRUE : GF_FALSE;
 #endif
 
 	//and only at setup

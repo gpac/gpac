@@ -1607,9 +1607,9 @@ GF_Err av1c_box_dump(GF_Box *a, FILE *trace) {
 		gf_fprintf(trace, "initial_presentation_delay=\"%u\" OBUs_count=\"%u\">\n", ptr->config->initial_presentation_delay_minus_one+1, obu_count);
 
 		for (i=0; i<obu_count; i++) {
-			GF_AV1_OBUArrayEntry *a = gf_list_get(ptr->config->obu_array, i);
-			gf_fprintf(trace, "<OBU type=\"%d\" name=\"%s\" size=\"%d\" content=\"", a->obu_type, av1_get_obu_name(a->obu_type), (u32) a->obu_length);
-			dump_data(trace, (char *)a->obu, (u32) a->obu_length);
+			GF_AV1_OBUArrayEntry *obu_a = gf_list_get(ptr->config->obu_array, i);
+			gf_fprintf(trace, "<OBU type=\"%d\" name=\"%s\" size=\"%d\" content=\"", obu_a->obu_type, av1_get_obu_name(obu_a->obu_type), (u32) obu_a->obu_length);
+			dump_data(trace, (char *)obu_a->obu, (u32) obu_a->obu_length);
 			gf_fprintf(trace, "\"/>\n");
 		}
 		gf_fprintf(trace, "</AV1Config>\n");

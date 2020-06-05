@@ -1431,12 +1431,11 @@ GF_EXPORT
 Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
-	GF_Box *entry;
 	u32 i=0;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 2;
 	while (1) {
-		entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, i);
+		GF_Box *entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, i);
 		if (!entry) break;
 		if (gf_isom_is_encrypted_entry(entry->type)) return GF_TRUE;
 
@@ -1555,7 +1554,6 @@ GF_Err gf_isom_get_data_reference(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 	}
 	if (!url) return GF_ISOM_INVALID_FILE;
 
-	*outURL = *outURN = NULL;
 	if (url->type == GF_ISOM_BOX_TYPE_URL) {
 		*outURL = url->location;
 		*outURN = NULL;
@@ -2863,12 +2861,12 @@ GF_Err gf_isom_set_removed_bytes(GF_ISOFile *movie, u64 bytes_removed)
 
 GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_samples)
 {
-	GF_Err e;
 	GF_TrackBox *trak;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_Err e;
 	GF_TrackExtendsBox *trex;
-#endif
 	GF_SampleTableBox *stbl;
+#endif
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
@@ -2902,7 +2900,7 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 	}
 	return GF_OK;
 #else
-	return GF_BAD_PARAM;
+	return GF_NOT_SUPPORTED;
 #endif
 }
 
@@ -4447,6 +4445,8 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	if (constant_IV_size) *constant_IV_size = 0;
 	if (constant_IV) memset(*constant_IV, 0, 16);
 
+	if (!trak) return GF_BAD_PARAM;
+
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf)
 		return GF_NOT_SUPPORTED;
@@ -4454,7 +4454,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	sample_number -= trak->sample_count_at_seg_start;
 #endif
 
-	if (trak && trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
+	if (trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
 		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, NULL);
 	} else {
 		//this is dump mode of fragments, we haven't merged tables yet - use current stsd idx indicated in trak
@@ -4523,16 +4523,17 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 			if (sgdesc->grouping_type==sample_group->grouping_type) break;
 			sgdesc = NULL;
 		}
-	} else if (traf) {
-		group_desc_index -= 0x10000;
+	}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	else if (traf) {
+		group_desc_index -= 0x10000;
 		for (j=0; j<gf_list_count(traf->sampleGroupsDescription); j++) {
 			sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(traf->sampleGroupsDescription, j);
 			if (sgdesc->grouping_type==sample_group->grouping_type) break;
 			sgdesc = NULL;
 		}
-#endif
 	}
+#endif
 	/*no sampleGroup description found for this group (invalid file)*/
 	if (!sgdesc) return GF_ISOM_INVALID_FILE;
 

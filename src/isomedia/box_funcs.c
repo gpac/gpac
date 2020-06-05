@@ -1637,7 +1637,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*chec
 			if (!parent->child_boxes) return GF_OUT_OF_MEM;
 		}
 		e = gf_list_add(parent->child_boxes, a);
-
+		if (e) return e;
 
 		if (check_child_box) {
 			e = check_child_box(parent, a);
@@ -1658,18 +1658,18 @@ GF_EXPORT
 void gf_isom_box_del(GF_Box *a)
 {
 	GF_List *child_boxes;
-	const struct box_registry_entry *box_registry;
+	const struct box_registry_entry *a_box_registry;
 	if (!a) return;
 
 	child_boxes	= a->child_boxes;
 	a->child_boxes = NULL;
 
-	box_registry = a->registry;
-	if (!box_registry) {
+	a_box_registry = a->registry;
+	if (!a_box_registry) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Delete invalid box type %s without registry\n", gf_4cc_to_str(a->type) ));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Delete box type %s\n", gf_4cc_to_str(a->type) ));
-		box_registry->del_fn(a);
+		a_box_registry->del_fn(a);
 	}
 	//delet the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox
 	if (child_boxes) {

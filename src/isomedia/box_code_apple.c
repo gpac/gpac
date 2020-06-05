@@ -187,7 +187,6 @@ GF_Err ilst_item_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	if (!ptr->data) return GF_BAD_PARAM;
 
 	/*generic box list*/
 	if (ptr->child_boxes && !ptr->data) {

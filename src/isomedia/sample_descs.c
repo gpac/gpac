@@ -1454,7 +1454,6 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_nu
 	u32 dataRefIndex;
 	GF_Box *tmcd;
 	GF_GenericMediaHeaderInfoBox *gmin;
-	GF_TimeCodeMediaInformationBox *tcmi;
 	GF_TimeCodeSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
@@ -1481,6 +1480,7 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_nu
 
 	tmcd = gf_isom_box_find_child(trak->Media->information->InfoHeader->child_boxes, GF_ISOM_BOX_TYPE_GMHD);
 	if (!tmcd) {
+		GF_TimeCodeMediaInformationBox *tcmi;
 		//default container box, use GMHD to create it
 		tmcd = gf_isom_box_new_parent(&trak->Media->information->InfoHeader->child_boxes, GF_ISOM_BOX_TYPE_GMHD);
 		if (!tmcd) return GF_OUT_OF_MEM;

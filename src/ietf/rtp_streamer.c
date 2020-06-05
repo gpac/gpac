@@ -743,7 +743,6 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, u8 *data, u32 size, u32 fu
 	rtp->packetizer->sl_header.randomAccessPointFlag = is_rap;
 	rtp->packetizer->sl_header.accessUnitStartFlag = au_start;
 	rtp->packetizer->sl_header.accessUnitEndFlag = au_end;
-	rtp->packetizer->sl_header.randomAccessPointFlag = is_rap;
 	rtp->packetizer->sl_header.AU_sequenceNumber = au_sn;
 	sampleDuration = (u32) (sampleDuration * rtp->ts_scale);
 	if (au_start && size) rtp->packetizer->nb_aus++;

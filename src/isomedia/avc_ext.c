@@ -1482,29 +1482,29 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 			return GF_BAD_PARAM;
 		if (!keep_xps) {
 			for (i=0; i<3; i++) {
-				GF_AVCConfigurationBox *cfg = entry->avc_config;
-				if (i==1) cfg = entry->svc_config;
-				else if (i==2) cfg = entry->mvc_config;
-				if (!cfg) continue;
+				GF_AVCConfigurationBox *a_cfg = entry->avc_config;
+				if (i==1) a_cfg = entry->svc_config;
+				else if (i==2) a_cfg = entry->mvc_config;
+				if (!a_cfg) continue;
 
 
-				while (gf_list_count(cfg->config->sequenceParameterSets)) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSets, 0);
-					gf_list_rem(cfg->config->sequenceParameterSets, 0);
+				while (gf_list_count(a_cfg->config->sequenceParameterSets)) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(a_cfg->config->sequenceParameterSets, 0);
+					gf_list_rem(a_cfg->config->sequenceParameterSets, 0);
 					if (sl->data) gf_free(sl->data);
 					gf_free(sl);
 				}
 
-				while (gf_list_count(cfg->config->pictureParameterSets)) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->pictureParameterSets, 0);
-					gf_list_rem(cfg->config->pictureParameterSets, 0);
+				while (gf_list_count(a_cfg->config->pictureParameterSets)) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(a_cfg->config->pictureParameterSets, 0);
+					gf_list_rem(a_cfg->config->pictureParameterSets, 0);
 					if (sl->data) gf_free(sl->data);
 					gf_free(sl);
 				}
 
-				while (gf_list_count(cfg->config->sequenceParameterSetExtensions)) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(cfg->config->sequenceParameterSetExtensions, 0);
-					gf_list_rem(cfg->config->sequenceParameterSetExtensions, 0);
+				while (gf_list_count(a_cfg->config->sequenceParameterSetExtensions)) {
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(a_cfg->config->sequenceParameterSetExtensions, 0);
+					gf_list_rem(a_cfg->config->sequenceParameterSetExtensions, 0);
 					if (sl->data) gf_free(sl->data);
 					gf_free(sl);
 				}
@@ -1911,7 +1911,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		if (cfg) {
 			if (entry->hevc_config->config) gf_odf_hevc_cfg_del(entry->hevc_config->config);
 			entry->hevc_config->config = HEVC_DuplicateConfig(cfg);
-		} else if (operand_type != GF_ISOM_HVCC_SET_TILE) {
+		} else {
 			operand_type=GF_ISOM_HVCC_SET_INBAND;
 		}
 		array_incomplete = (operand_type==GF_ISOM_HVCC_SET_INBAND) ? 1 : 0;
@@ -2044,7 +2044,9 @@ GF_Box *gf_isom_clone_config_box(GF_Box *box)
 	GF_Box *clone=NULL;
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	e = gf_isom_box_size(box);
-	e = gf_isom_box_write(box, bs);
+	if (!e)
+		e = gf_isom_box_write(box, bs);
+
 	gf_bs_get_content(bs, &data, &size);
 	gf_bs_del(bs);
 	if (!e) {

@@ -1171,6 +1171,7 @@ import_next_sample:
 
 	if (!item_id) {
 		e = gf_isom_meta_get_next_item_id(movie, root_meta, meta_track_number, &item_id);
+		if (e) return e;
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Adding sample from time %.3f as item %d\n", sample->DTS*1.0/timescale, item_id));

@@ -196,7 +196,7 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 		if (!sinf) continue;
 
 		/*non-encrypted or non-ISMA*/
-		if (!sinf || !sinf->scheme_type) return 0;
+		if (!sinf->scheme_type) return 0;
 		if (sinf->scheme_type->scheme_type == GF_ISOM_PIFF_SCHEME) return GF_ISOM_CENC_SCHEME;
 		return sinf->scheme_type->scheme_type;
 	}
@@ -1315,10 +1315,6 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 				sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 
 			if (sinf && sinf->scheme_type) {
-				saio_aux_info_type = sinf->scheme_type->scheme_type;
-			}
-
-			if (sinf && sinf->scheme_type) {
 				saio_aux_info_type = sinf_fmt = sinf->scheme_type->scheme_type;
 			}
 		}
@@ -1598,19 +1594,15 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, NULL);
 
 	if (!sinf) {
-		Bool has_protected_sample_desc = GF_FALSE;
 		u32 i, nb_stsd = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 		for (i=0; i<nb_stsd; i++) {
-			GF_ProtectionSchemeInfoBox *sinf;
+			GF_ProtectionSchemeInfoBox *a_sinf;
 			GF_SampleEntryBox *sentry=NULL;
 			if (i+1==sampleDescriptionIndex) continue;
 			sentry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, i);
-			sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(sentry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
-			if (!sinf) continue;
-			has_protected_sample_desc = GF_TRUE;
-			break;
-		}
-		if (has_protected_sample_desc) {
+			a_sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(sentry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
+			if (!a_sinf) continue;
+
 			if (default_IsEncrypted) *default_IsEncrypted = GF_FALSE;
 			if (default_IV_size) *default_IV_size = 0;
 			if (default_KID) memset(*default_KID, 0, 16);

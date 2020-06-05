@@ -7293,29 +7293,29 @@ GF_Err ctrn_box_write(GF_Box *s, GF_BitStream *bs)
 	if (ctrn->ctrn_dur) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_dur);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
-			gf_bs_write_int(bs, ent->Duration, nbbits);
+			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			gf_bs_write_int(bs, a_ent->Duration, nbbits);
 		}
 	}
 	if (ctrn->ctrn_size) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_size);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
-			gf_bs_write_int(bs, ent->size, nbbits);
+			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			gf_bs_write_int(bs, a_ent->size, nbbits);
 		}
 	}
 	if (ctrn->ctrn_sample_flags) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_sample_flags);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
-			ctrn_write_sample_flags(bs, ent->flags, nbbits);
+			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			ctrn_write_sample_flags(bs, a_ent->flags, nbbits);
 		}
 	}
 	if (ctrn->ctrn_ctts) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_ctts);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
-			ctrn_write_ctso(ctrn, bs, ent->CTS_Offset, nbbits);
+			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			ctrn_write_ctso(ctrn, bs, a_ent->CTS_Offset, nbbits);
 		}
 	}
 
@@ -7450,8 +7450,8 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 	count = gf_list_count(ctrn->entries);
 	if (ctrn->ctso_multiplier && (ctrn->flags & GF_ISOM_TRUN_CTS_OFFSET) && (ctrn->ctso_multiplier<=0xFFFF) ) {
 		for (i=0; i<count; i++) {
-			GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
-			if (ent->CTS_Offset % ctrn->ctso_multiplier) {
+			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			if (a_ent->CTS_Offset % ctrn->ctso_multiplier) {
 				use_ctso_multi = GF_FALSE;
 				break;
 			}
@@ -7508,25 +7508,25 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 
 	for (i=1; i<count; i++) {
 		u8 field_idx;
-		GF_TrunEntry *ent = gf_list_get(ctrn->entries, i);
+		GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
 
 		if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_DURATION)) {
-			field_idx = ctrn_u32_to_index(ent->Duration);
+			field_idx = ctrn_u32_to_index(a_ent->Duration);
 			if (ctrn->ctrn_dur < field_idx)
 				ctrn->ctrn_dur = field_idx;
 		}
 		if (ctrn->flags & GF_ISOM_TRUN_SIZE) {
-			field_idx = ctrn_u32_to_index(ent->size);
+			field_idx = ctrn_u32_to_index(a_ent->size);
 			if (ctrn->ctrn_size < field_idx)
 				ctrn->ctrn_size = field_idx;
 		}
 		if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_FLAGS)) {
-			field_idx = ctrn_sample_flags_to_index(ent->flags);
+			field_idx = ctrn_sample_flags_to_index(a_ent->flags);
 			if (ctrn->ctrn_sample_flags < field_idx)
 				ctrn->ctrn_sample_flags = field_idx;
 		}
 		if (!ctrn->use_inherit) {
-			field_idx = ctrn_ctts_to_index(ctrn, ent->CTS_Offset);
+			field_idx = ctrn_ctts_to_index(ctrn, a_ent->CTS_Offset);
 			if (ctrn->ctrn_ctts < field_idx)
 				ctrn->ctrn_ctts = field_idx;
 		}
@@ -9205,7 +9205,7 @@ GF_Err sbgp_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->sample_entries = gf_malloc(sizeof(GF_SampleGroupEntry)*ptr->entry_count);
 	if (!ptr->sample_entries)
 	    return GF_OUT_OF_MEM;
-	if (!ptr->sample_entries) return GF_IO_ERR;
+
 	for (i=0; i<ptr->entry_count; i++) {
 		ptr->sample_entries[i].sample_count = gf_bs_read_u32(bs);
 		ptr->sample_entries[i].group_description_index = gf_bs_read_u32(bs);
