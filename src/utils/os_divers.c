@@ -219,7 +219,6 @@ int gettimeofday(struct timeval *tp, struct timezone *tzp)
 	LARGE_INTEGER   li;
 	TIME_ZONE_INFORMATION tzi;
 	__int64         t;
-	static int      tzflag;
 
 	if (NULL != tp)
 	{

@@ -525,7 +525,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	u32 i, num, temp;
 	char buffer[GF_RTSP_DEFAULT_BUFFER];
 
-	if (!sess) return GF_BAD_PARAM;
+	if (!sess || !UserAgent) return GF_BAD_PARAM;
 
 	//generate http cookie
 	if (HTTP_RandInit) {

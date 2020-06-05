@@ -246,7 +246,7 @@ static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normal
 static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	SMILAnimationAttributesPointers *animp = rai->animp;
-	GF_List *values = NULL;
+	GF_List *values;
 	GF_FieldInfo value_info, value_info_next;
 	u32 keyValueIndex;
 	Fixed interpolation_coefficient;
@@ -1434,7 +1434,7 @@ void gf_smil_anim_init_discard(GF_Node *node)
 
 void gf_smil_anim_init_node(GF_Node *node)
 {
-	XLinkAttributesPointers *xlinkp = NULL;
+	XLinkAttributesPointers *xlinkp;
 	SMILAnimationAttributesPointers *animp = NULL;
 	SVGAllAttributes all_atts;
 	SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)node;

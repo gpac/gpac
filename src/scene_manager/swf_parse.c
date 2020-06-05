@@ -1829,7 +1829,7 @@ static GF_Err swf_def_sound(SWFReader *read)
 
 		alloc_size = 4096;
 		frame = (char*)gf_malloc(sizeof(char)*4096);
-		snd->frame_delay_ms = swf_get_16(read);
+		/*snd->frame_delay_ms =*/ swf_get_16(read);
 		snd->frame_delay_ms = read->current_frame*1000;
 		snd->frame_delay_ms /= read->frame_rate;
 		tot_size = 9;

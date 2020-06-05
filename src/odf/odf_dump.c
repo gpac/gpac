@@ -1692,9 +1692,7 @@ GF_Err gf_odf_dump_mediatime(GF_MediaTime *mt, FILE *trace, u32 indent, Bool XMT
 
 GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump)
 {
-	char *full_path = NULL;
-
-	full_path = gf_url_get_absolute_path( mi->file_name, mi->src_url );
+	char *full_path = gf_url_get_absolute_path( mi->file_name, mi->src_url );
 
 	if (!XMTDump) {
 		StartDescDump(trace, "MuxInfo", indent, GF_FALSE);

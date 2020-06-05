@@ -822,9 +822,6 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 
 			if(ip_platform->all_info_gathered != 1)
 			{
-
-				i_streams = 0;
-
 				assert( ip_platform->ip_streams );
 				i_streams = gf_list_count(ip_platform->ip_streams);
 				for(k=0; k<i_streams; k++)
@@ -888,9 +885,6 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 
 	/* provider and ip platform name */
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" IP Platform : %s provided by %s \n",ip_platform->name,ip_platform->provider_name));
-
-	i_streams = 0;
-
 
 	assert(ip_platform->ip_streams);
 	i_streams = gf_list_count(ip_platform->ip_streams);

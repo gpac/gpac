@@ -3735,9 +3735,8 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 #if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
 	case GF_ISOM_SUBTYPE_AV01: {
-		GF_AV1Config *av1c = NULL;
+		GF_AV1Config *av1c;
 		AV1State av1_state;
-		GF_BitStream *bs = NULL;
 		u32 i = 0;
 
 		gf_av1_init_state(&av1_state);
@@ -3751,12 +3750,13 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {
 			GF_Err e;
 			GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
-			bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
+			GF_BitStream *bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
 			if (!av1_is_obu_header(a->obu_type))
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. PArsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
 
 			e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
-			gf_bs_del(bs); bs = NULL;
+			gf_bs_del(bs);
+
 			if (e) {
 				gf_odf_av1_cfg_del(av1c);
 				gf_av1_reset_state(&av1_state, GF_TRUE);
@@ -3791,9 +3791,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_VP08:
 	case GF_ISOM_SUBTYPE_VP09:
 	{
-		GF_VPConfig *vpcc = NULL;
-
-		vpcc = gf_isom_vp_config_get(movie, track, 1);
+		GF_VPConfig *vpcc = gf_isom_vp_config_get(movie, track, 1);
 		if (!vpcc) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_BAD_PARAM;

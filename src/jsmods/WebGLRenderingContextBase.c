@@ -880,7 +880,7 @@ static JSValue wgl_getParameter(JSContext *ctx, JSValueConst this_val, int argc,
 
 static JSValue wgl_getError(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	WGL_CHECK_CONTEXT
 	u32 ret_val = 0;
 	ret_val = glGetError();

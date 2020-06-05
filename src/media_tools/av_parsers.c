@@ -1970,7 +1970,7 @@ GF_Err gf_media_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *
 {
 	u32 byte, bytes_per_framesize;
 	u64 pos = gf_bs_get_position(bs), i = 0;
-	GF_Err e = GF_OK;
+	GF_Err e;
 
 	assert(bs && num_frames_in_superframe);
 
@@ -2273,7 +2273,7 @@ static void vp9_read_interpolation_filter(GF_BitStream *bs)
 
 GF_Err gf_media_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, u32 *FrameWidth, u32 *FrameHeight, u32 *renderWidth, u32 *renderHeight)
 {
-	Bool FrameIsIntra = GF_FALSE, profile_low_bit = GF_FALSE, profile_high_bit = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
+	Bool FrameIsIntra = GF_FALSE, profile_low_bit, profile_high_bit, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
 	/*u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0*/;
 	int Sb64Cols = 0, Sb64Rows = 0, i;
 	u8 refresh_frame_flags = 0;
@@ -2516,7 +2516,10 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 		else gf_bs_reassign_buffer(state->bs, state->frame_obus, state->frame_obus_alloc);
 	}
 	else {
-		assert(obu_list);
+		if (!obu_list) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] internal error, no OBU list cannot add\n"));
+			return;
+		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		if (!a) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] Failed to allocate OBU\n"));
@@ -7551,7 +7554,7 @@ static s32 gf_media_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc,
 {
 	u8 vps_sub_layer_ordering_info_present_flag, vps_extension_flag;
 	u32 i, j;
-	s32 vps_id = -1;
+	s32 vps_id;
 	HEVC_VPS *vps;
 	u8 layer_id_included_flag[MAX_LHVC_LAYERS][64];
 
@@ -8079,7 +8082,7 @@ s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc)
 static s32 gf_media_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 {
 	u32 i;
-	s32 pps_id = -1;
+	s32 pps_id;
 	HEVC_PPS *pps;
 
 	//NAL header already read
@@ -8342,8 +8345,8 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 
 	i = 0;
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(spss->nalus, &i))) {
-		u8 *no_emulation_buf = NULL;
-		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
+		u8 *no_emulation_buf;
+		u32 no_emulation_buf_size, emulation_bytes;
 
 		/*SPS may still contains emulation bytes*/
 		no_emulation_buf = gf_malloc((slc->size) * sizeof(char));

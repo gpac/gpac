@@ -1084,7 +1084,6 @@ static JSValue xml_http_overrideMimeType(JSContext *c, JSValueConst obj, int arg
 	if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
 	mime = JS_ToCString(c, argv[0]);
 	if (ctx->mime) gf_free(ctx->mime);
-	ctx->mime = NULL;
 	ctx->mime = gf_strdup(mime);
 	JS_FreeCString(c, mime);
 	return JS_TRUE;

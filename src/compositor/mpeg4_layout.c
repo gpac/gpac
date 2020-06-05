@@ -749,7 +749,7 @@ static Bool OnLayout(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Even
 {
 	Bool vertical;
 	LayoutStack *st;
-	if (!sh) return GF_FALSE;
+	if (!sh || !ev) return GF_FALSE;
 
 	st = (LayoutStack *) gf_node_get_private(sh->sensor);
 	vertical = ((M_Layout *)sh->sensor)->scrollVertical;
@@ -826,7 +826,7 @@ void compositor_init_layout(GF_Compositor *compositor, GF_Node *node)
 	stack->hdl.OnUserEvent = OnLayout;
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
-		OnLayout(NULL, GF_FALSE, GF_FALSE, NULL, NULL);
+		OnLayout(NULL, GF_FALSE, GF_FALSE, NULL, compositor);
 		layout_is_enabled(node);
 		compositor_mpeg4_layout_get_sensor_handler(node);
 	}

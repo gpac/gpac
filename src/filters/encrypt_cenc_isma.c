@@ -363,7 +363,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node;
 	u32 i;
-	GF_Err e = GF_OK;
+	GF_Err e;
 	u32 nb_pssh=0;
 	GF_BitStream *pssh_bs=NULL;
 
@@ -1417,7 +1417,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			}
 #else
 			clear_bytes = nalu_size;
-			nb_ranges=1;
 #endif
 
 			while (nb_ranges) {

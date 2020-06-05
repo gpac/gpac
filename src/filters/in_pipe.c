@@ -274,7 +274,7 @@ static GF_FilterProbeScore pipein_probe_url(const char *url, const char *mime_ty
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_PipeInCtx *ctx;
-	if (!filter) return GF_TRUE;
+	if (!filter || !evt) return GF_TRUE;
 
 	ctx = (GF_PipeInCtx *) gf_filter_get_udta(filter);
 	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid))

@@ -292,7 +292,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 {
 	char app_path[GF_MAX_PATH];
 	char *sep;
+#if (defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX))
 	u32 size;
+#endif
 
 	/*on OSX, Linux & co, user home is where we store the cfg file*/
 	if (path_type==GF_PATH_CFG) {
@@ -332,6 +334,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	if (path_type==GF_PATH_APP) {
 #if (defined(__DARWIN__) || defined(__APPLE__) )
+		size = GF_MAX_PATH-1;
 		if (_NSGetExecutablePath(app_path, &size) ==0) {
 			realpath(app_path, file_path);
 			sep = strrchr(file_path, '/');

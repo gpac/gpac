@@ -1002,7 +1002,7 @@ static void av1dmx_finalize(GF_Filter *filter)
 static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	Bool res = GF_FALSE;
+	Bool res;
 	u32 lt;
 	const char *mime = "video/av1";
 	lt = gf_log_get_tool_level(GF_LOG_CODING);

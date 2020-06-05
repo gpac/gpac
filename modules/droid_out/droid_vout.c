@@ -248,7 +248,7 @@ static Bool initGLES2(AndroidContext *rc) {
 
 static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
 {
-	GLint loc=-1;
+	GLint loc;
 #ifdef GPAC_FIXED_POINT
 	Float _mat[16];
 	u32 i;
@@ -351,13 +351,13 @@ void initGL(AndroidContext *rc)
 void gluPerspective(GLfloat fovy, GLfloat aspect,
                     GLfloat zNear, GLfloat zFar)
 {
+#ifndef GPAC_USE_GLES2
 	GLfloat xmin, xmax, ymin, ymax;
 
 	ymax = zNear * (GLfloat)tan(fovy * PI / 360);
 	ymin = -ymax;
 	xmin = ymin * aspect;
 	xmax = ymax * aspect;
-#ifndef GPAC_USE_GLES2
 	glFrustumx((GLfixed)(xmin * 65536), (GLfixed)(xmax * 65536),
 	           (GLfixed)(ymin * 65536), (GLfixed)(ymax * 65536),
 	           (GLfixed)(zNear * 65536), (GLfixed)(zFar * 65536));
@@ -367,16 +367,10 @@ void gluPerspective(GLfloat fovy, GLfloat aspect,
 void resizeWindow(AndroidContext *rc)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("resizeWindow : start"));
-	/* Height / width ration */
-	GLfloat ratio;
 
 	/* Protect against a divide by zero */
 	if (rc->height==0)
-	{
-		rc->height=1;
-	}
-
-	ratio=(GLfloat)rc->width/(GLfloat)rc->height;
+		rc->height = 1;
 
 	/* Setup our viewport. */
 	glViewport(0, 0, (GLsizei)rc->width, (GLsizei)rc->height);
@@ -418,13 +412,15 @@ void drawGLScene(AndroidContext *rc)
 	GLfloat texcoord[4][2];
 //	int i, j;
 
+#ifndef GPAC_USE_GLES2
 	float rgba[4];
+#endif
 	gl_check_error();
 
 	// Reset states
+#ifndef GPAC_USE_GLES2
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
 	rgba[0] = 1.f;
-#ifndef GPAC_USE_GLES2
 	glColor4f(1.f, 1.f, 1.f, 1.f);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, rgba);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rgba);
@@ -462,9 +458,9 @@ void drawGLScene(AndroidContext *rc)
 	gl_check_error();
 	if ( rc->draw_texture )
 	{
+#ifndef GPAC_USE_GLES2
 		gl_check_error();
 		int cropRect[4] = {0,rc->height,rc->width,-rc->height};
-#ifndef GPAC_USE_GLES2
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
 		glDrawTexsOES(0, 0, 0, rc->width, rc->height);
 #endif

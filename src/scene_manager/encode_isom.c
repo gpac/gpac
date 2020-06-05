@@ -583,8 +583,6 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		}
 		if (!esd && sc->ESID) esd = gf_sm_locate_esd(ctx, sc->ESID);
 
-		au = NULL;
-
 #ifndef GPAC_DISABLE_VRML
 		/*special BIFS direct import from NHNT*/
 		au = (GF_AUContext*)gf_list_get(sc->AUs, 0);
@@ -607,6 +605,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 				}
 			}
 		}
+#else
+		au = NULL;
 #endif
 
 		if (!au && esd && !esd->URLString) {

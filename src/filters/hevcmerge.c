@@ -396,9 +396,7 @@ static GF_Err hevcmerge_rewrite_config(GF_HEVCMergeCtx *ctx, GF_FilterPid *opid,
 	u32 i, j;
 	u8 *new_dsi;
 	u32 new_size;
-	GF_HEVCConfig *hvcc = NULL;
-	// Profile, tier and level syntax ( nal class: Reserved and unspecified)
-	hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE);
+	GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE);
 	if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
 
 	// for all the list objects in param_array
@@ -1227,8 +1225,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	tile_pid->dsi_crc = cfg_crc;
 
 	//update this pid's config by parsing sps/vps/pps and check if we need to change anything
-	GF_HEVCConfig *hvcc = NULL;
-	hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
+	GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 	if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
 	tile_pid->nalu_size_length = hvcc->nal_unit_size;
 	ctx->hevc_nalu_size_length = 4;

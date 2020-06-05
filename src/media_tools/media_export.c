@@ -844,7 +844,7 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 		return GF_OK;
 	}
 	esd = gf_isom_get_esd(dumper->file, track, 1);
-	media = NULL;
+
 	sprintf(szMedia, "%s.media", dumper->out_name);
 	media = gf_fopen(szMedia, "wb");
 	if (!media) {

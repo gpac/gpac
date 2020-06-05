@@ -67,7 +67,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	nb_sys_streams_active = gf_list_count(ctx->systems_pids);
 	for (i=0; i<nb_sys_streams_active; i++) {
 		GF_FilterPacket *pck;
-		GF_Err e = GF_EOS;
+		GF_Err e;
 		GF_FilterPid *pid = gf_list_get(ctx->systems_pids, i);
 		GF_ObjectManager *odm = gf_filter_pid_get_udta(pid);
 

@@ -461,8 +461,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_HVC2:
 		case GF_ISOM_SUBTYPE_HEV2:
 		{
-			GF_HEVCConfig *hevcc = NULL;
-			hevcc = gf_isom_hevc_config_get(file, TrackNum, 1);
+			GF_HEVCConfig *hevcc = gf_isom_hevc_config_get(file, TrackNum, 1);
 			if (!hevcc) {
 				*e = GF_NON_COMPLIANT_BITSTREAM;
 				return NULL;

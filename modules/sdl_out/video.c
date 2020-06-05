@@ -691,7 +691,9 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_DisplayMode vinf;
 #else
+#if SDL_VERSION_ATLEAST(1, 2, 10)
 	const SDL_VideoInfo *vinf;
+#endif
 #endif
 
 #ifdef WIN32
@@ -726,8 +728,9 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	dr->max_screen_height = vinf.h;
 	dr->max_screen_bpp = 8;
 #else
-	vinf = SDL_GetVideoInfo();
+
 #if SDL_VERSION_ATLEAST(1, 2, 10)
+	vinf = SDL_GetVideoInfo();
 	dr->max_screen_width = vinf->current_w;
 	dr->max_screen_height = vinf->current_h;
 	dr->max_screen_bpp = 8;
@@ -1171,8 +1174,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 #if ! ( SDL_VERSION_ATLEAST(2,0,0) )
 		u32 flags = ctx->output_3d ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 #endif
-		Bool switch_res = GF_FALSE;
-		switch_res = gf_opts_get_bool("core", "switch-vres");
+		Bool switch_res = gf_opts_get_bool("core", "switch-vres");
 		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = GF_TRUE;
 
 		ctx->store_width = *screen_width;

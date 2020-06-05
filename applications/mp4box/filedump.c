@@ -1250,7 +1250,7 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 
 	FILE *dump;
 	if (inName) {
-		GF_ESD* esd = NULL;
+		GF_ESD* esd;
 		char szBuf[GF_MAX_PATH];
 
 		strcpy(szBuf, inName);

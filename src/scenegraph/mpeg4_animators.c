@@ -474,9 +474,8 @@ void PA_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &pa->keyType)
 	    || (field->far_ptr == &pa->keySpline)
 	    || (field->far_ptr == &pa->weight)
-	    || (field->far_ptr == &pa->key)
-
-	) stack->is_dirty = 1;
+	)
+		stack->is_dirty = 1;
 }
 void PA_Init(GF_Node *n)
 {
@@ -640,9 +639,8 @@ void PA2D_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &pa->keyType)
 	    || (field->far_ptr == &pa->keySpline)
 	    || (field->far_ptr == &pa->weight)
-	    || (field->far_ptr == &pa->key)
-
-	) stack->is_dirty = 1;
+	)
+		stack->is_dirty = 1;
 }
 void PA2D_Init(GF_Node *n)
 {
@@ -801,9 +799,8 @@ void SA_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &sa->keyType)
 	    || (field->far_ptr == &sa->keySpline)
 	    || (field->far_ptr == &sa->weight)
-	    || (field->far_ptr == &sa->key)
-
-	) stack->is_dirty = 1;
+	)
+		stack->is_dirty = 1;
 }
 
 void SA_Init(GF_Node *n)

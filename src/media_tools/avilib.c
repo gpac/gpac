@@ -1808,7 +1808,7 @@ int AVI_close(avi_t *AVI)
 
 avi_t *AVI_open_input_file(char *filename, int getIndex)
 {
-	avi_t *AVI=NULL;
+	avi_t *AVI;
 
 	/* Create avi_t structure */
 
@@ -1898,8 +1898,10 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 	s64 oldpos=-1, newpos=-1;
 
 	int aud_chunks = 0;
-	if (!AVI)
-		ERR_EXIT(AVI_ERR_OPEN)
+	if (!AVI) {
+	   AVI_errno = AVI_ERR_OPEN;
+	   return 0;
+	}
 
 	/* Read first 12 bytes and check that this is an AVI file */
 	if (avi_read(AVI->fdes,data,12) != 12 )

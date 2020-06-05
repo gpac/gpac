@@ -299,8 +299,8 @@ Bool gf_file_exists(const char *fileName)
 GF_EXPORT
 GF_Err gf_file_move(const char *fileName, const char *newFileName)
 {
-	GF_Err e = GF_OK;
 #if defined(_WIN32_WCE)
+	GF_Err e = GF_OK;
 	TCHAR swzName[MAX_PATH];
 	TCHAR swzNewName[MAX_PATH];
 	CE_CharToWide((char*)fileName, swzName);
@@ -308,6 +308,7 @@ GF_Err gf_file_move(const char *fileName, const char *newFileName)
 	if (MoveFile(swzName, swzNewName) == 0 )
 		e = GF_IO_ERR;
 #elif defined(WIN32)
+	GF_Err e = GF_OK;
 	/* success if != 0 */
 	BOOL op_result;
 	wchar_t* wcsFileName = gf_utf8_to_wcs(fileName);
@@ -324,7 +325,7 @@ GF_Err gf_file_move(const char *fileName, const char *newFileName)
 			e = GF_IO_ERR;
 	}
 #else
-	e = GF_IO_ERR;
+	GF_Err e = GF_IO_ERR;
 	char cmd[1024], *arg1, *arg2;
 	if (!fileName || !newFileName) {
 		e = GF_IO_ERR;
@@ -485,10 +486,11 @@ static void gf_unregister_file_handle(FILE *ptr)
 GF_EXPORT
 FILE *gf_file_temp(char ** const fileName)
 {
-	FILE *res = NULL;
+	FILE *res;
 #if defined(_WIN32_WCE)
 	TCHAR pPath[MAX_PATH+1];
 	TCHAR pTemp[MAX_PATH+1];
+	res = NULL;
 	if (!GetTempPath(MAX_PATH, pPath)) {
 		pPath[0] = '.';
 		pPath[1] = '.';

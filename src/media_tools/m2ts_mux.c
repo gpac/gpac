@@ -2109,7 +2109,6 @@ static void gf_m2ts_stream_set_default_slconfig(GF_M2TS_Mux_Stream *stream)
 
 static GF_M2TS_Mux_Stream *gf_m2ts_find_stream(GF_M2TS_Mux_Program *program, u32 pid, u32 stream_id)
 {
-	s32 i=0;
 	GF_M2TS_Mux_Stream *st = program->streams;
 	while (st) {
 		if (pid && (st->pid == pid))
@@ -2117,7 +2116,6 @@ static GF_M2TS_Mux_Stream *gf_m2ts_find_stream(GF_M2TS_Mux_Program *program, u32
 		if (stream_id && (st->ifce->stream_id == stream_id))
 			return st;
 		st = st->next;
-		i++;
 	}
 	return NULL;
 }

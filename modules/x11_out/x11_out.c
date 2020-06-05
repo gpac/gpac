@@ -825,7 +825,9 @@ static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
  */
 GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeight)
 {
+#ifdef GPAC_HAS_X11_SHM
 	Window cur_wnd;
+#endif
 	u32 size;
 	VideoWidth = VideoWidth > 32 ? VideoWidth : 32;
 	VideoWidth = VideoWidth < 4096 ? VideoWidth : 4096;
@@ -842,9 +844,9 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		VideoWidth++;
 
 	size = VideoWidth * VideoHeight * xWindow->bpp;
-	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 
 #ifdef GPAC_HAS_X11_SHM
+	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 	/*if we're using YUV blit to offscreen, we must use a pixmap*/
 	if (vout->hw_caps & GF_VIDEO_HW_HAS_YUV) {
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
@@ -1075,7 +1077,7 @@ static int X11_BadAccess_ByPass(Display * display,
                                 XErrorEvent * event)
 {
 	char msg[60];
-	if (!display) return 0;
+	if (!display || !event) return 0;
 
 	if (event->error_code == BadAccess)
 	{

@@ -3289,7 +3289,6 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 	tag = sdump->sg->RootNode->sgprivate->tag;
 
 	if (tag<=GF_NODE_RANGE_LAST_X3D) {
-		GF_Err e;
 		gf_dump_setup(sdump, NULL);
 
 		if (sdump->XMLDump) {
@@ -3297,8 +3296,9 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 			EndElementHeader(sdump, 1);
 			sdump->indent++;
 		}
-#ifndef GPAC_DISABLE_VRML
 
+#ifndef GPAC_DISABLE_VRML
+		GF_Err e;
 		if (!skip_proto) {
 			e = DumpProtos(sdump, sdump->sg->protos);
 			if (e) return e;

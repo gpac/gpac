@@ -282,7 +282,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.string = data;
 			}
 		} else if (value && !strnicmp(value, "bxml@", 5) ) {
-			GF_Err e = GF_OK;
+			GF_Err e;
 			GF_DOMParser *dom = gf_xml_dom_new();
 			e = gf_xml_dom_parse(dom, value+5, NULL, NULL);
 			if (e) {
@@ -327,7 +327,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.ptr[i] = res;
 			}
 		} else if (!strnicmp(value, "bxml@", 5) ) {
-			GF_Err e = GF_OK;
+			GF_Err e;
 			GF_DOMParser *dom = gf_xml_dom_new();
 			e = gf_xml_dom_parse(dom, value+5, NULL, NULL);
 			if (e) {

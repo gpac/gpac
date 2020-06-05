@@ -5575,7 +5575,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	u32 clock_time;
 	Bool will_retry = GF_FALSE;
 	Bool is_live = GF_FALSE;
-	if (!dash)
+	if (!dash || !group)
 		return GF_DASH_DownloadCancel;
 
 	clock_time = gf_sys_clock();

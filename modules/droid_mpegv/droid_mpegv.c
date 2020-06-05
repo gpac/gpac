@@ -436,8 +436,8 @@ void MPEGVS_Stop(struct __input_device * dr)
 
 GF_InputSensorDevice* NewMPEGVSInputSesor()
 {
-	MPEGVSensorContext* ctx = NULL;
-	GF_InputSensorDevice* driv = NULL;
+	MPEGVSensorContext* ctx;
+	GF_InputSensorDevice* driv;
 
 	driv = (GF_InputSensorDevice *) gf_malloc(sizeof(GF_InputSensorDevice));
 	memset(driv, 0, sizeof(GF_InputSensorDevice));

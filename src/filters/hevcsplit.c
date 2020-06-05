@@ -610,9 +610,7 @@ static GF_Err hevcsplit_rewrite_dsi(GF_HEVCSplitCtx *ctx, GF_FilterPid *opid, ch
 	u32 i, j;
 	u8 *new_dsi;
 	u32 new_size;
-	GF_HEVCConfig *hvcc = NULL;
-	// Profile, tier and level syntax ( nal class: Reserved and unspecified)
-	hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE); 
+	GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(data, size, GF_FALSE);
 	if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
 
 	// for all the list objects in param_array
@@ -713,7 +711,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	// parse otherwise they should refer to something else
 	u32 i, j;
-	GF_HEVCConfig *hvcc = NULL;
+	GF_HEVCConfig *hvcc;
 
 	memset(&ctx->hevc_state, 0, sizeof(HEVCState));
 	ctx->hevc_state.full_slice_header_parse = GF_TRUE;

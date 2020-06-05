@@ -484,7 +484,6 @@ static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture,
 	*hl_color = 0;
 
 	fs_style = FSSTYLE;
-	hlight = NULL;
 	hlight = strstr(fs_style, "HIGHLIGHT");
 	if (hlight) hlight = strchr(hlight, '#');
 	if (hlight) {

@@ -490,7 +490,7 @@ static GF_Err filein_process(GF_Filter *filter)
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
 	} else {
 		if (nb_read < to_read) {
-			Bool is_eof=GF_FALSE;
+			Bool is_eof;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
 
 			is_eof = gf_feof(ctx->file);

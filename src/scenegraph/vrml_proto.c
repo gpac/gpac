@@ -836,9 +836,7 @@ u32 gf_sg_proto_get_num_fields(GF_Node *node, u8 code_mode)
 void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 {
 	GF_SceneGraph *sg;
-	u32 index;
 
-	index = 0;
 	while (gf_list_count(inst->fields)) {
 		GF_ProtoField *field = (GF_ProtoField *)gf_list_get(inst->fields, 0);
 		gf_list_rem(inst->fields, 0);
@@ -863,7 +861,6 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 		}
 
 		gf_free(field);
-		index++;
 	}
 	gf_list_del(inst->fields);
 

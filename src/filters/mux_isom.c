@@ -2819,7 +2819,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	u32 prev_size=0;
 	u32 duration = 0;
 	u32 timescale = 0;
-	const GF_PropertyValue *subs = NULL;
+	const GF_PropertyValue *subs;
 	GF_FilterSAPType sap_type;
 	u8 dep_flags;
 	Bool insert_subsample_dsi = GF_FALSE;

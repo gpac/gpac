@@ -262,7 +262,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	PIXELFORMATDESCRIPTOR pfd;
 	s32 pixelformat;
 	HWND highbpp_hwnd = NULL;
-	HWND target_hwnd = NULL;
+	HWND target_hwnd;
 	int bits_depth = 16;
 	u32 i;
 	Bool use_double_buffer;

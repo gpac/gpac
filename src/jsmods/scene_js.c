@@ -910,7 +910,7 @@ static JSValue gpac_get_scene_time(JSContext *ctx, JSValueConst this_val, int ar
 
 static JSValue gpac_trigger_gc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_SceneGraph *sg = NULL;
+	GF_SceneGraph *sg;
 	GF_Compositor *compositor = gpac_get_compositor(ctx, this_val);
 	sg = compositor->root_scene->graph;
 	sg->trigger_gc = GF_TRUE;

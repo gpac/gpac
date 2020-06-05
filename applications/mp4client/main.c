@@ -133,27 +133,27 @@ static Bool owns_wnd = GF_FALSE;
 #include <Psapi.h>
 static DWORD getParentPID(DWORD pid)
 {
-	HANDLE h = NULL;
-	PROCESSENTRY32 pe = { 0 };
 	DWORD ppid = 0;
-	pe.dwSize = sizeof(PROCESSENTRY32);
-	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (Process32First(h, &pe)) {
-		do {
-			if (pe.th32ProcessID == pid) {
-				ppid = pe.th32ParentProcessID;
-				break;
-			}
-		} while (Process32Next(h, &pe));
+	HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (h) {
+		PROCESSENTRY32 pe = { 0 };
+		pe.dwSize = sizeof(PROCESSENTRY32);
+		if (Process32First(h, &pe)) {
+			do {
+				if (pe.th32ProcessID == pid) {
+					ppid = pe.th32ParentProcessID;
+					break;
+				}
+			} while (Process32Next(h, &pe));
+		}
+		CloseHandle(h);
 	}
-	CloseHandle(h);
 	return (ppid);
 }
 
 static void getProcessName(DWORD pid, PUCHAR fname, DWORD sz)
 {
-	HANDLE h = NULL;
-	h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+	HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
 	if (h) {
 		GetModuleFileNameEx(h, NULL, fname, sz);
 		CloseHandle(h);

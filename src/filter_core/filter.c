@@ -984,13 +984,13 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		if (sep) {
 			u32 cplen = (u32) (sep - arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
-			strncpy(szArg, arg, sizeof(char)* (sep - arg) );
+			strncpy(szArg, arg, cplen);
 			szArg[META_MAX_ARG] = 0;
 			argv.value.string = (char *) sep+1;
 		} else {
 			u32 cplen = (u32) strlen(arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
-			strncpy(szArg, arg, sizeof(char)* strlen(arg) );
+			strncpy(szArg, arg, cplen);
 			szArg[META_MAX_ARG] = 0;
 		}
 #undef META_MAX_ARG

@@ -306,10 +306,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 
 		e = gf_filter_pid_raw_new(filter, ctx->src, NULL, mime, ctx->ext, ctx->buffer, nb_read, GF_TRUE, &sock_c->pid);
 		if (e) return e;
-		if (!mime) {
-			const GF_PropertyValue *p = gf_filter_pid_get_property(sock_c->pid, GF_PROP_PID_MIME);
-			if (p) mime = p->value.string;
-		}
+
 //		if (ctx->is_udp) gf_filter_pid_set_property(sock_c->pid, GF_PROP_PID_UDP, &PROP_BOOL(GF_TRUE) );
 
 		gf_filter_pid_set_udta(sock_c->pid, sock_c);

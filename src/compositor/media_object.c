@@ -921,10 +921,12 @@ void gf_mo_stop(GF_MediaObject **_mo)
 GF_EXPORT
 void gf_mo_restart(GF_MediaObject *mo)
 {
-	void *mediactrl_stack = NULL;
+	void *mediactrl_stack;
 
 #ifndef GPAC_DISABLE_VRML
 	mediactrl_stack = gf_odm_get_mediacontrol(mo->odm);
+#else
+	mediactrl_stack = NULL;
 #endif
 	/*if no control and not root of a scene, check timelines are unlocked*/
 	if (!mediactrl_stack && !mo->odm->subscene) {
@@ -1024,7 +1026,7 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 
 			/*fragment is a media segment, same URL*/
 			if (frag ) {
-				Bool same_res = GF_FALSE;
+				Bool same_res;
 				frag[0] = 0;
 				same_res = !strncmp(an_url->vals[i].url, szURL1, strlen(an_url->vals[i].url)) ? GF_TRUE : GF_FALSE;
 				frag[0] = '#';
@@ -1255,11 +1257,11 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 GF_EXPORT
 Bool gf_mo_is_muted(GF_MediaObject *mo)
 {
-	Bool res = GF_FALSE;
 #ifndef GPAC_DISABLE_VRML
-	res = mo->odm->media_ctrl ? mo->odm->media_ctrl->control->mute : GF_FALSE;
+	return mo->odm->media_ctrl ? mo->odm->media_ctrl->control->mute : GF_FALSE;
+#else
+	return GF_FALSE;
 #endif
-	return res;
 }
 
 GF_EXPORT
