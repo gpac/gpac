@@ -135,19 +135,12 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 							gf_4cc_to_str(gf_isom_get_media_subtype(file, track, 1)) ));
 				}
 			} else {
-				u32 mtype = gf_isom_get_media_type(file, track);
-				if (gf_isom_is_video_handler_type(mtype)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER,
-						("[ISOBMF] Warning: changing pixel ratio of media subtype \"%s\" is not supported, changing only \"pasp\" signaling\n",
-							gf_4cc_to_str(gf_isom_get_media_subtype(file, track, 1)) ));
-				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
-					return GF_BAD_PARAM;
-				}
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error: changing pixel ratio on non-video track.\n"));
+				return GF_BAD_PARAM;
 			}
 		}
 		//auto mode
-		if (get_par_info && ((ar_num<=0) || (ar_num<=0))) {
+		if (get_par_info && ((ar_num<=0) || (ar_den<=0))) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMF] No sample AR info present in sample description, ignoring SAR update\n"));
 			if (force_par)
 				return gf_isom_set_pixel_aspect_ratio(file, track, 1, 1, 1, force_par);
@@ -807,8 +800,8 @@ remove_track:
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_FALSE);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V6 file + AVC compatible\n"));
 		} else {
-			gf_isom_set_brand_info(mp4file, nb_avc ? GF_ISOM_BRAND_3GP6 : GF_ISOM_BRAND_3GP5, 0/*1024*/);
-			gf_isom_modify_alternate_brand(mp4file, nb_avc ? GF_ISOM_BRAND_3GP5 : GF_ISOM_BRAND_3GP6, 0);
+			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP5, 0/*1024*/);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_TRUE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, GF_FALSE);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V5 file\n"));
@@ -941,7 +934,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		return GF_OK;
 	}
 
-	if (video_tk && (nb_video_tracks>1)) {
+	if (nb_video_tracks>1) {
 		if (prores_type) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("QTFF] cannot adjust params to prores, %d video tracks present\n", nb_video_tracks));
 			return GF_BAD_PARAM;
@@ -991,9 +984,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	//todo: patch colr
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 	if (e==GF_NOT_FOUND) {
-		u32 color_primaries = 0;
-		u32 transfer_characteristics = 0;
-		u32 matrix_coefs = 0;
+		colour_primaries = transfer_characteristics = matrix_coefficients = 0;
 		if (prores_type) {
 			u32 di;
 			GF_ISOSample *s = gf_isom_get_sample(mp4, video_tk, 1, &di);
@@ -1005,22 +996,22 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 				gf_bs_read_u32(bs); //encoder id
 				gf_bs_read_u32(bs); //w and h
 				gf_bs_read_u16(bs); //bunch of flags
-				color_primaries = gf_bs_read_u8(bs);
+				colour_primaries = gf_bs_read_u8(bs);
 				transfer_characteristics = gf_bs_read_u8(bs);
-				matrix_coefs = gf_bs_read_u8(bs);
+				matrix_coefficients = gf_bs_read_u8(bs);
 				gf_bs_del(bs);
 			}
 			gf_isom_sample_del(&s);
 		}
-		if (!color_primaries) {
+		if (!colour_primaries) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
-			color_primaries = 1;
+			colour_primaries = 1;
 			transfer_characteristics = 1;
-			matrix_coefs = 1;
+			matrix_coefficients = 1;
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, extracting from first ProRes frame\n"));
 		}
-		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), color_primaries, transfer_characteristics, matrix_coefs, GF_FALSE, NULL, 0);
+		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE, NULL, 0);
 	} else if (e) {
 		return e;
 	}
@@ -3747,7 +3738,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		GF_AV1Config *av1c = NULL;
 		AV1State av1_state;
 		GF_BitStream *bs = NULL;
-		GF_Err e = GF_OK;
 		u32 i = 0;
 
 		gf_av1_init_state(&av1_state);
@@ -3759,6 +3749,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		av1_state.config = av1c;
 
 		for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {
+			GF_Err e;
 			GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
 			bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
 			if (!av1_is_obu_header(a->obu_type))

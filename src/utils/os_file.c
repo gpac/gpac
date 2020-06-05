@@ -895,7 +895,7 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
 	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
-	if (whence==SEEK_END) blob->pos = blob->pos;
+	if (whence==SEEK_END) blob->pos = blob->size;
 	else if (whence==SEEK_SET) blob->pos = 0;
 	else {
 		if (blob->pos + offset > blob->size) return GF_BAD_PARAM;
@@ -1058,6 +1058,8 @@ GF_FileIO *gf_fileio_from_url(const char *url)
 {
 	char szURL[100];
 	GF_FileIO *ptr=NULL;
+	if (!url) return NULL;
+	
 	sscanf(url, "gfio://%p", &ptr);
 	sprintf(szURL, "gfio://%p", ptr);
 	if (strcmp(url, szURL))

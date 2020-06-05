@@ -48,7 +48,8 @@ static void format_sftime_string(Fixed _val, char *str)
 
 static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType, Bool do_sum, u32 i, SFVec4f *output, u32 *num_out)
 {
-
+	if (!inMFField) return;
+	
 	switch (inType) {
 	case GF_SG_VRML_MFINT32:
 	{
@@ -421,8 +422,9 @@ static void Valuator_SetInSFString(GF_Node *n, GF_Route *route)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
-	val.x = val.y = val.z = val.q = 0;
+
 	if (! _this->inSFString.buffer) return;
+
 	if (!stricmp(_this->inSFString.buffer, "true")) {
 		val.x = val.y = val.z = val.q = FIX_ONE;
 	} else if (!strstr(_this->inSFString.buffer, ".")) {

@@ -348,7 +348,7 @@ static void DumpBool(FILE *trace, const char *attName, u32  val, u32 indent, Boo
 	if (!val) return;
 
 	StartAttribute(trace, attName, indent, XMTDump);
-	gf_fprintf(trace, "%s", val ? "true" : "false");
+	gf_fprintf(trace, "%s", "true");
 	EndAttribute(trace, indent, XMTDump);
 }
 

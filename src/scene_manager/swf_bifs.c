@@ -959,7 +959,7 @@ static void swf_ntext(void *sax_cbck, const char *content, Bool is_cdata)
 {
 	u32 len;
 	SWFFlatText *t;
-	if (!content || is_cdata) return;
+	if (!content || is_cdata || !sax_cbck) return;
 	t = (SWFFlatText *)sax_cbck;
 	len = (u32) strlen(content);
 	if (!len) return;
@@ -1367,8 +1367,7 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 		esd->OCRESID = esd->ESID;
 	} else {
 		/*soundstream runs on movie/sprite timeline*/
-		esd->OCRESID = read->bifs_es->ESID;
-		esd->OCRESID = esd->ESID;
+		esd->OCRESID = read->bifs_es ? read->bifs_es->ESID : esd->ESID;
 	}
 	gf_list_add(od->ESDescriptors, esd);
 
@@ -1419,7 +1418,6 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 		/*otherwise start the media at the first soundstream block*/
 		else {
 			((M_AudioClip*)n)->startTime = snd->frame_delay_ms/1000.0;
-			((M_AudioClip*)n)->startTime = 0;
 		}
 
 		sprintf(szDEF, "CLIP%d_SND", read->current_sprite_id);

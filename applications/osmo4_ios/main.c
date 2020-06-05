@@ -386,8 +386,6 @@ int main (int argc, char *argv[])
 	Bool auto_exit = 0;
 	Bool use_gui = 0;
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
-
-	Bool ret, fill_ar, visible;
 	Bool logs_set = GF_FALSE;
 	char *url_arg, *the_cfg;
 	const char *logs_settings = NULL;
@@ -398,7 +396,6 @@ int main (int argc, char *argv[])
 
 	memset(&user, 0, sizeof(GF_User));
 
-	fill_ar = visible = 0;
 	url_arg = the_cfg = NULL;
 
 #ifdef GPAC_MEMORY_TRACKING
@@ -555,8 +552,6 @@ int main (int argc, char *argv[])
 	}
 
 	Run = 1;
-	ret = 1;
-
 
 	ext = url_arg ? strrchr(url_arg, '.') : NULL;
 	if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
@@ -691,7 +686,7 @@ static u32 last_odm_count = 0;
 void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
-	u32 tot_time=0;
+	u32 tot_time;
 
 	if (scene_odm) {
 		GF_ObjectManager *root_odm = gf_term_get_root_object(term);

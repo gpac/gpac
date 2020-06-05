@@ -871,9 +871,10 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 GF_EXPORT
 void gf_dm_sess_del(GF_DownloadSession *sess)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] %s session (%p) URL %s\n", sess->server_mode ? "Detach" : "Destroy", sess, sess->orig_url));
 	if (!sess)
 		return;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] %s session (%p) URL %s\n", sess->server_mode ? "Detach" : "Destroy", sess, sess->orig_url));
 	/*self-destruction, let the download manager destroy us*/
 	if ((sess->th || sess->ftask) && sess->in_callback) {
 		sess->destroy = GF_TRUE;
@@ -1704,7 +1705,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		if (sess->dm && sess->dm->ssl_ctx) {
 			int ret;
 			X509 *cert;
-			Bool success = GF_TRUE;
+			Bool success;
 
 			sess->ssl = SSL_new(sess->dm->ssl_ctx);
 			SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
@@ -1771,7 +1772,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 							success = GF_TRUE;
 							GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names: expected %s\n", sess->server_name));
 						} else {
-							GF_LOG(success ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names, try using -broken-cert: expected %s\n", 	sess->server_name));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names, try using -broken-cert: expected %s\n", 	sess->server_name));
 						}
 #ifndef GPAC_DISABLE_LOG
 						for (i = 0; i < (int)gf_list_count(valid_names); ++i) {

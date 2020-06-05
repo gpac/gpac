@@ -1809,10 +1809,10 @@ retry_import:
 				rep->samplerate = samplerate;
 			}
 			if (num_channels) {
-				char szChan[10];
 				GF_MPD_Descriptor *desc;
 				GF_SAFEALLOC(desc, GF_MPD_Descriptor);
 				if (desc) {
+					char szChan[10];
 					desc->scheme_id_uri = gf_strdup("urn:mpeg:dash:23003:3:audio_channel_configuration:2011");
 					sprintf(szChan, "%d", num_channels);
 					desc->value = gf_strdup(szChan);
@@ -2260,7 +2260,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 			continue;
 
 		//NOTE: for GPAC now, we disable stream AAC to avoid the problem when switching quality. It should be improved later !
-		if (elt && strstr(elt->url, ".aac")) {
+		if (strstr(elt->url, ".aac")) {
 			rep->playback.disabled = GF_TRUE;
 			return GF_OK;
 		}
@@ -3403,7 +3403,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
 			char *name = (char *) rep->m3u8_name;
-			if (!rep) continue;
 			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
 				continue;
 			}
@@ -4292,15 +4291,18 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	u32 *out_segment_index, Double *out_opt_seek_time)
 {
-	Double seg_start = 0.0, segment_duration = 0.0;
-	u64 segment_duration_in_scale = 0, seg_start_in_scale = 0;
-	u32 timescale = 0, segment_idx = 0;
+	Double seg_start = 0.0;
+	u32 segment_idx = 0;
 
 	if (!out_segment_index) {
 		return GF_BAD_PARAM;
 	}
 
 	while (1) {
+		Double segment_duration;
+		u32 timescale;
+		u64 segment_duration_in_scale, seg_start_in_scale;
+
 		//TODO this could be further optimized by directly querying the index for this start time ...
 		GF_Err e = gf_mpd_get_segment_start_time_with_timescale(segment_idx, in_period, in_set, in_rep, &seg_start_in_scale, &segment_duration_in_scale, &timescale);
 		if (e<0)
@@ -4683,7 +4685,6 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	Bool has_init_keyword = GF_FALSE;
 	Bool needs_index = GF_FALSE;
 	u32 char_template = 0;
-	char c;
 	size_t seg_rad_name_len;
 
 	char tmp[100];
@@ -4717,7 +4718,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 	while (char_template <= seg_rad_name_len) {
 		char szFmt[20];
-		c = seg_rad_name[char_template];
+		char char_val = seg_rad_name[char_template];
 
 		if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 			char_template += 18;
@@ -4802,9 +4803,9 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 		else {
 			char_template+=1;
-			if (c=='\\') c = '/';
+			if (char_val=='\\') char_val = '/';
 
-			sprintf(tmp, "%c", c);
+			sprintf(tmp, "%c", char_val);
 			strcat(segment_name, tmp);
 		}
 	}
@@ -4840,12 +4841,12 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	if ((seg_type != GF_DASH_TEMPLATE_TEMPLATE) && (seg_type != GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE)) {
 		char *sep = strrchr(segment_name, '/');
 		if (sep) {
-			char c = sep[0];
+			char cv = sep[0];
 			sep[0] = 0;
 			if (!gf_dir_exists(segment_name)) {
 				gf_mkdir(segment_name);
 			}
-			sep[0] = c;
+			sep[0] = cv;
 		}
 	}
 
@@ -4944,8 +4945,6 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 {
 	u32 i, nb_periods, next_as_id=0;;
 	if (!mpd) return GF_BAD_PARAM;
-
-	nb_periods = gf_list_count(mpd->periods);
 
 	nb_periods = gf_list_count(mpd->periods);
 	for (i=0; i<nb_periods; i++) {

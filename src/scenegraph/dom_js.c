@@ -870,7 +870,7 @@ JSValue gf_sg_js_event_remove_listener(JSContext *c, JSValueConst obj, int argc,
 
 			const char * f1 = JS_ToCString(c, funval);
 			const char * f2 = JS_ToCString(c, funval);
-			if (f1 && f1 && !strcmp(f1, f2)) is_same = GF_TRUE;
+			if (f1 && f2 && !strcmp(f1, f2)) is_same = GF_TRUE;
 			JS_FreeCString(c, f1);
 			JS_FreeCString(c, f2);
 			if (!is_same) continue;
@@ -1499,7 +1499,6 @@ static JSValue dom_document_setProperty(JSContext *c, JSValueConst obj, JSValueC
 static JSValue xml_document_create_element(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	u32 tag, ns;
-	GF_Node *n;
 	JSValue ret = JS_NULL;
 	const char *name;
 	const char *xmlns;
@@ -1522,6 +1521,7 @@ static JSValue xml_document_create_element(JSContext *c, JSValueConst obj, int a
 	}
 
 	if (name) {
+		GF_Node *n;
 		/*browse all our supported DOM implementations*/
 		tag = gf_xml_get_element_tag(name, ns);
 		if (!tag) tag = TAG_DOMFullNode;
@@ -1561,10 +1561,9 @@ static void xml_doc_gather_nodes(GF_ParentNode *node, char *name, DOMNodeList *n
 {
 	Bool bookmark = GF_TRUE;
 	GF_ChildNodeItem *child;
-	const char *node_name;
 	if (!node) return;
 	if (name) {
-		node_name = gf_node_get_class_name((GF_Node*)node);
+		const char *node_name = gf_node_get_class_name((GF_Node*)node);
 		if (strcmp(node_name, name)) bookmark = GF_FALSE;
 	}
 	if (bookmark) {
@@ -1692,7 +1691,7 @@ static JSValue xml_element_get_attribute(JSContext *c, JSValueConst obj, int arg
 	if (!strcmp(name, "id") || !strcmp(name, "xml:id") ) {
 		char *sID = (char *) gf_node_get_name(n);
 		if (sID) {
-			ret = JS_NewString(c, sID ? sID : "");
+			ret = JS_NewString(c, sID);
 			goto exit;
 		}
 	}
@@ -1745,7 +1744,7 @@ static JSValue xml_element_has_attribute(JSContext *c, JSValueConst obj, int arg
 	if (!n) return JS_EXCEPTION;
 
 	if (!argc || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
-	name = ns = NULL;
+	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
 		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
@@ -1800,7 +1799,7 @@ static JSValue xml_element_remove_attribute(JSContext *c, JSValueConst obj, int 
 	if (!n) return JS_EXCEPTION;
 
 	if (!argc || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
-	name = ns = NULL;
+	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
 		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
@@ -1934,15 +1933,15 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 			only valid for the current node*/
 			if (!attname->type) {
 				char *sep;
-				char *name = attname->name;
-				sep = strchr(name, ':');
+				char *a_name = attname->name;
+				sep = strchr(a_name, ':');
 				if (sep) {
 					sep[0] = 0;
-					attname->type = gf_sg_get_namespace_code(n->sgprivate->scenegraph, name);
+					attname->type = gf_sg_get_namespace_code(n->sgprivate->scenegraph, a_name);
 					sep[0] = ':';
-					name = gf_strdup(sep+1);
+					a_name = gf_strdup(sep+1);
 					gf_free(attname->name);
-					attname->name = name;
+					attname->name = a_name;
 				}
 			}
 		}
@@ -2740,19 +2739,19 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 	/*force cleanup of scripts/handlers not destroyed - this usually happens when a script/handler node has been created in a script
 	but not inserted in the graph*/
 	while (gf_list_count(sg->objects)) {
-		GF_Node *n;
+		GF_Node *js_node;
 		struct _node_js_binding *js_bind = (struct _node_js_binding *)gf_list_get(sg->objects, 0);
-		n = dom_get_node(js_bind->obj);
-		if (n) {
-			if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
+		js_node = dom_get_node(js_bind->obj);
+		if (js_node) {
+			if (js_node->sgprivate->tag == TAG_SVG_video || js_node->sgprivate->tag == TAG_SVG_audio) {
 #ifdef GPAC_ENABLE_HTML5_MEDIA
-				html_media_element_js_finalize(c, n);
+				html_media_element_js_finalize(c, js_node);
 #endif
 			}
 			JS_SetOpaque(js_bind->obj, NULL);
-			JS_FreeValueRT(rt, n->sgprivate->interact->js_binding->obj);
-			n->sgprivate->interact->js_binding->obj=JS_UNDEFINED;
-			gf_node_unregister(n, NULL);
+			JS_FreeValueRT(rt, js_node->sgprivate->interact->js_binding->obj);
+			js_node->sgprivate->interact->js_binding->obj=JS_UNDEFINED;
+			gf_node_unregister(js_node, NULL);
 		}
 		gf_list_rem(sg->objects, 0);
 	}

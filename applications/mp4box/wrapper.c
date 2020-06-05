@@ -42,8 +42,6 @@ JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobjec
 	jniLOGV("mp4terminal::command get back ok");
 	jniLOGV(sOriginalCommand);
 
-	int iNbArg = 0;
-
 	int i = 0;
 	char** sConvertedCommandLine;
 	sConvertedCommandLine = ConvertCommandLine( sOriginalCommand, &i );

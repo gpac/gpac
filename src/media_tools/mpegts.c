@@ -178,8 +178,7 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 	u32 size = gf_id3_read_size(bs);
 
 	pos = (u32) gf_bs_get_position(bs);
-	if (size != length-pos)
-		size = length-pos;
+	size = length-pos;
 
 	while (size && (gf_bs_available(bs)>=10) ) {
 		u32 ftag = gf_bs_read_u32(bs);
@@ -1110,7 +1109,7 @@ static GF_M2TS_MetadataDescriptor *gf_m2ts_read_metadata_descriptor(GF_BitStream
 	}
 	if (d->decoder_config_flags == 4) {
 		d->decoder_config_service_id = gf_bs_read_u8(bs);
-		size++;
+		//size++;
 	}
 	return d;
 }

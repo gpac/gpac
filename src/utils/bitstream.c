@@ -372,16 +372,16 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 	/*we are in FILE mode, test for end of file*/
 	if (!is_eos || bs->cache_read) {
 		u8 res;
-		Bool is_eos=GF_FALSE;
+		Bool loc_eos=GF_FALSE;
 		assert(bs->position<=bs->size);
 		bs->position++;
 
-		res = gf_bs_load_byte(bs, &is_eos);
-		if (is_eos) goto bs_eof;
+		res = gf_bs_load_byte(bs, &loc_eos);
+		if (loc_eos) goto bs_eof;
 
 		if (bs->remove_emul_prevention_byte) {
 			if ((bs->nb_zeros==2) && (res==0x03) && (bs->position<bs->size)) {
-				u8 next = gf_bs_load_byte(bs, &is_eos);
+				u8 next = gf_bs_load_byte(bs, &loc_eos);
 				if (next < 0x04) {
 					bs->nb_zeros = 0;
 					res = next;

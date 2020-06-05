@@ -232,7 +232,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	char *lang = NULL;
 
 	/* Check decoder specific information (palette) size - should be 64 */
-	if (dsiSize != 64) {
+	if (!dsi || (dsiSize != 64)) {
 		return gf_export_message(dumper, GF_CORRUPTED_DATA, "Invalid decoder specific info size - must be 64 but is %d", dsiSize);
 	}
 
@@ -869,7 +869,9 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 			isText = GF_FALSE;
 		}
 	*/
+#if !defined(GPAC_DISABLE_TTXT) && !defined(GPAC_DISABLE_VTT)
 	mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
+#endif
 
 	/*write header*/
 	gf_fprintf(six, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
@@ -1163,13 +1165,13 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 
 		}
 		if (codec_id==GF_CODECID_SUBPIC) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			char *dsi = NULL;
 			u32 dsi_size = 0;
 			if (esd && esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo) {
 				dsi = esd->decoderConfig->decoderSpecificInfo->data;
 				dsi_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			}
-#ifndef GPAC_DISABLE_AV_PARSERS
 			e = gf_dump_to_vobsub(dumper, dumper->out_name, track_num, dsi, dsi_size);
 #else
 			e = GF_NOT_SUPPORTED;
@@ -1349,9 +1351,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (dumper->file) {
 		//we want to expose every track
 		e = gf_dynstrcat(&args, "mp4dmx:FID=1:noedit:alltk:allt", NULL);
-		sprintf(szSubArgs, ":mov=%p", dumper->file);
-		e = gf_dynstrcat(&args, szSubArgs, NULL);
-
+		if (!e) {
+			sprintf(szSubArgs, ":mov=%p", dumper->file);
+			e = gf_dynstrcat(&args, szSubArgs, NULL);
+		}
+		
 		//we want to expose every track
 		src_filter = gf_fs_load_filter(fsess, args, &e);
 

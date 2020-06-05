@@ -306,14 +306,13 @@ static JSValue dom_imp_has_feature(JSContext *c, JSValueConst obj, int argc, JSV
 
 static GF_Node *get_corresponding_use(GF_Node *n)
 {
-	GF_Node *t;
 	u32 i, count;
 	if (!n || !n->sgprivate->scenegraph->use_stack) return NULL;
 
 	/*find current node in the use stack - if found, return the use element*/
 	count = gf_list_count(n->sgprivate->scenegraph->use_stack);
 	for (i=count; i>0; i-=2) {
-		t = (GF_Node *)gf_list_get(n->sgprivate->scenegraph->use_stack, i-2);
+		GF_Node *t = (GF_Node *)gf_list_get(n->sgprivate->scenegraph->use_stack, i-2);
 		if (t==n) {
 			GF_Node *use = (GF_Node *)gf_list_get(n->sgprivate->scenegraph->use_stack, i-1);
 			GF_Node *par_use = get_corresponding_use(use);
@@ -394,12 +393,12 @@ static JSValue svg_element_getProperty(JSContext *c, JSValueConst obj, int magic
 		return JS_FALSE;
 	case 11:/*ownerSVGElement*/
 		while (1) {
-			GF_Node *par = gf_node_get_parent(n, 0);
-			if (!par) return JS_TRUE;
-			if (par->sgprivate->tag==TAG_SVG_svg) {
-				return dom_element_construct(c, par);
+			GF_Node *n_par = gf_node_get_parent(n, 0);
+			if (!n_par) return JS_TRUE;
+			if (n_par->sgprivate->tag==TAG_SVG_svg) {
+				return dom_element_construct(c, n_par);
 			}
-			n = par;
+			n = n_par;
 		}
 		return JS_NULL;
 	case 12:/*correspondingElement*/
@@ -810,7 +809,6 @@ static JSValue svg_udom_get_float_trait(JSContext *c, JSValueConst obj, int argc
 static JSValue svg_udom_get_matrix_trait(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	const char *szName;
-	JSValue mO;
 	GF_FieldInfo info;
 	GF_Err e;
 	GF_Node *n = dom_get_element(c, obj);
@@ -825,7 +823,8 @@ static JSValue svg_udom_get_matrix_trait(JSContext *c, JSValueConst obj, int arg
 
 	if (info.fieldType==SVG_Transform_datatype) {
 		GF_Matrix2D *mx = (GF_Matrix2D *)gf_malloc(sizeof(GF_Matrix2D));
-		mO = JS_NewObjectClass(c, matrixClass.class_id);
+		if (!mx) return JS_EXCEPTION;
+		JSValue mO = JS_NewObjectClass(c, matrixClass.class_id);
 		gf_mx2d_init(*mx);
 		gf_mx2d_copy(*mx, ((SVG_Transform*)info.far_ptr)->mat);
 
@@ -837,7 +836,6 @@ static JSValue svg_udom_get_matrix_trait(JSContext *c, JSValueConst obj, int arg
 
 static JSValue svg_udom_get_rect_trait(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	JSValue newObj;
 	const char *szName;
 	GF_FieldInfo info;
 	GF_Err e;
@@ -852,6 +850,7 @@ static JSValue svg_udom_get_rect_trait(JSContext *c, JSValueConst obj, int argc,
 	if (e != GF_OK) return JS_EXCEPTION;
 
 	if (info.fieldType==SVG_ViewBox_datatype) {
+		JSValue newObj;
 		rectCI *rc;
 		SVG_ViewBox *v = (SVG_ViewBox *)info.far_ptr;
 		GF_SAFEALLOC(rc, rectCI);
@@ -2671,7 +2670,9 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	if (utf8_script) {
 		ret = JS_EvalWithTarget(svg_js->js_ctx, __this, utf8_script, (u32) strlen(utf8_script), "inline script", flags);
 	}
-	else if (!JS_IsUndefined(hdl->js_data->fun_val) || !JS_IsUndefined(hdl->js_data->evt_listen_obj) ) {
+	else if (hdl && hdl->js_data
+		&& (!JS_IsUndefined(hdl->js_data->fun_val) || !JS_IsUndefined(hdl->js_data->evt_listen_obj) )
+	) {
 		JSValue evt;
 		JSValue argv[1];
 		evt = gf_dom_new_event(svg_js->js_ctx);
@@ -2685,7 +2686,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			ret = JS_Call(svg_js->js_ctx, fun, hdl->js_data->evt_listen_obj, 1, argv);
 			JS_FreeValue(svg_js->js_ctx, fun);
 		}
-	} else {
+	} else if (txt) {
 		JSValue fun = JS_GetPropertyStr(svg_js->js_ctx, svg_js->global, txt->textContent);
 		if (!JS_IsUndefined(fun)) {
 			ret = JS_NULL;
@@ -2697,6 +2698,8 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			ret = JS_EvalWithTarget(svg_js->js_ctx, __this, txt->textContent, (u32) strlen(txt->textContent), "internal", flags);
 		}
 		JS_FreeValue(svg_js->js_ctx, fun);
+	} else {
+		ret = JS_NULL;
 	}
 	if (JS_IsException(ret)) {
 		js_dump_error(svg_js->js_ctx);

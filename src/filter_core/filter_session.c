@@ -762,7 +762,8 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		atask.log_name = log_name;
 		atask.udta = udta;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter ? filter->name : "none", log_name, fsess->tasks_pending));
-		filter->scheduled_for_next_task = GF_TRUE;
+		if (filter)
+			filter->scheduled_for_next_task = GF_TRUE;
 		task_fun(&atask);
 		filter = atask.filter;
 		if (filter) {

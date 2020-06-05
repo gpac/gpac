@@ -1986,15 +1986,15 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 						parser->scene_es->ESID = parser->base_scene_id = esd->ESID;
 						parser->scene_es->timeScale = (esd->slConfig && esd->slConfig->timestampResolution) ? esd->slConfig->timestampResolution : 1000;
 					} else {
-						char *name;
+						char *s_name;
 						GF_StreamContext *sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 						/*set default timescale for systems tracks (ignored for other)*/
 						if (sc) sc->timeScale = (esd->slConfig && esd->slConfig->timestampResolution) ? esd->slConfig->timestampResolution : 1000;
 						if (!parser->base_scene_id && (esd->decoderConfig->streamType==GF_STREAM_SCENE)) parser->base_scene_id = esd->ESID;
 						else if (!parser->base_od_id && (esd->decoderConfig->streamType==GF_STREAM_OD)) parser->base_od_id = esd->ESID;
 
-						name = xmt_get_es_name(parser, esd->ESID);
-						if (sc && name && !sc->name) sc->name = gf_strdup(name);
+						s_name = xmt_get_es_name(parser, esd->ESID);
+						if (sc && s_name && !sc->name) sc->name = gf_strdup(s_name);
 					}
 					break;
 				}
@@ -2080,16 +2080,12 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		field = gf_sg_command_field_new(parser->command);
 		field->fieldIndex = info.fieldIndex;
 		field->fieldType = info.fieldType;
-		if (fieldValue) {
-			field->field_ptr = gf_sg_vrml_field_pointer_new(info.fieldType);
-			info.far_ptr = field->field_ptr;
-			if (gf_sg_vrml_is_sf_field(info.fieldType)) {
-				xmt_parse_sf_field(parser, &info, parser->command->node, fieldValue);
-			} else {
-				xmt_parse_mf_field(parser, &info, parser->command->node, fieldValue);
-			}
+		field->field_ptr = gf_sg_vrml_field_pointer_new(info.fieldType);
+		info.far_ptr = field->field_ptr;
+		if (gf_sg_vrml_is_sf_field(info.fieldType)) {
+			xmt_parse_sf_field(parser, &info, parser->command->node, fieldValue);
 		} else {
-			parser->state = XMT_STATE_ELEMENTS;
+			xmt_parse_mf_field(parser, &info, parser->command->node, fieldValue);
 		}
 		return;
 	}

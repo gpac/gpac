@@ -284,7 +284,7 @@ GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID)
 /* Set to 1 if you want every dump with a timed file name */
 //#define DUMP_DIMS_LOG_WITH_TIME
 
-static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, u8 **data, u32 *size)
+static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, u8 **data, u32 *size, Bool compress_dims)
 {
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumper *dumper = NULL;
@@ -296,7 +296,6 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	u8 *buffer = NULL;
 	GF_BitStream *bs = NULL;
 	u8 dims_header;
-	Bool compress_dims;
 #ifdef DUMP_DIMS_LOG_WITH_TIME
 	u32 do_dump_with_time = 1;
 #endif
@@ -310,7 +309,6 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	else cache_dir = seng->dump_path;
 
 	dump_name = "gpac_scene_engine_dump";
-	compress_dims = 1;
 
 #ifdef DUMP_DIMS_LOG_WITH_TIME
 start:
@@ -545,7 +543,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 				break;
 #endif
 			case GF_CODECID_DIMS:
-				e = gf_seng_encode_dims_au(seng, sc->ESID, au->commands, &data, &size);
+				e = gf_seng_encode_dims_au(seng, sc->ESID, au->commands, &data, &size, GF_TRUE);
 				break;
 
 			default:
@@ -732,7 +730,7 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 		break;
 #endif
 	case GF_CODECID_DIMS:
-		e = gf_seng_encode_dims_au(seng, ESID, new_au->commands, &data, &size);
+		e = gf_seng_encode_dims_au(seng, ESID, new_au->commands, &data, &size, GF_TRUE);
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode commands for Scene OTI %x\n", sc->codec_id));

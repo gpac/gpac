@@ -654,21 +654,16 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 		sample = (GF_WebVTTSample *)gf_list_get(samples, i);
 		/* save the sample end in case there are no more samples to test */
 		sample_end = sample->end;
-		if (cue_start < sample->start)
-		{
+		if (cue_start < sample->start) {
 			/* cues must be ordered according to their start time, so drop the cue */
 			/* TODO delete the cue */
 			return GF_BAD_PARAM;
-		}
-		else if (cue_start == sample->start && cue_end == sample->end)
-		{
+		} else if (cue_start == sample->start && cue_end == sample->end) {
 			/* if the timing of the new cue matches the sample, no need to split, add the cue to the sample */
 			gf_list_add(sample->cues, cue);
 			/* the cue does not need to processed further */
 			return GF_OK;
-		}
-		else if (cue_start >= sample->end)
-		{
+		} else if (cue_start >= sample->end) {
 			/* flush the current sample */
 			gf_list_del_item(samples, sample);
 			parser->on_sample_parsed(parser->user, sample);
@@ -676,9 +671,7 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 			i--;
 			/* process the cue with next sample (if any) or create a new sample */
 			continue;
-		}
-		else if (cue_start >= sample->start)
-		{
+		} else {
 			u32 j;
 			if (cue_start > sample->start) {
 				/* create a new sample, insert it after the current one */

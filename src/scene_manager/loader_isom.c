@@ -403,7 +403,7 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("%s\n", scene_msg));
 
 	/*BIFS: update size & pixel metrics info*/
-	if (esd && esd->decoderConfig) {
+	if (esd->decoderConfig) {
 		if (esd->decoderConfig->objectTypeIndication<=2) {
 			bc = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
 			if (!bc->elementaryMasks && bc->pixelWidth && bc->pixelHeight) {

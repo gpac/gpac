@@ -136,7 +136,7 @@ static void DumpBool(FILE *trace, char *attName, u32  val, u32 indent, Bool XMTD
 	if (!val) return;
 
 	StartAttribute(trace, attName, indent, XMTDump);
-	gf_fprintf(trace, "%s", val ? "true" : "false");
+	gf_fprintf(trace, "%s", "true");
 	EndAttribute(trace, indent, XMTDump);
 }
 
@@ -220,7 +220,7 @@ void gf_ipmpx_dump_ByteArray(GF_IPMPX_ByteArray *_p, const char *attName, FILE *
 			StartElement(trace, attName ? attName : (char*)"ByteArray", indent, XMTDump);
 			indent++;
 			DumpData(trace, "array", _p->data, _p->length, indent, XMTDump);
-			indent--;
+			//indent--;
 			EndAttributes(trace, GF_TRUE, GF_FALSE);
 		} else {
 			DumpData(trace, attName ? attName : "ByteArray", _p->data, _p->length, indent, GF_FALSE);

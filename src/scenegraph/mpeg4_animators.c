@@ -247,13 +247,13 @@ static SFVec2f anurbs_get_vec2f(anim_nurbs *nurbs, s32 span, SFVec2f *pts)
 
 static Fixed anurbs_get_float(anim_nurbs *nurbs, s32 span, Fixed *vals)
 {
-	Fixed res, tmp;
+	Fixed res;
 	Fixed w, wi;
 	u32 i;
-	res = tmp = 0;
+	res = 0;
 	w=0;
 	for(i=0; i<=nurbs->p; i++) {
-		tmp = vals[span - nurbs->p + i];
+		Fixed tmp = vals[span - nurbs->p + i];
 		if (nurbs->nweights>0) {
 			wi = nurbs->weights[span - nurbs->p + i];
 			tmp = gf_mulfix(tmp, wi);
