@@ -450,7 +450,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	u64 seg_start=0, sidx_start=0, sidx_end=0, frag_start=0;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
+#ifdef GF_ENABLE_CTRN
 	GF_TrackFragmentBox *traf_ref = NULL;
+#endif
 
 	void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack);
 	void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
@@ -475,6 +477,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] default sample description set to %d but only %d sample description(s), likely broken ! Fixing to 1\n", DescIndex, gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes)));
 		DescIndex = 1;
 	}
+#ifdef GF_ENABLE_CTRN
 	if (traf->trex->inherit_from_traf_id) {
 		u32 traf_count = gf_list_count(moof_box->TrackList);
 		for (i=0; i<traf_count; i++) {
@@ -485,6 +488,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			}
 		}
 	}
+#endif
 
 	def_duration = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DUR) ? traf->tfhd->def_sample_duration : traf->trex->def_sample_duration;
 	def_size = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_SIZE) ? traf->tfhd->def_sample_size : traf->trex->def_sample_size;

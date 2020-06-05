@@ -187,7 +187,7 @@ static void layer3d_setup_clip(Layer3DStack *st, GF_TraverseState *tr_state, Boo
 
 static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Bool prev_layer, changed = 0;
+	Bool prev_layer;//, changed;
 	GF_List *oldb, *oldv, *oldf, *oldn;
 	GF_Rect rc;
 	u32 cur_lights;
@@ -226,7 +226,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		if (l->size.y>=0) st->clip.height = l->size.y;
 		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 
-		changed = 1;
+//		changed = 1;
 	}
 
 	transform = &tr_state->transform;
@@ -325,7 +325,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	if ((tr_state->traversing_mode==TRAVERSE_SORT) || (tr_state->traversing_mode==TRAVERSE_DRAW_2D)) {
 		u32 trav_mode = tr_state->traversing_mode;
 
-		if (gf_node_dirty_get(node)) changed = 1;
+//		if (gf_node_dirty_get(node)) changed = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY|GF_SG_VRML_BINDABLE_DIRTY);
 
 		/*!! we were in a 2D mode without hybridGL, not supported !*/
