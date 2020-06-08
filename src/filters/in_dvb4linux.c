@@ -197,6 +197,7 @@ static GF_Err dvblin_tune(GF_DVBLinuxCtx *ctx)
 	sprintf(demux_name, "/dev/dvb/adapter%d/demux0", adapter_num);
 	sprintf(dvr_name, "/dev/dvb/adapter%d/dvr0", adapter_num);
 
+#ifndef GPAC_SIM_LINUX_DVB
 	// Open frontend
 	if((front1 = open(frontend_name,O_RDWR|O_NONBLOCK)) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot open frontend %s.\n", frontend_name));
@@ -212,7 +213,6 @@ static GF_Err dvblin_tune(GF_DVBLinuxCtx *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Demux %s opened.\n", demux_name));
 	}
 	// Set FrontendParameters - DVB-T
-#ifndef GPAC_SIM_LINUX_DVB
 	frp.frequency = ctx->freq;
 	frp.inversion = ctx->specInv;
 	frp.u.ofdm.bandwidth = ctx->bandwidth;

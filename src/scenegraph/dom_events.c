@@ -557,7 +557,10 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 			}
 		}
 		gf_list_del(parents);
-		if (aborted) return GF_TRUE;
+		if (aborted) {
+			event->currentTarget = NULL;
+			return GF_TRUE;
+		}
 	}
 #endif
 

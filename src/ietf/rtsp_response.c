@@ -476,7 +476,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
                           unsigned char **out_buffer, u32 *out_size)
 {
 	u32 i, cur_pos, size, count;
-	char *buffer, temp[50];
+	char *buffer;
 
 	*out_buffer = NULL;
 

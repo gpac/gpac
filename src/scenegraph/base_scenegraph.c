@@ -918,17 +918,11 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	Bool replace_proto;
 #endif
 	Bool replace_root;
-	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
-
-#ifndef GPAC_DISABLE_VRML
-	/*if this is a proto its is registered in its parent graph, not the current*/
-	if (node == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
-#endif
 
 #ifndef GPAC_DISABLE_SVG
 	type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
 	if (type) {
-		Replace_IRI(pSG, node, new_node);
+		Replace_IRI(node->sgprivate->scenegraph, node, new_node);
 	}
 #endif
 
@@ -936,6 +930,7 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	replace_root = (node->sgprivate->scenegraph->RootNode == node) ? 1 : 0;
 
 #ifndef GPAC_DISABLE_VRML
+	/*check for proto replacement*/
 	replace_proto = 0;
 	if (node->sgprivate->scenegraph->pOwningProto
 	        && (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0)) {
@@ -961,13 +956,13 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	}
 
 	if (replace_root) {
-		pSG = node->sgprivate->scenegraph;
+		GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 		gf_node_unregister(node, NULL);
 		pSG->RootNode = new_node;
 	}
 #ifndef GPAC_DISABLE_VRML
 	if (replace_proto) {
-		pSG = node->sgprivate->scenegraph;
+		GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 		gf_list_del_item(pSG->pOwningProto->node_code, node);
 		if (pSG->pOwningProto->RenderingNode==node) pSG->pOwningProto->RenderingNode = NULL;
 		gf_node_unregister(node, NULL);

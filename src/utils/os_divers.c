@@ -969,12 +969,15 @@ void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, con
 	rmt_LogText(szMsg);
 }
 
-#endif
+void gf_sys_profiler_send(char *json_msg)
+{
+	rmt_LogText(json_msg);
+}
+void gf_fs_process_command(const char* text);
 
-#ifndef GPAC_DISABLE_REMOTERY
 static void gpac_rmt_input_handler(const char* text, void* context)
 {
-	//TODO
+	gf_fs_process_command(text);
 }
 #endif
 

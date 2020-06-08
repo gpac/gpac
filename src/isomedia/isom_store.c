@@ -297,13 +297,7 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 
 }
 
-#if defined(COMP_SIGNAL_SIZE_TYPE)
-#define COMP_BOX_COST_BYTES		16
-#elif defined(COMP_SIGNAL_SIZE)
-#define COMP_BOX_COST_BYTES		12
-#else
 #define COMP_BOX_COST_BYTES		8
-#endif
 
 GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_type, GF_BitStream *bs, u32 *box_csize)
 {
@@ -327,14 +321,6 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 			if (bs) {
 				gf_bs_write_u32(bs, comp_size+8);
 				gf_bs_write_u32(bs, repl_type);
-
-#ifdef COMP_SIGNAL_SIZE_TYPE
-				gf_bs_write_u32(bs, GF_4CC('d', 'e', 'f', 'l'));
-				gf_bs_write_u32(bs, box_size);
-#elif defined(COMP_SIGNAL_SIZE)
-				gf_bs_write_u32(bs, box_size);
-#endif
-
 				gf_bs_write_data(bs, box_data, comp_size);
 			}
 			if (box_csize)

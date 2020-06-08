@@ -2066,9 +2066,9 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	ID = swf_get_16(read);
 	size -= 2;
 	if (version==3) {
-		u32 offset =  swf_get_32(read);
-		size -= 4;
+		u32 offset = swf_get_32(read);
 #ifndef GPAC_DISABLE_AV_PARSERS
+		size -= 4;
 		AlphaPlaneSize = size - offset;
 #endif
 		size = offset;

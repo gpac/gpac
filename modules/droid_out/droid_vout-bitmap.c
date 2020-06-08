@@ -109,7 +109,7 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 		{
 			int ret;
 			if ((ret = AndroidBitmap_lockPixels(rc->env, *(rc->bitmap), &pixels)) < 0) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout lock failed\n"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout lock failed (%d)\n", ret));
 			}
 			rc->locked_data = pixels;
 		}

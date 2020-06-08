@@ -157,36 +157,11 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			}
 
 			if (do_uncompress) {
-#if defined(COMP_SIGNAL_SIZE_TYPE) || defined(COMP_SIGNAL_SIZE)
-				u32 orig_size;
-#endif
-				u32 comp_hdr=8;
 				compb = gf_malloc((u32) (size-8));
 
-#if defined(COMP_SIGNAL_SIZE_TYPE)
-				u32 comp_type = gf_bs_read_u32(bs);
-				if (comp_type != GF_4CC('d', 'e', 'f', 'l')) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Unknown compression type %s\n", gf_4cc_to_str(comp_type) ));
-					return GF_NOT_SUPPORTED;
-				}
-				orig_size = gf_bs_read_u32(bs);
-				comp_hdr+=8;
-#elif defined(COMP_SIGNAL_SIZE)
-				orig_size = gf_bs_read_u32(bs);
-				comp_hdr+=4;
-#endif
-				if (size < comp_hdr)
-					return GF_ISOM_INVALID_FILE;
-
-				compressed_size = (u32) (size - comp_hdr);
+				compressed_size = (u32) (size - 8);
 				gf_bs_read_data(bs, compb, compressed_size);
 				gf_gz_decompress_payload(compb, compressed_size, &uncomp_data, &osize);
-#if defined(COMP_SIGNAL_SIZE_TYPE) || defined(COMP_SIGNAL_SIZE)
-				if (osize != orig_size) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Mismatch in indicated uncompressed size %d vs uncompressed data %d\n", orig_size, osize ));
-					return GF_ISOM_INVALID_FILE;
-				}
-#endif
 
 				//keep size as complete box size for tests below
 				size = osize + 8;

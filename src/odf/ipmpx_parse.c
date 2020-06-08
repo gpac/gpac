@@ -325,7 +325,17 @@ GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
 			else p->flags |= 8;
 			ret = 1;
 		}
-		else if (!stricmp(fieldName, "startDTS")) GET_U64(p->startDTS)
+		//else if (!stricmp(fieldName, "startDTS")) GET_U64(p->startDTS)
+		else if (!stricmp(fieldName, "startDTS")) {
+			u64 d;
+			if (strstr(val, "0x")) {
+				ret += sscanf(val, LLX, &d);
+			} else {
+				ret += sscanf(val, LLU, &d);
+			}
+			if (ret) p->startDTS = d;
+		}
+
 		else if (!stricmp(fieldName, "startPacketID")) GET_U32(p->startPacketID)
 		else if (!stricmp(fieldName, "expireDTS")) GET_U64(p->expireDTS)
 		else if (!stricmp(fieldName, "expirePacketID")) GET_U32(p->expirePacketID)

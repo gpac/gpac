@@ -1272,10 +1272,15 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 {
 	u32 op_idx, dim;
 	GF_Vec4 tmpl, tmpr;
-	GF_Vec4 *left_val=NULL, *right_val, *right2_val;
+	GF_Vec4 *left_val, *right_val, *right2_val;
 	u32 if_level=0;
 	u32 nif_level=0;
 	Bool cond_res;
+
+	//assign to dummy values, this will prevent any badly formated shader to assign a value to a NULL left-val or read a null right-val
+	left_val = &tmpl;
+	right_val = &tmpr;
+	right2_val = &tmpr;
 
 	for (op_idx=0; op_idx<shader->nb_ops; op_idx++) {
 		u32 next_idx, idx, var_idx;

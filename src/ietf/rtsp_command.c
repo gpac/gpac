@@ -109,7 +109,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
                          unsigned char **out_buffer, u32 *out_size)
 {
 	u32 i, cur_pos, size, count;
-	char *buffer, temp[50];
+	char *buffer;
 
 	*out_buffer = NULL;
 	

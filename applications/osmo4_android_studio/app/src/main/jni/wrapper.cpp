@@ -971,7 +971,7 @@ void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag, i
 
 	translate_key(keycode, &evt.key);
 	//evt.key.key_code = GF_KEY_A;
-	int ret = gf_term_user_event(m_term, &evt);
+	gf_term_user_event(m_term, &evt);
 
 	if (evt.type == GF_EVENT_KEYUP && unicode) {
 		memset(&evt, 0, sizeof(GF_Event));

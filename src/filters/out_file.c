@@ -63,7 +63,6 @@ typedef struct
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite, char *file_suffix)
 {
-	GF_Err e = GF_OK;
 	if (ctx->file && !ctx->is_std) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] closing output file %s\n", ctx->szFileName));
 		gf_fclose(ctx->file);
@@ -113,7 +112,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 			fprintf(stderr, "File %s already exist - override (y/n/a) ?:", szFinalName);
 			res = scanf("%20s", szRes);
 			if (!res || (szRes[0] == 'n') || (szRes[0] == 'N')) {
-				return ctx->is_error = e = GF_IO_ERR;
+				return ctx->is_error = GF_IO_ERR;
 			}
 			if ((szRes[0] == 'a') || (szRes[0] == 'A')) ctx->ow = GF_TRUE;
 		}

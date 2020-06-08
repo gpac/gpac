@@ -405,7 +405,6 @@ void drawGLScene(AndroidContext *rc)
 #endif /* DROID_EXTREME_LOGS */
 #ifdef GPAC_USE_GLES2
 	GLint loc_vertex_array, loc_texcoord_array;
-	loc_vertex_array = loc_texcoord_array = -1;
 #endif
 
 	GLfloat vertices[4][3];

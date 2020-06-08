@@ -921,15 +921,12 @@ void gf_mo_stop(GF_MediaObject **_mo)
 GF_EXPORT
 void gf_mo_restart(GF_MediaObject *mo)
 {
-	void *mediactrl_stack;
-
-#ifndef GPAC_DISABLE_VRML
-	mediactrl_stack = gf_odm_get_mediacontrol(mo->odm);
-#else
-	mediactrl_stack = NULL;
-#endif
 	/*if no control and not root of a scene, check timelines are unlocked*/
-	if (!mediactrl_stack && !mo->odm->subscene) {
+	if (!mo->odm->subscene
+#ifndef GPAC_DISABLE_VRML
+		&& !gf_odm_get_mediacontrol(mo->odm)
+#endif
+	) {
 		/*don't restart if sharing parent scene clock*/
 		if (gf_odm_shares_clock(mo->odm, gf_odm_get_media_clock(mo->odm->parentscene->root_od))) {
 			return;

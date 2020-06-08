@@ -496,8 +496,7 @@ static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id
 
 err_exit:
 	gf_odf_codec_del(ODdecode);
-	if (e) return 0;
-	return the_od_id;
+	return the_od_id; //still 0 if error, no need to check for e
 }
 
 

@@ -1675,7 +1675,7 @@ static JSValue xml_element_get_attribute(JSContext *c, JSValueConst obj, int arg
 
 	if (!argc || !JS_CHECK_STRING(argv[0]))
 		return JS_TRUE;
-	name = ns = NULL;
+	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
 		if (!JS_CHECK_STRING(argv[1]))

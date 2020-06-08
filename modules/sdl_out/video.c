@@ -464,7 +464,7 @@ void SDLVid_SetIcon(SDLVidCtx *ctx)
 
 GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 {
-	Bool hw_reset = GF_FALSE;
+	Bool hw_reset;
 	SDLVID();
 	GF_Event evt;
 
@@ -504,14 +504,14 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, nb_bits);
 
+		assert(width);
+		assert(height);
+
 #if SDL_VERSION_ATLEAST(2,0,0)
 		if (ctx->hidden)
 			flags |= SDL_WINDOW_HIDDEN;
-#endif
-		
-		assert(width);
-		assert(height);
-#if SDL_VERSION_ATLEAST(2,0,0)
+
+		hw_reset = GF_FALSE;
 
 #ifdef GPAC_USE_GLES2
 		/* Set the correct attributes for MASK and MAJOR version */
