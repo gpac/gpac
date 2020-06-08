@@ -4253,7 +4253,6 @@ GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, GF_ISOTrackID trac
 {
 	u32 i=0;
 	u32 k, l;
-	u64 def_duration, samp_dur;
 	GF_MovieFragmentBox *moof;
 	GF_TrackFragmentBox *traf;
 
@@ -4264,6 +4263,8 @@ GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, GF_ISOTrackID trac
 		if (moof->type!=GF_ISOM_BOX_TYPE_MOOF) continue;
 
 		while ((traf=(GF_TrackFragmentBox*)gf_list_enum( moof->TrackList, &j))) {
+			u64 def_duration, samp_dur=0;
+
 			if (traf->tfhd->trackID != trackID)
 				continue;
 
@@ -4552,7 +4553,7 @@ exit:
 	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
 	if (( (senc && senc->is_piff) || (trak->moov && trak->moov->mov->is_smooth) ) && IV_size && !(*IV_size) ) {
 		if (!senc) {
-			if (IV_size) *IV_size = 8;
+			*IV_size = 8;
 			if (IsEncrypted) *IsEncrypted = GF_TRUE;
 		} else {
 			if (!senc->is_piff) {
@@ -4560,7 +4561,7 @@ exit:
 				senc->IV_size = 8;
 			}
 			assert(senc->IV_size);
-			if (IV_size) *IV_size = senc->IV_size;
+			*IV_size = senc->IV_size;
 			if (IsEncrypted) *IsEncrypted = GF_TRUE;
 		}
 	}

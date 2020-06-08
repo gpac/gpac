@@ -1931,7 +1931,7 @@ restart_period_check:
 	if (!new_period) {
 		if (dash->mpd->type == GF_MPD_TYPE_DYNAMIC) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] current active period not found in MPD update - assuming end of active period and switching to first period in new MPD\n"));
-			new_period = gf_list_get(new_mpd->periods, 0);
+
 			//assume the old period is no longer valid
 			dash->active_period_index = 0;
 			dash->request_period_switch = GF_TRUE;
@@ -2596,6 +2596,8 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	GF_MPD_Period *period = group->period;
 	u32 timescale;
 
+	if (!mpd_url) return GF_BAD_PARAM;
+	
 	if (!strncmp(mpd_url, "gfio://", 7))
 		mpd_url = gf_file_basename(gf_fileio_translate_url(mpd_url));
 
@@ -2775,7 +2777,7 @@ static GF_Err dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *g
 	if (download_rate<group->min_bitrate) group->min_bitrate = download_rate;
 	if (download_rate>group->max_bitrate) group->max_bitrate = download_rate;
 
-	if (!download_rate || (download_rate > group->active_bitrate)) {
+	if (download_rate > group->active_bitrate) {
 		return GF_OK;
 	}
 

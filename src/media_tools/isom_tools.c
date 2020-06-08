@@ -880,7 +880,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	u32 nb_video_tracks;
 	u32 target_ts = 0, w=0, h=0, chunk_size=0;
 
-	timescale = 0;
 	nb_video_tracks = 0;
 
 	count = gf_isom_get_track_count(mp4);

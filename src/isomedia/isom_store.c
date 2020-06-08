@@ -506,8 +506,10 @@ void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntr
 		nb_in_run = nb_samp_left_in_src_chunk;
 	} else {
 
-		chunk_dur =  movie->interleavingTime * tkw->timeScale;
-		chunk_dur /= movie->moov->mvhd->timeScale;
+		chunk_dur = movie->interleavingTime * tkw->timeScale;
+		if (movie->moov && movie->moov->mvhd && movie->moov->mvhd->timeScale)
+			chunk_dur /= movie->moov->mvhd->timeScale;
+
 		chunk_dur -= tkw->chunkDur;
 
 		if (chunk_dur <= tkw->chunkDur) return;
@@ -1260,6 +1262,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	GF_Err e;
 	u32 descIndex, sampSize, chunkNumber;
 	u64 DTS;
+	u32 moov_timescale;
 	u16 curGroupID;
 	Bool forceNewChunk, writeGroup;
 	GF_StscEntry *stsc_ent;
@@ -1331,6 +1334,8 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	offset += mdatSize;
 #endif
 
+	moov_timescale = movie->moov && movie->moov->mvhd ? movie->moov->mvhd->timeScale : 1000;
+
 	count = gf_list_count(writers);
 	//browse each groups
 	while (1) {
@@ -1370,7 +1375,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					stbl_GetSampleDTS_and_Duration(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS, &sample_dur);
 
 					//can this sample fit in our chunk ?
-					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) *  movie->moov->mvhd->timeScale > movie->interleavingTime * tmp->timeScale
+					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) * moov_timescale > movie->interleavingTime * tmp->timeScale
 					        /*drift check: reject sample if outside our check window*/
 					        || (drift_inter && chunkLastDTS && ( ((u64)tmp->DTSprev*chunkLastScale) > ((u64)chunkLastDTS*tmp->timeScale)) )
 					   ) {
@@ -1380,7 +1385,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 						} else {
 							//this one is full. go to next one (exit the loop)
 							tmp->chunkDur = 0;
-							forceNewChunk = 0;
+							//forceNewChunk = 0;
 							break;
 						}
 					} else {
@@ -1472,7 +1477,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 					this ensures a proper drift regulation (max DTS diff is less than the interleaving window)
 					*/
-					chunkLastDTS += curWriter->timeScale * movie->interleavingTime / movie->moov->mvhd->timeScale;
+					chunkLastDTS += curWriter->timeScale * movie->interleavingTime / moov_timescale;
 				}
 			}
 			//no sample found, we're done with this group

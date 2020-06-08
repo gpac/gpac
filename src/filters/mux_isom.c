@@ -417,7 +417,7 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 		if (tkw->lvcc) {
 			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->lvcc, GF_HEVC_NALU_VID_PARAM), tkw->lvcc->nal_unit_size);
-			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->hvcc->nal_unit_size;
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->lvcc->nal_unit_size;
 		}
 		if (tkw->hvcc)
 			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->hvcc, GF_HEVC_NALU_SEQ_PARAM), tkw->hvcc->nal_unit_size);
@@ -3234,13 +3234,10 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	p = gf_filter_pid_get_property_str(tkw->ipid, "meta:name");
 	if (p && p->value.string) item_name = p->value.string;
 
-	item_type = 0;
 	memset(&image_props, 0, sizeof(GF_ImageItemProperties));
 
 	dsi = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_enh = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
-
-	media_brand = 0;
 
 	switch (tkw->codecid) {
 	case GF_CODECID_AVC:
@@ -3291,11 +3288,12 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		}
 		if (! ((GF_HEVCConfigurationBox *)config_box)->config) {
 			if ((tkw->codecid != GF_CODECID_HEVC_TILES) && !dsi) return GF_NON_COMPLIANT_BITSTREAM;
+		} else {
+			image_props.num_channels = 3;
+			image_props.bits_per_channel[0] = ((GF_HEVCConfigurationBox *)config_box)->config->luma_bit_depth;
+			image_props.bits_per_channel[1] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
+			image_props.bits_per_channel[2] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 		}
-		image_props.num_channels = 3;
-		image_props.bits_per_channel[0] = ((GF_HEVCConfigurationBox *)config_box)->config->luma_bit_depth;
-		image_props.bits_per_channel[1] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
-		image_props.bits_per_channel[2] = ((GF_HEVCConfigurationBox *)config_box)->config->chroma_bit_depth;
 		media_brand = GF_ISOM_BRAND_HEIC;
 		if (tkw->codecid==GF_CODECID_LHVC) {
 			media_brand = GF_ISOM_BRAND_HEIM;
@@ -3539,7 +3537,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	//good to go, finalize for fragments
 	for (i=0; i<count; i++) {
 		u32 def_pck_dur;
-		u32 def_is_rap, tscale;
+		u32 def_is_rap;
 		u32 inherit_traf_from_track = 0;
 		u64 dts;
 		const GF_PropertyValue *p;
@@ -3547,7 +3545,6 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
 		if (tkw->fake_track) {
-			def_is_rap = GF_FALSE;
 			if (def_fake_scale) {
 				def_pck_dur = def_fake_dur;
 				def_pck_dur *= tkw->src_timescale;
@@ -3559,6 +3556,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 			//can be null if eos
 			if (pck) {
+				u32 tscale;
 				//otherwise setup fragmentation, using first sample desc as default idx
 				//first pck dur as default
 				def_pck_dur = gf_filter_pck_get_duration(pck);
@@ -3574,7 +3572,6 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 				}
 			} else {
 				def_pck_dur = 0;
-				tscale = tkw->src_timescale;
 			}
 		}
 		if (tkw->src_timescale != tkw->tk_timescale) {
@@ -4448,7 +4445,6 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 			}
 			return;
 		}
-		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
 				if (tkw->cenc_state==CENC_NEED_SETUP)

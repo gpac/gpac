@@ -783,7 +783,7 @@ static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 		if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 			gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, selected_idx);
-		} else if (*selected_idx >= 0) {
+		} else {
 			GF_Node *child = gf_node_list_get_child(((SVG_Element *)node)->children, *selected_idx);
 			gf_node_traverse(child, tr_state);
 

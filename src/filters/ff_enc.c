@@ -575,6 +575,10 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 	u8 *dst;
 	u32 f_idx, s_idx;
 	u32 i, bytes_per_chan, src_frame_size;
+
+	if (!ctx->audio_buffer || !data)
+		return;
+
 	if (!ctx->planar_audio) {
 		u32 offset_src = sample_offset * ctx->bytes_per_sample;
 		u32 offset_dst = ctx->samples_in_audio_buffer * ctx->bytes_per_sample;
@@ -588,6 +592,7 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 	src_frame_size = size / ctx->bytes_per_sample;
 	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->audio_buffer_size);
 	assert(sample_offset + nb_samples <= src_frame_size);
+	assert(ctx->encoder->frame_size);
 
 	f_idx = ctx->samples_in_audio_buffer / ctx->encoder->frame_size;
 	s_idx = ctx->samples_in_audio_buffer % ctx->encoder->frame_size;
@@ -595,7 +600,6 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 		assert(s_idx + nb_samples <= (u32) ctx->encoder->frame_size);
 	}
 	dst = ctx->audio_buffer + (f_idx * ctx->channels * ctx->encoder->frame_size + s_idx) * bytes_per_chan;
-
 	while (nb_samples) {
 		const u8 *src;
 		u32 nb_samples_to_copy = nb_samples;
@@ -696,7 +700,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error filling raw audio frame: %s\n", av_err2str(res) ));
 			//discard
 			ctx->samples_in_audio_buffer = 0;
-			if (nb_samples > nb_copy) {
+			if (data && (nb_samples > nb_copy)) {
 				ffenc_audio_append_samples(ctx, data, size, nb_copy, nb_samples - nb_copy);
 				ts_diff = nb_copy;
 				ts_diff *= ctx->timescale;
@@ -939,7 +943,6 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->in_pid) return GF_REQUIRES_NEW_INSTANCE;
 	}
 
-	codec_id = 0;
 	if (ctx->codecid) {
 		codec_id = ffmpeg_codecid_from_gpac(ctx->codecid, &ff_codectag);
 		if (codec_id) {

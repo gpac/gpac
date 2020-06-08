@@ -681,10 +681,10 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	switch (parameter->msg_type) {
 	case GF_NETIO_SETUP:
 		/*nothing to do*/
-		return;
+		goto exit;
 	case GF_NETIO_CONNECTED:
 		/*nothing to do*/
-		return;
+		goto exit;
 	case GF_NETIO_WAIT_FOR_REPLY:
 		/*reset send() state (data, current header) and prepare recv headers*/
 		xml_http_reset_partial(ctx);
@@ -696,7 +696,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (JS_IsException(rval)) js_dump_error(ctx->c);
 			JS_FreeValue(ctx->c, rval);
 		}
-		return;
+		goto exit;
 	/*this is signaled sent AFTER headers*/
 	case GF_NETIO_PARSE_REPLY:
 		ctx->html_status = parameter->reply;
@@ -713,29 +713,29 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (JS_IsException(rval)) js_dump_error(ctx->c);
 			JS_FreeValue(ctx->c, rval);
 		}
-		return;
+		goto exit;
 
 	case GF_NETIO_GET_METHOD:
 		parameter->name = ctx->method;
-		return;
+		goto exit;
 	case GF_NETIO_GET_HEADER:
 		if (ctx->headers && ctx->headers[2*ctx->cur_header]) {
 			parameter->name = ctx->headers[2*ctx->cur_header];
 			parameter->value = ctx->headers[2*ctx->cur_header+1];
 			ctx->cur_header++;
 		}
-		return;
+		goto exit;
 	case GF_NETIO_GET_CONTENT:
 		if (ctx->data) {
 			parameter->data = ctx->data;
 			parameter->size = (u32) strlen(ctx->data);
 		}
-		return;
+		goto exit;
 	case GF_NETIO_PARSE_HEADER:
 		xml_http_append_recv_header(ctx, parameter->name, parameter->value);
 		/*prepare SAX parser*/
-		if (ctx->responseType != XHR_RESPONSETYPE_SAX) return;
-		if (strcmp(parameter->name, "Content-Type")) return;
+		if (ctx->responseType != XHR_RESPONSETYPE_SAX) goto exit;
+		if (strcmp(parameter->name, "Content-Type")) goto exit;
 		if (!strncmp(parameter->value, "application/xml", 15)
 		        || !strncmp(parameter->value, "text/xml", 8)
 		        || strstr(parameter->value, "+xml")
@@ -749,7 +749,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
 			ctx->document->reference_count = 1;
 		}
-		return;
+		goto exit;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (parameter->data && parameter->size) {
 			if (ctx->sax) {
@@ -760,7 +760,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 					gf_xml_sax_del(ctx->sax);
 					ctx->sax = NULL;
 				}
-				return;
+				goto exit;
 			}
 
 			/*detach arraybuffer if any*/
@@ -801,12 +801,12 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				JS_FreeValue(ctx->c, prog_evt);
 			}
 		}
-		return;
+		goto exit;
 	case GF_NETIO_DATA_TRANSFERED:
 		/* No return, go till the end of the function */
 		break;
 	case GF_NETIO_DISCONNECTED:
-		return;
+		goto exit;
 	case GF_NETIO_STATE_ERROR:
 		ctx->ret_code = parameter->error;
 		/* No return, go till the end of the function */
@@ -815,6 +815,11 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	if (ctx->async) {
 		xml_http_terminate(ctx, parameter->error);
+	}
+
+exit:
+	if (locked) {
+		gf_js_lock(ctx->c, GF_FALSE);
 	}
 }
 

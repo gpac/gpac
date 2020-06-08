@@ -473,9 +473,9 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	
 	if (filter->swap_needs_init) {
 		//we are in detach state, the packet queue of the old PID is never read
-		assert(filter->swap_pidinst_dst->detach_pending);
+		assert(filter->swap_pidinst_dst && filter->swap_pidinst_dst->detach_pending);
 		//we are in pending stete, the origin of the old PID is never dispatching
-		assert(dst->pid->filter->out_pid_connection_pending);
+		assert(dst->pid && dst->pid->filter && dst->pid->filter->out_pid_connection_pending);
 		//we can therefore swap the packet queues safely and other important info
 	}
 	//otherwise we actually swap the pid instance on the same PID
@@ -545,33 +545,36 @@ void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 
 	src = filter->swap_pidinst_dst;
-	if (filter->swap_needs_init) {
-		//exit out special handling of the pid since we are ready to detach
-		assert(src->filter->stream_reset_pending);
-		safe_int_dec(&src->filter->stream_reset_pending);
+	if (src) {
+		if (filter->swap_needs_init) {
+			//exit out special handling of the pid since we are ready to detach
+			assert(src->filter->stream_reset_pending);
+			safe_int_dec(&src->filter->stream_reset_pending);
 
-		//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
-		safe_int_inc(&src->pid->filter->detach_pid_tasks_pending);
-		safe_int_inc(&filter->detach_pid_tasks_pending);
-		gf_fs_post_task(filter->session, gf_filter_pid_detach_task, src->filter, src->pid, "pidinst_detach", filter);
-	} else {
-		GF_Filter *src_filter = src->filter;
-		assert(!src->filter->sticky);
-		assert(src->filter->num_input_pids==1);
+			//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
+			safe_int_inc(&src->pid->filter->detach_pid_tasks_pending);
+			safe_int_inc(&filter->detach_pid_tasks_pending);
+			gf_fs_post_task(filter->session, gf_filter_pid_detach_task, src->filter, src->pid, "pidinst_detach", filter);
+		} else {
+			GF_Filter *src_filter = src->filter;
+			assert(!src->filter->sticky);
+			assert(src->filter->num_input_pids==1);
 
-		gf_mx_p(src_filter->tasks_mx);
-		gf_list_del_item(src_filter->input_pids, src);
-		src_filter->num_input_pids = gf_list_count(src_filter->input_pids);
-		gf_mx_v(src_filter->tasks_mx);
+			gf_mx_p(src_filter->tasks_mx);
+			gf_list_del_item(src_filter->input_pids, src);
+			src_filter->num_input_pids = gf_list_count(src_filter->input_pids);
+			gf_mx_v(src_filter->tasks_mx);
 
-		gf_list_del_item(src->pid->destinations, src);
-		src->pid->num_destinations = gf_list_count(src->pid->destinations);
-		gf_filter_pid_inst_del(src);
+			gf_list_del_item(src->pid->destinations, src);
+			src->pid->num_destinations = gf_list_count(src->pid->destinations);
+			gf_filter_pid_inst_del(src);
 
-		filter->swap_pidinst_dst = NULL;
-		filter->swap_pidinst_src = NULL;
-		gf_filter_post_remove(src_filter);
+			filter->swap_pidinst_dst = NULL;
+			filter->swap_pidinst_src = NULL;
+			gf_filter_post_remove(src_filter);
+		}
 	}
+	
 	if (filter->swap_pidinst_src) {
 		src = filter->swap_pidinst_src;
 		src->filter->swap_pidinst_dst = filter->swap_pidinst_dst;
@@ -1096,7 +1099,7 @@ void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name)
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to assign name %s to input PID %s in filter %s - ignoring\n", name, pid->pid->name, pid->pid->filter->name));
 	} else if (name) {
-		if (pid->name && name && !strcmp(pid->name, name)) return;
+		if (pid->name && !strcmp(pid->name, name)) return;
 		if (pid->name) gf_free(pid->name);
 		pid->name = gf_strdup(name);
 	}
@@ -1435,7 +1438,7 @@ sourceid_reassign:
 			break;
 		}
 		frag_clone = NULL;
-		if (!last && frag_name) {
+		if (!last) {
 			frag_clone = gf_strdup(frag_name);
 			char *nsep = strchr(frag_clone, src_pid->filter->session->sep_list);
 			assert(nsep);
@@ -3618,7 +3621,6 @@ restart:
 
 single_retry:
 
-		cap_matched = GF_FALSE;
 		filter_dst = gf_list_get(filter->session->filters, i);
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
@@ -6472,7 +6474,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		}
 		if (fsep) fsep[0] = '%';
 		if (do_skip) {
-			if (sep) sep[0] = '$';
+			sep[0] = '$';
 			szFinalName[k] = '$';
 			k++;
 			while (name[0] && (name[0] != '$')) {
@@ -6527,7 +6529,6 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		szTemplateVal[0]=0;
 		if (has_val) {
 			sprintf(szTemplateVal, szFormat, value);
-			str_val = szTemplateVal;
 		} else if (str_val) {
 			if (is_file_str) {
 				char *ext;

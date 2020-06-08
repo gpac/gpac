@@ -2708,7 +2708,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	JS_FreeValue(svg_js->js_ctx, ret);
 
 	JS_SetOpaque(svg_js->event, prev_event);
-	if (txt && hdl) hdl->js_data->fun_val = JS_UNDEFINED;
+	if (txt && hdl && hdl->js_data) hdl->js_data->fun_val = JS_UNDEFINED;
 
 	while (svg_js->force_gc) {
 		svg_js->force_gc = GF_FALSE;

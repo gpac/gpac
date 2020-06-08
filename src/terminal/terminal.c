@@ -642,18 +642,16 @@ GF_EXPORT
 u32 gf_term_get_elapsed_time_in_ms(GF_Terminal *term)
 {
 	u32 i, count;
-	GF_Clock *ck;
 	GF_Compositor *compositor = term ? term->compositor : NULL;
 	if (!term || !compositor->root_scene) return 0;
+
 	count = gf_list_count(compositor->root_scene->namespaces);
 	for (i=0; i<count; i++) {
 		GF_SceneNamespace *sns = gf_list_get(compositor->root_scene->namespaces, i);
-		ck = gf_list_get(sns->clocks, 0);
-		if (ck) break;
+		GF_Clock *ck = gf_list_get(sns->clocks, 0);
+		if (ck) return gf_clock_elapsed_time(ck);
 	}
-	if (!ck) return 0;
-
-	return gf_clock_elapsed_time(ck);
+	return 0;
 }
 
 GF_EXPORT
@@ -1524,7 +1522,7 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 	if (p && bytes_done) *bytes_done = (u32) p->value.longuint;
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DOWN_SIZE, &pe);
-	if (p && total_bytes) *bytes_done = (u32) p->value.longuint;
+	if (p && total_bytes) *total_bytes = (u32) p->value.longuint;
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL, &pe);
 	if (p && url) *url = p->value.string;

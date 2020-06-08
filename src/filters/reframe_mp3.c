@@ -276,7 +276,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 			sep = memchr(buf, 0, fsize);
 			if (sep) {
 				strcpy(szTag, "tag:");
-				strncat(szTag, buf+1, 1023);
+				strncat(szTag, buf+1, 1019);
 				id3dmx_set_string(audio_pid, szTag, sep+1);
 			}
 			break;

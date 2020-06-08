@@ -7685,8 +7685,7 @@ GF_Err udta_on_child_box(GF_Box *s, GF_Box *a)
 	box_type = a->type;
 	if (box_type == GF_ISOM_BOX_TYPE_UNKNOWN) {
 		GF_UnknownBox* unkn = (GF_UnknownBox *)a;
-		if (unkn)
-			box_type = unkn->original_4cc;
+		box_type = unkn->original_4cc;
 	}
 
 	map = udta_getEntry(ptr, box_type, (a->type==GF_ISOM_BOX_TYPE_UUID) ? & ((GF_UUIDBox *)a)->uuid : NULL);

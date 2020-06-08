@@ -1789,7 +1789,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		}
 	}
 #ifdef SKIP_UNKNOWN_NODES
-	else if (top) {
+	else {
 		if (top->unknown_depth) {
 			top->unknown_depth--;
 			if (!top->unknown_depth) {

@@ -619,7 +619,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		//not sync !
-		if ((remain - sync_pos <= 1) || ((sync[1] & 0xF0) != 0xF0) ) {
+		if ((sync[1] & 0xF0) != 0xF0) {
 			GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_PARSER, ("[ADTSDmx] invalid ADTS sync bytes, resyncing\n"));
 			ctx->nb_frames = 0;
 			goto drop_byte;

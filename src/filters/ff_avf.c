@@ -248,7 +248,7 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 static GF_Err ffavf_reconfigure_graph(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 {
 	u32 i, count;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	ctx->flush_state = 0;
 	ffavf_reset_graph(ctx);
 	ctx->filter_graph = avfilter_graph_alloc();
@@ -481,6 +481,9 @@ static GF_Err ffavf_process(GF_Filter *filter)
 		//config changed at this packet, start flushing the graph
 		if (ctx->flush_state==1) {
 			ret = av_buffersrc_add_frame_flags(ipid->io_filter_ctx, NULL, 0);
+			if (ret<0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to flush filter graph: %s\n", av_err2str(ret) ));
+			}
 			continue;
 		}
 

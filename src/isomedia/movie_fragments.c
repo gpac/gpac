@@ -1910,7 +1910,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 		if (!e) {
 			Bool generate_ssix = GF_FALSE;
 			if (movie->root_ssix) generate_ssix = GF_TRUE;
-			else if (use_ssix) generate_ssix = GF_TRUE;
+			else if (use_ssix && ssix) generate_ssix = GF_TRUE;
 
 			e = StoreFragment(movie, GF_FALSE, offset_diff, &moof_size, GF_FALSE);
 			if (e) {
@@ -1972,6 +1972,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 							ssix->subsegments[cur_index].ranges = gf_malloc(sizeof(GF_SubsegmentRangeInfo)*2);
 						}
 					}
+					assert(ssix);
 					ssix->subsegments[cur_index].ranges[0].level = 1;
 					ssix->subsegments[cur_index].ranges[0].range_size = moof_get_first_sap_end(movie->moof);
 
@@ -2154,7 +2155,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 	compute_seg_size(movie, out_seg_size);
 
 exit:
-	if (orig_bs != movie->editFileMap->bs) {
+	if (movie->editFileMap && (orig_bs != movie->editFileMap->bs)) {
 		u32 tmpsize;
 		gf_bs_get_content_no_truncate(movie->editFileMap->bs, &movie->block_buffer, &tmpsize, &movie->block_buffer_size);
 		gf_bs_del(movie->editFileMap->bs);
@@ -2786,7 +2787,6 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 				sai->subsamples[i].bytes_encrypted_data = 0;
 			}
 		}
-		sai_b_size = IV_size + 2 + 6*sai->subsample_count;
 	}
 
 	gf_list_add(senc->samp_aux_info, sai);

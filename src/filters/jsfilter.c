@@ -3935,9 +3935,11 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 		gf_js_lock(jsf->ctx, GF_FALSE);
 		return e;
 	}
+	if (!arg_name)
+		return GF_OK;
 
 	for (i=0; i<jsf->nb_args; i++) {
-		if (!strcmp(jsf->args[i].arg_name, arg_name)) {
+		if (jsf->args[i].arg_name && !strcmp(jsf->args[i].arg_name, arg_name)) {
 			the_arg = &jsf->args[i];
 			break;
 		}

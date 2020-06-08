@@ -335,7 +335,13 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 
 	if (res) res = opj_read_header(stream, codec, &image);
 	if (res) res = opj_set_decode_area(codec, image, 0, 0, image->x1, image->y1);
-	if (res) res = opj_decode(codec, stream, image);
+	if (res) {
+		res = opj_decode(codec, stream, image);
+		if (res) {
+			opj_image_destroy(image);
+			image = NULL;
+		}
+	}
 
 #else
 

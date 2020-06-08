@@ -579,9 +579,9 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 
 	if (cinfo_prop) {
 		GF_Err e;
-		cinfo = gf_crypt_info_load(prop->value.string, &e);
+		cinfo = gf_crypt_info_load(cinfo_prop->value.string, &e);
 		if (!cinfo) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", prop->value.string));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", cinfo_prop->value.string));
 			return e;
 		}
 	}

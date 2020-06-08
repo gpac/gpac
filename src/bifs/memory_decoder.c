@@ -177,7 +177,7 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	codec->ActiveQP = NULL;
 	codec->scenegraph->global_qp = NULL;
 
-	if (node && (gf_node_get_tag(node) != TAG_MPEG4_QuantizationParameter)) {
+	if (gf_node_get_tag(node) != TAG_MPEG4_QuantizationParameter) {
 		gf_node_unregister(node, NULL);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -186,10 +186,10 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	codec->ActiveQP = (M_QuantizationParameter *) node;
 	codec->ActiveQP->isLocal = 0;
 	codec->scenegraph->global_qp = node;
-	if (node) {
-		/*register TWICE: once for the command, and for the scenegraph globalQP*/
-		node->sgprivate->num_instances = 2;
-	}
+
+	/*register TWICE: once for the command, and for the scenegraph globalQP*/
+	node->sgprivate->num_instances = 2;
+
 	com = gf_sg_command_new(codec->current_graph, GF_SG_GLOBAL_QUANTIZER);
 	inf = gf_sg_command_field_new(com);
 	inf->new_node = node;

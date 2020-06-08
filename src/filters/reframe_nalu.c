@@ -2294,10 +2294,8 @@ naldmx_flush:
 					memcpy(pck_data, start, current);
 				}
 				assert(remain>=current);
-                assert((s32) current>=0);
 				start += current;
 				remain -= current;
-				current = 0;
 			}
 		}
 		if (!remain)

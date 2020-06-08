@@ -6733,8 +6733,10 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 					diff /= trak->Media->mediaHeader->timeScale;
 					if (diff < ent->segmentDuration)
 						ent->segmentDuration -= diff;
+					/*
 					else
 						diff = 0;
+					*/
 				}
 			}
 			if ((ent->mediaTime>=0) && ((u64) ent->mediaTime>=trak->Media->mediaHeader->duration)) {
@@ -7072,7 +7074,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 			goto err_exit;
 		}
 
-		while (path_len>=4) {
+		while (box_path && (path_len>=4)) {
 			GF_List **parent_list;
 			u32 box_type = GF_4CC(box_path[0],box_path[1],box_path[2],box_path[3]);
 			GF_Box *box=NULL;

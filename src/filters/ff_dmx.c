@@ -402,8 +402,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		} else if (codec->extradata_size) {
 
 			//avc/hevc read by ffmpeg is still in annex B format
-			if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
-				force_reframer = GF_TRUE;
+			if (ctx->demuxer->iformat) {
+				if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
+					force_reframer = GF_TRUE;
+				}
 			}
 
 			if (!force_reframer) {

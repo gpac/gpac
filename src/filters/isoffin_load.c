@@ -101,7 +101,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	Bool first_config = GF_FALSE;
 
 
-	esid = depends_on_id = avg_rate = max_rate = buffer_size = 0;
+	depends_on_id = avg_rate = max_rate = buffer_size = 0;
 	mime = encoding = stxtcfg = namespace = schemaloc = NULL;
 
 	if ( gf_isom_is_media_encrypted(read->mov, track, stsd_idx)) {
@@ -455,6 +455,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (!ch->duration) {
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
+		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
+
 		if (read->frag_type && !read->input_loaded) {
 			u32 ts;
 			u64 dur;
@@ -466,8 +468,6 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				sample_count = 0;
 			}
 		}
-
-		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
 
 		if (!read->mem_load_mode) {
 			//if no edit list (whether complex or simple TS offset) and no sidx, use media duration

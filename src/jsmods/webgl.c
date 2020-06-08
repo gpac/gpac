@@ -1373,7 +1373,7 @@ static JSValue wgl_activeTexture(JSContext *ctx, JSValueConst this_val, int argc
 
 static JSValue wgl_createTexture(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	if (!glc) return js_throw_err(ctx, WGL_INVALID_VALUE);
 
@@ -1449,7 +1449,7 @@ static JSValue wgl_bindTexture(JSContext *ctx, JSValueConst this_val, int argc, 
 
 static JSValue wgl_getUniformLocation(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	GLuint program = 0;
 	GLint uni_loc=0;
 	const char * name = 0;

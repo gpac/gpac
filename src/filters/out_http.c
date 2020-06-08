@@ -1086,7 +1086,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 					gf_dynstrcat(&rsp_buf, "bitrate=", first ? NULL : ";");
 					sprintf(szFmt, "%d", br);
 					gf_dynstrcat(&rsp_buf, szFmt, NULL);
-					first=GF_FALSE;
+					//first=GF_FALSE;
 				}
 				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 			}
@@ -1762,7 +1762,6 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		u32 i, count;
 		GF_Err write_e=GF_OK;
 		char *rsp_buf = NULL;
-		char *spath = "";
 		assert(sess->path);
 		if (sess->done)
 			return;
@@ -1846,10 +1845,9 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (e==GF_EOS) {
 			gf_dynstrcat(&rsp_buf, "Content-Location: ", NULL);
 			if (ctx->hmode==MODE_SOURCE) {
-				spath = sess->path;
 				gf_dynstrcat(&rsp_buf, sess->path, "/");
 			} else {
-				spath = strchr(sess->path, '/');
+				char *spath = strchr(sess->path, '/');
 				if (spath) spath = spath+1;
 				else spath = sess->path;
 				gf_dynstrcat(&rsp_buf, spath, NULL);
@@ -2351,9 +2349,9 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		}
 
 		if (start) {
-			const GF_PropertyValue *ext, *fnum, *fname;
+			const GF_PropertyValue *fnum, *fname;
 			const char *name = NULL;
-			fname = ext = NULL;
+			fname = NULL;
 
 			if (in->is_open)
 				httpout_close_input(ctx, in);
@@ -2362,13 +2360,11 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			fnum = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (fnum) {
 				fname = gf_filter_pid_get_property(in->ipid, GF_PROP_PID_OUTPATH);
-				ext = gf_filter_pid_get_property(in->ipid, GF_PROP_PID_FILE_EXT);
 				//if (!fname) name = ctx->dst;
 			}
 			//filename change at packet start, open new file
 			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
-			if (!ext) ext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 			if (fname) name = fname->value.string;
 
 			if (!name) {

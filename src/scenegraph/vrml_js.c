@@ -1308,12 +1308,6 @@ static void JS_ObjectDestroyed(JSRuntime *rt, JSValue obj, GF_JSField *ptr, Bool
 	if (ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->js_binding) {
 		gf_list_del_item(ptr->owner->sgprivate->interact->js_binding->fields, ptr);
 	}
-	if (ptr->node) {
-		assert(gf_list_find(ptr->node->sgprivate->interact->js_binding->fields, ptr)<0);
-	}
-	if (ptr->owner) {
-		assert(gf_list_find(ptr->owner->sgprivate->interact->js_binding->fields, ptr)<0);
-	}
 
 	/*
 		If object is still registered, remove it from the js_cache
@@ -1882,7 +1876,7 @@ static JSValue vec2f_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 static JSValue vec2f_operand(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, u32 op)
 {
 	SFVec2f *v1, *v2;
-	Double d;
+	Double d = 0.0;
 	JSValue pNew;
 	Fixed v;
 	GF_JSField *p1 = (GF_JSField *) JS_GetOpaque(obj, SFVec2fClass.class_id);
@@ -2056,7 +2050,7 @@ static JSValue vec3f_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 static JSValue vec3f_operand(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, u32 op)
 {
 	SFVec3f vec, wvec, *v1, *v2;
-	Double d;
+	Double d=0;
 	JSValue pNew;
 	Fixed v;
 	GF_JSField *p1 = (GF_JSField *) JS_GetOpaque(obj, SFVec3fClass.class_id);
@@ -2721,7 +2715,7 @@ static int array_setLength(JSContext *c, GF_JSField *ptr, JSValueConst value)
 	ptr->mfvals = gf_realloc(ptr->mfvals, sizeof(JSValue)*ptr->mfvals_count);
 	sftype = gf_sg_vrml_get_sf_type(ptr->field.fieldType);
 	for (i=old_len; i<len; i++) {
-		JSValue a_val = JS_NULL;
+		JSValue a_val;
 		if (the_sf_class) {
 			GF_JSField *slot;
 			a_val = JS_NewObjectClass(c, the_sf_class->class_id);

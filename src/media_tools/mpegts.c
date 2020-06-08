@@ -155,6 +155,9 @@ static void add_text(char **buffer, u32 *size, u32 *pos, char *msg, u32 msg_len)
 		*size = *pos+msg_len-*size+256;
 		*buffer = (char *)gf_realloc(*buffer, *size);
 	}
+	if (! *buffer)
+		return;
+
 	strncpy((*buffer)+(*pos), msg, msg_len);
 	*pos += msg_len;
 }
@@ -2688,7 +2691,7 @@ void gf_m2ts_reset_parsers_for_program(GF_M2TS_Demuxer *ts, GF_M2TS_Program *pro
 			gf_m2ts_section_filter_reset(ses->sec);
 		} else {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
-			if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
+			if (pes->pid==pes->program->pmt_pid) continue;
 			pes->cc = -1;
 			pes->pck_data_len = 0;
 			if (pes->prev_data) gf_free(pes->prev_data);

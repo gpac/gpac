@@ -3553,7 +3553,6 @@ GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 	GF_MPD_AdaptationSet *as;
 	GF_MPD_Representation *rep;
 	char szName[GF_MAX_PATH];
-	char *name;
 	GF_DownloadManager *dm;
 
 	if (output_dir) {
@@ -3568,13 +3567,14 @@ GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 	gf_opts_set_key("temp", "clean-cache", "true");
 	dm = gf_dm_new(NULL);
 
-
-	name = strrchr(mpd_src, '/');
+/*
+	char *name = strrchr(mpd_src, '/');
 	if (!name) name = strrchr(mpd_src, '\\');
 	if (!name) name = "manifest.mpd";
 	else name ++;
 
 	if (strchr(name, '?') || strchr(name, '&')) name = "manifest.mpd";
+*/
 
 	fprintf(stderr, "Downloading %s\n", mpd_src);
 	sess = get_file(mpd_src, dm, &e);

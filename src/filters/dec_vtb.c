@@ -383,9 +383,10 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			
 			ctx->vtb_type = kCMVideoCodecType_H264;
 
-			s32 id = gf_media_avc_read_sps(sps->data, sps->size, &ctx->avc, 0, NULL);
-			id = gf_media_avc_read_pps(pps->data, pps->size, &ctx->avc);
-
+			if (gf_media_avc_read_sps(sps->data, sps->size, &ctx->avc, 0, NULL)<0)
+				return GF_NON_COMPLIANT_BITSTREAM;
+			if (gf_media_avc_read_pps(pps->data, pps->size, &ctx->avc)<0)
+				return GF_NON_COMPLIANT_BITSTREAM;
 
 			idx = ctx->active_sps;
 			ctx->width = ctx->avc.sps[idx].width;

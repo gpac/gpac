@@ -935,6 +935,9 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 			if (gpck->corrupted) gf_filter_pck_set_corrupted(gpck->pck, GF_TRUE);
 			e = gf_filter_pck_send(gpck->pck);
 			break;
+		default:
+			e = GF_OK;
+			break;
 		}
 		gf_list_rem(gst->packets, 0);
 		gsfdmx_pck_reset(gpck);

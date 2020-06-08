@@ -2474,7 +2474,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		//for regular reps, if we depend on filename we cannot mutualize the template
 		if (dasher_template_use_source_url(template) ) {
 			single_template = GF_FALSE;
-			template_use_source = GF_TRUE;
 		}
 		//and for scalable reps, if we don't have bandwidth /repID we cannot mutualize the template
 		else if (gf_list_count(ds->complementary_streams) ) {
@@ -4471,6 +4470,11 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	//no segment alignment store in each rep
 	if (!seg_align) {
 		GF_MPD_SegmentTimeline **p_tl=NULL;
+		if (!ds->rep) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to store timeline entru, no representation assigned !\n"));
+			return;
+		}
+
 		if (ctx->tpl) {
 			p_tl = &ds->rep->segment_template->segment_timeline;
 			ds->rep->segment_template->duration = 0;
@@ -4485,6 +4489,12 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	} else {
 		Bool new_tl = GF_FALSE;
 		GF_MPD_SegmentTimeline **p_tl=NULL;
+
+		if (!ds->set) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to store timeline entru, no AdpatationSet assigned !\n"));
+			return;
+		}
+		assert(ds->set);
 		if (ctx->tpl) {
 			//in case we had no template at set level
 			if (!ds->set->segment_template) {

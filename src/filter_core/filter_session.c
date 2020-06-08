@@ -1026,7 +1026,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 
 			if ((f_reg->flags & GF_FS_REG_REQUIRES_RESOLVER) && !fsess->max_resolve_chain_len) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s requires graph resolver but it is disabled\n", name));
-				*err_code = GF_BAD_PARAM;
+				if (err_code) *err_code = GF_BAD_PARAM;
 				return NULL;
 			}
 
