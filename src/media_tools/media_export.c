@@ -829,7 +829,9 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 	FILE *media, *six;
 	u32 track, i, di, count, pos, header_size;
 	//u32 mtype;
+#if !defined(GPAC_DISABLE_TTXT) && !defined(GPAC_DISABLE_VTT)
 	u32 mstype;
+#endif
 	const char *szRootName;
 	//Bool isText;
 

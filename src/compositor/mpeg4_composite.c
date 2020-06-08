@@ -257,7 +257,9 @@ static void composite_update(GF_TextureHandler *txh)
 {
 	s32 w, h;
 	GF_EVGStencil *stencil;
+#ifndef GPAC_USE_GLES1X
 	M_Background2D *back;
+#endif
 	GF_List *sensor_bck;
 	Bool invalidate_all;
 	u32 new_pixel_format;
@@ -278,24 +280,27 @@ static void composite_update(GF_TextureHandler *txh)
 	}
 	gf_node_dirty_clear(st->txh.owner, 0);
 
+	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
+#if defined(GPAC_USE_GLES1X)
+	new_pixel_format = GF_PIXEL_RGBA;
+
+#else
+
 	back = gf_list_get(st->visual->back_stack, 0);
 	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB;
 	else new_pixel_format = GF_PIXEL_RGBA;
 
-
 #ifdef GPAC_USE_TINYGL
 	/*TinyGL pixel format is fixed at compile time, we cannot override it !*/
 	if (st->visual->type_3d) new_pixel_format = GF_PIXEL_RGBA;
-
-	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
-#elif defined(GPAC_USE_GLES1X)
-	new_pixel_format = GF_PIXEL_RGBA;
 
 #elif !defined(GPAC_DISABLE_3D)
 	/*no alpha support in offscreen rendering*/
 	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && !compositor->fbo_id && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB;
 #endif
+
+#endif //GPAC_USE_GLES1X
 
 	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
 #if defined(GF_SR_USE_DEPTH) && !defined(GPAC_DISABLE_3D)

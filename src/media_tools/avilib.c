@@ -733,7 +733,7 @@ void AVI_set_audio(avi_t *AVI, int channels, int rate, int bits, int format, int
 //ThOe write preliminary AVI file header: 0 frames, max vid/aud size
 int avi_update_header(avi_t *AVI)
 {
-	int njunk, hasIndex, ms_per_frame, frate, flag;
+	int njunk, ms_per_frame, frate, flag;
 	int movi_len, hdrl_start, strl_start;
 	u32 j;
 	unsigned char AVI_header[HEADERBYTES];
@@ -744,7 +744,7 @@ int avi_update_header(avi_t *AVI)
 	movi_len = AVI_MAX_LEN - HEADERBYTES + 4;
 
 	//assume index will be written
-	hasIndex=1;
+//	int hasIndex=1;
 
 	if(AVI->fps < 0.001) {
 		frate=0;
@@ -791,9 +791,9 @@ int avi_update_header(avi_t *AVI)
 	OUTLONG(0);                  /* PaddingGranularity (whatever that might be) */
 	/* Other sources call it 'reserved' */
 	flag = AVIF_ISINTERLEAVED;
-	if (hasIndex)
+	//if (hasIndex)
 		flag |= AVIF_HASINDEX;
-	if (hasIndex && AVI->must_use_index)
+	if (/*hasIndex && */AVI->must_use_index)
 		flag |= AVIF_MUSTUSEINDEX;
 	OUTLONG(flag);               /* Flags */
 	OUTLONG(0);                  // no frames yet

@@ -716,18 +716,19 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 			}
 		}
 		JS_FreeValue(ctx, res);
-
-		res = JS_GetPropertyStr(ctx, value, "n");
-		if (!JS_IsUndefined(res)) {
-			is_frac = 2;
-			if (JS_ToInt32(ctx, &frac.num, res)) {
-				JS_ToInt64(ctx, &frac_l.num, res);
-				is_frac = 1;
+		if (is_frac) {
+			res = JS_GetPropertyStr(ctx, value, "n");
+			if (!JS_IsUndefined(res)) {
+				is_frac = 2;
+				if (JS_ToInt32(ctx, &frac.num, res)) {
+					JS_ToInt64(ctx, &frac_l.num, res);
+					is_frac = 1;
+				}
+			} else {
+				is_frac = 0;
 			}
-		} else {
-			is_frac = 0;
+			JS_FreeValue(ctx, res);
 		}
-		JS_FreeValue(ctx, res);
 
 		if (is_vec) {
 			if (is_vec4==2) {

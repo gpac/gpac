@@ -605,11 +605,13 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 				}
 			}
 		}
-#else
-		au = NULL;
 #endif
 
-		if (!au && esd && !esd->URLString) {
+		if (esd && !esd->URLString
+#ifndef GPAC_DISABLE_VRML
+			&& !au
+#endif
+		) {
 			/*if not in IOD, the stream will be imported when encoding the OD stream*/
 			if (!is_in_iod) continue;
 #ifndef GPAC_DISABLE_MEDIA_IMPORT

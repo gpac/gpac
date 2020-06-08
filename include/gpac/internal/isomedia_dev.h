@@ -4366,9 +4366,6 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, s32 compresed_diff, u64 *cumulated_offset, Bool is_first_merge);
 
-//experimental flags
-//#define COMP_SIGNAL_SIZE_TYPE
-//#define COMP_SIGNAL_SIZE
 
 #endif //GPAC_DISABLE_ISOM
 

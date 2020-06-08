@@ -208,26 +208,33 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");	\
 	}	\
  
-#define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)		\
+#define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)	{	\
+	char temp[50]; \
 	if (sig < 0) { \
 		sprintf(temp, "%d", d);		\
 	} else { \
 		sprintf(temp, "%d", d);		\
 	}	\
-	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
+	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp); \
+	}
 
-#define RTSP_WRITE_HEX(buf, buf_size, pos, d, sig)		\
+#define RTSP_WRITE_HEX(buf, buf_size, pos, d, sig)	{	\
+	char temp[50]; \
 	sprintf(temp, "%X", d);		\
-	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
+	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);\
+	}
 
-
-#define RTSP_WRITE_FLOAT_WITHOUT_CHECK(buf, buf_size, pos, d)		\
+#define RTSP_WRITE_FLOAT_WITHOUT_CHECK(buf, buf_size, pos, d) {		\
+	char temp[50]; \
 	sprintf(temp, "%.4f", d);		\
-	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
+	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);\
+	}
 
-#define RTSP_WRITE_FLOAT(buf, buf_size, pos, d)		\
+#define RTSP_WRITE_FLOAT(buf, buf_size, pos, d)	{	\
+	char temp[50]; \
 	sprintf(temp, "%.4f", d);		\
-	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, temp);
+	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, temp); \
+	}
 
 
 typedef struct
