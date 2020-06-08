@@ -1296,10 +1296,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		else {
 			if (do_warn) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] no moov found, cannot get cenc default info, assuming isEncrypted, IV size %d (computed from senc size)\n", def_IV_size));
-				is_encrypted = GF_TRUE;
-				sai->IV_size = def_IV_size;
+				do_warn = GF_FALSE;
 			}
-			do_warn = GF_FALSE;
+			is_encrypted = GF_TRUE;
+			sai->IV_size = def_IV_size;
 		}
 		if (senc_size < sai->IV_size) {
 			parse_failed = GF_TRUE;
@@ -1397,24 +1397,22 @@ GF_Err senc_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u24(bs, ptr->flags);
 
 	gf_bs_write_u32(bs, sample_count);
-	if (sample_count) {
 
-		e = store_senc_info(ptr, bs);
-		if (e) return e;
+	e = store_senc_info(ptr, bs);
+	if (e) return e;
 
-		for (i = 0; i < sample_count; i++) {
-			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+	for (i = 0; i < sample_count; i++) {
+		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
-			//for cbcs scheme, IV_size is 0, constant IV shall be used. It is written in tenc box rather than in sai
-			if (sai->IV_size)
-				gf_bs_write_data(bs, (char *)sai->IV, sai->IV_size);
+		//for cbcs scheme, IV_size is 0, constant IV shall be used. It is written in tenc box rather than in sai
+		if (sai->IV_size)
+			gf_bs_write_data(bs, (char *)sai->IV, sai->IV_size);
 
-			if (ptr->flags & 0x00000002) {
-				gf_bs_write_u16(bs, sai->subsample_count);
-				for (j = 0; j < sai->subsample_count; j++) {
-					gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
-					gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
-				}
+		if (ptr->flags & 0x00000002) {
+			gf_bs_write_u16(bs, sai->subsample_count);
+			for (j = 0; j < sai->subsample_count; j++) {
+				gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
+				gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
 			}
 		}
 	}

@@ -3289,7 +3289,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		Pos = gf_token_get(buf, Pos, " \t\r\n", comp, 400);
 		if (sess->orig_url) gf_free(sess->orig_url);
 		sess->orig_url = gf_strdup(comp);
-		Pos = gf_token_get(buf, Pos, " \t\r\n", comp, 400);
+		/*Pos = */gf_token_get(buf, Pos, " \t\r\n", comp, 400);
 		if ((strncmp("HTTP", comp, 4) != 0)) {
 			e = GF_REMOTE_SERVICE_ERROR;
 			goto exit;

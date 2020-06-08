@@ -1016,12 +1016,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_AUTHORIZATION:
 	{
-		int maxTries = 1;
+		int maxTries = 4;
 		assert( evt->type == GF_EVENT_AUTHORIZATION);
 		assert( evt->auth.user);
 		assert( evt->auth.password);
 		assert( evt->auth.site_url);
-		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) >= 0) {
+		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) > 0) {
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stderr, "login   : ");
 			if (!read_line_input(evt->auth.user, 50, 1))
@@ -1031,7 +1031,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				continue;
 			fprintf(stderr, "*********\n");
 		}
-		if (maxTries < 0) {
+		if (maxTries == 0) {
 			fprintf(stderr, "**** No User or password has been filled, aborting ***\n");
 			return 0;
 		}
@@ -1152,7 +1152,7 @@ int mp4client_main(int argc, char **argv)
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Bool has_command;
-	char *url_arg, *out_arg, *gpac_profile, *rti_file;
+	char *url_arg, *gpac_profile, *rti_file;
 	FILE *logfile = NULL;
 #ifndef WIN32
 	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
@@ -1166,7 +1166,7 @@ int mp4client_main(int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	has_command = GF_FALSE;
-	url_arg = out_arg = gpac_profile = rti_file = NULL;
+	url_arg = gpac_profile = rti_file = NULL;
 
 	/*first identify profile and mem tracking */
 	for (i=1; i<(u32) argc; i++) {
@@ -1299,11 +1299,6 @@ int mp4client_main(int argc, char **argv)
 			simulation_time_in_ms = (u32) (atof(argv[i+1]) * 1000);
 			if (!simulation_time_in_ms)
 				simulation_time_in_ms = 1; /*1ms*/
-			i++;
-		}
-
-		else if (!strcmp(arg, "-out")) {
-			out_arg = argv[i+1];
 			i++;
 		} else if (!stricmp(arg, "-scale")) {
 			sscanf(argv[i+1], "%f", &scale);

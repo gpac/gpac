@@ -423,7 +423,7 @@ static void nvdec_store_xps(NVDecCtx *ctx, GF_AVCConfig *avc_cfg, GF_HEVCConfig 
 		nvdec_store_paramlist(bs, avc_cfg->sequenceParameterSetExtensions);
 		nvdec_store_paramlist(bs, avc_cfg->pictureParameterSets);
 		gf_odf_avc_cfg_del(avc_cfg);
-	} else {
+	} else if (hevc_cfg) {
 		ctx->nal_size_length = hevc_cfg->nal_unit_size;
 		count = gf_list_count(hevc_cfg->param_array);
 		for (i=0; i<count; i++) {
@@ -486,7 +486,8 @@ static GF_Err nvdec_configure_stream(GF_Filter *filter, NVDecCtx *ctx)
 	ctx->nal_size_length = 0;
 
 	//this destroys avc_cfg / hevc_cfg
-	nvdec_store_xps(ctx, avc_cfg, hevc_cfg);
+	if (avc_cfg || hevc_cfg)
+		nvdec_store_xps(ctx, avc_cfg, hevc_cfg);
 
 	if (load_inactive_dec(ctx)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] reusing inactive decoder %dx%d - %d total decoders loaded\n", ctx->width, ctx->height, global_nb_loaded_decoders ) );
@@ -893,7 +894,6 @@ static GF_Err nvdec_process(GF_Filter *filter)
 		gf_list_add(ctx->src_packets, ipck);
 	}
 
-	e = GF_OK;
 	if (ctx->reload_decoder_state) {
 		if (ctx->reload_decoder_state==2) {
 			nvdec_destroy_decoder(ctx->dec_inst);

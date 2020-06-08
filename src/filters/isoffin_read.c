@@ -1110,13 +1110,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				for (i=0; i<count; i++) {
 					ISOMChannel *ch = gf_list_get(read->channels, i);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
-
-					if (in_is_eos) {
-						u32 nbsamp = gf_isom_get_sample_count(ch->owner->mov, ch->track);
-						if (nbsamp % 25)
-							nbsamp = 0;
-
-					}
 				}
 			}
 #endif

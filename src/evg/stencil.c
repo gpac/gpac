@@ -268,6 +268,8 @@ static void lg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32
 	u64 *data_wide = surf->not_8bits ? surf->stencil_pix_run : NULL;
 	EVG_LinearGradient *_this = (EVG_LinearGradient *) p;
 
+	assert(data);
+
 	/*no need to move x & y to fixed*/
 	_res = (Fixed) (x * _this->smat.m[0] + y * _this->smat.m[1] + _this->smat.m[2]);
 	while (count) {
@@ -345,6 +347,8 @@ static void rg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, u
 	u64 *data_wide = surf->not_8bits ? surf->stencil_pix_run : NULL;
 	EVG_RadialGradient *_this = (EVG_RadialGradient *) p;
 
+	assert(data);
+	
 	x = INT2FIX(_x);
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);

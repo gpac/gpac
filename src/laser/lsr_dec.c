@@ -2666,6 +2666,8 @@ static void lsr_read_path_type(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SVG_Path
 		ct_orig = orig = *pt;
 		gf_path_add_move_to_vec(path, pt);
 	} else {
+		orig.x = orig.y = 0;
+		ct_orig = orig;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] Empty path found.\n"));
 	}
 	cur_pt = 1;
@@ -5226,8 +5228,6 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 	/*list replacement*/
 	GF_LSR_READ_INT(lsr, type, 1, "opt_group");
 	if (type) {
-		if (!com_type /*|| (idx!=-1) */)
-			return GF_NON_COMPLIANT_BITSTREAM;
 
 		if (com_list) {
 			u32 count;

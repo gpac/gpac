@@ -161,7 +161,7 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 	if (written <= 0)
 	{
 		ctx->consecutive_zero_reads++;
-		if (ctx->consecutive_zero_reads > 5) {
+		if (ctx->consecutive_zero_reads < 5) {
 			gf_sleep(5);
 		} else if (ctx->consecutive_zero_reads < 25) {
 			gf_sleep(10);

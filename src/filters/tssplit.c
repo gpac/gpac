@@ -398,7 +398,7 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 				if (ctx->dmx->prefix_present) {
 					u8 *data = tspck->data;
 					data -= 4;
-					m2tssplit_send_packet(ctx, stream, tspck->data, 192);
+					m2tssplit_send_packet(ctx, stream, data, 192);
 				} else {
 					m2tssplit_send_packet(ctx, stream, tspck->data, 188);
 				}

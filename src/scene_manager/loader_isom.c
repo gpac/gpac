@@ -215,8 +215,8 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 			break;
 		}
 		esd = gf_isom_get_esd(load->isom, i+1, 1);
-		if (!esd) continue;
-		if (esd->decoderConfig && (esd->decoderConfig->objectTypeIndication==GF_CODECID_TEXT_MPEG4))
+		if (!esd || !esd->decoderConfig) continue;
+		if (esd->decoderConfig->objectTypeIndication==GF_CODECID_TEXT_MPEG4)
 			continue;
 
 		if ((esd->decoderConfig->objectTypeIndication == GF_CODECID_AFX) ||

@@ -648,10 +648,17 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				switch (st->info.type) {
 				case GF_CODECID_VORBIS:
 					res = gf_vorbis_parse_header(st->vorbis_parser, (char *) oggpacket.packet, oggpacket.bytes);
-					add_page = res;
+					if (!res) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[OGG] Failed to parse Vorbis header\n"));
+					} else {
+						add_page = GF_TRUE;
+					}
 					break;
 				case GF_CODECID_OPUS:
 					res = gf_opus_parse_header(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
+					if (!res) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[OGG] Failed to parse Opus header\n"));
+					}
 					break;
 				case GF_CODECID_THEORA:
 					add_page = GF_TRUE;

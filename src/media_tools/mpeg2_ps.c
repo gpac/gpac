@@ -1285,8 +1285,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 				        (substream >= 0xa0 && substream < 0xb0)) {
 					valid_stream = 1;
 				}
-			} else if (stream_id >= 0xc0 &&
-			           stream_id <= 0xef) {
+			} else if (stream_id >= 0xc0) {
 				// audio and video
 				valid_stream = 1;
 			}

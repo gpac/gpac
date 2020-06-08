@@ -238,7 +238,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool do_audio, do_video, do_auxv,do_pict, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, refs_only, force_par, rewrite_bs;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 tmcd_track = 0;
 	Bool keep_audelim = GF_FALSE;
 	u32 print_stats_graph=fs_dump_flags;

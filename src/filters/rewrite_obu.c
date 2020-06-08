@@ -207,6 +207,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		}
 	}
 
+	memset(frame_sizes, 0, sizeof(u32)*128);
 	if (ctx->mode==2) {
 		if (ctx->ivf_hdr) hdr_size += 32;
 		hdr_size += 12;

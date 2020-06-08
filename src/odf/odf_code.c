@@ -2651,7 +2651,8 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 		if (! tmp) return GF_OUT_OF_MEM;
 		e = OD_ReadUTF8String(bs, & tmp->keyWord, kwd->isUTF8, &len);
 		if (e) {
-			if (tmp) gf_free(tmp);
+			if (tmp->keyWord) gf_free(tmp->keyWord);
+			gf_free(tmp);
 			return e;
 		}
 		nbBytes += len;

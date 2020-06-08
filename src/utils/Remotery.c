@@ -1829,6 +1829,7 @@ static rmtError Buffer_Write(Buffer* buffer, const void* data, rmtU32 length)
         if (error != RMT_ERROR_NONE)
             return error;
     }
+    assert(buffer->data != NULL);
 
     // Copy all bytes
     memcpy(buffer->data + buffer->bytes_used, data, length);

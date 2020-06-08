@@ -545,7 +545,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 			list = avcc->sequenceParameterSetExtensions;
 			state=RESET_STATE_SPS_EXT;
 		} else return;
-	} else {
+	} else if (hvcc) {
 		GF_HEVCParamArray *hvca=NULL;
 		count = gf_list_count(hvcc->param_array);
 		for (i=0; i<count; i++) {

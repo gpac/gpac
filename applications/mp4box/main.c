@@ -5301,7 +5301,6 @@ int mp4boxMain(int argc, char **argv)
 #endif
 				} else {
 					fprintf(stderr, "Input %s is not an MP4 file, operation not allowed\n", inName);
-					e = GF_NOT_SUPPORTED;
 					return mp4box_cleanup(1);
 				}
 				goto exit;
@@ -6227,7 +6226,6 @@ int mp4boxMain(int argc, char **argv)
 		if (!Frag && !HintIt && !FullInter && !force_co64) {
 			char szName[GF_MAX_PATH];
 			strcpy(szName, gf_isom_get_filename(file) );
-			e = GF_OK;
 			gf_isom_delete(file);
 			file = NULL;
 			if (!outName) {

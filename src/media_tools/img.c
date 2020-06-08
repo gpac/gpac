@@ -345,12 +345,10 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 	jpx.cinfo.do_fancy_upsampling = FALSE;
 	jpx.cinfo.do_block_smoothing = FALSE;
 	if (!jpeg_start_decompress(&jpx.cinfo)) {
-		if (scan_line) gf_free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT) {
-		if (scan_line) gf_free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[gf_img_jpeg_dec] : jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT\n"));
 		return GF_IO_ERR;

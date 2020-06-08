@@ -198,7 +198,7 @@ next_line:
 					dst++;
 					break;
 				}
-				else if (is_ret && wchar!='\n') {
+				else if (is_ret) {
 					u32 fpos = (u32) gf_gztell(parser->gz_in);
 					gf_gzseek(parser->gz_in, fpos-2, SEEK_SET);
 					break;
@@ -3269,7 +3269,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 
 
 	/*create a default root node for all VRML nodes*/
-	if ((parser->is_wrl && !parser->top_nodes) && !vrml_root_node) {
+	if (parser->is_wrl && !parser->top_nodes) {
 		if (initial_run ) {
 #ifndef GPAC_DISABLE_X3D
 			vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? TAG_MPEG4_Group : TAG_X3D_Group);

@@ -1285,7 +1285,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	if (cfg->initial_presentation_delay_present) {
 		cfg->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
 	} else {
-		reserved = gf_bs_read_int(bs, 4);
+		/*reserved = */gf_bs_read_int(bs, 4);
 		cfg->initial_presentation_delay_minus_one = 0;
 	}
 	size -= 4;

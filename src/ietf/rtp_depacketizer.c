@@ -1338,7 +1338,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			rtp->flags |= GF_RTP_M4V_CHECK_RAP;
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if ((rtp->sl_map.CodecID == GF_CODECID_AAC_MPEG4) && !rtp->sl_map.config) {
+		if ((rtp->sl_map.CodecID == GF_CODECID_AAC_MPEG4) && !rtp->sl_map.config && media) {
 			GF_M4ADecSpecInfo cfg;
 			GF_RTPMap *a_map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 
@@ -1375,24 +1375,21 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		break;
 	case GF_RTP_PAYT_AMR:
 	case GF_RTP_PAYT_AMR_WB:
-	{
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 		rtp->sl_map.CodecID = (rtp->payt == GF_RTP_PAYT_AMR) ? GF_CODECID_AMR : GF_CODECID_AMR_WB;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_amr;
-	}
-	break;
+		break;
 	case GF_RTP_PAYT_H263:
-	{
-		GF_X_Attribute *att;
-
-		j=0;
-		while ((att = (GF_X_Attribute *)gf_list_enum(media->Attributes, &j))) {
-			if (stricmp(att->Name, "cliprect")) continue;
-			/*only get the display area*/
-			sscanf(att->Value, "%u,%u,%u,%u", &rtp->y, &rtp->x, &rtp->h, &rtp->w);
+		if (media) {
+			GF_X_Attribute *att;
+			j=0;
+			while ((att = (GF_X_Attribute *)gf_list_enum(media->Attributes, &j))) {
+				if (stricmp(att->Name, "cliprect")) continue;
+				/*only get the display area*/
+				sscanf(att->Value, "%u,%u,%u,%u", &rtp->y, &rtp->x, &rtp->h, &rtp->w);
+			}
 		}
-
 		rtp->sl_map.StreamType = GF_STREAM_VISUAL;
 		rtp->sl_map.CodecID = GF_CODECID_H263;
 
@@ -1401,8 +1398,8 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_h263;
-	}
-	break;
+		break;
+
 	case GF_RTP_PAYT_3GPP_TEXT:
 	{
 		char *tx3g, *a_tx3g;
@@ -1414,7 +1411,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		tcfg.Base3GPPFormat = 0x10;
 		tcfg.MPEGExtendedFormat = 0x10;
 		tcfg.profileLevel = 0x10;
-		if (!map) {
+		if (!map || !media) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -1499,7 +1496,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_H264_SVC:
 	{
 		GF_AVCConfig *avcc;
-		if (!map) {
+		if (!map || !media) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -1575,7 +1572,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 #ifndef GPAC_DISABLE_HEVC
 	{
 		GF_HEVCConfig *hevcc;
-		if (!map) {
+		if (!map || !media) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}

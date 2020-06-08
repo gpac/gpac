@@ -307,7 +307,6 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 	pps = &hevc->pps[pps_id];
 	sps = &hevc->sps[pps->sps_id];
 
-	dependent_slice_segment_flag = 0;
 	if (!first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
 		dependent_slice_segment_flag = gf_bs_read_int(ctx->bs_nal_in, 1);
 	} else {
@@ -614,9 +613,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 	ctx->grid = NULL;
 
 	if (min_rel_pos_x == (u32)-1) min_rel_pos_x=0;
-	if (min_rel_pos_y == (u32)-1) min_rel_pos_y=0;
 
-	max_cols = nb_pids;
 	if (nb_has_pos) {
 		max_cols = 0;
 		for (i=0; i<nb_pids; i++) {
@@ -631,9 +628,6 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 
 				//for relative positioning, only check we don't have the same indexes
 				if (nb_rel_pos) {
-					if ((tile1->pos_x==tile2->pos_x) && (tile1->pos_y == tile2->pos_y)) {
-						overlap = GF_TRUE;
-					}
 					continue;
 				}
 
@@ -814,7 +808,6 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 		memset(ctx->grid, 0, sizeof(HEVCGridInfo)*nb_pids);
 
 		nb_cols=0;
-		nb_rows=0;
 		for (i=0; i<nb_pids; i++) {
 			Bool found = GF_FALSE;
 			HEVCTilePidCtx *apidctx = gf_list_get(ctx->pids, i);

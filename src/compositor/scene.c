@@ -3271,7 +3271,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
 		nalu_annex_b = 0;
 
-	if (0 && odm_base->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
+	if (odm_base->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
 
 		nalu_annex_b = 0;
 		if (force_attach) {

@@ -231,6 +231,7 @@ GF_Err X11_Blit(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *
 	if ((xwin->xvport<0) || !xwin->overlay) {
 		e = X11_InitOverlay(vout, video_src->width, video_src->height);
 		if (e) return e;
+		if (!xwin->overlay) return GF_IO_ERR;
 	}
 
 	/*different size, recreate an image*/

@@ -1099,25 +1099,28 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 
 				glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 
-				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, tx->PBOs[1]);
-				ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+				if (pU) {
+					glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, tx->PBOs[1]);
+					ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
 
-				linesize = tx->uv_w * tx->bytes_per_pix;
-				p_stride = stride_chroma;
-				count = tx->uv_h;
-				//NV12 and  NV21
-				if (!pV) {
-					linesize *= 2;
+					linesize = tx->uv_w * tx->bytes_per_pix;
+					p_stride = stride_chroma;
+					count = tx->uv_h;
+					//NV12 and  NV21
+					if (!pV) {
+						linesize *= 2;
+					}
+
+					for (i=0; i<count; i++) {
+						memcpy(ptr, pU, linesize);
+						pU += p_stride;
+						ptr += linesize;
+					}
+
+					glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 				}
 
-				for (i=0; i<count; i++) {
-					memcpy(ptr, pU, linesize);
-					pU += p_stride;
-					ptr += linesize;
-				}
-
-				glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
-
+				
 				if (pV) {
 					glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, tx->PBOs[2]);
 					ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
@@ -1289,7 +1292,7 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 
 		gf_mx_init(txmx);
 		for (i=0; i<tx->nb_textures; i++) {
-			u32 gl_format;
+			u32 gl_format = GL_TEXTURE_2D;
 			if (tx->frame_ifce && tx->frame_ifce->get_gl_texture(tx->frame_ifce, i, &gl_format, &tx->textures[i], &txmx) != GF_OK) {
 				if (!i) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[GL] Failed to get frame interface OpenGL texture ID for plane %d\n", i));

@@ -2516,10 +2516,6 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 		else gf_bs_reassign_buffer(state->bs, state->frame_obus, state->frame_obus_alloc);
 	}
 	else {
-		if (!obu_list) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] internal error, no OBU list cannot add\n"));
-			return;
-		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		if (!a) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] Failed to allocate OBU\n"));
@@ -2597,6 +2593,12 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 			assert(gf_bs_get_position(bs) == pos + obu_length);
 			return;
 		}
+	}
+	if (!obu_list) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] internal error, no OBU list cannot add\n"));
+		gf_free(a->obu);
+		gf_free(a);
+		return;
 	}
 	a->obu_type = obu_type;
 	if (! *obu_list)
@@ -8308,7 +8310,7 @@ s32 gf_media_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_t
 
 	ret = gf_media_hevc_parse_nalu_bs(bs, hevc, nal_unit_type, temporal_id, layer_id);
 
-	if (bs) gf_bs_del(bs);
+	gf_bs_del(bs);
 	return ret;
 }
 

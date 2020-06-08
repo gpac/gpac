@@ -1278,9 +1278,10 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 	Bool cond_res;
 
 	//assign to dummy values, this will prevent any badly formated shader to assign a value to a NULL left-val or read a null right-val
+	tmpl.x = tmpl.y = tmpl.z = tmpl.q = 0;
 	left_val = &tmpl;
+	tmpr.x = tmpr.y = tmpr.z = tmpr.q = 0;
 	right_val = &tmpr;
-	right2_val = &tmpr;
 
 	for (op_idx=0; op_idx<shader->nb_ops; op_idx++) {
 		u32 next_idx, idx, var_idx;
@@ -1710,6 +1711,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 			else if (op->cond_type==EVG_OP_GREATER_EQUAL) { BASE_COND(>=) }
 			else if (op->cond_type==EVG_OP_EQUAL) { BASE_COND(==) }
 			else if (op->cond_type==EVG_OP_NOT_EQUAL) { BASE_COND(!=) }
+			else break;
 
 			if (cond_res) if_level++;
 			else nif_level++;

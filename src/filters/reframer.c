@@ -692,9 +692,12 @@ static Bool reframer_init_timing(GF_Filter *filter, GF_ReframerCtx *ctx)
 	u32 pid_scale=0;
 	for (i=0; i<count; i++) {
 		u64 ts;
+		GF_FilterPacket *pck;
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		RTStream *st = ipid ? gf_filter_pid_get_udta(ipid) : NULL;
-		GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
+		if (!st) continue;
+		
+		pck = gf_filter_pid_get_packet(ipid);
 		if (!pck) {
 			//not ready yet
 			if (st->is_playing && !gf_filter_pid_is_eos(ipid))
@@ -717,6 +720,8 @@ static Bool reframer_init_timing(GF_Filter *filter, GF_ReframerCtx *ctx)
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		RTStream *st = ipid ? gf_filter_pid_get_udta(ipid) : NULL;
 		if (!st) continue;
+
+		if (!pid_scale) pid_scale = st->timescale;
 
 		st->cts_init = min_dts_plus_one-1;
 		if (st->timescale != pid_scale) {

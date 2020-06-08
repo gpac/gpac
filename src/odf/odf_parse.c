@@ -314,12 +314,9 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 					ret = 1;
 			}
 		}
-		//else if (!stricmp(fieldName, "upStream")) GET_BOOL(dcd->upstream)
 		else if (!stricmp(fieldName, "upStream")) {
-			ret = 1;
-			dcd->upstream = (!stricmp(val, "true") || !strcmp(val, "1")) ? 1 : 0;
+			GET_BOOL(dcd->upstream)
 		}
-
 		else if (!stricmp(fieldName, "bufferSizeDB")) ret += sscanf(val, "%u", &dcd->bufferSizeDB);
 		else if (!stricmp(fieldName, "maxBitRate")) ret += sscanf(val, "%u", &dcd->maxBitrate);
 		else if (!stricmp(fieldName, "avgBitRate")) ret += sscanf(val, "%u", &dcd->avgBitrate);

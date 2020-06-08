@@ -722,9 +722,11 @@ static void filter_translate_autoinc(GF_Filter *filter, char *value)
 				gf_list_add(filter->session->auto_inc_nums, auto_int);
 			}
 		}
-		sprintf(szInt, "%d", auto_int->inc_val);
-		strcat(value, szInt);
-		strcat(value, inc_end);
+		if (auto_int) {
+			sprintf(szInt, "%d", auto_int->inc_val);
+			strcat(value, szInt);
+			strcat(value, inc_end);
+		}
 	}
 }
 
@@ -1607,6 +1609,8 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	Bool is_new_chain = GF_TRUE;
 	GF_Filter *new_f;
 	Bool reconfig_only = src_pidi ? GF_FALSE: GF_TRUE;
+
+	assert(filter);
 
 	if (!filter_dst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
@@ -3453,7 +3457,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 		if (!args || (strlen(args)<5) ) continue;
 
 		if (strncmp(args + 4, protocol_scheme, len)) continue;
-		if (!expand_proto && (src->src_args[len] != ':')) continue;
+		if (!expand_proto && (args[len] != ':')) continue;
 
 		if (! filter_in_parent_chain(filter, src)) {
 			u32 j=0;

@@ -80,10 +80,10 @@ typedef struct
 
 static GF_Err dvblin_tune(GF_DVBLinuxCtx *ctx)
 {
-	int demux1, front1;
 	FILE *chanfile;
 	char line[255];
 #ifndef GPAC_SIM_LINUX_DVB
+	int demux1, front1;
 	struct dmx_pes_filter_params pesFilterParams;
 	struct dvb_frontend_parameters frp;
 	char chan_name_t[255];

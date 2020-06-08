@@ -215,7 +215,7 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
 	char *ref_name, *new_name;
 	u32 ref_width, ref_height, ref_pixel_format, ref_data_size;
 	u32 new_width, new_height, new_pixel_format, new_data_size;
-	char *ref_data, *new_data;
+	char *ref_data=NULL, *new_data=NULL;
 	Bool result = GF_FALSE;
 	GF_Err e;
 	u32 i;
@@ -234,6 +234,9 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Cannot decode PNG file %s\n", new_name));
 		goto end;
 	}
+	if (!ref_data) ref_data_size = 0;
+	if (!new_data) new_data_size = 0;
+
 	if (ref_width != new_width) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Snapshots have different widths: %d vs %d\n", ref_width, new_width));
 		goto end;
@@ -243,6 +246,10 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
 		goto end;
 	}
 	if (ref_pixel_format != new_pixel_format) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Snapshots have different pixel formats: %d vs %d\n", ref_pixel_format, new_pixel_format));
+		goto end;
+	}
+	if (ref_data_size != new_data_size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Snapshots have different pixel formats: %d vs %d\n", ref_pixel_format, new_pixel_format));
 		goto end;
 	}
@@ -259,6 +266,8 @@ end:
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Validator] PNG Comparison result: %s\n", (result?"Same":"Different")));
 	if (ref_name) gf_free(ref_name);
 	if (new_name) gf_free(new_name);
+	if (ref_data) gf_free(ref_data);
+	if (new_data) gf_free(new_data);
 	return result;
 }
 #endif

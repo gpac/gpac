@@ -183,6 +183,11 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 		if (!cstr->isma_IV_size || (cstr->isma_IV_size > 8)) cstr->isma_IV_size = 8;
 	}
 
+	if (!cstr->tci || !cstr->tci->KID_count) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] No keys specified for ISMA\n"));
+		return GF_BAD_PARAM;
+	}
+
 	/*init crypto*/
 	memset(IV, 0, sizeof(char)*16);
 	memcpy(IV, cstr->tci->first_IV, sizeof(char)*8);
@@ -191,10 +196,6 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	if (!cstr->crypt) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] Cannot open AES-128 CTR\n"));
 		return GF_IO_ERR;
-	}
-	if (!cstr->tci->KID_count) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] No keys specified for ISMA\n"));
-		return GF_BAD_PARAM;
 	}
 
 	e = gf_crypt_init(cstr->crypt, cstr->tci->keys[0], IV);
@@ -835,11 +836,11 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		cstr->tci = tci;
 		gf_list_add(ctx->streams, cstr);
 		gf_filter_pid_set_udta(pid, cstr);
-		if (!tci) cstr->passthrough = GF_TRUE;
 	}
 	if (cstr->cinfo) gf_crypt_info_del(cstr->cinfo);
 	cstr->cinfo = (cinfo != ctx->cinfo) ? cinfo : NULL;
 	cstr->tci = tci;
+	cstr->passthrough = tci ? GF_FALSE : GF_TRUE;
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(cstr->opid, pid);
@@ -867,13 +868,12 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				break;
 			}
 		}
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT(tci->force_clear_stsd_idx) );
 	}
 	
 	if (cstr->passthrough) return GF_OK;
 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
-
-	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT(tci->force_clear_stsd_idx) );
 
 	scheme_uri = cstr->tci->Scheme_URI;
 	kms_uri = cstr->tci->KMS_URI;
@@ -1260,7 +1260,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 	while (gf_bs_available(ctx->bs_r)) {
 		GF_Err e=GF_OK;
-		u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 		if (cstr->use_subsamples) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1347,8 +1346,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 				break;
 			case CENC_VPX:
-				pos = 0;
-
 				if (cstr->tci->block_align != 2) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\". Forcing value.\n"));
 					cstr->tci->block_align = 2;
@@ -1356,7 +1353,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 				pos = gf_bs_get_position(ctx->bs_r);
 				e = gf_media_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
-				if (e) return e;
+				if (e || !num_frames_in_superframe) return e;
 				gf_bs_seek(ctx->bs_r, pos);
 
 				nb_ranges = num_frames_in_superframe;
@@ -1468,7 +1465,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				//read data to encrypt
 				if (nalu_size > clear_bytes) {
 					/*get encrypted data start*/
-					cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
+					u32 cur_pos = (u32) gf_bs_get_position(ctx->bs_r);
 
 					/*skip bytes of encrypted data*/
 					gf_bs_skip_bytes(ctx->bs_r, nalu_size - clear_bytes);

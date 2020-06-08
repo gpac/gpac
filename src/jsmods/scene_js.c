@@ -504,13 +504,13 @@ static JSValue gpac_get_option(JSContext *ctx, JSValueConst this_val, int argc, 
 
 	if (sec_name && !stricmp(sec_name, "General") && key_name && !strcmp(key_name, "Version")) {
 		opt = gf_gpac_version();
-	} else if (key_name) {
+	} else if (sec_name && key_name) {
 		if (!strcmp(sec_name, "Compositor")) {
 			opt = gf_filter_get_arg_str(compositor->filter, key_name, arg_val);
 		} else {
 			opt = gf_opts_get_key(sec_name, key_name);
 		}
-	} else if (idx>=0) {
+	} else if (sec_name && (idx>=0)) {
 		opt = gf_opts_get_key_name(sec_name, idx);
 	} else {
 		opt = NULL;
@@ -1268,7 +1268,7 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	Bool ilced=GF_FALSE, disabled=GF_FALSE, selected=GF_FALSE, automatic=GF_FALSE;
 	Double fps=30.0;
 	s32 idx;
-#ifdef FILTER_FIXME
+#if 0 //FILTER_FIXME
 	s32 dep_idx=0;
 #endif
 
@@ -1277,7 +1277,7 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	if (JS_ToInt32(ctx, &idx, argv[0]))
 		return JS_EXCEPTION;
 
-#ifdef FILTER_FIXME
+#if 0 //FILTER_FIXME
 	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
 #endif
 
@@ -1378,7 +1378,7 @@ static JSValue gjs_odm_get_srd(JSContext *ctx, JSValueConst this_val, int argc, 
 
 	x = y = w = h = 0;
 	if (argc) {
-#ifdef FILTER_FIXME
+#if 0 //FILTER_FIXME
 	 	s32 dep_idx;
 	 	if (JS_ToInt32(ctx, &dep_idx, argv[0]) )
 	 		return JS_EXCEPTION;
