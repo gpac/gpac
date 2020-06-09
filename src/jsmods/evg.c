@@ -5373,6 +5373,10 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		else if (jsf_is_packet(c, argv[0])) {
 			GF_Err e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (const u8 **)&data, (const u8 **)&p_u, (const u8 **)&p_v, (const u8 **)&p_a);
 			if (e) goto error;
+
+			if (!stride) {
+				gf_pixel_get_size_info(pf, width, height, NULL, &stride, &stride_uv, NULL, NULL);
+			}
 		} else {
 			data = JS_GetArrayBuffer(c, &data_size, argv[0]);
 			if (data) {
@@ -5453,7 +5457,7 @@ done:
 error:
 	if (tx->stencil) gf_evg_stencil_delete(tx->stencil);
 	gf_free(tx);
-	return JS_EXCEPTION;
+	return js_throw_err_msg(c, GF_BAD_PARAM, "Failed to create texture");
 }
 
 Bool js_evg_is_texture(JSContext *ctx, JSValue this_obj)

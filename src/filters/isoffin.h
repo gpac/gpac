@@ -81,7 +81,7 @@ typedef struct
 	Bool input_loaded;
 	//fragmented file to be refreshed before processing it
 	Bool refresh_fragmented;
-
+	Bool input_is_stop;
 	u64 missing_bytes, last_size;
 
 	u32 play_only_track_id;
@@ -156,6 +156,7 @@ typedef struct
 	Bool to_init, has_rap;
 	Bool playing, eos_sent;
 	u8 streamType;
+	Bool initial_play_seen;
 
 	Bool is_encrypted, is_cenc;
 
