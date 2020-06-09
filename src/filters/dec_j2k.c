@@ -337,7 +337,8 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	if (res) res = opj_set_decode_area(codec, image, 0, 0, image->x1, image->y1);
 	if (res) {
 		res = opj_decode(codec, stream, image);
-		if (res) {
+		if (!res) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[OpenJPEG] Decoding failed\n"));
 			opj_image_destroy(image);
 			image = NULL;
 		}
