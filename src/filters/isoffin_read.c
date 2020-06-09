@@ -768,6 +768,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		isor_reset_reader(ch);
 		ch->eos_sent = GF_FALSE;
 		ch->speed = evt->play.speed;
+		ch->initial_play_seen = GF_TRUE;
 		read->reset_frag_state = 1;
 		if (read->frag_type)
 			read->frag_type = 1;
@@ -882,10 +883,18 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return cancel_event;
 
 	case GF_FEVT_STOP:
-		if (read->nb_playing) read->nb_playing--;
+ 		if (read->nb_playing) read->nb_playing--;
 		isor_reset_reader(ch);
+		//don't send a stop if some of our channels are still waiting for initial play
+		for (i=0; i<gf_list_count(read->channels); i++) {
+			ISOMChannel *a_ch = gf_list_get(read->channels, i);
+			if (ch==a_ch) continue;
+			if (!a_ch->initial_play_seen) return GF_TRUE;
+		}
 		//cancel event if nothing playing
-		return read->nb_playing ? GF_TRUE : GF_FALSE;
+		if (read->nb_playing) return GF_TRUE;
+		read->input_is_stop = GF_TRUE;
+		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
 	case GF_FEVT_RESUME:
@@ -1059,6 +1068,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(read->pid)) {
 			read->input_loaded = GF_TRUE;
 			in_is_eos = GF_TRUE;
+		}
+		if (read->input_is_stop) {
+			read->input_loaded = GF_TRUE;
+			in_is_eos = GF_TRUE;
+			read->input_is_stop = GF_FALSE;
 		}
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;

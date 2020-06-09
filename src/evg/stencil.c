@@ -1623,7 +1623,7 @@ static void texture_set_callbacks(EVG_Texture *_this)
 static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *pixels, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane, u32 alpha_stride)
 {
 	EVG_Texture *_this = (EVG_Texture *) st;
-	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !pixels || !width || !height || !stride || _this->owns_texture)
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !pixels || !width || !height || _this->owns_texture)
 		return GF_BAD_PARAM;
 
 	_this->pixels = NULL;
@@ -1678,10 +1678,15 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 	case GF_PIXEL_VYUY:
 		_this->is_yuv = GF_TRUE;
 		_this->Bpp = 1;
+		if (!stride)
+			stride = 4 * width;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
+	if (!stride)
+		stride = _this->Bpp * width;
+		
 	_this->pixel_format = pixelFormat;
 	_this->width = width;
 	_this->height = height;

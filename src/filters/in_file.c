@@ -163,7 +163,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	ctx->file_size = gf_fsize(ctx->file);
 
 	ctx->cached_set = GF_FALSE;
-
+	ctx->full_file_only = GF_FALSE;
 
 	if (ctx->do_reconfigure && gf_fileio_check(ctx->file)) {
 		GF_FileIO *gfio = (GF_FileIO *)ctx->file;
