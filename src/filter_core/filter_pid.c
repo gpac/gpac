@@ -3424,19 +3424,21 @@ static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 	gf_filter_pid_set_args_internal(filter, pid, args, 0);
 
 }
-static const char *gf_filter_last_id_in_chain(GF_Filter *filter)
+static const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first)
 {
 	u32 i;
 	const char *id;
-	if (filter->id) return filter->id;
-	if (!filter->dynamic_filter) return NULL;
+	if (!ignore_first) {
+		if (filter->id) return filter->id;
+		if (!filter->dynamic_filter) return NULL;
+	}
 
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		if (pidi->pid->filter->id) return pidi->pid->filter->id;
 		//stop at first non dyn filter
 		if (!pidi->pid->filter->dynamic_filter) continue;
-		id = gf_filter_last_id_in_chain(pidi->pid->filter);
+		id = gf_filter_last_id_in_chain(pidi->pid->filter, GF_FALSE);
 		if (id) return id;
 	}
 	return NULL;
@@ -3588,9 +3590,9 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 
 	//since we may have inserted filters in the middle (demuxers typically), get the last explicitely
 	//loaded ID in the chain
-	filter_id = gf_filter_last_id_in_chain(filter);
+	filter_id = gf_filter_last_id_in_chain(filter, GF_FALSE);
 	if (!filter_id && filter->cloned_from)
-		filter_id = gf_filter_last_id_in_chain(filter->cloned_from);
+		filter_id = gf_filter_last_id_in_chain(filter->cloned_from, GF_FALSE);
 
 	//we lock the instantiated filter list for the entire resolution process
 	if (filter->session->filters_mx) gf_mx_p(filter->session->filters_mx);
@@ -3754,10 +3756,25 @@ single_retry:
 			if (filter_dst->source_ids) {
 				Bool pid_excluded=GF_FALSE;
 				if (!filter_source_id_match(pid, filter_id, filter_dst, &pid_excluded, &needs_clone)) {
-					if (pid_excluded && !num_pass) filter_found_but_pid_excluded = GF_TRUE;
+					Bool not_ours=GF_TRUE;
+					//if filter is a dynamic one with an ID set, fetch ID from previous filter in chain
+					//this is need for cases such as "-i source filterFoo @ -o live.mpd":
+					//the dasher filter will be dynamically loaded AND will also assign itself a filter ID
+					//due to internal filter (dasher) logic
+					//that dasher filter ID will be different from the ID assigned by '@' on dst file's sourceID,
+					//which is the filter ID of filterFoo
+					if (filter->dynamic_filter && filter->id) {
+						const char *src_filter_id = gf_filter_last_id_in_chain(filter, GF_TRUE);
+						if (filter_source_id_match(pid, src_filter_id, filter_dst, &pid_excluded, &needs_clone)) {
+							not_ours = GF_FALSE;
+						}
+					}
+					if (not_ours) {
+						if (pid_excluded && !num_pass) filter_found_but_pid_excluded = GF_TRUE;
 
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s does not match source ID for filter %s\n", pid->name, filter_dst->name));
-					continue;
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s does not match source ID for filter %s\n", pid->name, filter_dst->name));
+						continue;
+					}
 				}
 			}
 			//if no source ID on the dst filter, this means the dst filter accepts any possible connections from out filter
