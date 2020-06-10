@@ -5813,7 +5813,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	}
 
 	if (si->pps->slice_group_count > 1 && si->pps->mb_slice_group_map_type >= 3 && si->pps->mb_slice_group_map_type <= 5) {
-		/*slice_group_change_cycle = */gf_bs_read_int(bs, (u32)ceil(log((si->pps->pic_size_in_map_units_minus1 + 1) / (si->pps->slice_group_change_rate_minus1 + 1) + 1) / log(2)));
+		/*slice_group_change_cycle = */gf_bs_read_int(bs, (u32)ceil(log1p((si->pps->pic_size_in_map_units_minus1 + 1) / (si->pps->slice_group_change_rate_minus1 + 1) ) / log(2)));
 	}
 
 	return 0;

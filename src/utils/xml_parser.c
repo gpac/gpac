@@ -2253,15 +2253,15 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 	while ( (att = (GF_XMLAttribute*)gf_list_enum(n->attributes, &i)) ) {
 		const char *ns;
 		ns = strstr(att->name, ":");
-		if (ns) {
-			if (!strncmp(att->name, "xmlns", 5)) {
-				if (!strcmp(ns+1, n->ns)) {
-					return GF_OK;
-				}
-			} else if (ns) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[XML] Unsupported attribute namespace \"%s\": ignoring\n", att->name));
-				continue;
+		if (!ns) continue;
+		
+		if (!strncmp(att->name, "xmlns", 5)) {
+			if (!strcmp(ns+1, n->ns)) {
+				return GF_OK;
 			}
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[XML] Unsupported attribute namespace \"%s\": ignoring\n", att->name));
+			continue;
 		}
 	}
 

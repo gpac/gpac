@@ -1016,12 +1016,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_AUTHORIZATION:
 	{
-		int maxTries = 4;
+		u32 nb_retry = 4;
 		assert( evt->type == GF_EVENT_AUTHORIZATION);
 		assert( evt->auth.user);
 		assert( evt->auth.password);
 		assert( evt->auth.site_url);
-		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) > 0) {
+		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (nb_retry > 0) ) {
+			nb_retry--;
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stderr, "login   : ");
 			if (!read_line_input(evt->auth.user, 50, 1))
@@ -1031,7 +1032,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				continue;
 			fprintf(stderr, "*********\n");
 		}
-		if (maxTries == 0) {
+		if (nb_retry == 0) {
 			fprintf(stderr, "**** No User or password has been filled, aborting ***\n");
 			return 0;
 		}

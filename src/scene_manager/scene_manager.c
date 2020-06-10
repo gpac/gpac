@@ -181,8 +181,9 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 			else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
 			/*insert AU*/
 			else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
-				GF_SAFEALLOC(tmp, GF_AUContext);
+				tmp = gf_malloc(sizeof(GF_AUContext));
 				if (!tmp) return NULL;
+				memset(tmp, 0, sizeof(GF_AUContext));
 				tmp->commands = gf_list_new();
 				if (isRap) tmp->flags = GF_SM_AU_RAP;
 				tmp->timing = timing;

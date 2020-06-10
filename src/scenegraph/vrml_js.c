@@ -251,27 +251,29 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 
 	if (!hd) {
 		JS_ThrowReferenceError(ctx, "could not load module filename '%s' as shared library", module_name);
-	} else {
+		return NULL;
+	}
+
 #ifdef WIN32
-		init = (JSInitModuleFunc *) GetProcAddress(hd, "js_init_module");
+	init = (JSInitModuleFunc *) GetProcAddress(hd, "js_init_module");
 #else
-		init = (JSInitModuleFunc *) dlsym(hd, "js_init_module");
+	init = (JSInitModuleFunc *) dlsym(hd, "js_init_module");
 #endif
 
-		if (!init) {
-			JS_ThrowReferenceError(ctx, "could not load module filename '%s': js_init_module not found", module_name);
-		} else {
-			m = init(ctx, module_name);
-			if (!m) {
-				JS_ThrowReferenceError(ctx, "could not load module filename '%s': initialization error", module_name);
-			}
+	if (!init) {
+		JS_ThrowReferenceError(ctx, "could not load module filename '%s': js_init_module not found", module_name);
+	} else {
+		m = init(ctx, module_name);
+		if (!m) {
+			JS_ThrowReferenceError(ctx, "could not load module filename '%s': initialization error", module_name);
 		}
-#ifdef WIN32
-		if (hd) FreeLibrary(hd);
-#else
-		if (hd) dlclose(hd);
-#endif
 	}
+#ifdef WIN32
+	FreeLibrary(hd);
+#else
+	dlclose(hd);
+#endif
+
 	return m;
 }
 

@@ -1946,7 +1946,7 @@ next_command:
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_A;
 
-				GF_SAFEALLOC(pt, SVG_Point)
+				pt = gf_malloc(sizeof(SVG_Point));
 				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
