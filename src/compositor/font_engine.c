@@ -1306,6 +1306,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 		if (GF_COL_A(hl_color) == 0) hl_color = 0;
 	}
 
+	memset(&rc, 0, sizeof(GF_Rect));
 	count = gf_list_count(spans);
 	i=ctx->sub_path_index ? ctx->sub_path_index-1 : 0;
 	for(; i<count; i++) {

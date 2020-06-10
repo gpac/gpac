@@ -235,7 +235,8 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 	if (ctts->w_LastSampleNumber < sampleNumber) {
 		//add some 0 till we get to the sample
 		while (ctts->w_LastSampleNumber + 1 != sampleNumber) {
-			AddCompositionOffset(ctts, 0);
+			GF_Err e = AddCompositionOffset(ctts, 0);
+			if (e) return e;
 		}
 		return AddCompositionOffset(ctts, offset);
 	}
@@ -901,7 +902,8 @@ GF_Err stbl_SetSampleCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 	if (ctts->w_LastSampleNumber < sampleNumber) {
 		//add some 0 till we get to the sample
 		while (ctts->w_LastSampleNumber + 1 != sampleNumber) {
-			AddCompositionOffset(ctts, 0);
+			GF_Err e = AddCompositionOffset(ctts, 0);
+			if (e) return e;
 		}
 		return AddCompositionOffset(ctts, offset);
 	}

@@ -341,9 +341,20 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		return;
 	}
 
-	stream = gf_fopen(filepath, "rb");
-	if (!stream) return;
+	if (ctx->is_hevc) {
+		GF_SAFEALLOC(hevc_state, HEVCState);
+		if (!hevc_state) return;
+	} else {
+		GF_SAFEALLOC(avc_state, AVCState);
+		if (!avc_state) return;
+	}
 
+	stream = gf_fopen(filepath, "rb");
+	if (!stream) {
+		if (hevc_state) gf_free(hevc_state);
+		if (avc_state) gf_free(avc_state);
+		return;
+	}
 	ctx->index_size = 0;
 	duration = 0;
 	cur_dur = 0;
@@ -353,6 +364,8 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	start_code_pos = gf_bs_get_position(bs);
 	if (!gf_media_nalu_is_start_code(bs)) {
+		if (hevc_state) gf_free(hevc_state);
+		if (avc_state) gf_free(avc_state);
 		gf_bs_del(bs);
 		gf_fclose(stream);
 		ctx->duration.num = 1;
@@ -361,11 +374,6 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	}
 
 	nal_start = gf_bs_get_position(bs);
-	if (ctx->is_hevc) {
-		GF_SAFEALLOC(hevc_state, HEVCState);
-	} else {
-		GF_SAFEALLOC(avc_state, AVCState);
-	}
 
 	while (gf_bs_available(bs)) {
 		u32 nal_size;

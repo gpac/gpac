@@ -1090,7 +1090,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 			DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPS", "svcC", is_svc)
 		}
 		if (mvccfg) {
-			if (!nalh_size) nalh_size = svccfg->nal_unit_size;
+			if (!nalh_size) nalh_size = mvccfg->nal_unit_size;
 			DUMP_ARRAY(mvccfg->sequenceParameterSets, "SVCSPS", "mvcC", is_svc)
 			DUMP_ARRAY(mvccfg->pictureParameterSets, "SVCPPS", "mvcC", is_svc)
 		}

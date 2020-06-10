@@ -2262,7 +2262,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 static void gf_icy_skip_data(GF_DownloadSession * sess, const char * data, u32 nbBytes)
 {
 	u32 icy_metaint;
-	if (!sess) return;
+	if (!sess || !data ) return;
 
 	icy_metaint = sess->icy_metaint;
 	assert( icy_metaint > 0 );
@@ -2325,7 +2325,7 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 	s32 res;
 	char *te_header, *sep;
 
-	if (!sess) return NULL;
+	if (!sess || !body_start) return NULL;
 	if (!sess->chunked) return body_start;
 
 	if (sess->nb_left_in_chunk) {
@@ -3039,12 +3039,11 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
  */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 {
-	u32 size;
 	GF_Err e;
 	u32 buf_size = sess->dm ? sess->dm->read_buf_size : GF_DOWNLOAD_BUFFER_SIZE;
 
 	while (1) {
-		u32 remaining_data_size;
+		u32 remaining_data_size, size=0;
 		if (sess->status>=GF_NETIO_DISCONNECTED)
 			return GF_REMOTE_SERVICE_ERROR;
 
@@ -3063,7 +3062,6 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			}
 			memcpy(sHTTP, sess->remaining_data, sess->remaining_data_size);
 		}
-
 		e = gf_dm_read_data(sess, sHTTP + sess->remaining_data_size, buf_size - sess->remaining_data_size, &size);
 		if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
 			if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && !sess->chunked && (gf_sys_clock_high_res() - sess->start_time > 5000000))) {
@@ -3113,6 +3111,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			return GF_OK;
 		}
 	}
+	return GF_OK;
 }
 
 static void notify_headers(GF_DownloadSession *sess, char * sHTTP, s32 bytesRead, s32 BodyStart)

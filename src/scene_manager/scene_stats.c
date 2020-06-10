@@ -499,15 +499,19 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 			if (inf->new_node) StatNodeGraph(stat, inf->new_node);
 			break;
 		case GF_SG_VRML_MFNODE:
-			list = * ((GF_ChildNodeItem**) inf->field_ptr);
-			while (list) {
-				StatNodeGraph(stat, list->node);
-				list = list->next;
+			if (inf) {
+				list = * ((GF_ChildNodeItem**) inf->field_ptr);
+				while (list) {
+					StatNodeGraph(stat, list->node);
+					list = list->next;
+				}
 			}
 			break;
 		default:
-			field.far_ptr = inf->field_ptr;
-			StatField(stat->stats, &field);
+			if (inf) {
+				field.far_ptr = inf->field_ptr;
+				StatField(stat->stats, &field);
+			}
 			break;
 		}
 		break;
@@ -564,6 +568,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 	case GF_SG_ROUTE_INSERT:
 		return GF_OK;
 	case GF_SG_XREPLACE:
+		if (!inf) return GF_OK;
 		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
 		if (e) return e;
 

@@ -1129,7 +1129,7 @@ GF_Err sdtp_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "SampleDependencyTypeBox", trace);
 	gf_fprintf(trace, "SampleCount=\"%d\">\n", p->sampleCount);
 
-	if (!p->sample_info && p->size) {
+	if (!p->sample_info) {
 		gf_fprintf(trace, "<!--Warning: No sample dependencies indications-->\n");
 	} else {
 		for (i=0; i<p->sampleCount; i++) {

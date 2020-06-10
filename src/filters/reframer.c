@@ -1024,7 +1024,10 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		u64 ts;
 		RTStream *st = gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
-		st->range_end_reached_ts = (ctx->min_ts_computed * st->timescale) / ctx->min_ts_scale;
+		st->range_end_reached_ts = (ctx->min_ts_computed * st->timescale);
+		if (ctx->min_ts_scale)
+			st->range_end_reached_ts /= ctx->min_ts_scale;
+
 		st->range_end_reached_ts += 1;
 		st->first_pck_sent = GF_FALSE;
 		if (pck) {

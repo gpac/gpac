@@ -2414,6 +2414,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
 				info.far_ptr = inf->field_ptr;
 				info.fieldType = inf->fieldType;
+				info.name = targetField.name;
 
 				if (gf_sg_vrml_is_sf_field(inf->fieldType)) {
 					gf_bt_sffield(parser, &info, childNode ? childNode : targetNode);
@@ -3611,13 +3612,13 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 		parser->load = NULL;
 		gf_bt_check_line(parser);
 		parser->load = load;
-		if (parser->def_w && parser->def_h) {
+		if (load->ctx && parser->def_w && parser->def_h) {
 			load->ctx->scene_width = parser->def_w;
 			load->ctx->scene_height = parser->def_h;
 		}
 
 		/*create at least one empty BIFS stream*/
-		if (!parser->is_wrl) {
+		if (!parser->is_wrl && load->ctx) {
 			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GF_CODECID_BIFS);
 			parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
 			parser->load->ctx->is_pixel_metrics = 1;

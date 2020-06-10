@@ -393,7 +393,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				opid = ctx->opid;
 			} else {
 				GF_Err e;
-				if (!ctx->alt_dst) {
+				if (!ctx->alt_dst && ctx->out_path) {
 					char szSRC[100];
 					GF_FileIO *gfio = NULL;
 					char *mpath = ctx->out_path;
@@ -403,10 +403,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						if (!gfio) return GF_BAD_PARAM;
 						//only use basename as we will create the new resource through factory
 						mpath = (char *) gf_file_basename(gf_fileio_resource_url(gfio));
+						if (!mpath) return GF_OUT_OF_MEM;
 					}
 
 					len = (u32) strlen(mpath);
 					char *out_path = gf_malloc(len+10);
+					if (!out_path) return GF_OUT_OF_MEM;
 					memcpy(out_path, mpath, len);
 					out_path[len]=0;
 					char *sep = gf_file_ext_start(out_path);
@@ -424,6 +426,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						const char *rel = gf_fileio_factory(gfio, out_path);
 						gf_free(out_path);
 						out_path = gf_strdup(rel);
+						if (!out_path) return GF_OUT_OF_MEM;
 					}
 
 					ctx->alt_dst = gf_filter_connect_destination(filter, out_path, &e);
@@ -2429,7 +2432,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		rep = gf_list_get(set->representations, i);
 		ds = rep->playback.udta;
 		if (!ds->template && !template) {}
-		else if (ds->template && !strcmp(ds->template, template) ) {
+		else if (ds->template && template && !strcmp(ds->template, template) ) {
 		} else {
 			single_template = GF_FALSE;
 		}
@@ -3082,7 +3085,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 			if (pdur < ds_dur) pdur = ds_dur;
 		}
 	}
-	if (!count && ctx->current_period->period->duration)
+	if (!count && ctx->current_period->period && ctx->current_period->period->duration)
 		pdur = ctx->current_period->period->duration;
 
 	if (!ctx->check_dur) {
@@ -5908,13 +5911,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 						update_manifest = GF_TRUE;
 				}
 			}
+			if (update_period)
+				dasher_update_period_duration(ctx, GF_FALSE);
+
+			if (update_manifest)
+				dasher_send_manifest(filter, ctx, GF_FALSE);
 		}
 
-		if (update_period)
-			dasher_update_period_duration(ctx, GF_FALSE);
-
-		if (update_manifest)
-			dasher_send_manifest(filter, ctx, GF_FALSE);
 	}
 
 	//still some running streams in period

@@ -868,14 +868,18 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	if (pssh) {
 		if (!pssh->private_data_size) {
 			pssh->private_data_size = len;
-			if (!pssh->private_data && len) pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
-			memcpy((char *)pssh->private_data, data, pssh->private_data_size);
+			if (len) {
+				if (!pssh->private_data) pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+				memcpy((char *)pssh->private_data, data, pssh->private_data_size);
+			}
 		}
 	} else if (pssh_piff) {
 		if (!pssh_piff->private_data_size) {
 			pssh_piff->private_data_size = len;
-			if (!pssh_piff->private_data && len) pssh_piff->private_data = (u8 *)gf_malloc(pssh_piff->private_data_size*sizeof(char));
-			memcpy((char *)pssh_piff->private_data, data, pssh_piff->private_data_size);
+			if (len) {
+				if (!pssh_piff->private_data) pssh_piff->private_data = (u8 *)gf_malloc(pssh_piff->private_data_size*sizeof(char));
+				memcpy((char *)pssh_piff->private_data, data, pssh_piff->private_data_size);
+			}
 		}
 	}
 	return GF_OK;
@@ -1430,11 +1434,15 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 			gf_bs_read_data(mdia->information->dataHandler->bs, saio_cenc->cached_data, saio_cenc->total_size);
 			gf_bs_seek(mdia->information->dataHandler->bs, cur_position);
 		}
-		if ((*out_size) < size) {
-			(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
+		if (out_size) {
+			if (out_buffer) {
+				if ((*out_size) < size) {
+					(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
+				}
+				memcpy((*out_buffer), saio_cenc->cached_data + prev_sai_size, size);
+			}
+			(*out_size) = size;
 		}
-		(*out_size) = size;
-		memcpy((*out_buffer), saio_cenc->cached_data + prev_sai_size, size);
 		return GF_OK;
 	}
 
@@ -1457,12 +1465,14 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 				}
 			}
 		}
-	} else {
-		if ((*out_size) < size) {
-			(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
+	} else if (out_size) {
+		if (out_buffer) {
+			if ((*out_size) < size) {
+				(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
+			}
+			gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer), size);
 		}
 		(*out_size) = size;
-		gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer), size);
 	}
 	gf_bs_seek(mdia->information->dataHandler->bs, cur_position);
 

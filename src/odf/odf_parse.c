@@ -157,7 +157,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	Bool OD_ParseUIConfig(u8 *val, u8 **out_data, u32 *out_data_size);
 #endif
 	u32 ret = 0;
-
+	if (!fieldName || !val) return GF_BAD_PARAM;
 	if (!stricmp(val, "auto")) return GF_OK;
 	else if (!stricmp(val, "unspecified")) return GF_OK;
 

@@ -3971,6 +3971,10 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 			return JS_NULL;
 		}
 		parent->sgprivate->interact->js_binding->fields = gf_list_new();
+		if (!parent->sgprivate->interact->js_binding->fields) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create JS bindings storage\n"));
+			return JS_NULL;
+		}
 	}
 
 	if ( gf_list_find(parent->sgprivate->interact->js_binding->fields, jsf) < 0) {

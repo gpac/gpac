@@ -2498,11 +2498,13 @@ GF_Err gf_isom_append_edit(GF_ISOFile *movie, u32 trackNumber, u64 EditDuration,
 		GF_EditBox *edts = (GF_EditBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_EDTS);
 		if (!edts) return GF_OUT_OF_MEM;
 		trak_on_child_box((GF_Box*)trak, (GF_Box *)edts);
+		assert(trak->editBox);
 	}
 	if (!trak->editBox->editList) {
 		GF_EditListBox *elst = (GF_EditListBox *) gf_isom_box_new_parent(&trak->editBox->child_boxes, GF_ISOM_BOX_TYPE_ELST);
 		if (!elst) return GF_OUT_OF_MEM;
 		edts_on_child_box((GF_Box*)trak->editBox, (GF_Box *)elst);
+		assert(trak->editBox->editList);
 	}
 	ent = (GF_EdtsEntry *)gf_malloc(sizeof(GF_EdtsEntry));
 	if (!ent) return GF_OUT_OF_MEM;
@@ -5285,6 +5287,10 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		}
 		else gf_fseek(f, 0, SEEK_SET);
 		trak->Media->handler->nameUTF8 = (char*)gf_malloc(sizeof(char)*(size_t)(size+1));
+		if (!trak->Media->handler->nameUTF8) {
+			gf_fclose(f);
+			return GF_OUT_OF_MEM;
+		}
 		size = gf_fread(trak->Media->handler->nameUTF8, (size_t)size, f);
 		trak->Media->handler->nameUTF8[size] = 0;
 		gf_fclose(f);
@@ -6358,14 +6364,15 @@ GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
 		trak->Media->information->sampleTable->CompositionToDecode = (GF_CompositionToDecodeBox *) gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_CSLG);
 
 	cslg = trak->Media->information->sampleTable->CompositionToDecode;
-
-	cslg->compositionToDTSShift = shift;
-	cslg->leastDecodeToDisplayDelta = leastCTTS;
-	cslg->greatestDecodeToDisplayDelta = greatestCTTS;
-	cslg->compositionStartTime = 0;
-	/*for our use case (first CTS set to 0), the composition end time is the media duration if it fits on 32 bits*/
-	duration = gf_isom_get_media_duration(file, track);
-	cslg->compositionEndTime = (duration<0x7FFFFFFF) ? (s32) duration : 0;
+	if (cslg) {
+		cslg->compositionToDTSShift = shift;
+		cslg->leastDecodeToDisplayDelta = leastCTTS;
+		cslg->greatestDecodeToDisplayDelta = greatestCTTS;
+		cslg->compositionStartTime = 0;
+		/*for our use case (first CTS set to 0), the composition end time is the media duration if it fits on 32 bits*/
+		duration = gf_isom_get_media_duration(file, track);
+		cslg->compositionEndTime = (duration<0x7FFFFFFF) ? (s32) duration : 0;
+	}
 
 	gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO4, GF_TRUE);
 	return GF_OK;

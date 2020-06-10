@@ -749,12 +749,14 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	avst->codecpar->codec_type = ff_st;
 	avst->codecpar->codec_tag = ff_codec_tag;
 
-	if (dsi) {
+	if (dsi && dsi->value.data.ptr) {
 		if (avst->codecpar->extradata) av_free(avst->codecpar->extradata);
 		avst->codecpar->extradata_size = dsi->value.data.size;
 		avst->codecpar->extradata = av_malloc(avst->codecpar->extradata_size+ AV_INPUT_BUFFER_PADDING_SIZE);
-		memcpy(avst->codecpar->extradata, dsi->value.data.ptr, avst->codecpar->extradata_size);
-		memset(avst->codecpar->extradata + dsi->value.data.size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+		if (avst->codecpar->extradata) {
+			memcpy(avst->codecpar->extradata, dsi->value.data.ptr, avst->codecpar->extradata_size);
+			memset(avst->codecpar->extradata + dsi->value.data.size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+		}
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (p) avst->id = p->value.uint;
@@ -933,8 +935,12 @@ static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_
 static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 {
 	const char *proto;
-	if (!strncmp(url, "gfio://", 7))
+	if (url && !strncmp(url, "gfio://", 7)) {
 		url = gf_fileio_translate_url(url);
+	}
+	if (!url)
+		return GF_FPROBE_NOT_SUPPORTED;
+
 
 	AVOutputFormat *ofmt = av_guess_format(NULL, url, mime);
 	if (!ofmt && mime) ofmt = av_guess_format(NULL, NULL, mime);

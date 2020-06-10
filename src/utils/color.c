@@ -2544,6 +2544,8 @@ static GF_Err color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigne
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
+	if (!pY) return GF_BAD_PARAM;
+	
 	if (!pU) {
 		pU = pY + src_stride * src_height;
 		pV = pY + 5*src_stride * src_height/4;

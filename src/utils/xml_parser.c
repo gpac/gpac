@@ -1491,7 +1491,7 @@ retry:
 			CPYCAT_ALLOC(start, 1);
 			sep = strstr(szLine, att_name);
 		}
-		sep = strchr(sep, '=');
+		sep = sep ? strchr(sep, '=') : NULL;
 		if (!sep) {
 			state = 0;
 			CPYCAT_ALLOC(cur_line, 1);

@@ -326,6 +326,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	ps = GF_FALSE;
 	sbr = GF_FALSE;
 	sbr_sr = 0;
+	w = h = 0;
 	cur_extract_mode = gf_isom_get_nalu_extract_mode(import->orig, track_in);
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(import->orig);
 	if (iod && (iod->tag != GF_ODF_IOD_TAG)) {
@@ -335,7 +336,6 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	mtype = gf_isom_get_media_type(import->orig, track_in);
 	if (mtype==GF_ISOM_MEDIA_VISUAL) {
 		u8 PL = iod ? iod->visual_profileAndLevel : 0xFE;
-		w = h = 0;
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/

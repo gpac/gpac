@@ -1591,7 +1591,8 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 		if (use_template) {
 			GF_SAFEALLOC(set->segment_template, GF_MPD_SegmentTemplate);
 			if (!set->segment_template)  return GF_OUT_OF_MEM;
-			set->segment_template->duration = (u32)pe->duration_info;
+			if (pe)
+				set->segment_template->duration = (u32)pe->duration_info;
 			if (template_width > 1) {
 				sprintf(str, "%s$%%0%ddNumber$%s", template_base, template_width, template_ext);
 			} else {
@@ -4301,7 +4302,7 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 	while (1) {
 		Double segment_duration;
 		u32 timescale;
-		u64 segment_duration_in_scale, seg_start_in_scale;
+		u64 segment_duration_in_scale=0, seg_start_in_scale;
 
 		//TODO this could be further optimized by directly querying the index for this start time ...
 		GF_Err e = gf_mpd_get_segment_start_time_with_timescale(segment_idx, in_period, in_set, in_rep, &seg_start_in_scale, &segment_duration_in_scale, &timescale);

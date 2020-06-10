@@ -3060,9 +3060,10 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 		{
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->textContent) {
-				if ((txt->type==GF_DOM_TEXT_CDATA) ||
-				        (parent->sgprivate->tag == TAG_SVG_script) ||
-				        (parent->sgprivate->tag == TAG_SVG_handler)) {
+				if ((txt->type==GF_DOM_TEXT_CDATA)
+					|| (parent && (parent->sgprivate->tag == TAG_SVG_script))
+					|| (parent && (parent->sgprivate->tag == TAG_SVG_handler))
+				) {
 					gf_fprintf(sdump->trace, "<![CDATA[");
 					gf_fprintf(sdump->trace, "%s", txt->textContent);
 					gf_fprintf(sdump->trace, "]]>");

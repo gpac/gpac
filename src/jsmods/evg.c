@@ -5048,9 +5048,10 @@ static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSV
 
 			if (nb_pix!=kl) {
 				u32 n = knorm ? knorm : 1;
-				kr = (kr * kl / n / nb_pix);
-				kg = (kg * kl / n / nb_pix);
-				kb = (kb * kl / n / nb_pix);
+				if (nb_pix) n *= nb_pix;
+				kr = (kr * kl / n);
+				kg = (kg * kl / n);
+				kb = (kb * kl / n);
 			} else if (knorm) {
 				kr /= knorm;
 				kg /= knorm;

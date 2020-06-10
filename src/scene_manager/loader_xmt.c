@@ -873,7 +873,8 @@ static u32 xmt_parse_script(GF_XMTParser *parser, const char *name, SFScript *va
 
 static void xmt_offset_time(GF_XMTParser *parser, Double *time)
 {
-	*time += parser->au_time;
+	if (time && parser)
+		*time += parser->au_time;
 }
 static void xmt_check_time_offset(GF_XMTParser *parser, GF_Node *n, GF_FieldInfo *info)
 {
@@ -1138,26 +1139,35 @@ static void xmt_parse_route(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 		xmt_report(parser, GF_BAD_PARAM, "ROUTE: Cannot find origin node %s", fromN);
 		return;
 	}
-	e = gf_node_get_field_by_name(orig, fromNF, &orig_field);
-	if ((e != GF_OK) && strstr(fromNF, "_changed")) {
-		char *sz = strstr(fromNF, "_changed");
-		sz[0] = 0;
+	if (fromNF) {
 		e = gf_node_get_field_by_name(orig, fromNF, &orig_field);
+		if (e != GF_OK) {
+			char *sz = strstr(fromNF, "_changed");
+			if (sz) {
+				sz[0] = 0;
+				e = gf_node_get_field_by_name(orig, fromNF, &orig_field);
+			}
+		}
+		if (e!=GF_OK) {
+			xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", fromNF, fromN);
+			return;
+		}
 	}
-	if (e!=GF_OK) {
-		xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", fromNF, fromN);
-		return;
-	}
+
 	dest = xmt_find_node(parser, toN);
 	if (!dest) {
 		xmt_report(parser, GF_BAD_PARAM, "ROUTE: Cannot find destination node %s", toN);
 		return;
 	}
-	e = gf_node_get_field_by_name(dest, toNF, &dest_field);
-	if ((e != GF_OK) && toNF && !strnicmp(toNF, "set_", 4)) e = gf_node_get_field_by_name(dest, &toNF[4], &dest_field);
-	if (e != GF_OK) {
-		xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", toNF, toN);
-		return;
+	if (toNF) {
+		e = gf_node_get_field_by_name(dest, toNF, &dest_field);
+		if ((e != GF_OK) && !strnicmp(toNF, "set_", 4))
+			e = gf_node_get_field_by_name(dest, &toNF[4], &dest_field);
+
+		if (e != GF_OK) {
+			xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", toNF, toN);
+			return;
+		}
 	}
 	rID = 0;
 	if (ID && strlen(ID)) {
@@ -1598,7 +1608,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	/*proto instance field*/
 	if (!strcmp(name, "fieldValue")) {
 		char *field, *value;
-		if (!parent || (parent->node->sgprivate->tag != TAG_ProtoNode)) {
+		if (!parent || !parent->node || (parent->node->sgprivate->tag != TAG_ProtoNode)) {
 			xmt_report(parser, GF_OK, "Warning: fieldValue not a valid node");
 			return NULL;
 		}

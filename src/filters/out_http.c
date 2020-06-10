@@ -619,8 +619,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		goto exit;
 	}
 	url = gf_dm_sess_get_resource_name(sess->http_sess);
-	if (!url || (url[0] != '/'))
+	if (!url || (url[0] != '/')) {
 		e = GF_BAD_PARAM;
+		response = "HTTP/1.1 400 Bad Request\r\n";
+		goto exit;
+	}
 
 	sess->do_log = httpout_do_log(sess, parameter->reply);
 

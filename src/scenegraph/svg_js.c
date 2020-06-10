@@ -1492,7 +1492,9 @@ static JSValue rect_getProperty(JSContext *c, JSValueConst obj, int magic)
 	if (!rc) return JS_EXCEPTION;
 	if (rc->sg) {
 		GF_JSAPIParam par;
-		ScriptAction(rc->sg, GF_JSAPI_OP_GET_VIEWPORT, rc->sg->RootNode, &par);
+		if (!ScriptAction(rc->sg, GF_JSAPI_OP_GET_VIEWPORT, rc->sg->RootNode, &par)) {
+			return JS_EXCEPTION;
+		}
 		rc->x = FIX2FLT(par.rc.x);
 		rc->y = FIX2FLT(par.rc.y);
 		rc->w = FIX2FLT(par.rc.width);
@@ -1539,7 +1541,9 @@ static JSValue point_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 	if (pt->sg) {
 		GF_JSAPIParam par;
-		ScriptAction(pt->sg, GF_JSAPI_OP_GET_TRANSLATE, pt->sg->RootNode, &par);
+		if (!ScriptAction(pt->sg, GF_JSAPI_OP_GET_TRANSLATE, pt->sg->RootNode, &par)) {
+			return JS_EXCEPTION;
+		}
 		pt->x = FIX2FLT(par.pt.x);
 		pt->y = FIX2FLT(par.pt.y);
 	}

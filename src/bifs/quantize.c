@@ -211,7 +211,7 @@ GF_Err Q_EncCoordOnUnitSphere(GF_BifsEncoder *codec, GF_BitStream *bs, u32 NbBit
 {
 	u32 i;
 	u32 len = NbComp+1;
-	s32 orientation =-1;
+	u32 orientation=0;
 	Fixed maxTmp = - FIX_MAX;
 	for (i=0; i<len; i++) {
 		if (ABS(m_ft[i]) > maxTmp) {

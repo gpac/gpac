@@ -446,13 +446,14 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		}
 	} else if (odm->pid==for_pid) {
 		/*othewise send a connect ack for top level*/
-		GF_Event evt;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected (%s) !\n", odm->scene_ns->url));
-
-		evt.type = GF_EVENT_CONNECT;
-		evt.connect.is_connected = GF_TRUE;
-		gf_sc_send_event(odm->subscene->compositor, &evt);
+		if (odm->subscene) {
+			GF_Event evt;
+			evt.type = GF_EVENT_CONNECT;
+			evt.connect.is_connected = GF_TRUE;
+			gf_sc_send_event(odm->subscene->compositor, &evt);
+		}
 	}
 
 

@@ -930,6 +930,7 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 		case GFS_PCKTYPE_PID_EOS:
 			if (gpck->pck) gf_filter_pck_discard(gpck->pck);
 			gf_filter_pid_set_eos(gst->opid);
+			e = GF_EOS;
 			break;
 		case GFS_PCKTYPE_PCK:
 			if (gpck->corrupted) gf_filter_pck_set_corrupted(gpck->pck, GF_TRUE);

@@ -1558,11 +1558,15 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
 		faces = (GF_Mesh **)gf_malloc(sizeof(GF_Mesh *)*face_count);
+		if (!faces) return;
 		faces_info = (struct face_info*)gf_malloc(sizeof(struct face_info)*face_count);
+		if (!faces_info) return;
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
 		pts_info = (struct pt_info*)gf_malloc(sizeof(struct pt_info)*pt_count);
+		if (!pts_info) return;
 		memset(pts_info, 0, sizeof(struct pt_info)*pt_count);
 		faces[cur_face] = new_mesh();
+		if (!faces[cur_face]) return;
 	}
 
 	for (j=0; j<zDimension-1; j++) {
@@ -1640,7 +1644,10 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 				gf_vec_norm(&faces_info[cur_face].nor);
 				/*done with face*/
 				cur_face++;
-				if (cur_face<face_count) faces[cur_face] = new_mesh();
+				if (cur_face<face_count) {
+					faces[cur_face] = new_mesh();
+					if (!faces[cur_face]) return;
+				}
 			} else {
 				mesh_set_triangle(mesh, pt_idx+0, pt_idx+2, pt_idx+3);
 				mesh_set_triangle(mesh, pt_idx+0, pt_idx+3, pt_idx+1);
