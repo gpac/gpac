@@ -201,7 +201,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	allowedVersions[1] = JNI_VERSION_1_4;
 	allowedVersions[2] = JNI_VERSION_1_2;
 	allowedVersions[3] = JNI_VERSION_1_1;
-	JNIEnv * env;
+	JNIEnv * env = NULL;
 	if (!vm)
 		return -1;
 	for (int i = 0 ; i < NUM_JNI_VERSIONS; i++) {
@@ -216,6 +216,10 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 			}
 		}
 
+	}
+	if (! env) {
+		LOGW("Failed to find any supported JNI VERSION");
+		return -1;
 	}
 	javaVM = vm;
 	LOGI("Registering %s natives\n", className);
