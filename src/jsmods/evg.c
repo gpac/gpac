@@ -1400,7 +1400,8 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 				return GF_FALSE;
 
 			right_val = &tmpr;
-			right_val->y = right_val->z = right_val->q = 0;
+			right_val->x = right_val->y = right_val->z = right_val->q = 0;
+			assert(va->nb_comp<=4);
 			for (j=0; j<va->nb_comp; j++) {
 				((Float *)right_val)[j] = va->values[va_idx+j];
 			}
