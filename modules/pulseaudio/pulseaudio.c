@@ -171,7 +171,7 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 		return;
 	}
 	ctx->consecutive_zero_reads = 0;
-	written = pa_simple_write (ctx->playback_handle, data, written, &pa_error);
+	/*written = */pa_simple_write (ctx->playback_handle, data, written, &pa_error);
 	if (pa_error != 0)
 	{
 		if (ctx->errors < 1)

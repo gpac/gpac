@@ -6089,7 +6089,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 			case GF_ISOM_ITUNE_TEMPO:
-				gf_isom_apple_set_tag(file, itag, NULL, atoi(val) );
+				gf_isom_apple_set_tag(file, itag, NULL, val ? atoi(val) : 0);
 				break;
 			case GF_ISOM_ITUNE_GENRE:
 			{

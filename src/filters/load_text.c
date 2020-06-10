@@ -2324,6 +2324,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 		if (probe_first_desc_only && ctx->text_descs && gf_list_count(ctx->text_descs))
 			return GF_OK;
 
+		memset(&td, 0, sizeof(GF_TextSampleDescriptor));
 		node = (GF_XMLNode*)gf_list_get(root->content, ctx->cur_child_idx);
 		if (node->type) continue;
 		if (strcmp(node->name, "sample")) continue;

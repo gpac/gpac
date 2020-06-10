@@ -231,6 +231,10 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	GF_ISOSample *samp;
 	char *lang = NULL;
 
+	if (!szName) {
+		szName = gf_file_basename(gf_isom_get_filename(dumper->file));
+		if (!szName) return GF_BAD_PARAM;
+	}
 	/* Check decoder specific information (palette) size - should be 64 */
 	if (!dsi || (dsiSize != 64)) {
 		return gf_export_message(dumper, GF_CORRUPTED_DATA, "Invalid decoder specific info size - must be 64 but is %d", dsiSize);

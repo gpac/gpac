@@ -333,7 +333,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	if (*dst_size < *height * *width * jpx.cinfo.num_components) {
+	if (!dst || (*dst_size < *height * *width * jpx.cinfo.num_components)) {
 		*dst_size = *height * *width * jpx.cinfo.num_components;
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_BUFFER_TOO_SMALL;

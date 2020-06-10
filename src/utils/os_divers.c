@@ -868,7 +868,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			} else if (!stricmp(arg, "-no-save")) {
 				gpac_discard_config = GF_TRUE;
 			} else if (!stricmp(arg, "-ntp-shift")) {
-				s32 shift = atoi(arg_val);
+				s32 shift = arg_val ? atoi(arg_val) : 0;
 				gf_net_set_ntp_shift(shift);
 				if (!use_sep) i += 1;
 			} else if (gf_opts_load_option(arg, arg_val, &consumed, &e)) {

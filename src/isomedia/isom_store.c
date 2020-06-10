@@ -1246,7 +1246,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 		//go to next group
 		curGroupID ++;
 	}
-	movie->mdat->dataSize = totSize;
+	if (movie->mdat)
+		movie->mdat->dataSize = totSize;
 	return GF_OK;
 }
 

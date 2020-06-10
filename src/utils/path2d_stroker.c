@@ -1478,7 +1478,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	Fixed dist;
 	Fixed dash_dist;
 	s32 offsetinit;
-	u32 next_offset;
+	u32 next_offset=0;
 	s32 toggleinit;
 	s32 firstindex;
 	Bool toggle_check;
@@ -1517,7 +1517,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 			dash = gf_path_get_dash(pen, offsetinit, &next_offset);
 			if (length_scale) dash = gf_mulfix(dash, length_scale);
 		}
-		if (pen->dash_offset<0) {
+		if ((pen->dash_offset<0) && pen->dash_set && pen->dash_set->num_dash) {
 			offsetinit = pen->dash_set->num_dash-1;
 			dash = gf_path_get_dash(pen, offsetinit, &next_offset);
 			if (length_scale) dash = gf_mulfix(dash, length_scale);

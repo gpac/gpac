@@ -1079,6 +1079,8 @@ static u32 lsr_to_dom_key(u32 lsr_k)
 static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 {
 	u32 flag;
+	memset(evtType, 0, sizeof(XMLEV_Event));
+
 	GF_LSR_READ_INT(lsr, flag, 1, "choice");
 	if (!flag) {
 		char *evtName, *sep;

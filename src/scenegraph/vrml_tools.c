@@ -1496,7 +1496,7 @@ Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 		} else {
 			if ( ((SFURL *)orig)->url && ! ((SFURL *)dest)->url) changed = 1;
 			else if ( ! ((SFURL *)orig)->url && ((SFURL *)dest)->url) changed = 1;
-			else if ( strcmp( ((SFURL *)orig)->url , ((SFURL *)dest)->url) ) changed = 1;
+			else if ( ((SFURL *)orig)->url && ((SFURL *)dest)->url && strcmp( ((SFURL *)orig)->url , ((SFURL *)dest)->url) ) changed = 1;
 		}
 		break;
 	case GF_SG_VRML_SFIMAGE:

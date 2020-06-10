@@ -55,7 +55,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	e = Track_FindRef(mdia->mediaTrack, GF_ISOM_BOX_TYPE_MPOD, &mpod);
 	if (e) return e;
 	//no references, nothing to do...
-	if (!mpod) return GF_OK;
+	if (!mpod || !mpod->trackIDs) return GF_OK;
 
 	ODdecode = gf_odf_codec_new();
 	if (!ODdecode) return GF_OUT_OF_MEM;

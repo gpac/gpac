@@ -2470,7 +2470,8 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 		if (tmp) len = (u32) (tmp-str);
 		else len = (u32) strlen(str);
 		memcpy(value_string, str, len);
-		while (value_string[len - 1] == ' ' && len > 0) len--;
+		while ((len > 0) && (value_string[len - 1] == ' '))
+			len--;
 		value_string[len] = 0;
 
 		GF_SAFEALLOC(value, SMIL_Time)

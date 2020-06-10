@@ -1360,11 +1360,19 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		/*if not created, do it now*/
 		if (!gf_list_count(parser->load->ctx->streams)) {
 			parser->laser_es = gf_sm_stream_new(parser->load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_DIMS);
+			if (!parser->laser_es) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
 			parser->laser_es->timeScale = 1000;
 			/* Create a default AU to behave as other streams (LASeR, BIFS)
 			   but it is left empty, there is no notion of REPLACE Scene or NEw Scene,
 			   the RAP is the graph */
 			parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, GF_TRUE);
+			if (!parser->laser_au) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
 		} else {
 			parser->laser_es = gf_list_get(parser->load->ctx->streams, 0);
 			parser->laser_au = gf_list_last(parser->laser_es->AUs);
@@ -1385,11 +1393,24 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		/*nothing to do, wait for the laser (or other) header before creating stream)*/
 		if (!strcmp(name, "LASeRHeader")) {
 			GF_ESD *esd = lsr_parse_header(parser, name, name_space, attributes, nb_attributes);
-			if (!esd) svg_report(parser, GF_BAD_PARAM, "Invalid LASER Header");
+			if (!esd) {
+				svg_report(parser, GF_BAD_PARAM, "Invalid LASER Header");
+				return;
+			}
 			/*TODO find a better way of assigning an ID to the laser stream...*/
 			esd->ESID = 1;
 			parser->laser_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-			if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
+			if (!parser->laser_es) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
+			if (!parser->load->ctx->root_od) {
+				parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
+				if (!parser->load->ctx->root_od) {
+					svg_report(parser, GF_OUT_OF_MEM, NULL);
+					return;
+				}
+			}
 			gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
 			parser->laser_es->timeScale = esd->slConfig->timestampResolution;
 			return;
@@ -1407,6 +1428,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			}
 			/*create new laser unit*/
 			parser->laser_au = gf_sm_stream_au_new(parser->laser_es, time, 0, rap);
+			if (!parser->laser_au) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
 			return;
 		}
 
@@ -1422,13 +1447,23 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			GF_ObjectDescriptor *od;
 			SVG_SAFExternalStream*st;
 			/*create a SAF stream*/
-			if (!parser->saf_es) {
+			if (!parser->saf_es && parser->load->ctx) {
 				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
 				esd->ESID = 0xFFFE;
 				esd->decoderConfig->streamType = GF_STREAM_OD;
 				esd->decoderConfig->objectTypeIndication = 1;
 				parser->saf_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, GF_STREAM_OD, GF_CODECID_OD_V1);
-				if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
+				if (!parser->saf_es) {
+					svg_report(parser, GF_OUT_OF_MEM, NULL);
+					return;
+				}
+				if (!parser->load->ctx->root_od) {
+					parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
+					if (!parser->load->ctx->root_od) {
+						svg_report(parser, GF_OUT_OF_MEM, NULL);
+						return;
+					}
+				}
 				parser->saf_es->timeScale = 1000;
 				gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
 			}
@@ -1458,9 +1493,22 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 			/*create new SAF unit*/
 			parser->saf_au = gf_sm_stream_au_new(parser->saf_es, time, 0, GF_FALSE);
+			if (!parser->saf_au) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
+
 			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
+			if (!odU) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
 			gf_list_add(parser->saf_au->commands, odU);
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+			if (!od) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
 			gf_list_add(odU->objectDescriptors, od);
 			od->objectDescriptorID = st->id;
 
@@ -1469,12 +1517,20 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			} else {
 				GF_MuxInfo *mux;
 				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
+				if (!esd) {
+					svg_report(parser, GF_OUT_OF_MEM, NULL);
+					return;
+				}
 				gf_list_add(od->ESDescriptors, esd);
 				esd->decoderConfig->objectTypeIndication = codecid;
 				esd->decoderConfig->streamType = ST;
 				esd->ESID = st->id;
 
 				mux = (GF_MuxInfo *)gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
+				if (!mux) {
+					svg_report(parser, GF_OUT_OF_MEM, NULL);
+					return;
+				}
 				gf_list_add(esd->extensionDescriptors, mux);
 
 				/*global source for stream, don't use nhml dumping*/
@@ -1565,6 +1621,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
 				assert(parser->laser_es);
 				parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, GF_FALSE);
+				if (!parser->laser_au) {
+					svg_report(parser, GF_OUT_OF_MEM, NULL);
+					return;
+				}
 			} else {
 				svg_report(parser, GF_BAD_PARAM, "LASeR sceneUnit not defined for command %s", name);
 				return;
@@ -1576,6 +1636,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			SVG_NodeStack *top;
 			GF_Err e;
 			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
+			if (!parser->command) {
+				svg_report(parser, GF_OUT_OF_MEM, NULL);
+				return;
+			}
 
 			/*this is likely a conditional start - update unknown depth level*/
 			top = (SVG_NodeStack*)gf_list_last(parser->node_stack);
@@ -2085,7 +2149,7 @@ GF_Err load_svg_parse_string(GF_SceneLoader *load, const char *str)
 	} else {
 		e = gf_xml_sax_parse(parser->sax_parser, str);
 	}
-	if (e<0) svg_report(parser, e, "Unable to parse chunk: %s", gf_xml_sax_get_error(parser->sax_parser) );
+	if (e<0) svg_report(parser, e, "Unable to parse chunk: %s", parser ? gf_xml_sax_get_error(parser->sax_parser) : "no parser");
 	else e = parser->last_error;
 	
 
@@ -2129,15 +2193,17 @@ GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *in_scene, char *node_str)
 	e = gf_sm_load_initialize_svg(&ctx, node_str, GF_TRUE);
 
 	parser = (GF_SVG_Parser *)ctx.loader_priv;
-	node = parser->fragment_root;
 
 	if (e != GF_OK) {
-		if (parser->fragment_root) gf_node_unregister(parser->fragment_root, NULL);
-		parser->fragment_root=NULL;
+		if (parser) {
+			if (parser->fragment_root) gf_node_unregister(parser->fragment_root, NULL);
+			parser->fragment_root=NULL;
+		}
 		load_svg_done(&ctx);
 		return NULL;
 	}
 
+	node = parser ? parser->fragment_root : NULL;
 	/*don't register*/
 	if (node) node->sgprivate->num_instances--;
 	load_svg_done(&ctx);

@@ -558,9 +558,14 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 
 	if (!nal_unit_size_field) {
-		if (entry->avc_config) nal_unit_size_field = entry->avc_config->config->nal_unit_size;
-		else if (entry->hevc_config || entry->lhvc_config ) {
-			nal_unit_size_field = entry->lhvc_config ? entry->lhvc_config->config->nal_unit_size : entry->hevc_config->config->nal_unit_size;
+		if (entry->avc_config && entry->avc_config->config)
+			nal_unit_size_field = entry->avc_config->config->nal_unit_size;
+		else if (entry->lhvc_config && entry->lhvc_config->config) {
+			nal_unit_size_field = entry->lhvc_config->config->nal_unit_size;
+			is_hevc = GF_TRUE;
+		}
+		else if (entry->hevc_config && entry->hevc_config->config) {
+			nal_unit_size_field = entry->hevc_config->config->nal_unit_size;
 			is_hevc = GF_TRUE;
 		}
 	}
@@ -1237,6 +1242,8 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 void gf_media_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type)
 {
 	u32 i, j;
+	if (!hevccfg) return;
+	
 	for (i = 0; i < gf_list_count(hevccfg->param_array); i++) {
 		GF_HEVCParamArray* ar = gf_list_get(hevccfg->param_array, i);
 		if (ar->type != nal_type) continue;

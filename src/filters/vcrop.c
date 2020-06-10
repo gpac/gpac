@@ -238,6 +238,9 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		dst_planes[1] = output + ctx->dst_stride[0] * ctx->dst_height;
 		dst_planes[2] = dst_planes[1] + ctx->dst_stride[1]*ctx->dst_uv_height;
 		dst_planes[3] = dst_planes[2] + ctx->dst_stride[2]*ctx->dst_uv_height;
+	} else {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_NOT_SUPPORTED;
 	}
 
 	if (do_memset) {
@@ -275,7 +278,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 			src += ctx->src_stride[1];
 			dst += ctx->dst_stride[1];
 		}
-	} else if (ctx->nb_planes>=3) {
+	} else if ((ctx->nb_planes==3) || (ctx->nb_planes==4)) {
 		u32 div_x, div_y;
 		//alpha/depth/other plane, treat as luma plane
 		if (ctx->nb_planes==4) {

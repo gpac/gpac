@@ -685,7 +685,7 @@ static void rtspout_get_next_mcast_port(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *s
 		u32 j, count2;
 		GF_RTSPOutSession *asess = gf_list_get(ctx->sessions, i);
 		if (asess == sess) continue;
-		if (!asess->multicast_ip) continue;
+		if (!asess->multicast_ip || !sess->multicast_ip) continue;
 		//reuse port number if different multicast groups
 		if (strcmp(asess->multicast_ip, sess->multicast_ip)) continue;
 

@@ -6824,6 +6824,9 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				u8 DeltaPocMsbCycleLt[32];
 				u32 num_long_term_sps = 0;
 				u32 num_long_term_pics = 0;
+
+				memset(DeltaPocMsbCycleLt, 0, sizeof(u8) * 32);
+				
 				if (sps->num_long_term_ref_pic_sps > 0) {
 					num_long_term_sps = gf_bs_get_ue(bs);
 				}

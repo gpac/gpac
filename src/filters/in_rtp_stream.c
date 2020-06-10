@@ -326,7 +326,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);
 		else if (!stricmp(att->Name, "mpeg4-odid") && att->Value) ODID = atoi(att->Value);
 		else if (!stricmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
-		else if (!stricmp(att->Name, "rvc-config-predef")) {
+		else if (!stricmp(att->Name, "rvc-config-predef") && att->Value) {
 			rvc_predef = atoi(att->Value);
 		} else if (!stricmp(att->Name, "rvc-config")) {
 			rvc_config_att = att->Value;

@@ -3858,7 +3858,7 @@ static void Server_Update(Server* server)
         for (;;)
         {
             // Inspect first byte to see if a message is there
-            char message_first_byte;
+            char message_first_byte=0;
             rmtU32 message_length=0;
             rmtError error = WebSocket_Receive(server->client_socket, &message_first_byte, &message_length, 1, 0);
             if (error == RMT_ERROR_NONE)
@@ -4400,9 +4400,11 @@ static rmtBool ThreadSampler_Pop(ThreadSampler* ts, rmtMessageQueue* queue, Samp
     {
         // Disconnect all samples from the root and pack in the chosen message queue
         Sample* root = tree->root;
-        root->first_child = NULL;
-        root->last_child = NULL;
-        root->nb_children = 0;
+        if (root) {
+			root->first_child = NULL;
+			root->last_child = NULL;
+			root->nb_children = 0;
+        }
         AddSampleTreeMessage(queue, sample, tree->allocator, ts->name, ts);
 
         return RMT_TRUE;

@@ -830,7 +830,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			gf_bs_write_int(bs,	0xF, 4); // reserved
 
 			/*calculate es_info_length*/
-			if (stream->program->iod && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS))
+			if (stream->program->iod && es->ifce && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS))
 				es_info_length += 4;
 
 			/*another loop descriptors*/
@@ -850,7 +850,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 
 			gf_bs_write_int(bs,	es_info_length, 12);
 
-			if (stream->program->iod && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
+			if (stream->program->iod && es->ifce && !(es->ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
 				gf_bs_write_int(bs,	GF_M2TS_MPEG4_SL_DESCRIPTOR, 8);
 				gf_bs_write_int(bs,	2, 8);
 				gf_bs_write_int(bs,	es->ifce->stream_id, 16);  // mpeg4_esid

@@ -726,8 +726,12 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 				}
 			}
 		}
+		if (!ctx->grid) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Failed to create grid\n"));
+			return GF_OUT_OF_MEM;
+		}
 		// pass on the grid to insert empty columns
-		if (!nb_rel_pos) {
+		if (!nb_rel_pos && ctx->grid) {
 			for (j=0; j<max_cols-1; j++) {
 				assert(ctx->grid[j].pos_x + ctx->grid[j].width <= ctx->grid[j+1].pos_x);
 				if (ctx->grid[j].pos_x + ctx->grid[j].width != ctx->grid[j+1].pos_x) {

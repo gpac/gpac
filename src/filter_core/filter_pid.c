@@ -4312,7 +4312,8 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring reset\n", pid->filter->name));
 		return GF_OUT_OF_MEM;
 	}
-	if (prop_4cc==GF_PROP_PID_TIMESCALE) map->timescale = value->value.uint;
+	if (value && (prop_4cc==GF_PROP_PID_TIMESCALE))
+		map->timescale = value->value.uint;
 
 	if (value && (prop_4cc == GF_PROP_PID_ID) && !pid->name) {
 		char szName[100];

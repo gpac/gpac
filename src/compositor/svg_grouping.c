@@ -1039,7 +1039,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 			is_fragment = 1;
 		} else if (stack->resource) {
 			stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
-			if (!is_foreign_object) {
+			if (!is_foreign_object && all_atts.xlink_href->string) {
 				stack->fragment_id = strchr(all_atts.xlink_href->string, '#');
 			}
 		}

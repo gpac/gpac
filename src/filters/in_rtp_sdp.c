@@ -49,8 +49,9 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 
 	i=0;
 	while ((att = (GF_X_Attribute*)gf_list_enum(sdp->Attributes, &i))) {
+		if (!att->Name || !att->Value) continue;
 		//session-level control string. Keep it in the current session if any
-		if (!strcmp(att->Name, "control") && att->Value) sess_ctrl = att->Value;
+		if (!strcmp(att->Name, "control")) sess_ctrl = att->Value;
 		//NPT range only for now
 		else if (!strcmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
 		/*we have the H264-SVC streams*/

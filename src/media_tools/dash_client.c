@@ -1588,6 +1588,7 @@ static GF_Err gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Rep
 	const char *local_url;
 	char *url;
 	GF_DOMParser *parser;
+	if (!rep->segment_list->xlink_href) return GF_BAD_PARAM;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Resolving Representation SegmentList XLINK %s\n", rep->segment_list->xlink_href));
 
@@ -9053,6 +9054,7 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, GF_Err err)
 	GF_MPD_Representation *rep;
 	Bool has_dep_following;
 	char *key_url, *url;
+	GF_DASH_Group *base_group;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (dash->thread_mode) return;
 	if (!group) return;
@@ -9076,7 +9078,11 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, GF_Err err)
 	group->nb_cached_segments--;
 	assert(!group->nb_cached_segments);
 
-	on_group_download_error(dash, group, NULL, err, rep, url, key_url, has_dep_following);
+	base_group = group;
+	while (base_group->depend_on_group) {
+		base_group = base_group->depend_on_group;
+	}
+	on_group_download_error(dash, group, base_group, err, rep, url, key_url, has_dep_following);
 
 
 	if (dash->speed>=0) {

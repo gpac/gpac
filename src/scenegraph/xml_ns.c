@@ -1077,8 +1077,8 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 GF_EXPORT
 GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename)
 {
-	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
-	u32 data_size, idx;
+	char szFile[GF_MAX_PATH], buf[20], *sep, *data=NULL, *ext;
+	u32 data_size=0, idx;
 	Bool existing;
 
 	if (!cache_dir || !base_filename || !iri || !iri->string || strncmp(iri->string, "data:", 5)) return GF_OK;
@@ -1127,7 +1127,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 		sep += 8;
 		data_size = gf_base16_decode(sep, (u32) strlen(sep), data, data_size);
 	}
-	if (!data_size) return GF_OK;
+	if (!data || !data_size) return GF_OK;
 
 	iri->type = XMLRI_STRING;
 

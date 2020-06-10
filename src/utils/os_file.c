@@ -243,7 +243,9 @@ GF_EXPORT
 Bool gf_file_exists_ex(const char *fileName, const char *par_name)
 {
 	u32 gfio_type = 0;
-	if (fileName && !strncmp(fileName, "gfio://", 7))
+	if (!fileName) return GF_FALSE;
+
+	if (!strncmp(fileName, "gfio://", 7))
 		gfio_type = 1;
 	else if (par_name && !strncmp(par_name, "gfio://", 7))
 		gfio_type = 2;
@@ -1566,7 +1568,7 @@ char* gf_file_ext_start(const char* filename)
 {
 	char* basename;
 
-	if (!strncmp(filename, "gfio://", 7)) {
+	if (filename && !strncmp(filename, "gfio://", 7)) {
 		GF_FileIO *gfio = gf_fileio_from_url(filename);
 		filename = gf_fileio_resource_url(gfio);
 	}
