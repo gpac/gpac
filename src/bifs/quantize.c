@@ -58,7 +58,7 @@ GF_Err gf_bifs_enc_qp_remove(GF_BifsEncoder *codec, Bool ActivatePrev)
 u32 gf_bifs_enc_qp14_get_bits(GF_BifsEncoder *codec)
 {
 	if (!codec->ActiveQP || !codec->coord_stored) return 0;
-	return (u32) ceil(log(codec->NumCoord+1) / log(2) );
+	return (u32) ceil(log1p(codec->NumCoord) / log(2) );
 }
 
 void gf_bifs_enc_qp14_enter(GF_BifsEncoder *codec, Bool Enter)

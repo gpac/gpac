@@ -554,9 +554,13 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		esd = NULL;
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 		/*NOT BIFS*/
+#ifndef GPAC_DISABLE_BIFS_ENC
 		if (!scene_type && (sc->codec_id > 2) ) continue;
+#endif
 		/*NOT LASeR*/
+#ifndef GPAC_DISABLE_LASER
 		if (scene_type && (sc->codec_id != 0x09) ) continue;
+#endif
 
 		delete_desc = 0;
 		esd = NULL;

@@ -910,9 +910,10 @@ void gf_uninit_global_config(Bool discard_config)
 	}
 }
 
+GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, Bool is_restrict);
+
 void gf_cfg_load_restrict()
 {
-	GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, Bool is_restrict);
 	char szPath[GF_MAX_PATH];
 	if (get_default_install_path(szPath, GF_PATH_SHARE)) {
 		strcat(szPath, "/");

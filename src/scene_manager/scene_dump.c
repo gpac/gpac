@@ -78,8 +78,6 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root);
 #endif
 
-GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
-
 GF_EXPORT
 GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_final_name, char indent_char, GF_SceneDumpFormat dump_mode)
 {
@@ -2816,8 +2814,11 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 {
 	GF_Err e;
 	u32 i, count;
-	u32 prev_ind, remain;
-	Bool prev_skip, has_scene_replace;
+	u32 prev_ind;
+#ifndef GPAC_DISABLE_VRML
+	u32 remain = 0, has_scene_replace = 0;
+#endif
+	Bool prev_skip;
 
 	if (!sdump || !sdump->trace|| !comList || !sdump->sg) return GF_BAD_PARAM;
 
@@ -2825,15 +2826,17 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	sdump->skip_scene_replace = skip_first_replace;
 	prev_ind  = sdump->indent;
 	sdump->indent = indent;
-	has_scene_replace = 0;
 
-
-	remain = 0;
 	e = GF_OK;
 	count = gf_list_count(comList);
 	for (i=0; i<count; i++) {
 		GF_Command *com = (GF_Command *) gf_list_get(comList, i);
-		if (i && !remain && (sdump->X3DDump || (sdump->dump_mode==GF_SM_DUMP_VRML))) {
+		if (i
+#ifndef GPAC_DISABLE_VRML
+			&& !remain
+#endif
+			&& (sdump->X3DDump || (sdump->dump_mode==GF_SM_DUMP_VRML))
+		) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[Scene Dump] MPEG-4 Commands found, not supported in %s - skipping\n", sdump->X3DDump ? "X3D" : "VRML"));
 			break;
 		}
@@ -2989,7 +2992,11 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		if (e) break;
 
 
-		if (!has_scene_replace && sdump->skip_scene_replace) {
+		if (sdump->skip_scene_replace
+#ifndef GPAC_DISABLE_VRML
+			&& !has_scene_replace
+#endif
+		) {
 			sdump->skip_scene_replace = 0;
 			if (!sdump->XMLDump && (i+1<count)) {
 				DUMP_IND(sdump);
@@ -2999,11 +3006,14 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		}
 	}
 
+#ifndef GPAC_DISABLE_VRML
 	if (remain && !sdump->XMLDump) {
 		sdump->indent--;
 		DUMP_IND(sdump);
 		gf_fprintf(sdump->trace, "}\n");
 	}
+#endif
+
 	if (has_scene_replace && sdump->XMLDump) {
 		sdump->indent--;
 		if (!sdump->X3DDump) {

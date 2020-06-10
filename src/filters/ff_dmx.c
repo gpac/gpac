@@ -280,14 +280,17 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 {
 	u32 i;
-	u32 nb_a, nb_v, nb_t;
+	u32 nb_a, nb_v;
+#ifdef FF_SUB_SUPPORT
+	u32 nb_t = 0;
+#endif
 	char szName[50];
 
 
 	ctx->pids = gf_malloc(sizeof(GF_FilterPid *)*ctx->demuxer->nb_streams);
 	memset(ctx->pids, 0, sizeof(GF_FilterPid *)*ctx->demuxer->nb_streams);
 
-	nb_t = nb_a = nb_v = 0;
+	nb_a = nb_v = 0;
 	for (i = 0; i < ctx->demuxer->nb_streams; i++) {
 		GF_FilterPid *pid=NULL;
 		Bool force_reframer = GF_FALSE;
@@ -500,7 +503,11 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(ctx->demuxer->filename));
 	}
 
-	if (!nb_t && !nb_a && !nb_v)
+	if (!nb_a && !nb_v
+#ifdef FF_SUB_SUPPORT
+		&& !nb_t
+#endif
+	)
 		return GF_NOT_SUPPORTED;
 
 	return GF_OK;

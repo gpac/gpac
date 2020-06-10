@@ -1954,7 +1954,8 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	odm->ck->has_media_time_shift = GF_TRUE;
 
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
-	if (scene && scene->root_od)
+	if (!scene) return;
+	if (scene->root_od)
 		scene->root_od->media_current_time = 0;
 
 	for (i=0; i<gf_list_count(scene->resources); i++) {

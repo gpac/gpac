@@ -2770,7 +2770,7 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 		u32 olen = sai_b_size;
 		if (use_subsamples) {
 			sai->subsample_count = 1;
-			if (sai->subsample_count) senc->flags = 0x00000002;
+			/*if (sai->subsample_count) */ senc->flags = 0x00000002;
 			while (olen>0xFFFF) {
 				olen -= 0xFFFF;
 				sai->subsample_count ++;

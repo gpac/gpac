@@ -1308,7 +1308,7 @@ static Bool gf_isom_has_svc_explicit(GF_ISOFile *file, u32 track)
 		}
 	}
 
-	if (svccfg) gf_odf_avc_cfg_del(svccfg);
+	gf_odf_avc_cfg_del(svccfg);
 	return ret;
 }
 
