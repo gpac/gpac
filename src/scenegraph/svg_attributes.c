@@ -1958,7 +1958,7 @@ next_command:
 				i += svg_parse_number(&(d[i]), &(tmp), 0);
 
 #ifndef REMOVE_ALLOC
-				GF_SAFEALLOC(pt, SVG_Point)
+				pt = gf_malloc(sizeof(SVG_Point));
 				if (!pt) return;
 				gf_list_add(d_points, pt);
 #endif
