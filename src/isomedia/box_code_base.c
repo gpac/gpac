@@ -3498,7 +3498,7 @@ GF_Err minf_Read(GF_Box *s, GF_BitStream *bs)
 	GF_MediaInformationBox *ptr = (GF_MediaInformationBox *)s;
 	GF_Err e;
 	e = gf_isom_box_array_read(s, bs, minf_AddBox);
-	if (! ptr->dataInformation) {
+	if (!e && ! ptr->dataInformation) {
 		GF_Box *dinf, *dref, *url;
 		extern Bool use_dump_mode;
 		Bool dump_mode = use_dump_mode;
