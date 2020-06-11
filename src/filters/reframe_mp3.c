@@ -488,7 +488,8 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (!ctx->mp3_buffer_size) {
-				gf_filter_pid_set_eos(ctx->opid);
+				if (ctx->opid)
+					gf_filter_pid_set_eos(ctx->opid);
 				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 				ctx->src_pck = NULL;
 				return GF_EOS;

@@ -191,7 +191,8 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 				gf_filter_pck_send(ctx->out_pck);
 				ctx->out_pck = NULL;
 			}
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -240,7 +241,8 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 			if (ctx->reverse_play) {
 				GF_FilterEvent fevt;
 				if (!ctx->cts) {
-					gf_filter_pid_set_eos(ctx->opid);
+					if (ctx->opid)
+						gf_filter_pid_set_eos(ctx->opid);
 					ctx->done = GF_TRUE;
 					return GF_EOS;
 				}

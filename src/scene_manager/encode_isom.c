@@ -520,6 +520,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	if (!scene_type) {
 #ifndef GPAC_DISABLE_BIFS_ENC
 		bifs_enc = gf_bifs_encoder_new(ctx->scene_graph);
+		if (!bifs_enc) return GF_OUT_OF_MEM;
 		/*no streams defined, encode a RAP*/
 		if (!j) {
 			delete_desc = 0;
@@ -537,6 +538,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	if (scene_type==1) {
 #ifndef GPAC_DISABLE_LASER
 		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
+		if (!lsr_enc) return GF_OUT_OF_MEM;
 		/*no streams defined, encode a RAP*/
 		if (!j) {
 			delete_desc = 0;
@@ -556,11 +558,11 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 		/*NOT BIFS*/
 #ifndef GPAC_DISABLE_BIFS_ENC
-		if (!scene_type && (sc->codec_id > 2) ) continue;
+		if (bifs_enc && (sc->codec_id > 2) ) continue;
 #endif
 		/*NOT LASeR*/
 #ifndef GPAC_DISABLE_LASER
-		if (scene_type && (sc->codec_id != 0x09) ) continue;
+		if (lsr_enc && (sc->codec_id != 0x09) ) continue;
 #endif
 
 		delete_desc = 0;

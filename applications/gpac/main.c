@@ -55,6 +55,7 @@ static void cleanup_file_io();
 FILE *sidebar_md=NULL;
 static FILE *helpout = NULL;
 
+static void gpac_rmt_user_callback(void *udta, const char* text);
 
 static const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n";
 
@@ -1925,6 +1926,8 @@ restart:
 			write_filters_options(session);
 		goto exit;
 	}
+
+	gf_sys_profiler_set_callback(NULL, gpac_rmt_user_callback);
 
 	//all good to go, load filters
 	has_xopt = GF_FALSE;
@@ -3915,4 +3918,11 @@ static void cleanup_file_io()
 	}
 	gf_list_del(all_gfio_defined);
 	all_gfio_defined = NULL;
+}
+
+
+static void gpac_rmt_user_callback(void *udta, const char* text)
+{
+	fprintf(stderr, "Remotery says: %s\n", text);
+	gf_sys_profiler_send("{ \"type\": \"chat\", \"value\": \"Got it !\"}");
 }

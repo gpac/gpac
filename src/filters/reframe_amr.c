@@ -345,7 +345,8 @@ GF_Err amrdmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			assert(ctx->remaining == 0);
 			return GF_EOS;
 		}

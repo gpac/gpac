@@ -418,7 +418,8 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			assert(ctx->remaining == 0);
 			return GF_EOS;
 		}
@@ -465,7 +466,8 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 		if (!ctx->data_chunk_remain) {
 			ctx->done = GF_TRUE;
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
 	}
@@ -629,7 +631,8 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		ctx->data_chunk_remain -= size;
 		if (!ctx->data_chunk_remain) {
 			ctx->done = GF_TRUE;
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			break;
 		}
 

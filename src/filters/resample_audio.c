@@ -241,7 +241,8 @@ static GF_Err resample_process(GF_Filter *filter)
 
 			if (!ctx->in_pck) {
 				if (gf_filter_pid_is_eos(ctx->ipid)) {
-					gf_filter_pid_set_eos(ctx->opid);
+					if (ctx->opid)
+						gf_filter_pid_set_eos(ctx->opid);
 					return GF_EOS;
 				}
 				return GF_OK;

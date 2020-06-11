@@ -601,6 +601,22 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 	return GF_FALSE;
 }
 
+const char *gf_log_tool_name(GF_LOG_Tool log_tool)
+{
+	if (log_tool>=GF_LOG_TOOL_MAX) return "unknown";
+	return global_log_tools[log_tool].name;
+}
+const char *gf_log_level_name(GF_LOG_Level log_level)
+{
+	switch (log_level) {
+	case GF_LOG_DEBUG: return "debug";
+	case GF_LOG_INFO: return "info";
+	case GF_LOG_WARNING: return "warning";
+	case GF_LOG_ERROR: return "error";
+	default: return "unknown";
+	}
+}
+
 GF_EXPORT
 u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 {

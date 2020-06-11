@@ -445,7 +445,8 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u
 			assert(ctx->cur_frame);
 			ctx->cur_frame--;
 			if (!ctx->cur_frame) {
-				gf_filter_pid_set_eos(ctx->opid);
+				if (ctx->opid)
+					gf_filter_pid_set_eos(ctx->opid);
 			} else {
 				GF_FilterEvent fevt;
 				ctx->file_pos -= ctx->frame_sizes[ctx->cur_frame];

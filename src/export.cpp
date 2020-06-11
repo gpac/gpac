@@ -79,6 +79,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_use_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_word_match) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_set_callback) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_send) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )
