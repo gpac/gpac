@@ -527,8 +527,10 @@ enum
 
 /* bitstream cookies used by isobmff lib*/
 #define GF_ISOM_BS_COOKIE_NO_LOGS		1
-#define GF_ISOM_BS_COOKIE_VISUAL_TRACK	2
-#define GF_ISOM_BS_COOKIE_QT_CONV		4
+#define GF_ISOM_BS_COOKIE_VISUAL_TRACK	(1<<1)
+#define GF_ISOM_BS_COOKIE_QT_CONV		(1<<2)
+#define GF_ISOM_BS_COOKIE_CLONE_TRACK	(1<<3)
+
 
 #ifndef GPAC_DISABLE_ISOM
 

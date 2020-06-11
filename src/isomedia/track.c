@@ -763,7 +763,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			traf_duration += duration;
 
 			e = stbl_AppendCTSOffset(trak->Media->information->sampleTable, cts_offset);
-
+			if (e) return e;
 			//flags
 			sync = GF_ISOM_GET_FRAG_SYNC(flags);
 			if (trak->Media->information->sampleTable->no_sync_found && sync) {

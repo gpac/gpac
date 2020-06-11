@@ -644,7 +644,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 
 	if (tk_box) {
 		GF_BitStream *bs = gf_bs_new(tk_box, tk_box_size, GF_BITSTREAM_READ);
-		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);
+		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS|GF_ISOM_BS_COOKIE_CLONE_TRACK);
 
 		e = gf_isom_box_parse_ex((GF_Box**)&trak, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
 		gf_bs_del(bs);
@@ -3877,7 +3877,10 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	if (flags & GF_ISOM_CLONE_TRACK_NO_QT)
-		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_QT_CONV);
+		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_QT_CONV | GF_ISOM_BS_COOKIE_CLONE_TRACK);
+	else
+		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_CLONE_TRACK);
+
 	e = gf_isom_box_parse((GF_Box **) &new_tk, bs);
 	gf_bs_del(bs);
 	gf_free(data);

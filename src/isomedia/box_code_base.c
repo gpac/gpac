@@ -4952,6 +4952,10 @@ GF_Err stbl_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->nb_sgpd_in_stbl = gf_list_count(ptr->sampleGroupsDescription);
 	ptr->nb_stbl_boxes = gf_list_count(ptr->child_boxes);
 
+	if (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_CLONE_TRACK)
+		return GF_OK;
+//	return GF_OK;
+
 	//these boxes are mandatory !
 	if (!ptr->SampleToChunk || !ptr->SampleSize || !ptr->ChunkOffset || !ptr->TimeToSample)
 		return GF_ISOM_INVALID_FILE;
