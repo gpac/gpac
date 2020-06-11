@@ -1777,7 +1777,7 @@ typedef struct
 	Bool no_sync_found;
 } GF_SampleTableBox;
 
-void stbl_AppendTrafMap(GF_SampleTableBox *stbl);
+GF_Err stbl_AppendTrafMap(GF_SampleTableBox *stbl);
 
 typedef struct __tag_media_info_box
 {

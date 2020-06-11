@@ -432,14 +432,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
 
-	void stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack);
-	void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
-	void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset);
-	void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 samplesInChunk);
-	void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 CTSOffset);
-	void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap);
-	void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding);
-	void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority);
+	GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack);
+	GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
+	GF_Err stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset);
+	GF_Err stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 samplesInChunk);
+	GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 CTSOffset);
+	GF_Err stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap);
+	GF_Err stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding);
+	GF_Err stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority);
 
 	if (trak->Header->trackID != traf->tfhd->trackID) return GF_OK;
 	if (!trak->Media->information->sampleTable
@@ -502,6 +502,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
 		//merge the run
 		for (j=0; j<trun->sample_count; j++) {
+			GF_Err e;
 			ent = (GF_TrunEntry*)gf_list_get(trun->entries, j);
 
 			if (!ent) {
@@ -522,9 +523,11 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				}
 			}
 			//add size first
-			stbl_AppendSize(trak->Media->information->sampleTable, size, ent->nb_pack);
+			e = stbl_AppendSize(trak->Media->information->sampleTable, size, ent->nb_pack);
+			if (e) return e;
 			//then TS
-			stbl_AppendTime(trak->Media->information->sampleTable, duration, ent->nb_pack);
+			e = stbl_AppendTime(trak->Media->information->sampleTable, duration, ent->nb_pack);
+			if (e) return e;
 
 			//add chunk on first sample
 			if (!j) {
@@ -546,16 +549,19 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				else {
 					data_offset += chunk_size;
 				}
-				stbl_AppendChunk(trak->Media->information->sampleTable, data_offset);
+				e = stbl_AppendChunk(trak->Media->information->sampleTable, data_offset);
+				if (e) return e;
 				//then sampleToChunk
-				stbl_AppendSampleToChunk(trak->Media->information->sampleTable,
-				                         DescIndex, trun->sample_count);
+				e = stbl_AppendSampleToChunk(trak->Media->information->sampleTable, DescIndex, trun->sample_count);
+				if (e) return e;
+
 			}
 			chunk_size += size;
 
 			if (first_samp_in_traf) {
 				first_samp_in_traf = GF_FALSE;
-				stbl_AppendTrafMap(trak->Media->information->sampleTable);
+				e = stbl_AppendTrafMap(trak->Media->information->sampleTable);
+				if (e) return e;
 			}
 			if (ent->nb_pack) {
 				j+= ent->nb_pack-1;
@@ -567,20 +573,28 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 			//CTS
 			cts_offset = (trun->flags & GF_ISOM_TRUN_CTS_OFFSET) ? ent->CTS_Offset : 0;
-			stbl_AppendCTSOffset(trak->Media->information->sampleTable, cts_offset);
-
+			e = stbl_AppendCTSOffset(trak->Media->information->sampleTable, cts_offset);
+			if (e) return e;
+			
 			//flags
 			sync = GF_ISOM_GET_FRAG_SYNC(flags);
 			if (trak->Media->information->sampleTable->no_sync_found && sync) {
 				trak->Media->information->sampleTable->no_sync_found = 0;
 			}
-			stbl_AppendRAP(trak->Media->information->sampleTable, sync);
+			e = stbl_AppendRAP(trak->Media->information->sampleTable, sync);
+			if (e) return e;
 			pad = GF_ISOM_GET_FRAG_PAD(flags);
-			if (pad) stbl_AppendPadding(trak->Media->information->sampleTable, pad);
+			if (pad) {
+				e = stbl_AppendPadding(trak->Media->information->sampleTable, pad);
+				if (e) return e;
+			}
 			degr = GF_ISOM_GET_FRAG_DEG(flags);
-			if (degr) stbl_AppendDegradation(trak->Media->information->sampleTable, degr);
-
-			stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+			if (degr) {
+				e = stbl_AppendDegradation(trak->Media->information->sampleTable, degr);
+				if (e) return e;
+			}
+			e = stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+			if (e) return e;
 		}
 	}
 	if (traf_duration && trak->editBox && trak->editBox->editList) {
