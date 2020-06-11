@@ -5460,7 +5460,11 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 	//these boxes are mandatory !
 	if (!ptr->SampleToChunk || !ptr->SampleSize || !ptr->ChunkOffset || !ptr->TimeToSample)
 		return GF_ISOM_INVALID_FILE;
-
+	//sanity check
+	if (ptr->SampleSize->sampleCount) {
+		if (!ptr->TimeToSample->nb_entries || !ptr->SampleToChunk->nb_entries)
+			return GF_ISOM_INVALID_FILE;
+	}
 	return GF_OK;
 }
 
