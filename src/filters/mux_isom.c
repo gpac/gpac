@@ -206,7 +206,7 @@ typedef struct
 	Bool nofragdef, straf, strun, sgpd_traf, noinit;
 	u32 vodcache;
 	u32 psshs;
-	u32 tkid;
+	u32 trackid;
 	Bool fragdur;
 	Bool btrt;
 	Bool ssix;
@@ -923,7 +923,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (p) tkid = p->value.uint;
 
-		if (ctx->tkid) tkid = ctx->tkid;
+		if (ctx->trackid) tkid = ctx->trackid;
 
 		if (tkw->stream_type == GF_STREAM_ENCRYPTED) {
 			tkw->is_encrypted = GF_TRUE;
@@ -5339,7 +5339,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		"- no: do not use sdtp\n"
 		"- sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
 		"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags", GF_PROP_UINT, "no", "no|sdtp|both", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tkid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(trackid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fragdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "set btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(styp), "set segment styp major brand to the given 4CC[.version]", GF_PROP_STRING, NULL, NULL, 0},
