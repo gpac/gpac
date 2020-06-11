@@ -9227,6 +9227,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			*/
 			count = gf_list_count(prog->streams);
 			for (i=0; i<count; i++) {
+				u32 ncount;
 				es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
 				if (es->pid == prog->pmt_pid) continue;
 				if (es->flags & GF_M2TS_ES_IS_SECTION) {
@@ -9363,6 +9364,12 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					break;
 				default:
 					gf_import_message(import, GF_OK, "[MPEG-2 TS] Ignoring stream of type %d", es->stream_type);
+				}
+
+				ncount = gf_list_count(prog->streams);
+				while (ncount<count) {
+					i--;
+					count--;
 				}
 			}
 		} else {
