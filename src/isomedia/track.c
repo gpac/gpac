@@ -442,6 +442,12 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority);
 
 	if (trak->Header->trackID != traf->tfhd->trackID) return GF_OK;
+	if (!trak->Media->information->sampleTable
+		|| !trak->Media->information->sampleTable->SampleSize
+		|| !trak->Media->information->sampleTable->TimeToSample
+	) {
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	if (!traf->trex->track)
 		traf->trex->track = trak;
