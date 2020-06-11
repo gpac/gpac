@@ -2261,6 +2261,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		GF_M2TS_SECTION_ES *ses = NULL;
 		GF_M2TS_ES *es = NULL;
 		Bool inherit_pcr = 0;
+		Bool pmt_pid_reused = GF_FALSE;
 		u32 pid, stream_type, reg_desc_format;
 
 		stream_type = data[0];
@@ -2269,6 +2270,33 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		if (desc_len > data_size-5) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT es descriptor size for PID %d\n", pid ) );
+			break;
+		}
+
+		if (!pid) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PID 0 for es descriptor in PMT of program %d, reserved for PAT\n", pmt->pid) );
+			break;
+		}
+		if (pid==1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PID 1 for es descriptor in PMT of program %d, reserved for CAT\n", pmt->pid) );
+			break;
+		}
+
+		if (pid==pmt->pid) {
+			pmt_pid_reused = GF_TRUE;
+		} else {
+			u32 pcount = gf_list_count(ts->programs);
+			for(i=0; i<pcount; i++) {
+				GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs,i);
+				if(prog->pmt_pid == pid) {
+					pmt_pid_reused = GF_TRUE;
+					break;
+				}
+			}
+		}
+
+		if (pmt_pid_reused) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PID %d for es descriptor in PMT of program %d, this PID is already assigned to a PMT\n", pid, pmt->pid) );
 			break;
 		}
 
@@ -2687,6 +2715,9 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 			if (!ts->nit) {
 				ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
 			}
+		} else if (ts->ess[pid]) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Redefinition of pmt for pid %d, ignoring\n", pid));
+			return;
 		} else {
 			GF_SAFEALLOC(prog, GF_M2TS_Program);
 			if (!prog) {
@@ -2707,10 +2738,11 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 			gf_list_add(prog->streams, pmt);
 			pmt->pid = prog->pmt_pid;
 			pmt->program = prog;
-			if (ts->ess[pmt->pid]) {
+/*			if (ts->ess[pmt->pid]) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Redefinition of pmt for pid %d\n", pid));
 				gf_m2ts_es_del(ts->ess[pmt->pid], ts);
 			}
+*/
 			ts->ess[pmt->pid] = (GF_M2TS_ES *)pmt;
 			pmt->sec = gf_m2ts_section_filter_new(gf_m2ts_process_pmt, 0);
 		}
