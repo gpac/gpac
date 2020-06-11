@@ -96,7 +96,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	char uuid[16];
 	GF_Err e;
 	GF_Box *newBox;
-	Bool skip_logs = gf_bs_get_cookie(bs) ? GF_TRUE : GF_FALSE;
+	Bool skip_logs = (gf_bs_get_cookie(bs) & 1) ? GF_TRUE : GF_FALSE;
 	Bool is_special = GF_TRUE;
 
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
@@ -1414,7 +1414,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 {
 	GF_Err e;
 	GF_Box *a = NULL;
-	Bool skip_logs = gf_bs_get_cookie(bs) ? GF_TRUE : GF_FALSE;
+	Bool skip_logs = (gf_bs_get_cookie(bs) & 1) ? GF_TRUE : GF_FALSE;
 
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (parent->size>=8) {

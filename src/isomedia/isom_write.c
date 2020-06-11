@@ -3245,6 +3245,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	if (flags & GF_ISOM_CLONE_TRACK_NO_QT)
 		gf_bs_set_cookie(bs, 1);
+
+	gf_bs_set_cookie(bs, 2);
 	e = gf_isom_box_parse((GF_Box **) &new_tk, bs);
 	gf_bs_del(bs);
 	gf_free(data);
