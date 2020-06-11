@@ -34,10 +34,6 @@
 struct _gf_ft_mgr *gf_font_manager_new();
 void gf_font_manager_del(struct _gf_ft_mgr *fm);
 
-#ifndef GPAC_DISABLE_REMOTERY
-GF_FilterSession *rmt_global_session = NULL;
-#endif
-
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -333,10 +329,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			if (sep) sep[0] = '=';
 		}
 	}
-
-#ifndef GPAC_DISABLE_REMOTERY
-	if (!rmt_global_session) rmt_global_session = fsess;
-#endif
 
 	return fsess;
 }
@@ -713,10 +705,6 @@ void gf_fs_del(GF_FilterSession *fsess)
 		}
 		gf_list_del(fsess->auto_inc_nums);
 	}
-
-#ifndef GPAC_DISABLE_REMOTERY
-	if (rmt_global_session==fsess) rmt_global_session = NULL;
-#endif
 
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
@@ -3184,16 +3172,4 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 }
 
 #endif
-
-
-#ifndef GPAC_DISABLE_REMOTERY
-void gf_fs_process_command(const char *com_text)
-{
-	GF_FilterSession *fsess = rmt_global_session;
-	if (!fsess) return;
-
-	fprintf(stderr, "RMT command %s\n", com_text);
-}
-#endif
-
 

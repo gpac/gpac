@@ -215,7 +215,8 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			if (ctx->out_pck) {
 				pcmreframe_flush_packet(ctx);
 			}
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -256,7 +257,8 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			if (ctx->reverse_play) {
 				GF_FilterEvent fevt;
 				if (!ctx->cts) {
-					gf_filter_pid_set_eos(ctx->opid);
+					if (ctx->opid)
+						gf_filter_pid_set_eos(ctx->opid);
 					GF_FEVT_INIT(fevt, GF_FEVT_STOP, ctx->ipid);
 					gf_filter_pid_send_event(ctx->ipid, &fevt);
 					ctx->done = GF_TRUE;

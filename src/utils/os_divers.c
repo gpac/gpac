@@ -114,7 +114,7 @@ u64 gf_sys_clock_high_res()
 
 #endif
 
-static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown);
+static Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown);
 
 
 GF_EXPORT
@@ -889,7 +889,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		}
 #endif
 		if (gf_opts_get_bool("core", "rmt"))
-			gf_sys_enable_profiling(GF_TRUE, GF_FALSE);
+			gf_sys_enable_remotery(GF_TRUE, GF_FALSE);
 
 		if (gpac_quiet) {
 			if (gpac_quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
@@ -961,27 +961,36 @@ Remotery *remotery_handle=NULL;
 
 gf_log_cbk gpac_prev_default_logs = NULL;
 
+const char *gf_log_tool_name(GF_LOG_Tool log_tool);
+const char *gf_log_level_name(GF_LOG_Level log_level);
+
 void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
-	char szMsg[4046];
-	vsprintf(szMsg, fmt, vlist);
+#define RMT_LOG_SIZE	5000
+	char szMsg[RMT_LOG_SIZE];
+	u32 len;
+	sprintf(szMsg, "{ \"type\": \"logs\", \"level\": \"%s\" \"tool\": \"%s\", \"value\": \"", gf_log_level_name(level), gf_log_tool_name(tool));
+
+	len = strlen(szMsg);
+	vsnprintf(szMsg, RMT_LOG_SIZE - len - 3, fmt, vlist);
+	strcat(szMsg, "\"}");
 
 	rmt_LogText(szMsg);
+
+#undef RMT_LOG_SIZE
 }
 
-void gf_sys_profiler_send(char *json_msg)
-{
-	rmt_LogText(json_msg);
-}
-void gf_fs_process_command(const char* text);
+static void *rmt_udta = NULL;
+gf_rmt_user_callback rmt_usr_cbk = NULL;
 
 static void gpac_rmt_input_handler(const char* text, void* context)
 {
-	gf_fs_process_command(text);
+	if (text && rmt_usr_cbk)
+		rmt_usr_cbk(rmt_udta, text);
 }
 #endif
 
-static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown)
+static Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown)
 {
 #ifndef GPAC_DISABLE_REMOTERY
 	if (start && !remotery_handle) {
@@ -1026,6 +1035,36 @@ static Bool gf_sys_enable_profiling(Bool start, Bool is_shutdown)
 	return GF_NOT_SUPPORTED;
 #endif
 }
+
+GF_EXPORT
+GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback usr_cbk)
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		rmt_udta = udta;
+		rmt_usr_cbk = usr_cbk;
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_EXPORT
+GF_Err gf_sys_profiler_send(const char *msg)
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		rmt_LogText(msg);
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
 
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config(Bool discard_config);
@@ -1218,7 +1257,7 @@ void gf_sys_close()
 		psapi_hinst = NULL;
 #endif
 
-		gf_sys_enable_profiling(GF_FALSE, GF_TRUE);
+		gf_sys_enable_remotery(GF_FALSE, GF_TRUE);
 		
 		gf_uninit_global_config(gpac_discard_config);
 

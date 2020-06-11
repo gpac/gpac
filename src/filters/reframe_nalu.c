@@ -2001,7 +2001,8 @@ GF_Err naludmx_process(GF_Filter *filter)
 				naludmx_set_hevc_linf(ctx);
 				gf_filter_pid_set_property_str(ctx->opid, "hevc:min_lid", &PROP_UINT(ctx->min_layer_id) );
 			}
-			gf_filter_pid_set_eos(ctx->opid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
 		return GF_OK;

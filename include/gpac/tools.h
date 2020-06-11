@@ -397,6 +397,26 @@ u32 gf_sys_is_quiet();
 */
 const char *gf_sys_features(Bool disabled);
 
+/*! callback function for remotery profiler
+ \param udta user data passed by \ref gf_sys_set_profiler_callback
+ \param text string sent by webbrowser client
+*/
+typedef void (*gf_rmt_user_callback)(void *udta, const char* text);
+
+/*! Enables remotery profiler callback. If remotery is enabled, commands sent via webbrowser client will be forwarded to the callback function specified
+\param udta user data
+\param rmt_usr_cbk callback function
+\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
+*/
+GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback rmt_usr_cbk);
+
+
+/*! Sends a message to remotery web client
+\param msg text message to send. The message format should be json
+\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
+*/
+GF_Err gf_sys_profiler_send(const char *msg);
+
 /*!
 GPAC Log tools
 \hideinitializer

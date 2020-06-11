@@ -293,7 +293,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 {
 	char szHost[GF_MAX_IP_NAME_LEN];
 	char *has_par, *dir;
-	u32 len, i, count = gf_list_count(ctx->rdirs);
+	u32 i, count = gf_list_count(ctx->rdirs);
 	char *listing = NULL;
 	char *name = full_path;
 
@@ -307,10 +307,9 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 	gf_dynstrcat(&listing, "</h1>\n<pre>Name                                                                Last modified      Size\n<hr>\n", NULL);
 
 	if (!full_path) {
-		len=0;
 		has_par=NULL;
 	} else {
-		len = (u32) strlen(full_path);
+		u32 len = (u32) strlen(full_path);
 		if (len && strchr("/\\", full_path[len-1]))
 			full_path[len-1] = 0;
 		has_par = strrchr(full_path, '/');
