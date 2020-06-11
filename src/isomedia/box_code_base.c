@@ -3448,7 +3448,7 @@ GF_Err minf_box_read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_array_read(s, bs, minf_on_child_box);
 
-	if (! ptr->dataInformation) {
+	if (!e && ! ptr->dataInformation) {
 		GF_Box *url;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing DataInformationBox\n"));
 		//commented on purpose, we are still able to handle the file, we only throw an error but keep processing
@@ -4951,6 +4951,15 @@ GF_Err stbl_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->nb_sgpd_in_stbl = gf_list_count(ptr->sampleGroupsDescription);
 	ptr->nb_stbl_boxes = gf_list_count(ptr->child_boxes);
+
+	//these boxes are mandatory !
+	if (!ptr->SampleToChunk || !ptr->SampleSize || !ptr->ChunkOffset || !ptr->TimeToSample)
+		return GF_ISOM_INVALID_FILE;
+	//sanity check
+	if (ptr->SampleSize->sampleCount) {
+		if (!ptr->TimeToSample->nb_entries || !ptr->SampleToChunk->nb_entries)
+			return GF_ISOM_INVALID_FILE;
+	}
 	return GF_OK;
 }
 
