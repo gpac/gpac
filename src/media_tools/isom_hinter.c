@@ -769,6 +769,10 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 			while (remain) {
 				size = 0;
 				v = tkHint->avc_nalu_size;
+				if (v>remain) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Broken AVC nalu encapsulation: NALU size length is %d but only %d bytes left in sample %d\n", v, remain, tkHint->CurrentSample));
+					break;
+				}
 				while (v) {
 					size |= (u8) *ptr;
 					ptr++;
