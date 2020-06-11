@@ -119,17 +119,23 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			gf_fclose(f);
 		} else {
 			u32 i, val, len;
+			char *dump_str = NULL;
 			char *str = (char *) ((SFString*)field->far_ptr)->buffer;
 			if (node && (node->sgprivate->tag==TAG_MPEG4_BitWrapper) ) {
 				len = ((M_BitWrapper*)node)->buffer_len;
 			} else {
 				len = str ? (u32) strlen(str) : 0;
+				dump_str = str;
 			}
 			val = gf_get_bit_size(len);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);
 			for (i=0; i<len; i++) gf_bs_write_int(bs, str[i], 8);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\n", 8*len, str) );
+			if (dump_str) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\n", 8*len, str) );
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\n", 8*len) );
+			}
 		}
 		break;
 

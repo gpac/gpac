@@ -197,15 +197,13 @@ static JSValue wgl_bufferSubData(JSContext *ctx, JSValueConst this_val, int argc
 
 static JSValue wgl_checkFramebufferStatus(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	u32 target = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_U32(target, argv[0]);
 	u32 ret_val = 0;
 	ret_val = glCheckFramebufferStatus(target);
-	ret_val_js = JS_NewInt32(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewInt32(ctx, ret_val);
 }
 
 static JSValue wgl_clear(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -395,7 +393,7 @@ static JSValue wgl_copyTexSubImage2D(JSContext *ctx, JSValueConst this_val, int 
 
 static JSValue wgl_createBuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	WGL_CHECK_CONTEXT
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
@@ -412,7 +410,7 @@ static JSValue wgl_createBuffer(JSContext *ctx, JSValueConst this_val, int argc,
 
 static JSValue wgl_createFramebuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	WGL_CHECK_CONTEXT
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
@@ -429,7 +427,7 @@ static JSValue wgl_createFramebuffer(JSContext *ctx, JSValueConst this_val, int 
 
 static JSValue wgl_createProgram(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	WGL_CHECK_CONTEXT
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
@@ -446,7 +444,7 @@ static JSValue wgl_createProgram(JSContext *ctx, JSValueConst this_val, int argc
 
 static JSValue wgl_createRenderbuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	WGL_CHECK_CONTEXT
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
@@ -463,7 +461,7 @@ static JSValue wgl_createRenderbuffer(JSContext *ctx, JSValueConst this_val, int
 
 static JSValue wgl_createShader(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
+	JSValue ret_val_js;
 	u32 type = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
@@ -823,44 +821,37 @@ static JSValue wgl_generateMipmap(JSContext *ctx, JSValueConst this_val, int arg
 
 static JSValue wgl_getActiveAttrib(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint program = 0;
 	u32 index = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(program, argv[0], WebGLProgram_class_id);
 	WGL_GET_U32(index, argv[1]);
-	ret_val_js = webgl_getActiveAttrib(ctx, program, index);
-	return ret_val_js;
+	return webgl_getActiveAttrib(ctx, program, index);
 }
 
 static JSValue wgl_getActiveUniform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint program = 0;
 	u32 index = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(program, argv[0], WebGLProgram_class_id);
 	WGL_GET_U32(index, argv[1]);
-	ret_val_js = webgl_getActiveUniform(ctx, program, index);
-	return ret_val_js;
+	return webgl_getActiveUniform(ctx, program, index);
 }
 
 static JSValue wgl_getAttachedShaders(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint program = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(program, argv[0], WebGLProgram_class_id);
-	ret_val_js = webgl_getAttachedShaders(ctx, JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id), program);
-	return ret_val_js;
+	return webgl_getAttachedShaders(ctx, JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id), program);
 }
 
 static JSValue wgl_getAttribLocation(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint program = 0;
 	const char * name = 0;
 	WGL_CHECK_CONTEXT
@@ -869,9 +860,8 @@ static JSValue wgl_getAttribLocation(JSContext *ctx, JSValueConst this_val, int 
 	WGL_GET_STRING(name, argv[1]);
 	s32 ret_val = 0;
 	ret_val = glGetAttribLocation(program, name);
-	ret_val_js = JS_NewInt32(ctx, ret_val);
 	JS_FreeCString(ctx, name);
-	return ret_val_js;
+	return JS_NewInt32(ctx, ret_val);
 }
 
 static JSValue wgl_getBufferParameter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
@@ -929,93 +919,79 @@ static JSValue wgl_hint(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 
 static JSValue wgl_isBuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint buffer = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(buffer, argv[0], WebGLBuffer_class_id);
 	Bool ret_val = 0;
 	ret_val = glIsBuffer(buffer);
-	ret_val_js = JS_NewBool(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewBool(ctx, ret_val);
 }
 
 static JSValue wgl_isEnabled(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	u32 cap = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_U32(cap, argv[0]);
 	Bool ret_val = 0;
 	ret_val = glIsEnabled(cap);
-	ret_val_js = JS_NewBool(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewBool(ctx, ret_val);
 }
 
 static JSValue wgl_isFramebuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint framebuffer = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(framebuffer, argv[0], WebGLFramebuffer_class_id);
 	Bool ret_val = 0;
 	ret_val = glIsFramebuffer(framebuffer);
-	ret_val_js = JS_NewBool(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewBool(ctx, ret_val);
 }
 
 static JSValue wgl_isProgram(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint program = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(program, argv[0], WebGLProgram_class_id);
 	Bool ret_val = 0;
 	ret_val = glIsProgram(program);
-	ret_val_js = JS_NewBool(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewBool(ctx, ret_val);
 }
 
 static JSValue wgl_isRenderbuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint renderbuffer = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(renderbuffer, argv[0], WebGLRenderbuffer_class_id);
 	Bool ret_val = 0;
 	ret_val = glIsRenderbuffer(renderbuffer);
-	ret_val_js = JS_NewBool(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewBool(ctx, ret_val);
 }
 
 static JSValue wgl_isShader(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint shader = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(shader, argv[0], WebGLShader_class_id);
 	Bool ret_val = 0;
 	ret_val = glIsShader(shader);
-	ret_val_js = JS_NewBool(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewBool(ctx, ret_val);
 }
 
 static JSValue wgl_isTexture(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint texture = 0;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(texture, argv[0], WebGLTexture_class_id);
 	Bool ret_val = 0;
 	ret_val = glIsTexture(texture);
-	ret_val_js = JS_NewBool(ctx, ret_val);
-	return ret_val_js;
+	return JS_NewBool(ctx, ret_val);
 }
 
 static JSValue wgl_lineWidth(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
