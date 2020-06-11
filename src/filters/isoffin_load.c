@@ -114,7 +114,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	pix_fmt = 0;
 	ocr_es_id = 0;
 	an_esd = gf_media_map_esd(read->mov, track, stsd_idx);
-	if (an_esd) {
+	if (an_esd && an_esd->decoderConfig) {
 		if (an_esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
 			gf_odf_desc_del((GF_Descriptor *)an_esd);
 			return;
