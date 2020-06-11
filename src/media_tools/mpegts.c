@@ -1244,6 +1244,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		GF_M2TS_SECTION_ES *ses = NULL;
 		GF_M2TS_ES *es = NULL;
 		Bool inherit_pcr = 0;
+		Bool pmt_pid_reused = GF_FALSE;
 		u32 pid, stream_type, reg_desc_format;
 
 		if (pos + 5 > data_size) {
@@ -1254,6 +1255,33 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		stream_type = data[0];
 		pid = ((data[1] & 0x1f) << 8) | data[2];
 		desc_len = ((data[3] & 0xf) << 8) | data[4];
+
+#if 0
+		if (!pid) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PID 0 for es descriptor in PMT of program %d, reserved for PAT\n", pmt->pid) );
+			break;
+		}
+		if (pid==1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PID 1 for es descriptor in PMT of program %d, reserved for CAT\n", pmt->pid) );
+			break;
+		}
+#endif
+		if (pid==pmt->pid) {
+			pmt_pid_reused = GF_TRUE;
+		} else {
+			u32 pcount = gf_list_count(ts->programs);
+			for(i=0; i<pcount; i++) {
+				GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs,i);
+				if(prog->pmt_pid == pid) {
+					pmt_pid_reused = GF_TRUE;
+					break;
+				}
+			}
+		}
+		if (pmt_pid_reused) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PID %d for es descriptor in PMT of program %d, this PID is already assigned to a PMT\n", pid, pmt->pid) );
+			break;
+		}
 
 		if (desc_len > data_size-5) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT es descriptor size for PID %d\n", pid ) );
@@ -2138,6 +2166,17 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 		if (pes->pes_len + 6 == pes->pck_data_len) {
 			gf_m2ts_flush_pes(ts, pes);
+		}
+	}
+}
+
+void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts)
+{
+	u32 i;
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		GF_M2TS_ES *stream = ts->ess[i];
+		if (stream && (stream->flags & GF_M2TS_ES_IS_PES)) {
+			gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) stream);
 		}
 	}
 }
