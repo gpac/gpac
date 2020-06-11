@@ -270,6 +270,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	avc_nalu_size = 0;
 	has_mpeg4_mapping = 1;
 	const_dur = 0;
+	bandwidth=0;
 	TrackMediaType = gf_isom_get_media_type(file, TrackNum);
 
 	/*for max compatibility with QT*/

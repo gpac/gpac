@@ -297,7 +297,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 	char *listing = NULL;
 	char *name = full_path;
 
-	if (full_path[0]=='.')
+	if (full_path && (full_path[0]=='.'))
 		name++;
 
 	gf_dynstrcat(&listing, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n<head>\n<title>Index of ", NULL);
@@ -306,10 +306,15 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 	gf_dynstrcat(&listing, name, NULL);
 	gf_dynstrcat(&listing, "</h1>\n<pre>Name                                                                Last modified      Size\n<hr>\n", NULL);
 
-	len = (u32) strlen(full_path);
-	if (len && strchr("/\\", full_path[len-1]))
-		full_path[len-1] = 0;
-	has_par = strrchr(full_path, '/');
+	if (!full_path) {
+		len=0;
+		has_par=NULL;
+	} else {
+		len = (u32) strlen(full_path);
+		if (len && strchr("/\\", full_path[len-1]))
+			full_path[len-1] = 0;
+		has_par = strrchr(full_path, '/');
+	}
 	if (has_par) {
 		u8 c = has_par[1];
 		has_par[1] = 0;
@@ -333,7 +338,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 		has_par[1] = c;
 	}
 
-	if (!strlen(full_path)) {
+	if (!full_path || !strlen(full_path)) {
 		count = gf_list_count(ctx->rdirs);
 		if (count==1) {
 			dir = gf_list_get(ctx->rdirs, 0);
@@ -592,7 +597,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	const char *etag=NULL, *range=NULL;
 	const char *mime = NULL;
 	char *response_body = NULL;
-	GF_Err e;
+	GF_Err e=GF_OK;
 	Bool not_modified = GF_FALSE;
 	Bool is_upload = GF_FALSE;
 	u32 i, count;
@@ -620,7 +625,6 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	url = gf_dm_sess_get_resource_name(sess->http_sess);
 	if (!url || (url[0] != '/')) {
-		e = GF_BAD_PARAM;
 		response = "HTTP/1.1 400 Bad Request\r\n";
 		goto exit;
 	}

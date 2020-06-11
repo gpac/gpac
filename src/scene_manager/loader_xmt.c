@@ -1148,10 +1148,12 @@ static void xmt_parse_route(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 				e = gf_node_get_field_by_name(orig, fromNF, &orig_field);
 			}
 		}
-		if (e!=GF_OK) {
-			xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", fromNF, fromN);
-			return;
-		}
+	} else {
+		e = GF_BAD_PARAM;
+	}
+	if (e!=GF_OK) {
+		xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", fromNF, fromN);
+		return;
 	}
 
 	dest = xmt_find_node(parser, toN);
@@ -1163,12 +1165,14 @@ static void xmt_parse_route(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 		e = gf_node_get_field_by_name(dest, toNF, &dest_field);
 		if ((e != GF_OK) && !strnicmp(toNF, "set_", 4))
 			e = gf_node_get_field_by_name(dest, &toNF[4], &dest_field);
-
-		if (e != GF_OK) {
-			xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", toNF, toN);
-			return;
-		}
+	} else {
+		e = GF_BAD_PARAM;
 	}
+	if (e != GF_OK) {
+		xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", toNF, toN);
+		return;
+	}
+
 	rID = 0;
 	if (ID && strlen(ID)) {
 		rID = xmt_get_route(parser, ID, 0);

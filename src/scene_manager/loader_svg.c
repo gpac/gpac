@@ -1392,7 +1392,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (!strcmp(name, "sceneHeader")) return;
 		/*nothing to do, wait for the laser (or other) header before creating stream)*/
 		if (!strcmp(name, "LASeRHeader")) {
-			GF_ESD *esd = lsr_parse_header(parser, name, name_space, attributes, nb_attributes);
+			GF_ESD *esd;
+
+			if (!parser->load->ctx) {
+				svg_report(parser, GF_BAD_PARAM, "Invalid parser context");
+				return;
+			}
+			esd = lsr_parse_header(parser, name, name_space, attributes, nb_attributes);
 			if (!esd) {
 				svg_report(parser, GF_BAD_PARAM, "Invalid LASER Header");
 				return;
@@ -1999,6 +2005,7 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 
 static void svg_flush_animations(GF_SVG_Parser *parser)
 {
+	if (!parser) return;
 	while (gf_list_count(parser->deferred_animations)) {
 		SVG_DeferredAnimation *anim = (SVG_DeferredAnimation *)gf_list_get(parser->deferred_animations, 0);
 		svg_parse_animation(parser, parser->load->scene_graph, anim, NULL, 2);

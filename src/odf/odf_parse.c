@@ -586,7 +586,6 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			}
 			if (!stricmp(fieldName, "fontID")) GET_U32(sd->fonts[sd->font_count-1].fontID)
 			if (!stricmp(fieldName, "fontName")) GET_STRING(sd->fonts[sd->font_count-1].fontName)
-			ret = 1;
 		}
 	}
 	break;

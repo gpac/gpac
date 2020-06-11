@@ -37,7 +37,14 @@
 #define GET_U64(field) { u64 d; if (strstr(val, "0x")) { ret += sscanf(val, LLX, &d); if (ret) field = d; } else { ret += sscanf(val, LLU, &d); if (ret) field = d; }	}
 
 #define GET_DOUBLE(field) { Float v; ret = 1; sscanf(val, "%f", &v); field = (Double) v;}
-#define GET_STRING(field) { ret = 1; field = gf_strdup(val); if (field) { if (val[0] == '"') strcpy(field, val+1); if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0; } }
+#define GET_STRING(field) { \
+		ret = 1;\
+		field = gf_strdup(val); \
+		if (field) { \
+			if (val[0] == '"') strcpy(field, val+1); \
+			if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0;\
+		}\
+	}
 
 
 #endif	/* _GF_OD_PARSE_COMMON_H_  */
