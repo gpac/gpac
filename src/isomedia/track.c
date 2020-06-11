@@ -445,6 +445,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	if (!trak->Media->information->sampleTable
 		|| !trak->Media->information->sampleTable->SampleSize
 		|| !trak->Media->information->sampleTable->TimeToSample
+		|| !trak->Media->information->sampleTable->SampleToChunk
+		|| !trak->Media->information->sampleTable->ChunkOffset
 	) {
 		return GF_ISOM_INVALID_FILE;
 	}
