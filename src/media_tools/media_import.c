@@ -1252,7 +1252,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	else if (importer->xps_inband==2)
 		e |= gf_dynstrcat(&args, "xps_inband=both", ":");
 	if (importer->esd && importer->esd->ESID) {
-		sprintf(szSubArg, "tkid=%d", importer->esd->ESID);
+		sprintf(szSubArg, "trackid=%d", importer->esd->ESID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 
