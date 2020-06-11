@@ -5457,6 +5457,9 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->nb_sgpd_in_stbl = gf_list_count(ptr->sampleGroupsDescription);
 	ptr->nb_other_boxes_in_stbl = gf_list_count(ptr->other_boxes);
+	//these boxes are mandatory !
+	if (!ptr->SampleToChunk || !ptr->SampleSize || !ptr->ChunkOffset || !ptr->TimeToSample)
+		return GF_ISOM_INVALID_FILE;
 
 	return GF_OK;
 }
