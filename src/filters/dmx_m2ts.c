@@ -284,7 +284,6 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 	opid = gf_filter_pid_new(ctx->filter);
 	stream->user = opid;
-	gf_filter_pid_set_udta(opid, stream);
 	stream->flags |= GF_M2TS_ES_ALREADY_DECLARED;
 
 	stname = gf_stream_type_name(stype);
@@ -373,11 +372,17 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	}
 
 	for (i=0; i<count; i++) {
+		u32 ncount;
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 
 		if (! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
 			m2tsdmx_declare_pid(ctx, (GF_M2TS_PES *)es, NULL);
+		}
+		ncount = gf_list_count(prog->streams);
+		while (ncount<count) {
+			i--;
+			count--;
 		}
 	}
 }
@@ -971,13 +976,10 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			u32 i, nb_streams = gf_filter_get_opid_count(filter);
+
+			gf_m2ts_flush_all(ctx->ts);
 			for (i=0; i<nb_streams; i++) {
 				GF_FilterPid *opid = gf_filter_get_opid(filter, i);
-				GF_M2TS_PES *stream = gf_filter_pid_get_udta(opid);
-
-				if (stream->flags & GF_M2TS_ES_IS_PES) {
-					gf_m2ts_flush_pes(ctx->ts, (GF_M2TS_PES *) stream);
-				}
 				gf_filter_pid_set_eos(opid);
 			}
 			return GF_EOS;

@@ -1149,6 +1149,11 @@ GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *demux, u32 program_id);
 */
 void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes);
 
+/*! flushes all streams in the mux. This is used to flush internal demultiplexer buffers on end of stream
+\param demux the target MPEG-2 demultiplexer
+*/
+void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts);
+
 
 /*! MPEG-2 TS packet header*/
 typedef struct
