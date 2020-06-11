@@ -7625,7 +7625,7 @@ static GF_Err gf_import_aom_av1(GF_MediaImporter *import)
 
 			gf_set_progress("Importing AV1", gf_bs_get_position(bs), fsize);
 
-			if (import->duration && (u64)(dts_inc * cur_samp * 1000 > (u64)(import->duration * timescale)))
+			if (import->duration && ((u64)dts_inc * cur_samp * 1000) > ((u64)import->duration * timescale))
 				break;
 		}
 	}
@@ -7833,7 +7833,7 @@ static GF_Err gf_import_vp9(GF_MediaImporter *import)
 
 			gf_set_progress("Importing VP9", gf_bs_get_position(bs), fsize);
 
-			if (import->duration && ((forced_fps ? (u64)dts_inc * cur_samp : pts) * 1000 > (u64)(import->duration * timescale)))
+			if (import->duration && ((forced_fps ? (u64)dts_inc * cur_samp : pts) * 1000 > ((u64)import->duration * timescale)))
 				break;
 		}
 	}
