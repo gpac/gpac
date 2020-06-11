@@ -5278,7 +5278,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 			for (j = 0; j < nb_track; j++) {
 				esd = gf_isom_get_esd(file, j+1, 1);
-				if (esd && (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_HEVC || esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_LHVC)) {
+				if (esd && esd->decoderConfig && (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_HEVC || esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_LHVC)) {
 					GF_HEVCConfig* hevccfg = gf_isom_hevc_config_get(file, j+1, 1);
 					if (hevccfg) {
 						HEVCState hevc;
