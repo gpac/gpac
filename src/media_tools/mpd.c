@@ -4301,7 +4301,7 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 
 	while (1) {
 		Double segment_duration;
-		u32 timescale;
+		u32 timescale=1000;
 		u64 segment_duration_in_scale=0, seg_start_in_scale;
 
 		//TODO this could be further optimized by directly querying the index for this start time ...

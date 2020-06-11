@@ -544,7 +544,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 		dumper->flags |= GF_EXPORT_MERGE;
 		return GF_OK;
 	}
-	if (gf_file_ext_start(dumper->out_name)) {
+	if (dumper->out_name && gf_file_ext_start(dumper->out_name)) {
 		strcpy(szName, dumper->out_name);
 	} else {
 		char *ext = (char *) gf_isom_get_filename(dumper->file);

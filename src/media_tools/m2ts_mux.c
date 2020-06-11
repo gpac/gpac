@@ -886,7 +886,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				gf_bs_write_int(bs,	0, 8); //check what is in this desc
 				break;
 			default:
-				if (es->force_reg_desc) {
+				if (es->force_reg_desc && es->ifce && es->ifce->codecid) {
 					gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
 					gf_bs_write_int(bs,	8, 8);
 					gf_bs_write_int(bs,	GF_M2TS_RA_STREAM_GPAC, 32);

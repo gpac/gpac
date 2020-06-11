@@ -719,7 +719,7 @@ force_scene_rap:
 			/*create final BIFS config*/
 			if (esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 			esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-			if (!esd->decoderConfig->decoderSpecificInfo) {
+			if (! esd->decoderConfig->decoderSpecificInfo) {
 				e = GF_OUT_OF_MEM;
 				goto exit;
 			}
