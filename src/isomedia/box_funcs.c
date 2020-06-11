@@ -205,17 +205,11 @@ retry_unknown_box:
 
 	newBox->size = size - hdr_size;
 
-	if (newBox->size) {
-		e = gf_isom_full_box_read(newBox, bs);
-		if (!e) e = gf_isom_box_read(newBox, bs);
-		newBox->size = size;
-		end = gf_bs_get_position(bs);
-	} else {
-		newBox->size = size;
-		//empty box
-		e = GF_OK;
-		end = gf_bs_get_position(bs);
-	}
+	//parse even if size is 0 - this makes sure that we perform box parsing (usually in box->read)
+	e = gf_isom_full_box_read(newBox, bs);
+	if (!e) e = gf_isom_box_read(newBox, bs);
+	newBox->size = size;
+	end = gf_bs_get_position(bs);
 
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
