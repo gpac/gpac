@@ -212,44 +212,61 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	}
 
 	file->moov = (GF_MovieBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOV);
+	if (!file->moov) return GF_OUT_OF_MEM;
 	file->moov->mov = file;
 	file->is_smooth = GF_TRUE;
 	file->moov->mvhd = (GF_MovieHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVHD);
+	if (!file->moov->mvhd) return GF_OUT_OF_MEM;
 	file->moov->mvhd->timeScale = timescale;
 	file->moov->mvex = (GF_MovieExtendsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVEX);
+	if (!file->moov->mvex) return GF_OUT_OF_MEM;
 	trex = (GF_TrackExtendsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREX);
+	if (!trex) return GF_OUT_OF_MEM;
 	trex->def_sample_desc_index = 1;
 	trex->trackID = 1;
 	gf_list_add(file->moov->mvex->TrackExList, trex);
 
 	trak = (GF_TrackBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRAK);
+	if (!trak) return GF_OUT_OF_MEM;
 	trak->moov = file->moov;
 	gf_list_add(file->moov->trackList, trak);
 
 	trak->Header = (GF_TrackHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TKHD);
+	if (!trak->Header) return GF_OUT_OF_MEM;
 	trak->Header->trackID = 1;
 	trak->Header->flags |= 1;
 	trak->Header->width = width;
 	trak->Header->height = height;
 
 	trak->Media = (GF_MediaBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDIA);
+	if (!trak->Media) return GF_OUT_OF_MEM;
 	trak->Media->mediaTrack = trak;
 	trak->Media->mediaHeader = (GF_MediaHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDHD);
+	if (!trak->Media->mediaHeader) return GF_OUT_OF_MEM;
 	trak->Media->mediaHeader->timeScale = timescale;
 
 	trak->Media->handler = (GF_HandlerBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
+	if (!trak->Media->handler) return GF_OUT_OF_MEM;
     //we assume by default vide for handler type (only used for smooth streaming)
 	trak->Media->handler->handlerType = width ? GF_ISOM_MEDIA_VISUAL : GF_ISOM_MEDIA_AUDIO;
 
 	trak->Media->information = (GF_MediaInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MINF);
+	if (!trak->Media->information) return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
+	if (!trak->Media->information->sampleTable) return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable->SampleSize = (GF_SampleSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSZ);
+	if (!trak->Media->information->sampleTable->SampleSize) return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STTS);
+	if (!trak->Media->information->sampleTable->TimeToSample) return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable->ChunkOffset = (GF_Box *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STCO);
+	if (!trak->Media->information->sampleTable->ChunkOffset) return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable->SampleToChunk = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
+	if (!trak->Media->information->sampleTable->SampleToChunk) return GF_OUT_OF_MEM;
 	trak->Media->information->sampleTable->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+	if (!trak->Media->information->sampleTable->SyncSample) return GF_OUT_OF_MEM;
 
 	trak->Media->information->sampleTable->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
+	if (!trak->Media->information->sampleTable->SampleDescription) return GF_OUT_OF_MEM;
 
 	trak->dts_at_seg_start = tfdt;
 
@@ -258,7 +275,9 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		u32 pos = 0;
 		u32 end, sc_size=0;
 		GF_MPEGVisualSampleEntryBox *avc =  (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
+		if (!avc) return GF_OUT_OF_MEM;
 		avc->avc_config =  (GF_AVCConfigurationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		if (!avc->avc_config) return GF_OUT_OF_MEM;
 
 		avc->Width = width;
 		avc->Height = height;
@@ -281,6 +300,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 			GF_SAFEALLOC(slc, GF_AVCConfigSlot);
 			slc->size = end;
 			slc->data = gf_malloc(sizeof(char)*slc->size);
+			if (!slc->data) return GF_OUT_OF_MEM;
 			memcpy(slc->data, nal, sizeof(char)*slc->size);
 
 			nal_type = nal[0] & 0x1F;
@@ -312,8 +332,11 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 #endif
 
 		GF_MPEGAudioSampleEntryBox *aac =  (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
+		if (!aac) return GF_OUT_OF_MEM;
 		aac->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
+		if (!aac->esd) return GF_OUT_OF_MEM;
 		aac->esd->desc = gf_odf_desc_esd_new(2);
+		if (!aac->esd->desc) return GF_OUT_OF_MEM;
 #ifndef GPAC_DISABLE_AV_PARSERS
 		memset(&aacinfo, 0, sizeof(GF_M4ADecSpecInfo));
 		aacinfo.nb_chan = nb_channels;
@@ -471,7 +494,8 @@ GF_Err gf_isom_write(GF_ISOFile *movie) {
 			if (movie->mfra) {
 				if (!movie->mfra->mfro)
 					movie->mfra->mfro = (GF_MovieFragmentRandomAccessOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_MFRO);
-
+				if (!movie->mfra->mfro) return GF_OUT_OF_MEM;
+				
 				e = gf_isom_box_size((GF_Box *)movie->mfra);
 				if (e) return e;
 				movie->mfra->mfro->container_size = (u32) movie->mfra->size;
@@ -542,12 +566,16 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
 	switch (movie->moov->iods->descriptor->tag) {
 	case GF_ODF_ISOM_OD_TAG:
 		od = (GF_ObjectDescriptor*)gf_malloc(sizeof(GF_ObjectDescriptor));
+		if (!od) return NULL;
+
 		memset(od, 0, sizeof(GF_ObjectDescriptor));
 		od->ESDescriptors = gf_list_new();
 		useIOD = 0;
 		break;
 	case GF_ODF_ISOM_IOD_TAG:
 		iod = (GF_InitialObjectDescriptor*)gf_malloc(sizeof(GF_InitialObjectDescriptor));
+		if (!iod) return NULL;
+
 		memset(iod, 0, sizeof(GF_InitialObjectDescriptor));
 		iod->ESDescriptors = gf_list_new();
 		useIOD = 1;
@@ -1242,6 +1270,7 @@ GF_Err gf_isom_get_watermark(GF_ISOFile *mov, bin128 UUID, u8** data, u32* lengt
 	if (!wm) return GF_NOT_SUPPORTED;
 
 	*data = (u8 *) gf_malloc(sizeof(char)*wm->dataSize);
+	if (! *data) return GF_OUT_OF_MEM;
 	memcpy(*data, wm->data, wm->dataSize);
 	*length = wm->dataSize;
 	return GF_OK;

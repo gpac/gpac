@@ -80,6 +80,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	char *tmp_str;
 	GF_Err e;
 
+	ISOM_DECREASE_SIZE(ptr, 25)
 	ptr->bootstrapinfo_version = gf_bs_read_u32(bs);
 	ptr->profile = gf_bs_read_int(bs, 2);
 	ptr->live = gf_bs_read_int(bs, 1);
@@ -93,6 +94,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size<=8) return GF_ISOM_INVALID_FILE;
 	strsize = tmp_strsize=(u32)ptr->size-8;
 	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
+	if (!tmp_str) return GF_OUT_OF_MEM;
 
 	while (tmp_strsize) {
 		tmp_str[i] = gf_bs_read_u8(bs);
@@ -331,6 +333,7 @@ GF_Err afra_Read(GF_Box *s, GF_BitStream *bs)
 	unsigned int i;
 	GF_AdobeFragRandomAccessBox *ptr = (GF_AdobeFragRandomAccessBox *)s;
 
+	ISOM_DECREASE_SIZE(ptr, 9)
 	ptr->long_ids = gf_bs_read_int(bs, 1);
 	ptr->long_offsets = gf_bs_read_int(bs, 1);
 	ptr->global_entries = gf_bs_read_int(bs, 1);
@@ -338,35 +341,49 @@ GF_Err afra_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->time_scale = gf_bs_read_u32(bs);
 
 	ptr->entry_count = gf_bs_read_u32(bs);
+	if (ptr->size < ptr->entry_count * (ptr->long_offsets ? 16 : 12))
+		return GF_ISOM_INVALID_FILE;
+
 	for (i=0; i<ptr->entry_count; i++) {
 		GF_AfraEntry *ae = gf_malloc(sizeof(GF_AfraEntry));
+		if (!ae) return GF_OUT_OF_MEM;
 
+		ISOM_DECREASE_SIZE(ptr, 8)
 		ae->time = gf_bs_read_u64(bs);
-		if (ptr->long_offsets)
+		if (ptr->long_offsets) {
+			ISOM_DECREASE_SIZE(ptr, 8)
 			ae->offset = gf_bs_read_u64(bs);
-		else
+		} else {
+			ISOM_DECREASE_SIZE(ptr, 4)
 			ae->offset = gf_bs_read_u32(bs);
+		}
 
 		gf_list_insert(ptr->local_access_entries, ae, i);
 	}
 
 	if (ptr->global_entries) {
+		ISOM_DECREASE_SIZE(ptr, 4)
 		ptr->global_entry_count = gf_bs_read_u32(bs);
 		for (i=0; i<ptr->global_entry_count; i++) {
 			GF_GlobalAfraEntry *ae = gf_malloc(sizeof(GF_GlobalAfraEntry));
-
+			if (!ae) return GF_OUT_OF_MEM;
+			ISOM_DECREASE_SIZE(ptr, 8)
 			ae->time = gf_bs_read_u64(bs);
 			if (ptr->long_ids) {
+				ISOM_DECREASE_SIZE(ptr, 8)
 				ae->segment = gf_bs_read_u32(bs);
 				ae->fragment = gf_bs_read_u32(bs);
 			} else {
+				ISOM_DECREASE_SIZE(ptr, 4)
 				ae->segment = gf_bs_read_u16(bs);
 				ae->fragment = gf_bs_read_u16(bs);
 			}
 			if (ptr->long_offsets) {
+				ISOM_DECREASE_SIZE(ptr, 16)
 				ae->afra_offset = gf_bs_read_u64(bs);
 				ae->offset_from_afra = gf_bs_read_u64(bs);
 			} else {
+				ISOM_DECREASE_SIZE(ptr, 8)
 				ae->afra_offset = gf_bs_read_u32(bs);
 				ae->offset_from_afra = gf_bs_read_u32(bs);
 			}
@@ -477,11 +494,16 @@ GF_Err asrt_Read(GF_Box *s, GF_BitStream *bs)
 	unsigned int i;
 	GF_AdobeSegmentRunTableBox *ptr = (GF_AdobeSegmentRunTableBox *)s;
 
+	ISOM_DECREASE_SIZE(ptr, 1)
 	ptr->quality_entry_count = gf_bs_read_u8(bs);
+	if (ptr->size < ptr->quality_entry_count)
+		return GF_ISOM_INVALID_FILE;
+
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
-		u32 tmp_strsize=(u32)ptr->size-8;
+		u32 tmp_strsize=(u32)ptr->size;
 		char *tmp_str = (char*) gf_malloc(tmp_strsize);
+		if (!tmp_str) return GF_OUT_OF_MEM;
 		while (tmp_strsize) {
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
@@ -489,12 +511,19 @@ GF_Err asrt_Read(GF_Box *s, GF_BitStream *bs)
 				break;
 			j++;
 		}
+		ISOM_DECREASE_SIZE(ptr, j)
 		gf_list_insert(ptr->quality_segment_url_modifiers, tmp_str, i);
 	}
 
+	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->segment_run_entry_count = gf_bs_read_u32(bs);
+	if (ptr->size < ptr->segment_run_entry_count*8)
+		return GF_ISOM_INVALID_FILE;
+
 	for (i=0; i<ptr->segment_run_entry_count; i++) {
 		GF_AdobeSegmentRunEntry *sre = gf_malloc(sizeof(GF_AdobeSegmentRunEntry));
+		if (!sre) return GF_OUT_OF_MEM;
+		ISOM_DECREASE_SIZE(ptr, 8)
 		sre->first_segment = gf_bs_read_u32(bs);
 		sre->fragment_per_segment = gf_bs_read_u32(bs);
 		gf_list_insert(ptr->segment_run_entry_table, sre, i);
@@ -581,13 +610,18 @@ GF_Err afrt_Read(GF_Box *s, GF_BitStream *bs)
 	unsigned int i;
 	GF_AdobeFragmentRunTableBox *ptr = (GF_AdobeFragmentRunTableBox *)s;
 
+	ISOM_DECREASE_SIZE(ptr, 5)
 	ptr->timescale = gf_bs_read_u32(bs);
 
 	ptr->quality_entry_count = gf_bs_read_u8(bs);
+	if (ptr->size < ptr->quality_entry_count)
+		return GF_ISOM_INVALID_FILE;
+
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
 		u32 tmp_strsize=(u32)ptr->size-8;
 		char *tmp_str = (char*) gf_malloc(tmp_strsize);
+		if (!tmp_str) return GF_OUT_OF_MEM;
 		while (tmp_strsize) {
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
@@ -595,17 +629,24 @@ GF_Err afrt_Read(GF_Box *s, GF_BitStream *bs)
 				break;
 			j++;
 		}
+		ISOM_DECREASE_SIZE(ptr, j)
 		gf_list_insert(ptr->quality_segment_url_modifiers, tmp_str, i);
 	}
 
 	ptr->fragment_run_entry_count = gf_bs_read_u32(bs);
+	if (ptr->size < ptr->fragment_run_entry_count*16)
+		return GF_ISOM_INVALID_FILE;
 	for (i=0; i<ptr->fragment_run_entry_count; i++) {
 		GF_AdobeFragmentRunEntry *fre = gf_malloc(sizeof(GF_AdobeFragmentRunEntry));
+		if (!fre) return GF_ISOM_INVALID_FILE;
+		ISOM_DECREASE_SIZE(ptr, 16)
 		fre->first_fragment = gf_bs_read_u32(bs);
 		fre->first_fragment_timestamp = gf_bs_read_u64(bs);
 		fre->fragment_duration = gf_bs_read_u32(bs);
-		if (!fre->fragment_duration)
+		if (!fre->fragment_duration) {
+			ISOM_DECREASE_SIZE(ptr, 1)
 			fre->discontinuity_indicator = gf_bs_read_u8(bs);
+		}
 		gf_list_insert(ptr->fragment_run_entry_table, fre, i);
 	}
 

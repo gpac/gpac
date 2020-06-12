@@ -5018,6 +5018,7 @@ GF_Err colr_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<profile><![CDATA[");
 			size_64 = 2*ptr->opaque_size;
 			prof_data_64 = gf_malloc(size_64);
+			if (!prof_data_64) return GF_OUT_OF_MEM;
 			size_64 = gf_base64_encode((const char *) ptr->opaque, ptr->opaque_size, (char *)prof_data_64, size_64);
 			prof_data_64[size_64] = 0;
 			fprintf(trace, "%s", prof_data_64);

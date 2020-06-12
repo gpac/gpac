@@ -217,6 +217,7 @@ retry_unknown_box:
 
 		if (parent_type==GF_ISOM_BOX_TYPE_STSD) {
 			newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_UNKNOWN);
+			if (!newBox) return GF_OUT_OF_MEM;
 			((GF_UnknownBox *)newBox)->original_4cc = type;
 			newBox->size = size;
 			gf_bs_seek(bs, payload_start);
@@ -1607,10 +1608,9 @@ static GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs)
 {
 	if (ptr->registry->max_version_plus_one) {
 		GF_FullBox *self = (GF_FullBox *) ptr;
-		if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+		ISOM_DECREASE_SIZE(ptr, 4)
 		self->version = gf_bs_read_u8(bs);
 		self->flags = gf_bs_read_u24(bs);
-		ptr->size -= 4;
 	}
 	return GF_OK;
 }
@@ -1629,6 +1629,8 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 	}
 	for (i = 0; i <= nb_versions; i++) {
 		a = gf_isom_box_new(box_registry[idx].box_4cc);
+		if (!a) return GF_OUT_OF_MEM;
+		
 		a->registry = &box_registry[idx];
 
 		if (box_registry[idx].alt_4cc) {
