@@ -122,6 +122,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFo
 	//hint tracks always have a tref and everything ...
 	if (!trak->References) {
 		tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_TREF);
+		if (!tref) return GF_OUT_OF_MEM;
 		e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref);
 		if (e) return e;
 	}
@@ -135,6 +136,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFo
 
 	//create our dep
 	dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new_parent(&tref->child_boxes, GF_ISOM_BOX_TYPE_REFT);
+	if (!dpnd) return GF_OUT_OF_MEM;
 	dpnd->reference_type = GF_ISOM_BOX_TYPE_HINT;
 
 	//for RTP, we need to do some UDTA-related stuff...
@@ -143,6 +145,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFo
 	if (!trak->udta) {
 		//create one
 		udta = (GF_UserDataBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_UDTA);
+		if (!udta) return GF_OUT_OF_MEM;
 		e = trak_on_child_box((GF_Box*)trak, (GF_Box *) udta);
 		if (e) return e;
 	}
@@ -183,6 +186,7 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 	stsd = trak->Media->information->sampleTable->SampleDescription;
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *) gf_isom_box_new_parent(&stsd->child_boxes, GetHintFormat(trak));
+	if (!hdesc) return GF_OUT_OF_MEM;
 
 	if (HintTrackVersion > 0) hdesc->HintTrackVersion = HintTrackVersion;
 	if (LastCompatibleVersion > 0) hdesc->LastCompatibleVersion = LastCompatibleVersion;
@@ -203,6 +207,7 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 
 	//we need a rely box (common to all protocols)
 	relyA = (GF_RelyHintBox *) gf_isom_box_new_parent(&hdesc->child_boxes, GF_ISOM_BOX_TYPE_RELY);
+	if (!relyA) return GF_OUT_OF_MEM;
 	if (Rely == 1) {
 		relyA->preferred = 1;
 	} else {
@@ -241,6 +246,7 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 	}
 	//we have to create a new entry...
 	ent = (GF_TSHintEntryBox *) gf_isom_box_new_parent(&hdesc->child_boxes, GF_ISOM_BOX_TYPE_TIMS);
+	if (!ent) return GF_OUT_OF_MEM;
 	ent->timeScale = TimeScale;
 	return GF_OK;
 }
@@ -271,6 +277,7 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 	}
 	//we have to create a new entry...
 	ent = (GF_TimeOffHintEntryBox *) gf_isom_box_new_parent(&hdesc->child_boxes, GF_ISOM_BOX_TYPE_TSRO);
+	if (!ent) return GF_OUT_OF_MEM;
 	ent->TimeOffset = TimeOffset;
 
 	return GF_OK;
@@ -302,6 +309,7 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 	}
 	//we have to create a new entry...
 	ent = (GF_SeqOffHintEntryBox *) gf_isom_box_new_parent(&hdesc->child_boxes, GF_ISOM_BOX_TYPE_SNRO);
+	if (!ent) return GF_OUT_OF_MEM;
 	ent->SeqOffset = SequenceNumberOffset;
 	return GF_OK;
 }
@@ -667,6 +675,7 @@ GF_Err gf_isom_rtp_packet_set_offset(GF_ISOFile *the_file, u32 trackNumber, s32 
 	}
 	//not found, add it
 	rtpo = (GF_RTPOBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_RTPO);
+	if (!rtpo) return GF_OUT_OF_MEM;
 	rtpo->timeOffset = timeOffset;
 
 	return gf_list_add(pck->TLV, rtpo);
@@ -754,11 +763,15 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 
 	if (!sdp->sdpText) {
 		sdp->sdpText = (char *)gf_malloc(sizeof(char) * (strlen(text) + 3));
+		if (!sdp->sdpText) return GF_OUT_OF_MEM;
+
 		strcpy(sdp->sdpText, text);
 		strcat(sdp->sdpText, "\r\n");
 		return GF_OK;
 	}
 	buf = (char *)gf_malloc(sizeof(char) * (strlen(sdp->sdpText) + strlen(text) + 3));
+	if (!buf) return GF_OUT_OF_MEM;
+
 	strcpy(buf, sdp->sdpText);
 	strcat(buf, text);
 	strcat(buf, "\r\n");
@@ -834,6 +847,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 
 	if (!hnti->SDP) {
 		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI, 0, GF_FALSE);
+		if (!a) return GF_OUT_OF_MEM;
 		hnti_on_child_box((GF_Box*)hnti, a);
 		if (!hnti->child_boxes) hnti->child_boxes = gf_list_new();
 		gf_list_add(hnti->child_boxes, a);
@@ -842,11 +856,15 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 
 	if (!rtp->sdpText) {
 		rtp->sdpText = (char*)gf_malloc(sizeof(char) * (strlen(text) + 3));
+		if (!rtp->sdpText) return GF_OUT_OF_MEM;
+
 		strcpy(rtp->sdpText, text);
 		strcat(rtp->sdpText, "\r\n");
 		return GF_OK;
 	}
 	buf = (char*)gf_malloc(sizeof(char) * (strlen(rtp->sdpText) + strlen(text) + 3));
+	if (!buf) return GF_OUT_OF_MEM;
+	
 	strcpy(buf, rtp->sdpText);
 	strcat(buf, text);
 	strcat(buf, "\r\n");

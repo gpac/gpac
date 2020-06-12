@@ -267,53 +267,66 @@ GF_Err iloc_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 item_count, extent_count, i, j;
 	GF_ItemLocationBox *ptr = (GF_ItemLocationBox *)s;
 
+	ISOM_DECREASE_SIZE(ptr, 2)
 	ptr->offset_size = gf_bs_read_int(bs, 4);
 	ptr->length_size = gf_bs_read_int(bs, 4);
 	ptr->base_offset_size = gf_bs_read_int(bs, 4);
 	if (ptr->version == 1 || ptr->version == 2) {
 		ptr->index_size = gf_bs_read_int(bs, 4);
-	}
-	else {
+	} else {
 		gf_bs_read_int(bs, 4);
 	}
 	if (ptr->version < 2) {
+		ISOM_DECREASE_SIZE(ptr, 2)
 		item_count = gf_bs_read_u16(bs);
-	}
-	else {
+	} else {
+		ISOM_DECREASE_SIZE(ptr, 4)
 		item_count = gf_bs_read_u32(bs);
 	}
+
 	for (i = 0; i < item_count; i++) {
 		GF_ItemLocationEntry *location_entry = (GF_ItemLocationEntry *)gf_malloc(sizeof(GF_ItemLocationEntry));
+		if (!location_entry) return GF_OUT_OF_MEM;
+
 		gf_list_add(ptr->location_entries, location_entry);
 		if (ptr->version < 2) {
+			ISOM_DECREASE_SIZE(ptr, 2)
 			location_entry->item_ID = gf_bs_read_u16(bs);
-		}
-		else {
+		} else {
+			ISOM_DECREASE_SIZE(ptr, 4)
 			location_entry->item_ID = gf_bs_read_u32(bs);
 		}
 		if (ptr->version == 1 || ptr->version == 2) {
+			ISOM_DECREASE_SIZE(ptr, 2)
 			location_entry->construction_method = gf_bs_read_u16(bs);
 		}
 		else {
 			location_entry->construction_method = 0;
 		}
+		ISOM_DECREASE_SIZE(ptr, (2 + ptr->base_offset_size) )
 		location_entry->data_reference_index = gf_bs_read_u16(bs);
 		location_entry->base_offset = gf_bs_read_int(bs, 8*ptr->base_offset_size);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 		location_entry->original_base_offset = location_entry->base_offset;
 #endif
 
+		ISOM_DECREASE_SIZE(ptr, 2)
 		extent_count = gf_bs_read_u16(bs);
 		location_entry->extent_entries = gf_list_new();
 		for (j = 0; j < extent_count; j++) {
 			GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_malloc(sizeof(GF_ItemExtentEntry));
+			if (!extent_entry) return GF_OUT_OF_MEM;
+			
 			gf_list_add(location_entry->extent_entries, extent_entry);
 			if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0) {
+				ISOM_DECREASE_SIZE(ptr, ptr->index_size)
 				extent_entry->extent_index = gf_bs_read_int(bs, 8 * ptr->index_size);
 			}
 			else {
 				extent_entry->extent_index = 0;
 			}
+			ISOM_DECREASE_SIZE(ptr, (ptr->offset_size+ptr->length_size) )
+
 			extent_entry->extent_offset = gf_bs_read_int(bs, 8*ptr->offset_size);
 			extent_entry->extent_length = gf_bs_read_int(bs, 8*ptr->length_size);
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -425,7 +438,7 @@ void pitm_box_del(GF_Box *s)
 GF_Err pitm_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_PrimaryItemBox *ptr = (GF_PrimaryItemBox *)s;
-
+	ISOM_DECREASE_SIZE(ptr, 2)
 	ptr->item_ID = gf_bs_read_u16(bs);
 	return GF_OK;
 }
@@ -526,15 +539,17 @@ GF_Err infe_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 buf_len, i, string_len, string_start;
 	GF_ItemInfoEntryBox *ptr = (GF_ItemInfoEntryBox *)s;
 
+	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->item_ID = gf_bs_read_u16(bs);
 	ptr->item_protection_index = gf_bs_read_u16(bs);
-	ISOM_DECREASE_SIZE(ptr, 4);
+
 	if (ptr->version == 2) {
-		ptr->item_type = gf_bs_read_u32(bs);
 		ISOM_DECREASE_SIZE(ptr, 4);
+		ptr->item_type = gf_bs_read_u32(bs);
 	}
 	buf_len = (u32) (ptr->size);
 	buf = (char*)gf_malloc(buf_len);
+	if (!buf) return GF_OUT_OF_MEM;
 	if (buf_len != gf_bs_read_data(bs, buf, buf_len)) {
 		gf_free(buf);
 		return GF_ISOM_INVALID_FILE;
@@ -545,12 +560,15 @@ GF_Err infe_box_read(GF_Box *s, GF_BitStream *bs)
 		if (buf[i] == 0) {
 			if (!ptr->item_name) {
 				ptr->item_name = (char*)gf_malloc(sizeof(char)*string_len);
+				if (!ptr->item_name) return GF_OUT_OF_MEM;
 				memcpy(ptr->item_name, buf+string_start, string_len);
 			} else if (!ptr->content_type) {
 				ptr->content_type = (char*)gf_malloc(sizeof(char)*string_len);
+				if (!ptr->content_type) return GF_OUT_OF_MEM;
 				memcpy(ptr->content_type, buf+string_start, string_len);
 			} else {
 				ptr->content_encoding = (char*)gf_malloc(sizeof(char)*string_len);
+				if (!ptr->content_encoding) return GF_OUT_OF_MEM;
 				memcpy(ptr->content_encoding, buf+string_start, string_len);
 			}
 			string_start += string_len;
@@ -771,19 +789,20 @@ void ireftype_box_del(GF_Box *s)
 
 GF_Err ireftype_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 bytesToRead;
 	u32 i;
 	GF_ItemReferenceTypeBox *ptr = (GF_ItemReferenceTypeBox *)s;
 
-	bytesToRead = (u32)(ptr->size);
-	if (!bytesToRead) return GF_OK;
-
+	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->from_item_id = gf_bs_read_u16(bs);
 	ptr->reference_count = gf_bs_read_u16(bs);
+	if (ptr->size < ptr->reference_count*2)
+		return GF_ISOM_INVALID_FILE;
+
 	ptr->to_item_IDs = (u32 *)gf_malloc(ptr->reference_count * sizeof(u32));
 	if (!ptr->to_item_IDs) return GF_OUT_OF_MEM;
 
-	for (i = 0; i < ptr->reference_count; i++) {
+	for (i=0; i < ptr->reference_count; i++) {
+		ISOM_DECREASE_SIZE(ptr, 2)
 		ptr->to_item_IDs[i] = gf_bs_read_u16(bs);
 	}
 	return GF_OK;

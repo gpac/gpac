@@ -223,6 +223,7 @@ GF_Err pixi_box_read(GF_Box *s, GF_BitStream *bs)
 		p->num_channels = gf_bs_read_u8(bs);
 		p->bits_per_channel = (u8 *)gf_malloc(p->num_channels);
 		for (i = 0; i < p->num_channels; i++) {
+			ISOM_DECREASE_SIZE(p, 1)
 			p->bits_per_channel[i] = gf_bs_read_u8(bs);
 		}
 		return GF_OK;
@@ -476,6 +477,7 @@ GF_Err ipma_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox *)s;
 	u32 entry_count;
 
+	ISOM_DECREASE_SIZE(p, 4)
 	entry_count = gf_bs_read_u32(bs);
 	for (i = 0; i < entry_count; i++) {
 		GF_ItemPropertyAssociationEntry *entry;
@@ -483,12 +485,15 @@ GF_Err ipma_box_read(GF_Box *s, GF_BitStream *bs)
 		if (!entry) return GF_OUT_OF_MEM;
 		gf_list_add(p->entries, entry);
 		if (p->version == 0) {
+			ISOM_DECREASE_SIZE(p, 3)
 			entry->item_id = gf_bs_read_u16(bs);
 		} else {
+			ISOM_DECREASE_SIZE(p, 5)
 			entry->item_id = gf_bs_read_u32(bs);
 		}
 		entry->nb_associations = gf_bs_read_u8(bs);
 		entry->associations = gf_malloc(sizeof(GF_ItemPropertyAssociationSlot) * entry->nb_associations);
+		if (!entry->associations) return GF_OUT_OF_MEM;
 		for (j = 0; j < entry->nb_associations; j++) {
 			if (p->flags & 1) {
 				u16 tmp = gf_bs_read_u16(bs);
@@ -605,15 +610,13 @@ void grptype_box_del(GF_Box *s)
 
 GF_Err grptype_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 bytesToRead;
 	u32 i;
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
 
-	bytesToRead = (u32) (ptr->size);
-	if (!bytesToRead) return GF_OK;
+	ISOM_DECREASE_SIZE(ptr, 8)
 	ptr->group_id = gf_bs_read_u32(bs);
 	ptr->entity_id_count = gf_bs_read_u32(bs);
-	ISOM_DECREASE_SIZE(ptr, 8)
+
 	if (ptr->entity_id_count*4 > ptr->size) return GF_ISOM_INVALID_FILE;
 
 	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
@@ -859,6 +862,7 @@ void clli_box_del(GF_Box *a)
 GF_Err clli_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ContentLightLevelBox *p = (GF_ContentLightLevelBox *)s;
+	ISOM_DECREASE_SIZE(p, 4)
 	p->clli.max_content_light_level = gf_bs_read_u16(bs);
 	p->clli.max_pic_average_light_level = gf_bs_read_u16(bs);
 	return GF_OK;
@@ -903,6 +907,7 @@ GF_Err mdcv_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	int c = 0;
 	GF_MasteringDisplayColourVolumeBox *p = (GF_MasteringDisplayColourVolumeBox *)s;
+	ISOM_DECREASE_SIZE(p, 24)
 	for (c = 0; c<3; c++) {
 		p->mdcv.display_primaries[c].x = gf_bs_read_u16(bs);
 		p->mdcv.display_primaries[c].y = gf_bs_read_u16(bs);
@@ -989,6 +994,8 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		count = gf_isom_get_reference_count(movie, imported_track, GF_ISOM_REF_SABT);
 		for (i = 0; i < count; i++) {
 			u32 *tile_item_id = gf_malloc(sizeof(u32));
+			if (!tile_item_id) return GF_OUT_OF_MEM;
+
 			*tile_item_id = item_id + i+1;
 			gf_list_add(tile_item_ids, tile_item_id);
 			e = gf_isom_get_reference(movie, imported_track, GF_ISOM_REF_SABT, 1, &tile_track);
@@ -1031,7 +1038,9 @@ import_next_sample:
 	case GF_ISOM_SUBTYPE_AVC4_H264:
 		//FIXME: in avc1 with multiple descriptor, we should take the right description index
 		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		if (!config_box) return GF_OUT_OF_MEM;
 		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(movie, imported_track, imported_sample_desc_index);
+		if (! ((GF_AVCConfigurationBox *)config_box)->config) return GF_OUT_OF_MEM;
 		item_type = GF_ISOM_SUBTYPE_AVC_H264;
 		config_needed = 1;
 		num_channels = 3;
@@ -1041,7 +1050,9 @@ import_next_sample:
 		break;
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+		if (!config_box) return GF_OUT_OF_MEM;
 		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(movie, imported_track, imported_sample_desc_index);
+		if (! ((GF_AVCConfigurationBox *)config_box)->config) return GF_OUT_OF_MEM;
 		item_type = GF_ISOM_SUBTYPE_SVC_H264;
 		config_needed = 1;
 		num_channels = 3;
@@ -1051,7 +1062,9 @@ import_next_sample:
 		break;
 	case GF_ISOM_SUBTYPE_MVC_H264:
 		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
+		if (!config_box) return GF_OUT_OF_MEM;
 		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(movie, imported_track, imported_sample_desc_index);
+		if (! ((GF_AVCConfigurationBox *)config_box)->config) return GF_OUT_OF_MEM;
 		item_type = GF_ISOM_SUBTYPE_MVC_H264;
 		config_needed = 1;
 		num_channels = 3;
@@ -1067,7 +1080,9 @@ import_next_sample:
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
 		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+		if (!config_box) return GF_OUT_OF_MEM;
 		((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_hevc_config_get(movie, imported_track, imported_sample_desc_index);
+		if (! ((GF_HEVCConfigurationBox *)config_box)->config) return GF_OUT_OF_MEM;
 		if (subtype == GF_ISOM_SUBTYPE_HVT1) {
 			item_type = GF_ISOM_SUBTYPE_HVT1;
 		}
@@ -1077,6 +1092,7 @@ import_next_sample:
 		config_needed = 1;
 		if (!((GF_HEVCConfigurationBox *)config_box)->config) {
 			((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
+			if (! ((GF_HEVCConfigurationBox *)config_box)->config) return GF_OUT_OF_MEM;
 			item_type = GF_ISOM_SUBTYPE_LHV1;
 		}
 		num_channels = 3;
@@ -1088,7 +1104,9 @@ import_next_sample:
 	case GF_ISOM_SUBTYPE_AV01:
 		{
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
+			if (!config_box) return GF_OUT_OF_MEM;
 			((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(movie, imported_track, imported_sample_desc_index);
+			if (! ((GF_AV1ConfigurationBox *)config_box)->config) return GF_OUT_OF_MEM;
 			item_type = GF_ISOM_SUBTYPE_AV01;
 			config_needed = 1;
 			u8 depth = ((GF_AV1ConfigurationBox *)config_box)->config->high_bitdepth ? (((GF_AV1ConfigurationBox *)config_box)->config->twelve_bit ? 12 : 10 ) : 8;

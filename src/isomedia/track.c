@@ -278,8 +278,10 @@ default_sync:
 		) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
-			if (trak->moov->mov->openMode!=GF_ISOM_OPEN_READ)
+			if (trak->moov->mov->openMode!=GF_ISOM_OPEN_READ) {
 				stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSS);
+				if (!stbl->SyncSample) return GF_OUT_OF_MEM;
+			}
 		} else {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 			esd->slConfig->useRandomAccessPointFlag = 0;
@@ -852,6 +854,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					continue;
 
 				new_idx = (u32 *)gf_malloc(gf_list_count(sgdesc->group_descriptions)*sizeof(u32));
+				if (!new_idx) return GF_OUT_OF_MEM;
+
 				count = 0;
 				while (gf_list_count(sgdesc->group_descriptions)) {
 					void *sgpd_entry = gf_list_get(sgdesc->group_descriptions, 0);
@@ -893,6 +897,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			}
 			if (!stbl_group) {
 				stbl_group = (GF_SampleGroupBox *) gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_SBGP);
+				if (!stbl_group) return GF_OUT_OF_MEM;
 				stbl_group->grouping_type = frag_group->grouping_type;
 				stbl_group->grouping_type_parameter = frag_group->grouping_type_parameter;
 				stbl_group->version = frag_group->version;
@@ -1038,6 +1043,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 						if (size > sai->IV_size) {
 							sai->subsample_count = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
 							sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
+							if (!sai->subsamples) return GF_OUT_OF_MEM;
 							for (j = 0; j < sai->subsample_count; j++) {
 								sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
 								sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(trak->moov->mov->movieFileMap->bs);
@@ -1052,7 +1058,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 					gf_list_add(senc->samp_aux_info, sai);
 					if (sai->subsample_count) senc->flags = 0x00000002;
-					gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, offset, size);
+					e = gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, offset, size);
+					if (e) return e;
 					if (nb_saio == 1)
 						offset += size;
 				}
@@ -1064,10 +1071,12 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				sai = (GF_CENCSampleAuxInfo *)gf_list_get(sais, i);
 
 				new_sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+				if (!new_sai) return GF_OUT_OF_MEM;
 				new_sai->IV_size = sai->IV_size;
 				memmove((char *)new_sai->IV, (const char*)sai->IV, 16);
 				new_sai->subsample_count = sai->subsample_count;
 				new_sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+				if (!new_sai->subsamples) return GF_OUT_OF_MEM;
 				memmove(new_sai->subsamples, sai->subsamples, new_sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
 
 				gf_list_add(senc->samp_aux_info, new_sai);
@@ -1148,24 +1157,31 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 	mediaInfo = minf ? minf->InfoHeader : NULL;
 
 	//first create the media
-	if (!*mdia) *mdia = (GF_MediaBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDIA);
+	if (!*mdia) {
+		*mdia = (GF_MediaBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDIA);
+		if (! *mdia) { e = GF_OUT_OF_MEM; goto err_exit; }
+	}
 	if (!mdhd) {
 		mdhd = (GF_MediaHeaderBox *) gf_isom_box_new_parent( & ((*mdia)->child_boxes), GF_ISOM_BOX_TYPE_MDHD);
+		if (! mdhd) { e = GF_OUT_OF_MEM; goto err_exit; }
 		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) mdhd);
 		if (e) goto err_exit;
 	}
 	if (!hdlr) {
 		hdlr = (GF_HandlerBox *) gf_isom_box_new_parent(& ((*mdia)->child_boxes), GF_ISOM_BOX_TYPE_HDLR);
+		if (! hdlr) { e = GF_OUT_OF_MEM; goto err_exit; }
 		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) hdlr);
 		if (e) goto err_exit;
 	}
 	if (!minf) {
 		minf = (GF_MediaInformationBox *) gf_isom_box_new_parent(& ((*mdia)->child_boxes), GF_ISOM_BOX_TYPE_MINF);
+		if (! minf) { e = GF_OUT_OF_MEM; goto err_exit; }
 		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) minf);
 		if (e) goto err_exit;
 	}
 	if (!dinf) {
 		dinf = (GF_DataInformationBox *) gf_isom_box_new_parent(&minf->child_boxes, GF_ISOM_BOX_TYPE_DINF);
+		if (! dinf) { e = GF_OUT_OF_MEM; goto err_exit; }
 		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) dinf);
 		if (e) goto err_exit;
 	}
@@ -1248,6 +1264,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 			str = "GPAC IsoMedia Handler";
 			break;
 		}
+		if (! mediaInfo) { e = GF_OUT_OF_MEM; goto err_exit; }
 		if (!minf->child_boxes) minf->child_boxes = gf_list_new();
 		gf_list_add(minf->child_boxes, mediaInfo);
 
@@ -1263,6 +1280,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 	if (!dref) {
 		//Create a data reference WITHOUT DATA ENTRY (we don't know anything yet about the media Data)
 		dref = (GF_DataReferenceBox *) gf_isom_box_new_parent(&dinf->child_boxes, GF_ISOM_BOX_TYPE_DREF);
+		if (! dref) { e = GF_OUT_OF_MEM; goto err_exit; }
 		e = dinf_on_child_box((GF_Box*)dinf, (GF_Box *)dref);
 		if (e) goto err_exit;
 	}
@@ -1270,29 +1288,37 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 	if (!stbl) {
 		//first set-up the sample table...
 		stbl = (GF_SampleTableBox *) gf_isom_box_new_parent(&minf->child_boxes, GF_ISOM_BOX_TYPE_STBL);
+		if (! stbl) { e = GF_OUT_OF_MEM; goto err_exit; }
 
 		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) stbl);
 		if (e) goto err_exit;
 	}
-	if (!stbl->SampleDescription)
+	if (!stbl->SampleDescription) {
 		stbl->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSD);
+		if (! stbl->SampleDescription) { e = GF_OUT_OF_MEM; goto err_exit; }
+	}
 
 	//by default create a regular table, 32 but offset and normal sample size
-	if (!stbl->ChunkOffset)
+	if (!stbl->ChunkOffset) {
 		stbl->ChunkOffset = gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STCO);
-
-	if (!stbl->SampleSize)
+		if (! stbl->ChunkOffset) { e = GF_OUT_OF_MEM; goto err_exit; }
+	}
+	if (!stbl->SampleSize) {
 		stbl->SampleSize = (GF_SampleSizeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSZ);
-
-	if (!stbl->SampleToChunk)
+		if (! stbl->SampleSize) { e = GF_OUT_OF_MEM; goto err_exit; }
+	}
+	if (!stbl->SampleToChunk) {
 		stbl->SampleToChunk = (GF_SampleToChunkBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSC);
-
-	if (!stbl->TimeToSample)
+		if (! stbl->SampleToChunk) { e = GF_OUT_OF_MEM; goto err_exit; }
+	}
+	if (!stbl->TimeToSample) {
 		stbl->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STTS);
-
-	if (!stbl->SampleDescription)
+		if (! stbl->TimeToSample) { e = GF_OUT_OF_MEM; goto err_exit; }
+	}
+	if (!stbl->SampleDescription) {
 		stbl->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSD);
-
+		if (! stbl->SampleDescription) { e = GF_OUT_OF_MEM; goto err_exit; }
+	}
 	return GF_OK;
 
 err_exit:
@@ -1335,6 +1361,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	if (esd->dependsOnESID || (esd->OCRESID  && (esd->OCRESID != trak->moov->mov->es_id_default_sync)) ) {
 		if (!trak->References) {
 			tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_TREF);
+			if (!tref) return GF_OUT_OF_MEM;
 			e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref);
 			if (e) return e;
 		}
@@ -1365,6 +1392,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	if (e) return e;
 	if (!dpnd && esd->OCRESID && (esd->OCRESID != trak->moov->mov->es_id_default_sync)) {
 		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new_parent(&tref->child_boxes, GF_ISOM_BOX_TYPE_REFT);
+		if (!dpnd) return GF_OUT_OF_MEM;
 		dpnd->reference_type = GF_ISOM_BOX_TYPE_SYNC;
 		e = reftype_AddRefTrack(dpnd, esd->OCRESID, NULL);
 		if (e) return e;
@@ -1383,6 +1411,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		if (!dpnd) {
 			tmpRef = 0;
 			dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new_parent(&tref->child_boxes, GF_ISOM_BOX_TYPE_REFT);
+			if (!dpnd) return GF_OUT_OF_MEM;
 			dpnd->reference_type = GF_ISOM_BOX_TYPE_IPIR;
 			e = reftype_AddRefTrack(dpnd, esd->ipiPtr->IPI_ES_Id, &tmpRef);
 			if (e) return e;
@@ -1507,6 +1536,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4V);
 				if (!entry_v) return GF_OUT_OF_MEM;
 				entry_v->esd = (GF_ESDBox *) gf_isom_box_new_parent(&entry_v->child_boxes, GF_ISOM_BOX_TYPE_ESDS);
+				if (!entry_v->esd) return GF_OUT_OF_MEM;
 				entry_v->esd->desc = esd;
 			}
 
@@ -1518,18 +1548,21 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				GF_MPEGAudioSampleEntryBox *opus = (GF_MPEGAudioSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_OPUS);
 				if (!opus) return GF_OUT_OF_MEM;
 				opus->cfg_opus = (GF_OpusSpecificBox *)gf_isom_box_new_parent(&opus->child_boxes, GF_ISOM_BOX_TYPE_DOPS);
+				if (!opus->cfg_opus) return GF_OUT_OF_MEM;
 				entry = (GF_MPEGSampleEntryBox*)opus;
 				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AC3) {
 				GF_MPEGAudioSampleEntryBox *ac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 				if (!ac3) return GF_OUT_OF_MEM;
 				ac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new_parent(&ac3->child_boxes, GF_ISOM_BOX_TYPE_DAC3);
+				if (!ac3->cfg_ac3) return GF_OUT_OF_MEM;
 				entry = (GF_MPEGSampleEntryBox*) ac3;
 				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_EAC3) {
 				GF_MPEGAudioSampleEntryBox *eac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EC3);
 				if (!eac3) return GF_OUT_OF_MEM;
 				eac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new_parent(&eac3->child_boxes, GF_ISOM_BOX_TYPE_DEC3);
+				if (!eac3->cfg_ac3) return GF_OUT_OF_MEM;
 				entry = (GF_MPEGSampleEntryBox*) eac3;
 				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else {
@@ -1537,6 +1570,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				if (!entry_a) return GF_OUT_OF_MEM;
 				entry_a->samplerate_hi = trak->Media->mediaHeader->timeScale;
 				entry_a->esd = (GF_ESDBox *) gf_isom_box_new_parent(&entry_a->child_boxes, GF_ISOM_BOX_TYPE_ESDS);
+				if (!entry_a->esd) return GF_OUT_OF_MEM;
 				entry_a->esd->desc = esd;
 				//type cast possible now
 				entry = (GF_MPEGSampleEntryBox*) entry_a;
@@ -1551,6 +1585,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			} else {
 				entry = (GF_MPEGSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4S);
 				entry->esd = (GF_ESDBox *) gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_ESDS);
+				if (!entry->esd) return GF_OUT_OF_MEM;
 				entry->esd->desc = esd;
 			}
 			break;

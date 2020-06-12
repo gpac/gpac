@@ -105,14 +105,18 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		while ((a = (GF_Box *)gf_list_enum(moof->child_boxes, &i))) {
 			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
 				GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new_parent(&mov->moov->child_boxes, GF_ISOM_BOX_TYPE_PSSH);
+				if (!pssh) return GF_OUT_OF_MEM;
 				memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
 				if (((GF_ProtectionSystemHeaderBox *)a)->KIDs && ((GF_ProtectionSystemHeaderBox *)a)->KID_count > 0) {
 					pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
 					pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+					if (!pssh->KIDs) return GF_OUT_OF_MEM;
+
 					memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
 				}
 				pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
 				pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+				if (!pssh->private_data) return GF_OUT_OF_MEM;
 				memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
 			}
 		}
@@ -355,6 +359,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 			else if (!mov->mdat && (mov->openMode != GF_ISOM_OPEN_READ) && (mov->openMode != GF_ISOM_OPEN_KEEP_FRAGMENTS)) {
 				gf_isom_box_del(a);
 				mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);
+				if (!mov->mdat) return GF_OUT_OF_MEM;
 				e = gf_list_add(mov->TopBoxes, mov->mdat);
 				if (e) {
 					return e;
@@ -611,6 +616,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 	//create a default mdat if none was found
 	if (!mov->mdat && (mov->openMode != GF_ISOM_OPEN_READ) && (mov->openMode != GF_ISOM_OPEN_KEEP_FRAGMENTS)) {
 		mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);
+		if (!mov->mdat) return GF_OUT_OF_MEM;
 		e = gf_list_add(mov->TopBoxes, mov->mdat);
 		if (e) return e;
 	}
@@ -1067,16 +1073,18 @@ GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-void gf_isom_insert_moov(GF_ISOFile *file)
+GF_Err gf_isom_insert_moov(GF_ISOFile *file)
 {
 	GF_MovieHeaderBox *mvhd;
-	if (file->moov) return;
+	if (file->moov) return GF_OK;
 
 	//OK, create our boxes (mvhd, iods, ...)
 	file->moov = (GF_MovieBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOV);
+	if (!file->moov) return GF_OUT_OF_MEM;
 	file->moov->mov = file;
 	//Header SetUp
 	mvhd = (GF_MovieHeaderBox *) gf_isom_box_new_parent(&file->moov->child_boxes, GF_ISOM_BOX_TYPE_MVHD);
+	if (!mvhd) return GF_OUT_OF_MEM;
 
 	if (gf_sys_is_test_mode() ) {
 		mvhd->creationTime = mvhd->modificationTime = 0;
@@ -1094,6 +1102,7 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 	file->interleavingTime = mvhd->timeScale;
 	moov_on_child_box((GF_Box*)file->moov, (GF_Box *)mvhd);
 	gf_list_add(file->TopBoxes, file->moov);
+	return GF_OK;
 }
 
 //Create the movie for WRITE only
@@ -1134,6 +1143,11 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 
 	//create an MDAT
 	mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);
+	if (!mov->mdat) {
+		gf_isom_set_last_error(NULL, GF_OUT_OF_MEM);
+		gf_isom_delete_movie(mov);
+		return NULL;
+	}
 	gf_list_add(mov->TopBoxes, mov->mdat);
 
 	//default behaviour is capture mode, no interleaving (eg, no rewrite of mdat)

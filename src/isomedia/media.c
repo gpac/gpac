@@ -361,6 +361,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd->decoderConfig->objectTypeIndication = GF_CODECID_LASER;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = ptr->lsr_config->hdr_size;
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*ptr->lsr_config->hdr_size);
+			if (!esd->decoderConfig->decoderSpecificInfo->data) return GF_OUT_OF_MEM;
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, ptr->lsr_config->hdr, sizeof(char)*ptr->lsr_config->hdr_size);
 			break;
 		}
@@ -537,10 +538,13 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if ((*samp)->alloc_size) {
 			if ((*samp)->alloc_size < (*samp)->dataLength + mdia->mediaTrack->padding_bytes) {
 				(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+				if (! (*samp)->data) return GF_OUT_OF_MEM;
+
 				(*samp)->alloc_size = (*samp)->dataLength + mdia->mediaTrack->padding_bytes;
 			}
 		} else {
 			(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+			if (! (*samp)->data) return GF_OUT_OF_MEM;
 		}
 		if (mdia->mediaTrack->padding_bytes)
 			memset((*samp)->data + (*samp)->dataLength, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
@@ -895,12 +899,14 @@ GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, char *U
 	if (!URLname && !URNname) {
 		//THIS IS SELF CONTAIN, create a regular entry if needed
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new_parent(&dref->child_boxes, use_alis ? GF_QT_BOX_TYPE_ALIS : GF_ISOM_BOX_TYPE_URL);
+		if (!entry) return GF_OUT_OF_MEM;
 		entry->flags = 1;
 		*dataRefIndex = gf_list_count(dref->child_boxes);
 		return GF_OK;
 	} else if (!URNname && URLname) {
 		//THIS IS URL
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new_parent(&dref->child_boxes, GF_ISOM_BOX_TYPE_URL);
+		if (!entry) return GF_OUT_OF_MEM;
 		entry->flags = 0;
 
 		e = Media_SetDrefURL(entry, URLname, movie->fileName ? movie->fileName : movie->finalName);
@@ -913,6 +919,7 @@ GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, char *U
 	} else {
 		//THIS IS URN
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new_parent(&dref->child_boxes, GF_ISOM_BOX_TYPE_URN);
+		if (!entry) return GF_OUT_OF_MEM;
 		((GF_DataEntryURNBox *)entry)->flags = 0;
 		((GF_DataEntryURNBox *)entry)->nameURN = (char*)gf_malloc(strlen(URNname)+1);
 		if (! ((GF_DataEntryURNBox *)entry)->nameURN) {
@@ -956,7 +963,10 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 	//adds CTS offset
 	if (sample->CTS_Offset) {
 		//if we don't have a CTS table, add it...
-		if (!stbl->CompositionOffset) stbl->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CTTS);
+		if (!stbl->CompositionOffset) {
+			stbl->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CTTS);
+			if (!stbl->CompositionOffset) return GF_OUT_OF_MEM;
+		}
 		//then add our CTS (the prev samples with no CTS offset will be automatically added...
 		e = stbl_AddCTS(stbl, sampleNumber, sample->CTS_Offset);
 		if (e) return e;
@@ -976,6 +986,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 		//non-sync sample. Create a SyncSample table if needed
 		if (!stbl->SyncSample) {
 			stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSS);
+			if (!stbl->SyncSample) return GF_OUT_OF_MEM;
 			//all the prev samples are sync
 			for (i=0; i<stbl->SampleSize->sampleCount; i++) {
 				if (i+1 != sampleNumber) {
@@ -997,7 +1008,10 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 	}
 	
 	if (!syncShadowNumber) return GF_OK;
-	if (!stbl->ShadowSync) stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSH);
+	if (!stbl->ShadowSync) {
+		stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSH);
+		if (!stbl->ShadowSync) return GF_OUT_OF_MEM;
+	}
 	return stbl_AddShadow(mdia->information->sampleTable->ShadowSync, sampleNumber, syncShadowNumber);
 }
 
@@ -1018,6 +1032,7 @@ static GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, s32 CT
 		//do we need one ??
 		if (CTS) {
 			stbl->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CTTS);
+			if (!stbl->CompositionOffset) return GF_OUT_OF_MEM;
 			stbl_AddCTS(stbl, sampleNumber, CTS);
 		}
 	}
@@ -1028,6 +1043,7 @@ static GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, s32 CT
 		//do we need one
 		if (! isRap) {
 			stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSS);
+			if (!stbl->SyncSample) return GF_OUT_OF_MEM;
 			//what a pain: all the sample we had have to be sync ...
 			for (i=0; i<stbl->SampleSize->sampleCount; i++) {
 				if (i+1 != sampleNumber) stbl_AddRAP(stbl->SyncSample, i+1);
