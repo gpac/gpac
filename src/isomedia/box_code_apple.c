@@ -159,6 +159,8 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 		gf_bs_read_u16(bs);
 
 		ptr->data->data = (char *) gf_malloc(sizeof(char)*(ptr->data->dataSize + 1));
+		if (!ptr->data->data) return GF_OUT_OF_MEM;
+
 		gf_bs_read_data(bs, ptr->data->data, ptr->data->dataSize);
 		ptr->data->data[ptr->data->dataSize] = 0;
 		ISOM_DECREASE_SIZE(ptr, ptr->data->dataSize);
@@ -242,13 +244,13 @@ GF_Err databox_box_read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_DataBox *ptr = (GF_DataBox *)s;
 
-	ptr->reserved = gf_bs_read_int(bs, 32);
 	ISOM_DECREASE_SIZE(ptr, 4);
+	ptr->reserved = gf_bs_read_u32(bs);
 
 	if (ptr->size) {
 		ptr->dataSize = (u32) ptr->size;
 		ptr->data = (char*)gf_malloc(ptr->dataSize * sizeof(ptr->data[0]) + 1);
-		if (ptr->data == NULL) return GF_OUT_OF_MEM;
+		if (!ptr->data) return GF_OUT_OF_MEM;
 		ptr->data[ptr->dataSize] = 0;
 		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 	}
@@ -627,6 +629,7 @@ GF_Err tcmi_box_read(GF_Box *s, GF_BitStream *bs)
 		len = (u32) ptr->size;
 	if (len) {
 		ptr->font = gf_malloc(len+1);
+		if (!ptr->font) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->font, len);
 		ptr->size -= len;
 		ptr->font[len]=0;
@@ -836,9 +839,12 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->bitmap = gf_bs_read_u32(bs);
 	ptr->num_audio_description = gf_bs_read_u32(bs);
 
+	if (ptr->size < ptr->num_audio_description*20)
+		return GF_ISOM_INVALID_FILE;
+
 	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);
-	if (!ptr->audio_descs)
-	    return GF_OUT_OF_MEM;
+	if (!ptr->audio_descs) return GF_OUT_OF_MEM;
+	
 	for (i=0; i<ptr->num_audio_description; i++) {
 		GF_AudioChannelDescription *adesc = &ptr->audio_descs[i];
 		ISOM_DECREASE_SIZE(s, 20);

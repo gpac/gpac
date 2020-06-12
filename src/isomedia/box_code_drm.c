@@ -98,6 +98,7 @@ void frma_box_del(GF_Box *s)
 GF_Err frma_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_OriginalFormatBox *ptr = (GF_OriginalFormatBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->data_format = gf_bs_read_u32(bs);
 	return GF_OK;
 }
@@ -141,9 +142,9 @@ GF_Err schm_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SchemeTypeBox *ptr = (GF_SchemeTypeBox *)s;
 
+	ISOM_DECREASE_SIZE(ptr, 8);
 	ptr->scheme_type = gf_bs_read_u32(bs);
 	ptr->scheme_version = gf_bs_read_u32(bs);
-	ISOM_DECREASE_SIZE(ptr, 8);
 
 	if (ptr->size && (ptr->flags & 0x000001)) {
 		u32 len = (u32) (ptr->size);
@@ -331,6 +332,7 @@ GF_Err iSFM_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ISMASampleFormatBox *ptr = (GF_ISMASampleFormatBox *)s;
 
+	ISOM_DECREASE_SIZE(ptr, 3);
 	ptr->selective_encryption = gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 7);
 	ptr->key_indicator_length = gf_bs_read_u8(bs);
@@ -430,30 +432,33 @@ GF_Err ohdr_box_read(GF_Box *s, GF_BitStream *bs)
 	u16 cid_len, ri_len;
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
 
+	ISOM_DECREASE_SIZE(ptr, (1+1+8+2+2+2) );
 	ptr->EncryptionMethod = gf_bs_read_u8(bs);
 	ptr->PaddingScheme = gf_bs_read_u8(bs);
 	ptr->PlaintextLength = gf_bs_read_u64(bs);
 	cid_len = gf_bs_read_u16(bs);
 	ri_len = gf_bs_read_u16(bs);
 	ptr->TextualHeadersLen = gf_bs_read_u16(bs);
-	ISOM_DECREASE_SIZE(ptr, (1+1+8+2+2+2) );
 
 	if (ptr->size<cid_len+ri_len+ptr->TextualHeadersLen) return GF_ISOM_INVALID_FILE;
 
 	if (cid_len) {
 		ptr->ContentID = (char *)gf_malloc(sizeof(char)*(cid_len+1));
+		if (!ptr->ContentID) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->ContentID, cid_len);
 		ptr->ContentID[cid_len]=0;
 	}
 
 	if (ri_len) {
 		ptr->RightsIssuerURL = (char *)gf_malloc(sizeof(char)*(ri_len+1));
+		if (!ptr->RightsIssuerURL) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->RightsIssuerURL, ri_len);
 		ptr->RightsIssuerURL[ri_len]=0;
 	}
 
 	if (ptr->TextualHeadersLen) {
 		ptr->TextualHeaders = (char *)gf_malloc(sizeof(char)*(ptr->TextualHeadersLen+1));
+		if (!ptr->TextualHeaders) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->TextualHeaders, ptr->TextualHeadersLen);
 		ptr->TextualHeaders[ptr->TextualHeadersLen] = 0;
 	}
@@ -523,19 +528,20 @@ GF_Err grpi_box_read(GF_Box *s, GF_BitStream *bs)
 	u16 gid_len;
 	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox*)s;
 
+	ISOM_DECREASE_SIZE(ptr, (1+2+2) );
 	gid_len = gf_bs_read_u16(bs);
 	ptr->GKEncryptionMethod = gf_bs_read_u8(bs);
 	ptr->GKLength = gf_bs_read_u16(bs);
 
-	ISOM_DECREASE_SIZE(ptr, (1+2+2) );
-
 	if (ptr->size<gid_len+ptr->GKLength) return GF_ISOM_INVALID_FILE;
 
 	ptr->GroupID = gf_malloc(sizeof(char)*(gid_len+1));
+	if (!ptr->GroupID) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->GroupID, gid_len);
 	ptr->GroupID[gid_len]=0;
 
 	ptr->GroupKey = (char *)gf_malloc(sizeof(char)*ptr->GKLength);
+	if (!ptr->GroupKey) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->GroupKey, ptr->GKLength);
 	ISOM_DECREASE_SIZE(ptr, (gid_len+ptr->GKLength) );
 	return GF_OK;
@@ -669,6 +675,7 @@ GF_Err odrb_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->oma_ro_size = (u32) ptr->size;
 	ptr->oma_ro = (char*) gf_malloc(sizeof(char)*ptr->oma_ro_size);
+	if (!ptr->oma_ro) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->oma_ro, ptr->oma_ro_size);
 	ptr->size = 0;
 	return GF_OK;
@@ -856,6 +863,8 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 
+	ISOM_DECREASE_SIZE(ptr, 20);
+
 	gf_bs_read_u8(bs); //reserved
 	if (!ptr->version) {
 		gf_bs_read_u8(bs); //reserved
@@ -867,15 +876,14 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->Per_Sample_IV_Size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *) ptr->KID, 16);
 
-	ISOM_DECREASE_SIZE(ptr, 20);
 
 	if ((ptr->isProtected == 1) && !ptr->Per_Sample_IV_Size) {
 		ptr->constant_IV_size = gf_bs_read_u8(bs);
 		if (ptr->constant_IV_size > sizeof(ptr->constant_IV))
 			return GF_ISOM_INVALID_FILE;
-		gf_bs_read_data(bs, (char *) ptr->constant_IV, ptr->constant_IV_size);
-		ISOM_DECREASE_SIZE(ptr, (1 + ptr->constant_IV_size) );
 
+		ISOM_DECREASE_SIZE(ptr, (1 + ptr->constant_IV_size) );
+		gf_bs_read_data(bs, (char *) ptr->constant_IV, ptr->constant_IV_size);
 	}
 	return GF_OK;
 }
@@ -934,16 +942,15 @@ GF_Err piff_tenc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_PIFFTrackEncryptionBox *ptr = (GF_PIFFTrackEncryptionBox*)s;
 
-	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+	ISOM_DECREASE_SIZE(ptr, 4);
 	//PIFF TENC extends UUID and fullbox
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
-	ISOM_DECREASE_SIZE(ptr, 4);
 
+	ISOM_DECREASE_SIZE(ptr, 20);
 	ptr->AlgorithmID = gf_bs_read_int(bs, 24);
 	ptr->IV_size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *) ptr->KID, 16);
-	ISOM_DECREASE_SIZE(ptr, 20);
 	return GF_OK;
 }
 
@@ -999,17 +1006,17 @@ void piff_psec_box_del(GF_Box *s)
 GF_Err piff_psec_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
-	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+
+	ISOM_DECREASE_SIZE(ptr, 4);
 	//PIFF PSEC extends UUID and fullbox
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
-	ISOM_DECREASE_SIZE(ptr, 4);
 
 	if (ptr->flags & 1) {
+		ISOM_DECREASE_SIZE(ptr, 20);
 		ptr->AlgorithmID = gf_bs_read_int(bs, 24);
 		ptr->IV_size = gf_bs_read_u8(bs);
 		gf_bs_read_data(bs, (char *) ptr->KID, 16);
-		ISOM_DECREASE_SIZE(ptr, 20);
 	}
 	if (ptr->IV_size == 0)
 		ptr->IV_size = 8; //default to 8
@@ -1163,21 +1170,21 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*)s;
 
+	ISOM_DECREASE_SIZE(ptr, 24);
 	//PIFF PSSH extends UUID and fullbox
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->private_data_size = gf_bs_read_u32(bs);
 
-	ISOM_DECREASE_SIZE(ptr, 24);
-
 	if (ptr->size < sizeof(char)*ptr->private_data_size)
 	    return GF_ISOM_INVALID_FILE;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
 	if (!ptr->private_data)
 	    return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
+
 	ISOM_DECREASE_SIZE(ptr, ptr->private_data_size);
+	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
 	return GF_OK;
 }
 
@@ -1281,8 +1288,9 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	if (!senc->samp_aux_info) senc->samp_aux_info = gf_list_new();
 	for (i=0; i<count; i++) {
 		Bool is_encrypted;
-		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-		memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
+		GF_CENCSampleAuxInfo *sai;
+		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		if (!sai) return GF_OUT_OF_MEM;
 
 		if (trak) {
 			e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, sample_number, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
@@ -1324,6 +1332,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			if (senc->flags & 0x00000002) {
 				sai->subsample_count = gf_bs_read_u16(bs);
 				sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+				if (!sai->subsamples) return GF_OUT_OF_MEM;
 
 				if ((s32) senc_size < 2 + sai->subsample_count * 6) {
 					parse_failed = GF_TRUE;
@@ -1362,10 +1371,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 GF_Err senc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 4);
 	//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
-	ISOM_DECREASE_SIZE(ptr, 4);
 
 	ptr->bs_offset = gf_bs_get_position(bs);
 	gf_bs_skip_bytes(bs, ptr->size);
@@ -1618,8 +1627,8 @@ GF_Err aeib_box_read(GF_Box *s, GF_BitStream *bs)
 
 	len = (u32) ptr->size - 1;
 	if (len) {
-		if (ptr->enc_algo) return GF_ISOM_INVALID_FILE;
 		ptr->enc_algo = (char *)gf_malloc(len*sizeof(char));
+		if (!ptr->enc_algo) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->enc_algo, len);
 	}
 	ptr->key_length = gf_bs_read_u8(bs);
@@ -1721,8 +1730,8 @@ GF_Err flxs_box_read(GF_Box *s, GF_BitStream *bs)
 
 	len = (u32) ptr->size;
 	if (len) {
-		if (ptr->metadata) return GF_ISOM_INVALID_FILE;
 		ptr->metadata = (char *)gf_malloc(len*sizeof(char));
+		if (!ptr->metadata) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->metadata, len);
 	}
 	return GF_OK;
@@ -1768,10 +1777,10 @@ GF_Err adaf_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_AdobeDRMAUFormatBox *ptr = (GF_AdobeDRMAUFormatBox*)s;
 
+	ISOM_DECREASE_SIZE(ptr, 3);
 	ptr->selective_enc = gf_bs_read_u8(bs);
 	gf_bs_read_u8(bs);//resersed
 	ptr->IV_length = gf_bs_read_u8(bs);
-	ISOM_DECREASE_SIZE(ptr, 3);
 	return GF_OK;
 }
 

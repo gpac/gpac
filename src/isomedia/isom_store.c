@@ -109,7 +109,7 @@ void CleanWriters(GF_List *writers)
 	}
 }
 
-void ResetWriters(GF_List *writers)
+GF_Err ResetWriters(GF_List *writers)
 {
 	u32 i;
 	TrackWriter *writer;
@@ -122,6 +122,7 @@ void ResetWriters(GF_List *writers)
 		writer->sampleNumber = 1;
 		gf_isom_box_del((GF_Box *)writer->stsc);
 		writer->stsc = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
+		if (!writer->stsc) return GF_OUT_OF_MEM;
 		if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
 			gf_free(((GF_ChunkOffsetBox *)writer->stco)->offsets);
 			((GF_ChunkOffsetBox *)writer->stco)->offsets = NULL;
@@ -134,6 +135,7 @@ void ResetWriters(GF_List *writers)
 			((GF_ChunkLargeOffsetBox *)writer->stco)->alloc_size = 0;
 		}
 	}
+	return GF_OK;
 }
 
 GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
@@ -176,11 +178,13 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 			writer->constant_size = writer->constant_dur = 0;
 
 		writer->stsc = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
+		if (!writer->stsc) return GF_OUT_OF_MEM;
 		if (writer->stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 			writer->stco = gf_isom_box_new(GF_ISOM_BOX_TYPE_STCO);
 		} else {
 			writer->stco = gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
 		}
+		if (!writer->stco) return GF_OUT_OF_MEM;
 		/*stops from chunk escape*/
 		if (interleaving) writer->stbl->MaxSamplePerChunk = 0;
 		/*for progress, assume only one descIndex*/

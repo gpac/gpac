@@ -181,13 +181,18 @@ GF_Err ftab_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 	}
 	ptr->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord)*ptr->entry_count);
+	if (!ptr->fonts) return GF_OUT_OF_MEM;
+
 	memset(ptr->fonts, 0, sizeof(GF_FontRecord)*ptr->entry_count);
 	for (i=0; i<ptr->entry_count; i++) {
 		u32 len;
+		ISOM_DECREASE_SIZE(ptr, 3);
 		ptr->fonts[i].fontID = gf_bs_read_u16(bs);
 		len = gf_bs_read_u8(bs);
 		if (len) {
+			ISOM_DECREASE_SIZE(ptr, len);
 			ptr->fonts[i].fontName = (char *)gf_malloc(sizeof(char)*(len+1));
+			if (!ptr->fonts[i].fontName) return GF_OUT_OF_MEM;
 			gf_bs_read_data(bs, ptr->fonts[i].fontName, len);
 			ptr->fonts[i].fontName[len] = 0;
 		}
@@ -318,7 +323,7 @@ GF_Err tx3g_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 
-	if (ptr->size < 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) return GF_ISOM_INVALID_FILE;
+	ISOM_DECREASE_SIZE(ptr, (18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) );
 
 	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
 	if (e) return e;
@@ -330,7 +335,6 @@ GF_Err tx3g_box_read(GF_Box *s, GF_BitStream *bs)
 	gpp_read_box(bs, &ptr->default_box);
 	gpp_read_style(bs, &ptr->default_style);
 
-	ISOM_DECREASE_SIZE(ptr, (18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) );
 
 	return gf_isom_box_array_read(s, bs, tx3g_on_child_box);
 }
@@ -341,6 +345,8 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u16 pSize;
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+
+	ISOM_DECREASE_SIZE(ptr, 51);
 
 	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
 	if (e) return e;
@@ -355,20 +361,21 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->reserved2  = gf_bs_read_u8(bs);			/*Reserved*/
 	ptr->reserved3  = gf_bs_read_u16(bs);			/*Reserved*/
 	gf_bs_read_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
-	ISOM_DECREASE_SIZE(ptr, 51);
 
 	/*ffmpeg compatibility with iPod streams: no pascal string*/
 	if (!ptr->size)
 		return GF_OK;
 
-	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
 	ISOM_DECREASE_SIZE(ptr, 1);
+	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
 
 	if (ptr->size < pSize) {
 		u32 b_size = pSize;
 		size_t i = 0;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string: trying to decode anyway.\n"));
 		ptr->textName = (char*)gf_malloc((size_t)ptr->size + 1 + 1);
+		if (!ptr->textName) return GF_OUT_OF_MEM;
+
 		do {
 			char c = (char)b_size;
 			if (c == '\0') {
@@ -394,6 +401,8 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (pSize) {
 		ptr->textName = (char*) gf_malloc(pSize+1 * sizeof(char));
+		if (!ptr->textName) return GF_OUT_OF_MEM;
+
 		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize) {
 			gf_free(ptr->textName);
 			ptr->textName = NULL;
@@ -519,10 +528,17 @@ GF_Err styl_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
 	GF_TextStyleBox*ptr = (GF_TextStyleBox*)s;
+	ISOM_DECREASE_SIZE(ptr, 2);
 	ptr->entry_count = gf_bs_read_u16(bs);
+
+	if (ptr->size<ptr->entry_count * GPP_STYLE_SIZE)
+		return GF_ISOM_INVALID_FILE;
+
 	if (ptr->entry_count) {
 		ptr->styles = (GF_StyleRecord*)gf_malloc(sizeof(GF_StyleRecord)*ptr->entry_count);
+		if (!ptr->styles) return GF_OUT_OF_MEM;
 		for (i=0; i<ptr->entry_count; i++) {
+			ISOM_DECREASE_SIZE(ptr, GPP_STYLE_SIZE);
 			gpp_read_style(bs, &ptr->styles[i]);
 		}
 	}
@@ -567,6 +583,7 @@ void hlit_box_del(GF_Box *s)
 GF_Err hlit_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextHighlightBox *ptr = (GF_TextHighlightBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->startcharoffset = gf_bs_read_u16(bs);
 	ptr->endcharoffset = gf_bs_read_u16(bs);
 	return GF_OK;
@@ -606,6 +623,7 @@ void hclr_box_del(GF_Box *s)
 GF_Err hclr_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextHighlightColorBox*ptr = (GF_TextHighlightColorBox*)s;
+	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->hil_color = gpp_read_rgba(bs);
 	return GF_OK;
 }
@@ -646,12 +664,18 @@ GF_Err krok_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextKaraokeBox*ptr = (GF_TextKaraokeBox*)s;
 
+	ISOM_DECREASE_SIZE(ptr, 6)
 	ptr->highlight_starttime = gf_bs_read_u32(bs);
 	ptr->nb_entries = gf_bs_read_u16(bs);
+	if (ptr->size < ptr->nb_entries * 8)
+		return GF_ISOM_INVALID_FILE;
+
 	if (ptr->nb_entries) {
 		u32 i;
 		ptr->records = (KaraokeRecord*)gf_malloc(sizeof(KaraokeRecord)*ptr->nb_entries);
+		if (!ptr->records) return GF_OUT_OF_MEM;
 		for (i=0; i<ptr->nb_entries; i++) {
+			ISOM_DECREASE_SIZE(ptr, 8)
 			ptr->records[i].highlight_endtime = gf_bs_read_u32(bs);
 			ptr->records[i].start_charoffset = gf_bs_read_u16(bs);
 			ptr->records[i].end_charoffset = gf_bs_read_u16(bs);
@@ -702,6 +726,7 @@ void dlay_box_del(GF_Box *s)
 GF_Err dlay_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextScrollDelayBox*ptr = (GF_TextScrollDelayBox*)s;
+	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->scroll_delay = gf_bs_read_u32(bs);
 	return GF_OK;
 }
@@ -743,17 +768,22 @@ GF_Err href_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 len;
 	GF_TextHyperTextBox*ptr = (GF_TextHyperTextBox*)s;
+	ISOM_DECREASE_SIZE(ptr, 6) //including 2 length fields
 	ptr->startcharoffset = gf_bs_read_u16(bs);
 	ptr->endcharoffset = gf_bs_read_u16(bs);
 	len = gf_bs_read_u8(bs);
 	if (len) {
+		ISOM_DECREASE_SIZE(ptr, len)
 		ptr->URL = (char *) gf_malloc(sizeof(char) * (len+1));
+		if (!ptr->URL) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->URL, len);
 		ptr->URL[len] = 0;
 	}
 	len = gf_bs_read_u8(bs);
 	if (len) {
+		ISOM_DECREASE_SIZE(ptr, len)
 		ptr->URL_hint = (char *) gf_malloc(sizeof(char) * (len+1));
+		if (!ptr->URL_hint) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->URL_hint, len);
 		ptr->URL_hint[len]= 0;
 	}
@@ -814,6 +844,7 @@ void tbox_box_del(GF_Box *s)
 GF_Err tbox_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextBoxBox*ptr = (GF_TextBoxBox*)s;
+	ISOM_DECREASE_SIZE(ptr, GPP_BOX_SIZE)
 	gpp_read_box(bs, &ptr->box);
 	return GF_OK;
 }
@@ -852,6 +883,7 @@ void blnk_box_del(GF_Box *s)
 GF_Err blnk_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextBlinkBox*ptr = (GF_TextBlinkBox*)s;
+	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->startcharoffset = gf_bs_read_u16(bs);
 	ptr->endcharoffset = gf_bs_read_u16(bs);
 	return GF_OK;
@@ -891,6 +923,7 @@ void twrp_box_del(GF_Box *s)
 GF_Err twrp_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextWrapBox*ptr = (GF_TextWrapBox*)s;
+	ISOM_DECREASE_SIZE(ptr, 1)
 	ptr->wrap_flag = gf_bs_read_u8(bs);
 	return GF_OK;
 }
@@ -927,8 +960,8 @@ GF_Err tsel_box_read(GF_Box *s,GF_BitStream *bs)
 	u32 i;
 	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
 
-	ptr->switchGroup = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
+	ptr->switchGroup = gf_bs_read_u32(bs);
 
 	if (ptr->size % 4) return GF_ISOM_INVALID_FILE;
 	ptr->attributeListCount = (u32)ptr->size/4;
@@ -996,14 +1029,13 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
 
+	ISOM_DECREASE_SIZE(p, 3);
 	p->profile = gf_bs_read_u8(bs);
 	p->level = gf_bs_read_u8(bs);
 	p->pathComponents = gf_bs_read_int(bs, 4);
 	p->fullRequestHost = gf_bs_read_int(bs, 1);
 	p->streamType = gf_bs_read_int(bs, 1);
 	p->containsRedundant = gf_bs_read_int(bs, 2);
-
-	ISOM_DECREASE_SIZE(p, 3);
 
 	i=0;
 	str[0]=0;
