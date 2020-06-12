@@ -82,11 +82,13 @@ GF_ISMASample *gf_isom_ismacryp_sample_from_data(char *data, u32 dataLength, Boo
 		if (KI_length) {
 			if (s->dataLength < KI_length) goto exit;
 			s->key_indicator = (u8 *)gf_malloc(KI_length);
+			if (!s->key_indicator) goto exit;
 			gf_bs_read_data(bs, (char*)s->key_indicator, KI_length);
 			s->dataLength -= KI_length;
 		}
 	}
 	s->data = (char*)gf_malloc(sizeof(char)*s->dataLength);
+	if (!s->data) goto exit;
 	gf_bs_read_data(bs, s->data, s->dataLength);
 	gf_bs_del(bs);
 	return s;
@@ -473,19 +475,23 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	}
 
 	sinf = (GF_ProtectionSchemeInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SINF);
+	if (!sinf) return GF_OUT_OF_MEM;
 	gf_list_add(sea->protections, sinf);
 
 	sinf->scheme_type = (GF_SchemeTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SCHM);
+	if (!sinf->scheme_type) return GF_OUT_OF_MEM;
 	sinf->scheme_type->version = version;
 	sinf->scheme_type->flags = flags;
 	sinf->scheme_type->scheme_type = scheme_type;
 	sinf->scheme_type->scheme_version = scheme_version;
 	if (sinf->scheme_type->flags == 1 && scheme_uri) {
 		sinf->scheme_type->URI = (char *)gf_malloc(sizeof(char)*strlen(scheme_uri));
+		if (!sinf->scheme_type->URI) return GF_OUT_OF_MEM;
 		memmove(sinf->scheme_type->URI, scheme_uri, strlen(scheme_uri));
 	}
 
 	sinf->original_format = (GF_OriginalFormatBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FRMA);
+	if (!sinf->original_format) return GF_OUT_OF_MEM;
 	sinf->original_format->data_format = original_format;
 
 	//common to isma, cenc and oma
@@ -513,9 +519,11 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	}
 
 	sinf->info->ikms = (GF_ISMAKMSBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IKMS);
+	if (!sinf->info->ikms) return GF_OUT_OF_MEM;
 	sinf->info->ikms->URI = gf_strdup(kms_URI);
 
 	sinf->info->isfm = (GF_ISMASampleFormatBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ISFM);
+	if (!sinf->info->isfm) return GF_OUT_OF_MEM;
 	sinf->info->isfm->selective_encryption = selective_encryption;
 	sinf->info->isfm->key_indicator_length = KI_length;
 	sinf->info->isfm->IV_length = IV_length;
@@ -534,12 +542,15 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	if (e) return e;
 
 	sinf->info->odkm = (GF_OMADRMKMSBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ODKM);
+	if (!sinf->info->odkm) return GF_OUT_OF_MEM;
 	sinf->info->odkm->fmt = (GF_OMADRMAUFormatBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_ODAF);
+	if (!sinf->info->odkm->fmt) return GF_OUT_OF_MEM;
 	sinf->info->odkm->fmt->selective_encryption = selective_encryption;
 	sinf->info->odkm->fmt->key_indicator_length = KI_length;
 	sinf->info->odkm->fmt->IV_length = IV_length;
 
 	sinf->info->odkm->hdr = (GF_OMADRMCommonHeaderBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_OHDR);
+	if (!sinf->info->odkm->hdr) return GF_OUT_OF_MEM;
 	sinf->info->odkm->hdr->EncryptionMethod = encryption_type;
 	sinf->info->odkm->hdr->PaddingScheme = (encryption_type==0x01) ? 1 : 0;
 	sinf->info->odkm->hdr->PlaintextLength = plainTextLength;
@@ -547,6 +558,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	if (kms_URI) sinf->info->odkm->hdr->RightsIssuerURL = gf_strdup(kms_URI);
 	if (textual_headers) {
 		sinf->info->odkm->hdr->TextualHeaders = (char*)gf_malloc(sizeof(char)*textual_headers_len);
+		if (!sinf->info->odkm->hdr->TextualHeaders) return GF_OUT_OF_MEM;
 		memcpy(sinf->info->odkm->hdr->TextualHeaders, textual_headers, sizeof(char)*textual_headers_len);
 		sinf->info->odkm->hdr->TextualHeadersLen = textual_headers_len;
 	}
@@ -669,11 +681,13 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 
 	if (scheme_type==GF_ISOM_PIFF_SCHEME) {
 		sinf->info->piff_tenc = (GF_PIFFTrackEncryptionBox *) gf_isom_box_new(GF_ISOM_BOX_UUID_TENC);
+		if (!sinf->info->piff_tenc) return GF_OUT_OF_MEM;
 		sinf->info->piff_tenc->AlgorithmID = 1;
 		sinf->info->piff_tenc->IV_size = default_IV_size;
 		memcpy(sinf->info->piff_tenc->KID, default_KID, 16*sizeof(char));
 	} else {
 		sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TENC);
+		if (!sinf->info->tenc) return GF_OUT_OF_MEM;
 
 		sinf->info->tenc->isProtected = default_IsEncrypted;
 		sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
@@ -705,6 +719,7 @@ GF_Err gf_isom_set_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 		return GF_BAD_PARAM;
 
 	saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
+	if (!saio) return GF_OUT_OF_MEM;
 	saio->aux_info_type = GF_ISOM_CENC_SCHEME;
 	saio->aux_info_type_parameter = 0;
 
@@ -794,32 +809,39 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_c
 	if (use_piff) {
 		GF_PIFFProtectionSystemHeaderBox *piff_pssh = (GF_PIFFProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_UUID_PSSH);
 		if (!piff_pssh)
-			return GF_IO_ERR;
+			return GF_OUT_OF_MEM;
 		memmove((char *)piff_pssh->SystemID, systemID, 16);
 		piff_pssh->version = version;
 
 		piff_pssh->private_data_size = len;
-		if (!piff_pssh->private_data)
+		if (!piff_pssh->private_data) {
 			piff_pssh->private_data = (u8 *)gf_malloc(piff_pssh->private_data_size*sizeof(char));
+			if (!piff_pssh->private_data) return GF_OUT_OF_MEM;
+		}
 		memmove((char *)piff_pssh->private_data, data, piff_pssh->private_data_size);
 		gf_list_add(mp4->moov->other_boxes, piff_pssh);
 
 	} else {
 		GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PSSH);
 		if (!pssh)
-			return GF_IO_ERR;
+			return GF_OUT_OF_MEM;
 		memmove((char *)pssh->SystemID, systemID, 16);
 		pssh->version = version;
 		if (version) {
 			pssh->KID_count = KID_count;
 			if (KID_count) {
-				if (!pssh->KIDs) pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+				if (!pssh->KIDs) {
+					pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
+					if (!pssh->KIDs) return GF_OUT_OF_MEM;
+				}
 				memmove(pssh->KIDs, KIDs, pssh->KID_count*sizeof(bin128));
 			}
 		}
 		pssh->private_data_size = len;
-		if (!pssh->private_data)
+		if (!pssh->private_data) {
 			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+			if (!pssh->private_data) return GF_OUT_OF_MEM;
+		}
 		memmove((char *)pssh->private_data, data, pssh->private_data_size);
 		gf_list_add(mp4->moov->other_boxes, pssh);
 	}
@@ -996,6 +1018,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	u32  i;
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIZ);
+		if (!senc->cenc_saiz) return;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
 		senc->cenc_saiz->aux_info_type = 0;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
@@ -1006,6 +1029,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
+		if (!senc->cenc_saio) return;
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
 		senc->cenc_saio->version = 1;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
@@ -1034,11 +1058,12 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	}
 }
 
-void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len)
+GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len)
 {
 	u32  i;
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIZ);
+		if (!senc->cenc_saiz) return GF_OUT_OF_MEM;
 		senc->cenc_saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
 		if (stbl)
@@ -1046,6 +1071,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
+		if (!senc->cenc_saio) return GF_OUT_OF_MEM;
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
 		senc->cenc_saio->version = 1;
 		senc->cenc_saio->aux_info_type = GF_ISOM_CENC_SCHEME;
@@ -1059,7 +1085,8 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
 		senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_count+1));
-
+		if (!senc->cenc_saiz->sample_info_size) return GF_OUT_OF_MEM;
+		
 		if (senc->cenc_saiz->default_sample_info_size) {
 			for (i=0; i<senc->cenc_saiz->sample_count; i++)
 				senc->cenc_saiz->sample_info_size[i] = senc->cenc_saiz->default_sample_info_size;
@@ -1069,15 +1096,12 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saiz->sample_count++;
 	}
 
-	if (!senc->cenc_saio->entry_count) {
-		senc->cenc_saio->offsets_large = (u64 *)gf_malloc(sizeof(u64));
-		senc->cenc_saio->offsets_large[0] = offset;
-		senc->cenc_saio->entry_count ++;
-	} else {
-		senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets_large, sizeof(u64)*(senc->cenc_saio->entry_count+1));
-		senc->cenc_saio->offsets_large[senc->cenc_saio->entry_count] = offset;
-		senc->cenc_saio->entry_count++;
-	}
+	senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets_large, sizeof(u64)*(senc->cenc_saio->entry_count+1));
+	if (!senc->cenc_saio->offsets_large) return GF_OUT_OF_MEM;
+
+	senc->cenc_saio->offsets_large[senc->cenc_saio->entry_count] = offset;
+	senc->cenc_saio->entry_count++;
+	return GF_OK;
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
@@ -1114,6 +1138,8 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 			sai->subsample_count = gf_bs_read_u16(bs);
 			if (sai->subsample_count) senc->flags = 0x00000002;
 			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			if (!sai->subsamples) return GF_OUT_OF_MEM;
+
 			for (i = 0; i < sai->subsample_count; i++) {
 				sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
 				sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
@@ -1137,6 +1163,8 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 				sai->subsample_count ++;
 			}
 			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			if (!sai->subsamples) return GF_OUT_OF_MEM;
+
 			olen = len;
 			for (i = 0; i < sai->subsample_count; i++) {
 				if (olen<0xFFFF) {
@@ -1337,10 +1365,14 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 	cur_position = gf_bs_get_position(mdia->information->dataHandler->bs);
 	gf_bs_seek(mdia->information->dataHandler->bs, offset);
 	buffer = (char *)gf_malloc(size);
+	if (!buffer) return GF_OUT_OF_MEM;
+
 	gf_bs_read_data(mdia->information->dataHandler->bs, buffer, size);
 	gf_bs_seek(mdia->information->dataHandler->bs, cur_position);
 
 	*sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+	if (! *sai) return GF_OUT_OF_MEM;
+
 	memset(*sai, 0, sizeof(GF_CENCSampleAuxInfo));
 	if (size) {
 		bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
@@ -1348,6 +1380,8 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		if (size > IV_size) {
 			(*sai)->subsample_count = gf_bs_read_u16(bs);
 			(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+			if (! (*sai)->subsamples) return GF_OUT_OF_MEM;
+
 			for (i = 0; i < (*sai)->subsample_count; i++) {
 				(*sai)->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
 				(*sai)->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
@@ -1442,6 +1476,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 		(*sai)->subsample_count = a_sai->subsample_count;
 		if ((*sai)->subsample_count > 0) {
 			(*sai)->subsamples = (GF_CENCSubSampleEntry*)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+			if (! (*sai)->subsamples) return GF_OUT_OF_MEM;
 			memmove((*sai)->subsamples, a_sai->subsamples, sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
 		}
 	}
@@ -1538,31 +1573,42 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 #endif
 
 	sinf->info->adkm = (GF_AdobeDRMKeyManagementSystemBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ADKM);
+	if (!sinf->info->adkm) return GF_OUT_OF_MEM;
 
 	sinf->info->adkm->header = (GF_AdobeDRMHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AHDR);
+	if (!sinf->info->adkm->header) return GF_OUT_OF_MEM;
 
 	sinf->info->adkm->header->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_APRM);
+	if (!sinf->info->adkm->header->std_enc_params) return GF_OUT_OF_MEM;
 
 	sinf->info->adkm->header->std_enc_params->enc_info = (GF_AdobeEncryptionInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AEIB);
-	if (sinf->info->adkm->header->std_enc_params->enc_info->enc_algo)
-		gf_free(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo);
+	if (!sinf->info->adkm->header->std_enc_params->enc_info) return GF_OUT_OF_MEM;
+
 	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo = (char *)gf_malloc(8*sizeof(char));
+	if (!sinf->info->adkm->header->std_enc_params->enc_info->enc_algo) return GF_OUT_OF_MEM;
+
 	strncpy(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo, "AES-CBC", 7);
 	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo[7] = 0;
 	sinf->info->adkm->header->std_enc_params->enc_info->key_length = 16;
 
 	sinf->info->adkm->header->std_enc_params->key_info = (GF_AdobeKeyInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AKEY);
+	if (!sinf->info->adkm->header->std_enc_params->key_info) return GF_OUT_OF_MEM;
 
 	sinf->info->adkm->header->std_enc_params->key_info->params = (GF_AdobeFlashAccessParamsBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FLXS);
+
+	if (!sinf->info->adkm->header->std_enc_params->key_info->params) return GF_OUT_OF_MEM;
+
 	if (metadata && len) {
-		if (sinf->info->adkm->header->std_enc_params->key_info->params->metadata)
-			gf_free(sinf->info->adkm->header->std_enc_params->key_info->params->metadata);
 		sinf->info->adkm->header->std_enc_params->key_info->params->metadata = (char *)gf_malloc((len+1)*sizeof(char));
+		if (!sinf->info->adkm->header->std_enc_params->key_info->params->metadata) return GF_OUT_OF_MEM;
+
 		strncpy(sinf->info->adkm->header->std_enc_params->key_info->params->metadata, metadata, len);
 		sinf->info->adkm->header->std_enc_params->key_info->params->metadata[len] = 0;
 	}
 
 	sinf->info->adkm->au_format = (GF_AdobeDRMAUFormatBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ADAF);
+	if (!sinf->info->adkm->au_format) return GF_OUT_OF_MEM;
+	
 	sinf->info->adkm->au_format->selective_enc = is_selective_enc ? 0x10 : 0x00;
 	sinf->info->adkm->au_format->IV_length = 16;
 

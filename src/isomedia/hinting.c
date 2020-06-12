@@ -56,7 +56,8 @@ GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 
-	if (ptr->size < 16) return GF_ISOM_INVALID_FILE;
+	//sample entry + 4 bytes in box
+	ISOM_DECREASE_SIZE(ptr, 12)
 
 	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
 	if (e) return e;
@@ -64,14 +65,13 @@ GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->HintTrackVersion = gf_bs_read_u16(bs);
 	ptr->LastCompatibleVersion = gf_bs_read_u16(bs);
 
-	ptr->size -= 12;
 	if ((s->type == GF_ISOM_BOX_TYPE_RTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_SRTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_RRTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_RTCP_STSD)) {
+		ISOM_DECREASE_SIZE(ptr, 4)
 		ptr->MaxPacketSize = gf_bs_read_u32(bs);
-		ptr->size -= 4;
 	} else if (s->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
+		ISOM_DECREASE_SIZE(ptr, 4)
 		ptr->partition_entry_ID = gf_bs_read_u16(bs);
 		ptr->FEC_overhead = gf_bs_read_u16(bs);
-		ptr->size -= 4;
 
 	}
 	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
@@ -220,6 +220,7 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 	if ((u32)sizeOut < sampleSize) {
 		ptr->dataLength = sampleSize - (u32)sizeOut;
 		ptr->AdditionalData = (char*)gf_malloc(sizeof(char) * ptr->dataLength);
+		if (!ptr->AdditionalData) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->AdditionalData, ptr->dataLength);
 	}
 	return GF_OK;
@@ -425,7 +426,7 @@ u32 gf_isom_hint_pck_length(GF_HintPacket *ptr)
 GF_GenericDTE *New_EmptyDTE()
 {
 	GF_EmptyDTE *dte = (GF_EmptyDTE *)gf_malloc(sizeof(GF_EmptyDTE));
-	dte->source = 0;
+	if (dte) dte->source = 0;
 	return (GF_GenericDTE *)dte;
 }
 
@@ -443,6 +444,7 @@ GF_GenericDTE *New_ImmediateDTE()
 GF_GenericDTE *New_SampleDTE()
 {
 	GF_SampleDTE *dte = (GF_SampleDTE *)gf_malloc(sizeof(GF_SampleDTE));
+	if (!dte) return NULL;
 	dte->source = 2;
 	//can be -1 in QT , so init at -2
 	dte->trackRefIndex = (s8) -2;
@@ -457,6 +459,7 @@ GF_GenericDTE *New_SampleDTE()
 GF_GenericDTE *New_StreamDescDTE()
 {
 	GF_StreamDescDTE *dte = (GF_StreamDescDTE *)gf_malloc(sizeof(GF_StreamDescDTE));
+	if (!dte) return NULL;
 	dte->source = 3;
 	dte->byteOffset = 0;
 	dte->dataLength = 0;
@@ -924,6 +927,7 @@ GF_Err gf_isom_hint_rtcp_read(GF_RTCPPacket *ptr, GF_BitStream *bs)
 		return GF_ISOM_INVALID_MEDIA;
 	}
 	ptr->data = gf_malloc(sizeof(char) * ptr->length);
+	if (!ptr->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->data, ptr->length);
 	return GF_OK;
 }

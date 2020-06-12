@@ -744,6 +744,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 		//if the new offset is a large one, we have to rewrite our table entry by entry (32->64 bit conv)...
 		if (offset > 0xFFFFFFFF) {
 			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
+			if (!co64) return GF_OUT_OF_MEM;
 			co64->nb_entries = stco->nb_entries + 1;
 			co64->alloc_size = co64->nb_entries;
 			co64->offsets = (u64*)gf_malloc(sizeof(u64) * co64->nb_entries);
@@ -847,6 +848,7 @@ GF_Err stbl_SetChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u64 offset)
 		//if the new offset is a large one, we have to rewrite our table...
 		if (offset > 0xFFFFFFFF) {
 			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
+			if (!co64) return GF_OUT_OF_MEM;
 			co64->nb_entries = ((GF_ChunkOffsetBox *)stbl->ChunkOffset)->nb_entries;
 			co64->alloc_size = co64->nb_entries;
 			co64->offsets = (u64*)gf_malloc(sizeof(u64)*co64->nb_entries);
@@ -1293,6 +1295,7 @@ GF_Err stbl_SetPaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber, u8 bits)
 
 	//create the table
 	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_PADB);
+	if (!stbl->PaddingBits) return GF_OUT_OF_MEM;
 
 	//alloc
 	if (!stbl->PaddingBits->padbits || !stbl->PaddingBits->SampleCount) {
@@ -1526,6 +1529,7 @@ GF_Err stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 
 		if (offset>0xFFFFFFFF) {
 			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
+			if (!co64) return GF_OUT_OF_MEM;
 			co64->nb_entries = stco->nb_entries + 1;
 			if (co64->nb_entries<=stco->nb_entries) return GF_OUT_OF_MEM;
 			co64->alloc_size = co64->nb_entries;
@@ -1603,6 +1607,7 @@ GF_Err stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 
 		//nope, create one
 		stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+		if (!stbl->SyncSample) return GF_OUT_OF_MEM;
 		if (stbl->SampleSize->sampleCount > 1) {
 			stbl->SyncSample->sampleNumbers = (u32*)gf_malloc(sizeof(u32) * (stbl->SampleSize->sampleCount-1));
 			if (!stbl->SyncSample->sampleNumbers) return GF_OUT_OF_MEM;
@@ -1653,6 +1658,7 @@ GF_Err stbl_AppendTrafMap(GF_SampleTableBox *stbl)
 GF_Err stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)
 {
 	if (!stbl->PaddingBits) stbl->PaddingBits = (GF_PaddingBitsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_PADB);
+	if (!stbl->PaddingBits) return GF_OUT_OF_MEM;
 
 	stbl->PaddingBits->padbits = (u8*)gf_realloc(stbl->PaddingBits->padbits, sizeof(u8) * stbl->SampleSize->sampleCount);
 	if (!stbl->PaddingBits->padbits) return GF_OUT_OF_MEM;
@@ -1666,6 +1672,7 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 	GF_CompositionOffsetBox *ctts;
 
 	if (!stbl->CompositionOffset) stbl->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CTTS);
+	if (!stbl->CompositionOffset) return GF_OUT_OF_MEM;
 
 	ctts = stbl->CompositionOffset;
 
@@ -1689,6 +1696,7 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 GF_Err stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority)
 {
 	if (!stbl->DegradationPriority) stbl->DegradationPriority = (GF_DegradationPriorityBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STDP);
+	if (!stbl->DegradationPriority) return GF_OUT_OF_MEM;
 
 	stbl->DegradationPriority->priorities = (u16 *)gf_realloc(stbl->DegradationPriority->priorities, sizeof(u16) * stbl->SampleSize->sampleCount);
 	if (!stbl->DegradationPriority->priorities) return GF_OUT_OF_MEM;
@@ -1701,6 +1709,7 @@ GF_Err stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority)
 GF_Err stbl_AppendDepType(GF_SampleTableBox *stbl, u32 DepType)
 {
 	if (!stbl->SampleDep) stbl->SampleDep= (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+	if (!stbl->SampleDep) return GF_OUT_OF_MEM;
 	stbl->SampleDep->sample_info = (u8*)gf_realloc(stbl->SampleDep->sample_info, sizeof(u8)*stbl->SampleSize->sampleCount );
 	if (!stbl->SampleDep->sample_info) return GF_OUT_OF_MEM;
 	stbl->SampleDep->sample_info[stbl->SampleDep->sampleCount] = DepType;
@@ -1768,6 +1777,7 @@ GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl)
 
 	//create a new SampleToChunk table
 	stsc_tmp = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
+	if (!stsc_tmp) return GF_OUT_OF_MEM;
 
 	stsc_tmp->nb_entries = stsc_tmp->alloc_size = stbl->SampleSize->sampleCount;
 	stsc_tmp->entries = gf_malloc(sizeof(GF_StscEntry)*stsc_tmp->nb_entries);

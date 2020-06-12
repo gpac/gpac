@@ -255,6 +255,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 	tref = mdia->mediaTrack->References;
 	if (!tref) {
 		tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
+		if (!tref) return GF_OUT_OF_MEM;
 		e = trak_AddBox((GF_Box*)mdia->mediaTrack, (GF_Box *) tref);
 		if (e) return e;
 	}
@@ -263,6 +264,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 	if (e) return e;
 	if (!mpod) {
 		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		if (!mpod) return GF_OUT_OF_MEM;
 		mpod->reference_type = GF_ISOM_BOX_TYPE_MPOD;
 		e = tref_AddBox((GF_Box*)tref, (GF_Box *)mpod);
 		if (e) return e;
@@ -307,9 +309,11 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 				if (e) goto err_exit;
 				if (desc->tag == GF_ODF_OD_TAG) {
 					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomObjectDescriptor));
+					if (!isom_od) return GF_OUT_OF_MEM;
 					isom_od->tag = GF_ODF_ISOM_OD_TAG;
 				} else {
 					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomInitialObjectDescriptor));
+					if (!isom_od) return GF_OUT_OF_MEM;
 					isom_od->tag = GF_ODF_ISOM_IOD_TAG;
 					//copy PL
 					((GF_IsomInitialObjectDescriptor *)isom_od)->inlineProfileFlag = ((GF_InitialObjectDescriptor *)od)->inlineProfileFlag;
