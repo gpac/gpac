@@ -96,6 +96,10 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 ## Contributing
 A complex project like GPAC wouldn’t exist and persist without the support of its community. Please contribute: a nice message, supporting us in our communication, reporting issues when you see them… any gesture, even the smallest ones, counts. 
 
+If you use GPAC in your published research, ! _please cite_ ! using
+- [this paper](https://dl.acm.org/doi/abs/10.1145/3339825.3394929) for recent versions (0.9 or above) 
+- [this paper](https://dl.acm.org/doi/abs/10.1145/1291233.1291452) for legacy versions (0.8 or below).
+
 If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for ‘good first issue’ on  [github](https://github.com/gpac/gpac/issues). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
 
 # Team
