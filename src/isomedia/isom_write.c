@@ -5360,7 +5360,6 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		}
 		else gf_fseek(f, 0, SEEK_SET);
 		trak->Media->handler->nameUTF8 = (char*)gf_malloc(sizeof(char)*(size_t)(size+1));
-		if (!trak->Media->handler->nameUTF8) return GF_OUT_OF_MEM;
 		if (!trak->Media->handler->nameUTF8) {
 			gf_fclose(f);
 			return GF_OUT_OF_MEM;

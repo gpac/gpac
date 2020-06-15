@@ -755,7 +755,7 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 	if (strlen(image_props->iccPath) > 0) {
 		u32 size;
 		u8 *data;
-		GF_Err e = gf_file_load_data(image_props->iccPath, &data, &size);
+		e = gf_file_load_data(image_props->iccPath, &data, &size);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error opening ICC colour profile file at %s\n", &image_props->iccPath));
 

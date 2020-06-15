@@ -26,6 +26,7 @@
 
 
 #include <gpac/internal/bifs_dev.h>
+#include <gpac/scene_manager.h>
 #include "quant.h"
 #include "script.h"
 
@@ -720,8 +721,15 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		/*NULL node is encoded as USE with ID = all bits to 1*/
 		if (nodeID == (u32) (1<<codec->info->config.NodeIDBits))
 			return NULL;
-		//find node and return it
+		//find node
 		new_node = gf_sg_find_node(codec->current_graph, nodeID);
+
+		//check node is allowed for the given NDT
+		if (new_node && !gf_node_in_table(new_node, NDT_Tag)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Node %s not allowed as field/child of NDT type %d\n", gf_node_get_class_name(new_node), NDT_Tag));
+			codec->LastError = GF_SG_UNKNOWN_NODE;
+			return NULL;
+		}
 
 		if (!new_node) {
 			codec->LastError = GF_SG_UNKNOWN_NODE;
