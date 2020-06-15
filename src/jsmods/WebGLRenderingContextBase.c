@@ -56,18 +56,7 @@ static JSValue wgl_bindBuffer(JSContext *ctx, JSValueConst this_val, int argc, J
 	return ret_val_js;
 }
 
-static JSValue wgl_bindFramebuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	JSValue ret_val_js = JS_UNDEFINED;
-	u32 target = 0;
-	GLuint framebuffer = 0;
-	WGL_CHECK_CONTEXT
-	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
-	WGL_GET_U32(target, argv[0]);
-	WGL_GET_GLID(framebuffer, argv[1], WebGLFramebuffer_class_id);
-	glBindFramebuffer(target, framebuffer);
-	return ret_val_js;
-}
+JSValue wgl_bindFramebuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
 static JSValue wgl_bindRenderbuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
