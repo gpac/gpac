@@ -13,9 +13,9 @@
 [![Build Status](https://tests.gpac.io/testres/badge/build/macos_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
 [![Tests](https://tests.gpac.io/testres/badge/tests/macos?branch=master)](https://tests.gpac.io/testres/master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/ios_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/ios_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master) iOS
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/android_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/android_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master) Android
 
 [![Coverage](https://tests.gpac.io/testres/badge/cov/linux64?branch=master)](https://tests.gpac.io/testres/)
 [![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=master)](https://tests.gpac.io/testres/)
@@ -27,11 +27,11 @@ Current version: 1.0.0-DEV
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
-GPAC is best-known for its wide MP4 capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and profesional broadcasters.
+GPAC is best-known for its wide MP4 capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and professional broadcasters.
 
 For more information, visit [GPAC website](http://gpac.io)
 
-GPAC is distributed under the LGPL v2.1 or later and is also available, for most of it, under a [commercial license](https://www.gpac-licensing.com).
+GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.gpac-licensing.com).
 
 # Features
 
@@ -47,9 +47,9 @@ GPAC can process, analyse, package, stream, encode, decode and playback a wide v
 - JS scripting through QuickJS for both SVG/BIFS/VRML and extending GPAC framework tools
 - 3D support (360 videos, WebGL JS filters…)
 - Inputs: microphone, camera, desktop grabbing
-- highly configurable media processing pipeline
+- Highly configurable media processing pipeline
 
-Features are encapsulated in processing modules called filters.
+Features are encapsulated in processing modules called filters:
 - to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://github.com/gpac/gpac/wiki/Filters).
 - to get the full list of playback features, check [our wiki](https://github.com/gpac/gpac/wiki/Player-Features).
 
@@ -77,7 +77,7 @@ Stable and nighyly builds installers for Windows, Linux, OSX, Android, iOS are a
 If you want to compile GPAC ourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
 
 ## Documentation
-The general GPAC framework documentation is available on (wiki.gpac.io)[https://wiki.gpac.io), including [HowTos](https://github.com/gpac/gpac/wiki/Howtos).
+The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://github.com/gpac/gpac/wiki/Howtos).
 
 GPAC tools are mostly wrappers around an underlying library called libgpac which can easily be embedded in your projects. The libgpac developer documentation is available at [doxygen.gpac.io](https://doxygen.gpac.io), including documentation of [JS APIs](https://doxygen.gpac.io/group__jsapi__grp.html).
 
@@ -96,7 +96,7 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 ## Contributing
 A complex project like GPAC wouldn’t exist and persist without the support of its community. Please contribute: a nice message, supporting us in our communication, reporting issues when you see them… any gesture, even the smallest ones, counts. 
 
-If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for ‘good first issue’ on  [github](https://github.com/gpac/gpac/issues). In any doubt please feel free to contact us.
+If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for ‘good first issue’ on  [github](https://github.com/gpac/gpac/issues). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
 
 # Team
 GPAC is brought to you by an experienced team of developers with a wide track-record on media processing. 
@@ -109,7 +109,7 @@ GPAC has a peculiar story: started as a startup in NYC, GPAC gained traction fro
 # Roadmap
 Users are encouraged to use the latest tag or the master branch.
 
-The previous v0.8.X release (the last one using the legacy architecture) is LTS until 30/06/2021. Important bug fixes will be backported but new features won’t. API compatibility between both versions should make the migration easy. If not please file a bug.
+The previous v0.8.X release (the last one using the legacy architecture) is LTS until 30/06/2021. Important bug fixes will be backported but new features won’t. API compatibility between both versions should make the migration easy. If not please [file a bug](https://github.com/gpac/gpac/issues).
 
 ## Ongoing tasks and bugs
 Please use [github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as feature-request.	
