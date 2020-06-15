@@ -1,122 +1,125 @@
-[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu64_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
-[![Tests](https://tests.gpac.io/testres/badge/tests/linux64?branch=filters)](https://tests.gpac.io/testres/filters)
+[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu64_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/linux64?branch=master)](https://tests.gpac.io/testres/master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu32_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
-[![Tests](https://tests.gpac.io/testres/badge/tests/linux32?branch=filters)](https://tests.gpac.io/testres/filters)
+[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu32_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/linux32?branch=master)](https://tests.gpac.io/testres/master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/windows64_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
-[![Tests](https://tests.gpac.io/testres/badge/tests/win64?branch=filters)](https://tests.gpac.io/testres/filters)
+[![Build Status](https://tests.gpac.io/testres/badge/build/windows64_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/win64?branch=master)](https://tests.gpac.io/testres/master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/windows32_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
-[![Tests](https://tests.gpac.io/testres/badge/tests/win32?branch=filters)](https://tests.gpac.io/testres/filters)
+[![Build Status](https://tests.gpac.io/testres/badge/build/windows32_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/win32?branch=master)](https://tests.gpac.io/testres/master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/macos_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
-[![Tests](https://tests.gpac.io/testres/badge/tests/macos?branch=filters)](https://tests.gpac.io/testres/filters)
+[![Build Status](https://tests.gpac.io/testres/badge/build/macos_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/macos?branch=master)](https://tests.gpac.io/testres/master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/ios_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
+[![Build Status](https://tests.gpac.io/testres/badge/build/ios_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/android_bb?branch=filters)](https://buildbot.gpac.io/#/grid?branch=filters)
+[![Build Status](https://tests.gpac.io/testres/badge/build/android_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
 
-[![Coverage](https://tests.gpac.io/testres/badge/cov/linux64?branch=filters)](https://tests.gpac.io/testres/filters)
-[![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=filters)](https://tests.gpac.io/testres/filters)
+[![Coverage](https://tests.gpac.io/testres/badge/cov/linux64?branch=master)](https://tests.gpac.io/testres/)
+[![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=master)](https://tests.gpac.io/testres/)
 
 ![License](https://img.shields.io/badge/license-LGPL-blue.svg)
 
-README for GPAC version 0.9.0-DEV
+# GPAC Introduction
+Current version: 1.0.0-DEV
 
-# Introduction
+GPAC is an open-source multimedia framework focused on modularity and standards compliance.
+GPAC provides tools to process, inspect, package, stream playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
+GPAC is best-known for its wide MP4 capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and profesional broadcasters.
 
-GPAC is a multimedia framework oriented towards rich media and distributed under the LGPL license (see COPYING).
+For more information, visit [GPAC website](http://gpac.io)
 
-GPAC supports many multimedia formats, from simple audiovisual containers (avi, mov, mpg) to complex  presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and 360 videos. GPAC supports presentation scripting for MPEG4/VRML/X3D through QuickJS javascript engine.
+GPAC is distributed under the LGPL v2.1 or later and is also available, for most of it, under a [commercial license](https://www.gpac-licensing.com).
 
-GPAC currently supports local file playback, HTTP progressive download, Adaptive HTTP Streaming (MPEG-DASH, HLS), RTP/RTSP streaming over UDP (unicast or multicast) or TCP,  TS demuxing (from file, IP or DVB4Linux), ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg.
+# Features
 
-For more information, visit the [GPAC website](http://gpac.io)
+GPAC can process, analyse, package, stream, encode, decode and playback a wide variety of contents. Selected feature list:
+- Audio: MPEG audio (mp1/2/3, aac), AC3, E-AC3, Opus, FLAC, …
+- Video: MPEG 1 / 2 / 4 (H264/AVC) / H (HEVC), AV1, VP9, Theora, ...
+- Subtitles: WebVTT, TTML (full, EBU-TTD, …), 3GPP/Apple Timed Text, …
+- Encryption: CENC, PIFF, ISMA, OMA, ...
+- Containers: MP4/fMP4/CMAF/Quicktime MOV/ProRes MOV, AVI, MPG, OGG, MKV, ...
+- Streaming: MPEG-2 Transport Stream, RTP, RTSP, HTTP, Apple HLS, MPEG-DASH, ATSC 3.0 ROUTE, ...
+- Supported IOs: local files, pipes, UDP/TCP, HTTP(S), custom IO
+- Presentation formats: MPEG-4 BIFS, SVG Tiny 1.2, VRML/X3D
+- JS scripting through QuickJS for both SVG/BIFS/VRML and extending GPAC framework tools
+- 3D support (360 videos, WebGL JS filters…)
+- Inputs: microphone, camera, desktop grabbing
+- highly configurable media processing pipeline
 
-GPAC is being developped at [Telecom Paris](https://www.telecom-paris.fr/), in the [MultiMedia group](http://www.tsi.telecom-paristech.fr/mm/), by many [great contributors](https://github.com/gpac/gpac/graphs/contributors)
+Features are encapsulated in processing modules called filters.
+- to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://github.com/gpac/gpac/wiki/Filters).
+- to get the full list of playback features, check [our wiki](https://github.com/gpac/gpac/wiki/Player-Features).
 
-GPAC includes the following applications built by default:
+
+# Tools
+
 ## MP4Box
 MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box-Introduction).
 
+
+## gpac 
+As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more dicussion on how this impacts MP4Box and MP4Client.
+The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
 
 ## MP4Client
 MP4Client is a media player built upon libgpac, featuring a rich media interactive composition engine with MPEG-4 BIFS, SVG, VRML/X3D support.
 For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [our wiki](https://wiki.gpac.io/mp4client).
 
-## gpac 
-As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [check this](https://wiki.gpac.io/Rearchitecture) for more dicussion on how this impacts MP4Box and MP4Client.
-The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
 
 
-# Roadmap
-## Ongoing tasks and bugs
-Please use [github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as feature-request.	
+# Getting started
+## Download
+Stable and nighyly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.wp.imt.fr/downloads/).
 
-## V0.9.0
-Remaining before release
-- [x] move encrypter to filter
-- [x] move ATSC demux to filter
-- [x] move NVDec to filter
-- [x] move MediaCodec to filter
-- [x] move DekTec output to filter
-- [x] move HEVC tile splitter to filter
-- [x] move HEVC tile merger to filter
-- [x] merge AV1 
-- [x] merge VP9 
-- [x] move iOS client to filters
-- [ ] move Android client to filters
-- [x] rewrite MP42TS to filters or drop it
-- [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
-- [x] add pipe source and sink
-- [x] add  tcp source and sink
-- [x] add generic serializer/reader for all events/packets in filter arch
-- [x] add Remotery support
-- [x] filter API documentation
-- [x] add segmentation handling in TS muxer
-- [x] unify vout / WebGL color handling (complete) and compositor GLSL shaders (partial color support)
-- [x] pass all master test suite
-- [x] extend coverage and test suite
-- [x] update doxygen
-- [ ] merge into master
+If you want to compile GPAC ourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
 
-## V1.0.0
-Targets:
-- [ ] freeze filter API
-- [x] improve filter graph resolver
-- [x] improve filter scheduler
-- [x] add ffmpeg muxer support
-- [x] add ffmpeg avfilter support
-- [ ] add kvazaar/other encoders support?
-- [x] drop SpiderMonkey and move to QuickJS
-- [x] filters scriptable through JS
-- [x] add 2D vector graphics for JS filters
-- [x] add WebGL vector graphics for JS filters
-- [x] JS modules API documentation
-- [x] improve mp4 demux from pipe
-- [x] support for HTTP output (server and put/post)
-- [x] add TS spliter filter
-- [x] add ttml simple renderer
-- [-] split test suite from main repo and handle PRs with attachements
+## Documentation
+The general GPAC framework documentation is available on (wiki.gpac.io)[https://wiki.gpac.io), including [HowTos](https://github.com/gpac/gpac/wiki/Howtos).
 
-## Future Roadmap
-- [ ] filters scriptable through other languages (python) ?
-- [ ] move input sensors to filter ?
+GPAC tools are mostly wrappers around an underlying library called libgpac which can easily be embedded in your projects. The libgpac developer documentation is available at [doxygen.gpac.io](https://doxygen.gpac.io), including documentation of [JS APIs](https://doxygen.gpac.io/group__jsapi__grp.html).
 
-# Testing
-GPAC has a test suite exercicing most features of the framework. As of 0.9.0, the test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
+
+## Testing
+GPAC has a test suite exercicing most features of the framework. The test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
 
 For more details on the test suite, check the [testsuite readme](https://github.com/gpac/testsuite).
 
 Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
-# Compilation and Installation
 
-Please visit the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
+## Support 
+Please use [github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as _feature-request_.	
 
-For more information, visit:
-- the GPAC website: http://gpac.io
-- the GPAC wiki: https://wiki.gpac.io
-- the libgpac documentation wiki: https://doxygen.gpac.io
+## Contributing
+A complex project like GPAC wouldn’t exist and persist without the support of its community. Please contribute: a nice message, supporting us in our communication, reporting issues when you see them… any gesture, even the smallest ones, counts. 
 
+If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for ‘good first issue’ on  [github](https://github.com/gpac/gpac/issues). In any doubt please feel free to contact us.
+
+# Team
+GPAC is brought to you by an experienced team of developers with a wide track-record on media processing. 
+
+The project is mainly developed at [Telecom Paris](https://www.telecom-paris.fr/), in the [MultiMedia group](http://www.tsi.telecom-paristech.fr/mm/), with the help of many [great contributors](https://github.com/gpac/gpac/graphs/contributors)
+
+GPAC has a peculiar story: started as a startup in NYC, GPAC gained traction from research and a nascent multimedia community as it was open-sourced in 2003. Since then we have never stopped transforming GPAC into a useful and up-to-date project, with many industrial R&D collaborations and a community of tens of thousands of users. This makes GPAC one of the few open-source multimedia projects that gathers so much diversity.
+
+
+# Roadmap
+Users are encouraged to use the latest tag or the master branch.
+
+The previous v0.8.X release (the last one using the legacy architecture) is LTS until 30/06/2021. Important bug fixes will be backported but new features won’t. API compatibility between both versions should make the migration easy. If not please file a bug.
+
+## Ongoing tasks and bugs
+Please use [github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as feature-request.	
+
+## V1.1.0
+Targets:
+- [ ] add kvazaar/other encoders support?
+- [ ] improve remotery support
+- [ ] more JS filters
+- [ ] filters scriptable through other languages (python) ?
+- [ ] move input sensors to filter ?
+- [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
+- [ ] move Android client to filters

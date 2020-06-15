@@ -1,4 +1,4 @@
-#changes for GPAC 0.9.0 for travis CI: GPAC hosts its own buildbot for building on various plateforms, running tests, coverage and safety checks
+#changes for GPAC filters (0.9+) for travis CI: GPAC hosts its own buildbot for building on various plateforms, running tests, coverage and safety checks
 #TravisCI is only used for checking sanity of PRs. Consequently:
 #- OSX and mingw no longer compiled
 #- linux only compiled for
