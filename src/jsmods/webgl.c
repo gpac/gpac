@@ -1097,8 +1097,20 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 			c = next[0];
 			next[0] = 0;
 			named_tx = wgl_locate_named_tx(glc, end_gfTx);
-			if (!named_tx || !named_tx->tx.pix_fmt) {
-				JSValue ret = js_throw_err_msg(ctx, WGL_INVALID_VALUE, "NamedTexture %s undefined, cannot create shader", has_gfTx);
+
+			//not a named texture, do not replace code
+			if (!named_tx) {
+				next[0] = c;
+				has_gfTx[0] = 0;
+				gf_dynstrcat(&main_fn, start, NULL);
+				has_gfTx[0] = 't';
+				gf_dynstrcat(&main_fn, "texture2D", NULL);
+				start = has_gfTx + 9;
+				continue;
+			}
+			//named texture but unknown pixel format, cannot create shader
+			if (!named_tx->tx.pix_fmt) {
+				JSValue ret = js_throw_err_msg(ctx, WGL_INVALID_VALUE, "NamedTexture %s pixel format undefined, cannot create shader", has_gfTx);
 				JS_FreeCString(ctx, source);
 				gf_free(gf_source);
 				return ret;
@@ -1107,7 +1119,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 
 			has_gfTx[0] = 0;
 			gf_dynstrcat(&main_fn, start, NULL);
-			has_gfTx[0] = 'g';
+			has_gfTx[0] = 't';
 
 			gf_dynstrcat(&main_fn, named_tx->tx_name, NULL);
 			gf_dynstrcat(&main_fn, "_sample(", NULL);
@@ -1422,7 +1434,8 @@ static JSValue wgl_bindTexture(JSContext *ctx, JSValueConst this_val, int argc, 
 	if (!tx)
 		named_tx = JS_GetOpaque(argv[1], NamedTexture_class_id);
 	if (!tx && !named_tx) {
-		return js_throw_err(ctx, WGL_INVALID_VALUE);
+		glBindTexture(target, 0);
+		return ret_val_js;
 	}
 	if (tx) {
 		glBindTexture(target, tx->gl_id);
@@ -1487,6 +1500,26 @@ static JSValue wgl_getUniformLocation(JSContext *ctx, JSValueConst this_val, int
 	JS_FreeCString(ctx, name);
 	return ret_val_js;
 }
+
+JSValue wgl_bindFramebuffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSValue ret_val_js = JS_UNDEFINED;
+	u32 target = 0;
+	GLuint framebuffer = 0;
+	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	if (!glc) return js_throw_err(ctx, WGL_INVALID_OPERATION);
+
+	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
+	WGL_GET_U32(target, argv[0]);
+	WGL_GET_GLID(framebuffer, argv[1], WebGLFramebuffer_class_id);
+	if (framebuffer)
+		glBindFramebuffer(target, framebuffer);
+	else
+		glBindFramebuffer(target, glc->fbo_id);
+	return ret_val_js;
+}
+
+
 void webgl_pck_tex_depth_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck, Bool is_depth)
 {
 	JSValue *fun = NULL;

@@ -254,7 +254,7 @@ static void put_arg_decl(FILE *ifce_c, char *fname, char *arg_type, char *arg_na
 	}
 }
 /*all functions that cannot be mapped directly due to to heavy syntax pacthing or our own hacking*/
-static const char *not_autogen_funcs = "getContextAttributes,isContextLost,getSupportedExtensions,getExtension,getBufferParameter,getParameter,getFramebufferAttachmentParameter,getProgramParameter,getRenderbufferParameter,getShaderParameter,getShaderPrecisionFormat,getProgramInfoLog,getShaderParameter,getShaderInfoLog,getShaderSource,getTexParameter,getUniform,getVertexAttrib,getVertexAttribOffset,readPixels,shaderSource,texImage2D,texSubImage2D,useProgram,activeTexture,bindTexture,getUniformLocation,createTexture";
+static const char *not_autogen_funcs = "getContextAttributes,isContextLost,getSupportedExtensions,getExtension,getBufferParameter,getParameter,getFramebufferAttachmentParameter,getProgramParameter,getRenderbufferParameter,getShaderParameter,getShaderPrecisionFormat,getProgramInfoLog,getShaderParameter,getShaderInfoLog,getShaderSource,getTexParameter,getUniform,getVertexAttrib,getVertexAttribOffset,readPixels,shaderSource,texImage2D,texSubImage2D,useProgram,activeTexture,bindTexture,getUniformLocation,createTexture,bindFramebuffer";
 
 static void wrap_func(FILE *ifce_c, char *fname, char *fun_def)
 {
