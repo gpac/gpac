@@ -72,9 +72,9 @@ For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [
 
 # Getting started
 ## Download
-Stable and nighyly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.wp.imt.fr/downloads/).
+Stable and nightly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.wp.imt.fr/downloads/).
 
-If you want to compile GPAC ourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
+If you want to compile GPAC yourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
 
 ## Documentation
 The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://github.com/gpac/gpac/wiki/Howtos).
@@ -85,7 +85,7 @@ GPAC tools are mostly wrappers around an underlying library called libgpac which
 ## Testing
 GPAC has a test suite exercicing most features of the framework. The test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
 
-For more details on the test suite, check the [testsuite readme](https://github.com/gpac/testsuite).
+For more details on the test suite, read [this page](https://github.com/gpac/gpac/wiki/GPAC_tests) and check the [testsuite readme](https://github.com/gpac/testsuite).
 
 Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
