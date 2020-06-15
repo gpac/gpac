@@ -384,6 +384,7 @@ restart:
 	reg_node = sg->id_node;
 	while (reg_node) {
 		Bool ignore = 0;
+		GF_ParentList *nlist;
 		GF_Node *node = reg_node->node;
 		if (!node
 #ifndef GPAC_DISABLE_VRML
@@ -396,43 +397,42 @@ restart:
 
 		/*first replace all instances in parents by NULL WITHOUT UNREGISTERING (to avoid destroying the node).
 		This will take care of nodes referencing themselves*/
-		{
-			GF_ParentList *nlist = node->sgprivate->parents;
+		nlist = node->sgprivate->parents;
 #ifndef GPAC_DISABLE_SVG
-			type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
+		type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
 #endif
-			while (nlist) {
-				GF_ParentList *next = nlist->next;
+		while (nlist) {
+			GF_ParentList *next = nlist->next;
 #if 0
-				/*parent is a DEF'ed node, try to clean-up properly?*/
-				if ((nlist->node!=node) && SG_SearchForNode(sg, nlist->node) != NULL) {
-					ignore = 1;
-					break;
-				}
+			/*parent is a DEF'ed node, try to clean-up properly?*/
+			if ((nlist->node!=node) && SG_SearchForNode(sg, nlist->node) != NULL) {
+				ignore = 1;
+				break;
+			}
 #endif
 
 #ifndef GPAC_DISABLE_SVG
-				if (type) {
-					ReplaceIRINode(nlist->node, node, NULL);
-				} else
+			if (type) {
+				ReplaceIRINode(nlist->node, node, NULL);
+			} else
 #endif
-					ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
+				ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
 
-				/*direct cyclic reference to ourselves, make sure we update the parentList to the next entry before freeing it
-				since the next parent node could be reg_node again (reg_node->reg_node)*/
-				if (nlist->node==node) {
-					node->sgprivate->parents = next;
-				}
-				gf_free(nlist);
-				nlist = next;
+			/*direct cyclic reference to ourselves, make sure we update the parentList to the next entry before freeing it
+			since the next parent node could be reg_node again (reg_node->reg_node)*/
+			if (nlist->node==node) {
+				node->sgprivate->parents = next;
 			}
-			if (ignore) {
-				node->sgprivate->parents = nlist;
-				continue;
-			}
-
-			node->sgprivate->parents = NULL;
+			gf_free(nlist);
+			nlist = next;
 		}
+		if (ignore) {
+			node->sgprivate->parents = nlist;
+			continue;
+		}
+
+		node->sgprivate->parents = NULL;
+
 		//sg->node_registry[i-1] = NULL;
 		count = get_num_id_nodes(sg);
 		node->sgprivate->num_instances = 1;
