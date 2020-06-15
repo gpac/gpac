@@ -1,21 +1,21 @@
-[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu64_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
-[![Tests](https://tests.gpac.io/testres/badge/tests/linux64?branch=master)](https://tests.gpac.io/testres/master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu64)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/linux64)](https://tests.gpac.io/)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu32_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
-[![Tests](https://tests.gpac.io/testres/badge/tests/linux32?branch=master)](https://tests.gpac.io/testres/master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu32)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/linux32)](https://tests.gpac.io/)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/windows64_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
-[![Tests](https://tests.gpac.io/testres/badge/tests/win64?branch=master)](https://tests.gpac.io/testres/master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/windows64)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/win64)](https://tests.gpac.io/)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/windows32_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
-[![Tests](https://tests.gpac.io/testres/badge/tests/win32?branch=master)](https://tests.gpac.io/testres/master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/windows32)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/win32)](https://tests.gpac.io/)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/macos_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master)
-[![Tests](https://tests.gpac.io/testres/badge/tests/macos?branch=master)](https://tests.gpac.io/testres/master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/macos)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Tests](https://tests.gpac.io/testres/badge/tests/macos)](https://tests.gpac.io/)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/ios_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master) iOS
+[![Build Status](https://tests.gpac.io/testres/badge/build/ios)](https://buildbot.gpac.io/#/grid?branch=master)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/android_bb?branch=master)](https://buildbot.gpac.io/#/grid?branch=master) Android
+[![Build Status](https://tests.gpac.io/testres/badge/build/android)](https://buildbot.gpac.io/#/grid?branch=master)
 
 [![Coverage](https://tests.gpac.io/testres/badge/cov/linux64?branch=master)](https://tests.gpac.io/testres/)
 [![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=master)](https://tests.gpac.io/testres/)
