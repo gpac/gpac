@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/jack
 
-CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(OSS_CFLAGS) -Wno-deprecated-declarations
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(OSS_CFLAGS) -Wno-deprecated-declarations
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

@@ -3,7 +3,7 @@ include ../../config.mak
 vpath %.c $(SRC_PATH)/modules/dx_hw
 
 #DIRECTSOUND_VERSION is needed for GCC compil..
-CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include" -DDIRECTSOUND_VERSION=0x0500
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) -w -DDIRECTSOUND_VERSION=0x0500
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

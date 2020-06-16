@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/validator
 
-CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" -DGPAC_HAVE_CONFIG_H -I../..
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

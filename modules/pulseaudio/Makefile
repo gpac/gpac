@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/pulseaudio
 
-CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
