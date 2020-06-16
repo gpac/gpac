@@ -164,7 +164,7 @@ ifneq ($(CONFIG_DARWIN),yes)
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/pixmaps"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/applications"
 
-ifeq ($(IS_DEB_MAKE),undefined)
+ifneq ($(IS_DEB_MAKE),1)
 	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)/usr/share/applications/"
 else
