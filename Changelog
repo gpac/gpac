@@ -1,4 +1,4 @@
-On-going: GPAC 0.9.0-DEV
+16/06/2020: GPAC 1.0
  - Complete rewrite of GPAC streaming core:
     * addition of a filter-based architecture, used by MP4Client and MP4Box.
     * moving all decoders and demuxer plugins of MP4Client and most of MP4Box import/export code as filters for this new architecture,
