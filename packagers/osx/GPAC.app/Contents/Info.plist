@@ -499,7 +499,7 @@
 	<key>CFBundleExecutable</key>
 	<string>Osmo4</string>
 	<key>CFBundleGetInfoString</key>
-	<string>Copyright © 2003-2011 Telecom ParisTech</string>
+	<string>Copyright © 2003-2020 Telecom Paris</string>
 	<key>CFBundleIconFile</key>
 	<string>osmo.icns</string>
 	<key>CFBundleIdentifier</key>
