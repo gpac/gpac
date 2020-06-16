@@ -10,7 +10,7 @@ data 'LPic' (5000) {
 
 
 data 'TEXT' (5002, "English") {
-    "Copyright (c) 2003, 2011 Telecom ParisTech. All rights reserved.\n"
+    "Copyright (c) 2003-2020 Telecom Paris. All rights reserved.\n"
     "For more information, visit <http://gpac.io>\n"
     "\n"
 	"This software package includes many Multimedia Technologies. Some of these technologies may be covered by various patents hard to identify. These patents may or may not apply in your local jurisdiction.\n"
@@ -19,7 +19,7 @@ data 'TEXT' (5002, "English") {
     "\n"
 	"DO NOT PROCEED with this installation if you do not understand or do not agree with these terms.\n"
     "\n"
-	"Telecom ParisTech bears no liability for any infringing usage of this software, which is provided for educational or research purposes.\n"
+	"Telecom Paris bears no liability for any infringing usage of this software, which is provided for educational or research purposes.\n"
     "\n"
 	"This software is distributed under the GNU LESSER GENERAL PUBLIC LICENSE\n"
 	"See <http://www.gnu.org/licenses/lgpl-2.1.html> for more details\n"
