@@ -45,3 +45,9 @@ source="packagers/win32_64/nsis/gpac_installer.nsi"
 sed -e "s/\!define GPAC_VERSION.*/\!define GPAC_VERSION $version/;" $source > ftmp
 rm $source
 mv ftmp $source
+
+# patch file share/doc/configuration.html
+source="share/doc/configuration.html"
+sed -e "s/GPAC Version.*</GPAC Version $version</;" $source > ftmp
+rm $source
+mv ftmp $source
