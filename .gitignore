@@ -74,6 +74,7 @@ bld/
 
 .depend
 .deps/
+.dep
 
 #GPAC specific 
 config.h
