@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/mp4box
 
-CFLAGS= $(OPTFLAGS) -DGPAC_HAVE_CONFIG_H -I"$(SRC_PATH)/include"
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
