@@ -20,6 +20,7 @@ endif
 CFLAGS = -Wall -g
 LDFLAGS= --as-needed
 IS_DEB_MAKE=1
+export IS_DEB_MAKE
 
 CC:=ccache $(CC)
 CXX:=ccache $(CXX)
