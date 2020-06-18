@@ -518,6 +518,9 @@ typedef enum
 
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D'),
 
+	/*! codecid for HEVC video */
+	GF_CODECID_VVC = GF_4CC('v','v','c',' '),
+
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
 } GF_CodecID;
@@ -1079,6 +1082,34 @@ enum
 
 
 
+/*! VVC NAL unit types - TODO THESE ARE WRONG */
+enum
+{
+	/*! Trail N VVC slice*/
+	GF_VVC_NALU_SLICE_TRAIL = 0,
+	/*! IDR DLP VVC slice*/
+	GF_VVC_NALU_SLICE_IDR,
+	/*! CRA VVC slice*/
+	GF_VVC_NALU_SLICE_CRA,
+	/*! Video Parameter Set*/
+	GF_VVC_NALU_VID_PARAM = 32,
+	/*! Sequence Parameter Set*/
+	GF_VVC_NALU_SEQ_PARAM = 33,
+	/*! Picture Parameter Set*/
+	GF_VVC_NALU_PIC_PARAM = 34,
+	/*! AU delimiter*/
+	GF_VVC_NALU_ACCESS_UNIT = 35,
+	/*! End of sequence*/
+	GF_VVC_NALU_END_OF_SEQ = 36,
+	/*! End of stream*/
+	GF_VVC_NALU_END_OF_STREAM = 37,
+	/*! Filler Data*/
+	GF_VVC_NALU_FILLER_DATA = 38,
+	/*! prefix SEI message*/
+	GF_VVC_NALU_SEI_PREFIX = 39,
+	/*! suffix SEI message*/
+	GF_VVC_NALU_SEI_SUFFIX = 40,
+};
 /*! Number of defined QCELP rate sizes*/
 static const unsigned int GF_QCELP_RATE_TO_SIZE_NB = 7;
 /*! QCELP rate sizes - note that these sizes INCLUDE the rate_type header byte*/

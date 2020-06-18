@@ -6398,14 +6398,14 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	AVCState avc;
 	u32 i, bit_offset, flag;
 	s32 idx;
-	GF_AVCConfigSlot *slc;
+	GF_NALUConfigSlot *slc;
 	orig = NULL;
 
 	memset(&avc, 0, sizeof(AVCState));
 	avc.sps_active_idx = -1;
 
 	i = 0;
-	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
+	while ((slc = (GF_NALUConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
 		u8 *no_emulation_buf = NULL;
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
 		idx = gf_media_avc_read_sps(slc->data, slc->size, &avc, 0, &bit_offset);
@@ -8104,8 +8104,9 @@ static s32 gf_media_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 		pps->state = 1;
 	}
 	pps->sps_id = gf_bs_get_ue(bs);
-	if (pps->sps_id > 16) {
+	if (pps->sps_id >= 16) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] wrong SPS ID %d in PPS\n", pps->sps_id));
+		pps->sps_id=0;
 		return -1;
 	}
 	hevc->sps_active_idx = pps->sps_id; /*set active sps*/
@@ -8332,8 +8333,8 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 	HEVCState hevc;
 	u32 i, bit_offset, flag;
 	s32 idx;
-	GF_HEVCParamArray *spss;
-	GF_AVCConfigSlot *slc;
+	GF_NALUParamArray *spss;
+	GF_NALUConfigSlot *slc;
 	orig = NULL;
 
 	memset(&hevc, 0, sizeof(HEVCState));
@@ -8341,7 +8342,7 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 
 	i = 0;
 	spss = NULL;
-	while ((spss = (GF_HEVCParamArray *)gf_list_enum(hvcc->param_array, &i))) {
+	while ((spss = (GF_NALUParamArray *)gf_list_enum(hvcc->param_array, &i))) {
 		if (spss->type == GF_HEVC_NALU_SEQ_PARAM)
 			break;
 		spss = NULL;
@@ -8349,7 +8350,7 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 	if (!spss) return GF_NON_COMPLIANT_BITSTREAM;
 
 	i = 0;
-	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(spss->nalus, &i))) {
+	while ((slc = (GF_NALUConfigSlot *)gf_list_enum(spss->nalus, &i))) {
 		u8 *no_emulation_buf;
 		u32 no_emulation_buf_size, emulation_bytes;
 

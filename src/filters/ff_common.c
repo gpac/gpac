@@ -57,6 +57,8 @@ typedef struct
 	u32 gpac_pf;
 } GF_FF_PFREG;
 
+#define FFMPEG_ENABLE_VVC
+
 static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 {
 	{AV_PIX_FMT_YUV420P, GF_PIXEL_YUV},
@@ -330,6 +332,11 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_PCM_F16LE, GF_CODECID_RAW, 0},
 	{AV_CODEC_ID_PCM_F24LE, GF_CODECID_RAW, 0},
 #endif
+
+#ifdef FFMPEG_ENABLE_VVC
+	{AV_CODEC_ID_VVC, GF_CODECID_VVC, 0},
+#endif
+
 	{0}
 };
 

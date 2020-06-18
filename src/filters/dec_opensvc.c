@@ -196,7 +196,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			u32 sid;
 			s32 par_n=0, par_d=0;
 #endif
-			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
+			GF_NALUConfigSlot *slc = (GF_NALUConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 			gf_avc_get_sps_info(slc->data, slc->size, &sid, &w, &h, &par_n, &par_d);
@@ -223,7 +223,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		count = gf_list_count(cfg->pictureParameterSets);
 		for (i=0; i<count; i++) {
-			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
+			GF_NALUConfigSlot *slc = (GF_NALUConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
 #ifndef GPAC_DISABLE_AV_PARSERS
 			u32 sps_id, pps_id;
 			gf_avc_get_pps_info(slc->data, slc->size, &pps_id, &sps_id);

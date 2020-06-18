@@ -225,16 +225,6 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 		location_entry = NULL;
 	}
 
-	// switch (item_type) {
-	// case GF_ISOM_SUBTYPE_HVC1:
-	// case GF_ISOM_SUBTYPE_AVC_H264:
-	// case GF_ISOM_SUBTYPE_JPEG:
-	// 	break;
-	// default:
-	// 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Extracting item type %s not supported\n", gf_4cc_to_str(item_type) ));
-	// 	return GF_NOT_SUPPORTED;
-	// }
-
 	if (!location_entry) return GF_BAD_PARAM;
 
 	/* offsets are expressed from the start of the idat box instead of the start of the file */

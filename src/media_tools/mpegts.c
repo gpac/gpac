@@ -1333,6 +1333,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
 		case GF_M2TS_VIDEO_MHVC:
 		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
+		case GF_M2TS_VIDEO_VVC:
+		case GF_M2TS_VIDEO_VVC_TEMPORAL:
 			inherit_pcr = 1;
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:

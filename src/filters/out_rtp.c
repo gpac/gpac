@@ -391,10 +391,10 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 				stream->avc_nalu_size = hvcc->nal_unit_size;
 				if (stream->inject_ps) {
 					u32 i, count = gf_list_count(hvcc->param_array);
-					GF_HEVCParamArray *vpsa=NULL, *spsa=NULL;
+					GF_NALUParamArray *vpsa=NULL, *spsa=NULL;
 					stream->hvcc = hvcc;
 					for (i=0; i<count; i++) {
-						GF_HEVCParamArray *pa = gf_list_get(hvcc->param_array, i);
+						GF_NALUParamArray *pa = gf_list_get(hvcc->param_array, i);
 						if (!vpsa && (pa->type == GF_HEVC_NALU_VID_PARAM)) {
 							vpsa = pa;
 							gf_list_rem(hvcc->param_array, i);
@@ -725,7 +725,7 @@ static GF_Err rtpout_send_xps(GF_RTPOutStream *stream, GF_List *pslist, Bool *au
 	GF_Err e;
 	u32 i, count = gf_list_count(pslist);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = gf_list_get(pslist, i);
+		GF_NALUConfigSlot *sl = gf_list_get(pslist, i);
 		e = gf_rtp_streamer_send_data(stream->rtp, (char *) sl->data, sl->size, pck_size, cts, dts, stream->current_sap ? 1 : 0, *au_start, GF_FALSE, stream->pck_num, duration, stream->sample_desc_index);
 		if (e) return e;
 		*au_start = GF_FALSE;
@@ -1015,7 +1015,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		else if (stream->hvcc && stream->current_sap) {
 			u32 nbps = gf_list_count(stream->hvcc->param_array);
 			for (i=0; i<nbps; i++) {
-				GF_HEVCParamArray *pa = gf_list_get(stream->hvcc->param_array, i);
+				GF_NALUParamArray *pa = gf_list_get(stream->hvcc->param_array, i);
 
 				if (!e)
 					e = rtpout_send_xps(stream, pa->nalus, &au_start, pck_size, cts, dts, duration);

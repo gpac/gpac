@@ -261,7 +261,19 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		case GF_ISOM_SUBTYPE_MP3:
 			codec_id = GF_CODECID_MPEG_AUDIO;
 			break;
-			
+
+		case GF_ISOM_SUBTYPE_VVC1:
+		case GF_ISOM_SUBTYPE_VVI1:
+		{
+			GF_VVCConfig *vvccfg = gf_isom_vvc_config_get(read->mov, track, stsd_idx);
+			if (vvccfg) {
+				gf_odf_vvc_cfg_write(vvccfg, &dsi, &dsi_size);
+				gf_odf_vvc_cfg_del(vvccfg);
+			}
+			codec_id = GF_CODECID_VVC;
+		}
+			break;
+
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id)

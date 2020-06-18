@@ -574,6 +574,10 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_SUBTYPE_HEV2:
 		name = "HEVCSampleEntryBox";
 		break;
+	case GF_ISOM_SUBTYPE_VVC1:
+	case GF_ISOM_SUBTYPE_VVI1:
+		name = "VVCSampleEntryBox";
+		break;
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
 		name = "LHEVCSampleEntryBox";
@@ -1488,14 +1492,14 @@ GF_Err avcc_box_dump(GF_Box *a, FILE * trace)
 
 	count = gf_list_count(p->config->sequenceParameterSets);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->sequenceParameterSets, i);
+		GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(p->config->sequenceParameterSets, i);
 		gf_fprintf(trace, "<SequenceParameterSet size=\"%d\" content=\"", c->size);
 		dump_data(trace, c->data, c->size);
 		gf_fprintf(trace, "\"/>\n");
 	}
 	count = gf_list_count(p->config->pictureParameterSets);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->pictureParameterSets, i);
+		GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(p->config->pictureParameterSets, i);
 		gf_fprintf(trace, "<PictureParameterSet size=\"%d\" content=\"", c->size);
 		dump_data(trace, c->data, c->size);
 		gf_fprintf(trace, "\"/>\n");
@@ -1504,7 +1508,7 @@ GF_Err avcc_box_dump(GF_Box *a, FILE * trace)
 	if (p->config->sequenceParameterSetExtensions) {
 		count = gf_list_count(p->config->sequenceParameterSetExtensions);
 		for (i=0; i<count; i++) {
-			GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->sequenceParameterSetExtensions, i);
+			GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(p->config->sequenceParameterSetExtensions, i);
 			gf_fprintf(trace, "<SequenceParameterSetExtensions size=\"%d\" content=\"", c->size);
 			dump_data(trace, c->data, c->size);
 			gf_fprintf(trace, "\"/>\n");
@@ -1577,11 +1581,11 @@ GF_Err hvcc_box_dump(GF_Box *a, FILE * trace)
 	count = gf_list_count(p->config->param_array);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(p->config->param_array, i);
+		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(p->config->param_array, i);
 		gf_fprintf(trace, "<ParameterSetArray nalu_type=\"%d\" complete_set=\"%d\">\n", ar->type, ar->array_completeness);
 		nalucount = gf_list_count(ar->nalus);
 		for (j=0; j<nalucount; j++) {
-			GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+			GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
 			gf_fprintf(trace, "<ParameterSet size=\"%d\" content=\"", c->size);
 			dump_data(trace, c->data, c->size);
 			gf_fprintf(trace, "\"/>\n");
@@ -1590,6 +1594,72 @@ GF_Err hvcc_box_dump(GF_Box *a, FILE * trace)
 	}
 
 	gf_fprintf(trace, "</%sDecoderConfigurationRecord>\n", name);
+
+	gf_isom_box_dump_done(boxname, a, trace);
+	return GF_OK;
+}
+
+GF_Err vvcc_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i, count;
+	char boxname[256];
+	GF_VVCConfigurationBox *p = (GF_VVCConfigurationBox *) a;
+
+	sprintf(boxname, "VVCConfigurationBox");
+	gf_isom_box_dump_start(a, boxname, trace);
+	gf_fprintf(trace, ">\n");
+
+	if (! p->config) {
+		if (p->size) {
+			gf_fprintf(trace, "<!-- INVALID VVC ENTRY: no VVC config record -->\n");
+		} else {
+			gf_fprintf(trace, "<VVCDecoderConfigurationRecord nal_unit_size=\"\" configurationVersion=\"\" ");
+			gf_fprintf(trace, "general_profile_idc=\"\" general_tier_flag=\"\" general_sub_profile_idc=\"\" general_constraint_info=\"\" general_level_idc=\"\" ");
+			gf_fprintf(trace, "chroma_format=\"\" luma_bit_depth=\"\" chroma_bit_depth=\"\" avgFrameRate=\"\" constantFrameRate=\"\" numTemporalLayers=\"\"");
+
+			gf_fprintf(trace, ">\n");
+			gf_fprintf(trace, "<ParameterSetArray nalu_type=\"\" complete_set=\"\">\n");
+			gf_fprintf(trace, "<ParameterSet size=\"\" content=\"\"/>\n");
+			gf_fprintf(trace, "</ParameterSetArray>\n");
+			gf_fprintf(trace, "</VVCDecoderConfigurationRecord>\n");
+		}
+		gf_fprintf(trace, "</VVCConfigurationBox>\n");
+		return GF_OK;
+	}
+
+	gf_fprintf(trace, "<VVCDecoderConfigurationRecord nal_unit_size=\"%d\" ", p->config->nal_unit_size);
+	gf_fprintf(trace, "configurationVersion=\"%u\" ", p->config->configurationVersion);
+	gf_fprintf(trace, "general_profile_idc=\"%u\" ", p->config->general_profile_idc);
+	gf_fprintf(trace, "general_tier_flag=\"%u\" ", p->config->general_tier_flag);
+	gf_fprintf(trace, "general_sub_profile_idc=\"%u\" ", p->config->general_sub_profile_idc);
+	if (p->config->general_constraint_info) {
+		gf_fprintf(trace, "general_constraint_info=\"");
+		dump_data_hex(trace, p->config->general_constraint_info, p->config->num_constraint_info);
+		gf_fprintf(trace, "\" ");
+	}
+	gf_fprintf(trace, "general_level_idc=\"%u\" ", p->config->general_level_idc);
+
+	gf_fprintf(trace, "chroma_format=\"%s\" luma_bit_depth=\"%u\" chroma_bit_depth=\"%u\" avgFrameRate=\"%u\" constantFrameRate=\"%u\" numTemporalLayers=\"%u\" ",
+		gf_avc_hevc_get_chroma_format_name(p->config->chromaFormat), p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers);
+
+	gf_fprintf(trace, ">\n");
+
+	count = gf_list_count(p->config->param_array);
+	for (i=0; i<count; i++) {
+		u32 nalucount, j;
+		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(p->config->param_array, i);
+		gf_fprintf(trace, "<ParameterSetArray nalu_type=\"%d\" complete_set=\"%d\">\n", ar->type, ar->array_completeness);
+		nalucount = gf_list_count(ar->nalus);
+		for (j=0; j<nalucount; j++) {
+			GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+			gf_fprintf(trace, "<ParameterSet size=\"%d\" content=\"", c->size);
+			dump_data(trace, c->data, c->size);
+			gf_fprintf(trace, "\"/>\n");
+		}
+		gf_fprintf(trace, "</ParameterSetArray>\n");
+	}
+
+	gf_fprintf(trace, "</VVCDecoderConfigurationRecord>\n");
 
 	gf_isom_box_dump_done(boxname, a, trace);
 	return GF_OK;
