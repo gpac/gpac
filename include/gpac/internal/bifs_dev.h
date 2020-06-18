@@ -97,6 +97,7 @@ struct __tag_bifs_dec
 	BIFSStreamInfo *info;
 
 	Bool UseName;
+	Bool has_conditionnals;
 
 	GF_SceneGraph *scenegraph;
 	/*modified during conditional execution / proto parsing*/
@@ -128,8 +129,6 @@ struct __tag_bifs_dec
 	Bool is_com_dec;
 	Double cts_offset;
 
-	char *extraction_path;
-	char *service_url;
 };
 
 

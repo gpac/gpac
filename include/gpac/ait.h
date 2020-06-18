@@ -10,8 +10,8 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/ait.h>
- *	Specific extensions for handling AIT in MPEG-2 TS.
+\file <gpac/ait.h>
+\brief Specific extensions for handling AIT in MPEG-2 TS.
  */
 	
 #include <gpac/mpegts.h>

@@ -29,8 +29,6 @@
 #include "visual_manager.h"
 /*for anchor*/
 #include "mpeg4_grouping.h"
-/*for anchor processing, which needs to be filtered at the inline scene level*/
-#include <gpac/internal/terminal_dev.h>
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -105,9 +103,6 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 		if (url && url->count && url->vals[0].url && strlen(url->vals[0].url) )
 			st->enabled = 1;
 
-		if (!tr_state->visual->compositor->user->EventProc) {
-			st->enabled = 0;
-		}
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 
@@ -147,11 +142,9 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 				Bindable_SetSetBind(bindable, 1);
 				break;
 			}
-		} else if (compositor->term) {
+		} else {
 			if (gf_scene_process_anchor(node, &evt))
 				break;
-		} else if (gf_term_send_event(compositor->term, &evt)) {
-			break;
 		}
 		i++;
 	}
@@ -172,23 +165,22 @@ static Bool OnAnchor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Even
 		if (!is_cancel) anchor_activation(sh->sensor, st, compositor);
 	} else if (is_over && !st->over) {
 		st->over = 1;
-		if (compositor->user->EventProc) {
-			evt.type = GF_EVENT_NAVIGATE_INFO;
-			switch (gf_node_get_tag(sh->sensor)) {
-			case TAG_MPEG4_Anchor:
-				evt.navigate.to_url = ((M_Anchor *)sh->sensor)->description.buffer;
-				url = & ((M_Anchor *)sh->sensor)->url;
-				break;
+		evt.type = GF_EVENT_NAVIGATE_INFO;
+		switch (gf_node_get_tag(sh->sensor)) {
+		case TAG_MPEG4_Anchor:
+			evt.navigate.to_url = ((M_Anchor *)sh->sensor)->description.buffer;
+			url = & ((M_Anchor *)sh->sensor)->url;
+			break;
 #ifndef GPAC_DISABLE_X3D
-			case TAG_X3D_Anchor:
-				evt.navigate.to_url = ((X_Anchor *)sh->sensor)->description.buffer;
-				url = & ((X_Anchor *)sh->sensor)->url;
-				break;
+		case TAG_X3D_Anchor:
+			evt.navigate.to_url = ((X_Anchor *)sh->sensor)->description.buffer;
+			url = & ((X_Anchor *)sh->sensor)->url;
+			break;
 #endif
-			}
-			if (url && (!evt.navigate.to_url || !strlen(evt.navigate.to_url))) evt.navigate.to_url = url->vals[0].url;
-			gf_term_send_event(compositor->term, &evt);
 		}
+		if (url && (!evt.navigate.to_url || !strlen(evt.navigate.to_url))) evt.navigate.to_url = url->vals[0].url;
+		gf_sc_send_event(compositor, &evt);
+
 	} else if (!is_over) {
 		st->over = 0;
 	}
@@ -1233,13 +1225,12 @@ static Bool OnSphereSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, G
 				sphere->trackPoint_changed = compositor->hit_local_point;
 				gf_node_event_out(sh->sensor, 5/*"trackPoint_changed"*/);
 			} else {
-				GF_Ray r;
-				r = compositor->hit_world_ray;
-				gf_mx_apply_ray(&compositor->hit_world_to_local, &r);
-				if (!gf_ray_hit_sphere(&r, NULL, st->radius, &compositor->hit_local_point)) {
+				GF_Ray ray = compositor->hit_world_ray;
+				gf_mx_apply_ray(&compositor->hit_world_to_local, &ray);
+				if (!gf_ray_hit_sphere(&ray, NULL, st->radius, &compositor->hit_local_point)) {
 					vec.x = vec.y = vec.z = 0;
 					/*doesn't work properly...*/
-					compositor->hit_local_point = gf_closest_point_to_line(r.orig, r.dir, vec);
+					compositor->hit_local_point = gf_closest_point_to_line(ray.orig, ray.dir, vec);
 				}
 			}
 
@@ -1550,25 +1541,25 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 		break;
 	/*automotive situation - fixme we should use a profile doc ?*/
 	case 6:
-		opt = gf_cfg_get_key(compositor->user->config, "Profile", "Automotive");
+		opt = gf_opts_get_key("Profile", "Automotive");
 		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
 		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*visually challenged - fixme we should use a profile doc ?*/
 	case 7:
-		opt = gf_cfg_get_key(compositor->user->config, "Profile", "VisuallyChallenged");
+		opt = gf_opts_get_key("Profile", "VisuallyChallenged");
 		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
 		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*has touch - fixme we should find out by ourselves*/
 	case 8:
-		opt = gf_cfg_get_key(compositor->user->config, "Profile", "HasTouchScreen");
+		opt = gf_opts_get_key("Profile", "HasTouchScreen");
 		equal = (!opt || !strcmp(opt, "yes")) ? 1 : 2;
 		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*has key - fixme we should find out by ourselves*/
 	case 9:
-		opt = gf_cfg_get_key(compositor->user->config, "Profile", "HasKeyPad");
+		opt = gf_opts_get_key("Profile", "HasKeyPad");
 		equal = (!opt || !strcmp(opt, "yes")) ? 1 : 2;
 		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
@@ -1620,6 +1611,11 @@ void compositor_evaluate_envtests(GF_Compositor *compositor, u32 param_type)
 	}
 }
 
+void compositor_envtest_modified(GF_Node *node)
+{
+	envtest_evaluate(node, NULL);
+}
+
 void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node)
 {
 	M_EnvironmentTest *envtest = (M_EnvironmentTest *)node;
@@ -1628,12 +1624,14 @@ void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, traverse_envtest);
 
 	envtest->on_evaluate = envtest_evaluate;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		compositor_envtest_modified(node);
+	}
+#endif
 }
 
-void compositor_envtest_modified(GF_Node *node)
-{
-	envtest_evaluate(node, NULL);
-}
 
 
 #endif /*GPAC_DISABLE_VRML*/

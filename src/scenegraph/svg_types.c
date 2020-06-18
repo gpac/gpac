@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2004-2012
+ *			Copyright (c) Telecom ParisTech 2004-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
@@ -28,6 +28,7 @@
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/nodes_svg.h>
 
+GF_EXPORT
 Bool gf_svg_is_animation_tag(u32 tag)
 {
 	return (tag == TAG_SVG_set ||
@@ -63,6 +64,7 @@ SVG_Element *gf_svg_create_node(u32 ElementTag)
 	} else {
 		GF_SAFEALLOC(p, SVG_Element);
 	}
+	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, ElementTag);
 	gf_sg_parent_setup((GF_Node *) p);
 	return p;
@@ -197,6 +199,7 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 }
 
 
+#if 0 //unused
 void gf_svg_reset_path(SVG_PathData d)
 {
 #if USE_GF_PATH
@@ -217,9 +220,11 @@ void gf_svg_reset_path(SVG_PathData d)
 	gf_list_del(d.points);
 #endif
 }
+#endif
+
 
 /* TODO: update for elliptical arcs */
-GF_EXPORT
+#if USE_GF_PATH
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 {
 	u32 i, j, command_count;
@@ -299,6 +304,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 		}
 	}
 }
+#endif
 
 
 void gf_smil_delete_times(GF_List *list)
@@ -313,6 +319,7 @@ void gf_smil_delete_times(GF_List *list)
 	gf_list_del(list);
 }
 
+#if 0 //unused
 void gf_svg_delete_points(GF_List *list)
 {
 	u32 i, count = gf_list_count(list);
@@ -332,6 +339,7 @@ void gf_svg_delete_coordinates(GF_List *list)
 	}
 	gf_list_del(list);
 }
+#endif
 
 void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri)
 {
@@ -357,20 +365,25 @@ static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_Sce
 void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
 {
 	u32 i, count;
+	u8 type = anim_values.type;
+	if (anim_values.laser_strings) type = DOM_String_datatype;
+
 	count = gf_list_count(anim_values.values);
 	for (i = 0; i < count; i++) {
 		void *value = gf_list_get(anim_values.values, i);
-		svg_delete_one_anim_value(anim_values.type, value, sg);
+		svg_delete_one_anim_value(type, value, sg);
 	}
 	gf_list_del(anim_values.values);
 	anim_values.values = NULL;
 }
 
+#if 0 //unused
 void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
 {
 	svg_delete_one_anim_value(anim_value.type, anim_value.value, sg);
 	anim_value.value = NULL;
 }
+#endif
 
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 {
@@ -470,6 +483,10 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_free(value);
 		break;
 
+	case 0:
+		if (*(SVG_String *)value) gf_free(*(SVG_String *)value);
+		gf_free(value);
+		break;
 	case SMIL_RepeatCount_datatype:
 	case SMIL_Duration_datatype:
 	case SVG_Length_datatype:
@@ -478,10 +495,11 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case SVG_Display_datatype:
 	default:
 		gf_free(value);
+		break;
 	}
 }
 
-
+#if 0 //unused
 void gf_smil_delete_key_types(GF_List *l)
 {
 	while (gf_list_count(l)) {
@@ -491,6 +509,7 @@ void gf_smil_delete_key_types(GF_List *l)
 	}
 	gf_list_del(l);
 }
+#endif
 
 
 #endif /*GPAC_DISABLE_SVG*/

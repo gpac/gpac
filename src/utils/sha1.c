@@ -70,6 +70,7 @@ GF_SHA1Context *gf_sha1_starts()
 {
 	GF_SHA1Context *ctx;
 	GF_SAFEALLOC(ctx, GF_SHA1Context);
+	if (!ctx) return NULL;
 	ctx->total[0] = 0;
 	ctx->total[1] = 0;
 
@@ -689,7 +690,7 @@ void gf_sha1_finish(GF_SHA1Context *context, u8 output[GF_SHA1_DIGEST_SIZE] )
  * Output = SHA-1( file contents )
  */
 GF_EXPORT
-s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
+GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	FILE *f;
 	size_t n;
@@ -699,25 +700,25 @@ s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 	if (!strncmp(path, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		if (sscanf(path, "gmem://%d@%p", &size, &mem_address) != 2) {
-			return GF_IO_ERR;
-		}
+		GF_Err e = gf_blob_get_data(path, &mem_address, &size);
+		if (e) return e;
+
 		gf_sha1_csum(mem_address, size, output);
-		return 0;
+		return GF_OK;
 	}
 
 	if( ( f = gf_fopen( path, "rb" ) ) == NULL )
-		return( 1 );
+		return GF_URL_ERROR;
 
 	ctx  = gf_sha1_starts();
 
-	while( ( n = fread( buf, 1, sizeof( buf ), f ) ) > 0 )
+	while( ( n = gf_fread( buf, sizeof( buf ), f ) ) > 0 )
 		gf_sha1_update(ctx, buf, (s32) n );
 
 	gf_sha1_finish(ctx, output );
 
 	gf_fclose( f );
-	return( 0 );
+	return GF_OK;
 }
 
 /*
@@ -736,7 +737,8 @@ void gf_sha1_csum( u8 *input, u32 ilen, u8 output[GF_SHA1_DIGEST_SIZE] )
 	}
 }
 
-GF_EXPORT
+#if 0 //unused
+#define GF_SHA1_DIGEST_SIZE_HEXA		41
 void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA]) {
 	u8 tmp[GF_SHA1_DIGEST_SIZE];
 	gf_sha1_csum (buf, buflen, tmp );
@@ -752,5 +754,8 @@ void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA])
 		}
 	}
 }
+#endif
+
 
 #endif
+

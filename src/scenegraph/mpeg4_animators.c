@@ -247,13 +247,13 @@ static SFVec2f anurbs_get_vec2f(anim_nurbs *nurbs, s32 span, SFVec2f *pts)
 
 static Fixed anurbs_get_float(anim_nurbs *nurbs, s32 span, Fixed *vals)
 {
-	Fixed res, tmp;
+	Fixed res;
 	Fixed w, wi;
 	u32 i;
-	res = tmp = 0;
+	res = 0;
 	w=0;
 	for(i=0; i<=nurbs->p; i++) {
-		tmp = vals[span - nurbs->p + i];
+		Fixed tmp = vals[span - nurbs->p + i];
 		if (nurbs->nweights>0) {
 			wi = nurbs->weights[span - nurbs->p + i];
 			tmp = gf_mulfix(tmp, wi);
@@ -474,9 +474,8 @@ void PA_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &pa->keyType)
 	    || (field->far_ptr == &pa->keySpline)
 	    || (field->far_ptr == &pa->weight)
-	    || (field->far_ptr == &pa->key)
-
-	) stack->is_dirty = 1;
+	)
+		stack->is_dirty = 1;
 }
 void PA_Init(GF_Node *n)
 {
@@ -640,9 +639,8 @@ void PA2D_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &pa->keyType)
 	    || (field->far_ptr == &pa->keySpline)
 	    || (field->far_ptr == &pa->weight)
-	    || (field->far_ptr == &pa->key)
-
-	) stack->is_dirty = 1;
+	)
+		stack->is_dirty = 1;
 }
 void PA2D_Init(GF_Node *n)
 {
@@ -801,9 +799,8 @@ void SA_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &sa->keyType)
 	    || (field->far_ptr == &sa->keySpline)
 	    || (field->far_ptr == &sa->weight)
-	    || (field->far_ptr == &sa->key)
-
-	) stack->is_dirty = 1;
+	)
+		stack->is_dirty = 1;
 }
 
 void SA_Init(GF_Node *n)

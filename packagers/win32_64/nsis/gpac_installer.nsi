@@ -1,6 +1,6 @@
 ;--------------------------------
 ;General
-!define GPAC_VERSION 0.7.2-DEV
+!define GPAC_VERSION 1.0.0
 !include default.out
 
 !define GPAC_ROOT ..\..\..
@@ -39,8 +39,8 @@ FunctionEnd
   !include "MUI2.nsh"
 
 WindowIcon on
-Icon "${GPAC_ROOT}\doc\osmo4.ico"
-UninstallIcon "${GPAC_ROOT}\doc\osmo4.ico"
+Icon "${GPAC_ROOT}\share\doc\osmo4.ico"
+UninstallIcon "${GPAC_ROOT}\share\doc\osmo4.ico"
 
 ;--------------------------------
 ;Interface Settings
@@ -50,9 +50,10 @@ UninstallIcon "${GPAC_ROOT}\doc\osmo4.ico"
 Var DIALOG
 Var Label
 Var Confirm
+Var VSRedistSetupError
 
-LangString PAGE_TITLE ${LANG_ENGLISH} "Title"
-LangString PAGE_SUBTITLE ${LANG_ENGLISH} "Subtitle"
+;LangString PAGE_TITLE ${LANG_ENGLISH} "Title"
+;LangString PAGE_SUBTITLE ${LANG_ENGLISH} "Subtitle"
 
 Function EnableNext
   Pop $R1
@@ -236,9 +237,7 @@ lbl_winnt:
 
 lbl_add:
 
-
 lbl_xp:
-   File "${GPAC_BIN}\gm_gdip_raster.dll"
 
 lbl_done:
 FunctionEnd
@@ -251,13 +250,10 @@ Section "GPAC Core" SecGPAC
   File /oname=ReadMe.txt "${GPAC_ROOT}\README.md"
   File /oname=License.txt "${GPAC_ROOT}\COPYING"
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
-  File "${GPAC_ROOT}\doc\configuration.html"
-  File "${GPAC_ROOT}\doc\gpac.mp4"
-  File "${GPAC_ROOT}\doc\osmo4.ico"
+  File "${GPAC_ROOT}\share\doc\osmo4.ico"
   File "${GPAC_BIN}\libgpac.dll"
-  File "${GPAC_BIN}\js.dll"
-  File "${GPAC_BIN}\libeay32.dll"
-  File "${GPAC_BIN}\ssleay32.dll"
+  File "${GPAC_BIN}\libcryptoMD.dll"
+  File "${GPAC_BIN}\libsslMD.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
@@ -277,145 +273,58 @@ Section "GPAC Player" SecOsmo4
 
   File "${GPAC_BIN}\MP4Client.exe"
 
-  File "${GPAC_BIN}\gm_dummy_in.dll"
   File "${GPAC_BIN}\gm_dx_hw.dll"
-  File "${GPAC_BIN}\gm_gpac_js.dll"
-  File "${GPAC_BIN}\gm_ismacryp.dll"
+
+  File "${GPAC_BIN}\avcodec-*.dll"
+  File "${GPAC_BIN}\avdevice-*.dll"
+  File "${GPAC_BIN}\avfilter-*.dll"
+  File "${GPAC_BIN}\avformat-*.dll"
+  File "${GPAC_BIN}\avutil-*.dll"
+  File "${GPAC_BIN}\swresample-*.dll"
+  File "${GPAC_BIN}\swscale-*.dll"
+  File "${GPAC_BIN}\postproc-*.dll"
+  File "${GPAC_BIN}\libx264-*.dll"
+
+  File "${GPAC_BIN}\OpenSVCDecoder.dll"
 
   ;copy GUI
-  SetOutPath $INSTDIR\gui
-  File "${GPAC_ROOT}\gui\gui.bt"
-  File "${GPAC_ROOT}\gui\gui.js"
-  File "${GPAC_ROOT}\gui\gwlib.js"
-  File "${GPAC_ROOT}\gui\mpegu-core.js"
-  File "${GPAC_ROOT}\gui\webvtt-renderer.js"
-  SetOutPath $INSTDIR\gui\icons
-  File /r /x .git ${GPAC_ROOT}\gui\icons\*
-  SetOutPath $INSTDIR\gui\extensions
-  File /r /x .git ${GPAC_ROOT}\gui\extensions\*
+  SetOutPath $INSTDIR\share
+  File "${GPAC_ROOT}\share\default.cfg"
+  SetOutPath $INSTDIR\share\res
+  File "${GPAC_ROOT}\share\res\gpac.mp4"
+  File "${GPAC_ROOT}\share\res\gpac_cfg_test.mp4"
+  File "${GPAC_ROOT}\share\res\gpac.png"
+  SetOutPath $INSTDIR\share\gui
+  File "${GPAC_ROOT}\share\gui\gui.bt"
+  File "${GPAC_ROOT}\share\gui\gui.js"
+  File "${GPAC_ROOT}\share\gui\gwlib.js"
+  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
+  SetOutPath $INSTDIR\share\gui\icons
+  File /r /x .git ${GPAC_ROOT}\share\gui\icons\*
+  SetOutPath $INSTDIR\share\gui\extensions
+  File /r /x .git ${GPAC_ROOT}\share\gui\extensions\*
+
+  ;copy scripts
+  SetOutPath $INSTDIR\share\scripts
+  File /r /x .git ${GPAC_ROOT}\share\scripts\*
 
   ;copy shaders
-  SetOutPath $INSTDIR\shaders
-  File "${GPAC_ROOT}\shaders\vertex.glsl"
-  File "${GPAC_ROOT}\shaders\fragment.glsl"
+  SetOutPath $INSTDIR\share\shaders
+  File /r /x .git ${GPAC_ROOT}\share\shaders\*
+
+  ;copy lang
+  SetOutPath $INSTDIR\share\lang
+  File /r /x .git ${GPAC_ROOT}\share\lang\*
+
+  ;copy vis
+  SetOutPath $INSTDIR\share\vis
+  File /r /x .git ${GPAC_ROOT}\share\vis\*
 
   SetOutPath $INSTDIR
 SectionEnd
 
 SubSection "GPAC Plugins" SecPlugins
 
-
-;
-;	2 install modes, normal one and full one
-
-Section "MPEG-4 BIFS Decoder" SecBIFS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_bifs_dec.dll"
-SectionEnd
-
-Section "MPEG-4 ODF Decoder" SecODF
-  SectionIn 1
-  File "${GPAC_BIN}\gm_odf_dec.dll"
-SectionEnd
-
-Section "MPEG-4 LASeR Decoder" SecLASeR
-  SectionIn 1
-  File "${GPAC_BIN}\gm_laser_dec.dll"
-SectionEnd
-
-Section "MPEG-4 SAF Demultiplexer" SecSAF
-  SectionIn 1
-  File "${GPAC_BIN}\gm_saf_in.dll"
-SectionEnd
-
-Section "Textual MPEG-4 Loader" SecTextLoad
-  SectionIn 1
-  File "${GPAC_BIN}\gm_ctx_load.dll"
-SectionEnd
-
-Section "Image Package (PNG, JPEG, BMP)" SecIMG
-  SectionIn 1
-  File "${GPAC_BIN}\gm_img_in.dll"
-SectionEnd
-
-Section "AAC Audio" SecAAC
-  SectionIn 1
-  File "${GPAC_BIN}\gm_aac_in.dll"
-SectionEnd
-
-Section "MP3 Audio" SecMP3
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mp3_in.dll"
-SectionEnd
-
-Section "AC3 Audio" SecAC3
-  SectionIn 1
-  File "${GPAC_BIN}\gm_ac3_in.dll"
-SectionEnd
-
-Section "FFMPEG" SecFFMPEG
-  SectionIn 1
-  File "${GPAC_BIN}\gm_ffmpeg_in.dll"
-  File "${GPAC_BIN}\avcodec-*.dll"
-  File "${GPAC_BIN}\avdevice-*.dll"
-  File "${GPAC_BIN}\avfilter-*.dll"
-  File "${GPAC_BIN}\avformat-*.dll"
-  File "${GPAC_BIN}\avutil-*.dll"
-  File "${GPAC_BIN}\avresample-*.dll"
-  File "${GPAC_BIN}\swresample-*.dll"
-  File "${GPAC_BIN}\swscale-*.dll"
-  File "${GPAC_BIN}\libx264-*.dll"
-SectionEnd
-
-Section "XviD Video Decoder" SecXVID
-  SectionIn 1
-  File "${GPAC_BIN}\gm_xvid_dec.dll"
-SectionEnd
-
-;Section "AMR NB & WB" SecAMRFT
-;  SectionIn 1
-;  File "..\gm_amr_float_dec.dll"
-;SectionEnd
-
-Section "Subtitles" SecSUBS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_timedtext.dll"
-SectionEnd
-
-Section "ISO File Format" SecISOFF
-  SectionIn 1
-  File "${GPAC_BIN}\gm_isom_in.dll"
-SectionEnd
-
-Section "MPEG-2 TS" SecM2TS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mpegts_in.dll"
-SectionEnd
-
-Section "RTP/RTSP" SecRTP
-  SectionIn 1
-  File "${GPAC_BIN}\gm_rtp_in.dll"
-SectionEnd
-
-Section "SVG" SecSVG
-  SectionIn 1
-  File "${GPAC_BIN}\gm_svg_in.dll"
-SectionEnd
-
-Section "WebVTT" SecWebVTT
-  SectionIn 1
-  File "${GPAC_BIN}\gm_vtt_in.dll"
-SectionEnd
-
-Section "GDI+" SecGDIP
-  SectionIn 1
-  call InsertGDIPLUS
-SectionEnd
-
-Section "GPAC 2D Raster" SecG2DS
-  SectionIn 1
-  File "${GPAC_BIN}\gm_soft_raster.dll"
-SectionEnd
 
 Section "FreeType" SecFT
   SectionIn 1
@@ -427,62 +336,21 @@ Section "Windows MME Audio" SecWAVE
   File "${GPAC_BIN}\gm_wav_out.dll"
 SectionEnd
 
-Section "Xiph" SecXIPH
+Section "SDL" SecSDL
   SectionIn 1
-  File "${GPAC_BIN}\gm_ogg.dll"
-SectionEnd
-
-Section "OpenSVC Decoder" SecOSVC
-  SectionIn 1
-  File "${GPAC_BIN}\OpenSVCDecoder.dll"
-  File "${GPAC_BIN}\gm_opensvc_dec.dll"
+  File "${GPAC_BIN}\SDL.dll"
+  File "${GPAC_BIN}\gm_sdl_out.dll"
 SectionEnd
 
 Section "OpenHEVC Decoder" SecOHEVC
   SectionIn 1
-  File "${GPAC_BIN}\libLibOpenHevcWrapper.dll"
-  File "${GPAC_BIN}\gm_openhevc_dec.dll"
+  File "${GPAC_BIN}\openhevc-1.dll"
+  File "${GPAC_BIN}\gf_ohevcdec.dll"
 SectionEnd
 
-Section "NVidia Hardware Decoder" SecNVDEC
+Section "Validator" SecValidator
   SectionIn 1
-  File "${GPAC_BIN}\gm_nvdec.dll"
-SectionEnd
-
-Section "MPEG DASH Support" SecDASH
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mpd_in.dll"
-SectionEnd
-
-Section "RAW audio-video output" SecRAW
-  SectionIn 1
-  File "${GPAC_BIN}\gm_raw_out.dll"
-SectionEnd
-
-Section "HTML 5 Media Source Extensions Support" SecMSE
-  SectionIn 1
-  File "${GPAC_BIN}\gm_mse_in.dll"
-SectionEnd
-
-Section "UPnP Support" SecUPnP
-  SectionIn 1
-  File "${GPAC_BIN}\gm_platinum.dll"
-SectionEnd
-
-Section "Widget Manager" SecMPEGU
-  SectionIn 1
-  File "${GPAC_BIN}\gm_widgetman.dll"
-SectionEnd
-
-;Section "MobileIP Framework" SecMobIP
-;  SectionIn 1
-;  File "..\gm_mobile_ip.dll"
-;  File "..\MobileSession.dll"
-;SectionEnd
-
-Section "DekTec output" SecDecTek
-  SectionIn 1
-  File "${GPAC_BIN}\gm_dektec_out.dll"
+  File "${GPAC_BIN}\gm_validator.dll"
 SectionEnd
 
 SubSectionEnd
@@ -496,18 +364,10 @@ Section "MP4Box" SecMP4B
   Call AddToPath
 SectionEnd
 
-Section "MP42TS" SecMP42TS
+Section "gpac" SecGPACBIN
   SectionIn 1
   SetOutPath $INSTDIR
-  File "${GPAC_BIN}\MP42TS.exe"
-  Push $INSTDIR
-  Call AddToPath
-SectionEnd
-
-Section "DashCast" SecDC
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "${GPAC_BIN}\dashcast.exe"
+  File "${GPAC_BIN}\gpac.exe"
   Push $INSTDIR
   Call AddToPath
 SectionEnd
@@ -519,7 +379,6 @@ Section "GPAC SDK" SecSDK
   File /r ${GPAC_ROOT}\include\*.h
   SetOutPath $INSTDIR\sdk\lib
   File ${GPAC_BIN}\libgpac.lib
-  File ${GPAC_EXTRA_LIB}\js.lib
 SectionEnd
 
 !if /FileExists "${GPAC_BIN}\GPAX.dll"
@@ -531,15 +390,30 @@ Section "GPAX" SecGPAX
 SectionEnd
 !endif
 
-Section "Windows Runtime Libraries" SecMSVCRT
-  SectionIn 1
+;Section "Windows Runtime Libraries" SecMSVCRT
+;  SectionIn 1
 ;  File "..\Microsoft.VC100.CRT.manifest"
 ;  File "..\Microsoft.VC100.MFC.manifest"
-  File "${GPAC_BIN}\msvcr100.dll"
-  File "${GPAC_BIN}\mfc100.dll"
+;  File "${GPAC_BIN}\msvcr100.dll"
+;  File "${GPAC_BIN}\mfc100.dll"
+;SectionEnd
+
+!ifdef IS_WIN64
+!define TARGET_ARCHITECTURE "x64"
+!else
+!define TARGET_ARCHITECTURE "x86"
+!endif
+
+Section "VS2015 C++ re-distributable Package (${TARGET_ARCHITECTURE})" SEC_VCREDIST1
+DetailPrint "Running VS2015 re-distributable setup..."
+  SectionIn 1
+  SetOutPath "$TEMP\vc2015"
+  File "${GPAC_ROOT}\packagers\win32_64\nsis\vc_redist.${TARGET_ARCHITECTURE}.exe"
+  ExecWait '"$TEMP\vc2015\vc_redist.${TARGET_ARCHITECTURE}.exe" /install /quiet /norestart' $VSRedistSetupError
+  RMDir /r "$TEMP\vc2015"
+  DetailPrint "Finished VS2015 re-distributable setup"
+  SetOutPath "$INSTDIR"
 SectionEnd
-
-
 
 
 SubSection "GPAC Shortcuts"
@@ -569,47 +443,16 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "GPAC Core"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOsmo4} "GPAC Player"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "GPAC Plugins"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecBIFS} "MPEG-4 BIFS Scene Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecODF} "MPEG-4 Object Descriptor Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecLASeR} "MPEG-4 LASeR Scene Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecTextLoad} "Support for uncompressed MPEG-4 (BT and XMT), VRML and X3D textual formats"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSAF} "MPEG-4 SAF Demultiplexer"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecIMG} "Support for PNG, JPEG, BMP and JPEG2000 images"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecAAC} "Support for MPEG-4 Audio HE-AAC decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP3} "Support for MPEG-1/2 Audio (inc. MP3) decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecAC3} "Support for Dolby AC3 decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecFFMPEG} "Support for FFMPEG libraries for various format decoding and demultiplexing"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecXVID} "Support for XVID library for MPEG-4 Video Part 2 decoding"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecAMRFT} "Support for AMR and AMR WideBand decoder and web radios"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSUBS} "Subtitle support include SRT, SUB, 3GPP and MPEG-4 Text formats"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecISOFF} "Support for ISO-based file formats (3GP, MP4, MJ2K)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecM2TS} "Support for MPEG-2 Transport Stream"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecRTP} "Support for RTP and RTSP IP streaming"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSVG} "Support for SVG including progressive loading"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecWebVTT} "Support for WebVTT subtitles"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecGDIP} "GDIPlus-based rasterizer"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecG2DS} "GPAC software rasterizer"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFT} "FreeType font parsing"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output support"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecXIPH} "Support for XIPP OGG, Vorbis and Theora media"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecNVDEC} "Support for hardware decoding through NVidia cuvid"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDASH} "HTTP Streaming using MPEG DASH"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMSE}  "HTTP Streaming using HTML 5 Media Source Extensions"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDecTek} "DekTek 3G SDI output support"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecRAW} "RAW audio-video output support"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for various multimedia operations"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDC} "DashCast offline and live MPEG-DASH Encoder"
+;  !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
+;  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPACBIN} "gpac command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecZILLA} "GPAC playback support NPAPI-based browsers (FireFox/Gecko, Safari/WebKit)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAX} "GPAC playback support using ActiveX component (Internet Explorer)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4C} "GPAC command-line player and AVI dumper"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "GPAC SDL support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
@@ -678,77 +521,111 @@ SectionEnd
   !endif
 !endif
 
-; AddToPath - Adds the given dir to the search path.
-;        Input - head of the stack
-;        Note - Win9x systems requires reboot
+;--------------------------------------------------------------------
+; Path functions
+;
+; Based on example from:
+; http://nsis.sourceforge.net/Path_Manipulation
+;
+
+
+!include "WinMessages.nsh"
+
+; Registry Entry for environment (NT4,2000,XP)
+; All users:
+;!define Environ 'HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"'
+; Current user only:
+!define Environ 'HKCU "Environment"'
+
+
+; AddToPath - Appends dir to PATH
+;   (does not work on Win9x/ME)
+;
+; Usage:
+;   Push "dir"
+;   Call AddToPath
 
 Function AddToPath
   Exch $0
   Push $1
   Push $2
   Push $3
+  Push $4
 
-  # don't add if the path doesn't exist
-  IfFileExists "$0\*.*" "" AddToPath_done
+  ; NSIS ReadRegStr returns empty string on string overflow
+  ; Native calls are used here to check actual length of PATH
 
-  ReadEnvStr $1 PATH
+  ; $4 = RegOpenKey(HKEY_CURRENT_USER, "Environment", &$3)
+  System::Call "advapi32::RegOpenKey(i 0x80000001, t'Environment', *i.r3) i.r4"
+  IntCmp $4 0 0 done done
+  ; $4 = RegQueryValueEx($3, "PATH", (DWORD*)0, (DWORD*)0, &$1, ($2=NSIS_MAX_STRLEN, &$2))
+  ; RegCloseKey($3)
+  System::Call "advapi32::RegQueryValueEx(i $3, t'PATH', i 0, i 0, t.r1, *i ${NSIS_MAX_STRLEN} r2) i.r4"
+  System::Call "advapi32::RegCloseKey(i $3)"
+
+  ${If} $4 = 234 ; ERROR_MORE_DATA
+    DetailPrint "AddToPath: original length $2 > ${NSIS_MAX_STRLEN}"
+    MessageBox MB_OK "PATH not updated, original length $2 > ${NSIS_MAX_STRLEN}" /SD IDOK
+    Goto done
+  ${EndIf}
+
+  ${If} $4 <> 0 ; NO_ERROR
+    ${If} $4 <> 2 ; ERROR_FILE_NOT_FOUND
+      DetailPrint "AddToPath: unexpected error code $4"
+      Goto done
+    ${EndIf}
+    StrCpy $1 ""
+  ${EndIf}
+
+  ; Check if already in PATH
   Push "$1;"
   Push "$0;"
   Call StrStr
   Pop $2
-  StrCmp $2 "" "" AddToPath_done
+  StrCmp $2 "" 0 done
   Push "$1;"
   Push "$0\;"
   Call StrStr
   Pop $2
-  StrCmp $2 "" "" AddToPath_done
-  GetFullPathName /SHORT $3 $0
-  Push "$1;"
-  Push "$3;"
-  Call StrStr
-  Pop $2
-  StrCmp $2 "" "" AddToPath_done
-  Push "$1;"
-  Push "$3\;"
-  Call StrStr
-  Pop $2
-  StrCmp $2 "" "" AddToPath_done
+  StrCmp $2 "" 0 done
 
-  Call IsNT
+  ; Prevent NSIS string overflow
+  StrLen $2 $0
+  StrLen $3 $1
+  IntOp $2 $2 + $3
+  IntOp $2 $2 + 2 ; $2 = strlen(dir) + strlen(PATH) + sizeof(";")
+  ${If} $2 > ${NSIS_MAX_STRLEN}
+    DetailPrint "AddToPath: new length $2 > ${NSIS_MAX_STRLEN}"
+    MessageBox MB_OK "PATH not updated, new length $2 > ${NSIS_MAX_STRLEN}." /SD IDOK
+    Goto done
+  ${EndIf}
+
+  ; Append dir to PATH
+  DetailPrint "Add to PATH: $0"
+  StrCpy $2 $1 1 -1
+  ${If} $2 == ";"
+    StrCpy $1 $1 -1 ; remove trailing ';'
+  ${EndIf}
+  ${If} $1 != "" ; no leading ';'
+    StrCpy $0 "$1;$0"
+  ${EndIf}
+  WriteRegExpandStr ${Environ} "PATH" $0
+  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+
+done:
+  Pop $4
+  Pop $3
+  Pop $2
   Pop $1
-  StrCmp $1 1 AddToPath_NT
-    ; Not on NT
-    StrCpy $1 $WINDIR 2
-    FileOpen $1 "$1\autoexec.bat" a
-    FileSeek $1 -1 END
-    FileReadByte $1 $2
-    IntCmp $2 26 0 +2 +2 # DOS EOF
-      FileSeek $1 -1 END # write over EOF
-    FileWrite $1 "$\r$\nSET PATH=%PATH%;$3$\r$\n"
-    FileClose $1
-    SetRebootFlag true
-    Goto AddToPath_done
-
-  AddToPath_NT:
-    ReadRegStr $1 ${WriteEnvStr_RegKey} "PATH"
-    StrCpy $2 $1 1 -1 # copy last char
-    StrCmp $2 ";" 0 +2 # if last char == ;
-      StrCpy $1 $1 -1 # remove last char
-    StrCmp $1 "" AddToPath_NTdoIt
-      StrCpy $0 "$1;$0"
-    AddToPath_NTdoIt:
-      WriteRegExpandStr ${WriteEnvStr_RegKey} "PATH" $0
-      SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
-
-  AddToPath_done:
-    Pop $3
-    Pop $2
-    Pop $1
-    Pop $0
+  Pop $0
 FunctionEnd
 
-; RemoveFromPath - Remove a given dir from the path
-;     Input: head of the stack
+
+; RemoveFromPath - Removes dir from PATH
+;
+; Usage:
+;   Push "dir"
+;   Call RemoveFromPath
 
 Function un.RemoveFromPath
   Exch $0
@@ -759,79 +636,40 @@ Function un.RemoveFromPath
   Push $5
   Push $6
 
-  IntFmt $6 "%c" 26 # DOS EOF
+  ReadRegStr $1 ${Environ} "PATH"
+  StrCpy $5 $1 1 -1
+  ${If} $5 != ";"
+    StrCpy $1 "$1;" ; ensure trailing ';'
+  ${EndIf}
+  Push $1
+  Push "$0;"
+  Call un.StrStr
+  Pop $2 ; pos of our dir
+  StrCmp $2 "" done
 
-  Call un.IsNT
+  DetailPrint "Remove from PATH: $0"
+  StrLen $3 "$0;"
+  StrLen $4 $2
+  StrCpy $5 $1 -$4 ; $5 is now the part before the path to remove
+  StrCpy $6 $2 "" $3 ; $6 is now the part after the path to remove
+  StrCpy $3 "$5$6"
+  StrCpy $5 $3 1 -1
+  ${If} $5 == ";"
+    StrCpy $3 $3 -1 ; remove trailing ';'
+  ${EndIf}
+  WriteRegExpandStr ${Environ} "PATH" $3
+  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+
+done:
+  Pop $6
+  Pop $5
+  Pop $4
+  Pop $3
+  Pop $2
   Pop $1
-  StrCmp $1 1 unRemoveFromPath_NT
-    ; Not on NT
-    StrCpy $1 $WINDIR 2
-    FileOpen $1 "$1\autoexec.bat" r
-    GetTempFileName $4
-    FileOpen $2 $4 w
-    GetFullPathName /SHORT $0 $0
-    StrCpy $0 "SET PATH=%PATH%;$0"
-    Goto unRemoveFromPath_dosLoop
-
-    unRemoveFromPath_dosLoop:
-      FileRead $1 $3
-      StrCpy $5 $3 1 -1 # read last char
-      StrCmp $5 $6 0 +2 # if DOS EOF
-        StrCpy $3 $3 -1 # remove DOS EOF so we can compare
-      StrCmp $3 "$0$\r$\n" unRemoveFromPath_dosLoopRemoveLine
-      StrCmp $3 "$0$\n" unRemoveFromPath_dosLoopRemoveLine
-      StrCmp $3 "$0" unRemoveFromPath_dosLoopRemoveLine
-      StrCmp $3 "" unRemoveFromPath_dosLoopEnd
-      FileWrite $2 $3
-      Goto unRemoveFromPath_dosLoop
-      unRemoveFromPath_dosLoopRemoveLine:
-        SetRebootFlag true
-        Goto unRemoveFromPath_dosLoop
-
-    unRemoveFromPath_dosLoopEnd:
-      FileClose $2
-      FileClose $1
-      StrCpy $1 $WINDIR 2
-      Delete "$1\autoexec.bat"
-      CopyFiles /SILENT $4 "$1\autoexec.bat"
-      Delete $4
-      Goto unRemoveFromPath_done
-
-  unRemoveFromPath_NT:
-    ReadRegStr $1 ${WriteEnvStr_RegKey} "PATH"
-    StrCpy $5 $1 1 -1 # copy last char
-    StrCmp $5 ";" +2 # if last char != ;
-      StrCpy $1 "$1;" # append ;
-    Push $1
-    Push "$0;"
-    Call un.StrStr ; Find `$0;` in $1
-    Pop $2 ; pos of our dir
-    StrCmp $2 "" unRemoveFromPath_done
-      ; else, it is in path
-      # $0 - path to add
-      # $1 - path var
-      StrLen $3 "$0;"
-      StrLen $4 $2
-      StrCpy $5 $1 -$4 # $5 is now the part before the path to remove
-      StrCpy $6 $2 "" $3 # $6 is now the part after the path to remove
-      StrCpy $3 $5$6
-
-      StrCpy $5 $3 1 -1 # copy last char
-      StrCmp $5 ";" 0 +2 # if last char == ;
-        StrCpy $3 $3 -1 # remove last char
-
-      WriteRegExpandStr ${WriteEnvStr_RegKey} "PATH" $3
-      SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
-
-  unRemoveFromPath_done:
-    Pop $6
-    Pop $5
-    Pop $4
-    Pop $3
-    Pop $2
-    Pop $1
-    Pop $0
+  Pop $0
 FunctionEnd
+
 
 ###########################################
 #            Utility Functions            #

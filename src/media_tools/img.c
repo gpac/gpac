@@ -51,7 +51,7 @@
 #endif	/*GPAC_HAS_JPEG*/
 
 GF_EXPORT
-void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len)
+void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **dsi, u32 *dsi_len)
 {
 	u8 b1, b2, b3;
 	u32 size, type;
@@ -59,8 +59,8 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	pos = gf_bs_get_position(bs);
 	gf_bs_seek(bs, 0);
 
-	*mtype = *width = *height = 0;
-	*OTI = 0;
+	*width = *height = 0;
+	*codecid = 0;
 	if (dsi) {
 		*dsi = NULL;
 		*dsi_len = 0;
@@ -81,7 +81,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 
 		/*get frame header FFC0*/
 		while (gf_bs_available(bs)) {
-			u32 type, w, h;
+			u32 w, h;
 			if (gf_bs_read_u8(bs) != 0xFF) continue;
 			if (!offset) offset = (u32)gf_bs_get_position(bs) - 1;
 
@@ -112,8 +112,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 				break;
 			}
 		}
-		*OTI = GPAC_OTI_IMAGE_JPEG;
-		*mtype = GF_ISOM_MEDIA_JPEG;
+		*codecid = GF_CODECID_JPEG;
 		if (dsi) {
 			GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(bs_dsi, offset);
@@ -136,27 +135,25 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 
 		*width = gf_bs_read_u32(bs);
 		*height = gf_bs_read_u32(bs);
-		*OTI = GPAC_OTI_IMAGE_PNG;
-		*mtype = GF_ISOM_MEDIA_PNG;
+		*codecid = GF_CODECID_PNG;
 	}
 	/*try j2k*/
 	else {
+		u32 jp2h_size=0, jp2h_start=0;
 		size = gf_bs_read_u8(bs);
 		type = gf_bs_read_u32(bs);
 		if ( ((size==12) && (type==GF_ISOM_BOX_TYPE_JP ))
 	        || (type==GF_ISOM_BOX_TYPE_JP2H ) ) {
 
 			if (type==GF_ISOM_BOX_TYPE_JP2H) {
-				*OTI = GPAC_OTI_IMAGE_JPEG_2000;
-				*mtype = GF_ISOM_MEDIA_JP2;
+				*codecid = GF_CODECID_J2K;
 				goto j2k_restart;
 			}
 
 			type = gf_bs_read_u32(bs);
 			if (type!=0x0D0A870A) goto exit;
 
-			*OTI = GPAC_OTI_IMAGE_JPEG_2000;
-			*mtype = GF_ISOM_MEDIA_JP2;
+			*codecid = GF_CODECID_J2K;
 
 			while (gf_bs_available(bs)) {
 j2k_restart:
@@ -164,30 +161,24 @@ j2k_restart:
 				type = gf_bs_read_u32(bs);
 				switch (type) {
 				case GF_ISOM_BOX_TYPE_JP2H:
+					jp2h_size=size-8;
+					jp2h_start = (u32) gf_bs_get_position(bs);
 					goto j2k_restart;
 				case GF_ISOM_BOX_TYPE_IHDR:
 				{
-					u16 nb_comp;
-					u8 BPC, C, UnkC, IPR;
 					*height = gf_bs_read_u32(bs);
 					*width = gf_bs_read_u32(bs);
-					nb_comp = gf_bs_read_u16(bs);
+					/*nb_comp = gf_bs_read_u16(bs);
 					BPC = gf_bs_read_u8(bs);
 					C = gf_bs_read_u8(bs);
 					UnkC = gf_bs_read_u8(bs);
 					IPR = gf_bs_read_u8(bs);
-
-					if (dsi) {
-						GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-						gf_bs_write_u32(bs_dsi, *height);
-						gf_bs_write_u32(bs_dsi, *width);
-						gf_bs_write_u16(bs_dsi, nb_comp);
-						gf_bs_write_u8(bs_dsi, BPC);
-						gf_bs_write_u8(bs_dsi, C);
-						gf_bs_write_u8(bs_dsi, UnkC);
-						gf_bs_write_u8(bs_dsi, IPR);
-						gf_bs_get_content(bs_dsi, dsi, dsi_len);
-						gf_bs_del(bs_dsi);
+					*/
+					if (dsi && jp2h_size) {
+						*dsi = gf_malloc(sizeof(char)*jp2h_size);
+						gf_bs_seek(bs, jp2h_start);
+						gf_bs_read_data(bs, *dsi, jp2h_size);
+						*dsi_len = jp2h_size;
 					}
 					goto exit;
 				}
@@ -206,7 +197,10 @@ exit:
 
 #ifdef GPAC_HAS_JPEG
 
-void gf_jpeg_nonfatal_error2(j_common_ptr cinfo, int lev) {}
+void gf_jpeg_nonfatal_error2(j_common_ptr cinfo, int lev)
+{
+
+}
 
 /*JPG context while decoding*/
 typedef struct
@@ -224,46 +218,53 @@ typedef struct
 	struct jpeg_decompress_struct cinfo;
 } JPGCtx;
 
-static void gf_jpeg_output_message (j_common_ptr cinfo) {
-	char buffer[JMSG_LENGTH_MAX];
-	/* Create the message */
-	(*cinfo->err->format_message) (cinfo, buffer);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEG OUTPUT MESSAGE]: %s\n", buffer));
+static void gf_jpeg_output_message (j_common_ptr cinfo)
+{
+	if (cinfo) {
+		char buffer[JMSG_LENGTH_MAX];
+		/* Create the message */
+		(*cinfo->err->format_message) (cinfo, buffer);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[JPEG OUTPUT MESSAGE]: %s\n", buffer));
+	}
 }
 
 static void gf_jpeg_fatal_error(j_common_ptr cinfo)
 {
-	JPGErr *err = (JPGErr *) cinfo->err;
-	gf_jpeg_output_message(cinfo);
-	longjmp(err->jmpbuf, 1);
+	if (cinfo) {
+		JPGErr *err = (JPGErr *) cinfo->err;
+		gf_jpeg_output_message(cinfo);
+		longjmp(err->jmpbuf, 1);
+	}
 }
 
 void gf_jpeg_stub(j_decompress_ptr cinfo) {}
 
 /*a JPEG is always carried in a complete, single MPEG4 AU so no refill*/
-static boolean gf_jpeg_fill_input_buffer(j_decompress_ptr cinfo) {
+static boolean gf_jpeg_fill_input_buffer(j_decompress_ptr cinfo)
+{
 	return 0;
 }
 
 static void gf_jpeg_skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 {
-	JPGCtx *jpx = (JPGCtx *) cinfo->src;
-	if (num_bytes > (long) jpx->src.bytes_in_buffer) {
-		jpx->skip = (s32) (num_bytes - jpx->src.bytes_in_buffer);
-		jpx->src.next_input_byte += jpx->src.bytes_in_buffer;
-		jpx->src.bytes_in_buffer = 0;
-	} else {
-		jpx->src.bytes_in_buffer -= num_bytes;
-		jpx->src.next_input_byte += num_bytes;
-		jpx->skip = 0;
+	if (cinfo) {
+		JPGCtx *jpx = (JPGCtx *) cinfo->src;
+		if (num_bytes > (long) jpx->src.bytes_in_buffer) {
+			jpx->skip = (s32) (num_bytes - jpx->src.bytes_in_buffer);
+			jpx->src.next_input_byte += jpx->src.bytes_in_buffer;
+			jpx->src.bytes_in_buffer = 0;
+		} else {
+			jpx->src.bytes_in_buffer -= num_bytes;
+			jpx->src.next_input_byte += num_bytes;
+			jpx->skip = 0;
+		}
 	}
 }
-
 
 #define JPEG_MAX_SCAN_BLOCK_HEIGHT		16
 
 GF_EXPORT
-GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp)
+GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
 {
 	s32 i, j, scans, k;
 	u32 stride;
@@ -272,6 +273,17 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	JPGErr jper;
 	JPGCtx jpx;
 
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		gf_jpeg_fatal_error(NULL);
+		gf_jpeg_output_message(NULL);
+		gf_jpeg_nonfatal_error2(NULL, 0);
+		gf_jpeg_fill_input_buffer(NULL);
+		gf_jpeg_skip_input_data(NULL, 0);
+	}
+#endif
+	if (!dst) *dst_size = 0;
+	
 	jpx.cinfo.err = jpeg_std_error(&(jper.pub));
 	jper.pub.error_exit = gf_jpeg_fatal_error;
 	jper.pub.output_message = gf_jpeg_output_message;
@@ -315,14 +327,14 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 		*pixel_format = GF_PIXEL_GREYSCALE;
 		break;
 	case 3:
-		*pixel_format = GF_PIXEL_RGB_24;
+		*pixel_format = GF_PIXEL_RGB;
 		break;
 	default:
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	if (*dst_size < *height **width * jpx.cinfo.num_components) {
-		*dst_size = *height **width * jpx.cinfo.num_components;
+	if (!dst || (*dst_size < *height * *width * jpx.cinfo.num_components)) {
+		*dst_size = *height * *width * jpx.cinfo.num_components;
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_BUFFER_TOO_SMALL;
 	}
@@ -333,12 +345,10 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	jpx.cinfo.do_fancy_upsampling = FALSE;
 	jpx.cinfo.do_block_smoothing = FALSE;
 	if (!jpeg_start_decompress(&jpx.cinfo)) {
-		if (scan_line) gf_free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT) {
-		if (scan_line) gf_free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[gf_img_jpeg_dec] : jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT\n"));
 		return GF_IO_ERR;
@@ -386,7 +396,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 #else
 
 GF_EXPORT
-GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size, u32 dst_nb_comp)
+GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
 {
 	return GF_NOT_SUPPORTED;
 }
@@ -417,12 +427,14 @@ static void gf_png_user_read_data(png_structp png_ptr, png_bytep data, png_size_
 }
 static void gf_png_user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 {
-	longjmp(png_jmpbuf(png_ptr), 1);
+	if (png_ptr) {
+		longjmp(png_jmpbuf(png_ptr), 1);
+	}
 }
 
 
 GF_EXPORT
-GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
 {
 	GFpng udta;
 	png_struct *png_ptr;
@@ -440,6 +452,12 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	udta.size = png_size;
 	udta.pos = 0;
 	udta.rows=NULL;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		gf_png_user_error_fn(NULL, NULL);
+	}
+#endif
 
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) &udta, NULL, NULL);
 	if (!png_ptr) return GF_IO_ERR;
@@ -478,10 +496,10 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		*pixel_format = GF_PIXEL_GREYSCALE;
 		break;
 	case PNG_COLOR_TYPE_GRAY_ALPHA:
-		*pixel_format = GF_PIXEL_ALPHAGREY;
+		*pixel_format = GF_PIXEL_GREYALPHA;
 		break;
 	case PNG_COLOR_TYPE_RGB:
-		*pixel_format = GF_PIXEL_RGB_24;
+		*pixel_format = GF_PIXEL_RGB;
 		break;
 	case PNG_COLOR_TYPE_RGB_ALPHA:
 		*pixel_format = GF_PIXEL_RGBA;
@@ -532,7 +550,7 @@ void gf_png_flush(png_structp png)
 
 /* write a png file */
 GF_EXPORT
-GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
 {
 	GFpng udta;
 	png_color_8 sig_bit;
@@ -547,14 +565,14 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 		nb_comp = 1;
 		type = PNG_COLOR_TYPE_GRAY;
 		break;
-	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
 		nb_comp = 1;
 		type = PNG_COLOR_TYPE_GRAY_ALPHA;
 		break;
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
-	case GF_PIXEL_RGB_32:
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_RGB:
+	case GF_PIXEL_BGR:
+	case GF_PIXEL_RGBX:
+	case GF_PIXEL_BGRX:
 		nb_comp = 3;
 		type = PNG_COLOR_TYPE_RGB;
 		break;
@@ -573,6 +591,12 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	//      png_voidp user_error_ptr, user_error_fn, user_warning_fn);
 
 	if (png_ptr == NULL) return GF_IO_ERR;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		gf_png_flush(NULL);
+	}
+#endif
 
 	/* Allocate/initialize the image information data.  REQUIRED */
 	info_ptr = png_create_info_struct(png_ptr);
@@ -637,14 +661,14 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 		png_set_bgr(png_ptr);
 	}
 	switch (pixel_format) {
-	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_RGBX:
 		png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
 		png_set_bgr(png_ptr);
 		break;
-	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_BGRX:
 		png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
 		break;
-	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_BGR:
 		png_set_bgr(png_ptr);
 		break;
 	}
@@ -662,100 +686,18 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	return GF_OK;
 }
 
-/* write a png file */
-GF_EXPORT
-GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file)
-{
-	GF_Err e;
-	FILE *png;
-	u32 dst_size = width*height*4;
-	char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
-	if (!dst) return GF_OUT_OF_MEM;
-
-	e = gf_img_png_enc(data, width, height, stride, pixel_format, dst, &dst_size);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error encoding image %s\n", gf_error_to_string(e) ));
-		goto exit;
-	}
-
-	png = gf_fopen(dst_file, "wb");
-	if (!png) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error opening destination file %s\n", dst_file ));
-		goto exit;
-	}
-
-	gf_fwrite(dst, dst_size, 1, png);
-	gf_fclose(png);
-
-exit:
-	gf_free(dst);
-	return e;
-}
 #else
 GF_EXPORT
-GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }
 GF_EXPORT
-GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }
 
-GF_EXPORT
-GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file)
-{
-	return GF_NOT_SUPPORTED;
-}
 #endif	/*GPAC_HAS_PNG*/
 
-GF_EXPORT
-GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
-{
-	u32 fsize, read, oti;
-	FILE *f;
-	char *data;
-	GF_Err e;
-	f = gf_fopen(png_filename, "rb");
-	if (!f) return GF_URL_ERROR;
-
-	oti = 0;
-	if (!hint_oti || ! *hint_oti) {
-		char *ext = strrchr(png_filename, '.');
-		if (!ext) return GF_NOT_SUPPORTED;
-		if (!stricmp(ext, ".png")) oti = GPAC_OTI_IMAGE_PNG;
-		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) oti = GPAC_OTI_IMAGE_JPEG;
-	} else if (hint_oti) {
-		oti = *hint_oti;
-	}
-	gf_fseek(f, 0, SEEK_END);
-	fsize = (u32)gf_ftell(f);
-	gf_fseek(f, 0, SEEK_SET);
-	data = gf_malloc(fsize);
-	read = (s32) fread(data, sizeof(char), fsize, f);
-	gf_fclose( f );
-	if (read != fsize) return GF_IO_ERR;
-
-	e = GF_NOT_SUPPORTED;
-	*dst_size = 0;
-	if (oti == GPAC_OTI_IMAGE_JPEG) {
-#ifdef GPAC_HAS_JPEG
-		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
-		if (*dst_size) {
-			*dst = gf_malloc(*dst_size);
-			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, *dst, dst_size, 0);
-		}
-#endif
-	} else if (oti == GPAC_OTI_IMAGE_PNG) {
-#ifdef GPAC_HAS_PNG
-		e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);
-		if (*dst_size) {
-			*dst = gf_malloc(*dst_size);
-			return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);
-		}
-#endif
-	}
-	return e;
-}
 

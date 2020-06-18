@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Romain Bouqueau - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-20XX
+ *			Copyright (c) Telecom ParisTech 2010-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -197,9 +197,11 @@ size_t gpac_nb_alloc_blocs = 0;
 #endif
 
 //backtrace not supported on these platforms
-#if defined(GPAC_IPHONE) || defined(GPAC_ANDROID)
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
 #define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 #endif
+
+int gf_mem_track_enabled = 0;
 
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 static int gf_mem_backtrace_enabled = 0;
@@ -244,7 +246,7 @@ static void store_backtrace(char *s_backtrace)
 			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
 			break;
 		}
-		
+
 		len = _snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
 		if (len<0) len = SYMBOL_MAX_SIZE-1;
 		s_backtrace[bt_idx+len]='\n';
@@ -277,12 +279,12 @@ static void store_backtrace(char *s_backtrace)
 			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
 			break;
 		}
-		
+
 		len = snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02zu %s", i, messages[i]);
 		if (len<0) len = SYMBOL_MAX_SIZE-1;
 		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
-		
+
 	}
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
 	s_backtrace[bt_idx-1] = '\0';
@@ -319,6 +321,12 @@ static char *gf_mem_strdup_basic(const char *str, const char *filename, int line
 	STRDUP(str);
 }
 
+
+static unsigned int nb_calls_alloc = 0;
+static unsigned int nb_calls_calloc = 0;
+static unsigned int nb_calls_realloc = 0;
+static unsigned int nb_calls_free = 0;
+
 void *gf_mem_malloc_tracker(size_t size, const char *filename, int line)
 {
 	void *ptr = MALLOC(size);
@@ -330,6 +338,7 @@ void *gf_mem_malloc_tracker(size_t size, const char *filename, int line)
 	}
 	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] malloc %3d bytes at %p in:\n", size, ptr);
 	gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
+	nb_calls_alloc++;
 	return ptr;
 }
 
@@ -345,6 +354,7 @@ void *gf_mem_calloc_tracker(size_t num, size_t size_of, const char *filename, in
 	}
 	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] calloc %3d bytes at %p in:\n", ptr, size);
 	gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
+	nb_calls_calloc++;
 	return ptr;
 }
 
@@ -356,6 +366,7 @@ void gf_mem_free_tracker(void *ptr, const char *filename, int line)
 		gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
 		FREE(ptr);
 	}
+	nb_calls_free++;
 }
 
 void *gf_mem_realloc_tracker(void *ptr, size_t size, const char *filename, int line)
@@ -385,6 +396,7 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, const char *filename, int l
 		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at %p\n", size, size_prev, ptr_g);
 		gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
 	}
+	nb_calls_realloc++;
 	return ptr_g;
 }
 
@@ -396,6 +408,7 @@ char *gf_mem_strdup_tracker(const char *str, const char *filename, int line)
 	strcpy(ptr, str);
 	return ptr;
 }
+
 
 static void *(*gf_mem_malloc_proto)(size_t size, const char *filename, int line) = gf_mem_malloc_basic;
 static void *(*gf_mem_calloc_proto)(size_t num, size_t size_of, const char *filename, int line) = gf_mem_calloc_basic;
@@ -446,6 +459,7 @@ void gf_mem_enable_tracker(unsigned int enable_backtrace)
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
     gf_mem_backtrace_enabled = enable_backtrace ? 1 : 0;
 #endif
+	gf_mem_track_enabled = 1;
     gf_mem_malloc_proto = gf_mem_malloc_tracker;
 	gf_mem_calloc_proto = gf_mem_calloc_tracker;
 	gf_mem_realloc_proto = gf_mem_realloc_tracker;
@@ -453,6 +467,14 @@ void gf_mem_enable_tracker(unsigned int enable_backtrace)
 	gf_mem_strdup_proto = gf_mem_strdup_tracker;
 }
 
+size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free)
+{
+	if (nb_allocs) (*nb_allocs) = nb_calls_alloc;
+	if (nb_callocs) (*nb_callocs) = nb_calls_calloc;
+	if (nb_reallocs) (*nb_reallocs) = nb_calls_realloc;
+	if (nb_free) (*nb_free) = nb_calls_free;
+	return gpac_allocated_memory;
+}
 
 typedef struct s_memory_element
 {
@@ -470,10 +492,6 @@ typedef struct s_memory_element
 typedef memory_element** memory_list;
 
 
-#define GPAC_MEMORY_TRACKING_HASH_TABLE 1
-
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
-
 #define HASH_ENTRIES 4096
 
 #if !defined(WIN32)
@@ -485,11 +503,9 @@ static unsigned int gf_memory_hash(void *ptr)
 #if defined(WIN32)
 	return (unsigned int) ( (((unsigned __int64)ptr>>4)+(unsigned __int64)ptr) % HASH_ENTRIES );
 #else
-	return (unsigned int) ( (((uint64_t)ptr>>4)+(uint64_t)ptr) % HASH_ENTRIES );
+	return (unsigned int) ( (((uint64_t) ((intptr_t) ptr)>>4) + (uint64_t) ((intptr_t)ptr) ) % HASH_ENTRIES );
 #endif
 }
-
-#endif
 
 
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
@@ -503,7 +519,7 @@ static void gf_memory_add_stack(memory_element **p, void *ptr, int size, const c
 	element->ptr = ptr;
 	element->size = size;
 	element->line = line;
-	
+
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
     if (gf_mem_backtrace_enabled) {
         element->backtrace_stack = MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
@@ -565,25 +581,6 @@ static int gf_memory_del_item_stack(memory_element **p, void *ptr)
 	return 0;
 }
 
-static void gf_memory_del_stack(memory_element **p)
-{
-	memory_element *curr_element=*p, *next_element;
-	while (curr_element) {
-		next_element = curr_element->next;
-#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-        if (curr_element->backtrace_stack) {
-            FREE(curr_element->backtrace_stack);
-        }
-#endif
-		FREE(curr_element);
-		curr_element = next_element;
-	}
-	*p = NULL;
-}
-
-
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
-
 /*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
 static void gf_memory_add(memory_list *p, void *ptr, int size, const char *filename, int line)
 {
@@ -623,29 +620,11 @@ static int gf_memory_del_item(memory_list *p, void *ptr)
 			if (&((*p)[i])) break;
 		if (i==HASH_ENTRIES) {
 			FREE(*p);
-			p = NULL;
 		}
 	}
 	return ret;
 }
 
-static void gf_memory_del(memory_list *p)
-{
-	int i;
-	for (i=0; i<HASH_ENTRIES; i++)
-		gf_memory_del_stack(&((*p)[i]));
-	FREE(*p);
-	p = NULL;
-}
-
-#else
-
-#define gf_memory_add		gf_memory_add_stack
-#define gf_memory_del		gf_memory_del_stack
-#define gf_memory_del_item	gf_memory_del_item_stack
-#define gf_memory_find		gf_memory_find_stack
-
-#endif
 
 
 #endif /*GPAC_MEMORY_TRACKING*/
@@ -706,8 +685,8 @@ void log_backtrace(unsigned int log_level, memory_element *element)
 }
 
 
-#if 1
-Bool gf_check_address(void *ptr)
+#if 0 //unused
+Bool gf_mem_check_address(void *ptr)
 {
 	Bool res = GF_TRUE;
 	int pos;
@@ -728,7 +707,7 @@ Bool gf_check_address(void *ptr)
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed in:\n", ptr);
 		res = GF_FALSE;
         log_backtrace(GF_MEMORY_ERROR, element);
-		assert(0);
+//		assert(0);
 	}
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
@@ -760,12 +739,9 @@ static int unregister_address(void *ptr, const char *filename, int line)
 				/* assert(0); */ /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
 				int i;
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
 				unsigned int hash = gf_memory_hash(ptr);
 				memory_element *element = memory_rem[hash];
-#else
-				memory_element *element = memory_rem;
-#endif
+
 				assert(element);
 				for (i=1; i<pos; i++)
 					element = element->next;
@@ -796,7 +772,28 @@ static int unregister_address(void *ptr, const char *filename, int line)
 				gpac_allocations_lock = NULL;
 
 				gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] the allocated-blocks-list is empty: the freed-blocks-list will be emptied too.\n");
-				gf_memory_del(&memory_rem);
+
+				//reset the freed block list
+				memory_list *m_list = &memory_rem;
+				int i;
+				for (i=0; i<HASH_ENTRIES; i++) {
+					memory_element **m_elt = &((*m_list)[i]) ;
+
+					memory_element *curr_element=*m_elt, *next_element;
+					while (curr_element) {
+						next_element = curr_element->next;
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+						if (curr_element->backtrace_stack) {
+							FREE(curr_element->backtrace_stack);
+						}
+#endif
+						FREE(curr_element);
+						curr_element = next_element;
+					}
+					*m_elt = NULL;
+				}
+
+				FREE(*m_list);
 
 				return size;
 			} else {
@@ -817,7 +814,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 	char msg[1024];
 	assert(strlen(fmt) < 200);
 	va_start(vl, fmt);
-	vsprintf(msg, fmt, vl);
+	vsnprintf(msg, 1024, fmt, vl);
 	GF_LOG(level, GF_LOG_MEMORY, (msg));
 	va_end(vl);
 }
@@ -825,8 +822,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 /*prints allocations sum-up*/
 static void print_memory_size()
 {
-	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO;
-	GF_LOG(level, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
+	GF_LOG(gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
 }
 
 GF_EXPORT
@@ -842,44 +838,56 @@ void gf_memory_print()
 	/*if lists are empty, the mutex is also NULL*/
 	if (!memory_add) {
 		assert(!gpac_allocations_lock);
-		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized.\n");
+		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized, some file handles are not closed.\n");
 	} else {
 		int i=0;
 		assert(gpac_allocations_lock);
+		const char *enum_open_handles(u32 *idx);
+		u32 nb_handles = gf_file_handles_count();
 
-		gf_memory_log(GF_MEMORY_INFO, "\n[MemTracker] Printing the current state of allocations (%d open file handles) :\n", gf_file_handles_count());
+
+		gf_memory_log(GF_MEMORY_INFO, "\n[MemTracker] Printing the current state of allocations (%d open file handles) :\n", nb_handles);
 
 		/*lock*/
 		gf_mx_p(gpac_allocations_lock);
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
 		for (i=0; i<HASH_ENTRIES; i++) {
 			memory_element *curr_element = memory_add[i], *next_element;
-#else
-		{
-			memory_element *curr_element = memory_add, *next_element;
-#endif
 			while (curr_element) {
 				char szVal[51];
-				u32 size;
+				char szHexVal[101];
+				u32 size, j;
 				next_element = curr_element->next;
 				size = curr_element->size>=50 ? 50 : curr_element->size;
-				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
+				for (j=0 ; j<size ; j++) {
+					unsigned char byte = *((unsigned char*)(curr_element->ptr) + j);
+					szVal[j] = (byte > 31 && byte < 127) ? byte : '.';
+					sprintf(szHexVal+2*j, "%02X", byte);
+				}
 				szVal[size] = 0;
+				szHexVal[2*size] = 0;
 				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block %p (size %d) allocated in:\n", curr_element->ptr, curr_element->size);
 				log_backtrace(GF_MEMORY_INFO, curr_element);
 				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
+				gf_memory_log(GF_MEMORY_INFO, "             hex dump: %s\n", szHexVal);
 				curr_element = next_element;
 			}
 		}
 		print_memory_size();
-
 		/*unlock*/
 		gf_mx_v(gpac_allocations_lock);
+
+		i=0;
+		while (1) {
+			const char *n = enum_open_handles(&i);
+			if (!n) break;
+			gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] File %s was not closed\n", n);
+		}
 	}
 }
 
 #endif /*GPAC_MEMORY_TRACKING*/
 
+#if 0 //unused
 
 /*gf_asprintf(): as_printf portable implementation*/
 #if defined(WIN32) || defined(_WIN32_WCE) || (defined (__SVR4) && defined (__sun))
@@ -919,6 +927,7 @@ static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 }
 #endif
 
+GF_EXPORT
 int gf_asprintf(char **strp, const char *fmt, ...)
 {
 	s32 size;
@@ -932,3 +941,5 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 	va_end(args);
 	return size;
 }
+
+#endif //unused

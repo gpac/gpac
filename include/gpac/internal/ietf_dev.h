@@ -30,8 +30,6 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 
-#include <gpac/thread.h>
-
 /*
 			RTP intern
 */
@@ -83,7 +81,7 @@ void gf_rtp_reorderer_reset(GF_RTPReorder *po);
 /*Adds a packet to the queue. Packet Data is memcopied*/
 GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u32 pck_seqnum);
 /*gets the output of the queue. Packet Data IS YOURS to delete*/
-void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size);
+void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush);
 
 
 /*the RTP channel with both RTP and RTCP sockets and buffers
@@ -127,7 +125,7 @@ struct __tag_rtp_channel
 	u32 TimeScale;
 
 	/*static buffer for RTP sending*/
-	char *send_buffer;
+	u8 *send_buffer;
 	u32 send_buffer_size;
 	u32 pck_sent_since_last_sr;
 	u32 last_pck_ts;
@@ -163,6 +161,12 @@ struct __tag_rtp_channel
 	u32 last_SR_rtp_time;
 	/*payload info*/
 	u32 total_pck, total_bytes;
+
+	GF_BitStream *bs_r, *bs_w;
+	Bool no_select;
+
+	gf_rtp_tcp_callback send_interleave;
+	void *interleave_cbk1, *interleave_cbk2;
 };
 
 /*gets UTC in the channel RTP timescale*/
@@ -185,7 +189,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 
 #define RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str)		\
 	if (strlen((const char *) str)+pos >= buf_size) {	\
-		buf_size += RTSP_WRITE_STEPALLOC;	\
+		buf_size += (u32) strlen((const char *) str);	\
 		buf = (char *) gf_realloc(buf, buf_size);		\
 	}	\
 	strcpy(buf+pos, (const char *) str);		\
@@ -204,25 +208,33 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");	\
 	}	\
  
-#define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)		\
+#define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)	{	\
+	char temp[50]; \
 	if (sig < 0) { \
 		sprintf(temp, "%d", d);		\
 	} else { \
 		sprintf(temp, "%d", d);		\
 	}	\
-	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
+	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp); \
+	}
 
-#define RTSP_WRITE_FLOAT_WITHOUT_CHECK(buf, buf_size, pos, d)		\
+#define RTSP_WRITE_HEX(buf, buf_size, pos, d, sig)	{	\
+	char temp[50]; \
+	sprintf(temp, "%X", d);		\
+	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);\
+	}
+
+#define RTSP_WRITE_FLOAT_WITHOUT_CHECK(buf, buf_size, pos, d) {		\
+	char temp[50]; \
 	sprintf(temp, "%.4f", d);		\
-	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);
+	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp);\
+	}
 
-#define RTSP_WRITE_FLOAT(buf, buf_size, pos, d)		\
+#define RTSP_WRITE_FLOAT(buf, buf_size, pos, d)	{	\
+	char temp[50]; \
 	sprintf(temp, "%.4f", d);		\
-	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, temp);
-
-/*default packet size, but resize on the fly if needed*/
-#define RTSP_PCK_SIZE			6000
-#define RTSP_TCP_BUF_SIZE		0x10000ul
+	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, temp); \
+	}
 
 
 typedef struct
@@ -273,23 +285,20 @@ struct _tag_rtsp_session
 	char RTSPLastRequest[40];
 
 	/*current buffer from TCP if any*/
-	char TCPBuffer[RTSP_TCP_BUF_SIZE];
+	u8 *tcp_buffer;
 	u32 CurrentSize, CurrentPos;
 
 	/*RTSP interleaving*/
-	GF_Err (*RTSP_SignalData)(GF_RTSPSession *sess, void *chan, char *buffer, u32 bufferSize, Bool IsRTCP);
+	GF_Err (*RTSP_SignalData)(GF_RTSPSession *sess, void *chan, u8 *buffer, u32 bufferSize, Bool IsRTCP);
 
 	/*buffer for pck reconstruction*/
-	char *rtsp_pck_buf;
+	u8 *rtsp_pck_buf;
 	u32 rtsp_pck_size;
 	u32 pck_start, payloadSize;
 
 	/*all RTP channels in an interleaved RTP on RTSP session*/
 	GF_List *TCPChannels;
-	/*thread-safe, full duplex library for PLAY and RECORD*/
-	GF_Mutex *mx;
-
-	char *MobileIP;
+	Bool interleaved;
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
@@ -297,7 +306,7 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
 /*check connection status*/
 GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess);
 /*send data on RTSP*/
-GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, char *buffer, u32 Size);
+GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, u8 *buffer, u32 Size);
 
 /*
 			Common RTSP tools
@@ -312,9 +321,9 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess);
 /*force a fill on TCP buffer - used for de-interleaving and TCP-fragmented RTSP messages*/
 GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess);
 /*parses a transport string and returns a transport structure*/
-GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer);
+GF_RTSPTransport *gf_rtsp_transport_parse(u8 *buffer);
 /*parsing of header for com and rsp*/
-GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp);
+GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp);
 void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value);
 void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value);
 /*deinterleave a data packet*/
@@ -323,22 +332,180 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess);
 GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent);
 
 
+
+
+
+/*
+		RTP -> SL packetization tool
+	You should ONLY modify the GF_SLHeader while packetizing, all the rest is private
+	to the tool.
+	Also note that AU start/end is automatically updated, therefore you should only
+	set CTS-DTS-OCR-sequenceNumber (which is automatically incremented when splitting a payload)
+	-padding-idle infos
+	SL flags are computed on the fly, but you may wish to modify them in case of
+	packet drop/... at the encoder side
+
+*/
+struct __tag_rtp_packetizer
+{
+	/*input packet sl header cfg. modify only if needed*/
+	GF_SLHeader sl_header;
+	u32 nb_aus;
+	/*
+
+		PRIVATE _ DO NOT TOUCH
+	*/
+
+//! @cond Doxygen_Suppress
+
+	/*RTP payload type (RFC type, NOT the RTP hdr payT)*/
+	u32 rtp_payt;
+	/*packetization flags*/
+	u32 flags;
+	/*Path MTU size without 12-bytes RTP header*/
+	u32 Path_MTU;
+	/*max packet duration in RTP TS*/
+	u32 max_ptime;
+
+	/*payload type of RTP packets - only one payload type can be used in GPAC*/
+	u8 PayloadType;
+
+	/*RTP header of current packet*/
+	GF_RTPHeader rtp_header;
+
+	/*RTP packet handling callbacks*/
+	void (*OnNewPacket)(void *cbk_obj, GF_RTPHeader *header);
+	void (*OnPacketDone)(void *cbk_obj, GF_RTPHeader *header);
+	void (*OnDataReference)(void *cbk_obj, u32 payload_size, u32 offset_from_orig);
+	void (*OnData)(void *cbk_obj, u8 *data, u32 data_size, Bool is_header);
+	void *cbk_obj;
+
+	/*********************************
+		MPEG-4 Generic hinting
+	*********************************/
+
+	/*SL to RTP map*/
+	GP_RTPSLMap slMap;
+	/*SL conf and state*/
+	GF_SLConfig sl_config;
+
+	/*set to 1 if firstSL in RTP packet*/
+	Bool first_sl_in_rtp;
+	Bool has_AU_header;
+	/*current info writers*/
+	GF_BitStream *pck_hdr, *payload;
+
+	/*AU SN of last au*/
+	u32 last_au_sn;
+
+	/*info for the current packet*/
+	u32 auh_size, bytesInPacket;
+
+	/*********************************
+			ISMACryp info
+	*********************************/
+	Bool force_flush, is_encrypted;
+	u64 IV, first_AU_IV;
+	char *key_indicator;
+
+	/*********************************
+			AVC-H264 info
+	*********************************/
+	/*AVC non-IDR flag: set if all NAL in current packet are non-IDR (disposable)*/
+	Bool avc_non_idr;
+
+	/*********************************
+			AC3 info
+	*********************************/
+	/*ac3 ft flags*/
+	u8 ac3_ft;
+
+	/*********************************
+			HEVC-H265 info
+	*********************************/
+	/*HEVC Payload Header. It will be use in case of Aggreation Packet where we must add payload header for packet after having added of NALU to AP*/
+	char hevc_payload_hdr[2];
+
+//! @endcond
+
+};
+
 /*packetization routines*/
-GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 #ifndef GPAC_DISABLE_AV_PARSERS
-GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 #endif
-GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
-GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
-GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
-GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
+GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
+GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_mp2t(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+
+/*! RTP depacketization tool*/
+struct __tag_rtp_depacketizer
+{
+	/*! depacketize routine*/
+	void (*depacketize)(struct __tag_rtp_depacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size);
+
+	/*! output packet sl header cfg*/
+	GF_SLHeader sl_hdr;
+
+	/*! RTP payload type (RFC type, NOT the RTP hdr payT)*/
+	u32 payt;
+	/*! depacketization flags*/
+	u32 flags;
+
+	//! RTP static map may be NULL
+	const GF_RTPStaticMap *static_map;
+
+	/*! callback routine*/
+	gf_rtp_packet_cbk on_sl_packet;
+	/*! callback udta*/
+	void *udta;
+
+	/*! SL <-> RTP map*/
+	GP_RTPSLMap sl_map;
+	/*! RTP clock rate*/
+	u32 clock_rate;
+
+	//! clip rect X
+	u32 x;
+	//! clip rect Y
+	u32 y;
+	//! clip rect or full size width
+	u32 w;
+	//! clip rect or full size height
+	u32 h;
+
+	/*! inter-packet reconstruction bitstream (for 3GP text and H264)*/
+	GF_BitStream *inter_bs;
+
+	/*! H264/AVC config*/
+	u32 h264_pck_mode;
+
+	/*3GP text reassembler state*/
+	/*! number of 3GPP text fragments*/
+	u8 nb_txt_frag;
+	/*! current 3GPP text fragments*/
+	u8 cur_txt_frag;
+	/*! current 3GPP text sample desc index*/
+	u8 sidx;
+	/*! 3GPP text total sample text len*/
+	u8 txt_len;
+	/*! number of 3GPP text modifiers*/
+	u8 nb_mod_frag;
+
+	/*! ISMACryp scheme*/
+	u32 isma_scheme;
+	/*! ISMACryp key*/
+	char *key;
+};
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

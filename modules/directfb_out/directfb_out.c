@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Romain Bouqueau - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2012
+ *			Copyright (c) Telecom ParisTech 2010-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectFB video output module
@@ -33,51 +33,6 @@
 #define DirectFBVID() DirectFBVidCtx *ctx = (DirectFBVidCtx *)driv->opaque
 
 /**
- *	function DirectFBVid_DrawHLine
- *	- using hardware accelerator to a draw horizontal line
- **/
-static void DirectFBVid_DrawHLine(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color)
-{
-	u8 r = GF_COL_R(color);
-	u8 g = GF_COL_G(color);
-	u8 b = GF_COL_B(color);
-	DirectFBVID();
-
-	DirectFBVid_DrawHLineWrapper(ctx, x, y, length, r, g, b);
-}
-
-
-/**
- *	function DirectFBVid_DrawHLineAlpha
- *	- using hardware accelerator to draw a horizontal line with alpha
- **/
-static void DirectFBVid_DrawHLineAlpha(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color, u8 alpha)
-{
-	u8 r = GF_COL_R(color);
-	u8 g = GF_COL_G(color);
-	u8 b = GF_COL_B(color);
-	DirectFBVID();
-
-	DirectFBVid_DrawHLineAlphaWrapper(ctx, x, y, length, r, g, b, alpha);
-}
-
-
-/**
- *	function DirectFBVid_DrawRectangle
- *	- using hardware accelerator to fill a rectangle
- **/
-static void DirectFBVid_DrawRectangle(GF_VideoOutput *driv, u32 x, u32 y, u32 width, u32 height, GF_Color color)
-{
-	u8 r = GF_COL_R(color);
-	u8 g = GF_COL_G(color);
-	u8 b = GF_COL_B(color);
-	u8 a = GF_COL_A(color);
-	DirectFBVID();
-
-	DirectFBVid_DrawRectangleWrapper(ctx, x, y, width, height, r, g, b, a);
-}
-
-/**
  *	function DirectFBVid_Setup
  * 	- DirectFB setup
  **/
@@ -93,59 +48,47 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 	// check window mode used - SDL or X11
 	{
 		WINDOW_MODE window_mode = 0;
-		opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "WindowMode");
-		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "WindowMode", "X11");
+		opt = gf_opts_get_key("DirectFB", "WindowMode");
+		if (!opt) gf_opts_set_key("DirectFB", "WindowMode", "X11");
 		if (!opt || !strcmp(opt, "X11")) window_mode = WINDOW_X11;
-		else if (opt && !strcmp(opt, "SDL")) window_mode = WINDOW_SDL;
+		else if (!strcmp(opt, "SDL")) window_mode = WINDOW_SDL;
 		DirectFBVid_InitAndCreateSurface(ctx, window_mode);
 	}
 
 	// check hardware accelerator configuration
 	DirectFBVid_CtxSetDisableAcceleration(ctx, 0);
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableAcceleration");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "DisableAcceleration", "no");
+	opt = gf_opts_get_key("DirectFB", "DisableAcceleration");
+	if (!opt) gf_opts_set_key("DirectFB", "DisableAcceleration", "no");
 	if (opt && !strcmp(opt, "yes")) DirectFBVid_CtxSetDisableAcceleration(ctx, 1);
 
 	// check for display configuration
 	DirectFBVid_CtxSetDisableDisplay(ctx, 0);
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableDisplay");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "DisableDisplay", "no");
+	opt = gf_opts_get_key("DirectFB", "DisableDisplay");
+	if (!opt) gf_opts_set_key("DirectFB", "DisableDisplay", "no");
 	if (opt && !strcmp(opt, "yes")) DirectFBVid_CtxSetDisableDisplay(ctx, 1);
 
 	// set flip mode
 	{
 		FLIP_MODE flip_mode = 0;
-		opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "FlipSyncMode");
-		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "FlipSyncMode", "waitsync");
+		opt = gf_opts_get_key("DirectFB", "FlipSyncMode");
+		if (!opt) gf_opts_set_key("DirectFB", "FlipSyncMode", "waitsync");
 		if (!opt || !strcmp(opt, "waitsync")) flip_mode |= FLIP_WAITFORSYNC;
-		else if (opt && !strcmp(opt, "wait")) flip_mode |= FLIP_WAIT;
-		else if (opt && !strcmp(opt, "sync")) flip_mode |= FLIP_ONSYNC;
-		else if (opt && !strcmp(opt, "swap")) flip_mode |= FLIP_SWAP;
+		else if (!strcmp(opt, "wait")) flip_mode |= FLIP_WAIT;
+		else if (!strcmp(opt, "sync")) flip_mode |= FLIP_ONSYNC;
+		else if (!strcmp(opt, "swap")) flip_mode |= FLIP_SWAP;
 
 		DirectFBVid_CtxSetFlipMode(ctx, flip_mode);
 	}
 
 	// enable/disable blit
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableBlit");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "DirectFB", "DisableBlit", "no");
+	opt = gf_opts_get_key("DirectFB", "DisableBlit");
+	if (!opt) gf_opts_set_key("DirectFB", "DisableBlit", "no");
 	if (opt && !strcmp(opt, "all")) {
 		driv->hw_caps &= ~(GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV);
 	}
 	else if (opt && !strcmp(opt, "yuv")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
 	else if (opt && !strcmp(opt, "rgb")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGB;
 	else if (opt && !strcmp(opt, "rgba")) driv->hw_caps &= ~GF_VIDEO_HW_HAS_RGBA;
-
-	if (!DirectFBVid_CtxGetDisableAcceleration(ctx)) {
-		// check for functions that are hardware accelerated
-		DirectFBVid_CtxPrimaryProcessGetAccelerationMask(ctx);
-
-		driv->hw_caps |= GF_VIDEO_HW_HAS_LINE_BLIT;
-		driv->DrawHLine = DirectFBVid_DrawHLine;
-		driv->DrawHLineAlpha = DirectFBVid_DrawHLineAlpha;
-		driv->DrawRectangle = DirectFBVid_DrawRectangle;
-
-		//GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DirectFB] hardware acceleration mask %08x - Line: %d Rectangle: %d\n", mask, ctx->accel_drawline, ctx->accel_fillrect));
-	}
 
 	// end of initialization
 	DirectFBVid_CtxSetIsInit(ctx, 1);
@@ -244,7 +187,7 @@ static GF_Err DirectFBVid_ProcessEvent(GF_VideoOutput *driv, GF_Event *evt)
 		return GF_OK;
 
 	case GF_EVENT_VIDEO_SETUP:
-		if (evt->setup.opengl_mode) return GF_NOT_SUPPORTED;
+		if (evt->setup.use_opengl) return GF_NOT_SUPPORTED;
 
 		if ((DirectFBVid_CtxGetWidth(ctx) !=evt->setup.width) || (DirectFBVid_CtxGetHeight(ctx) != evt->setup.height)) {
 			GF_Event gpac_evt;

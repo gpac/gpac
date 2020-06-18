@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -29,28 +29,42 @@
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 #define DDBACK		DDSurface *pBack = (DDSurface *) gf_list_get(dd->surfaces, 0);
 
+enum
+{
+	GF_PIXEL_IYUV = GF_4CC('I', 'Y', 'U', 'V'),
+	GF_PIXEL_I420 = GF_4CC('I', '4', '2', '0'),
+	/*!YUV packed format*/
+	GF_PIXEL_UYNV = GF_4CC('U', 'Y', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_YUNV = GF_4CC('Y', 'U', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_V422 = GF_4CC('V', '4', '2', '2'),
+
+	GF_PIXEL_YV12 = GF_4CC('Y', 'V', '1', '2'),
+	GF_PIXEL_Y422 = GF_4CC('Y', '4', '2', '2'),
+	GF_PIXEL_YUY2 = GF_4CC('Y', 'U', 'Y', '2'),
+};
 
 
 
 static Bool pixelformat_yuv(u32 pixel_format)
 {
 	switch (pixel_format) {
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
-	case GF_PIXEL_Y422:
 	case GF_PIXEL_UYNV:
 	case GF_PIXEL_YUNV:
 	case GF_PIXEL_V422:
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
-	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -61,7 +75,7 @@ static Bool pixelformat_yuv(u32 pixel_format)
 static u32 get_win_4CC(u32 pixel_format)
 {
 	switch (pixel_format) {
-	case GF_PIXEL_YUY2:
+	case GF_PIXEL_YUYV:
 		return mmioFOURCC('Y', 'U', 'Y', '2');
 	case GF_PIXEL_YVYU:
 		return mmioFOURCC('Y', 'V', 'Y', 'U');
@@ -69,7 +83,7 @@ static u32 get_win_4CC(u32 pixel_format)
 		return mmioFOURCC('U', 'Y', 'V', 'Y');
 	case GF_PIXEL_VYUY:
 		return mmioFOURCC('V', 'Y', 'U', 'Y');
-	case GF_PIXEL_Y422:
+	case GF_PIXEL_YUV422:
 		return mmioFOURCC('Y', '4', '2', '2');
 	case GF_PIXEL_UYNV:
 		return mmioFOURCC('U', 'Y', 'N', 'V');
@@ -77,13 +91,13 @@ static u32 get_win_4CC(u32 pixel_format)
 		return mmioFOURCC('Y', 'U', 'N', 'V');
 	case GF_PIXEL_V422:
 		return mmioFOURCC('V', '4', '2', '2');
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
 		return mmioFOURCC('Y', 'V', '1', '2');
 	case GF_PIXEL_IYUV:
 		return mmioFOURCC('I', 'Y', 'U', 'V');
 	case GF_PIXEL_I420:
 		return mmioFOURCC('I', '4', '2', '0');
-	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV_10:
 		return mmioFOURCC('P', '0', '1', '0');
 	case GF_PIXEL_YUV444:
 		return mmioFOURCC('Y', '4', '4', '4');
@@ -91,12 +105,15 @@ static u32 get_win_4CC(u32 pixel_format)
 		return mmioFOURCC('Y', '4', '1', '0');
 	case GF_PIXEL_YUV422_10:
 		return mmioFOURCC('Y', '2', '1', '0');
-	case GF_PIXEL_YUV422:
-		return mmioFOURCC('Y', '4', '4', '2');
 	default:
 		return 0;
 	}
 }
+
+/*!\hideinitializer transfoms a 32-bits color into a 16-bits one.\note alpha component is lost*/
+#define GF_COL_TO_565(c) (((GF_COL_R(c) & 248)<<8) + ((GF_COL_G(c) & 252)<<3)  + (GF_COL_B(c)>>3))
+/*!\hideinitializer transfoms a 32-bits color into a 15-bits one.\note alpha component is lost*/
+#define GF_COL_TO_555(c) (((GF_COL_R(c) & 248)<<7) + ((GF_COL_G(c) & 248)<<2)  + (GF_COL_B(c)>>3))
 
 static GF_Err DD_ClearBackBuffer(GF_VideoOutput *dr, u32 color)
 {
@@ -137,13 +154,13 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 
 	DDCONTEXT;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
+	opt = gf_opts_get_key("core", "hwvmem");
 	if (opt) {
 		if (use_system_memory) {
-			if (!strcmp(opt, "Always")) use_system_memory = GF_FALSE;
+			if (!strcmp(opt, "always")) use_system_memory = GF_FALSE;
 		} else {
-			if (!strcmp(opt, "Never")) use_system_memory = GF_TRUE;
-			else if (!strcmp(opt, "Auto")) dd->force_video_mem_for_yuv = GF_TRUE;
+			if (!strcmp(opt, "never")) use_system_memory = GF_TRUE;
+			else if (!strcmp(opt, "auto")) dd->force_video_mem_for_yuv = GF_TRUE;
 		}
 	}
 
@@ -279,16 +296,16 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 		break;
 	case 24:
 		if ((pixelFmt.dwRBitMask == 0x0000FF) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0xFF0000))
-			dd->pixelFormat = GF_PIXEL_BGR_24;
+			dd->pixelFormat = GF_PIXEL_BGR;
 		else if ((pixelFmt.dwRBitMask == 0xFF0000) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0x0000FF))
-			dd->pixelFormat = GF_PIXEL_RGB_24;
+			dd->pixelFormat = GF_PIXEL_RGB;
 		dd->video_bpp = 24;
 		break;
 	case 32:
 		if ((pixelFmt.dwRBitMask == 0x0000FF) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0xFF0000)) {
-			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGR_32;
+			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGRX;
 		} else if ((pixelFmt.dwRBitMask == 0xFF0000) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0x0000FF)) {
-			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGB_32;
+			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGBX;
 		}
 		dd->video_bpp = 32;
 		break;
@@ -563,7 +580,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	}
 	/*get RGB or YUV pool surface*/
 	//if (video_src->pixel_format==GF_PIXEL_YUVD) return GF_NOT_SUPPORTED;
-	if (video_src->pixel_format==GF_PIXEL_YUVD) video_src->pixel_format=GF_PIXEL_YV12;
+	if (video_src->pixel_format==GF_PIXEL_YUVD) video_src->pixel_format = GF_PIXEL_YUV;
 	pool = DD_GetSurface(dr, w, h, video_src->pixel_format, GF_FALSE);
 	if (!pool)
 		return GF_IO_ERR;
@@ -574,9 +591,9 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	if (e) return e;
 
 	/*copy pixels to pool*/
-	dx_copy_pixels(&temp_surf, video_src, src_wnd);
+	e = gf_stretch_bits(&temp_surf, video_src, NULL, src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 
-	e = DD_UnlockSurface(dd, pool->pSurface);
+	DD_UnlockSurface(dd, pool->pSurface);
 	if (e) return e;
 
 	if (overlay_type) {
@@ -595,9 +612,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 		dst.y = pt.y;
 		MAKERECT(dst_rc, (&dst));
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] Blit surface to dest %d x %d - overlay type %s\n", dst.w, dst.h,
-		                                   (overlay_type==0)? "none" : ((overlay_type==1) ? "Top-Level" : "ColorKey")
-		                                  ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] Blit surface to dest %d x %d - overlay type %s\n", dst.w, dst.h, (overlay_type==1) ? "Top-Level" : "ColorKey" ));
 
 #if 1
 		if (overlay_type==1) {
@@ -642,16 +657,15 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 }
 
 
-
 static GFINLINE u32 is_yuv_supported(u32 win_4cc)
 {
-	if (win_4cc==get_win_4CC(GF_PIXEL_YV12)) return GF_PIXEL_YV12;
+	if (win_4cc==get_win_4CC(GF_PIXEL_YV12)) return GF_PIXEL_YUV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_I420)) return GF_PIXEL_I420;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_IYUV)) return GF_PIXEL_IYUV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_UYVY)) return GF_PIXEL_UYVY;
-	else if (win_4cc==get_win_4CC(GF_PIXEL_Y422)) return GF_PIXEL_Y422;
+	else if (win_4cc==get_win_4CC(GF_PIXEL_Y422)) return GF_PIXEL_YUV422;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_UYNV)) return GF_PIXEL_UYNV;
-	else if (win_4cc==get_win_4CC(GF_PIXEL_YUY2)) return GF_PIXEL_YUY2;
+	else if (win_4cc==get_win_4CC(GF_PIXEL_YUY2)) return GF_PIXEL_YUYV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_YUNV)) return GF_PIXEL_YUNV;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_V422)) return GF_PIXEL_V422;
 	else if (win_4cc==get_win_4CC(GF_PIXEL_YVYU)) return GF_PIXEL_YVYU;
@@ -661,9 +675,14 @@ static GFINLINE u32 is_yuv_supported(u32 win_4cc)
 static GFINLINE Bool is_yuv_planar(u32 format)
 {
 	switch  (format) {
-	case GF_PIXEL_YV12:
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_IYUV:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUV444_10:
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -691,13 +710,13 @@ void DD_InitYUV(GF_VideoOutput *dr)
 	h = 576;
 
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "PreferedYUV4CC");
+	opt = gf_opts_get_key("core", "pref-yuv4cc");
 	if (opt) {
 		char a, b, c, d;
 		if (sscanf(opt, "%c%c%c%c", &a, &b, &c, &d)==4) {
 			dr->yuv_pixel_format = GF_4CC(a, b, c, d);
 			dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
-			opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HasOverlay");
+			opt = gf_opts_get_key("core", "yuv-overlay");
 			if (opt && !strcmp(opt, "yes"))
 				dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
 			dd->yuv_init = GF_TRUE;
@@ -737,11 +756,9 @@ void DD_InitYUV(GF_VideoOutput *dr)
 			/*then check packed */
 			if (checkPacked && is_yuv_planar(formats[i])) goto go_on;
 
-			if (dd->yuv_pool.pSurface) {
-				SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
-				memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-				dd->yuv_pool.is_yuv = GF_TRUE;
-			}
+			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+			dd->yuv_pool.is_yuv = GF_TRUE;
 
 			dr->yuv_pixel_format = formats[i];
 			if (DD_GetSurface(dr, w, h, dr->yuv_pixel_format, GF_TRUE) == NULL)
@@ -754,7 +771,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 					goto rem_fmt;
 			}
 			now = gf_sys_clock() - now;
-			if (formats[i]== GF_PIXEL_YV12)
+			if (formats[i]== GF_PIXEL_YUV)
 				force_yv12 = GF_TRUE;
 
 			if (!checkPacked) {
@@ -784,11 +801,9 @@ rem_fmt:
 			num_yuv--;
 		}
 
-		if (dd->yuv_pool.pSurface) {
-			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
-			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-			dd->yuv_pool.is_yuv = GF_TRUE;
-		}
+		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+		dd->yuv_pool.is_yuv = GF_TRUE;
 
 		if (best_planar && (min_planar <= min_packed )) {
 			dr->yuv_pixel_format = best_planar;
@@ -797,16 +812,16 @@ rem_fmt:
 			dr->yuv_pixel_format = best_packed;
 		}
 		if (force_yv12)
-			dr->yuv_pixel_format = GF_PIXEL_YV12;
+			dr->yuv_pixel_format = GF_PIXEL_YUV;
 
 		/*store our options*/
 		sprintf(szOpt, "%c%c%c%c", (dr->yuv_pixel_format>>24) & 0xFF, (dr->yuv_pixel_format>>16) & 0xFF, (dr->yuv_pixel_format>>8) & 0xFF, (dr->yuv_pixel_format) & 0xFF);
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "PreferedYUV4CC", szOpt);
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "HasOverlay", (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) ? "yes" : "no");
+		gf_opts_set_key("core", "pref-yuv4cc", szOpt);
+		gf_opts_set_key("core", "yuv-overlay", (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) ? "yes" : "no");
 	}
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
-	if (opt && !strcmp(opt, "Never")) num_yuv = 0;
+	opt = gf_opts_get_key("core", "hwvmem");
+	if (opt && !strcmp(opt, "never")) num_yuv = 0;
 
 	/*too bad*/
 	if (!num_yuv) {
@@ -819,21 +834,21 @@ rem_fmt:
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 
 	/*enable YUV->RGB on the backbuffer ?*/
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV");
+	opt = gf_opts_get_key("core", "offscreen-yuv");
 	/*no set is the default*/
 	if (!opt) {
 		opt = "yes";
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV", "yes");
+		gf_opts_set_key("core", "offscreen-yuv", "yes");
 	}
 	if (opt && strcmp(opt, "yes")) dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
 	else dd->offscreen_yuv_to_rgb = GF_TRUE;
 
 	/*get YUV overlay key*/
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey");
+	opt = gf_opts_get_key("core", "overlay-color-key");
 	/*no set is the default*/
 	if (!opt) {
 		opt = "0101FE";
-		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey", "0101FE");
+		gf_opts_set_key("core", "overlay-color-key", "0101FE");
 	}
 	sscanf(opt, "%06x", &dr->overlay_color_key);
 	if (dr->overlay_color_key) dr->overlay_color_key |= 0xFF000000;
@@ -848,7 +863,7 @@ GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_
 	GF_Err e;
 	DDCONTEXT;
 #ifndef GPAC_DISABLE_3D
-	if (dd->output_3d_type) return GF_BAD_PARAM;
+	if (dd->output_3d) return GF_BAD_PARAM;
 #endif
 	if (!dd->ddraw_init) {
 		e = InitDirectDraw(dr, width, height);

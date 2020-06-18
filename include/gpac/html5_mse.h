@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2013-
+ *			Copyright (c) Telecom ParisTech 2013-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / HTML Media Source header
@@ -33,23 +33,24 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/html5_mse.h>
- *	\brief Scene graph extensions for Media Source Extensions.
+\file <gpac/html5_mse.h>
+\brief Scene graph extensions for Media Source Extensions.
  */
 	
 /*!
- *  \addtogroup html5mse_grp HTML5 MSE
- *	\ingroup html5_grp
- *	\brief Scene graph extensions for HTML5 media source extensions.
- *
- *This section documents the scene graph extensions used for HTML5 media source extensions.
- *	@{
- */
+\addtogroup html5mse_grp HTML5 MSE
+\ingroup html5_grp
+\brief Scene graph extensions for HTML5 media source extensions.
+
+This section documents the scene graph extensions used for HTML5 media source extensions.
+@{
+*/
 
 #include <gpac/setup.h>
 
 #include <gpac/html5_media.h>
-#include <gpac/internal/smjs_api.h>
+
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 
 typedef enum
 {
@@ -121,7 +122,7 @@ typedef struct
 	void                    *prev_buffer;
 
 	/* Media parser */
-	GF_InputService         *parser;
+	void         *parser;
 
 	/* MPEG-4 Object descriptor as returned by the media parser */
 	GF_ObjectDescriptor     *service_desc;
@@ -187,7 +188,7 @@ typedef struct _html_mediasource
 	   should be NULL when the MediaSource is not open
 	   we use only one service object for all sourceBuffers
 	   */
-	GF_ClientService *service;
+	void *service;
 
 	/* SceneGraph to be used before the node is actually attached */
 	GF_SceneGraph *sg;
@@ -229,7 +230,7 @@ typedef struct
 	GF_Err      status;
 } GF_MSE_Packet;
 
-GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command);
+GF_Err gf_mse_proxy(void *parser, void *command);
 void gf_mse_packet_del(GF_MSE_Packet *packet);
 
 GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
@@ -237,6 +238,8 @@ GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
         GF_SLHeader *out_sl_hdr, Bool *sl_compressed,
         GF_Err *out_reception_status, Bool *is_new_data);
 GF_Err gf_mse_track_buffer_release_packet(GF_HTML_Track *track);
+
+#endif //GPAC_ENABLE_HTML5_MEDIA
 
 /*! @} */
 

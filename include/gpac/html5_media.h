@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2013-
+ *			Copyright (c) Telecom ParisTech 2013-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / HTML Media Element header
@@ -33,22 +33,24 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/html5_media.h>
- *	\brief Scene graph extensions for HTML5 media.
+\file <gpac/html5_media.h>
+\brief Scene graph extensions for HTML5 media.
  */
 	
-/*! \defgroup html5_grp HTML5
- *	\ingroup scene_grp
- *	\brief HTML5 extensions of the scene graph.
- *	
-*/
 /*!
- *  \addtogroup html5media_grp HTML5 media
- *	\ingroup html5_grp
- *	\brief Scene graph extensions for HTML5 media.
- *
- *This section documents the scene graph extensions used for HTML5 media (video).
- *	@{
+\defgroup html5_grp HTML5
+\ingroup scene_grp
+\brief HTML5 extensions of the scene graph.
+*/
+
+/*!
+\addtogroup html5media_grp HTML5 media
+\ingroup html5_grp
+\brief Scene graph extensions for HTML5 media.
+
+This section documents the scene graph extensions used for HTML5 media (video).
+
+@{
  */
 
 #include <gpac/internal/scenegraph_dev.h>
@@ -62,52 +64,49 @@ extern "C" {
 
 #include <gpac/download.h>
 #include <gpac/network.h>
-#include <gpac/modules/service.h>
 #include <gpac/xml.h>
-#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-#include <gpac/internal/smjs_api.h>
-#endif
+#ifdef GPAC_ENABLE_HTML5_MEDIA
 
 typedef struct
 {
 	u32 nb_inst;
 	/* Basic classes */
-	GF_JSClass  arrayBufferClass;
+	JSClassDef  arrayBufferClass;
 
 	/*HTML Media classes*/
-	GF_JSClass  htmlVideoElementClass;
-	GF_JSClass  htmlAudioElementClass;
-	GF_JSClass  htmlSourceElementClass;
-	GF_JSClass  htmlTrackElementClass;
-	GF_JSClass  htmlMediaElementClass;
-	GF_JSClass  mediaControllerClass;
-	GF_JSClass  audioTrackListClass;
-	GF_JSClass  audioTrackClass;
-	GF_JSClass  videoTrackListClass;
-	GF_JSClass  videoTrackClass;
-	GF_JSClass  textTrackListClass;
-	GF_JSClass  textTrackClass;
-	GF_JSClass  textTrackCueListClass;
-	GF_JSClass  textTrackCueClass;
-	GF_JSClass  timeRangesClass;
-	GF_JSClass  trackEventClass;
-	GF_JSClass  mediaErrorClass;
+	JSClassDef  htmlVideoElementClass;
+	JSClassDef  htmlAudioElementClass;
+	JSClassDef  htmlSourceElementClass;
+	JSClassDef  htmlTrackElementClass;
+	JSClassDef  htmlMediaElementClass;
+	JSClassDef  mediaControllerClass;
+	JSClassDef  audioTrackListClass;
+	JSClassDef  audioTrackClass;
+	JSClassDef  videoTrackListClass;
+	JSClassDef  videoTrackClass;
+	JSClassDef  textTrackListClass;
+	JSClassDef  textTrackClass;
+	JSClassDef  textTrackCueListClass;
+	JSClassDef  textTrackCueClass;
+	JSClassDef  timeRangesClass;
+	JSClassDef  trackEventClass;
+	JSClassDef  mediaErrorClass;
 
 	/* Media Source Extensions */
-	GF_JSClass  mediaSourceClass;
-	GF_JSClass  sourceBufferClass;
-	GF_JSClass  sourceBufferListClass;
-	GF_JSClass  URLClass;
+	JSClassDef  mediaSourceClass;
+	JSClassDef  sourceBufferClass;
+	JSClassDef  sourceBufferListClass;
+	JSClassDef  URLClass;
 
 	/* Media Capture */
-	GF_JSClass  mediaStreamClass;
-	GF_JSClass  localMediaStreamClass;
-	GF_JSClass  mediaStreamTrackClass;
-	GF_JSClass  mediaStreamTrackListClass;
-	GF_JSClass  navigatorUserMediaClass;
-	GF_JSClass  navigatorUserMediaErrorClass;
+	JSClassDef  mediaStreamClass;
+	JSClassDef  localMediaStreamClass;
+	JSClassDef  mediaStreamTrackClass;
+	JSClassDef  mediaStreamTrackListClass;
+	JSClassDef  navigatorUserMediaClass;
+	JSClassDef  navigatorUserMediaErrorClass;
 } GF_HTML_MediaRuntime;
 
 /************************************************************
@@ -177,7 +176,7 @@ typedef enum {
     JSObject                *_this;\
     /* GPAC-specific properties */\
     u32                     bin_id;    /* track id */\
-    LPNETCHANNEL            channel;   /* channel object used by the terminal */\
+    void *            channel;   /* channel object used by the terminal */\
     GF_ObjectDescriptor     *od;       /* MPEG-4 Object descriptor for this track */\
     GF_List                 *buffer;   /* List of MSE Packets */\
     u32						packet_index;   /* index of MSE Packets*/\
@@ -322,7 +321,7 @@ typedef struct
 	u32     length;
 	char    *url;
 	Bool	is_init;
-
+	GF_Blob blob;
 	/* used to do proper garbage collection between JS and Terminal */
 	u32     reference_count;
 } GF_HTML_ArrayBuffer;
@@ -372,9 +371,12 @@ void gf_html_media_controller_del(GF_HTML_MediaController *mc);
 /*
  * HTML5 Array Buffer
  */
-GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length);
-JSObject *gf_arraybuffer_js_new(JSContext *c, char *data, u32 length, JSObject *parent);
+GF_HTML_ArrayBuffer *gf_arraybuffer_new(u8 *data, u32 length);
+JSObject *gf_arraybuffer_js_new(JSContext *c, u8 *data, u32 length, JSObject *parent);
 void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js);
+
+
+#endif //GPAC_ENABLE_HTML5_MEDIA
 
 /*! @} */
 

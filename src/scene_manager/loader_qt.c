@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -34,14 +34,14 @@
 
 
 
-static GF_Err gf_qt_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
+static GF_Err gf_qtvr_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
+	if (format && gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
 		char szMsg[1024];
 		va_list args;
 		va_start(args, format);
-		vsprintf(szMsg, format, args);
+		vsnprintf(szMsg, 1024, format, args);
 		va_end(args);
 		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[QT Parsing] %s\n", szMsg) );
 	}
@@ -65,13 +65,11 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	M_Group *gr;
 	GF_ODUpdate *odU;
 	GF_SceneGraph *sg;
-	GF_ObjectDescriptor *od;
-	GF_ESD *esd;
 
 	if (!load->ctx) return GF_NOT_SUPPORTED;
 
 	src = gf_isom_open(load->fileName, GF_ISOM_OPEN_READ, NULL);
-	if (!src) return gf_qt_report(load, GF_URL_ERROR, "Opening file %s failed", load->fileName);
+	if (!src) return gf_qtvr_report(load, GF_URL_ERROR, "Opening file %s failed", load->fileName);
 
 	w = h = tk = 0;
 	nb_samp = 0;
@@ -80,16 +78,17 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	for (i=0; i<gf_isom_get_track_count(src); i++) {
 		switch (gf_isom_get_media_type(src, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
+        case GF_ISOM_MEDIA_AUXV:
+        case GF_ISOM_MEDIA_PICT:
 			if (gf_isom_get_media_subtype(src, i+1, 1) == GF_ISOM_BOX_TYPE_JPEG) {
-				GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(src, i+1, 1);
-				if ((udesc->width>w) || (udesc->height>h)) {
-					w = udesc->width;
-					h = udesc->height;
+				u32 aw, ah;
+				gf_isom_get_visual_info(src, i+1, 1, &aw, &ah);
+				if ((aw>w) || (ah>h)) {
+					w = aw;
+					h = ah;
 					tk = i+1;
 					nb_samp = gf_isom_get_sample_count(src, i+1);
 				}
-				if (udesc->extension_buf) gf_free(udesc->extension_buf);
-				gf_free(udesc);
 			}
 			break;
 		case GF_ISOM_MEDIA_QTVR:
@@ -99,24 +98,26 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	}
 	if (!has_qtvr) {
 		gf_isom_delete(src);
-		return gf_qt_report(load, GF_NOT_SUPPORTED, "QTVR not found - no conversion available for this QuickTime movie");
+		return gf_qtvr_report(load, GF_NOT_SUPPORTED, "QTVR not found - no conversion available for this QuickTime movie");
 	}
 	if (!tk) {
 		gf_isom_delete(src);
-		return gf_qt_report(load, GF_NON_COMPLIANT_BITSTREAM, "No associated visual track with QTVR movie");
+		return gf_qtvr_report(load, GF_NON_COMPLIANT_BITSTREAM, "No associated visual track with QTVR movie");
 	}
 	if (nb_samp!=6) {
 		gf_isom_delete(src);
-		return gf_qt_report(load, GF_NOT_SUPPORTED, "Movie %s doesn't look a Cubic QTVR - sorry...", load->fileName);
+		return gf_qtvr_report(load, GF_NOT_SUPPORTED, "Movie %s doesn't look a Cubic QTVR - sorry...", load->fileName);
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("QT: Importing Cubic QTVR Movie"));
+	//for coverage
+	gf_qtvr_report(load, GF_OK, NULL);
 
 	/*create scene*/
 	sg = load->ctx->scene_graph;
 	gr = (M_Group *) gf_node_new(sg, TAG_MPEG4_Group);
 	gf_node_register((GF_Node *)gr, NULL);
-	st = gf_sm_stream_new(load->ctx, 1, GF_STREAM_SCENE, 1);
+	st = gf_sm_stream_new(load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	au = gf_sm_stream_au_new(st, 0, 0, 1);
 	com = gf_sg_command_new(load->ctx->scene_graph, GF_SG_SCENE_REPLACE);
 	gf_list_add(au->commands, com);
@@ -147,11 +148,13 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	ni->type.vals[0] = gf_strdup("VR");
 
 	/*create ODs*/
-	st = gf_sm_stream_new(load->ctx, 2, GF_STREAM_OD, 1);
+	st = gf_sm_stream_new(load->ctx, 2, GF_STREAM_OD, GF_CODECID_OD_V1);
 	au = gf_sm_stream_au_new(st, 0, 0, 1);
 	odU = (GF_ODUpdate*) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 	gf_list_add(au->commands, odU);
 	for (i=0; i<6; i++) {
+		GF_ObjectDescriptor *od;
+		GF_ESD *esd;
 		GF_MuxInfo *mi;
 		FILE *img;
 		char szName[1024];
@@ -159,7 +162,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 		od->objectDescriptorID = 2+i;
 		esd = gf_odf_desc_esd_new(2);
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_IMAGE_JPEG;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_JPEG;
 		esd->ESID = 3+i;
 		/*extract image and remember it*/
 		mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
@@ -173,7 +176,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 
 		samp = gf_isom_get_sample(src, tk, i+1, &di);
 		img = gf_fopen(mi->file_name, "wb");
-		gf_fwrite(samp->data, samp->dataLength, 1, img);
+		gf_fwrite(samp->data, samp->dataLength, img);
 		gf_fclose(img);
 		gf_isom_sample_del(&samp);
 	}

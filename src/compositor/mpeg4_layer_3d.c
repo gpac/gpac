@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -131,157 +131,6 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 }
 
 
-u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *tr_state, Fixed width, Fixed height)
-{
-	GF_STENCIL stencil;
-	u32 new_pixel_format, w, h;
-	GF_Compositor *compositor = (GF_Compositor *)st->visual->compositor;
-
-	if (st->unsupported) return 0;
-
-#ifndef GPAC_USE_TINYGL
-	/*no support for offscreen rendering*/
-	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
-		st->unsupported = 1;
-		return 0;
-	}
-#endif
-
-	/*
-		if (tr_state->visual->compositor->recompute_ar) {
-			gf_node_dirty_set(node, 0, 0);
-			return 0;
-		}
-	*/
-
-	new_pixel_format = GF_PIXEL_RGBA;
-#ifndef GPAC_USE_TINYGL
-//	if (!compositor_background_transparent(gf_list_get(tr_state->backgrounds, 0)) )
-//		new_pixel_format = GF_PIXEL_RGB_24;
-
-	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
-#ifdef GPAC_USE_GLES1X
-	new_pixel_format = GF_PIXEL_RGBA;
-#else
-	/*no support for alpha in offscreen rendering*/
-	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
-		new_pixel_format = GF_PIXEL_RGB_24;
-#endif
-
-#endif
-
-	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
-#if defined(GF_SR_USE_DEPTH) && !defined(GPAC_DISABLE_3D)
-	if (st->visual->type_3d && (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_DEPTH) ) new_pixel_format = GF_PIXEL_RGBDS;
-#endif
-
-	w = (u32) FIX2INT(gf_ceil(width));
-	h = (u32) FIX2INT(gf_ceil(height));
-
-	/*1- some implementation of glReadPixel crash if w||h are not multiple of 4*/
-	/*2- some implementation of glReadPixel don't behave properly here when texture is not a power of 2*/
-	w = gf_get_next_pow2(w);
-	if (w>1024) w = 1024;
-	h = gf_get_next_pow2(h);
-	if (h>1024) h = 1024;
-
-
-	if (!w || !h) return 0;
-
-	if (st->txh.tx_io
-	        && (new_pixel_format == st->txh.pixelformat)
-	        && (w == st->txh.width)
-	        && (h == st->txh.height)
-	        && (compositor->offscreen_width >= w)
-	        && (compositor->offscreen_height >= h)
-	   )
-		return 2;
-
-	if (st->txh.tx_io) {
-#ifdef GPAC_USE_TINYGL
-		if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
-#endif
-		gf_sc_texture_release(&st->txh);
-		if (st->txh.data) gf_free(st->txh.data);
-		st->txh.data = NULL;
-	}
-
-	st->vp = gf_rect_center(INT2FIX(w), INT2FIX(h) );
-
-	st->txh.width = w;
-	st->txh.height = h;
-
-	gf_sc_texture_allocate(&st->txh);
-	st->txh.pixelformat = new_pixel_format;
-
-	if (new_pixel_format==GF_PIXEL_RGBA) {
-		st->txh.stride = w * 4;
-		st->txh.transparent = 1;
-	}
-	else if (new_pixel_format==GF_PIXEL_RGBDS) {
-		st->txh.stride = w * 4;
-		st->txh.transparent = 1;
-	}
-	else {
-		st->txh.stride = w * 3;
-		st->txh.transparent = 0;
-	}
-
-	st->visual->width = w;
-	st->visual->height = h;
-
-
-	stencil = compositor->rasterizer->stencil_new(compositor->rasterizer, GF_STENCIL_TEXTURE);
-
-#ifndef GPAC_USE_TINYGL
-	/*create an offscreen window for OpenGL rendering*/
-	if ((compositor->offscreen_width < w) || (compositor->offscreen_height < h)) {
-		GF_Err e;
-		GF_Event evt;
-		compositor->offscreen_width = MAX(compositor->offscreen_width, w);
-		compositor->offscreen_height = MAX(compositor->offscreen_height, h);
-
-		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.width = tr_state->visual->compositor->offscreen_width;
-		evt.setup.height = tr_state->visual->compositor->offscreen_height;
-		evt.setup.back_buffer = 0;
-		evt.setup.opengl_mode = 2;
-		e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
-		if (e) {
-			gf_sc_texture_release(&st->txh);
-			st->unsupported = 1;
-			return 0;
-		}
-		visual_3d_reset_graphics(compositor->visual);
-		/*reload openGL ext*/
-		gf_sc_load_opengl_extensions(compositor, 1);
-		/*load openGL shaders*/
-		visual_3d_init_shaders(compositor->visual);
-	}
-#endif
-	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
-	memset(st->txh.data, 0, sizeof(unsigned char) * st->txh.stride * st->txh.height);
-
-	/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
-	but still supported by the blitter (case of RGBD/RGBDS)*/
-	compositor->rasterizer->stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
-
-#ifdef GPAC_USE_TINYGL
-	/*create TinyGL offscreen context*/
-	st->tgl_ctx = ostgl_create_context(st->txh.width, st->txh.height, st->txh.transparent ? 32 : 24, &st->txh.data, 1);
-
-	st->scale_x = st->scale_y = FIX_ONE;
-#else
-	st->scale_x = INT2FIX(w) / tr_state->visual->compositor->offscreen_width;
-	st->scale_y = INT2FIX(h) / tr_state->visual->compositor->offscreen_height;
-#endif
-
-	gf_sc_texture_set_stencil(&st->txh, stencil);
-	drawable_reset_path(st->drawable);
-	gf_path_add_rect_center(st->drawable->path, 0, 0, st->clip.width, st->clip.height);
-	return 1;
-}
-
 static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
@@ -338,7 +187,7 @@ static void layer3d_setup_clip(Layer3DStack *st, GF_TraverseState *tr_state, Boo
 
 static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Bool prev_layer, changed = 0;
+	Bool prev_layer;//, changed;
 	GF_List *oldb, *oldv, *oldf, *oldn;
 	GF_Rect rc;
 	u32 cur_lights;
@@ -377,7 +226,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		if (l->size.y>=0) st->clip.height = l->size.y;
 		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 
-		changed = 1;
+//		changed = 1;
 	}
 
 	transform = &tr_state->transform;
@@ -476,29 +325,13 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	if ((tr_state->traversing_mode==TRAVERSE_SORT) || (tr_state->traversing_mode==TRAVERSE_DRAW_2D)) {
 		u32 trav_mode = tr_state->traversing_mode;
 
-		if (gf_node_dirty_get(node)) changed = 1;
+//		if (gf_node_dirty_get(node)) changed = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY|GF_SG_VRML_BINDABLE_DIRTY);
 
-		/*!! we were in a 2D mode, setup associated texture !!*/
+		/*!! we were in a 2D mode without hybridGL, not supported !*/
 		if (!prev_cam) {
-			switch (layer3d_setup_offscreen(node, st, tr_state, rc.width, rc.height)) {
-			case 0:
-				goto l3d_exit;
-			case 2:
-				if (!changed && !(st->visual->camera.flags & CAM_IS_DIRTY) && !st->visual->camera.anim_len) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] No changes found , skipping 3D draw\n"));
-					goto layer3d_unchanged_2d;
-				}
-			default:
-				break;
-			}
-#ifdef GPAC_USE_TINYGL
-			if (st->tgl_ctx) ostgl_make_current(st->tgl_ctx, 0);
-#endif
-
-			rc = st->vp;
-			/*setup GL*/
-			visual_3d_setup(tr_state->visual);
+			st->unsupported = GF_TRUE;
+			goto l3d_exit;
 		}
 		/*note that we don't backup the state as a layer3D cannot be declared in a layer3D*/
 		tr_state->layer3d = node;
@@ -506,7 +339,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Redrawing\n"));
 
-		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
+		layer3d_setup_clip(st, tr_state, 1, rc);
 
 		//this only happens in hybridGL mode
 		if (trav_mode==TRAVERSE_DRAW_2D) {
@@ -522,7 +355,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		/*this will init projection. Note that we're binding the viewpoint in the current pixelMetrics context
 		even if the viewpoint was declared in an inline below
 		if no previous camera, we're using offscreen rendering, force clear */
-		visual_3d_init_draw(tr_state, prev_cam ? 1 : 2);
+		visual_3d_init_draw(tr_state, 1);
 
 		visual_3d_check_collisions(tr_state, NULL, l->children);
 		tr_state->traversing_mode = TRAVERSE_SORT;
@@ -548,6 +381,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->visual->type_3d = old_type_3d;
 		tr_state->layer3d = NULL;
 
+#if 0
 		/*!! we were in a 2D mode, create drawable context!!*/
 		if (!prev_cam ) {
 			DrawableContext *ctx;
@@ -559,12 +393,8 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 				gf_get_tinygl_depth(&st->txh);
 #endif
 
-			if (tr_state->visual->compositor->rasterizer->stencil_texture_modified)
-				tr_state->visual->compositor->rasterizer->stencil_texture_modified(gf_sc_texture_get_stencil(&st->txh) );
 			gf_sc_texture_set_stencil(&st->txh, gf_sc_texture_get_stencil(&st->txh) );
 			changed = 1;
-
-layer3d_unchanged_2d:
 
 			/*restore visual*/
 			tr_state->visual = old_visual;
@@ -579,6 +409,8 @@ layer3d_unchanged_2d:
 			if (st->txh.transparent) ctx->flags |= CTX_IS_TRANSPARENT;
 			drawable_finalize_sort(ctx, tr_state, NULL);
 		}
+#endif
+
 	}
 	/*check picking - we must fall in our 2D clipper except when mvt is grabbed on layer*/
 	else if (!gf_node_dirty_get(node)  && (tr_state->traversing_mode==TRAVERSE_PICK)) {
@@ -709,12 +541,17 @@ l3d_exit:
 void compositor_init_layer3d(GF_Compositor *compositor, GF_Node *node)
 {
 	Layer3DStack *stack;
+
+	if (!gf_sc_check_gl_support(compositor)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Driver disabled, cannot render Layer 3D\n"));
+		return;
+	}
+
 	GF_SAFEALLOC(stack, Layer3DStack);
 	if (!stack) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate layer 3d stack\n"));
 		return;
 	}
-
 	stack->visual = visual_new(compositor);
 	stack->visual->type_3d = 2;
 	stack->visual->camera.is_3D = 1;

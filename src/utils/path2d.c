@@ -488,7 +488,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 
 	rxsq = gf_mulfix(r_x, r_x);
 	rysq = gf_mulfix(r_y, r_y);
-	assert(rxsq && rxsq);
+	assert(rxsq && rysq);
 
 	radius_scale = gf_divfix(xmidpsq, rxsq) + gf_divfix(ymidpsq, rysq);
 	if (radius_scale > FIX_ONE) {
@@ -578,7 +578,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 }
 
 GF_EXPORT
-GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, u32 close_type)
+GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, GF_Path2DArcCloseType close_type)
 {
 	GF_Err e;
 	Fixed _vx, _vy, step, cur;
@@ -589,7 +589,7 @@ GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_a
 
 	/*pie*/
 	i=0;
-	if (close_type==2) {
+	if (close_type==GF_PATH2D_ARC_PIE) {
 		gf_path_add_move_to(gp, 0, 0);
 		i=1;
 	}
@@ -611,7 +611,7 @@ GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_a
 		if (e) return e;
 		cur+=step;
 	}
-	if (close_type) e = gf_path_close(gp);
+	if (close_type!=GF_PATH2D_ARC_OPEN) e = gf_path_close(gp);
 	return e;
 }
 
@@ -762,7 +762,7 @@ GF_EXPORT
 GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 {
 	u32 i;
-	GF_Point2D *pt, *end, *ctrl1, *ctrl2;
+	GF_Point2D *pt, *end;
 	Fixed xMin, xMax, yMin, yMax, cxMin, cxMax, cyMin, cyMax;
 	if (!gp || !rc) return GF_BAD_PARAM;
 
@@ -810,6 +810,7 @@ GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 
 	/*control box is bigger than box , decompose curves*/
 	if ((cxMin < xMin) || (cxMax > xMax) || (cyMin < yMin) || (cyMax > yMax)) {
+		GF_Point2D *ctrl1, *ctrl2;
 		/*decompose all control points*/
 		pt = gp->points;
 		for (i=1 ; i < gp->n_points; ) {
@@ -1067,9 +1068,11 @@ Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y)
 	s32 wn;
 	GF_Point2D start, s, e, pt;
 	GF_Rect rc;
+	GF_Err err;
 
 	/*check if not in bounds*/
-	gf_path_get_bounds(gp, &rc);
+	err = gf_path_get_bounds(gp, &rc);
+	if (err) return GF_FALSE;
 	if ((x<rc.x) || (y>rc.y) || (x>rc.x+rc.width) || (y<rc.y-rc.height)) return GF_FALSE;
 
 	if (!gp || (gp->n_points<2)) return GF_FALSE;
@@ -1138,7 +1141,7 @@ Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y)
 		}
 	}
 	if (gp->flags & GF_PATH_FILL_ZERO_NONZERO) return wn ? GF_TRUE : GF_FALSE;
-	return wn%2 ? GF_TRUE : GF_FALSE;
+	return (wn%2) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
@@ -1354,8 +1357,9 @@ u32 gf_polygone2d_get_convexity(GF_Point2D *pts, u32 len)
 	pThird = pts[0];
 	dcur.x = pThird.x - pSecond.x;
 	dcur.y = pThird.y - pSecond.y;
-	if ( ConvexCompare(dcur) ) ConvexCheckTriple;
-
+	if ( ConvexCompare(dcur) ) {
+		ConvexCheckTriple;
+	}
 	/* and check for direction changes back to second vertex */
 	dcur.x = pSaveSecond.x - pSecond.x;
 	dcur.y = pSaveSecond.y - pSecond.y;

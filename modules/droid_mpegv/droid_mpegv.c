@@ -177,7 +177,8 @@ void loadSensorControler(MPEGVSensorContext *rc)
 	if ( res == JNI_EDETACHED )
 	{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] The current thread is not attached to the VM, assuming native thread\n"));
-		if ( res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL) )
+		res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+		if ( res )
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] Attach current thread failed: %d\n", res));
 			return;
@@ -206,7 +207,7 @@ void loadSensorControler(MPEGVSensorContext *rc)
 	}
 }
 
-Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, GF_BitStream *dsi, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name))
+Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, const char *dsi, u32 dsi_size, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name))
 {
 	MPEGVSCTX;
 
@@ -305,9 +306,9 @@ Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, GF_BitStr
 u32 MPEGVS_OnData(struct __input_device * dr, const char* data)
 {
 	GF_BitStream *bs;
-	char *buf;
+	u8 *buf;
 	u32 buf_size;
-	float x, y, z, q, a, b;
+	float x, y, z, /*q,*/ a, b;
 	MPEGVSCTX;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -435,8 +436,8 @@ void MPEGVS_Stop(struct __input_device * dr)
 
 GF_InputSensorDevice* NewMPEGVSInputSesor()
 {
-	MPEGVSensorContext* ctx = NULL;
-	GF_InputSensorDevice* driv = NULL;
+	MPEGVSensorContext* ctx;
+	GF_InputSensorDevice* driv;
 
 	driv = (GF_InputSensorDevice *) gf_malloc(sizeof(GF_InputSensorDevice));
 	memset(driv, 0, sizeof(GF_InputSensorDevice));

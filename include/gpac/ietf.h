@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -33,17 +33,19 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/ietf.h>
- *	\brief Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP .
- */
+\file <gpac/ietf.h>
+\brief Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP .
+*/
 	
 /*!
- *	\addtogroup ietf_grp RTP Streaming
- *	\ingroup media_grp
- *	\brief  Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
- *
- *This section documents the tools used for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
- *	@{
+\addtogroup ietf_grp RTP Streaming
+\ingroup media_grp
+\brief  Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+
+
+This section documents the tools used for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+
+@{
  */
 
 #include <gpac/list.h>
@@ -55,18 +57,11 @@ extern "C" {
 #include <gpac/network.h>
 
 
-/****************************************************************************
-
-				RTSP VERSION 1.0 LIBRARY EXPORTS
-
-****************************************************************************/
-
+/*! RTSP version supported by GPAC*/
 #define GF_RTSP_VERSION		"RTSP/1.0"
 
 
-/*
- *		RTSP NOTIF CODES
- */
+/*! RTSP NOTIF CODES */
 enum
 {
 	NC_RTSP_Continue		=		100,
@@ -119,14 +114,18 @@ enum
 	NC_RTSP_Option_not_support	=	551,
 };
 
+/*! Gives string descritpion of error code
+\param ErrCode the RTSP error code
+\return the description of the RTSP error code
+*/
 const char *gf_rtsp_nc_to_string(u32 ErrCode);
 
 /*
 		Common structures between commands and responses
 */
 
-/*
-	RTSP Range information - RTSP Session level only (though this is almost the same
+/*! RTSP Range information
+ 	RTSP Session level only, although this is almost the same
 	format as an SDP range, this is not used in the SDP lib as "a=range" is not part of SDP
 	but part of RTSP
 */
@@ -139,13 +138,19 @@ typedef struct {
 	Double FPS;
 } GF_RTSPRange;
 
-/*
-parses a Range line and returns range header structure. can be used for RTSP extension of SDP
-NB: Only support for npt for now
+/*! parses a Range line and returns range header structure. This can be used for RTSP extension of SDP
+Note: Only support for npt for now
+\param range_buf the range string
+\return a newly allocated RTSP range
 */
 GF_RTSPRange *gf_rtsp_range_parse(char *range_buf);
-
+/*! creates a new RTSP range
+\return a newly allocated RTSP range
+*/
 GF_RTSPRange *gf_rtsp_range_new();
+/*! destroys a RTSP range
+\param range the target RTSP range
+*/
 void gf_rtsp_range_del(GF_RTSPRange *range);
 
 /*
@@ -153,14 +158,14 @@ void gf_rtsp_range_del(GF_RTSPRange *range);
 		contains all network info for RTSP sessions (ports, uni/multi-cast, ...)
 */
 
-/*
-	Transport Profiles as defined in RFC 2326
-*/
+/*! RTSP AVP Transport Profile */
 #define GF_RTSP_PROFILE_RTP_AVP			"RTP/AVP"
+/*! RTSP AVP + TCP Transport Profile */
 #define GF_RTSP_PROFILE_RTP_AVP_TCP		"RTP/AVP/TCP"
+/*! RTSP UDP Transport Profile */
 #define GF_RTSP_PROFILE_UDP				"udp"
 
-
+/*! RTSP transport structure*/
 typedef struct
 {
 	/* set to 1 if unicast */
@@ -191,10 +196,18 @@ typedef struct
 	/*Transport protocol. In this version we only support RTP/AVP, the following flag tells
 	us if this is RTP/AVP/TCP or RTP/AVP (default)*/
 	char *Profile;
+
+	Bool is_sender;
 } GF_RTSPTransport;
 
-
-GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *original);
+/*! clones a RTSP transport
+\param transp the target RTSP transport
+\return an allocated copy RTSP transport
+*/
+GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *transp);
+/*! destroys a RTSP transport
+\param transp the target RTSP transport
+*/
 void gf_rtsp_transport_del(GF_RTSPTransport *transp);
 
 
@@ -208,19 +221,30 @@ void gf_rtsp_transport_del(GF_RTSPTransport *transp);
 */
 
 /*ALL RTSP METHODS - all other methods will be ignored*/
+/*! RTSP DESCRIBE method*/
 #define GF_RTSP_DESCRIBE		"DESCRIBE"
+/*! RTSP SETUP method*/
 #define GF_RTSP_SETUP			"SETUP"
+/*! RTSP PLAY method*/
 #define GF_RTSP_PLAY			"PLAY"
+/*! RTSP PAUSE method*/
 #define GF_RTSP_PAUSE			"PAUSE"
+/*! RTSP RECORD method*/
 #define GF_RTSP_RECORD			"RECORD"
+/*! RTSP TEARDOWN method*/
 #define GF_RTSP_TEARDOWN		"TEARDOWN"
+/*! RTSP GET_PARAMETER method*/
 #define GF_RTSP_GET_PARAMETER	"GET_PARAMETER"
+/*! RTSP SET_PARAMETER method*/
 #define GF_RTSP_SET_PARAMETER	"SET_PARAMETER"
-#define GF_RTSP_OPTIONS		"OPTIONS"
+/*! RTSP OPTIONS method*/
+#define GF_RTSP_OPTIONS			"OPTIONS"
+/*! RTSP ANNOUCE method*/
 #define GF_RTSP_ANNOUNCE		"ANNOUNCE"
-#define GF_RTSP_REDIRECTE		"REDIRECT"
+/*! RTSP REDIRECT method*/
+#define GF_RTSP_REDIRECT		"REDIRECT"
 
-
+/*! RTSP command structure*/
 typedef struct
 {
 	char *Accept;
@@ -283,9 +307,17 @@ typedef struct
 	u32 StatusCode;
 } GF_RTSPCommand;
 
-
+/*! creates an RTSP command
+\return the newly allocated RTSP command
+*/
 GF_RTSPCommand *gf_rtsp_command_new();
+/*! destroys an RTSP command
+\param com the target RTSP command
+*/
 void gf_rtsp_command_del(GF_RTSPCommand *com);
+/*! resets an RTSP command
+\param com the target RTSP command
+*/
 void gf_rtsp_command_reset(GF_RTSPCommand *com);
 
 
@@ -299,8 +331,9 @@ void gf_rtsp_command_reset(GF_RTSPCommand *com);
 
 */
 
-/*
-	RTP-Info for RTP channels. There may be several RTP-Infos in one response
+/*! RTP-Info for RTP channels.
+
+	There may be several RTP-Infos in one response
 	based on the server implementation (DSS/QTSS begaves this way)
 */
 typedef struct
@@ -317,9 +350,7 @@ typedef struct
 
 
 
-/*
-	RTSP Response
-*/
+/*! RTSP Response */
 typedef struct
 {
 	/* response code*/
@@ -386,126 +417,211 @@ typedef struct
 	char *body;
 } GF_RTSPResponse;
 
-
+/*! creates an RTSP response
+\return the newly allocated RTSP response
+*/
 GF_RTSPResponse *gf_rtsp_response_new();
+/*! deletes an RTSP response
+\param rsp the target RTSP response
+*/
 void gf_rtsp_response_del(GF_RTSPResponse *rsp);
+/*! resets an RTSP response
+\param rsp the target RTSP response
+*/
 void gf_rtsp_response_reset(GF_RTSPResponse *rsp);
 
 
-
+/*! RTSP session*/
 typedef struct _tag_rtsp_session GF_RTSPSession;
 
+/*! creates a new RTSP session
+\param sURL the target RTSP session URL
+\param DefaultPort the target RTSP session port
+\return a newly allocated RTSP session
+*/
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
+/*! destroys an RTSP session
+\param sess the target RTSP session
+*/
 void gf_rtsp_session_del(GF_RTSPSession *sess);
 
+/*! sets TCP buffer size of an RTSP session
+\param sess the target RTSP session
+\param BufferSize desired buffer size in bytes
+\return error if any
+*/
 GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize);
 
-/*force the IP address the client is using*/
-void gf_rtsp_set_mobile_ip(GF_RTSPSession *sess, char *MobileIP);
 
-
-/*Reset state machine, invalidate SessionID
+/*! resets state machine, invalidate SessionID
 NOTE: RFC2326 requires that the session is reseted when all RTP streams
 are closed. As this lib doesn't maintain the number of valid streams
 you MUST call reset when all your streams are shutdown (either requested through
 TEARDOWN or signaled through RTCP BYE packets for RTP, or any other signaling means
 for other protocols)
-reset connection will destroy the socket - this is useful in case of timeouts, because
-some servers do not restart with the right CSeq...*/
+\param sess the target RTSP session
+\param ResetConnection if set, this will destroy the associated TCP socket. This is useful in case of timeouts, because
+some servers do not restart with the right CSeq.
+*/
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
 
-u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url);
-const char *gf_rtsp_get_last_session_id(GF_RTSPSession *sess);
+/*! checks if an RTSP session matches an RTSP URL
+\param sess the target RTSP session
+\param url the URL to test
+\return GF_TRUE if the session matches the URL, GF_FALSE otherwise
+*/
+Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url);
+
+/*! gets server name of an RTSP session
+\param sess the target RTSP session
+\return the server name
+*/
 char *gf_rtsp_get_server_name(GF_RTSPSession *sess);
-char *gf_rtsp_get_service_name(GF_RTSPSession *sess);
+/*! gets server port of an RTSP session
+\param sess the target RTSP session
+\return the server port
+*/
 u16 gf_rtsp_get_session_port(GF_RTSPSession *sess);
 
-/*Fetch an RTSP response from the server the GF_RTSPResponse will be reseted before fetch*/
+/*! fetches an RTSP response from the server.  the GF_RTSPResponse will be reseted before fetch
+\param sess the target RTSP session
+\param rsp the response object to fill with the response. This will be reseted before TCP fetch
+\return error if any
+*/
 GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp);
 
 
-/*RTSP State Machine. The only non blocking mode is GF_RTSP_STATE_WAIT_FOR_CONTROL*/
+/*! RTSP States. The only non blocking mode is GF_RTSP_STATE_WAIT_FOR_CONTROL*/
 enum
 {
-	/*Initialized (connection might be off, but all structures are in place)
+	/*! Initialized (connection might be off, but all structures are in place)
 	This is the default state between # requests (aka, DESCRIBE and SETUP
 	or SETUP and PLAY ...)*/
 	GF_RTSP_STATE_INIT	=	0,
-	/*Waiting*/
+	/*! Waiting*/
 	GF_RTSP_STATE_WAITING,
-	/*PLAY, PAUSE, RECORD. Aggregation is allowed for the same type, you can send several command
+	/*! PLAY, PAUSE, RECORD. Aggregation is allowed for the same type, you can send several command
 	in a row. However the session will return GF_SERVICE_ERROR if you do not have
 	a valid SessionID in the command
 	You cannot issue a SETUP / DESCRIBE while in this state*/
 	GF_RTSP_STATE_WAIT_FOR_CONTROL,
 
-	/*FATAL ERROR: session is invalidated by server. Call reset and restart from SETUP if needed*/
+	/*! FATAL ERROR: session is invalidated by server. Call reset and restart from SETUP if needed*/
 	GF_RTSP_STATE_INVALIDATED
 };
 
+/*! gets the RTSP session state
+\param sess the target RTSP session
+\return the session state
+*/
 u32 gf_rtsp_get_session_state(GF_RTSPSession *sess);
-/*aggregate command state-machine: the PLAY/PAUSE can be aggregated
-(sent before the reply is received). This function gets the last command sent*/
-char *gf_rtsp_get_last_request(GF_RTSPSession *sess);
-/*foce a reset in case of pbs*/
+/*! forces a reset of the state to GF_RTSP_STATE_INIT
+\param sess the target RTSP session
+*/
 void gf_rtsp_reset_aggregation(GF_RTSPSession *sess);
 
-/*
-	Send an RTSP request to the server.
+/*! sends an RTSP request to the server.
+\param sess the target RTSP session
+\param com the RTSP command to send
+\return error if any
 */
 GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com);
 
 
-GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
-                                       GF_Err (*SignalData)(GF_RTSPSession *sess, void *cbk_ptr, char *buffer, u32 bufferSize, Bool IsRTCP)
-                                      );
+/*! callback function for interleaved RTSP/TCP transport
+\param sess the target RTSP session
+\param cbk_ptr opaque data
+\param buffer RTP or RTCP packet
+\param bufferSize packet size in bytes
+\param IsRTCP set to GF_TRUE if the packet is an RTCP packet, GF_FALSE otherwise
+\return error if any
+*/
+typedef GF_Err (*gf_rtsp_interleave_callback)(GF_RTSPSession *sess, void *cbk_ptr, u8 *buffer, u32 bufferSize, Bool IsRTCP);
 
+/*! assigns the callback function for interleaved RTSP/TCP transport
+\param sess the target RTSP session
+\param SignalData the callback function on each interleaved packet
+\return error if any
+*/
+GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess, gf_rtsp_interleave_callback SignalData);
 
+/*! reads RTSP session (response fetch and interleaved RTSP/TCP transport)
+\param sess the target RTSP session
+\return error if any
+*/
 GF_Err gf_rtsp_session_read(GF_RTSPSession *sess);
 
+/*! registers a new interleaved RTP channel over an RTSP connection
+\param sess the target RTSP session
+\param the_ch opaque data passed to \ref gf_rtsp_interleave_callback
+\param LowInterID ID of the RTP interleave channel
+\param HighInterID ID of the RCTP interleave channel
+\return error if any
+*/
 GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInterID, u8 HighInterID);
+/*! unregisters a new interleaved RTP channel over an RTSP connection
+\param sess the target RTSP session
+\param LowInterID ID of the RTP interleave channel
+\return the numbers of registered interleaved channels remaining
+*/
 u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID);
 
 
-
-/*
-			Server side session constructor
-	create a new RTSP session from an existing socket in listen state. If no pending connection
+/*! creates a new RTSP session from an existing socket in listen state. If no pending connection
 	is detected, return NULL
+\param rtsp_listener the listening server socket
+\return the newly allocated RTSP session if any, NULL otherwise
 */
 GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener);
 
-/*fetch an RTSP request. The GF_RTSPCommand will be reseted before fetch*/
+/*! fetches an RTSP request
+\param sess the target RTSP session
+\param com the RTSP command to fill with the command. This will be reseted before fetch
+\return error if any
+*/
 GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com);
 
-/*unpack the URL, check the service name / server. Typically used when a client sends a
- DESCRIBE || SETUP url RTSP/1.0. Server / service name check must be performed by your app as redirection
-or services available are unknown here.*/
-GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL);
-
-/*geenrates a session ID fpor the given session*/
+/*! generates a session ID for the given session
+\param sess the target RTSP session
+\return an allocated string containing a session ID
+*/
 char *gf_rtsp_generate_session_id(GF_RTSPSession *sess);
 
-/*send the RTSP response*/
+/*! sends an RTSP response
+\param sess the target RTSP session
+\param rsp the response to send
+\return error if any
+*/
 GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp);
 
-/*gets the IP address of the local host running the session
-buffer shall be GF_MAX_IP_NAME_LEN long*/
-GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer);
+/*! gets the IP address of the local host running the session
+\param sess the target RTSP session
+\param buffer buffer to store the local host name
+\return error if any
+*/
+GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char buffer[GF_MAX_IP_NAME_LEN]);
 
-/*returns the next available ID for interleaving. It is recommended that you use 2
-consecutive IDs for RTP/RTCP interleaving*/
-u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess);
-
-/*gets the IP address of the connected peer - buffer shall be GF_MAX_IP_NAME_LEN long*/
+/*! gets the IP address of the connected peer
+\param sess the target RTSP session
+\param buffer buffer to store the connected peer name
+\return error if any
+*/
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buffer);
 
+/*! writes a packet on an interleaved channel over RTSP
+\param sess the target RTSP session
+\param idx ID (RTP or RTCP) of the interleaved channel
+\param pck packet data (RTP or RTCP packet) to write
+\param pck_size packet size in bytes
+\return error if any
+*/
+GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, u8 *pck, u32 pck_size);
 
 /*
 		RTP LIB EXPORTS
 */
 
-
+/*! RTP header */
 typedef struct tagRTP_HEADER {
 	/*version, must be 2*/
 	u8 Version;
@@ -533,11 +649,7 @@ typedef struct tagRTP_HEADER {
 } GF_RTPHeader;
 
 
-
-
-/*
-	structure containing the rtpmap information
-*/
+/*! RTPMap information*/
 typedef struct
 {
 	/*dynamic payload type of this map*/
@@ -551,127 +663,261 @@ typedef struct
 } GF_RTPMap;
 
 
-
+/*! RTP channel*/
 typedef struct __tag_rtp_channel GF_RTPChannel;
 
+/*! creates a new RTP channel
+\return a newly allocated RTP channel
+*/
 GF_RTPChannel *gf_rtp_new();
+/*! destroys an RTP channel
+\param ch the target RTP channel
+*/
 void gf_rtp_del(GF_RTPChannel *ch);
 
-/*you configure a server channel through the transport structure, with the same info as a
+/*! setup transport for an RTP channel
+A server channelis configured through the transport structure, with the same info as a
 client channel, the client_port_* info designing the REMOTE client and port_* designing
-your server channel*/
+the server channel
+\param ch the target RTP channel
+\param trans_info the transport info for this channel
+\param remote_address the remote / destination address of the channel
+\return error if any
+*/
 GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, const char *remote_address);
 
-/*auto-setup of rtp/rtcp transport ports - only effective in unicast, non interleaved cases.
-for multicast port setup MUST be done through the above gf_rtp_setup_transport function
-this will take care of port reuse*/
+/*! setup of rtp/rtcp transport ports
+This only applies in unicast, non interleaved cases.
+For multicast port setup MUST be done through the above gf_rtp_setup_transport function
+This will take care of port reuse
+\param ch the target RTP channel
+\param first_port RTP port number of the RTP channel
+\return error if any
+*/
 GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port);
 
-/*init of payload information. only ONE payload per sync source is supported in this
-version of the library (a sender cannot switch payload types on a single media)*/
-GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, GF_RTPMap *map);
+/*! init of RTP payload information. Only ONE payload per sync source is supported in this
+version of the library (a sender cannot switch payload types on a single media)
+\param ch the target RTP channel
+\param PayloadType identifier of RTP payload
+\param ClockRate clock rate in (1/Hz) of RTP channel
+\return error if any
+*/
+GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, u32 PayloadType, u32 ClockRate);
 
-/*enables sending of NAT keep-alive packets for NAT traversal
-	@nat_timeout: specifies the inactivity period in ms after which NAT keepalive packets are sent.
-	If 0, disables NAT keep-alive packets
+/*! enables sending of NAT keep-alive packets for NAT traversal
+\param ch the target RTP channel
+\param nat_timeout specifies the inactivity period in ms after which NAT keepalive packets are sent. If 0, disables NAT keep-alive packets
 */
 void gf_rtp_enable_nat_keepalive(GF_RTPChannel *ch, u32 nat_timeout);
 
 
-/*initialize the RTP channel.
-
-UDPBufferSize: UDP stack buffer size if configurable by OS/ISP - ignored otherwise
+/*! initializes the RTP channel.
+\param ch the target RTP channel
+\param UDPBufferSize UDP stack buffer size if configurable by OS/ISP - ignored otherwise
 NOTE: on WinCE devices, this is not configurable on an app bases but for the whole OS
 you must update the device registry with:
+\code
 	[HKEY_LOCAL_MACHINE\Comm\Afd]
 	DgramBuffer=dword:N
+\endcode
 
 	where N is the number of UDP datagrams a socket should be able to buffer. For multimedia
 app you should set N as large as possible. The device MUST be reseted for the param to take effect
 
-ReorederingSize: max number of packets to queue for reordering. 0 means no reordering
-MaxReorderDelay: max time to wait in ms before releasing first packet in reoderer when only one packet is present.
-If 0 and reordering size is specified, defaults to 200 ms (usually enough).
-IsSource: if true, the channel is a sender (media data, sender report, Receiver report processing)
+\param IsSource if true, the channel is a sender (media data, sender report, Receiver report processing)
 if source, you must specify the Path MTU size. The RTP lib won't send any packet bigger than this size
 your application shall perform payload size splitting if needed
-local_interface_ip: local interface address to use for multicast. If NULL, default address is used
+\param PathMTU desired path MTU (max packet size) in bytes
+\param ReorederingSize max number of packets to queue for reordering. 0 means no reordering
+\param MaxReorderDelay max time to wait in ms before releasing first packet in reoderer when only one packet is present.
+If 0 and reordering size is specified, defaults to 200 ms (usually enough).
+
+\param local_interface_ip local interface address to use for multicast. If NULL, default address is used
+\return error if any
 */
 GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_interface_ip);
 
-/* stop the RTP channel: destrpys RTP and RTCP sockets as well as packet reorderer*/
+/*! stops the RTP channel. This destrpys RTP and RTCP sockets as well as packet reorderer
+\param ch the target RTP channel
+\return error if any
+*/
 GF_Err gf_rtp_stop(GF_RTPChannel *ch);
 
-/*init the RTP info after a PLAY or PAUSE, rtp_time is the rtp TimeStamp of the RTP packet
+/*! inits the RTP info after a PLAY or PAUSE, rtp_time is the rtp TimeStamp of the RTP packet
 with seq_num sequence number. This info is needed to compute the CurrentTime of the RTP channel
-ssrc may not be known if sender hasn't indicated it (use 0 then)*/
+ssrc may not be known if sender hasn't indicated it (use 0 then)
+\param ch the target RTP channel
+\param seq_num the seq num of the next packet to be received
+\param rtp_time the time in RTP timescale of the next packet to be received
+\param ssrc the SSRC identifier of the next packet to be received
+\return error if any
+*/
 GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssrc);
 
-/*retrieve current RTP time in sec. If rtp_time was unknown (not on demand media) the time is absolute.
+/*! retrieves current RTP time in sec. If rtp_time was unknown (not on demand media) the time is absolute.
 Otherwise this is the time in ms elapsed since the last PLAY range start value
-Not supported yet if played without RTSP (aka RTCP time not supported)*/
+Not supported yet if played without RTSP (aka RTCP time not supported)
+\param ch the target RTP channel
+\return NTP clock in seconds
+*/
 Double gf_rtp_get_current_time(GF_RTPChannel *ch);
 
-
+/*! resets both sockets and packet reorderer
+\param ch the target RTP channel
+*/
 void gf_rtp_reset_buffers(GF_RTPChannel *ch);
 
-/*read any data on UDP only (not valid for TCP). Performs re-ordering if configured for it
-returns amount of data read (raw UDP packet size)*/
-u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
-u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
+/*! resets sender SSRC
+\param ch the target RTP channel
+*/
+void gf_rtp_reset_ssrc(GF_RTPChannel *ch);
 
-/*decodes an RTP packet and gets the beginning of the RTP payload*/
-GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
+/*! reads any RTP data on UDP only (not valid for TCP). Performs re-ordering if configured for it
+\param ch the target RTP channel
+\param buffer the buffer where to store the RTP packet
+\param buffer_size the size of the buffer
+\return amount of data read in bytes
+*/
+u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
 
-/*decodes an RTCP packet and update timing info, send RR too*/
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_sr);
+/*! flushes any pending data in packet reorderer, but does not flush packet reorderer if reorderer timeout is not exceeded
+\param ch the target RTP channel
+\param buffer the buffer where to store the data
+\param buffer_size the size of the buffer
+\return amount of data read in bytes
+*/
+u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
 
-/*computes and send Receiver report. If the channel is a TCP channel, you must specify
+/*! reads any RTCP data on UDP only (not valid for TCP). Performs re-ordering if configured for it
+\param ch the target RTP channel
+\param buffer the buffer where to store the RTCP packet
+\param buffer_size the size of the buffer
+\return amount of data read in bytes
+*/
+u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
+
+/*! flushes any pending data in packet reorderer, and flushes packet reorderer if reorderer timeout is not exceeded. Typically called several times until returning 0.
+\param ch the target RTP channel
+\param buffer the buffer where to store the data
+\param buffer_size the size of the buffer
+\return amount of data read in bytes
+*/
+u32 gf_rtp_read_flush(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
+
+/*! decodes an RTP packet and gets the beginning of the RTP payload
+\param ch the target RTP channel
+\param pck the RTP packet buffer
+\param pck_size the size of the RTP packet
+\param rtp_hdr filled with decoded RTP header information
+\param PayloadStart set to the offset in bytes of the start of the payload in the RTP packet
+\return error if any
+*/
+GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
+
+/*! decodes an RTCP packet and update timing info, send ReceiverReport too
+\param ch the target RTP channel
+\param pck the RTP packet buffer
+\param pck_size the size of the RTP packet
+\param has_sr set to GF_TRUE if the RTCP packet contained an SenderReport
+\return error if any
+*/
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr);
+
+/*! computes and send Receiver report.
+If the channel is a TCP channel, you must specify
 the callback function. NOTE: many RTP implementation do NOT process RTCP info received on TCP...
 the lib will decide whether the report shall be sent or not, therefore you should call
-this function at regular times*/
-GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
-                               GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                               void *rtsp_cbk);
+this function at regular times
+\param ch the target RTP channel
+\return error if any
+*/
+GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch);
 
-/*send a BYE info (leaving the session)*/
-GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
-                       GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                       void *rtsp_cbk);
+/*! sends a BYE info (leaving the session)
+\param ch the target RTP channel
+\return error if any
+*/
+GF_Err gf_rtp_send_bye(GF_RTPChannel *ch);
 
 
-/*send RTP packet. In fast_send mode, user passes a pck pointer with 12 bytes available BEFORE pck to
-write the header in place*/
-GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u32 pck_size, Bool fast_send);
+/*! sends an RTP packet. In fast_send mode,
+\param ch the target RTP channel
+\param rtp_hdr the RTP header of the packet
+\param pck the RTP payload buffer
+\param pck_size the RTP payload size
+\param fast_send if set, the payload buffer contains 12 bytes available BEFORE its indicated start where the RTP header is written in place
+\return error if any
+*/
+GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, u8 *pck, u32 pck_size, Bool fast_send);
 
-enum
-{
-	GF_RTCP_INFO_NAME = 0,
-	GF_RTCP_INFO_EMAIL,
-	GF_RTCP_INFO_PHONE,
-	GF_RTCP_INFO_LOCATION,
-	GF_RTCP_INFO_TOOL,
-	GF_RTCP_INFO_NOTE,
-	GF_RTCP_INFO_PRIV
-};
 
-/*sets RTCP info sent in RTCP reports. info_string shall NOT exceed 255 chars*/
-GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string);
+/*! callback used for writing rtp over TCP
+\param cbk1 opaque user data
+\param cbk2 opaque user data
+\param is_rtcp indicates the data is an RTCP packet
+\param pck the RTP/RTCP buffer
+\param pck_size the RTP/RTCP size
+\return error if any
+*/
+typedef GF_Err (*gf_rtp_tcp_callback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size);
 
+/*! sets RTP interleaved callback on the RTP channel
+\param ch the target RTP channel
+\param tcp_callback the callback function
+\param cbk1 user data for the callback function
+\param cbk2 user data for the callback function
+\return error if any
+*/
+GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, gf_rtp_tcp_callback tcp_callback, void *cbk1, void *cbk2);
+
+/*! checks if an RTP channel is unicast
+\param ch the target RTP channel
+\return GF_TRUE if unicast, GF_FALSE otherwise
+*/
 u32 gf_rtp_is_unicast(GF_RTPChannel *ch);
+/*! checks if an RTP channel is interleaved
+\param ch the target RTP channel
+\return GF_TRUE if interleaved, GF_FALSE otherwise
+*/
 u32 gf_rtp_is_interleaved(GF_RTPChannel *ch);
+/*! gets clockrate/timescale of an RTP channel
+\param ch the target RTP channel
+\return the RTP clock rate
+*/
 u32 gf_rtp_get_clockrate(GF_RTPChannel *ch);
-u32 gf_rtp_is_active(GF_RTPChannel *ch);
+/*! gets the low interleave ID of an RTP channel
+\param ch the target RTP channel
+\return the low (RTP) interleave ID of the channel, or 0 if not interleaved
+*/
 u8 gf_rtp_get_low_interleave_id(GF_RTPChannel *ch);
+/*! gets the high interleave ID of an RTP channel
+\param ch the target RTP channel
+\return the high (RTCP) interleave ID of the channel, or 0 if not interleaved
+*/
 u8 gf_rtp_get_hight_interleave_id(GF_RTPChannel *ch);
-GF_RTSPTransport *gf_rtp_get_transport(GF_RTPChannel *ch);
-u32 gf_rtp_get_local_ssrc(GF_RTPChannel *ch);
+/*! gets the transport associated with an RTP channel
+\param ch the target RTP channel
+\return the RTSP transport information
+*/
+const GF_RTSPTransport *gf_rtp_get_transport(GF_RTPChannel *ch);
 
+/*! gets loss rate of the RTP channel
+\param ch the target RTP channel
+\return the loss rate of the channel, between 0 and 100 %
+*/
 Float gf_rtp_get_loss(GF_RTPChannel *ch);
+/*! gets number of TCP bytes send for an interleaved channel
+\param ch the target RTP channel
+\return the number of bytes sent
+*/
 u32 gf_rtp_get_tcp_bytes_sent(GF_RTPChannel *ch);
+/*! gets ports of an non-interleaved RTP channel
+\param ch the target RTP channel
+\param rtp_port the RTP port number
+\param rtcp_port the RCTP port number
+*/
 void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port);
-
-
 
 
 
@@ -691,13 +937,10 @@ void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port);
 
   Some quick constructors are available for GF_SDPConnection and GF_SDPMedia in order to set up
   some specific parameters to their default value
-
-  An extra function gf_sdp_info_check(GF_SDPInfo *sdp) is provided for compliency check
-  with RFC2327: all requested fields are checked as well as conflicting information forbidden
-  in RFC 2327
 ****************************************************************************/
 
-/*
+/*! Extension Attribute
+
 	All attributes x-ZZZZ are considered as extensions attributes. If no "x-" is found
 	the attributes in the RTSP response is SKIPPED. The "x-" radical is removed in the structure
 	when parsing commands / responses
@@ -709,9 +952,7 @@ typedef struct
 } GF_X_Attribute;
 
 
-/*
-	Structure for bandwidth info
-*/
+/*! SDP bandwidth info*/
 typedef struct
 {
 	/*"CT", "AS" are defined. Private extensions must be "X-*" ( * "are recommended to be short")*/
@@ -720,13 +961,12 @@ typedef struct
 	u32 value;
 } GF_SDPBandwidth;
 
-/*
-	Structure for Time info
-*/
-/*we do not support more than ... time offsets / zone adjustment
-if more are needed, RFC recommends to use several entries rather than a big*/
+/*! SDP maximum time offset
+We do not support more than this offset / zone adjustment
+if more are needed, RFC recommends to use several entries rather than a big offset*/
 #define GF_SDP_MAX_TIMEOFFSET	10
 
+/*! SDP Timing information*/
 typedef struct
 {
 	/*NPT time in sec*/
@@ -770,7 +1010,7 @@ typedef struct
 	u32 NbZoneOffsets;
 } GF_SDPTiming;
 
-
+/*! SDP Connection information*/
 typedef struct
 {
 	/*only "IN" currently defined*/
@@ -787,8 +1027,9 @@ typedef struct
 	u32 add_count;
 } GF_SDPConnection;
 
-/*
-	FMTP: description of dynamic payload types. This is opaque at the SDP level.
+/*! SDP FormatTypePayload
+
+	description of dynamic payload types. This is opaque at the SDP level.
 	Each attributes is assumed to be formatted as <param_name=param_val; ...>
 	If not the case the attribute will have an empty value string and only the
 	parameter name.
@@ -801,6 +1042,7 @@ typedef struct
 	GF_List *Attributes;
 } GF_SDP_FMTP;
 
+/*! SDP Media information*/
 typedef struct
 {
 	/*m=
@@ -856,6 +1098,7 @@ typedef struct
 	s32 Quality;
 } GF_SDPMedia;
 
+/*! SDP information*/
 typedef struct
 {
 	/*v=*/
@@ -903,40 +1146,57 @@ typedef struct
 
 
 /*
+*/
+/*! creates a new SDP info
+\return the newly allocated SDP
+*/
+GF_SDPInfo *gf_sdp_info_new();
+/*! destrucs an SDP info
   Memory Consideration: the destructors free all non-NULL string. You should therefore
   be carefull while (de-)assigning the strings. The function gf_sdp_info_parse() performs a complete
   reset of the GF_SDPInfo
+
+\param sdp the target SDP to destroy
 */
-/*constructor*/
-GF_SDPInfo *gf_sdp_info_new();
-/*destructor*/
 void gf_sdp_info_del(GF_SDPInfo *sdp);
-/*reset all structures (destroys substructure too)*/
+/*! resets all structures and destroys substructures too
+\param sdp the target SDP to destroy
+*/
 void gf_sdp_info_reset(GF_SDPInfo *sdp);
-/*Parses a memory SDP buffer*/
+/*! parses a memory SDP buffer
+\param sdp the target SDP to destroy
+\param sdp_text the encoded SDP buffer
+\param text_size sizeo if the encoded SDP buffer
+\return error if any
+*/
 GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size);
-/*check the consistency of the GF_SDPInfo*/
-GF_Err gf_sdp_info_check(GF_SDPInfo *sdp);
-/*write the SDP to a new buffer and returns it. Automatically checks the SDP before calling*/
-GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf);
 
 
-/*
-	Const/dest for GF_SDPMedia
+/*! creates a new SDP media
+\return the newly allocated SDP media
 */
 GF_SDPMedia *gf_sdp_media_new();
+/*! destroys an SDP media
+\param media the target SDP media
+*/
 void gf_sdp_media_del(GF_SDPMedia *media);
 
-/*
-	Const/dest for GF_SDPConnection
+/*! creates a new SDP connection
+\return the newly allocated SDP connection
 */
 GF_SDPConnection *gf_sdp_conn_new();
+/*! destroys an SDP connection
+\param conn the target SDP connection
+*/
 void gf_sdp_conn_del(GF_SDPConnection *conn);
 
-/*
-	Const/dest for SDP FMTP
+/*! creates a new SDP payload
+\return the newly allocated SDP payload
 */
 GF_SDP_FMTP *gf_sdp_fmtp_new();
+/*! destroys an SDP payload
+\param fmtp the target SDP payload
+*/
 void gf_sdp_fmtp_del(GF_SDP_FMTP *fmtp);
 
 
@@ -945,8 +1205,7 @@ void gf_sdp_fmtp_del(GF_SDP_FMTP *fmtp);
 	RTP packetizer
 */
 
-
-/*RTP<->SL mapping*/
+/*! Mapping between RTP and GPAC / MPEG-4 Systems SyncLayer */
 typedef struct
 {
 	/*1 - required options*/
@@ -955,7 +1214,7 @@ typedef struct
 	char mode[30];
 
 	/*config of the stream if carried in SDP*/
-	char *config;
+	u8 *config;
 	u32 configSize;
 	/* Stream Type*/
 	u8 StreamType;
@@ -964,7 +1223,7 @@ typedef struct
 
 	/*rvc config of the stream if carried in SDP*/
 	u16 rvc_predef;
-	char *rvc_config;
+	u8 *rvc_config;
 	u32 rvc_config_size;
 
 	/*2 - optional options*/
@@ -974,8 +1233,8 @@ typedef struct
 	/*duration of AUs if constant, in RTP timescale*/
 	u32 ConstantDuration;
 
-	/* Object Type Indication */
-	u8 ObjectTypeIndication;
+	/* CodecID */
+	u32 CodecID;
 	/*audio max displacement when interleaving (eg, de-interleaving window buffer max length) in RTP timescale*/
 	u32 maxDisplacement;
 	/*de-interleaveBufferSize if not recomputable from maxDisplacement*/
@@ -1008,11 +1267,12 @@ typedef struct
 	/*internal stuff*/
 	/*len of first AU header in an RTP payload*/
 	u32 auh_first_min_len;
+	/*len of non-first AU header in an RTP payload*/
 	u32 auh_min_len;
 } GP_RTPSLMap;
 
 
-/*packetizer config flags - some flags are dynamically re-assigned when detecting multiSL / B-Frames / ...*/
+/*! packetizer config flags - some flags are dynamically re-assigned when detecting multiSL / B-Frames / ...*/
 enum
 {
 	/*forces MPEG-4 generic transport if MPEG-4 systems mapping is available*/
@@ -1059,19 +1319,66 @@ enum
 		Generic packetization tools - used by track hinters and future live tools
 */
 
-/*currently supported payload types*/
+/*! Supported payload types*/
 enum
 {
-	/*not defined*/
-	GF_RTP_PAYT_UNKNOWN,
-	/*use generic MPEG-4 transport - RFC 3016 and RFC 3640*/
-	GF_RTP_PAYT_MPEG4,
-	/*use generic MPEG-1/2 video transport - RFC 2250*/
-	GF_RTP_PAYT_MPEG12_VIDEO,
+	/*assigned payload types*/
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_PCMU = 0,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_GSM,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G723,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_DVI4_8K,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_DVI4_16K,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_LPC,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_PCMA,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G722,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_L16_STEREO,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_L16_MONO,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_QCELP_BASIC,
+	/*cf RFC 3389*/
+	GF_RTP_PAYT_CN,
 	/*use generic MPEG-1/2 audio transport - RFC 2250*/
 	GF_RTP_PAYT_MPEG12_AUDIO,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G728,
+	GF_RTP_PAYT_DVI4_11K,
+	GF_RTP_PAYT_DVI4_22K,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_G729,
+	/*cf RFC 2029*/
+	GF_RTP_PAYT_CelB = 25,
+	/*cf RFC 2435*/
+	GF_RTP_PAYT_JPEG = 26,
+	/*cf RFC 3551*/
+	GF_RTP_PAYT_nv = 28,
+	/*cf RFC 4587*/
+	GF_RTP_PAYT_H261 = 31,
+	/* generic MPEG-1/2 video transport - RFC 2250*/
+	GF_RTP_PAYT_MPEG12_VIDEO = 32,
+	/*MPEG-2 TS - RFC 2250*/
+	GF_RTP_PAYT_MP2T = 33,
 	/*use H263 transport - RFC 2429*/
-	GF_RTP_PAYT_H263,
+	GF_RTP_PAYT_H263 = 34,
+
+	GF_RTP_PAYT_LAST_STATIC_DEFINED = 35,
+
+	/*not defined*/
+	GF_RTP_PAYT_UNKNOWN = 128,
+
+	/*internal types for all dynamic payloads*/
+
+	/*use generic MPEG-4 transport - RFC 3016 and RFC 3640*/
+	GF_RTP_PAYT_MPEG4,
 	/*use AMR transport - RFC 3267*/
 	GF_RTP_PAYT_AMR,
 	/*use AMR-WB transport - RFC 3267*/
@@ -1086,15 +1393,17 @@ enum
 	GF_RTP_PAYT_H264_AVC,
 	/*use LATM for AAC-LC*/
 	GF_RTP_PAYT_LATM,
-	/*use 3GPP DIMS format*/
-	GF_RTP_PAYT_3GPP_DIMS,
 	/*use AC3 audio format*/
 	GF_RTP_PAYT_AC3,
 	/*use H264-SVC transport*/
 	GF_RTP_PAYT_H264_SVC,
 	/*use HEVC/H265 transport - no RFC yet, only draft*/
 	GF_RTP_PAYT_HEVC,
-	GF_RTP_PAYT_LHVC
+	GF_RTP_PAYT_LHVC,
+#if GPAC_ENABLE_3GPP_DIMS_RTP
+	/*use 3GPP DIMS format*/
+	GF_RTP_PAYT_3GPP_DIMS,
+#endif
 };
 
 
@@ -1104,117 +1413,26 @@ enum
 */
 
 
-
-/*
-		RTP -> SL packetization tool
-	You should ONLY modify the GF_SLHeader while packetizing, all the rest is private
-	to the tool.
-	Also note that AU start/end is automatically updated, therefore you should only
-	set CTS-DTS-OCR-sequenceNumber (which is automatically incremented when splitting a payload)
-	-padding-idle infos
-	SL flags are computed on the fly, but you may wish to modify them in case of
-	packet drop/... at the encoder side
-
-*/
-struct __tag_rtp_packetizer
-{
-	/*input packet sl header cfg. modify only if needed*/
-	GF_SLHeader sl_header;
-
-	/*
-
-		PRIVATE _ DO NOT TOUCH
-	*/
-
-	/*RTP payload type (RFC type, NOT the RTP hdr payT)*/
-	u32 rtp_payt;
-	/*packetization flags*/
-	u32 flags;
-	/*Path MTU size without 12-bytes RTP header*/
-	u32 Path_MTU;
-	/*max packet duration in RTP TS*/
-	u32 max_ptime;
-
-	/*payload type of RTP packets - only one payload type can be used in GPAC*/
-	u8 PayloadType;
-
-	/*RTP header of current packet*/
-	GF_RTPHeader rtp_header;
-
-	/*RTP packet handling callbacks*/
-	void (*OnNewPacket)(void *cbk_obj, GF_RTPHeader *header);
-	void (*OnPacketDone)(void *cbk_obj, GF_RTPHeader *header);
-	void (*OnDataReference)(void *cbk_obj, u32 payload_size, u32 offset_from_orig);
-	void (*OnData)(void *cbk_obj, char *data, u32 data_size, Bool is_header);
-	void *cbk_obj;
-
-	/*********************************
-		MPEG-4 Generic hinting
-	*********************************/
-
-	/*SL to RTP map*/
-	GP_RTPSLMap slMap;
-	/*SL conf and state*/
-	GF_SLConfig sl_config;
-
-	/*set to 1 if firstSL in RTP packet*/
-	Bool first_sl_in_rtp;
-	Bool has_AU_header;
-	/*current info writers*/
-	GF_BitStream *pck_hdr, *payload;
-
-	/*AU SN of last au*/
-	u32 last_au_sn;
-
-	/*info for the current packet*/
-	u32 auh_size, bytesInPacket;
-
-	/*********************************
-			ISMACryp info
-	*********************************/
-	Bool force_flush, is_encrypted;
-	u64 IV, first_AU_IV;
-	char *key_indicator;
-
-	/*********************************
-			AVC-H264 info
-	*********************************/
-	/*AVC non-IDR flag: set if all NAL in current packet are non-IDR (disposable)*/
-	Bool avc_non_idr;
-
-	/*********************************
-			AC3 info
-	*********************************/
-	/*ac3 ft flags*/
-	u8 ac3_ft;
-
-	/*********************************
-			HEVC-H265 info
-	*********************************/
-	/*HEVC Payload Header. It will be use in case of Aggreation Packet where we must add payload header for packet after having added of NALU to AP*/
-	char hevc_payload_hdr[2];
-};
-
-/*generic rtp builder (packetizer)*/
+/*! RTP builder (packetizer)*/
 typedef struct __tag_rtp_packetizer GP_RTPPacketizer;
 
-/*creates a new builder
-	@rtp_payt: rtp payload format, one of the above GF_RTP_PAYT_*
-	@flags: packetizer flags, one of the above GP_RTP_PCK_*
-	@slc: user-given SL config to use. If none specified, default RFC config is used
-	@cbk_obj: callback object passed back in functions
-	@OnNewPacket: callback function starting new RTP packet
-		@header: rtp header for new packet - note that RTP header flags are not used until PacketDone is called
-	@OnPacketDone: callback function closing current RTP packet
-		@header: final rtp header for packet
-	@OnDataReference: optional, to call each time data from input buffer is added to current RTP packet.
+/*! creates a new builder
+\param rtp_payt rtp payload format, one of the above GF_RTP_PAYT_*
+\param slc user-given SL config to use. If none specified, default RFC config is used
+\param flags packetizer flags, one of the above GP_RTP_PCK_*
+\param cbk_obj callback object passed back in functions
+\param OnNewPacket callback function starting new RTP packet
+		header: rtp header for new packet - note that RTP header flags are not used until PacketDone is called
+\param OnPacketDone callback function closing current RTP packet
+		header: final rtp header for packet
+\param OnDataReference optional, to call each time data from input buffer is added to current RTP packet.
 		If not set, data must be added through OnData
-		@payload_size: size of reference data
-		@offset_from_orig: start offset in input buffer
-	@OnData: to call each time data is added to current RTP packet (either extra data from payload or
+		payload_size: size of reference data
+		offset_from_orig: start offset in input buffer
+\param OnData to call each time data is added to current RTP packet (either extra data from payload or
 		data from input when not using referencing)
-		@is_head: signal the data added MUST be inserted at the beginning of the payload. Otherwise data
-		is concatenated as received
+		is_head: signal the data added MUST be inserted at the beginning of the payload. Otherwise data is concatenated as received
+\return a new RTP packetizer object
 */
 GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt,
                                      GF_SLConfig *slc,
@@ -1223,23 +1441,27 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt,
                                      void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
                                      void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
                                      void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-                                     void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head)
+                                     void (*OnData)(void *cbk, u8 *data, u32 data_size, Bool is_head)
                                     );
 
-/*destroy builder*/
+/*! destroys an RTP packetizer
+\param builder the target RTP packetizer
+*/
 void gf_rtp_builder_del(GP_RTPPacketizer *builder);
 
-/*
-		init the builder
-	@MaxPayloadSize: maximum payload size of RTP packets (eg MTU minus IP/UDP/RTP headers)
-	@max_ptime: maximum packet duration IN RTP TIMESCALE
-	@StreamType: MPEG-4 system stream type - MUST always be provided for payloads format specifying
+/*! inits the RTP packetizer
+\param builder the target RTP packetizer
+\param PayloadType the payload type to use
+\param MaxPayloadSize maximum payload size of RTP packets (eg MTU minus IP/UDP/RTP headers)
+\param max_ptime maximum packet duration IN RTP TIMESCALE
+\param StreamType MPEG-4 system stream type - MUST always be provided for payloads format specifying
 		audio or video streams
-	@OTI : MPEG-4 system objectTypeIndication - may be 0 if stream is not mpeg4 systems
+\param codecid ID of the media codec
+\param PL_ID profile and level identifier for the stream
 
-			*** all other params are for MultiSL draft ***
+			*** all other params are for RFC 3640 ***
 
-	  @avgSize: average size of an AU. This is not always known (real-time encoding).
+\param avgSize average size of an AU. This is not always known (real-time encoding).
 In this case you should specify a rough compute indicating how many packets could be
 stored per RTP packet. for ex AAC stereo at 44100 k / 64kbps , one AU ~= 380 bytes
 so 3 AUs for 1500 MTU is ok - BE CAREFULL: MultiSL adds some SL info on top of the 12
@@ -1250,42 +1472,58 @@ will still be worth it.
 	-Nota: at init, the packetizer can decide to switch to SingleSL if the average size
 specified is too close to the PathMTU
 
-	@maxSize: max size of an AU. If unknown (real-time) set to 0
-	@avgTS: average CTS progression (1000/FPS for video)
-	@maxDTS: maximum DTS offset in case of bidirectional coding.
-	@IV_length: size (in bytes) of IV when ISMACrypted
-	@KI_length: size (in bytes) of key indicator when ISMACrypted
-	@pref_mode: MPEG-4 generic only, specifies the payload mode - can be NULL (mode generic)
+\param maxSize max size of an AU. If unknown (real-time) set to 0
+\param avgTS average CTS progression (1000/FPS for video)
+\param maxDTS maximum DTS offset in case of bidirectional coding.
+\param IV_length size (in bytes) of IV when ISMACrypted
+\param KI_length size (in bytes) of key indicator when ISMACrypted
+\param pref_mode MPEG-4 generic only, specifies the payload mode - can be NULL (mode generic)
 */
-
 void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 MaxPayloadSize, u32 max_ptime,
-                         u32 StreamType, u32 OTI, u32 PL_ID,
+                         u32 StreamType, u32 codecid, u32 PL_ID,
                          u32 avgSize, u32 maxSize,
                          u32 avgTS, u32 maxDTS,
                          u32 IV_length, u32 KI_length,
                          char *pref_mode);
 
-/*set frame crypto info*/
-void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_indicator, Bool is_encrypted);
-/*packetize input buffer
-@data, @data_size: input buffer
-@IsAUEnd: set to one if this buffer is the last of the AU
-@FullAUSize: complete access unit size if known, 0 otherwise
-@duration: sample duration in rtp timescale (only needed for 3GPP text streams)
-@descIndex: sample description index (only needed for 3GPP text streams)
+/*! sets frame crypto info (ISMA E&A) for frame starting in next RTP packet
+\param builder the target RTP packetizer
+\param IV initialization vector
+\param key_indicator key indicator
+\param is_encrypted encrypted flag
 */
-GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
+void gf_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_indicator, Bool is_encrypted);
+/*! packetizes input buffer
+\param builder the target RTP packetizer
+\param data input buffer
+\param data_size input buffer size
+\param IsAUEnd set to one if this buffer is the last of the AU
+\param FullAUSize complete access unit size if known, 0 otherwise
+\param duration sample duration in rtp timescale (mostly needed for 3GPP text streams)
+\param descIndex sample description index (mostly needed for 3GPP text streams)
+\return error if any
+*/
+GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
 
-/*format the "fmtp: " attribute for the MPEG-4 generic packetizer. sdpline shall be at least 2000 char*/
-GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size);
-/*formats SDP payload name and media name - both MUST be at least 20 bytes*/
-Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *builder, char *szPayloadName, char *szMediaName);
+/*! formats the "fmtp: " attribute for the MPEG-4 generic packetizer. sdpline shall be at least 2000 char
+\param builder the target RTP packetizer
+\param payload_name name of the payload to use (profile of RFC 3640)
+\param sdp_line SDP line buffer to fill
+\param dsi decoder config of stream if any, or NULL
+\param dsi_size size of the decoder config
+\return error if any
+*/
+GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdp_line, char *dsi, u32 dsi_size);
+/*! formats SDP payload name and media name
+\param builder the target RTP packetizer
+\param payload_name the buffer to fill with the payload name
+\param media_name the buffer to fill with the payload name
+\return GF_TRUE if success, GF_FALSE otherwise
+*/
+Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *builder, char payload_name[20], char media_name[20]);
 
 
-
-
-
-/*rtp payload flags*/
+/*! rtp payload flags*/
 enum
 {
 	/*AU end was detected (eg next packet is AU start)*/
@@ -1294,8 +1532,6 @@ enum
 	GF_RTP_AMR_ALIGN = (1<<1),
 	/*for RFC3016, signals bitstream inspection for RAP discovery*/
 	GF_RTP_M4V_CHECK_RAP = (1<<2),
-	/*flag set when unreliable usage of the M bit is detected*/
-	GF_RTP_UNRELIABLE_M = (1<<3),
 
 	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
 	GF_RTP_AVC_WAIT_RAP = (1<<4),
@@ -1307,55 +1543,53 @@ enum
 	GF_RTP_AVC_USE_ANNEX_B = (1<<8)
 };
 
-/*
-		SL -> RTP packetization tool
-
-*/
-struct __tag_rtp_depacketizer
-{
-	/*depacketize routine*/
-	void (*depacketize)(struct __tag_rtp_depacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size);
-
-	/*output packet sl header cfg*/
-	GF_SLHeader sl_hdr;
-
-	/*RTP payload type (RFC type, NOT the RTP hdr payT)*/
-	u32 payt;
-	/*depacketization flags*/
-	u32 flags;
-
-	/*callback routine*/
-	void (*on_sl_packet)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e);
-	void *udta;
-
-	/*SL <-> RTP map*/
-	GP_RTPSLMap sl_map;
+/*! Static RTP map definition, for static payload types*/
+typedef struct rtp_static_payt {
+	u32 fmt;
 	u32 clock_rate;
+	u32 stream_type;
+	u32 codec_id;
+	const char *mime;
+} GF_RTPStaticMap;
 
-	/*inter-packet reconstruction bitstream (for 3GP text and H264)*/
-	GF_BitStream *inter_bs;
 
-	/*H264/AVC config*/
-	u32 h264_pck_mode;
+/*! RTP depacketizer callback
+\param udta opaque user data
+\param payload depacketized payload data
+\param size payload size
+\param hdr MPEG-4 Sync Layer structure for the payload (with AU start/end flag, timestamps, etc)
+\param e error if any
+*/
+typedef void (*gf_rtp_packet_cbk)(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e);
 
-	/*3GP text reassembler state*/
-	u8 nb_txt_frag, cur_txt_frag, sidx, txt_len, nb_mod_frag;
 
-	/*ISMACryp*/
-	u32 isma_scheme;
-	char *key;
-};
 
-/*generic rtp builder (packetizer)*/
+/*! RTP parser (depacketizer)*/
 typedef struct __tag_rtp_depacketizer GF_RTPDepacketizer;
 
-GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta);
-void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp);
-void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtp, Bool full_reset);
-void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size);
-
-void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *sl);
-
+/*! creates a new depacketizer
+\param media the SDP media structure describing the RTP stream - can be NULL for static payload types
+\param hdr_payt the static RTP payload type when no SDP is used
+\param sl_packet_cbk callback function of the depacketizer to retrieves payload
+\param udta opaque data for the callback function
+\return a newly allocated RTP depacketizer, or NULL if not supported*/
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf_rtp_packet_cbk sl_packet_cbk, void *udta);
+/*! destroys an RTP depacketizer
+\param rtpd the target RTP depacketizer
+*/
+void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtpd);
+/*! resets an RTP depacketizer, assuming next packet should be an AU start
+\param rtpd the target RTP depacketizer
+\param full_reset if set, completely reset the SL header
+*/
+void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtpd, Bool full_reset);
+/*! process an RTP depacketizer
+\param rtpd the target RTP depacketizer
+\param hdr the RTP packet header
+\param payload the RTP packet payload
+\param size the RTP packet payload size
+*/
+void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtpd, GF_RTPHeader *hdr, u8 *payload, u32 size);
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

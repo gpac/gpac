@@ -207,7 +207,7 @@ static char * eat_buffer_to_bs(char * data, int newStart, int upToPosition, int 
 GF_Err PNC_processBIFSGenerator(PNC_CallbackData * data)
 {
 	const int tmpBufferSize = 2048;
-	char *tmpBuffer = (char*)alloca(tmpBufferSize);
+	char *tmpBuffer = (char*)malloc(tmpBufferSize);
 	int byteRead=0;
 
 	char *bsBuffer;
@@ -219,6 +219,7 @@ GF_Err PNC_processBIFSGenerator(PNC_CallbackData * data)
 		data->socket = NULL;
 		e = gf_sk_accept(data->server_socket, &(data->socket));
 		if (e) {
+			free(tmpBuffer);
 			return GF_OK;
 		} else {
 			dprintf(DEBUG_RTP_serv_generator, "New TCP client connected !\n");

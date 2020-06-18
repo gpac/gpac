@@ -27,7 +27,18 @@
 #ifndef _GF_CONFIG_H_
 #define _GF_CONFIG_H_
 
+/*!
+\addtogroup setup_grp
+\brief Base data types
+
+This section documents the base data types of GPAC.
+
+@{
+*/
+
 #define GPAC_CONFIGURATION "(static configuration file)"
+
+
 
 /*this file defines all common macros for libgpac compilation
   except for symbian32 which uses .mmp directives ... */
@@ -39,9 +50,21 @@
 
 #define GPAC_HAS_SSL
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
+//codecs  
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
+#define GPAC_HAS_LIBA52
+#define GPAC_HAS_FAAD
+#define GPAC_HAS_JP2
+#define GPAC_HAS_MAD
+#define GPAC_HAS_OPENHEVC
+#define GPAC_HAS_OPENSVC
+#define GPAC_HAS_THEORA
+#define GPAC_HAS_VORBIS
+#define GPAC_HAS_XVID
+#define GPAC_HAS_FFMPEG
+#define GPAC_HAS_DTAPI
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 
@@ -51,6 +74,11 @@
 //#define GPAC_HAS_IPV6
 
 #define GPAC_HAS_GLU
+
+#ifndef GPAC_CONFIG_WIN32
+#define GPAC_CONFIG_WIN32
+#endif //GPAC_CONFIG_WIN32
+
 
 #endif /*GPAC_MP4BOX_MINI*/
 
@@ -75,7 +103,7 @@
 #endif
 
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
@@ -86,47 +114,48 @@
 /*Configuration for Android */
 #elif defined(GPAC_CONFIG_ANDROID)
 
-#ifndef GPAC_ANDROID
-#define GPAC_ANDROID
-#endif
-
 #define GPAC_HAS_IPV6
 #define GPAC_USE_GLES1X
 /*don't use fixed-point version on Android, not needed*/
 //#define GPAC_FIXED_POINT
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
 /*Configuration for XCode OSX (not iOS) */
-#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
 
 #define GPAC_HAS_IPV6
 #define GPAC_HAS_SSL
+#define GPAC_HAS_SOCK_UN
 
 //64-bits OSX
 #ifdef __LP64__
+/*! macro defined for 64-bits platforms*/
 #define GPAC_64_BITS
 #endif
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_GLU
 
 #define GPAC_MEMORY_TRACKING
+
 /*Configuration for XCode iOS*/
-#elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
+#elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_CONFIG_IOS)
 
 //64-bits iOS
 #ifdef __LP64__
+/*! macro defined for 64-bits platforms*/
 #define GPAC_64_BITS
 #endif
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
+#define GPAC_HAS_SOCK_UN
 
 /*don't use fixed-point version on iOS, not needed*/
 //#define GPAC_FIXED_POINT
@@ -146,7 +175,7 @@
 
 #define GPAC_HAS_IPV6
 #define GPAC_HAS_SSL
-
+#define GPAC_DISABLE_OGG
 
 /*Configuration for Symbian*/
 #elif defined(__SYMBIAN32__)
@@ -155,7 +184,7 @@
 #define GPAC_FIXED_POINT
 #endif
 
-#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
@@ -189,7 +218,8 @@
 /*disables X3D scene graphs*/
 //#define GPAC_DISABLE_X3D
 
-/*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed*/
+/*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed
+this macro is currently defined in setup.h */
 //#define GPAC_MINIMAL_ODF
 
 /*disables BIFS coding*/
@@ -199,7 +229,7 @@
 //#define GPAC_DISABLE_LASER
 //#define GPAC_DISABLE_SAF
 
-/*disables BIFS Engine support - TODO - merge DIMS and LASeR into BENG and rename it*/
+/*disables BIFS Engine support*/
 //#define GPAC_DISABLE_SENG
 
 /*disables Cubic QTVR importing*/
@@ -247,8 +277,8 @@
 /*disables XMTA/X3D -> scene decoder*/
 //#define GPAC_DISABLE_LOADER_XMT
 
-/*disables mcrypt*/
-//#define GPAC_DISABLE_MCRYPT
+/*disables crypto tools*/
+//#define GPAC_DISABLE_CRYPTO
 
 /*disables all ISO FF*/
 //#define GPAC_DISABLE_ISOM
@@ -295,9 +325,14 @@
 /*disables HEVC */
 //#define GPAC_DISABLE_HEVC
 
+/*disables AOM AV1 */
+//#define GPAC_DISABLE_AV1
+
 /*disables VOBSUB */
 //#define GPAC_DISABLE_VOBSUB
 
+
+/*! @} */
 
 #endif		/*_GF_CONFIG_H_*/
 

@@ -72,6 +72,7 @@ GF_Err gf_odf_parse_command(GF_BitStream *bs, GF_ODCom **com, u32 *com_size)
 	return err;
 }
 
+#ifndef GPAC_MINIMAL_ODF
 
 GF_ODCom *gf_odf_new_base_command()
 {
@@ -118,6 +119,7 @@ GF_Err gf_odf_write_base_command(GF_BitStream *bs, GF_BaseODCom *bcRem)
 	gf_bs_write_data(bs, bcRem->data, bcRem->dataSize);
 	return GF_OK;
 }
+#endif
 
 GF_ODCom *gf_odf_new_od_remove()
 {
@@ -160,7 +162,6 @@ GF_Err gf_odf_size_od_remove(GF_ODRemove *odRem, u32 *outSize)
 	if (!odRem) return GF_BAD_PARAM;
 
 	size = 10 * odRem->NbODs;
-	*outSize = 0;
 	*outSize = size/8;
 	if (*outSize * 8 != size) *outSize += 1;
 	return GF_OK;
@@ -279,7 +280,7 @@ GF_Err gf_odf_write_od_update(GF_BitStream *bs, GF_ODUpdate *odUp)
 
 	e = gf_odf_size_od_update(odUp, &size);
 	if (e) return e;
-	gf_odf_write_base_descriptor(bs, odUp->tag, size);
+	e = gf_odf_write_base_descriptor(bs, odUp->tag, size);
 	if (e) return e;
 
 	i=0;
@@ -486,6 +487,7 @@ GF_Err gf_odf_write_esd_remove(GF_BitStream *bs, GF_ESDRemove *esdRem)
 	return GF_OK;
 }
 
+#ifndef GPAC_MINIMAL_ODF
 
 GF_ODCom *gf_odf_new_ipmp_remove()
 {
@@ -651,3 +653,5 @@ GF_Err gf_odf_write_ipmp_update(GF_BitStream *bs, GF_IPMPUpdate *ipmpUp)
 	gf_bs_align(bs);
 	return GF_OK;
 }
+#endif
+

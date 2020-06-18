@@ -43,7 +43,7 @@ possible usages:
 			<li><i>core</i> : libgpac core</li>
 			<li><i>coding</i> : bitstream formats (audio, video, scene)</li>
 			<li><i>container</i> : container formats (ISO File, MPEG-2 TS, AVI, ...)</li>
-			<li><i>network</i> : network data exept RTP trafic</li>
+			<li><i>network</i> : network data except RTP trafic</li>
 			<li><i>rtp</i> : rtp, rtcp and rtsp trafic</li>
 			<li><i>author</i> : authoring tools (hint, import, export)</li>
 			<li><i>sync</i> : terminal sync layer</li>

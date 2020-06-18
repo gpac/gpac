@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / modules interfaces
@@ -77,8 +77,6 @@ enum
 
 	/*HW supports line blitting*/
 	GF_VIDEO_HW_HAS_LINE_BLIT = (1<<15),
-	/*HW supports locking a surface by device context (Win32 only)*/
-	GF_VIDEO_HW_HAS_HWND_HDC	= (1<<16),
 	/*HW only supports direct rendering mode*/
 	GF_VIDEO_HW_DIRECT_ONLY	= (1<<17),
 };
@@ -92,7 +90,7 @@ typedef struct
 typedef struct _gf_sc_texture_handler GF_TextureH;
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','1')
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','5')
 
 /*
 			video output interface
@@ -222,7 +220,7 @@ typedef struct _video_out
 	/*maximum pixel disparity*/
 	u32 disparity;
 	/*nominal display viewing distance in cm*/
-	Fixed view_distance;
+	Fixed dispdist;
 
 	/*driver private*/
 	void *opaque;

@@ -33,9 +33,8 @@
 
 GF_Err visual_2d_init_raster(GF_VisualManager *visual)
 {
-	GF_Raster2D *raster = visual->compositor->rasterizer;
 	if (!visual->raster_surface) {
-		visual->raster_surface = raster->surface_new(raster, visual->center_coords);
+		visual->raster_surface = gf_evg_surface_new(visual->center_coords);
 		if (!visual->raster_surface) return GF_IO_ERR;
 	}
 	return visual->GetSurfaceAccess(visual);
@@ -44,9 +43,6 @@ GF_Err visual_2d_init_raster(GF_VisualManager *visual)
 void visual_2d_release_raster(GF_VisualManager *visual)
 {
 	if (visual->raster_surface) {
-		if (visual->compositor->rasterizer->surface_flush)
-			visual->compositor->rasterizer->surface_flush(visual->raster_surface);
-
 		visual->ReleaseSurfaceAccess(visual);
 	}
 }
@@ -59,20 +55,19 @@ void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackCol
 #endif
 	if (! visual->CheckAttached(visual) ) return;
 
-	if (!BackColor && !visual->offscreen) {
-		if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+	if (!BackColor && !visual->offscreen && !visual->compositor->dyn_filter_mode) {
+		if ( !(visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
 			BackColor = visual->compositor->back_color;
 		}
 	}
 
-	visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
+	gf_evg_surface_clear(visual->raster_surface, rc, BackColor);
 }
 
 static void draw_clipper(GF_VisualManager *visual, struct _drawable_context *ctx)
 {
 	GF_PenSettings clipset;
 	GF_Path *clippath, *cliper;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
 
 	if (ctx->flags & CTX_IS_BACKGROUND) return;
 
@@ -83,30 +78,29 @@ static void draw_clipper(GF_VisualManager *visual, struct _drawable_context *ctx
 	gf_path_add_rect_center(clippath, ctx->bi->unclip.x + ctx->bi->unclip.width/2, ctx->bi->unclip.y - ctx->bi->unclip.height/2, ctx->bi->unclip.width, ctx->bi->unclip.height);
 	cliper = gf_path_get_outline(clippath, clipset);
 	gf_path_del(clippath);
-	raster->surface_set_matrix(visual->raster_surface, NULL);
-	raster->surface_set_clipper(visual->raster_surface, NULL);
-	raster->surface_set_path(visual->raster_surface, cliper);
-	raster->stencil_set_brush_color(visual->raster_brush, 0xFF000000);
-	raster->surface_fill(visual->raster_surface, visual->raster_brush);
+	gf_evg_surface_set_matrix(visual->raster_surface, NULL);
+	gf_evg_surface_set_clipper(visual->raster_surface, NULL);
+	gf_evg_surface_set_path(visual->raster_surface, cliper);
+	gf_evg_stencil_set_brush_color(visual->raster_brush, 0xFF000000);
+	gf_evg_surface_fill(visual->raster_surface, visual->raster_brush);
 	gf_path_del(cliper);
 }
 
-static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, GF_STENCIL stencil, GF_TraverseState *tr_state, Bool is_erase)
+static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, GF_EVGStencil * stencil, GF_TraverseState *tr_state, Bool is_erase)
 {
 	Bool has_modif = GF_FALSE;
 	GF_IRect clip;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
 
-	/*background & direct drawing : use ctx clip*/
-	if ((ctx->flags & CTX_IS_BACKGROUND) || tr_state->immediate_draw) {
+	/*direct drawing : use ctx clip*/
+	if (tr_state->immediate_draw) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s [%s] (direct draw)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node) ));
 
 			if (stencil) {
-				raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
-				raster->surface_fill(visual->raster_surface, stencil);
+				gf_evg_surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
+				gf_evg_surface_fill(visual->raster_surface, stencil);
 			} else {
-				raster->surface_clear(visual->raster_surface, &ctx->bi->clip, 0);
+				gf_evg_surface_clear(visual->raster_surface, &ctx->bi->clip, 0);
 			}
 
 			has_modif = GF_TRUE;
@@ -125,10 +119,10 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			if (clip.width && clip.height) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s [%s] (indirect draw @ dirty rect idx %d)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node), i));
 				if (stencil) {
-					raster->surface_set_clipper(visual->raster_surface, &clip);
-					raster->surface_fill(visual->raster_surface, stencil);
+					gf_evg_surface_set_clipper(visual->raster_surface, &clip);
+					gf_evg_surface_fill(visual->raster_surface, stencil);
 				} else {
-					raster->surface_clear(visual->raster_surface, &clip, 0);
+					gf_evg_surface_clear(visual->raster_surface, &clip, 0);
 				}
 				has_modif = 1;
 			}
@@ -147,26 +141,25 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	}
 }
 
-static void visual_2d_set_options(GF_Compositor *compositor, GF_SURFACE rend, Bool forText, Bool no_antialias)
+static void visual_2d_set_options(GF_Compositor *compositor, GF_EVGSurface *rend, Bool forText, Bool no_antialias)
 {
-	GF_Raster2D *raster = compositor->rasterizer;
 	if (no_antialias) {
-		raster->surface_set_raster_level(rend, GF_RASTER_HIGH_SPEED);
+		gf_evg_surface_set_raster_level(rend, GF_RASTER_HIGH_SPEED);
 	} else {
-		switch (compositor->antiAlias) {
+		switch (compositor->aa) {
 		case GF_ANTIALIAS_NONE:
-			raster->surface_set_raster_level(rend, GF_RASTER_HIGH_SPEED);
+			gf_evg_surface_set_raster_level(rend, GF_RASTER_HIGH_SPEED);
 			break;
 		case GF_ANTIALIAS_TEXT:
 			if (forText) {
-				raster->surface_set_raster_level(rend, GF_RASTER_HIGH_QUALITY);
+				gf_evg_surface_set_raster_level(rend, GF_RASTER_HIGH_QUALITY);
 			} else {
-				raster->surface_set_raster_level(rend, compositor->high_speed ? GF_RASTER_HIGH_QUALITY : GF_RASTER_MID);
+				gf_evg_surface_set_raster_level(rend, compositor->fast ? GF_RASTER_HIGH_QUALITY : GF_RASTER_MID);
 			}
 			break;
 		case GF_ANTIALIAS_FULL:
 		default:
-			raster->surface_set_raster_level(rend, GF_RASTER_HIGH_QUALITY);
+			gf_evg_surface_set_raster_level(rend, GF_RASTER_HIGH_QUALITY);
 			break;
 		}
 	}
@@ -228,9 +221,8 @@ static void visual_2d_get_texture_transform(GF_Node *__appear, GF_TextureHandler
 static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Matrix2D *ext_mx, GF_Rect *orig_bounds)
 {
 	GF_Rect rc;
-	GF_STENCIL stencil;
+	GF_EVGStencil * stencil;
 	GF_Matrix2D g_mat;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
 
 	if (!txh) txh = ctx->aspect.fill_texture;
 
@@ -259,21 +251,21 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 
 	gf_mx2d_add_matrix(&g_mat, &ctx->transform);
 
-	raster->stencil_set_matrix(stencil, &g_mat);
-	raster->stencil_set_color_matrix(stencil, ctx->col_mat);
+	gf_evg_stencil_set_matrix(stencil, &g_mat);
+	gf_evg_stencil_set_color_matrix(stencil, ctx->col_mat);
 
 	/*MPEG-4/VRML context or no fill info*/
 	if (ctx->flags & CTX_HAS_APPEARANCE || !ctx->aspect.fill_color)
-		raster->stencil_set_alpha(stencil, 0xFF);
+		gf_evg_stencil_set_alpha(stencil, 0xFF);
 	else
-		raster->stencil_set_alpha(stencil, GF_COL_A(ctx->aspect.fill_color) );
+		gf_evg_stencil_set_alpha(stencil, GF_COL_A(ctx->aspect.fill_color) );
 
-	raster->surface_set_matrix(visual->raster_surface, &ctx->transform);
+	gf_evg_surface_set_matrix(visual->raster_surface, &ctx->transform);
 	txh->flags |= GF_SR_TEXTURE_USED;
 
-	raster->surface_set_path(visual->raster_surface, path);
+	gf_evg_surface_set_path(visual->raster_surface, path);
 	visual_2d_fill_path(visual, ctx, stencil, tr_state, 0);
-	raster->surface_set_path(visual->raster_surface, NULL);
+	gf_evg_surface_set_path(visual->raster_surface, NULL);
 
 	ctx->flags |= CTX_PATH_FILLED;
 }
@@ -282,17 +274,15 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 
 void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh, GF_TraverseState *tr_state)
 {
-	GF_STENCIL stencil;
+	GF_EVGStencil * stencil;
 	Fixed sS, sT;
 	GF_Matrix2D gf_mx2d_txt;
 	GF_Rect orig_rc;
 	u8 alpha, r, g, b;
 	GF_ColorMatrix cmat;
-	GF_Raster2D *raster;
 
 	if (! visual->CheckAttached(visual) ) return;
 
-	raster = visual->compositor->rasterizer;
 
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
@@ -316,7 +306,7 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 	gf_mx2d_add_matrix(&gf_mx2d_txt, &txt_ctx->transform);
 
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
-	raster->stencil_set_matrix(stencil, &gf_mx2d_txt);
+	gf_evg_stencil_set_matrix(stencil, &gf_mx2d_txt);
 
 	alpha = GF_COL_A(txt_ctx->aspect.fill_color);
 	r = GF_COL_R(txt_ctx->aspect.fill_color);
@@ -325,26 +315,26 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 
 	/*if col do a cxmatrix*/
 	if (!r && !g && !b) {
-		raster->stencil_set_alpha(stencil, alpha);
+		gf_evg_stencil_set_alpha(stencil, alpha);
 	} else {
-		raster->stencil_set_alpha(stencil, 0xFF);
+		gf_evg_stencil_set_alpha(stencil, 0xFF);
 		memset(cmat.m, 0, sizeof(Fixed) * 20);
 		cmat.m[4] = INT2FIX(r)/255;
 		cmat.m[9] = INT2FIX(g)/255;
 		cmat.m[14] = INT2FIX(b)/255;
 		cmat.m[18] = INT2FIX(alpha)/255;
 		cmat.identity = 0;
-		raster->stencil_set_color_matrix(stencil, &cmat);
+		gf_evg_stencil_set_color_matrix(stencil, &cmat);
 	}
 
-	raster->surface_set_matrix(visual->raster_surface, &txt_ctx->transform);
+	gf_evg_surface_set_matrix(visual->raster_surface, &txt_ctx->transform);
 	txh->flags |= GF_SR_TEXTURE_USED;
 
 	/*push path*/
-	raster->surface_set_path(visual->raster_surface, path);
+	gf_evg_surface_set_path(visual->raster_surface, path);
 
 	visual_2d_fill_path(visual, txt_ctx, stencil, tr_state, 0);
-	raster->surface_set_path(visual->raster_surface, NULL);
+	gf_evg_surface_set_path(visual->raster_surface, NULL);
 	txt_ctx->flags |= CTX_PATH_FILLED;
 }
 
@@ -401,13 +391,13 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 			}
 			//immediate mode flush, erase all canvas (we just completely flusged it)
 			if (tr_state->immediate_draw && had_flush && !tr_state->immediate_for_defer) {
-				visual->compositor->rasterizer->surface_clear(visual->raster_surface, NULL, 0);
+				gf_evg_surface_clear(visual->raster_surface, NULL, 0);
 			}
 			//defer mode, erase all part of the canvas below us
 			else if (txh) {
 				visual_2d_draw_path_extended(visual, ctx->drawable->path, ctx, NULL, NULL, tr_state, NULL, NULL, GF_TRUE);
 			} else {
-				visual->compositor->rasterizer->surface_clear(visual->raster_surface, &ctx->bi->clip, 0);
+				gf_evg_surface_clear(visual->raster_surface, &ctx->bi->clip, 0);
 			}
 		}
 		ctx->bi->clip = rc;
@@ -428,7 +418,7 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state)
 {
 	GF_Rect clipper;
-	GF_Matrix mx;
+	GF_Matrix mx, bck_mx;
 	u32 prev_mode = tr_state->traversing_mode;
 	u32 prev_type_3d = tr_state->visual->type_3d;
 
@@ -437,6 +427,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	tr_state->visual->type_3d = 4;
 	tr_state->appear = ctx->appear;
 	if (ctx->col_mat) gf_cmx_copy(&tr_state->color_mat, ctx->col_mat);//
+	gf_mx_copy(bck_mx, tr_state->model_matrix);
 
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
 	//in hybridGL the 2D camera is always setup as centered-coords, we have to insert flip+translation in case of top-left origin 
@@ -467,6 +458,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	ctx->flags |= CTX_PATH_FILLED;
 
 	visual_3d_reset_clipper_2d(tr_state->visual);
+	gf_mx_copy(tr_state->model_matrix, bck_mx);
 }
 #endif
 
@@ -475,18 +467,15 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 {
 	Fixed sS, sT;
 	u32 tx_tile;
-	GF_STENCIL tx_raster;
+	GF_EVGStencil * tx_raster;
 	GF_Matrix2D mx_texture;
 	GF_Rect orig_rc;
-	GF_Raster2D *raster;
 
 	if (! visual->CheckAttached(visual) ) return;
 
-	raster = visual->compositor->rasterizer;
-
 	if (!txh) txh = ctx->aspect.fill_texture;
 	if (!txh) return;
-	if (!txh->tx_io) {
+	if (!txh->tx_io && !txh->data) {
 		gf_node_dirty_set(txh->owner, 0, 1);
 
 		txh->needs_refresh=1;
@@ -519,17 +508,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 			gf_node_dirty_set(ctx->drawable->node, GF_SG_NODE_DIRTY, 1);
 		}
 
-		if (compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL)) {
-			if (txh->stream && gf_mo_set_position(txh->stream, &src, &dst)) {
-				gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
-				/*force dirty flag to get called again*/
-				gf_node_dirty_set(ctx->drawable->node, GF_SG_NODE_DIRTY, 1);
-				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
-			}
-		}
-
-
-
+		compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL);
 		return;
 	}
 
@@ -571,33 +550,33 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) gf_mx2d_add_matrix(&mx_texture, &ctx->transform);
 
 	/*set path transform*/
-	raster->stencil_set_matrix(tx_raster, &mx_texture);
+	gf_evg_stencil_set_matrix(tx_raster, &mx_texture);
 
 
 	tx_tile = 0;
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_S) tx_tile |= GF_TEXTURE_REPEAT_S;
 	if (txh->flags & GF_SR_TEXTURE_REPEAT_T) tx_tile |= GF_TEXTURE_REPEAT_T;
 	if (ctx->flags & CTX_FLIPED_COORDS)
-		tx_tile |= GF_TEXTURE_FLIP;
-	raster->stencil_set_tiling(tx_raster, (GF_TextureTiling) tx_tile);
+		tx_tile |= GF_TEXTURE_FLIP_Y;
+	gf_evg_stencil_set_mapping(tx_raster, (GF_TextureMapFlags) tx_tile);
 
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) {
 		u8 a = GF_COL_A(ctx->aspect.fill_color);
 		if (!a) a = GF_COL_A(ctx->aspect.line_color);
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/
-		raster->stencil_set_alpha(tx_raster, a );
-		raster->stencil_set_color_matrix(tx_raster, ctx->col_mat);
+		gf_evg_stencil_set_alpha(tx_raster, a );
+		gf_evg_stencil_set_color_matrix(tx_raster, ctx->col_mat);
 
-		raster->surface_set_matrix(visual->raster_surface, &ctx->transform);
+		gf_evg_surface_set_matrix(visual->raster_surface, &ctx->transform);
 	} else {
-		raster->surface_set_matrix(visual->raster_surface, NULL);
+		gf_evg_surface_set_matrix(visual->raster_surface, NULL);
 	}
 	txh->flags |= GF_SR_TEXTURE_USED;
 
 	/*push path & draw*/
-	raster->surface_set_path(visual->raster_surface, path);
+	gf_evg_surface_set_path(visual->raster_surface, path);
 	visual_2d_fill_path(visual, ctx, tx_raster, tr_state, 0);
-	raster->surface_set_path(visual->raster_surface, NULL);
+	gf_evg_surface_set_path(visual->raster_surface, NULL);
 
 
 
@@ -628,17 +607,16 @@ void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, struct _dra
 #define ADAPTATION_SIZE		0
 
 
-void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen, GF_TraverseState *tr_state, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, Bool is_erase)
+void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_EVGStencil * brush, GF_EVGStencil * pen, GF_TraverseState *tr_state, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, Bool is_erase)
 {
 	Bool dofill, dostrike;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
 #ifdef SKIP_DRAW
 	return;
 #endif
 	if (! visual->CheckAttached(visual) ) return;
 
 	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
-		if (visual->compositor->draw_bvol) draw_clipper(visual, ctx);
+		if (visual->compositor->bvol) draw_clipper(visual, ctx);
 		return;
 	}
 
@@ -650,7 +628,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 		dofill = 1;
 		if (!brush) {
 			brush = visual->raster_brush;
-			raster->stencil_set_brush_color(brush, ctx->aspect.fill_color);
+			gf_evg_stencil_set_brush_color(brush, ctx->aspect.fill_color);
 		}
 	}
 
@@ -663,20 +641,20 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 	}
 
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
-	raster->surface_set_matrix(visual->raster_surface, (ctx->flags & CTX_IS_BACKGROUND) ? NULL : &ctx->transform);
+	gf_evg_surface_set_matrix(visual->raster_surface, (ctx->flags & CTX_IS_BACKGROUND) ? NULL : &ctx->transform);
 
 	/*fill path*/
 	if (dofill) {
 #if ADAPTATION_SIZE
 		if ((ctx->bi->clip.width<ADAPTATION_SIZE) && (ctx->bi->clip.height<ADAPTATION_SIZE)) {
-			raster->surface_clear(visual->raster_surface, &ctx->bi->clip, ctx->aspect.fill_color);
+			gf_evg_surface_clear(visual->raster_surface, &ctx->bi->clip, ctx->aspect.fill_color);
 		} else
 #endif
 		{
 			/*push path*/
-			raster->surface_set_path(visual->raster_surface, path);
+			gf_evg_surface_set_path(visual->raster_surface, path);
 			visual_2d_fill_path(visual, ctx, brush, tr_state, is_erase);
-			raster->surface_set_path(visual->raster_surface, NULL);
+			gf_evg_surface_set_path(visual->raster_surface, NULL);
 		}
 	}
 
@@ -690,7 +668,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 
 			if (!pen) {
 				pen = visual->raster_brush;
-				raster->stencil_set_brush_color(pen, ctx->aspect.line_color);
+				gf_evg_stencil_set_brush_color(pen, ctx->aspect.line_color);
 			}
 
 			si = drawable_get_strikeinfo(visual->compositor, ctx->drawable, &ctx->aspect, ctx->appear, path, ctx->flags, NULL);
@@ -698,7 +676,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 				if (ctx->aspect.line_texture) {
 					visual_2d_texture_path_extended(visual, si->outline, ctx->aspect.line_texture, ctx, orig_bounds, ext_mx, tr_state);
 				} else {
-					raster->surface_set_path(visual->raster_surface, si->outline);
+					gf_evg_surface_set_path(visual->raster_surface, si->outline);
 					visual_2d_fill_path(visual, ctx, pen, tr_state, 0);
 				}
 				/*that's ugly, but we cannot cache path outline for IFS2D/ILS2D*/
@@ -711,10 +689,10 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 		}
 	}
 
-	if (visual->compositor->draw_bvol) draw_clipper(visual, ctx);
+	if (visual->compositor->bvol) draw_clipper(visual, ctx);
 }
 
-void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen, GF_TraverseState *tr_state)
+void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_EVGStencil * brush, GF_EVGStencil * pen, GF_TraverseState *tr_state)
 {
 	visual_2d_draw_path_extended(visual, path, ctx, brush, pen, tr_state, NULL, NULL, GF_FALSE);
 }
@@ -723,7 +701,6 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 {
 	GF_Path *path;
 	GF_Rect *rc;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
 #ifdef SKIP_DRAW
 	return;
 #endif
@@ -733,7 +710,7 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 	if (!color && !strike_color) return;
 
 	if ((ctx->flags & CTX_PATH_FILLED) && (ctx->flags & CTX_PATH_STROKE) ) {
-		if (visual->compositor->draw_bvol) draw_clipper(visual, ctx);
+		if (visual->compositor->bvol) draw_clipper(visual, ctx);
 		return;
 	}
 
@@ -741,11 +718,11 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 	visual_2d_set_options(visual->compositor, visual->raster_surface, 0, 1);
 	if (_rc) {
 		rc = _rc;
-		raster->surface_set_matrix(visual->raster_surface, &ctx->transform);
+		gf_evg_surface_set_matrix(visual->raster_surface, &ctx->transform);
 	}
 	else {
 		rc = &ctx->bi->unclip;
-		raster->surface_set_matrix(visual->raster_surface, NULL);
+		gf_evg_surface_set_matrix(visual->raster_surface, NULL);
 	}
 
 	path = gf_path_new();
@@ -758,10 +735,10 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 
 	if (color) {
 		/*push path*/
-		raster->surface_set_path(visual->raster_surface, path);
-		raster->stencil_set_brush_color(visual->raster_brush, color);
+		gf_evg_surface_set_path(visual->raster_surface, path);
+		gf_evg_stencil_set_brush_color(visual->raster_brush, color);
 		visual_2d_fill_path(visual, ctx, visual->raster_brush, tr_state, 0);
-		raster->surface_set_path(visual->raster_surface, NULL);
+		gf_evg_surface_set_path(visual->raster_surface, NULL);
 	}
 	if (strike_color) {
 		GF_Path *outline;
@@ -770,24 +747,24 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 		pen.width = 1;
 		pen.join = GF_LINE_JOIN_BEVEL;
 		pen.dash = GF_DASH_STYLE_DOT;
-		raster->stencil_set_brush_color(visual->raster_brush, strike_color);
+		gf_evg_stencil_set_brush_color(visual->raster_brush, strike_color);
 		outline = gf_path_get_outline(path,  pen);
 		outline->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
-		raster->surface_set_path(visual->raster_surface, outline);
+		gf_evg_surface_set_path(visual->raster_surface, outline);
 		visual_2d_fill_path(visual, ctx, visual->raster_brush, tr_state, 0);
-		raster->surface_set_path(visual->raster_surface, NULL);
+		gf_evg_surface_set_path(visual->raster_surface, NULL);
 		gf_path_del(outline);
 	}
 
 	gf_path_del(path);
 }
 
+#if 0 //unused
 void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 strike)
 {
 	GF_Path *path;
 	GF_Path *outline;
 	GF_PenSettings pen;
-	GF_Raster2D *raster = visual->compositor->rasterizer;
 #ifdef SKIP_DRAW
 	return;
 #endif
@@ -800,10 +777,10 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 
 	/*no aa*/
 	visual_2d_set_options(visual->compositor, visual->raster_surface, 0, 1);
-	raster->surface_set_matrix(visual->raster_surface, NULL);
+	gf_evg_surface_set_matrix(visual->raster_surface, NULL);
 
-	raster->surface_set_raster_level(visual->raster_surface, GF_RASTER_HIGH_SPEED);
-	raster->surface_set_matrix(visual->raster_surface, NULL);
+	gf_evg_surface_set_raster_level(visual->raster_surface, GF_RASTER_HIGH_SPEED);
+	gf_evg_surface_set_matrix(visual->raster_surface, NULL);
 
 	path = gf_path_new();
 	gf_path_add_move_to(path, INT2FIX(rc->x-1), INT2FIX(rc->y+2-rc->height));
@@ -813,13 +790,13 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 	gf_path_close(path);
 
 	if (fill) {
-		raster->surface_set_path(visual->raster_surface, path);
-		raster->stencil_set_brush_color(visual->raster_brush, fill);
+		gf_evg_surface_set_path(visual->raster_surface, path);
+		gf_evg_stencil_set_brush_color(visual->raster_brush, fill);
 
-		raster->surface_set_clipper(visual->raster_surface, rc);
-		raster->surface_fill(visual->raster_surface, visual->raster_brush);
+		gf_evg_surface_set_clipper(visual->raster_surface, rc);
+		gf_evg_surface_fill(visual->raster_surface, visual->raster_brush);
 
-		raster->surface_set_path(visual->raster_surface, NULL);
+		gf_evg_surface_set_path(visual->raster_surface, NULL);
 	}
 
 	if (strike) {
@@ -830,13 +807,13 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 		outline = gf_path_get_outline(path, pen);
 		outline->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
 
-		raster->surface_set_path(visual->raster_surface, outline);
-		raster->stencil_set_brush_color(visual->raster_brush, strike);
+		gf_evg_surface_set_path(visual->raster_surface, outline);
+		gf_evg_stencil_set_brush_color(visual->raster_brush, strike);
 
-		raster->surface_set_clipper(visual->raster_surface, rc);
-		raster->surface_fill(visual->raster_surface, visual->raster_brush);
+		gf_evg_surface_set_clipper(visual->raster_surface, rc);
+		gf_evg_surface_fill(visual->raster_surface, visual->raster_brush);
 
-		raster->surface_set_path(visual->raster_surface, NULL);
+		gf_evg_surface_set_path(visual->raster_surface, NULL);
 		gf_path_del(outline);
 	}
 	gf_path_del(path);
@@ -845,3 +822,5 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 		ra_union_rect(&visual->hybgl_drawn, rc);
 #endif
 }
+#endif
+

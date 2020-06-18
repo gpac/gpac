@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools interfaces
@@ -37,24 +37,22 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/color.h>
- *	\brief Color conversion.
- */
+\file <gpac/color.h>
+\brief Color conversion.
+*/
 	
 /*!
- *\addtogroup color_grp Color
- *\ingroup utils_grp
- *\brief Color tools
- *
- *This section documents color tools for image processing and color conversion
- *	@{
- */
+\addtogroup color_grp
+\brief Color tools
+
+This section documents color tools for image processing and color conversion
+@{
+*/
 
 
 /*!\brief Video framebuffer object
- *
- *The video framebuffer object represents uncompressed color data like images in a variety of formats. Data in
- *the video framebuffer MUST be continuous.
+
+The video framebuffer object represents uncompressed color data like images in a variety of formats. Data in the video framebuffer MUST be continuous.
 */
 typedef struct
 {
@@ -71,18 +69,18 @@ typedef struct
 	/*!Pixel format of the video framebuffer*/
 	u32 pixel_format;
 	/*!pointer to the beginning of the video memory (top-left corner)*/
-	char *video_buffer;
+	u8 *video_buffer;
 	/*!indicates that the video data reside on systems memory or video card one*/
 	Bool is_hardware_memory;
 	/*!indicates U and V (and optional alpha) buffers in case of planar video with separated component. If not set, all components are in the video_buffer pointer*/
-	char *u_ptr, *v_ptr, *a_ptr;
+	u8 *u_ptr, *v_ptr, *a_ptr;
 	/*! alpha value for this surface*/
 	u8 global_alpha;
 } GF_VideoSurface;
 
 /*!\brief Video Window object
- *
- *The video window object represents a rectangle in framebuffer coordinate system
+
+The video window object represents a rectangle in framebuffer coordinate system
 */
 typedef struct
 {
@@ -98,9 +96,9 @@ typedef struct
 
 
 /*!\brief color matrix object
- *
- *The Color transformation matrix object allows complete color space transformation (shift, rotate, skew, add).\n
- *The matrix coefs are in rgba order, hence the color RGBA is transformed to:
+
+The Color transformation matrix object allows complete color space transformation (shift, rotate, skew, add).\n
+ The matrix coefs are in rgba order, hence the color RGBA is transformed to:
  \code
 	R'		m0	m1	m2	m3	m4			R
 	G'		m5	m6	m7	m8	m9			G
@@ -108,7 +106,7 @@ typedef struct
 	A'		m15	m16	m17	m18	m19			A
 	0		0	0	0	0	1			0
  \endcode
- *Coeficients are in intensity scale, ranging from 0 to \ref FIX_ONE.
+ Coeficients are in intensity scale, ranging from 0 to \ref FIX_ONE.
 */
 typedef struct
 {
@@ -119,12 +117,13 @@ typedef struct
 } GF_ColorMatrix;
 
 /*!\brief ARGB color object
- *
- *The color type used in the GPAC framework represents colors in the form 0xAARRGGBB, with each component ranging from 0 to 255
+
+The color type used in the GPAC framework represents colors in the form 0xAARRGGBB, with each component ranging from 0 to 255
 */
 typedef u32 GF_Color;
 /*!\hideinitializer color formating macro from alpha, red, green and blue components expressed as integers ranging from 0 to 255*/
-#define GF_COL_ARGB(a, r, g, b) ((a)<<24 | (r)<<16 | (g)<<8 | (b))
+#define GF_COL_ARGB(a, r, g, b) (((u32) a)<<24 | ((u32) r)<<16 | ((u32) g)<<8 | ((u32) b))
+
 /*!\hideinitializer color formating macro from alpha, red, green and blue components expressed as fixed numbers ranging from 0 to \ref FIX_ONE*/
 #define GF_COL_ARGB_FIXED(_a, _r, _g, _b) GF_COL_ARGB(FIX2INT(255*(_a)), FIX2INT(255*(_r)), FIX2INT(255*(_g)), FIX2INT(255*(_b)))
 /*!\hideinitializer gets alpha component of a color*/
@@ -139,101 +138,105 @@ typedef u32 GF_Color;
 #define GF_COL_565(r, g, b) (u16) (((r & 248)<<8) + ((g & 252)<<3)  + (b>>3))
 /*!\hideinitializer 15-bits color formating macro from red, green and blue components*/
 #define GF_COL_555(r, g, b) (u16) (((r & 248)<<7) + ((g & 248)<<2)  + (b>>3))
-/*!\hideinitializer 15-bits color formating macro from red, green and blue components*/
-#define GF_COL_444(r, g, b) (u16) (((r & 240)<<4) + ((g & 240))  + ((b & 240)>>4))
-/*!\hideinitializer 16-bits alphagrey color formating macro alpha and grey components*/
-#define GF_COL_AG(a, g) (u16) ( (a << 8) | g)
-/*!\hideinitializer transfoms a 32-bits color into a 16-bits one.\note alpha component is lost*/
-#define GF_COL_TO_565(c) (((GF_COL_R(c) & 248)<<8) + ((GF_COL_G(c) & 252)<<3)  + (GF_COL_B(c)>>3))
-/*!\hideinitializer transfoms a 32-bits color into a 15-bits one.\note alpha component is lost*/
-#define GF_COL_TO_555(c) (((GF_COL_R(c) & 248)<<7) + ((GF_COL_G(c) & 248)<<2)  + (GF_COL_B(c)>>3))
-/*!\hideinitializer transfoms a 32-bits color into a 16-bits alphagrey one.\note red component is used for grey, green and blue components are lost.*/
-#define GF_COL_TO_AG(c) ( (GF_COL_A(c) << 8) | GF_COL_R(c))
-/*!\hideinitializer transfoms a 32-bits color into a 15-bits one.\note alpha component is lost*/
-#define GF_COL_TO_444(c) (((GF_COL_R(c) & 240)<<4) + ((GF_COL_G(c) & 240))  + ((GF_COL_B(c)>>4) & 240) )
+
+/*!\hideinitializer gets alpha component of a wide color*/
+#define GF_COLW_A(c) (u16) ((c)>>48)
+/*!\hideinitializer gets red component of a wide color*/
+#define GF_COLW_R(c) (u16) ( ((c)>>32) & 0xFFFF)
+/*!\hideinitializer gets green component of a wide color*/
+#define GF_COLW_G(c) (u16) ( ((c)>>16) & 0xFFFF)
+/*!\hideinitializer gets blue component of a wide color*/
+#define GF_COLW_B(c) (u16) ( (c) & 0xFFFF)
 
 /*!Parses color from HTML name or hexa representation
- *\param name name of the color to parse
- *\return GF_Color value with alpha set to 0xFF if successfull, 0 otherwise
+\param name name of the color to parse
+\return GF_Color value with alpha set to 0xFF if successfull, 0 otherwise
 */
 GF_Color gf_color_parse(const char *name);
 
-/*!Gets color from HTML name or hexa representation
- *\param col color to identify
- *\return name of the color if successfull, NULL otherwise
+/*! Gets color from HTML name or hexa representation
+\param col color to identify
+\return name of the color if successfull, NULL otherwise
 */
 const char *gf_color_get_name(GF_Color col);
 
-/*!Inits a color matrix to identity*/
+/*! Inits a color matrix to identity
+\param _this the target color matrix to initialize*/
 void gf_cmx_init(GF_ColorMatrix *_this);
-/*!Inits all coefficients of a color matrix
- *\param _this color matrix to initialize
- *\param coefs list of the 20 fixed numbers to copy
-*/
-void gf_cmx_set_all(GF_ColorMatrix *_this, Fixed *coefs);
-/*!Inits all coefficients of a color matrix
- *\param _this color matrix to initialize
- *\param mrr red-to-red multiplication factor
- *\param mrg red-to-green multiplication factor
- *\param mrb red-to-blue multiplication factor
- *\param mra red-to-alpha multiplication factor
- *\param tr red translation factor
- *\param mgr green-to-red multiplication factor
- *\param mgg green-to-green multiplication factor
- *\param mgb green-to-blue multiplication factor
- *\param mga green-to-alpha multiplication factor
- *\param tg green translation factor
- *\param mbr blue-to-red multiplication factor
- *\param mbg blue-to-green multiplication factor
- *\param mbb blue-to-blue multiplication factor
- *\param mba blue-to-alpha multiplication factor
- *\param tb blue translation factor
- *\param mar alpha-to-red multiplication factor
- *\param mag alpha-to-green multiplication factor
- *\param mab alpha-to-blue multiplication factor
- *\param maa alpha-to-alpha multiplication factor
- *\param ta alpha translation factor
+
+/*! Inits all coefficients of a color matrix
+\param _this color matrix to initialize
+\param mrr red-to-red multiplication factor
+\param mrg red-to-green multiplication factor
+\param mrb red-to-blue multiplication factor
+\param mra red-to-alpha multiplication factor
+\param tr red translation factor
+\param mgr green-to-red multiplication factor
+\param mgg green-to-green multiplication factor
+\param mgb green-to-blue multiplication factor
+\param mga green-to-alpha multiplication factor
+\param tg green translation factor
+\param mbr blue-to-red multiplication factor
+\param mbg blue-to-green multiplication factor
+\param mbb blue-to-blue multiplication factor
+\param mba blue-to-alpha multiplication factor
+\param tb blue translation factor
+\param mar alpha-to-red multiplication factor
+\param mag alpha-to-green multiplication factor
+\param mab alpha-to-blue multiplication factor
+\param maa alpha-to-alpha multiplication factor
+\param ta alpha translation factor
 */
 void gf_cmx_set(GF_ColorMatrix *_this,
                 Fixed mrr, Fixed mrg, Fixed mrb, Fixed mra, Fixed tr,
                 Fixed mgr, Fixed mgg, Fixed mgb, Fixed mga, Fixed tg,
                 Fixed mbr, Fixed mbg, Fixed mbb, Fixed mba, Fixed tb,
                 Fixed mar, Fixed mag, Fixed mab, Fixed maa, Fixed ta);
-/*!Inits a matrix from another matrix
- *\param _this color matrix to initialize
- *\param from color matrix to copy from
+/*! Inits a matrix from another matrix
+\param _this color matrix to initialize
+\param from color matrix to copy from
 */
 void gf_cmx_copy(GF_ColorMatrix *_this, GF_ColorMatrix *from);
 /*!\brief color matrix multiplication
- *
- *Multiplies a color matrix by another one. Result is _this*with
- *\param _this color matrix to transform. Once the function called, _this will contain the resulting color matrix
- *\param with color matrix to add
+
+Multiplies a color matrix by another one. Result is _this*with
+\param _this color matrix to transform. Once the function called, _this will contain the resulting color matrix
+\param with color matrix to add
 */
 void gf_cmx_multiply(GF_ColorMatrix *_this, GF_ColorMatrix *with);
 /*!\brief color matrix transform
- *
- *Transforms a color with a given color matrix
- *\param _this color matrix to use.
- *\param col color to transform
- *\return transformed color
+
+Transforms a color with a given color matrix
+\param _this color matrix to use.
+\param col color to transform
+\return transformed color
 */
 GF_Color gf_cmx_apply(GF_ColorMatrix *_this, GF_Color col);
+
+/*!\brief color matrix transform on wide pixel (16 bit per component)
+
+Transforms a color with a given color matrix
+\param _this color matrix to use.
+\param col color to transform
+\return transformed color
+*/
+u64 gf_cmx_apply_wide(GF_ColorMatrix *_this, u64 col);
+
 /*!\brief color components matrix transform
- *
- *Transforms color components with a given color matrix
- *\param _this color matrix to use.
- *\param a pointer to alpha component. Once the function is called, a contains the transformed alpha component
- *\param r pointer to red component. Once the function is called, r contains the transformed red component
- *\param g pointer to green component. Once the function is called, g contains the transformed green component
- *\param b pointer to blue component. Once the function is called, b contains the transformed blue component
+
+Transforms color components with a given color matrix
+\param _this color matrix to use.
+\param a pointer to alpha component. Once the function is called, a contains the transformed alpha component
+\param r pointer to red component. Once the function is called, r contains the transformed red component
+\param g pointer to green component. Once the function is called, g contains the transformed green component
+\param b pointer to blue component. Once the function is called, b contains the transformed blue component
 */
 void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fixed *b);
 
 
 /*!\brief Color Key descriptor
- *
- *The ColorKey object represents a ColorKey with low and high threshold keying
+
+The ColorKey object represents a ColorKey with low and high threshold keying
 */
 typedef struct
 {
@@ -248,45 +251,22 @@ typedef struct
 } GF_ColorKey;
 
 /*!\brief stretches two video surfaces
- *
- * Software stretch of source surface ont destination surface.
- *\param dst destination surface
- *\param src source surface
- *\param dst_wnd destination rectangle. If null the entire destination surface is used
- *\param src_wnd source rectangle. If null the entire source surface is used
- *\param alpha blend factor of source over alpha
- *\param flip flips the source
- *\param colorKey makes source pixel matching the color key transparent
- *\param cmat applies color matrix to the source
- *\return error code if any
+
+Software stretch of source surface onto destination surface.
+\param dst destination surface
+\param src source surface
+\param dst_wnd destination rectangle. If null the entire destination surface is used
+\param src_wnd source rectangle. If null the entire source surface is used
+\param alpha blend factor of source over alpha
+\param flip flips the source
+\param colorKey makes source pixel matching the color key transparent
+\param cmat applies color matrix to the source
+\return error code if any
  */
 GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
 
 
-/*!\brief copies YUV 420 10 bits to YUV destination (only YUV420 8 bits supported)
- *
- * Software stretch of source surface ont destination surface.
- *\param vs_dst destination surface
- *\param pY source Y plane
- *\param pU source U plane. if NULL, the U plane is located after the Y plane
- *\param pV source V plane. if NULL, the V plane is located after the U plane
- *\param src_stride source stride in bytes
- *\param src_width source width in pixels
- *\param src_height source height in pixels
- *\param src_wnd source rectangle. If null the entire source surface is used
- *\param swap_uv If GF_TRUE, swaps U and V components.
- *\return error code if any
- */
-GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-
 /*! @} */
-
-
-GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-GF_Err gf_color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-GF_Err gf_color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv);
-
 
 #ifdef __cplusplus
 }

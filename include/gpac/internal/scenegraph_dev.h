@@ -75,7 +75,7 @@ struct _node_interactive_ext
 	THIS IS DYNAMICALLY CREATED*/
 	GF_List *routes;
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	/*JS bindings if any - THIS IS DYNAMICALLY CREATED
 	This speeds up field modif notification (script bindings are listed here)*/
 	struct _node_js_binding *js_binding;
@@ -153,7 +153,7 @@ struct __tag_scene_graph
 
 	/*callback routines*/
 	/*node callback*/
-	void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata);
+	gf_sg_node_init_callback NodeCallback;
 	/*real scene time callback*/
 	Double (*GetSceneTime)(void *userpriv);
 
@@ -194,12 +194,12 @@ struct __tag_scene_graph
 	/*all routes available*/
 	GF_List *Routes;
 
-	/*when a proto is instanciated it creates its own scene graph. BIFS/VRML specify that the namespace is the same
+	/*when a proto is instantiated it creates its own scene graph. BIFS/VRML specify that the namespace is the same
 	(eg cannot reuse a NodeID or route name/ID), but this could be done differently by some other stds
 	if NULL this is the main scenegraph*/
 	struct _proto_instance *pOwningProto;
 
-	/*all first-level protos of the graph (the only ones that can be instanciated in this graph)*/
+	/*all first-level protos of the graph (the only ones that can be instantiated in this graph)*/
 	GF_List *protos;
 	/*all first-level protos of the graph not currently registered - memory handling of graph only*/
 	GF_List *unregistered_protos;
@@ -251,14 +251,14 @@ struct __tag_scene_graph
 	/*listeners to add*/
 	GF_List *listeners_to_add;
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	struct __tag_svg_script_ctx *svg_js;
 	struct __tag_html_media_script_ctx *html_media_js;
 #endif
 
 #endif
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	GF_List *scripts;
 	/*
 			Note about reference counter
@@ -275,19 +275,16 @@ struct __tag_scene_graph
 	u32 reference_count;
 	/*DOM nodes*/
 	GF_List *objects;
-	/*DOM document*/
-	struct JSObject *document;
-
-	Bool dcci_doc;
-
+	struct _dom_js_data *js_data;
 	Bool trigger_gc;
+
+	u32 (*get_element_class)(GF_Node *n);
+	u32 (*get_document_class)(GF_SceneGraph *n);
 #endif
 };
 
 void gf_sg_parent_setup(GF_Node *pNode);
 void gf_sg_parent_reset(GF_Node *pNode);
-
-void *gf_node_get_name_address(GF_Node*node);
 
 void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_scripts);
 
@@ -381,9 +378,6 @@ void gf_sg_sfurl_del(SFURL url);
 Bool gf_sg_vrml_node_init(GF_Node *node);
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
-char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info);
-
-
 
 //
 //		MF Fields tools
@@ -444,7 +438,7 @@ GF_ProtoFieldInterface *gf_sg_proto_new_field_interface(u32 FieldType);
 GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Type, u32 hasMinMax, u32 QPSFType, void *qp_min_value, void *qp_max_value, u32 QP13_NumBits);
 
 /*proto field instance. since it is useless to duplicate all coding info, names and the like
-we seperate proto declaration and proto instanciation*/
+we separate proto declaration and proto instanciation*/
 typedef struct
 {
 	u8 EventType;
@@ -527,7 +521,7 @@ GF_Err gf_sg_proto_get_field_index(GF_ProtoInstance *proto, u32 index, u32 code_
 Bool gf_sg_proto_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
 GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField);
 GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_ProtoInstance *from_inst);
-void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node);
+void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node);
 
 /*get tag of first node in proto code - used for validation only*/
 u32 gf_sg_proto_get_root_tag(GF_Proto *proto);
@@ -554,13 +548,10 @@ GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNod
 
 
 /* reset functions for SVG types */
-void gf_svg_reset_path(SVG_PathData path);
 void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI*iri);
 /* delete functions for SVG types */
 void gf_svg_delete_paint		(GF_SceneGraph *sg, SVG_Paint *paint);
 void gf_smil_delete_times		(GF_List *l);
-void gf_svg_delete_points		(GF_List *l);
-void gf_svg_delete_coordinates	(GF_List *l);
 /*for keyTimes, keyPoints and keySplines*/
 void gf_smil_delete_key_types	(GF_List *l);
 
@@ -637,7 +628,6 @@ Bool gf_svg_is_inherit(GF_FieldInfo *a);
 Bool gf_svg_is_current_color(GF_FieldInfo *a);
 
 void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg);
-void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg);
 
 Bool gf_svg_is_timing_tag(u32 tag);
 Bool gf_svg_is_animation_tag(u32 tag);
@@ -692,8 +682,8 @@ struct _smil_timing_rti
 	scene tree traversal.*/
 	Bool postpone;
 
-	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state);
-	u32 evaluate_status;
+	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, GF_SGSMILTimingEvalState state);
+	GF_SGSMILTimingEvalState evaluate_status;
 
 #if 0
 	/* is called only when the timed element is active */
@@ -833,37 +823,8 @@ void gf_smil_timing_resume(GF_Node *node);
 #endif
 
 
+typedef struct _gf_vrml_script_priv GF_ScriptPriv;
 
-/*
-		Script node
-*/
-
-typedef struct
-{
-	//extra script fields
-	GF_List *fields;
-
-	//BIFS coding stuff
-	u32 numIn, numDef, numOut;
-
-#ifdef GPAC_HAS_SPIDERMONKEY
-	struct JSContext *js_ctx;
-	struct JSObject *js_obj;
-	struct JSObject *js_browser;
-	/*all attached objects (eg, not created by the script) are stored here so that we don't
-	allocate them again and again when getting properties. Garbage collection is performed (if needed)
-	on these objects after each eventIn execution*/
-	GF_List *js_cache;
-	//Event object, whose private is the pointer to current event being executed
-	struct JSObject *the_event;
-#endif
-
-	void (*JS_PreDestroy)(GF_Node *node);
-	void (*JS_EventIn)(GF_Node *node, GF_FieldInfo *in_field);
-
-	Bool is_loaded;
-
-} GF_ScriptPriv;
 
 /*setup script stack*/
 void gf_sg_script_init(GF_Node *node);
@@ -890,127 +851,18 @@ struct _scriptfield
 
 	Double last_route_time;
 	Bool activate_event_out;
+	s32 magic;
 };
 
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 
 
 #include <gpac/download.h>
 #include <gpac/network.h>
 
-
-struct JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg);
-void gf_sg_ecmascript_del(struct JSContext *);
-
-GF_Node *gf_sg_js_get_node(struct JSContext *c, struct JSObject *obj);
-
-void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script);
-
-/*GC thing type: 0 for jsval, 1 for jsstring, 2 for jsobject*/
-enum
-{
-	GF_JSGC_VAL=0,
-	GF_JSGC_STRING,
-	GF_JSGC_OBJECT,
-};
-
-Bool gf_js_add_root(struct JSContext *cx, void *rp, u32 type);
-Bool gf_js_add_named_root(struct JSContext *cx, void *rp, u32 type, const char *name);
-Bool gf_js_remove_root(struct JSContext *cx, void *rp, u32 type);
 void gf_js_vrml_flush_event_out(GF_Node *node, GF_ScriptPriv *priv);
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-void gf_sg_lock_javascript(struct JSContext *c, Bool LockIt);
-Bool gf_sg_try_lock_javascript(struct JSContext *c);
-void gf_sg_js_call_gc(struct JSContext *c);
-#endif /* GPAC_HAS_SPIDERMONKEY */
-
-
-typedef struct
-{
-	GF_FieldInfo field;
-	GF_Node *owner;
-	struct JSObject *obj;
-
-	/*JS list for MFFields or NULL*/
-	struct JSObject *js_list;
-
-	/*pointer to the SFNode if this is an SFNode or MFNode[i] field */
-	GF_Node *node;
-	/*when creating MFnode from inside the script, the node list is stored here untill attached to an object*/
-	GF_ChildNodeItem *temp_list;
-	/*when not owned by a node*/
-	void *field_ptr;
-
-	/*cpontext in which the field was created*/
-	struct JSContext *js_ctx;
-	Bool is_rooted;
-} GF_JSField;
-
-
-struct _node_js_binding
-{
-	void *node;	/*GF_JSField for VRML, JSObject otherwise*/
-	GF_List *fields;
-};
-
-
-#ifndef GPAC_DISABLE_SVG
-
-typedef struct __tag_svg_script_ctx
-{
-	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
-	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event, GF_Node *observer, char *utf8_script);
-	u32 nb_scripts;
-	/*global script context for the scene*/
-	struct JSContext *js_ctx;
-	/*global object*/
-	struct JSObject *global;
-	/*global event object - used to update the associated DOMEvent (JS private stack) when dispatching events*/
-	struct JSObject *event;
-
-	Bool in_script;
-	Bool force_gc;
-} GF_SVGJS;
-
-typedef struct __tag_html_media_script_ctx
-{
-	/*global script context for the scene*/
-	struct JSContext *js_ctx;
-	/*global object*/
-	struct JSObject *global;
-	/*global event object - used to update the associated DOMEvent (JS private stack) when dispatching events*/
-	struct JSObject *event;
-
-	Bool force_gc;
-} GF_HTMLMediaJS;
-
-#endif	/*GPAC_DISABLE_SVG*/
-
-/*initialize DOM Core (subset) + xmlHTTPRequest API. The global object MUST have private data storage
-and its private data MUST be a scenegraph. This scenegraph is only used to create new documents
-and setup the callback pointers*/
-void dom_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *global);
-/*unloads the DOM core support (to be called upon destruction only, once the JSContext has been destroyed
-to releases all resources used by DOM JS)*/
-void dom_js_unload();
-/*unloads DOM core before the JSContext is being destroyed */
-void gf_sg_js_dom_pre_destroy(struct JSContext *c, GF_SceneGraph *sg, GF_Node *script_or_handler_node);
-
-/*defines a new global object "document" of type Document*/
-void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_SceneGraph *doc);
-/*defines a new global object "evt" of type Event*/
-struct JSObject *dom_js_define_event(struct JSContext *c, struct JSObject *global);
-
-struct JSObject *gf_dom_new_event(struct JSContext *c);
-
-struct JSObject *dom_js_get_node_proto(struct JSContext *c);
-struct JSObject *dom_js_get_element_proto(struct JSContext *c);
-struct JSObject *dom_js_get_document_proto(struct JSContext *c);
-struct JSObject *dom_js_get_event_proto(struct JSContext *c);
-
-void dom_set_class_selector(struct JSContext *c, /*struct JSClass*/void *(*get_element_class)(GF_Node *n), /*struct JSClass*/void *(*get_document_class)(GF_SceneGraph *n) );
 
 enum
 {
@@ -1042,16 +894,10 @@ enum
 
 };
 
-int dom_throw_exception(struct JSContext *c, u32 code);
-
 void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer);
 
-void gf_sg_load_script_extensions(GF_SceneGraph *sg, struct JSContext *c, struct JSObject *obj, Bool unload);
-
 Bool gf_sg_javascript_initialized();
-#endif	/*GPAC_HAS_SPIDERMONKEY*/
-
-GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene);
+#endif	/*GPAC_HAS_QJS*/
 
 SVG_Element *gf_svg_create_node(u32 tag);
 Bool gf_svg_node_init(GF_Node *node);
@@ -1084,19 +930,10 @@ will not be triggered*/
 void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener);
 /*process all pending add_listener request*/
 void gf_dom_listener_process_add(GF_SceneGraph *sg);
-void gf_dom_listener_reset_defered(GF_SceneGraph *sg);
+void gf_dom_listener_reset_deferred(GF_SceneGraph *sg);
 
 
 void gf_node_delete_attributes(GF_Node *node);
-
-
-typedef GF_DOMNode XBL_Element;
-const char *gf_xbl_get_element_name(u32 tag);
-u32 gf_xbl_get_element_tag(const char *element_name);
-XBL_Element *gf_xbl_create_node(u32 ElementTag);
-u32 gf_xbl_get_attribute_tag(u32 element_tag, const char *attribute_name);
-GF_DOMAttribute *gf_xbl_create_attribute(GF_DOMNode *elt, u32 tag);
-
 
 GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep);
 

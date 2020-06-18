@@ -26,6 +26,7 @@
 
 
 #include <gpac/internal/bifs_dev.h>
+#include <gpac/scene_manager.h>
 #include "quant.h"
 #include "script.h"
 
@@ -89,7 +90,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		* ((SFBool *) field->far_ptr) = (SFBool) gf_bs_read_int(bs, 1);
 		break;
 	case GF_SG_VRML_SFCOLOR:
-		((SFColor *)field->far_ptr)->red = BD_ReadSFFloat(codec, bs);;
+		((SFColor *)field->far_ptr)->red = BD_ReadSFFloat(codec, bs);
 		((SFColor *)field->far_ptr)->green = BD_ReadSFFloat(codec, bs);
 		((SFColor *)field->far_ptr)->blue = BD_ReadSFFloat(codec, bs);
 		break;
@@ -247,7 +248,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		*((GF_Node **) field->far_ptr) = new_node;
 		break;
 	case GF_SG_VRML_SFSCRIPT:
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 		codec->LastError = SFScript_Parse(codec, (SFScript*)field->far_ptr, bs, node);
 #else
 		return GF_NOT_SUPPORTED;
@@ -370,7 +371,6 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 	u32 i;
 	GF_ChildNodeItem *last;
 	u8 qp_local, qp_on, initial_qp;
-	GF_Node *new_node;
 	GF_FieldInfo sffield;
 
 	memset(&sffield, 0, sizeof(GF_FieldInfo));
@@ -403,7 +403,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 	} else {
 		last = NULL;
 		for (i=0; i<nbFields; i++) {
-			new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
+			GF_Node *new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 			if (new_node) {
 				e = gf_node_register(new_node, is_mem_com ? NULL : node);
 				if (e) return e;
@@ -506,10 +506,10 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 		if (codec->info->config.UsePredictiveMFField) {
 			flag = gf_bs_read_int(bs, 1);
 			if (flag) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[BIFS] Stream uses Predictive Field Coding!\n"));
 #ifdef GPAC_ENABLE_BIFS_PMF
 				return gf_bifs_dec_pred_mf_field(codec, bs, node, field);
 #else
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Stream uses Predictive Field Coding, disabled in this build!\n"));
 				return GF_NOT_SUPPORTED;
 #endif
 			}
@@ -721,8 +721,15 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		/*NULL node is encoded as USE with ID = all bits to 1*/
 		if (nodeID == (u32) (1<<codec->info->config.NodeIDBits))
 			return NULL;
-		//find node and return it
+		//find node
 		new_node = gf_sg_find_node(codec->current_graph, nodeID);
+
+		//check node is allowed for the given NDT
+		if (new_node && !gf_node_in_table(new_node, NDT_Tag)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Node %s not allowed as field/child of NDT type %d\n", gf_node_get_class_name(new_node), NDT_Tag));
+			codec->LastError = GF_SG_UNKNOWN_NODE;
+			return NULL;
+		}
 
 		if (!new_node) {
 			codec->LastError = GF_SG_UNKNOWN_NODE;
@@ -845,9 +852,10 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 			}
 		}
 	}
+	if (!new_node)
 #endif
 
-	if (!new_node) {
+	{
 		if (proto) {
 			/*create proto interface*/
 			new_node = gf_sg_proto_create_instance(codec->current_graph, proto);

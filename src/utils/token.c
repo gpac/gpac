@@ -62,6 +62,7 @@ s32 gf_token_get(const char *Buffer, s32 Start,  const char *Separator,  char *C
 	return (end+1);
 }
 
+GF_EXPORT
 s32 gf_token_get_strip(const char *Buffer, s32 Start, const char *Separator, const char *strip_set, char *Container, s32 ContainerSize)
 {
 	u32 i, k, len;

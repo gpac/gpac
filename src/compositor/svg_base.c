@@ -27,6 +27,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
+#include <gpac/iso639.h>
 
 
 /*
@@ -229,7 +230,7 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 {
 	u32 i, count;
 	Bool found;
-	const char *lang_3cc, *lang_2cc;
+	s32 lang_idx;
 
 	/*process required features*/
 	count = atts->requiredFeatures ? gf_list_count(*atts->requiredFeatures) : 0;
@@ -250,8 +251,8 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 		else if (!strnicmp(iri->string, "http://www.w3.org/TR/SVG11/feature", 34)) {
 			feat = iri->string+35;
 			if (feat) {
-				Bool found = GF_FALSE;
 				u32 j, nbf;
+				found = GF_FALSE;
 				nbf  = sizeof(svg11_features) / sizeof(struct svg_11_feature);
 				for (j=0; j<nbf; j++) {
 					if (!strcmp(svg11_features[j].name, feat)) {
@@ -266,8 +267,8 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 		else if (!strnicmp(iri->string, "http://www.w3.org/Graphics/SVG/feature/1.2/", 43)) {
 			feat = iri->string+44;
 			if (feat) {
-				Bool found = GF_FALSE;
 				u32 j, nbf;
+				found = GF_FALSE;
 				nbf  = sizeof(svg12_features) / sizeof(struct svg_12_feature);
 				for (j=0; j<nbf; j++) {
 					if (!strcmp(svg12_features[j].name, feat)) {
@@ -293,27 +294,17 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	count = atts->systemLanguage ? gf_list_count(*atts->systemLanguage) : 0;
 	if (count) {
 		found = GF_FALSE;
-		lang_3cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language3CC");
-		if (!lang_3cc) lang_3cc = "und";
-		lang_2cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language2CC");
-		if (!lang_2cc) lang_2cc = "un";
+		const char *lang = gf_opts_get_key("core", "lang");
+		lang_idx = lang ? gf_lang_find(lang) : -1;
 	} else {
-		lang_3cc = "und";
-		lang_2cc = "un";
+		lang_idx = -1;
 		found = GF_TRUE;
 	}
 
 	for (i=0; i<count; i++) {
 		char *lang = (char*)gf_list_get(*atts->systemLanguage, i);
-		/*3 char-code*/
-		if (strlen(lang)==3) {
-			if (!stricmp(lang, lang_3cc)) {
-				found = GF_TRUE;
-				break;
-			}
-		}
-		/*2 char-code, only check first 2 chars - TODO FIXME*/
-		else if (!strnicmp(lang, lang_2cc, 2)) {
+		s32 pref_lang_idx = lang ? gf_lang_find(lang) : -1;
+		if (pref_lang_idx==lang_idx) {
 			found = GF_TRUE;
 			break;
 		}
@@ -324,13 +315,13 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	count = atts->requiredFormats ? gf_list_count(*atts->requiredFormats) : 0;
 	if (count) {
 		for (i=0; i<count; i++) {
-			const char *opt;
+			Bool mime_ok;
 			char *mime = (char*)gf_list_get(*atts->requiredFormats, i);
 			char *sep = strchr(mime, ';');
 			if (sep) sep[0] = 0;
-			opt = gf_cfg_get_key(compositor->user->config, "MimeTypes", mime);
+			mime_ok = gf_filter_is_supported_mime(compositor->filter, mime);
 			if (sep) sep[0] = ';';
-			if (!opt) return GF_FALSE;
+			if (!mime_ok) return GF_FALSE;
 		}
 	}
 

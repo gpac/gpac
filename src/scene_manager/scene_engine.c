@@ -43,8 +43,6 @@
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
 
-#include <time.h>
-
 
 struct __tag_scene_engine
 {
@@ -72,7 +70,7 @@ struct __tag_scene_engine
 #ifndef GPAC_DISABLE_BIFS_ENC
 static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_ESD *esd)
 {
-	char *data;
+	u8 *data;
 	u32 data_len;
 	u32	nbb;
 	Bool encode_names, delete_bcfg;
@@ -147,7 +145,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 #ifndef GPAC_DISABLE_LASER
 static GF_Err gf_sm_setup_lsrenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_ESD *esd)
 {
-	char *data;
+	u8 *data;
 	u32 data_len;
 	GF_LASERConfig lsr_cfg;
 
@@ -212,7 +210,7 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 			esd->decoderConfig->decoderSpecificInfo = NULL;
 			esd->ESID = sc->ESID;
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
-			esd->decoderConfig->objectTypeIndication = sc->objectType;
+			esd->decoderConfig->objectTypeIndication = sc->codec_id;
 			gf_list_add(iod->ESDescriptors, esd);
 
 			if (!sc->timeScale) sc->timeScale = 1000;
@@ -237,20 +235,20 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 
 
 		if (sc->streamType == GF_STREAM_SCENE) {
-			switch (sc->objectType) {
+			switch (sc->codec_id) {
 #ifndef GPAC_DISABLE_BIFS_ENC
-			case GPAC_OTI_SCENE_BIFS:
-			case GPAC_OTI_SCENE_BIFS_V2:
+			case GF_CODECID_BIFS:
+			case GF_CODECID_BIFS_V2:
 				e = gf_sm_setup_bifsenc(seng, sc, esd);
 				break;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
-			case GPAC_OTI_SCENE_LASER:
+			case GF_CODECID_LASER:
 				e = gf_sm_setup_lsrenc(seng, sc, esd);
 				break;
 #endif
-			case GPAC_OTI_SCENE_DIMS:
+			case GF_CODECID_DIMS:
 				/* Nothing to be done here */
 				break;
 			default:
@@ -286,25 +284,24 @@ GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID)
 /* Set to 1 if you want every dump with a timed file name */
 //#define DUMP_DIMS_LOG_WITH_TIME
 
-static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, char **data, u32 *size)
+static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, u8 **data, u32 *size, Bool compress_dims)
 {
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumper *dumper = NULL;
 #endif
 	GF_Err e;
 	char rad_name[4096];
-	char file_name[4096];
-	FILE *file = NULL;
-	u64 fsize;
-	char *buffer = NULL;
+	char file_name[4096+100];
+	u32 fsize;
+	u8 *buffer = NULL;
 	GF_BitStream *bs = NULL;
 	u8 dims_header;
-	Bool compress_dims;
 #ifdef DUMP_DIMS_LOG_WITH_TIME
 	u32 do_dump_with_time = 1;
 #endif
 	u32 buffer_len;
-	char *cache_dir, *dump_name;
+	const char *cache_dir;
+	char *dump_name;
 
 	if (!data) return GF_BAD_PARAM;
 
@@ -312,7 +309,6 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	else cache_dir = seng->dump_path;
 
 	dump_name = "gpac_scene_engine_dump";
-	compress_dims = 1;
 
 #ifdef DUMP_DIMS_LOG_WITH_TIME
 start:
@@ -351,6 +347,7 @@ start:
 	}
 	gf_sm_dumper_del(dumper);
 
+#if 0 //unused
 	if(seng->dump_rap) {
 		GF_SceneDumper *dumper = NULL;
 
@@ -365,6 +362,7 @@ start:
 		e = gf_sm_dump_graph(dumper, 0, 0);
 		gf_sm_dumper_del(dumper);
 	}
+#endif
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n"));
@@ -380,26 +378,12 @@ start:
 #endif
 
 	sprintf(file_name, "%s.svg", rad_name);
-	file = gf_fopen(file_name, "rb");
-	if (!file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot open SVG dump file %s\n", file_name));
-		e = GF_IO_ERR;
+
+	e = gf_file_load_data(file_name, (u8 **) &buffer, &fsize);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Error loading SVG dump file %s\n", file_name));
 		goto exit;
 	}
-	gf_fseek(file, 0, SEEK_END);
-	fsize = gf_ftell(file);
-
-	if (fsize == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] SVG dump %s is empty\n", file_name));
-		goto exit;
-	}
-
-	/* First, read the dump in a buffer */
-	buffer = gf_malloc((size_t)fsize * sizeof(char));
-	gf_fseek(file, 0, SEEK_SET);
-	fsize = fread(buffer, sizeof(char), (size_t)fsize, file);
-	gf_fclose(file);
-	file = NULL;
 
 	/* Then, set DIMS unit header - TODO: notify redundant units*/
 	if (commands && gf_list_count(commands)) {
@@ -411,7 +395,7 @@ start:
 
 	/* Then, if compression is asked, we do it */
 	buffer_len = (u32)fsize;
-	assert(fsize < 1<<31);
+	assert(fsize < 0x80000000);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len));
 	if (compress_dims) {
 #ifndef GPAC_DISABLE_ZLIB
@@ -420,7 +404,7 @@ start:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len));
 		if (e) goto exit;
 #else
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: your version of GPAC was compile with no libz support. Abort."));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: your version of GPAC was compiled with no libz support. Abort."));
 		e = GF_NOT_SUPPORTED;
 		goto exit;
 #endif
@@ -452,9 +436,7 @@ start:
 	gf_bs_del(bs);
 
 exit:
-	if (!seng->dump_path) gf_free(cache_dir);
 	if (buffer) gf_free(buffer);
-	if (file) gf_fclose(file);
 	return e;
 }
 
@@ -507,7 +489,7 @@ static Bool gf_sm_check_for_modif(GF_SceneEngine *seng, GF_AUContext *au)
 	}
 
 	if (!seng->first_dims_sent) {
-		if (au->owner->objectType==GPAC_OTI_SCENE_DIMS) {
+		if (au->owner->codec_id==GF_CODECID_DIMS) {
 			GF_Node *root = gf_sg_get_root_node(seng->ctx->scene_graph);
 			if (gf_node_dirty_get(root)) {
 				modified=1;
@@ -524,7 +506,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 {
 	GF_Err e;
 	u32	i, j, size, count, nb_streams;
-	char *data;
+	u8 *data;
 	GF_AUContext *au;
 
 	if (!callback) return GF_BAD_PARAM;
@@ -547,25 +529,25 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 
 			if (from_start && !j && !gf_sm_check_for_modif(seng, au)) continue;
 
-			switch (sc->objectType) {
+			switch (sc->codec_id) {
 #ifndef GPAC_DISABLE_BIFS_ENC
-			case GPAC_OTI_SCENE_BIFS:
-			case GPAC_OTI_SCENE_BIFS_V2:
+			case GF_CODECID_BIFS:
+			case GF_CODECID_BIFS_V2:
 				e = gf_bifs_encode_au(seng->bifsenc, sc->ESID, au->commands, &data, &size);
 				break;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
-			case GPAC_OTI_SCENE_LASER:
+			case GF_CODECID_LASER:
 				e = gf_laser_encode_au(seng->lsrenc, sc->ESID, au->commands, 0, &data, &size);
 				break;
 #endif
-			case GPAC_OTI_SCENE_DIMS:
-				e = gf_seng_encode_dims_au(seng, sc->ESID, au->commands, &data, &size);
+			case GF_CODECID_DIMS:
+				e = gf_seng_encode_dims_au(seng, sc->ESID, au->commands, &data, &size, GF_TRUE);
 				break;
 
 			default:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode AU for Scene OTI %x\n", sc->objectType));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode AU for Scene OTI %x\n", sc->codec_id));
 				break;
 			}
 			callback(seng->calling_object, sc->ESID, data, size, au->timing);
@@ -583,12 +565,13 @@ GF_Err gf_seng_aggregate_context(GF_SceneEngine *seng, u16 ESID)
 	return gf_sm_aggregate(seng->ctx, ESID);
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_seng_dump_rap_on(GF_SceneEngine *seng, Bool dump_rap)
 {
 	seng->dump_rap = dump_rap;
 	return 0;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
@@ -604,7 +587,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 	ext = NULL;
 	if (ctxFileName) {
 		strcpy(szF, ctxFileName);
-		ext = strrchr(szF, '.');
+		ext = gf_file_ext_start(szF);
 	}
 	d_mode = GF_SM_DUMP_BT;
 	do_enc = 0;
@@ -635,6 +618,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 static GF_AUContext *gf_seng_create_new_au(GF_StreamContext *sc, u32 time)
 {
 	GF_AUContext *new_au, *last_au;
+	if (!sc) return NULL;
 	last_au = gf_list_last(sc->AUs);
 	if (last_au && last_au->timing == time) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneEngine] Forcing new AU\n"));
@@ -661,7 +645,7 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_a
 
 	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
 	sc = gf_list_get(seng->ctx->streams, 0);
-	if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
+	if (sc->codec_id == GF_CODECID_DIMS) {
 		gf_seng_create_new_au(sc, 0);
 	}
 
@@ -678,7 +662,7 @@ exit:
 }
 
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, u32 time, GF_List *commands, gf_seng_callback callback)
 {
 	GF_Err e;
@@ -732,31 +716,31 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 	data = NULL;
 	size = 0;
 
-	switch(sc->objectType) {
+	switch(sc->codec_id) {
 #ifndef GPAC_DISABLE_BIFS_ENC
-	case GPAC_OTI_SCENE_BIFS:
-	case GPAC_OTI_SCENE_BIFS_V2:
+	case GF_CODECID_BIFS:
+	case GF_CODECID_BIFS_V2:
 		e = gf_bifs_encode_au(seng->bifsenc, ESID, new_au->commands, &data, &size);
 		break;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
-	case GPAC_OTI_SCENE_LASER:
+	case GF_CODECID_LASER:
 		e = gf_laser_encode_au(seng->lsrenc, ESID, new_au->commands, 0, &data, &size);
 		break;
 #endif
-	case GPAC_OTI_SCENE_DIMS:
-		e = gf_seng_encode_dims_au(seng, ESID, new_au->commands, &data, &size);
+	case GF_CODECID_DIMS:
+		e = gf_seng_encode_dims_au(seng, ESID, new_au->commands, &data, &size, GF_TRUE);
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode commands for Scene OTI %x\n", sc->objectType));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode commands for Scene OTI %x\n", sc->codec_id));
 		break;
 	}
 	callback(seng->calling_object, ESID, data, size, 0);
 	gf_free(data);
 	return e;
 }
-
+#endif
 GF_EXPORT
 GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, char *auFile, gf_seng_callback callback)
 {
@@ -777,7 +761,7 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 	}
 	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
 	sc = gf_list_get(seng->ctx->streams, 0);
-	if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
+	if (sc->codec_id == GF_CODECID_DIMS) {
 		dims = 1;
 		gf_seng_create_new_au(sc, 0);
 	}
@@ -837,7 +821,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 }
 
 GF_EXPORT
-GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char ** const config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale)
+GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const u8 **config, u32 *config_len, u32 *streamType, u32 *codec_id, u32 *timeScale)
 {
 	GF_StreamContext *sc = gf_list_get(seng->ctx->streams, idx);
 	if (!sc || !ESID || !config || !config_len) return GF_BAD_PARAM;
@@ -845,7 +829,7 @@ GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char 
 	*config = sc->dec_cfg;
 	*config_len = sc->dec_cfg_len;
 	if (streamType) *streamType = sc->streamType;
-	if (objectType) *objectType = sc->objectType;
+	if (codec_id) *codec_id = sc->codec_id;
 	if (timeScale) *timeScale = sc->timeScale;
 	return GF_OK;
 }
@@ -874,21 +858,25 @@ static void seng_exec_conditional(M_Conditional *c, GF_SceneGraph *scene)
 
 static void seng_conditional_activate(GF_Node *node, GF_Route *route)
 {
-	GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
-	M_Conditional *c = (M_Conditional*)node;
-	if (c->activate) seng_exec_conditional(c, seng->sg);
+	if (node) {
+		GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
+		M_Conditional *c = (M_Conditional*)node;
+		if (c->activate) seng_exec_conditional(c, seng->sg);
+	}
 }
 
 static void seng_conditional_reverse_activate(GF_Node *node, GF_Route *route)
 {
-	GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
-	M_Conditional*c = (M_Conditional*)node;
-	if (!c->reverseActivate) seng_exec_conditional(c, seng->sg);
+	if (node) {
+		GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
+		M_Conditional*c = (M_Conditional*)node;
+		if (!c->reverseActivate) seng_exec_conditional(c, seng->sg);
+	}
 }
 #endif //GPAC_DISABLE_VRML
 
 
-static void gf_seng_on_node_modified(void *_seng, u32 type, GF_Node *node, void *ctxdata)
+static void gf_seng_on_node_modified(void *_seng, GF_SGNodeCbkType type, GF_Node *node, void *ctxdata)
 {
 	switch (type) {
 #ifndef GPAC_DISABLE_VRML
@@ -903,6 +891,8 @@ static void gf_seng_on_node_modified(void *_seng, u32 type, GF_Node *node, void 
 #endif
 	case GF_SG_CALLBACK_MODIFIED:
 		gf_node_dirty_parents(node);
+		break;
+	default:
 		break;
 	}
 }
@@ -934,6 +924,15 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
 	seng->loader.flags = GF_SM_LOAD_MPEG4_STRICT;
 	if (embed_resources) seng->loader.flags |= GF_SM_LOAD_EMBEDS_RES;
 
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		seng_conditional_activate(NULL, NULL);
+		seng_conditional_reverse_activate(NULL, NULL);
+		gf_seng_create_new_au(NULL, 0);
+
+	}
+#endif
+
 	seng->loader.fileName = inputContext;
 	e = gf_sm_load_init(&(seng->loader));
 	if (!e) e = gf_sm_load_run(&(seng->loader));
@@ -954,7 +953,14 @@ exit:
 	return NULL;
 }
 
-GF_EXPORT
+#if 0 //unused
+/**
+\param calling_object the calling object on which call back will be called
+\param ctx an already loaded scene manager
+\param dump_path the path where scenes are dumped
+ *
+ * must be called only one time (by process calling the DLL) before other calls
+ */
 GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager *ctx, char *dump_path)
 {
 	GF_SceneEngine *seng;
@@ -983,8 +989,21 @@ exit:
 	gf_seng_terminate(seng);
 	return NULL;
 }
+#endif
 
-GF_EXPORT
+#if 0 //unused
+/**
+\param calling_object is the calling object on which call back will be called
+\param inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
+\param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
+\param width width of scene if no IOD is given in the context.
+\param height height of scene if no IOD is given in the context.
+\param usePixelMetrics metrics system used in the scene, if no IOD is given in the context.
+\param dump_path the path where scenes are dumped
+ *
+ * must be called only one time (by process calling the DLL) before other calls
+ */
+
 GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics, char *dump_path)
 {
 	GF_SceneEngine *seng;
@@ -1040,6 +1059,8 @@ exit:
 	gf_seng_terminate(seng);
 	return NULL;
 }
+#endif
+
 
 GF_EXPORT
 u32 gf_seng_get_stream_count(GF_SceneEngine *seng)
@@ -1070,14 +1091,14 @@ GF_EXPORT
 char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 {
 	u32 size, size64;
-	char *buffer, *buf64;
+	u8 *buffer, *buf64;
 	u32 i=0;
 	GF_StreamContext*sc = NULL;
 
 	if (!seng->ctx->root_od) return NULL;
 
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
-		if ((sc->streamType == GF_STREAM_SCENE) && (sc->objectType != GPAC_OTI_SCENE_DIMS))
+		if ((sc->streamType == GF_STREAM_SCENE) && (sc->codec_id != GF_CODECID_DIMS))
 			break;
 	}
 	if (!sc) return NULL;
@@ -1100,7 +1121,7 @@ GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng)
 
 	if (!seng->ctx->root_od) return NULL;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
-		if ((sc->streamType == GF_STREAM_SCENE) && (sc->objectType != GPAC_OTI_SCENE_DIMS))
+		if ((sc->streamType == GF_STREAM_SCENE) && (sc->codec_id != GF_CODECID_DIMS))
 			break;
 	}
 	if (!sc) return NULL;

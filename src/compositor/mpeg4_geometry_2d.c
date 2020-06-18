@@ -27,7 +27,6 @@
 
 #include "nodes_stacks.h"
 #include "visual_manager.h"
-#include <gpac/internal/terminal_dev.h>
 
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 {
@@ -76,7 +75,6 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*check traverse mode, and take care of switch-off flag*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
-		GF_Node *m;
 		tr_state->appear = (GF_Node *) shape->appearance;
 
 		/*this is done regardless of switch flag*/
@@ -84,7 +82,7 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 
 		if (tr_state->appear) {
 			/*apply line width*/
-			m = ((M_Appearance *)tr_state->appear)->material;
+			GF_Node *m = ((M_Appearance *)tr_state->appear)->material;
 			if (m && (gf_node_get_tag(m)==TAG_MPEG4_Material2D) ) {
 				DrawAspect2D asp;
 				Fixed width = 0;
@@ -182,7 +180,7 @@ static void TraverseCircle(GF_Node *node, void *rs, Bool is_destroy)
 		if (!stack->mesh) {
 			Fixed a = ((M_Circle *) node)->radius * 2;
 			stack->mesh = new_mesh();
-			mesh_new_ellipse(stack->mesh, a, a, tr_state->visual->compositor->high_speed);
+			mesh_new_ellipse(stack->mesh, a, a, tr_state->visual->compositor->fast);
 		}
 		visual_3d_draw_2d(stack, tr_state);
 		return;
@@ -237,7 +235,7 @@ static void TraverseEllipse(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_DRAW_3D:
 		if (!stack->mesh) {
 			stack->mesh = new_mesh();
-			mesh_new_ellipse(stack->mesh, ((M_Ellipse *) node)->radius.x * 2, ((M_Ellipse *) node)->radius.y * 2, tr_state->visual->compositor->high_speed);
+			mesh_new_ellipse(stack->mesh, ((M_Ellipse *) node)->radius.x * 2, ((M_Ellipse *) node)->radius.y * 2, tr_state->visual->compositor->fast);
 		}
 		visual_3d_draw_2d(stack, tr_state);
 		return;
@@ -324,7 +322,7 @@ Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState
 {
 	GF_TextureHandler *txh;
 	GF_MediaObjectVRInfo vrinfo;
-	s32 tx, ty;
+	s32 gaze_x, gaze_y;
 	Bool is_visible = GF_FALSE;
 	if (! tr_state->visual->compositor->gazer_enabled)
 		return GF_TRUE;
@@ -338,16 +336,32 @@ Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState
 	if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 		return GF_TRUE;
 
-	tx = tr_state->visual->compositor->gaze_x;
-	tx *= vrinfo.srd_max_x;
-	tx /= tr_state->visual->width;
+	if (!vrinfo.srd_w && !vrinfo.srd_h && vrinfo.is_tiled_srd) {
+		if (txh->stream->srd_full_w && txh->stream->srd_full_h) {
+			gaze_x = tr_state->visual->compositor->gaze_x;
+			gaze_x *= txh->stream->srd_full_w;
+			gaze_x /= tr_state->visual->width;
 
-	ty = tr_state->visual->compositor->gaze_y;
-	ty *= vrinfo.srd_max_y;
-	ty /= tr_state->visual->height;
+			gaze_y = tr_state->visual->compositor->gaze_y;
+			gaze_y *= txh->stream->srd_full_h;
+			gaze_y /= tr_state->visual->height;
+
+			gf_mo_hint_gaze(txh->stream, gaze_x, gaze_y);
+		}
+
+		return GF_TRUE;
+	}
+
+	gaze_x = tr_state->visual->compositor->gaze_x;
+	gaze_x *= vrinfo.srd_max_x;
+	gaze_x /= tr_state->visual->width;
+
+	gaze_y = tr_state->visual->compositor->gaze_y;
+	gaze_y *= vrinfo.srd_max_y;
+	gaze_y /= tr_state->visual->height;
 
 	//simple test condition: only keep the first row
-	if ((tx>=vrinfo.srd_x) && (tx<=vrinfo.srd_x+vrinfo.srd_w) && (ty>=vrinfo.srd_y) && (ty<=vrinfo.srd_y+vrinfo.srd_h)) {
+	if ((gaze_x>=vrinfo.srd_x) && (gaze_x<=vrinfo.srd_x+vrinfo.srd_w) && (gaze_y>=vrinfo.srd_y) && (gaze_y<=vrinfo.srd_y+vrinfo.srd_h)) {
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial plane is under gaze coord %d %d\n", txh->stream->OD_ID, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y));
 		is_visible = GF_TRUE;
@@ -479,7 +493,7 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 	if (!coord) return;
 
 	stack->path->fineness = c2D->fineness;
-	if (tr_state->visual->compositor->high_speed)  stack->path->fineness /= 2;
+	if (tr_state->visual->compositor->fast)  stack->path->fineness /= 2;
 
 
 	pts = coord->point.vals;
@@ -776,6 +790,9 @@ static void TraverseBitWrapper(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_set_private(node, NULL);
 		return;
 	}
+#ifdef GPAC_ENABLE_COVERAGE
+	if (!rs) return;
+#endif
 
 	tr_state = (GF_TraverseState *)rs;
 	// Traverse the node here
@@ -787,8 +804,15 @@ void compositor_init_bitwrapper(GF_Compositor *compositor, GF_Node *node)
 {
 	M_BitWrapper *bit;
 	bit = (M_BitWrapper *)node;
+	if (!bit->node) return;
 	gf_node_set_private(node, gf_node_get_private(bit->node));
 	gf_node_set_callback_function(node, TraverseBitWrapper);
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		TraverseBitWrapper(node, NULL, GF_FALSE);
+	}
+#endif
 }
 
 

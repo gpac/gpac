@@ -28,14 +28,6 @@
 
 #ifndef GPAC_DISABLE_VRML
 
-typedef struct
-{
-	GF_AudioInput input;
-	GF_TimeNode time_handle;
-	Double start_time;
-	Bool set_duration, failure;
-} AudioClipStack;
-
 
 static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 {
@@ -88,7 +80,7 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	if (ac->isActive) {
 		gf_sc_audio_register(&st->input, (GF_TraverseState*)rs);
 	}
-	if (st->set_duration && st->input.stream) {
+	if (st->set_duration && st->input.stream && st->input.stream->odm) {
 		ac->duration_changed = gf_mo_get_duration(st->input.stream);
 		gf_node_event_out(node, 6/*"duration_changed"*/);
 		st->set_duration = GF_FALSE;
@@ -104,7 +96,10 @@ static void audioclip_update_time(GF_TimeNode *tn)
 	M_AudioClip *ac = (M_AudioClip *)tn->udta;
 	AudioClipStack *st = (AudioClipStack *)gf_node_get_private((GF_Node*)tn->udta);
 
-	if (st->failure) return;
+	if (st->failure) {
+		st->time_handle.needs_unregister = GF_TRUE;
+		return;
+	}
 	if (! ac->isActive) {
 		st->start_time = ac->startTime;
 		st->input.speed = ac->pitch;
@@ -175,14 +170,6 @@ void compositor_audioclip_modified(GF_Node *node)
 		st->time_handle.needs_unregister = GF_FALSE;
 }
 
-
-typedef struct
-{
-	GF_AudioInput input;
-	GF_TimeNode time_handle;
-	Bool is_active;
-	Double start_time;
-} AudioSourceStack;
 
 static void audiosource_activate(AudioSourceStack *st, M_AudioSource *as)
 {
@@ -449,7 +436,7 @@ static void audiobuffer_update_time(GF_TimeNode *tn)
 
 
 
-static char *audiobuffer_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
+static u8 *audiobuffer_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms)
 {
 	u32 blockAlign;
 	AudioBufferStack *st = (AudioBufferStack *) gf_node_get_private( ((GF_AudioInput *) callback)->owner);
@@ -458,7 +445,7 @@ static char *audiobuffer_fetch_frame(void *callback, u32 *size, u32 audio_delay_
 	if (!st->is_init) return NULL;
 	if (!st->buffer) {
 		st->done = GF_FALSE;
-		st->buffer_size = (u32) ceil(FIX2FLT(ab->length) * st->output.input_ifce.bps*st->output.input_ifce.samplerate*st->output.input_ifce.chan/8);
+		st->buffer_size = (u32) ceil(FIX2FLT(ab->length) * gf_audio_fmt_bit_depth(st->output.input_ifce.afmt) * st->output.input_ifce.samplerate*st->output.input_ifce.chan/8);
 		blockAlign = gf_mixer_get_block_align(st->am);
 		/*BLOCK ALIGN*/
 		while (st->buffer_size%blockAlign) st->buffer_size++;
@@ -518,7 +505,8 @@ static Bool audiobuffer_get_volume(void *callback, Fixed *vol)
 	if (ai->snd->GetChannelVolume) {
 		return ai->snd->GetChannelVolume(ai->snd->owner, vol);
 	} else {
-		vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = FIX_ONE;
+//		u32 i;
+//		for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++) vol[i] = FIX_ONE;
 		return GF_FALSE;
 	}
 }
@@ -534,16 +522,47 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 	AudioBufferStack *st = (AudioBufferStack *) gf_node_get_private( ((GF_AudioInput *) aifc->callback)->owner);
 
 	if (gf_mixer_must_reconfig(st->am)) {
+		Bool force_config = GF_TRUE;
 		if (gf_mixer_reconfig(st->am)) {
 			if (st->buffer) gf_free(st->buffer);
 			st->buffer = NULL;
 			st->buffer_size = 0;
 		}
 
-		gf_mixer_get_config(st->am, &aifc->samplerate, &aifc->chan, &aifc->bps, &aifc->ch_cfg);
-		st->is_init = (aifc->samplerate && aifc->chan && aifc->bps) ? GF_TRUE : GF_FALSE;
+		gf_mixer_get_config(st->am, &aifc->samplerate, &aifc->chan, &aifc->afmt, &aifc->ch_layout);
+		//we only work with packed formats
+		switch (aifc->afmt) {
+		case GF_AUDIO_FMT_U8P:
+			aifc->afmt = GF_AUDIO_FMT_U8;
+			break;
+		case GF_AUDIO_FMT_S16P:
+			aifc->afmt = GF_AUDIO_FMT_S16;
+			break;
+		case GF_AUDIO_FMT_S24P:
+			aifc->afmt = GF_AUDIO_FMT_S24;
+			break;
+		case GF_AUDIO_FMT_S32P:
+			aifc->afmt = GF_AUDIO_FMT_S32;
+			break;
+		case GF_AUDIO_FMT_FLTP:
+			aifc->afmt = GF_AUDIO_FMT_FLT;
+			break;
+		case GF_AUDIO_FMT_DBLP:
+			aifc->afmt = GF_AUDIO_FMT_DBL;
+			break;
+		default:
+			force_config = GF_FALSE;
+			break;
+		}
+		if (force_config) {
+			gf_mixer_set_config(st->am, aifc->samplerate, aifc->chan, aifc->afmt, aifc->ch_layout);
+		}
+		st->is_init = (aifc->samplerate && aifc->chan && aifc->afmt) ? GF_TRUE : GF_FALSE;
 		assert(st->is_init);
-		if (!st->is_init) aifc->samplerate = aifc->chan = aifc->bps = aifc->ch_cfg = 0;
+		if (!st->is_init) {
+			aifc->samplerate = aifc->chan = aifc->afmt = 0;
+			aifc->ch_layout = 0;
+		}
 		/*this will force invalidation*/
 		return (for_reconf && st->is_init) ? GF_TRUE : GF_FALSE;
 	}

@@ -10,7 +10,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE		:= gm_droidaudio
+LOCAL_MODULE		:= gm_droid_audio
 
 include $(LOCAL_PATH)/base.mk
 

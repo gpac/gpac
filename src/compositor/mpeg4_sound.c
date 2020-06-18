@@ -69,15 +69,14 @@ static void TraverseSound2D(GF_Node *node, void *rs, Bool is_destroy)
 }
 static Bool SND2D_GetChannelVolume(GF_Node *node, Fixed *vol)
 {
+	u32 i;
 	Fixed volume = ((M_Sound2D *)node)->intensity;
-	vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = volume;
+	for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++) {
+		vol[i] = volume;
+	}
 	return (volume==FIX_ONE) ? 0 : 1;
 }
 
-static u8 SND2D_GetPriority(GF_Node *node)
-{
-	return 255;
-}
 
 void compositor_init_sound2d(GF_Compositor *compositor, GF_Node *node)
 {
@@ -87,7 +86,6 @@ void compositor_init_sound2d(GF_Compositor *compositor, GF_Node *node)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate sound 2d stack\n"));
 		return;
 	}
-	snd->snd_ifce.GetPriority = SND2D_GetPriority;
 	snd->snd_ifce.GetChannelVolume = SND2D_GetChannelVolume;
 	snd->snd_ifce.owner = node;
 	gf_node_set_private(node, snd);
@@ -226,7 +224,7 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 		st->identity = (st->intensity==FIX_ONE) ? 1 : 0;
 
 		if (snd->spatialize) {
-			Fixed ang, sign;
+			Fixed sign;
 			SFVec3f cross;
 			pos = snd->location;
 			gf_mx_apply_vec(&tr_state->model_matrix, &pos);
@@ -258,10 +256,12 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 }
 static Bool SND_GetChannelVolume(GF_Node *node, Fixed *vol)
 {
+	u32 i;
 	M_Sound *snd = (M_Sound *)node;
 	SoundStack *st = (SoundStack *)gf_node_get_private(node);
+	for (i=2; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++)
+		vol[i] = st->intensity;
 
-	vol[2] = vol[3] = vol[4] = vol[5] = st->intensity;
 	if (snd->spatialize) {
 		vol[0] = st->lgain;
 		vol[1] = st->rgain;
@@ -269,10 +269,6 @@ static Bool SND_GetChannelVolume(GF_Node *node, Fixed *vol)
 		vol[0] = vol[1] = st->intensity;
 	}
 	return !st->identity;
-}
-static u8 SND_GetPriority(GF_Node *node)
-{
-	return (u8) ((M_Sound *)node)->priority*255;
 }
 
 void compositor_init_sound(GF_Compositor *compositor, GF_Node *node)
@@ -284,7 +280,6 @@ void compositor_init_sound(GF_Compositor *compositor, GF_Node *node)
 		return;
 	}
 	snd->snd_ifce.GetChannelVolume = SND_GetChannelVolume;
-	snd->snd_ifce.GetPriority = SND_GetPriority;
 	snd->snd_ifce.owner = node;
 	gf_node_set_private(node, snd);
 	gf_node_set_callback_function(node, TraverseSound);

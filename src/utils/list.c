@@ -36,7 +36,7 @@
 	single step memory array
 	#define GF_LIST_ARRAY
 
-	multi-step memory array withou gf_realloc on remove, using the GF_LIST_REALLOC macro
+	multi-step memory array without gf_realloc on remove, using the GF_LIST_REALLOC macro
 	GF_LIST_ARRAY_GROW
 */
 
@@ -120,7 +120,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
 GF_EXPORT
 u32 gf_list_count(const GF_List *ptr)
 {
-	if (! ptr) return 0;
+	if (!ptr) return 0;
 	return ptr->entryCount;
 }
 
@@ -503,13 +503,12 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	if (! ptr) return GF_BAD_PARAM;
 
-	ptr->entryCount ++;
-	ptr->slots = (void **) gf_realloc(ptr->slots, ptr->entryCount*sizeof(void*));
+	ptr->slots = (void **) gf_realloc(ptr->slots, (ptr->entryCount+1)*sizeof(void*));
 	if (!ptr->slots) {
-		ptr->entryCount = 0;
 		return GF_OUT_OF_MEM;
 	}
-	ptr->slots[ptr->entryCount-1] = item;
+	ptr->slots[ptr->entryCount] = item;
+	ptr->entryCount ++;
 	return GF_OK;
 }
 
@@ -626,6 +625,8 @@ GF_EXPORT
 GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	if (! ptr) return GF_BAD_PARAM;
+	if (! item)
+		return GF_BAD_PARAM;
 	if (ptr->allocSize==ptr->entryCount) realloc_chain(ptr);
 	if (!ptr->slots) return GF_OUT_OF_MEM;
 
@@ -644,7 +645,8 @@ u32 gf_list_count(const GF_List *ptr)
 GF_EXPORT
 void *gf_list_get(GF_List *ptr, u32 itemNumber)
 {
-	if(!ptr || (itemNumber >= ptr->entryCount)) return NULL;
+	if(!ptr || (itemNumber >= ptr->entryCount))
+		return NULL;
 	return ptr->slots[itemNumber];
 }
 
@@ -662,6 +664,8 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 {
 	u32 i;
 	if ( !ptr || !ptr->slots || !ptr->entryCount) return GF_BAD_PARAM;
+	if (ptr->entryCount < itemNumber) return GF_BAD_PARAM;
+	
 	i = ptr->entryCount - itemNumber - 1;
 	if (i) memmove(&ptr->slots[itemNumber], & ptr->slots[itemNumber +1], sizeof(void *)*i);
 	ptr->slots[ptr->entryCount-1] = NULL;
@@ -732,6 +736,8 @@ void *gf_list_enum(GF_List *ptr, u32 *pos)
 	return res;
 }
 
+//unused
+#if 0
 GF_EXPORT
 void *gf_list_rev_enum(GF_List *ptr, u32 *pos) {
 	void *res;
@@ -740,6 +746,7 @@ void *gf_list_rev_enum(GF_List *ptr, u32 *pos) {
 	(*pos)++;
 	return res;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
@@ -768,17 +775,17 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
 }
 
 GF_EXPORT
-GF_Err gf_list_transfer(GF_List *l1, GF_List *l2)
+GF_Err gf_list_transfer(GF_List *dst, GF_List *src)
 {
 	GF_Err e;
-	if (!l1 || !l2) return GF_BAD_PARAM;
-	if (l1 == l2) return GF_OK;
+	if (!dst || !src) return GF_BAD_PARAM;
+	if (dst == src) return GF_OK;
 
-	while (gf_list_count(l2)) {
-		void *ptr = gf_list_get(l2, 0);
-		e = gf_list_rem(l2, 0);
+	while (gf_list_count(src)) {
+		void *ptr = gf_list_get(src, 0);
+		e = gf_list_rem(src, 0);
 		if (e) return e;
-		e = gf_list_add(l1, ptr);
+		e = gf_list_add(dst, ptr);
 		if (e) return e;
 	}
 	return GF_OK;
@@ -797,7 +804,8 @@ GF_List* gf_list_clone(GF_List *ptr) {
 	return new_list;
 }
 
-GF_EXPORT
+//unused
+#if 0
 void gf_list_reverse(GF_List *ptr) {
 	GF_List* saved_order;
 	void* item;
@@ -812,6 +820,7 @@ void gf_list_reverse(GF_List *ptr) {
 
 	gf_list_del(saved_order);
 }
+#endif
 
 GF_EXPORT
 void* gf_list_pop_front(GF_List *ptr) {

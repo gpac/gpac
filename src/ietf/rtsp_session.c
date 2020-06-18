@@ -29,6 +29,8 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 
+/*default packet size to use when storing incomplete packets*/
+#define RTSP_PCK_SIZE			1000
 
 GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *useTCP)
 {
@@ -136,9 +138,10 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 		sess->HasTunnel = GF_TRUE;
 	}
 
+	gf_rtsp_set_buffer_size(sess, RTSP_PCK_SIZE);
+
 	sess->Server = gf_strdup(server);
 	sess->Service = gf_strdup(service);
-	sess->mx = gf_mx_new("RTSPSession");
 	sess->TCPChannels = gf_list_new();
 	gf_rtsp_session_reset(sess, GF_FALSE);
 	return sess;
@@ -150,7 +153,6 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 {
 	if (!sess) return;
 
-	gf_mx_p(sess->mx);
 	if (sess->RTSP_State == GF_RTSP_STATE_WAIT_FOR_CONTROL) {
 		strcpy(sess->RTSPLastRequest, "RESET");
 		//skip all we haven't received
@@ -158,18 +160,12 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 		sess->NbPending = 0;
 	}
 	sess->RTSP_State = GF_RTSP_STATE_INIT;
-	gf_mx_v(sess->mx);
-}
-
-void RTSP_AcknowledgeError(GF_RTSPSession *sess)
-{
 }
 
 void RemoveTCPChannels(GF_RTSPSession *sess)
 {
-	GF_TCPChan *ch;
 	while (gf_list_count(sess->TCPChannels)) {
-		ch = (GF_TCPChan*)gf_list_get(sess->TCPChannels, 0);
+		GF_TCPChan *ch = (GF_TCPChan*)gf_list_get(sess->TCPChannels, 0);
 		gf_free(ch);
 		gf_list_rem(sess->TCPChannels, 0);
 	}
@@ -179,8 +175,6 @@ void RemoveTCPChannels(GF_RTSPSession *sess)
 GF_EXPORT
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 {
-	gf_mx_p(sess->mx);
-
 	sess->last_session_id = NULL;
 	sess->NeedConnection = 1;
 
@@ -200,7 +194,6 @@ void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 	sess->CurrentPos = sess->CurrentSize = 0;
 	strcpy(sess->RTSPLastRequest, "");
 	RemoveTCPChannels(sess);
-	gf_mx_v(sess->mx);
 }
 
 GF_EXPORT
@@ -216,8 +209,8 @@ void gf_rtsp_session_del(GF_RTSPSession *sess)
 	if (sess->Service) gf_free(sess->Service);
 	gf_list_del(sess->TCPChannels);
 	if (sess->rtsp_pck_buf) gf_free(sess->rtsp_pck_buf);
-	if (sess->MobileIP) gf_free(sess->MobileIP);
-	gf_mx_del(sess->mx);
+	gf_free(sess->tcp_buffer);
+
 	gf_free(sess);
 }
 
@@ -227,64 +220,44 @@ u32 gf_rtsp_get_session_state(GF_RTSPSession *sess)
 	u32 state;
 	if (!sess) return GF_RTSP_STATE_INVALIDATED;
 
-	gf_mx_p(sess->mx);
 	state = sess->RTSP_State;
-	gf_mx_v(sess->mx);
 	return state;
 }
 
-GF_EXPORT
-void gf_rtsp_set_mobile_ip(GF_RTSPSession *sess, char *MobileIP)
-{
-	if (sess->MobileIP) gf_free(sess->MobileIP);
-	sess->MobileIP = NULL;
-	if (MobileIP) sess->MobileIP = gf_strdup(MobileIP);
-}
-
-
-GF_EXPORT
+#if 0 //unused
 char *gf_rtsp_get_last_request(GF_RTSPSession *sess)
 {
-	char *ret;
 	if (!sess) return NULL;
-	gf_mx_p(sess->mx);
-	ret = sess->RTSPLastRequest;
-	gf_mx_v(sess->mx);
-	return ret;
+	return sess->RTSPLastRequest;
 }
+#endif
 
 
 //check whether the url contains server and service name
 //no thread protection as this is const throughout the session
 GF_EXPORT
-u32 gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
+Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
 {
-	if (!sess) return 0;
-	if (!strstr(url, sess->Server)) return 0;
+	if (!sess) return GF_FALSE;
+	if (!strstr(url, sess->Server)) return GF_FALSE;
 	//same url or sub-url
-	if (strstr(url, sess->Service)) return 1;
-	return 0;
+	if (strstr(url, sess->Service)) return GF_TRUE;
+	return GF_FALSE;
 }
 
-GF_EXPORT
+#if 0 //unused
 const char *gf_rtsp_get_last_session_id(GF_RTSPSession *sess)
 {
 	if (!sess) return NULL;
 	return sess->last_session_id;
 }
+#endif
 
 GF_EXPORT
 char *gf_rtsp_get_server_name(GF_RTSPSession *sess)
 {
 	if (!sess) return NULL;
 	return sess->Server;
-}
-
-GF_EXPORT
-char *gf_rtsp_get_service_name(GF_RTSPSession *sess)
-{
-	if (!sess) return NULL;
-	return sess->Service;
 }
 
 GF_EXPORT
@@ -305,13 +278,20 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 		if (!sess->connection) return GF_OUT_OF_MEM;
 	}
 	//the session is down, reconnect
-	e = gf_sk_connect(sess->connection, sess->Server, sess->Port, sess->MobileIP);
+	e = gf_sk_connect(sess->connection, sess->Server, sess->Port, NULL);
 	if (e) return e;
 
 	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, GF_FALSE, sess->SockBufferSize);
 
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode())
+		gf_rtsp_http_tunnel_start(NULL, NULL);
+#endif
+
 	if (!sess->http && sess->HasTunnel) {
-		e = gf_rtsp_http_tunnel_start(sess, "toto is the king of RTSP");
+		const char *ua = gf_opts_get_key("core", "user-agent");
+		if (!ua) ua = "GPAC " GPAC_VERSION;
+		e = gf_rtsp_http_tunnel_start(sess, (char *)ua);
 		if (e) return e;
 	}
 	sess->NeedConnection = 0;
@@ -319,7 +299,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 }
 
 
-GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, char *buffer, u32 Size)
+GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, u8 *buffer, u32 Size)
 {
 	GF_Err e;
 	u32 Size64;
@@ -347,7 +327,7 @@ static GF_TCPChan *GetTCPChannel(GF_RTSPSession *sess, u8 rtpID, u8 rtcpID, Bool
 	u32 i, count = gf_list_count(sess->TCPChannels);
 	for (i=0; i<count; i++) {
 		ptr = (GF_TCPChan *)gf_list_get(sess->TCPChannels, i);
-		if (ptr->rtpID == rtpID) goto exit;;
+		if (ptr->rtpID == rtpID) goto exit;
 		if (ptr->rtcpID == rtcpID) goto exit;
 	}
 	return NULL;
@@ -369,7 +349,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 	if (!sess) return GF_SERVICE_ERROR;
 
 	Size = sess->CurrentSize - sess->CurrentPos;
-	buffer = sess->TCPBuffer + sess->CurrentPos;
+	buffer = sess->tcp_buffer + sess->CurrentPos;
 
 	if (!Size) return GF_IP_NETWORK_EMPTY;
 
@@ -447,38 +427,12 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 }
 
 
-
-
-
-
-
-
-/*
-		Exposed API, thread-safe
-*/
-
-GF_Err RTSP_ResetInterleaving(GF_RTSPSession *sess, Bool ResetChannels)
-{
-	if (!sess) return GF_BAD_PARAM;
-
-	gf_mx_p(sess->mx);
-	sess->payloadSize = 0;
-	sess->pck_start = 0;
-	sess->InterID = (u8) -1;
-	if (ResetChannels) RemoveTCPChannels(sess);
-	gf_mx_v(sess->mx);
-
-	return GF_OK;
-}
-
-
 GF_EXPORT
 GF_Err gf_rtsp_session_read(GF_RTSPSession *sess)
 {
 	GF_Err e;
 	if (!sess) return GF_BAD_PARAM;
 
-	gf_mx_p(sess->mx);
 	e = gf_rtsp_fill_buffer(sess);
 	if (!e) {
 		//only read if not RTSP
@@ -487,7 +441,6 @@ GF_Err gf_rtsp_session_read(GF_RTSPSession *sess)
 			if (e) break;
 		}
 	}
-	gf_mx_v(sess->mx);
 	return e;
 }
 
@@ -495,13 +448,15 @@ GF_Err gf_rtsp_session_read(GF_RTSPSession *sess)
 GF_EXPORT
 u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID)
 {
+	u32 res;
 	GF_TCPChan *ptr;
+	if (!sess) return 0;
 
-	gf_mx_p(sess->mx);
 	ptr = GetTCPChannel(sess, LowInterID, LowInterID, GF_TRUE);
 	if (ptr) gf_free(ptr);
-	gf_mx_v(sess->mx);
-	return gf_list_count(sess->TCPChannels);
+	res = gf_list_count(sess->TCPChannels);
+	if (!res) sess->interleaved = GF_FALSE;
+	return res;
 }
 
 GF_EXPORT
@@ -511,7 +466,6 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 
 	if (!sess) return GF_BAD_PARAM;
 
-	gf_mx_p(sess->mx);
 	//do NOT register twice
 	ptr = GetTCPChannel(sess, LowInterID, HighInterID, GF_FALSE);
 	if (!ptr) {
@@ -521,33 +475,25 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 		ptr->rtcpID = HighInterID;
 		gf_list_add(sess->TCPChannels, ptr);
 	}
-	gf_mx_v(sess->mx);
+	sess->interleaved=GF_TRUE;
 	return GF_OK;
 }
 
 
 GF_EXPORT
-GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
-                                       GF_Err (*SignalData)(GF_RTSPSession *sess, void *chan, char *buffer, u32 bufferSize, Bool IsRTCP)
-                                      )
+GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess, gf_rtsp_interleave_callback SignalData)
 {
 	if (!sess) return GF_BAD_PARAM;
-
-	gf_mx_p(sess->mx);
 
 	//only if existing
 	if (SignalData) sess->RTSP_SignalData = SignalData;
 
-	//gf_realloc or alloc
-	if (sess->rtsp_pck_buf && sess->rtsp_pck_size != RTSP_PCK_SIZE) {
+	if (!sess->rtsp_pck_buf || (sess->rtsp_pck_size != RTSP_PCK_SIZE) ) {
+		if (!sess->rtsp_pck_buf)
+			sess->pck_start = 0;
 		sess->rtsp_pck_size = RTSP_PCK_SIZE;
 		sess->rtsp_pck_buf = (char *)gf_realloc(sess->rtsp_pck_buf, sizeof(char)*sess->rtsp_pck_size);
-	} else if (!sess->rtsp_pck_buf) {
-		sess->rtsp_pck_size = RTSP_PCK_SIZE;
-		sess->rtsp_pck_buf = (char *)gf_realloc(sess->rtsp_pck_buf, sizeof(char)*sess->rtsp_pck_size);
-		sess->pck_start = 0;
 	}
-	gf_mx_v(sess->mx);
 	return GF_OK;
 }
 
@@ -555,7 +501,9 @@ GF_EXPORT
 GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize)
 {
 	if (!sess) return GF_BAD_PARAM;
+	if (sess->SockBufferSize >= BufferSize) return GF_OK;
 	sess->SockBufferSize = BufferSize;
+	sess->tcp_buffer = gf_realloc(sess->tcp_buffer, BufferSize);
 	return GF_OK;
 }
 
@@ -567,16 +515,25 @@ static Bool HTTP_RandInit = GF_TRUE;
 #define HTTP_RSP_OK	"HTTP/1.0 200 OK"
 
 
-void RTSP_GenerateHTTPCookie(GF_RTSPSession *sess)
+//http tunnelling start.
+GF_EXPORT
+GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 {
+	GF_Err e;
+	u32 size;
+	s32 pos;
 	u32 i, num, temp;
+	char buffer[GF_RTSP_DEFAULT_BUFFER];
 
+	if (!sess || !UserAgent) return GF_BAD_PARAM;
+
+	//generate http cookie
 	if (HTTP_RandInit) {
 		gf_rand_init(GF_FALSE);
 		HTTP_RandInit = GF_FALSE;
 	}
 	if (!sess->CookieRadLen) {
-		strcpy(sess->HTTP_Cookie, "MPEG4M4");
+		strcpy(sess->HTTP_Cookie, "GPACROH");
 		sess->CookieRadLen = 8;
 	}
 	num = gf_rand();
@@ -585,20 +542,6 @@ void RTSP_GenerateHTTPCookie(GF_RTSPSession *sess)
 		sess->HTTP_Cookie[sess->CookieRadLen + i] = (u8) temp + sess->HTTP_Cookie[0];
 	}
 	sess->HTTP_Cookie[sess->CookieRadLen + i] = 0;
-}
-
-
-
-
-//http tunnelling start.
-GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
-{
-	GF_Err e;
-	u32 size;
-	s32 pos;
-	char buffer[GF_RTSP_DEFAULT_BUFFER];
-
-	RTSP_GenerateHTTPCookie(sess);
 
 	//  1. send "GET /sample.mov HTTP/1.0\r\n ..."
 	memset(buffer, 0, GF_RTSP_DEFAULT_BUFFER);
@@ -615,7 +558,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	if (e) return e;
 
 	//	2. wait for "HTTP/1.0 200 OK"
-	e = gf_sk_receive_wait(sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, 0, &size, HTTP_WAIT_SEC);
+	e = gf_sk_receive_wait(sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, &size, HTTP_WAIT_SEC);
 	if (e) return e;
 
 	//get HTTP/1.0 200 OK
@@ -626,8 +569,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	sess->http = gf_sk_new(GF_SOCK_TYPE_TCP);
 	if (!sess->http ) return GF_IP_NETWORK_FAILURE;
 
-	/*mobileIP is enabled, bind first*/
-	if (gf_sk_connect(sess->http, sess->Server, sess->Port, sess->MobileIP)) return GF_IP_CONNECTION_FAILURE;
+	if (gf_sk_connect(sess->http, sess->Server, sess->Port, NULL)) return GF_IP_CONNECTION_FAILURE;
 
 	memset(buffer, 0, GF_RTSP_DEFAULT_BUFFER);
 	pos = 0;
@@ -693,13 +635,13 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 	sess->ConnectionType = fam;
 	gf_sk_get_host_name(name);
 	sess->Server = gf_strdup(name);
-
+	gf_rtsp_set_buffer_size(sess, 4096);
 	sess->TCPChannels = gf_list_new();
 	return sess;
 }
 
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 {
 	char server[1024], service[1024];
@@ -722,7 +664,7 @@ GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 	sess->Service = gf_strdup(service);
 	return GF_OK;
 }
-
+#endif
 
 GF_EXPORT
 char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
@@ -747,7 +689,7 @@ char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 
 
 GF_EXPORT
-GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer)
+GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char buffer[GF_MAX_IP_NAME_LEN])
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
 	gf_sk_get_local_ip(sess->connection, buffer);
@@ -755,7 +697,7 @@ GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char *buffer)
 }
 
 
-GF_EXPORT
+#if 0 //unused
 u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 {
 	u32 i;
@@ -769,13 +711,30 @@ u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 	}
 	return id;
 }
-
+#endif
 
 GF_EXPORT
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buf)
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
 	return gf_sk_get_remote_address(sess->connection, buf);
+}
+
+GF_EXPORT
+GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, u8 *pck, u32 pck_size)
+{
+	GF_Err e;
+	char streamID[4];
+	if (!sess || !sess->connection) return GF_BAD_PARAM;
+
+	streamID[0] = '$';
+	streamID[1] = (u8) idx;
+	streamID[2] = (pck_size>>8) & 0xFF;
+	streamID[3] = pck_size & 0xFF;
+
+	e = gf_sk_send_wait(sess->connection, streamID, 4, 20);
+	e |= gf_sk_send_wait(sess->connection, pck, pck_size, 20);
+	return e;
 }
 
 #endif /*GPAC_DISABLE_STREAMING*/

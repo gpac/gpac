@@ -202,9 +202,9 @@ u32 gf_rtp_build_au_hdr_write(GP_RTPPacketizer *builder, u32 PayloadSize, u32 RT
 }
 
 
-GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
 {
-	char *sl_buffer, *payl_buffer;
+	u8 *sl_buffer, *payl_buffer;
 	u32 sl_buffer_size, payl_buffer_size;
 	u32 auh_size_tmp, bytesLeftInPacket, infoSize, pckSize;
 	u64 pos;
@@ -399,7 +399,7 @@ flush_packet:
 }
 
 
-GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
 {
 	u32 do_flush, bytesLeft, size, nal_type;
 	char shdr[2];
@@ -425,6 +425,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	/*need a new RTP packet*/
 	if (!builder->bytesInPacket) {
 		builder->rtp_header.PayloadType = builder->PayloadType;
+		builder->rtp_header.Marker = 0;
 		builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
 		builder->rtp_header.SequenceNumber += 1;
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
@@ -534,7 +535,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	return GF_OK;
 }
 
-GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size, u8 IsAUEnd, u32 FullAUSize)
 {
 	u32 do_flush, bytesLeft, size;
 
@@ -698,11 +699,10 @@ void latm_flush(GP_RTPPacketizer *builder)
 	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
 }
 
-GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration)
+GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration)
 {
 	u32 size, latm_hdr_size, i, data_offset;
 	Bool fragmented;
-	unsigned char *latm_hdr;
 
 	if (!data) {
 		latm_flush(builder);
@@ -722,6 +722,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 	data_offset = 0;
 	fragmented = GF_FALSE;
 	while (data_size > 0) {
+		u8 *latm_hdr;
 		latm_hdr_size = (data_size / 255) + 1;
 		/*fragmenting*/
 		if (latm_hdr_size + data_size > builder->Path_MTU) {

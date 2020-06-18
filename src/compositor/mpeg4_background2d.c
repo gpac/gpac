@@ -126,7 +126,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 		stack->txh.width = 2;
 		stack->txh.height = 2;
 		stack->txh.stride = 6;
-		stack->txh.pixelformat = GF_PIXEL_RGB_24;
+		stack->txh.pixelformat = GF_PIXEL_RGB;
 	}
 
 	if (use_texture) {
@@ -322,6 +322,8 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		DestroyBackground2D(node);
 		return;
 	}
+	if (tr_state->visual->compositor->noback)
+		return;
 
 	bck = (M_Background2D *)node;
 
@@ -338,7 +340,8 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*first traverse, bound if needed*/
 	if (gf_list_find(tr_state->backgrounds, node) < 0) {
-		M_Background2D *top_bck = (M_Background2D *)node;
+		M_Background2D *top_bck;
+
 		gf_list_add(tr_state->backgrounds, node);
 		assert(gf_list_find(stack->reg_stacks, tr_state->backgrounds)==-1);
 		gf_list_add(stack->reg_stacks, tr_state->backgrounds);
@@ -444,6 +447,14 @@ DrawableContext *b2d_get_context(M_Background2D *node, GF_List *from_stack)
 static void UpdateBackgroundTexture(GF_TextureHandler *txh)
 {
 	gf_sc_texture_update_frame(txh, 0);
+
+	if (!txh->compositor->player && !txh->compositor->passthrough_txh && txh->stream && txh->stream->odm && (txh->stream->odm->flags & GF_ODM_PASSTHROUGH)) {
+		if (!txh->width || ((txh->width==txh->compositor->display_width) && (txh->height==txh->compositor->display_height)))
+			txh->compositor->passthrough_txh = txh;
+		else
+			txh->compositor->passthrough_txh = NULL;
+	}
+
 	/*restart texture if needed (movie background controled by MediaControl)*/
 	if (txh->stream_finished && gf_mo_get_loop(txh->stream, 0))
 		gf_sc_texture_restart(txh);
@@ -497,6 +508,7 @@ void compositor_background2d_modified(GF_Node *node)
 	gf_sc_invalidate(st->txh.compositor, NULL);
 }
 
+#if 0 //unused
 Bool compositor_background_transparent(GF_Node *node)
 {
 	if (node && (gf_node_get_tag(node) == TAG_MPEG4_Background2D)) {
@@ -510,5 +522,7 @@ Bool compositor_background_transparent(GF_Node *node)
 	/*consider all other background nodes transparent*/
 	return 1;
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_VRML*/

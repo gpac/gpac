@@ -360,7 +360,7 @@ static void svg_text_area_queue_state(GF_TraverseState *tr_state, GF_TextSpan *s
 	u32 i, count;
 	count = gf_list_count(tr_state->x_anchors);
 	for (i=0; i<count; i++) {
-		textArea_state *st = (textArea_state*)gf_list_get(tr_state->x_anchors, i);
+		st = (textArea_state*)gf_list_get(tr_state->x_anchors, i);
 		if (st->span==span) {
 			st->last_glyph = last_glyph;
 			return;
@@ -393,7 +393,7 @@ static void svg_text_area_apply_diff_baselines(GF_TraverseState *tr_state, Fixed
 static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state, GF_List *spans)
 {
 	GF_DOMText *dom_text = (GF_DOMText *)node;
-	u32 word_start, word_end;
+	u32 word_start;
 	u32 i, j;
 	Fixed line_spacing;
 	GF_Font *font;
@@ -424,7 +424,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 
 	line_spacing = gf_mulfix(span->font_size, FLT2FIX(1.0) );
 
-	word_start = word_end = 0;
+	word_start = 0;
 	i = 0;
 	/* boucle principale: mot par mot */
 	while (i<span->nb_glyphs) {
@@ -556,7 +556,6 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 		if ((tr_state->count_x==1)||(tr_state->count_y==1)
 		        || !gf_list_count(tr_state->x_anchors) ) {
 			entry = (Fixed*)gf_malloc(sizeof(Fixed));
-			*entry = block_width;
 
 			if (span->flags & GF_TEXT_SPAN_RIGHT_TO_LEFT) *entry = -block_width;
 			else *entry = block_width;
@@ -843,7 +842,6 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 	SVG_Element *text = (SVG_Element *)node;
 	SVGAllAttributes atts;
 	u32 i,imax;
-	Fixed * lw;
 
 	if (is_destroy) {
 		drawable_del(st->drawable);
@@ -949,7 +947,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		/*apply justification of all blocks*/
 		imax=gf_list_count(tr_state->x_anchors);
 		for (i=0; i<imax; i++) {
-			lw=gf_list_get(tr_state->x_anchors, i);
+			Fixed *lw = gf_list_get(tr_state->x_anchors, i);
 			svg_apply_text_anchor(tr_state, lw);
 		}
 
@@ -1344,11 +1342,11 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->text_end_x = 0;
 		tr_state->text_end_y = (tr_state->svg_props->line_increment->type == SVG_NUMBER_AUTO ? 0 : tr_state->svg_props->line_increment->value);
 
-		tr_state->x_anchors = gf_list_new();
-
 		if (tr_state->svg_props->font_size && (tr_state->svg_props->font_size->value <= tr_state->max_height)) {
 			Fixed remain;
 			u32 c, refresh_to_idx, prev_refresh;
+			tr_state->x_anchors = gf_list_new();
+
 			/*switch to bounds mode, and recompute children*/
 			mode = tr_state->traversing_mode;
 			tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;

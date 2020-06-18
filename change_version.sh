@@ -14,18 +14,6 @@ sed -e "s/README for GPAC version.*/README for GPAC version $version/;" $source 
 rm $source
 mv ftmp $source
 
-#patch doc/configuration.html
-source="doc/configuration.html"
-sed -e "s/GPAC Version.*/GPAC Version $version/;" $source > ftmp
-rm $source
-mv ftmp $source
-
-#patch doc/man/gpac.1
-source="doc/man/gpac.1"
-sed -e "s/GPAC framework version.*/GPAC framework version $version./;" $source > ftmp
-rm $source
-mv ftmp $source
-
 
 #patch  applications/osmo4_ios/osmo4ios-Info.plist 
 
@@ -33,26 +21,6 @@ source="applications/osmo4_ios/osmo4ios-Info.plist"
 sed -e "/CFBundleShortVersionString/{n;s/.*/	<string>$version<\/string>/;}" $source > ftmp
 rm $source
 mv ftmp $source
-
-# patch applications/osmo4_w32/Osmo4.rc
-
-source="applications/osmo4_w32/Osmo4.rc"
-sed -e "/\"FileDescription\", \"Osmo4-GPAC\"/{n;s/.*/		VALUE \"FileVersion\", \"$version\"/;}" $source | sed -e "/\"ProductName\", \"Osmo4-GPAC\"/{n;s/.*/		VALUE \"ProductVersion\", \"$version\"/;}" > ftmp
-rm $source
-mv ftmp $source
-
-# patch bin/smartphone 2003 (armv4)/release/install/archive.bat
-source="bin/smartphone 2003 (armv4)/release/install/archive.bat"
-sed -e "s/set gpac_version=.*/set gpac_version=\"$version-r%gpac_revision%/;" "$source" > ftmp
-rm "$source"
-mv ftmp "$source"
-
-
-# patch bin/smartphone 2003 (armv4)/release/install/build_installer.bat
-source="bin/smartphone 2003 (armv4)/release/install/build_installer.bat"
-sed -e "s/set gpac_version=.*/set gpac_version=\"$version-r%gpac_revision%/;" "$source" > ftmp
-rm "$source"
-mv ftmp "$source"
 
 # patch file gpac.pc
 source="gpac.pc"
@@ -75,5 +43,11 @@ mv ftmp $source
 # patch packagers/win32_64/nsis/gpac_installer.nsi
 source="packagers/win32_64/nsis/gpac_installer.nsi"
 sed -e "s/\!define GPAC_VERSION.*/\!define GPAC_VERSION $version/;" $source > ftmp
+rm $source
+mv ftmp $source
+
+# patch file share/doc/configuration.html
+source="share/doc/configuration.html"
+sed -e "s/GPAC Version.*</GPAC Version $version</;" $source > ftmp
 rm $source
 mv ftmp $source

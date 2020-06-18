@@ -1,118 +1,137 @@
 /*
- *			GPAC - Multimedia Framework C SDK
- *
- *			Authors: Romain Bouqueau
- *			Copyright (c) 
- *                  Romain Bouqueau @ GPAC Licensing
- *			        Jean Le Feuvre
- *					All rights reserved
- *
- *  This file is part of GPAC / Dektec SDI video render module
- *
- *  GPAC is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  GPAC is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- */
+*			GPAC - Multimedia Framework C SDK
+*
+*			Authors: Romain Bouqueau, Jean Le Feuvre
+*			Copyright (c) 2014-2016 GPAC Licensing
+*			Copyright (c) 2016-2020 Telecom Paris
+*					All rights reserved
+*
+*  This file is part of GPAC / Dektec SDI video output filter
+*
+*  GPAC is free software; you can redistribute it and/or modify
+*  it under the terms of the GNU Lesser General Public License as published by
+*  the Free Software Foundation; either version 2, or (at your option)
+*  any later version.
+*
+*  GPAC is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU Lesser General Public License for more details.
+*
+*  You should have received a copy of the GNU Lesser General Public
+*  License along with this library; see the file COPYING.  If not, write to
+*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+*
+*/
 
-//#define _DTAPI_DISABLE_AUTO_LINK
-#include <DTAPI.h>
+#include "dektec_video.h"
 
-extern "C" {
+#ifdef GPAC_HAS_DTAPI
 
-/*driver interfaces*/
-#include <gpac/modules/video_out.h>
-#include <gpac/modules/audio_out.h>
-#include <gpac/constants.h>
-#include <gpac/setup.h>
-#include <gpac/color.h>
-#include <gpac/thread.h>
+#ifndef FAKE_DT_API
 
-typedef struct
+static void OnNewFrameAudio(DtMxData *pData, const DtCbkCtx *ctx)
 {
-	unsigned char *pixels_YUV_source;
+	// Must have a valid frame
+	DtMxRowData &OurRow = pData->m_Rows[0];
+	if (OurRow.m_CurFrame->m_Status != DT_FRMSTATUS_OK) {
+		return; // Frame is not valid so we have to assume the frame buffers are unusable
+	}
 
-	u32 width, height;
-	DtMxProcess *m_Matrix;
+	// Get frame audio data
+	DtMxAudioData&  AudioData = OurRow.m_CurFrame->m_Audio;
 
-	DtDevice *dvc;
-	Bool is_sending, is_configured, is_10b, clip_sdi;
+	// Init channel status word for all (valid) audio channels
+	AudioData.InitChannelStatus();
+}
 
-	s64 frameNum;
-	FILE *pFile;
-	Bool is_in_flush;
-	Bool frame_transfered;
-	
-	s64 lastFrameNum;
-	u64 init_clock, last_frame_time;
-
-	u32 frame_dur, frame_scale;
-	Bool needs_reconfigure;
-	u32 force_width, force_height;
-} DtContext;
-
-static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
+static void OnNewFrameVideo(DtMxData *pData, const DtCbkCtx  *cbck)
 {
 	u64 now = gf_sys_clock_high_res();
-	DtMxRowData&  OurRow = pData->m_Rows[0];
-	GF_VideoOutput *dr = (GF_VideoOutput *)pOpaque;
-	DtContext *dtc = (DtContext*)dr->opaque;
-	if (!dtc->is_configured) return;
-
-	if (!dtc->init_clock)  {
-		dtc->init_clock = dtc->last_frame_time = now;
-	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DekTecOut] output frame %d at %d ms - %d since last\n", dtc->frameNum, (u32) (now - dtc->init_clock)/1000,  now-dtc->last_frame_time));
+	const DtMxRowData&  OurRow = pData->m_Rows[0];
+	GF_DTOutCtx *ctx = cbck->ctx;
+	GF_FilterPacket *pck;
 	
-	dtc->last_frame_time = now;
+	if (!ctx->is_configured || ctx->is_eos) return;
+	if (pData->m_NumSkippedFrames > 0) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] [%lld] #skipped frames=%d\n", pData->m_Frame, pData->m_NumSkippedFrames));
+	}
 
-	if (dtc->lastFrameNum == dtc->frameNum) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTec Out] Skipping same frame %d - compositor in flush %d\n", dtc->frameNum, dtc->is_in_flush));
-		dtc->frame_transfered = GF_TRUE;
+	if (!ctx->init_clock) {
+		ctx->init_clock = ctx->last_frame_time = now;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DekTecOut] output frame %d at %d ms - %d since last\n", ctx->frameNum, (u32)(now - ctx->init_clock) / 1000, now - ctx->last_frame_time));
+
+	ctx->last_frame_time = now;
+
+	if (!cbck->video) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DekTecOut] no connected pid !\n"));
 		return;
 	}
-
-	dtc->lastFrameNum = dtc->frameNum;
 
 	// Must have a valid frame
 	if (OurRow.m_CurFrame->m_Status != DT_FRMSTATUS_OK)
 	{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Not valid frame 4k\n"));
-		dtc->frame_transfered = GF_TRUE;
-		exit(0);
 		return; // Frame is not valid so we have to assume the frame buffers are unusable
 	}
-	if (pData->m_NumSkippedFrames>0) {
-		GF_Event evt;
-		evt.type = GF_EVENT_SYNC_LOST;
-		evt.sync_loss.sync_loss_ms = (u32) ( (u64) pData->m_NumSkippedFrames * dtc->frame_dur * 1000) / dtc->frame_scale;
-		dr->on_event(dr->evt_cbk_hdl, &evt);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] [%lld] #skipped frames=%d\n", pData->m_Frame, pData->m_NumSkippedFrames));
+	if (pData->m_NumSkippedFrames > 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DekTecOut] [%lld] #skipped frames=%d\n", pData->m_Frame, pData->m_NumSkippedFrames));
 	}
 
-	DtMxVideoBuf&  VideoBuf = OurRow.m_CurFrame->m_Video[0];
-	unsigned char* pDstY = VideoBuf.m_Planes[0].m_pBuf;
-	unsigned char* pDstU = VideoBuf.m_Planes[1].m_pBuf;
-	unsigned char* pDstV = VideoBuf.m_Planes[2].m_pBuf;
+	pck = gf_filter_pid_get_packet(cbck->video);
+	if (!pck) {
+		if (gf_filter_pid_is_eos(cbck->video)) {
+			ctx->is_eos = GF_TRUE;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DekTecOut] no packet ready !\n"));
+		}
+		return;
+	}
+	ctx->is_eos = GF_FALSE;
 
-	if (dtc->is_10b) {
-		u32 nb_pix = 2*dtc->width*dtc->height;
-		int lineC = 2*dtc->width / 2;
-		unsigned char *pSrcY = dtc->pixels_YUV_source;
-		unsigned char *pSrcU = dtc->pixels_YUV_source + 2 * dtc->width*dtc->height;
-		unsigned char *pSrcV = pSrcU + (2 * dtc->width*dtc->height / 4);
+	u8 *pY, *pU, *pV;
+	u32 pck_size = 0;
+	u32 stride = ctx->stride, stride_uv= ctx->stride_uv;
+	pU = pV = NULL;
+	pY = (u8 *) gf_filter_pck_get_data(pck, &pck_size);
+	if (!pY) {
+		GF_FilterFrameInterface *hwframe = gf_filter_pck_get_frame_interface(pck);
+		if (hwframe) {
+			hwframe->get_plane(hwframe, 0, (const u8 **) &pY, &stride);
+			if (ctx->nb_planes>1)
+				hwframe->get_plane(hwframe, 1, (const u8 **) &pU, &stride_uv);
+			if (ctx->nb_planes>2)
+				hwframe->get_plane(hwframe, 2, (const u8 **) &pV, &stride_uv);
+		}
+	}
+	if (!pY) {
+		gf_filter_pid_drop_packet(cbck->video);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DekTecOut] No data associated with packet\n"));
+		return;
+	}
+	if (!pU && !pV) {
+		if (ctx->nb_planes>1)
+			pU = pY + stride * ctx->height;
+		if (ctx->nb_planes>2)
+			pV = pU + stride_uv * ctx->uv_height;
+	}
 
-		if (dtc->clip_sdi) {
+	//TODO - move all this into color convertion code in libgpac !
+
+	const DtMxVideoBuf&  VideoBuf = OurRow.m_CurFrame->m_Video[0];
+	u8* pDstY = VideoBuf.m_Planes[0].m_pBuf;
+	u8* pDstU = VideoBuf.m_Planes[1].m_pBuf;
+	u8* pDstV = VideoBuf.m_Planes[2].m_pBuf;
+
+	if (ctx->is_10b) {
+		u32 nb_pix = 2 * ctx->width*ctx->height;
+		int lineC = 2 * ctx->width / 2;
+		unsigned char *pSrcY = pY;
+		unsigned char *pSrcU = pU;
+		unsigned char *pSrcV = pV;
+
+		if (ctx->clip) {
 			const u16 nYRangeMin = 4;
 			const u16 nYRangeMax = 1019;
 			const __m128i mMin = _mm_set1_epi16(nYRangeMin);
@@ -122,336 +141,411 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 				_mm_storeu_si128((__m128i *)&pDstY[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcY[i]))));
 			}
 
-			for (u32 h = 0; h < dtc->height/2; h++) {
-				for (u32 i = 0; i < dtc->width; i += 16) {
+			for (u32 h = 0; h < ctx->height / 2; h++) {
+				for (u32 i = 0; i < ctx->width; i += 16) {
 					_mm_storeu_si128((__m128i *)&pDstU[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcU[i]))));
 				}
 				//420->422: copy over each U and V line
-				memcpy(pDstU+lineC, pDstU, lineC);
+				memcpy(pDstU + lineC, pDstU, lineC);
 				pSrcU += lineC;
 				pDstU += 2 * lineC;
 			}
 
-			for (u32 h = 0; h < dtc->height / 2; h++) {
-				for (u32 i = 0; i < dtc->width; i += 16) {
+			//NV12 formats
+			if (!pSrcV) pSrcV = pU + 1;
+
+			for (u32 h = 0; h < ctx->height / 2; h++) {
+				for (u32 i = 0; i < ctx->width; i += 16) {
 					_mm_storeu_si128((__m128i *)&pDstV[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcV[i]))));
 				}
 				memcpy(pDstV + lineC, pDstV, lineC);
 				pSrcV += lineC;
 				pDstV += 2 * lineC;
 			}
-		} else {
-			memcpy(pDstY, dtc->pixels_YUV_source, 2 * dtc->width*dtc->height);
-	
+		}
+		else {
+			memcpy(pDstY, pY, stride * ctx->height);
+
 			//420->422: copy over each U and V line
-			for (u32 h = 0; h < dtc->height/2; h++) {
+			for (u32 h = 0; h < ctx->height / 2; h++) {
 				memcpy(pDstU, pSrcU, lineC);
-				memcpy(pDstU+lineC, pSrcU, lineC);
+				memcpy(pDstU + lineC, pSrcU, lineC);
 				pSrcU += lineC;
 				pDstU += 2 * lineC;
 			}
-			for (u32 h = 0; h < dtc->height / 2; h++) {
+			for (u32 h = 0; h < ctx->height / 2; h++) {
 				memcpy(pDstV, pSrcV, lineC);
 				memcpy(pDstV + lineC, pSrcV, lineC);
 				pSrcV += lineC;
 				pDstV += 2 * lineC;
 			}
 		}
-	} else {
+	}
+	else {
+		const int lineC = ctx->width / 2;
+		u32 nb_pix = ctx->width*ctx->height;
+		unsigned char *pSrcY = pY;
+		unsigned char *pSrcU = pU;
+		unsigned char *pSrcV = pV;
+
 		const u16 nYRangeMin = 4;
 		const u16 nYRangeMax = 1019;
-		u32 nb_pix = dtc->width*dtc->height;
-		const int lineC = dtc->width / 2;
-		unsigned char *pSrcY = dtc->pixels_YUV_source;
-		unsigned char *pSrcU = dtc->pixels_YUV_source + dtc->width * dtc->height;
-		unsigned char *pSrcV = pSrcU + (dtc->width*dtc->height / 4);
 
-		for (u32 i=0; i<nb_pix; i++) {
-			u16 srcy = ((u16) (*pSrcY)) << 2;
-			if (dtc->clip_sdi) {
-				if (srcy<nYRangeMin)      srcy = nYRangeMin;
-				else if (srcy>nYRangeMax) srcy = nYRangeMax;
+		for (u32 i = 0; i < nb_pix; i++) {
+			u16 srcy = ((u16)(*pSrcY)) << 2;
+			if (ctx->clip) {
+				if (srcy < nYRangeMin)      srcy = nYRangeMin;
+				else if (srcy > nYRangeMax) srcy = nYRangeMax;
 			}
 			*(short *)pDstY = srcy;
 
 			pSrcY++;
-			pDstY+=sizeof(short); //char type but short buffer
+			pDstY += sizeof(short); //char type but short buffer
 		}
 
-		nb_pix = dtc->width*dtc->height/4;
-		for (u32 i=0; i<nb_pix; i++) {
-			u16 srcu = ((u16)(*pSrcU)) << 2;
-			if (dtc->clip_sdi) {
-				if (srcu<nYRangeMin)      srcu = nYRangeMin;
-				else if (srcu>nYRangeMax) srcu = nYRangeMax;
+		u32 hw = ctx->width / 2;
+		u32 hh = ctx->height / 2;
+
+		for (u32 i = 0; i < hh; i++) {
+			//420->422: copy over each U and V line
+			u8 *p_dst_u = pDstU + sizeof(short) * lineC * i * 2;
+			u8 *p_dst_v = pDstV + sizeof(short) * lineC * i * 2;
+			u8 *p_src_u = NULL;
+			u8 *p_src_v = NULL;
+			u8 *op_dst_u = p_dst_u;
+			u8 *op_dst_v = p_dst_v;
+
+			//NV12 formats
+			if (!pV) {
+				p_src_u = pSrcU + 2 * ctx->stride_uv * i;
+				p_src_v = p_src_u + 1;
+			}
+			else {
+				p_src_u = pSrcU + ctx->stride_uv * i;
+				p_src_v = pSrcV + ctx->stride_uv * i;
 			}
 
-			*(short *)pDstU = srcu;
-			*(short *)(pDstU+lineC) = srcu;
+			for (u32 j = 0; j < hw; j++) {
+				u16 srcu = ((u16)(*p_src_u)) << 2;
+				u16 srcv = ((u16)(*p_src_v)) << 2;
 
-			pSrcU++;
-			pDstU+=sizeof(short); //char type but short buffer
-		}
+				if (ctx->clip) {
+					if (srcu < nYRangeMin)      srcu = nYRangeMin;
+					else if (srcu > nYRangeMax) srcu = nYRangeMax;
 
-		for (u32 i = 0; i<nb_pix; i++) {
-			u16 srcv = ((u16)(*pSrcV)) << 2;
-			if (dtc->clip_sdi) {
-				if (srcv<nYRangeMin)      srcv = nYRangeMin;
-				else if (srcv>nYRangeMax) srcv = nYRangeMax;
+					if (srcv < nYRangeMin)      srcv = nYRangeMin;
+					else if (srcv > nYRangeMax) srcv = nYRangeMax;
+				}
+
+				*(short *)p_dst_u = srcu;
+				p_src_u += 2;
+				p_dst_u += sizeof(short); //char type but short buffer
+
+				*(short *)p_dst_v = srcv;
+				p_src_v += 2;
+				p_dst_v += sizeof(short); //char type but short buffer
 			}
-
-			*(short *)pDstV = srcv;
-			*(short *)(pDstV + lineC) = srcv;
-
-			pSrcV++;
-			pDstV += sizeof(short); //char type but short buffer
+			memcpy(op_dst_u + lineC * sizeof(short), op_dst_u, lineC * sizeof(short));
+			memcpy(op_dst_v + lineC * sizeof(short), op_dst_v, lineC * sizeof(short));
 		}
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DekTecOut] wrote YUV data in "LLU" us\n", gf_sys_clock_high_res() - now));
-	dtc->frame_transfered = GF_TRUE;
+	gf_filter_pid_drop_packet(cbck->video);
+	ctx->frameNum++;
 }
 
-
-static GF_Err Dektec_Flush(GF_VideoOutput *dr, GF_Window *dest)
-{
-	DtContext *dtc = (DtContext*)dr->opaque;
-	//DtFrameBuffer *dtf = dtc->dtf;
-	DtMxProcess *Matrix = dtc->m_Matrix;
-
-	if (!dtc->is_configured || !dtc->is_sending) return GF_OK;
-
-	dtc->is_in_flush = GF_TRUE;
-
-	dtc->frameNum++;
-	
-	//wait for vsync, eg wait for buffer to be read by the card
-	dtc->frame_transfered = GF_FALSE;
-	while (!dtc->frame_transfered) {
-		gf_sleep(0);
-	}
-	dtc->is_in_flush = GF_FALSE;
-	return GF_OK;
+static void OnNewFrame(DtMxData *pData, void *pOpaque) {
+	const DtCbkCtx *ctx = ((const DtCbkCtx*)pOpaque);
+	if (ctx->video)
+		OnNewFrameVideo(pData, ctx);
+	else if (ctx->audio)
+		OnNewFrameAudio(pData, ctx);
 }
 
-static GF_Err Dektec_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool do_lock)
+static void dtout_disconnect(GF_DTOutCtx *ctx)
 {
-	DtContext *dtc = (DtContext*)dr->opaque;
-
-	if (do_lock) {
-		return GF_NOT_SUPPORTED;
-	}
-	return GF_OK;
-}
-
-static void Dektec_Shutdown(GF_VideoOutput *dr)
-{
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DekTecOut] Dektec_Shutdown\n"));
-	DtContext *dtc = (DtContext*)dr->opaque;
-	DtMxProcess *Matrix = dtc->m_Matrix;
-	dtc->is_configured = GF_FALSE;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DekTecOut] Disconnecting\n"));
+	DtMxProcess *Matrix = ctx->dt_matrix;
+	ctx->is_configured = GF_FALSE;
 
 	DTAPI_RESULT res = Matrix->Stop();
-	if ( res != DTAPI_OK)
+	if (res != DTAPI_OK)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Can't stop transmission: %s\n", DtapiResult2Str(res)));
 
 	Matrix->Reset();
-	dtc->dvc->Detach();
-	dtc->is_sending = GF_FALSE;
+	ctx->dt_device->Detach();
+	ctx->is_sending = GF_FALSE;
 }
 
-static GF_Err Dektec_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
-{
-	//DtFrameBuffer *dtf = (DtFrameBuffer*)(((DtContext*)dr->opaque)->dtf);
-	DtContext *dtc = (DtContext*)dr->opaque;
 
-	if (evt) {
-		switch (evt->type) {
-		case GF_EVENT_VIDEO_SETUP:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DekTecOut] resize (%ux%u) received.\n", evt->size.width, evt->size.height));
-			dtc->needs_reconfigure = GF_TRUE;
-			return GF_OK;
-		}
-	}
-	return GF_OK;
-}
-
-GF_Err Dektec_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
-{
-	const char *opt;
-	DTAPI_RESULT res;
-	DtContext *dtc = (DtContext*)dr->opaque;
-	DtDevice *dvc = dtc->dvc;
-
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "CardSlot");
-	if (opt) {
-		int PciBusNumber, SlotNumber;
-		sscanf(opt, "%d:%d", &PciBusNumber, &SlotNumber);
-
-		res = dvc->AttachToSlot(PciBusNumber, SlotNumber);
-		if ( res != DTAPI_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] No DTA found on PIC bus %d slot %d: %s - trying enumerating cards\n", PciBusNumber, SlotNumber, DtapiResult2Str(res) ));
-		} else {
-			return GF_OK;
-		}
-	}
-	dtc->clip_sdi = GF_TRUE;
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "ClipSDI");
-	if (!opt) 
-		gf_modules_set_option((GF_BaseInterface *)dr, "DektecVideo", "ClipSDI", "yes");
-	else if (!strcmp(opt, "no"))
-		dtc->clip_sdi = GF_FALSE;
-
-	res = dvc->AttachToType(2174);
-	if ( res != DTAPI_OK) res = dvc->AttachToType(2154);
-
-	if ( res != DTAPI_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] No DTA 2174 or 2154 in system: %s\n", DtapiResult2Str(res)));
-		return GF_BAD_PARAM;
-	}
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "ForceRes");
-	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)dr, "DektecVideo", "ForceRes", "no");
-		dtc->force_width = dtc->force_height = 0;
-	} else if (sscanf(opt, "%ux%u", &dtc->force_width, &dtc->force_height) == 2) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Using forced resolution %ux%u\n", dtc->force_width, dtc->force_height));
-	} else {
-		dtc->force_width = dtc->force_height = 0;
-	}
-	return GF_OK;
-}
-
-GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bits)
+static GF_Err dtout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	DTAPI_RESULT res;
 	int port = 1;
-	const char *opt;
+	Bool send_play = GF_FALSE;
 	Bool is4K = GF_FALSE;
-	DtContext *dtc = (DtContext*)dr->opaque;
-	DtDevice *dvc = dtc->dvc;
+	Bool is_audio = GF_FALSE;
+	GF_DTOutCtx *ctx = (GF_DTOutCtx*)gf_filter_get_udta(filter);
+	const GF_PropertyValue *p;
+	DtDevice *dt_device = ctx->dt_device;
 
-	const char* sopt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "FrameRate");
-	if (!sopt) sopt = gf_modules_get_option((GF_BaseInterface *)dr, "Compositor", "FrameRate");
-	Double frameRate = 30.0;
+	if (is_remove) {
+		if (ctx->audio_cbk.audio == pid) {
+			ctx->audio_cbk.audio = NULL;
+		}
+		else if (ctx->video_cbk.video == pid) {
+			ctx->video_cbk.video = NULL;
+		}
+		if (ctx->is_sending && !ctx->audio_cbk.audio && !ctx->video_cbk.video) {
+			dtout_disconnect(ctx);
+		}
+		return GF_OK;
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	if (!p) return GF_NOT_SUPPORTED;
+	if (p->value.uint == GF_STREAM_VISUAL) {
+		if (!ctx->video_cbk.video) {
+			ctx->video_cbk.video = pid;
+			send_play = GF_TRUE;
+		}
+		else if (ctx->video_cbk.video != pid) return GF_REQUIRES_NEW_INSTANCE;
+	}
+	else if (p->value.uint == GF_STREAM_AUDIO) {
+		if (!ctx->audio_cbk.audio) {
+			ctx->audio_cbk.audio = pid;
+			send_play = GF_TRUE;
+		}
+		else if (ctx->audio_cbk.audio != pid) return GF_REQUIRES_NEW_INSTANCE;
+		is_audio=GF_TRUE;
+	}
+	else {
+		return GF_NOT_SUPPORTED;
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!p || (p->value.uint != GF_CODECID_RAW)) return GF_NOT_SUPPORTED;
+
+
+	if (send_play) {
+		GF_FilterEvent fevt;
+		//set a minimum buffer (although we don't buffer)
+		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, pid);
+		fevt.buffer_req.max_buffer_us = 200000;
+		gf_filter_pid_send_event(pid, &fevt);
+
+		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, 1.0, "DekTecOut");
+		gf_filter_pid_send_event(pid, &fevt);
+	}
+
+	if (is_audio) {
+		//todo
+		return GF_NOT_SUPPORTED;
+	}
+
+	u32 width = 0;
+	u32 height = 0;
+	u32 pix_fmt = 0;
+	u32 stride = 0;
+	u32 stride_uv = 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (p) width = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	if (p) height = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+	if (p) pix_fmt = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
+	if (p) stride = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE_UV);
+	if (p) stride_uv = p->value.uint;
+
+	//not configured yet
+	if (!width || !height || !pix_fmt) return GF_OK;
+
+	Bool is_10_bits = GF_FALSE;
+	switch (pix_fmt) {
+	case GF_PIXEL_YUV:
+		break;
+	case GF_PIXEL_YUV_10:
+		is_10_bits = GF_TRUE;
+		break;
+	case GF_PIXEL_YUV422:
+		break;
+	case GF_PIXEL_YUV422_10:
+		is_10_bits = GF_TRUE;
+		break;
+	case GF_PIXEL_YUV444:
+		break;
+	case GF_PIXEL_YUV444_10:
+		is_10_bits = GF_TRUE;
+		break;
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+		break;
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+		is_10_bits = GF_TRUE;
+		break;
+	default:
+		GF_PropertyValue val;
+		val.type = GF_PROP_UINT;
+		val.value.uint = GF_PIXEL_YUV;
+		gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &val);
+		return GF_OK;
+	}
+	if (!stride) stride = width * (is_10_bits ? 2 : 1);
+	if (!stride_uv) stride_uv = stride / 2;
+
+	GF_Fraction fps = { 30, 1 };
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+	if (p) fps = p->value.frac;
+
+	if ((ctx->width == width) && (ctx->height == height) && (ctx->pix_fmt == pix_fmt) && (ctx->framerate.num * fps.den == ctx->framerate.den * fps.num) && (ctx->stride==stride) && ctx->is_configured)
+		return GF_OK;
+
+	ctx->width = width;
+	ctx->height = height;
+	ctx->pix_fmt = pix_fmt;
+	ctx->framerate = fps;
+	ctx->is_10b = is_10_bits;
+	ctx->stride = stride;
+	ctx->stride_uv = stride_uv;
+
+	gf_pixel_get_size_info((GF_PixelFormat) pix_fmt, width, height, NULL, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
+
 	int dFormat = -1, linkStd = -1;
 
-	if (sopt) frameRate = atof(sopt);
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Reconfigure to %dx%d @ %g FPS %s bits src - SDI clipping: %s\n", width, height, frameRate, is_10_bits ? "10" : "8", dtc->clip_sdi ? "yes" : "no"));
-	if (dtc->is_configured) {
-		DtMxProcess *Matrix = dtc->m_Matrix;
-		if (dtc->is_sending) {
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Reconfigure to %dx%d @ %g FPS %d/%d bits src - SDI clipping: %s\n", width, height, fps.num, fps.den, is_10_bits ? "10" : "8", ctx->clip ? "yes" : "no"));
+	if (ctx->is_configured) {
+		DtMxProcess *Matrix = ctx->dt_matrix;
+		if (ctx->is_sending) {
 			res = Matrix->Stop();
-			if ( res != DTAPI_OK) {
+			if (res != DTAPI_OK) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Can't stop transmission: %s\n", DtapiResult2Str(res)));
 			}
 		}
 		Matrix->Reset();
-		dtc->is_configured = GF_FALSE;
-		dtc->is_sending = GF_FALSE;
+		ctx->is_configured = GF_FALSE;
+		ctx->is_sending = GF_FALSE;
 	}
 
-	dtc->width = width;
-	dtc->height = height;
-	dtc->is_10b = is_10_bits;
-
-	if (frameRate == 30.0) {
-		dtc->frame_scale = 30;
-		dtc->frame_dur = 1;
-		if ((dtc->width==1280) && (dtc->height==720)) {
+	if (fps.num == 30 * fps.den) {
+		ctx->frame_scale = 30;
+		ctx->frame_dur = 1;
+		if ((ctx->width == 1280) && (ctx->height == 720)) {
 			dFormat = DTAPI_IOCONFIG_720P30;
-		} else if ((dtc->width==1920) && (dtc->height==1080)) {
+		}
+		else if ((ctx->width == 1920) && (ctx->height == 1080)) {
 			dFormat = DTAPI_IOCONFIG_1080P30;
-		} else if ((dtc->width==3840) && (dtc->height==2160)) {
+		}
+		else if ((ctx->width == 3840) && (ctx->height == 2160)) {
 			dFormat = DTAPI_VIDSTD_2160P30;
 		}
-	} else if (frameRate == 50.0) {
-		dtc->frame_scale = 50;
-		dtc->frame_dur = 1;
-		if ((dtc->width==1280) && (dtc->height==720)) {
+	}
+	else if (fps.num == 50 * fps.den) {
+		ctx->frame_scale = 50;
+		ctx->frame_dur = 1;
+		if ((ctx->width == 1280) && (ctx->height == 720)) {
 			dFormat = DTAPI_IOCONFIG_720P50;
-		} else if ((dtc->width==1920) && (dtc->height==1080)) {
+		}
+		else if ((ctx->width == 1920) && (ctx->height == 1080)) {
 			dFormat = DTAPI_IOCONFIG_1080P50;
-		} else if ((dtc->width==3840) && (dtc->height==2160)) {
+		}
+		else if ((ctx->width == 3840) && (ctx->height == 2160)) {
 			dFormat = DTAPI_VIDSTD_2160P50;
 		}
-	} else if (frameRate == 60.0) {
-		dtc->frame_scale = 60;
-		dtc->frame_dur = 1;
-		if ((dtc->width==1280) && (dtc->height==720)) {
+	}
+	else if (fps.num == 60 * fps.den) {
+		ctx->frame_scale = 60;
+		ctx->frame_dur = 1;
+		if ((ctx->width == 1280) && (ctx->height == 720)) {
 			dFormat = DTAPI_IOCONFIG_720P60;
-		} else if ((dtc->width==1920) && (dtc->height==1080)) {
+		}
+		else if ((ctx->width == 1920) && (ctx->height == 1080)) {
 			dFormat = DTAPI_IOCONFIG_1080P60;
-		} else if ((dtc->width==3840) && (dtc->height==2160)) {
+		}
+		else if ((ctx->width == 3840) && (ctx->height == 2160)) {
 			dFormat = DTAPI_VIDSTD_2160P60;
 		}
-	} else if (frameRate == 59.94) {
-		dtc->frame_scale = 3000;
-		dtc->frame_dur = 1001;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DekTecOut] Dealing with 60 fps video is not stable, use with caution.\n"));
+	}
+	else if (fps.num*100 == 5994 * fps.den) {
+		ctx->frame_scale = 3000;
+		ctx->frame_dur = 1001;
 
-		if ((dtc->width==1280) && (dtc->height==720)) {
+		if ((ctx->width == 1280) && (ctx->height == 720)) {
 			dFormat = DTAPI_IOCONFIG_720P59_94;
-		} else if ((dtc->width==1920) && (dtc->height==1080)) {
+		}
+		else if ((ctx->width == 1920) && (ctx->height == 1080)) {
 			dFormat = DTAPI_IOCONFIG_1080P59_94;
-		} else if ((dtc->width==3840) && (dtc->height==2160)) {
+		}
+		else if ((ctx->width == 3840) && (ctx->height == 2160)) {
 			dFormat = DTAPI_VIDSTD_2160P59_94;
 		}
-	} else if (frameRate == 24.0) {
-		dtc->frame_scale = 24;
-		dtc->frame_dur = 1;
-		if ((dtc->width==1280) && (dtc->height==720)) {
+	}
+	else if (fps.num == 24 * fps.den) {
+		ctx->frame_scale = 24;
+		ctx->frame_dur = 1;
+		if ((ctx->width == 1280) && (ctx->height == 720)) {
 			dFormat = DTAPI_IOCONFIG_720P24;
-		} else if ((dtc->width==1920) && (dtc->height==1080)) {
+		}
+		else if ((ctx->width == 1920) && (ctx->height == 1080)) {
 			dFormat = DTAPI_IOCONFIG_1080P24;
-		} else if ((dtc->width==3840) && (dtc->height==2160)) {
+		}
+		else if ((ctx->width == 3840) && (ctx->height == 2160)) {
 			dFormat = DTAPI_VIDSTD_2160P24;
 		}
 	}
-
-	if (dFormat==-1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Unsupported frame rate %f / resolution %dx%d\n", frameRate, dtc->width, dtc->height));
-		return GF_BAD_PARAM;
+	else if (fps.num == 25 * fps.den) {
+		ctx->frame_scale = 25;
+		ctx->frame_dur = 1;
+		if ((ctx->width == 1280) && (ctx->height == 720)) {
+			dFormat = DTAPI_IOCONFIG_720P25;
+		}
+		else if ((ctx->width == 1920) && (ctx->height == 1080)) {
+			dFormat = DTAPI_IOCONFIG_1080P25;
+		}
+		else if ((ctx->width == 3840) && (ctx->height == 2160)) {
+			dFormat = DTAPI_VIDSTD_2160P25;
+		}
 	}
 
-	if ((dtc->width==3840) && (dtc->height==2160)) {
+	if (dFormat == -1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Unsupported frame rate %d/%d / resolution %dx%d\n", fps.num, fps.den, ctx->width, ctx->height));
+		return GF_FILTER_NOT_SUPPORTED;
+	}
+
+	if ((ctx->width == 3840) && (ctx->height == 2160)) {
 		is4K = GF_TRUE;
 		linkStd = DTAPI_VIDLNK_4K_SMPTE425B;
 	}
 
-	if (frameRate == 60.0)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Dealing with 60 fps video is not stable, use with caution.\n"));
-
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "SDIOutput");
-	if (opt) {
-		port = atoi(opt);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Using port %d (%s)\n", port, opt));
-	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] No port specified, using default port: %d\n", port));
-	}
+	port = ctx->port ? ctx->port : 1;
 
 	DtMxPort mxPort;
 	if (!is4K)
 	{
-		res = dvc->SetIoConfig(port, DTAPI_IOCONFIG_IODIR, DTAPI_IOCONFIG_OUTPUT, DTAPI_IOCONFIG_OUTPUT);
-		if ( res != DTAPI_OK) {
+		res = dt_device->SetIoConfig(port, DTAPI_IOCONFIG_IODIR, DTAPI_IOCONFIG_OUTPUT, DTAPI_IOCONFIG_OUTPUT);
+		if (res != DTAPI_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Can't set I/O config for the device: %s\n", DtapiResult2Str(res)));
 			return GF_BAD_PARAM;
 		}
 
 		int IoStdValue = -1, IoStdSubValue = -1;
 		res = DtapiVidStd2IoStd(dFormat, IoStdValue, IoStdSubValue);
-		if ( res != DTAPI_OK) {
+		if (res != DTAPI_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Unknown VidStd: %s\n", DtapiResult2Str(res)));
 			return GF_BAD_PARAM;
 		}
 
-		res = dvc->SetIoConfig(port, DTAPI_IOCONFIG_IOSTD, IoStdValue, IoStdSubValue);
-		if ( res != DTAPI_OK) {
+		res = dt_device->SetIoConfig(port, DTAPI_IOCONFIG_IOSTD, IoStdValue, IoStdSubValue);
+		if (res != DTAPI_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Can't set I/O config: %s\n", DtapiResult2Str(res)));
 			return GF_BAD_PARAM;
 		}
-		res = mxPort.AddPhysicalPort(dvc, port);
-		if (res != DTAPI_OK){
+		res = mxPort.AddPhysicalPort(dt_device, port);
+		if (res != DTAPI_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed to add port %d to logical port", port));
 			return GF_BAD_PARAM;
 		}
@@ -461,8 +555,8 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 		DtMxPort mxPort4k(dFormat, linkStd);
 		for (int i = 0; i < 4; i++)
 		{
-			res = dvc->SetIoConfig(i+1, DTAPI_IOCONFIG_IODIR, DTAPI_IOCONFIG_OUTPUT, DTAPI_IOCONFIG_OUTPUT);
-			if ( res != DTAPI_OK) {
+			res = dt_device->SetIoConfig(i + 1, DTAPI_IOCONFIG_IODIR, DTAPI_IOCONFIG_OUTPUT, DTAPI_IOCONFIG_OUTPUT);
+			if (res != DTAPI_OK) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Can't set I/O config for the device: %s\n", DtapiResult2Str(res)));
 				return GF_BAD_PARAM;
 			}
@@ -470,32 +564,32 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 
 		int IoStdValue = -1, IoStdSubValue = -1;
 		res = DtapiVidStd2IoStd(dFormat, linkStd, IoStdValue, IoStdSubValue);
-		if ( res != DTAPI_OK) {
+		if (res != DTAPI_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Unknown VidStd: %s\n", DtapiResult2Str(res)));
 			return GF_BAD_PARAM;
 		}
 
 		for (int i = 0; i < 4; i++)
 		{
-			res = dvc->SetIoConfig(i+1, DTAPI_IOCONFIG_IOSTD, IoStdValue, IoStdSubValue);
-			if ( res != DTAPI_OK) {
+			res = dt_device->SetIoConfig(i + 1, DTAPI_IOCONFIG_IOSTD, IoStdValue, IoStdSubValue);
+			if (res != DTAPI_OK) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Can't set I/O config: %s\n", DtapiResult2Str(res)));
 				return GF_BAD_PARAM;
 			}
 		}
 		for (int i = 0; i < 4; i++)
 		{
-			res = mxPort4k.AddPhysicalPort(dvc, i + 1);
-			if (res != DTAPI_OK){
+			res = mxPort4k.AddPhysicalPort(dt_device, i + 1);
+			if (res != DTAPI_OK) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed to add port %d to logical 4k port", (i + 1)));
 				return GF_BAD_PARAM;
 			}
 		}
-		
+
 		DtIoConfig  Cfg;
 		std::vector<DtIoConfig>  IoConfigs;
-		DtHwFuncDesc*  pHwf = dvc->m_pHwf;
-		for (int i = 0; i<dvc->m_pHwf->m_DvcDesc.m_NumPorts; i++, pHwf++)
+		DtHwFuncDesc*  pHwf = dt_device->m_pHwf;
+		for (int i = 0; i < dt_device->m_pHwf->m_DvcDesc.m_NumPorts; i++, pHwf++)
 		{
 			// Check if the port has GENNREF capability
 			if ((pHwf->m_Flags & DTAPI_CAP_GENREF) == 0)
@@ -537,16 +631,16 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 			// Add to list
 			IoConfigs.push_back(Cfg);
 		}
-		res = dvc->SetIoConfig(IoConfigs.data(), (int)IoConfigs.size());
-		if (res != DTAPI_OK){
+		res = dt_device->SetIoConfig(IoConfigs.data(), (int)IoConfigs.size());
+		if (res != DTAPI_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed to apply genref\n"));
 			return GF_BAD_PARAM;
 		}
 		mxPort = mxPort4k;
 	}
 
-	res = dtc->m_Matrix->AttachRowToOutput(0, mxPort);
-	if ( res != DTAPI_OK) {
+	res = ctx->dt_matrix->AttachRowToOutput(0, mxPort);
+	if (res != DTAPI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Can't attach to port %d: %s\n", port, DtapiResult2Str(res)));
 		return GF_BAD_PARAM;
 	}
@@ -558,6 +652,7 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 
 	// Enable the video
 	RowConfig.m_VideoEnable = true;
+	//todo, make this configurable !
 	RowConfig.m_Video.m_PixelFormat = DT_PXFMT_YUV422P_16B;  // Use a planar format (16-bit)
 	RowConfig.m_Video.m_StartLine1 = RowConfig.m_Video.m_StartLine2 = 1;
 	RowConfig.m_Video.m_NumLines1 = RowConfig.m_Video.m_NumLines2 = -1;
@@ -565,9 +660,9 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 	RowConfig.m_Video.m_LineAlignment = 8; // Want an 8-byte alignment
 
 	// Enable audio
-	RowConfig.m_AudioEnable = false;
+	RowConfig.m_AudioEnable = true;
 	// We will add four channels (2x stereo)
-	for (int i = 0; i<4; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		DtMxAudioConfig  AudioConfig;
 		AudioConfig.m_Index = i;
@@ -580,8 +675,8 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 	}
 
 	// Apply the row configuration
-	res = dtc->m_Matrix->SetRowConfig(0, RowConfig);
-	if (res != DTAPI_OK){
+	res = ctx->dt_matrix->SetRowConfig(0, RowConfig);
+	if (res != DTAPI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed to set row 0 config"));
 		return GF_BAD_PARAM;
 	}
@@ -591,163 +686,118 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 
 	int  DefEnd2EndDelay = 0;
 	double CbFrames = 0.0;    // Time available for the call-back method
-	res = dtc->m_Matrix->GetDefEndToEndDelay(DefEnd2EndDelay, CbFrames);
+	ctx->dt_matrix->GetDefEndToEndDelay(DefEnd2EndDelay, CbFrames);
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut]  Default end-to-end delay = %d Frames\n", DefEnd2EndDelay));
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut]  Time-for-Callback = %.1f Frame Period\n", CbFrames));
 	// Apply the default end-to-end delay
-	res = dtc->m_Matrix->SetEndToEndDelay(DefEnd2EndDelay);
-	if (res != DTAPI_OK){
+	res = ctx->dt_matrix->SetEndToEndDelay(DefEnd2EndDelay);
+	if (res != DTAPI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed to set the end-to-end delay (delay=%d)", DefEnd2EndDelay));
 		return GF_BAD_PARAM;
 	}
 
-	// Register our callbacks
-	////m_ContextAudio.m_pPlayer = this;
-	////m_ContextAudio.m_Type = CallbackContext::GEN_AUDIO;
-	//res = dtc->m_Matrix->AddMatrixCbFunc(OnNewFrameAudio, dr);
-	//if (res != DTAPI_OK){
-	//	GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed register audio callback function"));
-	//	return GF_BAD_PARAM;
-	//}
-
-	//m_ContextVideo.m_pPlayer = this;
-	//m_ContextVideo.m_Type = CallbackContext::GEN_VIDEO;
-	res = dtc->m_Matrix->AddMatrixCbFunc(OnNewFrameVideo, dr);
-	if (res != DTAPI_OK){
+	res = ctx->dt_matrix->AddMatrixCbFunc(OnNewFrame, &ctx->audio_cbk);
+	if (res != DTAPI_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed register audio callback function"));
+		return GF_BAD_PARAM;
+	}
+	res = ctx->dt_matrix->AddMatrixCbFunc(OnNewFrame, &ctx->video_cbk);
+	if (res != DTAPI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed register video callback function"));
 		return GF_BAD_PARAM;
 	}
 
-	dtc->frameNum = -1;
-	dtc->lastFrameNum = -1;
-	dtc->is_configured = GF_TRUE;
+	ctx->frameNum = 1;
+	ctx->is_configured = GF_TRUE;
 	// Start transmission right now - this function is called during the blit(), and the object clock is initialized
 	//after the blit, starting now will reduce the number of skipped frames at the dektec startup
-	res = dtc->m_Matrix->Start();
-	if ( res != DTAPI_OK) {
+	res = ctx->dt_matrix->Start();
+	if (res != DTAPI_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DekTecOut] Can't start transmission: %s.\n", DtapiResult2Str(res)));
-	} else {
+	}
+	else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Transmission started.\n"));
-		dtc->is_sending = GF_TRUE;
+		ctx->is_sending = GF_TRUE;
 	}
 	return GF_OK;
 }
 
-static GF_Err Dektec_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
+static GF_Err dtout_initialize(GF_Filter *filter)
 {
-	DtContext *dtc = (DtContext*)dr->opaque;
-	u32 w = video_src->width;
-	u32 h = video_src->height;
+	GF_DTOutCtx *ctx = (GF_DTOutCtx*)gf_filter_get_udta(filter);
+	DTAPI_RESULT res;
 
-	if (dtc->needs_reconfigure) {
-		if ((w==1280) && (h==720)) {
-		} else if ((w==1920) && (h==1080)) {
-		} else if ((w==3840) && (h==2160)) {
-		} else {
-			return GF_NOT_SUPPORTED;
-		}
-		if (dtc->force_width && dtc->force_height) {
-			if ((w != dtc->force_width) || (h != dtc->force_height)) {
-				return GF_NOT_SUPPORTED;
-			}
-		}
-		dtc->needs_reconfigure = GF_FALSE;
-		Dektec_Configure(dr, w, h, (video_src->pixel_format==GF_PIXEL_YV12_10) ? GF_TRUE : GF_FALSE);
-	} else if ((w!=dtc->width) || (h != dtc->height)) {
-		return GF_NOT_SUPPORTED;
-	}
-
-	dtc->pixels_YUV_source = (unsigned char*)video_src->video_buffer;
-	return GF_OK;
-}
-
-
-GF_VideoOutput *NewDektecVideoOutput()
-{
-	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
-	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Dektec Video Output", "gpac distribution")
-
-	DtDevice *dvc = new DtDevice;
-	//DtFrameBuffer *dtf = new DtFrameBuffer;
-	DtMxProcess *Matrix = new DtMxProcess;
-	//if (!dtf || !dvc) {
-	if (!Matrix || !dvc) {
+	ctx->dt_device = new DtDevice;
+	ctx->dt_matrix = new DtMxProcess;
+	if (!ctx->dt_matrix || !ctx->dt_device) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] DTA API couldn't be initialized.\n"));
-		delete dvc;
-		//delete dtf;
-		delete Matrix;
-		gf_free(driv);
-		return NULL;
+		if (ctx->dt_device) delete ctx->dt_device;
+		if (ctx->dt_matrix) delete ctx->dt_matrix;
+		ctx->dt_device = NULL;
+		ctx->dt_matrix = NULL;
+		return GF_IO_ERR;
 	}
 
-	DtContext *dtc = new DtContext;
-	memset(dtc, 0, sizeof(DtContext));
-	dtc->dvc = dvc;
-	//dtc->dtf = dtf;
-	dtc->m_Matrix = Matrix;
-	driv->opaque = (void*)dtc;
+	ctx->audio_cbk.ctx = ctx;
+	ctx->video_cbk.ctx = ctx;
 
-	driv->Flush = Dektec_Flush;
-	driv->LockBackBuffer = Dektec_LockBackBuffer;
-	driv->Setup = Dektec_Setup;
-	driv->Shutdown = Dektec_Shutdown;
-	driv->ProcessEvent = Dektec_ProcessEvent;
-	driv->Blit = Dektec_Blit;
-	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_YUV;
-	driv->max_screen_bpp = 10;
-
-	return driv;
-}
-
-void DeleteDektecVideoOutput(void *ifce)
-{
-	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
-	DtContext *dtc = (DtContext*)driv->opaque;
-
-	//delete(dtc->dtf);
-	delete(dtc->m_Matrix);
-	delete(dtc->dvc);
-	delete(dtc);
-	gf_free(driv);
-}
-
-
-#ifndef GPAC_STANDALONE_RENDER_2D
-
-/*interface query*/
-GPAC_MODULE_EXPORT
-	const u32 *QueryInterfaces()
-{
-	static u32 si [] = {
-		GF_VIDEO_OUTPUT_INTERFACE,
-		0
-	};
-	return si;
-}
-
-/*interface create*/
-GPAC_MODULE_EXPORT
-	GF_BaseInterface *LoadInterface(u32 InterfaceType)
-{
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewDektecVideoOutput();
-	return NULL;
-}
-
-/*interface destroy*/
-GPAC_MODULE_EXPORT
-	void ShutdownInterface(GF_BaseInterface *ifce)
-{
-	switch (ifce->InterfaceType) {
-	case GF_VIDEO_OUTPUT_INTERFACE:
-		DeleteDektecVideoOutput((GF_VideoOutput *)ifce);
-		break;
+	if ((ctx->bus >= 0) && (ctx->slot >= 0)) {
+		res = ctx->dt_device->AttachToSlot(ctx->bus, ctx->slot);
+		if (res != DTAPI_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] No DTA found on PIC bus %d slot %d: %s - trying enumerating cards\n", ctx->bus, ctx->slot, DtapiResult2Str(res)));
+		}
+		else {
+			return GF_OK;
+		}
 	}
+
+	res = ctx->dt_device->AttachToType(2174);
+	if (res != DTAPI_OK) res = ctx->dt_device->AttachToType(2154);
+
+	if (res != DTAPI_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] No DTA 2174 or 2154 in system: %s\n", DtapiResult2Str(res)));
+		return GF_BAD_PARAM;
+	}
+	return GF_OK;
 }
 
+static void dtout_finalize(GF_Filter *filter)
+{
+	GF_DTOutCtx *ctx = (GF_DTOutCtx*)gf_filter_get_udta(filter);
 
-GPAC_MODULE_STATIC_DECLARATION( dektec_out )
+	if (ctx->is_sending) {
+		dtout_disconnect(ctx);
+	}
+	delete(ctx->dt_matrix);
+	delete(ctx->dt_device);
+}
 
+#endif //FAKE_DT_API
+
+static GF_Err dtout_process(GF_Filter *filter)
+{
+	GF_DTOutCtx *ctx = (GF_DTOutCtx*)gf_filter_get_udta(filter);
+	if (!ctx->is_configured && !ctx->is_sending) {
+#ifndef FAKE_DT_API
+		if (ctx->audio_cbk.audio) gf_filter_pid_get_packet(ctx->audio_cbk.audio);
+		if (ctx->video_cbk.video) gf_filter_pid_get_packet(ctx->video_cbk.video);
+#endif
+	}
+	if (ctx->is_eos)
+		return GF_EOS;
+	gf_filter_ask_rt_reschedule(filter, 200000);
+	return GF_OK;
+}
+
+#endif //GPAC_HAS_DTAPI
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-} /* extern "C" */
+#include "dektec_video_decl.c"
+
+
+#ifdef __cplusplus
+}
+#endif

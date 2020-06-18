@@ -47,10 +47,9 @@ GF_SDP_FMTP *gf_sdp_fmtp_new()
 GF_EXPORT
 void gf_sdp_fmtp_del(GF_SDP_FMTP *fmtp)
 {
-	GF_X_Attribute *att;
 	if (!fmtp) return;
 	while (gf_list_count(fmtp->Attributes)) {
-		att = (GF_X_Attribute*)gf_list_get(fmtp->Attributes, 0);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(fmtp->Attributes, 0);
 		gf_list_rem(fmtp->Attributes, 0);
 		if (att->Name) gf_free(att->Name);
 		if (att->Value) gf_free(att->Value);
@@ -77,8 +76,6 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	s32 pos;
 	u32 PayT;
 	char comp[3000];
-	GF_RTPMap *map;
-	GF_SDP_FMTP *fmtp;
 	GF_X_Attribute *att;
 
 	pos = gf_token_get(buffer, 0, " :\t\r\n", comp, 3000);
@@ -182,6 +179,7 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 		return;
 	}
 	if (!strcmp(comp, "rtpmap")) {
+		GF_RTPMap *map;
 		if (!media) return;
 		map = (GF_RTPMap*)gf_malloc(sizeof(GF_RTPMap));
 		pos = gf_token_get(buffer, pos, ": \r\n", comp, 3000);
@@ -197,6 +195,7 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	}
 	//FMTP
 	if (!strcmp(comp, "fmtp")) {
+		GF_SDP_FMTP *fmtp;
 		if (!media) return;
 		pos = gf_token_get(buffer, pos, ": \r\n", comp, 3000);
 		PayT = atoi(comp);
@@ -245,22 +244,17 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 GF_EXPORT
 void gf_sdp_media_del(GF_SDPMedia *media)
 {
-	GF_SDPBandwidth *bw;
-	GF_RTPMap *map;
-	GF_SDPConnection *conn;
-	GF_SDP_FMTP *fmtp;
-	GF_X_Attribute *att;
 	if (!media) return;
 
 	while (gf_list_count(media->FMTP)) {
-		fmtp = (GF_SDP_FMTP*)gf_list_get(media->FMTP, 0);
+		GF_SDP_FMTP *fmtp = (GF_SDP_FMTP*)gf_list_get(media->FMTP, 0);
 		gf_list_rem(media->FMTP, 0);
 		gf_sdp_fmtp_del(fmtp);
 	}
 	gf_list_del(media->FMTP);
 
 	while (gf_list_count(media->Attributes)) {
-		att = (GF_X_Attribute*)gf_list_get(media->Attributes, 0);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(media->Attributes, 0);
 		gf_list_rem(media->Attributes, 0);
 		if (att->Name) gf_free(att->Name);
 		if (att->Value) gf_free(att->Value);
@@ -269,7 +263,7 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 	gf_list_del(media->Attributes);
 
 	while (gf_list_count(media->RTPMaps)) {
-		map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
+		GF_RTPMap *map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 		gf_free(map->payload_name);
 		gf_free(map);
 		gf_list_rem(media->RTPMaps, 0);
@@ -277,14 +271,14 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 	gf_list_del(media->RTPMaps);
 
 	while (gf_list_count(media->Connections)) {
-		conn = (GF_SDPConnection*)gf_list_get(media->Connections, 0);
+		GF_SDPConnection *conn = (GF_SDPConnection*)gf_list_get(media->Connections, 0);
 		gf_list_rem(media->Connections, 0);
 		gf_sdp_conn_del(conn);
 	}
 	gf_list_del(media->Connections);
 
 	while (gf_list_count(media->Bandwidths)) {
-		bw = (GF_SDPBandwidth*)gf_list_get(media->Bandwidths, 0);
+		GF_SDPBandwidth *bw = (GF_SDPBandwidth*)gf_list_get(media->Bandwidths, 0);
 		gf_list_rem(media->Bandwidths, 0);
 		if (bw->name) gf_free(bw->name);
 		gf_free(bw);
@@ -357,33 +351,28 @@ GF_SDPInfo *gf_sdp_info_new()
 GF_EXPORT
 void gf_sdp_info_reset(GF_SDPInfo *sdp)
 {
-	GF_SDPBandwidth *bw;
-	GF_SDPMedia *media;
-	GF_SDPTiming *timing;
-	GF_X_Attribute *att;
-
 	if (!sdp) return;
 
 	while (gf_list_count(sdp->media_desc)) {
-		media = (GF_SDPMedia*)gf_list_get(sdp->media_desc, 0);
+		GF_SDPMedia *media = (GF_SDPMedia*)gf_list_get(sdp->media_desc, 0);
 		gf_list_rem(sdp->media_desc, 0);
 		gf_sdp_media_del(media);
 	}
 	while (gf_list_count(sdp->Attributes)) {
-		att = (GF_X_Attribute*)gf_list_get(sdp->Attributes, 0);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(sdp->Attributes, 0);
 		gf_list_rem(sdp->Attributes, 0);
 		if (att->Name) gf_free(att->Name);
 		if (att->Value) gf_free(att->Value);
 		gf_free(att);
 	}
 	while (gf_list_count(sdp->b_bandwidth)) {
-		bw = (GF_SDPBandwidth*)gf_list_get(sdp->b_bandwidth, 0);
+		GF_SDPBandwidth *bw = (GF_SDPBandwidth*)gf_list_get(sdp->b_bandwidth, 0);
 		gf_list_rem(sdp->b_bandwidth, 0);
 		if (bw->name) gf_free(bw->name);
 		gf_free(bw);
 	}
 	while (gf_list_count(sdp->Timing)) {
-		timing = (GF_SDPTiming*)gf_list_get(sdp->Timing, 0);
+		GF_SDPTiming *timing = (GF_SDPTiming*)gf_list_get(sdp->Timing, 0);
 		gf_list_rem(sdp->Timing, 0);
 		gf_free(timing);
 	}
@@ -444,7 +433,7 @@ Bool SDP_IsDynamicPayload(GF_SDPMedia *media, char *payt)
 }
 
 //translate h || m || d in sec. Fractions are not allowed with this writing
-s32 SDP_MakeSeconds(char *buf)
+static s32 SDP_MakeSeconds(char *buf)
 {
 	s32 sign;
 	char num[30], *test;
@@ -491,6 +480,12 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	timing = NULL;
 
 	if (!sdp) return GF_BAD_PARAM;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		SDP_MakeSeconds("30m");
+	}
+#endif
 
 	//Clean SDP info
 	gf_sdp_info_reset(sdp);
@@ -614,7 +609,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			timing->RepeatInterval = SDP_MakeSeconds(comp);
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 			timing->ActiveDuration = SDP_MakeSeconds(comp);
-			while (1) {
+			while (pos>=0) {
 				pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 				if (pos <= 0) break;
 				timing->OffsetFromStart[timing->NbRepeatOffsets] = SDP_MakeSeconds(comp);
@@ -723,8 +718,9 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 }
 
 
+#if 0 //unused
 
-GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
+static GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
 {
 	if (!conn) return GF_BAD_PARAM;
 	if (!conn->host || !conn->add_type || !conn->net_type) return GF_REMOTE_SERVICE_ERROR;
@@ -739,7 +735,6 @@ GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
 
 //return GF_BAD_PARAM if invalid structure, GF_REMOTE_SERVICE_ERROR if bad formatting
 //or GF_OK
-GF_EXPORT
 GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 {
 	GF_Err e;
@@ -870,7 +865,6 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		SDP_WRITE_ALLOC_STR("\r\n", 0);		\
 	}
 
-GF_EXPORT
 GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 {
 	char *buf;
@@ -1165,5 +1159,7 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	*out_str_buf = buf;
 	return GF_OK;
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_STREAMING*/

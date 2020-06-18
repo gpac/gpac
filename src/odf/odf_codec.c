@@ -120,7 +120,7 @@ err_exit:
 }
 
 GF_EXPORT
-GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length)
+GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, u8 **outAU, u32 *au_length)
 {
 	if (!codec || !codec->bs || !outAU || *outAU) return GF_BAD_PARAM;
 	gf_bs_get_content(codec->bs, outAU, au_length);
@@ -136,7 +136,7 @@ GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length)
 ************************************************************/
 
 GF_EXPORT
-GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const char *au, u32 au_length)
+GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const u8 *au, u32 au_length)
 {
 	if (!codec ) return GF_BAD_PARAM;
 	if (!au || !au_length) return GF_OK;
@@ -258,12 +258,11 @@ GF_EXPORT
 GF_Err gf_odf_desc_list_del(GF_List *descList)
 {
 	GF_Err e;
-	GF_Descriptor *tmp;
 
 	if (! descList) return GF_BAD_PARAM;
 
 	while (gf_list_count(descList)) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, 0);
+		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(descList, 0);
 		gf_list_rem(descList, 0);
 		e = gf_odf_delete_descriptor(tmp);
 		if (e) return e;
@@ -288,7 +287,7 @@ GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined)
 //use this function to decode a standalone descriptor
 //the desc MUST be formatted with tag and size field!!!
 GF_EXPORT
-GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc)
+GF_Err gf_odf_desc_read(u8 *raw_desc, u32 descSize, GF_Descriptor **outDesc)
 {
 	GF_Err e;
 	u32 size;
@@ -324,15 +323,13 @@ GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs)
 
 	//then encode our desc...
 	e = gf_odf_write_descriptor(bs, desc);
-	if (e) {
-		gf_bs_del(bs);
-		return e;
-	}
+	if (e) return e;
+	
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
+GF_Err gf_odf_desc_write(GF_Descriptor *desc, u8 **outEncDesc, u32 *outSize)
 {
 	GF_Err e;
 	GF_BitStream *bs;
@@ -374,14 +371,29 @@ GF_EXPORT
 GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 {
 	GF_Err e;
-	char *desc;
-	u32 size;
+	u8 *desc;
+	u32 size, oti=0;
+
+	//patch for esd copy, we now signal codecid (32 bit) in OTI (8 bits)
+	if (inDesc->tag == GF_ODF_ESD_TAG) {
+		GF_ESD *esd = (GF_ESD *)inDesc;
+		if (esd->decoderConfig) {
+			oti = esd->decoderConfig->objectTypeIndication;
+			esd->decoderConfig->objectTypeIndication = 0;
+		}
+	}
 
 	//warning: here we get some data allocated
 	e = gf_odf_desc_write(inDesc, &desc, &size);
 	if (e) return e;
 	e = gf_odf_desc_read(desc, size, outDesc);
 	gf_free(desc);
+	if (oti && !e) {
+		GF_ESD *esd = (GF_ESD *)inDesc;
+		GF_ESD *out_esd = (GF_ESD *)*outDesc;
+		if (esd->decoderConfig) esd->decoderConfig->objectTypeIndication = oti;
+		if (out_esd->decoderConfig) out_esd->decoderConfig->objectTypeIndication = oti;
+	}
 	return e;
 }
 
@@ -467,10 +479,12 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 	IPMP_Declarators.
 		As it could be used for other purposes we keep it generic
 	You must create the list yourself, the functions just encode/decode from/to the list
+
+	These functions are also used in mp4 for extension descriptor in LASeR and AVC sample descriptions
 *****************************************************************************************/
 
 GF_EXPORT
-GF_Err gf_odf_desc_list_read(char *raw_list, u32 raw_size, GF_List *descList)
+GF_Err gf_odf_desc_list_read(u8 *raw_list, u32 raw_size, GF_List *descList)
 {
 	GF_BitStream *bs;
 	u32 size, desc_size;
@@ -499,7 +513,7 @@ exit:
 
 
 GF_EXPORT
-GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize)
+GF_Err gf_odf_desc_list_write(GF_List *descList, u8 **outEncList, u32 *outSize)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -543,18 +557,18 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
 			/*process OD updates*/
 			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
-				u32 count, j, k;
+				u32 count2, j, k;
 				GF_ODRemove *odR = (GF_ODRemove *) command;
 				odU = (GF_ODUpdate *)com;
-				count = gf_list_count(odU->objectDescriptors);
+				count2 = gf_list_count(odU->objectDescriptors);
 				/*remove all descs*/
-				for (k=0; k<count; k++) {
+				for (k=0; k<count2; k++) {
 					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
 					for (j=0; j<odR->NbODs; j++) {
 						if (od->objectDescriptorID==odR->OD_ID[j]) {
 							gf_list_rem(odU->objectDescriptors, k);
 							k--;
-							count--;
+							count2--;
 							gf_odf_desc_del((GF_Descriptor *)od);
 							break;
 						}
@@ -577,6 +591,21 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 						i--;
 						count--;
 						gf_odf_com_del((GF_ODCom**)&esdU);
+						break;
+					}
+				}
+			}
+			/*process ESD remove*/
+			else if (com->tag==GF_ODF_ESD_REMOVE_TAG) {
+				u32 j;
+				GF_ODRemove *odR = (GF_ODRemove *) command;
+				GF_ESDRemove *esdR = (GF_ESDRemove*)com;
+				for (j=0; j<odR->NbODs; j++) {
+					if (esdR->ODID==odR->OD_ID[j]) {
+						gf_list_rem(codec->CommandList, i);
+						i--;
+						count--;
+						gf_odf_com_del((GF_ODCom**)&esdR);
 						break;
 					}
 				}
@@ -615,6 +644,91 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 					gf_list_add(odU_o->objectDescriptors, od_new);
 			}
 
+		}
+		return GF_OK;
+	case GF_ODF_ESD_REMOVE_TAG:
+		for (i=0; i<count; i++) {
+			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
+			/*process OD updates*/
+			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
+				u32 count2, j, k, l;
+				GF_ESDRemove *esdR = (GF_ESDRemove *) command;
+				odU = (GF_ODUpdate *)com;
+				count2 = gf_list_count(odU->objectDescriptors);
+				/*remove all descs*/
+				for (k=0; k<count2; k++) {
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
+					for (j=0; j<gf_list_count(od->ESDescriptors); j++) {
+						GF_ESD *esd = gf_list_get(od->ESDescriptors, j);
+						for (l=0; l<esdR->NbESDs; l++) {
+							if (esdR->ES_ID[l] == esd->ESID) {
+								gf_list_rem(od->ESDescriptors, j);
+								j--;
+								gf_odf_desc_del((GF_Descriptor *)esd);
+								break;
+							}
+						}
+					}
+				}
+			}
+			/*process ESD updates*/
+			else if (com->tag==GF_ODF_ESD_UPDATE_TAG) {
+				u32 j, k;
+				GF_ESDRemove *esdR = (GF_ESDRemove *) command;
+				GF_ESDUpdate *esdU = (GF_ESDUpdate*)com;
+				for (j=0; j<gf_list_count(esdU->ESDescriptors); j++) {
+					GF_ESD *esd = gf_list_get(esdU->ESDescriptors, j);
+					for (k=0; k<esdR->NbESDs; k++) {
+						if (esd->ESID == esdR->ES_ID[k]) {
+							gf_list_rem(codec->CommandList, j);
+							j--;
+							gf_odf_desc_del((GF_Descriptor *)esd);
+						}
+					}
+				}
+				if (!gf_list_count(esdU->ESDescriptors)) {
+					gf_list_rem(codec->CommandList, i);
+					i--;
+					count--;
+					gf_odf_com_del((GF_ODCom**)&esdU);
+				}
+			}
+		}
+		return GF_OK;
+	case GF_ODF_ESD_UPDATE_TAG:
+		for (i=0; i<count; i++) {
+			com = (GF_ODCom *)gf_list_get(codec->CommandList, i);
+			/*process OD updates*/
+			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
+				u32 count2, k, l;
+				GF_ESDUpdate *esdU = (GF_ESDUpdate *) command;
+				odU = (GF_ODUpdate *)com;
+				count2 = gf_list_count(odU->objectDescriptors);
+				/*remove all descs*/
+				for (k=0; k<count2; k++) {
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
+					if (od->objectDescriptorID==esdU->ODID) {
+						GF_ESD *esd;
+						while (gf_list_count(od->ESDescriptors)) {
+							esd = gf_list_pop_back(od->ESDescriptors);
+							gf_odf_desc_del((GF_Descriptor *)esd);
+						}
+						gf_list_transfer(od->ESDescriptors, esdU->ESDescriptors);
+						l = 0;
+						while ((esd = gf_list_enum(esdU->ESDescriptors, &l))) {
+							GF_ESD *new_esd;
+							GF_Err e = gf_odf_desc_copy((GF_Descriptor*)esd, (GF_Descriptor**)&new_esd);
+							if (e==GF_OK)
+								gf_list_add(od->ESDescriptors, new_esd);
+						}
+						break;
+					}
+				}
+			}
+			/*process ESD updates*/
+			else if (com->tag==GF_ODF_ESD_UPDATE_TAG) {
+				return GF_NOT_SUPPORTED;
+			}
 		}
 		return GF_OK;
 	}

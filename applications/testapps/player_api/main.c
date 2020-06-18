@@ -68,7 +68,7 @@ static Bool player_foreach(int argc, char **argv)
 	if (!term)
 		return GF_FALSE;
 
-	for (i=0; i<argc; ++i) {
+	for (i=1; i<argc; ++i) {
 		Bool res = play_pause_seek_gettime(term, argv[i]);
 		if (res == GF_FALSE) {
 			fprintf(stderr, "Failure with input %d: \"%s\"\n", i, argv[i]);

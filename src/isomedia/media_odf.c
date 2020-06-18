@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -27,7 +27,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-// Rewrite the good dependancies when an OD AU is extracted from the file
+// Rewrite the good dependencies when an OD AU is extracted from the file
 GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 {
 	GF_Err e;
@@ -55,7 +55,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	e = Track_FindRef(mdia->mediaTrack, GF_ISOM_BOX_TYPE_MPOD, &mpod);
 	if (e) return e;
 	//no references, nothing to do...
-	if (!mpod) return GF_OK;
+	if (!mpod || !mpod->trackIDs) return GF_OK;
 
 	ODdecode = gf_odf_codec_new();
 	if (!ODdecode) return GF_OUT_OF_MEM;
@@ -226,7 +226,7 @@ err_exit:
 }
 
 
-// Update the dependancies when an OD AU is inserted in the file
+// Update the dependencies when an OD AU is inserted in the file
 GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOSample **od_samp)
 {
 	GF_TrackReferenceBox *tref;
@@ -254,18 +254,18 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 	//First find the references, and create them if none
 	tref = mdia->mediaTrack->References;
 	if (!tref) {
-		tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
-		e = trak_AddBox((GF_Box*)mdia->mediaTrack, (GF_Box *) tref);
+		tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&mdia->mediaTrack->child_boxes, GF_ISOM_BOX_TYPE_TREF);
+		if (!tref) return GF_OUT_OF_MEM;
+		e = trak_on_child_box((GF_Box*)mdia->mediaTrack, (GF_Box *) tref);
 		if (e) return e;
 	}
 	//then find the OD reference, and create it if none
 	e = Track_FindRef(mdia->mediaTrack, GF_ISOM_BOX_TYPE_MPOD, &mpod);
 	if (e) return e;
 	if (!mpod) {
-		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new_parent(&tref->child_boxes, GF_ISOM_BOX_TYPE_REFT);
+		if (!mpod) return GF_OUT_OF_MEM;
 		mpod->reference_type = GF_ISOM_BOX_TYPE_MPOD;
-		e = tref_AddBox((GF_Box*)tref, (GF_Box *)mpod);
-		if (e) return e;
 	}
 
 	//OK, create our codecs
@@ -307,9 +307,11 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 				if (e) goto err_exit;
 				if (desc->tag == GF_ODF_OD_TAG) {
 					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomObjectDescriptor));
+					if (!isom_od) return GF_OUT_OF_MEM;
 					isom_od->tag = GF_ODF_ISOM_OD_TAG;
 				} else {
 					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomInitialObjectDescriptor));
+					if (!isom_od) return GF_OUT_OF_MEM;
 					isom_od->tag = GF_ODF_ISOM_IOD_TAG;
 					//copy PL
 					((GF_IsomInitialObjectDescriptor *)isom_od)->inlineProfileFlag = ((GF_InitialObjectDescriptor *)od)->inlineProfileFlag;
@@ -339,6 +341,11 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 				j=0;
 				while ((esd = (GF_ESD*)gf_list_enum(od->ESDescriptors, &j))) {
 					ref = (GF_ES_ID_Ref *) gf_odf_desc_new(GF_ODF_ESD_REF_TAG);
+					if (!esd->ESID) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOM] Missing ESID on ESD, cannot add track reference in OD frame"));
+						e = GF_BAD_PARAM;
+						goto err_exit;
+					}
 					//1 to 1 mapping trackID and ESID. Add this track to MPOD
 					//if track does not exist, this will be remove while reading the OD stream
 					e = reftype_AddRefTrack(mpod, esd->ESID, &ref->trackRef);
@@ -431,7 +438,7 @@ err_exit:
 
 
 
-// Rewrite the good dependancies when an OD AU is extracted from the file
+// Rewrite the good dependencies when an OD AU is extracted from the file
 static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id)
 {
 	GF_Err e;
@@ -493,13 +500,12 @@ static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id
 
 err_exit:
 	gf_odf_codec_del(ODdecode);
-	if (e) return 0;
-	return the_od_id;
+	return the_od_id; //still 0 if error, no need to check for e
 }
 
 
 GF_EXPORT
-u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track)
+u32 gf_isom_find_od_id_for_track(GF_ISOFile *file, u32 track)
 {
 	u32 i, j, di, the_od_id;
 	GF_TrackBox *od_tk;

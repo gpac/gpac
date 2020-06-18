@@ -13,12 +13,12 @@ import android.util.Log;
 
 /**
  * This class handles all GPAC configuration directories
- * 
+ *
  * @author Pierre Souchay (VizionR SAS) (last changed by $LastChangedBy$)
  * @version $Revision$
- * 
+ *
  */
- 
+
 /**
  * NOTE FOR DEVELOPERS
  * Whenever you add or change a path here, you MUST verify also the corresponding path in src/utils/os_config_init.c
@@ -29,7 +29,7 @@ public class GpacConfig {
 
     /**
      * Default Constructor
-     * 
+     *
      * @param context
      */
     public GpacConfig(Context context) {
@@ -52,17 +52,17 @@ public class GpacConfig {
         //Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacModulesDirectory + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
         gpacLibsDirectory = dataDir + "/lib/"; //$NON-NLS-1$
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacLibsDirectory + " for libraries"); //$NON-NLS-1$ //$NON-NLS-2$
-        
-        gpacGuiDirectory = dataDir + "/gui/";
+
+        gpacGuiDirectory = dataDir + "/share/gui/";
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacGuiDirectory + " for GUI"); //$NON-NLS-1$ //$NON-NLS-2$
 
-        gpacShaderDirectory = dataDir + "/shaders/";
+        gpacShaderDirectory = dataDir + "/share/shaders/";
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacShaderDirectory + " for shader files"); //$NON-NLS-1$ //$NON-NLS-2$
-        
+
         File osmo = new File(Environment.getExternalStorageDirectory(), "osmo"); //$NON-NLS-1$
         gpacLogDirectory = osmo.getAbsolutePath() + "/log/";
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacLogDirectory + " for log files"); //$NON-NLS-1$ //$NON-NLS-2$
-        
+
         //check if GPAC.cfg exists in /sdcard/osmo
         File gpac_cfg = new File(osmo.getAbsolutePath(), "GPAC.cfg");
 		if (gpac_cfg.exists())
@@ -73,7 +73,7 @@ public class GpacConfig {
 
     /**
      * Ensures all directories are created
-     * 
+     *
      * @return The {@link GpacConfig} instance itself
      */
     public GpacConfig ensureAllDirectoriesExist() {
@@ -82,10 +82,10 @@ public class GpacConfig {
         }
         return this;
     }
-    
+
     /**
      * Default directory for GPAC configuration directory, ends with /
-     * 
+     *
      * @return the gpacAppDirectory
      */
     public String getGpacAppDirectory() {
@@ -95,7 +95,7 @@ public class GpacConfig {
 
     /**
      * Default directory for GPAC configuration directory, ends with /
-     * 
+     *
      * @return the gpacConfigDirectory
      */
     public String getGpacConfigDirectory() {
@@ -104,7 +104,7 @@ public class GpacConfig {
 
     /**
      * Directory of Android containing all fonts
-     * 
+     *
      * @return the gpacFontDirectory
      */
     public String getGpacFontDirectory() {
@@ -113,7 +113,7 @@ public class GpacConfig {
 
     /**
      * Default directory for GPAC modules directory, ends with /
-     * 
+     *
      * @return the gpacModulesDirectory
      */
     public String getGpacModulesDirectory() {
@@ -130,16 +130,16 @@ public class GpacConfig {
 
     /**
      * Default directory for cached files
-     * 
+     *
      * @return the gpacCacheDirectory
      */
     public String getGpacCacheDirectory() {
         return gpacCacheDirectory;
     }
-    
+
     /**
      * Default directory for GUI files
-     * 
+     *
      * @return the gpacGuiDirectory
      */
     public String getGpacGuiDirectory() {
@@ -154,7 +154,7 @@ public class GpacConfig {
     public String getGpacShaderDirectory() {
         return gpacShaderDirectory;
     }
-    
+
     /**
      * Default directory for log files
      *
@@ -163,9 +163,9 @@ public class GpacConfig {
     public String getGpacLogDirectory() {
         return gpacLogDirectory;
     }
-    
+
     private final String gpacAppDirectory;
-    
+
     private final String gpacConfigDirectory;
 
     private final String gpacFontDirectory = "/system/fonts/"; //$NON-NLS-1$
@@ -175,16 +175,16 @@ public class GpacConfig {
     private final String gpacLibsDirectory;
 
     private final String gpacCacheDirectory;
-    
+
     private final String gpacGuiDirectory;
 
     private final String gpacShaderDirectory;
-    
+
     private final String gpacLogDirectory;
 
     /**
      * Creates a given directory if it does not exist
-     * 
+     *
      * @param path
      */
     private static boolean createDirIfNotExist(String path) {
@@ -202,7 +202,7 @@ public class GpacConfig {
 
     /**
      * Get the GPAC.cfg file
-     * 
+     *
      * @return the file
      */
     public File getGpacConfigFile() {
@@ -211,7 +211,7 @@ public class GpacConfig {
 
     /**
      * Get the GPAC.cfg file
-     * 
+     *
      * @return the file
      */
     public File getGpacLastRevFile() {
@@ -220,7 +220,7 @@ public class GpacConfig {
 
     /**
      * Get the configuration as text
-     * 
+     *
      * @return a String with newlines representing all the configuration
      */
     public String getConfigAsText() {

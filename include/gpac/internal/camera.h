@@ -99,7 +99,7 @@ typedef struct _camera
 	u32 flags;
 
 	/*viewport info*/
-	GF_Rect vp;
+	GF_Rect vp, proj_vp;
 	/*not always same as VP due to aspect ratio*/
 	Fixed width, height;
 	Fixed z_near, z_far;
@@ -173,12 +173,12 @@ void camera_invalidate(GF_Camera *cam);
 /*updates camera. user transform is only used in 2D to set global user zoom/pan/translate*/
 void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords);
 /*updates camera. user transform is only used in 2D to set global user zoom/pan/translate + stereo param*/
-void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed viewing_distance, Fixed viewing_distance_offset, u32 camera_layout);
+void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed viewing_distance, Fixed viewing_distance_offset, u32 camlay);
 /*reset to last viewport*/
 void camera_reset_viewpoint(GF_Camera *cam, Bool animate);
 /*move camera to given vp*/
 void camera_move_to(GF_Camera *cam, SFVec3f pos, SFVec3f target, SFVec3f up);
-Bool camera_animate(GF_Camera *cam);
+Bool camera_animate(GF_Camera *cam, void *compositor);
 void camera_stop_anim(GF_Camera *cam);
 /*start jump mode*/
 void camera_jump(GF_Camera *cam);

@@ -79,17 +79,17 @@ static void ifs2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState
 static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 {
 	u32 i, count, ci_count;
+#if 0 //unused
 	u32 j, ind_col, num_col;
 	SFVec2f center, end;
 	SFColor col_cen;
-	GF_STENCIL grad;
+	GF_EVGStencil *grad;
 	u32 *colors;
-	GF_Path *path;
+#endif
 	SFVec2f start;
 	SFVec2f *pts;
 	SFColor col;
 	Fixed alpha;
-	GF_Raster2D *raster;
 	DrawableContext *ctx = tr_state->ctx;
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	M_Coordinate2D *coord = (M_Coordinate2D*) ifs2D->coord;
@@ -124,7 +124,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 
 	/*we have color per faces so we need N path :(*/
 	if (! ifs2D->colorPerVertex) {
-		path = gf_path_new();
+		GF_Path *path = gf_path_new();
 
 		count = 0;
 		i = 0;
@@ -166,16 +166,13 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	}
 
 	/*final case, color per vertex means gradient fill/strike*/
-	raster = tr_state->visual->compositor->rasterizer;
-	grad = raster->stencil_new(raster, GF_STENCIL_VERTEX_GRADIENT);
 	/*not supported, fill default*/
-	if (!grad) {
-		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
-		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
-		return;
-	}
+	visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
+	visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
+	return;
 
 
+#if 0 //deprecated
 	path = gf_path_new();
 
 	ind_col = 0;
@@ -225,8 +222,8 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		col_cen.green += col.green;
 		col_cen.red += col.red;
 
-		raster->stencil_set_vertex_path(grad, path);
-		raster->stencil_set_vertex_colors(grad, colors, num_col);
+		gf_evg_stencil_set_vertex_path(grad, path);
+		gf_evg_stencil_set_vertex_colors(grad, colors, num_col);
 
 		gf_free(colors);
 
@@ -235,24 +232,27 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		col_cen.red /= num_col;
 		center.x /= num_col;
 		center.y /= num_col;
-		raster->stencil_set_vertex_center(grad, center.x, center.y, GF_COL_ARGB_FIXED(alpha, col_cen.red, col_cen.green, col_cen.blue) );
+		gf_evg_stencil_set_vertex_center(grad, center.x, center.y, GF_COL_ARGB_FIXED(alpha, col_cen.red, col_cen.green, col_cen.blue) );
 
-		raster->stencil_set_matrix(grad, &ctx->transform);
+		gf_evg_stencil_set_matrix(grad, &ctx->transform);
 
 		/*draw*/
 		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, grad, grad, tr_state);
 
-		raster->stencil_delete(grad);
+		gf_evg_stencil_delete(grad);
 
 		//goto next point
 		i++;
 		ind_col += num_col + 1;
 		if (i >= ci_count) break;
-		grad = raster->stencil_new(raster, GF_STENCIL_VERTEX_GRADIENT);
+		grad = gf_evg_stencil_new(GF_STENCIL_VERTEX_GRADIENT);
 		ctx->flags &= ~CTX_PATH_FILLED;
 		ctx->flags &= ~CTX_PATH_STROKE;
 	}
 	gf_path_del(path);
+#endif
+
+
 }
 
 static void TraverseIFS2D(GF_Node *node, void *rs, Bool is_destroy)
@@ -321,15 +321,19 @@ static void TraverseIFS2D(GF_Node *node, void *rs, Bool is_destroy)
 static void IFS2D_SetColorIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
-	gf_sg_vrml_field_copy(&ifs2D->colorIndex, &ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ifs2D->colorIndex, &ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 static void IFS2D_SetCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
-	gf_sg_vrml_field_copy(&ifs2D->coordIndex, &ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
-	gf_sg_vrml_mf_reset(&ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
+	if (node) {
+		gf_sg_vrml_field_copy(&ifs2D->coordIndex, &ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
+		gf_sg_vrml_mf_reset(&ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
+	}
 }
 
 void compositor_init_indexed_face_set2d(GF_Compositor *compositor, GF_Node *node)
@@ -340,6 +344,14 @@ void compositor_init_indexed_face_set2d(GF_Compositor *compositor, GF_Node *node
 	gf_node_set_callback_function(node, TraverseIFS2D);
 	ifs2D->on_set_colorIndex = IFS2D_SetColorIndex;
 	ifs2D->on_set_coordIndex = IFS2D_SetCoordIndex;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		IFS2D_SetCoordIndex(NULL, NULL);
+		IFS2D_SetColorIndex(NULL, NULL);
+	}
+#endif
+
 }
 
 #endif /*GPAC_DISABLE_VRML*/

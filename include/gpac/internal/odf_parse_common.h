@@ -33,11 +33,18 @@
 #define GET_S16(field) { s16 d; if (strstr(val, "0x")) { ret += sscanf(val, "%hx", (u16*)&d); if (ret) field = d; } else { ret += sscanf(val, "%hd", &d); if (ret) field = d; }	}
 #define GET_U32(field) { u32 d; if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = d; } else { ret += sscanf(val, "%ud", &d); if (ret) field = d; }	}
 #define GET_S32(field) { s32 d; if (strstr(val, "0x")) { ret += sscanf(val, "%x", (u32*)&d); if (ret) field = d; } else { ret += sscanf(val, "%d", &d); if (ret) field = d; }	}
-#define GET_BOOL(field) { ret = 1; field = (!stricmp(val, "true") || !stricmp(val, "1")) ? GF_TRUE : GF_FALSE; }
+#define GET_BOOL(field) { ret = 1; field = (!stricmp(val, "true") || !strcmp(val, "1")) ? GF_TRUE : GF_FALSE; }
 #define GET_U64(field) { u64 d; if (strstr(val, "0x")) { ret += sscanf(val, LLX, &d); if (ret) field = d; } else { ret += sscanf(val, LLU, &d); if (ret) field = d; }	}
 
 #define GET_DOUBLE(field) { Float v; ret = 1; sscanf(val, "%f", &v); field = (Double) v;}
-#define GET_STRING(field) { ret = 1; field = gf_strdup(val); if (val[0] == '"') strcpy(field, val+1); if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0; }
+#define GET_STRING(field) { \
+		ret = 1;\
+		field = gf_strdup(val); \
+		if (field) { \
+			if (val[0] == '"') strcpy(field, val+1); \
+			if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0;\
+		}\
+	}
 
 
 #endif	/* _GF_OD_PARSE_COMMON_H_  */

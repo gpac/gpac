@@ -182,7 +182,7 @@ extern "C" {
 
 	static GF_Err Dektec_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	{
-		DtFrameBuffer *dtf = (DtFrameBuffer*)(((DtContext*)dr->opaque)->dtf);
+		//DtFrameBuffer *dtf = (DtFrameBuffer*)(((DtContext*)dr->opaque)->dtf);
 
 		if (evt) {
 			switch (evt->type) {
@@ -227,7 +227,7 @@ extern "C" {
 
 		int port = 1;
 		const char *opt;
-		opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "SDIOutput");
+		opt = gf_opts_get_key("DektecVideo", "SDIOutput");
 		if (opt) {
 			port = atoi(opt);
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Dektec Out] Using port %d (%s)\n", port, opt));
@@ -241,9 +241,9 @@ extern "C" {
 		
 		res = dvc->AttachToType(2174);
 		if (res != DTAPI_OK) res = dvc->AttachToType(2154);
-		res = dvc->AttachToType(-1);
-		res = dvc->AttachToSlot(10, 33);
-		res = dvc->AttachToSerial(2174000447);
+		if (res == DTAPI_OK) res = dvc->AttachToType(-1);
+		if (res == DTAPI_OK) res = dvc->AttachToSlot(10, 33);
+		if (res == DTAPI_OK) res = dvc->AttachToSerial(2174000447);
 
 		if (tru && res != DTAPI_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Dektec Out] No DTA 2174 or 2154 in system: %s\n", DtapiResult2Str(res)));

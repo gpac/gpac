@@ -1,0 +1,2044 @@
+.TH MP4Box 1 2019 MP4Box GPAC
+.
+.SH NAME
+.LP
+MP4Box \- GPAC command-line media packager
+.SH SYNOPSIS
+.LP
+.B MP4Box
+.RI [options] \ [file] \ [options]
+.br
+.
+.SH General Options
+.LP
+.br
+MP4Box is a multimedia packager, with a vast number of functionalities: conversion, splitting, hinting, dumping, DASH-ing, encryption and others.
+.br
+MP4Box provides a large set of options, classified by categories (see -h). These options do not follow any particular ordering.
+.br
+MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the -out option.
+.br
+MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use -flat to change this behaviour.
+.br
+MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with -tmp.
+.br
+Note: Track operations identify tracks through their ID (usually refered as tkID in the help), not their order.
+.br
+Option values:
+.br
+Unless specified otherwise, an option of type integer expects a trackID value following it.An option of type boolean expects no following value.  
+.br
+.SH File Splitting and Concatenation
+.LP
+.br
+MP4Box can split IsoMedia files by size, duration or extract a given part of the file to new IsoMedia file(s). This process requires that at most one track in the input file has non random-access points (typically one video track at most). This process will also ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.
+.br
+Note: The input file must have enough random access points in order to be split. This may not be the case with some video files where only the very first sample of the video track is a key frame (many 3GP files with H263 video are recorded that way). In order to split such files you will have to use a real video editor and re-encode the content.
+.br
+Note: You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without spliting) will not be stored.
+.br
+  
+.br
+Options:
+.br
+.TP
+.B \-p
+.br
+use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Works using -p=NAME or -p NAME
+.br
+.TP
+.B \-inter (number, default: 0.5)
+.br
+interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving 
+.br
+.TP
+.B \-old-inter (number)
+.br
+same as -inter but wihout drift correction
+.br
+.TP
+.B \-tight (number)
+.br
+tight interleaving (sample based) of the file. This reduces disk seek operations but increases file size
+.br
+.TP
+.B \-flat
+.br
+store file with all media data first, non-interleaved. This speeds up writing time when creating new files
+.br
+.TP
+.B \-frag (number)
+.br
+fragment file, producing track fragments of given duration in ms. This disables interleaving
+.br
+.TP
+.B \-out (string)
+.br
+specify output file name. By default input file is overwritten
+.br
+.TP
+.B \-tmp (string)
+.br
+specify directory for temporary file creation
+.br
+.TP
+.B \-co64
+.br
+force usage of 64-bit chunk offsets for ISOBMF files
+.br
+.TP
+.B \-new
+.br
+force creation of a new destination file
+.br
+.TP
+.B \-newfs
+.br
+force creation of a new destination file without temp file but interleaving support
+.br
+.TP
+.B \-no-sys
+.br
+remove all MPEG-4 Systems info except IOD, kept for profiles. This is the default when creating regular AV content
+.br
+.TP
+.B \-no-iod
+.br
+remove MPEG-4 InitialObjectDescriptor from file
+.br
+.TP
+.B \-mfra
+.br
+insert movie fragment random offset when fragmenting file (ignored in dash mode)
+.br
+.TP
+.B \-isma
+.br
+rewrite the file as an ISMA 1.0 file
+.br
+.TP
+.B \-ismax
+.br
+same as -isma and remove all clock references
+.br
+.TP
+.B \-3gp
+.br
+rewrite as 3GPP(2) file (no more MPEG-4 Systems Info), always enabled if destination file extension is .3gp, .3g2 or .3gpp. Some tracks may be removed in the process
+.br
+.TP
+.B \-ipod
+.br
+rewrite the file for iPod/old iTunes
+.br
+.TP
+.B \-psp
+.br
+rewrite the file for PSP devices
+.br
+.TP
+.B \-brand (string)
+.br
+set major brand of file (ABCD) or brand with optional version (ABCD:v)
+.br
+.TP
+.B \-ab (string)
+.br
+add given brand to file's alternate brand list
+.br
+.TP
+.B \-rb (string)
+.br
+remove given brand to file's alternate brand list
+.br
+.TP
+.B \-cprt (string)
+.br
+add copyright string to file
+.br
+.TP
+.B \-chap (string)
+.br
+set chapter information from given file
+.br
+.TP
+.B \-chapqt (string)
+.br
+set chapter information from given file, using QT signaling for text tracks
+.br
+.TP
+.B \-set-track-id  id1:id2 (string)
+.br
+change id of track with id1 to id2
+.br
+.TP
+.B \-swap-track-id  id1:id2 (string)
+.br
+swap the id between tracks with id1 to id2
+.br
+.TP
+.B \-rem (int)
+.br
+remove given track from file
+.br
+.TP
+.B \-rap (int)
+.br
+remove all non-RAP samples from given track
+.br
+.TP
+.B \-refonly (int)
+.br
+remove all non-reference pictures from given track
+.br
+.TP
+.B \-enable (int)
+.br
+enable given track
+.br
+.TP
+.B \-disable (int)
+.br
+disable given track
+.br
+.TP
+.B \-timescale (int, default: 600)
+.br
+set movie timescale to given value (ticks per second)
+.br
+.TP
+.B \-lang  [tkID=]LAN (string)
+.br
+set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks
+.br
+.TP
+.B \-delay  tkID=TIME (string)
+.br
+set track start delay in ms
+.br
+.TP
+.B \-par  tkID=PAR (string)
+.br
+set visual track pixel aspect ratio. PAR is:
+.br
+  * N:D: set PAR to N:D in track, do not modify the bitstream
+.br
+  * wN:D: set PAR to N:D in track and try to modify the bitstream
+.br
+  * none: remove PAR info from track, do not modify the bitstream
+.br
+  * auto: retrieve PAR info from bitstream and set it in track
+.br
+  * force: force 1:1 PAR in track, do not modify the bitstream
+.br
+.TP
+.B \-clap  tkID=CLAP (string)
+.br
+set visual track clean aperture. CLAP is Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd or none
+.br
+* n, d: numerator, denominator
+.br
+* W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset
+.br
+
+.br
+.TP
+.B \-mx  tkID=MX (string)
+.br
+set track matrix, with MX is M1:M2:M3:M4:M5:M6:M7:M8:M9 in 16.16 fixed point intergers or hexa
+.br
+.TP
+.B \-name  tkID=NAME (string)
+.br
+set track handler name to NAME (UTF-8 string)
+.br
+.TP
+.B \-itags  tag1[:tag2] (string)
+.br
+set iTunes tags to file, see -tag-list
+.br
+.TP
+.B \-tag-list
+.br
+print the set of supported iTunes tags
+.br
+.TP
+.B \-split (string)
+.br
+split in files of given max duration
+.br
+.TP
+.B \-split-size,-splits (string)
+.br
+split in files of given max size (in kb)
+.br
+.TP
+.B \-split-rap,-splitr (string)
+.br
+split in files at each new RAP
+.br
+.TP
+.B \-split-chunk,-splitx  VAL (string)
+.br
+extract a new file from source. VAL can be formated as:
+.br
+* `S:E`: S (number of seconds) to E with E a number (in seconds), end or end-N, N  number of seconds before the end
+.br
+* `S-E`: start and end dates, each formatted as HH:MM:SS.ms or MM:SS.ms
+.br
+.TP
+.B \-splitz  S:E (string)
+.br
+same as -split-chunk, but adjust the end time to be before the last RAP sample
+.br
+.TP
+.B \-group-add (string)
+.br
+create a new grouping information in the file. Format is a colon-separated list of following options:
+.br
+* refTrack=ID: ID of the track used as a group reference. If not set, the track will belong to the same group as the previous trackID specified. If 0 or no previous track specified, a new alternate group will be created
+.br
+* switchID=ID: ID of the switch group to create. If 0, a new ID will be computed for you. If <0, disables SwitchGroup
+.br
+* criteria=string: list of space-separated 4CCs.
+.br
+* trackID=ID: ID of the track to add to this group.
+.br
+  
+.br
+Warning: Options modify state as they are parsed, trackID=1:criteria=lang:trackID=2 is different from criteria=lang:trackID=1:trackID=2
+.br
+
+.br
+.TP
+.B \-group-rem-track (int)
+.br
+remove given track from its group
+.br
+.TP
+.B \-group-rem (int)
+.br
+remove the track's group
+.br
+
+.br
+.TP
+.B \-group-clean
+.br
+remove all group information from all tracks
+.br
+
+.br
+.TP
+.B \-ref  id:XXXX:refID (string)
+.br
+add a reference of type 4CC from track ID to track refID
+.br
+
+.br
+.TP
+.B \-keep-utc
+.br
+keep UTC timing in the file after edit
+.br
+
+.br
+.TP
+.B \-udta  tkID:[OPTS] (string)
+.br
+set udta for given track or movie if tkID is 0. OPTS is a colon separated list of:
+.br
+* type=CODE: 4CC code of the UDTA (not needed for box= option)
+.br
+* box=FILE: location of the udta data, formatted as serialized boxes
+.br
+* box=base64,DATA: base64 encoded udta data, formatted as serialized boxes
+.br
+* src=FILE: location of the udta data (will be stored in a single box of type CODE)
+.br
+* src=base64,DATA: base64 encoded udta data (will be stored in a single box of type CODE)
+.br
+Note: If no source is set, UDTA of type CODE will be removed
+.br
+
+.br
+.TP
+.B \-patch  [tkID=]FILE (string)
+.br
+apply box patch described in FILE, for given trackID if set
+.br
+
+.br
+.TP
+.B \-bo
+.br
+freeze the order of boxes in input file
+.br
+
+.br
+.TP
+.B \-init-seg (string)
+.br
+use the given file as an init segment for dumping or for encryption
+.br
+
+.br
+.TP
+.B \-zmov
+.br
+compress movie box according to ISOBMFF box compression
+.br
+
+.br
+.SH Extracting Options
+.LP
+.br
+MP4Box can be used to extract media tracks from MP4 files. If you need to convert these tracks however, please check the filters doc.
+.br
+  
+.br
+Options:
+.br
+.TP
+.B \-raw (string)
+.br
+extract given track in raw format when supported. Use tkID:output=FileName to set output file name
+.br
+.TP
+.B \-raws (string)
+.br
+extract each sample of the given track to a file. Use tkID:Nto extract the Nth sample
+.br
+.TP
+.B \-nhnt (int)
+.br
+extract given track to NHNT format
+.br
+.TP
+.B \-nhml (string)
+.br
+extract given track to NHML format. Use tkID:full for full NHML dump with all packet properties
+.br
+.TP
+.B \-webvtt-raw (string)
+.br
+extract given track as raw media in WebVTT as metadata. Use tkID:embedded to include media data in the WebVTT file
+.br
+.TP
+.B \-single (int)
+.br
+extract given track to a new mp4 file
+.br
+.TP
+.B \-six (int)
+.br
+extract given track as raw media in experimental XML streaming instructions
+.br
+.TP
+.B \-avi (int)
+.br
+extract given track to an avi file
+.br
+.TP
+.B \-avi (int)
+.br
+same as -raw but defaults to QCP file for EVRC/SMV
+.br
+.TP
+.B \-aviraw (string, values: video|audio)
+.br
+extract AVI track in raw format; parameter can be video, audioor audioN
+.br
+.TP
+.B \-saf
+.br
+remux file to SAF multiplex
+.br
+.TP
+.B \-dvbhdemux
+.br
+demux DVB-H file into IP Datagrams sent on the network
+.br
+.TP
+.B \-raw-layer (int)
+.br
+same as -raw but skips SVC/MVC/LHVC extractors when extracting
+.br
+.TP
+.B \-diod
+.br
+extract file IOD in raw format
+.br
+.SH DASH Options
+.LP
+.br
+Also see:
+.br
+- the dasher `gpac -h dash` filter documentation
+.br
+- [[online DASH Intro doc|DASH Introduction]].
+.br
+
+.br
+.SH Specifying input files
+.LP
+.br
+Input media files to dash can use the following modifiers
+.br
+* #trackID=N: only use the track ID N from the source file
+.br
+* #N: only use the track ID N from the source file (mapped to -tkid)
+.br
+* #video: only use the first video track from the source file
+.br
+* #audio: only use the first audio track from the source file
+.br
+* :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs
+.br
+* :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.
+.br
+* :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option
+.br
+* :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs
+.br
+Warning: This does not modify generated files location (see segment template).
+.br
+* :bandwidth=VALUE: set the representation's bandwidth to a given value
+.br
+* :pdur=VALUE: increase the duration of this period by the given duration in seconds (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:pdur=Y
+.br
+* :duration=VALUE: override target DASH segment duration for this input
+.br
+* :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used
+.br
+* :asID=VALUE: set the AdaptationSet ID to NAME
+.br
+* :role=VALUE: set the role of this representation (cf DASH spec). Media with different roles belong to different adaptation sets.
+.br
+* :desc_p=VALUE: add a descriptor at the Period level. Value must be a properly formatted XML element.
+.br
+* :desc_as=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Two input files with different values will be in different AdaptationSet elements.
+.br
+* :desc_as_c=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.
+.br
+* :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.
+.br
+* :sscale: force movie timescale to match media timescale of the first track in the segment.
+.br
+* :trackID=N: only use the track ID N from the source file
+.br
+* @@f1[:args][@@fN:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set, they will be chained in the given order.
+.br
+
+.br
+Note: @@f must be placed after all other options.
+.br
+
+.br
+.SH Options
+.LP
+.br
+.TP
+.B \-mpd (string)
+.br
+convert given HLS or smooth manifest (local or remote http) to MPD.
+.br
+Warning: This is not compatible with other DASH options and does not convert associated segments
+.br
+.TP
+.B \-dash,--dash-strict (number)
+.br
+create DASH from input files with given segment (subsegment for onDemand profile) duration in ms
+.br
+.TP
+.B \-dash-live (number)
+.br
+generate a live DASH session using the given segment duration in ms; using -dash-live=Fwill also write the live context to F. MP4Box will run the live session until q is pressed or a fatal error occurs
+.br
+.TP
+.B \-ddbg-live (number)
+.br
+same as -dash-live without time regulation for debug purposes
+.br
+.TP
+.B \-frag (number)
+.br
+specify the fragment duration in ms. If not set, this is the DASH duration (one fragment per segment)
+.br
+.TP
+.B \-out (string)
+.br
+specify the output MPD file name
+.br
+.TP
+.B \-tmp (string)
+.br
+specify directory for temporary file creation
+.br
+.TP
+.B \-profile (string, values: onDemand|live|main|simple|full|hbbtv1.5:live|dashavc264:live|dashavc264:onDemand)
+.br
+specify the target DASH profile, and set default options to ensure conformance to the desired profile. Default profile is full in static mode, live in dynamic mode
+.br
+.TP
+.B \-profile-ext (string)
+.br
+specify a list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used
+.br
+.TP
+.B \-rap
+.br
+ensure that segments begin with random access points, segment durations might vary depending on the source encoding
+.br
+.TP
+.B \-frag-rap
+.br
+ensure that all fragments begin with random access points (duration might vary depending on the source encoding)
+.br
+.TP
+.B \-segment-name (string)
+.br
+set the segment name for generated segments. If not set (default), segments are concatenated in output file except in live profile where dash_%%s. Supported replacement strings are:
+.br
+- $Number[%%0Nd]$ is replaced by the segment number, possibly prefixed with 0.
+.br
+- $RepresentationID$ is replaced by representation name.
+.br
+- $Time$ is replaced by segment start time.
+.br
+- $Bandwidth$ is replaced by representation bandwidth.
+.br
+- $Init=NAME$ is replaced by NAME for init segment, ignored otherwise. May occur multiple times.
+.br
+- $Index=NAME$ is replaced by NAME for index segments, ignored otherwise. May occur multiple times.
+.br
+- $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise. May occur multiple times.
+.br
+- $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments. May occur multiple times
+.br
+.TP
+.B \-segment-ext (string, default: m4s)
+.br
+set the segment extension, null means no extension
+.br
+.TP
+.B \-init-segment-ext (string, default: mp4)
+.br
+set the segment extension for init, index and bitstream switching segments, null means no extension
+.br
+
+.br
+.TP
+.B \-segment-timeline
+.br
+use SegmentTimeline when generating segments
+.br
+.TP
+.B \-segment-marker  MARK (string)
+.br
+add a box of type MARK (4CC) at the end of each DASH segment
+.br
+.TP
+.B \-insert-utc
+.br
+insert UTC clock at the beginning of each ISOBMF segment
+.br
+.TP
+.B \-base-url (string)
+.br
+set Base url at MPD level. Can be used several times.
+.br
+Warning: this does not  modify generated files location
+.br
+.TP
+.B \-mpd-title (string)
+.br
+set MPD title
+.br
+.TP
+.B \-mpd-source (string)
+.br
+set MPD source
+.br
+.TP
+.B \-mpd-info-url (string)
+.br
+set MPD info url
+.br
+.TP
+.B \-cprt (string)
+.br
+add copyright string to MPD
+.br
+.TP
+.B \-dash-ctx (string)
+.br
+store/restore DASH timing from indicated file
+.br
+.TP
+.B \-dynamic
+.br
+use dynamic MPD type instead of static
+.br
+.TP
+.B \-last-dynamic (string)
+.br
+same as -dynamic but close the period (insert lmsg brand if needed and update duration)
+.br
+.TP
+.B \-mpd-duration (number, default: 0)
+.br
+set the duration in second of a live session (if 0, you must use -mpd-refresh)
+.br
+.TP
+.B \-mpd-refresh (number)
+.br
+specify MPD update time in seconds
+.br
+.TP
+.B \-time-shift (number)
+.br
+specify MPD time shift buffer depth in seconds, -1 to keep all files)
+.br
+.TP
+.B \-subdur (int)
+.br
+specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless -no-loop is used which triggers a period end
+.br
+.TP
+.B \-run-for (int)
+.br
+run for given ms  the dash-live session then exits
+.br
+.TP
+.B \-min-buffer (int)
+.br
+specify MPD min buffer time in ms
+.br
+.TP
+.B \-ast-offset (int, default: 0)
+.br
+specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative
+.br
+.TP
+.B \-dash-scale (int)
+.br
+specify that timing for -dash and -frag are expressed in given timexale (units per seconds)
+.br
+.TP
+.B \-mem-frags
+.br
+fragmentation happens in memory rather than on disk before flushing to disk
+.br
+.TP
+.B \-pssh= (Enum)
+.br
+set pssh store mode.
+.br
+* v: initial movie
+.br
+* f: movie fragments
+.br
+* m: MPD
+.br
+* mv, vm: in initial movie and MPD
+.br
+* mf, fm: in movie fragments and MPD
+.br
+.TP
+.B \-sample-groups-traf
+.br
+store sample group descriptions in traf (duplicated for each traf). If not set, sample group descriptions are stored in the initial movie
+.br
+.TP
+.B \-mvex-after-traks
+.br
+store mvex box after trak boxes within the moov box. If not set, mvex is before
+.br
+.TP
+.B \-sdtp-traf (Enum)
+.br
+use sdtp box in traf (Smooth-like).
+.br
+* no: do not use sdtp
+.br
+* sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags
+.br
+* both: use sdtp box to indicate sample dependencies and also write info in trun sample flags
+.br
+
+.br
+.TP
+.B \-no-cache
+.br
+disable file cache for dash inputs
+.br
+.TP
+.B \-no-loop
+.br
+disable looping content in live mode and uses period switch instead
+.br
+.TP
+.B \-hlsc
+.br
+insert UTC in variant playlists for live HLS
+.br
+.TP
+.B \-bound
+.br
+enable video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)
+.br
+.TP
+.B \-closest
+.br
+enable video segmentation closest to the segment boundary (before or after)
+.br
+.TP
+.B \-subsegs-per-sidx (int)
+.br
+set the number of subsegments to be written in each SIDX box
+.br
+* 0: a single SIDX box is used per segment
+.br
+* -1: no SIDX box is used
+.br
+.TP
+.B \-ssix
+.br
+enable SubsegmentIndexBox describing 2 ranges, first one from moof to end of first I-frame, second one unmapped. This does not work with daisy chaining mode enabled
+.br
+.TP
+.B \-url-template
+.br
+use SegmentTemplate instead of explicit sources in segments. Ignored if segments are stored in the output file
+.br
+.TP
+.B \-daisy-chain
+.br
+use daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0
+.br
+.TP
+.B \-single-segment
+.br
+use a single segment for the whole file (OnDemand profile)
+.br
+.TP
+.B \-single-file
+.br
+use a single file for the whole file (default)
+.br
+.TP
+.B \-bs-switching (string, default: inband, values: inband|merge|multi|no|single)
+.br
+set bitstream switching mode
+.br
+* inband: use inband param set and a single init segment
+.br
+* merge: try to merge param sets in a single sample description, fallback to no
+.br
+* multi: use several sample description, one per quality
+.br
+* no: use one init segment per quality
+.br
+* single: to test with single input
+.br
+.TP
+.B \-moof-sn (int)
+.br
+set sequence number of first moof to given value
+.br
+.TP
+.B \-tfdt (int)
+.br
+set TFDT of first traf to given value in SCALE units (cf -dash-scale)
+.br
+.TP
+.B \-no-frags-default
+.br
+disable default fragments flags in trex (required by some dash-if profiles and CMAF/smooth streaming compatibility)
+.br
+.TP
+.B \-single-traf
+.br
+use a single track fragment per moof (smooth streaming and derived specs may require this)
+.br
+.TP
+.B \-tfdt-traf
+.br
+use a tfdt per track fragment (when -single-traf is used)
+.br
+.TP
+.B \-dash-ts-prog (int)
+.br
+program_number to be considered in case of an MPTS input file
+.br
+.TP
+.B \-frag-rt
+.br
+when using fragments in live mode, flush fragments according to their timing
+.br
+.TP
+.B \-cp-location (string, values: as|repoth)
+.br
+set ContentProtection element location
+.br
+* as: sets ContentProtection in AdaptationSet element
+.br
+* rep: sets ContentProtection in Representation element
+.br
+* both: sets ContentProtection in both elements
+.br
+.TP
+.B \-start-date (string)
+.br
+for live mode, set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ). Default is current UTC
+.br
+Warning: Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size
+.br
+.TP
+.B \-cues (string)
+.br
+ignore dash duration and segment according to cue times in given XML file (tests/media/dash_cues for examples)
+.br
+.TP
+.B \-strict-cues
+.br
+throw error if something is wrong while parsing cues or applying cue-based segmentation
+.br
+.SH File Dumping
+.LP
+.br
+  
+.br
+MP4Box has many dump functionalities, from simple track listing to more complete reporting of special tracks.
+.br
+  
+.br
+Options:
+.br
+.TP
+.B \-stdb
+.br
+dump/write to stdout and assume stdout is opened in binary mode
+.br
+.TP
+.B \-stdb
+.br
+dump/write to stdout  and try to reopen stdout in binary mode
+.br
+.TP
+.B \-tracks
+.br
+print the number of tracks on stdout
+.br
+.TP
+.B \-info (string)
+.br
+print movie info (no parameter) or track info with specified ID
+.br
+.TP
+.B \-infon (string)
+.br
+print track info for given track number, 1 being the first track in the file
+.br
+.TP
+.B \-diso
+.br
+dump IsoMedia file boxes in XML output
+.br
+.TP
+.B \-dxml
+.br
+dump IsoMedia file boxes and known track samples in XML output
+.br
+.TP
+.B \-disox
+.br
+dump IsoMedia file boxes except sample tables in XML output
+.br
+.TP
+.B \-keep-ods
+.br
+do not translate ISOM ODs and ESDs tags (debug purpose only)
+.br
+.TP
+.B \-bt
+.br
+dump scene to BT format
+.br
+.TP
+.B \-xmt
+.br
+dump scene to XMT format
+.br
+.TP
+.B \-wrl
+.br
+dump scene to VRML format
+.br
+.TP
+.B \-x3d
+.br
+dump scene to X3D XML format
+.br
+.TP
+.B \-x3dc
+.br
+dump scene to X3D VRML format
+.br
+.TP
+.B \-lsr
+.br
+dump scene to LASeR XML (XSR) format
+.br
+.TP
+.B \-drtp
+.br
+dump rtp hint samples structure to XML output
+.br
+.TP
+.B \-dts
+.br
+print sample timing, size and position in file to text output
+.br
+.TP
+.B \-dtsx
+.br
+same as -dts but does not print offset
+.br
+.TP
+.B \-dtsc
+.br
+same as -dts but analyse each sample for duplicated dts/cts (slow !)
+.br
+.TP
+.B \-dtsxc
+.br
+same as -dtsc but does not print offset (slow !)
+.br
+.TP
+.B \-dnal (int)
+.br
+print NAL sample info of given track
+.br
+.TP
+.B \-dnalc (int)
+.br
+print NAL sample info of given track, adding CRC for each nal
+.br
+.TP
+.B \-dnald (int)
+.br
+print NAL sample info of given track without DTS and CTS info
+.br
+.TP
+.B \-dnalx (int)
+.br
+print NAL sample info of given track without DTS and CTS info and adding CRC for each nal
+.br
+.TP
+.B \-sdp
+.br
+dump SDP description of hinted file
+.br
+.TP
+.B \-dsap (int)
+.br
+dump DASH SAP cues (see -cues) for a given track
+.br
+.TP
+.B \-dsaps (int)
+.br
+same as -dsap but only print sample number
+.br
+.TP
+.B \-dsapc (int)
+.br
+same as -dsap but only print CTS
+.br
+.TP
+.B \-dsapd (int)
+.br
+same as -dsap but only print DTS, -dsapp to only print presentation time
+.br
+.TP
+.B \-dsapp (int)
+.br
+same as -dsap but only print presentation time
+.br
+.TP
+.B \-dcr
+.br
+dump ISMACryp samples structure to XML output
+.br
+.TP
+.B \-dump-cover
+.br
+extract cover art
+.br
+.TP
+.B \-dump-chap
+.br
+extract chapter file
+.br
+.TP
+.B \-dump-chap-ogg
+.br
+extract chapter file as OGG format
+.br
+.TP
+.B \-dump-udta  [tkID:]4cc (string)
+.br
+extract udta for the given 4CC. If tkID is given, dumps from UDTA of the given track ID, otherwise moov is used
+.br
+.TP
+.B \-mergevtt
+.br
+merge vtt cues while dumping
+.br
+.TP
+.B \-ttxt (int)
+.br
+convert input subtitle to GPAC TTXT format if no parameter. Otherwise, dump given text track to GPAC TTXT format
+.br
+.TP
+.B \-srt
+.br
+convert input subtitle to SRT format if no parameter. Otherwise, dump given text track to SRT format
+.br
+.TP
+.B \-rip-mpd
+.br
+download manifest and segments of an MPD. Does not work with live sessions
+.br
+.TP
+.B \-stat
+.br
+generate node/field statistics for scene
+.br
+.TP
+.B \-stats
+.br
+generate node/field statistics per Access Unit
+.br
+.TP
+.B \-statx
+.br
+generate node/field statistics for scene after each AU
+.br
+.TP
+.B \-hash
+.br
+generate SHA-1 Hash of the input file
+.br
+.TP
+.B \-comp (string)
+.br
+replace with compressed version all top level box types given as parameter, formated as orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]
+.br
+.TP
+.B \-bin
+.br
+convert input XML file using NHML bitstream syntax to binary
+.br
+.TP
+.B \-topcount (string)
+.br
+print to stdout the number of top-level boxes matching box types given as parameter, formated as 4cc_1,4cc_2N
+.br
+.TP
+.B \-topsize (string)
+.br
+print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N or all for all boxes
+.br
+.SH Importing Options
+.LP
+.br
+.SH File importing
+.LP
+.br
+Syntax is -add / -cat filename[#FRAGMENT][:opt1...:optN=val]
+.br
+This process will create the destination file if not existing, and add the track(s) to it. If you wish to always create a new destination file, add -new.
+.br
+The supported input media types depend on your installation, check filters documentation for more info.
+.br
+  
+.br
+To select a desired media track, the following syntax is used:
+.br
+* `-add inputFile#video`: adds the first video track in inputFile.
+.br
+* `-add inputFile#audio`: adds the first audio track in inputFile.
+.br
+* `-add inputFile#trackID=ID` or `-add inputFile#ID`: adds the specified track. For IsoMedia files, ID is the track ID. For other media files, ID is the value indicated by MP4Box -info inputFile.
+.br
+  
+.br
+By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding input isobmf file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using -flat option, but this disables media interleaving.
+.br
+  
+.br
+If you wish to create an interleaved new file with no temporary storage, use the -newfs option. The interleaving might not be as precise as when using -new since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). 
+.br
+ - Some muxing options (marked with * below) will be activated for all inputs (i.e. in this mode, it is not possible to import one AVC track with xps_inband and another without).
+.br
+ - Some muxing options (marked as ! below) cannot be used in this mode as they require temporary storage for file edition.
+.br
+ - Usage of -cat is possible in this mode, but concatenated sources will not be interleaved in the output . If you wish to perforom more complex cat/add operations without temp file, use the gpac application.
+.br
+  
+.br
+MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax -add inputFile:dur=N, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.
+.br
+Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). Check TTXT doc for more details.
+.br
+  
+.br
+When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax -add stream[:opt1:...:optN].
+.br
+  
+.br
+Allowed per-file options:
+.br
+* #video, #audio: base import for most AV files
+.br
+* #trackID=ID: track import for IsoMedia and other files
+.br
+* #pid=ID: stream import from MPEG-2 TS
+.br
+* :dur=D: * import only the specified duration from the media. D can be:
+.br
+  * positive float: specifies duration in seconds
+.br
+  * fraction: specifies duration as NUM/DEN fraction
+.br
+  * negative integer: specifies duration in number of coded frames
+.br
+* :lang=LAN: set imported media language code
+.br
+* :delay=delay_ms: set imported media initial delay in ms
+.br
+* :par=PAR: set visual pixel aspect ratio (see -par )
+.br
+* :clap=CLAP: set visual clean aperture (see -clap )
+.br
+* :mx=MX: sets track matrix (see -mx )
+.br
+* :name=NAME: set track handler name
+.br
+* :ext=EXT: override file extension when importing
+.br
+* :hdlr=code: set track handler type to the given code point (4CC)
+.br
+* :disable: imported track(s) will be disabled
+.br
+* :group=G: add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked.
+.br
+* :fps=VAL: same as -fps
+.br
+* :rap: ! import only RAP samples
+.br
+* :refs: ! import only reference pictures
+.br
+* :trailing: keep trailing 0-bytes in AVC/HEVC samples
+.br
+* :agg=VAL: * same as -agg
+.br
+* :dref: * same as -dref
+.br
+* :keep_refs: keeps track reference when importing a single track
+.br
+* :nodrop: same as -nodrop
+.br
+* :packed: * same as -packed
+.br
+* :sbr: same as -sbr
+.br
+* :sbrx: same as -sbrx
+.br
+* :ovsbr: same as -ovsbr
+.br
+* :ps: same as -ps
+.br
+* :psx: same as -psx
+.br
+* :asemode=MODE: * set the mode to create the AudioSampleEntry
+.br
+  * v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default
+.br
+  * v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2
+.br
+  * v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream
+.br
+  * v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks
+.br
+* :audio_roll=N: add a roll sample group with roll_distance N
+.br
+* :mpeg4: * same as -mpeg4 option
+.br
+* :nosei: discard all SEI messages during import
+.br
+* :svc: import SVC/LHVC with explicit signaling (no AVC base compatibility)
+.br
+* :nosvc: discard SVC/LHVC data when importing
+.br
+* :svcmode=MODE: ! set SVC/LHVC import mode
+.br
+  * split: each layer is in its own track
+.br
+  * merge: all layers are merged in a single track
+.br
+  * splitbase: all layers are merged in a track, and the AVC base in another
+.br
+  * splitnox: each layer is in its own track, and no extractors are written
+.br
+  * splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling
+.br
+* :temporal: ! set HEVC/LHVC temporal sublayer import mode
+.br
+  * split: each sublayer is in its own track
+.br
+  * splitbase: all sublayers are merged in a track, and the HEVC base in another
+.br
+  * splitnox: each layer is in its own track, and no extractors are written
+.br
+* :subsamples: add SubSample information for AVC+SVC
+.br
+* :deps: import sample dependency information for AVC and HEVC
+.br
+* :ccst: add default HEIF ccst box to visual sample entry
+.br
+* :forcesync: force non IDR samples with I slices to be marked as sync points (AVC GDR)
+.br
+Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players
+.br
+* :xps_inband: * set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)
+.br
+* :xps_inbandx: * same as xps_inband and also keep first xPS in sample desciption
+.br
+* :au_delim: keep AU delimiter NAL units in the imported file
+.br
+* :max_lid=N: set HEVC max layer ID to be imported to N (by default imports all layers)
+.br
+* :max_tid=N: set HEVC max temporal ID to be imported to N (by default imports all temporal sublayers)
+.br
+* :tiles: add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks
+.br
+* :split_tiles: ! split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.
+.br
+* :negctts: use negative CTS-DTS offsets (ISO4 brand)
+.br
+* :chap: specify the track is a chapter track
+.br
+* :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file
+.br
+* :chapfile=file: adds a chapter file (old nero format)
+.br
+* :layout=WxHxXxY: specify the track layout
+.br
+  * if W (resp H) = 0: the max width (resp height) of the tracks in the file are used
+.br
+  * if Y=-1: the layout is moved to the bottom of the track area
+.br
+  * X and Y can be omitted: :layout=WxH
+.br
+* :rescale=TS: force media timescale to TS !! changes the media duration
+.br
+* :timescale=TS: set imported media timescale to TS.
+.br
+* :moovts=TS: set movie timescale to TS. A negative value picks the media timescale of the first track imported.
+.br
+* :noedit: * do not set edit list when importing B-frames video tracks
+.br
+* :rvc=FILENAME: set RVC configuration for the media
+.br
+* :fmt=FORMAT: override format detection with given format (cf BT/XMTA doc)
+.br
+* :profile=INT: override AVC profile
+.br
+* :level=INT: override AVC level
+.br
+* :novpsext: remove VPS extensions from HEVC VPS
+.br
+* :keepav1t: keep AV1 temporal delimiter OBU in samples, might help if source file had losses
+.br
+* :font=name: specify font name for text import (default Serif)
+.br
+* :size=s: specify font size for text import (default 18)
+.br
+* :text_layout=WxHxXxY: specify the track text layout
+.br
+  * if W (resp H) = 0: the max width (resp height) of the tracks in the file are used.
+.br
+  * if Y=-1: the layout is moved to the bottom of the track area
+.br
+  * X and Y can be omitted: :layout=WxH
+.br
+* :swf-global: all SWF defines are placed in first scene replace rather than when needed
+.br
+* :swf-no-ctrl: use a single stream for movie control and dictionary (this will disable ActionScript)
+.br
+* :swf-no-text: remove all SWF text
+.br
+* :swf-no-font: remove all embedded SWF Fonts (local playback host fonts used)
+.br
+* :swf-no-line: remove all lines from SWF shapes
+.br
+* :swf-no-grad: remove all gradients from SWF shapes
+.br
+* :swf-quad: use quadratic bezier curves instead of cubic ones
+.br
+* :swf-xlp: support for lines transparency and scalability
+.br
+* :swf-ic2d: use indexed curve 2D hardcoded proto
+.br
+* :swf-same-app: appearance nodes are reused
+.br
+* :swf-flatten=ang: complementary angle below which 2 lines are merged, 0 means no flattening
+.br
+* :kind=schemeURI=value: set kind for the track
+.br
+* :txtflags=flags: set display flags (hexa number) of text track
+.br
+* :txtflags+=flags: add display flags (hexa number) to text track
+.br
+* :txtflags-=flags: remove display flags (hexa number) from text track
+.br
+* :rate=VAL: force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box
+.br
+* :stz2: use compact size table (for low-bitrates)
+.br
+* :bitdepth=VAL: set bit depth to VAL for imported video content (default is 24)
+.br
+* :colr=OPT: set color profile for imported video content (see ISO/IEC 23001-8). OPT is formatted as:
+.br
+  * nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef
+.br
+  * nclx,p,t,m,r: same as nclx with r full range flag
+.br
+  * prof,path: with path indicating the file containing the ICC color profile
+.br
+  * rICC,path: with path indicating the file containing the restricted ICC color profile
+.br
+* :dv-profile=VAL: set the Dolby Vision profile
+.br
+* :tc=VAL: inject a single QT timecode. VAL is formated as:
+.br
+  * [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number
+.br
+  * : d is an optional flag used to indicate that the counter is in drop-frame format
+.br
+  * : the framespertick is optional and defaults to round(framerate); it indicates the number of frames per counter tick
+.br
+- :lastsampdur[=VAL]" sets duration of the last sample. VAL is formated as:
+.br
+  * no value: use the previous sample duration
+.br
+  * integer: indicate the duration in milliseconds
+.br
+  * N/D: indicate the duration as fractional second
+.br
+* :fstat: print filter session stats after import
+.br
+* :fgraph: print filter session graph after import
+.br
+* :sopt:[OPTS]: set OPTS as additional arguments to source filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
+.br
+* :dopt:[OPTS]: * set OPTS as additional arguments to destination filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
+.br
+* @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified
+.br
+
+.br
+Note: sopt, dopt and @@f must be placed after all other options.
+.br
+.SH Global import options
+.LP
+.br
+.TP
+.B \-add (string)
+.br
+add given file tracks to file. Multiple inputs can be specified using +, eg -add url1+url2
+.br
+.TP
+.B \-cat (string)
+.br
+concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using +(eg -cat url1+url2).
+.br
+Note: Note: This aligns initial timestamp of the file to be concatenated
+.br
+.TP
+.B \-catx (string)
+.br
+same as -cat but new tracks can be imported before concatenation by specifying +ADD_COMMAND where ADD_COMMAND is a regular -add syntax
+.br
+.TP
+.B \-catpl (string)
+.br
+concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).
+.br
+Note: Each listed file is concatenated as if called with -cat
+.br
+.TP
+.B \-unalign-cat (string)
+.br
+do not attempt to align timestamps of samples inbetween tracks
+.br
+.TP
+.B \-force-cat (string)
+.br
+skip media configuration check when concatenating file.
+.br
+Warning: THIS MAY BREAK THE CONCATENATED TRACK(S)
+.br
+.TP
+.B \-keep-sys
+.br
+keep all MPEG-4 Systems info when using -add and -cat (only used when adding IsoMedia files)
+.br
+.TP
+.B \-dref
+.br
+keep media data in original file using data referencing. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developping content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.
+.br
+Note: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (AVC or HEVC cannot use this option)
+.br
+.TP
+.B \-no-drop
+.br
+force constant FPS when importing AVI video
+.br
+.TP
+.B \-packed
+.br
+force packed bitstream when importing raw MPEG-4 part 2 Advanced Simple Profile
+.br
+.TP
+.B \-sbr
+.br
+backward compatible signaling of AAC-SBR
+.br
+.TP
+.B \-sbrx
+.br
+non-backward compatible signaling of AAC-SBR
+.br
+.TP
+.B \-ps
+.br
+backward compatible signaling of AAC-PS
+.br
+.TP
+.B \-psx
+.br
+non-backward compatible signaling of AAC-PS
+.br
+.TP
+.B \-ovsbr
+.br
+oversample SBR import (SBR AAC, PS AAC and oversampled SBR cannot be detected at import time)
+.br
+.TP
+.B \-fps (string, default: 25)
+.br
+force frame rate for video and SUB subtitles import to the given value, expressed as a number or as timescale-increment.
+.br
+Note: For raw H263 import, default FPS is 15, otherwise 25
+.br
+Warning: This is ignored for ISOBMFF import, use :rescale option for that
+.br
+.TP
+.B \-mpeg4
+.br
+force MPEG-4 sample descriptions when possible. For AAC, forces MPEG-4 AAC signaling even if MPEG-2
+.br
+.TP
+.B \-agg (int)
+.br
+aggregate N audio frames in 1 sample (3GP media only).
+.br
+Note: Maximum value is 15
+.br
+.SH Hinting Options
+.LP
+.br
+IsoMedia hinting consists in creating special tracks in the file that contain transport protocol specific information and optionally multiplexing information. These tracks are then used by the server to create the actual packets being sent over the network, in other words they provide the server with hints on how to build packets, hence their names hint tracks.
+.br
+MP4Box supports creation of hint tracks for RTSP servers supporting these such as QuickTime Streaming Server, DarwinStreaming Server or 3GPP-compliant RTSP servers.
+.br
+Note: GPAC streaming tools rtp output and rtsp server do not use hint tracks, they use on-the-fly packetization from any media sources, not just MP4
+.br
+  
+.br
+Options:
+.br
+.TP
+.B \-hint
+.br
+hint the file for RTP/RTSP
+.br
+.TP
+.B \-hint (int, default: 1450)
+.br
+specify RTP MTU (max size) in bytes (this includes 12 bytes RTP header)
+.br
+.TP
+.B \-copy
+.br
+copy media data to hint track rather than reference (speeds up server but takes much more space)
+.br
+.TP
+.B \-multi  [maxptime] (int)
+.br
+enable frame concatenation in RTP packets if possible (with max duration 100 ms or maxptime ms if given)
+.br
+.TP
+.B \-rate (int, default: 90000)
+.br
+specify rtp rate in Hz when no default for payload
+.br
+.TP
+.B \-mpeg4
+.br
+force MPEG-4 generic payload whenever possible
+.br
+.TP
+.B \-latm
+.br
+force MPG4-LATM transport for AAC streams
+.br
+.TP
+.B \-static
+.br
+enable static RTP payload IDs whenever possible (by default, dynamic payloads are always used)
+.br
+.TP
+.B \-add-sdp (string)
+.br
+add given SDP string to hint track (tkID:string) or movie (string)
+.br
+.TP
+.B \-unhint
+.br
+remove all hinting information from file
+.br
+.TP
+.B \-group-single
+.br
+put all tracks in a single hint group
+.br
+.TP
+.B \-ocr
+.br
+force all MPEG-4 streams to be synchronized (MPEG-4 Systems only)
+.br
+.TP
+.B \-rap
+.br
+signal random access points in RTP packets (MPEG-4 Systems)
+.br
+.TP
+.B \-ts
+.br
+signal AU Time Stamps in RTP packets (MPEG-4 Systems)
+.br
+.TP
+.B \-size
+.br
+signal AU size in RTP packets (MPEG-4 Systems)
+.br
+.TP
+.B \-idx
+.br
+signal AU sequence numbers in RTP packets (MPEG-4 Systems)
+.br
+.TP
+.B \-iod
+.br
+prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with -isma
+.br
+.SH MPEG-4 Scene Encoding Options
+.LP
+.br
+.P
+.B
+General considerations
+.br
+MP4Box supports encoding and decoding of of BT, XMT, VRML and (partially) X3D formats int MPEG-4 BIFS, and encoding and decoding of XSR and SVG into MPEG-4 LASeR
+.br
+Any media track specified through a MuxInfo element will be imported in the resulting MP4 file.
+.br
+See https://wiki.gpac.io/MPEG-4-BIFS-Textual-Format and related pages.
+.br
+.P
+.B
+Scene Random Access
+.br
+MP4Box can encode BIFS or LASeR streams and insert random access points at a given frequency. This is useful when packaging content for broadcast, where users will not turn in the scene at the same time. In MPEG-4 terminology, this is called the scene carousel.## BIFS Chunk Processing
+.br
+The BIFS chunk encoding mode alows encoding single BIFS access units from an initial context and a set of commands.
+.br
+The generated AUs are raw BIFS (not SL-packetized), in files called FILE-ESID-AUIDX.bifs, with FILE the basename of the input file.
+.br
+Commands with a timing of 0 in the input will modify the carousel version only (i.e. output context).
+.br
+Commands with a timing different from 0 in the input will generate new AUs.
+.br
+  
+.br
+Options:
+.br
+.TP
+.B \-mp4
+.br
+specify input file is for encoding
+.br
+.TP
+.B \-def
+.br
+encode DEF names in BIFS
+.br
+.TP
+.B \-sync (int)
+.br
+force BIFS sync sample generation every given time in ms.
+.br
+Note: cannot be used with -shadow
+.br
+.TP
+.B \-shadow (int)
+.br
+force BIFS sync shadow sample generation every given time in ms.
+.br
+Note: cannot be used with -sync
+.br
+.TP
+.B \-log
+.br
+generate scene codec log file if available
+.br
+.TP
+.B \-ms (string)
+.br
+import tracks from the given file
+.br
+.TP
+.B \-ctx-in (string)
+.br
+specify initial context (MP4/BT/XMT) file for chunk processing. Input file must be a commands-only file
+.br
+.TP
+.B \-ctx-out (string)
+.br
+specify storage of updated context (MP4/BT/XMT) file for chunk processing, optional
+.br
+.TP
+.B \-resolution (int)
+.br
+resolution factor (-8 to 7, default 0) for LASeR encoding, and all coords are multiplied by 2^res before truncation (LASeR encoding)
+.br
+.TP
+.B \-coord-bits (int)
+.br
+number of bits used for encoding truncated coordinates (0 to 31, default 12) (LASeR encoding)
+.br
+.TP
+.B \-scale-bits (int)
+.br
+extra bits used for encoding truncated scales (0 to 4, default 0) (LASeR encoding)
+.br
+.TP
+.B \-auto-quant (int)
+.br
+resolution is given as if using -resolution but coord-bits and scale-bits are infered (LASeR encoding)
+.br
+.SH Encryption/Decryption Options
+.LP
+.br
+MP4Box supports encryption and decryption of ISMA, OMA and CENC content, see encryption filter `gpac -h cecrypt`.
+.br
+It requires a specific XML file called CryptFile, whose syntax is available at https://wiki.gpac.io/Common-Encryption
+.br
+  
+.br
+Options:
+.br
+.TP
+.B \-crypt (string)
+.br
+encrypt the input file using the given CryptFile
+.br
+.TP
+.B \-decrypt (string)
+.br
+decrypt the input file, potentially using the given CryptFile. If CryptFile is not given, will fail if the key management system is not supported
+.br
+.TP
+.B \-set-kms (string)
+.br
+change ISMA/OMA KMS location for all tracks, or for a given one if ID=kms_uri is used
+.br
+.SH Meta and HEIF Options
+.LP
+.br
+IsoMedia files can be used as generic meta-data containers, for examples storing XML information and sample images for a movie. The resulting file may not always contain a movie as is the case with some HEIF files or MPEG-21 files.
+.br
+  
+.br
+These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the moovie or track level for a regular movie.  
+.br
+  
+.br
+.TP
+.B \-set-meta  ABCD[:tk=tkID] (string)
+.br
+set meta box type, with ABCD the four char meta type (NULL or 0 to remove meta)
+.br
+* tk not set: use root (file) meta
+.br
+* tkID == 0: use moov meta
+.br
+* tkID != 0: use meta of given track
+.br
+.TP
+.B \-add-items (string)
+.br
+add resource to meta, with parameter syntax file_path[:opt1:optN]
+.br
+* file_path `this` or `self`: item is the file itself
+.br
+* tk=tkID: meta location (file, moov, track)
+.br
+* name=str: item name
+.br
+* type=itype: item 4cc type (not needed if mime is provided)
+.br
+* mime=mtype: item mime type
+.br
+* encoding=enctype: item content-encoding type
+.br
+* id=ID: item ID
+.br
+* ref=4cc,id: reference of type 4cc to an other item
+.br
+.TP
+.B \-add-image (string)
+.br
+add the given file (with parameters) as HEIF image item. Same syntax as -add-item
+.br
+* name=str: see -add-item
+.br
+* id=id: see -add-item
+.br
+* ref=4cc, id: see -add-item
+.br
+* primary: indicate that this item should be the primary item
+.br
+* time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items
+.br
+* split_tiles: for an HEVC tiled image, each tile is stored as a separate item
+.br
+* rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise
+.br
+* hidden: indicate that this image item should be hidden
+.br
+* icc_path: path to icc to add as colr
+.br
+* alpha: indicate that the image is an alpha image (should use ref=auxl also)
+.br
+- any other option will be passed as options to the media importer, see -add
+.br
+.TP
+.B \-rem-item  item_ID[:tk=tkID] (string)
+.br
+remove resource from meta
+.br
+.TP
+.B \-set-primary  item_ID[:tk=tkID] (string)
+.br
+set item as primary for meta
+.br
+.TP
+.B \-set-xml  xml_file_path[:tk=tkID][:binary] (string)
+.br
+set meta XML data
+.br
+.TP
+.B \-rem-xml  [tk=tkID] (string)
+.br
+remove meta XML data
+.br
+.TP
+.B \-dump-xml  file_path[:tk=tkID] (string)
+.br
+dump meta XML to file
+.br
+.TP
+.B \-dump-item  item_ID[:tk=tkID][:path=fileName] (string)
+.br
+dump item to file
+.br
+.TP
+.B \-package (string)
+.br
+package input XML file into an ISO container, all media referenced except hyperlinks are added to file
+.br
+.TP
+.B \-package (string)
+.br
+package input XML file into an MPEG-U widget with ISO container, all files contained in the current folder are added to the widget package
+.br
+.SH SWF Importer Options
+.LP
+.br
+
+.br
+MP4Box can import simple Macromedia Flash files (".SWF")
+.br
+You can specify a SWF input file with '-bt', '-xmt' and '-mp4' options
+.br
+  
+.br
+Options:
+.br
+.TP
+.B \-global
+.br
+all SWF defines are placed in first scene replace rather than when needed
+.br
+.TP
+.B \-no-ctrl
+.br
+use a single stream for movie control and dictionary (this will disable ActionScript)
+.br
+.TP
+.B \-no-text
+.br
+remove all SWF text
+.br
+.TP
+.B \-no-font
+.br
+remove all embedded SWF Fonts (local playback host fonts used)
+.br
+.TP
+.B \-no-line
+.br
+remove all lines from SWF shapes
+.br
+.TP
+.B \-no-grad
+.br
+remove all gradients from swf shapes
+.br
+.TP
+.B \-quad
+.br
+use quadratic bezier curves instead of cubic ones
+.br
+.TP
+.B \-xlp
+.br
+support for lines transparency and scalability
+.br
+.TP
+.B \-flatten (number)
+.br
+complementary angle below which 2 lines are merged, value 0means no flattening
+.br
+.SH Live Scene Encoder Options
+.LP
+.br
+The options shall be specified as òpt_name=opt_val.
+.br
+Options:
+.br
+
+.br
+.TP
+.B \-dst (string)
+.br
+destination IP
+.br
+.TP
+.B \-port (int, default: 7000)
+.br
+destination port
+.br
+.TP
+.B \-mtu (int, default: 1450)
+.br
+path MTU for RTP packets
+.br
+.TP
+.B \-ifce (string)
+.br
+IP address of the physical interface to use
+.br
+.TP
+.B \-ttl (int, default: 1)
+.br
+time to live for multicast packets
+.br
+.TP
+.B \-sdp (string, default: session.sdp)
+.br
+output SDP file
+.br
+.TP
+.B \-dims
+.br
+turn on DIMS mode for SVG input
+.br
+.TP
+.B \-no-rap
+.br
+disable RAP sending and carousel generation
+.br
+.TP
+.B \-src (string)
+.br
+source of scene updates
+.br
+.TP
+.B \-rap (int)
+.br
+duration in ms of base carousel; you can specify the RAP period of a single ESID (not in DIMS) using ESID=X:time
+.br
+  
+.br
+Runtime options:
+.br
+* q: quits
+.br
+* u: inputs some commands to be sent
+.br
+* U: same as u but signals the updates as critical
+.br
+* e: inputs some commands to be sent without being aggregated
+.br
+* E: same as e but signals the updates as critical
+.br
+* f: forces RAP sending
+.br
+* F: forces RAP regeneration and sending
+.br
+* p: dumps current scene
+.br
+.SH EXAMPLES
+.TP
+Basic and advanced examples are available at https://wiki.gpac.io/MP4Box-Introduction
+.SH MORE
+.LP
+Authors: GPAC developers, see git repo history (-log)
+.br
+For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
+.br
+build: 1.0.0-rev0-g747808797-master
+.br
+Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
+.br
+.SH SEE ALSO
+.LP
+gpac(1), MP4Client(1)

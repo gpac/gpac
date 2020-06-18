@@ -27,7 +27,6 @@
 #include "nodes_stacks.h"
 #include "mpeg4_grouping.h"
 #include <gpac/options.h>
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/utf.h>
 
 static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt, Bool prev_focus);
@@ -70,8 +69,6 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 {
 	Bool signal;
-	char *txt;
-	size_t len;
 	if (!compositor->edited_text) return;
 
 	/* if this is the final editing and there is text,
@@ -88,6 +85,8 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 		*compositor->edited_text = NULL;
 	}
 	if (compositor->sel_buffer_len) {
+		char *txt;
+		size_t len;
 		const u16 *lptr;
 		txt = (char*)gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 		lptr = compositor->sel_buffer;
@@ -267,8 +266,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 					if (append) {
 						u16 end;
 						const u16 *srcp;
-						size_t len;
-						GF_DOMText *cur, *ntext;
+						GF_DOMText *ntext;
 						GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
 						GF_Node *t = gf_node_new(gf_node_get_graph(child->node), TAG_SVG_tbreak);
 
@@ -282,6 +280,9 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 							gf_node_list_insert_child(&children, t, pos);
 							res = &((GF_DOMText *)child->node)->textContent;
 						} else {
+							size_t len;
+							GF_DOMText *cur;
+
 							gf_node_list_insert_child(&children, t, pos+1);
 							ntext = (GF_DOMText*) gf_node_new(gf_node_get_graph(child->node), TAG_DOMText);
 							gf_node_init(t);
@@ -340,18 +341,6 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 						}
 						res = &((GF_DOMText *)child->node)->textContent;
 					}
-					/*				if (1) {
-										GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
-										fprintf(stderr, "Dumping text tree:\n");
-										while (child) {
-											switch (gf_node_get_tag(child->node)) {
-											case TAG_SVG_tbreak: fprintf(stderr, "\ttbreak\n"); break;
-											case TAG_DOMText: fprintf(stderr, "\ttext: %s\n", ((GF_DOMText *)child->node)->textContent); break;
-											}
-											child = child->next;
-										}
-									}
-					*/
 					break;
 				}
 				child = child->next;
@@ -551,9 +540,7 @@ static void toggle_keyboard(GF_Compositor * compositor, Bool do_show)
 		GF_Err e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 		if (e == GF_OK) return;
 	}
-	if (compositor->term) {
-		gf_term_user_event(compositor->term, &evt);
-	}
+	gf_sc_user_event(compositor, &evt);
 }
 
 static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
@@ -662,9 +649,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
-	if ((event->type<=GF_EVENT_MOUSEWHEEL)
-	        // && (gf_node_get_dom_event_filter(gf_sg_get_root_node(compositor->scene)) & GF_DOM_EVENT_MOUSE)
-	   ) {
+	if (event->type<=GF_EVENT_MOUSEWHEEL) {
 		Fixed X = compositor->hit_world_point.x;
 		Fixed Y = compositor->hit_world_point.y;
 		/*flip back to origin at top-left*/
@@ -738,7 +723,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				TODO quick- fix for iPhone as well
 				TODO clean: figure out whether we use a mouse or a touch device - if touch device, remove this test
 				*/
-#if !defined(_WIN32_WCE) || !defined(GPAC_ANDROID)
+#if !defined(_WIN32_WCE) || !defined(GPAC_CONFIG_ANDROID)
 				if ((compositor->grab_x == X) && (compositor->grab_y == Y))
 #endif
 				{
@@ -1003,7 +988,6 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		gf_sc_reset_collide_cursor(compositor);
 	}
 	if (res) {
-#if 1
 		GF_SceneGraph *sg;
 		/*apply event cascade - this is needed for cases where several events are processed inbetween
 		2 simulation tick. If we don't flush the routes stack, the result will likely be wrong
@@ -1013,7 +997,6 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
 			gf_sg_activate_routes(sg);
 		}
-#endif
 		return 1;
 	}
 	return GF_FALSE;
@@ -1376,7 +1359,6 @@ test_grouping:
 #endif
 		{
 			s32 i, wc;
-			GF_ChildNodeItem *child;
 #ifndef GPAC_DISABLE_X3D
 			if (tag==TAG_X3D_Switch) {
 				child = ((X_Switch*)elt)->children;
@@ -1915,7 +1897,7 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 		if (ev->type==GF_EVENT_KEYDOWN) {
 			switch (ev->key.key_code) {
 			case GF_KEY_ENTER:
-				if (0&&compositor->focus_text_type) {
+				if ((0) && compositor->focus_text_type) {
 					exec_text_input(compositor, NULL);
 					ret = GF_TRUE;
 #ifndef GPAC_DISABLE_VRML
@@ -1934,9 +1916,10 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 			case GF_KEY_RIGHT:
 				if (compositor->focus_uses_dom_events) {
 					ret += gf_sc_svg_focus_navigate(compositor, ev->key.key_code);
-				} else if (compositor->keynav_node) {
-					GF_Node *next_nav = NULL;
+				}
 #ifndef GPAC_DISABLE_VRML
+				else if (compositor->keynav_node) {
+					GF_Node *next_nav = NULL;
 					switch (ev->key.key_code) {
 					case GF_KEY_UP:
 						next_nav = ((M_KeyNavigator*)compositor->keynav_node)->up;
@@ -1951,12 +1934,12 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 						next_nav = ((M_KeyNavigator*)compositor->keynav_node)->right;
 						break;
 					}
-#endif
 					if (next_nav) {
 						gf_sc_change_key_navigator(compositor, next_nav);
 						ret = GF_TRUE;
 					}
 				}
+#endif
 				break;
 			}
 		}
@@ -1968,7 +1951,8 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 
 static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
 {
-	Bool ret = gf_term_forward_event(compositor->term, ev, consumed, GF_FALSE);
+	Bool ret = gf_filter_forward_gf_event(compositor->filter, ev, consumed, GF_FALSE);
+
 	if (consumed) return GF_FALSE;
 
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
@@ -1981,7 +1965,7 @@ static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;
 			event.mouse.y = ev->mouse.y;
-			ret += gf_term_send_event(compositor->term, &event);
+			ret += gf_sc_send_event(compositor, &event);
 		}
 		compositor->last_click_time = now;
 	}
@@ -1995,10 +1979,22 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	Bool switch_coords = GF_FALSE;
 	Bool ret = GF_FALSE;
 	if (evt->type<=GF_EVENT_MOUSEWHEEL) {
-		if (compositor->simulate_gaze) {
+		if (compositor->sgaze) {
 			compositor->gaze_x = evt->mouse.x;
 			compositor->gaze_y = evt->mouse.y;
 		}
+#ifndef GPAC_DISABLE_3D
+		else if ((compositor->visual->autostereo_type==GF_3D_STEREO_SIDE) || (compositor->visual->autostereo_type==GF_3D_STEREO_HEADSET)) {
+			if (evt->mouse.x > compositor->visual->camera.proj_vp.width)
+				evt->mouse.x -= FIX2INT(compositor->visual->camera.proj_vp.width);
+			evt->mouse.x *= 2;
+		}
+		else if (compositor->visual->autostereo_type==GF_3D_STEREO_TOP) {
+			if (evt->mouse.y > compositor->visual->camera.proj_vp.height)
+				evt->mouse.y -= FIX2INT(compositor->visual->camera.proj_vp.height);
+			evt->mouse.y *= 2;
+		}
+#endif
 
 		if (compositor->visual->center_coords) {
 			x = evt->mouse.x;
@@ -2027,11 +2023,10 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	if (!ret) {
 #ifndef GPAC_DISABLE_3D
 		/*remember active layer on mouse click - may be NULL*/
-		if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT)) compositor->active_layer = compositor->traverse_state->layer3d;
+		if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT))
+			compositor->active_layer = compositor->traverse_state->layer3d;
 #endif
-	}
 
-    if (!ret) {
         ret = forward_event(compositor, evt, ret);
     }
     //if event is consumed before forwarding don't apply navigation

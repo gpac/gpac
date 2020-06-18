@@ -47,6 +47,11 @@ extern "C" {
 
 #include <gpac/isomedia.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+//FIXME - we should move AVC and HEVC parsing to gpac/avparse.h
+#include <gpac/internal/media_dev.h>
+#endif
+
 /*loads key and salt from a LOCAL gpac-DRM file (cf MP4Box doc)*/
 GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char *salt);
 
@@ -57,17 +62,19 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
 enum
 {
 	/*ISMA E&A encryption*/
-	GF_CRYPT_ISMA_CRYPT_TYPE	= GF_4CC( 'i', 'A', 'E', 'C' ),
+	GF_CRYPT_TYPE_ISMA		= GF_4CC( 'i', 'A', 'E', 'C' ),
 	/*CENC CTR-128 encryption*/
-	GF_CRYPT_CENC_CRYPT_TYPE	= GF_4CC('c','e','n','c'),
+	GF_CRYPT_TYPE_CENC	= GF_4CC('c','e','n','c'),
 	/*CENC CBC-128 encryption*/
-	GF_CRYPT_CBC1_CRYPT_TYPE	= GF_4CC('c','b','c','1'),
-	/*Adobe CBC-128 encryption*/
-	GF_CRYPT_ADOBE_CRYPT_TYPE	= GF_4CC('a','d','k','m'),
+	GF_CRYPT_TYPE_CBC1	= GF_4CC('c','b','c','1'),
 	/*CENC CTR-128 pattern encryption*/
-	GF_CRYPT_CENS_CRYPT_TYPE	= GF_4CC('c','e','n','s'),
+	GF_CRYPT_TYPE_CENS	= GF_4CC('c','e','n','s'),
 	/*CENC CBC-128 pattern encryption*/
-	GF_CRYPT_CBCS_CRYPT_TYPE	= GF_4CC('c','b','c','s'),
+	GF_CRYPT_TYPE_CBCS	= GF_4CC('c','b','c','s'),
+	/*Adobe CBC-128 encryption*/
+	GF_CRYPT_TYPE_ADOBE	= GF_4CC('a','d','k','m'),
+	/*PIFF encryption*/
+	GF_CRYPT_TYPE_PIFF	= GF_4CC('p','i','f','f'),
 };
 
 enum
@@ -75,19 +82,21 @@ enum
 	/*no selective encryption*/
 	GF_CRYPT_SELENC_NONE = 0,
 	/*only encrypts RAP samples*/
-	GF_CRYPT_SELENC_RAP = 1,
+	GF_CRYPT_SELENC_RAP,
 	/*only encrypts non-RAP samples*/
-	GF_CRYPT_SELENC_NON_RAP = 2,
+	GF_CRYPT_SELENC_NON_RAP,
 	/*selective encryption of random samples*/
-	GF_CRYPT_SELENC_RAND = 3,
+	GF_CRYPT_SELENC_RAND,
 	/*selective encryption of a random sample in given range*/
-	GF_CRYPT_SELENC_RAND_RANGE = 4,
+	GF_CRYPT_SELENC_RAND_RANGE,
 	/*selective encryption of first sample in given range*/
-	GF_CRYPT_SELENC_RANGE = 5,
+	GF_CRYPT_SELENC_RANGE,
 	/*encryption of all samples but the preview range*/
-	GF_CRYPT_SELENC_PREVIEW = 6,
-	/*encryption of no samples*/
-	GF_CRYPT_SELENC_CLEAR = 7,
+	GF_CRYPT_SELENC_PREVIEW,
+	/*no encryption of samples, signaled as unencrypted sample group for CENC*/
+	GF_CRYPT_SELENC_CLEAR,
+	/*no encryption of samples, NOT signaled as unencrypted sample group for CENC*/
+	GF_CRYPT_SELENC_CLEAR_FORCED
 };
 
 typedef struct
@@ -112,14 +121,14 @@ typedef struct
 	u32 ipmp_desc_id;
 	/*type of box where sample auxiliary informations is saved, or 0 in case of ISMACrypt (it will be written in samples)*/
 	u32 sai_saved_box_type;
-
+	/*force protection scheme specified in crypt file*/
+	Bool force_type;
 	/*OMA extensions*/
 	/*0: none, 1: AES CBC, 2: AES CTR*/
 	u8 encryption;
 	char TextualHeaders[5000];
 	u32 TextualHeadersLen;
 	char TransactionID[17];
-
 	/*CENC extensions*/
 	u32 IsEncrypted;
 	u8 IV_size;
@@ -131,15 +140,39 @@ typedef struct
 	unsigned char first_IV[16];
 	u32 defaultKeyIdx;
 	u32 keyRoll;
+	u32 clear_bytes;
 	u8 crypt_byte_block, skip_byte_block;
 	u8 constant_IV_size;
 	unsigned char constant_IV[16];
 	//true if using AES-CTR mode, false if using AES-CBC mode
 	Bool ctr_mode;
-	u32 cenc_scheme_type;
+	u32 scheme_type;
+	//for avc1 ctr CENC edition 1
+	Bool allow_encrypted_slice_header;
+	//force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples
+	u32 block_align;
+
+	/*0: same stsd for clear samples
+	1: dedicated stsd entry for clear samples, placed before the crypted entry in stsd,
+	2: dedicated stsd entry for clear samples, placed after the crypted entry in stsd,
+	*/
+	u32 force_clear_stsd_idx;
 
 	char metadata[5000];
 	u32 metadata_len;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+	AVCState avc;
+#ifndef GPAC_DISABLE_HEVC
+	HEVCState hevc;
+#endif
+#ifndef GPAC_DISABLE_AV1
+	AV1State av1;
+#endif
+
+	Bool slice_header_clear;
+	Bool is_avc;
+#endif
 
 } GF_TrackCryptInfo;
 

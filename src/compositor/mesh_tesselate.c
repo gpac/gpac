@@ -39,7 +39,7 @@
 
 #ifdef GPAC_HAS_GLU
 
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 #define GLdouble GLfloat
 #endif
 
@@ -58,10 +58,14 @@ typedef struct
 static void CALLBACK mesh_tess_begin(GLenum which) {
 	assert(which==GL_TRIANGLES);
 }
-static void CALLBACK mesh_tess_end(void) { }
-static void CALLBACK mesh_tess_error(GLenum error_code) {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Mesh] Tesselate error %s\n", gluErrorString(error_code)));
+static void CALLBACK mesh_tess_end(void) {
 }
+static void CALLBACK mesh_tess_error(GLenum error_code)
+{
+	if (error_code)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Mesh] Tesselate error %s\n", gluErrorString(error_code)));
+}
+
 /*only needed to force GL_TRIANGLES*/
 static void CALLBACK mesh_tess_edgeflag(GLenum flag) { }
 
@@ -219,6 +223,13 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	mesh->bounds.max_edge.y = rc.y;
 	mesh->bounds.min_edge.z = mesh->bounds.max_edge.z = 0;
 	gf_bbox_refresh(&mesh->bounds);
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		mesh_tess_error(0);
+	}
+#endif
+
 }
 
 #else
@@ -284,8 +295,6 @@ u32 polygon_check_convexity(GF_Vertex *pts, u32 len, u32 direction)
 	pThird = pSecond;
 
 	GetPoint2D(pThird, pts[0]);
-	/* Get different point, return if less than 3 diff points. */
-	if (len < 3 ) return GF_POLYGON_CONVEX_LINE;
 	iread = 1;
 	ConvGetPointDelta(dprev, pThird, pSecond);
 	pSaveSecond = pSecond;
@@ -304,8 +313,9 @@ u32 polygon_check_convexity(GF_Vertex *pts, u32 len, u32 direction)
 	GetPoint2D(pThird, pts[0]);
 	dcur.x = pThird.x - pSecond.x;
 	dcur.y = pThird.y - pSecond.y;
-	if ( ConvCompare(dcur) ) ConvCheckTriple;
-
+	if ( ConvCompare(dcur) ) {
+		ConvCheckTriple;
+	}
 	/* and check for direction changes back to second vertex */
 	dcur.x = pSaveSecond.x - pSecond.x;
 	dcur.y = pSaveSecond.y - pSecond.y;

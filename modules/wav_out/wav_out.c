@@ -195,7 +195,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 
 
 /*we assume what was asked is what we got*/
-static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	u32 i, retry;
 	HRESULT	hr;
@@ -215,11 +215,24 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	if (*NbChannels>2) *NbChannels=2;
 #endif
 
+	//only support for PCM 8/16/24/32 packet mode
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+	case GF_AUDIO_FMT_S16:
+	case GF_AUDIO_FMT_S24:
+	case GF_AUDIO_FMT_S32:
+		break;
+	default:
+		//otherwise force PCM16
+		*audioFormat = GF_AUDIO_FMT_S16;
+		break;
+	}
+
 	memset (&ctx->fmt, 0, sizeof(ctx->fmt));
 	ctx->fmt.cbSize = sizeof(WAVEFORMATEX);
 	ctx->fmt.wFormatTag = WAVE_FORMAT_PCM;
 	ctx->fmt.nChannels = *NbChannels;
-	ctx->fmt.wBitsPerSample = *nbBitsPerSample;
+	ctx->fmt.wBitsPerSample = gf_audio_fmt_bit_depth(*audioFormat);
 	ctx->fmt.nSamplesPerSec = *SampleRate;
 	ctx->fmt.nBlockAlign = ctx->fmt.wBitsPerSample * ctx->fmt.nChannels / 8;
 	ctx->fmt.nAvgBytesPerSec = *SampleRate * ctx->fmt.nBlockAlign;
@@ -238,11 +251,11 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 		if (channel_cfg & GF_AUDIO_CH_FRONT_RIGHT) format_ex.dwChannelMask |= SPEAKER_FRONT_RIGHT;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_CENTER) format_ex.dwChannelMask |= SPEAKER_FRONT_CENTER;
 		if (channel_cfg & GF_AUDIO_CH_LFE) format_ex.dwChannelMask |= SPEAKER_LOW_FREQUENCY;
-		if (channel_cfg & GF_AUDIO_CH_BACK_LEFT) format_ex.dwChannelMask |= SPEAKER_BACK_LEFT;
-		if (channel_cfg & GF_AUDIO_CH_BACK_RIGHT) format_ex.dwChannelMask |= SPEAKER_BACK_RIGHT;
-		if (channel_cfg & GF_AUDIO_CH_BACK_CENTER) format_ex.dwChannelMask |= SPEAKER_BACK_CENTER;
-		if (channel_cfg & GF_AUDIO_CH_SIDE_LEFT) format_ex.dwChannelMask |= SPEAKER_SIDE_LEFT;
-		if (channel_cfg & GF_AUDIO_CH_SIDE_RIGHT) format_ex.dwChannelMask |= SPEAKER_SIDE_RIGHT;
+		if (channel_cfg & GF_AUDIO_CH_SURROUND_LEFT) format_ex.dwChannelMask |= SPEAKER_BACK_LEFT;
+		if (channel_cfg & GF_AUDIO_CH_SURROUND_RIGHT) format_ex.dwChannelMask |= SPEAKER_BACK_RIGHT;
+		if (channel_cfg & GF_AUDIO_CH_REAR_CENTER) format_ex.dwChannelMask |= SPEAKER_BACK_CENTER;
+		if (channel_cfg & GF_AUDIO_CH_SIDE_SURROUND_LEFT) format_ex.dwChannelMask |= SPEAKER_SIDE_LEFT;
+		if (channel_cfg & GF_AUDIO_CH_SIDE_SURROUND_RIGHT) format_ex.dwChannelMask |= SPEAKER_SIDE_RIGHT;
 		fmt = (WAVEFORMATEX *) &format_ex;
 	}
 #endif
@@ -260,6 +273,8 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 		retry--;
 	}
 	if (hr != MMSYSERR_NOERROR) return GF_IO_ERR;
+	ctx->fmt.nBlockAlign = fmt->nBlockAlign;
+	ctx->fmt.nAvgBytesPerSec = fmt->nAvgBytesPerSec;
 
 	if (!ctx->force_config) {
 		/*one wave buffer size*/
@@ -297,7 +312,6 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 static void WAV_WriteAudio(GF_AudioOutput *dr)
 {
 	LPWAVEHDR hdr;
-	HRESULT hr;
 	u32 i;
 	WAVCTX();
 
@@ -320,7 +334,7 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 			/*fill it*/
 			hdr->dwBufferLength = dr->FillBuffer(dr->audio_renderer, hdr->lpData, ctx->buffer_size);
 			hdr->dwFlags = 0;
-			hr = waveOutPrepareHeader(ctx->hwo, hdr, sizeof(WAVEHDR));
+			waveOutPrepareHeader(ctx->hwo, hdr, sizeof(WAVEHDR));
 			/*write it*/
 			waveOutWrite(ctx->hwo, hdr, sizeof(WAVEHDR));
 		}
@@ -444,7 +458,7 @@ void *NewWAVRender()
 	driv->SelfThreaded = GF_FALSE;
 	driv->Setup = WAV_Setup;
 	driv->Shutdown = WAV_Shutdown;
-	driv->ConfigureOutput = WAV_ConfigureOutput;
+	driv->Configure= WAV_Configure;
 	driv->GetAudioDelay = WAV_GetAudioDelay;
 	driv->GetTotalBufferTime = WAV_GetTotalBufferTime;
 	driv->SetVolume = WAV_SetVolume;

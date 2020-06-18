@@ -155,6 +155,13 @@ GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 bu
 	return GF_OK;
 }
 
+#if 0 //unused
+/*!
+ Removes a stream from the SAF multiplex
+\param mux the SAF multiplexer object
+\param stream_id ID of the SAF stream to remove
+\return error if any
+ */
 GF_Err gf_saf_mux_stream_rem(GF_SAFMuxer *mux, u32 stream_id)
 {
 	GF_SAFStream *str = saf_get_stream(mux, stream_id);
@@ -167,6 +174,8 @@ GF_Err gf_saf_mux_stream_rem(GF_SAFMuxer *mux, u32 stream_id)
 	gf_mx_v(mux->mx);
 	return GF_OK;
 }
+#endif
+
 
 GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u32 data_len, Bool is_rap)
 {
@@ -191,10 +200,10 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
 }
 
 
-GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size)
+GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, u8 **out_data, u32 *out_size)
 {
 	u32 i, count, dlen;
-	char *data;
+	u8 *data;
 	GF_SAFStream *str;
 	GF_SAFSample*au;
 	GF_BitStream *bs, *payload;

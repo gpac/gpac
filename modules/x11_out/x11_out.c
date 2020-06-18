@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC /  X11 video output module
@@ -25,12 +25,29 @@
 
 #include "x11_out.h"
 #include <gpac/constants.h>
-#include <gpac/unicode.h>
+#include <gpac/utf.h>
 #include <gpac/user.h>
 #include <sys/time.h>
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
 #include <errno.h>
+
+enum
+{
+	GF_PIXEL_IYUV = GF_4CC('I', 'Y', 'U', 'V'),
+	GF_PIXEL_I420 = GF_4CC('I', '4', '2', '0'),
+	/*!YUV packed format*/
+	GF_PIXEL_UYNV = GF_4CC('U', 'Y', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_YUNV = GF_4CC('Y', 'U', 'N', 'V'),
+	/*!YUV packed format*/
+	GF_PIXEL_V422 = GF_4CC('V', '4', '2', '2'),
+
+	GF_PIXEL_YV12 = GF_4CC('Y', 'V', '1', '2'),
+	GF_PIXEL_Y422 = GF_4CC('Y', '4', '2', '2'),
+	GF_PIXEL_YUY2 = GF_4CC('Y', 'U', 'Y', '2'),
+};
+
 
 void X11_SetupWindow (GF_VideoOutput * vout);
 
@@ -55,7 +72,7 @@ static void X11_DestroyOverlay(XWindow *xwin)
 static Bool is_same_yuv(u32 pf, u32 a_pf)
 {
 	if (pf==a_pf) return 1;
-	return 0;
+#if 0
 	switch (pf) {
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_I420:
@@ -89,6 +106,7 @@ static Bool is_same_yuv(u32 pf, u32 a_pf)
 			return 0;
 		}
 	}
+#endif
 	return 0;
 }
 static u32 X11_GetPixelFormat(u32 pf)
@@ -170,7 +188,7 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 
 	X11_DestroyOverlay(xwin);
 
-	xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+	xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 	if (xwin->xvport<0)
 		xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YUY2, 0);
 
@@ -213,11 +231,12 @@ GF_Err X11_Blit(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *
 	if ((xwin->xvport<0) || !xwin->overlay) {
 		e = X11_InitOverlay(vout, video_src->width, video_src->height);
 		if (e) return e;
+		if (!xwin->overlay) return GF_IO_ERR;
 	}
 
 	/*different size, recreate an image*/
 	if ((xwin->overlay->width != video_src->width) || (xwin->overlay->height != video_src->height)) {
-		if (xwin->overlay) XFree(xwin->overlay);
+		XFree(xwin->overlay);
 		xwin->overlay = XvCreateImage(xwin->display, xwin->xvport, xwin->xv_pf_format, NULL, video_src->width, video_src->height);
 		if (!xwin->overlay) return GF_IO_ERR;
 	}
@@ -266,7 +285,7 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 	if (!xWindow->is_init) return GF_OK;
 	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 
-	if (xWindow->output_3d_mode==1) {
+	if (xWindow->output_3d) {
 #ifdef GPAC_HAS_OPENGL
 		XSync(xWindow->display, False);
 		glFlush();
@@ -294,404 +313,179 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 	return GF_OK;
 }
 
-//=====================================
+typedef struct
+{
+	u32 x11_key;
+	u32 gf_key;
+	u32 gf_flags;
+} X11KeyToGPAC;
+
+static X11KeyToGPAC X11Keys[] =
+{
+	{XK_BackSpace, GF_KEY_BACKSPACE, 0},
+	{XK_Tab, GF_KEY_TAB, 0},
+//	{XK_Linefeed, GF_KEY_LINEFEED, 0},
+	{XK_Clear, GF_KEY_CLEAR, 0},
+	{XK_KP_Enter, GF_KEY_ENTER, GF_KEY_EXT_NUMPAD},
+	{XK_Return, GF_KEY_ENTER, 0},
+	{XK_Pause, GF_KEY_PAUSE, 0},
+	{XK_Caps_Lock, GF_KEY_CAPSLOCK, 0},
+	{XK_Scroll_Lock, GF_KEY_SCROLL, 0},
+	{XK_Escape, GF_KEY_ESCAPE, 0},
+	{XK_Delete, GF_KEY_DEL, 0},
+	{XK_Kanji, GF_KEY_KANJIMODE, 0},
+	{XK_Katakana, GF_KEY_JAPANESEKATAKANA, 0},
+	{XK_Romaji, GF_KEY_JAPANESEROMAJI, 0},
+	{XK_Hiragana, GF_KEY_JAPANESEHIRAGANA, 0},
+	{XK_Kana_Lock, GF_KEY_KANAMODE, 0},
+	{XK_Home, GF_KEY_HOME, 0},
+	{XK_Left, GF_KEY_LEFT, 0},
+	{XK_Up, GF_KEY_UP, 0},
+	{XK_Right, GF_KEY_RIGHT, 0},
+	{XK_Down, GF_KEY_DOWN, 0},
+	{XK_Page_Up, GF_KEY_PAGEUP, 0},
+	{XK_Page_Down, GF_KEY_PAGEDOWN, 0},
+	{XK_End, GF_KEY_END, 0},
+	//{XK_Begin, GF_KEY_BEGIN, 0},
+	{XK_Select, GF_KEY_SELECT, 0},
+	{XK_Print, GF_KEY_PRINTSCREEN, 0},
+	{XK_Execute, GF_KEY_EXECUTE, 0},
+	{XK_Insert, GF_KEY_INSERT, 0},
+	{XK_Undo, GF_KEY_UNDO, 0},
+	//{XK_Redo, GF_KEY_BEGIN, 0},
+	//{XK_Menu, GF_KEY_BEGIN, 0},
+	{XK_Find, GF_KEY_FIND, 0},
+	{XK_Cancel, GF_KEY_CANCEL, 0},
+	{XK_Help, GF_KEY_HELP, 0},
+	//{XK_Break, GF_KEY_BREAK, 0},
+	//{XK_Mode_switch, GF_KEY_BEGIN, 0},
+	{XK_Num_Lock, GF_KEY_NUMLOCK, 0},
+	{XK_F1, GF_KEY_F1, 0},
+	{XK_F2, GF_KEY_F2, 0},
+	{XK_F3, GF_KEY_F3, 0},
+	{XK_F4, GF_KEY_F4, 0},
+	{XK_F5, GF_KEY_F5, 0},
+	{XK_F6, GF_KEY_F6, 0},
+	{XK_F7, GF_KEY_F7, 0},
+	{XK_F8, GF_KEY_F8, 0},
+	{XK_F9, GF_KEY_F9, 0},
+	{XK_F10, GF_KEY_F10, 0},
+	{XK_F11, GF_KEY_F11, 0},
+	{XK_F12, GF_KEY_F12, 0},
+	{XK_F13, GF_KEY_F13, 0},
+	{XK_F14, GF_KEY_F14, 0},
+	{XK_F15, GF_KEY_F15, 0},
+	{XK_F16, GF_KEY_F16, 0},
+	{XK_F17, GF_KEY_F17, 0},
+	{XK_F18, GF_KEY_F18, 0},
+	{XK_F19, GF_KEY_F19, 0},
+	{XK_F20, GF_KEY_F20, 0},
+	{XK_F21, GF_KEY_F21, 0},
+	{XK_F22, GF_KEY_F22, 0},
+	{XK_F23, GF_KEY_F23, 0},
+	{XK_F24, GF_KEY_F24, 0},
+	{XK_KP_Delete, GF_KEY_COMMA, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Decimal, GF_KEY_COMMA, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Insert, GF_KEY_0, GF_KEY_EXT_NUMPAD},
+	{XK_KP_0, GF_KEY_0, GF_KEY_EXT_NUMPAD},
+	{XK_KP_End, GF_KEY_1, GF_KEY_EXT_NUMPAD},
+	{XK_KP_1, GF_KEY_1, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Down, GF_KEY_2, GF_KEY_EXT_NUMPAD},
+	{XK_KP_2, GF_KEY_2, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Page_Down, GF_KEY_3, GF_KEY_EXT_NUMPAD},
+	{XK_KP_3, GF_KEY_3, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Left, GF_KEY_4, GF_KEY_EXT_NUMPAD},
+	{XK_KP_4, GF_KEY_4, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Begin, GF_KEY_5, GF_KEY_EXT_NUMPAD},
+	{XK_KP_5, GF_KEY_5, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Right, GF_KEY_6, GF_KEY_EXT_NUMPAD},
+	{XK_KP_6, GF_KEY_6, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Home, GF_KEY_7, GF_KEY_EXT_NUMPAD},
+	{XK_KP_7, GF_KEY_7, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Up, GF_KEY_8, GF_KEY_EXT_NUMPAD},
+	{XK_KP_8, GF_KEY_8, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Page_Up, GF_KEY_9, GF_KEY_EXT_NUMPAD},
+	{XK_KP_9, GF_KEY_9, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Add, GF_KEY_PLUS, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Subtract, GF_KEY_HYPHEN, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Multiply, GF_KEY_STAR, GF_KEY_EXT_NUMPAD},
+	{XK_KP_Divide, GF_KEY_SLASH, GF_KEY_EXT_NUMPAD},
+	{XK_Shift_R, GF_KEY_EXT_RIGHT, 0},
+	{XK_Shift_L, GF_KEY_SHIFT, 0},
+	{XK_Control_R, GF_KEY_EXT_RIGHT, 0},
+	{XK_Control_L, GF_KEY_CONTROL, 0},
+	{XK_Alt_R, GF_KEY_EXT_RIGHT, 0},
+	{XK_Alt_L, GF_KEY_ALT, 0},
+	{XK_Super_R, GF_KEY_EXT_RIGHT, 0},
+	{XK_Super_L, GF_KEY_WIN, 0},
+	{XK_Menu, GF_KEY_META, 0},
+#ifdef XK_XKB_KEYS
+	{XK_ISO_Level3_Shift, GF_KEY_ALTGRAPH, 0},
+#endif
+	{'!', GF_KEY_EXCLAMATION, 0},
+	{'"', GF_KEY_QUOTATION, 0},
+	{'#', GF_KEY_NUMBER, 0},
+	{'$', GF_KEY_DOLLAR, 0},
+	{'&', GF_KEY_AMPERSAND, 0},
+	{'\'', GF_KEY_APOSTROPHE, 0},
+	{'(', GF_KEY_LEFTPARENTHESIS, 0},
+	{')', GF_KEY_RIGHTPARENTHESIS, 0},
+	{',', GF_KEY_COMMA, 0},
+	{':', GF_KEY_COLON, 0},
+	{';', GF_KEY_SEMICOLON, 0},
+	{'<', GF_KEY_LESSTHAN, 0},
+	{'>', GF_KEY_GREATERTHAN, 0},
+	{'?', GF_KEY_QUESTION, 0},
+	{'@', GF_KEY_AT, 0},
+	{'[', GF_KEY_LEFTSQUAREBRACKET, 0},
+	{']', GF_KEY_RIGHTSQUAREBRACKET, 0},
+	{'\\', GF_KEY_BACKSLASH, 0},
+	{'_', GF_KEY_UNDERSCORE, 0},
+	{'`', GF_KEY_GRAVEACCENT, 0},
+	{' ', GF_KEY_SPACE, 0},
+	{'/', GF_KEY_SLASH, 0},
+	{'*', GF_KEY_STAR, 0},
+	{'-', GF_KEY_HYPHEN, 0},
+	{'+', GF_KEY_PLUS, 0},
+	{'=', GF_KEY_EQUALS, 0},
+	{'^', GF_KEY_CIRCUM, 0},
+	{'{', GF_KEY_LEFTCURLYBRACKET, 0},
+	{'}', GF_KEY_RIGHTCURLYBRACKET, 0},
+	{'|', GF_KEY_PIPE, 0},
+};
+
+static u32 num_x11_keys = sizeof(X11Keys) / sizeof(X11KeyToGPAC);
+
 /*
  * Translate X_Key to GF_Key
  */
 //=====================================
+
 static void x11_translate_key(u32 X11Key, GF_EventKey *evt)
 {
+	u32 i;
+
 	evt->flags = 0;
 	evt->hw_code = X11Key & 0xFF;
-	switch (X11Key) {
-
-	case XK_BackSpace:
-		evt->key_code = GF_KEY_BACKSPACE;
-		break;
-	case XK_Tab:
-		evt->key_code = GF_KEY_TAB;
-		break;
-	//case XK_Linefeed: evt->key_code = GF_KEY_LINEFEED; break;
-	case XK_Clear:
-		evt->key_code = GF_KEY_CLEAR;
-		break;
-
-	case XK_KP_Enter:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-	case XK_Return:
-		evt->key_code = GF_KEY_ENTER;
-		break;
-	case XK_Pause:
-		evt->key_code = GF_KEY_PAUSE;
-		break;
-	case XK_Caps_Lock:
-		evt->key_code = GF_KEY_CAPSLOCK;
-		break;
-	case XK_Scroll_Lock:
-		evt->key_code = GF_KEY_SCROLL;
-		break;
-	case XK_Escape:
-		evt->key_code = GF_KEY_ESCAPE;
-		break;
-	case XK_Delete:
-		evt->key_code = GF_KEY_DEL;
-		break;
-
-	case XK_Kanji:
-		evt->key_code = GF_KEY_KANJIMODE;
-		break;
-	case XK_Katakana:
-		evt->key_code = GF_KEY_JAPANESEKATAKANA;
-		break;
-	case XK_Romaji:
-		evt->key_code = GF_KEY_JAPANESEROMAJI;
-		break;
-	case XK_Hiragana:
-		evt->key_code = GF_KEY_JAPANESEHIRAGANA;
-		break;
-	case XK_Kana_Lock:
-		evt->key_code = GF_KEY_KANAMODE;
-		break;
-
-	case XK_Home:
-		evt->key_code = GF_KEY_HOME;
-		break;
-	case XK_Left:
-		evt->key_code = GF_KEY_LEFT;
-		break;
-	case XK_Up:
-		evt->key_code = GF_KEY_UP;
-		break;
-	case XK_Right:
-		evt->key_code = GF_KEY_RIGHT;
-		break;
-	case XK_Down:
-		evt->key_code = GF_KEY_DOWN;
-		break;
-	case XK_Page_Up:
-		evt->key_code = GF_KEY_PAGEUP;
-		break;
-	case XK_Page_Down:
-		evt->key_code = GF_KEY_PAGEDOWN;
-		break;
-	case XK_End:
-		evt->key_code = GF_KEY_END;
-		break;
-	//case XK_Begin: evt->key_code = GF_KEY_BEGIN; break;
-
-
-	case XK_Select:
-		evt->key_code = GF_KEY_SELECT;
-		break;
-	case XK_Print:
-		evt->key_code = GF_KEY_PRINTSCREEN;
-		break;
-	case XK_Execute:
-		evt->key_code = GF_KEY_EXECUTE;
-		break;
-	case XK_Insert:
-		evt->key_code = GF_KEY_INSERT;
-		break;
-	case XK_Undo:
-		evt->key_code = GF_KEY_UNDO;
-		break;
-	//case XK_Redo: evt->key_code = GF_KEY_BEGIN; break;
-	//case XK_Menu: evt->key_code = GF_KEY_BEGIN; break;
-	case XK_Find:
-		evt->key_code = GF_KEY_FIND;
-		break;
-	case XK_Cancel:
-		evt->key_code = GF_KEY_CANCEL;
-		break;
-	case XK_Help:
-		evt->key_code = GF_KEY_HELP;
-		break;
-	//case XK_Break: evt->key_code = GF_KEY_BREAK; break;
-	//case XK_Mode_switch: evt->key_code = GF_KEY_BEGIN; break;
-	case XK_Num_Lock:
-		evt->key_code = GF_KEY_NUMLOCK;
-		break;
-
-	case XK_F1:
-		evt->key_code = GF_KEY_F1;
-		break;
-	case XK_F2:
-		evt->key_code = GF_KEY_F2;
-		break;
-	case XK_F3:
-		evt->key_code = GF_KEY_F3;
-		break;
-	case XK_F4:
-		evt->key_code = GF_KEY_F4;
-		break;
-	case XK_F5:
-		evt->key_code = GF_KEY_F5;
-		break;
-	case XK_F6:
-		evt->key_code = GF_KEY_F6;
-		break;
-	case XK_F7:
-		evt->key_code = GF_KEY_F7;
-		break;
-	case XK_F8:
-		evt->key_code = GF_KEY_F8;
-		break;
-	case XK_F9:
-		evt->key_code = GF_KEY_F9;
-		break;
-	case XK_F10:
-		evt->key_code = GF_KEY_F10;
-		break;
-	case XK_F11:
-		evt->key_code = GF_KEY_F11;
-		break;
-	case XK_F12:
-		evt->key_code = GF_KEY_F12;
-		break;
-	case XK_F13:
-		evt->key_code = GF_KEY_F13;
-		break;
-	case XK_F14:
-		evt->key_code = GF_KEY_F14;
-		break;
-	case XK_F15:
-		evt->key_code = GF_KEY_F15;
-		break;
-	case XK_F16:
-		evt->key_code = GF_KEY_F16;
-		break;
-	case XK_F17:
-		evt->key_code = GF_KEY_F17;
-		break;
-	case XK_F18:
-		evt->key_code = GF_KEY_F18;
-		break;
-	case XK_F19:
-		evt->key_code = GF_KEY_F19;
-		break;
-	case XK_F20:
-		evt->key_code = GF_KEY_F20;
-		break;
-	case XK_F21:
-		evt->key_code = GF_KEY_F21;
-		break;
-	case XK_F22:
-		evt->key_code = GF_KEY_F22;
-		break;
-	case XK_F23:
-		evt->key_code = GF_KEY_F23;
-		break;
-	case XK_F24:
-		evt->key_code = GF_KEY_F24;
-		break;
-
-	case XK_KP_Delete:
-	case XK_KP_Decimal:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_COMMA;
-		break;
-
-	case XK_KP_Insert:
-	case XK_KP_0:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_0;
-		break;
-	case XK_KP_End:
-	case XK_KP_1:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_1;
-		break;
-	case XK_KP_Down:
-	case XK_KP_2:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_2;
-		break;
-	case XK_KP_Page_Down:
-	case XK_KP_3:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_3;
-		break;
-	case XK_KP_Left:
-	case XK_KP_4:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_4;
-		break;
-	case XK_KP_Begin:
-	case XK_KP_5:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_5;
-		break;
-	case XK_KP_Right:
-	case XK_KP_6:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_6;
-		break;
-	case XK_KP_Home:
-	case XK_KP_7:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_7;
-		break;
-	case XK_KP_Up:
-	case XK_KP_8:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_8;
-		break;
-	case XK_KP_Page_Up:
-	case XK_KP_9:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_9;
-		break;
-	case XK_KP_Add:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_PLUS;
-		break;
-	case XK_KP_Subtract:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_HYPHEN;
-		break;
-	case XK_KP_Multiply:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_STAR;
-		break;
-	case XK_KP_Divide:
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		evt->key_code = GF_KEY_SLASH;
-		break;
-
-
-	case XK_Shift_R:
-		evt->flags = GF_KEY_EXT_RIGHT;
-	case XK_Shift_L:
-		evt->key_code = GF_KEY_SHIFT;
-		break;
-	case XK_Control_R:
-		evt->flags = GF_KEY_EXT_RIGHT;
-	case XK_Control_L:
-		evt->key_code = GF_KEY_CONTROL;
-		break;
-	case XK_Alt_R:
-		evt->flags = GF_KEY_EXT_RIGHT;
-	case XK_Alt_L:
-		evt->key_code = GF_KEY_ALT;
-		break;
-	case XK_Super_R:
-		evt->flags = GF_KEY_EXT_RIGHT;
-	case XK_Super_L:
-		evt->key_code = GF_KEY_WIN;
-		break;
-
-	case XK_Menu:
-		evt->key_code = GF_KEY_META;
-		break;
-#ifdef XK_XKB_KEYS
-	case XK_ISO_Level3_Shift:
-		evt->key_code = GF_KEY_ALTGRAPH;
-		break;
-
-#endif
-	case '!':
-		evt->key_code = GF_KEY_EXCLAMATION;
-		break;
-	case '"':
-		evt->key_code = GF_KEY_QUOTATION;
-		break;
-	case '#':
-		evt->key_code = GF_KEY_NUMBER;
-		break;
-	case '$':
-		evt->key_code = GF_KEY_DOLLAR;
-		break;
-	case '&':
-		evt->key_code = GF_KEY_AMPERSAND;
-		break;
-	case '\'':
-		evt->key_code = GF_KEY_APOSTROPHE;
-		break;
-	case '(':
-		evt->key_code = GF_KEY_LEFTPARENTHESIS;
-		break;
-	case ')':
-		evt->key_code = GF_KEY_RIGHTPARENTHESIS;
-		break;
-	case ',':
-		evt->key_code = GF_KEY_COMMA;
-		break;
-	case ':':
-		evt->key_code = GF_KEY_COLON;
-		break;
-	case ';':
-		evt->key_code = GF_KEY_SEMICOLON;
-		break;
-	case '<':
-		evt->key_code = GF_KEY_LESSTHAN;
-		break;
-	case '>':
-		evt->key_code = GF_KEY_GREATERTHAN;
-		break;
-	case '?':
-		evt->key_code = GF_KEY_QUESTION;
-		break;
-	case '@':
-		evt->key_code = GF_KEY_AT;
-		break;
-	case '[':
-		evt->key_code = GF_KEY_LEFTSQUAREBRACKET;
-		break;
-	case ']':
-		evt->key_code = GF_KEY_RIGHTSQUAREBRACKET;
-		break;
-	case '\\':
-		evt->key_code = GF_KEY_BACKSLASH;
-		break;
-	case '_':
-		evt->key_code = GF_KEY_UNDERSCORE;
-		break;
-	case '`':
-		evt->key_code = GF_KEY_GRAVEACCENT;
-		break;
-	case ' ':
-		evt->key_code = GF_KEY_SPACE;
-		break;
-	case '/':
-		evt->key_code = GF_KEY_SLASH;
-		break;
-	case '*':
-		evt->key_code = GF_KEY_STAR;
-		break;
-	case '-':
-		evt->key_code = GF_KEY_HYPHEN;
-		break;
-	case '+':
-		evt->key_code = GF_KEY_PLUS;
-		break;
-	case '=':
-		evt->key_code = GF_KEY_EQUALS;
-		break;
-	case '^':
-		evt->key_code = GF_KEY_CIRCUM;
-		break;
-	case '{':
-		evt->key_code = GF_KEY_LEFTCURLYBRACKET;
-		break;
-	case '}':
-		evt->key_code = GF_KEY_RIGHTCURLYBRACKET;
-		break;
-	case '|':
-		evt->key_code = GF_KEY_PIPE;
-		break;
-	default:
-		if ((X11Key>='0') && (X11Key<='9'))  evt->key_code = GF_KEY_0 + X11Key - '0';
-		else if ((X11Key>='A') && (X11Key<='Z'))  evt->key_code = GF_KEY_A + X11Key - 'A';
-		/*DOM3: translate to A -> Z, not a -> z*/
-		else if ((X11Key>='a') && (X11Key<='z'))  {
-			evt->key_code = GF_KEY_A + X11Key - 'a';
-			evt->hw_code = X11Key - 'a' + 'A';
+	for (i=0; i<num_x11_keys; i++) {
+		if (X11Key == X11Keys[i].x11_key) {
+			evt->key_code = X11Keys[i].gf_key;
+			evt->flags = X11Keys[i].gf_flags;
+			return;
 		}
-		else {
-			evt->key_code = 0;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Unrecognized key %X\n", X11Key));
-		}
-		break;
+	}
+
+	if ((X11Key>='0') && (X11Key<='9'))
+		evt->key_code = GF_KEY_0 + X11Key - '0';
+	else if ((X11Key>='A') && (X11Key<='Z'))
+		evt->key_code = GF_KEY_A + X11Key - 'A';
+	/*DOM3: translate to A -> Z, not a -> z*/
+	else if ((X11Key>='a') && (X11Key<='z'))  {
+		evt->key_code = GF_KEY_A + X11Key - 'a';
+		evt->hw_code = X11Key - 'a' + 'A';
+	} else {
+		evt->key_code = GF_KEY_UNIDENTIFIED;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Unrecognized key %X\n", X11Key));
 	}
 }
 
@@ -933,9 +727,6 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 {
 	GF_Event evt;
-#ifdef GPAC_HAS_OPENGL
-	const char *opt;
-#endif
 	XWindow *xWin = (XWindow *)vout->opaque;
 
 	if (!xWin->glx_visualinfo) return GF_IO_ERR;
@@ -947,15 +738,13 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 		xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
 		XSync(xWin->display, False);
 		if (!xWin->glx_context) return GF_IO_ERR;
-		if (xWin->output_3d_mode==2)  return GF_IO_ERR;
 
 		evt.setup.hw_reset = 1;
 	}
 	if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
 
 #ifdef GPAC_HAS_OPENGL
-	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "DisableVSync");
-	if (opt && !strcmp(opt, "yes")) {
+	if (gf_opts_get_bool("core", "disable-vsync")) {
 		my_glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddress( (const GLubyte*)"glXSwapIntervalEXT");
 		if (my_glXSwapIntervalEXT != NULL) {
 			my_glXSwapIntervalEXT(xWin->display, xWin->wnd, 0);
@@ -977,61 +766,6 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	vout->on_event (vout->evt_cbk_hdl,&evt);
 	xWin->is_init = 1;
-	return GF_OK;
-}
-
-static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
-{
-	XWindow *xWin = (XWindow *)vout->opaque;
-
-	if (xWin->glx_context) {
-		if (xWin->gl_offscreen) glXMakeCurrent(xWin->display, xWin->gl_offscreen, NULL);
-		else glXMakeCurrent(xWin->display, None, NULL);
-
-		glXDestroyContext(xWin->display, xWin->glx_context);
-		xWin->glx_context = NULL;
-	}
-	if (xWin->gl_offscreen) glXDestroyGLXPixmap(xWin->display, xWin->gl_offscreen);
-	xWin->gl_offscreen = 0;
-	if (xWin->gl_pixmap) XFreePixmap(xWin->display, xWin->gl_pixmap);
-	xWin->gl_pixmap = 0;
-
-	if (xWin->offscreen_type) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using offscreen GL context through XWindow\n"));
-		if (xWin->offscreen_type==2) {
-			XSync(xWin->display, False);
-			XMapWindow (xWin->display, (Window) xWin->gl_wnd);
-			XSync(xWin->display, False);
-//		XSetWMNormalHints (xWin->display, xWin->gl_wnd, Hints);
-			XStoreName (xWin->display, xWin->gl_wnd, "GPAC Offscreeen Window - debug mode");
-		}
-
-		XSync(xWin->display, False);
-		xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
-		XSync(xWin->display, False);
-		if (!xWin->glx_context) return GF_IO_ERR;
-		if ( ! glXMakeCurrent(xWin->display, xWin->gl_wnd, xWin->glx_context) ) return GF_IO_ERR;
-		XSync(xWin->display, False);
-
-	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using offscreen GL context through glXPixmap\n"));
-		xWin->gl_pixmap = XCreatePixmap(xWin->display, xWin->gl_wnd, width, height, xWin->depth);
-		if (!xWin->gl_pixmap) return GF_IO_ERR;
-
-		xWin->gl_offscreen = glXCreateGLXPixmap(xWin->display, xWin->glx_visualinfo, xWin->gl_pixmap);
-		if (!xWin->gl_offscreen) return GF_IO_ERR;
-
-		XSync(xWin->display, False);
-		xWin->glx_context = glXCreateContext(xWin->display, xWin->glx_visualinfo, 0, GL_FALSE);
-		XSync(xWin->display, False);
-		if (!xWin->glx_context) return GF_IO_ERR;
-
-		XSync(xWin->display, False);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[X11] Activating GLContext on GLPixmap - this may crash !!\n"));
-		glXMakeCurrent(xWin->display, xWin->gl_offscreen, xWin->glx_context);
-	}
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Offscreen GL context setup\n"));
 	return GF_OK;
 }
 
@@ -1092,7 +826,9 @@ static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
  */
 GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeight)
 {
+#ifdef GPAC_HAS_X11_SHM
 	Window cur_wnd;
+#endif
 	u32 size;
 	VideoWidth = VideoWidth > 32 ? VideoWidth : 32;
 	VideoWidth = VideoWidth < 4096 ? VideoWidth : 4096;
@@ -1109,9 +845,9 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		VideoWidth++;
 
 	size = VideoWidth * VideoHeight * xWindow->bpp;
-	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 
 #ifdef GPAC_HAS_X11_SHM
+	cur_wnd = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 	/*if we're using YUV blit to offscreen, we must use a pixmap*/
 	if (vout->hw_caps & GF_VIDEO_HW_HAS_YUV) {
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
@@ -1224,21 +960,26 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 			}
 			break;
 		case GF_EVENT_VIDEO_SETUP:
-			switch (evt->setup.opengl_mode) {
+			if (evt->setup.use_opengl) {
 #ifdef GPAC_HAS_OPENGL
-			case 1:
-				xWindow->output_3d_mode = 1;
+				xWindow->output_3d = GF_TRUE;
 				return X11_SetupGL(vout);
-			case 2:
-				xWindow->output_3d_mode = 2;
-				return X11_SetupGLPixmap(vout, evt->setup.width, evt->setup.height);
-#endif
-			case 0:
-				xWindow->output_3d_mode = 0;
-				return X11_ResizeBackBuffer(vout, evt->setup.width, evt->setup.height);
-			default:
+#else
 				return GF_NOT_SUPPORTED;
+#endif
+			} else {
+				xWindow->output_3d = GF_FALSE;
+				return X11_ResizeBackBuffer(vout, evt->setup.width, evt->setup.height);
 			}
+			break;
+		case GF_EVENT_SET_GL:
+			if (!xWindow->output_3d) return GF_OK;
+
+			if ( ! glXMakeCurrent(xWindow->display, xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd, xWindow->glx_context) ) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Cannot make context current\n"));
+				return GF_IO_ERR;
+			}
+			break;
 		}
 	} else {
 		X11_HandleEvents(vout);
@@ -1253,7 +994,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 	X11VID ();
 	xWindow->fullscreen = bFullScreenOn;
 #ifdef GPAC_HAS_OPENGL
-//	if (xWindow->output_3d_mode==1) X11_ReleaseGL(xWindow);
+//	if (xWindow->output_3d) X11_ReleaseGL(xWindow);
 #endif
 
 	if (bFullScreenOn) {
@@ -1291,7 +1032,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 		/*backbuffer resize will be done right after this is called */
 	}
 #ifdef GPAC_HAS_OPENGL
-	if (xWindow->output_3d_mode==1) X11_SetupGL(vout);
+	if (xWindow->output_3d) X11_SetupGL(vout);
 #endif
 	return GF_OK;
 }
@@ -1337,6 +1078,8 @@ static int X11_BadAccess_ByPass(Display * display,
                                 XErrorEvent * event)
 {
 	char msg[60];
+	if (!display || !event) return 0;
+
 	if (event->error_code == BadAccess)
 	{
 		selectinput_err = 1;
@@ -1355,7 +1098,6 @@ static int X11_BadAccess_ByPass(Display * display,
 
 static void X11_XScreenSaverState(XWindow *xwin, Bool turn_on)
 {
-	return;
 	if (turn_on) {
 		if (!xwin->ss_t) return;
 		XSetScreenSaver(xwin->display, xwin->ss_t, xwin->ss_i, xwin->ss_b, xwin->ss_e);
@@ -1374,7 +1116,10 @@ void
 X11_SetupWindow (GF_VideoOutput * vout)
 {
 	X11VID ();
+#if defined(GPAC_HAS_X11_SHM) || defined(GPAC_HAS_X11_XV) || defined(GPAC_HAS_OPENGL)
 	const char *sOpt;
+#endif
+
 	Bool autorepeat, supported;
 
 	if (xWindow->setup_done) return;
@@ -1409,7 +1154,17 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		xWindow->pixel_format = GF_PIXEL_RGB_565;
 		break;
 	case 24:
-		xWindow->pixel_format = GF_PIXEL_RGB_32;
+#ifdef GPAC_BIG_ENDIAN
+		if (xWindow->visual->red_mask==0x00FF0000)	
+			xWindow->pixel_format = GF_PIXEL_RGB;
+		else
+			xWindow->pixel_format = GF_PIXEL_BGR;
+#else
+		if (xWindow->visual->red_mask==0x00FF0000)	
+			xWindow->pixel_format = GF_PIXEL_BGR;
+		else
+			xWindow->pixel_format = GF_PIXEL_RGB;
+#endif
 		break;
 	default:
 		xWindow->pixel_format = GF_PIXEL_GREYSCALE;
@@ -1530,8 +1285,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->use_shared_memory = 0;
 
 #ifdef GPAC_HAS_X11_SHM
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseHardwareMemory");
-	if (sOpt && !strcmp(sOpt, "yes")) {
+	sOpt = gf_opts_get_key("core", "hwvmem");
+	if (!sOpt || strcmp(sOpt, "no")) {
 		int XShmMajor, XShmMinor;
 		Bool XShmPixmaps;
 		if (XShmQueryVersion(xWindow->display, &XShmMajor, &XShmMinor, &XShmPixmaps)) {
@@ -1546,15 +1301,15 @@ X11_SetupWindow (GF_VideoOutput * vout)
 #endif
 
 #ifdef GPAC_HAS_X11_XV
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "DisableColorKeying");
+	sOpt = gf_opts_get_key("core", "no-colorkey");
 	if (sOpt && !strcmp(sOpt, "yes")) {
-		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 	} else {
-		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 1);
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 1);
 		if (xWindow->xvport<0) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware has no color keying\n"));
 			vout->overlay_color_key = 0;
-			xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+			xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware uses color key %08x\n", vout->overlay_color_key));
 		}
@@ -1569,8 +1324,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 #ifdef GPAC_HAS_X11_SHM
 		/*if user asked for YUV->RGB on offscreen, do it (it may crash the system)*/
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "EnableOffscreenYUV");
-		if (sOpt && !strcmp(sOpt, "yes")) {
+		if (gf_opts_get_bool("core", "offscreen-yuv")) {
 			vout->hw_caps |= GF_VIDEO_HW_HAS_YUV;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV Offscreen YUV2RGB acceleration\n"));
 		}
@@ -1616,11 +1370,11 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		int attribs[64];
 		int i, nb_bits, nb_depth_bits;
 
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent");
+		sOpt = gf_opts_get_key("core", "gl-bits-comp");
 		/* Most outputs are 24/32 bits these days, use 8 bits per channel instead of 5, works better on MacOS X */
 		nb_bits = sOpt ? atoi(sOpt) : 8;
 		if (!sOpt) {
-			gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent", "8");
+			gf_opts_set_key("core", "gl-bits-comp", "8");
 		}
 retry_8bpp:
 		i=0;
@@ -1643,18 +1397,18 @@ retry_8bpp:
 			attribs[i++] = 2;
 		}
 
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
+		sOpt = gf_opts_get_key("core", "gl-bits-depth");
 		nb_depth_bits = sOpt ? atoi(sOpt) : 16;
 		if (!sOpt) {
-			gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth", "16");
+			gf_opts_set_key("core", "gl-bits-depth", "16");
 		}
 		if (nb_bits) {
 			attribs[i++] = GLX_DEPTH_SIZE;
 			attribs[i++] = nb_depth_bits;
 		}
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
+		sOpt = gf_opts_get_key("core", "gl-doublebuf");
 		if (!sOpt) {
-			gf_modules_set_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering", "yes");
+			gf_opts_set_key("core", "gl-doublebuf", "yes");
 		}
 		if (!sOpt || !strcmp(sOpt, "yes")) {
 			attribs[i++] = GLX_DOUBLEBUFFER;
@@ -1683,13 +1437,14 @@ retry_8bpp:
 				nb_bits = 8;
 				goto retry_8bpp;
 			}
-			xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
+			if (my_glXGetVisualFromFBConfig)
+				xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
 
 			if (my_glXGetFBConfigAttrib && fb) {
 				int r, g, b;
-				glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_RED_SIZE, &r);
-				glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_GREEN_SIZE, &g);
-				glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_BLUE_SIZE, &b);
+				my_glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_RED_SIZE, &r);
+				my_glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_GREEN_SIZE, &g);
+				my_glXGetFBConfigAttrib(xWindow->display, fb[0], GLX_BLUE_SIZE, &b);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[GLX] Configured display asked %d bits got r:%d g:%d b:%d bits\n", nb_bits, r, g, b));
 			}
 		} else {
@@ -1714,9 +1469,9 @@ retry_8bpp:
 	XUnmapWindow(xWindow->display, (Window) xWindow->gl_wnd);
 	XSync(xWindow->display, False);
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "X113DOffscreenMode");
+	sOpt = gf_opts_get_key("core", "gl-offscreen");
 	if (!sOpt)
-		gf_modules_set_option((GF_BaseInterface *)vout, "Video", "X113DOffscreenMode", "Pixmap");
+		gf_opts_set_key("core", "gl-offscreen", "Pixmap");
 	if (sOpt && !strcmp(sOpt, "Window")) {
 		xWindow->offscreen_type = 1;
 	} else if (sOpt && !strcmp(sOpt, "VisibleWindow")) {
@@ -1810,6 +1565,12 @@ void *NewX11VideoOutput ()
 	driv->hw_caps = GF_VIDEO_HW_OPENGL;
 	/*fixme - needs a better detection scheme*/
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+
+	if (gf_sys_is_test_mode()) {
+		GF_Event evt;
+		x11_translate_key(XK_BackSpace, &evt.key);
+		X11_BadAccess_ByPass(NULL, NULL);
+	}
 	return (void *) driv;
 
 }

@@ -49,9 +49,6 @@ GF_RTSPResponse *gf_rtsp_response_new()
 GF_EXPORT
 void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 {
-	GF_RTPInfo *inf;
-	GF_RTSPTransport *trans;
-	GF_X_Attribute *att;
 	if (!rsp) return;
 
 	//free all headers
@@ -103,19 +100,19 @@ void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 	rsp->SessionTimeOut = 0;
 
 	while (gf_list_count(rsp->Transports)) {
-		trans = (GF_RTSPTransport*) gf_list_get(rsp->Transports, 0);
+		GF_RTSPTransport *trans = (GF_RTSPTransport*) gf_list_get(rsp->Transports, 0);
 		gf_list_rem(rsp->Transports, 0);
 		gf_rtsp_transport_del(trans);
 	}
 
 	while (gf_list_count(rsp->RTP_Infos)) {
-		inf = (GF_RTPInfo*) gf_list_get(rsp->RTP_Infos, 0);
+		GF_RTPInfo *inf = (GF_RTPInfo*) gf_list_get(rsp->RTP_Infos, 0);
 		gf_list_rem(rsp->RTP_Infos, 0);
 		if (inf->url) gf_free(inf->url);
 		gf_free(inf);
 	}
 	while (gf_list_count(rsp->Xtensions)) {
-		att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, 0);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, 0);
 		gf_list_rem(rsp->Xtensions, 0);
 		gf_free(att->Name);
 		gf_free(att->Value);
@@ -325,7 +322,7 @@ GF_Err RTSP_ParseResponseHeader(GF_RTSPSession *sess, GF_RTSPResponse *rsp, u32 
 	u32 Size;
 
 	Size = sess->CurrentSize - sess->CurrentPos;
-	buffer = sess->TCPBuffer + sess->CurrentPos;
+	buffer = sess->tcp_buffer + sess->CurrentPos;
 
 	//parse first line
 	ret = gf_token_get_line(buffer, 0, Size, LineBuffer, 1024);
@@ -376,11 +373,6 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (!sess || !rsp) return GF_BAD_PARAM;
 	gf_rtsp_response_reset(rsp);
 
-
-	//LOCK
-	gf_mx_p(sess->mx);
-
-
 	e = gf_rtsp_check_connection(sess);
 	if (e)
 		goto exit;
@@ -391,7 +383,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		goto exit;
 
 	//this is interleaved data
-	if (!IsRTSPMessage(sess->TCPBuffer+sess->CurrentPos) ) {
+	if (!IsRTSPMessage(sess->tcp_buffer+sess->CurrentPos) ) {
 		gf_rtsp_session_read(sess);
 		e = GF_IP_NETWORK_EMPTY;
 		goto exit;
@@ -407,10 +399,10 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//copy the body if any
 	if (!e && rsp->Content_Length) {
 		rsp->body = (char *)gf_malloc(sizeof(char) * (rsp->Content_Length));
-		memcpy(rsp->body, sess->TCPBuffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
+		memcpy(rsp->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Response:\n%s\n", sess->TCPBuffer+sess->CurrentPos));
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Response:\n%s\n", sess->tcp_buffer+sess->CurrentPos));
 
 	//reset TCP buffer
 	sess->CurrentPos += BodyStart + rsp->Content_Length;
@@ -438,7 +430,6 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//to an aggreagated sequence of requests
 	//if we have reseted the connection (due to an APP error) return empty
 	if (rsp->CSeq && sess->CSeq > rsp->CSeq + sess->NbPending) {
-		gf_mx_v(sess->mx);
 		return gf_rtsp_get_response(sess, rsp);
 	}
 
@@ -478,8 +469,6 @@ exit:
 			sess->http = NULL;
 		}
 	}
-
-	gf_mx_v(sess->mx);
 	return e;
 }
 
@@ -487,11 +476,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
                           unsigned char **out_buffer, u32 *out_size)
 {
 	u32 i, cur_pos, size, count;
-	char *buffer, temp[50];
-	GF_RTSPTransport *trans;
-	GF_X_Attribute *att;
-	GF_RTPInfo *info;
-
+	char *buffer;
 
 	*out_buffer = NULL;
 
@@ -575,6 +560,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "RTPInfo: ");
 
 		for (i=0; i<count; i++) {
+			GF_RTPInfo *info;
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			info = (GF_RTPInfo*)gf_list_get(rsp->RTP_Infos, i);
@@ -611,6 +597,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	if (count) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Transport: ");
 		for (i=0; i<count; i++) {
+			GF_RTSPTransport *trans;
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			trans = (GF_RTSPTransport*)gf_list_get(rsp->Transports, i);
@@ -663,7 +650,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 			}
 			if (trans->SSRC) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, ";ssrc=");
-				RTSP_WRITE_INT(buffer, size, cur_pos, trans->SSRC, 0);
+				RTSP_WRITE_HEX(buffer, size, cur_pos, trans->SSRC, 0);
 			}
 		}
 		//done with transport
@@ -679,7 +666,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//eXtensions
 	count = gf_list_count(rsp->Xtensions);
 	for (i=0; i<count; i++) {
-		att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, i);
+		GF_X_Attribute *att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, i);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "x-");
 		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);
 	}
@@ -707,14 +694,10 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (rsp->CSeq > sess->CSeq) return GF_BAD_PARAM;
 
 	e = RTSP_WriteResponse(sess, rsp, (unsigned char **) &buffer, &size);
-	if (e) goto exit;
-
-	//send buffer
-	e = gf_rtsp_send_data(sess, buffer, size);
-	if (e) return e;
-//	fprintf(stderr, "RTSP Send Response\n\n%s\n\n", buffer);
-
-exit:
+	if (!e) {
+		//send buffer
+		e = gf_rtsp_send_data(sess, buffer, size);
+	}
 	if (buffer) gf_free(buffer);
 	return e;
 }

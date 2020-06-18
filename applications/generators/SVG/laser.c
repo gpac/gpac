@@ -146,7 +146,7 @@ void generate_laser_tables(GF_List *svg_elements)
 void generate_laser_tables_da(GF_List *atts)
 {
 	FILE *output;
-	u32 i, count, j, count2;
+	u32 i, count, j;
 
 	output = BeginFile(2);
 

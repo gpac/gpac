@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -106,31 +106,36 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 				return GF_URL_ERROR;
 			}
 			if (res_src) gf_free(res_src);
-			gf_fseek(f, 0, SEEK_END);
-			size = (u32) gf_ftell(f);
+			size = (u32) gf_fsize(f);
 			val = gf_get_bit_size(size);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);
-			gf_fseek(f, 0, SEEK_SET);
+
 			while (size) {
-				u32 read = (u32) fread(buf, 1, 4096, f);
+				u32 read = (u32) gf_fread(buf, 4096, f);
 				gf_bs_write_data(bs, buf, read);
 				size -= read;
 			}
 			gf_fclose(f);
 		} else {
 			u32 i, val, len;
+			char *dump_str = NULL;
 			char *str = (char *) ((SFString*)field->far_ptr)->buffer;
 			if (node && (node->sgprivate->tag==TAG_MPEG4_BitWrapper) ) {
 				len = ((M_BitWrapper*)node)->buffer_len;
 			} else {
 				len = str ? (u32) strlen(str) : 0;
+				dump_str = str;
 			}
 			val = gf_get_bit_size(len);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);
 			for (i=0; i<len; i++) gf_bs_write_int(bs, str[i], 8);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\n", 8*len, str) );
+			if (dump_str) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\n", 8*len, str) );
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\n", 8*len) );
+			}
 		}
 		break;
 
@@ -190,7 +195,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			GF_BitStream *bs_cond = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] /*SFCommandBuffer*/\n" ));
 			e = gf_bifs_enc_commands(codec, cb->commandList, bs_cond);
-			if (!e) gf_bs_get_content(bs_cond, (char**)&cb->buffer, &cb->bufferSize);
+			if (!e) gf_bs_get_content(bs_cond, &cb->buffer, &cb->bufferSize);
 			gf_bs_del(bs_cond);
 			if (e) return e;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] /*End SFCommandBuffer*/\n"));
@@ -210,7 +215,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs, node);
 
 	case GF_SG_VRML_SFSCRIPT:
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 		codec->LastError = SFScript_Encode(codec, (SFScript *)field->far_ptr, bs, node);
 #else
 		return GF_NOT_SUPPORTED;
@@ -399,7 +404,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	}
 
 	if (node->sgprivate->tag == TAG_ProtoNode) {
-		clone = gf_sg_proto_create_instance(node->sgprivate->scenegraph, ((GF_ProtoInstance *)node)->proto_interface);;
+		clone = gf_sg_proto_create_instance(node->sgprivate->scenegraph, ((GF_ProtoInstance *)node)->proto_interface);
 	} else {
 		clone = gf_node_new(node->sgprivate->scenegraph, node->sgprivate->tag);
 	}
@@ -561,7 +566,6 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	u32 NDTBits, node_type, node_tag, BVersion, node_id;
 	const char *node_name;
 	Bool flag, reset_qp14;
-	GF_Node *new_node;
 	GF_Err e;
 
 	assert(codec->info);
@@ -578,6 +582,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	GF_BIFS_WRITE_INT(codec, bs, flag ? 1 : 0, 1, "USE", (char*)gf_node_get_class_name(node));
 
 	if (flag) {
+		GF_Node *new_node;
 		gf_bs_write_int(bs, gf_node_get_id(node) - 1, codec->info->config.NodeIDBits);
 		new_node = gf_bifs_enc_find_node(codec, gf_node_get_id(node) );
 		if (!new_node)

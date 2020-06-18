@@ -52,7 +52,7 @@ typedef struct {
 		1: resolving begin times
 		2: resolving end times */
 	u32 resolve_stage;
-	/* Animation element being defered */
+	/* Animation element being deferred */
 	SVG_Element *animation_elt;
 	/* anim parent*/
 	SVG_Element *anim_parent;
@@ -67,7 +67,7 @@ typedef struct {
 	char *from;
 	char *by;
 	char *values;
-} SVG_DeferedAnimation;
+} SVG_DeferredAnimation;
 
 
 static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGraph *sg)
@@ -75,9 +75,9 @@ static GF_Node *create_appearance(SVGPropertiesPointers *svg_props, GF_SceneGrap
 	M_Appearance *app;
 	M_Material2D *mat;
 	M_XLineProperties *xlp;
-	M_RadialGradient *rg;
+/*	M_RadialGradient *rg;
 	M_LinearGradient *lg;
-
+*/
 	app = (M_Appearance *)gf_node_new(sg, TAG_MPEG4_Appearance);
 
 	app->material = gf_node_new(sg, TAG_MPEG4_Material2D);
@@ -181,7 +181,7 @@ static GF_Node *add_transform2d(SVG2BIFS_Converter *converter, GF_Node *node)
 	return (GF_Node *)tr;
 }
 
-static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferedAnimation *anim)
+static void svg_parse_animation(GF_SceneGraph *sg, SVG_DeferredAnimation *anim)
 {
 	GF_FieldInfo info;
 	u32 tag;
@@ -280,7 +280,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 	char *id_string = NULL;
 	u32	tag;
 	SVG_Element *elt;
-	SVG_DeferedAnimation *anim = NULL;
+	SVG_DeferredAnimation *anim = NULL;
 
 	tag = gf_xml_get_element_tag(name, 0);
 	elt = (SVG_Element*)gf_node_new(converter->svg_sg, tag);
@@ -296,7 +296,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 //	if (converter->bifs_parent) fprintf(stdout, "%s\n", gf_node_get_class_name(converter->bifs_parent));
 
 	if (gf_svg_is_animation_tag(tag)) {
-		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
+		GF_SAFEALLOC(anim, SVG_DeferredAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		if (converter->svg_parent) {
@@ -532,7 +532,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				if (converter->all_atts.d) {
 					M_Coordinate2D *c2d;
 					M_XCurve2D *xc = (M_XCurve2D *)shape->geometry;
-					u32 i, j, c, k;
+					u32 j, c, k;
 
 					xc->point = gf_node_new(converter->bifs_sg, TAG_MPEG4_Coordinate2D);
 					c2d = (M_Coordinate2D *)xc->point;
@@ -630,7 +630,6 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 				if (converter->all_atts.points) {
 					M_Coordinate2D *c2d;
 					M_IndexedFaceSet2D *ifs = (M_IndexedFaceSet2D *)shape->geometry;
-					u32 i;
 
 					ifs->coord = gf_node_new(converter->bifs_sg, TAG_MPEG4_Coordinate2D);
 					c2d = (M_Coordinate2D *)ifs->coord;
@@ -837,7 +836,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 						M_PositionInterpolator2D *pi2d = (M_PositionInterpolator2D *)child;
 						if (converter->all_atts.keyTimes) {
 							SFFloat *g;
-							u32 count, i;
+							u32 count;
 							count = gf_list_count(*converter->all_atts.keyTimes);
 							for (i = 0; i < count; i++) {
 								Fixed *f = gf_list_get(*converter->all_atts.keyTimes, i);
@@ -847,7 +846,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 						}
 						if (converter->all_atts.values) {
 							SFVec2f *g;
-							u32 count, i;
+							u32 count;
 							count = gf_list_count(converter->all_atts.values->values);
 							for (i = 0; i < count; i++) {
 								SVG_Point_Angle *p;
@@ -879,7 +878,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 						M_ScalarInterpolator *si = (M_ScalarInterpolator *)child;
 						if (converter->all_atts.keyTimes) {
 							SFFloat *g;
-							u32 count, i;
+							u32 count;
 							count = gf_list_count(*converter->all_atts.keyTimes);
 							for (i = 0; i < count; i++) {
 								Fixed *f = gf_list_get(*converter->all_atts.keyTimes, i);
@@ -889,7 +888,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 						}
 						if (converter->all_atts.values) {
 							SFFloat *g;
-							u32 count, i;
+							u32 count;
 							count = gf_list_count(converter->all_atts.values->values);
 							for (i = 0; i < count; i++) {
 								SVG_Point_Angle *p;
@@ -926,7 +925,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 						M_PositionInterpolator2D *pi2d = (M_PositionInterpolator2D *)child;
 						if (converter->all_atts.keyTimes) {
 							SFFloat *g;
-							u32 count, i;
+							u32 count;
 							count = gf_list_count(*converter->all_atts.keyTimes);
 							for (i = 0; i < count; i++) {
 								Fixed *f = gf_list_get(*converter->all_atts.keyTimes, i);
@@ -936,7 +935,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 						}
 						if (converter->all_atts.values) {
 							SFVec2f *g;
-							u32 count, i;
+							u32 count;
 							count = gf_list_count(converter->all_atts.values->values);
 							for (i = 0; i < count; i++) {
 								SVG_Point *p;

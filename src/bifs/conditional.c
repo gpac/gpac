@@ -141,6 +141,7 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 
 	priv->info = codec->info;
 	priv->codec = codec;
+	codec->has_conditionnals = GF_TRUE;
 	gf_node_set_callback_function(node, Conditional_PreDestroy);
 	gf_node_set_private(node, priv);
 	((M_Conditional *)node)->on_activate = Conditional_OnActivate;

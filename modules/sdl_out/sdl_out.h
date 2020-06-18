@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / SDL audio and video module
@@ -67,22 +67,21 @@ typedef struct
 	Bool use_systems_memory;
 
 
+	Bool disable_vsync;
+
 #if SDL_VERSION_ATLEAST(2,0,0)
 	char szCaption[100];
 	Bool enable_defer_mode;
 	Bool needs_clear;
 	Bool needs_bb_flush;
 	Bool needs_bb_grab;
-#if defined(__APPLE__) && !defined(GPAC_IPHONE)
-	Bool disable_vsync;
-#endif
 
 	SDL_GLContext gl_context;
 	SDL_Renderer *renderer;
 	SDL_Window *screen;
 
 	SDL_Texture *tx_back_buffer;
-	char *back_buffer_pixels;
+	u8 *back_buffer_pixels;
 
 	SDL_Texture *pool_rgb, *pool_rgba, *pool_yuv;
 
@@ -98,7 +97,7 @@ typedef struct
 
 	SDL_Surface *offscreen_gl;
 
-	u32 output_3d_type;
+	Bool output_3d;
 	void *os_handle;
 
 	Bool force_alpha, hidden;
@@ -120,7 +119,7 @@ typedef struct
 {
 	u32 num_buffers, total_duration, delay_ms, total_size, volume, alloc_size;
 	Bool is_init, is_running;
-	Uint8 * audioBuff;
+	u8 * audioBuff;
 } SDLAudCtx;
 
 void SDL_DeleteAudio(void *ifce);

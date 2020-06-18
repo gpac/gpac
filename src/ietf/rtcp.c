@@ -30,29 +30,27 @@
 
 #include <gpac/bitstream.h>
 
-#ifndef _WIN32_WCE
-#include <time.h>
-#endif
-
 GF_EXPORT
-u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 {
 	GF_Err e;
 	u32 res;
 
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtcp) return 0;
-
-	e = gf_sk_receive(ch->rtcp, buffer, buffer_size, 0, &res);
+	if (ch->no_select) {
+		e = gf_sk_receive_no_select(ch->rtcp, buffer, buffer_size, &res);
+	} else {
+		e = gf_sk_receive(ch->rtcp, buffer, buffer_size, &res);
+	}
 	if (e) return 0;
 	return res;
 }
 
 GF_EXPORT
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_sr)
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr)
 {
 	GF_RTCPHeader rtcp_hdr;
-	GF_BitStream *bs;
 	char sdes_buffer[300];
 	u32 i, sender_ssrc, cur_ssrc, val, sdes_type, sdes_len, res, first;
 	GF_Err e = GF_OK;
@@ -61,24 +59,22 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 
 	//bad RTCP packet
 	if (pck_size < 4 ) return GF_NON_COMPLIANT_BITSTREAM;
-	bs = gf_bs_new(pck, pck_size, GF_BITSTREAM_READ);
+	gf_bs_reassign_buffer(ch->bs_r, pck, pck_size);
 
 	first = 1;
 	while (pck_size) {
 		//global header
-		rtcp_hdr.Version = gf_bs_read_int(bs, 2);
+		rtcp_hdr.Version = gf_bs_read_int(ch->bs_r, 2);
 		if (rtcp_hdr.Version != 2 ) {
-			gf_bs_del(bs);
 			return GF_NOT_SUPPORTED;
 		}
-		rtcp_hdr.Padding = gf_bs_read_int(bs, 1);
-		rtcp_hdr.Count = gf_bs_read_int(bs, 5);
-		rtcp_hdr.PayloadType = gf_bs_read_u8(bs);
-		rtcp_hdr.Length = 1 + gf_bs_read_u16(bs);
+		rtcp_hdr.Padding = gf_bs_read_int(ch->bs_r, 1);
+		rtcp_hdr.Count = gf_bs_read_int(ch->bs_r, 5);
+		rtcp_hdr.PayloadType = gf_bs_read_u8(ch->bs_r);
+		rtcp_hdr.Length = 1 + gf_bs_read_u16(ch->bs_r);
 
 		//check pck size
 		if (pck_size < (u32) rtcp_hdr.Length * 4) {
-			gf_bs_del(bs);
 			//we return OK
 			return GF_CORRUPTED_DATA;
 		}
@@ -93,8 +89,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			if ( ( (rtcp_hdr.PayloadType!=200) && (rtcp_hdr.PayloadType!=201) )
 			        || rtcp_hdr.Padding
 			   ) {
-				gf_bs_del(bs);
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTCP] Corrupted RTCP packet: payload type %d (200 or 201 expected) - Padding %d (0 expected)\n", rtcp_hdr.PayloadType, rtcp_hdr.Padding));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTCP] Corrupted RTCP packet: payload type %d (200 or 201 expected) - Padding %d (0 expected)\n", rtcp_hdr.PayloadType, rtcp_hdr.Padding));
 				return GF_CORRUPTED_DATA;
 			}
 			first = 0;
@@ -105,23 +100,22 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 		//Sender report - we assume there's only one sender
 		case 200:
 			/*sender ssrc*/
-			sender_ssrc = gf_bs_read_u32(bs);
+			sender_ssrc = gf_bs_read_u32(ch->bs_r);
 			rtcp_hdr.Length -= 1;
 			/*not for us...*/
 			if (ch->SenderSSRC && (ch->SenderSSRC != sender_ssrc)) break;
 
 			if (ch->first_SR) {
-				ch->first_SR = 0;
 				gf_rtp_get_next_report_time(ch);
 				ch->SenderSSRC = sender_ssrc;
 			}
 			ch->last_report_time = gf_rtp_get_report_time();
 
-			ch->last_SR_NTP_sec = gf_bs_read_u32(bs);
-			ch->last_SR_NTP_frac = gf_bs_read_u32(bs);
-			ch->last_SR_rtp_time = gf_bs_read_u32(bs);
-			/*nb_pck =  */gf_bs_read_u32(bs);
-			/*nb_bytes =*/gf_bs_read_u32(bs);
+			ch->last_SR_NTP_sec = gf_bs_read_u32(ch->bs_r);
+			ch->last_SR_NTP_frac = gf_bs_read_u32(ch->bs_r);
+			ch->last_SR_rtp_time = gf_bs_read_u32(ch->bs_r);
+			/*nb_pck =  */gf_bs_read_u32(ch->bs_r);
+			/*nb_bytes =*/gf_bs_read_u32(ch->bs_r);
 
 			rtcp_hdr.Length -= 5;
 			if (has_sr) *has_sr = GF_TRUE;
@@ -130,11 +124,12 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_INFO))  {
 #ifndef _WIN32_WCE
 				time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
-				const char *ascTime = asctime(gmtime(&gtime));
+				const char *ascTime = asctime(gf_gmtime(&gtime));
 #else
 				const char *ascTime = "Not Available";
 #endif
-				GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] RTCP SR: SSRC %d - RTP Time %d - Nb Pck %d - Nb Bytes %d - Time %s\n",
+				GF_LOG(ch->first_SR ? GF_LOG_INFO : GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP %sSR: SSRC %d - RTP Time %u - Nb Pck %d - Nb Bytes %d - Time %s\n",
+											   ch->first_SR ? "Initial " : "",
 				                                 ch->SenderSSRC,
 				                                 ch->last_SR_rtp_time,
 				                                 ch->total_pck,
@@ -144,13 +139,15 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			}
 #endif
 
+			ch->first_SR = 0;
+
 			//common encoding for SR and RR
 			goto process_reports;
 
 
 		case 201:
 			//sender ssrc
-			/*sender_ssrc = */gf_bs_read_u32(bs);
+			/*sender_ssrc = */gf_bs_read_u32(ch->bs_r);
 			rtcp_hdr.Length -= 1;
 
 process_reports:
@@ -160,19 +157,19 @@ process_reports:
 			//to add
 			for (i=0; i<rtcp_hdr.Count; i++) {
 				//ssrc slot
-				cur_ssrc = gf_bs_read_u32(bs);
+				cur_ssrc = gf_bs_read_u32(ch->bs_r);
 				//frac lost
-				gf_bs_read_u8(bs);
+				gf_bs_read_u8(ch->bs_r);
 				//cumulative lost
-				gf_bs_read_u24(bs);
+				gf_bs_read_u24(ch->bs_r);
 				//extended seq num
-				gf_bs_read_u32(bs);
+				gf_bs_read_u32(ch->bs_r);
 				//jitter
-				gf_bs_read_u32(bs);
+				gf_bs_read_u32(ch->bs_r);
 				//LSR
-				gf_bs_read_u32(bs);
+				gf_bs_read_u32(ch->bs_r);
 				//DLSR
-				gf_bs_read_u32(bs);
+				gf_bs_read_u32(ch->bs_r);
 
 				rtcp_hdr.Length -= 6;
 			}
@@ -183,17 +180,17 @@ process_reports:
 		//SDES
 		case 202:
 			for (i=0; i<rtcp_hdr.Count; i++) {
-				/*cur_ssrc = */gf_bs_read_u32(bs);
+				/*cur_ssrc = */gf_bs_read_u32(ch->bs_r);
 				rtcp_hdr.Length -= 1;
 
 				val = 0;
 				while (1) {
-					sdes_type = gf_bs_read_u8(bs);
+					sdes_type = gf_bs_read_u8(ch->bs_r);
 					val += 1;
 					if (!sdes_type) break;
-					sdes_len = gf_bs_read_u8(bs);
+					sdes_len = gf_bs_read_u8(ch->bs_r);
 					val += 1;
-					gf_bs_read_data(bs, sdes_buffer, sdes_len);
+					gf_bs_read_data(ch->bs_r, sdes_buffer, sdes_len);
 					sdes_buffer[sdes_len] = 0;
 					val += sdes_len;
 				}
@@ -201,7 +198,7 @@ process_reports:
 				//re-align on 32bit
 				res = val%4;
 				if (res) {
-					gf_bs_skip_bytes(bs, (4-res));
+					gf_bs_skip_bytes(ch->bs_r, (4-res));
 					val = val/4 + 1;
 				} else {
 					val = val/4;
@@ -213,7 +210,7 @@ process_reports:
 		//BYE packet - close the channel - we work with 1 SSRC only */
 		case 203:
 			for (i=0; i<rtcp_hdr.Count; i++) {
-				cur_ssrc = gf_bs_read_u32(bs);
+				cur_ssrc = gf_bs_read_u32(ch->bs_r);
 				rtcp_hdr.Length -= 1;
 				if (ch->SenderSSRC == cur_ssrc) {
 					e = GF_EOS;
@@ -222,7 +219,7 @@ process_reports:
 			}
 			//extra info - skip it
 			while (rtcp_hdr.Length) {
-				gf_bs_read_u32(bs);
+				gf_bs_read_u32(ch->bs_r);
 				rtcp_hdr.Length -= 1;
 			}
 			break;
@@ -248,24 +245,16 @@ process_reports:
 		*/
 		default:
 			//read all till end
-			gf_bs_read_data(bs, sdes_buffer, rtcp_hdr.Length*4);
+			gf_bs_read_data(ch->bs_r, sdes_buffer, rtcp_hdr.Length*4);
 			rtcp_hdr.Length = 0;
 			break;
 		}
 		//WE SHALL CONSUME EVERYTHING otherwise the packet is bad
 		if (rtcp_hdr.Length) {
-			gf_bs_del(bs);
 			return GF_CORRUPTED_DATA;
 		}
 	}
-
-	gf_bs_del(bs);
 	return e;
-}
-
-u32 gf_rtp_get_ntp_frac(u32 sec, u32 frac)
-{
-	return ( ((sec  & 0x0000ffff) << 16) |  ((frac & 0xffff0000) >> 16));
 }
 
 static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
@@ -355,7 +344,11 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	//RTP specs annexe A.8
 	gf_bs_write_u32(bs, ( ch->Jitter >> 4));
 	//LSR
-	val = ch->last_SR_NTP_sec ? gf_rtp_get_ntp_frac(ch->last_SR_NTP_sec, ch->last_SR_NTP_frac) : 0;
+	if (ch->last_SR_NTP_sec) {
+		val = ( ((ch->last_SR_NTP_sec  & 0x0000ffff) << 16) |  ((ch->last_SR_NTP_frac & 0xffff0000) >> 16));
+	} else {
+		val = 0;
+	}
 	gf_bs_write_u32(bs, val);
 
 	// DLSR
@@ -366,11 +359,11 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
 #ifndef _WIN32_WCE
 		time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
-		const char *ascTime = asctime(gmtime(&gtime));
+		const char *ascTime = asctime(gf_gmtime(&gtime));
 #else
 		const char *ascTime = "Not Available";
 #endif
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP-RR\t%d\t%d\t%d\t%d\t%d\t%s\n",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP-RR: SSRC %d Jitter %d extended %d expect_diff %d loss_diff %d time %s\n",
 		                                  ch->SSRC,
 		                                  ch->Jitter >> 4,
 		                                  extended,
@@ -455,13 +448,11 @@ static u32 RTCP_FormatBYE(GF_RTPChannel *ch, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
-                       GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                       void *rtsp_cbk)
+GF_Err gf_rtp_send_bye(GF_RTPChannel *ch)
 {
 	GF_BitStream *bs;
 	u32 report_size;
-	char *report_buf;
+	u8 *report_buf;
 	GF_Err e = GF_OK;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -486,8 +477,8 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 	if (ch->rtcp) {
 		e = gf_sk_send(ch->rtcp, report_buf, report_size);
 	} else {
-		if (RTP_TCPCallback)
-			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
+		if (ch->send_interleave)
+			e = ch->send_interleave(ch->interleave_cbk1, ch->interleave_cbk2, GF_TRUE, report_buf, report_size);
 		else
 			e = GF_BAD_PARAM;
 	}
@@ -496,14 +487,13 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 }
 
 GF_EXPORT
-GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
-                               GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
-                               void *rtsp_cbk)
+GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 {
 	u32 Time, report_size;
 	GF_BitStream *bs;
-	char *report_buf;
+	u8 *report_buf;
 	GF_Err e = GF_OK;
+	
 
 	/*skip first SR when acting as a receiver*/
 	if (!ch->forced_ntp_sec && ch->first_SR) return GF_OK;
@@ -527,12 +517,11 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 	gf_bs_get_content(bs, &report_buf, &report_size);
 	gf_bs_del(bs);
 
-
 	if (ch->rtcp) {
 		e = gf_sk_send(ch->rtcp, report_buf, report_size);
 	} else {
-		if (RTP_TCPCallback)
-			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
+		if (ch->send_interleave)
+			e = ch->send_interleave(ch->interleave_cbk1, ch->interleave_cbk2, GF_TRUE, report_buf, report_size);
 		else
 			e = GF_BAD_PARAM;
 	}
@@ -553,12 +542,23 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 	return e;
 }
 
+#if 0 //unused
+
+enum
+{
+	GF_RTCP_INFO_NAME = 0,
+	GF_RTCP_INFO_EMAIL,
+	GF_RTCP_INFO_PHONE,
+	GF_RTCP_INFO_LOCATION,
+	GF_RTCP_INFO_TOOL,
+	GF_RTCP_INFO_NOTE,
+	GF_RTCP_INFO_PRIV
+};
 
 
 #define RTCP_SAFE_FREE(p) if (p) gf_free(p);	\
 					p = NULL;
 
-GF_EXPORT
 GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
 {
 	if (!ch) return GF_BAD_PARAM;
@@ -597,5 +597,8 @@ GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
 	}
 	return GF_OK;
 }
+
+#endif
+
 
 #endif /*GPAC_DISABLE_STREAMING*/

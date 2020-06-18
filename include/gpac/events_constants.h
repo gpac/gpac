@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Events management
@@ -28,17 +28,14 @@
 #define _GF_EVENTS_CONSTANTS_H_
 
 /*!
- *	\file <gpac/events_constants.h>
- *	\brief Constants for event system used by GPAC playback.
+\file <gpac/events_constants.h>
+\brief Constants for event system used by GPAC playback.
  */
 	
 /*!
- *	\addtogroup evt_grp
- *	\ingroup playback_grp
- *	\brief Constants for event system used by GPAC playback.
- *
- *This section documents the event types used by the terminal, the compositor, input modules and output rendering modules for communication.
- *	@{
+\addtogroup evt_grp
+\ingroup playback_grp
+@{
  */
 
 
@@ -48,7 +45,7 @@
 	DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP FILTERING OF USER INPUT EVENTS
 */
 
-/*events*/
+/*! Event types*/
 typedef enum {
 
 	/******************************************************
@@ -74,6 +71,7 @@ typedef enum {
 	/*character input*/
 	GF_EVENT_TEXTINPUT,
 
+	GF_EVENT_MULTITOUCH,
 
 	/******************************************************
 
@@ -215,6 +213,8 @@ typedef enum {
 		- when sent from gpac to user, indicate aspect ratio has been modified and video output is ready
 	*/
 	GF_EVENT_VIDEO_SETUP,
+	//set current GL context for the calling thread
+	GF_EVENT_SET_GL,
 	/*queries the list of system colors - only exchanged between compositor and video output*/
 	GF_EVENT_SYS_COLORS,
 
@@ -232,7 +232,6 @@ typedef enum {
 	GF_EVENT_NAVIGATE_INFO, /*indicates the link or its description under the mouse pointer*/
 	GF_EVENT_MESSAGE, /*message from the MPEG-4 terminal*/
 	GF_EVENT_PROGRESS, /*progress message from the MPEG-4 terminal*/
-	GF_EVENT_FORWARDED, /*event forwarded by service (MPEG-2, RTP, ...)*/
 	GF_EVENT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
 	GF_EVENT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
 	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
@@ -255,18 +254,15 @@ typedef enum {
 	GF_EVENT_TIMESHIFT_UNDERRUN,
 	GF_EVENT_MAIN_ADDON_STATE,
 
-	GF_EVENT_FROM_SERVICE,
-
 	GF_EVENT_ADDON_DETECTED,
 
 	GF_EVENT_RELOAD,
 
 	GF_EVENT_SENSOR_ORIENTATION,
 	GF_EVENT_SENSOR_REQUEST,
-	GF_EVENT_SYNC_LOST,
 } GF_EventType;
 
-/*GPAC/DOM3 key codes*/
+/*! GPAC/DOM3 key codes*/
 typedef enum {
 	GF_KEY_UNIDENTIFIED = 0,
 	GF_KEY_ACCEPT = 1, /* "Accept"    The Accept (Commit) key.*/
@@ -485,7 +481,7 @@ typedef enum {
 } GF_KeyCode;
 
 
-/*key modifiers state - set by terminal (not set by video driver)*/
+/*! key modifiers state - set by terminal (not set by video driver)*/
 typedef enum
 {
 	GF_KEY_MOD_SHIFT = (1),
@@ -497,11 +493,14 @@ typedef enum
 	GF_KEY_EXT_RIGHT = (1<<6)
 } GF_KeyModifier;
 
-/*sensor signaling*/
+/*! Sensor apperance signaling*/
 enum
 {
+	/*regular*/
 	GF_CURSOR_NORMAL = 0x00,
+	/*hyperlink*/
 	GF_CURSOR_ANCHOR,
+	/*touch/click*/
 	GF_CURSOR_TOUCH,
 	/*discSensor, cylinderSensor, sphereSensor*/
 	GF_CURSOR_ROTATE,
@@ -511,24 +510,21 @@ enum
 	GF_CURSOR_PLANE,
 	/*collision*/
 	GF_CURSOR_COLLIDE,
+	/*hide the cursor*/
 	GF_CURSOR_HIDE,
 };
 
-/*Mutation AttrChangeType Signaling*/
+#if 0
+/*! Mutation AttrChangeType Signaling*/
 enum
 {
+	/*! modification */
 	GF_MUTATION_ATTRCHANGE_MODIFICATION = 0x01,
 	GF_MUTATION_ATTRCHANGE_ADDITION = 0x02,
 	GF_MUTATION_ATTRCHANGE_REMOVAL = 0x03,
 };
+#endif
 
-enum
-{
-	//regular even codes
-	GF_EVT_REGULAR = 0,
-	/*events forwarded from MPEG-2 stack*/
-	GF_EVT_MPEG2 = 1,
-};
 
 /*! @} */
 

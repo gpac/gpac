@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -34,25 +34,8 @@ since the drift may be high on TS for example, where PTS-PCR>500ms is quite comm
 //introduce oscillations in the clock and non-smooth playback
 #define MIN_DRIFT_ADJUST	75
 
-struct __audiofilteritem
-{
-	GF_AudioInterface input;
-	GF_AudioInterface *src;
 
-	u32 out_chan, out_ch_cfg;
-
-	u32 nb_used, nb_filled;
-
-	GF_AudioFilterChain filter_chain;
-};
-
-
-GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name);
-void gf_af_del(GF_AudioFilterItem *af);
-void gf_af_reset(GF_AudioFilterItem *af);
-
-
-static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
+static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_size, u32 audio_delay_ms)
 {
 	char *frame;
 	u32 obj_time, ts;
@@ -64,7 +47,9 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	if (!ai->stream) return NULL;
 
 	done = ai->stream_finished;
-	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->step_mode ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, 0, &ai->stream_finished, &ts, size, NULL, NULL, NULL);
+	ai->input_ifce.is_buffering = GF_FALSE;
+
+	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->non_rt_output ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, 0, &ai->stream_finished, &ts, size, NULL, NULL, NULL, planar_size);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (done != ai->stream_finished) {
 		gf_sc_invalidate(ai->compositor, NULL);
@@ -72,17 +57,18 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
-		if (!ai->stream_finished) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] No data in audio object\n"));
+		if (!ai->stream_finished && gf_mo_is_started(ai->stream) && (ai->stream->odm->ck->speed == FIX_ONE)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] No data in audio object\n"));
 		}
 		gf_mo_adjust_clock(ai->stream, 0);
+		ai->input_ifce.is_buffering = gf_mo_is_buffering(ai->stream);
 		*size = 0;
 		return NULL;
 	}
 	ai->need_release = GF_TRUE;
 
 	//step mode, return the frame without sync check
-	if (ai->compositor->audio_renderer->step_mode) {
+	if (ai->compositor->audio_renderer->non_rt_output) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] audio frame CTS %u %d bytes fetched\n", ts, *size));
 		return frame;
 	}
@@ -96,6 +82,25 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	} else {
 		drift = (s32)obj_time;
 		drift -= (s32)ts;
+	}
+	if (ai->stream->odm->prev_clock_at_discontinuity_plus_one) {
+		s32 drift_old = drift;
+		s32 diff;
+		drift_old -= (s32) ai->stream->odm->ck->init_timestamp;
+		drift_old += (s32) ai->stream->odm->prev_clock_at_discontinuity_plus_one - 1;
+		diff = ABS(drift_old);
+		diff -= ABS(drift);
+		if (diff < 0) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[Audio Input] in clock discontinuity: drift old clock %d new clock %d - disabling clock adjustment\n", drift_old, drift));
+			drift = 0;
+			audio_delay_ms = 0;
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[Audio Input] end of clock discontinuity: drift old clock %d new clock %d\n", drift_old, drift));
+			ai->stream->odm->prev_clock_at_discontinuity_plus_one = 0;
+			if (drift<0) {
+				drift = 0;
+			}
+		}
 	}
 
 #ifdef ENABLE_EARLY_FRAME_DETECTION
@@ -116,9 +121,13 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = GF_FALSE;
-			return gf_audio_input_fetch_frame(callback, size, audio_delay_ms);
+			return gf_audio_input_fetch_frame(callback, size, planar_size, audio_delay_ms);
 		}
-		resync_delay = gf_mo_get_clock_drift(ai->stream) - drift;
+		if (ai->stream->odm && ai->stream->odm->ck)
+			resync_delay = ai->stream->odm->ck->audio_delay - drift;
+		else
+			resync_delay = -drift;
+			
 		if (resync_delay < 0) resync_delay = -resync_delay;
 
 		if (resync_delay > MIN_DRIFT_ADJUST) {
@@ -149,7 +158,10 @@ static Bool gf_audio_input_get_volume(void *callback, Fixed *vol)
 	if (ai->snd && ai->snd->GetChannelVolume) {
 		return ai->snd->GetChannelVolume(ai->snd->owner, vol);
 	} else {
-		vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = ai->intensity;
+		u32 i;
+		for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++)
+			vol[i] = ai->intensity;
+			
 		return (ai->intensity==FIX_ONE) ? GF_FALSE : GF_TRUE;
 	}
 }
@@ -158,6 +170,9 @@ static Bool gf_audio_input_is_muted(void *callback)
 {
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	if (!ai->stream) return GF_TRUE;
+
+	if (ai->stream->odm->nb_buffering)
+		gf_odm_check_buffering(ai->stream->odm, NULL);
 	if (ai->is_muted)
 		return GF_TRUE;
 	return gf_mo_is_muted(ai->stream);
@@ -168,18 +183,19 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	GF_AudioInput *ai = (GF_AudioInput *) aifc->callback;
 	if (!ai->stream) return GF_FALSE;
 	/*watchout for object reuse*/
-	if (aifc->samplerate && (gf_mo_get_flags(ai->stream) & GF_MO_IS_INIT)) return GF_TRUE;
+	if (aifc->samplerate &&  !ai->stream->config_changed) return GF_TRUE;
 
-	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->bps , &aifc->chan, &aifc->ch_cfg);
+	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->afmt , &aifc->chan, &aifc->ch_layout, &aifc->forced_layout);
 
 	if (!for_recf)
 		return aifc->samplerate ? GF_TRUE : GF_FALSE;
 
-	if (aifc->samplerate * aifc->chan * aifc->bps && ((aifc->chan<=2) || aifc->ch_cfg))  {
-		gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, GF_TRUE);
+	if (aifc->samplerate && aifc->chan && aifc->afmt && ((aifc->chan<=2) || aifc->ch_layout))  {
+		ai->stream->config_changed = GF_FALSE;
 		return GF_TRUE;
 	}
-	gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, GF_FALSE);
+	//still not ready !
+	ai->stream->config_changed=GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -208,14 +224,11 @@ void gf_sc_audio_predestroy(GF_AudioInput *ai)
 {
 	gf_sc_audio_stop(ai);
 	gf_sc_audio_unregister(ai);
-
-	if (ai->filter) gf_af_del(ai->filter);
 }
 
 GF_EXPORT
 GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd, Bool lock_timeline)
 {
-	u32 i;
 	if (ai->is_open) return GF_BAD_PARAM;
 
 	/*get media object*/
@@ -228,18 +241,9 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 
 	ai->stream_finished = GF_FALSE;
 	ai->is_open = 1;
-	gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, GF_FALSE);
+	//force reload of audio props
+	ai->stream->config_changed = GF_TRUE;
 
-	if (ai->filter) gf_af_del(ai->filter);
-	ai->filter = NULL;
-
-	for (i=0; i<url->count; i++) {
-		if (url->vals[i].url && !strnicmp(url->vals[i].url, "#filter=", 8)) {
-			ai->filter = gf_af_new(ai->compositor, &ai->input_ifce, url->vals[i].url+8);
-			if (ai->filter)
-				break;
-		}
-	}
 	return GF_OK;
 }
 
@@ -253,13 +257,10 @@ void gf_sc_audio_stop(GF_AudioInput *ai)
 
 	assert(!ai->need_release);
 
-	gf_mo_stop(ai->stream);
+	gf_mo_stop(&ai->stream);
 	ai->is_open = 0;
 	gf_mo_unregister(ai->owner, ai->stream);
 	ai->stream = NULL;
-
-	if (ai->filter) gf_af_del(ai->filter);
-	ai->filter = NULL;
 
 	gf_mixer_lock(ai->compositor->audio_renderer->mixer, GF_FALSE);
 
@@ -272,7 +273,7 @@ void gf_sc_audio_restart(GF_AudioInput *ai)
 	if (ai->need_release) gf_mo_release_data(ai->stream, 0xFFFFFFFF, 2);
 	ai->need_release = GF_FALSE;
 	ai->stream_finished = GF_FALSE;
-	if (ai->filter) gf_af_reset(ai->filter);
+
 	gf_mo_restart(ai->stream);
 }
 
@@ -287,7 +288,6 @@ GF_EXPORT
 void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 {
 	GF_AudioInterface *aifce;
-
 	/*check interface is valid*/
 	if (!ai->input_ifce.FetchFrame
 	        || !ai->input_ifce.GetChannelVolume
@@ -298,7 +298,6 @@ void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 	   ) return;
 
 	aifce = &ai->input_ifce;
-	if (ai->filter) aifce = &ai->filter->input;
 
 	if (tr_state->audio_parent) {
 		/*this assume only one parent may use an audio node*/
@@ -328,7 +327,6 @@ GF_EXPORT
 void gf_sc_audio_unregister(GF_AudioInput *ai)
 {
 	GF_AudioInterface *aifce = &ai->input_ifce;
-	if (ai->filter) aifce = &ai->filter->input;
 
 	if (ai->register_with_renderer) {
 		ai->register_with_renderer = GF_FALSE;
@@ -339,114 +337,3 @@ void gf_sc_audio_unregister(GF_AudioInput *ai)
 	}
 }
 
-
-static char *gf_af_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
-{
-	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
-
-	*size = 0;
-	if (!af->nb_used) {
-		/*force filling the filter chain output until no data is available, otherwise we may end up
-		with data in input and no data as output because of block framing of the filter chain*/
-		while (!af->nb_filled) {
-			u32 nb_bytes;
-			char *data = af->src->FetchFrame(af->src->callback, &nb_bytes, audio_delay_ms + af->filter_chain.delay_ms);
-			/*no input data*/
-			if (!data || !nb_bytes)
-				return NULL;
-
-			if (nb_bytes > af->filter_chain.min_block_size) nb_bytes = af->filter_chain.min_block_size;
-			memcpy(af->filter_chain.tmp_block1, data, nb_bytes);
-			af->src->ReleaseFrame(af->src->callback, nb_bytes);
-
-			af->nb_filled = gf_afc_process(&af->filter_chain, nb_bytes);
-		}
-	}
-
-	*size = af->nb_filled - af->nb_used;
-	return af->filter_chain.tmp_block1 + af->nb_used;
-}
-static void gf_af_release_frame(void *callback, u32 nb_bytes)
-{
-	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
-	/*mark used bytes of filter output*/
-	af->nb_used += nb_bytes;
-	if (af->nb_used==af->nb_filled) {
-		af->nb_used = 0;
-		af->nb_filled = 0;
-	}
-}
-
-static Fixed gf_af_get_speed(void *callback)
-{
-	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
-	return af->src->GetSpeed(af->src->callback);
-}
-static Bool gf_af_get_channel_volume(void *callback, Fixed *vol)
-{
-	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
-	return af->src->GetChannelVolume(af->src->callback, vol);
-}
-
-static Bool gf_af_is_muted(void *callback)
-{
-	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
-	return af->src->IsMuted(af->src->callback);
-}
-
-static Bool gf_af_get_config(GF_AudioInterface *ai, Bool for_reconf)
-{
-	GF_AudioFilterItem *af = (GF_AudioFilterItem *)ai->callback;
-
-	Bool res = af->src->GetConfig(af->src, for_reconf);
-	if (!res) return GF_FALSE;
-	if (!for_reconf) return GF_TRUE;
-
-
-	af->input.bps = af->src->bps;
-	af->input.samplerate = af->src->samplerate;
-
-	af->input.ch_cfg = af->src->ch_cfg;
-	af->input.chan = af->src->chan;
-
-	if (gf_afc_setup(&af->filter_chain, af->input.bps, af->input.samplerate, af->src->chan, af->src->ch_cfg, &af->input.chan, &af->input.ch_cfg)!=GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[Audio Input] Failed to configure audio filter chain\n"));
-
-		return GF_FALSE;
-	}
-	return GF_TRUE;
-}
-
-GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name)
-{
-	GF_AudioFilterItem *filter;
-	if (!src || !filter_name) return NULL;
-
-	GF_SAFEALLOC(filter, GF_AudioFilterItem);
-	if (!filter) return NULL;
-	
-	filter->src = src;
-	filter->input.FetchFrame = gf_af_fetch_frame;
-	filter->input.ReleaseFrame = gf_af_release_frame;
-	filter->input.GetSpeed = gf_af_get_speed;
-	filter->input.GetChannelVolume = gf_af_get_channel_volume;
-	filter->input.IsMuted = gf_af_is_muted;
-	filter->input.GetConfig = gf_af_get_config;
-	filter->input.callback = filter;
-
-	gf_afc_load(&filter->filter_chain, compositor->user, filter_name);
-	return filter;
-}
-
-void gf_af_del(GF_AudioFilterItem *af)
-{
-	gf_afc_unload(&af->filter_chain);
-	gf_free(af);
-}
-
-void gf_af_reset(GF_AudioFilterItem *af)
-{
-	gf_afc_reset(&af->filter_chain);
-
-	af->nb_filled = af->nb_used = 0;
-}

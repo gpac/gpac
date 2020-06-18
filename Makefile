@@ -3,6 +3,10 @@
 #
 include config.mak
 
+ifndef SRC_PATH
+override SRC_PATH = .
+endif
+
 vpath %.c $(SRC_PATH)
 
 all:	version
@@ -11,6 +15,11 @@ all:	version
 ifneq ($(MP4BOX_STATIC),yes)
 	$(MAKE) -C modules all
 endif
+
+
+config.mak:
+	./configure
+
 
 GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
 TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 2> /dev/null)
@@ -41,7 +50,7 @@ mods:
 
 instmoz:
 	$(MAKE) -C applications/osmozilla install
-	
+
 depend:
 	$(MAKE) -C src dep
 	$(MAKE) -C applications dep
@@ -56,16 +65,21 @@ distclean:
 	$(MAKE) -C src distclean
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean
-	rm -f config.mak config.h
+	rm -f config.mak config.h config.log
 	@find . -type f -name '*.gcno*' -delete
 	@find . -type f -name '*.gcda*' -delete
 	@rm -f coverage.info 2> /dev/null
+	@rm -f bin/gcc/gm_*$(DYN_LIB_SUFFIX) 2> /dev/null
+	@rm -f bin/gcc/gf_*$(DYN_LIB_SUFFIX) 2> /dev/null
 
-docs:
-	@cd $(SRC_PATH)/doc && doxygen
+doc:
+	@cd $(SRC_PATH)/share/doc && doxygen
+
+man:
+	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && MP4Client -genman && gpac -genman
 
 test_suite:
-	@cd $(SRC_PATH)/tests && ./make_tests.sh
+	@cd $(SRC_PATH)/testsuite && ./make_tests.sh
 
 lcov_clean:
 	lcov --directory . --zerocounters
@@ -73,8 +87,8 @@ lcov_clean:
 lcov_only:
 	@echo "Generating lcov info in coverage.info"
 	@rm -f ./gpac-conf-* > /dev/null
-	@lcov -q -capture --directory . --output-file all.info 
-	@lcov --remove all.info /usr/* /usr/include/* /usr/local/include/* /usr/include/libkern/i386/* /usr/include/sys/_types/* /opt/* /opt/local/include/* /opt/local/include/mozjs185/* --output coverage.info
+	@lcov -q -capture --directory . --output-file all.info
+	@lcov --remove all.info '*/usr/*' '*/opt/*' '*/include/*' '*/validator/*' '*/quickjs/*' '*/jsmods/WebGLRenderingContextBase*' '*/utils/Remotery*' '*/utils/gzio*'  --output coverage.info
 	@rm all.info
 	@echo "Purging lcov info"
 	@cd src ; for dir in * ; do cd .. ; sed -i -- "s/$$dir\/$$dir\//$$dir\//g" coverage.info; cd src; done ; cd ..
@@ -85,12 +99,12 @@ lcov:	lcov_only
 	@genhtml -q -o coverage coverage.info
 
 travis_tests:
-	@echo "Running tests"
-	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn -sync-before
+	@echo "Running tests in $(SRC_PATH)/testsuite"
+	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -precommit -p=0
 
 travis_deploy:
 	@echo "Deploying results"
-	@cd $(SRC_PATH)/tests && ./ghp_deploy.sh
+	@cd $(SRC_PATH)/testsuite && ./ghp_deploy.sh
 
 travis: travis_tests lcov travis_deploy
 
@@ -100,26 +114,11 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/gpac$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no)
 	if [ -f bin/gcc/MP4Box$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
-ifneq ($(MP4BOX_STATIC), yes)
-	if [ -f bin/gcc/MP42TS$(EXE_SUFFIX) ] ; then \
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
-	fi
-ifneq ($(CONFIG_WIN32), yes)
-ifneq ($(CONFIG_FFMPEG), no)
-ifneq ($(DISABLE_CORE_TOOLS), yes)
-ifneq ($(DISABLE_AV_PARSERS), yes)
-	if [ -f bin/gcc/DashCast$(EXE_SUFFIX) ] ; then \
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
-	fi
-endif
-endif
-endif
-endif
-endif
 endif
 ifneq ($(MP4BOX_STATIC), yes)
 ifeq ($(DISABLE_PLAYER), no)
@@ -133,69 +132,92 @@ endif
 	fi
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
 ifneq ($(MP4BOX_STATIC),yes)
-	$(INSTALL) bin/gcc/*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
-	rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
-	rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
+	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)" || true
+	$(INSTALL) bin/gcc/gf_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)" || true
+	#rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
+	#rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
+ifeq ($(CONFIG_OPENHEVC),yes)
+	cp -a bin/gcc/libopenhevc* $(DESTDIR)$(prefix)/$(libdir)/ || true
+endif
 	$(MAKE) installdylib
 endif
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac-filters.1 $(DESTDIR)$(mandir)/man1/
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/  
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/res"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/webvtt-renderer.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/extensions"
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders/"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/scripts"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/include"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/res/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac_cfg_test.mp4 $(DESTDIR)$(prefix)/share/gpac/res/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png $(DESTDIR)$(prefix)/share/gpac/res/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/default.cfg $(DESTDIR)$(prefix)/share/gpac/
+
+ifneq ($(CONFIG_DARWIN),yes)
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/pixmaps"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/applications"
+
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png "$(DESTDIR)$(prefix)/share/pixmaps/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)$(prefix)/share/applications/"
+
+endif
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/scripts/webvtt-renderer.js "$(DESTDIR)$(prefix)/share/gpac/scripts/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/scripts/ttml-renderer.js "$(DESTDIR)$(prefix)/share/gpac/scripts/"
+
+
 ifeq ($(CONFIG_DARWIN),yes)
-	cp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" 
-	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
-	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
+	cp $(SRC_PATH)/share/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/"
+	cp -R $(SRC_PATH)/share/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/"
+	cp $(SRC_PATH)/share/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/"
+	cp -R $(SRC_PATH)/include/* "$(DESTDIR)$(prefix)/include/"
 else
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
-	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* $(DESTDIR)$(prefix)/share/gpac/shaders/
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/shaders/* $(DESTDIR)$(prefix)/share/gpac/shaders/
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/include/* $(DESTDIR)$(prefix)/include/
 endif
 
 lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+	ln -sf $(BUILD_PATH)/bin/gcc/gpac$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/gpac$(EXE_SUFFIX)
 ifeq ($(DISABLE_ISOFF), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
-	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP42TS$(EXE_SUFFIX)
 endif
 ifneq ($(MP4BOX_STATIC),yes)
 ifeq ($(DISABLE_PLAYER), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
 endif
-ifneq ($(CONFIG_WIN32), yes)
-ifneq ($(CONFIG_FFMPEG), no)
-ifneq ($(DISABLE_CORE_TOOLS), yes)
-ifneq ($(DISABLE_AV_PARSERS), yes)
-	ln -sf $(BUILD_PATH)/bin/gcc/DashCast$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/DashCast$(EXE_SUFFIX)
-endif
-endif
-endif
-endif
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
-	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_MAJOR)$(DYN_LIB_SUFFIX)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
 else
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+
+	ln -s $(SRC_PATH)/share/ $(DESTDIR)$(prefix)/share/gpac
+	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png
+	ln -sf $(SRC_PATH)/share/gpac.desktop $(DESTDIR)/usr/share/applications/
+
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
 endif
+
 endif
 
 uninstall:
@@ -208,12 +230,13 @@ endif
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
-	rm -rf $(DESTDIR)$(prefix)/bin/MP42TS
-	rm -rf $(DESTDIR)$(prefix)/bin/DashCast
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
+	rm -rf $(DESTDIR)$(mandir)/man1/gpac-filters.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
+	rm -rf $(DESTDIR)$(prefix)/share/pixmaps/gpac.png
+	rm -rf $(DESTDIR)$(prefix)/share/applications/gpac.desktop
 	rm -rf $(DESTDIR)$(prefix)/include/gpac
 
 installdylib:
@@ -223,11 +246,12 @@ ifeq ($(CONFIG_WIN32),yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
 else
 ifeq ($(DEBUGBUILD),no)
-	$(STRIP) bin/gcc/libgpac$(DYN_LIB_SUFFIX)
+	$(STRIP) -S bin/gcc/libgpac$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION)$(DYN_LIB_SUFFIX)
-	ln -sf libgpac.$(VERSION)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
+	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX)
+	ln -sf libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION_MAJOR)$(DYN_LIB_SUFFIX)
+	ln -sf libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
 else
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
@@ -253,6 +277,9 @@ ifeq ($(GPAC_ENST), yes)
 endif
 	mkdir -p "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) $(INSTFLAGS) -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
+	if [ -d $(DESTDIR)$(prefix)/$(libdir)/pkgconfig ] ; then \
+	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
+	fi
 	$(MAKE) installdylib
 
 uninstall-lib:
@@ -263,11 +290,11 @@ uninstall-lib:
 
 ifeq ($(CONFIG_DARWIN),yes)
 dmg:
-	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
-		echo "Local revision and remote revision are not congruent; you may have local commit."; \
-		echo "Please consider pushing your commit before generating an installer"; \
-		exit 1; \
-	fi
+#	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
+#		echo "Local revision and remote revision are not congruent; you may have local commit."; \
+#		echo "Please consider pushing your commit before generating an installer"; \
+#		exit 1; \
+#	fi
 	rm "bin/gcc/MP4Client"
 	$(MAKE) -C applications/mp4client
 	./mkdmg.sh $(arch)
@@ -275,14 +302,10 @@ endif
 
 ifeq ($(CONFIG_LINUX),yes)
 deb:
-	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
-		echo "Local revision and remote revision are not congruent; you may have local commit."; \
-		echo "Please consider pushing your commit before generating an installer"; \
-		exit 1; \
-	fi
 	git checkout --	debian/changelog
 	fakeroot debian/rules clean
-	sed -i "s/-DEV/-DEV-rev$(VERSION)-$(BRANCH)/" debian/changelog
+	# add version to changelog for final filename
+	sed -i -r "s/^(\w+) \(([0-9\.]+)(-[A-Z]+)?\)/\1 (\2\3-rev$(VERSION)-$(BRANCH))/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/
@@ -298,10 +321,10 @@ help:
 	@echo "modules: builds modules only"
 	@echo "instmoz: build and local install of osmozilla"
 	@echo "sggen: builds scene graph generators"
-	@echo 
+	@echo
 	@echo "clean: clean src repository"
 	@echo "distclean: clean src repository and host config file"
-	@echo 
+	@echo
 	@echo "install: install applications and modules on system"
 	@echo "uninstall: uninstall applications and modules"
 ifeq ($(CONFIG_DARWIN),yes)
@@ -310,15 +333,16 @@ endif
 ifeq ($(CONFIG_LINUX),yes)
         @echo "deb: creates DEB package file for debian based systems"
 endif
-	@echo 
+	@echo
 	@echo "install-lib: install gpac library (dyn and static) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
 	@echo "uninstall-lib: uninstall gpac library (dyn and static) and headers"
 	@echo
 	@echo "tests: run all tests. For more info, check gpac/regression_tests/test_suite_make.sh -h"
 	@echo
+	@echo "doc:  build libgpac documentation in gpac/doc"
+	@echo "man:  build gpac man files in gpac/doc/man (must have latest build binaries installed)"
+	@echo
 	@echo "lcov: generate lcov files"
 	@echo "lcov_clean: clean all lcov/gcov files"
-	@echo
-	@echo "docs:  build libgpac documentation in gpac/doc"
 
 -include .depend

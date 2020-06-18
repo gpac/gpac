@@ -60,12 +60,12 @@ bld/
 *.so
 *.dylib
 *.dll
-*.lai 
-*.la 
-*.a 
+*.lai
+*.la
+*.a
 *.lib
-*.exe 
-*.out 
+*.exe
+*.out
 *.app
 *.apk
 *.dmg
@@ -74,17 +74,18 @@ bld/
 
 .depend
 .deps/
+.dep
 
-#GPAC specific 
+#GPAC specific
 config.h
 include/gpac/revision.h
 include/gpac/revision.h.new
 extra_lib/lib/
-extra_lib/include/SDL/
-extra_lib/include/ios/
+extra_lib/include/
 config.mak
 configure-stamp
 gpac.pc
+share/gpac.desktop
 tests/external_media/
 tests/results/
-
+tests/hash_refs/

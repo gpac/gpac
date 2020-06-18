@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -34,96 +34,83 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/user.h>
- *	\brief GPAC terminal <-> user API.
- */
-	
+\file <gpac/user.h>
+\brief GPAC terminal <-> user API.
+*/
+
 /*!
- *\addtogroup termuser_grp Terminal User
- *\ingroup playback_grp
- *\brief GPAC terminal <-> user API.
- *
- *This section documents the user-level API of the GPAC media player.
- *	@{
- */
-	
+\addtogroup termuser_grp Terminal User
+\ingroup playback_grp
+\brief GPAC terminal <-> user API.
+
+This section documents the user-level API of the GPAC media player.
+
+@{
+*/
+
 
 
 
 #include <gpac/events.h>
 #include <gpac/module.h>
 
-/*GPAC client terminal*/
+/*! GPAC client terminal*/
 typedef struct _tag_terminal GF_Terminal;
+/*! GPAC user structure*/
 typedef struct _tag_user GF_User;
 
-
+/*! terminal creation flags*/
 enum
 {
 	/*display should be hidden upon initialization*/
 	GF_TERM_INIT_HIDE = 1,
 	/*no audio renderer will be created*/
 	GF_TERM_NO_AUDIO = 1<<1,
-	/*terminal is used without visual threading:
-		* media codecs are not threaded
-		* all composition memories are filled before rendering
-		* rendering is done after media decoding
-		* the user is responsible for updating the terminal
-	*/
-	GF_TERM_NO_DECODER_THREAD = 1<<2,
-
-	/*works with no visual thread for the composition - compositor is driven by the media manager
-		if GF_TERM_NO_DECODER_THREAD, equivalent to GF_TERM_NO_COMPOSITOR_THREAD
-	*/
-	GF_TERM_NO_VISUAL_THREAD = 1<<3,
-
-	/*works with no visual thread for the composition - compositor is driven by gf_term_process*/
-	GF_TERM_NO_COMPOSITOR_THREAD = 1<<4,
-
-	/*disables frame-rate regulation (used when dumping content)*/
-	GF_TERM_NO_REGULATION = 1<<5,
-
-	/*uses audio hardware clock rather than system clock. The clock is increased at the rate of audio sample consumption. This should only be used for extraction
-	purposes, as it may result in non-smooth visual playback (time is not continuously increasing)*/
-	GF_TERM_USE_AUDIO_HW_CLOCK = 1<<6,
-
+	/*initializes client without a default audio out - used for dump modes where audio playback is not needed*/
+	GF_TERM_NO_DEF_AUDIO_OUT = 1<<2,
+	/*disables video output module - used for bench mode without video*/
+	GF_TERM_NO_VIDEO = 1<<3,
 	/*works without window thread*/
-	GF_TERM_WINDOW_NO_THREAD = 1<<10,
+	GF_TERM_WINDOW_NO_THREAD = 1<<4,
 	/*lets the main user handle window events (needed for browser plugins)*/
-	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<11,
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<5,
 	/*works without title bar*/
-	GF_TERM_WINDOW_NO_DECORATION = 1<<12,
-
+	GF_TERM_WINDOW_NO_DECORATION = 1<<6,
 
 	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOW_TRANSPARENT = 1<<20,
+	GF_TERM_WINDOW_TRANSPARENT = 1<<7,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<21,
+	GF_TERM_WINDOWLESS = 1<<8
 };
 
 /*user object for all callbacks*/
 struct _tag_user
 {
-	/*user defined callback for all functions - cannot be NULL*/
+	/*! user defined callback for all functions - cannot be NULL*/
 	void *opaque;
-	/*the event proc. Return value depend on the event type, usually 0
+	/*! the event proc. Return value depend on the event type, usually 0
 	cannot be NULL if os_window_handler is specified and dont_override_window_proc is set
 	may be NULL otherwise*/
 	Bool (*EventProc)(void *opaque, GF_Event *event);
 
-	/*config file of client - cannot be NULL*/
-	GF_Config *config;
-	/*modules manager - cannot be NULL - owned by the user (to allow selection of module directory)*/
-	GF_ModuleManager *modules;
-	/*optional os window handler (HWND on win32/winCE, XWindow for X11)
+	/*! optional os window handler (HWND on win32/winCE, XWindow for X11)
 	if not set the video outut will create and manage the display window.*/
 	void *os_window_handler;
-	/*for now, only used by X11 (indicates display the window is on)*/
+	/*! for now, only used by X11 (indicates display the window is on)*/
 	void *os_display;
 
-	/*init flags bypassing GPAC config file	*/
+	/*! init flags bypassing GPAC config file	*/
 	u32 init_flags;
 };
+
+/*! compositor screen buffer grab mode*/
+typedef enum
+{
+	GF_SC_GRAB_DEPTH_NONE = 0,
+	GF_SC_GRAB_DEPTH_ONLY = 1,
+	GF_SC_GRAB_DEPTH_RGBD = 2,
+	GF_SC_GRAB_DEPTH_RGBDS = 3
+} GF_CompositorGrabMode;
 
 /*! @} */
 

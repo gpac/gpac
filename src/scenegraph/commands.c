@@ -65,10 +65,10 @@ void gf_sg_command_del(GF_Command *com)
 				break;
 			case GF_SG_VRML_MFNODE:
 				if (inf->field_ptr) {
-					GF_ChildNodeItem *cur, *child;
+					GF_ChildNodeItem *child;
 					child = inf->node_list;
 					while (child) {
-						cur = child;
+						GF_ChildNodeItem *cur = child;
 						gf_node_try_destroy(com->in_scene, child->node, NULL);
 						child = child->next;
 						gf_free(cur);
@@ -90,10 +90,10 @@ void gf_sg_command_del(GF_Command *com)
 
 			if (inf->new_node) gf_node_unregister(inf->new_node, NULL);
 			else if (inf->node_list) {
-				GF_ChildNodeItem *cur, *child;
+				GF_ChildNodeItem *child;
 				child = inf->node_list;
 				while (child) {
-					cur = child;
+					GF_ChildNodeItem *cur = child;
 					gf_node_try_destroy(com->in_scene, child->node, NULL);
 					child = child->next;
 					gf_free(cur);
@@ -148,8 +148,8 @@ static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
 #ifndef GPAC_DISABLE_SVG
 static void gf_node_unregister_children_deactivate(GF_Node *container, GF_ChildNodeItem *child)
 {
-	GF_ChildNodeItem *cur;
 	while (child) {
+		GF_ChildNodeItem *cur;
 		gf_node_unregister(child->node, container);
 		gf_node_deactivate(child->node);
 		cur = child;
@@ -413,9 +413,11 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 
 		e = gf_node_insert_child(com->node, inf->new_node, inf->pos);
-		if (!e) gf_node_register(inf->new_node, com->node);
-		if (!e) gf_node_event_out(com->node, inf->fieldIndex);
-		if (!e) gf_node_changed(com->node, NULL);
+		if (!e) e = gf_node_register(inf->new_node, com->node);
+		if (!e) {
+			gf_node_event_out(com->node, inf->fieldIndex);
+			gf_node_changed(com->node, NULL);
+		}
 		break;
 	}
 	case GF_SG_ROUTE_INSERT:
@@ -498,7 +500,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		s32 pos = -2;
 		GF_Node *target = NULL;
-		GF_ChildNodeItem *list, *cur, *prev;
+		GF_ChildNodeItem *list, *cur;
 		GF_FieldInfo value;
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		if (!inf) return GF_SG_UNKNOWN_NODE;
@@ -578,6 +580,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				/*note we don't add time offset, since there's no MFTime*/
 			}
 		} else {
+			GF_ChildNodeItem *prev;
 			switch (field.fieldType) {
 			case GF_SG_VRML_SFNODE:
 			{
@@ -886,7 +889,8 @@ GF_CommandField *gf_sg_command_field_new(GF_Command *com)
 {
 	GF_CommandField *ptr;
 	GF_SAFEALLOC(ptr, GF_CommandField);
-	gf_list_add(com->command_fields, ptr);
+	if (ptr)
+		gf_list_add(com->command_fields, ptr);
 	return ptr;
 }
 
@@ -926,6 +930,9 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 	/*route insert, replace and delete*/
 	dest->RouteID = com->RouteID;
 	if (com->def_name) dest->def_name = gf_strdup(com->def_name);
+	//this is an union
+	//if (com->send_event_string) dest->send_event_string = gf_strdup(com->send_event_string);
+
 	dest->fromNodeID = com->fromNodeID;
 	dest->fromFieldIndex = com->fromFieldIndex;
 	dest->toNodeID = com->toNodeID;
@@ -933,8 +940,6 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 	dest->send_event_integer = com->send_event_integer;
 	dest->send_event_x = com->send_event_x;
 	dest->send_event_y = com->send_event_y;
-	if (com->send_event_string)
-		dest->send_event_string = gf_strdup(com->send_event_string);
 
 	dest->del_proto_list_size = com->del_proto_list_size;
 	if (com->del_proto_list_size) {

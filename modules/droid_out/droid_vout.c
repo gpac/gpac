@@ -55,9 +55,7 @@ typedef struct
 
 	u32 tex_width, tex_height;
 
-	GLuint texID;
-	GLuint framebuff;
-	GLuint depthbuff;
+	GLint texID;
 
 	GLubyte* texData;
 
@@ -250,7 +248,7 @@ static Bool initGLES2(AndroidContext *rc) {
 
 static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
 {
-	GLint loc=-1;
+	GLint loc;
 #ifdef GPAC_FIXED_POINT
 	Float _mat[16];
 	u32 i;
@@ -353,13 +351,13 @@ void initGL(AndroidContext *rc)
 void gluPerspective(GLfloat fovy, GLfloat aspect,
                     GLfloat zNear, GLfloat zFar)
 {
+#ifndef GPAC_USE_GLES2
 	GLfloat xmin, xmax, ymin, ymax;
 
 	ymax = zNear * (GLfloat)tan(fovy * PI / 360);
 	ymin = -ymax;
 	xmin = ymin * aspect;
 	xmax = ymax * aspect;
-#ifndef GPAC_USE_GLES2
 	glFrustumx((GLfixed)(xmin * 65536), (GLfixed)(xmax * 65536),
 	           (GLfixed)(ymin * 65536), (GLfixed)(ymax * 65536),
 	           (GLfixed)(zNear * 65536), (GLfixed)(zFar * 65536));
@@ -369,16 +367,10 @@ void gluPerspective(GLfloat fovy, GLfloat aspect,
 void resizeWindow(AndroidContext *rc)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("resizeWindow : start"));
-	/* Height / width ration */
-	GLfloat ratio;
 
 	/* Protect against a divide by zero */
 	if (rc->height==0)
-	{
-		rc->height=1;
-	}
-
-	ratio=(GLfloat)rc->width/(GLfloat)rc->height;
+		rc->height = 1;
 
 	/* Setup our viewport. */
 	glViewport(0, 0, (GLsizei)rc->width, (GLsizei)rc->height);
@@ -412,21 +404,22 @@ void drawGLScene(AndroidContext *rc)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("drawGLScene : start"));
 #endif /* DROID_EXTREME_LOGS */
 #ifdef GPAC_USE_GLES2
-	GLuint loc_vertex_array, loc_texcoord_array;
-	loc_vertex_array = loc_texcoord_array = -1;
+	GLint loc_vertex_array, loc_texcoord_array;
 #endif
 
 	GLfloat vertices[4][3];
 	GLfloat texcoord[4][2];
 //	int i, j;
 
+#ifndef GPAC_USE_GLES2
 	float rgba[4];
+#endif
 	gl_check_error();
 
 	// Reset states
+#ifndef GPAC_USE_GLES2
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
 	rgba[0] = 1.f;
-#ifndef GPAC_USE_GLES2
 	glColor4f(1.f, 1.f, 1.f, 1.f);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, rgba);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rgba);
@@ -464,9 +457,9 @@ void drawGLScene(AndroidContext *rc)
 	gl_check_error();
 	if ( rc->draw_texture )
 	{
+#ifndef GPAC_USE_GLES2
 		gl_check_error();
 		int cropRect[4] = {0,rc->height,rc->width,-rc->height};
-#ifndef GPAC_USE_GLES2
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
 		glDrawTexsOES(0, 0, 0, rc->width, rc->height);
 #endif
@@ -655,8 +648,6 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
 	RAWCTX;
-	void * pixels;
-	Bool res = GF_FALSE;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android Setup: %d", init_flags));
 
@@ -664,6 +655,7 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 #ifdef GPAC_USE_GLES2
 
 	if ( rc->out_3d_type == 0 ) {
+		Bool res = GF_FALSE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("We are in OpenGL: disable mode"));
 		res = initGLES2(rc);
 		if(res==GF_FALSE) {
@@ -716,9 +708,6 @@ static GF_Err droid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool do_lock)
 {
 	RAWCTX;
-	int ret;
-	void * pixels;
-	int i,j,t;
 #ifdef DROID_EXTREME_LOGS
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android LockBackBuffer: %d", do_lock));
 #endif /* DROID_EXTREME_LOGS */
@@ -759,73 +748,66 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	RAWCTX;
 
-	if (evt) {
-		switch (evt->type) {
-		case GF_EVENT_SIZE:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SIZE( %d x %d)", evt->setup.width, evt->setup.height));
-			//if (evt->setup.opengl_mode) return GF_OK;
-			//in fullscreen mode: do not change viewport; just update perspective
-			if (rc->fullscreen) {
+	if (!evt) return GF_OK;
+
+	switch (evt->type) {
+	case GF_EVENT_SIZE:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SIZE( %d x %d)", evt->setup.width, evt->setup.height));
+		//in fullscreen mode: do not change viewport; just update perspective
+		if (rc->fullscreen) {
 #ifdef GPAC_USE_GLES2
-				gl_check_error();
-				glUseProgram(rc->base_program);
-				calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
-				load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
-				load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
-				gl_check_error();
+			gl_check_error();
+			glUseProgram(rc->base_program);
+			calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
+			load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
+			load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
+			gl_check_error();
 #else
-				/* change to the projection matrix and set our viewing volume. */
-				glMatrixMode(GL_PROJECTION);
-				glLoadIdentity();
+			/* change to the projection matrix and set our viewing volume. */
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
 
-				/* Set our perspective */
-				glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
+			/* Set our perspective */
+			glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
 
-				/* Make sure we're chaning the model view and not the projection */
-				glMatrixMode(GL_MODELVIEW);
+			/* Make sure we're chaning the model view and not the projection */
+			glMatrixMode(GL_MODELVIEW);
 
-				/* Reset The View */
-				glLoadIdentity();
+			/* Reset The View */
+			glLoadIdentity();
 #endif
-				return GF_OK;
-			} else
-				return droid_Resize(dr, evt->setup.width, evt->setup.height);
+			return GF_OK;
+		} else
+			return droid_Resize(dr, evt->setup.width, evt->setup.height);
 
-		case GF_EVENT_VIDEO_SETUP:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android OpenGL mode: %d", evt->setup.opengl_mode));
-			switch (evt->setup.opengl_mode)
-			{
-			case 0:
-				rc->out_3d_type = 0;
+	case GF_EVENT_VIDEO_SETUP:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android OpenGL mode: %d", evt->setup.use_opengl));
+		if (!evt->setup.use_opengl) {
+			rc->out_3d_type = 0;
 //					initGL(rc);
-				droid_Resize(dr, evt->setup.width, evt->setup.height);
-				return GF_OK;
-			case 1:
-				rc->out_3d_type = 1;
-				droid_Resize(dr, evt->setup.width, evt->setup.height);
-				return GF_OK;
-			case 2:
-				rc->out_3d_type = 2;
-				droid_Resize(dr, evt->setup.width, evt->setup.height);
-				return GF_OK;
-			case GF_EVENT_SET_CURSOR:
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SET_CURSOR"));
-				return GF_OK;
-			case GF_EVENT_SET_CAPTION:
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SET_CAPTION"));
-				return GF_OK;
-			case GF_EVENT_SHOWHIDE:
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SHOWHIDE"));
-				return GF_OK;
-			default:
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Process Unknown Event: %d", evt->type));
-				return GF_OK;
-			}
-			break;
-		case GF_EVENT_TEXT_EDITING_START:
-		case GF_EVENT_TEXT_EDITING_END:
-			return GF_NOT_SUPPORTED;
+			droid_Resize(dr, evt->setup.width, evt->setup.height);
+		} else {
+			rc->out_3d_type = 1;
+			droid_Resize(dr, evt->setup.width, evt->setup.height);
 		}
+		return GF_OK;
+
+	case GF_EVENT_SET_CURSOR:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SET_CURSOR"));
+		return GF_OK;
+	case GF_EVENT_SET_CAPTION:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SET_CAPTION"));
+		return GF_OK;
+	case GF_EVENT_SHOWHIDE:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("GF_EVENT_SHOWHIDE"));
+		return GF_OK;
+	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Process Unknown Event: %d", evt->type));
+		return GF_OK;
+
+	case GF_EVENT_TEXT_EDITING_START:
+	case GF_EVENT_TEXT_EDITING_END:
+		return GF_NOT_SUPPORTED;
 	}
 	return GF_OK;
 }
@@ -852,8 +834,6 @@ GF_VideoOutput *NewAndroidVideoOutput()
 	memset(pCtx, 0, sizeof(AndroidContext));
 
 	pCtx->texID = -1;
-	pCtx->framebuff = -1;
-	pCtx->depthbuff = -1;
 	driv->opaque = pCtx;
 
 	driv->Flush = droid_Flush;

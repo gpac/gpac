@@ -43,41 +43,18 @@ struct _gf_ft_mgr
 	Bool wait_font_load;
 };
 
-
-GF_FontManager *gf_font_manager_new(GF_User *user)
+GF_EXPORT
+GF_FontManager *gf_font_manager_new()
 {
 	char *def_font = "SERIF";
-	u32 i, count;
 	GF_FontManager *font_mgr;
 	GF_FontReader *ifce;
-	const char *opt;
+	Bool wait_for_fonts = gf_opts_get_bool("core", "wait-fonts");
 
-	ifce = NULL;
-	opt = gf_cfg_get_key(user->config, "FontEngine", "FontReader");
-	if (opt) {
-		ifce = (GF_FontReader *) gf_modules_load_interface_by_name(user->modules, opt, GF_FONT_READER_INTERFACE);
-		if (ifce && ifce->init_font_engine(ifce) != GF_OK) {
-			gf_modules_close_interface((GF_BaseInterface *)ifce);
-			ifce = NULL;
-		}
-	}
+	ifce = (GF_FontReader *) gf_module_load(GF_FONT_READER_INTERFACE, NULL);
+	if (ifce) ifce->init_font_engine(ifce);
 
-	if (!ifce) {
-		count = gf_modules_get_count(user->modules);
-		for (i=0; i<count; i++) {
-			ifce = (GF_FontReader *) gf_modules_load_interface(user->modules, i, GF_FONT_READER_INTERFACE);
-			if (!ifce) continue;
 
-			if (ifce->init_font_engine(ifce) != GF_OK) {
-				gf_modules_close_interface((GF_BaseInterface *)ifce);
-				ifce = NULL;
-				continue;
-			}
-
-			gf_cfg_set_key(user->config, "FontEngine", "FontReader", ifce->module_name);
-			break;
-		}
-	}
 	GF_SAFEALLOC(font_mgr, GF_FontManager);
 	if (!font_mgr) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate font manager\n"));
@@ -96,9 +73,8 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 	gf_path_add_line_to(font_mgr->line_path, -FIX_ONE/2, -FIX_ONE/2);
 	gf_path_close(font_mgr->line_path);
 
-	opt = gf_cfg_get_key(user->config, "FontEngine", "WaitForFontLoad");
-	if (!opt) gf_cfg_set_key(user->config, "FontEngine", "WaitForFontLoad", "no");
-	if (opt && !strcmp(opt, "yes")) font_mgr->wait_font_load = 1;
+
+	font_mgr->wait_font_load = wait_for_fonts;
 
 	return font_mgr;
 }
@@ -189,7 +165,7 @@ GF_Err gf_font_manager_unregister_font(GF_FontManager *fm, GF_Font *font)
 }
 
 
-
+GF_EXPORT
 GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only)
 {
 	u32 i;
@@ -207,15 +183,15 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 		font_name = alt_fonts[i];
 
 		if (!stricmp(font_name, "SERIF")) {
-			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontSerif");
+			opt = gf_opts_get_key("FontCache", "FontSerif");
 			if (opt) font_name = (char*)opt;
 		}
 		else if (!stricmp(font_name, "SANS") || !stricmp(font_name, "sans-serif")) {
-			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontSans");
+			opt = gf_opts_get_key("FontCache", "FontSans");
 			if (opt) font_name = (char*)opt;
 		}
 		else if (!stricmp(font_name, "TYPEWRITER") || !stricmp(font_name, "monospace")) {
-			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontFixed");
+			opt = gf_opts_get_key("FontCache", "FontFixed");
 			if (opt) font_name = (char*)opt;
 		}
 
@@ -394,7 +370,7 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 	return glyph;
 }
 
-
+GF_EXPORT
 GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, Bool needs_rotate, const char *xml_lang, Bool fliped_text, u32 styles, GF_Node *user)
 {
 	GF_Err e;
@@ -505,6 +481,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 	gf_free(span);
 }
 
+GF_EXPORT
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 {
 	u32 i;
@@ -671,12 +648,10 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	Fixed cx, cy, sx, sy, max, min;
 	u32 tw, th;
 	GF_Matrix2D mx;
-	GF_STENCIL stencil, brush;
-	GF_SURFACE surface;
+	GF_EVGStencil *stencil, *brush;
+	GF_EVGSurface *surface;
 	u32 width, height;
 	Fixed scale;
-	GF_Raster2D *raster = compositor->rasterizer;
-
 	span_alloc_extensions(span);
 
 	/*something failed*/
@@ -746,7 +721,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	gf_sc_texture_setup(span->ext->txh, compositor, NULL);
 	gf_sc_texture_allocate(span->ext->txh);
 	stencil = gf_sc_texture_get_stencil(span->ext->txh);
-	if (!stencil) stencil = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
+	if (!stencil) stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 
 	/*FIXME - make it work with alphagrey...*/
 	span->ext->txh->width = width;
@@ -756,7 +731,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	span->ext->txh->transparent = 1;
 	span->ext->txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 
-	surface = raster->surface_new(raster, 1);
+	surface = gf_evg_surface_new(1);
 	if (!surface) {
 		gf_sc_texture_release(span->ext->txh);
 		return 0;
@@ -764,11 +739,11 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	span->ext->txh->data = (char *) gf_malloc(sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 	memset(span->ext->txh->data, 0, sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 
-	raster->stencil_set_texture(stencil, span->ext->txh->data, span->ext->txh->width, span->ext->txh->height, span->ext->txh->stride, span->ext->txh->pixelformat, span->ext->txh->pixelformat, 1);
-	raster->surface_attach_to_texture(surface, stencil);
+	gf_evg_stencil_set_texture(stencil, span->ext->txh->data, span->ext->txh->width, span->ext->txh->height, span->ext->txh->stride, span->ext->txh->pixelformat);
+	gf_evg_surface_attach_to_texture(surface, stencil);
 
-	brush = raster->stencil_new(raster, GF_STENCIL_SOLID);
-	raster->stencil_set_brush_color(brush, 0xFF000000);
+	brush = gf_evg_stencil_new(GF_STENCIL_SOLID);
+	gf_evg_stencil_set_brush_color(brush, for_3d ? 0xFFFFFFFF : tr_state->ctx->aspect.fill_color);
 
 	cx = bounds.x + bounds.width/2;
 	cy = bounds.y - bounds.height/2;
@@ -778,14 +753,14 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 	gf_mx2d_add_scale(&mx, sx, sy);
 //	gf_mx2d_add_scale(&mx, 99*FIX_ONE/100, 99*FIX_ONE/100);
 
-	raster->surface_set_matrix(surface, &mx);
-	raster->surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
+	gf_evg_surface_set_matrix(surface, &mx);
+	gf_evg_surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
 	span_path = gf_font_span_create_path(span);
-	raster->surface_set_path(surface, span_path);
+	gf_evg_surface_set_path(surface, span_path);
 
-	raster->surface_fill(surface, brush);
-	raster->stencil_delete(brush);
-	raster->surface_delete(surface);
+	gf_evg_surface_fill(surface, brush);
+	gf_evg_stencil_delete(brush);
+	gf_evg_surface_delete(surface);
 	gf_path_del(span_path);
 
 	if (span->font->baseline) {
@@ -862,7 +837,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 	Bool fill_2d, vect_outline, can_texture_text;
 	GF_Compositor *compositor = (GF_Compositor*)tr_state->visual->compositor;
 
-	vect_outline = !compositor->raster_outlines;
+	vect_outline = !compositor->linegl;
 
 	visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
 
@@ -926,7 +901,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 	can_texture_text = 0;
 	if (fill_2d || !asp) {
 		/*check if we can use text texturing*/
-		if (force_texturing || (compositor->texture_text_mode != GF_TEXTURE_TEXT_NEVER) ) {
+		if (force_texturing || (compositor->textxt != GF_TEXTURE_TEXT_NEVER) ) {
 			if (fill_2d && asp->pen_props.width) {
 				can_texture_text = 0;
 			} else {
@@ -935,18 +910,19 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 		}
 	}
 
-	visual_3d_enable_antialias(tr_state->visual, compositor->antiAlias);
+	visual_3d_enable_antialias(tr_state->visual, compositor->aa);
 	if (fill_2d || !asp || tr_state->mesh_num_textures) {
-		if (fill_2d) visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+		if (fill_2d && asp) visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
 
 		i = tr_state->text_split_idx ? tr_state->text_split_idx-1 : 0;
 		while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
 			if (text_hl) {
 				visual_3d_fill_rect(tr_state->visual, span->bounds, hl_color);
 
-				if (fill_2d)
-					visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
-				else
+				if (fill_2d) {
+					if (asp)
+						visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+				} else
 					visual_3d_setup_appearance(tr_state);
 			}
 
@@ -965,7 +941,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 
 			if (tr_state->text_split_idx) break;
 		}
-		tr_state->visual->has_material_2d = 0;
+		tr_state->visual->has_material_2d = GF_FALSE;
 
 		/*reset texturing in case of line texture*/
 		if (!asp) visual_3d_disable_texture(tr_state);
@@ -1284,12 +1260,11 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 
 void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state)
 {
-	GF_TextSpan *span;
 	u32 i, count;
 	GF_Rect rc;
 	count = gf_list_count(spans);
 	for (i=0; i<count; i++) {
-		span = (GF_TextSpan *)gf_list_get(spans, i);
+		GF_TextSpan *span = (GF_TextSpan *)gf_list_get(spans, i);
 		gf_font_spans_select(span, tr_state, NULL, (i+1<count) ? 1 : 0, (i==0) ? 1 : 0, &rc);
 	}
 }
@@ -1305,7 +1280,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 	GF_Rect rc;
 
 	use_texture_text = 0;
-	if (force_texture_text || (compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) ) {
+	if (force_texture_text || (compositor->textxt==GF_TEXTURE_TEXT_ALWAYS) ) {
 		use_texture_text = !ctx->aspect.fill_texture && !ctx->aspect.pen_props.width;
 	}
 
@@ -1331,6 +1306,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 		if (GF_COL_A(hl_color) == 0) hl_color = 0;
 	}
 
+	memset(&rc, 0, sizeof(GF_Rect));
 	count = gf_list_count(spans);
 	i=ctx->sub_path_index ? ctx->sub_path_index-1 : 0;
 	for(; i<count; i++) {
@@ -1440,13 +1416,6 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 
 			gf_path_get_bounds(span->glyphs[j]->path, &rc);
 			rc.height = INT2FIX(span->font->ascent + span->font->descent);
-
-			if (0&&span->rot) {
-				GF_Matrix2D r;
-				gf_mx2d_init(r);
-				gf_mx2d_add_rotation(&r, 0, 0, span->rot[i]);
-				gf_mx2d_apply_coords(&r, &loc_x, &loc_y);
-			}
 
 			if (use_dom_events && !compositor->sel_buffer) {
 				if (svg_drawable_is_over(drawable, loc_x, loc_y, &asp, tr_state, &rc))

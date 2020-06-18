@@ -109,8 +109,6 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = GetEnv();
-	int channels;
-	int bytes;
 	LOGV("[Android Audio] Setup for %d buffers", num_buffers);
 
 	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
@@ -176,7 +174,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 
 /*we assume what was asked is what we got*/
 /* Called by the audio thread */
-static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u64 channel_cfg)
 {
 	JNIEnv* env = NULL;
 	u32 i;
@@ -260,21 +258,21 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 #ifdef DROID_EXTREME_LOGS
 	LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
 #endif /* DROID_EXTREME_LOGS */
-	
+
 	if ( ctx->audioFormat == ENCODING_PCM_8BIT )
 		pBuffer = (*env)->GetByteArrayElements(env, ctx->buff, NULL);
 	else
 		pBuffer = (*env)->GetShortArrayElements(env, ctx->buff, NULL);
-	
+
 	if (pBuffer)
 	{
 		written = dr->FillBuffer(dr->audio_renderer, pBuffer, ctx->mbufferSizeInBytes);
-		
+
 		if ( ctx->audioFormat == ENCODING_PCM_8BIT )
 			(*env)->ReleaseByteArrayElements(env, ctx->buff, pBuffer, 0);
 		else
 			(*env)->ReleaseShortArrayElements(env, ctx->buff, pBuffer, 0);
-		
+
 		if (written)
 		{
 			if ( ctx->audioFormat == ENCODING_PCM_8BIT )
@@ -358,9 +356,11 @@ static void WAV_SetPan(GF_AudioOutput *dr, u32 Pan)
 /* Called by the audio thread */
 static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
 {
+#ifdef TEST_QUERY_SAMPLE
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = ctx->env;
 	u32 sampleRateInHz, channelConfig, audioFormat;
+#endif
 
 	LOGV("Query sample=%d", *desired_samplerate );
 
@@ -460,7 +460,7 @@ void *NewWAVRender()
 	driv->SelfThreaded = 0;
 	driv->Setup = WAV_Setup;
 	driv->Shutdown = WAV_Shutdown;
-	driv->ConfigureOutput = WAV_ConfigureOutput;
+	driv->Configure = WAV_ConfigureOutput;
 	driv->GetAudioDelay = WAV_GetAudioDelay;
 	driv->GetTotalBufferTime = WAV_GetTotalBufferTime;
 	driv->SetVolume = WAV_SetVolume;

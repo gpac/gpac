@@ -226,7 +226,6 @@ void visual_3d_set_texture_matrix(GF_VisualManager *visual, GF_Matrix *mx);
 void visual_3d_projection_matrix_modified(GF_VisualManager *visual);
 
 
-
 /*setup viewport (vp: top-left, width, height)*/
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp);
 
@@ -303,7 +302,7 @@ void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchSt
 #endif
 
 
-void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box);
+void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box, Bool is_debug);
 
 
 GF_Err visual_3d_init_autostereo(GF_VisualManager *visual);
@@ -311,6 +310,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual);
 
 void visual_3d_init_shaders(GF_VisualManager *visual);
 void visual_3d_reset_graphics(GF_VisualManager *visual);
+
+void visual_3d_clean_state(GF_VisualManager *visual);
 
 #endif /*GPAC_DISABLE_3D*/
 

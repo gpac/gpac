@@ -43,7 +43,6 @@ void compositor_init_afx_node(GF_Compositor *compositor, GF_Node *node, MFURL *u
 #endif
 }
 
-
 void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 {
 	switch (gf_node_get_tag(node)) {
@@ -558,7 +557,9 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 		break;
 
 	case TAG_SVG_filter:
+#ifdef GPAC_ENABLE_SVG_FILTERS
 		compositor_init_svg_filter(compositor, node);
+#endif
 		break;
 
 	case TAG_LSR_updates:
