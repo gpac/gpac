@@ -407,7 +407,7 @@ static void nvdec_store_paramlist(GF_BitStream *bs, GF_List *psl)
 	u32 i, count;
 	count = gf_list_count(psl);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *slc = gf_list_get(psl, i);
+		GF_NALUConfigSlot *slc = gf_list_get(psl, i);
 		gf_bs_write_u32(bs, 1);
 		gf_bs_write_data(bs, slc->data, slc->size);
 	}
@@ -427,7 +427,7 @@ static void nvdec_store_xps(NVDecCtx *ctx, GF_AVCConfig *avc_cfg, GF_HEVCConfig 
 		ctx->nal_size_length = hevc_cfg->nal_unit_size;
 		count = gf_list_count(hevc_cfg->param_array);
 		for (i=0; i<count; i++) {
-			GF_HEVCParamArray *pa = gf_list_get(hevc_cfg->param_array, i);
+			GF_NALUParamArray *pa = gf_list_get(hevc_cfg->param_array, i);
 			nvdec_store_paramlist(bs, pa->nalus);
 		}
 		gf_odf_hevc_cfg_del(hevc_cfg);

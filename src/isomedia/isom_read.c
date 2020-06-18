@@ -337,13 +337,13 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		gf_media_nalu_next_start_code((u8 *) CodecParams, CodecParamLen, &sc_size);
 		pos += sc_size;
 		while (pos<CodecParamLen) {
-			GF_AVCConfigSlot *slc;
+			GF_NALUConfigSlot *slc;
 			u8 nal_type;
 			char *nal = &CodecParams[pos];
 			end = gf_media_nalu_next_start_code(nal, CodecParamLen-pos, &sc_size);
 			if (!end) end = CodecParamLen;
 
-			GF_SAFEALLOC(slc, GF_AVCConfigSlot);
+			GF_SAFEALLOC(slc, GF_NALUConfigSlot);
 			if (!slc) break;
 			slc->size = end;
 			slc->data = gf_malloc(sizeof(char)*slc->size);

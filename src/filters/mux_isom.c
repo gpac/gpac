@@ -43,7 +43,8 @@
 enum{
 	NALU_NONE,
 	NALU_AVC,
-	NALU_HEVC
+	NALU_HEVC,
+	NALU_VVC
 };
 
 
@@ -96,6 +97,7 @@ typedef struct
 
 	GF_AVCConfig *avcc, *svcc;
 	GF_HEVCConfig *hvcc, *lvcc;
+	GF_VVCConfig *vvcc;
 
 	u8 *inband_hdr;
 	u32 inband_hdr_size;
@@ -364,17 +366,17 @@ static void mp4_mux_write_ps_list(GF_BitStream *bs, GF_List *list, u32 nalu_size
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = gf_list_get(list, i);
+		GF_NALUConfigSlot *sl = gf_list_get(list, i);
 		gf_bs_write_int(bs, sl->size, 8*nalu_size_length);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
 }
 
-static GF_List *mp4_mux_get_hevc_ps(GF_HEVCConfig *cfg, u8 type)
+static GF_List *mp4_mux_get_nalus_ps(GF_List *list, u8 type)
 {
-	u32 i, count = gf_list_count(cfg->param_array);
+	u32 i, count = gf_list_count(list);
 	for (i=0; i<count; i++) {
-		GF_HEVCParamArray *pa = gf_list_get(cfg->param_array, i);
+		GF_NALUParamArray *pa = gf_list_get(list, i);
 		if (pa->type == type) return pa->nalus;
 	}
 	return NULL;
@@ -412,23 +414,29 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 	if (tkw->hvcc || tkw->lvcc) {
 		if (tkw->hvcc) {
-			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->hvcc, GF_HEVC_NALU_VID_PARAM), tkw->hvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->hvcc->param_array, GF_HEVC_NALU_VID_PARAM), tkw->hvcc->nal_unit_size);
 			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->hvcc->nal_unit_size;
 		}
 		if (tkw->lvcc) {
-			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->lvcc, GF_HEVC_NALU_VID_PARAM), tkw->lvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->lvcc->param_array, GF_HEVC_NALU_VID_PARAM), tkw->lvcc->nal_unit_size);
 			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->lvcc->nal_unit_size;
 		}
 		if (tkw->hvcc)
-			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->hvcc, GF_HEVC_NALU_SEQ_PARAM), tkw->hvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->hvcc->param_array, GF_HEVC_NALU_SEQ_PARAM), tkw->hvcc->nal_unit_size);
 		if (tkw->lvcc)
-			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->lvcc, GF_HEVC_NALU_SEQ_PARAM), tkw->lvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->lvcc->param_array, GF_HEVC_NALU_SEQ_PARAM), tkw->lvcc->nal_unit_size);
 		if (tkw->hvcc)
-			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->hvcc, GF_HEVC_NALU_PIC_PARAM), tkw->hvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->hvcc->param_array, GF_HEVC_NALU_PIC_PARAM), tkw->hvcc->nal_unit_size);
 		if (tkw->lvcc)
-			mp4_mux_write_ps_list(bs, mp4_mux_get_hevc_ps(tkw->lvcc, GF_HEVC_NALU_PIC_PARAM), tkw->lvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->lvcc->param_array, GF_HEVC_NALU_PIC_PARAM), tkw->lvcc->nal_unit_size);
 	}
 
+	if (tkw->vvcc) {
+		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_VID_PARAM), tkw->vvcc->nal_unit_size);
+		if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
+		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_SEQ_PARAM), tkw->vvcc->nal_unit_size);
+		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_PIC_PARAM), tkw->vvcc->nal_unit_size);
+	}
 	tkw->inband_hdr=NULL;
 	gf_bs_get_content(bs, &tkw->inband_hdr, &tkw->inband_hdr_size);
 	gf_bs_del(bs);
@@ -466,6 +474,7 @@ static void mp4_mux_track_writer_del(TrackWriter *tkw)
 	if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
 	if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
 	if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
+	if (tkw->vvcc) gf_odf_vvc_cfg_del(tkw->vvcc);
 	if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
 	gf_free(tkw);
 }
@@ -532,6 +541,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_flac_entry = GF_FALSE;
 	Bool use_avc = GF_FALSE;
 	Bool use_hevc = GF_FALSE;
+	Bool use_vvc = GF_FALSE;
 	Bool use_hvt1 = GF_FALSE;
 	Bool use_av1 = GF_FALSE;
 	Bool use_vpX = GF_FALSE;
@@ -1308,6 +1318,13 @@ sample_entry_setup:
 		comp_name = "HEVC Tiles";
 		use_gen_sample_entry = GF_FALSE;
 		break;
+	case GF_CODECID_VVC:
+		m_subtype = ((ctx->xps_inband==1) || (ctx->xps_inband==2)) ? GF_ISOM_SUBTYPE_VVI1  : GF_ISOM_SUBTYPE_VVC1;
+		use_vvc = GF_TRUE;
+		comp_name = "HEVC";
+		use_gen_sample_entry = GF_FALSE;
+		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+		break;
 	case GF_CODECID_MPEG1:
 	case GF_CODECID_MPEG2_422:
 	case GF_CODECID_MPEG2_SNR:
@@ -1589,7 +1606,19 @@ sample_entry_setup:
 			mp4_mux_make_inband_header(ctx, tkw);
 			return GF_OK;
 		}
+		else if (use_vvc && dsi) {
+			if (tkw->vvcc) gf_odf_vvc_cfg_del(tkw->vvcc);
+			tkw->vvcc = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
+			if (!ctx->xps_inband) {
+				if (ctx->init_movie_done) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] VVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant)\n"));
+				}
+				ctx->xps_inband = 2;
+			}
+			mp4_mux_make_inband_header(ctx, tkw);
+			return GF_OK;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot create a new sample description entry (config changed) for finalized movie in fragmented mode\n"));
 		return GF_NOT_SUPPORTED;
 	}
@@ -1790,7 +1819,54 @@ sample_entry_setup:
 		}
 
 		tkw->use_dref = GF_FALSE;
+	} else if (use_vvc) {
+		if (tkw->vvcc) gf_odf_vvc_cfg_del(tkw->vvcc);
 
+		if (!dsi) {
+			//not yet known
+			return GF_OK;
+		}
+		tkw->vvcc = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+
+		tkw->is_nalu = NALU_VVC;
+
+		if (needs_sample_entry) {
+			e = gf_isom_vvc_config_new(ctx->file, tkw->track_num, tkw->vvcc, NULL, NULL, &tkw->stsd_idx);
+
+			if (!tkw->has_brands) {
+				gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
+			}
+			//patch for old arch
+			else if (ctx->dash_mode) {
+				Bool force_brand=GF_FALSE;
+				if (((ctx->major_brand_set>>24)=='i') && (((ctx->major_brand_set>>16)&0xFF)=='s') && (((ctx->major_brand_set>>8)&0xFF)=='o')) {
+					if ( (ctx->major_brand_set&0xFF) <'6') force_brand=GF_TRUE;
+				}
+
+				if (!force_brand && ctx->major_brand_set) {
+					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, GF_TRUE);
+				} else {
+					gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO6, 1);
+					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
+				}
+			}
+
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new HEVC sample description: %s\n", gf_error_to_string(e) ));
+				return e;
+			}
+		}
+
+		if (dsi && ctx->xps_inband) {
+			//this will cleanup all PS in vvcC
+			gf_isom_vvc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
+		} else {
+			gf_odf_vvc_cfg_del(tkw->vvcc);
+			tkw->vvcc = NULL;
+		}
+
+		tkw->use_dref = GF_FALSE;
 	} else if (use_av1) {
 		GF_AV1Config *av1c;
 
@@ -2443,7 +2519,7 @@ sample_entry_done:
 			memset(&avc, 0, sizeof(AVCState));
 			count = gf_list_count(tkw->svcc->sequenceParameterSets);
 			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *sl = gf_list_get(tkw->svcc->sequenceParameterSets, i);
+				GF_NALUConfigSlot *sl = gf_list_get(tkw->svcc->sequenceParameterSets, i);
 				u8 nal_type = sl->data[0] & 0x1F;
 				Bool is_subseq = (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM) ? GF_TRUE : GF_FALSE;
 				s32 ps_idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, is_subseq, NULL);

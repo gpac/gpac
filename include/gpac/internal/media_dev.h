@@ -553,6 +553,20 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 
 void gf_media_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
 
 
+/*TODO once we add HLS parsing (FDIS) */
+typedef struct _vvc_state
+{
+	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
+
+	//-1 or the value of the vps/sps/pps ID of the nal just parsed
+	s32 last_parsed_vps_id;
+	s32 last_parsed_sps_id;
+	s32 last_parsed_pps_id;
+} VVCState;
+
+
+
+
 GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames);
 
 

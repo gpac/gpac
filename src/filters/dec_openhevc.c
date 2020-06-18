@@ -164,9 +164,9 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	{
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		for (i=0; i< gf_list_count(cfg->param_array); i++) {
-			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
+			GF_NALUParamArray *ar = (GF_NALUParamArray *)gf_list_get(cfg->param_array, i);
 			for (j=0; j< gf_list_count(ar->nalus); j++) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+				GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
 				gf_bs_write_int(bs, sl->size, 8*ctx->hevc_nalu_size_length);
 				gf_bs_write_data(bs, sl->data, sl->size);
 			}
@@ -192,7 +192,7 @@ static void ohevcdec_write_ps_list(GF_BitStream *bs, GF_List *list, u32 nalu_siz
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = gf_list_get(list, i);
+		GF_NALUConfigSlot *sl = gf_list_get(list, i);
 		gf_bs_write_int(bs, sl->size, 8*nalu_size_length);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
@@ -448,7 +448,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->avc_nalu_size_length = avcc->nal_unit_size;
 
 			for (i=0; i< gf_list_count(avcc->sequenceParameterSets); i++) {
-				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, i);
+				GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(avcc->sequenceParameterSets, i);
 				s32 idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
 				ctx->width = MAX(avc.sps[idx].width, ctx->width);
 				ctx->height = MAX(avc.sps[idx].height, ctx->height);
@@ -490,17 +490,17 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 
 			for (i=0; i< gf_list_count(hvcc->param_array); i++) {
-				GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
+				GF_NALUParamArray *ar = (GF_NALUParamArray *)gf_list_get(hvcc->param_array, i);
 
 				if (hvcc_enh) {
 					for (j=0; j< gf_list_count(hvcc_enh->param_array); j++) {
-						GF_HEVCParamArray *ar_enh = (GF_HEVCParamArray *)gf_list_get(hvcc_enh->param_array, j);
+						GF_NALUParamArray *ar_enh = (GF_NALUParamArray *)gf_list_get(hvcc_enh->param_array, j);
 						if (ar->type==ar_enh->type)
 							gf_list_transfer(ar->nalus, ar_enh->nalus);
 					}
 				}
 				for (j=0; j< gf_list_count(ar->nalus); j++) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
 					s32 idx;
 					u16 hdr = sl->data[0] << 8 | sl->data[1];
 

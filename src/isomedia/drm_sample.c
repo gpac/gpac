@@ -453,6 +453,10 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 			original_format = GF_ISOM_BOX_TYPE_265B;
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
+	case GF_ISOM_BOX_TYPE_VVC1:
+	case GF_ISOM_BOX_TYPE_VVI1:
+		sea->type = GF_ISOM_BOX_TYPE_ENCV;
+		break;
 	case GF_ISOM_BOX_TYPE_VP09:
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;

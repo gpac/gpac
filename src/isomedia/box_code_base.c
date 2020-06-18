@@ -4151,6 +4151,10 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->hevc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->hevc_config = (GF_HEVCConfigurationBox *)a;
 		break;
+	case GF_ISOM_BOX_TYPE_VVCC:
+		if (ptr->vvc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->vvc_config = (GF_VVCConfigurationBox *)a;
+		break;
 	case GF_ISOM_BOX_TYPE_SVCC:
 		if (ptr->svc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->svc_config = (GF_AVCConfigurationBox *)a;
@@ -4290,6 +4294,9 @@ GF_Err video_sample_entry_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->hevc_config, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->lhvc_config, &pos);
 
+	/*VVC*/
+	gf_isom_check_position(s, (GF_Box *)ptr->hevc_config, &pos);
+	
 	/*AV1*/
 	gf_isom_check_position(s, (GF_Box *)ptr->av1_config, &pos);
 
@@ -6408,6 +6415,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_QT_SUBTYPE_YUV444_10:
 		case GF_ISOM_BOX_TYPE_IPCM:
 		case GF_ISOM_BOX_TYPE_FPCM:
+		case GF_ISOM_BOX_TYPE_VVC1:
+		case GF_ISOM_BOX_TYPE_VVI1:
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:

@@ -819,7 +819,7 @@ static u32 write_nalu_config_array(char *sdpLine, GF_List *nalus)
 
 	count = gf_list_count(nalus);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(nalus, i);
+		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(nalus, i);
 		b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 		b64[b64s]=0;
 		strcat(sdpLine, b64);

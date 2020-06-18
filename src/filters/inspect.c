@@ -45,6 +45,7 @@ typedef struct
 #ifndef GPAC_DISABLE_AV_PARSERS
 	HEVCState *hevc_state;
 	AVCState *avc_state;
+	VVCState *vvc_state;
 	AV1State *av1_state;
 	GF_M4VParser *mv124_state;
 	GF_M4VDecSpecInfo dsi;
@@ -185,7 +186,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 }
 
 GF_EXPORT
-void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
 {
 	s32 res = 0;
 	u8 type, nal_ref_idc;
@@ -508,6 +509,13 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		return;
 	}
 
+	if (vvc) {
+
+
+		return;
+	}
+
+	//avc
 	type = ptr[0] & 0x1F;
 	nal_ref_idc = ptr[0] & 0x60;
 	nal_ref_idc>>=5;
@@ -918,6 +926,7 @@ static void inspect_finalize(GF_Filter *filter)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (pctx->avc_state) gf_free(pctx->avc_state);
 		if (pctx->hevc_state) gf_free(pctx->hevc_state);
+		if (pctx->vvc_state) gf_free(pctx->vvc_state);
 		if (pctx->av1_state) {
 			if (pctx->av1_state->config) gf_odf_av1_cfg_del(pctx->av1_state->config);
 			gf_av1_reset_state(pctx->av1_state, GF_TRUE);
@@ -1562,7 +1571,7 @@ props_done:
 	gf_fprintf(dump, ">\n");
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (pctx->hevc_state || pctx->avc_state) {
+	if (pctx->hevc_state || pctx->avc_state || pctx->vvc_state) {
 		idx=1;
 
 		if (pctx->is_adobe_protected && size) {
@@ -1586,7 +1595,7 @@ props_done:
 				break;
 			} else {
 				gf_fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
-				gf_inspect_dump_nalu(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->nalu_size_length, ctx->dump_crc, pctx->is_cenc_protected);
+				gf_inspect_dump_nalu(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->dump_crc, pctx->is_cenc_protected);
 				gf_fprintf(dump, "/>\n");
 			}
 			idx++;
@@ -1673,7 +1682,7 @@ props_done:
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			gf_fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, nalh_size, ctx->dump_crc, GF_FALSE);\
+			gf_inspect_dump_nalu(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->dump_crc, GF_FALSE);\
 			gf_fprintf(dump, "/>\n");\
 		}\
 		gf_fprintf(dump, "  </%sArray>\n", name);\
@@ -1690,6 +1699,10 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 	if ((&pctx->avc_state != keep_parser_address) && pctx->avc_state) {
 		gf_free(pctx->avc_state);
 		pctx->avc_state = NULL;
+	}
+	if ((&pctx->vvc_state != keep_parser_address) && pctx->vvc_state) {
+		gf_free(pctx->vvc_state);
+		pctx->vvc_state = NULL;
 	}
 	if ((&pctx->av1_state != keep_parser_address) && pctx->av1_state) {
 		if (pctx->av1_state->config) gf_odf_av1_cfg_del(pctx->av1_state->config);
@@ -1708,10 +1721,11 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	u32 idx=0, nalh_size;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i;
-	GF_AVCConfigSlot *slc;
+	GF_NALUConfigSlot *slc;
 #endif
 	GF_AVCConfig *avcc, *svcc;
 	GF_HEVCConfig *hvcc, *lhcc;
+	GF_VVCConfig *vvcC;
 	Bool is_enh = GF_FALSE;
 	Bool is_svc=GF_FALSE;
 	char *elt_name = NULL;
@@ -1889,7 +1903,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (hvcc) {
 			for (idx=0; idx<gf_list_count(hvcc->param_array); idx++) {
-				GF_HEVCParamArray *ar = gf_list_get(hvcc->param_array, idx);
+				GF_NALUParamArray *ar = gf_list_get(hvcc->param_array, idx);
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					DUMP_ARRAY(ar->nalus, "HEVCSPS", "hvcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -1903,7 +1917,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		}
 		if (lhcc) {
 			for (idx=0; idx<gf_list_count(lhcc->param_array); idx++) {
-				GF_HEVCParamArray *ar = gf_list_get(lhcc->param_array, idx);
+				GF_NALUParamArray *ar = gf_list_get(lhcc->param_array, idx);
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					DUMP_ARRAY(ar->nalus, "HEVCSPS", "lhcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -1917,6 +1931,48 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		}
 #endif
 		gf_fprintf(dump, "</HEVCParameterSets>\n");
+		break;
+
+	case GF_CODECID_VVC:
+		if (!dsi) {
+			gf_fprintf(dump, "/>\n");
+			return;
+		}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+		inspect_reset_parsers(pctx, &pctx->vvc_state);
+
+		if (!pctx->vvc_state) {
+			GF_SAFEALLOC(pctx->vvc_state, VVCState);
+			if (!pctx->vvc_state) return;
+		}
+#endif
+
+		vvcC = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (vvcC)
+			pctx->nalu_size_length = vvcC->nal_unit_size;
+
+		nalh_size = pctx->nalu_size_length;
+
+		gf_fprintf(dump, ">\n");
+		gf_fprintf(dump, "<VVCParameterSets>\n");
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if (vvcC) {
+			for (idx=0; idx<gf_list_count(vvcC->param_array); idx++) {
+				GF_NALUParamArray *ar = gf_list_get(vvcC->param_array, idx);
+				if (ar->type==GF_VVC_NALU_SEQ_PARAM) {
+					DUMP_ARRAY(ar->nalus, "VVCSPS", "hvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_PIC_PARAM) {
+					DUMP_ARRAY(ar->nalus, "VVCPPS", "hvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_VID_PARAM) {
+					DUMP_ARRAY(ar->nalus, "VVCVPS", "hvcC", 0)
+				} else {
+					DUMP_ARRAY(ar->nalus, "VVCUnknownPS", "hvcC", 0)
+				}
+			}
+		}
+#endif
+		gf_fprintf(dump, "</VVCParameterSets>\n");
 		break;
 
 	case GF_CODECID_AV1:

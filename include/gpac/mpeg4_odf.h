@@ -923,7 +923,7 @@ typedef struct
 	/* used of AVC/SVC detection */
 	s32 id;
 	u32 crc;
-} GF_AVCConfigSlot;
+} GF_NALUConfigSlot;
 
 /*! AVC config record - not a real MPEG-4 descriptor
 */
@@ -959,7 +959,7 @@ typedef struct
 	u8 type;
 	u8 array_completeness;
 	GF_List *nalus;
-} GF_HEVCParamArray;
+} GF_NALUParamArray;
 
 /*! HEVC config record - not a real MPEG-4 descriptor*/
 typedef struct
@@ -1001,6 +1001,34 @@ typedef struct
 	Bool write_annex_b;
 
 } GF_HEVCConfig;
+
+
+
+/*! VVC config record - not a real MPEG-4 descriptor*/
+typedef struct
+{
+	u8 configurationVersion;
+	u8 general_profile_idc;
+	u8 general_tier_flag;
+	u8 general_sub_profile_idc;
+	u8 num_constraint_info;
+	u8 *general_constraint_info;
+	u8 general_level_idc;
+
+	u8 chromaFormat;
+	u8 luma_bit_depth;
+	u8 chroma_bit_depth;
+	u16 avgFrameRate;
+	u8 constantFrameRate;
+	u8 numTemporalLayers;
+
+	u8 nal_unit_size;
+
+	GF_List *param_array;
+
+	Bool write_annex_b;
+} GF_VVCConfig;
+
 
 /*! used for storing AV1 OBUs*/
 typedef struct
@@ -1379,6 +1407,42 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
  */
 GF_HEVCConfig *gf_odf_hevc_cfg_read(u8 *dsi, u32 dsi_size, Bool is_lhvc);
 
+
+/*! VVC config constructor
+\return the created VVC config*/
+GF_VVCConfig *gf_odf_vvc_cfg_new();
+
+/*! VVC config destructor
+\param cfg the VVC config to destroy*/
+void gf_odf_vvc_cfg_del(GF_VVCConfig *cfg);
+
+/*! writes GF_VVCConfig as MPEG-4 DSI in a bitstream object
+\param cfg the VVC config to encode
+\param bs output bitstream object in which the config is written
+\return error if any
+ */
+GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs);
+
+/*! writes GF_VVCConfig as MPEG-4 DSI
+\param cfg the VVC config to encode
+\param outData encoded dsi buffer - it is the caller responsability to free this
+\param outSize  encoded dsi buffer size
+\return error if any
+ */
+GF_Err gf_odf_vvc_cfg_write(GF_VVCConfig *cfg, u8 **outData, u32 *outSize);
+
+/*! gets GF_VVCConfig from bitstream MPEG-4 DSI
+\param bs bitstream containing the encoded VVC decoder specific info
+\return the decoded VVC config
+ */
+GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs);
+
+/*! gets GF_VVCConfig from MPEG-4 DSI
+\param dsi encoded VVC decoder specific info
+\param dsi_size encoded VVC decoder specific info size
+\return the decoded VVC config
+ */
+GF_VVCConfig *gf_odf_vvc_cfg_read(u8 *dsi, u32 dsi_size);
 
 /*! AV1 config constructor
 \return the created AV1 config*/

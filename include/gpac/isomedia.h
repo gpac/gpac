@@ -227,6 +227,10 @@ enum
 	GF_ISOM_SUBTYPE_LHE1			= GF_4CC( 'l', 'h', 'e', '1' ),
 	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
 
+	/*VVC media types*/
+	GF_ISOM_SUBTYPE_VVC1			= GF_4CC( 'v', 'v', 'c', '1' ),
+	GF_ISOM_SUBTYPE_VVI1			= GF_4CC( 'v', 'v', 'i', '1' ),
+
 	/*AV1 media type*/
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
@@ -3013,6 +3017,35 @@ GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *isom_file, u32 trackNumber, u
 */
 GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
+/*! HEVC family type*/
+typedef enum
+{
+	/*! not an HEVC codec*/
+	GF_ISOM_VVCTYPE_NONE=0,
+	/*! HEVC only*/
+	GF_ISOM_VVCTYPE_ONLY,
+	/*! HEVC+LHVC in same track*/
+	GF_ISOM_VVCTYPE_SUBPIC,
+	/*! LHVC only*/
+	GF_ISOM_VVCTYPE_NVCL,
+} GF_ISOMVVCType;
+
+/*! gets the VVC family type for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return the type of VVC media
+*/
+GF_ISOMVVCType gf_isom_get_vvc_type(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+/*! gets VVC config for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return the VVC config - user is responsible for deleting it
+*/
+GF_VVCConfig *gf_isom_vvc_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
 /*! gets AV1 config for a sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -3242,6 +3275,27 @@ GF_Err gf_isom_lhvc_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sa
 \return error if any
 */
 GF_Err gf_isom_set_nalu_length_field(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 nalu_size_length);
+
+
+/*! creates a new VVC sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param cfg the VVC config for this sample description
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_vvc_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_VVCConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! sets vvi1 entry type (inband SPS/PPS) instead of vvc1 (SPS/PPS in hvcC box)
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param keep_xps if set to GF_TRUE, keeps parameter set in the configuration record otherwise removes them
+\return error if any
+*/
+GF_Err gf_isom_vvc_set_inband_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, Bool keep_xps);
 
 /*! creates new VPx config
 \param isom_file the target ISO file

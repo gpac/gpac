@@ -222,6 +222,13 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			codecid = GF_CODECID_LHVC;
 			has_scal_layer = GF_TRUE;
 			break;
+		case GF_M2TS_VIDEO_VVC:
+		case GF_M2TS_VIDEO_VVC_TEMPORAL:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_VVC;
+			//uncomment once we have VVC parsing
+			//unframed = GF_TRUE;
+			break;
 		case GF_M2TS_AUDIO_MPEG1:
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_MPEG_AUDIO;

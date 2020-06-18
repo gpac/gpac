@@ -647,18 +647,26 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_write_bs) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_write_bs) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_vvc_cfg_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_vvc_cfg_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_vvc_cfg_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_vvc_cfg_read_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_vvc_cfg_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_vvc_cfg_write_bs) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_write_bs) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read_bs) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_write) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_write_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_read) )
@@ -833,6 +841,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_lhvc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_hevc_lhvc_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_vvc_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_by_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_meta_get_next_item_id) )
@@ -1065,6 +1075,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_tmcd_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_tmcd_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_magic) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_config_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_set_inband_config) )
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
