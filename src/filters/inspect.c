@@ -510,7 +510,44 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 	}
 
 	if (vvc) {
-
+		u32 zero_tid = (ptr[0] & 0x80) ? 1 : 0;
+		u8 tid_plus1 = (ptr[0] & 0x70) >> 4;
+		u8 lid;
+		u32 type_lsb;
+		if (zero_tid && (tid_plus1 ^ zero_tid) ) {
+			gf_fprintf(dump, "error=\"invalide header\"");
+			return;
+		}
+		type_lsb = ptr[0] & 0xF;
+		lid = ptr[1]>>1;
+		if ((ptr[1] & 1) != 0) {
+			gf_fprintf(dump, "error=\"invalide header\"");
+			return;
+		}
+		type = (zero_tid << 4) + type_lsb;
+		gf_fprintf(dump, "code=\"%d\" type=\"", type);
+		switch (type) {
+		case GF_VVC_NALU_SLICE_TRAIL: fprintf(dump, "Slice_TRAIL"); break;
+		case GF_VVC_NALU_SLICE_STSA: fprintf(dump, "Slice_STSA"); break;
+		case GF_VVC_NALU_SLICE_RADL: fprintf(dump, "Slice_RADL"); break;
+		case GF_VVC_NALU_SLICE_RASL:fprintf(dump, "Slice_RASL"); break;
+		case GF_VVC_NALU_SLICE_IDR_W_RADL: fprintf(dump, "IDR_RADL"); break;
+		case GF_VVC_NALU_SLICE_IDR_N_LP: fprintf(dump, "IDR"); break;
+		case GF_VVC_NALU_SLICE_CRA: fprintf(dump, "CRA"); break;
+		case GF_VVC_NALU_SLICE_GRA:fprintf(dump, "GRA"); break;
+		case GF_VVC_NALU_VID_PARAM: fprintf(dump, "VideoParameterSet"); break;
+		case GF_VVC_NALU_SEQ_PARAM: fprintf(dump, "SequenceParameterSet"); break;
+		case GF_VVC_NALU_PIC_PARAM: fprintf(dump, "PictureParameterSet"); break;
+		case GF_VVC_NALU_DEC_PARAM: fprintf(dump, "DecodeParameterSet"); break;
+		case GF_VVC_NALU_ACCESS_UNIT: fprintf(dump, "AUDelimiter"); break;
+		case GF_VVC_NALU_END_OF_SEQ: fprintf(dump, "EOS"); break;
+		case GF_VVC_NALU_END_OF_STREAM: fprintf(dump, "EOB"); break;
+		case GF_VVC_NALU_FILLER_DATA: fprintf(dump, "FillerData"); break;
+		case GF_VVC_NALU_SEI_PREFIX: fprintf(dump, "PrefixSEI"); break;
+		case GF_VVC_NALU_SEI_SUFFIX: fprintf(dump, "SufixSEI"); break;
+		case GF_VVC_NALU_APS: fprintf(dump, "AdaptaionParameterSet"); break;
+		}
+		gf_fprintf(dump, "\"");
 
 		return;
 	}

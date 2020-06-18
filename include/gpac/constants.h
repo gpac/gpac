@@ -1082,33 +1082,48 @@ enum
 
 
 
-/*! VVC NAL unit types - TODO THESE ARE WRONG */
+/*! VVC NAL unit types - TODO THESE ARE WRONG (vtm6.1) */
 enum
 {
 	/*! Trail N VVC slice*/
-	GF_VVC_NALU_SLICE_TRAIL = 0,
+	GF_VVC_NALU_SLICE_TRAIL = 8,
+	/*! STSA N VVC slice*/
+	GF_VVC_NALU_SLICE_STSA = 9,
+	/*! STSA N VVC slice*/
+	GF_VVC_NALU_SLICE_RADL = 10,
+	/*! STSA N VVC slice*/
+	GF_VVC_NALU_SLICE_RASL = 11,
+	/*! IDR with RADL VVC slice*/
+	GF_VVC_NALU_SLICE_IDR_W_RADL = 24,
 	/*! IDR DLP VVC slice*/
-	GF_VVC_NALU_SLICE_IDR,
+	GF_VVC_NALU_SLICE_IDR_N_LP = 25,
 	/*! CRA VVC slice*/
-	GF_VVC_NALU_SLICE_CRA,
+	GF_VVC_NALU_SLICE_CRA = 26,
+	/*! CRA VVC slice*/
+	GF_VVC_NALU_SLICE_GRA = 27,
+
 	/*! Video Parameter Set*/
-	GF_VVC_NALU_VID_PARAM = 32,
+	GF_VVC_NALU_VID_PARAM = 20,
 	/*! Sequence Parameter Set*/
-	GF_VVC_NALU_SEQ_PARAM = 33,
+	GF_VVC_NALU_SEQ_PARAM = 17,
 	/*! Picture Parameter Set*/
-	GF_VVC_NALU_PIC_PARAM = 34,
+	GF_VVC_NALU_PIC_PARAM = 0,
+	/*! Decode Parameter Set*/
+	GF_VVC_NALU_DEC_PARAM = 16,
 	/*! AU delimiter*/
-	GF_VVC_NALU_ACCESS_UNIT = 35,
+	GF_VVC_NALU_ACCESS_UNIT = 1,
 	/*! End of sequence*/
-	GF_VVC_NALU_END_OF_SEQ = 36,
+	GF_VVC_NALU_END_OF_SEQ = 18,
 	/*! End of stream*/
-	GF_VVC_NALU_END_OF_STREAM = 37,
+	GF_VVC_NALU_END_OF_STREAM = 19,
 	/*! Filler Data*/
-	GF_VVC_NALU_FILLER_DATA = 38,
+	GF_VVC_NALU_FILLER_DATA = 28,
 	/*! prefix SEI message*/
-	GF_VVC_NALU_SEI_PREFIX = 39,
+	GF_VVC_NALU_SEI_PREFIX = 2,
 	/*! suffix SEI message*/
-	GF_VVC_NALU_SEI_SUFFIX = 40,
+	GF_VVC_NALU_SEI_SUFFIX = 3,
+	/*! APS message*/
+	GF_VVC_NALU_APS = 4,
 };
 /*! Number of defined QCELP rate sizes*/
 static const unsigned int GF_QCELP_RATE_TO_SIZE_NB = 7;
