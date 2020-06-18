@@ -27,7 +27,7 @@
 /*MPEG4 & X3D tags (for node tables & script handling)*/
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
-
+#include "qjs_common.h"
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -40,7 +40,6 @@ static u32 script_get_nb_static_field(GF_Node *node)
 void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
 {
 	GF_ScriptPriv *priv;
-	GF_ScriptField *field;
 
 	if (!is_destroy) return;
 
@@ -50,7 +49,7 @@ void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
 
 	//destroy extra fields
 	while (gf_list_count(priv->fields)) {
-		field = (GF_ScriptField *)gf_list_get(priv->fields, 0);
+		GF_ScriptField *field = (GF_ScriptField *)gf_list_get(priv->fields, 0);
 		gf_list_rem(priv->fields, 0);
 		if (field->pField) {
 			//if Node unregister
@@ -93,6 +92,7 @@ u32 gf_sg_script_get_num_fields(GF_Node *node, u8 IndexMode)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u32 *allField)
 {
 	u32 i;
@@ -100,7 +100,7 @@ GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u3
 	u32 nb_static = script_get_nb_static_field(node);
 	GF_ScriptPriv *priv = (GF_ScriptPriv *)node->sgprivate->UserPrivate;
 	i=0;
-	while ((sf = (GF_ScriptField *)gf_list_enum(priv->fields, &i))) {
+	while (priv && (sf = (GF_ScriptField *)gf_list_enum(priv->fields, &i))) {
 		*allField = i-1+nb_static;
 		switch (IndexMode) {
 		case GF_SG_FIELD_CODING_IN:
@@ -190,7 +190,7 @@ void gf_sg_script_init(GF_Node *node)
 	priv->numDef += 2;
 }
 
-
+GF_EXPORT
 GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldType, const char *name)
 {
 	GF_ScriptPriv *priv;
@@ -273,6 +273,7 @@ GF_Err gf_sg_script_prepare_clone(GF_Node *dest, GF_Node *orig)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info)
 {
 	if (!field || !info) return GF_BAD_PARAM;

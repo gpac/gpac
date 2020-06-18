@@ -1,8 +1,8 @@
 /*
  *          GPAC - Multimedia Framework C SDK
  *
- *          Authors: Cyril Concolato
- *          Copyright (c) Telecom ParisTech 2000-2012
+ *          Authors: Cyril Concolato, Jean Le Feuvre
+ *          Copyright (c) Telecom ParisTech 2000-2020
  *                  All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -51,7 +51,7 @@ static void swf_svg_print(SWFReader *read, const char *format, ...) {
 
 	/* print the line */
 	va_start(args, format);
-	vsprintf(line, format, args);
+	vsnprintf(line, 2000, format, args);
 	va_end(args);
 	/* add the line to the buffer */
 	line_length = (u32)strlen(line);
@@ -529,12 +529,12 @@ GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
 	return GF_OK;
 }
 
-GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap)
+GF_Err swf_svg_write_text_sample(void *user, const u8 *data, u32 length, u64 timestamp, Bool isRap)
 {
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;
 
-	lengthWritten = (u32)fwrite(data, 1, length, svgFile);
+	lengthWritten = (u32) gf_fwrite(data, length, svgFile);
 	if (length != lengthWritten) {
 		return GF_BAD_PARAM;
 	} else {
@@ -542,12 +542,12 @@ GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 t
 	}
 }
 
-GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool isHeader)
+GF_Err swf_svg_write_text_header(void *user, const u8 *data, u32 length, Bool isHeader)
 {
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;
 
-	lengthWritten = (u32)fwrite(data, 1, length, svgFile);
+	lengthWritten = (u32) gf_fwrite(data, length, svgFile);
 	if (length != lengthWritten) {
 		return GF_BAD_PARAM;
 	} else {

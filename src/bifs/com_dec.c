@@ -285,7 +285,7 @@ static GF_Err BD_DecProtoDelete(GF_BifsDecoder * codec, GF_BitStream *bs)
 static GF_Err BD_DecMultipleIndexReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	u32 ID, ind, field_ind, NumBits, lenpos, lennum, count, pos;
-	GF_Node *node, *new_node;
+	GF_Node *node;
 	GF_Err e;
 	GF_FieldInfo field, sffield;
 
@@ -307,6 +307,7 @@ static GF_Err BD_DecMultipleIndexReplace(GF_BifsDecoder * codec, GF_BitStream *b
 	/*cf index value replace */
 	if (field.fieldType == GF_SG_VRML_MFNODE) {
 		while (count) {
+			GF_Node *new_node;
 			pos = gf_bs_read_int(bs, lenpos);
 			/*first decode*/
 			new_node = gf_bifs_dec_node(codec, bs, field.NDTtype);
@@ -584,7 +585,7 @@ static GF_Err BD_DecIndexInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	u32 NumBits, ind, field_ind;
 	u8 type;
 	s32 pos;
-	GF_Node *def, *node;
+	GF_Node *def;
 	GF_FieldInfo field, sffield;
 
 	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
@@ -621,7 +622,7 @@ static GF_Err BD_DecIndexInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 
 	/*rescale the MFField and parse the SFField*/
 	if (field.fieldType==GF_SG_VRML_MFNODE) {
-		node = gf_bifs_dec_node(codec, bs, field.NDTtype);
+		GF_Node *node = gf_bifs_dec_node(codec, bs, field.NDTtype);
 		if (!node) return codec->LastError;
 
 		e = gf_node_register(node, def);
@@ -1023,10 +1024,14 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		if (codec->UseName) {
 			gf_bifs_dec_name(bs, name);
 		} else {
-			sprintf(name, "Proto%d", numProtos);
+			sprintf(name, "Proto%d", gf_list_count(codec->current_graph->protos) );
 		}
 		/*create a proto in the current graph*/
 		proto = gf_sg_proto_new(codec->current_graph, ID, name, proto_list ? GF_TRUE : GF_FALSE);
+		if (!proto) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
 		if (proto_list) gf_list_add(proto_list, proto);
 
 		/*during parsing, this proto is the current active one - all nodes/proto defined/declared
@@ -1233,7 +1238,10 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 
 exit:
 	if (e) {
-		if (proto) gf_sg_proto_del(proto);
+		if (proto) {
+			if (proto_list) gf_list_del_item(proto_list, proto);
+			gf_sg_proto_del(proto);
+		}
 		codec->current_graph = rootSG;
 	}
 	/*restore original parent proto at codec level*/

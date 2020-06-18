@@ -109,7 +109,6 @@ static GF_Node *svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttribute
 
 static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Bool real_traverse)
 {
-	GF_STENCIL stencil;
 	u32 count, nb_col;
 	Bool is_dirty, all_dirty;
 	Fixed alpha, max_offset;
@@ -214,10 +213,11 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 	if (is_dirty) {
 		u32 i;
+		GF_EVGStencil * stencil;
 
 		if (!st->txh.tx_io) gf_sc_texture_allocate(&st->txh);
 		stencil = gf_sc_texture_get_stencil(&st->txh);
-		if (!stencil) stencil = st->txh.compositor->rasterizer->stencil_new(st->txh.compositor->rasterizer, st->linear ? GF_STENCIL_LINEAR_GRADIENT : GF_STENCIL_RADIAL_GRADIENT);
+		if (!stencil) stencil = gf_evg_stencil_new(st->linear ? GF_STENCIL_LINEAR_GRADIENT : GF_STENCIL_RADIAL_GRADIENT);
 		/*set stencil even if assigned, this invalidates the associated bitmap state in 3D*/
 		gf_sc_texture_set_stencil(&st->txh, stencil);
 
@@ -229,8 +229,8 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 			}
 		}
 
-		st->txh.compositor->rasterizer->stencil_set_gradient_interpolation(stencil, st->keys, st->cols, nb_col);
-		st->txh.compositor->rasterizer->stencil_set_gradient_mode(stencil, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
+		gf_evg_stencil_set_gradient_interpolation(stencil, st->keys, st->cols, nb_col);
+		gf_evg_stencil_set_gradient_mode(stencil, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
 
 		st->txh.needs_refresh = GF_TRUE;
 	} else {
@@ -257,13 +257,15 @@ static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *childre
 
 	if (!tr_state->svg_props) {
 		GF_SAFEALLOC(svgp, SVGPropertiesPointers);
-		gf_svg_properties_init_pointers(svgp);
-		tr_state->svg_props = svgp;
+		if (svgp) {
+			gf_svg_properties_init_pointers(svgp);
+			tr_state->svg_props = svgp;
 
-		svg_gradient_traverse(node, tr_state, GF_FALSE);
+			svg_gradient_traverse(node, tr_state, GF_FALSE);
 
-		gf_svg_properties_reset_pointers(svgp);
-		gf_free(svgp);
+			gf_svg_properties_reset_pointers(svgp);
+			gf_free(svgp);
+		}
 		tr_state->svg_props = NULL;
 	} else {
 		svg_gradient_traverse(node, tr_state, GF_FALSE);
@@ -341,16 +343,14 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	u32 i;
 	Fixed size;
 	GF_Matrix2D mat;
-	GF_STENCIL stencil;
-	GF_SURFACE surface;
-	GF_STENCIL texture2D;
+	GF_EVGStencil * stencil;
+	GF_EVGSurface *surface;
+	GF_EVGStencil * texture2D;
 	GF_Path *path;
 	GF_Err e;
 	Bool transparent;
 	SVGAllAttributes all_atts;
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
-	GF_Raster2D *raster = txh->compositor->rasterizer;
-
 
 	if (!txh->tx_io) return;
 
@@ -368,11 +368,11 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	if (!stencil) return;
 
 	/*init our 2D graphics stuff*/
-	texture2D = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
+	texture2D = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 	if (!texture2D) return;
-	surface = raster->surface_new(raster, GF_TRUE);
+	surface = gf_evg_surface_new(GF_TRUE);
 	if (!surface) {
-		raster->stencil_delete(texture2D);
+		gf_evg_stencil_delete(texture2D);
 		return;
 	}
 
@@ -385,12 +385,12 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 		} else {
 			memset(txh->data, 0, sizeof(char)*txh->stride*txh->height);
 		}
-		e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, GF_TRUE);
+		e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 	} else {
 		if (!txh->data) {
 			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
-		e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, GF_TRUE);
+		e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
@@ -398,21 +398,21 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 			transparent = GF_TRUE;
 			gf_free(txh->data);
 			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
-			e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, GF_TRUE);
+			e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
 
 	if (e) {
 		gf_free(txh->data);
 		txh->data = NULL;
-		raster->stencil_delete(texture2D);
-		raster->surface_delete(surface);
+		gf_evg_stencil_delete(texture2D);
+		gf_evg_surface_delete(surface);
 		return;
 	}
-	e = raster->surface_attach_to_texture(surface, texture2D);
+	e = gf_evg_surface_attach_to_texture(surface, texture2D);
 	if (e) {
-		raster->stencil_delete(texture2D);
-		raster->surface_delete(surface);
+		gf_evg_stencil_delete(texture2D);
+		gf_evg_surface_delete(surface);
 		return;
 	}
 
@@ -444,12 +444,12 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 		gf_mx2d_add_translation(&mat, -size, -size);
 	}
 
-	raster->stencil_set_matrix(stencil, &mat);
-	raster->surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
-	raster->surface_set_path(surface, path);
-	raster->surface_fill(surface, stencil);
-	raster->surface_delete(surface);
-	raster->stencil_delete(texture2D);
+	gf_evg_stencil_set_matrix(stencil, &mat);
+	gf_evg_surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
+	gf_evg_surface_set_path(surface, path);
+	gf_evg_surface_fill(surface, stencil);
+	gf_evg_surface_delete(surface);
+	gf_evg_stencil_delete(texture2D);
 	gf_path_del(path);
 
 	txh->width = GRAD_TEXTURE_SIZE;
@@ -475,7 +475,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 		}
 	} else {
 		txh->stride = GRAD_TEXTURE_SIZE*3;
-		txh->pixelformat = GF_PIXEL_RGB_24;
+		txh->pixelformat = GF_PIXEL_RGB;
 	}
 	gf_sc_texture_set_data(txh);
 	return;
@@ -495,7 +495,7 @@ static void SVG_UpdateLinearGradient(GF_TextureHandler *txh)
 
 static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
-	GF_STENCIL stencil;
+	GF_EVGStencil * stencil;
 	SFVec2f start, end;
 	SVGAllAttributes all_atts;
 	SVG_Element *lg = (SVG_Element *) txh->owner;
@@ -555,7 +555,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		end.y = 0;
 	}
 
-	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
+	gf_evg_stencil_set_gradient_mode(stencil, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
 
 
 	if (bounds && (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) ) {
@@ -563,7 +563,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
 	}
-	txh->compositor->rasterizer->stencil_set_linear_gradient(stencil, start.x, start.y, end.x, end.y);
+	gf_evg_stencil_set_linear_gradient(stencil, start.x, start.y, end.x, end.y);
 }
 
 void compositor_init_svg_linearGradient(GF_Compositor *compositor, GF_Node *node)
@@ -601,7 +601,7 @@ static void SVG_UpdateRadialGradient(GF_TextureHandler *txh)
 
 static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat, Bool for_3d)
 {
-	GF_STENCIL stencil;
+	GF_EVGStencil * stencil;
 	SFVec2f center, focal;
 	Fixed radius;
 	SVGAllAttributes all_atts;
@@ -618,7 +618,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
 
-	/*get "transfered" attributed from xlink:href if any*/
+	/*get transfered attributed from xlink:href if any*/
 	svg_copy_gradient_attributes_from(txh->owner, &all_atts);
 
 	gf_mx2d_init(*mat);
@@ -660,7 +660,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		center.y = FIX_ONE/2;
 	}
 
-	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
+	gf_evg_stencil_set_gradient_mode(stencil, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
 
 	if (all_atts.fx) {
 		focal.x = all_atts.fx->value;
@@ -677,9 +677,9 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 	/* clamping fx/fy according to:
 	http://www.w3.org/TR/SVG11/pservers.html#RadialGradients
-	If the point defined by ‘fx’ and ‘fy’ lies outside the circle defined by ‘cx’, ‘cy’ and ‘r’,
-	then the user agent shall set the focal point to the intersection of the line from (‘cx’, ‘cy’)
-	to (‘fx’, ‘fy’) with the circle defined by ‘cx’, ‘cy’ and ‘r’.*/
+	If the point defined by fx and fy lies outside the circle defined by cx, cy and r,
+	then the user agent shall set the focal point to the intersection of the line from (cx, cy)
+	to (fx, fy) with the circle defined by cx, cy and r.*/
 	{
 		Fixed norm = gf_v2d_distance(&focal, &center);
 		if (norm > radius) {
@@ -695,7 +695,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
 	}
-	txh->compositor->rasterizer->stencil_set_radial_gradient(stencil, center.x, center.y, focal.x, focal.y, radius, radius);
+	gf_evg_stencil_set_radial_gradient(stencil, center.x, center.y, focal.x, focal.y, radius, radius);
 }
 
 void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node)
@@ -779,6 +779,7 @@ void compositor_init_svg_solidColor(GF_Compositor *compositor, GF_Node *node)
 {
 	GF_SolidColorStack *st;
 	GF_SAFEALLOC(st, GF_SolidColorStack);
+	if (!st) return;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, svg_traverse_solidColor);
 }

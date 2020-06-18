@@ -49,7 +49,7 @@ static void animationstream_destroy(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		if (st->stream && as->isActive) {
 			gf_mo_set_flag(st->stream, GF_MO_DISPLAY_REMOVE, 1);
-			gf_mo_stop(st->stream);
+			gf_mo_stop(&st->stream);
 		}
 		gf_sg_vrml_mf_reset(&st->current_url, GF_SG_VRML_MFURL);
 		gf_free(st);
@@ -79,7 +79,7 @@ static void animationstream_check_url(AnimationStreamStack *stack, M_AnimationSt
 		/*if changed while playing stop old source*/
 		if (as->isActive) {
 			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, 1);
-			gf_mo_stop(stack->stream);
+			gf_mo_stop(&stack->stream);
 		}
 		gf_mo_unregister((GF_Node *)as, stack->stream);
 
@@ -121,7 +121,7 @@ static void animationstream_deactivate(AnimationStreamStack *stack, M_AnimationS
 	if (stack->stream) {
 		if (gf_mo_url_changed(stack->stream, &as->url))
 			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, 1);
-		gf_mo_stop(stack->stream);
+		gf_mo_stop(&stack->stream);
 	}
 	stack->time_handle.needs_unregister = 1;
 	gf_sc_invalidate(stack->compositor, NULL);

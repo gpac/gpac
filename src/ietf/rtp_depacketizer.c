@@ -27,16 +27,28 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 
-#include <gpac/esi.h>
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
 #include <gpac/isomedia.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/avparse.h>
 
+static void gf_rtp_parse_pass_through(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
+{
+	if (!rtp) return;
 
+	rtp->sl_hdr.accessUnitStartFlag = 1;
+	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp)
+		rtp->sl_hdr.accessUnitStartFlag = 1;
 
-static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	rtp->sl_hdr.decodingTimeStamp = hdr->TimeStamp;
+	rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
+	rtp->sl_hdr.randomAccessPointFlag = 1;
+	rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
+}
+
+static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u32 aux_size, first_idx, au_hdr_size, num_au;
 	u64 pay_start, au_size;
@@ -45,8 +57,6 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 
 	hdr_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 	aux_bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
-
-//	fprintf(stderr, "parsing packet %d size %d ts %d M %d\n", hdr->SequenceNumber, size, hdr->TimeStamp, hdr->Marker);
 
 	/*global AU header len*/
 	au_hdr_size = 0;
@@ -180,6 +190,8 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 				au_hdr_size -= 1;
 				if (rtp->sl_hdr.randomAccessPointFlag)
 					rtp->sl_hdr.randomAccessPointFlag=1;
+			} else {
+				rtp->sl_hdr.randomAccessPointFlag=1;
 			}
 			/*stream state - map directly to seqNum*/
 			if (rtp->sl_map.StreamStateIndication) {
@@ -240,7 +252,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u16 offset;
 	u32 mp3hdr, ts;
@@ -264,12 +276,20 @@ static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 
 		/*frame start if no offset*/
 		rtp->sl_hdr.accessUnitStartFlag = offset ? 0 : 1;
+		rtp->sl_hdr.randomAccessPointFlag = 1;
 
 		/*new frame, store size*/
 		rtp->sl_hdr.compositionTimeStampFlag = 0;
 		if (rtp->sl_hdr.accessUnitStartFlag) {
-			mp3hdr = GF_4CC((u8) payload[0], (u8) payload[1], (u8) payload[2], (u8) payload[3]);
+			mp3hdr = GF_4CC((u32) payload[0], (u8) payload[1], (u8) payload[2], (u8) payload[3]);
 			rtp->sl_hdr.accessUnitLength = gf_mp3_frame_size(mp3hdr);
+			rtp->sl_hdr.channels = gf_mp3_num_channels(mp3hdr);
+			rtp->sl_hdr.samplerate = gf_mp3_sampling_rate(mp3hdr);
+			if (rtp->sl_hdr.samplerate) {
+				rtp->sl_hdr.au_duration = gf_mp3_window_size(mp3hdr);
+				rtp->sl_hdr.au_duration *= rtp->clock_rate;
+				rtp->sl_hdr.au_duration /= rtp->sl_hdr.samplerate;
+			}
 			rtp->sl_hdr.compositionTimeStampFlag = 1;
 		}
 		if (!rtp->sl_hdr.accessUnitLength) break;
@@ -301,7 +321,7 @@ static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 
 #endif
 
-static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u8 pic_type;
 
@@ -334,9 +354,9 @@ static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 	}
 }
 
-static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
-	unsigned char c, type;
+	unsigned char c;
 	char *data;
 	/*we support max 30 frames in one RTP packet...*/
 	u32 nbFrame, i, frame_size;
@@ -354,6 +374,7 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	/*then each frame*/
 	for (i=0; i<nbFrame; i++) {
+		u8 type;
 		c = payload[i + 1];
 		type = ((c & 0x78) >> 3);
 		if (rtp->payt==GF_RTP_PAYT_AMR) {
@@ -365,6 +386,7 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
+		rtp->sl_hdr.randomAccessPointFlag = 1;
 		/*send TOC*/
 		rtp->on_sl_packet(rtp->udta, &payload[i+1], 1, &rtp->sl_hdr, GF_OK);
 		rtp->sl_hdr.packetSequenceNumber ++;
@@ -379,7 +401,7 @@ static void gf_rtp_parse_amr(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 }
 
 
-static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	GF_BitStream *bs;
 	Bool P_bit, V_bit;
@@ -414,10 +436,9 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 
-		if (rtp->sl_hdr.accessUnitStartFlag) {
-			/*the first 16 bytes are NOT sent on the wire*/
-			rtp->sl_hdr.randomAccessPointFlag = (payload[offset+2]&0x02) ? 0 : 1;
-		}
+		/*the first 16 bytes are NOT sent on the wire*/
+		rtp->sl_hdr.randomAccessPointFlag = (payload[offset+2]&0x02) ? 0 : 1;
+
 		/*send missing start code*/
 		rtp->on_sl_packet(rtp->udta, (char *) blank, 2, &rtp->sl_hdr, GF_OK);
 		/*send payload*/
@@ -438,7 +459,7 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 static void gf_rtp_ttxt_flush(GF_RTPDepacketizer *rtp, u32 ts)
 {
 	GF_BitStream *bs;
-	char *data;
+	u8 *data;
 	u32 data_size;
 	if (!rtp->inter_bs) return;
 
@@ -473,7 +494,7 @@ static void gf_rtp_ttxt_flush(GF_RTPDepacketizer *rtp, u32 ts)
 	rtp->nb_txt_frag = rtp->cur_txt_frag = rtp->sidx = rtp->txt_len = rtp->nb_mod_frag = 0;
 }
 
-static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	Bool is_utf_16;
 	u32 type, ttu_len, duration, ts, sidx, txt_size;
@@ -585,7 +606,7 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool missed_end)
 {
-	char *data;
+	u8 *data;
 	u32 data_size, nal_s;
 	if (!rtp->inter_bs) return;
 
@@ -608,7 +629,7 @@ static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	/*set F-bit since nal is corrupted*/
 //	if (missed_end) data[4] |= 0x80;
 
-	rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
+	rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	rtp->sl_hdr.decodingTimeStampFlag = 0;
@@ -619,7 +640,7 @@ static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	gf_free(data);
 }
 
-void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	char nalhdr[4];
 	u32 nal_type;
@@ -629,19 +650,12 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 
 	/*set start*/
 	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
-		if (rtp->flags & GF_RTP_UNRELIABLE_M) {
-			rtp->sl_hdr.accessUnitEndFlag = 1;
-			rtp->on_sl_packet(rtp->udta, NULL, 0, &rtp->sl_hdr, GF_OK);
-		}
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.decodingTimeStampFlag = 0;
 		rtp->sl_hdr.randomAccessPointFlag = 0;
-	} else if (rtp->sl_hdr.accessUnitEndFlag) {
-		rtp->flags |= GF_RTP_UNRELIABLE_M;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[H264 RTP] error in Marker bit - switching to unreliable mode\n"));
 	}
 
 	/*single NALU*/
@@ -672,7 +686,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		rtp->sl_hdr.accessUnitStartFlag = 0;
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
-		rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
+		rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
 
 		/*send NAL payload*/
 		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
@@ -709,7 +723,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 				rtp->sl_hdr.accessUnitStartFlag = 0;
 				rtp->sl_hdr.compositionTimeStampFlag = 0;
 			}
-			rtp->sl_hdr.accessUnitEndFlag = (!(rtp->flags & GF_RTP_UNRELIABLE_M) && hdr->Marker && (offset+nal_size==size)) ? 1 : 0;
+			rtp->sl_hdr.accessUnitEndFlag = (hdr->Marker && (offset+nal_size==size)) ? 1 : 0;
 			if (send) rtp->on_sl_packet(rtp->udta, payload+offset, nal_size, &rtp->sl_hdr, GF_OK);
 			offset += nal_size;
 		}
@@ -750,7 +764,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 
 static void gf_rtp_hevc_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool missed_end)
 {
-	char *data;
+	u8 *data;
 	u32 data_size, nal_s;
 	if (!rtp->inter_bs) return;
 
@@ -768,7 +782,7 @@ static void gf_rtp_hevc_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	/*set F-bit since nal is corrupted*/
 	if (missed_end) data[4] |= 0x80;
 
-	rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
+	rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	rtp->sl_hdr.decodingTimeStampFlag = 0;
@@ -778,7 +792,7 @@ static void gf_rtp_hevc_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	gf_free(data);
 }
 
-static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u32 nal_type;
 	char nalu_size[4];
@@ -787,19 +801,12 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 	/*set start*/
 	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
-		if (rtp->flags & GF_RTP_UNRELIABLE_M) {
-			rtp->sl_hdr.accessUnitEndFlag = 1;
-			rtp->on_sl_packet(rtp->udta, NULL, 0, &rtp->sl_hdr, GF_OK);
-		}
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->sl_hdr.accessUnitStartFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.decodingTimeStampFlag = 0;
 		rtp->sl_hdr.randomAccessPointFlag = 0;
-	} else if (rtp->sl_hdr.accessUnitEndFlag) {
-		rtp->flags |= GF_RTP_UNRELIABLE_M;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[HEVC RTP] error in Marker bit - switching to unreliable mode\n"));
 	}
 
 	/*Single NALU*/
@@ -822,7 +829,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 		rtp->sl_hdr.accessUnitStartFlag = 0;
 		rtp->sl_hdr.compositionTimeStampFlag = 1;
 		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
-		rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
+		rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
 
 		/*send NAL payload*/
 		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
@@ -851,7 +858,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 			rtp->sl_hdr.accessUnitStartFlag = 0;
 			rtp->sl_hdr.compositionTimeStampFlag = 0;
-			rtp->sl_hdr.accessUnitEndFlag = (!(rtp->flags & GF_RTP_UNRELIABLE_M) && hdr->Marker && (offset+nal_size==size)) ? 1 : 0;
+			rtp->sl_hdr.accessUnitEndFlag = (hdr->Marker && (offset+nal_size==size)) ? 1 : 0;
 			rtp->on_sl_packet(rtp->udta, payload+offset, nal_size, &rtp->sl_hdr, GF_OK);
 			offset += nal_size;
 		}
@@ -892,7 +899,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u32 remain, latm_hdr_size, latm_size;
 
@@ -920,6 +927,7 @@ static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 }
 #endif
 
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
 	u32 du_size, offset, dsize, hdr_size;
@@ -997,27 +1005,30 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 	}
 
 }
+#endif
+
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u8 ft;
 
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	rtp->sl_hdr.randomAccessPointFlag = 1;
 	ft = payload[0];
 	/*nb_pck = payload[1];*/
 	payload += 2;
 	size -= 2;
 
 	if (!ft) {
-		GF_AC3Header hdr;
-		memset(&hdr, 0, sizeof(GF_AC3Header));
+		GF_AC3Header ac3hdr;
+		memset(&ac3hdr, 0, sizeof(GF_AC3Header));
 		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
 		while (size) {
 			u32 offset;
-			if (!gf_ac3_parser((u8*)payload, size, &offset, &hdr, GF_FALSE)) {
+			if (!gf_ac3_parser((u8*)payload, size, &offset, &ac3hdr, GF_FALSE)) {
 				return;
 			}
 			if (offset) {
@@ -1025,10 +1036,10 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 				payload+=offset;
 				size-=offset;
 			}
-			rtp->on_sl_packet(rtp->udta, payload, hdr.framesize, &rtp->sl_hdr, GF_OK);
-			if (size < hdr.framesize) return;
-			size -= hdr.framesize;
-			payload += hdr.framesize;
+			rtp->on_sl_packet(rtp->udta, payload, ac3hdr.framesize, &rtp->sl_hdr, GF_OK);
+			if (size < ac3hdr.framesize) return;
+			size -= ac3hdr.framesize;
+			payload += ac3hdr.framesize;
 			rtp->sl_hdr.compositionTimeStamp += 1536;
 		}
 		rtp->flags |= GF_RTP_NEW_AU;
@@ -1080,7 +1091,9 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "AMR-WB")) return GF_RTP_PAYT_AMR_WB;
 	else if (!stricmp(map->payload_name, "3gpp-tt")) return GF_RTP_PAYT_3GPP_TEXT;
 	else if (!stricmp(map->payload_name, "H264")) return GF_RTP_PAYT_H264_AVC;
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	else if (!stricmp(map->payload_name, "richmedia+xml")) return GF_RTP_PAYT_3GPP_DIMS;
+#endif
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
 	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
 	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
@@ -1136,7 +1149,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	}
 	/*object type indication (not needed when IOD is here)*/
 	else if (!stricmp(param_name, "ObjectType")) {
-		rtp->sl_map.ObjectTypeIndication = atoi(param_val);
+		rtp->sl_map.CodecID = atoi(param_val);
 	}
 	else if (!stricmp(param_name, "StreamType"))
 		rtp->sl_map.StreamType = atoi(param_val);
@@ -1145,12 +1158,12 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 		/*in case no IOD and no streamType/OTI in the file*/
 		if (!stricmp(param_val, "AAC-hbr") || !stricmp(param_val, "AAC-lbr") || !stricmp(param_val, "CELP-vbr") || !stricmp(param_val, "CELP-cbr")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+			rtp->sl_map.CodecID = GF_CODECID_AAC_MPEG4;
 		}
 		/*in case no IOD and no streamType/OTI in the file*/
 		else if (!stricmp(param_val, "avc-video") ) {
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
-			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_AVC;
+			rtp->sl_map.CodecID = GF_CODECID_AVC;
 		}
 	}
 
@@ -1208,18 +1221,20 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	/*reset sl map*/
 	memset(&rtp->sl_map, 0, sizeof(GP_RTPSLMap));
 
-	if (!stricmp(map->payload_name, "enc-mpeg4-generic")) rtp->flags |= GF_RTP_HAS_ISMACRYP;
+	if (map && !stricmp(map->payload_name, "enc-mpeg4-generic")) rtp->flags |= GF_RTP_HAS_ISMACRYP;
 
 
 	/*then process all FMTPs*/
-	i=0;
-	while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
-		GF_X_Attribute *att;
-		//we work with only one PayloadType for now
-		if (fmtp->PayloadType != map->PayloadType) continue;
-		j=0;
-		while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
-			payt_set_param(rtp, att->Name, att->Value);
+	if (media) {
+		i=0;
+		while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
+			GF_X_Attribute *att;
+			//we work with only one PayloadType for now
+			if (map && (fmtp->PayloadType != map->PayloadType)) continue;
+			j=0;
+			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
+				payt_set_param(rtp, att->Name, att->Value);
+			}
 		}
 	}
 
@@ -1276,7 +1291,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		gf_bs_del(bs);
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+		rtp->sl_map.CodecID = GF_CODECID_AAC_MPEG4;
 
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_latm;
@@ -1301,36 +1316,38 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.auh_min_len = rtp->sl_map.auh_first_min_len;
 		rtp->sl_map.auh_first_min_len += rtp->sl_map.IndexLength;
 		rtp->sl_map.auh_min_len += rtp->sl_map.IndexDeltaLength;
+		if (!map) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		/*RFC3016 flags*/
 		if (!stricmp(map->payload_name, "MP4V-ES")) {
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
-			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
+			rtp->sl_map.CodecID = GF_CODECID_MPEG4_PART2;
 		}
 		else if (!strnicmp(map->payload_name, "AAC", 3)) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+			rtp->sl_map.CodecID = GF_CODECID_AAC_MPEG4;
 		}
 		else if (!stricmp(map->payload_name, "MP4A-LATM")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+			rtp->sl_map.CodecID = GF_CODECID_AAC_MPEG4;
 		}
 		/*MPEG-4 video, check RAPs if not indicated*/
-		if ((rtp->sl_map.StreamType == GF_STREAM_VISUAL) && (rtp->sl_map.ObjectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) && !rtp->sl_map.RandomAccessIndication) {
+		if ((rtp->sl_map.StreamType == GF_STREAM_VISUAL) && (rtp->sl_map.CodecID == GF_CODECID_MPEG4_PART2) && !rtp->sl_map.RandomAccessIndication) {
 			rtp->flags |= GF_RTP_M4V_CHECK_RAP;
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if ((rtp->sl_map.ObjectTypeIndication == GPAC_OTI_AUDIO_AAC_MPEG4) && !rtp->sl_map.config) {
+		if ((rtp->sl_map.CodecID == GF_CODECID_AAC_MPEG4) && !rtp->sl_map.config && media) {
 			GF_M4ADecSpecInfo cfg;
-			GF_RTPMap*map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
+			GF_RTPMap *a_map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 
 			memset(&cfg, 0, sizeof(GF_M4ADecSpecInfo));
 			cfg.audioPL = rtp->sl_map.PL_ID;
-			cfg.nb_chan = map->AudioChannels;
-			cfg.nb_chan = 1;
-			cfg.base_sr = map->ClockRate/2;
-			cfg.sbr_sr = map->ClockRate;
-			cfg.base_object_type = GF_M4A_AAC_LC;
-			cfg.base_object_type = 5;
+			cfg.nb_chan = a_map->AudioChannels ? a_map->AudioChannels : 1;
+			cfg.base_sr = a_map->ClockRate/2;
+			cfg.sbr_sr = a_map->ClockRate;
+			cfg.base_object_type = GF_M4A_AAC_SBR;
 			cfg.sbr_object_type = GF_M4A_AAC_MAIN;
 			gf_m4a_write_config(&cfg, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		}
@@ -1341,7 +1358,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 #ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_MPEG12_AUDIO:
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_MPEG2_PART3;
+		rtp->sl_map.CodecID = GF_CODECID_MPEG2_PART3;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_mpeg12_audio;
 		break;
@@ -1352,77 +1369,52 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		rtp->sl_map.StreamType = GF_STREAM_VISUAL;
 		/*FIXME: how to differentiate MPEG1 from MPEG2 video before any frame is received??*/
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
+		rtp->sl_map.CodecID = GF_CODECID_MPEG1;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_mpeg12_video;
 		break;
 	case GF_RTP_PAYT_AMR:
 	case GF_RTP_PAYT_AMR_WB:
-	{
-		GF_BitStream *bs;
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
-		/*create DSI*/
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		if (rtp->payt == GF_RTP_PAYT_AMR) {
-			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR);
-			gf_bs_write_u32(bs, 8000);
-			gf_bs_write_u16(bs, 1);
-			gf_bs_write_u16(bs, 160);
-		} else {
-			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR_WB);
-			gf_bs_write_u32(bs, 16000);
-			gf_bs_write_u16(bs, 1);
-			gf_bs_write_u16(bs, 320);
-		}
-		gf_bs_write_u8(bs, 16);
-		gf_bs_write_u8(bs, 1);
-		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
-		gf_bs_del(bs);
+		rtp->sl_map.CodecID = (rtp->payt == GF_RTP_PAYT_AMR) ? GF_CODECID_AMR : GF_CODECID_AMR_WB;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_amr;
-	}
-	break;
+		break;
 	case GF_RTP_PAYT_H263:
-	{
-		u32 x, y, w, h;
-		GF_X_Attribute *att;
-		GF_BitStream *bs;
-		x = y = w = h = 0;
-		j=0;
-		while ((att = (GF_X_Attribute *)gf_list_enum(media->Attributes, &j))) {
-			if (stricmp(att->Name, "cliprect")) continue;
-			/*only get the display area*/
-			sscanf(att->Value, "%u,%u,%u,%u", &y, &x, &h, &w);
+		if (media) {
+			GF_X_Attribute *att;
+			j=0;
+			while ((att = (GF_X_Attribute *)gf_list_enum(media->Attributes, &j))) {
+				if (stricmp(att->Name, "cliprect")) continue;
+				/*only get the display area*/
+				sscanf(att->Value, "%u,%u,%u,%u", &rtp->y, &rtp->x, &rtp->h, &rtp->w);
+			}
 		}
-
 		rtp->sl_map.StreamType = GF_STREAM_VISUAL;
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
-		/*create DSI*/
-		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_H263);
-		gf_bs_write_u16(bs, w);
-		gf_bs_write_u16(bs, h);
-		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
-		gf_bs_del(bs);
+		rtp->sl_map.CodecID = GF_CODECID_H263;
+
 		/*we signal RAPs*/
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
+
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_h263;
-	}
-	break;
+		break;
+
 	case GF_RTP_PAYT_3GPP_TEXT:
 	{
 		char *tx3g, *a_tx3g;
 		GF_BitStream *bs;
 		u32 nb_desc;
-		GF_SDP_FMTP *fmtp;
 		GF_TextConfig tcfg;
 		memset(&tcfg, 0, sizeof(GF_TextConfig));
 		tcfg.tag = GF_ODF_TEXT_CFG_TAG;
 		tcfg.Base3GPPFormat = 0x10;
 		tcfg.MPEGExtendedFormat = 0x10;
 		tcfg.profileLevel = 0x10;
+		if (!map || !media) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		tcfg.timescale = map->ClockRate;
 		tcfg.sampleDescriptionFlags = 1;
 		tx3g = NULL;
@@ -1468,18 +1460,22 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		}
 		a_tx3g = tx3g;
 		gf_bs_write_u8(bs, nb_desc);
+		nb_desc = 1;
 		while (1) {
 			char *next_tx3g, szOut[1000];
-			u32 len;
-			strcpy(a_tx3g, tx3g);
+			u32 len, s_len;
 			next_tx3g = strchr(a_tx3g, ',');
-			if (next_tx3g) next_tx3g[0] = 0;
-			len = gf_base64_decode(a_tx3g, (u32) strlen(a_tx3g), szOut, 1000);
+			if (next_tx3g) s_len = (u32) (next_tx3g - a_tx3g - 1);
+			else s_len = (u32) strlen(a_tx3g);
+
+			len = gf_base64_decode(a_tx3g, s_len, szOut, 1000);
+			nb_desc++;
 			gf_bs_write_data(bs, szOut, len);
-			tx3g = strchr(tx3g, ',');
-			if (!tx3g) break;
-			tx3g += 1;
-			while (tx3g[0] == ' ') tx3g += 1;
+			if (!next_tx3g) break;
+			a_tx3g = strchr(a_tx3g, ',');
+			if (!a_tx3g) break;
+			a_tx3g += 1;
+			while (a_tx3g[0] == ' ') a_tx3g += 1;
 		}
 
 		/*write video cfg*/
@@ -1489,7 +1485,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		gf_bs_write_u16(bs, tcfg.vert_offset);
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		rtp->sl_map.StreamType = GF_STREAM_TEXT;
-		rtp->sl_map.ObjectTypeIndication = 0x08;
+		rtp->sl_map.CodecID = GF_CODECID_TEXT_MPEG4;
 		gf_bs_del(bs);
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_ttxt;
@@ -1499,15 +1495,20 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_H264_AVC:
 	case GF_RTP_PAYT_H264_SVC:
 	{
-		GF_SDP_FMTP *fmtp;
-		GF_AVCConfig *avcc = gf_odf_avc_cfg_new();
+		GF_AVCConfig *avcc;
+		if (!map || !media) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		avcc = gf_odf_avc_cfg_new();
 		avcc->AVCProfileIndication = (rtp->sl_map.PL_ID>>16) & 0xFF;
 		avcc->profile_compatibility = (rtp->sl_map.PL_ID>>8) & 0xFF;
 		avcc->AVCLevelIndication = rtp->sl_map.PL_ID & 0xFF;
 		avcc->configurationVersion = 1;
 		avcc->nal_unit_size = 4;
 		rtp->sl_map.StreamType = 4;
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_AVC;
+		rtp->sl_map.CodecID = GF_CODECID_AVC;
 		/*we will signal RAPs*/
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*rewrite sps and pps*/
@@ -1570,12 +1571,16 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_LHVC:
 #ifndef GPAC_DISABLE_HEVC
 	{
-		GF_SDP_FMTP *fmtp;
-		GF_HEVCConfig *hevcc = gf_odf_hevc_cfg_new();
+		GF_HEVCConfig *hevcc;
+		if (!map || !media) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Missing required payload map\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		hevcc = gf_odf_hevc_cfg_new();
 		hevcc->configurationVersion = 1;
 		hevcc->nal_unit_size = 4;
 		rtp->sl_map.StreamType = 4;
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_HEVC;
+		rtp->sl_map.CodecID = GF_CODECID_HEVC;
 		/*we will signal RAPs*/
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		i=0;
@@ -1649,10 +1654,11 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*todo - rewrite DIMS config*/
 	case GF_RTP_PAYT_3GPP_DIMS:
 		rtp->sl_map.StreamType = GF_STREAM_SCENE;
-		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_SCENE_DIMS;
+		rtp->sl_map.CodecID = GF_CODECID_DIMS;
 		/*we will signal RAPs*/
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*we map DIMS CTR to AU seq num, hence 3 bits*/
@@ -1661,49 +1667,128 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_3gpp_dims;
 		break;
+#endif
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_AC3:
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.ObjectTypeIndication = 0xA5;
+		rtp->sl_map.CodecID = GF_CODECID_AC3;
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_ac3;
 		break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 	default:
-		return GF_NOT_SUPPORTED;
+		if (rtp->payt >= GF_RTP_PAYT_LAST_STATIC_DEFINED)
+			return GF_NOT_SUPPORTED;
+		rtp->depacketize = gf_rtp_parse_pass_through;
+		return GF_OK;
 	}
 	return GF_OK;
 }
 
+const GF_RTPStaticMap static_payloads [] =
+{
+	{ GF_RTP_PAYT_PCMU, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_GSM, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G723, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_8K, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_16K, 16000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_LPC, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_PCMA, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G722, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_L16_STEREO, 44100, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_L16_MONO, 44100, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_QCELP_BASIC, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_CN, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_MPEG12_AUDIO, 90000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G728, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_11K, 11025, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_DVI4_22K, 22050, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_G729, 8000, GF_STREAM_AUDIO},
+	{ GF_RTP_PAYT_CelB, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_JPEG, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_nv, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_H261, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_MPEG12_VIDEO, 90000, GF_STREAM_VISUAL},
+	{ GF_RTP_PAYT_MP2T, 90000, GF_STREAM_FILE, 0, "video/mp2t"},
+	{ GF_RTP_PAYT_H263, 90000, GF_STREAM_VISUAL}
+};
+
+static const GF_RTPStaticMap *gf_rtp_is_valid_static_payt(u32 payt)
+{
+	u32 i, count = sizeof(static_payloads) / sizeof(struct rtp_static_payt);
+	if (payt>= GF_RTP_PAYT_LAST_STATIC_DEFINED) return NULL;
+	for (i=0; i<count; i++) {
+		if (static_payloads[i].fmt == payt) {
+			return &static_payloads[i];
+		}
+	}
+	return NULL;
+}
+
+
 GF_EXPORT
-GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet_cbk)(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e), void *udta)
+GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf_rtp_packet_cbk sl_packet_cbk, void *udta)
 {
 	GF_Err e;
-	GF_RTPMap *map;
+	GF_RTPMap *map = NULL;
 	u32 payt;
 	GF_RTPDepacketizer *tmp;
+	u32 clock_rate;
+	const GF_RTPStaticMap *static_map = NULL;
 
 	/*check RTP map. For now we only support 1 RTPMap*/
-	if (!sl_packet_cbk || !media || media->fmt_list || (gf_list_count(media->RTPMaps) > 1)) return NULL;
+	if (!sl_packet_cbk || (!media && !hdr_payt)) return NULL;
+	if (media && (gf_list_count(media->RTPMaps) > 1)) return NULL;
 
-	/*check payload type*/
-	map = (GF_RTPMap *)gf_list_get(media->RTPMaps, 0);
+#ifdef GPAC_ENABEL_COVERAGE
+	if (gf_sys_is_cov_mode())
+		gf_rtp_is_valid_static_payt(22);
+#endif
 
-	payt = gf_rtp_get_payload_type(map, media);
-	if (!payt) return NULL;
+	if (!media) {
+		static_map = gf_rtp_is_valid_static_payt(hdr_payt);
+		if (!static_map) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("RTP: Invalid/unsupported static payload type %d\n", hdr_payt));
+			return NULL;
+		}
+		clock_rate = static_map->clock_rate;
+		payt = hdr_payt;
+	} else {
+		/*check payload type*/
+		map = (GF_RTPMap *)gf_list_get(media->RTPMaps, 0);
+		if (!map) {
+			//we deal with at most one format
+			if (!media->fmt_list || strchr(media->fmt_list, ' ')) return NULL;
+
+			payt = atoi(media->fmt_list);
+			static_map = gf_rtp_is_valid_static_payt(payt);
+			if (!static_map) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("RTP: Invalid static payload type %d\n", payt));
+				return NULL;
+			}
+			clock_rate = static_map->clock_rate;
+		} else {
+			payt = gf_rtp_get_payload_type(map, media);
+			if (!payt) return NULL;
+			clock_rate = map->ClockRate;
+		}
+	}
 
 	GF_SAFEALLOC(tmp, GF_RTPDepacketizer);
 	if (!tmp) return NULL;
 	tmp->payt = payt;
+	tmp->static_map = static_map;
 
 	e = gf_rtp_payt_setup(tmp, map, media);
 	if (e) {
 		gf_free(tmp);
 		return NULL;
 	}
+
 	assert(tmp->depacketize);
-	tmp->clock_rate = map->ClockRate;
+	tmp->clock_rate = clock_rate;
 	tmp->on_sl_packet = sl_packet_cbk;
 	tmp->udta = udta;
 	return tmp;
@@ -1736,7 +1821,7 @@ void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp)
 }
 
 GF_EXPORT
-void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	assert(rtp && rtp->depacketize);
 	rtp->sl_hdr.sender_ntp = hdr->recomputed_ntp_ts;
@@ -1744,7 +1829,7 @@ void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, cha
 }
 
 
-GF_EXPORT
+#if 0 //unused
 void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 {
 	memset(slc, 0, sizeof(GF_SLConfig));
@@ -1787,6 +1872,7 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 		}
 	}
 }
+#endif
 
 
 #endif /*GPAC_DISABLE_STREAMING*/

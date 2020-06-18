@@ -56,7 +56,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	FILE *test = gf_fopen(filename, "rt");
 	if (!test) return GF_URL_ERROR;
 
-	while (fgets(szLine, 2048, test) != NULL) {
+	while (gf_fgets(szLine, 2048, test) != NULL) {
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 		if (strlen(szLine)) break;
@@ -68,12 +68,12 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		if (!strcmp(szTest, szLine)) *fmt = GF_TEXT_IMPORT_SRT;
 	}
 	else if (!strnicmp(szLine, "<?xml ", 6)) {
-		char *ext = strrchr(filename, '.');
+		char *ext = gf_file_ext_start(filename);
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
 		if (ext && !ext[0]) {
-			if (!fgets(szLine, 2048, test))
+			if (!gf_fgets(szLine, 2048, test))
 				szLine[0] = '\0';
 		}
 		if (strstr(szLine, "x-quicktime-tx3g")) *fmt = GF_TEXT_IMPORT_TEXML;
@@ -148,14 +148,14 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		return GF_URL_ERROR;
 	}
 
-	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, 1);
+	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	if (!srt) return GF_OUT_OF_MEM;
 
 	if (!src->slConfig) src->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	src->slConfig->timestampResolution = 1000;
 	if (!src->decoderConfig) src->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	src->decoderConfig->streamType = GF_STREAM_SCENE;
-	src->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
+	src->decoderConfig->objectTypeIndication = GF_CODECID_BIFS;
 
 	e = GF_OK;
 	state = end = 0;
@@ -166,7 +166,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	inf = NULL;
 
 	while (1) {
-		char *sOK = fgets(szLine, 2048, srt_in);
+		char *sOK = gf_fgets(szLine, 2048, srt_in);
 
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
@@ -329,7 +329,6 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	}
 
 exit:
-	if (e) gf_sm_stream_del(ctx, srt);
 	gf_fclose(srt_in);
 	return e;
 }
@@ -401,14 +400,14 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		return GF_URL_ERROR;
 	}
 
-	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, 1);
+	srt = gf_sm_stream_new(ctx, src->ESID, GF_STREAM_SCENE, GF_CODECID_BIFS);
 	if (!srt) return GF_OUT_OF_MEM;
 
 	if (!src->slConfig) src->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	src->slConfig->timestampResolution = 1000;
 	if (!src->decoderConfig) src->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	src->decoderConfig->streamType = GF_STREAM_SCENE;
-	src->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
+	src->decoderConfig->objectTypeIndication = GF_CODECID_BIFS;
 
 	e = GF_OK;
 	end = 0;
@@ -419,7 +418,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	line = 0;
 	first_samp = 1;
 	while (1) {
-		char *sOK = fgets(szLine, 2048, sub_in);
+		char *sOK = gf_fgets(szLine, 2048, sub_in);
 		if (!sOK) break;
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
@@ -514,8 +513,6 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			sfstr->buffer = gf_strdup(szText);
 		}
 	}
-
-	if (e) gf_sm_stream_del(ctx, srt);
 	gf_fclose(sub_in);
 	return e;
 }

@@ -1,0 +1,1828 @@
+/*
+\file
+\brief silence !
+*/
+
+/*!
+
+\defgroup jsevg_grp EVG JS API
+\ingroup jsapi_grp
+\brief Embedded Vector Graphics JavaScript API.
+
+This module provides bindings for GPAC \ref evg_grp engine called EVG (for Embedded Vector Graphics).
+
+The API is loaded as a JS module with the name "evg":
+
+\code
+import * as evg from 'evg'
+
+...
+\endcode
+
+The API supports all Vector Graphics from \ref evg_grp, \ref path_grp, bindings for 2D and 3D matrices and text rendering as used by the \ref compose_grp.
+
+The API is a low level access to the software rasterizer and does not follow the Canvas2D API (https://www.w3.org/TR/2dcontext/) but most of the tools required
+to implement Canvas2D are present in the evg API. 
+
+It allows a filter to:
+- generate new video frames from scratch
+- use input video frames to generate new frames
+- generate vector graphics and text directly on input video frames
+
+Whenever pixel coordinates are indicated, 0,0 indicates:
+- the center of the surface if the surface uses centered coordinates
+- the top-left of the surface if the surface does not use centered coordinates
+
+Whenever using an object as a parameter to a function, only the parameter names as listed in the corresponding interface object are checked. The name of the interface is not, and it usually does not define any constructor.
+
+\note Although 10-bit raster is supported for YUV formats (framebuffer and textures), colors are internally handled as 8-bits for solid brush and gradients. This will be updated in the near future.
+@{
+
+
+*/
+
+/*! The Canvas object is used to draw vectorial 2D path */
+interface Canvas {
+	/*! Canvas constructor. The canvas memory is owned by the canvas object
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	 */
+	Canvas(unsigned long width, unsigned long height, DOMString pixfmt);
+	/*! Canvas constructor
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	\param data the data buffer on which to write. The size shall be greater than the size required for the given size and pixel format.
+	\param stride horizontal stride in pixel of the data
+	\param stride_uv horizontal stride in pixel of the data for the U and V planes
+	 */
+	Canvas(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, optional unsigned long stride=0, optional unsigned long stride_uv=0);
+
+/*! indicates if surface coordinates are centered or not - see \ref gf_evg_surface_set_center_coords*/
+attribute boolean centered;
+
+/*! path to draw - see \ref gf_evg_surface_set_path. The path object is either a Path or a Text*/
+writeonly Path path;
+
+/*! matrix to apply to path - see \ref gf_evg_surface_set_matrix. 
+\note A same path can be drawn several times with different matrices, null means no matrix. */
+writeonly Matrix2D matrix;
+
+/*! clipper in pixel coordinates - see \ref gf_evg_surface_set_clipper
+\note A same path can be drawn several times with different clipper, null means no clipper. Clipper applies to both fill and clear functions*/
+writeonly IRect clipper;
+
+/*! composite operation for alpha surfaces - see \ref gf_evg_surface_set_composite_mode*/
+attribute unsigned long compositeOperation;
+
+/*! alpha custom callback composite operation for alpha surfaces - see \ref gf_evg_surface_set_alpha_callback
+Default is undefined at creation time*/
+attribute AlphaCallback on_alpha;
+
+/*! clears the canvas with the given color - see \ref gf_evg_surface_clear
+\note Omitting the last values will assume 0xFF for alpha, and 0 for other values. 
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0 and 255
+\param g green value, between 0 and 255
+\param b blue value, between 0 and 255
+\param a alpha value, between 0 and 255
+*/
+void clear(IRect rc, unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color
+\note Omitting the last values will assume 1.0 for alpha, and 0.0 for other values. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0.0 and 1.0
+\param g green value, between 0.0 and 1.0
+\param b blue value, between 0.0 and 1.0
+\param a alpha value, between 0.0 and 1.0
+*/
+void clearf(IRect rc, double r, double g, double b, double a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clearf(IRect rc, DOMString color);
+
+/*! fills the path with the given solid brush or gradient stencil - see \ref gf_evg_surface_fill
+\param stencil the stencil to use*/
+void fill(Stencil stencil);
+
+/*! fills the path with the given texture - see \ref gf_evg_surface_fill
+\param texture the texture to use*/
+void fill(Texture texture);
+
+/*! reassign internal data (typically at each new packet)
+\warning This assumes the data layout has not changed (width, height, pixel format, strides). If these are modified, create a new canvas.
+\param data the buffer to use*/
+void reassign(ArrayBuffer data);
+
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param y Y component value
+\param u Cb/U component value
+\param v Cr/V component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Float y, Float u, Float v, optional Float a=1.0);
+
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the YUV value to convert
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Vec4f color);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is Vec4f object
+\param r red component value
+\param g green component value
+\param b blue component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Float r, Float g, Float b, optional Float a=1.0);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the RGB value to convert
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Vec4f color);
+
+};
+
+
+/*! rectangle object, pixel coordinate */
+interface IRect
+{
+	/*! x coordinate in pixels of top-left corner*/
+	unsigned long x;
+	/*! y coordinate in pixels of top-left corner*/
+	unsigned long x;
+	/*! width of rectangle in pixels*/
+	unsigned long w;
+	/*! height of rectangle in pixels*/
+	unsigned long h;
+};
+
+/*! rectangle object */
+interface Rect
+{
+	/*! x coordinate of top-left corner*/
+	unsigned long x;
+	/*! y coordinate  of top-left corner*/
+	unsigned long x;
+	/*! width of rectangle*/
+	unsigned long w;
+	/*! height of rectangle*/
+	unsigned long h;
+};
+
+/*! point object */
+interface Point2D
+{
+	/*! x coordinate of point*/
+	unsigned long x;
+	/*! y coordinate of point*/
+	unsigned long x;
+};
+
+/*! alpha callback type*/
+interface AlphaCallback {
+	/*! alpha callback functions
+	\param source_alpha value of alpha of source color at the given pixel coordinate. Values are between 0 and 255
+	\param x horizontal pixel coordinate, 0 meaning first column of raster surface
+	\param y vertical pixel coordinate, 0 meaning first row of raster surface
+	\return the alpha value to use. 
+
+	\warning the return value is not checked for clamping, it should therefore be between 0 and 255
+	\warning the coordinates are not relative to the centered mode of the surface, 0,0 is always the top-left corner
+	*/
+	unsigned long on_alpha(unsigned long source_alpha, unsigned long x, unsigned long y);
+}
+
+/*! Path object to describe vector graphics.
+Most path functions return the path object itself, so that the operations can be chained:
+\code
+path.move_to(0,0).line_to(0,100).line_to(10, 10).close();
+\endcode
+*/
+interface Path {
+	/*! Constructor*/
+	Path();
+
+	/*! empty path flag - see \ref gf_path_is_empty*/
+	readonly attribute boolean empty;
+	/*! if true, path will use zero_non_zero fill rule otherwise odd/even rule*/
+	readonly attribute boolean zero_fill;
+	/*! bounds of path - see \ref gf_path_get_bounds*/
+	readonly attribute Rect bounds;
+	/*! control bounds of path - see \ref gf_path_get_control_bounds*/
+	readonly attribute Rect ctrl_bounds;
+
+	/*! checks if point is over a path - see \ref gf_path_point_over
+	\param pt point to test
+	\return true if over*/
+	boolean point_over(Point2D pt);
+	/*! checks if point is over a path - see \ref gf_path_point_over
+	\param x x-coord of point to test
+	\param y y-coord of point to test
+	\return true if over*/
+	boolean point_over(double x, double y);
+	/*! gets a flatten version of the path - see \ref gf_path_get_flatten
+	\return the created flatten path*/
+	Path get_flatten();
+
+	/*! flattens  the path - see \ref gf_path_flatten
+	\return the path*/
+	Path flatten();
+
+	/*! adds a path to the path - see \ref gf_path_add_subpath
+	\param subpath path to add
+	\return the path*/
+	Path add_path(Path subpath);
+
+	/*! adds an arc to the path - see \ref gf_path_add_arc
+	\param radius radius of the arc
+	\param start start angle of the arc in radians
+	\param end end angle of the arc in radians
+	\param close closing type: 0 for open arc, 1 for close arc, 2 for pie
+	\return the path*/
+	Path arc(double radius, double start, double end, optional unsigned long close=0);
+
+	/*! adds an SVG arc to the path - see \ref gf_path_add_svg_arc_to
+	\param end_x x-coordinate of the arc end point
+	\param end_y y-coordinate of the arc end point
+	\param r_x x-axis radius
+	\param r_y y-axis radius
+	\return the path*/
+	Path arc_svg(double end_x, double end_y, double r_x, double r_y);
+	/*! adds an SVG arc to the path - see \ref gf_path_add_svg_arc_to
+	\param end_x x-coordinate of the arc end point
+	\param end_y y-coordinate of the arc end point
+	\param r_x x-axis radius
+	\param r_y y-axis radius
+	\param x_axis_rotation angle for the x-axis
+	\param large_arc_flag large or short arc selection
+	\param sweep_flag if 1, the arc will be clockwise, otherwise counter-clockwise.
+	\return the path*/
+	Path arc_svg(double end_x, double end_y, double r_x, double r_y, optional double x_axis_rotation=0, optional boolean large_arc_flag=false, optional boolean sweep_flag=false);
+
+	/*! adds an arc to the path - see \ref gf_path_add_arc_to
+	\param end_x x-coordinate of the arc end point
+	\param end_y y-coordinate of the arc end point
+	\param fa_x x-coordinate of the arc first focal point
+	\param fa_y y-coordinate of the arc first focal point
+	\param fb_x x-coordinate of the arc second focal point
+	\param fb_y y-coordinate of the arc second focal point
+	\param cw if 1, the arc will be clockwise, otherwise counter-clockwise.
+	\return the path*/
+	Path arc_bifs(double end_x, double end_y, double fa_x, double fa_y, double fb_x, double fb_y, optional boolean cw=false);
+
+	/*! adds N-1 bezier curve - see gf_path_add_bezier. The function can take any number of points
+	\param pt1 first control point of the bezier curve
+	\param pt2 second control point of the bezier curve
+	\param pt3 last point of the curve if last point defined, otherwise next control point
+	\return the path*/
+	Path n_bezier(Point2D pt1, Point2D pt2, Point2D pt3, ...);
+
+	/*! adds an ellipse - see \ref gf_path_add_ellipse
+	\param cx x-coordinate of the ellipse center
+	\param cy y-coordinate of the ellipse center
+	\param a_axis length of the horizontal ellipse axis
+	\param b_axis length of the vertical ellipse axis
+	\return the path*/
+	Path ellipse(double cx, double cy, double a_axis, double b_axis);
+
+	/*! adds an ellipse - see \ref gf_path_add_ellipse
+	\param center ellipse center
+	\param a_axis length of the horizontal ellipse axis
+	\param b_axis length of the vertical ellipse axis
+	\return the path*/
+	Path ellipse(Point2D center, double a_axis, double b_axis);
+
+	/*! adds a rectangle - see \ref gf_path_add_rect and \ref gf_path_add_rect_center
+	\param ox x-coordinate of the rectangle center or top-left
+	\param oy y-coordinate of the rectangle center or top-left
+	\param width width of the rectangle
+	\param height height of the rectangle
+	\param centered indicates if the given coordinates are the top-left one (false) or the center ones (true)
+	\return the path*/
+	Path rectangle(double ox, double oy, double width, double height, optional boolean centered=false);
+
+	/*! adds a rectangle - see \ref gf_path_add_rect and \ref gf_path_add_rect_center
+	\param o rectangle center or top-left
+	\param width width of the rectangle
+	\param height height of the rectangle
+	\param centered indicates if the given coordinates are the top-left one (false) or the center ones (true)
+	\return the path*/
+	Path rectangle(Point2D o, double width, double height, optional boolean centered=false);
+
+	/*! adds a quadratic  see \ref gf_path_add_quadratic_to 
+	\param c_x x-coordinate of the control point of the quadratic curve
+	\param c_y y-coordinate of the control point of the quadratic curve
+	\param x x-coordinate of the end point of the cubic quadratic
+	\param y y-coordinate of the end point of the cubic quadratic
+	\return the path*/
+	Path quadratic_to(double c_x, double c_y, double x, double y);
+
+	/*! adds a cubic bezier curve to the current contour, starting from the current path point - see \ref gf_path_add_cubic_to
+	\param c1_x x-coordinate of the first control point of the cubic curve
+	\param c1_y y-coordinate of the first control point of the cubic curve
+	\param c2_x x-coordinate of the second control point of the cubic curve
+	\param c2_y y-coordinate of the second control point of the cubic curve
+	\param x x-coordinate of the end point of the cubic curve
+	\param y y-coordinate of the end point of the cubic curve
+	\return the path*/
+	*/
+	Path cubic_to(double c1_x, double c1_y, double c2_x, double c2_y, double x, double y);
+
+
+	/*! adds a line - see \ref gf_path_add_line_to 
+	\param x x-coordinate of the point
+	\param y y-coordinate of the point
+	\return the path*/
+	Path line_to(double x, double y);
+
+	/*! adds a move to - see \ref gf_path_add_move_to 
+	\param x x-coordinate of the point
+	\param y y-coordinate of the point
+	\return the path*/
+	Path move_to(double x, double y);
+
+	/*! close the path - see \ref gf_path_close
+	\return the path*/
+	Path close();
+
+	/*! reset the path - see \ref gf_path_reset
+	\return the path*/
+	Path reset();
+
+	/*! clone the path - see \ref gf_path_clone
+	\return the cloned path*/
+	Path clone();
+
+	/*! generates a path outline - see \ref gf_path_get_outline
+	\param ps the pen settings used to produce the outline
+	\return the outline path*/
+	*/
+	Path outline(PenSettings ps);
+
+};
+
+/*! Pen settings, see \ref GF_PenSettings*/
+interface PenSettings {
+	/*! pen line width*/
+	attribute double width;
+	/*! The miter limit of the line joins*/
+	attribute double miter;
+	/*! The initial dash offset in the outline. All points before this offset will be
+	* ignored when building the outline*/
+	attribute double offset;
+	/*! The author-specified path length. Ignored if <= 0*/
+	attribute double length;
+	/*! The style of the lines ends*/
+	attribute unsigned long cap;
+	/*! The style of the lines joins*/
+	attribute unsigned long join;
+	/*! The alignment of the outline with regard to the path*/
+	attribute unsigned long align;
+	/*! The dash style of the line*/
+	attribute unsigned long dash;
+	/*! The dash pattern used for custom dashing*/
+	attribute Array dashes;
+};
+
+/*! 2D matrix, see \ref GF_Matrix2D
+the transformation of (x, y) into (x', y') is:
+\code
+x' = x * m.xx + y * m.xy + m.tx;
+y' = x * m.yx + y * m.yy + m.ty;
+\endcode
+
+Most matrix functions return the path object itself, so that the operations can be chained:
+\code
+mx.rotate(0).translate(10, 20).scale(2, 2);
+\endcode
+
+All objects (Point2D, Rect) used in the API do not use constructors, their type is inferred if the expected attributes (eg x y, ...) are present in the object
+
+\code
+let res = max.apply({x:0,y: 0});
+print(`transformed ${res.x} ${res.y});`
+\endcode
+
+
+*/
+interface Matrix2D {
+	/*! constructor*/
+	Matrix2D();
+	/*! constructor
+	\param from the color matrix to use*/
+	Matrix2D(Matrix2D from);
+	/*! constructor
+	\param coefs the matrix coeficients
+	*/
+	Matrix2D(double coefs...);
+
+	/*! xx */
+	attribute double xx;
+	/*! xy */
+	attribute double xy;
+	/*! tx */
+	attribute double tx;
+	/*! yx */
+	attribute double yx;
+	/*! yy */
+	attribute double yy;
+	/*! ty */
+	attribute double tx;
+	/*! matrix is identity*/
+	attribute boolean identity;
+
+	/*! get scale part of the matrix after decomposition - see \ref gf_mx2d_decompose
+	\return {x, y} object, or null if matrix cannot be decomposed*/
+	Point2D get_scale();
+	/*! get translate part of the matrix after decomposition - see \ref gf_mx2d_decompose
+	\return {x, y} object, or null if matrix cannot be decomposed*/
+	Point2D get_translate();
+	/*! get rotation part of the matrix after decomposition - see \ref gf_mx2d_decompose
+	\return rotation, or null if matrix cannot be decomposed*/
+	double get_rotate();
+
+	/*! inverse matrix - see \ref gf_mx2d_inverse
+	\return the matrix*/
+	Matrix2D inverse();
+	/*! copies the matrix 
+	\return the new copy matrix*/
+	Matrix2D copy();
+	/*! adds a matrix - see \ref gf_mx2d_add_matrix and \ref gf_mx2d_pre_multiply
+	\param mx the matrix to multiply 
+	\param premultiply if true, performs \code mx * this \endcode, otherwise \code this * mx \endcode 
+	\return the matrix*/
+	Matrix2D add(Matrix2D mx, optional boolean premultiply=false);
+	/*! add a translation - see \ref gf_mx2d_add_rotation
+	\param x horizontal translation
+	\param y vertical translation
+	\return the matrix*/	
+	Matrix2D translate(double x, double y);
+	/*! add a translation - see \ref gf_mx2d_add_rotation
+	\param vec translation vector
+	\return the matrix*/	
+	Matrix2D translate(Point2D vec);
+
+	/*! add a rotation - see \ref gf_mx2d_add_rotation
+	\param cx center x coordinate
+	\param cy center y coordinate
+	\param a rotation angle
+	\return the matrix*/	
+	Matrix2D rotate(double cx, double cy, double a);
+	/*! adds scale - see \ref gf_mx2d_add_scale
+	\param sx horizontal scale factor
+	\param sy vertical scale factor
+	\return the matrix*/	
+	Matrix2D scale(double sx, double sy);
+
+	/*! adds scale - see \ref gf_mx2d_add_scale_at
+	\param sx horizontal scale factor
+	\param sy vertical scale factor
+	\param cx horizontal scaling center coordinate
+	\param cy vertical scaling center coordinate
+	\param angle scale orienttion angle in radians
+	\return the matrix*/	
+	Matrix2D scale(double sx, double sy, double cx, double cy, double angle);
+	/*! adds skew - see gf_mx2d_add_skew
+	\param skew_x horizontal skew factor
+	\param skew_y vertical skew factor
+	\return the matrix*/	
+	Matrix2D skew(double skew_x, double skew_y);
+	/*! adds horizontal skew - see gf_mx2d_add_skew_x
+	\param skew horizontal skew factor
+	\return the matrix*/	
+	Matrix2D skew_x(double skew);
+	/*! adds vertical skew - see gf_mx2d_add_skew_y
+	\param skew vertical skew factor
+	\return the matrix*/	
+	Matrix2D skew_y(double skew);
+
+	/*! transforms a point with a matrix - see gf_mx2d_apply_point
+	\param in input point to transform
+	\return the transformed point*/
+	Point2D apply(Point2D in);
+	/*! transforms a rectangle with a matrix - see gf_mx2d_apply_rect
+	\param in input rectangle to transform
+	\return the transformed rectangle*/
+	Rect apply(Rect in);
+};
+
+/*! color matrix*/
+interface ColorMatrix {
+	/*! constructor*/
+	ColorMatrix();
+	/*! constructor
+	\param from the color matrix to use */
+	ColorMatrix(ColorMatrix from);
+	/*! constructor
+	\param coefs the matrix coeficients
+	 */
+	ColorMatrix(double coefs...);
+	
+	/*! rr*/
+	attribute double rr;
+	/*! rg*/
+	attribute double rg;
+	/*! rb*/
+	attribute double rb;
+	/*! ra*/
+	attribute double ra;
+	/*! tr*/
+	attribute double tr;
+	/*! gr*/
+	attribute double gr;
+	/*! gg*/
+	attribute double gg;
+	/*! gb*/
+	attribute double gb;
+	/*! ga*/
+	attribute double ga;
+	/*! tg*/
+	attribute double tg;
+	/*! br*/
+	attribute double br;
+	/*! bg*/
+	attribute double bg;
+	/*! bb*/
+	attribute double bb;
+	/*! bb*/
+	attribute double ba;
+	/*! tb*/
+	attribute double tb;
+	/*! ar*/
+	attribute double ar;
+	/*! ag*/
+	attribute double ag;
+	/*! ab*/
+	attribute double ab;
+	/*! aa*/
+	attribute double aa;
+	/*! ta*/
+	attribute double ta;
+	/*! identity*/
+	attribute boolean identity;
+	/*! multiplies two color matrix this * with
+	\param with color matrix to multiply with
+	\return the ColorMatrix*/
+	ColorMatrix multiply(ColorWatrix with);
+	
+	/*! apply a color transformation as 8bit RGB
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	\return transformed color*/
+	Color apply(DOMString color);
+
+	/*! apply a color transformation as 8bit RGB
+	\param color a color interface
+	\return transformed color*/
+	Color apply(Color color);
+
+	/*! apply a color transformation as float RGB
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	\return transformed color*/
+	Colorf applyf(DOMString color);
+
+	/*! apply a color transformation as float RGB
+	\param colorf a color interface
+	\return transformed color*/
+	Colorf apply(Color colorf);
+};
+
+/*! color object*/
+interface Color
+{
+	/*! red component - if absent, default to 0*/
+	unsigned long r;	
+	/*! green component - if absent, default to 0*/
+	unsigned long g;	
+	/*! blue component - if absent, default to 0*/
+	unsigned long b;	
+	/*! alpha component - if absent, default to 255*/
+	unsigned long a;	
+};
+
+/*! color object*/
+interface Colorf
+{
+	/*! red component - if absent, default to 0*/
+	double r;	
+	/*! green component - if absent, default to 0*/
+	double g;	
+	/*! blue component - if absent, default to 0*/
+	double b;	
+	/*! alpha component - if absent, default to 1.0*/
+	double a;	
+};
+
+/*! interface object to solid brush, linear gradient and radial gradient stencils*/
+interface Stencil {
+	/*! constructor for solid color stencil*/
+	SolidBrush();
+	/*! constructor for linear gradient stencil*/
+	LinearGradient();
+	/*! constructor for radial gradient stencil*/
+	RadialGradient();
+
+	/*! padding mode of gradient - see \ref gf_evg_stencil_set_gradient_mode*/
+	writeonly unsigned long pad;
+	/*! color matrix for gradient stencils. Setting to null resets the matrix*/
+	writeonly unsigned long cmx;
+	/*! matrix for gradient stencils. Setting to null resets the matrix*/
+	writeonly unsigned long mx;
+
+	/*! set color for solid brush stencil
+	\param color the color to set*/
+	void set_color(Color color);
+
+	/*! set color for solid brush stencil
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+	void set_color(DOMString color);
+
+	/*! set color for solid brush stencil - see \ref gf_evg_stencil_set_brush_color.
+	\note Omitting the last values will assume 0xFF for alpha, and 0x00 for other values
+	\param r red value, between 0 and 255
+	\param g green value, between 0 and 255
+	\param b blue value, between 0 and 255
+	\param a alpha value, between 0 and 255
+	*/
+	void set_color(unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+	/*! set color for solid brush stencil
+	\param color the color to set*/
+	void set_colorf(Colorf color);
+
+	/*! set color for solid brush stencil
+	\note Omitting the last values will assume 0xFF for alpha, and 0x00 for other values
+	\param r red value, between 0.0 and 1.0
+	\param g green value, between 0.0 and 1.0
+	\param b blue value, between 0.0 and 1.0
+	\param a alpha value, between 0.0 and 1.0
+	*/
+	void set_colorf(double r, double g, double b, double a);
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0 and 255*/
+	void set_alpha(unsigned long alpha);
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0.0 and 1.0*/
+	void set_alpha(double alpha);
+
+	/*! sets linear gradient start and end point. If end point is omitted, sets gradient line betwee {0,0} and start. Coordinates are given in surface coordinates, not object coordinates. See \ref gf_evg_stencil_set_linear_gradient
+	\note Point2D can be replaced with 2 number x, y, i.e. these syntaxes are all equivalent:
+	\code
+	gra.set_points(0, 0, {x:1.0:, y:1.0});
+	gra.set_points({x:0, y:0}, {x:1.0:, y:1.0});
+	gra.set_points({x:0, y:0}, 1.0, 1.0);
+	gra.set_points(0, 0, 1.0, 1.0);
+	\endcode
+
+	\param start gradient line start point
+	\param end gradient line end point
+	*/
+	void set_points(Point2D start, optional Point2D end={0,0} );
+
+
+	/*! sets radial graident center, focal and radius points - see \ref gf_evg_stencil_set_radial_gradient
+	\note Point2D can be replaced with 2 number x, y, i.e. these syntaxes are all equivalent:
+	\code
+	gra.set_points(0, 0, {x:1.0:, y:1.0}, 0, 0);
+	gra.set_points({x:0, y:0}, 1.0, 1.0, {x:0, y:0});
+	...
+	\endcode
+
+	\param center coordinates of center
+	\param focal coordinates of focal
+	\param radius size of horizintal and vertical radius
+	*/
+	void set_points(Point2D center, Point2D focal, Point2D radius);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	*/
+	void set_stop(double pos, DOMString color);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param color a color object
+	*/
+	void set_stop(double pos, Color color);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param r red value, between 0 and 255
+	\param g green value, between 0 and 255
+	\param b blue value, between 0 and 255
+	\param a alpha value, between 0 and 255
+	*/
+	void set_stop(double pos, unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param color a color object
+	*/
+	void set_stopf(double pos, Colorf color);
+
+	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
+	\param pos position between 0.0 and 1.0
+	\param r red value, between 0.0 and 1.0
+	\param g green value, between 0.0 and 1.0
+	\param b blue value, between 0.0 and 1.0
+	\param a alpha value, between 0.0 and 1.0
+	*/
+	void set_stopf(double pos, double r, double g, double b, double a);
+};
+
+/*! texture stencil*/
+interface Texture {
+	/*! pixel data constructor.
+	\param width width of the texture
+	\param height height of the texture
+	\param pixfmt pixel format of the texture
+	\param data texture data to use
+	\param stride stride of pixel buffer or of first plane for planar formats
+	\param stride_uv stride of second plane for planar formats
+	*/
+	Texture(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, optional unsigned long stride=0, optional unsigned long stride_uv=0);
+	
+	/*! image file constructor. Only JPEG and PNG local files are supported. This constructor is used to quickly load an image file without using a filter chain for that
+	\param filename file name on local drive
+	\param is_rel_script if true, indicates the file path is relative to the script location. Otherwise it is relative to the current directory
+	*/
+	Texture(DOMString filename, optional boolean is_rel_script=false);
+	
+	/*! ArrayBuffer. Only JPEG and PNG local files are supported. This constructor is used to quickly load an image file without using a filter chain for that
+	\param img_data array buffer containing the compressed image data
+	*/
+	Texture(ArrayBuffer img_data);
+
+	/*! parametric texture constructor. A parametric texture gets its pixel values from a javascript callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders. 
+	\param width width of the texture
+	\param height height of the texture
+	\param pixfmt pixel format of the texture
+	\param param_fun texture data to use. This function is called on the texture object with two parameters x and y indicating the desired pixel in the texture, where (0,0) is top-left; the function shall return a Colorf interface 
+	\param use_screen_coords if set, the calbback function is passed screen coordinates rather than texture coordinates (and width/height of texture are ignored)
+	*/
+	Texture(unsigned long width, unsigned long height, DOMString pixfmt, Function param_fun, optional boolean use_screen_coords=false);
+
+	/*! canvas constructor.
+	\note There is no restriction on the source canvas, you can even use the target drawing canvas as a source to produce nice effects.
+	\param canvas the canvas to use as a texture
+	*/
+	Texture(Canvas canvas);
+
+	/*! packet constructor. This is usually needed for planar YUV format where planes are not contiguous in memory (eg output of hardware decoder). 
+	The size of the pixel buffer will be derived from the packet's PID properties
+	\param packet the source packet to use as a source for the data
+	*/
+	Texture(FilterPacket packet);
+
+	/*! filtering mode - see \ref gf_evg_stencil_set_filter*/
+	writeonly unsigned long filtering;
+	/*! color matrix - see \ref gf_evg_stencil_set_color_matrix. Setting to null resets the color matrix*/
+	writeonly ColorMatrix cmx;
+	/*! matrix - see \ref gf_evg_stencil_set_matrix. Setting to null resets the matrix*/
+	writeonly Matrix2D mx;
+	/*! horizontal repeat flag*/
+	attribute boolean repeat_s;
+	/*! vertical repeat flag*/
+	attribute boolean repeat_t;
+	/*! vertical flip flag*/
+	attribute boolean flip;
+
+	/*! width in pixels of image (RGB width or luma plane width)*/
+	readonly attribute boolean width;
+	/*! height in pixels of image (RGB height or luma plane height)*/
+	readonly attribute boolean height;
+	/*! pixel format*/
+	readonly attribute DOMString pixfmt;
+	/*! number of components*/
+	readonly attribute unsigned long comp;
+	/*! texture data*/
+	readonly attribute ArrayBuffet data;
+
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0 and 255*/
+	void set_alpha(unsigned long alpha);
+
+	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	\param alpha the alpha to set, between 0.0 and 1.0*/
+	void set_alpha(double alpha);
+
+	/*! converts texture from RGB/YUV to new HSV texture
+	\warning experimental, slow
+	\return new texture*/
+	Texture rgb2hsv();
+
+	/*! converts texture from HSV to new RGB texture
+	\warning experimental, slow
+	\return new texture*/
+	Texture hsv2rgb();
+
+	/*! converts texture from HSV to new RGB texture
+	\warning experimental, slow
+	\return new texture*/
+	Texture hsv2rgb();
+
+	/*! converts texture from RGB to new YUV texture
+	\warning experimental, slow
+	This function can be used to convert an RGB texture to a YUV one, typically for rasterizing an RGB static texture over a YUV video (avoids performing the RGB to YUV conversion at each frame)
+	\warning the texture format will still be RGB (or RGBA if the source has alpha), in packed format
+	\param surf the target surface, can be a Canvas or a Canvas3D object 
+	\return new texture*/
+	Texture rgb2yuv(Canvas surf);
+
+	/*! converts texture from YUV to new RGB texture
+	\warning experimental, slow
+	This function can be used to convert a YUV texture to an RGB one, typically for rasterizing a YUV static texture over an RGB video (avoids performing the TYV to RGB conversion at each frame)
+	\param surf the target surface, can be a Canvas or a Canvas3D object 
+	\return new texture*/
+	Texture yuv2rgb(Canvas surf);
+
+
+	/*! performs a convolution on the texture
+	\warning experimental, slow
+	\param k the convolution kernel to use
+	\return new texture*/
+	Texture convolution(ConvolutionKernel k);
+
+	/*! splits the given component into a new texture
+	\warning experimental, slow (uses pixel by pixel access)
+	\param idx the component index. 0 is red or greyscale, 1 is alpha (alhpagrey formats) or green, 2 is green and 4 is alpha
+	\return new texture*/
+	Texture split(unsigned long idx);
+
+
+	/*! gets RGB pixel value in a texture
+	\param s horizontal normalized texture coordinate of pixel, between 0 (left) and 1.0 (right)
+	\param t vertical normalized texture coordinate of pixel, between 0 (top) and 1.0 (bottom)
+	\param as_array if true, the return object is an array of 4 components, otherwise it is a Color object
+	\return the converted value
+	*/
+	Object get_pixelf(Float s, Float t, optional bool as_array=false);
+
+	/*! gets RGB pixel value in a texture
+	\param x horizontal coordinate of pixel, between 0 (left) and width (right)
+	\param y vertical coordinate of pixel, between 0 (top) and height (bottom)
+	\param as_array if true, the return object is an array of 4 components, otherwise it is a Color object
+	\return the converted value
+	*/
+	Object get_pixel(unsigned long x, unsigned long y, optional bool as_array=false);
+};
+
+/*! convolution kernel interface*/
+interface ConvolutionKernel
+{
+	/*! kernel width - shall be an odd number*/
+	attribute unsigned long w;
+	/*! kernel height - shall be an odd number*/
+	attribute unsigned long h;
+	/*! kernel normalization. If 0 or undefined, no normalization is applied*/
+	attribute unsigned long norm;
+	/*! kernel coeficients. The coeficients are unsigned intergers, and there shall be at least w * h coefficients*/
+	attribute Array k;
+};
+
+/*! Text object*/
+interface Text {
+	/*! constructor. The default text is created with a font size of 12, horizontal drawing, start alignment and alphabetic baseline.
+	\param font font name to use*/
+	Text(optional DOMString font=null);
+	/*! font name*/
+	attribute DOMString font;
+	/*! font name*/
+	attribute double fontsize;
+	/*! align flag for horizontal positioning (see Canvas2D). Alignment is computed on maximum text line width after application of maxWidth if any/needed
+	 - GF_TEXT_ALIGN_START: left if text is left to right, right otherwise 
+	 - GF_TEXT_ALIGN_END: right if text is left to right, left otherwise
+	 - GF_TEXT_ALIGN_LEFT: left
+	 - GF_TEXT_ALIGN_RIGHT: right
+	 - GF_TEXT_ALIGN_CENTER: center
+	*/
+	attribute unsigned long align;
+	/*! baseline flag for vertical positioning (see Canvas2D):
+		- GF_TEXT_BASELINE_TOP: top of EM box
+		- GF_TEXT_BASELINE_HANGING: hanging (usually not available in fonts)
+		- GF_TEXT_BASELINE_MIDDLE: middle of EM box
+		- GF_TEXT_BASELINE_ALPHABETIC: baseline of font (default value)
+		- GF_TEXT_BASELINE_IDEOGRAPHIC: not supported, same as GF_TEXT_BASELINE_ALPHABETIC.
+		- GF_TEXT_BASELINE_BOTTOM: bottom of EM box
+	*/
+	attribute unsigned long baseline;
+	/*! text is horizontal*/
+	attribute boolean horizontal;
+	/*! text shoud be filpped while drawing*/
+	attribute boolean flip;
+	/*! text shoud be underlined while drawing (not supported)*/
+	attribute boolean underline;
+	/*! text shoud be bold (used when checking for font alternates)*/
+	attribute boolean bold;
+	/*! text shoud be italic (used when checking for font alternates)*/
+	attribute boolean italic;
+	/*! maximum width of text in local coordinate system (with no matrix transformations)*/
+	attribute double maxWidth;
+	/*! line spacing. If 0, the font's default line spacing is used*/
+	attribute double lineSpacing;
+
+	/*! sets text. Each argument is processed as follows:
+	- if the argument is an Array, process each item of the array as an element
+	- otherwise process argument as an element
+
+	Each element is treated as follows:
+	 - transformed to string, whether it is a string, number, object / array
+	 - split in one or several text lines, scanning new line character 'CR'
+	 - each line of text is then transformed into a graphicsl path with the current text settings.
+	*/
+	void set_text(...);
+
+	/*! gets metrics for the text lines
+	\return text metrics*/
+	TextMeasure measure();
+
+	/*! gets a copy of the path data of the text. Usually only needed to do some path outlining of glyphs
+	\param centered_coords indicate of the path will be drawn on a centered coords surface. This is needed to perform final layout of text 
+	\return copy of text path data*/
+	Path get_path(optional bool centered_coords=true);
+};
+
+/*! text measurement interface*/
+interface TextMeasure
+{
+	/*! measured width of text*/
+	double width;
+	/*! measured height of text*/
+	double height;
+	/*! size of EM box of font*/
+	unsigned long em_size;
+	/*! ascent of font*/
+	unsigned long ascent;
+	/*! descent of font*/
+	unsigned long descent;
+	/*! line spacing of font*/
+	unsigned long line_spacing;
+	/*! underline position in EM box*/
+	unsigned long underlined;
+	/*! baseline position in EM box*/
+	unsigned long baseline;
+	/*! max horizontal advance of any glyphs in font*/
+	unsigned long max_advance_h;
+	/*! max vertical advance of any glyphs in font*/
+	unsigned long max_advance_v;
+};
+
+
+/*! Matrix 4x4 object. 
+
+
+The Matrix object can be imported using:
+\code
+import {Matrix} from 'webgl'
+
+...
+\endcode
+
+
+Most transformation values return the matrix object so that transformations can be chained:
+\code
+let mat = new Matrix().scale(1, 1, 2).translate(0, -10, 5);
+\endcode
+
+All objects (Vec3f, Vec4f, Rectf) used in the API do not use constructors, their type is inferred if the expected attributes (eg x y, ...) are present in the object
+
+\code
+let res = mat.apply({x:0,y: 0, z:10});
+print(`transformed ${res.x} ${res.y} ${res.z});`
+\endcode
+
+
+*/
+interface Matrix {
+/*! indicates if matrix is identity. If set to true, resets matrix*/
+attribute boolean identity;
+/*! float buffer of coeficients (typically use matrix.m to pass matrices uniforms)*/
+attribute Array<float> m;
+/*! yaw value of matrix*/
+attribute readonly float yaw;
+/*! pitch value of matrix*/
+attribute readonly float pitch;
+/*! roll value of matrix*/
+attribute readonly float roll;
+
+/*! translation value of decomposed matrix*/
+attribute readonly Vec3f dec_translate;
+/*! scale value of decomposed matrix*/
+attribute readonly Vec3f dec_scale;
+/*! rotation value of decomposed matrix*/
+attribute readonly Vec4f dec_rotate;
+/*! shear value of decomposed matrix*/
+attribute readonly Vec3f dec_shear;
+
+/*! copies matrix
+\param from matrix to copy coeficient from
+\return the matrix object
+*/
+Matrix copy(Matrix from);
+/*! check matrices are equal
+\param other matrix to compare with
+\return true if same matrices
+*/
+boolean equal(Matrix other);
+/*! translate a matrix
+\param x X translation value
+\param y Y translation value
+\param z Z translation value
+\return the matrix object
+*/
+Matrix translate(float x, float y, float z);
+
+/*! translate a matrix
+\param v translation vector
+\return the matrix object
+*/
+Matrix translate(Vec3f v);
+
+/*! scale a matrix
+\param x X scale value
+\param y Y scale value
+\param z Z scale value
+\return the matrix object
+*/
+Matrix scale(float x, float y, float z);
+
+/*! scale a matrix
+\param v scale vector
+\return the matrix object
+*/
+Matrix scale(Vec3f v);
+
+
+/*! rotate a matrix
+\param x X value of rotation axis vector
+\param y Y value of rotation axis vector
+\param z Z value of rotation axis vector
+\param angle rotation angle in radians
+\return the matrix object
+*/
+Matrix rotate(float x, float y, float z, float angle);
+
+/*! scale a matrix
+\param v rotation vector+angle
+\return the matrix object
+*/
+Matrix rotate(Vec4f v);
+
+
+/*! multiplies with another matrix (mx = mx * mul)
+\param mul the matrix
+\param do_4x4 if true, performs full multiplication on each row/col, otherwise handles last row as 0 0 0 1
+\return the matrix object
+*/
+Matrix add(Matrix mul, optional boolean do_4x4=false);
+
+/*! inverse the matrix
+\param do_4x4 if true, performs full inversion on each row/col, otherwise handles last row as 0 0 0 1
+\return the matrix object
+*/
+Matrix inverse(optional boolean do_4x4=false);
+
+/*! transposes the matrix
+\return the matrix object
+*/
+Matrix transpose();
+/*! Loads an orthogonal projection matrix
+\param left min horizontal coordinate of viewport
+\param right max horizontal coordinate of viewport
+\param bottom min vertical coordinate of viewport
+\param top max vertical coordinate of viewport
+\param z_near min depth coordinate of viewport
+\param z_far max depth coordinate of viewport
+\return the matrix object
+*/
+Matrix ortho(float left, float right, float top, float bottom, float z_near, float z_far);
+
+/*! loads a perspective projection matrix
+\param fov camera field of view angle in radian
+\param aspect_ratio viewport aspect ratio
+\param z_near min depth coordinate of viewport
+\param z_far max depth coordinate of viewport
+\return the matrix object
+*/
+Matrix perspective(float fov, float aspect_ratio, float z_near, float z_far);
+
+/*! loads a lookat matrix
+\param position position
+\param target look direction
+\param up_vector vector describing the up direction
+\return the matrix object
+*/
+Matrix lookat(Vec3f position, Vec3f target, Vec3f up_vector);
+
+/*! transforms a rectangle
+\param rc the rectangle to transform
+\return the transformed rectangle
+*/
+Rectf apply(Rectf rc);
+
+/*! transforms a 4D vector
+\param v the 4D vector to transform
+\return the transformed 4D vector
+*/
+Vec4f apply(Vec4f v);
+
+/*! transforms a 3D vector
+\param v the 3D vector to transform
+\return the transformed 3D vector
+*/
+Vec3f apply(Vec3f v);
+
+};
+
+/*! 3D vector object*/
+interface Vec3f {
+	/*! X coordinate*/
+	attribute float x;
+	/*! Y coordinate*/
+	attribute float y;
+	/*! Z coordinate*/
+	attribute float z;
+};
+
+/*! rectangle object*/
+interface Rectf {
+	/*! X coordinate*/
+	attribute float x;
+	/*! Y coordinate*/
+	attribute float y;
+	/*! width*/
+	attribute float width;
+	/*! height*/
+	attribute float height;
+};
+
+/*! 4D vector object*/
+interface Vec4f {
+	/*! X coordinate*/
+	attribute float x;
+	/*! Y coordinate*/
+	attribute float y;
+	/*! Z coordinate*/
+	attribute float z;
+	/*! 4th dimension same as 'q' or 'alpha'*/
+	attribute float w;
+	/*! 4th dimension same as 'w' or 'alpha'*/
+	attribute float q;
+	/*! 4th dimension same as 'q' or 'w'*/
+	attribute float alpha;
+};
+
+
+/*! The Canvas3D object is used to draw vectorial 3D meshes and 2D paths. 
+
+\warning The 3D rasterizer is much much slower than WebGL as it is only software and not realy optimized, do not use it for complex 3D scenes.
+
+
+\warning The 3D rasterizer is still an experimental project: it might not be completely stable and its API may change a lot in the near future.
+
+
+The 3D rasterizer can however be useful when drawing simple 3D objects over an existing video, as it avoids GPU transfers of the frame data.
+
+The rasterizer supports:
+- points, lines, triangles, quads, strips and fans
+- 2D texturing using RGBA or YUVA colorspace
+- perspective correct interpolation
+- simple antialiasing
+- depth buffer (float only)
+- rasterizing in YUVA or RGBA space
+- a simple shading language for both vertex and fragment processing
+
+The rasterizer does not claim compliancy to any GPU specification, and will likely produce different results than WebGL.
+
+ */
+interface Canvas3D {
+	/*! Canvas3D constructor. The canvas memory is owned by the canvas object
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	 */
+	Canvas3D(unsigned long width, unsigned long height, DOMString pixfmt);
+	/*! Canvas constructor
+	\param width the width in pixels of the canvas
+	\param height the height in pixels of the canvas
+	\param pixfmt the pixel fomat of the canvas
+	\param data the data buffer on which to write. The size shall be greater than the size required for the given size and pixel format.
+	\param stride horizontal stride in pixel of the data
+	\param stride_uv horizontal stride in pixel of the data for the U and V planes
+	 */
+	Canvas3D(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, optional unsigned long stride=0, optional unsigned long stride_uv=0);
+
+/*! clipper in pixel coordinates - see \ref gf_evg_surface_set_clipper
+\note A same path can be drawn several times with different clipper, null means no clipper. Clipper applies to both fill and clear functions*/
+writeonly IRect clipper;
+/*! fragment shader to use, set to NULL to disable pixel writing.*/
+Shader fragment;
+/*! vertex shader to use, set to NULL to disable vertex shading, in which case the currently defined projection and modelview matrices will be used*/
+Shader vertex;
+/*! set face orientation to counter-clockwise or clockwise (see \ref gf_evg_surface_set_ccw)*/
+writeonly boolean ccw;
+/*! backface culling enabled (see \ref gf_evg_surface_set_backcull), default is true*/
+writeonly boolean backcull;
+/*! antialiased enabled (see \ref gf_evg_surface_set_antialias), default is true*/
+writeonly boolean antialias;
+/*! min depth (see \ref gf_evg_surface_set_min_depth), default is 0*/
+writeonly float min_depth;
+/*! max depth (see \ref gf_evg_surface_set_max_depth), default is 1.0*/
+writeonly float max_depth;
+/*! point size (see \ref gf_evg_surface_set_point_size), default is 1.0*/
+writeonly float point_size;
+/*! point smoothing enabled (see \ref gf_evg_surface_set_point_smooth), default is false*/
+writeonly boolean point_smooth;
+/*! line size (see \ref gf_evg_surface_set_line_size), default is 1.0*/
+writeonly float line_size;
+/*! clip zero enabled (see \ref gf_evg_surface_set_clip_zero), default is false*/
+writeonly boolean clip_zero;
+/*! depth test mode (see \ref gf_evg_set_depth_test), default is GF_EVGDEPTH_LESS*/
+writeonly GF_EVGDepthTest depth_test;
+/*! write depth buffer enabled (see \ref gf_evg_surface_write_depth), default is true*/
+writeonly boolean write_depth;
+/*! depth buffer (see \ref gf_evg_surface_set_depth_buffer). \warning Default is null*/
+Float32Buffer depth_buffer;
+
+/*! clears the canvas with the given color - see \ref gf_evg_surface_clear
+\note Omitting the last values will assume 0xFF for alpha, and 0 for other values. 
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0 and 255
+\param g green value, between 0 and 255
+\param b blue value, between 0 and 255
+\param a alpha value, between 0 and 255
+*/
+void clear(IRect rc, unsigned long r, unsigned long g, unsigned long b, unsigned long a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clear(IRect rc, DOMString color);
+
+/*! clears the canvas with the given color
+\note Omitting the last values will assume 1.0 for alpha, and 0.0 for other values. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param r red value, between 0.0 and 1.0
+\param g green value, between 0.0 and 1.0
+\param b blue value, between 0.0 and 1.0
+\param a alpha value, between 0.0 and 1.0
+*/
+void clearf(IRect rc, double r, double g, double b, double a);
+
+/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
+\param rc the rectangle to clear, in pixel coordinates
+\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+void clearf(IRect rc, DOMString color);
+
+/*! reassign internal data (typically at each new packet)
+\warning This assumes the data layout has not changed (width, height, pixel format, strides). If these are modified, create a new canvas.
+\param data the buffer to use*/
+void reassign(ArrayBuffer data);
+
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param y Y component value
+\param u Cb/U component value
+\param v Cr/V component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Float y, Float u, Float v, optional Float a=1.0);
+
+/*! converts YUV color to RGB
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the YUV value to convert
+\return the converted value
+*/
+Object toRGB(optional bool as_array=false, Vec4f color);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is Vec4f object
+\param r red component value
+\param g green component value
+\param b blue component value
+\param a alpha value, not modified
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Float r, Float g, Float b, optional Float a=1.0);
+
+/*! converts RGB color to YUV
+\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
+\param color the RGB value to convert
+\return the converted value
+*/
+Object toYUV(optional bool as_array=false, Vec4f color);
+
+
+/*! sets current projection matrix to use
+\param projection_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+*/
+void projection(Float32Buffer projection_matrix);
+/*! sets current modelview matrix to use
+\param modelview_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+*/
+void modelview(Float32Buffer modelview_matrix);
+
+/*! draws a set of primitives (see \ref gf_evg_surface_draw_array)
+\param indices array of indices in the vertex buffer for the primitives to draw
+\param vertices the vertices to use
+\param primitive_type the type of primitive to draw
+\param nb_components the number of components per vertex (eg, 2, 3)
+*/
+void draw_array(Int32Buffer indices, Float32Buffer vertices, optional GF_EVGPrimitiveType primitive_type=GF_EVG_TRIANGLES, optional long nb_components=3);
+
+/*! draws a path (see \ref gf_evg_surface_draw_path)
+\param path the path to draw
+\param z the z value to assign to points in the path
+*/
+void draw_path(Path path, optional float z=0);
+/*! draws a text (see \ref gf_evg_surface_draw_path)
+\param text the text to draw
+\param z the z value to assign to points in the text's path
+*/
+void draw_path(Text text, optional float z=0);
+
+/*! clears the depth buffer (see \ref gf_evg_surface_clear_depth)
+\param depth the depth value to set
+*/
+void clear_depth(float depth);
+
+/*! sets the viewport (see \ref gf_evg_surface_viewport)
+\param x the horizontal coordinate of the top-left corner of the viewport
+\param y the vertical coordinate of the top-left corner of the viewport
+\param width the width of the viewport
+\param height the height of the viewport
+
+*/
+void viewport(long x, long y, long width, long height);
+
+/*! sets the viewport to full canvas {0,0,width,height} (see \ref gf_evg_surface_viewport)*/
+void viewport();
+
+/*! creats a new shader
+\return the new shader
+\param shader_type the desired shader type*/
+Shader new_shader(ShaderType shader_type);
+};
+
+/*! defined shader types*/
+typedef enum
+{
+	/*! shader is a fragment shader*/
+	GF_EVG_SHADER_FRAGMENT=1,
+	/*! shader is a vertex*/
+	GF_EVG_SHADER_VERTEX,	
+} ShaderType;
+
+/*! Map type for vertex attributes and vertex attribute interpolators*/
+typedef enum
+{
+	/*! one vertex attribute is given for each vertex index*/
+	GF_EVG_VAI_VERTEX_INDEX=0,
+	/*! one vertex attribute is given for each vertex*/
+	GF_EVG_VAI_VERTEX,
+	/*! one vertex attribute is given for each primitive*/
+	GF_EVG_VAI_PRIMITIVE,
+} AttributeMapType;
+
+/*! Vertex attribute interpolator used by fragment shaders*/
+interface VertexAttribInterpolator
+{
+/*! constructor
+
+This constructor is typically used for vertex attributes that do not need any modification at the vertex shader stage and are directly interpolated in the fragment shader
+\param data float buffer containing the vertex attribute data
+\param nb_components number of floats per attribute
+\param map mapping mode of attribute per vertex or primitive
+*/
+VertexAttribInterpolator(Float32Buffer data, long nb_components, optional AttributeMapType map=GF_EVG_VAI_VERTEX_INDEX);
+
+/*! constructor
+
+This constructor is used for vertex attributes that are fetched through VertexAttrib in the vertex shader and need to be passed to the fragment shader
+\param nb_components number of floats per attribute
+*/
+VertexAttribInterpolator(long nb_components);
+
+/*! if set, the attribute value will be normalized upon fetch by the shader*/
+writeonly boolean normalize;
+	
+};
+
+/*! Vertex attribute buffer used by vertex shaders*/
+interface VertexAttrib
+{
+/*! constructor
+\param data float buffer containing the vertex attribute data
+\param nb_components number of floats per attribute
+\param map mapping mode of attribute per vertex or primitive
+*/
+VertexAttrib(Float32Buffer data, long nb_components, optional AttributeMapType map=GF_EVG_VAI_VERTEX_INDEX);
+
+/*! if set, the attribute value will be normalized upon fetch by the shader*/
+writeonly boolean normalize;
+};
+
+/*! Shader object common to vertex and fragment shaders
+
+Although QuickJS is an amazing piece of software, calling JavaScript for each fragment is just too costly. The shader object provides a simple
+set of tools to produce a vertex or fragment output at reasonnable speed, without interacting with JavaScript.
+
+# Generic principles 
+
+The working principles of the shader object is as follows:
+- no complex language processing (eg GLSL) and basic validation only (at least for the time being)
+- instructions and variables are pushed onto a stack of instructions
+- native EVG objects (Matrix, VertexAttrib, VertexAttribInterpolator, Texture) are stored as pointers to the native objects
+- variables can be defined as uniforms, and updated whenever needed
+- upon executing the shader, the instructions are processed in order
+
+Local variables are untyped, except for reserved variables. The type is infered whenever the variable is assigned or modified, thus a same variable can change type during the execution of the shader. 
+Upon assigning, the type of the source variable is inferred as follows:
+- Javascript bool and integer are converted to integer type
+- Javascript float is converted to float type
+- A javascript object with properties {x, y, z, q/w} or {r,g,b,a} is converted to a 4 component vector
+- A javascript object with properties {x, y, z} or {r,g,b} is converted to a 3 component vector
+- A javascript object with properties {x, y} or {r,g} or {s,t} is converted to a 2 component vector
+- A javascript array is converted to a 1, 2, 3 or 4 float vector
+- A Matrix object is kept as a pointer
+- A VertexAttribInterpolator object is converted to a 2D, 3D or 4D vector depending on the number of components in the object
+- A Texture sample is converted to a 4D vector
+
+\note There is no support for structures nor arrays in the shader instructions.
+
+\warning A local variable can only be of type bool, integer, float or vector of float (up to 4 dimension). It is not possible to store an EVG object (Matrix, VertexAttrib, VertexAttribInterpolator, Texture) as a local variable.
+
+
+The assignment of vectors can use masking of components, using a combination of `x`, `y`, `z`, `q` (or `r`, `g`, `b`, `a` or `s`,`t) values:
+\code
+shader.push('foo', '=', 'val.xy');
+shader.push('foo.xy', '=', 'val.xz');
+\endcode
+\warning there is no swizzling , `.xy` is equivalent to `.yx`
+
+# Fragment shader reserved variables
+
+These variables names are reserved in a fragment shader, and their type cannot be modified:
+
+Variable name | type | Semantic
+------------- | ------------- | ------------- 
+fragColor | Vec4f | the fragment output color in RGBA colorspace
+fragRGBA | Vec4f | the fragment output color in RGBA colorspace
+fragYUVA | Vec4f | the fragment output color in YUVA colorspace
+fragX | float | the fragment X coordinate
+fragY | float | the fragment Y coordinate
+fragDepth | float | the fragment depth value - can be overwritten by shader 
+fragZ | float | the fragment Z coordinate
+fragW | float | the fragment W coordinate
+
+
+# Vertex shader reserved variables 
+
+These variables names are reserved in a vertex shader, and their type cannot be modified:
+
+Variable name | type | Semantic
+------------- | ------------- | ------------- 
+vertex | Vec4f | the input vertex coordinates 
+vertexOut | Vec4f | the output vertex coordinates 
+
+# Uniforms variables
+Uniforms variables are variables whose values need to be updated but do not require a change in the shader logic. Since some of these variables may be native JS interpreter types, they cannot be kept by reference in the stack. Instead, these variables are passed by names, and correspond to properties of the shader object. These properties are evaluated whenever the \ref Shader.update function is called.
+
+Uniforms are referenced in the shader as string variables prefixed with '.'; for example '.foo' will correspond to the 'foo' property of the shader object.
+The associated JS values can be:
+- boolean
+- integer
+- float
+- array of float, which is converted to Vec2f, Vec3f or Vec4f
+- Float32Array or ArrayBuffer, which is converted to Vec2f, Vec3f or Vec4f
+
+Example:
+
+\code
+//shader creation part
+...
+shader.push('my_var', '=', '.somevar');
+... do something with my_var
+shader.push('fragRGBA', '=', 'myvar');
+
+
+//setup draw
+canvas.fragment = shader
+shader.somevar = [0.5, 0.5, 0.5, 1.0];
+shader.update();
+//draw
+\endcode
+
+
+# Operations
+
+
+Operations take zero, one or two right values and assign the result to a left value.
+
+The left value can only be:
+- a built-in variable or a local variable in a fragment shader.
+- a built-in variable, a local variable or a VertexAttribInterpolator in a vertex shader.
+
+The first right value can be a built-in variable, a local variable, a uniform, a Texture, a VertexAttrib (vertex shader only), a VertexAttribInterpolator (fragment shader only) or a Matrix.
+
+\note There is currently no support for matrix product in the shaders
+
+Single-dimension operations on vectors are done component-wise, eg res.x = sin(rv1.x), res.y = sin(rv1.y), ... 
+
+\note in the following table, rv1 means first right value, rv2 means second right value if present for the operation
+
+Whenever rv2 is allowed, this can only be an already locally defined variable, and cannot be a uniform or a JS Object.
+
+Whenever rv2 is allowed, this can only be an already locally defined variable, and cannot be a uniform or a JS Object.
+
+Both the left value and the right value can be assigned a component mask:
+
+Name | rv1 | rv2 | Semantic
+------------- | ------------- | -------------  | ------------- 
+'=' | any | none | assigns rv1 to left value (1)
+'*=' | any | none | multiplies left value by rv1 (1)
+'*=' | Matrix | none | multiplies left value by the given matrix
+'/=' | any | none | divides left value by rv1 (1)
+'+=' | any | none | adds right value to rv1 (1)
+'=!' | any | none | assigns not rv1 to left value (left = !right) (1)
+'normalize' | Vec3f | none | assigns normalize value of right vector to left value
+'length' | Vec3f | none | assigns length of right vector to left value (float type)
+'distance' | Vec3f | Vec3f | assigns distance between the two right values to left value (float type)
+'dot' | Vec3f | Vec3f | assigns dot product of rv1 by rv2  to left value (float type)
+'cross' | Vec3f | Vec3f | assigns cross product of rv1 by rv2 to left value (Vec3f)
+'pow' | any | same as rv1 | assigns pow of rv1 by rv2 to left value
+'sin' | any | none | assigns sin(rv1) to left value
+'asin' | any | none | assigns asin(rv1) to left value
+'cos' | any | none | assigns cos(rv1) to left value
+'acos' | any | none | assigns acos(rv1) to left value
+'tan' | any | none | assigns tan(rv1) to left value
+'atan' | any | any | assigns atan(rv1, rv2) to left value
+'log' | any | none | assigns log(rv1) to left value
+'exp' | any | none | assigns exp(rv1) to left value
+'log2' | any | none | assigns log2(rv1) to left value
+'exp2' | any | none | assigns exp2(rv1) to left value
+'sinh' | any | none | assigns sinh(rv1) to left value
+'cosh' | any | none | assigns cosh(rv1) to left value
+'sqrt' | any | none | assigns sqrt(rv1) to left value
+'inversesqrt' | any | none | assigns 1/sqrt(rv1) to left value
+'abs' | any | none | assigns absolute value (ABS) of rv1 to left value
+'sign' | any | none | assigns sign vector of rv1 to left value - cf GLSL
+'floor' | any | none | assigns floor(rv1) to left value
+'ceil' | any | none | assigns ceil(rv1) to left value
+'fract' | any | none | assigns fractionnal part of rv1 to left value - cf GLSL
+'mod' | any | any | assigns modulo of rv1 by rv2 to left value - cf GLSL
+'min' | any | any | assigns minimum of rv1 and rv2 to left value - cf GLSL
+'max' | any | any | assigns maximum of rv1 and rv2 to left value - cf GLSL
+'clamp' | any | any | clamps left value with rv1 as minimum and rv2 as maximum
+'sampler' | Texture | Vec2f | sets left value to the pixel value of the texture rv1 at coordinate rv2, as an RGBA Vec4f 
+'samplerYUV' | Texture | Vec2f | sets left value to the pixel value of the texture rv1 at coordinate rv2, as a YUVA Vec4f 
+'discard' | none | none | discards the current fragment and exits shader processing (fragment shader only)
+'print' | any | none | prints the given variable rv1 to stderr
+'toRGB' | Vec3f, Vec4f | none | converts rv1 to RGB
+'toYUV' | Vec3f, Vec4f | none | converts rv1 to YUV
+
+
+ (1): these operations accept component masks on both left value and right value. Example
+ \code
+ shader.push('myval.xy', '*=' 'otherval.zq');
+ \endcode
+
+If the right value has less component indicated in the mask than left value components, the last indicated component of the right value will be used for the remaining left value components.
+Example
+ \code
+ //myval will be assigned to {x:otherval.z, y:otherval.q, z:otherval.q}
+ shader.push('if', 'myval.xyz', '=' 'otherval.zq');
+ \endcode
+
+# Conditions
+
+Conditions are expressed with the following keywords:
+- 'if' : takes 3 additionnal parameters `left`, `operand`and `right` and evaluates the condition
+- 'elseif' : takes 3 additionnal parameters `left`, `operand` and `right` and evaluates the condition
+- 'else': no additional parameters
+- 'end': no additional parameters
+
+Conditions can be nested.
+
+Name | Right Value | Semantic
+------------- | ------------- | ------------- 
+'<' | any | evaluate to true if left is strictly less than right
+'<=' | any | evaluate to true if left is less than or equal to right
+'>' | any | evaluate to true if left is strictly greater than right
+'>=' | any | evaluate to true if left is greater than or equal to right
+'==' | any | evaluate to true if left is equal to right
+'!=' | any | evaluate to true if left is different from right
+
+Example:
+
+\code
+...
+shader.push('if', 'my_var.x', '<=', 0.5);
+shader.push('if', 'my_var.y', '>=', 0.5);
+...
+shader.push('end');
+shader.push('elseif', 'my_var.x', '<=', '.uniform');
+...
+shader.push('else');
+...
+shader.push('end');
+...
+\endcode
+
+
+Conditions accept component masks on both left value and right value, resulting in a per-component of the mask test. 
+Example
+ \code
+ shader.push('if', 'myval.xy', '<' 'otherval.zq');
+ \endcode
+
+If the right value has less component indicated in the mask than left value components, the last indicated component of the right value will be used for the remaining left value components.
+Example
+ \code
+ //myval will be tested against {x:otherval.z, y:otherval.q, z:otherval.q}
+ shader.push('if', 'myval.xyz', '<' 'otherval.zq');
+ \endcode
+
+
+
+# Stack jumping
+
+The `goto` statement allows jumping in the stack. 
+The `goto` statement takes a single parameter which can either be an integer or a uniform name resolving to an integer. This integer gives the 1-based index of the instruction to jump to.
+Example:
+
+\code
+...
+shader.label_start = shader.push('if', 'my_var.x', '<=', 0.5);
+shader.push('if', 'my_var.y', '>=', 0.5);
+...
+shader.push('goto', '.label_end'); //go to the instruction at position label_end
+...
+shader.push('end');
+shader.push('elseif', 'my_var.x', '<=', '.uniform');
+shader.push('goto', '.label_start'); //go to the instruction at position label_start
+shader.push('else');
+shader.push('goto', 0); //go to begining of the instruction stack
+shader.label_end = shader.push('end');
+...
+\endcode
+
+The value of the jump position is not checked while assigning the `goto` instruction, it is checked while processing the fragment: this allows jumping anywhere in the stack. 
+
+\warning You must make sure that your shader state is correct when jumping in the stack of instructions !
+
+\note There is no provision for `while` and `for` statements in the shader. This can however be emulated with the `goto` statement.
+
+
+# Vertex attribute interpolation
+
+The rasterizer performs perspective-correct interpolation of attributes, and provides two objects, VertexAttrib and VertexAttribInterpolator, to handle interpolation. The attribute interpolation can be done:
+- at the fragment shader stage only
+- at both vertex and fragment shader stages
+
+## Fragment-shader only interpolation
+In this configuration, the attributes to interpolate do not depend on the state of the vertex shader (eg for example vertices colors or texture coordinates).
+To interpolate the attribute, a VertexAttribInterpolator object is used to wrap the attributes to interpolate.
+
+Example:
+
+\code
+  let txi = new evg.VertexAttribInterpolator(cube_txcoords, 2, GF_EVG_VAI_VERTEX);
+  frag_shader=canvas.new_shader(GF_EVG_SHADER_FRAGMENT);
+
+  frag_shader.push('txc', '=', txi);
+  frag_shader.push('txc', '*=', 2);
+  frag_shader.push('txval', 'sampler', texture, 'txc');
+  frag_shader.push('fragColor', '=', 'txval');
+
+\endcode
+
+
+## Per-vertex  interpolation
+In this configuration, the attributes to interpolate depend on the state of the vertex shader.
+To interpolate the attribute, a VertexAttrib object is used to wrap the attributes to interpolate at the vertex shader, and a VertexAttribInterpolator object is used to perform the interpolation at the fragment shader.
+
+Example:
+
+\code
+  let ni = new evg.VertexAttribInterpolator(3);
+  ni.normalize=true;
+  let normals = new evg.VertexAttrib(cube_normals_face, 3, GF_EVG_VAI_PRIMITIVE);
+
+  vert_shader=canvas.new_shader(GF_EVG_SHADER_VERTEX);
+  vert_shader.push('normal', '=', normals);
+  vert_shader.push('normal', '*=', normal_matrix);
+  vert_shader.push(ni, '=', 'normal');
+  vert_shader.push('vertex', '*=', matrix);
+  vert_shader.push('vertexOut', '=', 'vertex');
+
+  frag_shader=canvas.new_shader(GF_EVG_SHADER_FRAGMENT);
+
+  frag_shader.push('normal', '=', ni);
+  frag_shader.push('normal.q', '=', 1.0);
+  frag_shader.push('fragColor', '=', 'normal');
+
+\endcode
+
+
+# RGB and YUV color spaces
+The rasterizer can work on both RGB and YUV output color buffers. 
+- When a fragment output value is given in RGB and the output color buffer is in YUV, conversion is performed
+- When a fragment output value is given in YUV and the output color buffer is in RGB, conversion is performed
+- Otherwise, no conversion is done
+
+Texture sampling can also work on both RGB and YUV texture maps.
+- When a `sampler` call is made on a YUV texture, conversion is performed
+- When a `samplerYUV` call is made on a RGB texture, conversion is performed
+- Otherwise, no conversion is done
+
+The `toRGB` and `toYUV` operations can also be used to convert between color space, but precomputed values should be prefered. 
+
+*/
+interface Shader {
+/*! resets the stack of instructions*/
+void push();
+
+/*! pushes a new instruction on the stack
+\param left_val the name of the left value to be assigned or modified
+\param operand the name of the operand to use
+\param right_val the name of the right value to use by the operand
+\param right_val2 the name of the second right value to use by the operand, if any
+\return the 1-based index of the added instruction
+*/
+long push(DOMString left_val, DOMString operand, DOMString right_val, optional DOMString right_val2 = null);
+
+/*! pushes a new condition instruction on the stack
+\param cond_val the name of the condition. Allowed values are `if`, `elseif`
+\param left_val the name of the left value to be assigned or modified
+\param operand the name of the operand to use
+\param right_val the name of the right value to use by the operand
+\return the 1-based index of the added instruction
+*/
+long push(DOMString cond_val, DOMString left_val, DOMString operand, DOMString right_val);
+
+/*! pushes an end of condition instruction on the stack
+\param end_cond_val the name of the end of condition. Allowed values are `else`, `end`
+\return the 1-based index of the added instruction
+*/
+long push(DOMString end_cond_val);
+
+
+/*! pushes a goto instruction on the stack
+\param goto_val the name of the goto. Allowed values are `goto`
+\param stack_index the 1-based index of the stack instruction to go to
+\return the 1-based index of the added instruction
+*/
+long push(DOMString goto_val, long stack_index);
+
+/*! pushes a goto instruction on the stack
+\param goto_val the name of the goto. Allowed values are `goto`
+\param stack_index_uniform name if the uniform giving the 1-based index of the stack instruction to go to
+\return the 1-based index of the added instruction
+*/
+long push(DOMString goto_val, DOMString stack_index_uniform);
+
+/*! updates uniforms in the shader*/
+void update();
+};
+
+/*! queries size in bytes of a pixel for a given pixel format
+\param pixel_format the desired pixel format
+\return the size in bytes
+*/
+long PixelSize(DOMString pixel_format);
+
+
+/*! @} */

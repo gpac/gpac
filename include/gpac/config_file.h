@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -31,196 +31,163 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/config_file.h>
- *	\brief configuration file.
+\file <gpac/config_file.h>
+\brief configuration file.
  */
 
 /*!
-*	\addtogroup cfg_grp Configuration File
-*	\ingroup utils_grp
-*	\brief Configuration File object
-*
-*	This section documents the configuration file object of the GPAC framework.
-*	This file is formatted as the INI file mode of WIN32 in sections and keys.\n
-*\note For more information on the GPAC configuration file itself, please refer to the GPAC configuration help provided with GPAC.
-*	@{
+\addtogroup cfg_grp
+\brief Configuration File object
+
+This section documents the configuration file objects of the GPAC framework.
+A specific global configuration file is used for libgpac, see \ref libsys_grp.
+Such objects may be used by third-party applications to store data, and are used by the player scripting API to store
+various GUI data.
+A configuration file is formatted as the INI file mode of WIN32 in sections and keys.
+\code
+[Section1]
+Key1=foo
+Key2=bar
+
+[Section2]
+Key1=@multiline
+for
+some
+reason@
+Key3=2
+
+\endcode
+@{
 */
 
 #include <gpac/tools.h>
 
-
+/*! configuration file object*/
 typedef struct __tag_config GF_Config;
 
 /*!
- *	\brief configuration file initialization
- *
- * Constructs a configuration file from fileName. If fileName is NULL, the default GPAC configuration file is loaded with the
- * proper module directory, font directory and other default options. If fileName is non-NULL no configuration file is found,
- * a "light" default configuration file is created.
- *\param file name of the configuration file, or NULL for default file
- *\param new_cfg Boolean set to true if a new configuration file has been created
- *\return the configuration file object, NULL if the file could not be created
- */
-GF_Config *gf_cfg_init(const char *file, Bool *new_cfg);
+\brief configuration file constructor
 
-/*!
- *	\brief configuration file constructor
- *
- * Constructs a configuration file.
- *\param filePath directory the file is located in
- *\param fileName name of the configuration file
- *\return the configuration file object, NULL if the file does not exist
+Constructs a configuration file.
+\param filePath directory the file is located in
+\param fileName name of the configuration file
+\return the configuration file object, NULL if the file does not exist
  */
 GF_Config *gf_cfg_new(const char *filePath, const char *fileName);
 /*!
- *	\brief alternative configuration file constructor
- *
- * Constructs a configuration file. If file does not exist, configuration will be still created
- *\param filePath directory the file is located in
- *\param fileName name of the configuration file
- *\return the configuration file object, never NULL, even if file does not exist
+\brief alternative configuration file constructor
+
+Constructs a configuration file. If file does not exist, configuration will be still created
+\param filePath directory the file is located in
+\param fileName name of the configuration file
+\return the configuration file object, never NULL, even if file does not exist
  */
 GF_Config *gf_cfg_force_new(const char *filePath, const char *fileName);
 /*!
- *	\brief configuration file destructor
- *
- *Destroys the configuration file and saves it if needed.
- *\param cfgFile the target configuration file
+\brief configuration file destructor
+
+Destroys the configuration file and saves it if needed.
+\param cfgFile the target configuration file
  */
 void gf_cfg_del(GF_Config *cfgFile);
 /*!
- *	\brief configuration file destructor
- *
- *Destroys the configuration file and removes the file  from disk.
- *\param cfgFile the target configuration file
+\brief configuration file destructor
+
+Destroys the configuration file and removes the file  from disk.
+\param cfgFile the target configuration file
  */
 void gf_cfg_remove(GF_Config *cfgFile);
 /*!
- *	\brief configuration saving
- *
- *Saves the configuration file if modified.
- *\param cfgFile the target configuration file
+\brief configuration saving
+
+Saves the configuration file if modified.
+\param cfgFile the target configuration file
+\return error if any
  */
 GF_Err gf_cfg_save(GF_Config *cfgFile);
 /*!
- *	\brief key value query
- *
- *Gets a key value from its section and name.
- *\param cfgFile the target configuration file
- *\param secName the desired key parent section name
- *\param keyName the desired key name
- *\return the desired key value if found, NULL otherwise.
+\brief key value query
+
+Gets a key value from its section and name.
+\param cfgFile the target configuration file
+\param secName the desired key parent section name
+\param keyName the desired key name
+\return the desired key value if found, NULL otherwise.
  */
 const char *gf_cfg_get_key(GF_Config *cfgFile, const char *secName, const char *keyName);
+
 /*!
- *	\brief key value query ignoring case
- *
- *Gets a key value from its section and name. Comparison is performed while ignoring case.
- *\param cfgFile the target configuration file
- *\param secName the desired key parent section name (case ignored)
- *\param keyName the desired key name (case ignored)
- *\return the desired key value if found, NULL otherwise.
- */
-const char *gf_cfg_get_ikey(GF_Config *cfgFile, const char *secName, const char *keyName);
-/*!
- *	\brief key value update
- *
- *Sets a key value from its section and name.
- *\param cfgFile the target configuration file
- *\param secName the desired key parent section name
- *\param keyName the desired key name
- *\param keyValue the desired key value
- *\note this will also create both section and key if they are not found in the configuration file
+\brief key value update
+
+Sets a key value from its section and name.
+\param cfgFile the target configuration file
+\param secName the desired key parent section name
+\param keyName the desired key name
+\param keyValue the desired key value
+\note this will also create both section and key if they are not found in the configuration file
+\return error if any
  */
 GF_Err gf_cfg_set_key(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue);
 /*!
- *	\brief section count query
- *
- *Gets the number of sections in the configuration file
- *\param cfgFile the target configuration file
- *\return the number of sections
+\brief section count query
+
+Gets the number of sections in the configuration file
+\param cfgFile the target configuration file
+\return the number of sections
  */
 u32 gf_cfg_get_section_count(GF_Config *cfgFile);
 /*!
- *	\brief section name query
- *
- *Gets a section name based on its index
- *\param cfgFile the target configuration file
- *\param secIndex 0-based index of the section to query
- *\return the section name if found, NULL otherwise
+\brief section name query
+
+ Gets a section name based on its index
+\param cfgFile the target configuration file
+\param secIndex 0-based index of the section to query
+\return the section name if found, NULL otherwise
  */
 const char *gf_cfg_get_section_name(GF_Config *cfgFile, u32 secIndex);
 /*!
- *	\brief key count query
- *
- *Gets the number of keys in a section of the configuration file
- *\param cfgFile the target configuration file
- *\param secName the target section
- *\return the number of keys in the section
+\brief key count query
+
+Gets the number of keys in a section of the configuration file
+\param cfgFile the target configuration file
+\param secName the target section
+\return the number of keys in the section
  */
 u32 gf_cfg_get_key_count(GF_Config *cfgFile, const char *secName);
 /*!
- *	\brief key count query
- *
- *Gets the number of keys in a section of the configuration file
- *\param cfgFile the target configuration file
- *\param secName the target section
- *\param keyIndex 0-based index of the key in the section
- *\return the key name if found, NULL otherwise
+\brief key count query
+
+Gets the number of keys in a section of the configuration file
+\param cfgFile the target configuration file
+\param secName the target section
+\param keyIndex 0-based index of the key in the section
+\return the key name if found, NULL otherwise
  */
 const char *gf_cfg_get_key_name(GF_Config *cfgFile, const char *secName, u32 keyIndex);
 
 /*!
- *	\brief key insertion
- *
- *Inserts a new key in a given section. Returns an error if a key with the given name
- *already exists in the section
- *\param cfgFile the target configuration file
- *\param secName the target section
- *\param keyName the name of the target key
- *\param keyValue the value for the new key
- *\param index the 0-based index position of the new key
- */
-GF_Err gf_cfg_insert_key(GF_Config *cfgFile, const char *secName, const char *keyName, const char *keyValue, u32 index);
+\brief section destrouction
 
-/*!
- *	\brief section destrouction
- *
- *Removes all entries in the given section
- *\param cfgFile the target configuration file
- *\param secName the target section
+Removes all entries in the given section
+\param cfgFile the target configuration file
+\param secName the target section
  */
 void gf_cfg_del_section(GF_Config *cfgFile, const char *secName);
 
 /*!
- * get a sub key (separator is ':') in a given key in a given section. Returns an error if the key does not exist
- *\param cfgFile the target configuration file
- *\param secName the target section
- *\param keyName the name of the target key
- *\param sub_index the 0-based index position of the sub key*/
-const char *gf_cfg_get_sub_key(GF_Config *cfgFile, const char *secName, const char *keyName,u32 sub_index);
 
-/*!
- * Get the full filename associated with this config file
- * The caller is responsible for freeing memory
- * \param iniFile The Configuration
- * \return a newly allocated filename
+Get the full filename associated with this config file
+\param iniFile The Configuration
+\return the associated filename
  */
-char * gf_cfg_get_filename(GF_Config *iniFile);
-
-/*!
- * Set the full filename associated with this config file
- * \param iniFile The Configuration
- * \param fileName new filename for the config
- * \return erroro code
- */
-GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
+const char * gf_cfg_get_filename(GF_Config *iniFile);
 
 
 /*!
- * Do not save results to file
- * \param iniFile The Configuration
- * \return error code
+
+Do not save results to file
+\param iniFile The Configuration
+\return error code
  */
 GF_Err gf_cfg_discard_changes(GF_Config *iniFile);
 

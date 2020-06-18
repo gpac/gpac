@@ -53,10 +53,17 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->view_stack = gf_list_new();
 #endif
 
-	tmp->raster_brush = compositor->rasterizer->stencil_new(compositor->rasterizer, GF_STENCIL_SOLID);
+	tmp->raster_brush = gf_evg_stencil_new(GF_STENCIL_SOLID);
 
 	tmp->DrawBitmap = visual_draw_bitmap_stub;
 	tmp->ClearSurface = visual_2d_clear_surface;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		visual_draw_bitmap_stub(tmp, NULL, NULL);
+		visual_reset_graphics(NULL);
+	}
+#endif
 
 #ifndef GPAC_DISABLE_3D
 
@@ -65,6 +72,7 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->fog_stack = gf_list_new();
 #endif /*GPAC_DISABLE_VRML*/
 	tmp->alpha_nodes_to_draw = gf_list_new();
+	tmp->compiled_programs = gf_list_new();
 #endif
 
 	return tmp;
@@ -74,9 +82,9 @@ void visual_del(GF_VisualManager *visual)
 {
 	ra_del(&visual->to_redraw);
 
-	if (visual->raster_surface) visual->compositor->rasterizer->surface_delete(visual->raster_surface);
+	if (visual->raster_surface) gf_evg_surface_delete(visual->raster_surface);
 	visual->raster_surface = NULL;
-	if (visual->raster_brush) visual->compositor->rasterizer->stencil_delete(visual->raster_brush);
+	if (visual->raster_brush) gf_evg_stencil_delete(visual->raster_brush);
 	visual->raster_brush = NULL;
 
 	while (visual->context) {
@@ -105,6 +113,7 @@ void visual_del(GF_VisualManager *visual)
 #endif /*GPAC_DISABLE_VRML*/
 
 	gf_list_del(visual->alpha_nodes_to_draw);
+	gf_list_del(visual->compiled_programs);
 #endif
 	gf_free(visual);
 }
@@ -187,6 +196,8 @@ Bool visual_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState
 		visual_clean_contexts(visual);
 		return res;
 	}
+	if (visual->compositor->hybrid_opengl)
+		visual_3d_clean_state(visual);
 #endif
 	return visual_2d_draw_frame(visual, root, tr_state, is_root_visual);
 }
@@ -294,6 +305,7 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 
 void visual_reset_graphics(GF_VisualManager *visual)
 {
+	if (!visual) return;
 #ifndef GPAC_DISABLE_3D
 	if (visual->type_3d) {
 		visual_3d_reset_graphics(visual);

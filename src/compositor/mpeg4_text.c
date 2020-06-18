@@ -61,10 +61,9 @@ typedef struct
 
 void text_clean_paths(GF_Compositor *compositor, TextStack *stack)
 {
-	GF_TextSpan *span;
 	/*delete all path objects*/
 	while (gf_list_count(stack->spans)) {
-		span = (GF_TextSpan*) gf_list_get(stack->spans, 0);
+		GF_TextSpan *span = (GF_TextSpan*) gf_list_get(stack->spans, 0);
 		gf_list_rem(stack->spans, 0);
 		gf_font_manager_delete_span(compositor->font_manager, span);
 	}
@@ -155,6 +154,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			span->bounds.y = start_y;
 			span->bounds.x = 0;
 			span->bounds.width = 0;
+			span->bounds.y += 2;
+			span->bounds.height += 4;
 
 			if (split_words) {
 				for (k=0; k<span->nb_glyphs; k++) {
@@ -162,7 +163,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 					span->bounds.width += tspan->font_scale * (span->glyphs[k] ? span->glyphs[k]->horiz_advance : tspan->font->max_advance_h);
 				}
 			} else {
-				span->glyphs[0] = tspan->glyphs[FSLTR ? j : (len - j - 1) ];
+				//span->glyphs[0] = tspan->glyphs[FSLTR ? j : (len - j - 1) ];
 				span->glyphs[0] = tspan->glyphs[j];
 				span->bounds.width = tspan->font_scale * (span->glyphs[0] ? span->glyphs[0]->horiz_advance : tspan->font->max_advance_h);
 			}
@@ -185,6 +186,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 				span->bounds.height = st->ascent + st->descent;
 				span->bounds.y = start_y;
 				span->bounds.x = 0;
+				span->bounds.y += 2;
+				span->bounds.height += 4;
 				k = (j - first_char);
 				span->glyphs[0] = tspan->glyphs[FSLTR ? (first_char+k) : (len - first_char - k - 1)];
 				span->bounds.width = tspan->font_scale * (span->glyphs[0] ? span->glyphs[0]->horiz_advance : tspan->font->max_advance_h);
@@ -268,7 +271,6 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 				}
 				/*word is bigger than allowed extent, rewrite 3 previous chars*/
 				if ((s32)size*tspan->font_scale >= -maxExtent) {
-					u32 k;
 					u32 nb_chars = (j<2) ? j : 3;
 
 					for (k=0; k<nb_chars; k++) {
@@ -482,7 +484,6 @@ static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture,
 	*hl_color = 0;
 
 	fs_style = FSSTYLE;
-	hlight = NULL;
 	hlight = strstr(fs_style, "HIGHLIGHT");
 	if (hlight) hlight = strchr(hlight, '#');
 	if (hlight) {
@@ -694,32 +695,6 @@ void compositor_init_text(GF_Compositor *compositor, GF_Node *node)
 	stack->compositor = compositor;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, Text_Traverse);
-}
-
-
-static void TraverseTextureText(GF_Node *node, void *rs, Bool is_destroy)
-{
-	TextStack *stack;
-	GF_Node *text;
-	GF_FieldInfo field;
-	if (is_destroy) return;
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return;
-	if (field.fieldType != GF_SG_VRML_SFNODE) return;
-	text = *(GF_Node **)field.far_ptr;
-	if (!text) return;
-
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return;
-
-	if (gf_node_get_tag(text) != TAG_MPEG4_Text) return;
-	stack = (TextStack *) gf_node_get_private(text);
-	stack->texture_text_flag = *(SFBool*)field.far_ptr ? 1 : 0;
-}
-
-
-void compositor_init_texture_text(GF_Compositor *compositor, GF_Node *node)
-{
-	gf_node_set_callback_function(node, TraverseTextureText);
 }
 
 #ifndef GPAC_DISABLE_3D

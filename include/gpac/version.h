@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2012
+ *			Copyright (c) Telecom ParisTech 2012-2019
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -25,35 +25,40 @@
 
 #ifndef _GF_VERSION_H
 
-/*! \file "gpac/version.h"
- *	\brief GPAC version.
- *
+/*!
+\file "gpac/version.h"
+\brief GPAC version.
+\addtogroup cst_grp
+
+@{
 */
 
 /*!
- *	\ingroup utils_grp
- *	\brief GPAC version definition.
- *
- *	@{
- */
-
-/*!
- *	\brief GPAC Version
- *	\hideinitializer
- *
- *	Macro giving GPAC version expressed as a printable string
+\brief GPAC Version
+\hideinitializer
 */
 /* KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE & CONFIGURE & CO)
  * NO SPACE in GPAC_VERSION / GPAC_FULL_VERSION for proper install
  * SONAME versions must be digits (not strings)
  */
-#define GPAC_VERSION          "0.7.2-DEV"
-#define GPAC_VERSION_MAJOR 7
-#define GPAC_VERSION_MINOR 6
+/*! Macro giving GPAC version name expressed as a printable string*/
+#define GPAC_VERSION          "1.0.0"
+/*! ABI Major number of libgpac */
+#define GPAC_VERSION_MAJOR 10
+/*! ABI Minor number of libgpac */
+#define GPAC_VERSION_MINOR 0
+/*! ABI Micro number of libgpac */
 #define GPAC_VERSION_MICRO 0
 
-#include <gpac/revision.h>
-#define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
+/*! gets GPAC full version including GIT revision
+\return GPAC full version
+*/
+const char *gf_gpac_version();
+
+/*! gets GPAC copyright
+\return GPAC copyright
+*/
+const char *gf_gpac_copyright();
 
 /*! @} */
 

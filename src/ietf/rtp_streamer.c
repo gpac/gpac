@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -34,6 +34,9 @@
 
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_ISOM)
 
+/*for ISOBMFF subtypes*/
+#include <gpac/isomedia.h>
+
 struct __rtp_streamer
 {
 	GP_RTPPacketizer *packetizer;
@@ -60,15 +63,19 @@ static void rtp_stream_on_packet_done(void *cbk, GF_RTPHeader *header)
 
 #ifndef GPAC_DISABLE_LOG
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Error %s sending RTP packet\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Error %s sending RTP packet SN %u - TS %u\n", gf_error_to_string(e), header->SequenceNumber, header->TimeStamp));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("RTP SN %u - TS %u - M %u - Size %u\n", header->SequenceNumber, header->TimeStamp, header->Marker, rtp->payload_len + 12));
+	}
+#else
+	if (e) {
+		fprintf(stderr, "Error %s sending RTP packet SN %u - TS %u\n", gf_error_to_string(e), header->SequenceNumber, header->TimeStamp);
 	}
 #endif
 	rtp->payload_len = 0;
 }
 
-static void rtp_stream_on_data(void *cbk, char *data, u32 data_size, Bool is_head)
+static void rtp_stream_on_data(void *cbk, u8 *data, u32 data_size, Bool is_head)
 {
 	GF_RTPStreamer *rtp = (GF_RTPStreamer*)cbk;
 	if (!data ||!data_size) return;
@@ -87,6 +94,26 @@ static void rtp_stream_on_data(void *cbk, char *data, u32 data_size, Bool is_hea
 	rtp->payload_len += data_size;
 }
 
+
+GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTransport  *tr, const char *ifce_addr)
+{
+	GF_Err res;
+
+	if (!rtp->channel) rtp->channel = gf_rtp_new();
+
+	res = gf_rtp_setup_transport(rtp->channel, tr, tr->destination);
+	if (res !=0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot setup RTP transport info: %s\n", gf_error_to_string(res) ));
+		return res;
+	}
+
+	res = gf_rtp_initialize(rtp->channel, 0, GF_TRUE, path_mtu, 0, 0, (char *)ifce_addr);
+	if (res !=0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot initialize RTP sockets: %s\n", gf_error_to_string(res) ));
+		return res;
+	}
+	return GF_OK;
+}
 static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const char * dest, int port, int ttl, const char *ifce_addr)
 {
 	GF_RTSPTransport tr;
@@ -129,15 +156,13 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 }
 
 GF_EXPORT
-GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeScale,
+GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
         const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
-        u32 flags, char *dsi, u32 dsi_len,
-
+        u32 flags, const u8 *dsi, u32 dsi_len,
         u32 PayloadType, u32 sample_rate, u32 nb_ch,
         Bool is_crypted, u32 IV_length, u32 KI_length,
         u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime,
-        u32 au_sn_len
-                                            )
+        u32 au_sn_len, Bool for_rtsp)
 {
 	GF_SLConfig slc;
 	GF_RTPStreamer *stream;
@@ -168,243 +193,211 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
 	switch (streamType) {
-	case GF_STREAM_TEXT:
-		if (oti!=GPAC_OTI_TEXT_MPEG4)
-			return NULL;
-
-		rtp_type = GF_RTP_PAYT_3GPP_TEXT;
-		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
-		PL_ID = 0x10;
-		break;
 	case GF_STREAM_AUDIO:
 		required_rate = sample_rate;
-		switch (oti) {
-		/*AAC*/
-		case GPAC_OTI_AUDIO_AAC_MPEG4:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
-		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
-			PL_ID = 0x01;
-			mpeg4mode = "AAC";
-			rtp_type = GF_RTP_PAYT_MPEG4;
-			required_rate = sample_rate;
-
-#ifndef GPAC_DISABLE_AV_PARSERS
-			if (dsi) {
-				GF_M4ADecSpecInfo a_cfg;
-				gf_m4a_get_config(dsi, dsi_len, &a_cfg);
-				//nb_ch = a_cfg.nb_chan;
-				//sample_rate = a_cfg.base_sr;
-				PL_ID = a_cfg.audioPL;
-				switch (a_cfg.base_object_type) {
-				case GF_M4A_AAC_MAIN:
-				case GF_M4A_AAC_LC:
-					if (flags & GP_RTP_PCK_USE_LATM_AAC) {
-						rtp_type = GF_RTP_PAYT_LATM;
-						break;
-					}
-				case GF_M4A_AAC_SBR:
-				case GF_M4A_AAC_PS:
-				case GF_M4A_AAC_LTP:
-				case GF_M4A_AAC_SCALABLE:
-				case GF_M4A_ER_AAC_LC:
-				case GF_M4A_ER_AAC_LTP:
-				case GF_M4A_ER_AAC_SCALABLE:
-					mpeg4mode = "AAC";
-					break;
-				case GF_M4A_CELP:
-				case GF_M4A_ER_CELP:
-					mpeg4mode = "CELP";
-					break;
-				}
-			}
-#endif
-			break;
-
-		/*MPEG1/2 audio*/
-		case GPAC_OTI_AUDIO_MPEG2_PART3:
-		case GPAC_OTI_AUDIO_MPEG1:
-			if (!is_crypted) {
-				rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
-				/*use official RTP/AVP payload type*/
-				OfficialPayloadType = 14;
-				required_rate = 90000;
-			}
-			/*encrypted MP3 must be sent through MPEG-4 generic to signal all ISMACryp stuff*/
-			else {
-				rtp_type = GF_RTP_PAYT_MPEG4;
-			}
-			break;
-
-		/*QCELP audio*/
-		case GPAC_OTI_AUDIO_13K_VOICE:
-			rtp_type = GF_RTP_PAYT_QCELP;
-			OfficialPayloadType = 12;
-			required_rate = 8000;
-			//nb_ch = 1;
-			break;
-
-		/*EVRC/SVM audio*/
-		case GPAC_OTI_AUDIO_EVRC_VOICE:
-		case GPAC_OTI_AUDIO_SMV_VOICE:
-			rtp_type = GF_RTP_PAYT_EVRC_SMV;
-			required_rate = 8000;
-			//nb_ch = 1;
-		}
-
 		break;
-
 	case GF_STREAM_VISUAL:
 		rtp_type = GF_RTP_PAYT_MPEG4;
 		required_rate = default_rtp_rate;
 		if (is_crypted) {
 			/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
-			if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) force_dts_delta = 22;
+			if (codecid==GF_CODECID_MPEG4_PART2) force_dts_delta = 22;
 			flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_TS;
 		}
-
-		switch (oti) {
-		/*ISO/IEC 14496-2*/
-		case GPAC_OTI_VIDEO_MPEG4_PART2:
-			PL_ID = 1;
-#ifndef GPAC_DISABLE_AV_PARSERS
-			if (dsi) {
-				GF_M4VDecSpecInfo vhdr;
-				gf_m4v_get_config(dsi, dsi_len, &vhdr);
-				PL_ID = vhdr.VideoPL;
-			}
-#endif
-			break;
-
-		/*MPEG1/2 video*/
-		case GPAC_OTI_VIDEO_MPEG1:
-		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-		case GPAC_OTI_VIDEO_MPEG2_MAIN:
-		case GPAC_OTI_VIDEO_MPEG2_SNR:
-		case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-		case GPAC_OTI_VIDEO_MPEG2_HIGH:
-		case GPAC_OTI_VIDEO_MPEG2_422:
-			if (!is_crypted) {
-				rtp_type = GF_RTP_PAYT_MPEG12_VIDEO;
-				OfficialPayloadType = 32;
-			}
-			break;
-		/*AVC/H.264*/
-		case GPAC_OTI_VIDEO_AVC:
-			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			rtp_type = GF_RTP_PAYT_H264_AVC;
-			PL_ID = 0x0F;
-			break;
-		/*H264-SVC*/
-		case GPAC_OTI_VIDEO_SVC:
-		case GPAC_OTI_VIDEO_MVC:
-			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			rtp_type = GF_RTP_PAYT_H264_SVC;
-			PL_ID = 0x0F;
-			break;
-		/*HEVC*/
-		case GPAC_OTI_VIDEO_HEVC:
-			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			rtp_type = GF_RTP_PAYT_HEVC;
-			PL_ID = 0x0F;
-			break;
-		/*LHVC*/
-		case GPAC_OTI_VIDEO_LHVC:
-			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			rtp_type = GF_RTP_PAYT_LHVC;
-			PL_ID = 0x0F;
-			break;
-		}
 		break;
-
 	case GF_STREAM_SCENE:
 	case GF_STREAM_OD:
-		if (oti == GPAC_OTI_SCENE_DIMS) {
+		if (codecid == GF_CODECID_DIMS) {
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 			rtp_type = GF_RTP_PAYT_3GPP_DIMS;
 			has_mpeg4_mapping = GF_FALSE;
+#else
+			gf_free(stream);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] 3GPP DIMS over RTP disabled in build\n", streamType));
+			return NULL;
+#endif
 		} else {
 			rtp_type = GF_RTP_PAYT_MPEG4;
 		}
 		break;
+	}
 
+	switch (codecid) {
+	/*AAC*/
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
+		PL_ID = 0x01;
+		mpeg4mode = "AAC";
+		rtp_type = GF_RTP_PAYT_MPEG4;
+		required_rate = sample_rate;
 
-	case GF_STREAM_4CC:
-		switch (oti) {
-		case GF_ISOM_SUBTYPE_3GP_H263:
-			rtp_type = GF_RTP_PAYT_H263;
-			required_rate = 90000;
-			streamType = GF_STREAM_VISUAL;
-			OfficialPayloadType = 34;
-			/*not 100% compliant (short header is missing) but should still work*/
-			oti = GPAC_OTI_VIDEO_MPEG4_PART2;
-			PL_ID = 0x01;
-			break;
-		case GF_ISOM_SUBTYPE_3GP_AMR:
-			required_rate = 8000;
-			rtp_type = GF_RTP_PAYT_AMR;
-			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = GF_FALSE;
-//			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
-			required_rate = 16000;
-			rtp_type = GF_RTP_PAYT_AMR_WB;
-			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = GF_FALSE;
-//			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_AC3:
-			rtp_type = GF_RTP_PAYT_AC3;
-			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = GF_TRUE;
-//			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_AVC_H264:
-		case GF_ISOM_SUBTYPE_AVC2_H264:
-		case GF_ISOM_SUBTYPE_AVC3_H264:
-		case GF_ISOM_SUBTYPE_AVC4_H264:
-		case GF_ISOM_SUBTYPE_SVC_H264:
-		case GF_ISOM_SUBTYPE_MVC_H264:
-		{
-			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			rtp_type = GF_RTP_PAYT_H264_AVC;
-			streamType = GF_STREAM_VISUAL;
-			oti = GPAC_OTI_VIDEO_AVC;
-			PL_ID = 0x0F;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if (dsi) {
+			GF_M4ADecSpecInfo a_cfg;
+			gf_m4a_get_config((u8 *)dsi, dsi_len, &a_cfg);
+			//nb_ch = a_cfg.nb_chan;
+			//sample_rate = a_cfg.base_sr;
+			PL_ID = a_cfg.audioPL;
+			switch (a_cfg.base_object_type) {
+			case GF_M4A_AAC_MAIN:
+			case GF_M4A_AAC_LC:
+				if (flags & GP_RTP_PCK_USE_LATM_AAC) {
+					rtp_type = GF_RTP_PAYT_LATM;
+					break;
+				}
+			case GF_M4A_AAC_SBR:
+			case GF_M4A_AAC_PS:
+			case GF_M4A_AAC_LTP:
+			case GF_M4A_AAC_SCALABLE:
+			case GF_M4A_ER_AAC_LC:
+			case GF_M4A_ER_AAC_LTP:
+			case GF_M4A_ER_AAC_SCALABLE:
+				mpeg4mode = "AAC";
+				break;
+			case GF_M4A_CELP:
+			case GF_M4A_ER_CELP:
+				mpeg4mode = "CELP";
+				break;
+			}
 		}
+#endif
 		break;
-		case GF_ISOM_SUBTYPE_3GP_QCELP:
-			required_rate = 8000;
-			rtp_type = GF_RTP_PAYT_QCELP;
-			streamType = GF_STREAM_AUDIO;
-			oti = GPAC_OTI_AUDIO_13K_VOICE;
-			OfficialPayloadType = 12;
-//			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_3GP_EVRC:
-		case GF_ISOM_SUBTYPE_3GP_SMV:
-			required_rate = 8000;
-			rtp_type = GF_RTP_PAYT_EVRC_SMV;
-			streamType = GF_STREAM_AUDIO;
-			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
-//			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_MP3:
+
+	/*MPEG1/2 audio*/
+	case GF_CODECID_MPEG2_PART3:
+	case GF_CODECID_MPEG_AUDIO:
+		if (!is_crypted) {
 			rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
 			/*use official RTP/AVP payload type*/
 			OfficialPayloadType = 14;
 			required_rate = 90000;
-			break;
+		}
+		/*encrypted MP3 must be sent through MPEG-4 generic to signal all ISMACryp stuff*/
+		else {
+			rtp_type = GF_RTP_PAYT_MPEG4;
 		}
 		break;
 
-	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Unsupported stream type %x\n", streamType));
-		return NULL;
-	}
+	/*ISO/IEC 14496-2*/
+	case GF_CODECID_MPEG4_PART2:
+		PL_ID = 1;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if (dsi) {
+			GF_M4VDecSpecInfo vhdr;
+			gf_m4v_get_config((u8 *)dsi, dsi_len, &vhdr);
+			PL_ID = vhdr.VideoPL;
+		}
+#endif
+		break;
 
-	/*not supported*/
-	if (!rtp_type) return NULL;
+	/*MPEG1/2 video*/
+	case GF_CODECID_MPEG1:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_SPATIAL:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_422:
+		if (!is_crypted) {
+			rtp_type = GF_RTP_PAYT_MPEG12_VIDEO;
+			OfficialPayloadType = 32;
+		}
+		break;
+	/*AVC/H.264*/
+	case GF_CODECID_AVC:
+		required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+		rtp_type = GF_RTP_PAYT_H264_AVC;
+		PL_ID = 0x0F;
+		break;
+	/*H264-SVC*/
+	case GF_CODECID_SVC:
+	case GF_CODECID_MVC:
+		required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+		rtp_type = GF_RTP_PAYT_H264_SVC;
+		PL_ID = 0x0F;
+		break;
+
+	/*HEVC*/
+	case GF_CODECID_HEVC:
+		required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+		rtp_type = GF_RTP_PAYT_HEVC;
+		PL_ID = 0x0F;
+		break;
+	/*LHVC*/
+	case GF_CODECID_LHVC:
+		required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+		rtp_type = GF_RTP_PAYT_LHVC;
+		PL_ID = 0x0F;
+		break;
+
+	case GF_CODECID_H263:
+		rtp_type = GF_RTP_PAYT_H263;
+		required_rate = 90000;
+		streamType = GF_STREAM_VISUAL;
+		OfficialPayloadType = 34;
+		/*not 100% compliant (short header is missing) but should still work*/
+		codecid = GF_CODECID_MPEG4_PART2;
+		PL_ID = 0x01;
+		break;
+	case GF_CODECID_AMR:
+		required_rate = 8000;
+		rtp_type = GF_RTP_PAYT_AMR;
+		streamType = GF_STREAM_AUDIO;
+		has_mpeg4_mapping = GF_FALSE;
+		break;
+	case GF_CODECID_AMR_WB:
+		required_rate = 16000;
+		rtp_type = GF_RTP_PAYT_AMR_WB;
+		streamType = GF_STREAM_AUDIO;
+		has_mpeg4_mapping = GF_FALSE;
+		break;
+	case GF_CODECID_AC3:
+		rtp_type = GF_RTP_PAYT_AC3;
+		streamType = GF_STREAM_AUDIO;
+		has_mpeg4_mapping = GF_TRUE;
+		break;
+
+	case GF_CODECID_QCELP:
+		required_rate = 8000;
+		rtp_type = GF_RTP_PAYT_QCELP;
+		streamType = GF_STREAM_AUDIO;
+		codecid = GF_CODECID_QCELP;
+		OfficialPayloadType = 12;
+//			nb_ch = 1;
+		break;
+	case GF_CODECID_EVRC:
+	case GF_CODECID_SMV:
+		required_rate = 8000;
+		rtp_type = GF_RTP_PAYT_EVRC_SMV;
+		streamType = GF_STREAM_AUDIO;
+		codecid = (codecid==GF_ISOM_SUBTYPE_3GP_EVRC) ? GF_CODECID_EVRC : GF_CODECID_SMV;
+//			nb_ch = 1;
+		break;
+	case GF_CODECID_TX3G:
+		rtp_type = GF_RTP_PAYT_3GPP_TEXT;
+		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
+		PL_ID = 0x10;
+		break;
+	case GF_CODECID_TEXT_MPEG4:
+		rtp_type = GF_RTP_PAYT_3GPP_TEXT;
+		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
+		PL_ID = 0x10;
+		break;
+	case GF_CODECID_FAKE_MP2T:
+		rtp_type = GF_RTP_PAYT_MP2T;
+		PayloadType = OfficialPayloadType = GF_RTP_PAYT_MP2T;
+		required_rate = 90000;
+		break;
+
+	default:
+		if (!rtp_type) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Unsupported stream type %x\n", streamType));
+			return NULL;
+		}
+		break;
+	}
 
 	/*override hinter type if requested and possible*/
 	if (has_mpeg4_mapping && (flags & GP_RTP_PCK_FORCE_MPEG4)) {
@@ -464,18 +457,21 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 		return NULL;
 	}
 
-	gf_rtp_builder_init(stream->packetizer, PayloadType, MTU, max_ptime,
-	                    streamType, oti, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
+	gf_rtp_builder_init(stream->packetizer, (u8) PayloadType, MTU, max_ptime,
+	                    streamType, codecid, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
 
 
 	if (force_dts_delta) stream->packetizer->slMap.DTSDeltaLength = force_dts_delta;
 
-	e = rtp_stream_init_channel(stream, MTU + 12, ip_dest, port, TTL, ifce_addr);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Failed to create RTP channel - error %s\n", gf_error_to_string(e) ));
-		gf_free(stream);
-		return NULL;
+	if (!for_rtsp) {
+		e = rtp_stream_init_channel(stream, MTU + 12, ip_dest, port, TTL, ifce_addr);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Failed to create RTP channel - error %s\n", gf_error_to_string(e) ));
+			gf_free(stream);
+			return NULL;
+		}
 	}
+
 	stream->ts_scale = slc.timestampResolution;
 	stream->ts_scale /= timeScale;
 
@@ -485,17 +481,6 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	return stream;
 }
 
-
-GF_EXPORT
-GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
-                                    const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
-                                    u32 flags, char *dsi, u32 dsi_len)
-{
-	return gf_rtp_streamer_new_extended(streamType, oti, timeScale, ip_dest, port, MTU, TTL, ifce_addr, flags, dsi, dsi_len,
-
-	                                    96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-}
 
 GF_EXPORT
 void gf_rtp_streamer_del(GF_RTPStreamer *streamer)
@@ -510,43 +495,20 @@ void gf_rtp_streamer_del(GF_RTPStreamer *streamer)
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 
-void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, GF_ISOFile *file, u32 track)
+void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, u32 w, u32 h, s32 tx, s32 ty, s16 l, u32 max_w, u32 max_h, char *tx3g_base64)
 {
 	char buffer[2000];
-	u32 w, h, i, m_w, m_h;
-	s32 tx, ty;
-	s16 l;
 	sprintf(sdpLine, "a=fmtp:%d sver=60; ", builder->PayloadType);
-	gf_isom_get_track_layout_info(file, track, &w, &h, &tx, &ty, &l);
+
 	sprintf(buffer, "width=%d; height=%d; tx=%d; ty=%d; layer=%d; ", w, h, tx, ty, l);
 	strcat(sdpLine, buffer);
-	m_w = w;
-	m_h = h;
-	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		switch (gf_isom_get_media_type(file, i+1)) {
-		case GF_ISOM_MEDIA_SCENE:
-		case GF_ISOM_MEDIA_VISUAL:
-			gf_isom_get_track_layout_info(file, i+1, &w, &h, &tx, &ty, &l);
-			if (w>m_w) m_w = w;
-			if (h>m_h) m_h = h;
-			break;
-		default:
-			break;
-		}
-	}
-	sprintf(buffer, "max-w=%d; max-h=%d", m_w, m_h);
+
+	sprintf(buffer, "max-w=%d; max-h=%d", max_w, max_h);
 	strcat(sdpLine, buffer);
 
-	strcat(sdpLine, "; tx3g=");
-	for (i=0; i<gf_isom_get_sample_description_count(file, track); i++) {
-		char *tx3g;
-		u32 tx3g_len, len;
-		gf_isom_text_get_encoded_tx3g(file, track, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
-		len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
-		gf_free(tx3g);
-		buffer[len] = 0;
-		if (i) strcat(sdpLine, ", ");
-		strcat(sdpLine, buffer);
+	if (tx3g_base64) {
+		strcat(sdpLine, "; tx3g=");
+		strcat(sdpLine, tx3g_base64);
 	}
 }
 
@@ -554,22 +516,28 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, GF_ISOFile *isofile, u32 isotrack, char *KMS_URI, u32 width, u32 height, char **out_sdp_buffer)
+GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, const u8 *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, Bool for_rtsp, char **out_sdp_buffer)
 {
 	u32 size;
-	u16 port;
+	u16 port=0;
 	char mediaName[30], payloadName[30];
 	char sdp[20000], sdpLine[10000];
 
 	if (!out_sdp_buffer) return GF_BAD_PARAM;
 
 	gf_rtp_builder_get_payload_name(rtp->packetizer, payloadName, mediaName);
-	gf_rtp_get_ports(rtp->channel, &port, NULL);
+	if (!for_rtsp)
+		gf_rtp_get_ports(rtp->channel, &port, NULL);
 
-	sprintf(sdp, "m=%s %d RTP/%s %d\n", mediaName, port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
+	sprintf(sdp, "m=%s %d RTP/%s %d\n", mediaName, for_rtsp ? 0 : port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
 	sprintf(sdpLine, "a=rtpmap:%d %s/%d\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution);
 	strcat(sdp, sdpLine);
-	if (ESID && (rtp->packetizer->rtp_payt != GF_RTP_PAYT_3GPP_DIMS)) {
+
+	if (ESID
+#if GPAC_ENABLE_3GPP_DIMS_RTP
+		&& (rtp->packetizer->rtp_payt != GF_RTP_PAYT_3GPP_DIMS)
+#endif
+	 ) {
 		sprintf(sdpLine, "a=mpeg4-esid:%d\n", ESID);
 		strcat(sdp, sdpLine);
 	}
@@ -592,7 +560,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	}
 	/*Text*/
 	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
-		gf_media_format_ttxt_sdp(rtp->packetizer, payloadName, sdpLine, isofile, isotrack);
+		gf_media_format_ttxt_sdp(rtp->packetizer, payloadName, sdpLine, tw, th, tx, ty, tl, width, height, (u8 *)dsi_enh);
 		strcat(sdpLine, "\n");
 	}
 	/*EVRC/SMV in non header-free mode*/
@@ -601,7 +569,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	}
 	/*H264/AVC*/
 	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_AVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_SVC)) {
-		GF_AVCConfig *avcc = dsi ? gf_odf_avc_cfg_read(dsi, dsi_len) : NULL;
+		GF_AVCConfig *avcc = dsi ? gf_odf_avc_cfg_read((u8*)dsi, dsi_len) : NULL;
 
 		if (avcc) {
 			sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", rtp->packetizer->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
@@ -633,7 +601,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	}
 	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_LHVC)) {
 #ifndef GPAC_DISABLE_HEVC
-		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_len, GF_FALSE) : NULL;
+		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read((u8*)dsi, dsi_len, GF_FALSE) : NULL;
 		if (hevcc) {
 			u32 count, i, j, b64s;
 			char b64[200];
@@ -663,7 +631,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	}
 	/*MPEG-4 decoder config*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_MPEG4) {
-		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, sdpLine, dsi, dsi_len);
+		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, sdpLine, (u8*)dsi, dsi_len);
 		strcat(sdpLine, "\n");
 
 		if (rtp->packetizer->slMap.IV_length && KMS_URI) {
@@ -676,6 +644,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 			strcat(sdpLine, "\n");
 		}
 	}
+#if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*DIMS decoder config*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) {
 		sprintf(sdpLine, "a=fmtp:%d Version-profile=%d", rtp->packetizer->PayloadType, 10);
@@ -684,10 +653,11 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 		}
 		strcat(sdpLine, "\n");
 	}
+#endif
 	/*MPEG-4 Audio LATM*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_LATM) {
 		GF_BitStream *bs;
-		char *config_bytes;
+		u8 *config_bytes;
 		u32 config_size;
 
 		/* form config string */
@@ -729,98 +699,65 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_rtp_streamer_append_sdp_decoding_dependency(GF_ISOFile *isofile, u32 isotrack, u8 *payload_type, char **out_sdp_buffer)
-{
-	u32 size, i, ref_track;
-	s32 count;
-	char sdp[20000], sdpLine[10000];
 
-	sprintf(sdp, "a=mid:L%d\n", isotrack);
-
-	count = gf_isom_get_reference_count(isofile, isotrack, GF_ISOM_REF_SCAL);
-	if (count > 0)
-	{
-		sprintf(sdpLine, "a=depend:%d lay", payload_type[isotrack-1]);
-		strcat(sdp, sdpLine);
-		for (i = 0; i < (u32) count; i++)
-		{
-			gf_isom_get_reference(isofile, isotrack, GF_ISOM_REF_SCAL, i+1, &ref_track);
-			sprintf(sdpLine, " L%d:%d", ref_track, payload_type[ref_track-1]);
-			strcat(sdp, sdpLine);
-		}
-		strcat(sdp, "\n");
-	}
-
-	size = (u32) strlen(sdp) + (*out_sdp_buffer ? (u32) strlen(*out_sdp_buffer) : 0) + 1;
-	if ( !*out_sdp_buffer) {
-		*out_sdp_buffer = (char*)gf_malloc(sizeof(char)*size);
-		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
-		strcpy(*out_sdp_buffer, sdp);
-	} else {
-		*out_sdp_buffer = (char*)gf_realloc(*out_sdp_buffer, sizeof(char)*size);
-		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
-		strcat(*out_sdp_buffer, sdp);
-	}
-	return GF_OK;
-}
 
 GF_EXPORT
 char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64)
 {
 	u64 size;
 	char *sdp, *tmp_fn = NULL;
-	FILE *tmp = gf_temp_file_new(&tmp_fn);
+	FILE *tmp = gf_file_temp(&tmp_fn);
 	if (!tmp) return NULL;
 
 	/* write SDP header*/
-	fprintf(tmp, "v=0\n");
-	fprintf(tmp, "o=%s 3326096807 1117107880000 IN IP%d %s\n", app_name, gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
-	fprintf(tmp, "s=%s\n", (session_name ? session_name : "GPAC Scene Streaming Session"));
-	fprintf(tmp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
-	fprintf(tmp, "t=0 0\n");
+	gf_fprintf(tmp, "v=0\n");
+	gf_fprintf(tmp, "o=%s 3326096807 1117107880000 IN IP%d %s\n", app_name, gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
+	gf_fprintf(tmp, "s=%s\n", (session_name ? session_name : "GPAC Scene Streaming Session"));
+	gf_fprintf(tmp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
+	gf_fprintf(tmp, "t=0 0\n");
 
-	if (iod64) fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
+	if (iod64)
+		gf_fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
 
-	gf_fseek(tmp, 0, SEEK_END);
-	size = gf_ftell(tmp);
-	gf_fseek(tmp, 0, SEEK_SET);
+	size = gf_fsize(tmp);
 	sdp = (char*)gf_malloc(sizeof(char) * (size_t)(size+1));
-	size = fread(sdp, 1, (size_t)size, tmp);
+	size = gf_fread(sdp, (size_t)size, tmp);
 	sdp[size] = 0;
 	gf_fclose(tmp);
-	gf_delete_file(tmp_fn);
+	gf_file_delete(tmp_fn);
 	gf_free(tmp_fn);
 	return sdp;
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer)
+GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer)
 {
-	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, 0, KMS_URI, 0, 0, out_sdp_buffer);
+	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, 0, KMS_URI, 0, 0, 0, 0, 0, 0, 0, GF_FALSE, out_sdp_buffer);
 }
 
-GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
+GF_EXPORT
+GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
 {
 	rtp->packetizer->sl_header.compositionTimeStamp = (u64) (cts*rtp->ts_scale);
 	rtp->packetizer->sl_header.decodingTimeStamp = (u64) (dts*rtp->ts_scale);
 	rtp->packetizer->sl_header.randomAccessPointFlag = is_rap;
 	rtp->packetizer->sl_header.accessUnitStartFlag = au_start;
 	rtp->packetizer->sl_header.accessUnitEndFlag = au_end;
-	rtp->packetizer->sl_header.randomAccessPointFlag = is_rap;
 	rtp->packetizer->sl_header.AU_sequenceNumber = au_sn;
 	sampleDuration = (u32) (sampleDuration * rtp->ts_scale);
+	if (au_start && size) rtp->packetizer->nb_aus++;
 
 	return gf_rtp_builder_process(rtp->packetizer, data, size, (u8) au_end, fullsize, sampleDuration, sampleDescIndex);
 }
 
-GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap)
+GF_EXPORT
+GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, u8 *data, u32 size, u64 cts, u64 dts, Bool is_rap)
 {
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, GF_TRUE, GF_TRUE, 0, 0, 0);
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn)
+GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, u8 *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn)
 {
 	if (inc_au_sn) rtp->packetizer->sl_header.AU_sequenceNumber += inc_au_sn;
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, GF_TRUE, GF_TRUE, rtp->packetizer->sl_header.AU_sequenceNumber, 0, 0);
@@ -840,13 +777,32 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 	streamer->channel->forced_ntp_frac = force_ntp_type ? ntp_frac : 0;
 	if (force_ntp_type==2)
 		streamer->channel->next_report_time = 0;
-	return gf_rtp_send_rtcp_report(streamer->channel, NULL, NULL);
+	return gf_rtp_send_rtcp_report(streamer->channel);
+}
+
+GF_EXPORT
+GF_Err gf_rtp_streamer_send_bye(GF_RTPStreamer *streamer)
+{
+	return gf_rtp_send_bye(streamer->channel);
 }
 
 GF_EXPORT
 u8 gf_rtp_streamer_get_payload_type(GF_RTPStreamer *streamer)
 {
-	return streamer->packetizer->PayloadType;
+	return streamer ? streamer->packetizer->PayloadType : 0;
+}
+
+GF_EXPORT
+u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer)
+{
+	return streamer->packetizer->rtp_header.SequenceNumber+1;
+}
+
+GF_EXPORT
+GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, gf_rtp_tcp_callback RTP_TCPCallback, void *cbk1, void *cbk2)
+{
+
+ 	return gf_rtp_set_interleave_callbacks(streamer->channel, RTP_TCPCallback, cbk1, cbk2);
 }
 
 #endif /*GPAC_DISABLE_STREAMING && GPAC_DISABLE_ISOM*/

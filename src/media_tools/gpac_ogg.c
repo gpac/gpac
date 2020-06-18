@@ -38,6 +38,8 @@ static u32 mask[]=
 	0x3fffffff,0x7fffffff,0xffffffff
 };
 
+
+#ifdef GPAC_CONFIG_WIN32
 static u32 mask8B[]=
 {0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff};
 
@@ -47,10 +49,17 @@ void oggpack_writeinit(oggpack_buffer *b) {
 	b->buffer[0]='\0';
 	b->storage=BUFFER_INCREMENT;
 }
+#endif
+
+
+#if 0 //unused
 
 void oggpackB_writeinit(oggpack_buffer *b) {
 	oggpack_writeinit(b);
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 void oggpack_writetrunc(oggpack_buffer *b,s32 bits) {
 	s32 bytes=bits>>3;
@@ -60,6 +69,9 @@ void oggpack_writetrunc(oggpack_buffer *b,s32 bits) {
 	b->endbyte=bytes;
 	*b->ptr&=mask[bits];
 }
+#endif
+
+#if 0//unused
 
 void oggpackB_writetrunc(oggpack_buffer *b,s32 bits) {
 	s32 bytes=bits>>3;
@@ -69,6 +81,9 @@ void oggpackB_writetrunc(oggpack_buffer *b,s32 bits) {
 	b->endbyte=bytes;
 	*b->ptr&=mask8B[bits];
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 /* Takes only up to 32 bits. */
 void oggpack_write(oggpack_buffer *b,u32 value,s32 bits) {
@@ -104,6 +119,9 @@ void oggpack_write(oggpack_buffer *b,u32 value,s32 bits) {
 	b->endbit=bits&7;
 }
 
+#endif
+
+#if 0 //unused
 /* Takes only up to 32 bits. */
 void oggpackB_write(oggpack_buffer *b,u32 value,s32 bits) {
 	if(b->endbyte+4>=b->storage) {
@@ -197,34 +215,34 @@ void oggpackB_writecopy(oggpack_buffer *b,void *source,s32 bits) {
 	oggpack_writecopy_helper(b,source,bits,oggpackB_write,1);
 }
 
+
+void oggpackB_reset(oggpack_buffer *b) {
+	oggpack_reset(b);
+}
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 void oggpack_reset(oggpack_buffer *b) {
 	b->ptr=b->buffer;
 	b->buffer[0]=0;
 	b->endbit=b->endbyte=0;
 }
+#endif
 
-void oggpackB_reset(oggpack_buffer *b) {
-	oggpack_reset(b);
-}
-
+#ifdef GPAC_CONFIG_WIN32
 void oggpack_writeclear(oggpack_buffer *b) {
 	gf_free(b->buffer);
 	memset(b,0,sizeof(*b));
 }
+#endif
 
+#if 0 //unused
 void oggpackB_writeclear(oggpack_buffer *b) {
 	oggpack_writeclear(b);
 }
+#endif
 
-void oggpack_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
-	memset(b,0,sizeof(*b));
-	b->buffer=b->ptr=buf;
-	b->storage=bytes;
-}
-
-void oggpackB_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
-	oggpack_readinit(b,buf,bytes);
-}
+#ifdef GPAC_CONFIG_WIN32
 
 /* Read in bits without advancing the bitptr; bits <= 32 */
 s32 oggpack_look(oggpack_buffer *b,s32 bits) {
@@ -252,7 +270,9 @@ s32 oggpack_look(oggpack_buffer *b,s32 bits) {
 	}
 	return(m&ret);
 }
+#endif
 
+#if 0 //unused
 /* Read in bits without advancing the bitptr; bits <= 32 */
 s32 oggpackB_look(oggpack_buffer *b,s32 bits) {
 	u32 ret;
@@ -290,6 +310,19 @@ s32 oggpackB_look1(oggpack_buffer *b) {
 	return((b->ptr[0]>>(7-b->endbit))&1);
 }
 
+#endif //unused
+
+void oggpack_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
+	memset(b,0,sizeof(*b));
+	b->buffer=b->ptr=buf;
+	b->storage=bytes;
+}
+
+void oggpackB_readinit(oggpack_buffer *b,unsigned char *buf,s32 bytes) {
+	oggpack_readinit(b,buf,bytes);
+}
+
+
 void oggpack_adv(oggpack_buffer *b,s32 bits) {
 	bits+=b->endbit;
 	b->ptr+=bits/8;
@@ -297,6 +330,7 @@ void oggpack_adv(oggpack_buffer *b,s32 bits) {
 	b->endbit=bits&7;
 }
 
+#if 0 //unused
 void oggpackB_adv(oggpack_buffer *b,s32 bits) {
 	oggpack_adv(b,bits);
 }
@@ -312,6 +346,7 @@ void oggpack_adv1(oggpack_buffer *b) {
 void oggpackB_adv1(oggpack_buffer *b) {
 	oggpack_adv1(b);
 }
+#endif
 
 /* bits <= 32 */
 s32 oggpack_read(oggpack_buffer *b,s32 bits) {
@@ -332,9 +367,9 @@ s32 oggpack_read(oggpack_buffer *b,s32 bits) {
 		if(bits>16) {
 			ret|=b->ptr[2]<<(16-b->endbit);
 			if(bits>24) {
-				ret|=b->ptr[3]<<(24-b->endbit);
+				ret |= ((u32)b->ptr[3]) << (24-b->endbit);
 				if(bits>32 && b->endbit) {
-					ret|=b->ptr[4]<<(32-b->endbit);
+					ret |= ((u32)b->ptr[4]) << (32-b->endbit);
 				}
 			}
 		}
@@ -362,7 +397,7 @@ s32 oggpackB_read(oggpack_buffer *b,s32 bits) {
 		if(b->endbyte*8+bits>b->storage*8)goto overflow;
 	}
 
-	ret=b->ptr[0]<<(24+b->endbit);
+	ret = ((u32)b->ptr[0]) << (24+b->endbit);
 	if(bits>8) {
 		ret|=b->ptr[1]<<(16+b->endbit);
 		if(bits>16) {
@@ -384,6 +419,7 @@ overflow:
 	return(ret);
 }
 
+#if 0 //unused
 s32 oggpack_read1(oggpack_buffer *b) {
 	u32 ret;
 
@@ -427,11 +463,16 @@ overflow:
 	}
 	return(ret);
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 s32 oggpack_bytes(oggpack_buffer *b) {
 	return(b->endbyte+(b->endbit+7)/8);
 }
+#endif
 
+#if 0 //unused
 s32 oggpack_bits(oggpack_buffer *b) {
 	return(b->endbyte*8+b->endbit);
 }
@@ -443,14 +484,21 @@ s32 oggpackB_bytes(oggpack_buffer *b) {
 s32 oggpackB_bits(oggpack_buffer *b) {
 	return oggpack_bits(b);
 }
+#endif
+
+#ifdef GPAC_CONFIG_WIN32
 
 unsigned char *oggpack_get_buffer(oggpack_buffer *b) {
 	return(b->buffer);
 }
+#endif
 
+#if 0 //unused
 unsigned char *oggpackB_get_buffer(oggpack_buffer *b) {
 	return oggpack_get_buffer(b);
 }
+
+#endif //unused
 
 
 #undef BUFFER_INCREMENT
@@ -475,7 +523,7 @@ s32 ogg_page_eos(ogg_page *og) {
 
 s64 ogg_page_granulepos(ogg_page *og) {
 	unsigned char *page=og->header;
-	s64 granulepos=page[13]&(0xff);
+	u64 granulepos=page[13]&(0xff);
 	granulepos= (granulepos<<8)|(page[12]&0xff);
 	granulepos= (granulepos<<8)|(page[11]&0xff);
 	granulepos= (granulepos<<8)|(page[10]&0xff);
@@ -483,7 +531,7 @@ s64 ogg_page_granulepos(ogg_page *og) {
 	granulepos= (granulepos<<8)|(page[8]&0xff);
 	granulepos= (granulepos<<8)|(page[7]&0xff);
 	granulepos= (granulepos<<8)|(page[6]&0xff);
-	return(granulepos);
+	return((s64) granulepos);
 }
 
 s32 ogg_page_serialno(ogg_page *og) {
@@ -501,6 +549,7 @@ s32 ogg_page_pageno(ogg_page *og) {
 }
 
 
+#if 0 //unused
 
 /* returns the number of packets that are completed on this page (if
    the leading packet is begun on a previous page, but ends on this
@@ -526,6 +575,7 @@ s32 ogg_page_packets(ogg_page *og) {
 	return(count);
 }
 
+#endif //unused
 
 #if 0
 /* helper to initialize lookup for direct-table CRC (illustrative; we
@@ -646,6 +696,8 @@ s32 ogg_stream_clear(ogg_stream_state *os) {
 	return(0);
 }
 
+#if 0 //unused
+
 s32 ogg_stream_destroy(ogg_stream_state *os) {
 	if(os) {
 		ogg_stream_clear(os);
@@ -653,6 +705,8 @@ s32 ogg_stream_destroy(ogg_stream_state *os) {
 	}
 	return(0);
 }
+
+#endif //unused
 
 /* Helpers for ogg_stream_encode; this keeps the structure and
    what's happening fairly clear */
@@ -889,9 +943,11 @@ s32 ogg_stream_pageout(ogg_stream_state *os, ogg_page *og) {
 	return(0);
 }
 
+#if 0 //unused
 s32 ogg_stream_eos(ogg_stream_state *os) {
 	return os->e_o_s;
 }
+#endif
 
 /* DECODING PRIMITIVES: packet streaming layer **********************/
 
@@ -926,6 +982,7 @@ s32 ogg_sync_clear(ogg_sync_state *oy) {
 	return(0);
 }
 
+#if 0 //unused
 s32 ogg_sync_destroy(ogg_sync_state *oy) {
 	if(oy) {
 		ogg_sync_clear(oy);
@@ -933,8 +990,10 @@ s32 ogg_sync_destroy(ogg_sync_state *oy) {
 	}
 	return(0);
 }
+#endif
 
-char *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
+
+u8 *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
 
 	/* first, clear out any space that has been previously returned */
 	if(oy->returned) {
@@ -960,7 +1019,8 @@ char *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
 }
 
 s32 ogg_sync_wrote(ogg_sync_state *oy, s32 bytes) {
-	if(oy->fill+bytes>oy->storage)return(-1);
+	if(oy->fill+bytes>oy->storage)
+		return(-1);
 	oy->fill+=bytes;
 	return(0);
 }
@@ -1029,9 +1089,6 @@ s32 ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og) {
 
 	/* yes, have a whole page all ready to go */
 	{
-		unsigned char *page=oy->data+oy->returned;
-		s32 bytes;
-
 		if(og) {
 			og->header=page;
 			og->header_len=oy->headerbytes;
@@ -1225,6 +1282,7 @@ s32 ogg_stream_pagein(ogg_stream_state *os, ogg_page *og) {
 	return(0);
 }
 
+#if 0 //unused
 /* clear things to an initial state.  Good to call, eg, before seeking */
 s32 ogg_sync_reset(ogg_sync_state *oy) {
 	oy->fill=0;
@@ -1259,6 +1317,7 @@ s32 ogg_stream_reset_serialno(ogg_stream_state *os,s32 serialno) {
 	os->serialno=serialno;
 	return(0);
 }
+#endif //unused
 
 static s32 _packetout(ogg_stream_state *os,ogg_packet *op,s32 adv) {
 
@@ -1322,9 +1381,13 @@ s32 ogg_stream_packetpeek(ogg_stream_state *os,ogg_packet *op) {
 	return _packetout(os,op,0);
 }
 
+#if 0 //unused
 void ogg_packet_clear(ogg_packet *op) {
 	gf_free(op->packet);
 	memset(op, 0, sizeof(*op));
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_OGG*/
+

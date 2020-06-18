@@ -301,7 +301,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 			while (1) {
 				if (last_ind+index > fm->groupsIndex.count) goto err_exit;
 				if (fm->groupsIndex.vals[last_ind+index]==-1) break;
-				if (index>MAX_FORM_GROUP_INDEX) goto err_exit;
+				if (index>=MAX_FORM_GROUP_INDEX) goto err_exit;
 				idx[index] = fm->groupsIndex.vals[last_ind+index];
 				index++;
 			}
@@ -496,14 +496,13 @@ static void sv_apply(FormStack *st, Fixed space, u32 *group_idx, u32 count)
 {
 	u32 i, k;
 	Fixed tot_len, inter_space;
-	GF_Rect *t, *b;
 
 	tot_len = 0;
 	if(space > -FIX_ONE) {
 		inter_space = space;
 	} else {
-		t = &form_get_group(st, group_idx[count-1])->final;
-		b = &form_get_group(st, group_idx[0])->final;
+		GF_Rect *t = &form_get_group(st, group_idx[count-1])->final;
+		GF_Rect *b = &form_get_group(st, group_idx[0])->final;
 		inter_space = b->y - t->y;
 		if (group_idx[0]!=0) inter_space -= t->height;
 		for (i=1; i<count-1; i++) tot_len += form_get_group(st, group_idx[i])->final.height;

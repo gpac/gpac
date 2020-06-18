@@ -1,12 +1,10 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Pierre Souchay 2008
+ *			Authors: Pierre Souchay , Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2008-2019
+ *					All rights reserved
  *
- *  History:
- *
- *  2008/03/30 - v1.1 (Pierre Souchay)
- *    first revision
  *
  *  PulseAudio output module : output audio thru the PulseAudio daemon
  *
@@ -61,16 +59,6 @@ free_pulseaudio_resources (GF_AudioOutput * dr)
 	ctx->playback_handle = NULL;
 }
 
-static const char *MODULE_NAME = "PulseAudio";
-
-static const char *OUTPUT_NAME = "OutputName";
-
-static const char *OUTPUT_DESCRIPTION = "OutputDescription";
-
-static const char *DEFAULT_OUTPUT_NAME = "GPAC";
-
-static const char *DEFAULT_OUTPUT_DESCRIPTION = "GPAC Output";
-
 static GF_Err
 PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
                   u32 num_buffers, u32 total_duration)
@@ -79,30 +67,11 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
 	if (ctx == NULL)
 		return GF_BAD_PARAM;
-	opt = gf_modules_get_option ((GF_BaseInterface *) dr, MODULE_NAME,
-	                             OUTPUT_NAME);
-	ctx->output_name = DEFAULT_OUTPUT_NAME;
-	if (opt != NULL)
-	{
-		ctx->output_name = opt;
-	}
-	else
-	{
-		gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-		                       OUTPUT_NAME, DEFAULT_OUTPUT_NAME);
-	}
-	opt = gf_modules_get_option ((GF_BaseInterface *) dr, MODULE_NAME,
-	                             OUTPUT_DESCRIPTION);
-	ctx->output_description = DEFAULT_OUTPUT_DESCRIPTION;
-	if (opt != NULL)
-	{
-		ctx->output_description = opt;
-	}
-	else
-	{
-		gf_modules_set_option ((GF_BaseInterface *) dr, MODULE_NAME,
-		                       OUTPUT_DESCRIPTION, DEFAULT_OUTPUT_DESCRIPTION);
-	}
+	opt = gf_opts_get_key("PulseAudio", "Name");
+	ctx->output_name = opt ? ctx->output_name : "GPAC";
+
+	opt = gf_opts_get_key("PulseAudio", "Description");
+	ctx->output_description = opt  ? opt  : "GPAC Output";
 	return GF_OK;
 }
 
@@ -129,9 +98,7 @@ PulseAudio_Shutdown (GF_AudioOutput * dr)
 }
 
 static GF_Err
-PulseAudio_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate,
-                            u32 * NbChannels, u32 * nbBitsPerSample,
-                            u32 channel_cfg)
+PulseAudio_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	int pa_error = 0;
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
@@ -144,6 +111,10 @@ PulseAudio_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate,
 		pa_simple_free (ctx->playback_handle);
 		ctx->playback_handle = NULL;
 	}
+
+	//only support for PCM 16
+	*audioFormat = GF_AUDIO_FMT_S16;
+
 	ctx->consecutive_zero_reads = 0;
 	ctx->sample_spec.format = PA_SAMPLE_S16NE;
 	ctx->sample_spec.channels = *NbChannels;
@@ -190,7 +161,7 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 	if (written <= 0)
 	{
 		ctx->consecutive_zero_reads++;
-		if (ctx->consecutive_zero_reads > 5) {
+		if (ctx->consecutive_zero_reads < 5) {
 			gf_sleep(5);
 		} else if (ctx->consecutive_zero_reads < 25) {
 			gf_sleep(10);
@@ -200,7 +171,7 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 		return;
 	}
 	ctx->consecutive_zero_reads = 0;
-	written = pa_simple_write (ctx->playback_handle, data, written, &pa_error);
+	/*written = */pa_simple_write (ctx->playback_handle, data, written, &pa_error);
 	if (pa_error != 0)
 	{
 		if (ctx->errors < 1)
@@ -212,23 +183,6 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 	{
 		ctx->errors = 0;
 	}
-}
-
-static void
-PulseAudio_SetVolume (GF_AudioOutput * dr, u32 Volume)
-{
-	GF_LOG (GF_LOG_WARNING, GF_LOG_MMIO,
-	        ("[PulseAudio] Set volume to %lu: not yet implemented.\n", Volume));
-}
-
-static void
-PulseAudio_SetPan (GF_AudioOutput * dr, u32 Pan)
-{
-}
-
-static void
-PulseAudio_SetPriority (GF_AudioOutput * dr, u32 Priority)
-{
 }
 
 static u32
@@ -258,15 +212,6 @@ PulseAudio_GetAudioDelay (GF_AudioOutput * dr)
 	return ms_delay;
 }
 
-static GF_Err
-PulseAudio_QueryOutputSampleRate (GF_AudioOutput * dr, u32 * desired_sr,
-                                  u32 * NbChannels, u32 * nbBitsPerSample)
-{
-	/**
-	 * PulseAudio can do the resampling by itself and play any number of channels
-	 */
-	return GF_OK;
-}
 
 void *
 NewPulseAudioOutput ()
@@ -289,14 +234,10 @@ NewPulseAudioOutput ()
 	driv->SelfThreaded = 0;
 	driv->Setup = PulseAudio_Setup;
 	driv->Shutdown = PulseAudio_Shutdown;
-	driv->ConfigureOutput = PulseAudio_ConfigureOutput;
+	driv->Configure = PulseAudio_Configure;
 	driv->GetAudioDelay = PulseAudio_GetAudioDelay;
-	driv->SetVolume = PulseAudio_SetVolume;
-	driv->SetPan = PulseAudio_SetPan;
-	driv->SetPriority = PulseAudio_SetPriority;
-	driv->QueryOutputSampleRate = PulseAudio_QueryOutputSampleRate;
 	driv->WriteAudio = PulseAudio_WriteAudio;
-	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, MODULE_NAME, "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, "PulseAudio", "gpac distribution");
 	return driv;
 }
 

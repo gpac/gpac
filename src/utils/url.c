@@ -86,13 +86,14 @@ static u32 URL_GetProtocolType(const char *pathName)
 }
 
 /*gets protocol type*/
+GF_EXPORT
 Bool gf_url_is_local(const char *pathName)
 {
 	u32 mode = URL_GetProtocolType(pathName);
 	return (mode!=GF_URL_TYPE_INVALID && mode!=GF_URL_TYPE_ANY_URI) ? GF_TRUE : GF_FALSE;
 }
 
-
+GF_EXPORT
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 {
 	char* sep;
@@ -149,22 +150,37 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 }
 
 
-GF_EXPORT
-char *gf_url_concatenate(const char *parentName, const char *pathName)
+static char *gf_url_concatenate_ex(const char *parentName, const char *pathName, Bool relative_to_parent)
 {
 	u32 pathSepCount, i, prot_type;
+	Bool had_sep_count = GF_FALSE;
 	char *outPath, *name, *rad, *tmp2;
 	char tmp[GF_MAX_PATH];
 
 	if (!pathName && !parentName) return NULL;
 	if (!pathName) return gf_strdup(parentName);
-	if (!parentName) return gf_strdup(pathName);
+	if (!parentName || !strlen(parentName)) return gf_strdup(pathName);
 
 	if (!strncmp(pathName, "data:", 5)) return gf_strdup(pathName);
-
+	if (!strncmp(parentName, "gmem://", 7)) return NULL;
+	if (!strncmp(parentName, "gfio://", 7)) {
+		GF_Err e;
+		GF_FileIO *gfio = gf_fileio_from_url(parentName);
+		GF_FileIO *gfio_new = gf_fileio_open_url(gfio, pathName, "url", &e);
+		if (!gfio_new)
+			return NULL;
+		return gf_strdup( gf_fileio_url(gfio_new) );
+	}
 	if ((strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("URL too long for concatenation: \n%s\n", pathName));
 		return NULL;
+	}
+
+	while (!strncmp(parentName, "./.", 3) || !strncmp(parentName, ".\\.", 3)) {
+		parentName += 2;
+	}
+	while (!strncmp(pathName, "./.", 3) || !strncmp(pathName, ".\\.", 3)) {
+		pathName += 2;
 	}
 
 	prot_type = URL_GetProtocolType(pathName);
@@ -286,6 +302,8 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	rad = strchr(tmp2, '#');
 	if (rad) rad[0] = 0;
 
+	if (pathSepCount)
+		had_sep_count = GF_TRUE;
 	/*remove the last /*/
 	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
@@ -302,6 +320,22 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			strcat(tmp, "../");
 			pathSepCount--;
 		}
+	}
+	//path is relative to current dir
+	else if (!relative_to_parent && (pathName[0]=='.') && ((pathName[1]=='/') || (pathName[1]=='\\') ) ) {
+		strcat(tmp, "/");
+	}
+	//parent is relative to current dir
+	else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
+		u32 nb_path_sep=0;
+		u32 len = (u32) strlen(tmp);
+		for (i=0; i<len; i++) {
+			if ((tmp[i]=='/') || (tmp[i]=='\\') )
+				nb_path_sep++;
+		}
+		strcpy(tmp, "");
+		while (nb_path_sep--)
+			strcat(tmp, "../");
 	} else {
 		strcat(tmp, "/");
 	}
@@ -331,6 +365,16 @@ check_spaces:
 		i++;
 	}
 	return outPath;
+}
+GF_EXPORT
+char *gf_url_concatenate(const char *parentName, const char *pathName)
+{
+	return gf_url_concatenate_ex(parentName, pathName, GF_FALSE);
+}
+GF_EXPORT
+char *gf_url_concatenate_parent(const char *parentName, const char *pathName)
+{
+	return gf_url_concatenate_ex(parentName, pathName, GF_TRUE);
 }
 
 GF_EXPORT
@@ -433,7 +477,7 @@ Bool gf_url_get_resource_path(const char *sURL, char *res_path)
 }
 
 
-GF_EXPORT
+#if 0 //unused
 Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path)
 {
 	strcpy(res_path, sURL);
@@ -445,9 +489,9 @@ Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path)
 	return GF_FALSE;
 }
 
-GF_EXPORT
 const char* gf_url_get_ressource_extension(const char *sURL) {
 	const char *dot = strrchr(sURL, '.');
 	if(!dot || dot == sURL) return "";
 	return dot + 1;
 }
+#endif //unused

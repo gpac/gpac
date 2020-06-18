@@ -62,7 +62,7 @@ enum
 	GF_CODEC_RESILIENT_AFTER_FIRST_RAP=2
 };
 
-/*Define codec matrix*/ 
+/*Define codec matrix*/
 typedef struct __matrix GF_CodecMatrix;
 
 /*the structure for capabilities*/
@@ -152,6 +152,7 @@ enum
 
 	/*switches up (1), max (2), down (0) or min (-1) media quality for scalable coding. */
 	GF_CODEC_MEDIA_SWITCH_QUALITY,
+	GF_CODEC_MEDIA_LAYER_DETACH,
 
 	//notifies the codec all streams have been attached for the current time and that it may start init
 	//this is require for L-HEVC+AVC
@@ -218,12 +219,59 @@ user defined.
 	u32 (*CanHandleStream)(IFCE_NAME, u32 StreamType, GF_ESD *esd, u8 ProfileLevelIndication);\
 	const char *(*GetName)(IFCE_NAME);\
 	void *privateStack;	\
- 
+
 
 typedef struct _basedecoder
 {
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
 } GF_BaseDecoder;
+
+
+/*interface name and version for node decoder mainly used by AFX*/
+#define GF_NODE_DECODER_INTERFACE		GF_4CC('G', 'N', 'D', '3')
+
+typedef struct _base_node *LPNODE;
+
+typedef struct _nodedecoder
+{
+	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
+
+	/*Process the node data in inAU.
+	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
+	@ES_ID: stream this data belongs too (scalable object)
+	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
+	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
+	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
+	@mmlevel: speed indicator for the decoding - cf above for values*/
+	GF_Err (*ProcessData)(struct _nodedecoder *, const char *inBuffer, u32 inBufferLength,
+	                      u16 ES_ID, u32 AU_Time, u32 mmlevel);
+
+	/*attaches node to the decoder - currently only one node is only attached to a single decoder*/
+	GF_Err (*AttachNode)(struct _nodedecoder *, LPNODE node);
+} GF_NodeDecoder;
+
+
+
+/*interface name and version for scene decoder */
+#define GF_INPUT_DEVICE_INTERFACE		GF_4CC('G', 'I', 'D', '1')
+
+typedef struct __input_device
+{
+	/* interface declaration*/
+	GF_DECL_MODULE_INTERFACE
+
+	Bool (*RegisterDevice)(struct __input_device *, const char *urn, const char *dsi, u32 dsi_size, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name));
+	void (*Start)(struct __input_device *);
+	void (*Stop)(struct __input_device *);
+
+	void *udta;
+
+	/*this is set upon loading and shall not be modified*/
+	void *input_stream_context;
+	void (*DispatchFrame)(struct __input_device *, const u8 *data, u32 data_len);
+} GF_InputSensorDevice;
+
+
 
 /*interface name and version for media decoder */
 #define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '3')
@@ -272,111 +320,6 @@ typedef struct _mediadecoder
 	GF_Err (*GetOutputFrame)(struct _mediadecoder *, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize);
 } GF_MediaDecoder;
 
-
-/*
-				WARNING - DO NOT MODIFY THE POSITION OF ProcessData IN SCENE OR NODE DECODER, AS THE BOTH STRUCTURES
-		ARE TYPE_CASTED BY THE TERMINAL WHEN CALLING ProcessData
-*/
-typedef struct _scene *LPSCENE;
-
-/*interface name and version for scene decoder */
-#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '3')
-
-typedef struct _scenedecoder
-{
-	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-
-	/*Process the scene data in inAU.
-	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
-	@ES_ID: stream this data belongs too (scalable object)
-	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
-	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
-	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
-	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _scenedecoder *, const char *inBuffer, u32 inBufferLength,
-	                      u16 ES_ID, u32 AU_Time, u32 mmlevel);
-
-
-	/*attaches scene to the decoder - a scene may be attached to several decoders of several types
-	(BIFS or others scene dec, ressource decoders (OD), etc.
-	is: inline scene owning graph (and not just graph), defined in intern/terminal_dev.h. With inline scene
-	the complete terminal is exposed so there's pretty much everything doable in a scene decoder
-	@is_scene_root: set to true if this decoder is the root of the scene, false otherwise (either another decoder
-	or a re-entrant call, cf below)
-	This is called once upon creation of the decoder (several times if re-entrant)
-	*/
-	GF_Err (*AttachScene)(struct _scenedecoder *, LPSCENE scene, Bool is_scene_root);
-	/*releases scene. If the decoder manages nodes / resources in the scene,
-	THESE MUST BE DESTROYED. May be NULL if decoder doesn't manage nodes but only create them (like BIFS, OD) and
-	doesn't have to be instructed the scene is about to be resumed
-	This is called each time the scene is about to be reseted (eg, seek and destroy)
-	*/
-	GF_Err (*ReleaseScene)(struct _scenedecoder *);
-} GF_SceneDecoder;
-
-
-/*interface name and version for node decoder mainly used by AFX*/
-#define GF_NODE_DECODER_INTERFACE		GF_4CC('G', 'N', 'D', '3')
-
-typedef struct _base_node *LPNODE;
-
-typedef struct _nodedecoder
-{
-	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-
-	/*Process the node data in inAU.
-	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
-	@ES_ID: stream this data belongs too (scalable object)
-	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
-	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
-	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
-	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _nodedecoder *, const char *inBuffer, u32 inBufferLength,
-	                      u16 ES_ID, u32 AU_Time, u32 mmlevel);
-
-	/*attaches node to the decoder - currently only one node is only attached to a single decoder*/
-	GF_Err (*AttachNode)(struct _nodedecoder *, LPNODE node);
-} GF_NodeDecoder;
-
-
-
-/*interface name and version for scene decoder */
-#define GF_INPUT_DEVICE_INTERFACE		GF_4CC('G', 'I', 'D', '1')
-
-typedef struct __input_device
-{
-	/* interface declaration*/
-	GF_DECL_MODULE_INTERFACE
-
-	Bool (*RegisterDevice)(struct __input_device *, const char *urn, GF_BitStream *dsi, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name));
-	void (*Start)(struct __input_device *);
-	void (*Stop)(struct __input_device *);
-
-	void *udta;
-
-	/*this is set upon loading and shall not be modified*/
-	GF_BaseDecoder *input_decoder;
-	void (*DispatchFrame)(struct __input_device *, u8 *data, u32 data_len);
-} GF_InputSensorDevice;
-
-
-
-
-/*interface name and version for media decoder */
-#define GF_PRIVATE_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'P', 'M', '2')
-
-/*the media module interface. A media module MUST be implemented in synchronous mode as time
-and resources management is done by the terminal*/
-typedef struct _private_mediadecoder
-{
-	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-
-	/*Control media decoder.
-	@mute: set mute or not
-	@x, y, w, h: video output position in screen coordinate
-	*/
-	GF_Err (*Control)(struct _private_mediadecoder *, Bool mute, GF_Window *src_rect, GF_Window *dst_rect);
-} GF_PrivateMediaDecoder;
 
 #ifdef __cplusplus
 }

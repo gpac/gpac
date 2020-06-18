@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Events management
@@ -33,17 +33,17 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/events.h>
- *	\brief Event system used by GPAC playback.
+\file <gpac/events.h>
+\brief Event system used by GPAC playback.
  */
 	
 /*!
- *	\addtogroup evt_grp Event System
- *	\ingroup playback_grp
- *	\brief Event system used by GPAC playback.
- *
- *This section documents the event structures used by the terminal, the compositor, input modules and output rendering modules for communication.
- *	@{
+\addtogroup evt_grp Event System
+\ingroup playback_grp
+\brief Event system used by GPAC playback.
+
+This section documents the event structures used by the terminal, the compositor, input modules and output rendering modules for communication.
+@{
  */
 
 #include <gpac/maths.h>
@@ -51,7 +51,7 @@ extern "C" {
 #include <gpac/events_constants.h>
 
 
-/*mouse button modifiers*/
+/*! mouse button modifiers*/
 enum
 {
 	GF_MOUSE_LEFT = 0,
@@ -59,7 +59,9 @@ enum
 	GF_MOUSE_RIGHT
 };
 
-/*event proc return value: ignored*/
+/*! Mouse event structure
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_MOUSEMOVE, GF_EVENT_MOUSEWHEEL, GF_EVENT_MOUSEDOWN, GF_EVENT_MOUSEUP*/
@@ -74,7 +76,26 @@ typedef struct
 	u32 key_states;
 } GF_EventMouse;
 
-/*event proc return value: ignored*/
+/*! Mouse event structure
+	event proc return value: ignored
+*/
+typedef struct
+{
+	/*GF_EVENT_MULTITOUCH*/
+	u8 type;
+	/*normalized center of multitouch event*/
+	Fixed x, y;
+	/*finger rotation*/
+	Fixed rotation;
+	/*finger pinch*/
+	Fixed pinch;
+	/*number of fingers detected*/
+	u32 num_fingers;
+} GF_EventMultiTouch;
+
+/*! Keyboard key event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_KEYDOWN and GF_EVENT_KEYUP*/
@@ -87,7 +108,9 @@ typedef struct
 	u32 flags;
 } GF_EventKey;
 
-/*event proc return value: ignored*/
+/*! Keyboard character event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_TEXTINPUT*/
@@ -96,7 +119,9 @@ typedef struct
 	u32 unicode_char;
 } GF_EventChar;
 
-/*event proc return value: ignored*/
+/*! Window resize event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_SIZE*/
@@ -105,7 +130,9 @@ typedef struct
 	u16 width, height;
 } GF_EventSize;
 
-/*event proc return value: ignored*/
+/*! Video setup (2D or 3D) event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_VIDEO_SETUP*/
@@ -117,19 +144,21 @@ typedef struct
 	/*indicates whether system memory for the backbuffer is desired (no video blitting)*/
 	Bool system_memory;
 	/*indicates whether opengl context shall be created. Values are:
-		0: no opengl context shall be created
-		1: opengl context shall be created for the main window and set as the current one
-		2: an extra opengl context shall be created for offscreen rendering and set as the current one
-			if not supported, mix of 2D (raster) and 3D (openGL) will be disabled
+		GF_FALSE: no opengl context shall be created
+		GF_TRUE: opengl context shall be created for the main window and set as the current one
 	*/
-	u32 opengl_mode;
+	Bool use_opengl;
+
+	Bool disable_vsync;
 
 	// resources must be resetup before next render step (this is mainly due to discard all openGL textures and cached objects) - inly used when sent from plugin to term
 	Bool hw_reset;
 } GF_EventVideoSetup;
 
-/*event proc return value: ignored
-this event may be triggered by the compositor if owning window or if shortcut fullscreen is detected*/
+/*! Windows show event
+	event proc return value: ignored
+	this event may be triggered by the compositor if owning window or if shortcut fullscreen is detected
+*/
 typedef struct
 {
 	/*GF_EVENT_SHOWHIDE*/
@@ -138,7 +167,9 @@ typedef struct
 	u32 show_type;
 } GF_EventShow;
 
-/*event proc return value: ignored*/
+/*! Mouse cursor event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_SET_CURSOR*/
@@ -147,16 +178,19 @@ typedef struct
 	u32 cursor_type;
 } GF_EventCursor;
 
-/*event proc return value: ignored*/
+/*! Window caption event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_SET_CAPTION*/
 	u8 type;
-	/*window style flags - NOT USED YET*/
 	const char *caption;
 } GF_EventCaption;
 
-/*event proc: never posted*/
+/*! Window move event
+	event proc: never posted
+*/
 typedef struct
 {
 	/*GF_EVENT_MOVE*/
@@ -168,8 +202,10 @@ typedef struct
 	u8 align_x, align_y;
 } GF_EventMove;
 
-/*duration may be signaled several times: it may change when setting up streams
-event proc return value: ignored*/
+/*! Media duration event
+	duration may be signaled several times: it may change when setting up streams
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_DURATION*/
@@ -180,8 +216,9 @@ typedef struct
 	Bool can_seek;
 } GF_EventDuration;
 
-/*event proc return value: 0 if URL not supported, 1 if accepted (it is the user responsability to load the url)
-YOU SHALL NOT DIRECTLY OPEN THE NEW URL IN THE EVENT PROC, THIS WOULD DEADLOCK THE TERMINAL
+/*! Hyperlink navigation event
+	event proc return value: 0 if URL not supported, 1 if accepted (it is the user responsability to load the url)
+	YOU SHALL NOT DIRECTLY OPEN THE NEW URL IN THE EVENT PROC, THIS WOULD DEADLOCK THE TERMINAL
 */
 typedef struct
 {
@@ -195,7 +232,9 @@ typedef struct
 } GF_EventNavigate;
 
 
-/*event proc return value: ignored*/
+/*! Service message event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_MESSAGE*/
@@ -208,14 +247,16 @@ typedef struct
 	GF_Err error;
 } GF_EventMessage;
 
-/*event proc return value: ignored*/
+/*! Progress event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_PROGRESS*/
 	u8 type;
 	/*name of service issuing the progress notif*/
 	const char *service;
-	/*progress type: 0: buffering, 1: downloading, 2: importing (BT/VRML/...)*/
+	/*progress type: 0: buffering, 1: downloading, 2: importing (BT/VRML/...), 3: filter status update*/
 	u32 progress_type;
 	/*amount done and total amount of operation.
 		For buffer events, expresses current and total desired stream buffer in scene in milliseconds
@@ -223,11 +264,18 @@ typedef struct
 		For import events, no units defined (depends on importers)
 	*/
 	u32 done, total;
-	/* for download events */
-	u32 bytes_per_seconds;
+	union {
+		/* for download events */
+		u32 bytes_per_seconds;
+		/* for filter status event, index of filter in session */
+		u32 filter_idx;
+	};
+	
 } GF_EventProgress;
 
-/*event proc return value: ignored*/
+/*! Service connection event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_CONNECT*/
@@ -236,7 +284,9 @@ typedef struct
 	Bool is_connected;
 } GF_EventConnect;
 
-/*event proc return value: 1 to indicate the terminal should attempt a default layout for this addon, 0: nothing will be done*/
+/*! Addon connection notification event
+	event proc return value: 1 to indicate the terminal should attempt a default layout for this addon, 0: nothing will be done
+*/
 typedef struct
 {
 	/*GF_EVENT_ADDON_DETECTED*/
@@ -245,8 +295,9 @@ typedef struct
 	const char *mime_type;
 } GF_EventAddonConnect;
 
-/*event proc return value: 1 if info has been completed, 0 otherwise (and operation this request was for
-will then fail)*/
+/*! Authentication event
+	event proc return value: 1 if info has been completed, 0 otherwise (and operation this request was for will then fail)
+*/
 typedef struct
 {
 	/*GF_EVENT_AUTHORIZATION*/
@@ -260,7 +311,9 @@ typedef struct
 } GF_EventAuthorize;
 
 
-/*event proc return value: 1 if info has been completed, 0 otherwise */
+/*! System desktop colors and window decoration event
+	event proc return value: 1 if info has been completed, 0 otherwise
+*/
 typedef struct
 {
 	/*GF_EVENT_SYS_COLORS*/
@@ -274,7 +327,7 @@ typedef struct
 	u32 sys_colors[28];
 } GF_EventSysColors;
 
-
+/*! DOM mutation event*/
 typedef struct {
 	/* GF_EVENT_TREE_MODIFIED, GF_EVENT_NODE_INSERTED, GF_EVENT_NODE_REMOVED, GF_EVENT_NODE_INSERTED_DOC, GF_EVENT_NODE_REMOVED_DOC, GF_EVENT_ATTR_MODIFIED, GF_EVENT_CHAR_DATA_MODIFIED */
 	u8 type;
@@ -285,7 +338,7 @@ typedef struct {
 	u8 attrChange;
 } GF_EventMutation;
 
-
+/*! Open file notification event*/
 typedef struct {
 	/* GF_EVENT_DROPFILE*/
 	u8 type;
@@ -293,20 +346,9 @@ typedef struct {
 	char **files;
 } GF_EventOpenFile;
 
-typedef struct {
-	/*GF_EVENT_FROM_SERVICE*/
-	u8 type;
-	//cf GF_EVT_FORWARDED_ *
-	u8 forward_type;
-	/*original type of event as forwarded by the service*/
-	u32 service_event_type;
-	/*parameter of event as forwarded by the service - creation/deletion is handled by the service*/
-	void *param;
-} GF_EventFromService;
-
-
-
-/*event proc return value: ignored*/
+/*! Orientation sensor change event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_SENSOR_ORIENTATION*/
@@ -316,7 +358,9 @@ typedef struct
 } GF_EventSensor;
 
 
-/*event proc return value: ignored*/
+/*! Orientation sensor activation event
+	event proc return value: ignored
+*/
 typedef struct
 {
 	/*GF_EVENT_SENSOR_REQUEST*/
@@ -326,19 +370,12 @@ typedef struct
 	Bool activate;
 } GF_EventSensorRequest;
 
-
-/*event proc return value: ignored*/
-typedef struct
-{
-	/*GF_EVENT_SENSOR_REQUEST*/
-	u8 type;
-	u32 sync_loss_ms;
-} GF_EventSyncLoss;
-
+/*! Event object*/
 typedef union
 {
 	u8 type;
 	GF_EventMouse mouse;
+	GF_EventMultiTouch mtouch;
 	GF_EventKey key;
 	GF_EventChar character;
 	GF_EventSensor sensor;
@@ -358,9 +395,7 @@ typedef union
 	GF_EventMutation mutation;
 	GF_EventOpenFile open_file;
 	GF_EventAddonConnect addon_connect;
-	GF_EventFromService from_service;
 	GF_EventSensorRequest activate_sensor;
-	GF_EventSyncLoss sync_loss;
 } GF_Event;
 
 /*! @} */

@@ -29,6 +29,8 @@
 #include "nodes_stacks.h"
 #include "texturing.h"
 
+#ifdef GPAC_ENABLE_SVG_FILTERS
+
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -195,7 +197,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	GF_IRect txrc;
 	Fixed scale_x, scale_y, temp_x, temp_y;
 	DrawableContext *ctx, *child_ctx;
-	GF_SURFACE offscreen_surface, old_surf;
+	GF_EVGSurface *offscreen_surface, *old_surf;
 	GF_Rect bounds, local_bounds, rc;
 	GF_Matrix2D backup;
 	SVGAllAttributes all_atts;
@@ -260,14 +262,14 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 
 
 	old_surf = tr_state->visual->raster_surface;
-	offscreen_surface = tr_state->visual->compositor->rasterizer->surface_new(tr_state->visual->compositor->rasterizer, tr_state->visual->center_coords);
+	offscreen_surface = gf_evg_surface_new(tr_state->visual->center_coords);
 	tr_state->visual->raster_surface = offscreen_surface;
 
 	gf_mx2d_copy(backup, tr_state->transform);
 	gf_mx2d_init(tr_state->transform);
 
 	/*attach the buffer to visual*/
-	tr_state->visual->compositor->rasterizer->surface_attach_to_buffer(offscreen_surface, st->txh.data,
+	gf_evg_surface_attach_to_buffer(offscreen_surface, st->txh.data,
 	        st->txh.width,
 	        st->txh.height,
 	        0,
@@ -333,7 +335,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	/*restore state and destroy whatever needs to be cleaned*/
 	tr_state->in_svg_filter = 0;
 	tr_state->immediate_draw = prev_flags;
-	tr_state->visual->compositor->rasterizer->surface_delete(offscreen_surface);
+	gf_evg_surface_delete(offscreen_surface);
 	tr_state->visual->raster_surface = old_surf;
 	tr_state->traversing_mode = TRAVERSE_SORT;
 	tr_state->visual->surf_rect = rc1;
@@ -441,6 +443,8 @@ void compositor_init_svg_filter(GF_Compositor *compositor, GF_Node *node)
 	stack->drawable->node = node;
 	gf_sc_texture_allocate(&stack->txh);
 }
+
+#endif //GPAC_ENABLE_SVG_FILTERS
 
 #endif
 

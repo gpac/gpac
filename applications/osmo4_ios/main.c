@@ -29,8 +29,6 @@
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/events.h>
-#include <gpac/modules/service.h>
-#include <gpac/internal/terminal_dev.h>
 
 #include <pwd.h>
 #include <unistd.h>
@@ -43,7 +41,6 @@ static Bool restart = 0;
 static Bool not_threaded = 1;
 
 static Bool no_audio = 0;
-static Bool no_regulation = 0;
 Bool is_connected = 0;
 Bool startup_file = 0;
 GF_User user;
@@ -51,7 +48,6 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 
-static GF_Config *cfg_file;
 static u32 display_rti = 0;
 static Bool Run;
 static Bool CanSeek = 0;
@@ -81,7 +77,7 @@ static void UpdateRTInfo(const char *legend)
 {
 	GF_SystemRTInfo rti;
 	if (paused_by_bench==1) return;
-	
+
 	/*refresh every second*/
 	if (!display_rti && !rti_logs) return;
 	if (!gf_sys_get_rti(rti_update_time_ms, &rti, 0) && !legend)
@@ -98,17 +94,17 @@ static void UpdateRTInfo(const char *legend)
 				sprintf(szMsg, "FPS %02.02f CPU %02d Mem %d kB",
 			        gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 			}
-		
+
 			PrintAVInfo(GF_FALSE);
-			
-			
+
+
 			fprintf(stderr, "%s\r", szMsg);
 		} else {
 			if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 
 			if (!rti.gpac_memory) rti.gpac_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 		}
-		
+
 	}
 	if (rti_logs) {
 		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s",
@@ -127,8 +123,11 @@ static void ResetCaption()
 {
 	GF_Event event;
 	if (display_rti) return;
+	memset(&event, 0, sizeof(GF_Event));
+
 	event.type = GF_EVENT_SET_CAPTION;
 	if (is_connected) {
+#ifdef FILTER_FIXME
 		char szName[1024];
 		NetInfoCommand com;
 
@@ -162,8 +161,10 @@ static void ResetCaption()
 			if (!str) str = strrchr(the_url, '/');
 			event.caption.caption = str ? str+1 : the_url;
 		}
+#endif
+
 	} else {
-		event.caption.caption = "GPAC MP4Client " GPAC_FULL_VERSION;
+		event.caption.caption = "GPAC MP4Client " GPAC_VERSION;
 	}
 	gf_term_user_event(term, &event);
 }
@@ -189,7 +190,7 @@ void ios_sensor_callback(int sensorType, float x, float y, float z, float w)
 {
 	GF_Event evt;
 	memset(&evt, 0, sizeof(GF_Event));
-	
+
 	switch (sensorType) {
 	case SENSOR_ORIENTATION:
 		evt.type = GF_EVENT_SENSOR_ORIENTATION;
@@ -238,7 +239,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	break;
 	case GF_EVENT_PROGRESS:
 		if (bench_mode && (evt->progress.progress_type==1) ) {
-		
+
 			fprintf(stderr, "Bench mode paused - downloading %02d %%\r", (u32) (evt->progress.done*100.0/evt->progress.total) );
 			if (!paused_by_bench) {
 				gf_term_set_option(term, GF_OPT_VIDEO_BENCH, 0);
@@ -317,35 +318,12 @@ static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *
 
 	if (rti_logs && (lm & GF_LOG_RTI)) {
 		char szMsg[2048];
-		vsprintf(szMsg, fmt, list);
+		vsnprintf(szMsg, 2048, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	} else {
 		if (log_time_start) fprintf(logs, "[At %d]", gf_sys_clock() - log_time_start);
 		vfprintf(logs, fmt, list);
 		fflush(logs);
-	}
-}
-
-static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
-{
-	if (rti_logs) gf_fclose(rti_logs);
-	rti_logs = gf_fopen(rti_file, "wt");
-	if (rti_logs) {
-		fprintf(rti_logs, "!! GPAC RunTime Info ");
-		if (url) fprintf(rti_logs, "for file %s", url);
-		fprintf(rti_logs, " !!\n");
-		fprintf(rti_logs, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
-
-		/*turn on RTI loging*/
-		if (use_rtix) {
-			gf_log_set_callback(NULL, on_gpac_log);
-			gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
-			gf_log_set_tool_level(GF_LOG_RTI, GF_LOG_DEBUG);
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
-		} else if (log_time_start) {
-			log_time_start = gf_sys_clock();
-		}
 	}
 }
 
@@ -380,21 +358,21 @@ void set_cfg_option(char *opt_string)
 			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
 			return;
 		}
-		gf_cfg_del_section(cfg_file, szSec);
+		gf_opts_del_section(szSec);
 		return;
 	}
 
 	if (!stricmp(szVal, "null")) {
 		szVal[0]=0;
 	}
-	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
+	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
 
 static void on_progress_null(const void *_ptr, const char *_title, u64 done, u64 total)
 {
 }
-#ifdef GPAC_IPHONE
+#ifdef GPAC_CONFIG_IOS
 int SDL_main (int argc, char *argv[])
 #else
 int main (int argc, char *argv[])
@@ -407,12 +385,9 @@ int main (int argc, char *argv[])
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
 	Bool use_gui = 0;
-	Bool use_rtix = 0;
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
-
-	Bool ret, fill_ar, visible;
 	Bool logs_set = GF_FALSE;
-	char *url_arg, *the_cfg, *rti_file;
+	char *url_arg, *the_cfg;
 	const char *logs_settings = NULL;
 	GF_SystemRTInfo rti;
 	FILE *logfile = NULL;
@@ -421,8 +396,7 @@ int main (int argc, char *argv[])
 
 	memset(&user, 0, sizeof(GF_User));
 
-	fill_ar = visible = 0;
-	url_arg = the_cfg = rti_file = NULL;
+	url_arg = the_cfg = NULL;
 
 #ifdef GPAC_MEMORY_TRACKING
 	for (i=1; i<argc; i++) {
@@ -433,16 +407,9 @@ int main (int argc, char *argv[])
 	}
 #endif
 
-	gf_sys_init(mem_track);
+	gf_sys_init(mem_track, NULL);
 	gf_set_progress_callback(NULL, on_progress_null);
-
-	cfg_file = gf_cfg_init(the_cfg, NULL);
-	if (!cfg_file) {
-		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");
-		if (logfile) gf_fclose(logfile);
-		return 1;
-	}
-
+    
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] != '-') {
@@ -479,19 +446,19 @@ int main (int argc, char *argv[])
  	}
 
 	if (logs_settings) {
-		if (gf_log_set_tools_levels(logs_settings) != GF_OK) {
+		if (gf_log_set_tools_levels(logs_settings, GF_TRUE) != GF_OK) {
 			return 1;
 		}
 		logs_set = GF_TRUE;
 	}
 
 	if (!logs_set)
-		gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
+		gf_log_set_tools_levels( gf_opts_get_key("core", "logs"), GF_TRUE);
 
-	gf_cfg_set_key(cfg_file, "Compositor", "OpenGLMode", "hybrid");
+	gf_opts_set_key("filter@compositor", "ogl", "hybrid");
 
 	if (!logfile) {
-		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
+		const char *opt = gf_opts_get_key("core", "log-file");
 		if (opt) {
 			logfile = gf_fopen(opt, "wt");
 			if (logfile)
@@ -501,13 +468,12 @@ int main (int argc, char *argv[])
 
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 	memory_at_gpac_startup = rti.physical_memory_avail;
-	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
 	init_w = forced_width;
 	init_h = forced_height;
-
+/*
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading modules\n" ));
-	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
+	str = gf_opts_get_key("core", "mod-dirs");
 
 	user.modules = gf_modules_new((const char *) str, cfg_file);
 	if (user.modules) i = gf_modules_get_count(user.modules);
@@ -520,13 +486,11 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Modules Loaded (%d found in %s)\n", i, str));
-
+*/
 //	url_arg="$IOS_DOCS/NBA_score_table_2_hd.mp4#LIVE360TV";
-	gf_cfg_set_key(cfg_file, "Compositor", "NumViews", "1");
-//	gf_cfg_set_key(cfg_file, "Compositor", "StereoType", "SideBySide");
 
 	if (url_arg && !strncmp(url_arg, "$IOS_DOCS", 9)) {
-		char *path = (char *) gf_cfg_get_key(cfg_file, "General", "iOSDocumentsDir");
+		char *path = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
 		if (path) {
 			strcpy(the_url, path);
 			path = strchr(url_arg, '/');
@@ -538,26 +502,19 @@ int main (int argc, char *argv[])
 		}
 	}
 	gf_sys_set_args(argc, (const char **) argv);
-	
-	user.config = cfg_file;
+
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
-	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
+	//user.opaque = user.modules;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
-	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
-//	user.init_flags |= GF_TERM_NO_DECODER_THREAD;
 
 	if (bench_mode) {
-		gf_cfg_discard_changes(user.config);
+		//gf_cfg_discard_changes(user.config);
 		auto_exit = GF_TRUE;
-		gf_cfg_set_key(user.config, "Audio", "DriverName", "Raw Audio Output");
 		if (bench_mode!=2) {
-			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
-			gf_cfg_set_key(user.config, "RAWVideo", "RawOutput", "null");
-			gf_cfg_set_key(user.config, "Compositor", "OpenGLMode", "disable");
+			gf_opts_set_key("filter@compositor", "ogl", "off");
 		} else {
-			gf_cfg_set_key(user.config, "Video", "DisableVSync", "yes");
+			gf_opts_set_key("core", "disable-vsync", "yes");
 		}
 	}
 
@@ -566,8 +523,8 @@ int main (int argc, char *argv[])
 	term = gf_term_new(&user);
 	if (!term) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n"));
-		gf_modules_del(user.modules);
-		gf_cfg_del(cfg_file);
+		//gf_modules_del(user.modules);
+		//gf_cfg_del(cfg_file);
 		gf_sys_close();
 		if (logfile) gf_fclose(logfile);
 		return 1;
@@ -578,41 +535,23 @@ int main (int argc, char *argv[])
 		display_rti = 2;
 		gf_term_set_option(term, GF_OPT_VIDEO_BENCH, (bench_mode==3) ? 2 : 1);
 		if (bench_mode==1) bench_mode=2;
-	} else {
-		/*check video output*/
-		str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
-		if (!strcmp(str, "Raw Video Output")) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: using raw output video (memory only) - no display used\n"));
-		}
 	}
-	
+
 	/*check audio output*/
-	str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
+	str = gf_opts_get_key("core", "audio-output");
 	if (!str || !strcmp(str, "No Audio Output Available")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: no audio output availble - make sure no other program is locking the sound card\n"));
 	}
-	str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
+	str = gf_opts_get_key("General", "NoMIMETypeFetch");
 	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 
-	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
+	str = gf_opts_get_key("core", "proxy-on");
 	if (str && !strcmp(str, "yes")) {
-		str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Name");
+		str = gf_opts_get_key("core", "proxy-name");
 		if (str) GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("HTTP Proxy %s enabled\n", str));
 	}
 
-	if (rti_file) {
-		str = gf_cfg_get_key(cfg_file, "General", "RTIRefreshPeriod");
-		if (str) {
-			rti_update_time_ms = atoi(str);
-		} else {
-			gf_cfg_set_key(cfg_file, "General", "RTIRefreshPeriod", "200");
-		}
-		UpdateRTInfo("At GPAC load time\n");
-	}
-
 	Run = 1;
-	ret = 1;
-
 
 	ext = url_arg ? strrchr(url_arg, '.') : NULL;
 	if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
@@ -623,12 +562,15 @@ int main (int argc, char *argv[])
 		strcpy(pl_path, url_arg);
 		/*this is not clean, we need to have a plugin handle playlist for ourselves*/
 		if (!strncmp("http:", url_arg, 5)) {
+#ifdef FILTER_FIXME
 			GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, url_arg, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 			if (sess) {
 				e = gf_dm_sess_process(sess);
 				if (!e) strcpy(pl_path, gf_dm_sess_get_cache_name(sess));
 				gf_dm_sess_del(sess);
 			}
+#endif
+
 		}
 
 		playlist = e ? NULL : gf_fopen(pl_path, "rt");
@@ -643,10 +585,11 @@ int main (int argc, char *argv[])
 	} else if (!use_gui && url_arg) {
 		gf_term_connect(term, url_arg);
 	} else {
-		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		str = gf_opts_get_key("General", "StartupFile");
 		if (str) {
-			if (!url_arg)
-				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+			if (!url_arg) {
+				sprintf(the_url, "MP4Client %s", gf_gpac_version() );
+			}
 			gf_term_connect(term, str);
 			startup_file = 1;
 		}
@@ -659,7 +602,7 @@ int main (int argc, char *argv[])
 		rti_update_time_ms = 500;
 		bench_mode_start = gf_sys_clock();
 	}
-	
+
 	while (Run) {
 		if (restart) {
 			restart = 0;
@@ -672,7 +615,7 @@ int main (int argc, char *argv[])
 			request_next_playlist_item=0;
 			gf_term_disconnect(term);
 
-			if (fscanf(playlist, "%s", szPath) == EOF) {
+			if (fscanf(playlist, "%1023s", szPath) == EOF) {
 				fprintf(stderr, "No more items - exiting\n");
 				Run = 0;
 			} else if (szPath[0] == '#') {
@@ -683,7 +626,7 @@ int main (int argc, char *argv[])
 			}
 		}
 
-		if (!use_rtix || display_rti) UpdateRTInfo(NULL);
+		if (display_rti) UpdateRTInfo(NULL);
 		if (not_threaded) {
 			//printf("gf_term_process_step from run loop\n");
 			gf_term_process_step(term);
@@ -704,7 +647,6 @@ int main (int argc, char *argv[])
 	}
 
 	gf_term_disconnect(term);
-	if (rti_file) UpdateRTInfo("Disconnected\n");
 
 	if (gyro_dev) {
 		sensor_stop(gyro_dev);
@@ -715,8 +657,8 @@ int main (int argc, char *argv[])
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("OK\n"));
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("GPAC cleanup ...\n"));
-	gf_modules_del(user.modules);
-	gf_cfg_del(cfg_file);
+	//gf_modules_del(user.modules);
+	//gf_cfg_del(cfg_file);
 
 	if (gyro_dev) {
 		sensor_destroy(&gyro_dev);
@@ -744,9 +686,7 @@ static u32 last_odm_count = 0;
 void PrintAVInfo(Bool final)
 {
 	GF_MediaInfo a_odi, v_odi, s_odi;
-	Double avg_dec_time=0;
-	u32 tot_time=0;
-	Bool print_codecs = final;
+	u32 tot_time;
 
 	if (scene_odm) {
 		GF_ObjectManager *root_odm = gf_term_get_root_object(term);
@@ -758,7 +698,7 @@ void PrintAVInfo(Bool final)
 	}
 	if (!video_odm && !audio_odm && !scene_odm) {
 		u32 count, i;
-		GF_ObjectManager *root_odm = root_odm = gf_term_get_root_object(term);
+		GF_ObjectManager *root_odm = gf_term_get_root_object(term);
 		if (!root_odm) return;
 
 		if (gf_term_get_object_info(term, root_odm, &v_odi)==GF_OK) {
@@ -793,12 +733,12 @@ void PrintAVInfo(Bool final)
 	} else {
 		memset(&v_odi, 0, sizeof(v_odi));
 	}
-	if (print_codecs && audio_odm) {
+	if (audio_odm) {
 		gf_term_get_object_info(term, audio_odm, &a_odi);
 	} else {
 		memset(&a_odi, 0, sizeof(a_odi));
 	}
-	if ((print_codecs || !video_odm) && scene_odm) {
+	if (!video_odm && scene_odm) {
 		gf_term_get_object_info(term, scene_odm, &s_odi);
 	} else {
 		memset(&s_odi, 0, sizeof(s_odi));
@@ -816,85 +756,82 @@ void PrintAVInfo(Bool final)
 			fprintf(stderr, "Drawn %d frames FPS %.2f (simulation FPS %.2f) - duration %d ms\n", nb_frames_drawn, ((Float)nb_frames_drawn*1000)/tot_time,(Float) FPS, gf_term_get_time_in_ms(term)  );
 		}
 	}
-	if (print_codecs) {
-		if (video_odm) {
-			fprintf(stderr, "%s %dx%d sar=%d:%d duration %.2fs\n", v_odi.codec_name, v_odi.width, v_odi.height, v_odi.par ? (v_odi.par>>16)&0xFF : 1, v_odi.par ? (v_odi.par)&0xFF : 1, v_odi.duration);
-			if (final) {
-				u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
-				if (!dec_run_time) dec_run_time = 1;
-				if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
-				if (v_odi.nb_dropped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_dropped);
-				}
-				fprintf(stderr, "\n");
-			}
-		}
-		if (audio_odm) {
-			fprintf(stderr, "%s SR %d num channels %d bpp %d duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, a_odi.bits_per_sample, a_odi.duration);
-			if (final) {
-				u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
-				if (!dec_run_time) dec_run_time = 1;
-				if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
-				fprintf(stderr, "%d frames (ms/f %.2f avg %.2f max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)dec_run_time)/a_odi.nb_dec_frames, a_odi.max_dec_time/1000.0, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
-				if (a_odi.nb_dropped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_dropped);
-				}
-				fprintf(stderr, "\n");
-			}
-		}
-		if (scene_odm) {
-			u32 w, h;
-			gf_term_get_visual_output_size(term, &w, &h);
-			fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name ? s_odi.codec_name : "", s_odi.width, s_odi.height, w, h, s_odi.duration);
-			if (final) {
-				if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
-					u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
-					if (!dec_run_time) dec_run_time = 1;
-					fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
-					fprintf(stderr, "\n");
-				} else {
-					u32 nb_frames_drawn;
-					Double FPS;
-					gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
-					tot_time = gf_sys_clock() - bench_mode_start;
-					FPS = gf_term_get_framerate(term, 0);
-					fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
-				}
-			}
-		}
+	if (video_odm) {
+		fprintf(stderr, "%s %dx%d sar=%d:%d duration %.2fs\n", v_odi.codec_name, v_odi.width, v_odi.height, v_odi.par ? (v_odi.par>>16)&0xFF : 1, v_odi.par ? (v_odi.par)&0xFF : 1, v_odi.duration);
 		if (final) {
-			fprintf(stderr, "**********************************************************\n\n");
-			return;
+			u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
+			if (!dec_run_time) dec_run_time = 1;
+			if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
+			fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
+			if (v_odi.nb_dropped) {
+				fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_dropped);
+			}
+			fprintf(stderr, "\n");
 		}
+	}
+	if (audio_odm) {
+		fprintf(stderr, "%s SR %d num channels %d fmt %s duration %.2fs\n", a_odi.codec_name, a_odi.sample_rate, a_odi.num_channels, gf_audio_fmt_name(a_odi.afmt), a_odi.duration);
+		if (final) {
+			u32 dec_run_time = a_odi.last_frame_time - a_odi.first_frame_time;
+			if (!dec_run_time) dec_run_time = 1;
+			if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
+			fprintf(stderr, "%d frames (ms/f %.2f avg %.2f max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)dec_run_time)/a_odi.nb_dec_frames, a_odi.max_dec_time/1000.0, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
+			if (a_odi.nb_dropped) {
+				fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_dropped);
+			}
+			fprintf(stderr, "\n");
+		}
+	}
+	if (scene_odm) {
+		u32 w, h;
+		gf_term_get_visual_output_size(term, &w, &h);
+		fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name ? s_odi.codec_name : "", s_odi.width, s_odi.height, w, h, s_odi.duration);
+		if (final) {
+			if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
+				u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
+				if (!dec_run_time) dec_run_time = 1;
+				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+				fprintf(stderr, "\n");
+			} else {
+				u32 nb_frames_drawn;
+				Double FPS;
+				gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
+				tot_time = gf_sys_clock() - bench_mode_start;
+				FPS = gf_term_get_framerate(term, 0);
+				fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
+			}
+		}
+	}
+	if (final) {
+		fprintf(stderr, "**********************************************************\n\n");
+		return;
 	}
 
 	if (video_odm) {
+		u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
+		if (!dec_run_time) dec_run_time = 1;
 		tot_time = v_odi.last_frame_time - v_odi.first_frame_time;
 		if (!tot_time) tot_time=1;
 		if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-		fprintf(stderr, "%d f FPS %.2f (%.2f ms max) rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time/1000.0, (u32) v_odi.instant_bitrate/1000);
+		fprintf(stderr, "%d f FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
 	}
 	else if (scene_odm) {
-
 		if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
-			avg_dec_time = (Float) 1000000 * s_odi.nb_dec_frames;
-			avg_dec_time /= s_odi.total_dec_time;
-			if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
-			fprintf(stderr, "%d f %.2f (%d us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
+			u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
+			if (!dec_run_time) dec_run_time = 1;
+			fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+			fprintf(stderr, "\n");
 		} else {
 			u32 nb_frames_drawn;
 			Double FPS;
 			gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
 			tot_time = gf_sys_clock() - bench_mode_start;
-			FPS = gf_term_get_framerate(term, 1);
-			fprintf(stderr, "%d f FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
+			FPS = gf_term_get_framerate(term, 0);
+			fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
 		}
 	}
 	else if (audio_odm) {
-		if (!print_codecs) {
-			gf_term_get_object_info(term, audio_odm, &a_odi);
-		}
+		gf_term_get_object_info(term, audio_odm, &a_odi);
 		tot_time = a_odi.last_frame_time - a_odi.first_frame_time;
 		if (!tot_time) tot_time=1;
 		if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );

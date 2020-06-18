@@ -39,11 +39,11 @@
 
 /* number of preprocessor flags for GL3/ES2.0 */
 #define GF_GL_NUM_OF_FLAGS			6
-#ifdef GPAC_ANDROID
+#ifdef GPAC_CONFIG_ANDROID
 #define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS) )	//=2^GF_GL_NUM_OF_FLAGS
 #else
 #define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS-1 ( ExternalOES ignored in fragment shader when the platform is not Android)
-#endif // GPAC_ANDROID
+#endif // GPAC_CONFIG_ANDROID
 #define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-2) )	//=2^GF_GL_NUM_OF_FLAGS-2 (YUV and ExternalOES ignored in vertex shader)
 
 /* setting preprocessor flags for GL3/ES2.0 shaders */
@@ -65,6 +65,26 @@ enum
 	GF_3D_CAMERA_LINEAR,
 	GF_3D_CAMERA_CIRCULAR,
 };
+
+
+#ifndef GPAC_DISABLE_3D
+
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
+#define GF_SHADERID u64
+#else
+#define GF_SHADERID u32
+#endif
+
+typedef struct _gl_prog
+{
+	GF_SHADERID vertex;
+	GF_SHADERID fragment;
+	GF_SHADERID prog;
+	u32 flags;
+	u32 pix_fmt;
+} GF_GLProgInstance;
+#endif
+
 
 struct _visual_manager
 {
@@ -140,9 +160,9 @@ struct _visual_manager
 	Bool (*CheckAttached)(GF_VisualManager *visual);
 
 	/*raster surface interface*/
-	GF_SURFACE raster_surface;
+	GF_EVGSurface *raster_surface;
 	/*raster brush interface*/
-	GF_STENCIL raster_brush;
+	GF_EVGStencil *raster_brush;
 
 	/*node owning this visual manager (composite textures) - NULL for root visual*/
 	GF_Node *offscreen;
@@ -159,12 +179,6 @@ struct _visual_manager
 	/*
 	 *	Visual Manager part for 3D drawing
 	 */
-
-#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
-#define GF_SHADERID u64
-#else
-#define GF_SHADERID u32
-#endif
 
 #ifndef GPAC_DISABLE_VRML
 	/*navigation stack*/
@@ -195,8 +209,7 @@ struct _visual_manager
 	GF_RectArray hybgl_drawn;
 	u32 nb_objects_on_canvas_since_last_ogl_flush;
 
-	u32 nb_views, current_view, autostereo_type, camera_layout;
-	Bool reverse_views;
+	u32 nb_views, current_view, autostereo_type, camlay;
 
 	GF_SHADERID base_glsl_vertex;
 
@@ -205,9 +218,6 @@ struct _visual_manager
 	GF_Mesh *autostereo_mesh;
 	GF_SHADERID autostereo_glsl_program;
 	GF_SHADERID autostereo_glsl_fragment;
-
-	GF_SHADERID current_texture_glsl_program;
-
 
 	Bool needs_projection_matrix_reload;
 
@@ -236,22 +246,12 @@ struct _visual_manager
 
 	/*end of GL state to emulate with GLSL*/
 
-//startof GL3/ES2.0 elements
 	/* shaders used for shader-only drawing */
 	GF_SHADERID glsl_program;
+	GF_List *compiled_programs;
+	u32 bound_tx_pix_fmt; //only one texture currently supported
 
-	/* Storing Compiled Shaders */
-	GF_SHADERID glsl_programs[GF_GL_NB_FRAG_SHADERS];
-	GF_SHADERID glsl_vertex_shaders[GF_GL_NB_VERT_SHADERS];
-	GF_SHADERID glsl_fragment_shaders[GF_GL_NB_FRAG_SHADERS];
-
-	/* If GF_TRUE the Array of Shaders is built */
-	Bool glsl_has_shaders;
-
-	/* Compilation/Features Flags for dynamic shader */
-	u32 glsl_flags;
-//endof
-
+	u32 active_glsl_flags;
 #endif	//!GPAC_DISABLE_3D
 
 #ifdef GF_SR_USE_DEPTH
@@ -278,6 +278,10 @@ void visual_clean_contexts(GF_VisualManager *visual);
 
 
 void visual_reset_graphics(GF_VisualManager *visual);
+
+#ifndef GPAC_DISABLE_3D
+GF_GLProgInstance *visual_3d_check_program_exists(GF_VisualManager *root_visual, u32 flags, u32 pix_fmt);
+#endif
 
 #endif	/*_VISUAL_MANAGER_H_*/
 

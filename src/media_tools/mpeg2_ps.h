@@ -96,11 +96,7 @@ u64 mpeg2ps_get_max_time_msec(mpeg2ps_t *ps);
  * mpeg2ps_get_video_stream_count - returns count of video streams in file
  */
 u32 mpeg2ps_get_video_stream_count(mpeg2ps_t *ps);
-/*
- * mpeg2ps_get_video_stream_name - returns display name for stream
- */
-const char *mpeg2ps_get_video_stream_name(mpeg2ps_t *ps,
-        u32 streamno);
+
 /*
  * mpeg2ps_get_video_stream_type - returns enum type for stream
  */
@@ -114,6 +110,7 @@ u32 mpeg2ps_get_video_stream_height(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_video_stream_aspect_ratio(mpeg2ps_t *ps, u32 streamno);
 double   mpeg2ps_get_video_stream_bitrate(mpeg2ps_t *ps, u32 streamno);
 double   mpeg2ps_get_video_stream_framerate(mpeg2ps_t *ps, u32 streamno);
+u32 mpeg2ps_get_video_stream_id(mpeg2ps_t *ps, u32 streamno);
 
 /*
  * mpeg2ps_get_video_frame - get the next video frame
@@ -132,7 +129,7 @@ Bool mpeg2ps_get_video_frame(mpeg2ps_t *ps,
                              u32 *buflen,
                              u8 *frame_type,
                              mpeg2ps_ts_type_t ts_type,
-                             u64 *timestamp);
+                             u64 *decode_timestamp, u64 *compose_timestamp);
 Bool mpeg2ps_seek_video_frame(mpeg2ps_t *ps, u32 streamno,
                               u64 msec_timestamp);
 
@@ -144,10 +141,6 @@ Bool mpeg2ps_seek_video_frame(mpeg2ps_t *ps, u32 streamno,
  */
 u32 mpeg2ps_get_audio_stream_count(mpeg2ps_t *ps);
 /*
- * mpeg2ps_get_audio_stream_name - returns display name for stream
- */
-const char *mpeg2ps_get_audio_stream_name(mpeg2ps_t *ps, u32 streamno);
-/*
  * mpeg2ps_get_audio_stream_type - returns enum type for stream
  */
 mpeg2ps_audio_type_t mpeg2ps_get_audio_stream_type(mpeg2ps_t *ps, u32 streamno);
@@ -157,6 +150,7 @@ mpeg2ps_audio_type_t mpeg2ps_get_audio_stream_type(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_audio_stream_sample_freq(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_audio_stream_channels(mpeg2ps_t *ps, u32 streamno);
 u32 mpeg2ps_get_audio_stream_bitrate(mpeg2ps_t *ps, u32 streamno);
+u32 mpeg2ps_get_audio_stream_id(mpeg2ps_t *ps, u32 streamno);
 
 /*
  * mpeg2ps_get_audio_frame - get the next audio frame
@@ -181,18 +175,6 @@ Bool mpeg2ps_seek_audio_frame(mpeg2ps_t *ps, u32 streamno,
                               u64 msec_timestamp);
 
 
-/*
- * returns file size
- */
-u64 mpeg2ps_get_ps_size(mpeg2ps_t *ps);
-/*
- * returns position in file
- *  ps - handle from above
- *  streamno - stream to read
- */
-s64 mpeg2ps_get_video_pos(mpeg2ps_t *ps, u32 streamno);
-s64 mpeg2ps_get_audio_pos(mpeg2ps_t *ps, u32 streamno);
-
 typedef void (*error_msg_func_t)(int loglevel,
                                  const char *lib,
                                  const char *fmt,
@@ -201,6 +183,7 @@ typedef void (*error_msg_func_t)(int loglevel,
 void mpeg2ps_set_loglevel(int loglevel);
 void mpeg2ps_set_error_func(error_msg_func_t func);
 
+u64 mpeg2ps_get_first_cts(mpeg2ps_t *ps);
 
 #endif /*GPAC_DISABLE_MPEG2PS*/
 

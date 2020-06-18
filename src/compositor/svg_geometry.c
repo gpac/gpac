@@ -139,9 +139,9 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *as
 		}
 	}
 	if (check_stroke) {
-		StrikeInfo2D *si;
 		/*not painted or don't care about stroke*/
 		if ((check_stroke!=2) || asp->line_texture || asp->line_color) {
+			StrikeInfo2D *si;
 			if (glyph_rc) return 1;
 			si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, asp, tr_state->appear, NULL, 0, NULL);
 			/*point is over outline*/

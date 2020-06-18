@@ -64,8 +64,10 @@ void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js)
 			for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) {
 				GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
 
+#ifdef FILTER_FIXME
 				if (sb->parser && sb->parser_connected)
 					sb->parser->CloseService(sb->parser);
+#endif
 
 				gf_mse_source_buffer_del(sb);
 			}
@@ -304,10 +306,11 @@ void gf_mse_source_buffer_set_update(GF_HTML_SourceBuffer *sb, Bool update)
 /*locates and loads an input service (demuxer, parser) for this source buffer based on mime type or segment name*/
 GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime)
 {
+#ifdef FILTER_FIXME
 	GF_InputService *parser = NULL;
 
-	const char *sPlug;
 	if (mime) {
+		const char *sPlug;
 		/* strip the 'codecs' and 'profile' parameters from the MIME type */
 		char *param = (char *)strchr(mime, ';');
 		if (param) {
@@ -315,11 +318,11 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 		}
 
 		/* Check MIME type to start the right InputService */
-		sPlug = gf_cfg_get_key(sourcebuffer->mediasource->service->term->user->config, "MimeTypes", mime);
+		sPlug = gf_opts_get_key("MimeTypes", mime);
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
-			parser = (GF_InputService *) gf_modules_load_interface_by_name(sourcebuffer->mediasource->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
+			parser = (GF_InputService *) gf_modules_load_by_name(sPlug, GF_NET_CLIENT_INTERFACE);
 		}
 
 		if (param) {
@@ -336,7 +339,12 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MSE] Error locating plugin for source - mime type %s\n", mime));
 		return GF_BAD_PARAM;
 	}
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
+
+#ifdef FILTER_FIXME
 
 /* create a track based on the ESD and adds it to the source buffer */
 static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, GF_ESD *esd)
@@ -387,6 +395,7 @@ static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 	} else {
 		return GF_BAD_PARAM;
 	}
+	return GF_BAD_PARAM;
 }
 
 /* Adds the ObjectDescriptor to the associated track (creating a new track if needed)
@@ -420,6 +429,8 @@ static GF_Err gf_mse_source_buffer_store_track_desc(GF_HTML_SourceBuffer *sb, GF
 	}
 	return GF_OK;
 }
+
+#endif
 
 #define SECONDS_TO_TIMESCALE(s) ((s)*track->timescale)
 #define TIMESCALE_TO_SECONDS(u) ((u)*1.0/track->timescale)
@@ -519,6 +530,7 @@ void gf_mse_packet_del(GF_MSE_Packet *packet) {
 	gf_free(packet);
 }
 
+#ifdef FILTER_FIXME
 static GF_MSE_Packet *gf_mse_find_overlapped_packet(GF_HTML_Track           *track,
         GF_MSE_Packet           *packet)
 {
@@ -543,6 +555,7 @@ static GF_MSE_Packet *gf_mse_find_overlapped_packet(GF_HTML_Track           *tra
 	gf_mx_v(track->buffer_mutex);
 	return NULL;
 }
+#endif
 
 static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
         u64           from,
@@ -566,6 +579,7 @@ static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
 	gf_mx_v(track->buffer_mutex);
 }
 
+#ifdef FILTER_FIXME
 static void gf_mse_track_buffer_add_packet(GF_HTML_Track *track, GF_MSE_Packet *frame)
 {
 	u32 i, count;
@@ -745,6 +759,8 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
 
 	return GF_OK;
 }
+#endif
+
 
 /* Thread run function: called as a result of an append buffer
  * Parses/Demultiplexes media segments and places the parsed AU in the track buffers
@@ -753,6 +769,7 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
  */
 u32 gf_mse_parse_segment(void *par)
 {
+#ifdef FILTER_FIXME
 	GF_MSE_Packet           *packet;
 	GF_HTML_Track           *track;
 	GF_HTML_SourceBuffer    *sb = (GF_HTML_SourceBuffer *)par;
@@ -822,6 +839,9 @@ u32 gf_mse_parse_segment(void *par)
 exit:
 	gf_mse_source_buffer_set_update(sb, GF_FALSE);
 	return 0;
+#else
+	return 0;
+#endif
 }
 
 
@@ -831,7 +851,9 @@ void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_A
 	gf_mse_source_buffer_set_update(sb, GF_TRUE);
 
 	buffer->url = (char *)gf_malloc(256);
-	sprintf(buffer->url, "gmem://%d@%p", buffer->length, buffer->data);
+	buffer->blob.data = buffer->data;
+	buffer->blob.size = buffer->length;
+	sprintf(buffer->url, "gmem://%p", &buffer->blob);
 	buffer->reference_count++;
 #ifndef GPAC_DISABLE_ISOM
 	buffer->is_init = (gf_isom_probe_file(buffer->url) == 2 ? GF_TRUE : GF_FALSE);
@@ -900,8 +922,9 @@ void gf_mse_remove(GF_HTML_SourceBuffer *sb, double start, double end)
 }
 
 /* Callback functions used by a media parser when parsing events happens */
-GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
+GF_Err gf_mse_proxy(void *parser, void *command)
 {
+#if FILTER_FIXME
 	if (!parser || !command || !parser->proxy_udta) {
 		return GF_BAD_PARAM;
 	} else {
@@ -1000,6 +1023,9 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
 		}
 		return GF_OK;
 	}
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 /* Track Buffer Managment:

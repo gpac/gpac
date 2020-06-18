@@ -30,6 +30,7 @@
 
 typedef struct
 {
+	Bool do_restrict;
 	char *name;
 	char *value;
 } IniKey;
@@ -50,11 +51,10 @@ struct __tag_config
 
 static void DelSection(IniSection *ptr)
 {
-	IniKey *k;
 	if (!ptr) return;
 	if (ptr->keys) {
 		while (gf_list_count(ptr->keys)) {
-			k = (IniKey *) gf_list_get(ptr->keys, 0);
+			IniKey *k = (IniKey *) gf_list_get(ptr->keys, 0);
 			if (k->value) gf_free(k->value);
 			if (k->name) gf_free(k->name);
 			gf_free(k);
@@ -68,14 +68,14 @@ static void DelSection(IniSection *ptr)
 
 /*!
  * \brief Clear the structure
- * \param iniFile The structure to clear
+\param iniFile The structure to clear
  */
-static void gf_cfg_clear(GF_Config * iniFile) {
-	IniSection *p;
+static void gf_cfg_clear(GF_Config * iniFile)
+{
 	if (!iniFile) return;
 	if (iniFile->sections) {
 		while (gf_list_count(iniFile->sections)) {
-			p = (IniSection *) gf_list_get(iniFile->sections, 0);
+			IniSection *p = (IniSection *) gf_list_get(iniFile->sections, 0);
 			DelSection(p);
 			gf_list_rem(iniFile->sections, 0);
 		}
@@ -92,14 +92,23 @@ static void gf_cfg_clear(GF_Config * iniFile) {
 GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const char * file_name)
 {
 	IniSection *p;
-	IniKey *k;
+	IniKey *k=NULL;
 	FILE *file;
-	char *ret;
 	char *line;
 	u32 line_alloc = MAX_INI_LINE;
 	char fileName[GF_MAX_PATH];
-
+	Bool line_done = GF_FALSE;
+	u32 nb_empty_lines=0;
+	Bool is_opts_probe = GF_FALSE;
+	Bool in_multiline = GF_FALSE;;
 	gf_cfg_clear(tmp);
+
+	if (strstr(file_name, "/all_opts.txt")) {
+		if (filePath && !strcmp(filePath, "probe")) {
+			filePath = NULL;
+			is_opts_probe = GF_TRUE;
+		}
+	}
 
 	if (filePath && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
 		strcpy(fileName, filePath);
@@ -120,33 +129,61 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	line = (char*)gf_malloc(sizeof(char)*line_alloc);
 	memset(line, 0, sizeof(char)*line_alloc);
 
-	while (!feof(file)) {
+#define FLUSH_EMPTY_LINES \
+			if (k&& nb_empty_lines) {\
+				u32 klen = (u32) strlen(k->value)+1+nb_empty_lines;\
+				k->value = gf_realloc(k->value, sizeof(char)*klen);\
+				while (nb_empty_lines) {\
+					nb_empty_lines--;\
+					strcat(k->value, "\n");\
+				}\
+				k=NULL;\
+			}\
+			nb_empty_lines=0;\
+
+	while (!gf_feof(file)) {
+		char *ret;
 		u32 read, nb_pass;
-		ret = fgets(line, line_alloc, file);
+		char *fsep;
+		ret = gf_fgets(line, line_alloc, file);
 		read = (u32) strlen(line);
+
 		nb_pass = 1;
 		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
 			line = (char*)gf_realloc(line, sizeof(char)*line_alloc);
-			ret = fgets(line+read, MAX_INI_LINE, file);
+			ret = gf_fgets(line+read, MAX_INI_LINE, file);
 			read = (u32) strlen(line);
 			nb_pass++;
 		}
 		if (!ret) continue;
 
 		/* get rid of the end of line stuff */
-		while (1) {
-			u32 len = (u32) strlen(line);
-			if (!len) break;
-			if ((line[len-1] != '\n') && (line[len-1] != '\r')) break;
-			line[len-1] = 0;
+		fsep = strchr(line, '=');
+		if (!fsep || (fsep[1]!='@')) {
+			while (!in_multiline) {
+				u32 len = (u32) strlen(line);
+				if (!len) break;
+				if ((line[len-1] != '\n') && (line[len-1] != '\r')) break;
+				line[len-1] = 0;
+			}
 		}
-		if (!strlen(line)) continue;
-		if (line[0] == '#') continue;
-
+		if (!strlen(line)) {
+			if (k) nb_empty_lines++;
+			continue;
+		}
+		if (line[0] == '#') {
+			FLUSH_EMPTY_LINES
+			continue;
+		}
 
 		/* new section */
 		if (line[0] == '[') {
+			//compat with old arch
+			if (nb_empty_lines) nb_empty_lines--;
+
+			FLUSH_EMPTY_LINES
+
 			p = (IniSection *) gf_malloc(sizeof(IniSection));
 			p->keys = gf_list_new();
 			p->section_name = gf_strdup(line + 1);
@@ -154,7 +191,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			while (p->section_name[strlen(p->section_name) - 1] == ']' || p->section_name[strlen(p->section_name) - 1] == ' ') p->section_name[strlen(p->section_name) - 1] = 0;
 			gf_list_add(tmp->sections, p);
 		}
-		else if (strlen(line) && (strchr(line, '=') != NULL) ) {
+		else if (strlen(line) && !in_multiline && (strchr(line, '=') != NULL) ) {
 			if (!p) {
 				gf_list_del(tmp->sections);
 				gf_free(tmp->fileName);
@@ -163,6 +200,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 				gf_free(line);
 				return GF_IO_ERR;
 			}
+			FLUSH_EMPTY_LINES
 
 			k = (IniKey *) gf_malloc(sizeof(IniKey));
 			memset((void *)k, 0, sizeof(IniKey));
@@ -174,14 +212,46 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 				ret[0] = '=';
 				ret += 1;
 				while (ret[0] == ' ') ret++;
+				if (ret[0]=='@') {
+					ret++;
+					in_multiline = GF_TRUE;
+				}
 				if ( ret[0] != 0) {
 					k->value = gf_strdup(ret);
 					while (k->value[strlen(k->value) - 1] == ' ') k->value[strlen(k->value) - 1] = 0;
 				} else {
 					k->value = gf_strdup("");
 				}
+				line_done = GF_FALSE;
 			}
 			gf_list_add(p->keys, k);
+			if (line_done) k=NULL;
+			line_done=GF_FALSE;
+
+			if (is_opts_probe) {
+				if (!strcmp(p->section_name, "version") && !strcmp(k->name, "version")) {
+					break;
+				}
+			}
+
+		} else if (k) {
+			u32 l1 = (u32) strlen(k->value);
+			u32 l2 = (u32) strlen(line);
+			k->value = gf_realloc(k->value, sizeof(char) * (l1 + l2 + 1 + nb_empty_lines) );
+			l2 += l1 + nb_empty_lines;
+			while (nb_empty_lines) {
+				strcat(k->value, "\n");
+				nb_empty_lines--;
+			}
+			strcat(k->value, line);
+			l2 -= 2; //@ and \n
+			if (k->value[l2] == '@') {
+				k->value[l2] = 0;
+				k=NULL;
+				in_multiline = GF_FALSE;
+			}
+		} else {
+			k = NULL;
 		}
 	}
 	gf_free(line);
@@ -217,11 +287,11 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 }
 
 GF_EXPORT
-char * gf_cfg_get_filename(GF_Config *iniFile)
+const char * gf_cfg_get_filename(GF_Config *iniFile)
 {
 	if (!iniFile)
 		return NULL;
-	return iniFile->fileName ? gf_strdup(iniFile->fileName) : NULL;
+	return iniFile->fileName;
 }
 
 GF_EXPORT
@@ -242,15 +312,17 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 	i=0;
 	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
 		/*Temporary sections are not saved*/
-		if (!strnicmp(sec->section_name, "Temp", 4)) continue;
+		if (!strnicmp(sec->section_name, "temp", 4)) continue;
 
-		fprintf(file, "[%s]\n", sec->section_name);
+		gf_fprintf(file, "[%s]\n", sec->section_name);
 		j=0;
 		while ( (key = (IniKey *) gf_list_enum(sec->keys, &j)) ) {
-			fprintf(file, "%s=%s\n", key->name, key->value);
+			if (strchr(key->value, '\n')) {
+				gf_fprintf(file, "%s=@%s@\n", key->name, key->value);
+			} else {
+				gf_fprintf(file, "%s=%s\n", key->name, key->value);
+			}
 		}
-		/* end of section */
-		fprintf(file, "\n");
 	}
 	gf_fclose(file);
 	return GF_OK;
@@ -273,17 +345,17 @@ void gf_cfg_del(GF_Config *iniFile)
 	gf_free(iniFile);
 }
 
+#if 0 //unused
 void gf_cfg_remove(GF_Config *iniFile)
 {
 	if (!iniFile) return;
-	gf_delete_file(iniFile->fileName);
+	gf_file_delete(iniFile->fileName);
 	gf_cfg_clear(iniFile);
 	gf_free(iniFile);
 }
+#endif
 
-
-GF_EXPORT
-const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
+const char *gf_cfg_get_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, Bool restricted_only)
 {
 	u32 i;
 	IniSection *sec;
@@ -298,12 +370,21 @@ const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *
 get_key:
 	i=0;
 	while ( (key = (IniKey *) gf_list_enum(sec->keys, &i)) ) {
-		if (!strcmp(key->name, keyName)) return key->value;
+		if (!strcmp(key->name, keyName)) {
+			if (!restricted_only || key->do_restrict)
+				return key->value;
+			return NULL;
+		}
 	}
 	return NULL;
 }
-
 GF_EXPORT
+const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
+{
+	return gf_cfg_get_key_internal(iniFile, secName, keyName, GF_FALSE);
+}
+
+#if 0 //unused
 const char *gf_cfg_get_ikey(GF_Config *iniFile, const char *secName, const char *keyName)
 {
 	u32 i;
@@ -323,10 +404,9 @@ get_key:
 	}
 	return NULL;
 }
+#endif
 
-
-GF_EXPORT
-GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
+GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, Bool is_restrict)
 {
 	u32 i;
 	Bool has_changed = GF_TRUE;
@@ -345,7 +425,8 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 	sec = (IniSection *) gf_malloc(sizeof(IniSection));
 	sec->section_name = gf_strdup(secName);
 	sec->keys = gf_list_new();
-	if (has_changed) iniFile->hasChanged = GF_TRUE;
+	if (has_changed)
+		iniFile->hasChanged = GF_TRUE;
 	gf_list_add(iniFile->sections, sec);
 
 get_key:
@@ -358,7 +439,8 @@ get_key:
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup("");
-	if (has_changed) iniFile->hasChanged = GF_TRUE;
+	if (has_changed)
+		iniFile->hasChanged = GF_TRUE;
 	gf_list_add(sec->keys, key);
 
 set_value:
@@ -367,16 +449,26 @@ set_value:
 		if (key->name) gf_free(key->name);
 		if (key->value) gf_free(key->value);
 		gf_free(key);
-		if (has_changed) iniFile->hasChanged = GF_TRUE;
+		if (has_changed)
+			iniFile->hasChanged = GF_TRUE;
 		return GF_OK;
 	}
+	key->do_restrict = is_restrict;
 	/* same value, don't update */
 	if (!strcmp(key->value, keyValue)) return GF_OK;
 
 	if (key->value) gf_free(key->value);
 	key->value = gf_strdup(keyValue);
-	if (has_changed) iniFile->hasChanged = GF_TRUE;
+	if (has_changed)
+		iniFile->hasChanged = GF_TRUE;
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
+{
+	return gf_cfg_set_key_internal(iniFile, secName, keyName, keyValue, GF_FALSE);
+
 }
 
 GF_EXPORT
@@ -436,7 +528,7 @@ void gf_cfg_del_section(GF_Config *iniFile, const char *secName)
 	}
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, u32 index)
 {
 	u32 i;
@@ -463,8 +555,9 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	iniFile->hasChanged = GF_TRUE;
 	return GF_OK;
 }
+#endif
 
-GF_EXPORT
+#if 0 //unused
 const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const char *keyName, u32 sub_index)
 {
 	u32 j;
@@ -491,8 +584,8 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 	gf_free(keyValue);
 	return NULL;
 }
+#endif
 
-GF_EXPORT
 GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 {
 	if (!fileName) return GF_OK;
@@ -500,3 +593,5 @@ GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 	iniFile->fileName = gf_strdup(fileName);
 	return iniFile->fileName ? GF_OK : GF_OUT_OF_MEM;
 }
+
+

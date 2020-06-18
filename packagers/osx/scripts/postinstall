@@ -1,0 +1,14 @@
+#!/bin/sh
+
+inst_dir="$2/GPAC.app"
+echo "inst_dir: $inst_dir"
+
+inpath=`grep "$inst_dir" /etc/paths`
+
+if [ -n "$inpath" ] ; then
+echo "Already in path"
+else 
+echo  "$inst_dir/Contents/MacOS/" >> /etc/paths
+fi
+
+exit 0

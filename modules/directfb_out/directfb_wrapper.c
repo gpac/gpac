@@ -578,9 +578,9 @@ u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf)
 	case DSPF_RGB555:
 		return GF_PIXEL_RGB_555;
 	case DSPF_RGB24:
-		return GF_PIXEL_RGB_24;
+		return GF_PIXEL_RGB;
 	case DSPF_RGB32:
-		return GF_PIXEL_RGB_32;
+		return GF_PIXEL_RGBX;
 	case DSPF_ARGB:
 		return GF_PIXEL_ARGB;
 	default:
@@ -599,19 +599,19 @@ u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf)
 		return DSPF_RGB16;
 	case GF_PIXEL_RGB_555 :
 		return DSPF_RGB555;
-	case GF_PIXEL_BGR_24 :
+	case GF_PIXEL_BGR:
 		return DSPF_RGB24;
-	case GF_PIXEL_RGB_24 :
+	case GF_PIXEL_RGB:
 		return DSPF_RGB24;
-	case GF_PIXEL_RGB_32 :
+	case GF_PIXEL_RGBX:
 		return DSPF_RGB32;
 	case GF_PIXEL_ARGB:
 		return DSPF_ARGB;
 	case GF_PIXEL_RGBA:
 		return DSPF_ARGB;
-	case GF_PIXEL_YUY2 :
+	case GF_PIXEL_UYVY :
 		return DSPF_YUY2;
-	case GF_PIXEL_YV12 :
+	case GF_PIXEL_YUV:
 		return DSPF_YV12;
 	default:
 		;//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectFB] pixel format %s not supported\n", gf_4cc_to_str(gpacpf)));

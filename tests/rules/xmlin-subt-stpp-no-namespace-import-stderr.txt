@@ -1,2 +1,0 @@
-XML (Subtitle, Metadata or Text) SampleEntry: namespace is mandatory
-

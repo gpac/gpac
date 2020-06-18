@@ -330,7 +330,6 @@ voidpf opaque;
 unsigned items;
 unsigned size;
 {
-	if (opaque) items += size - size; /* make compiler happy */
 	return sizeof(uInt) > 2 ? (voidpf)gf_malloc(items * size) :
 	       (voidpf)gf_calloc(items, size);
 }
@@ -340,7 +339,6 @@ voidpf opaque;
 voidpf ptr;
 {
 	gf_free(ptr);
-	if (opaque) return; /* make compiler happy */
 }
 
 #endif /* MY_ZCALLOC */

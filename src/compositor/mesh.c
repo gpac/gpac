@@ -646,6 +646,15 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAng
 	if (radius<0) num_steps = 72;
 
 	if (low_res) num_steps /= 2;
+	if (sphere_angles) {
+		Fixed min_subd1, min_subd2;
+		min_subd1 = gf_divfix(sphere_angles->max_phi - sphere_angles->min_phi, GF_PI);
+		min_subd2 = gf_divfix(sphere_angles->max_theta - sphere_angles->min_theta, GF_2PI);
+		if (min_subd1<0) min_subd1 = -min_subd1;
+		if (min_subd2<0) min_subd2 = -min_subd2;
+		if (min_subd2<min_subd1) min_subd1=min_subd2;
+		num_steps = FIX2INT(num_steps * min_subd1);
+	}
 	npts = num_steps * num_steps;
 
 	coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*npts);
@@ -1136,7 +1145,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
                          GF_Node *__texCoords, MFInt32 *texCoordIndex,
                          Fixed creaseAngle)
 {
-	u32 i, n, count, c_count, nor_count;
+	u32 i, idx, count, c_count, nor_count;
 	u32 index;
 	Bool smooth_normals;
 	SFVec2f tx;
@@ -1240,7 +1249,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 			has_color = (colorRGB->color.count) ? 1 : 0;
 		}
 	}
-	n = 0;
+	idx = 0;
 	if (has_color) {
 		if (!colorPerVertex) {
 			index = colorIndex->count ? colorIndex->vals[0] : 0;
@@ -1294,15 +1303,15 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	cur_face = 0;
 	for (i=0; i<count; i++) {
 		if (has_coord && coordIndex->vals[i] == -1) {
-			n++;
+			idx++;
 			if (has_color && !colorPerVertex) {
-				GET_IDX(n, colorIndex);
+				GET_IDX(idx, colorIndex);
 #ifndef GPAC_DISABLE_X3D
 				MESH_GET_COL(colRGBA, index);
 #endif
 			}
 			if (has_normal && !normalPerVertex) {
-				GET_IDX(n, normalIndex);
+				GET_IDX(idx, normalIndex);
 				if (index < nor_count) nor = normal->vector.vals[index];
 			}
 			if (faces[cur_face]->v_count<3) faces[cur_face]->v_count=0;
@@ -1549,11 +1558,15 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
 		faces = (GF_Mesh **)gf_malloc(sizeof(GF_Mesh *)*face_count);
+		if (!faces) return;
 		faces_info = (struct face_info*)gf_malloc(sizeof(struct face_info)*face_count);
+		if (!faces_info) return;
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
 		pts_info = (struct pt_info*)gf_malloc(sizeof(struct pt_info)*pt_count);
+		if (!pts_info) return;
 		memset(pts_info, 0, sizeof(struct pt_info)*pt_count);
 		faces[cur_face] = new_mesh();
+		if (!faces[cur_face]) return;
 	}
 
 	for (j=0; j<zDimension-1; j++) {
@@ -1571,7 +1584,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 			if (has_normal && !eg->normalPerVertex) {
 				idx = i + j * (xDimension-1);
 				if (idx<norm->vector.count) {
-					SFVec3f n = norm->vector.vals[idx];
+					n = norm->vector.vals[idx];
 					gf_vec_norm(&n);
 					MESH_SET_NORMAL(vx, n);
 				}
@@ -1604,7 +1617,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 					if (has_normal && eg->normalPerVertex) {
 						idx = (i+l) + (j+k) * xDimension;
 						if (idx<norm->vector.count) {
-							SFVec3f n = norm->vector.vals[idx];
+							n = norm->vector.vals[idx];
 							gf_vec_norm(&n);
 							MESH_SET_NORMAL(vx, n);
 						}
@@ -1631,7 +1644,10 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 				gf_vec_norm(&faces_info[cur_face].nor);
 				/*done with face*/
 				cur_face++;
-				if (cur_face<face_count) faces[cur_face] = new_mesh();
+				if (cur_face<face_count) {
+					faces[cur_face] = new_mesh();
+					if (!faces[cur_face]) return;
+				}
 			} else {
 				mesh_set_triangle(mesh, pt_idx+0, pt_idx+2, pt_idx+3);
 				mesh_set_triangle(mesh, pt_idx+0, pt_idx+3, pt_idx+1);
@@ -1660,7 +1676,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 
 		for (i=0; i<face_count; i++) {
 			for (j=0; j<faces[i]->v_count; j++) {
-				SFVec3f n = smooth_face_normals(pts_info, pt_count, faces_info, face_count, j, i, cosCrease);
+				n = smooth_face_normals(pts_info, pt_count, faces_info, face_count, j, i, cosCrease);
 				MESH_SET_NORMAL(faces[i]->vertices[j], n);
 			}
 		}
@@ -2122,7 +2138,6 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 	/*generate begin cap*/
 	if (begin_face) {
-		SFVec3f n;
 		scale.x = scale.y = FIX_ONE;
 		if (spine_scale && spine_scale->count) scale = spine_scale->vals[0];
 
@@ -2184,7 +2199,6 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 	/*generate end cap*/
 	if (end_face) {
-		SFVec3f n;
 		scale.x = scale.y = FIX_ONE;
 		if (spine_scale && (nb_spine-1<spine_scale->count)) scale = spine_scale->vals[nb_spine-1];
 		/*get last SCP after rotation*/
@@ -2250,7 +2264,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 		for (i=0; i<face_count; i++) {
 			for (j=0; j<faces[i]->v_count; j++) {
-				SFVec3f n = smooth_face_normals(pts_info, pt_count, faces_info, face_count, j, i, cosCrease);
+				n = smooth_face_normals(pts_info, pt_count, faces_info, face_count, j, i, cosCrease);
 				MESH_SET_NORMAL(faces[i]->vertices[j], n);
 			}
 		}

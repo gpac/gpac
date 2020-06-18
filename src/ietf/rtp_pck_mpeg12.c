@@ -32,7 +32,7 @@
 
 static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 {
-	char *tmp;
+	u8 *tmp;
 	u32 tmp_size;
 	/*flush*/
 	if (builder->pck_hdr) {
@@ -65,7 +65,7 @@ static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 	builder->bytesInPacket = 0;
 }
 
-GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
 {
 	u32 pck_size;
 	u16 offset;
@@ -114,12 +114,12 @@ GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32
 #define MPEG12_PICTURE_START_CODE         0x00000100
 #define MPEG12_SEQUENCE_START_CODE        0x000001b3
 
-GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
 {
 	u32 startcode, pic_type, max_pck_size, offset, prev_slice, next_slice;
 	Bool start_with_slice, slices_done, got_slice, first_slice, have_seq;
-	char mpv_hdr[4];
-	char *payload, *buffer;
+	u8 mpv_hdr[4];
+	u8 *payload, *buffer;
 
 	/*no flsuh (no aggregation)*/
 	if (!data) return GF_OK;
@@ -152,7 +152,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 	mpv_hdr[3] = 0;
 
 	if ((pic_type==2) || (pic_type== 3)) {
-		mpv_hdr[3] = payload[3] << 5;
+		mpv_hdr[3] = (u8) ((((u32)payload[3]) << 5) & 0xf);
 		if ((payload[4] & 0x80) != 0) mpv_hdr[3] |= 0x10;
 		if (pic_type == 3) mpv_hdr[3] |= (payload[4] >> 3) & 0xf;
 	}

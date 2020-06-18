@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2019
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -33,181 +33,134 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/scene_engine.h>
- *	\brief Live scene encoding engine with RAP generation support.
- */
+\file <gpac/scene_engine.h>
+\brief Live scene encoding engine with RAP generation support.
+*/
 	
 /*!
- *	\addtogroup seng Scene Engine
- *	\ingroup scene_grp
- *	\brief Live scene encoding engine with RAP generation support.
- *
- *This section documents the live scene encoding tools of GPAC.
- *	@{
+\addtogroup seng Scene Engine
+\ingroup scene_grp
+\brief Live scene encoding engine with RAP generation support.
+
+This section documents the live scene encoding tools of GPAC.
+
+@{
  */
 
 #include <gpac/scene_manager.h>
 
 #ifndef GPAC_DISABLE_SENG
 
+/*! scene encoding engine object*/
 typedef struct __tag_scene_engine GF_SceneEngine;
 
+/*! callback function prototype for scene engine*/
+typedef void (*gf_seng_callback)(void *udta, u16 ESID, u8 *data, u32 size, u64 ts);
 
-typedef void (*gf_seng_callback)(void *udta, u16 ESID, char *data, u32 size, u64 ts);
-
-/**
- * \param calling_object is the calling object on which call back will be called
- * \param inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
- * \param load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
- * \param dump_path is the path where scenes are dumped
- * \param embed_resources indicates if images and scripts should be encoded inlined with the content
- *
- * must be called only one time (by process calling the DLL) before other calls
- */
+/*! creates a scene engine
+\param calling_object is the calling object on which call back will be called
+\param inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
+\param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
+\param dump_path is the path where scenes are dumped
+\param embed_resources indicates if images and scripts should be encoded inlined with the content
+\return e scene engine object
+*/
 GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type, char *dump_path, Bool embed_resources);
 
-/**
- * \param calling_object is the calling object on which call back will be called
- * \param inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
- * \param load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
- * \param width width of scene if no IOD is given in the context.
- * \param height height of scene if no IOD is given in the context.
- * \param usePixelMetrics metrics system used in the scene, if no IOD is given in the context.
- * \param dump_path the path where scenes are dumped
- *
- * must be called only one time (by process calling the DLL) before other calls
- */
-GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char *inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics, char *dump_path);
-
-
-/**
- * \param calling_object the calling object on which call back will be called
- * \param ctx an already loaded scene manager
- * \param dump_path the path where scenes are dumped
- *
- * must be called only one time (by process calling the DLL) before other calls
- */
-GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager *ctx, char *dump_path);
-
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- *
- * must be called after gf_seng_init()
- */
+/*! get the number of streams in the scene
+\param seng the target scene engine
+\return the number of streams
+*/
 u32 gf_seng_get_stream_count(GF_SceneEngine *seng);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ESID ID of the stream
- * \param carousel_period pointer to store the carousel_period
- * \param aggregate_on_es_id pointer to store the target carousel stream ID
- *
- * must be called after gf_seng_init()
+/*! gets carousel nformation for a stream
+\param seng the target scene engine
+\param ESID ID of the stream to query
+\param carousel_period set to the carousel_period in millisenconds
+\param aggregate_on_es_id set to the target carousel stream ID
+\return error if any
  */
 GF_Err gf_seng_get_stream_carousel_info(GF_SceneEngine *seng, u16 ESID, u32 *carousel_period, u16 *aggregate_on_es_id);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param idx stream index
- * \param ESID pointer to the stream ID
- * \param config pointer to the encoded BIFS config (memory is not allocated)
- * \param config_len length of the buffer
- * \param streamType pointer to get stream type
- * \param objectType pointer to get object type
- * \param timeScale pointer to get time scale
- *
- * must be called after gf_seng_init()
- */
-GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char ** const config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale);
+/*! gets the stream decoder configuration
+\param seng the target scene engine
+\param idx stream index
+\param ESID set to the stream ID
+\param config set to the encoded BIFS config (memory is not allocated)
+\param config_len length of the buffer
+\param streamType pointer to get stream type
+\param objectType pointer to get object type
+\param timeScale pointer to get time scale
+\return error if any
+*/
+GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const u8 **config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale);
 
-/**
- * Encodes the AU context which is not encoded when calling BENC_EncodeAUFromString/File
- * Should be called after Aggregate.
- *
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param callback pointer on a callback function to get the result of the coding the AU using the current context
- *
- */
+/*! Encodes the AU context which is not encoded when calling BENC_EncodeAUFromString/File. This should be called after Aggregate.
+\param seng the target scene engine
+\param callback pointer on a callback function to get the result of the coding the AU using the current context
+\return error if any
+*/
 GF_Err gf_seng_encode_context(GF_SceneEngine *seng, gf_seng_callback callback);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ESID target streams when no indication is present in the file (eg, no atES_ID )
- * \param disable_aggregation
- * \param auFile name of a file containing a description for an access unit (BT or XMT)
- * \param callback pointer on a callback function to get the result of the coding the AU using the current context
- *
- */
+/*! Encodes an AU from file
+\param seng the target scene engine
+\param ESID target streams when no indication is present in the file (eg, no atES_ID )
+\param disable_aggregation do not aggregate the access unit on its target stream
+\param auFile name of a file containing a description for an access unit (BT or XMT)
+\param callback pointer on a callback function to get the result of the coding the AU using the current context
+\return error if any
+*/
 GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, char *auFile, gf_seng_callback callback);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ESID target streams when no indication is present in the file (eg, no atES_ID )
- * \param disable_aggregation
- * \param auString a char string to encode (must one or several complete nodes in BT
- * \param callback pointer on a callback function to get the result of the coding the AU using the current context
- *
- */
+/*! Encodes an AU from string
+\param seng the target scene engine
+\param ESID target streams when no indication is present in the file (eg, no atES_ID )
+\param disable_aggregation
+\param auString a char string to encode (must one or several complete nodes in BT
+\param callback pointer on a callback function to get the result of the coding the AU using the current context
+\return error if any
+*/
 GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, char *auString, gf_seng_callback callback);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ESID indicates the stream to which these commands apply (0 if first scene stream)
- * \param disable_aggregation
- * \param time
- * \param commands the list of commands to encode
- * \param callback pointer on a callback function to get the result of the coding the AU using the current context
- *
- */
-GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, u32 time, GF_List *commands, gf_seng_callback callback);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ctxFileName name of the file to save the current state of the BIFS scene to
- *
- * save the current context of the seng.
- * if you want to save an aggregate context, use BENC_AggregateCurrentContext before
- *
- */
+/*! saves the live context to a file. Use BENC_AggregateCurrentContext before to save an aggregated context.
+\param seng the target scene engine
+\param ctxFileName name of the file to save the current state of the BIFS scene to
+\return error if any
+*/
 GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ESID stream ID
- * \param onESID set stream aggragation on to the specified stream, or off if onESID is 0
- *
- * marks the stream as carrying its own "rap" in the first AU of the stream
- */
+/*! marks the stream as carrying its own "rap" in the first AU of the stream
+\param seng the target scene engine
+\param ESID stream ID
+\param onESID set stream aggragation on to the specified stream, or off if onESID is 0
+\return error if any
+*/
 GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- * \param ESID stream ID
- *
- * aggregates the current context of the seng, creates a scene replace
- * if ESID is specified, only aggregate commands for this stream
- */
+/*! aggregates the current context of the seng, creates a scene replace
+\param seng the target scene engine
+\param ESID stream ID. If not 0, only aggregate commands for this stream; otherwise aggregates for the all streams
+\return error if any
+*/
 GF_Err gf_seng_aggregate_context(GF_SceneEngine *seng, u16 ESID);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- *
- * release the memory used by this seng, no more call on the seng should happen after this
- *
- */
+/*! destroys the scene engine
+\param seng the target scene engine
+*/
 void gf_seng_terminate(GF_SceneEngine *seng);
 
-/**
- * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
- *
- * encodes the IOD for this BIFS Engine into Base64
- *
+/*! encodes the IOD for this scene engine into Base64
+\param seng the target scene engine
+\return the base64 encoded IOD, shall be freed by the caller
  */
 char *gf_seng_get_base64_iod(GF_SceneEngine *seng);
 
+/*! returns the IOD for a scene engine
+\param seng the target scene engine
+\return the IOD object - shall be destroyed by caller
+*/
 GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng);
-
-GF_Err gf_seng_dump_rap_on(GF_SceneEngine *seng, Bool dump_rap);
 
 #endif /*GPAC_DISABLE_SENG*/
 

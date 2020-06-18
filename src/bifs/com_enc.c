@@ -408,11 +408,13 @@ GF_Err BE_IndexDelete(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
 
 GF_Err BE_NodeReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
 {
-	GF_CommandField *inf;
-	if (!gf_list_count(com->command_fields)) return GF_OK;
-	inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
+	GF_Node *new_node = NULL;
+	if (gf_list_count(com->command_fields)) {
+		GF_CommandField *inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
+		if (inf) new_node = inf->new_node;
+	}
 	GF_BIFS_WRITE_INT(codec, bs, gf_node_get_id(com->node) - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
-	return gf_bifs_enc_node(codec, inf->new_node, NDT_SFWorldNode, bs, NULL);
+	return gf_bifs_enc_node(codec, new_node, NDT_SFWorldNode, bs, NULL);
 }
 
 GF_Err BE_FieldReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
@@ -955,7 +957,7 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 
 
 GF_EXPORT
-GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_data_length)
+GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, u8 **out_data, u32 *out_data_length)
 {
 	GF_BitStream *bs;
 	GF_Err e;

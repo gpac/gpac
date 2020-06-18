@@ -33,7 +33,7 @@
 #include <gpac/terminal.h>
 #include <gpac/thread.h>
 #include <gpac/options.h>
-#include <gpac/modules/service.h>
+#include <gpac/network.h>
 
 //#define		MAX_PATH	255
 
@@ -161,7 +161,6 @@ typedef struct _JavaEnvTh {
 	jmethodID cbk_sensorSwitch;
 } JavaEnvTh;
 
-
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------
 class CNativeWrapper {
@@ -170,9 +169,6 @@ private:
 	void* m_window;
 	void* m_session;
 
-	GF_User *GetUser() {
-		return &m_user;
-	}
 	GF_Terminal *m_term;
 
 	/*
@@ -194,7 +190,6 @@ private:
 private:
 	void SetupLogs();
 	void Shutdown();
-	void DisplayRTI();
 protected:
 	JavaEnvTh * getEnv();
 

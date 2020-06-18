@@ -32,7 +32,7 @@
 u32 gf_bifs_dec_qp14_get_bits(GF_BifsDecoder *codec)
 {
 	if (!codec->ActiveQP || !codec->coord_stored) return 0;
-	return (u32) ceil(log(codec->NumCoord+1) / log(2) );
+	return (u32) ceil(log1p(codec->NumCoord) / log(2) );
 }
 
 void gf_bifs_dec_qp14_enter(GF_BifsDecoder * codec, Bool Enter)

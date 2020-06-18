@@ -46,7 +46,7 @@ GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 }
 
 GF_EXPORT
-GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u8 objectType)
+GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u32 codec_id)
 {
 	u32 i;
 	GF_StreamContext *tmp;
@@ -69,7 +69,7 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 	tmp->AUs = gf_list_new();
 	tmp->ESID = ES_ID;
 	tmp->streamType = streamType;
-	tmp->objectType = objectType ? objectType : 1;
+	tmp->codec_id = codec_id ? codec_id : 1;
 	tmp->timeScale = 1000;
 	gf_list_add(ctx->streams, tmp);
 	return tmp;
@@ -138,14 +138,6 @@ static void gf_sm_delete_stream(GF_StreamContext *sc)
 }
 
 GF_EXPORT
-void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc)
-{
-	if (gf_list_del_item(ctx->streams, sc)>=0) {
-		gf_sm_delete_stream(sc);
-	}
-}
-
-GF_EXPORT
 void gf_sm_del(GF_SceneManager *ctx)
 {
 	u32 count;
@@ -159,7 +151,7 @@ void gf_sm_del(GF_SceneManager *ctx)
 	gf_free(ctx);
 }
 
-GF_EXPORT
+#if 0 //unused
 void gf_sm_reset(GF_SceneManager *ctx)
 {
 	GF_StreamContext *sc;
@@ -170,6 +162,7 @@ void gf_sm_reset(GF_SceneManager *ctx)
 	if (ctx->root_od) gf_odf_desc_del((GF_Descriptor *) ctx->root_od);
 	ctx->root_od = NULL;
 }
+#endif
 
 GF_EXPORT
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_sec, Bool isRap)
@@ -188,8 +181,9 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 			else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
 			/*insert AU*/
 			else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
-				GF_SAFEALLOC(tmp, GF_AUContext);
+				tmp = gf_malloc(sizeof(GF_AUContext));
 				if (!tmp) return NULL;
+				memset(tmp, 0, sizeof(GF_AUContext));
 				tmp->commands = gf_list_new();
 				if (isRap) tmp->flags = GF_SM_AU_RAP;
 				tmp->timing = timing;
@@ -428,7 +422,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 			Bool base_stream_found = 0;
 
 			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
-			if (sc->objectType == GPAC_OTI_SCENE_DIMS) base_stream_found = 1;
+			if (sc->codec_id == GF_CODECID_DIMS) base_stream_found = 1;
 
 			/*apply all commands - this will also apply the SceneReplace*/
 			while (gf_list_count(sc->AUs)) {
@@ -528,15 +522,15 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 			if (base_stream_found) {
 				au = gf_sm_stream_au_new(sc, 0, 0, 1);
 
-				switch (sc->objectType) {
-				case GPAC_OTI_SCENE_BIFS:
-				case GPAC_OTI_SCENE_BIFS_V2:
+				switch (sc->codec_id) {
+				case GF_CODECID_BIFS:
+				case GF_CODECID_BIFS_V2:
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_SCENE_REPLACE);
 					break;
-				case GPAC_OTI_SCENE_LASER:
+				case GF_CODECID_LASER:
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_LSR_NEW_SCENE);
 					break;
-				case GPAC_OTI_SCENE_DIMS:
+				case GF_CODECID_DIMS:
 				/* We do not create a new command, empty AU is enough in DIMS*/
 				default:
 					com = NULL;
@@ -588,9 +582,6 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load);
 
 GF_Err gf_sm_load_init_svg(GF_SceneLoader *load);
 
-GF_Err gf_sm_load_init_xbl(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_xbl(GF_SceneLoader *load);
-void gf_sm_load_done_xbl(GF_SceneLoader *load);
 #endif
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -611,8 +602,10 @@ GF_Err gf_sm_load_string(GF_SceneLoader *load, const char *str, Bool do_clean)
 	GF_Err e;
 	if (!load->type) e = GF_BAD_PARAM;
 	else if (load->parse_string) e = load->parse_string(load, str);
-	else e = GF_NOT_SUPPORTED;
-
+	else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] string parsing not supported by loader\n"));
+		e = GF_NOT_SUPPORTED;
+	}
 	return e;
 }
 
@@ -622,7 +615,7 @@ GF_EXPORT
 GF_Err gf_sm_load_init(GF_SceneLoader *load)
 {
 	GF_Err e = GF_NOT_SUPPORTED;
-	char *ext, szExt[50];
+	char *ext;
 	/*we need at least a scene graph*/
 	if (!load || (!load->ctx && !load->scene_graph)
 #ifndef GPAC_DISABLE_ISOM
@@ -637,14 +630,12 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 		} else
 #endif
 		{
-			ext = (char *)strrchr(load->fileName, '.');
+			char szExt[50];
+			ext = gf_file_ext_start(load->fileName);
 			if (!ext) return GF_NOT_SUPPORTED;
-			if (!stricmp(ext, ".gz")) {
-				char *anext;
-				ext[0] = 0;
-				anext = (char *)strrchr(load->fileName, '.');
-				ext[0] = '.';
-				ext = anext;
+			if (strlen(ext) < 2 || strlen(ext) > sizeof(szExt)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] invalid extension %s in file name %s\n", ext, load->fileName));
+				return GF_NOT_SUPPORTED;
 			}
 			strcpy(szExt, &ext[1]);
 			strlwr(szExt);
@@ -659,15 +650,12 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
 			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
-			else if (strstr(szExt, "xbl")) load->type = GF_SM_LOAD_XBL;
 			else if (strstr(szExt, "xml")) {
 				char *rtype = gf_xml_get_root_type(load->fileName, &e);
 				if (rtype) {
 					if (!strcmp(rtype, "SAFSession")) load->type = GF_SM_LOAD_XSR;
 					else if (!strcmp(rtype, "XMT-A")) load->type = GF_SM_LOAD_XMTA;
 					else if (!strcmp(rtype, "X3D")) load->type = GF_SM_LOAD_X3D;
-					else if (!strcmp(rtype, "bindings")) load->type = GF_SM_LOAD_XBL;
-
 					gf_free(rtype);
 				}
 			}
@@ -697,12 +685,6 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_DIMS:
 		return gf_sm_load_init_svg(load);
 
-	case GF_SM_LOAD_XBL:
-		e = gf_sm_load_init_xbl(load);
-
-		load->process = gf_sm_load_run_xbl;;
-		load->done = gf_sm_load_done_xbl;
-		return e;
 #endif
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -738,12 +720,13 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend)
 {
 	if (load->suspend) return load->suspend(load, suspend);
 	return GF_OK;
 }
+#endif
 
 #if !defined(GPAC_DISABLE_LOADER_BT) || !defined(GPAC_DISABLE_LOADER_XMT)
 #include <gpac/base_coding.h>
@@ -756,21 +739,15 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 
 	if (!bw->buffer.buffer) return;
 	buffer = bw->buffer.buffer;
-	if (!strnicmp(buffer, "file://", 7)) {
-		char *url = gf_url_concatenate(fileName, buffer+7);
+	if (!strnicmp(buffer, "file:", 5) ) {
+		char *url;
+		if (!strnicmp(buffer, "file://", 7)) buffer += 7;
+		else buffer += 5;
+
+		url = gf_url_concatenate(fileName, buffer);
 		if (url) {
-			FILE *f = gf_fopen(url, "rb");
-			if (f) {
-				fseek(f, 0, SEEK_END);
-				data_size = (u32) ftell(f);
-				fseek(f, 0, SEEK_SET);
-				data = gf_malloc(sizeof(char)*data_size);
-				if (data) {
-					if (fread(data, 1, data_size, f) != data_size) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] error reading bitwrapper file %s\n", url));
-					}
-				}
-				gf_fclose(f);
+			if (gf_file_load_data(url, (u8 **) &data, &data_size) != GF_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] error reading bitwrapper file %s\n", url));
 			}
 			gf_free(url);
 		}
@@ -789,14 +766,15 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 				data_size = gf_base64_decode(buffer, (u32) strlen(buffer), data, data_size);
 		} else {
 			u32 i, c;
-			char s[3];
-			data_size = (u32) strlen(buffer) / 3;
+			if (!strnicmp(buffer, "0x", 2)) buffer += 2;
+			data_size = (u32) strlen(buffer) / 2;
 			data = (char*)gf_malloc(sizeof(char) * data_size);
 			if (data) {
+				char s[3];
 				s[2] = 0;
 				for (i=0; i<data_size; i++) {
-					s[0] = buffer[3*i+1];
-					s[1] = buffer[3*i+2];
+					s[0] = buffer[2*i];
+					s[1] = buffer[2*i+1];
 					sscanf(s, "%02X", &c);
 					data[i] = (unsigned char) c;
 				}

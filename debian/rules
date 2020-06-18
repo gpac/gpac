@@ -19,6 +19,8 @@ endif
 
 CFLAGS = -Wall -g
 LDFLAGS= --as-needed
+IS_DEB_MAKE=1
+export IS_DEB_MAKE
 
 CC:=ccache $(CC)
 CXX:=ccache $(CXX)
@@ -73,12 +75,6 @@ install: build
 
 	dh_install
 
-#	dh_install -pmozilla-gpac bin/gcc/nposmozilla.so usr/lib/mozilla/plugins
-#	dh_install -pmozilla-gpac bin/gcc/nposmozilla.xpt usr/lib/mozilla/plugins
-
-#	dh_install -pgpac bin/gcc/mp42ts usr/bin
-#	dh_install -pgpac bin/gcc/mp4_streamer usr/bin
-
 # Prune empty directories
 	find debian -type d | xargs rmdir -p --ignore-fail-on-non-empty
 
@@ -91,9 +87,9 @@ binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs Changelog
-	dh_installdocs doc/configuration.html
+#	dh_installdocs doc/configuration.html
 	dh_installmenu
-	dh_installman doc/man/*.1
+#	dh_installman doc/man/*.1
 	dh_link
 	dh_strip
 	dh_compress

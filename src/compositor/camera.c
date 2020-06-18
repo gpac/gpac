@@ -30,20 +30,6 @@
 
 #define FORCE_CAMERA_3D
 
-GF_Camera *new_camera()
-{
-	GF_Camera *tmp;
-	GF_SAFEALLOC(tmp, GF_Camera);
-	if (!tmp) return NULL;
-	tmp->speed = 1;
-
-	return tmp;
-}
-void delete_camera(GF_Camera *cam)
-{
-	if (cam) gf_free(cam);
-}
-
 void camera_invalidate(GF_Camera *cam)
 {
 	/*forces recompute of default viewpoint*/
@@ -210,7 +196,7 @@ void camera_set_2d(GF_Camera *cam)
 #endif
 }
 
-void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, Fixed view_distance_offset, u32 camera_layout)
+void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, Fixed view_distance_offset, u32 camlay)
 {
 	Fixed vlen, h, w, ar;
 	SFVec3f corner, center;
@@ -222,8 +208,12 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 	gf_mx_init(post_model_view);
 
 	if (cam->is_3D) {
+		if (!cam->z_far) {
+			cam->z_near = FIX_ONE / 100;
+			cam->z_far = FIX_ONE * 100;
+		}
 		/*setup perspective*/
-		if (camera_layout==GF_3D_CAMERA_OFFAXIS) {
+		if (camlay==GF_3D_CAMERA_OFFAXIS) {
 			Fixed left, right, top, bottom, shift, wd2, ndfl, viewing_distance;
 			SFVec3f eye, pos, tar, disp;
 
@@ -338,11 +328,11 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		cam->center = b.center;
 		cam->radius = b.radius;
 
-		if (camera_layout==GF_3D_CAMERA_OFFAXIS)
-			camera_layout=GF_3D_CAMERA_LINEAR;
+		if (camlay==GF_3D_CAMERA_OFFAXIS)
+			camlay=GF_3D_CAMERA_LINEAR;
 	}
 
-	if (camera_layout == GF_3D_CAMERA_CIRCULAR) {
+	if (camlay == GF_3D_CAMERA_CIRCULAR) {
 		GF_Matrix mx;
 		Fixed viewing_distance = nominal_view_distance;
 		SFVec3f pos, target;
@@ -367,7 +357,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		gf_mx_apply_vec(&mx, &pos);
 
 		gf_mx_lookat(&cam->modelview, pos, target, cam->up);
-	} else if (camera_layout == GF_3D_CAMERA_LINEAR) {
+	} else if (camlay == GF_3D_CAMERA_LINEAR) {
 		Fixed viewing_distance = nominal_view_distance + view_distance_offset;
 		GF_Vec eye, disp, pos, tar;
 
@@ -496,22 +486,25 @@ void camera_jump(GF_Camera *cam)
 }
 
 
-Bool camera_animate(GF_Camera *cam)
+Bool camera_animate(GF_Camera *cam, void *_compositor)
 {
 	u32 now;
 	Fixed frac;
+	GF_Compositor *compositor = (GF_Compositor *) _compositor;
 	if (!cam->anim_len) return GF_FALSE;
+
+	now = gf_sc_get_clock(compositor);
 
 	if (cam->jumping) {
 		if (!cam->anim_start) {
-			cam->anim_start = gf_sys_clock();
+			cam->anim_start = now;
 			cam->dheight = 0;
 			return GF_TRUE;
 		}
 		cam->position.y -= cam->dheight;
 		cam->target.y -= cam->dheight;
 
-		now = gf_sys_clock() - cam->anim_start;
+		now -= cam->anim_start;
 		if (now > cam->anim_len) {
 			cam->anim_len = 0;
 			cam->jumping = GF_FALSE;
@@ -528,10 +521,10 @@ Bool camera_animate(GF_Camera *cam)
 	}
 
 	if (!cam->anim_start) {
-		cam->anim_start = gf_sys_clock();
+		cam->anim_start = now;
 		frac = 0;
 	} else {
-		now = gf_sys_clock() - cam->anim_start;
+		now -= cam->anim_start;
 		if (now > cam->anim_len) {
 			cam->anim_len = 0;
 #ifndef FORCE_CAMERA_3D

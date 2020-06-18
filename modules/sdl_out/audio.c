@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2018
  *					All rights reserved
  *
  *  This file is part of GPAC / SDL audio and video module
@@ -43,11 +43,11 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 			ctx->alloc_size = len;
 		}
 		memset(stream, 0, len);
-		written = dr->FillBuffer(dr->audio_renderer, (char *) ctx->audioBuff, (u32) len);
+		written = dr->FillBuffer(dr->audio_renderer, ctx->audioBuff, (u32) len);
 		if (written)
 			SDL_MixAudio(stream, ctx->audioBuff, len, ctx->volume);
 	} else {
-		dr->FillBuffer(dr->audio_renderer, (char *) stream, (u32) len);
+		dr->FillBuffer(dr->audio_renderer, stream, (u32) len);
 	}
 }
 
@@ -120,7 +120,7 @@ void SDL_DeleteAudio(void *ifce) {
 	gf_free( dr );
 }
 
-static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err SDLAud_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	s32 nb_samples;
 	SDL_AudioSpec want_format, got_format;
@@ -131,7 +131,29 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 
 	memset(&want_format, 0, sizeof(SDL_AudioSpec));
 	want_format.freq = *SampleRate;
-	want_format.format = (*nbBitsPerSample==16) ? AUDIO_S16SYS : AUDIO_S8;
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+	case GF_AUDIO_FMT_U8P:
+		want_format.format = AUDIO_U8;
+		break;
+	case GF_AUDIO_FMT_S16:
+	case GF_AUDIO_FMT_S16P:
+		want_format.format = AUDIO_S16;
+		break;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	case GF_AUDIO_FMT_S32:
+	case GF_AUDIO_FMT_S32P:
+		want_format.format = AUDIO_S32;
+		break;
+	case GF_AUDIO_FMT_FLT:
+	case GF_AUDIO_FMT_FLTP:
+		want_format.format = AUDIO_F32;
+		break;
+#endif
+	default:
+		want_format.format = AUDIO_S16;
+		break;
+	}
 	want_format.channels = *NbChannels;
 	want_format.callback = sdl_fill_audio;
 	want_format.userdata = dr;
@@ -158,10 +180,21 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 	switch (got_format.format) {
 	case AUDIO_S8:
 	case AUDIO_U8:
-		*nbBitsPerSample = 8;
+		*audioFormat = GF_AUDIO_FMT_U8;
 		break;
+	case AUDIO_S16:
+		*audioFormat = GF_AUDIO_FMT_S16;
+		break;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	case AUDIO_S32:
+		*audioFormat = GF_AUDIO_FMT_S32;
+		break;
+	case AUDIO_F32:
+		*audioFormat = GF_AUDIO_FMT_FLT;
+		break;
+#endif
 	default:
-		*nbBitsPerSample = 16;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Error, unhandled audio format %s, requesting PCM s16\n", got_format.format));
 		break;
 	}
 	/*and play*/
@@ -229,7 +262,7 @@ void *SDL_NewAudio()
 
 	dr->Setup = SDLAud_Setup;
 	dr->Shutdown = SDLAud_Shutdown;
-	dr->ConfigureOutput = SDLAud_ConfigureOutput;
+	dr->Configure = SDLAud_Configure;
 	dr->SetVolume = SDLAud_SetVolume;
 	dr->SetPan = SDLAud_SetPan;
 	dr->Play = SDLAud_Play;

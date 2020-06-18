@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / general OS configuration file
@@ -31,20 +31,25 @@ extern "C" {
 #endif
 
 
-/*! \file "gpac/setup.h"
- *	\brief base data types of GPAC.
- *
- * This file contains the base data types of GPAC, depending on the platform.
+/*!
+\file "gpac/setup.h"
+\brief Base data types of GPAC.
+
+This file contains the base data types of GPAC, depending on the platform.
+
+
 */
 
-/*! \addtogroup setup_grp base data types
- *	\ingroup utils_grp
- *	\brief Base data types of GPAC.
- *
- *	This section documents the base data types of GPAC.
- *	@{
- */
 
+/*!
+\addtogroup setup_grp
+\brief Base data types of GPAC.
+
+This section documents the base data types of GPAC, as well as some macros wrapping platform-specific functionalities.
+For better portability, only use the base data types defined here.
+
+@{
+*/
 
 /*This is to handle cases where config.h is generated at the root of the gpac build tree (./configure)
 This is only needed when building libgpac and modules when libgpac is not installed*/
@@ -61,27 +66,41 @@ This is only needed when building libgpac and modules when libgpac is not instal
 /*common win32 parts*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #if defined(_WIN64) && !defined(GPAC_64_BITS)
+/*! macro defined for 64-bits platforms*/
 #define GPAC_64_BITS
 #endif
 
+/*! 64 bit unsigned integer*/
 typedef unsigned __int64 u64;
-typedef unsigned int u32;
-typedef unsigned short u16;
-typedef unsigned char u8;
+/*! 64 bit signed integer*/
 typedef __int64 s64;
+/*! 32 bit unsigned integer*/
+typedef unsigned int u32;
+/*! 32 bit signed integer*/
 typedef int s32;
+/*! 16 bit unsigned integer*/
+typedef unsigned short u16;
+/*! 16 bit signed integer*/
 typedef short s16;
+/*! 8 bit unsigned integer*/
+typedef unsigned char u8;
+/*! 8 bit signed integer*/
 typedef char s8;
 
 #if defined(__GNUC__)
+/*! macro for cross-platform inlining of functions*/
 #define GFINLINE inline
 #else
+/*! macro for cross-platform inlining of functions*/
 #define GFINLINE __inline
 #endif
 
+/*! default path separator of the current platform*/
 #define GF_PATH_SEPARATOR	'\\'
+/*! default max filesystem path size of the current platform*/
 #define GF_MAX_PATH	1024
 
 /*WINCE config*/
@@ -89,9 +108,7 @@ typedef char s8;
 
 /*win32 assert*/
 #ifndef assert
-
 void CE_Assert(u32 valid, char *file, u32 line);
-
 #ifndef NDEBUG
 #define assert( t )	CE_Assert((unsigned int) (t), __FILE__, __LINE__ )
 #else
@@ -158,14 +175,19 @@ typedef unsigned int size_t;
 /*start SYMBIAN config*/
 #elif defined(__SYMBIAN32__)
 
+/*! macro for cross-platform inlining of functions*/
 #define GFINLINE inline
+/*! default path separator of the current platform*/
 #define GF_PATH_SEPARATOR	'\\'
 
 /*we must explicitely export our functions...*/
+
+/*! macro for cross-platform signaling of exported function of libgpac*/
 #define GF_EXPORT EXPORT_C
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <limits.h>
 #include <ctype.h>
@@ -174,7 +196,9 @@ typedef unsigned int size_t;
 
 #ifdef __SERIES60_3X__
 
+/*! 64 bit unsigned integer*/
 typedef unsigned __int64 u64;
+/*! 64 bit signed integer*/
 typedef __int64 s64;
 
 #else
@@ -185,21 +209,30 @@ typedef unsigned long long u64;
 typedef long long s64;
 */
 
+/*! 64 bit unsigned integer*/
 typedef unsigned int u64;
+/*! 64 bit signed integer*/
 typedef signed int s64;
 
 #endif	/*symbian 8*/
 
 
+/*! 32 bit unsigned integer*/
 typedef unsigned int u32;
-typedef unsigned short u16;
-typedef unsigned char u8;
+/*! 32 bit signed integer*/
 typedef int s32;
+/*! 16 bit unsigned integer*/
+typedef unsigned short u16;
+/*! 16 bit signed integer*/
 typedef short s16;
+/*! 8 bit unsigned integer*/
+typedef unsigned char u8;
+/*! 8 bit signed integer*/
 typedef signed char s8;
 
 #pragma mpwc_relax on
 
+/*! default max filesystem path size of the current platform*/
 #define GF_MAX_PATH	260
 
 /*sorry this was developed under w32 :)*/
@@ -236,13 +269,15 @@ char * my_str_lwr(char *str);
 
 /*UNIX likes*/
 
-/*force large file support*/
+/*! max file offset bits*/
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
 #endif
+/*! largefile*/
 #ifndef _LARGEFILE_SOURCE
 #define _LARGEFILE_SOURCE
 #endif
+/*! largefile64*/
 #ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
 #endif
@@ -250,6 +285,7 @@ char * my_str_lwr(char *str);
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <limits.h>
 #include <float.h>
@@ -257,202 +293,245 @@ char * my_str_lwr(char *str);
 #include <string.h>
 #include <assert.h>
 
-#if __APPLE__ && defined GPAC_IPHONE
+#if __APPLE__ && defined GPAC_CONFIG_IOS
 #include <TargetConditionals.h>
 #endif
 
+/*! 64 bit unsigned integer*/
 typedef uint64_t u64;
-typedef uint32_t u32;
-typedef uint16_t u16;
-typedef uint8_t u8;
+/*! 64 bit signed integer*/
 typedef int64_t s64;
+/*! 32 bit unsigned integer*/
+typedef uint32_t u32;
+/*! 32 bit signed integer*/
 typedef int32_t s32;
+/*! 16 bit unsigned integer*/
+typedef uint16_t u16;
+/*! 16 bit signed integer*/
 typedef int16_t s16;
+/*! 8 bit unsigned integer*/
+typedef uint8_t u8;
+/*! 8 bit signed integer*/
 typedef int8_t s8;
 
+/*! macro for cross-platform inlining of functions*/
 #define GFINLINE	inline
 
-/*sorry this was developed under w32 :)*/
+/*! use stricmp */
 #define stricmp		strcasecmp
+/*! use strnicmp */
 #define strnicmp	strncasecmp
 
 #ifndef strupr
-char * my_str_upr(char *str);
+/*! gets upper case
+\param str input string
+\return uper case to free*/
+char *my_str_upr(char *str);
+/*! use strupr */
 #define strupr my_str_upr
 #endif
 
 #ifndef strlwr
+/*! gets lower case
+\param str input string
+\return lower case to free*/
 char * my_str_lwr(char *str);
+/*! use strulwr */
 #define strlwr my_str_lwr
 #endif
 
+/*! default path separator of the current platform*/
 #define GF_PATH_SEPARATOR	'/'
 
 #ifdef PATH_MAX
+/*! default max filesystem path size of the current platform*/
 #define GF_MAX_PATH	PATH_MAX
 #else
-/*PATH_MAX not defined*/
+/*! default max filesystem path size of the current platform*/
 #define GF_MAX_PATH	1023
 #endif
 
 
 #endif /* end platform specific Win32/WinCE/UNIX*/
 
+
+//! @cond Doxygen_Suppress
+
 /*define what's missing*/
+
 #ifndef NULL
 #define NULL 0
 #endif
 
+//! @endcond
 
+
+/*! Double-precision floating point number*/
 typedef double Double;
+/*! Single-precision floating point number*/
 typedef float Float;
-/* 128 bit IDs */
+/*! 128 bit IDs */
 typedef u8 bin128[16];
-
+/*! max positive possible value for Double*/
 #define GF_MAX_DOUBLE		DBL_MAX
+/*! max negative possible value for Double*/
 #define GF_MIN_DOUBLE		-GF_MAX_DOUBLE
+/*! max positive possible value for Float*/
 #define GF_MAX_FLOAT		FLT_MAX
+/*! max negative possible value for Float*/
 #define GF_MIN_FLOAT		-GF_MAX_FLOAT
+/*! smallest possible value for float*/
 #define GF_EPSILON_FLOAT	FLT_EPSILON
+/*! max possible value for s16*/
 #define GF_SHORT_MAX		SHRT_MAX
+/*! min possible value for s16*/
 #define GF_SHORT_MIN		SHRT_MIN
+/*! max possible value for u32*/
 #define GF_UINT_MAX			UINT_MAX
+/*! max possible value for s32*/
 #define GF_INT_MAX			INT_MAX
+/*! min possible value for s32*/
 #define GF_INT_MIN			INT_MIN
 
 #ifndef MIN
+/*! get the smallest of two numbers*/
 #define MIN(X, Y) ((X)<(Y)?(X):(Y))
 #endif
 #ifndef MAX
+/*! get the biggest of two numbers*/
 #define MAX(X, Y) ((X)>(Y)?(X):(Y))
 #endif
 
+/*! get the absolute difference betwee two numbers*/
 #define ABSDIFF(a, b)	( ( (a) > (b) ) ? ((a) - (b)) : ((b) - (a)) )
 
 #ifndef ABS
+/*! get the absolute value of a number*/
 #define ABS(a)	( ( (a) > 0 ) ? (a) : - (a) )
 #endif
 
 #ifndef Bool
+/*! boolean value*/
 typedef enum {
 	GF_FALSE = 0,
 	GF_TRUE
 } Bool;
 #endif
 
+/*! 32 bit fraction*/
+typedef struct {
+	s32 num;
+	u32 den;
+} GF_Fraction;
+
+/*! 64 bit fraction*/
 typedef struct {
 	s64 num;
 	u64 den;
-} GF_Fraction;
-
-/*GPAC memory tracking*/
-#if defined(GPAC_MEMORY_TRACKING)
-
-void *gf_mem_malloc(size_t size, const char *filename, int line);
-void *gf_mem_calloc(size_t num, size_t size_of, const char *filename, int line);
-void *gf_mem_realloc(void *ptr, size_t size, const char *filename, int line);
-void gf_mem_free(void *ptr, const char *filename, int line);
-char *gf_mem_strdup(const char *str, const char *filename, int line);
-void gf_memory_print(void); /*prints the state of current allocations*/
-u64 gf_memory_size(); /*gets memory allocated in bytes*/
-
-#define gf_free(ptr) gf_mem_free(ptr, __FILE__, __LINE__)
-#define gf_malloc(size) gf_mem_malloc(size, __FILE__, __LINE__)
-#define gf_calloc(num, size_of) gf_mem_calloc(num, size_of, __FILE__, __LINE__)
-#define gf_strdup(s) gf_mem_strdup(s, __FILE__, __LINE__)
-#define gf_realloc(ptr1, size) gf_mem_realloc(ptr1, size, __FILE__, __LINE__)
-
-#else
-
-void* gf_malloc(size_t size);
-void* gf_calloc(size_t num, size_t size_of);
-void* gf_realloc(void *ptr, size_t size);
-void gf_free(void *ptr);
-char* gf_strdup(const char *str);
-
-#endif
-
-
-/*end GPAC memory tracking*/
+} GF_Fraction64;
 
 #if (defined (WIN32) || defined (_WIN32_WCE)) && (defined(__MINGW32__) || !defined(__GNUC__))
 
-#define LLD "%I64d"
-#define LLU "%I64u"
-#define LLX "%I64x"
-#define LLXPAD( pad ) "%" pad "I64x"
-#define LLD_CAST
-#define LLU_CAST
+/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+#define LLD_SUF "I64d"
+/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+#define LLU_SUF "I64u"
+/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+#define LLX_SUF "I64x"
+
 #ifdef _WIN64
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u64)
 #else
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u32)
 #endif
 
 #elif defined (__SYMBIAN32__)
 
-#define LLD "%d"
-#define LLU "%u"
-#define LLX "%x"
-#define LLXPAD( pad ) "%" pad "x"
-#define LLD_CAST (u32)
-#define LLU_CAST (s32)
+/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+#define LLD_SUF "d"
+/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+#define LLU_SUF "u"
+/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+#define LLX_SUF "x"
+
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u32)
 
 /*seems that even though _LP64 is defined in OSX, %ll modifiers are still needed*/
 #elif defined(__DARWIN__) || defined(__APPLE__)
 
-#define LLD "%lld"
-#define LLU "%llu"
-#define LLX "%llx"
-#define LLXPAD( pad ) "%" pad "llx"
+/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+#define LLD_SUF "lld"
+/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+#define LLU_SUF "llu"
+/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+#define LLX_SUF "llx"
 
 #ifdef __LP64__ /* Mac OS 64 bits */
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u64)
 #else
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u32)
 #endif
 
 #elif defined(_LP64) /*Unix 64 bits*/
 
-#define LLD "%ld"
-#define LLU "%lu"
-#define LLX "%lx"
-#define LLXPAD( pad ) "%" pad "lx"
+/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+#define LLD_SUF "ld"
+/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+#define LLU_SUF "lu"
+/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+#define LLX_SUF "lx"
+
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u64)
 
 #else /*Unix 32 bits*/
 
-#define LLD "%lld"
-#define LLU "%llu"
-#define LLX "%llx"
-#define LLXPAD( pad ) "%" pad "llx"
+/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+#define LLD_SUF "lld"
+/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+#define LLU_SUF "llu"
+/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+#define LLX_SUF "llx"
+
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST (u32)
 
 #endif
 
-#ifndef LLD_CAST
-#define LLD_CAST
-#endif
-
-#ifndef LLU_CAST
-#define LLU_CAST
-#endif
-
 #ifndef PTR_TO_U_CAST
+/*! macro for cross-platform casting a pointer to an integer*/
 #define PTR_TO_U_CAST
 #endif
 
+/*! macro for cross-platform formatting of s64 integers in logs and printf routines*/
+#define LLD "%"LLD_SUF
+/*! macro for cross-platform formatting of u64 integers in logs and printf routines*/
+#define LLU "%"LLU_SUF
+/*! macro for cross-platform formatting of u64 integers as hexadecimal in logs and printf routines*/
+#define LLX "%"LLX_SUF
+
+
 #if !defined(GF_EXPORT)
-#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_IPHONE)
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_CONFIG_IOS)
+/*! macro for cross-platform signaling of exported function of libgpac*/
 #define GF_EXPORT __attribute__((visibility("default")))
 #else
 /*use def files for windows or let compiler decide*/
+
+/*! macro for cross-platform signaling of exported function of libgpac*/
 #define GF_EXPORT
 #endif
 #endif
 
-#if defined(GPAC_IPHONE)
+
+//! @cond Doxygen_Suppress
+
+#if defined(GPAC_CONFIG_IOS)
 #define GPAC_STATIC_MODULES
 #endif
 
@@ -494,12 +573,6 @@ char* gf_strdup(const char *str);
 # endif
 # ifndef GPAC_DISABLE_ISOM_HINTING
 # define GPAC_DISABLE_ISOM_HINTING
-# endif
-# ifndef GPAC_DISABLE_MEDIA_IMPORT
-# define GPAC_DISABLE_MEDIA_IMPORT
-# endif
-# ifndef GPAC_DISABLE_MPEG2TS_MUX
-# define GPAC_DISABLE_MPEG2TS_MUX
 # endif
 #endif
 
@@ -563,13 +636,91 @@ char* gf_strdup(const char *str);
 # endif
 #endif
 
-#if !defined(GPAC_HAS_SPIDERMONKEY) || defined(GPAC_DISABLE_SVG)
-# ifndef GPAC_DISABLE_MSE
-# define GPAC_DISABLE_MSE
-# endif
+//we currently disable all extra IPMP/IPMPX/OCI/extra MPEG-4 descriptors parsing
+#ifndef GPAC_MINIMAL_ODF
+#define GPAC_MINIMAL_ODF
 #endif
 
+//define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not
+//#define GPAC_DISABLE_DOC
+
+
+//! @endcond
+
 /*! @} */
+
+/*!
+\addtogroup mem_grp
+\brief Memory management
+
+GPAC can use its own memory tracker, depending on compilation option. It is recommended to use only the functions
+defined in this section to allocate and free memory whenever developping within the GPAC library.
+
+\warning these functions shall only be used after initializing the library using \ref gf_sys_init
+@{
+*/
+/*GPAC memory tracking*/
+#if defined(GPAC_MEMORY_TRACKING)
+
+
+void *gf_mem_malloc(size_t size, const char *filename, int line);
+void *gf_mem_calloc(size_t num, size_t size_of, const char *filename, int line);
+void *gf_mem_realloc(void *ptr, size_t size, const char *filename, int line);
+void gf_mem_free(void *ptr, const char *filename, int line);
+char *gf_mem_strdup(const char *str, const char *filename, int line);
+void gf_memory_print(void); /*prints the state of current allocations*/
+u64 gf_memory_size(); /*gets memory allocated in bytes*/
+
+/*! free memory allocated with gpac*/
+#define gf_free(ptr) gf_mem_free(ptr, __FILE__, __LINE__)
+/*! allocates memory, shall be freed using \ref gf_free*/
+#define gf_malloc(size) gf_mem_malloc(size, __FILE__, __LINE__)
+/*! allocates memory array, shall be freed using \ref gf_free*/
+#define gf_calloc(num, size_of) gf_mem_calloc(num, size_of, __FILE__, __LINE__)
+/*! duplicates string, shall be freed using \ref gf_free*/
+#define gf_strdup(s) gf_mem_strdup(s, __FILE__, __LINE__)
+/*! reallocates memory, shall be freed using \ref gf_free*/
+#define gf_realloc(ptr1, size) gf_mem_realloc(ptr1, size, __FILE__, __LINE__)
+
+#else
+
+/*! free memory allocated with gpac
+\param ptr same as free()
+*/
+void gf_free(void *ptr);
+
+/*! allocates memory, shall be freed using \ref gf_free
+\param size same as malloc()
+\return adress of allocated block
+*/
+void* gf_malloc(size_t size);
+
+/*! allocates memory array, shall be freed using \ref gf_free
+\param num same as calloc()
+\param size_of same as calloc()
+\return adress of allocated block
+*/
+void* gf_calloc(size_t num, size_t size_of);
+
+/*! duplicates string, shall be freed using \ref gf_free
+\param str same as strdup()
+\return duplicated string
+*/
+char* gf_strdup(const char *str);
+
+/*! reallocates memory, shall be freed using \ref gf_free
+\param ptr same as realloc()
+\param size same as realloc()
+\return adress of reallocated block
+*/
+void* gf_realloc(void *ptr, size_t size);
+
+#endif
+/*! @} */
+
+
+/*end GPAC memory tracking*/
+
 
 #ifdef __cplusplus
 }

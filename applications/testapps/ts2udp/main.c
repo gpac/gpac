@@ -78,7 +78,7 @@ u32 sender_thread_proc(void *param) {
 int main(int argc, char **argv)
 {
 	u32 size = 0;
-	size_t fsize = 0, fdone = 0;
+	u64 fsize = 0, fdone = 0;
 	FILE *src = NULL;
 	GF_M2TS_Demuxer *ts = NULL;
 	GF_Thread *th = NULL;
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 	gf_set_progress("MPEG-2 TS Processing", fsize, fsize);
 
 exit:
-	gf_fclose(src);
+	if(src) gf_fclose(src);
 	gf_m2ts_demux_del(ts);
 	gf_th_del(th);
 	gf_sema_del(sender.sema);

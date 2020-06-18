@@ -19,7 +19,7 @@
 ;GPAC lib, default cfg file, startup file & cache
 "Epoc32\release\thumb\urel\libgpac.dll"              -"!:\system\apps\Osmo4\libgpac.dll"
 "GPAC.cfg"                                           -"!:\system\apps\Osmo4\GPAC.cfg"
-"..\..\..\doc\gpac.mp4"                              -"!:\system\apps\Osmo4\gpac.mp4"
+"..\..\..\res\gpac.mp4"                              -"!:\system\apps\Osmo4\gpac.mp4"
 ""                                                   -"!:\system\apps\Osmo4\cache\", FN
 
 ;modules:

@@ -31,6 +31,8 @@
 #include <gpac/internal/mesh.h>
 #endif
 
+#ifdef GPAC_ENABLE_FLASHSHAPE
+
 typedef struct
 {
 	GF_Path *path;
@@ -121,7 +123,6 @@ static void build_shape(FSStack *st, GF_Node *node)
 	cur.x = cur.y = 0;
 	fill_item = line_item = NULL;
 	need_line = need_fill = GF_FALSE;
-	cur.x = cur.y = 0;
 	has_ci = coordIndex->count ? 1 : 0;
 	pts = coords->vals;
 	line_col = fill_col = 0;
@@ -441,9 +442,6 @@ static void fs_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		/*finalize*/
 #ifndef GPAC_DISABLE_VRML
 		ctx = drawable_init_context_mpeg4(st->drawable, tr_state);
-#else
-		ctx = NULL;
-#endif
 		if (!ctx) return;
 
 		/*force width to max width used for clipper compute*/
@@ -452,6 +450,9 @@ static void fs_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		drawable_finalize_sort(ctx, tr_state, &st->bounds);
 		break;
+#else
+		return;
+#endif
 	}
 }
 
@@ -474,3 +475,4 @@ void compositor_init_hc_flashshape(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, fs_traverse);
 }
 
+#endif // GPAC_ENABLE_FLASHSHAPE

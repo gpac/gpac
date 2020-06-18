@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" />
-<GPACDRM type="ADOBE">
-<CrypTrack trackID="1" IsEncrypted="1" first_IV="0x0a610676cb88f302d10ac8bc66e039ed" selectiveType="RAP" metadata="url=toto" metadata_len="8">
-<key value="0xccc0f2b3b279926496a7f5d25da692f6"/>
-</CrypTrack>
-
-</GPACDRM>
-
-

@@ -61,11 +61,11 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 	u32 i;
 	s32 start;
 	char *buffer;
-	char *cl_str, val[30];
+	char *cl_str;
 
 	*body_start = *body_size = 0;
 
-	buffer = sess->TCPBuffer + sess->CurrentPos;
+	buffer = sess->tcp_buffer + sess->CurrentPos;
 	start = gf_token_find(buffer, 0, sess->CurrentSize - sess->CurrentPos, "\r\n\r\n");
 	if (start<=0) {
 		return;
@@ -79,6 +79,7 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 	if (!cl_str) cl_str = strstr(buffer, "Content-length: ");
 
 	if (cl_str) {
+		char val[30];
 		cl_str += 16;
 		i = 0;
 		while (cl_str[i] != '\r') {
@@ -106,17 +107,15 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	if (!res) return gf_rtsp_fill_buffer(sess);
 
 	ptr = (char *)gf_malloc(sizeof(char) * res);
-	memcpy(ptr, sess->TCPBuffer+sess->CurrentPos, res);
-	memcpy(sess->TCPBuffer, ptr, res);
+	memcpy(ptr, sess->tcp_buffer + sess->CurrentPos, res);
+	memcpy(sess->tcp_buffer, ptr, res);
 	gf_free(ptr);
 
 	sess->CurrentPos = 0;
 	sess->CurrentSize = res;
 
 	//now read from current pos
-	e = gf_sk_receive(sess->connection, sess->TCPBuffer + sess->CurrentSize,
-	                  RTSP_TCP_BUF_SIZE - sess->CurrentSize,
-	                  0, &res);
+	e = gf_sk_receive(sess->connection, sess->tcp_buffer + sess->CurrentSize, sess->SockBufferSize - sess->CurrentSize, &res);
 
 	if (!e) {
 		sess->CurrentSize += res;
@@ -132,16 +131,16 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 	if (!sess->connection) return GF_IP_NETWORK_EMPTY;
 
 	if (sess->CurrentSize == sess->CurrentPos) {
-		e = gf_sk_receive(sess->connection, sess->TCPBuffer, RTSP_TCP_BUF_SIZE, 0, &sess->CurrentSize);
+		e = gf_sk_receive(sess->connection, sess->tcp_buffer, sess->SockBufferSize, &sess->CurrentSize);
 		sess->CurrentPos = 0;
-		sess->TCPBuffer[sess->CurrentSize] = 0;
+		sess->tcp_buffer[sess->CurrentSize] = 0;
 		if (e) sess->CurrentSize = 0;
 	} else if (!sess->CurrentSize) e = GF_IP_NETWORK_EMPTY;
 	return e;
 }
 
 
-GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
+GF_RTSPTransport *gf_rtsp_transport_parse(u8 *buffer)
 {
 	Bool IsFirst;
 	char buf[100], param_name[100], param_val[100];
@@ -222,7 +221,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 
 
 
-GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp)
+GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp)
 {
 	char LineBuffer[1024];
 	char HeaderBuf[100], ValBuf[1024], temp[400];

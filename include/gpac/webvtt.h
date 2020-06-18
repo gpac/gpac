@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2013-
+ *			Authors: Cyril Concolato, Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2013-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT header
@@ -31,19 +31,21 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/webvtt.h>
- *	\brief Helper functions for WebVTT parsing.
+\file <gpac/webvtt.h>
+\brief Helper functions for WebVTT parsing.
  */
 
 /*!
- *	\ingroup media_grp
- *	\brief Helper functions for WebVTT parsing
- *
- *This section documents the audio and video parsing functions of the GPAC framework.
- *	@{
+\addtogroup wvtt_grp WebVTT parsing
+\ingroup media_grp
+\brief Helper functions for WebVTT parsing
+
+This section documents the audio and video parsing functions of the GPAC framework.
+
+@{
  */
 
-/* WebVTT types */
+/*! WebVTT types */
 typedef enum {
 	WEBVTT_ID,
 	WEBVTT_SETTINGS,
@@ -52,13 +54,27 @@ typedef enum {
 	WEBVTT_PRECUE_TEXT,
 } GF_WebVTTCuePropertyType;
 
+/*! WebVTT timestamp information*/
 typedef struct _webvtt_timestamp {
 	u32 hour, min, sec, ms;
 } GF_WebVTTTimestamp;
-u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts);
-void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value);
-void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour);
+/*! gets webvtt timestamp
+\param wvtt_ts the target WebVTT timestamp
+\return timestamp in millisecond*/
+u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *wvtt_ts);
+/*! sets webvtt timestamp
+\param wvtt_ts the target WebVTT timestamp
+\param value timestamp in millisecond
+*/
+void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *wvtt_ts, u64 value);
+/*! dumps webvtt timestamp
+\param wvtt_ts the target WebVTT timestamp
+\param dump the output file to write to
+\param dump_hour if GF_TRUE, dumps hours
+*/
+void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *wvtt_ts, FILE *dump, Bool dump_hour);
 
+/*! WebVTT cue structure*/
 typedef struct _webvtt_cue
 {
 	GF_WebVTTTimestamp start;
@@ -74,22 +90,29 @@ typedef struct _webvtt_cue
 	GF_WebVTTTimestamp orig_start;
 	GF_WebVTTTimestamp orig_end;
 } GF_WebVTTCue;
-
+/*! destroys a WebVTT cue
+\param cue the target WebVTT cue
+*/
 void gf_webvtt_cue_del(GF_WebVTTCue * cue);
 
 #ifndef GPAC_DISABLE_VTT
-GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *printLength);
+/*! dumps webvtt sample boxes
+\param dump the output file to write to
+\param data the WebVTT ISOBMFF sample payload
+\param dataLength the size of the payload in bytes
+\param printLength set to the printed size in bytes
+\return error if any
+*/
+GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const u8 *data, u32 dataLength, u32 *printLength);
 #endif
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-#include <gpac/internal/scenegraph_dev.h>
-
-GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id,
-                           const char *start, const char *end,
-                           const char *settings,
-                           const char *payload);
-GF_Err gf_webvtt_js_removeCues(GF_Node *node);
-#endif
+/*! dumps webvtt sample boxes
+\param data the WebVTT ISOBMFF sample payload
+\param dataLength the size of the payload in bytes
+\param start the start time in milliseconds of the WebVTT cue
+\return new list of cues, to destroy by caller
+*/
+GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 start);
 
 /*! @} */
 

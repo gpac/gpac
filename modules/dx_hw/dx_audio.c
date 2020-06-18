@@ -75,7 +75,6 @@ void DS_WriteAudio_Notifs(GF_AudioOutput *dr);
 
 static GF_Err DS_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
-	DWORD flags;
 	HRESULT hr;
 
 	DSCONTEXT();
@@ -91,7 +90,7 @@ static GF_Err DS_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
 
 	if ( FAILED( hr = ctx->DirectSoundCreate( NULL, &ctx->pDS, NULL ) ) ) return GF_IO_ERR;
-	flags = DSSCL_EXCLUSIVE;
+
 	if( FAILED( hr = ctx->pDS->lpVtbl->SetCooperativeLevel(ctx->pDS, ctx->hWnd, DSSCL_EXCLUSIVE) ) ) {
 		SAFE_DS_RELEASE( ctx->pDS );
 		return GF_IO_ERR;
@@ -135,11 +134,10 @@ static void DS_Shutdown(GF_AudioOutput *dr)
 }
 
 /*we assume what was asked is what we got*/
-static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
+static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *audioFormat, u64 channel_cfg)
 {
 	u32 i;
 	HRESULT hr;
-	const char *sOpt;
 	DSBUFFERDESC dsbBufferDesc;
 	IDirectSoundNotify *pNotify;
 #ifdef USE_WAVE_EX
@@ -148,14 +146,28 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	DSCONTEXT();
 
 	DS_ReleaseBuffer(dr);
-
+	//only support for PCM 8/16/24/32 packet mode
+	switch (*audioFormat) {
+	case GF_AUDIO_FMT_U8:
+	case GF_AUDIO_FMT_S16:
+	case GF_AUDIO_FMT_S24:
+	case GF_AUDIO_FMT_S32:
+		break;
+	default:
+		//otherwise force PCM16
+		*audioFormat = GF_AUDIO_FMT_S16;
+		break;
+	}
 	ctx->format.nChannels = *NbChannels;
-	ctx->format.wBitsPerSample = *nbBitsPerSample;
+	ctx->format.wBitsPerSample = gf_audio_fmt_bit_depth( *audioFormat);
 	ctx->format.nSamplesPerSec = *SampleRate;
 	ctx->format.cbSize = sizeof (WAVEFORMATEX);
 	ctx->format.wFormatTag = WAVE_FORMAT_PCM;
 	ctx->format.nBlockAlign = ctx->format.nChannels * ctx->format.wBitsPerSample / 8;
 	ctx->format.nAvgBytesPerSec = ctx->format.nSamplesPerSec * ctx->format.nBlockAlign;
+
+	if (!ctx->format.nBlockAlign)
+		return GF_BAD_PARAM;
 
 	if (!ctx->force_config) {
 		ctx->buffer_size = ctx->format.nBlockAlign * 1024;
@@ -169,8 +181,8 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	while (ctx->buffer_size % ctx->format.nBlockAlign) ctx->buffer_size++;
 
 	ctx->use_notif = GF_TRUE;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Audio", "DisableNotification");
-	if (sOpt && !stricmp(sOpt, "yes")) ctx->use_notif = GF_FALSE;
+	if (gf_opts_get_bool("core", "ds-disable-notif"))
+		ctx->use_notif = GF_FALSE;
 
 	memset(&dsbBufferDesc, 0, sizeof(DSBUFFERDESC));
 	dsbBufferDesc.dwSize = sizeof (DSBUFFERDESC);
@@ -185,17 +197,19 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 		format_ex.Format = ctx->format;
 		format_ex.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE);
 		format_ex.SubFormat = GPAC_KSDATAFORMAT_SUBTYPE_PCM;
-		format_ex.Samples.wValidBitsPerSample = *nbBitsPerSample;
+		format_ex.Samples.wValidBitsPerSample = gf_audio_fmt_bit_depth(*audioFormat);
+		
 		format_ex.dwChannelMask = 0;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_LEFT) format_ex.dwChannelMask |= SPEAKER_FRONT_LEFT;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_RIGHT) format_ex.dwChannelMask |= SPEAKER_FRONT_RIGHT;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_CENTER) format_ex.dwChannelMask |= SPEAKER_FRONT_CENTER;
 		if (channel_cfg & GF_AUDIO_CH_LFE) format_ex.dwChannelMask |= SPEAKER_LOW_FREQUENCY;
-		if (channel_cfg & GF_AUDIO_CH_BACK_LEFT) format_ex.dwChannelMask |= SPEAKER_BACK_LEFT;
-		if (channel_cfg & GF_AUDIO_CH_BACK_RIGHT) format_ex.dwChannelMask |= SPEAKER_BACK_RIGHT;
-		if (channel_cfg & GF_AUDIO_CH_BACK_CENTER) format_ex.dwChannelMask |= SPEAKER_BACK_CENTER;
-		if (channel_cfg & GF_AUDIO_CH_SIDE_LEFT) format_ex.dwChannelMask |= SPEAKER_SIDE_LEFT;
-		if (channel_cfg & GF_AUDIO_CH_SIDE_RIGHT) format_ex.dwChannelMask |= SPEAKER_SIDE_RIGHT;
+		if (channel_cfg & GF_AUDIO_CH_SURROUND_LEFT) format_ex.dwChannelMask |= SPEAKER_BACK_LEFT;
+		if (channel_cfg & GF_AUDIO_CH_SURROUND_RIGHT) format_ex.dwChannelMask |= SPEAKER_BACK_RIGHT;
+		if (channel_cfg & GF_AUDIO_CH_REAR_CENTER) format_ex.dwChannelMask |= SPEAKER_BACK_CENTER;
+		if (channel_cfg & GF_AUDIO_CH_SIDE_SURROUND_LEFT) format_ex.dwChannelMask |= SPEAKER_SIDE_LEFT;
+		if (channel_cfg & GF_AUDIO_CH_SIDE_SURROUND_RIGHT) format_ex.dwChannelMask |= SPEAKER_SIDE_RIGHT;
+
 		dsbBufferDesc.lpwfxFormat = (WAVEFORMATEX *) &format_ex;
 	}
 #endif
@@ -204,7 +218,7 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
 	if (FAILED(hr)) {
 retry:
-		if (ctx->use_notif) gf_modules_set_option((GF_BaseInterface *)dr, "Audio", "DisableNotification", "yes");
+		if (ctx->use_notif) gf_opts_set_key("core", "ds-disable-notif", "yes");
 		ctx->use_notif = GF_FALSE;
 		dsbBufferDesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
 		hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
@@ -212,7 +226,7 @@ retry:
 			if (ctx->format.nChannels>2) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[DirectSound] failed to configure output for %d channels (error %08x) - falling back to stereo\n", *NbChannels, hr));
 				*NbChannels = 2;
-				return DS_ConfigureOutput(dr, SampleRate, NbChannels, nbBitsPerSample, 0);
+				return DS_Configure(dr, SampleRate, NbChannels, audioFormat, 0);
 			}
 			return GF_IO_ERR;
 		}
@@ -334,6 +348,7 @@ void DS_WriteAudio(GF_AudioOutput *dr)
 	u32 retry;
 	DWORD in_play, cur_play;
 	DSCONTEXT();
+	if (!ctx->pOutput) return;
 
 	/*wait for end of current play buffer*/
 	if (ctx->pOutput->lpVtbl->GetCurrentPosition(ctx->pOutput, &in_play, NULL) != DS_OK ) {
@@ -385,7 +400,8 @@ static void DS_SetVolume(GF_AudioOutput *dr, u32 Volume)
 {
 	LONG Vol;
 	DSCONTEXT();
-	if (Volume > 100) Volume = DSBVOLUME_MAX;
+	if (!ctx->pOutput) return;
+	if (Volume > 100) Vol = DSBVOLUME_MAX;
 	else if(Volume == 0) Vol = DSBVOLUME_MIN;
 	else Vol = DSBVOLUME_MIN/2 + Volume * (DSBVOLUME_MAX-DSBVOLUME_MIN/2) / 100;
 	ctx->pOutput->lpVtbl->SetVolume(ctx->pOutput, Vol);
@@ -395,6 +411,7 @@ static void DS_SetPan(GF_AudioOutput *dr, u32 Pan)
 {
 	LONG dspan;
 	DSCONTEXT();
+	if (!ctx->pOutput) return;
 
 	if (Pan > 100) Pan = 100;
 	if (Pan > 50) {
@@ -458,7 +475,7 @@ void *NewAudioOutput()
 
 	driv->Setup = DS_Setup;
 	driv->Shutdown = DS_Shutdown;
-	driv->ConfigureOutput = DS_ConfigureOutput;
+	driv->Configure = DS_Configure;
 	driv->SetVolume = DS_SetVolume;
 	driv->SetPan = DS_SetPan;
 	driv->Play = DS_Play;

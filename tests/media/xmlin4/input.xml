@@ -1,5 +1,0 @@
-<gpac xmlns="http://www.gpac.io/xml">
-	<p id='elt1'>This is some text in a first element</p>
-	<p id='elt2'>This is some text in a second element</p>
-	<p id='elt3'>This is some text in a third element</p>
-</gpac>

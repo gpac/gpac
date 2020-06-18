@@ -36,13 +36,10 @@ Symbian Markr 5/11/99
 #ifndef _ZLIB_SYMBIAN_EXT_H
 #define _ZLIB_SYMBIAN_EXT_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
-#include <ezlib.h>
-//#include <ezconf.h>
+#include <gpac/setup.h>
 
+typedef void * voidp;
 typedef voidp gzFile;
 
 gzFile gzopen  OF((const char *path, const char *mode));
@@ -199,9 +196,5 @@ const char * gzerror OF((gzFile file, int *errnum));
    to get the exact error code.
 */
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _ZLIB_H */

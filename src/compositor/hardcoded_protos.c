@@ -30,7 +30,6 @@
 #include "mpeg4_grouping.h"
 
 #include <gpac/modules/hardcoded_proto.h>
-#include <gpac/internal/terminal_dev.h>
 #include "texturing.h"
 
 
@@ -40,7 +39,7 @@
 		return GF_FALSE; \
 	}\
 	if (field.fieldType != __type) {\
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] %s field idx %d (%s) is not of type %s\n", __name, field.fieldIndex, field.name, gf_sg_vrml_get_field_type_by_name(__type) ));\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] %s field idx %d (%s) is not of type %s\n", __name, field.fieldIndex, field.name, gf_sg_vrml_get_field_type_name(__type) ));\
 		return GF_FALSE;\
 	}
 
@@ -99,7 +98,6 @@ static Bool PathExtrusion_GetNode(GF_Node *node, PathExtrusion *path_ext)
 static void TraversePathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 {
 	PathExtrusion path_ext;
-	Drawable *stack_2d;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
 
@@ -112,6 +110,7 @@ static void TraversePathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	if (gf_node_dirty_get(node)) {
+		Drawable *stack_2d;
 		u32 mode = tr_state->traversing_mode;
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
 		gf_node_traverse(path_ext.geometry, tr_state);
@@ -207,13 +206,6 @@ static Bool PlanarExtrusion_GetNode(GF_Node *node, PlanarExtrusion *path_ext)
 static void TraversePlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 {
 	PlanarExtrusion plane_ext;
-	Drawable *stack_2d;
-	u32 i, j, k;
-	MFVec3f spine_vec;
-	SFVec3f d;
-	Fixed spine_len;
-	GF_Rect bounds;
-	GF_Path *geo, *spine;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
 
@@ -227,8 +219,15 @@ static void TraversePlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	if (gf_node_dirty_get(node)) {
+		Drawable *stack_2d;
+		u32 i, j, k;
+		MFVec3f spine_vec;
+		SFVec3f d;
+		Fixed spine_len;
+		GF_Rect bounds;
 		u32 cur, nb_pts;
 		u32 mode = tr_state->traversing_mode;
+		GF_Path *geo, *spine;
 		geo = spine = NULL;
 
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
@@ -424,7 +423,7 @@ static void TraversePlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		PlaneClipper_GetNode(node, &stack->pc);
-		gf_node_dirty_clear(node, 0);
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 
 	if (tr_state->num_clip_planes==MAX_USER_CLIP_PLANES) {
@@ -635,12 +634,10 @@ static Bool DepthGroup_GetNode(GF_Node *node, DepthGroup *dg)
 	CHECK_FIELD("DepthGroup", 0, GF_SG_VRML_MFNODE);
 	dg->children = *(GF_ChildNodeItem **) field.far_ptr;
 
-	CHECK_FIELD("DepthGroup", 1, GF_SG_VRML_SFINT32);
-
-	CHECK_FIELD("DepthGroup", 2, GF_SG_VRML_SFFLOAT);
+	CHECK_FIELD("DepthGroup", 1, GF_SG_VRML_SFFLOAT);
 	dg->depth_gain = * (SFFloat *) field.far_ptr;
 
-	CHECK_FIELD("DepthGroup", 3, GF_SG_VRML_SFFLOAT);
+	CHECK_FIELD("DepthGroup", 2, GF_SG_VRML_SFFLOAT);
 	dg->depth_offset = * (SFFloat *) field.far_ptr;
 
 	return GF_TRUE;
@@ -912,7 +909,6 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 		memcpy(&backup_cam, tr_state->camera, sizeof(GF_Camera));
 
-
 		camera_invalidate(tr_state->camera);
 		tr_state->camera->is_3D = GF_FALSE;
 		tr_state->camera->flags |= CAM_NO_LOOKAT;
@@ -921,7 +917,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {
-			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+			visual_3d_set_viewport(tr_state->visual, tr_state->camera->proj_vp);
 			visual_3d_projection_matrix_modified(tr_state->visual);
 
 			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
@@ -931,7 +927,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 			visual_3d_projection_matrix_modified(tr_state->visual);
 
-			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+			visual_3d_set_viewport(tr_state->visual, tr_state->camera->proj_vp);
 		} else if (tr_state->traversing_mode == TRAVERSE_PICK) {
 			Fixed prev_dist = tr_state->visual->compositor->hit_square_dist;
 			GF_Ray r = tr_state->ray;
@@ -1179,6 +1175,7 @@ typedef struct
     CustomTexture tx;
     GF_TextureHandler txh;
     u32 gl_id;
+    Bool disabled;
 } CustomTextureStack;
 
 static Bool CustomTexture_GetNode(GF_Node *node, CustomTexture *tx)
@@ -1213,7 +1210,7 @@ static void TraverseCustomTexture(GF_Node *node, void *rs, Bool is_destroy)
 static void CustomTexture_update(GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_3D
-    char data[12];
+    u8 data[12];
 #endif
     CustomTextureStack *stack = gf_node_get_private(txh->owner);
     //alloc texture
@@ -1222,6 +1219,8 @@ static void CustomTexture_update(GF_TextureHandler *txh)
         gf_sc_texture_allocate(txh);
         if (!txh->tx_io) return;
     }
+    if (stack->disabled) return;
+    
 #ifndef GPAC_DISABLE_3D
     //texture not setup, do it
     if (! gf_sc_texture_get_gl_id(txh)) {
@@ -1230,7 +1229,7 @@ static void CustomTexture_update(GF_TextureHandler *txh)
         //in our case we only want to test openGL so no need to fill in the texture width/height stride
         //since we will upload ourselves the texture
         txh->transparent = 0;
-        txh->pixelformat = GF_PIXEL_RGB_24;
+        txh->pixelformat = GF_PIXEL_RGB;
 
         //signaling we modified associated data (even if no data in our case) to mark texture as dirty
         gf_sc_texture_set_data(txh);
@@ -1250,9 +1249,9 @@ static void CustomTexture_update(GF_TextureHandler *txh)
 #ifndef GPAC_DISABLE_3D
     //setup our texture data
     memset(data, 0, sizeof(char)*12);
-    data[0] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //first pixel red modulated by intensity
-    data[4] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //second pixel green
-    data[8] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //third pixel blue
+    data[0] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //first pixel red modulated by intensity
+    data[4] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //second pixel green
+    data[8] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //third pixel blue
     //last pixel black
     
     glBindTexture( GL_TEXTURE_2D, stack->gl_id);
@@ -1276,6 +1275,11 @@ void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
         gf_node_set_callback_function(node, TraverseCustomTexture);
         stack->tx = tx;
 
+		if (!gf_sc_check_gl_support(compositor)) {
+			stack->disabled = GF_TRUE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Driver disabled, cannot render custom texture test\n"));
+			return;
+		}
         //register texture object
         gf_sc_texture_setup(&stack->txh, compositor, node);
         stack->txh.update_texture_fcnt = CustomTexture_update;
@@ -1292,7 +1296,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TextureHandler *txh;
 	GF_MediaObjectVRInfo vrinfo;
 	GF_MeshSphereAngles sphere_angles;
-
+	Bool mesh_was_reset = GF_FALSE;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
 
@@ -1310,7 +1314,12 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	if (gf_node_dirty_get(node) || (tr_state->traversing_mode==TRAVERSE_DRAW_3D)) {
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
-			
+
+		if (vrinfo.has_full_coverage && tr_state->disable_partial_sphere) {
+			if ((vrinfo.srd_w!=vrinfo.srd_max_x) || (vrinfo.srd_h!=vrinfo.srd_max_y))
+				return;
+		}
+
 		sphere_angles.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_y / vrinfo.srd_max_y;
 		sphere_angles.max_phi = -GF_PI2 + GF_PI * (vrinfo.srd_h +  vrinfo.srd_y) / vrinfo.srd_max_y;
 
@@ -1334,6 +1343,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				txh->flags &= ~GF_SR_TEXTURE_REPEAT_S;
 				txh->flags &= ~GF_SR_TEXTURE_REPEAT_T;
 			}
+			mesh_was_reset = GF_TRUE;
 			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 		}
 		
@@ -1341,18 +1351,20 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
 			Bool visible = GF_FALSE;
 
-			if (! tr_state->camera_was_dirty) {
+			if (! tr_state->camera_was_dirty && !mesh_was_reset) {
 				visible = (stack->mesh->flags & MESH_WAS_VISIBLE) ? GF_TRUE : GF_FALSE;
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;
 			}
+			else if (txh->compositor->tvtf) {
+				visible = GF_TRUE;
 			//estimate visibility asap, even if texture not yet ready (we have SRD info):
 			//this allows sending stop commands which will free inactive decoder HW context
-			else {
+			} else {
 				u32 i, j;
 				u32 nb_visible=0;
-				u32 nb_tests = tr_state->visual->compositor->tile_visibility_nb_tests;
-				u32 min_visible_threshold = tr_state->visual->compositor->tile_visibility_threshold;
+				u32 nb_tests = tr_state->visual->compositor->tvtn;
+				u32 min_visible_threshold = tr_state->visual->compositor->tvtt;
 				u32 stride;
 
 				//pick nb_tests vertices spaced every stride in the mesh
@@ -1380,6 +1392,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					visible = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is %s - %d sample points visible out of %d\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  nb_visible, i));
 			}
+
 			if (visible) {
 				stack->mesh->flags |= MESH_WAS_VISIBLE;
 			} else {
@@ -1410,7 +1423,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			if (vrinfo.has_full_coverage) {
 				if (visible) {
 					if (!txh->is_open) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d stoped on visible partial sphere - starting it\n", txh->stream->OD_ID));
+						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d stoped on visible partial sphere - starting it\n", txh->stream->OD_ID));
 						assert(txh->stream && txh->stream->odm);
 						txh->stream->odm->disable_buffer_at_next_play = GF_TRUE;
 
@@ -1419,12 +1432,14 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					if (txh->data) {
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 						visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
-						visual_3d_draw(tr_state, stack->mesh);
+						if (!tr_state->visual->compositor->tvtd || (vrinfo.srd_w != vrinfo.srd_max_x)) {
+							visual_3d_draw(tr_state, stack->mesh);
+						}
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
 					}
 				} else {
 					if (txh->is_open) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d playing on hidden partial sphere - stoping it\n", txh->stream->OD_ID));
+						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d playing on hidden partial sphere - stoping it\n", txh->stream->OD_ID));
 						gf_sc_texture_stop_no_unregister(txh);
 					}
 				}
@@ -1435,10 +1450,12 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					visual_3d_draw(tr_state, stack->mesh);
 					visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
 				}
-				if (visible) {
-					gf_mo_hint_quality_degradation(txh->stream, 0);
-				} else {
-					gf_mo_hint_quality_degradation(txh->stream, 100);
+				if (!tr_state->disable_partial_sphere) {
+					if (visible) {
+						gf_mo_hint_quality_degradation(txh->stream, 0);
+					} else {
+						gf_mo_hint_quality_degradation(txh->stream, 100);
+					}
 				}
 			}
 		}
@@ -1454,6 +1471,186 @@ static void compositor_init_vr_geometry(GF_Compositor *compositor, GF_Node *node
 	drawable_3d_new(node);
 	gf_node_set_callback_function(node, TraverseVRGeometry);
 }
+
+#define VRHUD_SCALE	6
+static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
+{
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+	GF_Matrix mv_bck, proj_bck, cam_bck;
+	/*SFVec3f target;*/
+	GF_Rect vp, orig_vp;
+	u32 mode, i, cull_bck;
+	Fixed angle_yaw/*, angle_pitch*/;
+	SFVec3f axis;
+	GF_Node *subtree = gf_node_get_private(node);
+	if (is_destroy) return;
+
+	if (!tr_state->camera) return;
+	mode = tr_state->visual->compositor->vrhud_mode;
+	if (!mode) return;
+
+	gf_mx_copy(mv_bck, tr_state->model_matrix);
+	gf_mx_copy(cam_bck, tr_state->camera->modelview);
+
+	tr_state->disable_partial_sphere = GF_TRUE;
+	/*target = tr_state->camera->target;*/
+	orig_vp = tr_state->camera->proj_vp;
+
+/*
+	//compute pitch (elevation)
+	dlen = tr_state->camera->target.x*tr_state->camera->target.x + tr_state->camera->target.z*tr_state->camera->target.z;
+	dlen = gf_sqrt(dlen);
+*/
+
+	/*angle_pitch = gf_atan2(tr_state->camera->target.y, dlen);*/
+
+	//compute yaw (rotation Y)
+	angle_yaw = gf_atan2(tr_state->camera->target.z, tr_state->camera->target.x);
+
+	//compute axis for the pitch
+	axis = tr_state->camera->target;
+	axis.y=0;
+	gf_vec_norm(&axis);
+
+	visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
+
+	if (mode==2) {
+		//rear mirror, reverse x-axis on projection
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		//inverse backface culling
+		tr_state->reverse_backface = GF_TRUE;
+		vp = orig_vp;
+		vp.width/=VRHUD_SCALE;
+		vp.height/=VRHUD_SCALE;
+		vp.x = orig_vp.x + (orig_vp.width-vp.width)/2;
+		vp.y = orig_vp.y + orig_vp.height-vp.height;
+
+		visual_3d_set_viewport(tr_state->visual, vp);
+
+		gf_mx_add_rotation(&tr_state->model_matrix, GF_PI, tr_state->camera->up.x, tr_state->camera->up.y, tr_state->camera->up.z);
+		gf_node_traverse(subtree, rs);
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+	} else if (mode==1) {
+		gf_mx_copy(proj_bck, tr_state->camera->projection);
+		gf_mx_init(tr_state->camera->modelview);
+
+		//force projection with PI/2 fov and AR 1:1
+		tr_state->camera->projection.m[0] = -1;
+		tr_state->camera->projection.m[5] = 1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		//force cull inside
+		cull_bck = tr_state->cull_flag;
+		tr_state->cull_flag = CULL_INSIDE;
+		//inverse backface culling
+		tr_state->reverse_backface = GF_TRUE;
+
+		//draw 3 viewports, each separated by PI/2 rotation
+		for (i=0; i<3; i++) {
+			vp = orig_vp;
+			vp.height/=VRHUD_SCALE;
+			vp.width=vp.height;
+			//we reverse X in the projection, so reverse the viewports
+			vp.x = orig_vp.x + orig_vp.width/2 - 3*vp.width/2 + (3-i-1)*vp.width;
+			vp.y = orig_vp.y + orig_vp.height - vp.height;
+			visual_3d_set_viewport(tr_state->visual, vp);
+			tr_state->disable_cull = GF_TRUE;
+
+			gf_mx_init(tr_state->model_matrix);
+			gf_mx_add_rotation(&tr_state->model_matrix, angle_yaw-GF_PI, 0, 1, 0);
+			gf_mx_add_rotation(&tr_state->model_matrix, i*GF_PI2, 0, 1, 0);
+
+			gf_node_traverse(subtree, rs);
+		}
+		gf_mx_copy(tr_state->camera->projection, proj_bck);
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		tr_state->cull_flag = cull_bck;
+		gf_mx_copy(tr_state->camera->modelview, cam_bck);
+	}
+	else if ((mode==4) || (mode==3)) {
+		// mirror, reverse x-axis on projection
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		//inverse backface culling
+		tr_state->reverse_backface = GF_TRUE;
+
+		//side left view
+		vp = orig_vp;
+		vp.width/=VRHUD_SCALE;
+		vp.height/=VRHUD_SCALE;
+		if (mode==3) {
+			vp.x = orig_vp.x;
+		} else {
+			vp.x = orig_vp.x + orig_vp.width/2 - 2*vp.width;
+		}
+		vp.y = orig_vp.y + orig_vp.height - vp.height;
+		visual_3d_set_viewport(tr_state->visual, vp);
+
+		gf_mx_add_rotation(&tr_state->model_matrix, -2*GF_PI/3, 0, 1, 0);
+
+		gf_node_traverse(subtree, rs);
+
+		//side right view
+		if (mode==3) {
+			vp.x = orig_vp.x + orig_vp.width - vp.width;
+		} else {
+			vp.x = orig_vp.x + orig_vp.width/2+vp.width;
+		}
+		visual_3d_set_viewport(tr_state->visual, vp);
+
+		gf_mx_copy(tr_state->model_matrix, mv_bck);
+		gf_mx_add_rotation(&tr_state->model_matrix, 2*GF_PI/3, 0, 1, 0);
+
+		gf_node_traverse(subtree, rs);
+
+		if (mode==4) {
+			//upper view
+			vp.x = orig_vp.x + orig_vp.width/2 - vp.width;
+			visual_3d_set_viewport(tr_state->visual, vp);
+
+			gf_mx_copy(tr_state->model_matrix, mv_bck);
+			gf_mx_add_rotation(&tr_state->model_matrix, - GF_PI2, -axis.z, 0, axis.x);
+			gf_node_traverse(subtree, rs);
+
+			//down view
+			vp.x = orig_vp.x + orig_vp.width/2;
+			visual_3d_set_viewport(tr_state->visual, vp);
+
+			gf_mx_copy(tr_state->model_matrix, mv_bck);
+			gf_mx_add_rotation(&tr_state->model_matrix, GF_PI2, -axis.z, 0, axis.x);
+
+			gf_node_traverse(subtree, rs);
+		}
+
+		tr_state->camera->projection.m[0] *= -1;
+		visual_3d_projection_matrix_modified(tr_state->visual);
+	}
+
+	//restore camera and VP
+	gf_mx_copy(tr_state->model_matrix, mv_bck);
+	visual_3d_set_viewport(tr_state->visual, orig_vp);
+	visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
+	tr_state->disable_partial_sphere = GF_FALSE;
+	tr_state->reverse_backface = GF_FALSE;
+}
+
+void compositor_init_vrhud(GF_Compositor *compositor, GF_Node *node)
+{
+	GF_Node *n;
+	GF_SceneGraph *sg = gf_node_get_graph(node);
+	sg = gf_sg_get_parent(sg);
+
+	n = gf_sg_find_node_by_name(sg, "DYN_TRANS");
+	if (!n) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Unable to initialize VRHUD group, no main scene\n"));
+	} else {
+		gf_node_set_callback_function(node, TraverseVRHUD);
+		gf_node_proto_set_grouping(node);
+		gf_node_set_private(node, n);
+	}
+}
+
 
 #endif //GPAC_DISABLE_3D
 
@@ -1474,27 +1671,27 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
         if (!url) continue;
         
 #ifndef GPAC_DISABLE_3D
-	if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
-		compositor_init_path_extrusion(compositor, node);
-		return;
-	}
-	if (!strcmp(url, "urn:inet:gpac:builtin:PlanarExtrusion")) {
-		compositor_init_planar_extrusion(compositor, node);
-		return;
-	}
-	if (!strcmp(url, "urn:inet:gpac:builtin:PlaneClipper")) {
-		compositor_init_plane_clipper(compositor, node);
-		return;
-	}
+		if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
+			compositor_init_path_extrusion(compositor, node);
+			return;
+		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:PlanarExtrusion")) {
+			compositor_init_planar_extrusion(compositor, node);
+			return;
+		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:PlaneClipper")) {
+			compositor_init_plane_clipper(compositor, node);
+			return;
+		}
         if (!strcmp(url, "urn:inet:gpac:builtin:VRGeometry")) {
             compositor_init_vr_geometry(compositor, node);
             return;
         }
+        if (!strcmp(url, "urn:inet:gpac:builtin:VRHUD")) {
+            compositor_init_vrhud(compositor, node);
+            return;
+        }
 #endif
-		if (!strcmp(url, "urn:inet:gpac:builtin:TextureText")) {
-			compositor_init_texture_text(compositor, node);
-			return;
-		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:OffscreenGroup")) {
 			compositor_init_offscreen_group(compositor, node);
 			return;
@@ -1516,7 +1713,9 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			return;
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:FlashShape")) {
+#ifdef GPAC_ENABLE_FLASHSHAPE
 			compositor_init_hc_flashshape(compositor, node);
+#endif
 			return;
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:StyleGroup")) {
@@ -1531,7 +1730,7 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
             compositor_init_custom_texture(compositor, node);
             return;
         }
-		
+
 
 		/*check proto modules*/
 		if (compositor->proto_modules) {

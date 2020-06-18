@@ -31,7 +31,7 @@
 
 #ifndef GPAC_DISABLE_VRML
 
-
+GF_EXPORT
 GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool unregistered)
 {
 	GF_Proto *tmp;
@@ -68,7 +68,8 @@ GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool 
 	return tmp;
 }
 
-
+#if 0
+/*used for memory handling of scene graph only. move proto from off-graph to in-graph or reverse*/
 GF_Err gf_sg_proto_set_in_graph(GF_Proto *proto, GF_SceneGraph *inScene, Bool set_in)
 {
 	u32 i;
@@ -96,12 +97,11 @@ GF_Err gf_sg_proto_set_in_graph(GF_Proto *proto, GF_SceneGraph *inScene, Bool se
 	}
 	return gf_list_add(insertIn, proto);
 }
+#endif
 
-
+GF_EXPORT
 GF_Err gf_sg_proto_del(GF_Proto *proto)
 {
-	GF_Node *node;
-	GF_ProtoFieldInterface *field;
 	s32 i;
 
 	if (!proto) return GF_OK;
@@ -113,7 +113,7 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 
 	/*first destroy the code*/
 	while (gf_list_count(proto->node_code)) {
-		node = (GF_Node*)gf_list_get(proto->node_code, 0);
+		GF_Node *node = (GF_Node*)gf_list_get(proto->node_code, 0);
 		gf_node_unregister(node, NULL);
 		gf_list_rem(proto->node_code, 0);
 	}
@@ -121,7 +121,7 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 
 	/*delete interface*/
 	while (gf_list_count(proto->proto_fields)) {
-		field = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, 0);
+		GF_ProtoFieldInterface *field = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, 0);
 		if (field->userpriv && field->OnDelete) field->OnDelete(field->userpriv);
 
 		if (field->FieldType==GF_SG_VRML_SFNODE) {
@@ -162,11 +162,14 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_SceneGraph *gf_sg_proto_get_graph(GF_Proto *proto)
 {
 	return proto ? proto->sub_graph : NULL;
 }
 
+
+#if 0
 void gf_sg_proto_set_private(GF_Proto *p, void *ptr, void (*OnDelete)(void *ptr) )
 {
 	if (p) {
@@ -174,10 +177,12 @@ void gf_sg_proto_set_private(GF_Proto *p, void *ptr, void (*OnDelete)(void *ptr)
 		p->OnDelete = OnDelete;
 	}
 }
+
 void *gf_sg_proto_get_private(GF_Proto *p)
 {
 	return p ? p->userpriv : NULL;
 }
+#endif
 
 GF_EXPORT
 MFURL *gf_sg_proto_get_extern_url(GF_Proto *proto)
@@ -185,12 +190,14 @@ MFURL *gf_sg_proto_get_extern_url(GF_Proto *proto)
 	return proto ? &proto->ExternProto : NULL;
 }
 
+GF_EXPORT
 GF_Err gf_sg_proto_add_node_code(GF_Proto *proto, GF_Node *pNode)
 {
 	if (!proto) return GF_BAD_PARAM;
 	return gf_list_add(proto->node_code, pNode);
 }
 
+GF_EXPORT
 GF_ProtoFieldInterface *gf_sg_proto_field_find_by_name(GF_Proto *proto, char *fieldName)
 {
 	GF_ProtoFieldInterface *ptr;
@@ -201,6 +208,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_find_by_name(GF_Proto *proto, char *fi
 	return NULL;
 }
 
+GF_EXPORT
 GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u32 eventType, char *fieldName)
 {
 	GF_ProtoFieldInterface *tmp;
@@ -255,6 +263,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u3
 	return tmp;
 }
 
+#if 0 //unused
 void gf_sg_proto_field_set_private(GF_ProtoFieldInterface *field, void *ptr, void (*OnDelete)(void *ptr))
 {
 	if (field) {
@@ -267,9 +276,9 @@ void *gf_sg_proto_field_get_private(GF_ProtoFieldInterface *field)
 {
 	return field ? field->userpriv : NULL;
 }
+#endif
 
-
-
+GF_EXPORT
 GF_Err gf_sg_proto_field_get_field(GF_ProtoFieldInterface *field, GF_FieldInfo *info)
 {
 	if (!field || !info) return GF_BAD_PARAM;
@@ -304,7 +313,7 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 		return GF_OK;
 	}
 
-	/*otherwise this is an instanciated proto*/
+	/*otherwise this is an instantiated proto*/
 	if (node->sgprivate->tag!=TAG_ProtoNode) return GF_BAD_PARAM;
 
 	inst = (GF_ProtoInstance *) node;
@@ -334,17 +343,20 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name)
 {
 	u32 i;
-	GF_ProtoFieldInterface *proto_field;
-	GF_Proto *__proto;
+	GF_Proto *__proto=NULL;
 
 	if (!node && !proto) return -1;
 	if (node && (node->sgprivate->tag!=TAG_ProtoNode)) return -1;
 
-	__proto = proto ? proto : ((GF_ProtoInstance *) node)->proto_interface;
+	if (proto)
+		__proto = proto;
+	else if (node)
+		__proto = ((GF_ProtoInstance *) node)->proto_interface;
+
 	if (!__proto ) return -1;
 
 	for (i=0; i<gf_list_count(__proto->proto_fields); i++) {
-		proto_field = (GF_ProtoFieldInterface*)gf_list_get(__proto->proto_fields, i);
+		GF_ProtoFieldInterface *proto_field = (GF_ProtoFieldInterface*)gf_list_get(__proto->proto_fields, i);
 		if (proto_field->FieldName && !strcmp(proto_field->FieldName, name)) return i;
 	}
 	return -1;
@@ -358,12 +370,11 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	Bool is_script;
 	GF_Node *node, *child;
 	GF_ChildNodeItem *list, *last;
-	GF_Route *r1, *r2;
+	GF_Route *r1;
 #ifndef GPAC_DISABLE_BIFS
 	void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig);
 #endif
 	GF_ProtoInstance *proto;
-	GF_Proto *proto_node;
 	GF_FieldInfo field_orig, field;
 
 	/*this is not a mistake*/
@@ -397,7 +408,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	}
 	/*create a node*/
 	if (orig->sgprivate->tag == TAG_ProtoNode) {
-		proto_node = ((GF_ProtoInstance *)orig)->proto_interface;
+		GF_Proto *proto_node = ((GF_ProtoInstance *)orig)->proto_interface;
 		/*create the instance but don't load the code -c we MUST wait for ISed routes to be cloned before*/
 		node = gf_sg_proto_create_node(inScene, proto_node, (GF_ProtoInstance *) orig);
 	} else {
@@ -478,7 +489,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	/*create Routes for ISed fields*/
 	i=0;
 	while ((r1 = (GF_Route*)gf_list_enum(proto->proto_interface->sub_graph->Routes, &i))) {
-		r2 = NULL;
+		GF_Route *r2 = NULL;
 		/*locate only ISed routes*/
 		if (!r1->IS_route) continue;
 
@@ -507,7 +518,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		node->sgprivate->UserPrivate = NULL;
 		/*NO RENDER, this is filtered at the generic gf_node_traverse to cope with instanciations and externProto*/
 		/*load code*/
-		gf_sg_proto_instanciate((GF_ProtoInstance *)node);
+		gf_sg_proto_instantiate((GF_ProtoInstance *)node);
 	}
 	return node;
 }
@@ -521,7 +532,7 @@ GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode
 static Bool is_same_proto(GF_Proto *extern_proto, GF_Proto *proto)
 {
 	u32 i, count;
-	/*CRML allows external protos to have more fields defined that the externProto referencing them*/
+	/*VRML allows external protos to have more fields defined that the externProto referencing them*/
 	if (gf_list_count(extern_proto->proto_fields) > gf_list_count(proto->proto_fields)) return 0;
 	count = gf_list_count(extern_proto->proto_fields);
 	for (i=0; i<count; i++) {
@@ -556,7 +567,7 @@ static GF_Proto *find_proto_by_interface(GF_SceneGraph *sg, GF_Proto *extern_pro
 }
 
 /*performs common initialization of routes ISed fields and protos once everything is loaded*/
-void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
+void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 {
 	GF_Node *node, *orig;
 	GF_Route *route, *r2;
@@ -635,7 +646,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		gf_list_add(proto->instances, proto_node);
 	}
 
-	/*OVERRIDE the proto instance (eg don't instanciate an empty externproto...)*/
+	/*OVERRIDE the proto instance (eg don't instantiate an empty externproto...)*/
 	proto_node->proto_interface = proto;
 
 	/*clone all nodes*/
@@ -746,7 +757,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	/*set this proto as owner of the new graph*/
 	proto_node->sgprivate->scenegraph->pOwningProto = proto_node;
 
-	/*instanciate fields*/
+	/*instantiate fields*/
 	i=0;
 	while ((field = (GF_ProtoFieldInterface*)gf_list_enum(proto->proto_fields, &i))) {
 		GF_SAFEALLOC(inst, GF_ProtoField);
@@ -761,8 +772,8 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 		/*this is OK to call on GF_Node (returns NULL) and MFNode (returns gf_list_new() )*/
 		inst->field_pointer = gf_sg_vrml_field_pointer_new(inst->FieldType);
 
-		/*regular field, duplicate from default value or instanciated one if specified (since
-		a proto may be partially instanciated when used in another proto)*/
+		/*regular field, duplicate from default value or instantiated one if specified (since
+		a proto may be partially instantiated when used in another proto)*/
 		if (gf_sg_vrml_get_sf_type(inst->FieldType) != GF_SG_VRML_SFNODE) {
 			if (from_inst) {
 				from_field = (GF_ProtoField *)gf_list_get(from_inst->fields, i-1);
@@ -779,12 +790,13 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 }
 
 
-
+GF_EXPORT
 GF_Node *gf_sg_proto_create_instance(GF_SceneGraph *sg, GF_Proto *proto)
 {
 	return gf_sg_proto_create_node(sg, proto, NULL);
 }
 
+GF_EXPORT
 GF_Err gf_sg_proto_load_code(GF_Node *node)
 {
 	GF_ProtoInstance *inst;
@@ -792,7 +804,7 @@ GF_Err gf_sg_proto_load_code(GF_Node *node)
 	inst = (GF_ProtoInstance *) node;
 	if (!inst->proto_interface) return GF_BAD_PARAM;
 	if (inst->flags & GF_SG_PROTO_LOADED) return GF_OK;
-	gf_sg_proto_instanciate(inst);
+	gf_sg_proto_instantiate(inst);
 	return GF_OK;
 }
 
@@ -824,13 +836,9 @@ u32 gf_sg_proto_get_num_fields(GF_Node *node, u8 code_mode)
 void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 {
 	GF_SceneGraph *sg;
-	GF_ProtoField *field;
-	GF_Node *node;
-	u32 index;
 
-	index = 0;
 	while (gf_list_count(inst->fields)) {
-		field = (GF_ProtoField *)gf_list_get(inst->fields, 0);
+		GF_ProtoField *field = (GF_ProtoField *)gf_list_get(inst->fields, 0);
 		gf_list_rem(inst->fields, 0);
 
 		/*regular type*/
@@ -853,13 +861,12 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 		}
 
 		gf_free(field);
-		index++;
 	}
 	gf_list_del(inst->fields);
 
 	/*destroy the code*/
 	while (gf_list_count(inst->node_code)) {
-		node = (GF_Node*)gf_list_get(inst->node_code, 0);
+		GF_Node *node = (GF_Node*)gf_list_get(inst->node_code, 0);
 		gf_node_unregister(node, (GF_Node*) inst);
 		gf_list_rem(inst->node_code, 0);
 	}
@@ -886,6 +893,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 /*Note on ISed fields: we cannot support fan-in on proto, eg we assume only one eventIn field can receive events
 thus situations where a proto receives eventIn from outside and the node with ISed eventIn receives event
 from inside the proto are undefined*/
+GF_EXPORT
 GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node *node, u32 nodeFieldIndex)
 {
 	GF_Err e;
@@ -902,7 +910,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 		} else if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFURL) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFSTRING)) {
 //			e = GF_OK;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_name(field.fieldType), gf_sg_vrml_get_field_type_name(nodeField.fieldType)));
 			return GF_SG_INVALID_PROTO;
 		}
 	}
@@ -976,6 +984,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 	return gf_list_add(proto->sub_graph->Routes, r);
 }
 
+GF_EXPORT
 GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF_Node *node, u32 nodeFieldIndex)
 {
 	GF_Err e;
@@ -993,7 +1002,7 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 		} else if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFURL) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFSTRING)) {
 //			e = GF_OK;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_name(field.fieldType), gf_sg_vrml_get_field_type_name(nodeField.fieldType)));
 			return GF_SG_INVALID_PROTO;
 		}
 	}
@@ -1141,12 +1150,14 @@ GF_Err gf_sg_proto_get_field_index(GF_ProtoInstance *proto, u32 index, u32 code_
 	return GF_BAD_PARAM;
 }
 
+GF_EXPORT
 u32 gf_sg_proto_get_field_count(GF_Proto *proto)
 {
 	if (!proto) return 0;
 	return gf_list_count(proto->proto_fields);
 }
 
+GF_EXPORT
 GF_ProtoFieldInterface *gf_sg_proto_field_find(GF_Proto *proto, u32 fieldIndex)
 {
 	if (!proto) return NULL;
@@ -1236,11 +1247,13 @@ GF_Proto *gf_node_get_proto(GF_Node *node)
 }
 
 /*returns the ID of the proto*/
+GF_EXPORT
 u32 gf_sg_proto_get_id(GF_Proto *proto)
 {
 	return proto->ID;
 }
 
+GF_EXPORT
 const char *gf_sg_proto_get_class_name(GF_Proto *proto)
 {
 	return (const char *) proto->Name;
@@ -1256,6 +1269,7 @@ u32 gf_sg_proto_get_root_tag(GF_Proto *proto)
 	return n->sgprivate->tag;
 }
 
+GF_EXPORT
 Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 {
 	u32 i;
@@ -1282,17 +1296,6 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 	return 0;
 }
 
-GF_SceneGraph *Node_GetExternProtoScene(GF_Node *node)
-{
-	GF_SceneGraph *sg;
-	sg = node->sgprivate->scenegraph;
-	if (!sg->pOwningProto) return NULL;
-	if (!sg->pOwningProto->proto_interface->ExternProto.count) return NULL;
-	sg = sg->pOwningProto->proto_interface->parent_graph;
-	while (sg->parent_scene) sg = sg->parent_scene;
-	return sg;
-}
-
 GF_EXPORT
 GF_Err gf_node_proto_set_grouping(GF_Node *node)
 {
@@ -1316,7 +1319,7 @@ GF_Node *gf_node_get_proto_root(GF_Node *node)
 	return ((GF_ProtoInstance *)node)->RenderingNode;
 }
 
-GF_EXPORT
+#if 0 //unused
 GF_Node *gf_node_get_proto_parent(GF_Node *node)
 {
 	if (!node) return NULL;
@@ -1327,7 +1330,6 @@ GF_Node *gf_node_get_proto_parent(GF_Node *node)
 	return NULL;
 }
 
-GF_EXPORT
 Bool gf_node_is_proto_root(GF_Node *node)
 {
 	if (!node) return 0;
@@ -1336,6 +1338,7 @@ Bool gf_node_is_proto_root(GF_Node *node)
 	if (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0) return 1;
 	return 0;
 }
+#endif
 
 
 GF_EXPORT

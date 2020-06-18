@@ -194,9 +194,6 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 		} else if (!strcmp("solid-opacity", att->svg_name)) {
 			fprintf(output, "\tp->solid_opacity.type = SVG_NUMBER_VALUE;\n");
 			fprintf(output, "\tp->solid_opacity.value = FIX_ONE;\n");
-		} else if (!strcmp("solid-color", att->svg_name)) {
-			fprintf(output, "\tp->stop_color.type = SVG_PAINT_COLOR;\n");
-			fprintf(output, "\tp->stop_color.color.type = SVG_COLOR_RGBCOLOR;\n");
 		} else if (!strcmp("stop-opacity", att->svg_name)) {
 			fprintf(output, "\tp->stop_opacity.type = SVG_NUMBER_VALUE;\n");
 			fprintf(output, "\tp->stop_opacity.value = FIX_ONE;\n");

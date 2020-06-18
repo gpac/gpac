@@ -1,0 +1,8 @@
+This software package includes many Multimedia Technologies. Some of these technologies may be covered by various patents hard to identify. These patents may or may not apply in your local jurisdiction.
+
+By installing this software, you acknowledge that you may have to pay royalty fees in order to legally use this software.
+
+DO NOT PROCEED with this installation if you do not understand or do not agree with these terms.
+
+Telecom Paris bears no liability for any infringing usage of this software, which is provided for educational or research purposes.
+

@@ -182,9 +182,8 @@ BNode *BlankNode()
 u8 IsNDT(GF_List *NDTs, char *famName)
 {
 	u32 i;
-	char *ndtName;
 	for (i=0; i<gf_list_count(NDTs); i++) {
-		ndtName = gf_list_get(NDTs, i);
+		char *ndtName = gf_list_get(NDTs, i);
 		//remove SF / MF as we don't need that
 		if (!strcmp(ndtName+2, famName+2)) return 1;
 	}
@@ -277,7 +276,6 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 {
 	FILE *f;
 	u32 i, j;
-	char *NDTName;
 	BNode *n;
 	BField *bf;
 	Bool hasViewport;
@@ -366,7 +364,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 	//all NDTs are defined in v1
 	fprintf(f, "/*NodeDataType tags*/\nenum {\n");
 	for (i=0; i<gf_list_count(NDTs); i++) {
-		NDTName = gf_list_get(NDTs, i);
+		char *NDTName = gf_list_get(NDTs, i);
 		if (!i) {
 			fprintf(f, "\tNDT_%s = 1", NDTName);
 		} else {
@@ -402,10 +400,9 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 u32 IsNodeInTable(BNode *node, char *NDTName)
 {
 	u32 i;
-	char *ndt;
 
 	for (i=0; i<gf_list_count(node->NDT); i++) {
-		ndt = gf_list_get(node->NDT, i);
+		char *ndt = gf_list_get(node->NDT, i);
 		if (!strcmp(ndt, NDTName)) return 1;
 	}
 	return 0;
@@ -422,7 +419,6 @@ u32 GetBitsCount(u32 MaxVal)
 u32 GetNDTCount(char *NDTName, GF_List *BNodes, u32 Version)
 {
 	u32 i, nodeCount;
-	BNode *n;
 
 	//V1 begins at 0
 	if (Version == 1) {
@@ -437,7 +433,7 @@ u32 GetNDTCount(char *NDTName, GF_List *BNodes, u32 Version)
 		nodeCount = 1;
 	}
 	for (i=0; i<gf_list_count(BNodes); i++) {
-		n = gf_list_get(BNodes, i);
+		BNode *n = gf_list_get(BNodes, i);
 		if (n->version != Version) continue;
 		if (!IsNodeInTable(n, NDTName)) continue;
 		nodeCount++;
@@ -449,7 +445,6 @@ u32 GetNDTCount(char *NDTName, GF_List *BNodes, u32 Version)
 void WriteNDT_H(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 {
 	u32 i, j, first, count;
-	char *NDTName;
 	BNode *n;
 
 
@@ -457,7 +452,7 @@ void WriteNDT_H(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 
 	//for all NDTs
 	for (i=0; i<gf_list_count(NDTs); i++) {
-		NDTName = gf_list_get(NDTs, i);
+		char *NDTName = gf_list_get(NDTs, i);
 		count = GetNDTCount(NDTName, BNodes, Version);
 		if (Version == 2) {
 			count -= 2;
@@ -562,11 +557,10 @@ void WriteNDT_Dec(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 void WriteNDT_Enc(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 {
 	u32 i, count;
-	char *NDTName;
 
 	fprintf(f, "u32 NDT_V%d_GetNodeType(u32 NDT_Tag, u32 NodeTag)\n{\n\tif(!NDT_Tag || !NodeTag) return 0;\n\tswitch(NDT_Tag) {\n", Version);
 	for (i=0; i<gf_list_count(NDTs); i++) {
-		NDTName = gf_list_get(NDTs, i);
+		char *NDTName = gf_list_get(NDTs, i);
 		count = GetNDTCount(NDTName, BNodes, Version);
 		if (Version == 2) {
 			count -= 2;
@@ -775,11 +769,10 @@ void WriteNodeFields(FILE *f, BNode *n)
 void WriteNodeQuant(FILE *f, BNode *n)
 {
 	u32 i;
-	BField *bf;
 	fprintf(f, "static Bool %s_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)\n{\n\tswitch (FieldIndex) {\n", n->name);
 
 	for (i=0; i<gf_list_count(n->Fields) ; i++ ) {
-		bf = gf_list_get(n->Fields, i);
+		BField *bf = gf_list_get(n->Fields, i);
 		if (!bf->hasAnim && !bf->hasQuant) continue;
 
 		fprintf(f, "\tcase %d:\n", i);
@@ -1038,7 +1031,7 @@ void WriteNodeCode(GF_List *BNodes)
 			}
 			//SFString
 			else if (!strcmp(bf->familly, "SFString")) {
-				fprintf(f, "\tp->%s.buffer = (char*)gf_malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
+				fprintf(f, "\tp->%s.buffer = (char*)gf_malloc(sizeof(char) * %u);\n", bf->name, (u32) strlen(bf->def)+1);
 				fprintf(f, "\tstrcpy(p->%s.buffer, \"%s\");\n", bf->name, bf->def);
 			}
 
@@ -1209,7 +1202,7 @@ void WriteNodeCode(GF_List *BNodes)
 					store = CurrentLine;
 					CurrentLine = token;
 					GetNextToken(tok, " \"");
-					fprintf(f, "\tp->%s.vals[%d] = (char*)gf_malloc(sizeof(char) * %d);\n", bf->name, j, strlen(tok)+1);
+					fprintf(f, "\tp->%s.vals[%d] = (char*)gf_malloc(sizeof(char) * %u);\n", bf->name, j, (u32) strlen(tok)+1);
 					fprintf(f, "\tstrcpy(p->%s.vals[%d], \"%s\");\n", bf->name, j, tok);
 					j+=1;
 					CurrentLine = store;
@@ -1378,10 +1371,6 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 
 				//get its name
 				GetNextToken(n->name, " \t[");
-				if (!strcmp(n->name, "TimeSensor")) {
-					n = n;
-				}
-
 				//extract the NDTs
 				GetNextToken(token, "\t[ %#=");
 				if (strcmp(token, "NDT")) {
@@ -1474,9 +1463,9 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 						}
 					} else if (!strcmp(f->familly, "SFInt32")) {
 						if (!strcmp(f->def, "+I") || !strcmp(f->def, "I")) {
-							strcpy(f->def, "1 << 31");
+							strcpy(f->def, "0x80000000");
 						} else if (!strcmp(f->def, "-I")) {
-							strcpy(f->def, "- (1 << 31)");
+							strcpy(f->def, "GF_INT_MIN");
 						}
 					}
 				}
@@ -1527,12 +1516,11 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 
 void WriteNodeDump(FILE *f, BNode *n)
 {
-	BField *bf;
 	u32 i;
 
 	fprintf(f, "static const char *%s_FieldName[] = {\n", n->name);
 	for (i=0; i<gf_list_count(n->Fields); i++) {
-		bf = gf_list_get(n->Fields, i);
+		BField *bf = gf_list_get(n->Fields, i);
 		if (!i) {
 			fprintf(f, " \"%s\"", bf->name);
 		} else {
@@ -1634,7 +1622,7 @@ void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
 		        "</head>\n"\
 		        "<body>\n"\
 		        "<title>Node Coding Tables for BIFS Version %d group</title>\n"
-		        ,GPAC_FULL_VERSION, i+1, i+1);
+		        ,gf_gpac_version(), i+1, i+1);
 
 		for (j=0; j<nb_ndt; j++) {
 			u32 nb_in_ndt = 0;

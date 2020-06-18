@@ -289,6 +289,8 @@ typedef struct
 #ifndef WAVE_FORMAT_PCM
 #define WAVE_FORMAT_PCM                 (0x0001)
 #endif
+#endif
+
 #define WAVE_FORMAT_ADPCM               (0x0002)
 #define WAVE_FORMAT_IBM_CVSD            (0x0005)
 #define WAVE_FORMAT_ALAW                (0x0006)
@@ -303,27 +305,20 @@ typedef struct
 #define IBM_FORMAT_MULAW                (0x0101)
 #define IBM_FORMAT_ALAW                 (0x0102)
 #define IBM_FORMAT_ADPCM                (0x0103)
-#endif
 
 avi_t* AVI_open_output_file(char * filename);
 void AVI_set_video(avi_t *AVI, int width, int height, double fps, char *compressor);
 void AVI_set_audio(avi_t *AVI, int channels, int rate, int bits, int format, int mp3rate);
-int  AVI_write_frame(avi_t *AVI, char *data, int bytes, int keyframe);
-int  AVI_dup_frame(avi_t *AVI);
-int  AVI_write_audio(avi_t *AVI, char *data, int bytes);
-int  AVI_append_audio(avi_t *AVI, char *data, int bytes);
-u64 AVI_bytes_remain(avi_t *AVI);
+int  AVI_write_frame(avi_t *AVI, u8 *data, int bytes, int keyframe);
+int  AVI_write_audio(avi_t *AVI, u8 *data, int bytes);
 int  AVI_close(avi_t *AVI);
-u64 AVI_bytes_written(avi_t *AVI);
 
 avi_t *AVI_open_input_file(char *filename, int getIndex);
 avi_t *AVI_open_input_indexfile(char *filename, int getIndex, char *indexfile);
-avi_t *AVI_open_fd(FILE *fd, int getIndex);
 avi_t *AVI_open_indexfd(FILE *fd, int getIndex, char *indexfile);
 int avi_parse_input_file(avi_t *AVI, int getIndex);
 int avi_parse_index_from_file(avi_t *AVI, char *filename);
 int AVI_audio_mp3rate(avi_t *AVI);
-int AVI_audio_padrate(avi_t *AVI);
 int AVI_video_frames(avi_t *AVI);
 int  AVI_video_width(avi_t *AVI);
 int  AVI_video_height(avi_t *AVI);
@@ -336,28 +331,18 @@ int  AVI_audio_format(avi_t *AVI);
 int AVI_audio_rate(avi_t *AVI);
 u64 AVI_audio_bytes(avi_t *AVI);
 int AVI_audio_chunks(avi_t *AVI);
-int  AVI_can_read_audio(avi_t *AVI);
-
-int AVI_max_video_chunk(avi_t *AVI);
 
 int AVI_frame_size(avi_t *AVI, int frame);
 int AVI_audio_size(avi_t *AVI, int frame);
-int  AVI_seek_start(avi_t *AVI);
-int  AVI_set_video_position(avi_t *AVI, int frame);
+
 u64 AVI_get_video_position(avi_t *AVI, int frame);
-int AVI_read_frame(avi_t *AVI, char *vidbuf, int *keyframe);
+int AVI_read_frame(avi_t *AVI, u8 *vidbuf, int *keyframe);
 
-int  AVI_set_audio_position(avi_t *AVI, int byte);
-int  AVI_set_audio_bitrate(avi_t *AVI, int bitrate);
+int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous);
 
-int AVI_get_audio_position_index(avi_t *AVI);
-int  AVI_set_audio_position_index(avi_t *AVI, int indexpos);
-
-int AVI_read_audio(avi_t *AVI, char *audbuf, int bytes, int *continuous);
-
-int  AVI_read_data(avi_t *AVI, char *vidbuf, int max_vidbuf,
-                   char *audbuf, int max_audbuf,
-                   int *len);
+int AVI_seek_start(avi_t *AVI);
+int AVI_set_video_position(avi_t *AVI, int frame);
+int AVI_set_audio_position(avi_t *AVI, int byte);
 
 int AVI_scan(char *name);
 int AVI_dump(char *name, int mode);
@@ -366,15 +351,11 @@ char *AVI_codec2str(short cc);
 int AVI_file_check(char *import_file);
 
 void AVI_info(avi_t *avifile);
-u64 AVI_max_size(void);
 int avi_update_header(avi_t *AVI);
 
 int AVI_set_audio_track(avi_t *AVI, u32 track);
 int AVI_get_audio_track(avi_t *AVI);
 int AVI_audio_tracks(avi_t *AVI);
-
-void AVI_set_audio_vbr(avi_t *AVI, int is_vbr);
-int AVI_get_audio_vbr(avi_t *AVI);
 
 void AVI_set_comment_fd(avi_t *AVI, int fd);
 int  AVI_get_comment_fd(avi_t *AVI);

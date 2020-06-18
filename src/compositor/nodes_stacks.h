@@ -131,6 +131,27 @@ typedef struct
 } BackgroundStack;
 #endif
 
+#ifndef GPAC_DISABLE_SVG
+typedef struct
+{
+	GF_TextureHandler txh;
+	Drawable *drawable;
+	MFURL txurl;
+	Bool first_frame_fetched;
+	GF_Node *audio;
+	Bool audio_dirty;
+	Bool stop_requested;
+} SVG_video_stack;
+
+typedef struct
+{
+	GF_AudioInput input;
+	Bool is_active, is_error;
+	MFURL aurl;
+} SVG_audio_stack;
+
+#endif
+
 
 typedef struct
 {
@@ -270,13 +291,13 @@ GF_TextureHandler *gf_sc_hardcoded_proto_get_texture_handler(GF_Node *n);
 void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh *mesh, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool txAlongSpine);
 #endif
 
-void compositor_init_texture_text(GF_Compositor *compositor, GF_Node *node);
-
 void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node);
 void compositor_envtest_modified(GF_Node *node);
 void compositor_evaluate_envtests(GF_Compositor *compositor, u32 param_type);
 
+#ifdef GPAC_ENABLE_FLASHSHAPE
 void compositor_init_hc_flashshape(GF_Compositor *compositor, GF_Node *node);
+#endif
 
 #endif /*GPAC_DISABLE_VRML*/
 
@@ -318,8 +339,11 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 
 void compositor_init_svg_updates(GF_Compositor *compositor, GF_Node *node);
 
+#ifdef GPAC_ENABLE_SVG_FILTERS
 void compositor_init_svg_filter(GF_Compositor *compositor, GF_Node *node);
 void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state);
+#endif
+
 
 GF_TextureHandler *compositor_svg_get_gradient_texture(GF_Node *node);
 GF_TextureHandler *compositor_svg_get_image_texture(GF_Node *node);

@@ -1,0 +1,2440 @@
+[gpac]
+mem-track=active le suivi de mémoire
+mem-track_crc=3153737396
+mem-track-stack= active le suivi de mémoire avec analyse de la pile
+mem-track-stack_crc=335838253
+p=utilise le profil indiqué pour la configuration globale de GPAC. Si non trouvé, un fichier de configuration est créé. Si un chemin de fichier est indiqué, le profil est charger à partir de ce fichier
+p_crc=3615791768
+ltf=active les filtres unitaires de tests (utilisés uniquement pour les tests unitaires)
+ltf_crc=2218501803
+loop=boucle l'exécution de la session, créant une session à chaque boucle (principalement utilisée pour les tests). Si aucune valeur n'est donnée, boucle pour toujours
+loop_crc=2404405591
+wp=écrit toutes les options de filtres dans le fichier de configuration
+wp_crc=2059005166
+wpx=écrit toutes les options de filtres et tous les arguments de méta-filtres dans le fichier de configuration (fichier de configuration volumineux!)
+wpx_crc=2002959884
+stats=affiche les statistiques après exécution. Les statistiques peuvent être visualisées à l'exécution en tapant 's' dans l'invite.
+stats_crc=247941264
+graph=affiche le graphe après exécution. Le graphique peut être visualisé à l'exécution en tapant 'g' dans l'invite
+graph_crc=4042996408
+seps=@définit les jeux de caractères par défaut utilisés pour séparer différents arguments.
+	Le premier caractère est utilisé pour séparer les noms d'arguments
+	Le deuxième caractère, s'il est présent, est utilisé pour séparer les noms et les valeurs
+	Le troisième caractère, s'il est présent, est utilisé pour séparer les fragments des sources pid
+	Le quatrième caractère, s'il est présent, est utilisé pour les séparateurs de liste (sourceIDs, gfreg, ...)
+	Le cinquième caractère, s'il est présent, est utilisé pour la négation booléenne
+	Le sixième caractère, s'il existe, est utilisé pour les directives LINK (cf -h doc)@
+seps_crc=3475228674
+i=spécifie un fichier d'entrée - voir la documentation générale -h doc
+i_crc=1595699293
+o=spécifie un fichier de sortie - voir la documentation générale -h doc
+o_crc=3724167134
+h=@affiche l'aide. Par défaut, seules les options de base sont imprimées. -ha affiche les options avancées, -hx imprime les options expertes et -hh imprime toutes les options. Le paramètre de chaîne peut être:
+	vide: affiche l'aide de base de la ligne de commande.
+	doc: affiche les informations générales sur le filtre.
+	log: affiche l'aide du système de journalisation.
+	core: affiche les options de base de libgpac supportées. Utilisez -ha / -hx / -hh pour les options en mode avancé / expert / complet.
+	filtres: affiche le nom de tous les filtres disponibles.
+	filtres: *: affiche le nom de tous les filtres disponibles, y compris les méta-filtres.
+	codecs: affiche les codecs pris en charge.
+	props: affiche les propriétés de pid intégrées prises en charge.
+	links: affiche les connexions possibles entre chaque filtre.
+	FNAME: imprime les informations de filtre FNAME (plusieurs FNAME peuvent être spécifiés). Pour les méta-filtres, utilisez FNAME: INST, par exemple ffavin: avfoundation. Utilisez * pour imprimer des informations sur tous les filtres (avertissement, grande sortie!), *: * Pour imprimer des informations sur tous les filtres, y compris les instances de méta filtres (avertissement, grande sortie!). Par défaut, seules les options de filtre de base et la description sont affichées. Utilisez -ha pour afficher les options avancées et filtrer les capacités d'E / S, -hx pour les options expertes, -hh pour toutes les options@
+h_crc=4136223486
+doc=@Aide de l'outil en ligne de commande de GPAC pour la mise en place et l'execution de chaînes de filtres.
+Voir -h pour les options disponibles.
+
+Général
+
+Les filtres dans GPAC sont des unités de traitement configurables consommant et produisant des paquets de données. Ces paquets sont acheminés entre les filtres via un canal de données appelé pid.
+Un pid est responsable de l'allocation / suivi des paquets de données et du passage des paquets au(x) filtre(s) de destination.
+Un pid de sortie de filtre peut être connecté à zéro ou plusieurs filtres. Une connexion multiple en sortie est gérée en interne par le moteur de filtres (pas besoin de filter spécifique pour cela dans GPAC).
+Lorsqu'un pid ne peut être connecté à aucun filtre, un avertissement est émis et tous les paquets envoyés sur ce pid seront immédiatement détruits. La session peut toutefois encore être exécutée.
+Chaque pid en sortie porte un ensemble de propriétés décrivant les données qu'il fournit (par exemple, largeur, hauteur, codec, ...).
+Les propriétés peuvent être intégrées (identifiées par un code à 4 caractères dans GPAC) ou définies par l'utilisateur (identifiées par une chaîne).
+Chaque pid suit ses modifications de propriétés et déclenche la reconfiguration du filtre lors du traitement des paquets.
+Cela permet à la chaîne de filtres d'être reconfigurée au moment de l'exécution, ce qui permet de recharger une partie de la chaîne (par exemple, décharger un décodeur vidéo lors du passage de sources compressées à des sources non compressées).
+Chaque filtre expose un ou plusieurs ensembles de fonctionnalités, appelés ensembles de fonctionnalités, qui sont un type de propriété et des valeurs qui doivent être mises en correspondance ou exclues dans les connexions pid.
+Chaque filtre expose également un ensemble d'arguments à configurer, à l'aide de types de propriété et de chaîne de charactères.
+
+Cette aide est fournie avec les séparateurs par défaut :=#,@ pour spécifier les filtres, les propriétés et les options. Voir -seps pour les changer.
+
+Format des propriétés de PID
+
+Les propriétés booléennes sont au format yes/true/1 ou no/false/0
+Les propriétés d'énumération (pour les arguments) doivent utiliser la syntaxe donnée dans la description de l'argument, sinon la valeur 0 (première de l'énumération) est prise en compte.
+Les propriétés à 1 dimension (nombres, flottants, entiers ...) sont formatées en valeur[unité], où unité peut être k/K (x1000) ou m/M (x1000000) ou g/G (x1000000000).
+Pour de telles propriétés, valeur +I signifie valeur maximale possible, -I valeur minimale possible.
+Les propriétés des fractions sont au format num/den ou num-den ou num, auquel cas le dénominateur est 1.
+Les propriétés d'entier 32 bits non signées peuvent être spécifiées en hexadécimal au format 0xAABBCCDD.
+Les propriétés de dimension N (vecteurs) sont au format DIM1xDIM2 [xDIM3 [xDIM4]], sans multiplicateur.
+Les propriétés de données sont formatées comme suit:
+"taille@adresse": bloc de données constant, non copié en interne; taille donne la taille du bloc, adresse le pointeur de données.
+"0xBYTESTRING": bloc de données spécifié en hexadécimal, copié en interne.
+Les propriétés du pointeur sont au format "adresse", adresse donnant l'adresse du pointeur (32 ou 64 bits selon les plateformes).
+Les listes de chaînes et d'entiers sont formatées comme suit: val1, val2 [, ...]
+
+Remarque: Les caractères spéciaux dans les formats de propriété (0x, /, -, + I, -I, x) ne peuvent pas être configurés.
+
+Déclaration de filtre [FILTER_DECL]
+
+Les filtres sont répertoriés par nom, avec les options ajoutées sous forme de liste de paires Nom = Valeur séparées par des deux-points.
+La valeur peut être omise pour les booléens, la valeur par défaut étant true (par exemple, noedit). Utiliser '!' Avant le nom, annule le résultat (par exemple: !moof_first)
+Le nom peut être omis pour les énumérations (par exemple :disp=pbo est équivalent à :pbo), à condition que les développeurs de filtres fassent attention à ne pas réutiliser les noms d'énumérations dans un même filtre!
+
+Lorsque des paramètres textes sont utilisés (par exemple, des URL), il est recommandé d'utiliser le mot-clé "gpac" pour séparer les arguments.
+EX: filtre: ARG=http://foo/bar?yes:gpac:opt=VAL
+Cela permettra d'extraire correctement l'URL
+EX: filtre: ARG=http://foo/bar?yes:opt=VAL
+Cela ne parviendra pas à l'extraire l'option et conservera :opt=VAL dans l'URL
+Remarque: le mécanisme d'échappement n'est pas nécessaire pour les sources locales, pour lesquelles l'existence du fichier est recherchée lors de l'analyse des arguments
+Il n'est également pas nécessaire pour les procotoles intégrés (avin://, video://, audio://, pipe://)
+Pour les protocoles tcp:// et udp://, l'échappement n'est pas nécessaire si un / final est ajouté après le port
+EX: -i tcp: //127.0.0.1: 1234:OPT
+Cela n'arrivera pas à extraire l'URL et les options
+EX: -i tcp: //127.0.0.1: 1234/:OPT
+Cela va extraire l'URL et les options
+Remarque: une astuce pour éviter la séquence d'échappement consiste à déclarer l'option urls à la fin, par exemple, f1:opt1=foo:url=http:// bar, à condition que vous n'ayez qu'une seule URL. Voir les arguments héritant ci-dessous.
+
+Les filtres source et destination n'ont pas besoin d'être adressés par le nom du filtre, il suffit de spécifier src= ou dst=.
+Vous pouvez également utiliser la syntaxe -src URL ou -i URL pour les sources et -dst URL ou -o URL pour les destinations.
+Cela permet d'utiliser la complétion automatique de votre invite de commande.
+EX: src=fichier.mp4 EX: -src fichier.mp4 EX: -i fichier.mp4
+Ceci trouvera un filtre (par exemple "fin") capable de charger fichier.mp4
+Le même résultat peut être obtenu en utilisant "fin:src=fichier.mp4"
+EX: src=fichier.mp4 dst=dump.yuv
+Cela décodera le contenu vidéo de file.mp4 et l'écrira dans dump.yuv
+Des filtres source ou destination spécifiques peuvent également être spécifiés à l'aide de filterName:src=URL ou filterName:dst=URL.
+
+Il existe une option spéciale appelée "gfreg" qui permet de spécifier les filtres à utiliser lors de la gestion des URL.
+EX: src=fichier.mp4:gfreg=ffdmx,ffdec
+Cela utilisera ffdmx pour gérer le fichier et ffdec pour décoder
+Cela peut être utilisé pour tester un filtre spécifique lorsque d'autres chaînes de filtres sont possibles.
+
+Par défaut, la chaîne de filtres sera résolue sans décodage / encodage si la destination accepte le format souhaité. Sinon, les décodeurs / encodeurs seront chargés dynamiquement pour effectuer la conversion, à moins que la résolution dynamique ne soit désactivée. Il existe un nom de filtre spécial pour les encodeurs, "enc", permettant de charger un filtre fournissant le codage souhaité. Les paramètres pour "enc" sont:
+c=NAME identifie le codec souhaité. NOM peut être le nom du codec gpac ou l'instance du codeur pour ffmpeg ...
+b=UINT ou débit=UINT ou débit=UINT indique le débit en bits par seconde
+g=UINT ou gop=UINT indique la taille du groupe d'images dans les cadres
+pfmt=4CC indique le format de pixel cible de la source, si supporté par le codec
+all_intra=BOOL indique que toutes les images doivent être intra-images, si supporté par le codec
+D'autres options peuvent être transmises aux filtres acceptant des arguments génériques (comme c'est le cas pour ffmpeg).
+EX: src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264
+Cela encode un ficher YUV 25 fps en AVC à 175 kbps avec une durée de GOP de 2 secondes, en utilisant des paramètres de codage fast et GOP fermé de ffmpeg.
+
+Note: l'opération inverse (forcer un décodage) est possible en utilisant le filtre reframer:
+EX: src=fichier.mp4 reframer:raw @ -o null
+Cela forcera le décodage du média à partir du fichier et jettera le résultat (par exemple, pour un benchmark du décodeur)
+
+Expliciter des liens entre les filtres [LINK]
+
+Le lien entre les filtres peut être spécifié manuellement. La syntaxe est un caractère '@' optionnellement suivi d'un entier (0 si omis).
+Cela indique quels filtres spécifiés antérieurement (le précédent étant associé à 0) doivent être liés au prochain filtre indiqué.
+Seule la dernière directive de liaison avant un filtre est utilisée pour configurer des liens pour ce filtre.
+EX: fA fB @1 fC
+Ceci indique de diriger les sorties fA vers fC
+EX: fA fB @1 @0 fC
+Cela indique de diriger les sorties du fB vers le fC, @1 est ignoré
+
+Si aucune directive de lien n'est donnée, les liens seront résolus dynamiquement pour générer autant de connexions que possible.
+Par exemple, "fA fB fC" peut connecter fA à fB et fC si fB et fC acceptent les sorties fA
+
+La directive LINK est juste un raccourci rapide pour définir des arguments de filtre génériques:
+- FID=nom, qui définit l'ID de filtre
+- SID=nom1[,nom2...], qui définit les ID sources restreignant la liste des entrées possibles pour un filtre.
+
+EX: fA fB @1 fC
+Ceci est équivalent à "fA fB:FID=1 fC:SID=1"
+EX: fA: FID = 1 fB fC: SID = 1
+Ceci indique de diriger les sorties fA vers fC
+EX: fA:FID=1 fB:FID=2 fC:SID=1 fD:SID=1,2
+Cela indique de diriger les sorties fA vers fC et les sorties fA et fB vers fD
+
+REMARQUE: Un filtre avec ID source défini ne peut pas être connecté en entrée de filtres sans ID.
+Le nom peut être étendu à l'aide de l'identifiant de fragment (# par défaut):
+name#PIDNAME: accepte uniquement les pids nommés PIDNAME.
+name#TYPE: accepte uniquement les pids du type média correspondant. TYPE peut être 'audio' 'video' 'scene' 'text' 'font'
+name#TYPEN: accepte uniquement le Nème pid du type média correspondant.
+name#P4CC=VAL: accepte uniquement les pids dont la propriété prédéfinie avec le code donné vaut VAL.
+name#PName=VAL: comme ci-dessus, en utilisant le nom d'une propriété prédéfinie.
+name#AnyName=VAL: comme ci-dessus, en utilisant le nom d'une propriété non prédéfinie.
+
+Si la propriété n'est pas définie sur le pid, elle est considérée comme valide. Sinon, sa valeur est vérifiée par rapport à la valeur donnée.
+
+Les modificateurs suivants pour les comparaisons sont autorisés (pour P4CC=, PName= et AnyName=):
+nom#P4CC=!VAL: accepte uniquement les pids dont la propriété ne correspond pas à VAL.
+nom#P4CC-VAL: accepte uniquement les pids dont la propriété est strictement inférieure à VAL (uniquement pour les propriétés à 1 dimension).
+nom#P4CC+​​VAL: accepte uniquement les pids avec une propriété strictement supérieure à VAL (uniquement pour les propriétés à 1 dimension).
+
+Un ID source peut aussi utiliser le charactère * pour faire correspondre une ou plusieurs propriétés, quel que soit le filtre source:\n"
+EX: fA fB:SID=*#ServiceID=2
+Ceci indique fB n'accepte comme entrée que des pids avec une propriété ServiceID égale à 2, indépendemment des identifiant de filtres de ces pids.
+
+REMARQUE: Ces extensions fonctionnent également avec le raccourci LINK:
+EX: fA fB @1#video fC
+Ceci indique de diriger les sorties vidéo fA vers fC
+
+EX: src=img.heif @#ItemID=200 vout
+Cela indique de connecter à vout uniquement les pids avec une propriété ItemID égale à 200.
+EX: src=vid.mp4 @#PID=1 vout
+Cela indique de connecter à vout uniquement les pids avec une propriété ID égale à 1.
+EX: src=vid.mp4 @#Width=640 vout
+Cela indique de connecter à vout uniquement les pids avec une propriété Width égale à 640.
+EX: src=vid.mp4 @#Width-640 vout
+Cela indique de connecter à vout uniquement les pids dont la propriété Width est inférieure à 640.
+
+Plusieurs fragments peuvent être spécifiés pour tester plusieurs propriétés de pid
+EX: src=vid.mp4 @#Width=640#Height+380 vout
+Cela indique de connecter à vout uniquement les pids avec une largeur égale à 640 et une hauteur supérieure à 380.
+
+Notez que si un pid est connecté à un filtre chargé explicitement, aucune résolution de lien dynamique supplémentaire ne sera effectuée pour le connecter à d'autres filtres. Les directives de liaison doivent être soigneusement établies
+EX: src=fichier.mp4 @ reframer dst=dump.mp4
+Cela connectera le pid src (type fichier) à dst (type fichier) car dst n'a pas de sourceID et acceptera donc l'entrée de src. Comme le pid est connecté, le moteur de filtres n'essaiera pas de résoudre le lien entre src et reframer. Le résultat est une copie directe du fichier source, le reframer étant inutilisé
+EX: src=fichier.mp4 reframer @ dst=dump.mp4
+Cela forcera dst à n'accepter que les pids de reframer, un multiplexeur sera chargé pour résoudre ce lien et src pid sera connecté à reframer (aucun ID de source), chargeant un démultiplexeur pour résoudre le lien. Le résultat est un remux complet du fichier source
+
+
+Héritage d'arguments
+
+Sauf si explicitement désactivé (option -max-chain), le moteur de filtres résoudra les connexions implicites ou explicites (LINK) entre les filtres et allouera toute chaîne de filtres intermédiaires nécessaires à la connexion des filtres. Ce faisant, il charge de nouveaux filtres avec des arguments hérités à la fois de la source et de la destination.
+EX: src=fichier.mp4:OPT dst=fichier.aac dst=fichier.264
+Ceci passera les arguments ":OPT" à tous les filtres chargés entre la source et les deux destinations
+EX: src=fichier.mp4 dst=fichier.aac:OPT dst=fichier.264
+Cela passera les arguments ":OPT" à tous les filtres chargés entre la source et la destination file.aac
+REMARQUE: les arguments de destination hérités sont les arguments placés APRÈS l'option dst=
+EX: src=fichier.mp4 fout:OPTFOO:dst=fichier.aac:OPTBAR
+Cela passera les arguments ":OPTBAR" à tous les filtres chargés entre la source et la destination file.aac, mais pas ":OPTFOO"
+
+Modèles d'URL de destination
+
+Les URL de destination peuvent être modélisées en utilisant le même mécanisme que MPEG-DASH (template ou modèles):
+$KEYWORD$ est remplacé dans le modèle par la valeur résolue,
+$KEYWORD%%0Nd $ est remplacé dans le modèle par l'entier résolu, complété avec N zéros si nécessaire,
+$$ est un méchanisme d'échappement pour $
+
+KEYWORD peut être présent plusieurs fois dans la chaîne. KEYWORD pris en charge (!! sensible à la casse !!):
+num: remplacé par numéro de fichier si défini, 0 sinon
+PID: ID du pid source
+URL: URL du fichier source
+File: chemin sur le disque pour le fichier source
+p4cc=ABCD: utilise la propriété du pid avec le code 4CC ABCD
+pname=VAL: utilise la propriété du pid avec le nom VAL
+AUTRE: utilise la propriété du pid dont le nom correspond au nom donné (résolution de 4CC ou nom donné si aucune correspondance 4CC).
+
+L'utilisation de modèles d'URL peut être utile lors du codage de plusieurs qualités en une seule passe:
+EX: src=dump.yuv:taille=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264
+Cela créera une version recadrée de la source, codée en AVC à 1M et une version non recadrée en AVC à 750 Ko. Les sorties sont dump_0x0x320x180.264 pour la version recadrée et dump_0x0x640x360.264 pour la version non recadrée.
+
+Duplication de filtres
+
+Lorsqu'un filtre accepte une seule connexion et possède une entrée connectée, la résolution dynamique n'est plus possible pour cette destination. Il peut y avoir des cas où ce comportement est indésirable. Soit un fichier HEIF avec N items:
+EX: src=img.heif dst=dump_$ItemID$.jpg
+Dans ce cas, un seul item (probablement le premier déclaré dans le fichier) se connectera à la destination.
+Les autres items ne seront pas connectés car la destination n'accepte qu'un seul pid d'entrée.
+Il existe une option spéciale "clone" permettant de cloner les filtres de destination avec les mêmes arguments:
+EX: src=img.heif dst=dump_$ItemID$.jpg:clone
+Dans ce cas, la destination sera clonée pour chaque item et tous seront exportés vers différents fichiers JPEG grâce au modèle d'URL.
+
+Modèles de chaînes de filtres
+
+Dans certains cas, le nombre de sorties désirées dépend de la source; par exemple, extraire N fichiers d'un multiplex de N services.
+Il est possible d'utiliser un nom de propriété de pid dans l'ID source d'un filtre avec la valeur '*'.
+Dans ce cas, chaque fois qu'un nouveau PID avec une nouvelle valeur pour la propriété est trouvé, le filtre avec un tel ID source sera automatiquement cloné.
+EX: src=source.ts dst=fichier_$ServiceID$.mp4:SID=*#ServiceID=*
+Dans cet example, chaque nouvelle valeur ServiceID trouvée lors de la connexion des PID à la destination créera un nouveau fichier de destination.
+AVERTISSEMENT: cette fonctionnalité ne doit être utilisée qu'avec une seule propriétéà '*' par ID source, les résultats ne sont pas définis sinon.
+
+Assigner des propriétés aux PID
+
+Il est possible de définir des propriétés sur des pids de sortie déclarés par un filtre. Cela permet de marquer des parties du graphe avec des propriétés différentes de celles des autres parties (par exemple, ServiceID). La syntaxe utilise le séparateur de fragments pour identifier les propriétés, par exemple #Nom=Valeur, afin de définir la propriété voulue (4cc, nom intégré ou tout nom) avec une valeur donnée.
+Si une propriété non prédéfinie est utilisée, la valeur sera définie sous forme de chaîne.
+AVERTISSEMENT: les propriétés ne sont pas filtrées et remplacent les propriétés source. Veillez à ne pas corrompre la session en substituant des propriétés essentielles telles que Width, Height, SampleRate !
+EX: -i v1.mp4:# ServiceID=4 -i v2.mp4:# ServiceID=2 -o dump.ts
+Cela multiplexera les flux dans dump.ts, en utilisant ServiceID 4 pour les pids de v1.mp4 et ServiceID 2 pour les pids de v2.mp4.
+
+Filtres externes
+
+GPAC est fourni avec un ensemble de filtres intégrés à libgpac. Il peut également charger des filtres externes dans des bibliothèques dynamiques, situées dans
+les dossiers répertoriés par la clé mod-dirs" dans la section "core" du fichier de configuration GPAC. Les fichiers doivent être nommés gf_* et exporter une seule fonction
+retournant un registre de filtre - voir la documentation de libgpac pour plus de détails.
+@
+doc_crc=1035749621
+[core]
+log-file=définit le fichier journal de sortie
+log-file_crc=4024112903
+log-clock=insert le temps en microsecondes depuis l'heure de démarrage de GPAC avant chaque ligne du journal
+log-clock_crc=1770718812
+log-utc=insert le temps UTC en ms avant chaque ligne du journal
+log-utc_crc=2584821995
+logs=@définit les niveaux d'erreurs et les outils pour la journalisation.
+Les niveux de journalisation peuvent être spécifiés indépendamment par outils impliqués dans une session.
+Le format est une liste de toolX[:toolZ]@levelX, séparés par ':'. levelX peut être l'un des suivants:
+	quiet: ignore les messages
+	error: enregistre uniquement les messages d'erreurs
+	warning: enregistre les messages d'erreurs et d'avertissement
+	info: enregistre les messages d'erreur, d'avertissement et d'information
+	debug: enregistre tous les messages
+toolX peut être l'un des suivants:
+	core: libgpac core
+	coding: bitstream formats (audio, video, scene)
+	container: container formats (ISO File, MPEG-2 TS, AVI, ...)
+	network: network data sauf trafic RTP
+	rtp: trafic rtp
+	author: outils de création (hint, import, export)
+	sync: messages de synchro
+	codec: messages des encodeurs/décodeurs
+	parser: scene parsers (svg, xmt, bt) 
+	media: gestion des objets media dans le compositor
+	scene: arbre de scene et gestionnaire de scene
+	script: scripts
+	interact: interaction (événements, scripts, etc.)
+	smil: moteur de synchronisation SMIL
+	compose: moteur de composition (2D, 3D, etc.)
+	mmio: Gestion Entrées/Sorties matérielles audio et vidéo
+	rti: diverses statistiques d'exécution
+	cache: HTTP cache
+	audio: Rendu audio et mixeurs
+	mem: traqueur de mémoire GPAC
+	dash: HTTP streaming
+	module: GPAC modules (av out, font engine, 2D rasterizer)
+	filter: gestionnaire de filtres
+	sched: ordonnanceur des filtres
+	mutex: mutex calls
+	all: tous les outils enregistrés - d'autres outils peuvent être spécifiés ultérieurement.
+Le mot clé spécial "ncl" peut être défini pour désactiver les couleurs.
+Le mot clé spécial "strict" peut être défini pour quitter à la première erreur.
+	EX: -logs all@info:dash@debug:ncl
+Cela passe tous les outils en niveau information, dash en niveau débogage et désactive les couleurs.@
+logs_crc=3235072836
+noprog=désactive les messages de progression
+noprog_crc=2201226299
+quiet=désactive tous les messages, y compris les erreurs
+quiet_crc=1639470913
+strict-error=quitte après la première erreur signalée
+strict-error_crc=199866164
+store-dir=définit le répertoire de stockage
+store-dir_crc=2166696791
+mod-dirs=définit les répertoires du module
+mod-dirs_crc=1202590521
+ifce=définit l'interface de multicast par défaut via l'adresse IP de l'interface
+ifce_crc=949588258
+lang=définit la langue préférée
+lang_crc=231363827
+cfg=@définit la valeur du fichier de configuration. Le paramètre de chaîne peut être formaté comme suit:
+	section:key=val: définit la clé sur une nouvelle valeur
+	section:key=null or section:key: supprime la clé
+	section:*=null: supprime la section@
+cfg_crc=2886273405
+version=définit la version de GPAC, utilisée pour vérifier l'actualisation du fichier de configuration
+version_crc=4248641509
+64bits=indique si la version GPAC est 64 bits, utilisée pour vérifier l'actualisation du fichier de configuration
+64bits_crc=3330035881
+mod-reload=libère les bibliothèques partagées lors du déchargement d'un module plus utilisé
+mod-reload_crc=1890630922
+mobile-ip=définit l'adresse IP pour mobileIP
+mobile-ip_crc=2363993664
+cache=définit l'emplacement du répertoire de cache
+cache_crc=3096764065
+proxy-on=active le proxy HTTP
+proxy-on_crc=1445819246
+proxy-name=définit l'adresse proxy HTTP
+proxy-name_crc=413963449
+proxy-port=définit le port du proxy HTTP
+proxy-port_crc=4281085677
+maxrate=définit le débit de téléchargement HTTP maximal en bits par seconde. 0 signifie illimité
+maxrate_crc=1922316623
+no-cache=désactive la mise en cache HTTP
+no-cache_crc=3498973804
+offline-cache=active la mise en cache HTTP hors connexion (pas de revalidation des ressources existantes avec le serveur)
+offline-cache_crc=2358998211
+clean-cache=indique si le cache HTTP doit être propre au lancement / à la sortie
+clean-cache_crc=3957340416
+cache-size=spécifie la taille du cache en octets
+cache-size_crc=3383563296
+head-timeout=définit le délai d'expiration de la requête HTTP en millisecondes
+head-timeout_crc=160271390
+req-timeout=définit le délai d'expiration de la requête HTTP / RTSP en millisecondes
+req-timeout_crc=1825497635
+broken-cert=accepte les certificats SSL cassés
+broken-cert_crc=402885164
+user-agent=définit le nom de l'agent utilisateur pour HTTP / RTSP
+user-agent_crc=4077155122
+user-profileid=définit l'ID du profil utilisateur (via l'entête de l'entité "X-UserProfileID")
+user-profileid_crc=3934422946
+user-profile=définit le nom de fichier du profil utilisateur. Le contenu du fichier est ajouté en tant que corps aux demandes HEAD / GET
+user-profile_crc=2635012117
+query-string=insère la chaîne de requête (sans '?'') dans l'URL des requêtes
+query-string_crc=2502193860
+dbg-edges=enregistre l'état des arêtes dans le graphe de filtre avant la résolution de dijkstra (pour le débogage). Les arêtes sont affichées sous la forme source(status, weight, src_cap_idx, dst_cap_idx)
+dbg-edges_crc=1993009596
+no-block=désactive le mode bloquant des filtres
+no-block_crc=3173249070
+no-reg=désactiver la régulation de temps (pas de veille des threads)
+no-reg_crc=4238392638
+sched=@définir le mode de l'ordonnanceur de filtres. Les modes possibles sont:
+	free: utilise des files d'attente sans mutex, sauf pour la liste des tâches (par défaut)
+	lock: utilise des mutex pour les files d'attente lorsque plusieurs threads
+	freex: utilise des files d'attente sans mutex, y compris pour les listes de tâches (expérimental)
+	flock: utilise des mutex pour les files d'attente même sans thread (mode débogage)
+	direct: pas de threads et éxecution directe des tâches autant que possible (mode débogage)@
+sched_crc=2961967838
+max-chain=définit la longueur maximale de la chaîne lors de la résolution des liens de filtre. La valeur par défaut est prévue pour ([in ->] demux -> reframer -> decoder -> encoder -> unframer -> mux [-> out]. Les chaînes de filtres chargées pour l'adaptation de capabilités (par exemple, changement de format de pixel) sont chargés après la résolution du lien. Définir la valeur sur 0 désactive la résolution du lien dynamique, toute la chaîne doit être spécifiée manuellement
+max-chain_crc=3076294763
+threads=définir N thread supplémentaire pour la session. -1 signifie utiliser tous les cœurs disponibles
+threads_crc=1234876614
+no-probe=désactive l'analyse des données source, l'extension de fichier doit alors être valide
+no-probe_crc=1719555319
+blacklist=liste des filtres à ne pas charger (liste séparée par des virgules)
+blacklist_crc=2069525485
+no-graph-cache=désactive la mise en cache des connexions du graphe de filtre. Si désactivé, le graphe sera recalculé à chaque résolution de lien (moins de mémoire, mais plus lent)
+no-graph-cache_crc=111720336
+switch-vres=sélectionne la résolution d'écran vidéo la plus petite supérieure à la taille de la scène, sinon utilise la résolution vidéo actuelle
+switch-vres_crc=2081476962
+hwvmem=spécifie (moteur de rendu 2D uniquement) si le backbuffer vidéo principal est toujours en mémoire matérielle, en mémoire système ou sélectionné par GPAC (mode par défaut). Selon le type de scène, cela peut modifier considérablement la vitesse d'affichage'.
+hwvmem_crc=3676454290
+vert-shader=spécifie le fichier contenant le vertex shader
+vert-shader_crc=3278130108
+frag-shader=spécifie le fichier contenant le fragment shader
+frag-shader_crc=3278130108
+pref-yuv4cc=définit le YUV 4CC préféré pour les incrustations (utilisé par DirectX uniquement)
+pref-yuv4cc_crc=3820182704
+yuv-overlay= indique que la superposition YUV est possible sur la carte vidéo. Toujours surchargé par le module de sortie vidéo
+yuv-overlay_crc=1889387323
+offscreen-yuv=indique si yuv-> rgb hors écran est activé. peut être réglé sur false pour forcer la désactivation
+offscreen-yuv_crc=3163794729
+overlay-color-key=indique la couleur à utiliser pour l'incrustation YUV, format hexadécimal
+overlay-color-key_crc=1982790583
+gl-offscreen=@indique le mode openGL pour le rendu hors écran.
+	Window: Une fenêtre cachée est utilisée pour effectuer un rendu hors écran. Selon votre pilote vidéo et votre configuration X11, cela peut ne pas fonctionner.
+	VisibleWindow: une fenêtre visible est utilisée pour effectuer un rendu hors écran. Cela peut être utile lors du débogage
+	Pixmap: Un Pixmap X11 est utilisé pour effectuer un rendu hors écran. Selon votre pilote vidéo et votre configuration X11, cela peut ne pas fonctionner et même planter le lecteur.
+	PBuffer: utilise opengl PBuffers pour le dessin, pas toujours supporté@
+gl-offscreen_crc=2846403537
+gl-bits-comp=nombre de bits par composante de couleur dans openGL
+gl-bits-comp_crc=1796229199
+gl-bits-depth=nombre de bits pour le tampon de profondeur dans openGL
+gl-bits-depth_crc=2302848994
+gl-doublebuf=active le double buffer OpenGL
+gl-doublebuf_crc=4108413565
+sdl-defer=utiliser le rendu différé pour SDL
+sdl-defer_crc=3643921758
+no-colorkey=désactive la transparence par couleur au niveau de la sortie vidéo
+no-colorkey_crc=2171123044
+video-output=indique le nom du module de sortie vidéo à utiliser
+video-output_crc=475278293
+raster2d=indique le nom du module de rastériseur 2D à utiliser
+raster2d_crc=333251869
+gapi-fbaccess=définit le mode d'accès GAPI sur le tampon de stockage
+gapi-fbaccess_crc=379965248
+audio-output= indique le nom du module de sortie audio à utiliser
+audio-output_crc=51792132
+alsa-devname=définit le nom du périhérique audio pour ALSA
+alsa-devname_crc=3267261435
+force-alsarate=force la fréquence d'échantillonnage de sortie ALSA et OSS
+force-alsarate_crc=3120558955
+ds-disable-notif=désactive les notifications de tampon audio DirectSound lorsqu'elles sont prises en charge
+ds-disable-notif_crc=1023699628
+font-reader=indique le nom du module de chargement de polices de charactères
+font-reader_crc=1884429091
+font-dirs=indique une liste de répertoires (séparés par des virgules) où trouver les polices de charactères
+font-dirs_crc=111907503
+rescan-fonts=ndique que le(s) répertoire(s) des polices de charactères doit être réanalysé
+rescan-fonts_crc=3797274707
+rmt=active le profilage via Remotery (https://github.com/Celtoys/Remotery). Une copie du visualiseur Remotery se trouve dans gpac/share/vis, généralement installée dans /usr/share/gpac/vis ou Program Files/GPAC/vis
+rmt_crc=2323200474
+rmt-port=définit le port de Remotery
+rmt-port_crc=3708528921
+rmt-reuse=autorise la réutilisation de port ouvert par Remotery
+rmt-reuse_crc=3607580606
+rmt-localhost=force Remotery à n'autoriser que les connections depuis localhost
+rmt-localhost_crc=1239978781
+rmt-sleep=temps de veille de Remotery en ms entre deux mise à jours serveur
+rmt-sleep_crc=3230696886
+rmt-nmsg=définit le nombre de messages par mise à jour pour Remotery
+rmt-nmsg_crc=4237510619
+rmt-qsize=définit la taille de la queue de message pour Remotery
+rmt-qsize_crc=1971622359
+rmt-log=redirige les journaux vers remotery (expérimental, généralement mal géré par le navigateur)
+rmt-log_crc=3311201781
+rmt-ogl=analyse aussi les performances OpenGL pour Remotery
+rmt-ogl_crc=978980191
+[properties]
+ID=ID du flux
+ID_crc=131976233
+ESID=MPEG-4 ESID du flux - obligatoire si  MPEG-4 Systems est utilisé
+ESID_crc=3337700331
+ItemID=ID de l'item d'image dans HEIF, même valeur que l'ID
+ItemID_crc=4166642518
+ServiceID=ID du service associé
+ServiceID_crc=1785575902
+ClockID=ID du flux servant de référence d'horloge
+ClockID_crc=3926148669
+DependencyID=ID du flux portant la couche de base pour ce pid
+DependencyID_crc=3756022933
+SubLayer=indique si le flux est sublayer temporel du flux de base
+SubLayer_crc=3086888640
+PlaybackMode=@Mode de lecture supporté:
+	0: pas de contrôle du temps
+	1: lecture, pause, navigation, vitesse=1
+	2: lecture, pause, navigation, vitesse>=0
+	3: lecture, pause, navigation, lecture inversée@
+PlaybackMode_crc=667732373
+Scalable=Flux scalable
+Scalable_crc=2353017342
+TileBase=Flux de base de tuiles HEVC
+TileBase_crc=2036085341
+Language=language du flux, code ISO639 2/3 ou RFC 4646
+Language_crc=1368763779
+ServiceName=Nom du service associé
+ServiceName_crc=3726282591
+ServiceProvider=Fournisseur du service associé
+ServiceProvider_crc=1262612664
+StreamType=type du flux (audio,vidéo,etc.)
+StreamType_crc=2499440779
+StreamSubtype=sous-type (4CC) du flux (auxiliaire, séquence d'images, etc.)
+StreamSubtype_crc=1313758233
+ISOMSubtype=sous-type (4CC) du flux ISOBMFF  (avc1 avc2 ...)
+ISOMSubtype_crc=554474985
+OrigStreamType=Type d'origine du flux avant chiffrement
+OrigStreamType_crc=1422368035
+CodecID=Identifiant du format de codage
+CodecID_crc=214443429
+InitialObjectDescriptor=Indique si le pid est déclaré dans l'IOD pour MPEG-4 Systems
+InitialObjectDescriptor_crc=2512088943
+Unframed=indique les paquets média ne sont pas des trame / Access Units / images complète ou ne sont pas au format interne de libgpac (par exemple, annexeB pour avc / hevc, adts pour aac)
+Unframed_crc=4245733010
+Duration=durée du flux
+Duration_crc=275428770
+NumFrames=Nombre de trames dans le flux
+NumFrames_crc=2432356885
+ConstantFrameSize=Taille des trames pour des flux de taille de trame constante
+ConstantFrameSize_crc=3500637503
+TimeshiftDepth=Longueur de la mémoire de décallage temporel
+TimeshiftDepth_crc=196570138
+Timescale=échelle de temps du flux (un delta d'horodatage de N vaut N / Timescale secondes)
+Timescale_crc=3120776720
+ProfileLevel=MPEG-4 profile et niveaux
+ProfileLevel_crc=2025902585
+DecoderConfig=Données de configuration du décodeur
+DecoderConfig_crc=2434212694
+DecoderConfigEnhancement=Données de configuration du décodeur de la ou des couches d'amélioration
+DecoderConfigEnhancement_crc=571289940
+SampleRate=Taux d'échantillonnage audio
+SampleRate_crc=2503304202
+SamplesPerFrame=Nombre d'échantillons audio dans une trame compréssée
+SamplesPerFrame_crc=1144622965
+NumChannels=Nombre de canaux audio
+NumChannels_crc=58247240
+ChannelLayout=Disposition des canaux
+ChannelLayout_crc=367517492
+AudioFormat=format des échantillons audio
+AudioFormat_crc=94232868
+AudioPlaybackSpeed=Vitesse de lecture audio, utilisée uniquement pour la reconfiguration de la sortie audio
+AudioPlaybackSpeed_crc=2194364450
+Delay=Retard de présentation comparé aux horodatages de composition, en échelle de temps du flux. Une valeur positive implique un retard du flux. Une valeur négative implique de passer/ne pas présenter le début du flux
+Delay_crc=4030425587
+CTSShift=décalage CTS à appliquer en cas de CTS négatif
+CTSShift_crc=1698165121
+Width=Largeur visuelle (video / text / graphics)
+Width_crc=3627736268
+Height=Heuteur visuelle (video / text / graphics)
+Height_crc=2645395397
+PixelFormat=Format de pixel des données décompréssées
+PixelFormat_crc=1678811690
+Stride=Largeur de ligne en octet d'un plan Y/alpha ou de l'image (formats non planaire)
+Stride_crc=76106405
+StrideUV=Largeur de ligne en octet d'un plan U/V 
+StrideUV_crc=1964825709
+BitDepthLuma=Nombre de bits pour les composants luma
+BitDepthLuma_crc=4028264643
+BitDepthChroma=Nombre de bits pour les composants de chrominance
+BitDepthChroma_crc=692587320
+FPS=Nombre de trames par secondes pour vidéo/animation
+FPS_crc=1602187961
+Interlaced=indicateur de vidéo entrelacée
+Interlaced_crc=587376242
+SAR=Ratio largeur/hauteur d'un pixel
+SAR_crc=3890989426
+PAR=Ratio largeur/hauteur de l'image
+PAR_crc=2532599547
+MaxWidth=Largeur maximale (vidéo / texte / graphiques) de toutes les couches d'amélioration
+MaxWidth_crc=2141354912
+MaxHeight=Hauteur maximale (vidéo / texte / graphiques) de toutes les couches d'amélioration
+MaxHeight_crc=1878599899
+ZOrder=ordre visuel de présentation du flux, de 0 (premier, devant) à max int (dernier, derrière)
+ZOrder_crc=2087381540
+TransX=Translation horizontale du flux
+TransX_crc=2257155539
+TransY=Translation verticale du flux
+TransY_crc=2794883389
+CropOrigin=Position dans la fenêtre source, X, Y indiquent les coordonnées dans la source
+CropOrigin_crc=1458354593
+OriginalSize=Résolution de la vidéo d'origine pour une vidéo croppée
+OriginalSize_crc=1797949194
+Bitrate=Débit en bps
+Bitrate_crc=2629756747
+Maxrate=Max bitrate en bps
+Maxrate_crc=742329135
+DBSize=Taille de la mémoire de decodage en octets
+DBSize_crc=3674125247
+MediaDataSize=Taille en octets des données média du flux
+MediaDataSize_crc=246979115
+DataRef=Le référencement externe des données en ISOBMFF est possible (chaque trame compressée est un ensemble continu d'octets dans la source, sans transformation)
+DataRef_crc=2333294061
+URL=URL de la source
+URL_crc=110605863
+RemoteURL=URL distant de la source - utilisé pour MPEG-4 systems
+RemoteURL_crc=348519343
+RedirectURL=URL de redirection de la source
+RedirectURL_crc=1188029026
+SourcePath=Chemin du fichier source sur le système de fichiers
+SourcePath_crc=499802723
+MIME Type=Type MIME de la source
+MIME Type_crc=2372232615
+Extension=Extension du fichier source
+Extension_crc=638625124
+Cached=Indique que le fichier est complètement mis en cache - les modifications sont signalées via pid info (pas de reconfiguration)
+Cached_crc=3151091158
+DownloadRate=Vitesse de téléchargement en bits/s - les modifications sont signalées via pid info (pas de reconfiguration)
+DownloadRate_crc=3036537463
+DownloadSize=Taille de la ressource en octets
+DownloadSize_crc=3043116296
+DownBytes=Nombre d'octets téléchargés - les modifications sont signalées via pid info (pas de reconfiguration)
+DownBytes_crc=4224364036
+ByteRange=Plage d'octets de la ressource associée en octets. Si non specifiée, les données représentent tout le fichier.
+ByteRange_crc=589585796
+DisableProgressive=le flux/fichier ne peut pas être poussé/stocké progressivement car les premiers blocs doivent être ré-écrits à la fermeture
+DisableProgressive_crc=1253734822
+IsoAltBrands=indique les marques ISOBMFF associées au PID/fichier
+IsoAltBrands_crc=1745643599
+IsoBrand=indique la marque principale ISOBMFF associée à un PID/fichier
+IsoBrand_crc=90889367
+ServiceWidth=Largeur d'affichage du service
+ServiceWidth_crc=365048394
+ServiceHeight=Hauteur d'affichage du service
+ServiceHeight_crc=3683000823
+CarouselRate=Taux de répétition en ms pour les données carrousel éventuelles
+CarouselRate_crc=2407619266
+UTC=date et heure UTC du PID
+UTC_crc=1412134201
+UTCTimestamp=Horodatage enéchelle de temps du flux correspondant à la date et à l'heure UTC
+UTCTimestamp_crc=2648424488
+AudioVolume=Volume audio
+AudioVolume_crc=2905216846
+AudioPan=Balance/Pan audio
+AudioPan_crc=4102812374
+AudioPriority=Priorité du thread audio
+AudioPriority_crc=1729537029
+ProtectionScheme=Type de schéma de protection (4CC) utilisé
+ProtectionScheme_crc=2184009129
+SchemeVersion=Version du schéma de protection utilisée
+SchemeVersion_crc=772159803
+SchemeURI=URI du schéma de protection
+SchemeURI_crc=2450678833
+KMS_URI=URI du système de gestion de clés (ISMA, OMA)
+KMS_URI_crc=1235676637
+SelectiveEncryption=Indique si le cryptage sélectif ISAM / OMA est utilisé
+SelectiveEncryption_crc=432794341
+IVLength=Taille du vecteur d'initialisation ISMA
+IVLength_crc=2455230602
+KILength=Taille de l'indicateur de clé ISMA
+KILength_crc=9936747
+CryptType=Type d'encryption OMA
+CryptType_crc=3417288242
+ContentID=Identifiant OMA du contenu
+ContentID_crc=3951478426
+TextualHeaders=En-têtes textuelles OMA
+TextualHeaders_crc=3209612233
+PlaintextLen=Taille des données en clair pour OMA
+PlaintextLen_crc=1882107497
+CryptInfo=Chemin local vers le fichier d'information de crypto pour ce pid - voir l'aide du filtre cecrypt
+CryptInfo_crc=3546178372
+DecryptInfo=Chemin local vers le fichier d'information de crypto pour ce pid - voir l'aide du filtre cdcrypt
+DecryptInfo_crc=396626559
+SenderNTP=Temps d'envoi NTP
+SenderNTP_crc=618552461
+Encrypted=Les paquets du flux sont cryptés par défaut (mais l'état de cryptage est indiqué par  paquet) - les modifications sont signalées via pid_set_info (pas de reconfiguration)
+Encrypted_crc=18696922
+OMAPreview=Plage d'aperçu en clair pour OMA 
+OMAPreview_crc=112468299
+CENC_PSSH=Blob binaire PSSH pour CENC, au format (u32)NbSystems [(bin128)SystemID(u32)version(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]
+CENC_PSSH_crc=297854741
+CENC_SAI=SAI CENC pour le paquet, au format (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]
+CENC_SAI_crc=2119074303
+KID=ID de clé pour les paquets du PID - les modifications sont signalées par pid_set_info (pas de reconfiguration)
+KID_crc=523421652
+IVSize=taille d'IV pour les paquets du PID
+IVSize_crc=937084584
+ConstantIV=Constant IV pour les paquets du PID
+ConstantIV_crc=1178937174
+CENCPattern=CENC crypt pattern, nb blocs skip dans frac.num et nb blocs crypt dans frac.den
+CENCPattern_crc=2923640643
+CENCStore=4CC de l'emplacement de stockage ISOBMFF des données SAI
+CENCStore_crc=988911565
+AMRModeSet=ModeSet pour AMR et AMR-WideBand
+AMRModeSet_crc=688511568
+SubSampleInfo=blob binaire décrivant N plages du paquet, au format N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
+SubSampleInfo_crc=4180379905
+NALUMaxSize=Taille maximale des unités NAL dans le flux - les modifications sont signalées via pid_set_info (pas de reconfiguration)
+NALUMaxSize_crc=180584814
+FileNumber=Index du fichier utilisé lors de l'écriture de fichiers
+FileNumber_crc=1736957882
+FileName=Nom du fichier de sortie lors de l'écriture. Doit être défini sur le premier paquet appartenant au nouveau fichier
+FileName_crc=2609297906
+IDXName=Nom du fichier d'index pour la segmentation MPEG-2 TS. Doit être défini sur le premier paquet appartenant au nouveau fichier
+IDXName_crc=3294858970
+EODS=Fin du segment DASH
+EODS_crc=987469045
+MaxFrameSize=Taille maximale de la trame dans le flux - les modifications sont signalées par pid_set_info (pas de reconfiguration)
+MaxFrameSize_crc=2398021276
+TrackTemplate=Track Box ISOBMFF sérialisée pour ce PID, sans aucune information de paquet (stbl et dref vide) - utilisé par le muxer ISOBMFF pour réinjecter les box d'entrées
+TrackTemplate_crc=900009873
+MovieUserData=UDTA et autres box du moov sérialisées sous forme de liste pour ce PID - utilisé par le muxer ISOBMFF pour réinjecter les box d'entrées
+MovieUserData_crc=319518667
+Period=ID de la période DASH
+Period_crc=2945576102
+PStart=début de la période DASH - voir aide du filtre dasher
+PStart_crc=1307682613
+PDur=Durée de la période DASH - voir aide du filtre dasher
+PDur_crc=779454483
+Representation=ID de la représentation DASH
+Representation_crc=239910461
+ASID=ID de l'adaptation set parent en DASH
+ASID_crc=4060058902
+MuxSrc=Nom de la ou des sources de multiplexage, défini par le filtre dasher pour diriger ses sorties vers les multiplexeurs
+MuxSrc_crc=2795310043
+DashMode=mode DASH à utiliser par le multiplexeur, le cas échéant. 0: le mux n'est pas un fichier DASH, 1: le mux est un fichier DASH normal, 2: le mux est un fichier DASH onDemand (un seul segment)
+DashMode_crc=2881652700
+DashDur=durée du segment cible DASH en secondes pour ce PID
+DashDur_crc=3066345473
+Role=Liste des rôles pour ce PID
+Role_crc=180282755
+PDesc=Liste des descripteurs pour la période DASH contenant ce PID
+PDesc_crc=468366391
+ASDesc=Liste des descripteurs conditionnels pour l'AdaptationSet DASH contenant ce PID. Si un PID avec le même nom de descripteur mais une valeur différente est trouvé, les PIDs seront dans différents AdaptationSets
+ASDesc_crc=107869132
+ASCDesc=Liste des descripteurs communs pour l'AdaptationSet DASH contenant ce PID
+ASCDesc_crc=2337131008
+RDesc=Liste des descripteurs pour la représentation DASH contenant ce PID
+RDesc_crc=3509600818
+BUrl=Liste des URL de base pour ce PID
+BUrl_crc=2685057823
+Template=Modèle (template) de noms de segment à utiliser pour la génération DASH pour ce PID
+Template_crc=4158847963
+StartNumber=Numéro du premier segment généré pour ce PID - voir aide du filtre dasher
+StartNumber_crc=3894646022
+xlink=URL de période distante pour DASH - voir aide du filtre dasher
+xlink_crc=1236222573
+CDur=Durée maximale de média à traiter pour ce PID en mode DASH
+CDur_crc=3648161947
+HLSPL=Nom de la liste de lecture variante HLS pour ce PID
+HLSPL_crc=305561589
+DCue=Nom d'un fichier de cues pour ce PID - voir l'aide du filtre dasher
+DCue_crc=2643542980
+RequireReorder=Indique que les paquets de ce PID proviennent d'une source avec pertes et réordonnances de paquets (UDP)
+RequireReorder_crc=2282219477
+[inspect]
+desc=Inspect packets on pids
+desc_crc=4287839563
+help=@The inspector filter can be used to dump pid and packets. Te default options load only pid changes.
+The packet inspector mode can be configured to dump specific properties of packets using the fmt option.
+When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed use $, @ or % for TOKEN separator. TOKEN can be:
+	pn: packet (frame in framed mode) number
+	dts: decoding time stamp in stream timescale, N/A if not available
+	cts: composition time stamp in stream timescale, N/A if not available
+	dur: duration in stream timescale
+	frame: framing status: frame_full (complete AU), frame_start, , frame_end, frame_cont
+	sap: SAP type of the frame
+	ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)
+	corr: corrupted packet flag
+	seek: seek flag
+	bo: byte offset in source, N/A if not available
+	roll: roll info
+	crypt: crypt flag
+	vers: carrousel version number
+	size: size of packet
+	crc: 32 bit CRC of packet
+	lf: insert linefeed
+	cr: insert carriage return
+	data: hex dump of packet - WARNING, THIS IS BIG !!
+	lp: leading picture flag
+	depo: depends on other packet flag
+	depf: is depended on other packet flag
+	red: redundant coding flag
+	ck: clock type (used for PCR discontinuities)
+	Property name or 4cc.
+	pid.P4CC: PID property 4CC
+	pid.PropName: PID property name
+
+EX: fmt="PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$" dumps packet number, cts and dts, eg "PID 1 packet 10 DTS 100 CTS 108 \n" 
+
+An unrecognized keywork or missing property will resolve to an empty string
+
+Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order
+since the inspector fetches one packet at a time on each PID
+@
+help_crc=1598221440
+log=Sets inspect log filename
+log_crc=3563849341
+mode=Dump mode: au dumps full frame, blk dumps packets before AU reconstruction, raw dumps source packets without demuxing
+mode_crc=4021149978
+interleave=Dumps packets as they are received on each pid. If false, report per pid is generated
+interleave_crc=1103173539
+pck=Dumps packets along with PID state change - implied when fmt is set
+pck_crc=1677973575
+props=Dumps packet properties - ignored when fmt is set, see filter help
+props_crc=2778276055
+dump_data=Enables full data dump, WARNING heavy - ignored when fmt is set, see filter help
+dump_data_crc=2188302190
+fmt=sets packet dump format - see filter help
+fmt_crc=4290652087
+hdr=prints a header corresponding to fmt string without '$ 'or "pid."
+hdr_crc=1641642031
+[probe]
+desc=Inspect packets on demux pids (not file)
+desc_crc=4187457874
+log=Sets inspect log filename
+log_crc=3563849341
+mode=Dump mode: au dumps full frame, blk dumps packets before AU reconstruction, raw dumps source packets without demuxing
+mode_crc=4021149978
+interleave=Dumps packets as they are received on each pid. If false, report per pid is generated
+interleave_crc=1103173539
+pck=Dumps packets along with PID state change - implied when fmt is set
+pck_crc=1677973575
+props=Dumps packet properties - ignored when fmt is set, see filter help
+props_crc=2778276055
+dump_data=Enables full data dump, WARNING heavy - ignored when fmt is set, see filter help
+dump_data_crc=2188302190
+fmt=sets packet dump format - see filter help
+fmt_crc=4290652087
+hdr=prints a header corresponding to fmt string without '$ 'or "pid."
+hdr_crc=1641642031
+[compositor]
+desc=GPAC interactive media compositor
+desc_crc=1475395797
+help=@The GPAC compositor allows mixing audio, video, text and graphics in a timed fashion. The compositor acts as a pseudo-sink for the video side and creates its own output window.
+The video frames are however dispatched to an output video pid in the form of frame pointers requiring later GPU read if used.
+The audio part acts as a regular filter.@
+help_crc=780203760
+aa=@Set anti-aliasing mode for raster graphics - whether the setting is applied or not depends on the graphics module / graphic card.
+	none: no anti-aliasing
+	text: anti-aliasing for text only
+	all: complete anti-aliasing@
+aa_crc=1071704873
+hlfill=Set highlight fill color (ARGB)
+hlfill_crc=2517950793
+hlline=Set highlight stroke color (ARGB)
+hlline_crc=1115719061
+hllinew=Set highlight stroke width
+hllinew_crc=2662633524
+sz=specifies whether scalable zoom should be used or not. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.
+sz_crc=863905088
+bc=default background color to use when displaying transparent images or video with no scene composition instructions
+bc_crc=1364931934
+yuvhw=enables YUV hardware for 2D blits
+yuvhw_crc=286936651
+blitp=partial hardware blits (if not set, will force more redraw)
+blitp_crc=2294562105
+stress=enables stress mode of compositor (rebuild all vector graphics and texture states at each frame)
+stress_crc=3471029662
+fast=enables speed optimization - whether the setting is applied or not depends on the graphics module / graphic card
+fast_crc=1107410525
+bvol=@draws bounding volume of objects.
+	no: disable bounding box
+	box: draws a rectangle (2D) or box (3D mode)
+	aabb: draws axis-aligned bounding-box tree (3D only)@
+bvol_crc=4290969438
+textxt=specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Default value will use texturing for OpenGL rendering.
+textxt_crc=621473674
+out8b=converts 10-bit video to 8 bit texture before GPU upload.
+out8b_crc=2444281991
+drop=drops late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed
+drop_crc=909051951
+sclock=forces synchronizing all streams on a single clock
+sclock_crc=423984299
+sgaze=simulate gaze events through mouse
+sgaze_crc=330294849
+ckey=color key to use in windowless mode (0xFFRRGGBB). GPAC currently doesn't support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of GPAC's output, if supported.
+ckey_crc=423354452
+timeout=timeout in ms after which a source is considered dead
+timeout_crc=1766072551
+fps=simulation frame rate when animation-only sources are played (ignored when video is present).
+fps_crc=2750658324
+fsize=Forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration
+fsize_crc=4245810103
+mode2d=specifies whether immediate drawing should be used or not. In immediate mode, the screen is completely redrawn at each frame. In defer mode object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer. Whether the setting is applied or not depends on the graphics module (currently all modules handle both mode). debug mode only renders changed areas.
+mode2d_crc=384263271
+amc=audio multichannel support; if disabled always downmix to stereo. usefull if the multichannel output doesn't work properly
+amc_crc=1601428466
+asr=forces output sample rate - 0 for auto
+asr_crc=1603958301
+ach=forces output channels - 0 for auto
+ach_crc=2643820771
+alayout=forces output channel layout - 0 for auto
+alayout_crc=451080130
+afmt=forces output channel format - 0 for auto
+afmt_crc=233586354
+asize=audio output packet size in samples
+asize_crc=40294656
+abuf=audio output buffer duration in ms - the audio renderer fills the output pid up to this value. A too low value will lower latency but can have real-time playback issues
+abuf_crc=1640494189
+avol=audio volume in percent
+avol_crc=2361349938
+apan=audio pan in percent, 50 is no pan
+apan_crc=485972319
+async=audio resynchronization; if disabled, audio data is never dropped but may get out of sync
+async_crc=3135160244
+buf=playout buffer in ms. Overriden by BufferLenth property of input pid
+buf_crc=2203983687
+rbuf=rebuffer trigger in ms. Overriden by RebufferLenth property of input pid
+rbuf_crc=271064352
+mbuf=max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid
+mbuf_crc=4276787499
+ogl=specifies 2D rendering mode. When on, this will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not look as nice as 2D mode. In hybrid mode, the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).
+ogl_crc=3373719114
+pbo=enables PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.
+pbo_crc=3490920568
+nav=overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)
+nav_crc=4231320967
+linegl=specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining
+linegl_crc=4224418980
+epow2=@emulate power-of-2 textures for openGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled
+	yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations
+	no: video is resized to a power of 2 texture when mapping to a shape@
+epow2_crc=2327000520
+paa=specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.
+paa_crc=1786425518
+bcull=specifies whether backface culling shall be disable or not.
+bcull_crc=3893702626
+wire=@enables wireframe mode.
+"none": objects are drawn as solid
+"only": objects are drawn as wireframe only
+"solid": objects are drawn as solid and wireframe is then drawn@
+wire_crc=4252552551
+norms=enables normal drawing
+norms_crc=363654300
+glus=use GLU scale, which may be slower but nicer than GPAC's software stretch routines.
+glus_crc=2105210268
+rext=use non power of two (rectangular) texture GL extension
+rext_crc=2372984472
+cull=use aabb culling: large objects are rendered in multiple calls when not fully in viewport
+cull_crc=1939091489
+yuvgl=enables YUV open GL pixel format support
+yuvgl_crc=2022018780
+depth_gl_scale=sets depth scaler
+depth_gl_scale_crc=3877449784
+depth_gl_type=sets geometry type used to draw depth video
+depth_gl_type_crc=47962644
+views=specifies the number of views to use in stereo mode
+views_crc=2085138016
+stereo=@specifies the stereo output type (default "none"). If your graphic card does not support OpenGL shaders, only "top" and "side" modes will be available.
+"side": images are displayed side by side from left to right.
+"top": images are displayed from top (laft view) to bottom (right view).
+"hmd": same as side except that view aspect ratio is not changed.
+"ana": standard color anaglyph (red for left view, green and blue for right view) is used (forces views=2).
+"cols": images are interleaved by columns, left view on even columns and left view on odd columns (forces views=2).
+"rows": images are interleaved by columns, left view on even rows and left view on odd rows (forces views=2).
+"spv5": images are interleaved by for SpatialView 19'' 5 views display, fullscreen mode (forces views=5).
+"alio8": images are interleaved by for Alioscopy 8 views displays, fullscreen mode (forces views=8).
+"custom": images are interleaved according to the shader file indicated in gpac config section Video, key InterleaverShader. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left@
+stereo_crc=789458126
+fpack=indicates default frame packing of input video
+fpack_crc=2619447659
+camlay=sets camera layout in multiview modes
+camlay_crc=4152486677
+iod=specifies the eye separation in cm (distance between the cameras). 
+iod_crc=1720965022
+rview=reverse view order
+rview_crc=591231777
+tvtn=number of point sampling for tile visibility algo
+tvtn_crc=3890017384
+tvtt=number of points above which the tile is considered visible
+tvtt_crc=1126892718
+tvtd=disables the tile having full coverage of the SRD, only displaying partial tiles
+tvtd_crc=2657353927
+tvtf=force all tiles to be considered visible, regardless of viewpoint
+tvtf_crc=387976198
+fov=default field of view for VR
+fov_crc=214746862
+autocal=auto callibrates znear/zfar in depth rendering mode
+autocal_crc=2157309113
+dispdepth=sets display depth, negative value uses default screen height
+dispdepth_crc=4113138537
+dispdist=specifies the distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC
+dispdist_crc=1518690589
+focdist=sets focus distance
+focdist_crc=4011636888
+wfont=forces to wait for SVG fonts to be loaded before displaying frames
+wfont_crc=3547111042
+defsz=default size
+defsz_crc=2322452950
+dpi=default dpi if not indicated by video output
+dpi_crc=2481033276
+dbgpvr=debugs scene used by PVR addon
+dbgpvr_crc=4127459732
+[mp4dmx]
+desc=ISOBMFF and QT demuxer
+desc_crc=93151095
+help=@When scalable tracks are present in a file, the reader can operate in 3 modes using smode option:
+	smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used
+In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs
+	smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config
+and an enhancement decoder config.
+	smode=splitx: extractors are kept in the bitstream, and every track of the scalable set is declared. In this mode, each enhancement track has a base decoder config
+ (copied from base) and an enhancement decoder config. This is mostly used for DASHing content.
+	WARNING: smode=splitx will result in extractor NAL units still present in the output bitstream, which shall only be true if the output is ISOBMFF based
+@
+help_crc=3155400072
+src=location of source content
+src_crc=3972578009
+allt=@loads all tracks even if unknown
+	@
+allt_crc=1967417000
+noedit=do not use edit lists
+noedit_crc=4288054093
+itt=(items-to-track) converts all items of root meta into a single PID
+itt_crc=2291805652
+smode=@Load mode for scalable/tile tracks
+	split: each track is declared, extractors are removed
+	splitx: each track is declared, extractors are kept
+	single: a single track is declared (highest level for scalable, tile base for tiling)@
+smode_crc=1367399273
+stsd=only extract sample mapped to the given sample desciption index. 0 means no filter
+stsd_crc=2429693299
+mov=pointer to a read/edit ISOBMF file used internally by importers and exporters
+mov_crc=3090765908
+[bifsdec]
+desc=MPEG-4 BIFS decoder
+desc_crc=3597962957
+[odfdec]
+desc=MPEG-4 OD decoder
+desc_crc=2749565704
+[fin]
+desc=Generic file input
+desc_crc=1432646539
+src=location of source content
+src_crc=3972578009
+block_size=block size used to read file
+block_size_crc=29840651
+range=byte range
+range_crc=2116497769
+ext=overrides file extension
+ext_crc=1085665433
+mime=sets file mime type
+mime_crc=1774517341
+[btplay]
+desc=Textual BT/XMT/X3D loader for playback
+desc_crc=3099725038
+progressive=enable progressive loading
+progressive_crc=3818602383
+sax_dur=SAX loading duration
+sax_dur_crc=1802111958
+[httpin]
+desc=HTTP input
+desc_crc=2945195665
+src=location of source content
+src_crc=3972578009
+block_size=block size used to read file
+block_size_crc=29840651
+cache=Sets cache mode: disk, disk without discarding, memory or none
+cache_crc=1955261685
+range=Sets byte range, as fraction
+range_crc=3506772796
+ext=overrides file extension
+ext_crc=1085665433
+mime=sets file mime type
+mime_crc=1774517341
+[svgplay]
+desc=SVG loader for playback
+desc_crc=1396251963
+sax_dur=SAX loading duration, 0 disables SAX parsing
+sax_dur_crc=3513062436
+[rfimg]
+desc=JPG/J2K/PNG/BMP Image reframer
+desc_crc=1596853371
+timescale=timescale for media timestamps when loading from file not stream
+timescale_crc=992061343
+dur=duration of image when loading from file not stream
+dur_crc=1719404674
+[imgdec]
+desc=PNG/JPG decoder
+desc_crc=3552311705
+[rfadts]
+desc=ADTS reframer
+desc_crc=338359499
+frame_size=size of AAC frame in audio samples
+frame_size_crc=1976232832
+index_dur=indexing window length
+index_dur_crc=400520
+mpeg4=forces signaling as MPEG-4 AAC
+mpeg4_crc=66846242
+ovsbr=forces oversampling SBR (does not multiply timescales by 2)
+ovsbr_crc=1287852570
+sbr=@set SBR signaling:
+	no: no SBR signaling at all
+	imp: backward-compatible SBR signaling (audio signaled as AAC-LC)
+	exp: explicit SBR signaling (audio signaled as AAC-SBR)@
+sbr_crc=107785050
+ps=@set PS signaling:
+	no: no PS signaling at all
+	imp: backward-compatible PS signaling (audio signaled as AAC-LC)
+	exp: explicit PS signaling (audio signaled as AAC-PS)
+@
+ps_crc=3200918403
+[rfmp3]
+desc=MPEG-1/2 audio reframer
+desc_crc=3201472508
+index_dur=indexing window length
+index_dur_crc=400520
+[faad]
+desc=FAAD decoder
+desc_crc=2730188650
+[maddec]
+desc=MAD decoder
+desc_crc=2999506261
+[xviddec]
+desc=XVid decoder
+desc_crc=3424175961
+deblock_y=enable Y deblocking
+deblock_y_crc=565202633
+deblock_uv=enable UV deblocking
+deblock_uv_crc=4030753028
+film_effect=enable film effect
+film_effect_crc=1374082604
+dering_y=enable Y deblocking
+dering_y_crc=565202633
+dering_uv=enable UV deblocking
+dering_uv_crc=4030753028
+[j2kdec]
+desc=OpenJPEG2000 decoder
+desc_crc=2046398867
+[rfac3]
+desc=AC3 reframer
+desc_crc=608396785
+index_dur=indexing window length
+index_dur_crc=400520
+[a52]
+desc=A52 decoder
+desc_crc=546058210
+[rfamr]
+desc=AMR/EVRC reframer
+desc_crc=893249618
+index_dur=indexing window length
+index_dur_crc=400520
+[oggdmx]
+desc=OGG demuxer
+desc_crc=209586963
+index_dur=indexing window length (unimplemented, only 0 disables stream probing for duration), 
+index_dur_crc=4269948406
+[vorbisdec]
+desc=OGG/Vorbis decoder
+desc_crc=1312885232
+[theoradec]
+desc=OGG/Theora decoder
+desc_crc=3220665371
+[m2tsdmx]
+desc=MPEG-2 Transport Stream demuxer
+desc_crc=526700568
+temi_url=force TEMI URL
+temi_url_crc=3916788266
+dsmcc=enable DSMCC receiver
+dsmcc_crc=279393923
+[sockin]
+desc=UDP / TCP socket input
+desc_crc=3624252474
+help=@This filter handles generic TCP and UDP input sockets. It can also probe for MPEG-2 TS over RTP input. Probing of MPEG-2 TS over UDP/RTP is enabled by default but can be turned off.
+
+Format of data can be specified by setting either ext or mime option. If not set, the format will be guessed by probing the first data packet
+Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME
+On OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0@
+help_crc=830918544
+src=location of source content
+src_crc=3972578009
+block_size=block size used to read socket
+block_size_crc=1575913241
+sockbuf=socket max buffer size
+sockbuf_crc=3655720801
+port=default port if not specified
+port_crc=3919277725
+ifce=default multicast interface
+ifce_crc=2634186680
+listen=indicate the input socket works in server mode
+listen_crc=942997240
+ka=keep socket alive if no more connections
+ka_crc=3219833474
+maxc=max number of concurrent connections
+maxc_crc=2929003351
+np=disables TS probe on input data. Implied if mime or ext are given
+np_crc=3094894051
+ext=indicates file extension of udp data
+ext_crc=4011058385
+mime=indicates mime type of udp data
+mime_crc=2546177900
+block=set blocking mode for socket(s)
+block_crc=3267148328
+reorder_pck=number of packets delay for RTP reordering (M2TS over RTP) 
+reorder_pck_crc=2530740796
+reorder_delay=number of ms delay for RTP reordering (M2TS over RTP)
+reorder_delay_crc=3603041699
+[osvcdec]
+desc=OpenSVC decoder
+desc_crc=3449928440
+[vtbdec]
+desc=VideoToolBox decoder
+desc_crc=3644050121
+reorder=number of frames to wait for temporal re-ordering
+reorder_crc=761831010
+no_copy=dispatch VTB frames into filter chain (no copy)
+no_copy_crc=2198326826
+pfmt=sets default pixel format for decoded video. If not matched default to nv12
+pfmt_crc=32157086
+disable_hw=Disables hardware decoding
+disable_hw_crc=2484006419
+[lsrdec]
+desc=MPEG-4 LASeR decoder
+desc_crc=4044168197
+[safdmx]
+desc=SAF demuxer
+desc_crc=1779159991
+[dashin]
+desc=MPEG-DASH & HLS access engine
+desc_crc=2374307118
+max_buffer=max content buffer in ms. If 0 uses default player settings
+max_buffer_crc=799920983
+auto_switch=switch quality every N segments, disabled if 0
+auto_switch_crc=2094101418
+store=enables file caching
+store_crc=3848075024
+algo=@adaptation algorithm to use. The following algorithms are defined:
+	none: no adaptation logic
+	grate: GAPC legacy algo based on available rate
+	gbuf: GAPC legacy algo based on buffer occupancy
+	bba0: BBA-0
+	bolaf: BOLA Finite
+	bolab: BOLA Basic
+	bolau: BOLA-U
+	bolao: BOLA-O@
+algo_crc=3083473991
+start_with=@specifies the initial representation criteria:
+	min_q: start with lowest quality
+	max_q: start with highest quality
+	min_bw: start with lowest bitrate
+	max_bw: start with highest bitrate; for tiles are used, all low priority tiles will have the lower (below max) bandwidth selected
+	max_bw_tiles: start with highest bitrate; for tiles all low priority tiles will have their lowest bandwidth selected@
+start_with_crc=4179083279
+max_res=use max media resolution to configure display
+max_res_crc=1978124953
+immediate=when interactive switching is requested and immediate is set, the buffer segments are trashed
+immediate_crc=3562300308
+abort=allow abort during a segment download
+abort_crc=1958241568
+use_bmin=Uses the indicated min buffer time of the MPD if true, otherwise uses default player settings
+use_bmin_crc=2864488242
+shift_utc=shifts DASH UTC clock
+shift_utc_crc=3068346272
+atsc_shift=shifts ATSC requests time by given ms
+atsc_shift_crc=4237691186
+server_utc=Uses ServerUTC: or Date: http headers instead of local UTC
+server_utc_crc=2699367787
+screen_res=Uses screen resolution in selection phase
+screen_res_crc=3526471735
+timeshift=Sets initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)
+timeshift_crc=3110845565
+tile_mode=@Sets tile adaptiaion mode:
+	none: bitrate is shared equaly accross all tiles
+	rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row
+	rrows: bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row
+	mrows: bitrate decreased for top and bottom rows only, same rate for each tile on the row
+	cols: bitrate decreases for each columns of tiles starting from the left, same rate for each tile on the columns
+	rcols: bitrate decreases for each columns of tiles starting from the right, same rate for each tile on the columns
+	mcols: bitrate decreased for left and right columns only, same rate for each tile on the columns
+	center: bitrate decreased for all tiles on the edge of the picture
+	edges: bitrate decreased for all tiles on the center of the picture@
+tile_mode_crc=11481146
+tiles_rate=Indicates the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.
+tiles_rate_crc=1471056937
+delay40X=Delay in millisconds to wait between two 40X on the same segment
+delay40X_crc=3744917353
+exp_threshold=Delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost
+exp_threshold_crc=834945235
+switch_count=Indicates how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations
+switch_count_crc=1861836865
+aggressive=If enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)
+aggressive_crc=685396106
+debug_as=Plays only the adaptation set indicated by its index in the MPD; if negative, all sets are used
+debug_as_crc=2073744584
+speed=Enables adaptation based on playback speed
+speed_crc=4202574190
+[cdcrypt]
+desc=CENC, ISMA and adobe decryptor
+desc_crc=3286015280
+help=@The CENC/ISMA decryptor uses a configuration file for retrieving keys. The syntax is available at:
+https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority)
+or set at the filter option level (lowest priority).
+When the file set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.@
+help_crc=3355643697
+cfile=Crypt file - see filter help
+cfile_crc=3044696728
+[cecrypt]
+desc=CENC and ISMA encryptor
+desc_crc=2608147056
+help=@The CENC/ISMA encryptor uses a configuration file for declaring keys. The syntax is available at:
+https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+The file can be set per PID using the property CryptFile, or set at the filter option level.
+When the file is set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.@
+help_crc=1527605354
+cfile=Crypt file - see filter help
+cfile_crc=3044696728
+[mxisom]
+desc=ISOBMFF muxer
+desc_crc=3174169042
+m4sys=force MPEG-4 Systems signaling of tracks
+m4sys_crc=1831069778
+dref=only references data from source file - not compatible with all media sources
+dref_crc=775055314
+ctmode=sets cts mode for video tracks. edit uses edit lists to shift first frame to presentation time 0. noedit doesn't shift timeline. negctts uses ctts v1 and no edit lists
+ctmode_crc=3336851185
+idur=only imports the specified duration
+idur_crc=2105903843
+pack3gp=packs a given number of 3GPP audio frames in one sample
+pack3gp_crc=3970001969
+importer=compatibility with old importer, displays import progress
+importer_crc=556485467
+pack_nal=repacks NALU size length to minimum possible size for AVC/HEVC/...
+pack_nal_crc=2589428755
+xps_inband=Use inband param set for AVC/HEVC/.... If mix, creates non-standard files using single sample entry with first PSs found, and moves other PS inband
+xps_inband_crc=131735851
+store=Write mode. inter uses cdur to interleave the file. flat writes a flat file, file at end. cap flushes to disk as soon as samples are added. tight uses per-sample interleaving of all tracks. frag framents the file using cdur duration. sfrag framents the file using cdur duration but adjusting to start with SAP1/3.  
+store_crc=809072118
+cdur=chunk duration for interleaving and fragmentation modes
+cdur_crc=3889103669
+for_test=sets all dates and version info to 0 to enforce same binary result generation
+for_test_crc=591187781
+timescale=timescale to use for movie edit lists
+timescale_crc=1020713727
+moof_first=generates fragments starting with moof then mdat
+moof_first_crc=2226525148
+abs_offset=uses absolute file offset in fragments rather than offsets from moof
+abs_offset_crc=2126032520
+fsap=splits truns in video fragments at SAPs to reduce file size
+fsap_crc=10664029
+file=pointer to a write/edit ISOBMF file used internally by importers and exporters
+file_crc=725371499
+subs_sidx=number of subsegments per sidx. negative value disables sidx
+subs_sidx_crc=2940657399
+m4cc=4 character code of empty box to appen at the end of a segment
+m4cc_crc=2324258074
+chain_sidx=Uses daisy-chaining of SIDX
+chain_sidx_crc=2945874345
+msn=Sets sequence number of first moof to N
+msn_crc=1935169908
+msninc=Sets sequence number increase between moofs
+msninc_crc=1182819374
+tfdt=sets TFDT of first traf
+tfdt_crc=446145329
+tfdt_traf=sets TFDT in each traf
+tfdt_traf_crc=1977654141
+nofragdef=disables default flags in fragments
+nofragdef_crc=389153258
+straf=uses a single traf per moov (smooth streaming and co)
+straf_crc=1179979078
+strun=uses a single traf per moov (smooth streaming and co)
+strun_crc=1179979078
+psshs=@PSSH boxes store mode:
+	moof: in first moof of each segments
+	moov: in movie box
+	none: discarded@
+psshs_crc=1139148565
+sgpd_traf=stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box
+sgpd_traf_crc=2972375000
+cache=Enables temp storage for VoD dash modes. When disabled, SIDX size will be estimated based on duration and DASH segment length, and padding will be used in the file before the final SIDX. When enabled, file data is stored to a cache and flushed upon completion
+cache_crc=3264208109
+noinit=does not send initial moov, used for DASH bitstream switching mode
+noinit_crc=1715651077
+tktpl=use track box from input if any as a template to create new track. no disables template, yes clones the track (except edits and decoder config), udta only loads udta
+tktpl_crc=4009584019
+mudta=use udta and other moov extension boxes from input if any. no disables import, yes clones all extension boxes, udta only loads udta
+mudta_crc=3373712603
+tmpd=sets temp dire for intermediate file(s)
+tmpd_crc=3648307615
+mvex=sets mvex after tracks
+mvex_crc=4110963461
+tkid=track ID of created track for single track. Default 0 uses next available trackID
+tkid_crc=810495435
+fdur=fragments based on fragment duration rather than CTS. Mostly used for MP4Box -frag option
+fdur_crc=1875532844
+btrt=sets btrt box in sample description
+btrt_crc=3335833695
+block_size=target output block size, 0 for default internal value (10k)
+block_size_crc=2554453340
+[rfqcp]
+desc=QCP reframer
+desc_crc=1012125759
+index_dur=indexing window length
+index_dur_crc=400520
+[rfh263]
+desc=H263 reframer
+desc_crc=416498604
+fps=import frame rate
+fps_crc=894530348
+index_dur=indexing window length
+index_dur_crc=400520
+[rfmpgvid]
+desc=MPEG-1 MPEG-2 MPEG-4(Part2) video reframer
+desc_crc=2766981857
+help=The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS
+help_crc=3334498548
+fps=import frame rate
+fps_crc=894530348
+index_dur=indexing window length
+index_dur_crc=400520
+vfr=set variable frame rate import
+vfr_crc=2959659910
+importer=compatibility with old importer, displays import results
+importer_crc=2953354326
+[nhntr]
+desc=NHNT reader
+desc_crc=2986867744
+reframe=force reparsing of referenced content
+reframe_crc=4149990424
+index_dur=indexing window length
+index_dur_crc=400520
+[nhmlr]
+desc=NHML parser
+desc_crc=1087761555
+reframe=force reparsing of referenced content
+reframe_crc=4149990424
+index_dur=indexing window length
+index_dur_crc=400520
+[rfnalu]
+desc=NALU Video (AVC & HEVC) reframer
+desc_crc=2496497286
+help=@This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.
+	The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.@
+help_crc=758087815
+fps=import frame rate
+fps_crc=894530348
+autofps=detect FPS from bitstream, fallback to fps option if not possible
+autofps_crc=2459069437
+index_dur=indexing window length. If 0, bitstream is not probed for duration
+index_dur_crc=3784349922
+explicit=use explicit layered (SVC/LHVC) import
+explicit_crc=868793531
+strict_poc=delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes
+strict_poc_crc=3867758617
+nosei=removes all sei messages
+nosei_crc=1667863153
+nosvc=removes all SVC/MVC/LHVC data
+nosvc_crc=3551677409
+novpsext=removes all VPS extensions
+novpsext_crc=2586533869
+importer=compatibility with old importer, displays import results
+importer_crc=2953354326
+nal_length=Sets number of bytes used to code length field: 1, 2 or 4
+nal_length_crc=3090395915
+subsamples=Import subsamples information
+subsamples_crc=351036105
+[m2psdmx]
+desc=MPEG Program Stream demuxer
+desc_crc=1302440712
+[avidmx]
+desc=AVI demuxer
+desc_crc=3345334732
+fps=import frame rate, default is AVI one
+fps_crc=2934746080
+importer=compatibility with old importer, displays import results
+importer_crc=2953354326
+[txtin]
+desc=Timed text  SRT, SUB, TTXT, QT-TeXML, WebVTT, TTML and SWF2SVG loader
+desc_crc=3978069602
+webvtt=force WebVTT import of SRT files
+webvtt_crc=876324549
+nodefbox=skip default text box
+nodefbox_crc=3177451349
+noflush=skip final sample flush for srt
+noflush_crc=2679838919
+fontname=default font to use
+fontname_crc=3544177182
+fontsize=default font size
+fontsize_crc=2176459882
+lang=default language to use
+lang_crc=3648271996
+width=default width of text area, set to 0 to resolve against visual PIDs
+width_crc=3837674580
+height=default height of text area, set to 0 to resolve against visual PIDs
+height_crc=3790348457
+x=default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)
+x_crc=2094383566
+y=default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)
+y_crc=4101522951
+zorder=default z-order of the PID
+zorder_crc=1497795429
+timescale=default timescale of the PID
+timescale_crc=499577735
+[ttxtdec]
+desc=TTXT/TX3G decoder
+desc_crc=2081073929
+texture=Use texturing for output text
+texture_crc=2371597645
+outline=Draw text outline
+outline_crc=2990065825
+width=Default width when standalone rendering
+width_crc=3801502871
+height=Default height when standalone rendering
+height_crc=2770052284
+[vttdec]
+desc=WebVTT decoder
+desc_crc=1539593896
+script=Location of WebVTT SVG JS renderer
+script_crc=4025437757
+[rtpin]
+desc=RTP/RTSP/SDP input
+desc_crc=2133681016
+src=RTSP location of source content
+src_crc=851598752
+firstport=default first port number to use. 0 lets the filter decide
+firstport_crc=3962131718
+ifce=IP of the default interface to use for multicast. If NULL, the default system interface will be used
+ifce_crc=2720424345
+mcast_ttl=Sets multicast TTL
+mcast_ttl_crc=3285186258
+reorder_len=RTP reorder length in packets
+reorder_len_crc=3754139702
+reorder_delay=Max delay in RTP reorderer, packets will be dispatched after that
+reorder_delay_crc=3227104775
+block_size=buffer size fur RTP/UDP or RTSP when interleaved
+block_size_crc=4004462100
+disable_rtcp=Disables RTCP reporting
+disable_rtcp_crc=65189633
+nat_keepalive=NAT keepalive delay in ms, disabled by default (except for SatIP, set to 30s by default)
+nat_keepalive_crc=1499219508
+force_mcast=Force multicast on indicated IP in RTSP setup
+force_mcast_crc=1763484740
+use_client_ports=Force using client ports  (hack for some RTSP servers overriding client ports)
+use_client_ports_crc=3888971245
+bandwidth=sets bandwidth param for RTSP requests
+bandwidth_crc=3135130812
+default_port=Sets default RTSP port
+default_port_crc=418455079
+satip_port=Sets default port for SATIP
+satip_port_crc=2699168017
+interleave=Sets RTP over RTSP; critcial uses interleave only for MPEG-4 systems streams
+interleave_crc=2052584898
+udp_timeout=Default timeout before considering UDP is down
+udp_timeout_crc=2324324210
+rtsp_timeout=Default timeout before considering RTSP is down
+rtsp_timeout_crc=2959531576
+rtcp_timeout=Default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP
+rtcp_timeout_crc=2760381520
+autortsp=Automatically reconfig RTSP interleaving if UDP timeout
+autortsp_crc=682354717
+first_packet_drop=Sets number of first RTP packet to drop - 0 if no drop
+first_packet_drop_crc=134810345
+frequency_drop=Drop 1 out of N packet - 0 disable droping
+frequency_drop_crc=3638295141
+user_agent=User agent string, by default solved from GPAC preferences
+user_agent_crc=4142140091
+languages=User languages, by default solved from GPAC preferences
+languages_crc=2224109611
+stats=Updates statistics to the user every given MS, 0 disables reporting
+stats_crc=1414847348
+[fout]
+desc=Generic file output
+desc_crc=320552344
+help=@The file output filter can work as a null sink when its destination is "null", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.
+In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a start block set, unless operating in cat mode.
+The ouput file name can use gpac templating mechanism, see gpac help.@
+help_crc=606079466
+dst=location of destination file - see filter help 
+dst_crc=2944539646
+append=open in append mode
+append_crc=3838208913
+dynext=indicates the file extension is set by filter chain, not dst
+dynext_crc=1468217109
+start=sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur
+start_crc=867548297
+speed=sets playback speed when vsync is on
+speed_crc=1777817047
+fext=sets extension for graph resolution, regardless of file extension
+fext_crc=3290862661
+cat=cats each file of input pid rather than creating one file per filename
+cat_crc=522567284
+ow=always overwrite output if existing
+ow_crc=2937308660
+[ufadts]
+desc=Raw AAC to ADTS writer
+desc_crc=2296886488
+mpeg2=Signals as MPEG2 AAC
+mpeg2_crc=3374704675
+[reframer]
+desc=Passthrough filter ensuring reframing, and optionnally decoding, of inputs
+desc_crc=2516726260
+help=@This filter forces input pids to be properly framed (1 packet = 1 Access Unit). It is mostly used for file to file operations.
+The filter can be used to filter out packets based on SAP types, for example to extract only the key frames (SAP 1,2,3) of a video
+The filter can be used to add real-time regulation of input packets. For example to simulate a live DASH:
+	EX "src=m.mp4 reframer:rt=on dst=live.mpd:dynamic"
+@
+help_crc=1592204113
+exporter=compatibility with old exporter, displays export results
+exporter_crc=4138638672
+sap=Drops non-SAP packets, off by default. The string contains the list (whitespace or comma-separated) of SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding ...
+sap_crc=113824472
+rt=real-time regulation mode of input. off disables it, on enables it on each pid, sync enables it on all pid
+rt_crc=1085635204
+speed=speed for real-time regulation mode - only positive value
+speed_crc=2337596272
+raw=forces input streams to be in raw format (i.e. forces decoding of input)
+raw_crc=1389623929
+[writegen]
+desc=Generic single stream to file converter, used when extracting/converting PIDs
+desc_crc=3830938964
+exporter=compatibility with old exporter, displays export results
+exporter_crc=4138638672
+pfmt=Pixel format for raw extract. If not set, derived from extension
+pfmt_crc=3535145677
+afmt=Audio format for raw extract. If not set, derived from extension
+afmt_crc=4166772011
+decinfo=Decoder config insert mode: no means never, first means on first packet, sap means at each SAP, auto selects between no and first based on media type
+decinfo_crc=588707814
+split=Force one file per decoded frame.
+split_crc=2842677878
+frame=Force single frame dump with no rewrite. In this mode, all codecids are supported
+frame_crc=1701807790
+sstart=Start number of frame to dump
+sstart_crc=2458104567
+send=End number of frame to dump. If start<end, all samples after start are dumped
+send_crc=2482204419
+[ufnalu]
+desc=ISOBMFF to AnnexB (start codes) writer for AVC|H264 and HEVC
+desc_crc=554168029
+rcfg=Force repeating decoder config at each I-frame
+rcfg_crc=1063479090
+extract=Extracts full, base or layer only
+extract_crc=3403295392
+delim=Inserts AU NAL Delimiter
+delim_crc=1755308942
+[writeqcp]
+desc=QCP file writer
+desc_crc=4002996549
+exporter=compatibility with old exporter, displays export results
+exporter_crc=4138638672
+[writevtt]
+desc=WebVTT file writer
+desc_crc=3958797601
+exporter=compatibility with old exporter, displays export results
+exporter_crc=4138638672
+merge=merges VTT cue if needed
+merge_crc=1535119373
+[nhntw]
+desc=NHNT file writer
+desc_crc=4129389049
+exporter=compatibility with old exporter, displays export results
+exporter_crc=4138638672
+large=Uses large file mode
+large_crc=4000641212
+[nhmlw]
+desc=NHML file writer
+desc_crc=3549891277
+exporter=compatibility with old exporter, displays export results
+exporter_crc=4138638672
+dims=Uses DIMS mode
+dims_crc=1900107902
+name=Sets output name of files produced (needed media/info files refered to from XML
+name_crc=943156470
+nhmlonly=Only dumps NHML info, not media
+nhmlonly_crc=1508283746
+full=Full NHML dump
+full_crc=777811214
+chksum=Insert frame checksum
+chksum_crc=2795002488
+filep=dumps directly to FILE (used by MP4Box)
+filep_crc=456174012
+[vobsubdmx]
+desc=VobSub demuxer
+desc_crc=110568039
+blankframe=force inserting a blank frame if first subpic is not at 0
+blankframe_crc=2932384686
+[avimx]
+desc=AVI muxer
+desc_crc=386683005
+dst=location of destination file
+dst_crc=821593475
+fps=default framerate if none indicated in stream
+fps_crc=2564330776
+noraw=disables raw output in AVI, only compressed ones allowed
+noraw_crc=3753222271
+[aout]
+desc=Audio soundcard output
+desc_crc=1376824746
+drv=audio driver name
+drv_crc=1650019960
+bnum=number of audio buffers - 0 for auto
+bnum_crc=2449541998
+bdur=total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers
+bdur_crc=1855300149
+threaded=force dedicated thread creation if sound card driver is not threaded
+threaded_crc=1543685745
+dur=only plays the specified duration
+dur_crc=2547512057
+clock=hints audio clock for this stream (reports system time and CTS), for other modules to use
+clock_crc=3418256433
+speed=Sets playback speed
+speed_crc=136760481
+start=Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur
+start_crc=4022740387
+[ufm4v]
+desc=ISOBMFF to MPEG-4(Part2) writer
+desc_crc=905978234
+rcfg=Force repeating decoder config at each I-frame
+rcfg_crc=1063479090
+[resample]
+desc=Audio resampling
+desc_crc=1810930849
+[vout]
+desc=Video graphics card output
+desc_crc=1337852835
+drv=video driver name
+drv_crc=1693149976
+vsync=enables video screen sync
+vsync_crc=2823729754
+drop=enables droping late frames
+drop_crc=1318529139
+disp=Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit
+disp_crc=2153025248
+start=Sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur
+start_crc=4022740387
+dur=only plays the specified duration
+dur_crc=2547512057
+speed=sets playback speed when vsync is on
+speed_crc=1777817047
+hold=specifies the number of seconds to hold display for single-frame streams
+hold_crc=1581096815
+linear=uses linear filtering instead of nearest pixel for GL mode
+linear_crc=753320510
+back=specifies back color for transparent images
+back_crc=4291592618
+size=Default init size, 0x0 holds the size of the first frame. Default is video media size
+size_crc=2248196327
+pos=Default position (0,0 top-left)
+pos_crc=401629220
+hide=Hide output window
+hide_crc=1805599243
+fullscreen=Use fullcreen
+fullscreen_crc=4076015646
+[vcrop]
+desc=Video croping fiter
+desc_crc=2505996701
+wnd=Size of output to crop, indicated as TxLxWxH. If % is indicated after a number, the value is in percent of the source width (for L and W) or height (for T and H). An absolute offset (+x, -x) can be added after percent
+wnd_crc=3630155311
+copy=Always copy the source pixels. By default the filter will try to forward crop frames by adjusting offsets and strides of the source if possible (window contained in frame)
+copy_crc=575340830
+round=Rounds dimension to be a multiple of 2. all_up,all_down activate rounding on formats that do not require it (RGB, YUV444)
+round_crc=16694495
+[rfrawvid]
+desc=RAW video (YUV, RGB) reframer
+desc_crc=3121281961
+size=video resolution
+size_crc=1892185337
+pfmt=pixel format
+pfmt_crc=2597110506
+fps=Video frames per second
+fps_crc=2074396616
+[rfpcm]
+desc=PCM audio reframer
+desc_crc=3467961394
+samplerate=Audio sample rate
+samplerate_crc=2503304202
+afmt=audio format
+afmt_crc=3970124081
+channels=Number of audio channels
+channels_crc=58247240
+framelen=Number of audio samples to put in one audio frame
+framelen_crc=1640355169
+[jpgenc]
+desc=JPG encoder
+desc_crc=1362150746
+dctmode=DCT mode
+dctmode_crc=1242235194
+quality=Quality, between 0 and 100
+quality_crc=4020088444
+[pngenc]
+desc=PNG encoder
+desc_crc=3786343102
+[rewind]
+desc=Audio and video rewinder
+desc_crc=2498322312
+help=The filter is in passthrough if speed is positive. Otherwise, it reverts decoded GOPs for video, or revert samples in decoded frame for audio.
+help_crc=1398822953
+rbuffer=size of video rewind buffer in frames. If more frames than this, flush is performed
+rbuffer_crc=3166283004
+[flist]
+desc=sources concatenator
+desc_crc=3670015842
+help=@This filter can be used to play playlist files (extension txt or m3u) or a list of sources using flist:l="f1[,f2]", where f1 can be a file or a directory to enum.
+Syntax for directory is:
+	dir/*: enumerates everything in dir
+	foo/*.png: enumerates all files with extension png in foo
+	foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo
+
+The filter loads any source supported by GPAC, files (remote or local) or other.
+The filter forces input demultiplex (no streamtype FILE) and recomputes the input timestamps into a continuous timeline.
+At each new source, the filter tries to remap input PIDs to already declared output PIDs of the same type, if any, or declares new output PIDs otherwise. If no input PID matches the type of an output, no packets are send for that PID.
+
+When using a playlist, directives can be given in a comment line (starting with '#' before the file name)
+The following directives (separated with space or comma) are supported:
+	repeat=N: repeats N times the content (hence played N+1)
+	start=T: tries to play the file from start time T seconds (double format only)
+		!! This may not work with some files/formats not supporting seeking
+	stop=T: stops source playback after T seconds (double format only)
+		This works on any source (implemented independetly from seek support)
+
+The source lines follow the usual source syntax, see main help
+		Additionnal pid properties can be added per source, but are valid only for the current source, and reset at next source
+The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist
+If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded
+@
+help_crc=2219017046
+loop=continuously loop playlist/list of files - see filter help
+loop_crc=273951774
+in=list of files to play - see filter help
+in_crc=2275938862
+dur=for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!
+dur_crc=2576765477
+revert=revert list of files (not playlist)
+revert_crc=3272719505
+timescale=forces output timescale on all pids. 0 uses the timescale of the first pid found
+timescale_crc=4215138947
+[mxts]
+desc=MPEG-2 Transport Stream muxer
+desc_crc=869983974
+help=@GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.
+For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.
+Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID inidcated by sid option
+name option is overriden by input PID property ServiceName
+provider option is overriden by input PID property ServiceProvider
+
+The temi option allows specifying a list of URLs or timeline IDs to insert in the program.
+Only a single TEMI timeline can be specified per PID.
+The syntax is
+temi="url,4": inserts a temi URL+timecode to the first stream of all progrrams and an external temi to the second stream of all programs
+temi="#20#,4#10#URL": inserts a temi URL+timecode to the first stream of program with ServiceID 10 and an external temi to the second stream of program with ServiceID 20
+temi="#20#4#10#,,URL": inserts a temi URL+timecode to the third stream of program with ServiceID 10 and an external temi to the first stream of program with ServiceID 20
+
+In DASH mode, the PCR is always initialized at 0, and flush_rap is automatically set.
+@
+help_crc=1976783491
+breq=buffer requirements in ms for input pids
+breq_crc=3144932373
+pmt_id=defines the ID of the first PMT to use in the mux.
+pmt_id_crc=2452980513
+rate=target rate in bps of the multiplex. If not set, variable rate is used
+rate_crc=928841654
+pmt_rate=interval between PMT in ms
+pmt_rate_crc=3003250014
+pat_rate=interval between PAT in ms
+pat_rate_crc=231425791
+pcr_offset=offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media
+pcr_offset_crc=160121454
+mpeg4=@forces usage of MPEG-4 signaling (IOD and SL Config).
+none disables 4on2. full sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)
+scene sends only scene streams as 4on2 but uses regular PES without SL for audio and video
+@
+mpeg4_crc=3971344227
+pmt_version=sets version number of the PMT
+pmt_version_crc=4041161259
+disc=sets the discontinuity marker for the first packet of each stream
+disc_crc=2802223434
+repeat_rate=interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined
+repeat_rate_crc=468619753
+repeat_img=interval in ms between resending (as PES) of single-image streams. If 0, image data is sent once only
+repeat_img_crc=2366709629
+max_pcr=sets max interval in ms between 2 PCR
+max_pcr_crc=1351533666
+nb_pack=packs N TS packets in output packets
+nb_pack_crc=1864869903
+pes_pack=Sets AU to PES packing mode. audio will pack only multiple audio AUs in a PES, none make exactly one AU per PES, all will pack multiple AUs per PES for all streams
+pes_pack_crc=2328465599
+rt=Forces real-time output
+rt_crc=2620212930
+bifs_pes=force sending BIFS streams as PES packets and not sections. copy mode disables timestamps in BIFS SL and only carries PES timestamps
+bifs_pes_crc=2641200739
+flush_rap=force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin
+flush_rap_crc=1404608085
+pcr_only=enables PCR-only TS packets
+pcr_only_crc=3078124483
+pcr_init=sets initial PCR value for the programs. Negative value implies random value is picked
+pcr_init_crc=2019787148
+sid=sets service ID for the program - see filter help
+sid_crc=2388997828
+name=sets service name for the program - see filter help
+name_crc=1486912750
+provider=sets service provider name for the program - see filter help
+provider_crc=2008049683
+sdt_rate=interval in ms between two DVB SDT tables. If 0, SDT is disabled
+sdt_rate_crc=1508035582
+temi=inserts TEMI time codes in adaptation field - see filter help
+temi_crc=3608902645
+temi_delay=sets delay in ms between two TEMI url descriptors
+temi_delay_crc=2812609679
+temi_offset=sets offset in ms  to add to TEMI timecodes
+temi_offset_crc=1165796497
+temi_ntp=inserts NTP timestamp in TEMI timeline descriptor
+temi_ntp_crc=87164260
+log_freq=delay between logs for realtime mux
+log_freq_crc=1190234781
+latm=uses LATM AAC encapsulation instead of regular ADTS
+latm_crc=2249803244
+subs_sidx=number of subsegments per sidx. negative value disables sidx
+subs_sidx_crc=2940657399
+[dasher]
+desc=MPEG-DASH and HLS segmenter
+desc_crc=839712355
+help=@GPAC DASH and HLS segmenter
+The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)
+The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files
+	EX: template=Great_$File$_$Width$_$Number$
+If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template
+	EX: template=Great_$File$_$Width$
+If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case
+
+Standard DASH replacement strings
+	$Number[%%0Nd]$: is replaced by the segment number, possibly prefixed with 0
+	$RepresentationID$ is replaced by representation name
+	$Time$ is replaced by segment start time
+	$Bandwidth$ is replaced by representation bandwidth.
+
+Additionnal replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):
+	$Init=NAME$ is replaced by NAME for init segment, ignored otherwise
+	$Index=NAME$ is replaced by NAME for index segments, ignored otherwise
+	$Path=PATH$ is replaced by PATH when creating segments, ignored otherwise
+	$Segment=NAME$ is replaced by NAME for media segments, ignored for init segments
+	$DS$ (Dash Suffix) is replaced by "_trackN" in case the source is an AV multiplex, or kept empty otherwise
+
+To assign PIDs into periods and adaptation sets and configure the session, the dasher looks for the following properties on each input pid:
+	Representation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)
+	Period: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time
+	PStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end
+		When both positive and negative values are found, the by-order periods (negative) will be inserted AFTER the timed period (positive)
+	ASID: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set
+		If multiple streams in source, only the first stream will have an AS ID assigned
+	xlink: for remote periods, only checked for null pid
+	Role, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation
+	BUrl: base URLs to use for the pid (per representation)
+	Template: overrides dasher template for this PID
+	DashDur: overrides dasher segment duration for this PID
+	StartNumber: sets the start number for the first segment in the PID, default is 1
+	Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).
+	EX: src=test.mp4:#Bitrate=1M dst=test.mpd
+This will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate
+	EX: src=muxav.mp4 dst=test.mpd
+This will create unmuxed DASH segments
+	EX: src=muxav.mp4:#Representation=1 dst=test.mpd
+This will create muxed DASH segments
+	EX: src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd
+This will put src m1.mp4 in first period, m2.mp4 in second period
+	EX: src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd
+This will assign a base URL to src m1.mp4
+	EX: src=m1.mp4:#ASCDesc=<ElemName val="attval">text</ElemName> dst=test.mpd
+This will assign the specified XML descriptor to the adaptation set.
+		Note that this can be used to inject most DASH descriptors not natively handled by the dasher
+		The dasher handles the XML descriptor as a string and does not attempt to validate it.
+		Descriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:
+	EX: src=m1.mp4:#RDesc=<Elem attribute="1"/>,<Elem2>text</Elem2> dst=test.mpd
+This will insert two descriptors in the representation(s) of m1.mp4
+	EX: src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd
+This will assign different templates to the audio and video sources.
+	EX: src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1
+This will insert an create an MPD with first a remote period then a regular one
+	EX: src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4
+This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one
+
+The dasher will request muxing filter chains for each representation and will reassign PID IDs
+so that each media component (video, audio, ...) in an adaptation set has the same ID
+
+For HLS, the output pid will deliver the master playlist and the variant playlists
+The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant
+
+The segmenter can take a list of cues to use for the segmentation process, in which case only these cues are used to derive segment boundaries.
+Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are <Stream> elements, with attributes:
+	"id": integer for stream/track/pid ID
+	"timescale":integer giving the units of following timestamps
+	"mode": if present and value is "edit", the timestamp are in presentation time (edit list applied). Otherwise they are in media time
+The children of <Stream> are <Cue> elements, with attributes:
+	"sample": integer giving the sample/frame number of a sample at which spliting shall happen
+	"dts": long integer giving the decoding time stamp of a sample at which spliting shall happen
+	"cts": long integer giving the composition / presentation time stamp of a sample at which spliting shall happen
+WARNING: cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.
+
+Note to developpers: output muxers allowing segmented output must obey the following:
+* add a "DashMode" capability to their input caps (value of the cap is ignored, only its presence is required)
+* inspect packet properties
+	"FileNumber" gives the signal of a new DASH segment
+	"FileName" gives the optional file name (if not present, output shall be a single file)
+		"FileName" property is only set for packet carrying the "FileNumber" property
+		"FileName" property is only on one PID (usually the first) for multiplexed outputs
+	"IDXName" gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now
+		"EODS" property is set on packets with no DATA, no TS to signal the end of a DASH segment
+			This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see dasher "subdur" option)
+* for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any
+* for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any
+* the following filter options are passed to muxers, which should declare them as arguments:
+		noinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)
+		frag: indicates muxer shall used fragmented format (used for ISOBMFF mostly)
+		subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user
+		xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band
+		nofragdef: indicates fragment defaults should be set in each segment rather than in init segment
+
+The dasher will add the following properties to the output PIDs:
+	DashMode: identifies VoD (single file with global index) or regular DASH mode used by dasher
+	DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example
+@
+help_crc=936572930
+dur=DASH target duration in seconds
+dur_crc=1801857532
+tpl=use template mode (multiple segment, template URLs)
+tpl_crc=2166577778
+stl=use segment timeline (ignored in on_demand mode)
+stl_crc=2793559708
+dmode=MPD mode static: not live, dynamic: live generation, dynlast: last call for live, will turn the MPD into static)
+dmode_crc=1937279415
+sseg=single segment is used
+sseg_crc=133775808
+sfile=Segments are contained in a single file (default in on_demand)
+sfile_crc=2818224601
+align=Enables segment time alignment between representations
+align_crc=2358410793
+sap=Enables spliting segments at SAP boundaries
+sap_crc=1678442801
+mix_codecs=Enables mixing different codecs in an adaptation set
+mix_codecs_crc=3192116776
+ntp=Inserts/overrides NTP clock at the begining of each segment. rem removes NTP from all input packets. yes inserts NTP at each segment start. keep leaves input packet NTP untouched.
+ntp_crc=1312122791
+no_sar=Does not check for identical sample aspect ratio for adaptation sets
+no_sar_crc=2264793386
+m2ts=generates MPEG-2 TS output
+m2ts_crc=2958227042
+for_test=sets all dates and version info to 0 to enforce same binary result generation
+for_test_crc=591187781
+forcep=forces profile string for avc/hevc/aac
+forcep_crc=4186129562
+bs_switch=@Bitstream switching mode (single init segment):
+	def: resolves to off for onDemand and inband for live
+	off: disables BS switching
+	on: enables it if same decoder configuration is possible
+	inband: moves decoder config inband if possible
+	force: enables it even if only one representation
+	multi: uses multiple stsd entries in ISOBMFF@
+bs_switch_crc=3434520549
+avcp=AVC|H264 profile to use if no profile could be found. If forcep is set, enforces this profile
+avcp_crc=3693654408
+hvcp=HEVC profile to use if no profile could be found. If forcep is set, enforces this profile
+hvcp_crc=299411363
+aacp=AAC profile to use if no profile could be found. If forcep is set, enforces this profile
+aacp_crc=3461489333
+av1p=AV1 profile to use if no profile could be found. If forcep is set, enforces this profile
+av1p_crc=2069855053
+vpxp=VP8/9 profile to use if no profile could be found. If forcep is set, enforces this profile
+vpxp_crc=2561442118
+template=DASH template string to use to generate segment name - see filter help
+template_crc=1225336935
+ext=File extension to use for segments
+ext_crc=2247294486
+asto=availabilityStartTimeOffset to use. A negative value simply increases the AST, a positive value sets the ASToffset to representations
+asto_crc=22785783
+profile=Specifies the target DASH profile. This will set default option values to ensure conformance to the desired profile. Auto turns profile to live for dynamic and full for non-dynamic. For MPEG-2 TS, only main and live are used, others default to main.
+profile_crc=1613542548
+profX=specifies a list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used
+profX_crc=3638857297
+cp=Specifies the content protection element location
+cp_crc=2541146739
+pssh=@sets PSSH storage mode:
+	f: stores in movie fragment only
+	v: stores in movie only
+	m: stores in mpd only
+	mf: stores in mpd and movie fragment
+	mv: stores in mpd and movie
+	n: discard pssh from mpd and segments@
+pssh_crc=867436926
+buf=DASH min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)
+buf_crc=2337722010
+timescale=sets timescales for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale
+timescale_crc=2194275231
+check_dur=checks duration of sources in period, trying to have roughly equal duration. Enforced whenever period start times are used
+check_dur_crc=2701873344
+skip_seg=increments segment number whenever an empty segment would be produced - NOT DASH COMPLIANT
+skip_seg_crc=2300060293
+title=sets MPD title
+title_crc=2316929427
+source=sets MPD Source
+source_crc=1362922919
+info=sets MPD info url
+info_crc=3848134995
+cprt=adds copyright string to MPD
+cprt_crc=1310849082
+lang=sets lang of MPD Info
+lang_crc=4119305264
+location=sets MPD locations to given URL
+location_crc=2493686601
+base=sets base URLs of MPD
+base_crc=824861713
+refresh=MPD refresh rate for dynamic, in seconds. A negative value sets the MPD duration. If 0, uses dash duration
+refresh_crc=4029772805
+tsb=Sets time-shift buffer depth in seconds. A negative value means infinity
+tsb_crc=3643999879
+subdur=specifies maximum duration of the input file to be segmentated. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.
+subdur_crc=881872903
+ast=for live mode, sets start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!
+ast_crc=3116941388
+state=path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions
+state_crc=230281675
+loop=loops source file when dashing with subdur and state. If not set, a new period is created once the source is over
+loop_crc=3713770963
+split=enables cloning samples for text/metadata/scene description streams, marking further clones as redundant
+split_crc=1586303016
+hlsc=inserts clock reference in variant playlist in live HLS
+hlsc_crc=2539913156
+cues=sets cue file - see filter help
+cues_crc=3959109360
+strict_cues=strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found
+strict_cues_crc=4206252436
+subs_sidx=number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
+subs_sidx_crc=462930136
+cmpd=skips line feed and spaces in MPD XML for more compacity
+cmpd_crc=3957816220
+_p_gentime=pointer to u64 holding the ntp clock in ms of next DASH generation in live mode
+_p_gentime_crc=2500516562
+_p_mpdtime=pointer to u64 holding the mpd time in ms of the last generated segment
+_p_mpdtime_crc=2221099631
+[tileagg]
+desc=Video tile aggregator for HEVC
+desc_crc=2683596396
+drop=Specify indexes of tiles to drop
+drop_crc=4121476755
+[pin]
+desc=pipe input
+desc_crc=896381415
+help=@This filter handles generic input pipes (mono-directionnal) in blocking or non blocking mode.
+Input pipes cannot seek
+The associated protocol scheme is pipe:// when loaded as a generic input (eg, -i pipe://URL where URL is a relative or absolute pipe name)
+It can be set to run forever (until the session is closed), ignoring any potential pipe close on the writing side
+Data format of the pipe should be specified using extension (either in file name or through ext option) or mime type.
+If neither is set, data format probing will be done
+
+On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set 
+	EX dst=mypipe resolves in \\.\pipe\gpac\mypipe
+	EX dst=\\.\pipe\myapp\mypipe resolves in \\.\pipe\myapp\mypipe
+Any destination name starting with \\ is used as is, with \ translated in /
+
+Input pipes are created by default in non-blocking mode
+
+The pipe input can create the pipe if not found using mkp option. On windows hosts, this will create a pipe server.
+On non windows hosts, the created pipe will delete the pipe file upon filter destruction
+
+Input pipes can be setup to run forever using the ka option. In this case, end of stream will never be triggered
+This can be usefull to pipe raw streams from different process into gpac:
+Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka
+Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264@
+help_crc=2923617023
+src=location of source content
+src_crc=3972578009
+block_size=buffer size used to read pipe
+block_size_crc=3061152364
+ext=indicates file extension of pipe data
+ext_crc=700124000
+mime=indicates mime type of pipe data
+mime_crc=1064584767
+blk=opens pipe in block mode - see filter help
+blk_crc=2775489198
+ka=keep-alive pipe when end of input is detected - see filter help
+ka_crc=423639628
+mkp=create pipe if not found - see filter help
+mkp_crc=627091973
+[pout]
+desc=pipe output
+desc_crc=3061618447
+help=@This filter handles generic output pipes (mono-directionnal) in blocking mode only.
+Output pipes don't currently support non blocking mode
+The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -o pipe://URL where URL is a relative or absolute pipe name)
+Data format of the pipe must currently be specified using extension (either in filename or through ext option) or mime type
+The pipe name indicated in dst can use template mechanisms from gpac, e.g. dst=pipe_$ServiceID$
+
+On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set 
+	EX dst=mypipe resolves in \\.\pipe\gpac\mypipe
+	EX dst=\\.\pipe\myapp\mypipe resolves in \\.\pipe\myapp\mypipe
+Any destination name starting with \\ is used as is, with \ translated in /
+
+The pipe input can create the pipe if not found using mkp option. On windows hosts, this will create a pipe server.
+On non windows hosts, the created pipe will delete the pipe file upon filter destruction@
+help_crc=2537976292
+dst=location of destination file
+dst_crc=821593475
+ext=indicates file extension of pipe data
+ext_crc=700124000
+mime=indicates mime type of pipe data
+mime_crc=1064584767
+dynext=indicates the file extension is set by filter chain, not dst
+dynext_crc=1468217109
+start=sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur
+start_crc=867548297
+speed=sets playback speed
+speed_crc=1335286326
+mkp=create pipe if not found - see filter help
+mkp_crc=627091973
+block_size=buffer size used to write to pipe, windows only
+block_size_crc=1196031025
+[gsfm]
+desc=GPAC Super/Simple/Serialized/Stream/State Format multiplexer
+desc_crc=2320300515
+help=@This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC using either pipes or sockets. Upstream events are not serialized.
+
+The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.
+The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed
+
+The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optionnal seq num) are in the clear and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.
+For data packets, each fragment is encrypted individually to avoid error propagation in case of losses.
+For other packets, the entire packet is encrypted before fragmentation (fragments cannot be processed individually).
+For header/tunein packets, the first 25 bytes after the header are in the clear (signature,version,IV and pattern).
+The IV is constant to avoid packet overhead, randomly generated if not set and sent in the initial stream header. Pattern mode can be used (cf CENC cbcs) to encrypt K block and leave N blocks in the clear
+
+The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the minp option can be used: this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.
+The skp option may also be used to specify which property to drop:
+	EX: skp="4CC1,Name2
+This will remove properties of type 4CC1 and properties (built-in or not) of name Name2
+
+@
+help_crc=674252074
+sigsn=signal packet sequence number after header field and before size field. Sequence number is per PID, encoded on 16 bits. Header packet does not have a SN
+sigsn_crc=2881341237
+sigdur=signal duration
+sigdur_crc=2956144634
+sigbo=signal byte offset
+sigbo_crc=712939432
+sigdts=signal decoding timestamp
+sigdts_crc=2272876547
+dbg=debug mode, skips packet or force packet size to 0
+dbg_crc=276458543
+key=encrypts packets using given key - see filter helps
+key_crc=761663705
+IV=sets IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)
+IV_crc=4150683076
+pattern=sets nb crypt / nb_skip block pattern. default is all encrypted
+pattern_crc=1443111083
+mpck=sets max packet size. 0 means no fragmentation (each AU is sent in one packet)
+mpck_crc=3469220762
+magic=magic string to append in setup packet
+magic_crc=950225201
+skp=comma separated list of pid property names to skip - see filter help
+skp_crc=649594567
+minp=includes only the minimum set of properties required for stream processing - see filter help
+minp_crc=3288650696
+crate=carousel period for tune-in info in seconds - see filter help
+crate_crc=233595902
+[gsfd]
+desc=GPAC Super/Simple/Serialized/Stream/State Format demultiplexer
+desc_crc=3195342797
+help=@This filter deserialize the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.
+This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC
+using either pipes or sockets
+
+The stream format can be encrypted in AES 128 CBC mode, in which case the demux filters has to be given a 128 bit key.@
+help_crc=2170380418
+key=key for decrypting packets
+key_crc=3137419262
+magic=magic string to check in setup packet
+magic_crc=1086934258
+mq=sets max packet queue length for loss detection. 0 will flush incomplete packet when a new one starts
+mq_crc=3948056643
+pad=byte value used to pad lost packets
+pad_crc=567022909
+[sockout]
+desc=UDP / TCP socket output
+desc_crc=706603685
+help=@This filter handles generic output sockets (mono-directionnal) in blocking mode only.
+The filter can work in server mode, waiting for source connections, or can directly connect
+In server mode, the filter can be instructed to keep running at the end of the stream
+In server mode, the default behaviour is to keep input packets when no more clients are connected; this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.
+If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send rate option
+
+Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME
+The socket output can be configured to drop or revert packet order for test purposes. In both cases, a window size in packets is specified
+as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator
+If the numerator is 0, a packet is randomly chosen in that window
+	EX: :pckd=4/10
+This drops every 4th packet of each 10 packet window
+	EX: :pckr=0/100
+This reverts the send order of one random packet in each 100 packet window
+
+@
+help_crc=2884219652
+dst=location of destination file
+dst_crc=821593475
+sockbuf=block size used to read file
+sockbuf_crc=29840651
+port=default port if not specified
+port_crc=3919277725
+ifce=default multicast interface
+ifce_crc=2634186680
+ext=indicates file extension of pipe data
+ext_crc=700124000
+mime=indicates mime type of pipe data
+mime_crc=1064584767
+listen=indicates the output socket works in server mode
+listen_crc=1400617944
+maxc=max number of concurrent connections
+maxc_crc=2929003351
+ka=keep socket alive if no more connections
+ka_crc=3219833474
+kp=keep packets in queue if no more clients
+kp_crc=989374280
+start=sets playback start offset, [-1, 0] means percent of media dur, eg -1 == dur
+start_crc=867548297
+speed=sets playback speed
+speed_crc=1335286326
+rate=sets send rate, disabled by default (as fast as possible)
+rate_crc=1201178208
+pckr=reverse packet every N - see filter help
+pckr_crc=1266362871
+pckd=drop packet every N - see filter help
+pckd_crc=141742775
+[rfav1]
+desc=AV1 reframer
+desc_crc=2440643930
+fps=import frame rate
+fps_crc=894530348
+autofps=detect FPS from bitstream, fallback to fps option if not possible
+autofps_crc=2459069437
+index_dur=indexing window length
+index_dur_crc=400520
+[ufobu]
+desc=OBU to IVF/OBU/annexB writer
+desc_crc=1909868685
+help=The OBU rewrite filter is used to rewrite the OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU
+help_crc=3160818170
+rcfg=Force repeating decoder config at each I-frame
+rcfg_crc=1063479090
+[atscin]
+desc=ATSC input
+desc_crc=2310180652
+help=@This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
+The default behaviour is to populate GPAC HTTP cache with the recieved files, using "http://gpatsc/serviceN/" as service root, N being the ATSC service ID.
+In cache mode, repeated files are always send.
+The cached MPD is assigned the following headers:
+	"x-dash-atsc: N" indicates the ATSC service ID
+	"x-dash-first-seg: NAME" indicates the name of the first segment completely retrieved from the broadcast
+	"x-atsc-loop: yes" indicates a loop in the service has been detected
+The cached files are assigned the following headers:
+	"x-atsc: yes" indicates the file comes from an ATSC session
+
+This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type "file". The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.
+If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).
+
+On OSX with VM packet replay you will need to force multicast routing, eg: "route add -net 239.255.1.4/32 -interface vboxnet0"@
+help_crc=2438370667
+src=location of source content - see filter help
+src_crc=2057671206
+ifce=IP of the default interface to use for multicast. If NULL, the default system interface will be used
+ifce_crc=2720424345
+cache=indicates the files should populate GPAC HTTP cache - see filter help
+cache_crc=3991612955
+service=ID of service to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found
+service_crc=2153960510
+buffer=UDP socket receive buffer size to use in bytes
+buffer_crc=3107696634
+timeout=timeout in ms after which tunein fails
+timeout_crc=52156333
+kc=keeps corrupted file
+kc_crc=2656289289
+sr=skips repeated files - ignored in cache mode
+sr_crc=3811532847
+stsi=defines one output pid per tsi/serviceID - ignored in cache mode, see filter help
+stsi_crc=1919500824
+[ffdmx]
+desc=FFMPEG demuxer Lavf58.19.100
+desc_crc=3623408448
+help=See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on demuxers options
+help_crc=2773937765
+src=location of source content
+src_crc=3972578009
+*=Any possible args defined for AVFormatContext and sub-classes
+*_crc=3038444400
+[ffdec]
+desc=FFMPEG decoder Lavc58.33.100
+desc_crc=1676202269
+help=See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on decoder options
+help_crc=3645840873
+*=Any possible args defined for AVCodecContext and sub-classes
+*_crc=3590061128
+[ffavin]
+desc=FFMPEG Audio Video Capture Lavd58.4.105
+desc_crc=1713481961
+help=@Typical classes ar 'dshow' on windows, 'avfoundation' on OSX, 'video4linux2' or 'x11grab' on linux
+
+Typical device name can be the webcam name:
+'FaceTime HD Camera' on OSX, device name on windows, '/dev/video0' on linux
+'screen-capture-recorder', see http://screencapturer.sf.net/ on windows
+'Capture screen 0' on OSX (0=first screen)
+X display name (eg ':0.0') on linux
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on capture devices options@
+help_crc=3558347629
+src=url of device, video:// audio:// or av://
+src_crc=498597052
+fmt=name of device class - see filter help. If not set, defaults to first device class
+fmt_crc=984977400
+dev=name of device or index of device - see filter help
+dev_crc=1788567366
+copy=Copy raw frames rather instead of sharing them
+copy_crc=2380977802
+sclock=Use system clock (us) instead of device timestamp (for buggy devices)
+sclock_crc=4121739073
+probes=Probes a given number of video frames before emitting - this usually helps with bad timing of the first frames
+probes_crc=2991822157
+*=Any possible args defined for AVInputFormat and AVFormatContext
+*_crc=2282268849
+[ffsws]
+desc=FFMPEG video rescaler SwS5.2.100
+desc_crc=2667761521
+help=@For bicubic, to tune the shape of the basis function, p1 tunes f(1) and p2 f´(1)
+For gauss p1 tunes the exponent and thus cutoff frequency
+For lanczos p1 tunes the width of the window function
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on rescaler options@
+help_crc=1152263406
+size=size of output video. When not set, input size is used
+size_crc=3013168504
+pfmt=pixel format for output video. When not set, input format is used
+pfmt_crc=3385868644
+scale=scaling mode
+scale_crc=1787905575
+p1=scaling algo param1 - see filter info
+p1_crc=3248942273
+p2=scaling algo param2 - see filter info
+p2_crc=3750392874
+[ffenc]
+desc=FFMPEG encoder Lavc58.33.100
+desc_crc=1585704748
+help=See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detailed info on encoder options
+help_crc=4200915646
+c=codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name
+c_crc=555030123
+pfmt=pixel format for input video. When not set, input format is used
+pfmt_crc=1510696702
+all_intra=only produces intra frames
+all_intra_crc=95202502
+ls=outputs log
+ls_crc=2313182371
+*=Any possible args defined for AVCodecContext and sub-classes
+*_crc=3590061128
+[ohevcdec]
+desc=OpenHEVC decoder
+desc_crc=946975516
+threading=Set threading mode
+threading_crc=3260668799
+nb_threads=Set number of threads. If 0, uses number of cores minus one
+nb_threads_crc=3233565253
+no_copy=Directly dispatch internal decoded frame without copy
+no_copy_crc=1587072150
+pack_hfr=Packs 4 consecutive frames in a single output
+pack_hfr_crc=3457532627
+seek_reset=Resets decoder when seeking
+seek_reset_crc=2431770610
+force_stereo=Forces stereo output for multiview (top-bottom only)
+force_stereo_crc=1504896698

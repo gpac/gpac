@@ -17,7 +17,7 @@ import android.view.MotionEvent;
 
 /**
  * @version $Revision$
- * 
+ *
  */
 public class GPACInstance implements GPACInstanceInterface {
 
@@ -51,25 +51,25 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * Loads all libraries
-     * 
+     *
      * @param config
-     * 
+     *
      * @return a map of exceptions containing the library as key and the exception as value. If map is empty, no error
-     * 
+     *
      */
-    
-    
+
+
     synchronized static Map<String, Throwable> loadAllLibraries(GpacConfig config) {
         if (errors != null)
             return errors;
         StringBuilder sb = new StringBuilder();
         final String[] toLoad = { "GLESv2", "log",//$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$
-                                 "jpegdroid", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$ 
+                                 "jpegdroid", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$
                                  "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
                                  "stlport_shared", "stdc++", "faad", "gpac", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
-                                 "gm_droid_cam", "gm_droid_mpegv","gm_mediacodec_dec", //$NON-NLS-1$ //$NON-NLS-2$
-								 "avutil", "swscale", "swresample", "avcodec", "avformat", "avfilter",
+                                 /*"gm_droid_cam",*/ "gm_droid_mpegv","gm_mediacodec_dec", //$NON-NLS-1$ //$NON-NLS-2$
+								 "avutil", "swscale", "swresample", "avcodec", "avformat", "avfilter", "avdevice",
                                  "gpacWrapper" }; // //$NON-NLS-1$ //$NON-NLS-2$
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {
@@ -136,7 +136,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * Constructor
-     * 
+     *
      * @param callback
      * @param width
      * @param height
@@ -216,7 +216,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * Call this method when a key has been pressed
-     * 
+     *
      * @param keyCode
      * @param event
      * @param pressed true if key is pressed, false if key is released
@@ -237,7 +237,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * Resizes the object to new dimensions
-     * 
+     *
      * @param width
      * @param height
      */
@@ -245,12 +245,12 @@ public class GPACInstance implements GPACInstanceInterface {
         Log.i(LOG_LIB, "Resizing to " + width + "x" + height); //$NON-NLS-1$ //$NON-NLS-2$
         gpacresize(width, height);
     }
-    
+
     private boolean touched = false;
 
     /**
      * Call this when a motion event occurs
-     * 
+     *
      * @param event
      */
     public void motionEvent(MotionEvent event) {
@@ -302,14 +302,14 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * Opens an URL
-     * 
+     *
      * @param url The URL to open
      */
     private native void gpacconnect(String url);
 
     /**
      * Used to create the GPAC instance
-     * 
+     *
      * @param callback
      * @param width
      * @param height
@@ -330,14 +330,14 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * Renders
-     * 
+     *
      * @param handle
      */
     private native void gpacrender();
 
     /**
      * Resizes the current view
-     * 
+     *
      * @param width The new width to set
      * @param height The new height to set
      */
@@ -350,7 +350,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * To call when a key has been pressed
-     * 
+     *
      * @param keycode
      * @param rawkeycode
      * @param up
@@ -360,7 +360,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * To call when a mouse is down
-     * 
+     *
      * @param x Position in pixels
      * @param y Position in pixels
      */
@@ -368,7 +368,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * To call when a mouse is up (released)
-     * 
+     *
      * @param x Position in pixels
      * @param y Position in pixels
      */
@@ -376,7 +376,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     /**
      * To call when a mouse is moving
-     * 
+     *
      * @param x Position in pixels
      * @param y Position in pixels
      */
@@ -385,7 +385,7 @@ public class GPACInstance implements GPACInstanceInterface {
     /**
      * To call when a change in orientation is returned from the sensors
      * All angles are in RADIANS and positive in the COUNTER-CLOCKWISE direction
-     * 
+     *
      * @param x yaw (rotation around the -Z axis) range: [-PI, PI]
      * @param y pitch (rotation around the -X axis) range: [-PI/2, PI/2]
      * @param z roll (rotation around the Y axis) range: [-PI, PI]
@@ -416,7 +416,7 @@ public class GPACInstance implements GPACInstanceInterface {
     public native void setGpacPreference(String category, String name, String value);
 
 
-    
+
     /**
      * @see com.gpac.Osmo4.GPACInstanceInterface#setGpacLogs(String)
      */

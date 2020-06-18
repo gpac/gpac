@@ -38,9 +38,8 @@
 /*delete all interfaces loaded on object*/
 void gf_modules_free_module(ModuleInstance *inst)
 {
-	void *objinterface;
 	while (gf_list_count(inst->interfaces)) {
-		objinterface = gf_list_get(inst->interfaces, 0);
+		void *objinterface = gf_list_get(inst->interfaces, 0);
 		gf_list_rem(inst->interfaces, 0);
 		inst->destroy_func(objinterface);
 	}
@@ -69,6 +68,11 @@ void gf_modules_free_module(ModuleInstance *inst)
 
 Bool gf_modules_load_library(ModuleInstance *inst)
 {
+#if defined(GPAC_MP4BOX_MINI)
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load dynamic module %s from static build.\n", (inst && inst->name) ? inst->name : ""));
+	return GF_FALSE;
+#endif
+
 #ifdef WIN32
 	DWORD res;
 
@@ -122,10 +126,12 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	inst->query_func = (QueryInterfaces) GetProcAddress(inst->lib_handle, _T("QueryInterfaces"));
 	inst->load_func = (LoadInterface) GetProcAddress(inst->lib_handle, _T("LoadInterface"));
 	inst->destroy_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, _T("ShutdownInterface"));
+	inst->filterreg_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, _T("RegisterFilter"));
 #else
 	inst->query_func = (QueryInterfaces) GetProcAddress((HMODULE)inst->lib_handle, "QueryInterfaces");
 	inst->load_func = (LoadInterface) GetProcAddress((HMODULE)inst->lib_handle, "LoadInterface");
 	inst->destroy_func = (ShutdownInterface) GetProcAddress((HMODULE)inst->lib_handle, "ShutdownInterface");
+	inst->filterreg_func = (LoadFilterRegister) GetProcAddress((HMODULE)inst->lib_handle, "RegisterFilter");
 #endif
 
 #else
@@ -144,19 +150,17 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	if (error)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Cleaning up previous dlerror %s\n", error));
 	inst->query_func = (QueryInterfaces) dlsym(inst->lib_handle, "QueryInterfaces");
-	error = dlerror();
-	if (error)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol QueryInterfaces in module file %s, error is %s\n", path, error));
 	inst->load_func = (LoadInterface) dlsym(inst->lib_handle, "LoadInterface");
-	error = dlerror();
-	if (error)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol LoadInterface in module file %s, error is %s\n", path, error));
 	inst->destroy_func = (ShutdownInterface) dlsym(inst->lib_handle, "ShutdownInterface");
-	error = dlerror();
-	if (error)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol ShutdownInterface in module file %s, error is %s\n", path, error));
+	inst->filterreg_func = (LoadFilterRegister) dlsym(inst->lib_handle, "RegisterFilter");
 #endif
-	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s : DONE\n", inst->name));
+	if (!inst->filterreg_func && (!inst->load_func || !inst->query_func || !inst->destroy_func) ) {
+
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Invalid module file %s, missing %s function\n", inst->name, !inst->query_func ? "QueryInterface" :  !inst->load_func ? "LoadInterface" : "ShutdownInterface"));
+		return GF_TRUE;
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s OK\n", inst->name));
 	return GF_TRUE;
 }
 
@@ -167,8 +171,12 @@ void gf_modules_unload_library(ModuleInstance *inst)
 	if (inst->plugman->no_unload)
 		return;
 
+	/*filters are not unloaded*/
+	if (inst->filterreg_func)
+		return;
+
 #ifdef WIN32
-	if (strcmp(inst->name, "gm_openhevc_dec.dll"))
+	if (strcmp(inst->name, "gf_ohevcdec.dll"))
 		FreeLibrary((HMODULE)inst->lib_handle);
 #else
 	dlclose(inst->lib_handle);
@@ -187,6 +195,7 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	QueryInterface query_func;
 	LoadInterface load_func;
 	ShutdownInterface del_func;
+	LoadFilterRegister filterreg_func;
 #ifdef WIN32
 	HMODULE ModuleLib;
 #else
@@ -199,7 +208,7 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	GF_ModuleManager *pm = (GF_ModuleManager*)cbck;
 
 	if (strstr(item_name, "nposmozilla")) return GF_FALSE;
-	if (strncmp(item_name, "gm_", 3) && strncmp(item_name, "libgm_", 6)) return GF_FALSE;
+	if (strncmp(item_name, "gf_", 3) && strncmp(item_name, "gm_", 3) && strncmp(item_name, "libgm_", 6)) return GF_FALSE;
 	if (gf_module_is_loaded(pm, item_name) ) return GF_FALSE;
 
 #if CHECK_MODULE
@@ -215,10 +224,13 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	query_func = (QueryInterface) GetProcAddress(ModuleLib, _T("QueryInterface"));
 	load_func = (LoadInterface) GetProcAddress(ModuleLib, _T("LoadInterface"));
 	del_func = (ShutdownInterface) GetProcAddress(ModuleLib, _T("ShutdownInterface"));
+	filterreg_func = (LoadFilterRegister) GetProcAddress(ModuleLib, _T("RegisterFilter"));
+
 #else
 	query_func = (QueryInterface) GetProcAddress(ModuleLib, "QueryInterface");
 	load_func = (LoadInterface) GetProcAddress(ModuleLib, "LoadInterface");
 	del_func = (ShutdownInterface) GetProcAddress(ModuleLib, "ShutdownInterface");
+	filterreg_func = (LoadFilterRegister) GetProcAddress(ModuleLib, "RegisterFilter");
 #endif
 	FreeLibrary(ModuleLib);
 
@@ -239,10 +251,11 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	query_func = (QueryInterface) dlsym(ModuleLib, "QueryInterface");
 	load_func = (LoadInterface) dlsym(ModuleLib, "LoadInterface");
 	del_func = (ShutdownInterface) dlsym(ModuleLib, "ShutdownInterface");
+	filterreg_func = (LoadFilterRegister) dlsym(ModuleLib, "RegisterFilter");
 	dlclose(ModuleLib);
 #endif
 
-	if (!load_func || !query_func || !del_func) {
+	if (!filterreg_func && (!load_func || !query_func || !del_func) ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE,
 		       ("[Core] Could not find some signatures in module %s: QueryInterface=%p, LoadInterface=%p, ShutdownInterface=%p\n",
 		        item_name, load_func, query_func, del_func));
@@ -291,6 +304,7 @@ static void load_static_modules(GF_ModuleManager *pm)
 }
 
 /*refresh modules - note we don't check for deleted modules but since we've open them the OS should forbid delete*/
+GF_EXPORT
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
 	u32 i;

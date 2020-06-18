@@ -186,10 +186,12 @@ struct SWFReader
 	Bool svg_shape_started;
 	/* end of SVG conversion state */
 
-	/* MP4 user */
+	/* MP4/SVG user */
 	void *user;
-	GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap);
-	GF_Err (*add_header)(void *user, const char *data, u32 length, Bool isHeader);
+	GF_Err (*add_sample)(void *user, const u8 *data, u32 length, u64 timestamp, Bool isRap);
+	GF_Err (*add_header)(void *user, const u8 *data, u32 length, Bool isHeader);
+
+	FILE *svg_file;
 };
 
 
@@ -204,18 +206,19 @@ GF_Err swf_to_bifs_init(SWFReader *read);
 
 #ifndef GPAC_DISABLE_SVG
 GF_Err swf_to_svg_init(SWFReader *read, u32 flags, Float angle);
-GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap);
-GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool isHeader);
+GF_Err swf_svg_write_text_sample(void *user, const u8 *data, u32 length, u64 timestamp, Bool isRap);
+GF_Err swf_svg_write_text_header(void *user, const u8 *data, u32 length, Bool isHeader);
 #endif
 
 
 SWFReader *gf_swf_reader_new(const char *path, const char *filename);
 GF_Err gf_swf_read_header(SWFReader *read);
 void gf_swf_reader_del(SWFReader *read);
+GF_Err gf_swf_get_duration(SWFReader *read, u32 *frame_rate, u32 *frame_count);
 
 GF_Err gf_swf_reader_set_user_mode(SWFReader *read, void *user,
-                                   GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap),
-                                   GF_Err (*add_header)(void *user, const char *data, u32 length, Bool isheader));
+                                   GF_Err (*add_sample)(void *user, const u8 *data, u32 length, u64 timestamp, Bool isRap),
+                                   GF_Err (*add_header)(void *user, const u8 *data, u32 length, Bool isheader));
 
 typedef struct
 {

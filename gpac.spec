@@ -1,15 +1,14 @@
 # $Id: gpac.spec,v 1.5 2008-12-02 18:04:42 jeanlf Exp $
-Summary: GPAC is a multimedia framework covering MPEG-4, VRML/X3D and SVG.
+Summary: Framework for production, encoding, delivery and interactive playback of multimedia content
 Name: gpac
-Version: 0.7.2-DEV
-Release: 0.7.2-DEV
+Version: 1.0.0
+Release: 1.0.0
 License: LGPL
 Group: Applications/Multimedia
-Source0: gpac-0.7.2-DEV.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip}
-URL: http://gpac.sourceforge.net/
+Source0: gpac-1.0.0.tar.gz
+URL: http://gpac.io/
 BuildRoot: %{_tmppath}/%{name}-root
 Requires: SDL
-%{!?_without_js:Requires: js}
 %{!?_without_freetype:Requires: freetype}
 %{!?_without_faad:Requires: faad2}
 %{!?_without_jpeg:Requires: libjpeg-6b}
@@ -19,7 +18,6 @@ Requires: SDL
 %{!?_without_ffmpeg:Requires: ffmpeg}
 %{!?_without_jack:Requires: libjack}
 BuildRequires: SDL-devel
-%{!?_without_js:BuildRequires: js-devel}
 %{!?_without_freetype:BuildRequires: freetype-devel}
 %{!?_without_faad:BuildRequires: faad2-devel}
 %{!?_without_jpeg:BuildRequires: libjpeg-devel}
@@ -30,46 +28,25 @@ BuildRequires: SDL-devel
 %{!?_without_jack:BuildRequires: libjack-devel}
 
 %description
-GPAC is a multimedia framework for MPEG-4, VRML/X3D and SVG/SMIL. GPAC is built upon an implementation of the MPEG-4 Systems 
-standard (ISO/IEC 14496-1) developed from scratch in C.
 
-The main development goal is to provide a clean (a.k.a. readable by as many
-people as possible), small and flexible alternative to the MPEG-4 Systems 
-reference software (known as IM1 and distributed in ISO/IEC 14496-5). 
-GPAC covers a very large part of the MPEG-4 standard, and features what can probably 
-be seen as the most advanced and robust 2D MPEG-4 Player available worldwide, as well as 
-a decent 3D MPEG-4/VRML player.
+GPAC is a framework for production, encoding, delivery and interactive playback of multimedia content
 
-The second development goal is to achieve integration of recent multimedia 
-standards for content playback (SVG/SMIL, VRML, X3D, SWF, etc) and content delivery into a single framework.
-GPAC features 2D and 3D multimedia playback, MPEG-4 Systems (BIFS and LASeR) encoders, multiplexers and 
-publishing tools for content distribution, such as RTP streamers, MPEG-2 TS muxers, ISO Base Media File (MP4 & 3GP a.k.a. ISO/IEC 14496-12) 
-and MPEG DASH muxers.
+GPAC supports many AV codecs, multimedia containers (MP4,fMP4, TS, avi, mov, mpg, mkv ...), complex presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and subtitles (SRT, WebVTT, TTXT/TX3G, TTML).
+Supported inputs and outputs are pipes, UDP/TCP/UN sockets, local files, HTTP, RTP/RTSP, TS demuxing (from file, IP or DVB4Linux), ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg.
+
+GPAC features a highly configurable media processing pipeline, and can further be extended using JavaScript.
 
 GPAC is licensed under the GNU Lesser General Public License.
 
 
 Available rpmbuild rebuild options :
---without : js freetype faad a52 jpeg png mad xvid ffmpeg
---with : amr
-
-To build with amr, download
-http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip
-and put it in the rpm source directory. Then invoke rpmbuild with the 
-"--with amr" option.
+--without : freetype faad a52 jpeg png mad xvid ffmpeg
 
 %prep
 %setup -q -n gpac
-%if %{?_with_amr:1}%{!?_with_amr:0}
-mkdir -p modules/amr_dec/amr_nb
-cd Plugins/amr_dec/AMR_NB
-unzip -j /usr/src/redhat/SOURCES/26073-700.zip
-unzip -j 26073-700_ANSI_C_source_code.zip
-cd ../../..
-%endif
 
 %build
-%configure     --enable-oss-audio     %{?_with_amr: --enable-amr-nb}     %{?_without_js: --disable-js}     %{?_without_freetype: --disable-ft}     %{?_without_faad: --disable-faad}    %{?_without_jpeg: --disable-jpeg}     %{?_without_png: --disable-png}     %{?_without_mad: --disable-mad}     %{?_without_xvid: --disable-xvid}     %{?_without_ffmpeg: --disable-ffmpeg} %{?_without_jack: --disable-jack}
+%configure     --enable-oss-audio     %{?_without_freetype: --disable-ft}     %{?_without_faad: --disable-faad}    %{?_without_jpeg: --disable-jpeg}     %{?_without_png: --disable-png}     %{?_without_mad: --disable-mad}     %{?_without_xvid: --disable-xvid}     %{?_without_ffmpeg: --disable-ffmpeg} %{?_without_jack: --disable-jack}
 make
 
 %install
@@ -92,6 +69,8 @@ rm -rf %{buildroot}
 %{_mandir}/man1/*
 
 %changelog
+* Jun 16 2020 Jean Le Feuvre
+- GPAC 1.0 release
 * Fri Jul 3 2015 Jean Le Feuvre
 - Changed to README.md
 * Wed Feb 13 2008 Pierre Souchay

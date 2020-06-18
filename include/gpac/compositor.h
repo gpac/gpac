@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -31,17 +31,20 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/compositor.h>
- *	\brief GPAC A/V/2D/3D compositor/rendering.
- */
+\file <gpac/compositor.h>
+\brief GPAC A/V/2D/3D compositor/rendering.
+*/
 	
 /*!
- *\addtogroup compose_grp Compositor
- *\ingroup playback_grp
- *\brief GPAC A/V/2D/3D compositor/rendering.
- *
- *This section documents the compositor of GPAC? in charge of assembling audio, images, video, text, 2D and 3D graphics with in a timed way
- *	@{
+\addtogroup compose_grp Compositor
+\ingroup playback_grp
+\brief GPAC A/V/2D/3D compositor/rendering.
+
+This section documents the compositor of GPAC in charge of assembling audio, images, video, text, 2D and 3D graphics
+  in a timed fashion. The compositor can only be run as a filter starting from GPAC 0.9.0, as it requires the filters API
+  to fetch media data.
+  The compositor can work in real-time mode (player) or as a regular filter. See `gpac -h compositor`for more information.
+@{
  */
 	
 
@@ -52,136 +55,222 @@ extern "C" {
 /*frame buffer definition*/
 #include <gpac/color.h>
 
+/*! Compositor object*/
 typedef struct __tag_compositor GF_Compositor;
 
-/*creates default compositor
-if self_threaded, video compositor uses a dedicated thread, otherwise visual rendering is done by the user
-audio compositor always runs in its own thread if enabled
-term may be NULL, in which case InputSensors won't be enabled
+/*! loads a compositor object
+\param compositor a preallocated structure for the compositor to initialize
+\return error if any
 */
-GF_Compositor *gf_sc_new(GF_User *user_interface, Bool self_threaded, GF_Terminal *term);
-void gf_sc_del(GF_Compositor *sr);
+GF_Err gf_sc_load(GF_Compositor *compositor);
+/*! unloads compositor
+\param compositor the compositor object to unload. The structure memory is not freed
+*/
+void gf_sc_unload(GF_Compositor *compositor);
 
-/*sets simulation frame rate*/
-void gf_sc_set_fps(GF_Compositor *sr, Double fps);
+/*! sets simulation frame rate. The compositor framerate impacts the frequency at which time nodes and animations are updated,
+but does not impact the video objects frame rates.
+\param compositor the target compositor
+\param fps the desired frame rate
+*/
+void gf_sc_set_fps(GF_Compositor *compositor, GF_Fraction fps);
 
-/*set the root scene graph of the compositor - if NULL remove current and reset simulation time*/
-GF_Err gf_sc_set_scene(GF_Compositor *sr, GF_SceneGraph *scene_graph);
+/*! sets the root scene graph of the compositor.
+\param compositor the target compositor
+\param scene_graph the scene graph to attach. If NULL, removes current scene and resets simulation time
+\return error if any
+*/
+GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph);
 
-/*if the compositor doesn't use its own thread for visual, this will perform a render pass
-return 1 if there are pending tasks (frame late, fonts pending, etc) or 0 if everything was ready while drawing the frame*/
-Bool gf_sc_draw_frame(GF_Compositor *sr, Bool no_video_flush, s32 *ms_till_next);
+/*! draws a single frame. If the frame is drawn, a packet is sent on the compositor vout output pi
+\param compositor the target compositor
+\param no_video_flush disables video frame flushing to graphics card. Ignored in non-player mode
+\param ms_till_next set to the number of milliseconds until next expected frame
+\return GF_TRUE if there are pending tasks (frame late, fonts pending, etc) or GF_FALSE if everything was ready while drawing the frame
+*/
+Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_video_flush, s32 *ms_till_next);
 
-/*flushes the video to screen - typically used after @gf_sc_draw_frame without flush*/
-void gf_sc_flush_video(GF_Compositor *compositor);
+/*! notify the given node has been modified. The compositor filters object to decide whether the scene graph has to be
+traversed or not.
+\param compositor the target compositor
+\param node the node to invalidate. If NULL, this means complete traversing of the graph is requested
+*/
+void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *node);
 
-/*inits rendering info for the node - shall be called for all nodes the parent system doesn't handle*/
-void gf_sc_on_node_init(GF_Compositor *sr, GF_Node *node);
+/*! returns the compositor time. The compositor time is the time every time line is synchronized to
+\param compositor the target compositor
+\return compositor time in milliseconds
+*/
+u32 gf_sc_get_clock(GF_Compositor *compositor);
 
-/*notify the given node has been modified. The compositor filters object to decide whether the scene graph has to be
-traversed or not- if object is NULL, this means complete traversing of the graph is requested (use carefully since it
-can be a time consuming operation)*/
-void gf_sc_invalidate(GF_Compositor *sr, GF_Node *byObj);
-
-/*return the compositor time - this is the time every time line syncs on*/
-u32 gf_sc_get_clock(GF_Compositor *sr);
-
-//signals the node is about to be destroyed (called after the node destructor if any). If node is NULL, SG will be set to indicate the entire scene graph is about to be reset
+/*! signals the node or scenegraph is about to be destroyed. This should be called after the node destructor if any.
+This function cleans up any pending events on the target node or graph.
+\param compositor the target compositor
+\param node the target node. If NULL, sg shall be set to the scenegraph about to be destroyed
+\param sg the target scenegraph
+*/
 void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph *sg);
 
-/*locks/unlocks the visual scene rendering - modification of the scene tree shall only happen when scene compositor is locked*/
-void gf_sc_lock(GF_Compositor *sr, Bool doLock);
-/*locks/unlocks the audio scene rendering - this is needed whenever an audio object changes config on the fly*/
-void gf_sc_lock_audio(GF_Compositor *sr, Bool doLock);
-
-/*notify user input - returns 0 if event hasn't been handled by the compositor*/
-Bool gf_sc_user_event(GF_Compositor *sr, GF_Event *event);
-
-/*maps screen coordinates to bifs 2D coordinates for the current zoom/pan settings
-X and Y are point coordinates in the display expressed in BIFS-like fashion (0,0) at center of
-display and Y increasing from bottom to top*/
-void gf_sc_map_point(GF_Compositor *sr, s32 X, s32 Y, Fixed *bifsX, Fixed *bifsY);
-
-/*signal the size of the display area has been changed*/
-GF_Err gf_sc_size_changed(GF_Compositor *sr, u32 NewWidth, u32 NewHeight);
-
-/*set/get user options - options are as defined in user.h*/
-GF_Err gf_sc_set_option(GF_Compositor *sr, u32 type, u32 value);
-u32 gf_sc_get_option(GF_Compositor *sr, u32 type);
-
-/*returns current FPS
-if @absoluteFPS is set, the return value is the absolute framerate, eg NbFrameCount/NbTimeSpent regardless of
-whether a frame has been drawn or not, which means the FPS returned can be much greater than the compositor FPS
-if @absoluteFPS is not set, the return value is the FPS taking into account not drawn frames (eg, less than or equal to
-compositor FPS)
+/*! locks/unlocks the visual scene rendering. Modifications of the scene tree shall only happen when scene compositor is locked
+\param compositor the target compositor
+\param do_lock indicates if the compositor should be locked (GF_TRUE) or released (GF_FALSE)
 */
-Double gf_sc_get_fps(GF_Compositor *sr, Bool absoluteFPS);
+void gf_sc_lock(GF_Compositor *compositor, Bool do_lock);
 
+/*! notify user input
+\param compositor the target compositor
+\param event the target event to notify
+\return GF_FALSE if event hasn't been handled by the compositor, GF_TRUE otherwise*/
+Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event);
+
+/*! maps screen coordinates to bifs 2D coordinates for the current zoom/pan settings. The input coordinate X and Y are
+ point coordinates in the display expressed in BIFS-like fashion (0,0) at center of display and Y increasing from bottom to top
+
+\param compositor the target compositor
+\param X horizontal point coordinate
+\param Y vertical point coordinate
+\param bifsX set to the scene horizontal coordinate of the point
+\param bifsY set to the scene vertical coordinate of the point
+*/
+void gf_sc_map_point(GF_Compositor *compositor, s32 X, s32 Y, Fixed *bifsX, Fixed *bifsY);
+
+/*! sets user options. Options are as defined in user.h
+\param compositor the target compositor
+\param type the target option type
+\param value the target option value
+\return error if any
+*/
+GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value);
+/*! gets user options. Options are as defined in user.h
+\param compositor the target compositor
+\param type the target option type
+\return the option value
+*/
+u32 gf_sc_get_option(GF_Compositor *compositor, u32 type);
+
+/*! returns current FPS
+\param compositor the target compositor
+\param absoluteFPS if set to GF_TRUE, the return value is the absolute framerate, eg NbFrameCount/NbTimeSpent regardless of
+whether a frame has been drawn or not, which means the FPS returned can be much greater than the compositor FPS. If set to GF_FALSE, the return value is the FPS taking into account not drawn frames (eg, less than or equal to compositor FPS)
+\return the current frame rate
+*/
+Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS);
+
+/*! checks if a text selection is in progress
+\param compositor the target compositor
+\return GF_TRUE is some text is selected, GF_FALSE otherwise
+*/
 Bool gf_sc_has_text_selection(GF_Compositor *compositor);
+
+/*! gets text selection
+\param compositor the target compositor
+\return the selected text as UTF8 string
+*/
 const char *gf_sc_get_selected_text(GF_Compositor *compositor);
 
+/*! replace text selection content
+\param compositor the target compositor
+\param text the text to paste as UTF8 string
+\return error if any
+*/
 GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text);
 
-/*user-define management: this is used for instant visual rendering of the scene graph,
-for exporting or authoring tools preview. User is responsible for calling render when desired and shall also maintain
-scene timing*/
+/*! gets screen buffer. This locks the scene graph too until \ref gf_sc_get_offscreen_buffer is called
+\param compositor the target compositor
+\param framebuffer will be set to the grabbed framebuffer. The pixel data is owned by the compositor and shall not be freed
+\param depth_grab_mode mode for depth grabbing in 3D
+\return error if any
+*/
+GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, GF_CompositorGrabMode depth_grab_mode);
 
-/*force render tick*/
-void gf_sc_render(GF_Compositor *sr);
-/*gets screen buffer - this locks the scene graph too until released is called*/
-GF_Err gf_sc_get_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer, u32 depth_buffer_mode);
-/*gets offscreen buffer - this locks the scene graph too until released is called*/
-GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer, u32 view_idx, u32 depth_buffer_mode);
-/*releases screen buffer and unlocks graph*/
-GF_Err gf_sc_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer);
+/*! gets offscreen buffer in autostereo rendering modes. This locks the scene graph too until \ref gf_sc_get_offscreen_buffer is called
+\param compositor the target compositor
+\param framebuffer will be set to the grabbed framebuffer. The pixel data is owned by the compositor and shall not be freed
+\param view_idx indicates the 0-based index of the view to grab
+\param depth_grab_mode mode for depth grabbing in 3D
+\return error if any
+*/
+GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 view_idx, GF_CompositorGrabMode depth_grab_mode);
 
-/*renders one frame*/
-void gf_sc_render_frame(GF_Compositor *sr);
+/*! releases screen buffer and unlocks graph
+\param compositor the target compositor
+\param framebuffer used during grab call
+\return error if any
+*/
+GF_Err gf_sc_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer);
 
-/*forces graphics cache recompute*/
-void gf_sc_reset_graphics(GF_Compositor *sr);
+/*! forces full graphics reset (deletes GL textures, FBO, 2D offscreen caches, etc ...).
+\param compositor the target compositor
+*/
+void gf_sc_reset_graphics(GF_Compositor *compositor);
 
-/*picks a node (may return NULL) - coords are given in OS client system coordinate, as in UserInput*/
-GF_Node *gf_sc_pick_node(GF_Compositor *sr, s32 X, s32 Y);
+/*! gets viewpoints/viewports for main scene - idx is 1-based, and if greater than number of viewpoints return GF_EOS
+\param compositor the target compositor
+\param viewpoint_idx the index of the requested viewport. This is a 1-based index, and if greater than number of viewpoints the function will return GF_EOS
+\param out_name set to the viewport name. May be NULL
+\param is_bound set to GF_TRUE if the viewport is bound. May be NULL
+\return GF_EOS if no more viewpoint, or error if any
+*/
+GF_Err gf_sc_get_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const char **out_name, Bool *is_bound);
 
-/*get viewpoints/viewports for main scene - idx is 1-based, and if greater than number of viewpoints return GF_EOS*/
-GF_Err gf_sc_get_viewpoint(GF_Compositor *sr, u32 viewpoint_idx, const char **outName, Bool *is_bound);
-/*set viewpoints/viewports for main scene given its name - idx is 1-based, or 0 to retrieve by viewpoint name
-if only one viewpoint is present in the scene, this will bind/unbind it*/
-GF_Err gf_sc_set_viewpoint(GF_Compositor *sr, u32 viewpoint_idx, const char *viewpoint_name);
+/*! sets viewpoints/viewports for main scene given its name - idx is 1-based, or 0 to retrieve by viewpoint name
+if only one viewpoint is present in the scene, this will bind/unbind it
+\param compositor the target compositor
+\param viewpoint_idx the index of the viewport to bind. This is a 1-based index, and if greater than number of viewpoints the function will return GF_EOS. Use 0 to bind the viewpoint with the given name.
+\param viewpoint_name name of the viewpoint to bind if viewpoint_idx is 0
+\return error if any
+*/
+GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const char *viewpoint_name);
 
-/*render subscene root node. rs is the current traverse stack
-this is needed to handle graph metrics changes between scenes...*/
-void gf_sc_traverse_subscene(GF_Compositor *sr, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs);
+/*! renders subscene root node. rs is the current traverse stack
+\param compositor the target compositor
+\param inline_parent the parent node of the subscene (VRML Inline, SVG animation, ...)
+\param subscene the subscene tree to render
+\param rs the rendering state at the parent level. This is needed to handle graph metrics changes between scenes
+*/
+void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs);
 
-/*set outupt size*/
-GF_Err gf_sc_set_size(GF_Compositor *sr, u32 NewWidth, u32 NewHeight);
-/*get outupt size*/
-Bool gf_sc_get_size(GF_Compositor *sr, u32 *Width, u32 *Height);
+/*! sets output (display) size
+\param compositor the target compositor
+\param new_width the desired new output width
+\param new_height the desired new output height
+\return error if any
+*/
+GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 new_width, u32 new_height);
 
-/*returns total length of audio hardware buffer in ms, 0 if no audio*/
-u32 gf_sc_get_audio_buffer_length(GF_Compositor *sr);
+/*! adds or removes extra scene from compositor. Extra scenes are on-screen displays, text tracks or any other scene graphs
+not directly loaded by the main scene
+\param compositor the target compositor
+\param extra_scene the scene graph to add/remove
+\param do_remove if set to GF_TRUE, the given scene graph will be unregistered; otherwise, the given scene graph will be registered
+*/
+void gf_sc_register_extra_graph(GF_Compositor *compositor, GF_SceneGraph *extra_scene, Bool do_remove);
 
-/*add/remove extra scene from compositor (extra scenes are OSDs or any other scene graphs not directly
-usable by main scene, like 3GP text streams*/
-void gf_sc_register_extra_graph(GF_Compositor *sr, GF_SceneGraph *extra_scene, Bool do_remove);
-
-/*gets audio hardware delay*/
-u32 gf_sc_get_audio_delay(GF_Compositor *sr);
-
-/*returns total length of audio hardware buffer in ms, 0 if no audio*/
-u32 gf_sc_get_audio_buffer_length(GF_Compositor *sr);
-
-void *gf_sc_get_visual_compositor(GF_Compositor *sr);
-
+/*! retrieves the compositor object associated with a node. Currently GPAC only handles one possible compositor per node.
+\param node the target node
+\return the compositor used by the node
+*/
 GF_Compositor *gf_sc_get_compositor(GF_Node *node);
 
-Bool gf_sc_script_action(GF_Compositor *sr, u32 type, GF_Node *n, GF_JSAPIParam *param);
+/*! executes a script action
+\param compositor the target compositor
+\param type the script action type
+\param node the optional node on which the action takes place
+\param param the parameter for this action
+\return GF_TRUE if success
+*/
+Bool gf_sc_script_action(GF_Compositor *compositor, GF_JSAPIActionType type, GF_Node *node, GF_JSAPIParam *param);
 
-void gf_sc_reload_audio_filters(GF_Compositor *compositor);
-
+/*! checks if the given URI matches a built-in GPAC VRML Prototype node
+\param compositor the target compositor
+\param uri the URI to test
+\return GF_TRUE if the URI indicates a built-in prototype, GF_FALSE otherwise
+*/
 Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri);
 
+/*! reloads the compositor configuration from the GPAC config file
+\param compositor the target compositor
+*/
 void gf_sc_reload_config(GF_Compositor *compositor);
 
 /*! @} */

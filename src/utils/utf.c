@@ -388,32 +388,40 @@ size_t gf_utf8_wcslen (const unsigned short *s)
 GF_EXPORT
 size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 {
-	const UTF16** sourceStart = srcp;
-	const UTF16* sourceEnd = *srcp + gf_utf8_wcslen(*srcp);
-	UTF8* targetStart = (UTF8*) dest;
-	UTF8* targetEnd = (UTF8*) dest + len;
-	ConversionFlags flags = strictConversion;
+	if (!srcp || !*srcp)
+		return 0;
+	else {
+		const UTF16** sourceStart = srcp;
+		const UTF16* sourceEnd = *srcp + gf_utf8_wcslen(*srcp);
+		UTF8* targetStart = (UTF8*) dest;
+		UTF8* targetEnd = (UTF8*) dest + len;
+		ConversionFlags flags = strictConversion;
 
-	ConversionResult res = ConvertUTF16toUTF8(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
-	if (res != conversionOK) return (size_t)-1;
-	*targetStart = 0;
-	*srcp=NULL;
-	return strlen(dest);
+		ConversionResult res = ConvertUTF16toUTF8(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
+		if (res != conversionOK) return (size_t)-1;
+		*targetStart = 0;
+		*srcp=NULL;
+		return strlen(dest);
+	}
 }
 
 GF_EXPORT
 size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 {
-	const UTF8** sourceStart = (const UTF8**) srcp;
-	const UTF8* sourceEnd = (const UTF8*) ( *srcp + strlen( *srcp) );
-	UTF16* targetStart = (UTF16* ) dest;
-	UTF16* targetEnd = (UTF16* ) (dest + len);
-	ConversionFlags flags = strictConversion;
-	ConversionResult res = ConvertUTF8toUTF16(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
-	if (res != conversionOK) return (size_t)-1;
-	*targetStart = 0;
-	*srcp=NULL;
-	return gf_utf8_wcslen(dest);
+	if (!srcp || !*srcp)
+		return 0;
+	else {
+		const UTF8** sourceStart = (const UTF8**) srcp;
+		const UTF8* sourceEnd = (const UTF8*) ( *srcp + strlen( *srcp) );
+		UTF16* targetStart = (UTF16* ) dest;
+		UTF16* targetEnd = (UTF16* ) (dest + len);
+		ConversionFlags flags = strictConversion;
+		ConversionResult res = ConvertUTF8toUTF16(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
+		if (res != conversionOK) return (size_t)-1;
+		*targetStart = 0;
+		*srcp=NULL;
+		return gf_utf8_wcslen(dest);
+	}
 }
 
 
@@ -577,5 +585,111 @@ bad_input:
 	return (size_t)(-1);
 }
 
+
 #endif
+
+
+GF_EXPORT
+char *gf_utf_get_utf8_string_from_bom(u8 *data, u32 size, char **out_ptr)
+{
+	u32 unicode_type = 0;
+	*out_ptr = NULL;
+
+	if (size>=5) {
+		/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/
+		if ((data[0]==0xFF) && (data[1]==0xFE)) {
+			if (!data[2] && !data[3]) {
+				return NULL;
+			} else {
+				unicode_type = 2;
+			}
+		} else if ((data[0]==0xFE) && (data[1]==0xFF)) {
+			if (!data[2] && !data[3]) {
+				return NULL;
+			} else {
+				unicode_type = 1;
+			}
+		} else if ((data[0]==0xEF) && (data[1]==0xBB) && (data[2]==0xBF)) {
+			return data+4;
+		}
+	}
+
+	if (!unicode_type) return data;
+
+	if (size%2) size--;
+	u16 *str_wc = gf_malloc(size+2);
+	u16 *srcwc;
+	char *dst = gf_malloc(size+2);
+	*out_ptr = dst;
+	u32 i;
+	for (i=0; i<size; i+=2) {
+		u16 wchar=0;
+		u8 c1 = data[i];
+		u8 c2 = data[i+1];
+
+		/*Little-endian order*/
+		if (unicode_type==2) {
+			if (c2) {
+				wchar = c2;
+				wchar <<=8;
+				wchar |= c1;
+			}
+			else wchar = c1;
+		} else {
+			wchar = c1;
+			if (c2) {
+				wchar <<= 8;
+				wchar |= c2;
+			}
+		}
+		str_wc[i/2] = wchar;
+	}
+	str_wc[i/2] = 0;
+	srcwc = str_wc;
+	gf_utf8_wcstombs(dst, size, (const unsigned short **) &srcwc);
+	gf_free(str_wc);
+
+	return dst;
+}
+
+
+#if defined(WIN32)
+
+GF_EXPORT
+wchar_t* gf_utf8_to_wcs(const char* str)
+{
+	size_t source_len;
+	wchar_t* result;
+	if (str == 0) return 0;
+	source_len = strlen(str);
+	result = gf_calloc(source_len + 1, sizeof(wchar_t));
+	if (!result)
+		return 0;
+	if (gf_utf8_mbstowcs(result, source_len, &str) == (size_t)-1) {
+		gf_free(result);
+		return 0;
+	}
+	return result;
+}
+
+GF_EXPORT
+char* gf_wcs_to_utf8(const wchar_t* str)
+{
+	size_t source_len;
+	char* result;
+	if (str == 0) return 0;
+	source_len = wcslen(str);
+	result = gf_calloc(source_len + 1, UTF8_MAX_BYTES_PER_CHAR);
+	if (!result)
+		return 0;
+	if (gf_utf8_wcstombs(result, source_len * UTF8_MAX_BYTES_PER_CHAR, &str) < 0) {
+		gf_free(result);
+		return 0;
+	}
+	return result;
+}
+#endif
+
 #endif /* GPAC_DISABLE_CORE_TOOLS */
+
+

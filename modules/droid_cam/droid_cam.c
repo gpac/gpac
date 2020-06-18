@@ -265,6 +265,7 @@ void unloadCameraControler(ISOMReader *read)
 u32 unregisterFunc(void* data)
 {
 	unloadCameraControler(globReader);
+	return 0;
 }
 
 void loadCameraControler(ISOMReader *read)
@@ -279,7 +280,8 @@ void loadCameraControler(ISOMReader *read)
 	if ( res == JNI_EDETACHED )
 	{
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] The current thread is not attached to the VM, assuming native thread\n"));
-		if ( res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL) )
+		res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+		if ( res )
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] Attach current thread failed: %d\n", res));
 			return;
@@ -369,20 +371,19 @@ u32 getBitsPerPix(ISOMReader *read);
 static GF_Descriptor *CAM_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	u32 trackID;
-	GF_ESD *esd;
 	ISOMReader *read;
-	GF_ObjectDescriptor *od;
-	GF_BitStream *bs;
 	char *buf;
 	u32 buf_size;
 	if (!plug || !plug->priv) return NULL;
 	read = (ISOMReader *) plug->priv;
 
-	trackID = 0;
 	trackID = read->base_track_id;
 	read->base_track_id = 0;
 
 	if (trackID && (expect_type==GF_MEDIA_OBJECT_VIDEO) ) {
+		GF_BitStream *bs;
+		GF_ESD *esd;
+		GF_ObjectDescriptor *od;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
 
@@ -459,18 +460,23 @@ GF_Err CAM_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 void Java_com_gpac_Osmo4_Preview_processFrameBuf( JNIEnv* env, jobject thiz, jbyteArray arr)
 {
-	u8* data;
-	u32 datasize;
 	ISOMReader* ctx = globReader;
-	GF_SLHeader hdr;
-	u32 cts = 0;
-	u32 convTime = 0;
-	u32 j = 0;
-	jbyte *jdata;
-	jsize len;
+	if ( ctx
+	 	&& ctx->started
+	 	&& ctx->term
+	 	&& ctx->term->compositor
+	 	&& ctx->term->compositor->audio_renderer
+	) {
 
-	if ( ctx && ctx->started && ctx->term && ctx->term->compositor && ctx->term->compositor->audio_renderer)
-	{
+		u8* data;
+		u32 datasize;
+		GF_SLHeader hdr;
+		u32 cts = 0;
+		//u32 convTime = 0;
+		//u32 j = 0;
+		jbyte *jdata;
+		jsize len;
+
 		len = (*env)->GetArrayLength(env, arr);
 		if ( len <= 0 ) return;
 		jdata = (*env)->GetByteArrayElements(env,arr,0);
@@ -508,8 +514,8 @@ void CallCamMethod(ISOMReader *read, jmethodID methodID)
 	if ( res == JNI_EDETACHED )
 	{
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] The current thread is not attached to the VM, assuming native thread\n"));
-		if ( res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL) )
-		{
+		res = (*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+		if ( res ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] Attach current thread failed: %d\n", res));
 			return;
 		}
@@ -527,7 +533,7 @@ void CallCamMethod(ISOMReader *read, jmethodID methodID)
 
 void camStartCamera(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 	jboolean isPortrait = JNI_FALSE;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] startCamera: %d\n", gf_th_id()));
@@ -563,7 +569,7 @@ void resumeCamera(ISOMReader *read)
 
 u32 getWidth(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getWidth: %d\n", gf_th_id()));
 
@@ -575,7 +581,7 @@ u32 getWidth(ISOMReader *read)
 
 u32 getHeight(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getHeight: %d\n", gf_th_id()));
 
@@ -587,7 +593,7 @@ u32 getHeight(ISOMReader *read)
 
 u32 getFormat(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 	u32 pixel_format;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getFormat: %d\n", gf_th_id()));
@@ -608,7 +614,7 @@ u32 getFormat(ISOMReader *read)
 
 u32 getBitsPerPix(ISOMReader *read)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[ANDROID_CAMERA] getBitsPerPix: %d\n", gf_th_id()));
 
@@ -621,9 +627,6 @@ u32 getBitsPerPix(ISOMReader *read)
 GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	ISOMReader *read;
-	GF_BitStream *bs;
-	char *buf;
-	u32 buf_size;
 	if (!plug || !plug->priv || !com) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
 
@@ -650,6 +653,8 @@ GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	/*nothing to do on MP4 for channel config*/
 	case GF_NET_CHAN_CONFIG:
 		return GF_OK;
+	default:
+		break;
 	}
 	return GF_NOT_SUPPORTED;
 }

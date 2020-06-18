@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -47,8 +47,12 @@ typedef struct
 	GF_List *sensors, *previous_sensors, *temp_sensors, *temp_previous_sensors;
 	GF_Node *prev_hit_appear;
 
+	GF_TraverseState *tr_state;
+
 #ifdef GPAC_USE_TINYGL
 	ostgl_context *tgl_ctx;
+#else
+	Bool use_fbo;
 #endif
 } CompositeTextureStack;
 
@@ -92,7 +96,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	video_src.pitch_y = ctx->aspect.fill_texture->stride;
 	video_src.pixel_format = ctx->aspect.fill_texture->pixelformat;
 #ifdef GF_SR_USE_DEPTH
-	if (ctx->aspect.fill_texture->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YV12;
+	if (ctx->aspect.fill_texture->pixelformat==GF_PIXEL_YUVD) video_src.pixel_format = GF_PIXEL_YUV;
 #endif
 	video_src.video_buffer = ctx->aspect.fill_texture->data;
 
@@ -142,6 +146,9 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 
 		gf_list_del(st->sensors);
 		gf_list_del(st->previous_sensors);
+
+		gf_list_del(st->tr_state->vrml_sensors);
+		gf_free(st->tr_state);
 
 		gf_free(st);
 	} else {
@@ -249,17 +256,17 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 static void composite_update(GF_TextureHandler *txh)
 {
 	s32 w, h;
-	GF_STENCIL stencil;
+	GF_EVGStencil *stencil;
+#ifndef GPAC_USE_GLES1X
 	M_Background2D *back;
-	GF_TraverseState *tr_state;
+#endif
+	GF_List *sensor_bck;
 	Bool invalidate_all;
 	u32 new_pixel_format;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 	CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(txh->owner);
-	GF_Raster2D *raster = st->visual->compositor->rasterizer;
 
 	if (st->unsupported) return;
-
 
 	/*
 		if (compositor->recompute_ar) {
@@ -273,28 +280,27 @@ static void composite_update(GF_TextureHandler *txh)
 	}
 	gf_node_dirty_clear(st->txh.owner, 0);
 
-	back = gf_list_get(st->visual->back_stack, 0);
-	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB_24;
-	else new_pixel_format = GF_PIXEL_RGBA;
+	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
+#if defined(GPAC_USE_GLES1X)
+	new_pixel_format = GF_PIXEL_RGBA;
 
+#else
+
+	back = gf_list_get(st->visual->back_stack, 0);
+	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB;
+	else new_pixel_format = GF_PIXEL_RGBA;
 
 #ifdef GPAC_USE_TINYGL
 	/*TinyGL pixel format is fixed at compile time, we cannot override it !*/
 	if (st->visual->type_3d) new_pixel_format = GF_PIXEL_RGBA;
-#else
 
-#ifndef GPAC_DISABLE_3D
+#elif !defined(GPAC_DISABLE_3D)
 	/*no alpha support in offscreen rendering*/
-	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
-		new_pixel_format = GF_PIXEL_RGB_24;
+	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && !compositor->fbo_id && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
+		new_pixel_format = GF_PIXEL_RGB;
 #endif
 
-	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
-#ifdef GPAC_USE_GLES1X
-	new_pixel_format = GF_PIXEL_RGBA;
-#endif
-
-#endif
+#endif //GPAC_USE_GLES1X
 
 	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
 #if defined(GF_SR_USE_DEPTH) && !defined(GPAC_DISABLE_3D)
@@ -321,18 +327,18 @@ static void composite_update(GF_TextureHandler *txh)
 			if (new_pixel_format==GF_PIXEL_RGBA) {
 				new_pixel_format=GF_PIXEL_ARGB;
 			} else {
-				new_pixel_format=GF_PIXEL_BGR_24;
+				new_pixel_format=GF_PIXEL_BGR;
 			}
 		} else {
-			if (new_pixel_format==GF_PIXEL_RGB_24) {
-				new_pixel_format=GF_PIXEL_RGB_32;
+			if (new_pixel_format==GF_PIXEL_RGB) {
+				new_pixel_format=GF_PIXEL_RGBX;
 			}
 		}
 	}
 	else if (h<-1) {
 		h = -h;
-		if (new_pixel_format==GF_PIXEL_RGB_24) {
-			new_pixel_format=GF_PIXEL_RGB_32;
+		if (new_pixel_format==GF_PIXEL_RGB) {
+			new_pixel_format=GF_PIXEL_RGBX;
 		}
 	}
 
@@ -372,7 +378,7 @@ static void composite_update(GF_TextureHandler *txh)
 		}
 
 		/*we don't use rect ext because of no support for texture transforms*/
-		if (1
+		if ((1)
 #ifndef GPAC_DISABLE_3D
 		        || compositor->gl_caps.npot_texture
 #endif
@@ -406,7 +412,7 @@ static void composite_update(GF_TextureHandler *txh)
 			txh->stride = txh->width * 4;
 			txh->transparent = 1;
 			break;
-		case GF_PIXEL_RGB_24:
+		case GF_PIXEL_RGB:
 			txh->stride = txh->width * 3;
 			txh->transparent = 0;
 			break;
@@ -414,36 +420,21 @@ static void composite_update(GF_TextureHandler *txh)
 
 		st->visual->width = txh->width;
 		st->visual->height = txh->height;
+		st->use_fbo = GF_FALSE;
 
-		stencil = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
+		stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 
 #ifndef GPAC_DISABLE_3D
 		if (st->visual->type_3d) {
-			GF_Compositor *compositor = st->visual->compositor;
 			/*figure out what to do if main visual (eg video out) is not in OpenGL ...*/
 			if (!compositor->visual->type_3d && !compositor->hybrid_opengl) {
 				/*create an offscreen window for OpenGL rendering*/
-				if ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height)) {
-#ifndef GPAC_USE_TINYGL
-					GF_Err e;
-					GF_Event evt;
-					compositor->offscreen_width = MAX(compositor->offscreen_width, st->txh.width);
-					compositor->offscreen_height = MAX(compositor->offscreen_height, st->txh.height);
+				if (!compositor->fbo_id
+					&& ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height))
+				) {
 
-					evt.type = GF_EVENT_VIDEO_SETUP;
-					evt.setup.width = compositor->offscreen_width;
-					evt.setup.height = compositor->offscreen_height;
-					evt.setup.back_buffer = 0;
-					evt.setup.opengl_mode = 2;
-					e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
-					if (e) {
-						gf_sc_texture_release(txh);
-						st->unsupported = 1;
-						return;
-					}
-					/*reload openGL ext*/
-					gf_sc_load_opengl_extensions(compositor, 1);
-#endif
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Offscreen OpenGL is not possible if no openGL context is created - use hybridGL mode for compositor\n"));
+					st->unsupported = GF_TRUE;
 				}
 			} else {
 				needs_stencil = 0;
@@ -457,7 +448,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 			/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
 			but still supported by the blitter (case of RGBD/RGBDS)*/
-			raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
+			gf_evg_stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat);
 
 #ifdef GPAC_USE_TINYGL
 			if (st->visual->type_3d && !compositor->visual->type_3d) {
@@ -465,8 +456,14 @@ static void composite_update(GF_TextureHandler *txh)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Creating TinyGL Offscreen context %p (%d %d - pf %s)\n", st->tgl_ctx, txh->width, txh->width, gf_4cc_to_str(txh->pixelformat)));
 			}
 #endif
-
 		}
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_DISABLE_3D)
+		else if (compositor->gl_caps.fbo) {
+			if (gf_sc_texture_setup_fbo(&st->txh)==GF_OK)
+				st->use_fbo = GF_TRUE;
+		}
+#endif
+
 		invalidate_all = 1;
 		gf_sc_texture_set_stencil(txh, stencil);
 	}
@@ -479,423 +476,442 @@ static void composite_update(GF_TextureHandler *txh)
 #else
 		if (compositor->visual->type_3d) {
 			st->visual->type_3d = 2;
-		} else if (compositor->hybrid_opengl) {
+		} else if (compositor->hybrid_opengl || compositor->fbo_id) {
 			st->visual->type_3d = 2;
 		} else if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
 			st->visual->type_3d = 0;
 		} else {
 			st->visual->type_3d = 2;
 		}
+#endif
 	}
 #endif
 
-#endif
-
-		stencil = gf_sc_texture_get_stencil(txh);
-		if (!stencil) return;
+	stencil = gf_sc_texture_get_stencil(txh);
+	if (!stencil) return;
 
 #ifdef GPAC_USE_TINYGL
-		if (st->tgl_ctx) ostgl_make_current(st->tgl_ctx, 0);
+	if (st->tgl_ctx)
+		ostgl_make_current(st->tgl_ctx, 0);
+#elif !defined(GPAC_DISABLE_3D)
+	if (st->use_fbo) {
+		gf_sc_texture_enable_fbo(&st->txh, GF_TRUE);
+	}
 #endif
 
-		GF_SAFEALLOC(tr_state, GF_TraverseState);
-		if (!tr_state) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate traverse state for composite texture\n"));
-			return;
-		}
-		tr_state->vrml_sensors = gf_list_new();
-		tr_state->visual = st->visual;
-		tr_state->invalidate_all = invalidate_all;
+	sensor_bck = st->tr_state->vrml_sensors;
+	memset(st->tr_state, 0, sizeof(GF_TraverseState));
+	st->tr_state->vrml_sensors = sensor_bck;
+	st->tr_state->visual = st->visual;
+	st->tr_state->invalidate_all = invalidate_all;
 
-		tr_state->immediate_draw = st->visual->compositor->traverse_state->immediate_draw;
+	st->tr_state->immediate_draw = st->visual->compositor->traverse_state->immediate_draw;
 
-		gf_mx2d_init(tr_state->transform);
-		gf_cmx_init(&tr_state->color_mat);
+	gf_mx2d_init(st->tr_state->transform);
+	gf_cmx_init(&st->tr_state->color_mat);
 
-		tr_state->backgrounds = st->visual->back_stack;
-		tr_state->viewpoints = st->visual->view_stack;
-		tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(st->txh.owner));
-		tr_state->min_hsize = INT2FIX( MIN(txh->width, txh->height) ) / 2;
-		tr_state->vp_size.x = INT2FIX(txh->width);
-		tr_state->vp_size.y = INT2FIX(txh->height);
+	st->tr_state->backgrounds = st->visual->back_stack;
+	st->tr_state->viewpoints = st->visual->view_stack;
+	st->tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(st->txh.owner));
+	st->tr_state->min_hsize = INT2FIX( MIN(txh->width, txh->height) ) / 2;
+	st->tr_state->vp_size.x = INT2FIX(txh->width);
+	st->tr_state->vp_size.y = INT2FIX(txh->height);
 
-		composite_do_bindable(st->txh.owner, tr_state, st->first);
-		st->first = 0;
+	composite_do_bindable(st->txh.owner, st->tr_state, st->first);
+	st->first = 0;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Entering draw cycle\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Entering draw cycle\n"));
 
-		txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
-		txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
+	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, st->tr_state, 0);
+	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
 
-		if (!compositor->edited_text && st->visual->has_text_edit)
-			st->visual->has_text_edit = 0;
+	if (!compositor->edited_text && st->visual->has_text_edit)
+		st->visual->has_text_edit = 0;
 
 
-		/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
-		if (0 && gf_list_count(st->visual->view_stack)) {
-			M_Viewport *vp = (M_Viewport *)gf_list_get(st->visual->view_stack, 0);
+#if 0
+	/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
+	if (gf_list_count(st->visual->view_stack)) {
+		M_Viewport *vp = (M_Viewport *)gf_list_get(st->visual->view_stack, 0);
 
-			if (vp->isBound) {
-				SFVec2f size = vp->size;
-				if (size.x >=0 && size.y>=0) {
-					/*FIXME - we need tracking of VP changes*/
-					txh->needs_refresh = 1;
-				}
+		if (vp->isBound) {
+			SFVec2f size = vp->size;
+			if (size.x >=0 && size.y>=0) {
+				/*FIXME - we need tracking of VP changes*/
+				txh->needs_refresh = 1;
 			}
 		}
+	}
+#endif
 
-		if (txh->needs_refresh) {
+	if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D
-			//for composite 3D, store current buffer to texture - TODO: use FBOs to avoid the copy ...
-			if (st->visual->camera.is_3D && (st->visual->compositor->visual->type_3d || st->visual->compositor->hybrid_opengl)) {
+
+#ifndef GPAC_USE_TINYGL
+		if (st->use_fbo) {
+			gf_sc_texture_enable_fbo(&st->txh, GF_FALSE);
+		} else
+#endif
+		//no FBO, for composite 3D, store current buffer to texture
+		if (st->visual->camera.is_3D && (st->visual->compositor->visual->type_3d || st->visual->compositor->hybrid_opengl)) {
+#ifndef GPAC_USE_TINYGL
+			gf_sc_copy_to_texture(&st->txh);
+#endif
+		}
+		else if (st->visual->camera.is_3D) {
+			if (st->visual->compositor->visual->type_3d) {
 #ifndef GPAC_USE_TINYGL
 				gf_sc_copy_to_texture(&st->txh);
-#endif
-			}
-			else if (st->visual->camera.is_3D) {
-				if (st->visual->compositor->visual->type_3d) {
-#ifndef GPAC_USE_TINYGL
-					gf_sc_copy_to_texture(&st->txh);
 #else
-					/*in TinyGL we only need to push associated bitmap to the texture*/
-					gf_sc_texture_push_image(&st->txh, 0, 0);
+				/*in TinyGL we only need to push associated bitmap to the texture*/
+				gf_sc_texture_push_image(&st->txh, 0, 0);
 #endif
-				} else {
-
-#ifndef GPAC_USE_TINYGL
-					gf_sc_copy_to_stencil(&st->txh);
-
-#else
-
-					if (txh->pixelformat==GF_PIXEL_RGBDS) gf_get_tinygl_depth(&st->txh);
-#endif
-				}
-			} else
-#endif
-			{
-				if (raster->stencil_texture_modified) raster->stencil_texture_modified(stencil);
-				gf_sc_texture_set_stencil(txh, stencil);
-			}
-			gf_sc_invalidate(st->txh.compositor, NULL);
-		}
-		gf_list_del(tr_state->vrml_sensors);
-		gf_free(tr_state);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Leaving draw cycle\n"));
-	}
-
-
-	GF_Err composite_get_video_access(GF_VisualManager *visual)
-	{
-		GF_STENCIL stencil;
-		GF_Err e;
-		CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(visual->offscreen);
-
-		if (!st->txh.tx_io || !visual->raster_surface) return GF_BAD_PARAM;
-		stencil = gf_sc_texture_get_stencil(&st->txh);
-		if (!stencil) return GF_BAD_PARAM;
-		e = visual->compositor->rasterizer->surface_attach_to_texture(visual->raster_surface, stencil);
-		if (!e) visual->is_attached = 1;
-		return e;
-	}
-
-	void composite_release_video_access(GF_VisualManager *visual)
-	{
-		visual->compositor->rasterizer->surface_detach(visual->raster_surface);
-	}
-
-	Bool composite_check_visual_attached(GF_VisualManager *visual)
-	{
-		return visual->is_attached;
-	}
-
-	void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node)
-	{
-		M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
-		CompositeTextureStack *st;
-		GF_SAFEALLOC(st, CompositeTextureStack);
-
-		if (!st) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture stack\n"));
-			return;
-		}
-		st->sensors = gf_list_new();
-		st->previous_sensors = gf_list_new();
-		gf_sc_texture_setup(&st->txh, compositor, node);
-		/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
-		gf_list_del_item(compositor->textures, &st->txh);
-		gf_list_add(compositor->textures, &st->txh);
-
-		st->txh.update_texture_fcnt = composite_update;
-
-		if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
-		if (c2d->repeatSandT>1) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
-
-		/*create composite visual*/
-		st->visual = visual_new(compositor);
-		st->visual->offscreen = node;
-		st->visual->GetSurfaceAccess = composite_get_video_access;
-		st->visual->ReleaseSurfaceAccess = composite_release_video_access;
-		st->visual->DrawBitmap = composite2d_draw_bitmap;
-		st->visual->CheckAttached = composite_check_visual_attached;
-
-		st->visual->raster_surface = compositor->rasterizer->surface_new(compositor->rasterizer, 1);
-
-
-		st->first = 1;
-		st->visual->compositor = compositor;
-		gf_node_set_private(node, st);
-		gf_node_set_callback_function(node, composite_traverse);
-		gf_sc_visual_register(compositor, st->visual);
-	}
-
-
-#ifndef GPAC_DISABLE_3D
-	void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node)
-	{
-		M_CompositeTexture3D *c3d = (M_CompositeTexture3D *)node;
-		CompositeTextureStack *st;
-		GF_SAFEALLOC(st, CompositeTextureStack);
-		if (!st) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture stack\n"));
-			return;
-		}
-		st->sensors = gf_list_new();
-		st->previous_sensors = gf_list_new();
-		gf_sc_texture_setup(&st->txh, compositor, node);
-		/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
-		gf_list_del_item(compositor->textures, &st->txh);
-		gf_list_add(compositor->textures, &st->txh);
-
-		st->txh.update_texture_fcnt = composite_update;
-
-		if (c3d->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
-		if (c3d->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
-
-		/*create composite visual*/
-		st->visual = visual_new(compositor);
-		st->visual->offscreen = node;
-		st->visual->GetSurfaceAccess = composite_get_video_access;
-		st->visual->ReleaseSurfaceAccess = composite_release_video_access;
-		st->visual->CheckAttached = composite_check_visual_attached;
-
-		st->visual->camera.is_3D = 1;
-		st->first = 1;
-		st->visual->compositor = compositor;
-		gf_node_set_private(node, st);
-		gf_node_set_callback_function(node, composite_traverse);
-		gf_sc_visual_register(compositor, st->visual);
-
-		camera_invalidate(&st->visual->camera);
-	}
-#endif
-
-	GF_TextureHandler *compositor_get_composite_texture(GF_Node *node)
-	{
-		CompositeTextureStack *st = (CompositeTextureStack*) gf_node_get_private(node);
-		return &st->txh;
-	}
-
-	Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node *composite_appear, GF_Event *ev, Bool is_flush)
-	{
-		GF_Ray ray;
-		Fixed dist;
-		Bool had_text_sel=0;
-		GF_Matrix mx;
-		GF_TraverseState *tr_state;
-		GF_ChildNodeItem *children, *l;
-		Bool res;
-		SFVec3f txcoord, loc_pt, world_pt;
-		GF_Matrix l2w_mx, w2l_mx;
-		CompositeTextureStack *stack;
-		GF_Node *appear, *prev_appear;
-		M_Appearance *ap = (M_Appearance *)composite_appear;
-		assert(ap && ap->texture);
-
-		if (ev->type > GF_EVENT_MOUSEMOVE) return 0;
-		stack = gf_node_get_private(ap->texture);
-		if (!stack->txh.tx_io) return 0;
-
-		tr_state = NULL;
-		children = NULL;
-
-
-		if (!is_flush) {
-			txcoord.x = compositor->hit_texcoords.x;
-			txcoord.y = compositor->hit_texcoords.y;
-			txcoord.z = 0;
-			if (gf_sc_texture_get_transform(&stack->txh, ap->textureTransform, &mx, 1)) {
-				/*tx coords are inverted when mapping, thus applying directly the matrix will give us the
-				untransformed coords*/
-				gf_mx_apply_vec(&mx, &txcoord);
-				while (txcoord.x<0) txcoord.x += FIX_ONE;
-				while (txcoord.x>FIX_ONE) txcoord.x -= FIX_ONE;
-				while (txcoord.y<0) txcoord.y += FIX_ONE;
-				while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
-			}
-
-			/*convert to tx space*/
-			ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * stack->visual->width + FIX_ONE/2);
-			ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * stack->visual->height + FIX_ONE/2);
-
-
-			GF_SAFEALLOC(tr_state, GF_TraverseState);
-			if (!tr_state) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture state\n"));
-				return 0;
-			}
-			tr_state->vrml_sensors = gf_list_new();
-			tr_state->visual = stack->visual;
-			tr_state->traversing_mode = TRAVERSE_PICK;
-			tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
-			tr_state->vp_size.x = INT2FIX(stack->txh.width);
-			tr_state->vp_size.y = INT2FIX(stack->txh.height);
-			tr_state->color_mat.identity = 1;
-
-			gf_mx2d_init(tr_state->transform);
-#ifndef GPAC_DISABLE_3D
-			gf_mx_init(tr_state->model_matrix);
-#endif
-			/*collect sensors but not anchors*/
-			l = children = ((M_CompositeTexture2D*)ap->texture)->children;
-			while (l) {
-				GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
-				if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
-				l = l->next;
-			}
-		}
-
-		stack->temp_sensors = compositor->sensors;
-		stack->temp_previous_sensors = compositor->previous_sensors;
-		compositor->sensors = stack->sensors;
-		compositor->previous_sensors = stack->previous_sensors;
-
-		ray = compositor->hit_world_ray;
-		dist = compositor->hit_square_dist;
-		prev_appear = compositor->prev_hit_appear;
-
-		/*protect against destrucion in case of self-destroy*/
-		if (prev_appear) {
-			gf_node_register(prev_appear, NULL);
-		}
-		compositor->prev_hit_appear = stack->prev_hit_appear;
-		appear = compositor->hit_appear;
-		compositor->hit_appear = NULL;
-
-		/*also backup current hit state in case we hit a node in the texture but don't consume the event*/
-		loc_pt = compositor->hit_local_point;
-		world_pt = compositor->hit_world_point;
-		gf_mx_copy(l2w_mx, compositor->hit_local_to_world);
-		gf_mx_copy(w2l_mx, compositor->hit_world_to_local);
-
-		if (compositor->text_selection) had_text_sel=1;
-
-		if (is_flush) {
-			res = 0;
-			gf_list_reset(stack->sensors);
-			gf_sc_exec_event_vrml(compositor, ev);
-		} else {
-			res = visual_execute_event(stack->visual, tr_state, ev, children);
-		}
-
-		if (!had_text_sel && compositor->edited_text) {
-			stack->visual->has_text_edit = 1;
-		} else if (!compositor->text_selection) {
-			stack->visual->has_text_edit = 0;
-		}
-
-		if (!res) {
-			compositor->hit_local_point = loc_pt;
-			gf_mx_copy(compositor->hit_local_to_world, l2w_mx);
-			gf_mx_copy(compositor->hit_world_to_local, w2l_mx);
-		}
-
-		compositor->hit_world_point = world_pt;
-		compositor->hit_world_ray = ray;
-		compositor->hit_square_dist = dist;
-
-		stack->sensors = compositor->sensors;
-		stack->previous_sensors = compositor->previous_sensors;
-		compositor->sensors = stack->temp_sensors;
-		stack->temp_sensors = NULL;
-		compositor->previous_sensors = stack->temp_previous_sensors;
-		stack->temp_previous_sensors = NULL;
-
-
-		if (!is_flush) {
-			gf_list_del(tr_state->vrml_sensors);
-#ifndef GPAC_DISABLE_3D
-			if (tr_state->layer3d) compositor->traverse_state->layer3d = tr_state->layer3d;
-#endif
-			gf_free(tr_state);
-		}
-
-		stack->prev_hit_appear = compositor->prev_hit_appear;
-
-		//finally unregister the node, this may destroy the stack !
-		if (prev_appear) {
-			if (prev_appear->sgprivate->num_instances>1) {
-				compositor->prev_hit_appear = prev_appear;
-				compositor->hit_appear = appear;
 			} else {
-				compositor->prev_hit_appear = NULL;
-				compositor->hit_appear = NULL;
+#ifndef GPAC_USE_TINYGL
+				gf_sc_copy_to_stencil(&st->txh);
+#else
+				if (txh->pixelformat==GF_PIXEL_RGBDS)
+					gf_get_tinygl_depth(&st->txh);
+#endif
 			}
-			gf_node_unregister(prev_appear, NULL);
-		} else {
+		} else
+#endif
+		{
+			gf_sc_texture_set_stencil(txh, stencil);
+		}
+		gf_sc_invalidate(st->txh.compositor, NULL);
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Leaving draw cycle\n"));
+}
+
+
+GF_Err composite_get_video_access(GF_VisualManager *visual)
+{
+	GF_EVGStencil *stencil;
+	GF_Err e;
+	CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(visual->offscreen);
+
+	if (!st->txh.tx_io || !visual->raster_surface) return GF_BAD_PARAM;
+	stencil = gf_sc_texture_get_stencil(&st->txh);
+	if (!stencil) return GF_BAD_PARAM;
+	e = gf_evg_surface_attach_to_texture(visual->raster_surface, stencil);
+	if (!e) visual->is_attached = 1;
+	return e;
+}
+
+void composite_release_video_access(GF_VisualManager *visual)
+{
+}
+
+Bool composite_check_visual_attached(GF_VisualManager *visual)
+{
+	return visual->is_attached;
+}
+
+void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node)
+{
+	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
+	CompositeTextureStack *st;
+	GF_SAFEALLOC(st, CompositeTextureStack);
+
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture stack\n"));
+		return;
+	}
+
+	GF_SAFEALLOC(st->tr_state, GF_TraverseState);
+	if (!st->tr_state) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture state\n"));
+		return;
+	}
+	st->tr_state->vrml_sensors = gf_list_new();
+
+	st->sensors = gf_list_new();
+	st->previous_sensors = gf_list_new();
+	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
+	gf_list_del_item(compositor->textures, &st->txh);
+	gf_list_add(compositor->textures, &st->txh);
+
+	st->txh.update_texture_fcnt = composite_update;
+
+	if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
+	if (c2d->repeatSandT>1) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
+
+	/*create composite visual*/
+	st->visual = visual_new(compositor);
+	st->visual->offscreen = node;
+	st->visual->GetSurfaceAccess = composite_get_video_access;
+	st->visual->ReleaseSurfaceAccess = composite_release_video_access;
+	st->visual->DrawBitmap = composite2d_draw_bitmap;
+	st->visual->CheckAttached = composite_check_visual_attached;
+
+	st->visual->raster_surface = gf_evg_surface_new(1);
+
+
+	st->first = 1;
+	st->visual->compositor = compositor;
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, composite_traverse);
+	gf_sc_visual_register(compositor, st->visual);
+}
+
+
+#ifndef GPAC_DISABLE_3D
+void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node)
+{
+	M_CompositeTexture3D *c3d = (M_CompositeTexture3D *)node;
+	CompositeTextureStack *st;
+
+	if (!gf_sc_check_gl_support(compositor)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Driver disabled, cannot render 3D composite textures\n"));
+		return;
+	}
+
+	GF_SAFEALLOC(st, CompositeTextureStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture stack\n"));
+		return;
+	}
+	GF_SAFEALLOC(st->tr_state, GF_TraverseState);
+	if (!st->tr_state) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture state\n"));
+		return;
+	}
+
+	st->tr_state->vrml_sensors = gf_list_new();
+
+	st->sensors = gf_list_new();
+	st->previous_sensors = gf_list_new();
+	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
+	gf_list_del_item(compositor->textures, &st->txh);
+	gf_list_add(compositor->textures, &st->txh);
+
+	st->txh.update_texture_fcnt = composite_update;
+
+	if (c3d->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
+	if (c3d->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
+
+	/*create composite visual*/
+	st->visual = visual_new(compositor);
+	st->visual->offscreen = node;
+	st->visual->GetSurfaceAccess = composite_get_video_access;
+	st->visual->ReleaseSurfaceAccess = composite_release_video_access;
+	st->visual->CheckAttached = composite_check_visual_attached;
+
+	st->visual->camera.is_3D = 1;
+	st->first = 1;
+	st->visual->compositor = compositor;
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, composite_traverse);
+	gf_sc_visual_register(compositor, st->visual);
+
+	camera_invalidate(&st->visual->camera);
+}
+#endif
+
+GF_TextureHandler *compositor_get_composite_texture(GF_Node *node)
+{
+	CompositeTextureStack *st = (CompositeTextureStack*) gf_node_get_private(node);
+	return &st->txh;
+}
+
+Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node *composite_appear, GF_Event *ev, Bool is_flush)
+{
+	GF_Ray ray;
+	Fixed dist;
+	Bool had_text_sel=0;
+	GF_Matrix mx;
+	GF_ChildNodeItem *children, *l;
+	Bool res;
+	SFVec3f txcoord, loc_pt, world_pt;
+	GF_Matrix l2w_mx, w2l_mx;
+	CompositeTextureStack *stack;
+	GF_Node *appear, *prev_appear;
+	GF_List *sensor_bck;
+	M_Appearance *ap = (M_Appearance *)composite_appear;
+	assert(ap && ap->texture);
+
+	if (ev->type > GF_EVENT_MOUSEMOVE) return 0;
+	stack = gf_node_get_private(ap->texture);
+	if (!stack->txh.tx_io) return 0;
+
+	children = NULL;
+
+
+	if (!is_flush) {
+		txcoord.x = compositor->hit_texcoords.x;
+		txcoord.y = compositor->hit_texcoords.y;
+		txcoord.z = 0;
+		if (gf_sc_texture_get_transform(&stack->txh, ap->textureTransform, &mx, 1)) {
+			/*tx coords are inverted when mapping, thus applying directly the matrix will give us the
+			untransformed coords*/
+			gf_mx_apply_vec(&mx, &txcoord);
+			while (txcoord.x<0) txcoord.x += FIX_ONE;
+			while (txcoord.x>FIX_ONE) txcoord.x -= FIX_ONE;
+			while (txcoord.y<0) txcoord.y += FIX_ONE;
+			while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
+		}
+
+		/*convert to tx space*/
+		ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * stack->visual->width + FIX_ONE/2);
+		ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * stack->visual->height + FIX_ONE/2);
+
+		sensor_bck = stack->tr_state->vrml_sensors;
+		memset(stack->tr_state, 0, sizeof(GF_TraverseState));
+		stack->tr_state->vrml_sensors = sensor_bck;
+
+		stack->tr_state->visual = stack->visual;
+		stack->tr_state->traversing_mode = TRAVERSE_PICK;
+		stack->tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
+		stack->tr_state->vp_size.x = INT2FIX(stack->txh.width);
+		stack->tr_state->vp_size.y = INT2FIX(stack->txh.height);
+		stack->tr_state->color_mat.identity = 1;
+
+		gf_mx2d_init(stack->tr_state->transform);
+#ifndef GPAC_DISABLE_3D
+		gf_mx_init(stack->tr_state->model_matrix);
+#endif
+		/*collect sensors but not anchors*/
+		l = children = ((M_CompositeTexture2D*)ap->texture)->children;
+		while (l) {
+			GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
+			if (hsens) gf_list_add(stack->tr_state->vrml_sensors, hsens);
+			l = l->next;
+		}
+	}
+
+	stack->temp_sensors = compositor->sensors;
+	stack->temp_previous_sensors = compositor->previous_sensors;
+	compositor->sensors = stack->sensors;
+	compositor->previous_sensors = stack->previous_sensors;
+
+	ray = compositor->hit_world_ray;
+	dist = compositor->hit_square_dist;
+	prev_appear = compositor->prev_hit_appear;
+
+	/*protect against destrucion in case of self-destroy*/
+	if (prev_appear) {
+		gf_node_register(prev_appear, NULL);
+	}
+	compositor->prev_hit_appear = stack->prev_hit_appear;
+	appear = compositor->hit_appear;
+	compositor->hit_appear = NULL;
+
+	/*also backup current hit state in case we hit a node in the texture but don't consume the event*/
+	loc_pt = compositor->hit_local_point;
+	world_pt = compositor->hit_world_point;
+	gf_mx_copy(l2w_mx, compositor->hit_local_to_world);
+	gf_mx_copy(w2l_mx, compositor->hit_world_to_local);
+
+	if (compositor->text_selection) had_text_sel=1;
+
+	if (is_flush) {
+		res = 0;
+		gf_list_reset(stack->sensors);
+		gf_sc_exec_event_vrml(compositor, ev);
+	} else {
+		res = visual_execute_event(stack->visual, stack->tr_state, ev, children);
+	}
+
+	if (!had_text_sel && compositor->edited_text) {
+		stack->visual->has_text_edit = 1;
+	} else if (!compositor->text_selection) {
+		stack->visual->has_text_edit = 0;
+	}
+
+	if (!res) {
+		compositor->hit_local_point = loc_pt;
+		gf_mx_copy(compositor->hit_local_to_world, l2w_mx);
+		gf_mx_copy(compositor->hit_world_to_local, w2l_mx);
+	}
+
+	compositor->hit_world_point = world_pt;
+	compositor->hit_world_ray = ray;
+	compositor->hit_square_dist = dist;
+
+	stack->sensors = compositor->sensors;
+	stack->previous_sensors = compositor->previous_sensors;
+	compositor->sensors = stack->temp_sensors;
+	stack->temp_sensors = NULL;
+	compositor->previous_sensors = stack->temp_previous_sensors;
+	stack->temp_previous_sensors = NULL;
+
+
+	if (!is_flush) {
+#ifndef GPAC_DISABLE_3D
+		if (stack->tr_state->layer3d) compositor->traverse_state->layer3d = stack->tr_state->layer3d;
+#endif
+	}
+
+	stack->prev_hit_appear = compositor->prev_hit_appear;
+
+	//finally unregister the node, this may destroy the stack !
+	if (prev_appear) {
+		if (prev_appear->sgprivate->num_instances>1) {
 			compositor->prev_hit_appear = prev_appear;
 			compositor->hit_appear = appear;
+		} else {
+			compositor->prev_hit_appear = NULL;
+			compositor->hit_appear = NULL;
 		}
-
-		return res;
+		gf_node_unregister(prev_appear, NULL);
+	} else {
+		compositor->prev_hit_appear = prev_appear;
+		compositor->hit_appear = appear;
 	}
 
-	void compositor_compositetexture_sensor_delete(GF_Node *composite_appear, GF_SensorHandler *hdl)
+	return res;
+}
+
+void compositor_compositetexture_sensor_delete(GF_Node *composite_appear, GF_SensorHandler *hdl)
+{
+	CompositeTextureStack *stack = gf_node_get_private(composite_appear);
+	gf_list_del_item(stack->previous_sensors, hdl);
+	gf_list_del_item(stack->sensors, hdl);
+	if (stack->temp_sensors)
+		gf_list_del_item(stack->temp_sensors, hdl);
+	if (stack->temp_previous_sensors)
+		gf_list_del_item(stack->temp_previous_sensors, hdl);
+}
+
+
+void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy)
+{
+	switch (gf_node_get_tag(node)) {
+	case TAG_MPEG4_CompositeTexture2D:
+	case TAG_MPEG4_CompositeTexture3D:
 	{
-		CompositeTextureStack *stack = gf_node_get_private(composite_appear);
-		gf_list_del_item(stack->previous_sensors, hdl);
-		gf_list_del_item(stack->sensors, hdl);
-		if (stack->temp_sensors)
-			gf_list_del_item(stack->temp_sensors, hdl);
-		if (stack->temp_previous_sensors)
-			gf_list_del_item(stack->temp_previous_sensors, hdl);
+		CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(node);
+		(*sx) = gf_divfix(*sx, st->sx);
+		(*sy) = gf_divfix(*sy, st->sy);
+		break;
 	}
-
-
-	void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy)
-	{
-		switch (gf_node_get_tag(node)) {
-		case TAG_MPEG4_CompositeTexture2D:
-		case TAG_MPEG4_CompositeTexture3D:
-		{
-			CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(node);
-			(*sx) = gf_divfix(*sx, st->sx);
-			(*sy) = gf_divfix(*sy, st->sy);
-			break;
-		}
-		default:
-			return;
-		}
+	default:
+		return;
 	}
+}
 
-	Bool compositor_is_composite_texture(GF_Node *appear)
-	{
-		M_Appearance *ap = NULL;
-		u32 tag;
-		if (!appear) return 0;
+Bool compositor_is_composite_texture(GF_Node *appear)
+{
+	M_Appearance *ap = NULL;
+	u32 tag;
+	if (!appear) return 0;
 
-		tag = gf_node_get_tag(appear);
-		if (tag==TAG_MPEG4_Appearance) ap = (M_Appearance *)appear;
+	tag = gf_node_get_tag(appear);
+	if (tag==TAG_MPEG4_Appearance) ap = (M_Appearance *)appear;
 #ifndef GPAC_DISABLE_X3D
-		else if (tag==TAG_X3D_Appearance) ap = (M_Appearance *)appear;
+	else if (tag==TAG_X3D_Appearance) ap = (M_Appearance *)appear;
 #endif
-		if (!ap) return 0;
-		if (!ap->texture) return 0;
-		switch (gf_node_get_tag(((M_Appearance *)appear)->texture)) {
-		case TAG_MPEG4_CompositeTexture2D:
-		case TAG_MPEG4_CompositeTexture3D:
-			return 1;
-		}
-		return 0;
+	if (!ap) return 0;
+	if (!ap->texture) return 0;
+	switch (gf_node_get_tag(((M_Appearance *)appear)->texture)) {
+	case TAG_MPEG4_CompositeTexture2D:
+	case TAG_MPEG4_CompositeTexture3D:
+		return 1;
 	}
+	return 0;
+}
 
 #endif /*GPAC_DISABLE_VRML*/

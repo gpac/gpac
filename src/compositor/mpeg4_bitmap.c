@@ -37,7 +37,7 @@ typedef struct _bitmap_stack
 	/*cached size for 3D mode*/
 	SFVec2f size, scale;
 	u32 prev_tx_w, prev_tx_h;
-	GF_Rect rc;
+	GF_Rect rc, unclip_rc;
 } BitmapStack;
 
 
@@ -185,9 +185,11 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		gf_mx2d_copy(_mat, ctx->transform);
 		gf_mx2d_inverse(&_mat);
 		gf_mx2d_apply_rect(&_mat, &rc);
-
-		drawable_reset_path(st->graph);
-		gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
+		if ((st->unclip_rc.width != rc.width) || (st->unclip_rc.height != rc.height)) {
+			drawable_reset_path(st->graph);
+			gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
+			st->unclip_rc = rc;
+		}
 		ctx->flags |= CTX_NO_ANTIALIAS;
 		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx, tr_state);
 	}
@@ -197,6 +199,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_Rect rc;
+	Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state);
 	DrawableContext *ctx;
 	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
@@ -206,6 +209,8 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(st);
 		return;
 	}
+	if (! rectangle_check_adaptation(node, st->graph, tr_state))
+		return;
 
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_2D:

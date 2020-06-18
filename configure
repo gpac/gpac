@@ -1,11 +1,10 @@
 #!/bin/sh
 #
-# GPAC configure script 
-#     (c) 2003-2012 Telecom ParisTech 
+# GPAC configure script
+#     (c) 2003-2018 Telecom ParisTech
 #     Authors: Jean Le Feuvre, Romain Bouqueau
 #
 #set -v
-
 
 #set temporary file name
 if test ! -z "$TMPDIR" ; then
@@ -68,8 +67,6 @@ libdir="lib"
 
 #GPAC module config
 static_modules="no"
-js_flags="XP_UNIX"
-js_lib="-ljs"
 lm_lib=""
 has_mingw_directx="no"
 has_js="no"
@@ -105,15 +102,15 @@ enable_tinygl="no"
 has_ssl="no"
 has_ipv6="no"
 has_dvb4linux="no"
-has_xmlrpc="no"
 has_openjpeg="no"
 gprof_build="no"
 static_build="no"
 want_pic="no"
 want_gcov="no"
 has_joystick="no"
-has_xul="no"
 has_hid="no"
+has_sock_un="no"
+has_lzma="no"
 enable_joystick="no"
 static_mp4box="no"
 disable_core_tools="no"
@@ -147,7 +144,7 @@ disable_loader_xmt="no"
 disable_od_dump="no"
 disable_od_parse="no"
 disable_isom_dump="no"
-disable_mcrypt="no"
+disable_crypto="no"
 disable_mpd="no"
 disable_dash="no"
 disable_isoff="no"
@@ -164,13 +161,18 @@ disable_vobsub="no"
 disable_ttxt="no"
 disable_ttml="no"
 disable_hevc="no"
+disable_atsc="no"
+disable_crypto="no"
+enable_qjs="yes"
 enable_depth_compositor="no"
 enable_renoir="no"
+enable_sanitizer="no"
 has_avcap="no"
 avcap_cflags=""
 avcap_ldflags="-lavcap"
 has_opensvc="no"
 has_openhevc="no"
+has_vtb="no"
 
 win32="no"
 mingw32="no"
@@ -210,7 +212,7 @@ Options: [defaults in brackets after descriptions]
 GPAC configuration options:
   --help                   print this message
   --prefix=PREFIX          install in PREFIX [$prefix]
-  --mandir=DIR             man documentation in DIR [PREFIX/man]
+  --mandir=DIR             man documentation in DIR [PREFIX/share/man]
 
   --verbose                enable verbose building [$verbose]
   --source-path=PATH       path of source code [$source_path]
@@ -239,9 +241,10 @@ GPAC configuration options:
   --std-allocator          uses standard lib memory allocator
   --static-modules         includes static modules in libgpac whenever possible
   --enable-mem-track       enable tracking of all memory allocated by gpac
+  --enable-sanitizer       enable adress sanitizer
+  --enable-afl             enable instrumentation for American Fuzzy Lop
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
-  --disable-wx             disable wxWidgets support
   --disable-platinum       disable Platinum UPnP support
   --disable-alsa           disable Alsa audio
   --disable-oss-audio      disable OSS audio
@@ -295,7 +298,7 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-loader-xmt     disable scene loading from ISO File Format
   --disable-od-dump        disable OD dump
   --disable-isom-dump      disable ISOM dump
-  --disable-mcrypt         disable mcrypt
+  --disable-crypt          disable crypto tools
   --disable-isoff          disable ISO File Format
   --disable-isoff-write    disable ISO File Format edit/write
   --disable-isoff-hint     disable ISO File Format hinting
@@ -309,9 +312,10 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-player         disable player (terminal and compositor)
   --disable-scenegraph     disable scenegraph, scene parsers and player (terminal and compositor)
   --disable-hevc           disable HEVC support
+  --disable-atsc           disable ATSC3 support
+  --disable-crypto         disable crypto support
 
-Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/
-  --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]
+Extra libraries configuration. You can turn a library off or force using the local version in gpac/extra_lib/
   --use-ft=OPT             force FreeType OPT=[no,local]
   --use-zlib=OPT           force ZLIB OPT=[no,system,local]
   --use-jpeg=OPT           force JPEG OPT=[no,local]
@@ -326,7 +330,7 @@ Extra libraries configuration. You can turn a libray off or force using the loca
   --use-openjpeg=OPT       force openjpeg OPT=[no,system,local]
   --use-a52=OPT            force a52 (ac3) OPT=[no,system,local]
 
-NOTE: The object files are build at the place where configure is launched
+NOTE: The object files are built at the place where configure is launched
 EOF
 exit 1
 fi
@@ -368,6 +372,8 @@ for opt do
         --enable-pic) want_pic="yes";
             ;;
         --enable-gcov) want_gcov="yes";
+            ;;
+        --enable-afl) cc_orig="afl-gcc"; cxx_orig="afl-g++"
             ;;
         --verbose) verbose="yes";
             ;;
@@ -415,7 +421,7 @@ case "$cpu" in
         ;;
     ppc64)
         cpu="powerpc"
-        ;;  
+        ;;
     "Power Macintosh"|ppc)
         cpu="powerpc"
         ;;
@@ -482,8 +488,6 @@ if test "$targetos" = "" ; then
 fi
 case $targetos in
     BeOS)
-        js_flags=-DXP_BEOS
-        xul_flags=-DXP_BEOS
         prefix="/boot/home/config"
         CFLAGS="$CFLAGS -DPIC -fomit-frame-pointer"
         # 3 gcc releases known for BeOS, each with ugly bugs
@@ -540,7 +544,6 @@ EOF
         CFLAGS="$CFLAGS -pthread"
         GPAC_SH_FLAGS=-pthread
         freebsd="yes"
-        js_flags="-DXP_UNIX -I/usr/include/js"
         ;;
 
     BSD/OS)
@@ -549,10 +552,8 @@ EOF
         ;;
 
     Darwin)
-        js_flags=-DXP_MAC
-        xul_flags=-DXP_MAC
         CFLAGS_DIR="-I$prefix/include"
-        LDFLAGS="-L$prefix/lib"
+        LDFLAGS="-L$prefix/$libdir"
         if test -d /sw/bin ; then
             alt_macosx_dir="/sw"
             CFLAGS_DIR="-I/sw/include $CFLAGS_DIR"
@@ -574,20 +575,19 @@ EOF
         darwin="yes"
         gcc_version=`$cc -v 2>>$logs | grep version | cut -d ' ' -f3`
         case "$gcc_version" in
-            *2.95*) 
+            *2.95*)
                 CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer"
                 ;;
             3.*)
                 CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer -mdynamic-no-pic -fno-common"
                 ;;
-            4.*) 
+            4.*)
                 CFLAGS="$CFLAGS -pipe -fomit-frame-pointer -fno-common"
                 ;;
         esac
         ;;
 
     MINGW32*|mingw32|MINGW64*|mingw64|msys*|MSYS*)
-        js_flags="-DXP_PC -D_declspec=__declspec"
         mingw32="yes"
         win32="yes"
         want_pic="no"
@@ -611,14 +611,12 @@ EOF
         ;;
 
     CYGWIN*|cygwin*)
-        js_flags=-DXP_PC 
         extralibs="$extralibs -lws2_32 -lwinmm"
         cygwin="yes"
         win32="yes"
         ;;
 
     Linux|linux|android)
-        js_flags="-DXP_UNIX -I/usr/include/js"
         LDFLAGS="$LDFLAGS -Wl,--warn-common -Wl,-z,defs"
         linux="yes"
         case "$cpu" in
@@ -644,7 +642,7 @@ esac
 
 
 #defines directory for binaries and libs (ex. for TinyGL)
-target_bin_dir="" 
+target_bin_dir=""
 if test "$cross_prefix" = "" ; then
     target_bin_dir=`${cc} -v 2>>$logs | sed -n '2p' | awk ' {print $2}'`-${cc_orig}
 else
@@ -662,6 +660,7 @@ mkdir -p extra_lib/lib/gcc
 #OK check for all local & systems lib
 local_inc=$source_path/extra_lib/include
 local_lib=$source_path/extra_lib/lib/gcc
+execdir=$source_path/bin/gcc
 
 
 dolog() {
@@ -688,7 +687,7 @@ docc() {
 
 
 docxx() {
- $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
+ $cc -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
  dolog $@
 }
 
@@ -778,246 +777,14 @@ fi
 
 
 
-#look for spidermonkey JS support
-mozjs_pkgcfg="no"
-
-#spidermonkey test for new API
-if test "$has_js" = "no" ; then
-
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { JSContext *cx=NULL; jsval rp; return JS_AddValueRoot(cx, &rp); }
-EOF
-
-    #try local
-    js_inc="$local_inc/js"
-    js_flags="-DXP_UNIX -I$local_inc/js"
-    if test "$pkg_config" != "no"; then
-        #try pkg-config
-        if $pkg_config --exists mozilla-js ; then
-            mozjs_pkgcfg="mozilla-js"
-        elif $pkg_config --exists mozjs ; then
-            mozjs_pkgcfg="mozjs"
-        elif $pkg_config --exists mozjs185 ; then
-            mozjs_pkgcfg="mozjs185"
-    elif docc $js_flags -L$local_lib -ljs -lpthread ; then
-        has_js="local"
-        #dc added
-    fi
-
-    if test $mozjs_pkgcfg != "no" ; then
-        js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
-        js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
-        if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
-           has_js="system"
-           js_lib=`$pkg_config --libs $mozjs_pkgcfg`
-        fi
-    #try firefox folders (starting at ubuntu 11.10, no pkg-config)
-    elif ls -d /usr/lib/firefox* > /dev/null 2>>$logs ; then
-            firefox_version=`cd /usr/lib ; ls -d firefox* | grep -v addons | grep -v devel ; cd - > /dev/null`
-            for i in $firefox_version ; do
-                if test "$has_js" = "no" ; then
-                    js_inc="/usr/include/$i"
-                    js_flags="-DXP_UNIX -I$js_inc"
-                    js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnssutil3 -lnss3 -lnspr4 -lsmime3"
-                    if docc $js_flags $js_lib ; then
-                        has_js="$i"
-                    elif docc $js_flags -lnssutil3 $js_lib -lssl3 ; then
-                        #firefox 11 compatibility
-                        has_js="$i"
-                        js_lib="-lnssutil3 $js_lib -lssl3"
-                    fi
-                fi
-            done
-     fi
-
-        if test "$has_js" = "no" ; then
-            #try prefix (DC)
-            js_inc="$prefix/include/js"
-            js_flags="-DXP_UNIX -I$prefix/include/js"
-            if docc $js_flags -L$prefix/lib -ljs -lpthread ; then
-                has_js="prefix"
-                #dc added end
-            else
-                if docc $js_flags $LDFLAGS -ljs -lpthread ; then
-                    js_inc="/usr/include"
-                    has_js="system"
-                elif docc -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs -lpthread 2>>$logs ; then
-                    has_js="system"
-                    js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
-                    js_lib="-L$alt_macosx_dir/lib -ljs"
-                    js_inc="$alt_macosx_dir/include/js"
-                else
-                    #debian spidermonkey (smjs)
-                    js_flags="-DXP_UNIX -I/usr/include/smjs"
-                    js_inc="/usr/include/smjs"
-                    if docc $js_flags $LDFLAGS -lsmjs -lpthread ; then
-                        has_js="system"
-                        js_lib="-lsmjs"
-                    else
-                        #debian spidermonkey (mozjs)
-                        js_flags="-DXP_UNIX -I/usr/include/mozjs"
-                        js_inc="/usr/include/mozjs"
-                        if docc $js_flags $LDFLAGS -lmozjs -lpthread ; then
-                            has_js="system"
-                            js_lib="-lmozjs"
-                        fi
-                    fi
-                fi
-            fi
-        fi
-    fi
-fi
-
-new_js_api="no"
-if test "$has_js" != "no" ; then
-    js_flags="-DSPIDERMONKEY_NEW_API $js_flags"
-    new_js_api="yes"
-fi
-
-#spidermonkey test for regular API
-if test "$has_js" = "no" ; then
-
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { return 0; }
-EOF
-
-    #try local
-    js_inc="$local_inc/js"
-    js_flags="-DXP_UNIX -I$local_inc/js"
-    if test "$cpu" = "sh4" ; then
-        lm_lib="-lm"
-    fi
-    if docc $js_flags $lm_lib -L$local_lib -ljs ; then
-        has_js="local"
-        #dc added
-    else
-        #try prefix (DC)
-        js_inc="$prefix/include/js"
-        js_flags="-DXP_UNIX -I$prefix/include/js"
-        if docc $js_flags -L$prefix/lib -ljs ; then
-            has_js="prefix"
-            #dc added end
-        elif test "$pkg_config" != "no"; then
-            if $pkg_config --exists mozilla-js ; then
-                mozjs_pkgcfg="mozilla-js"
-            elif $pkg_config --exists mozjs ; then
-                mozjs_pkgcfg="mozjs"
-            elif $pkg_config --exists mozjs185 ; then
-                mozjs_pkgcfg="mozjs185"
-        fi
-
-        if test $mozjs_pkgcfg != "no" ; then
-                js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
-                js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
-                if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
-                    has_js="system"
-                    js_lib=`$pkg_config --libs $mozjs_pkgcfg`
-                fi
-            fi
-        fi
-        if test "$has_js" = "no" ; then
-                if docc $js_flags $LDFLAGS -ljs ; then
-                    js_inc="/usr/include"
-                    has_js="system"
-                elif docc -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs 2>>$logs ; then
-                    has_js="system"
-                    js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
-                    js_lib="-L$alt_macosx_dir/lib -ljs"
-                    js_inc="$alt_macosx_dir/include/js"
-                else
-                    #debian spidermonkey (smjs)
-                    js_flags="-DXP_UNIX -I/usr/include/smjs"
-                    js_inc="/usr/include/smjs"
-                    if docc $js_flags $LDFLAGS -lsmjs ; then
-                        has_js="system"
-                        js_lib="-lsmjs"
-                    else
-                        #debian spidermonkey (mozjs)
-                        js_flags="-DXP_UNIX -I/usr/include/mozjs"
-                        js_inc="/usr/include/mozjs"
-                        if docc $js_flags $LDFLAGS -lmozjs ; then
-                            has_js="system"
-                            js_lib="-lmozjs"
-                        fi
-                    fi
-                fi
-            fi
-        fi
-fi
-
-if test "$has_js" != "no" ; then
-    if test "$linux" = "yes" ; then
-        if test "$cpu" != "sh4"; then
-            #WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
-            #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
-            #in the header, it was enabled in the build
-            if test "$new_js_api" = "no" ; then
-                if grep MOZILLA_1_8_BRANCH $js_inc/jsapi.h > /dev/null 2>>$logs ; then
-                    js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
-                    echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
-                    echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
-                fi
-            else
-
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { JSObject *obj; JS_GetPrivate(obj); return 0; }
-EOF
-                if docc $js_flags $LDFLAGS $js_lib ; then
-
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { jsval vp; JSContext *cx=NULL; JSObject *obj = JS_NewObjectForConstructor(cx, &vp); return 0; }
-EOF
-                    if docc $js_flags $LDFLAGS $js_lib ; then
-                        js_flags="-DUSE_FFDEV_12 $js_flags"
-                    elif grep JSMutableHandleValue $js_inc/jsapi.h | grep JSHasInstanceOp > /dev/null 2>>$logs ; then
-                            js_flags="-DUSE_FFDEV_18 $js_flags"
-                    elif grep JSMutableHandleValue $js_inc/jsapi.h > /dev/null 2>>$logs ; then
-                            js_flags="-DUSE_FFDEV_18 $js_flags"
-                    elif ! grep JS_ConstructObject $js_inc/jsapi.h > /dev/null 2>>$logs ; then
-                            js_flags="-DUSE_FFDEV_16 $js_flags"
-                    elif grep JSHandleObject $js_inc/jsapi.h > /dev/null 2>>$logs ; then
-                            js_flags="-DUSE_FFDEV_15 $js_flags"
-                        else
-                js_flags="-DUSE_FFDEV_14 $js_flags"
-                 fi
-                fi
-            fi
-        fi
-    fi
-fi
-
-
-
-if test "$has_js" != "no" ; then
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { JSContext *cx=NULL; JS_SetRuntimeThread(cx); return 0;}
-EOF
-    if docc $js_flags $LDFLAGS $js_lib ; then
-        js_flags="$js_flags"
-    else
-        js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
-    fi
-fi
-
-
-#end JS test
-
-
-
 #look for platinum support
-cat > $TMPC << EOF
+cat > $TMPCXX << EOF
 #include <Platinum.h>
 int main( void ) { return 0; }
 EOF
-if docxx -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread ; then
+if docxx -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread ; then
   has_platinum="yes"
 fi
-
 
 #look for avcap support
 avcap_cflags=""
@@ -1026,14 +793,14 @@ avcap_ldflags="-lavcap"
 cat > $TMPC << EOF
 #include <avcap/avcap.h>
 using namespace avcap;
-int main( void ) { 
+int main( void ) {
   const DeviceCollector::DeviceList& dl = DEVICE_COLLECTOR::instance().getDeviceList();
   DeviceDescriptor* dd = 0;
   for (DeviceCollector::DeviceList::const_iterator i = dl.begin(); i != dl.end(); i++) {
     dd = *i;
     std::cout << dd->getName().c_str() << "\n";
   }
-  return 0; 
+  return 0;
 }
 EOF
 if docxx -o $TMPO $TMPC $LDFLAGS $avcap_cflags $avcap_ldflags ; then
@@ -1084,31 +851,33 @@ fi
 
 if test "$darwin" = "yes" ; then
   ohevc_cflags="-I/usr/include -I/usr/local/include"
-  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread "
+  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lopenhevc -lm -lpthread "
 elif test "$cross_prefix" = "" ; then
   ohevc_cflags="-I/usr/include -I/usr/local/include"
-  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lopenhevc -lm -lpthread"
 else
   ohevc_cflags="-I${prefix}include"
-  ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_ldflags="-lopenhevc -lm -lpthread"
 fi
 
 cat > $TMPC << EOF
 #include <stdio.h>
-#include <openHevcWrapper.h>
-int main( void ) { libOpenHevcInit(1, 1); return 0; }
+#include <libopenhevc/openhevc.h>
+int main( void ) { oh_init(1, 1); return 0; }
 EOF
 if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS ; then
   has_openhevc="yes"
 else
   ohevc_cflags="-I$local_inc"
-  ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_ldflags="-lopenhevc -lm -lpthread"
   if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$local_lib ; then
     has_openhevc="yes"
     ohevc_ldflags="-L$local_lib $ohevc_ldflags"
+  elif docc $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$execdir ; then
+    has_openhevc="yes"
+    ohevc_ldflags="-L$execdir $ohevc_ldflags"
   fi
 fi
-
 
 #look for freetype support
 cat > $TMPC << EOF
@@ -1119,30 +888,27 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 ft_cflags="-I$prefix/include "
-ft_lflags="-L$prefix/lib -lfreetype"
+ft_lflags="-L$prefix/$libdir -lfreetype"
 if docc $CFLAGS_DIR $ft_cflags $ft_lflags $LDFLAGS ; then
     has_ft="system"
 fi
-if test "$cross_prefix" = "" ; then
-    if test "$has_ft" = "no" ; then
-        ft_cflags="`freetype-config --cflags 2>>$logs`"
-        ft_lflags="`freetype-config --libs 2>>$logs`"
-        if docc $ft_cflags $ft_lflags $LDFLAGS ; then
-            has_ft="system"
-        fi
+
+if test "$has_ft" = "no" ; then
+    ft_cflags="`pkg-config --cflags freetype2 2>>$logs`"
+    ft_lflags="`pkg-config --libs freetype2 2>>$logs`"
+    if docc $ft_cflags $ft_lflags $LDFLAGS ; then
+        has_ft="system"
     fi
 fi
+
 if test "$has_ft" = "no" ; then
-    if test "`which freetype-config 2>>$logs`" != ""; then
-        ft_cflags="-I$local_inc/freetype"
-        ft_lflags="-L$local_lib -lfreetype"
-        if docc $ft_cflags $ft_lflags ; then
-            has_ft="local"
-        fi
+    ft_cflags="-I$local_inc/freetype"
+    ft_lflags="-L$local_lib -lfreetype"
+    if docc $ft_cflags $ft_lflags ; then
+        has_ft="local"
     fi
 fi
 #end freetype test
-
 
 
 #look for OpenSSL support
@@ -1167,6 +933,19 @@ if docc $CFLAGS_DIR $LINK_SSL $LDFLAGS ; then
 fi
 
 
+#look for atomic.h
+cat > $TMPC << EOF
+#include <pthread.h>
+#include <stdatomic.h>
+int main( void ) { return 0; }
+EOF
+
+has_atomic="no"
+if docc $CFLAGS_DIR $LDFLAGS ; then
+    has_atomic="yes"
+else
+    CFLAGS="$CFLAGS -DGPAC_NO_STDATOMIC"
+fi
 
 #look for JPEG support
 cat > $TMPC << EOF
@@ -1192,7 +971,7 @@ if test "$cross_prefix" = "" ; then
             fi
         else
             jpeg_cflags="-I$prefix/include"
-            jpeg_lflags="-L$prefix/lib -ljpeg"
+            jpeg_lflags="-L$prefix/$libdir -ljpeg"
             if docc $jpeg_cflags $jpeg_lflags $LDFLAGS ; then
                 has_jpeg="system"
             fi
@@ -1210,6 +989,20 @@ fi
 
 
 #look for OpenJPEG support
+
+if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
+  if $pkg_config --exists libopenjp2 ; then
+    has_openjpeg="system"
+    openjpeg_cflags=`$pkg_config --cflags libopenjp2`
+    openjpeg_ldflags=`$pkg_config --libs libopenjp2`
+  elif $pkg_config --exists libopenjpeg ; then
+    has_openjpeg="system"
+    openjpeg_cflags=`$pkg_config --cflags libopenjpeg`
+    openjpeg_ldflags=`$pkg_config --libs libopenjpeg`
+  fi
+fi
+
+if test "$has_openjpeg" = "no" ; then
 cat > $TMPC << EOF
 #include <stdio.h>
 #include <openjpeg.h>
@@ -1218,12 +1011,14 @@ EOF
 
 if docc $LDFLAGS -lopenjpeg ; then
     has_openjpeg="system"
+    openjpeg_ldflags="-lopenjpeg"
 fi
 if test "$cross_prefix" = "" ; then
     if test "$has_openjpeg" = "no" ; then
         if test "$alt_macosx_dir" != "" ; then
-            if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2>>$logs ; then
+            if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lopenjpeg 2>>$logs ; then
                 has_openjpeg="system"
+		openjpeg_ldflags="-lopenjpeg"
             fi
         fi
     fi
@@ -1232,9 +1027,11 @@ fi
 if test "$has_openjpeg" = "no" ; then
     if docc -I$local_inc/openjpeg -L$local_lib -lopenjpeg ; then
         has_openjpeg="local"
+	openjpeg_ldflags="-lopenjpeg"
     fi
 fi
 
+fi
 
 
 #look for PNG support
@@ -1244,7 +1041,7 @@ int main( void ) { return 0; }
 EOF
 
 png_cflags="-I$prefix/include"
-png_lflags="-L$prefix/lib -lpng -lz"
+png_lflags="-L$prefix/$libdir -lpng -lz"
 if docc $png_cflags $png_lflags $LDFLAGS ; then
     has_png="system"
 elif docc $LDFLAGS -lpng -lz ; then
@@ -1286,7 +1083,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_mad" = "no" ; then
-    if docc -I$local_inc/mad -L$local_lib -lmad ; then
+    if docc -I$local_inc -L$local_lib -lmad ; then
         has_mad="local"
     fi
 fi
@@ -1329,7 +1126,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if docc -I$prefix/include -L$prefix/lib $LDFLAGS -lxvidcore -lpthread ; then
+if docc -I$prefix/include -L$prefix/$libdir $LDFLAGS -lxvidcore -lpthread ; then
     has_xvid="system"
 elif docc $LDFLAGS -lxvidcore -lpthread ; then
     has_xvid="system"
@@ -1344,7 +1141,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_xvid" = "no" ; then
-    if docc -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread ; then
+    if docc -I$local_inc -L$local_lib -lxvidcore -lpthread ; then
         has_xvid="local"
     fi
 fi
@@ -1370,7 +1167,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_faad" = "no" ; then
-    if docc -I$local_inc/faad -L$local_lib -lfaad -lm ; then
+    if docc -I$local_inc -L$local_lib -lfaad -lm ; then
         has_faad="local"
     fi
 fi
@@ -1380,14 +1177,12 @@ fi
 #look for FFMPEG support
 
 ffmpeg_cflags=""
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale $ffmpeg_extra_ldflags"
-ffmpeg_lflags_dashcast="$ffmpeg_lflags -lavdevice"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lswresample -lavfilter $ffmpeg_extra_ldflags"
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libavresample ; then
-    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice libavresample`
-    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil`
-    ffmpeg_lflags_dashcast=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
+  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libswresample libavfilter ; then
+    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libavutil libavdevice libswscale libswresample libavfilter`
+    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libavutil libavdevice libswscale libswresample libavfilter`
     has_ffmpeg="system"
   fi
 fi
@@ -1404,6 +1199,7 @@ if docc $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS ; then
 else
     old_ffmpeg_inc="yes"
 
+# this is immediatly overwritten below??
 cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
 #include <stdio.h>
@@ -1430,11 +1226,10 @@ int main(void) {
 }
 EOF
 
-if docc -I$prefix/include -L$prefix/lib $ffmpeg_lflags $LDFLAGS ; then
+if docc -I$prefix/include -L$prefix/$libdir $ffmpeg_lflags $LDFLAGS ; then
     has_ffmpeg="system"
     ffmpeg_cflags="-I$prefix/include"
-    ffmpeg_lflags="-L$prefix/lib $ffmpeg_lflags"
-    ffmpeg_lflags_dashcast="-L$prefix/lib $ffmpeg_lflags_dashcast"
+    ffmpeg_lflags="-L$prefix/$libdir $ffmpeg_lflags"
 elif docc $ffmpeg_lflags $LDFLAGS ; then
     has_ffmpeg="system"
 fi
@@ -1445,7 +1240,6 @@ if test "$cross_prefix" = "" ; then
                 has_ffmpeg="system"
                 ffmpeg_cflags="-I$alt_macosx_dir/include"
                 ffmpeg_lflags="-L$alt_macosx_dir/lib $ffmpeg_lflags"
-                ffmpeg_lflags_dashcast="-L$alt_macosx_dir/lib $ffmpeg_lflags_dashcast"
             fi
         fi
     fi
@@ -1455,9 +1249,24 @@ if test "$has_ffmpeg" = "no" ; then
         has_ffmpeg="local"
         ffmpeg_cflags="-I$local_inc"
         ffmpeg_lflags="-L$local_lib $ffmpeg_lflags"
-        ffmpeg_lflags_dashcast="-L$local_lib $ffmpeg_lflags_dashcast"
     fi
 fi
+
+
+#now that cflags has been correctly set, retest
+cat > $TMPC << EOF
+#include <libavcodec/avcodec.h>
+int main(void) {
+    return 0;
+}
+EOF
+
+if docc $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS ; then
+    old_ffmpeg_inc="no"
+else
+    old_ffmpeg_inc="yes"
+fi
+
 
 cat > $TMPC << EOF
 #include <libavutil/frame.h>
@@ -1491,21 +1300,21 @@ EOF
     fi
 fi
 
-#detect libavresample (libav only, but ffmpeg backported with '--enable-avresample') for dashcast only
+#detect libswresample for dashcast only
 cat > $TMPC << EOF
-#include "libavresample/avresample.h"
+#include "libswresample/swresample.h"
 int main(void) {
-    AVAudioResampleContext *aresampler = avresample_alloc_context();
+    SwrContext *aresampler = swr_alloc();
     free(aresampler);
     return 0;
 }
 EOF
 
-if docc $ffmpeg_cflags $ffmpeg_lflags_dashcast -lavresample ; then
-    has_libavresample="yes"
-    ffmpeg_lflags_dashcast="$ffmpeg_lflags_dashcast -lavresample"
+if docc $ffmpeg_cflags $ffmpeg_lflags_dashcast -lswresample ; then
+    has_libswresample="yes"
+    ffmpeg_lflags_dashcast="$ffmpeg_lflags_dashcast -lswresample"
 else
-    has_libavresample="no"
+    has_libswresample="no"
 fi
 
 
@@ -1518,8 +1327,8 @@ if test "$pkg_config" != "no"; then
     freenect_flags=`$pkg_config --cflags libfreenect`
     freenect_libs=`$pkg_config --libs libfreenect`
     has_freenect="system"
-    freenect_flags="-DFREENECT_FLAT_HEADERS $freenect_flags" 
-  fi 
+    freenect_flags="-DFREENECT_FLAT_HEADERS $freenect_flags"
+  fi
 fi
 
 if test "$has_freenect" = "no"; then
@@ -1610,6 +1419,21 @@ else
 fi
 
 
+#look for VideoToolBox support
+
+if test "$darwin" = "yes" ; then
+vtb_ldflags="-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolBox"
+	cat > $TMPC << EOF
+#include <VideoToolbox/VideoToolbox.h>
+int main( void ) { return 0; }
+EOF
+
+if docc $LDFLAGS $vtb_ldflags ; then
+    has_vtb="yes"
+fi
+fi
+
+
 
 #look for OSS support
 if test "$darwin" = "yes" ; then
@@ -1653,53 +1477,6 @@ EOF
 
 fi
 
-
-
-#look for wxWidgets support
-has_wx="no"
-wx_too_old="no"
-
-if test "$cross_prefix" = "" ; then
-    if type wx-config >/dev/null 2>>$logs; then
-
-        wx_version=`wx-config --version | sed 's/[^0-9]//g'`
-
-        if test "$wx_version" -lt 250 ; then
-            wx_too_old="yes"
-            has_wx="yes"
-        else
-            if test "$wx_version" -lt 260 ; then
-                has_wx="yes"
-                wx_cflags=`wx-config --cppflags`
-                wx_lflags=`wx-config --libs`
-            else
-                has_wx="yes"
-                wx_cflags=`wx-config --cppflags core, base`
-                wx_lflags=`wx-config --libs core, base`
-            fi
-
-            if test "$darwin" = "yes" ; then
-                wx_lflags="-Wl,-bind_at_load $wx_lflags -lstdc++" #10.4 needs it, not sure about 10.3
-            fi
-        fi
-
-        cat > $TMPCXX << EOF
-#include <wx/wx.h>
-int main( void ) { return 0; }
-EOF
-
-        if $cc $wx_cflags -o $TMPO $TMPCXX $wx_lflags > /dev/null 2>>$logs ; then
-            wx_version=`wx-config --version | sed 's/[^0-9]//g'`
-            if test "$wx_version" -lt 254 ; then
-                wx_too_old="yes"
-            else
-                has_wx="yes"
-            fi
-        fi
-    fi
-fi
-#end wx test
-
 #look for IPv6
 cat > $TMPC << EOF
 #include <string.h>
@@ -1736,23 +1513,6 @@ EOF
 if docc $LDFLAGS ; then
     has_dvb4linux="yes"
 fi
-
-
-
-#look for XMLRPC
-cat > $TMPC << EOF
-#include <xmlrpc-c/base.h>
-#include <xmlrpc-c/server.h>
-#include <xmlrpc-c/server_abyss.h>
-int main( void ) {
-return 0;
-}
-EOF
-
-if docc $LDFLAGS ; then
-    has_xmlrpc="yes"
-fi
-
 
 
 #look for alsa
@@ -1857,6 +1617,31 @@ if docc -lhidapi-hidraw $LDFLAGS ; then
     has_hid="yes"
 fi
 
+#look for sys/un.h support
+cat > $TMPC << EOF
+#include <sys/un.h>
+int main( void ) { struct sockaddr_un serv_add; return 0; }
+EOF
+
+if docc $LDFLAGS ; then
+    has_sock_un="yes"
+fi
+
+
+#look for lzma support
+cat > $TMPC << EOF
+#include <lzma.h>
+int main( void ) { lzma_options_lzma opt_lzma2; lzma_lzma_preset(&opt_lzma2, 9); return 0; }
+EOF
+
+if docc $CFLAGS_DIR -llzma $LDFLAGS ; then
+  has_lzma="yes"
+  GPAC_SH_FLAGS="$GPAC_SH_FLAGS -llzma"
+  if test "$win32" = "yes"; then
+   extralibs="$extralibs -llzma"
+  fi
+fi
+
 #overwrite detection with manual settings
 for opt do
     case "$opt" in
@@ -1898,8 +1683,6 @@ for opt do
             ;;
         --disable-ipv6) has_ipv6="no"
             ;;
-        --disable-wx) has_wx="no"
-            ;;
         --disable-platinum) has_platinum="no"
             ;;
         --disable-oss-audio) has_oss_audio="no"
@@ -1916,9 +1699,13 @@ for opt do
             ;;
         --enable-mem-track) use_memory_tracking="yes"
             ;;
+        --enable-sanitizer) enable_sanitizer="yes"
+            ;;
         --enable-tinygl) enable_tinygl="yes"
             ;;
         --disable-ssl) has_ssl="no"
+            ;;
+        --disable-lzma) has_lzma="no"
             ;;
         --enable-depth) enable_depth_compositor="yes"
             ;;
@@ -1946,13 +1733,13 @@ for opt do
             if test "$tmp_has_png" = "system" ; then
                 if test "$has_png"  != "system" ; then
                     if test "$cross_prefix" != "" ; then
-                        echo 
+                        echo
                         echo "WARNING: PNG has been forced to system, but we are cross-compiling, it will have to be on target"
-                        echo 
+                        echo
                     else
-                        echo 
+                        echo
                         echo "WARNING!! : PNG has been forced to system even though it hasn't been found in this host"
-                        echo 
+                        echo
                     fi
                 fi
             fi
@@ -1962,21 +1749,26 @@ for opt do
             if test "$tmp_has_zlib" = "system" ; then
                 if test "$has_zlib"  != "system" ; then
                     if test "$cross_prefix" != "" ; then
-                        echo 
+                        echo
                         echo "WARNING: ZLIB has been forced to system, but we are cross-compiling, it will have to be on target"
-                        echo 
+                        echo
                     else
-                        echo 
+                        echo
                         echo "WARNING!! : ZLIB has been forced to system even though it hasn't been found in this host"
-                        echo 
+                        echo
                     fi
                 fi
                 has_zlib=$tmp_has_zlib
             elif test "$tmp_has_zlib" = "no" ; then
-                echo 
+                echo
                 echo "WARNING!! : you have forced not to use ZLIB. This will disable some core functionalities of GPAC."
-                echo 
+                echo
                 has_zlib="force-no"
+            elif test "$tmp_has_zlib" = "local" ; then
+                echo
+                echo "WARNING!! : zlib is forced to be local without check - make sure it is avaliable in $local_lib"
+                echo
+                has_zlib="local"
             fi
             ;;
         --use-ogg=*) has_ogg=${opt#--use-ogg=}
@@ -1991,9 +1783,9 @@ for opt do
             ;;
         --enable-pulseaudio) has_pulseaudio="yes"
             ;;
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_vtt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes" ; disable_atsc="yes" ; enable_qjs="no"
             ;;
-        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no"
+        --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_crypto="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no" ; disable_atsc="yes" ; enable_qjs="no"
             ;;
         --disable-3d) disable_3d="yes"
             ;;
@@ -2109,9 +1901,9 @@ for opt do
             ;;
         --enable-isom-dump) disable_isom_dump="no"
             ;;
-        --disable-mcrypt) disable_mcrypt="yes"
+        --disable-crypto) disable_crypto="yes"
             ;;
-        --enable-mcrypt) disable_mcrypt="no"
+        --enable-crypto) disable_crypto="no"
             ;;
         --disable-isoff) disable_isoff="yes"
             ;;
@@ -2136,55 +1928,67 @@ for opt do
         --disable-streaming) disable_streaming="yes"
             ;;
         --enable-streaming) disable_streaming="no"
-            ;; 
+            ;;
         --disable-player) disable_player="yes"
             ;;
         --enable-player) disable_player="no"
-            ;; 
+            ;;
         --disable-scenegraph) disable_scenegraph="yes"
             ;;
         --enable-scenegraph) disable_scenegraph="no"
-            ;; 
+            ;;
         --disable-dvbx) disable_dvbx="yes"
             ;;
         --enable-dvbx) disable_dvbx="no"
-            ;; 
+            ;;
         --disable-vobsub) disable_vobsub="yes"
             ;;
         --enable-vobsub) disable_vobsub="no"
-            ;; 
+            ;;
         --disable-ttxt) disable_ttxt="yes"
             ;;
         --enable-ttxt) disable_ttxt="no"
-            ;; 
+            ;;
         --disable-ttml) disable_ttml="yes"
             ;;
+        --enable-vtt) disable_vtt="no"
+            ;;
+        --disable-vtt) disable_vtt="yes"
+            ;;
         --enable-ttml) disable_ttml="no"
-            ;; 
+            ;;
         --disable-saf) disable_saf="yes"
             ;;
         --enable-saf) disable_saf="no"
-            ;; 
+            ;;
         --disable-smgr) disable_smgr="yes"
             ;;
         --enable-smgr) disable_smgr="no"
-            ;; 
+            ;;
         --disable-mpd) disable_mpd="yes"
             ;;
         --enable-mpd) disable_mpd="no"
-            ;; 
+            ;;
         --disable-dash) disable_dash="yes"
             ;;
         --enable-dash) disable_dash="no"
-            ;; 
+            ;;
         --disable-core) disable_core_tools="yes"
             ;;
         --enable-core) disable_core_tools="no"
-            ;; 
+            ;;
         --disable-hevc) disable_hevc="yes"
             ;;
         --enable-hevc) disable_hevc="no"
-            ;; 
+            ;;
+        --disable-atsc) disable_atsc="yes"
+            ;;
+        --enable-atsc) disable_atsc="no"
+            ;;
+        --disable-qjs) enable_qjs="no"
+            ;;
+        --enable-qjs) enable_qjs="yes"
+            ;;
     esac
 done
 
@@ -2270,48 +2074,6 @@ if test "$enable_tinygl" = "yes"  ;then
 fi
 
 
-
-#look for GECKO support
-cat > $TMPCXX << EOF
-#include <npapi.h>
-int main( void ) { return 0; }
-EOF
-
-if docxx -I$xulsdk_path $LDFLAGS ; then
-    has_xul="system"
-    xul_flags="-I$xulsdk_path $xul_flags"
-fi
-
-if test "$pkg_config" != "no"; then
-  if test "$has_xul" = "no" ; then
-    if $pkg_config --exists libxul 2>>$logs ; then
-        if docxx -o $TMPO $TMPCXX `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
-            has_xul="system"
-            xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`" 
-        fi
-    fi
-  fi
-fi
-
-if test "$has_xul" = "no" ; then
-    if docxx $xul_flags -I$local_inc/gecko-sdk/include $LDFLAGS ; then
-        has_xul="local"
-        xul_flags="-I$local_inc/gecko-sdk/include $xul_flags"
-    else
-        #xulrunner directories are sometimes included through js/xul/ff packages
-        if test ! "$has_js" = "no" -a ! "$has_js" = "local" ; then
-            if docxx $js_flags $js_lib_pkg $LDFLAGS ; then
-                if test "$mozjs_pkgcfg" != "no" ; then
-                    xul_flags=`$pkg_config --cflags $mozjs_pkgcfg`
-                    has_xul="$has_js"
-                fi
-            fi
-        fi
-    fi
-fi
-
-
-
 #look for joystick support
 cat > $TMPC << EOF
 #include <linux/joystick.h>
@@ -2345,8 +2107,6 @@ EOF
     fi
 
 fi
-
-
 
 #look for SDL support
 sdl_too_old=no
@@ -2423,8 +2183,6 @@ EOF
 fi
 #end SDL check
 
-
-
 #look at endianess
 if test -z "$cross_prefix" ; then
 
@@ -2458,7 +2216,7 @@ fi
 
 #man dir
 if test x"$mandir" = x""; then
-    mandir="${prefix}/man"
+    mandir="${prefix}/share/man"
 fi
 
 if test "$static_mp4box" = "yes"; then
@@ -2571,9 +2329,11 @@ echo "debug version: $debuginfo"
 echo "GProf enabled: $gprof_build"
 echo "Static build enabled: $static_build"
 echo "Memory tracking enabled: $use_memory_tracking"
+echo "Sanitizer enabled: $enable_sanitizer"
 echo "Fixed-Point Version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
 echo "Static Modules: $static_modules"
+echo "QuickJS Support: $enable_qjs"
 
 if test "$disable_player" = "yes" ; then
     echo "Player disabled"
@@ -2715,9 +2475,9 @@ if test "$disable_isom_dump" = "yes" ; then
     echo "ISOM dump disabled"
     echo "#define GPAC_DISABLE_ISOM_DUMP" >> $TMPH
 fi
-if test "$disable_mcrypt" = "yes" ; then
-    echo "MCrypt disabled"
-    echo "#define GPAC_DISABLE_MCRYPT" >> $TMPH
+if test "$disable_crypto" = "yes" ; then
+    echo "Crypto tools disabled"
+    echo "#define GPAC_DISABLE_CRYPTO" >> $TMPH
 fi
 if test "$disable_isoff" = "yes" ; then
     echo "ISO File Format disabled"
@@ -2763,6 +2523,11 @@ if test "$disable_ttml" = "yes" ; then
     echo "#define GPAC_DISABLE_TTML" >> $TMPH
 fi
 
+if test "$disable_vtt" = "yes" ; then
+    echo "WebVTT disabled"
+    echo "#define GPAC_DISABLE_VTT" >> $TMPH
+fi
+
 if test "$enable_depth_compositor" = "yes" ; then
     echo "Depth Compositor enabled"
     echo "#define GF_SR_USE_DEPTH" >> $TMPH
@@ -2781,6 +2546,16 @@ fi
 if test "$disable_hevc" = "yes" ; then
     echo "HEVC Support disabled"
     echo "#define GPAC_DISABLE_HEVC" >> $TMPH
+fi
+
+if test "$disable_atsc" = "yes" ; then
+    echo "ATSC3 Support disabled"
+    echo "#define GPAC_DISABLE_ATSC" >> $TMPH
+fi
+
+if test "$disable_crypto" = "yes" ; then
+    echo "CRYPTO Support disabled"
+    echo "#define GPAC_DISABLE_CRYPTO" >> $TMPH
 fi
 
 echo ""
@@ -2808,8 +2583,6 @@ echo "OpenGL support: $has_opengl"
 echo "TinyGL support: $has_tinygl"
 echo "OpenSSL support: $has_ssl"
 
-echo "Mozilla XUL/GECKO support: $has_xul"
-
 if test "$win32" = "yes" ; then
     echo "DirectX Support: $has_mingw_directx"
 fi
@@ -2817,22 +2590,8 @@ if test "$linux" = "yes" ; then
     echo "DVB Support: $has_dvb4linux"
 fi
 
-echo "XMLRPC Support: $has_xmlrpc"
-
-if test "$wx_too_old" = "yes" ; then
-    has_wx="no"
-    echo "wxWidgets Version too old - please upgrade to 2.6.0 for wxWidgets support"
-fi
-if test "$has_wx" = "yes" ; then
-    echo "wxWidgets support: Version $wx_version"
-else
-    echo "wxWidgets support: no"
-fi
-
-
 echo ""
 echo "** Extra Libraries used **"
-echo "SpiderMonkey: $has_js"
 echo "FreeType: $has_ft"
 echo "JPEG: $has_jpeg"
 echo "OpenJPEG: $has_openjpeg"
@@ -2841,6 +2600,7 @@ echo "MAD: $has_mad"
 echo "FAAD: $has_faad"
 echo "XVID: $has_xvid"
 echo "FFMPEG: $has_ffmpeg"
+echo "LZMA: $has_lzma"
 echo "Xiph OGG: $has_ogg"
 echo "Platinum UPnP: $has_platinum"
 echo "AVCap: $has_avcap"
@@ -2899,9 +2659,19 @@ if test "$gprof_build" = "yes"; then
     fi
 fi
 
+#we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS_DIR $CFLAGS"
+    CFLAGS="$CFLAGS_DIR $CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+else
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi
+
+
+if test "$enable_sanitizer" = "yes" ; then
+    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g"
+    LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
+fi
+
 
 ldir=`pwd`
 CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
@@ -2999,7 +2769,7 @@ if test "$win32" = "yes" ; then
         echo "#define fseeko64 fseek" >> $TMPH
     fi
     if test "$mingw32" = "yes" ; then
-    
+
 # -municode test
 cat > $TMPC << EOF
 #include <inttypes.h>
@@ -3057,18 +2827,11 @@ fi
 
 echo "INSTFLAGS=$INSTFLAGS" >> config.mak
 
-echo "CONFIG_JS=$has_js" >> config.mak
-if test "$has_js" = "no" ; then
-    has_js="no"
-else
-    if test "$has_js" = "local" ; then
-        js_flags="-DXP_UNIX -I$local_inc/js"
-        js_lib="-ljs"
-    fi
-    echo "JS_FLAGS=$js_flags" >> config.mak
-    echo "JS_LIBS=$js_lib" >> config.mak
-    echo "#define GPAC_HAS_SPIDERMONKEY" >> $TMPH
+echo "CONFIG_JS=$enable_qjs" >> config.mak
+if test "$enable_qjs" = "yes" ; then
+echo "#define GPAC_HAS_QJS" >> $TMPH
 fi
+
 if test "$has_zlib" = "no" -o "$has_zlib" = "force-no" ; then
     echo "#define GPAC_DISABLE_ZLIB" >> $TMPH
     echo "CONFIG_ZLIB=no" >> config.mak
@@ -3080,6 +2843,8 @@ echo "CONFIG_FT=$has_ft" >> config.mak
 echo "CONFIG_JPEG=$has_jpeg" >> config.mak
 if test "$has_jpeg" != "no" ; then
     echo "#define GPAC_HAS_JPEG" >> $TMPH
+    echo "jpeg_cflags=$jpeg_cflags" >> config.mak
+    echo "jpeg_lflags=$jpeg_lflags" >> config.mak
 fi
 
 echo "CONFIG_PNG=$has_png" >> config.mak
@@ -3087,22 +2852,57 @@ if test "$has_png" != "no" ; then
     echo "#define GPAC_HAS_PNG" >> $TMPH
 fi
 
+echo "CONFIG_VTB=$has_vtb" >> config.mak
+if test "$has_vtb" != "no" ; then
+    echo "#define GPAC_HAS_VTB" >> $TMPH
+    echo "vtb_ldflags=$vtb_ldflags" >> config.mak
+fi
+
+if test "$has_sock_un" != "no" ; then
+    echo "#define GPAC_HAS_SOCK_UN" >> $TMPH
+fi
+
+echo "CONFIG_LZMA=$has_lzma" >> config.mak
+if test "$has_lzma" = "yes"; then
+echo "#define GPAC_HAS_LZMA" >> $TMPH
+fi
+
 echo "CONFIG_JP2=$has_openjpeg" >> config.mak
+if test "$has_openjpeg" != "no" ; then
+    echo "JP2_CFLAGS=$openjpeg_cflags" >> config.mak
+    echo "JP2_LDFLAGS=$openjpeg_ldflags" >> config.mak
+    echo "#define GPAC_HAS_JP2" >> $TMPH
+fi
 echo "CONFIG_FAAD=$has_faad" >> config.mak
+if test "$has_faad" != "no" ; then
+    echo "#define GPAC_HAS_FAAD" >> $TMPH
+fi
 echo "CONFIG_MAD=$has_mad" >> config.mak
+if test "$has_mad" != "no" ; then
+    echo "#define GPAC_HAS_MAD" >> $TMPH
+fi
 echo "CONFIG_XVID=$has_xvid" >> config.mak
+if test "$has_xvid" != "no" ; then
+    echo "#define GPAC_HAS_XVID" >> $TMPH
+fi
 echo "CONFIG_OGG=$has_ogg" >> config.mak
 echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
+if test "$has_vorbis" != "no" ; then
+    echo "#define GPAC_HAS_VORBIS" >> $TMPH
+fi
 echo "CONFIG_THEORA=$has_theora" >> config.mak
+if test "$has_theora" != "no" ; then
+    echo "#define GPAC_HAS_THEORA" >> $TMPH
+fi
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
 if test "$has_ffmpeg" = "no"; then
 echo "DISABLE_DASHCAST=yes" >> config.mak
 else
     echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
-    echo "ffmpeg_lflags_dashcast=$ffmpeg_lflags_dashcast" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
-    echo "CONFIG_LIBAVRESAMPLE=$has_libavresample" >> config.mak
+    echo "CONFIG_LIBSWRESAMPLE=$has_libswresample" >> config.mak
+    echo "#define GPAC_HAS_FFMPEG" >> $TMPH
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 
@@ -3110,12 +2910,19 @@ echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak
 echo "CONFIG_A52=$has_a52" >> config.mak
+if test "$has_a52" != "no" ; then
+    echo "#define GPAC_HAS_LIBA52" >> $TMPH
+fi
 echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
 echo "CONFIG_FREENECT=$has_freenect" >> config.mak
 if test "$has_freenect" != "no"
 then
     echo "FREENECT_CFLAGS=$freenect_flags" >> config.mak
     echo "FREENECT_LDLAGS=$freenect_ld" >> config.mak
+fi
+
+if test "$want_gcov"  = "yes" ; then
+    echo "#define GPAC_ENABLE_COVERAGE" >> $TMPH
 fi
 
 echo "DISABLE_PLAYER=$disable_player" >> config.mak
@@ -3134,7 +2941,7 @@ echo "DISABLE_SCENE_STATS=$disable_scene_stats" >> config.mak
 echo "DISABLE_SCENE_DUMP=$disable_scene_dump" >> config.mak
 echo "DISABLE_SCENE_ENCODE=$disable_scene_encode" >> config.mak
 echo "DISABLE_SCENEGRAPH=$disable_scenegraph" >> config.mak
-echo "DISABLE_MCRYPT=$disable_mcrypt" >> config.mak
+echo "DISABLE_CRYPTO=$disable_crypto" >> config.mak
 echo "DISABLE_DVBX=$disable_dvbx" >> config.mak
 echo "DISABLE_AVILIB=$disable_avi" >> config.mak
 echo "DISABLE_M2PS=$disable_m2ps" >> config.mak
@@ -3156,6 +2963,8 @@ echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
 echo "MINIMAL_OD=$disable_od" >> config.mak
 echo "DISABLE_ISOM_ADOBE=$disable_isoff_hds" >> config.mak
 echo "DISABLE_VRML=$disable_vrml" >> config.mak
+echo "DISABLE_ATSC=$disable_atsc" >> config.mak
+echo "DISABLE_CRYPTO=$disable_crypto" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"
@@ -3222,12 +3031,6 @@ if test "$win32" = "yes" ; then
     fi
 fi
 
-echo "USE_WXWIDGETS=$has_wx" >> config.mak
-if test "$has_wx" = "yes"; then
-    echo "WX_CFLAGS=$wx_cflags" >> config.mak
-    echo "WX_LFLAGS=$wx_lflags" >> config.mak
-fi
-
 echo "CONFIG_PLATINUM=$has_platinum" >> config.mak
 
 echo "CONFIG_AVCAP=$has_avcap" >> config.mak
@@ -3240,27 +3043,22 @@ echo "CONFIG_OPENSVC=$has_opensvc" >> config.mak
 if test "$has_opensvc" = "yes" ; then
     echo "OSVC_CFLAGS=$osvc_cflags" >> config.mak
     echo "OSVC_LDFLAGS=$osvc_ldflags" >> config.mak
+    echo "#define GPAC_HAS_OPENSVC" >> $TMPH
 fi
 
 echo "CONFIG_OPENHEVC=$has_openhevc" >> config.mak
 if test "$has_openhevc" = "yes" ; then
     echo "OHEVC_CFLAGS=$ohevc_cflags" >> config.mak
     echo "OHEVC_LDFLAGS=$ohevc_ldflags" >> config.mak
+    echo "#define GPAC_HAS_OPENHEVC" >> $TMPH
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak
-
-echo "CONFIG_XUL=$has_xul" >> config.mak
-if test "$has_xul" != "no"; then
-    echo "XUL_CFLAGS=$xul_flags" >> config.mak
-fi
 
 echo "LINUX_DVB=$has_dvb4linux" >> config.mak
 if test "$has_dvb4linux" = "yes"; then
     echo "#define GPAC_HAS_LINUX_DVB" >> $TMPH
 fi
-
-echo "XMLRPC_INC=$has_xmlrpc" >> config.mak
 
 if test "$has_oss_audio" != "no"; then
     echo "OSS_INC_TYPE=$has_oss_audio" >> config.mak
@@ -3283,6 +3081,7 @@ fi
 
 echo "CONFIG_HID=$has_hid" >> config.mak
 echo "HID_LDFLAGS=$hid_lib" >> config.mak
+
 
 
 if test "$is_64" = "yes"; then
@@ -3330,9 +3129,9 @@ echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
-    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
+    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/terminal src/crypto src/media_tools src/scene_manager src/compositor src/laser src/evg src/quickjs src/jsmods"
 
-    APP_DIRS="applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx applications/mp42ts applications/dashcast"
+    APP_DIRS="applications/gpac applications/mp4box applications/mp4client"
 
     for dir in $SRC_DIRS ; do
         mkdir -p "$dir"
@@ -3428,16 +3227,46 @@ fi
 echo '	$(CXX) $(CFLAGS) -c -o $@ $<' >> config.mak
 
 #pkg-config
-echo "prefix=$prefix"				 > gpac.pc
-echo "exec_prefix=\${prefix}"			>> gpac.pc
-echo "libdir=\${exec_prefix}/$libdir"		>> gpac.pc
-echo "includedir=\${exec_prefix}/include"	>> gpac.pc
-echo ""						>> gpac.pc
-echo "Name: gpac"				>> gpac.pc
-echo "Description: GPAC Multimedia Framework"	>> gpac.pc
-echo "URL: http://gpac.sourceforge.net"		>> gpac.pc
-echo "Version:$version"				>> gpac.pc
-echo "Cflags: -I\${prefix}/include/gpac"	>> gpac.pc
-echo "Libs: -L\${libdir} -lgpac"		>> gpac.pc
+generate_pkgconfig () {
+	echo "prefix=$prefix"
+	echo "exec_prefix=\${prefix}"
+	echo "libdir=\${exec_prefix}/$libdir"
+	echo "includedir=\${exec_prefix}/include"
+	echo ""
+	echo "Name: gpac"
+	echo "Description: GPAC Multimedia Framework"
+	echo "URL: http://gpac.io"
+	echo "Version:$version"
+	echo "Cflags: -I\${prefix}/include"
+	echo "Libs: -L\${libdir} -lgpac"
+}
+
+generate_pkgconfig > gpac.pc
+
+
+generate_gpacdesktop () {
+	echo "[Desktop Entry]"
+	echo "Version=1.0"
+	echo "Name=MP4Client"
+	echo "Comment=GPAC Media Player"
+	echo "GenericName=Media Player"
+	echo "Keywords=Media Player"
+	echo "Exec=MP4Client -gui %u"
+	echo "Terminal=false"
+	echo "X-MultipleArgs=false"
+	echo "Type=Application"
+	echo "Icon=$prefix/share/pixmaps/gpac.png"
+	echo "Categories=AudioVideo"
+	echo "MimeType=text/text;text/xml;application/xhtml+xml;application/xml;image/jpeg;image/png;video/webm;video/mp4;video/mpeg;audio/mp4;audio/mpeg;x-scheme-handler/rtsp;x-scheme-handler/rtp;x-scheme-handler/atsc"
+	echo "StartupNotify=true"
+	echo "Actions=new-window"
+	echo ""
+	echo "[Desktop Action new-window]"
+	echo "Name=Open a New Window"
+	echo "Exec=MP4Client"
+	echo ""
+}
+
+generate_gpacdesktop > share/gpac.desktop
 
 echo "Done - type 'make help' for make info, 'make' to build"

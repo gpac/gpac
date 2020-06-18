@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -29,7 +29,9 @@
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
 #define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC"
-#define GPAC_ISOM_CPRT_NOTICE_VERSION GPAC_ISOM_CPRT_NOTICE" "GPAC_FULL_VERSION
+
+#include <gpac/revision.h>
+#define GPAC_ISOM_CPRT_NOTICE_VERSION GPAC_ISOM_CPRT_NOTICE" "GPAC_VERSION "-rev" GPAC_GIT_REVISION
 
 static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 {
@@ -44,7 +46,7 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 				if (!strcmp(_free->data, GPAC_ISOM_CPRT_NOTICE_VERSION)) return GF_OK;
 				if (strstr(_free->data, GPAC_ISOM_CPRT_NOTICE)) {
 					gf_free(_free->data);
-					_free->data = gf_strdup(movie->drop_date_version_info ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
+					_free->data = gf_strdup(gf_sys_is_test_mode() ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
 					_free->dataSize = 1 + (u32) strlen(_free->data);
 					return GF_OK;
 				}
@@ -54,7 +56,7 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 	a = gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
 	if (!a) return GF_OUT_OF_MEM;
 	_free = (GF_FreeSpaceBox *)a;
-	_free->data = gf_strdup(movie->drop_date_version_info ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
+	_free->data = gf_strdup(gf_sys_is_test_mode() ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
 	_free->dataSize = (u32) strlen(_free->data) + 1;
 	if (!_free->data) return GF_OUT_OF_MEM;
 	return gf_list_add(movie->TopBoxes, _free);
@@ -67,31 +69,39 @@ typedef struct
 	/*timeScale of the media (for interleaving)*/
 	u32 timeScale;
 	/*this is for generic, time-based interleaving. Expressed in Media TimeScale*/
-	u32 chunkDur;
+	u64 chunkDur;
+	u32 chunkSize;
+	u32 constant_size, constant_dur;
+
 	u64 DTSprev;
 	u8 isDone;
 	u64 prev_offset;
 	GF_MediaBox *mdia;
+	GF_SampleTableBox *stbl;
+
+	u32 all_dref_mode;
+
 	/*each writer has a sampleToChunck and ChunkOffset tables
 	these tables are filled during emulation mode and then will	replace the table in the GF_SampleTableBox*/
 	GF_SampleToChunkBox *stsc;
 	/*we don't know if it's a large offset or not*/
 	GF_Box *stco;
+	//track uses a box requiring seeking into the moov during write, we cannot dispatch blocks
+	Bool prevent_dispatch;
 } TrackWriter;
 
 typedef struct
 {
 	char *buffer;
-	u32 size;
+	u32 alloc_size;
 	GF_ISOFile *movie;
 	u32 total_samples, nb_done;
 } MovieWriter;
 
 void CleanWriters(GF_List *writers)
 {
-	TrackWriter *writer;
 	while (gf_list_count(writers)) {
-		writer = (TrackWriter*)gf_list_get(writers, 0);
+		TrackWriter *writer = (TrackWriter*)gf_list_get(writers, 0);
 		gf_isom_box_del(writer->stco);
 		gf_isom_box_del((GF_Box *)writer->stsc);
 		gf_free(writer);
@@ -99,7 +109,7 @@ void CleanWriters(GF_List *writers)
 	}
 }
 
-void ResetWriters(GF_List *writers)
+GF_Err ResetWriters(GF_List *writers)
 {
 	u32 i;
 	TrackWriter *writer;
@@ -107,10 +117,12 @@ void ResetWriters(GF_List *writers)
 	while ((writer = (TrackWriter *)gf_list_enum(writers, &i))) {
 		writer->isDone = 0;
 		writer->chunkDur = 0;
+		writer->chunkSize = 0;
 		writer->DTSprev = 0;
 		writer->sampleNumber = 1;
 		gf_isom_box_del((GF_Box *)writer->stsc);
 		writer->stsc = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
+		if (!writer->stsc) return GF_OUT_OF_MEM;
 		if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
 			gf_free(((GF_ChunkOffsetBox *)writer->stco)->offsets);
 			((GF_ChunkOffsetBox *)writer->stco)->offsets = NULL;
@@ -123,6 +135,7 @@ void ResetWriters(GF_List *writers)
 			((GF_ChunkLargeOffsetBox *)writer->stco)->alloc_size = 0;
 		}
 	}
+	return GF_OK;
 }
 
 GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
@@ -143,20 +156,40 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		if (!writer) goto exit;
 		writer->sampleNumber = 1;
 		writer->mdia = trak->Media;
+		writer->stbl = trak->Media->information->sampleTable;
 		writer->timeScale = trak->Media->mediaHeader->timeScale;
+		writer->all_dref_mode = Media_SelfContainedType(writer->mdia);
+
+		if (trak->sample_encryption)
+			writer->prevent_dispatch = GF_TRUE;
+
 		writer->isDone = 0;
 		writer->DTSprev = 0;
 		writer->chunkDur = 0;
+		writer->chunkSize = 0;
+		writer->constant_size = writer->constant_dur = 0;
+		if (writer->stbl->SampleSize->sampleSize)
+			writer->constant_size = writer->stbl->SampleSize->sampleSize;
+		if (writer->stbl->TimeToSample->nb_entries==1) {
+			writer->constant_dur = writer->stbl->TimeToSample->entries[0].sampleDelta;
+			if (writer->constant_dur>1) writer->constant_dur = 0;
+		}
+		if (!writer->constant_dur || !writer->constant_size || (writer->constant_size>=10))
+			writer->constant_size = writer->constant_dur = 0;
+
 		writer->stsc = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
-		if (trak->Media->information->sampleTable->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
+		if (!writer->stsc) return GF_OUT_OF_MEM;
+		if (writer->stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 			writer->stco = gf_isom_box_new(GF_ISOM_BOX_TYPE_STCO);
 		} else {
 			writer->stco = gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
 		}
+		if (!writer->stco) return GF_OUT_OF_MEM;
 		/*stops from chunk escape*/
-		if (interleaving) writer->mdia->information->sampleTable->MaxSamplePerChunk = 0;
+		if (interleaving) writer->stbl->MaxSamplePerChunk = 0;
 		/*for progress, assume only one descIndex*/
-		if (Media_IsSelfContained(writer->mdia, 1)) mw->total_samples += trak->Media->information->sampleTable->SampleSize->sampleCount;
+		if (Media_IsSelfContained(writer->mdia, 1))
+			mw->total_samples += writer->stbl->SampleSize->sampleCount;
 		/*optimization for interleaving: put audio last (this can be overriden by priorities)*/
 		if (movie->storageMode != GF_ISOM_STORE_INTERLEAVED) {
 			gf_list_add(writers, writer);
@@ -167,6 +200,8 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 				gf_list_insert(writers, writer, 0);
 			}
 		}
+		if (movie->sample_groups_in_traf && trak->Media->information->sampleTable)
+			trak->Media->information->sampleTable->skip_sample_groups = GF_TRUE;
 	}
 	return GF_OK;
 
@@ -212,7 +247,8 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 		//we have to proceed entry by entry in case a part of the media is not self-contained...
 		for (j=0; j<writer->stsc->nb_entries; j++) {
 			ent = &writer->stsc->entries[j];
-			if (!Media_IsSelfContained(writer->mdia, ent->sampleDescriptionIndex)) continue;
+			if ((writer->all_dref_mode==ISOM_DREF_EXT) || !Media_IsSelfContained(writer->mdia, ent->sampleDescriptionIndex))
+				continue;
 
 			//OK, get the chunk(s) number(s) and "shift" its (their) offset(s).
 			if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
@@ -265,6 +301,43 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 
 }
 
+#define COMP_BOX_COST_BYTES		8
+
+GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_type, GF_BitStream *bs, u32 *box_csize)
+{
+#ifdef GPAC_DISABLE_ZLIB
+	return GF_NOT_SUPPORTED;
+#else
+	GF_Err e;
+	GF_BitStream *comp_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	e = gf_isom_box_write(root_box, comp_bs);
+
+	if (!e) {
+		u8 *box_data;
+		u32 box_size, comp_size;
+
+		if (box_csize)
+			*box_csize = (u32) root_box->size;
+
+		gf_bs_get_content(comp_bs, &box_data, &box_size);
+		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_TRUE);
+		if (mov->force_compress || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
+			if (bs) {
+				gf_bs_write_u32(bs, comp_size+8);
+				gf_bs_write_u32(bs, repl_type);
+				gf_bs_write_data(bs, box_data, comp_size);
+			}
+			if (box_csize)
+				*box_csize = comp_size + COMP_BOX_COST_BYTES;
+		} else if (bs) {
+			gf_bs_write_data(bs, box_data, box_size);
+		}
+		gf_free(box_data);
+	}
+	gf_bs_del(comp_bs);
+	return e;
+#endif /*GPAC_DISABLE_ZLIB*/
+}
 
 //replace the chunk and offset tables...
 static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream *bs)
@@ -284,21 +357,41 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 	}
 
 	if (movie->moov) {
+		Bool prevent_dispatch = GF_FALSE;
 		//switch all our tables
 		i=0;
 		while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
 			//don't delete them !!!
-			stsc = writer->mdia->information->sampleTable->SampleToChunk;
-			stco = writer->mdia->information->sampleTable->ChunkOffset;
-			writer->mdia->information->sampleTable->SampleToChunk = writer->stsc;
-			writer->mdia->information->sampleTable->ChunkOffset = writer->stco;
+			stsc = writer->stbl->SampleToChunk;
+			stco = writer->stbl->ChunkOffset;
+			s32 stsc_pos = gf_list_del_item(writer->stbl->child_boxes, stsc);
+			s32 stco_pos = gf_list_del_item(writer->stbl->child_boxes, stco);
+			writer->stbl->SampleToChunk = writer->stsc;
+			writer->stbl->ChunkOffset = writer->stco;
+			gf_list_insert(writer->stbl->child_boxes, writer->stsc, stsc_pos);
+			gf_list_insert(writer->stbl->child_boxes, writer->stco, stco_pos);
 			writer->stco = stco;
 			writer->stsc = stsc;
+			if (writer->prevent_dispatch)
+				prevent_dispatch = GF_TRUE;
+		}
+		if (prevent_dispatch) {
+			gf_bs_prevent_dispatch(bs, GF_TRUE);
 		}
 		//write the moov box...
 		e = gf_isom_box_size((GF_Box *)movie->moov);
 		if (e) return e;
-		e = gf_isom_box_write((GF_Box *)movie->moov, bs);
+
+		if ((movie->compress_mode==GF_ISO_COMP_ALL) || (movie->compress_mode==GF_ISO_COMP_MOOV)) {
+			e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->moov, GF_4CC('!', 'm', 'o', 'v'), bs, NULL);
+		} else {
+			e = gf_isom_box_write((GF_Box *)movie->moov, bs);
+		}
+
+		if (prevent_dispatch) {
+			gf_bs_prevent_dispatch(bs, GF_FALSE);
+		}
+
 		//and re-switch our table. We have to do it that way because it is
 		//needed when the moov is written first
 		i=0;
@@ -306,10 +399,15 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 			//don't delete them !!!
 			stsc = writer->stsc;
 			stco = writer->stco;
-			writer->stsc = writer->mdia->information->sampleTable->SampleToChunk;
-			writer->stco = writer->mdia->information->sampleTable->ChunkOffset;
-			writer->mdia->information->sampleTable->SampleToChunk = stsc;
-			writer->mdia->information->sampleTable->ChunkOffset = stco;
+			writer->stsc = writer->stbl->SampleToChunk;
+			writer->stco = writer->stbl->ChunkOffset;
+			s32 stsc_pos = gf_list_del_item(writer->stbl->child_boxes, writer->stsc);
+			s32 stco_pos = gf_list_del_item(writer->stbl->child_boxes, writer->stco);
+
+			writer->stbl->SampleToChunk = stsc;
+			writer->stbl->ChunkOffset = stco;
+			gf_list_insert(writer->stbl->child_boxes, stsc, stsc_pos);
+			gf_list_insert(writer->stbl->child_boxes, stco, stco_pos);
 		}
 		if (e) return e;
 	}
@@ -321,18 +419,18 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 {
 	u32 i;
 	u64 size;
-	TrackWriter *writer;
 
 	size = 0;
 	if (movie->moov) {
+		TrackWriter *writer;
 		gf_isom_box_size((GF_Box *)movie->moov);
 		size = movie->moov->size;
 		if (size > 0xFFFFFFFF) size += 8;
 
 		i=0;
 		while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
-			size -= writer->mdia->information->sampleTable->ChunkOffset->size;
-			size -= writer->mdia->information->sampleTable->SampleToChunk->size;
+			size -= writer->stbl->ChunkOffset->size;
+			size -= writer->stbl->SampleToChunk->size;
 			gf_isom_box_size((GF_Box *)writer->stsc);
 			gf_isom_box_size(writer->stco);
 			size += writer->stsc->size;
@@ -349,17 +447,26 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 	return size;
 }
 
+static void muxer_report_progress(MovieWriter *mw)
+{
+	if (mw->movie->progress_cbk) {
+		mw->movie->progress_cbk(mw->movie->progress_cbk_udta, mw->nb_done, mw->total_samples);
+	} else {
+		gf_set_progress("ISO File Writing", mw->nb_done, mw->total_samples);
+	}
+}
+
 //Write a sample to the file - this is only called for self-contained media
-GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStream *bs)
+GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStream *bs, u32 nb_samp)
 {
 	GF_DataMap *map;
 	u32 bytes;
 
 	if (!size) return GF_OK;
 
-	if (size>mw->size) {
+	if (size>mw->alloc_size) {
 		mw->buffer = (char*)gf_realloc(mw->buffer, size);
-		mw->size = size;
+		mw->alloc_size = size;
 	}
 
 	if (!mw->buffer) return GF_OUT_OF_MEM;
@@ -378,11 +485,58 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 	if (bytes != size)
 		return GF_IO_ERR;
 
-	mw->nb_done++;
-	gf_set_progress("ISO File Writing", mw->nb_done, mw->total_samples);
+	mw->nb_done+=nb_samp;
+	muxer_report_progress(mw);
 	return GF_OK;
 }
 
+//flush as much as possible from current chunk for constand size and duration (typically raw audio)
+// We don't want to write samples outside of the current source chunk
+//since the next chunk might be edited (different bitstream object), which would complexify WriteSample code
+//not flushing the chunk will work, but result in very slow writing of raw audio
+void update_writer_constant_dur(GF_ISOFile *movie, TrackWriter *tkw, GF_StscEntry *stsc_ent, u32 *nb_samp, u32 *samp_size, Bool is_flat)
+{
+	u64 chunk_dur;
+	u32 nb_in_run;
+	u32 samp_idx_in_chunk, nb_samp_left_in_src_chunk;
+	if (!tkw->constant_dur) return;
+
+	samp_idx_in_chunk = tkw->sampleNumber - tkw->stbl->SampleToChunk->firstSampleInCurrentChunk;
+	nb_samp_left_in_src_chunk = stsc_ent->samplesPerChunk - samp_idx_in_chunk;
+
+	if (nb_samp_left_in_src_chunk<=1) return;
+
+	if (is_flat) {
+		nb_in_run = nb_samp_left_in_src_chunk;
+	} else {
+
+		chunk_dur = movie->interleavingTime * tkw->timeScale;
+		if (movie->moov && movie->moov->mvhd && movie->moov->mvhd->timeScale)
+			chunk_dur /= movie->moov->mvhd->timeScale;
+
+		chunk_dur -= tkw->chunkDur;
+
+		if (chunk_dur <= tkw->chunkDur) return;
+		chunk_dur -= tkw->constant_dur;
+
+		nb_in_run = (u32) (chunk_dur / tkw->constant_dur);
+
+		if (nb_in_run > nb_samp_left_in_src_chunk) {
+			nb_in_run = nb_samp_left_in_src_chunk;
+		}
+	}
+	if (tkw->sampleNumber + nb_in_run >= tkw->stbl->SampleSize->sampleCount) {
+		nb_in_run = tkw->stbl->SampleSize->sampleCount - tkw->sampleNumber;
+	}
+
+	chunk_dur = nb_in_run * tkw->constant_dur;
+
+	tkw->chunkDur += (u32) chunk_dur - tkw->constant_dur; //because tkw->chunkDur already include duration of first sample of chunk
+	tkw->DTSprev += chunk_dur - tkw->constant_dur; //because nb_samp += nb_in_run-1
+
+	*nb_samp = nb_in_run;
+	*samp_size = nb_in_run * tkw->constant_size;
+}
 
 GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Emulation, u64 baseOffset, u64 *mdatSize)
 {
@@ -429,9 +583,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				if (!iinf->data_len) {
 					src = gf_fopen(iinf->full_path, "rb");
 					if (!src) continue;
-					gf_fseek(src, 0, SEEK_END);
-					it_size = gf_ftell(src);
-					gf_fseek(src, 0, SEEK_SET);
+					it_size = gf_fsize(src);
 				} else {
 					it_size = iinf->data_len;
 				}
@@ -439,6 +591,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 
 				if (!gf_list_count(iloc->extent_entries)) {
 					GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+					if (!entry) return GF_OUT_OF_MEM;
 					gf_list_add(iloc->extent_entries, entry);
 				}
 				entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
@@ -452,7 +605,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 						u64 remain = entry->extent_length;
 						while (remain) {
 							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-							size_t read = fread(cache_data, sizeof(char), size_cache, src);
+							size_t read = gf_fread(cache_data, size_cache, src);
 							if (read ==(size_t) -1) break;
 							gf_bs_write_data(bs, cache_data, (u32) read);
 							remain -= (u32) read;
@@ -464,7 +617,6 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				if (src) gf_fclose(src);
 			}
 			else if (gf_list_count(iloc->extent_entries)) {
-				u32 j;
 				j=0;
 				while ((entry = (GF_ItemExtentEntry *)gf_list_enum(iloc->extent_entries, &j))) {
 					if (entry->extent_index) continue;
@@ -496,6 +648,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			/*we MUST have at least one extent for the dref data*/
 			if (!gf_list_count(iloc->extent_entries)) {
 				GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+				if (!entry) return GF_OUT_OF_MEM;
 				gf_list_add(iloc->extent_entries, entry);
 			}
 			entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
@@ -524,7 +677,8 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 	TrackWriter *writer;
 	u64 offset, sampOffset, predOffset;
 	u32 chunkNumber, descIndex, sampSize;
-	u8 isEdited, force;
+	Bool force;
+	GF_StscEntry *stsc_ent;
 	u64 size, mdatSize = 0;
 	GF_ISOFile *movie = mw->movie;
 
@@ -558,15 +712,19 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 	i=0;
 	while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
 		while (!writer->isDone) {
+			Bool self_contained;
+			u32 nb_samp=1;
 			//To Check: are empty sample tables allowed ???
-			if (writer->sampleNumber > writer->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (writer->sampleNumber > writer->stbl->SampleSize->sampleCount) {
 				writer->isDone = 1;
 				continue;
 			}
-			e = stbl_GetSampleInfos(writer->mdia->information->sampleTable, writer->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &isEdited);
+			e = stbl_GetSampleInfos(writer->stbl, writer->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &stsc_ent);
 			if (e) return e;
-			e = stbl_GetSampleSize(writer->mdia->information->sampleTable->SampleSize, writer->sampleNumber, &sampSize);
+			e = stbl_GetSampleSize(writer->stbl->SampleSize, writer->sampleNumber, &sampSize);
 			if (e) return e;
+
+			update_writer_constant_dur(movie, writer, stsc_ent, &nb_samp, &sampSize, GF_TRUE);
 
 			//update our chunks.
 			force = 0;
@@ -575,9 +733,18 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 				if (predOffset != offset)
 					force = 1;
 			}
+
+			if (writer->stbl->MaxChunkSize && (writer->chunkSize + sampSize > writer->stbl->MaxChunkSize)) {
+				writer->chunkSize = 0;
+				force = 1;
+			}
+			writer->chunkSize += sampSize;
+
+			self_contained = ((writer->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(writer->mdia, descIndex) ) ? GF_TRUE : GF_FALSE;
+
 			//update our global offset...
-			if (Media_IsSelfContained(writer->mdia, descIndex) ) {
-				e = stbl_SetChunkAndOffset(writer->mdia->information->sampleTable, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, offset, force);
+			if (self_contained) {
+				e = stbl_SetChunkAndOffset(writer->stbl, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, offset, force, nb_samp);
 				if (e) return e;
 				if (movie->openMode == GF_ISOM_OPEN_WRITE) {
 					predOffset = sampOffset + sampSize;
@@ -589,21 +756,21 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 				if (predOffset != offset) force = 1;
 				predOffset = sampOffset + sampSize;
 				//we have a DataRef, so use the offset idicated in sampleToChunk and ChunkOffset tables...
-				e = stbl_SetChunkAndOffset(writer->mdia->information->sampleTable, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, sampOffset, force);
+				e = stbl_SetChunkAndOffset(writer->stbl, writer->sampleNumber, descIndex, writer->stsc, &writer->stco, sampOffset, force, nb_samp);
 				if (e) return e;
 			}
 			//we write the sample if not emulation
 			if (!Emulation) {
-				if (Media_IsSelfContained(writer->mdia, descIndex) ) {
-					e = WriteSample(mw, sampSize, sampOffset, isEdited, bs);
+				if (self_contained) {
+					e = WriteSample(mw, sampSize, sampOffset, stsc_ent->isEdited, bs, 1);
 					if (e) return e;
 				}
 			}
 			//ok, the track is done
-			if (writer->sampleNumber == writer->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (writer->sampleNumber >= writer->stbl->SampleSize->sampleCount) {
 				writer->isDone = 1;
 			} else {
-				writer->sampleNumber ++;
+				writer->sampleNumber += nb_samp;
 			}
 		}
 	}
@@ -614,15 +781,15 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 
 
 //write the file track by track, with moov box before or after the mdat
-GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
+static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool non_seakable, Bool for_fragments, GF_BitStream *moov_bs)
 {
 	GF_Err e;
 	u32 i;
 	u64 offset, finalOffset, totSize, begin, firstSize, finalSize;
-	GF_Box *a;
+	GF_Box *a, *cprt_box=NULL;
 	GF_List *writers = gf_list_new();
 	GF_ISOFile *movie = mw->movie;
-
+	s32 moov_meta_pos=-1;
 	begin = totSize = 0;
 
 	//first setup the writers
@@ -630,7 +797,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 	if (e) goto exit;
 
 	if (!moovFirst) {
-		if (movie->openMode == GF_ISOM_OPEN_WRITE) {
+		if ((movie->openMode == GF_ISOM_OPEN_WRITE) && !non_seakable) {
 			begin = 0;
 			totSize = gf_isom_datamap_get_offset(movie->editFileMap);
 			/*start boxes have not been written yet, do it*/
@@ -664,7 +831,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 				if (movie->pdin) begin += movie->pdin->size;
 			}
 			totSize -= begin;
-		} else {
+		} else if (!non_seakable || for_fragments) {
 			if (movie->is_jp2) {
 				gf_bs_write_u32(bs, 12);
 				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_JP);
@@ -692,6 +859,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 			/*written by hand*/
 			case GF_ISOM_BOX_TYPE_MOOV:
 			case GF_ISOM_BOX_TYPE_META:
+				moov_meta_pos = i-1;
 			case GF_ISOM_BOX_TYPE_FTYP:
 			case GF_ISOM_BOX_TYPE_PDIN:
 #ifndef GPAC_DISABLE_ISOM_ADOBE
@@ -707,25 +875,82 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 					if (e) goto exit;
 					continue;
 				}
-				//to avoid computing the size each time write always 4 + 4 + 8 bytes before
-				begin = gf_bs_get_position(bs);
-				gf_bs_write_u64(bs, 0);
-				gf_bs_write_u64(bs, 0);
-				e = DoWrite(mw, writers, bs, 0, gf_bs_get_position(bs));
-				if (e) goto exit;
-				totSize = gf_bs_get_position(bs) - begin;
+				if (non_seakable) {
+					begin = gf_bs_get_position(bs);
+					//do a sim pass to get the true mdat size
+					e = DoWrite(mw, writers, bs, 1, begin);
+					if (e) goto exit;
+
+					if (movie->mdat->dataSize > 0xFFFFFFFF) {
+						gf_bs_write_u32(bs, 1);
+					} else {
+						gf_bs_write_u32(bs, (u32) movie->mdat->dataSize + 8);
+					}
+					gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
+					if (movie->mdat->dataSize > 0xFFFFFFFF) gf_bs_write_u64(bs, movie->mdat->dataSize + 8 + 8);
+					//reset writers and write samples
+					ResetWriters(writers);
+					e = DoWrite(mw, writers, bs, 0, gf_bs_get_position(bs));
+					if (e) goto exit;
+					movie->mdat->size = movie->mdat->dataSize;
+					totSize = 0;
+				} else {
+					//to avoid computing the size each time write always 4 + 4 + 8 bytes before
+					begin = gf_bs_get_position(bs);
+					gf_bs_write_u64(bs, 0);
+					gf_bs_write_u64(bs, 0);
+					e = DoWrite(mw, writers, bs, 0, gf_bs_get_position(bs));
+					if (e) goto exit;
+					totSize = gf_bs_get_position(bs) - begin;
+				}
 				break;
+
+			case GF_ISOM_BOX_TYPE_FREE:
+				//for backward compat with old arch, keep copyright before moov
+				if (((GF_FreeSpaceBox*)a)->dataSize>4) {
+					GF_FreeSpaceBox *fr = (GF_FreeSpaceBox*) a;
+					if ((fr->dataSize>20) && !strncmp(fr->data, "IsoMedia File", 13)) {
+						e = gf_isom_box_size(a);
+						if (e) goto exit;
+						e = gf_isom_box_write(a, bs);
+						if (e) goto exit;
+						cprt_box = a;
+						break;
+					}
+				}
 			default:
-				e = gf_isom_box_size(a);
-				if (e) goto exit;
-				e = gf_isom_box_write(a, bs);
-				if (e) goto exit;
+				if (moov_meta_pos < 0) {
+					e = gf_isom_box_size(a);
+					if (e) goto exit;
+					e = gf_isom_box_write(a, bs);
+					if (e) goto exit;
+				}
 				break;
 			}
 		}
 
+		if (moov_bs) {
+			e = DoWrite(mw, writers, bs, 1, movie->mdat->bsOffset);
+			if (e) goto exit;
+
+			firstSize = GetMoovAndMetaSize(movie, writers);
+
+			offset = firstSize;
+			e = ShiftOffset(movie, writers, offset);
+			if (e) goto exit;
+			//get the size and see if it has changed (eg, we moved to 64 bit offsets)
+			finalSize = GetMoovAndMetaSize(movie, writers);
+			if (firstSize != finalSize) {
+				finalOffset = finalSize;
+				//OK, now we're sure about the final size.
+				//we don't need to re-emulate, as the only thing that changed is the offset
+				//so just shift the offset
+				e = ShiftOffset(movie, writers, finalOffset - offset);
+				if (e) goto exit;
+			}
+		}
 		//OK, write the movie box.
-		e = WriteMoovAndMeta(movie, writers, bs);
+		e = WriteMoovAndMeta(movie, writers, moov_bs ? moov_bs : bs);
 		if (e) goto exit;
 
 #ifndef GPAC_DISABLE_ISOM_ADOBE
@@ -756,8 +981,28 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 			gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
 			if (totSize > 0xFFFFFFFF) gf_bs_write_u64(bs, totSize);
 			e = gf_bs_seek(bs, offset);
+			movie->mdat->size = totSize;
 		}
-		movie->mdat->size = totSize;
+
+		//then the rest
+		i = (u32) (moov_meta_pos + 1);
+		while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
+			if (a==cprt_box) continue;
+
+			switch (a->type) {
+			case GF_ISOM_BOX_TYPE_MOOV:
+			case GF_ISOM_BOX_TYPE_META:
+			case GF_ISOM_BOX_TYPE_FTYP:
+			case GF_ISOM_BOX_TYPE_PDIN:
+			case GF_ISOM_BOX_TYPE_MDAT:
+				break;
+			default:
+				e = gf_isom_box_size(a);
+				if (e) goto exit;
+				e = gf_isom_box_write(a, bs);
+				if (e) goto exit;
+			}
+		}
 		goto exit;
 	}
 
@@ -784,6 +1029,39 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)movie->pdin, bs);
 		if (e) goto exit;
 	}
+
+	//write all boxes before moov
+	i=0;
+	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
+		switch (a->type) {
+		case GF_ISOM_BOX_TYPE_MOOV:
+		case GF_ISOM_BOX_TYPE_META:
+			moov_meta_pos = i-1;
+			break;
+		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_PDIN:
+		case GF_ISOM_BOX_TYPE_MDAT:
+			break;
+		//for backward compat with old arch keep out copyright after moov
+		case GF_ISOM_BOX_TYPE_FREE:
+			if (((GF_FreeSpaceBox*)a)->dataSize>4) {
+				GF_FreeSpaceBox *fr = (GF_FreeSpaceBox*) a;
+				if ((fr->dataSize>20) && !strncmp(fr->data, "IsoMedia File", 13)) {
+					cprt_box = a;
+					break;
+				}
+			}
+		default:
+			if (moov_meta_pos<0) {
+				e = gf_isom_box_size(a);
+				if (e) goto exit;
+				e = gf_isom_box_write(a, bs);
+				if (e) goto exit;
+			}
+			break;
+		}
+	}
+
 	//What we will do is first emulate the write from the beginning...
 	//note: this will set the size of the mdat
 	e = DoWrite(mw, writers, bs, 1, gf_bs_get_position(bs));
@@ -816,9 +1094,11 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 	ResetWriters(writers);
 	e = DoWrite(mw, writers, bs, 0, 0);
 	if (e) goto exit;
+
 	//then the rest
 	i=0;
 	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
+		if ((i-1<= (u32) moov_meta_pos) && (a!=cprt_box)) continue;
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:
@@ -850,7 +1130,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 	s64 res;
 	u32 descIndex, sampSize, chunkNumber;
 	u16 curGroupID, curTrackPriority;
-	u8 forceNewChunk, writeGroup, isEdited;
+	Bool forceNewChunk, writeGroup;
+	GF_StscEntry *stsc_ent;
 	//this is used to emulate the write ...
 	u64 offset, totSize, sampOffset;
 	GF_ISOFile *movie = mw->movie;
@@ -869,6 +1150,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 		//proceed a group
 		while (writeGroup) {
+			u32 nb_samp = 1;
+			Bool self_contained, chunked_forced=GF_FALSE;
 			//first get the appropriated sample for the min time in this group
 			curWriter = NULL;
 			DTStmp = (u64) -1;
@@ -880,15 +1163,15 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 				//is it done writing ?
 				//is it in our group ??
-				if (tmp->isDone || tmp->mdia->information->sampleTable->groupID != curGroupID) continue;
+				if (tmp->isDone || tmp->stbl->groupID != curGroupID) continue;
 
 				//OK, get the current sample in this track
-				stbl_GetSampleDTS(tmp->mdia->information->sampleTable->TimeToSample, tmp->sampleNumber, &DTS);
+				stbl_GetSampleDTS(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS);
 				res = TStmp ? DTStmp * tmp->timeScale - DTS * TStmp : 0;
 				if (res < 0) continue;
-				if ((!res) && curTrackPriority <= tmp->mdia->information->sampleTable->trackPriority) continue;
+				if ((!res) && curTrackPriority <= tmp->stbl->trackPriority) continue;
 				curWriter = tmp;
-				curTrackPriority = tmp->mdia->information->sampleTable->trackPriority;
+				curTrackPriority = tmp->stbl->trackPriority;
 				DTStmp = DTS;
 				TStmp = tmp->timeScale;
 			}
@@ -899,28 +1182,40 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 				continue;
 			}
 			//To Check: are empty sample tables allowed ???
-			if (curWriter->sampleNumber > curWriter->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (curWriter->sampleNumber > curWriter->stbl->SampleSize->sampleCount) {
 				curWriter->isDone = 1;
 				tracksDone ++;
 				continue;
 			}
 
-			e = stbl_GetSampleInfos(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &isEdited);
+			e = stbl_GetSampleInfos(curWriter->stbl, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &stsc_ent);
 			if (e) return e;
-			e = stbl_GetSampleSize(curWriter->mdia->information->sampleTable->SampleSize, curWriter->sampleNumber, &sampSize);
+			e = stbl_GetSampleSize(curWriter->stbl->SampleSize, curWriter->sampleNumber, &sampSize);
 			if (e) return e;
+
+			update_writer_constant_dur(movie, curWriter, stsc_ent, &nb_samp, &sampSize, GF_FALSE);
+
+			if (curWriter->stbl->MaxChunkSize && (curWriter->chunkSize + sampSize > curWriter->stbl->MaxChunkSize)) {
+				curWriter->chunkSize = 0;
+				chunked_forced = forceNewChunk = 1;
+			}
+			curWriter->chunkSize += sampSize;
+
+			self_contained = ((curWriter->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(curWriter->mdia, descIndex) ) ? GF_TRUE : GF_FALSE;
 
 			//do we actually write, or do we emulate ?
 			if (Emulation) {
 				//are we in the same track ??? If not, force a new chunk when adding this sample
-				if (curWriter != prevWriter) {
-					forceNewChunk = 1;
-				} else {
-					forceNewChunk = 0;
+				if (!chunked_forced) {
+					if (curWriter != prevWriter) {
+						forceNewChunk = 1;
+					} else {
+						forceNewChunk = 0;
+					}
 				}
 				//update our offsets...
-				if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-					e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk);
+				if (self_contained) {
+					e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk, nb_samp);
 					if (e) return e;
 					offset += sampSize;
 					totSize += sampSize;
@@ -930,23 +1225,23 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 
 					//we have a DataRef, so use the offset idicated in sampleToChunk
 					//and ChunkOffset tables...
-					e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, 0);
+					e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, chunked_forced, nb_samp);
 					if (e) return e;
 				}
 			} else {
 				//this is no game, we're writing ....
-				if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-					e = WriteSample(mw, sampSize, sampOffset, isEdited, bs);
+				if (self_contained) {
+					e = WriteSample(mw, sampSize, sampOffset, stsc_ent->isEdited, bs, 1);
 					if (e) return e;
 				}
 			}
 			//ok, the sample is done
-			if (curWriter->sampleNumber == curWriter->mdia->information->sampleTable->SampleSize->sampleCount) {
+			if (curWriter->sampleNumber == curWriter->stbl->SampleSize->sampleCount) {
 				curWriter->isDone = 1;
 				//one more track done...
 				tracksDone ++;
 			} else {
-				curWriter->sampleNumber ++;
+				curWriter->sampleNumber += nb_samp;
 			}
 			prevWriter = curWriter;
 		}
@@ -955,9 +1250,12 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 		//go to next group
 		curGroupID ++;
 	}
-	movie->mdat->dataSize = totSize;
+	if (movie->mdat)
+		movie->mdat->dataSize = totSize;
 	return GF_OK;
 }
+
+
 
 /*uncomment the following to easily test large file generation. This will prepend 4096*1MByte of 0 before the media data*/
 //#define TEST_LARGE_FILES
@@ -969,13 +1267,14 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	GF_Err e;
 	u32 descIndex, sampSize, chunkNumber;
 	u64 DTS;
+	u32 moov_timescale;
 	u16 curGroupID;
-	u8 forceNewChunk, writeGroup, isEdited;
+	Bool forceNewChunk, writeGroup;
+	GF_StscEntry *stsc_ent;
 	//this is used to emulate the write ...
 	u64 offset, sampOffset, size, mdatSize;
 	u32 count;
 	GF_ISOFile *movie = mw->movie;
-	if (!movie->moov || !movie->moov->mvhd) return GF_NON_COMPLIANT_BITSTREAM;
 
 	mdatSize = 0;
 
@@ -990,9 +1289,11 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		memset(blank, 0, sizeof(char)*1024*1024);
 		while (i<count) {
 			u32 res = gf_bs_write_data(bs, blank, 1024*1024);
-			if (res != 1024*1024) fprintf(stderr, "error writing to disk: only %d bytes written\n", res);
+			if (res != 1024*1024) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("error writing to disk: only %d bytes written\n", res));
+			}
 			i++;
-			fprintf(stderr, "writing blank block: %.02f done - %d/%d \r", (100.0*i)/count , i, count);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("writing blank block: %.02f done - %d/%d \r", (100.0*i)/count , i, count));
 		}
 		gf_free(blank);
 	}
@@ -1007,22 +1308,23 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		mdatSize += size;
 		StartOffset += (u32) size;
 	}
-	if (movie->moov && movie->moov->meta) {
-		e = DoWriteMeta(movie, movie->moov->meta, bs, Emulation, StartOffset, &size);
-		if (e) return e;
-		mdatSize += size;
-		StartOffset += (u32) size;
-	}
-	i=0;
-	while ((tmp = (TrackWriter*)gf_list_enum(writers, &i))) {
-		if (tmp->mdia->mediaTrack->meta) {
-			e = DoWriteMeta(movie, tmp->mdia->mediaTrack->meta, bs, Emulation, StartOffset, &size);
+	if (movie->moov) {
+		if (movie->moov->meta) {
+			e = DoWriteMeta(movie, movie->moov->meta, bs, Emulation, StartOffset, &size);
 			if (e) return e;
 			mdatSize += size;
 			StartOffset += (u32) size;
 		}
+		i=0;
+		while ((tmp = (TrackWriter*)gf_list_enum(writers, &i))) {
+			if (tmp->mdia->mediaTrack->meta) {
+				e = DoWriteMeta(movie, tmp->mdia->mediaTrack->meta, bs, Emulation, StartOffset, &size);
+				if (e) return e;
+				mdatSize += size;
+				StartOffset += (u32) size;
+			}
+		}
 	}
-
 
 
 	if (movie->storageMode == GF_ISOM_STORE_TIGHT)
@@ -1036,6 +1338,8 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 #ifdef TEST_LARGE_FILES
 	offset += mdatSize;
 #endif
+
+	moov_timescale = movie->moov && movie->moov->mvhd ? movie->moov->mvhd->timeScale : 1000;
 
 	count = gf_list_count(writers);
 	//browse each groups
@@ -1057,23 +1361,27 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 				if (tmp->isDone) continue;
 
 				//is it in our group ??
-				if (tmp->mdia->information->sampleTable->groupID != curGroupID) continue;
+				if (tmp->stbl->groupID != curGroupID) continue;
 
 				//write till this chunk is full on this track...
 				while (1) {
+					Bool self_contained;
+					u32 nb_samp = 1;
+					u32 sample_dur;
+					u64 chunk_prev_dur;
 					//To Check: are empty sample tables allowed ???
-					if (tmp->sampleNumber > tmp->mdia->information->sampleTable->SampleSize->sampleCount) {
+					if (tmp->sampleNumber > tmp->stbl->SampleSize->sampleCount) {
 						tmp->isDone = 1;
 						tracksDone ++;
 						break;
 					}
 
 					//OK, get the current sample in this track
-					stbl_GetSampleDTS(tmp->mdia->information->sampleTable->TimeToSample, tmp->sampleNumber, &DTS);
+					stbl_GetSampleDTS_and_Duration(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS, &sample_dur);
 
 					//can this sample fit in our chunk ?
-					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) *  movie->moov->mvhd->timeScale > movie->interleavingTime * tmp->timeScale
-					        /*drfit check: reject sample if outside our check window*/
+					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) * moov_timescale > movie->interleavingTime * tmp->timeScale
+					        /*drift check: reject sample if outside our check window*/
 					        || (drift_inter && chunkLastDTS && ( ((u64)tmp->DTSprev*chunkLastScale) > ((u64)chunkLastDTS*tmp->timeScale)) )
 					   ) {
 						//in case the sample is longer than InterleaveTime
@@ -1082,6 +1390,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 						} else {
 							//this one is full. go to next one (exit the loop)
 							tmp->chunkDur = 0;
+							//forceNewChunk = 0;
 							break;
 						}
 					} else {
@@ -1090,23 +1399,48 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					//OK, we can write this track
 					curWriter = tmp;
 
-					//small check for first 2 samples (DTS = 0 :)
-					if (tmp->sampleNumber == 2 && !tmp->chunkDur) forceNewChunk = 0;
+					//small check for first 2 samples (DTS = 0)
+					//only in the old mode can chunkdur be 0 for dts 0
+					if (tmp->sampleNumber == 2 && !tmp->chunkDur && gf_sys_old_arch_compat() ) {
+						forceNewChunk = 0;
+					}
 
-					tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
+					chunk_prev_dur = tmp->chunkDur;
+					//FIXME we do not apply patch in test mode for now since this breaks all our hashes, remove this
+					//once we move to filters permanently
+					if (!gf_sys_old_arch_compat()) {
+						tmp->chunkDur += sample_dur;
+					} else {
+						//old style, compute based on DTS diff
+						tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
+					}
 					tmp->DTSprev = DTS;
 
-					e = stbl_GetSampleInfos(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &isEdited);
-					if (e) return e;
-					e = stbl_GetSampleSize(curWriter->mdia->information->sampleTable->SampleSize, curWriter->sampleNumber, &sampSize);
-					if (e) return e;
+					e = stbl_GetSampleInfos(curWriter->stbl, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &stsc_ent);
+					if (e)
+						return e;
+					e = stbl_GetSampleSize(curWriter->stbl->SampleSize, curWriter->sampleNumber, &sampSize);
+					if (e)
+						return e;
+
+					self_contained = ((curWriter->all_dref_mode==ISOM_DREF_SELF) || Media_IsSelfContained(curWriter->mdia, descIndex)) ? GF_TRUE : GF_FALSE;
+
+					update_writer_constant_dur(movie, curWriter, stsc_ent, &nb_samp, &sampSize, GF_FALSE);
+
+					if (curWriter->stbl->MaxChunkSize && (curWriter->chunkSize + sampSize > curWriter->stbl->MaxChunkSize)) {
+						curWriter->chunkSize = 0;
+						tmp->chunkDur -= chunk_prev_dur;
+						forceNewChunk = 1;
+					}
+					curWriter->chunkSize += sampSize;
 
 					//do we actually write, or do we emulate ?
 					if (Emulation) {
 						//update our offsets...
-						if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-							e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk);
-							if (e) return e;
+						if (self_contained) {
+							e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, offset, forceNewChunk, nb_samp);
+							if (e)
+								return e;
 							offset += sampSize;
 							mdatSize += sampSize;
 						} else {
@@ -1115,24 +1449,25 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 							//we have a DataRef, so use the offset idicated in sampleToChunk
 							//and ChunkOffset tables...
-							e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, forceNewChunk);
+							e = stbl_SetChunkAndOffset(curWriter->stbl, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, forceNewChunk, nb_samp);
 							if (e) return e;
 						}
 					} else {
-						//this is no game, we're writing ....
-						if (Media_IsSelfContained(curWriter->mdia, descIndex) ) {
-							e = WriteSample(mw, sampSize, sampOffset, isEdited, bs);
-							if (e) return e;
+						//we're writing ....
+						if (self_contained) {
+							e = WriteSample(mw, sampSize, sampOffset, stsc_ent->isEdited, bs, nb_samp);
+							if (e)
+								return e;
 						}
 					}
 					//ok, the sample is done
-					if (curWriter->sampleNumber == curWriter->mdia->information->sampleTable->SampleSize->sampleCount) {
+					if (curWriter->sampleNumber >= curWriter->stbl->SampleSize->sampleCount) {
 						curWriter->isDone = 1;
 						//one more track done...
 						tracksDone ++;
 						break;
 					} else {
-						curWriter->sampleNumber ++;
+						curWriter->sampleNumber += nb_samp;
 					}
 				}
 				/*record chunk end-time & track timescale for drift-controled interleaving*/
@@ -1147,7 +1482,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 					this ensures a proper drift regulation (max DTS diff is less than the interleaving window)
 					*/
-					chunkLastDTS += curWriter->timeScale * movie->interleavingTime / movie->moov->mvhd->timeScale;
+					chunkLastDTS += curWriter->timeScale * movie->interleavingTime / moov_timescale;
 				}
 			}
 			//no sample found, we're done with this group
@@ -1170,7 +1505,8 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 {
 	GF_Err e;
 	u32 i;
-	GF_Box *a;
+	s32 moov_meta_pos=-1;
+	GF_Box *a, *cprt_box=NULL;
 	u64 firstSize, finalSize, offset, finalOffset;
 	GF_List *writers = gf_list_new();
 	GF_ISOFile *movie = mw->movie;
@@ -1196,6 +1532,38 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 		if (e) goto exit;
 		e = gf_isom_box_write((GF_Box *)movie->pdin, bs);
 		if (e) goto exit;
+	}
+
+	//write all boxes before moov
+	i=0;
+	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
+		switch (a->type) {
+		case GF_ISOM_BOX_TYPE_MOOV:
+		case GF_ISOM_BOX_TYPE_META:
+			moov_meta_pos = i-1;
+			break;
+		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_PDIN:
+		case GF_ISOM_BOX_TYPE_MDAT:
+			break;
+		case GF_ISOM_BOX_TYPE_FREE:
+			//for backward compat with old arch, keep copyright before moov
+			if (((GF_FreeSpaceBox*)a)->dataSize>4) {
+				GF_FreeSpaceBox *fr = (GF_FreeSpaceBox*) a;
+				if ((fr->dataSize>20) && !strncmp(fr->data, "IsoMedia File", 13)) {
+					cprt_box = a;
+					break;
+				}
+			}
+		default:
+			if (moov_meta_pos<0) {
+				e = gf_isom_box_size(a);
+				if (e) goto exit;
+				e = gf_isom_box_write(a, bs);
+				if (e) goto exit;
+			}
+			break;
+		}
 	}
 
 	e = DoInterleave(mw, writers, bs, 1, gf_bs_get_position(bs), drift_inter);
@@ -1236,9 +1604,12 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	e = DoInterleave(mw, writers, bs, 0, 0, drift_inter);
 	if (e) goto exit;
 
+
 	//then the rest
 	i=0;
 	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
+		if ((i-1 < (u32) moov_meta_pos) && (a != cprt_box))
+			continue;
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:
@@ -1261,11 +1632,10 @@ exit:
 }
 
 extern u32 default_write_buffering_size;
+GF_Err gf_isom_flush_chunk(GF_TrackBox *trak, Bool is_final);
 
-GF_Err WriteToFile(GF_ISOFile *movie)
+GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 {
-	FILE *stream;
-	GF_BitStream *bs;
 	MovieWriter mw;
 	GF_Err e = GF_OK;
 	if (!movie) return GF_BAD_PARAM;
@@ -1278,51 +1648,133 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 	memset(&mw, 0, sizeof(mw));
 	mw.movie = movie;
 
-	if (movie->drop_date_version_info && movie->moov) {
+
+	if (movie->moov) {
 		u32 i;
 		GF_TrackBox *trak;
-		movie->moov->mvhd->creationTime = 0;
-		movie->moov->mvhd->modificationTime = 0;
+		if (gf_sys_is_test_mode()) {
+			movie->moov->mvhd->creationTime = 0;
+			movie->moov->mvhd->modificationTime = 0;
+		}
 		i=0;
 		while ( (trak = gf_list_enum(movie->moov->trackList, &i))) {
-			trak->Header->creationTime = 0;
-			trak->Header->modificationTime = 0;
-			if (trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
-				gf_free(trak->Media->handler->nameUTF8);
-				trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");
+			if (gf_sys_is_test_mode()) {
+				trak->Header->creationTime = 0;
+				trak->Header->modificationTime = 0;
+				if (trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
+					gf_free(trak->Media->handler->nameUTF8);
+					trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");
+				}
+				trak->Media->mediaHeader->creationTime = 0;
+				trak->Media->mediaHeader->modificationTime = 0;
 			}
-			trak->Media->mediaHeader->creationTime = 0;
-			trak->Media->mediaHeader->modificationTime = 0;
+			if (trak->chunk_cache) {
+				gf_isom_flush_chunk(trak, GF_TRUE);
+			}
 		}
 	}
-
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
-		e = WriteFlat(&mw, 0, movie->editFileMap->bs);
-	} else {
-		u32 buffer_size = movie->editFileMap ? gf_bs_get_output_buffering(movie->editFileMap->bs) : 0;
-		Bool is_stdout = 0;
-		if (!strcmp(movie->finalName, "std"))
-			is_stdout = 1;
+		if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
+			GF_BitStream *bs, *moov_bs=NULL;
+			u64 mdat_end = gf_bs_get_position(movie->editFileMap->bs);
+			u64 mdat_start = movie->mdat->bsOffset;
+			u64 mdat_size = mdat_end - mdat_start;
 
-		//OK, we need a new bitstream
-		stream = is_stdout ? stdout : gf_fopen(movie->finalName, "w+b");
-		if (!stream)
-			return GF_IO_ERR;
-		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
+			if (for_fragments) {
+				if (!movie->on_block_out) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
+					return GF_BAD_PARAM;
+				}
+				bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+				e = WriteFlat(&mw, 0, bs, GF_TRUE, GF_TRUE, NULL);
+				movie->fragmented_file_pos = gf_bs_get_position(bs);
+				gf_bs_del(bs);
+				return e;
+			}
+			//seek at end in case we had a read of the file
+			gf_bs_seek(movie->editFileMap->bs, gf_bs_get_size(movie->editFileMap->bs) );
+
+			if ((movie->storageMode==GF_ISOM_STORE_FASTSTART) && mdat_start && mdat_size) {
+				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			}
+			//write as non-seekable
+			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_TRUE, GF_FALSE, moov_bs);
+
+			movie->fragmented_file_pos = gf_bs_get_position(movie->editFileMap->bs);
+
+			if (mdat_start && mdat_size) {
+				u8 data[16];
+				if (!movie->on_block_out) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block patch callback, cannot patch mdat size in flat storage\n"));
+					return GF_BAD_PARAM;
+				}
+
+				//create a patch packet for mdat covering out 16 bytes (cf FlushCapture)
+				bs = gf_bs_new(data, 16, GF_BITSTREAM_WRITE);
+				gf_bs_write_u32(bs, (mdat_size>0xFFFFFFFF) ? 1 : (u32) mdat_size);
+				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
+				if  (mdat_size>0xFFFFFFFF)
+					gf_bs_write_u64(bs, mdat_size);
+				else
+					gf_bs_write_u64(bs, 0);
+				gf_bs_del(bs);
+				movie->on_block_patch(movie->on_block_out_usr_data, data, 16, mdat_start, GF_FALSE);
+			}
+
+			if (moov_bs) {
+				u8 *moov_data;
+				u32 moov_size;
+
+				gf_bs_get_content(moov_bs, &moov_data, &moov_size);
+				gf_bs_del(moov_bs);
+
+				movie->on_block_patch(movie->on_block_out_usr_data, moov_data, moov_size, mdat_start, GF_TRUE);
+				gf_free(moov_data);
+			}
+		} else {
+			GF_BitStream *moov_bs = NULL;
+			if ((movie->storageMode==GF_ISOM_STORE_STREAMABLE) || (movie->storageMode==GF_ISOM_STORE_FASTSTART) ) {
+				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			}
+			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_FALSE, GF_FALSE, moov_bs);
+			if (moov_bs) {
+				u8 *moov_data;
+				u32 moov_size;
+
+				gf_bs_get_content(moov_bs, &moov_data, &moov_size);
+				gf_bs_del(moov_bs);
+				if (!e)
+					e = gf_bs_insert_data(movie->editFileMap->bs, moov_data, moov_size, movie->mdat->bsOffset);
+					
+				gf_free(moov_data);
+			}
+		}
+	} else {
+		FILE *stream=NULL;
+		Bool is_stdout = GF_FALSE;
+		GF_BitStream *bs=NULL;
+		if (!strcmp(movie->finalName, "_gpac_isobmff_redirect")) {
+			if (!movie->on_block_out) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
+				return GF_BAD_PARAM;
+			}
+			bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+			is_stdout = GF_TRUE;
+		} else {
+			if (!strcmp(movie->finalName, "std"))
+				is_stdout = GF_TRUE;
+
+			//OK, we need a new bitstream
+			stream = is_stdout ? stdout : gf_fopen(movie->finalName, "w+b");
+			if (!stream)
+				return GF_IO_ERR;
+			bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
+		}
 		if (!bs) {
 			if (!is_stdout)
 				gf_fclose(stream);
 			return GF_OUT_OF_MEM;
-		}
-
-		if (buffer_size) {
-			gf_bs_set_output_buffering(bs, buffer_size);
-		}
-
-		if (!movie->moov) {
-			/* in case of file with only a meta box, we force a flat storage */
-			movie->storageMode = GF_ISOM_STORE_FLAT;
 		}
 
 		switch (movie->storageMode) {
@@ -1334,10 +1786,10 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 			e = WriteInterleaved(&mw, bs, 1);
 			break;
 		case GF_ISOM_STORE_STREAMABLE:
-			e = WriteFlat(&mw, 1, bs);
+			e = WriteFlat(&mw, 1, bs, is_stdout, GF_FALSE, NULL);
 			break;
 		default:
-			e = WriteFlat(&mw, 0, bs);
+			e = WriteFlat(&mw, 0, bs, is_stdout, GF_FALSE, NULL);
 			break;
 		}
 
@@ -1347,7 +1799,8 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 	}
 	if (mw.buffer) gf_free(mw.buffer);
 	if (mw.nb_done<mw.total_samples) {
-		gf_set_progress("ISO File Writing", mw.total_samples, mw.total_samples);
+		mw.nb_done = mw.total_samples;
+		muxer_report_progress(&mw);
 	}
 	return e;
 }

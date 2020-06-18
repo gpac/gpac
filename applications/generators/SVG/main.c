@@ -323,7 +323,7 @@ xmlNodeSetPtr findNodes( xmlXPathContextPtr ctxt, xmlChar * path )
 
 		if ( ctxt->node->doc == NULL ) {
 			/* if one XPaths a node from a fragment, libxml2 will
-			   refuse the lookup. this is not very usefull for XML
+			   refuse the lookup. this is not very useful for XML
 			   scripters. thus we need to create a temporary document
 			   to make libxml2 do it's job correctly.
 			 */
@@ -459,8 +459,6 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_RenderingHint");
 		} else if (!strcmp(att->svg_name, "pointer-events")) {
 			strcpy(att->impl_type, "SVG_PointerEvents");
-		} else if (!strcmp(att->svg_name, "vector-effect")) {
-			strcpy(att->impl_type, "SVG_VectorEffect");
 		} else if (!strcmp(att->svg_name, "vector-effect")) {
 			strcpy(att->impl_type, "SVG_VectorEffect");
 		} else if (!strcmp(att->svg_name, "display-align")) {
@@ -631,7 +629,7 @@ SVGGenAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, x
 
 	/* attributes group already resolved */
 	for (j = 0; j < gf_list_count(globalAttrGrp); j++) {
-		SVGGenAttrGrp *attgrp = gf_list_get(globalAttrGrp, j);
+		attgrp = gf_list_get(globalAttrGrp, j);
 		if (!strcmp(attgrp->name, name)) {
 			return attgrp;
 		}

@@ -93,6 +93,7 @@ void gf_sg_register_event_type(GF_SceneGraph *sg, GF_DOMEventCategory category)
 	gf_dom_refresh_event_filter(sg);
 }
 
+#if 0 //unused
 u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg)
 {
 	return sg->dom_evt_filter;
@@ -106,12 +107,9 @@ u32 gf_node_get_dom_event_filter(GF_Node *node)
 		return 0;
 	}
 }
+#endif
 
-/* Associate a listener node and a event target node
-   - adds the listener node in the list of event listener nodes for the target node
-   - sets the target node as the user of the listener
-*/
-GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target)
+GF_Err gf_sg_listener_associate(GF_Node *listener, GF_DOMEventTarget *evt_target)
 {
 	GF_FieldInfo info;
 	if (!evt_target || !listener) return GF_BAD_PARAM;
@@ -150,7 +148,7 @@ GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener)
 	if (!node->sgprivate->interact->dom_evt) {
 		node->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_NODE, node);
 	}
-	return gf_sg_listener_add(listener, node->sgprivate->interact->dom_evt);
+	return gf_sg_listener_associate(listener, node->sgprivate->interact->dom_evt);
 }
 
 GF_EXPORT
@@ -244,7 +242,7 @@ void gf_dom_listener_process_add(GF_SceneGraph *sg)
 	gf_mx_v(sg->dom_evt_mx);
 }
 
-void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
+void gf_dom_listener_reset_deferred(GF_SceneGraph *sg)
 {
 	gf_mx_p(sg->dom_evt_mx);
 	while (gf_list_count(sg->listeners_to_add)) {
@@ -255,16 +253,13 @@ void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
 	gf_mx_v(sg->dom_evt_mx);
 }
 
+GF_EXPORT
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer)
 {
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 	if (hdl->sgprivate->scenegraph->svg_js) {
-		if (hdl->sgprivate->scenegraph->svg_js->handler_execute(hdl, event, observer, NULL)) {
-			return;
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] Error executing JavaScript event handler\n"));
-			return;
-		}
+		void svgjs_handler_execute(struct __tag_svg_script_ctx *svg_js, GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer, const char *_none);
+		svgjs_handler_execute(hdl->sgprivate->scenegraph->svg_js, hdl, event, observer, NULL);
 	}
 #endif
 	GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] JavaScript context not found \n"));
@@ -299,9 +294,11 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 			XMLRI *iri = (XMLRI *)info.far_ptr;
 
 			if ((iri->type==XMLRI_STRING) && iri->string && !strnicmp(iri->string, "javascript:", 11)) {
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
+				void svgjs_handler_execute(struct __tag_svg_script_ctx *svg_js, GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer, const char *iri);
+
 				if (listen->sgprivate->scenegraph->svg_js)
-					listen->sgprivate->scenegraph->svg_js->handler_execute(listen, event, observer, iri->string + 11);
+					svgjs_handler_execute(listen->sgprivate->scenegraph->svg_js, listen, event, observer, iri->string + 11);
 #endif
 				return;
 			}
@@ -499,12 +496,14 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 	gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
 }
 
-void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
+#if 0 //unused, see below
+static void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 {
 	if (!node) return;
 	if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) gf_list_insert(stack, node, 0);
 	gf_sg_dom_stack_parents(gf_node_get_parent(node, 0), stack);
 }
+#endif
 
 GF_EXPORT
 Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack)
@@ -519,7 +518,7 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Graph %p Time %f - Firing event  %s.%s\n", gf_node_get_graph(node), gf_node_get_scene_time(node), gf_node_get_log_name(node), gf_dom_event_get_name(event->type)));
 
 	/*flush any pending add_listener
-	see "determine the current target's candidate event listeners" in http://www.w3.org/TR/DOM-Level-3-Events/events.html*/
+	see "determine the current target's candidate event listeners" in http://www.w3.org/TR/DOM-Level-3-Events/events.html */
 	gf_dom_listener_process_add(node->sgprivate->scenegraph);
 
 	event->consumed = 0;
@@ -536,7 +535,8 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 
 	/*capture phase - not 100% sure, the actual capture phase should be determined by the std using the DOM events
 	SVGT doesn't use this phase, so we don't add it for now.*/
-	if (0) {
+#if 0
+	if ((0)) {
 		Bool aborted = GF_FALSE;
 		u32 i, count;
 		GF_List *parents;
@@ -557,8 +557,13 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 			}
 		}
 		gf_list_del(parents);
-		if (aborted) return GF_TRUE;
+		if (aborted) {
+			event->currentTarget = NULL;
+			return GF_TRUE;
+		}
 	}
+#endif
+
 	/*target phase*/
 	event->event_phase = GF_DOM_EVENT_PHASE_AT_TARGET;
 	cur_par_idx = 0;
@@ -584,7 +589,7 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 	}
 	sg->use_stack = prev_use_stack;
 	sg->abort_bubbling = prev_bub;
-
+	event->currentTarget = NULL;
 	return event->consumed ? GF_TRUE : GF_FALSE;
 }
 
@@ -718,12 +723,14 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
 	GF_FieldInfo info;
-	GF_Node *timed_elt = (GF_Node *)gf_node_get_private(hdl);
+	SVGTimedAnimBaseElement *timed_elt = (SVGTimedAnimBaseElement *)gf_node_get_private(hdl);
+	if (!timed_elt || !timed_elt->timingp) return;
+
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "begin";
 	info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->begin;
 	info.fieldType = SMIL_Times_datatype;
-	gf_smil_handle_event(timed_elt, &info, evt, GF_FALSE);
+	gf_smil_handle_event((GF_Node *)timed_elt, &info, evt, GF_FALSE);
 }
 
 static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
@@ -739,7 +746,7 @@ static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *o
 
 static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 {
-	void *hdl;
+	GF_DOMHandler *hdl;
 	u32 i, count;
 	count = gf_list_count(l);
 	for (i=0; i<count; i++) {
@@ -774,10 +781,18 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 		else {
 			continue;
 		}
+
+		//this code is broken, it introduces a cyclic ref between the parent and the handler but
+		//the listener (parent of the handler) is not inserted in the graph, so destruction of the handler
+		//will only happen if the SMIL_Time is destroyed (thus destroying the listener), but this SMIL_time
+		//will never get destroyed since the attribute owner (node) has an extra instance
+#if 0
 		/*We don't want to insert the implicit listener in the DOM. However remember
 		the listener at the handler level in case the handler gets destroyed*/
 		gf_node_set_private((GF_Node *)hdl, node);
 		gf_node_register((GF_Node*)node, NULL);
+#endif
+
 		/*we keep the t->element pointer in order to discard the source of identical events (begin of # elements, ...)*/
 	}
 }
@@ -832,6 +847,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 	u32 len = 0;
 	char *res = NULL;
 	GF_ChildNodeItem *list;
+	if (!n) return NULL;
 
 	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
 		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
@@ -870,6 +886,7 @@ GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent)
 	return text;
 }
 
+#if 0 //unused
 GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
 {
 	GF_DOMUpdates *update;
@@ -883,6 +900,7 @@ GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
 	gf_node_list_add_child_last(&((GF_ParentNode *)parent)->children, (GF_Node*)update, NULL);
 	return update;
 }
+#endif
 
 void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 {
@@ -913,7 +931,7 @@ void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 				txt = hdl->children ? (GF_DOMText*)hdl->children->node : NULL;
 				if (!txt || (txt->sgprivate->tag!=TAG_DOMText) || !txt->textContent) continue;
 				if (gf_node_get_attribute_by_tag((GF_Node*)hdl, TAG_XMLEV_ATT_event, GF_FALSE, GF_FALSE, &info)==GF_OK) {
-					fprintf(f, " on%s=\"%s\"", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
+					gf_fprintf(f, " on%s=\"%s\"", gf_dom_event_get_name( ((XMLEV_Event*)info.far_ptr)->type), txt->textContent);
 				}
 			}
 		}

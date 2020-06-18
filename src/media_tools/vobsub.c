@@ -2,6 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Copyright (c) by  Falco (Ivan Vecera) 2006
+ *          Copyright (c) Jean Le Feuvre - Telecom ParisTech 2018_2020
  *                  All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -257,7 +258,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 	s32   line, id =-1, delay = 0;
 	Bool  error = 0;
 
-	for (line = 0; !error && fgets(strbuf, sizeof(strbuf), file); line++)
+	for (line = 0; !error && gf_fgets(strbuf, sizeof(strbuf), file); line++)
 	{
 		str = strtrim(strbuf);
 
@@ -357,6 +358,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			vobsub->langs[id].id   = lang_id;
 			vobsub->langs[id].name = lang_table[vobsub_lang_name((u16)lang_id)].lang;
+			vobsub->langs[id].idx = id;
 
 			vobsub->langs[id].subpos = gf_list_new();
 			if (vobsub->langs[id].subpos == NULL)
@@ -428,13 +430,13 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			if (delay < 0 && gf_list_count(vobsub->langs[id].subpos) > 0)
 			{
-				vobsub_pos *pos;
+				vobsub_pos *vspos_next;
 
-				pos = (vobsub_pos*)gf_list_get(vobsub->langs[id].subpos, gf_list_count(vobsub->langs[id].subpos) - 1);
-				if (vspos->start < pos->start)
+				vspos_next = (vobsub_pos*)gf_list_get(vobsub->langs[id].subpos, gf_list_count(vobsub->langs[id].subpos) - 1);
+				if (vspos->start < vspos_next->start)
 				{
-					delay += (s32)(pos->start - vspos->start);
-					vspos->start = pos->start;
+					delay += (s32)(vspos_next->start - vspos->start);
+					vspos->start = vspos_next->start;
 				}
 			}
 
@@ -452,40 +454,38 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 void vobsub_free(vobsub_file *vobsub)
 {
-	s32 c;
+	s32 i;
 
 	if (vobsub == NULL)
-	{
 		return;
-	}
 
-	for (c = 0; c < 32; c++)
-	{
-		if (vobsub->langs[c].subpos)
-		{
-			GF_List    *list = vobsub->langs[c].subpos;
+	for (i = 0; i < 32; i++) {
+		if (vobsub->langs[i].subpos) {
+			GF_List *list = vobsub->langs[i].subpos;
 			vobsub_pos *vspos;
-			u32         pos = 0;
+			u32 pos = 0;
 
-			do
-			{
+			do {
 				vspos = (vobsub_pos*)gf_list_enum(list, &pos);
 				gf_free(vspos);
 			}
 			while (vspos != NULL);
+
+			gf_list_del(list);
 		}
 	}
+	gf_free(vobsub);
 }
 
-GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *duration)
+GF_Err vobsub_get_subpic_duration(u8 *_data, u32 psize, u32 dsize, u32 *duration)
 {
 	u32 i, dcsq_stm, nxt_dcsq, start_stm, stop_stm;
-	unsigned char *data = (unsigned char *)_data;
+	u8 *data = (u8 *)_data;
 	start_stm = 0;
 	stop_stm  = 0;
 	nxt_dcsq  = dsize;
 
-	do {
+	if (psize) do {
 		i = nxt_dcsq;
 		dcsq_stm = (data[i+0] << 8) | data[i+1];
 		nxt_dcsq = (data[i+2] << 8) | data[i+3];
@@ -552,10 +552,9 @@ GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *durati
 	return GF_OK;
 }
 
-GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, char *data, u32 dataSize)
+GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, u8 *data, u32 dataSize)
 {
 	u8	buf[0x800], ptsbuf[5];
-	u8	*p;
 	int	put_pts = 1;
 
 	/* Build PTS buffer */
@@ -565,8 +564,8 @@ GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, char *data, u32 dataSize
 	ptsbuf[3] = (u8)(((pts >>  7) & 0xff));
 	ptsbuf[4] = (u8)(((pts <<  1) & 0xfe) | 0x01);
 
-	while (dataSize > 0)
-	{
+	while (dataSize > 0) {
+		u8	*p;
 		u32 padLen = 0;
 		u32 dataLen = sizeof(buf);
 		u32 packLen;
@@ -649,7 +648,7 @@ GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, char *data, u32 dataSize
 		}
 
 		/* Write packet into file */
-		if (gf_fwrite(buf, sizeof(buf), 1, fsub) != 1) {
+		if (gf_fwrite(buf, sizeof(buf), fsub) != sizeof(buf)) {
 			return GF_IO_ERR;
 		}
 

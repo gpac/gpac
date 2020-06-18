@@ -132,10 +132,7 @@ u32 getHeight(IOSCamCtx *read);
 static GF_Descriptor *CAM_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	u32 trackID;
-	GF_ESD *esd;
 	IOSCamCtx *read;
-	GF_ObjectDescriptor *od;
-	GF_BitStream *bs;
 	char *buf;
 	u32 buf_size;
 	s32 color;
@@ -147,6 +144,9 @@ static GF_Descriptor *CAM_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	read->base_track_id = 0;
 
 	if (trackID && (expect_type==GF_MEDIA_OBJECT_VIDEO) ) {
+		GF_ESD *esd;
+		GF_ObjectDescriptor *od;
+		GF_BitStream *bs;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
 
@@ -223,13 +223,13 @@ GF_Err CAM_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 int* decodeYUV420SP( char* yuv420sp, int width, int height)
 {
 	int frameSize = width * height;
-	int j, yp, uvp, i, y, y1192, r, g, b, u, v;
+	int j, yp, i, y, y1192, r, g, b;
 	int ti, tj;
 
 	int* rgb = (int*)gf_malloc(width*height*4);
 	for (j = 0, yp = 0, tj=height-1; j < height; j++, tj--)
 	{
-		uvp = frameSize + (j >> 1) * width, u = 0, v = 0;
+		int uvp = frameSize + (j >> 1) * width, u = 0, v = 0;
 		for (i = 0, ti=0; i < width; i++, yp++, ti+=width)
 		{
 			y = (0xff & ((int) yuv420sp[yp])) - 16;
@@ -315,7 +315,6 @@ void resumeCamera(IOSCamCtx *read)
 GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	IOSCamCtx *read;
-	GF_BitStream *bs;
 	char *buf;
 	u32 buf_size;
 	if (!plug || !plug->priv || !com) return GF_SERVICE_ERROR;
@@ -348,6 +347,7 @@ GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return 1<<16;//gf_isom_get_pixel_aspect_ratio(read->mov, ch->track, 1, &com->par.hSpacing, &com->par.vSpacing);
 	case GF_NET_CHAN_GET_DSI:
 	{
+		GF_BitStream *bs;
 		s32 color;
 		s32 stride;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cam get DSI\n"));

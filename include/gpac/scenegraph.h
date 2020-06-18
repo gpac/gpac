@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -33,33 +33,33 @@ extern "C" {
 
 
 /*!
- *	\file <gpac/scenegraph.h>
- *	\brief Scenegraph used for manipulating scenes (parsing, traversing, cleaning node status, ...)
- */
+\file <gpac/scenegraph.h>
+\brief Scenegraph used for manipulating scenes (parsing, traversing, cleaning node status, ...)
+*/
 	
 	
-/*! \defgroup scene_grp Scene Graph
- *	\brief Scene graph management.
- *	
+/*!
+\addtogroup scene_grp Scene Graph
+\brief Scene graph management.
 */
 	
 /*!
- *	\addtogroup sscene Base Scenegraph
- *	\ingroup scene_grp
- *	\brief Scenegraph used for manipulating scenes.
- *
- *This section documents the Scenegraph used in GPAC for all interactive scenes.
- *	@{
+\addtogroup sscene Base Scenegraph
+\ingroup scene_grp
+\brief Scenegraph used for manipulating scenes.
+
+This section documents the Scenegraph used in GPAC for all interactive scenes.
+
+@{
  */
 
 
 #include <gpac/list.h>
 #include <gpac/maths.h>
 
-/*
-	TAG definitions are static, in order to be able to mix nodes from different standard
-	in a single scenegraph. These TAGs are only used internally (they do not match any
-	binary encoding)
+/*! Tags of scene graph nodes
+TAG definitions are static, in order to be able to mix nodes from different standard in a single scenegraph.
+These TAGs are only used internally (they do not match any binary encoding)
 */
 enum {
 	/*undefined node: just the base node class, used for parsing*/
@@ -98,42 +98,21 @@ enum {
 	GF_NODE_RANGE_FIRST_SVG,
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
 
-	/*range for XBL*/
-	GF_NODE_RANGE_FIRST_XBL,
-	TAG_XBL_bindings = GF_NODE_RANGE_FIRST_XBL,
-	TAG_XBL_binding,
-	TAG_XBL_content,
-	TAG_XBL_children,
-	TAG_XBL_implementation,
-	TAG_XBL_constructor,
-	TAG_XBL_destructor,
-	TAG_XBL_field,
-	TAG_XBL_property,
-	TAG_XBL_getter,
-	TAG_XBL_setter,
-	TAG_XBL_method,
-	TAG_XBL_parameter,
-	TAG_XBL_body,
-	TAG_XBL_handlers,
-	TAG_XBL_handler,
-	TAG_XBL_resources,
-	TAG_XBL_stylesheet,
-	TAG_XBL_image,
-	GF_NODE_RANGE_LAST_XBL,
 };
 
 
 
-/*private handler for this library on all nodes*/
+/*! macro for defining base node (apply to all nodes)*/
 #define BASE_NODE	struct _nodepriv *sgprivate;
 
-/*base node type*/
+/*! base node type*/
 typedef struct _base_node
 {
 	BASE_NODE
 } GF_Node;
 
-/*child storage - this is not integrated in the base node, because of VRML/MPEG-4 USE: a node
+/*! child storage
+	This is not integrated in the base node, because of VRML/MPEG-4 USE: a node
 may be present at different places in the tree, hence have different "next" siblings.*/
 typedef struct _child_node
 {
@@ -141,118 +120,224 @@ typedef struct _child_node
 	GF_Node *node;
 } GF_ChildNodeItem;
 
-/*grouping nodes macro :
+/*! grouping nodes macro
 	children: list of children SFNodes
 */
-
 #define CHILDREN									\
 	struct _child_node *children;
 
+/*! generic parent node*/
 typedef struct
 {
 	BASE_NODE
 	CHILDREN
 } GF_ParentNode;
 
-/*adds a child to a given container*/
+/*! adds a child to a given container
+\param list pointer to target child list
+\param n node to add
+\return error if any
+*/
 GF_Err gf_node_list_add_child(GF_ChildNodeItem **list, GF_Node *n);
-/*adds a child to a given container, updating last position*/
+/*! adds a child to a given container, updating last position
+\param list pointer to target child list
+\param n node to add
+\param last_child set to position of add child
+\return error if any
+*/
 GF_Err gf_node_list_add_child_last(GF_ChildNodeItem **list, GF_Node *n, GF_ChildNodeItem **last_child);
-/*inserts a child to a given container - if pos doesn't match, append the child*/
+/*! inserts a child to a given container - if pos doesn't match, append the child
+\param list pointer to target child list
+\param n node to insert
+\param pos 0-based index at which to insert
+\return error if any
+*/
 GF_Err gf_node_list_insert_child(GF_ChildNodeItem **list, GF_Node *n, u32 pos);
-/*removes a child to a given container - return 0 if child not found*/
+/*! removes a child to a given container
+\param list pointer to target child list
+\param n node to remove
+\return GF_TRUE if OK, GF_FALSE if not found
+*/
 Bool gf_node_list_del_child(GF_ChildNodeItem **list, GF_Node *n);
-/*finds a child in a given container, returning its 0-based index if found, -1 otherwise*/
+/*! finds a child in a given container
+\param list target child list
+\param n node to find
+\return 0-based index if found, -1 otherwise
+*/
 s32 gf_node_list_find_child(GF_ChildNodeItem *list, GF_Node *n);
-/*finds a child in a given container given its index, returning the child or NULL if not found
-if pos is <0, returns the last child*/
+/*! finds a child in a given container given its index. if pos is <0, returns the last child
+\param list target child list
+\param pos 0-based index at which to insert
+\return the child or NULL if not found
+*/
 GF_Node *gf_node_list_get_child(GF_ChildNodeItem *list, s32 pos);
-/*gets the number of children in a given container*/
+/*! gets the number of children in a given list
+\param list target child list
+\return the number of children
+*/
 u32 gf_node_list_get_count(GF_ChildNodeItem *list);
-/*deletes node entry at given idx, returning node if found, NULL otherwise*/
+/*! removes node at given idx
+\param list pointer to target child list
+\param pos 0-based index at which to insert
+\return the removed node, or NULL if not found
+*/
 GF_Node *gf_node_list_del_child_idx(GF_ChildNodeItem **list, u32 pos);
 
 
 
-/*tag is set upon creation and cannot be modified*/
-u32 gf_node_get_tag(GF_Node*);
-/*set node def
-	@ID: node ID, !=0 set def node - if a different node with the same ID exists, returns error.
-You may change the node ID by recalling the function with a different ID value. You may get a node ID
-by calling the gf_sg_get_next_available_node_id function
-	@defName: optional readable name (script, MPEGJ). To change the name, recall the function with a different name and the same ID
+/*! gets tag of node (tag is set upon creation and cannot be modified)
+\param n the target node
+\return the node tag
+*/
+u32 gf_node_get_tag(GF_Node*n);
+
+/*! set node ID/def
+If a different node with the same ID exists, returns error.
+You may change the node ID by recalling the function with a different ID value. You may get a node ID by calling \ref gf_sg_get_next_available_node_id
+
+\param n the target node
+\param nodeID ID to set to the node, ignored if 0.
+\param nodeDEFName optional readable name (script, MPEGJ). To change the name, recall the function with a different name and the same ID
+\return error if any
 */
 GF_Err gf_node_set_id(GF_Node*n, u32 nodeID, const char *nodeDEFName);
-/*get def name of the node , NULL if not set*/
-const char *gf_node_get_name(GF_Node*);
-/*get def name of the node , or the string representation of the node pointer if not set*/
-const char *gf_node_get_log_name(GF_Node*);
-/*get def ID of the node, 0 if node not def*/
-u32 gf_node_get_id(GF_Node*);
-/* gets node built-in name (eg 'Appearance', ..) */
-const char *gf_node_get_class_name(GF_Node *Node);
-
-u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 xmlns);
-
-/*unset the node ID*/
-GF_Err gf_node_remove_id(GF_Node *p);
-
-/*get/set user private stack*/
-void *gf_node_get_private(GF_Node*);
-void gf_node_set_private(GF_Node*, void *);
-
-/*set traversal callback function. If a node has no associated callback, the traversing of the
-graph won't propagate below it. It is the app responsability to setup traversing functions as needed
-VRML/MPEG4:  Instanciated Protos are handled internally as well as interpolators, valuators and scripts
-@is_destroy: set when the node is about to be destroyed
+/*! gets def name of the node
+\param n the target node
+\return node name or NULL if not set
 */
-GF_Err gf_node_set_callback_function(GF_Node *, void (*NodeFunction)(GF_Node *node, void *traverse_state, Bool is_destroy) );
+const char *gf_node_get_name(GF_Node*n);
+/*! gets def name of the node, or the string representation of the node pointer if not set
+\param n the target node
+\return node name or NULL if error
+*/
+const char *gf_node_get_log_name(GF_Node*n);
+/*! gets def ID of the node
+\param n the target node
+\return the ID of the node, 0 if node not def
+*/
+u32 gf_node_get_id(GF_Node*n);
+/*! gets node built-in name (eg 'Appearance', ..)
+\param n the target node
+\return node class name
+*/
+const char *gf_node_get_class_name(GF_Node *n);
 
-/*register a node (DEFed or not), specifying parent if any.
+/*! unsets the node ID
+\param n the target node
+\return error if any
+*/
+GF_Err gf_node_remove_id(GF_Node *n);
+
+/*! gets user private of node
+\param n the target node
+\return user data if any, NULL if error or not assigned
+*/
+void *gf_node_get_private(GF_Node*n);
+/*! sets user private of node
+\param n the target node
+\param udta user data to assign to the node
+*/
+void gf_node_set_private(GF_Node*n, void *udta);
+
+/*! node callback function
+\param n the target node
+\param traverse_state opaque data passed during traversal
+\param is_destroy set when the node is about to be destroyed
+*/
+typedef void (*gf_sg_node_callback)(GF_Node *n, void *traverse_state, Bool is_destroy);
+
+/*! sets traversal callback function. If a node has no associated callback, the traversing of the
+graph won't propagate below it. It is the app responsability to setup traversing functions as needed
+VRML/MPEG4:  Instantiated Protos are handled internally as well as interpolators, valuators and scripts
+\param n the target node
+\param NodeFunction the callback function
+\return error if any
+*/
+GF_Err gf_node_set_callback_function(GF_Node *n, gf_sg_node_callback NodeFunction);
+
+/*! registers a node (DEFed or not), specifying parent if any.
 A node must be registered whenever used by something (a parent node, a command, whatever) to prevent its
 destruction (think of it as a reference counting).
-NOTE: NODES ARE CREATED WITHOUT BEING REGISTERED
+\warning NODES ARE CREATED WITHOUT BEING REGISTERED
+\param n the target node
+\param parent_node the parent node this node should be registered with
+\return error if any
 */
-GF_Err gf_node_register(GF_Node *node, GF_Node *parent_node);
+GF_Err gf_node_register(GF_Node *n, GF_Node *parent_node);
 
-/*unregister a node from parent (node may or not be DEF'ed). Parent may be NULL (DEF root node, commands).
+/*! unregister a node from parent (node may or not be DEF'ed). Parent may be NULL (DEF root node, commands).
 This MUST be called whenever a node is destroyed (removed from a parent node)
 If this is the last instance of the node, the node is destroyed
-NOTE: NODES ARE CREATED WITHOUT BEING REGISTERED, hence they MUST be registered at least once before
+\warning NODES ARE CREATED WITHOUT BEING REGISTERED, hence they MUST be registered at least once before
 being destroyed
+\param n the target node
+\param parent_node the parent node this node should be unregistered from
+\return error if any
 */
-GF_Err gf_node_unregister(GF_Node *node, GF_Node *parent_node);
-/*deletes all node instances in the given list*/
+GF_Err gf_node_unregister(GF_Node *n, GF_Node *parent_node);
+
+/*! unregisters all children in the given list
+\param node the target parent node owning the list
+\param childrenlist the list of children to unregister
+*/
 void gf_node_unregister_children(GF_Node *node, GF_ChildNodeItem *childrenlist);
 
-/*get all parents of the node and replace the old_node by the new node in all parents
-Note: if the new node is not DEFed, only the first instance of "old_node" will be replaced, the other ones deleted*/
+/*! gets all parents of the node and replace the old_node by the new node in all parents
+\note if the new node is not DEFed, only the first instance of "old_node" will be replaced, the other ones deleted
+\param old_node old node to replace
+\param new_node new node to replace with
+\param updateOrderedGroup if GF_TRUE, update the order field of parent OrderdedGroup nodes
+\return error if any
+*/
 GF_Err gf_node_replace(GF_Node *old_node, GF_Node *new_node, Bool updateOrderedGroup);
 
-/*returns number of instances for this node*/
-u32 gf_node_get_num_instances(GF_Node *node);
+/*! gets the number of node instances
+\param n the target node
+\return the number of node instances
+*/
+u32 gf_node_get_num_instances(GF_Node *n);
 
 
-/*calls node traverse callback routine on this node*/
-void gf_node_traverse(GF_Node *node, void *udta);
-/*allows a node to be re-rendered - by default a node in its render phase will never be retraversed a second time.
-Use this function to enable a second traverse for this node while traversing the node*/
-void gf_node_allow_cyclic_traverse(GF_Node *node);
+/*! calls node traverse callback routine on this node
+\param n the target node
+\param udta opaque data passed to the node traverse callback
+*/
+void gf_node_traverse(GF_Node *n, void *udta);
 
-/*sets the cyclic travers flag - returns 0 if flag was already set*/
-Bool gf_node_set_cyclic_traverse_flag(GF_Node *node, Bool on);
+/*! allows a node to be re-rendered - by default a node in its render callback will never be retraversed a second time.
+Use this function to enable a second traverse for this node while traversing it
+\param n the target node
+*/
+void gf_node_allow_cyclic_traverse(GF_Node *n);
 
-/*blindly calls traverse callback on all children nodes */
-void gf_node_traverse_children(GF_Node *node, void *renderStack);
-/*returns number of parent for this node (parent are kept regardless of DEF state)*/
-u32 gf_node_get_parent_count(GF_Node *node);
-/*returns desired parent for this node (parent are kept regardless of DEF state)
-idx is 0-based parent index*/
-GF_Node *gf_node_get_parent(GF_Node *node, u32 idx);
+/*! sets the cyclic traverse flag
+\param n the target node
+\param on indicates if cyclic traverse shall be turned on or off
+\return GF_FALSE if flag was already set, GF_TRUE otherwise*/
+Bool gf_node_set_cyclic_traverse_flag(GF_Node *n, Bool on);
 
-/*returns 1 if target node is in the subtree below the node, 0 otherwise*/
-Bool gf_node_parent_of(GF_Node *node, GF_Node *target);
+/*! blindly calls traverse callback on all children nodes
+\param n the target node
+\param udta opaque data passed to the node traverse callback
+*/
+void gf_node_traverse_children(GF_Node *n, void *udta);
+/*! get the number of parent for this node (parent are kept regardless of DEF state)
+\param n the target node
+\return the number of parents*/
+u32 gf_node_get_parent_count(GF_Node *n);
+/*! returns desired parent for this node (parent are kept regardless of DEF state)
+\param n the target node
+\param idx 0-based parent index
+\return the parent node, or NULL of error*/
+GF_Node *gf_node_get_parent(GF_Node *n, u32 idx);
 
+/*! checks if a node belongs to a subtree
+\param parent the target parent node
+\param target the target node
+\return GF_TRUE if target is in the subtree below parent, GF_FALSE otherwise*/
+Bool gf_node_parent_of(GF_Node *parent, GF_Node *target);
+
+/*! node dirty flags*/
 enum
 {
 	/*flag set whenever a field of the node has been modified*/
@@ -302,101 +387,147 @@ enum
 	GF_SG_SVG_XLINK_HREF_DIRTY		= 1<<27,
 };
 
-/*set dirty flags.
-if @flags is 0, sets the base flags on (GF_SG_NODE_DIRTY).
-if @flags is not 0, adds the flags to the node dirty state
-
-If @invalidate_parents is set, all parent subtrees for this node are marked as GF_SG_CHILD_DIRTY
-Note: parent subtree marking aborts if a node in the subtree is already marked with GF_SG_CHILD_DIRTY
+/*! sets dirty flags
+\param n the target node
+\param flags if 0, sets the base flags on (GF_SG_NODE_DIRTY); otherwise, adds the flags to the node dirty state
+\param dirty_parents if GF_TRUE, all parent subtrees for this node are marked as GF_SG_CHILD_DIRTY
+\note parent subtree marking aborts if a node in the subtree is already marked with GF_SG_CHILD_DIRTY
 which means tat if you never clean the dirty flags, no propagation will take place
 */
-void gf_node_dirty_set(GF_Node *node, u32 flags, Bool dirty_parents);
+void gf_node_dirty_set(GF_Node *n, u32 flags, Bool dirty_parents);
 
-/*mark all parent subtrees for this node as GF_SG_CHILD_DIRTY
-Note: parent subtree marking aborts if a node in the subtree is already marked with GF_SG_CHILD_DIRTY
+/*! marks all parent subtrees for this node as GF_SG_CHILD_DIRTY
+\note parent subtree marking aborts if a node in the subtree is already marked with GF_SG_CHILD_DIRTY
 which means that if you never clean the dirty flags, no propagation will take place
+\param n the target node
 */
-void gf_node_dirty_parents(GF_Node *node);
+void gf_node_dirty_parents(GF_Node *n);
 
-/*set dirty flag off. It is the user responsability to clear dirty flags
-if @flags is 0, all flags are set off
-if @flags is not 0, removes the indicated flags from the node dirty state
+/*! sets dirty flag off. It is the user responsability to clear dirty flags
+\param n the target node
+\param flags if 0, all flags are set off; otherwise, removes the indicated flags from the node dirty state
 */
-void gf_node_dirty_clear(GF_Node *node, u32 flags);
+void gf_node_dirty_clear(GF_Node *n, u32 flags);
 
-/*if the node is in a dirty state, resets it and the state of all its children if desired*/
-void gf_node_dirty_reset(GF_Node *node, Bool reset_children);
+/*! reset dirty state of a node
+\param n the target node
+\param reset_children if GF_TRUE and node was dirty, resets the state of all its children
+*/
+void gf_node_dirty_reset(GF_Node *n, Bool reset_children);
 
-/*get dirty flag value*/
-u32 gf_node_dirty_get(GF_Node *node);
+/*! gets dirty flag value
+\param n the target node
+\return the dirty fkags
+*/
+u32 gf_node_dirty_get(GF_Node *n);
 
-/*Notes on GF_FieldInfo
+/*! VRML/BIFS route object*/
+typedef struct _route GF_Route;
+
+
+/*! Node Field/attribute information for VRML/BIFS/SVG
+Note:
 all scene graph implementations should answer node field query with this interface.
 In case an implementation does not use this:
 	- the implementation shall handle the parent node dirty flag itself most of the time
 	- the implementation shall NOT allow referencing of a graph node in a parent graph node (when inlining
 content) otherwise the app is guaranteed to crash.
+
+other fieldTypes may be ignored by implmentation not using VRML/MPEG4 native types
 */
-
-typedef struct _route GF_Route;
-
-/*other fieldTypes may be ignored by implmentation not using VRML/MPEG4 native types*/
-
 typedef struct
 {
-	/*0-based index of the field in the node*/
+	/*! 0-based index of the field in the node*/
 	u32 fieldIndex;
-	/*field type - VRML/MPEG4 types are listed in scenegraph_vrml.h*/
+	/*! field type - VRML/MPEG4 types are listed in scenegraph_vrml.h*/
 	u32 fieldType;
-	/*far ptr to the field (eg GF_Node **, GF_List**, MFInt32 *, ...)*/
+	/*! far ptr to the field (eg GF_Node **, GF_List**, MFInt32 *, ...)*/
 	void *far_ptr;
-	/*field name*/
+	/*! field name*/
 	const char *name;
-	/*NDT type in case of SF/MFNode field - cf BIFS specific tools*/
+	/*! NDT type in case of SF/MFNode field - cf BIFS specific tools*/
 	u32 NDTtype;
-	/*event type*/
+	/*! event type*/
 	u32 eventType;
-	/*eventin handler if any*/
+	/*! eventin handler if any*/
 	void (*on_event_in)(GF_Node *pNode, GF_Route *from_route);
 } GF_FieldInfo;
 
-/*returns number of field for this node*/
-u32 gf_node_get_field_count(GF_Node *node);
+/*! returns number of field for this node.
+For BIFS/VRML/X3D, this is the number of defined fields by the spec.
+For SVG/DOM, this is the number of attributes defined for the node.
+\param n the target node
+\return the number of defined fields
+*/
+u32 gf_node_get_field_count(GF_Node *n);
 
-/*fill the field info structure for the given field*/
-GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info);
+/*! fills the field info structure for the given field
+\param n the target node
+\param FieldIndex the 0-based index of the target field
+\param info filled with field info
+\return error if any
+*/
+GF_Err gf_node_get_field(GF_Node *n, u32 FieldIndex, GF_FieldInfo *info);
 
-/*get the field by its name*/
-GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field);
+/*! gets the field by its name
+\param n the target node
+\param name name of the target field
+\param field filled with field info
+\return error if any
+*/
+GF_Err gf_node_get_field_by_name(GF_Node *n, char *name, GF_FieldInfo *field);
 
+/*! Scenegraph structure*/
 typedef struct __tag_scene_graph GF_SceneGraph;
 
-/*scene graph constructor*/
+/*! creates a new scene graph
+\return a new scene graph
+*/
 GF_SceneGraph *gf_sg_new();
 
-/*creates a sub scene graph (typically used with Inline node): independent graph with same private stack,
+/*! creates a sub scene graph (typically used with Inline node): independent graph with same private stack,
 and user callbacks as parent. All routes triggered in this subgraph are executed in the parent graph (this
 means you only have to activate routes on the main graph)
 NOTE: the resulting graph is not destroyed when the parent graph is
+\param scene the parent scene graph
+\return a new scene graph
 */
 GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene);
 
-/*destructor*/
+/*! destroys a scene graph
+\param sg the target scene graph
+*/
 void gf_sg_del(GF_SceneGraph *sg);
-/*reset the full graph - all nodes, routes and protos are destroyed*/
+/*! resets the graph - all nodes, routes and protos are destroyed
+\param sg the target scene graph
+*/
 void gf_sg_reset(GF_SceneGraph *sg);
 
-/*parses the given XML document and returns a scene graph composed of GF_DOMFullNode*/
-GF_Err gf_sg_new_from_xml_doc(const char *src, GF_SceneGraph **scene);
-
-/*set/get user private data*/
-void gf_sg_set_private(GF_SceneGraph *sg, void *user_priv);
+/*! sets user private data for scene graph
+\param sg the target scene graph
+\param udta user private data to set
+*/
+void gf_sg_set_private(GF_SceneGraph *sg, void *udta);
+/*! gets user private data of scene graph
+\param sg the target scene graph
+\return user private data
+*/
 void *gf_sg_get_private(GF_SceneGraph *sg);
 
-/*set the scene timer (fct returns time in sec)*/
-void gf_sg_set_scene_time_callback(GF_SceneGraph *scene, Double (*GetSceneTime)(void *user_priv) );
+/*! sets the scene time query callback (functions returns time in sec)
+\param sg the target scene graph
+\param GetSceneTime the scene time query callback
+*/
+void gf_sg_set_scene_time_callback(GF_SceneGraph *sg, Double (*GetSceneTime)(void *user_priv) );
 
-enum
+/*! gets the parent scene graph of a graph
+\param sg the target scene graph
+\return the parent graph or NULL if none defined
+*/
+GF_SceneGraph *gf_sg_get_parent(GF_SceneGraph *sg);
+
+/*! node callback type*/
+typedef enum
 {
 	/*function called upon node creation.
 		ctxdata is not used*/
@@ -409,65 +540,130 @@ enum
 	GF_SG_CALLBACK_GRAPH_DIRTY,
 	//node is being destroyed
 	GF_SG_CALLBACK_NODE_DESTROY,
-};
+} GF_SGNodeCbkType;
 
-/*set node callback: function called upon node creation.
-Application should instanciate the node rendering stack and any desired callback*/
-void gf_sg_set_node_callback(GF_SceneGraph *sg, void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata) );
+/*! node callback function for scene graph
+\param udta user private data of scene graph, see \ref gf_sg_set_private
+\param type the type of callback
+\param node the target node for the callback
+\param ctxdata associated data, type depends on the callback type
+*/
+typedef void (*gf_sg_node_init_callback)(void *udta, GF_SGNodeCbkType type, GF_Node *node, void *ctxdata);
 
-/*get/set the root node of the graph*/
+/*! sets node callback: function called upon node creation.
+Application should instantiate the node rendering stack and any desired callback
+\param sg the target scene graph
+\param NodeCallback the node callback function
+*/
+void gf_sg_set_node_callback(GF_SceneGraph *sg, gf_sg_node_init_callback NodeCallback);
+
+/*! gets the root node of the graph
+\param sg the target scene graph
+\return root node of the scene graph, NULL otherwise
+*/
 GF_Node *gf_sg_get_root_node(GF_SceneGraph *sg);
+/*! sets the root node of the graph
+\param sg the target scene graph
+\param node root node of the scene graph
+*/
 void gf_sg_set_root_node(GF_SceneGraph *sg, GF_Node *node);
 
-/*finds a registered node by ID*/
+/*! finds a registered node by ID
+\param sg the target scene graph
+\param nodeID ID of the node to find
+\return node if found, NULL otherwise
+*/
 GF_Node *gf_sg_find_node(GF_SceneGraph *sg, u32 nodeID);
-/*finds a registered node by DEF name*/
+/*! finds a registered node by DEF name
+\param sg the target scene graph
+\param name name of the node to find
+\return node if found, NULL otherwise
+*/
 GF_Node *gf_sg_find_node_by_name(GF_SceneGraph *sg, char *name);
 
-/*used to signal modification of a node, indicating which field is modified - exposed for BIFS codec,
-should not be needed by other apps*/
-void gf_node_changed(GF_Node *node, GF_FieldInfo *fieldChanged);
+/*! signals node has been modified, indicating which field is modified
+\note this is exposed for BIFS codec and BIFS/VRML rendering, it should not be needed by other apps
+\param n the target node
+\param fieldChanged the modified field, may be NULL of global node modification
+*/
+void gf_node_changed(GF_Node *n, GF_FieldInfo *fieldChanged);
 
-/*returns the graph this node belongs to*/
-GF_SceneGraph *gf_node_get_graph(GF_Node *node);
+/*! gets the scene graph of a node
+\param n the target node
+\return the parent scene graph
+*/
+GF_SceneGraph *gf_node_get_graph(GF_Node *n);
 
-/*Set size info for the graph - by default graphs have no size and are in meter metrics (VRML like)
-if any of width or height is 0, the graph has no size info*/
-void gf_sg_set_scene_size_info(GF_SceneGraph *sg, u32 width, u32 Height, Bool usePixelMetrics);
-/*returns 1 if pixelMetrics*/
+/*! sets size info for the graph - by default graphs have no size and are in meter metrics (VRML like)
+if any of width or height is 0, the graph has no size info
+\param sg the target scene graph
+\param width width in pixels
+\param height height in pixels
+\param usePixelMetrics indicates coordinates in graph are given in pixels
+*/
+void gf_sg_set_scene_size_info(GF_SceneGraph *sg, u32 width, u32 height, Bool usePixelMetrics);
+/*! checks if pixel metrics is used
+\param sg the target scene graph
+\return GF_TRUE if pixelMetrics*/
 Bool gf_sg_use_pixel_metrics(GF_SceneGraph *sg);
-/*returns 0 if no size info, otherwise 1 and set width/height*/
-Bool gf_sg_get_scene_size_info(GF_SceneGraph *sg, u32 *width, u32 *Height);
 
-/*creates a node of the given tag. sg is the parent scenegraph of the node,
+/*! gets size information of graph
+\param sg the target scene graph
+\param width set to width of scene
+\param height set to height of scene
+\return GF_FALSE if no size info, otherwise GF_TRUE and set width/height*/
+Bool gf_sg_get_scene_size_info(GF_SceneGraph *sg, u32 *width, u32 *height);
+
+/*! creates a node of the given tag. sg is the parent scenegraph of the node,
 eg the root one for scene nodes or the proto one for proto code (cf proto)
-Note:
+\note
 	- NODE IS NOT REGISTERED (no instances) AND CANNOT BE DESTROYED UNTIL REGISTERED
 	- this doesn't perform application setup for the node, this must be done by the caller
+
+\param sg the target scene graph
+\param tag tag of node to create
+\return new node
 */
 GF_Node *gf_node_new(GF_SceneGraph *sg, u32 tag);
-/*inits node (either internal stack or user-defined) - usually called once the node has been fully loaded*/
-void gf_node_init(GF_Node *node);
+/*! inits node (either internal stack or user-defined) - usually called once the node has been fully loaded
+\param n the target node
+*/
+void gf_node_init(GF_Node *n);
 
-/*clones a node in the given graph and register with parent cloned. The cloning handles ID based on id_suffix:
- id_suffix = NULL: all IDs are removed from the cloned subtree, (each node instance will become a hard copy)
- id_suffix = "": ID will be kept exactly as they where in the original subtree - this may lead to errors due to
-		the presence of the same ID depending on the standard (DOM, ...).
- id_suffix = anything: all IDs are translated ($(name) -> $(name)id_suffix) and bynary IDs are generated on the fly
+/*! clones a node in the given graph and register with parent cloned.
+\param inScene the target scene graph in which the node should be cloned
+\param orig the target node to clone
+\param cloned_parent the parent of the node to clone
+\param id_suffix if NULL, all IDs are removed from the cloned subtree, (each node instance will become a hard copy). If empty string "", ID will be kept exactly as they where in the original subtree (this may lead to errors due to the presence of the same ID depending on the standard). Otherwise, all IDs are translated ($(name) -> $(name)id_suffix) and binary IDs are generated on the fly
+\param deep clones children as well
+\return the cloned node
 */
 GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *id_suffix, Bool deep);
 
-/*gets scene time for scene this node belongs too, 0 if timeline not specified*/
-Double gf_node_get_scene_time(GF_Node *node);
+/*! gets scene time for scene this node belongs too
+\param n the target node
+\return the scene time for the node, 0 if timeline not specified*/
+Double gf_node_get_scene_time(GF_Node *n);
 
-/*retuns next available NodeID*/
+/*! gets next available NodeID
+\param sg the target scene graph
+\return next available NodeID
+*/
 u32 gf_sg_get_next_available_node_id(GF_SceneGraph *sg);
-/*retuns max ID used in graph*/
+/*! gets max ID used in graph
+\param sg the target scene graph
+\return max NodeID
+*/
 u32 gf_sg_get_max_node_id(GF_SceneGraph *sg);
 
-const char *gf_node_get_name_and_id(GF_Node*node, u32 *id);
+/*! gets node ID and name
+\param n the target node
+\param ID set to the node ID or to 0 if not defined
+\return the node name or NULL if not defined
+*/
+const char *gf_node_get_name_and_id(GF_Node*n, u32 *ID);
 
-
+/*! SVG focus types*/
 enum
 {
 	GF_SG_FOCUS_AUTO = 1,
@@ -483,6 +679,7 @@ enum
 	GF_SG_FOCUS_NORTH_WEST
 };
 
+/*! JS API Url structure*/
 typedef struct
 {
 	/*for GF_JSAPI_OP_RESOLVE_URI,
@@ -496,6 +693,7 @@ typedef struct
 	u32 nb_params;
 } GF_JSAPIURI;
 
+/*! JS API structure for GPAC config file*/
 typedef struct
 {
 	const char *section;
@@ -503,14 +701,14 @@ typedef struct
 	const char *key_val;
 } GF_JSAPIOPT;
 
-/*for script message option*/
+/*! JS API structure for script message*/
 typedef struct
 {
 	GF_Err e;
 	const char *msg;
 } GF_JSAPIINFO;
 
-
+/*! JS API parameter type*/
 typedef union
 {
 	u32 opt;
@@ -525,11 +723,12 @@ typedef union
 	GF_Node *node;
 	struct __gf_download_manager *dnld_man;
 	GF_SceneGraph *scene;
-	void *term;
+	void *compositor;
 	GF_JSAPIINFO info;
 } GF_JSAPIParam;
 
-enum
+/*! JS API action types*/
+typedef enum
 {
 	/*!push message from script engine.*/
 	GF_JSAPI_OP_MESSAGE,
@@ -579,15 +778,13 @@ enum
 	GF_JSAPI_OP_GET_FPS,
 	/*!set current title*/
 	GF_JSAPI_OP_SET_TITLE,
-	/*!gets DCCI scenegraph if any*/
-	GF_JSAPI_OP_GET_DCCI,
 	/*!gets subscene for current node if any*/
 	GF_JSAPI_OP_GET_SUBSCENE,
 	/*!resolves relative Xlink based on xml:base*/
 	GF_JSAPI_OP_RESOLVE_XLINK,
 
-	/*!gets GPAC terminal*/
-	GF_JSAPI_OP_GET_TERM,
+	/*!gets parent filter*/
+	GF_JSAPI_OP_GET_COMPOSITOR,
 
 	/*!pauses an SVG element*/
 	GF_JSAPI_OP_PAUSE_SVG,
@@ -600,38 +797,38 @@ enum
 	/*!gets the DPI*/
 	GF_JSAPI_OP_GET_DPI_X,
 	GF_JSAPI_OP_GET_DPI_Y,
-};
-/*
-interface to various get/set options:
-	type: operand type, one of the above
-	node: target node, scene root node or NULL
-	param: i/o param, depending on operand type
+} GF_JSAPIActionType;
+
+/*! interface to various get/set options:
+\param callback opaque data passed to the function
+\param type operand type, one of the above
+\param node target node, scene root node or NULL
+\param param i/o param, depending on operand type
+\return GF_TRUE if success, GF_FALSE otherwise
 */
-typedef Bool (*gf_sg_script_action)(void *callback, u32 type, GF_Node *node, GF_JSAPIParam *param);
+typedef Bool (*gf_sg_script_action)(void *callback, GF_JSAPIActionType type, GF_Node *node, GF_JSAPIParam *param);
 
-/*assign API to scene graph - by default, sub-graphs inherits the API if set*/
-void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_act, void *cbk);
+/*! assigns API to scene graph - by default, sub-graphs inherits the API if set
+\param sg the target scene graph
+\param script_act the script action callback
+\param cbk opaque data to pass to the script action callback
+*/
+void gf_sg_set_script_action(GF_SceneGraph *sg, gf_sg_script_action script_act, void *cbk);
 
-/*load script into engine - this should be called only for script in main scene, loading of scripts
-in protos is done internally when instanciating the proto*/
+/*! loads script into engine - this should be called only for script in main scene, loading of scripts
+in protos is done internally when instanciating the proto
+\param script the target script node*/
 void gf_sg_script_load(GF_Node *script);
 
-/*returns true if current lib has javascript support*/
+/*! checks if scripting is supported in GPAC (built-in and run-time enabled)
+\return GF_TRUE if javascript is supported*/
 Bool gf_sg_has_scripting();
 
+/*! Scene command tags
 
-char *gf_node_dump_attribute(GF_Node *elt, GF_FieldInfo *info);
-
-
-/*
-			scene graph command tools used for BIFS and LASeR
-		These are used to store updates in memory without applying changes to the graph,
-	for dumpers, encoders ...
-		The commands can then be applied through this lib
-*/
-
-/*
-		Currently defined possible modifications
+scene graph command tools used for BIFS and LASeR
+These are used to store updates in memory without applying changes to the graph, for dumpers, encoders ...
+The commands can then be applied through this lib
 */
 enum
 {
@@ -686,17 +883,7 @@ enum
 };
 
 
-/*
-				single command wrapper
-
-  NOTE: In order to maintain node registry, the nodes replaced/inserted MUST be registered with
-  their parents even when the command is never applied. Registering shall be performed
-  with gf_node_register (see below).
-  If you fail to do so, a node may be destroyed when destroying a command while still used
-  in another command or in the graph - this will just crash.
-*/
-
-/*structure used to store field info, pos and static pointers to GF_Node/MFNode in commands*/
+/*! structure used to store field info, pos and static pointers to GF_Node/MFNode in commands*/
 typedef struct
 {
 	u32 fieldIndex;
@@ -713,6 +900,15 @@ typedef struct
 	GF_ChildNodeItem *node_list;
 } GF_CommandField;
 
+/*! structure used to store decoded BIFS command
+
+\note In order to maintain node registry, the nodes replaced/inserted MUST be registered with
+  their parents even when the command is never applied. Registering shall be performed
+  with gf_node_register (see below).
+  If you fail to do so, a node may be destroyed when destroying a command while still used
+  in another command or in the graph - this will just crash.
+
+*/
 typedef struct
 {
 	GF_SceneGraph *in_scene;
@@ -781,21 +977,54 @@ typedef struct
 } GF_Command;
 
 
-/*creates command - graph only needed for SceneReplace*/
-GF_Command *gf_sg_command_new(GF_SceneGraph *in_scene, u32 tag);
-/*deletes command*/
+/*! creates a command - graph is only needed for SceneReplace
+\param sg parent scene graph of the command, only needed for SceneReplace
+\param tag the command tag
+\return a new command
+*/
+GF_Command *gf_sg_command_new(GF_SceneGraph *sg, u32 tag);
+/*! destroys a command
+\param com the target command
+*/
 void gf_sg_command_del(GF_Command *com);
-/*apply command to graph - the command content is kept unchanged for authoring purposes - THIS NEEDS TESTING AND FIXING
-@time_offset: offset for time fields if desired*/
-GF_Err gf_sg_command_apply(GF_SceneGraph *inScene, GF_Command *com, Double time_offset);
-/*apply list if command to graph - the command content is kept unchanged for authoring purposes
-@time_offset: offset for time fields if desired*/
-GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double time_offset);
-/*returns new commandFieldInfo structure and registers it with command*/
+/*! applies command to graph - the command content is kept unchanged for authoring purposes - THIS NEEDS TESTING AND FIXING
+\param sg the target scene graph where to apply the command
+\param com the target command
+\param time_offset time offset in seconds for time fields if desired
+\return error if any
+*/
+GF_Err gf_sg_command_apply(GF_SceneGraph *sg, GF_Command *com, Double time_offset);
+
+/*! applies list if command to graph - the command content is kept unchanged for authoring purposes
+\param sg the target scene graph where to apply the command
+\param comList the list of commands
+\param time_offset time offset in seconds for time fields if desired
+\return error if any
+*/
+GF_Err gf_sg_command_apply_list(GF_SceneGraph *sg, GF_List *comList, Double time_offset);
+
+/*! creates a new command field structire (some commands may target multiple fields at once) and registers it with command
+\param com the parent command
+\return new commandFieldInfo structure*/
 GF_CommandField *gf_sg_command_field_new(GF_Command *com);
 
-/* Executes JS code in the root context of the scene graph */
+/*! executes JS code in the root context of the scene graph
+\param sg the target scene graph where to execute the script
+\param com javascript code to execute
+\return error if any
+*/
 GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com);
+
+/*! XML node from DOM parser */
+typedef struct _xml_node *GF_DOMXMLNODE;
+
+/*! Creates a GF_SceneGraph from an XML root node. This is mostly used to allow using DOM API on an XML doc
+ \param document an empty scene graph object
+ \param root_node the root node of an XML document
+ \return error if any
+ */
+GF_Err gf_sg_init_from_xml_node(GF_SceneGraph *document, GF_DOMXMLNODE root_node);
+
 
 /*! @} */
 

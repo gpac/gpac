@@ -30,16 +30,12 @@
 /************************************************************
 		QoSQualifiers Functions
 ************************************************************/
+GF_QoS_Default *NewQoS(u8 tag);
 
 GF_EXPORT
 GF_QoS_Default *gf_odf_qos_new(u8 tag)
 {
-
-	GF_QoS_Default *NewQoS(u8 tag);
-
-	GF_QoS_Default *qos;
-
-	qos = NewQoS(tag);
+	GF_QoS_Default *qos = NewQoS(tag);
 	return qos;
 }
 
@@ -84,7 +80,7 @@ void gf_odf_delete_qos_qual(GF_QoS_Default *qos)
 		return;
 
 	default:
-		if ( ((GF_QoS_Private *)qos)->DataLength)
+		if ( ((GF_QoS_Private *)qos)->Data)
 			gf_free(((GF_QoS_Private *)qos)->Data);
 		gf_free( (GF_QoS_Private *) qos);
 		return;
@@ -250,9 +246,13 @@ GF_Err gf_odf_parse_qos(GF_BitStream *bs, GF_QoS_Default **qos_qual, u32 *qual_s
 	default:
 		//we defined the private qos...
 		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Private));
+		((GF_QoS_Private *)newQoS)->Data = NULL;
 		((GF_QoS_Private *)newQoS)->DataLength = qos_size;
-		gf_bs_read_data(bs, ((GF_QoS_Private *)newQoS)->Data, ((GF_QoS_Private *)newQoS)->DataLength);
-		bytesParsed += ((GF_QoS_Private *)newQoS)->DataLength;
+		if (qos_size > 0) {
+			((GF_QoS_Private *)newQoS)->Data = (char *) gf_malloc( qos_size );
+			gf_bs_read_data(bs, ((GF_QoS_Private *)newQoS)->Data, ((GF_QoS_Private *)newQoS)->DataLength);
+			bytesParsed += ((GF_QoS_Private *)newQoS)->DataLength;
+		}
 		break;
 	}
 	newQoS->size = qos_size;
@@ -355,6 +355,7 @@ GF_Err gf_odf_del_qos(GF_QoS_Descriptor *qos)
 		gf_list_rem(qos->QoS_Qualifiers, 0);
 	}
 	gf_list_del(qos->QoS_Qualifiers);
+	gf_free(qos);
 	return GF_OK;
 }
 
@@ -422,7 +423,6 @@ GF_Err gf_odf_write_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos)
 {
 	GF_Err e;
 	u32 size, i;
-	GF_QoS_Default *tmp;
 	if (!qos) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)qos, &size);
@@ -433,6 +433,7 @@ GF_Err gf_odf_write_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos)
 	gf_bs_write_int(bs, qos->predefined, 8);
 
 	if (! qos->predefined) {
+		GF_QoS_Default *tmp;
 		i=0;
 		while ((tmp = (GF_QoS_Default *)gf_list_enum(qos->QoS_Qualifiers, &i))) {
 			e = gf_odf_write_qos_qual(bs, tmp);
@@ -444,4 +445,3 @@ GF_Err gf_odf_write_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos)
 
 
 #endif /*GPAC_MINIMAL_ODF*/
-

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2019
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,89 +27,102 @@
 #define _GL_INC_H_
 
 #ifdef WIN32
-#include <windows.h>
+# include <windows.h>
 #endif
 
 
 #ifndef _GF_SETUP_H_
-#error "Missing gpac/setup.h include"
+# error "Missing gpac/setup.h include"
 #endif
 
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_GLES1X
+# ifdef GPAC_CONFIG_ANDROID
+#  include "GLES/gl.h"
+# elif defined(GPAC_CONFIG_IOS)
+#  include "OpenGLES/ES1/gl.h"
+#  include "OpenGLES/ES1/glext.h"
+#  include "glues.h"
+# else
+/*non standard include on linux/windows, usually not used*/
+#  include "GLES/egl.h"
+# endif
 
-#ifdef GPAC_ANDROID
-#include "GLES/gl.h"
-#elif defined(GPAC_IPHONE)
-#include "OpenGLES/ES1/gl.h"
-#include "OpenGLES/ES1/glext.h"
-#include "glues.h"
-#else
-#include "GLES/egl.h"
-#endif
-
-#if defined(GPAC_HAS_GLU) && !defined (GPAC_IPHONE)
+# if defined(GPAC_HAS_GLU) && !defined (GPAC_CONFIG_IOS)
 /*WARNING - this is NOT a standard include, GLU is not supported by GLES*/
-#include <GLES/glu.h>
-#endif
+#  include <GLES/glu.h>
+# endif
 
+# ifndef EGL_VERSION_1_0
+#  define EGL_VERSION_1_0		1
+# endif
 
-#ifndef EGL_VERSION_1_0
-#define EGL_VERSION_1_0		1
-#endif
+# ifndef EGL_VERSION_1_1
+#  ifdef GL_OES_VERSION_1_1
+#   define EGL_VERSION_1_1		1
+#  endif
+# endif
 
-#ifndef EGL_VERSION_1_1
-#ifdef GL_OES_VERSION_1_1
-#define EGL_VERSION_1_1		1
-#endif
-#endif
+//end GPAC_USE_GLES1X
+
+# elif defined(GPAC_USE_GLES2)
+#  ifdef GPAC_CONFIG_IOS
+#   include "OpenGLES/ES2/gl.h"
+#   include "glues.h"
+#  else
+#   include <GLES2/gl2.h>
+#   include <GLES2/gl2ext.h>
+#  endif
+
+//end GPAC_USE_GLES2
 
 #elif defined (CONFIG_DARWIN_GL)
 
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 
-#else
-
-
-#define GL_GLEXT_PROTOTYPES
-
-#ifdef GPAC_USE_OGLES1X
-#include <GLES/gl.h>
-#include <GLES/glext.h>
-
-#elif defined(GPAC_USE_GLES2)
-
-#ifdef GPAC_IPHONE
-#include "OpenGLES/ES2/gl.h"
-#include "glues.h"
-#else
-
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#endif
+//end CONFIG_DARWIN_GL
 
 #else
+//generic windows/linux config
 
-#include <GL/gl.h>
+//in case the versions are defined, get the prototypes
+# define GL_GLEXT_PROTOTYPES
+# include <GL/gl.h>
+# ifdef GPAC_HAS_GLU
+#  include <GL/glu.h>
+# endif
 
-#ifdef GPAC_HAS_GLU
-#include <GL/glu.h>
+//end generic windows/linux config
+
 #endif
 
+#if 0
+#define GL_CHECK_ERR()  {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
+#else
+#define GL_CHECK_ERR()
 #endif
 
+#ifdef GPAC_USE_TINYGL
+# define GLTEXENV	glTexEnvi
+# define GLTEXPARAM	glTexParameteri
+# define TexEnvType u32
+#elif defined (GPAC_USE_GLES1X)
+# define GLTEXENV	glTexEnvx
+# define GLTEXPARAM	glTexParameterx
+# define TexEnvType Fixed
+#else
+# define GLTEXENV	glTexEnvf
+# define GLTEXPARAM	glTexParameteri
+# define TexEnvType Float
 #endif
 
-
-#define GL_CHECK_ERR  {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
 
 /*macros for GL proto and fun declaration*/
 #ifdef _WIN32_WCE
 #define GLAPICAST *
 #elif defined(WIN32)
-#include <windows.h>
 #define GLAPICAST APIENTRY *
 #else
 #define GLAPICAST *
@@ -118,8 +131,11 @@
 #define GLDECL(ret, funname, args)	\
 typedef ret (GLAPICAST proc_ ## funname)args;	\
 extern proc_ ## funname funname;	\
- 
-#define GLDECL_STATIC(funname) proc_ ## funname funname = NULL
+
+
+#define GLDECL_FUNC(funname) proc_ ## funname funname = NULL
+#define GLDECL_FUNC_STATIC(funname) static proc_ ## funname funname = NULL
+#define GLDECL_EXTERN(funname) extern proc_ ## funname funname;
 
 #if defined GPAC_USE_TINYGL
 //no extensions with TinyGL
@@ -129,8 +145,7 @@ extern proc_ ## funname funname;	\
 #define LOAD_GL_FUNCS
 #define GET_GLFUN(funname) funname = (proc_ ## funname) wglGetProcAddress(#funname)
 #elif defined(CONFIG_DARWIN_GL)
-extern void (*glutGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(funname) funname = (proc_ ## funname) glutGetProcAddress(#funname)
+//no extensions with OpenGL on OSX/IOS, glext.h is present
 #else
 #define LOAD_GL_FUNCS
 extern void (*glXGetProcAddress(const GLubyte *procname))( void );
@@ -151,6 +166,10 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define GL_UNPACK_SKIP_PIXELS_EXT           0x0CF4
 #endif
 
+
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+#  define GPAC_GL_NO_STRIDE
+#endif
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 
@@ -316,7 +335,15 @@ GLDECL(void, glActiveTexture, (GLenum texture) )
 GLDECL(void, glClientActiveTexture, (GLenum texture) )
 
 
-GLDECL(void, glBlendEquation, (GLint mode) )
+GLDECL(void, glBlendColor, (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha))
+GLDECL(void, glBlendEquation, (GLenum mode))
+GLDECL(void, glBlendEquationSeparate, (GLenum modeRGB, GLenum modeAlpha))
+GLDECL(void, glBlendFuncSeparate, (GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) )
+
+GLDECL(void, glCompressedTexImage2D, (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid *data) )
+GLDECL(void, glCompressedTexSubImage2D, (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid *data) )
+GLDECL(void, glGenerateMipmap, (GLenum target ) )
+
 #endif	//GL_VERSION_1_3
 
 #ifndef GL_VERSION_1_4
@@ -335,7 +362,7 @@ GLDECL(void, glBlendEquation, (GLint mode) )
 GLDECL(void, glPointParameterf, (GLenum , GLfloat) )
 GLDECL(void, glPointParameterfv, (GLenum, const GLfloat *) )
 
-#endif
+#endif //GL_VERSION_1_4
 
 
 
@@ -355,7 +382,7 @@ GLDECL(void, glGenBuffers, (GLsizei , GLuint *) )
 GLDECL(void, glDeleteBuffers, (GLsizei , GLuint *) )
 GLDECL(void, glBindBuffer, (GLenum, GLuint ) )
 GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
-GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
+GLDECL(void, glBufferSubData, (GLenum, size_t, int, void *) )
 GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
 GLDECL(void *, glUnmapBuffer, (GLenum) )
 
@@ -456,6 +483,113 @@ GLDECL(void *, glUnmapBuffer, (GLenum) )
 #define GL_WRITE_ONLY_ARB   0x88B9
 #define GL_DYNAMIC_DRAW_ARB   0x88E8
 
+#define GL_DEPTH_COMPONENT16              0x81A5
+#define GL_DEPTH_COMPONENT24              0x81A6
+#define GL_DEPTH_COMPONENT32              0x81A7
+#define GL_TEXTURE_DEPTH_SIZE             0x884A
+#define GL_DEPTH_TEXTURE_MODE             0x884B
+
+#define GL_TEXTURE_COMPARE_MODE           0x884C
+#define GL_TEXTURE_COMPARE_FUNC           0x884D
+#define GL_COMPARE_R_TO_TEXTURE           0x884E
+
+#define GL_INVALID_FRAMEBUFFER_OPERATION                     0x0506
+#define GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING             0x8210
+#define GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE             0x8211
+#define GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE                   0x8212
+#define GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE                 0x8213
+#define GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE                  0x8214
+#define GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE                 0x8215
+#define GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE                 0x8216
+#define GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE               0x8217
+#define GL_FRAMEBUFFER_DEFAULT                               0x8218
+#define GL_FRAMEBUFFER_UNDEFINED                             0x8219
+#define GL_DEPTH_STENCIL_ATTACHMENT                          0x821A
+#define GL_MAX_RENDERBUFFER_SIZE                             0x84E8
+#define GL_DEPTH_STENCIL                                     0x84F9
+#define GL_UNSIGNED_INT_24_8                                 0x84FA
+#define GL_DEPTH24_STENCIL8                                  0x88F0
+#define GL_TEXTURE_STENCIL_SIZE                              0x88F1
+#define GL_TEXTURE_RED_TYPE                                  0x8C10
+#define GL_TEXTURE_GREEN_TYPE                                0x8C11
+#define GL_TEXTURE_BLUE_TYPE                                 0x8C12
+#define GL_TEXTURE_ALPHA_TYPE                                0x8C13
+#define GL_TEXTURE_DEPTH_TYPE                                0x8C16
+#define GL_UNSIGNED_NORMALIZED                               0x8C17
+#define GL_FRAMEBUFFER_BINDING                               0x8CA6
+#define GL_DRAW_FRAMEBUFFER_BINDING                          GL_FRAMEBUFFER_BINDING
+#define GL_RENDERBUFFER_BINDING                              0x8CA7
+#define GL_READ_FRAMEBUFFER                                  0x8CA8
+#define GL_DRAW_FRAMEBUFFER                                  0x8CA9
+#define GL_READ_FRAMEBUFFER_BINDING                          0x8CAA
+#define GL_RENDERBUFFER_SAMPLES                              0x8CAB
+#define GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE                0x8CD0
+#define GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME                0x8CD1
+#define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL              0x8CD2
+#define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE      0x8CD3
+#define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER              0x8CD4
+#define GL_FRAMEBUFFER_COMPLETE                              0x8CD5
+#define GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT                 0x8CD6
+#define GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT         0x8CD7
+#define GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER                0x8CDB
+#define GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER                0x8CDC
+#define GL_FRAMEBUFFER_UNSUPPORTED                           0x8CDD
+#define GL_MAX_COLOR_ATTACHMENTS                             0x8CDF
+#define GL_COLOR_ATTACHMENT0                                 0x8CE0
+#define GL_COLOR_ATTACHMENT1                                 0x8CE1
+#define GL_COLOR_ATTACHMENT2                                 0x8CE2
+#define GL_COLOR_ATTACHMENT3                                 0x8CE3
+#define GL_COLOR_ATTACHMENT4                                 0x8CE4
+#define GL_COLOR_ATTACHMENT5                                 0x8CE5
+#define GL_COLOR_ATTACHMENT6                                 0x8CE6
+#define GL_COLOR_ATTACHMENT7                                 0x8CE7
+#define GL_COLOR_ATTACHMENT8                                 0x8CE8
+#define GL_COLOR_ATTACHMENT9                                 0x8CE9
+#define GL_COLOR_ATTACHMENT10                                0x8CEA
+#define GL_COLOR_ATTACHMENT11                                0x8CEB
+#define GL_COLOR_ATTACHMENT12                                0x8CEC
+#define GL_COLOR_ATTACHMENT13                                0x8CED
+#define GL_COLOR_ATTACHMENT14                                0x8CEE
+#define GL_COLOR_ATTACHMENT15                                0x8CEF
+#define GL_DEPTH_ATTACHMENT                                  0x8D00
+#define GL_STENCIL_ATTACHMENT                                0x8D20
+#define GL_FRAMEBUFFER                                       0x8D40
+#define GL_RENDERBUFFER                                      0x8D41
+#define GL_RENDERBUFFER_WIDTH                                0x8D42
+#define GL_RENDERBUFFER_HEIGHT                               0x8D43
+#define GL_RENDERBUFFER_INTERNAL_FORMAT                      0x8D44
+#define GL_STENCIL_INDEX1                                    0x8D46
+#define GL_STENCIL_INDEX4                                    0x8D47
+#define GL_STENCIL_INDEX8                                    0x8D48
+#define GL_STENCIL_INDEX16                                   0x8D49
+#define GL_RENDERBUFFER_RED_SIZE                             0x8D50
+#define GL_RENDERBUFFER_GREEN_SIZE                           0x8D51
+#define GL_RENDERBUFFER_BLUE_SIZE                            0x8D52
+#define GL_RENDERBUFFER_ALPHA_SIZE                           0x8D53
+#define GL_RENDERBUFFER_DEPTH_SIZE                           0x8D54
+#define GL_RENDERBUFFER_STENCIL_SIZE                         0x8D55
+#define GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE                0x8D56
+#define GL_MAX_SAMPLES                                       0x8D57
+
+#define GL_SMOOTH_POINT_SIZE_RANGE        0x0B12
+#define GL_SMOOTH_POINT_SIZE_GRANULARITY  0x0B13
+#define GL_SMOOTH_LINE_WIDTH_RANGE        0x0B22
+#define GL_SMOOTH_LINE_WIDTH_GRANULARITY  0x0B23
+#define GL_ALIASED_POINT_SIZE_RANGE       0x846D
+#define GL_ALIASED_LINE_WIDTH_RANGE       0x846E
+#define GL_ARRAY_BUFFER_BINDING                        0x8894
+#define GL_ELEMENT_ARRAY_BUFFER_BINDING                0x8895
+#define GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING          0x889F
+#define GL_BLEND_COLOR                    0x8005
+#define GL_NUM_COMPRESSED_TEXTURE_FORMATS 0x86A2
+#define GL_COMPRESSED_TEXTURE_FORMATS     0x86A3
+#define GL_TEXTURE_BINDING_CUBE_MAP       0x8514
+
+#define GL_SAMPLE_ALPHA_TO_COVERAGE       0x809E
+#define GL_SAMPLE_ALPHA_TO_ONE            0x809F
+#define GL_SAMPLE_COVERAGE                0x80A0
+#define GL_SAMPLE_COVERAGE_VALUE          0x80AA
+#define GL_SAMPLE_COVERAGE_INVERT         0x80AB
 
 GLDECL(GLuint, glCreateProgram, (void) )
 GLDECL(void, glDeleteProgram, (GLuint ) )
@@ -470,6 +604,9 @@ GLDECL(void, glDetachShader, (GLuint program, GLuint shader) )
 GLDECL(void, glGetShaderiv, (GLuint shader, GLenum type, GLint *res) )
 GLDECL(void, glGetInfoLogARB, (GLuint shader, GLint size, GLsizei *rsize, const char *logs) )
 GLDECL(GLint, glGetUniformLocation, (GLuint prog, const char *name) )
+GLDECL(GLint, glGetUniformfv, (GLuint program, GLint location, GLfloat *params))
+GLDECL(GLint, glGetUniformiv, (GLuint program, GLint location, GLint *params))
+
 GLDECL(void, glUniform1f, (GLint location, GLfloat v0) )
 GLDECL(void, glUniform2f, (GLint location, GLfloat v0, GLfloat v1) )
 GLDECL(void, glUniform3f, (GLint location, GLfloat v0, GLfloat v1, GLfloat v2) )
@@ -497,14 +634,63 @@ GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glGetProgramiv, (GLuint program, GLenum pname, GLint *params) )
 GLDECL(void, glGetProgramInfoLog, (GLuint program,  GLsizei maxLength,  GLsizei *length,  char *infoLog) )
+GLDECL(void, glGetShaderInfoLog, (GLuint shader, GLsizei bufSize, GLsizei *length, char *infoLog) )
+GLDECL(void, glGetShaderSource, (GLuint shader, GLsizei bufSize, GLsizei *length, char *source) )
 
-#ifndef GPAC_ANDROID
+GLDECL(void, glGetActiveAttrib, (GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, const char *name))
+GLDECL(void, glGetActiveUniform, (GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, const char *name))
+GLDECL(void, glGetAttachedShaders, (GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders))
+GLDECL(void, glBindAttribLocation, (GLuint program, GLuint index, const char *name))
+
+GLDECL(GLboolean, glIsBuffer, (GLuint buffer) )
+GLDECL(GLboolean, glIsFramebuffer, (GLuint framebuffer))
+GLDECL(GLboolean, glIsProgram, (GLuint program))
+GLDECL(GLboolean, glIsRenderbuffer, (GLuint rbuffer))
+GLDECL(GLboolean, glIsShader, (GLuint shader))
+GLDECL(void, glSampleCoverage, (GLclampf value, GLboolean invert) )
+GLDECL(void, glStencilFuncSeparate, (GLenum face, GLenum func, GLint ref, GLuint mask) )
+GLDECL(void, glStencilOpSeparate, (GLenum face, GLenum fail, GLenum zfail, GLenum zpass) )
+GLDECL(void, glStencilMaskSeparate, (GLenum face, GLuint mask) )
+GLDECL(void, glValidateProgram, (GLuint program) )
+
+GLDECL(void, glVertexAttrib1fv, (GLuint index, const GLfloat *v) )
+GLDECL(void, glVertexAttrib1f, (GLuint index, GLfloat x))
+GLDECL(void, glVertexAttrib2f, (GLuint index, GLfloat x, GLfloat y))
+GLDECL(void, glVertexAttrib2fv, (GLuint index, const GLfloat *v))
+GLDECL(void, glVertexAttrib3f, (GLuint index, GLfloat x, GLfloat y, GLfloat z))
+GLDECL(void, glVertexAttrib3fv, (GLuint index, const GLfloat *v))
+GLDECL(void, glVertexAttrib4f, (GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w))
+GLDECL(void, glVertexAttrib4fv, (GLuint index, const GLfloat *v))
+
+GLDECL(void, glGetBufferParameteriv, (GLenum target, GLenum pname, GLint *params) )
+GLDECL(void, glGetFramebufferAttachmentParameteriv, (GLenum target, GLenum attachment, GLenum pname, GLint *params) )
+
+GLDECL(void, glGetVertexAttribiv, (GLuint index, GLenum pname, GLint *params) )
+GLDECL(void, glGetVertexAttribfv, (GLuint index, GLenum pname, GLfloat *params) )
+GLDECL(void, glGetVertexAttribPointerv, (GLuint index, GLenum pname, GLvoid **pointer) )
+
+#ifndef GPAC_CONFIG_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
 GLDECL(void, glDisableVertexAttribArray, (GLuint index) )
 GLDECL(void, glVertexAttribPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLboolean  normalized,  GLsizei  stride,  const GLvoid *  pointer) )
 GLDECL(void, glVertexAttribIPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLsizei  stride,  const GLvoid *  pointer) )
 GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name) )
-#endif
+
+GLDECL(void, glBindFramebuffer, (GLenum target, GLuint framebuffer))
+GLDECL(void, glFramebufferTexture2D, (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level))
+GLDECL(void, glGenFramebuffers, (GLsizei n, GLuint *ids))
+GLDECL(void, glGenRenderbuffers, (GLsizei n, GLuint *renderbuffers))
+GLDECL(void, glBindRenderbuffer, (GLenum target, GLuint renderbuffer))
+GLDECL(void, glRenderbufferStorage, (GLenum target, GLenum internalformat, GLsizei width, GLsizei height))
+GLDECL(void, glFramebufferRenderbuffer, (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer))
+GLDECL(void, glDeleteFramebuffers, (GLsizei n, const GLuint * framebuffers))
+GLDECL(void, glDeleteRenderbuffers, (GLsizei n, const GLuint * renderbuffers))
+GLDECL(void, glGetRenderbufferParameteriv, (GLenum target, GLenum pname, GLint *params) )
+
+GLDECL(GLenum, glCheckFramebufferStatus, (GLenum target))
+
+
+#endif //GPAC_CONFIG_ANDROID
 
 
 #endif //GL_VERSION_2_0

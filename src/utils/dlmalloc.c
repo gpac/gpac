@@ -1301,9 +1301,9 @@ int mspace_mallopt(int, int);
 #ifndef LACKS_ERRNO_H
 #include <errno.h>       /* for MALLOC_FAILURE_ACTION */
 #endif /* LACKS_ERRNO_H */
-#if FOOTERS || DEBUG
+
 #include <time.h>        /* for magic initialization */
-#endif /* FOOTERS */
+
 #ifndef LACKS_STDLIB_H
 #include <stdlib.h>      /* for abort() */
 #endif /* LACKS_STDLIB_H */
@@ -2793,7 +2793,7 @@ static size_t traverse_and_check(mstate m);
 #define treemap_is_marked(M,i)  ((M)->treemap  &   idx2bit(i))
 
 /* isolate the least set bit of a bitmap */
-#define least_bit(x)         ((x) & -(x))
+#define least_bit(x)         ((x) & (-(x)))
 
 /* mask with all bits to left of least bit of x on */
 #define left_bits(x)         ((x<<1) | -(x<<1))
@@ -2968,7 +2968,6 @@ static int init_mparams(void) {
 
 	ACQUIRE_MALLOC_GLOBAL_LOCK();
 	if (mparams.magic == 0) {
-		size_t magic;
 		size_t psize;
 		size_t gsize;
 
@@ -3018,6 +3017,7 @@ static int init_mparams(void) {
 #endif
 
 		{
+			size_t magic;
 #if USE_DEV_RANDOM
 			int fd;
 			unsigned char buf[sizeof(size_t)];
@@ -4489,7 +4489,6 @@ static void** ialloc(mstate m,
 	mchunkptr p;              /* corresponding chunk */
 	size_t    remainder_size; /* remaining bytes while splitting */
 	void**    marray;         /* either "chunks" or malloced ptr array */
-	mchunkptr array_chunk;    /* chunk for malloced ptr array */
 	flag_t    was_enabled;    /* to disable mmap */
 	size_t    size;
 	size_t    i;
@@ -4549,6 +4548,7 @@ static void** ialloc(mstate m,
 
 	/* If not provided, allocate the pointer array as final part of chunk */
 	if (marray == 0) {
+		mchunkptr array_chunk;    /* chunk for malloced ptr array */
 		size_t  array_chunk_size;
 		array_chunk = chunk_plus_offset(p, contents_size);
 		array_chunk_size = remainder_size - contents_size;

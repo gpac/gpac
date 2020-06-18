@@ -145,9 +145,8 @@ X3DNode *BlankNode()
 u8 IsNDT(GF_List *NDTs, char *famName)
 {
 	u32 i;
-	char *ndtName;
 	for (i=0; i<gf_list_count(NDTs); i++) {
-		ndtName = gf_list_get(NDTs, i);
+		char *ndtName = gf_list_get(NDTs, i);
 		//remove SF / MF as we don't need that
 		if (!strcmp(ndtName+2, famName+2)) return 1;
 	}
@@ -567,7 +566,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			}
 			//SFString
 			else if (!strcmp(bf->familly, "SFString")) {
-				fprintf(vrml_code, "\tp->%s.buffer = (char*) gf_malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
+				fprintf(vrml_code, "\tp->%s.buffer = (char*) gf_malloc(sizeof(char) * %u);\n", bf->name, (u32) strlen(bf->def)+1);
 				fprintf(vrml_code, "\tstrcpy(p->%s.buffer, \"%s\");\n", bf->name, bf->def);
 			}
 
@@ -809,7 +808,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 					store = CurrentLine;
 					CurrentLine = token;
 					GetNextToken(tok, " \"");
-					fprintf(vrml_code, "\tp->%s.vals[%d] = (char*)gf_malloc(sizeof(char) * %d);\n", bf->name, j, strlen(tok)+1);
+					fprintf(vrml_code, "\tp->%s.vals[%d] = (char*)gf_malloc(sizeof(char) * %u);\n", bf->name, j, (u32) strlen(tok)+1);
 					fprintf(vrml_code, "\tstrcpy(p->%s.vals[%d], \"%s\");\n", bf->name, j, tok);
 					j+=1;
 					CurrentLine = store;
@@ -912,10 +911,9 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 static u32 IsNodeInTable(X3DNode *node, char *NDTName)
 {
 	u32 i;
-	char *ndt;
 
 	for (i=0; i<gf_list_count(node->NDT); i++) {
-		ndt = gf_list_get(node->NDT, i);
+		char *ndt = gf_list_get(node->NDT, i);
 		if (!strcmp(ndt, NDTName)) return 1;
 	}
 	return 0;
@@ -923,11 +921,9 @@ static u32 IsNodeInTable(X3DNode *node, char *NDTName)
 
 static u32 GetNDTCount(char *NDTName, GF_List *XNodes)
 {
-	u32 i, nodeCount;
-	X3DNode *n;
-	nodeCount = 0;
+	u32 i, nodeCount = 0;
 	for (i=0; i<gf_list_count(XNodes); i++) {
-		n = gf_list_get(XNodes, i);
+		X3DNode *n = gf_list_get(XNodes, i);
 		if (!IsNodeInTable(n, NDTName)) continue;
 		nodeCount++;
 	}
@@ -1140,12 +1136,11 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs)
 
 void WriteNodeDump(FILE *f, X3DNode *n)
 {
-	X3DField *bf;
 	u32 i;
 
 	fprintf(f, "static const char *%s_FieldName[] = {\n", n->name);
 	for (i=0; i<gf_list_count(n->Fields); i++) {
-		bf = gf_list_get(n->Fields, i);
+		X3DField *bf = gf_list_get(n->Fields, i);
 		if (!i) {
 			fprintf(f, " \"%s\"", bf->name);
 		} else {
@@ -1203,9 +1198,8 @@ void parse_profile(GF_List *nodes, FILE *prof)
 
 int main (int argc, char **argv)
 {
-	FILE *nodes, *pf;
+	FILE *nodes;
 	GF_List *XNodes, *NDTs;
-	X3DNode *n;
 	X3DField *bf;
 	u32 nb_nodes, nb_imp;
 
@@ -1222,6 +1216,7 @@ int main (int argc, char **argv)
 	gf_fclose(nodes);
 
 	if (argc>1) {
+		FILE *pf;
 		pf = gf_fopen(argv[1], "rt");
 		if (!pf) fprintf(stdout, "Cannot open profile file %s\n", argv[1]);
 		else {
@@ -1255,7 +1250,7 @@ int main (int argc, char **argv)
 	nb_imp = 0;
 	//free nodes
 	while (gf_list_count(XNodes)) {
-		n = gf_list_get(XNodes, 0);
+		X3DNode *n = gf_list_get(XNodes, 0);
 		if (!n->skip_impl) nb_imp++;
 		gf_list_rem(XNodes, 0);
 		while (gf_list_count(n->NDT)) {

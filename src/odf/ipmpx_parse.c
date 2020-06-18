@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -144,7 +144,7 @@ u32 gf_ipmpx_get_field_type(GF_IPMPX_Data *p, char *fieldName)
 
 #include <gpac/internal/odf_parse_common.h>
 
-void GF_IPMPX_ParseBinData(char *val, char **out_data, u32 *out_data_size)
+void GF_IPMPX_ParseBinData(char *val, u8 **out_data, u32 *out_data_size)
 {
 	u32 i, c, len;
 	char s[3];
@@ -169,28 +169,6 @@ void GF_IPMPX_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 	}
 }
 
-void GF_IPMPX_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
-{
-	FILE *f;
-	u32 size;
-	if (*out_data) gf_free(*out_data);
-	*out_data = NULL;
-	*out_data_size = 0;
-	f = gf_fopen(fileName, "rb");
-	if (!f) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IPMPX Parse] cannot open data file %s - skipping\n", fileName));
-		return;
-	}
-	gf_fseek(f, 0, SEEK_END);
-	assert(gf_ftell(f) < 1<<31);
-	size = (u32) gf_ftell(f);
-	gf_fseek(f, 0, SEEK_SET);
-	*out_data = (char*)gf_malloc(sizeof(char) * size);
-	size = (s32) fread(*out_data, sizeof(char), size, f);
-	if ((s32) size >= 0)
-		*out_data_size = size;
-	gf_fclose(f);
-}
 
 void GF_IPMPX_ParseBin128(char *val, bin128 *data)
 {
@@ -347,25 +325,34 @@ GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
 			else p->flags |= 8;
 			ret = 1;
 		}
-		else if (!stricmp(fieldName, "startDTS")) GET_U64(p->startDTS)
-			else if (!stricmp(fieldName, "startPacketID")) GET_U32(p->startPacketID)
-				else if (!stricmp(fieldName, "expireDTS")) GET_U32(p->expireDTS)
-					else if (!stricmp(fieldName, "expirePacketID")) GET_U32(p->expirePacketID)
-					}
-	break;
+		else if (!stricmp(fieldName, "startPacketID")) {
+			GET_U32(p->startPacketID)
+		}
+		else if (!stricmp(fieldName, "expirePacketID")) {
+			GET_U32(p->expirePacketID)
+		}
+		else if (!stricmp(fieldName, "startDTS")) {
+			GET_U64(p->startDTS)
+		}
+		else if (!stricmp(fieldName, "expireDTS")) {
+			GET_U64(p->expireDTS)
+		}
+
+	}
+		break;
 	case GF_IPMPX_SECURE_CONTAINER_TAG:
 	{
 		GF_IPMPX_SecureContainer*p = (GF_IPMPX_SecureContainer*)_p;
 		if (!stricmp(fieldName, "isMACEncrypted")) GET_BOOL(p->isMACEncrypted)
-		}
-	break;
+	}
+		break;
 	case GF_IPMPX_INIT_AUTHENTICATION_TAG:
 	{
 		GF_IPMPX_InitAuthentication *p = (GF_IPMPX_InitAuthentication*)_p;
 		if (!stricmp(fieldName, "Context")) GET_U32(p->Context)
-			else if (!stricmp(fieldName, "AuthType")) GET_U8(p->AuthType)
-			}
-	break;
+		else if (!stricmp(fieldName, "AuthType")) GET_U8(p->AuthType)
+	}
+		break;
 	case GF_IPMPX_TRUSTED_TOOL_TAG:
 	{
 		GF_IPMPX_TrustedTool *p = (GF_IPMPX_TrustedTool*)_p;

@@ -167,15 +167,15 @@ void drawable_reset_bounds(Drawable *dr, GF_VisualManager *visual)
 void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 {
 	StrikeInfo2D *si;
-	Bool is_reg = 0;
-	DRInfo *dri, *cur;
+	DRInfo *dri;
 	BoundInfo *bi, *_cur;
 
 
 	/*remove node from all visuals it's on*/
 	dri = dr->dri;
 	while (dri) {
-		is_reg = compositor ? gf_sc_visual_is_registered(compositor, dri->visual) : 0;
+		DRInfo *cur;
+		Bool is_reg = compositor ? gf_sc_visual_is_registered(compositor, dri->visual) : 0;
 
 		bi = dri->current_bounds;
 		while (bi) {
@@ -320,7 +320,7 @@ void drawable_mark_modified(Drawable *drawable, GF_TraverseState *tr_state)
 }
 
 /*move current bounds to previous bounds*/
-Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 draw_mode)
+Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 mode2d)
 {
 	Bool was_drawn;
 	DRInfo *dri;
@@ -342,9 +342,9 @@ Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 
 
 	was_drawn = (dri->current_bounds && dri->current_bounds->clip.width) ? 1 : 0;
 
-	if (draw_mode) {
+	if (mode2d) {
 		/*permanent direct drawing mode, destroy previous bounds*/
-		if (draw_mode==1) {
+		if (mode2d==1) {
 			if (dri->previous_bounds) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Destroying previous bounds info for drawable %s\n", gf_node_get_class_name(drawable->node)));
 				while (dri->previous_bounds) {
@@ -584,7 +584,7 @@ check_default:
 				asp->fill_color &= 0x00FFFFFF;
 				break;
 			case TAG_MPEG4_PointSet2D:
-				asp->fill_color |= FIX2INT(255 * (m ? (FIX_ONE - m->transparency) : FIX_ONE)) << 24;
+				asp->fill_color |= ((u32 )(FIX2INT(255 * (m ? (FIX_ONE - m->transparency) : FIX_ONE))) ) << 24;
 				asp->pen_props.width = 0;
 				break;
 			default:
@@ -760,7 +760,8 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	/*FIXME - only needed for texture*/
 	if (!tr_state->color_mat.identity) {
 		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
-		gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
+		if (ctx->col_mat)
+			gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
 	}
 
 	/*IndexedLineSet2D and PointSet2D ignores fill flag and texturing*/
@@ -907,7 +908,6 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 	} else {
 		gf_path_get_bounds(ctx->drawable->path, &store_orig_bounds);
 	}
-	//if (store_orig_bounds) fprintf(stderr, "store_orig_bounds: %d\n", (int) store_orig_bounds.width );
 	ctx->bi->unclip = store_orig_bounds;
 	gf_mx2d_apply_rect(&tr_state->transform, &ctx->bi->unclip);
 
@@ -984,7 +984,6 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	Drawable *hlight;
 	GF_Node *prev_node;
 	u32 prev_mode;
-	GF_Rect *bounds;
 	GF_Matrix2D cur;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
@@ -1006,6 +1005,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	/*check if focus node has changed*/
 	prev_node = gf_node_get_private(hlight->node);
 	if (prev_node != node) {
+		GF_Rect *bounds;
 		/*this is a grouping node, get its bounds*/
 		if (!orig_bounds) {
 			gf_mx2d_copy(cur, tr_state->transform);
@@ -1031,10 +1031,10 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	}
 	hl_ctx = visual_2d_get_drawable_context(tr_state->visual);
 	hl_ctx->drawable = hlight;
-	hl_ctx->aspect.fill_color = compositor->highlight_fill;
-	hl_ctx->aspect.line_color = compositor->highlight_stroke;
+	hl_ctx->aspect.fill_color = compositor->hlfill;
+	hl_ctx->aspect.line_color = compositor->hlline;
 	hl_ctx->aspect.line_scale = 0;
-	hl_ctx->aspect.pen_props.width = compositor->highlight_stroke_width;
+	hl_ctx->aspect.pen_props.width = compositor->hllinew;
 	hl_ctx->aspect.pen_props.join = GF_LINE_JOIN_BEVEL;
 	hl_ctx->aspect.pen_props.dash = GF_DASH_STYLE_DOT;
 
@@ -1042,7 +1042,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	if (compositor->edited_text) {
 		hl_ctx->aspect.pen_props.width = 2*FIX_ONE;
 		hl_ctx->aspect.pen_props.dash = 1;
-		hl_ctx->aspect.line_color = compositor->highlight_stroke;
+		hl_ctx->aspect.line_color = compositor->hlline;
 	}
 
 
@@ -1081,7 +1081,9 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 {
 	StrikeInfo2D *si, *prev;
 	GF_Node *lp;
+#ifndef GPAC_DISABLE_VRML
 	Bool dirty;
+#endif
 	if (!asp->pen_props.width) return NULL;
 	if (path && !path->n_points) return NULL;
 
@@ -1145,11 +1147,13 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	/*node changed or outline not build*/
 #ifndef GPAC_DISABLE_VRML
 	dirty = lp ? drawable_lineprops_dirty(lp) : 0;
-#else
-	dirty = 0;
 #endif
 
-	if (!si->outline || dirty || (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {
+	if (!si->outline
+#ifndef GPAC_DISABLE_VRML
+		|| dirty
+#endif
+		|| (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {
 		u32 i;
 		Fixed w = asp->pen_props.width;
 		Fixed dash_o = asp->pen_props.dash_offset;
@@ -1518,7 +1522,8 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	/*FIXME - only needed for texture*/
 	if (!tr_state->color_mat.identity) {
 		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
-		gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
+		if (ctx->col_mat)
+			gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
 	}
 
 	switch (gf_node_get_tag(ctx->drawable->node) ) {

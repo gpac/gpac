@@ -31,6 +31,8 @@
 
 #define FT_IS_SMALL( x )  ( (x) > -FIX_EPSILON && (x) < FIX_EPSILON )
 
+#if 0 //unused
+
 static void ft_conic_split(GF_Point2D*  base )
 {
 	Fixed  a, b;
@@ -146,6 +148,7 @@ static Bool ft_cubic_is_small_enough(GF_Point2D *base, Fixed *angle_in, Fixed *a
 	return ((theta1 < FT_SMALL_CUBIC_THRESHOLD) && (theta2 < FT_SMALL_CUBIC_THRESHOLD )) ? GF_TRUE : GF_FALSE;
 }
 
+#endif
 
 /***************************************************************************/
 /***************************************************************************/
@@ -226,7 +229,7 @@ static s32 ft_stroke_border_lineto( FT_StrokeBorder  border, GF_Point2D*       t
 	return 0;
 }
 
-
+#if 0 //unused
 static s32 ft_stroke_border_conicto( FT_StrokeBorder  border, GF_Point2D*       control, GF_Point2D*       to )
 {
 	assert( border->start >= 0 );
@@ -247,6 +250,7 @@ static s32 ft_stroke_border_conicto( FT_StrokeBorder  border, GF_Point2D*       
 	border->movable = GF_FALSE;
 	return 0;
 }
+#endif
 
 static s32 ft_stroke_border_cubicto( FT_StrokeBorder  border,
                                      GF_Point2D*       control1,
@@ -837,7 +841,7 @@ Exit:
 	return error;
 }
 
-
+#if 0 //unused
 static s32 FT_Stroker_ConicTo(FT_Stroker *stroker, GF_Point2D*  control, GF_Point2D * to)
 {
 	s32 error = 0;
@@ -1019,6 +1023,8 @@ static s32 FT_Stroker_CubicTo(FT_Stroker *stroker,
 Exit:
 	return error;
 }
+#endif
+
 
 
 static s32 FT_Stroker_BeginSubPath(FT_Stroker *stroker, GF_Point2D*  to)
@@ -1178,7 +1184,9 @@ Exit:
 static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 {
 	GF_Point2D   v_last;
+#if 0 //unused
 	GF_Point2D   v_control;
+#endif
 	GF_Point2D   v_start;
 	GF_Point2D*  point;
 	GF_Point2D*  limit;
@@ -1203,7 +1211,9 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 		v_start = outline->points[first];
 		v_last  = outline->points[last];
 
+#if 0 //unused
 		v_control = v_start;
+#endif
 
 		point = outline->points + first;
 		tags  = outline->tags  + first;
@@ -1262,6 +1272,8 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 				continue;
 			}
 
+
+#if 0 //unused
 			case GF_PATH_CURVE_CONIC:  /* consume conic arcs */
 				v_control.x = point->x;
 				v_control.y = point->y;
@@ -1329,6 +1341,11 @@ Do_Conic:
 				goto Close;
 			}
 			break;
+#else
+			default:  /* GF_PATH_CURVE_CUBIC */
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Path2DStroke] Path is not flatten, cannot strike cubic and quadratic !\n"));
+#endif
+
 			}
 		}
 
@@ -1461,7 +1478,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	Fixed dist;
 	Fixed dash_dist;
 	s32 offsetinit;
-	u32 next_offset;
+	u32 next_offset=0;
 	s32 toggleinit;
 	s32 firstindex;
 	Bool toggle_check;
@@ -1500,7 +1517,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 			dash = gf_path_get_dash(pen, offsetinit, &next_offset);
 			if (length_scale) dash = gf_mulfix(dash, length_scale);
 		}
-		if (pen->dash_offset<0) {
+		if ((pen->dash_offset<0) && pen->dash_set && pen->dash_set->num_dash) {
 			offsetinit = pen->dash_set->num_dash-1;
 			dash = gf_path_get_dash(pen, offsetinit, &next_offset);
 			if (length_scale) dash = gf_mulfix(dash, length_scale);
@@ -1739,9 +1756,9 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 		u32 nb_pt, nb_cnt;
 		error = FT_Stroker_GetCounts(&stroker, &nb_pt, &nb_cnt);
 		if (!error) {
-			FT_StrokeBorder sborder;
 			outline = gf_path_new();
 			if (nb_pt) {
+				FT_StrokeBorder sborder;
 				outline->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*nb_pt);
 				outline->tags = (u8 *) gf_malloc(sizeof(u8)*nb_pt);
 				outline->contours = (u32 *) gf_malloc(sizeof(u32)*nb_cnt);

@@ -76,11 +76,10 @@ OCIEvent *gf_oci_event_new(u16 EventID)
 GF_EXPORT
 void gf_oci_event_del(OCIEvent *event)
 {
-	GF_Descriptor *desc;
 	if (!event) return;
 
 	while (gf_list_count(event->OCIDescriptors)) {
-		desc = (GF_Descriptor *)gf_list_get(event->OCIDescriptors, 0);
+		GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(event->OCIDescriptors, 0);
 		gf_list_rem(event->OCIDescriptors, 0);
 		gf_odf_delete_descriptor(desc);
 	}
@@ -206,11 +205,10 @@ OCICodec *gf_oci_codec_new(u8 IsEncoder, u8 Version)
 GF_EXPORT
 void gf_oci_codec_del(OCICodec *codec)
 {
-	OCIEvent *ev;
 	if (!codec) return;
 
 	while (gf_list_count(codec->OCIEvents)) {
-		ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
+		OCIEvent *ev = (OCIEvent *)gf_list_get(codec->OCIEvents, 0);
 		gf_oci_event_del(ev);
 		gf_list_rem(codec->OCIEvents, 0);
 	}
@@ -263,7 +261,7 @@ GF_Err WriteSevenBitLength(GF_BitStream *bs, u32 size)
 }
 
 GF_EXPORT
-GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
+GF_Err gf_oci_codec_encode(OCICodec *codec, u8 **outAU, u32 *au_length)
 {
 	GF_BitStream *bs;
 	u32 i, size, desc_size;
@@ -325,7 +323,7 @@ err_exit:
 
 
 GF_EXPORT
-GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length)
+GF_Err gf_oci_codec_decode(OCICodec *codec, u8 *au, u32 au_length)
 {
 	OCIEvent *ev;
 	GF_BitStream *bs;

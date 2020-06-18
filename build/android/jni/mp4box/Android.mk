@@ -6,7 +6,7 @@ LOCAL_MODULE			:= mp4box
 LOCAL_MODULE_FILENAME	:= libmp4box
 
 LOCAL_C_INCLUDES 	:= $(LOCAL_PATH)/../libgpac \
-						$(LOCAL_PATH)/../../../../include 
+						$(LOCAL_PATH)/../../../../include
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../libs/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lgpac -llog
