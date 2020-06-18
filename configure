@@ -947,6 +947,35 @@ else
     CFLAGS="$CFLAGS -DGPAC_NO_STDATOMIC"
 fi
 
+
+cat > $TMPC << EOF
+#include <stdint.h>
+int main(void) {
+    int i4 = 4;
+    __int64_t i8 = 8;
+    __sync_add_and_fetch(&i4, 12);
+    __sync_add_and_fetch(&i8, 12);
+}
+EOF
+has_builtinatomic="no"
+if docc ; then
+    has_builtinatomic="yes"
+else
+cat > $TMPC << EOF
+#include <stdint.h>
+int main(void) {
+    int i4 = 4;
+    __int64_t i8 = 8;
+    __atomic_add_fetch(&i4, 12, __ATOMIC_SEQ_CST);
+    __atomic_add_fetch(&i8, 12, __ATOMIC_SEQ_CST);
+}
+EOF
+    if docc -latomic ; then
+        CFLAGS="$CFLAGS -DGPAC_NEED_LIBATOMIC"
+        LDFLAGS="$LDFLAGS -latomic"
+    fi
+fi
+
 #look for JPEG support
 cat > $TMPC << EOF
 #include <stdio.h>
