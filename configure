@@ -3267,6 +3267,6 @@ generate_gpacdesktop () {
 	echo ""
 }
 
-generate_gpacdesktop > share/gpac.desktop
+generate_gpacdesktop > "$source_path/share/gpac.desktop"
 
 echo "Done - type 'make help' for make info, 'make' to build"
