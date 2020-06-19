@@ -65,8 +65,8 @@ The thread object allows executing some code independently of the main process o
 
  //atomic ref_count++ / ref_count--
 #if defined(WIN32) || defined(_WIN32_WCE)
-#include <Windows.h>
-#include <WinBase.h>
+#include <windows.h>
+#include <winbase.h>
 
 #define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
 #define safe_int_dec(__v) InterlockedDecrement((int *) (__v))
