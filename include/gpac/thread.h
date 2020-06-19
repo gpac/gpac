@@ -79,6 +79,19 @@ The thread object allows executing some code independently of the main process o
 
 #else
 
+#ifdef GPAC_NEED_LIBATOMIC
+
+#define safe_int_inc(__v) __atomic_add_fetch((int *) (__v), 1, __ATOMIC_SEQ_CST)
+#define safe_int_dec(__v) __atomic_sub_fetch((int *) (__v), 1, __ATOMIC_SEQ_CST)
+
+#define safe_int_add(__v, inc_val) __atomic_add_fetch((int *) (__v), inc_val, __ATOMIC_SEQ_CST)
+#define safe_int_sub(__v, dec_val) __atomic_sub_fetch((int *) (__v), dec_val, __ATOMIC_SEQ_CST)
+
+#define safe_int64_add(__v, inc_val) __atomic_add_fetch((int64_t *) (__v), inc_val, __ATOMIC_SEQ_CST)
+#define safe_int64_sub(__v, dec_val) __atomic_sub_fetch((int64_t *) (__v), dec_val, __ATOMIC_SEQ_CST)
+
+#else
+
 #define safe_int_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
 #define safe_int_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
 
@@ -87,6 +100,9 @@ The thread object allows executing some code independently of the main process o
 
 #define safe_int64_add(__v, inc_val) __sync_add_and_fetch((int64_t *) (__v), inc_val)
 #define safe_int64_sub(__v, dec_val) __sync_sub_and_fetch((int64_t *) (__v), dec_val)
+
+#endif //GPAC_NEED_LIBATOMIC
+
 #endif
 
 
@@ -348,4 +364,3 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 time_out);
 
 
 #endif		/*_GF_THREAD_H_*/
-

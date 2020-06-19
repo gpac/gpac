@@ -164,13 +164,8 @@ ifneq ($(CONFIG_DARWIN),yes)
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/pixmaps"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/applications"
 
-ifneq ($(IS_DEB_MAKE),1)
-	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)/usr/share/applications/"
-else
-	dh_link $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)$(prefix)/share/pixmaps/gpac.png
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png "$(DESTDIR)$(prefix)/share/pixmaps/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)$(prefix)/share/applications/"
-endif
 
 endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/"
@@ -240,8 +235,8 @@ endif
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
 	rm -rf $(DESTDIR)$(mandir)/man1/gpac-filters.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
-	rm -rf $(DESTDIR)/usr/share/pixmaps/gpac.png
-	rm -rf $(DESTDIR)/usr/share/applications/gpac.desktop
+	rm -rf $(DESTDIR)$(prefix)/share/pixmaps/gpac.png
+	rm -rf $(DESTDIR)$(prefix)/share/applications/gpac.desktop
 	rm -rf $(DESTDIR)$(prefix)/include/gpac
 
 installdylib:
