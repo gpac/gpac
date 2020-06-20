@@ -1192,7 +1192,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 
 		if (bs->cache_read) {
 			u32 csize = bs->cache_read_size - bs->cache_read_pos;
-			if (csize>nbBytes) {
+			if (csize>=nbBytes) {
 				bs->cache_read_pos += (u32) nbBytes;
 				bs->position += nbBytes;
 				return;
@@ -1201,9 +1201,10 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 			bs->position += csize;
 			bs->cache_read_pos = bs->cache_read_size;
 		}
-
-		gf_fseek(bs->stream, nbBytes, SEEK_CUR);
+		//weird msys2 bug resulting in broken seek on some files ?!?  -the big is not happening when doing absolute seek
+//		gf_fseek(bs->stream, nbBytes, SEEK_CUR);
 		bs->position += nbBytes;
+		gf_fseek(bs->stream, bs->position, SEEK_SET);
 		return;
 	}
 

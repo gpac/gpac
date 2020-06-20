@@ -1242,6 +1242,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 		GF_FileIO *gfio_ref;
 		GF_FileIO *new_gfio;
 		GF_Err e;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Open GFIO %s in mode %s\n", file_name, mode));
 
 		if (gfio_type==1)
 			gfio_ref = gf_fileio_from_url(file_name);
@@ -1266,6 +1267,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 		return (FILE *) new_gfio;
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Open file %s in mode %s\n", file_name, mode));
 	if (strchr(mode, 'w')) {
 		char *fname = gf_strdup(file_name);
 		char *sep = strchr(fname, '/');
