@@ -1712,8 +1712,8 @@ void CUDAAPI cuUninit();
  * driver API (___CURRENT_FILE___) ___ENDMANBRIEF___
  *
  * This section describes the OpenGL interoperability functions of the
- * low-level CUDA driver application programming interface. Note that mapping 
- * of OpenGL resources is performed with the graphics API agnostic, resource 
+ * low-level CUDA driver application programming interface. Note that mapping
+ * of OpenGL resources is performed with the graphics API agnostic, resource
  * mapping interface described in \ref CUDA_GRAPHICS "Graphics Interoperability".
  *
  * @{
@@ -1760,7 +1760,7 @@ typedef CUresult CUDAAPI tcuGLGetDevices(unsigned int *pCudaDeviceCount, CUdevic
 typedef enum CUGLmap_flags_enum {
     CU_GL_MAP_RESOURCE_FLAGS_NONE          = 0x00,
     CU_GL_MAP_RESOURCE_FLAGS_READ_ONLY     = 0x01,
-    CU_GL_MAP_RESOURCE_FLAGS_WRITE_DISCARD = 0x02,    
+    CU_GL_MAP_RESOURCE_FLAGS_WRITE_DISCARD = 0x02,
 } CUGLmap_flags;
 
 //#if __CUDA_API_VERSION >= 3020
@@ -1812,7 +1812,7 @@ extern tcuGLGetDevices                 *cuGLGetDevices; // CUDA 6.5 only
 
 
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
-#include <Windows.h>
+#include <windows.h>
 typedef HMODULE CUDADRIVER;
 #else
 typedef void *CUDADRIVER;
@@ -2605,7 +2605,7 @@ extern tcuvidCtxLockCreate        *cuvidCtxLockCreate;
 extern tcuvidCtxLockDestroy       *cuvidCtxLockDestroy;
 extern tcuvidCtxLock              *cuvidCtxLock;
 extern tcuvidCtxUnlock            *cuvidCtxUnlock;
-    
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // High-level helper APIs for video sources
@@ -2896,4 +2896,3 @@ const char *cudaGetErrorEnum(CUresult error);
 #endif // defined(WIN32) || defined(GPAC_CONFIG_LINUX)
 
 #endif //__cuda_tools_h__
-
