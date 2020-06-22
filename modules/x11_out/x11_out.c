@@ -1502,6 +1502,13 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 	xWindow->par_wnd = (Window) os_handle;
 	xWindow->init_flags = flags;
 
+	//window already setup and this restup asks for visible, show window
+	if (xWindow->wnd) {
+		if (!(xWindow->init_flags & GF_TERM_INIT_HIDE)) {
+			XMapWindow (xWindow->display, (Window) xWindow->wnd);
+		}
+	}
+
 	/*OSMOZILLA HACK*/
 	if (os_display) xWindow->no_select_input = 1;
 
