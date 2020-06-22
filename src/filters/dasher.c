@@ -2070,7 +2070,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	Bool has_vodcache=GF_FALSE;
 	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
 	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
-	const char *dst_args;
+	const char *dst_args, *trailer_args=NULL;
 	char *szDST = NULL;
 	char szSRC[100];
 
@@ -2103,11 +2103,17 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 	dst_args = gf_filter_get_dst_args(filter);
 	if (dst_args) {
-		char szKey[20];
+		char szKey[20], *sep;
 		sprintf(szSRC, "%c", sep_args);
 		gf_dynstrcat(&szDST, szSRC, NULL);
 		
 		gf_dynstrcat(&szDST, dst_args, NULL);
+		sprintf(szKey, "%c%c", sep_args, sep_args);
+		sep = strstr(szDST, szKey);
+		if (sep) {
+			sep[0] = 0;
+			trailer_args = strstr(dst_args, szKey);
+		}
 		//look for frag arg
 		sprintf(szKey, "%cfrag", sep_args);
 		if (strstr(dst_args, szKey)) has_frag = GF_TRUE;
@@ -2190,6 +2196,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cmoovts%c-1", sep_args, sep_name);
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
+	if (trailer_args)
+		gf_dynstrcat(&szDST, trailer_args, NULL);
+		
 	ds->dst_filter = gf_filter_connect_destination(filter, szDST, &e);
 	gf_free(szDST);
 	szDST = NULL;
