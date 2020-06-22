@@ -615,6 +615,9 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 	 return GF_TRUE;
 }
 
+GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter);
+Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, GF_VideoOutput *vout);
+
 static GF_Err vout_initialize(GF_Filter *filter)
 {
 	const char *sOpt;
@@ -625,7 +628,14 @@ static GF_Err vout_initialize(GF_Filter *filter)
 
 	ctx->filter = filter;
 
-	ctx->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, ctx->drv);
+#ifdef VOUT_USE_OPENGL
+	if (ctx->disp <= MODE_GL_PBO) {
+		ctx->video_out = (GF_VideoOutput *) gf_filter_claim_opengl_provider(filter);
+	}
+#endif
+
+	if (!ctx->video_out)
+		ctx->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, ctx->drv);
 
 
 	if (ctx->dumpframes.nb_items) {
@@ -666,11 +676,10 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		return e;
 	}
 
-	if ( !(ctx->video_out->hw_caps & GF_VIDEO_HW_OPENGL)
-#ifndef VOUT_USE_OPENGL
-	|| (1)
+#ifdef VOUT_USE_OPENGL
+	if ( !(ctx->video_out->hw_caps & GF_VIDEO_HW_OPENGL) )
 #endif
-	) {
+	{
 		if (ctx->disp < MODE_2D) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("No openGL support - using 2D rasterizer!\n", ctx->video_out->module_name));
 			ctx->disp = MODE_2D;
@@ -721,8 +730,10 @@ static void vout_finalize(GF_Filter *filter)
 
 	/*stop and shutdown*/
 	if (ctx->video_out) {
-		ctx->video_out->Shutdown(ctx->video_out);
-		gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
+		if (! gf_filter_unclaim_opengl_provider(filter, ctx->video_out)) {
+			ctx->video_out->Shutdown(ctx->video_out);
+			gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
+		}
 		ctx->video_out = NULL;
 	}
 	if (ctx->dump_buffer) gf_free(ctx->dump_buffer);
