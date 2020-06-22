@@ -472,8 +472,14 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 {
 	RECT rc;
 	DDCONTEXT
-	dd->os_hwnd = (HWND) os_handle;
 
+	if (dd->cur_hwnd) {
+		if (!(init_flags & GF_TERM_INIT_HIDE)) {
+			ShowWindow(dd->cur_hwnd, SW_SHOW);
+		}
+		return GF_OK;
+	}
+	dd->os_hwnd = (HWND) os_handle;
 	DD_SetupWindow(dr, init_flags);
 	/*fatal error*/
 	if (!dd->os_hwnd) return GF_IO_ERR;
