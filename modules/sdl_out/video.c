@@ -1072,15 +1072,26 @@ u32 SDLVid_EventProc(void *par)
 
 GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 init_flags)
 {
+	Bool show_window = GF_TRUE;
 	SDLVID();
 	/*we don't allow SDL hack, not stable enough*/
 	//if (os_handle) SDLVid_SetHack(os_handle, 1);
 
 	ctx->os_handle = os_handle;
-	ctx->is_init = GF_FALSE;
-	ctx->output_3d = GF_FALSE;
+	if (!ctx->is_init) {
+		ctx->output_3d = GF_FALSE;
+		show_window = GF_TRUE;
+	}
+
 	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
 	ctx->hidden = (init_flags & GF_TERM_INIT_HIDE) ? GF_TRUE : GF_FALSE;
+
+	if (!ctx->hidden && show_window) {
+#if SDL_VERSION_ATLEAST(2,0,0)
+		SDL_ShowWindow(ctx->screen);
+#else
+#endif
+	}
 
 	if (!SDLOUT_InitSDL())
 		return GF_IO_ERR;
