@@ -667,7 +667,6 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 	GF_SampleToChunkBox *stsc;
 	GF_ChunkLargeOffsetBox *co64;
 	GF_StscEntry *ent;
-	Bool needs_split = GF_TRUE;
 	u32 i, k, *newOff, new_chunk_idx=0;
 	u64 *newLarge;
 	s32 insert_idx = -1;
@@ -679,9 +678,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 	if (!nb_pack_samples)
 		nb_pack_samples = 1;
 
-	if (stsc->w_lastSampleNumber + 1 == sampleNumber ) needs_split = GF_TRUE;
-
-	if (!stsc->nb_entries || (stsc->nb_entries + (needs_split ? 2 : 0) >= stsc->alloc_size)) {
+	if (!stsc->nb_entries || (stsc->nb_entries + 2 >= stsc->alloc_size)) {
 		if (!stsc->alloc_size) stsc->alloc_size = 1;
 		ALLOC_INC(stsc->alloc_size);
 		stsc->entries = gf_realloc(stsc->entries, sizeof(GF_StscEntry)*stsc->alloc_size);
