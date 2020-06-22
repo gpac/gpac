@@ -6077,14 +6077,17 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				u8 *d=NULL;
+				e = GF_OK;
 				if (val) {
 					char *ext;
-					gf_file_load_data(val, (u8 **) &d, &tlen);
+					e = gf_file_load_data(val, (u8 **) &d, &tlen);
 
 					ext = strrchr(val, '.');
 					if (!stricmp(ext, ".png")) tlen |= 0x80000000;
 				}
-				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
+				if (!e)
+					e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
+
 				if (d) gf_free(d);
 			}
 			break;

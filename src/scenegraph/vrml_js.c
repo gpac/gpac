@@ -288,10 +288,10 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		u32 buf_len;
 		u8 *buf;
 		JSValue func_val;
-		gf_file_load_data(module_name, &buf, &buf_len);
+		GF_Err e = gf_file_load_data(module_name, &buf, &buf_len);
 
-		if (!buf) {
-			JS_ThrowReferenceError(ctx, "could not load module filename '%s'", module_name);
+		if (e != GF_OK) {
+			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );
 			return NULL;
 		}
 		/* compile the module */
