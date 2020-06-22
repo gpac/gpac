@@ -980,16 +980,15 @@ GF_EXPORT
 GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *err_code)
 {
 	const char *args=NULL;
+	const char *sep;
 	u32 i, len, count = gf_list_count(fsess->registry);
 	Bool quiet = (err_code && (*err_code == GF_EOS)) ? GF_TRUE : GF_FALSE;
-
-	char *sep;
 
 	assert(fsess);
 	assert(name);
 	if (err_code) *err_code = GF_OK;
 
-	sep = strchr(name, fsess->sep_args);
+	sep = gf_fs_path_escape_colon(fsess, name);
 	if (sep) {
 		args = sep+1;
 		len = (u32) (sep - name);
