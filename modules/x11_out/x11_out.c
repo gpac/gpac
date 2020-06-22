@@ -975,10 +975,14 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		case GF_EVENT_SET_GL:
 			if (!xWindow->output_3d) return GF_OK;
 
+#ifdef GPAC_HAS_OPENGL
 			if ( ! glXMakeCurrent(xWindow->display, xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd, xWindow->glx_context) ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Cannot make context current\n"));
 				return GF_IO_ERR;
 			}
+#else
+			return GF_NOT_SUPPORTED;
+#endif
 			break;
 		}
 	} else {
