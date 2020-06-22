@@ -314,6 +314,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	load_static_modules(pm);
 
 	for (i =0; i < pm->num_dirs; i++) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s\n", pm->dirs[i]));
 #ifdef WIN32
 		gf_enum_directory(pm->dirs[i], GF_FALSE, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)
@@ -323,7 +324,6 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dylib");
 #endif
 #else
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dirs[i]));
 
 #if defined(GPAC_CONFIG_WIN32)
 		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dll");

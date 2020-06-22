@@ -380,7 +380,7 @@ void PrintDASHUsage()
 GF_GPACArg m4b_imp_args[] =
 {
  	GF_DEF_ARG("add", NULL, "add given file tracks to file. Multiple inputs can be specified using `+`, eg `-add url1+url2", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("cat", NULL, "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`(eg `-cat url1+url2).\nNote: Note: This aligns initial timestamp of the file to be concatenated", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("cat", NULL, "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`(eg `-cat url1+url2).\nNote: This aligns initial timestamp of the file to be concatenated", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("catx", NULL, "same as [-cat]() but new tracks can be imported before concatenation by specifying `+ADD_COMMAND` where `ADD_COMMAND` is a regular [-add]() syntax", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("catpl", NULL, "concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).\nNote: Each listed file is concatenated as if called with -cat", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("unalign-cat", NULL, "do not attempt to align timestamps of samples inbetween tracks", NULL, NULL, GF_ARG_STRING, 0),
@@ -6077,14 +6077,17 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				u8 *d=NULL;
+				e = GF_OK;
 				if (val) {
 					char *ext;
-					gf_file_load_data(val, (u8 **) &d, &tlen);
+					e = gf_file_load_data(val, (u8 **) &d, &tlen);
 
 					ext = strrchr(val, '.');
 					if (!stricmp(ext, ".png")) tlen |= 0x80000000;
 				}
-				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
+				if (!e)
+					e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
+
 				if (d) gf_free(d);
 			}
 			break;

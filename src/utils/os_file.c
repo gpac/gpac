@@ -559,8 +559,9 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #elif defined(WIN32)
 	wchar_t path[GF_MAX_PATH], *file;
 	wchar_t w_filter[GF_MAX_PATH];
-	wchar_t w_dir[GF_MAX_PATH];
 	char *mbs_file, *mbs_item_path;
+	char _path[GF_MAX_PATH];
+	const char* tmpdir;
 #else
 	char path[GF_MAX_PATH], *file;
 #endif
@@ -633,23 +634,29 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	CE_CharToWide(_path, path);
 	CE_CharToWide((char *)filter, w_filter);
 #elif defined(WIN32)
-	{
-		const char* tmpdir = dir;
-		gf_utf8_mbstowcs(w_dir, sizeof(w_dir), &tmpdir);
-	}
-	switch (w_dir[wcslen(w_dir) - 1]) {
+
+	strcpy(_path, dir);
+	switch (dir[strlen(dir)] - 1) {
 	case '/':
 	case '\\':
-		swprintf(path, MAX_PATH, L"%s*", w_dir);
+		snprintf(_path, MAX_PATH, "%s*", dir);
 		break;
 	default:
-		swprintf(path, MAX_PATH, L"%s%c*", w_dir, GF_PATH_SEPARATOR);
+		snprintf(_path, MAX_PATH, "%s%c*", dir, GF_PATH_SEPARATOR);
 		break;
 	}
-	{
-		const char* tmpfilter = filter;
-		gf_utf8_mbstowcs(w_filter, sizeof(w_filter), &tmpfilter);
+
+	tmpdir = _path;
+	if (gf_utf8_mbstowcs(path, GF_MAX_PATH, &tmpdir) == (size_t)-1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot convert %s to UTF16: broken string\n", dir));
+		return GF_BAD_PARAM;
 	}
+	tmpdir  = filter;
+	if (gf_utf8_mbstowcs(w_filter, sizeof(w_filter), &tmpdir) == (size_t)-1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot convert %s to UTF16: broken string\n", filter));
+		return GF_BAD_PARAM;
+	}
+
 #else
 	strcpy(path, dir);
 	if (path[strlen(path)-1] != '/') strcat(path, "/");
@@ -1235,6 +1242,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 		GF_FileIO *gfio_ref;
 		GF_FileIO *new_gfio;
 		GF_Err e;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Open GFIO %s in mode %s\n", file_name, mode));
 
 		if (gfio_type==1)
 			gfio_ref = gf_fileio_from_url(file_name);
@@ -1259,6 +1267,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 		return (FILE *) new_gfio;
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Open file %s in mode %s\n", file_name, mode));
 	if (strchr(mode, 'w')) {
 		char *fname = gf_strdup(file_name);
 		char *sep = strchr(fname, '/');

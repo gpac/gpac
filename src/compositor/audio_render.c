@@ -191,6 +191,7 @@ void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume)
 {
 	if (Volume>100) Volume=100;
 	if (ar->volume==Volume) return;
+	ar->volume = Volume;
 	if (ar->aout) gf_filter_pid_set_property(ar->aout, GF_PROP_PID_AUDIO_VOLUME, &PROP_UINT(ar->volume) );
 }
 
