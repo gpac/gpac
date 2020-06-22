@@ -971,7 +971,7 @@ void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, con
 	u32 len;
 	sprintf(szMsg, "{ \"type\": \"logs\", \"level\": \"%s\" \"tool\": \"%s\", \"value\": \"", gf_log_level_name(level), gf_log_tool_name(tool));
 
-	len = strlen(szMsg);
+	len = (u32) strlen(szMsg);
 	vsnprintf(szMsg, RMT_LOG_SIZE - len - 3, fmt, vlist);
 	strcat(szMsg, "\"}");
 

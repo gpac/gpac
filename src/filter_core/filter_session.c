@@ -980,16 +980,15 @@ GF_EXPORT
 GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *err_code)
 {
 	const char *args=NULL;
+	const char *sep;
 	u32 i, len, count = gf_list_count(fsess->registry);
 	Bool quiet = (err_code && (*err_code == GF_EOS)) ? GF_TRUE : GF_FALSE;
-
-	char *sep;
 
 	assert(fsess);
 	assert(name);
 	if (err_code) *err_code = GF_OK;
 
-	sep = strchr(name, fsess->sep_args);
+	sep = gf_fs_path_escape_colon(fsess, name);
 	if (sep) {
 		args = sep+1;
 		len = (u32) (sep - name);
@@ -3007,6 +3006,11 @@ void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load)
 }
 
 #ifndef GPAC_DISABLE_3D
+
+
+#define GF_VIDEO_HW_INTERNAL	(1<<29)
+#define GF_VIDEO_HW_ATTACHED	(1<<30)
+
 static Bool fsess_on_event(void *cbk, GF_Event *evt)
 {
 	return GF_TRUE;
@@ -3034,6 +3038,7 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	if (!gf_opts_get_key("core", "video-output")) {
 		gf_opts_set_key("core", "video-output", session->gl_driver->module_name);
 	}
+	session->gl_driver->hw_caps |= GF_VIDEO_HW_INTERNAL;
 	session->gl_driver->on_event = fsess_on_event;
 	session->gl_driver->evt_cbk_hdl = session;
 
@@ -3074,6 +3079,48 @@ GF_Err gf_fs_set_gl(GF_FilterSession *session)
 	evt.type = GF_EVENT_SET_GL;
 	return session->gl_driver->ProcessEvent(session->gl_driver, &evt);
 }
+
+GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter)
+{
+	if (!filter || !filter->session || !filter->session->gl_driver) return NULL;
+
+	if (! (filter->session->gl_driver->hw_caps & GF_VIDEO_HW_INTERNAL))
+		return NULL;
+	if (filter->session->gl_driver->hw_caps & GF_VIDEO_HW_ATTACHED)
+		return NULL;
+
+	filter->session->gl_driver->hw_caps |= GF_VIDEO_HW_ATTACHED;
+	return filter->session->gl_driver;
+}
+
+Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, GF_VideoOutput * video_out)
+{
+	if (!filter || !video_out) return GF_FALSE;
+
+	if (! (video_out->hw_caps & GF_VIDEO_HW_INTERNAL))
+		return GF_FALSE;
+	if (video_out != filter->session->gl_driver)
+		return GF_FALSE;
+
+	if (filter->session->gl_driver->hw_caps & GF_VIDEO_HW_ATTACHED) {
+		filter->session->gl_driver->hw_caps &= ~GF_VIDEO_HW_ATTACHED;
+		filter->session->gl_driver->on_event = fsess_on_event;
+		filter->session->gl_driver->evt_cbk_hdl = filter->session;
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+#else
+void *gf_filter_claim_opengl_provider(GF_Filter *filter)
+{
+	return NULL;
+}
+Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, void *vout)
+{
+	return GF_FALSE;
+}
+
 #endif
 
 
