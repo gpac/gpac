@@ -2591,7 +2591,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 				} else if(gf_isom_is_cenc_media(file, trackNum, 1)) {
 					gf_isom_get_cenc_info(file, trackNum, 1, NULL, &scheme_type, &version, &IV_size);
 					fprintf(stderr, "\n*Encrypted stream - CENC scheme %s (version: major=%u, minor=%u)\n", gf_4cc_to_str(scheme_type), (version&0xFFFF0000)>>16, version&0xFFFF);
-					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+					if (IV_size)
+						fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+					if (gf_isom_cenc_is_pattern_mode(file, trackNum, 1))
+						fprintf(stderr, "Pattern mode enabled\n");
+
 				} else if(gf_isom_is_adobe_protection_media(file, trackNum, 1)) {
 					gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version, NULL);
 					fprintf(stderr, "\n*Encrypted stream - Adobe protection scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
