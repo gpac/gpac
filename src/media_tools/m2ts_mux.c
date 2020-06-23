@@ -2114,11 +2114,11 @@ static s32 gf_m2ts_find_stream(GF_M2TS_Mux_Program *program, u32 pid, u32 stream
 	if (out_stream) *out_stream = NULL;
 	while (st) {
 		if (pid && (st->pid == pid)) {
-			*out_stream = st;
+			if (out_stream) *out_stream = st;
 			return i;
 		}
 		if (stream_id && (st->ifce->stream_id == stream_id)) {
-			*out_stream = st;
+			if (out_stream) *out_stream = st;
 			return i;
 		}
 		st = st->next;

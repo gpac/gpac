@@ -910,13 +910,14 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_hint_sample) )
 #endif
 
-gf_isom_hint_pck_read
-gf_isom_hint_pck_del
-gf_isom_hint_pck_new
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_pck_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_pck_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_pck_new) )
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
-gf_isom_hint_pck_size
-gf_isom_hint_pck_write
-gf_isom_hint_pck_length
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_pck_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_pck_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_pck_length) )
 #endif
 
 #endif
