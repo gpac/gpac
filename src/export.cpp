@@ -1370,14 +1370,17 @@
 #ifndef GPAC_DISABLE_HEVC
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps_ex) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_vps_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps_ex) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_sps_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_pps) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_read_pps_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_profile_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_sps_info_with_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_parse_nalu) )
-
 #endif //GPAC_DISABLE_HEVC
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_aom_av1_parse_obu) )
 
