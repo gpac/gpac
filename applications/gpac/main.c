@@ -3623,6 +3623,13 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_odf_get_text_config(NULL, 0, 0, txtc);
 	gf_odf_dump_txtcfg(txtc, NULL, 0, GF_FALSE);
 	gf_odf_desc_del((GF_Descriptor *) txtc);
+
+	//stuff only used by vtbdec
+	gf_media_hevc_read_pps_bs(NULL, NULL);
+	gf_media_hevc_read_sps_bs(NULL, NULL);
+	gf_media_hevc_read_vps_bs(NULL, NULL);
+	gf_mpegv12_get_config(NULL, 0, NULL);
+
 #endif
 	return 0;
 }
