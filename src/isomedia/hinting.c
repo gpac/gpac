@@ -278,7 +278,7 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-
+GF_EXPORT
 GF_HintPacket *gf_isom_hint_pck_new(u32 HintType)
 {
 	GF_HintPacket *pck;
@@ -298,6 +298,7 @@ GF_HintPacket *gf_isom_hint_pck_new(u32 HintType)
 	}
 }
 
+GF_EXPORT
 void gf_isom_hint_pck_del(GF_HintPacket *ptr)
 {
 	if (!ptr) return;
@@ -315,6 +316,7 @@ void gf_isom_hint_pck_del(GF_HintPacket *ptr)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_isom_hint_pck_read(GF_HintPacket *ptr, GF_BitStream *bs)
 {
 	if (!ptr) return GF_BAD_PARAM;
@@ -332,6 +334,7 @@ GF_Err gf_isom_hint_pck_read(GF_HintPacket *ptr, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_EXPORT
 GF_Err gf_isom_hint_pck_write(GF_HintPacket *ptr, GF_BitStream *bs)
 {
 	if (!ptr) return GF_BAD_PARAM;
@@ -347,6 +350,7 @@ GF_Err gf_isom_hint_pck_write(GF_HintPacket *ptr, GF_BitStream *bs)
 	}
 }
 
+GF_EXPORT
 u32 gf_isom_hint_pck_size(GF_HintPacket *ptr)
 {
 	if (!ptr) return GF_BAD_PARAM;
@@ -396,6 +400,7 @@ GF_Err gf_isom_hint_pck_add_dte(GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBeg
 	}
 }
 
+GF_EXPORT
 u32 gf_isom_hint_pck_length(GF_HintPacket *ptr)
 {
 	if (!ptr) return 0;
@@ -420,65 +425,45 @@ u32 gf_isom_hint_pck_length(GF_HintPacket *ptr)
 		Creation of DataTable entries in the RTP sample
 ********************************************************************/
 
-GF_GenericDTE *New_EmptyDTE()
-{
-	GF_EmptyDTE *dte = (GF_EmptyDTE *)gf_malloc(sizeof(GF_EmptyDTE));
-	if (dte) dte->source = 0;
-	return (GF_GenericDTE *)dte;
-}
-
-GF_GenericDTE *New_ImmediateDTE()
-{
-	GF_ImmediateDTE *dte;
-	GF_SAFEALLOC(dte, GF_ImmediateDTE);
-	if (dte) {
-		dte->source = 1;
-		dte->dataLength = 0;
-	}
-	return (GF_GenericDTE *)dte;
-}
-
-GF_GenericDTE *New_SampleDTE()
-{
-	GF_SampleDTE *dte = (GF_SampleDTE *)gf_malloc(sizeof(GF_SampleDTE));
-	if (!dte) return NULL;
-	dte->source = 2;
-	//can be -1 in QT , so init at -2
-	dte->trackRefIndex = (s8) -2;
-	dte->dataLength = 0;
-	dte->sampleNumber = 0;
-	dte->samplesPerComp = 1;
-	dte->byteOffset = 0;
-	dte->bytesPerComp = 1;
-	return (GF_GenericDTE *)dte;
-}
-
-GF_GenericDTE *New_StreamDescDTE()
-{
-	GF_StreamDescDTE *dte = (GF_StreamDescDTE *)gf_malloc(sizeof(GF_StreamDescDTE));
-	if (!dte) return NULL;
-	dte->source = 3;
-	dte->byteOffset = 0;
-	dte->dataLength = 0;
-	dte->reserved = 0;
-	dte->streamDescIndex = 0;
-	//can be -1 in QT , so init at -2
-	dte->trackRefIndex = (s8) -2;
-	return (GF_GenericDTE *)dte;
-}
-
 //creation of DTEs
 GF_GenericDTE *NewDTE(u8 type)
 {
 	switch (type) {
 	case 0:
-		return New_EmptyDTE();
+	{
+		GF_EmptyDTE *dte;
+		GF_SAFEALLOC(dte, GF_EmptyDTE);
+		return (GF_GenericDTE *)dte;
+	}
 	case 1:
-		return New_ImmediateDTE();
+	{
+		GF_ImmediateDTE *dte;
+		GF_SAFEALLOC(dte, GF_ImmediateDTE);
+		if (dte) dte->source = 1;
+		return (GF_GenericDTE *)dte;
+	}
 	case 2:
-		return New_SampleDTE();
+	{
+		GF_SampleDTE *dte;
+		GF_SAFEALLOC(dte, GF_SampleDTE);
+		if (!dte) return NULL;
+		dte->source = 2;
+		//can be -1 in QT , so init at -2
+		dte->trackRefIndex = (s8) -2;
+		dte->samplesPerComp = 1;
+		dte->bytesPerComp = 1;
+		return (GF_GenericDTE *)dte;
+	}
 	case 3:
-		return New_StreamDescDTE();
+	{
+		GF_StreamDescDTE *dte;
+		GF_SAFEALLOC(dte, GF_StreamDescDTE);
+		if (!dte) return NULL;
+		dte->source = 3;
+		//can be -1 in QT , so init at -2
+		dte->trackRefIndex = (s8) -2;
+		return (GF_GenericDTE *)dte;
+	}
 	default:
 		return NULL;
 	}
@@ -487,41 +472,16 @@ GF_GenericDTE *NewDTE(u8 type)
 /********************************************************************
 		Deletion of DataTable entries in the RTP sample
 ********************************************************************/
-void Del_EmptyDTE(GF_EmptyDTE *dte)
-{
-	gf_free(dte);
-}
-
-void Del_ImmediateDTE(GF_ImmediateDTE *dte)
-{
-	gf_free(dte);
-}
-
-void Del_SampleDTE(GF_SampleDTE *dte)
-{
-	gf_free(dte);
-}
-
-void Del_StreamDescDTE(GF_StreamDescDTE *dte)
-{
-	gf_free(dte);
-}
 
 //deletion of DTEs
 void DelDTE(GF_GenericDTE *dte)
 {
 	switch (dte->source) {
 	case 0:
-		Del_EmptyDTE((GF_EmptyDTE *)dte);
-		break;
 	case 1:
-		Del_ImmediateDTE((GF_ImmediateDTE *)dte);
-		break;
 	case 2:
-		Del_SampleDTE((GF_SampleDTE *)dte);
-		break;
 	case 3:
-		Del_StreamDescDTE((GF_StreamDescDTE *)dte);
+		gf_free(dte);
 		break;
 	default:
 		return;
@@ -533,62 +493,50 @@ void DelDTE(GF_GenericDTE *dte)
 /********************************************************************
 		Reading of DataTable entries in the RTP sample
 ********************************************************************/
-GF_Err Read_EmptyDTE(GF_EmptyDTE *dte, GF_BitStream *bs)
-{
-	char empty[15];
-	//empty but always 15 bytes !!!
-	gf_bs_read_data(bs, empty, 15);
-	return GF_OK;
-}
 
-GF_Err Read_ImmediateDTE(GF_ImmediateDTE *dte, GF_BitStream *bs)
+GF_Err ReadDTE(GF_GenericDTE *_dte, GF_BitStream *bs)
 {
-	dte->dataLength = gf_bs_read_u8(bs);
-	if (dte->dataLength > 14) return GF_ISOM_INVALID_FILE;
-	gf_bs_read_data(bs, dte->data, dte->dataLength);
-	if (dte->dataLength < 14) gf_bs_skip_bytes(bs, 14 - dte->dataLength);
-	return GF_OK;
-}
-
-GF_Err Read_SampleDTE(GF_SampleDTE *dte, GF_BitStream *bs)
-{
-	dte->trackRefIndex = (s8) gf_bs_read_u8(bs);
-	dte->dataLength = gf_bs_read_u16(bs);
-	dte->sampleNumber = gf_bs_read_u32(bs);
-	dte->byteOffset = gf_bs_read_u32(bs);
-	dte->bytesPerComp = gf_bs_read_u16(bs);
-	dte->samplesPerComp = gf_bs_read_u16(bs);
-	if (dte->bytesPerComp != 1) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with bytesperblock %d, not 1\n", dte->bytesPerComp));
-	}
-	if (dte->samplesPerComp != 1) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with samplesperblock %d, not 1\n", dte->bytesPerComp));
-	}
-	return GF_OK;
-}
-
-GF_Err Read_StreamDescDTE(GF_StreamDescDTE *dte, GF_BitStream *bs)
-{
-	dte->trackRefIndex = gf_bs_read_u8(bs);
-	dte->dataLength = gf_bs_read_u16(bs);
-	dte->streamDescIndex = gf_bs_read_u32(bs);
-	dte->byteOffset = gf_bs_read_u32(bs);
-	dte->reserved = gf_bs_read_u32(bs);
-	return GF_OK;
-}
-
-GF_Err ReadDTE(GF_GenericDTE *dte, GF_BitStream *bs)
-{
-	switch (dte->source) {
+	switch (_dte->source) {
 	case 0:
-		//nothing to o, it is an empty entry
-		return Read_EmptyDTE((GF_EmptyDTE *)dte, bs);
+		//empty but always 15 bytes !!!
+		gf_bs_skip_bytes(bs, 15);
+		return GF_OK;
 	case 1:
-		return Read_ImmediateDTE((GF_ImmediateDTE *)dte, bs);
+	{
+		GF_ImmediateDTE *dte = (GF_ImmediateDTE *)_dte;
+		dte->dataLength = gf_bs_read_u8(bs);
+		if (dte->dataLength > 14) return GF_ISOM_INVALID_FILE;
+		gf_bs_read_data(bs, dte->data, dte->dataLength);
+		if (dte->dataLength < 14) gf_bs_skip_bytes(bs, 14 - dte->dataLength);
+		return GF_OK;
+	}
 	case 2:
-		return Read_SampleDTE((GF_SampleDTE *)dte, bs);
+	{
+		GF_SampleDTE *dte = (GF_SampleDTE *)_dte;
+		dte->trackRefIndex = (s8) gf_bs_read_u8(bs);
+		dte->dataLength = gf_bs_read_u16(bs);
+		dte->sampleNumber = gf_bs_read_u32(bs);
+		dte->byteOffset = gf_bs_read_u32(bs);
+		dte->bytesPerComp = gf_bs_read_u16(bs);
+		dte->samplesPerComp = gf_bs_read_u16(bs);
+		if (dte->bytesPerComp != 1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with bytesperblock %d, not 1\n", dte->bytesPerComp));
+		}
+		if (dte->samplesPerComp != 1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with samplesperblock %d, not 1\n", dte->bytesPerComp));
+		}
+		return GF_OK;
+	}
 	case 3:
-		return Read_StreamDescDTE((GF_StreamDescDTE *)dte, bs);
+	{
+		GF_StreamDescDTE *dte = (GF_StreamDescDTE *)_dte;
+		dte->trackRefIndex = gf_bs_read_u8(bs);
+		dte->dataLength = gf_bs_read_u16(bs);
+		dte->streamDescIndex = gf_bs_read_u32(bs);
+		dte->byteOffset = gf_bs_read_u32(bs);
+		dte->reserved = gf_bs_read_u32(bs);
+		return GF_OK;
+	}
 	default:
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -597,63 +545,56 @@ GF_Err ReadDTE(GF_GenericDTE *dte, GF_BitStream *bs)
 /********************************************************************
 		Writing of DataTable entries in the RTP sample
 ********************************************************************/
-GF_Err Write_EmptyDTE(GF_EmptyDTE *dte, GF_BitStream *bs)
-{
-	gf_bs_write_u8(bs, dte->source);
-	//empty but always 15 bytes !!!
-	gf_bs_write_data(bs, "empty hint DTE", 15);
-	return GF_OK;
-}
 
-GF_Err Write_ImmediateDTE(GF_ImmediateDTE *dte, GF_BitStream *bs)
-{
-	gf_bs_write_u8(bs, dte->source);
-	gf_bs_write_u8(bs, dte->dataLength);
-	gf_bs_write_data(bs, dte->data, dte->dataLength);
-	if (dte->dataLength < 14) {
-		char data[14];
-		memset(data, 0, 14);
-		gf_bs_write_data(bs, data, 14 - dte->dataLength);
-	}
-	return GF_OK;
-}
 
-GF_Err Write_SampleDTE(GF_SampleDTE *dte, GF_BitStream *bs)
+GF_Err WriteDTE(GF_GenericDTE *_dte, GF_BitStream *bs)
 {
-	gf_bs_write_u8(bs, dte->source);
-	gf_bs_write_u8(bs, dte->trackRefIndex);
-	gf_bs_write_u16(bs, dte->dataLength);
-	gf_bs_write_u32(bs, dte->sampleNumber);
-	gf_bs_write_u32(bs, dte->byteOffset);
-	gf_bs_write_u16(bs, dte->bytesPerComp);
-	gf_bs_write_u16(bs, dte->samplesPerComp);
-	return GF_OK;
-}
-
-GF_Err Write_StreamDescDTE(GF_StreamDescDTE *dte, GF_BitStream *bs)
-{
-	gf_bs_write_u8(bs, dte->source);
-
-	gf_bs_write_u8(bs, dte->trackRefIndex);
-	gf_bs_write_u16(bs, dte->dataLength);
-	gf_bs_write_u32(bs, dte->streamDescIndex);
-	gf_bs_write_u32(bs, dte->byteOffset);
-	gf_bs_write_u32(bs, dte->reserved);
-	return GF_OK;
-}
-
-GF_Err WriteDTE(GF_GenericDTE *dte, GF_BitStream *bs)
-{
-	switch (dte->source) {
+	switch (_dte->source) {
 	case 0:
-		//nothing to do, it is an empty entry
-		return Write_EmptyDTE((GF_EmptyDTE *)dte, bs);
+	{
+		GF_EmptyDTE *dte = (GF_EmptyDTE *)_dte;
+		gf_bs_write_u8(bs, dte->source);
+		//empty but always 15 bytes !!!
+		gf_bs_write_data(bs, "empty hint DTE", 15);
+		return GF_OK;
+	}
 	case 1:
-		return Write_ImmediateDTE((GF_ImmediateDTE *)dte, bs);
+	{
+		GF_ImmediateDTE *dte = (GF_ImmediateDTE *)_dte;
+		gf_bs_write_u8(bs, dte->source);
+		gf_bs_write_u8(bs, dte->dataLength);
+		gf_bs_write_data(bs, dte->data, dte->dataLength);
+		if (dte->dataLength < 14) {
+			char data[14];
+			memset(data, 0, 14);
+			gf_bs_write_data(bs, data, 14 - dte->dataLength);
+		}
+		return GF_OK;
+	}
 	case 2:
-		return Write_SampleDTE((GF_SampleDTE *)dte, bs);
+	{
+		GF_SampleDTE *dte = (GF_SampleDTE *)_dte;
+		gf_bs_write_u8(bs, dte->source);
+		gf_bs_write_u8(bs, dte->trackRefIndex);
+		gf_bs_write_u16(bs, dte->dataLength);
+		gf_bs_write_u32(bs, dte->sampleNumber);
+		gf_bs_write_u32(bs, dte->byteOffset);
+		gf_bs_write_u16(bs, dte->bytesPerComp);
+		gf_bs_write_u16(bs, dte->samplesPerComp);
+		return GF_OK;
+	}
 	case 3:
-		return Write_StreamDescDTE((GF_StreamDescDTE *)dte, bs);
+	{
+		GF_StreamDescDTE *dte = (GF_StreamDescDTE *)_dte;
+		gf_bs_write_u8(bs, dte->source);
+
+		gf_bs_write_u8(bs, dte->trackRefIndex);
+		gf_bs_write_u16(bs, dte->dataLength);
+		gf_bs_write_u32(bs, dte->streamDescIndex);
+		gf_bs_write_u32(bs, dte->byteOffset);
+		gf_bs_write_u32(bs, dte->reserved);
+		return GF_OK;
+	}
 	default:
 		return GF_ISOM_INVALID_FILE;
 	}
