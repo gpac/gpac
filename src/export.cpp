@@ -909,6 +909,16 @@
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_hint_sample) )
 #endif
+
+gf_isom_hint_pck_read
+gf_isom_hint_pck_del
+gf_isom_hint_pck_new
+#ifndef GPAC_DISABLE_ISOM_WRITE
+gf_isom_hint_pck_size
+gf_isom_hint_pck_write
+gf_isom_hint_pck_length
+#endif
+
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

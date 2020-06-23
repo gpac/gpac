@@ -3266,6 +3266,8 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/mpegts.h>
 #include <gpac/rtp_streamer.h>
 #include <gpac/internal/odf_dev.h>
+#include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 #endif
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
@@ -3630,6 +3632,21 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_media_hevc_read_vps_bs(NULL, NULL);
 	gf_mpegv12_get_config(NULL, 0, NULL);
 
+	//hinting stuff
+	GF_HintPacket *hpck = gf_isom_hint_pck_new(GF_ISOM_BOX_TYPE_RTCP_STSD);
+	gf_isom_hint_pck_length(hpck);
+	gf_isom_hint_pck_size(hpck);
+	GF_BitStream *hbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_isom_hint_pck_write(hpck, hbs);
+	u8 *hbuf;
+	u32 hsize;
+	gf_bs_get_content(hbs, &hbuf, &hsize);
+	gf_bs_del(hbs);
+	hbs = gf_bs_new(hbuf, hsize, GF_BITSTREAM_READ);
+	gf_isom_hint_pck_read(hpck, hbs);
+	gf_bs_del(hbs);
+	gf_free(hbuf);
+	gf_isom_hint_pck_del(hpck);
 #endif
 	return 0;
 }
