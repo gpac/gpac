@@ -194,7 +194,6 @@ enum
 	GF_ISOM_MEDIA_JPEG		= GF_4CC( 'j', 'p', 'e', 'g' ),
 	GF_ISOM_MEDIA_JP2		= GF_4CC( 'j', 'p', '2', ' ' ),
 	GF_ISOM_MEDIA_PNG		= GF_4CC( 'p', 'n', 'g', ' ' ),
-	GF_ISOM_MEDIA_TMCD		= GF_4CC( 't', 'm', 'c', 'd' ),
 };
 
 
