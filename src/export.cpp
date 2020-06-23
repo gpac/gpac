@@ -1023,7 +1023,6 @@ gf_isom_hint_pck_length
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_add_blink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_wrap) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_display_flags) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_change_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_new) )

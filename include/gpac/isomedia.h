@@ -4929,12 +4929,6 @@ void gf_isom_ismacryp_delete_sample(GF_ISMASample *samp);
 \return a newly allocated ISMA sample with the parsed data
 */
 GF_ISMASample *gf_isom_ismacryp_sample_from_data(u8 *data, u32 dataLength, Bool use_selective_encryption, u8 KI_length, u8 IV_length);
-/*! rewrites ISMA sample as an ISO sample
-\param s the ISMA sample to rewrite
-\param dest the destination ISO sample
-\return error if any
-*/
-GF_Err gf_isom_ismacryp_sample_to_sample(const GF_ISMASample *s, GF_ISOSample *dest);
 
 /*! decodes ISMACryp sample based on sample and its descrition index
 \param isom_file the target ISO file
@@ -5039,13 +5033,6 @@ typedef struct __cenc_sample_aux_info
 } GF_CENCSampleAuxInfo;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-/*! removes protection info (does not perform decryption), for ISMA, OMA and CENC of a sample description
-\param isom_file the target ISO file
-\param trackNumber the target track
-\param sampleDescriptionIndex the sample description index
-\return error if any
-*/
-GF_Err gf_isom_remove_track_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 /*! creates ISMACryp protection info for a sample description
 \param isom_file the target ISO file
@@ -5165,18 +5152,6 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 */
 GF_Err gf_cenc_set_pssh(GF_ISOFile *isom_file, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, u8 *data, u32 len, Bool use_piff);
 
-/*! removes CENC SAI size info
-\param isom_file the target ISO file
-\param trackNumber the target track
-\return error if any
-*/
-GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *isom_file, u32 trackNumber);
-/*! removes CENC SAI offset info
-\param isom_file the target ISO file
-\param trackNumber the target track
-\return error if any
-*/
-GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *isom_file, u32 trackNumber);
 /*! removes CENC senc box info
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -5189,11 +5164,6 @@ GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *isom_file, u32 trackNumber);
 \return error if any
 */
 GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *isom_file, u32 trackNumber);
-/*! removes CENC PSSH box
-\param isom_file the target ISO file
-\return error if any
-*/
-GF_Err gf_isom_remove_pssh_box(GF_ISOFile *isom_file);
 
 #endif //GPAC_DISABLE_ISOM_WRITE
 
@@ -5230,11 +5200,6 @@ GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *isom_file, u32 trackNumber,
 \return error if any
 */
 GF_Err gf_isom_set_adobe_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 scheme_type, u32 scheme_version, Bool is_selective_enc, char *metadata, u32 len);
-
-/*! removes the IPMPX tools from files
-\param isom_file the target ISO file
-*/
-void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *isom_file);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
