@@ -1870,7 +1870,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 				if (dst_editMode!=editMode) {
 					merge_edits=0;
-					break;
+					continue;
 				}
 			}
 		}
@@ -1955,7 +1955,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 					segmentDuration += (u64) (s64) dur;
 					gf_isom_modify_edit(dest, dst_tk, j, segmentDuration, mediaTime, editMode);
-					break;
+					continue;
 				}
 			}
 		} else {
