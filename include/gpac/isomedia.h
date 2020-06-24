@@ -4552,14 +4552,6 @@ void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_su
 \return error if any
 */
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *isom_file, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, const char *config);
-/*! updates a WebVTT sample description
-\param isom_file the target ISO file
-\param trackNumber the target track
-\param sampleDescriptionIndex the target sample description index to update
-\param config the WebVTT configuration string
-\return error if any
-*/
-GF_Err gf_isom_update_webvtt_description(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, const char *config);
 #endif
 
 /*! gets WebVTT config for a sample description
@@ -4594,15 +4586,6 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *isom_file, u32 trackNumber, u32 
 */
 GF_Err gf_isom_new_stxt_description(GF_ISOFile *isom_file, u32 trackNumber, u32 type, const char *mime, const char *encoding, const char *config, u32 *outDescriptionIndex);
 
-/*! updates simple streaming text config
-\param isom_file the target ISO file
-\param trackNumber the target track
-\param encoding the text encoding, if any
-\param config the configuration string, if any
-\param sampleDescriptionIndex the target sample description index
-\return error if any
-*/
-GF_Err gf_isom_update_stxt_description(GF_ISOFile *isom_file, u32 trackNumber, const char *encoding, const char *config, u32 sampleDescriptionIndex);
 #endif // GPAC_DISABLE_ISOM_WRITE
 
 /*! gets XML streaming text config for a sample description
