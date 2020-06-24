@@ -1165,6 +1165,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (ch->sample) {
 				u32 sample_dur;
 				u8 dep_flags;
+				u8 *subs_buf;
+				u32 subs_buf_size;
 				GF_FilterPacket *pck;
 				if (ch->needs_pid_reconfig) {
 					isor_update_channel_config(ch);
@@ -1214,6 +1216,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
+
+
+				subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);
+				if (subs_buf) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );
+				}
 
 				/**/
 				if (ch->cenc_state_changed && ch->pck_encrypted) {

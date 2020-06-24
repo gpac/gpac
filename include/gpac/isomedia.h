@@ -4014,12 +4014,6 @@ GF_Err gf_isom_close_segment(GF_ISOFile *isom_file, s32 subsegs_per_sidx, GF_ISO
 */
 GF_Err gf_isom_flush_fragments(GF_ISOFile *isom_file, Bool last_segment);
 
-/*! gets name of current segment (or last segment if called between close_segment and start_segment)
-\param isom_file the target ISO file
-\return associated file name of the segment
-*/
-const char *gf_isom_get_segment_name(GF_ISOFile *isom_file);
-
 /*! sets fragment prft box info, written just before the moof
 \param isom_file the target ISO file
 \param reference_track_ID the ID of the track used as a reference for media timestamps
@@ -4059,6 +4053,7 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *isom_file, s32 subsegs_per_sidx, Bool d
 */
 GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags);
 
+#ifdef GF_ENABLE_CTRN
 /*! enables track fragment inheriting from a given traf.
 This shall only be set when the inherited traf shares exactly the same syntax except the sample sizes, this library does not compute which
 sample values can be inherited
@@ -4069,6 +4064,7 @@ sample values can be inherited
 \return error if any
 */
 GF_Err gf_isom_enable_traf_inherit(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, GF_ISOTrackID BaseTrackID);
+#endif
 
 /*! Track fragment options*/
 typedef enum
@@ -5782,6 +5778,16 @@ GF_Err gf_isom_set_track_group(GF_ISOFile *isom_file, u32 trackNumber, u32 track
 @{
 */
 
+/*! gets serialized subsample info for the sample
+The buffer is formatted as N times [(u32)flags(u32)sub_size(u32)codec_param(u8)priority(u8) discardable]
+If several subsample info are present, they are gathered by flags
+
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleNumber the target sample number
+\param osize set to output buffer size
+\return the serialized buffer, or NULL oif no associated subsample*/
+u8 *gf_isom_sample_get_subsamples_buffer(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *osize);
 
 /*! checks if a sample has subsample information
 \param isom_file the target ISO file
