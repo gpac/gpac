@@ -3366,7 +3366,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			if (!stricmp(hdrp->name, "Content-Length") ) {
 				ContentLength = (u32) atoi(hdrp->value);
 
-				if (rsp_code<300)
+				if ((rsp_code<300) && sess->cache_entry)
 					gf_cache_set_content_length(sess->cache_entry, ContentLength);
 
 			}

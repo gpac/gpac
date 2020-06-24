@@ -827,7 +827,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				u64 dur=0;
 				GF_Err e = gf_isom_get_file_offset_for_time(read->mov, evt->play.start_range, &max_offset);
 				if (e==GF_OK) {
-					gf_isom_reset_tables(read->mov, GF_TRUE);
+					if (evt->play.start_range>0)
+						gf_isom_reset_tables(read->mov, GF_TRUE);
+
 					is_sidx_seek = GF_TRUE;
 					//in case we loaded moov but not sidx, update duration
 					if ((gf_isom_get_sidx_duration(read->mov, &dur, &ts)==GF_OK) && dur) {
