@@ -260,6 +260,8 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 		gf_isom_hint_sample_description_data(NULL, 0, 0, 1, 0, 0, 0);
 		gf_isom_get_payt_info(NULL, 0, 0, NULL);
 #endif
+		gf_isom_estimate_size(file);
+
 	}
 #endif
 }
