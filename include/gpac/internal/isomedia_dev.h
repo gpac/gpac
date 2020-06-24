@@ -3606,8 +3606,6 @@ typedef struct
 
 /*regular file IO*/
 #define GF_ISOM_DATA_FILE         0x01
-/*File Mapping object, read-only mode on complete files (no download)*/
-#define GF_ISOM_DATA_FILE_MAPPING 0x02
 /*External file object. Needs implementation*/
 #define GF_ISOM_DATA_FILE_EXTERN  0x03
 /*regular memory IO*/
@@ -3679,11 +3677,6 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_DataMap *gf_isom_fdm_new_temp(const char *sTempPath);
 #endif
-
-/*file-mapping, read only*/
-GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode);
-void gf_isom_fmo_del(GF_FileMappingDataMap *ptr);
-u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 u64 gf_isom_datamap_get_offset(GF_DataMap *map);
