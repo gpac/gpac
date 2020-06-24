@@ -908,6 +908,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_payt_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sdp_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sdp_track_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_hinter_track_force_no_offsets) )
+
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_hint_sample) )
 #endif

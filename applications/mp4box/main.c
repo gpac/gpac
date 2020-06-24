@@ -634,7 +634,7 @@ void PrintEncryptUsage()
 GF_GPACArg m4b_hint_args[] =
 {
  	GF_DEF_ARG("hint", NULL, "hint the file for RTP/RTSP", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("hint", NULL, "specify RTP MTU (max size) in bytes (this includes 12 bytes RTP header)", "1450", NULL, GF_ARG_INT, 0),
+ 	GF_DEF_ARG("mtu", NULL, "specify RTP MTU (max size) in bytes (this includes 12 bytes RTP header)", "1450", NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("copy", NULL, "copy media data to hint track rather than reference (speeds up server but takes much more space)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("multi `[maxptime]`", NULL, "enable frame concatenation in RTP packets if possible (with max duration 100 ms or `maxptime` ms if given)", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("rate", NULL, "specify rtp rate in Hz when no default for payload", "90000", NULL, GF_ARG_INT, 0),
@@ -642,6 +642,7 @@ GF_GPACArg m4b_hint_args[] =
  	GF_DEF_ARG("latm", NULL, "force MPG4-LATM transport for AAC streams", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("static", NULL, "enable static RTP payload IDs whenever possible (by default, dynamic payloads are always used)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("add-sdp", NULL, "add given SDP string to hint track (`tkID:string`) or movie (`string`)", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("no-offset", NULL, "signal no random offset for sequence number and timestamp (support will depend on server)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("unhint", NULL, "remove all hinting information from file", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("group-single", NULL, "put all tracks in a single hint group", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ocr", NULL, "force all MPEG-4 streams to be synchronized (MPEG-4 Systems only)", NULL, NULL, GF_ARG_BOOL, 0),
@@ -1121,7 +1122,7 @@ void SetupClockReferences(GF_ISOFile *file)
 /*base RTP payload type used (you can specify your own types if needed)*/
 #define BASE_PAYT		96
 
-GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 base_flags, Bool copy_data, Bool interleave, Bool regular_iod, Bool single_group)
+GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 base_flags, Bool copy_data, Bool interleave, Bool regular_iod, Bool single_group, Bool hint_no_offset)
 {
 	GF_ESD *esd;
 	GF_InitialObjectDescriptor *iod;
@@ -1255,6 +1256,10 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 			}
 			continue;
 		}
+
+		if (hint_no_offset)
+			gf_hinter_track_force_no_offsets(hinter);
+
 		bw = gf_hinter_track_get_bandwidth(hinter);
 		tot_bw += bw;
 		flags = gf_hinter_track_get_flags(hinter);
@@ -2408,7 +2413,8 @@ Bool do_mpd = GF_FALSE;
 Bool chunk_mode = GF_FALSE;
 #endif
 #ifndef GPAC_DISABLE_ISOM_HINTING
-Bool HintCopy = 0;
+Bool HintCopy = GF_FALSE;
+Bool hint_no_offset = GF_FALSE;
 u32 MTUSize = 1450;
 #endif
 #ifndef GPAC_DISABLE_CORE_TOOLS
@@ -2589,6 +2595,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			remove_hint = 1;
 		}
 		else if (!stricmp(arg, "-copy")) HintCopy = 1;
+		else if (!stricmp(arg, "-no-offset")) hint_no_offset = GF_TRUE;
 		else if (!stricmp(arg, "-tight")) {
 			FullInter = 1;
 			open_edit = GF_TRUE;
@@ -6262,7 +6269,7 @@ int mp4boxMain(int argc, char **argv)
 		if (force_ocr) SetupClockReferences(file);
 		fprintf(stderr, "Hinting file with Path-MTU %d Bytes\n", MTUSize);
 		MTUSize -= 12;
-		e = HintFile(file, MTUSize, max_ptime, rtp_rate, hint_flags, HintCopy, HintInter, regular_iod, single_group);
+		e = HintFile(file, MTUSize, max_ptime, rtp_rate, hint_flags, HintCopy, HintInter, regular_iod, single_group, hint_no_offset);
 		if (e) goto err_exit;
 		needSave = GF_TRUE;
 		if (print_sdp) dump_isom_sdp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);

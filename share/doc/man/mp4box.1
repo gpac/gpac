@@ -42,6 +42,16 @@ Note: You can add media to a file and split it in the same pass. In this case, t
 Options:
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-p
 .br
 use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Works using -p=NAME or -p NAME
@@ -1579,7 +1589,7 @@ Options:
 hint the file for RTP/RTSP
 .br
 .TP
-.B \-hint (int, default: 1450)
+.B \-mtu (int, default: 1450)
 .br
 specify RTP MTU (max size) in bytes (this includes 12 bytes RTP header)
 .br
@@ -1617,6 +1627,11 @@ enable static RTP payload IDs whenever possible (by default, dynamic payloads ar
 .B \-add-sdp (string)
 .br
 add given SDP string to hint track (tkID:string) or movie (string)
+.br
+.TP
+.B \-no-offset
+.br
+signal no random offset for sequence number and timestamp (support will depend on server)
 .br
 .TP
 .B \-unhint
@@ -2035,7 +2050,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev14-g95e329433-master
+build: 1.0.0-rev36-g0d2c04920-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
