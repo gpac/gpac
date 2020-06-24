@@ -2169,13 +2169,13 @@ multipid_stsd_setup:
 		}
 		if (!reuse_stsd) {
 			tkw->samples_in_stsd = 0;
-		} else if (use_3gpp_config && tkw->amr_mode_set) {
+		} else if (use_3gpp_config) {
 			GF_3GPConfig *gpp_cfg = gf_isom_3gp_config_get(ctx->file, tkw->track_num, tkw->stsd_idx);
-			if (gpp_cfg->AMR_mode_set != tkw->amr_mode_set) {
+			if (gpp_cfg) {
 				gpp_cfg->AMR_mode_set = tkw->amr_mode_set;
 				gf_isom_3gp_config_update(ctx->file, tkw->track_num, gpp_cfg, tkw->stsd_idx);
+				gf_free(gpp_cfg);
 			}
-			gf_free(gpp_cfg);
 		}
 	}
 
