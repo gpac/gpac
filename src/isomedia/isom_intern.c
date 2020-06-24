@@ -1243,6 +1243,7 @@ GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 s
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#if 0 //unused
 u32 gf_isom_sample_get_subsamples_count(GF_ISOFile *movie, u32 track)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
@@ -1250,6 +1251,7 @@ u32 gf_isom_sample_get_subsamples_count(GF_ISOFile *movie, u32 track)
 	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return 0;
 	return gf_list_count(trak->Media->information->sampleTable->sub_samples);
 }
+#endif
 
 Bool gf_isom_get_subsample_types(GF_ISOFile *movie, u32 track, u32 subs_index, u32 *flags)
 {

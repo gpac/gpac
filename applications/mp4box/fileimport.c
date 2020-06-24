@@ -2787,7 +2787,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		e = gf_isom_add_meta_item(file, 1, 0, 1, NULL, isom_src, 0, 0, NULL, NULL, NULL,  NULL, NULL);
 		if (e) goto exit;
 	}
-	e = gf_isom_set_meta_xml(file, 1, 0, file_name, !ascii);
+	e = gf_isom_set_meta_xml(file, 1, 0, file_name, NULL, 0, !ascii);
 	if (e) goto exit;
 
 	skip_chars = (u32) strlen(root_dir);

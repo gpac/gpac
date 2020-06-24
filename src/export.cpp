@@ -1050,7 +1050,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_primary_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_xml) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_xml_memory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_meta_add_item_ref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_iff_create_image_item_from_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_xml) )
