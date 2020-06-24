@@ -1990,6 +1990,8 @@ GF_Err naludmx_process(GF_Filter *filter)
 			if (ctx->first_pck_in_au) {
 				naludmx_finalize_au_flags(ctx);
 			}
+			//single-frame stream
+			if (!ctx->poc_diff) ctx->poc_diff = 1;
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 			ctx->src_pck = NULL;
