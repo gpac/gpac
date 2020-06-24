@@ -200,8 +200,10 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 				gf_list_insert(writers, writer, 0);
 			}
 		}
-		if (movie->sample_groups_in_traf && trak->Media->information->sampleTable)
-			trak->Media->information->sampleTable->skip_sample_groups = GF_TRUE;
+		if (movie->sample_groups_in_traf && trak->Media->information->sampleTable) {
+			gf_isom_box_array_del_parent(&trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable->sampleGroupsDescription);
+			trak->Media->information->sampleTable->sampleGroupsDescription = NULL;
+		}
 	}
 	return GF_OK;
 

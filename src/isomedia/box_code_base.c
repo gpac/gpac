@@ -5060,7 +5060,7 @@ GF_Err stbl_box_size(GF_Box *s)
 	if (ptr->sub_samples) {
 		gf_isom_check_position_list(s, ptr->sub_samples, &pos);
 	}
-	if (ptr->sampleGroupsDescription && !ptr->skip_sample_groups) {
+	if (ptr->sampleGroupsDescription) {
 		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
 	}
 	if (ptr->sampleGroups) {
