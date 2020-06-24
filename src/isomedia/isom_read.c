@@ -56,7 +56,11 @@ u8 gf_isom_get_mode(GF_ISOFile *the_file)
 	return the_file->openMode;
 }
 
-GF_EXPORT
+#if 0 //unused
+/*! gets file size of an ISO file
+\param isom_file the target ISO file
+\return the file size in bytes
+*/
 u64 gf_isom_get_file_size(GF_ISOFile *the_file)
 {
 	if (!the_file) return 0;
@@ -66,6 +70,7 @@ u64 gf_isom_get_file_size(GF_ISOFile *the_file)
 #endif
 	return 0;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_freeze_order(GF_ISOFile *file)
@@ -598,12 +603,16 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 }
 
 
-GF_EXPORT
+#if 0 //unused
+/*! checks if files has root OD/IOD or not
+\param isom_file the target ISO file
+\return GF_TRUE if the file has a root OD or IOD */
 Bool gf_isom_has_root_od(GF_ISOFile *movie)
 {
 	if (!movie || !movie->moov || !movie->moov->iods || !movie->moov->iods->descriptor) return GF_FALSE;
 	return GF_TRUE;
 }
+#endif
 
 GF_EXPORT
 void gf_isom_disable_odf_conversion(GF_ISOFile *movie, Bool disable)
@@ -1924,6 +1933,7 @@ Bool gf_isom_is_self_contained(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 }
 
 /*retrieves given sample DTS*/
+GF_EXPORT
 u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts)
 {
 	GF_Err e;
@@ -2400,6 +2410,7 @@ const u32 *gf_isom_get_brands(GF_ISOFile *movie)
 	return movie->brand->altBrand;
 }
 
+GF_EXPORT
 GF_Err gf_isom_get_sample_padding_bits(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u8 *NbBits)
 {
 	GF_TrackBox *trak;
@@ -3981,6 +3992,7 @@ u32 gf_isom_get_next_alternate_group_id(GF_ISOFile *movie)
 }
 
 
+GF_EXPORT
 u32 gf_isom_sample_has_subsamples(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 flags)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
@@ -3989,6 +4001,7 @@ u32 gf_isom_sample_has_subsamples(GF_ISOFile *movie, u32 track, u32 sampleNumber
 	return gf_isom_sample_get_subsample_entry(movie, track, sampleNumber, flags, NULL);
 }
 
+GF_EXPORT
 GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 flags, u32 subSampleNumber, u32 *size, u8 *priority, u32 *reserved, Bool *discardable)
 {
 	GF_SubSampleEntry *entry;
@@ -4407,7 +4420,14 @@ u32 gf_isom_get_pssh_count(GF_ISOFile *file)
 	return count;
 }
 
-GF_EXPORT
+#if 0 //unused
+/*! gets serialized PSS
+\param isom_file the target ISO file
+\param pssh_index 1-based index of PSSH to query, see \ref gf_isom_get_pssh_count
+\param pssh_data set to a newly allocated buffer containing serialized PSSH - shall be freeed by caller
+\param pssh_size set to the size of the allocated buffer
+\return error if any
+*/
 GF_Err gf_isom_get_pssh(GF_ISOFile *file, u32 pssh_index, u8 **pssh_data, u32 *pssh_size)
 {
 	GF_Err e;
@@ -4429,6 +4449,7 @@ GF_Err gf_isom_get_pssh(GF_ISOFile *file, u32 pssh_index, u8 **pssh_data, u32 *p
 	gf_bs_del(bs);
 	return e;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, u32 *version, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size)

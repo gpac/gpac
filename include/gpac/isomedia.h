@@ -618,11 +618,6 @@ u8 gf_isom_get_mode(GF_ISOFile *isom_file);
 */
 Bool gf_isom_is_JPEG2000(GF_ISOFile *isom_file);
 
-/*! gets file size of an ISO file
-\param isom_file the target ISO file
-\return the file size in bytes
-*/
-u64 gf_isom_get_file_size(GF_ISOFile *isom_file);
 
 /*! checks if a given four character code matches a known video handler type (vide, auxv, pict, ...)
 \param mtype the four character code to check
@@ -2518,11 +2513,6 @@ typedef enum
  */
 u32 gf_isom_get_mpeg4_subtype(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
-/*! checks if files has root OD/IOD or not
-\param isom_file the target ISO file
-\return GF_TRUE if the file has a root OD or IOD */
-Bool gf_isom_has_root_od(GF_ISOFile *isom_file);
-
 /*! fetches the root OD of a file  (can be NULL, OD or IOD, you have to check its tag)
 \param isom_file the target ISO file
 \return the OD/IOD if any. Caller must destroy the descriptor
@@ -3075,6 +3065,12 @@ GF_Err gf_isom_set_nalu_extract_mode(GF_ISOFile *isom_file, u32 trackNumber, GF_
 */
 GF_ISONaluExtractMode gf_isom_get_nalu_extract_mode(GF_ISOFile *isom_file, u32 trackNumber);
 
+/*! gets the composition offset shift if any for track using negative ctts
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return the composition offset shift or 0
+*/
+s32 gf_isom_get_composition_offset_shift(GF_ISOFile *isom_file, u32 trackNumber);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! creates a new AVC sample description
@@ -5293,16 +5289,6 @@ u32 gf_isom_get_pssh_count(GF_ISOFile *isom_file);
 \return error if any
 */
 GF_Err gf_isom_get_pssh_info(GF_ISOFile *isom_file, u32 pssh_index, bin128 SystemID, u32 *version, u32 *KID_count, const bin128 **KIDs, const u8 **private_data, u32 *private_data_size);
-
-/*! gets serialized PSS
-\param isom_file the target ISO file
-\param pssh_index 1-based index of PSSH to query, see \ref gf_isom_get_pssh_count
-\param pssh_data set to a newly allocated buffer containing serialized PSSH - shall be freeed by caller
-\param pssh_size set to the size of the allocated buffer
-\return error if any
-*/
-GF_Err gf_isom_get_pssh(GF_ISOFile *isom_file, u32 pssh_index, u8 **pssh_data, u32 *pssh_size);
-
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 /*! dumps ismacrypt protection of sample descriptions to xml trace
