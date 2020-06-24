@@ -2234,7 +2234,7 @@ GF_Err hnti_box_dump(GF_Box *a, FILE * trace)
 {
 	gf_isom_box_dump_start(a, "HintTrackInfoBox", trace);
 	gf_fprintf(trace, ">\n");
-	gf_isom_box_dump_done("HintTrackInfoBox", NULL, trace);
+	gf_isom_box_dump_done("HintTrackInfoBox", a, trace);
 	return GF_OK;
 }
 

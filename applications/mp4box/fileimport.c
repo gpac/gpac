@@ -252,6 +252,11 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 		gf_isom_get_track_switch_parameter(file, track, 1, &switchGroupID, &nb_crit);
 		gf_isom_sample_has_subsamples(file, track, 1, 0);
 		gf_isom_sample_get_subsample(file, track, 1, 0, 1, &size, &priority, &reserved, &discardable);
+#ifndef GPAC_DISABLE_ISOM_HINTING
+		gf_isom_hint_blank_data(NULL, 0, 0);
+		gf_isom_hint_sample_description_data(NULL, 0, 0, 1, 0, 0, 0);
+		gf_isom_get_payt_info(NULL, 0, 0, NULL);
+#endif
 	}
 #endif
 }
