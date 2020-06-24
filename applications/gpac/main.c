@@ -3647,6 +3647,12 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_bs_del(hbs);
 	gf_free(hbuf);
 	gf_isom_hint_pck_del(hpck);
+
+	gf_isom_last_error(NULL);
+	gf_isom_get_media_time(NULL, 0, 0, NULL);
+	gf_isom_get_sample_description_index(NULL, 0, 0);
+
+
 #endif
 	return 0;
 }
