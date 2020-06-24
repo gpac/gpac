@@ -244,7 +244,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 		gf_isom_keep_utc_times(file, 1);
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		gf_isom_set_single_moof_mode(file, GF_TRUE);
-		gf_isom_reset_sample_count(file);
+		gf_isom_reset_sample_count(NULL);
 #endif
 		//this one is not tested in master due to old-arch compat, to remove when we enable tests without old-arch
 		gf_isom_get_audio_layout(file, track, 1, &layout);

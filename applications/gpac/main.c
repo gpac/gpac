@@ -55,8 +55,6 @@ static void cleanup_file_io();
 FILE *sidebar_md=NULL;
 static FILE *helpout = NULL;
 
-static void gpac_rmt_user_callback(void *udta, const char* text);
-
 static const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n";
 
 //uncomment to check argument description matches our conventions - see filter.h
@@ -1927,8 +1925,6 @@ restart:
 		goto exit;
 	}
 
-	gf_sys_profiler_set_callback(NULL, gpac_rmt_user_callback);
-
 	//all good to go, load filters
 	has_xopt = GF_FALSE;
 	loaded_filters = gf_list_new();
@@ -3425,6 +3421,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	u32 size;
 	sprintf(url, "gmem://%p", &b);
 
+	gf_sys_profiler_set_callback(NULL, NULL);
+
 	gf_blob_get_data(url, &data, &size);
 	if (!data || strcmp((char *)data, "test")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] blob url parsing fail\n"));
@@ -3950,9 +3948,3 @@ static void cleanup_file_io()
 	all_gfio_defined = NULL;
 }
 
-
-static void gpac_rmt_user_callback(void *udta, const char* text)
-{
-	fprintf(stderr, "Remotery says: %s\n", text);
-	gf_sys_profiler_send("{ \"type\": \"chat\", \"value\": \"Got it !\"}");
-}
