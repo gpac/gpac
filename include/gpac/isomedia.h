@@ -5479,25 +5479,17 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *isom_file, Bool root_meta, u32 track_nu
 */
 GF_Err gf_isom_remove_meta_xml(GF_ISOFile *isom_file, Bool root_meta, u32 track_num);
 
-/*! sets meta XML data from file - erase any previously (Binary)XML info
+/*! sets meta XML data from file or memory - erase any previously (Binary)XML info
 \param isom_file the target ISO file
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
 \param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
-\param XMLFileName the XML file to import as XML item
+\param XMLFileName the XML file to import as XML item, or NULL if data is specified
+\param data buffer containing XML data, or NULL if file is specified
+\param data_size size of buffer in bytes, ignored if file is specified
 \param IsBinaryXML indicates if the content of the XML file is binary XML (BIM) or not
 \return error if any
 */
-GF_Err gf_isom_set_meta_xml(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML);
-/*! set meta XML data from memory - erase any previously (Binary)XML info
-\param isom_file the target ISO file
-\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
-\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
-\param data buffer containing XML data
-\param data_size size of buffer in bytes
-\param IsBinaryXML indicates if the content of the buffer is binary XML (BIM) or not
-\return error if any
-*/
-GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u8 *data, u32 data_size, Bool IsBinaryXML);
+GF_Err gf_isom_set_meta_xml(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, char *XMLFileName, unsigned char *data, u32 data_size, Bool IsBinaryXML);
 
 /*! gets next available item ID in a meta
 \param isom_file the target ISO file
