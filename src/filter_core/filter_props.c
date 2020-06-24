@@ -1232,7 +1232,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- 1: a clear clone of the sample description is created, inserted before the CENC sample description\n"
 	"- 2: a clear clone of the sample description is created, inserted after the CENC sample description", GF_PROP_UINT},
 	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
-	{ GF_PROP_PCK_SUBS, "SubSampleInfo", "Binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]", GF_PROP_DATA},
+	{ GF_PROP_PCK_SUBS, "SubSampleInfo", "Binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)codec_param(u8)priority(u8) discardable]. Subsamples for a given flag MUST appear in order, however flags can be interleaved", GF_PROP_DATA},
 	{ GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_UINT},
 	{ GF_PROP_PCK_FILENUM, "FileNumber", "Index of file when dumping to files", GF_PROP_UINT, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_FILENAME, "FileName", "Name of output file when dumping / dashing. Must be set on first packet belonging to new file", GF_PROP_STRING, GF_PROP_FLAG_PCK},
