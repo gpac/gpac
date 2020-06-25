@@ -35,9 +35,7 @@
 #define INFO_LIST
 
 // add a new riff chunk after XX MB
-//#define NEW_RIFF_THRES (1900*1024*1024)
 #define NEW_RIFF_THRES (1900*1024*1024)
-//#define NEW_RIFF_THRES (10*1024*1024)
 
 // Maximum number of indices per stream
 #define NR_IXNN_CHUNKS 96
@@ -297,7 +295,7 @@ static int avi_init_super_index(avi_t *AVI, unsigned char *idxtag, avisuperindex
 	for (k = 0; k < NR_IXNN_CHUNKS; k++) {
 		sil->stdindex[k] = (avistdindex_chunk *) gf_malloc (sizeof (avistdindex_chunk));
 		// gets rewritten later
-		sil->stdindex[k]->qwBaseOffset = (u64)k * NEW_RIFF_THRES;
+		sil->stdindex[k]->qwBaseOffset = (u64)k * AVI->new_riff_threshold;
 		sil->stdindex[k]->aIndex = NULL;
 	}
 
@@ -435,7 +433,7 @@ static int avi_add_odml_index_entry(avi_t *AVI, unsigned char *tag, int flags, u
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] ODML: towrite = 0x%llX = %"LLD"\n", towrite, towrite));
 
 	if (AVI->video_superindex &&
-	        (s64)(AVI->pos+towrite) > (s64)((s64)NEW_RIFF_THRES*AVI->video_superindex->nEntriesInUse)) {
+	        (s64)(AVI->pos+towrite) > (s64)((s64) AVI->new_riff_threshold*AVI->video_superindex->nEntriesInUse)) {
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] Adding a new RIFF chunk: %d\n", AVI->video_superindex->nEntriesInUse));
 
@@ -607,7 +605,7 @@ int AVI_can_read_audio(avi_t *AVI)
 */
 
 GF_EXPORT
-avi_t* AVI_open_output_file(char * filename)
+avi_t* AVI_open_output_file(char * filename, u64 opendml_threshold)
 {
 	avi_t *AVI;
 	int i;
@@ -647,6 +645,10 @@ avi_t* AVI_open_output_file(char * filename)
 
 	AVI->pos  = HEADERBYTES;
 	AVI->mode = AVI_MODE_WRITE; /* open for writing */
+	if (opendml_threshold)
+		AVI->new_riff_threshold = opendml_threshold;
+	else
+		AVI->new_riff_threshold = (1900*1024*1024);
 
 	//init
 	AVI->anum = 0;

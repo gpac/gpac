@@ -2847,6 +2847,8 @@ fps (frac, default: 25/1):     default framerate if none indicated in stream
 .br
 noraw (bool, default: false):  disable raw output in AVI, only compressed ones allowed
 .br
+opendml_size (luint, default: 0): force opendml format when chunks are larger than this amount (0 means 1.9Gb max size in each riff chunk)
+.br
 
 .br
 .SH aout
@@ -5848,7 +5850,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev38-g605416a7b-master
+build: 1.0.0-rev42-gef4ad54a0-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
