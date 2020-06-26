@@ -917,7 +917,7 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 	OD_ID = gf_mo_get_od_id(url);
 	if (!OD_ID) return NULL;
 
-	/*we may have overriden the time lines in parent scene, thus all objects in this scene have the same clock*/
+	/*we may have overridden the time lines in parent scene, thus all objects in this scene have the same clock*/
 	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline)
 		lock_timelines = GF_TRUE;
 

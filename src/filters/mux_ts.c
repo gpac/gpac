@@ -1560,7 +1560,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 				, GF_PROP_UINT, "none", "none|full|scene", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pmt_version), "set version number of the PMT", GF_PROP_UINT, "200", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disc), "set the discontinuity marker for the first packet of each stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(repeat_rate), "interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(repeat_rate), "interval in ms between two carousel send for MPEG-4 systems. Is overridden by carousel duration PID property if defined", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(repeat_img), "interval in ms between re-sending (as PES) of single-image streams. If 0, image data is sent once only", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(max_pcr), "set max interval in ms between 2 PCR", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nb_pack), "pack N TS packets in output packets", GF_PROP_UINT, "4", NULL, 0},
@@ -1595,11 +1595,11 @@ GF_FilterRegister TSMuxRegister = {
 	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"
 	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"
 		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by [-sid]() option.\n"
-		"- [-name]() option is overriden by input PID property `ServiceName`.\n"
-		"- [-provider]() option is overriden by input PID property `ServiceProvider`.\n"
-		"- [-pcr_offset]() option is overriden by input PID property `\"tsmux:pcr_offset\"`\n"
-		"- [-first_pts]() option is overriden by input PID property `\"tsmux:force_pts\"`\n"
-		"- [-temi]() option is overriden by input PID property `\"tsmux:temi\"`\n"
+		"- [-name]() option is overridden by input PID property `ServiceName`.\n"
+		"- [-provider]() option is overridden by input PID property `ServiceProvider`.\n"
+		"- [-pcr_offset]() option is overridden by input PID property `\"tsmux:pcr_offset\"`\n"
+		"- [-first_pts]() option is overridden by input PID property `\"tsmux:force_pts\"`\n"
+		"- [-temi]() option is overridden by input PID property `\"tsmux:temi\"`\n"
 
 		"\n"
 		"# Time and External Media Information (TEMI)\n"

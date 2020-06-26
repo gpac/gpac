@@ -665,7 +665,7 @@ const char *gpac_config =
 "By default the configuration file only holds a few system specific options and directories. It is possible to serialize "
 "the entire set of options to the configuration file, using [-wc](GPAC) [-wf](GPAC). This should be avoided as the resulting "
 "configuration file size will be quite large, hence larger memory usage for the applications.\n"
-"The options specified in the configuration file may be overriden by the values in __restrict.cfg__ file located in GPAC share system directory (e.g. /usr/share/gpac), "
+"The options specified in the configuration file may be overridden by the values in __restrict.cfg__ file located in GPAC share system directory (e.g. /usr/share/gpac), "
 "if present; this allows enforcing system-wide configuration values.\n"
 "Note: The methods describe in this section apply to any application in GPAC transferring their arguments "
 "to libgpac. This is the case for __gpac__, __MP4Box__, __MP4Client/Osmo4__.\n"

@@ -6615,7 +6615,7 @@ GF_FilterRegister DasherRegister = {
 			"- Template: overrides segmenter [-template]() for this PID\n"
 			"- DashDur: overrides segmenter segment duration for this PID\n"
 			"- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
-			"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).\n"
+			"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 			"  \n"
 			"EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"
 			"This will force declaring a bitrate of 1M for the representation, regardless of actual input bitrate.\n"

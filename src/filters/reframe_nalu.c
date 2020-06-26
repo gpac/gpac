@@ -71,7 +71,7 @@ typedef struct
 	GF_BitStream *bs_r;
 	//write bitstream for nalus size length rewrite
 	GF_BitStream *bs_w;
-	//current CTS/DTS of the stream, may be overriden by input packet if not file (eg TS PES)
+	//current CTS/DTS of the stream, may be overridden by input packet if not file (eg TS PES)
 	u64 cts, dts, prev_dts;
 	u32 pck_duration;
 	//basic config stored here: with, height CRC of base and enh layer decoder config, sample aspect ratio

@@ -5309,7 +5309,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes\n"
 	"- 0: no specific interleaving but moov first\n"
-	"- negative: defaults to 1.0 unless overriden by storage profile", GF_PROP_DOUBLE, "-1.0", NULL, 0},
+	"- negative: defaults to 1.0 unless overridden by storage profile", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(moovts), "timescale to use for movie. A negative value picks the media timescale of the first track added", GF_PROP_SINT, "600", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(moof_first), "generate fragments starting with moof then mdat", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(abs_offset), "use absolute file offset in fragments rather than offsets from moof", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
