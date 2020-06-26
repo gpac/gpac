@@ -534,13 +534,17 @@ static void ac3dmx_finalize(GF_Filter *filter)
 static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	u32 nb_frames=0;
+	Bool has_broken_frames = GF_FALSE;
 	u32 pos=0;
 	while (1) {
 		GF_AC3Header ahdr;
 		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
 		 	break;
 		u32 fsize = ahdr.framesize;
-		if (pos) nb_frames=0;
+		if (pos) {
+			nb_frames=0;
+			has_broken_frames = GF_TRUE;
+		}
 		nb_frames++;
 		if (fsize > size+pos) break;
 		if (nb_frames>4) break;
@@ -549,7 +553,7 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 		data += fsize+pos;
 	}
 	if (nb_frames>2) {
-		*score = GF_FPROBE_SUPPORTED;
+		*score = has_broken_frames ? GF_FPROBE_MAYBE_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/ac3";
 	}
 	return NULL;
