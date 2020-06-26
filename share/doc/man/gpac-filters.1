@@ -462,11 +462,11 @@ max_aspeed (dbl, default: 2.0, updatable): silence audio if playback speed is gr
 .br
 max_vspeed (dbl, default: 4.0, updatable): move to i-frame only decoding if playback speed is greater than sepcified value
 .br
-buf (uint, default: 3000, updatable): playout buffer in ms. Overriden by BufferLenth property of input pid
+buf (uint, default: 3000, updatable): playout buffer in ms. overridden by BufferLenth property of input pid
 .br
-rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. Overriden by RebufferLenth property of input pid
+rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. overridden by RebufferLenth property of input pid
 .br
-mbuf (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid
+mbuf (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid
 .br
 ntpsync (uint, default: 0, updatable): ntp resync threshold (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop
 .br
@@ -1756,7 +1756,7 @@ cdur (dbl, default: -1.0):     chunk duration for interleaving and fragmentation
 .br
 * 0: no specific interleaving but moov first
 .br
-* negative: defaults to 1.0 unless overriden by storage profile
+* negative: defaults to 1.0 unless overridden by storage profile
 .br
 moovts (sint, default: 600):   timescale to use for movie. A negative value picks the media timescale of the first track added
 .br
@@ -3317,15 +3317,15 @@ For example, default config creates the first program with a PMT PID 100, the fi
 .br
 Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by .I sid option.
 .br
-- .I name option is overriden by input PID property ServiceName.
+- .I name option is overridden by input PID property ServiceName.
 .br
-- .I provider option is overriden by input PID property ServiceProvider.
+- .I provider option is overridden by input PID property ServiceProvider.
 .br
-- .I pcr_offset option is overriden by input PID property "tsmux:pcr_offset"
+- .I pcr_offset option is overridden by input PID property "tsmux:pcr_offset"
 .br
-- .I first_pts option is overriden by input PID property "tsmux:force_pts"
+- .I first_pts option is overridden by input PID property "tsmux:force_pts"
 .br
-- .I temi option is overriden by input PID property "tsmux:temi"
+- .I temi option is overridden by input PID property "tsmux:temi"
 .br
 
 .br
@@ -3452,7 +3452,7 @@ pmt_version (uint, default: 200): set version number of the PMT
 .br
 disc (bool, default: false):   set the discontinuity marker for the first packet of each stream
 .br
-repeat_rate (uint, default: 0): interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined
+repeat_rate (uint, default: 0): interval in ms between two carousel send for MPEG-4 systems. Is overridden by carousel duration PID property if defined
 .br
 repeat_img (uint, default: 0): interval in ms between re-sending (as PES) of single-image streams. If 0, image data is sent once only
 .br
@@ -3628,7 +3628,7 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * StartNumber: sets the start number for the first segment in the PID, default is 1
 .br
-* Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).
+* Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 .br
   
 .br
@@ -5882,7 +5882,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev51-g384c9897d-paf_gpufx
+build: 1.0.0-rev52-g9b9856655-paf_gpufx
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

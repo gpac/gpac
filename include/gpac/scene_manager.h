@@ -66,7 +66,7 @@ Bool gf_node_in_table(GF_Node *node, u32 NDTType);
 /*! Scene manager AU flags*/
 enum
 {
-	/*AU is RAP - random access indication - may be overriden by encoder*/
+	/*AU is RAP - random access indication - may be overridden by encoder*/
 	GF_SM_AU_RAP = 1,
 	/*AU will not be aggregated (only used by scene engine)*/
 	GF_SM_AU_NOT_AGGREGATED = 1<<1,

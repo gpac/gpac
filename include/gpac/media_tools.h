@@ -760,7 +760,7 @@ GF_Err gf_dasher_set_location(GF_DASHSegmenter *dasher, const char *location);
 GF_Err gf_dasher_add_base_url(GF_DASHSegmenter *dasher, const char *base_url);
 
 /*!
- Enable URL template -  - may be overriden by the current profile
+ Enable URL template -  - may be overridden by the current profile
 \param dasher the DASH segmenter object
 \param enable enable usage of URL template
 \param default_template template for the segment name
@@ -772,7 +772,7 @@ GF_Err gf_dasher_add_base_url(GF_DASHSegmenter *dasher, const char *base_url);
 GF_Err gf_dasher_enable_url_template(GF_DASHSegmenter *dasher, Bool enable, const char *default_template, const char *default_extension, const char *default_init_extension);
 
 /*!
- Enable Segment Timeline template - may be overriden by the current profile
+ Enable Segment Timeline template - may be overridden by the current profile
 \param dasher the DASH segmenter object
 \param enable enable or disable
 \return error code if any
@@ -780,7 +780,7 @@ GF_Err gf_dasher_enable_url_template(GF_DASHSegmenter *dasher, Bool enable, cons
 GF_Err gf_dasher_enable_segment_timeline(GF_DASHSegmenter *dasher, Bool enable);
 
 /*!
- Enables single segment - may be overriden by the current profile
+ Enables single segment - may be overridden by the current profile
 \param dasher the DASH segmenter object
 \param enable enable or disable
 \return error code if any
@@ -789,7 +789,7 @@ GF_Err gf_dasher_enable_segment_timeline(GF_DASHSegmenter *dasher, Bool enable);
 GF_Err gf_dasher_enable_single_segment(GF_DASHSegmenter *dasher, Bool enable);
 
 /*!
- Enable single file (with multiple segments) - may be overriden by the current profile
+ Enable single file (with multiple segments) - may be overridden by the current profile
 \param dasher the DASH segmenter object
 \param enable enable or disable
 \return error code if any
@@ -797,7 +797,7 @@ GF_Err gf_dasher_enable_single_segment(GF_DASHSegmenter *dasher, Bool enable);
 GF_Err gf_dasher_enable_single_file(GF_DASHSegmenter *dasher, Bool enable);
 
 /*!
- Sets bitstream switching mode - may be overriden by the current profile
+ Sets bitstream switching mode - may be overridden by the current profile
 \param dasher the DASH segmenter object
 \param bitstream_switching mode to use for bitstream switching
 \return error code if any

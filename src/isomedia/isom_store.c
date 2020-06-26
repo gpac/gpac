@@ -190,7 +190,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		/*for progress, assume only one descIndex*/
 		if (Media_IsSelfContained(writer->mdia, 1))
 			mw->total_samples += writer->stbl->SampleSize->sampleCount;
-		/*optimization for interleaving: put audio last (this can be overriden by priorities)*/
+		/*optimization for interleaving: put audio last (this can be overridden by priorities)*/
 		if (movie->storageMode != GF_ISOM_STORE_INTERLEAVED) {
 			gf_list_add(writers, writer);
 		} else {

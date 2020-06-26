@@ -1026,7 +1026,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
 	seng->loader.flags = GF_SM_LOAD_MPEG4_STRICT;
 
-	/* assign a loader type only if it was not requested (e.g. DIMS should not be overriden by SVG) */
+	/* assign a loader type only if it was not requested (e.g. DIMS should not be overridden by SVG) */
 	if (!seng->loader.type) {
 		if (inputContext[0] == '<') {
 			if (strstr(inputContext, "<svg ")) seng->loader.type = GF_SM_LOAD_SVG;

@@ -159,7 +159,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 			compositor->msg_type &= ~GF_SR_CFG_INITIAL_RESIZE;
 		}
-		/*scene size has been overriden*/
+		/*scene size has been overridden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
 			assert(!(compositor->override_size_flags & 2));
 			compositor->msg_type &= ~GF_SR_CFG_OVERRIDE_SIZE;

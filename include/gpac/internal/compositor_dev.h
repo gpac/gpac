@@ -1798,7 +1798,7 @@ void gf_scene_regenerate(GF_Scene *scene);
 /*selects given ODM for dynamic scenes*/
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*restarts dynamic scene from given time: scene graph is not reseted, objects are just restarted
-instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
+instead of closed and reopened. If a media control is present on inline, from_time is overridden by MC range*/
 void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check);
 
 void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid, Bool is_in_iod);

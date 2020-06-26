@@ -762,9 +762,9 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(max_aspeed), "silence audio if playback speed is greater than sepcified value", GF_PROP_DOUBLE, "2.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_vspeed), "move to i-frame only decoding if playback speed is greater than sepcified value", GF_PROP_DOUBLE, "4.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 
-	{ OFFS(buf), "playout buffer in ms. Overriden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(rbuf), "rebuffer trigger in ms. Overriden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(buf), "playout buffer in ms. overridden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(rbuf), "rebuffer trigger in ms. overridden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(ntpsync), "ntp resync threshold (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 
 	{ OFFS(nojs), "disable javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

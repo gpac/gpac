@@ -15303,7 +15303,7 @@ static int js_op_define_class(JSContext *ctx, JSValue *sp,
             goto fail;
     }
 
-    /* the constructor property must be first. It can be overriden by
+    /* the constructor property must be first. It can be overridden by
        computed property names */
     if (JS_DefinePropertyValue(ctx, proto, JS_ATOM_constructor,
                                JS_DupValue(ctx, ctor),
