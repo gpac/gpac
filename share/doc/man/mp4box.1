@@ -14,13 +14,13 @@ MP4Box \- GPAC command-line media packager
 .br
 MP4Box is a multimedia packager, with a vast number of functionalities: conversion, splitting, hinting, dumping, DASH-ing, encryption and others.
 .br
-MP4Box provides a large set of options, classified by categories (see -h). These options do not follow any particular ordering.
+MP4Box provides a large set of options, classified by categories (see .I -h). These options do not follow any particular ordering.
 .br
-MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the -out option.
+MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the .I out option.
 .br
-MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use -flat to change this behaviour.
+MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use .I flat to change this behaviour.
 .br
-MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with -tmp.
+MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with .I tmp.
 .br
 Note: Track operations identify tracks through their ID (usually refered as tkID in the help), not their order.
 .br
@@ -64,7 +64,7 @@ interleave file, producing track chunks with given duration in ms. A value of 0 
 .TP
 .B \-old-inter (number)
 .br
-same as -inter but wihout drift correction
+same as .I inter but wihout drift correction
 .br
 .TP
 .B \-tight (number)
@@ -129,7 +129,7 @@ rewrite the file as an ISMA 1.0 file
 .TP
 .B \-ismax
 .br
-same as -isma and remove all clock references
+same as .I isma and remove all clock references
 .br
 .TP
 .B \-3gp
@@ -265,7 +265,7 @@ set track handler name to NAME (UTF-8 string)
 .TP
 .B \-itags  tag1[:tag2] (string)
 .br
-set iTunes tags to file, see -tag-list
+set iTunes tags to file, see .I tag-list
 .br
 .TP
 .B \-tag-list
@@ -452,7 +452,7 @@ extract given track to an avi file
 .TP
 .B \-avi (int)
 .br
-same as -raw but defaults to QCP file for EVRC/SMV
+same as .I raw but defaults to QCP file for EVRC/SMV
 .br
 .TP
 .B \-aviraw (string, values: video|audio)
@@ -472,7 +472,7 @@ demux DVB-H file into IP Datagrams sent on the network
 .TP
 .B \-raw-layer (int)
 .br
-same as -raw but skips SVC/MVC/LHVC extractors when extracting
+same as .I raw but skips SVC/MVC/LHVC extractors when extracting
 .br
 .TP
 .B \-diod
@@ -497,7 +497,7 @@ Input media files to dash can use the following modifiers
 .br
 * #trackID=N: only use the track ID N from the source file
 .br
-* #N: only use the track ID N from the source file (mapped to -tkid)
+* #N: only use the track ID N from the source file (mapped to .I -tkid)
 .br
 * #video: only use the first video track from the source file
 .br
@@ -568,7 +568,7 @@ generate a live DASH session using the given segment duration in ms; using -dash
 .TP
 .B \-ddbg-live (number)
 .br
-same as -dash-live without time regulation for debug purposes
+same as .I dash-live without time regulation for debug purposes
 .br
 .TP
 .B \-frag (number)
@@ -693,12 +693,12 @@ use dynamic MPD type instead of static
 .TP
 .B \-last-dynamic (string)
 .br
-same as -dynamic but close the period (insert lmsg brand if needed and update duration)
+same as .I dynamic but close the period (insert lmsg brand if needed and update duration)
 .br
 .TP
 .B \-mpd-duration (number, default: 0)
 .br
-set the duration in second of a live session (if 0, you must use -mpd-refresh)
+set the duration in second of a live session (if 0, you must use .I mpd-refresh)
 .br
 .TP
 .B \-mpd-refresh (number)
@@ -713,7 +713,7 @@ specify MPD time shift buffer depth in seconds, -1 to keep all files)
 .TP
 .B \-subdur (int)
 .br
-specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless -no-loop is used which triggers a period end
+specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless .I no-loop is used which triggers a period end
 .br
 .TP
 .B \-run-for (int)
@@ -733,7 +733,7 @@ specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeO
 .TP
 .B \-dash-scale (int)
 .br
-specify that timing for -dash and -frag are expressed in given timexale (units per seconds)
+specify that timing for .I dash and .I frag are expressed in given timexale (units per seconds)
 .br
 .TP
 .B \-mem-frags
@@ -1014,17 +1014,17 @@ print sample timing, size and position in file to text output
 .TP
 .B \-dtsx
 .br
-same as -dts but does not print offset
+same as .I dts but does not print offset
 .br
 .TP
 .B \-dtsc
 .br
-same as -dts but analyse each sample for duplicated dts/cts (slow !)
+same as .I dts but analyse each sample for duplicated dts/cts (slow !)
 .br
 .TP
 .B \-dtsxc
 .br
-same as -dtsc but does not print offset (slow !)
+same as .I dtsc but does not print offset (slow !)
 .br
 .TP
 .B \-dnal (int)
@@ -1059,22 +1059,22 @@ dump DASH SAP cues (see -cues) for a given track
 .TP
 .B \-dsaps (int)
 .br
-same as -dsap but only print sample number
+same as .I dsap but only print sample number
 .br
 .TP
 .B \-dsapc (int)
 .br
-same as -dsap but only print CTS
+same as .I dsap but only print CTS
 .br
 .TP
 .B \-dsapd (int)
 .br
-same as -dsap but only print DTS, -dsapp to only print presentation time
+same as .I dsap but only print DTS, -dsapp to only print presentation time
 .br
 .TP
 .B \-dsapp (int)
 .br
-same as -dsap but only print presentation time
+same as .I dsap but only print presentation time
 .br
 .TP
 .B \-dcr
@@ -1167,9 +1167,9 @@ print to stdout the number of bytes of top-level boxes matching types given as p
 .SH File importing
 .LP
 .br
-Syntax is -add / -cat filename[#FRAGMENT][:opt1...:optN=val]
+Syntax is .I add / .I cat filename[#FRAGMENT][:opt1...:optN=val]
 .br
-This process will create the destination file if not existing, and add the track(s) to it. If you wish to always create a new destination file, add -new.
+This process will create the destination file if not existing, and add the track(s) to it. If you wish to always create a new destination file, add .I -new.
 .br
 The supported input media types depend on your installation, check filters documentation for more info.
 .br
@@ -1185,17 +1185,17 @@ To select a desired media track, the following syntax is used:
 .br
   
 .br
-By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding input isobmf file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using -flat option, but this disables media interleaving.
+By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding input isobmf file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using .I flat option, but this disables media interleaving.
 .br
   
 .br
-If you wish to create an interleaved new file with no temporary storage, use the -newfs option. The interleaving might not be as precise as when using -new since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). 
+If you wish to create an interleaved new file with no temporary storage, use the .I newfs option. The interleaving might not be as precise as when using .I new since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). 
 .br
  - Some muxing options (marked with * below) will be activated for all inputs (i.e. in this mode, it is not possible to import one AVC track with xps_inband and another without).
 .br
  - Some muxing options (marked as ! below) cannot be used in this mode as they require temporary storage for file edition.
 .br
- - Usage of -cat is possible in this mode, but concatenated sources will not be interleaved in the output . If you wish to perforom more complex cat/add operations without temp file, use the gpac application.
+ - Usage of .I cat is possible in this mode, but concatenated sources will not be interleaved in the output . If you wish to perforom more complex cat/add operations without temp file, use the gpac application.
 .br
   
 .br
@@ -1229,11 +1229,11 @@ Allowed per-file options:
 .br
 * :delay=delay_ms: set imported media initial delay in ms
 .br
-* :par=PAR: set visual pixel aspect ratio (see -par )
+* :par=PAR: set visual pixel aspect ratio (see .I -par )
 .br
-* :clap=CLAP: set visual clean aperture (see -clap )
+* :clap=CLAP: set visual clean aperture (see .I -clap )
 .br
-* :mx=MX: sets track matrix (see -mx )
+* :mx=MX: sets track matrix (see .I -mx )
 .br
 * :name=NAME: set track handler name
 .br
@@ -1245,7 +1245,7 @@ Allowed per-file options:
 .br
 * :group=G: add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked.
 .br
-* :fps=VAL: same as -fps
+* :fps=VAL: same as .I fps
 .br
 * :rap: ! import only RAP samples
 .br
@@ -1253,25 +1253,25 @@ Allowed per-file options:
 .br
 * :trailing: keep trailing 0-bytes in AVC/HEVC samples
 .br
-* :agg=VAL: * same as -agg
+* :agg=VAL: * same as .I agg
 .br
-* :dref: * same as -dref
+* :dref: * same as .I dref
 .br
 * :keep_refs: keeps track reference when importing a single track
 .br
-* :nodrop: same as -nodrop
+* :nodrop: same as .I nodrop
 .br
-* :packed: * same as -packed
+* :packed: * same as .I packed
 .br
-* :sbr: same as -sbr
+* :sbr: same as .I sbr
 .br
-* :sbrx: same as -sbrx
+* :sbrx: same as .I sbrx
 .br
-* :ovsbr: same as -ovsbr
+* :ovsbr: same as .I ovsbr
 .br
-* :ps: same as -ps
+* :ps: same as .I ps
 .br
-* :psx: same as -psx
+* :psx: same as .I psx
 .br
 * :asemode=MODE: * set the mode to create the AudioSampleEntry
 .br
@@ -1285,7 +1285,7 @@ Allowed per-file options:
 .br
 * :audio_roll=N: add a roll sample group with roll_distance N
 .br
-* :mpeg4: * same as -mpeg4 option
+* :mpeg4: * same as .I mpeg4 option
 .br
 * :nosei: discard all SEI messages during import
 .br
@@ -1481,7 +1481,7 @@ Note: This aligns initial timestamp of the file to be concatenated
 .TP
 .B \-catx (string)
 .br
-same as -cat but new tracks can be imported before concatenation by specifying +ADD_COMMAND where ADD_COMMAND is a regular -add syntax
+same as .I cat but new tracks can be imported before concatenation by specifying +ADD_COMMAND where ADD_COMMAND is a regular .I add syntax
 .br
 .TP
 .B \-catpl (string)
@@ -1505,7 +1505,7 @@ Warning: THIS MAY BREAK THE CONCATENATED TRACK(S)
 .TP
 .B \-keep-sys
 .br
-keep all MPEG-4 Systems info when using -add and -cat (only used when adding IsoMedia files)
+keep all MPEG-4 Systems info when using .I add and .I cat (only used when adding IsoMedia files)
 .br
 .TP
 .B \-dref
@@ -1671,7 +1671,7 @@ signal AU sequence numbers in RTP packets (MPEG-4 Systems)
 .TP
 .B \-iod
 .br
-prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with -isma
+prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with .I isma
 .br
 .SH MPEG-4 Scene Encoding Options
 .LP
@@ -1719,14 +1719,14 @@ encode DEF names in BIFS
 .br
 force BIFS sync sample generation every given time in ms.
 .br
-Note: cannot be used with -shadow
+Note: cannot be used with .I shadow
 .br
 .TP
 .B \-shadow (int)
 .br
 force BIFS sync shadow sample generation every given time in ms.
 .br
-Note: cannot be used with -sync
+Note: cannot be used with .I sync
 .br
 .TP
 .B \-log
@@ -1840,13 +1840,13 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .TP
 .B \-add-image (string)
 .br
-add the given file (with parameters) as HEIF image item. Same syntax as -add-item
+add the given file (with parameters) as HEIF image item. Same syntax as .I add-item
 .br
-* name=str: see -add-item
+* name=str: see .I add-item
 .br
-* id=id: see -add-item
+* id=id: see .I add-item
 .br
-* ref=4cc, id: see -add-item
+* ref=4cc, id: see .I add-item
 .br
 * primary: indicate that this item should be the primary item
 .br
@@ -1862,7 +1862,7 @@ add the given file (with parameters) as HEIF image item. Same syntax as -add-ite
 .br
 * alpha: indicate that the image is an alpha image (should use ref=auxl also)
 .br
-- any other option will be passed as options to the media importer, see -add
+- any other option will be passed as options to the media importer, see .I add
 .br
 .TP
 .B \-rem-item  item_ID[:tk=tkID] (string)
@@ -2050,7 +2050,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev44-g93895075a-master
+build: 1.0.0-rev51-g384c9897d-paf_gpufx
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

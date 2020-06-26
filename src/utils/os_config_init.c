@@ -1757,6 +1757,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 				}
 
 				if (i == TOK_LINKSTART) {
+					if (tid == TOK_OPTLINK) continue;
 					if (gen_doc!=1) {
 						char *link_end;
 						skip_url = strstr(tok, "](");

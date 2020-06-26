@@ -29,7 +29,7 @@ FILTER: a single filter declaration (eg, -i file, -o dump, inspect, ...), see gp
 .br
   Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.
 .br
-boolean values do not need any value specified. Other types shall be formatted as opt=val, except -i, -src, -o, -dst and -h options.
+boolean values do not need any value specified. Other types shall be formatted as opt=val, except .I -i, -src, .I -o, -dst and .I -h options.
 .br
 
 .br
@@ -151,7 +151,7 @@ Note: The @ character can be used in place of the * character.
 .br
 * cfg: print the GPAC configuration help
 .br
-* prompt: print the GPAC prompt help when running in interactive mode (see -k )
+* prompt: print the GPAC prompt help when running in interactive mode (see .I -k )
 .br
 * modules: print available modules
 .br
@@ -417,7 +417,7 @@ Alias documentation will then appear in gpac help.
 .br
 GPAC uses a configuration file to modify default options of libgpac and filters. This configuration file is located in $HOME/.gpac/GPAC.cfg.
 .br
-Applications in GPAC can also specify a different configuration file through the -p option to indicate a profile. This allows different configurations for different usages and simplifies command line typing.
+Applications in GPAC can also specify a different configuration file through the .I -p option to indicate a profile. This allows different configurations for different usages and simplifies command line typing.
 .br
 Example
 .br
@@ -429,7 +429,7 @@ This will load configuration from $HOME/.gpac/foo/GPAC.cfg, creating it if neede
 .br
 The reserved name 0 is used to disable configuration file writing.
 .br
-By default the configuration file only holds a few system specific options and directories. It is possible to serialize the entire set of options to the configuration file, using -wc -wf. This should be avoided as the resulting configuration file size will be quite large, hence larger memory usage for the applications.
+By default the configuration file only holds a few system specific options and directories. It is possible to serialize the entire set of options to the configuration file, using .I -wc .I -wf. This should be avoided as the resulting configuration file size will be quite large, hence larger memory usage for the applications.
 .br
 The options specified in the configuration file may be overriden by the values in restrict.cfg file located in GPAC share system directory (e.g. /usr/share/gpac), if present; this allows enforcing system-wide configuration values.
 .br
@@ -463,7 +463,7 @@ Example
 .br
 This will force the rtp input filter to always request RTP over RTSP by default.
 .br
-To generate a configuration file with all filters options serialized, use -wf.
+To generate a configuration file with all filters options serialized, use .I -wf.
 .br
 .SH Global filter options
 .LP
@@ -824,7 +824,7 @@ set output texture ID when using glfbo output. The OpenGL context shall be initi
 .TP
 .B \-video-output (string)
 .br
-indicate the name of the video output module to use (see gpac -h modules). The reserved name glfbo is used in player mode to draw in the openGL texture identified by -glfbo-txid.  In this mode, the application is responsible for sending event to the terminal
+indicate the name of the video output module to use (see gpac -h modules). The reserved name glfbo is used in player mode to draw in the openGL texture identified by .I glfbo-txid.  In this mode, the application is responsible for sending event to the terminal
 .br
 .TP
 .B \-audio-output (string)
@@ -1037,7 +1037,7 @@ This moves all log to info level, dash to debug level and disable color logs
 .br
 Filters are configurable processing units consuming and producing data packets. These packets are carried between filters through a data channel called pid. A PID is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).
 .br
-Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run, unless -full-link is set.
+Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run, unless .I -full-link is set.
 .br
   
 .br
@@ -1049,7 +1049,7 @@ Each filter exposes one or more sets of capabilities, called capability bundle, 
 .br
   
 .br
-Each filter exposes a set of argument to configure itself, using property types and values described as strings formated with separators. This help is given with default separator sets :=#,@ to specify filters, properties and options. Use -seps to change them.
+Each filter exposes a set of argument to configure itself, using property types and values described as strings formated with separators. This help is given with default separator sets :=#,@ to specify filters, properties and options. Use .I -seps to change them.
 .br
 .SH Property format
 .LP
@@ -1465,7 +1465,7 @@ This will force dst to accept only from reframer, a muxer will be loaded to solv
 .SH Arguments inheriting
 .LP
 .br
-Unless explicitly disabled (see -max-chain), the filter engine will resolve implicit or explicit (LINK) connections between filters and will allocate any filter chain required to connect the filters. In doing so, it loads new filters with arguments inherited from both the source and the destination.
+Unless explicitly disabled (see .I -max-chain), the filter engine will resolve implicit or explicit (LINK) connections between filters and will allocate any filter chain required to connect the filters. In doing so, it loads new filters with arguments inherited from both the source and the destination.
 .br
 Example
 .br
@@ -1707,11 +1707,11 @@ Defined keywords:
 .br
 * $GSHARE: replaced by system path to GPAC shared directory (e.g. /usr/share)
 .br
-* $GJS: replaced by the first path specified by global config option -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
+* $GJS: replaced by the first path specified by global config option .I -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
 .br
-* $GLANG: replaced by the global config language option -lang
+* $GLANG: replaced by the global config language option .I -lang
 .br
-* $GUA: replaced by the global config user agent option -user-agent
+* $GUA: replaced by the global config user agent option .I -user-agent
 .br
 * $GINC(init_val[,inc]): replaced by init_val and increment init_val by inc (positive or negative number, 1 if not specified) each time a new filter using this string is created.
 .br
@@ -1730,7 +1730,7 @@ This will dump first service in dump_10.ts, second service in dump_12.ts, etc...
 .SH External filters
 .LP
 .br
-GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in folders listed in -mod-dirs option. The files shall be named gf_* and shall export a single function returning a filter register - see libgpac documentation for more details.
+GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in folders listed in .I -mod-dirs option. The files shall be named gf_* and shall export a single function returning a filter register - see libgpac documentation for more details.
 .br
 
 .br
@@ -3627,7 +3627,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev44-g93895075a-master
+build: 1.0.0-rev51-g384c9897d-paf_gpufx
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
