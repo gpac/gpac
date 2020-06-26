@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS multiplexer sub-project
@@ -951,9 +951,9 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 		else
 			stream->program->initial_ts = 0;
 
-		stream->program->initial_ts_set = GF_TRUE;
+		stream->program->initial_ts_set = 1;
 	}
-	else if (*dts < stream->program->initial_ts) {
+	else if ( (*dts < stream->program->initial_ts) && (stream->program->initial_ts_set==1)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: DTS "LLD" is less than initial DTS "LLD" - adjusting\n", stream->pid, *dts, stream->program->initial_ts));
 		stream->program->initial_ts = *dts;
 	}
@@ -1148,6 +1148,33 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				while (!stream->program->pcr_init_time)
 					stream->program->pcr_init_time = gf_rand();
 			}
+
+			if (stream->program->force_first_pts) {
+				u64 first_pts = stream->curr_pck.cts;
+				u64 first_dts = stream->curr_pck.dts;
+
+				if (stream->ts_scale.den) {
+					first_pts = first_pts * stream->ts_scale.num / stream->ts_scale.den;
+					first_dts = first_dts * stream->ts_scale.num / stream->ts_scale.den;
+				}
+
+				/*the final PTS is computed by:
+					force_first_pts = first_pts + stream->program->pcr_offset - stream->program->initial_ts + stream->program->pcr_init_time/300;
+					force_first_dts = first_dts + stream->program->pcr_offset - stream->program->initial_ts + stream->program->pcr_init_time/300;
+
+				time_inc is computed as
+					time_inc = first_dts - stream->program->pcr_init_time/300;
+
+					we want at least time_inc=0, hence
+					stream->program->pcr_init_time = first_dts*300;
+
+				*/
+				stream->program->pcr_init_time = first_dts*300 - stream->program->pcr_offset;
+				stream->program->initial_ts = first_pts + stream->program->pcr_offset + stream->program->pcr_init_time/300 - stream->program->force_first_pts;
+				stream->program->initial_ts_set = 2;
+			}
+
+
 			stream->program->pcr_init_time_set = GF_TRUE;
 			stream->program->ts_time_at_pcr_init = muxer->time;
 			stream->program->num_pck_at_pcr_init = muxer->tot_pck_sent;
@@ -2492,7 +2519,7 @@ u32 gf_m2ts_mux_program_count(GF_M2TS_Mux *muxer)
 }
 
 GF_EXPORT
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc)
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u64 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc, u64 force_first_pts)
 {
 	GF_M2TS_Mux_Program *program;
 
@@ -2520,6 +2547,7 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	program->pmt->set_initial_disc = initial_disc;
 	muxer->pat->table_needs_update = GF_TRUE;
 	program->pmt->process = gf_m2ts_stream_process_pmt;
+	program->force_first_pts = force_first_pts;
 	program->pmt->refresh_rate_ms = pmt_refresh_rate ? pmt_refresh_rate : (u32) -1;
 	return program;
 }
