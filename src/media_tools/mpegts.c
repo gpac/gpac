@@ -2789,6 +2789,7 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 	gf_m2ts_reset_parsers_for_program(ts, NULL);
 
 	ts->pck_number = 0;
+	ts->buffer_size = 0;
 
 	gf_m2ts_section_filter_reset(ts->cat);
 	gf_m2ts_section_filter_reset(ts->pat);
