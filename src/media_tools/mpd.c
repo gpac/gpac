@@ -3415,10 +3415,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			gf_fprintf(out, "\n");
 		}
 	}
-
-	if (mpd->type != GF_MPD_TYPE_DYNAMIC)
-		gf_fprintf(out,"#EXT-X-ENDLIST\n");
-
 	gf_free(m3u8_name_rad);
 	gf_free(szVariantName);
 	return GF_OK;

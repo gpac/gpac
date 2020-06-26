@@ -38,6 +38,16 @@ The possible options for gpac are:
 
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-ltf
 .br
 load test-unit filters (used for for unit tests only)
@@ -2478,7 +2488,7 @@ ModeSet for AMR and AMR-WideBand
 .TP
 .B SubSampleInfo (SUBS,mem,  )
 .br
-Binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
+Binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)codec_param(u8)priority(u8) discardable]. Subsamples for a given flag MUST appear in order, however flags can be interleaved
 .br
 .TP
 .B NALUMaxSize (NALS,uint,  )
@@ -3617,7 +3627,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev14-g95e329433-master
+build: 1.0.0-rev44-g93895075a-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

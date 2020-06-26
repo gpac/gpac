@@ -228,6 +228,7 @@ typedef struct
 	Bool ctrn;
 	Bool ctrni;
 #endif
+	Bool mfra;
 
 	//internal
 	Bool owns_mov;
@@ -2168,13 +2169,13 @@ multipid_stsd_setup:
 		}
 		if (!reuse_stsd) {
 			tkw->samples_in_stsd = 0;
-		} else if (use_3gpp_config && tkw->amr_mode_set) {
+		} else if (use_3gpp_config) {
 			GF_3GPConfig *gpp_cfg = gf_isom_3gp_config_get(ctx->file, tkw->track_num, tkw->stsd_idx);
-			if (gpp_cfg->AMR_mode_set != tkw->amr_mode_set) {
+			if (gpp_cfg) {
 				gpp_cfg->AMR_mode_set = tkw->amr_mode_set;
 				gf_isom_3gp_config_update(ctx->file, tkw->track_num, gpp_cfg, tkw->stsd_idx);
+				gf_free(gpp_cfg);
 			}
-			gf_free(gpp_cfg);
 		}
 	}
 
@@ -3538,7 +3539,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	for (i=0; i<count; i++) {
 		u32 def_pck_dur;
 		u32 def_is_rap;
+#ifdef GF_ENABLE_CTRN
 		u32 inherit_traf_from_track = 0;
+#endif
 		u64 dts;
 		const GF_PropertyValue *p;
 
@@ -3637,8 +3640,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			continue;
 		}
 
+#ifdef GF_ENABLE_CTRN
 		if (inherit_traf_from_track)
 			gf_isom_enable_traf_inherit(ctx->file, tkw->track_id, inherit_traf_from_track);
+#endif
 
 		if (!tkw->box_patched) {
 			p = gf_filter_pid_get_property_str(tkw->ipid, "boxpatch");
@@ -4894,6 +4899,11 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	}
 	if (!ctx->moovts) ctx->moovts=600;
 
+	if (ctx->mfra && (ctx->store>=MP4MX_MODE_FRAG)) {
+		GF_Err e = gf_isom_enable_mfra(ctx->file);
+		if (e) return e;
+	}
+
 	if (!ctx->tracks)
 		ctx->tracks = gf_list_new();
 
@@ -5374,6 +5384,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mfra), "enable movie fragment random access when fragmenting (ignored when dashing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

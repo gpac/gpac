@@ -228,6 +228,42 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 		chap_duration = ref_duration - chap_duration;
 		gf_isom_set_last_sample_duration(file, track, (u32) chap_duration);
 	}
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		u8 NbBits;
+		u32 switchGroupID, nb_crit, size, reserved;
+		u8 priority;
+		Bool discardable;
+		GF_AudioChannelLayout layout;
+		gf_isom_get_sample_size(file, track, 1);
+		gf_isom_get_sample_dts(file, track, 1);
+		gf_isom_get_sample_from_dts(file, track, 0);
+		gf_isom_set_sample_padding(file, track, 0);
+		gf_isom_has_padding_bits(file, track);
+		gf_isom_get_sample_padding_bits(file, track, 1, &NbBits);
+		gf_isom_keep_utc_times(file, 1);
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+		gf_isom_set_single_moof_mode(file, GF_TRUE);
+		gf_isom_reset_sample_count(NULL);
+		gf_isom_set_traf_mss_timeext(NULL, 0, 0, 0);
+		gf_isom_get_next_moof_number(NULL);
+		gf_isom_set_fragment_reference_time(NULL, 0, 0, 0);
+#endif
+		//this one is not tested in master due to old-arch compat, to remove when we enable tests without old-arch
+		gf_isom_get_audio_layout(file, track, 1, &layout);
+
+		gf_isom_get_track_switch_parameter(file, track, 1, &switchGroupID, &nb_crit);
+		gf_isom_sample_has_subsamples(file, track, 1, 0);
+		gf_isom_sample_get_subsample(file, track, 1, 0, 1, &size, &priority, &reserved, &discardable);
+#ifndef GPAC_DISABLE_ISOM_HINTING
+		gf_isom_hint_blank_data(NULL, 0, 0);
+		gf_isom_hint_sample_description_data(NULL, 0, 0, 1, 0, 0, 0);
+		gf_isom_get_payt_info(NULL, 0, 0, NULL);
+#endif
+		gf_isom_estimate_size(file);
+
+	}
+#endif
 }
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, u32 tk_idx)
@@ -2751,7 +2787,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		e = gf_isom_add_meta_item(file, 1, 0, 1, NULL, isom_src, 0, 0, NULL, NULL, NULL,  NULL, NULL);
 		if (e) goto exit;
 	}
-	e = gf_isom_set_meta_xml(file, 1, 0, file_name, !ascii);
+	e = gf_isom_set_meta_xml(file, 1, 0, file_name, NULL, 0, !ascii);
 	if (e) goto exit;
 
 	skip_chars = (u32) strlen(root_dir);

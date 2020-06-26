@@ -827,7 +827,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				u64 dur=0;
 				GF_Err e = gf_isom_get_file_offset_for_time(read->mov, evt->play.start_range, &max_offset);
 				if (e==GF_OK) {
-					gf_isom_reset_tables(read->mov, GF_TRUE);
+					if (evt->play.start_range>0)
+						gf_isom_reset_tables(read->mov, GF_TRUE);
+
 					is_sidx_seek = GF_TRUE;
 					//in case we loaded moov but not sidx, update duration
 					if ((gf_isom_get_sidx_duration(read->mov, &dur, &ts)==GF_OK) && dur) {
@@ -1163,6 +1165,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (ch->sample) {
 				u32 sample_dur;
 				u8 dep_flags;
+				u8 *subs_buf;
+				u32 subs_buf_size;
 				GF_FilterPacket *pck;
 				if (ch->needs_pid_reconfig) {
 					isor_update_channel_config(ch);
@@ -1212,6 +1216,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
+
+
+				subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);
+				if (subs_buf) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );
+				}
 
 				/**/
 				if (ch->cenc_state_changed && ch->pck_encrypted) {

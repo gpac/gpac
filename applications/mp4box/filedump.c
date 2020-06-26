@@ -2060,6 +2060,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	Bool is_od_track = 0;
 	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize, bps;
 	u64 time_slice, dur, size;
+	s32 cts_shift;
 	GF_ESD *esd;
 	char szDur[50];
 	char *lang;
@@ -2080,9 +2081,17 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	fprintf(stderr, "Media Duration %s - ", format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
 	fprintf(stderr, "Indicated Duration %s\n", format_duration(gf_isom_get_media_original_duration(file, trackNum), timescale, szDur));
 
+	if (gf_isom_check_data_reference(file, trackNum, 1) != GF_OK) {
+		fprintf(stderr, "Track uses external data reference not supported by GPAC!\n");
+	}
+
 	nb_edits = gf_isom_get_edits_count(file, trackNum);
 	if (nb_edits)
 		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
+
+	cts_shift = gf_isom_get_composition_offset_shift(file, trackNum);
+	if (cts_shift)
+		fprintf(stderr, "Track composition offset shift (negative CTS offset): %d\n", cts_shift);
 
 	if (gf_isom_is_track_in_root_od(file, trackNum) ) fprintf(stderr, "Track is present in Root OD\n");
 	if (!gf_isom_is_track_enabled(file, trackNum))  fprintf(stderr, "Track is disabled\n");
@@ -2105,10 +2114,20 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	}
 
 	if (gf_isom_is_track_fragmented(file, trackID) ) {
+		u32 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess;
+		u8 defaultPadding;
+		u16 defaultDegradationPriority;
 		u32 frag_samples;
 		u64 frag_duration;
 		gf_isom_get_fragmented_samples_info(file, trackID, &frag_samples, &frag_duration);
 		fprintf(stderr, "Fragmented track: %d samples - Media Duration %s\n", frag_samples, format_duration(frag_duration, timescale, szDur));
+
+		gf_isom_get_fragment_defaults(file, trackNum, &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
+
+		fprintf(stderr, "Fragment sample defaults: duration %d size %d stsd %d sync %d padding %d degradation_priority %d\n",
+				defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess,
+				(u32) defaultPadding, (u32) defaultDegradationPriority
+		);
 	}
 
 	if (!gf_isom_is_self_contained(file, trackNum, 1)) {
@@ -2591,7 +2610,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 				} else if(gf_isom_is_cenc_media(file, trackNum, 1)) {
 					gf_isom_get_cenc_info(file, trackNum, 1, NULL, &scheme_type, &version, &IV_size);
 					fprintf(stderr, "\n*Encrypted stream - CENC scheme %s (version: major=%u, minor=%u)\n", gf_4cc_to_str(scheme_type), (version&0xFFFF0000)>>16, version&0xFFFF);
-					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+					if (IV_size)
+						fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+					if (gf_isom_cenc_is_pattern_mode(file, trackNum, 1))
+						fprintf(stderr, "Pattern mode enabled\n");
+
 				} else if(gf_isom_is_adobe_protection_media(file, trackNum, 1)) {
 					gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version, NULL);
 					fprintf(stderr, "\n*Encrypted stream - Adobe protection scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);

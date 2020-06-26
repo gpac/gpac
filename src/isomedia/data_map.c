@@ -26,6 +26,10 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/network.h>
 
+
+/*File Mapping object, read-only mode on complete files (no download)*/
+//#define GF_ISOM_DATA_FILE_MAPPING 0x02
+
 #ifndef GPAC_DISABLE_ISOM
 
 
@@ -42,9 +46,11 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 	case GF_ISOM_DATA_MEM:
 		gf_isom_fdm_del((GF_FileDataMap *)ptr);
 		break;
+#if 0
 	case GF_ISOM_DATA_FILE_MAPPING:
 		gf_isom_fmo_del((GF_FileMappingDataMap *)ptr);
 		break;
+#endif
 	default:
 		if (ptr->bs) gf_bs_del(ptr->bs);
 		gf_free(ptr);
@@ -161,9 +167,8 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 
 	if (mode == GF_ISOM_DATA_MAP_READ_ONLY) {
 		mode = GF_ISOM_DATA_MAP_READ;
-		/*It seems win32 file mapping is reported in prog mem usage -> large increases of occupancy. Should not be a pb
-		but unless you want mapping, only regular IO will be used...*/
-#if 0
+
+#if 0 //file mapping is disabled
 		if (IsLargeFile(sPath)) {
 			*outDataMap = gf_isom_fdm_new(sPath, mode);
 		} else {
@@ -272,8 +277,10 @@ u32 gf_isom_datamap_get_data(GF_DataMap *map, u8 *buffer, u32 bufferLength, u64 
 	case GF_ISOM_DATA_MEM:
 		return gf_isom_fdm_get_data((GF_FileDataMap *)map, buffer, bufferLength, Offset);
 
+#if 0
 	case GF_ISOM_DATA_FILE_MAPPING:
 		return gf_isom_fmo_get_data((GF_FileMappingDataMap *)map, buffer, bufferLength, Offset);
+#endif
 
 	default:
 		return 0;
@@ -555,6 +562,8 @@ GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize)
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 
+#if 0 //file mapping disabled
+
 #ifdef WIN32
 
 #include <windows.h>
@@ -673,6 +682,7 @@ u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLengt
 	return gf_isom_fdm_get_data((GF_FileDataMap *)ptr, buffer, bufferLength, fileOffset);
 }
 
-#endif
+#endif //win32
+#endif //file mapping disabled
 
 #endif /*GPAC_DISABLE_ISOM*/

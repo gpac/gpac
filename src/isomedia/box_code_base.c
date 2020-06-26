@@ -3221,7 +3221,7 @@ GF_Err tfra_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Err tfra_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i;
+	u32 i, sap_nb_entries;
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
@@ -3234,10 +3234,19 @@ GF_Err tfra_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->trun_bits/8 - 1, 2);
 	gf_bs_write_int(bs, ptr->sample_bits/8 - 1, 2);
 
-	gf_bs_write_u32(bs, ptr->nb_entries);
+	sap_nb_entries = 0;
+	for (i=0; i<ptr->nb_entries; i++) {
+		GF_RandomAccessEntry *p = &ptr->entries[i];
+		//no sap found, do not store
+		if (p->trun_number) sap_nb_entries++;
+	}
+
+	gf_bs_write_u32(bs, sap_nb_entries);
 
 	for (i=0; i<ptr->nb_entries; i++) {
 		GF_RandomAccessEntry *p = &ptr->entries[i];
+		//no sap found, do not store
+		if (!p->trun_number) continue;
 		if (ptr->version==1) {
 			gf_bs_write_u64(bs, p->time);
 			gf_bs_write_u64(bs, p->moof_offset);
@@ -3254,11 +3263,16 @@ GF_Err tfra_box_write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err tfra_box_size(GF_Box *s)
 {
+	u32 i;
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
-
 	ptr->size += 12;
 
-	ptr->size += ptr->nb_entries * ( ((ptr->version==1) ? 16 : 8 ) + ptr->traf_bits/8 + ptr->trun_bits/8 + ptr->sample_bits/8);
+	for (i=0; i<ptr->nb_entries; i++) {
+		GF_RandomAccessEntry *p = &ptr->entries[i];
+		//no sap found, do not store
+		if (!p->trun_number) continue;
+		ptr->size +=  ((ptr->version==1) ? 16 : 8 ) + ptr->traf_bits/8 + ptr->trun_bits/8 + ptr->sample_bits/8;
+	}
 	return GF_OK;
 }
 
@@ -5046,7 +5060,7 @@ GF_Err stbl_box_size(GF_Box *s)
 	if (ptr->sub_samples) {
 		gf_isom_check_position_list(s, ptr->sub_samples, &pos);
 	}
-	if (ptr->sampleGroupsDescription && !ptr->skip_sample_groups) {
+	if (ptr->sampleGroupsDescription) {
 		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
 	}
 	if (ptr->sampleGroups) {

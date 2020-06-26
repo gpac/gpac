@@ -216,7 +216,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_RAW;
 			audio_fmt = gf_audio_fmt_from_isobmf(m_subtype);
 			break;
-		case GF_ISOM_MEDIA_TMCD:
+		case GF_ISOM_MEDIA_TIMECODE:
 			codec_id = GF_CODECID_TMCD;
 			streamtype = GF_STREAM_METADATA;
 			break;

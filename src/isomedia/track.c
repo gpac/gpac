@@ -413,6 +413,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
+#ifdef GF_ENABLE_CTRN
 GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
 {
 	u32 i, idx;
@@ -435,6 +436,8 @@ GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
 	}
 	return NULL;
 }
+#endif
+
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset, Bool is_first_merge)
 {
@@ -1255,7 +1258,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 			MediaType = GF_ISOM_MEDIA_SCENE;
 			str = "GPAC DIMS Handler";
 			break;
-		case GF_ISOM_MEDIA_TMCD:
+		case GF_ISOM_MEDIA_TIMECODE:
 			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_GMHD);
 			str = "GPAC TMCD Handler";
 			break;
