@@ -55,8 +55,6 @@ static void cleanup_file_io();
 FILE *sidebar_md=NULL;
 static FILE *helpout = NULL;
 
-static void gpac_rmt_user_callback(void *udta, const char* text);
-
 static const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n";
 
 //uncomment to check argument description matches our conventions - see filter.h
@@ -1927,8 +1925,6 @@ restart:
 		goto exit;
 	}
 
-	gf_sys_profiler_set_callback(NULL, gpac_rmt_user_callback);
-
 	//all good to go, load filters
 	has_xopt = GF_FALSE;
 	loaded_filters = gf_list_new();
@@ -3266,6 +3262,8 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/mpegts.h>
 #include <gpac/rtp_streamer.h>
 #include <gpac/internal/odf_dev.h>
+#include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 #endif
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
@@ -3422,6 +3420,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	u8 *data;
 	u32 size;
 	sprintf(url, "gmem://%p", &b);
+
+	gf_sys_profiler_set_callback(NULL, NULL);
 
 	gf_blob_get_data(url, &data, &size);
 	if (!data || strcmp((char *)data, "test")) {
@@ -3623,6 +3623,34 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_odf_get_text_config(NULL, 0, 0, txtc);
 	gf_odf_dump_txtcfg(txtc, NULL, 0, GF_FALSE);
 	gf_odf_desc_del((GF_Descriptor *) txtc);
+
+	//stuff only used by vtbdec
+	gf_media_hevc_read_pps_bs(NULL, NULL);
+	gf_media_hevc_read_sps_bs(NULL, NULL);
+	gf_media_hevc_read_vps_bs(NULL, NULL);
+	gf_mpegv12_get_config(NULL, 0, NULL);
+
+	//hinting stuff
+	GF_HintPacket *hpck = gf_isom_hint_pck_new(GF_ISOM_BOX_TYPE_RTCP_STSD);
+	gf_isom_hint_pck_length(hpck);
+	gf_isom_hint_pck_size(hpck);
+	GF_BitStream *hbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_isom_hint_pck_write(hpck, hbs);
+	u8 *hbuf;
+	u32 hsize;
+	gf_bs_get_content(hbs, &hbuf, &hsize);
+	gf_bs_del(hbs);
+	hbs = gf_bs_new(hbuf, hsize, GF_BITSTREAM_READ);
+	gf_isom_hint_pck_read(hpck, hbs);
+	gf_bs_del(hbs);
+	gf_free(hbuf);
+	gf_isom_hint_pck_del(hpck);
+
+	gf_isom_last_error(NULL);
+	gf_isom_get_media_time(NULL, 0, 0, NULL);
+	gf_isom_get_sample_description_index(NULL, 0, 0);
+
+
 #endif
 	return 0;
 }
@@ -3920,9 +3948,3 @@ static void cleanup_file_io()
 	all_gfio_defined = NULL;
 }
 
-
-static void gpac_rmt_user_callback(void *udta, const char* text)
-{
-	fprintf(stderr, "Remotery says: %s\n", text);
-	gf_sys_profiler_send("{ \"type\": \"chat\", \"value\": \"Got it !\"}");
-}

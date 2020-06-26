@@ -52,6 +52,7 @@ typedef struct
 	char *dst;
 	GF_Fraction fps;
 	Bool noraw;
+	u64 opendml_size;
 
 
 	avi_t *avi_out;
@@ -84,7 +85,7 @@ static GF_Err avimux_open_close(GF_AVIMuxCtx *ctx, const char *filename, const c
 		return GF_NOT_SUPPORTED;
 	}
 
-	ctx->avi_out = AVI_open_output_file((char *) filename);
+	ctx->avi_out = AVI_open_output_file((char *) filename, ctx->opendml_size);
 
 	if (had_file && ctx->nb_write) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AVIOut] re-opening in write mode output file %s, content overwrite\n", filename));
@@ -520,6 +521,7 @@ static const GF_FilterArgs AVIMuxArgs[] =
 	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(fps), "default framerate if none indicated in stream", GF_PROP_FRACTION, "25/1", NULL, 0},
 	{ OFFS(noraw), "disable raw output in AVI, only compressed ones allowed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(opendml_size), "force opendml format when chunks are larger than this amount (0 means 1.9Gb max size in each riff chunk)", GF_PROP_LUINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

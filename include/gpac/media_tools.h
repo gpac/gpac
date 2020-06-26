@@ -1232,6 +1232,13 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHinter);
 u32 gf_hinter_track_get_bandwidth(GF_RTPHinter *tkHinter);
 
 /*!
+ Force file to use no random offsets for sequence number and time, if supported by server
+\param tkHinter track hinter object
+\return error if any
+*/
+GF_Err gf_hinter_track_force_no_offsets(GF_RTPHinter *tkHinter);
+
+/*!
  Gets track hinter flags
 \param tkHinter track hinter object
 \return hint flags for this object

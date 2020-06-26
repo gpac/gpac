@@ -1948,7 +1948,6 @@ typedef struct
 	u32 currentEntryIndex;
 
 	Bool no_sync_found;
-	Bool skip_sample_groups;
 } GF_SampleTableBox;
 
 GF_Err stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end);
@@ -1966,7 +1965,6 @@ typedef struct __tag_media_info_box
 
 GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
-GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 typedef struct
 {
@@ -3607,8 +3605,6 @@ typedef struct
 
 /*regular file IO*/
 #define GF_ISOM_DATA_FILE         0x01
-/*File Mapping object, read-only mode on complete files (no download)*/
-#define GF_ISOM_DATA_FILE_MAPPING 0x02
 /*External file object. Needs implementation*/
 #define GF_ISOM_DATA_FILE_EXTERN  0x03
 /*regular memory IO*/
@@ -3680,11 +3676,6 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_DataMap *gf_isom_fdm_new_temp(const char *sTempPath);
 #endif
-
-/*file-mapping, read only*/
-GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode);
-void gf_isom_fmo_del(GF_FileMappingDataMap *ptr);
-u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 u64 gf_isom_datamap_get_offset(GF_DataMap *map);
@@ -4040,7 +4031,6 @@ void VP9_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *vp9);
 void AV1_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *av1, GF_MediaBox *mdia);
 void AV1_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *av1);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, GF_ISOTrackID trackID, u16 *outRefIndex);
-GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary);
 Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl, u32 scheme_type);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -4318,7 +4308,6 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(u8 *da
 
 #ifndef GPAC_DISABLE_VTT
 
-GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
 GF_ISOSample *gf_isom_webvtt_to_sample(void *samp);
 
 typedef struct

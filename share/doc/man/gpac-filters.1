@@ -125,7 +125,7 @@ Note: when dumping in interleaved mode, there is no guarantee that the packets w
 .SH Options (expert):
 .LP
 .br
-log (str, default: stderr, minmax: fileName, stderr or stdout, updatable): set inspect log filename
+log (str, default: stderr, minmax: fileName, stderr, stdout or null): set inspect log filename
 .br
 mode (enum, default: pck):     dump mode
 .br
@@ -203,7 +203,7 @@ The filter does not produce any output nor feedback, it is up to the app develop
 .SH Options (expert):
 .LP
 .br
-log (str, default: stderr, minmax: fileName, stderr or stdout, updatable): set inspect log filename
+log (str, default: stderr, minmax: fileName, stderr, stdout or null): set inspect log filename
 .br
 mode (enum, default: pck):     dump mode
 .br
@@ -1902,6 +1902,8 @@ boxpatch (str):                apply box patch before writing
 .br
 deps (bool, default: true):    add samples dependencies information
 .br
+mfra (bool, default: false):   enable movie fragment random access when fragmenting (ignored when dashing)
+.br
 
 .br
 .SH rfqcp
@@ -2844,6 +2846,8 @@ dst (cstr):                    location of destination file
 fps (frac, default: 25/1):     default framerate if none indicated in stream
 .br
 noraw (bool, default: false):  disable raw output in AVI, only compressed ones allowed
+.br
+opendml_size (luint, default: 0): force opendml format when chunks are larger than this amount (0 means 1.9Gb max size in each riff chunk)
 .br
 
 .br
@@ -5846,7 +5850,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev14-g95e329433-master
+build: 1.0.0-rev44-g93895075a-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

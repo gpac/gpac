@@ -73,137 +73,84 @@ void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur)
 	}
 }
 
+struct __m4v_profile
+{
+	u32 value;
+	const char *name;
+} M4VProfiles[] = {
+	{0x00, "Reserved (0x00) Profile"},
+	{0x01, "Simple Profile @ Level 1"},
+	{0x02, "Simple Profile @ Level 2"},
+	{0x03, "Simple Profile @ Level 3"},
+	{0x08, "Simple Profile @ Level 0"},
+	{0x10, "Simple Scalable Profile @ Level 0"},
+	{0x11, "Simple Scalable Profile @ Level 1"},
+	{0x12, "Simple Scalable Profile @ Level 2"},
+	{0x21, "Core Profile @ Level 1"},
+	{0x22, "Core Profile @ Level 2"},
+	{0x32, "Main Profile @ Level 2"},
+	{0x33, "Main Profile @ Level 3"},
+	{0x34, "Main Profile @ Level 4"},
+	{0x42, "N-bit Profile @ Level 2"},
+	{0x51, "Scalable Texture Profile @ Level 1"},
+	{0x61, "Simple Face Animation Profile @ Level 1"},
+	{0x62, "Simple Face Animation Profile @ Level 2"},
+	{0x63, "Simple FBA Profile @ Level 1"},
+	{0x64, "Simple FBA Profile @ Level 2"},
+	{0x71, "Basic Animated Texture Profile @ Level 1"},
+	{0x72, "Basic Animated Texture Profile @ Level 2"},
+	{0x7F, "AVC/H264 Profile"},
+	{0x81, "Hybrid Profile @ Level 1"},
+	{0x82, "Hybrid Profile @ Level 2"},
+	{0x91, "Advanced Real Time Simple Profile @ Level 1"},
+	{0x92, "Advanced Real Time Simple Profile @ Level 2"},
+	{0x93, "Advanced Real Time Simple Profile @ Level 3"},
+	{0x94, "Advanced Real Time Simple Profile @ Level 4"},
+	{0xA1, "Core Scalable Profile @ Level1"},
+	{0xA2, "Core Scalable Profile @ Level2"},
+	{0xA3, "Core Scalable Profile @ Level3"},
+	{0xB1, "Advanced Coding Efficiency Profile @ Level 1"},
+	{0xB2, "Advanced Coding Efficiency Profile @ Level 2"},
+	{0xB3, "Advanced Coding Efficiency Profile @ Level 3"},
+	{0xB4, "Advanced Coding Efficiency Profile @ Level 4"},
+	{0xC1, "Advanced Core Profile @ Level 1"},
+	{0xC2, "Advanced Core Profile @ Level 2"},
+	{0xD1, "Advanced Scalable Texture @ Level1"},
+	{0xD2, "Advanced Scalable Texture @ Level2"},
+	{0xE1, "Simple Studio Profile @ Level 1"},
+	{0xE2, "Simple Studio Profile @ Level 2"},
+	{0xE3, "Simple Studio Profile @ Level 3"},
+	{0xE4, "Simple Studio Profile @ Level 4"},
+	{0xE5, "Core Studio Profile @ Level 1"},
+	{0xE6, "Core Studio Profile @ Level 2"},
+	{0xE7, "Core Studio Profile @ Level 3"},
+	{0xE8, "Core Studio Profile @ Level 4"},
+	{0xF0, "Advanced Simple Profile @ Level 0"},
+	{0xF1, "Advanced Simple Profile @ Level 1"},
+	{0xF2, "Advanced Simple Profile @ Level 2"},
+	{0xF3, "Advanced Simple Profile @ Level 3"},
+	{0xF4, "Advanced Simple Profile @ Level 4"},
+	{0xF5, "Advanced Simple Profile @ Level 5"},
+	{0xF7, "Advanced Simple Profile @ Level 3b"},
+	{0xF8, "Fine Granularity Scalable Profile @ Level 0"},
+	{0xF9, "Fine Granularity Scalable Profile @ Level 1"},
+	{0xFA, "Fine Granularity Scalable Profile @ Level 2"},
+	{0xFB, "Fine Granularity Scalable Profile @ Level 3"},
+	{0xFC, "Fine Granularity Scalable Profile @ Level 4"},
+	{0xFD, "Fine Granularity Scalable Profile @ Level 5"},
+	{0xFE, "Not part of MPEG-4 Visual profiles"},
+	{0xFF, "No visual capability required"}
+};
+
 GF_EXPORT
 const char *gf_m4v_get_profile_name(u8 video_pl)
 {
-	switch (video_pl) {
-	case 0x00:
-		return "Reserved (0x00) Profile";
-	case 0x01:
-		return "Simple Profile @ Level 1";
-	case 0x02:
-		return "Simple Profile @ Level 2";
-	case 0x03:
-		return "Simple Profile @ Level 3";
-	case 0x08:
-		return "Simple Profile @ Level 0";
-	case 0x10:
-		return "Simple Scalable Profile @ Level 0";
-	case 0x11:
-		return "Simple Scalable Profile @ Level 1";
-	case 0x12:
-		return "Simple Scalable Profile @ Level 2";
-	case 0x21:
-		return "Core Profile @ Level 1";
-	case 0x22:
-		return "Core Profile @ Level 2";
-	case 0x32:
-		return "Main Profile @ Level 2";
-	case 0x33:
-		return "Main Profile @ Level 3";
-	case 0x34:
-		return "Main Profile @ Level 4";
-	case 0x42:
-		return "N-bit Profile @ Level 2";
-	case 0x51:
-		return "Scalable Texture Profile @ Level 1";
-	case 0x61:
-		return "Simple Face Animation Profile @ Level 1";
-	case 0x62:
-		return "Simple Face Animation Profile @ Level 2";
-	case 0x63:
-		return "Simple FBA Profile @ Level 1";
-	case 0x64:
-		return "Simple FBA Profile @ Level 2";
-	case 0x71:
-		return "Basic Animated Texture Profile @ Level 1";
-	case 0x72:
-		return "Basic Animated Texture Profile @ Level 2";
-	case 0x7F:
-		return "AVC/H264 Profile";
-	case 0x81:
-		return "Hybrid Profile @ Level 1";
-	case 0x82:
-		return "Hybrid Profile @ Level 2";
-	case 0x91:
-		return "Advanced Real Time Simple Profile @ Level 1";
-	case 0x92:
-		return "Advanced Real Time Simple Profile @ Level 2";
-	case 0x93:
-		return "Advanced Real Time Simple Profile @ Level 3";
-	case 0x94:
-		return "Advanced Real Time Simple Profile @ Level 4";
-	case 0xA1:
-		return "Core Scalable Profile @ Level1";
-	case 0xA2:
-		return "Core Scalable Profile @ Level2";
-	case 0xA3:
-		return "Core Scalable Profile @ Level3";
-	case 0xB1:
-		return "Advanced Coding Efficiency Profile @ Level 1";
-	case 0xB2:
-		return "Advanced Coding Efficiency Profile @ Level 2";
-	case 0xB3:
-		return "Advanced Coding Efficiency Profile @ Level 3";
-	case 0xB4:
-		return "Advanced Coding Efficiency Profile @ Level 4";
-	case 0xC1:
-		return "Advanced Core Profile @ Level 1";
-	case 0xC2:
-		return "Advanced Core Profile @ Level 2";
-	case 0xD1:
-		return "Advanced Scalable Texture @ Level1";
-	case 0xD2:
-		return "Advanced Scalable Texture @ Level2";
-	case 0xE1:
-		return "Simple Studio Profile @ Level 1";
-	case 0xE2:
-		return "Simple Studio Profile @ Level 2";
-	case 0xE3:
-		return "Simple Studio Profile @ Level 3";
-	case 0xE4:
-		return "Simple Studio Profile @ Level 4";
-	case 0xE5:
-		return "Core Studio Profile @ Level 1";
-	case 0xE6:
-		return "Core Studio Profile @ Level 2";
-	case 0xE7:
-		return "Core Studio Profile @ Level 3";
-	case 0xE8:
-		return "Core Studio Profile @ Level 4";
-	case 0xF0:
-		return "Advanced Simple Profile @ Level 0";
-	case 0xF1:
-		return "Advanced Simple Profile @ Level 1";
-	case 0xF2:
-		return "Advanced Simple Profile @ Level 2";
-	case 0xF3:
-		return "Advanced Simple Profile @ Level 3";
-	case 0xF4:
-		return "Advanced Simple Profile @ Level 4";
-	case 0xF5:
-		return "Advanced Simple Profile @ Level 5";
-	case 0xF7:
-		return "Advanced Simple Profile @ Level 3b";
-	case 0xF8:
-		return "Fine Granularity Scalable Profile @ Level 0";
-	case 0xF9:
-		return "Fine Granularity Scalable Profile @ Level 1";
-	case 0xFA:
-		return "Fine Granularity Scalable Profile @ Level 2";
-	case 0xFB:
-		return "Fine Granularity Scalable Profile @ Level 3";
-	case 0xFC:
-		return "Fine Granularity Scalable Profile @ Level 4";
-	case 0xFD:
-		return "Fine Granularity Scalable Profile @ Level 5";
-	case 0xFE:
-		return "Not part of MPEG-4 Visual profiles";
-	case 0xFF:
-		return "No visual capability required";
-	default:
-		return "ISO Reserved Profile";
+	u32 i, count = GF_ARRAY_LENGTH(M4VProfiles);
+	for (i=0; i<count; i++) {
+		if ((u32)video_pl == M4VProfiles[i].value)
+			return M4VProfiles[i].name;
 	}
+	return "ISO Reserved Profile";
 }
 
 
@@ -944,236 +891,146 @@ GF_Err gf_mpegv12_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi
 	AAC parser
 */
 
+struct __m4a_oti
+{
+	u32 type;
+	const char *name;
+} M4AObjectTypes[] = {
+	{0, "MPEG-4 Audio Reserved"},
+	{1, "MPEG-4 Audio AAC Main"},
+	{2, "MPEG-4 Audio AAC LC"},
+	{3, "MPEG-4 Audio AAC SSR"},
+	{4, "MPEG-4 Audio AAC LTP"},
+	{5, "MPEG-4 Audio SBR"},
+	{6, "MPEG-4 Audio AAC Scalable"},
+	{7, "MPEG-4 Audio TwinVQ"},
+	{8, "MPEG-4 Audio CELP"},
+	{9, "MPEG-4 Audio HVXC"},
+	{10, "MPEG-4 Audio Reserved"},
+	{11, "MPEG-4 Audio Reserved"},
+	{12, "MPEG-4 Audio TTSI"},
+	{13, "MPEG-4 Audio Main synthetic"},
+	{14, "MPEG-4 Audio Wavetable synthesis"},
+	{15, "MPEG-4 Audio General MIDI"},
+	{16, "MPEG-4 Audio Algorithmic Synthesis and Audio FX"},
+	{17, "MPEG-4 Audio ER AAC LC"},
+	{18, "MPEG-4 Audio Reserved"},
+	{19, "MPEG-4 Audio ER AAC LTP"},
+	{20, "MPEG-4 Audio ER AAC scalable"},
+	{21, "MPEG-4 Audio ER TwinVQ"},
+	{22, "MPEG-4 Audio ER BSAC"},
+	{23, "MPEG-4 Audio ER AAC LD"},
+	{24, "MPEG-4 Audio ER CELP"},
+	{25, "MPEG-4 Audio ER HVXC"},
+	{26, "MPEG-4 Audio ER HILN"},
+	{27, "MPEG-4 Audio ER Parametric"},
+	{28, "MPEG-4 Audio SSC"},
+	{29, "MPEG-4 Audio ParametricStereo"},
+	{30, "MPEG-4 Audio Reserved"},
+	{31, "MPEG-4 Audio Reserved"},
+	{32, "MPEG-1 Audio Layer-1"},
+	{33, "MPEG-1 Audio Layer-2"},
+	{34, "MPEG-1 Audio Layer-3"},
+	{35, "MPEG-4 Audio DST"},
+	{36, "MPEG-4 Audio ALS"}
+};
+
 GF_EXPORT
 const char *gf_m4a_object_type_name(u32 objectType)
 {
-	switch (objectType) {
-	case 0:
-		return "MPEG-4 Audio Reserved";
-	case 1:
-		return "MPEG-4 Audio AAC Main";
-	case 2:
-		return "MPEG-4 Audio AAC LC";
-	case 3:
-		return "MPEG-4 Audio AAC SSR";
-	case 4:
-		return "MPEG-4 Audio AAC LTP";
-	case 5:
-		return "MPEG-4 Audio SBR";
-	case 6:
-		return "MPEG-4 Audio AAC Scalable";
-	case 7:
-		return "MPEG-4 Audio TwinVQ";
-	case 8:
-		return "MPEG-4 Audio CELP";
-	case 9:
-		return "MPEG-4 Audio HVXC";
-	case 10:
-		return "MPEG-4 Audio Reserved";
-	case 11:
-		return "MPEG-4 Audio Reserved";
-	case 12:
-		return "MPEG-4 Audio TTSI";
-	case 13:
-		return "MPEG-4 Audio Main synthetic";
-	case 14:
-		return "MPEG-4 Audio Wavetable synthesis";
-	case 15:
-		return "MPEG-4 Audio General MIDI";
-	case 16:
-		return "MPEG-4 Audio Algorithmic Synthesis and Audio FX";
-	case 17:
-		return "MPEG-4 Audio ER AAC LC";
-	case 18:
-		return "MPEG-4 Audio Reserved";
-	case 19:
-		return "MPEG-4 Audio ER AAC LTP";
-	case 20:
-		return "MPEG-4 Audio ER AAC scalable";
-	case 21:
-		return "MPEG-4 Audio ER TwinVQ";
-	case 22:
-		return "MPEG-4 Audio ER BSAC";
-	case 23:
-		return "MPEG-4 Audio ER AAC LD";
-	case 24:
-		return "MPEG-4 Audio ER CELP";
-	case 25:
-		return "MPEG-4 Audio ER HVXC";
-	case 26:
-		return "MPEG-4 Audio ER HILN";
-	case 27:
-		return "MPEG-4 Audio ER Parametric";
-	case 28:
-		return "MPEG-4 Audio SSC";
-	case 29:
-		return "MPEG-4 Audio ParametricStereo";
-	case 30:
-		return "MPEG-4 Audio Reserved";
-	case 31:
-		return "MPEG-4 Audio Reserved";
-	case 32:
-		return "MPEG-1 Audio Layer-1";
-	case 33:
-		return "MPEG-1 Audio Layer-2";
-	case 34:
-		return "MPEG-1 Audio Layer-3";
-	case 35:
-		return "MPEG-4 Audio DST";
-	case 36:
-		return "MPEG-4 Audio ALS";
-	default:
-		return "MPEG-4 Audio Unknown";
+	u32 i, count = GF_ARRAY_LENGTH(M4AObjectTypes);
+	for (i=0; i<count; i++) {
+		if (objectType==M4AObjectTypes[i].type)
+			return M4AObjectTypes[i].name;
 	}
+	return "MPEG-4 Audio Unknown";
 }
+
+struct __m4a_profile
+{
+	u32 value;
+	const char *name;
+} M4AProfiles[] = {
+	{0x00, "ISO Reserved (0x00)"},
+	{0x01, "Main Audio Profile @ Level 1"},
+	{0x02, "Main Audio Profile @ Level 2"},
+	{0x03, "Main Audio Profile @ Level 3"},
+	{0x04, "Main Audio Profile @ Level 4"},
+	{0x05, "Scalable Audio Profile @ Level 1"},
+	{0x06, "Scalable Audio Profile @ Level 2"},
+	{0x07, "Scalable Audio Profile @ Level 3"},
+	{0x08, "Scalable Audio Profile @ Level 4"},
+	{0x09, "Speech Audio Profile @ Level 1"},
+	{0x0A, "Speech Audio Profile @ Level 2"},
+	{0x0B, "Synthetic Audio Profile @ Level 1"},
+	{0x0C, "Synthetic Audio Profile @ Level 2"},
+	{0x0D, "Synthetic Audio Profile @ Level 3"},
+	{0x0E, "High Quality Audio Profile @ Level 1"},
+	{0x0F, "High Quality Audio Profile @ Level 2"},
+	{0x10, "High Quality Audio Profile @ Level 3"},
+	{0x11, "High Quality Audio Profile @ Level 4"},
+	{0x12, "High Quality Audio Profile @ Level 5"},
+	{0x13, "High Quality Audio Profile @ Level 6"},
+	{0x14, "High Quality Audio Profile @ Level 7"},
+	{0x15, "High Quality Audio Profile @ Level 8"},
+	{0x16, "Low Delay Audio Profile @ Level 1"},
+	{0x17, "Low Delay Audio Profile @ Level 2"},
+	{0x18, "Low Delay Audio Profile @ Level 3"},
+	{0x19, "Low Delay Audio Profile @ Level 4"},
+	{0x1A, "Low Delay Audio Profile @ Level 5"},
+	{0x1B, "Low Delay Audio Profile @ Level 6"},
+	{0x1C, "Low Delay Audio Profile @ Level 7"},
+	{0x1D, "Low Delay Audio Profile @ Level 8"},
+	{0x1E, "Natural Audio Profile @ Level 1"},
+	{0x1F, "Natural Audio Profile @ Level 2"},
+	{0x20, "Natural Audio Profile @ Level 3"},
+	{0x21, "Natural Audio Profile @ Level 4"},
+	{0x22, "Mobile Audio Internetworking Profile @ Level 1"},
+	{0x23, "Mobile Audio Internetworking Profile @ Level 2"},
+	{0x24, "Mobile Audio Internetworking Profile @ Level 3"},
+	{0x25, "Mobile Audio Internetworking Profile @ Level 4"},
+	{0x26, "Mobile Audio Internetworking Profile @ Level 5"},
+	{0x27, "Mobile Audio Internetworking Profile @ Level 6"},
+	{0x28, "AAC Profile @ Level 1"},
+	{0x29, "AAC Profile @ Level 2"},
+	{0x2A, "AAC Profile @ Level 4"},
+	{0x2B, "AAC Profile @ Level 5"},
+	{0x2C, "High Efficiency AAC Profile @ Level 2"},
+	{0x2D, "High Efficiency AAC Profile @ Level 3"},
+	{0x2E, "High Efficiency AAC Profile @ Level 4"},
+	{0x2F, "High Efficiency AAC Profile @ Level 5"},
+	{0x30, "High Efficiency AAC v2 Profile @ Level 2"},
+	{0x31, "High Efficiency AAC v2 Profile @ Level 3"},
+	{0x32, "High Efficiency AAC v2 Profile @ Level 4"},
+	{0x33, "High Efficiency AAC v2 Profile @ Level 5"},
+	{0x34, "Low Delay AAC Profile"},
+	{0x35, "Baseline MPEG Surround Profile @ Level 1"},
+	{0x36, "Baseline MPEG Surround Profile @ Level 2"},
+	{0x37, "Baseline MPEG Surround Profile @ Level 3"},
+	{0x38, "Baseline MPEG Surround Profile @ Level 4"},
+	{0x39, "Baseline MPEG Surround Profile @ Level 5"},
+	{0x3A, "Baseline MPEG Surround Profile @ Level 6"},
+	{0x50, "AAC Profile @ Level 6"},
+	{0x51, "AAC Profile @ Level 7"},
+	{0x52, "High Efficiency AAC Profile @ Level 6"},
+	{0x53, "High Efficiency AAC Profile @ Level 7"},
+	{0x54, "High Efficiency AAC v2 Profile @ Level 6"},
+	{0x55, "High Efficiency AAC v2 Profile @ Level 7"},
+	{0x56, "Extended High Efficiency AAC Profile @ Level 6"},
+	{0x57, "Extended High Efficiency AAC Profile @ Level 7"},
+	{0xFE, "Not part of MPEG-4 audio profiles"},
+	{0xFF, "No audio capability required"}
+};
 
 GF_EXPORT
 const char *gf_m4a_get_profile_name(u8 audio_pl)
 {
-	switch (audio_pl) {
-	case 0x00:
-		return "ISO Reserved (0x00)";
-	case 0x01:
-		return "Main Audio Profile @ Level 1";
-	case 0x02:
-		return "Main Audio Profile @ Level 2";
-	case 0x03:
-		return "Main Audio Profile @ Level 3";
-	case 0x04:
-		return "Main Audio Profile @ Level 4";
-	case 0x05:
-		return "Scalable Audio Profile @ Level 1";
-	case 0x06:
-		return "Scalable Audio Profile @ Level 2";
-	case 0x07:
-		return "Scalable Audio Profile @ Level 3";
-	case 0x08:
-		return "Scalable Audio Profile @ Level 4";
-	case 0x09:
-		return "Speech Audio Profile @ Level 1";
-	case 0x0A:
-		return "Speech Audio Profile @ Level 2";
-	case 0x0B:
-		return "Synthetic Audio Profile @ Level 1";
-	case 0x0C:
-		return "Synthetic Audio Profile @ Level 2";
-	case 0x0D:
-		return "Synthetic Audio Profile @ Level 3";
-	case 0x0E:
-		return "High Quality Audio Profile @ Level 1";
-	case 0x0F:
-		return "High Quality Audio Profile @ Level 2";
-	case 0x10:
-		return "High Quality Audio Profile @ Level 3";
-	case 0x11:
-		return "High Quality Audio Profile @ Level 4";
-	case 0x12:
-		return "High Quality Audio Profile @ Level 5";
-	case 0x13:
-		return "High Quality Audio Profile @ Level 6";
-	case 0x14:
-		return "High Quality Audio Profile @ Level 7";
-	case 0x15:
-		return "High Quality Audio Profile @ Level 8";
-	case 0x16:
-		return "Low Delay Audio Profile @ Level 1";
-	case 0x17:
-		return "Low Delay Audio Profile @ Level 2";
-	case 0x18:
-		return "Low Delay Audio Profile @ Level 3";
-	case 0x19:
-		return "Low Delay Audio Profile @ Level 4";
-	case 0x1A:
-		return "Low Delay Audio Profile @ Level 5";
-	case 0x1B:
-		return "Low Delay Audio Profile @ Level 6";
-	case 0x1C:
-		return "Low Delay Audio Profile @ Level 7";
-	case 0x1D:
-		return "Low Delay Audio Profile @ Level 8";
-	case 0x1E:
-		return "Natural Audio Profile @ Level 1";
-	case 0x1F:
-		return "Natural Audio Profile @ Level 2";
-	case 0x20:
-		return "Natural Audio Profile @ Level 3";
-	case 0x21:
-		return "Natural Audio Profile @ Level 4";
-	case 0x22:
-		return "Mobile Audio Internetworking Profile @ Level 1";
-	case 0x23:
-		return "Mobile Audio Internetworking Profile @ Level 2";
-	case 0x24:
-		return "Mobile Audio Internetworking Profile @ Level 3";
-	case 0x25:
-		return "Mobile Audio Internetworking Profile @ Level 4";
-	case 0x26:
-		return "Mobile Audio Internetworking Profile @ Level 5";
-	case 0x27:
-		return "Mobile Audio Internetworking Profile @ Level 6";
-	case 0x28:
-		return "AAC Profile @ Level 1";
-	case 0x29:
-		return "AAC Profile @ Level 2";
-	case 0x2A:
-		return "AAC Profile @ Level 4";
-	case 0x2B:
-		return "AAC Profile @ Level 5";
-	case 0x2C:
-		return "High Efficiency AAC Profile @ Level 2";
-	case 0x2D:
-		return "High Efficiency AAC Profile @ Level 3";
-	case 0x2E:
-		return "High Efficiency AAC Profile @ Level 4";
-	case 0x2F:
-		return "High Efficiency AAC Profile @ Level 5";
-	case 0x30:
-		return "High Efficiency AAC v2 Profile @ Level 2";
-	case 0x31:
-		return "High Efficiency AAC v2 Profile @ Level 3";
-	case 0x32:
-		return "High Efficiency AAC v2 Profile @ Level 4";
-	case 0x33:
-		return "High Efficiency AAC v2 Profile @ Level 5";
-	case 0x34:
-		return "Low Delay AAC Profile";
-	case 0x35:
-		return "Baseline MPEG Surround Profile @ Level 1";
-	case 0x36:
-		return "Baseline MPEG Surround Profile @ Level 2";
-	case 0x37:
-		return "Baseline MPEG Surround Profile @ Level 3";
-	case 0x38:
-		return "Baseline MPEG Surround Profile @ Level 4";
-	case 0x39:
-		return "Baseline MPEG Surround Profile @ Level 5";
-	case 0x3A:
-		return "Baseline MPEG Surround Profile @ Level 6";
-
-	case 0x50:
-		return "AAC Profile @ Level 6";
-	case 0x51:
-		return "AAC Profile @ Level 7";
-	case 0x52:
-		return "High Efficiency AAC Profile @ Level 6";
-	case 0x53:
-		return "High Efficiency AAC Profile @ Level 7";
-	case 0x54:
-		return "High Efficiency AAC v2 Profile @ Level 6";
-	case 0x55:
-		return "High Efficiency AAC v2 Profile @ Level 7";
-	case 0x56:
-		return "Extended High Efficiency AAC Profile @ Level 6";
-	case 0x57:
-		return "Extended High Efficiency AAC Profile @ Level 7";
-
-	case 0xFE:
-		return "Not part of MPEG-4 audio profiles";
-	case 0xFF:
-		return "No audio capability required";
-	default:
-		return "ISO Reserved / User Private";
+	u32 i, count = GF_ARRAY_LENGTH(M4AProfiles);
+	for (i=0; i<count; i++) {
+		if ((u32) audio_pl==M4AProfiles[i].value)
+			return M4AProfiles[i].name;
 	}
+	return "ISO Reserved / User Private";
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -5051,6 +4908,7 @@ u32 gf_media_nalu_emulation_bytes_remove_count(const u8 *buffer, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
+	if (!buffer || !nal_size) return 0;
 
 	while (i < nal_size)
 	{
@@ -5572,23 +5430,7 @@ s32 gf_media_avc_read_pps(const u8 *pps_data, u32 pps_size, AVCState *avc)
 	return pps_id;
 }
 
-static s32 gf_media_avc_read_sps_ext_bs_internal(GF_BitStream *bs, u32 nal_hdr)
-{
-	s32 sps_id;
-
-	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
-	if (!nal_hdr) {
-		/*nal_hdr = */gf_bs_read_u8(bs);
-	}
-	sps_id = gf_bs_get_ue(bs);
-	return sps_id;
-}
-
 #if 0 //unused
-s32 gf_media_avc_read_sps_ext_bs(GF_BitStream *bs)
-{
-	return gf_media_avc_read_sps_ext_bs_internal(bs, 0);
-}
 
 s32 gf_media_avc_read_sps_ext(const char *spse_data, u32 spse_size)
 {
@@ -6204,7 +6046,7 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 		if (avc->last_ps_idx < 0) return -1;
 		return 0;
 	case GF_AVC_NALU_SEQ_PARAM_EXT:
-		avc->last_ps_idx = gf_media_avc_read_sps_ext_bs_internal(bs, nal_hdr);
+		avc->last_ps_idx = (s32) gf_bs_get_ue(bs);
 		if (avc->last_ps_idx < 0) return -1;
 		return 0;
 
@@ -7695,12 +7537,12 @@ s32 gf_media_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_
 		u32 new_vps_size, emulation_bytes;
 		u32 bit_pos = gf_bs_get_bit_offset(bs);
 		GF_BitStream *w_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u8(w_bs, data[0]);
-		gf_bs_write_u8(w_bs, data[1]);
-		gf_bs_write_u8(w_bs, data[2]);
-		gf_bs_write_u8(w_bs, data[3]);
-		gf_bs_write_u16(w_bs, 0xFFFF);
-		gf_bs_seek(bs, 6);
+		gf_bs_seek(bs, 0);
+		gf_bs_write_u8(w_bs, gf_bs_read_u8(bs) );
+		gf_bs_write_u8(w_bs, gf_bs_read_u8(bs) );
+		gf_bs_write_u8(w_bs, gf_bs_read_u8(bs) );
+		gf_bs_write_u8(w_bs, gf_bs_read_u8(bs) );
+		gf_bs_write_u16(w_bs, gf_bs_read_u16(bs) );
 		bit_pos -= 48;
 		while (bit_pos) {
 			u32 v = gf_bs_read_int(bs, 1);
@@ -7720,10 +7562,13 @@ s32 gf_media_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_
 		else {
 			*size = gf_media_nalu_add_emulation_bytes(new_vps, data, new_vps_size);
 		}
+		if (new_vps)
+			gf_free(new_vps);
 	}
 
 exit:
-	if (bs) gf_bs_del(bs);
+	if (bs)
+		gf_bs_del(bs);
 	if (data_without_emulation_bytes) gf_free(data_without_emulation_bytes);
 	return vps_id;
 }
@@ -7737,6 +7582,7 @@ s32 gf_media_hevc_read_vps(u8 *data, u32 size, HEVCState *hevc)
 GF_EXPORT
 s32 gf_media_hevc_read_vps_bs(GF_BitStream *bs, HEVCState *hevc)
 {
+	if (!bs || !hevc) return -1;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 	if (!hevc_parse_nal_header(bs, NULL, NULL, NULL)) return -1;
 	return gf_media_hevc_read_vps_bs_internal(bs, hevc, GF_FALSE);
@@ -8078,6 +7924,7 @@ GF_EXPORT
 s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc)
 {
 	u8 layer_id;
+	if (!bs || !hevc) return -1;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 	if (!hevc_parse_nal_header(bs, NULL, NULL, &layer_id)) return -1;
 	return gf_media_hevc_read_sps_bs_internal(bs, hevc, layer_id, NULL);
@@ -8193,6 +8040,7 @@ exit:
 GF_EXPORT
 s32 gf_media_hevc_read_pps_bs(GF_BitStream *bs, HEVCState *hevc)
 {
+	if (!bs || !hevc) return -1;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 	if (!hevc_parse_nal_header(bs, NULL, NULL, NULL)) return -1;
 	return gf_media_hevc_read_pps_bs_internal(bs, hevc);

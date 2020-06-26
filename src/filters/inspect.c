@@ -1073,6 +1073,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 	u32 size=0;
 	const char *data=NULL;
 	char *str = ctx->fmt;
+	if (!dump) return;
 	assert(str);
 
 	if (pck)
@@ -1415,6 +1416,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	GF_FilterFrameInterface *fifce=NULL;
 	Bool start, end;
 	u8 *data;
+	if (!dump) return;
 
 	if (!ctx->deep && !ctx->fmt) return;
 
@@ -1717,6 +1719,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	char *elt_name = NULL;
 	const GF_PropertyValue *p, *dsi, *dsi_enh;
 
+	if (!ctx->dump) return;
 	if (ctx->test==INSPECT_TEST_NOPROP) return;
 
 	//disconnect of src pid (not yet supported)
@@ -2181,7 +2184,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	pctx->idx = gf_list_find(ctx->src_pids, pctx) + 1;
 
-	if (! ctx->interleave && !pctx->tmp) {
+	if (! ctx->interleave && !pctx->tmp && ctx->dump) {
 		pctx->tmp = gf_file_temp(NULL);
 		if (ctx->xml)
 			gf_fprintf(ctx->dump, "<PIDInspect ID=\"%d\" name=\"%s\">\n", pctx->idx, gf_filter_pid_get_name(pid) );
@@ -2251,6 +2254,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	if (!ctx->log) return GF_BAD_PARAM;
 	if (!strcmp(ctx->log, "stderr")) ctx->dump = stderr;
 	else if (!strcmp(ctx->log, "stdout")) ctx->dump = stdout;
+	else if (!strcmp(ctx->log, "null")) ctx->dump = NULL;
 	else {
 		ctx->dump = gf_fopen(ctx->log, "wt");
 		if (!ctx->dump) {
@@ -2262,7 +2266,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 		ctx->xml = GF_TRUE;
 	}
 
-	if (ctx->xml) {
+	if (ctx->xml && ctx->dump) {
 		ctx->fmt = NULL;
 		gf_fprintf(ctx->dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		gf_fprintf(ctx->dump, "<GPACInspect>\n");
@@ -2301,7 +2305,7 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName, stderr or stdout", GF_FS_ARG_UPDATE},
+	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName, stderr, stdout or null", 0},
 	{ OFFS(mode), "dump mode\n"
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"

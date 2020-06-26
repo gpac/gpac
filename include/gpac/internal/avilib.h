@@ -234,6 +234,9 @@ typedef struct
 
 	void*		extradata;
 	unsigned int extradata_size;
+
+	// add a new riff chunk after this amount of bytes
+	u64 new_riff_threshold;
 } avi_t;
 
 #define AVI_MODE_WRITE  0
@@ -306,7 +309,7 @@ typedef struct
 #define IBM_FORMAT_ALAW                 (0x0102)
 #define IBM_FORMAT_ADPCM                (0x0103)
 
-avi_t* AVI_open_output_file(char * filename);
+avi_t* AVI_open_output_file(char * filename, u64 opendml_threshold);
 void AVI_set_video(avi_t *AVI, int width, int height, double fps, char *compressor);
 void AVI_set_audio(avi_t *AVI, int channels, int rate, int bits, int format, int mp3rate);
 int  AVI_write_frame(avi_t *AVI, u8 *data, int bytes, int keyframe);
