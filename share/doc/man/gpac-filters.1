@@ -3362,7 +3362,13 @@ Each TEMI description is formatted as ID_OR_URL or #OPT1[#OPT2]#ID_OR_URL. Optio
 .br
   * N: only insert for stream with index N (0-based) in the program.
 .br
-* L: always use 64bit timecode signaling (default false)
+* L`N`: set 64bit timecode signaling. Possible values are:
+.br
+  * `A`: automatic switch between 32 and 64 bit depending on timecode value (default if not specified).
+.br
+  * `Y`: use 64 bit signaling only.
+.br
+  * `N`: use 32 bit signaling only and wrap around timecode value.
 .br
 * N: insert NTP timestamp in TEMI timeline descriptor
 .br
@@ -3404,13 +3410,15 @@ Inserts an external TEMI with ID 4 in the each stream of program with ServiceID 
 .br
 Example
 .br
-temi="#N#D500#PV#4"
+temi="#N#D500#PV#T30000#4"
 .br
 
 .br
-Inserts an external TEMI with ID 4, NTP injection and carousel of 500 ms in the video stream of all programs.
+Inserts an external TEMI with ID 4 and timescale 30000, NTP injection and carousel of 500 ms in the video stream of all programs.
 .br
 
+.br
+Warning: multipliers (k,m,g) are not supported in TEMI options.
 .br
 .SH Notes
 .LP
@@ -5884,7 +5892,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev55-g131ad6412-master
+build: 1.0.0-rev56-g3a40da1fa-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

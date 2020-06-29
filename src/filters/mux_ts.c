@@ -29,6 +29,14 @@
 #include <gpac/iso639.h>
 #include <gpac/webvtt.h>
 
+enum
+{
+	TEMI_TC64_AUTO=0,
+	TEMI_TC64_OFF,
+	TEMI_TC64_ALWAYS,
+};
+
+
 typedef struct
 {
 	u64 sap_time;
@@ -97,7 +105,8 @@ typedef struct
 	u32 id, delay, timescale;
 	u64 offset, init_val;
 	char *url;
-	Bool ntp, use_64bits, use_init_val;
+	Bool ntp, use_init_val;
+	u32 mode_64bits;
 	u64 cts_at_init_val_plus_one;
 } TEMIDesc;
 
@@ -141,11 +150,10 @@ typedef struct
 	u32 suspended;
 } M2Pid;
 
-static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, u32 timeline_id, u64 timecode, u32 timescale, Bool use64, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
+static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
 {
 	u32 len;
 	u32 last_time;
-
 	if (ntp) {
 		last_time = 1000*(ntp>>32);
 		last_time += 1000*(ntp&0xFFFFFFFF)/0xFFFFFFFF;
@@ -191,8 +199,18 @@ static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, u32 timeline_id, u64 
 	}
 
 	if (timescale || ntp) {
-		if (!use64)
+		Bool use64;
+		if (mode_64bits==TEMI_TC64_AUTO) {
 			use64 = (timecode > 0xFFFFFFFFUL) ? GF_TRUE : GF_FALSE;
+		} else if (mode_64bits==TEMI_TC64_ALWAYS) {
+			use64 = GF_TRUE;
+		} else {
+			use64 = GF_FALSE;
+			while (timecode > 0xFFFFFFFFUL) {
+				timecode -= 0xFFFFFFFFUL;
+			}
+
+		}
 
 		len = 3; //3 bytes flags
 
@@ -464,7 +482,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					ntp <<= 32;
 					ntp |= frac;
 				}
-				tsmux_format_af_descriptor(tspid->temi_af_bs, temi->id, tc, timescale, temi->use_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url);
+				tsmux_format_af_descriptor(tspid->temi_af_bs, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url);
 			}
 			gf_bs_get_content_no_truncate(tspid->temi_af_bs, &tspid->af_data, &es_pck.mpeg2_af_descriptors_size, &tspid->af_data_alloc);
 			es_pck.mpeg2_af_descriptors = tspid->af_data;
@@ -702,7 +720,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		u64 temi_offset=0;
 		u32 temi_timescale=0;
 		Bool temi_ntp=GF_FALSE;
-		Bool temi_64bits=GF_FALSE;
+		u32 temi_64bits=TEMI_TC64_AUTO;
 		Bool temi_use_init_val=GF_FALSE;
 		u64 temi_init_val = 0;
 		u32 temi_streamtype=0;
@@ -742,7 +760,8 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 				temi_timescale = atoi(temi_cfg+2);
 				break;
 			case 'L':
-				temi_64bits = GF_TRUE;
+				if (temi_cfg[2]=='Y') temi_64bits = TEMI_TC64_ALWAYS;
+				else if (temi_cfg[2]=='N') temi_64bits = TEMI_TC64_OFF;
 				break;
 			case 'P':
 				//all pids target
@@ -795,7 +814,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 			temi->offset = temi_offset;
 			temi->delay = temi_delay;
 			temi->timescale = temi_timescale;
-			temi->use_64bits = temi_64bits;
+			temi->mode_64bits = temi_64bits;
 			temi->init_val = temi_init_val;
 			temi->use_init_val = temi_use_init_val;
 			gf_list_add(tspid->temi_descs, temi);
@@ -1617,7 +1636,10 @@ GF_FilterRegister TSMuxRegister = {
 		"  - `A`: only insert for audio streams.\n"
 		"  - `T`: only insert for text streams.\n"
 		"  - N: only insert for stream with index N (0-based) in the program.\n"
-		"- L: always use 64bit timecode signaling (default false)\n"
+		"- L`N`: set 64bit timecode signaling. Possible values are:\n"
+		"  - `A`: automatic switch between 32 and 64 bit depending on timecode value (default if not specified).\n"
+		"  - `Y`: use 64 bit signaling only.\n"
+		"  - `N`: use 32 bit signaling only and wrap around timecode value.\n"
 		"- N: insert NTP timestamp in TEMI timeline descriptor\n"
 		"- ID_OR_URL: If number, indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"
 		"  \n"
@@ -1629,9 +1651,10 @@ GF_FilterRegister TSMuxRegister = {
 		"Inserts a TEMI with ID 2 and a TEMI URL+timecode in the first stream of all programs, and an external TEMI with ID 4 in the second stream of all programs.\n"
 		"EX temi=\"#S20#4,#S10#URL\"\n"
 		"Inserts an external TEMI with ID 4 in the each stream of program with ServiceID 20 and a TEMI URL in each stream of program with ServiceID 10.\n"
-		"EX temi=\"#N#D500#PV#4\"\n"
-		"Inserts an external TEMI with ID 4, NTP injection and carousel of 500 ms in the video stream of all programs.\n"
+		"EX temi=\"#N#D500#PV#T30000#4\"\n"
+		"Inserts an external TEMI with ID 4 and timescale 30000, NTP injection and carousel of 500 ms in the video stream of all programs.\n"
 		"\n"
+		"Warning: multipliers (k,m,g) are not supported in TEMI options.\n"
 		"# Notes\n"
 		"In DASH mode, the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files or new segments in DASH mode.\n"
