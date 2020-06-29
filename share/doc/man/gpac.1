@@ -1358,6 +1358,8 @@ A sourceID name can be further extended using fragment identifier (# by default)
 .br
 * name#AnyName=VAL: same as above, using the name of a non built-in property.
 .br
+* name#Name=OtherPropName: compares the value with the value of anither property of the PID. The matching will fail if the value to compare to is not present or different from the value to check. The property to compare with shall be a built-in property.
+.br
 If the property is not defined on the PID, the property is matched. Otherwise, its value is checked against the given value.
 .br
 
@@ -1429,6 +1431,14 @@ src=vid.mp4 @#Width-640 vout
 
 .br
 This indicates to connect to vout only PIDs with Width property less than 640
+.br
+Example
+.br
+src=vid.mp4 @#ID=ItemID#ItemNumber=1 vout
+.br
+
+.br
+This will connect to vout only PID with an ID property equal to ItemID property (keep items, discard tracks) and an Item number of 1 (first item).
 .br
 
 .br
@@ -1876,6 +1886,16 @@ MPEG-4 ESID of pid
 .B ItemID (ITID,uint,  )
 .br
 ID of image item in HEIF, same value as ID
+.br
+.TP
+.B ItemNumber (ITIX,uint,  )
+.br
+Number (1-based) of image item in HEIF, in order of declaration in file
+.br
+.TP
+.B TrackNumber (PIDX,uint,  )
+.br
+Number (1-based) of track in order of declaration in file
 .br
 .TP
 .B ServiceID (PSID,uint,D )
@@ -2731,7 +2751,7 @@ Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)
 Indicate a magic number to store in the track, only used by importers
 .br
 .TP
-.B TrackIndex (TIDX,luint,D )
+.B MuxIndex (TIDX,luint,D )
 .br
 Indicate target track index in destination file, stored by lowest value first (not set by demuxers)
 .br
@@ -3627,7 +3647,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev52-g9b9856655-paf_gpufx
+build: 1.0.0-rev54-gcca95eb7c-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

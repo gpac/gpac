@@ -1192,7 +1192,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	u32 comp_type=0;
 	Bool is_neg = GF_FALSE;
 	const GF_PropertyEntry *pent;
-
+	const GF_PropertyEntry *pent_val=NULL;
 	*needs_resolve = GF_FALSE;
 	*prop_not_found = GF_FALSE;
 
@@ -1330,7 +1330,18 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 		prop_val.type = GF_PROP_UINT;
 		prop_val.value.uint = gf_codec_parse(psep+1);
 	} else {
-		prop_val = gf_props_parse_value(pent->prop.type, frag_name, psep+1, NULL, src_pid->filter->session->sep_list);
+		u32 val_is_prop = gf_props_get_id(psep+1);
+		if (val_is_prop) {
+			pent_val = gf_filter_pid_get_property_entry(src_pid, val_is_prop);
+			if (pent_val) {
+				prop_val = pent_val->prop;
+			} else {
+				*pid_excluded = GF_TRUE;
+				return GF_FALSE;
+			}
+		} else {
+			prop_val = gf_props_parse_value(pent->prop.type, frag_name, psep+1, NULL, src_pid->filter->session->sep_list);
+		}
 	}
 	if (!comp_type) {
 		is_equal = gf_props_equal(&pent->prop, &prop_val);
@@ -1375,7 +1386,9 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 			break;
 		}
 	}
-	gf_props_reset_single(&prop_val);
+	if (!pent_val)
+		gf_props_reset_single(&prop_val);
+
 	if (!is_equal) *pid_excluded = GF_TRUE;
 
 	return is_equal;
