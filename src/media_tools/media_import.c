@@ -1375,7 +1375,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->track_index) {
-		sprintf(szSubArg, "#TrackIndex=%d", importer->track_index);
+		sprintf(szSubArg, "#MuxIndex=%d", importer->track_index);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 

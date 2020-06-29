@@ -938,7 +938,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_isom_set_timescale(ctx->file, (u32) ctx->moovts);
 		}
 
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_TRACK_INDEX);
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MUX_INDEX);
 		if (p) {
 			tk_idx = p->value.uint;
 		}

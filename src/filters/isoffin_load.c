@@ -384,6 +384,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(streamtype));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT( gf_isom_get_media_timescale(read->mov, track) ) );
 
+		if (!gf_sys_is_test_mode())
+			gf_filter_pid_set_property(pid, GF_PROP_PID_TRACK_NUM, &PROP_UINT(track) );
+
 		//Dolby Vision
 		if (m_subtype == GF_ISOM_SUBTYPE_DVHE) {
 			GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(read->mov, track, 1);
@@ -1189,6 +1192,9 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	} else {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PRIMARY_ITEM, &PROP_BOOL(GF_FALSE));
 	}
+
+	if (!gf_sys_is_test_mode())
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_NUM, &PROP_UINT(item_idx) );
 
 	gf_filter_pid_set_property_str(pid, "meta:mime", item_mime_type ? &PROP_STRING(item_mime_type) : NULL );
 	gf_filter_pid_set_property_str(pid, "meta:name", item_name ? &PROP_STRING(item_name) : NULL );

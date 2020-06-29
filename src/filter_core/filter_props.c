@@ -1105,6 +1105,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ID, "ID", "Stream ID", GF_PROP_UINT},
 	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of pid", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ITEM_ID, "ItemID", "ID of image item in HEIF, same value as ID", GF_PROP_UINT},
+	{ GF_PROP_PID_ITEM_NUM, "ItemNumber", "Number (1-based) of image item in HEIF, in order of declaration in file", GF_PROP_UINT},
+	{ GF_PROP_PID_TRACK_NUM, "TrackNumber", "Number (1-based) of track in order of declaration in file", GF_PROP_UINT},
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference pid", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on", GF_PROP_UINT},
@@ -1288,7 +1290,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_COLR_RANGE, "FullRange", "Indicate color full range flag for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_CHROMALOC, "ChromaLoc", "Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SRC_MAGIC, "SrcMagic", "Indicate a magic number to store in the track, only used by importers", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_TRACK_INDEX, "TrackIndex", "Indicate target track index in destination file, stored by lowest value first (not set by demuxers)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_MUX_INDEX, "MuxIndex", "Indicate target track index in destination file, stored by lowest value first (not set by demuxers)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_NO_TS_LOOP, "NoTSLoop", "Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)", GF_PROP_BOOL, 0},
 
 
