@@ -229,6 +229,7 @@ typedef struct
 	Bool ctrni;
 #endif
 	Bool mfra;
+	Bool forcesync;
 
 	//internal
 	Bool owns_mov;
@@ -2812,6 +2813,13 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	return GF_OK;
 }
 
+GF_FilterSAPType mp4_mux_get_sap(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
+{
+	GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
+	if (!sap) return sap;
+	if (ctx->forcesync) return GF_FILTER_SAP_1;
+	return sap;
+}
 
 static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, Bool for_fragment)
 {
@@ -2897,7 +2905,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 
 	tkw->sample.IsRAP = 0;
-	sap_type = gf_filter_pck_get_sap(pck);
+	sap_type = mp4_mux_get_sap(ctx, pck);
 	if (sap_type==GF_FILTER_SAP_1)
 		tkw->sample.IsRAP = SAP_TYPE_1;
 	else if ( (sap_type == GF_FILTER_SAP_4) && (tkw->stream_type != GF_STREAM_VISUAL) )
@@ -4219,7 +4227,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			} else if (!ctx->flush_seg && !ctx->dash_mode
 				&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->src_timescale) + tkw->ts_delay)
 			 ) {
-				u32 sap = gf_filter_pck_get_sap(pck);
+				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 				if ((ctx->store==MP4MX_MODE_FRAG) || (sap && sap<GF_FILTER_SAP_3)) {
 					tkw->fragment_done = GF_TRUE;
 					tkw->samples_in_frag = 0;
@@ -4244,7 +4252,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 
 			if (ctx->trun_inter) {
-				s32 sap = gf_filter_pck_get_sap(pck);
+				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 				s32 tid_group = 0;
 				if (sap) {
 					tkw->prev_tid_group = 0;
@@ -5385,6 +5393,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mfra), "enable movie fragment random access when fragmenting (ignored when dashing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(forcesync), "force all SAP types to be considered sync samples (might produce non-conformant files)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
