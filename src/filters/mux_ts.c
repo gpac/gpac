@@ -1608,7 +1608,7 @@ GF_FilterRegister TSMuxRegister = {
 		"The syntax is a comma-separated list of one or more TEMI description.\n"
 		"Each TEMI description is formatted as ID_OR_URL or #OPT1[#OPT2]#ID_OR_URL. Options are:\n"
 		"- S`N`: gives number N indicating the target serviceID\n"
-		"- D`N`: set timescale to use (default: PID timescale)\n"
+		"- T`N`: set timescale to use (default: PID timescale)\n"
 		"- D`N`: set delay in ms between two TEMI url descriptors (default 1000)\n"
 		"- O`N`: set offset (max 64 bits) to add to TEMI timecodes (default 0). If timescale is not specified, offset value is in ms, otherwise in timescale units.\n"
 		"- I`N`: set initial value (max 64 bits) of TEMI timecodes. If not set, initial value will match first packet CTS. If timescale is not specified, value is in PID timescale units, otherwise in specified timescale units.\n"
