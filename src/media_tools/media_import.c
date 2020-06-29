@@ -1255,6 +1255,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		sprintf(szSubArg, "trackid=%d", importer->esd->ESID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
+	if (importer->flags & GF_IMPORT_FORCE_SYNC)
+		e |= gf_dynstrcat(&args, ":forcesync", NULL);
 
 	if (importer->duration.den) {
 		sprintf(szSubArg, "idur=%d/%d", importer->duration.num, importer->duration.den);
