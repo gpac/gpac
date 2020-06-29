@@ -1163,14 +1163,24 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 					force_first_dts = first_dts + stream->program->pcr_offset - stream->program->initial_ts + stream->program->pcr_init_time/300;
 
 				time_inc is computed as
-					time_inc = first_dts - stream->program->pcr_init_time/300;
+					time_inc = force_first_dts - stream->program->pcr_init_time/300;
 
-					we want at least time_inc=0, hence
-					stream->program->pcr_init_time = first_dts*300;
+				=>	time_inc = first_dts + stream->program->pcr_offset - stream->program->initial_ts + stream->program->pcr_init_time/300 - stream->program->pcr_init_time/300;
+
+				=>	time_inc = first_dts + stream->program->pcr_offset - stream->program->initial_ts;
+
+					we want at the initial time_inc=0, hence
+					stream->program->initial_ts = first_dts + stream->program->pcr_offset;
 
 				*/
+/*
 				stream->program->pcr_init_time = first_dts*300 - stream->program->pcr_offset;
 				stream->program->initial_ts = first_pts + stream->program->pcr_offset + stream->program->pcr_init_time/300 - stream->program->force_first_pts;
+*/
+
+				stream->program->initial_ts = first_dts + stream->program->pcr_offset;
+				stream->program->pcr_init_time = 300 * (stream->program->force_first_pts - first_pts - stream->program->pcr_offset + stream->program->initial_ts);
+
 				stream->program->initial_ts_set = 2;
 			}
 
@@ -3036,7 +3046,6 @@ send_pck:
 			muxer->tot_pad_sent++;
 		}
 	} else {
-
 		if (stream_to_process->tables) {
 			gf_m2ts_mux_table_get_next_packet(muxer, stream_to_process, muxer->dst_pck);
 		} else {
