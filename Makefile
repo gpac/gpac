@@ -283,10 +283,12 @@ endif
 	$(MAKE) installdylib
 
 uninstall-lib:
-	rm -rf "$(prefix)/include/gpac/internal"
-	rm -rf "$(prefix)/include/gpac/modules"
-	rm -rf "$(prefix)/include/gpac/enst"
-	rm -rf "$(prefix)/include/gpac"
+	rm -rf "$(DESTDIR)$(prefix)/include/gpac/internal"
+	rm -rf "$(DESTDIR)$(prefix)/include/gpac/modules"
+	rm -rf "$(DESTDIR)$(prefix)/include/gpac/enst"
+	rm -rf "$(DESTDIR)$(prefix)/include/gpac"
+	rm -f  "$(DESTDIR)$(prefix)/$(libdir)/libgpac_static.a"
+	rm -f  "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc"
 
 ifeq ($(CONFIG_DARWIN),yes)
 dmg:
