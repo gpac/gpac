@@ -2049,6 +2049,23 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		gf_media_update_bitrate(dest, dst_tk);
 
 	}
+	for (i = 0; i < gf_isom_get_track_count(dest); ++i) {
+		if (gf_isom_get_media_type(dest, i+1) == GF_ISOM_MEDIA_TIMECODE) {
+			u32 video_ref = 0, j;
+			for (j = 0; j < gf_isom_get_track_count(dest); ++j) {
+				if (gf_isom_is_video_handler_type(gf_isom_get_media_type(dest, j+1))) {
+					video_ref = j+1;
+					break;
+				}
+			}
+			if (video_ref) {
+				u64 video_ref_dur = gf_isom_get_media_duration(dest, video_ref);
+				u32 last_sample_dur = gf_isom_get_sample_duration(dest, i+1, gf_isom_get_sample_count(dest, i+1));
+				u64 dur = video_ref_dur - gf_isom_get_media_duration(dest, i+1) + last_sample_dur;
+				gf_isom_set_last_sample_duration(dest, i+1, (u32)dur);
+			}
+		}
+	}
 	gf_set_progress("Appending", nb_samp, nb_samp);
 
 	/*check brands*/
