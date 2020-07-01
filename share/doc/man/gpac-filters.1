@@ -4067,7 +4067,11 @@ sbound (enum, default: out):   indicate how the theoretical segment start TSS (=
 .br
 reschedule (bool, default: false): reschedule sources with no period ID assigned once done (dynamic mode only)
 .br
-sreg (bool, default: false):   regulate the session when using subdur to only generate segments from the past up to live edge
+sreg (bool, default: false):   regulate the session.
+.br
+- when using subdur and context, only generate segments from the past up to live edge
+.br
+- otherwise in dynamic mode without context, do not generate segments ahead of time
 .br
 scope_deps (bool, default: true): scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources
 .br
@@ -5892,7 +5896,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev56-g3a40da1fa-master
+build: 1.0.0-rev60-gb21ae6b52-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

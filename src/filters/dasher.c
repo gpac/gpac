@@ -2997,6 +2997,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 		while (1) {
 			Double time, dur;
+			Bool seg_url_found = GF_FALSE;
 			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, 0);
 			if (!sctx) break;
 			/*not yet flushed*/
@@ -3013,20 +3014,32 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
 				evt.file_del.url = sctx->filepath;
 				gf_filter_pid_send_event(ds->opid, &evt);
-
-				if (sctx->filename) gf_free(sctx->filename);
 				gf_free(sctx->filepath);
 			}
 
 			if (ds->rep->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->rep->segment_list->segment_URLs);
-				gf_mpd_segment_url_free(surl);
+				//can be NULL if we mutualize everything at AdaptatioSet level
+				if (surl) {
+					gf_mpd_segment_url_free(surl);
+					seg_url_found = GF_TRUE;
+				}
 			}
 			//not an else due to inheritance
 			if (ds->owns_set && ds->set->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->set->segment_list->segment_URLs);
-				gf_mpd_segment_url_free(surl);
+				//can be NULL if we don't mutualize at AdaptatioSet level
+				if (surl) {
+					gf_mpd_segment_url_free(surl);
+					seg_url_found = GF_TRUE;
+				}
 			}
+			//but we must have at least one segment URL entry
+			if (!seg_url_found) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] purging segment %s for AS %d rep %s but segment list is empty!\n",
+						sctx->filename ? sctx->filename : "", ds->set->id, ds->rep->id));
+			}
+
 			if (ds->rep->segment_template) {
 				if (ds->rep->segment_template->segment_timeline) {
 					dahser_purge_segment_timeline(ds, ds->rep->segment_template->segment_timeline, sctx);
@@ -3042,6 +3055,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			ds->nb_segments_purged ++;
 			ds->dur_purged += dur;
 			assert(gf_list_find(ds->pending_segment_states, sctx)<0);
+			if (sctx->filename) gf_free(sctx->filename);
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
@@ -4765,6 +4779,26 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			base_ds->seg_done = GF_FALSE;
 			base_ds->nb_comp_done = 0;
 
+#ifndef GPAC_DISABLE_LOG
+			if (ctx->dmode>=GF_DASH_DYNAMIC) {
+				s64 ast_diff;
+				u64 seg_ast = ctx->mpd->availabilityStartTime;
+				seg_ast += ctx->current_period->period->start;
+				seg_ast += (base_ds->adjusted_next_seg_start*1000) / base_ds->timescale;
+
+				//if theoretical AST of the segment is less than the current UTC, we are producing the segment too late.
+				ast_diff = (s64) gf_net_get_utc();
+				ast_diff -= seg_ast;
+
+				if (ast_diff>10) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] AS%d Rep %s segment %d done TOO LATE by %d ms\n", base_ds->set->id, base_ds->rep->id, base_ds->seg_number, (s32) ast_diff));
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] AS%d Rep %s segment %d done %d ms %s UTC due time\n", base_ds->set->id, base_ds->rep->id, base_ds->seg_number, ABS(ast_diff), (ast_diff<0) ? "before" : "after"));
+				}
+			}
+#endif
+
+
 			assert(base_ds->segment_started);
 			base_ds->segment_started = GF_FALSE;
 
@@ -5243,6 +5277,18 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 	if (ctx->in_error)
 		return GF_SERVICE_ERROR;
+
+	//session regulation is on and we have a an MPD (setup done) and a next time (first seg processed)
+	//check if we have reached the next time
+	if (ctx->sreg && !ctx->state && ctx->mpd && ctx->mpd->gpac_next_ntp_ms) {
+		s64 diff = (s64) ctx->mpd->gpac_next_ntp_ms;
+		diff -= (s64) gf_net_get_ntp_ms();
+		if (diff>100) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Next generation scheduled in %d ms, nothing to do\n", diff));
+			gf_filter_ask_rt_reschedule(filter, diff*1000);
+			return GF_OK;
+		}
+	}
 
 	if (ctx->streams_not_ready) {
 		if (! dasher_check_streams_ready(ctx)) return GF_OK;
@@ -6556,7 +6602,9 @@ static const GF_FilterArgs DasherArgs[] =
 				"- closest: segment split at closest SAP to theoretical bound\n"
 				"- in: `TSS` is always in segment (`TSS` >= segment_start)", GF_PROP_UINT, "out", "out|closest|in", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(reschedule), "reschedule sources with no period ID assigned once done (dynamic mode only)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(sreg), "regulate the session when using subdur to only generate segments from the past up to live edge", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sreg), "regulate the session.\n"
+	"- when using subdur and context, only generate segments from the past up to live edge\n"
+	"- otherwise in dynamic mode without context, do not generate segments ahead of time", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(scope_deps), "scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
