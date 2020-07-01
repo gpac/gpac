@@ -148,6 +148,7 @@ void set_help(DOMString help);
 
 /*! adds an argument to the filter. JavaScript Filter arguments can be specified from command line in the same way as reguar filters.
 The argument is then exposed as a property of the "filter" object of the javascript context.
+If the argument name is a wildcard (*), the filter will be forwarded any argument name.
 \param arg object exposing the same interface as the JSArgDesc interface
 */
 void set_arg(JSArgDesc arg);
