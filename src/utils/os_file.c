@@ -1153,7 +1153,7 @@ u64 gf_ftell(FILE *fp)
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else
-	return (u64) gf_ftell(fp);
+	return (u64) ftell(fp);
 #endif
 #elif defined(WIN32)
 	return (u64) _ftelli64(fp);
@@ -1162,7 +1162,7 @@ u64 gf_ftell(FILE *fp)
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return (u64) ftello(fp);
 #else
-	return (u64) gf_ftell(fp);
+	return (u64) ftell(fp);
 #endif
 }
 
