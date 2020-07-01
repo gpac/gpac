@@ -128,7 +128,7 @@ typedef struct
 
 	GF_FilterArgs *args;
 	u32 nb_args;
-
+	Bool has_wilcard_arg;
 
 	GF_FilterCapability *caps;
 	u32 nb_caps;
@@ -965,6 +965,7 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 	const char *def = NULL;
 	const char *min_enum = NULL;
 	u32 type = 0;
+	Bool is_wildcard=GF_FALSE;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
     if (!jsf || !argc) return JS_EXCEPTION;
 
@@ -972,6 +973,12 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 	if (!JS_IsUndefined(v)) name = JS_ToCString(ctx, v);
 	JS_FreeValue(ctx, v);
 	if (!name) return JS_EXCEPTION;
+
+	if (!strcmp(name, "*")) {
+		if (jsf->has_wilcard_arg) return JS_UNDEFINED;
+		is_wildcard = GF_TRUE;
+		jsf->has_wilcard_arg = GF_TRUE;
+	}
 
 	v = JS_GetPropertyStr(ctx, argv[0], "desc");
 	if (!JS_IsUndefined(v)) desc = JS_ToCString(ctx, v);
@@ -986,9 +993,13 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 		JS_ToInt32(ctx, &type, v);
 	JS_FreeValue(ctx, v);
 	if (!type) {
-	 	JS_FreeCString(ctx, name);
-	 	JS_FreeCString(ctx, desc);
-	 	return JS_EXCEPTION;
+		if (is_wildcard) {
+			type = GF_PROP_STRING;
+		} else {
+			JS_FreeCString(ctx, name);
+			JS_FreeCString(ctx, desc);
+			return JS_EXCEPTION;
+		}
 	}
 
 	v = JS_GetPropertyStr(ctx, argv[0], "def");
@@ -3944,7 +3955,7 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 			break;
 		}
 	}
-	if (!the_arg) return GF_OK;
+	if (!the_arg && !jsf->has_wilcard_arg) return GF_OK;
 
 	gf_js_lock(jsf->ctx, GF_TRUE);
 
