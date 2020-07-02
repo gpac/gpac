@@ -176,6 +176,8 @@ GF_EXPORT
 GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 {
 	switch (isobmftype) {
+	case GF_ISOM_SUBTYPE_DVHE:
+		return GF_CODECID_HEVC;
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 		return GF_CODECID_AMR;
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
