@@ -27,7 +27,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
-#ifdef GPAC_CONFIG_ANDROID
+#if defined(GPAC_CONFIG_ANDROID) && defined(GPAC_HAS_MEDIACODEC)
 
 #include "dec_mediacodec.h"
 
@@ -1226,7 +1226,7 @@ static const GF_FilterCapability MCDecCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
-#ifdef GPAC_CONFIG_ANDROID
+#if defined(GPAC_CONFIG_ANDROID) && defined(GPAC_HAS_MEDIACODEC)
 #define OFFS(_n)	#_n, offsetof(GF_MCDecCtx, _n)
 #else
 #define OFFS(_n)	#_n, -1
@@ -1244,14 +1244,13 @@ GF_FilterRegister GF_MCDecCtxRegister = {
 	GF_FS_SET_HELP("This filter decodes video streams using hardware decoder on android devices")
 	.args = MCDecArgs,
 	SETCAPS(MCDecCaps),
-#ifdef GPAC_CONFIG_ANDROID
+#if defined(GPAC_CONFIG_ANDROID) && defined(GPAC_HAS_MEDIACODEC)
 	.private_size = sizeof(GF_MCDecCtx),
 	.initialize = mcdec_initialize,
 	.finalize = mcdec_finalize,
 	.configure_pid = mcdec_configure_pid,
-#else
-	.process = mcdec_process,
 #endif
+	.process = mcdec_process,
 };
 
 
