@@ -1015,7 +1015,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 		namelen = (u32) strlen(named_tx->tx_name);
 
 		while (a_source) {
-			char *loc = strstr(source, "texture2D");
+			char *loc = strstr(a_source, "texture2D");
 			if (!loc) break;
 			loc += 9;
 			while (loc[0] && strchr(" (\n\t", loc[0])) loc++;
