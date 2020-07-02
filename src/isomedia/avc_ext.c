@@ -2296,6 +2296,9 @@ GF_ISOMHEVCType gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber
 	else if (type == GF_ISOM_BOX_TYPE_RESV) {
 		if (entry->rinf && entry->rinf->original_format) type = entry->rinf->original_format->data_format;
 	}
+	else if (type == GF_ISOM_BOX_TYPE_DVHE) {
+		type = GF_ISOM_BOX_TYPE_HEV1;
+	}
 
 	switch (type) {
 	case GF_ISOM_BOX_TYPE_HVC1:
