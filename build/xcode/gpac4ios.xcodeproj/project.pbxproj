@@ -351,6 +351,7 @@
 		92334CDB2333AB9A00DA6051 /* libregexp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334CCA2333AB9A00DA6051 /* libregexp.c */; };
 		92334CDD2333AB9A00DA6051 /* quickjs.h in Headers */ = {isa = PBXBuildFile; fileRef = 92334CCC2333AB9A00DA6051 /* quickjs.h */; };
 		923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* libbf.c */; };
+		9246EE7724A1240600F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7624A1240600F72EAD /* filter_session_js.c */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
 		925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A31A0916DB0057FF04 /* libbz2.dylib */; };
 		925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A31ABC53F30085B04C /* odf_parse_common.h */; };
@@ -934,6 +935,7 @@
 		92334CCC2333AB9A00DA6051 /* quickjs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = quickjs.h; path = ../../src/quickjs/quickjs.h; sourceTree = "<group>"; };
 		9236FDEF1DD23F1400B3E86F /* iTunesArtwork */ = {isa = PBXFileReference; lastKnownFileType = file; name = iTunesArtwork; path = ../../applications/osmo4_ios/Resources/iTunesArtwork; sourceTree = "<group>"; };
 		923EB53323D1B87E00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = ../../src/quickjs/libbf.c; sourceTree = "<group>"; };
+		9246EE7624A1240600F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = ../../src/filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
@@ -1846,6 +1848,7 @@
 				92EB6D6420E4E17F00A97A49 /* filter_register.c */,
 				92EB6D6220E4E17F00A97A49 /* filter_session.c */,
 				92EB6D6520E4E17F00A97A49 /* filter_session.h */,
+				9246EE7624A1240600F72EAD /* filter_session_js.c */,
 				92EB6D5F20E4E17F00A97A49 /* filter.c */,
 			);
 			name = filter_core;
@@ -2425,6 +2428,7 @@
 				92EB6DE020E4E19700A97A49 /* write_nhml.c in Sources */,
 				92EB6DD420E4E19700A97A49 /* inspect.c in Sources */,
 				71CCF2BD1277045100339E12 /* sample_descs.c in Sources */,
+				9246EE7724A1240600F72EAD /* filter_session_js.c in Sources */,
 				71CCF2BE1277045100339E12 /* stbl_read.c in Sources */,
 				71CCF2BF1277045100339E12 /* stbl_write.c in Sources */,
 				71CCF2C01277045100339E12 /* track.c in Sources */,

@@ -617,6 +617,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 		fsess->filters = NULL;
 	}
 
+	gf_fs_unload_script(fsess);
+
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
 	if (fsess->font_manager) gf_font_manager_del(fsess->font_manager);
 
@@ -2980,6 +2982,13 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		if (set_name) {
 			stats->name = pidi->pid->name;
 			set_name = GF_FALSE;
+		}
+	}
+	if (!stats->type && stats->codecid) {
+		if (!stats->nb_pid_out) {
+			stats->type = GF_FS_STATS_FILTER_MEDIA_SINK;
+		} else if (!stats->nb_pid_in) {
+			stats->type = GF_FS_STATS_FILTER_MEDIA_SOURCE;
 		}
 	}
 	return GF_OK;

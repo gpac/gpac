@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -485,6 +485,10 @@ typedef enum
 	GF_FS_STATS_FILTER_MUX,
 	/*! raw output (file, socket, pipe) filter type*/
 	GF_FS_STATS_FILTER_RAWOUT,
+	/*! media sink (video out, audio out, ...) filter type*/
+	GF_FS_STATS_FILTER_MEDIA_SINK,
+	/*! media source (capture audio or video ...) filter type*/
+	GF_FS_STATS_FILTER_MEDIA_SOURCE,
 } GF_FSFilterType;
 
 /*! Filter statistics object*/
@@ -581,8 +585,15 @@ typedef enum
 \param val value of filter option to update
 \param propagate_mask propagation flags - 0 means no propagation
 */
-
 void gf_fs_send_update(GF_FilterSession *session, const char *fid, GF_Filter *filter, const char *name, const char *val, GF_EventPropagateType propagate_mask);
+
+
+/*! Loads JS script for filter session
+\param session filter session
+\param jsfile path to local JS script file to use
+\return error if any
+*/
+GF_Err gf_fs_load_script(GF_FilterSession *session, const char *jsfile);
 
 /*! @} */
 
@@ -2555,6 +2566,13 @@ const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size);
 \return GF_TRUE if this is an alias  filter created by a multiple sink filter, GF_FALSE otherwise
 */
 Bool gf_filter_is_alias(GF_Filter *filter);
+
+/*! checks if the given filter is in the chain ending up at parent
+\param parent end of filter chain to check
+\param filter target filter to check
+\return GF_TRUE if filter is present in the parent chain, GF_FALSE otherwise
+*/
+Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
 
 /*! @} */
 

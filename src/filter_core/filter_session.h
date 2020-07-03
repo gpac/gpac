@@ -419,6 +419,11 @@ struct __gf_filter_session
 #endif
 	//internal video output to hidden window for GL context
 	struct _video_out *gl_driver;
+
+#ifdef GPAC_HAS_QJS
+	struct JSContext *js_ctx;
+	GF_List *jstasks;
+#endif
 };
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
@@ -684,6 +689,9 @@ struct __gf_filter
 
 	GF_Filter *multi_sink_target;
 
+#ifdef GPAC_HAS_QJS
+	char *iname;
+#endif
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target, Bool dynamic_filter);
@@ -875,8 +883,6 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
 void gf_filter_pid_detach_task(GF_FSTask *task);
 
-Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
-
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
 
 void gf_filter_post_remove(GF_Filter *filter);
@@ -982,6 +988,8 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path);
 void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
 
 void gf_filter_renegociate_output_task(GF_FSTask *task);
+
+void gf_fs_unload_script(GF_FilterSession *fs);
 
 #endif //_GF_FILTER_SESSION_H_
 

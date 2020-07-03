@@ -588,6 +588,7 @@ GF_GPACArg gpac_args[] =
  	GF_DEF_ARG("aliasdoc", NULL, "assign documentation for a given alias (optional). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
  	GF_DEF_ARG("uncache", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("js", NULL, "specify javascript file to use as controller of filter session", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("wc", NULL, "write all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "write all file extensions in the config file unless already set (useful to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -1513,6 +1514,7 @@ static int gpac_main(int argc, char **argv)
 	GF_Err e=GF_OK;
 	int i;
 	const char *profile=NULL;
+	const char *session_js=NULL;
 	u32 sflags=0;
 	Bool override_seps=GF_FALSE;
 	Bool write_profile=GF_FALSE;
@@ -1841,6 +1843,8 @@ static int gpac_main(int argc, char **argv)
 
 		} else if (!strcmp(arg, "-k")) {
 			enable_prompt = GF_TRUE;
+		} else if (!strcmp(arg, "-js")) {
+			session_js = arg_val;
 		} else if (!strcmp(arg, "-r")) {
 			enable_reports = 2;
 			if (arg_val && !strlen(arg_val)) {
@@ -1926,6 +1930,14 @@ restart:
 		if (write_profile)
 			write_filters_options(session);
 		goto exit;
+	}
+
+	if (session_js) {
+		e = gf_fs_load_script(session, session_js);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
+			goto exit;
+		}
 	}
 
 	//all good to go, load filters
@@ -2052,7 +2064,7 @@ restart:
 
 		gf_list_add(loaded_filters, filter);
 	}
-	if (!gf_list_count(loaded_filters)) {
+	if (!gf_list_count(loaded_filters) && !session_js) {
 		if (nothing_to_do && !gen_doc) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright()));
 			e = GF_BAD_PARAM;

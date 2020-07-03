@@ -1415,6 +1415,32 @@ static JSValue gjs_odm_get_srd(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_NULL;
 }
 
+GF_Filter *jsff_get_filter(JSContext *c, JSValue this_val);
+
+static JSValue gjs_odm_in_parent_chain(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Bool res;
+	GF_Filter *f;
+	GF_Scene *scene;
+	GF_ObjectManager *odm = JS_GetOpaque(this_val, odm_class_id);
+	if (!odm || !argc) return JS_EXCEPTION;
+
+	f = jsff_get_filter(ctx, argv[0]);
+	if (!f) return JS_EXCEPTION;
+
+	scene = odm->subscene ? odm->subscene : odm->parentscene;
+	if (!scene) return JS_EXCEPTION;
+	if (gf_filter_in_parent_chain(f, scene->compositor->filter))
+		return JS_FALSE;
+
+	if (odm->pid) {
+		res = gf_filter_pid_is_filter_in_parents(odm->pid, f);
+	} else {
+		res = gf_filter_in_parent_chain(f, odm->scene_ns->source_filter);
+	}
+	return res ? JS_TRUE : JS_FALSE;
+}
+
 static JSValue gjs_odm_select_quality(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s32 idx = -1;
@@ -2008,7 +2034,10 @@ static const JSCFunctionListEntry odm_funcs[] = {
 	JS_CFUNC_DEF("disable_main_addon", 0, gjs_odm_disable_main_addon),
 	JS_CFUNC_DEF("select", 0, gjs_odm_select),
 	JS_CFUNC_DEF("get_srd", 0, gjs_odm_get_srd),
+	JS_CFUNC_DEF("in_parent_chain", 0, gjs_odm_in_parent_chain),
 };
+
+#include "../filter_core/filter_session.h"
 
 static void gpac_js_finalize(JSRuntime *rt, JSValue obj)
 {
@@ -2031,6 +2060,10 @@ static void gpac_js_finalize(JSRuntime *rt, JSValue obj)
 	gf_list_del(gjs->event_queue);
 	gf_mx_del(gjs->event_mx);
 
+	if (gjs->compositor && gjs->compositor->filter) {
+		void gf_fs_unload_script(GF_FilterSession *fs);
+		gf_fs_unload_script(gjs->compositor->filter->session);
+	}
 	/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 	JS_FreeValueRT(rt, gjs->evt_fun);
 	if (gjs->evt_filter.udta) {
@@ -2093,6 +2126,12 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 		if (scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_COMPOSITOR, scene->RootNode, &par)) {
 			gjs->compositor = par.compositor;
 		}
+	}
+	if (gjs->compositor && gjs->compositor->filter) {
+		GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs);
+		GF_FilterSession *fs = gjs->compositor->filter->session;
+
+		gf_fs_load_js_api(c, fs);
 	}
 
 	gjs->evt_obj = JS_NewObjectClass(c, gpacevt_class_id);

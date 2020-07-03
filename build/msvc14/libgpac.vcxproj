@@ -364,6 +364,7 @@
     <ClCompile Include="..\..\src\filter_core\filter_queue.c" />
     <ClCompile Include="..\..\src\filter_core\filter_register.c" />
     <ClCompile Include="..\..\src\filter_core\filter_session.c" />
+    <ClCompile Include="..\..\src\filter_core\filter_session_js.c" />
     <ClCompile Include="..\..\src\ietf\rtcp.c" />
     <ClCompile Include="..\..\src\ietf\rtp.c" />
     <ClCompile Include="..\..\src\ietf\rtp_depacketizer.c" />

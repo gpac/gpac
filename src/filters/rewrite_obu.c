@@ -53,13 +53,6 @@ typedef struct
 	u32 codec_id;
 } GF_OBUMxCtx;
 
-#ifdef GPAC_ENABLE_COVERAGE
-static Bool obumx_test_filter_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
-{
-	return GF_TRUE;
-}
-#endif
-
 GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 crc;
