@@ -424,12 +424,7 @@ GF_Err gf_isom_text_sample_write_bs(const GF_TextSample *samp, GF_BitStream *bs)
 	return e;
 }
 
-#if 0 //unused
-/*! formats sample as a regular GF_ISOSample.
-The resulting sample will always be marked as random access
-\param tx_samp the target text sample
-\return the corresponding serialized ISO sample
-*/
+GF_EXPORT
 GF_ISOSample *gf_isom_text_to_sample(const GF_TextSample *samp)
 {
 	GF_Err e;
@@ -455,7 +450,6 @@ GF_ISOSample *gf_isom_text_to_sample(const GF_TextSample *samp)
 	res->IsRAP = RAP;
 	return res;
 }
-#endif //unused
 
 u32 gf_isom_text_sample_size(GF_TextSample *samp)
 {
