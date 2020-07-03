@@ -2853,7 +2853,12 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 		if (len) {
 			gf_dynstrcat(&full_args, url, NULL);
 			sprintf(szSep, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
-			gf_dynstrcat(&full_args, szSep, NULL);
+			if ((filter->session->sep_args==':') && strstr(url, "://") && !strstr(url, szSep)) {
+				gf_dynstrcat(&full_args, szSep, NULL);
+			} else {
+				sprintf(szSep, "%c", filter->session->sep_args);
+				gf_dynstrcat(&full_args, szSep, NULL);
+			}
 			gf_dynstrcat(&full_args, args, NULL);
 			sprintf(szSep, "%cgfloc%c", filter->session->sep_args, filter->session->sep_args);
 			loc_args = strstr(full_args, "gfloc");

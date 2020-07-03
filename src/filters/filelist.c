@@ -307,11 +307,11 @@ void filelist_parse_arg(char *com, char *name, u32 type, u32 *int_val, Double *f
 		}
 		val += strlen(name);
 		if (type==1) {
-			sscanf(val, LLU, luint_val);
+			(*int_val) = atoi(val);
 		} else if (type==2) {
 			(*int_val) = atoi(val);
-		} else if (type==1) {
-			(*int_val) = atoi(val);
+		} else if (type==3) {
+			sscanf(val, LLU, luint_val);
 		} else if (type==0) {
 			(*int_val) = 1;
 		}
