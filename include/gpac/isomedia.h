@@ -4779,6 +4779,15 @@ GF_Err gf_isom_text_set_wrap(GF_TextSample *tx_samp, u8 wrap_flags);
 \return error if any
 */
 GF_Err gf_isom_text_sample_write_bs(const GF_TextSample *tx_samp, GF_BitStream *bs);
+
+
+/*! formats sample as a regular GF_ISOSample.
+The resulting sample will always be marked as random access
+\param tx_samp the target text sample
+\return the corresponding serialized ISO sample
+*/
+GF_ISOSample *gf_isom_text_to_sample(const GF_TextSample *tx_samp);
+
 /*! gets the serialized size of the text sample
 \param tx_samp the target text sample
 \return the serialized size
