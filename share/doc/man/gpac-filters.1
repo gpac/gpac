@@ -3241,15 +3241,21 @@ In this mode, directives can be given in a comment line, i.e. a line starting wi
 .br
 The following directives, separated with space or comma, are supported:
 .br
-* repeat=N: repeats N times the content (hence played N+1)
+* repeat=N: repeats N times the content (hence played N+1).
 .br
-* start=T: tries to play the file from start time T seconds (double format only)
+* start=T: tries to play the file from start time T seconds (double format only). This may not work with some files/formats not supporting seeking.
 .br
-Warning: This may not work with some files/formats not supporting seeking
+* stop=T: stops source playback after T seconds (double format only). This works on any source (implemented independently from seek support).
 .br
-* stop=T: stops source playback after T seconds (double format only)
+* cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionnally specify a byte range if desired, otherwise the full file is concatenated.
 .br
-This works on any source (implemented independently from seek support).
+* srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.
+.br
+* send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.
+.br
+
+.br
+Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.
 .br
 
 .br
@@ -3596,6 +3602,8 @@ Additional replacement strings (not DASH, not generic GPAC replacements but may 
 .br
 * $Init=NAME$: replaced by NAME for init segment, ignored otherwise
 .br
+* $XInit=NAME$: complete replace by NAME for init segment, ignored otherwise
+.br
 * $Index=NAME$: replaced by NAME for index segments, ignored otherwise
 .br
 * $Path=PATH$: replaced by PATH when creating segments, ignored otherwise
@@ -3794,15 +3802,65 @@ Warning: Cues shall be listed in decoding order.
 .B
 Manifest Generation only mode
 .br
-The segmenter can try to generate manifests from already fragmented ISOBMFF inputs using .I sigfrag.
+The segmenter can be used to generate manifests from already fragmented ISOBMFF inputs using .I sigfrag.
 .br
 In this case, segment boundaries are attached to each packet starting a segment and used to drive the segmentation.
 .br
-This should only be used with single-track ISOBMFF sources. If onDemand .I profile is requested, sources have to be formatted as a DASH self-initializing media segment with the proper sidx.
+This can be used with single-track ISOBMFF sources, either single file or multi file.
 .br
-This mode automatically disables templates and forces .I sseg for all profiles except onDemand ones.
+For single file source:
+.br
+- if onDemand .I profile is requested, sources have to be formatted as a DASH self-initializing media segment with the proper sidx.
+.br
+- templates are disabled.
+.br
+- .I sseg is forced for all profiles except onDemand ones.
+.br
+For multi files source:
+.br
+- input shall be a playlist containing the initial file followed by the ordered list of segments.
+.br
+- if no .I template is provided, the full or main .I profile will be used
+.br
+* if [-template]() is provided, it shall be correct: the filter will not try to guess one from the input file names and will not validate it either.
+.br
+
 .br
 The manifest generation-only mode supports both MPD and HLS generation.
+.br
+
+.br
+Example
+.br
+-i ondemand_src.mp4 -o dash.mpd:sigfrag:profile=onDemand
+.br
+
+.br
+This will generate a DASH manifest for onDemand Profile based on the input file.
+.br
+Example
+.br
+-i ondemand_src.mp4 -o dash.m3u8:sigfrag
+.br
+
+.br
+This will generate a HLS manifest based on the input file.
+.br
+Example
+.br
+-i seglist.txt -o dash.mpd:sigfrag
+.br
+
+.br
+This will generate a DASH manifest in Main Profile based on the input files.
+.br
+Example
+.br
+-i seglist.txt:Template=$XInit=init$$q1/$Number$ -o dash.mpd:sigfrag:profile=live
+.br
+
+.br
+This will generate a DASH manifest in live Profile based on the input files. The input file will contain init.mp4, q1/1.m4s, q1/2.m4s...
 .br
 
 .br
@@ -3853,7 +3911,7 @@ The segmenter will add the following properties to the output PIDs:
 .SH Options (expert):
 .LP
 .br
-segdur (dbl, default: 1.0):    target segment duration in seconds
+segdur (dbl, default: 0.0):    target segment duration in seconds. A value less than or equal to 0 means to 1.0 second
 .br
 tpl (bool, default: true):     use template mode (multiple segment, template URLs)
 .br
@@ -5896,7 +5954,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev60-gb21ae6b52-master
+build: 1.0.0-rev74-g914f098d0-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
