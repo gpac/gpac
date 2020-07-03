@@ -41,7 +41,6 @@ documented just below this comment.
 #ifndef RMT_INCLUDED_H
 #define RMT_INCLUDED_H
 
-
 //! @cond Doxygen_Suppress
 
 // Set to 0 to not include any bits of Remotery in your build
@@ -121,7 +120,7 @@ documented just below this comment.
 // Platform identification
 #if defined(_WINDOWS) || defined(_WIN32)
     #define RMT_PLATFORM_WINDOWS
-#elif defined(__linux__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__)
     #define RMT_PLATFORM_LINUX
     #define RMT_PLATFORM_POSIX
 #elif defined(__APPLE__)
@@ -357,7 +356,7 @@ typedef void (*rmtFreePtr)(void* mm_context, void* ptr);
 typedef void (*rmtInputHandlerPtr)(const char* text, void* context);
 
 
-/*! Struture to fill in to modify Remotery default settings*/
+// Struture to fill in to modify Remotery default settings
 typedef struct rmtSettings
 {
     // Which port to listen for incoming connections on
@@ -404,7 +403,7 @@ typedef struct rmtSettings
 } rmtSettings;
 
 
-/*! Structure to fill in when binding CUDA to Remotery*/
+// Structure to fill in when binding CUDA to Remotery
 typedef struct rmtCUDABind
 {
     // The main context that all driver functions apply before each call

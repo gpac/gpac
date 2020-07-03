@@ -18,3 +18,9 @@ function namespace(name)
 		parent_ns = parent_ns[ns_name];
 	}
 }
+
+
+function multiline(fn)
+{
+	return fn.toString().split(/\n/).slice(1, -1).join("\n");
+}
