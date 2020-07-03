@@ -1476,6 +1476,7 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 	const char *url=NULL;
 	const char *parent=NULL;
 	GF_Err e=GF_OK;
+	Bool inherit_args = GF_FALSE;
 	GF_JSFilterInstanceCtx *f_ctx;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
     if (!jsf || !argc) return JS_EXCEPTION;
@@ -1488,6 +1489,9 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 			JS_FreeCString(ctx, url);
 			return JS_EXCEPTION;
 		}
+		if (argc>2) {
+			inherit_args = JS_ToBool(ctx, argv[2]);
+		}
 	}
 	GF_SAFEALLOC(f_ctx, GF_JSFilterInstanceCtx);
 	if (!f_ctx) {
@@ -1498,7 +1502,7 @@ static JSValue jsf_filter_load_filter(JSContext *ctx, JSValueConst this_val, int
 
 	f_ctx->fmode = mode;
 	if (mode==JSF_FINST_SOURCE) {
-		f_ctx->filter = gf_filter_connect_source(jsf->filter, url, parent, &e);
+		f_ctx->filter = gf_filter_connect_source(jsf->filter, url, parent, inherit_args, &e);
 	} else if (mode==JSF_FINST_DEST) {
 		f_ctx->filter = gf_filter_connect_destination(jsf->filter, url, &e);
 	} else {

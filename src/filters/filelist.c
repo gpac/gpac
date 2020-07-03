@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2019
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -28,6 +28,8 @@
 #include <gpac/thread.h>
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
+#include <gpac/isomedia.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
@@ -92,12 +94,13 @@ typedef struct
 
 	u32 nb_repeat;
 	Double start, stop;
-
+	Bool do_cat;
+	u64 start_range, end_range;
 	GF_List *file_list;
 	s32 file_list_idx;
 
 	u64 current_file_dur;
-
+	Bool last_is_isom;
 	char szCom[GF_MAX_PATH];
 } GF_FileListCtx;
 
@@ -109,12 +112,14 @@ static const GF_FilterCapability FileListCapsSrc[] =
 
 static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 {
-	GF_FilterEvent evt;
 	iopid->is_eos = GF_FALSE;
 
-	//if we reattached the input, we must send a play request
-	gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
-	gf_filter_pid_send_event(iopid->ipid, &evt);
+	if (!ctx->do_cat) {
+		GF_FilterEvent evt;
+		//if we reattached the input, we must send a play request
+		gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
+		gf_filter_pid_send_event(iopid->ipid, &evt);
+	}
 
 	//and convert back cts/dts offsets from 1Mhs to OLD timescale (since we dispatch in this timescale)
 	iopid->dts_o = ctx->dts_offset;
@@ -127,6 +132,17 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 	iopid->max_cts = iopid->max_dts = 0;
 
 	iopid->first_dts_plus_one = 0;
+}
+
+Bool filelist_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+{
+	const GF_PropertyValue *p;
+	GF_FilterPid *pid = (GF_FilterPid *) cbk;
+
+	if (prop_4cc) p = gf_filter_pid_get_property(pid, prop_4cc);
+	else p = gf_filter_pid_get_property_str(pid, prop_name);
+	if (p) return GF_FALSE;
+	return GF_TRUE;
 }
 
 GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -158,6 +174,7 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 		//from now on we only accept the above caps
 		gf_filter_override_caps(filter, FileListCapsSrc, 2);
+
 	}
 	if (ctx->file_pid == pid) return GF_OK;
 
@@ -200,9 +217,18 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		iopid->stream_type = p->value.uint;
 	}
 
+	//copy properties at init or reconfig:
+	//reset (no more props)
 	gf_filter_pid_reset_properties(iopid->opid);
-	//copy properties at init or reconfig
+
 	gf_filter_pid_copy_properties(iopid->opid, iopid->ipid);
+
+	//if file pid is defined, merge its properties. This will allow forwarding user-defined properties,
+	// eg -i list.txt:#MyProp=toto to all PIDs coming from the sources
+	if (ctx->file_pid) {
+		gf_filter_pid_merge_properties(iopid->opid, ctx->file_pid, filelist_merge_prop, iopid->ipid);
+	}
+	
 	//we could further optimize by querying the duration of all sources in the list
 	gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE) );
 	gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(iopid->o_timescale) );
@@ -262,7 +288,7 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_TRUE;
 }
 
-void filelist_parse_arg(char *com, char *name, Bool is_float, u32 *int_val, Double *float_val)
+void filelist_parse_arg(char *com, char *name, u32 type, u32 *int_val, Double *float_val, u64 *luint_val)
 {
 	char *val = strstr(com, name);
 	if (val) {
@@ -276,10 +302,46 @@ void filelist_parse_arg(char *com, char *name, Bool is_float, u32 *int_val, Doub
 			sep[0] = 0;
 		}
 		val += strlen(name);
-		if (is_float) (*float_val) = atof(val);
-		else (*int_val) = atoi(val);
+		if (type==1) {
+			sscanf(val, LLU, luint_val);
+		} else if (type==2) {
+			(*int_val) = atoi(val);
+		} else if (type==1) {
+			(*int_val) = atoi(val);
+		} else if (type==0) {
+			(*int_val) = 1;
+		}
 		if (sep) sep[0] = c;
 	}
+}
+
+void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
+{
+	char *res_url = NULL;
+	if (ctx->file_path) {
+		res_url = gf_url_concatenate(ctx->file_path, szURL);
+		szURL = res_url;
+	}
+
+	switch (gf_isom_probe_file(szURL)) {
+	//this is a fragment
+	case 3:
+		if (ctx->last_is_isom) {
+			ctx->do_cat = GF_TRUE;
+		}
+		break;
+	//this is a movie, reload
+	case 2:
+	case 1:
+		ctx->do_cat = GF_FALSE;
+		ctx->last_is_isom = GF_TRUE;
+		break;
+	default:
+		ctx->do_cat = GF_FALSE;
+		ctx->last_is_isom = GF_FALSE;
+	}
+	if (res_url)
+		gf_free(res_url);
 }
 
 Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
@@ -288,7 +350,9 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	Bool last_found = GF_FALSE;
 	FILE *f;
 	u32 nb_repeat=0, lineno=0;
+	u64 start_range, end_range;
 	Double start=0, stop=0;
+	Bool do_cat=0;
 
 	if (ctx->file_list) {
 		FileListEntry *fentry, *next;
@@ -311,6 +375,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		fentry = gf_list_get(ctx->file_list, ctx->file_list_idx);
 		strncpy(szURL, fentry->file_name, sizeof(char)*(GF_MAX_PATH-1) );
 		szURL[GF_MAX_PATH-1] = 0;
+		filelist_check_implicit_cat(ctx, szURL);
 		next = gf_list_get(ctx->file_list, ctx->file_list_idx + 1);
 		if (next)
 			ctx->current_file_dur = next->last_mod_time - fentry->last_mod_time;
@@ -345,9 +410,17 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		if (szURL[0] == '#') {
 			nb_repeat=0;
 			start=stop=0;
-			filelist_parse_arg(szURL, "repeat=", GF_FALSE, &nb_repeat, NULL);
-			filelist_parse_arg(szURL, "start=", GF_TRUE, NULL, &start);
-			filelist_parse_arg(szURL, "stop=", GF_TRUE, NULL, &stop);
+			do_cat = 0;
+			start_range=end_range=0;
+
+			filelist_parse_arg(szURL, "repeat=", 1, &nb_repeat, NULL, NULL);
+			filelist_parse_arg(szURL, "start=", 2, NULL, &start, NULL);
+			filelist_parse_arg(szURL, "stop=", 2, NULL, &stop, NULL);
+			filelist_parse_arg(szURL, "cat", 0, &do_cat, NULL, NULL);
+			if (do_cat) {
+				filelist_parse_arg(szURL, "srange=", 3, NULL, NULL, &start_range);
+				filelist_parse_arg(szURL, "send=", 3, NULL, NULL, &end_range);
+			}
 			strcpy(ctx->szCom, szURL);
 			continue;
 		}
@@ -361,6 +434,8 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			last_found = GF_TRUE;
 			nb_repeat=0;
 			start=stop=0;
+			do_cat=0;
+			start_range=end_range=0;
 			ctx->szCom[0] = 0;
 			continue;
 		}
@@ -371,6 +446,8 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		}
 		nb_repeat=0;
 		start=stop=0;
+		do_cat=0;
+		start_range=end_range=0;
 		ctx->szCom[0] = 0;
 	}
 	gf_fclose(f);
@@ -383,6 +460,10 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	ctx->nb_repeat = nb_repeat;
 	ctx->start = start;
 	ctx->stop = stop;
+	ctx->do_cat = do_cat;
+	ctx->start_range = start_range;
+	ctx->end_range = end_range;
+	filelist_check_implicit_cat(ctx, szURL);
 	return GF_TRUE;
 }
 
@@ -435,16 +516,22 @@ GF_Err filelist_process(GF_Filter *filter)
 
 	if (ctx->load_next) {
 		GF_Filter *fsrc;
+		u32 s_idx;
 		char *url;
 		char szURL[GF_MAX_PATH];
+		Bool next_url_ok;
 
-		while (gf_list_count(ctx->filter_srcs)) {
-			fsrc = gf_list_pop_back(ctx->filter_srcs);
-			gf_filter_remove_src(filter, fsrc);
+		next_url_ok = filelist_next_url(ctx, szURL);
+		if (!next_url_ok || !ctx->do_cat) {
+			while (gf_list_count(ctx->filter_srcs)) {
+				fsrc = gf_list_pop_back(ctx->filter_srcs);
+				gf_filter_remove_src(filter, fsrc);
+			}
 		}
+
 		ctx->load_next = GF_FALSE;
 
-		if (! filelist_next_url(ctx, szURL)) {
+		if (! next_url_ok) {
 			for (i=0; i<count; i++) {
 				iopid = gf_list_get(ctx->io_pids, i);
 				gf_filter_pid_set_eos(iopid->opid);
@@ -453,37 +540,73 @@ GF_Err filelist_process(GF_Filter *filter)
 			ctx->is_eos = GF_TRUE;
 			return GF_EOS;
 		}
+		for (i=0; i<gf_list_count(ctx->io_pids); i++) {
+			FileListPid *an_iopid = gf_list_get(ctx->io_pids, i);
+			if (ctx->do_cat) {
+				gf_filter_pid_clear_eos(an_iopid->ipid, GF_TRUE);
+				filelist_start_ipid(ctx, an_iopid);
+			} else {
+				an_iopid->ipid = NULL;
+			}
+		}
+		s_idx = 0;
 		url = szURL;
 		while (url) {
 			char *sep = strstr(url, " && ");
 			if (sep) sep[0] = 0;
 
-			fsrc = gf_filter_connect_source(filter, url, ctx->file_path, &e);
-			if (e) {
-				if (sep) sep[0] = ' ';
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to open file %s: %s\n", szURL, gf_error_to_string(e) ));
-				return GF_SERVICE_ERROR;
+			if (ctx->do_cat) {
+				char *f_url;
+				GF_FilterEvent evt;
+				fsrc = gf_list_get(ctx->filter_srcs, s_idx);
+				if (!fsrc) {
+					if (sep) sep[0] = ' ';
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] More URL to cat than opened service!\n"));
+					return GF_BAD_PARAM;
+				}
+				f_url = gf_url_concatenate(ctx->file_path, url);
+				memset(&evt, 0, sizeof(GF_FilterEvent));
+				evt.base.type = GF_FEVT_SOURCE_SWITCH;
+				evt.seek.source_switch = f_url ? f_url : url;
+				evt.seek.start_offset = ctx->start_range;
+				evt.seek.end_offset = ctx->end_range;
+				gf_filter_send_event(fsrc, &evt, GF_FALSE);
+				if (f_url)
+					gf_free(f_url);
+			} else {
+				fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_TRUE, &e);
+				if (e) {
+					if (sep) sep[0] = ' ';
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to open file %s: %s\n", szURL, gf_error_to_string(e) ));
+					return GF_SERVICE_ERROR;
+				}
+				gf_list_add(ctx->filter_srcs, fsrc);
 			}
-			gf_list_add(ctx->filter_srcs, fsrc);
-
 			if (!sep) break;
 			sep[0] = ' ';
 			url = sep+4;
 		}
 		//wait for PIDs to connect
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Switching to file %s\n", szURL));
+
 	}
 
 	//init first timestamp
 	if (!ctx->dts_sub_plus_one) {
+		u32 nb_eos = 0;
 		for (i=0; i<count; i++) {
 			GF_FilterPacket *pck;
 			u64 dts;
 			iopid = gf_list_get(ctx->io_pids, i);
 			if (!iopid->ipid) return GF_OK;
 			pck = gf_filter_pid_get_packet(iopid->ipid);
-			if (!pck) return GF_OK;
-
+			if (!pck) {
+				if (gf_filter_pid_is_eos(iopid->ipid)) {
+					nb_eos++;
+					continue;
+				}
+				return GF_OK;
+			}
 			dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS) dts=0;
 
@@ -492,6 +615,14 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (!ctx->dts_sub_plus_one) ctx->dts_sub_plus_one = dts + 1;
 			else if (dts < ctx->dts_sub_plus_one - 1) ctx->dts_sub_plus_one = dts + 1;
 	 	}
+	 	if (nb_eos) {
+			if (nb_eos==count) {
+				//force load
+				ctx->load_next = GF_TRUE;
+				return filelist_process(filter);
+			}
+			return GF_OK;
+		}
 		for (i=0; i<count; i++) {
 			iopid = gf_list_get(ctx->io_pids, i);
 			iopid->dts_sub = ctx->dts_sub_plus_one - 1;
@@ -642,11 +773,6 @@ GF_Err filelist_process(GF_Filter *filter)
 				filelist_start_ipid(ctx, iopid);
 			}
 		} else {
-			//detach all input pids and
-			for (i=0; i<count; i++) {
-				iopid = gf_list_get(ctx->io_pids, i);
-				iopid->ipid = NULL;
-			}
 			//force load
 			ctx->load_next = GF_TRUE;
 			return filelist_process(filter);
@@ -714,18 +840,14 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 	ctx->io_pids = gf_list_new();
 
+	ctx->filter_srcs = gf_list_new();
+
 	if (!ctx->srcs || !gf_list_count(ctx->srcs)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
-		//not completely correct, needs further testing
-#if 0
-		if (!gf_filter_connections_pending(filter)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No source specified and no input PIDs pending, cannot instantiate\n"));
-			return GF_BAD_PARAM;
+		if (! gf_filter_is_dynamic(filter)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
 		}
-#endif
 		return GF_OK;
 	}
-	ctx->filter_srcs = gf_list_new();
 	ctx->file_list = gf_list_new();
 	count = gf_list_count(ctx->srcs);
 	for (i=0; i<count; i++) {
@@ -862,11 +984,14 @@ GF_FilterRegister FileListRegister = {
 		"The playlist mode is activated when opening a playlist file (extension txt or m3u).\n"
 		"In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.\n"
 		"The following directives, separated with space or comma, are supported:\n"
-		"- repeat=N: repeats N times the content (hence played N+1)\n"
-		"- start=T: tries to play the file from start time T seconds (double format only)\n"
-		"Warning: This may not work with some files/formats not supporting seeking\n"
-		"- stop=T: stops source playback after T seconds (double format only)\n"
-		"This works on any source (implemented independently from seek support).\n"
+		"- repeat=N: repeats N times the content (hence played N+1).\n"
+		"- start=T: tries to play the file from start time T seconds (double format only). This may not work with some files/formats not supporting seeking.\n"
+		"- stop=T: stops source playback after T seconds (double format only). This works on any source (implemented independently from seek support).\n"
+		"- cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionnally specify a byte range if desired, otherwise the full file is concatenated.\n"
+		"- srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
+		"- send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
+		"\n"
+		"Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.\n"
 		"\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"

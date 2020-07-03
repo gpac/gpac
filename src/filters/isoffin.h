@@ -84,6 +84,7 @@ typedef struct
 	Bool input_is_stop;
 	u64 missing_bytes, last_size;
 
+	Bool seg_name_changed;
 	u32 play_only_track_id;
 	u32 play_only_first_media;
 	Bool full_segment_flush;

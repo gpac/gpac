@@ -941,7 +941,8 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 	u32 idx;
 #endif
 	GF_List *list;
-	dst_props->timescale = src_props->timescale;
+	if (src_props->timescale)
+		dst_props->timescale = src_props->timescale;
 
 #if GF_PROPS_HASHTABLE_SIZE
 	for (idx=0; idx<GF_PROPS_HASHTABLE_SIZE; idx++) {
