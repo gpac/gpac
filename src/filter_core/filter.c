@@ -436,6 +436,11 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->instance_help)
 		gf_free(filter->instance_help);
 
+#ifdef GPAC_HAS_QJS
+	if (filter->iname)
+		gf_free(filter->iname);
+#endif
+
 	gf_free(filter);
 }
 
@@ -2999,7 +3004,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	if (!filter || !link_from) return GF_BAD_PARAM;
 	if (filter == link_from) return GF_OK;
 	//don't allow loops
-	if (filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
+	if (gf_filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
 
 	if (!link_from->id) {
 		gf_filter_assign_id(link_from, NULL);
@@ -3496,7 +3501,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 		if (strncmp(args + 4, protocol_scheme, len)) continue;
 		if (!expand_proto && (args[len] != ':')) continue;
 
-		if (! filter_in_parent_chain(filter, src)) {
+		if (! gf_filter_in_parent_chain(filter, src)) {
 			u32 j=0;
 			Bool found=GF_FALSE;
 			if (!enum_pids) continue;
@@ -3504,7 +3509,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 				GF_FilterPid *pid = enum_pids(udta, &j);
 				if (!pid) break;
 				j++;
-				if ( filter_in_parent_chain(pid->pid->filter, src)) {
+				if ( gf_filter_in_parent_chain(pid->pid->filter, src)) {
 					found=GF_TRUE;
 					break;
 				}

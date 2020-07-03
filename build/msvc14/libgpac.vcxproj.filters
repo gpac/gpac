@@ -1157,6 +1157,9 @@
     <ClCompile Include="..\..\src\filter_core\filter_session.c">
       <Filter>filter_core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_session_js.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\compose.c">
       <Filter>filters</Filter>
     </ClCompile>

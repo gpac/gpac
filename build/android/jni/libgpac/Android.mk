@@ -149,6 +149,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filter_core/filter_queue.c \
 	../../../../src/filter_core/filter_register.c \
 	../../../../src/filter_core/filter_session.c \
+	../../../../src/filter_core/filter_session_js.c \
 	../../../../src/filters/bsrw.c \
 	../../../../src/filters/compose.c \
 	../../../../src/filters/dasher.c \

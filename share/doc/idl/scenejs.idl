@@ -18,6 +18,7 @@ import {gpac} from 'scenejs'
 This API cannot be loaded from a JSFilter.
 It exports a single object "gpac", instance of JSGPAC class.
 
+It also exports a single object "session", instance of JSFilterSession class.
 
 @{
 
@@ -374,6 +375,10 @@ void select();
 \return the SRD information, or null*/
 SRDDesc get_srd();
 
+/*! checks if the given filter is in parent (down the source) chain of this object. The compositor filter and any filter connected after the compositor are excluded
+\param filter the filter to test
+\return true if the filter is in the parent chain, false otherwise*/
+boolean in_parent_chain(JSFSFilter filter)
 
 /*! declares an addon
 \param addon_url URL of addon to insert

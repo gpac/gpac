@@ -1551,7 +1551,8 @@ sourceid_reassign:
 	return GF_TRUE;
 }
 
-Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
+GF_EXPORT
+Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 {
 	u32 i, count;
 	if (parent == filter) return GF_TRUE;
@@ -1560,7 +1561,7 @@ Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	if (!count) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_FilterPidInst *pid = gf_list_get(parent->input_pids, i);
-		if (filter_in_parent_chain(pid->pid->filter, filter)) return GF_TRUE;
+		if (gf_filter_in_parent_chain(pid->pid->filter, filter)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -3682,7 +3683,7 @@ single_retry:
 			u32 j, count2 = gf_list_count(filter_dst->source_filters);
 			for (j=0; j<count2; j++) {
 				GF_Filter *srcf = gf_list_get(filter_dst->source_filters, j);
-				if (filter_in_parent_chain(pid->filter, srcf)) {
+				if (gf_filter_in_parent_chain(pid->filter, srcf)) {
 					ignore_source_ids = GF_TRUE;
 					break;
 				}
@@ -3743,13 +3744,13 @@ single_retry:
 		}
 		//walk up through the parent graph and check if this filter is already in. If so don't connect
 		//since we don't allow re-entrant PIDs
-		if (filter_in_parent_chain(filter, filter_dst) ) {
+		if (gf_filter_in_parent_chain(filter, filter_dst) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has filter %s in its parent chain\n", pid->name, filter_dst->name));
 			continue;
 		}
 		//if the original filter is in the parent chain of this PID's filter, don't connect (equivalent to re-entrant)
 		if (filter_dst->cloned_from) {
-			if (filter_in_parent_chain(filter, filter_dst->cloned_from) ) {
+			if (gf_filter_in_parent_chain(filter, filter_dst->cloned_from) ) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has the original of cloned filter %s in its parent chain\n", pid->name, filter_dst->name));
 				continue;
 			}
@@ -3757,7 +3758,7 @@ single_retry:
 
 		//if the filter is in the parent chain of this PID's original filter, don't connect (equivalent to re-entrant)
 		if (filter->cloned_from) {
-			if (filter_in_parent_chain(filter->cloned_from, filter_dst) ) {
+			if (gf_filter_in_parent_chain(filter->cloned_from, filter_dst) ) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s filter is cloned and has filter %s in its clone parent chain\n", pid->name, filter_dst->name));
 				continue;
 			}
@@ -4000,8 +4001,8 @@ single_retry:
 			for (k=0; k<gf_list_count(force_link_resolutions); k++) {
 				GF_Filter *dst_link = gf_list_get(force_link_resolutions, k);
 				if (//if forced filter is in parent chain (already connected filters), don't force a link
-					filter_in_parent_chain(filter_dst, dst_link)
-					|| filter_in_parent_chain(dst_link, filter_dst)
+					gf_filter_in_parent_chain(filter_dst, dst_link)
+					|| gf_filter_in_parent_chain(dst_link, filter_dst)
 					//if forced filter is in destination of filter (connection pending), don't force a link
 					|| (gf_list_find(filter_dst->destination_filters, dst_link)>=0)
 					|| (gf_list_find(filter_dst->destination_links, dst_link)>=0)
@@ -5283,7 +5284,11 @@ const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *id
 		props = gf_list_last(pid->pid->properties);
 		gf_mx_v(pid->filter->tasks_mx);
 	} else {
-		props = check_new_pid_props(pid, GF_FALSE);
+		//props = check_new_pid_props(pid, GF_FALSE);
+
+		gf_mx_p(pid->filter->tasks_mx);
+		props = gf_list_last(pid->properties);
+		gf_mx_v(pid->filter->tasks_mx);
 	}
 	if (!props) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for pid in filter %s, ignoring enum\n", pid->filter->name));
@@ -5969,7 +5974,7 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
 {
 	if (!pid || !filter) return GF_FALSE;
 	pid = pid->pid;
-	return filter_in_parent_chain(pid->pid->filter, filter);
+	return gf_filter_in_parent_chain(pid->filter, filter);
 }
 
 static void filter_pid_collect_stats(GF_List *pidi_list, GF_FilterPidStatistics *stats)

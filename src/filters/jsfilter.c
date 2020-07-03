@@ -468,6 +468,7 @@ JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
 	case GF_PROP_NAME:
+		if (!new_val->value.string) return JS_NULL;
 		return JS_NewString(ctx, new_val->value.string);
 	case GF_PROP_VEC2:
 		res = JS_NewObject(ctx);
@@ -3594,49 +3595,17 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	return e;
 }
 
-
-static GF_Err jsfilter_initialize(GF_Filter *filter)
+void js_load_constants(JSContext *ctx, JSValue global_obj)
 {
-	u8 *buf;
-	u32 buf_len;
-	u32 flags = JS_EVAL_TYPE_GLOBAL;
-    JSValue ret;
-    JSValue global_obj, val, args;
-    u32 i, nb_args;
-    JSRuntime *rt;
-	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
+	u32 i, nb_args;
+    JSValue args, val;
 
-	jsf->filter = filter;
-	jsf->pids = gf_list_new();
-	jsf->pck_res = gf_list_new();
-	jsf->log_name = gf_strdup("JSF");
-
-	if (!jsf->js) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Missing script file\n"));
-		return GF_BAD_PARAM;
-	}
-	if (!gf_file_exists(jsf->js)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Script file %s does not exist\n", jsf->js));
-		return GF_BAD_PARAM;
-	}
-	jsf->filter_obj = JS_UNDEFINED;
-
-	jsf->ctx = gf_js_create_context();
-	if (!jsf->ctx) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
-		return GF_IO_ERR;
-	}
-	JS_SetContextOpaque(jsf->ctx, jsf);
-	rt = JS_GetRuntime(jsf->ctx);
-
-    global_obj = JS_GetGlobalObject(jsf->ctx);
-
-    val = JS_NewObject(jsf->ctx);
-    JS_SetPropertyStr(jsf->ctx, val, "log", JS_NewCFunction(jsf->ctx, js_print, "log", 1));
-    JS_SetPropertyStr(jsf->ctx, global_obj, "console", val);
+    val = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, val, "log", JS_NewCFunction(ctx, js_print, "log", 1));
+    JS_SetPropertyStr(ctx, global_obj, "console", val);
 
 #define DEF_CONST( _val ) \
-    JS_SetPropertyStr(jsf->ctx, global_obj, #_val, JS_NewInt32(jsf->ctx, _val));
+    JS_SetPropertyStr(ctx, global_obj, #_val, JS_NewInt32(ctx, _val));
 
 	DEF_CONST(GF_LOG_ERROR)
 	DEF_CONST(GF_LOG_WARNING)
@@ -3671,7 +3640,7 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 	DEF_CONST(GF_PROP_STRING_LIST)
 	DEF_CONST(GF_PROP_UINT_LIST)
 
-	
+
 	DEF_CONST(GF_FEVT_PLAY)
 	DEF_CONST(GF_FEVT_SET_SPEED)
 	DEF_CONST(GF_FEVT_STOP)
@@ -3770,14 +3739,54 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 	DEF_CONST(GF_EVENT_TIMESHIFT_UNDERRUN)
 	DEF_CONST(GF_EVENT_QUIT)
 
-	args = JS_NewArray(jsf->ctx);
+	args = JS_NewArray(ctx);
     nb_args = gf_sys_get_argc();
     for (i=0; i<nb_args; i++) {
-        JS_SetPropertyUint32(jsf->ctx, args, i, JS_NewString(jsf->ctx, gf_sys_get_arg(i)));
+        JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, gf_sys_get_arg(i)));
     }
-    JS_SetPropertyStr(jsf->ctx, global_obj, "args", args);
-    JS_SetPropertyStr(jsf->ctx, global_obj, "print", JS_NewCFunction(jsf->ctx, js_print, "print", 1));
-    JS_SetPropertyStr(jsf->ctx, global_obj, "alert", JS_NewCFunction(jsf->ctx, js_print, "alert", 1));
+    JS_SetPropertyStr(ctx, global_obj, "args", args);
+    JS_SetPropertyStr(ctx, global_obj, "print", JS_NewCFunction(ctx, js_print, "print", 1));
+    JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
+}
+
+static GF_Err jsfilter_initialize(GF_Filter *filter)
+{
+	u8 *buf;
+	u32 buf_len;
+	u32 flags = JS_EVAL_TYPE_GLOBAL;
+    JSValue ret;
+    JSValue global_obj;
+    u32 i;
+    JSRuntime *rt;
+	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
+
+	jsf->filter = filter;
+	jsf->pids = gf_list_new();
+	jsf->pck_res = gf_list_new();
+	jsf->log_name = gf_strdup("JSF");
+
+	if (!jsf->js) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Missing script file\n"));
+		return GF_BAD_PARAM;
+	}
+	if (!gf_file_exists(jsf->js)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Script file %s does not exist\n", jsf->js));
+		return GF_BAD_PARAM;
+	}
+	jsf->filter_obj = JS_UNDEFINED;
+
+	jsf->ctx = gf_js_create_context();
+	if (!jsf->ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
+		return GF_IO_ERR;
+	}
+	JS_SetContextOpaque(jsf->ctx, jsf);
+	rt = JS_GetRuntime(jsf->ctx);
+
+    global_obj = JS_GetGlobalObject(jsf->ctx);
+
+	js_load_constants(jsf->ctx, global_obj);
+
 
 	//initialize filter class and create a single filter object in global scope
 	JS_NewClassID(&jsf_filter_class_id);

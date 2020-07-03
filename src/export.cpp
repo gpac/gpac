@@ -2285,6 +2285,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg_str ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_ui_event ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_alias ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_in_parent_chain ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_max_resolution_chain_length ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )
@@ -2294,6 +2295,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_ui_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_enum_unmapped_options) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_send_update) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_script) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_reconnect_output) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_add_event_listener ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_remove_event_listener ) )

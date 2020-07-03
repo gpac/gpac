@@ -134,7 +134,7 @@ endif
 
 LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
 
-LIBGPAC_FILTERS=filter_core/filter_pck.o filter_core/filter_pid.o filter_core/filter_props.o filter_core/filter_queue.o filter_core/filter_session.o filter_core/filter_register.o filter_core/filter.o
+LIBGPAC_FILTERS=filter_core/filter_pck.o filter_core/filter_pid.o filter_core/filter_props.o filter_core/filter_queue.o filter_core/filter_session.o filter_core/filter_register.o filter_core/filter.o filter_core/filter_session_js.o
 
 LIBGPAC_QUICKJS=
 ifeq ($(CONFIG_JS), yes)
