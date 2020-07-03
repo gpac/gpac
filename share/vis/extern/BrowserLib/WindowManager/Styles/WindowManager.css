@@ -3,7 +3,12 @@
 .notextsel
 {
 	/* Disable text selection so that it doesn't interfere with button-clicking */
-	user-select:none;
+	user-select: none;
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer */
+	-khtml-user-select: none; /* KHTML browsers (e.g. Konqueror) */
+	-webkit-user-select: none; /* Chrome, Safari, and Opera */
+	-webkit-touch-callout: none; /* Disable Android and iOS callouts*/
 
 	/* Stops the text cursor over the label */
 	cursor:default;
@@ -15,24 +20,75 @@
 /* Window Styles                                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-
+body
+{
+	/* Clip contents to browser window without adding scrollbars */
+	overflow: hidden;	
+}
 
 .Window
 {
-	/* Allows movement of the window to exceed browser region without triggering scroll bars */
-	position:fixed;
+	position:absolute;
 
 	/* Clip all contents to the window border */
 	overflow: hidden;
 
-	background: #404040;
+	background: #555;
 
-	border-radius: 5px;
+	/*padding: 0px !important;*/
+
+	border-radius: 3px;
 	-moz-border-radius: 5px;
 
-	-webkit-box-shadow: 3px 3px 3px #111, 1px 1px 1px #606060 inset;
-	box-shadow: 3px 3px 3px #111, 1px 1px 1px #606060 inset;
+	-webkit-box-shadow: 1px 1px 1px #222, 1px 1px 1px #777 inset;
+	box-shadow: 1px 1px 1px #222, 1px 1px 1px #777 inset;
 }
+
+/*:root
+{
+	--SideBarSize: 5px;
+}
+
+.WindowBodyDebug
+{
+	color: #BBB;
+	font: 9px Verdana;
+	white-space: nowrap;
+}
+
+.WindowSizeLeft
+{
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: var(--SideBarSize);
+	height: 100%;
+}
+.WindowSizeRight
+{
+	position: absolute;
+	left: calc(100% - var(--SideBarSize));
+	top:0px;
+	width: var(--SideBarSize);
+	height:100%;
+}
+.WindowSizeTop
+{
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 100%;
+	height: var(--SideBarSize);
+}
+.WindowSizeBottom
+{
+	position: absolute;
+	left: 0px;
+	top: calc(100% - var(--SideBarSize));
+	width: 100%;
+	height: var(--SideBarSize);
+}*/
+
 
 .Window_Transparent
 {
@@ -52,6 +108,7 @@
 {
 	height: 17px;
 	cursor: move;
+	/*overflow: hidden;*/
 
 	border-bottom: 1px solid #303030;
 	border-radius: 5px;
@@ -61,6 +118,7 @@
 {
 	color: #BBB;
 	font: 9px Verdana;
+	/*white-space: nowrap;*/
 
 	padding: 3px;
 	cursor: move;
@@ -75,17 +133,32 @@
 	cursor: default;
 }
 
-.WindowBody
+.WindowTitleBarClose:hover {
+    color: #bbb;
+}
+
+.WindowResizeHandle 
 {
-	/* Turns this node into a "positioned node" so that its children can be placed relative to it */
-	position: absolute;
+    color: #999999;
+    font: 17px Verdana;
+    padding: 3px;
+    cursor: se-resize;
+    position: absolute;
+    bottom: -7px;
+    right: -3px;
+}
 
-	/* Fill the parent window node */
-	width: 100%;
-	height: 100%;
-
-	padding:10px;
-	border-top: 1px solid #606060;
+.WindowBody {
+    position: absolute;
+    /* overflow: hidden; */
+    display: block;
+    padding: 10px;
+    border-top: 1px solid #606060;
+    top: 18px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
 }
 
 
@@ -101,6 +174,9 @@
 	/* Position relative to the parent window */
 	position: absolute;
 
+	/* Clip contents */
+	/*overflow: hidden;*/
+
 	background:#2C2C2C;
 
 	border: 1px black solid;
@@ -109,6 +185,39 @@
 	-webkit-box-shadow: -1px -1px 1px #222 inset, 1px 1px 1px #222 inset;
 	box-shadow: -1px -1px 1px #222 inset, 1px 1px 1px #222 inset;
 }
+
+/*.Panel
+{*/
+	/* Position relative to the parent window */
+	/*position: absolute;*/
+
+	/* Clip contents */
+	/*overflow: hidden;
+
+	background:#2C2C2C;
+
+	border: 1px black solid;*/
+
+	/* Two inset box shadows to simulate depressing */
+	/*-webkit-box-shadow: -1px -1px 1px #222 inset, 1px 1px 1px #222 inset;
+	box-shadow: -1px -1px 1px #222 inset, 1px 1px 1px #222 inset;*/
+/*}*/
+
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Ruler Styles                                                                                                       */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+
+
+/*.Ruler
+{
+	position: absolute;
+
+	border: dashed 1px;
+
+	opacity: 0.35;
+}*/
 
 
 
@@ -246,7 +355,7 @@
 
  
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* Treeview Styles                                                                                                    */
+/* Edit Box Styles                                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 
@@ -429,17 +538,11 @@
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 
-
-.Grid
-{
-	/* Clip contents */
-	overflow: hidden;
-
-	position: relative;
-
-	background: #333;
-
-	border-radius: 2px;
+.Grid {
+    overflow: auto;
+    background: #333;
+    height: 100%;
+    border-radius: 2px;
 }
 
 .GridBody
@@ -517,10 +620,7 @@
 	/* Position relative to the parent window */
 	position:absolute;
 
-	border-radius:6px;
-	border-color:#000;
-	border-width:1px;
-	border-style:solid;
+	border-radius:4px;
 
 	/* Padding at the top includes 2px for the text drop-shadow */
 	padding: 2px 5px 3px 5px;
@@ -530,18 +630,18 @@
 	text-shadow: 1px 1px 1px black;
 	text-align: center;
 
-	/* The gradient for the button background */
-	background-color:#666;
-	background: -webkit-gradient(linear, left top, left bottom, from(#666), to(#383838));
-	background: -moz-linear-gradient(top, #666, #383838);
-	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#666666', endColorstr='#383838');
+	background-color:#555;
 
 	/* A box shadow and inset box highlight */
 	-webkit-box-shadow: 1px 1px 1px #222, 1px 1px 1px #777 inset;
 	box-shadow: 1px 1px 1px #222, 1px 1px 1px #777 inset;
 }
 
-.ButtonHeld
+.Button:hover {
+    background-color: #616161;
+}
+
+.Button.ButtonHeld
 {
 	/* Reset the gradient to a full-colour background */
 	background:#383838;

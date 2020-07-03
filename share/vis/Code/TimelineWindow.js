@@ -14,7 +14,6 @@ TimelineWindow = (function()
 
 	var box_template = "<div class='TimelineBox'></div>";
 
-
 	function TimelineWindow(wm, settings, server, check_handler)
 	{
 		this.Settings = settings;
@@ -33,6 +32,7 @@ TimelineWindow = (function()
 
 		// Setup timeline manipulation
 		this.MouseDown = false;
+		this.LastMouseState = null;
 		this.TimelineMoved = false;
 		this.OnHoverHandler = null;
 		this.OnSelectedHandler = null;
@@ -44,6 +44,8 @@ TimelineWindow = (function()
 		this.TimeRange = new PixelTimeRange(0, 200 * 1000, RowWidth(this));
 
 		this.CheckHandler = check_handler;
+
+		this.Window.SetOnResize(Bind(OnUserResize, this));
 	}
 
 
@@ -58,30 +60,14 @@ TimelineWindow = (function()
 		this.OnSelectedHandler = handler;
 	}
 
-
 	TimelineWindow.prototype.WindowResized = function(width, height, top_window)
 	{
 		// Resize window
 		var top = top_window.Position[1] + top_window.Size[1] + 10;
 		this.Window.SetPosition(10, top);
-		this.Window.SetSize(width - 2 * 10, 200);
+		this.Window.SetSize(width - 2 * 10, 260);
 
-		// Resize controls
-		var parent_size = this.Window.Size;
-		this.TimelineContainer.SetPosition(BORDER, 10);
-		this.TimelineContainer.SetSize(parent_size[0] - 2 * BORDER, 160);
-
-		// Resize rows
-		var row_width = RowWidth(this);
-		for (var i in this.ThreadRows)
-		{
-			var row = this.ThreadRows[i];
-			row.SetSize(row_width);
-		}
-
-		// Adjust time range to new width
-		this.TimeRange.SetPixelSpan(row_width);
-		this.DrawAllRows();
+		ResizeInternals(this);
 	}
 
 
@@ -148,6 +134,31 @@ TimelineWindow = (function()
 		return self.TimelineContainer.Size[0] - (ROW_START_SIZE + ROW_END_SIZE);
 	}
 
+	function OnUserResize(self, evt)
+	{
+		ResizeInternals(self);
+	}
+
+	function ResizeInternals(self)
+	{
+		// Resize controls
+		var parent_size = self.Window.Size;
+		self.TimelineContainer.SetPosition(BORDER, 10);
+		self.TimelineContainer.SetSize(parent_size[0] - 2 * BORDER, parent_size[1] - 40);
+
+		// Resize rows
+		var row_width = RowWidth(self);
+		for (var i in self.ThreadRows)
+		{
+			var row = self.ThreadRows[i];
+			row.SetSize(row_width);
+		}
+
+		// Adjust time range to new width
+		self.TimeRange.SetPixelSpan(row_width);
+		self.DrawAllRows();
+	}
+
 
 	function OnMouseScroll(self, evt)
 	{
@@ -179,6 +190,7 @@ TimelineWindow = (function()
 			return;
 
 		self.MouseDown = true;
+		self.LastMouseState = new Mouse.State(evt);
 		self.TimelineMoved = false;
 		DOM.Event.StopDefaultAction(evt);
 	}
@@ -231,7 +243,7 @@ TimelineWindow = (function()
 			var time_us = self.TimeRange.Start_us + x / self.TimeRange.usPerPixel;
 
 			// Shift the visible time range with mouse movement
-			var time_offset_us = mouse_state.PositionDelta[0] / self.TimeRange.usPerPixel;
+			var time_offset_us = (mouse_state.Position[0] - self.LastMouseState.Position[0]) / self.TimeRange.usPerPixel;
 			if (time_offset_us)
 			{
 				self.TimeRange.SetStart(self.TimeRange.Start_us - time_offset_us);
@@ -262,6 +274,8 @@ TimelineWindow = (function()
 				}
 			}
 		}
+
+		self.LastMouseState = mouse_state;
 	}
 
 

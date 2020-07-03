@@ -210,22 +210,18 @@ WM.Grid = (function()
 		</div>";
 
 
-	function Grid(x, y, width, height)
+	function Grid()
 	{
 		this.Rows = new WM.GridRows(this);
 
 		this.Node = DOM.Node.CreateHTML(template_html);
 		this.BodyNode = DOM.Node.FindWithClass(this.Node, "GridBody");
 
-		DOM.Node.SetPosition(this.Node, [ x, y ]);
-		DOM.Node.SetSize(this.Node, [ width, height ]);
-
 		DOM.Event.AddHandler(this.Node, "dblclick", OnDblClick);
 
 		var mouse_wheel_event = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel";
 		DOM.Event.AddHandler(this.Node, mouse_wheel_event, Bind(OnMouseScroll, this));
 	}
-
 
 	function OnDblClick(evt)
 	{
