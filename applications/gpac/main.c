@@ -580,7 +580,8 @@ GF_GPACArg gpac_args[] =
 			"  - For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`.\n"
 			"  - Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__).\n"
 			"  - By default only basic filter options and description are shown. Use `-ha` to show advanced options capabilities, `-hx` for expert options, `-hh` for all options and filter capabilities including on filters disabled in this build.\n"\
-			"- FNAME.OPT: print option `OPT` in filter `FNAME`"
+			"- FNAME.OPT: print option `OPT` in filter `FNAME`.\n"
+			"- OPT: look in filter names and options for `OPT` and suggest possible matches if none found"
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk. Appending `:reload` to the profile name will force recreating a new configuration file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
