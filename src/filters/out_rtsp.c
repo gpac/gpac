@@ -625,7 +625,7 @@ static GF_Err rtspout_load_media_service(GF_Filter *filter, GF_RTSPOutCtx *ctx, 
 		}
 	}
 	if (!found) {
-		GF_Filter *filter_src = gf_filter_connect_source(filter, src_url, NULL, &e);
+		GF_Filter *filter_src = gf_filter_connect_source(filter, src_url, NULL, GF_FALSE, &e);
 		if (!filter_src) {
 			gf_rtsp_response_reset(sess->response);
 			sess->response->ResponseCode = NC_RTSP_Session_Not_Found;

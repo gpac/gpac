@@ -126,7 +126,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 			}
 		}
 
-		ctx->sub_filter = gf_filter_connect_source(filter, sURL, NULL, &e);
+		ctx->sub_filter = gf_filter_connect_source(filter, sURL, NULL, GF_TRUE, &e);
 		if (e) return e;
 		if (ctx->mdia) gf_fclose(ctx->mdia);
 		ctx->mdia = NULL;

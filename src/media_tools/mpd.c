@@ -3217,7 +3217,11 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		assert(base_url);
 
 		if (init) {
-			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+			if (init->byte_range) {
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+			} else {
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", base_url->URL);
+			}
 		}
 
 		for (i=0; i<count; i++) {
@@ -4679,7 +4683,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	Bool is_init_template = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool is_index_template = (seg_type==GF_DASH_TEMPLATE_REPINDEX_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool needs_init=((is_init || is_init_template) && !is_bs_switching) ? GF_TRUE : GF_FALSE;
-	Bool has_init_keyword = GF_FALSE;
+	u32 has_init_keyword = 0;
 	Bool needs_index = GF_FALSE;
 	u32 char_template = 0;
 	size_t seg_rad_name_len;
@@ -4711,7 +4715,9 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		needs_init = GF_FALSE;
 
 	if (strstr(seg_rad_name, "$Init="))
-		has_init_keyword = GF_TRUE;
+		has_init_keyword = 1;
+	if (strstr(seg_rad_name, "$XInit="))
+		has_init_keyword = 2;
 
 	while (char_template <= seg_rad_name_len) {
 		char szFmt[20];
@@ -4765,6 +4771,18 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			if (is_init || is_init_template) {
 				strcat(segment_name, seg_rad_name + char_template+6);
 				needs_init = GF_FALSE;
+			}
+			char_template += (u32) strlen(seg_rad_name + char_template)+1;
+			if (sep) sep[0] = '$';
+		}
+		else if (!strnicmp(& seg_rad_name[char_template], "$XInit=", 7)) {
+			char *sep = strchr(seg_rad_name + char_template+6, '$');
+			if (sep) sep[0] = 0;
+			if (is_init || is_init_template) {
+				strcpy(segment_name, seg_rad_name + char_template+7);
+				needs_init = GF_FALSE;
+				if (sep) sep[0] = '$';
+				break;
 			}
 			char_template += (u32) strlen(seg_rad_name + char_template)+1;
 			if (sep) sep[0] = '$';

@@ -241,9 +241,10 @@ void send_update(DOMString filter_id, DOMString arg_name, DOMString arg_value, l
 /*! adds a source filter in the media session - see \ref gf_filter_connect_source
 \param source URL of source to load
 \param parent URL of parent, used as baseURL for the source. May be NULL
+\param inherit_args if true, new filter will inherit arguments of this filter's destination
 \return new loaded source filter or null
 */
-FilterInstance add_source(DOMString source, optional DOMString parent = null);
+FilterInstance add_source(DOMString source, optional DOMString parent = null, optional boolean inherit_args = false);
 
 /*! adds a destination filter in the media session - see \ref gf_filter_connect_destination
 \param destination URL of destination to instantiate

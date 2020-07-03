@@ -392,7 +392,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (sample_desc_index != ch->last_sample_desc_index) {
 		if (!ch->owner->stsd) {
-			ch->needs_pid_reconfig = GF_TRUE;
+			//we used sample entry 1 by default to setup, if no active prev sample (edit list might trigger this)
+			//and new sample desc is 1, do not reconfigure
+			if (!ch->last_sample_desc_index && (sample_desc_index==1)) {
+
+			} else {
+				ch->needs_pid_reconfig = GF_TRUE;
+			}
 		}
 		ch->last_sample_desc_index = sample_desc_index;
 	}

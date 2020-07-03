@@ -2831,9 +2831,41 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 }
 
 GF_EXPORT
-GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
+GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
 {
-	GF_Filter *filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
+	GF_Filter *filter_src;
+	const char *args;
+	char *full_args = NULL;
+	if (!filter) {
+		if (err) *err = GF_BAD_PARAM;
+		return NULL;
+	}
+	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
+	if (args) {
+		char szSep[10];
+		char *loc_args;
+		u32 len = (u32) strlen(args);
+		sprintf(szSep, "%cgfloc%c", filter->session->sep_args, filter->session->sep_args);
+		loc_args = strstr(args, szSep);
+		if (loc_args) {
+			len = (u32) (ptrdiff_t) (loc_args - args);
+		}
+		if (len) {
+			gf_dynstrcat(&full_args, url, NULL);
+			sprintf(szSep, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
+			gf_dynstrcat(&full_args, szSep, NULL);
+			gf_dynstrcat(&full_args, args, NULL);
+			sprintf(szSep, "%cgfloc%c", filter->session->sep_args, filter->session->sep_args);
+			loc_args = strstr(full_args, "gfloc");
+			if (loc_args) loc_args[0] = 0;
+
+			url = full_args;
+		}
+	}
+
+	filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
+	if (full_args) gf_free(full_args);
+
 	if (!filter_src) return NULL;
 
 	if (!filter->source_filters)

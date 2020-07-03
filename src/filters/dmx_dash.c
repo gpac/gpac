@@ -278,7 +278,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 		strcat(sURL, szRange);
 	}
 
-	group->seg_filter_src = gf_filter_connect_source(ctx->filter, sURL, NULL, &e);
+	group->seg_filter_src = gf_filter_connect_source(ctx->filter, sURL, NULL, GF_FALSE, &e);
 	if (!group->seg_filter_src) {
 		gf_free(sURL);
 		gf_free(group);
@@ -751,6 +751,17 @@ static GF_FilterPid *dashdmx_create_output_pid(GF_Filter *filter, GF_FilterPid *
 	return gf_filter_pid_new(filter);
 }
 
+Bool dashdmx_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+{
+	const GF_PropertyValue *p;
+	GF_FilterPid *pid = (GF_FilterPid *) cbk;
+
+	if (prop_4cc) p = gf_filter_pid_get_property(pid, prop_4cc);
+	else p = gf_filter_pid_get_property_str(pid, prop_name);
+	if (p) return GF_FALSE;
+	return GF_TRUE;
+}
+
 static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid)
 {
 	GF_DASHQualityInfo qinfo;
@@ -923,6 +934,13 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	//setup initial quality - this is disabled in test mode for the time being (invalidates all dash playback hashes)
 	if (!gf_sys_is_test_mode())
 		dashdmx_io_on_dash_event(&ctx->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->idx, GF_OK);
+
+
+	//if MPD file pid is defined, merge its properties. This will allow forwarding user-defined properties,
+	// eg -i dash.mpd:#MyProp=toto to all PIDs coming from media sources
+	if (ctx->mpd_pid) {
+		gf_filter_pid_merge_properties(opid, ctx->mpd_pid, dashdmx_merge_prop, ipid);
+	}
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)

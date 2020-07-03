@@ -4709,15 +4709,14 @@ GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 
 }
 
-static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk, Bool do_copy)
+static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk, Bool is_merge)
 {
 	GF_PropertyMap *dst_props, *src_props, *old_dst_props=NULL;
-
 	if (PID_IS_INPUT(dst_pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reset all properties on input PID in filter %s - ignoring\n", dst_pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	if (do_copy) {
+	if (is_merge) {
 		gf_mx_p(src_pid->filter->tasks_mx);
 		old_dst_props = gf_list_last(dst_pid->properties);
 		gf_mx_v(src_pid->filter->tasks_mx);
@@ -4730,7 +4729,6 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring reset\n", dst_pid->filter->name));
 		return GF_OUT_OF_MEM;
 	}
-
 	src_pid = src_pid->pid;
 	//our list is not thread-safe, so we must lock the filter when destroying the props
 	//otherwise gf_list_last() (this caller) might use the last entry while another threads sets this last entry to NULL
@@ -4743,11 +4741,15 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 	}
 	if (src_pid->name && !old_dst_props)
 		gf_filter_pid_set_name(dst_pid, src_pid->name);
-	
-	gf_props_reset(dst_props);
-	if (old_dst_props) {
-		GF_Err e = gf_props_merge_property(dst_props, old_dst_props, NULL, NULL);
-		if (e) return e;
+
+	if (!is_merge) {
+		gf_props_reset(dst_props);
+	} else {
+		//we created a new map
+		if (old_dst_props && (old_dst_props!=dst_props)) {
+			GF_Err e = gf_props_merge_property(dst_props, old_dst_props, NULL, NULL);
+			if (e) return e;
+		}
 	}
 	return gf_props_merge_property(dst_props, src_props, filter_prop, cbk);
 }
@@ -6467,6 +6469,8 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		} else if (!strncmp(name, "SubNumber", 9)) {
 			do_skip = GF_TRUE;
 		} else if (!strncmp(name, "Init", 4)) {
+			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "XInit", 4)) {
 			do_skip = GF_TRUE;
 		} else if (!strncmp(name, "Path", 4)) {
 			do_skip = GF_TRUE;

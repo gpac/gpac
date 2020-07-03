@@ -4911,6 +4911,12 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 	if (!trak || !trak->Media) return GF_FALSE;
 	if (!trak->Media->information->sampleTable->traf_map) return GF_FALSE;
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNum<=trak->sample_count_at_seg_start)
+		return GF_FALSE;
+	sampleNum -= trak->sample_count_at_seg_start;
+#endif
+
 	tmap = trak->Media->information->sampleTable->traf_map;
 	if (!tmap) return GF_FALSE;
 	for (i=0; i<tmap->nb_entries; i++) {

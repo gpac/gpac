@@ -2045,10 +2045,11 @@ Any filter loaded between the source and the calling filter will not use argumen
 \param filter the target filter
 \param url url of source to connect to, with optional arguments.
 \param parent_url url of parent if any
+\param inherit_args if GF_TRUE, the source to connect will inherit arguments of the target filter's destination
 \param err return code - can be NULL
 \return the new source filter instance or NULL if error
 */
-GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err);
+GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err);
 
 /*! Connects a destination to this filter
 \param filter the target filter
@@ -2896,8 +2897,7 @@ typedef Bool (*gf_filter_prop_filter)(void *cbk, u32 prop_4cc, const char *prop_
 */
 GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid);
 
-/*! Push a new set of properties on destination PID, using all properties from source PID.
-Old properties of the destination are first copied to the new property set before copying the ones from the source PID, potentially filtering them.
+/*! Push a new set of properties on destination PID, using all properties from source PID, potentially filtering them. Currently defined properties are not reseted.
 \param dst_pid the destination filter PID
 \param src_pid the source filter PID
 \param filter_prop callback filtering function
