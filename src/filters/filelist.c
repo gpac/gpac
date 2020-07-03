@@ -75,6 +75,7 @@ typedef struct
 	Bool revert;
 	s32 floop;
 	u32 fsort;
+	u32 ka;
 	GF_List *srcs;
 	GF_Fraction fdur;
 	u32 timescale;
@@ -102,6 +103,9 @@ typedef struct
 	u64 current_file_dur;
 	Bool last_is_isom;
 	char szCom[GF_MAX_PATH];
+
+	Bool wait_update;
+	u64 last_file_modif_time;
 } GF_FileListCtx;
 
 static const GF_FilterCapability FileListCapsSrc[] =
@@ -353,6 +357,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	u64 start_range, end_range;
 	Double start=0, stop=0;
 	Bool do_cat=0;
+	Bool is_end=0;
 
 	if (ctx->file_list) {
 		FileListEntry *fentry, *next;
@@ -382,6 +387,13 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		return GF_TRUE;
 	}
 
+	if (ctx->wait_update) {
+		u64 last_modif_time = gf_file_modification_time(ctx->file_path);
+		if (ctx->last_file_modif_time >= last_modif_time)
+			return GF_FALSE;
+		ctx->wait_update = GF_FALSE;
+		ctx->last_file_modif_time = last_modif_time;
+	}
 
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
@@ -395,6 +407,12 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 				continue;
 			}
 			gf_fclose(f);
+			if (is_end) {
+				ctx->ka = 0;
+			} else if (ctx->ka) {
+				ctx->wait_update = GF_TRUE;
+				ctx->last_file_modif_time = gf_file_modification_time(ctx->file_path);
+			}
 			return GF_FALSE;
 		}
 		lineno++;
@@ -420,6 +438,9 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			if (do_cat) {
 				filelist_parse_arg(szURL, "srange=", 3, NULL, NULL, &start_range);
 				filelist_parse_arg(szURL, "send=", 3, NULL, NULL, &end_range);
+			}
+			if (ctx->ka) {
+				filelist_parse_arg(szURL, "end", 0, &is_end, NULL, NULL);
 			}
 			strcpy(ctx->szCom, szURL);
 			continue;
@@ -522,6 +543,11 @@ GF_Err filelist_process(GF_Filter *filter)
 		Bool next_url_ok;
 
 		next_url_ok = filelist_next_url(ctx, szURL);
+
+		if (!next_url_ok && ctx->ka) {
+			gf_filter_ask_rt_reschedule(filter, ctx->ka*1000);
+			return GF_OK;
+		}
 		if (!next_url_ok || !ctx->do_cat) {
 			while (gf_list_count(ctx->filter_srcs)) {
 				fsrc = gf_list_pop_back(ctx->filter_srcs);
@@ -841,6 +867,8 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	ctx->io_pids = gf_list_new();
 
 	ctx->filter_srcs = gf_list_new();
+	if (ctx->ka)
+		ctx->floop = 0;
 
 	if (!ctx->srcs || !gf_list_count(ctx->srcs)) {
 		if (! gf_filter_is_dynamic(filter)) {
@@ -936,6 +964,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	{ OFFS(fdur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "force output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ka), "keep playlist alive (disable loop), waiting the for a new input to be added or `#end` to end playlist. The value specify the refresh rate in ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(fsort), "sort list of files\n"
 		"- no: no sorting, use default directory enumeration of OS\n"
