@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -130,7 +130,13 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 		return e;
 	}
 	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-
+    if (!read->frag_type && read->sigfrag) {
+        e = GF_BAD_PARAM;
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] sigfrag requested but file %s is not fragmented\n", szURL));
+        gf_filter_setup_failure(filter, e);
+        return e;
+    }
+    
 	read->time_scale = gf_isom_get_timescale(read->mov);
 	if (!read->input_loaded && read->frag_type)
 		read->refresh_fragmented = GF_TRUE;
