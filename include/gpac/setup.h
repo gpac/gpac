@@ -509,11 +509,11 @@ typedef struct {
 #endif
 
 /*! macro for cross-platform formatting of s64 integers in logs and printf routines*/
-#define LLD "%"LLD_SUF
+#define LLD "%" LLD_SUF
 /*! macro for cross-platform formatting of u64 integers in logs and printf routines*/
-#define LLU "%"LLU_SUF
+#define LLU "%" LLU_SUF
 /*! macro for cross-platform formatting of u64 integers as hexadecimal in logs and printf routines*/
-#define LLX "%"LLX_SUF
+#define LLX "%" LLX_SUF
 
 
 #if !defined(GF_EXPORT)
