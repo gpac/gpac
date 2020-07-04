@@ -229,7 +229,7 @@ void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
-	u64 totSize;
+	u64 totSize, mdat_end=0;
 	GF_Err e = GF_OK;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -315,6 +315,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 				}
 			}
 
+            if (mdat_end && mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
+                gf_isom_push_mdat_end(mov, mdat_end);
+                mdat_end=0;
+            }
 			break;
 
 		/*META box*/
@@ -350,7 +354,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 
 
 				if (mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
-					gf_isom_push_mdat_end(mov, gf_bs_get_position(mov->movieFileMap->bs) );
+                    mdat_end = gf_bs_get_position(mov->movieFileMap->bs);
+                    if (mov->moov) {
+                        gf_isom_push_mdat_end(mov, mdat_end);
+                        mdat_end=0;
+                    }
 				}
 			}
 			/*if we don't have any MDAT yet, create one (edit-write mode)
