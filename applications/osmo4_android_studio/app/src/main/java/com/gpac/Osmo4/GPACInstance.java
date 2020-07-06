@@ -65,8 +65,8 @@ public class GPACInstance implements GPACInstanceInterface {
         StringBuilder sb = new StringBuilder();
         final String[] toLoad = { "GLESv2", "log",//$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$
                                  "jpegdroid", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$
-                                 "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                                 "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
+                                 "mad", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                                 "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
                                  "stlport_shared", "stdc++", "faad", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
                                  "avutil", "swscale", "swresample", "avcodec", "avformat", "avfilter", "avdevice",
                                  "gpacWrapper", "gpac",
