@@ -4798,9 +4798,30 @@ int mp4boxMain(int argc, char **argv)
 					char *src = argv[i+1];
 
 					while (src) {
-						char *sep = strchr(src, '+');
-						if (sep) {
+						char *loc_src = src;
+						char *sep = NULL;
+						while (1) {
+							char *opt_sep;
+							sep = strchr(loc_src, '+');
+							if (!sep) break;
+
 							sep[0] = 0;
+							if (strstr(src, "://"))
+								break;
+
+							opt_sep = gf_url_colon_suffix(src);
+							if (opt_sep)
+								opt_sep[0] = 0;
+							if (gf_file_exists(src)) {
+								if (opt_sep)
+									opt_sep[0] = ':';
+								break;
+							}
+							if (opt_sep)
+								opt_sep[0] = ':';
+
+							sep[0] = '+';
+							loc_src = sep+1;
 						}
 
 						e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL, tk_idx);
