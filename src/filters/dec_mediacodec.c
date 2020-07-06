@@ -329,7 +329,7 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
     ctx->format = AMediaFormat_new();
 
     if(!ctx->format) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaFormat_new failed"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaFormat_new failed\n"));
         return GF_FILTER_NOT_FOUND;
     }
 
@@ -367,7 +367,7 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
 	}
 
     if (!ctx->codec) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_createDecoderByType failed"));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_createDecoderByType failed\n"));
         return GF_FILTER_NOT_FOUND;
     }
 
@@ -380,18 +380,18 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
 
 	//TODO add support for crypto
 	if( AMediaCodec_configure(ctx->codec, ctx->format, (ctx->surface_rendering) ? ctx->window : NULL, NULL, 0) != AMEDIA_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_configure failed"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_configure failed\n"));
         return GF_BAD_PARAM;
     }
 
     if( AMediaCodec_start(ctx->codec) != AMEDIA_OK){
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC , ("[MCDec] AMediaCodec_start failed"));
+         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC , ("[MCDec] AMediaCodec_start failed\n"));
         return GF_BAD_PARAM;
     }
 
 	ctx->inputEOS = GF_FALSE;
     ctx->outputEOS = GF_FALSE;
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] Video size: %d x %d", ctx->width, ctx->height));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] Video size: %d x %d\n", ctx->width, ctx->height));
 
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
@@ -959,7 +959,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 			}
 
             if (in_data_size > inSize)  {
-                 GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MCDec] The returned buffer is too small"));
+                 GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MCDec] The returned buffer is too small\n"));
                  if (do_free) gf_free(in_data);
                  return GF_OK;
             }
@@ -969,16 +969,17 @@ static GF_Err mcdec_process(GF_Filter *filter)
 				gf_filter_pid_drop_packet(ref_pid);
                  if (do_free) gf_free(in_data);
 			} else {
-                 GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM input"));
+                 GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM input\n"));
 				 ctx->inputEOS = GF_TRUE;
 				 flags = AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM;
             }
 
 			if (AMediaCodec_queueInputBuffer(ctx->codec, inIndex, 0, in_data_size, cts, flags) != AMEDIA_OK) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_queueInputBuffer failed"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_queueInputBuffer failed\n"));
 				return GF_BAD_PARAM;
             }
             mcdec_buffer_available = GF_TRUE;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MCDec] AMediaCodec_queueInputBuffer OK, %d bytes queued (in EOS %d)\n", in_data_size, ctx->inputEOS));
         }
     }
 
@@ -990,7 +991,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 
         switch(ctx->outIndex) {
 		case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED\n"));
 			ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
 			AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_WIDTH, &width);
 			AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_HEIGHT, &height);
@@ -1002,11 +1003,11 @@ static GF_Err mcdec_process(GF_Filter *filter)
 			break;
 
 		case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED\n"));
 			break;
 
 		case AMEDIACODEC_INFO_TRY_AGAIN_LATER:
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_TRY_AGAIN_LATER"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_INFO_TRY_AGAIN_LATER\n"));
 			break;
 
 		default:
@@ -1016,7 +1017,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 			dec_frame = NULL;
 
 			if (info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output\n"));
 				ctx->outputEOS = GF_TRUE;
 			}
 
@@ -1026,10 +1027,12 @@ static GF_Err mcdec_process(GF_Filter *filter)
 				dec_frame = buffer + info.offset;
 
 				if (!dec_frame) {
-					 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_getOutputBuffer failed"));
+					 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_getOutputBuffer failed\n"));
 					 break;
 				}
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MCDec] got output buffer CTS "LLU" (out EOS %d)\n", info.presentationTimeUs, ctx->outputEOS));
+
 			e = mcdec_send_frame(ctx, dec_frame, info.presentationTimeUs);
 			if (e) return e;
 			break;
@@ -1048,7 +1051,7 @@ static void mcdec_hw_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 
 	if (f->ctx->codec && !f->flushed)  {
 		if ( AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, GF_FALSE) != AMEDIA_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d", f->outIndex));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d\n", f->outIndex));
 		}
 	}
 	f->ctx->decoded_frames_pending--;
@@ -1096,7 +1099,7 @@ GF_Err mcdec_hw_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u3
 
 	if(!f->flushed && f->ctx->codec) {
 		if (AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, GF_TRUE) != AMEDIA_OK) {
-			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d to surface", f->outIndex));
+			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] NOT Release Output Buffer Index: %d to surface\n", f->outIndex));
 			 return GF_OK;
 		}
 		if(mcdec_update_surface(f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
@@ -1156,10 +1159,12 @@ GF_Err mcdec_initialize(GF_Filter *filter)
     GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
     ctx->filter = filter;
 
+	ctx->frames_res = gf_list_new();
+	ctx->streams = gf_list_new();
+
 	ctx->SPSs = gf_list_new();
 	ctx->PPSs = gf_list_new();
 	ctx->VPSs = gf_list_new();
-	ctx->frames_res = gf_list_new();
 
 	ctx->active_vps = -1;
 	ctx->active_sps = -1;
@@ -1173,11 +1178,11 @@ void mcdec_finalize(GF_Filter *filter)
     GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
 
     if (ctx->format && AMediaFormat_delete(ctx->format) != AMEDIA_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaFormat_delete failed"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaFormat_delete failed\n"));
     }
 
     if (ctx->codec && AMediaCodec_delete(ctx->codec) != AMEDIA_OK) {
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_delete failed"));
+         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaCodec_delete failed\n"));
     }
 
     if(ctx->window) {
@@ -1203,6 +1208,7 @@ void mcdec_finalize(GF_Filter *filter)
 		gf_free(f);
 	}
 	gf_list_del(ctx->frames_res);
+	gf_list_del(ctx->streams);
 }
 
 #else
@@ -1217,7 +1223,8 @@ static const GF_FilterCapability MCDecCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	//commented as some devices seem to have issues with this one
+//	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
