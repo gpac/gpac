@@ -617,6 +617,11 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		iFs.Close();
 		FlushItemList();
 		return GF_OK;
+#elif defined(GPAC_CONFIG_ANDROID)
+		dir = getenv("EXTERNAL_STORAGE");
+		if (!dir) dir = "/sdcard";
+#elif defined(GPAC_CONFIG_IOS)
+		dir = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
 #endif
 	}
 
