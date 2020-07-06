@@ -153,55 +153,61 @@ public interface GpacCallback {
         GF_LOG_CONTAINER(2),
         /** Log message from the network/service stack (messages & co) */
         GF_LOG_NETWORK(3),
+        /** Log message from the network/service stack (messages & co) */
+        GF_LOG_HTTP(4),
         /** Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug) */
-        GF_LOG_RTP(4),
+        GF_LOG_RTP(5),
         /** Log message from authoring subsystem (file manip, import/export) */
-        GF_LOG_AUTHOR(5),
+        GF_LOG_AUTHOR(6),
         /** Log message from the sync layer of the terminal */
-        GF_LOG_SYNC(6),
+        GF_LOG_SYNC(7),
         /** Log message from a codec */
-        GF_LOG_CODEC(7),
+        GF_LOG_CODEC(8),
         /** Log message from any XML parser (context loading, etc) */
-        GF_LOG_PARSER(8),
+        GF_LOG_PARSER(9),
         /** Log message from the terminal/compositor, indicating media object state */
-        GF_LOG_MEDIA(9),
+        GF_LOG_MEDIA(10),
         /** Log message from the scene graph/scene manager (handling of nodes and attribute modif, DOM core) */
-        GF_LOG_SCENE(10),
+        GF_LOG_SCENE(11),
         /** Log message from the scripting engine */
-        GF_LOG_SCRIPT(11),
+        GF_LOG_SCRIPT(12),
         /** Log message from event handling */
-        GF_LOG_INTERACT(12),
+        GF_LOG_INTERACT(13),
         /** Log message from compositor */
-        GF_LOG_COMPOSE(13),
+        GF_LOG_COMPOSE(14),
         /** Log for video object cache */
-        GF_LOG_CACHE(14),
+        GF_LOG_CACHE(15),
         /** Log message from multimedia I/O devices (audio/video input/output, ...) */
-        GF_LOG_MMIO(15),
+        GF_LOG_MMIO(16),
         /** Log for runtime info (times, memory, CPU usage) */
-        GF_LOG_RTI(16),
+        GF_LOG_RTI(17),
         /** Log for SMIL timing and animation */
-        GF_LOG_SMIL(17),
+        GF_LOG_SMIL(18),
         /** Log for memory tracker */
-        GF_LOG_MEMORY(18),
+        GF_LOG_MEMORY(19),
         /** Log for audio compositor */
-        GF_LOG_AUDIO(19),
+        GF_LOG_AUDIO(20),
         /** generic Log for modules */
-        GF_LOG_MODULE(20),
+        GF_LOG_MODULE(21),
         /**
          * Log for GPAC mutexes and threads (Very verbose at DEBUG)
          * 
          */
-        GF_LOG_MUTEX(21),
+        GF_LOG_MUTEX(22),
         /*! Log for threads and condition */
-				GF_LOG_CONDITION(22),
-				/*! Log for all HTTP streaming */
-				GF_LOG_DASH(23),
-				/*! Log for all messages coming from GF_Terminal or script alert()*/
-				GF_LOG_CONSOLE(24),
-				/*! Log for all messages coming the application, not used by libgpac or the modules*/
-				GF_LOG_APP(25),
-				/*! Log for all messages coming from the scheduler */
-				GF_LOG_SCHEDULER(26),
+		GF_LOG_CONDITION(23),
+		/*! Log for all HTTP streaming */
+		GF_LOG_DASH(24),
+		/*! Log for all filter engine */
+		GF_LOG_FILTER(25),
+		/*! Log for all filter scheduler */
+		GF_LOG_SCHEDULER(26),
+		/*! Log for ATSC3 demux */
+		GF_LOG_ATSC(27),
+		/*! Log for all messages coming from GF_Terminal or script alert()*/
+		GF_LOG_CONSOLE(28),
+		/*! Log for all messages coming the application, not used by libgpac or the modules*/
+		GF_LOG_APP(29),
         /**
          * Unknown Log subsystem
          */
