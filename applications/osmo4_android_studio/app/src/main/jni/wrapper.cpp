@@ -246,7 +246,7 @@ CNativeWrapper::CNativeWrapper() {
 	m_mx = NULL;
 	mainJavaEnv = NULL;
 
-	debug_f = 0;
+	log_file = NULL;
 	m_window = NULL;
 	m_session = NULL;
 
@@ -266,6 +266,8 @@ CNativeWrapper::~CNativeWrapper() {
 	JavaEnvTh * env = getEnv();
 	if (env && env->cbk_obj)
 		env->env->DeleteGlobalRef(env->cbk_obj);
+	if (log_file) gf_fclose(log_file);
+	log_file = NULL;
 	Shutdown();
 	debug_log("~CNativeWrapper() : DONE\n");
 }
@@ -436,6 +438,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, con
 	if (!self)
 		goto displayInAndroidlogs;
 
+#if 0
 	{
 		JavaEnvTh *env = self->getEnv();
 		jstring msg;
@@ -449,6 +452,15 @@ void CNativeWrapper::on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, con
 		env->env->PopLocalFrame(NULL);
 		return;
 	}
+
+#else
+	if (self->log_file) {
+		vfprintf(self->log_file, fmt, list);
+		fflush(self->log_file);
+	}
+#endif
+
+
 displayInAndroidlogs:
 	{
 		/* When no callback is properly set, we use direct logging */
@@ -701,6 +713,7 @@ void CNativeWrapper::SetupLogs() {
 	gf_log_set_callback(this, on_gpac_log);
 	opt = gf_opts_get_key("core", "log-file");
 	if (opt) {
+#if 0
 		JavaEnvTh *env = getEnv();
 		if (env && env->cbk_setLogFile) {
 			env->env->PushLocalFrame(1);
@@ -708,6 +721,9 @@ void CNativeWrapper::SetupLogs() {
 			env->env->CallVoidMethod(env->cbk_obj, env->cbk_setLogFile, js);
 			env->env->PopLocalFrame(NULL);
 		}
+#else
+		log_file = gf_fopen(opt, "wt");
+#endif
 	}
 	gf_mx_v(m_mx);
 
@@ -889,7 +905,8 @@ void CNativeWrapper::step(void * env, void * bitmap) {
 		debug_log("step(): No video_out->Setup found");
 	else {
 		m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
-		gf_term_process_step(m_term);
+		while (!gf_term_process_step(m_term)) {
+		}
 	}
 }
 
