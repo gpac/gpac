@@ -67,7 +67,13 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	if (ar->samplerate) {
 		ar->time_at_last_config_sr = ar->current_time_sr * freq / ar->samplerate;
 	}
-	if (!ar->compositor->abuf) ar->compositor->abuf = 100;
+	if (!ar->compositor->abuf) {
+#ifdef GPAC_CONFIG_ANDROID
+		ar->compositor->abuf = 200;
+#else
+		ar->compositor->abuf = 100;
+#endif
+	}
 	ar->samplerate = freq;
 	ar->bytes_per_samp = nb_chan * gf_audio_fmt_bit_depth(a_fmt) / 8;
 	ar->bytes_per_second = freq * ar->bytes_per_samp;

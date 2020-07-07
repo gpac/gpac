@@ -2877,6 +2877,13 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
 			else if (compositor->fonts_pending>0) emit_frame = GF_FALSE;
 			else emit_frame = GF_TRUE;
+
+#ifdef GPAC_CONFIG_ANDROID
+            if (!emit_frame && scene_drawn) {
+				compositor->frame_was_produced = GF_TRUE;
+            }
+#endif
+
 		}
 		/*and flush*/
 #ifndef GPAC_DISABLE_LOG
