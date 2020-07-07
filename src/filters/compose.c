@@ -348,21 +348,26 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	was_dyn_scene = scene->is_dynamic_scene;
 
-	//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-	if (prop && scene->is_dynamic_scene) {
-		scene->is_dynamic_scene = GF_FALSE;
-	}
-
 	//pure OCR streams are handled by dispatching OCR on the PID(s)
 	if (codecid != GF_CODECID_RAW)
 		return GF_NOT_SUPPORTED;
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
-	if (prop && prop->value.boolean) {
-		scene->is_dynamic_scene = GF_FALSE;
-		in_iod = GF_TRUE;
+	switch (mtype) {
+	case GF_STREAM_SCENE:
+	case GF_STREAM_OD:
+		//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+		if (prop && scene->is_dynamic_scene) {
+			scene->is_dynamic_scene = GF_FALSE;
+		}
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
+		if (prop && prop->value.boolean) {
+			scene->is_dynamic_scene = GF_FALSE;
+			in_iod = GF_TRUE;
+		}
+		break;
 	}
+
 	if ((mtype==GF_STREAM_OD) && !in_iod) return GF_NOT_SUPPORTED;
 
 	//we inserted a root scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namesapce for
