@@ -6946,11 +6946,8 @@ RMT_API void _rmt_BeginOpenGLSample(rmtPStr name, rmtU32* hash_cache)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
-
-	if (g_Remotery->opengl->dll_handle == NULL)
-        return;
+    if (g_Remotery == NULL) return;
+	if (g_Remotery->opengl->dll_handle == NULL) return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -7064,11 +7061,9 @@ RMT_API void _rmt_EndOpenGLSample(void)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    if (g_Remotery == NULL) return;
+	if (g_Remotery->opengl->dll_handle == NULL) return;
 
-	if (g_Remotery->opengl->dll_handle == NULL)
-        return;
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
         // Close the timestamp

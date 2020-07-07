@@ -835,7 +835,6 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 GF_EXPORT
 GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 {
-    JSRuntime *rt;
     JSValue global_obj;
 	u8 *buf;
 	u32 buf_len;
@@ -851,7 +850,6 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 		return GF_IO_ERR;
 	}
 	JS_SetContextOpaque(fs->js_ctx, fs);
-	rt = JS_GetRuntime(fs->js_ctx);
 
     global_obj = JS_GetGlobalObject(fs->js_ctx);
 	gf_fs_load_js_api(fs->js_ctx, fs);
