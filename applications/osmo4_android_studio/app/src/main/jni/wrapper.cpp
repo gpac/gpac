@@ -893,21 +893,11 @@ void CNativeWrapper::disconnect() {
 void CNativeWrapper::step(void * env, void * bitmap) {
 	m_window = env;
 	m_session = bitmap;
-	//debug_log("Step ...");
-	if (!m_term) {
-		debug_log("step(): No m_term found.");
-		return;
-	} else if (!m_term->compositor)
-		debug_log("step(): No compositor found.");
-	else if (!m_term->compositor->video_out)
-		debug_log("step(): No video_out found");
-	else if (!m_term->compositor->video_out->Setup)
-		debug_log("step(): No video_out->Setup found");
-	else {
-		m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
-		while (!gf_term_process_step(m_term)) {
-		}
+	m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+	while (!gf_term_process_step(m_term)) {
+		debug_log("step(): nothing drawn, retrying\n");
 	}
+	debug_log("step(): frame drawn\n");
 }
 
 //-----------------------------------------------------
