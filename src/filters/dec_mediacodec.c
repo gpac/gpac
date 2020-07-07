@@ -631,8 +631,6 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	else if (!ctx->is_adaptive) do_reset = GF_TRUE;
 	else ctx->inject_xps = GF_TRUE;
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("MCDec is adaptive %d\n", ctx->is_adaptive));
-
 	ctx->codecid = codecid;
 
     if (do_reset && ctx->codec) {
