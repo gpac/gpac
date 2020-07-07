@@ -4710,16 +4710,16 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			}
 
 			if (ds->rep->segment_list && (ds->rep->segment_list->duration != ds->dash_dur) ) {
-				ds->rep->segment_list->duration = ds->dash_dur * ds->rep->segment_list->timescale;
+				ds->rep->segment_list->duration = (u64) (ds->dash_dur * ds->rep->segment_list->timescale);
 			}
 			if (ds->set && ds->set->segment_list && ( ds->set->segment_list->duration != ds->dash_dur) ) {
-				ds->set->segment_list->duration = ds->dash_dur * ds->set->segment_list->timescale;
+				ds->set->segment_list->duration = (u64) (ds->dash_dur * ds->set->segment_list->timescale);
 			}
 			if (ds->rep->segment_template && (ds->rep->segment_template->duration != ds->dash_dur) ) {
-				ds->rep->segment_template->duration = ds->dash_dur * ds->rep->segment_template->timescale;
+				ds->rep->segment_template->duration = (u64) (ds->dash_dur * ds->rep->segment_template->timescale);
 			}
 			if (ds->set && ds->set->segment_template && (ds->set->segment_template->duration != ds->dash_dur) ) {
-				ds->set->segment_template->duration = ds->dash_dur * ds->set->segment_template->timescale;
+				ds->set->segment_template->duration = (u64) (ds->dash_dur * ds->set->segment_template->timescale);
 			}
 		}
 		if (!base_ds->done && !ctx->stl && ctx->tpl && !ctx->cues) {
@@ -5408,7 +5408,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		diff -= (s64) gf_net_get_ntp_ms();
 		if (diff>100) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Next generation scheduled in %d ms, nothing to do\n", diff));
-			gf_filter_ask_rt_reschedule(filter, diff*1000);
+			gf_filter_ask_rt_reschedule(filter, (u32) (diff*1000));
 			return GF_OK;
 		}
 	}

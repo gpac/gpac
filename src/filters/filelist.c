@@ -434,13 +434,13 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			filelist_parse_arg(szURL, "repeat=", 1, &nb_repeat, NULL, NULL);
 			filelist_parse_arg(szURL, "start=", 2, NULL, &start, NULL);
 			filelist_parse_arg(szURL, "stop=", 2, NULL, &stop, NULL);
-			filelist_parse_arg(szURL, "cat", 0, &do_cat, NULL, NULL);
+			filelist_parse_arg(szURL, "cat", 0, (u32 *)&do_cat, NULL, NULL);
 			if (do_cat) {
 				filelist_parse_arg(szURL, "srange=", 3, NULL, NULL, &start_range);
 				filelist_parse_arg(szURL, "send=", 3, NULL, NULL, &end_range);
 			}
 			if (ctx->ka) {
-				filelist_parse_arg(szURL, "end", 0, &is_end, NULL, NULL);
+				filelist_parse_arg(szURL, "end", 0, (u32 *)&is_end, NULL, NULL);
 			}
 			strcpy(ctx->szCom, szURL);
 			continue;
