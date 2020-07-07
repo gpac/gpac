@@ -208,7 +208,6 @@ extension.open_local_file = function () {
         popup.show();
     }
 
-
     filebrowse.on_display_size(gw_display_width, gw_display_height);
     if (gpac.hardware_rgba) filebrowse.set_alpha(0.8);
 
