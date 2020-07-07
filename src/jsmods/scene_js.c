@@ -233,12 +233,19 @@ static JSValue gpac_getProperty(JSContext *ctx, JSValueConst this_val, int prop_
 	switch (prop_id) {
 	case GJS_GPAC_PROP_LAST_WORK_DIR:
 		res = gf_opts_get_key("General", "LastWorkingDir");
-		if (!res) res = gf_opts_get_key("core", "mod-dirs");
 #ifdef WIN32
+		if (!res) res = getenv("HOMEPATH");
 		if (!res) res = "C:\\";
 #elif defined(GPAC_CONFIG_DARWIN)
+		if (!res) res = getenv("HOME");
 		if (!res) res = "/Users";
+#elif defined(GPAC_CONFIG_ANDROID)
+		if (!res) res = getenv("EXTERNAL_STORAGE");
+		if (!res) res = "/sdcard";
+#elif defined(GPAC_CONFIG_IOS)
+		if (!res) res = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
 #else
+		if (!res) res = getenv("HOME");
 		if (!res) res = "/home/";
 #endif
 		return JS_NewString(ctx, res);
@@ -312,9 +319,13 @@ static JSValue gpac_getProperty(JSContext *ctx, JSValueConst this_val, int prop_
 		return JS_NewBool(ctx, (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
 
 	case GJS_GPAC_PROP_SCREEN_WIDTH:
+		if (compositor->osize.x)
+			return JS_NewInt32(ctx, compositor->osize.x);
 		return JS_NewInt32(ctx, compositor->video_out->max_screen_width);
 
 	case GJS_GPAC_PROP_SCREEN_HEIGHT:
+		if (compositor->osize.y)
+			return JS_NewInt32(ctx, compositor->osize.y);
 		return JS_NewInt32(ctx, compositor->video_out->max_screen_height);
 
 	case GJS_GPAC_PROP_HTTP_MAX_RATE:

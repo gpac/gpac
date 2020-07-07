@@ -1019,10 +1019,10 @@ function gwlib_init(root_node) {
     else gwskin.mobile_device = false;
     
     if (gwskin.mobile_device) {
-        var size = gw_display_width;
-        if (size> gw_display_height) size = gw_display_height;
-        gwskin_set_default_control_height(size/3);
-        gwskin_set_default_icon_height(size/3);
+        var size = gpac.screen_width;
+        if (size> gpac.screen_height) size = gpac.screen_height;
+        gwskin_set_default_control_height(size/12);
+        gwskin_set_default_icon_height(size/12);
     }
     
 	gwskin_set_white_blue();
@@ -3379,8 +3379,13 @@ function gw_new_file_dialog(container, label) {
             filelist = gpac.enum_directory(this.directory, this.filter, up);
 
             if (filelist.length) {
+                let dir_name = filelist[0].path;
+                dir_name = dir_name.substr(0, dir_name.lastIndexOf("/"));
+                dir_name = dir_name.split('/').pop();
+                if (dir_name.length == 0) dir_name = "/";
+
                 this.directory = filelist[0].path;
-                this.set_label(this.directory);
+                this.set_label(dir_name);
             } else {
                 this.set_label('');
             }

@@ -215,7 +215,12 @@ extension.view_stats = function () {
             iw.area = gw_new_text_area(iw, '');
 
             iw.on_display_size = function (width, height) {
-                var w = 30 * gwskin.default_text_font_size;
+                var w;
+                if (gwskin.mobile_device) {
+                    w = width;
+                } else {
+                    w = 30 * gwskin.default_text_font_size;
+                }
                 var h = 2 * gwskin.default_icon_height + 11 * gwskin.default_text_font_size;
                 this.set_size(w, h);
             }
@@ -434,8 +439,13 @@ extension.view_stats = function () {
         var w;
         var h = 2 * gwskin.default_icon_height;
 
-        w = 20 * gwskin.default_text_font_size;
-        w += 4 * gwskin.default_icon_height;
+        if (gwskin.mobile_device) {
+            w = width;
+        } else {
+            w = 20 * gwskin.default_text_font_size;
+            w += 4 * gwskin.default_icon_height;
+        }
+
         if (this.has_select)
             w += 6 * gwskin.default_icon_height;
 
