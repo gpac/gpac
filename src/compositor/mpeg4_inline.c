@@ -72,6 +72,8 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
 	mo->odm->subscene->object_attached = GF_TRUE;
+	if (gf_list_find(mo->odm->subscene->attached_inlines, root)<0)
+		gf_list_add(mo->odm->subscene->attached_inlines, root);
 
 	/*play*/
 	gf_mo_play(mo, 0, -1, GF_FALSE);
@@ -738,6 +740,8 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 	storage->on_forceRestore = on_force_restore;
 	gf_node_set_callback_function(node, gf_storage_traverse);
 	gf_node_set_private(node, scene);
+	if (gf_list_find(scene->attached_inlines, node)<0)
+		gf_list_add(scene->attached_inlines, node);
 
 	scene_ns = scene->root_od->scene_ns;
 	while (scene->root_od->parentscene) {

@@ -1343,7 +1343,7 @@ void gf_sc_audio_unregister(GF_AudioInput *ai);
 
 
 #ifndef GPAC_DISABLE_SVG
-GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl);
+GF_Err gf_sc_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl);
 Fixed gf_sc_svg_convert_length_to_display(GF_Compositor *sr, SVG_Length *length);
 char *gf_scene_resolve_xlink(GF_Node *node, char *the_url);
 #endif
@@ -1742,7 +1742,11 @@ struct _gf_scene
 
 	/*list of M_KeyNavigator nodes*/
 	GF_List *keynavigators;
+
+	/*list of attached Inline nodes*/
+	GF_List *attached_inlines;
 #endif
+
 
 	Bool disable_hitcoord_notif;
 

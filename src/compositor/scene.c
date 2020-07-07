@@ -324,8 +324,9 @@ GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 
 	tmp->storages = gf_list_new();
 	tmp->keynavigators = gf_list_new();
-
+	tmp->attached_inlines = gf_list_new();
 #endif
+
 	tmp->on_media_event = inline_on_media_event;
 	return tmp;
 }
@@ -390,6 +391,14 @@ void gf_scene_del(GF_Scene *scene)
 		}
 		gf_list_del(scene->namespaces);
 	}
+
+#ifndef GPAC_DISABLE_VRML
+	while (gf_list_count(scene->attached_inlines)) {
+		GF_Node *n_inline = gf_list_pop_back(scene->attached_inlines);
+		gf_node_set_private(n_inline, NULL);
+	}
+	gf_list_del(scene->attached_inlines);
+#endif
 
 	if (scene->compositor->root_scene == scene)
 		scene->compositor->root_scene = NULL;
