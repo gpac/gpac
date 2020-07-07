@@ -1020,9 +1020,10 @@ function gwlib_init(root_node) {
     
     if (gwskin.mobile_device) {
         var size = gpac.screen_width;
-        if (size> gpac.screen_height) size = gpac.screen_height;
-        gwskin_set_default_control_height(size/12);
-        gwskin_set_default_icon_height(size/12);
+        if (size > gpac.screen_height) size = gpac.screen_height;
+        size /= 12;
+        gwskin_set_default_control_height(size);
+        gwskin_set_default_icon_height(size);
     }
     
 	gwskin_set_white_blue();

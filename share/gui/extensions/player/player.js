@@ -953,8 +953,10 @@ extension = {
             else h = 1.1 * gwskin.default_icon_height;
 
 
+            if (gwskin.mobile_device) {
+                this.extension.def_width=width;
+            }
             this.set_size(this.extension.def_width, h);
-
 			this.extension.safe_interact.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
 			this.extension.safe_interact.show();
 			this.extension.safe_interact.move((-gwskin.default_icon_height+width)/2, (gwskin.default_icon_height-height)/2);

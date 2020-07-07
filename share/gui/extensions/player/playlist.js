@@ -290,8 +290,12 @@ extension.view_playlist = function () {
     }
 
     plist.on_display_size = function (width, height) {
-        var w = 2*width / 3;
-        this.set_size(w, 0.8 * height);
+        if (gwskin.mobile_device) {
+            this.set_size(width, height);
+        } else {
+            var w = 2*width / 3;
+            this.set_size(w, 0.8 * height);
+        }
     }
 
    plist.on_display_size(gw_display_width, gw_display_height);
