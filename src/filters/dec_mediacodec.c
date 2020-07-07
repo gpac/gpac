@@ -629,9 +629,11 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (codecid!=ctx->codecid) do_reset = GF_TRUE;
 	else if (!ctx->is_adaptive) do_reset = GF_TRUE;
+	else ctx->inject_xps = GF_TRUE;
+
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("MCDec is adaptive %d\n", ctx->is_adaptive));
 
 	ctx->codecid = codecid;
-
 
     if (do_reset && ctx->codec) {
     	AMediaCodec_delete(ctx->codec);
@@ -729,17 +731,17 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	return mcdec_init_decoder(ctx);
 }
 
-static void mcdec_write_ps(GF_BitStream *bs, GF_List *ps, s32 active_ps)
+static void mcdec_write_ps(GF_BitStream *bs, GF_List *ps, s32 active_ps, Bool all)
 {
 	u32 i, count;
-	if (active_ps<0) return;
+	if (!all && (active_ps<0)) return;
 	count = gf_list_count(ps);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = gf_list_get(ps, i);
-		if (sl->id==active_ps) {
+		if (all || (sl->id==active_ps)) {
 			gf_bs_write_u32(bs, 1);
 			gf_bs_write_data(bs, sl->data, sl->size);
-			return;
+			if (!all) return;
 		}
 	}
 }
@@ -761,9 +763,9 @@ static GF_Err mcdec_rewrite_annex_b(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBuffer
 
 	if (ctx->inject_xps) {
 		ctx->inject_xps = GF_FALSE;
-		mcdec_write_ps(bs, ctx->VPSs, ctx->active_vps);
-		mcdec_write_ps(bs, ctx->SPSs, ctx->active_sps);
-		mcdec_write_ps(bs, ctx->PPSs, ctx->active_pps);
+		mcdec_write_ps(bs, ctx->VPSs, ctx->active_vps, ctx->is_adaptive);
+		mcdec_write_ps(bs, ctx->SPSs, ctx->active_sps, ctx->is_adaptive);
+		mcdec_write_ps(bs, ctx->PPSs, ctx->active_pps, ctx->is_adaptive);
 	}
 
 	while (inBufferLength) {
@@ -817,7 +819,7 @@ static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBufferL
 			default:
 				if ((nal_type <= GF_AVC_NALU_IDR_SLICE) && ctx->avc.s_info.sps) {
 					if (ctx->avc.sps_active_idx != ctx->active_sps) {
-						ctx->reconfig_needed = 1;
+						ctx->reconfig_needed = GF_TRUE;
 						ctx->active_sps = ctx->avc.sps_active_idx;
 						ctx->active_pps = ctx->avc.s_info.pps->id;
 						gf_bs_del(bs);
@@ -840,7 +842,7 @@ static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBufferL
 			default:
 				if ((nal_type <= GF_HEVC_NALU_SLICE_CRA) && ctx->hevc.s_info.sps) {
 					if ((ctx->hevc.sps_active_idx != ctx->active_sps) || (ctx->hevc.sps[ctx->active_sps].vps_id != ctx->active_vps)) {
-						ctx->reconfig_needed = 1;
+						ctx->reconfig_needed = GF_TRUE;
 						ctx->active_sps = ctx->hevc.sps_active_idx;
 						ctx->active_pps = ctx->hevc.s_info.pps->id;
 						ctx->active_vps = ctx->hevc.sps[ctx->active_sps].vps_id;
@@ -1137,6 +1139,7 @@ static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, u8 *frame_buffer, u64 cts)
 
 	if (ctx->frame_size_changed) {
 		mc_frame->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
+		ctx->frame_size_changed = GF_FALSE;
 	}
 	ctx->decoded_frames_pending++;
 
