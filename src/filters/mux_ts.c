@@ -192,7 +192,7 @@ static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, u32 timeline_id, u64 
 		}
 		//rewrite len
 		end = gf_bs_get_position(bs);
-		len = (u32) end - start - 2;
+		len = (u32) (end - start - 2);
 		gf_bs_seek(bs, start+1);
 		gf_bs_write_int(bs,	len, 8);
 		gf_bs_seek(bs, end);
