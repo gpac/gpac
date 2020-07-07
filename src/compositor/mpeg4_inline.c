@@ -254,6 +254,8 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (!scene) return;
 		mo = scene->root_od ? scene->root_od->mo : NULL;
 
+		gf_list_del_item(scene->attached_inlines, n);
+		
 		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL, GF_OK, GF_TRUE);
 		if (!mo) return;
 		gf_mo_event_target_remove_by_node(mo, n);
