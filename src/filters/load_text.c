@@ -461,7 +461,7 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	u8 *dsi;
 	GF_TextSampleDescriptor *sd;
 
-	ctx->src = gf_fopen(ctx->file_name, "rt");
+	ctx->src = gf_fopen(ctx->file_name, "rb");
 	if (!ctx->src) return GF_URL_ERROR;
 
 	file_size = (u32) gf_fsize(ctx->src);
@@ -975,7 +975,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	Bool is_srt;
 	char *ext;
 
-	ctx->src = gf_fopen(ctx->file_name, "rt");
+	ctx->src = gf_fopen(ctx->file_name, "rb");
 	if (!ctx->src) return GF_URL_ERROR;
 
 	file_size = (u32) gf_fsize(ctx->src);
