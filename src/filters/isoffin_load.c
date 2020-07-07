@@ -378,7 +378,12 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property(pid, GF_PROP_PID_ESID, &PROP_UINT(esid));
 
 		if (gf_isom_is_track_in_root_od(read->mov, track)) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE));
+			switch (streamtype) {
+			case GF_STREAM_SCENE:
+			case GF_STREAM_OD:
+				gf_filter_pid_set_property(pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE));
+				break;
+			}
 		}
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(streamtype));
@@ -611,16 +616,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				char buffer[2000];
 				u32 l1;
 				u32 tx3g_len, len;
-				gf_isom_text_get_encoded_tx3g(read->mov, ch->track, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
-				len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
-				gf_free(tx3g);
-				buffer[len] = 0;
+				e = gf_isom_text_get_encoded_tx3g(read->mov, ch->track, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
+				if (e==GF_OK) {
+					len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
+					gf_free(tx3g);
+					buffer[len] = 0;
 
-				l1 = tx3g_config_sdp ? (u32) strlen(tx3g_config_sdp) : 0;
-				tx3g_config_sdp = gf_realloc(tx3g_config_sdp, len+3+l1);
-				tx3g_config_sdp[l1] = 0;
-				if (i) strcat(tx3g_config_sdp, ", ");
-				strcat(tx3g_config_sdp, buffer);
+					l1 = tx3g_config_sdp ? (u32) strlen(tx3g_config_sdp) : 0;
+					tx3g_config_sdp = gf_realloc(tx3g_config_sdp, len+3+l1);
+					tx3g_config_sdp[l1] = 0;
+					if (i) strcat(tx3g_config_sdp, ", ");
+					strcat(tx3g_config_sdp, buffer);
+				}
 			}
 			if (tx3g_config_sdp) {
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_STRING_NO_COPY(tx3g_config_sdp) );
