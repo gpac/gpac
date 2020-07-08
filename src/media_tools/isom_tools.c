@@ -926,9 +926,16 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	}
 	//make QT
 	gf_isom_remove_root_od(mp4);
-	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_QT, 512);
-	gf_isom_reset_alt_brands(mp4);
-
+	if (gf_isom_get_mode(mp4) != GF_ISOM_OPEN_WRITE) {
+		gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_QT, 512);
+		gf_isom_reset_alt_brands(mp4);
+	} else {
+		u32 brand, version;
+		gf_isom_get_brand_info(mp4, &brand, &version, NULL);
+		if (brand != GF_ISOM_BRAND_QT) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] Cannot change brand from \"%s\" to \"qt  \", flat storage used. Try using different storage mode\n", gf_4cc_to_str(brand)));
+		}
+	}
 
 	if (!video_tk) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[QTFF] No visual track\n"));

@@ -3349,7 +3349,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	new_tk->originalID = trak->Header->trackID;
 	/*set originalFile*/
 	buffer = gf_isom_get_filename(orig_file);
-	new_tk->originalFile = gf_crc_32(buffer, sizeof(buffer));
+	new_tk->originalFile = buffer ? gf_crc_32(buffer, (u32) strlen(buffer)) : 0;
 
 	/*rewrite edit list segmentDuration to new movie timescale*/
 	ts_scale = dest_file->moov->mvhd->timeScale;

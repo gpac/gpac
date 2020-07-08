@@ -987,6 +987,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char 
 
 	//but we have the edit one
 	if (OpenMode == GF_ISOM_OPEN_WRITE) {
+		const char *ext;
 		//THIS IS NOT A TEMP FILE, WRITE mode is used for "live capture"
 		//this file will be the final file...
 		mov->fileName = fileName ? gf_strdup(fileName) : NULL;
@@ -994,7 +995,12 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char 
 		if (e) goto err_exit;
 
 		/*brand is set to ISOM by default - it may be touched until sample data is added to track*/
-		gf_isom_set_brand_info( (GF_ISOFile *) mov, GF_ISOM_BRAND_ISOM, 1);
+		ext = gf_file_ext_start(fileName);
+		if (ext && (!strnicmp(ext, ".mov", 4) || !strnicmp(ext, ".qt", 3))) {
+			gf_isom_set_brand_info((GF_ISOFile *) mov, GF_ISOM_BRAND_QT, 512);
+		} else {
+			gf_isom_set_brand_info((GF_ISOFile *) mov, GF_ISOM_BRAND_ISOM, 1);
+		}
 	} else {
 		//we are in EDIT mode but we are creating the file -> temp file
 		mov->finalName = fileName ? gf_strdup(fileName) : NULL;

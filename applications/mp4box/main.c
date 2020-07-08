@@ -4947,7 +4947,7 @@ int mp4boxMain(int argc, char **argv)
 				conv_type = GF_ISOM_CONV_TYPE_IPOD;
 			else if (!stricmp(szExt, ".psp"))
 				conv_type = GF_ISOM_CONV_TYPE_PSP;
-			else if (!stricmp(szExt, ".mov"))
+			else if (!stricmp(szExt, ".mov") || !stricmp(szExt, ".qt"))
 				conv_type = GF_ISOM_CONV_TYPE_MOV;
 
 			//remove extension from outfile
