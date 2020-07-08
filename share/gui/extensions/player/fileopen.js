@@ -154,7 +154,7 @@ extension.open_local_file = function () {
         item.index = hist_idx;
         item.on_click = function () {
             var fb_dlg = this.dlg.dlg;
-            path += '#LIVE360TV';
+            path += '#VR';
             fb_dlg.extension.set_movie_url(path);
             if (directory) gpac.last_working_directory = directory;
             fb_dlg.close();
