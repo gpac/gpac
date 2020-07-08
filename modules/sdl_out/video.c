@@ -896,7 +896,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
 
 
-#if (SDL_MAJOR_VERSION>=1) || (SDL_MINOR_VERSION>=3)
+#if SDL_VERSION_ATLEAST(2,0,0)
 
 			if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_V)
 #if defined(__DARWIN__) || defined(__APPLE__)
