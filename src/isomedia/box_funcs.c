@@ -910,7 +910,7 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TRGR, trgr, "trak"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FTYP, ftyp, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PADB, padb, "stbl", 0),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_BTRT, btrt, "sample_entry tmcd"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_BTRT, btrt, "sample_entry"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_PASP, pasp, "video_sample_entry ipco"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_CLAP, clap, "video_sample_entry ipco"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_META, meta, "file moov trak moof traf udta", 0),	//apple uses meta in moov->udta
@@ -1327,21 +1327,30 @@ void gf_isom_registry_disable(u32 boxCode, Bool disable)
 	}
 }
 
-static u32 get_box_reg_idx(u32 boxCode, u32 parent_type)
+static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 {
 	u32 i=0, count = gf_isom_get_num_supported_boxes();
 	const char *parent_name = parent_type ? gf_4cc_to_str(parent_type) : NULL;
 
-	for (i=1; i<count; i++) {
-		if (box_registry[i].box_4cc==boxCode) {
-			if (!parent_type) return i;
-			if (strstr(box_registry[i].parents_4cc, parent_name) != NULL) return i;
+	if (!start_from) start_from=1;
 
-			if (strstr(box_registry[i].parents_4cc, "sample_entry") != NULL) {
-				u32 j = get_box_reg_idx(parent_type, 0);
-				if (box_registry[j].parents_4cc && (strstr(box_registry[j].parents_4cc, "stsd") != NULL))
-					return i;
-			}
+	for (i=start_from; i<count; i++) {
+		u32 start_par_from;
+		if (box_registry[i].box_4cc != boxCode)
+			continue;
+		if (!parent_type) return i;
+		if (strstr(box_registry[i].parents_4cc, parent_name) != NULL)
+			return i;
+
+		if (strstr(box_registry[i].parents_4cc, "sample_entry") == NULL)
+			continue;
+
+		start_par_from=0;
+		while (1) {
+			u32 j = get_box_reg_idx(parent_type, 0, start_par_from);
+			if (box_registry[j].parents_4cc && (strstr(box_registry[j].parents_4cc, "stsd") != NULL))
+				return i;
+			start_par_from = j+1;
 		}
 	}
 	return 0;
@@ -1350,7 +1359,7 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type)
 GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box)
 {
 	GF_Box *a;
-	s32 idx = get_box_reg_idx(boxType, parentType);
+	s32 idx = get_box_reg_idx(boxType, parentType, 0);
 	if (idx==0) {
 #ifndef GPAC_DISABLE_LOGS
 		if (!skip_logs && (boxType != GF_ISOM_BOX_TYPE_UNKNOWN)) {
