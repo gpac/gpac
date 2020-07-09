@@ -234,6 +234,7 @@ void qjs_module_init_xhr_global(JSContext *c, JSValue global);
 void qjs_module_init_xhr(JSContext *c);
 void qjs_module_init_evg(JSContext *c);
 void qjs_module_init_webgl(JSContext *c);
+void qjs_module_init_gpaccore(JSContext *c);
 
 
 #ifdef __cplusplus

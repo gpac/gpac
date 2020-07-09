@@ -200,6 +200,7 @@
 		9239B8D6207369E5005F7264 /* enc_jpg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9239B8D5207369E5005F7264 /* enc_jpg.c */; };
 		9239B8D82073AFEF005F7264 /* enc_png.c in Sources */ = {isa = PBXBuildFile; fileRef = 9239B8D72073AFEF005F7264 /* enc_png.c */; };
 		923C337D234794F2001CED08 /* evg.c in Sources */ = {isa = PBXBuildFile; fileRef = 923C337C234794F2001CED08 /* evg.c */; };
+		923E3FE624B7316F0022660A /* core.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E3FE524B7316F0022660A /* core.c */; };
 		923E89CB20B6F04600F299B2 /* g_crypt_openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E89C620B6F04600F299B2 /* g_crypt_openssl.c */; };
 		923E89CC20B6F04600F299B2 /* tiny_aes.h in Headers */ = {isa = PBXBuildFile; fileRef = 923E89C720B6F04600F299B2 /* tiny_aes.h */; };
 		923E89CD20B6F04600F299B2 /* g_crypt.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E89C820B6F04600F299B2 /* g_crypt.c */; };
@@ -853,6 +854,7 @@
 		9239B8D5207369E5005F7264 /* enc_jpg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_jpg.c; path = filters/enc_jpg.c; sourceTree = "<group>"; };
 		9239B8D72073AFEF005F7264 /* enc_png.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_png.c; path = filters/enc_png.c; sourceTree = "<group>"; };
 		923C337C234794F2001CED08 /* evg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg.c; path = jsmods/evg.c; sourceTree = "<group>"; };
+		923E3FE524B7316F0022660A /* core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = core.c; path = jsmods/core.c; sourceTree = "<group>"; };
 		923E89C620B6F04600F299B2 /* g_crypt_openssl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt_openssl.c; path = crypto/g_crypt_openssl.c; sourceTree = "<group>"; };
 		923E89C720B6F04600F299B2 /* tiny_aes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tiny_aes.h; path = crypto/tiny_aes.h; sourceTree = "<group>"; };
 		923E89C820B6F04600F299B2 /* g_crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt.c; path = crypto/g_crypt.c; sourceTree = "<group>"; };
@@ -1941,9 +1943,10 @@
 		92D6C5982343BEC600262217 /* jsmods */ = {
 			isa = PBXGroup;
 			children = (
-				9273463223506D370081AF74 /* storage.c */,
+				923E3FE524B7316F0022660A /* core.c */,
 				923C337C234794F2001CED08 /* evg.c */,
 				92D6C5992343BED700262217 /* scene_js.c */,
+				9273463223506D370081AF74 /* storage.c */,
 				929383A22355A6EF00AAAFA8 /* WebGL */,
 				92D6C59A2343BED700262217 /* xhr.c */,
 			);
@@ -2824,6 +2827,7 @@
 				920101BA18D5A445003D1ACA /* path2d.c in Sources */,
 				920101BB18D5A445003D1ACA /* path2d_stroker.c in Sources */,
 				920101BD18D5A445003D1ACA /* sha1.c in Sources */,
+				923E3FE624B7316F0022660A /* core.c in Sources */,
 				9206823420EA96AA0041169F /* mux_gsf.c in Sources */,
 				920101C018D5A445003D1ACA /* token.c in Sources */,
 				92B9A5A91F8660D700A24FE4 /* bindable.c in Sources */,

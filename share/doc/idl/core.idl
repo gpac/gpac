@@ -1,0 +1,157 @@
+/*
+\file
+\brief silence !
+*/
+
+typedef char *DOMString;
+
+/*!
+
+\defgroup core_grp JS Core API for libgpac
+\ingroup jsapi_grp
+\brief JavaScript API for libgpac core tools.
+
+This section documents the JavaScript API used to query and control libgpac.
+
+Errors are handled through exceptions.
+
+@{
+
+*/
+
+/*! global context property representing the one and only JSGPACCoreSystem object attached to the loaded script*/
+attribute JSGPACCoreSystem Sys;
+
+
+/*!\brief JSGPACCoreSystem API
+
+The JSGPACCoreSystem interface has a single instance exposed to the script under the name "Sys".
+It implements binding to the underlying instance of libgpac.
+*/
+interface JSGPACCoreSystem {
+
+/*! launch arguments*/
+attribute Array args;
+
+/*! marks an argument as used (for argument tracking at prompt)
+\param arg_idx index of argument to mark as used
+\param arg_used if true, argument is marked as used
+*/
+attribute void set_arg_used(unsigned int arg_idx, boolean arg_used);
+
+/*! gets string for error
+\param e the error code
+\return the corresponding string*/
+DOMString error_string(GF_Err e);
+
+
+/*! returns character input from prompt, or null if no input (this will be moved soon to core API)
+\return input char, or NULL if no input
+*/
+attribute DOMString prompt_input();
+
+
+/*! wait character input from prompt and returns it
+\return string entered at prompt
+*/
+attribute DOMString prompt_string();
+
+
+/*! enumerate directories
+\param dir the directory to enumerate
+\param filter the filter for file extensions. If "dir", only enumerate directories
+\param go_up if true, enumerate parent directory or root (/).
+\return array of FileInformation interface*/
+Array enum_directory(DOMString dir, optional DOMString filter=null, optional DOMString filter=null, optional bool go_up=false);
+
+/*! number of cores */
+attribute readonly unsigned long nb_cores;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long sampling_period_duration;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long total_cpu_time;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long process_cpu_time;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long total_cpu_time_diff;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long process_cpu_time_diff;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long cpu_idle_time;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long total_cpu_usage;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long process_cpu_usage;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long pid;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long thread_count;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long long process_memory;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long long physical_memory;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long long physical_memory_avail;
+
+/*! see \ref GF_SystemRTInfo */
+attribute readonly unsigned long long gpac_memory;
+
+/*! last working directory */
+attribute DOMString last_wdir;
+
+/*! indicates if running on battery or with power charge*/
+readonly attribute boolean batteryOn;
+
+/*! indicates if battery is charging*/
+readonly attribute boolean batteryCharging;
+
+/*! battery percent (0 to 100)*/
+readonly attribute unsigned long batteryPercent;
+
+/*! estimated battery lifetime - see \ref gf_sys_get_battery_state*/
+readonly attribute unsigned long batteryLifeTime;
+
+/*! estimated battery lifetime in full charge - see \ref gf_sys_get_battery_state*/
+readonly attribute unsigned long batteryFullLifeTime;
+
+/*! host name*/
+readonly DOMString hostname;
+
+};
+
+
+/*! object used for file enumeration*/
+interface FileInformation {
+	/*! file name*/
+	DOMString name;	
+	/*! file path*/
+	DOMString path;
+	/*! true if directory*/
+	boolean directory;
+	/*! true if drive root (local HDD, USB or other mount points)*/
+	boolean drive;
+	/*! true if hidden file*/
+	boolean hidden;
+	/*! true if system file*/
+	boolean system;
+	/*! file size in bytes*/
+	unsigned long long size;
+	/*! last modification UTC time*/
+	unsigned long long last_modified;
+};
+
+/*! @} */
+

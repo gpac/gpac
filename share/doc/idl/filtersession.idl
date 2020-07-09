@@ -103,6 +103,12 @@ attribute long nb_filters;
 /*! check if the calling task is the last task in the session - see \ref gf_fs_is_last_task*/
 readonly attribute boolean last_task;
 
+/*! max capped HTTP download rate - used for DASH simulations mostly*/
+attribute unsigned long http_max_bitrate;
+
+/*! current http download rate averaged on all active resources*/
+readonly attribute unsigned long http_bitrate;
+
 };
 
 
