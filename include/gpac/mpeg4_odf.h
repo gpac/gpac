@@ -1466,8 +1466,7 @@ GF_VPConfig *gf_odf_vp_cfg_read(u8 *dsi, u32 dsi_size);
 GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs);
 /*! writes DolbyVision config to buffer
 \param cfg the DolbyVision config to write
-\param outData set to an allocated encoded buffer - it is the caller responsability to free this
-\param outSize set to the encoded buffer size
+\param bs the bitstream object in which to write the config
 \return error if any
 */
 GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitStream *bs);

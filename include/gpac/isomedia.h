@@ -1527,6 +1527,7 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 nb_samp
 \param isom_file the target ISO file
 \param trace the file object to dump to
 \param skip_init does not dump init segment structure
+\param skip_samples does not dump sample tables
 \return error if any
 */
 GF_Err gf_isom_dump(GF_ISOFile *isom_file, FILE *trace, Bool skip_init, Bool skip_samples);
@@ -2217,7 +2218,7 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile *isom_file, u32 trackNumbe
 \param dv_profile the Dolby Vision profile
 \return error if any
 */
-GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* isom_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 dv_profile);
+GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 dv_profile);
 
 
 /*! sets image sequence coding constraints (mostly used for HEIF image files)
@@ -2523,7 +2524,7 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *isom_file);
 \param isom_file the target ISO file
 \param disable if TRUE, ODs and ESDs will not be converted
 */
-void gf_isom_disable_odf_conversion(GF_ISOFile *movie, Bool disable);
+void gf_isom_disable_odf_conversion(GF_ISOFile *isom_file, Bool disable);
 
 /*! checks the presence of a track in rood OD/IOD
 \param isom_file the target ISO file
@@ -3024,7 +3025,7 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 \param sampleDescriptionIndex the target sample description index
 \return the DOVI config - user is responsible for deleting it
 */
-GF_DOVIDecoderConfigurationRecord* gf_isom_dovi_config_get(GF_ISOFile* isom_file, u32 trackNumber, u32 DescriptionIndex);
+GF_DOVIDecoderConfigurationRecord* gf_isom_dovi_config_get(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 /*! checks if some tracks in file needs layer reconstruction
 \param isom_file the target ISO file
@@ -3413,7 +3414,7 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *isom_file, u32 trackNumber, u8 *metad
 \param dsi_size set to the size of the OPUS decoder config
 \return error if any
 */
-GF_Err gf_isom_opus_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u8 **dsi, u32 *dsi_size);
+GF_Err gf_isom_opus_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u8 **dsi, u32 *dsi_size);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -3528,8 +3529,21 @@ u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *isom_file, u32 mo
 */
 void gf_isom_set_single_moof_mode(GF_ISOFile *isom_file, Bool mode);
 
-GF_Err gf_isom_get_file_offset_for_time(GF_ISOFile *movie, Double start_time, u64 *max_offset);
-GF_Err gf_isom_get_sidx_duration(GF_ISOFile *movie, u64 *sidx_dur, u32 *sidx_timescale);
+/*! gets closest file offset for the given time, when the file uses an segment index (sidx)
+\param isom_file the target ISO file
+\param start_time the start time in seconds
+\param offset set to the file offset of the segment containing the desired time
+\return error if any
+*/
+GF_Err gf_isom_get_file_offset_for_time(GF_ISOFile *isom_file, Double start_time, u64 *offset);
+
+/*! gets sidx duration, when the file uses an segment index (sidx)
+\param isom_file the target ISO file
+\param sidx_dur set to the total duration documented in the segment index
+\param sidx_timescale set timescale used to represent the duration in the segment index
+\return error if any
+*/
+GF_Err gf_isom_get_sidx_duration(GF_ISOFile *isom_file, u64 *sidx_dur, u32 *sidx_timescale);
 
 
 /*! refreshes a fragmented file

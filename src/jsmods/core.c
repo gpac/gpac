@@ -565,9 +565,6 @@ static JSValue js_sys_prompt_string(JSContext *ctx, JSValueConst this_val, int a
 	char input[4096];
 
     if (argc) {
-#ifdef GPAC_ENABLE_COVERAGE
-		jsfs_rmt_user_callback(NULL, "my text");
-#endif
 		return JS_NewString(ctx, "Coverage OK");
 	}
 

@@ -1152,7 +1152,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes);
 /*! flushes all streams in the mux. This is used to flush internal demultiplexer buffers on end of stream
 \param demux the target MPEG-2 demultiplexer
 */
-void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts);
+void gf_m2ts_flush_all(GF_M2TS_Demuxer *demux);
 
 
 /*! MPEG-2 TS packet header*/
@@ -1786,6 +1786,7 @@ void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms);
 \param mpeg4_signaling type of MPEG-4 signaling used
 \param pmt_version initial version of the PMT
 \param initial_disc if GF_TRUE, signals packet discontinuity on the first packet of eact stream in the program
+\param force_first_pts if not 0, the first PTS written in the program will have the indicated value (in 90khz)
 \return a TS multiplexer program
 */
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u64 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc, u64 force_first_pts);
