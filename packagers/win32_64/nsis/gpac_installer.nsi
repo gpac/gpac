@@ -298,7 +298,7 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\share\gui\gui.bt"
   File "${GPAC_ROOT}\share\gui\gui.js"
   File "${GPAC_ROOT}\share\gui\gwlib.js"
-  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
+;  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
   SetOutPath $INSTDIR\share\gui\icons
   File /r /x .git ${GPAC_ROOT}\share\gui\icons\*
   SetOutPath $INSTDIR\share\gui\extensions
