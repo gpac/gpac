@@ -19,9 +19,6 @@ Errors are handled through exceptions.
 
 */
 
-/*! global context property containing the launch arguments*/
-attribute Array args;
-
 /*! global context property representing the one and only JSFilterSession object attached to the loaded script*/
 attribute JSFilterSession session;
 
@@ -48,53 +45,43 @@ interface JSFilterSession {
 \param task_callback the callback function to use. This callback functions has no parameters, and returns false or an exception to abort the task, true to reschedule the task immediately or a reschedule time in milliseconds
 \param task_name optional value giving a label for the task
 */
-attribute void post_task(function task_callback, optional DOMString task_name=null);
+void post_task(function task_callback, optional DOMString task_name=null);
 
 /*! aborts the filter session - see \ref gf_fs_abort
 \param do_flush if true, wait for all packets currently pending to be processed before closing the session
 */
-attribute void abort(optional boolean do_fush=false);
+void abort(optional boolean do_flush=false);
 
 /*! locks the filter session - see \ref gf_fs_lock_filters. When the session is locked, tasks are suspended and filters cannot be destroyed.
 \param do_lock if true, locks the session, otherwise unlocks it
 */
-attribute void lock_filters(boolean do_lock);
+void lock_filters(boolean do_lock);
 
 /*! returns the JSFSFilter object for the given filter. The object is mutable and is only valid while the session is locked 
 \param index index of filter to query
 \return error code if any
 */
-attribute JSFSFilter DOMString get_filter(unsigned long index);
+JSFSFilter DOMString get_filter(unsigned long index);
 
 /*! sends the given string to the remotery client(s)
 \param command the command to send
 \return error code if any
 */
-attribute void rmt_send(DOMString command);
+void rmt_send(DOMString command);
 
 /*! sets callback function to use when processing remotery client request
 \param callback the callback function to call. This function takes one parameter which is the text being received
 \return error code if any
 */
-attribute void rmt_set_fun(function callback);
-
-/*! returns character input from prompt, or null if no input (this will be moved soon to core API)
-\return input char, or NULL if no input
-*/
-attribute DOMString prompt_input();
-
-
-/*! wait character input from prompt and returns it
-\return string entered at prompt
-*/
-attribute DOMString prompt_string();
+void rmt_set_fun(function callback);
 
 /*! inserts a filter in graph
 \param filter_to_add string describin the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
 \param link_from filter used as source for the created filters - see \ref gf_filter_set_source
 \param link_args arguments for the link (used to assign new filter SID - see \ref gf_filter_set_source
+\return new filter created
 */
-attribute JSFSFilter add_filter(DOMString filter_to_add, optional JSFSFilter link_from=null, optional DOMString link_args=null);
+JSFSFilter add_filter(DOMString filter_to_add, optional JSFSFilter link_from=null, optional DOMString link_args=null);
 
 
 /*! number of filters in the session - see \ref gf_fs_get_filters_count*/
@@ -169,40 +156,40 @@ attribute DOMString iname;
 \param idx the index of the input pid to query
 \param fun_callback function called for each property in the input pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty) 
 */
-attribute void ipid_props(unsigned long idx, function fun_callback);
+void ipid_props(unsigned long idx, function fun_callback);
 
 /*! Enumerates properties on output pid
 \param idx the index of the output pid to query
 \param fun_callback function called for each property in the output pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty) 
 */
-attribute void opid_props(unsigned long idx, function fun_callback);
+void opid_props(unsigned long idx, function fun_callback);
 
 /*! Gets index of source filter for an input pid
 \param idx the index of the input pid to query
 \return input filter or null
 */
-attribute JSFSFilter ipid_source(unsigned long idx);
+JSFSFilter ipid_source(unsigned long idx);
 
 /*! Gets all arguments (options) of the filter
 \param value_only if true, only returns name (DOMString) and value (FilterProperty) of each argument. Otherwise returns the full argument (JSFSFilterArg)
 \return array of JSFSFilterArg 
 */
-attribute Array all_args(optional boolean value_only=true);
+Array all_args(optional boolean value_only=true);
 
 /*! sends argument update to filter
 \param arg_name name of argument to update
 \param arg_val value of argument to update
 */
-attribute void update(DOMString arg_name, DOMString arg_val);
+void update(DOMString arg_name, DOMString arg_val);
 
 /*! removes filter from graph*/
-attribute void remove();
+void remove();
 
 /*! inserts a filter in graph linked to the current filter
 \param filter_to_add string describin the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
 \param link_args specify any additional arguments to pass to the SID option of the new filter - see \ref gf_filter_set_source
 */
-attribute void insert(DOMString filter_to_add, optional DOMString link_args=NULL);
+void insert(DOMString filter_to_add, optional DOMString link_args=NULL);
 
 };
 

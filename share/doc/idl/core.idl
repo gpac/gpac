@@ -37,7 +37,7 @@ attribute Array args;
 \param arg_idx index of argument to mark as used
 \param arg_used if true, argument is marked as used
 */
-attribute void set_arg_used(unsigned int arg_idx, boolean arg_used);
+void set_arg_used(unsigned int arg_idx, boolean arg_used);
 
 /*! gets string for error
 \param e the error code
@@ -48,13 +48,13 @@ DOMString error_string(GF_Err e);
 /*! returns character input from prompt, or null if no input (this will be moved soon to core API)
 \return input char, or NULL if no input
 */
-attribute DOMString prompt_input();
+DOMString prompt_input();
 
 
 /*! wait character input from prompt and returns it
 \return string entered at prompt
 */
-attribute DOMString prompt_string();
+DOMString prompt_string();
 
 
 /*! enumerate directories

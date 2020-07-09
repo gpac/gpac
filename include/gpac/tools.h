@@ -398,7 +398,7 @@ u32 gf_sys_is_quiet();
 const char *gf_sys_features(Bool disabled);
 
 /*! callback function for remotery profiler
- \param udta user data passed by \ref gf_sys_set_profiler_callback
+ \param udta user data passed by \ref gf_sys_profiler_set_callback
  \param text string sent by webbrowser client
 */
 typedef void (*gf_rmt_user_callback)(void *udta, const char* text);

@@ -146,11 +146,6 @@ void set_focus(DOMString focus);
 \param elt the node on which focus should be set */
 void set_focus(Node elt);
 
-/*! gets string for error
-\param e the error code
-\return the corresponding string*/
-DOMString error_string(GF_Err e);
-
 /*! show or hide virtual keyboard
 \param do_show if true, show keyboard, otherwise hide it*/
 void show_keyboard(boolean do_show);
@@ -353,8 +348,9 @@ SRDDesc get_srd();
 
 /*! checks if the given filter is in parent (down the source) chain of this object. The compositor filter and any filter connected after the compositor are excluded
 \param filter the filter to test
-\return true if the filter is in the parent chain, false otherwise*/
-boolean in_parent_chain(JSFSFilter filter)
+\return true if the filter is in the parent chain, false otherwise
+*/
+boolean in_parent_chain(JSFSFilter filter);
 
 /*! declares an addon
 \param addon_url URL of addon to insert
