@@ -960,10 +960,17 @@ static u32 PrintHelpForArgs(char *arg_name, GF_GPACArg *args, Bool exact_match)
 {
 	u32 res=0;
 	u32 i=0;
+	u32 alen = (u32) strlen(arg_name);
 	while (args[i].name) {
 		GF_GPACArg *arg = &args[i];
 		GF_GPACArg an_arg;
-		if (exact_match && strcmp(arg_name, arg->name)) {
+		Bool do_match = GF_FALSE;
+		if (!strcmp(arg_name, arg->name))
+			do_match = GF_TRUE;
+		else if ((alen < (u32) strlen(arg->name)) && (arg->name[alen]==' ') && !strncmp(arg_name, arg->name, alen))
+			do_match = GF_TRUE;
+
+		if (exact_match && !do_match) {
 			i++;
 			continue;
 		}

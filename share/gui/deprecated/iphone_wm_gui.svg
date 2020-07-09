@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <svg id="svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2"
-     xmlns:gpac-ext='http://gpac.sourceforge.net/svg-extensions' 
+     xmlns:gpac-ext='http://gpac.io/svg-extensions' 
      width="571.35199" xmlns:ev="http://www.w3.org/2001/xml-events" height="462.51999" viewBox="0 0 320 600">
     <!--
     This is a Widget Manager creating an iPhone-style UI.

@@ -69,6 +69,8 @@ enum
 {
 	JSFS_NB_FILTERS = 0,
 	JSFS_LAST_TASK,
+	JSFS_HTTP_MAX_RATE,
+	JSFS_HTTP_RATE,
 };
 
 GF_Filter *jsff_get_filter(JSContext *c, JSValue this_val)
@@ -108,11 +110,20 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, gf_fs_get_filters_count(fs));
 	case JSFS_LAST_TASK:
 		return gf_fs_is_last_task(fs) ? JS_TRUE : JS_FALSE;
+
+	case JSFS_HTTP_MAX_RATE:
+		if (fs->download_manager)
+			return JS_NewInt32(ctx, gf_dm_get_data_rate(fs->download_manager) );
+		return JS_NULL;
+
+	case JSFS_HTTP_RATE:
+		if (fs->download_manager)
+			return JS_NewInt32(ctx, gf_dm_get_global_rate(fs->download_manager) / 1000);
+		return JS_NULL;
 	}
 	return JS_UNDEFINED;
 }
 
-#if 0
 static JSValue jsfs_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
 {
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
@@ -120,10 +131,16 @@ static JSValue jsfs_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst
 		return JS_EXCEPTION;
 
 	switch (magic) {
+	case JSFS_HTTP_MAX_RATE:
+		if (fs->download_manager) {
+			s32 ival;
+			if (JS_ToInt32(ctx, &ival, value)) return JS_EXCEPTION;
+			gf_dm_set_data_rate(fs->download_manager, (u32) ival);
+		}
+		break;
 	}
 	return JS_UNDEFINED;
 }
-#endif
 
 static Bool jsfs_task_exec(GF_FilterSession *fs, void *udta, u32 *timeout_ms)
 {
@@ -211,37 +228,7 @@ static JSValue jsfs_lock_filters(JSContext *ctx, JSValueConst this_val, int argc
 	gf_fs_lock_filters(fs, do_lock);
 	return JS_UNDEFINED;
 }
-static JSValue jsfs_prompt_input(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	char in_char[2];
-	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs) return JS_EXCEPTION;
 
-    if (!gf_prompt_has_input())
-		return JS_NULL;
-	in_char[0] = gf_prompt_get_char();
-	in_char[1] = 0;
-	return JS_NewString(ctx, in_char);
-}
-
-static JSValue jsfs_prompt_string(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	char input[4096];
-	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs) return JS_EXCEPTION;
-
-    if (argc) {
-#ifdef GPAC_ENABLE_COVERAGE
-		jsfs_rmt_user_callback(NULL, "my text");
-#endif
-		return JS_NewString(ctx, "Coverage OK");
-	}
-
-	if (1 > scanf("%4095s", input)) {
-		return js_throw_err_msg(ctx, GF_IO_ERR, "Cannot read string from prompt");
-	}
-	return JS_NewString(ctx, input);
-}
 
 static JSValue jsfs_rmt_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -790,10 +777,8 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 static const JSCFunctionListEntry fs_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("nb_filters", jsfs_prop_get, NULL, JSFS_NB_FILTERS),
     JS_CGETSET_MAGIC_DEF_ENUM("last_task", jsfs_prop_get, NULL, JSFS_LAST_TASK),
-
-    //todo, move this to GPAC core JS bindings once we do them
-    JS_CFUNC_DEF("prompt_input", 0, jsfs_prompt_input),
-    JS_CFUNC_DEF("prompt_string", 0, jsfs_prompt_string),
+	JS_CGETSET_MAGIC_DEF("http_max_bitrate", jsfs_prop_get, jsfs_prop_set, JSFS_HTTP_MAX_RATE),
+	JS_CGETSET_MAGIC_DEF("http_bitrate", jsfs_prop_get, NULL, JSFS_HTTP_RATE),
 
     JS_CFUNC_DEF("post_task", 0, jsfs_post_task),
     JS_CFUNC_DEF("abort", 0, jsfs_abort),
@@ -867,6 +852,7 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 
  	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
  		//init modules
+		qjs_module_init_gpaccore(fs->js_ctx);
 		qjs_module_init_xhr(fs->js_ctx);
 		qjs_module_init_evg(fs->js_ctx);
 		qjs_module_init_storage(fs->js_ctx);

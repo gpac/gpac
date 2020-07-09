@@ -1,7 +1,7 @@
 extension.open_local_file = function () {
     var filebrowse = gw_new_file_dialog(null, 'Open file');
     filebrowse.filter = '*';
-    filebrowse.browse(gpac.last_working_directory);
+    filebrowse.browse(Sys.last_wdir);
 
     filebrowse.extension = this;
     this.file_open_dlg = true;
@@ -25,7 +25,7 @@ extension.open_local_file = function () {
         if (value == null) {
             this.extension.controler.show();
         } else {
-            if (directory) gpac.last_working_directory = directory;
+            if (directory) Sys.last_wdir = directory;
             this.extension.set_movie_url(value);
         }
         this.file_open_dlg = false;
@@ -156,7 +156,7 @@ extension.open_local_file = function () {
             var fb_dlg = this.dlg.dlg;
             path += '#VR';
             fb_dlg.extension.set_movie_url(path);
-            if (directory) gpac.last_working_directory = directory;
+            if (directory) Sys.last_wdir = directory;
             fb_dlg.close();
             this.dlg.close();
         }
@@ -184,7 +184,7 @@ extension.open_local_file = function () {
 
         popup.edit = gw_new_text_edit(popup.area, '');
         popup.edit.dlg = popup;
-        gpac.set_focus(popup.edit);
+        scene.set_focus(popup.edit);
         popup.edit.on_text = function (val) {
             if (val != '') {
                 this.dlg.dlg.on_browse(val, null);
@@ -209,7 +209,7 @@ extension.open_local_file = function () {
     }
 
     filebrowse.on_display_size(gw_display_width, gw_display_height);
-    if (gpac.hardware_rgba) filebrowse.set_alpha(0.8);
+    if (scene.hardware_rgba) filebrowse.set_alpha(0.8);
 
     this.controler.hide();
     filebrowse.show();

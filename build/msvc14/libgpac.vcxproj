@@ -405,6 +405,7 @@
     <ClCompile Include="..\..\src\isomedia\stbl_write.c" />
     <ClCompile Include="..\..\src\isomedia\track.c" />
     <ClCompile Include="..\..\src\isomedia\tx3g.c" />
+    <ClCompile Include="..\..\src\jsmods\core.c" />
     <ClCompile Include="..\..\src\jsmods\evg.c" />
     <ClCompile Include="..\..\src\jsmods\scene_js.c" />
     <ClCompile Include="..\..\src\jsmods\storage.c" />

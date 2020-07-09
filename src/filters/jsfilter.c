@@ -3597,8 +3597,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 void js_load_constants(JSContext *ctx, JSValue global_obj)
 {
-	u32 i, nb_args;
-    JSValue args, val;
+    JSValue val;
 
     val = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, val, "log", JS_NewCFunction(ctx, js_print, "log", 1));
@@ -3739,12 +3738,6 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_EVENT_TIMESHIFT_UNDERRUN)
 	DEF_CONST(GF_EVENT_QUIT)
 
-	args = JS_NewArray(ctx);
-    nb_args = gf_sys_get_argc();
-    for (i=0; i<nb_args; i++) {
-        JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, gf_sys_get_arg(i)));
-    }
-    JS_SetPropertyStr(ctx, global_obj, "args", args);
     JS_SetPropertyStr(ctx, global_obj, "print", JS_NewCFunction(ctx, js_print, "print", 1));
     JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
 }
@@ -3846,6 +3839,7 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 
  	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
  		//init modules
+		qjs_module_init_gpaccore(jsf->ctx);
 		qjs_module_init_xhr(jsf->ctx);
 		qjs_module_init_evg(jsf->ctx);
 		qjs_module_init_storage(jsf->ctx);

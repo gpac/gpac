@@ -4373,6 +4373,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	JS_SetContextOpaque(priv->js_ctx, node);
 	vrml_js_init_api(priv, node);
 
+	qjs_module_init_gpaccore(priv->js_ctx);
 	qjs_module_init_scenejs(priv->js_ctx);
 	qjs_module_init_storage(priv->js_ctx);
 

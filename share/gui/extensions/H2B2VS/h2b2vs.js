@@ -44,7 +44,7 @@ extension = {
             case GF_EVENT_MOUSEUP:
                 if (this.uhd_demo_on) {
                     this.uhd_state_on = !this.uhd_state_on;
-                    gpac.switch_quality(this.uhd_state_on);
+                    scene.switch_quality(this.uhd_state_on);
                     return true;
                 }
                 return false;
@@ -69,12 +69,12 @@ extension = {
             case GF_EVENT_KEYDOWN:
                 //alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
 
-                var odm = gpac.get_object_manager(this.scene_url);
+                var odm = scene.get_object_manager(this.scene_url);
                 if (!odm || odm.main_addon_url) return false;
 
                 if (evt.keycode == 'F7') {
                     this.uhd_state_on = !this.uhd_state_on;
-                    gpac.switch_quality(this.uhd_state_on);
+                    scene.switch_quality(this.uhd_state_on);
                     return true;
                 }
 
@@ -95,7 +95,7 @@ extension = {
                 }
 /*
                 if (evt.keycode == 'F12') {
-                    gpac.exit();
+                    scene.exit();
                     return true;
                 }
 */
@@ -162,9 +162,9 @@ extension = {
             this.restore_session();
 
             //check our args
-            var i, argc = gpac.argc;
-            for (i = 1; i < argc; i++) {
-                var arg = gpac.get_arg(i);
+            var i;
+            for (i = 1; i < Sys.args.length; i++) {
+                var arg = Sys.args[i];
                 if (arg == '-demo-uhd') {
                     this.uhd_demo_enabled = true;
                     this.toggle_uhd_demo(true);
@@ -244,7 +244,7 @@ extension = {
         wnd.txt3 = gw_new_text(wnd.area, 'User Identifier');
         gw_new_separator(wnd.area);
         wnd.edit = gw_new_text_edit(wnd.area, this.get_option('UserID', 'H2B2VSUser'));
-        gpac.set_focus(wnd.edit);
+        scene.set_focus(wnd.edit);
         wnd.edit.on_text = function (val) {
             if (val != '') {
                 this.parent.parent.extension.set_option('UserID', val);
@@ -261,9 +261,9 @@ extension = {
 
         wnd.dbg_addon = gw_new_checkbox(wnd.area, 'Debug PVR addon');
         wnd.dbg_addon.on_check = function (value) {
-            gpac.set_option('Compositor', 'dbgpvr', value ? 'yes' : 'no');
+            scene.set_option('Compositor', 'dbgpvr', value ? 'yes' : 'no');
         }
-        do_sel = gpac.get_option('Compositor', 'dbgpvr');
+        do_sel = scene.get_option('Compositor', 'dbgpvr');
         wnd.dbg_addon.set_checked((do_sel == 'yes') ? true : false);
 
         gw_new_separator(wnd.area);
@@ -319,7 +319,7 @@ extension = {
 
     refresh_addon: function () {
         if (this.scene_url) {
-            var odm = gpac.get_object_manager(this.scene_url);
+            var odm = scene.get_object_manager(this.scene_url);
             if (odm) {
                 odm.addon_layout(parseInt(this.get_option('OverlayPosition', '0')), parseInt(this.get_option('OverlaySize', '0')));
             }
@@ -327,7 +327,7 @@ extension = {
     },
 
     do_activate_addon: function () {
-        var odm = gpac.get_object_manager(this.scene_url);
+        var odm = scene.get_object_manager(this.scene_url);
         if (odm) {
             odm.enable_addon(this.addon_url);
             odm.addon_layout(parseInt(this.get_option('OverlayPosition', '0')), parseInt(this.get_option('OverlaySize', '0')));
@@ -335,7 +335,7 @@ extension = {
     },
 
     do_deactivate_addon: function () {
-        var odm = gpac.get_object_manager(this.scene_url);
+        var odm = scene.get_object_manager(this.scene_url);
         if (odm) {
             odm.enable_addon(this.addon_url, true);
         }
