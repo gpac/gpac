@@ -382,7 +382,6 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
 		return 0;
 	}
-
 	/*installed or symlink on system, user user home directory*/
 	if (!strnicmp(app_path, "/usr/", 5) || !strnicmp(app_path, "/opt/", 5)) {
 		if (path_type==GF_PATH_SHARE) {
@@ -412,10 +411,11 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 		/*GUI not found, look in gpac distribution if any */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			strcat(app_path, "/");
 			sep = strstr(app_path, "/bin/");
 			if (sep) {
 				sep[0] = 0;
-				strcat(app_path, "/share");
+				strcat(app_path, "/share/gpac");
 				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 			}
 			sep = strstr(app_path, "/build/");
@@ -439,6 +439,18 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			/*modules not found*/
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
 		}
+
+		/* look in distrib tree */
+		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			strcat(app_path, "/");
+			sep = strstr(app_path, "/bin/");
+			if (sep) {
+				sep[0] = 0;
+				strcat(app_path, "/lib/gpac");
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			}
+		}
+
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
 			strcpy(app_path, file_path);
