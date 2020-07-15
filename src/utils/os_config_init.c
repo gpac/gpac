@@ -415,7 +415,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			sep = strstr(app_path, "/bin/");
 			if (sep) {
 				sep[0] = 0;
-				strcat(app_path, "/share/gpac");
+				strcat(app_path, "/share");
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				strcat(app_path, "/gpac");
 				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 			}
 			sep = strstr(app_path, "/build/");
