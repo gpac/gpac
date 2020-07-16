@@ -617,7 +617,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 		fsess->filters = NULL;
 	}
 
-	gf_fs_unload_script(fsess);
+	gf_fs_unload_script(fsess, NULL);
 
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
 	if (fsess->font_manager) gf_font_manager_del(fsess->font_manager);

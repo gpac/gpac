@@ -3414,7 +3414,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_htonl(0xAABBCCDD);
 	gf_ntohl(0xAABBCCDD);
 	gf_htons(0xAABB);
-	gf_tohs(0xAABB);
+	gf_ntohs(0xAABB);
 	gf_errno_str(-1);
 
 	/* these two lock the bash shell in test mode

@@ -428,6 +428,10 @@ GF_EXPORT
 void gf_prompt_set_echo_off(Bool echo_off) {
 	return;
 }
+GF_Err gf_prompt_get_size(u32 *width, u32 *height)
+{
+	return GF_NOT_SUPPORTED;
+}
 
 #else
 
@@ -453,15 +457,35 @@ void gf_prompt_set_echo_off(Bool echo_off)
 	if (!ret) {
 		DWORD err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONSOLE, ("[Console] GetConsoleMode() return with the following error code: %d\n", err));
+		return;
 	}
 	if (echo_off) flags &= ~ENABLE_ECHO_INPUT;
 	else flags |= ENABLE_ECHO_INPUT;
 	SetConsoleMode(hStdin, flags);
 }
+
+GF_EXPORT
+GF_Err gf_prompt_get_size(u32 *width, u32 *height)
+{
+    CONSOLE_SCREEN_BUFFER_INFO info;
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	BOOL ret = GetConsoleScreenBufferInfo(hStdin, &info);
+
+	if (!ret) {
+		DWORD err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONSOLE, ("[Console] GetConsoleScreenBufferInfo() return with the following error code: %d\n", err));
+		return GF_IO_ERR;
+	}
+	if (width) *width = info.dwSize.X;
+	if (height) *height = info.dwSize.Y;
+	return GF_OK;
+}
+
 #endif
 #else
 /*linux kbhit/getchar- borrowed on debian mailing lists, (author Mike Brownlow)*/
 #include <termios.h>
+#include <sys/ioctl.h>
 
 static struct termios t_orig, t_new;
 static s32 ch_peek = -1;
@@ -532,6 +556,30 @@ char gf_prompt_get_char()
 		ch = 0;
 	close_keyboard(1);
 	return ch;
+}
+
+GF_EXPORT
+GF_Err gf_prompt_get_size(u32 *width, u32 *height)
+{
+#if defined(TIOCGWINSZ)
+    struct winsize ws;
+    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != 0) return GF_IO_ERR;
+
+    if (width) *width = ws.ws_col;
+    if (height) *height = ws.ws_row;
+    return GF_OK;
+#elif defined(WIOCGETD)
+	struct uwdata w;
+	if (ioctl(2, WIOCGETD, &w) != 0) return GF_IO_ERR;
+
+	if (width && (w.uw_width > 0))
+		*width = w.uw_width / w.uw_hs;
+	if (height && (w.uw_height > 0))
+		*height = w.uw_height / w.uw_vs;
+    return GF_OK;
+#else
+    return GF_NOT_SUPPORTED;
+#endif
 }
 
 #endif

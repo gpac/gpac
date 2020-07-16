@@ -796,9 +796,11 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	JSValue global_obj = JS_GetGlobalObject(c);
 
 	js_load_constants(c, global_obj);
-	fs->jstasks = gf_list_new();
-	if (!fs->jstasks) return GF_OUT_OF_MEM;
-
+	if (!fs->jstasks) {
+		fs->jstasks = gf_list_new();
+		if (!fs->jstasks) return GF_OUT_OF_MEM;
+	}
+	
 
 	//initialize filter class and create a single filter object in global scope
 	JS_NewClassID(&fs_class_id);
@@ -873,19 +875,27 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 	return GF_OK;
 }
 
-void gf_fs_unload_script(GF_FilterSession *fs)
+void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 {
-	while (gf_list_count(fs->jstasks)) {
-		JSFS_Task *task = gf_list_pop_back(fs->jstasks);
+	u32 i, count=gf_list_count(fs->jstasks);
+	for (i=0; i<count; i++) {
+		JSFS_Task *task = gf_list_get(fs->jstasks, i);
+		if (js_ctx && (task->ctx != js_ctx))
+			continue;
 		JS_FreeValue(task->ctx, task->fun);
 		gf_free(task);
+		gf_list_rem(fs->jstasks, i);
+		i--;
+		count--;
 	}
 	if (fs->js_ctx) {
 		gf_js_delete_context(fs->js_ctx);
 		fs->js_ctx = NULL;
 	}
-	gf_list_del(fs->jstasks);
-	fs->jstasks = NULL;
+	if (!js_ctx || !gf_list_count(fs->jstasks)) {
+		gf_list_del(fs->jstasks);
+		fs->jstasks = NULL;
+	}
 }
 
 #else
@@ -894,7 +904,7 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 {
 	return GF_NOT_SUPPORTED;
 }
-void gf_fs_unload_script(GF_FilterSession *fs)
+void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 {
 
 }

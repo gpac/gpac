@@ -187,7 +187,7 @@ u32 gf_base16_decode(u8 *in, u32 inSize, u8 *out, u32 outSize)
 #define ZLIB_COMPRESS_SAFE	4
 
 GF_EXPORT
-GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger)
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data)
 {
 	z_stream stream;
 	int err;
@@ -223,6 +223,10 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[GZ] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len ));
 	}
 
+	if (out_comp_data) {
+		data = out_comp_data;
+	}
+
 	if (*max_size < stream.total_out) {
 		*max_size = data_len*ZLIB_COMPRESS_SAFE;
 		*data = (char*)gf_realloc(*data, *max_size * sizeof(char));
@@ -239,8 +243,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 GF_EXPORT
 GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 {
-	return gf_gz_compress_payload_ex(data, data_len, max_size, 0, GF_FALSE);
-
+	return gf_gz_compress_payload_ex(data, data_len, max_size, 0, GF_FALSE, NULL);
 }
 
 GF_EXPORT

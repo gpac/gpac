@@ -159,7 +159,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	if (!scheme_uri || !strlen(scheme_uri)) scheme_uri = "urn:gpac:isma:encryption_scheme";
 
 	if (cstr->tci && ((cstr->tci->sel_enc_type==GF_CRYPT_SELENC_RAND) || (cstr->tci->sel_enc_type==GF_CRYPT_SELENC_RAND_RANGE)) ) {
-		gf_rand_init(1);
+		gf_rand_init(GF_TRUE);
 	}
 
 	cstr->isma_IV_size = 0;

@@ -989,7 +989,7 @@ void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
 
 void gf_filter_renegociate_output_task(GF_FSTask *task);
 
-void gf_fs_unload_script(GF_FilterSession *fs);
+void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx);
 
 #endif //_GF_FILTER_SESSION_H_
 

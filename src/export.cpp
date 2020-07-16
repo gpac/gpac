@@ -137,6 +137,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_has_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_size) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_crc_32) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload) )
@@ -2472,7 +2474,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_htonl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_htons) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ntohl) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_tohs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ntohs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_inline_is_default_viewpoint) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpegv12_get_config) )
 
