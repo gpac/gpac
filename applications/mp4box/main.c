@@ -904,7 +904,7 @@ void PrintLiveUsage()
 void PrintCoreUsage()
 {
 	gf_sys_format_help(helpout, help_flags, "# libgpac core options\n");
-	gf_sys_print_core_help(NULL, 0, GF_ARGMODE_ALL, 0);
+	gf_sys_print_core_help(helpout, 0, GF_ARGMODE_ALL, 0);
 }
 
 GF_GPACArg m4b_usage_args[] =
@@ -3445,7 +3445,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
 			else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-			else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac applications\n");
+			else if (!strcmp(argv[i + 1], "rtp")) fprintf(stderr, "RTP streaming deprecated in MP4Box, use gpac application\n");
 			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
 #endif
 			else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
