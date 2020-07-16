@@ -1197,7 +1197,7 @@ int mp4client_main(int argc, char **argv)
 			PrintHelp();
 			return 0;
 		} else if (!strcmp(arg, "-hc")) {
-			fprintf(stderr, "libgpac options:\n");
+			fprintf(helpout, "libgpac options:\n");
 			gf_sys_print_core_help(helpout, help_flags, GF_ARGMODE_ALL, 0);
 			return 0;
 		}
