@@ -33,6 +33,9 @@ interface JSGPACCoreSystem {
 /*! launch arguments*/
 attribute Array args;
 
+/*! run garbage collection*/
+void gc();
+
 /*! marks an argument as used (for argument tracking at prompt)
 \param arg_idx index of argument to mark as used
 \param arg_used if true, argument is marked as used
@@ -56,6 +59,21 @@ DOMString prompt_input();
 */
 DOMString prompt_string();
 
+/*! sets prompt echo off (input characters not visible) or on - see \ref gf_prompt_set_echo_off
+\param echo_off if true, echo is disabled
+*/
+void prompt_echo_off(boolean echo_off);
+
+/*! sets stderr color and other code for upcoming strings - see \ref gf_sys_set_console_code
+\param code code to set
+*/
+void prompt_code(unsigned long code);
+
+
+/*! gets stdin terminal size - see \ref gf_prompt_get_size
+\return terminal size object, or null if not available
+*/
+WinRect prompt_size();
 
 /*! enumerate directories
 \param dir the directory to enumerate
@@ -63,6 +81,222 @@ DOMString prompt_string();
 \param go_up if true, enumerate parent directory or root (/).
 \return array of FileInformation interface*/
 Array enum_directory(DOMString dir, optional DOMString filter=null, optional DOMString filter=null, optional bool go_up=false);
+
+
+/*! get system clock in milliseconds - see \ref gf_sys_clock
+\return clock value
+*/
+unsigned long clock_ms();
+
+/*! get system clock in microseconds - see \ref gf_sys_clock_high_res
+\return clock value
+*/
+unsigned long long clock_us();
+
+/*! convert a 4CC code to its string representation - see \ref gf_4cc_to_str
+\param value the 4CC code to convert
+\return string representation
+*/
+DOMString fcc_to_str(unsigned long value);
+
+/*! inits random number - see \ref gf_rand_init
+\param reset if true, resets the random seed
+*/
+void rand_init(optional boolean reset=false);
+
+/*! gets a random number - see \ref gf_rand
+\return random 32 bit value
+*/
+unsigned long rand();
+
+/*! gets a random number
+\return random 64 bit value
+*/
+unsigned long long rand64();
+
+/*! gets an environment variable
+\param var_name environment variable name
+\return environment variable value, or null if variable is not defined
+*/
+DOMString getenv(DOMString var_name);
+
+/*! gets UTC clock - see \ref gf_net_get_utc
+\return UTC 64 bit timestamp
+*/
+unsigned long long get_utc();
+
+/*! gets UTC timestamp for a given date - see \ref gf_net_get_utc_ts
+\param year date's year
+\param month date's month of the year
+\param day date's day of the week
+\param hour date's hours
+\param min date's minutes
+\param sec date's seconds
+\return UTC 64 bit timestamp
+*/
+unsigned long long get_utc();
+
+
+/*! gets UTC clock from a date - see \ref gf_net_parse_date
+\param date date string
+\return UTC 64 bit timestamp corresponding to the date
+*/
+unsigned long long get_utc(DOMString date);
+
+/*! gets CRC32 of an arraybuffer - see \ref gf_crc_32
+\param abuf array buffer
+\return CRC32 of the data
+*/
+unsigned long crc32(ArrayBuffer abuf);
+
+/*! gets SHA1 digest of an arraybuffer - see \ref gf_sha1_file
+\param fname name of file to hash
+\return ArrayBuffer containing SHA1 of the file data
+*/
+ArrayBuffer sha1(DOMString fname);
+
+/*! gets SHA1 digest of a file - see \ref gf_sha1_csum
+\param abuf array buffer
+\return ArrayBuffer containing SHA1 of the data
+*/
+ArrayBuffer sha1(ArrayBuffer abuf);
+
+/*! loads file content into an array buffer - see \ref gf_file_load_data
+\param fname name of file to load
+\return ArrayBuffer containing data of the file
+*/
+ArrayBuffer load_file(DOMString fname);
+
+/*! compress using deflate() an array buffer
+\param in_data input data to compress
+\return ArrayBuffer containing compressed data
+*/
+ArrayBuffer compress(ArrayBuffer in_data);
+
+/*! decompress using inflate() an array buffer
+\param in_data input data to decompress
+\return ArrayBuffer containing decompressed data
+*/
+ArrayBuffer decompress(ArrayBuffer in_data);
+
+
+/*! removes directory - cf \ref gf_rmdir
+\param dirname name of directory
+*/
+void rmdir(DOMString dirname);
+
+/*! creates directory - cf \ref gf_mkdir
+\param dirname name of directory
+*/
+void mkdir(DOMString dirname);
+
+/*! checks if directory exists - cf \ref gf_dir_exists
+\param dirname name of directory
+\return true if directory exists
+*/
+boolean dir_exists(DOMString dirname);
+
+/*! remove files in directory - cf \ref gf_cleanup_dir
+\param dirname name of directory
+*/
+void dir_clean(DOMString dirname);
+
+/*! get basename of file or dir - cf \ref gf_file_basename
+\param filename name of file
+\return file basename
+*/
+DOMString basename(DOMString filename);
+
+/*! get file extension - cf \ref gf_file_ext_start
+\param filename name of file
+\return file extension or null if none
+*/
+DOMString file_ext(DOMString filename);
+
+/*! check if file exists - cf \ref gf_file_exists
+\param filename name of file
+\return true if directory exists
+*/
+boolean file_exists(DOMString filename);
+
+/*! deletes a file - cf \ref gf_file_delete
+\param filename name of file
+*/
+void del(DOMString filename);
+
+/*! get file modification time - cf \ref gf_file_modification_time
+\param filename name of file
+\return file modification time
+*/
+unsigned long long mod_time(DOMString filename);
+
+/*! get file modification time - cf \ref gf_file_modification_time
+\param filename name of file
+\param newname new name of the file
+*/
+void move(DOMString filename, DOMString newname);
+
+
+/*! get option from GPAC config - cf \ref gf_opts_get_key
+\param secname name of section
+\param keyname name of key
+\return value of key or null if no key
+*/
+DOMString get_opt(DOMString secname, DOMString keyname);
+
+/*! get option from GPAC config - cf \ref gf_opts_get_key
+\param secname name of section
+\param keyname name of key
+\param value new value of key or null to remove key
+*/
+void set_opt(DOMString secname, DOMString keyname, optional DOMString value=null);
+
+/*! discard all changes in GPAC config - see \ref gf_opts_discard_changes*/
+void discard_opts();
+
+/*! encodes an arraybuffer to a base64 string
+\param in_data input buffer
+\return encoded string*/
+DOMString base64enc(ArrayBuffer in_data);
+
+/*! decodes a base64 string to an arraybuffer
+\param in_data input encoded string
+\return output decoded buffer*/
+ArrayBuffer base64enc(DOMString in_data);
+
+/*! encodes an arraybuffer to a base16 string
+\param in_data input buffer
+\return encoded string*/
+DOMString base16enc(ArrayBuffer in_data);
+
+/*! decodes a base16 string to an arraybuffer
+\param in_data input encoded string
+\return output decoded buffer*/
+ArrayBuffer base16enc(DOMString in_data);
+
+/*! converts 32 bit value from host to network byte order
+\param value value to convert
+\return converted value
+*/
+unsigned long htonl(unsigned long value);
+
+/*! converts 16 bit value from host to network byte order
+\param value value to convert
+\return converted value
+*/
+unsigned long htons(unsigned long value);
+
+/*! converts 32 bit value from network to host byte order
+\param value value to convert
+\return converted value
+*/
+unsigned long ntohl(unsigned long value);
+
+/*! converts 16 bit value from network to host byte order
+\param value value to convert
+\return converted value
+*/
+unsigned long ntohs(unsigned long value);
 
 /*! number of cores */
 attribute readonly unsigned long nb_cores;
@@ -130,10 +364,64 @@ readonly attribute unsigned long batteryFullLifeTime;
 /*! host name*/
 readonly DOMString hostname;
 
+/*! test mode - see \ref gf_sys_is_test_mode */
+readonly boolean test_mode;
+
+/*! old arch compatibility mode - see \ref gf_sys_old_arch_compat */
+readonly boolean old_arch;
+
+/*! check if logs use color - see \ref gf_log_use_color */
+readonly boolean log_color;
+
+
+/*! quiet mode - see \ref gf_sys_is_quiet */
+readonly boolean quiet;
+
+/*! timezone - see \ref gf_net_get_timezone */
+readonly signed int timezone;
+
+/*! number of opened file handles - see \ref gf_file_handles_count */
+readonly unsigned int nb_files_open;
+
+
+/*! default cache directory - see \ref gf_get_default_cache_directory */
+readonly DOMString cache_dir;
+
+/*! default shared directory (containing gui, shaders, etc) - see \ref gf_opts_default_shared_directory */
+readonly DOMString shared_dir;
+
+/*! GPAC version string */
+readonly DOMString version;
+
+/*! GPAC full version string, including GIT rev */
+readonly DOMString version_full;
+
+/*! GPAC copyright string */
+readonly DOMString copyright;
+
+/*! GPAC version major */
+readonly unsigned long version_major;
+
+/*! GPAC version minor */
+readonly unsigned long version_minor;
+
+/*! GPAC version micro */
+readonly unsigned long version_micro;
+
+
+};
+
+/*! object used for terminal size info - cannot be created through constructor*/
+interface WinRect {
+/*! width of terminal in characters*/
+attribute readonly unsigned long w;
+
+/*! height of terminal in characters*/
+attribute readonly unsigned long h;
 };
 
 
-/*! object used for file enumeration*/
+/*! object used for file enumeration - cannot be created through constructor*/
 interface FileInformation {
 	/*! file name*/
 	DOMString name;	
@@ -152,6 +440,323 @@ interface FileInformation {
 	/*! last modification UTC time*/
 	unsigned long long last_modified;
 };
+
+/*! SHA1 hasher object*/
+interface SHA1 {
+	/*! constructor*/
+	SHA1();
+	/*! push data to hasher - see \ref gf_sha1_update
+	\param buffer data to be hashed*/
+	void push(ArrayBuffer buffer);
+	/*! get final hash - the hash context is reset after this call - see \ref gf_sha1_finish
+	\return the hash message*/
+	ArrayBuffer get();
+};
+
+
+/*! FILE object*/
+interface File {
+
+/*! constructor for a temporary file*/
+File();
+
+/*! constructor for a file - see \ref gf_fopen
+\param name name of file to open
+\param mode read/write mode, same as fopen
+\param parent_fileio parent GF_FileIO name - see \ref gf_fopen_ex
+*/
+File(DOMString name, DOMString mode, optional DOMString parent_fileio=null);
+
+/*! flush file - see \ref gf_fflush*/
+void flush();
+
+/*! close file, underlying FILE object is destroyed and any futher calls to the file object will fail - see \ref gf_fclose*/
+void close();
+
+
+/*! read bytes in an array buffer - see \ref gf_fread
+\param buf array buffer to read bytes into
+\param nb_bytes number of bytes to read - if 0, uses array buffer size. If more than array buffer size, truncated to array buffer size
+\return the number of bytes read
+*/
+unsigned long read(ArrayBuffer buf, optional unsigned long nb_bytes=0);
+
+/*! get a string from a file, stopping at first new line character found - see \ref gf_fgets
+\return string read
+*/
+DOMString gets();
+
+/*! read a character from file - see \ref gf_fgetc
+\return string containing a single character
+*/
+DOMString getc(DOMString char);
+
+
+/*! write bytes of an array buffer to file - see \ref gf_fwrite
+\param buf array buffer to read bytes from
+\param nb_bytes number of bytes to write - if 0, uses array buffer size. If more than array buffer size, truncated to array buffer size
+\return the number of bytes written
+*/
+unsigned long write(ArrayBuffer buf, optional unsigned long nb_bytes=0);
+
+/*! put string to file - see \ref gf_fputs
+\param string string to write
+*/
+void puts(DOMString string);
+
+/*! put character to file - see \ref gf_fputc
+\param value character to write (only first char of string is used)
+*/
+void putc(DOMString value);
+
+/*! put character to file - see \ref gf_fputc
+\param value integer value to write
+*/
+void putc(unsigned long value);
+
+/*! read/write position in file - see \ref gf_ftell and \ref gf_fseek*/
+attribute unsigned long long pos;
+
+/*! EOF flag on file - see \ref gf_feof */
+attribute readonly boolean eof;
+
+/*! error code on file, 0 if no error - see \ref gf_ferror */
+attribute readonly unsigned long error;
+
+/*! file size - see \ref gf_fsize */
+attribute readonly unsigned long long size;
+
+/*! set to true if file is a GFIO  wrapper - see \ref gf_fileio_check */
+attribute readonly boolean gfio;
+
+};
+
+
+/*! Bitstream object*/
+interface Bitstream {
+
+/*! constructor for a dynamic allocated write bitstream*/
+Bitstream();
+
+/*! constructor for a static allocated bitstream
+\param buffer the array buffer to use for bitstream operations
+\param write_mode if set to true, the bitstream is created in write mode, otherwise in read mode
+*/
+Bitstream(ArrayBuffer buffer, optional boolean write_mode=false);
+
+
+/*! constructor for a bitstream wrapping a file - see \ref gf_bs_from_file
+\param file the File object to use for bitstream operations
+\param write_mode if set to true, the bitstream is created in write mode, otherwise in read mode. This mode shall be compatible with the file open mode
+*/
+Bitstream(File file, optional boolean write_mode=false);
+
+/*! get 8-bits unsigned integer, byte-aligned
+\return value read*/
+unsigned long get_u8();
+
+/*! get 8-bits signed integer, byte-aligned
+\return value read*/
+unsigned long get_s8();
+
+/*! get 16-bits unsigned integer, byte-aligned, big-endian
+\return value read*/
+unsigned long get_u16();
+
+/*! get 16-bits unsigned integer, byte-aligned, little-endian
+\return value read*/
+unsigned long get_u16_le();
+
+/*! get 16-bits signed integer, byte-aligned, big-endian
+\return value read*/
+unsigned long get_s16();
+
+/*! get 24-bits unsigned integer, byte-aligned, big-endian
+\return value read*/
+unsigned long get_u24();
+
+/*! get 32-bits unsigned integer, byte-aligned, big-endian
+\return value read*/
+unsigned long get_u32();
+
+/*! get 32-bits unsigned integer, byte-aligned, little-endian
+\return value read*/
+unsigned long get_u32_le();
+
+/*! get 32-bits signed integer, byte-aligned, big-endian
+\return value read*/
+unsigned long get_s32();
+
+/*! get 64-bits unsigned integer, byte-aligned, big-endian
+\return value read*/
+unsigned long get_u64();
+
+/*! get 64-bits unsigned integer, byte-aligned, little-endian
+\return value read*/
+unsigned long get_u64_le();
+
+/*! get 64-bits signed integer, byte-aligned, big-endian
+\return value read*/
+unsigned long get_s64();
+
+/*! get n-bits unsigned integer, big-endian
+\param nb_bits number of bits to read
+\return value read*/
+unsigned long get_bits(unsigned long nb_bits);
+
+/*! get float 32 bits value
+\return value read*/
+double get_float();
+
+/*! get float 64 bits value
+\return value read*/
+double get_double();
+
+/*! reads bytes in an array buffer
+\param buffer target read buffer
+\param nb_bytes number of bytes to read - if 0, uses array buffer size. If more than array buffer size, truncated to array buffer size
+\return number of bytes read*/
+unsigned long get_data(ArrayBuffer buffer, optional unsigned long nb_bytes=0);
+
+/*! write 8-bit unsigned value
+\param value value to write*/
+void put_u8(unsigned long value);
+
+/*! write 8-bit signed value
+\param value value to write*/
+void put_s8(signed long value);
+
+/*! write 16-bit unsigned value, big-endian
+\param value value to write*/
+void put_u16(unsigned long value);
+
+/*! write 8-bit unsigned value, little-endian
+\param value value to write*/
+void put_u16_le(unsigned long value);
+
+/*! write 16-bit signed value, big-endian
+\param value value to write*/
+void put_s16(signed long value);
+
+/*! write 24-bit unsigned value
+\param value value to write*/
+void put_u24(unsigned long value);
+
+/*! write 32-bit unsigned value, big-endian
+\param value value to write*/
+void put_u32(unsigned long value);
+
+/*! write 32-bit unsigned value, little-endian
+\param value value to write*/
+void put_u32_le(unsigned long value);
+
+/*! write 32-bit signed value, big-endian
+\param value value to write*/
+void put_s32(signed long value);
+
+/*! write 64-bit unsigned value, big-endian
+\param value value to write*/
+void put_u64(unsigned long long value);
+
+/*! write 64-bit unsigned value, little-endian
+\param value value to write*/
+void put_u64_le(unsigned long long value);
+
+/*! write 64-bit signed value, big-endian
+\param value value to write*/
+void put_s64(signed long long value);
+
+/*! write n-bit unsigned value
+\param value value to write
+\param nb_bits number of bits to use when writing
+*/
+void put_bits(unsigned long long value, unsigned long nb_bits);
+
+/*! write 32-bit float value
+\param value value to write*/
+void put_float(double value);
+
+/*! write 64-bit float value
+\param value value to write*/
+void put_double(double value);
+
+/*! write data
+\param buffer source of data to write
+\param nb_bytes number of bytes to write - if 0, uses array buffer size. If more than array buffer size, truncated to array buffer size
+\return number of bytes written
+*/
+unsigned long put_data(ArrayBuffer buffer, optional unsigned long nb_bytes=0);
+
+/*! write 64-bit float value
+\param buffer buffer to write
+\param nb_bytes number of bytes to write - if 0, uses array buffer size. If more than array buffer size, truncated to array buffer size
+\param offset byte offset at which data must be inserted
+*/
+void insert_data(ArrayBuffer buffer, optional unsigned long nb_bytes=0, optional unsigned long offset=0);
+
+
+/*! check if bitsream is byte-aligned - see \ref gf_bs_is_align
+\return true if aligned*/
+boolean is_align();
+
+/*! set bitsream byte-aligned - see \ref gf_bs_align*/
+void align();
+
+/*! truncate bitsream - see \ref gf_bs_truncate*/
+void truncate();
+
+/*! get content of the bitstream - see \ref gf_bs_get_content
+\return ArrayBuffer containing the bitstream content*/
+ArrayBuffer get_content();
+
+/*! transfer bitstream into another - see \ref gf_bs_transfer
+\param src_bs source bitstream for bytes to transfer
+\param keep_src if true, the source bitstream will not be reset
+*/
+void transfer(Bitstream *src_bs, optional boolean keep_src=false);
+
+/*! peek bits without changing bitstream state - see \ref gf_bs_peek_bits
+\param nb_bits the number of bits to peek
+\param byte_offset the position of the first byte after the current position to start peek
+\return value peeked*/
+unsigned long peek(unsigned long nb_bits, optional unsigned long byte_offset=0);
+
+/*! skips given amount of bytes
+\param nb_bytes number of bytes to skip*/
+void skip(unsigned long nb_bytes);
+
+/*! flush underlying file object if any*/
+void flush();
+
+/*! enable emulation preventio byte removal - see \ref gf_bs_enable_emulation_byte_removal
+\param enable if true, EPB is removed in read operations*/
+void epb_mode(boolean enable);
+
+/*! position of bitstream - see \ref gf_bs_get_position and \ref gf_bs_seek*/
+attribute unsigned long long pos;
+
+/*! check if bytes are available for read/write - see \ref gf_bs_available */
+attribute readonly unsigned long long available;
+
+/*! size of bitstream - see \ref gf_bs_get_size */
+attribute readonly unsigned long long size;
+
+/*! bit offset in bitstream - see \ref gf_bs_get_bit_offset */
+attribute readonly unsigned long bit_offset;
+
+/*! bit position in bitstream - see \ref gf_bs_get_bit_position */
+attribute readonly unsigned long bit_position;
+
+/*! bit available till end of byte - see \ref gf_bs_bits_available */
+attribute readonly unsigned long bits_available;
+
+/*! gets refreshed size of bitstream - see \ref gf_bs_get_refreshed_size */
+attribute readonly unsigned long long refreshed_size;
+
+}
+
+
+
 
 /*! @} */
 

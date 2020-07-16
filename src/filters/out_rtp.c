@@ -767,7 +767,7 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 	ctx->microsec_ts_init = min_dts;
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP clock initialized - time origin set to "LLU" us (sys clock) / "LLU" us (media clock)\n", ctx->sys_clock_at_init, ctx->microsec_ts_init));
 	if (ctx->tso<0) {
-		gf_rand_init(0);
+		gf_rand_init(GF_FALSE);
 		for (i=0; i<count; i++) {
 			GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
 			stream->rtp_ts_offset = gf_rand();

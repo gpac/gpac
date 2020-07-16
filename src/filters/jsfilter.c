@@ -137,6 +137,8 @@ typedef struct
 	char *log_name;
 
 	GF_List *pck_res;
+
+	Bool unload_session_api;
 } GF_JSFilterCtx;
 
 enum
@@ -3742,6 +3744,9 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
     JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
 }
 
+//to load session API
+#include "../filter_core/filter_session.h"
+
 static GF_Err jsfilter_initialize(GF_Filter *filter)
 {
 	u8 *buf;
@@ -3833,9 +3838,22 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 		return e;
 	}
 
+	if (strstr(buf, "session.")) {
+		GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs);
+//		GF_FilterSession *fs = sjs->compositor->filter->session;
+
+		e = gf_fs_load_js_api(jsf->ctx, filter->session);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading session API: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+		jsf->unload_session_api = GF_TRUE;
+	}
+
  	for (i=0; i<JSF_EVT_LAST_DEFINED; i++) {
         jsf->funcs[i] = JS_UNDEFINED;
     }
+
 
  	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
  		//init modules
@@ -3889,6 +3907,10 @@ static void jsfilter_finalize(GF_Filter *filter)
 	}
 
 	JS_SetOpaque(jsf->filter_obj, NULL);
+
+	if (jsf->unload_session_api)
+		gf_fs_unload_script(filter->session, jsf->ctx);
+
 	gf_js_delete_context(jsf->ctx);
 
 	while (gf_list_count(jsf->pids)) {
@@ -3920,6 +3942,7 @@ static void jsfilter_finalize(GF_Filter *filter)
 		}
 		gf_free(jsf->args);
 	}
+
 	if (jsf->caps) gf_free(jsf->caps);
 }
 

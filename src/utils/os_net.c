@@ -1845,7 +1845,7 @@ u32 gf_htonl(u32 val)
 GF_EXPORT
 u32 gf_ntohl(u32 val)
 {
-	return htonl(val);
+	return ntohl(val);
 }
 
 GF_EXPORT
@@ -1856,9 +1856,9 @@ u16 gf_htons(u16 val)
 
 
 GF_EXPORT
-u16 gf_tohs(u16 val)
+u16 gf_ntohs(u16 val)
 {
-	return htons(val);
+	return ntohs(val);
 }
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/

@@ -1764,8 +1764,7 @@ static void scenejs_finalize(JSRuntime *rt, JSValue obj)
 	gf_mx_del(sjs->event_mx);
 
 	if (sjs->compositor && sjs->compositor->filter) {
-		void gf_fs_unload_script(GF_FilterSession *fs);
-		gf_fs_unload_script(sjs->compositor->filter->session);
+		gf_fs_unload_script(sjs->compositor->filter->session, NULL);
 	}
 	/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 	JS_FreeValueRT(rt, sjs->evt_fun);

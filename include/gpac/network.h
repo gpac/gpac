@@ -203,7 +203,7 @@ network to host conversion of short integer
 \param val short integrer to convert
 \return converted integer
  */
-u16 gf_tohs(u16 val);
+u16 gf_ntohs(u16 val);
 
 /*! @} */
 

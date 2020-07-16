@@ -1468,6 +1468,19 @@ u16 gf_bs_read_u16_le(GF_BitStream *bs)
 }
 
 GF_EXPORT
+void gf_bs_write_u64_le(GF_BitStream *bs, u64 val)
+{
+	gf_bs_write_int(bs, val & 0xFF, 8);
+	gf_bs_write_int(bs, val>>8, 8);
+	gf_bs_write_int(bs, val>>16, 8);
+	gf_bs_write_int(bs, val>>24, 8);
+	gf_bs_write_int(bs, val>>32, 8);
+	gf_bs_write_int(bs, val>>40, 8);
+	gf_bs_write_int(bs, val>>48, 8);
+	gf_bs_write_int(bs, val>>56, 8);
+}
+
+GF_EXPORT
 void gf_bs_write_u32_le(GF_BitStream *bs, u32 val)
 {
 	gf_bs_write_int(bs, val & 0xFF, 8);

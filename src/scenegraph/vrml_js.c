@@ -558,6 +558,8 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 			gf_sys_format_help(stderr, GF_PRINTARG_HIGHLIGHT_FIRST, "%s\n", str);
 		} else if (logl==-2) {
 			gf_sys_format_help(stderr, 0, "%s\n", str);
+		} else if (!log_name || (logl<0)) {
+			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
 		} else {
 #ifndef GPAC_DISABLE_LOG
 			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));

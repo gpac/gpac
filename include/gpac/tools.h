@@ -795,6 +795,15 @@ Gets the current character entered at prompt if any.
 */
 char gf_prompt_get_char();
 
+/*!
+\brief Get prompt terminal size
+
+Gets the stdin prompt size (columns and rows)
+\param width set to number of rows in the terminal
+\param height set to number of columns in the terminal
+\return error if any
+*/
+GF_Err gf_prompt_get_size(u32 *width, u32 *height);
 
 /*!
 \brief turns prompt echo on/off
@@ -1610,9 +1619,10 @@ Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated 
 \param out_size pointer for output buffer size
 \param data_offset offset in source buffer - the input payload size is data_len - data_offset
 \param skip_if_larger if GF_TRUE, will not override source buffer if compressed version is larger than input data
+\param out_comp_data if not NULL, the compressed result is set in this pointer rather than doing inplace compression
 \return error if any
  */
-GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data_offset, Bool skip_if_larger);
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data);
 #endif /*GPAC_DISABLE_ZLIB*/
 
 /**
