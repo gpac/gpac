@@ -88,6 +88,9 @@ typedef struct
 	Bool prev_is_init_segment;
 	u32 timescale;
 	s64 pto;
+	u64 first_cts;
+	u64 first_dts;
+	u64 repeat_ts_offset;
 	s64 max_cts_in_period;
 	bin128 key_IV;
 
@@ -149,7 +152,9 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 			} else {
 				group->max_cts_in_period = 0;
 			}
-
+			group->repeat_ts_offset = 0;
+			group->first_cts = cts;
+			group->first_dts = dts;
 			start = (u64) (scale * gf_dash_get_period_start(ctx->dash));
 			group->pto -= start;
 		}
@@ -162,6 +167,9 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 
 		//remap timestamps to our timeline
 		if (dts != GF_FILTER_NO_TS) {
+			if (dts == group->first_dts) {
+				dts += group->repeat_ts_offset;
+			}
 			if ((s64) dts >= group->pto)
 				dts -= group->pto;
 			else {
@@ -171,6 +179,9 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 			}
 		}
 		if (cts!=GF_FILTER_NO_TS) {
+			if (cts == group->first_cts) {
+				cts += group->repeat_ts_offset;
+			}
 			if ((s64) cts >= group->pto)
 				cts -= group->pto;
 			else {
@@ -179,6 +190,7 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 				seek_flag = 1;
 			}
 		}
+		group->repeat_ts_offset += gf_filter_pck_get_duration(in_pck);
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
 		group->pto_setup = 1;
