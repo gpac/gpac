@@ -1287,7 +1287,7 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 
 
 
-struct _itags {
+static struct _itags {
 	const char *name;
 	u32 itag;
 	u32 id3tag;
