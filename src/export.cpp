@@ -2240,6 +2240,18 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_set_max_objects_store) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_atsc3_dmx_debug_tsi) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_find_by_id3tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_find_by_itag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_find_by_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_itag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_id3tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_enum_tags) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_id3_get_genre) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_id3_get_genre_tag) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_all_shortnames) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_size_info) )

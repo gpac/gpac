@@ -754,7 +754,7 @@ alltk (bool, default: false):  declare all tracks even disabled ones
 .br
 frame_size (uint, default: 1024): frame size for raw audio samples (dispatches frame_size samples per packet)
 .br
-expart (bool, default: true):  expose cover art as a dedicated video pid
+expart (bool, default: false): expose cover art as a dedicated video pid
 .br
 sigfrag (bool, default: false): signal fragment and segment boundaries of source on output packets
 .br
@@ -1690,10 +1690,25 @@ The box patch can either be a filename or the full XML string.
 .br
   
 .br
+.SH Tagging
+.LP
+.br
+When tagging is enabled, the filter will watch the property CoverArt and all custom properties on incoming pid.
+.br
+The built-in tag names are album, artist, comment, complilation, composer, year, disk, tool, genre, contentgroup, title, tempo, track, tracknum, writer, encoder, album_artist, gapless, conductor.
+.br
+Other tag class may be specified using tag_NAME property names, and will be added if .I tags is set to all using:
+.br
+- NAME as a box 4CC if NAME is four characters long
+.br
+- the CRC32 of the NAME as a box 4CC if NAME is not four characters long
+.br
+  
+.br
 .SH Notes
 .LP
 .br
-The filter  watches the property FileNumber on incoming packets to create new files or new segments in DASH mode.
+The filter watches the property FileNumber on incoming packets to create new files or new segments in DASH mode.
 .br
 
 .br
@@ -1905,6 +1920,16 @@ deps (bool, default: true):    add samples dependencies information
 mfra (bool, default: false):   enable movie fragment random access when fragmenting (ignored when dashing)
 .br
 forcesync (bool, default: false): force all SAP types to be considered sync samples (might produce non-conformant files)
+.br
+tags (enum, default: strict):  tag injection mode
+.br
+* none: do not inject tags
+.br
+* strict: only inject recognized itunes tags
+.br
+* all: inject all possible tags
+.br
+
 .br
 
 .br
@@ -2657,7 +2682,7 @@ decinfo (enum, default: auto): decoder config insert mode
 .br
 
 .br
-split (bool, default: false):  force one file per decoded frame.
+split (bool, default: false):  force one file per decoded frame
 .br
 frame (bool, default: false):  force single frame dump with no rewrite. In this mode, all codecids are supported
 .br
@@ -5956,7 +5981,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev82-g18965ba1e-master
+build: 1.0.0-rev117-g1d31bf6b1-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

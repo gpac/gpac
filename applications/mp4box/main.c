@@ -6131,7 +6131,7 @@ int mp4boxMain(int argc, char **argv)
 				break;
 			case GF_ISOM_ITUNE_GENRE:
 			{
-				u8 _v = id3_get_genre_tag(val);
+				u8 _v = gf_id3_get_genre_tag(val);
 				if (_v) {
 					gf_isom_apple_set_tag(file, itag, NULL, _v);
 				} else {

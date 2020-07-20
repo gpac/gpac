@@ -2960,42 +2960,6 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	}
 }
 
-static const char* ID3v1Genres[] = {
-	"Blues", "Classic Rock", "Country", "Dance", "Disco",
-	"Funk", "Grunge", "Hip-Hop", "Jazz", "Metal",
-	"New Age", "Oldies", "Other", "Pop", "R&B",
-	"Rap", "Reggae", "Rock", "Techno", "Industrial",
-	"Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack",
-	"Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk",
-	"Fusion", "Trance", "Classical", "Instrumental", "Acid",
-	"House", "Game", "Sound Clip", "Gospel", "Noise",
-	"AlternRock", "Bass", "Soul", "Punk", "Space",
-	"Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic",
-	"Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance",
-	"Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
-	"Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American",
-	"Cabaret", "New Wave", "Psychadelic", "Rave", "Showtunes",
-	"Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
-	"Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
-	"Folk", "Folk/Rock", "National Folk", "Swing",
-};
-static const char *id3_get_genre(u32 tag)
-{
-	if ((tag>0) && (tag <= (sizeof(ID3v1Genres)/sizeof(const char *)) )) {
-		return ID3v1Genres[tag-1];
-	}
-	return "Unknown";
-}
-u32 id3_get_genre_tag(const char *name)
-{
-	u32 i, count = sizeof(ID3v1Genres)/sizeof(const char *);
-	if (!name) return 0;
-	for (i=0; i<count; i++) {
-		if (!stricmp(ID3v1Genres[i], name)) return i+1;
-	}
-	return 0;
-}
-
 void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
@@ -3111,7 +3075,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 			if (tag[0]) {
 				fprintf(stderr, "\tGenre: %s\n", tag);
 			} else {
-				fprintf(stderr, "\tGenre: %s\n", id3_get_genre(((u8*)tag)[1]));
+				fprintf(stderr, "\tGenre: %s\n", gf_id3_get_genre(((u8*)tag)[1]));
 			}
 		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPILATION, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tCompilation: %s\n", tag[0] ? "Yes" : "No");
@@ -3128,9 +3092,14 @@ void DumpMovieInfo(GF_ISOFile *file)
 				fprintf(stderr, "\tTempo (BPM): %d\n", tag[1]);
 			}
 		}
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tTrackNumber: %d / %d\n", (0xff00 & (tag[2]<<8)) | (0xff & tag[3]), (0xff00 & (tag[4]<<8)) | (0xff & tag[5]));
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) {
+			if (tag[0]) {
+				fprintf(stderr, "\tTrackNumber: %s\n", tag);
+			} else {
+				fprintf(stderr, "\tTrackNumber: %d / %d\n", (0xff00 & (tag[2]<<8)) | (0xff & tag[3]), (0xff00 & (tag[4]<<8)) | (0xff & tag[5]));
+			}
+		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tTrack: %s\n", tag);
-//		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tTrack: %d / %d\n", tag[3], tag[5]);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GROUP, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tGroup: %s\n", tag);
 
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COVER_ART, &tag, &tag_len)==GF_OK) {

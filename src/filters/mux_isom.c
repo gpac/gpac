@@ -55,6 +55,13 @@ enum
 	CENC_SETUP_ERROR
 };
 
+enum{
+	TAG_NONE,
+	TAG_STRICT,
+	TAG_ALL
+};
+
+
 typedef struct
 {
 	GF_FilterPid *ipid;
@@ -230,6 +237,7 @@ typedef struct
 #endif
 	Bool mfra;
 	Bool forcesync;
+	u32 tags;
 
 	//internal
 	Bool owns_mov;
@@ -518,6 +526,146 @@ static void mp4mux_reorder_tracks(GF_MP4MuxCtx *ctx)
 	}
 	gf_list_del(ctx->tracks);
 	ctx->tracks = new_tracks;
+}
+
+static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+{
+	u32 idx=0;
+	if (ctx->tags==TAG_NONE) return;
+
+	while (1) {
+		GF_Err e;
+		u32 tag_val;
+		u32 prop_4cc=0;
+		s32 itag;
+		const char *tag_name=NULL;
+		const GF_PropertyValue *tag = gf_filter_pid_enum_properties(tkw->ipid, &idx, &prop_4cc, &tag_name);
+		if (!tag) break;
+
+		if (prop_4cc==GF_PROP_PID_COVER_ART) {
+			e = gf_isom_apple_set_tag(ctx->file, GF_ISOM_ITUNE_COVER_ART, tag->value.data.ptr, tag->value.data.size);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set cover art: %s\n", gf_error_to_string(e)));
+			}
+		}
+		if (!tag_name)
+			continue;
+
+		itag = gf_itags_find_by_name(tag_name);
+		if (itag>=0) {
+			Bool tag_set=GF_FALSE;
+			u32 val;
+			char _t[8];
+			u32 itype = gf_itags_get_type((u32) itag);
+			itag = gf_itags_get_itag(itag);
+
+			if ((itag==GF_ISOM_ITUNE_DISK) ||(itag==GF_ISOM_ITUNE_TRACKNUMBER)) {
+				u32 n=0, t=0, tlen=0;
+				if (tag->value.string) {
+					memset(_t, 0, sizeof(char) * 8);
+					tlen = (itag == GF_ISOM_ITUNE_DISK) ? 6 : 8;
+					if (sscanf(tag->value.string, "%u/%u", &n, &t) == 2) {
+						_t[3] = n;
+						_t[2] = n >> 8;
+						_t[5] = t;
+						_t[4] = t >> 8;
+					}
+					else if (sscanf(tag->value.string, "%u", &n) == 1) {
+						_t[3] = n;
+						_t[2] = n >> 8;
+					}
+					else tlen = 0;
+				}
+				if (!tag->value.string || tlen) {
+					e = gf_isom_apple_set_tag(ctx->file, itag, tlen ? (u8 *)_t : NULL, tlen);
+					tag_set = GF_TRUE;
+				}
+			}
+			else if (itag==GF_ISOM_ITUNE_GENRE) {
+				val = 0;
+				if ((tag->type==GF_PROP_STRING) && tag->value.string) {
+					val = gf_id3_get_genre_tag(tag->value.string);
+					if (val) {
+						e = gf_isom_apple_set_tag(ctx->file, itag, NULL, val);
+						tag_set = GF_TRUE;
+					}
+				}
+			}
+
+			if (!tag_set) {
+				switch (itype) {
+				case GF_ITAG_STR:
+				case GF_ITAG_SUBSTR:
+					if ((tag->type==GF_PROP_STRING) && tag->value.string) {
+						e = gf_isom_apple_set_tag(ctx->file, itag, tag->value.string, (u32) strlen(tag->value.string));
+					} else {
+						e = GF_BAD_PARAM;
+					}
+					break;
+				case GF_ITAG_INT:
+					val=0;
+					if ((tag->type==GF_PROP_STRING) && tag->value.string) {
+						val = atoi(tag->value.string);
+					} else if (tag->type==GF_PROP_UINT) {
+						val = tag->value.uint;
+					}
+					if (val) {
+						e = gf_isom_apple_set_tag(ctx->file, itag, NULL, val);
+					}
+					break;
+
+				case GF_ITAG_BOOL:
+					_t[0] = 0;
+					if ((tag->type==GF_PROP_STRING) && tag->value.string &&
+						(!stricmp(tag->value.string, "yes") || !stricmp(tag->value.string, "true") || !stricmp(tag->value.string, "1"))
+					) {
+						_t[0] = 1;
+					} else if (tag->value.boolean) {
+						_t[0] = 1;
+					}
+					e = gf_isom_apple_set_tag(ctx->file, itag, _t, 1);
+				}
+			}
+			
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set tag %s: %s\n", tag_name, gf_error_to_string(e)));
+			}
+			continue;
+		}
+		if (ctx->tags==TAG_STRICT)
+			continue;
+
+		if (strnicmp(tag_name, "tag_", 4))
+			continue;
+
+		tag_name += 4;
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized tag %s: %s\n", tag_name, tag->value.string));
+		if ((tag->type!=GF_PROP_STRING) && (tag->type!=GF_PROP_DATA) && (tag->type!=GF_PROP_CONST_DATA)) continue;
+
+		if (strlen(tag_name)==4) {
+			tag_val = GF_4CC(tag_name[0], tag_name[1], tag_name[2], tag_name[3]);
+		} else {
+			tag_val = gf_crc_32(tag_name, strlen(tag_name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Tag name %s is not a 4CC, using CRC32 %d as value\n", tag_name, tag_val));
+		}
+		if (tag->type==GF_PROP_STRING) {
+			if (tag->value.string) {
+				if (tag_val==GF_ID3V2_FRAME_TCOP) {
+					e = gf_isom_set_copyright(ctx->file, "unk", tag->value.string);
+				} else {
+					e = gf_isom_apple_set_tag(ctx->file, tag_val, tag->value.string, (u32) strlen(tag->value.string) );
+				}
+			} else {
+				e = gf_isom_apple_set_tag(ctx->file, tag_val, NULL, 0);
+			}
+		} else {
+			e = gf_isom_apple_set_tag(ctx->file, tag_val, tag->value.data.ptr , tag->value.data.size);
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set tag %s: %s\n", tag_name, gf_error_to_string(e)));
+		}
+	}
 }
 
 
@@ -2518,6 +2666,8 @@ sample_entry_done:
 			//this will remove any cslg in the track due to template
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
 		}
+
+		mp4_mux_set_tags(ctx, tkw);
 	}
 	return GF_OK;
 }
@@ -5394,6 +5544,11 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mfra), "enable movie fragment random access when fragmenting (ignored when dashing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(forcesync), "force all SAP types to be considered sync samples (might produce non-conformant files)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tags), "tag injection mode\n"
+			"- none: do not inject tags\n"
+			"- strict: only inject recognized itunes tags\n"
+			"- all: inject all possible tags"
+			, GF_PROP_UINT, "strict", "none|strict|all", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -5431,8 +5586,15 @@ GF_FilterRegister MP4MuxRegister = {
 	"The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.\n"
 	"The box patch can either be a filename or the full XML string.\n"
 	"  \n"
+	"# Tagging\n"
+	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming pid.\n"
+	"The built-in tag names are `album`, `artist`, `comment`, `complilation`, `composer`, `year`, `disk`, `tool`, `genre`, `contentgroup`, `title`, `tempo`, `track`, `tracknum`, `writer`, `encoder`, `album_artist`, `gapless`, `conductor`.\n"
+	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-tags]() is set to `all` using:\n"
+	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
+	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"
+	"  \n"
 	"# Notes\n"
-	"The filter  watches the property `FileNumber` on incoming packets to create new files or new segments in DASH mode.\n"
+	"The filter watches the property `FileNumber` on incoming packets to create new files or new segments in DASH mode.\n"
 	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,
