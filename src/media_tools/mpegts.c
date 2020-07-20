@@ -190,7 +190,7 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 		size -= 10;
 
 		//TODO, handle more ID3 tags ?
-		if (ftag==ID3V2_FRAME_TXXX) {
+		if (ftag==GF_ID3V2_FRAME_TXXX) {
 			u32 tpos = (u32) gf_bs_get_position(bs);
 			char *text = data+tpos;
 			add_text(output, output_size, output_pos, text, fsize);

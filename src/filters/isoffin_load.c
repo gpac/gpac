@@ -634,37 +634,55 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 		}
 
+		u32 idx=0;
+		while (1) {
+			u32 tag_len;
+			const u8 *tag;
+			u32 itag;
+			const char *name = gf_itags_enum_tags(&idx, &itag, NULL, NULL);
+			if (!name) break;
+			if (gf_isom_apple_get_tag(read->mov, itag, &tag, &tag_len)==GF_OK) {
+				switch (itag) {
+				case GF_ISOM_ITUNE_TRACK:
+				case GF_ISOM_ITUNE_TRACKNUMBER:
+				case GF_ISOM_ITUNE_DISK:
+					if (tag_len>=6) {
+						u16 tk_n = (tag[2]<<8)|tag[3];
+						u16 tk_all = (tag[4]<<8)|tag[5];
+						gf_filter_pid_set_property_str(ch->pid, name, &PROP_FRAC_INT(tk_n, tk_all) );
+					}
+					break;
+				case GF_ISOM_ITUNE_GAPLESS:
+				case GF_ISOM_ITUNE_COMPILATION:
+					if (tag_len)
+						gf_filter_pid_set_property_str(ch->pid, name, &PROP_BOOL(tag[0]) );
+					break;
+				case GF_ISOM_ITUNE_GENRE:
+					if (tag_len>=2) {
+						u32 genre_t = tag[0]<<8 | tag[1];
+						const char *genre = gf_id3_get_genre(genre_t);
+						if (genre) {
+							gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(genre) );
+							break;
+						}
+					}
+					gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(tag) );
+					break;
+				case GF_ISOM_ITUNE_TEMPO:
+					if (tag_len==2) {
+						u32 tempo = tag[0]<<8 | tag[1];
+						gf_filter_pid_set_property_str(ch->pid, name, &PROP_UINT(tempo) );
+					} else {
+						gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(tag) );
+					}
+					break;
 
-		u32 tag_len;
-		const u8 *tag;
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK)
-			gf_filter_pid_set_info_str(ch->pid, "info:name", &PROP_STRING(tag) );
-
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK)
-			gf_filter_pid_set_info_str(ch->pid, "info:artist", &PROP_STRING(tag) );
-
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK)
-			gf_filter_pid_set_info_str(ch->pid, "info:album", &PROP_STRING(tag) );
-
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK)
-			gf_filter_pid_set_info_str(ch->pid, "info:comment", &PROP_STRING(tag) );
-
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) {
-			u16 tk_n = (tag[2]<<8)|tag[3];
-			u16 tk_all = (tag[4]<<8)|tag[5];
-			gf_filter_pid_set_info_str(ch->pid, "info:track", &PROP_FRAC_INT(tk_n, tk_all) );
-		}
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK)
-			gf_filter_pid_set_info_str(ch->pid, "info:composer", &PROP_STRING(tag) );
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK)
-			gf_filter_pid_set_info_str(ch->pid, "info:writer", &PROP_STRING(tag) );
-
-		if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) {
-			if (tag[0]) {
-			} else {
-				/*com->info.genre = (tag[0]<<8) | tag[1];*/
+				default:
+					gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(tag) );
+				}
 			}
 		}
+
 
 		if (codec_id==GF_CODECID_TMCD) {
 			u32 tmcd_flags=0, tmcd_fps_num=0, tmcd_fps_den=0, tmcd_fpt=0;
@@ -1117,8 +1135,6 @@ GF_Err isor_declare_objects(ISOMReader *read)
 
 		if (read->expart && !isom_contains_video) {
 			GF_FilterPid *cover_pid=NULL;
-			gf_filter_pid_set_property(cover_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-
 			e = gf_filter_pid_raw_new(read->filter, NULL, NULL, NULL, NULL, (char *) tag, tlen, GF_FALSE, &cover_pid);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
@@ -1126,6 +1142,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 			if (cover_pid) {
 				u8 *out_buffer;
 				GF_FilterPacket *dst_pck;
+				gf_filter_pid_set_property(cover_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 				gf_filter_pid_set_name(cover_pid, "CoverArt");
 				dst_pck = gf_filter_pck_new_alloc(cover_pid, tlen, &out_buffer);
 				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);

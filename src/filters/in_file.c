@@ -446,6 +446,23 @@ static GF_Err filein_process(GF_Filter *filter)
 
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
+		//quick hack for ID3v2: if detected, increase block size to have the full id3v2 + some frames in the initial block
+		//to avoid relying on file extension for demux
+		if (!ctx->pid && (nb_read>10)
+			&& (ctx->block[0] == 'I' && ctx->block[1] == 'D' && ctx->block[2] == '3')
+		) {
+			u32 tag_size = ((ctx->block[9] & 0x7f) + ((ctx->block[8] & 0x7f) << 7) + ((ctx->block[7] & 0x7f) << 14) + ((ctx->block[6] & 0x7f) << 21));
+			if (tag_size > nb_read) {
+				u32 probe_size = tag_size + ctx->block_size;
+				if (probe_size>ctx->file_size)
+					probe_size = ctx->file_size;
+
+				ctx->block_size = probe_size;
+				ctx->block = gf_realloc(ctx->block, ctx->block_size+1);
+				nb_read += (u32) gf_fread(ctx->block + nb_read, probe_size-nb_read, ctx->file);
+			}
+		}
+
 		ctx->do_reconfigure = GF_FALSE;
 		e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read, GF_TRUE, &ctx->pid);
 		if (e) return e;

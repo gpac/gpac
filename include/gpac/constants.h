@@ -1105,82 +1105,159 @@ static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 5
 
 /*! ID3v2 tags*/
 typedef enum {
-	ID3V2_FRAME_AENC = GF_4CC('A','E','N','C'),
-	ID3V2_FRAME_APIC = GF_4CC('A','P','I','C'),
-	ID3V2_FRAME_COMM = GF_4CC('C','O','M','M'),
-	ID3V2_FRAME_COMR = GF_4CC('C','O','M','R'),
-	ID3V2_FRAME_ENCR = GF_4CC('E','N','C','R'),
-	ID3V2_FRAME_EQUA = GF_4CC('E','Q','U','A'),
-	ID3V2_FRAME_ETCO = GF_4CC('E','T','C','O'),
-	ID3V2_FRAME_GEOB = GF_4CC('G','E','O','B'),
-	ID3V2_FRAME_GRID = GF_4CC('G','R','I','D'),
-	ID3V2_FRAME_IPLS = GF_4CC('I','P','L','S'),
-	ID3V2_FRAME_LINK = GF_4CC('L','I','N','K'),
-	ID3V2_FRAME_MCDI = GF_4CC('M','C','D','I'),
-	ID3V2_FRAME_MLLT = GF_4CC('M','L','L','T'),
-	ID3V2_FRAME_OWNE = GF_4CC('O','W','N','E'),
-	ID3V2_FRAME_PRIV = GF_4CC('P','R','I','V'),
-	ID3V2_FRAME_PCNT = GF_4CC('P','C','N','T'),
-	ID3V2_FRAME_POPM = GF_4CC('P','O','P','M'),
-	ID3V2_FRAME_POSS = GF_4CC('P','O','S','S'),
-	ID3V2_FRAME_RBUF = GF_4CC('R','B','U','F'),
-	ID3V2_FRAME_RVAD = GF_4CC('R','V','A','D'),
-	ID3V2_FRAME_RVRB = GF_4CC('R','V','R','B'),
-	ID3V2_FRAME_SYLT = GF_4CC('S','Y','L','T'),
-	ID3V2_FRAME_SYTC = GF_4CC('S','Y','T','C'),
-	ID3V2_FRAME_TALB = GF_4CC('T','A','L','B'),
-	ID3V2_FRAME_TBPM = GF_4CC('T','B','P','M'),
-	ID3V2_FRAME_TCOM = GF_4CC('T','C','O','M'),
-	ID3V2_FRAME_TCON = GF_4CC('T','C','O','N'),
-	ID3V2_FRAME_TCOP = GF_4CC('T','C','O','P'),
-	ID3V2_FRAME_TDAT = GF_4CC('T','D','A','T'),
-	ID3V2_FRAME_TDLY = GF_4CC('T','D','L','Y'),
-	ID3V2_FRAME_TDRC = GF_4CC('T','D','R','C'),
-	ID3V2_FRAME_TENC = GF_4CC('T','E','N','C'),
-	ID3V2_FRAME_TEXT = GF_4CC('T','E','X','T'),
-	ID3V2_FRAME_TFLT = GF_4CC('T','F','L','T'),
-	ID3V2_FRAME_TIME = GF_4CC('T','I','M','E'),
-	ID3V2_FRAME_TIT1 = GF_4CC('T','I','T','1'),
-	ID3V2_FRAME_TIT2 = GF_4CC('T','I','T','2'),
-	ID3V2_FRAME_TIT3 = GF_4CC('T','I','T','3'),
-	ID3V2_FRAME_TKEY = GF_4CC('T','K','E','Y'),
-	ID3V2_FRAME_TLAN = GF_4CC('T','L','A','N'),
-	ID3V2_FRAME_TLEN = GF_4CC('T','L','E','N'),
-	ID3V2_FRAME_TMED = GF_4CC('T','M','E','D'),
-	ID3V2_FRAME_TOAL = GF_4CC('T','O','A','L'),
-	ID3V2_FRAME_TOFN = GF_4CC('T','O','F','N'),
-	ID3V2_FRAME_TOLY = GF_4CC('T','O','L','Y'),
-	ID3V2_FRAME_TOPE = GF_4CC('T','O','P','E'),
-	ID3V2_FRAME_TORY = GF_4CC('T','O','R','Y'),
-	ID3V2_FRAME_TOWN = GF_4CC('T','O','W','N'),
-	ID3V2_FRAME_TPE1 = GF_4CC('T','P','E','1'),
-	ID3V2_FRAME_TPE2 = GF_4CC('T','P','E','2'),
-	ID3V2_FRAME_TPE3 = GF_4CC('T','P','E','3'),
-	ID3V2_FRAME_TPE4 = GF_4CC('T','P','E','4'),
-	ID3V2_FRAME_TPOS = GF_4CC('T','P','E','5'),
-	ID3V2_FRAME_TPUB = GF_4CC('T','P','U','B'),
-	ID3V2_FRAME_TRCK = GF_4CC('T','R','C','K'),
-	ID3V2_FRAME_TRDA = GF_4CC('T','R','D','A'),
-	ID3V2_FRAME_TRSN = GF_4CC('T','R','S','N'),
-	ID3V2_FRAME_TRSO = GF_4CC('T','R','S','O'),
-	ID3V2_FRAME_TSIZ = GF_4CC('T','S','I','Z'),
-	ID3V2_FRAME_TSRC = GF_4CC('T','S','R','C'),
-	ID3V2_FRAME_TSSE = GF_4CC('T','S','S','E'),
-	ID3V2_FRAME_TYER = GF_4CC('T','Y','E','R'),
-	ID3V2_FRAME_TXXX = GF_4CC('T','X','X','X'),
-	ID3V2_FRAME_UFID = GF_4CC('U','F','I','D'),
-	ID3V2_FRAME_USER = GF_4CC('U','S','E','R'),
-	ID3V2_FRAME_USLT = GF_4CC('U','S','L','T'),
-	ID3V2_FRAME_WCOM = GF_4CC('W','C','O','M'),
-	ID3V2_FRAME_WCOP = GF_4CC('W','C','O','P'),
-	ID3V2_FRAME_WOAF = GF_4CC('W','O','A','F'),
-	ID3V2_FRAME_WOAR = GF_4CC('W','O','A','R'),
-	ID3V2_FRAME_WOAS = GF_4CC('W','O','A','S'),
-	ID3V2_FRAME_WORS = GF_4CC('W','O','R','S'),
-	ID3V2_FRAME_WPAY = GF_4CC('W','P','A','Y'),
-	ID3V2_FRAME_WPUB = GF_4CC('W','P','U','B'),
-	ID3V2_FRAME_WXXX = GF_4CC('W','X','X','X')
+	GF_ID3V2_FRAME_AENC = GF_4CC('A','E','N','C'),
+	GF_ID3V2_FRAME_APIC = GF_4CC('A','P','I','C'),
+	GF_ID3V2_FRAME_COMM = GF_4CC('C','O','M','M'),
+	GF_ID3V2_FRAME_COMR = GF_4CC('C','O','M','R'),
+	GF_ID3V2_FRAME_ENCR = GF_4CC('E','N','C','R'),
+	GF_ID3V2_FRAME_EQUA = GF_4CC('E','Q','U','A'),
+	GF_ID3V2_FRAME_ETCO = GF_4CC('E','T','C','O'),
+	GF_ID3V2_FRAME_GEOB = GF_4CC('G','E','O','B'),
+	GF_ID3V2_FRAME_GRID = GF_4CC('G','R','I','D'),
+	GF_ID3V2_FRAME_IPLS = GF_4CC('I','P','L','S'),
+	GF_ID3V2_FRAME_LINK = GF_4CC('L','I','N','K'),
+	GF_ID3V2_FRAME_MCDI = GF_4CC('M','C','D','I'),
+	GF_ID3V2_FRAME_MLLT = GF_4CC('M','L','L','T'),
+	GF_ID3V2_FRAME_OWNE = GF_4CC('O','W','N','E'),
+	GF_ID3V2_FRAME_PRIV = GF_4CC('P','R','I','V'),
+	GF_ID3V2_FRAME_PCNT = GF_4CC('P','C','N','T'),
+	GF_ID3V2_FRAME_POPM = GF_4CC('P','O','P','M'),
+	GF_ID3V2_FRAME_POSS = GF_4CC('P','O','S','S'),
+	GF_ID3V2_FRAME_RBUF = GF_4CC('R','B','U','F'),
+	GF_ID3V2_FRAME_RVAD = GF_4CC('R','V','A','D'),
+	GF_ID3V2_FRAME_RVRB = GF_4CC('R','V','R','B'),
+	GF_ID3V2_FRAME_SYLT = GF_4CC('S','Y','L','T'),
+	GF_ID3V2_FRAME_SYTC = GF_4CC('S','Y','T','C'),
+	GF_ID3V2_FRAME_TALB = GF_4CC('T','A','L','B'),
+	GF_ID3V2_FRAME_TBPM = GF_4CC('T','B','P','M'),
+	GF_ID3V2_FRAME_TCMP = GF_4CC('T','C','M','P'),
+	GF_ID3V2_FRAME_TCOM = GF_4CC('T','C','O','M'),
+	GF_ID3V2_FRAME_TCON = GF_4CC('T','C','O','N'),
+	GF_ID3V2_FRAME_TCOP = GF_4CC('T','C','O','P'),
+	GF_ID3V2_FRAME_TDAT = GF_4CC('T','D','A','T'),
+	GF_ID3V2_FRAME_TDLY = GF_4CC('T','D','L','Y'),
+	GF_ID3V2_FRAME_TDRC = GF_4CC('T','D','R','C'),
+	GF_ID3V2_FRAME_TENC = GF_4CC('T','E','N','C'),
+	GF_ID3V2_FRAME_TEXT = GF_4CC('T','E','X','T'),
+	GF_ID3V2_FRAME_TFLT = GF_4CC('T','F','L','T'),
+	GF_ID3V2_FRAME_TIME = GF_4CC('T','I','M','E'),
+	GF_ID3V2_FRAME_TIT1 = GF_4CC('T','I','T','1'),
+	GF_ID3V2_FRAME_TIT2 = GF_4CC('T','I','T','2'),
+	GF_ID3V2_FRAME_TIT3 = GF_4CC('T','I','T','3'),
+	GF_ID3V2_FRAME_TKEY = GF_4CC('T','K','E','Y'),
+	GF_ID3V2_FRAME_TLAN = GF_4CC('T','L','A','N'),
+	GF_ID3V2_FRAME_TLEN = GF_4CC('T','L','E','N'),
+	GF_ID3V2_FRAME_TMED = GF_4CC('T','M','E','D'),
+	GF_ID3V2_FRAME_TOAL = GF_4CC('T','O','A','L'),
+	GF_ID3V2_FRAME_TOFN = GF_4CC('T','O','F','N'),
+	GF_ID3V2_FRAME_TOLY = GF_4CC('T','O','L','Y'),
+	GF_ID3V2_FRAME_TOPE = GF_4CC('T','O','P','E'),
+	GF_ID3V2_FRAME_TORY = GF_4CC('T','O','R','Y'),
+	GF_ID3V2_FRAME_TOWN = GF_4CC('T','O','W','N'),
+	GF_ID3V2_FRAME_TPE1 = GF_4CC('T','P','E','1'),
+	GF_ID3V2_FRAME_TPE2 = GF_4CC('T','P','E','2'),
+	GF_ID3V2_FRAME_TPE3 = GF_4CC('T','P','E','3'),
+	GF_ID3V2_FRAME_TPE4 = GF_4CC('T','P','E','4'),
+	GF_ID3V2_FRAME_TPOS = GF_4CC('T','P','E','5'),
+	GF_ID3V2_FRAME_TPUB = GF_4CC('T','P','U','B'),
+	GF_ID3V2_FRAME_TRCK = GF_4CC('T','R','C','K'),
+	GF_ID3V2_FRAME_TRDA = GF_4CC('T','R','D','A'),
+	GF_ID3V2_FRAME_TRSN = GF_4CC('T','R','S','N'),
+	GF_ID3V2_FRAME_TRSO = GF_4CC('T','R','S','O'),
+	GF_ID3V2_FRAME_TSIZ = GF_4CC('T','S','I','Z'),
+	GF_ID3V2_FRAME_TSRC = GF_4CC('T','S','R','C'),
+	GF_ID3V2_FRAME_TSSE = GF_4CC('T','S','S','E'),
+	GF_ID3V2_FRAME_TYER = GF_4CC('T','Y','E','R'),
+	GF_ID3V2_FRAME_TXXX = GF_4CC('T','X','X','X'),
+	GF_ID3V2_FRAME_UFID = GF_4CC('U','F','I','D'),
+	GF_ID3V2_FRAME_USER = GF_4CC('U','S','E','R'),
+	GF_ID3V2_FRAME_USLT = GF_4CC('U','S','L','T'),
+	GF_ID3V2_FRAME_WCOM = GF_4CC('W','C','O','M'),
+	GF_ID3V2_FRAME_WCOP = GF_4CC('W','C','O','P'),
+	GF_ID3V2_FRAME_WOAF = GF_4CC('W','O','A','F'),
+	GF_ID3V2_FRAME_WOAR = GF_4CC('W','O','A','R'),
+	GF_ID3V2_FRAME_WOAS = GF_4CC('W','O','A','S'),
+	GF_ID3V2_FRAME_WORS = GF_4CC('W','O','R','S'),
+	GF_ID3V2_FRAME_WPAY = GF_4CC('W','P','A','Y'),
+	GF_ID3V2_FRAME_WPUB = GF_4CC('W','P','U','B'),
+	GF_ID3V2_FRAME_WXXX = GF_4CC('W','X','X','X'),
 } GF_ID3v2FrameType;
+
+/*! tag base types*/
+enum
+{
+	/*! tag is a string*/
+	GF_ITAG_STR=0,
+	/*! tag is an int*/
+	GF_ITAG_INT,
+	/*! tag is a fraction*/
+	GF_ITAG_FRAC,
+	/*! tag is a boolean*/
+	GF_ITAG_BOOL,
+	/*! tag is a string but name is matched as substring*/
+	GF_ITAG_SUBSTR,
+};
+/*! finds a tag by its ID3 value
+ \param id3tag ID3 tag value
+ \return corresponding tag index, -1 if not found
+*/
+s32 gf_itags_find_by_id3tag(u32 id3tag);
+
+/*! finds a tag by its itunes value
+ \param itag itunes tag value
+ \return corresponding tag index, -1 if not found
+*/
+s32 gf_itags_find_by_itag(u32 itag);
+
+/*! finds a tag by its name
+ \param tag_name tag name
+ \return corresponding tag index, -1 if not found
+*/
+s32 gf_itags_find_by_name(const char *tag_name);
+
+/*! gets tag associated type
+ \param tag_idx tag index
+ \return corresponding tag type, 0 if error
+*/
+u32 gf_itags_get_type(u32 tag_idx);
+
+/*! gets tag associated name
+ \param tag_idx tag index
+ \return corresponding tag name, NULL if error
+*/
+const char *gf_itags_get_name(u32 tag_idx);
+
+/*! gets tag associated itunes tag
+ \param tag_idx tag index
+ \return corresponding itunes tag, 0 if error
+*/
+u32 gf_itags_get_itag(u32 tag_idx);
+
+/*! gets tag associated id3 tag
+ \param tag_idx tag index
+ \return corresponding id3 tag, 0 if error
+*/
+u32 gf_itags_get_id3tag(u32 tag_idx);
+
+/*! enumerates tags
+ \param tag_idx tag index, increased at each call
+ \param itag set to itunes tag value - may be NULL
+ \param id3tag set to ID3 tag value - may be NULL
+ \param type set to tag type - may be NULL
+ \return tag name, NULL if error
+*/
+const char *gf_itags_enum_tags(u32 *tag_idx, u32 *itag, u32 *id3tag, u32 *type);
+
+/*! gets genre name by genre tag
+\param tag genre tag (from 1 to max number of ID3 genres)
+\return genre name, NULL if not found*/
+const char *gf_id3_get_genre(u32 tag);
+
+/*! gets genre tag by genre name
+\param name genre name
+\return genre tag, 0 if not found*/
+u32 gf_id3_get_genre_tag(const char *name);
+
 
 /*! meta types from box_code_meta.c - fileimport.c */
 enum {

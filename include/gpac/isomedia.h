@@ -5666,6 +5666,7 @@ typedef enum
 	GF_ISOM_ITUNE_ENCODER = GF_4CC( 0xA9, 'e', 'n', 'c' ),
 	GF_ISOM_ITUNE_ALBUM_ARTIST = GF_4CC( 'a', 'A', 'R', 'T' ),
 	GF_ISOM_ITUNE_GAPLESS = GF_4CC( 'p', 'g', 'a', 'p' ),
+	GF_ISOM_ITUNE_CONDUCTOR = GF_4CC( 0xA9, 'c', 'o', 'n' ),
 } GF_ISOiTunesTag;
 
 /*! gets the given itunes tag info.

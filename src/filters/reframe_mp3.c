@@ -185,7 +185,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 
 #include <gpac/utf.h>
-static void id3dmx_set_string(GF_FilterPid *apid, char *name, u8 *buf)
+static void id3dmx_set_string(GF_FilterPid *apid, char *name, u8 *buf, Bool is_dyn)
 {
 	if ((buf[0]==0xFF) || (buf[0]==0xFE)) {
 		const u16 *sptr = (u16 *) (buf+2);
@@ -194,13 +194,21 @@ static void id3dmx_set_string(GF_FilterPid *apid, char *name, u8 *buf)
 		len = (s32) gf_utf8_wcstombs(tmp, len, &sptr);
 		if (len>=0) {
 			tmp[len] = 0;
-			gf_filter_pid_set_property_dyn(apid, name, &PROP_STRING(tmp) );
+			if (is_dyn) {
+				gf_filter_pid_set_property_dyn(apid, name, &PROP_STRING(tmp) );
+			} else {
+				gf_filter_pid_set_property_str(apid, name, &PROP_STRING(tmp) );
+			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] Corrupted ID3 text frame %s\n", name));
 		}
 		gf_free(tmp);
 	} else {
-		gf_filter_pid_set_property_dyn(apid, name, &PROP_STRING(buf) );
+		if (is_dyn) {
+			gf_filter_pid_set_property_dyn(apid, name, &PROP_STRING(buf) );
+		} else {
+			gf_filter_pid_set_property_str(apid, name, &PROP_STRING(buf) );
+		}
 	}
 }
 
@@ -226,6 +234,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 	while (size && (gf_bs_available(bs)>=10) ) {
 		char szTag[1024];
 		char *sep;
+		s32 tag_idx;
 		u32 pic_size;
 		//u32 pic_type;
 		u32 ftag = gf_bs_read_u32(bs);
@@ -250,38 +259,22 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 		buf[fsize]=0;
 		buf[fsize+1]=0;
 
-		switch (ftag) {
-		case ID3V2_FRAME_TIT2:
-			id3dmx_set_string(audio_pid, "tag:title", buf+1);
-			break;
-		case ID3V2_FRAME_TPE1:
-			id3dmx_set_string(audio_pid, "tag:artist", buf+1);
-			break;
-		case ID3V2_FRAME_TALB:
-			id3dmx_set_string(audio_pid, "tag:album", buf+1);
-			break;
-		case ID3V2_FRAME_TCON:
-			id3dmx_set_string(audio_pid, "tag:genre", buf+1);
-			break;
-		case ID3V2_FRAME_TDRC:
-			id3dmx_set_string(audio_pid, "tag:recdate", buf+1);
-			break;
-		case ID3V2_FRAME_TRCK:
-			id3dmx_set_string(audio_pid, "tag:tracknum", buf+1);
-			break;
-		case ID3V2_FRAME_TSSE:
-			id3dmx_set_string(audio_pid, "tag:encoder", buf+1);
-			break;
-		case ID3V2_FRAME_TXXX:
+		tag_idx = gf_itags_find_by_id3tag(ftag);
+		if (tag_idx>=0) {
+			const char *tag_name = gf_itags_get_name((u32) tag_idx);
+			id3dmx_set_string(audio_pid, (char *) tag_name, buf+1, GF_FALSE);
+		} else if (ftag==GF_ID3V2_FRAME_TXXX) {
 			sep = memchr(buf, 0, fsize);
 			if (sep) {
-				strcpy(szTag, "tag:");
-				strncat(szTag, buf+1, 1019);
-				id3dmx_set_string(audio_pid, szTag, sep+1);
+				if (!stricmp(buf+1, "comment")) {
+					id3dmx_set_string(audio_pid, "comment", sep+1, GF_FALSE);
+				} else {
+					strcpy(szTag, "tag_");
+					strncat(szTag, buf+1, 1019);
+					id3dmx_set_string(audio_pid, szTag, sep+1, GF_TRUE);
+				}
 			}
-			break;
-
-		case ID3V2_FRAME_APIC:
+		} else if (ftag == GF_ID3V2_FRAME_APIC) {
 			//first char is text encoding
 			//then mime
 			sep = memchr(buf+1, 0, fsize-1);
@@ -314,15 +307,12 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 					gf_filter_pid_set_property(audio_pid, GF_PROP_PID_COVER_ART, &PROP_DATA(sep_desc+1, pic_size) );
 				}
 			}
-			break;
-
-		default:
-			sprintf(szTag, "tag:%s", gf_4cc_to_str(ftag));
-
+		} else {
+			sprintf(szTag, "tag_%s", gf_4cc_to_str(ftag));
 			if ((ftag>>24) == 'T') {
-				id3dmx_set_string(audio_pid, szTag, buf+1);
+				id3dmx_set_string(audio_pid, szTag, buf+1, GF_TRUE);
 			} else {
-				gf_filter_pid_set_property_str(audio_pid, szTag, &PROP_DATA(buf, fsize) );
+				gf_filter_pid_set_property_dyn(audio_pid, szTag, &PROP_DATA(buf, fsize) );
 			}
 			break;
 		}

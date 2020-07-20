@@ -1007,7 +1007,7 @@ static void id3_tag_create(u8 **input, u32 *len)
 
 	id3_write_size(bs, *len + 10);
 
-	gf_bs_write_u32(bs, ID3V2_FRAME_TXXX);
+	gf_bs_write_u32(bs, GF_ID3V2_FRAME_TXXX);
 	id3_write_size(bs, *len); /* size of the text */
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_u8(bs, 0);

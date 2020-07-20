@@ -5613,6 +5613,11 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 			info->data->flags = 0x15;
 			break;
 		default:
+			if (info->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
+				info = (GF_ListItemBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRKN);
+				if (info == NULL) return GF_OUT_OF_MEM;
+				info->type = btype;
+			}
 			info->data->flags = 0x1;
 			break;
 		}
@@ -5661,7 +5666,8 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		}
 		return GF_OK;
 	}
-
+	if (!ilst->child_boxes) ilst->child_boxes = gf_list_new();
+	
 	return gf_list_add(ilst->child_boxes, info);
 }
 
