@@ -455,7 +455,7 @@ static GF_Err filein_process(GF_Filter *filter)
 			if (tag_size > nb_read) {
 				u32 probe_size = tag_size + ctx->block_size;
 				if (probe_size>ctx->file_size)
-					probe_size = ctx->file_size;
+					probe_size = (u32) ctx->file_size;
 
 				ctx->block_size = probe_size;
 				ctx->block = gf_realloc(ctx->block, ctx->block_size+1);

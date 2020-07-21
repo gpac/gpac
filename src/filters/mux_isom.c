@@ -646,7 +646,7 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		if (strlen(tag_name)==4) {
 			tag_val = GF_4CC(tag_name[0], tag_name[1], tag_name[2], tag_name[3]);
 		} else {
-			tag_val = gf_crc_32(tag_name, strlen(tag_name));
+			tag_val = gf_crc_32(tag_name, (u32) strlen(tag_name));
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Tag name %s is not a 4CC, using CRC32 %d as value\n", tag_name, tag_val));
 		}
 		if (tag->type==GF_PROP_STRING) {
