@@ -62,6 +62,8 @@
 
 #endif
 
+#include <errno.h>
+
 #ifndef EISCONN
 /*common win32 redefs*/
 #undef EAGAIN
