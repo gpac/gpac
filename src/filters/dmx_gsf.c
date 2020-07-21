@@ -719,7 +719,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 		dur = gf_bs_read_int(bs, durmodebits);
 	}
 
-	if (sap==GF_FILTER_SAP_4) {
+	if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL)) {
 		roll = gf_bs_read_u16(bs);
 	}
 	if (has_dep)
@@ -819,7 +819,8 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	if (seek) gf_filter_pck_set_seek_flag(gpck->pck, seek);
 	if (crypt) gf_filter_pck_set_crypt_flags(gpck->pck, crypt);
 	if (sap) gf_filter_pck_set_sap(gpck->pck, sap);
-	if (sap==GF_FILTER_SAP_4) gf_filter_pck_set_roll_info(gpck->pck, roll);
+	if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL))
+		gf_filter_pck_set_roll_info(gpck->pck, roll);
 	return GF_OK;
 }
 

@@ -1199,8 +1199,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				if (ch->sap_3)
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_3);
-				else if (ch->sap_4) {
-					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
+				else if (ch->sap_4_type) {
+					gf_filter_pck_set_sap(pck, (ch->sap_4_type==GF_ISOM_SAMPLE_PREROLL) ? GF_FILTER_SAP_4_PROL : GF_FILTER_SAP_4);
 					gf_filter_pck_set_roll_info(pck, ch->roll);
 				}
 

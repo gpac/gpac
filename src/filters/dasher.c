@@ -5829,10 +5829,16 @@ static GF_Err dasher_process(GF_Filter *filter)
 						if (ctx->sbound==DASHER_BOUNDS_CLOSEST) {
 							s64 diff = cts * base_ds->timescale / ds->timescale;
 							diff -= base_ds->adjusted_next_seg_start;
-							//this one may be negative
+							//this one may be negative, but we always want diff_next positive (next SAP in next segment)
 							if (diff<0)
 								diff = -diff;
-							if (diff<diff_next) {
+							//old arch was only using closest for tracks with sync points
+							if (gf_sys_old_arch_compat() && !base_ds->has_sync_points) {
+								if (diff_next > 0) {
+									force_seg_flush = GF_TRUE;
+								}
+							}
+							else if (diff<diff_next) {
 								force_seg_flush = GF_TRUE;
 							}
 						}

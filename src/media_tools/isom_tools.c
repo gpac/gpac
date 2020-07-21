@@ -987,7 +987,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		gf_isom_update_aperture_info(mp4, video_tk, GF_FALSE);
 	}
 
-	//todo: patch colr
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 	if (e==GF_NOT_FOUND) {
 		colour_primaries = transfer_characteristics = matrix_coefficients = 0;
@@ -2591,12 +2590,13 @@ reparse:
 		GF_BitStream *bs;
 		u32 di;
 		GF_ISOSample *sample;
-		Bool is_irap, has_roll;
+		Bool is_irap;
+		GF_ISOSampleRollType roll_type;
 		s32 roll_distance;
 		u8 cur_max_layer_id = 0;
 
 		sample = gf_isom_get_sample(file, track, sample_num+1, &di);
-		gf_isom_get_sample_rap_roll_info(file, track, sample_num+1, &is_irap, &has_roll, &roll_distance);
+		gf_isom_get_sample_rap_roll_info(file, track, sample_num+1, &is_irap, &roll_type, &roll_distance);
 
 		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 		while (gf_bs_available(bs)) {
@@ -2869,8 +2869,8 @@ reparse:
 				if (is_irap) {
 					gf_isom_set_sample_rap_group(file, sti[j].track_num, sample_idx, GF_TRUE, 0);
 				}
-				else if (has_roll) {
-					gf_isom_set_sample_roll_group(file, sti[j].track_num, sample_idx, GF_TRUE, (s16) roll_distance);
+				else if (roll_type) {
+					gf_isom_set_sample_roll_group(file, sti[j].track_num, sample_idx, GF_ISOM_SAMPLE_ROLL, (s16) roll_distance);
 				}
 			}
 

@@ -91,7 +91,7 @@ typedef struct
 
 	Bool skip_bitrate_update;
 	Bool has_open_gop;
-	Bool has_gdr;
+	GF_FilterSAPType gdr_type;
 
 	Bool next_is_first_sample;
 
@@ -2630,7 +2630,9 @@ sample_entry_done:
 
 		//if we have an edit list (due to track template) only providing media offset, trash it
 		if (!gf_isom_get_edit_list_type(ctx->file, tkw->track_num, &moffset)) {
-			gf_isom_remove_edits(ctx->file, tkw->track_num);
+			if (!gf_sys_old_arch_compat()) {
+				gf_isom_remove_edits(ctx->file, tkw->track_num);
+			}
 		}
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DELAY);
 		if (p) {
@@ -2980,7 +2982,6 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	u32 timescale = 0;
 	const GF_PropertyValue *subs;
 	GF_FilterSAPType sap_type;
-	u8 dep_flags;
 	Bool insert_subsample_dsi = GF_FALSE;
 	u32 first_nal_is_audelim = GF_FALSE;
 	u32 sample_desc_index = tkw->stsd_idx;
@@ -3204,17 +3205,25 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		tkw->has_open_gop = GF_TRUE;
 	}
 	if (!ctx->noroll) {
-		if ((sap_type==4) || tkw->has_gdr) {
+		if ((sap_type==GF_FILTER_SAP_4) || (sap_type==GF_FILTER_SAP_4_PROL) || tkw->gdr_type) {
+			GF_ISOSampleRollType roll_type = 0;
 			s16 roll = gf_filter_pck_get_roll_info(pck);
+			if (sap_type==GF_FILTER_SAP_4) roll_type = GF_ISOM_SAMPLE_ROLL;
+			else if (sap_type==GF_FILTER_SAP_4_PROL) roll_type = GF_ISOM_SAMPLE_PREROLL;
+			else if (tkw->gdr_type==GF_FILTER_SAP_4_PROL) {
+				roll_type = GF_ISOM_SAMPLE_PREROLL_NONE;
+			}
+
 			if (for_fragment) {
-				e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
+				e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, roll_type, roll);
 			} else {
-				e = gf_isom_set_sample_roll_group(ctx->file, tkw->track_num, tkw->nb_samples, (sap_type==4) ? GF_TRUE : GF_FALSE, roll);
+				e = gf_isom_set_sample_roll_group(ctx->file, tkw->track_num, tkw->nb_samples, roll_type, roll);
 			}
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 4 roll %s in roll group: %s\n", tkw->sample.DTS, roll, gf_error_to_string(e) ));
 			}
-			tkw->has_gdr = GF_TRUE;
+			if (sap_type && !tkw->gdr_type)
+				tkw->gdr_type = sap_type;
 		}
 	}
 	
@@ -3260,16 +3269,18 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 	}
 
-	dep_flags = gf_filter_pck_get_dependency_flags(pck);
-	if (dep_flags) {
-		u32 is_leading = (dep_flags>>6) & 0x3;
-		u32 depends_on = (dep_flags>>4) & 0x3;
-		u32 depended_on = (dep_flags>>2) & 0x3;
-		u32 redundant = (dep_flags) & 0x3;
-		if (for_fragment) {
-			gf_isom_fragment_set_sample_flags(ctx->file, tkw->track_id, is_leading, depends_on, depended_on, redundant);
-		} else {
-			gf_isom_set_sample_flags(ctx->file, tkw->track_num, tkw->nb_samples, is_leading, depends_on, depended_on, redundant);
+	if (ctx->deps) {
+		u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
+		if (dep_flags) {
+			u32 is_leading = (dep_flags>>6) & 0x3;
+			u32 depends_on = (dep_flags>>4) & 0x3;
+			u32 depended_on = (dep_flags>>2) & 0x3;
+			u32 redundant = (dep_flags) & 0x3;
+			if (for_fragment) {
+				gf_isom_fragment_set_sample_flags(ctx->file, tkw->track_id, is_leading, depends_on, depended_on, redundant);
+			} else {
+				gf_isom_set_sample_flags(ctx->file, tkw->track_num, tkw->nb_samples, is_leading, depends_on, depended_on, redundant);
+			}
 		}
 	}
 

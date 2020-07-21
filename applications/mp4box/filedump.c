@@ -897,7 +897,8 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			s64 cts;
 			u64 dts, offset;
 			u32 isLeading, dependsOn, dependedOn, redundant;
-			Bool is_rap, has_roll;
+			Bool is_rap;
+			GF_ISOSampleRollType roll_type;
 			s32 roll_distance;
 			u32 index;
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, i+1, j+1, &index, &offset);
@@ -906,7 +907,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 				continue;
 			}
 			gf_isom_get_sample_flags(file, i+1, j+1, &isLeading, &dependsOn, &dependedOn, &redundant);
-			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &has_roll, &roll_distance);
+			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &roll_type, &roll_distance);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
 			fprintf(dump, "Sample %d\tDTS "LLU"\tCTS "LLD"\t%d\t%d", j+1, dts, cts, samp->dataLength, samp->IsRAP);
@@ -914,7 +915,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			if (!skip_offset)
 				fprintf(dump, "\t"LLU, offset);
 
-			fprintf(dump, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d", isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
+			fprintf(dump, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d", isLeading, dependsOn, dependedOn, redundant, is_rap, roll_type, roll_distance);
 
 			if (cts< (s64) dts) {
 				if (has_cts_offset==2) {
@@ -1469,10 +1470,11 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 
 		sap_type = samp->IsRAP;
 		if (!sap_type) {
-			Bool is_rap, has_roll;
+			Bool is_rap;
+			GF_ISOSampleRollType roll_type;
 			s32 roll_dist;
-			gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, &has_roll, &roll_dist);
-			if (has_roll) sap_type = SAP_TYPE_4;
+			gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, &roll_type, &roll_dist);
+			if (roll_type) sap_type = SAP_TYPE_4;
 			else if (is_rap)  sap_type = SAP_TYPE_3;
 		}
 

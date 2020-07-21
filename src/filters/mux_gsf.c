@@ -784,7 +784,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 		gf_bs_write_int(ctx->bs_w, duration, tsdiffmodebits);
 	}
 
-	if (sap==GF_FILTER_SAP_4) {
+	if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL)) {
 		s16 roll = gf_filter_pck_get_roll_info(pck);
 		gf_bs_write_u16(ctx->bs_w, roll);
 	}
