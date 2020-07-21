@@ -1177,7 +1177,7 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio);
 	}
 
-	if (!senc->cenc_saiz->sample_count || (senc->cenc_saiz->default_sample_info_size==len)) {
+	if (!senc->cenc_saiz->sample_count || (!senc->cenc_saiz->sample_alloc && (senc->cenc_saiz->default_sample_info_size==len))) {
 		senc->cenc_saiz->sample_count ++;
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
