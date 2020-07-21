@@ -3500,8 +3500,10 @@ typedef enum
 	GF_FILTER_SAP_2,
 	/*! open gop */
 	GF_FILTER_SAP_3,
-	/*! GDR */
+	/*! roll period (GDR or audio roll) - roll distance must be indicated in packet */
 	GF_FILTER_SAP_4,
+	/*! Audio preroll period - roll distance must be indicated in packet */
+	GF_FILTER_SAP_4_PROL
 } GF_FilterSAPType;
 
 /*! Sets packet SAP type

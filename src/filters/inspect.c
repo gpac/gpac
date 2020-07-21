@@ -1165,7 +1165,14 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			else if (end) gf_fprintf(dump, "frame_end");
 			else gf_fprintf(dump, "frame_cont");
 		}
-		else if (!strcmp(key, "sap") || !strcmp(key, "rap")) gf_fprintf(dump, "%u", gf_filter_pck_get_sap(pck) );
+		else if (!strcmp(key, "sap") || !strcmp(key, "rap")) {
+			u32 sap = gf_filter_pck_get_sap(pck);
+			if (sap==GF_FILTER_SAP_4_PROL) {
+				gf_fprintf(dump, "4 (prol)");
+			} else {
+				gf_fprintf(dump, "%u", sap );
+			}
+		}
 		else if (!strcmp(key, "ilace")) gf_fprintf(dump, "%d", gf_filter_pck_get_interlaced(pck) );
 		else if (!strcmp(key, "corr")) gf_fprintf(dump, "%d", gf_filter_pck_get_corrupted(pck) );
 		else if (!strcmp(key, "seek")) gf_fprintf(dump, "%d", gf_filter_pck_get_seek_flag(pck) );
@@ -1409,7 +1416,7 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 
 static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
 {
-	u32 idx=0, size;
+	u32 idx=0, size, sap;
 	u64 ts;
 	u8 dflags = 0;
 	GF_FilterClockType ck_type;
@@ -1471,7 +1478,12 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	else DUMP_ATT_LLU("cts", ts )
 
 	DUMP_ATT_U("dur", gf_filter_pck_get_duration(pck) )
-	DUMP_ATT_U("sap", gf_filter_pck_get_sap(pck) )
+	sap = gf_filter_pck_get_sap(pck);
+	if (sap==GF_FILTER_SAP_4_PROL) {
+		DUMP_ATT_STR(sap, "4 (prol)");
+	} else {
+		DUMP_ATT_U("sap", gf_filter_pck_get_sap(pck) )
+	}
 	DUMP_ATT_D("ilace", gf_filter_pck_get_interlaced(pck) )
 	DUMP_ATT_D("corr", gf_filter_pck_get_corrupted(pck) )
 	DUMP_ATT_D("seek", gf_filter_pck_get_seek_flag(pck) )

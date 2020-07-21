@@ -2100,8 +2100,9 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		return e;
 	}
 	if (sample && ! (*sample)->IsRAP) {
-		Bool has_roll, is_rap;
-		e = gf_isom_get_sample_rap_roll_info(the_file, trackNumber, sampleNumber, &is_rap, &has_roll, NULL);
+		Bool is_rap;
+		GF_ISOSampleRollType roll_type;
+		e = gf_isom_get_sample_rap_roll_info(the_file, trackNumber, sampleNumber, &is_rap, &roll_type, NULL);
 		if (e) return e;
 		if (is_rap) (*sample)->IsRAP = SAP_TYPE_3;
 	}
@@ -4171,13 +4172,13 @@ Bool gf_isom_has_cenc_sample_group(GF_ISOFile *the_file, u32 trackNumber)
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance)
+GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, GF_ISOSampleRollType *roll_type, s32 *roll_distance)
 {
 	GF_TrackBox *trak;
 	u32 i, count;
 
 	if (is_rap) *is_rap = GF_FALSE;
-	if (has_roll) *has_roll = GF_FALSE;
+	if (roll_type) *roll_type = 0;
 	if (roll_distance) *roll_distance = 0;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -4194,7 +4195,9 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 				if (is_rap) *is_rap = GF_TRUE;
 				break;
 			case GF_ISOM_SAMPLE_GROUP_ROLL:
-				if (has_roll) *has_roll = GF_TRUE;
+			case GF_ISOM_SAMPLE_GROUP_PROL:
+				if (roll_type)
+					*roll_type = (sgdesc->grouping_type==GF_ISOM_SAMPLE_GROUP_PROL) ? GF_ISOM_SAMPLE_PREROLL : GF_ISOM_SAMPLE_ROLL;
 				if (roll_distance) {
 					s32 max_roll = 0;
 					u32 j;
@@ -4248,7 +4251,10 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 			if (is_rap) *is_rap = GF_TRUE;
 			break;
 		case GF_ISOM_SAMPLE_GROUP_ROLL:
-			if (has_roll) *has_roll = GF_TRUE;
+		case GF_ISOM_SAMPLE_GROUP_PROL:
+			if (roll_type)
+				*roll_type = (sgdesc->grouping_type==GF_ISOM_SAMPLE_GROUP_PROL) ? GF_ISOM_SAMPLE_PREROLL : GF_ISOM_SAMPLE_ROLL;
+
 			if (roll_distance) {
 				GF_RollRecoveryEntry *roll_entry = (GF_RollRecoveryEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
 				if (roll_entry)

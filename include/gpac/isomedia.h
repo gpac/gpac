@@ -453,6 +453,19 @@ enum
 
 };
 
+/*! sample roll information type*/
+typedef enum
+{
+	/*! no roll info associated*/
+	GF_ISOM_SAMPLE_ROLL_NONE=0,
+	/*! roll info describes a roll operation*/
+	GF_ISOM_SAMPLE_ROLL,
+	/*! roll info describes an audio preroll*/
+	GF_ISOM_SAMPLE_PREROLL,
+	/*! roll info describes audio preroll but is not set for this sample*/
+	GF_ISOM_SAMPLE_PREROLL_NONE
+} GF_ISOSampleRollType;
+
 #ifndef GPAC_DISABLE_ISOM
 
 #include <gpac/mpeg4_odf.h>
@@ -4171,15 +4184,17 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *isom_file, GF_ISOTrackID trackI
 \return error if any
 */
 GF_Err gf_isom_clone_pssh(GF_ISOFile *dst_file, GF_ISOFile *src_file, Bool in_moof);
+
+
 /*! sets roll information for a sample in a track fragment
 \param isom_file the target ISO file
 \param trackID the ID of the target track
 \param sample_number the sample number of the last sample
-\param is_roll set to GF_TRUE to indicate the sample is a roll sample, GF_FALSE otherwise
+\param roll_type indicate the sample roll type
 \param roll_distance set to the roll distance for a roll sample
 \return error if any
 */
-GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 sample_number, Bool is_roll, s16 roll_distance);
+GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 sample_number, GF_ISOSampleRollType roll_type, s16 roll_distance);
 
 /*! sets rap information for a sample in a track fragment
 \param isom_file the target ISO file
@@ -5885,10 +5900,10 @@ enum {
 \param trackNumber the target track
 \param sampleNumber the target sample number
 \param is_rap set to GF_TRUE if sample is a rap (open gop), GF_FALSE otherwise
-\param has_roll set to GF_TRUE of sample has roll information, GF_FALSE otherwise
+\param has_roll set to GF_ISOM_SAMPLE_ROLL if sample has roll information, GF_ISOM_SAMPLE_PREROLL if sample has preroll information, GF_ISOM_SAMPLE_ROLL_NONE otherwise
 \param roll_distance if sample has roll information, set to roll distance
 \return error if any*/
-GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool *is_rap, Bool *has_roll, s32 *roll_distance);
+GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool *is_rap, GF_ISOSampleRollType *roll_type, s32 *roll_distance);
 
 /*! returns opaque data of sample group
 \param isom_file the target ISO file
@@ -5943,11 +5958,11 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *isom_file, u32 trackNumber, u32 
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleNumber the target sample number
-\param is_roll indicates that the sample is a roll recovery point
+\param roll_type indicates  the sample roll recovery type
 \param roll_distance indicates the roll distance before a correct decoding is produced
 \return error if any
 */
-GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool is_roll, s16 roll_distance);
+GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, GF_ISOSampleRollType roll_type, s16 roll_distance);
 
 /*! sets encryption group for a sample number
 \param isom_file the target ISO file

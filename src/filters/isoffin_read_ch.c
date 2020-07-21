@@ -320,9 +320,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		if (ch->sap_only) {
 			Bool is_rap = gf_isom_get_sample_sync(ch->owner->mov, ch->track, ch->sample_num);
 			if (!is_rap) {
-				Bool has_roll;
-				gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &is_rap, &has_roll, NULL);
-				if (has_roll) is_rap = GF_TRUE;
+				GF_ISOSampleRollType roll_type;
+				gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &is_rap, &roll_type, NULL);
+				if (roll_type) is_rap = GF_TRUE;
 			}
 
 			if (!is_rap) {
@@ -407,10 +407,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
 
 	ch->sap_3 = GF_FALSE;
-	ch->sap_4 = GF_FALSE;
+	ch->sap_4_type = 0;
 	ch->roll = 0;
 	if (ch->sample) {
-		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4, &ch->roll);
+		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4_type, &ch->roll);
 	}
 
 	/*still seeking or not ?

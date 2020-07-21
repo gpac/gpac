@@ -1583,6 +1583,7 @@ GF_Err reframer_process(GF_Filter *filter)
 					if (!ctx->filter_sap3) forward = GF_FALSE;
 					break;
 				case GF_FILTER_SAP_4:
+				case GF_FILTER_SAP_4_PROL:
 					if (!ctx->filter_sap4) forward = GF_FALSE;
 					break;
 				default:

@@ -665,9 +665,9 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	} else if (ctx->pckp) {
 		sprintf(nhml, "isRAP=\"no\" ");
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-		if (sap==GF_FILTER_SAP_4) {
+		if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL)) {
 			s32 roll = gf_filter_pck_get_roll_info(pck);
-			sprintf(nhml, "SAPType=\"4\" roll=\"%d\" ", roll);
+			sprintf(nhml, "SAPType=\"4\" %s=\"%d\" ", (sap==GF_FILTER_SAP_4_PROL) ? "prol" : "roll", roll);
 			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 	}
