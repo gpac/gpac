@@ -207,8 +207,8 @@ static JSValue js_bs_data_io(JSContext *ctx, JSValueConst this_val, int argc, JS
 	}
 	if (!data) return JS_EXCEPTION;
 
-	if (nb_bytes>data_size) nb_bytes = data_size;
-	else if (!nb_bytes) nb_bytes = data_size;
+	if (nb_bytes> (s32) data_size) nb_bytes = (s32) data_size;
+	else if (!nb_bytes) nb_bytes = (s32) data_size;
 
 	if (mode==1) {
 		data_size = gf_bs_write_data(bs, data, nb_bytes);
@@ -219,7 +219,7 @@ static JSValue js_bs_data_io(JSContext *ctx, JSValueConst this_val, int argc, JS
 	} else {
 		data_size = gf_bs_read_data(bs, data, nb_bytes);
 	}
-	return JS_NewInt32(ctx, data_size);
+	return JS_NewInt32(ctx, (s32) data_size);
 }
 
 static JSValue js_bs_get_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -274,10 +274,10 @@ static JSValue js_bs_epb_mode(JSContext *ctx, JSValueConst this_val, int argc, J
 static JSValue js_bs_peek(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u64 byte_offset=0;
-	s64 nb_bits;
+	s32 nb_bits;
 	GET_JSBS
 	if (!bs || !argc) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &nb_bits, argv[0])) return JS_EXCEPTION;
+	if (JS_ToInt32(ctx, &nb_bits, argv[0])) return JS_EXCEPTION;
 	if (argc>1) {
 		if (JS_ToInt64(ctx, &byte_offset, argv[1])) return JS_EXCEPTION;
 	}
@@ -968,7 +968,7 @@ static JSValue js_sys_prompt_string(JSContext *ctx, JSValueConst this_val, int a
 
 	fgets(input, 4095, stdin);
 	input[4095]=0;
-	len = strlen(input);
+	len = (u32) strlen(input);
 	if (len && (input[len-1] == '\n')) {
         input[len-1] = 0;
         len--;
@@ -1046,7 +1046,7 @@ static JSValue js_sys_rand64(JSContext *ctx, JSValueConst this_val, int argc, JS
 	u64 lrand = (u64) gf_rand();
 	lrand<<=32;
 	lrand |= gf_rand();
-	return JS_NewInt32(ctx, lrand);
+	return JS_NewInt64(ctx, lrand);
 }
 
 static JSValue js_sys_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1093,7 +1093,7 @@ static JSValue js_sys_crc32(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	if (!argc || !JS_IsObject(argv[0])) return JS_EXCEPTION;
 	data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
 	if (!data) return JS_EXCEPTION;
-	return JS_NewInt32(ctx, gf_crc_32(data, data_size) );
+	return JS_NewInt32(ctx, gf_crc_32(data, (u32) data_size) );
 }
 
 static JSValue js_sys_sha1(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1113,7 +1113,7 @@ static JSValue js_sys_sha1(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 		data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
 		if (!data) return JS_EXCEPTION;
 
-		gf_sha1_csum((u8 *) data, data_size, csum);
+		gf_sha1_csum((u8 *) data, (u32) data_size, csum);
 		return JS_NewArrayBufferCopy(ctx, csum, GF_SHA1_DIGEST_SIZE);
 	}
 	return JS_EXCEPTION;
@@ -1364,10 +1364,10 @@ static JSValue js_sys_basecode_ex(JSContext *ctx, JSValueConst this_val, int arg
 		if (!out_ptr) {
 			e = GF_OUT_OF_MEM;
 		} else if (is_16) {
-			out_size = gf_base16_encode((u8*) data, (u32) data_size, out_ptr, 1 + data_size * 2);
+			out_size = gf_base16_encode((u8*) data, (u32) data_size, out_ptr, 1 + (u32) data_size * 2);
 			e = out_size ? GF_OK : GF_NON_COMPLIANT_BITSTREAM;
 		} else {
-			out_size = gf_base64_encode((u8*) data, (u32) data_size, out_ptr, 1 + data_size * 2);
+			out_size = gf_base64_encode((u8*) data, (u32) data_size, out_ptr, 1 + (u32) data_size * 2);
 			e = out_size ? GF_OK : GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
@@ -1672,7 +1672,7 @@ static JSValue js_file_read(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	if (!nb_bytes) nb_bytes = (u32) size;
 	else if (nb_bytes>size) nb_bytes = (u32) size;
 
-	read = gf_fread((void *) data, nb_bytes, f);
+	read = (u32) gf_fread((void *) data, nb_bytes, f);
 	return JS_NewInt64(ctx, read);
 }
 static JSValue js_file_gets(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1731,7 +1731,7 @@ static JSValue js_file_write(JSContext *ctx, JSValueConst this_val, int argc, JS
 	if (!nb_bytes) nb_bytes = (u32) size;
 	else if (nb_bytes>size) nb_bytes = (u32) size;
 
-	read = gf_fwrite((void *) data, nb_bytes, f);
+	read = (u32) gf_fwrite((void *) data, nb_bytes, f);
 	return JS_NewInt64(ctx, read);
 }
 static JSValue js_file_puts(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
