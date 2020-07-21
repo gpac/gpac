@@ -29,6 +29,44 @@
 #include <gpac/iso639.h>
 #include <gpac/webvtt.h>
 
+
+#define M2TS_FILE_EXTS "ts|m2t|mts|dmb|trp"
+#define M2TS_MIMES "video/mpeg-2|video/mp2t|video/mpeg|audio/mp2t"
+
+
+void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char *file_exts, const char *mime_types, const char *def_ext)
+{
+	Bool found=GF_FALSE;
+	const GF_PropertyValue *p;
+
+	p = gf_filter_pid_get_property(ipid, GF_PROP_PID_FILE_EXT);
+	if (p) {
+		char *match = strstr(file_exts, p->value.string);
+		if (match) {
+			u32 slen = (u32) strlen(match);
+			if (!match[slen-1] || (match[slen-1]=='|'))
+				found = GF_TRUE;
+		}
+	}
+	if (!found)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(def_ext ? (char *)def_ext : "*") );
+
+	p = gf_filter_pid_get_property(ipid, GF_PROP_PID_MIME);
+	found = GF_FALSE;
+	if (p) {
+		char *match = strstr(mime_types, p->value.string);
+		if (match) {
+			u32 slen = (u32) strlen(match);
+			if (!match[slen-1] || (match[slen-1]=='|'))
+				found = GF_TRUE;
+		}
+	}
+	if (!found)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
+}
+
+
+
 enum
 {
 	TEMI_TC64_AUTO=0,
@@ -346,11 +384,21 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (tspid->ctx->dash_mode) {
-			if (p && tspid->ctx->dash_seg_num && (tspid->ctx->dash_seg_num != p->value.uint)) {
-				tspid->has_seen_eods = GF_TRUE;
+
+			if (tspid->has_seen_eods)
+				return GF_OK;
+
+			//detect segment change
+			if (p && tspid->ctx->dash_seg_num && (tspid->ctx->dash_seg_num < p->value.uint)) {
 				tspid->ctx->wait_dash_flush = GF_TRUE;
 				tspid->ctx->dash_seg_num = p->value.uint;
 				tspid->ctx->dash_file_name[0] = 0;
+			}
+
+			//segment change is pending, check for filename as well - we don't do that in the previous test
+			//since the filename property is sent on a single pid, not each of them
+			if (tspid->ctx->wait_dash_flush && p && (tspid->ctx->dash_seg_num == p->value.uint)) {
+				tspid->has_seen_eods = GF_TRUE;
 
 				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 				if (p) {
@@ -360,9 +408,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				return GF_OK;
 			}
 
-			if (tspid->has_seen_eods)
-				return GF_OK;
-
+			//at this point the new segment is started
 			if (p)
 				tspid->ctx->dash_seg_num = p->value.uint;
 
@@ -894,10 +940,12 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("ts") );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FAKE_MP2T));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_NO_TS_LOOP, &PROP_BOOL(GF_TRUE));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
+
+	mux_assign_mime_file_ext(pid, ctx->opid, M2TS_FILE_EXTS, M2TS_MIMES, "ts");
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DASH_MODE, &pe);
 	if (p) {
@@ -1125,12 +1173,16 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 		segidx_size += 24 +( large_sidx ? 16 : 8) + ctx->nb_sidx_entries*12;
 
 		if (!ctx->idx_opid) {
+			const char *ext = gf_file_ext_start(ctx->idx_file_name);
+			if (!ext) ext = "idx";
+			else ext++;
 			ctx->idx_filter = gf_filter_connect_destination(filter, ctx->idx_file_name, NULL);
 			ctx->idx_opid = gf_filter_pid_new(filter);
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
+			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext) );
 			gf_filter_pid_set_property(ctx->idx_opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
 			gf_filter_pid_set_name(ctx->idx_opid, "ts_idx");
+			if (ctx->idx_filter) gf_filter_set_source(ctx->idx_filter, filter, NULL);
 		}
 		idx_pck = gf_filter_pck_new_alloc(ctx->idx_opid, segidx_size, &output);
 
@@ -1282,7 +1334,6 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				M2Pid *tspid = gf_list_get(ctx->pids, i);
 				tspid->has_seen_eods = 0;
 			}
-			ctx->dash_seg_num = 0;
 			ctx->wait_dash_flush = GF_FALSE;
 			ctx->next_is_start = ctx->dash_file_switch;
 			ctx->mux->force_pat = GF_TRUE;
@@ -1291,6 +1342,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				tsmux_insert_sidx(ctx, GF_TRUE);
 				tsmux_send_seg_event(filter, ctx);
 			}
+			ctx->dash_seg_num = 0;
 
 			ctx->nb_pck_in_seg = 0;
 			ctx->pck_start_idx = ctx->nb_pck;
@@ -1336,6 +1388,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		gf_filter_pck_set_framing(pck, ctx->nb_pck ? ctx->next_is_start : GF_TRUE, (status==GF_M2TS_STATE_EOS) ? GF_TRUE : GF_FALSE);
 
 		if (ctx->next_is_start && ctx->dash_mode) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TSMux] starting TS segment %d\r", ctx->dash_seg_num));
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num) );
 			if (ctx->dash_file_name[0])
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->dash_file_name) ) ;
@@ -1359,8 +1412,8 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		}
 		gf_filter_pck_send(pck);
 		ctx->nb_pck += nb_pck_in_pack;
-		ctx->nb_pck_in_seg++;
-		ctx->nb_pck_in_file++;
+		ctx->nb_pck_in_seg += nb_pck_in_pack;
+		ctx->nb_pck_in_file += nb_pck_in_pack;
 		nb_pck_in_call += nb_pck_in_pack;
 		nb_pck_in_pack = 0;
 
@@ -1542,10 +1595,10 @@ static const GF_FilterCapability TSMuxCaps[] =
 
 	//static output cap file extension
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
-	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
+	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_FILE_EXT, M2TS_FILE_EXTS),
+	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_MIME, M2TS_MIMES),
 	{0},
-	
+
 	//for now don't accept files as input, although we could store them as items, to refine
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	//these caps are framed

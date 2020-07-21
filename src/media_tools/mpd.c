@@ -4708,8 +4708,10 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 	seg_rad_name_len = strlen(seg_rad_name);
 
-	if ( (is_index || is_index_template) && !strstr(seg_rad_name, "$Index")) {
-		needs_index = GF_TRUE;
+	if (seg_type!=GF_DASH_TEMPLATE_REPINDEX) {
+		if ( (is_index || is_index_template) && !strstr(seg_rad_name, "$Index")) {
+			needs_index = GF_TRUE;
+		}
 	}
 	if (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$"))
 		needs_init = GF_FALSE;

@@ -6259,7 +6259,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		GF_DashStream *ds = gf_list_get(ctx->pids, i);
 		if (ds->opid != evt->base.on_pid) continue;
 
-		if (ds->muxed_base) continue;
+		if (ds->muxed_base)
+			ds = ds->muxed_base;
 
 		if (ctx->store_seg_states && !evt->seg_size.is_init) {
 			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);

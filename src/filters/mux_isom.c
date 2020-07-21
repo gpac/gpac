@@ -671,6 +671,7 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
 {
+	void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char *file_exts, const char *mime_types, const char *def_ext);
 	Bool use_m4sys = GF_FALSE;
 	Bool use_tx3g = GF_FALSE;
 	Bool use_webvtt = GF_FALSE;
@@ -750,7 +751,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 	//copy properties at init or reconfig
 	if (ctx->opid && is_true_pid) {
-		Bool found=GF_FALSE;
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		if (gf_list_count(ctx->tracks)>1)
 			gf_filter_pid_set_name(ctx->opid, "isobmf_mux");
@@ -760,30 +760,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-		if (p) {
-			char *match = strstr(ISOM_FILE_EXT, p->value.string);
-			if (match) {
-				u32 slen = (u32) strlen(match);
-				if (!match[slen-1] || (match[slen-1]=='|'))
-					found = GF_TRUE;
-			}
-		}
-		if (!found)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*") );
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
-		found = GF_FALSE;
-		if (p) {
-			char *match = strstr(ISOM_FILE_MIME, p->value.string);
-			if (match) {
-				u32 slen = (u32) strlen(match);
-				if (!match[slen-1] || (match[slen-1]=='|'))
-					found = GF_TRUE;
-			}
-		}
-		if (!found)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
 
+		mux_assign_mime_file_ext(pid, ctx->opid, ISOM_FILE_EXT, ISOM_FILE_MIME, NULL);
+		
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
 
 		switch (ctx->store) {
