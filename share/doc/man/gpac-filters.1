@@ -906,7 +906,7 @@ cache (enum, default: disk):   set cache mode
 .br
 * disk: cache to disk,  discard once session is no longer used
 .br
-* disk: cache to disk and keep
+* keep: cache to disk and keep
 .br
 * mem: stores to memory, discard once session is no longer used
 .br
@@ -1438,7 +1438,7 @@ This filter reads MPEG-DASH, HLS and MS Smooth (on demand only for now) manifest
 .br
 auto_switch (uint, default: 0): switch quality every N segments, disabled if 0
 .br
-store (enum, default: mem):    enable file caching
+segstore (enum, default: mem): enable file caching
 .br
 * mem: all files are stored in memory, no disk IO
 .br
@@ -1541,6 +1541,8 @@ noxlink (bool, default: no):   disable xlink if period has both xlink and adapta
 query (str):                   set query string (without initial '?') to append to xlink of periods
 .br
 split_as (bool, default: no):  separate all qualities into different adaptation sets and stream all qualities
+.br
+noseek (bool, default: no):    disable seeking of initial segment(s) in dynamic mode (useful when UTC clocks do not match)
 .br
 lowlat (enum, default: early): segment scheduling policy in low latency mode
 .br
@@ -5985,7 +5987,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev130-g6b3e2cd48-master
+build: 1.0.0-rev134-gbf325d22f-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
