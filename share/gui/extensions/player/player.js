@@ -1088,7 +1088,7 @@ extension = {
         print("init ok, filter: " + nb_filters);
         for (let idx=0; idx<nb_filters; idx++) {
             let f = session.get_filter(idx);
-            if (! ext.root_odm.in_parent_chain(f)) continue;
+            if (! this.root_odm.in_parent_chain(f)) continue;
             print("F#"+(idx+1) + " : " + f.name);
         }
 
