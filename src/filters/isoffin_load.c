@@ -509,6 +509,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (!read->mem_load_mode) {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, track) ) );
 		}
+		//in no cache mode, depending on fetch speed we may have fetched a fragment or not, resulting in has_rap set
+		//always for HAS_SYNC to false
+		else if (gf_sys_is_test_mode() && !sample_count) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(GF_FALSE) );
+		}
 
 
 		w = gf_isom_get_constant_sample_size(read->mov, track);
