@@ -179,6 +179,8 @@ test (enum, default: no, updatable): skip predefined set of properties, used for
 .br
 * network: URL/path dump, cache state, file size properties skipped (used for hashing network results)
 .br
+* netx: same as network but skip track duration and templates (used for hashing progressive load of fmp4)
+.br
 * encode: same as network plus skip decoder config (used for hashing encoding results)
 .br
 * encx: same as encode and skip bitrates, media data size and co
@@ -256,6 +258,8 @@ test (enum, default: no, updatable): skip predefined set of properties, used for
 * noprop: all properties/info changes on pid are skipped, only packets are dumped
 .br
 * network: URL/path dump, cache state, file size properties skipped (used for hashing network results)
+.br
+* netx: same as network but skip track duration and templates (used for hashing progressive load of fmp4)
 .br
 * encode: same as network plus skip decoder config (used for hashing encoding results)
 .br
@@ -5981,7 +5985,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev129-gcdd98be1f-master
+build: 1.0.0-rev130-g6b3e2cd48-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

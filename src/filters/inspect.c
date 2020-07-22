@@ -73,6 +73,7 @@ enum
 	INSPECT_TEST_NO=0,
 	INSPECT_TEST_NOPROP,
 	INSPECT_TEST_NETWORK,
+	INSPECT_TEST_NETX,
 	INSPECT_TEST_ENCODE,
 	INSPECT_TEST_ENCX,
 };
@@ -960,7 +961,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			return;
 		case GF_PROP_PID_FILE_CACHED:
 		case GF_PROP_PID_DURATION:
-			if (ctx->test==INSPECT_TEST_NETWORK)
+			if ((ctx->test==INSPECT_TEST_NETWORK) || (ctx->test==INSPECT_TEST_NETX))
 				return;
 			break;
 		case GF_PROP_PID_DECODER_CONFIG:
@@ -976,6 +977,12 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		case GF_PROP_PID_MAX_FRAME_SIZE:
 		case GF_PROP_PID_DBSIZE:
 			if (ctx->test==INSPECT_TEST_ENCX)
+				return;
+			break;
+
+		case GF_PROP_PID_ISOM_TRACK_TEMPLATE:
+		case GF_PROP_PID_ISOM_MOVIE_TIME:
+			if (ctx->test==INSPECT_TEST_NETX)
 				return;
 			break;
 
@@ -2343,8 +2350,9 @@ static const GF_FilterArgs InspectArgs[] =
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
 		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
+		"- netx: same as network but skip track duration and templates (used for hashing progressive load of fmp4)\n"
 		"- encode: same as network plus skip decoder config (used for hashing encoding results)\n"
-		"- encx: same as encode and skip bitrates, media data size and co", GF_PROP_UINT, "no", "no|noprop|network|encode|encx", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+		"- encx: same as encode and skip bitrates, media data size and co", GF_PROP_UINT, "no", "no|noprop|network|netx|encode|encx", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
