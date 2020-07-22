@@ -4748,7 +4748,7 @@ src (cstr):                    location of source content - see filter help
 .br
 ifce (str):                    default interface to use for multicast. If NULL, the default system interface will be used
 .br
-cache (bool, default: true):   indicate the files should populate GPAC HTTP cache - see filter help
+gcache (bool, default: true):  indicate the files should populate GPAC HTTP cache - see filter help
 .br
 tunein (sint, default: -2):    service ID to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found
 .br
@@ -4758,15 +4758,15 @@ timeout (uint, default: 5000): timeout in ms after which tunein fails
 .br
 kc (bool, default: false):     keep corrupted file
 .br
-sr (bool, default: true):      skip repeated files - ignored in .I cache mode
+sr (bool, default: true):      skip repeated files - ignored in cache mode
 .br
-stsi (bool, default: false):   define one output pid per tsi/serviceID - ignored in .I cache mode, see filter help
+stsi (bool, default: false):   define one output pid per tsi/serviceID - ignored in cache mode, see filter help
 .br
 stats (uint, default: 1000):   log statistics at the given rate in ms (0 disables stats)
 .br
 tsidbg (uint, default: 0):     gather only objects with given TSI (debug)
 .br
-max_segs (uint, default: 0):   maximum number of segments to keep - ignored in .I cache mode
+max_segs (uint, default: 0):   maximum number of segments to keep - ignored in cache mode
 .br
 odir (str):                    output directory for stand-alone mode - see filter help
 .br
@@ -5981,7 +5981,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev117-g1d31bf6b1-master
+build: 1.0.0-rev129-gcdd98be1f-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
