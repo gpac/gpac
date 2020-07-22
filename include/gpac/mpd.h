@@ -553,6 +553,9 @@ typedef struct {
 	u32 nb_chan;
 	/*! video FPS - HLS only*/
 	Double fps;
+	/*! groupID (for HLS)*/
+	const char *groupID;
+
 	/*! user assigned m3u8 name for this representation*/
 	const char *m3u8_name;
 	/*! generated m3u8 name if no user-assigned one*/

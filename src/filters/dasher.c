@@ -4946,9 +4946,14 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			ds->rep->state_seg_list = gf_list_new();
 		}
 		if (!ds->rep->dash_dur) {
+			const GF_PropertyValue *p;
 			ds->rep->timescale = ds->timescale;
 			ds->rep->streamtype = ds->stream_type;
 			ds->rep->timescale_mpd = ds->mpd_timescale;
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUPID);
+			if (p)
+				ds->rep->groupID = p->value.string;
+
 			ds->rep->dash_dur = ds->dash_dur;
 			if (ctx->sigfrag) {
 				const GF_PropertyValue *pid_url = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
