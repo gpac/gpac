@@ -800,9 +800,6 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 			ent = NULL;
 		}
 		trak->Media->mediaHeader->duration = DTS;
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-		trak->Media->mediaHeader->duration += trak->dts_at_seg_start;
-#endif
 
 
 #if 1
