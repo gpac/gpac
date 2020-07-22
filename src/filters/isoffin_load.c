@@ -529,20 +529,24 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_BRANDS, &brands);
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MBRAND, &PROP_UINT(major_brand) );
 
-		max_size = gf_isom_get_max_sample_size(read->mov, ch->track);
-		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
+		//we cannot expose average size/dur in mem mode with fragmented files (sample_count=0)
+		if (sample_count) {
+			max_size = gf_isom_get_max_sample_size(read->mov, ch->track);
+			if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
 
-		max_size = gf_isom_get_avg_sample_size(read->mov, ch->track);
-		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_AVG_FRAME_SIZE, &PROP_UINT(max_size) );
+			max_size = gf_isom_get_avg_sample_size(read->mov, ch->track);
+			if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_AVG_FRAME_SIZE, &PROP_UINT(max_size) );
 
-		max_size = gf_isom_get_max_sample_delta(read->mov, ch->track);
-		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_TS_DELTA, &PROP_UINT(max_size) );
+			max_size = gf_isom_get_max_sample_delta(read->mov, ch->track);
+			if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_TS_DELTA, &PROP_UINT(max_size) );
 
-		max_size = gf_isom_get_max_sample_cts_offset(read->mov, ch->track);
-		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_CTS_OFFSET, &PROP_UINT(max_size) );
+			max_size = gf_isom_get_max_sample_cts_offset(read->mov, ch->track);
+			if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_CTS_OFFSET, &PROP_UINT(max_size) );
 
-		max_size = gf_isom_get_constant_sample_duration(read->mov, ch->track);
-		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_CONSTANT_DURATION, &PROP_UINT(max_size) );
+			max_size = gf_isom_get_constant_sample_duration(read->mov, ch->track);
+			if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_CONSTANT_DURATION, &PROP_UINT(max_size) );
+		}
+
 
 		u32 media_pl=0;
 		if (streamtype==GF_STREAM_VISUAL) {
