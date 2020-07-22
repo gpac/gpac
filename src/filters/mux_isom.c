@@ -914,7 +914,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] ProRes track detected, muxing to QTFF even though ISOBMFF was asked\n"));
 			ctx->make_qt = 2;
 		}
-		if (ctx->prores_track == tkw) {
+		if (ctx->prores_track && (ctx->prores_track != tkw)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] More than one ProRes track detected, result might be non compliant\n"));
 		}
 		is_prores = GF_TRUE;
@@ -2603,6 +2603,7 @@ sample_entry_done:
 	tkw->probe_min_ctts = GF_FALSE;
 	if (is_true_pid && !tkw->nb_samples && !tkw->is_item) {
 		Bool use_negccts = GF_FALSE;
+		Bool remove_edits = GF_FALSE;
 		s64 moffset=0;
 		ctx->config_timing = GF_TRUE;
 		ctx->update_report = GF_TRUE;
@@ -2611,6 +2612,8 @@ sample_entry_done:
 		if (!gf_isom_get_edit_list_type(ctx->file, tkw->track_num, &moffset)) {
 			if (!gf_sys_old_arch_compat()) {
 				gf_isom_remove_edits(ctx->file, tkw->track_num);
+			} else {
+				remove_edits = GF_TRUE;
 			}
 		}
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DELAY);
@@ -2618,12 +2621,18 @@ sample_entry_done:
 			if (p->value.sint < 0) {
 				if (ctx->ctmode==MP4MX_CT_NEGCTTS) use_negccts = GF_TRUE;
 				else {
+					if (remove_edits) {
+						gf_isom_remove_edits(ctx->file, tkw->track_num);
+					}
 					gf_isom_set_edit(ctx->file, tkw->track_num, 0, 0, -p->value.sint, GF_ISOM_EDIT_NORMAL);
 				}
 			} else if (p->value.sint > 0) {
 				s64 dur = p->value.sint;
 				dur *= (u32) ctx->moovts;
 				dur /= tkw->src_timescale;
+				if (remove_edits) {
+					gf_isom_remove_edits(ctx->file, tkw->track_num);
+				}
 				gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_DWELL);
 				gf_isom_set_edit(ctx->file, tkw->track_num, 0, 0, 0, GF_ISOM_EDIT_NORMAL);
 			}
