@@ -3369,7 +3369,6 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			if (prop_type==GF_PROP_NAME) {
 				p.type = GF_PROP_STRING;
 				gf_filter_pid_set_property(pid, p4cc, &p);
-				p.type = GF_PROP_NAME;
 			} else {
 				gf_filter_pid_set_property(pid, p4cc, &p);
 			}
