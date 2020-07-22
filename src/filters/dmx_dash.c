@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -34,14 +34,14 @@ typedef struct
 {
 	//opts
 	s32 shift_utc, debug_as, atsc_shift;
-	u32 max_buffer, auto_switch, timeshift, tiles_rate, store, delay40X, exp_threshold, switch_count;
+	u32 max_buffer, auto_switch, timeshift, tiles_rate, segstore, delay40X, exp_threshold, switch_count;
 	Bool server_utc, screen_res, aggressive, speedadapt;
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	GF_DASHAdaptationAlgorithm algo;
 	Bool max_res, immediate, abort, use_bmin;
 	char *query;
-	Bool noxlink, split_as;
+	Bool noxlink, split_as, noseek;
 	u32 lowlat;
 
 	GF_FilterPid *mpd_pid;
@@ -261,11 +261,11 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	}
 	//not from file system, set cache option
 	if (url_type) {
-		if (!ctx->store) {
+		if (!ctx->segstore) {
 			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
 			strcat(sURL, ":cache=mem");
 		}
-		else if (ctx->store==2) {
+		else if (ctx->segstore==2) {
 			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
 			strcat(sURL, ":cache=keep");
 		}
@@ -322,14 +322,14 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
 	if (p) {
 		sess = (GF_DownloadSession *) p->value.ptr;
-		if (!ctx->store) {
+		if (!ctx->segstore) {
 			gf_dm_sess_force_memory_mode(sess);
 		}
 		ctx->reuse_download_session = GF_TRUE;
 		return (GF_DASHFileIOSession) sess;
 	}
 
-	if (!ctx->store) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+	if (!ctx->segstore) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 	if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
 	sess = gf_dm_sess_new(ctx->dm, url, flags, NULL, NULL, &e);
 	return (GF_DASHFileIOSession) sess;
@@ -1090,7 +1090,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 	ctx->dash_io.on_dash_event = dashdmx_io_on_dash_event;
 
-	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->store==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, ctx->timeshift);
+	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->segstore==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, ctx->timeshift);
 
 	if (!ctx->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error - cannot create DASH Client\n"));
@@ -1148,8 +1148,6 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	u32 i, count;
 	GF_FilterEvent src_evt;
 	GF_FilterPid *ipid;
-	u64 pto;
-	u32 timescale;
 	Bool initial_play;
 	Double offset;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
@@ -1225,6 +1223,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		if (fevt->play.timestamp_based) {
 
 			if (fevt->play.timestamp_based==1) {
+				u64 pto;
+				u32 timescale;
 				gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &timescale);
 				offset = (Double) pto;
 				offset /= timescale;
@@ -1298,11 +1298,16 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 0);
 
 		//adjust start range from MPD time to media time
-		src_evt.play.start_range = gf_dash_group_get_start_range(ctx->dash, group->idx);
-		gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &timescale);
-		src_evt.play.start_range += ((Double)pto) / timescale;
+		if (gf_dash_is_dynamic_mpd(ctx->dash) && ctx->noseek) {
+			src_evt.play.start_range=0;
+		} else {
+			u64 pto;
+			u32 timescale;
+			src_evt.play.start_range = gf_dash_group_get_start_range(ctx->dash, group->idx);
+			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &timescale);
+			src_evt.play.start_range += ((Double)pto) / timescale;
+		}
 		src_evt.play.no_byterange_forward = 1;
-
 		dashdmx_setup_buffer(ctx, group);
 
 		gf_filter_prevent_blocking(filter, GF_TRUE);
@@ -1728,7 +1733,7 @@ static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 static const GF_FilterArgs DASHDmxArgs[] =
 {
 	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(store), "enable file caching\n"
+	{ OFFS(segstore), "enable file caching\n"
 		"- mem: all files are stored in memory, no disk IO\n"
 		"- file: files are stored to disk but discarded once played\n"
 		"- cache: all files are stored to disk and kept"
@@ -1782,6 +1787,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(noxlink), "disable xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(query), "set query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split_as), "separate all qualities into different adaptation sets and stream all qualities", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noseek), "disable seeking of initial segment(s) in dynamic mode (useful when UTC clocks do not match)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lowlat), "segment scheduling policy in low latency mode\n"
 			"- no: disable low latency\n"
 			"- strict: strict respect of AST offset in low latency\n"
