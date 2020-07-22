@@ -95,6 +95,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
 	if (ctx->cache==GF_HTTPIN_STORE_MEM) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 	else if (ctx->cache==GF_HTTPIN_STORE_NONE) flags |= GF_NETIO_SESSION_NOT_CACHED;
+	else if (ctx->cache==GF_HTTPIN_STORE_DISK_KEEP) flags |= GF_NETIO_SESSION_KEEP_CACHE;
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
@@ -437,7 +438,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
 	"- disk: cache to disk,  discard once session is no longer used\n"
-	"- disk: cache to disk and keep\n"
+	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
 	"- none: no cache", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "set byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
