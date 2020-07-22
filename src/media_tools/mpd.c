@@ -4899,7 +4899,11 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		strcat(segment_name, seg_ext);
 	}
 
-	if ((seg_type != GF_DASH_TEMPLATE_TEMPLATE) && (seg_type != GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE)) {
+	if ((seg_type != GF_DASH_TEMPLATE_TEMPLATE)
+		&& (seg_type != GF_DASH_TEMPLATE_SEGMENT)
+		&& (seg_type != GF_DASH_TEMPLATE_INITIALIZATION)
+		&& (seg_type != GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE)
+	) {
 		char *sep = strrchr(segment_name, '/');
 		if (sep) {
 			char cv = sep[0];
