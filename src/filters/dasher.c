@@ -4962,8 +4962,15 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			}
 
-			if (!ds->rep->hls_single_file_name) {
-				ds->rep->hls_single_file_name = ds->init_seg;
+			if (!ds->rep->hls_single_file_name && !ctx->m2ts) {
+				switch (ctx->muxtype) {
+				case DASHER_MUX_TS:
+				case DASHER_MUX_OGG:
+				case DASHER_MUX_RAW:
+					break;
+				default:
+					ds->rep->hls_single_file_name = ds->init_seg;
+				}
 			}
 			ds->rep->nb_chan = ds->nb_ch;
 			ds->rep->m3u8_name = ds->hls_vp_name;
