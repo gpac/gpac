@@ -5945,8 +5945,10 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 	if (evt->base.on_pid) {
 		safe_int_inc(&evt->base.on_pid->filter->num_events_queued);
 	}
-
-	gf_fs_post_task(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", an_evt);
+	if (upstream)
+		gf_fs_post_task(filter->session, gf_filter_pid_send_event_upstream, filter, evt->base.on_pid, "upstream_event", an_evt);
+	else
+		gf_fs_post_task(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", an_evt);
 }
 
 
