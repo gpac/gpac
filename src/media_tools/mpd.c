@@ -3180,7 +3180,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep)
 {
 	const char *url = NULL;
-	if (rep->segment_list) url = rep->segment_list->initialization_segment->sourceURL;
+	if (rep->segment_list && rep->segment_list->initialization_segment) url = rep->segment_list->initialization_segment->sourceURL;
 	else if (rep->segment_template && rep->segment_template->initialization) url = rep->segment_template->initialization;
 	else if (rep->segment_template && rep->segment_template->initialization_segment) url = rep->segment_template->initialization_segment->sourceURL;
 
