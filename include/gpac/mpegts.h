@@ -586,6 +586,7 @@ typedef struct tag_m2ts_metadata_pointer_descriptor {
 /*! MPEG-2 TS demuxer TEMI location*/
 typedef struct
 {
+	u32 pid;
 	u32 timeline_id;
 	//for now we only support one URL announcement
 	const char *external_URL;
@@ -597,6 +598,7 @@ typedef struct
 /*! MPEG-2 TS demuxer TEMI timecode*/
 typedef struct
 {
+	u32 pid;
 	u32 timeline_id;
 	u32 media_timescale;
 	u64 media_timestamp;
@@ -698,6 +700,7 @@ enum
 			GF_SLConfig *slcfg; \
 			s16 component_tag; \
 			void *user; \
+			GF_List *props; \
 			u64 first_dts; \
 			u32 service_id;
 
