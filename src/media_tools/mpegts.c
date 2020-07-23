@@ -2077,6 +2077,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			if (pes->temi_pending) {
 				pes->temi_pending = 0;
 				pes->temi_tc.pes_pts = pes->PTS;
+				pes->temi_tc.pid = pes->pid;
 				if (ts->on_event)
 					ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
 			}
@@ -2305,6 +2306,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					char URL[255];
 					GF_M2TS_TemiLocationDescriptor temi_loc;
 					memset(&temi_loc, 0, sizeof(GF_M2TS_TemiLocationDescriptor) );
+					temi_loc.pid = pid;
 					temi_loc.reload_external = gf_bs_read_int(bs, 1);
 					temi_loc.is_announce = gf_bs_read_int(bs, 1);
 					temi_loc.is_splicing = gf_bs_read_int(bs, 1);

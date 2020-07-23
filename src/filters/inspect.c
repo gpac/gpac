@@ -131,6 +131,12 @@ typedef struct
 		gf_fprintf(dump, " %s 0x%08X", _name, _val);\
 	}
 
+#define DUMP_ATT_F(_name, _val)  if (ctx->xml) { \
+		gf_fprintf(dump, " %s=\"%f\"", _name, _val);\
+	} else {\
+		gf_fprintf(dump, " %s %f", _name, _val);\
+	}
+
 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -945,6 +951,98 @@ static void inspect_finalize(GF_Filter *filter)
 
 }
 
+static void dump_temi_loc(GF_InspectCtx *ctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
+{
+	GF_BitStream *bs;
+	u32 val;
+	Double dval;
+	if (ctx->xml) {
+		gf_fprintf(dump, " <TEMILocation");
+	} else {
+		gf_fprintf(dump, " TEMILocation");
+	}
+
+	bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+	while (1) {
+		u8 achar =  gf_bs_read_u8(bs);
+		if (!achar) break;
+	}
+
+	val = atoi(pname+7);
+
+	DUMP_ATT_D("timeline", val)
+	DUMP_ATT_STR("url", att->value.data.ptr)
+	if (gf_bs_read_int(bs, 1)) {
+		DUMP_ATT_D("announce", 1)
+	}
+	if (gf_bs_read_int(bs, 1)) {
+		DUMP_ATT_D("splicing", 1)
+	}
+	if (gf_bs_read_int(bs, 1)) {
+		DUMP_ATT_D("reload", 1)
+	}
+	gf_bs_read_int(bs, 5);
+	dval =	gf_bs_read_double(bs);
+	if (dval) {
+		DUMP_ATT_F("splice_start", dval)
+	}
+	dval =	gf_bs_read_double(bs);
+	if (dval) {
+		DUMP_ATT_F("splice_end", dval)
+	}
+	if (ctx->xml) {
+		gf_fprintf(dump, "/>\n");
+	} else {
+		gf_fprintf(dump, "\n");
+	}
+	gf_bs_del(bs);
+}
+
+static void dump_temi_time(GF_InspectCtx *ctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
+{
+	u32 val;
+	u64 lval;
+	GF_BitStream *bs;
+	if (ctx->xml) {
+		gf_fprintf(dump, " <TEMITiming");
+	} else {
+		gf_fprintf(dump, " TEMITiming");
+	}
+	val = atoi(pname+7);
+	bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+
+	DUMP_ATT_D("timeline", val)
+	val = gf_bs_read_u32(bs);
+	DUMP_ATT_D("media_timescale", val)
+	lval = gf_bs_read_u64(bs);
+	DUMP_ATT_LLU("media_timestamp", lval)
+	lval = gf_bs_read_u64(bs);
+	DUMP_ATT_LLU("media_pts", lval)
+
+	if (gf_bs_read_int(bs, 1)) {
+		DUMP_ATT_D("reload", 1)
+	}
+	if (gf_bs_read_int(bs, 1)) {
+		DUMP_ATT_D("paused", 1)
+	}
+	if (gf_bs_read_int(bs, 1)) {
+		DUMP_ATT_D("discontinuity", 1)
+	}
+	val = gf_bs_read_int(bs, 1);
+	gf_bs_read_int(bs, 4);
+
+	if (val) {
+		lval = gf_bs_read_u64(bs);
+		DUMP_ATT_LLU("ntp", lval)
+	}
+	if (ctx->xml) {
+		gf_fprintf(dump, "/>\n");
+	} else {
+		gf_fprintf(dump, "\n");
+	}
+	gf_bs_del(bs);
+}
+
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att)
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
@@ -1043,7 +1141,12 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		if (ctx->dtype) {
 			gf_fprintf(dump, "\t%s (%s): ", pname ? pname : gf_4cc_to_str(p4cc), gf_props_get_type_name(att->type));
 		} else {
-			gf_fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
+			if (!p4cc && !strncmp(pname, "temi_l", 6))
+				dump_temi_loc(ctx, dump, pname, att);
+			else if (!p4cc && !strncmp(pname, "temi_t", 6))
+				dump_temi_time(ctx, dump, pname, att);
+			else
+				gf_fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
 		}
 
 		if (att->type==GF_PROP_UINT_LIST) {
@@ -2313,10 +2416,11 @@ GF_Err inspect_initialize(GF_Filter *filter)
 
 static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
+	PidCtx *pctx;
+	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
+	if (evt->base.type != GF_FEVT_INFO_UPDATE) return GF_TRUE;
 	if (!ctx->info) return GF_TRUE;
-	if (evt->base.type!=GF_FEVT_INFO_UPDATE) return GF_TRUE;
-	PidCtx *pctx = gf_filter_pid_get_udta(evt->base.on_pid);
+	pctx = gf_filter_pid_get_udta(evt->base.on_pid);
 	pctx->dump_pid = 2;
 	return GF_TRUE;
 }
