@@ -2800,7 +2800,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		}
 	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHA1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHA2)) {
 		fprintf(stderr, "\tMPEG-H Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
-		GF_ESD *esd = gf_isom_get_esd(file, trackNum, 1);
+		GF_ESD *esd = gf_media_map_esd(file, trackNum, 1);
 		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
 		|| !esd->decoderConfig->decoderSpecificInfo->data || (esd->decoderConfig->decoderSpecificInfo->dataLength<5)
 		) {
@@ -2811,7 +2811,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2)) {
 		fprintf(stderr, "\tMPEG-H AudioMux stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
-		GF_ESD *esd = gf_isom_get_esd(file, trackNum, 1);
+		GF_ESD *esd = gf_media_map_esd(file, trackNum, 1);
 		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
 			|| !esd->decoderConfig->decoderSpecificInfo->data) {
 			GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, NULL);
@@ -2896,7 +2896,6 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			fprintf(stderr, "\tOnly one sync sample\n");
 		} else {
 			fprintf(stderr, "\tAverage GOP length: %d samples\n", gf_isom_get_sample_count(file, trackNum) / nb_sync);
-			fprintf(stderr, "\tMax sample duration: %d / %d\n", gf_isom_get_max_sample_delta(file, trackNum), timescale);
 		}
 	}
 	break;
@@ -2904,6 +2903,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		fprintf(stderr, "\tNo sync sample found\n");
 		break;
 	}
+	fprintf(stderr, "\tMax sample duration: %d / %d\n", gf_isom_get_max_sample_delta(file, trackNum), timescale);
 
 	if (!full_dump) {
 		fprintf(stderr, "\n");
