@@ -1149,11 +1149,15 @@ static JSValue js_sys_compress_ex(JSContext *ctx, JSValueConst this_val, int arg
 	if (!argc || !JS_IsObject(argv[0])) return JS_EXCEPTION;
 	data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
 	if (!data) return JS_EXCEPTION;
+#ifndef GPAC_DISABLE_ZLIB
 	if (is_decomp) {
 		e = gf_gz_decompress_payload((u8*) data, (u32) data_size, &out_ptr, &out_size);
 	} else {
 		e = gf_gz_compress_payload_ex((u8 **)&data, (u32) data_size, &out_size, 0, GF_FALSE, &out_ptr);
 	}
+#else
+	e = GF_NOT_SUPPORTED;
+#endif /*GPAC_DISABLE_ZLIB*/
 
 	if (e) return js_throw_err(ctx, e);
 	res = JS_NewArrayBuffer(ctx, out_ptr, out_size, js_gpac_free, NULL, 0);
