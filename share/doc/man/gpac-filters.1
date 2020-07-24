@@ -3573,7 +3573,7 @@ The segmenter currently supports:
 .br
 - ISOBMFF, MPEG-2 TS, MKV and raw bitstream segment formats
 .br
-- override of profiles and levels in manifest for common codecs (aac, hevc, vp9, av1, aac)
+- override of profiles and levels in manifest for codecs
 .br
 - most MPEG-DASH profiles
 .br
@@ -3583,9 +3583,9 @@ The segmenter currently supports:
 .br
 
 .br
-Warning: the filter does not perform any real-time regulation, even in dynamic offering mode.
+The filter does can perform per-segment real-time regulation using .I sreg.
 .br
-If your inputs are not real-time, insert a reframer before to perform real-time regulation.
+If you need per-frame real-time regulation on non-real-time inpus, insert a reframer before to perform real-time regulation.
 .br
 Example
 .br
@@ -3651,7 +3651,7 @@ Note: these strings are replaced in the manifest templates elements.
 .br
 .P
 .B
-PID assignment
+PID assignment and configuration
 .br
 To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input pid:
 .br
@@ -3679,7 +3679,7 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * StartNumber: sets the start number for the first segment in the PID, default is 1
 .br
-* Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
+* Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 .br
   
 .br
@@ -3921,7 +3921,7 @@ Output muxers allowing segmented output must obey the following:
 .br
  * noinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)
 .br
- * frag: indicates muxer shall used fragmented format (used for ISOBMFF mostly)
+ * frag: indicates muxer shall use fragmented format (used for ISOBMFF mostly)
 .br
  * subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user
 .br
@@ -3984,8 +3984,6 @@ no_sar (bool, default: false): do not check for identical sample aspect ratio fo
 .br
 m2ts (bool, default: false):   generate MPEG-2 TS output
 .br
-forcep (bool, default: false): force profile string for avc/hevc/aac
-.br
 bs_switch (enum, default: def): bitstream switching mode (single init segment)
 .br
 * def: resolves to off for onDemand and inband for live
@@ -4001,16 +3999,6 @@ bs_switch (enum, default: def): bitstream switching mode (single init segment)
 * multi: uses multiple stsd entries in ISOBMFF
 .br
 
-.br
-avcp (str):                    profile to use for AVC|H264 if no profile could be found. If forcep is set, enforces this profile
-.br
-hvcp (str):                    profile to use for HEVC if no profile could be found. If forcep is set, enforces this profile
-.br
-aacp (str):                    profile to use for AAC if no profile could be found. If forcep is set, enforces this profile
-.br
-av1p (str):                    profile to use for AV1 if no profile could be found. If forcep is set, enforces this profile
-.br
-vpxp (str):                    profile to use for VP8/9 if no profile could be found. If forcep is set, enforces this profile
 .br
 template (str):                template string to use to generate segment name - see filter help
 .br
@@ -4989,7 +4977,7 @@ user_agent (str, default: $GUA): user agent string, by default solved from GPAC 
 .br
 close (bool, default: true):   close RTSP connection after each request, except when RTP over RTSP is used
 .br
-loop (bool, default: true):    loop all streams in session (not always possible depending on source type) - see filter help.
+loop (bool, default: true):    loop all streams in session (not always possible depending on source type) - see filter help
 .br
 dynurl (bool, default: false): allow dynamic service assembly - see filter help.
 .br
@@ -5987,7 +5975,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev138-g87cab9ab5-master
+build: 1.0.0-rev145-gdd68316f3-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

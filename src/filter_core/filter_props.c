@@ -1282,6 +1282,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_HLS_GROUPID, "HLSGroup", "Name of HLS Group of a stream", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_CUE, "DCue", "Name of a cue list file for this pid - see dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_SEGMENTS, "DSegs", "Number of DASH segments defined by the DASH cue info", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_CODEC, "Codec", "codec parameter string to force. If starting with '.', appended to ISOBMF code point; otherwise replace the codec string", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+
 	{ GF_PROP_PID_SINGLE_SCALE, "SingleScale", "Indicates the movie header should use the media timescale of the first track added", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_UDP, "RequireReorder", "Indicates the PID packets come from source with losses and reordering happening (UDP)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PRIMARY_ITEM, "Primary", "Indicates this is a primary item in isobmf", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
