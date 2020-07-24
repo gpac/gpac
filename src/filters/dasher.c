@@ -87,16 +87,11 @@ typedef struct
 	u32 bs_switch, profile, cp, ntp;
 	s32 subs_sidx;
 	s32 buf, timescale;
-	Bool forcep, sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues;
+	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues;
 	u32 strict_sap;
 	u32 pssh;
 	Double segdur;
 	u32 dmode;
-	char *avcp;
-	char *hvcp;
-	char *aacp;
-	char *av1p;
-	char *vpxp;
 	char *template;
 	char *segext;
 	char *initext;
@@ -1047,7 +1042,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *ds, char *szCodec, Bool force_inband, Bool force_sbr)
 {
 	u32 subtype=0, subtype_src=0, mha_pl=0;
-	const GF_PropertyValue *dcd, *dcd_enh, *dovi;
+	const GF_PropertyValue *dcd, *dcd_enh, *dovi, *codec;
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
 	if (dcd) subtype_src = dcd->value.uint;
@@ -1074,6 +1069,18 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		}
 	}
 
+	codec = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CODEC);
+	if (codec && (codec->type==GF_PROP_STRING) && codec->value.string) {
+		const char *codec_str = codec->value.string;
+		if (codec_str[0] != '.') {
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", codec_str);
+			return GF_OK;
+		}
+		if (!subtype_src)
+			subtype_src = gf_codecid_4cc_type(ds->codec_id);
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s%s", gf_4cc_to_str(subtype_src), codec_str);
+		return GF_OK;
+	}
 
 	dovi = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DOLBY_VISION);
 	if (dovi) {
@@ -1097,7 +1104,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	case GF_CODECID_AAC_MPEG2_MP:
 	case GF_CODECID_AAC_MPEG2_LCP:
 	case GF_CODECID_AAC_MPEG2_SSRP:
-		if (dcd && (!ctx->forcep || !ctx->aacp) ) {
+		if (dcd) {
 			u8 audio_object_type;
 			if (dcd->value.data.size < 2) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381-AAC] invalid DSI size %u < 2\n", dcd->value.data.size));
@@ -1125,14 +1132,8 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			return GF_OK;
 		}
 
-		if (ctx->aacp)
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%s", ctx->aacp);
-		else
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X", ds->codec_id);
-
-		if (!ctx->forcep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AAC config, using default %s\n", szCodec));
-		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X", ds->codec_id);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AAC config, using default %s\n", szCodec));
 		return GF_OK;
 
 		break;
@@ -1161,7 +1162,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			}
 		}
 
-		if (dcd && (!ctx->forcep || !ctx->avcp) ) {
+		if (dcd) {
 			GF_AVCConfig *avcc = gf_odf_avc_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 			if (avcc) {
 				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
@@ -1169,13 +1170,8 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				return GF_OK;
 			}
 		}
-		if (ctx->avcp)
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), ctx->avcp);
-		else
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		if (!ctx->forcep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AVC config, using default %s\n", szCodec));
-		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AVC config, using default %s\n", szCodec));
 		return GF_OK;
 #ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_LHVC:
@@ -1207,7 +1203,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV1 : GF_ISOM_SUBTYPE_HVC1;
 			}
 		}
-		if ((dcd || dcd_enh) && (!ctx->forcep || !ctx->hvcp)) {
+		if (dcd || dcd_enh) {
 			u8 c;
 			GF_HEVCConfig *hvcc = dcd ? gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE) : NULL;
 
@@ -1276,13 +1272,8 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			return GF_OK;
 		}
 
-		if (ctx->hvcp)
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), ctx->hvcp);
-		else
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		if (!ctx->forcep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find HEVC config, using default %s\n", szCodec));
-		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find HEVC config, using default %s\n", szCodec));
 		return GF_OK;
 #endif
 
@@ -1290,7 +1281,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	case GF_CODECID_AV1:
 		if (!subtype) subtype = GF_ISOM_SUBTYPE_AV01;
 
-		if (dcd && (!ctx->forcep || !ctx->av1p)) {
+		if (dcd) {
 			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 
 			if (!av1c) {
@@ -1344,14 +1335,8 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 #endif
 			}
 		}
-
-		if (ctx->av1p)
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), ctx->av1p);
-		else
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		if (!ctx->forcep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AV1 config, using default %s\n", szCodec));
-		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AV1 config, using default %s\n", szCodec));
 		return GF_OK;
 #endif /*GPAC_DISABLE_AV1*/
 
@@ -1360,7 +1345,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	case GF_CODECID_VP9:
 		if (!subtype) subtype = GF_ISOM_SUBTYPE_VP09;
 
-		if (dcd && (!ctx->forcep || !ctx->vpxp)) {
+		if (dcd) {
 			GF_VPConfig *vpcc = gf_odf_vp_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 
 			if (!vpcc) {
@@ -1380,13 +1365,8 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				return GF_OK;
 			}
 		}
-		if (ctx->vpxp)
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), ctx->vpxp);
-		else
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		if (!ctx->forcep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VPX config, using default %s\n", szCodec));
-		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VPX config, using default %s\n", szCodec));
 		return GF_OK;
 
 	case GF_CODECID_MPHA:
@@ -6714,7 +6694,6 @@ static const GF_FilterArgs DasherArgs[] =
 	"- keep: leaves input packet NTP untouched.", GF_PROP_UINT, "rem", "rem|yes|keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_sar), "do not check for identical sample aspect ratio for adaptation sets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(m2ts), "generate MPEG-2 TS output", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(forcep), "force profile string for avc/hevc/aac", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(bs_switch), "bitstream switching mode (single init segment)\n"
 	"- def: resolves to off for onDemand and inband for live\n"
 	"- off: disables BS switching\n"
@@ -6722,11 +6701,6 @@ static const GF_FilterArgs DasherArgs[] =
 	"- inband: moves decoder config inband if possible\n"
 	"- force: enables it even if only one representation\n"
 	"- multi: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|force|multi", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(avcp), "profile to use for AVC|H264 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hvcp), "profile to use for HEVC if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(aacp), "profile to use for AAC if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(av1p), "profile to use for AV1 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(vpxp), "profile to use for VP8/9 if no profile could be found. If forcep is set, enforces this profile", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(initext), "file extension to use for the init segment", GF_PROP_STRING, NULL, NULL, 0},
@@ -6815,13 +6789,13 @@ GF_FilterRegister DasherRegister = {
 			"The segmenter currently supports:\n"
 			"- MPD and m3u8 generation (potentially in parallel)\n"
 			"- ISOBMFF, MPEG-2 TS, MKV and raw bitstream segment formats\n"
-			"- override of profiles and levels in manifest for common codecs (aac, hevc, vp9, av1, aac)\n"
+			"- override of profiles and levels in manifest for codecs\n"
 			"- most MPEG-DASH profiles\n"
 			"- static and dynamic (live) manifest offering\n"
 			"- context store and reload for batch processing of live/dynamic sessions\n"
 			"\n"
-			"Warning: the filter does not perform any real-time regulation, even in dynamic offering mode.\n"
-			"If your inputs are not real-time, insert a [reframer](reframer) before to perform real-time regulation.\n"
+			"The filter does can perform per-segment real-time regulation using [-sreg]().\n"
+			"If you need per-frame real-time regulation on non-real-time inpus, insert a [reframer](reframer) before to perform real-time regulation.\n"
 			"EX src=file.mp4 reframer:rt=on @ -o live.mpd:dmode=dynamic\n"
 			"## Template strings\n"
 			"The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). "
@@ -6847,7 +6821,7 @@ GF_FilterRegister DasherRegister = {
 	        "- $FS$ (FileSuffix): replaced by `_trackN` in case the input is an AV multiplex, or kept empty otherwise\n"
 	        "Note: these strings are replaced in the manifest templates elements.\n"
 			"\n"
-			"## PID assignment\n"
+			"## PID assignment and configuration\n"
 			"To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input pid:\n"
 			"- Representation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"
 			"- Period: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time\n"
@@ -6861,7 +6835,7 @@ GF_FilterRegister DasherRegister = {
 			"- Template: overrides segmenter [-template]() for this PID\n"
 			"- DashDur: overrides segmenter segment duration for this PID\n"
 			"- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
-			"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
+			"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 			"  \n"
 			"EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"
 			"This will force declaring a bitrate of 1M for the representation, regardless of actual input bitrate.\n"
