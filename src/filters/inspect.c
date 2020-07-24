@@ -496,7 +496,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				if (!pctx->bs)
 					pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 				else
-					gf_bs_reassign_buffer(pctx->bs, ptr_size, GF_BITSTREAM_READ);
+					gf_bs_reassign_buffer(pctx->bs, ptr, ptr_size);
 				bs = pctx->bs;
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
@@ -534,7 +534,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		if (!pctx->bs)
 			pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 		else
-			gf_bs_reassign_buffer(pctx->bs, ptr_size, GF_BITSTREAM_READ);
+			gf_bs_reassign_buffer(pctx->bs, ptr, ptr_size);
 		bs = pctx->bs;
 	} else {
 		bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
@@ -779,14 +779,19 @@ void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, Obu
 		gf_fprintf(dump, "/>\n");
 }
 
-GF_EXPORT
-void gf_inspect_dump_prores(PidCtx *pctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
+static void gf_inspect_dump_prores_internal(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx)
 {
 	GF_ProResFrameInfo prores_frame;
 	GF_Err e;
-
-	gf_bs_reassign_buffer(pctx->bs, ptr, frame_size);
-	e = gf_media_prores_parse_bs(pctx->bs, &prores_frame);
+	GF_BitStream *bs;
+	if (pctx) {
+		gf_bs_reassign_buffer(pctx->bs, ptr, frame_size);
+		bs = pctx->bs;
+	} else {
+		bs = gf_bs_new(ptr, frame_size, GF_BITSTREAM_READ);
+	}
+	e = gf_media_prores_parse_bs(bs, &prores_frame);
+	if (!pctx) gf_bs_del(bs);
 
 	if (e) {
 		gf_fprintf(dump, "   <!-- Error reading frame %s -->\n", gf_error_to_string(e) );
@@ -900,6 +905,11 @@ void gf_inspect_dump_prores(PidCtx *pctx, FILE *dump, u8 *ptr, u64 frame_size, B
 	}
 }
 
+GF_EXPORT
+void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
+{
+	gf_inspect_dump_prores_internal(dump, ptr, frame_size, dump_crc, NULL);
+}
 enum {
 	MHAS_FILLER = 0,
 	MHAS_CONFIG,
@@ -1952,7 +1962,7 @@ props_done:
 		case GF_CODECID_APCS:
 		case GF_CODECID_AP4X:
 		case GF_CODECID_AP4H:
-			gf_inspect_dump_prores(pctx, dump, (char *) data, size, ctx->dump_crc);
+			gf_inspect_dump_prores_internal(dump, (char *) data, size, ctx->dump_crc, pctx);
 			break;
 
 		case GF_CODECID_MPHA:
