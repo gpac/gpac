@@ -49,6 +49,8 @@ typedef struct
 	GF_M4VParser *mv124_state;
 	GF_M4VDecSpecInfo dsi;
 #endif
+	//for analyzing
+	GF_BitStream *bs;
 
 	Bool has_svcc;
 	u32 nalu_size_length;
@@ -191,8 +193,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 	gf_fprintf(dump, "\"");
 }
 
-GF_EXPORT
-void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
+static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, PidCtx *pctx)
 {
 	s32 res = 0;
 	u8 type, nal_ref_idc;
@@ -491,9 +492,17 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 		gf_fputs("\"", dump);
 
 		if ((type == GF_HEVC_NALU_SEI_PREFIX) || (type == GF_HEVC_NALU_SEI_SUFFIX)) {
-			bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+			if (pctx) {
+				if (!pctx->bs)
+					pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+				else
+					gf_bs_reassign_buffer(pctx->bs, ptr_size, GF_BITSTREAM_READ);
+				bs = pctx->bs;
+			} else {
+				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+			}
 			dump_sei(dump, bs, GF_TRUE);
-			gf_bs_del(bs);
+			if (!pctx) gf_bs_del(bs);
 		}
 
 		if (type < GF_HEVC_NALU_VID_PARAM) {
@@ -520,7 +529,16 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 	nal_ref_idc>>=5;
 	gf_fprintf(dump, "code=\"%d\" type=\"", type);
 	res = -2;
-	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+
+	if (pctx) {
+		if (!pctx->bs)
+			pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+		else
+			gf_bs_reassign_buffer(pctx->bs, ptr_size, GF_BITSTREAM_READ);
+		bs = pctx->bs;
+	} else {
+		bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+	}
 	switch (type) {
 	case GF_AVC_NALU_NON_IDR_SLICE:
 		gf_fputs("Non IDR slice", dump);
@@ -680,7 +698,13 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 	if (res == -1)
 		gf_fprintf(dump, " status=\"error decoding slice\"");
 
-	if (bs) gf_bs_del(bs);
+	if (bs && !pctx) gf_bs_del(bs);
+}
+
+GF_EXPORT
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
+{
+	gf_inspect_dump_nalu_internal(dump, ptr, ptr_size, is_svc, hevc, avc, nalh_size, dump_crc, is_encrypted, NULL);
 }
 
 static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
@@ -756,15 +780,14 @@ void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, Obu
 }
 
 GF_EXPORT
-void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
+void gf_inspect_dump_prores(PidCtx *pctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 {
-	GF_BitStream *bs;
 	GF_ProResFrameInfo prores_frame;
 	GF_Err e;
 
-	bs = gf_bs_new(ptr, frame_size, GF_BITSTREAM_READ);
-	e = gf_media_prores_parse_bs(bs, &prores_frame);
-	gf_bs_del(bs);
+	gf_bs_reassign_buffer(pctx->bs, ptr, frame_size);
+	e = gf_media_prores_parse_bs(pctx->bs, &prores_frame);
+
 	if (e) {
 		gf_fprintf(dump, "   <!-- Error reading frame %s -->\n", gf_error_to_string(e) );
 		return;
@@ -941,7 +964,7 @@ static void dump_mha_config(FILE *dump, GF_BitStream *bs, const char *indent)
 	gf_fprintf(dump, " receiverDelayCompensation=\"%d\"", val);
 	gf_fprintf(dump, "/>\n");
 }
-static void dump_mha_frame(FILE *dump, GF_BitStream *bs, const char *indent)
+static void gf_inspect_dump_mha_frame(FILE *dump, GF_BitStream *bs, const char *indent)
 {
 	u32 val;
 	gf_fprintf(dump, "%s<MPEGHFrame", indent);
@@ -949,10 +972,11 @@ static void dump_mha_frame(FILE *dump, GF_BitStream *bs, const char *indent)
 	gf_fprintf(dump, " usacIndependencyFlag=\"%d\"", val);
 	gf_fprintf(dump, "/>\n");
 }
-static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
+static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx)
 {
 	u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3);
-	GF_BitStream *bs = gf_bs_new(ptr, frame_size, GF_BITSTREAM_READ);
+	gf_bs_reassign_buffer(pctx->bs, ptr, frame_size);
+	GF_BitStream *bs = pctx->bs;
 
 	gf_fprintf(dump, "   <MHASFrame>\n");
 
@@ -982,7 +1006,7 @@ static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_
 			break;
 		case MHAS_FRAME:
 			gf_fprintf(dump, ">\n");
-			dump_mha_frame(dump, bs, "     ");
+			gf_inspect_dump_mha_frame(dump, bs, "     ");
 			gf_fprintf(dump, "    </MHASPacket>\n");
 			break;
 		case MHAS_BUFFER_INFO:
@@ -1017,9 +1041,7 @@ static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_
 			gf_bs_skip_bytes(bs, size - pos);
 
 	}
-	gf_bs_del(bs);
 	gf_fprintf(dump, "   </MHASFrame>\n");
-
 }
 
 #endif
@@ -1080,6 +1102,7 @@ static void inspect_finalize(GF_Filter *filter)
 			gf_free(pctx->av1_state);
 		}
 #endif
+		if (pctx->bs) gf_bs_del(pctx->bs);
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->src_pids);
@@ -1100,9 +1123,8 @@ static void inspect_finalize(GF_Filter *filter)
 
 }
 
-static void dump_temi_loc(GF_InspectCtx *ctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
+static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
 {
-	GF_BitStream *bs;
 	u32 val;
 	Double dval;
 	if (ctx->xml) {
@@ -1110,10 +1132,13 @@ static void dump_temi_loc(GF_InspectCtx *ctx, FILE *dump, const char *pname, con
 	} else {
 		gf_fprintf(dump, " TEMILocation");
 	}
+	if (!pctx->bs)
+		pctx->bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+	else
+		gf_bs_reassign_buffer(pctx->bs, att->value.data.ptr, att->value.data.size);
 
-	bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
 	while (1) {
-		u8 achar =  gf_bs_read_u8(bs);
+		u8 achar =  gf_bs_read_u8(pctx->bs);
 		if (!achar) break;
 	}
 
@@ -1121,21 +1146,21 @@ static void dump_temi_loc(GF_InspectCtx *ctx, FILE *dump, const char *pname, con
 
 	DUMP_ATT_D("timeline", val)
 	DUMP_ATT_STR("url", att->value.data.ptr)
-	if (gf_bs_read_int(bs, 1)) {
+	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("announce", 1)
 	}
-	if (gf_bs_read_int(bs, 1)) {
+	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("splicing", 1)
 	}
-	if (gf_bs_read_int(bs, 1)) {
+	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("reload", 1)
 	}
-	gf_bs_read_int(bs, 5);
-	dval =	gf_bs_read_double(bs);
+	gf_bs_read_int(pctx->bs, 5);
+	dval =	gf_bs_read_double(pctx->bs);
 	if (dval) {
 		DUMP_ATT_F("splice_start", dval)
 	}
-	dval =	gf_bs_read_double(bs);
+	dval =	gf_bs_read_double(pctx->bs);
 	if (dval) {
 		DUMP_ATT_F("splice_end", dval)
 	}
@@ -1144,44 +1169,45 @@ static void dump_temi_loc(GF_InspectCtx *ctx, FILE *dump, const char *pname, con
 	} else {
 		gf_fprintf(dump, "\n");
 	}
-	gf_bs_del(bs);
 }
 
-static void dump_temi_time(GF_InspectCtx *ctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
+static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
 {
 	u32 val;
 	u64 lval;
-	GF_BitStream *bs;
 	if (ctx->xml) {
 		gf_fprintf(dump, " <TEMITiming");
 	} else {
 		gf_fprintf(dump, " TEMITiming");
 	}
 	val = atoi(pname+7);
-	bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+	if (!pctx->bs)
+		pctx->bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+	else
+		gf_bs_reassign_buffer(pctx->bs, att->value.data.ptr, att->value.data.size);
 
 	DUMP_ATT_D("timeline", val)
-	val = gf_bs_read_u32(bs);
+	val = gf_bs_read_u32(pctx->bs);
 	DUMP_ATT_D("media_timescale", val)
-	lval = gf_bs_read_u64(bs);
+	lval = gf_bs_read_u64(pctx->bs);
 	DUMP_ATT_LLU("media_timestamp", lval)
-	lval = gf_bs_read_u64(bs);
+	lval = gf_bs_read_u64(pctx->bs);
 	DUMP_ATT_LLU("media_pts", lval)
 
-	if (gf_bs_read_int(bs, 1)) {
+	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("reload", 1)
 	}
-	if (gf_bs_read_int(bs, 1)) {
+	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("paused", 1)
 	}
-	if (gf_bs_read_int(bs, 1)) {
+	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("discontinuity", 1)
 	}
-	val = gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 4);
+	val = gf_bs_read_int(pctx->bs, 1);
+	gf_bs_read_int(pctx->bs, 4);
 
 	if (val) {
-		lval = gf_bs_read_u64(bs);
+		lval = gf_bs_read_u64(pctx->bs);
 		DUMP_ATT_LLU("ntp", lval)
 	}
 	if (ctx->xml) {
@@ -1189,10 +1215,9 @@ static void dump_temi_time(GF_InspectCtx *ctx, FILE *dump, const char *pname, co
 	} else {
 		gf_fprintf(dump, "\n");
 	}
-	gf_bs_del(bs);
 }
 
-static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att)
+static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att, PidCtx *pctx)
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 
@@ -1291,9 +1316,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			gf_fprintf(dump, "\t%s (%s): ", pname ? pname : gf_4cc_to_str(p4cc), gf_props_get_type_name(att->type));
 		} else {
 			if (!p4cc && !strncmp(pname, "temi_l", 6))
-				dump_temi_loc(ctx, dump, pname, att);
+				dump_temi_loc(ctx, pctx, dump, pname, att);
 			else if (!p4cc && !strncmp(pname, "temi_t", 6))
-				dump_temi_time(ctx, dump, pname, att);
+				dump_temi_time(ctx, pctx, dump, pname, att);
 			else
 				gf_fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
 		}
@@ -1604,13 +1629,13 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 {
 	u32 h, m, s, f;
 	Bool neg=GF_FALSE;
-	GF_BitStream *bs;
+
 	if (!pctx->tmcd_rate.den || !pctx->tmcd_rate.num)
 		return;
-	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	gf_bs_reassign_buffer(pctx->bs, data, size);
 
-	u32 value = gf_bs_read_u32(bs);
-	gf_bs_seek(bs, 0);
+	u32 value = gf_bs_read_u32(pctx->bs);
+	gf_bs_seek(pctx->bs, 0);
 	gf_fprintf(dump, "<TimeCode");
 
 	if (ctx->fftmcd || (pctx->tmcd_flags & 0x00000008)) {
@@ -1661,16 +1686,13 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 			}
 		}
 	} else {
-		h = gf_bs_read_u8(bs);
-		neg = gf_bs_read_int(bs, 1);
-		m = gf_bs_read_int(bs, 7);
-		s = gf_bs_read_u8(bs);
-		f = gf_bs_read_u8(bs);
+		h = gf_bs_read_u8(pctx->bs);
+		neg = gf_bs_read_int(pctx->bs, 1);
+		m = gf_bs_read_int(pctx->bs, 7);
+		s = gf_bs_read_u8(pctx->bs);
+		f = gf_bs_read_u8(pctx->bs);
 	}
 	gf_fprintf(dump, " time=\"%s%02d:%02d:%02d:%02d\"/>\n", neg ? "-" : "", h, m, s, f);
-	gf_bs_del(bs);
-
-
 }
 
 static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
@@ -1821,7 +1843,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		if (!p) break;
 		if (idx==0) gf_fprintf(dump, "properties:\n");
 
-		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
+		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p, pctx);
 	}
 
 
@@ -1859,7 +1881,7 @@ props_done:
 				break;
 			} else {
 				gf_fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
-				gf_inspect_dump_nalu(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->nalu_size_length, ctx->dump_crc, pctx->is_cenc_protected);
+				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->nalu_size_length, ctx->dump_crc, pctx->is_cenc_protected, pctx);
 				gf_fprintf(dump, "/>\n");
 			}
 			idx++;
@@ -1867,12 +1889,12 @@ props_done:
 			size -= nal_size + pctx->nalu_size_length;
 		}
 	} else if (pctx->av1_state) {
-		GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		gf_bs_reassign_buffer(pctx->bs, data, size);
 		while (size) {
 			ObuType obu_type;
 			u64 obu_size;
 			u32 hdr_size;
-			gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
+			gf_media_aom_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
 
 			if (obu_size > size) {
 				gf_fprintf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
@@ -1884,7 +1906,6 @@ props_done:
 			size -= (u32)obu_size;
 			idx++;
 		}
-		gf_bs_del(bs);
 	} else {
 		u32 hdr, pos, fsize, i;
 		switch (pctx->codec_id) {
@@ -1931,11 +1952,16 @@ props_done:
 		case GF_CODECID_APCS:
 		case GF_CODECID_AP4X:
 		case GF_CODECID_AP4H:
-			gf_inspect_dump_prores(dump, (char *) data, size, ctx->dump_crc);
+			gf_inspect_dump_prores(pctx, dump, (char *) data, size, ctx->dump_crc);
+			break;
+
+		case GF_CODECID_MPHA:
+			gf_bs_reassign_buffer(pctx->bs, data, size);
+			gf_inspect_dump_mha_frame(dump, pctx->bs, "");
 			break;
 
 		case GF_CODECID_MHAS:
-			gf_inspect_dump_mhas(dump, (char *) data, size, ctx->dump_crc);
+			gf_inspect_dump_mhas(dump, (char *) data, size, ctx->dump_crc, pctx);
 			break;
 
 		}
@@ -1950,7 +1976,7 @@ props_done:
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			gf_fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, nalh_size, ctx->dump_crc, GF_FALSE);\
+			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, nalh_size, ctx->dump_crc, GF_FALSE, pctx);\
 			gf_fprintf(dump, "/>\n");\
 		}\
 		gf_fprintf(dump, "  </%sArray>\n", name);\
@@ -2029,7 +2055,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			const char *prop_name;
 			p = gf_filter_pid_enum_properties(pid, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
-			inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
+			inspect_dump_property(ctx, dump, prop_4cc, prop_name, p, pctx);
 
 			if (prop_name) {
 				if (!strcmp(prop_name, "tmcd:flags"))
@@ -2047,7 +2073,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			const char *prop_name;
 			p = gf_filter_pid_enum_info(pid, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
-			inspect_dump_property(ctx, dump, prop_4cc, prop_name, p);
+			inspect_dump_property(ctx, dump, prop_4cc, prop_name, p, pctx);
 		}
 	}
 
@@ -2222,10 +2248,14 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			u64 obu_size;
 			u32 hdr_size;
 			GF_AV1_OBUArrayEntry *obu = gf_list_get(pctx->av1_state->config->obu_array, i);
-			GF_BitStream *bs = gf_bs_new((const char *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
-			gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
+
+			if (!pctx->bs)
+				pctx->bs = gf_bs_new((const u8 *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+			else
+				gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
+
+			gf_media_aom_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
 			gf_inspect_dump_obu(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->dump_crc);
-			gf_bs_del(bs);
 			idx++;
 		}
 #endif
@@ -2301,20 +2331,23 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MHAS:
 		if (dsi) {
 			u16 size;
-			GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+			if (!pctx->bs)
+				pctx->bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+			else
+				gf_bs_reassign_buffer(pctx->bs, dsi->value.data.ptr, dsi->value.data.size);
+
 			gf_fprintf(dump, " <MPEGHAudioConfig");
-			gf_fprintf(dump, " version=\"%d\"", gf_bs_read_u8(bs) );
-			gf_fprintf(dump, " ProfileLevelIndication=\"%d\"", gf_bs_read_u8(bs) );
-			gf_fprintf(dump, " ReferenceChannelLayout=\"%d\"", gf_bs_read_u8(bs) );
-			size = gf_bs_read_u16(bs);
+			gf_fprintf(dump, " version=\"%d\"", gf_bs_read_u8(pctx->bs) );
+			gf_fprintf(dump, " ProfileLevelIndication=\"%d\"", gf_bs_read_u8(pctx->bs) );
+			gf_fprintf(dump, " ReferenceChannelLayout=\"%d\"", gf_bs_read_u8(pctx->bs) );
+			size = gf_bs_read_u16(pctx->bs);
 			if (size) {
 				gf_fprintf(dump, ">\n");
-				dump_mha_config(dump, bs, "  ");
+				dump_mha_config(dump, pctx->bs, "  ");
 				gf_fprintf(dump, " </MPEGHAudioConfig>\n");
 			} else {
 				gf_fprintf(dump, "/>\n");
 			}
-			gf_bs_del(bs);
 			gf_fprintf(dump, "/>\n");
 		}
 		gf_fprintf(dump, "/>\n");
@@ -2444,7 +2477,9 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	GF_SAFEALLOC(pctx, PidCtx);
 	if (!pctx) return GF_OUT_OF_MEM;
-	
+	if (ctx->analyze)
+		pctx->bs = gf_bs_new((u8 *)pctx, 0, GF_BITSTREAM_READ);
+
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
 
