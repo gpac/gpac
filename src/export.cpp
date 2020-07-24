@@ -1401,6 +1401,8 @@
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpegh_get_mhas_pl) )
+
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_export) )

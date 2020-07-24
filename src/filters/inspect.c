@@ -847,6 +847,9 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 	}
 	gf_fprintf(dump, " numPictures=\"%d\"" , prores_frame.transfer_characteristics, prores_frame.nb_pic);
 
+	if (dump_crc) {
+		gf_fprintf(dump, " crc=\"%d\"" , gf_crc_32(ptr, (u32) frame_size) );
+	}
 	if (!prores_frame.load_luma_quant_matrix && !prores_frame.load_chroma_quant_matrix) {
 		gf_fprintf(dump, "/>\n");
 	} else {
@@ -873,6 +876,152 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 		gf_fprintf(dump, "   </ProResFrame>\n");
 	}
 }
+
+enum {
+	MHAS_FILLER = 0,
+	MHAS_CONFIG,
+	MHAS_FRAME,
+	MHAS_SCENE_INFO,
+	MHAS_RES4,
+	MHAS_RES5,
+	MHAS_SYNC,
+	MHAS_SYNC_GAP,
+	MHAS_MARKER,
+	MHAS_CRC16,
+	MHAS_CRC32,
+	MHAS_DESCRIPTOR,
+	MHAS_INTERACTION,
+	MHAS_LOUDNESS_CRC,
+	MHAS_BUFFER_INFO,
+	MHAS_GLOBAL_CRC16,
+	MHAS_GLOBAL_CRC32,
+	MHAS_AUDIO_TRUNCATION,
+	MHAS_GEN_DATA,
+};
+static struct {
+	u32 type;
+	const char *name;
+} mhas_pack_types[] =
+{
+	{MHAS_FILLER, "filler"},
+	{MHAS_CONFIG, "config"},
+	{MHAS_FRAME, "frame"},
+	{MHAS_SCENE_INFO, "scene_info"},
+	{MHAS_SYNC, "sync"},
+	{MHAS_SYNC_GAP, "sync_gap"},
+	{MHAS_MARKER, "marker"},
+	{MHAS_CRC16, "crc16"},
+	{MHAS_CRC32, "crc32"},
+	{MHAS_DESCRIPTOR, "descriptor"},
+	{MHAS_INTERACTION, "interaction"},
+	{MHAS_LOUDNESS_CRC, "loudness_drc"},
+	{MHAS_BUFFER_INFO, "buffer_info"},
+	{MHAS_GLOBAL_CRC16, "global_crc16"},
+	{MHAS_GLOBAL_CRC32, "global_crc32"},
+	{MHAS_AUDIO_TRUNCATION, "audio_truncation"},
+	{MHAS_GEN_DATA, "gen_data"},
+};
+
+static void dump_mha_config(FILE *dump, GF_BitStream *bs, const char *indent)
+{
+	u32 val;
+	gf_fprintf(dump, "%s<MPEGHConfig", indent);
+	val = gf_bs_read_int(bs, 8);
+	gf_fprintf(dump, " ProfileLevelIndication=\"%d\"", val);
+	val = gf_bs_read_int(bs, 5);
+	gf_fprintf(dump, " usacSamplerateIndex=\"%d\"", val);
+	if (val==0x1f) {
+		val = gf_bs_read_int(bs, 24);
+		gf_fprintf(dump, " usacSamplerate=\"%d\"", val);
+	}
+	val = gf_bs_read_int(bs, 3);
+	gf_fprintf(dump, " coreSbrFrameLengthIndex=\"%d\"", val);
+	gf_bs_read_int(bs, 1);
+	val = gf_bs_read_int(bs, 1);
+	gf_fprintf(dump, " receiverDelayCompensation=\"%d\"", val);
+	gf_fprintf(dump, "/>\n");
+}
+static void dump_mha_frame(FILE *dump, GF_BitStream *bs, const char *indent)
+{
+	u32 val;
+	gf_fprintf(dump, "%s<MPEGHFrame", indent);
+	val = gf_bs_read_int(bs, 1);
+	gf_fprintf(dump, " usacIndependencyFlag=\"%d\"", val);
+	gf_fprintf(dump, "/>\n");
+}
+static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
+{
+	u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3);
+	GF_BitStream *bs = gf_bs_new(ptr, frame_size, GF_BITSTREAM_READ);
+
+	gf_fprintf(dump, "   <MHASFrame>\n");
+
+	while (gf_bs_available(bs)) {
+		u32 i, count;
+		const char *type_name="uknown";
+		u64 pos;
+		u32 type = (u32) gf_mpegh_escaped_value(bs, 3, 8, 8);
+		u64 label = gf_mpegh_escaped_value(bs, 2, 8, 32);
+		u64 size = gf_mpegh_escaped_value(bs, 11, 24, 24);
+
+		count = GF_ARRAY_LENGTH(mhas_pack_types);
+		for (i=0; i<count; i++) {
+			if (mhas_pack_types[i].type==type) {
+				type_name = mhas_pack_types[i].name;
+				break;
+			}
+		}
+		gf_fprintf(dump, "    <MHASPacket type=\"%s\" label=\""LLU"\" size=\""LLU"\"", type_name, label, size);
+
+		pos = gf_bs_get_position(bs);
+		switch (type) {
+		case MHAS_CONFIG:
+			gf_fprintf(dump, ">\n");
+			dump_mha_config(dump, bs, "     ");
+			gf_fprintf(dump, "    </MHASPacket>\n");
+			break;
+		case MHAS_FRAME:
+			gf_fprintf(dump, ">\n");
+			dump_mha_frame(dump, bs, "     ");
+			gf_fprintf(dump, "    </MHASPacket>\n");
+			break;
+		case MHAS_BUFFER_INFO:
+			if (gf_bs_read_int(bs, 1)) {
+				gf_fprintf(dump, " buffer_fullness_present=\"1\" buffer_fullness=\""LLU"\"", gf_mpegh_escaped_value(bs, 15,24,32) );
+			} else {
+				gf_fprintf(dump, " buffer_fullness_present=\"0\"");
+
+			}
+			gf_fprintf(dump, "/>\n");
+			break;
+		case MHAS_SYNC:
+			gf_fprintf(dump, " sync=\"0x%02X\"/>\n", gf_bs_read_u8(bs) );
+			break;
+		case MHAS_SYNC_GAP:
+			gf_fprintf(dump, " syncSpacingLength=\"0x%02" LLX_SUF "\"/>\n", gf_mpegh_escaped_value(bs, 16, 24, 24) );
+			break;
+		case MHAS_MARKER:
+		case MHAS_DESCRIPTOR:
+			gf_fprintf(dump, " %s=\"0x", (type==MHAS_MARKER) ? "markers" : "descriptors");
+			for (i=0; i<size; i++)
+				gf_fprintf(dump, "%02X", gf_bs_read_u8(bs) );
+			gf_fprintf(dump, "\"/>\n");
+			break;
+		default:
+			gf_fprintf(dump, "/>\n");
+			break;
+		}
+		gf_bs_align(bs);
+		pos = gf_bs_get_position(bs) - pos;
+		if (pos < size)
+			gf_bs_skip_bytes(bs, size - pos);
+
+	}
+	gf_bs_del(bs);
+	gf_fprintf(dump, "   </MHASFrame>\n");
+
+}
+
 #endif
 
 
@@ -1785,6 +1934,10 @@ props_done:
 			gf_inspect_dump_prores(dump, (char *) data, size, ctx->dump_crc);
 			break;
 
+		case GF_CODECID_MHAS:
+			gf_inspect_dump_mhas(dump, (char *) data, size, ctx->dump_crc);
+			break;
+
 		}
 	}
 #endif
@@ -2142,6 +2295,28 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_APCO:
 	case GF_CODECID_AP4H:
 	case GF_CODECID_AP4X:
+		gf_fprintf(dump, "/>\n");
+		return;
+	case GF_CODECID_MPHA:
+	case GF_CODECID_MHAS:
+		if (dsi) {
+			u16 size;
+			GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+			gf_fprintf(dump, " <MPEGHAudioConfig");
+			gf_fprintf(dump, " version=\"%d\"", gf_bs_read_u8(bs) );
+			gf_fprintf(dump, " ProfileLevelIndication=\"%d\"", gf_bs_read_u8(bs) );
+			gf_fprintf(dump, " ReferenceChannelLayout=\"%d\"", gf_bs_read_u8(bs) );
+			size = gf_bs_read_u16(bs);
+			if (size) {
+				gf_fprintf(dump, ">\n");
+				dump_mha_config(dump, bs, "  ");
+				gf_fprintf(dump, " </MPEGHAudioConfig>\n");
+			} else {
+				gf_fprintf(dump, "/>\n");
+			}
+			gf_bs_del(bs);
+			gf_fprintf(dump, "/>\n");
+		}
 		gf_fprintf(dump, "/>\n");
 		return;
 	default:
