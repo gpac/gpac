@@ -1669,8 +1669,8 @@ static JSValue js_file_read(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	if (argc>1) {
 		if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return JS_EXCEPTION;
 	}
-	if (!nb_bytes) nb_bytes = (u32) size;
-	else if (nb_bytes>size) nb_bytes = (u32) size;
+	if (!nb_bytes) nb_bytes = (s32) size;
+	else if (nb_bytes > (s32) size) nb_bytes = (s32) size;
 
 	read = (u32) gf_fread((void *) data, nb_bytes, f);
 	return JS_NewInt64(ctx, read);
@@ -1729,7 +1729,7 @@ static JSValue js_file_write(JSContext *ctx, JSValueConst this_val, int argc, JS
 		if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return JS_EXCEPTION;
 	}
 	if (!nb_bytes) nb_bytes = (u32) size;
-	else if (nb_bytes>size) nb_bytes = (u32) size;
+	else if (nb_bytes > (s32) size) nb_bytes = (u32) size;
 
 	read = (u32) gf_fwrite((void *) data, nb_bytes, f);
 	return JS_NewInt64(ctx, read);

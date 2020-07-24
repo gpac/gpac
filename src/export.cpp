@@ -894,6 +894,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_get_subsample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_has_subsamples) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_get_subsamples_buffer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_max_sample_delta) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
