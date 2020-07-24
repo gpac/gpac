@@ -542,7 +542,7 @@ GF_Err mp4s_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "MPEGSystemsSampleDescriptionBox", trace);
 	gf_fprintf(trace, "DataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
 	if (!p->esd && p->size) {
-		gf_fprintf(trace, "<!--INVALID MP4 FILE: ESDBox not present in MPEG Sample Description or corrupted-->\n");
+		gf_fprintf(trace, "<!--INVALID MP4 FILE: ESDBox not present in MPEG Sample Description -->\n");
 	}
 	gf_isom_box_dump_done("MPEGSystemsSampleDescriptionBox", a, trace);
 	return GF_OK;
@@ -715,22 +715,22 @@ GF_Err audio_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_BOX_TYPE_MP4A:
 		szName = "MPEGAudioSampleDescriptionBox";
 		if (!p->esd)
-		 	error = "<!--INVALID MP4 Entry: ESDBox not present in Audio Sample Description or corrupted-->";
+		 	error = "<!--INVALID MP4 Entry: ESDBox not present in Audio Sample Description -->";
 		break;
 	case GF_ISOM_BOX_TYPE_AC3:
 		szName = "AC3SampleEntryBox";
 		if (!p->cfg_ac3)
-		 	error = "<!--INVALID AC3 Entry: AC3Config not present in Audio Sample Description or corrupted-->";
+		 	error = "<!--INVALID AC3 Entry: AC3Config not present in Audio Sample Description -->";
 		break;
 	case GF_ISOM_BOX_TYPE_EC3:
 		szName = "EC3SampleEntryBox";
 		if (!p->cfg_ac3)
-		 	error = "<!--INVALID AC3 Entry: AC3Config not present in Audio Sample Description or corrupted-->";
+		 	error = "<!--INVALID EC3 Entry: AC3Config not present in Audio Sample Description -->";
 		break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		if (!p->cfg_mha)
-		 	error = "<!--INVALID MPEG-H 3D Audio Entry: MHA config not present in Audio Sample Description or corrupted-->";
+		 	error = "<!--INVALID MPEG-H 3D Audio Entry: MHA config not present in Audio Sample Description -->";
 	case GF_ISOM_BOX_TYPE_MHM1:
 	case GF_ISOM_BOX_TYPE_MHM2:
 		szName = "MHASampleEntry";
