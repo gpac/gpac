@@ -3756,10 +3756,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
 		break;
-	case GF_ISOM_BOX_TYPE_MHA1:
-	case GF_ISOM_BOX_TYPE_MHA2:
-	case GF_ISOM_BOX_TYPE_MHM1:
-	case GF_ISOM_BOX_TYPE_MHM2:
+	case GF_ISOM_BOX_TYPE_MHAC:
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
 		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
