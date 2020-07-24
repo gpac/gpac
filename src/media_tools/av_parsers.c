@@ -8971,3 +8971,38 @@ u32 gf_opus_check_frame(GF_OpusParser *op, u8 *data, u32 data_length)
 }
 
 #endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
+
+u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3)
+{
+	u64 value = gf_bs_read_int(bs, nBits1);
+	if (value == (1<<nBits1)-1) {
+		u32 vadd = gf_bs_read_int(bs, nBits2);
+		value += vadd;
+		if (vadd == (1<<nBits2)-1) {
+			vadd = gf_bs_read_int(bs, nBits3);
+			value += vadd;
+		}
+	}
+	return value;
+}
+
+GF_EXPORT
+s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size)
+{
+	GF_BitStream *bs = gf_bs_new(ptr, size, GF_BITSTREAM_READ);
+
+	while (gf_bs_available(bs)) {
+		u32 type = (u32) gf_mpegh_escaped_value(bs, 3, 8, 8);
+		/*u64 label = */gf_mpegh_escaped_value(bs, 2, 8, 32);
+		u64 size = gf_mpegh_escaped_value(bs, 11, 24, 24);
+		//MHAS config
+		if (type==1) {
+			u32 PL = gf_bs_read_int(bs, 8);
+			gf_bs_del(bs);
+			return PL;
+		}
+		gf_bs_skip_bytes(bs, size);
+	}
+	gf_bs_del(bs);
+	return -1;
+}

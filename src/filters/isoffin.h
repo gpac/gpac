@@ -187,7 +187,7 @@ typedef struct
 	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
-	Bool check_avc_ps, check_hevc_ps;
+	Bool check_avc_ps, check_hevc_ps, check_mhas_pl;
 	GF_HEVCConfig *hvcc;
 	GF_AVCConfig *avcc;
 	GF_BitStream *nal_bs;

@@ -506,6 +506,11 @@ typedef enum
 	GF_CODECID_VP9 = GF_4CC('V','P','0','9'),
 	GF_CODECID_VP10 = GF_4CC('V','P','1','0'),
 
+	/*MPEG-H audio*/
+	GF_CODECID_MPHA = GF_4CC('m','p','h','a'),
+	/*MPEG-H mux audio*/
+	GF_CODECID_MHAS = GF_4CC('m','h','a','s'),
+
 	/*QT ProRes*/
 	GF_CODECID_APCH	= GF_4CC( 'a', 'p', 'c', 'h' ),
 	GF_CODECID_APCO	= GF_4CC( 'a', 'p', 'c', 'o' ),
@@ -515,6 +520,7 @@ typedef enum
 	GF_CODECID_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
+
 
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D'),
 

@@ -369,6 +369,31 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_SUBTYPE_MH3D_MHA2:
 	case GF_ISOM_SUBTYPE_MH3D_MHM1:
 	case GF_ISOM_SUBTYPE_MH3D_MHM2:
+		if (true_desc_only) {
+			return GF_ISOM_INVALID_MEDIA;
+		} else {
+			GF_MPEGAudioSampleEntryBox*ptr = (GF_MPEGAudioSampleEntryBox*)entry;
+			esd = gf_odf_desc_esd_new(2);
+			*out_esd = esd;
+			esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+			if ((type==GF_ISOM_SUBTYPE_MH3D_MHA1) || (type==GF_ISOM_SUBTYPE_MH3D_MHA2))
+				esd->decoderConfig->objectTypeIndication = GF_CODECID_MPHA;
+			else
+				esd->decoderConfig->objectTypeIndication = GF_CODECID_MHAS;
+			if (ptr->cfg_mha) {
+				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+				gf_bs_write_u8(bs, ptr->cfg_mha->configuration_version);
+				gf_bs_write_u8(bs, ptr->cfg_mha->mha_pl_indication);
+				gf_bs_write_u8(bs, ptr->cfg_mha->reference_channel_layout);
+				gf_bs_write_u16(bs, ptr->cfg_mha->mha_config ? ptr->cfg_mha->mha_config_size : 0);
+				if (ptr->cfg_mha->mha_config && ptr->cfg_mha->mha_config_size)
+					gf_bs_write_data(bs, ptr->cfg_mha->mha_config, ptr->cfg_mha->mha_config_size);
+
+				gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+				gf_bs_del(bs);
+			}
+		}
 		break;
 
 	default:

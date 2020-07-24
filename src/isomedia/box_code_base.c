@@ -3830,7 +3830,11 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 			cfg_ptr = (GF_Box **) &ptr->cfg_opus;
 			subtype = GF_ISOM_BOX_TYPE_DOPS;
 		}
-		else if ((s->type == GF_ISOM_BOX_TYPE_MHA1) || (s->type == GF_ISOM_BOX_TYPE_MHA2)) {
+		else if ((s->type == GF_ISOM_BOX_TYPE_MHA1)
+			|| (s->type == GF_ISOM_BOX_TYPE_MHA2)
+			|| (s->type == GF_ISOM_BOX_TYPE_MHM1)
+			|| (s->type == GF_ISOM_BOX_TYPE_MHM2)
+		) {
 			cfg_ptr = (GF_Box **) &ptr->cfg_mha;
 			subtype = GF_ISOM_BOX_TYPE_MHAC;
 		}

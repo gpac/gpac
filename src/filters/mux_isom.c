@@ -693,6 +693,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool is_text_subs = GF_FALSE;
 	Bool force_colr = GF_FALSE;
 	u32 m_subtype=0;
+	u32 m_subtype_src=0;
 	u32 m_subtype_alt_raw=0;
 	u32 raw_bitdepth=0;
 	u32 override_stype=0;
@@ -1288,6 +1289,9 @@ sample_entry_setup:
 		if (p) tkw->nb_frames = p->value.uint;
 		else tkw->nb_frames = 0;
 	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_SUBTYPE);
+	if (p) m_subtype_src = p->value.uint;
+
 
 	//get our subtype
 	switch (codec_id) {
@@ -1393,6 +1397,20 @@ sample_entry_setup:
 		m_subtype = GF_ISOM_SUBTYPE_AC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
+		break;
+	case GF_CODECID_MPHA:
+		if ((m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHA1) && (m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHA2))
+			m_subtype = GF_ISOM_SUBTYPE_MH3D_MHA1;
+		else
+			m_subtype = m_subtype_src;
+		comp_name = "MPEG-H Audio";
+		break;
+	case GF_CODECID_MHAS:
+		if ((m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHM1) && (m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHM2))
+			m_subtype = GF_ISOM_SUBTYPE_MH3D_MHM1;
+		else
+			m_subtype = m_subtype_src;
+		comp_name = "MPEG-H AudioMux";
 		break;
 	case GF_CODECID_FLAC:
 		m_subtype = GF_ISOM_SUBTYPE_FLAC;

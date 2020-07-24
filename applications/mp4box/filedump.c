@@ -2798,6 +2798,35 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		} else {
 			fprintf(stderr, "Unknown Metadata Stream\n");
 		}
+	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHA1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHA2)) {
+		fprintf(stderr, "\tMPEG-H Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
+		GF_ESD *esd = gf_isom_get_esd(file, trackNum, 1);
+		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
+		|| !esd->decoderConfig->decoderSpecificInfo->data || (esd->decoderConfig->decoderSpecificInfo->dataLength<5)
+		) {
+			fprintf(stderr, "\tInvalid MPEG-H audio config\n");
+		} else {
+			fprintf(stderr, "\tProfileLevelIndication: %02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
+		}
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
+	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2)) {
+		fprintf(stderr, "\tMPEG-H AudioMux stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
+		GF_ESD *esd = gf_isom_get_esd(file, trackNum, 1);
+		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
+			|| !esd->decoderConfig->decoderSpecificInfo->data) {
+			GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, NULL);
+			if (samp) {
+				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength);
+				if (PL>=0)
+					fprintf(stderr, "\tProfileLevelIndication: %02X\n", PL);
+				if (samp) gf_isom_sample_del(&samp);
+			}
+		} else if (esd->decoderConfig->decoderSpecificInfo->dataLength<5) {
+			fprintf(stderr, "\tInvalid MPEG-H audio config\n");
+		} else {
+			fprintf(stderr, "\tProfileLevelIndication: %02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
+		}
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
@@ -2867,6 +2896,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			fprintf(stderr, "\tOnly one sync sample\n");
 		} else {
 			fprintf(stderr, "\tAverage GOP length: %d samples\n", gf_isom_get_sample_count(file, trackNum) / nb_sync);
+			fprintf(stderr, "\tMax sample duration: %d / %d\n", gf_isom_get_max_sample_delta(file, trackNum), timescale);
 		}
 	}
 	break;

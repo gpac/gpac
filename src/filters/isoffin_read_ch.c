@@ -28,6 +28,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 #include <gpac/network.h>
+#include <gpac/avparse.h>
 
 
 void isor_reset_reader(ISOMChannel *ch)
@@ -602,17 +603,27 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 
 void isor_reader_check_config(ISOMChannel *ch)
 {
-	u32 nalu_len = 0;
-	u32 reset_state = 0;
-	if (ch->owner->analyze) return;
-	if (!ch->check_hevc_ps && !ch->check_avc_ps) return;
+	u32 nalu_len, reset_state;
+	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
 	//we cannot touch the payload if encrypted !!
 	//TODO, in CENC try to remove non-encrypted NALUs and update saiz accordingly
 	if (ch->is_encrypted) return;
 
+	if (ch->check_mhas_pl) {
+		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength);
+		if (PL>0) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
+			ch->check_mhas_pl = GF_FALSE;
+		}
+		return;
+	}
+
+	if (ch->owner->analyze) return;
+	
 	nalu_len = ch->hvcc ? ch->hvcc->nal_unit_size : (ch->avcc ? ch->avcc->nal_unit_size : 4);
+	reset_state = 0;
 
 	if (!ch->nal_bs) ch->nal_bs = gf_bs_new(ch->sample->data, ch->sample->dataLength, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);

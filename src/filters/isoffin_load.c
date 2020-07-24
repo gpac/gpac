@@ -261,7 +261,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		case GF_ISOM_SUBTYPE_MP3:
 			codec_id = GF_CODECID_MPEG_AUDIO;
 			break;
-			
+
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id)
@@ -843,7 +843,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	}
 	sr = nb_ch = nb_bps = 0;
 	gf_isom_get_audio_info(read->mov,track, stsd_idx, &sr, &nb_ch, &nb_bps);
-	if (sr && nb_ch) {
+	//nb_ch may be set to 0 for "not applicable" (3D / object coding audio)
+	if (sr) {
 		u32 d1, d2;
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
@@ -934,6 +935,20 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		ch->check_avc_ps = GF_TRUE;
 	else if (codec_id==GF_CODECID_HEVC)
 		ch->check_hevc_ps = GF_TRUE;
+	else if (codec_id==GF_CODECID_MHAS) {
+		if (!dsi) {
+			ch->check_mhas_pl = GF_TRUE;
+			GF_ISOSample *samp = gf_isom_get_sample(ch->owner->mov, ch->track, 1, NULL);
+			if (samp) {
+				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength);
+				if (PL>0) {
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
+					ch->check_mhas_pl = GF_FALSE;
+				}
+				gf_isom_sample_del(&samp);
+			}
+		}
+	}
 
 	if (udesc) {
 		gf_filter_pid_set_property_str(ch->pid, "codec_vendor", &PROP_UINT(udesc->vendor_code));

@@ -1046,8 +1046,11 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 
 static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *ds, char *szCodec, Bool force_inband, Bool force_sbr)
 {
-	u32 subtype=0;
+	u32 subtype=0, subtype_src=0, mha_pl=0;
 	const GF_PropertyValue *dcd, *dcd_enh, *dovi;
+
+	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
+	if (dcd) subtype_src = dcd->value.uint;
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dcd_enh = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
@@ -1386,6 +1389,33 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		}
 		return GF_OK;
 
+	case GF_CODECID_MPHA:
+		subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHA1;
+
+		if (!dcd || (dcd->value.data.size<2) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find MPEG-H Audio Config, defaulting to profile 0x01\n"));
+			mha_pl = 1;
+		} else {
+			mha_pl = dcd->value.data.ptr[1];
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.0x%02X", gf_4cc_to_str(subtype), mha_pl);
+		return GF_OK;
+	case GF_CODECID_MHAS:
+		subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHM1;
+		if (dcd && (dcd->value.data.size>2)) {
+			mha_pl = dcd->value.data.ptr[1];
+		} else {
+			const GF_PropertyValue *pl = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_PROFILE_LEVEL);
+			if (pl) {
+				mha_pl = pl->value.uint;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find MPEG-H Audio Config or audio PL, defaulting to profile 0x01\n"));
+				mha_pl = 1;
+			}
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.0x%02X", gf_4cc_to_str(subtype), mha_pl);
+		return GF_OK;
+
 	default:
 		subtype = gf_codecid_4cc_type(ds->codec_id);
 		if (!subtype) {
@@ -1718,11 +1748,15 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		}
 	}
 	else if (ds->stream_type==GF_STREAM_AUDIO) {
+		Bool use_cicp = GF_FALSE;
 		GF_MPD_Descriptor *desc;
 		char value[256];
 		ds->rep->samplerate = ds->sr;
 
-		if (!ds->nb_surround && !ds->nb_lfe) {
+		if (ds->nb_surround || ds->nb_lfe) use_cicp = GF_TRUE;
+		if ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA)) use_cicp = GF_TRUE;
+
+		if (!use_cicp) {
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011", value);
 		} else {
@@ -6915,7 +6949,7 @@ GF_FilterRegister DasherRegister = {
 			"- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"
 			"- the following filter options are passed to muxers, which should declare them as arguments:\n"
 			" - noinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)\n"
-			" - frag: indicates muxer shall used fragmented format (used for ISOBMFF mostly)\n"
+			" - frag: indicates muxer shall use fragmented format (used for ISOBMFF mostly)\n"
 			" - subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user\n"
 			" - xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"
 			" - nofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"
