@@ -313,6 +313,11 @@ GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 	*max_size = 0;
 	return GF_NOT_SUPPORTED;
 }
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data)
+{
+	*max_size = 0;
+	return GF_NOT_SUPPORTED;
+}
 #endif /*GPAC_DISABLE_ZLIB*/
 
 
@@ -441,7 +446,6 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 	*max_size = 0;
 	return GF_NOT_SUPPORTED;
 }
-
 #endif /*GPAC_HAS_LZMA*/
 
 #endif /* GPAC_DISABLE_CORE_TOOLS*/
