@@ -3028,6 +3028,8 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, 
 			traf->sdtp->sample_info = gf_realloc(traf->sdtp->sample_info, sizeof(u8)*(traf->sdtp->sampleCount+1));
 			traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
 			traf->sdtp->sampleCount++;
+			traf->sdtp->sample_alloc = traf->sdtp->sampleCount+1;
+
 
 			if (traf->use_sdtp==2) {
 				ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(isLeading, dependsOn, dependedOn, redundant);
@@ -3156,6 +3158,7 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackI
 		traf->sdtp->sample_info = gf_realloc(traf->sdtp->sample_info, sizeof(u8)*(traf->sdtp->sampleCount+1));
 		traf->sdtp->sample_info[traf->sdtp->sampleCount] = (u8) sflags;
 		traf->sdtp->sampleCount++;
+		traf->sdtp->sample_alloc = traf->sdtp->sampleCount;
 		if (traf->use_sdtp==2) {
 			ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(is_leading, dependsOn, dependedOn, redundant);
 		}
