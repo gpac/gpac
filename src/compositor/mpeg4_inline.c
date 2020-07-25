@@ -742,8 +742,6 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 	storage->on_forceRestore = on_force_restore;
 	gf_node_set_callback_function(node, gf_storage_traverse);
 	gf_node_set_private(node, scene);
-	if (gf_list_find(scene->attached_inlines, node)<0)
-		gf_list_add(scene->attached_inlines, node);
 
 	scene_ns = scene->root_od->scene_ns;
 	while (scene->root_od->parentscene) {
