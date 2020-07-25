@@ -7083,12 +7083,7 @@ void trun_box_del(GF_Box *s)
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 	if (ptr == NULL) return;
 
-	while (gf_list_count(ptr->entries)) {
-		GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, 0);
-		gf_list_rem(ptr->entries, 0);
-		gf_free(p);
-	}
-	gf_list_del(ptr->entries);
+	if (ptr->samples) gf_free(ptr->samples);
 	if (ptr->cache) gf_bs_del(ptr->cache);
 	if (ptr->sample_order) gf_free(ptr->sample_order);
 	gf_free(ptr);
@@ -7264,17 +7259,19 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->first_sample_flags = gf_bs_read_u32(bs);
 	}
 	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
-		GF_SAFEALLOC(p, GF_TrunEntry);
-		if (!p) return GF_OUT_OF_MEM;
-		p->nb_pack = ptr->sample_count;
-		gf_list_add(ptr->entries, p);
+		ptr->samples = gf_malloc(sizeof(GF_TrunEntry));
+		if (!ptr->samples) return GF_OUT_OF_MEM;
+		ptr->sample_alloc = ptr->nb_samples = 1;
+		ptr->samples[0].nb_pack = ptr->sample_count;
 	} else {
+		ptr->samples = gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
+		if (!ptr->samples) return GF_OUT_OF_MEM;
+		ptr->sample_alloc = ptr->nb_samples = ptr->sample_count;
 
 		//read each entry (even though nothing may be written)
 		for (i=0; i<ptr->sample_count; i++) {
 			u32 trun_size = 0;
-			p = (GF_TrunEntry *) gf_malloc(sizeof(GF_TrunEntry));
-			if (!p) return GF_OUT_OF_MEM;
+			p = &ptr->samples[i];
 			memset(p, 0, sizeof(GF_TrunEntry));
 
 			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
@@ -7298,7 +7295,6 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 				}
 				trun_size += 4;
 			}
-			gf_list_add(ptr->entries, p);
 			ISOM_DECREASE_SIZE(ptr, trun_size);
 		}
 	}
@@ -7313,7 +7309,6 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Box *trun_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TrackFragmentRunBox, GF_ISOM_BOX_TYPE_TRUN);
-	tmp->entries = gf_list_new();
 	//NO FLAGS SET BY DEFAULT
 	return (GF_Box *)tmp;
 }
@@ -7413,7 +7408,7 @@ GF_Err ctrn_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i, count;
+	u32 i;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
@@ -7436,10 +7431,8 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 
 	if (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) )  {
-
-		count = gf_list_count(ptr->entries);
-		for (i=0; i<count; i++) {
-			GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
+		for (i=0; i<ptr->nb_samples; i++) {
+			GF_TrunEntry *p = &ptr->samples[i];
 
 			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
 				gf_bs_write_u32(bs, p->Duration);
@@ -7641,7 +7634,6 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 
 GF_Err trun_box_size(GF_Box *s)
 {
-	u32 i, count;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 
 #ifdef GF_ENABLE_CTRN
@@ -7667,14 +7659,12 @@ GF_Err trun_box_size(GF_Box *s)
 	}
 
 	//if nothing to do, this will be skipped automatically
-	count = gf_list_count(ptr->entries);
-	for (i=0; i<count; i++) {
-		if (ptr->flags & GF_ISOM_TRUN_DURATION) ptr->size += 4;
-		if (ptr->flags & GF_ISOM_TRUN_SIZE) ptr->size += 4;
-		//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
-		if (ptr->flags & GF_ISOM_TRUN_FLAGS) ptr->size += 4;
-		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) ptr->size += 4;
-	}
+	if (ptr->flags & GF_ISOM_TRUN_DURATION) ptr->size += 4*ptr->nb_samples;
+	if (ptr->flags & GF_ISOM_TRUN_SIZE) ptr->size += 4*ptr->nb_samples;
+	//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
+	if (ptr->flags & GF_ISOM_TRUN_FLAGS) ptr->size += 4*ptr->nb_samples;
+	if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) ptr->size += 4*ptr->nb_samples;
+
 	return GF_OK;
 }
 

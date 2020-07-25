@@ -2478,10 +2478,9 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 	}
 
 	if (full_dump) {
-		GF_TrunEntry *ent;
-		i=0;
-		while ((ent = (GF_TrunEntry *)gf_list_enum(p->entries, &i))) {
-
+		for (i=0; i<p->nb_samples; i++) {
+			GF_TrunEntry *ent = &p->samples[i];
+			
 			gf_fprintf(trace, "<TrackRunEntry");
 
 #ifdef GF_ENABLE_CTRN

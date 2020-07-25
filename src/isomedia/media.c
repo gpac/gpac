@@ -500,9 +500,9 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	if (!sIDX && !out_offset) return GF_OK;
 	if (!sIDX) return GF_OK;
 
-	(*sIDX) = 0;
-	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &stsc_entry);
-	if (e) return e;
+	(*sIDX) = sdesc_idx;
+//	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &stsc_entry);
+//	if (e) return e;
 
 	//then get the DataRef
 	e = Media_GetSampleDesc(mdia, sdesc_idx, &entry, &dataRefIndex);
