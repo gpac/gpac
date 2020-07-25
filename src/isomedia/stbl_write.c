@@ -507,6 +507,7 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 		u32 missed = sampleNumber-1 - sdtp->sampleCount;
 		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount+missed) );
 		if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+		sdtp->sample_alloc = sdtp->sampleCount+missed;
 		memset(&sdtp->sample_info[sdtp->sampleCount], 0, sizeof(u8) * missed );
 		while (missed) {
 			GF_ISOSAPType isRAP;
@@ -520,6 +521,7 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 
 	sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount + 1));
 	if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+	sdtp->sample_alloc = sdtp->sampleCount+1;
 	if (sdtp->sampleCount < sampleNumber) {
 		sdtp->sample_info[sdtp->sampleCount] = 0x29;
 	} else {
@@ -552,6 +554,7 @@ GF_Err stbl_SetDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 		u32 i;
 		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * sampleNumber);
 		if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+		sdtp->sample_alloc = sampleNumber;
 
 		for (i=sdtp->sampleCount; i<sampleNumber; i++) {
 			sdtp->sample_info[i] = 0;
@@ -577,6 +580,7 @@ GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 		u32 missed = sampleNumber-1 - sdtp->sampleCount;
 		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount+missed) );
 		if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+		sdtp->sample_alloc = sdtp->sampleCount+missed;
 		memset(&sdtp->sample_info[sdtp->sampleCount], 0, sizeof(u8) * missed );
 		while (missed) {
 			GF_ISOSAPType isRAP;
@@ -600,6 +604,7 @@ GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 
 	sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount + 1));
 	if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+	sdtp->sample_alloc = sdtp->sampleCount + 1;
 	if (sdtp->sampleCount < sampleNumber) {
 		sdtp->sample_info[sdtp->sampleCount] = flags;
 	} else {
@@ -1305,6 +1310,7 @@ GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber)
 	if (i) memmove(&stbl->SampleDep->sample_info[SampleNumber-1], & stbl->SampleDep->sample_info[SampleNumber], sizeof(u8)*i);
 	stbl->SampleDep->sample_info = (u8*)gf_realloc(stbl->SampleDep->sample_info, sizeof(u8) * (stbl->SampleDep->sampleCount-1));
 	if (!stbl->SampleDep->sample_info) return GF_OUT_OF_MEM;
+	stbl->SampleDep->sample_alloc = stbl->SampleDep->sampleCount-1;
 	stbl->SampleDep->sampleCount-=1;
 	return GF_OK;
 }
@@ -1795,6 +1801,7 @@ GF_Err stbl_AppendDepType(GF_SampleTableBox *stbl, u32 DepType)
 	}
 	stbl->SampleDep->sample_info = (u8*)gf_realloc(stbl->SampleDep->sample_info, sizeof(u8)*stbl->SampleSize->sampleCount );
 	if (!stbl->SampleDep->sample_info) return GF_OUT_OF_MEM;
+	stbl->SampleDep->sample_alloc = stbl->SampleSize->sampleCount;
 	stbl->SampleDep->sample_info[stbl->SampleDep->sampleCount] = DepType;
 	stbl->SampleDep->sampleCount = stbl->SampleSize->sampleCount;
 	return GF_OK;
