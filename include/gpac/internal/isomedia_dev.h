@@ -1818,7 +1818,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u32 sampleCount;
+	u32 sampleCount, sample_alloc;
 	/*each dep type is packed on 1 byte*/
 	u8 *sample_info;
 } GF_SampleDependencyTypeBox;
@@ -1948,6 +1948,8 @@ typedef struct
 	u32 currentEntryIndex;
 
 	Bool no_sync_found;
+
+	u32 r_last_chunk_num, r_last_sample_num, r_last_offset_in_chunk;
 } GF_SampleTableBox;
 
 GF_Err stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end);
@@ -2558,13 +2560,29 @@ enum
 
 typedef struct
 {
+	u32 Duration;
+	u32 size;
+	u32 flags;
+	s32 CTS_Offset;
+
+	/*internal*/
+	u32 SAP_type;
+	u64 dts;
+	u32 nb_pack;
+} GF_TrunEntry;
+
+
+typedef struct
+{
 	GF_ISOM_FULL_BOX
 	u32 sample_count;
 	/*the following are optional fields */
 	/* unsigned for version 0 */
 	s32 data_offset;
+
+	u32 nb_samples, sample_alloc;
 	/*can be empty*/
-	GF_List *entries;
+	GF_TrunEntry *samples;
 
 	/*only for trun, ignored for ctrn*/
 	u32 first_sample_flags;
@@ -2595,19 +2613,6 @@ typedef struct
 #ifdef GF_ENABLE_CTRN
 u32 gf_isom_ctrn_field_size_bits(u32 field_idx);
 #endif
-
-typedef struct
-{
-	u32 Duration;
-	u32 size;
-	u32 flags;
-	s32 CTS_Offset;
-
-	/*internal*/
-	u32 SAP_type;
-	u64 dts;
-	u32 nb_pack;
-} GF_TrunEntry;
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 

@@ -399,7 +399,7 @@ void GetGhostNum(GF_StscEntry *ent, u32 EntryIndex, u32 count, GF_SampleTableBox
 GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, GF_StscEntry **out_ent)
 {
 	GF_Err e;
-	u32 i, k, offsetInChunk, size;
+	u32 i, k, offsetInChunk, size, chunk_num;
 	GF_ChunkOffsetBox *stco;
 	GF_ChunkLargeOffsetBox *co64;
 	GF_StscEntry *ent;
@@ -492,7 +492,7 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 sample_found:
 
 	(*descIndex) = ent->sampleDescriptionIndex;
-	(*chunkNumber) = ent->firstChunk + stbl->SampleToChunk->currentChunk - 1;
+	(*chunkNumber) = chunk_num = ent->firstChunk + stbl->SampleToChunk->currentChunk - 1;
 	if (out_ent) *out_ent = ent;
 	if (! *chunkNumber)
 		return GF_ISOM_INVALID_FILE;
@@ -503,6 +503,14 @@ sample_found:
 	if (stbl->SampleSize && stbl->SampleSize->sampleSize) {
 		u32 diff = sampleNumber - stbl->SampleToChunk->firstSampleInCurrentChunk;
 		offsetInChunk += diff * stbl->SampleSize->sampleSize;
+	} else if ((stbl->r_last_chunk_num == chunk_num) && (stbl->r_last_sample_num == sampleNumber)) {
+		offsetInChunk = stbl->r_last_offset_in_chunk;
+	} else if ((stbl->r_last_chunk_num == chunk_num) && (stbl->r_last_sample_num + 1 == sampleNumber)) {
+		e = stbl_GetSampleSize(stbl->SampleSize, stbl->r_last_sample_num, &size);
+		if (e) return e;
+		stbl->r_last_offset_in_chunk += size;
+		stbl->r_last_sample_num = sampleNumber;
+		offsetInChunk = stbl->r_last_offset_in_chunk;
 	} else {
 		//warning, firstSampleInChunk is at least 1 - not 0
 		for (i = stbl->SampleToChunk->firstSampleInCurrentChunk; i < sampleNumber; i++) {
@@ -510,6 +518,9 @@ sample_found:
 			if (e) return e;
 			offsetInChunk += size;
 		}
+		stbl->r_last_chunk_num = chunk_num;
+		stbl->r_last_sample_num = sampleNumber;
+		stbl->r_last_offset_in_chunk = offsetInChunk;
 	}
 	//OK, that's the size of our offset in the chunk
 	//now get the chunk

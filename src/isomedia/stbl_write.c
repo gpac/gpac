@@ -629,9 +629,12 @@ GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dep
 	flags |= dependedOn << 2;
 	flags |= redundant;
 
-
-	sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount + 1));
-	if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+	if (sdtp->sampleCount >= sdtp->sample_alloc) {
+		ALLOC_INC(sdtp->sample_alloc);
+		if (sdtp->sampleCount >= sdtp->sample_alloc) sdtp->sample_alloc = sdtp->sampleCount+1;
+		sdtp->sample_info = (u8*) gf_realloc(sdtp->sample_info, sizeof(u8) * sdtp->sample_alloc);
+		if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+	}
 	sdtp->sample_info[sdtp->sampleCount] = flags;
 	sdtp->sampleCount ++;
 	return GF_OK;
