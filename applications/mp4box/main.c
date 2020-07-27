@@ -178,8 +178,8 @@ GF_GPACArg m4b_gen_args[] =
 	        "- refTrack=ID: ID of the track used as a group reference. If not set, the track will belong to the same group as the "
 	        "previous trackID specified. If 0 or no previous track specified, a new alternate group will be created\n"
 	        "- switchID=ID: ID of the switch group to create. If 0, a new ID will be computed for you. If <0, disables SwitchGroup\n"
-	        "- criteria=string: list of space-separated 4CCs.\n"
-	        "- trackID=ID: ID of the track to add to this group.\n"
+	        "- criteria=string: list of space-separated 4CCs\n"
+	        "- trackID=ID: ID of the track to add to this group\n"
 	        "  \n"
 	        "Warning: Options modify state as they are parsed, `trackID=1:criteria=lang:trackID=2` is different from `criteria=lang:trackID=1:trackID=2`"
 	        "\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
@@ -237,7 +237,7 @@ void PrintGeneralUsage()
 
 GF_GPACArg m4b_dash_args[] =
 {
- 	GF_DEF_ARG("mpd", NULL, "convert given HLS or smooth manifest (local or remote http) to MPD.\nWarning: This is not compatible with other DASH options and does not convert associated segments", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("mpd", NULL, "convert given HLS or smooth manifest (local or remote http) to MPD.  \nWarning: This is not compatible with other DASH options and does not convert associated segments", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("dash", "-dash-strict", "create DASH from input files with given segment (subsegment for onDemand profile) duration in ms", NULL, NULL, GF_ARG_DOUBLE, 0),
  	GF_DEF_ARG("dash-live", NULL, "generate a live DASH session using the given segment duration in ms; using `-dash-live=F`will also write the live context to `F`. MP4Box will run the live session until `q` is pressed or a fatal error occurs", NULL, NULL, GF_ARG_DOUBLE, 0),
  	GF_DEF_ARG("ddbg-live", NULL, "same as [-dash-live]() without time regulation for debug purposes", NULL, NULL, GF_ARG_DOUBLE, 0),
@@ -250,20 +250,20 @@ GF_GPACArg m4b_dash_args[] =
 	GF_DEF_ARG("rap", NULL, "ensure that segments begin with random access points, segment durations might vary depending on the source encoding", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("frag-rap", NULL, "ensure that all fragments begin with random access points (duration might vary depending on the source encoding)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("segment-name", NULL, "set the segment name for generated segments. If not set (default), segments are concatenated in output file except in `live` profile where `dash_%%s`. Supported replacement strings are:\n"
-	        "- $Number[%%0Nd]$ is replaced by the segment number, possibly prefixed with 0.\n"
-	        "- $RepresentationID$ is replaced by representation name.\n"
-	        "- $Time$ is replaced by segment start time.\n"
-	        "- $Bandwidth$ is replaced by representation bandwidth.\n"
-	        "- $Init=NAME$ is replaced by NAME for init segment, ignored otherwise. May occur multiple times.\n"
-	        "- $Index=NAME$ is replaced by NAME for index segments, ignored otherwise. May occur multiple times.\n"
-	        "- $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise. May occur multiple times.\n"
-	        "- $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments. May occur multiple times", NULL, NULL, GF_ARG_STRING, 0),
+	        "- $Number[%%0Nd]$ is replaced by the segment number, possibly prefixed with 0\n"
+	        "- $RepresentationID$ is replaced by representation name\n"
+	        "- $Time$ is replaced by segment start time\n"
+	        "- $Bandwidth$ is replaced by representation bandwidth\n"
+	        "- $Init=NAME$ is replaced by NAME for init segment, ignored otherwise\n"
+	        "- $Index=NAME$ is replaced by NAME for index segments, ignored otherwise\n"
+	        "- $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise\n"
+	        "- $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("segment-ext", NULL, "set the segment extension, `null` means no extension", "m4s", NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("init-segment-ext", NULL, "set the segment extension for init, index and bitstream switching segments, `null` means no extension\n", "mp4", NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("segment-timeline", NULL, "use `SegmentTimeline` when generating segments", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("segment-marker `MARK`", NULL, "add a box of type `MARK` (4CC) at the end of each DASH segment", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("insert-utc", NULL, "insert UTC clock at the beginning of each ISOBMF segment", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("base-url", NULL, "set Base url at MPD level. Can be used several times.\nWarning: this does not  modify generated files location", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("base-url", NULL, "set Base url at MPD level. Can be used several times.  \nWarning: this does not  modify generated files location", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("mpd-title", NULL, "set MPD title", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("mpd-source", NULL, "set MPD source", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("mpd-info-url", NULL, "set MPD info url", NULL, NULL, GF_ARG_STRING, 0),
@@ -280,7 +280,7 @@ GF_GPACArg m4b_dash_args[] =
 	GF_DEF_ARG("ast-offset", NULL, "specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative", "0", NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("dash-scale", NULL, "specify that timing for [-dash]() and [-frag]() are expressed in given timexale (units per seconds)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("mem-frags", NULL, "fragmentation happens in memory rather than on disk before flushing to disk", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("pssh=", NULL, "set pssh store mode.\n"
+	GF_DEF_ARG("pssh", NULL, "set pssh store mode\n"
 	"- v: initial movie\n"
 	"- f: movie fragments\n"
 	"- m: MPD\n"
@@ -288,7 +288,7 @@ GF_GPACArg m4b_dash_args[] =
 	"- mf, fm: in movie fragments and MPD", NULL, "v|f|m|mv|vm|mf|fm", GF_ARG_INT, 0),
 	GF_DEF_ARG("sample-groups-traf", NULL, "store sample group descriptions in traf (duplicated for each traf). If not set, sample group descriptions are stored in the initial movie", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("mvex-after-traks", NULL, "store `mvex` box after `trak` boxes within the moov box. If not set, `mvex` is before", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("sdtp-traf", NULL, "use `sdtp` box in `traf` (Smooth-like).\n"
+	GF_DEF_ARG("sdtp-traf", NULL, "use `sdtp` box in `traf` (Smooth-like)\n"
 	"- no: do not use sdtp\n"
 	"- sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
 	"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags\n", NULL, "no|sdtp|both", GF_ARG_INT, 0),
@@ -380,13 +380,13 @@ void PrintDASHUsage()
 GF_GPACArg m4b_imp_args[] =
 {
  	GF_DEF_ARG("add", NULL, "add given file tracks to file. Multiple inputs can be specified using `+`, eg `-add url1+url2", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("cat", NULL, "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`(eg `-cat url1+url2).\nNote: This aligns initial timestamp of the file to be concatenated", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("cat", NULL, "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`(eg `-cat url1+url2).  \nNote: This aligns initial timestamp of the file to be concatenated", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("catx", NULL, "same as [-cat]() but new tracks can be imported before concatenation by specifying `+ADD_COMMAND` where `ADD_COMMAND` is a regular [-add]() syntax", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("catpl", NULL, "concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).\nNote: Each listed file is concatenated as if called with -cat", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("catpl", NULL, "concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).  \nNote: Each listed file is concatenated as if called with -cat", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("unalign-cat", NULL, "do not attempt to align timestamps of samples inbetween tracks", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("force-cat", NULL, "skip media configuration check when concatenating file.\nWarning: THIS MAY BREAK THE CONCATENATED TRACK(S)", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("force-cat", NULL, "skip media configuration check when concatenating file.  \nWarning: THIS MAY BREAK THE CONCATENATED TRACK(S)", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("keep-sys", NULL, "keep all MPEG-4 Systems info when using [-add]() and [-cat]() (only used when adding IsoMedia files)", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("dref", NULL, "keep media data in original file using `data referencing`. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developping content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.\nNote: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (__AVC__ or __HEVC__ cannot use this option)", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("dref", NULL, "keep media data in original file using `data referencing`. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developping content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  \nNote: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (__AVC__ or __HEVC__ cannot use this option)", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("no-drop", NULL, "force constant FPS when importing AVI video", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("packed", NULL, "force packed bitstream when importing raw MPEG-4 part 2 Advanced Simple Profile", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("sbr", NULL, "backward compatible signaling of AAC-SBR", NULL, NULL, GF_ARG_BOOL, 0),
@@ -394,168 +394,183 @@ GF_GPACArg m4b_imp_args[] =
  	GF_DEF_ARG("ps", NULL, "backward compatible signaling of AAC-PS", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("psx", NULL, "non-backward compatible signaling of AAC-PS", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ovsbr", NULL, "oversample SBR import (SBR AAC, PS AAC and oversampled SBR cannot be detected at import time)", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("fps", NULL, "force frame rate for video and SUB subtitles import to the given value, expressed as a number or as `timescale-increment`.\nNote: For raw H263 import, default FPS is `15`, otherwise `25`\nWarning: This is ignored for ISOBMFF import, use `:rescale` option for that", "25", NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("fps", NULL, "force frame rate for video and SUB subtitles import to the given value, expressed as a number or as `timescale-increment`.  \nNote: For raw H263 import, default FPS is `15`, otherwise `25`. This is ignored for ISOBMFF import, use `:rescale` option for that", "25", NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("mpeg4", NULL, "force MPEG-4 sample descriptions when possible. For AAC, forces MPEG-4 AAC signaling even if MPEG-2", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("agg", NULL, "aggregate N audio frames in 1 sample (3GP media only).\nNote: Maximum value is 15", NULL, NULL, GF_ARG_INT, 0),
+ 	GF_DEF_ARG("agg", NULL, "aggregate N audio frames in 1 sample (3GP media only, maximum value is 15)", NULL, NULL, GF_ARG_INT, 0),
+	{0}
+};
+
+
+static GF_GPACArg ImportFileOpts [] = {
+	GF_DEF_ARG("dur", NULL, "`X` import only the specified duration from the media. Value can be:\n"
+		"  - positive float: specifies duration in seconds\n"
+		"  - fraction: specifies duration as NUM/DEN fraction\n"
+		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("lang", NULL, "set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("delay", NULL, "set imported media initial delay in ms", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("par", NULL, "set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("clap", NULL, "set visual clean aperture (see [-clap](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("mx", NULL, "set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("name", NULL, "set track handler name", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("ext", NULL, "override file extension when importing", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("hdlr", NULL, "set track handler type to the given code point (4CC)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("disable", NULL, "disable imported track(s)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("group", NULL, "add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("fps", NULL, "same as [-fps]()", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("rap", NULL, "`D` import only RAP samples", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("refs", NULL, "`D` import only reference pictures", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("trailing", NULL, "keep trailing 0-bytes in AVC/HEVC samples", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("agg", NULL, "`X` same as [-agg]()", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("dref", NULL, "`X` same as [-dref]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("keep_refs", NULL, "keep track reference when importing a single track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("nodrop", NULL, "same as [-nodrop]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("packed", NULL, "`X` same as [-packed]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("sbr", NULL, "same as [-sbr]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("sbrx", NULL, "same as [-sbrx]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("ovsbr", NULL, "same as [-ovsbr]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("ps", NULL, "same as [-ps]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("psx", NULL, "same as [-psx]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("asemode", NULL, "`X` set the mode to create the AudioSampleEntry. Value can be:\n"
+		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
+		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
+		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
+		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("audio_roll", NULL, "add a roll sample group with roll_distance `N`", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("mpeg4", NULL, "`X` same as [-mpeg4]() option", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("nosei", NULL, "discard all SEI messages during import", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("svc", NULL, "import SVC/LHVC with explicit signaling (no AVC base compatibility)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("nosvc", NULL, "discard SVC/LHVC data when importing", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("svcmode", NULL, "`D` set SVC/LHVC import mode. Value can be:\n"
+		"  - split: each layer is in its own track\n"
+		"  - merge: all layers are merged in a single track\n"
+		"  - splitbase: all layers are merged in a track, and the AVC base in another\n"
+		"  - splitnox: each layer is in its own track, and no extractors are written\n"
+		"  - splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("temporal", NULL, "`D` set HEVC/LHVC temporal sublayer import mode. Value can be:\n"
+		"  - split: each sublayer is in its own track\n"
+		"  - splitbase: all sublayers are merged in a track, and the HEVC base in another\n"
+		"  - splitnox: each layer is in its own track, and no extractors are written", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("subsamples", NULL, "add SubSample information for AVC+SVC", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("deps", NULL, "import sample dependency information for AVC and HEVC", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("ccst", NULL, "add default HEIF ccst box to visual sample entry", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("forcesync", NULL, "force non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
+		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("xps_inband", NULL, "`X` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("xps_inbandx", NULL, "`X` same as xps_inband and also keep first xPS in sample desciption", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("au_delim", NULL, "keep AU delimiter NAL units in the imported file", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("max_lid", NULL, "set HEVC max layer ID to be imported to `N` (by default imports all layers)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("max_tid", NULL, "set HEVC max temporal ID to be imported to `N` (by default imports all temporal sublayers)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("tiles", NULL, "add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("split_tiles", NULL, "`D` split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("negctts", NULL, "use negative CTS-DTS offsets (ISO4 brand)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("chap", NULL, "specify the track is a chapter track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("chapter", NULL, "add a single chapter (old nero format) with given name lasting the entire file", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("chapfile", NULL, "add a chapter file (old nero format)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("layout", NULL, "specify the track layout as WxHxXxY\n"
+		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used\n"
+		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
+		"  - X and Y can be omitted: `:layout=WxH`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("rescale", NULL, "force media timescale to TS !! changes the media duration", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("timescale", NULL, "set imported media timescale to TS", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("moovts", NULL, "set movie timescale to TS. A negative value picks the media timescale of the first track imported", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("noedit", NULL, "`X` do not set edit list when importing B-frames video tracks", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("rvc", NULL, "set RVC configuration for the media", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("fmt", NULL, "override format detection with given format (cf BT/XMTA doc)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("profile", NULL, "override AVC profile", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("level", NULL, "override AVC level", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("novpsext", NULL, "remove VPS extensions from HEVC VPS", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("keepav1t", NULL, "keep AV1 temporal delimiter OBU in samples, might help if source file had losses", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("font", NULL, "specify font name for text import (default `Serif`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("size", NULL, "specify font size for text import (default `18`)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("text_layout", NULL, "specify the track text layout as WxHxXxY\n"
+		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used\n"
+		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
+		"  - X and Y can be omitted: `:layout=WxH`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("swf-global", NULL, "all SWF defines are placed in first scene replace rather than when needed", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-no-ctrl", NULL, "use a single stream for movie control and dictionary (this will disable ActionScript)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-no-text", NULL, "remove all SWF text", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-no-font", NULL, "remove all embedded SWF Fonts (local playback host fonts used)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-no-line", NULL, "remove all lines from SWF shapes", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-no-grad", NULL, "remove all gradients from SWF shapes", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-quad", NULL, "use quadratic bezier curves instead of cubic ones", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-xlp", NULL, "support for lines transparency and scalability", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-ic2d", NULL, "use indexed curve 2D hardcoded proto", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-same-app", NULL, "appearance nodes are reused", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("swf-flatten", NULL, "complementary angle below which 2 lines are merged, `0` means no flattening", NULL, NULL, GF_ARG_DOUBLE, 0),
+	GF_DEF_ARG("kind", NULL, "set kind for the track as `schemeURI=value`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("txtflags", NULL, "set display flags (hexa number) of text track. Use `txtflags+=FLAGS` to add flags and `txtflags-=FLAGS` to remove flags", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("rate", NULL, "force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("stz2", NULL, "use compact size table (for low-bitrates)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("bitdepth", NULL, "set bit depth to VAL for imported video content (default is 24)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("colr", NULL, "set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:\n"
+		"  - nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef\n"
+		"  - nclx,p,t,m,r: same as `nclx` with r full range flag\n"
+		"  - prof,path: with path indicating the file containing the ICC color profile\n"
+		"  - rICC,path: with path indicating the file containing the restricted ICC color profile", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("dv-profile", NULL, "set the Dolby Vision profile", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("tc", NULL, "inject a single QT timecode. Value is formated as:\n"
+		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
+		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
+		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("lastsampdur", NULL, "set duration of the last sample. Value is formated as:\n"
+		"  - no value: use the previous sample duration\n"
+		"  - integer: indicate the duration in milliseconds\n"
+		"  - N/D: indicate the duration as fractional second", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("fstat", NULL, "print filter session stats after import", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("fgraph", NULL, "print filter session graph after import", NULL, NULL, GF_ARG_BOOL, 0),
+	{"sopt:[OPTS]", NULL, "set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
+	{"dopt:[OPTS]", NULL, "`X` set `OPTS` as additional arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
+	{"@@f1[:args][@@fN:args]", NULL, "set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified"},
 	{0}
 };
 
 void PrintImportUsage()
 {
-	u32 i=0;
+	u32 i;
+	
 	gf_sys_format_help(helpout, help_flags, "# Importing Options\n"
 		"# File importing\n"
 		"Syntax is [-add]() / [-cat]() `filename[#FRAGMENT][:opt1...:optN=val]`\n"
 		"This process will create the destination file if not existing, and add the track(s) to it. If you wish to always create a new destination file, add [-new](MP4B_GEN).\n"
 		"The supported input media types depend on your installation, check [filters documentation](Filters) for more info.\n"
 		"  \n"
-		"To select a desired media track, the following syntax is used:\n"
-		"- `-add inputFile#video`: adds the first video track in `inputFile`.\n"
-		"- `-add inputFile#audio`: adds the first audio track in `inputFile`.\n"
-		"- `-add inputFile#trackID=ID` or `-add inputFile#ID`: adds the specified track. For IsoMedia files, ID is the track ID. For other media files, ID is the value indicated by `MP4Box -info inputFile`.\n"
+		"To select a desired media track from a source, a fragment identifier '#' can be specified, bfore any other options. The following syntax is used:\n"
+		"- `#video`: adds the first video track found in source\n"
+		"- `#audio`: adds the first audio track found in source\n"
+		"- `#auxv`: adds the first auxiliary video track found in source\n"
+		"- `#pict`: adds the first picture track found in source\n"
+		"- `#trackID=ID` or `#ID`: adds the specified track. For IsoMedia files, ID is the track ID. For other media files, ID is the value indicated by `MP4Box -info inputFile`\n"
+		"- `#pid=ID`: number of desired PID for MPEG-2 TS sources\n"
+		"- `#prog_id=ID`: number of desired program for MPEG-2 TS sources\n"
+		"- `#program=NAME`: name of desired program for MPEG-2 TS sources\n"
 		"  \n"
-		"By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding input isobmf file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using [-flat]() option, but this disables media interleaving.\n"
+		"By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding original ISOBMF file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using [-flat](MP4B_GEN) option, but this disables media interleaving.\n"
 		"  \n"
-		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs]() option. The interleaving might not be as precise as when using [-new]() since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). \n"
-		" - Some muxing options (marked with `*` below) will be activated for all inputs (i.e. in this mode, it is not possible to import one AVC track with `xps_inband` and another without).\n"
-		" - Some muxing options (marked as `!` below) cannot be used in this mode as they require temporary storage for file edition.\n"
-		" - Usage of [-cat]() is possible in this mode, but concatenated sources will not be interleaved in the output . If you wish to perforom more complex cat/add operations without temp file, use the [gpac application](Filters).\n"
+		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs](MP4B_GEN) option. The interleaving might not be as precise as when using [-new]() since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: \n"
+		" - Some muxing options (marked with `X` below) will be activated for all inputs (e.g it is not possible to import one AVC track with `xps_inband` and another without).\n"
+		" - Some muxing options (marked as `D` below) cannot be used as they require temporary storage for file edition.\n"
+		" - Usage of [-cat]() is possible, but concatenated sources will not be interleaved in the output. If you wish to perforom more complex cat/add operations without temp file, use the [gpac application](Filters).\n"
 		"  \n"
-		"MP4Box can import a desired amount of the input file rather than the whole file. To do this, use the syntax `-add inputFile:dur=N`, where N is the number of seconds you wish to import from input. MP4Box cannot start importing from a random point in the input, it always import from the begining.\n"
-		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). Check [TTXT doc](Subtitling-with-GPAC) for more details.\n"
+		"Note: MP4Box cannot start importing from a random point in the input, it always import from the begining.  If you wish to import from another point in the source, use the [gpac application](Filters).\n"
 		"  \n"
-		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`.\n"
+		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check [TTXT doc](Subtitling-with-GPAC).\n"
 		"  \n"
-		""
-		"Allowed per-file options:\n"
-		"- #video, #audio: base import for most AV files\n"
-		"- #trackID=ID: track import for IsoMedia and other files\n"
-		"- #pid=ID: stream import from MPEG-2 TS\n"
-		"- :dur=D: `*` import only the specified duration from the media. D can be:\n"
-		"  - positive float: specifies duration in seconds\n"
-		"  - fraction: specifies duration as NUM/DEN fraction\n"
-		"  - negative integer: specifies duration in number of coded frames\n"
-		"- :lang=LAN: set imported media language code\n"
-		"- :delay=delay_ms: set imported media initial delay in ms\n"
-		"- :par=PAR: set visual pixel aspect ratio (see [-par](MP4B_GEN) )\n"
-		"- :clap=CLAP: set visual clean aperture (see [-clap](MP4B_GEN) )\n"
-		"- :mx=MX: sets track matrix (see [-mx](MP4B_GEN) )\n"
-		"- :name=NAME: set track handler name\n"
-		"- :ext=EXT: override file extension when importing\n"
-		"- :hdlr=code: set track handler type to the given code point (4CC)\n"
-		"- :disable: imported track(s) will be disabled\n"
-		"- :group=G: add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked.\n"
-		"- :fps=VAL: same as [-fps]()\n"
-		"- :rap: `!` import only RAP samples\n"
-		"- :refs: `!` import only reference pictures\n"
-		"- :trailing: keep trailing 0-bytes in AVC/HEVC samples\n"
-		"- :agg=VAL: `*` same as [-agg]()\n"
-		"- :dref: `*` same as [-dref]()\n"
-		"- :keep_refs: keeps track reference when importing a single track\n"
-		"- :nodrop: same as [-nodrop]()\n"
-		"- :packed: `*` same as [-packed]()\n"
-		"- :sbr: same as [-sbr]()\n"
-		"- :sbrx: same as [-sbrx]()\n"
-		"- :ovsbr: same as [-ovsbr]()\n"
-		"- :ps: same as [-ps]()\n"
-		"- :psx: same as [-psx]()\n"
-		"- :asemode=MODE: `*` set the mode to create the AudioSampleEntry\n"
-		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
-		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
-		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
-		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks\n"
-		"- :audio_roll=N: add a roll sample group with roll_distance `N`\n"
-		"- :mpeg4: `*` same as [-mpeg4]() option\n"
-		"- :nosei: discard all SEI messages during import\n"
-		"- :svc: import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"
-		"- :nosvc: discard SVC/LHVC data when importing\n"
-		"- :svcmode=MODE: `!` set SVC/LHVC import mode\n"
-		"  - split: each layer is in its own track\n"
-		"  - merge: all layers are merged in a single track\n"
-		"  - splitbase: all layers are merged in a track, and the AVC base in another\n"
-		"  - splitnox: each layer is in its own track, and no extractors are written\n"
-		"  - splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling\n"
-		"- :temporal: `!` set HEVC/LHVC temporal sublayer import mode\n"
-		"  - split: each sublayer is in its own track\n"
-		"  - splitbase: all sublayers are merged in a track, and the HEVC base in another\n"
-		"  - splitnox: each layer is in its own track, and no extractors are written\n"
-		"- :subsamples: add SubSample information for AVC+SVC\n"
-		"- :deps: import sample dependency information for AVC and HEVC\n"
-		"- :ccst: add default HEIF ccst box to visual sample entry\n"
-		"- :forcesync: force non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
-		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
-		"- :xps_inband: `*` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
-		"- :xps_inbandx: `*` same as xps_inband and also keep first xPS in sample desciption\n"
-		"- :au_delim: keep AU delimiter NAL units in the imported file\n"
-		"- :max_lid=N: set HEVC max layer ID to be imported to `N` (by default imports all layers)\n"
-		"- :max_tid=N: set HEVC max temporal ID to be imported to `N` (by default imports all temporal sublayers)\n"
-		"- :tiles: add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks\n"
-		"- :split_tiles: `!` split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.\n"
-		"- :negctts: use negative CTS-DTS offsets (ISO4 brand)\n"
-		"- :chap: specify the track is a chapter track\n"
-		"- :chapter=NAME: add a single chapter (old nero format) with given name lasting the entire file\n"
-		"- :chapfile=file: adds a chapter file (old nero format)\n"
-		"- :layout=WxHxXxY: specify the track layout\n"
-		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used\n"
-		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
-		"  - X and Y can be omitted: `:layout=WxH`\n"
-		"- :rescale=TS: force media timescale to TS !! changes the media duration\n"
-		"- :timescale=TS: set imported media timescale to TS.\n"
-		"- :moovts=TS: set movie timescale to TS. A negative value picks the media timescale of the first track imported.\n"
-		"- :noedit: `*` do not set edit list when importing B-frames video tracks\n"
-		"- :rvc=FILENAME: set RVC configuration for the media\n"
-		"- :fmt=FORMAT: override format detection with given format (cf BT/XMTA doc)\n"
-		"- :profile=INT: override AVC profile\n"
-		"- :level=INT: override AVC level\n"
-		"- :novpsext: remove VPS extensions from HEVC VPS\n"
-		"- :keepav1t: keep AV1 temporal delimiter OBU in samples, might help if source file had losses\n"
-		"- :font=name: specify font name for text import (default `Serif`)\n"
-		"- :size=s: specify font size for text import (default `18`)\n"
-		"- :text_layout=WxHxXxY: specify the track text layout\n"
-		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used.\n"
-		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
-		"  - X and Y can be omitted: `:layout=WxH`\n"
-		"- :swf-global: all SWF defines are placed in first scene replace rather than when needed\n"
-		"- :swf-no-ctrl: use a single stream for movie control and dictionary (this will disable ActionScript)\n"
-		"- :swf-no-text: remove all SWF text\n"
-		"- :swf-no-font: remove all embedded SWF Fonts (local playback host fonts used)\n"
-		"- :swf-no-line: remove all lines from SWF shapes\n"
-		"- :swf-no-grad: remove all gradients from SWF shapes\n"
-		"- :swf-quad: use quadratic bezier curves instead of cubic ones\n"
-		"- :swf-xlp: support for lines transparency and scalability\n"
-		"- :swf-ic2d: use indexed curve 2D hardcoded proto\n"
-		"- :swf-same-app: appearance nodes are reused\n"
-		"- :swf-flatten=ang: complementary angle below which 2 lines are merged, `0` means no flattening\n"
-		"- :kind=schemeURI=value: set kind for the track\n"
-		"- :txtflags=flags: set display flags (hexa number) of text track\n"
-		"- :txtflags+=flags: add display flags (hexa number) to text track\n"
-		"- :txtflags-=flags: remove display flags (hexa number) from text track\n"
-		"- :rate=VAL: force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box\n"
-		"- :stz2: use compact size table (for low-bitrates)\n"
-		"- :bitdepth=VAL: set bit depth to VAL for imported video content (default is 24)\n"
-		"- :colr=OPT: set color profile for imported video content (see ISO/IEC 23001-8). `OPT` is formatted as:\n"
-		"  - nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef\n"
-		"  - nclx,p,t,m,r: same as `nclx` with r full range flag\n"
-		"  - prof,path: with path indicating the file containing the ICC color profile\n"
-		"  - rICC,path: with path indicating the file containing the restricted ICC color profile\n"
-		"- :dv-profile=VAL: set the Dolby Vision profile\n"
-		"- :tc=VAL: inject a single QT timecode. `VAL` is formated as:\n"
-		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
-		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
-		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick\n"
-		"- :lastsampdur[=VAL]\" sets duration of the last sample. `VAL` is formated as:\n"
-		"  - no value: use the previous sample duration\n"
-		"  - integer: indicate the duration in milliseconds\n"
-		"  - N/D: indicate the duration as fractional second\n"
-		"- :fstat: print filter session stats after import\n"
-		"- :fgraph: print filter session graph after import\n"
-		"- :sopt:[OPTS]: set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
-		"- :dopt:[OPTS]: `*` set `OPTS` as additional arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)\n"
-		"- @@f1[:args][@@fN:args]: set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified\n"
-		"\n"
+		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`. Allowed per-file options:\n\n"
+	);
+
+	i=0;
+	while (ImportFileOpts[i].name) {
+		GF_GPACArg *arg = &ImportFileOpts[i];
+		i++;
+		gf_sys_print_arg(helpout, help_flags | GF_PRINTARG_NO_DASH, arg, "mp4box-import");
+	}
+
+	gf_sys_format_help(helpout, help_flags, "\n"
 		"Note: `sopt`, `dopt` and `@@f` must be placed after all other options.\n"
 		"# Global import options\n"
 	);
+
+	i=0;
 	while (m4b_imp_args[i].name) {
 		GF_GPACArg *arg = &m4b_imp_args[i];
 		i++;
@@ -567,8 +582,8 @@ GF_GPACArg m4b_senc_args[] =
 {
  	GF_DEF_ARG("mp4", NULL, "specify input file is for encoding", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("def", NULL, "encode DEF names in BIFS", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("sync", NULL, "force BIFS sync sample generation every given time in ms.\nNote: cannot be used with [-shadow]()", NULL, NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("shadow", NULL, "force BIFS sync shadow sample generation every given time in ms.\nNote: cannot be used with [-sync]()", NULL, NULL, GF_ARG_INT, 0),
+ 	GF_DEF_ARG("sync", NULL, "force BIFS sync sample generation every given time in ms (cannot be used with [-shadow]() )", NULL, NULL, GF_ARG_INT, 0),
+ 	GF_DEF_ARG("shadow", NULL, "force BIFS sync shadow sample generation every given time in ms (cannot be used with [-sync]() )", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("log", NULL, "generate scene codec log file if available", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ms", NULL, "import tracks from the given file", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("ctx-in", NULL, "specify initial context (MP4/BT/XMT) file for chunk processing. Input file must be a commands-only file", NULL, NULL, GF_ARG_STRING, 0),
@@ -923,10 +938,12 @@ GF_GPACArg m4b_usage_args[] =
 		"- format: supported formats help\n"
 		"- live: BIFS streamer help\n"
 		"- core: libgpac core options\n"
-		"- all: all options are printed\n"
+		"- all: print all the above help screens\n"
+		"- opts: print all options\n"
 		"- VAL: search for option named `VAL` (without `-` or `--`) in MP4Box, libgpac core and all filters\n"
 		, NULL, NULL, GF_ARG_STRING, 0),
-
+ 	GF_DEF_ARG("hx", NULL, "look for given string in all possible options"
+		, NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("nodes", NULL, "list supported MPEG4 nodes", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("node", NULL, "get given MPEG4 node syntax and QP infolist", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("xnodes", NULL, "list supported X3D nodes", NULL, NULL, GF_ARG_BOOL, 0),
@@ -956,58 +973,98 @@ void PrintUsage()
 	}
 }
 
-static u32 PrintHelpForArgs(char *arg_name, GF_GPACArg *args, Bool exact_match)
+enum
+{
+	SEARCH_ARG_EXACT,
+	SEARCH_ARG_CLOSE,
+	SEARCH_DESC,
+};
+
+static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len)
+{
+	if (!text || !*text || !subtext || !subtext)
+		return GF_FALSE;
+
+	while (*text) {
+		if (tolower(*text) == *subtext) {
+			if (!strnicmp(text, subtext, subtext_len))
+				return GF_TRUE;
+
+		}
+		text++;
+	}
+	return GF_FALSE;
+}
+
+static u32 PrintHelpForArgs(char *arg_name, GF_GPACArg *args, u32 search_type)
 {
 	u32 res=0;
 	u32 i=0;
 	u32 alen = (u32) strlen(arg_name);
 	while (args[i].name) {
+		u32 flags=0;
 		GF_GPACArg *arg = &args[i];
 		GF_GPACArg an_arg;
 		Bool do_match = GF_FALSE;
-		if (!strcmp(arg_name, arg->name))
+
+		if (args==ImportFileOpts) {
+			flags = GF_PRINTARG_COLON;
+			if (!strncmp(arg_name, arg->name, alen) && ((arg->name[alen]==0) || (arg->name[alen]=='=')))
+				do_match = GF_TRUE;
+		}
+		else if (!strcmp(arg_name, arg->name))
 			do_match = GF_TRUE;
 		else if ((alen < (u32) strlen(arg->name)) && (arg->name[alen]==' ') && !strncmp(arg_name, arg->name, alen))
 			do_match = GF_TRUE;
 
-		if (exact_match && !do_match) {
+		if (arg_name[0] == '@')
+			do_match = GF_TRUE;
+
+		if ((search_type==SEARCH_ARG_EXACT) && !do_match) {
 			i++;
 			continue;
 		}
-		if (!exact_match && !gf_sys_word_match(arg_name, arg->name)) {
+		if ((search_type==SEARCH_ARG_CLOSE) && !gf_sys_word_match(arg_name, arg->name)) {
 			i++;
 			continue;
 		}
+		if ((search_type==SEARCH_DESC) && !strstr_nocase(arg->description, arg_name, alen)) {
+			i++;
+			continue;
+		}
+
 		an_arg = *arg;
-		if (!exact_match) {
+		if (search_type!=SEARCH_ARG_EXACT) {
 			an_arg.description = NULL;
 			an_arg.type = GF_ARG_BOOL;
 		}
-		gf_sys_print_arg(helpout, 0, &an_arg, "");
+		gf_sys_print_arg(helpout, flags, &an_arg, "");
 		res++;
 		i++;
 	}
 	return res;
 }
-static Bool PrintHelpArg(char *arg_name, Bool exact_match, GF_FilterSession *fs)
+static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 {
 	Bool first=GF_TRUE;
 	GF_GPACArg an_arg;
 	u32 i, count;
 	u32 res = 0;
-	res += PrintHelpForArgs(arg_name, m4b_gen_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_dash_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_imp_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_senc_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_crypt_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_hint_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_extr_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_dump_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_meta_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_swf_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_liveenc_args, exact_match);
-	res += PrintHelpForArgs(arg_name, m4b_usage_args, exact_match);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) gf_sys_get_options(), exact_match);
+	u32 alen = strlen(arg_name);
+	res += PrintHelpForArgs(arg_name, m4b_gen_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_dash_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_imp_args, search_type);
+	res += PrintHelpForArgs(arg_name, ImportFileOpts, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_senc_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_crypt_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_hint_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_extr_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_dump_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_meta_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_swf_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_liveenc_args, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_usage_args, search_type);
+	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) gf_sys_get_options(), search_type);
 
 	if (!fs) return res;
 
@@ -1022,11 +1079,16 @@ static Bool PrintHelpArg(char *arg_name, Bool exact_match, GF_FilterSession *fs)
 			const GF_FilterArgs *arg = &reg->args[j];
 			if (!arg || !arg->arg_name) break;
 			j++;
-			if (exact_match && strcmp(arg->arg_name, arg_name)) continue;
-			if (!exact_match && !gf_sys_word_match(arg->arg_name, arg_name)) continue;
+			if ((search_type==SEARCH_ARG_EXACT) && strcmp(arg->arg_name, arg_name)) continue;
+
+			if ((search_type==SEARCH_ARG_CLOSE) && !gf_sys_word_match(arg->arg_name, arg_name)) continue;
+
+			if (search_type==SEARCH_DESC) {
+				if (!strstr_nocase(arg->arg_desc, arg_name, alen)) continue;
+			}
 
 			an_arg.name = arg->arg_name;
-			if (exact_match) {
+			if (search_type==SEARCH_ARG_EXACT) {
 				an_arg.description = arg->arg_desc;
 				switch (arg->arg_type) {
 				case GF_PROP_BOOL:
@@ -1068,7 +1130,7 @@ static Bool PrintHelpArg(char *arg_name, Bool exact_match, GF_FilterSession *fs)
 	return GF_FALSE;
 }
 
-static void PrintHelp(char *arg_name)
+static void PrintHelp(char *arg_name, Bool search_desc)
 {
 	GF_FilterSession *fs;
 	Bool res;
@@ -1078,12 +1140,20 @@ static void PrintHelp(char *arg_name)
 	if (arg_name[0]=='-')
 		arg_name++;
 
-	res = PrintHelpArg(arg_name, GF_TRUE, fs);
-	if (!res) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Option -%s unknown, please check usage.\n", arg_name));
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options are:\n"));
+	if (search_desc) {
+		char *_arg_name = gf_strdup(arg_name);
+		strlwr(_arg_name);
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options mentionning `%s`:\n", arg_name));
+		res = PrintHelpArg(_arg_name, SEARCH_DESC, fs);
+		gf_free(_arg_name);
+	} else {
+		res = PrintHelpArg(arg_name, SEARCH_ARG_EXACT, fs);
+		if (!res) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Option -%s unknown, please check usage.\n", arg_name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options are:\n"));
 
-		PrintHelpArg(arg_name, GF_FALSE, fs);
+			PrintHelpArg(arg_name, SEARCH_ARG_CLOSE, fs);
+		}
 	}
 	if (fs)
 		gf_fs_del(fs);
@@ -3432,6 +3502,8 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			return 1;
 		}
 		else if (!stricmp(arg, "-h")) {
+			gf_sys_set_args(argc, (const char**) argv);
+
 			if (i + 1 == (u32)argc) PrintUsage();
 			else if (!strcmp(argv[i + 1], "general")) PrintGeneralUsage();
 			else if (!strcmp(argv[i + 1], "extract")) PrintExtractUsage();
@@ -3464,9 +3536,16 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				PrintLiveUsage();
 #endif
 				PrintCoreUsage();
+			} else if (!strcmp(argv[i + 1], "opts")) {
+				PrintHelp("@", GF_FALSE);
 			} else {
-				PrintHelp(argv[i+1]);
+				PrintHelp(argv[i+1], GF_FALSE);
 			}
+			return 1;
+		}
+		else if (!stricmp(arg, "-hx")) {
+			if (i + 1 == (u32)argc) PrintUsage();
+			else PrintHelp(argv[i+1], GF_TRUE);
 			return 1;
 		}
 		else if (!strcmp(arg, "-genmd")) {
@@ -3580,7 +3659,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!live_scene) {
 			u32 res = gf_sys_is_gpac_arg(arg);
 			if (res==0) {
-				PrintHelp(arg);
+				PrintHelp(arg, GF_FALSE);
 				return 2;
 			} else if (res==2) {
 				i++;

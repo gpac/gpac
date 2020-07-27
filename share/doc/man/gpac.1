@@ -133,11 +133,9 @@ specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)
 .TP
 .B \-h,-help,-ha,-hx,-hh (string)
 .br
-print help. Use -help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all.
+print help. Use -help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all.  
 .br
-Note: The @ character can be used in place of the * character.
-.br
- String parameter can be:
+Note: The @ character can be used in place of the * character. String parameter can be:
 .br
 * empty: print command line options help
 .br
@@ -163,21 +161,23 @@ Note: The @ character can be used in place of the * character.
 .br
 * props: print the supported builtin PID and packet properties
 .br
-* links: print possible connections between each supported filters.
+* links: print possible connections between each supported filters
 .br
 * links FNAME: print sources and sinks for filter FNAME (either builtin or JS filter)
 .br
-* FNAME: print filter FNAME info (multiple FNAME can be given).
+* FNAME: print filter FNAME info (multiple FNAME can be given)
 .br
-  - For meta-filters, use FNAME:INST, eg ffavin:avfoundation.
+  - For meta-filters, use FNAME:INST, eg ffavin:avfoundation
 .br
-  - Use * to print info on all filters (big output!), *:* to print info on all filters including meta filter instances (really big output!).
+  - Use * to print info on all filters (big output!), *:* to print info on all filters including meta filter instances (really big output!)
 .br
-  - By default only basic filter options and description are shown. Use -ha to show advanced options capabilities, -hx for expert options, -hh for all options and filter capabilities including on filters disabled in this build.
+  - By default only basic filter options and description are shown. Use -ha to show advanced options capabilities, -hx for expert options, -hh for all options and filter capabilities including on filters disabled in this build
 .br
-* FNAME.OPT: print option OPT in filter FNAME.
+* FNAME.OPT: print option OPT in filter FNAME
 .br
-* OPT: look in filter names and options for OPT and suggest possible matches if none found
+* OPT: look in filter names and options for OPT and suggest possible matches if none found. Use -hx to look for keyword in all option descriptions
+.br
+
 .br
 .TP
 .B \-p (string)
@@ -507,6 +507,20 @@ Example
 .br
 This is equivalent to specifying -o dump.264:profile=Baseline.
 .br
+  
+.br
+For both syntax, it is possible to specify the filter registry name of the option, using --FNAME@OPTNAME=VAL.
+.br
+In this case the option will only be set for filters which are instances of registry FNAME. This is used when several registries use same option names.
+.br
+Example
+.br
+--flist@timescale=100 -i plist1 -i plist2 -o live.mpd
+.br
+
+.br
+This will set the timescale option on the playlists filters but not on the dasher filter.
+.br
 .SH libgpac core options:
 .LP
 .br
@@ -775,7 +789,7 @@ select smallest video resolution larger than scene size, otherwise use current v
 .TP
 .B \-hwvmem (Enum, default: auto)
 .br
-specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed.
+specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed
 .br
 * always: always on hardware
 .br
@@ -953,9 +967,9 @@ set log tools and levels.
 .br
   
 .br
-You can independently log different tools involved in a session.
+You can independently log different tools involved in a session.  
 .br
-log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX
+log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX  
 .br
 levelX can be one of:
 .br
@@ -1157,6 +1171,18 @@ This will extract the URL and options.
 Note: one trick to avoid the escape sequence is to declare the URLs option at the end, eg f1:opt1=foo:url=http://bar, provided you have only one URL parameter to specify on the filter.
 .br
 
+.br
+It is possible to disable option parsing (for string options) by duplicating the seperator.
+.br
+Example
+.br
+filter::opt1=UDP://IP:PORT/:someopt=VAL::opt2=VAL2
+.br
+
+.br
+This will pass UDP://IP:PORT/:someopt=VAL to opt1 without inspecting it, and VAL2 to opt2.
+.br
+  
 .br
 A filter may be assigned a name (for inspection purposes) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
 .br
@@ -3674,7 +3700,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev145-gdd68316f3-master
+build: 1.0.0-rev158-g75c362cff-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

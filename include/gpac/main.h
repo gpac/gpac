@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -190,6 +190,10 @@ typedef enum
 	GF_PRINTARG_IS_APP = 1<<3,
 	/*! insert an extra '-' at the begining*/
 	GF_PRINTARG_ADD_DASH = 1<<4,
+	/*! do not insert '-' before arg name*/
+	GF_PRINTARG_NO_DASH = 1<<5,
+	/*! insert '-: before arg name*/
+	GF_PRINTARG_COLON = 1<<6,
 	/*! the generation is for markdown*/
 	GF_PRINTARG_MD = 1<<16,
 	/*! the generation is for man pages*/

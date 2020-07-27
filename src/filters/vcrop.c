@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / video cropping filter
@@ -589,7 +589,7 @@ static GF_FilterArgs VCropArgs[] =
 {
 	{ OFFS(wnd), "size of output to crop, indicated as TxLxWxH. If % is indicated after a number, the value is in percent of the source width (for L and W) or height (for T and H). An absolute offset (+x, -x) can be added after percent", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(copy), "copy the source pixels. By default the filter will try to forward crop frames by adjusting offsets and strides of the source if possible (window contained in frame)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(round), "adjust dimension to be a multiple of 2.\n"
+	{ OFFS(round), "adjust dimension to be a multiple of 2\n"
 	"- up: up rounding\n"
 	"- down: down rounding\n"
 	"- allup: up rounding on formats that do not require it (RGB, YUV444)\n"

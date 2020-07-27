@@ -1625,7 +1625,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(pat_rate), "interval between PAT in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(first_pts), "force PTS value of first packet, in 90kHz", GF_PROP_LUINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pcr_offset), "offset all timestamps from PCR by V, in 90kHz. Default value is computed based on input media", GF_PROP_LUINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mpeg4), "force usage of MPEG-4 signaling (IOD and SL Config).\n"\
+	{ OFFS(mpeg4), "force usage of MPEG-4 signaling (IOD and SL Config)\n"\
 				"- none: disables 4on2\n"\
 				"- full: sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
 				"- scene: sends only scene streams as 4on2 but uses regular PES without SL for audio and video"\
@@ -1636,7 +1636,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(repeat_img), "interval in ms between re-sending (as PES) of single-image streams. If 0, image data is sent once only", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(max_pcr), "set max interval in ms between 2 PCR", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nb_pack), "pack N TS packets in output packets", GF_PROP_UINT, "4", NULL, 0},
-	{ OFFS(pes_pack), "set AU to PES packing mode.\n"\
+	{ OFFS(pes_pack), "set AU to PES packing mode\n"\
 		"- audio: will pack only multiple audio AUs in a PES\n"\
 		"- none: make exactly one AU per PES\n"\
 		"- all: will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
