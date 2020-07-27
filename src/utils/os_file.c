@@ -274,14 +274,29 @@ Bool gf_file_exists_ex(const char *fileName, const char *par_name)
 	wchar_t* wname = gf_utf8_to_wcs(fileName);
 	if (!wname) return GF_FALSE;
  	res = (_waccess(wname, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res == GF_TRUE) {
+		DWORD att;
+		att = GetFileAttributesW(wname);
+		if (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY))
+			res = GF_FALSE;
+	}
 	gf_free(wname);
 	return res;
 #elif defined(GPAC_CONFIG_LINUX)
- 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	Bool res = (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res && gf_dir_exists(fileName))
+		res = GF_FALSE;
+	return res;
 #elif defined(__DARWIN__) || defined(__APPLE__)
- 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+ 	Bool res = (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res && gf_dir_exists(fileName))
+		res = GF_FALSE;
+	return res;
 #elif defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
- 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+ 	Bool res = (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res && gf_dir_exists(fileName))
+		res = GF_FALSE;
+	return res;
 #else
 	FILE *f = gf_fopen(fileName, "r");
 	if (f) {
