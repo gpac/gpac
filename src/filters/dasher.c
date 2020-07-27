@@ -3906,28 +3906,51 @@ static void dasher_udpate_periods_and_manifest(GF_Filter *filter, GF_DasherCtx *
 		dasher_send_manifest(filter, ctx, GF_FALSE);
 }
 
+typedef struct
+{
+	Double period_start;
+	const char *period_id;
+} PeriodInfo;
+
 static u32 dasher_period_count(GF_List *streams_in /*GF_DashStream*/)
 {
-	u32 nb_periods = 0, i = 0, j = 0;
-	GF_List* streams = gf_list_clone(streams_in);
-	if (gf_list_count(streams_in) > 0) nb_periods++;
+	u32 nb_periods, i, j;
+	PeriodInfo *info;
+	GF_List *pinfos = gf_list_new();
 
-	for (i = 0; i < gf_list_count(streams_in); i++) {
-		GF_DashStream* ds = gf_list_get(streams_in, i);
-		for (j = i + 1; j < gf_list_count(streams); j++) {
-			GF_DashStream* a_ds = gf_list_get(streams, j);
-			Bool same_period = GF_FALSE;
-			if (a_ds->period_start == ds->period_start) same_period = GF_TRUE;
-			if (a_ds->period_id && ds->period_id && !strcmp(a_ds->period_id, ds->period_id)) same_period = GF_TRUE;
-			if (same_period) {
-				gf_list_rem(streams, j);
-				j--;
-			} else {
-				nb_periods++;
+	for (i=0; i < gf_list_count(streams_in); i++) {
+		Bool same_period = GF_FALSE;
+		GF_DashStream *ds = gf_list_get(streams_in, i);
+		//check if we already have a period info with same ID or same start time
+		nb_periods = gf_list_count(pinfos);
+		for (j=0; j < nb_periods; j++) {
+			info = gf_list_get(pinfos, j);
+			if (info->period_start == ds->period_start) {
+				same_period = GF_TRUE;
+				break;
+			}
+			if (info->period_id && ds->period_id && !strcmp(info->period_id, ds->period_id)) {
+				same_period = GF_TRUE;
+				break;
+			}
+		}
+		//nope, register it
+		if (!same_period) {
+			GF_SAFEALLOC(info, PeriodInfo);
+			if (info) {
+				info->period_start = ds->period_start;
+				info->period_id = ds->period_id;
+				gf_list_add(pinfos, info);
 			}
 		}
 	}
-	gf_list_del(streams);
+	nb_periods = gf_list_count(pinfos);
+	while (1) {
+		info = gf_list_pop_back(pinfos);
+		if (!info) break;
+		gf_free(info);
+	}
+	gf_list_del(pinfos);
 
 	return nb_periods;
 }
