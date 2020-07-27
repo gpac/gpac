@@ -3320,6 +3320,11 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 			return e;
 		}
 
+		if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+			if (gf_ftell(tmp) > 100 * 1024)
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(tmp) / 1024));
+		}
+
 		dasher_transfer_file(tmp, opid, NULL);
 		gf_fclose(tmp);
 	}
@@ -3901,6 +3906,32 @@ static void dasher_udpate_periods_and_manifest(GF_Filter *filter, GF_DasherCtx *
 		dasher_send_manifest(filter, ctx, GF_FALSE);
 }
 
+static u32 dasher_period_count(GF_List *streams_in /*GF_DashStream*/)
+{
+	u32 nb_periods = 0, i = 0, j = 0;
+	GF_List* streams = gf_list_clone(streams_in);
+	if (gf_list_count(streams_in) > 0) nb_periods++;
+
+	for (i = 0; i < gf_list_count(streams_in); i++) {
+		GF_DashStream* ds = gf_list_get(streams_in, i);
+		for (j = i + 1; j < gf_list_count(streams); j++) {
+			GF_DashStream* a_ds = gf_list_get(streams, j);
+			Bool same_period = GF_FALSE;
+			if (a_ds->period_start == ds->period_start) same_period = GF_TRUE;
+			if (a_ds->period_id && ds->period_id && !strcmp(a_ds->period_id, ds->period_id)) same_period = GF_TRUE;
+			if (same_period) {
+				gf_list_rem(streams, j);
+				j--;
+			} else {
+				nb_periods++;
+			}
+		}
+	}
+	gf_list_del(streams);
+
+	return nb_periods;
+}
+
 static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 {
 	u32 i, count, j, nb_sets, nb_done, srd_rep_idx;
@@ -3974,23 +4005,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		period_idx = 0;
 
 	if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-		//count periods
-		GF_List *streams = gf_list_clone(ctx->current_period->streams);
-		for (i=0; i< gf_list_count(streams); i++) {
-			GF_DashStream *ds = gf_list_get(streams, i);
-			for (j=i+1; j<gf_list_count(streams); j++) {
-				GF_DashStream *a_ds = gf_list_get(streams, i);
-				Bool same_period = GF_FALSE;
-				if (a_ds->period_start == ds->period_start) same_period = GF_TRUE;
-				if (a_ds->period_id && ds->period_id && !strcmp(a_ds->period_id, ds->period_id) ) same_period = GF_TRUE;
-				if (same_period) {
-					nb_periods++;
-					gf_list_rem(streams, j);
-					j--;
-				}
-			}
-		}
-		gf_list_del(streams);
+		nb_periods = dasher_period_count(ctx->current_period->streams);
 	}
 
 	if (ctx->first_context_load) {
@@ -6440,7 +6455,6 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
 		ctx->check_main_role = GF_TRUE;
 		ctx->bs_switch = DASHER_BS_SWITCH_MULTI;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] HBBTV1.5 profile not yet ported to filter architecture.\n"));
 		//FALLTHROUGH
 	case GF_DASH_PROFILE_AVC264_LIVE:
 		ctx->sseg = ctx->sfile = GF_FALSE;
