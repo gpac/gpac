@@ -42,11 +42,16 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 {
+	const char *res, *arg;
 	if (!path) return NULL;
 	if (sess->sep_args != ':')
 		return strchr(path, sess->sep_args);
 
-	return gf_url_colon_suffix(path);
+	arg = strchr(path, sess->sep_name);
+	res = gf_url_colon_suffix(path);
+	if (arg && res && (res > arg))
+		res = gf_url_colon_suffix(arg+1);
+	return res;
 }
 
 static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const char *in_args, Bool is_dst)
