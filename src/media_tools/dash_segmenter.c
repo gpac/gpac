@@ -643,7 +643,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->dash_mode >= GF_DASH_DYNAMIC) {
 		if (dasher->time_shift_depth<0) e |= gf_dynstrcat(&args, "tsb=-1", ":");
 		else {
-			sprintf(szArg, "tsb=%g", ((Double)dasher->time_shift_depth)/1000);
+			sprintf(szArg, "tsb=%u", (u32) dasher->time_shift_depth);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 

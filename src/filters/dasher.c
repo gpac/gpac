@@ -3033,6 +3033,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 		while (1) {
 			Double time, dur;
 			Bool seg_url_found = GF_FALSE;
+			Bool has_seg_list = GF_FALSE;
 			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, 0);
 			if (!sctx) break;
 			/*not yet flushed*/
@@ -3054,6 +3055,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 			if (ds->rep->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->rep->segment_list->segment_URLs);
+				has_seg_list = GF_TRUE;
 				//can be NULL if we mutualize everything at AdaptatioSet level
 				if (surl) {
 					gf_mpd_segment_url_free(surl);
@@ -3063,6 +3065,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			//not an else due to inheritance
 			if (ds->owns_set && ds->set->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->set->segment_list->segment_URLs);
+				has_seg_list = GF_TRUE;
 				//can be NULL if we don't mutualize at AdaptatioSet level
 				if (surl) {
 					gf_mpd_segment_url_free(surl);
@@ -3070,7 +3073,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				}
 			}
 			//but we must have at least one segment URL entry
-			if (!seg_url_found) {
+			if (has_seg_list && !seg_url_found) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] purging segment %s for AS %d rep %s but segment list is empty!\n",
 						sctx->filename ? sctx->filename : "", ds->set->id, ds->rep->id));
 			}
