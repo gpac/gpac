@@ -444,6 +444,7 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 		i = 0;
 		stbl->SampleToChunk->currentIndex = 0;
 		stbl->SampleToChunk->currentChunk = 1;
+		stbl->SampleToChunk->ghostNumber = 1;
 		stbl->SampleToChunk->firstSampleInCurrentChunk = 1;
 		ent = &stbl->SampleToChunk->entries[0];
 		GetGhostNum(ent, 0, stbl->SampleToChunk->nb_entries, stbl);

@@ -1030,12 +1030,14 @@ GF_Err stbl_SetSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 syncSamp
 
 
 //always called before removing the sample from SampleSize
-GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDuration)
+GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples, u32 LastAUDefDuration)
 {
 	u64 *DTSs, curDTS;
 	u32 i, j, k, sampNum;
 	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *stts;
+
+	if ((nb_samples>1) && (sampleNumber>1)) return GF_BAD_PARAM;
 
 	stts = stbl->TimeToSample;
 
@@ -1047,11 +1049,12 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 		return GF_OK;
 	}
 	//we're removing the last sample
-	if (sampleNumber == stbl->SampleSize->sampleCount) {
+	if ((nb_samples==1) && (sampleNumber == stbl->SampleSize->sampleCount)) {
 		ent = &stts->entries[stts->nb_entries-1];
 		ent->sampleCount--;
 		if (!ent->sampleCount) stts->nb_entries--;
 	} else {
+		u32 tot_samples, nb_written=0;
 		//unpack the DTSs...
 		DTSs = (u64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount - 1));
 		if (!DTSs) return GF_OUT_OF_MEM;
@@ -1065,14 +1068,24 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 		for (i=0; i<stts->nb_entries; i++) {
 			ent = & stts->entries[i];
 			for (j=0; j<ent->sampleCount; j++) {
-				if (sampNum == sampleNumber - 1) {
-					k=1;
-				} else {
-					DTSs[sampNum-k] = curDTS;
+				if (nb_samples==1) {
+					if (sampNum == sampleNumber - 1) {
+						k=1;
+					} else {
+						DTSs[sampNum-k] = curDTS;
+					}
+				} else if (sampNum >= nb_samples) {
+					DTSs[sampNum - nb_samples] = curDTS;
+					nb_written++;
 				}
 				curDTS += ent->sampleDelta;
 				sampNum ++;
 			}
+		}
+
+		if (nb_samples>1) {
+			assert(sampNum == stbl->SampleSize->sampleCount);
+			assert(nb_written + nb_samples == stbl->SampleSize->sampleCount);
 		}
 		j=0;
 		stts->nb_entries = 1;
@@ -1080,11 +1093,18 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 		if (stbl->SampleSize->sampleCount == 2) {
 			stts->entries[0].sampleDelta = LastAUDefDuration;
 		} else {
-			stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTS[0]==0 */;
+			stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTSs[0]*/;
 		}
 		sampNum = 1;
-		for (i=1; i<stbl->SampleSize->sampleCount-1; i++) {
-			if (i+1 == stbl->SampleSize->sampleCount-1) {
+
+		if (nb_samples==1) {
+			tot_samples = stbl->SampleSize->sampleCount - 1;
+		} else {
+			tot_samples = stbl->SampleSize->sampleCount - nb_samples;
+		}
+
+		for (i=1; i<tot_samples; i++) {
+			if (i+1 == tot_samples) {
 				//and by default, our last sample has the same delta as the prev
 				stts->entries[j].sampleCount++;
 				sampNum ++;
@@ -1104,14 +1124,14 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 				sampNum ++;
 			}
 		}
-		stts->w_LastDTS = DTSs[stbl->SampleSize->sampleCount - 2];
+		stts->w_LastDTS = DTSs[tot_samples - 1];
 		gf_free(DTSs);
-		assert(sampNum == stbl->SampleSize->sampleCount - 1);
-
+		assert(sampNum == tot_samples);
+		assert(sampNum + nb_samples == stbl->SampleSize->sampleCount);
 	}
 
 	//reset write the cache to the end
-	stts->w_currentSampleNum = stbl->SampleSize->sampleCount - 1;
+	stts->w_currentSampleNum = stbl->SampleSize->sampleCount - nb_samples;
 	//reset read the cache to the beginning
 	stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
 	stts->r_CurrentDTS = 0;
@@ -1120,12 +1140,13 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 
 
 //always called before removing the sample from SampleSize
-GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
+GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples)
 {
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
 	if (!ctts) return GF_OK;
 
 	assert(ctts->unpack_mode);
+	if ((nb_samples>1) && (sampleNumber>1)) return GF_BAD_PARAM;
 
 	//last one...
 	if (stbl->SampleSize->sampleCount == 1) {
@@ -1139,16 +1160,25 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 	//first case, we're removing a sample that was not added yet
 	if (sampleNumber > ctts->w_LastSampleNumber) return GF_OK;
 
-	memmove(&ctts->entries[sampleNumber-1], &ctts->entries[sampleNumber], sizeof(GF_DttsEntry)* (ctts->nb_entries-sampleNumber) );
-	ctts->nb_entries--;
+	if (nb_samples==1) {
+		assert(ctts->nb_entries);
+		memmove(&ctts->entries[sampleNumber-1], &ctts->entries[sampleNumber], sizeof(GF_DttsEntry)* (ctts->nb_entries-sampleNumber) );
+		ctts->nb_entries--;
+	} else {
+		memmove(&ctts->entries[0], &ctts->entries[nb_samples], sizeof(GF_DttsEntry)* (ctts->nb_entries-nb_samples) );
+		ctts->nb_entries -= nb_samples;
+	}
+	ctts->w_LastSampleNumber -= nb_samples;
+	assert(ctts->w_LastSampleNumber >= ctts->nb_entries);
 
-	ctts->w_LastSampleNumber -= 1;
 	return GF_OK;
 }
 
-GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber)
+GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples)
 {
 	GF_SampleSizeBox *stsz = stbl->SampleSize;
+
+	if ((nb_samples>1) && (sampleNumber>1)) return GF_BAD_PARAM;
 	//last sample
 	if (stsz->sampleCount == 1) {
 		if (stsz->sizes) gf_free(stsz->sizes);
@@ -1158,24 +1188,29 @@ GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber)
 	}
 	//one single size
 	if (stsz->sampleSize) {
-		stsz->sampleCount -= 1;
+		stsz->sampleCount -= nb_samples;
 		return GF_OK;
 	}
-	if (sampleNumber < stsz->sampleCount) {
+	if (nb_samples==1) {
+		assert(sampleNumber < stsz->sampleCount);
 		memmove(stsz->sizes + sampleNumber - 1, stsz->sizes + sampleNumber, sizeof(u32) * (stsz->sampleCount - sampleNumber));
+	} else {
+		assert(nb_samples < stsz->sampleCount);
+		memmove(stsz->sizes, stsz->sizes + nb_samples, sizeof(u32) * (stsz->sampleCount - nb_samples));
 	}
-	stsz->sampleCount--;
+	stsz->sampleCount -= nb_samples;
 	return GF_OK;
 }
 
 //always called after removing the sample from SampleSize
-GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber)
+GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples)
 {
-	u32 i, k;
-	u32 *offsets;
-	u64 *Loffsets;
+	u32 i;
 	GF_SampleToChunkBox *stsc = stbl->SampleToChunk;
 
+	if ((nb_samples>1) && (sampleNumber>1))
+		return GF_BAD_PARAM;
+	
 	//raw audio or constant sample size and dur
 	if (stsc->nb_entries < stbl->SampleSize->sampleCount) {
 		if (sampleNumber==stbl->SampleSize->sampleCount+1) {
@@ -1200,67 +1235,73 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] removing sample in middle of track not supported for constant size and duration samples\n"));
 		return GF_NOT_SUPPORTED;
 	}
-	//remove the entry in SampleToChunk (1 <-> 1 in edit mode)
-	memmove(&stsc->entries[sampleNumber-1], &stsc->entries[sampleNumber], sizeof(GF_StscEntry)*(stsc->nb_entries-sampleNumber));
-	stsc->nb_entries--;
 
-	//update the firstchunk info
-	for (i=sampleNumber-1; i < stsc->nb_entries; i++) {
-		stsc->entries[i].firstChunk -= 1;
-		stsc->entries[i].nextChunk -= 1;
+	//remove the entry in SampleToChunk (1 <-> 1 in edit mode)
+	if (nb_samples==1) {
+		memmove(&stsc->entries[sampleNumber-1], &stsc->entries[sampleNumber], sizeof(GF_StscEntry)*(stsc->nb_entries-sampleNumber));
+		stsc->nb_entries--;
+
+		//update the firstchunk info
+		for (i=sampleNumber-1; i < stsc->nb_entries; i++) {
+			assert(stsc->entries[i].firstChunk >= 1);
+			stsc->entries[i].firstChunk -= 1;
+			if (stsc->entries[i].nextChunk) {
+				assert(stsc->entries[i].nextChunk >= 1);
+				stsc->entries[i].nextChunk -= 1;
+			}
+		}
+	} else {
+		memmove(&stsc->entries[0], &stsc->entries[nb_samples], sizeof(GF_StscEntry)*(stsc->nb_entries-nb_samples));
+		stsc->nb_entries -= nb_samples;
+
+		//update the firstchunk info
+		for (i=0; i < stsc->nb_entries; i++) {
+			stsc->entries[i].firstChunk = i+1;
+			stsc->entries[i].nextChunk = (stsc->nb_entries==i+1) ? 0 : i+2;
+		}
 	}
+	memset(&stsc->entries[stsc->nb_entries], 0, sizeof(GF_StscEntry)*(stsc->alloc_size - stsc->nb_entries) );
+
 	//update the cache
-	stbl->SampleToChunk->firstSampleInCurrentChunk = 1;
-	stbl->SampleToChunk->currentIndex = 0;
-	stbl->SampleToChunk->currentChunk = 1;
-	stbl->SampleToChunk->ghostNumber = 1;
+	stsc->firstSampleInCurrentChunk = 1;
+	stsc->currentIndex = 0;
+	stsc->currentChunk = 1;
+	stsc->ghostNumber = 1;
 
 	//realloc the chunk offset
 	if (stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
+		GF_ChunkOffsetBox *stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
 		if (!stbl->SampleSize->sampleCount) {
-			gf_free(((GF_ChunkOffsetBox *)stbl->ChunkOffset)->offsets);
-			((GF_ChunkOffsetBox *)stbl->ChunkOffset)->offsets = NULL;
-			((GF_ChunkOffsetBox *)stbl->ChunkOffset)->nb_entries = 0;
-			((GF_ChunkOffsetBox *)stbl->ChunkOffset)->alloc_size = 0;
+			gf_free(stco->offsets);
+			stco->offsets = NULL;
+			stco->nb_entries = 0;
+			stco->alloc_size = 0;
 			return GF_OK;
 		}
-		offsets = (u32*)gf_malloc(sizeof(u32) * (stbl->SampleSize->sampleCount));
-		if (!offsets) return GF_OUT_OF_MEM;
-		k=0;
-		for (i=0; i<stbl->SampleSize->sampleCount+1; i++) {
-			if (i+1 == sampleNumber) {
-				k=1;
-			} else {
-				offsets[i-k] = ((GF_ChunkOffsetBox *)stbl->ChunkOffset)->offsets[i];
-			}
+		assert(stco->nb_entries - nb_samples == stbl->SampleSize->sampleCount);
+		if (nb_samples==1) {
+			memmove(&stco->offsets[sampleNumber-1], &stco->offsets[sampleNumber], sizeof(u32) * (stco->nb_entries - sampleNumber) );
+		} else {
+			memmove(&stco->offsets[0], &stco->offsets[nb_samples], sizeof(u32) * (stco->nb_entries - nb_samples) );
 		}
-		gf_free(((GF_ChunkOffsetBox *)stbl->ChunkOffset)->offsets);
-		((GF_ChunkOffsetBox *)stbl->ChunkOffset)->offsets = offsets;
-		((GF_ChunkOffsetBox *)stbl->ChunkOffset)->alloc_size = stbl->SampleSize->sampleCount;
-		((GF_ChunkOffsetBox *)stbl->ChunkOffset)->nb_entries -= 1;
+		stco->nb_entries -= nb_samples;
 	} else {
+		GF_ChunkLargeOffsetBox *co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
 		if (!stbl->SampleSize->sampleCount) {
-			gf_free(((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->offsets);
-			((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->offsets = NULL;
-			((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->nb_entries = 0;
-			((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->alloc_size = 0;
+			gf_free(co64->offsets);
+			co64->offsets = NULL;
+			co64->nb_entries = 0;
+			co64->alloc_size = 0;
 			return GF_OK;
 		}
 
-		Loffsets = (u64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount));
-		if (!Loffsets) return GF_OUT_OF_MEM;
-		k=0;
-		for (i=0; i<stbl->SampleSize->sampleCount+1; i++) {
-			if (i+1 == sampleNumber) {
-				k=1;
-			} else {
-				Loffsets[i-k] = ((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->offsets[i];
-			}
+		assert(co64->nb_entries - nb_samples == stbl->SampleSize->sampleCount);
+		if (nb_samples==1) {
+			memmove(&co64->offsets[sampleNumber-1], &co64->offsets[sampleNumber], sizeof(u64) * (co64->nb_entries - sampleNumber) );
+		} else {
+			memmove(&co64->offsets[0], &co64->offsets[nb_samples], sizeof(u64) * (co64->nb_entries - nb_samples) );
 		}
-		gf_free(((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->offsets);
-		((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->offsets = Loffsets;
-		((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->alloc_size = stbl->SampleSize->sampleCount;
-		((GF_ChunkLargeOffsetBox *)stbl->ChunkOffset)->nb_entries -= 1;
+		co64->nb_entries -= nb_samples;
 	}
 	return GF_OK;
 }
@@ -1299,19 +1340,25 @@ GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber)
 	return GF_OK;
 }
 
-GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber)
+GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber, u32 nb_samples)
 {
 	u32 i;
 
 	if (!stbl->SampleDep) return GF_OK;
 	if (stbl->SampleDep->sampleCount < SampleNumber) return GF_BAD_PARAM;
+	if ((nb_samples>1) && (SampleNumber>1)) return GF_BAD_PARAM;
 
-	i = stbl->SampleDep->sampleCount - SampleNumber;
-	if (i) memmove(&stbl->SampleDep->sample_info[SampleNumber-1], & stbl->SampleDep->sample_info[SampleNumber], sizeof(u8)*i);
-	stbl->SampleDep->sample_info = (u8*)gf_realloc(stbl->SampleDep->sample_info, sizeof(u8) * (stbl->SampleDep->sampleCount-1));
-	if (!stbl->SampleDep->sample_info) return GF_OUT_OF_MEM;
-	stbl->SampleDep->sample_alloc = stbl->SampleDep->sampleCount-1;
-	stbl->SampleDep->sampleCount-=1;
+	if (nb_samples==1) {
+		i = stbl->SampleDep->sampleCount - SampleNumber;
+		if (i) memmove(&stbl->SampleDep->sample_info[SampleNumber-1], & stbl->SampleDep->sample_info[SampleNumber], sizeof(u8)*i);
+		stbl->SampleDep->sample_info = (u8*)gf_realloc(stbl->SampleDep->sample_info, sizeof(u8) * (stbl->SampleDep->sampleCount-1));
+		if (!stbl->SampleDep->sample_info) return GF_OUT_OF_MEM;
+		stbl->SampleDep->sample_alloc = stbl->SampleDep->sampleCount-1;
+		stbl->SampleDep->sampleCount-=1;
+	} else {
+		memmove(&stbl->SampleDep->sample_info[0], &stbl->SampleDep->sample_info[nb_samples], sizeof(u8) * (stbl->SampleDep->sampleCount - nb_samples) );
+		stbl->SampleDep->sampleCount -= nb_samples;
+	}
 	return GF_OK;
 }
 
@@ -1757,8 +1804,9 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 		if (!stbl->CompositionOffset) return GF_OUT_OF_MEM;
 	}
 	ctts = stbl->CompositionOffset;
+	ctts->w_LastSampleNumber ++;
 
-	if (ctts->nb_entries && (ctts->entries[ctts->nb_entries-1].decodingOffset == offset) ) {
+	if (!ctts->unpack_mode && ctts->nb_entries && (ctts->entries[ctts->nb_entries-1].decodingOffset == offset) ) {
 		ctts->entries[ctts->nb_entries-1].sampleCount++;
 		return GF_OK;
 	}

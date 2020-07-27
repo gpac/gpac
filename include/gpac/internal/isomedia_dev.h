@@ -3977,14 +3977,14 @@ GF_Err stbl_SetRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
 
 /*REMOVE functions*/
-GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDuration);
-GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber);
-GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber);
-GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber);
+GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples, u32 LastAUDefDuration);
+GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples);
+GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples);
+GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples);
 GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveShadow(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
-GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
+GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber, u32 nb_samples);
 GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
 
