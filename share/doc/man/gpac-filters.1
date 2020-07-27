@@ -356,7 +356,7 @@ The compositor accepts any URL type supported by GPAC. It also accepts the follo
 .SH Options (expert):
 .LP
 .br
-aa (enum, default: all, updatable): set anti-aliasing mode for raster graphics - whether the setting is applied or not depends on the graphics module / graphic card.
+aa (enum, default: all, updatable): set anti-aliasing mode for raster graphics; whether the setting is applied or not depends on the graphics module or graphic card
 .br
 * none: no anti-aliasing
 .br
@@ -372,7 +372,7 @@ hlline (uint, default: 0xFF000000, updatable): set highlight stroke color (ARGB)
 .br
 hllinew (flt, default: 1.0, updatable): set highlight stroke width
 .br
-sz (bool, default: true, updatable): enable scalable zoom. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.
+sz (bool, default: true, updatable): enable scalable zoom. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched
 .br
 bc (uint, default: 0, updatable): default background color to use when displaying transparent images or video with no scene composition instructions
 .br
@@ -386,7 +386,7 @@ stress (bool, default: false, updatable): enable stress mode of compositor (rebu
 .br
 fast (bool, default: false, updatable): enable speed optimization - whether the setting is applied or not depends on the graphics module / graphic card
 .br
-bvol (enum, default: no, updatable): draw bounding volume of objects.
+bvol (enum, default: no, updatable): draw bounding volume of objects
 .br
 * no: disable bounding box
 .br
@@ -406,7 +406,7 @@ textxt (enum, default: default, updatable): specify whether text shall be drawn 
 .br
 
 .br
-out8b (bool, default: false, updatable): convert 10-bit video to 8 bit texture before GPU upload.
+out8b (bool, default: false, updatable): convert 10-bit video to 8 bit texture before GPU upload
 .br
 drop (bool, default: false, updatable): drop late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed
 .br
@@ -414,31 +414,31 @@ sclock (bool, default: false, updatable): force synchronizing all streams on a s
 .br
 sgaze (bool, default: false, updatable): simulate gaze events through mouse
 .br
-ckey (uint, default: 0, updatable): color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported.
+ckey (uint, default: 0, updatable): color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported
 .br
 timeout (uint, default: 10000, updatable): timeout in ms after which a source is considered dead
 .br
-fps (frac, default: 30/1, updatable): simulation frame rate when animation-only sources are played (ignored when video is present).
+fps (frac, default: 30/1, updatable): simulation frame rate when animation-only sources are played (ignored when video is present)
 .br
-timescale (uint, default: 0, updatable): timescale used for output packets when no input video pid. A value of 0 means fps numerator.
+timescale (uint, default: 0, updatable): timescale used for output packets when no input video pid. A value of 0 means fps numerator
 .br
 autofps (bool, default: true): use video input fps for output. If no video or not set, uses .I fps. Ignored in player mode
 .br
 vfr (bool, default: false):    only emit frames when changes are detected. Always true in player mode and when filter is dynamically loaded
 .br
-dur (dbl, default: 0, updatable): duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done.
+dur (dbl, default: 0, updatable): duration of generation. Mostly used when no video input is present. Negative values mean number of frames, positive values duration in second, 0 stops as soon as all streams are done
 .br
 fsize (bool, default: false, updatable): force the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration
 .br
 mode2d (enum, default: defer, updatable): specify whether immediate drawing should be used or not
 .br
-* immediate: the screen is completely redrawn at each frame (always on if passthrough mode is detected).
+* immediate: the screen is completely redrawn at each frame (always on if passthrough mode is detected)
 .br
-* defer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer.
+* defer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer
 .br
 * debug: only renders changed areas, reseting other areas
 .br
-Whether the setting is applied or not depends on the graphics module and player mode.
+Whether the setting is applied or not depends on the graphics module and player mode
 .br
 
 .br
@@ -480,17 +480,17 @@ noback (bool, default: false): ignore background nodes and viewport fill (useful
 .br
 ogl (enum, default: auto, updatable): specify 2D rendering mode
 .br
-* auto: automatically decides betwwen on, off and hybrid based on content.
+* auto: automatically decides betwwen on, off and hybrid based on content
 .br
-* off: disables OpenGL - 3D will not be rendered.
+* off: disables OpenGL; 3D will not be rendered
 .br
-* on: uses OpenGL for all graphics - this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode.
+* on: uses OpenGL for all graphics; this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode
 .br
-* hybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects.
+* hybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects
 .br
 
 .br
-pbo (bool, default: false, updatable): enable PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback.
+pbo (bool, default: false, updatable): enable PixelBufferObjects to push YUV textures to GPU in OpenGL Mode. This may slightly increase the performances of the playback
 .br
 nav (enum, default: none, updatable): override the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine)
 .br
@@ -522,7 +522,7 @@ epow2 (bool, default: true, updatable): emulate power-of-2 textures for openGL (
 .br
 * no: video is resized to a power of 2 texture when mapping to a shape
 .br
-paa (bool, default: false, updatable): indicate whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.
+paa (bool, default: false, updatable): indicate whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used
 .br
 bcull (enum, default: on, updatable): indicate whether backface culling shall be disable or not
 .br
@@ -534,7 +534,7 @@ bcull (enum, default: on, updatable): indicate whether backface culling shall be
 .br
 
 .br
-wire (enum, default: none, updatable): wireframe mode.
+wire (enum, default: none, updatable): wireframe mode
 .br
 * none: objects are drawn as solid
 .br
@@ -572,23 +572,23 @@ depth_gl_type (enum, default: none, updatable): set geometry type used to draw d
 .br
 nbviews (uint, default: 0, updatable): number of views to use in stereo mode
 .br
-stereo (enum, default: none, updatable): stereo output type. If your graphic card does not support OpenGL shaders, only top and side modes will be available.
+stereo (enum, default: none, updatable): stereo output type. If your graphic card does not support OpenGL shaders, only top and side modes will be available
 .br
-* side: images are displayed side by side from left to right.
+* side: images are displayed side by side from left to right
 .br
-* top: images are displayed from top (laft view) to bottom (right view).
+* top: images are displayed from top (laft view) to bottom (right view)
 .br
-* hmd: same as side except that view aspect ratio is not changed.
+* hmd: same as side except that view aspect ratio is not changed
 .br
-* ana: standard color anaglyph (red for left view, green and blue for right view) is used (forces views=2).
+* ana: standard color anaglyph (red for left view, green and blue for right view) is used (forces views=2)
 .br
-* cols: images are interleaved by columns, left view on even columns and left view on odd columns (forces views=2).
+* cols: images are interleaved by columns, left view on even columns and left view on odd columns (forces views=2)
 .br
-* rows: images are interleaved by columns, left view on even rows and left view on odd rows (forces views=2).
+* rows: images are interleaved by columns, left view on even rows and left view on odd rows (forces views=2)
 .br
-* spv5: images are interleaved by for SpatialView 5 views display, fullscreen mode (forces views=5).
+* spv5: images are interleaved by for SpatialView 5 views display, fullscreen mode (forces views=5)
 .br
-* alio8: images are interleaved by for Alioscopy 8 views displays, fullscreen mode (forces views=8).
+* alio8: images are interleaved by for Alioscopy 8 views displays, fullscreen mode (forces views=8)
 .br
 * custom: images are interleaved according to the shader file indicated in .I mvshader. The shader is exposed each view as uniform sampler2D gfViewX, where X is the view number starting from the left
 .br
@@ -1498,7 +1498,7 @@ server_utc (bool, default: yes): use ServerUTC: or Date: http headers instead of
 .br
 screen_res (bool, default: yes): use screen resolution in selection phase
 .br
-timeshift (uint, default: 0):  set initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)
+init_timeshift (uint, default: 0): set initial timshift in ms (if >0) or in per-cent of timeshift buffer (if <0)
 .br
 tile_mode (enum, default: none): tile adaptation mode
 .br
@@ -1522,7 +1522,7 @@ tile_mode (enum, default: none): tile adaptation mode
 .br
 
 .br
-tiles_rate (uint, default: 100): indicate the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.
+tiles_rate (uint, default: 100): indicate the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media
 .br
 delay40X (uint, default: 500): delay in millisconds to wait between two 40X on the same segment
 .br
@@ -1727,7 +1727,7 @@ m4sys (bool, default: false):  force MPEG-4 Systems signaling of tracks
 .br
 dref (bool, default: false):   only references data from source file - not compatible with all media sources
 .br
-ctmode (enum, default: edit):  set composition offset mode for video tracks.
+ctmode (enum, default: edit):  set composition offset mode for video tracks
 .br
 * edit: uses edit lists to shift first frame to presentation time 0
 .br
@@ -1743,9 +1743,9 @@ pack3gp (uint, default: 1):    pack a given number of 3GPP audio frames in one s
 .br
 importer (bool, default: false): compatibility with old importer, displays import progress
 .br
-pack_nal (bool, default: false): repack NALU size length to minimum possible size for AVC/HEVC/...
+pack_nal (bool, default: false): repack NALU size length to minimum possible size for NALU-based video (AVC/HEVC/...)
 .br
-xps_inband (enum, default: no): use inband (in sample data) param set for AVC/HEVC/...
+xps_inband (enum, default: no): use inband (in sample data) param set for NALU-based video (AVC/HEVC/...)
 .br
 * no: paramater sets are not inband, several sample descriptions might be created
 .br
@@ -3036,9 +3036,9 @@ fullscreen (bool, default: false): use fullcreen
 .br
 buffer (uint, default: 100):   set buffer in ms
 .br
-dumpframes (uintl):            ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames.
+dumpframes (uintl):            ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames
 .br
-out (str, default: dump):      radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT.
+out (str, default: dump):      radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT
 .br
 
 .br
@@ -3060,7 +3060,7 @@ wnd (str):                     size of output to crop, indicated as TxLxWxH. If 
 .br
 copy (bool, default: false):   copy the source pixels. By default the filter will try to forward crop frames by adjusting offsets and strides of the source if possible (window contained in frame)
 .br
-round (enum, default: up):     adjust dimension to be a multiple of 2.
+round (enum, default: up):     adjust dimension to be a multiple of 2
 .br
 * up: up rounding
 .br
@@ -3487,7 +3487,7 @@ first_pts (luint, default: 0): force PTS value of first packet, in 90kHz
 .br
 pcr_offset (luint, default: -1): offset all timestamps from PCR by V, in 90kHz. Default value is computed based on input media
 .br
-mpeg4 (enum, default: none):   force usage of MPEG-4 signaling (IOD and SL Config).
+mpeg4 (enum, default: none):   force usage of MPEG-4 signaling (IOD and SL Config)
 .br
 * none: disables 4on2
 .br
@@ -3509,7 +3509,7 @@ max_pcr (uint, default: 100):  set max interval in ms between 2 PCR
 .br
 nb_pack (uint, default: 4):    pack N TS packets in output packets
 .br
-pes_pack (enum, default: audio): set AU to PES packing mode.
+pes_pack (enum, default: audio): set AU to PES packing mode
 .br
 * audio: will pack only multiple audio AUs in a PES
 .br
@@ -3976,7 +3976,7 @@ ntp (enum, default: rem):      insert/override NTP clock at the begining of each
 .br
 * yes: inserts NTP at each segment start
 .br
-* keep: leaves input packet NTP untouched.
+* keep: leaves input packet NTP untouched
 .br
 
 .br
@@ -4024,7 +4024,7 @@ muxtype (enum, default: auto): muxtype to use for the segments
 .br
 asto (dbl, default: 0):        availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
-profile (enum, default: auto): target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main.
+profile (enum, default: auto): target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main
 .br
 * auto: turns profile to live for dynamic and full for non-dynamic
 .br
@@ -4098,7 +4098,7 @@ refresh (dbl, default: 0):     refresh rate for dynamic manifests, in seconds. A
 .br
 tsb (dbl, default: 30):        time-shift buffer depth in seconds. A negative value means infinity
 .br
-subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration.
+subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration
 .br
 ast (str):                     set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!
 .br
@@ -4146,7 +4146,7 @@ sbound (enum, default: out):   indicate how the theoretical segment start TSS (=
 .br
 reschedule (bool, default: false): reschedule sources with no period ID assigned once done (dynamic mode only)
 .br
-sreg (bool, default: false):   regulate the session.
+sreg (bool, default: false):   regulate the session
 .br
 - when using subdur and context, only generate segments from the past up to live edge
 .br
@@ -4837,7 +4837,7 @@ ttl (uint, default: 2):        time-to-live for muticast packets
 .br
 ifce (str):                    default network inteface to use
 .br
-payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs.
+payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs
 .br
 delay (sint, default: 0):      send delay for packet (negative means send earlier)
 .br
@@ -4951,7 +4951,7 @@ ttl (uint, default: 0):        time-to-live for muticast packets. A value of 0 u
 .br
 ifce (str):                    default network inteface to use
 .br
-payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs.
+payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs
 .br
 mpeg4 (bool, default: false):  send all streams using MPEG-4 generic payload format if posible
 .br
@@ -4979,9 +4979,9 @@ close (bool, default: true):   close RTSP connection after each request, except 
 .br
 loop (bool, default: true):    loop all streams in session (not always possible depending on source type) - see filter help
 .br
-dynurl (bool, default: false): allow dynamic service assembly - see filter help.
+dynurl (bool, default: false): allow dynamic service assembly - see filter help
 .br
-mcast (enum, default: off):    control multicast setup of a session.
+mcast (enum, default: off):    control multicast setup of a session
 .br
 * off: clients are never allowed to create a multicast
 .br
@@ -5975,7 +5975,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev145-gdd68316f3-master
+build: 1.0.0-rev158-g75c362cff-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

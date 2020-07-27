@@ -1032,8 +1032,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("logs", NULL, "set log tools and levels.  \n"\
 			"  \n"\
-			"You can independently log different tools involved in a session.\n"\
-			"log_args is formatted as a ':'-separated list of `toolX[:toolZ]@levelX`\n"\
+			"You can independently log different tools involved in a session.  \n"\
+			"log_args is formatted as a ':'-separated list of `toolX[:toolZ]@levelX`  \n"\
 	        "`levelX` can be one of:\n"\
 	        "- quiet: skip logs\n"\
 	        "- error: logs only error messages\n"\
@@ -1143,7 +1143,7 @@ GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot
  GF_DEF_ARG("no-reservoir", NULL, "disable memory recycling for packets and properties. This uses much less memory but stresses the system memory allocator much more", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("switch-vres", NULL, "select smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed.\n"
+ GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed\n"
  "- always: always on hardware\n"
  "- never: always on system memory\n"
  "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
@@ -1427,11 +1427,18 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not use tab\n", arg->name, arg->description);
 			exit(1);
 		}
+
 		u8 achar = arg->description[strlen(arg->description)-1];
 		if (achar == '.') {
 			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not end with .\n", arg->name, arg->description);
 			exit(1);
 		}
+		sep = strstr(arg->description, ".\n");
+		if (sep) {
+			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not contain .\\n", arg->name, arg->description);
+			exit(1);
+		}
+
 		sep = strchr(arg->description, ' ');
 		if (sep) {
 			sep--;
@@ -1455,14 +1462,22 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 	}
 
 	if (flags & GF_PRINTARG_MAN) {
-		fprintf(helpout, ".TP\n.B \\-%s", arg_name ? arg_name : arg->name);
+		fprintf(helpout, ".TP\n.B %s%s", (flags&GF_PRINTARG_NO_DASH) ? "" : "\\-", arg_name ? arg_name : arg->name);
 	}
 	else if (gen_doc==1) {
-		gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
-		gf_sys_format_help(helpout, flags, "</a>");
+		if (flags&GF_PRINTARG_NO_DASH) {
+			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", arg_name ? arg_name : arg->name);
+		} else {
+			gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
+			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
+			gf_sys_format_help(helpout, flags, "</a>");
+		}
 	} else {
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s-%s", (flags&GF_PRINTARG_ADD_DASH) ? "-" : "", arg_name ? arg_name : arg->name);
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s%s%s",
+			(flags&GF_PRINTARG_ADD_DASH) ? "-" : "",
+			(flags&GF_PRINTARG_NO_DASH) ? "" : ((flags&GF_PRINTARG_COLON) ? ":" : "-"),
+			arg_name ? arg_name : arg->name
+		);
 	}
 	if (arg->altname) {
 		gf_sys_format_help(helpout, flags, ",");

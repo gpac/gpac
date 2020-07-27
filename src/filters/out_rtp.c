@@ -1131,7 +1131,7 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
 	{ OFFS(ttl), "time-to-live for muticast packets", GF_PROP_UINT, "2", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(payt), "payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(payt), "payload type to use for dynamic configs", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(runfor), "run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},

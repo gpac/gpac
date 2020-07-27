@@ -139,6 +139,10 @@ const char *gpac_doc =
 "This will extract the URL and options.\n"
 "Note: one trick to avoid the escape sequence is to declare the URLs option at the end, eg `f1:opt1=foo:url=http://bar`, provided you have only one URL parameter to specify on the filter.\n"
 "\n"
+"It is possible to disable option parsing (for string options) by duplicating the seperator.\n"
+"EX filter::opt1=UDP://IP:PORT/:someopt=VAL::opt2=VAL2\n"
+"This will pass `UDP://IP:PORT/:someopt=VAL` to `opt1` without inspecting it, and `VAL2` to `opt2`.\n"
+"  \n"
 "A filter may be assigned a name (for inspection purposes) using `:N=name` option. This name is not used in link resolution and may be changed at runtime by the filter instance.\n"
 "## Source and Sink filters\n"
 "Source and sink filters do not need to be addressed by the filter name, specifying `src=` or `dst=` instead is enough. "
@@ -561,7 +565,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ib", NULL, "specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("ob", NULL, "specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all.\nNote: The `@` character can be used in place of the `*` character.\n String parameter can be:\n"\
+	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all.  \nNote: The `@` character can be used in place of the `*` character. String parameter can be:\n"\
 			"- empty: print command line options help\n"\
 			"- doc: print the general filter info\n"\
 			"- alias: print the gpac alias syntax\n"\
@@ -574,14 +578,14 @@ GF_GPACArg gpac_args[] =
 			"- filters:*: print name of all available filters, including meta filters\n"\
 			"- codecs: print the supported builtin codecs\n"\
 			"- props: print the supported builtin PID and packet properties\n"\
-			"- links: print possible connections between each supported filters.\n"\
+			"- links: print possible connections between each supported filters\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
-			"- FNAME: print filter `FNAME` info (multiple FNAME can be given).\n"
-			"  - For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`.\n"
-			"  - Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__).\n"
-			"  - By default only basic filter options and description are shown. Use `-ha` to show advanced options capabilities, `-hx` for expert options, `-hh` for all options and filter capabilities including on filters disabled in this build.\n"\
-			"- FNAME.OPT: print option `OPT` in filter `FNAME`.\n"
-			"- OPT: look in filter names and options for `OPT` and suggest possible matches if none found"
+			"- FNAME: print filter `FNAME` info (multiple FNAME can be given)\n"
+			"  - For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`\n"
+			"  - Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__)\n"
+			"  - By default only basic filter options and description are shown. Use `-ha` to show advanced options capabilities, `-hx` for expert options, `-hh` for all options and filter capabilities including on filters disabled in this build\n"\
+			"- FNAME.OPT: print option `OPT` in filter `FNAME`\n"
+			"- OPT: look in filter names and options for `OPT` and suggest possible matches if none found. Use `-hx` to look for keyword in all option descriptions\n"
 		, NULL, NULL, GF_ARG_STRING, 0),
 
  	GF_DEF_ARG("p", NULL, "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk. Appending `:reload` to the profile name will force recreating a new configuration file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
@@ -699,7 +703,11 @@ const char *gpac_config =
 "Meta-filter options can be set in the same way using the syntax `-+OPT_NAME=VAL`.\n"
 "EX -+profile=Baseline -i file.cmp -o dump.264\n"
 "This is equivalent to specifying `-o dump.264:profile=Baseline`.\n"
-
+"  \n"
+"For both syntax, it is possible to specify the filter registry name of the option, using `--FNAME@OPTNAME=VAL`.\n"
+"In this case the option will only be set for filters which are instances of registry FNAME. This is used when several registries use same option names.\n"
+"EX --flist@timescale=100 -i plist1 -i plist2 -o live.mpd\n"
+"This will set the timescale option on the playlists filters but not on the dasher filter.\n"
 };
 #endif
 
@@ -2230,6 +2238,16 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 //		if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
 	gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
 
+	//check syntax
+	if (gen_doc) {
+		GF_GPACArg _a;
+		memset(&_a, 0, sizeof(GF_GPACArg));
+		_a.name = a->arg_name;
+		_a.description = a->arg_desc;
+		_a.flags = GF_ARG_HINT_HIDE;
+		gf_sys_print_arg(NULL, 0, &_a, "");
+	}
+
 	if (a->min_max_enum && strchr(a->min_max_enum, '|'))
 		gf_sys_format_help(helpout, help_flags, "\n");
 }
@@ -2534,10 +2552,28 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	gf_sys_format_help(helpout, help_flags, "\n");
 }
 
+static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len)
+{
+	if (!text || !*text || !subtext || !subtext)
+		return GF_FALSE;
+
+	while (*text) {
+		if (tolower(*text) == *subtext) {
+			if (!strnicmp(text, subtext, subtext_len))
+				return GF_TRUE;
+
+		}
+		text++;
+	}
+	return GF_FALSE;
+}
+
 static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode)
 {
 	Bool found = GF_FALSE;
 	char *fname = NULL;
+	char *l_fname = NULL;
+	u32 lf_len = 0;
 	u32 i, count = gf_fs_filters_registers_count(session);
 
 	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
@@ -2626,6 +2662,12 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	if (!print_filter_info) return GF_FALSE;
 	if (gen_doc) return GF_FALSE;
 
+	if (argmode==GF_ARGMODE_EXPERT) {
+		l_fname = gf_strdup(fname);
+		strlwr(l_fname);
+		lf_len = strlen(l_fname);
+	}
+
 	for (i=0; i<count; i++) {
 		u32 j=0;
 		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
@@ -2634,14 +2676,25 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			const GF_FilterArgs *arg = &reg->args[j];
 			if (!arg || !arg->arg_name) break;
 			j++;
-			if (strcmp(arg->arg_name, fname)) continue;
-			if (!found) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("No such filter \"%s\" but found filters with matching options:\n", fname));
-				found = GF_TRUE;
+			if (argmode==GF_ARGMODE_EXPERT) {
+				if (!arg->arg_desc || !strstr_nocase(arg->arg_desc, l_fname, lf_len)) continue;
+				if (!found) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\"%s\" is mentionned in the following filters options:\n", fname));
+					found = GF_TRUE;
+				}
+				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s \n", reg->name, arg->arg_name);
+			} else {
+				if (strcmp(arg->arg_name, fname)) continue;
+				if (!found) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("No such filter \"%s\" but found filters with matching options:\n", fname));
+					found = GF_TRUE;
+				}
+				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s: %s\n", reg->name, arg->arg_name, arg->arg_desc);
 			}
-			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s: %s\n", reg->name, arg->arg_name, arg->arg_desc);
 		}
 	}
+	if (l_fname) gf_free(l_fname);
+
 
 	if (found) return GF_TRUE;
 

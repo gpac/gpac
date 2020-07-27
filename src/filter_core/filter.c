@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -895,27 +895,38 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg);
 }
 
-static const char *gf_filter_load_arg_config(GF_FilterSession *session, const char *sec_name, const char *arg_name, const char *arg_val)
+static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_name, const char *arg_name, const char *arg_val)
 {
 	Bool gf_sys_has_filter_global_args();
 	const char *opt;
+	GF_FilterSession *session = filter->session;
 
 	//look in global args
 	if (gf_sys_has_filter_global_args()) {
 		u32 alen = (u32) strlen(arg_name);
 		u32 i, nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
+			const char *per_filter;
 			const char *arg = gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
 			if (arg[1]!='-') continue;
 
-			if (!strncmp(arg+2, arg_name, alen)) {
+			arg += 2;
+			per_filter = strchr(arg, '@');
+			if (per_filter) {
+				u32 len = (u32) (per_filter - arg);
+				if (!len || strncmp(filter->freg->name, arg, len))
+					continue;
+				arg += len+1;
+			}
+
+			if (!strncmp(arg, arg_name, alen)) {
 				u32 len=0;
 				char *sep = strchr(arg, '=');
 				if (sep) {
-					len = (u32) (sep - (arg+2));
+					len = (u32) (sep - (arg));
 				} else {
-					len = (u32) strlen(arg+2);
+					len = (u32) strlen(arg);
 				}
 				if (len != alen) continue;
 				gf_fs_push_arg(session, arg_name, GF_TRUE, 0);
@@ -981,10 +992,20 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 #define META_MAX_ARG	1000
 		char szArg[META_MAX_ARG+1];
 		GF_Err e;
+		const char *per_filter;
 		const char *sep, *arg = gf_sys_get_arg(i);
 		if (arg[0] != '-') continue;
 		if (arg[1] != '+') continue;
 		arg+=2;
+
+		per_filter = strchr(arg, '@');
+		if (per_filter) {
+			u32 len = (u32) (per_filter - arg);
+			if (!len || strncmp(filter->freg->name, arg, len))
+				continue;
+			arg += len+1;
+		}
+
 		sep = strchr(arg, '=');
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
@@ -1429,7 +1450,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			continue;
 		}
 
-		def_val = gf_filter_load_arg_config(filter->session, szSecName, a->arg_name, a->arg_default_val);
+		def_val = gf_filter_load_arg_config(filter, szSecName, a->arg_name, a->arg_default_val);
 
 		if (!def_val) continue;
 
