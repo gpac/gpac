@@ -1404,18 +1404,18 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 	//do NOT change the order DTS, CTS, size chunk
 
 	//remove DTS
-	e = stbl_RemoveDTS(trak->Media->information->sampleTable, sampleNumber, trak->Media->mediaHeader->timeScale);
+	e = stbl_RemoveDTS(trak->Media->information->sampleTable, sampleNumber, 1, trak->Media->mediaHeader->timeScale);
 	if (e) return e;
 	//remove CTS if any
 	if (trak->Media->information->sampleTable->CompositionOffset) {
-		e = stbl_RemoveCTS(trak->Media->information->sampleTable, sampleNumber);
+		e = stbl_RemoveCTS(trak->Media->information->sampleTable, sampleNumber, 1);
 		if (e) return e;
 	}
 	//remove size
-	e = stbl_RemoveSize(trak->Media->information->sampleTable, sampleNumber);
+	e = stbl_RemoveSize(trak->Media->information->sampleTable, sampleNumber, 1);
 	if (e) return e;
 	//remove sampleToChunk and chunk
-	e = stbl_RemoveChunk(trak->Media->information->sampleTable, sampleNumber);
+	e = stbl_RemoveChunk(trak->Media->information->sampleTable, sampleNumber, 1);
 	if (e) return e;
 	//remove sync
 	if (trak->Media->information->sampleTable->SyncSample) {
@@ -1424,7 +1424,7 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 	}
 	//remove sample dep
 	if (trak->Media->information->sampleTable->SampleDep) {
-		e = stbl_RemoveRedundant(trak->Media->information->sampleTable, sampleNumber);
+		e = stbl_RemoveRedundant(trak->Media->information->sampleTable, sampleNumber, 1);
 		if (e) return e;
 	}
 	//remove shadow
