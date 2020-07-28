@@ -324,6 +324,14 @@ typedef enum
 
 /*! Macro for common attributes and elements (representation, AdaptationSet, Preselection, ...)
 
+not yet implemented;
+	GF_List *inband_event_stream;	\
+	GF_List *switching;	\
+	GF_List *random_access;	\
+	GF_List *group_labels;	\
+	GF_List *labels;	\
+	GF_List *content_popularity;	\
+
 MANDATORY:
 	mime_type
 	codecs
@@ -343,11 +351,14 @@ MANDATORY:
 	Double max_playout_rate;	\
 	Bool coding_dependency;	\
 	GF_MPD_ScanType scan_type;	\
+	u32 selection_priority;	\
+	char *tag;	\
 	GF_List *frame_packing;	\
 	GF_List *audio_channels;	\
 	GF_List *content_protection;	\
 	GF_List *essential_properties;	\
 	GF_List *supplemental_properties;	\
+	GF_List *producer_reference_time;	\
 	GF_List *isobmf_tracks;	\
 
 /*! common attributes*/
@@ -355,6 +366,33 @@ typedef struct {
 	/*! inherits common attributes*/
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 } GF_MPD_CommonAttributes;
+
+/*! type of reference clock */
+typedef enum
+{
+	GF_MPD_PRODUCER_REF_ENCODER = 0,
+	GF_MPD_PRODUCER_REF_CAPTURED,
+	GF_MPD_PRODUCER_REF_APPLICATION,
+} GF_MPD_ProducerRefType;
+
+/*! producer reference time*/
+typedef struct {
+	/*! ID of producer */
+	u32 ID;
+	/*! is timing inband (prft in segment) */
+	Bool inband;
+	/*! clock type*/
+	GF_MPD_ProducerRefType type;
+	/*! scheme for application ref type*/
+	char *scheme;
+	/*! wallclock time as UTC timestamp*/
+	char *wallclock;
+	/*! presentation time in timescale of the Representation*/
+	u64 presentation_time;
+	/*! UTC timing desc if any/*/
+	GF_MPD_Descriptor *utc_timing;
+} GF_MPD_ProducerReferenceTime;
+
 
 /*! SubRepresentation*/
 typedef struct {
@@ -743,6 +781,11 @@ typedef struct {
 	/*! set during parsing, to set during authoring, won't be freed by GPAC*/
 	const char *xml_namespace;
 
+	/*! UTC timing desc if any/*/
+	GF_List *utc_timings;
+
+	/* internal variables for dasher*/
+
 	/*! dasher init NTP clock in ms - GPAC internal*/
 	u64 gpac_init_ntp_ms;
 	/*! dasher next generation time NTP clock in ms - GPAC internal*/
@@ -793,6 +836,13 @@ void gf_mpd_segment_base_free(void *ptr);
 \param root the DOM description of the segment URL
 */
 void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root);
+
+/*! parses a xsDateTime
+\param attr the date time value
+\return value as UTC timestamp
+*/
+u64 gf_mpd_parse_date(const char * const attr);
+
 /*! frees a GF_MPD_URL structure (type-casted to void *)
 \param _item the target GF_MPD_URL
 */

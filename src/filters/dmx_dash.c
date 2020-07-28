@@ -319,18 +319,24 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 
 	//crude hack when using gpac downloader to initialize the MPD pid: get the pointer to the download session
 	//this should be safe unless the mpd_pid is destroyed, which should only happen upon destruction of the DASH session
-	p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
-	if (p) {
-		sess = (GF_DownloadSession *) p->value.ptr;
-		if (!ctx->segstore) {
-			gf_dm_sess_force_memory_mode(sess);
+	if (group_idx==-1) {
+		p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
+		if (p) {
+			sess = (GF_DownloadSession *) p->value.ptr;
+			if (!ctx->segstore) {
+				gf_dm_sess_force_memory_mode(sess);
+			}
+			ctx->reuse_download_session = GF_TRUE;
+			return (GF_DASHFileIOSession) sess;
 		}
-		ctx->reuse_download_session = GF_TRUE;
-		return (GF_DASHFileIOSession) sess;
 	}
 
-	if (!ctx->segstore) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
-	if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
+	if (group_idx<-1) {
+		flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+	} else {
+		if (!ctx->segstore) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+		if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
+	}
 	sess = gf_dm_sess_new(ctx->dm, url, flags, NULL, NULL, &e);
 	return (GF_DASHFileIOSession) sess;
 }
