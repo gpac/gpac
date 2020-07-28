@@ -97,7 +97,7 @@ typedef struct
 	u32 bs_switch, profile, cp, ntp;
 	s32 subs_sidx;
 	s32 buf, timescale;
-	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues;
+	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush;
 	u32 strict_sap;
 	u32 pssh;
 	Double segdur;
@@ -5909,6 +5909,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (ds->seek_to_pck) {
 				ds->seek_to_pck = 0;
 			}
+			//force flush mode, segment is done upon eos
+			else if (ctx->force_flush) {
+			}
 			//source-driven fragmentation check for segment start
 			else if (ctx->sigfrag) {
 				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_START);
@@ -6748,7 +6751,7 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	if (!ctx->initext && (ctx->muxtype==DASHER_MUX_AUTO))
 		ctx->muxtype = DASHER_MUX_ISOM;
 
-	if (!ctx->segdur) {
+	if (ctx->segdur<=0) {
 		ctx->segdur = 1.0;
 		ctx->no_seg_dur = GF_TRUE;
 	}
@@ -6986,6 +6989,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- otherwise in dynamic mode without context, do not generate segments ahead of time", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(scope_deps), "scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(utcs), "URL to use as time server / UTCTiming source. Special value `inband` enables inband UTC (same as publishTime), special prefix `xsd@` uses xsDateTime schemeURI rather than ISO", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(force_flush), "force generating a single segment for each input. This can be usefull in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
