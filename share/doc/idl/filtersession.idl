@@ -53,15 +53,22 @@ void post_task(function task_callback, optional DOMString task_name=null);
 void abort(optional boolean do_flush=false);
 
 /*! locks the filter session - see \ref gf_fs_lock_filters. When the session is locked, tasks are suspended and filters cannot be destroyed.
+The session only needs to be locked when enumerating filters
 \param do_lock if true, locks the session, otherwise unlocks it
 */
 void lock_filters(boolean do_lock);
 
-/*! returns the JSFSFilter object for the given filter. The object is mutable and is only valid while the session is locked 
-\param index index of filter to query
-\return error code if any
+/*! returns the JSFSFilter object for the given index. 
+\param index index of filter to query. This index is only valid when session is locked 
+\return the filter object, null if none found
 */
-JSFSFilter DOMString get_filter(unsigned long index);
+JSFSFilter get_filter(unsigned long index);
+
+/*! returns the JSFSFilter object for a given filter \ref iname. 
+\param iname the iname of filter to query 
+\return the filter object, null if none found
+*/
+JSFSFilter get_filter(unsigned long index);
 
 /*! sends the given string to the remotery client(s)
 \param command the command to send
@@ -83,8 +90,14 @@ void rmt_set_fun(function callback);
 */
 JSFSFilter add_filter(DOMString filter_to_add, optional JSFSFilter link_from=null, optional DOMString link_args=null);
 
+/*! sets callback function to get notifications upon each new filter creation. The callback function is passed a single parameter, the filter object*/
+void set_new_filter_fun(function callback);
 
-/*! number of filters in the session - see \ref gf_fs_get_filters_count*/
+/*! sets callback function to get notifications upon each filter destruction. The callback function is passed a single parameter, the filter object*/
+void set_del_filter_fun(function callback);
+
+/*! number of filters in the session - see \ref gf_fs_get_filters_count. 
+This number is only valid when session is locked*/
 attribute long nb_filters;
 
 /*! check if the calling task is the last task in the session - see \ref gf_fs_is_last_task*/
@@ -149,8 +162,13 @@ attribute readonly DOMString class;
 attribute readonly DOMString streamtype;
 /*! codec name or null if unknown*/
 attribute readonly DOMString codec;
-/*! internal name - this can only be set and modified by this API and allows for filter identification from JS*/
+/*! internal name - this can only be set and modified by this JS and allows for filter identification from JS*/
 attribute DOMString iname;
+
+
+/*! Checks if a filter is valid or if it has been destroyed. Any query on a destroyed filter will raise an exception.
+\return true if the filter has been destroyed, false otherwise*/
+boolean is_destroyed();
 
 /*! Enumerates properties on input pid
 \param idx the index of the input pid to query
@@ -186,7 +204,7 @@ void update(DOMString arg_name, DOMString arg_val);
 void remove();
 
 /*! inserts a filter in graph linked to the current filter
-\param filter_to_add string describin the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
+\param filter_to_add string describing the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
 \param link_args specify any additional arguments to pass to the SID option of the new filter - see \ref gf_filter_set_source
 */
 void insert(DOMString filter_to_add, optional DOMString link_args=NULL);

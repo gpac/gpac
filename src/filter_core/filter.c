@@ -319,6 +319,11 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 			gf_filter_pid_post_init_task(filter, pid);
 		}
 	}
+
+#ifdef GPAC_HAS_QJS
+	jsfs_on_filter_created(filter);
+#endif
+
 	return GF_OK;
 }
 
@@ -353,6 +358,11 @@ void gf_filter_del(GF_Filter *filter)
 	assert(!filter->detach_pid_tasks_pending);
 //	assert(!filter->swap_pidinst_dst);
 	assert(!filter->swap_pidinst_src);
+
+
+#ifdef GPAC_HAS_QJS
+	jsfs_on_filter_destroyed(filter);
+#endif
 
 #ifndef GPAC_DISABLE_3D
 	gf_list_del_item(filter->session->gl_providers, filter);
