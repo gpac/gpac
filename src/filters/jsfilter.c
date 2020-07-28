@@ -40,6 +40,8 @@
 #include "../scenegraph/qjs_common.h"
 
 
+//to load session API
+#include "../filter_core/filter_session.h"
 
 /*
 	Currently unmapped functions
@@ -103,6 +105,7 @@ enum
 	JSF_FILTER_CLOCK_HINT_TIME,
 	JSF_FILTER_CLOCK_HINT_MEDIATIME,
 	JSF_FILTER_CONNECTIONS_PENDING,
+	JSF_FILTER_INAME
 };
 
 enum
@@ -858,6 +861,18 @@ static JSValue jsf_filter_prop_set(JSContext *ctx, JSValueConst this_val, JSValu
 		if (JS_ToInt32(ctx, &caps.max_audio_bit_depth, value)) return JS_EXCEPTION;
 		gf_filter_set_session_caps(jsf->filter, &caps);
 		break;
+
+	case JSF_FILTER_INAME:
+	{
+		const char *val = JS_ToCString(ctx, value);
+		if (jsf->filter->iname) gf_free(jsf->filter->iname);
+		if (val)
+			jsf->filter->iname = gf_strdup(val);
+		else
+			jsf->filter->iname = NULL;
+		JS_FreeCString(ctx, val);
+	}
+		break;
 	}
     return JS_UNDEFINED;
 }
@@ -955,6 +970,9 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 		return JS_NewFloat64(ctx, dval);
 	case JSF_FILTER_CONNECTIONS_PENDING:
 		return JS_NewBool(ctx, gf_filter_connections_pending(jsf->filter) );
+	case JSF_FILTER_INAME:
+		if (jsf->filter->iname) return JS_NewString(ctx, jsf->filter->iname);
+		return JS_NULL;
 	}
 
     return JS_UNDEFINED;
@@ -1559,6 +1577,14 @@ static JSValue jsf_filter_block_eos(JSContext *ctx, JSValueConst this_val, int a
 	return JS_UNDEFINED;
 }
 
+static JSValue jsf_filter_disable(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+    if (!jsf) return JS_EXCEPTION;
+    jsf->filter->disabled = GF_TRUE;
+	return JS_UNDEFINED;
+}
+
 
 
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
@@ -1595,6 +1621,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("clock_hint_us", jsf_filter_prop_get, NULL, JSF_FILTER_CLOCK_HINT_TIME),
     JS_CGETSET_MAGIC_DEF("clock_hint_mediatime", jsf_filter_prop_get, NULL, JSF_FILTER_CLOCK_HINT_MEDIATIME),
     JS_CGETSET_MAGIC_DEF("connections_pending", jsf_filter_prop_get, NULL, JSF_FILTER_CONNECTIONS_PENDING),
+	JS_CGETSET_MAGIC_DEF("iname", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_INAME),
 
 
     JS_CFUNC_DEF("set_desc", 0, jsf_filter_set_desc),
@@ -1621,6 +1648,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("make_sticky", 0, jsf_filter_make_sticky),
 	JS_CFUNC_DEF("prevent_blocking", 1, jsf_filter_prevent_blocking),
 	JS_CFUNC_DEF("block_eos", 1, jsf_filter_block_eos),
+	JS_CFUNC_DEF("disable", 0, jsf_filter_disable),
 };
 
 
@@ -3744,9 +3772,6 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
     JS_SetPropertyStr(ctx, global_obj, "print", JS_NewCFunction(ctx, js_print, "print", 1));
     JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
 }
-
-//to load session API
-#include "../filter_core/filter_session.h"
 
 static GF_Err jsfilter_initialize(GF_Filter *filter)
 {

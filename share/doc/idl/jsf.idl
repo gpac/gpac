@@ -132,6 +132,9 @@ readonly attribute unsigned long long readonly clock_hint_us;
 readonly attribute unsigned long long clock_hint_mediatime;
 /*! see \ref gf_filter_connections_pending*/
 readonly attribute unsigned long long connections_pending;
+/*! internal name - this can only be set and modified by JS API and allows for filter identification from JS*/
+attribute DOMString iname;
+
 
 /*! sets filter desciption as visible when checking filter info
 \param description description of filter*/
@@ -270,8 +273,12 @@ void prevent_blocking(boolean do_prevent);
 /*! makes the filter prevent EOS queries - see \ref gf_filter_block_eos
 \param do_block if true, filter input pids cannot be checked for end of stream during EOS queries
 */
-void prevent_blocking(boolean do_block);
+void block_eos(boolean do_block);
 
+
+/*! makes the filter disabled. The filter will not receive events or packets and will never be called. This should be called upon loading a script intended to run as a global filter session controler script.
+*/
+void disable();
 };
 
 /*! FilterInstance wraps the set of functions available for filters loaded by the script*/

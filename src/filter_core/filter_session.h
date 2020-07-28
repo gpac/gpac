@@ -31,6 +31,9 @@
 #include <gpac/filters.h>
 #include <gpac/user.h>
 
+#ifdef GPAC_HAS_QJS
+#include "../scenegraph/qjs_common.h"
+#endif
 
 
 #define GF_FILTER_SPEED_SCALER	1000
@@ -423,8 +426,14 @@ struct __gf_filter_session
 #ifdef GPAC_HAS_QJS
 	struct JSContext *js_ctx;
 	GF_List *jstasks;
+	struct __jsfs_task *new_f_task, *del_f_task;
 #endif
 };
+
+#ifdef GPAC_HAS_QJS
+void jsfs_on_filter_created(GF_Filter *new_filter);
+void jsfs_on_filter_destroyed(GF_Filter *del_filter);
+#endif
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
 
@@ -691,6 +700,7 @@ struct __gf_filter
 
 #ifdef GPAC_HAS_QJS
 	char *iname;
+	JSValue jsval;
 #endif
 };
 

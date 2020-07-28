@@ -3639,7 +3639,7 @@ single_retry:
 		filter_dst = gf_list_get(filter->session->filters, i);
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
-		if (filter_dst->finalized || filter_dst->removed || filter_dst->marked_for_removal || filter_dst->no_inputs) continue;
+		if (filter_dst->finalized || filter_dst->removed || filter_dst->disabled || filter_dst->marked_for_removal || filter_dst->no_inputs) continue;
 		if (filter_dst->target_filter == pid->filter) continue;
 
 		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
