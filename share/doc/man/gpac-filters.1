@@ -4156,6 +4156,8 @@ scope_deps (bool, default: true): scope PID dependencies to be within source. If
 .br
 utcs (str):                    URL to use as time server / UTCTiming source. Special value inband enables inband UTC (same as publishTime), special prefix xsd@ uses xsDateTime schemeURI rather than ISO
 .br
+force_flush (bool, default: false): force generating a single segment for each input. This can be usefull in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater
+.br
 
 .br
 .SH tileagg
@@ -5977,7 +5979,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev164-ga2dc711fe-master
+build: 1.0.0-rev165-gbc49f2c8c-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
