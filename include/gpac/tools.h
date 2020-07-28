@@ -908,6 +908,15 @@ Gets UTC clock in milliseconds
 u64 gf_net_get_utc();
 
 /*!
+\brief converts an ntp timestamp into UTC time in milliseconds
+
+Converts NTP 64-bit timestamp to UTC clock in milliseconds
+\u64 ntp NTP timestamp
+\return UTC time in milliseconds
+ */
+u64 gf_net_ntp_to_utc(u64 ntp);
+
+/*!
 \brief parses date
 
 Parses date and gets UTC value for this date. Date format is an XSD dateTime format or any of the supported formats from HTTP 1.1:

@@ -3583,9 +3583,9 @@ The segmenter currently supports:
 .br
 
 .br
-The filter does can perform per-segment real-time regulation using .I sreg.
+The filter does perform per-segment real-time regulation using .I sreg.
 .br
-If you need per-frame real-time regulation on non-real-time inpus, insert a reframer before to perform real-time regulation.
+If you need per-frame real-time regulation on non-real-time inputs, insert a reframer before to perform real-time regulation.
 .br
 Example
 .br
@@ -4153,6 +4153,8 @@ sreg (bool, default: false):   regulate the session
 - otherwise in dynamic mode without context, do not generate segments ahead of time
 .br
 scope_deps (bool, default: true): scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources
+.br
+utcs (str):                    URL to use as time server / UTCTiming source. Special value inband enables inband UTC (same as publishTime), special prefix xsd@ uses xsDateTime schemeURI rather than ISO
 .br
 
 .br
@@ -5975,7 +5977,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev158-g75c362cff-master
+build: 1.0.0-rev164-ga2dc711fe-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

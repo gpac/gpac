@@ -59,13 +59,20 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 	char szEscape[7];
 	char *args_striped = NULL;
 	if (in_args) {
-		char szDst[5];
+		char szDst[6];
+		const char *key;
 		if (is_dst) {
-			sprintf(szDst, "dst%c", fsess->sep_name);
+			key = "dst";
 		} else {
-			sprintf(szDst, "src%c", fsess->sep_name);
+			key = "src";
 		}
-		args_striped = strstr(in_args, szDst);
+		if (!strncmp(in_args, key, 3) && (in_args[3]==fsess->sep_name)) {
+			args_striped = (char *) in_args;
+		} else {
+			sprintf(szDst, "%c%s%c", fsess->sep_name, key, fsess->sep_name);
+			args_striped = strstr(in_args, szDst);
+		}
+
 		if (args_striped) {
 			args_striped = (char *)gf_fs_path_escape_colon(fsess, args_striped+4);
 			if (args_striped) args_striped ++;

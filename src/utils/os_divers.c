@@ -2531,6 +2531,22 @@ u64 gf_net_get_utc_ts(u32 year, u32 month, u32 day, u32 hour, u32 min, u32 sec)
 }
 
 GF_EXPORT
+u64 gf_net_ntp_to_utc(u64 ntp)
+{
+	u64 current_time;
+	Double msec;
+	u32 sec = ntp>>32;
+	u32 frac = ntp & 0xFFFFFFFFUL;
+
+	current_time = sec - GF_NTP_SEC_1900_TO_1970;
+	current_time *= 1000;
+	msec = frac*1000.0;
+	msec /= 0xFFFFFFFF;
+	current_time += (u64) msec;
+	return current_time;
+}
+
+GF_EXPORT
 u64 gf_net_get_utc()
 {
 	u64 current_time;

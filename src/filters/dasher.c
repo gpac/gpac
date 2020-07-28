@@ -50,6 +50,16 @@ enum
 	DASHER_BS_SWITCH_MULTI,
 };
 
+typedef enum
+{
+	DASHER_UTCREF_NONE=0,
+	DASHER_UTCREF_NTP,
+	DASHER_UTCREF_HTTP_HEAD,
+	DASHER_UTCREF_ISO,
+	DASHER_UTCREF_XSDATE,
+	DASHER_UTCREF_INBAND,
+} DasherUTCTimingType;
+
 enum
 {
 	DASHER_NTP_REM=0,
@@ -111,6 +121,7 @@ typedef struct
 	char *styp;
 	Bool sigfrag;
 	u32 sbound;
+	char *utcs;
 
 
 	//internal
@@ -166,6 +177,10 @@ typedef struct
 	Bool is_playing;
 
 	Bool no_seg_dur;
+
+	Bool utc_initialized;
+	DasherUTCTimingType utc_timing_type;
+	s32 utc_diff;
 } GF_DasherCtx;
 
 typedef enum
@@ -3245,6 +3260,11 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 	gf_filter_pck_send(pck);
 }
 
+static u64 dasher_get_utc(GF_DasherCtx *ctx)
+{
+	return gf_net_get_utc() - ctx->utc_diff;
+}
+
 GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_only)
 {
 	GF_Err e;
@@ -3261,7 +3281,30 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] patch for old regression tests hit, changing max seg dur from 1022 to 1080\nPlease notify GPAC devs to remove this, and do not use fot_test modes in dash filter\n"));
 	}
 
-	ctx->mpd->publishTime = gf_net_get_utc();
+	ctx->mpd->publishTime = dasher_get_utc(ctx);
+	if (ctx->utc_timing_type==DASHER_UTCREF_INBAND) {
+		GF_MPD_Descriptor *d = gf_list_get(ctx->mpd->utc_timings, 0);
+		if (d) {
+			time_t gtime;
+			struct tm *t;
+			u32 sec;
+			u32 ms;
+			char szTime[100];
+			if (d->value) gf_free(d->value);
+
+			gtime = ctx->mpd->publishTime / 1000;
+			sec = (u32)(ctx->mpd->publishTime / 1000);
+			ms = (u32)(ctx->mpd->publishTime - ((u64)sec) * 1000);
+
+			t = gf_gmtime(&gtime);
+			sec = t->tm_sec;
+			//see issue #859, no clue how this happened...
+			if (sec > 60)
+				sec = 60;
+			snprintf(szTime, 100, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, sec, ms);
+			d->value = gf_strdup(szTime);
+		}
+	}
 	dasher_update_mpd(ctx);
 	ctx->mpd->write_context = GF_FALSE;
 	ctx->mpd->was_dynamic = GF_FALSE;
@@ -3955,6 +3998,118 @@ static u32 dasher_period_count(GF_List *streams_in /*GF_DashStream*/)
 	return nb_periods;
 }
 
+static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
+{
+	const char *cache_name;
+	u32 size;
+	u8 *data;
+	u64 remote_utc;
+	GF_Err e;
+	GF_DownloadSession *sess;
+	GF_DownloadManager *dm;
+	char *url;
+	DasherUTCTimingType def_type = DASHER_UTCREF_NONE;
+
+	ctx->utc_initialized = GF_TRUE;
+	ctx->utc_timing_type = DASHER_UTCREF_NONE;
+	if (!ctx->utcs) {
+		return;
+	}
+	url = ctx->utcs;
+	if (!strncmp(url, "xsd@", 4)) {
+		def_type = DASHER_UTCREF_XSDATE;
+		url += 4;
+	}
+
+	dm  = gf_filter_get_download_manager(filter);
+	if (!dm) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to get download manager, cannot sync to remote UTC clock\n"));
+		return;
+	}
+	if (!strcmp(ctx->utcs, "inband")) {
+		ctx->utc_timing_type = DASHER_UTCREF_INBAND;
+		return;
+	}
+
+	sess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create session for remote UTC source %s: %s\n", url, gf_error_to_string(e) ));
+		return;
+	}
+	while (1) {
+		GF_NetIOStatus status;
+		e = gf_dm_sess_process(sess);
+		if (e) break;
+		gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, &status);
+		if (status>=GF_NETIO_DATA_TRANSFERED) break;
+	}
+	if (e<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to fetch remote UTC source %s: %s\n", url, gf_error_to_string(e) ));
+		gf_dm_sess_del(sess);
+		return;
+	}
+	cache_name = gf_dm_sess_get_cache_name(sess);
+	gf_blob_get_data(cache_name, &data, &size);
+	if (data) {
+		//xsDate or isoDate - we always signal using iso
+		if (strchr(data, 'T')) {
+			remote_utc = gf_net_parse_date(data);
+			if (remote_utc)
+				ctx->utc_timing_type = def_type ? def_type : DASHER_UTCREF_ISO;
+		}
+		//ntp
+		else if (sscanf(data, LLU, &remote_utc) == 1) {
+			remote_utc = gf_net_ntp_to_utc(remote_utc);
+			if (remote_utc)
+				ctx->utc_timing_type = DASHER_UTCREF_NTP;
+		}
+	}
+	//not match, try http date
+	if (!ctx->utc_timing_type) {
+		const char *hdr = gf_dm_sess_get_header(sess, "Date");
+		if (hdr) {
+			//http-head
+			remote_utc = gf_net_parse_date(hdr);
+			if (remote_utc)
+				ctx->utc_timing_type = DASHER_UTCREF_HTTP_HEAD;
+		}
+	}
+
+	if (!ctx->utc_timing_type) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to parse response %s from remote UTC source %s\n", data, url ));
+	} else {
+		ctx->utc_diff = (s32) ( (s64) gf_net_get_utc() - (s64) remote_utc );
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Synchronized clock to remote %s - UTC diff (local - remote) %d ms\n", url, ctx->utc_diff));
+
+		if (!gf_list_count(ctx->mpd->utc_timings) ) {
+			GF_MPD_Descriptor *utc_t;
+			GF_SAFEALLOC(utc_t, GF_MPD_Descriptor);
+			utc_t->value = gf_strdup(url);
+			switch (ctx->utc_timing_type) {
+			case DASHER_UTCREF_HTTP_HEAD:
+				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-head:2014");
+				break;
+			case DASHER_UTCREF_XSDATE:
+				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http- xsdate:2014");
+				break;
+			case DASHER_UTCREF_ISO:
+				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-iso:2014");
+				break;
+			case DASHER_UTCREF_NTP:
+				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-ntp:2014");
+				break;
+			case DASHER_UTCREF_INBAND:
+				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:direct:2014");
+				break;
+			default:
+				break;
+			}
+			gf_list_add(ctx->mpd->utc_timings, utc_t);
+		}
+	}
+	gf_dm_sess_del(sess);
+}
+
 static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 {
 	u32 i, count, j, nb_sets, nb_done, srd_rep_idx;
@@ -4462,8 +4617,12 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (!ctx->mpd->availabilityStartTime && (ctx->dmode!=GF_MPD_TYPE_STATIC) ) {
 		u64 dash_start_date = ctx->ast ? gf_net_parse_date(ctx->ast) : 0;
 
+		if (!ctx->utc_initialized) {
+			dasher_init_utc(filter, ctx);
+		}
+
 		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
-		ctx->mpd->availabilityStartTime = gf_net_get_utc();
+		ctx->mpd->availabilityStartTime = dasher_get_utc(ctx);
 
 		if (dash_start_date && (dash_start_date < ctx->mpd->availabilityStartTime)) {
 			u64 start_date_sec_ntp, secs;
@@ -4895,7 +5054,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 				seg_ast += (base_ds->adjusted_next_seg_start*1000) / base_ds->timescale;
 
 				//if theoretical AST of the segment is less than the current UTC, we are producing the segment too late.
-				ast_diff = (s64) gf_net_get_utc();
+				ast_diff = (s64) dasher_get_utc(ctx);
 				ast_diff -= seg_ast;
 
 				if (ast_diff>10) {
@@ -5460,7 +5619,7 @@ static void dasher_drop_input(GF_DasherCtx *ctx, GF_DashStream *ds, Bool discard
 
 static GF_Err dasher_process(GF_Filter *filter)
 {
-	u32 i, count, nb_init, has_init;
+	u32 i, count, nb_init, has_init, nb_reg_done;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
 	Bool seg_done = GF_FALSE;
@@ -5490,7 +5649,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		return GF_EOS;
 	if (ctx->setup_failure) return ctx->setup_failure;
 
-	nb_init = has_init = 0;
+	nb_init = has_init = nb_reg_done = 0;
 
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
@@ -5705,6 +5864,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			cts -= ds->first_cts;
 			dts -= ds->first_dts;
+
+			if (ctx->sreg && ctx->mpd->gpac_mpd_time && (dts * 1000 > ctx->mpd->gpac_mpd_time * ds->timescale)) {
+				nb_reg_done++;
+				break;
+			}
 
 			dur = o_dur = gf_filter_pck_get_duration(pck);
 			split_dur = 0;
@@ -6140,6 +6304,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 		}
 	}
 
+	if (nb_reg_done && (nb_reg_done == count)) {
+		ctx->mpd->gpac_mpd_time = 0;
+	}
+
 	dasher_format_report(filter, ctx);
 
 	if (seg_done) {
@@ -6157,7 +6325,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 				//we have a minimum ipdate period
 				else if (ctx->mpd->minimum_update_period) {
-					u64 diff = gf_net_get_utc() - ctx->mpd->publishTime;
+					u64 diff = dasher_get_utc(ctx) - ctx->mpd->publishTime;
 					if (diff >= ctx->mpd->minimum_update_period)
 						update_manifest = GF_TRUE;
 				}
@@ -6817,6 +6985,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- when using subdur and context, only generate segments from the past up to live edge\n"
 	"- otherwise in dynamic mode without context, do not generate segments ahead of time", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(scope_deps), "scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(utcs), "URL to use as time server / UTCTiming source. Special value `inband` enables inband UTC (same as publishTime), special prefix `xsd@` uses xsDateTime schemeURI rather than ISO", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -6834,8 +7003,8 @@ GF_FilterRegister DasherRegister = {
 			"- static and dynamic (live) manifest offering\n"
 			"- context store and reload for batch processing of live/dynamic sessions\n"
 			"\n"
-			"The filter does can perform per-segment real-time regulation using [-sreg]().\n"
-			"If you need per-frame real-time regulation on non-real-time inpus, insert a [reframer](reframer) before to perform real-time regulation.\n"
+			"The filter does perform per-segment real-time regulation using [-sreg]().\n"
+			"If you need per-frame real-time regulation on non-real-time inputs, insert a [reframer](reframer) before to perform real-time regulation.\n"
 			"EX src=file.mp4 reframer:rt=on @ -o live.mpd:dmode=dynamic\n"
 			"## Template strings\n"
 			"The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). "
