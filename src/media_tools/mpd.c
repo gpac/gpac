@@ -751,7 +751,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "moofSN")) dasher->moof_sn = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "moofInc")) dasher->moof_sn_inc = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lastDynPeriodID")) dasher->last_dyn_period_id = gf_mpd_parse_int(att->value);
-
+		else if (!strcmp(att->name, "subdurForced")) dasher->subdur_forced = gf_mpd_parse_bool(att->value);
 	}
 	return dasher;
 }
@@ -2854,6 +2854,9 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 
 	if (dasher->last_dyn_period_id) {
 		gf_fprintf(out, "lastDynPeriodID=\"%d\" ", dasher->last_dyn_period_id);
+	}
+	if (dasher->subdur_forced) {
+		gf_fprintf(out, "subdurForced=\"true\" ");
 	}
 
 	gf_fprintf(out, "ownsSet=\"%s\"/>", dasher->owns_set ? "true" : "false");
