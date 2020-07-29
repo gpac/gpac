@@ -1050,7 +1050,7 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 	GF_GPACArg an_arg;
 	u32 i, count;
 	u32 res = 0;
-	u32 alen = strlen(arg_name);
+	u32 alen = (u32) strlen(arg_name);
 	res += PrintHelpForArgs(arg_name, m4b_gen_args, search_type);
 	res += PrintHelpForArgs(arg_name, m4b_dash_args, search_type);
 	res += PrintHelpForArgs(arg_name, m4b_imp_args, search_type);
