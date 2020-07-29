@@ -509,6 +509,8 @@ typedef struct
 	u32 moof_sn_inc;
 	/*! ID of last dynamic period in manifest*/
 	u32 last_dyn_period_id;
+	/*! one subdur was forced on this rep due to looping*/
+	Bool subdur_forced;
 } GF_DASH_SegmenterContext;
 
 /*! Segment context - GPAC internal, used to produce HLS manifests and segment lists/timeline*/

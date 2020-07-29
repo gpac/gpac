@@ -308,6 +308,7 @@ typedef struct _dash_stream
 	u64 cumulated_dur;
 	Double cumulated_subdur;
 	Bool subdur_done;
+	u64 subdur_forced_use_period_dur;
 	u64 nb_pck;
 	u64 est_next_dts;
 	u64 seek_to_pck;
@@ -3146,6 +3147,11 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 			pdur = (u32) (1000*ds->period_dur);
 		} else {
 			u64 ds_dur = ds->max_period_dur;
+			//we had to generate one extra segment to unlock looping, but we don't want to advertise it in the manifest duration
+			//because other sets may not be ready for this time interval
+			if (ds->subdur_forced_use_period_dur)
+				ds_dur = ds->subdur_forced_use_period_dur;
+
 			if (ds->clamped_dur && !ctx->loop) {
 				u64 clamp_dur = (u64) (ds->clamped_dur * 1000);
 				if (clamp_dur<ds_dur) ds_dur = clamp_dur;
@@ -3513,6 +3519,7 @@ void dasher_context_update_period_end(GF_DasherCtx *ctx)
 			ds->rep->dasher_ctx->dur_purged = ds->dur_purged;
 			ds->rep->dasher_ctx->moof_sn = ds->moof_sn;
 			ds->rep->dasher_ctx->moof_sn_inc = ds->moof_sn_inc;
+			ds->rep->dasher_ctx->subdur_forced = ds->subdur_forced_use_period_dur ? GF_TRUE : GF_FALSE;
 		}
 		if (ctx->subdur) {
 			ds->rep->dasher_ctx->cumulated_subdur = ds->cumulated_subdur + ctx->subdur;
@@ -3838,7 +3845,8 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->cumulated_dur = (u64) (rep->dasher_ctx->cumulated_dur * ds->timescale);
 			ds->cumulated_subdur = rep->dasher_ctx->cumulated_subdur;
 			ds->rep_init = GF_TRUE;
-			ds->subdur_done = GF_FALSE;
+			ds->subdur_done = rep->dasher_ctx->subdur_forced ? GF_TRUE : GF_FALSE;
+			ds->subdur_forced_use_period_dur = 0;
 			ds->nb_pck = 0;
 			if (!ctx->subdur) {
 				ds->nb_pck = ds->seek_to_pck;
@@ -4447,8 +4455,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 		for (i=0; i<count; i++) {
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-			if (ds->clamped_dur > max_adur) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input %s: max audio duration (%lf) in the period is less than duration (%lf), clamping will happen\n", ds->src_url , max_adur, ds->clamped_dur));
+			if (ds->duration.num  > max_adur * ds->duration.den) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input %s: max audio duration (%lf) in the period is less than duration (%lf), clamping will happen\n", ds->src_url , max_adur, ((Double)ds->duration.num)/ds->duration.den ));
 			}
 			ds->clamped_dur = max_adur;
 		}
@@ -5048,6 +5056,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 #ifndef GPAC_DISABLE_LOG
 			if (ctx->dmode>=GF_DASH_DYNAMIC) {
+				u32 asid;
 				s64 ast_diff;
 				u64 seg_ast = ctx->mpd->availabilityStartTime;
 				seg_ast += ctx->current_period->period->start;
@@ -5057,10 +5066,14 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 				ast_diff = (s64) dasher_get_utc(ctx);
 				ast_diff -= seg_ast;
 
+				asid = base_ds->set->id;
+				if (!asid)
+					asid = gf_list_find(ctx->current_period->period->adaptation_sets, base_ds->set) + 1;
+
 				if (ast_diff>10) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] AS%d Rep %s segment %d done TOO LATE by %d ms\n", base_ds->set->id, base_ds->rep->id, base_ds->seg_number, (s32) ast_diff));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] AS%d Rep %s segment %d done TOO LATE by %d ms\n", asid, base_ds->rep->id, base_ds->seg_number, (s32) ast_diff));
 				} else {
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] AS%d Rep %s segment %d done %d ms %s UTC due time\n", base_ds->set->id, base_ds->rep->id, base_ds->seg_number, ABS(ast_diff), (ast_diff<0) ? "before" : "after"));
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] AS%d Rep %s segment %d done %d ms %s UTC due time\n", asid, base_ds->rep->id, base_ds->seg_number, ABS(ast_diff), (ast_diff<0) ? "before" : "after"));
 				}
 			}
 #endif
@@ -5428,8 +5441,13 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 	for (i=0; i<count; i++) {
 		GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
 
-		if (a_ds->subdur_done)
-			continue;
+		//one pid is waiting for loop while another has done its subdur and won't process any new segment until the next subdur call, which
+		//will never happen since the first PID waits for loop. We must force early generation in this case
+		if (a_ds->subdur_done) {
+			a_ds->subdur_done = GF_FALSE;
+			//remember the max period dur before this forced segment generation
+			a_ds->subdur_forced_use_period_dur = a_ds->max_period_dur;
+		}
 
 		//wait for each input to query loop
 		if (!a_ds->loop_state) {
@@ -5449,6 +5467,9 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 	//assign ts offset and send stop/play
 	for (i=0; i<count; i++) {
 		GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+
+		if (a_ds->subdur_done)
+			continue;
 
 		ts_offset = max_ts_offset;
 		ts_offset *= a_ds->timescale;
@@ -5871,6 +5892,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			dur = o_dur = gf_filter_pck_get_duration(pck);
+
 			split_dur = 0;
 			split_dur_next = 0;
 
@@ -6212,6 +6234,19 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (ds->ts_offset) {
 				gf_filter_pck_set_cts(dst, cts + ds->first_cts);
 				gf_filter_pck_set_dts(dst, dts + ds->first_dts);
+			}
+
+			if (gf_sys_old_arch_compat() && ds->clamped_dur && ctx->loop && (cts + 2*o_dur >= ds->ts_offset + base_ds->clamped_dur * ds->timescale)
+			) {
+				u32 _dur = dur;
+				/* simple round with (int)+.5 to avoid trucating .99999 to 0 */
+				dur = (u32)( ds->clamped_dur * ds->timescale - (dts - ds->ts_offset) + 0.5);
+				//it may happen that the sample duration is 0 if the clamp duration is right after the sample DTS and timescale is not big enough to express it - force to 1
+				if (dur==0)
+					dur=1;
+
+				gf_filter_pck_set_duration(dst, dur);
+				ds->est_next_dts += (s32) dur - (s32) _dur;;
 			}
 
 			if (!ds->segment_started) {
