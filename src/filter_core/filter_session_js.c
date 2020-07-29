@@ -70,7 +70,7 @@ static JSClassDef fs_class = {
 
 static JSClassID fs_f_class_id;
 static JSClassDef fs_f_class = {
-    "FilterSession",
+    "Filter",
 };
 
 enum
@@ -104,14 +104,16 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 	ret = JS_Call(task->ctx, task->fun, task->_obj, 1, &arg);
 	JS_FreeValue(task->ctx, arg);
 
+	if (del_filter) {
+		JS_SetOpaque(del_filter->jsval, NULL);
+		JS_FreeValue(task->ctx, del_filter->jsval);
+		del_filter->jsval = JS_UNDEFINED;
+	}
+
 	if (JS_IsException(ret)) {
 		js_dump_error(task->ctx);
 	}
 	JS_FreeValue(task->ctx, ret);
-	if (del_filter) {
-		JS_FreeValue(task->ctx, del_filter->jsval);
-		del_filter->jsval = JS_UNDEFINED;
-	}
 	js_do_loop(task->ctx);
 	gf_js_lock(task->ctx, GF_FALSE);
 }
@@ -197,6 +199,7 @@ static Bool jsfs_task_exec(GF_FilterSession *fs, void *udta, u32 *timeout_ms)
 
 	if (do_free) {
 		JS_FreeValue(task->ctx, task->fun);
+		JS_FreeValue(task->ctx, task->_obj);
 		gf_list_del_item(fs->jstasks, task);
 		gf_free(task);
 		return GF_FALSE;
@@ -220,7 +223,7 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 		tname = JS_ToCString(ctx, argv[1]);
 	}
 	task->fun = JS_DupValue(ctx, argv[0]);
-	task->_obj = this_val;
+	task->_obj = JS_DupValue(ctx, this_val);
 	gf_list_add(fs->jstasks, task);
 
 	gf_fs_post_user_task(fs, jsfs_task_exec, task, tname ? tname : "task");
@@ -277,7 +280,8 @@ void jsfs_on_filter_created(GF_Filter *new_filter)
 void jsfs_on_filter_destroyed(GF_Filter *del_filter)
 {
 	if (! JS_IsUndefined(del_filter->jsval)) {
-		JS_SetOpaque(del_filter->jsval, NULL);
+		void *p = JS_GetOpaque(del_filter->jsval, fs_f_class_id);
+		if (!p) return;
 		if (del_filter->session->del_f_task) {
 			jsfs_exec_task_custom(del_filter->session->del_f_task, NULL, NULL, del_filter);
 		} else {
@@ -321,6 +325,7 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 	if (is_rem) {
 		if (task) {
 			JS_FreeValue(ctx, task->fun);
+			JS_FreeValue(ctx, task->_obj);
 			gf_list_del_item(fs->jstasks, task);
 			gf_free(task);
 		}
@@ -336,6 +341,7 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 
 	if (task) {
 		JS_FreeValue(ctx, task->fun);
+		JS_FreeValue(ctx, task->_obj);
 	} else {
 		GF_SAFEALLOC(task, JSFS_Task);
 		if (!task) return JS_EXCEPTION;
@@ -344,7 +350,7 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 		task->ctx = ctx;
 	}
 	task->fun = JS_DupValue(ctx, argv[0]);
-	task->_obj = this_val;
+	task->_obj = JS_DupValue(ctx, this_val);
 
 	if (cbk_type == 1)
 		gf_sys_profiler_set_callback(task, jsfs_rmt_user_callback);
@@ -706,7 +712,6 @@ static JSValue jsff_remove(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 		return JS_EXCEPTION;
 
 	gf_filter_remove(f);
-	JS_SetOpaque(this_val, NULL);
 	return JS_UNDEFINED;
 }
 
@@ -811,12 +816,15 @@ static JSValue jsfs_get_filter(JSContext *ctx, JSValueConst this_val, int argc, 
     if (JS_IsString(argv[0])) {
 		const char *iname = JS_ToCString(ctx, argv[0]);
 		if (iname) {
-			u32 i, count=gf_list_count(fs->filters);
+			u32 i, count;
+			gf_fs_lock_filters(fs, GF_TRUE);
+			count=gf_list_count(fs->filters);
 			for (i=0; i<count; i++) {
 				f = gf_list_get(fs->filters, i);
 				if (f->iname && !strcmp(f->iname, iname)) break;
 				f = NULL;
 			}
+			gf_fs_lock_filters(fs, GF_FALSE);
 		}
 		JS_FreeCString(ctx, iname);
 	} else {
@@ -991,6 +999,7 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		if (js_ctx && (task->ctx != js_ctx))
 			continue;
 		JS_FreeValue(task->ctx, task->fun);
+		JS_FreeValue(task->ctx, task->_obj);
 		gf_free(task);
 		gf_list_rem(fs->jstasks, i);
 		i--;
