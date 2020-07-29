@@ -2273,6 +2273,10 @@ restart_fragmentation_pass:
 							next_sample_rap = GF_TRUE;
 							next_sap_time = isom_get_next_sap_time(input, tf, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2, &next_sap_is_eos);
 
+							//align behaviour of -bound and -closest in legacy with master: if eos, do not create last segment
+							if ((dasher->split_on_bound || dasher->split_on_closest) && next_sap_is_eos)
+								next_sap_time = 0;
+
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
 								u64 next_sap_dur;
