@@ -769,7 +769,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			}
 			gf_dynstrcat(&full_path, url+1, NULL);
 
-			if (gf_file_exists(full_path))
+			if (gf_file_exists(full_path) || gf_dir_exists(full_path) )
 				break;
 			gf_free(full_path);
 			full_path = NULL;
