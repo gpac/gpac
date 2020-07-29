@@ -182,11 +182,17 @@ void ipid_props(unsigned long idx, function fun_callback);
 */
 void opid_props(unsigned long idx, function fun_callback);
 
-/*! Gets index of source filter for an input pid
+/*! Gets source filter for an input pid
 \param idx the index of the input pid to query
 \return input filter or null
 */
 JSFSFilter ipid_source(unsigned long idx);
+
+/*! Gets destination filter(s) for an output pid
+\param idx the index of the output pid to query
+\return array of output filters
+*/
+Array opid_sinks(unsigned long idx);
 
 /*! Gets all arguments (options) of the filter
 \param value_only if true, only returns name (DOMString) and value (FilterProperty) of each argument. Otherwise returns the full argument (JSFSFilterArg)
