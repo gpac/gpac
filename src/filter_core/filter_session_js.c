@@ -281,10 +281,13 @@ void jsfs_on_filter_destroyed(GF_Filter *del_filter)
 		if (del_filter->session->del_f_task) {
 			jsfs_exec_task_custom(del_filter->session->del_f_task, NULL, NULL, del_filter);
 		} else {
-			assert(del_filter->session->js_ctx);
-			gf_js_lock(del_filter->session->js_ctx, GF_TRUE);
-			JS_FreeValue(del_filter->session->js_ctx, del_filter->jsval);
-			gf_js_lock(del_filter->session->js_ctx, GF_FALSE);
+			JSRuntime *gf_js_get_rt();
+			JSRuntime *rt = gf_js_get_rt();
+			if (rt) {
+				gf_js_lock(NULL, GF_TRUE);
+				JS_FreeValueRT(rt, del_filter->jsval);
+				gf_js_lock(NULL, GF_FALSE);
+			}
 		}
 		del_filter->jsval = JS_UNDEFINED;
 	}
