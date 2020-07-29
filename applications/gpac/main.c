@@ -2665,7 +2665,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	if (argmode==GF_ARGMODE_EXPERT) {
 		l_fname = gf_strdup(fname);
 		strlwr(l_fname);
-		lf_len = strlen(l_fname);
+		lf_len = (u32) strlen(l_fname);
 	}
 
 	for (i=0; i<count; i++) {

@@ -3259,7 +3259,8 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		if (sep) sep[0]=0;
 
 		if (args[0] != filter->session->sep_frag) {
-			if (gf_file_exists(args)) {
+			//if arg is not one of our reserved keywords and is a valid file, try to open it
+			if (strcmp(args, "gpac") && strcmp(args, "gfopt") && strcmp(args, "gfloc") && gf_file_exists(args)) {
 				if (argfile_level<5) {
 					char szLine[2001];
 					FILE *arg_file = gf_fopen(args, "rt");
