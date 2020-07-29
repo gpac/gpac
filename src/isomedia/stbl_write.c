@@ -1192,11 +1192,11 @@ GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples
 		return GF_OK;
 	}
 	if (nb_samples==1) {
-		assert(sampleNumber < stsz->sampleCount);
-		memmove(stsz->sizes + sampleNumber - 1, stsz->sizes + sampleNumber, sizeof(u32) * (stsz->sampleCount - sampleNumber));
+		if (sampleNumber < stsz->sampleCount)
+			memmove(stsz->sizes + sampleNumber - 1, stsz->sizes + sampleNumber, sizeof(u32) * (stsz->sampleCount - sampleNumber));
 	} else {
-		assert(nb_samples < stsz->sampleCount);
-		memmove(stsz->sizes, stsz->sizes + nb_samples, sizeof(u32) * (stsz->sampleCount - nb_samples));
+		if (nb_samples < stsz->sampleCount)
+			memmove(stsz->sizes, stsz->sizes + nb_samples, sizeof(u32) * (stsz->sampleCount - nb_samples));
 	}
 	stsz->sampleCount -= nb_samples;
 	return GF_OK;
