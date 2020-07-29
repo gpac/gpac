@@ -295,8 +295,8 @@ GF_GPACArg m4b_dash_args[] =
 	GF_DEF_ARG("no-cache", NULL, "disable file cache for dash inputs", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("no-loop", NULL, "disable looping content in live mode and uses period switch instead", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("hlsc", NULL, "insert UTC in variant playlists for live HLS", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("bound", NULL, "enable video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("closest", NULL, "enable video segmentation closest to the segment boundary (before or after)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("bound", NULL, "segmentation will always try to split before or at, but never after, the segment boundary", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("closest", NULL, "segmentation will use the closest frame to the segment boundary (before or after)", NULL, NULL, GF_ARG_BOOL, 0),
 
 	GF_DEF_ARG("subsegs-per-sidx", NULL, "set the number of subsegments to be written in each SIDX box\n"
 	"- 0: a single SIDX box is used per segment\n"

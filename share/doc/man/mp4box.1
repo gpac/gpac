@@ -796,12 +796,12 @@ insert UTC in variant playlists for live HLS
 .TP
 .B \-bound
 .br
-enable video segmentation with same method as audio (i.e.: always try to split before or at the segment boundary - not after)
+segmentation will always try to split before or at, but never after, the segment boundary
 .br
 .TP
 .B \-closest
 .br
-enable video segmentation closest to the segment boundary (before or after)
+segmentation will use the closest frame to the segment boundary (before or after)
 .br
 .TP
 .B \-subsegs-per-sidx (int)
@@ -2303,7 +2303,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev165-gbc49f2c8c-master
+build: 1.0.0-rev173-g15260dfc1-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
