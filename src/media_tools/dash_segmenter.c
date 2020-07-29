@@ -2309,12 +2309,15 @@ restart_fragmentation_pass:
 									}
 									// method 2.
 									else {
-
-										if (SegmentDuration + next_sap_dur >= 3 * MaxSegmentDuration / 2) {
+										//the 3/2 duration rule only applies in regular dashing, not in closest mode
+										//this is so that we have the same behaviour for -bound or -closest on master and legacy
+										//because master does not implement the 3/2 duration rule in the same way as legacy, hence both algos
+										//differ in their results
+										if (!dasher->split_on_closest && (SegmentDuration + next_sap_dur >= 3 * MaxSegmentDuration / 2)) {
 											do_split = GF_TRUE;
 										}
-
-										else if (!tf->all_sample_raps && !mpd_timeline_bs && use_url_template) {
+										//if templates without segmentTimeline (live profiles) or closest mode, check diff
+										else if (!tf->all_sample_raps && ((!mpd_timeline_bs && use_url_template) || dasher->split_on_closest)) {
 
 											Double diff_next, diff_current;
 											Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
