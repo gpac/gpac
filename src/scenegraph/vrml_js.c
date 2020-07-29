@@ -4716,10 +4716,6 @@ Bool gf_sg_has_scripting()
 
 /*
  * locking/try-locking the JS context
- * we need to test whether the calling thread already has the lock on the script context
- * if this is not the case (i.e. first lock on mutex), we switch JS context threads and
- * call begin/end requests. Nesting begin/end request in a reentrant way crashes JS
- * (mozilla doc is wrong here)
  *
  * */
 GF_EXPORT
@@ -4742,6 +4738,12 @@ Bool gf_js_try_lock(struct JSContext *cx)
 		return 1;
 	}
 	return 0;
+}
+
+JSRuntime *gf_js_get_rt()
+{
+	if (!js_rt) return NULL;
+	return js_rt->js_runtime;
 }
 
 #endif /* GPAC_HAS_QJS */
