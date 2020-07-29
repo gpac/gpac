@@ -142,6 +142,7 @@ typedef struct
 	GF_List *pck_res;
 
 	Bool unload_session_api;
+	Bool disable_filter;
 } GF_JSFilterCtx;
 
 enum
@@ -1064,6 +1065,7 @@ static JSValue jsf_filter_set_cap(JSContext *ctx, JSValueConst this_val, int arg
 	GF_PropertyValue p;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
     if (!jsf) return JS_EXCEPTION;
+	jsf->disable_filter = GF_FALSE;
 
 	memset(&p, 0, sizeof(GF_PropertyValue));
     if (argc) {
@@ -1214,6 +1216,7 @@ static JSValue jsf_filter_new_pid(JSContext *ctx, JSValueConst this_val, int arg
     if (!jsf) return JS_EXCEPTION;
     GF_FilterPid *opid = gf_filter_pid_new(jsf->filter);
 	if (!opid) return JS_EXCEPTION;
+	jsf->disable_filter = GF_FALSE;
 
 	GF_SAFEALLOC(pctx, GF_JSPidCtx);
 	if (!pctx)
@@ -1398,6 +1401,7 @@ static JSValue jsf_filter_post_task(JSContext *ctx, JSValueConst this_val, int a
 	JS_ScriptTask *task;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
     if (!jsf || !argc) return JS_EXCEPTION;
+	jsf->disable_filter = GF_FALSE;
 	if (!JS_IsFunction(ctx, argv[0]))
 		return JS_EXCEPTION;
 	if ((argc>1) && !JS_IsObject(argv[1]))
@@ -1577,15 +1581,6 @@ static JSValue jsf_filter_block_eos(JSContext *ctx, JSValueConst this_val, int a
 	return JS_UNDEFINED;
 }
 
-static JSValue jsf_filter_disable(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
-    if (!jsf) return JS_EXCEPTION;
-    jsf->filter->disabled = GF_TRUE;
-	return JS_UNDEFINED;
-}
-
-
 
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
@@ -1648,7 +1643,6 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("make_sticky", 0, jsf_filter_make_sticky),
 	JS_CFUNC_DEF("prevent_blocking", 1, jsf_filter_prevent_blocking),
 	JS_CFUNC_DEF("block_eos", 1, jsf_filter_block_eos),
-	JS_CFUNC_DEF("disable", 0, jsf_filter_disable),
 };
 
 
@@ -3890,7 +3884,7 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 		qjs_module_init_webgl(jsf->ctx);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
-	
+	jsf->disable_filter = GF_TRUE;
 	ret = JS_Eval(jsf->ctx, (char *)buf, buf_len, jsf->js, flags);
 	gf_free(buf);
 
@@ -3901,7 +3895,6 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 		return GF_BAD_PARAM;
 	}
 	JS_FreeValue(jsf->ctx, ret);
-
 	return GF_OK;
 }
 
@@ -3999,10 +3992,21 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 			JS_FreeValue(jsf->ctx, ret);
 		}
 		jsf->initialized = GF_TRUE;
+		//filter object not used (no new_pid, post_task or set_cap), disable it
+		if (jsf->disable_filter) {
+			JSAtom prop;
+			JSValue global_obj = JS_GetGlobalObject(jsf->ctx);
+			prop = JS_NewAtom(jsf->ctx, "filter");
+			JS_DeleteProperty(jsf->ctx, global_obj, prop, 0);
+			JS_FreeValue(jsf->ctx, global_obj);
+			JS_FreeAtom(jsf->ctx, prop);
+			filter->disabled = GF_TRUE;
+			jsf->filter_obj = JS_UNDEFINED;
+		}
 		gf_js_lock(jsf->ctx, GF_FALSE);
 		return e;
 	}
-	if (!arg_name)
+	if (!arg_name || (jsf->initialized && jsf->disable_filter))
 		return GF_OK;
 
 	for (i=0; i<jsf->nb_args; i++) {

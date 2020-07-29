@@ -275,10 +275,6 @@ void prevent_blocking(boolean do_prevent);
 */
 void block_eos(boolean do_block);
 
-
-/*! makes the filter disabled. The filter will not receive events or packets and will never be called. This should be called upon loading a script intended to run as a global filter session controler script.
-*/
-void disable();
 };
 
 /*! FilterInstance wraps the set of functions available for filters loaded by the script*/

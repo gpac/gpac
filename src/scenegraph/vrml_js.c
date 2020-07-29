@@ -544,9 +544,9 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	}
 	if (error_type==2) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, (" Throw"));
+		GF_LOG(logl, ltool, ("Throw "));
 #else
-		fprintf(stderr, " Throw");
+		fprintf(stderr, "Throw ");
 #endif
 	}
 
