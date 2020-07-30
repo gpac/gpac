@@ -4349,5 +4349,16 @@ const char *gf_color_get_name(GF_Color col)
 		return predefined_colors[i].name;
 	}
 	return NULL;
+}
 
+
+GF_EXPORT
+Bool gf_color_enum(u32 *idx, GF_Color *col, const char **color_name)
+{
+	u32 count = sizeof(predefined_colors) / sizeof(struct predef_col);
+	if (*idx>=count) return GF_FALSE;
+	if (col) *col = GF_COL_ARGB(0xFF, predefined_colors[*idx].r, predefined_colors[*idx].g, predefined_colors[*idx].b);
+	if (color_name) *color_name = predefined_colors[*idx].name;
+	(*idx)++;
+	return GF_TRUE;
 }
