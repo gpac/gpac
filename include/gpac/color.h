@@ -160,6 +160,14 @@ GF_Color gf_color_parse(const char *name);
 */
 const char *gf_color_get_name(GF_Color col);
 
+/*! Enumerates built-in colors
+\param idx index of color to query, incremented by one on success
+\param color set to color value, can be NULL
+\param color_name set to color name, can be NULL
+\return GF_TRUE if sucess, GF_FALSE otherwise
+*/
+Bool gf_color_enum(u32 *idx, GF_Color *color, const char **color_name);
+
 /*! Inits a color matrix to identity
 \param _this the target color matrix to initialize*/
 void gf_cmx_init(GF_ColorMatrix *_this);

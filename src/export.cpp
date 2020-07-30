@@ -583,6 +583,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_apply_fixed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_color_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_color_get_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_color_enum) )
+
 
 
 /*path2d.h exports*/

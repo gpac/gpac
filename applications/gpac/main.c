@@ -68,6 +68,7 @@ static char separator_set[7] = GF_FS_DEFAULT_SEPS;
 
 static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode);
 static void dump_all_props(void);
+static void dump_all_colors(void);
 static void dump_all_codec(GF_FilterSession *session);
 static void write_filters_options(GF_FilterSession *fsess);
 static void write_core_options();
@@ -578,6 +579,7 @@ GF_GPACArg gpac_args[] =
 			"- filters:*: print name of all available filters, including meta filters\n"\
 			"- codecs: print the supported builtin codecs\n"\
 			"- props: print the supported builtin PID and packet properties\n"\
+			"- colors: print the builtin color names and their values\n"\
 			"- links: print possible connections between each supported filters\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
 			"- FNAME: print filter `FNAME` info (multiple FNAME can be given)\n"
@@ -620,9 +622,10 @@ static void gpac_usage(GF_SysArgMode argmode)
 		"  - an option using a single `-` indicates an option of gpac (see %s) or of libgpac (see %s)\n"
 		"  - an option using `--` indicates a global filter option, for example `--block_size=1000` (see %s)\n"
 		"  - an option using `-+` indicates a global meta-filter filter (eg FFMPEG) option, for example `-+profile=Baseline` (see %s)\n"
-		"\n  "
-		"Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.\n"
-		"boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `-src`, [-o](), `-dst` and [-h]() options.\n\n"
+		"  \n"
+		"Filter declaration order may impact the link resolver which will try linking in declaration order. Most of the time for simple graphs, this has no impact. However, for complex graphs with no link declarations, this can lead to different results.  \n"
+		"Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.  \n"
+		"Boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `-src`, [-o](), `-dst` and [-h]() options.\n\n"
 		"The possible options for gpac are:\n\n",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#expliciting-links-between-filters-link)" : "`gpac -h doc`",
@@ -1374,7 +1377,7 @@ static void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 	}
 	if (!found && is_help) {
 		const char *doc_helps[] = {
-			"log", "core", "modules", "doc", "alias", "props", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
+			"log", "core", "modules", "doc", "alias", "props", "colors", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
 		};
 		i=0;
 		while (doc_helps[i]) {
@@ -1644,6 +1647,9 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "props")) {
 				dump_all_props();
+				gpac_exit(0);
+			} else if (!strcmp(argv[i+1], "colors")) {
+				dump_all_colors();
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "cfg")) {
 				gpac_config_help();
@@ -2683,6 +2689,8 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					found = GF_TRUE;
 				}
 				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s \n", reg->name, arg->arg_name);
+#if 0
+
 			} else {
 				if (strcmp(arg->arg_name, fname)) continue;
 				if (!found) {
@@ -2690,6 +2698,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					found = GF_TRUE;
 				}
 				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s: %s\n", reg->name, arg->arg_name, arg->arg_desc);
+#endif
 			}
 		}
 	}
@@ -2862,7 +2871,18 @@ static void dump_all_props(void)
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, ".TP\n.B %s\n%s\n", name, desc);
 			idx++;
 		}
-	}}
+	}
+}
+#include <gpac/color.h>
+static void dump_all_colors(void)
+{
+	u32 i=0;
+	GF_Color color;
+	const char *name;
+	while (gf_color_enum(&i, &color, &name)) {
+		gf_sys_format_help(helpout, help_flags|GF_PRINTARG_HIGHLIGHT_FIRST, "%s: 0x%08X\n", name, color);
+	}
+}
 
 static void dump_all_codec(GF_FilterSession *session)
 {
