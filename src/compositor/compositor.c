@@ -3379,15 +3379,22 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	}
 	switch (event->type) {
 	case GF_EVENT_SHOWHIDE:
+		if (!from_user) {
+			/*switch fullscreen off!!!*/
+			compositor->is_hidden = event->show.show_type ? GF_FALSE : GF_TRUE;
+			break;
+		}
 	case GF_EVENT_SET_CAPTION:
 	case GF_EVENT_MOVE:
+		if (!from_user) {
+			if (compositor->last_had_overlays) {
+				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+			}
+			break;
+		}
 		compositor->video_out->ProcessEvent(compositor->video_out, event);
 		break;
 
-	case GF_EVENT_MOVE_NOTIF:
-		if (compositor->last_had_overlays) {
-			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-		}
 		break;
 	case GF_EVENT_REFRESH:
 		/*when refreshing a window with overlays we redraw the scene */
@@ -3488,10 +3495,6 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			gf_sc_input_sensor_string_input(compositor , event->character.unicode_char);
 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
-	/*switch fullscreen off!!!*/
-	case GF_EVENT_SHOWHIDE_NOTIF:
-		compositor->is_hidden = event->show.show_type ? GF_FALSE : GF_TRUE;
-		break;
 
 	case GF_EVENT_MOUSEMOVE:
 		event->mouse.button = 0;
@@ -3504,13 +3507,14 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 
 	case GF_EVENT_PASTE_TEXT:
-		gf_sc_paste_text(compositor, event->message.message);
+		gf_sc_paste_text(compositor, event->clipboard.text);
 		break;
 	case GF_EVENT_COPY_TEXT:
 		if (gf_sc_has_text_selection(compositor)) {
-			event->message.message = gf_sc_get_selected_text(compositor);
+			const char *str = gf_sc_get_selected_text(compositor);
+			event->clipboard.text = str ? gf_strdup(event->clipboard.text) : NULL;
 		} else {
-			event->message.message = NULL;
+			event->clipboard.text = NULL;
 		}
 		break;
 	/*when we process events we don't forward them to the user*/

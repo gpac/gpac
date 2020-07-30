@@ -96,6 +96,15 @@ void set_new_filter_fun(function callback);
 /*! sets callback function to get notifications upon each filter destruction. The callback function is passed a single parameter, the filter object*/
 void set_del_filter_fun(function callback);
 
+/*! sets callback function to get events being sent back to application (see \ref gf_fs_set_ui_callback). The callback function will have a single parameter set, an event instance of FilterEvent interface. The return value of the function should be as indicated for each event type*/
+boolean set_event_fun(function callback);
+
+/*! fires a given event on all registered user event if no filter is specified, or on the filter
+\param evt the event to send
+\param filter the filter to send the event to
+\return true if event was fired, false if no event target was found or if the filter is not an event target*/
+boolean fire_event(FilterEvent evt, optional JSFSFilter *filter=null);
+
 /*! number of filters in the session - see \ref gf_fs_get_filters_count. 
 This number is only valid when session is locked*/
 attribute long nb_filters;
@@ -164,6 +173,9 @@ attribute readonly DOMString streamtype;
 attribute readonly DOMString codec;
 /*! internal name - this can only be set and modified by this JS and allows for filter identification from JS*/
 attribute DOMString iname;
+
+/*! set to true if filter accepts user events*/
+attribute boolean event_target;
 
 
 /*! Checks if a filter is valid or if it has been destroyed. Any query on a destroyed filter will raise an exception.

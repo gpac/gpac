@@ -831,13 +831,24 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				break;
 			case SDL_WINDOWEVENT_EXPOSED:
 			case SDL_WINDOWEVENT_SHOWN:
-			case SDL_WINDOWEVENT_MOVED:
 				gpac_evt.type = GF_EVENT_REFRESH;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				break;
+			case SDL_WINDOWEVENT_MOVED:
+				gpac_evt.type = GF_EVENT_MOVE;
+				gpac_evt.move.x = sdl_evt.window.data1;
+				gpac_evt.move.y = sdl_evt.window.data2;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				break;
 			case SDL_WINDOWEVENT_CLOSE:
 				memset(&gpac_evt, 0, sizeof(GF_Event));
 				gpac_evt.type = GF_EVENT_QUIT;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				return GF_FALSE;
+			case SDL_WINDOWEVENT_MINIMIZED:
+				memset(&gpac_evt, 0, sizeof(GF_Event));
+				gpac_evt.type = GF_EVENT_SHOWHIDE;
+				gpac_evt.show.show_type = 0;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				return GF_FALSE;
 			}
@@ -906,9 +917,9 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
 			   ) {
 				gpac_evt.type = GF_EVENT_PASTE_TEXT;
-				gpac_evt.message.message = (const char *) SDL_GetClipboardText();
+				gpac_evt.clipboard.text = (char *) SDL_GetClipboardText();
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-				SDL_free((char *) gpac_evt.message.message);
+				SDL_free(gpac_evt.clipboard.text);
 			}
 			else if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_C)
 #if defined(__DARWIN__) || defined(__APPLE__)
@@ -918,8 +929,10 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
 			        ) {
 				gpac_evt.type = GF_EVENT_COPY_TEXT;
-				if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt)==GF_TRUE)
-					SDL_SetClipboardText((char *)gpac_evt.message.message );
+				if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt) && gpac_evt.clipboard.text) {
+					SDL_SetClipboardText(gpac_evt.clipboard.text );
+					gf_free(gpac_evt.clipboard.text);
+				}
 			}
 #endif
 
@@ -993,6 +1006,13 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			gpac_evt.type = GF_EVENT_MULTITOUCH;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
+
+		case SDL_DROPFILE:
+			gpac_evt.type = GF_EVENT_DROPFILE;
+			gpac_evt.open_file.nb_files = 1;
+			gpac_evt.open_file.files = &sdl_evt.drop.file;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+
 
 #endif
 

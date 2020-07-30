@@ -127,7 +127,7 @@ typedef struct
 	/*GF_EVENT_SIZE*/
 	u8 type;
 	/*width and height*/
-	u16 width, height;
+	u32 width, height;
 } GF_EventSize;
 
 /*! Video setup (2D or 3D) event
@@ -138,7 +138,7 @@ typedef struct
 	/*GF_EVENT_VIDEO_SETUP*/
 	u8 type;
 	/*width and height of visual surface to allocate*/
-	u16 width, height;
+	u32 width, height;
 	/*indicates whether double buffering is desired - when sent from plugin to player, indicates the backbuffer has been destroyed*/
 	Bool back_buffer;
 	/*indicates whether system memory for the backbuffer is desired (no video blitting)*/
@@ -370,6 +370,22 @@ typedef struct
 	Bool activate;
 } GF_EventSensorRequest;
 
+
+/*! Clipboard
+	event proc return value: true if text has been set for COPY, ignored otherwise
+*/
+typedef struct
+{
+	/*GF_EVENT_MESSAGE*/
+	u8 type;
+	/*
+	- const char * for PASTE_TEXT
+	- char * for COPY_TEXT, must be freed by caller
+	*/
+	char *text;
+} GF_EventClipboard;
+
+
 /*! Event object*/
 typedef union
 {
@@ -396,6 +412,7 @@ typedef union
 	GF_EventOpenFile open_file;
 	GF_EventAddonConnect addon_connect;
 	GF_EventSensorRequest activate_sensor;
+	GF_EventClipboard clipboard;
 } GF_Event;
 
 /*! @} */

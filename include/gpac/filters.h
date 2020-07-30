@@ -2230,6 +2230,15 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 */
 GF_Err gf_filter_reconnect_output(GF_Filter *filter);
 
+
+/*! Indicates that the filter accept and can process events coming from outside the filter chain, typically used by application firing events.
+ The event is sent on the process_event function with no associated PID.
+\param filter the target filter
+\param enable_events if GF_TRUE, the filter is considered an event target
+\return error if any
+*/
+GF_Err gf_filter_set_event_target(GF_Filter *filter, Bool enable_events);
+
 /*! Looks for a built-in property value marked as informative on a filter on all PIDs (inputs and output)
 This is a recursive call on both input and ouput chain.
 There is no guarantee that a queried property will still be valid at the setter side upon returning the call, the setter could have

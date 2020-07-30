@@ -704,6 +704,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	}
 #endif
 
+	gf_filter_set_event_target(filter, GF_TRUE);
 	return GF_OK;
 }
 
@@ -1467,6 +1468,14 @@ static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	if (fevt->base.type==GF_FEVT_INFO_UPDATE) {
 		GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
 		vout_set_caption(ctx);
+		return GF_TRUE;
+	}
+	if (!fevt->base.on_pid && (fevt->base.type==GF_FEVT_USER)) {
+		GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
+		GF_Err e;
+		if (!ctx->video_out) return GF_FALSE;
+		e = ctx->video_out->ProcessEvent(ctx->video_out, (GF_Event *) &fevt->user_event.event);
+		if (e) return GF_FALSE;
 		return GF_TRUE;
 	}
 	//cancel

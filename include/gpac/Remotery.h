@@ -331,6 +331,12 @@ typedef enum rmtSampleFlags
 #define rmt_LogText(text)                                                           \
     RMT_OPTIONAL(RMT_ENABLED, _rmt_LogText(text))
 
+#define rmt_EnableSampling(enable)                                                           \
+    RMT_OPTIONAL(RMT_ENABLED, _rmt_EnableSampling(enable))
+
+#define rmt_SamplingEnabled()                                                           \
+    RMT_OPTIONAL(RMT_ENABLED, _rmt_SamplingEnabled())
+
 #define rmt_BeginCPUSample(name, flags)                                             \
     RMT_OPTIONAL(RMT_ENABLED, {                                                     \
         static rmtU32 rmt_sample_hash_##name = 0;                                   \
@@ -626,6 +632,8 @@ RMT_API void _rmt_SetCurrentThreadName(rmtPStr thread_name);
 RMT_API void _rmt_LogText(rmtPStr text);
 RMT_API void _rmt_BeginCPUSample(rmtPStr name, rmtU32 flags, rmtU32* hash_cache);
 RMT_API void _rmt_EndCPUSample(void);
+RMT_API void _rmt_EnableSampling(rmtBool enable);
+RMT_API rmtBool _rmt_SamplingEnabled();
 
 #if RMT_USE_CUDA
 RMT_API void _rmt_BindCUDA(const rmtCUDABind* bind);

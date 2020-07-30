@@ -116,9 +116,14 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 
 static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
+	GF_FilterSession *fs = (GF_FilterSession *)ptr;
+#ifdef GPAC_HAS_QJS
+	if (fs->on_evt_task)
+		return jsfs_on_event(fs, evt);
+#endif
+
 	if (evt->type==GF_EVENT_QUIT) {
-		GF_FilterSession *fsess = (GF_FilterSession *)ptr;
-		gf_fs_abort(fsess, GF_FALSE);
+		gf_fs_abort(fs, GF_FALSE);
 	}
 	return 0;
 }

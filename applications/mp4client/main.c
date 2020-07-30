@@ -950,11 +950,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_METADATA:
 		ResetCaption();
 		break;
-
-	case GF_EVENT_RELOAD:
-		if (is_connected)
-			reload = 1;
-		break;
 	case GF_EVENT_DROPFILE:
 	{
 		u32 i, pos;

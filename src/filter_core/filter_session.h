@@ -426,13 +426,14 @@ struct __gf_filter_session
 #ifdef GPAC_HAS_QJS
 	struct JSContext *js_ctx;
 	GF_List *jstasks;
-	struct __jsfs_task *new_f_task, *del_f_task;
+	struct __jsfs_task *new_f_task, *del_f_task, *on_evt_task;
 #endif
 };
 
 #ifdef GPAC_HAS_QJS
 void jsfs_on_filter_created(GF_Filter *new_filter);
 void jsfs_on_filter_destroyed(GF_Filter *del_filter);
+Bool jsfs_on_event(GF_FilterSession *session, GF_Event *evt);
 #endif
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
@@ -697,6 +698,8 @@ struct __gf_filter
 	GF_FilterArgs *instance_args;
 
 	GF_Filter *multi_sink_target;
+
+	Bool event_target;
 
 #ifdef GPAC_HAS_QJS
 	char *iname;

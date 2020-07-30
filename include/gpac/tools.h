@@ -417,6 +417,14 @@ GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback rmt_usr_cbk
 */
 GF_Err gf_sys_profiler_send(const char *msg);
 
+/*! Enables sampling times in RMT
+ \param enable if GF_TRUE, sampling will be enabled, otherwise disabled*/
+void gf_sys_profiler_enable_sampling(Bool enable);
+
+/*! Checks if sampling is enabled in RMT. Sampling is by default enabled when enabling remotery
+ \return GF_TRUE if sampling is enabled, GF_FALSE otherwise*/
+Bool gf_sys_profiler_sampling_enabled();
+
 /*!
 GPAC Log tools
 \hideinitializer

@@ -3830,3 +3830,12 @@ GF_Err gf_filter_reconnect_output(GF_Filter *filter)
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_filter_set_event_target(GF_Filter *filter, Bool enable_events)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->event_target = enable_events;
+	return GF_OK;
+}
+
