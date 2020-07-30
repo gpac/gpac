@@ -102,8 +102,13 @@ boolean set_event_fun(function callback);
 /*! fires a given event on all registered user event if no filter is specified, or on the filter
 \param evt the event to send
 \param filter the filter to send the event to
+\param upstream if filter is not null, indicates whether the event shall be sent upstream (towards the sink) or downstream (towards the destination)
 \return true if event was fired, false if no event target was found or if the filter is not an event target*/
-boolean fire_event(FilterEvent evt, optional JSFSFilter *filter=null);
+boolean fire_event(FilterEvent evt, optional JSFSFilter *filter=null, optional boolean upstream=false);
+
+/*! enables session reporting - see \ref gf_fs_enable_reporting. 
+\param enable enables reporting if true*/
+void reporting(boolean enable);
 
 /*! number of filters in the session - see \ref gf_fs_get_filters_count. 
 This number is only valid when session is locked*/
@@ -173,20 +178,38 @@ attribute readonly DOMString streamtype;
 attribute readonly DOMString codec;
 /*! internal name - this can only be set and modified by this JS and allows for filter identification from JS*/
 attribute DOMString iname;
-
 /*! set to true if filter accepts user events*/
 attribute boolean event_target;
 
+/*! set to max timestamp of last packet sent by the filter, or null if not available*/
+attribute boolean last_ts_sent;
+
+/*! set to max timestamp of last packet dropped by the filter, or null if not available*/
+attribute boolean last_ts_drop;
 
 /*! Checks if a filter is valid or if it has been destroyed. Any query on a destroyed filter will raise an exception.
 \return true if the filter has been destroyed, false otherwise*/
 boolean is_destroyed();
+
+/*! Gets properties on input pid
+\param idx the index of the input pid to query
+\param name name of the property to query
+\return property value, or null if not found
+*/
+FilterProperty ipid_props(unsigned long idx, DOMString name);
 
 /*! Enumerates properties on input pid
 \param idx the index of the input pid to query
 \param fun_callback function called for each property in the input pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty) 
 */
 void ipid_props(unsigned long idx, function fun_callback);
+
+/*! Gets properties on output pid
+\param idx the index of the output pid to query
+\param name name of the property to query
+\return property value, or null if not found
+*/
+FilterProperty opid_props(unsigned long idx, DOMString name);
 
 /*! Enumerates properties on output pid
 \param idx the index of the output pid to query

@@ -802,6 +802,9 @@ struct __gf_filter_pid_inst
 	GF_FilterClockType last_clock_type;
 
 	GF_Filter *alias_orig;
+
+	GF_Fraction64 last_ts_drop;
+
 };
 
 struct __gf_filter_pid
@@ -860,6 +863,8 @@ struct __gf_filter_pid
 	//1000x speed value
 	u32 playback_speed_scaler;
 
+	GF_Fraction64 last_ts_sent;
+	
 	Bool initial_play_done;
 	Bool is_playing;
 	void *udta;

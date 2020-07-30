@@ -453,12 +453,15 @@ enum
 	JSFF_CODEC,
 	JSFF_STREAMTYPE,
 	JSFF_INAME,
-	JSFF_EVENT_TARGET
+	JSFF_EVENT_TARGET,
+	JSFF_LAST_TS_SENT,
+	JSFF_LAST_TS_DROP,
 };
 
 
 static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
+	GF_Err gf_fs_get_filter_stats_f(GF_FilterSession *session, GF_Filter *f, GF_FilterStats *stats);
 	const char *val_s;
 	Bool val_b;
 	GF_FilterStats stats;
@@ -511,7 +514,7 @@ static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		f->report_updated = GF_FALSE;
 		return JS_NewBool(ctx, val_b);
 	case JSFF_CLASS:
-		gf_fs_get_filter_stats(f->session, gf_list_find(f->session->filters, f), &stats);
+		gf_fs_get_filter_stats_f(f->session, f, &stats);
 		switch (stats.type) {
 		case GF_FS_STATS_FILTER_RAWIN: return JS_NewString(ctx, "rawin");
 		case GF_FS_STATS_FILTER_DEMUX: return JS_NewString(ctx, "demuxer");
@@ -524,17 +527,27 @@ static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		default: return JS_NewString(ctx, "unknown");
 		}
 	case JSFF_CODEC:
-		gf_fs_get_filter_stats(f->session, gf_list_find(f->session->filters, f), &stats);
+		gf_fs_get_filter_stats_f(f->session, f, &stats);
 		if (stats.codecid) {
 			return JS_NewString(ctx, gf_codecid_name(stats.codecid));
 		}
 		return JS_NewString(ctx, "unknown");
 	case JSFF_STREAMTYPE:
-		gf_fs_get_filter_stats(f->session, gf_list_find(f->session->filters, f), &stats);
+		gf_fs_get_filter_stats_f(f->session, f, &stats);
 		if (stats.stream_type) {
 			return JS_NewString(ctx, gf_stream_type_name(stats.stream_type));
 		}
 		return JS_NewString(ctx, "unknown");
+
+	case JSFF_LAST_TS_SENT:
+		gf_fs_get_filter_stats_f(f->session, f, &stats);
+		if (!stats.last_ts_sent.den) return JS_NULL;
+		return JS_NewInt64(ctx, stats.last_ts_sent.num);
+	case JSFF_LAST_TS_DROP:
+		gf_fs_get_filter_stats_f(f->session, f, &stats);
+		if (!stats.last_ts_drop.den) return JS_NULL;
+		return JS_NewInt64(ctx, stats.last_ts_drop.num);
+
 	case JSFF_INAME:
 		if (f->iname) return JS_NewString(ctx, f->iname);
 		return JS_NULL;
@@ -581,10 +594,16 @@ static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int ar
 {
 	u32 idx;
 	GF_FilterPid *pid;
+	const char *pname=NULL;
 	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
 	if (!f || (argc!=2) )
 		return JS_EXCEPTION;
-	if (!JS_IsFunction(ctx, argv[1]))
+
+	if (JS_IsString(argv[1])) {
+		pname = JS_ToCString(ctx, argv[1]);
+		if (!pname) return JS_EXCEPTION;
+	}
+	else if (!JS_IsFunction(ctx, argv[1]))
 		return JS_EXCEPTION;
 
 	if (JS_ToInt32(ctx, &idx, argv[0]))
@@ -596,6 +615,18 @@ static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int ar
 	} else {
 		pid = gf_filter_get_ipid(f, idx);
 		if (!pid) return JS_EXCEPTION;
+	}
+
+	if (pname) {
+		const GF_PropertyValue *p;
+		u32 p4cc = gf_props_get_id(pname);
+		if (p4cc)
+			p = gf_filter_pid_get_property(pid, p4cc);
+		else
+			p = gf_filter_pid_get_property_str(pid, pname);
+
+		JS_FreeCString(ctx, pname);
+		return jsf_NewProp(ctx, p);
 	}
 
 	idx = 0;
@@ -867,6 +898,8 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CGETSET_MAGIC_DEF_ENUM("codec", jsfs_f_prop_get, NULL, JSFF_CODEC),
 	JS_CGETSET_MAGIC_DEF_ENUM("iname", jsfs_f_prop_get, jsfs_f_prop_set, JSFF_INAME),
 	JS_CGETSET_MAGIC_DEF_ENUM("event_target", jsfs_f_prop_get, NULL, JSFF_EVENT_TARGET),
+	JS_CGETSET_MAGIC_DEF_ENUM("last_ts_sent", jsfs_f_prop_get, NULL, JSFF_LAST_TS_SENT),
+	JS_CGETSET_MAGIC_DEF_ENUM("last_ts_drop", jsfs_f_prop_get, NULL, JSFF_LAST_TS_DROP),
 
 	JS_CFUNC_DEF("is_destroyed", 0, jsff_is_destroyed),
 	JS_CFUNC_DEF("ipid_props", 0, jsff_enum_ipid_props),
@@ -973,6 +1006,7 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 
 static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	u32 i, count;
 	GF_Filter *f = NULL;
 	Bool ret=GF_FALSE;
 	GF_FilterPid *on_pid;
@@ -991,15 +1025,24 @@ static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, 
 	on_pid = evt->base.on_pid;
 	evt->base.on_pid = NULL;
 	if (f) {
-		if (f->freg->process_event && f->event_target) {
+		Bool upstream = GF_FALSE;
+		if (evt->base.type==GF_FEVT_USER) {
+			if (f->freg->process_event && f->event_target) {
+				gf_mx_p(f->tasks_mx);
+				f->freg->process_event(f, evt);
+				gf_mx_v(f->tasks_mx);
+				ret = GF_TRUE;
+			}
+		}
+		if (!ret) {
+			if (argc>2) upstream = JS_ToBool(ctx, argv[2]);
 			gf_mx_p(f->tasks_mx);
-			f->freg->process_event(f, evt);
+			if (f->num_output_pids && upstream) ret = GF_TRUE;
+			else if (f->num_input_pids && !upstream) ret = GF_TRUE;
+			gf_filter_send_event(f, evt, upstream);
 			gf_mx_v(f->tasks_mx);
-			ret = GF_TRUE;
 		}
 	} else {
-		u32 i, count;
-
 		gf_fs_lock_filters(fs, GF_TRUE);
 		count = gf_list_count(fs->filters);
 		for (i=0; i<count; i++) {
@@ -1022,6 +1065,18 @@ static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_NewBool(ctx, ret);
 }
 
+static JSValue jsfs_reporting(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Bool report_on;
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs || !argc)
+		return JS_EXCEPTION;
+	report_on = JS_ToBool(ctx, argv[0]);
+	gf_fs_enable_reporting(fs, report_on);
+	return JS_UNDEFINED;
+}
+
+
 static const JSCFunctionListEntry fs_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("nb_filters", jsfs_prop_get, NULL, JSFS_NB_FILTERS),
     JS_CGETSET_MAGIC_DEF_ENUM("last_task", jsfs_prop_get, NULL, JSFS_LAST_TASK),
@@ -1040,6 +1095,8 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("set_event_fun", 0, jsfs_set_event_fun),
     JS_CFUNC_DEF("add_filter", 0, jsfs_add_filter),
     JS_CFUNC_DEF("fire_event", 0, jsfs_fire_event),
+    JS_CFUNC_DEF("reporting", 0, jsfs_reporting),
+
 };
 
 GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)

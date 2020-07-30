@@ -546,6 +546,10 @@ typedef struct
 	u32 stream_type;
 	/*!set to codecid of output PID if single output, GF_CODECID_NONE otherwise*/
 	u32 codecid;
+	/*! timestamp and timescale of last packet emitted on output pids*/
+	GF_Fraction64 last_ts_sent;
+	/*! timestamp and timescale of last packet droped on input pids*/
+	GF_Fraction64 last_ts_drop;
 } GF_FilterStats;
 
 /*! Gets number of active filters in the session
