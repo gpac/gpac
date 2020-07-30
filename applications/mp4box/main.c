@@ -584,7 +584,7 @@ GF_GPACArg m4b_senc_args[] =
  	GF_DEF_ARG("def", NULL, "encode DEF names in BIFS", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("sync", NULL, "force BIFS sync sample generation every given time in ms (cannot be used with [-shadow]() )", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("shadow", NULL, "force BIFS sync shadow sample generation every given time in ms (cannot be used with [-sync]() )", NULL, NULL, GF_ARG_INT, 0),
- 	GF_DEF_ARG("log", NULL, "generate scene codec log file if available", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("sclog", NULL, "generate scene codec log file if available", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ms", NULL, "import tracks from the given file", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("ctx-in", NULL, "specify initial context (MP4/BT/XMT) file for chunk processing. Input file must be a commands-only file", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("ctx-out", NULL, "specify storage of updated context (MP4/BT/XMT) file for chunk processing, optional", NULL, NULL, GF_ARG_STRING, 0),
@@ -1130,7 +1130,7 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 	return GF_FALSE;
 }
 
-static void PrintHelp(char *arg_name, Bool search_desc)
+static void PrintHelp(char *arg_name, Bool search_desc, Bool no_match)
 {
 	GF_FilterSession *fs;
 	Bool res;
@@ -1147,7 +1147,7 @@ static void PrintHelp(char *arg_name, Bool search_desc)
 		res = PrintHelpArg(_arg_name, SEARCH_DESC, fs);
 		gf_free(_arg_name);
 	} else {
-		res = PrintHelpArg(arg_name, SEARCH_ARG_EXACT, fs);
+		res = no_match ? GF_FALSE : PrintHelpArg(arg_name, SEARCH_ARG_EXACT, fs);
 		if (!res) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Option -%s unknown, please check usage.\n", arg_name));
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options are:\n"));
@@ -2461,7 +2461,7 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, remove_root_od;
-Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, hls_clock, do_mpd_rip, merge_vtt_cues, compress_moov, get_nb_tracks;
+Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_scene_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf, hls_clock, do_mpd_rip, merge_vtt_cues, compress_moov, get_nb_tracks;
 static char *inName, *outName, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_range_filename, *use_init_seg, *box_patch_filename;
 u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type;
 GF_ISOTrackID trackID;
@@ -3199,8 +3199,8 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-saf")) {
 			do_saf = GF_TRUE;
 		}
-		else if (!stricmp(arg, "-log")) {
-			do_log = GF_TRUE;
+		else if (!stricmp(arg, "-sclog")) {
+			do_scene_log = GF_TRUE;
 		}
 #ifndef GPAC_DISABLE_MPD
 		else if (!stricmp(arg, "-mpd")) {
@@ -3537,15 +3537,15 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 #endif
 				PrintCoreUsage();
 			} else if (!strcmp(argv[i + 1], "opts")) {
-				PrintHelp("@", GF_FALSE);
+				PrintHelp("@", GF_FALSE, GF_FALSE);
 			} else {
-				PrintHelp(argv[i+1], GF_FALSE);
+				PrintHelp(argv[i+1], GF_FALSE, GF_FALSE);
 			}
 			return 1;
 		}
 		else if (!stricmp(arg, "-hx")) {
 			if (i + 1 == (u32)argc) PrintUsage();
-			else PrintHelp(argv[i+1], GF_TRUE);
+			else PrintHelp(argv[i+1], GF_TRUE, GF_FALSE);
 			return 1;
 		}
 		else if (!strcmp(arg, "-genmd")) {
@@ -3659,7 +3659,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!live_scene) {
 			u32 res = gf_sys_is_gpac_arg(arg);
 			if (res==0) {
-				PrintHelp(arg, GF_FALSE);
+				PrintHelp(arg, GF_FALSE, GF_TRUE);
 				return 2;
 			} else if (res==2) {
 				i++;
@@ -4434,7 +4434,7 @@ int mp4boxMain(int argc, char **argv)
 	split_size = 0;
 	movie_time = 0;
 	dump_nal = dump_saps = dump_saps_mode = force_new = 0;
-	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = merge_vtt_cues = get_nb_tracks = GF_FALSE;
+	FullInter = HintInter = encode = do_scene_log = old_interleave = do_saf = do_hash = verbose = do_mpd_rip = merge_vtt_cues = get_nb_tracks = GF_FALSE;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
@@ -5023,7 +5023,7 @@ int mp4boxMain(int argc, char **argv)
 	else if (encode) {
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_SCENE_ENCODER) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 		FILE *logs = NULL;
-		if (do_log) {
+		if (do_scene_log) {
 			char alogfile[GF_MAX_PATH];
 			strcpy(alogfile, inName);
 			if (strchr(alogfile, '.')) {
@@ -5520,7 +5520,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	if (dump_mode != GF_SM_DUMP_NONE) {
-		e = dump_isom_scene(inName, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_mode, do_log, no_odf_conf);
+		e = dump_isom_scene(inName, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_mode, do_scene_log, no_odf_conf);
 		if (e) goto err_exit;
 	}
 #endif

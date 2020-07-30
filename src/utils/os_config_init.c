@@ -2019,6 +2019,12 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 	u32 olen = (u32) strlen(orig);
 	u32 dlen = (u32) strlen(dst);
 	u32 *run;
+
+	if ((olen>=3) && (olen<dlen) && !strncmp(orig, dst, olen))
+		return GF_TRUE;
+	if ((dlen>=3) && (dlen<olen) && !strncmp(orig, dst, dlen))
+		return GF_TRUE;
+		
 	if (olen*2 < dlen) {
 		char *s1 = strchr(orig, ':');
 		char *s2 = strchr(dst, ':');
