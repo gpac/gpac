@@ -5119,6 +5119,11 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	pid = pid->pid;
 
 	gf_filter_pidinst_update_stats(pidinst, pck);
+	if (pck->info.cts!=GF_FILTER_NO_TS) {
+		pidinst->last_ts_drop.num = pck->info.cts;
+		pidinst->last_ts_drop.den = pck->pid_props->timescale;
+	}
+
 
 	//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
 	//if one thread (the caller here) consumes one packet while the dispatching thread is still upddating the state for that pid

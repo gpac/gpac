@@ -2907,16 +2907,12 @@ u32 gf_fs_get_filters_count(GF_FilterSession *session)
 	return session ? gf_list_count(session->filters) : 0;
 }
 
-GF_EXPORT
-GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
+GF_Err gf_fs_get_filter_stats_f(GF_FilterSession *session, GF_Filter *f, GF_FilterStats *stats)
 {
-	GF_Filter *f;
 	u32 i;
 	Bool set_name=GF_FALSE;
-	if (!stats || !session) return GF_BAD_PARAM;
+	if (!stats || !session || !f) return GF_BAD_PARAM;
 	memset(stats, 0, sizeof(GF_FilterStats));
-	f = gf_list_get(session->filters, idx);
-	if (!f) return GF_BAD_PARAM;
 	stats->filter = f;
 	stats->filter_alias = f->multi_sink_target;
 	if (f->multi_sink_target) return GF_OK;
@@ -2951,6 +2947,9 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		stats->nb_out_pck += pid->nb_pck_sent;
 		if (pid->has_seen_eos) stats->in_eos = GF_TRUE;
 
+		if (pid->last_ts_sent.num * stats->last_ts_sent.den >= stats->last_ts_sent.num * pid->last_ts_sent.den)
+			stats->last_ts_sent = pid->last_ts_sent;
+
 		if (f->num_output_pids!=1) continue;
 
 		if (!stats->codecid)
@@ -2976,6 +2975,9 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		if (pidi->pid->stream_type==GF_STREAM_FILE)
 			stats->type = GF_FS_STATS_FILTER_DEMUX;
 
+		if (pidi->last_ts_drop.num * stats->last_ts_drop.den >= stats->last_ts_drop.num * pidi->last_ts_drop.den)
+			stats->last_ts_drop = pidi->last_ts_drop;
+
 		if ((f->num_input_pids!=1) && f->num_output_pids)
 			continue;
 
@@ -2997,6 +2999,13 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		}
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
+{
+	if (!stats || !session) return GF_BAD_PARAM;
+	return gf_fs_get_filter_stats_f(session, gf_list_get(session->filters, idx), stats);
 }
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
