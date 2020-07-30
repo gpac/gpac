@@ -1113,6 +1113,26 @@ GF_Err gf_sys_profiler_send(const char *msg)
 #endif
 }
 
+GF_EXPORT
+void gf_sys_profiler_enable_sampling(Bool enable)
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		rmt_EnableSampling(enable);
+	}
+#endif
+}
+
+GF_EXPORT
+Bool gf_sys_profiler_sampling_enabled()
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		return rmt_SamplingEnabled();
+	}
+#endif
+	return GF_FALSE;
+}
 
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config(Bool discard_config);

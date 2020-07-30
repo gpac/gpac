@@ -549,7 +549,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 				xWindow->w_height = evt.size.height = xevent.xconfigure.height;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
 			} else {
-				evt.type = GF_EVENT_MOVE_NOTIF;
+				evt.type = GF_EVENT_MOVE;
 				evt.move.x = xevent.xconfigure.x;
 				evt.move.y = xevent.xconfigure.y;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -619,7 +619,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 							memcpy(text, data, nb_bytes);
 							text[nb_bytes] = 0;
 							evt.type = GF_EVENT_PASTE_TEXT;
-							evt.message.message = (const char *) text;
+							evt.clipboard.text = text;
 							vout->on_event(vout->evt_cbk_hdl, &evt);
 							gf_free(text);
 						}
@@ -631,9 +631,9 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 				Atom clipb_atom = XInternAtom(xWindow->display, "CLIPBOARD", 0);
 				evt.type = GF_EVENT_COPY_TEXT;
 				if (vout->on_event(vout->evt_cbk_hdl, &evt)==GF_TRUE) {
-					const char *txt = evt.message.message;
-					if (txt) {
-						XChangeProperty(xWindow->display, DefaultRootWindow(xWindow->display), XA_CUT_BUFFER0, XA_STRING, 8, PropModeReplace, (const unsigned char *)txt, strlen(txt));
+					if (evt.clipboard.text) {
+						XChangeProperty(xWindow->display, DefaultRootWindow(xWindow->display), XA_CUT_BUFFER0, XA_STRING, 8, PropModeReplace, (const unsigned char *)evt.clipboard.text, strlen(evt.clipboard.text));
+						gf_free(evt.clipboard.text);
 					}
 
 					if ((clipb_atom != None) && XGetSelectionOwner(xWindow->display, clipb_atom) != the_window) {

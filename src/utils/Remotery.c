@@ -4524,6 +4524,8 @@ struct Remotery
 #if RMT_USE_METAL
     Metal* metal;
 #endif
+
+	rmtBool sampling_disabled;
 };
 
 
@@ -5273,13 +5275,16 @@ static void SetDebuggerThreadName(const char* name)
     #endif
 }
 
+#define CHECK_REMOTERY() \
+	if ((g_Remotery==NULL) || g_Remotery->sampling_disabled)\
+		return;
+
 
 RMT_API void _rmt_SetCurrentThreadName(rmtPStr thread_name)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     // Get data for this thread
     if (Remotery_GetThreadSampler(g_Remotery, &ts) != RMT_ERROR_NONE)
@@ -5321,8 +5326,9 @@ RMT_API void _rmt_LogText(rmtPStr text)
     unsigned char line_buffer[1024] = { 0 };
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+	//do not check for sampling enabled here
+    if (g_Remotery==NULL)
+		return;
 
     Remotery_GetThreadSampler(g_Remotery, &ts);
 
@@ -5383,8 +5389,7 @@ RMT_API void _rmt_BeginCPUSample(rmtPStr name, rmtU32 flags, rmtU32* hash_cache)
 
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     // TODO: Time how long the bits outside here cost and subtract them from the parent
 
@@ -5408,8 +5413,7 @@ RMT_API void _rmt_EndCPUSample(void)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -5761,8 +5765,7 @@ RMT_API void _rmt_BeginCUDASample(rmtPStr name, rmtU32* hash_cache, void* stream
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -5803,8 +5806,7 @@ RMT_API void _rmt_EndCUDASample(void* stream)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -6295,8 +6297,7 @@ RMT_API void _rmt_BeginD3D11Sample(rmtPStr name, rmtU32* hash_cache)
     ThreadSampler* ts;
     D3D11* d3d11;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -6406,8 +6407,7 @@ static void UpdateD3D11Frame(ThreadSampler* ts)
 {
     D3D11* d3d11;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     d3d11 = ts->d3d11;
     assert(d3d11 != NULL);
@@ -6449,8 +6449,7 @@ RMT_API void _rmt_EndD3D11Sample(void)
     ThreadSampler* ts;
     D3D11* d3d11;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -6946,7 +6945,7 @@ RMT_API void _rmt_BeginOpenGLSample(rmtPStr name, rmtU32* hash_cache)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL) return;
+    CHECK_REMOTERY()
 	if (g_Remotery->opengl->dll_handle == NULL) return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
@@ -7019,8 +7018,7 @@ static void UpdateOpenGLFrame(void)
 {
     OpenGL* opengl;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     opengl = g_Remotery->opengl;
     assert(opengl != NULL);
@@ -7061,7 +7059,7 @@ RMT_API void _rmt_EndOpenGLSample(void)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL) return;
+    CHECK_REMOTERY()
 	if (g_Remotery->opengl->dll_handle == NULL) return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
@@ -7280,8 +7278,7 @@ RMT_API void _rmt_BeginMetalSample(rmtPStr name, rmtU32* hash_cache)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -7339,8 +7336,7 @@ static void UpdateMetalFrame(void)
 {
     Metal* metal;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     metal = g_Remotery->metal;
     assert(metal != NULL);
@@ -7381,8 +7377,7 @@ RMT_API void _rmt_EndMetalSample(void)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -7409,6 +7404,17 @@ RMT_API void _rmt_EndMetalSample(void)
 
 #endif  // RMT_USE_METAL
 
+
+RMT_API void _rmt_EnableSampling(rmtBool enable)
+{
+	if (g_Remotery==NULL) return;
+	g_Remotery->sampling_disabled = !enable;
+}
+RMT_API rmtBool _rmt_SamplingEnabled()
+{
+	if (g_Remotery==NULL) return 0;
+	return !g_Remotery->sampling_disabled;
+}
 
 #endif // RMT_ENABLED
 

@@ -268,6 +268,12 @@ static void jsf_evt_finalizer(JSRuntime *rt, JSValue val)
 {
 	GF_FilterEvent *evt = JS_GetOpaque(val, jsf_event_class_id);
     if (!evt) return;
+    if (evt->base.type==GF_FEVT_USER) {
+		if (evt->user_event.event.type==GF_EVENT_SET_CAPTION) {
+			if (evt->user_event.event.caption.caption)
+				gf_free((char *) evt->user_event.event.caption.caption);
+		}
+	}
 	gf_free(evt);
 }
 static JSClassDef jsf_event_class = {
@@ -2565,6 +2571,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
 enum
 {
 	JSF_EVENT_TYPE,
+	JSF_EVENT_NAME,
 	/*PLAY event*/
 	JSF_EVENT_START_RANGE,
 	JSF_EVENT_SPEED,
@@ -2613,11 +2620,25 @@ enum
 	JSF_EVENT_USER_BUTTON,
 	JSF_EVENT_USER_HWKEY,
 	JSF_EVENT_USER_DROPFILES,
+	JSF_EVENT_USER_TEXT,
+	JSF_EVENT_USER_MT_ROTATION,
+	JSF_EVENT_USER_MT_PINCH,
+	JSF_EVENT_USER_MT_FINGERS,
+	JSF_EVENT_USER_WIDTH,
+	JSF_EVENT_USER_HEIGHT,
+	JSF_EVENT_USER_SHOWTYPE,
+	JSF_EVENT_USER_MOVE_X,
+	JSF_EVENT_USER_MOVE_Y,
+	JSF_EVENT_USER_MOVE_RELATIVE,
+	JSF_EVENT_USER_MOVE_ALIGN_X,
+	JSF_EVENT_USER_MOVE_ALIGN_Y,
+	JSF_EVENT_USER_CAPTION,
 };
 
 static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 {
 	if (magic==JSF_EVENT_TYPE) return GF_TRUE;
+	if (magic==JSF_EVENT_NAME) return GF_TRUE;
 	switch (evt_type) {
 	case GF_FEVT_PLAY:
 		switch (magic) {
@@ -2697,6 +2718,9 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 		}
 		break;
 	case GF_FEVT_USER:
+		if (magic==JSF_EVENT_USER_TYPE)
+			return GF_TRUE;
+
 		switch (ui_type) {
 		case GF_EVENT_CLICK:
 		case GF_EVENT_MOUSEUP:
@@ -2706,7 +2730,6 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 		case GF_EVENT_MOUSEMOVE:
 		case GF_EVENT_MOUSEWHEEL:
 			switch (magic) {
-			case JSF_EVENT_USER_TYPE:
 			case JSF_EVENT_USER_MOUSE_X:
 			case JSF_EVENT_USER_MOUSE_Y:
 			case JSF_EVENT_USER_WHEEL:
@@ -2716,12 +2739,24 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 				break;
 			}
 			return GF_FALSE;
+		case GF_EVENT_MULTITOUCH:
+			switch (magic) {
+			case JSF_EVENT_USER_MOUSE_X:
+			case JSF_EVENT_USER_MOUSE_Y:
+			case JSF_EVENT_USER_MT_ROTATION:
+			case JSF_EVENT_USER_MT_PINCH:
+			case JSF_EVENT_USER_MT_FINGERS:
+				return GF_TRUE;
+			default:
+				break;
+			}
+			return GF_FALSE;
+
 		case GF_EVENT_KEYUP:
 		case GF_EVENT_KEYDOWN:
 		case GF_EVENT_LONGKEYPRESS:
 		case GF_EVENT_TEXTINPUT:
 			switch (magic) {
-			case JSF_EVENT_USER_TYPE:
 			case JSF_EVENT_USER_KEYCODE:
 			case JSF_EVENT_USER_HWKEY:
 			case JSF_EVENT_USER_DROPFILES:
@@ -2729,6 +2764,47 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 			default:
 				break;
 			}
+			return GF_FALSE;
+		case GF_EVENT_DROPFILE:
+			switch (magic) {
+			case JSF_EVENT_USER_DROPFILES:
+				return GF_TRUE;
+			default:
+				break;
+			}
+			return GF_FALSE;
+		case GF_EVENT_PASTE_TEXT:
+		case GF_EVENT_COPY_TEXT:
+			switch (magic) {
+			case JSF_EVENT_USER_TEXT:
+				return GF_TRUE;
+			default:
+				break;
+			}
+			return GF_FALSE;
+		case GF_EVENT_SIZE:
+			switch (magic) {
+			case JSF_EVENT_USER_WIDTH:
+			case JSF_EVENT_USER_HEIGHT:
+				return GF_TRUE;
+			default:
+				break;
+			}
+			return GF_FALSE;
+		case GF_EVENT_MOVE:
+			switch (magic) {
+			case JSF_EVENT_USER_MOVE_X:
+			case JSF_EVENT_USER_MOVE_Y:
+			case JSF_EVENT_USER_MOVE_RELATIVE:
+			case JSF_EVENT_USER_MOVE_ALIGN_X:
+			case JSF_EVENT_USER_MOVE_ALIGN_Y:
+				return GF_TRUE;
+			default:
+				break;
+			}
+			return GF_FALSE;
+		case GF_EVENT_SET_CAPTION:
+			if (magic==JSF_EVENT_USER_CAPTION) return GF_TRUE;
 			return GF_FALSE;
 		}
 	}
@@ -2740,10 +2816,11 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 {
 	GF_Err e = GF_OK;
 	u32 ival;
+	Double dval;
 	const char *str=NULL;
 	GF_FilterEvent *evt = JS_GetOpaque(this_val, jsf_event_class_id);
     if (!evt) return JS_EXCEPTION;
-	if (!jsf_check_evt(evt->base.type, 0, magic))
+	if (!jsf_check_evt(evt->base.type, evt->user_event.event.type, magic))
 		return JS_EXCEPTION;
 
 	switch (magic) {
@@ -2829,6 +2906,76 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 	case JSF_EVENT_BUFREQ_PID_ONLY:
 		evt->buffer_req.pid_only = JS_ToBool(ctx, value);
 		return JS_UNDEFINED;
+
+	case JSF_EVENT_USER_TYPE:
+		if (JS_ToInt32(ctx, &ival, value)) return JS_EXCEPTION;
+		evt->user_event.event.type = (u8) ival;
+		return JS_UNDEFINED;
+
+
+	case JSF_EVENT_USER_MOUSE_X:
+		if (evt->user_event.event.type==GF_EVENT_MULTITOUCH) {
+			if (JS_ToFloat64(ctx, &dval, value)) return JS_EXCEPTION;
+			evt->user_event.event.mtouch.x = FLT2FIX(dval);
+			return JS_UNDEFINED;
+		}
+		return JS_ToInt32(ctx, &evt->user_event.event.mouse.x, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_MOUSE_Y:
+		if (evt->user_event.event.type==GF_EVENT_MULTITOUCH) {
+			if (JS_ToFloat64(ctx, &dval, value)) return JS_EXCEPTION;
+			evt->user_event.event.mtouch.y = FLT2FIX(dval);
+			return JS_UNDEFINED;
+		}
+		return JS_ToInt32(ctx, &evt->user_event.event.mouse.y, value) ? JS_EXCEPTION : JS_UNDEFINED;
+
+	case JSF_EVENT_USER_WHEEL:
+		if (JS_ToFloat64(ctx, &dval, value)) return JS_EXCEPTION;
+		evt->user_event.event.mouse.wheel_pos = FLT2FIX(dval);
+		return JS_UNDEFINED;
+	case JSF_EVENT_USER_BUTTON: return JS_ToInt32(ctx, &evt->user_event.event.mouse.button, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_HWKEY: return JS_ToInt32(ctx, &evt->user_event.event.key.hw_code, value) ? JS_EXCEPTION : JS_UNDEFINED;
+
+	case JSF_EVENT_USER_MT_ROTATION:
+		if (JS_ToFloat64(ctx, &dval, value)) return JS_EXCEPTION;
+		evt->user_event.event.mtouch.rotation = FLT2FIX(dval);
+		return JS_UNDEFINED;
+	case JSF_EVENT_USER_MT_PINCH:
+		if (JS_ToFloat64(ctx, &dval, value)) return JS_EXCEPTION;
+		evt->user_event.event.mtouch.pinch = FLT2FIX(dval);
+		return JS_UNDEFINED;
+	case JSF_EVENT_USER_MT_FINGERS:
+		return JS_ToInt32(ctx, &evt->user_event.event.mtouch.num_fingers, value) ? JS_EXCEPTION : JS_UNDEFINED;
+
+	case JSF_EVENT_USER_TEXT:
+	{
+		const char *str = JS_ToCString(ctx, value);
+		evt->user_event.event.clipboard.text = gf_strdup(str ? str : "");
+		if (str) JS_FreeCString(ctx, str);
+		return JS_UNDEFINED;
+	}
+
+	case JSF_EVENT_USER_WIDTH: return JS_ToInt32(ctx, &evt->user_event.event.size.width, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_HEIGHT: return JS_ToInt32(ctx, &evt->user_event.event.size.height, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_SHOWTYPE: return JS_ToInt32(ctx, &evt->user_event.event.show.show_type, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_MOVE_X: return JS_ToInt32(ctx, &evt->user_event.event.move.x, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_MOVE_Y: return JS_ToInt32(ctx, &evt->user_event.event.move.y, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_MOVE_RELATIVE: return JS_ToInt32(ctx, &evt->user_event.event.move.relative, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_MOVE_ALIGN_X:
+	case JSF_EVENT_USER_MOVE_ALIGN_Y:
+		if (JS_ToInt32(ctx, &ival, value)) return JS_EXCEPTION;
+		if (magic==JSF_EVENT_USER_MOVE_ALIGN_X)
+			evt->user_event.event.move.align_x = ival;
+		else
+			evt->user_event.event.move.align_x = ival;
+		return JS_UNDEFINED;
+
+	case JSF_EVENT_USER_CAPTION:
+	{
+		const char *str = JS_ToCString(ctx, value);
+		evt->user_event.event.caption.caption = gf_strdup(str ? str : "");
+		if (str) JS_FreeCString(ctx, str);
+		return JS_UNDEFINED;
+	}
 	}
 
 	if (str)
@@ -2844,8 +2991,42 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 	if (!jsf_check_evt(evt->base.type, evt->user_event.event.type, magic))
 		return JS_EXCEPTION;
 	switch (magic) {
-	/*PLAY*/
 	case JSF_EVENT_TYPE: return JS_NewInt32(ctx, evt->base.type);
+	case JSF_EVENT_NAME:
+		if (evt->base.type==GF_FEVT_USER) {
+			const char *ename=NULL;
+			switch (evt->user_event.event.type) {
+			case GF_EVENT_CLICK: ename = "click"; break;
+			case GF_EVENT_MOUSEUP: ename = "mouseup"; break;
+			case GF_EVENT_MOUSEDOWN: ename = "mousedown"; break;
+			case GF_EVENT_MOUSEMOVE: ename = "mousemove"; break;
+			case GF_EVENT_MOUSEWHEEL: ename = "mousewheel"; break;
+			case GF_EVENT_DBLCLICK: ename = "dblclick"; break;
+			case GF_EVENT_MULTITOUCH: ename = "touch"; break;
+			case GF_EVENT_KEYUP: ename = "keyup"; break;
+			case GF_EVENT_KEYDOWN: ename = "keydown"; break;
+			case GF_EVENT_TEXTINPUT: ename = "text"; break;
+			case GF_EVENT_DROPFILE: ename = "dropfile"; break;
+			case GF_EVENT_TIMESHIFT_DEPTH: ename = "timeshift_depth"; break;
+			case GF_EVENT_TIMESHIFT_UPDATE: ename = "timeshift_update"; break;
+			case GF_EVENT_TIMESHIFT_OVERFLOW: ename = "timeshift_overflow"; break;
+			case GF_EVENT_TIMESHIFT_UNDERRUN: ename = "timeshift_underrun"; break;
+			case GF_EVENT_PASTE_TEXT: ename = "paste_text"; break;
+			case GF_EVENT_COPY_TEXT: ename = "copy_text"; break;
+			case GF_EVENT_SIZE: ename = "size"; break;
+			case GF_EVENT_SHOWHIDE: ename = "showhide"; break;
+			case GF_EVENT_MOVE: ename = "move"; break;
+			case GF_EVENT_SET_CAPTION: ename = "caption"; break;
+			case GF_EVENT_REFRESH: ename = "refresh"; break;
+			case GF_EVENT_QUIT: ename = "quit"; break;
+			case GF_EVENT_VIDEO_SETUP: ename = "video_setup"; break;
+			default:
+				ename = "unknown"; break;
+			}
+			return JS_NewString(ctx, ename);
+		}
+		return JS_NewString(ctx, gf_filter_event_name(evt->base.type));
+	/*PLAY*/
 	case JSF_EVENT_START_RANGE: return JS_NewFloat64(ctx, evt->play.start_range);
 	case JSF_EVENT_SPEED: return JS_NewFloat64(ctx, evt->play.speed);
 	case JSF_EVENT_HW_BUFFER_RESET: return JS_NewBool(ctx, evt->play.hw_buffer_reset);
@@ -2893,8 +3074,14 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 		return JS_NULL;
 #endif
 
-	case JSF_EVENT_USER_MOUSE_X: return JS_NewInt32(ctx, evt->user_event.event.mouse.x);
-	case JSF_EVENT_USER_MOUSE_Y: return JS_NewInt32(ctx, evt->user_event.event.mouse.y);
+	case JSF_EVENT_USER_MOUSE_X:
+		if (evt->user_event.event.type==GF_EVENT_MULTITOUCH)
+			return JS_NewFloat64(ctx, FIX2FLT(evt->user_event.event.mtouch.x) );
+		return JS_NewInt32(ctx, evt->user_event.event.mouse.x);
+	case JSF_EVENT_USER_MOUSE_Y:
+		if (evt->user_event.event.type==GF_EVENT_MULTITOUCH)
+			return JS_NewFloat64(ctx, FIX2FLT(evt->user_event.event.mtouch.y) );
+		return JS_NewInt32(ctx, evt->user_event.event.mouse.y);
 	case JSF_EVENT_USER_WHEEL: return JS_NewFloat64(ctx, FIX2FLT(evt->user_event.event.mouse.wheel_pos));
 	case JSF_EVENT_USER_BUTTON: return JS_NewInt32(ctx,  evt->user_event.event.mouse.button);
 	case JSF_EVENT_USER_HWKEY: return JS_NewInt32(ctx, evt->user_event.event.key.hw_code);
@@ -2911,14 +3098,41 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 		}
 		return files_array;
 	}
+	case JSF_EVENT_USER_TEXT:
+		return JS_NewString(ctx, evt->user_event.event.clipboard.text ? evt->user_event.event.clipboard.text : "");
 
+	case JSF_EVENT_USER_MT_ROTATION:
+		return JS_NewFloat64(ctx, FIX2FLT(evt->user_event.event.mtouch.rotation) );
+	case JSF_EVENT_USER_MT_PINCH:
+		return JS_NewFloat64(ctx, FIX2FLT(evt->user_event.event.mtouch.pinch) );
+	case JSF_EVENT_USER_MT_FINGERS:
+		return JS_NewInt32(ctx, evt->user_event.event.mtouch.num_fingers);
+	case JSF_EVENT_USER_WIDTH: return JS_NewInt32(ctx, evt->user_event.event.size.width);
+	case JSF_EVENT_USER_HEIGHT: return JS_NewInt32(ctx, evt->user_event.event.size.height);
+	case JSF_EVENT_USER_SHOWTYPE: return JS_NewInt32(ctx, evt->user_event.event.show.show_type);
+
+	case JSF_EVENT_USER_MOVE_X: return JS_NewInt32(ctx, evt->user_event.event.move.x);
+	case JSF_EVENT_USER_MOVE_Y: return JS_NewInt32(ctx, evt->user_event.event.move.y);
+	case JSF_EVENT_USER_MOVE_RELATIVE: return JS_NewInt32(ctx, evt->user_event.event.move.relative);
+	case JSF_EVENT_USER_MOVE_ALIGN_X: return JS_NewInt32(ctx, evt->user_event.event.move.align_x);
+	case JSF_EVENT_USER_MOVE_ALIGN_Y: return JS_NewInt32(ctx, evt->user_event.event.move.align_y);
+
+	case JSF_EVENT_USER_CAPTION:
+		return JS_NewString(ctx, evt->user_event.event.caption.caption ? evt->user_event.event.caption.caption : "");
 	}
     return JS_UNDEFINED;
+}
+
+GF_FilterEvent *jsf_get_event(JSContext *ctx, JSValueConst this_val)
+{
+	GF_FilterEvent *evt = JS_GetOpaque(this_val, jsf_event_class_id);
+	return evt;
 }
 
 static const JSCFunctionListEntry jsf_event_funcs[] =
 {
     JS_CGETSET_MAGIC_DEF("type", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_TYPE),
+    JS_CGETSET_MAGIC_DEF("name", jsf_event_get_prop, NULL, JSF_EVENT_NAME),
     /*PLAY event*/
     JS_CGETSET_MAGIC_DEF("start_range", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_START_RANGE),
     JS_CGETSET_MAGIC_DEF("speed", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_SPEED),
@@ -2959,14 +3173,31 @@ static const JSCFunctionListEntry jsf_event_funcs[] =
     JS_CGETSET_MAGIC_DEF("min_playout_us", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_BUFREQ_MIN_PLAYOUT_US),
     JS_CGETSET_MAGIC_DEF("pid_only", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_BUFREQ_PID_ONLY),
     /*ui events*/
-    JS_CGETSET_MAGIC_DEF("ui_type", jsf_event_get_prop, NULL, JSF_EVENT_USER_TYPE),
-    JS_CGETSET_MAGIC_DEF("keycode", jsf_event_get_prop, NULL, JSF_EVENT_USER_KEYCODE),
-    JS_CGETSET_MAGIC_DEF("mouse_x", jsf_event_get_prop, NULL, JSF_EVENT_USER_MOUSE_X),
-    JS_CGETSET_MAGIC_DEF("mouse_y", jsf_event_get_prop, NULL, JSF_EVENT_USER_MOUSE_Y),
-    JS_CGETSET_MAGIC_DEF("wheel", jsf_event_get_prop, NULL, JSF_EVENT_USER_WHEEL),
-    JS_CGETSET_MAGIC_DEF("button", jsf_event_get_prop, NULL, JSF_EVENT_USER_BUTTON),
-    JS_CGETSET_MAGIC_DEF("hwkey", jsf_event_get_prop, NULL, JSF_EVENT_USER_HWKEY),
+    JS_CGETSET_MAGIC_DEF("ui_type", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_TYPE),
+    JS_CGETSET_MAGIC_DEF("keycode", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_KEYCODE),
+    JS_CGETSET_MAGIC_DEF("mouse_x", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_X),
+    JS_CGETSET_MAGIC_DEF("mouse_y", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_Y),
+    JS_CGETSET_MAGIC_DEF("wheel", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_WHEEL),
+    JS_CGETSET_MAGIC_DEF("button", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_BUTTON),
+    JS_CGETSET_MAGIC_DEF("hwkey", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_HWKEY),
     JS_CGETSET_MAGIC_DEF("dropfiles", jsf_event_get_prop, NULL, JSF_EVENT_USER_DROPFILES),
+    JS_CGETSET_MAGIC_DEF("clipboard", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_TEXT),
+
+    JS_CGETSET_MAGIC_DEF("mt_x", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_X),
+    JS_CGETSET_MAGIC_DEF("mt_y", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_Y),
+    JS_CGETSET_MAGIC_DEF("mt_rotate", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MT_ROTATION),
+    JS_CGETSET_MAGIC_DEF("mt_pinch", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MT_PINCH),
+    JS_CGETSET_MAGIC_DEF("mt_fingers", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MT_FINGERS),
+
+    JS_CGETSET_MAGIC_DEF("width", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_WIDTH),
+    JS_CGETSET_MAGIC_DEF("height", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_HEIGHT),
+    JS_CGETSET_MAGIC_DEF("showtype", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_SHOWTYPE),
+    JS_CGETSET_MAGIC_DEF("move_x", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOVE_X),
+    JS_CGETSET_MAGIC_DEF("move_y", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOVE_Y),
+    JS_CGETSET_MAGIC_DEF("move_relative", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOVE_RELATIVE),
+    JS_CGETSET_MAGIC_DEF("move_alignx", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOVE_ALIGN_X),
+    JS_CGETSET_MAGIC_DEF("move_aligny", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOVE_ALIGN_Y),
+    JS_CGETSET_MAGIC_DEF("caption", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_CAPTION),
 };
 
 static JSValue jsf_event_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
@@ -3752,19 +3983,38 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_EVENT_MOUSEMOVE)
 	DEF_CONST(GF_EVENT_MOUSEWHEEL)
 	DEF_CONST(GF_EVENT_DBLCLICK)
+	DEF_CONST(GF_EVENT_MULTITOUCH)
 	DEF_CONST(GF_EVENT_KEYUP)
 	DEF_CONST(GF_EVENT_KEYDOWN)
 	DEF_CONST(GF_EVENT_TEXTINPUT)
 	DEF_CONST(GF_EVENT_DROPFILE)
-	DEF_CONST(GF_EVENT_QUALITY_SWITCHED)
 	DEF_CONST(GF_EVENT_TIMESHIFT_DEPTH)
 	DEF_CONST(GF_EVENT_TIMESHIFT_UPDATE)
 	DEF_CONST(GF_EVENT_TIMESHIFT_OVERFLOW)
 	DEF_CONST(GF_EVENT_TIMESHIFT_UNDERRUN)
+	DEF_CONST(GF_EVENT_PASTE_TEXT)
+	DEF_CONST(GF_EVENT_COPY_TEXT)
+	DEF_CONST(GF_EVENT_SIZE)
+	DEF_CONST(GF_EVENT_SHOWHIDE)
+	DEF_CONST(GF_EVENT_MOVE)
+	DEF_CONST(GF_EVENT_SET_CAPTION)
+	DEF_CONST(GF_EVENT_REFRESH)
 	DEF_CONST(GF_EVENT_QUIT)
 
     JS_SetPropertyStr(ctx, global_obj, "print", JS_NewCFunction(ctx, js_print, "print", 1));
     JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
+
+
+	//initialize filter event class
+	JS_NewClassID(&jsf_event_class_id);
+	JS_NewClass(JS_GetRuntime(ctx), jsf_event_class_id, &jsf_event_class);
+	JSValue evt_proto = JS_NewObjectClass(ctx, jsf_event_class_id);
+    JS_SetPropertyFunctionList(ctx, evt_proto, jsf_event_funcs, countof(jsf_event_funcs));
+    JS_SetClassProto(ctx, jsf_event_class_id, evt_proto);
+
+	JSValue evt_ctor = JS_NewCFunction2(ctx, jsf_event_constructor, "FilterEvent", 1, JS_CFUNC_constructor, 0);
+    JS_SetPropertyStr(ctx, global_obj, "FilterEvent", evt_ctor);
+
 }
 
 static GF_Err jsfilter_initialize(GF_Filter *filter)
@@ -3828,16 +4078,6 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 	JSValue pid_proto = JS_NewObjectClass(jsf->ctx, jsf_pid_class_id);
     JS_SetPropertyFunctionList(jsf->ctx, pid_proto, jsf_pid_funcs, countof(jsf_pid_funcs));
     JS_SetClassProto(jsf->ctx, jsf_pid_class_id, pid_proto);
-
-	//initialize filter event class
-	JS_NewClassID(&jsf_event_class_id);
-	JS_NewClass(rt, jsf_event_class_id, &jsf_event_class);
-	JSValue evt_proto = JS_NewObjectClass(jsf->ctx, jsf_event_class_id);
-    JS_SetPropertyFunctionList(jsf->ctx, evt_proto, jsf_event_funcs, countof(jsf_event_funcs));
-    JS_SetClassProto(jsf->ctx, jsf_event_class_id, evt_proto);
-
-	JSValue evt_ctor = JS_NewCFunction2(jsf->ctx, jsf_event_constructor, "FilterEvent", 1, JS_CFUNC_constructor, 0);
-    JS_SetPropertyStr(jsf->ctx, global_obj, "FilterEvent", evt_ctor);
 
 
 	//initialize filter event class
@@ -4044,6 +4284,13 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 	return e;
 }
 
+JSValue js_init_evt_obj(JSContext *ctx, const GF_FilterEvent *evt)
+{
+	JSValue v = JS_NewObjectClass(ctx, jsf_event_class_id);
+	JS_SetOpaque(v, (void *) evt);
+	return v;
+}
+
 static Bool jsfilter_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	JSValue argv[2];
@@ -4062,8 +4309,8 @@ static Bool jsfilter_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	} else {
 		argv[0] = JS_NULL;
 	}
-	argv[1] = JS_NewObjectClass(jsf->ctx, jsf_event_class_id);
-	JS_SetOpaque(argv[1], (void *) evt);
+	argv[1] = js_init_evt_obj(jsf->ctx, evt);
+
 	ret = JS_Call(jsf->ctx, jsf->funcs[JSF_EVT_PROCESS_EVENT], jsf->filter_obj, 2, argv);
 	if (JS_IsException(ret)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[%s] Error processing event\n", jsf->log_name));

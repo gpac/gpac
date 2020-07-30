@@ -567,6 +567,9 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 		return GF_TRUE;
 
+	case GF_FEVT_USER:
+		return gf_sc_user_event(gf_filter_get_udta(filter), (GF_Event *) &evt->user_event.event);
+
 	default:
 		break;
 	}
@@ -701,6 +704,7 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	//always request a process task since we don't depend on input packets arrival (animations, pure scene presentations)
 	gf_filter_post_process_task(filter);
 
+	gf_filter_set_event_target(filter, GF_TRUE);
 	if (ctx->player==2) {
 		const char *gui_path = gf_opts_get_key("General", "StartupFile");
 		if (gui_path)

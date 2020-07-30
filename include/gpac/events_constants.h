@@ -196,11 +196,9 @@ typedef enum {
 	*/
 	GF_EVENT_SCENE_SIZE,
 	GF_EVENT_SHOWHIDE,	/*window show/hide (minimized or other). */
-	GF_EVENT_SHOWHIDE_NOTIF,	/*window has been show/hide (minimized or other). This is sent to the user to signal focus switch in fullscreen*/
 	GF_EVENT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVENT_SET_CAPTION,	/*set window caption*/
 	GF_EVENT_MOVE,		/*move window*/
-	GF_EVENT_MOVE_NOTIF,		/*move window*/
 	GF_EVENT_REFRESH, /*window needs repaint (whenever needed, eg restore, hide->show, background refresh, paint)*/
 	GF_EVENT_QUIT,	/*app is being closed - associated structure is evt.message to carry any potential reason for quiting*/
 	/*video hw setup message:
@@ -243,7 +241,6 @@ typedef enum {
 	GF_EVENT_TEXT_EDITING_START,
 	GF_EVENT_TEXT_EDITING_END,
 
-	GF_EVENT_QUALITY_SWITCHED,
 	//fire when timeshift depth changes
 	GF_EVENT_TIMESHIFT_DEPTH,
 	//fire when position in timeshift buffer changes
@@ -255,8 +252,6 @@ typedef enum {
 	GF_EVENT_MAIN_ADDON_STATE,
 
 	GF_EVENT_ADDON_DETECTED,
-
-	GF_EVENT_RELOAD,
 
 	GF_EVENT_SENSOR_ORIENTATION,
 	GF_EVENT_SENSOR_REQUEST,

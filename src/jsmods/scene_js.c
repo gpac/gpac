@@ -1832,6 +1832,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 		GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs);
 		GF_FilterSession *fs = sjs->compositor->filter->session;
 
+		//don't check error code, this may fail if global JS has been set but the script may still run
 		gf_fs_load_js_api(c, fs);
 	}
 
@@ -1857,7 +1858,6 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 	DECLARE_CONST(GF_EVENT_NAVIGATE);
 	DECLARE_CONST(GF_EVENT_DROPFILE);
 	DECLARE_CONST(GF_EVENT_ADDON_DETECTED);
-	DECLARE_CONST(GF_EVENT_QUALITY_SWITCHED);
 	DECLARE_CONST(GF_EVENT_TIMESHIFT_DEPTH);
 	DECLARE_CONST(GF_EVENT_TIMESHIFT_UPDATE);
 	DECLARE_CONST(GF_EVENT_TIMESHIFT_OVERFLOW);

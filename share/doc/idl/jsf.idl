@@ -733,6 +733,8 @@ void copy_props(FilterPacket from);
 
 /*! FilterEvent expose a filter event object, either for processing a received event or triggering a new event.
 The read access to the members of the structure is cross-checked with the event type and throw an error when attempting to access the wrong field 
+
+When a field is marked as read-only, this means the event cannot be fired, it can only be received.
 */
 
 interface FilterEvent {
@@ -838,7 +840,40 @@ attribute unsigned long keycode;
 attribute unsigned long hwkey;
 
 /*! array of DOMString - see \ref GF_EventOpenFile*/
-attribute Array dropfiles;
+attribute readonly Array dropfiles;
+
+/*! see \ref GF_EventClipboard*/
+attribute DOMString clipboard;
+
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_x;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_y;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_rotate;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_pinch;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_fingers;
+
+/*! see \ref GF_EventSize*/
+attribute unsigned long width;
+/*! see \ref GF_EventSize*/
+attribute unsigned long height;
+
+/*! see \ref GF_EventShow*/
+attribute unsigned long showtype;
+
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_x;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_y;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_relative;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_alignx;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_aligny;
 
 };
 
