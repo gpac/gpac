@@ -618,6 +618,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 				}
 			}
 			ctx->style.style_flags = 0;
+			ctx->style.text_color = 0xFFFFFFFF;
 			ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
 			if (txt_line) {
 				if (ctx->prev_end && (ctx->start != ctx->prev_end) && (ctx->state<=2)) {
