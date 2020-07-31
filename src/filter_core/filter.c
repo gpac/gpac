@@ -1124,13 +1124,25 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							|| !strncmp(args+4, "rtp://", 6)
 						) {
 							char *sep2 = sep ? strchr(sep+1, ':') : NULL;
-							if (sep2) {
-								u32 port = 0;;
-								sep2[0] = 0;
+							char *sep3 = sep ? strchr(sep+1, '/') : NULL;
+							if (sep2 && sep3 && (sep2>sep3)) {
+								sep2 = strchr(sep3, ':');
+							}
+							if (sep2 || sep3 || sep) {
+								char szPort[20];
+								u32 port = 0;
+								if (sep2) sep2[0] = 0;
+								else if (sep3) sep3[0] = 0;
 								if (sscanf(sep+1, "%d", &port)!=1) {
 									port = 0;
 								}
-								sep2[0] = ':';
+								snprintf(szPort, 20, "%d", port);
+								if (strcmp(sep+1, szPort))
+									port = 0;
+
+								if (sep2) sep2[0] = ':';
+								else if (sep3) sep3[0] = '/';
+
 								if (port) sep = sep2;
 							}
 						}
