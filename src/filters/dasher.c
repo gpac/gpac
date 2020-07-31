@@ -4974,8 +4974,11 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 				}
 			}
 			set_ds->nb_rep_done++;
-			if (set_ds->nb_rep_done < set_ds->nb_rep) return;
-
+			if (set_ds->nb_rep_done < set_ds->nb_rep) {
+				if (ctx->subdur && (ds->cumulated_dur >= 0.8 * (ds->cumulated_subdur + ctx->subdur) * ds->timescale))
+					ds->subdur_done = GF_TRUE;
+				return;
+			}
 			set_ds->set_seg_duration = 0;
 			set_ds->nb_rep_done = 0;
 		}
