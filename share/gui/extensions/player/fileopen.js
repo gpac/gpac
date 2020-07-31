@@ -189,6 +189,7 @@ extension.open_local_file = function () {
             if (val != '') {
                 this.dlg.dlg.on_browse(val, null);
                 this.dlg.dlg.close();
+                this.dlg.dlg = null;
             }
             this.dlg.close();
         }
@@ -203,7 +204,9 @@ extension.open_local_file = function () {
         popup.set_alpha(1.0);
 
         popup.on_close = function () {
-            this.dlg.enable();
+            if (this.dlg) {
+                this.dlg.enable();
+            }
         }
         popup.show();
     }
