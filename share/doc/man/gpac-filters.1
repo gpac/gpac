@@ -5020,7 +5020,7 @@ The HTTP output filter can act as:
 .br
 The server currently handles GET, HEAD, PUT, POST, DELETE methods.
 .br
-Single or multiple byte ranges are supported for both GET and PUT/POST methods.
+Single or multiple byte ranges are supported for both GET and PUT/POST methods, in all server modes.
 .br
 - for GET, the resulting body is a single-part body formed by the concatenated byte ranges as requested (no overlap checking).
 .br
@@ -5120,7 +5120,7 @@ The server will also look for any property called ice-* on the input pid and inj
 .br
 Example
 .br
-gpac -i source.mp3:#ice-Genre=CoolRock -o http://IP/live.mp3:ice
+gpac -i source.mp3:#ice-Genre=CoolRock -o http://IP/live.mp3 --ice
 .br
 
 .br
@@ -5133,17 +5133,25 @@ In this mode, the filter will write input PIDs to files in the first read direct
 .br
 The filter uses a read directory in this mode, which must be writable.
 .br
-Upon client GET request, the server will check if the requested file matches the name of a file currently being written by the server.
+Upon client GET request, the server will check if the requested URL matches the name of a file currently being written by the server.
 .br
-If so, the server will keep refreshing the source size until the associated input file is closed.
+- If so, the server will:
+.br
+  - send the content using HTTP chunk transfer mode, starting with what is already written on disk
+.br
+  - push remaining data to the client as soon as recieved while writing it to disk, until source file is done
+.br
+- If not so, the server will simply send the file from the disk as a regular HHTP session, without chunk transfer.
 .br
 This mode is typically used for origin server in HAS sessions where clients may request files while they are being produced (low latency DASH).
 .br
 Example
 .br
-gpac -i SOURCE -o http://localhost/live.mpd --rdirs=temp
+gpac -i SOURCE reframer:rt=on @ -o http://localhost:8080/live.mpd --rdirs=temp --dmode=dynamic --cdur=0.1
 .br
 
+.br
+In this example, a real-time dynamic DASH session with chunks of 100ms is created, outputing files in temp. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.
 .br
   
 .br
@@ -5192,7 +5200,7 @@ The server can run over TLS (https) for all the server modes. TLS is enabled by 
 .br
 Both certificate and key must be in PEM format.
 .br
-Note: the server currently only operates in either HTTPS or HTTP mode and cannot run both modes at the same time. You will need to use two httpout filters for this, one operating in HTTPS and one operating in HTTP.
+The server currently only operates in either HTTPS or HTTP mode and cannot run both modes at the same time. You will need to use two httpout filters for this, one operating in HTTPS and one operating in HTTP.
 .br
 
 .br
@@ -5979,7 +5987,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev179-gc9560174a-master
+build: 1.0.0-rev187-gb4b94447f-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
