@@ -2208,6 +2208,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			e = gf_isom_add_sample(import->dest, track, descIndex, s);
 			if (e) goto exit;
 			gf_isom_sample_del(&s);
+			gf_isom_set_last_sample_duration(import->dest, track, 0);
 			nb_samples++;
 
 			gf_set_progress("Importing TTXT", nb_samples, nb_children);
