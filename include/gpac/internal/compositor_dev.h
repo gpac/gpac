@@ -2314,7 +2314,7 @@ struct _mediaobj
 	Bool config_changed;
 
 	/*currently valid properties of the object*/
-	u32 width, height, stride, pixel_ar, pixelformat;
+	u32 width, height, stride, pixel_ar, pixelformat, bitrate;
 	Bool is_flipped;
 	u32 sample_rate, num_channels, afmt, bytes_per_sec;
 	u64 channel_config;

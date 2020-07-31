@@ -241,6 +241,8 @@ typedef enum {
 	GF_EVENT_TEXT_EDITING_START,
 	GF_EVENT_TEXT_EDITING_END,
 
+	//fire when quality change is detected by compositor
+	GF_EVENT_QUALITY_SWITCHED,
 	//fire when timeshift depth changes
 	GF_EVENT_TIMESHIFT_DEPTH,
 	//fire when position in timeshift buffer changes
