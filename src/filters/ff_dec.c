@@ -683,6 +683,13 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 
 		codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, &ff_codectag);
+		//specific remaps
+		if (!codec_id) {
+			switch (gpac_codecid) {
+			case GF_CODECID_MVC: codec_id = AV_CODEC_ID_H264; break;
+			}
+
+		}
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] No decoder found for codec %s\n", gf_codecid_name(gpac_codecid) ));

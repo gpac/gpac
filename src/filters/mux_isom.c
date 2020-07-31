@@ -1810,6 +1810,8 @@ sample_entry_setup:
 
 			if (tkw->codecid == GF_CODECID_SVC) {
 				e = gf_isom_svc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
+			} else if (tkw->codecid == GF_CODECID_MVC) {
+				e = gf_isom_mvc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
 			} else {
 				e = gf_isom_avc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
 			}
@@ -1818,7 +1820,11 @@ sample_entry_setup:
 				if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
 				tkw->svcc = gf_odf_avc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
 				if (tkw->svcc) {
-					e = gf_isom_svc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->svcc, GF_TRUE);
+					if ((tkw->svcc->AVCProfileIndication==118) || (tkw->svcc->AVCProfileIndication==128)) {
+						e = gf_isom_mvc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->svcc, GF_TRUE);
+					} else {
+						e = gf_isom_svc_config_update(ctx->file, tkw->track_num, tkw->stsd_idx, tkw->svcc, GF_TRUE);
+					}
 					if (e) {
 						gf_odf_avc_cfg_del(tkw->svcc);
 						tkw->svcc = NULL;
