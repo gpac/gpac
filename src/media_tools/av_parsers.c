@@ -5280,7 +5280,7 @@ static s32 gf_media_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u3
 			}
 		}
 		else if ((profile_idc == 118) || (profile_idc == 128)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] MVC not supported - skipping parsing end of Subset SPS\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[avc-h264] MVC parsing not implemented - skipping parsing end of Subset SPS\n"));
 			return sps_id;
 		}
 

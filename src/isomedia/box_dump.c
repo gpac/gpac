@@ -1125,6 +1125,9 @@ GF_Err sdtp_box_dump(GF_Box *a, FILE * trace)
 	GF_SampleDependencyTypeBox *p;
 	u32 i;
 
+	if (dump_skip_samples)
+		return GF_OK;
+
 	p = (GF_SampleDependencyTypeBox*)a;
 	gf_isom_box_dump_start(a, "SampleDependencyTypeBox", trace);
 	gf_fprintf(trace, "SampleCount=\"%d\">\n", p->sampleCount);

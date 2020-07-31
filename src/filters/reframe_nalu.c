@@ -208,6 +208,8 @@ typedef struct
 	char init_aud[3];
 
 	Bool interlaced, eos_in_bs;
+
+	Bool is_mvc;
 } GF_NALUDmxCtx;
 
 
@@ -968,12 +970,17 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	avcc->nal_unit_size = ctx->nal_length;
 	svcc->nal_unit_size = ctx->nal_length;
 
+	ctx->is_mvc = GF_FALSE;
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
 		Bool is_svc = GF_FALSE;
 		GF_AVCConfigSlot *sl = gf_list_get(ctx->sps, i);
 		AVC_SPS *sps = &ctx->avc_state->sps[sl->id];
 		u32 nal_type = sl->data[0] & 0x1F;
+
+		if ((sps->profile_idc == 118) || (sps->profile_idc == 128)) {
+			ctx->is_mvc = GF_TRUE;
+		}
 
 		if (ctx->explicit) {
 			cfg = svcc;
@@ -1929,6 +1936,11 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 			}
 		}
 		*is_slice = GF_TRUE;
+		//we disable temporal scalability when parsing mvc - never used and many encoders screw up POC in enhancemen
+		if (ctx->is_mvc && (res>=0)) {
+			res=0;
+			ctx->avc_state->s_info.poc = ctx->last_poc;
+		}
         if (ctx->avc_state->s_info.sps) {
             switch (ctx->avc_state->s_info.slice_type) {
             case GF_AVC_TYPE_P:
@@ -2605,25 +2617,26 @@ naldmx_flush:
 
 			/*fixme - we need finer grain for priority*/
 			if ((nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
-				unsigned char *p = (unsigned char *) start;
-				// RefPicFlag
-				avc_svc_subs_reserved |= (p[0] & 0x60) ? 0x80000000 : 0;
-				// RedPicFlag TODO: not supported, would require to parse NAL unit payload
-				avc_svc_subs_reserved |= (0) ? 0x40000000 : 0;
-				// VclNALUnitFlag
-				avc_svc_subs_reserved |= (1<=nal_type && nal_type<=5) || (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE) ? 0x20000000 : 0;
-				// use values of IdrFlag and PriorityId directly from SVC extension header
-				avc_svc_subs_reserved |= p[1] << 16;
-				// use values of DependencyId and QualityId directly from SVC extension header
-				avc_svc_subs_reserved |= p[2] << 8;
-				// use values of TemporalId and UseRefBasePicFlag directly from SVC extension header
-				avc_svc_subs_reserved |= p[3] & 0xFC;
-				// StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
-				avc_svc_subs_reserved |= (0) ? 0x00000002 : 0;
+				if (!ctx->is_mvc) {
+					unsigned char *p = (unsigned char *) start;
+					// RefPicFlag
+					avc_svc_subs_reserved |= (p[0] & 0x60) ? 0x80000000 : 0;
+					// RedPicFlag TODO: not supported, would require to parse NAL unit payload
+					avc_svc_subs_reserved |= (0) ? 0x40000000 : 0;
+					// VclNALUnitFlag
+					avc_svc_subs_reserved |= (1<=nal_type && nal_type<=5) || (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE) ? 0x20000000 : 0;
+					// use values of IdrFlag and PriorityId directly from SVC extension header
+					avc_svc_subs_reserved |= p[1] << 16;
+					// use values of DependencyId and QualityId directly from SVC extension header
+					avc_svc_subs_reserved |= p[2] << 8;
+					// use values of TemporalId and UseRefBasePicFlag directly from SVC extension header
+					avc_svc_subs_reserved |= p[3] & 0xFC;
+					// StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
+					avc_svc_subs_reserved |= (0) ? 0x00000002 : 0;
 
-				// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
-				avc_svc_subs_priority = (63 - (p[1] & 0x3F)) << 2;
-
+					// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
+					avc_svc_subs_priority = (63 - (p[1] & 0x3F)) << 2;
+				}
 				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
                     if (ctx->svc_prefix_buffer_size) {
                         GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] broken bitstream, two consecutive SVC prefix NALU without SVC slice inbetween\n", ctx->log_name));
@@ -2747,8 +2760,8 @@ naldmx_flush:
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
 					ctx->poc_probe_done = GF_TRUE;
 				}
+				ctx->last_poc = slice_poc;
 			}
-			ctx->last_poc = slice_poc;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is ref %d\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_ref));
 
 			/*ref slice, reset poc*/

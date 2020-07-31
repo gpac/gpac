@@ -3528,6 +3528,7 @@ GF_Err minf_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->InfoHeader, &pos);
 	//then dataInfo
 	gf_isom_check_position(s, (GF_Box *)ptr->dataInformation, &pos);
+	gf_isom_check_position(s, gf_isom_box_find_child(s->child_boxes, GF_ISOM_BOX_TYPE_MVCI), &pos);
 	//then sampleTable
 	gf_isom_check_position(s, (GF_Box *)ptr->sampleTable, &pos);
 	return GF_OK;
@@ -4299,7 +4300,10 @@ GF_Err video_sample_entry_box_size(GF_Box *s)
 	/*avc / SVC + MVC*/
 	gf_isom_check_position(s, (GF_Box *)ptr->avc_config, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->svc_config, &pos);
-	gf_isom_check_position(s, (GF_Box *)ptr->mvc_config, &pos);
+	if (ptr->mvc_config) {
+		gf_isom_check_position(s, gf_isom_box_find_child(s->child_boxes, GF_ISOM_BOX_TYPE_VWID), &pos);
+		gf_isom_check_position(s, (GF_Box *)ptr->mvc_config, &pos);
+	}
 
 	/*HEVC*/
 	gf_isom_check_position(s, (GF_Box *)ptr->hevc_config, &pos);
