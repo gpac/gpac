@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/compositor.h>
 
+#ifndef GPAC_DISABLE_PLAYER
+
 typedef struct
 {
 	GF_ObjectManager *odm;
@@ -472,4 +474,9 @@ const GF_FilterRegister *odf_dec_register(GF_FilterSession *session)
 {
 	return &ODFDecRegister;
 }
-
+#else
+const GF_FilterRegister *odf_dec_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_PLAYER
