@@ -756,8 +756,9 @@ GF_GPACArg m4b_dump_args[] =
  	GF_DEF_ARG("dsapp", NULL, "same as [-dsap]() but only print presentation time", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("dcr", NULL, "dump ISMACryp samples structure to XML output", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dump-cover", NULL, "extract cover art", NULL, NULL, GF_ARG_BOOL, 0),
- 	GF_DEF_ARG("dump-chap", NULL, "extract chapter file", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("dump-chap", NULL, "extract chapter file as TTXT format", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dump-chap-ogg", NULL, "extract chapter file as OGG format", NULL, NULL, GF_ARG_BOOL, 0),
+ 	GF_DEF_ARG("dump-chap-zoom", NULL, "extract chapter file as zoom format", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("dump-udta `[tkID:]4cc`", NULL, "extract udta for the given 4CC. If `tkID` is given, dumps from UDTA of the given track ID, otherwise moov is used", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("mergevtt", NULL, "merge vtt cues while dumping", NULL, NULL, GF_ARG_BOOL, 0),
  	GF_DEF_ARG("ttxt", NULL, "convert input subtitle to GPAC TTXT format if no parameter. Otherwise, dump given text track to GPAC TTXT format", NULL, NULL, GF_ARG_INT, 0),
@@ -3891,6 +3892,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
 		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
+		else if (!stricmp(arg, "-dump-chap-zoom")) dump_chap = 3;
 		else if (!stricmp(arg, "-hash")) do_hash = GF_TRUE;
 		else if (!strnicmp(arg, "-comp", 5)) {
 			CHECK_NEXT_ARG
@@ -5587,7 +5589,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 
 	if (dump_cart) dump_isom_cover_art(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
-	if (dump_chap) dump_isom_chapters(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,(dump_chap==2) ? 1 : 0);
+	if (dump_chap) dump_isom_chapters(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_chap);
 	if (dump_udta_type) dump_isom_udta(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_udta_type, dump_udta_track);
 
 	if (dump_iod) {

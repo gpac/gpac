@@ -4521,11 +4521,17 @@ typedef enum {
 	/*! dump as TTXT XML*/
 	GF_TEXTDUMPTYPE_TTXT = 0,
 	/*! dump as TTXT XML with box */
-	GF_TEXTDUMPTYPE_TTXT_BOXES = 1,
+	GF_TEXTDUMPTYPE_TTXT_BOXES,
 	/*! dump as SRT*/
-	GF_TEXTDUMPTYPE_SRT  = 2,
+	GF_TEXTDUMPTYPE_SRT,
 	/*! dump as SVG*/
-	GF_TEXTDUMPTYPE_SVG  = 3,
+	GF_TEXTDUMPTYPE_SVG,
+	/*! dump as TTXT chapters (omits empty text samples)*/
+	GF_TEXTDUMPTYPE_TTXT_CHAP,
+	/*! dump as OGG chapters*/
+	GF_TEXTDUMPTYPE_OGG_CHAP,
+	/*! dump as Zoom chapters*/
+	GF_TEXTDUMPTYPE_ZOOM_CHAP
 } GF_TextDumpType;
 /*! dumps a text track to a file
 \param isom_file the target ISO file

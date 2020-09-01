@@ -421,7 +421,24 @@ static char *format_duration(u64 dur, u32 timescale, char *szDur)
 	s = (u32) (dur/1000);
 	dur -= s*1000;
 	ms = (u32) (dur);
-	sprintf(szDur, "%02d:%02d:%02d.%03d", h, m, s, ms);
+
+	if (h<=24) {
+		sprintf(szDur, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	} else {
+		u32 d = (u32) (dur / 3600000 / 24);
+		h = (u32) (dur/3600000)-24*d;
+		if (d<=365) {
+			sprintf(szDur, "%d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
+		} else {
+			u32 y=0;
+			while (d>365) {
+				y++;
+				d-=365;
+				if (y%4) d--;
+			}
+			sprintf(szDur, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
+		}
+	}
 	return szDur;
 }
 
@@ -2766,7 +2783,7 @@ static char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 	return szDur;
 }
 
-static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, Bool box_dump)
+static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type)
 {
 	u32 i, j, count, di, nb_descs, shift_offset[20], so_count;
 	u64 last_DTS;
@@ -2775,6 +2792,8 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	Bool has_scroll;
 	char szDur[100];
 	GF_Tx3gSampleEntryBox *txt_e;
+	Bool box_dump = (dump_type==GF_TEXTDUMPTYPE_TTXT_BOXES) ? GF_TRUE : GF_FALSE;
+	Bool skip_empty = (dump_type==GF_TEXTDUMPTYPE_TTXT_CHAP) ? GF_TRUE : GF_FALSE;
 
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
@@ -2940,10 +2959,18 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		GF_ISOSample *s = gf_isom_get_sample(the_file, track, i+1, &di);
 		if (!s) continue;
 
-		gf_fprintf(dump, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"%d\"", tx3g_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE), di);
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		s_txt = gf_isom_parse_text_sample(bs);
 		gf_bs_del(bs);
+
+		if (skip_empty && (s_txt->len<1)) {
+			gf_isom_sample_del(&s);
+			gf_isom_delete_text_sample(s_txt);
+			gf_set_progress("TTXT Extract", i, count);
+			continue;
+		}
+
+		gf_fprintf(dump, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"%d\"", tx3g_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE), di);
 
 		if (!box_dump) {
 			if (s_txt->highlight_color) {
@@ -3090,7 +3117,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		gf_isom_delete_text_sample(s_txt);
 		gf_set_progress("TTXT Extract", i, count);
 	}
-	if (last_DTS < trak->Media->mediaHeader->duration) {
+	if (!skip_empty && (last_DTS < trak->Media->mediaHeader->duration)) {
 		gf_fprintf(dump, "<TextSample sampleTime=\"%s\" text=\"\" />\n", tx3g_format_time(trak->Media->mediaHeader->duration, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE));
 	}
 
@@ -3397,6 +3424,65 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	return GF_OK;
 }
 
+static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type)
+{
+	u32 i, count, di, ts, cur_frame;
+	u64 start, end;
+	GF_BitStream *bs;
+
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	if (!trak) return GF_BAD_PARAM;
+	switch (trak->Media->handler->handlerType) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+
+	ts = trak->Media->mediaHeader->timeScale;
+	cur_frame = 0;
+	end = 0;
+
+	count = gf_isom_get_sample_count(the_file, track);
+	for (i=0; i<count; i++) {
+		GF_TextSample *txt;
+		GF_ISOSample *s = gf_isom_get_sample(the_file, track, i+1, &di);
+		if (!s) continue;
+
+		start = s->DTS;
+		if (s->dataLength==2) {
+			gf_isom_sample_del(&s);
+			continue;
+		}
+		if (i+1<count) {
+			GF_ISOSample *next = gf_isom_get_sample_info(the_file, track, i+2, NULL, NULL);
+			if (next) {
+				end = next->DTS;
+				gf_isom_sample_del(&next);
+			}
+		}
+
+		cur_frame++;
+		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
+		txt = gf_isom_parse_text_sample(bs);
+		gf_bs_del(bs);
+
+		if (!txt->len) continue;
+
+		if (dump_type==GF_TEXTDUMPTYPE_OGG_CHAP) {
+			char szDur[20];
+			fprintf(dump, "CHAPTER%02d=%s\n", i+1, format_duration(start, ts, szDur));
+			fprintf(dump, "CHAPTER%02dNAME=%s\n", i+1, txt->text);
+		} else {
+			fprintf(dump, "AddChapterBySecond("LLD",%s)\n", start / ts, txt->text);
+		}
+
+		gf_isom_sample_del(&s);
+		gf_isom_delete_text_sample(txt);
+	}
+	return GF_OK;
+}
 GF_EXPORT
 GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type)
 {
@@ -3407,7 +3493,11 @@ GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDum
 		return gf_isom_dump_srt_track(the_file, track, dump);
 	case GF_TEXTDUMPTYPE_TTXT:
 	case GF_TEXTDUMPTYPE_TTXT_BOXES:
-		return gf_isom_dump_ttxt_track(the_file, track, dump, (dump_type==GF_TEXTDUMPTYPE_TTXT_BOXES) ? GF_TRUE : GF_FALSE);
+	case GF_TEXTDUMPTYPE_TTXT_CHAP:
+		return gf_isom_dump_ttxt_track(the_file, track, dump, dump_type);
+	case GF_TEXTDUMPTYPE_OGG_CHAP:
+	case GF_TEXTDUMPTYPE_ZOOM_CHAP:
+		return gf_isom_dump_ogg_chap(the_file, track, dump, dump_type);
 	default:
 		return GF_BAD_PARAM;
 	}
