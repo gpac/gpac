@@ -398,7 +398,8 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT);
-		sprintf(nhml, "bitsPerSample=\"%d\" ", gf_audio_fmt_bit_depth(p->value.uint));
+		if (p)
+			sprintf(nhml, "bitsPerSample=\"%d\" ", gf_audio_fmt_bit_depth(p->value.uint));
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 
