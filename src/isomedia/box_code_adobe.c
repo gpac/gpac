@@ -99,6 +99,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	memset(tmp_str, 0, sizeof(char)*tmp_strsize);
 
 	while (tmp_strsize) {
+		ISOM_DECREASE_SIZE(ptr, 1)
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;
 		if (!tmp_str[i])
@@ -109,11 +110,13 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->movie_identifier = gf_strdup(tmp_str);
 	}
 
+	ISOM_DECREASE_SIZE(ptr, 1)
 	ptr->server_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->server_entry_count; i++) {
 		int j=0;
-		tmp_strsize=(u32)ptr->size-8;
+		tmp_strsize=(u32)ptr->size;
 		while (tmp_strsize) {
+			ISOM_DECREASE_SIZE(ptr, 1)
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
 			if (!tmp_str[j])
@@ -125,11 +128,13 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 	}
 
+	ISOM_DECREASE_SIZE(ptr, 1)
 	ptr->quality_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
-		tmp_strsize=(u32)ptr->size-8;
+		tmp_strsize=(u32)ptr->size;
 		while (tmp_strsize) {
+			ISOM_DECREASE_SIZE(ptr, 1)
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
 			if (!tmp_str[j])
@@ -143,8 +148,9 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	i=0;
-	tmp_strsize=(u32)ptr->size-8;
+	tmp_strsize=(u32)ptr->size;
 	while (tmp_strsize) {
+		ISOM_DECREASE_SIZE(ptr, 1)
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;
 		if (!tmp_str[i])
@@ -156,8 +162,9 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	i=0;
-	tmp_strsize=(u32)ptr->size-8;
+	tmp_strsize=(u32)ptr->size;
 	while (tmp_strsize) {
+		ISOM_DECREASE_SIZE(ptr, 1)
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;
 		if (!tmp_str[i])
@@ -168,6 +175,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->meta_data = gf_strdup(tmp_str);
 	}
 
+	ISOM_DECREASE_SIZE(ptr, 1)
 	ptr->segment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->segment_run_table_count; i++) {
 		GF_AdobeSegmentRunTableBox *asrt = NULL;
@@ -180,6 +188,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		gf_list_add(ptr->segment_run_table_entries, asrt);
 	}
 
+	ISOM_DECREASE_SIZE(ptr, 1)
 	ptr->fragment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		GF_AdobeFragmentRunTableBox *afrt = NULL;
