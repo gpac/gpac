@@ -525,6 +525,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_pat
 
 static GF_Config *create_default_config(char *file_path, const char *profile)
 {
+	Bool moddir_found;
 	GF_Config *cfg;
 	char szProfilePath[GF_MAX_PATH];
 	char szPath[GF_MAX_PATH];
@@ -554,13 +555,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 
 #ifndef GPAC_CONFIG_IOS
-	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
-		gf_file_delete(szPath);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] default modules not found\n"));
-		return NULL;
-	}
+	moddir_found = get_default_install_path(szPath, GF_PATH_MODULES);
 #else
-	get_default_install_path(szPath, GF_PATH_APP);
+	moddir_found = get_default_install_path(szPath, GF_PATH_APP);
 #endif
 
 #if defined(GPAC_CONFIG_IOS)
@@ -572,8 +569,11 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 #endif
 
 
-
-	gf_cfg_set_key(cfg, "core", "mod-dirs", szPath);
+	if (!moddir_found) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] default modules not found\n"));
+	} else {
+		gf_cfg_set_key(cfg, "core", "mod-dirs", szPath);
+	}
 
 #if defined(GPAC_CONFIG_IOS)
 	gf_ios_refresh_cache_directory(cfg, file_path);

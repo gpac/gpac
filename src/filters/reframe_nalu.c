@@ -563,6 +563,8 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 	gf_list_add(ctx->pck_queue, n_pck);
 }
 
+#ifndef GPAC_DISABLE_HEVC
+
 static void naludmx_hevc_add_param(GF_HEVCConfig *cfg, GF_AVCConfigSlot *sl, u8 nal_type)
 {
 	GF_HEVCParamArray *pa = NULL;
@@ -584,8 +586,6 @@ static void naludmx_hevc_add_param(GF_HEVCConfig *cfg, GF_AVCConfigSlot *sl, u8 
 	}
 	gf_list_add(pa->nalus, sl);
 }
-
-#ifndef GPAC_DISABLE_HEVC
 
 static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc_cfg)
 {

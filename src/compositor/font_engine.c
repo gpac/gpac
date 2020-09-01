@@ -85,7 +85,9 @@ void gf_font_predestroy(GF_Font *font)
 		while (gf_list_count(font->spans)) {
 			GF_TextSpan *ts = gf_list_get(font->spans, 0);
 			gf_list_rem(font->spans, 0);
+#ifndef GPAC_DISABLE_PLAYER
 			gf_node_dirty_set(ts->user, 0, 0);
+#endif
 			ts->user=NULL;
 		}
 		gf_list_del(font->spans);
@@ -434,6 +436,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 }
 
 
+#ifndef GPAC_DISABLE_PLAYER
 
 typedef struct _span_internal
 {
@@ -454,6 +457,8 @@ typedef struct _span_internal
 #endif
 } GF_SpanExtensions;
 
+#endif
+
 
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 {
@@ -464,6 +469,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 	if (span->dy) gf_free(span->dy);
 	if (span->rot) gf_free(span->rot);
 
+#ifndef GPAC_DISABLE_PLAYER
 	if (span->ext) {
 		if (span->ext->path) gf_path_del(span->ext->path);
 #ifndef GPAC_DISABLE_3D
@@ -478,6 +484,8 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 		}
 		gf_free(span->ext);
 	}
+#endif
+
 	gf_free(span);
 }
 
@@ -612,6 +620,8 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 	}
 	return path;
 }
+
+#ifndef GPAC_DISABLE_PLAYER
 
 static void span_alloc_extensions(GF_TextSpan *span)
 {
@@ -1489,3 +1499,5 @@ picked:
 		gf_list_add(tr_state->visual->compositor->sensors, gf_list_get(tr_state->vrml_sensors, i));
 	}
 }
+
+#endif // GPAC_DISABLE_PLAYER

@@ -30,6 +30,7 @@
 #include <gpac/internal/media_dev.h>
 
 #include <gpac/xml.h>
+#include <gpac/network.h>
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT

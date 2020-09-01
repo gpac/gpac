@@ -26,7 +26,7 @@
 
 #include <gpac/setup.h>
 
-#ifdef GPAC_HAS_QJS
+#if defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_PLAYER)
 
 /*base SVG type*/
 #include <gpac/nodes_svg.h>

@@ -120,6 +120,7 @@ JSValue js_throw_err(JSContext *ctx, s32 err)
 		}	\
 		}
 
+#ifndef GPAC_DISABLE_PLAYER
 static Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
 	if (!scene) {
@@ -130,6 +131,7 @@ static Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *
 		return scene->script_action(scene->script_action_cbck, type, node, param);
 	return 0;
 }
+#endif// GPAC_DISABLE_PLAYER
 
 GF_JSClass SFNodeClass;
 #ifndef GPAC_DISABLE_VRML
@@ -373,12 +375,17 @@ GF_Node *dom_get_element(JSContext *c, JSValue obj);
 void gf_sg_script_to_node_field(struct JSContext *c, JSValue v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool force_evaluate);
 
+#ifndef GPAC_DISABLE_PLAYER
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
+#endif
+
 
 Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSValue *rval);
 
+#ifndef GPAC_DISABLE_SVG
 static JSValue vrml_event_add_listener(JSContext *c, JSValueConst this_val, int argc, JSValueConst *argv);
 static JSValue vrml_event_remove_listener(JSContext *c, JSValueConst this_val, int argc, JSValueConst *argv);
+#endif // GPAC_DISABLE_SVG
 
 void gf_js_call_gc(JSContext *c)
 {
@@ -399,113 +406,6 @@ void do_js_gc(JSContext *c, GF_Node *node)
 	}
 }
 
-
-#ifndef GPAC_DISABLE_VRML
-
-/*MPEG4 & X3D tags (for node tables & script handling)*/
-#include <gpac/nodes_mpeg4.h>
-#include <gpac/nodes_x3d.h>
-
-void SFColor_fromHSV(SFColor *col)
-{
-	Fixed f, q, t, p, hue, sat, val;
-	u32 i;
-	hue = col->red;
-	sat = col->green;
-	val = col->blue;
-	if (sat==0) {
-		col->red = col->green = col->blue = val;
-		return;
-	}
-	if (hue == FIX_ONE) hue = 0;
-	else hue *= 6;
-	i = FIX2INT( gf_floor(hue) );
-	f = hue-i;
-	p = gf_mulfix(val, FIX_ONE - sat);
-	q = gf_mulfix(val, FIX_ONE - gf_mulfix(sat,f));
-	t = gf_mulfix(val, FIX_ONE - gf_mulfix(sat, FIX_ONE - f));
-	switch (i) {
-	case 0:
-		col->red = val;
-		col->green = t;
-		col->blue = p;
-		break;
-	case 1:
-		col->red = q;
-		col->green = val;
-		col->blue = p;
-		break;
-	case 2:
-		col->red = p;
-		col->green = val;
-		col->blue = t;
-		break;
-	case 3:
-		col->red = p;
-		col->green = q;
-		col->blue = val;
-		break;
-	case 4:
-		col->red = t;
-		col->green = p;
-		col->blue = val;
-		break;
-	case 5:
-		col->red = val;
-		col->green = p;
-		col->blue = q;
-		break;
-	}
-}
-
-void SFColor_toHSV(SFColor *col)
-{
-	Fixed h, s;
-	Fixed _max = MAX(col->red, MAX(col->green, col->blue));
-	Fixed _min = MIN(col->red, MAX(col->green, col->blue));
-
-	s = (_max == 0) ? 0 : gf_divfix(_max - _min, _max);
-	if (s != 0) {
-		Fixed rl = gf_divfix(_max - col->red, _max - _min);
-		Fixed gl = gf_divfix(_max - col->green, _max - _min);
-		Fixed bl = gf_divfix(_max - col->blue, _max - _min);
-		if (_max == col->red) {
-			if (_min == col->green) h = 60*(5+bl);
-			else h = 60*(1-gl);
-		} else if (_max == col->green) {
-			if (_min == col->blue) h = 60*(1+rl);
-			else h = 60*(3-bl);
-		} else {
-			if (_min == col->red) h = 60*(3+gl);
-			else h = 60*(5-rl);
-		}
-	} else {
-		h = 0;
-	}
-	col->red = h;
-	col->green = s;
-	col->blue = _max;
-}
-
-static GFINLINE GF_JSField *NewJSField(JSContext *c)
-{
-	GF_JSField *ptr;
-	GF_SAFEALLOC(ptr, GF_JSField);
-	if (!ptr) return NULL;
-	ptr->js_ctx = c;
-	ptr->obj = JS_UNDEFINED;
-	return ptr;
-}
-
-static GFINLINE M_Script *JS_GetScript(JSContext *c)
-{
-	return (M_Script *) JS_GetContextOpaque(c);
-}
-static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
-{
-	M_Script *script = (M_Script *) JS_GetContextOpaque(c);
-	return script->sgprivate->UserPrivate;
-}
 
 static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
 {
@@ -625,6 +525,114 @@ void js_do_loop(JSContext *ctx)
 		}
 	}
 }
+
+#ifndef GPAC_DISABLE_VRML
+
+/*MPEG4 & X3D tags (for node tables & script handling)*/
+#include <gpac/nodes_mpeg4.h>
+#include <gpac/nodes_x3d.h>
+
+void SFColor_fromHSV(SFColor *col)
+{
+	Fixed f, q, t, p, hue, sat, val;
+	u32 i;
+	hue = col->red;
+	sat = col->green;
+	val = col->blue;
+	if (sat==0) {
+		col->red = col->green = col->blue = val;
+		return;
+	}
+	if (hue == FIX_ONE) hue = 0;
+	else hue *= 6;
+	i = FIX2INT( gf_floor(hue) );
+	f = hue-i;
+	p = gf_mulfix(val, FIX_ONE - sat);
+	q = gf_mulfix(val, FIX_ONE - gf_mulfix(sat,f));
+	t = gf_mulfix(val, FIX_ONE - gf_mulfix(sat, FIX_ONE - f));
+	switch (i) {
+	case 0:
+		col->red = val;
+		col->green = t;
+		col->blue = p;
+		break;
+	case 1:
+		col->red = q;
+		col->green = val;
+		col->blue = p;
+		break;
+	case 2:
+		col->red = p;
+		col->green = val;
+		col->blue = t;
+		break;
+	case 3:
+		col->red = p;
+		col->green = q;
+		col->blue = val;
+		break;
+	case 4:
+		col->red = t;
+		col->green = p;
+		col->blue = val;
+		break;
+	case 5:
+		col->red = val;
+		col->green = p;
+		col->blue = q;
+		break;
+	}
+}
+
+void SFColor_toHSV(SFColor *col)
+{
+	Fixed h, s;
+	Fixed _max = MAX(col->red, MAX(col->green, col->blue));
+	Fixed _min = MIN(col->red, MAX(col->green, col->blue));
+
+	s = (_max == 0) ? 0 : gf_divfix(_max - _min, _max);
+	if (s != 0) {
+		Fixed rl = gf_divfix(_max - col->red, _max - _min);
+		Fixed gl = gf_divfix(_max - col->green, _max - _min);
+		Fixed bl = gf_divfix(_max - col->blue, _max - _min);
+		if (_max == col->red) {
+			if (_min == col->green) h = 60*(5+bl);
+			else h = 60*(1-gl);
+		} else if (_max == col->green) {
+			if (_min == col->blue) h = 60*(1+rl);
+			else h = 60*(3-bl);
+		} else {
+			if (_min == col->red) h = 60*(3+gl);
+			else h = 60*(5-rl);
+		}
+	} else {
+		h = 0;
+	}
+	col->red = h;
+	col->green = s;
+	col->blue = _max;
+}
+
+static GFINLINE GF_JSField *NewJSField(JSContext *c)
+{
+	GF_JSField *ptr;
+	GF_SAFEALLOC(ptr, GF_JSField);
+	if (!ptr) return NULL;
+	ptr->js_ctx = c;
+	ptr->obj = JS_UNDEFINED;
+	return ptr;
+}
+
+static GFINLINE M_Script *JS_GetScript(JSContext *c)
+{
+	return (M_Script *) JS_GetContextOpaque(c);
+}
+static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
+{
+	M_Script *script = (M_Script *) JS_GetContextOpaque(c);
+	return script->sgprivate->UserPrivate;
+}
+
 
 static JSValue getName(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -4464,6 +4472,7 @@ static void JSScript_Load(GF_Node *node)
 }
 
 
+#ifndef GPAC_DISABLE_PLAYER
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script)
 {
 	u32 i;
@@ -4578,6 +4587,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 		}
 	}
 }
+#endif
 
 GF_EXPORT
 void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
