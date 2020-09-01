@@ -2872,8 +2872,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		//we use segment template
 		if (ctx->tpl) {
 			GF_MPD_SegmentTemplate *seg_template;
-			//bs switching but multiple templates
-			if ((!i && (set->bitstream_switching || single_template) )) {
+			//first rep in set and bs switching or single template, create segment template at set level
+			if (!i && (set->bitstream_switching || single_template) ) {
 				init_template_done = GF_TRUE;
 				seg_template = NULL;
 				if (!skip_init || single_template) {
@@ -2900,14 +2900,19 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				}
 				set->segment_template = seg_template;
 			}
-			if (i || !single_template) {
+			//non-first rep in set and single template, only open destination
+			if (i && single_template) {
+				dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, (set->bitstream_switching || skip_init) ? GF_TRUE : GF_FALSE);
+			}
+			//first rep in set and no bs switching or mutliple templates, create segment template at rep level
+			else if (i || !single_template) {
 				GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
 				if (seg_template) {
 					if (!init_template_done) {
 						seg_template->initialization = skip_init ? NULL : gf_strdup(szInitSegmentTemplate);
 						dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, skip_init);
 					} else if (i) {
-						dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, GF_TRUE);
+						dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, (set->bitstream_switching || skip_init) ? GF_TRUE : GF_FALSE);
 					}
 					seg_template->media = gf_strdup(szSegmentName);
 					if (ds->idx_template)
