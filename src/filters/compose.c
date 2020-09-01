@@ -781,7 +781,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(buf), "playout buffer in ms. overridden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rbuf), "rebuffer trigger in ms. overridden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(ntpsync), "ntp resync threshold (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(ntpsync), "ntp resync threshold in ms (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 
 	{ OFFS(nojs), "disable javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noback), "ignore background nodes and viewport fill (usefull when dumping to PNG)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
