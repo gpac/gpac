@@ -93,7 +93,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 
 	i=0;
 	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
-	tmp_strsize =(u32)ptr->size-8;
+	tmp_strsize =(u32)ptr->size;
 	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
 	if (!tmp_str) return GF_OUT_OF_MEM;
 	memset(tmp_str, 0, sizeof(char)*tmp_strsize);
