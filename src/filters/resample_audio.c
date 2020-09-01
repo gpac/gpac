@@ -28,6 +28,8 @@
 #include <gpac/filters.h>
 #include <gpac/internal/compositor_dev.h>
 
+#ifndef GPAC_DISABLE_PLAYER
+
 typedef struct
 {
 	//opts
@@ -392,3 +394,11 @@ const GF_FilterRegister *resample_register(GF_FilterSession *session)
 {
 	return &ResamplerRegister;
 }
+#else
+
+const GF_FilterRegister *resample_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+#endif // GPAC_DISABLE_PLAYER

@@ -981,7 +981,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		char sz_item_name[256];
 		GF_TileItemMode orig_tile_mode;
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 		e = gf_media_split_hevc_tiles(movie, 0);
 #else
 		e = GF_NOT_SUPPORTED;
