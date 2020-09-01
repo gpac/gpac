@@ -5788,6 +5788,7 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 }
 
 
+#if !defined(GPAC_DISABLE_HEVC)
 static void avc_parse_itu_t_t35_sei(GF_BitStream* bs, AVCSeiItuTT35DolbyVision *dovi)
 {
 	u8 itu_t_t35_country_code = gf_bs_read_u8(bs);
@@ -5798,7 +5799,7 @@ static void avc_parse_itu_t_t35_sei(GF_BitStream* bs, AVCSeiItuTT35DolbyVision *
 		dovi->rpu_flag = GF_TRUE;
 	}
 }
-
+#endif
 
 static void avc_compute_poc(AVCSliceInfo *si)
 {

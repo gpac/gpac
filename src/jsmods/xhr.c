@@ -156,9 +156,10 @@ struct __xhr_context
 
 	/* dom graph in which the XHR is created */
 	GF_SceneGraph *owning_graph;
+#ifndef GPAC_DISABLE_SVG
 	/* dom graph used to parse XML into */
 	GF_SceneGraph *document;
-
+#endif
 	Bool js_dom_loaded;
 };
 
@@ -326,13 +327,14 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		gf_list_del(ctx->node_stack);
 		ctx->node_stack = NULL;
 	}
+#ifndef GPAC_DISABLE_SVG
 	if (ctx->document) {
 		if (ctx->js_dom_loaded) {
 			dom_js_unload();
 			ctx->js_dom_loaded = GF_FALSE;
 		}
-
 		gf_node_unregister(ctx->document->RootNode, NULL);
+
 		/*we're sure the graph is a "nomade" one since we initially put the refcount to 1 ourselves*/
 		ctx->document->reference_count--;
 		if (!ctx->document->reference_count) {
@@ -341,6 +343,7 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		}
 	}
 	ctx->document = NULL;
+#endif
 	ctx->size = 0;
 	ctx->async = GF_FALSE;
 	ctx->readyState = XHR_READYSTATE_UNSENT;
@@ -360,8 +363,10 @@ static void xml_http_finalize(JSRuntime *rt, JSValue obj)
 	JS_FreeValueRT(rt, ctx->onreadystatechange);
 	JS_FreeValueRT(rt, ctx->ontimeout);
 	xml_http_reset(ctx);
+#ifndef GPAC_DISABLE_SVG
 	if (ctx->event_target)
 		gf_dom_event_target_del(ctx->event_target);
+#endif
 
 	gf_free(ctx);
 }
@@ -375,6 +380,7 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 	return scene;
 }
 
+#ifndef GPAC_DISABLE_SVG
 void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOMEventTarget **target)
 {
 	if (c) {
@@ -385,8 +391,8 @@ void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOME
 		*sg = xml_get_scenegraph(c);
 		*target = ctx->event_target;
 	}
-
 }
+#endif
 
 static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int argc, JSValueConst *argv)
 {
@@ -402,8 +408,10 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 	p->c = c;
 	p->_this = obj;
 	p->owning_graph = xml_get_scenegraph(c);
+#ifndef GPAC_DISABLE_SVG
 	if (p->owning_graph)
 		p->event_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_XHR, p);
+#endif
 
 	p->onabort = JS_NULL;
 	p->onerror = JS_NULL;
@@ -420,6 +428,7 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 
 static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
 {
+#ifndef GPAC_DISABLE_SVG
 	GF_DOM_Event xhr_evt;
 	if (!ctx->event_target)
 		return;
@@ -429,7 +438,9 @@ static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
 	xhr_evt.target = ctx->event_target->ptr;
 	xhr_evt.target_type = ctx->event_target->ptr_type;
 	gf_sg_fire_dom_event(ctx->event_target, &xhr_evt, ctx->owning_graph, NULL);
+#endif
 }
+
 
 static void xml_http_state_change(XMLHTTPContext *ctx)
 {
@@ -556,6 +567,9 @@ static JSValue xml_http_set_header(JSContext *c, JSValueConst obj, int argc, JSV
 	JS_FreeCString(c, val);
 	return JS_TRUE;
 }
+
+#ifndef GPAC_DISABLE_SVG
+
 static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	u32 i;
@@ -627,6 +641,7 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 		txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 	}
 }
+#endif // GPAC_DISABLE_SVG
 
 static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 {
@@ -736,6 +751,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		/*prepare SAX parser*/
 		if (ctx->responseType != XHR_RESPONSETYPE_SAX) goto exit;
 		if (strcmp(parameter->name, "Content-Type")) goto exit;
+
+#ifndef GPAC_DISABLE_SVG
 		if (!strncmp(parameter->value, "application/xml", 15)
 		        || !strncmp(parameter->value, "text/xml", 8)
 		        || strstr(parameter->value, "+xml")
@@ -749,6 +766,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
 			ctx->document->reference_count = 1;
 		}
+#endif
+
 		goto exit;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (parameter->data && parameter->size) {
@@ -1067,6 +1086,7 @@ static JSValue xml_http_get_header(JSContext *c, JSValueConst obj, int argc, JSV
 	return res;
 }
 
+#ifndef GPAC_DISABLE_SVG
 static GF_Err xml_http_load_dom(XMLHTTPContext *ctx)
 {
 	GF_Err e;
@@ -1078,6 +1098,7 @@ static GF_Err xml_http_load_dom(XMLHTTPContext *ctx)
 	gf_xml_dom_del(parser);
 	return e;
 }
+#endif //GPAC_DISABLE_SVG
 
 
 static JSValue xml_http_overrideMimeType(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -1119,6 +1140,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 	case XHR_RESPONSEXML:
 		if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_NULL;
+#ifndef GPAC_DISABLE_SVG
 		if (ctx->data) {
 			if (!ctx->document) {
 				ctx->document = gf_sg_new();
@@ -1134,6 +1156,9 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 		} else {
 			return JS_NULL;
 		}
+#else
+		return js_throw_err_msg(c, GF_NOT_SUPPORTED, "DOM support not included in buil");
+#endif
 
 	case XHR_RESPONSE:
 		if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_NULL;
@@ -1152,6 +1177,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 				return JS_DupValue(c, ctx->arraybuffer);
 				break;
 			case XHR_RESPONSETYPE_DOCUMENT:
+#ifndef GPAC_DISABLE_SVG
 				if (ctx->data) {
 					if (!ctx->document) {
 						ctx->document = gf_sg_new();
@@ -1166,6 +1192,9 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 					return dom_document_construct_external(c, ctx->document);
 				}
 				return JS_NULL;
+#else
+				return js_throw_err_msg(c, GF_NOT_SUPPORTED, "DOM support not included in buil");
+#endif
 			case XHR_RESPONSETYPE_JSON:
 				return JS_ParseJSON(c, ctx->data, ctx->size, "responseJSON");
 			case XHR_RESPONSETYPE_PUSH:
@@ -1346,6 +1375,7 @@ static const JSCFunctionListEntry xhr_Funcs[] =
 	JS_CFUNC_DEF("send", 0, xml_http_send),
 	JS_CFUNC_DEF("setRequestHeader", 2, xml_http_set_header),
 	JS_CFUNC_DEF("wait", 0, xml_http_wait),
+
 	/*eventTarget interface*/
 	JS_DOM3_EVENT_TARGET_INTERFACE
 };

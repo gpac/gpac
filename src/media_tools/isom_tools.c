@@ -2238,6 +2238,8 @@ exit:
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
+
+#if !defined(GPAC_DISABLE_HEVC)
 /* Split LHVC layers */
 static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 {
@@ -2257,6 +2259,7 @@ static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 typ
 		gf_list_add(hevc_cfg->param_array, ar);
 	return ar;
 }
+#endif
 
 typedef struct{
 	u8 layer_id_plus_one;

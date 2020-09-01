@@ -1151,6 +1151,7 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 	if (!fs) return GF_BAD_PARAM;
 	if (fs->js_ctx) return GF_NOT_SUPPORTED;
 
+#ifdef GPAC_HAS_QJS
 	ctx = gf_js_create_context();
 	if (!ctx) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
@@ -1194,6 +1195,10 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 	}
 	JS_FreeValue(fs->js_ctx, ret);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+
 }
 
 void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)

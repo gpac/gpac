@@ -721,7 +721,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 
 		if (is_hevc) {
+#ifndef GPAC_DISABLE_HEVC
 			GF_BitStream *write_to_bs = mdia->nalu_out_bs;
+#endif
+
 			if (!ps_transfered) {
 				gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
 				ps_transfered = GF_TRUE;

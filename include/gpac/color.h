@@ -221,6 +221,17 @@ Transforms a color with a given color matrix
 */
 GF_Color gf_cmx_apply(GF_ColorMatrix *_this, GF_Color col);
 
+/*!\brief color matrix transform
+
+Transforms a color with a given color matrix
+\param _this color matrix to use.
+\param a alpha to transform (in/out)
+\param r red to transform (in/out)
+\param g green to transform (in/out)
+\param b blue to transform (in/out)
+*/
+void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a, u8 *r, u8 *g, u8 *b);
+
 /*!\brief color matrix transform on wide pixel (16 bit per component)
 
 Transforms a color with a given color matrix

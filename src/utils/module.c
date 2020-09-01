@@ -269,7 +269,7 @@ const char **gf_modules_get_module_directories(u32* num_dirs)
 	directories = (char*)gf_opts_get_key("core", "mod-dirs");
 	if (! directories) {
 #ifndef GPAC_CONFIG_IOS
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Modules directories not found - check the \"ModulesDirectory\" key is set in the \"Core\" section\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Modules directories not found - check the \"ModulesDirectory\" key is set in the \"Core\" section\n"));
 #endif
 		return NULL;
 	}
