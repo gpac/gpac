@@ -1624,7 +1624,8 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 	}
 	//get the movie SDP
 	gf_isom_sdp_get(file, &sdp, &size);
-	fprintf(dump, "%s", sdp);
+	if (sdp && size)
+		fprintf(dump, "%s", sdp);
 	fprintf(dump, "\r\n");
 
 	//then tracks
