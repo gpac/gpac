@@ -5595,7 +5595,7 @@ int mp4boxMain(int argc, char **argv)
 	if (dump_iod) {
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)gf_isom_get_root_od(file);
 		if (!iod) {
-			fprintf(stderr, "File %s has no IOD", inName);
+			fprintf(stderr, "File %s has no IOD\n", inName);
 		} else {
 			char szName[GF_MAX_PATH+10];
 			FILE *iodf;
