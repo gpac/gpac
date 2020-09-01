@@ -1108,7 +1108,8 @@ static const GF_FilterArgs GSFMxArgs[] =
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfmx",
 	GF_FS_SET_DESCRIPTION("GSF Muxer")
-	GF_FS_SET_HELP("This filter provides GSF (__GPAC Super/Simple/Serialized/Stream/State Format__) multiplexing.\n"
+#ifndef GPAC_DISABLE_DOC
+	.help = "This filter provides GSF (__GPAC Super/Simple/Serialized/Stream/State Format__) multiplexing.\n"
 			"It serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "
 			"using either pipes or sockets. Upstream events are not serialized.\n"
@@ -1131,7 +1132,9 @@ GF_FilterRegister GSFMxRegister = {
 			"The [-skp]() option may also be used to specify which property to drop:\n"
 			"EX skp=\"4CC1,Name2\n"\
 			"This will remove properties of type 4CC1 and properties (built-in or not) of name Name2.\n"
-			"\n")
+			"\n"
+		,
+#endif
 	.private_size = sizeof(GSFMxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFMxArgs,
