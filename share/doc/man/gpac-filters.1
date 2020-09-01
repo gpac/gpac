@@ -472,7 +472,7 @@ rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. overridden by Reb
 .br
 mbuf (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid
 .br
-ntpsync (uint, default: 0, updatable): ntp resync threshold (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop
+ntpsync (uint, default: 0, updatable): ntp resync threshold in ms (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop
 .br
 nojs (bool, default: false):   disable javascript
 .br
@@ -5989,7 +5989,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.0.0-rev189-g438fc354d-master
+build: 1.0.0-rev203-g88e783c98-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
