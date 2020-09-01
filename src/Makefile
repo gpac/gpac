@@ -21,8 +21,9 @@ LIBGPAC_UTILS+=utils/sha1.o utils/base_encoding.o utils/math.o utils/os_net.o ut
 endif
 
 ifeq ($(DISABLE_PLAYER), no)
-LIBGPAC_UTILS+=utils/os_module.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/unicode.o
+LIBGPAC_UTILS+=utils/uni_bidi.o utils/unicode.o
 endif
+LIBGPAC_UTILS+=utils/os_module.o utils/module.o utils/path2d.o utils/path2d_stroker.o 
 
 ## libgpac objects gathering: src/ietf
 LIBGPAC_IETF=
@@ -189,6 +190,7 @@ LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/
 ifeq ($(DISABLE_PLAYER), yes)
 LIBGPAC_COMPOSITOR=
 LIBGPAC_TERMINAL=
+LIBGPAC_EVG=
 endif
 ifeq ($(DISABLE_SCENEGRAPH), yes)
 LIBGPAC_SCENE=

@@ -213,6 +213,8 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_HEVC
+
 static GF_Err hevc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
 	u32 size, pck_size, final_size;
@@ -310,6 +312,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	}
 	return GF_OK;
 }
+#endif // GPAC_DISABLE_HEVC
 
 static GF_Err none_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
@@ -471,11 +474,13 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_CODECID_MVC:
 		pctx->rewrite_pid_config = avc_rewrite_pid_config;
 		break;
+#ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_HEVC:
 	case GF_CODECID_HEVC_TILES:
 	case GF_CODECID_LHVC:
 		pctx->rewrite_pid_config = hevc_rewrite_pid_config;
 		break;
+#endif
 	case GF_CODECID_MPEG4_PART2:
 		pctx->rewrite_pid_config = m4v_rewrite_pid_config;
 		break;

@@ -862,8 +862,6 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	return NULL;
 }
 
-#endif //defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
-
 static const GF_FilterCapability CTXLoadCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -897,6 +895,8 @@ GF_FilterRegister CTXLoadRegister = {
 	.process_event = ctxload_process_event,
 	.probe_data = ctxload_probe_data,
 };
+
+#endif //defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 
 
 const GF_FilterRegister *ctxload_register(GF_FilterSession *session)

@@ -1226,6 +1226,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			//TODO - merge, temporal sublayers
 		}
 	}
+#ifndef GPAC_DISABLE_HEVC
 	if (check_track_for_hevc) {
 		if (split_tile_mode) {
 			e = gf_media_split_hevc_tiles(dest, split_tile_mode - 1);
@@ -1237,6 +1238,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (e) goto exit;
 		}
 	}
+#endif
 
 	if (tc_fps_num) {
 		u32 desc_index=0;
