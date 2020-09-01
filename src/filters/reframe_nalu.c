@@ -272,10 +272,14 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		}
 	}
 	if (ctx->is_hevc) {
+#ifdef GPAC_DISABLE_HEVC
+		return GF_NOT_SUPPORTED;
+#else
 		ctx->log_name = "HEVC";
 		if (ctx->avc_state) gf_free(ctx->avc_state);
 		if (!ctx->hevc_state) GF_SAFEALLOC(ctx->hevc_state, HEVCState);
 		ctx->min_layer_id = 0xFF;
+#endif
 	} else {
 		ctx->log_name = "AVC|H264";
 		if (ctx->hevc_state) gf_free(ctx->hevc_state);
@@ -386,6 +390,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 		gf_bs_seek(bs, nal_start);
 		if (hevc_state) {
+#ifndef GPAC_DISABLE_HEVC
 			u8 temporal_id, layer_id, nal_type;
 
 			res = gf_media_hevc_parse_nalu_bs(bs, hevc_state, &nal_type, &temporal_id, &layer_id);
@@ -413,6 +418,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 				is_slice = GF_TRUE;
 				break;
 			}
+#endif // GPAC_DISABLE_HEVC
 		} else {
 			u32 nal_type;
 			u64 pos = gf_bs_get_position(bs);
@@ -579,6 +585,8 @@ static void naludmx_hevc_add_param(GF_HEVCConfig *cfg, GF_AVCConfigSlot *sl, u8 
 	gf_list_add(pa->nalus, sl);
 }
 
+#ifndef GPAC_DISABLE_HEVC
+
 static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc_cfg)
 {
 	u32 use_tiles, use_wpp, nb_pps, i, count;
@@ -612,6 +620,7 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 	else if (!use_tiles && (use_wpp==nb_pps) ) hevc_cfg->parallelismType = 3;
 	else hevc_cfg->parallelismType = 0;
 }
+#endif // GPAC_DISABLE_HEVC
 
 GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 {
@@ -787,6 +796,7 @@ static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 
 static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_hevc_base)
 {
+#ifndef GPAC_DISABLE_HEVC
 	u32 i, count;
 	u8 layer_id;
 	Bool first = GF_TRUE;
@@ -949,6 +959,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	}
 	gf_odf_hevc_cfg_del(hvcc);
 	gf_odf_hevc_cfg_del(lvcc);
+#endif // GPAC_DISABLE_HEVC
 }
 
 void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar)
@@ -1621,9 +1632,11 @@ void naludmx_add_subsample(GF_NALUDmxCtx *ctx, u32 subs_size, u8 subs_priority, 
 	ctx->subs_mapped_bytes += subs_size + ctx->nal_length;
 }
 
-
 static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
 {
+#ifdef GPAC_DISABLE_HEVC
+	return -1;
+#else
 	s32 ps_idx = 0;
 	s32 res;
 	u8 nal_unit_type, temporal_id, layer_id;
@@ -1788,6 +1801,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		ctx->max_temporal_id[layer_id] = temporal_id;
 	if (ctx->min_layer_id > layer_id) ctx->min_layer_id = layer_id;
 	return res;
+#endif // GPAC_DISABLE_HEVC
 }
 
 static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 nal_type, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
@@ -2577,7 +2591,7 @@ naldmx_flush:
 
 		//store all variables needed to compute POC/CTS and sample SAP and recovery info
 		if (ctx->is_hevc) {
-
+#ifndef GPAC_DISABLE_HEVC
 			slice_is_ref = gf_media_hevc_slice_is_IDR(ctx->hevc_state);
 
 			recovery_point_valid = ctx->hevc_state->sei.recovery_point.valid;
@@ -2612,7 +2626,7 @@ naldmx_flush:
 				slice_is_b = GF_TRUE;
 				break;
 			}
-
+#endif // GPAC_DISABLE_HEVC
 		} else {
 
 			/*fixme - we need finer grain for priority*/

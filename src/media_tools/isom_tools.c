@@ -2415,7 +2415,7 @@ exit:
 GF_EXPORT
 GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode)
 {
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 	LHVCTrackInfo sti[64];
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	u32 sample_num, count, cur_extract_mode, j, k, max_layer_id;

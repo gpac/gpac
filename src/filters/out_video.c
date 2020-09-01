@@ -29,6 +29,7 @@
 #include <gpac/modules/video_out.h>
 #include <gpac/color.h>
 
+#ifndef GPAC_DISABLE_PLAYER
 
 //#define GPAC_DISABLE_3D
 
@@ -1545,3 +1546,9 @@ const GF_FilterRegister *vout_register(GF_FilterSession *session)
 {
 	return &VideoOutRegister;
 }
+#else
+const GF_FilterRegister *vout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_PLAYER

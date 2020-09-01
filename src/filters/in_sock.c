@@ -296,7 +296,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 #ifndef GPAC_DISABLE_STREAMING
 				sock_c->rtp_reorder = gf_rtp_reorderer_new(ctx->reorder_pck, ctx->reorder_delay);
 #else
-			ctx-	>is_rtp = GF_TRUE;
+				sock_c->is_rtp = GF_TRUE;
 #endif
 				mime = "video/mp2t";
 			} else if (ctx->buffer[0] == 0x47) {
