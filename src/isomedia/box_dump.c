@@ -3723,7 +3723,7 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 	}
 	gf_isom_box_dump_start(a, name, trace);
 
-	if (!no_dump) {
+	if (!no_dump && itune->data) {
 		GF_BitStream *bs;
 		switch (itune->type) {
 		case GF_ISOM_BOX_TYPE_DISK:
