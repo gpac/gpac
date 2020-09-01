@@ -31,8 +31,10 @@
 #endif
 //#define CHECK_TASK_LIST_INTEGRITY
 
+#ifndef GPAC_DISABLE_PLAYER
 struct _gf_ft_mgr *gf_font_manager_new();
 void gf_font_manager_del(struct _gf_ft_mgr *fm);
+#endif
 
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
@@ -625,7 +627,9 @@ void gf_fs_del(GF_FilterSession *fsess)
 	gf_fs_unload_script(fsess, NULL);
 
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
+#ifndef GPAC_DISABLE_PLAYER
 	if (fsess->font_manager) gf_font_manager_del(fsess->font_manager);
+#endif
 
 	if (fsess->registry) {
 		while (gf_list_count(fsess->registry)) {
@@ -2753,6 +2757,9 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 GF_EXPORT
 struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter)
 {
+#ifdef GPAC_DISABLE_PLAYER
+	return NULL;
+#else
 	GF_FilterSession *fsess;
 	if (!filter) return NULL;
 	fsess = filter->session;
@@ -2761,6 +2768,7 @@ struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter)
 		fsess->font_manager = gf_font_manager_new();
 	}
 	return fsess->font_manager;
+#endif
 }
 
 void gf_fs_cleanup_filters(GF_FilterSession *fsess)

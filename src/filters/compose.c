@@ -29,6 +29,7 @@
 //to set caps in filter session, to cleanup!
 #include "../filter_core/filter_session.h"
 
+#ifndef GPAC_DISABLE_PLAYER
 
 GF_Err compose_bifs_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
 GF_Err compose_bifs_dec_process(GF_Scene *scene, GF_FilterPid *pid);
@@ -986,4 +987,10 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 	}
 	return &CompositorFilterRegister;
 }
+#else
+const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_PLAYER
 
