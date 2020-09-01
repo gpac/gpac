@@ -7268,6 +7268,10 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->sample_alloc = ptr->nb_samples = 1;
 		ptr->samples[0].nb_pack = ptr->sample_count;
 	} else {
+		//if we get here, at least one flag (so at least 4 bytes) is set, check size
+		if (ptr->sample_count * 4 > ptr->size) {
+			ISOM_DECREASE_SIZE(ptr, ptr->sample_count*4);
+		}
 		ptr->samples = gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
 		if (!ptr->samples) return GF_OUT_OF_MEM;
 		ptr->sample_alloc = ptr->nb_samples = ptr->sample_count;
