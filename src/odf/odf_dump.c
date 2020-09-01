@@ -873,7 +873,7 @@ GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *uid, FILE *trace, u32 indent, Bool XMTDum
 
 GF_Err DumpRawUIConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDump, u32 oti)
 {
-	char devName[255];
+	char devName[256];
 	u32 i;
 	u64 len;
 	GF_BitStream *bs;
