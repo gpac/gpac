@@ -461,7 +461,6 @@ enum
 
 static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
-	GF_Err gf_fs_get_filter_stats_f(GF_FilterSession *session, GF_Filter *f, GF_FilterStats *stats);
 	const char *val_s;
 	Bool val_b;
 	GF_FilterStats stats;
@@ -514,7 +513,7 @@ static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		f->report_updated = GF_FALSE;
 		return JS_NewBool(ctx, val_b);
 	case JSFF_CLASS:
-		gf_fs_get_filter_stats_f(f->session, f, &stats);
+		gf_filter_get_stats(f, &stats);
 		switch (stats.type) {
 		case GF_FS_STATS_FILTER_RAWIN: return JS_NewString(ctx, "rawin");
 		case GF_FS_STATS_FILTER_DEMUX: return JS_NewString(ctx, "demuxer");
@@ -527,24 +526,24 @@ static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		default: return JS_NewString(ctx, "unknown");
 		}
 	case JSFF_CODEC:
-		gf_fs_get_filter_stats_f(f->session, f, &stats);
+		gf_filter_get_stats(f, &stats);
 		if (stats.codecid) {
 			return JS_NewString(ctx, gf_codecid_name(stats.codecid));
 		}
 		return JS_NewString(ctx, "unknown");
 	case JSFF_STREAMTYPE:
-		gf_fs_get_filter_stats_f(f->session, f, &stats);
+		gf_filter_get_stats(f, &stats);
 		if (stats.stream_type) {
 			return JS_NewString(ctx, gf_stream_type_name(stats.stream_type));
 		}
 		return JS_NewString(ctx, "unknown");
 
 	case JSFF_LAST_TS_SENT:
-		gf_fs_get_filter_stats_f(f->session, f, &stats);
+		gf_filter_get_stats(f, &stats);
 		if (!stats.last_ts_sent.den) return JS_NULL;
 		return JS_NewInt64(ctx, stats.last_ts_sent.num);
 	case JSFF_LAST_TS_DROP:
-		gf_fs_get_filter_stats_f(f->session, f, &stats);
+		gf_filter_get_stats(f, &stats);
 		if (!stats.last_ts_drop.den) return JS_NULL;
 		return JS_NewInt64(ctx, stats.last_ts_drop.num);
 

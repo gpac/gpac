@@ -2915,11 +2915,12 @@ u32 gf_fs_get_filters_count(GF_FilterSession *session)
 	return session ? gf_list_count(session->filters) : 0;
 }
 
-GF_Err gf_fs_get_filter_stats_f(GF_FilterSession *session, GF_Filter *f, GF_FilterStats *stats)
+GF_EXPORT
+GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
 {
 	u32 i;
 	Bool set_name=GF_FALSE;
-	if (!stats || !session || !f) return GF_BAD_PARAM;
+	if (!stats || !f) return GF_BAD_PARAM;
 	memset(stats, 0, sizeof(GF_FilterStats));
 	stats->filter = f;
 	stats->filter_alias = f->multi_sink_target;
@@ -3013,7 +3014,7 @@ GF_EXPORT
 GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
 {
 	if (!stats || !session) return GF_BAD_PARAM;
-	return gf_fs_get_filter_stats_f(session, gf_list_get(session->filters, idx), stats);
+	return gf_filter_get_stats(gf_list_get(session->filters, idx), stats);
 }
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
