@@ -1323,6 +1323,27 @@ exit:
 }
 
 
+static Bool on_split_event(void *_udta, GF_Event *evt)
+{
+	Double progress;
+	u32 *prev_progress = (u32 *)_udta;
+	if (!_udta) return GF_FALSE;
+	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
+	if (!evt->progress.total) return GF_FALSE;
+
+	progress = (Double) (100*evt->progress.done) / evt->progress.total;
+	if ((u32) progress==*prev_progress)
+		return GF_FALSE;
+
+	*prev_progress = (u32) progress;
+#ifndef GPAC_DISABLE_LOG
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Spliting: % 2.2f %%\r", progress));
+#else
+	fprintf(stderr, "Spliting: % 2.2f %%\r", progress);
+#endif
+	return GF_FALSE;
+}
+
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, char *outName, const char *tmpdir, Bool force_rap_split, const char *split_range_str)
 {
 	Bool chunk_extraction, rap_split, split_until_end;
@@ -1332,6 +1353,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	char *filter_args = NULL;
 	GF_FilterSession *fs;
 	GF_Filter *src, *reframe, *dst;
+	u32 progress = (u32) -1;
 
 	chunk_extraction = (chunk_start>=0) ? GF_TRUE : GF_FALSE;
 	if (split_range_str)
@@ -1445,6 +1467,22 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	}
 	//link reframer to dst
 	gf_filter_set_source(dst, reframe, NULL);
+
+	if (!gf_sys_is_test_mode()
+#ifndef GPAC_DISABLE_LOG
+		&& (gf_log_get_tool_level(GF_LOG_APP)!=GF_LOG_QUIET)
+#endif
+		&& !gf_sys_is_quiet()
+	) {
+		gf_fs_enable_reporting(fs, GF_TRUE);
+		gf_fs_set_ui_callback(fs, on_split_event, &progress);
+	}
+#ifdef GPAC_ENABLE_COVERAGE
+	else if (gf_sys_is_cov_mode()) {
+		on_split_event(NULL, NULL);
+	}
+#endif //GPAC_ENABLE_COVERAGE
+
 
 	e = gf_fs_run(fs);
 	if (e>=GF_OK) {
