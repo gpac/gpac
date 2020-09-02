@@ -552,7 +552,7 @@ typedef struct
 	GF_Fraction64 last_ts_drop;
 } GF_FilterStats;
 
-/*! Gets number of active filters in the session
+/*! Gets statistics for a given filter index in the session
 \param session filter session
 \param idx index of filter to query
 \param stats statistics for filter
@@ -2588,6 +2588,14 @@ Bool gf_filter_is_alias(GF_Filter *filter);
 \return GF_TRUE if filter is present in the parent chain, GF_FALSE otherwise
 */
 Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
+
+
+/*! Gets statistics for filter
+\param filter filter session
+\param stats statistics for filter
+\return error code if any
+*/
+GF_Err gf_filter_get_stats(GF_Filter *filter, GF_FilterStats *stats);
 
 /*! @} */
 
