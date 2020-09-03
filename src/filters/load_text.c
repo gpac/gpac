@@ -1179,7 +1179,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 				ctx->non_compliant_ttml = GF_TRUE;
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-		} else if (!strcmp(att->name, "xml:lang")) {
+		} else if (!strcmp(att->name, "xml:lang") && att->value && strlen(att->value)) {
 			lang = att->value;
 		}
 	}
