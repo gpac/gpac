@@ -559,6 +559,7 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			u32 itype = gf_itags_get_type((u32) itag);
 			itag = gf_itags_get_itag(itag);
 
+			e = GF_OK;
 			if ((itag==GF_ISOM_ITUNE_DISK) ||(itag==GF_ISOM_ITUNE_TRACKNUMBER)) {
 				u32 n=0, t=0, tlen=0;
 				if (tag->value.string) {
