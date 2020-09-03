@@ -773,6 +773,7 @@ GF_Err unkn_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (e == GF_OK) {
 		gf_bs_seek(sub_bs, 0);
+		gf_bs_set_cookie(sub_bs, GF_ISOM_BS_COOKIE_NO_LOGS);
 		e = gf_isom_box_array_read(s, sub_bs, NULL);
 	}
 	gf_bs_del(sub_bs);
