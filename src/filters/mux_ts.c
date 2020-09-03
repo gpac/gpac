@@ -773,7 +773,6 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		u32 temi_index=0;
 		Bool done=GF_FALSE;
 		char *sep;
-		char sep_val;
 
 		if (!strlen(temi_cfg))
 			break;
@@ -836,10 +835,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		}
 
 		sep = strchr(temi_cfg, ',');
-		if (sep) {
-			sep_val = sep[0];
-			sep[0] = 0;
-		}
+		if (sep) sep[0] = 0;	
 
 		done = GF_TRUE;
 		if (temi_index && (temi_index!=st_idx)) done = GF_FALSE;
@@ -866,7 +862,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 			gf_list_add(tspid->temi_descs, temi);
 		}
 		if (!sep) break;
-		sep[0] = sep_val;
+		sep[0] = ',';
 		temi_cfg = sep+1;
 	}
 }

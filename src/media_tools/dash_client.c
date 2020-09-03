@@ -497,7 +497,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	u32 shift, timescale;
 	u64 current_time, current_time_no_timeshift, availabilityStartTime;
 	u32 ast_diff, start_number;
-	Bool fetch_time_set = GF_FALSE;
 	Double ast_offset = 0;
 
 	if (mpd->type==GF_MPD_TYPE_STATIC)
@@ -527,7 +526,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		//when we initialize the timeline without an explicit fetch time, use our local clock - this allows for better precision
 		//when trying to locate the live edge
 		fetch_time = gf_net_get_utc();
-		fetch_time_set = GF_TRUE;
 	}
 	//if ATSC and clock not setup, do it
 	val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-dash-atsc");

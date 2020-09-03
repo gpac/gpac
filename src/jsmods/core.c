@@ -958,7 +958,7 @@ static JSValue js_sys_prompt_input(JSContext *ctx, JSValueConst this_val, int ar
 
 static JSValue js_sys_prompt_string(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	char input[4096];
+	char input[4096], *read;
 	u32 len;
 //#ifdef GPAC_ENABLE_COVERAGE
     if (argc) {
@@ -966,7 +966,8 @@ static JSValue js_sys_prompt_string(JSContext *ctx, JSValueConst this_val, int a
 	}
 //#endif // GPAC_ENABLE_COVERAGE
 
-	fgets(input, 4095, stdin);
+	read = fgets(input, 4095, stdin);
+	if (!read) return JS_NULL;
 	input[4095]=0;
 	len = (u32) strlen(input);
 	if (len && (input[len-1] == '\n')) {
