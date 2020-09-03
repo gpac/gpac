@@ -44,7 +44,7 @@ var height = rect.height;
 
 ttml_dbg_msg("TTML Rendered Loaded size: " + width + "x" + height);
 
-//filter-assignable variables - if changing names, also do it in filters/dec_webvtt.c
+//filter-assignable variables - if changing names, also do it in filters/dec_ttml.c
 var xOffset = 5;
 var yOffset = 5;
 var fontSize = 20;
@@ -79,6 +79,11 @@ function create_text_area(settings) {
 	ttml_dbg_msg("Creating textArea size " + w + " x " + h + " - xoffset: " + xOffset);
 	
 	t.setAttribute("fill", textColor);
+
+	if (height>=720) {
+		fontSize = height * 0.05;
+	}
+
 	t.setAttribute("font-size", fontSize);
 	t.setAttribute("font-family", fontFamily);
 	t.setAttribute("text-align", settings.align);
@@ -110,11 +115,11 @@ function add_text_span(parent, text, styles) {
 	}
 	span.textContent = text;
 	parent.appendChild(span);
-	ttml_dbg_msg("tspan created "+span + " in " + parent);
+	ttml_dbg_msg("tspan created "+span + " in " + parent.tagName);
 	return span;
 }
 
-function parse_sample_settings(ttmldoc, tsample)
+function parse_sample_settings(ttmldoc, tsample, reg_id)
 {
 	ttml_dbg_msg("Parsing sample settings");
 	var obj = {};
@@ -125,6 +130,28 @@ function parse_sample_settings(ttmldoc, tsample)
 	obj.size *= width/100;
 	
 	obj.align = "center";
+
+	//todo, parse style and region attributes...
+/*
+	if (reg_id==="")
+		return obj;
+
+	var region = ttmldoc.getElementById(reg_id);
+	if (region==null) {
+		ttml_dbg_msg("region not found: "+reg_id);
+		return obj;
+	}
+	var styles = region.getElementsByTagName("style");
+	if (styles.length==0) {
+		ttml_dbg_msg("region found but no styles");
+		return obj;
+	}
+	var style = styles.item(0);
+	var offset = style.getAttribute('offset');
+	var extend = style.getAttribute('extent');
+	var disp_align = style.getAttribute('displayAlign');
+*/
+
 	return obj;
 }
 
@@ -189,7 +216,9 @@ function on_ttml_sample(ttmldoc, scene_time, pck_dur)
 {
 	ttml_dbg_msg("TTML sample at " + scene_time + " pck dur " + pck_dur);
 
+	sample_end = 0;
 	display_area.textContent = '';
+	var body = ttmldoc.getElementsByTagName("body");
 	var samples = ttmldoc.getElementsByTagName("p");
 	var styles = {"italic": 0, "underlined": 0, "bold": 0};
 
@@ -197,6 +226,11 @@ function on_ttml_sample(ttmldoc, scene_time, pck_dur)
 		alert("TTML sample has " + samples.length + " defined, only the last sample will be displayed");
 	}
 	ttml_dbg_msg(samples.length + " text samples");
+	var body_region = "";
+	if (body.length) {
+		var b = body.item(0);
+		body_region = b.getAttribute('region');
+	}
 	for (var i=0; i<samples.length; i++) {
 		var sample_start = 0;
 		var s = samples.item(i);
@@ -204,20 +238,23 @@ function on_ttml_sample(ttmldoc, scene_time, pck_dur)
 		var end = s.getAttribute('end');
 		var region = s.getAttribute('region');
 		var id = s.getAttribute('id');
+		if (region==="") region = body_region;
 
 		sample_end = parse_time(end);
 		if (begin)
 			sample_start = parse_time(begin);
 
-		ttml_dbg_msg("sample start: " + sample_start + " end: " + sample_end + " region " + region + " id " + id);
-
-		if (sample_start < scene_time)
-			break;
+		ttml_dbg_msg("sample start: " + sample_start + " end: " + sample_end + " scenetime: " + scene_time +  " region: " + region + " id: " + id);
+		//we're late but check if sample not over
+		if (sample_start < scene_time) {
+//			if (sample_end < scene_time) 
+//				break;
+		}
 
 		if (sample_end < scene_time) 
 			continue;
 
-		var settings = parse_sample_settings(ttmldoc, s);
+		var settings = parse_sample_settings(ttmldoc, s, region);
 		var tA = create_text_area(settings);
 		push_ttml_text_node(tA, s, styles);
 	}
@@ -227,11 +264,14 @@ function on_ttml_sample(ttmldoc, scene_time, pck_dur)
 
 function on_ttml_clock(scene_time)
 {
+	if (!sample_end) return 0;
+
 	if (sample_end > scene_time) {
-		ttml_dbg_msg("not over yet: " + scene_time + " vs last end " + sample_end);
+		//ttml_dbg_msg("not over yet: " + scene_time + " vs last end " + sample_end);
 		return sample_end - scene_time;
 	}
-	ttml_dbg_msg("sample is over ");
+	ttml_dbg_msg("sample is over (end: " + sample_end + " - now: " + scene_time + ")" );
 	display_area.textContent = '';
+	sample_end = 0;
 	return 0;
 }
