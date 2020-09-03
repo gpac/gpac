@@ -268,12 +268,12 @@ static void gf_sc_frame_ifce_done(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 	GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	GF_Compositor *compositor = gf_filter_get_udta(filter);
 	if (frame_ifce) {
-		compositor->frame_ifce.user_data = NULL;
 		if (compositor->fb.video_buffer) {
 			gf_sc_release_screen_buffer(compositor, &compositor->fb);
 			compositor->fb.video_buffer = NULL;
 		}
 	}
+	compositor->frame_ifce.user_data = NULL;
 	compositor->flush_pending = (compositor->skip_flush!=1) ? GF_TRUE : GF_FALSE;
 	compositor->skip_flush = 0;
 }
@@ -2862,7 +2862,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			compositor->frame_draw_type = 0;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - STB %d\n", compositor->scene_sampled_clock));
-
 			scene_drawn = gf_sc_draw_scene(compositor);
 
 #ifndef GPAC_DISABLE_LOG
@@ -2903,10 +2902,11 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				compositor->passthrough_pck = NULL;
 				pck_frame_ts = gf_filter_pck_get_cts(pck);
 			} else {
+				//assign udta of frame interface event when using shared packet, as it is used to test when frame is released
+				compositor->frame_ifce.user_data = compositor;
 				if (compositor->video_out==&raw_vout) {
 					pck = gf_filter_pck_new_shared(compositor->vout, compositor->framebuffer, compositor->framebuffer_size, gf_sc_frame_ifce_done);
 				} else {
-					compositor->frame_ifce.user_data = compositor;
 					compositor->frame_ifce.get_plane = gf_sc_frame_ifce_get_plane;
 					compositor->frame_ifce.get_gl_texture = NULL;
 #ifndef GPAC_DISABLE_3D
