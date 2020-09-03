@@ -191,7 +191,8 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		size = gf_bs_read_u64(bs);
 		hdr_size += 8;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), size,  start));
+	if (!skip_logs)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), size,  start));
 
 	if ( size < hdr_size ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", size, hdr_size));
@@ -1661,7 +1662,6 @@ void gf_isom_box_del(GF_Box *a)
 	if (!a_box_registry) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Delete invalid box type %s without registry\n", gf_4cc_to_str(a->type) ));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Delete box type %s\n", gf_4cc_to_str(a->type) ));
 		a_box_registry->del_fn(a);
 	}
 	//delet the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox
