@@ -1478,6 +1478,8 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 			return i;
 		if (strstr(box_registry[i].parents_4cc, parent_name) != NULL)
 			return i;
+		if (strstr(box_registry[i].parents_4cc, "*") != NULL)
+			return i;
 
 		if (strstr(box_registry[i].parents_4cc, "sample_entry") == NULL)
 			continue;
@@ -1514,6 +1516,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			case GF_ISOM_BOX_TYPE_UDTA:
 			case GF_ISOM_BOX_TYPE_UNKNOWN:
 			case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
+			case GF_QT_BOX_TYPE_WAVE:
 				break;
 			default:
 				if (is_root_box) {
