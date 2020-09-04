@@ -129,21 +129,21 @@ ifeq ($(DISABLE_PLAYER),no)
 	fi
 endif
 endif
-	$(INSTALL) -d "$(DESTDIR)$(moddir)"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(moddir)"
 ifneq ($(MP4BOX_STATIC),yes)
-	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)" || true
-	$(INSTALL) bin/gcc/gf_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)" || true
+	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(prefix)/$(moddir)" || true
+	$(INSTALL) bin/gcc/gf_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(prefix)/$(moddir)" || true
 ifeq ($(CONFIG_OPENHEVC),yes)
 	cp -a bin/gcc/libopenhevc* $(DESTDIR)$(prefix)/$(libdir)/ || true
 endif
 
 endif
-	$(INSTALL) -d "$(DESTDIR)$(mandir)"
-	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac-filters.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(mandir)"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(mandir)/man1"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(prefix)/$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(prefix)/$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(prefix)/$(mandir)/man1/
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac-filters.1 $(DESTDIR)$(prefix)/$(mandir)/man1/
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/res"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
@@ -216,14 +216,14 @@ endif
 uninstall:
 	$(MAKE) -C applications uninstall
 	$(MAKE) uninstall-lib
-	rm -rf $(DESTDIR)$(moddir)
+	rm -rf $(DESTDIR)$(prefix)/$(moddir)
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
 	rm -rf $(DESTDIR)$(prefix)/bin/gpac
-	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
-	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
-	rm -rf $(DESTDIR)$(mandir)/man1/gpac.1
-	rm -rf $(DESTDIR)$(mandir)/man1/gpac-filters.1
+	rm -rf $(DESTDIR)$(prefix)/$(mandir)/man1/mp4box.1
+	rm -rf $(DESTDIR)$(prefix)/$(mandir)/man1/mp4client.1
+	rm -rf $(DESTDIR)$(prefix)/$(mandir)/man1/gpac.1
+	rm -rf $(DESTDIR)$(prefix)/$(mandir)/man1/gpac-filters.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
 	rm -rf $(DESTDIR)$(prefix)/share/pixmaps/gpac.png
 	rm -rf $(DESTDIR)$(prefix)/share/applications/gpac.desktop

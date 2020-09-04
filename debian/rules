@@ -37,7 +37,7 @@ configure-stamp:
 
 	chmod 755 configure
 	./configure --host=$(DEB_HOST_GNU_TYPE) --prefix=/usr \
-	--build=$(DEB_BUILD_GNU_TYPE) --mandir=\$${prefix}/share/man \
+	--build=$(DEB_BUILD_GNU_TYPE) \
 	--extra-cflags="$(CFLAGS)" --cc="$(CC)" CXX="$(CXX)"
 
 	touch $@
@@ -69,7 +69,7 @@ install: build
 	dh_installdirs
 
 	$(MAKE) install prefix=$(CURDIR)/debian/tmp/usr \
-	moddir=$(CURDIR)/debian/tmp/usr/lib/gpac moddir_path=/usr/lib/gpac
+	moddir=lib/gpac
 
 	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr
 
