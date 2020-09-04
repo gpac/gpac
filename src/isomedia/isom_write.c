@@ -6462,7 +6462,7 @@ GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
 			for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
 				GF_EdtsEntry *ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
 				//empty edit
-				if (ent->mediaRate<0) continue;
+				if (ent->mediaTime<0) continue;
 				if (ent->mediaTime>=shift) ent->mediaTime -= shift;
 				else ent->mediaTime = 0;
 				//no offset and last entry, trash edit
@@ -6543,7 +6543,7 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 			for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
 				GF_EdtsEntry *ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
 				//empty edit
-				if (ent->mediaRate<0) continue;
+				if (ent->mediaTime<0) continue;
 				ent->mediaTime += shift;
 			}
 			SetTrackDuration(trak);
