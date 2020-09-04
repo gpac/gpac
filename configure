@@ -2717,8 +2717,7 @@ echo "GPAC_CONFIGURATION=$GPAC_CONFIGURATION" >> config.mak
 
 echo "prefix=$prefix" >> config.mak
 echo "DESTDIR=$DESTDIR" >> config.mak
-echo "moddir=$libdir/gpac" >> config.mak
-echo "mandir=$mandir" >> config.mak
+echo "moddir=gpac" >> config.mak
 echo "tinygl_target_bin_dir=$target_bin_dir" >> config.mak
 echo "MAKE=$make" >> config.mak
 
@@ -2743,7 +2742,15 @@ echo "OPTFLAGS=$CFLAGS" >> config.mak
 echo "CXXFLAGS=$CXXFLAGS" >> config.mak
 echo "LDFLAGS=$LDFLAGS" >> config.mak
 echo "SHFLAGS=$SHFLAGS" >> config.mak
-echo "libdir=$libdir" >> config.mak
+
+pf="$prefix/"
+lib_dir=${libdir//$pf/}
+echo "lib_dir=$lib_dir" >> config.mak
+
+pf="$prefix/"
+man_dir=${mandir//$pf/}
+echo "man_dir=$man_dir" >> config.mak
+
 
 echo "STATIC_MODULES=$static_modules" >> config.mak
 
