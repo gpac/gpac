@@ -2245,7 +2245,7 @@ fi
 
 #man dir
 if test x"$mandir" = x""; then
-    mandir="${prefix}/share/man"
+    mandir="share/man"
 fi
 
 if test "$static_mp4box" = "yes"; then
@@ -2717,8 +2717,7 @@ echo "GPAC_CONFIGURATION=$GPAC_CONFIGURATION" >> config.mak
 
 echo "prefix=$prefix" >> config.mak
 echo "DESTDIR=$DESTDIR" >> config.mak
-echo "moddir=$prefix/$libdir/gpac" >> config.mak
-echo "moddir_path=$prefix/$libdir/gpac" >> config.mak
+echo "moddir=$libdir/gpac" >> config.mak
 echo "mandir=$mandir" >> config.mak
 echo "tinygl_target_bin_dir=$target_bin_dir" >> config.mak
 echo "MAKE=$make" >> config.mak
