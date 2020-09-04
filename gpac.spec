@@ -25,7 +25,7 @@ BuildRequires: SDL-devel
 %{!?_without_mad:BuildRequires: libmad-devel}
 %{!?_without_xvid:BuildRequires: xvidcore-devel}
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
-%{!?_without_jack:BuildRequires: libjack-devel}
+%{!?_without_jack:BuildRequires: jack-audio-connection-kit}
 
 %description
 
@@ -40,7 +40,8 @@ GPAC is licensed under the GNU Lesser General Public License.
 
 
 Available rpmbuild rebuild options :
---without : freetype faad a52 jpeg png mad xvid ffmpeg
+--without : freetype faad a52 jpeg png mad xvid ffmpeg jack
+
 
 %prep
 %setup -q -n gpac
@@ -63,13 +64,15 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-, root, root)
-%doc AUTHORS BUGS Changelog COPYING README.md TODO
+%doc Changelog COPYING README.md
 %{_bindir}/*
 %{_libdir}/*
-%{_mandir}/man1/*
+%{_datadir}/*
+%{_includedir}/*
+%{_mandir}/*
 
 %changelog
-* Jun 16 2020 Jean Le Feuvre
+* Fri Sep 4 2020 Jean Le Feuvre
 - GPAC 1.0 release
 * Fri Jul 3 2015 Jean Le Feuvre
 - Changed to README.md
