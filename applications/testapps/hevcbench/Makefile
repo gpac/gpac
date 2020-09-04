@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/applications/testapps/hevcbench
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(SDL_CFLAGS) $(OGL_INCLS) $(OHEVC_CFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif

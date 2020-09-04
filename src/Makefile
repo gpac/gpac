@@ -4,68 +4,68 @@ vpath %.c $(SRC_PATH)/src
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
 ## libgpac objects gathering: src/utils
 LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o utils/gzio.o
-ifeq ($(DISABLE_CORE_TOOLS), no)
+ifeq ($(DISABLE_CORE_TOOLS),no)
 LIBGPAC_UTILS+=utils/sha1.o utils/base_encoding.o utils/math.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/cache.o utils/downloader.o utils/xml_parser.o utils/utf.o utils/token.o utils/color.o utils/Remotery.o
 endif
 
-ifeq ($(DISABLE_PLAYER), no)
+ifeq ($(DISABLE_PLAYER),no)
 LIBGPAC_UTILS+=utils/uni_bidi.o utils/unicode.o
 endif
 LIBGPAC_UTILS+=utils/os_module.o utils/module.o utils/path2d.o utils/path2d_stroker.o 
 
 ## libgpac objects gathering: src/ietf
 LIBGPAC_IETF=
-ifeq ($(DISABLE_STREAMING), no)
+ifeq ($(DISABLE_STREAMING),no)
 LIBGPAC_IETF=ietf/rtcp.o ietf/rtp.o ietf/rtp_packetizer.o ietf/rtp_pck_3gpp.o ietf/rtp_pck_mpeg12.o ietf/rtp_pck_mpeg4.o ietf/rtsp_command.o ietf/rtsp_common.o ietf/rtsp_response.o ietf/rtsp_session.o ietf/sdp.o ietf/rtp_depacketizer.o ietf/rtp_streamer.o
 endif
 
 ## libgpac objects gathering: src/bifs
 LIBGPAC_BIFS=
-ifeq ($(DISABLE_BIFS), no)
+ifeq ($(DISABLE_BIFS),no)
 LIBGPAC_BIFS=bifs/arith_decoder.o bifs/bifs_codec.o bifs/bifs_node_tables.o bifs/com_dec.o bifs/com_enc.o bifs/conditional.o bifs/field_decode.o bifs/field_encode.o bifs/memory_decoder.o bifs/predictive_mffield.o bifs/quantize.o bifs/script_dec.o bifs/script_enc.o bifs/unquantize.o
 endif
 
 ## libgpac objects gathering: src/isomedia
 LIBGPAC_ISOM=isomedia/avc_ext.o isomedia/box_code_3gpp.o isomedia/box_code_apple.o isomedia/box_code_base.o isomedia/box_code_drm.o isomedia/box_code_meta.o isomedia/box_dump.o isomedia/box_funcs.o isomedia/data_map.o isomedia/drm_sample.o isomedia/isom_intern.o isomedia/isom_read.o isomedia/isom_store.o isomedia/isom_write.o isomedia/media.o isomedia/media_odf.o isomedia/meta.o isomedia/movie_fragments.o isomedia/sample_descs.o isomedia/stbl_read.o isomedia/stbl_write.o isomedia/track.o isomedia/tx3g.o isomedia/iff.o
-ifeq ($(DISABLE_ISOFF_HINT), no)
+ifeq ($(DISABLE_ISOFF_HINT),no)
 LIBGPAC_ISOM+=isomedia/hint_track.o isomedia/hinting.o
 endif
-ifeq ($(DISABLE_ISOM_ADOBE), no)
+ifeq ($(DISABLE_ISOM_ADOBE),no)
 LIBGPAC_ISOM+=isomedia/box_code_adobe.o
 endif
 
 
 ## libgpac objects gathering: src/odf
 LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/odf_code.o odf/odf_codec.o odf/odf_command.o odf/qos.o odf/slc.o
-ifeq ($(MINIMAL_OD), no)
+ifeq ($(MINIMAL_OD),no)
 LIBGPAC_ODF+=odf/ipmpx_code.o odf/oci_codec.o
 
-ifeq ($(DISABLE_OD_DUMP), no)
+ifeq ($(DISABLE_OD_DUMP),no)
 LIBGPAC_ODF+=odf/ipmpx_dump.o
 endif
 
-ifeq ($(DISABLE_OD_PARSE), no)
+ifeq ($(DISABLE_OD_PARSE),no)
 LIBGPAC_ODF+=odf/ipmpx_parse.o
 endif
 
 endif
 
-ifeq ($(DISABLE_OD_DUMP), no)
+ifeq ($(DISABLE_OD_DUMP),no)
 LIBGPAC_ODF+=odf/odf_dump.o
 endif
-ifeq ($(DISABLE_OD_PARSE), no)
+ifeq ($(DISABLE_OD_PARSE),no)
 LIBGPAC_ODF+=odf/odf_parse.o
 endif
 
@@ -74,7 +74,7 @@ LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegra
 
 ## libgpac objects gathering: src/crypto
 LIBGPAC_CRYPTO=
-ifeq ($(DISABLE_CRYPTO), no)
+ifeq ($(DISABLE_CRYPTO),no)
 LIBGPAC_CRYPTO+=crypto/g_crypt.o crypto/g_crypt_openssl.o crypto/g_crypt_tinyaes.o crypto/tiny_aes.o
 endif
 
@@ -83,53 +83,53 @@ LIBGPAC_EVG=evg/ftgrays.o evg/raster3d.o evg/raster_565.o evg/raster_argb.o evg/
 ## libgpac objects gathering: src/media tools
 LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o media_tools/atsc_dmx.o
 
-ifeq ($(DISABLE_AV_PARSERS), no)
+ifeq ($(DISABLE_AV_PARSERS),no)
 LIBGPAC_MEDIATOOLS+=media_tools/img.o
 endif
-ifeq ($(DISABLE_MEDIA_IMPORT), no)
+ifeq ($(DISABLE_MEDIA_IMPORT),no)
 LIBGPAC_MEDIATOOLS+=media_tools/media_import.o
 endif
-ifeq ($(DISABLE_M2TS), no)
+ifeq ($(DISABLE_M2TS),no)
 LIBGPAC_MEDIATOOLS+=media_tools/mpegts.o
 endif
-ifeq ($(DISABLE_MPD), no)
+ifeq ($(DISABLE_MPD),no)
 LIBGPAC_MEDIATOOLS+=media_tools/m3u8.o media_tools/mpd.o
 endif
-ifeq ($(DISABLE_DASH_CLIENT), no)
+ifeq ($(DISABLE_DASH_CLIENT),no)
 LIBGPAC_MEDIATOOLS+=media_tools/dash_client.o
 endif
-ifeq ($(DISABLE_MEDIA_EXPORT), no)
+ifeq ($(DISABLE_MEDIA_EXPORT),no)
 LIBGPAC_MEDIATOOLS+=media_tools/media_export.o
 endif
-ifeq ($(DISABLE_M2TS_MUX), no)
+ifeq ($(DISABLE_M2TS_MUX),no)
 LIBGPAC_MEDIATOOLS+=media_tools/m2ts_mux.o
 endif
-ifeq ($(DISABLE_DVBX), no)
+ifeq ($(DISABLE_DVBX),no)
 LIBGPAC_MEDIATOOLS+=media_tools/ait.o media_tools/dsmcc.o media_tools/dvb_mpe.o media_tools/reedsolomon.o
 endif
-ifeq ($(DISABLE_AVILIB), no)
+ifeq ($(DISABLE_AVILIB),no)
 LIBGPAC_MEDIATOOLS+=media_tools/avilib.o
 endif
-ifeq ($(DISABLE_M2PS), no)
+ifeq ($(DISABLE_M2PS),no)
 LIBGPAC_MEDIATOOLS+=media_tools/mpeg2_ps.o
 endif
-ifeq ($(DISABLE_OGG), no)
+ifeq ($(DISABLE_OGG),no)
 LIBGPAC_MEDIATOOLS+=media_tools/gpac_ogg.o
 endif
-ifeq ($(DISABLE_CRYPTO), no)
+ifeq ($(DISABLE_CRYPTO),no)
 LIBGPAC_MEDIATOOLS+=media_tools/crypt_tools.o
 endif
-ifeq ($(DISABLE_ISOFF_HINT), no)
+ifeq ($(DISABLE_ISOFF_HINT),no)
 LIBGPAC_MEDIATOOLS+=media_tools/isom_hinter.o
 else
-ifeq ($(DISABLE_STREAMING), no)
+ifeq ($(DISABLE_STREAMING),no)
 LIBGPAC_MEDIATOOLS+=media_tools/isom_hinter.o
 endif
 endif
-ifeq ($(DISABLE_SAF), no)
+ifeq ($(DISABLE_SAF),no)
 LIBGPAC_MEDIATOOLS+=media_tools/saf.o
 endif
-ifeq ($(DISABLE_VOBSUB), no)
+ifeq ($(DISABLE_VOBSUB),no)
 LIBGPAC_MEDIATOOLS+=media_tools/vobsub.o
 endif
 
@@ -138,7 +138,7 @@ LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
 LIBGPAC_FILTERS=filter_core/filter_pck.o filter_core/filter_pid.o filter_core/filter_props.o filter_core/filter_queue.o filter_core/filter_session.o filter_core/filter_register.o filter_core/filter.o filter_core/filter_session_js.o
 
 LIBGPAC_QUICKJS=
-ifeq ($(CONFIG_JS), yes)
+ifeq ($(CONFIG_JS),yes)
 LIBGPAC_QUICKJS=quickjs/cutils.o quickjs/libbf.o quickjs/libregexp.o quickjs/libunicode.o quickjs/quickjs.o
 LIBGPAC_QUICKJS+=jsmods/core.o jsmods/evg.o jsmods/scene_js.o jsmods/storage.o jsmods/webgl.o jsmods/xhr.o
 endif
@@ -146,37 +146,37 @@ endif
 
 ## libgpac objects gathering: src/scene_manager
 LIBGPAC_SCENEMANAGER=
-ifeq ($(DISABLE_SMGR), no)
+ifeq ($(DISABLE_SMGR),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_manager.o scene_manager/text_to_bifs.o
 endif
-ifeq ($(DISABLE_LOADER_BT), no)
+ifeq ($(DISABLE_LOADER_BT),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_bt.o
 endif
-ifeq ($(DISABLE_LOADER_XMT), no)
+ifeq ($(DISABLE_LOADER_XMT),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_xmt.o
 endif
-ifeq ($(DISABLE_LOADER_ISOFF), no)
+ifeq ($(DISABLE_LOADER_ISOFF),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_isom.o
 endif
-ifeq ($(DISABLE_LOADER_QTVR), no)
+ifeq ($(DISABLE_LOADER_QTVR),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_qt.o
 endif
-ifeq ($(DISABLE_SVG), no)
+ifeq ($(DISABLE_SVG),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/loader_svg.o
 endif
-ifeq ($(DISABLE_LOADER_SWF), no)
+ifeq ($(DISABLE_LOADER_SWF),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/swf_parse.o scene_manager/swf_bifs.o scene_manager/swf_svg.o
 endif
-ifeq ($(DISABLE_SCENE_DUMP), no)
+ifeq ($(DISABLE_SCENE_DUMP),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_dump.o
 endif
-ifeq ($(DISABLE_SCENE_STATS), no)
+ifeq ($(DISABLE_SCENE_STATS),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_stats.o
 endif
-ifeq ($(DISABLE_SENG), no)
+ifeq ($(DISABLE_SENG),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/scene_engine.o
 endif
-ifeq ($(DISABLE_SCENE_ENCODE), no)
+ifeq ($(DISABLE_SCENE_ENCODE),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/encode_isom.o
 endif
 
@@ -187,22 +187,22 @@ LIBGPAC_TERMINAL=terminal/terminal.o
 ## libgpac objects gathering: src/compositor
 LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/audio_render.o compositor/bindable.o compositor/camera.o compositor/compositor.o compositor/compositor_2d.o compositor/compositor_3d.o compositor/compositor_node_init.o compositor/drawable.o compositor/events.o compositor/font_engine.o compositor/hc_flash_shape.o compositor/hardcoded_protos.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o compositor/mpeg4_animstream.o compositor/mpeg4_audio.o compositor/mpeg4_background.o compositor/mpeg4_background2d.o compositor/mpeg4_bitmap.o compositor/mpeg4_composite.o compositor/mpeg4_form.o compositor/mpeg4_geometry_2d.o compositor/mpeg4_geometry_3d.o compositor/mpeg4_geometry_ifs2d.o compositor/mpeg4_geometry_ils2d.o compositor/mpeg4_gradients.o compositor/mpeg4_grouping.o compositor/mpeg4_grouping_2d.o compositor/mpeg4_grouping_3d.o compositor/mpeg4_layer_2d.o compositor/mpeg4_layer_3d.o compositor/mpeg4_layout.o compositor/mpeg4_lighting.o compositor/mpeg4_path_layout.o compositor/mpeg4_sensors.o compositor/mpeg4_sound.o compositor/mpeg4_text.o compositor/mpeg4_textures.o compositor/mpeg4_timesensor.o compositor/mpeg4_viewport.o compositor/navigate.o compositor/offscreen_cache.o compositor/svg_base.o compositor/svg_filters.o compositor/svg_font.o compositor/svg_geometry.o compositor/svg_grouping.o compositor/svg_media.o compositor/svg_paint_servers.o compositor/svg_text.o compositor/texturing.o compositor/texturing_gl.o compositor/visual_manager.o compositor/visual_manager_2d.o compositor/visual_manager_2d_draw.o compositor/visual_manager_3d.o compositor/visual_manager_3d_gl.o compositor/x3d_geometry.o compositor/clock.o compositor/mpeg4_inputsensor.o compositor/mpeg4_mediacontrol.o compositor/media_object.o compositor/mpeg4_mediasensor.o compositor/mpeg4_inline.o compositor/scene_ns.o compositor/object_manager.o compositor/scene.o compositor/svg_external.o compositor/scene_node_init.o
 
-ifeq ($(DISABLE_PLAYER), yes)
+ifeq ($(DISABLE_PLAYER),yes)
 LIBGPAC_COMPOSITOR=compositor/font_engine.o 
 LIBGPAC_TERMINAL=
 endif
-ifeq ($(DISABLE_SCENEGRAPH), yes)
+ifeq ($(DISABLE_SCENEGRAPH),yes)
 LIBGPAC_SCENE=scenegraph/vrml_js.o
 endif
 
-ifeq ($(DISABLE_EVG), yes)
+ifeq ($(DISABLE_EVG),yes)
 LIBGPAC_EVG=
 endif
 
 
 ## libgpac objects gathering: src/laser
 LIBGPAC_LASER=
-ifeq ($(DISABLE_LASER), no)
+ifeq ($(DISABLE_LASER),no)
 LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
@@ -258,7 +258,7 @@ endif
 
 ifneq ($(CONFIG_JP2),no)
 EXTRALIBS+=$(JP2_LDFLAGS)
-ifeq ($(CONFIG_JP2), local)
+ifeq ($(CONFIG_JP2),local)
 CFLAGS+= -DOPJ_STATIC -I"$(LOCAL_INC_PATH)/openjpeg"
 else
 CFLAGS+=$(JP2_CFLAGS)
@@ -293,11 +293,11 @@ EXTRALIBS+=$(GPAC_SH_FLAGS)
 endif
 
 LD_SONAME="-Wl,-soname,libgpac.so.$(VERSION_MAJOR)"
-ifeq ($(CONFIG_DARWIN), yes)
+ifeq ($(CONFIG_DARWIN),yes)
 LD_SONAME=
 endif
 
-ifeq ($(CONFIG_SUNOS), yes)
+ifeq ($(CONFIG_SUNOS),yes)
 LD_SONAME="-Wl,-h,$(LIB)"
 EXTRALIBS+= -lrt
 endif
@@ -367,7 +367,7 @@ endif
 
 endif
 
-ifeq ($(shell fgrep "Libs.private:" ../gpac.pc 1>&2 2> /dev/null ; echo $$?), 1)
+ifeq ($(shell fgrep "Libs.private:" ../gpac.pc 1>&2 2> /dev/null ; echo $$?),1)
 	@echo "Libs.private: -lgpac_static $(EXTRALIBS)" >> ../gpac.pc
 endif
 

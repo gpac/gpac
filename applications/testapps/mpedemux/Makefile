@@ -4,22 +4,22 @@ vpath %.c $(SRC_PATH)/applications/test_apps/mpedemux
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
 #file format is read-only
-ifeq ($(GPACREADONLY), yes)
+ifeq ($(GPACREADONLY),yes)
 CFLAGS+= -DGPAC_READ_ONLY
 endif
 
-ifeq ($(DISABLE_SVG), yes)
+ifeq ($(DISABLE_SVG),yes)
 CFLAGS+=-DGPAC_DISABLE_SVG
 endif
 

@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/applications/mp42ts
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -28,7 +28,7 @@ ifeq ($(STATICBUILD),yes)
 include ../../static.mak
 
 #FIXME we have to disable AAC+bifs support in mp42ts since it reuses things from aac_in already in libgpac ...
-ifeq ($(STATIC_MODULES), yes)
+ifeq ($(STATIC_MODULES),yes)
 CFLAGS+=-DGPAC_DISABLE_PLAYER
 endif
 

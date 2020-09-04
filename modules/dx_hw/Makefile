@@ -5,17 +5,17 @@ vpath %.c $(SRC_PATH)/modules/dx_hw
 #DIRECTSOUND_VERSION is needed for GCC compil..
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) -w -DDIRECTSOUND_VERSION=0x0500
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(DX_PATH), system)
+ifeq ($(DX_PATH),system)
 LDFLAGS_DX=-ldsound -ldxguid -lddraw -lole32 -lgdi32 -lopengl32
 else
 CFLAGS+= -I$(DX_PATH)/include

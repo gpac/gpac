@@ -5,12 +5,12 @@ vpath %.c $(SRC_PATH)/modules/directfb_out
 CFLAGS=-I"$(SRC_PATH)/include" -I$(DIRECTFB_INC_PATH) $(OPTFLAGS)
 LDFLAGS+=$(DIRECTFB_LIB)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif

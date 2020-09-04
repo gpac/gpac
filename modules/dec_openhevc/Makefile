@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/dec_openhevc
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(OHEVC_CFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -25,7 +25,7 @@ OBJS=dec_openhevc.o
 SRCS=$(SRC_PATH)/src/filters/dec_openhevc.c
 
 
-ifeq ($(CONFIG_WIN32), yes)
+ifeq ($(CONFIG_WIN32),yes)
 else
 EXTRALIBS+=-ldl
 endif

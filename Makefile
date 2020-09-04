@@ -117,13 +117,13 @@ install:
 
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/gpac$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
-ifeq ($(DISABLE_ISOFF), no)
+ifeq ($(DISABLE_ISOFF),no)
 	if [ -f bin/gcc/MP4Box$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
 endif
-ifneq ($(MP4BOX_STATIC), yes)
-ifeq ($(DISABLE_PLAYER), no)
+ifneq ($(MP4BOX_STATIC),yes)
+ifeq ($(DISABLE_PLAYER),no)
 	if [ -f bin/gcc/MP4Client$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
@@ -186,11 +186,11 @@ lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 	ln -sf $(BUILD_PATH)/bin/gcc/gpac$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/gpac$(EXE_SUFFIX)
-ifeq ($(DISABLE_ISOFF), no)
+ifeq ($(DISABLE_ISOFF),no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
 endif
 ifneq ($(MP4BOX_STATIC),yes)
-ifeq ($(DISABLE_PLAYER), no)
+ifeq ($(DISABLE_PLAYER),no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
 endif
 endif
@@ -278,7 +278,7 @@ install-lib:
 
 	$(INSTALL) $(INSTFLAGS) -m 644 config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h" || true
 
-ifeq ($(GPAC_ENST), yes)
+ifeq ($(GPAC_ENST),yes)
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/include/gpac/enst"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
 endif

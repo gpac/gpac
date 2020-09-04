@@ -4,19 +4,19 @@ vpath %.c $(SRC_PATH)/modules/sdl_out
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(SDL_CFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
 LINKFLAGS=-L../../bin/gcc -lgpac $(SDL_LIBS)
 
-ifeq ($(CONFIG_DARWIN), yes)
+ifeq ($(CONFIG_DARWIN),yes)
 LINKFLAGS+=-framework OpenGL
 endif
 
