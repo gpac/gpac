@@ -1738,6 +1738,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		Bool use_ts_dur = 1;
 		Bool merge_edits = 0;
 		Bool new_track = 0;
+		u32 dst_tk_sample_entry = 0;
 		mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_HINT:
@@ -1790,6 +1791,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 					subtype_src=GF_ISOM_SUBTYPE_HVC1;
 
 				if (subtype_dst != subtype_src) {
+					dst_tk_sample_entry = dst_tk;
 					dst_tk = 0;
 				}
 			}
@@ -1805,6 +1807,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 						gf_isom_get_visual_info(dest, j+1, 1, &w, &h);
 						if ((ow==w) && (oh==h)) {
 							dst_tk = j+1;
+							dst_tk_sample_entry = 0;
 							break;
 						}
 					}
@@ -1828,15 +1831,20 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 						}
 						if (lang_dst==lang_src) {
 							dst_tk = j+1;
+							dst_tk_sample_entry = 0;
 							break;
 						}
 					} else {
 						dst_tk = j+1;
+						dst_tk_sample_entry = 0;
 						break;
 					}
 				}
 			}
 		}
+
+		if (dst_tk_sample_entry)
+			dst_tk = dst_tk_sample_entry;
 
 		if (dst_tk) {
 			u32 found_dst_tk = dst_tk;
@@ -1880,6 +1888,22 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 					dst_tk = found_dst_tk;
 				}
 			}
+		}
+
+		if (dst_tk_sample_entry && !dst_tk) {
+			u32 k, nb_sample_desc = gf_isom_get_sample_description_count(orig, i+1);
+			dst_tk = dst_tk_sample_entry;
+			fprintf(stderr, "Multiple sample entry required, merging\n");
+			for (k=0; k<nb_sample_desc; k++) {
+				u32 sdesc_idx;
+				e = gf_isom_clone_sample_description(dest, dst_tk, orig, i+1, k+1, NULL, NULL, &sdesc_idx);
+				if (e) goto err_exit;
+				//remember idx of first new added sample desc
+				if (!k)
+					dst_tk_sample_entry = sdesc_idx-1;
+			}
+		} else {
+			dst_tk_sample_entry = 0;
 		}
 
 		/*looks like a new track*/
@@ -1963,11 +1987,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
 
 			if (gf_isom_is_self_contained(orig, i+1, di)) {
-				e = gf_isom_add_sample(dest, dst_tk, di, samp);
+				e = gf_isom_add_sample(dest, dst_tk, di + dst_tk_sample_entry, samp);
 			} else {
 				u64 offset;
 				GF_ISOSample *s = gf_isom_get_sample_info(orig, i+1, j+1, &di, &offset);
-				e = gf_isom_add_sample_reference(dest, dst_tk, di, samp, offset);
+				e = gf_isom_add_sample_reference(dest, dst_tk, di + dst_tk_sample_entry, samp, offset);
 				gf_isom_sample_del(&s);
 			}
 			if (samp->nb_pack)
@@ -2003,8 +2027,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			/*convert from media time to track time*/
 			u32 movts_dst = gf_isom_get_timescale(dest);
 			u32 trackts_dst = gf_isom_get_media_timescale(dest, dst_tk);
-			/*convert from orig to dst time scale*/
-			movts_dst = (u32) (movts_dst * ts_scale);
+			u32 trackts_orig = gf_isom_get_media_timescale(orig, i+1);
 
 			/*get the first edit normal mode and add the new track dur*/
 			for (j=nb_edits; j>0; j--) {
@@ -2016,18 +2039,17 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 					Double prev_dur = (Double) (s64) dest_track_dur_before_cat;
 					Double dur = (Double) (s64) gf_isom_get_media_duration(orig, i+1);
 
-					dur *= movts_dst;
-					dur /= trackts_dst;
-					prev_dur *= movts_dst;
-					prev_dur /= trackts_dst;
-
 					/*safety test: some files have broken edit lists. If no more than 2 entries, check that the segment duration
 					is less or equal to the movie duration*/
-					if (prev_dur < segmentDuration) {
-						fprintf(stderr, "Warning: suspicious edit list entry found: duration %g sec but longest track duration before cat is %g - fixing it\n", (Double) (s64) segmentDuration/1000.0, prev_dur/1000);
+					if (prev_dur * movts_dst < segmentDuration * trackts_dst) {
+						fprintf(stderr, "Warning: suspicious edit list entry found: duration %g sec but longest track duration before cat is %g - fixing it\n", (Double) (s64) segmentDuration/movts_dst, prev_dur/trackts_dst);
 						segmentDuration = (dest_track_dur_before_cat - mediaTime) * movts_dst;
 						segmentDuration /= trackts_dst;
 					}
+
+					//express original dur in new timescale
+					dur /= trackts_orig;
+					dur *= movts_dst;
 
 					segmentDuration += (u64) (s64) dur;
 					gf_isom_modify_edit(dest, dst_tk, j, segmentDuration, mediaTime, editMode);
