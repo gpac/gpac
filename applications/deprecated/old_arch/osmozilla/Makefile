@@ -6,7 +6,7 @@ ifeq ($(CONFIG_WIN32),yes)
 USER_NAME=root
 else
 USER_NAME=$(shell whoami)
-ifeq ($(USER_NAME), root)
+ifeq ($(USER_NAME),root)
 else
 MOZILLA_DIR=local
 endif
@@ -14,12 +14,12 @@ endif
 
 CFLAGS=$(CXXFLAGS) $(XUL_CFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -72,8 +72,8 @@ ifeq ($(CONFIG_WIN32),yes)
 endif
 
 install: 
-ifeq ($(MOZILLA_DIR), local)
-ifeq ($(USER_NAME), root)
+ifeq ($(MOZILLA_DIR),local)
+ifeq ($(USER_NAME),root)
 	@echo "*** Root cannot install local mozilla plugins! ***"
 	@echo "*** Exit root mode and reinstall mozilla plugin! ***"
 else
@@ -87,8 +87,8 @@ else
 endif
 
 uninstall:
-ifeq ($(MOZILLA_DIR), local)
-ifeq ($(USER_NAME), root)
+ifeq ($(MOZILLA_DIR),local)
+ifeq ($(USER_NAME),root)
 else
 	rm -rf "$(HOME)/.mozilla/plugins/$(LIB)"
 	rm -rf "$(HOME)/.mozilla/components/nposmozilla.xpt"

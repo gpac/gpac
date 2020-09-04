@@ -5,12 +5,12 @@ vpath %.c $(SRC_PATH)/modules/alsa
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(OSS_CFLAGS)
 LDFLAGS+=$(OSS_LDFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif

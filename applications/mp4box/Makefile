@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/applications/mp4box
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
