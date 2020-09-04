@@ -2744,11 +2744,11 @@ echo "LDFLAGS=$LDFLAGS" >> config.mak
 echo "SHFLAGS=$SHFLAGS" >> config.mak
 
 pf="$prefix/"
-lib_dir=${libdir//$pf/}
+lib_dir=${libdir#"$pf"}
 echo "lib_dir=$lib_dir" >> config.mak
 
 pf="$prefix/"
-man_dir=${mandir//$pf/}
+man_dir=${mandir#"$pf"}
 echo "man_dir=$man_dir" >> config.mak
 
 
