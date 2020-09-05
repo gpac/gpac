@@ -27,6 +27,8 @@ BuildRequires: SDL-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_jack:BuildRequires: jack-audio-connection-kit}
 
+%global debug_package %{nil}
+
 %description
 
 GPAC is a framework for production, encoding, delivery and interactive playback of multimedia content
@@ -64,12 +66,11 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-, root, root)
-%doc Changelog COPYING README.md
+# %doc Changelog COPYING README.md
 %{_bindir}/*
 %{_libdir}/*
-%{_datadir}/*
 %{_includedir}/*
-%{_mandir}/*
+%{_datadir}/*
 
 %changelog
 * Fri Sep 4 2020 Jean Le Feuvre
