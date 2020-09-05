@@ -69,7 +69,7 @@ install: build
 	dh_installdirs
 
 	$(MAKE) install prefix=$(CURDIR)/debian/tmp/usr \
-	moddir=lib/gpac
+	moddir=gpac
 
 	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr
 
