@@ -1435,7 +1435,10 @@ sample_entry_setup:
 		use_avc = GF_TRUE;
 		comp_name = (codec_id == GF_CODECID_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
 		use_gen_sample_entry = GF_FALSE;
-		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+		if (ctx->xps_inband) {
+			use_m4sys = GF_FALSE;
+			if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+		}
 		break;
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
@@ -1443,7 +1446,10 @@ sample_entry_setup:
 		use_hevc = GF_TRUE;
 		comp_name = (codec_id == GF_CODECID_LHVC) ? "L-HEVC" : "HEVC";
 		use_gen_sample_entry = GF_FALSE;
-		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+		if (ctx->xps_inband) {
+			use_m4sys = GF_FALSE;
+			if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+		}
 		if (codec_id==GF_CODECID_HEVC_TILES) {
 			m_subtype = GF_ISOM_SUBTYPE_HVT1;
 			skip_dsi = GF_TRUE;
@@ -1453,6 +1459,7 @@ sample_entry_setup:
 		m_subtype = GF_ISOM_SUBTYPE_HVT1;
 		skip_dsi = GF_TRUE;
 		use_hvt1 = GF_TRUE;
+		use_m4sys = GF_FALSE;
 		comp_name = "HEVC Tiles";
 		use_gen_sample_entry = GF_FALSE;
 		break;
