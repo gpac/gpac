@@ -53,13 +53,20 @@ typedef struct
 	u32 min_temporal_id, max_temporal_id;
 } LHVCLayerInfo;
 
+enum {
+	STRICT_POC_OFF = 0,
+	STRICT_POC_ON,
+	STRICT_POC_ERROR,
+};
+
 typedef struct
 {
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool explicit, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
+	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
 	u32 nal_length;
+	u32 strict_poc;
 	GF_Fraction idur;
 
 	//only one input pid declared
@@ -126,7 +133,7 @@ typedef struct
 	//list of packet (in decode order !!) not yet dispatched.
 	//Dispatch depends on the mode:
 	//strict_poc=0: we wait after each IDR until we find a stable poc diff between pictures, controled by poc_probe_done
-	//strict_poc=1: we dispatch only after IDR or at the end (huge delay)
+	//strict_poc>=1: we dispatch only after IDR or at the end (huge delay)
 	GF_List *pck_queue;
 	//dts of the last IDR found
 	u64 dts_last_IDR;
@@ -504,7 +511,39 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 	//TODO: we are dispatching frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
 	if (flush_ref && ctx->pck_queue && ctx->poc_diff) {
+		u32 dts_inc=0;
+		s32 last_poc = 0;
+		Bool patch_missing_frame = GF_FALSE;
 		//send all reference packet queued
+		if (ctx->strict_poc==STRICT_POC_ERROR) {
+			u32 i;
+			u32 nb_bframes = 0;
+			for (i=0; i<gf_list_count(ctx->pck_queue); i++) {
+				s32 poc;
+				u64 poc_ts, dts;
+				GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
+
+				if (q_pck == ctx->first_pck_in_au) break;
+
+				dts = gf_filter_pck_get_dts(q_pck);
+				if (dts == GF_FILTER_NO_TS) continue;
+				poc_ts = gf_filter_pck_get_cts(q_pck);
+				assert(poc_ts != GF_FILTER_NO_TS);
+				poc = (s32) ((s64) poc_ts - CTS_POC_OFFSET_SAFETY);
+
+				if (i) {
+					if (last_poc>poc) nb_bframes ++;
+					else if (last_poc + ctx->poc_diff<poc)
+						patch_missing_frame = GF_TRUE;
+				}
+				last_poc = poc;
+			}
+			if (nb_bframes>1)
+				patch_missing_frame = GF_FALSE;
+			else if (nb_bframes)
+				patch_missing_frame = GF_TRUE;
+		}
+		last_poc = GF_INT_MIN;
 
 		while (gf_list_count(ctx->pck_queue) ) {
 			u64 dts;
@@ -527,9 +566,30 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				}
 				gf_filter_pck_set_carousel_version(q_pck, 0);
 
+
 				poc_ts = gf_filter_pck_get_cts(q_pck);
 				assert(poc_ts != GF_FILTER_NO_TS);
 				poc = (s32) ((s64) poc_ts - CTS_POC_OFFSET_SAFETY);
+
+				if (patch_missing_frame) {
+					if (last_poc!=GF_INT_MIN) {
+						//check if we missed an IDR (poc reset)
+						if (poc && (last_poc > poc) ) {
+							last_poc = 0;
+							dts_inc += ctx->cur_fps.den;
+							ctx->dts_last_IDR = dts;
+							ctx->dts += ctx->cur_fps.den;
+						}
+						//check if we miss a frame
+						while (last_poc + ctx->poc_diff < poc) {
+							last_poc += ctx->poc_diff;
+							dts_inc += ctx->cur_fps.den;
+							ctx->dts += ctx->cur_fps.den;
+						}
+					}
+					last_poc = poc;
+					dts += dts_inc;
+				}
 				//poc is stored as diff since last IDR which has min_poc
 				cts = ( (ctx->min_poc + (s32) poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
@@ -2018,6 +2078,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			}
 			//single-frame stream
 			if (!ctx->poc_diff) ctx->poc_diff = 1;
+			ctx->strict_poc = STRICT_POC_OFF;
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 			ctx->src_pck = NULL;
@@ -3192,7 +3253,10 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
 	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes\n"
+		"- off: disable GOP buffering\n"
+		"- on: enable GOP buffering, assuming no error in POC\n"
+		"- off: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "false", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosei), "remove all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
