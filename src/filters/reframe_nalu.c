@@ -3256,7 +3256,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes\n"
 		"- off: disable GOP buffering\n"
 		"- on: enable GOP buffering, assuming no error in POC\n"
-		"- off: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "false", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
+		"- error: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "false", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosei), "remove all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
