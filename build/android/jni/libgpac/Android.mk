@@ -149,6 +149,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filter_core/filter_queue.c \
 	../../../../src/filter_core/filter_register.c \
 	../../../../src/filter_core/filter_session.c \
+	../../../../src/filter_core/filter_session_js.c \
 	../../../../src/filters/bsrw.c \
 	../../../../src/filters/compose.c \
 	../../../../src/filters/dasher.c \
@@ -295,6 +296,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/isomedia/stbl_write.c \
 	../../../../src/isomedia/track.c \
 	../../../../src/isomedia/tx3g.c \
+	../../../../src/jsmods/core.c \
 	../../../../src/jsmods/evg.c \
 	../../../../src/jsmods/scene_js.c \
 	../../../../src/jsmods/storage.c \

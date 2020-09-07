@@ -6,41 +6,10 @@ body
     height: 100%;
     margin: 0px;
 
-    background-color: #AAA;
+    background-color: #999;
+
+    touch-action: none;
 }
-
-
-.NoSelect
-{
-    /* Disable text selection so that it doesn't interfere with faux-button clicking */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-
-    /* Stops the text cursor over the label */
-    cursor:default;
-}
-
-
-/* Override default window styles to remove 3D effect */
-.Window
-{
-    background: #555;
-    box-shadow: none;
-    border-radius: 3px;
-}
-/*.WindowTitleBar
-{
-    border-bottom: none;
-    border-radius: 0px;
-}
-.WindowBody
-{
-    border-top: none;
-}*/
 
 
 /* Override default container style to remove 3D effect */

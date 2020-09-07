@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS write filter
@@ -87,12 +87,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (!p) return GF_NOT_SUPPORTED;
 	sr = p->value.uint;
-	for (i=0; i<16; i++) {
-		if (GF_M4ASampleRates[i] == (u32) sr) {
-			ctx->sr_idx = i;
-			break;
-		}
-	}
+
 	ctx->channels = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p)
@@ -140,9 +135,13 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (ctx->channels && acfg.nb_chan && (ctx->channels != acfg.nb_chan)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] Mismatch betwwen container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, acfg.nb_chan));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Mismatch betwwen container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, acfg.nb_chan));
 		ctx->channels = acfg.nb_chan;
 		patch_channels = GF_TRUE;
+	}
+	if ((acfg.base_object_type==2) && (acfg.base_sr!=sr)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Mismatch betwwen container samplerate (%d) and AAC config SBR base samplerate (%d), using AAC config\n", sr, acfg.base_sr));
+		sr = acfg.base_sr;
 	}
 #else
 
@@ -158,6 +157,14 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	} else if (!ctx->channels) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] no channel config found for ADTS, forcing stereo\n"));
 	}
+
+	for (i=0; i<16; i++) {
+		if (GF_M4ASampleRates[i] == (u32) sr) {
+			ctx->sr_idx = i;
+			break;
+		}
+	}
+
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);

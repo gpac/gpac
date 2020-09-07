@@ -588,6 +588,7 @@ typedef struct tag_m2ts_metadata_pointer_descriptor {
 /*! MPEG-2 TS demuxer TEMI location*/
 typedef struct
 {
+	u32 pid;
 	u32 timeline_id;
 	//for now we only support one URL announcement
 	const char *external_URL;
@@ -599,6 +600,7 @@ typedef struct
 /*! MPEG-2 TS demuxer TEMI timecode*/
 typedef struct
 {
+	u32 pid;
 	u32 timeline_id;
 	u32 media_timescale;
 	u64 media_timestamp;
@@ -700,6 +702,7 @@ enum
 			GF_SLConfig *slcfg; \
 			s16 component_tag; \
 			void *user; \
+			GF_List *props; \
 			u64 first_dts; \
 			u32 service_id;
 
@@ -1109,7 +1112,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new();
 */
 void gf_m2ts_demux_del(GF_M2TS_Demuxer *demux);
 
-/*! resets all parsers (PES, sections) of the demultiplexer
+/*! resets all parsers (PES, sections) of the demultiplexer and trash any pending data in the demux input
 \param demux the target MPEG-2 TS demultiplexer
 */
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *demux);
@@ -1154,7 +1157,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes);
 /*! flushes all streams in the mux. This is used to flush internal demultiplexer buffers on end of stream
 \param demux the target MPEG-2 demultiplexer
 */
-void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts);
+void gf_m2ts_flush_all(GF_M2TS_Demuxer *demux);
 
 
 /*! MPEG-2 TS packet header*/
@@ -1643,11 +1646,13 @@ struct __m2ts_mux_program {
 	/*! min initial DTS of all streams*/
 	u64 initial_ts;
 	/*! indicates that min initial DTS of all streams is set*/
-	Bool initial_ts_set;
+	u32 initial_ts_set;
 	/*! if set, injects a PCR offset*/
 	Bool pcr_init_time_set;
 	/*! PCR offset to inject*/
-	u32 pcr_offset;
+	u64 pcr_offset;
+	/*! Forced value of first packet CTS*/
+	u64 force_first_pts;
 	/*! indicates the initial discontinuity flag should be set on first packet of all streams*/
 	Bool initial_disc_set;
 	/*! MPEG-4 IOD for 4on2*/
@@ -1662,8 +1667,6 @@ struct __m2ts_mux_program {
 	char *name;
 	/*! program provider (for SDT)*/
 	char *provider;
-	/*! maximum delay of all streams (in stream timescale)*/
-	s32 max_media_skip;
 	/*! CTS offset in 90khz*/
 	u32 cts_offset;
 };
@@ -1788,9 +1791,10 @@ void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms);
 \param mpeg4_signaling type of MPEG-4 signaling used
 \param pmt_version initial version of the PMT
 \param initial_disc if GF_TRUE, signals packet discontinuity on the first packet of eact stream in the program
+\param force_first_pts if not 0, the first PTS written in the program will have the indicated value (in 90khz)
 \return a TS multiplexer program
 */
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc);
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u64 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc, u64 force_first_pts);
 /*! adds a stream to a program
 \param program the target program
 \param ifce the stream interface object for packet and properties query

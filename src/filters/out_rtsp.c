@@ -486,7 +486,7 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 	sess->microsec_ts_init = min_dts;
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPOut] Session %s: RTP clock initialized - time origin set to "LLU" us (sys clock) / "LLU" us (media clock)\n", sess->service_name, sess->sys_clock_at_init, sess->microsec_ts_init));
 	if (ctx->tso<0) {
-		gf_rand_init(0);
+		gf_rand_init(GF_FALSE);
 		for (i=0; i<count; i++) {
 			GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
 			stream->rtp_ts_offset = gf_rand();
@@ -625,7 +625,7 @@ static GF_Err rtspout_load_media_service(GF_Filter *filter, GF_RTSPOutCtx *ctx, 
 		}
 	}
 	if (!found) {
-		GF_Filter *filter_src = gf_filter_connect_source(filter, src_url, NULL, &e);
+		GF_Filter *filter_src = gf_filter_connect_source(filter, src_url, NULL, GF_FALSE, &e);
 		if (!filter_src) {
 			gf_rtsp_response_reset(sess->response);
 			sess->response->ResponseCode = NC_RTSP_Session_Not_Found;
@@ -1267,7 +1267,7 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
 	{ OFFS(ttl), "time-to-live for muticast packets. A value of 0 uses client requested TTL, or 1", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(payt), "payload type to use for dynamic configs.", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(payt), "payload type to use for dynamic configs", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1280,9 +1280,9 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(maxc), "maximum number of connections", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(close), "close RTSP connection after each request, except when RTP over RTSP is used", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(loop), "loop all streams in session (not always possible depending on source type) - see filter help.", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dynurl), "allow dynamic service assembly - see filter help.", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mcast), "control multicast setup of a session.\n"
+	{ OFFS(loop), "loop all streams in session (not always possible depending on source type) - see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dynurl), "allow dynamic service assembly - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mcast), "control multicast setup of a session\n"
 				"- off: clients are never allowed to create a multicast\n"
 				"- on: clients can create multicast sessions\n"
 				"- mirror: clients can create a multicast session. Any later request to the same URL will use that multicast session"

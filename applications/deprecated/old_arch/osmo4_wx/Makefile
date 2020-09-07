@@ -4,17 +4,17 @@ vpath %.cpp $(SRC_PATH)/applications/osmo4_wx
 
 CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(GPACREADONLY), yes)
+ifeq ($(GPACREADONLY),yes)
 CFLAGS+=-DGPAC_READ_ONLY
 endif
 
@@ -34,7 +34,7 @@ ifeq ($(CONFIG_JS),no)
 else
 SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
-NEED_LOCAL_LIB="yes"
+NEED_LOCAL_LIB=yes
 endif
 LINKFLAGS+=$(JS_LIBS)
 endif

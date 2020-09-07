@@ -93,6 +93,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return GF_OK;
 }
 
+#if 0 //unused
 GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary)
 {
 	u32 i, count;
@@ -113,7 +114,7 @@ GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	}
 	return NULL;
 }
-
+#endif
 
 
 GF_EXPORT
@@ -502,12 +503,14 @@ GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML)
+GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, unsigned char *data, u32 data_size, Bool IsBinaryXML)
 {
 	GF_Err e;
 	GF_XMLBox *xml;
 	GF_MetaBox *meta;
 	u32 length;
+	if (!XMLFileName && !data)
+		return GF_BAD_PARAM;
 
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -522,31 +525,10 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	if (!xml) return GF_OUT_OF_MEM;
 	if (IsBinaryXML) xml->type = GF_ISOM_BOX_TYPE_BXML;
 
-
-	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
-	return gf_file_load_data(XMLFileName, (u8 **) &xml->xml, &length);
-}
-
-GF_EXPORT
-GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, unsigned char *data, u32 data_size, Bool IsBinaryXML)
-{
-	GF_Err e;
-	GF_XMLBox *xml;
-	GF_MetaBox *meta;
-
-	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	meta = gf_isom_get_meta(file, root_meta, track_num);
-	if (!meta) return GF_BAD_PARAM;
-
-	e = gf_isom_remove_meta_xml(file, root_meta, track_num);
-	if (e) return e;
-
-	xml = (GF_XMLBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_XML);
-	if (!xml) return GF_OUT_OF_MEM;
-	if (IsBinaryXML) xml->type = GF_ISOM_BOX_TYPE_BXML;
-
+	if (XMLFileName) {
+		/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
+		return gf_file_load_data(XMLFileName, (u8 **) &xml->xml, &length);
+	}
 
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
 	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*data_size);
@@ -554,6 +536,7 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 	memcpy(xml->xml, data, sizeof(unsigned char)*data_size);
 	return GF_OK;
 }
+
 
 GF_EXPORT
 GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop) {

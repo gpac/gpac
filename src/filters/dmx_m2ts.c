@@ -39,6 +39,13 @@ typedef struct {
 	u32 pid;
 } GF_M2TSDmxCtx_Prog;
 
+typedef struct {
+	u32 timeline_id;
+	Bool is_loc;
+	u32 len;
+	u8 *data;
+} GF_TEMIInfo;
+
 enum
 {
 	DMX_TUNE_DONE=0,
@@ -394,6 +401,22 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	}
 }
 
+static void m2tdmx_merge_temi(GF_M2TS_ES *stream, GF_FilterPacket *pck)
+{
+	if (stream->props) {
+		char szID[100];
+		while (gf_list_count(stream->props)) {
+			GF_TEMIInfo *t = gf_list_pop_front(stream->props);
+			snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
+
+			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(t->data, t->len));
+			gf_free(t);
+		}
+		gf_list_del(stream->props);
+		stream->props = NULL;
+	}
+}
+
 static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 {
 	GF_FilterPid *opid;
@@ -417,6 +440,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		}
 		gf_filter_pck_set_sap(dst_pck, (pck->flags & GF_M2TS_PES_PCK_RAP) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	}
+	m2tdmx_merge_temi((GF_M2TS_ES *)pck->stream, dst_pck);
 	gf_filter_pck_send(dst_pck);
 }
 
@@ -474,6 +498,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	gf_filter_pck_set_carousel_version(dst_pck, pck->version_number);
 
+	m2tdmx_merge_temi(pck->stream, dst_pck);
 	gf_filter_pck_send(dst_pck);
 
 	if (pck->version_number + 1 == pck->stream->slcfg->carousel_version)
@@ -700,39 +725,86 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	}
 	break;
 
-#ifdef FILTER_FIXME
 	case GF_M2TS_EVT_TEMI_LOCATION:
 	{
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(com));
-		com.addon_info.command_type = GF_NET_ASSOCIATED_CONTENT_LOCATION;
-		com.addon_info.external_URL = ((GF_M2TS_TemiLocationDescriptor*)param)->external_URL;
-		if (ctx->force_temi_url)
-			com.addon_info.external_URL = ctx->force_temi_url;
-		com.addon_info.is_announce = ((GF_M2TS_TemiLocationDescriptor*)param)->is_announce;
-		com.addon_info.is_splicing = ((GF_M2TS_TemiLocationDescriptor*)param)->is_splicing;
-		com.addon_info.activation_countdown = ((GF_M2TS_TemiLocationDescriptor*)param)->activation_countdown;
-//		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
-		com.addon_info.timeline_id = ((GF_M2TS_TemiLocationDescriptor*)param)->timeline_id;
-		gf_service_command(ctx->service, &com, GF_OK);
+		GF_M2TS_TemiLocationDescriptor *temi_l = (GF_M2TS_TemiLocationDescriptor *)param;
+		const char *url;
+		u32 len;
+		GF_BitStream *bs;
+		GF_M2TS_ES *es=NULL;
+		GF_TEMIInfo *t;
+		if ((temi_l->pid<8192) && (ctx->ts->ess[temi_l->pid])) {
+			es = ctx->ts->ess[temi_l->pid];
+		}
+		if (!es || !es->user) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] TEMI location not assigned to a given PID, not supported\n"));
+			break;
+		}
+		GF_SAFEALLOC(t, GF_TEMIInfo);
+		if (!t) break;
+		t->timeline_id = temi_l->timeline_id;
+		t->is_loc = GF_TRUE;
+
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (ctx->temi_url)
+			url = ctx->temi_url;
+		else
+			url = temi_l->external_URL;
+		len = url ? (u32) strlen(url) : 0;
+		gf_bs_write_data(bs, url, len);
+		gf_bs_write_u8(bs, 0);
+		gf_bs_write_int(bs, temi_l->is_announce, 1);
+		gf_bs_write_int(bs, temi_l->is_splicing, 1);
+		gf_bs_write_int(bs, temi_l->reload_external, 1);
+		gf_bs_write_int(bs, 0, 5);
+		gf_bs_write_double(bs, temi_l->activation_countdown);
+		gf_bs_get_content(bs, &t->data, &t->len);
+		gf_bs_del(bs);
+
+		if (!es->props) {
+			es->props = gf_list_new();
+		}
+		gf_list_add(es->props, t);
 	}
 	break;
 	case GF_M2TS_EVT_TEMI_TIMECODE:
 	{
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(com));
-		com.addon_time.command_type = GF_NET_ASSOCIATED_CONTENT_TIMING;
-		com.addon_time.timeline_id = ((GF_M2TS_TemiTimecodeDescriptor*)param)->timeline_id;
-		com.addon_time.media_pts = ((GF_M2TS_TemiTimecodeDescriptor*)param)->pes_pts;
-		com.addon_time.media_timescale = ((GF_M2TS_TemiTimecodeDescriptor*)param)->media_timescale;
-		com.addon_time.media_timestamp = ((GF_M2TS_TemiTimecodeDescriptor*)param)->media_timestamp;
-		com.addon_time.force_reload = ((GF_M2TS_TemiTimecodeDescriptor*)param)->force_reload;
-		com.addon_time.is_paused = ((GF_M2TS_TemiTimecodeDescriptor*)param)->is_paused;
-		com.addon_time.ntp = ((GF_M2TS_TemiTimecodeDescriptor*)param)->ntp;
-		gf_service_command(ctx->service, &com, GF_OK);
+		GF_M2TS_TemiTimecodeDescriptor *temi_t = (GF_M2TS_TemiTimecodeDescriptor*)param;
+		GF_BitStream *bs;
+		GF_TEMIInfo *t;
+		GF_M2TS_ES *es=NULL;
+		if ((temi_t->pid<8192) && (ctx->ts->ess[temi_t->pid])) {
+			es = ctx->ts->ess[temi_t->pid];
+		}
+		if (!es || !es->user) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] TEMI timing not assigned to a given PID, not supported\n"));
+			break;
+		}
+		GF_SAFEALLOC(t, GF_TEMIInfo);
+		if (!t) break;
+		t->timeline_id = temi_t->timeline_id;
+
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_u32(bs, temi_t->media_timescale);
+		gf_bs_write_u64(bs, temi_t->media_timestamp);
+		gf_bs_write_u64(bs, temi_t->pes_pts);
+		gf_bs_write_int(bs, temi_t->force_reload, 1);
+		gf_bs_write_int(bs, temi_t->is_paused, 1);
+		gf_bs_write_int(bs, temi_t->is_discontinuity, 1);
+		gf_bs_write_int(bs, temi_t->ntp ? 1 : 0, 1);
+		gf_bs_write_int(bs, 0, 4);
+		if (temi_t->ntp)
+			gf_bs_write_u64(bs, temi_t->ntp);
+
+		gf_bs_get_content(bs, &t->data, &t->len);
+		gf_bs_del(bs);
+
+		if (!es->props) {
+			es->props = gf_list_new();
+		}
+		gf_list_add(es->props, t);
 	}
 	break;
-#endif
 	}
 }
 
@@ -880,7 +952,7 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		/*mark pcr as not initialized*/
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GF_M2TSDmxCtx] Setting default reframing for PID %d\n", pes->pid));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] Setting default reframing for PID %d\n", pes->pid));
 
 		/*this is a multplex, only trigger the play command for the first stream activated*/
 		ctx->nb_playing++;

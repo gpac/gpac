@@ -452,8 +452,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				OD_ParseBinData(val, &dsi->data, &dsi->dataLength);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
-				gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength);
-				ret = 1;
+				if (gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength) == GF_OK)
+					ret = 1;
 			} else if (!strlen(val)) ret = 1;
 		}
 		if (!stricmp(fieldName, "src")) {
@@ -465,8 +465,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				OD_ParseBinData(val, &dsi->data, &dsi->dataLength);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
-				gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength);
-				ret = 1;
+				if (gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength) == GF_OK)
+					ret = 1;
 			}
 		}
 	}
@@ -491,8 +491,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				OD_ParseBinData(val, &uic->ui_data, &uic->ui_data_length);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
-				gf_file_load_data(val+5, (u8 **) &uic->ui_data, &uic->ui_data_length);
-				ret = 1;
+				if (gf_file_load_data(val+5, (u8 **) &uic->ui_data, &uic->ui_data_length)==GF_OK) 
+					ret = 1;
 			} else {
 #ifndef GPAC_MINIMAL_ODF
 				ret = OD_ParseUIConfig(val, &uic->ui_data, &uic->ui_data_length);

@@ -398,7 +398,7 @@ u32 gf_sys_is_quiet();
 const char *gf_sys_features(Bool disabled);
 
 /*! callback function for remotery profiler
- \param udta user data passed by \ref gf_sys_set_profiler_callback
+ \param udta user data passed by \ref gf_sys_profiler_set_callback
  \param text string sent by webbrowser client
 */
 typedef void (*gf_rmt_user_callback)(void *udta, const char* text);
@@ -416,6 +416,14 @@ GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback rmt_usr_cbk
 \return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
 */
 GF_Err gf_sys_profiler_send(const char *msg);
+
+/*! Enables sampling times in RMT
+ \param enable if GF_TRUE, sampling will be enabled, otherwise disabled*/
+void gf_sys_profiler_enable_sampling(Bool enable);
+
+/*! Checks if sampling is enabled in RMT. Sampling is by default enabled when enabling remotery
+ \return GF_TRUE if sampling is enabled, GF_FALSE otherwise*/
+Bool gf_sys_profiler_sampling_enabled();
 
 /*!
 GPAC Log tools
@@ -795,6 +803,15 @@ Gets the current character entered at prompt if any.
 */
 char gf_prompt_get_char();
 
+/*!
+\brief Get prompt terminal size
+
+Gets the stdin prompt size (columns and rows)
+\param width set to number of rows in the terminal
+\param height set to number of columns in the terminal
+\return error if any
+*/
+GF_Err gf_prompt_get_size(u32 *width, u32 *height);
 
 /*!
 \brief turns prompt echo on/off
@@ -897,6 +914,15 @@ Gets UTC clock in milliseconds
 \return UTC time in milliseconds
  */
 u64 gf_net_get_utc();
+
+/*!
+\brief converts an ntp timestamp into UTC time in milliseconds
+
+Converts NTP 64-bit timestamp to UTC clock in milliseconds
+\u64 ntp NTP timestamp
+\return UTC time in milliseconds
+ */
+u64 gf_net_ntp_to_utc(u64 ntp);
 
 /*!
 \brief parses date
@@ -1602,7 +1628,6 @@ Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated 
  */
 GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *out_size);
 
-#ifndef GPAC_DISABLE_ZLIB
 /**
 Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated in the process.
 \param data pointer to the data buffer to be compressed
@@ -1610,10 +1635,10 @@ Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated 
 \param out_size pointer for output buffer size
 \param data_offset offset in source buffer - the input payload size is data_len - data_offset
 \param skip_if_larger if GF_TRUE, will not override source buffer if compressed version is larger than input data
+\param out_comp_data if not NULL, the compressed result is set in this pointer rather than doing inplace compression
 \return error if any
  */
-GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data_offset, Bool skip_if_larger);
-#endif /*GPAC_DISABLE_ZLIB*/
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data);
 
 /**
 Decompresses a data buffer using zlib/deflate.

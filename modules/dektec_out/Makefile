@@ -4,21 +4,21 @@ vpath %.c $(SRC_PATH)/modules/dektec_out
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(ENABLE_JOYSTICK), yes)
+ifeq ($(ENABLE_JOYSTICK),yes)
 CFLAGS+=-DENABLE_JOYSTICK
 endif
 
-ifeq ($(ENABLE_JOYSTICK_NO_CURSOR), yes)
+ifeq ($(ENABLE_JOYSTICK_NO_CURSOR),yes)
 CFLAGS+=-DENABLE_JOYSTICK_NO_CURSOR
 endif
 

@@ -190,7 +190,7 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 		size -= 10;
 
 		//TODO, handle more ID3 tags ?
-		if (ftag==ID3V2_FRAME_TXXX) {
+		if (ftag==GF_ID3V2_FRAME_TXXX) {
 			u32 tpos = (u32) gf_bs_get_position(bs);
 			char *text = data+tpos;
 			add_text(output, output_size, output_pos, text, fsize);
@@ -2079,6 +2079,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			if (pes->temi_pending) {
 				pes->temi_pending = 0;
 				pes->temi_tc.pes_pts = pes->PTS;
+				pes->temi_tc.pid = pes->pid;
 				if (ts->on_event)
 					ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
 			}
@@ -2307,6 +2308,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					char URL[255];
 					GF_M2TS_TemiLocationDescriptor temi_loc;
 					memset(&temi_loc, 0, sizeof(GF_M2TS_TemiLocationDescriptor) );
+					temi_loc.pid = pid;
 					temi_loc.reload_external = gf_bs_read_int(bs, 1);
 					temi_loc.is_announce = gf_bs_read_int(bs, 1);
 					temi_loc.is_splicing = gf_bs_read_int(bs, 1);
@@ -2791,6 +2793,7 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 	gf_m2ts_reset_parsers_for_program(ts, NULL);
 
 	ts->pck_number = 0;
+	ts->buffer_size = 0;
 
 	gf_m2ts_section_filter_reset(ts->cat);
 	gf_m2ts_section_filter_reset(ts->pat);

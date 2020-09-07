@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/platinum
 
 CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include" -I$(SRC_PATH)/extra_lib/include/platinum/ -DGPAC_HAVE_CONFIG_H -I../..
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -24,7 +24,7 @@ ifeq ($(CONFIG_JS),no)
 else
 CFLAGS+= $(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
-NEED_LOCAL_LIB="yes"
+NEED_LOCAL_LIB=yes
 LOCAL_LIB+=-L../../extra_lib/lib/gcc
 else
 LINKLIBS+= $(JS_LIBS)
@@ -39,7 +39,7 @@ ifeq ($(CONFIG_WIN32),yes)
 LINKLIBS+= -lwsock32 -lws2_32 -static-libstdc++ -static-libgcc
 endif
 
-ifeq ($(CONFIG_DARWIN), yes)
+ifeq ($(CONFIG_DARWIN),yes)
 LDFLAGS+=-framework Foundation
 endif
 

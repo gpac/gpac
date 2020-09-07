@@ -971,8 +971,9 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 				nb_eos++;
 			}
 		}
-		//some streams are not done and we have an estimated size less than target split
-		if ((nb_eos < count ) && (cumulated_size < ctx->split_size)
+		//not done yet (estimated size less than target split)
+		if (
+			(cumulated_size < ctx->split_size)
 			&& ctx->min_ts_scale
 			//do this only if first time we estimate this chunk size, or if previous estimated min_ts is not the same as current min_ts
 			&& (!ctx->prev_min_ts_computed || (ctx->prev_min_ts_computed < ctx->min_ts_computed))
@@ -987,7 +988,8 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			}
 			return;
 		}
-		//decide which one we use
+
+		//decide which split size we use
 		if (ctx->xround==REFRAME_ROUND_BEFORE) {
 			use_prev = GF_TRUE;
 		} else if (ctx->xround==REFRAME_ROUND_AFTER) {
@@ -1583,6 +1585,7 @@ GF_Err reframer_process(GF_Filter *filter)
 					if (!ctx->filter_sap3) forward = GF_FALSE;
 					break;
 				case GF_FILTER_SAP_4:
+				case GF_FILTER_SAP_4_PROL:
 					if (!ctx->filter_sap4) forward = GF_FALSE;
 					break;
 				default:

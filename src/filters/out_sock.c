@@ -122,6 +122,11 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	else {
 		ext = gf_file_ext_start(ctx->dst);
 		if (ext) ext++;
+		if (ext) {
+			const char *port = strchr(ext, ':');
+			if (port)
+				ext = gf_file_ext_start(port);
+		}
 	}
 
 	if (!ext && !ctx->mime) {

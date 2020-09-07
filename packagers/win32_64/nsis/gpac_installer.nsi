@@ -255,6 +255,17 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_BIN}\libcryptoMD.dll"
   File "${GPAC_BIN}\libsslMD.dll"
 
+  File "${GPAC_BIN}\avcodec-*.dll"
+  File "${GPAC_BIN}\avdevice-*.dll"
+  File "${GPAC_BIN}\avfilter-*.dll"
+  File "${GPAC_BIN}\avformat-*.dll"
+  File "${GPAC_BIN}\avutil-*.dll"
+  File "${GPAC_BIN}\swresample-*.dll"
+  File "${GPAC_BIN}\swscale-*.dll"
+  File "${GPAC_BIN}\postproc-*.dll"
+  File "${GPAC_BIN}\libx264-*.dll"
+  File "${GPAC_BIN}\OpenSVCDecoder.dll"
+
   ;create default cache
   SetOutPath $INSTDIR\cache
 
@@ -275,18 +286,6 @@ Section "GPAC Player" SecOsmo4
 
   File "${GPAC_BIN}\gm_dx_hw.dll"
 
-  File "${GPAC_BIN}\avcodec-*.dll"
-  File "${GPAC_BIN}\avdevice-*.dll"
-  File "${GPAC_BIN}\avfilter-*.dll"
-  File "${GPAC_BIN}\avformat-*.dll"
-  File "${GPAC_BIN}\avutil-*.dll"
-  File "${GPAC_BIN}\swresample-*.dll"
-  File "${GPAC_BIN}\swscale-*.dll"
-  File "${GPAC_BIN}\postproc-*.dll"
-  File "${GPAC_BIN}\libx264-*.dll"
-
-  File "${GPAC_BIN}\OpenSVCDecoder.dll"
-
   ;copy GUI
   SetOutPath $INSTDIR\share
   File "${GPAC_ROOT}\share\default.cfg"
@@ -298,7 +297,7 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\share\gui\gui.bt"
   File "${GPAC_ROOT}\share\gui\gui.js"
   File "${GPAC_ROOT}\share\gui\gwlib.js"
-  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
+;  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
   SetOutPath $INSTDIR\share\gui\icons
   File /r /x .git ${GPAC_ROOT}\share\gui\icons\*
   SetOutPath $INSTDIR\share\gui\extensions

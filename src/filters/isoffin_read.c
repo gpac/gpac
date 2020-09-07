@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -130,7 +130,13 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 		return e;
 	}
 	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-
+    if (!read->frag_type && read->sigfrag) {
+        e = GF_BAD_PARAM;
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] sigfrag requested but file %s is not fragmented\n", szURL));
+        gf_filter_setup_failure(filter, e);
+        return e;
+    }
+    
 	read->time_scale = gf_isom_get_timescale(read->mov);
 	if (!read->input_loaded && read->frag_type)
 		read->refresh_fragmented = GF_TRUE;
@@ -198,6 +204,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 			read->refresh_fragmented = GF_TRUE;
 			e = GF_OK;
 		}
+		read->seg_name_changed = GF_TRUE;
 
 		for (i=0; i<gf_list_count(read->channels); i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
@@ -827,7 +834,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				u64 dur=0;
 				GF_Err e = gf_isom_get_file_offset_for_time(read->mov, evt->play.start_range, &max_offset);
 				if (e==GF_OK) {
-					gf_isom_reset_tables(read->mov, GF_TRUE);
+					if (evt->play.start_range>0)
+						gf_isom_reset_tables(read->mov, GF_TRUE);
+
 					is_sidx_seek = GF_TRUE;
 					//in case we loaded moov but not sidx, update duration
 					if ((gf_isom_get_sidx_duration(read->mov, &dur, &ts)==GF_OK) && dur) {
@@ -1163,6 +1172,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (ch->sample) {
 				u32 sample_dur;
 				u8 dep_flags;
+				u8 *subs_buf;
+				u32 subs_buf_size;
 				GF_FilterPacket *pck;
 				if (ch->needs_pid_reconfig) {
 					isor_update_channel_config(ch);
@@ -1188,8 +1199,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				if (ch->sap_3)
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_3);
-				else if (ch->sap_4) {
-					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
+				else if (ch->sap_4_type) {
+					gf_filter_pck_set_sap(pck, (ch->sap_4_type==GF_ISOM_SAMPLE_PREROLL) ? GF_FILTER_SAP_4_PROL : GF_FILTER_SAP_4);
 					gf_filter_pck_set_roll_info(pck, ch->roll);
 				}
 
@@ -1212,6 +1223,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
+
+
+				subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);
+				if (subs_buf) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );
+				}
 
 				/**/
 				if (ch->cenc_state_changed && ch->pck_encrypted) {
@@ -1249,6 +1266,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						}
 						if (finfo.sidx_end) {
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(finfo.sidx_start , finfo.sidx_end));
+						}
+
+						if (read->seg_name_changed) {
+							const GF_PropertyValue *p = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);
+							read->seg_name_changed = GF_FALSE;
+							if (p && p->value.string) {
+								gf_filter_pck_set_property(pck, GF_PROP_PID_URL, &PROP_STRING(p->value.string));
+							}
 						}
 					}
 				}
@@ -1316,7 +1341,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- single: a single track is declared (highest level for scalable, tile base for tiling)", GF_PROP_UINT, "split", "split|splitx|single", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(alltk), "declare all tracks even disabled ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame_size), "frame size for raw audio samples (dispatches frame_size samples per packet)", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(expart), "expose cover art as a dedicated video pid", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(expart), "expose cover art as a dedicated video pid", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "signal fragment and segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(tkid), "declare only track based on given param"

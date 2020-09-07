@@ -35,7 +35,7 @@
 #include <gpac/network.h>
 
 GF_EXPORT
-GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
+GF_Err gf_sc_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 {
 	u32 stream_id = 0;
 	GF_Err e = GF_OK;
@@ -113,7 +113,7 @@ static GF_Scene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlin
 	memset(&url, 0, sizeof(MFURL));
 	if (!xlinkp->href) return NULL;
 
-	gf_term_get_mfurl_from_xlink(elt, &url);
+	gf_sc_get_mfurl_from_xlink(elt, &url);
 
 	while (scene->secondary_resource && scene->root_od->parentscene)
 		scene = scene->root_od->parentscene;

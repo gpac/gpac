@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ATSC input filter
@@ -46,7 +46,7 @@ typedef struct
 {
 	//options
 	char *src, *ifce, *odir;
-	Bool cache, kc, sr, reorder;
+	Bool gcache, kc, sr, reorder;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout;
 	s32 tunein, stsi;
 	
@@ -204,7 +204,7 @@ void atscin_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		break;
 	case GF_ATSC_EVT_MPD:
 
-		if (!ctx->cache) {
+		if (!ctx->gcache) {
 			atscin_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
@@ -236,7 +236,7 @@ void atscin_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		break;
 	case GF_ATSC_EVT_SEG:
 
-		if (!ctx->cache) {
+		if (!ctx->gcache) {
 			atscin_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
@@ -269,7 +269,7 @@ void atscin_on_event(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEve
 		//fallthrough
 
 	case GF_ATSC_EVT_INIT_SEG:
-		if (!ctx->cache) {
+		if (!ctx->gcache) {
 			atscin_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
@@ -382,9 +382,9 @@ static GF_Err atscin_initialize(GF_Filter *filter)
 	if (strcmp(ctx->src, "atsc://")) return GF_BAD_PARAM;
 
 	if (ctx->odir)
-		ctx->cache = GF_FALSE;
+		ctx->gcache = GF_FALSE;
 
-	if (ctx->cache) {
+	if (ctx->gcache) {
 		ctx->dm = gf_filter_get_download_manager(filter);
 		if (!ctx->dm) return GF_SERVICE_ERROR;
 		gf_dm_set_localcache_provider(ctx->dm, atscin_local_cache_probe, ctx);
@@ -423,16 +423,16 @@ static const GF_FilterArgs ATSCInArgs[] =
 {
 	{ OFFS(src), "location of source content - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(cache), "indicate the files should populate GPAC HTTP cache - see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(gcache), "indicate the files should populate GPAC HTTP cache - see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tunein), "service ID to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
 	{ OFFS(buffer), "receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sr), "skip repeated files - ignored in [-cache]() mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in [-cache]() mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(max_segs), "maximum number of segments to keep - ignored in [-cache]() mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_segs), "maximum number of segments to keep - ignored in cache mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(odir), "output directory for stand-alone mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder), "ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rtimeout), "default timeout in ms to wait when gathering out-of-order packets", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},

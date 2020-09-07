@@ -701,9 +701,12 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 				sess->last_error = GF_URL_ERROR;
 				return;
 			}
+			/* We found the existing session */
 			if (sess->cache_entry) {
-				/* We found the existing session */
-				gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
+				/*! indicate we can destroy file upon destruction, except if disabled at session level*/
+				if (! (sess->flags & GF_NETIO_SESSION_KEEP_CACHE))
+					gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
+
 				if (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)) {
 					gf_mx_p( sess->dm->cache_mx );
 					/* No session attached anymore... we can delete it */
@@ -3366,7 +3369,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			if (!stricmp(hdrp->name, "Content-Length") ) {
 				ContentLength = (u32) atoi(hdrp->value);
 
-				if (rsp_code<300)
+				if ((rsp_code<300) && sess->cache_entry)
 					gf_cache_set_content_length(sess->cache_entry, ContentLength);
 
 			}

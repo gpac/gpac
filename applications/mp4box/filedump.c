@@ -897,7 +897,8 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			s64 cts;
 			u64 dts, offset;
 			u32 isLeading, dependsOn, dependedOn, redundant;
-			Bool is_rap, has_roll;
+			Bool is_rap;
+			GF_ISOSampleRollType roll_type;
 			s32 roll_distance;
 			u32 index;
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, i+1, j+1, &index, &offset);
@@ -906,7 +907,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 				continue;
 			}
 			gf_isom_get_sample_flags(file, i+1, j+1, &isLeading, &dependsOn, &dependedOn, &redundant);
-			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &has_roll, &roll_distance);
+			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &roll_type, &roll_distance);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
 			fprintf(dump, "Sample %d\tDTS "LLU"\tCTS "LLD"\t%d\t%d", j+1, dts, cts, samp->dataLength, samp->IsRAP);
@@ -914,7 +915,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			if (!skip_offset)
 				fprintf(dump, "\t"LLU, offset);
 
-			fprintf(dump, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d", isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
+			fprintf(dump, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d", isLeading, dependsOn, dependedOn, redundant, is_rap, roll_type, roll_distance);
 
 			if (cts< (s64) dts) {
 				if (has_cts_offset==2) {
@@ -1492,10 +1493,11 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 
 		sap_type = samp->IsRAP;
 		if (!sap_type) {
-			Bool is_rap, has_roll;
+			Bool is_rap;
+			GF_ISOSampleRollType roll_type;
 			s32 roll_dist;
-			gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, &has_roll, &roll_dist);
-			if (has_roll) sap_type = SAP_TYPE_4;
+			gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, &roll_type, &roll_dist);
+			if (roll_type) sap_type = SAP_TYPE_4;
 			else if (is_rap)  sap_type = SAP_TYPE_3;
 		}
 
@@ -1645,7 +1647,8 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 	}
 	//get the movie SDP
 	gf_isom_sdp_get(file, &sdp, &size);
-	fprintf(dump, "%s", sdp);
+	if (sdp && size)
+		fprintf(dump, "%s", sdp);
 	fprintf(dump, "\r\n");
 
 	//then tracks
@@ -1880,12 +1883,16 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 }
 
 
-GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bool dump_ogg)
+GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
 {
 	FILE *t;
 	u32 i, count;
 	u32 chap_tk = 0;
 	count = gf_isom_get_chapter_count(file, 0);
+
+	if (dump_mode==2) dump_mode = GF_TEXTDUMPTYPE_OGG_CHAP;
+	else if (dump_mode==3) dump_mode = GF_TEXTDUMPTYPE_ZOOM_CHAP;
+	else dump_mode = GF_TEXTDUMPTYPE_TTXT_CHAP;
 
 	if (!count) {
 		for (i=0; i<gf_isom_get_track_count(file); i++) {
@@ -1899,8 +1906,8 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 			return GF_OK;
 		}
 
-		fprintf(stderr, "Chapter track found, dumping to ttxt\n");
-		dump_isom_timed_text(file, gf_isom_get_track_id(file, chap_tk), inName, is_final_name, GF_FALSE, GF_TEXTDUMPTYPE_TTXT);
+		fprintf(stderr, "Chapter track found, dumping\n");
+		dump_isom_timed_text(file, gf_isom_get_track_id(file, chap_tk), inName, is_final_name, GF_FALSE, dump_mode);
 		return GF_OK;
 
 	}
@@ -1908,10 +1915,12 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 		char szName[1024];
 		strcpy(szName, inName);
 		if (!is_final_name) {
-			if (dump_ogg) {
+			if (dump_mode==GF_TEXTDUMPTYPE_OGG_CHAP) {
+				strcat(szName, ".txt");
+			} else if (dump_mode==GF_TEXTDUMPTYPE_ZOOM_CHAP) {
 				strcat(szName, ".txt");
 			} else {
-				strcat(szName, ".chap");
+				strcat(szName, ".ttxt");
 			}
 		}
 		t = gf_fopen(szName, "wt");
@@ -1920,18 +1929,32 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bo
 		t = stdout;
 	}
 
+	if (dump_mode==GF_TEXTDUMPTYPE_TTXT_CHAP) {
+		fprintf(t, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+		fprintf(t, "<TextStream version=\"1.1\">\n");
+		fprintf(t, "<TextStreamHeader width=\"0\" height=\"0\" layer=\"0\" translation_x=\"0\" translation_y=\"0\">\n");
+		fprintf(t, "<TextSampleDescription horizontalJustification=\"left\" backColor=\"0 0 0\" scroll=\"None\"/>\n");
+		fprintf(t, "</TextStreamHeader>\n");
+	}
+
 	for (i=0; i<count; i++) {
+		char szDur[20];
 		u64 chapter_time;
 		const char *name;
 		gf_isom_get_chapter(file, 0, i+1, &chapter_time, &name);
-		if (dump_ogg) {
-			char szDur[20];
+		if (dump_mode==GF_TEXTDUMPTYPE_OGG_CHAP) {
 			fprintf(t, "CHAPTER%02d=%s\n", i+1, format_duration(chapter_time, 1000, szDur));
 			fprintf(t, "CHAPTER%02dNAME=%s\n", i+1, name);
-		} else {
+		} else if (dump_mode==GF_TEXTDUMPTYPE_ZOOM_CHAP) {
 			chapter_time /= 1000;
 			fprintf(t, "AddChapterBySecond("LLD",%s)\n", chapter_time, name);
+		} else {
+			fprintf(t, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"1\" xml:space=\"preserve\">%s</TextSample>\n"
+				, format_duration(chapter_time, 1000, szDur), name);
 		}
+	}
+	if (dump_mode==GF_TEXTDUMPTYPE_TTXT_CHAP) {
+		fprintf(t, "</TextStream>\n");
 	}
 	if (inName) gf_fclose(t);
 	return GF_OK;
@@ -2168,6 +2191,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	Bool is_od_track = 0;
 	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize, bps;
 	u64 time_slice, dur, size;
+	s32 cts_shift;
 	GF_ESD *esd;
 	char szDur[50];
 	char *lang;
@@ -2188,9 +2212,17 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	fprintf(stderr, "Media Duration %s - ", format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
 	fprintf(stderr, "Indicated Duration %s\n", format_duration(gf_isom_get_media_original_duration(file, trackNum), timescale, szDur));
 
+	if (gf_isom_check_data_reference(file, trackNum, 1) != GF_OK) {
+		fprintf(stderr, "Track uses external data reference not supported by GPAC!\n");
+	}
+
 	nb_edits = gf_isom_get_edits_count(file, trackNum);
 	if (nb_edits)
 		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
+
+	cts_shift = gf_isom_get_composition_offset_shift(file, trackNum);
+	if (cts_shift)
+		fprintf(stderr, "Track composition offset shift (negative CTS offset): %d\n", cts_shift);
 
 	if (gf_isom_is_track_in_root_od(file, trackNum) ) fprintf(stderr, "Track is present in Root OD\n");
 	if (!gf_isom_is_track_enabled(file, trackNum))  fprintf(stderr, "Track is disabled\n");
@@ -2213,10 +2245,20 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	}
 
 	if (gf_isom_is_track_fragmented(file, trackID) ) {
+		u32 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess;
+		u8 defaultPadding;
+		u16 defaultDegradationPriority;
 		u32 frag_samples;
 		u64 frag_duration;
 		gf_isom_get_fragmented_samples_info(file, trackID, &frag_samples, &frag_duration);
 		fprintf(stderr, "Fragmented track: %d samples - Media Duration %s\n", frag_samples, format_duration(frag_duration, timescale, szDur));
+
+		gf_isom_get_fragment_defaults(file, trackNum, &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
+
+		fprintf(stderr, "Fragment sample defaults: duration %d size %d stsd %d sync %d padding %d degradation_priority %d\n",
+				defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess,
+				(u32) defaultPadding, (u32) defaultDegradationPriority
+		);
 	}
 
 	if (!gf_isom_is_self_contained(file, trackNum, 1)) {
@@ -2699,7 +2741,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 				} else if(gf_isom_is_cenc_media(file, trackNum, 1)) {
 					gf_isom_get_cenc_info(file, trackNum, 1, NULL, &scheme_type, &version, &IV_size);
 					fprintf(stderr, "\n*Encrypted stream - CENC scheme %s (version: major=%u, minor=%u)\n", gf_4cc_to_str(scheme_type), (version&0xFFFF0000)>>16, version&0xFFFF);
-					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+					if (IV_size)
+						fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+					if (gf_isom_cenc_is_pattern_mode(file, trackNum, 1))
+						fprintf(stderr, "Pattern mode enabled\n");
+
 				} else if(gf_isom_is_adobe_protection_media(file, trackNum, 1)) {
 					gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version, NULL);
 					fprintf(stderr, "\n*Encrypted stream - Adobe protection scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
@@ -2881,11 +2927,10 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		} else {
 			fprintf(stderr, "Unknown Metadata Stream\n");
 		}
-
 	} else if ((msub_type==GF_ISOM_SUBTYPE_VVC1) || (msub_type==GF_ISOM_SUBTYPE_VVI1)) {
 		GF_VVCConfig *vvccfg;
 		u32 w, h;
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 		VVCState vvc_state;
 		memset(&vvc_state, 0, sizeof(VVCState));
 		vvc_state.sps_active_idx = -1;
@@ -2900,13 +2945,42 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			fprintf(stderr, "\n\n\tNon-compliant VVC track: No vvcC found in sample description\n");
 		} else {
 			dump_vvc_track_info(file, trackNum, vvccfg
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 				, &vvc_state
 #endif
 			);
 			gf_odf_vvc_cfg_del(vvccfg);
 			fprintf(stderr, "\n");
 		}
+	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHA1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHA2)) {
+		fprintf(stderr, "\tMPEG-H Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
+		GF_ESD *esd = gf_media_map_esd(file, trackNum, 1);
+		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
+		|| !esd->decoderConfig->decoderSpecificInfo->data || (esd->decoderConfig->decoderSpecificInfo->dataLength<5)
+		) {
+			fprintf(stderr, "\tInvalid MPEG-H audio config\n");
+		} else {
+			fprintf(stderr, "\tProfileLevelIndication: %02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
+		}
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
+	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2)) {
+		fprintf(stderr, "\tMPEG-H AudioMux stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
+		GF_ESD *esd = gf_media_map_esd(file, trackNum, 1);
+		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
+			|| !esd->decoderConfig->decoderSpecificInfo->data) {
+			GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, NULL);
+			if (samp) {
+				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength);
+				if (PL>=0)
+					fprintf(stderr, "\tProfileLevelIndication: %02X\n", PL);
+				if (samp) gf_isom_sample_del(&samp);
+			}
+		} else if (esd->decoderConfig->decoderSpecificInfo->dataLength<5) {
+			fprintf(stderr, "\tInvalid MPEG-H audio config\n");
+		} else {
+			fprintf(stderr, "\tProfileLevelIndication: %02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
+		}
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
@@ -2983,6 +3057,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		fprintf(stderr, "\tNo sync sample found\n");
 		break;
 	}
+	fprintf(stderr, "\tMax sample duration: %d / %d\n", gf_isom_get_max_sample_delta(file, trackNum), timescale);
 
 	if (!full_dump) {
 		fprintf(stderr, "\n");
@@ -3069,42 +3144,6 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			fprintf(stderr, "\tChapter #%d - %s - \"%s\"\n", j+1, format_duration(time, 1000, szDur), name);
 		}
 	}
-}
-
-static const char* ID3v1Genres[] = {
-	"Blues", "Classic Rock", "Country", "Dance", "Disco",
-	"Funk", "Grunge", "Hip-Hop", "Jazz", "Metal",
-	"New Age", "Oldies", "Other", "Pop", "R&B",
-	"Rap", "Reggae", "Rock", "Techno", "Industrial",
-	"Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack",
-	"Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk",
-	"Fusion", "Trance", "Classical", "Instrumental", "Acid",
-	"House", "Game", "Sound Clip", "Gospel", "Noise",
-	"AlternRock", "Bass", "Soul", "Punk", "Space",
-	"Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic",
-	"Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance",
-	"Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
-	"Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American",
-	"Cabaret", "New Wave", "Psychadelic", "Rave", "Showtunes",
-	"Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
-	"Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
-	"Folk", "Folk/Rock", "National Folk", "Swing",
-};
-static const char *id3_get_genre(u32 tag)
-{
-	if ((tag>0) && (tag <= (sizeof(ID3v1Genres)/sizeof(const char *)) )) {
-		return ID3v1Genres[tag-1];
-	}
-	return "Unknown";
-}
-u32 id3_get_genre_tag(const char *name)
-{
-	u32 i, count = sizeof(ID3v1Genres)/sizeof(const char *);
-	if (!name) return 0;
-	for (i=0; i<count; i++) {
-		if (!stricmp(ID3v1Genres[i], name)) return i+1;
-	}
-	return 0;
 }
 
 void DumpMovieInfo(GF_ISOFile *file)
@@ -3214,7 +3253,6 @@ void DumpMovieInfo(GF_ISOFile *file)
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tArtist: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tAlbum: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tComment: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tTrack: %d / %d\n", tag[3], tag[5]);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tComposer: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tWriter: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ALBUM_ARTIST, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tAlbum Artist: %s\n", tag);
@@ -3223,7 +3261,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 			if (tag[0]) {
 				fprintf(stderr, "\tGenre: %s\n", tag);
 			} else {
-				fprintf(stderr, "\tGenre: %s\n", id3_get_genre(((u8*)tag)[1]));
+				fprintf(stderr, "\tGenre: %s\n", gf_id3_get_genre(((u8*)tag)[1]));
 			}
 		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPILATION, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tCompilation: %s\n", tag[0] ? "Yes" : "No");
@@ -3240,7 +3278,13 @@ void DumpMovieInfo(GF_ISOFile *file)
 				fprintf(stderr, "\tTempo (BPM): %d\n", tag[1]);
 			}
 		}
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tTrackNumber: %d / %d\n", (0xff00 & (tag[2]<<8)) | (0xff & tag[3]), (0xff00 & (tag[4]<<8)) | (0xff & tag[5]));
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) {
+			if (tag[0]) {
+				fprintf(stderr, "\tTrackNumber: %s\n", tag);
+			} else {
+				fprintf(stderr, "\tTrackNumber: %d / %d\n", (0xff00 & (tag[2]<<8)) | (0xff & tag[3]), (0xff00 & (tag[4]<<8)) | (0xff & tag[5]));
+			}
+		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tTrack: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GROUP, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tGroup: %s\n", tag);
 
@@ -3493,6 +3537,10 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	u64 fsize, fdone;
 	GF_M2TS_Demuxer *ts;
 	FILE *src;
+
+	if (!prog_num && !out_name) {
+		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated.");
+	}
 
 	src = gf_fopen(mpeg2ts_file, "rb");
 	if (!src) {

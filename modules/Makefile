@@ -6,7 +6,7 @@ PLUGDIRS=validator
 #disabled for now
 #netctrl
 
-ifneq ($(CONFIG_ZLIB), no)
+ifneq ($(CONFIG_ZLIB),no)
 #disabled for now
 #PLUGDIRS+=widgetman
 ifeq ($(DISABLE_VRML),no)
@@ -19,28 +19,28 @@ endif
 endif
 
 
-ifeq ($(CONFIG_FT), no)
+ifeq ($(CONFIG_FT),no)
 else
 PLUGDIRS+=ft_font
 endif
 
-ifeq ($(CONFIG_FREENECT), no)
+ifeq ($(CONFIG_FREENECT),no)
 else
 #PLUGDIRS+=freenect
 endif
 
-ifeq ($(CONFIG_ALSA), yes)
+ifeq ($(CONFIG_ALSA),yes)
 PLUGDIRS+=alsa
 endif
 
-ifeq ($(CONFIG_JACK), yes)
+ifeq ($(CONFIG_JACK),yes)
 PLUGDIRS+=jack
 endif
 
-ifeq ($(CONFIG_SDL), yes)
+ifeq ($(CONFIG_SDL),yes)
 PLUGDIRS+=sdl_out
 endif
-ifeq ($(CONFIG_PULSEAUDIO), yes)
+ifeq ($(CONFIG_PULSEAUDIO),yes)
 PLUGDIRS+=pulseaudio
 endif
 
@@ -74,7 +74,7 @@ endif
 
 
 #if static modules are used, disable all previous modules (built-in in libgpac)
-ifeq ($(STATIC_MODULES), yes)
+ifeq ($(STATIC_MODULES),yes)
 PLUGDIRS=
 endif
 
@@ -84,7 +84,7 @@ endif
 #PLUGDIRS+=platinum
 #endif
 
-ifeq ($(DISABLE_PLAYER), yes)
+ifeq ($(DISABLE_PLAYER),yes)
 PLUGDIRS=
 endif
 

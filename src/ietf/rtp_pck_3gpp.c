@@ -249,7 +249,7 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 				builder->pck_hdr = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				/*RRLLLNNN (all 0, no interleaving)*/
 				gf_bs_write_u8(builder->pck_hdr, 0);
-				/*MMM + count-1 : overriden when flushing*/
+				/*MMM + count-1 : overridden when flushing*/
 				gf_bs_write_u8(builder->pck_hdr, 0);
 				builder->bytesInPacket = 2;
 			}

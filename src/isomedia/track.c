@@ -413,6 +413,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
+#ifdef GF_ENABLE_CTRN
 GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
 {
 	u32 i, idx;
@@ -435,6 +436,8 @@ GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
 	}
 	return NULL;
 }
+#endif
+
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset, Bool is_first_merge)
 {
@@ -607,10 +610,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		for (j=0; j<trun->sample_count; j++) {
 			GF_Err e;
 			s32 cts_offset=0;
-			ent = (GF_TrunEntry*)gf_list_get(trun->entries, j);
-
-			if (!ent) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Track %d doesn't have enough trun entries (%d) compared to sample count (%d) in run\n", traf->trex->trackID, gf_list_count(trun->entries), trun->sample_count ));
+			if (j<trun->nb_samples) {
+				ent = &trun->samples[j];
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Track %d doesn't have enough trun entries (%d) compared to sample count (%d) in run\n", traf->trex->trackID, trun->nb_samples, trun->sample_count ));
 				break;
 			}
 			size = def_size;
@@ -1255,7 +1258,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 			MediaType = GF_ISOM_MEDIA_SCENE;
 			str = "GPAC DIMS Handler";
 			break;
-		case GF_ISOM_MEDIA_TMCD:
+		case GF_ISOM_MEDIA_TIMECODE:
 			mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_GMHD);
 			str = "GPAC TMCD Handler";
 			break;

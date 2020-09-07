@@ -220,6 +220,7 @@ static GF_FilterProbeScore sockin_probe_url(const char *url, const char *mime_ty
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
+#ifndef GPAC_DISABLE_STREAMING
 static void sockin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	u32 size;
@@ -229,6 +230,7 @@ static void sockin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 	data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (data) gf_free(data);
 }
+#endif
 
 static Bool sockin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
@@ -296,7 +298,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 #ifndef GPAC_DISABLE_STREAMING
 				sock_c->rtp_reorder = gf_rtp_reorderer_new(ctx->reorder_pck, ctx->reorder_delay);
 #else
-			ctx-	>is_rtp = GF_TRUE;
+				sock_c->is_rtp = GF_TRUE;
 #endif
 				mime = "video/mp2t";
 			} else if (ctx->buffer[0] == 0x47) {

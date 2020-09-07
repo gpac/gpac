@@ -191,7 +191,8 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		size = gf_bs_read_u64(bs);
 		hdr_size += 8;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), size,  start));
+	if (!skip_logs)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), size,  start));
 
 	if ( size < hdr_size ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", size, hdr_size));
@@ -1465,23 +1466,42 @@ void gf_isom_registry_disable(u32 boxCode, Bool disable)
 	}
 }
 
-static u32 get_box_reg_idx(u32 boxCode, u32 parent_type)
+static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 {
 	u32 i=0, count = gf_isom_get_num_supported_boxes();
 	const char *parent_name = parent_type ? gf_4cc_to_str(parent_type) : NULL;
 
-	for (i=1; i<count; i++) {
-		if (box_registry[i].box_4cc==boxCode) {
-			if (!parent_type) return i;
-			if (strstr(box_registry[i].parents_4cc, parent_name) != NULL) return i;
+	if (!start_from) start_from = 1;
 
-			if (strstr(box_registry[i].parents_4cc, "sample_entry") != NULL) {
-				u32 j = get_box_reg_idx(parent_type, 0);
-				if (parent_type==GF_QT_SUBTYPE_RAW)
-					return i;
-				if (box_registry[j].parents_4cc && (strstr(box_registry[j].parents_4cc, "stsd") != NULL))
-					return i;
-			}
+	for (i=start_from; i<count; i++) {
+		u32 start_par_from;
+		if (box_registry[i].box_4cc != boxCode)
+			continue;
+
+		if (!parent_type)
+			return i;
+		if (strstr(box_registry[i].parents_4cc, parent_name) != NULL)
+			return i;
+		if (strstr(box_registry[i].parents_4cc, "*") != NULL)
+			return i;
+
+		if (strstr(box_registry[i].parents_4cc, "sample_entry") == NULL)
+			continue;
+
+		/*parent is a sample entry, check if the parent_type matches a sample entry box (eg its parent must be stsd)*/
+
+		if (parent_type==GF_QT_SUBTYPE_RAW)
+			return i;
+
+		start_par_from = 0;
+		while (parent_type) {
+			//locate parent registry
+			u32 j = get_box_reg_idx(parent_type, 0, start_par_from);
+			if (!j) break;
+			//if parent registry has "stsd" as parent, this is a sample entry
+			if (box_registry[j].parents_4cc && (strstr(box_registry[j].parents_4cc, "stsd") != NULL))
+				return i;
+			start_par_from = j+1;
 		}
 	}
 	return 0;
@@ -1490,7 +1510,7 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type)
 GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box)
 {
 	GF_Box *a;
-	s32 idx = get_box_reg_idx(boxType, parentType);
+	s32 idx = get_box_reg_idx(boxType, parentType, 0);
 	if (idx==0) {
 #ifndef GPAC_DISABLE_LOG
 		if (!skip_logs && (boxType != GF_ISOM_BOX_TYPE_UNKNOWN) && (boxType != GF_ISOM_BOX_TYPE_UUID)) {
@@ -1500,6 +1520,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			case GF_ISOM_BOX_TYPE_UDTA:
 			case GF_ISOM_BOX_TYPE_UNKNOWN:
 			case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
+			case GF_QT_BOX_TYPE_WAVE:
 				break;
 			default:
 				if (is_root_box) {
@@ -1648,7 +1669,6 @@ void gf_isom_box_del(GF_Box *a)
 	if (!a_box_registry) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Delete invalid box type %s without registry\n", gf_4cc_to_str(a->type) ));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Delete box type %s\n", gf_4cc_to_str(a->type) ));
 		a_box_registry->del_fn(a);
 	}
 	//delet the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox

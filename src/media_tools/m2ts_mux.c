@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS multiplexer sub-project
@@ -951,9 +951,9 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 		else
 			stream->program->initial_ts = 0;
 
-		stream->program->initial_ts_set = GF_TRUE;
+		stream->program->initial_ts_set = 1;
 	}
-	else if (*dts < stream->program->initial_ts) {
+	else if ( (*dts < stream->program->initial_ts) && (stream->program->initial_ts_set==1)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: DTS "LLD" is less than initial DTS "LLD" - adjusting\n", stream->pid, *dts, stream->program->initial_ts));
 		stream->program->initial_ts = *dts;
 	}
@@ -1007,7 +1007,7 @@ static void id3_tag_create(u8 **input, u32 *len)
 
 	id3_write_size(bs, *len + 10);
 
-	gf_bs_write_u32(bs, ID3V2_FRAME_TXXX);
+	gf_bs_write_u32(bs, GF_ID3V2_FRAME_TXXX);
 	id3_write_size(bs, *len); /* size of the text */
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_u8(bs, 0);
@@ -1148,6 +1148,43 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				while (!stream->program->pcr_init_time)
 					stream->program->pcr_init_time = gf_rand();
 			}
+
+			if (stream->program->force_first_pts) {
+				u64 first_pts = stream->curr_pck.cts;
+				u64 first_dts = stream->curr_pck.dts;
+
+				if (stream->ts_scale.den) {
+					first_pts = first_pts * stream->ts_scale.num / stream->ts_scale.den;
+					first_dts = first_dts * stream->ts_scale.num / stream->ts_scale.den;
+				}
+
+				/*the final PTS is computed by:
+					force_first_pts = first_pts + stream->program->pcr_offset - stream->program->initial_ts + stream->program->pcr_init_time/300;
+					force_first_dts = first_dts + stream->program->pcr_offset - stream->program->initial_ts + stream->program->pcr_init_time/300;
+
+				time_inc is computed as
+					time_inc = force_first_dts - stream->program->pcr_init_time/300;
+
+				=>	time_inc = first_dts + stream->program->pcr_offset - stream->program->initial_ts + stream->program->pcr_init_time/300 - stream->program->pcr_init_time/300;
+
+				=>	time_inc = first_dts + stream->program->pcr_offset - stream->program->initial_ts;
+
+					we want at the initial time_inc=0, hence
+					stream->program->initial_ts = first_dts + stream->program->pcr_offset;
+
+				*/
+/*
+				stream->program->pcr_init_time = first_dts*300 - stream->program->pcr_offset;
+				stream->program->initial_ts = first_pts + stream->program->pcr_offset + stream->program->pcr_init_time/300 - stream->program->force_first_pts;
+*/
+
+				stream->program->initial_ts = first_dts + stream->program->pcr_offset;
+				stream->program->pcr_init_time = 300 * (stream->program->force_first_pts - first_pts - stream->program->pcr_offset + stream->program->initial_ts);
+
+				stream->program->initial_ts_set = 2;
+			}
+
+
 			stream->program->pcr_init_time_set = GF_TRUE;
 			stream->program->ts_time_at_pcr_init = muxer->time;
 			stream->program->num_pck_at_pcr_init = muxer->tot_pck_sent;
@@ -2107,28 +2144,20 @@ static void gf_m2ts_stream_set_default_slconfig(GF_M2TS_Mux_Stream *stream)
 	}
 }
 
-static GF_M2TS_Mux_Stream *gf_m2ts_find_stream(GF_M2TS_Mux_Program *program, u32 pid, u32 stream_id)
-{
-	GF_M2TS_Mux_Stream *st = program->streams;
-	while (st) {
-		if (pid && (st->pid == pid))
-			return st;
-		if (stream_id && (st->ifce->stream_id == stream_id))
-			return st;
-		st = st->next;
-	}
-	return NULL;
-}
-
-static s32 gf_m2ts_stream_index(GF_M2TS_Mux_Program *program, u32 pid, u32 stream_id)
+static s32 gf_m2ts_find_stream(GF_M2TS_Mux_Program *program, u32 pid, u32 stream_id, GF_M2TS_Mux_Stream **out_stream)
 {
 	s32 i=0;
 	GF_M2TS_Mux_Stream *st = program->streams;
+	if (out_stream) *out_stream = NULL;
 	while (st) {
-		if (pid && (st->pid == pid))
+		if (pid && (st->pid == pid)) {
+			if (out_stream) *out_stream = st;
 			return i;
-		if (stream_id && (st->ifce->stream_id == stream_id))
+		}
+		if (stream_id && (st->ifce->stream_id == stream_id)) {
+			if (out_stream) *out_stream = st;
 			return i;
+		}
 		st = st->next;
 		i++;
 	}
@@ -2157,13 +2186,13 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 	/*reserved*/
 	gf_bs_write_int(bs, 3, 2);
 	/*hierarchy_layer_index*/
-	gf_bs_write_int(bs, gf_m2ts_stream_index(stream->program, stream->pid, 0), 6);
+	gf_bs_write_int(bs, gf_m2ts_find_stream(stream->program, stream->pid, 0, NULL), 6);
 	/*tref_present_flag = 1 : NOT PRESENT*/
 	gf_bs_write_int(bs, 1, 1);
 	/*reserved*/
 	gf_bs_write_int(bs, 1, 1);
 	/*hierarchy_embedded_layer_index*/
-	gf_bs_write_int(bs, gf_m2ts_stream_index(stream->program, 0, stream->ifce->depends_on_stream), 6);
+	gf_bs_write_int(bs, gf_m2ts_find_stream(stream->program, 0, stream->ifce->depends_on_stream, NULL), 6);
 	/*reserved*/
 	gf_bs_write_int(bs, 3, 2);
 	/*hierarchy_channel*/
@@ -2317,7 +2346,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 				stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC_TEMPORAL;
 				gf_m2ts_stream_add_hierarchy_descriptor(stream);
 				stream->force_single_au = GF_TRUE;
-				base_st = gf_m2ts_find_stream(program, 0, ifce->depends_on_stream);
+				gf_m2ts_find_stream(program, 0, ifce->depends_on_stream, &base_st);
 				if (base_st) base_st->force_single_au = GF_TRUE;
 			}
 
@@ -2500,7 +2529,7 @@ u32 gf_m2ts_mux_program_count(GF_M2TS_Mux *muxer)
 }
 
 GF_EXPORT
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc)
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u64 pcr_offset, u32 mpeg4_signaling, u32 pmt_version, Bool initial_disc, u64 force_first_pts)
 {
 	GF_M2TS_Mux_Program *program;
 
@@ -2528,6 +2557,7 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	program->pmt->set_initial_disc = initial_disc;
 	muxer->pat->table_needs_update = GF_TRUE;
 	program->pmt->process = gf_m2ts_stream_process_pmt;
+	program->force_first_pts = force_first_pts;
 	program->pmt->refresh_rate_ms = pmt_refresh_rate ? pmt_refresh_rate : (u32) -1;
 	return program;
 }
@@ -3016,7 +3046,6 @@ send_pck:
 			muxer->tot_pad_sent++;
 		}
 	} else {
-
 		if (stream_to_process->tables) {
 			gf_m2ts_mux_table_get_next_packet(muxer, stream_to_process, muxer->dst_pck);
 		} else {

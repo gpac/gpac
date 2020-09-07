@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -42,11 +42,16 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 {
+	const char *res, *arg;
 	if (!path) return NULL;
 	if (sess->sep_args != ':')
 		return strchr(path, sess->sep_args);
 
-	return gf_url_colon_suffix(path);
+	arg = strchr(path, sess->sep_name);
+	res = gf_url_colon_suffix(path);
+	if (arg && res && (res > arg))
+		res = gf_url_colon_suffix(arg+1);
+	return res;
 }
 
 static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const char *in_args, Bool is_dst)
@@ -54,13 +59,20 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 	char szEscape[7];
 	char *args_striped = NULL;
 	if (in_args) {
-		char szDst[5];
+		char szDst[6];
+		const char *key;
 		if (is_dst) {
-			sprintf(szDst, "dst%c", fsess->sep_name);
+			key = "dst";
 		} else {
-			sprintf(szDst, "src%c", fsess->sep_name);
+			key = "src";
 		}
-		args_striped = strstr(in_args, szDst);
+		if (!strncmp(in_args, key, 3) && (in_args[3]==fsess->sep_name)) {
+			args_striped = (char *) in_args;
+		} else {
+			sprintf(szDst, "%c%s%c", fsess->sep_name, key, fsess->sep_name);
+			args_striped = strstr(in_args, szDst);
+		}
+
 		if (args_striped) {
 			args_striped = (char *)gf_fs_path_escape_colon(fsess, args_striped+4);
 			if (args_striped) args_striped ++;
@@ -307,6 +319,11 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 			gf_filter_pid_post_init_task(filter, pid);
 		}
 	}
+
+#ifdef GPAC_HAS_QJS
+	jsfs_on_filter_created(filter);
+#endif
+
 	return GF_OK;
 }
 
@@ -341,6 +358,11 @@ void gf_filter_del(GF_Filter *filter)
 	assert(!filter->detach_pid_tasks_pending);
 //	assert(!filter->swap_pidinst_dst);
 	assert(!filter->swap_pidinst_src);
+
+
+#ifdef GPAC_HAS_QJS
+	jsfs_on_filter_destroyed(filter);
+#endif
 
 #ifndef GPAC_DISABLE_3D
 	gf_list_del_item(filter->session->gl_providers, filter);
@@ -435,6 +457,11 @@ void gf_filter_del(GF_Filter *filter)
 		gf_free(filter->instance_author);
 	if (filter->instance_help)
 		gf_free(filter->instance_help);
+
+#ifdef GPAC_HAS_QJS
+	if (filter->iname)
+		gf_free(filter->iname);
+#endif
 
 	gf_free(filter);
 }
@@ -890,27 +917,38 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg);
 }
 
-static const char *gf_filter_load_arg_config(GF_FilterSession *session, const char *sec_name, const char *arg_name, const char *arg_val)
+static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_name, const char *arg_name, const char *arg_val)
 {
 	Bool gf_sys_has_filter_global_args();
 	const char *opt;
+	GF_FilterSession *session = filter->session;
 
 	//look in global args
 	if (gf_sys_has_filter_global_args()) {
 		u32 alen = (u32) strlen(arg_name);
 		u32 i, nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
+			const char *per_filter;
 			const char *arg = gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
 			if (arg[1]!='-') continue;
 
-			if (!strncmp(arg+2, arg_name, alen)) {
+			arg += 2;
+			per_filter = strchr(arg, '@');
+			if (per_filter) {
+				u32 len = (u32) (per_filter - arg);
+				if (!len || strncmp(filter->freg->name, arg, len))
+					continue;
+				arg += len+1;
+			}
+
+			if (!strncmp(arg, arg_name, alen)) {
 				u32 len=0;
 				char *sep = strchr(arg, '=');
 				if (sep) {
-					len = (u32) (sep - (arg+2));
+					len = (u32) (sep - (arg));
 				} else {
-					len = (u32) strlen(arg+2);
+					len = (u32) strlen(arg);
 				}
 				if (len != alen) continue;
 				gf_fs_push_arg(session, arg_name, GF_TRUE, 0);
@@ -976,10 +1014,20 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 #define META_MAX_ARG	1000
 		char szArg[META_MAX_ARG+1];
 		GF_Err e;
+		const char *per_filter;
 		const char *sep, *arg = gf_sys_get_arg(i);
 		if (arg[0] != '-') continue;
 		if (arg[1] != '+') continue;
 		arg+=2;
+
+		per_filter = strchr(arg, '@');
+		if (per_filter) {
+			u32 len = (u32) (per_filter - arg);
+			if (!len || strncmp(filter->freg->name, arg, len))
+				continue;
+			arg += len+1;
+		}
+
 		sep = strchr(arg, '=');
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
@@ -1076,13 +1124,26 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							|| !strncmp(args+4, "rtp://", 6)
 						) {
 							char *sep2 = sep ? strchr(sep+1, ':') : NULL;
-							if (sep2) {
-								u32 port = 0;;
-								sep2[0] = 0;
-								if (sscanf(sep+1, "%d", &port)!=1) {
-									port = 0;
+							char *sep3 = sep ? strchr(sep+1, '/') : NULL;
+							if (sep2 && sep3 && (sep2>sep3)) {
+								sep2 = strchr(sep3, ':');
+							}
+							if (sep2 || sep3 || sep) {
+								char szPort[20];
+								u32 port = 0;
+								if (sep2) {
+									sep2[0] = 0;
+									if (sep3) sep3[0] = 0;
 								}
-								sep2[0] = ':';
+								else if (sep3) sep3[0] = 0;
+								if (sscanf(sep+1, "%d", &port)==1) {
+									snprintf(szPort, 20, "%d", port);
+									if (strcmp(sep+1, szPort))
+										port = 0;
+								}
+								if (sep2) sep2[0] = ':';
+								if (sep3) sep3[0] = '/';
+
 								if (port) sep = sep2;
 							}
 						}
@@ -1424,7 +1485,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			continue;
 		}
 
-		def_val = gf_filter_load_arg_config(filter->session, szSecName, a->arg_name, a->arg_default_val);
+		def_val = gf_filter_load_arg_config(filter, szSecName, a->arg_name, a->arg_default_val);
 
 		if (!def_val) continue;
 
@@ -2831,9 +2892,46 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 }
 
 GF_EXPORT
-GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
+GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
 {
-	GF_Filter *filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
+	GF_Filter *filter_src;
+	const char *args;
+	char *full_args = NULL;
+	if (!filter) {
+		if (err) *err = GF_BAD_PARAM;
+		return NULL;
+	}
+	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
+	if (args) {
+		char szSep[10];
+		char *loc_args;
+		u32 len = (u32) strlen(args);
+		sprintf(szSep, "%cgfloc%c", filter->session->sep_args, filter->session->sep_args);
+		loc_args = strstr(args, szSep);
+		if (loc_args) {
+			len = (u32) (ptrdiff_t) (loc_args - args);
+		}
+		if (len) {
+			gf_dynstrcat(&full_args, url, NULL);
+			sprintf(szSep, "%cgpac%c", filter->session->sep_args, filter->session->sep_args);
+			if ((filter->session->sep_args==':') && strstr(url, "://") && !strstr(url, szSep)) {
+				gf_dynstrcat(&full_args, szSep, NULL);
+			} else {
+				sprintf(szSep, "%c", filter->session->sep_args);
+				gf_dynstrcat(&full_args, szSep, NULL);
+			}
+			gf_dynstrcat(&full_args, args, NULL);
+			sprintf(szSep, "%cgfloc%c", filter->session->sep_args, filter->session->sep_args);
+			loc_args = strstr(full_args, "gfloc");
+			if (loc_args) loc_args[0] = 0;
+
+			url = full_args;
+		}
+	}
+
+	filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
+	if (full_args) gf_free(full_args);
+
 	if (!filter_src) return NULL;
 
 	if (!filter->source_filters)
@@ -2962,7 +3060,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	if (!filter || !link_from) return GF_BAD_PARAM;
 	if (filter == link_from) return GF_OK;
 	//don't allow loops
-	if (filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
+	if (gf_filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
 
 	if (!link_from->id) {
 		gf_filter_assign_id(link_from, NULL);
@@ -3459,7 +3557,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 		if (strncmp(args + 4, protocol_scheme, len)) continue;
 		if (!expand_proto && (args[len] != ':')) continue;
 
-		if (! filter_in_parent_chain(filter, src)) {
+		if (! gf_filter_in_parent_chain(filter, src)) {
 			u32 j=0;
 			Bool found=GF_FALSE;
 			if (!enum_pids) continue;
@@ -3467,7 +3565,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 				GF_FilterPid *pid = enum_pids(udta, &j);
 				if (!pid) break;
 				j++;
-				if ( filter_in_parent_chain(pid->pid->filter, src)) {
+				if ( gf_filter_in_parent_chain(pid->pid->filter, src)) {
 					found=GF_TRUE;
 					break;
 				}
@@ -3745,3 +3843,12 @@ GF_Err gf_filter_reconnect_output(GF_Filter *filter)
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_filter_set_event_target(GF_Filter *filter, Bool enable_events)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->event_target = enable_events;
+	return GF_OK;
+}
+

@@ -132,6 +132,9 @@ readonly attribute unsigned long long readonly clock_hint_us;
 readonly attribute unsigned long long clock_hint_mediatime;
 /*! see \ref gf_filter_connections_pending*/
 readonly attribute unsigned long long connections_pending;
+/*! internal name - this can only be set and modified by JS API and allows for filter identification from JS*/
+attribute DOMString iname;
+
 
 /*! sets filter desciption as visible when checking filter info
 \param description description of filter*/
@@ -148,6 +151,7 @@ void set_help(DOMString help);
 
 /*! adds an argument to the filter. JavaScript Filter arguments can be specified from command line in the same way as reguar filters.
 The argument is then exposed as a property of the "filter" object of the javascript context.
+If the argument name is a wildcard (*), the filter will be forwarded any argument name.
 \param arg object exposing the same interface as the JSArgDesc interface
 */
 void set_arg(JSArgDesc arg);
@@ -240,9 +244,10 @@ void send_update(DOMString filter_id, DOMString arg_name, DOMString arg_value, l
 /*! adds a source filter in the media session - see \ref gf_filter_connect_source
 \param source URL of source to load
 \param parent URL of parent, used as baseURL for the source. May be NULL
+\param inherit_args if true, new filter will inherit arguments of this filter's destination
 \return new loaded source filter or null
 */
-FilterInstance add_source(DOMString source, optional DOMString parent = null);
+FilterInstance add_source(DOMString source, optional DOMString parent = null, optional boolean inherit_args = false);
 
 /*! adds a destination filter in the media session - see \ref gf_filter_connect_destination
 \param destination URL of destination to instantiate
@@ -268,7 +273,7 @@ void prevent_blocking(boolean do_prevent);
 /*! makes the filter prevent EOS queries - see \ref gf_filter_block_eos
 \param do_block if true, filter input pids cannot be checked for end of stream during EOS queries
 */
-void prevent_blocking(boolean do_block);
+void block_eos(boolean do_block);
 
 };
 
@@ -728,6 +733,8 @@ void copy_props(FilterPacket from);
 
 /*! FilterEvent expose a filter event object, either for processing a received event or triggering a new event.
 The read access to the members of the structure is cross-checked with the event type and throw an error when attempting to access the wrong field 
+
+When a field is marked as read-only, this means the event cannot be fired, it can only be received.
 */
 
 interface FilterEvent {
@@ -833,7 +840,40 @@ attribute unsigned long keycode;
 attribute unsigned long hwkey;
 
 /*! array of DOMString - see \ref GF_EventOpenFile*/
-attribute Array dropfiles;
+attribute readonly Array dropfiles;
+
+/*! see \ref GF_EventClipboard*/
+attribute DOMString clipboard;
+
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_x;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_y;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_rotate;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_pinch;
+/*! see \ref GF_EventMultiTouch*/
+attribute float mt_fingers;
+
+/*! see \ref GF_EventSize*/
+attribute unsigned long width;
+/*! see \ref GF_EventSize*/
+attribute unsigned long height;
+
+/*! see \ref GF_EventShow*/
+attribute unsigned long showtype;
+
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_x;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_y;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_relative;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_alignx;
+/*! see \ref GF_EventMove*/
+attribute unsigned long move_aligny;
 
 };
 

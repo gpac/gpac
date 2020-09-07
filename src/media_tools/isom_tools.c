@@ -924,9 +924,16 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	}
 	//make QT
 	gf_isom_remove_root_od(mp4);
-	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_QT, 512);
-	gf_isom_reset_alt_brands(mp4);
-
+	if (gf_isom_get_mode(mp4) != GF_ISOM_OPEN_WRITE) {
+		gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_QT, 512);
+		gf_isom_reset_alt_brands(mp4);
+	} else {
+		u32 brand, version;
+		gf_isom_get_brand_info(mp4, &brand, &version, NULL);
+		if (brand != GF_ISOM_BRAND_QT) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] Cannot change brand from \"%s\" to \"qt  \", flat storage used. Try using different storage mode\n", gf_4cc_to_str(brand)));
+		}
+	}
 
 	if (!video_tk) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[QTFF] No visual track\n"));
@@ -980,7 +987,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		gf_isom_update_aperture_info(mp4, video_tk, GF_FALSE);
 	}
 
-	//todo: patch colr
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 	if (e==GF_NOT_FOUND) {
 		colour_primaries = transfer_characteristics = matrix_coefficients = 0;
@@ -1087,6 +1093,10 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 	case GF_ISOM_SUBTYPE_VP08:
 	case GF_ISOM_SUBTYPE_VVC1:
 	case GF_ISOM_SUBTYPE_VVI1:
+	case GF_ISOM_SUBTYPE_MH3D_MHA1:
+	case GF_ISOM_SUBTYPE_MH3D_MHA2:
+	case GF_ISOM_SUBTYPE_MH3D_MHM1:
+	case GF_ISOM_SUBTYPE_MH3D_MHM2:
 		return gf_isom_get_esd(mp4, track, stsd_idx);
 	}
 
@@ -2230,6 +2240,8 @@ exit:
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
+
+#if !defined(GPAC_DISABLE_HEVC)
 /* Split LHVC layers */
 static GF_NALUParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 {
@@ -2249,6 +2261,7 @@ static GF_NALUParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 typ
 		gf_list_add(hevc_cfg->param_array, ar);
 	return ar;
 }
+#endif
 
 typedef struct{
 	u8 layer_id_plus_one;
@@ -2407,7 +2420,7 @@ exit:
 GF_EXPORT
 GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode)
 {
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 	LHVCTrackInfo sti[64];
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	u32 sample_num, count, cur_extract_mode, j, k, max_layer_id;
@@ -2586,12 +2599,13 @@ reparse:
 		GF_BitStream *bs;
 		u32 di;
 		GF_ISOSample *sample;
-		Bool is_irap, has_roll;
+		Bool is_irap;
+		GF_ISOSampleRollType roll_type;
 		s32 roll_distance;
 		u8 cur_max_layer_id = 0;
 
 		sample = gf_isom_get_sample(file, track, sample_num+1, &di);
-		gf_isom_get_sample_rap_roll_info(file, track, sample_num+1, &is_irap, &has_roll, &roll_distance);
+		gf_isom_get_sample_rap_roll_info(file, track, sample_num+1, &is_irap, &roll_type, &roll_distance);
 
 		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 		while (gf_bs_available(bs)) {
@@ -2864,8 +2878,8 @@ reparse:
 				if (is_irap) {
 					gf_isom_set_sample_rap_group(file, sti[j].track_num, sample_idx, GF_TRUE, 0);
 				}
-				else if (has_roll) {
-					gf_isom_set_sample_roll_group(file, sti[j].track_num, sample_idx, GF_TRUE, (s16) roll_distance);
+				else if (roll_type) {
+					gf_isom_set_sample_roll_group(file, sti[j].track_num, sample_idx, GF_ISOM_SAMPLE_ROLL, (s16) roll_distance);
 				}
 			}
 

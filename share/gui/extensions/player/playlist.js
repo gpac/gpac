@@ -89,7 +89,7 @@ extension.view_playlist = function () {
         fb.on_browse = function (value, directory) {
             this.playlist.show();
             plist.add_files(value, false, false);
-            if (directory) gpac.last_working_directory = directory;
+            if (directory) Sys.last_wdir = directory;
 
         }
         fb.on_close = function () {
@@ -113,7 +113,7 @@ extension.view_playlist = function () {
                 item.set_size(popup.width, gwskin.default_control_height);
                 item.dlg = popup;
                 item.on_click = function() {
-                    var filelist = gpac.enum_directory(path, '*', false);
+                    var filelist = Sys.enum_directory(path, '*', false);
                     item.dlg.fb.playlist.add_files(filelist, false, false);
                     item.dlg.fb.close();
                     item.dlg.close();
@@ -122,7 +122,7 @@ extension.view_playlist = function () {
                 item.set_size(popup.width, gwskin.default_control_height);
                 item.dlg = popup;
                 item.on_click = function() {
-                    var filelist = gpac.enum_directory(path, '*', false);
+                    var filelist = Sys.enum_directory(path, '*', false);
                     item.dlg.fb.playlist.add_files(filelist, true, false);
                     item.dlg.fb.close();
                     item.dlg.close();
@@ -200,7 +200,7 @@ extension.view_playlist = function () {
                 obj.name = list[i].name;
                 ar.push(obj);
             }
-            if (list.length) gpac.last_working_directory = list[0].path;
+            if (list.length) Sys.last_wdir = list[0].path;
 
             //sort
             if (!this._sort_type) {
@@ -290,8 +290,12 @@ extension.view_playlist = function () {
     }
 
     plist.on_display_size = function (width, height) {
-        var w = 2*width / 3;
-        this.set_size(w, 0.8 * height);
+        if (gwskin.mobile_device) {
+            this.set_size(width, height);
+        } else {
+            var w = 2*width / 3;
+            this.set_size(w, 0.8 * height);
+        }
     }
 
    plist.on_display_size(gw_display_width, gw_display_height);

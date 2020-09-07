@@ -1015,7 +1015,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 		namelen = (u32) strlen(named_tx->tx_name);
 
 		while (a_source) {
-			char *loc = strstr(source, "texture2D");
+			char *loc = strstr(a_source, "texture2D");
 			if (!loc) break;
 			loc += 9;
 			while (loc[0] && strchr(" (\n\t", loc[0])) loc++;
@@ -1029,28 +1029,24 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 
 	if (has_gptx) {
-		char *o_src;
-		char *main_fn = NULL;
-		char *start = strstr(source, "void main(");
-		if (!start) {
-			JS_FreeCString(ctx, source);
-			return js_throw_err_msg(ctx, WGL_INVALID_VALUE, "Missing main in shader");
-		}
-		start[0] = 0;
-		//strip all sample2D declarations for GPACTextures
+		char *o_src, *start;
+		char *gf_source_pass1 = NULL;
+
+		//first pass, strip all sample2D declarations for GPACTextures, replace with our own
 		o_src = source;
 		while (o_src) {
 			char c;
+			GF_WebGLNamedTexture *named_tx=NULL;
 			Bool found = GF_FALSE;
 			char *sep, *start = strstr(o_src, "uniform sampler2D ");
 			if (!start) {
-				gf_dynstrcat(&gf_source, o_src, NULL);
+				gf_dynstrcat(&gf_source_pass1, o_src, NULL);
 				break;
 			}
 			sep = start + strlen("uniform sampler2D ");
 			for (i=0; i<count; i++) {
 				u32 namelen;
-				GF_WebGLNamedTexture *named_tx = gf_list_get(glc->named_textures, i);
+				named_tx = gf_list_get(glc->named_textures, i);
 				namelen = (u32) strlen(named_tx->tx_name);
 				if (strncmp(sep, named_tx->tx_name, namelen)) continue;
 
@@ -1058,24 +1054,34 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 					sep += namelen;
 					while (sep[0] && strchr(" ;", sep[0])) sep++;
 					start[0] = 0;
-					gf_dynstrcat(&gf_source, o_src, NULL);
+					gf_dynstrcat(&gf_source_pass1, o_src, NULL);
 					start[0] = 'u';
 					o_src = sep;
 					found = GF_TRUE;
 					break;
 				}
-				if (found) break;
 			}
-			if (found) continue;
+			if (found) {
+				//named texture but unknown pixel format, cannot create shader
+				if (!named_tx->tx.pix_fmt) {
+					JSValue ret = js_throw_err_msg(ctx, WGL_INVALID_VALUE, "NamedTexture %s pixel format undefined, cannot create shader", named_tx->tx_name);
+					JS_FreeCString(ctx, source);
+					gf_free(gf_source);
+					return ret;
+				}
+				//insert our uniform declaration and code
+				if (gf_gl_txw_insert_fragment_shader(named_tx->tx.pix_fmt, named_tx->tx_name, &gf_source_pass1))
+					named_tx->shader_attached = GF_TRUE;
+				continue;
+			}
 			c = sep[0];
 			sep[0] = 0;
-			gf_dynstrcat(&gf_source, o_src, NULL);
+			gf_dynstrcat(&gf_source_pass1, o_src, NULL);
 			sep[0] = c;
 			o_src = sep;
 		}
-
-		start[0] = 'v';
-
+		//second pass, replace all texture2D(NamedTX, ..) with our calls
+		start = gf_source_pass1;
 		while (start && start[0]) {
 			char c;
 			char *next;
@@ -1083,7 +1089,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 			char *end_gfTx;
 			char *has_gfTx = strstr(start, "texture2D");
 			if (!has_gfTx) {
-				gf_dynstrcat(&main_fn, start, NULL);
+				gf_dynstrcat(&gf_source, start, NULL);
 				break;
 			}
 
@@ -1102,42 +1108,33 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 			if (!named_tx) {
 				next[0] = c;
 				has_gfTx[0] = 0;
-				gf_dynstrcat(&main_fn, start, NULL);
+				gf_dynstrcat(&gf_source, start, NULL);
 				has_gfTx[0] = 't';
-				gf_dynstrcat(&main_fn, "texture2D", NULL);
+				gf_dynstrcat(&gf_source, "texture2D", NULL);
 				start = has_gfTx + 9;
 				continue;
-			}
-			//named texture but unknown pixel format, cannot create shader
-			if (!named_tx->tx.pix_fmt) {
-				JSValue ret = js_throw_err_msg(ctx, WGL_INVALID_VALUE, "NamedTexture %s pixel format undefined, cannot create shader", has_gfTx);
-				JS_FreeCString(ctx, source);
-				gf_free(gf_source);
-				return ret;
 			}
 			next[0] = c;
 
 			has_gfTx[0] = 0;
-			gf_dynstrcat(&main_fn, start, NULL);
+			gf_dynstrcat(&gf_source, start, NULL);
 			has_gfTx[0] = 't';
 
-			gf_dynstrcat(&main_fn, named_tx->tx_name, NULL);
-			gf_dynstrcat(&main_fn, "_sample(", NULL);
+			gf_dynstrcat(&gf_source, named_tx->tx_name, NULL);
+			gf_dynstrcat(&gf_source, "_sample(", NULL);
 			while (next[0] && strchr(" ,", next[0]))
 				next++;
 
-			if (gf_gl_txw_insert_fragment_shader(named_tx->tx.pix_fmt, named_tx->tx_name, &gf_source))
-				named_tx->shader_attached = GF_TRUE;
-
 			start = next;
 		}
-		gf_dynstrcat(&gf_source, main_fn, NULL);
-		gf_free(main_fn);
+		gf_free(gf_source_pass1);
 		final_source = gf_source;
 	} else {
 		final_source = source;
 	}
 	len = (u32) strlen(final_source);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONSOLE, ("[WebGL] Shader rewritten as\n%s", final_source));
+
 	glShaderSource(shader, 1, &final_source, &len);
 
 	JS_FreeCString(ctx, source);

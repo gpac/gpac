@@ -243,14 +243,14 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_SIZE:
 		/*always notify GPAC since we're not sure the owner of the window is listening to these events*/
 		if (wParam==SIZE_MINIMIZED) {
-			evt.type = GF_EVENT_SHOWHIDE_NOTIF;
+			evt.type = GF_EVENT_SHOWHIDE;
 			evt.show.show_type = 0;
 			ctx->hidden = GF_TRUE;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		} else {
 			if (ctx->hidden && wParam==SIZE_RESTORED) {
 				ctx->hidden = GF_FALSE;
-				evt.type = GF_EVENT_SHOWHIDE_NOTIF;
+				evt.type = GF_EVENT_SHOWHIDE;
 				evt.show.show_type = 1;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
 			}
@@ -261,7 +261,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		break;
 	case WM_MOVE:
-		evt.type = GF_EVENT_MOVE_NOTIF;
+		evt.type = GF_EVENT_MOVE;
 		evt.move.x = LOWORD(lParam);
 		evt.move.y = HIWORD(lParam);
 		vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -298,7 +298,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		if (!ctx->on_secondary_screen && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE)
 		        && (hWnd==ctx->fs_hwnd)
 		   ) {
-			evt.type = GF_EVENT_SHOWHIDE_NOTIF;
+			evt.type = GF_EVENT_SHOWHIDE;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		/*fallthrough*/
@@ -515,11 +515,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 				LPTSTR lptstrCopy = (wchar_t *) GlobalLock(hglbCopy);
 				evt.type = GF_EVENT_PASTE_TEXT;
 				/* TODO: Convert to UTF-8 */
-				evt.message.message = lptstrCopy;
+				evt.clipboard.text = lptstrCopy;
 #else
 				LPTSTR lptstrCopy = (char *)GlobalLock(hglbCopy);
 				evt.type = GF_EVENT_PASTE_TEXT;
-				evt.message.message = lptstrCopy;
+				evt.clipboard.text = lptstrCopy;
 #endif
 				ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 				GlobalUnlock(hglbCopy);
@@ -529,7 +529,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		else if (ctx->ctrl_down && (evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_C)) {
 			evt.type = GF_EVENT_COPY_TEXT;
-			if ((vout->on_event(vout->evt_cbk_hdl, &evt)==GF_TRUE) && evt.message.message) {
+			if ((vout->on_event(vout->evt_cbk_hdl, &evt)==GF_TRUE) && evt.clipboard.text) {
 				size_t len;
 				HGLOBAL hglbCopy;
 				LPTSTR lptstrCopy;
@@ -537,23 +537,24 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 				if (!OpenClipboard(ctx->cur_hwnd)) break;
 				EmptyClipboard();
 
-				len = strlen(evt.message.message);
+				len = strlen(evt.clipboard.text);
 				if (!len) break;
 
 				hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len + 1) * sizeof(char));
 #ifdef UNICODE
 				/* TODO fix encoding*/
 				lptstrCopy = (wchar_t *)GlobalLock(hglbCopy);
-				memcpy(lptstrCopy, evt.message.message, len * sizeof(char));
+				memcpy(lptstrCopy, evt.clipboard.text, len * sizeof(char));
 				lptstrCopy[len] = 0;
 #else
 				lptstrCopy = (char *) GlobalLock(hglbCopy);
-				memcpy(lptstrCopy, evt.message.message, len * sizeof(char));
+				memcpy(lptstrCopy, evt.clipboard.text, len * sizeof(char));
 				lptstrCopy[len] = 0;
 #endif
 				GlobalUnlock(hglbCopy);
 				SetClipboardData(CF_TEXT, hglbCopy);
 				CloseClipboard();
+				gf_free(evt.clipboard.text);
 				break;
 			}
 		}

@@ -90,7 +90,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	if (gf_sys_is_test_mode()) {
 		ogg_stream_init(&os, 1);
 	} else {
-		gf_rand_init(1);
+		gf_rand_init(GF_TRUE);
 		ogg_stream_init(&os, gf_rand());
 	}
 

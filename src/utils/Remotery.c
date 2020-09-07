@@ -49,7 +49,6 @@
 #define RMT_IMPL
 #include <gpac/tools.h>
 
-
 #ifdef RMT_PLATFORM_WINDOWS
   #pragma comment(lib, "ws2_32.lib")
 #endif
@@ -92,7 +91,7 @@ static rmtBool g_SettingsInitialized = RMT_FALSE;
         #include <mach/mach.h>
         #include <sys/time.h>
     #else
-        #ifndef __FreeBSD__
+        #if !defined(__FreeBSD__) && !defined(__OpenBSD__)
             #include <malloc.h>
         #endif
     #endif
@@ -113,7 +112,7 @@ static rmtBool g_SettingsInitialized = RMT_FALSE;
 
     #ifdef RMT_PLATFORM_LINUX
         #include <time.h>
-        #ifdef __FreeBSD__
+        #if defined(__FreeBSD__) || defined(__OpenBSD__)
             #include <pthread_np.h>
         #else
             #include <sys/prctl.h>
@@ -248,14 +247,14 @@ static rmtU32 msTimer_Get()
         clock_t time = clock();
 
         // CLOCKS_PER_SEC is 128 on FreeBSD, causing div/0
-        #ifdef __FreeBSD__
+        #if defined(__FreeBSD__) || defined(__OpenBSD__)
             rmtU32 msTime = (rmtU32) (time * 1000 / CLOCKS_PER_SEC);
         #else
             rmtU32 msTime = (rmtU32) (time / (CLOCKS_PER_SEC / 1000));
         #endif
 
         return msTime;
-        
+
     #endif
 }
 
@@ -702,7 +701,7 @@ static rmtError VirtualMirrorBuffer_Constructor(VirtualMirrorBuffer* buffer, rmt
     RMT_UNREFERENCED_PARAMETER(nb_attempts);
 
 #ifdef RMT_PLATFORM_LINUX
-    #ifdef __FreeBSD__
+    #if defined(__FreeBSD__) || defined(__OpenBSD__)
         char path[] = "/tmp/ring-buffer-XXXXXX";
     #else
         char path[] = "/dev/shm/ring-buffer-XXXXXX";
@@ -791,7 +790,7 @@ static rmtError VirtualMirrorBuffer_Constructor(VirtualMirrorBuffer* buffer, rmt
         if (buffer->file_map_handle == NULL)
             break;
 
-		
+
 #ifndef _UWP // NON-UWP Windows Desktop Version
 
 		// Reserve two contiguous pages of virtual memory
@@ -804,7 +803,7 @@ static rmtError VirtualMirrorBuffer_Constructor(VirtualMirrorBuffer* buffer, rmt
 		// address range from underneath us so multiple attempts need to be made.
 		VirtualFree(desired_addr, 0, MEM_RELEASE);
 
-		// Immediately try to point both pages at the file mapping		
+		// Immediately try to point both pages at the file mapping
 		if (MapViewOfFileEx(buffer->file_map_handle, FILE_MAP_ALL_ACCESS, 0, 0, size, desired_addr) == desired_addr &&
 			MapViewOfFileEx(buffer->file_map_handle, FILE_MAP_ALL_ACCESS, 0, 0, size, desired_addr + size) == desired_addr + size)
 		{
@@ -812,23 +811,23 @@ static rmtError VirtualMirrorBuffer_Constructor(VirtualMirrorBuffer* buffer, rmt
 			break;
 		}
 
-#else   // UWP 
+#else   // UWP
 
 		// Implementation based on example from: https://docs.microsoft.com/en-us/windows/desktop/api/memoryapi/nf-memoryapi-virtualalloc2
 		//
 		// Notes
-		//  - just replaced the non-uwp functions by the uwp variants. 
+		//  - just replaced the non-uwp functions by the uwp variants.
 		//  - Both versions could be rewritten to not need the try-loop, see the example mentioned above. I just keep it as is for now.
 		//  - Successfully tested on Hololens
 		desired_addr = (rmtU8*) VirtualAlloc2FromApp(NULL, NULL, 2 * size,MEM_RESERVE | MEM_RESERVE_PLACEHOLDER,PAGE_NOACCESS,NULL, 0);
 
 		// Split the placeholder region into two regions of equal size.
 		VirtualFree(desired_addr, size,	MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
-		
-		// Immediately try to point both pages at the file mapping. 
+
+		// Immediately try to point both pages at the file mapping.
 		if(MapViewOfFile3FromApp(buffer->file_map_handle,NULL, desired_addr, 0, size, MEM_REPLACE_PLACEHOLDER,PAGE_READWRITE,NULL,0)==desired_addr &&
    		   MapViewOfFile3FromApp(buffer->file_map_handle,NULL, desired_addr+size, 0, size, MEM_REPLACE_PLACEHOLDER,PAGE_READWRITE,NULL,0)== desired_addr + size) {
-			buffer->ptr = desired_addr;			
+			buffer->ptr = desired_addr;
 			break;
 		}
 #endif
@@ -993,7 +992,7 @@ static void VirtualMirrorBuffer_Destructor(VirtualMirrorBuffer* buffer)
         {
 			// FIXME, don't we need to unmap the file views obtained in VirtualMirrorBuffer_Constructor, both for uwp/non-uwp
 			// See example https://docs.microsoft.com/en-us/windows/desktop/api/memoryapi/nf-memoryapi-virtualalloc2
-	
+
             CloseHandle(buffer->file_map_handle);
             buffer->file_map_handle = NULL;
         }
@@ -1268,6 +1267,7 @@ static errno_t
 strstr_s (char *dest, r_size_t dmax,
           const char *src, r_size_t slen, char **substring)
 {
+
     if (substring == NULL) {
         return RCNEGATE(ESNULLP);
     }
@@ -1307,9 +1307,9 @@ strstr_s (char *dest, r_size_t dmax,
     }
 
     while (*dest && dmax) {
-    	int i;
-    	r_size_t len;
-    	r_size_t dlen;
+		r_size_t len;
+		r_size_t dlen;
+		int i;
         i = 0;
         len = slen;
         dlen = dmax;
@@ -1829,7 +1829,6 @@ static rmtError Buffer_Write(Buffer* buffer, const void* data, rmtU32 length)
         if (error != RMT_ERROR_NONE)
             return error;
     }
-    assert(buffer->data != NULL);
 
     // Copy all bytes
     memcpy(buffer->data + buffer->bytes_used, data, length);
@@ -3145,7 +3144,7 @@ static rmtError WebSocketHandshake(TCPSocket* tcp_socket, rmtPStr limit_host)
     {
         r_size_t limit_host_len = strnlen_s(limit_host, 128);
         char* found = NULL;
-        if (strstr_s(host, (r_size_t) ( buffer_end - host), limit_host, limit_host_len, &found) != EOK)
+        if (strstr_s(host, (r_size_t) (buffer_end - host), limit_host, limit_host_len, &found) != EOK)
             return RMT_ERROR_WEBSOCKET_HANDSHAKE_BAD_HOST;
     }
 
@@ -3153,14 +3152,14 @@ static rmtError WebSocketHandshake(TCPSocket* tcp_socket, rmtPStr limit_host)
     key = GetField(buffer, buffer_len, "Sec-WebSocket-Key:");
     if (key == NULL)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_NO_KEY;
-    if (strstr_s(key, (r_size_t) ( buffer_end - key), "\r\n", 2, &key_end) != EOK)
+    if (strstr_s(key, (r_size_t) (buffer_end - key), "\r\n", 2, &key_end) != EOK)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_BAD_KEY;
     *key_end = 0;
 
     // Concatenate the browser's key with the WebSocket Protocol GUID and base64 encode
     // the hash, to prove to the browser that this is a bonafide WebSocket server
     buffer[0] = 0;
-    if (strncat_s(buffer, buffer_len, key, (r_size_t) ( key_end - key) ) != EOK)
+    if (strncat_s(buffer, buffer_len, key, (r_size_t) (key_end - key)) != EOK)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_STRING_FAIL;
     if (strncat_s(buffer, buffer_len, websocket_guid, sizeof(websocket_guid)) != EOK)
         return RMT_ERROR_WEBSOCKET_HANDSHAKE_STRING_FAIL;
@@ -3281,10 +3280,10 @@ static void WebSocket_PrepareBuffer(Buffer* buffer)
     char empty_frame_header[WEBSOCKET_MAX_FRAME_HEADER_SIZE];
 
     assert(buffer != NULL);
- 
+
     // Reset to start
     buffer->bytes_used = 0;
- 
+
     // Allocate enough space for a maximum-sized frame header
     Buffer_Write(buffer, empty_frame_header, sizeof(empty_frame_header));
 }
@@ -3306,7 +3305,7 @@ static void WebSocket_WriteFrameHeader(WebSocket* web_socket, rmtU8* dest, rmtU3
     rmtU8 frame_type = (rmtU8)web_socket->mode;
 
     dest[0] = final_fragment | frame_type;
- 
+
      // Construct the frame header, correctly applying the narrowest size
      if (length <= 125)
      {
@@ -3388,7 +3387,7 @@ static rmtError ReceiveFrameHeader(WebSocket* web_socket)
 
     if (size_bytes_remaining > 0)
     {
-    	int i;
+		int i;
         // Receive the wider bytes of the length
         rmtU8 size_bytes[8];
         error = TCPSocket_Receive(web_socket->tcp_socket, size_bytes, size_bytes_remaining, 20);
@@ -4315,6 +4314,13 @@ static void AddSampleTreeMessage(rmtMessageQueue* queue, Sample* sample, ObjectA
 
 
 
+#if RMT_USE_D3D11
+typedef struct D3D11 D3D11;
+static rmtError D3D11_Create(D3D11** d3d11);
+static void D3D11_Destructor(D3D11* d3d11);
+#endif
+
+
 typedef struct ThreadSampler
 {
     // Name to assign to the thread in the viewer
@@ -4326,10 +4332,15 @@ typedef struct ThreadSampler
     // Table of all sample names encountered on this thread
     StringTable* names;
 
+#if RMT_USE_D3D11
+    D3D11* d3d11;
+#endif
+
     // Next in the global list of active thread samplers
     struct ThreadSampler* volatile next;
 
 } ThreadSampler;
+
 
 static rmtError ThreadSampler_Constructor(ThreadSampler* thread_sampler)
 {
@@ -4343,10 +4354,13 @@ static rmtError ThreadSampler_Constructor(ThreadSampler* thread_sampler)
         thread_sampler->sample_trees[i] = NULL;
     thread_sampler->names = NULL;
     thread_sampler->next = NULL;
+    #if RMT_USE_D3D11
+        thread_sampler->d3d11 = NULL;
+    #endif
 
     // Set the initial name to Thread0 etc. or use the existing Linux name.
     thread_sampler->name[0] = 0;
-    #if defined(RMT_PLATFORM_LINUX) && RMT_USE_POSIX_THREADNAMES && !defined(__FreeBSD__)
+    #if defined(RMT_PLATFORM_LINUX) && RMT_USE_POSIX_THREADNAMES && !defined(__FreeBSD__) && !defined(__OpenBSD__)
     prctl(PR_GET_NAME,thread_sampler->name,0,0,0);
     #else
     {
@@ -4367,6 +4381,12 @@ static rmtError ThreadSampler_Constructor(ThreadSampler* thread_sampler)
     if (error != RMT_ERROR_NONE)
         return error;
 
+    #if RMT_USE_D3D11
+        error = D3D11_Create(&thread_sampler->d3d11);
+        if (error != RMT_ERROR_NONE)
+            return error;
+    #endif
+
     return RMT_ERROR_NONE;
 }
 
@@ -4376,6 +4396,10 @@ static void ThreadSampler_Destructor(ThreadSampler* ts)
     int i;
 
     assert(ts != NULL);
+
+    #if RMT_USE_D3D11
+        Delete(D3D11, ts->d3d11);
+    #endif
 
     Delete(StringTable, ts->names);
 
@@ -4453,13 +4477,6 @@ static rmtU32 ThreadSampler_GetNameHash(ThreadSampler* ts, rmtPStr name, rmtU32*
 
 
 
-#if RMT_USE_D3D11
-typedef struct D3D11 D3D11;
-static rmtError D3D11_Create(D3D11** d3d11);
-static void D3D11_Destructor(D3D11* d3d11);
-#endif
-
-
 #if RMT_USE_OPENGL
 typedef struct OpenGL_t OpenGL;
 static rmtError OpenGL_Create(OpenGL** opengl);
@@ -4500,10 +4517,6 @@ struct Remotery
     rmtCUDABind cuda;
 #endif
 
-#if RMT_USE_D3D11
-    D3D11* d3d11;
-#endif
-
 #if RMT_USE_OPENGL
     OpenGL* opengl;
 #endif
@@ -4511,6 +4524,8 @@ struct Remotery
 #if RMT_USE_METAL
     Metal* metal;
 #endif
+
+	rmtBool sampling_disabled;
 };
 
 
@@ -4587,7 +4602,7 @@ static rmtError Remotery_SendLogTextMessage(Remotery* rmt, Message* message)
 
     assert(rmt != NULL);
     assert(message != NULL);
-    
+
     bin_buf = rmt->server->bin_buf;
     WebSocket_PrepareBuffer(bin_buf);
     Buffer_Write(bin_buf, message->payload, message->payload_size);
@@ -4744,6 +4759,7 @@ static rmtError Remotery_ConsumeMessageQueue(Remotery* rmt)
                 error = Remotery_SendSampleTreeMessage(rmt, message);
                 rmt_EndCPUSample();
                 break;
+
             default:
                 break;
         }
@@ -4783,6 +4799,7 @@ static void Remotery_FlushMessageQueue(Remotery* rmt)
                 FreeSampleTree(sample_tree->root_sample, sample_tree->allocator);
                 break;
             }
+
             default:
                 break;
         }
@@ -4961,10 +4978,6 @@ static rmtError Remotery_Constructor(Remotery* rmt)
         rmt->cuda.EventRecord = NULL;
     #endif
 
-    #if RMT_USE_D3D11
-        rmt->d3d11 = NULL;
-    #endif
-
     #if RMT_USE_OPENGL
         rmt->opengl = NULL;
     #endif
@@ -4995,12 +5008,6 @@ static rmtError Remotery_Constructor(Remotery* rmt)
     if (error != RMT_ERROR_NONE)
         return error;
 
-    #if RMT_USE_D3D11
-        error = D3D11_Create(&rmt->d3d11);
-        if (error != RMT_ERROR_NONE)
-            return error;
-    #endif
-
     #if RMT_USE_OPENGL
         error = OpenGL_Create(&rmt->opengl);
         if (error != RMT_ERROR_NONE)
@@ -5012,7 +5019,6 @@ static rmtError Remotery_Constructor(Remotery* rmt)
         if (error != RMT_ERROR_NONE)
             return error;
     #endif
-
 
     // Set as the global instance before creating any threads that uses it for sampling itself
     assert(g_Remotery == NULL);
@@ -5040,10 +5046,6 @@ static void Remotery_Destructor(Remotery* rmt)
       g_Remotery = NULL;
       g_RemoteryCreated = RMT_FALSE;
     }
-
-    #if RMT_USE_D3D11
-        Delete(D3D11, rmt->d3d11);
-    #endif
 
     #if RMT_USE_OPENGL
         Delete(OpenGL, rmt->opengl);
@@ -5082,7 +5084,7 @@ static rmtError Remotery_GetThreadSampler(Remotery* rmt, ThreadSampler** thread_
         if (error != RMT_ERROR_NONE)
             return error;
         ts = *thread_sampler;
-        if (!ts)
+		if (!ts)
             return error;
 
         // Add to the beginning of the global linked list of thread samplers
@@ -5207,7 +5209,7 @@ RMT_API void _rmt_DestroyGlobalInstance(Remotery* remotery)
     assert(g_RemoteryCreated == RMT_TRUE);
     assert(g_Remotery == remotery);
     Delete(Remotery, remotery);
-    assert(remotery==NULL);
+	assert(remotery==NULL);
 }
 
 
@@ -5265,7 +5267,7 @@ static void SetDebuggerThreadName(const char* name)
         char name_clamp[16];
         name_clamp[0] = 0;
         strncat_s(name_clamp, sizeof(name_clamp), name, 15);
-        #ifdef __FreeBSD__
+        #if defined(__FreeBSD__) || defined(__OpenBSD__)
             pthread_set_name_np(pthread_self(), name_clamp);
         #else
             prctl(PR_SET_NAME,name_clamp,0,0,0);
@@ -5273,13 +5275,16 @@ static void SetDebuggerThreadName(const char* name)
     #endif
 }
 
+#define CHECK_REMOTERY() \
+	if ((g_Remotery==NULL) || g_Remotery->sampling_disabled)\
+		return;
+
 
 RMT_API void _rmt_SetCurrentThreadName(rmtPStr thread_name)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     // Get data for this thread
     if (Remotery_GetThreadSampler(g_Remotery, &ts) != RMT_ERROR_NONE)
@@ -5321,8 +5326,9 @@ RMT_API void _rmt_LogText(rmtPStr text)
     unsigned char line_buffer[1024] = { 0 };
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+	//do not check for sampling enabled here
+    if (g_Remotery==NULL)
+		return;
 
     Remotery_GetThreadSampler(g_Remotery, &ts);
 
@@ -5383,8 +5389,7 @@ RMT_API void _rmt_BeginCPUSample(rmtPStr name, rmtU32 flags, rmtU32* hash_cache)
 
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     // TODO: Time how long the bits outside here cost and subtract them from the parent
 
@@ -5408,8 +5413,7 @@ RMT_API void _rmt_EndCPUSample(void)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -5478,7 +5482,7 @@ static void MapMessageQueueAndWait(Remotery* rmt, void (*map_message_queue_fn)(R
     // Basic spin lock on the map function itself
     while (AtomicCompareAndSwapPointer((long* volatile*)&rmt->map_message_queue_fn, NULL, (long*)map_message_queue_fn) == RMT_FALSE)
         msSleep(1);
-    
+
     StoreReleasePointer((long* volatile*)&rmt->map_message_queue_data, (long*)data);
 
     // Wait until map completes
@@ -5761,8 +5765,7 @@ RMT_API void _rmt_BeginCUDASample(rmtPStr name, rmtU32* hash_cache, void* stream
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -5803,8 +5806,7 @@ RMT_API void _rmt_EndCUDASample(void* stream)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -5930,11 +5932,10 @@ static void D3D11_Destructor(D3D11* d3d11)
     Delete(rmtMessageQueue, d3d11->mq_to_d3d11_main);
 }
 
-static HRESULT rmtD3D11Finish(rmtU64 *out_timestamp, double *out_frequency)
+static HRESULT rmtD3D11Finish(ID3D11Device* device, ID3D11DeviceContext* context,
+    rmtU64 *out_timestamp, double *out_frequency)
 {
     HRESULT result;
-    ID3D11Device* device = g_Remotery->d3d11->device;
-    ID3D11DeviceContext* context = g_Remotery->d3d11->context;
     ID3D11Query* full_stall_fence;
     ID3D11Query* query_disjoint;
     D3D11_QUERY_DESC query_desc;
@@ -6002,7 +6003,8 @@ static HRESULT rmtD3D11Finish(rmtU64 *out_timestamp, double *out_frequency)
     return result;
 }
 
-static HRESULT SyncD3D11CpuGpuTimes(rmtU64* out_first_timestamp, rmtU64* out_last_resync)
+static HRESULT SyncD3D11CpuGpuTimes(ID3D11Device* device, ID3D11DeviceContext* context,
+    rmtU64* out_first_timestamp, rmtU64* out_last_resync)
 {
     rmtU64 cpu_time_start = 0;
     rmtU64 cpu_time_stop = 0;
@@ -6012,7 +6014,7 @@ static HRESULT SyncD3D11CpuGpuTimes(rmtU64* out_first_timestamp, rmtU64* out_las
     int i;
 
     HRESULT result;
-    result = rmtD3D11Finish(&gpu_base, &frequency);
+    result = rmtD3D11Finish(device, context, &gpu_base, &frequency);
     if (result != S_OK && result != S_FALSE)
         return result;
 
@@ -6020,7 +6022,7 @@ static HRESULT SyncD3D11CpuGpuTimes(rmtU64* out_first_timestamp, rmtU64* out_las
     {
         rmtU64 half_RTT;
         cpu_time_start = usTimer_Get(&g_Remotery->timer);
-        result = rmtD3D11Finish(&gpu_base, &frequency);
+        result = rmtD3D11Finish(device, context, &gpu_base, &frequency);
         cpu_time_stop = usTimer_Get(&g_Remotery->timer);
 
         if (result != S_OK && result != S_FALSE)
@@ -6068,6 +6070,7 @@ typedef struct D3D11Timestamp
 
 static rmtError D3D11Timestamp_Constructor(D3D11Timestamp* stamp)
 {
+    ThreadSampler* ts;
     D3D11_QUERY_DESC timestamp_desc;
     D3D11_QUERY_DESC disjoint_desc;
     ID3D11Device* device;
@@ -6084,9 +6087,10 @@ static rmtError D3D11Timestamp_Constructor(D3D11Timestamp* stamp)
     stamp->cpu_timestamp = 0;
 
     assert(g_Remotery != NULL);
-    assert(g_Remotery->d3d11 != NULL);
-    device = g_Remotery->d3d11->device;
-    last_error = &g_Remotery->d3d11->last_error;
+    assert(Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE);
+    assert(ts->d3d11 != NULL);
+    device = ts->d3d11->device;
+    last_error = &ts->d3d11->last_error;
 
     // Create start/end timestamp queries
     timestamp_desc.Query = D3D11_QUERY_TIMESTAMP;
@@ -6144,7 +6148,9 @@ static void D3D11Timestamp_End(D3D11Timestamp* stamp, ID3D11DeviceContext* conte
 }
 
 
-static HRESULT D3D11Timestamp_GetData(D3D11Timestamp* stamp, ID3D11DeviceContext* context, rmtU64* out_start, rmtU64* out_end, rmtU64* out_first_timestamp, rmtU64* out_last_resync)
+static HRESULT D3D11Timestamp_GetData(D3D11Timestamp* stamp, ID3D11Device* device,
+    ID3D11DeviceContext* context, rmtU64* out_start, rmtU64* out_end, rmtU64* out_first_timestamp,
+    rmtU64* out_last_resync)
 {
     ID3D11Asynchronous* query_start;
     ID3D11Asynchronous* query_end;
@@ -6181,7 +6187,7 @@ static HRESULT D3D11Timestamp_GetData(D3D11Timestamp* stamp, ID3D11DeviceContext
         assert(out_first_timestamp != NULL);
         if (*out_first_timestamp == 0 || ((start - *out_first_timestamp) / frequency) < stamp->cpu_timestamp)
         {
-            result = SyncD3D11CpuGpuTimes(out_first_timestamp, out_last_resync);
+            result = SyncD3D11CpuGpuTimes(device, context, out_first_timestamp, out_last_resync);
             if (result != S_OK)
                 return result;
         }
@@ -6193,7 +6199,7 @@ static HRESULT D3D11Timestamp_GetData(D3D11Timestamp* stamp, ID3D11DeviceContext
     else
     {
 #if RMT_D3D11_RESYNC_ON_DISJOINT
-        result = SyncD3D11CpuGpuTimes(out_first_timestamp, out_last_resync);
+        result = SyncD3D11CpuGpuTimes(device, context, out_first_timestamp, out_last_resync);
         if (result != S_OK)
             return result;
 #endif
@@ -6240,40 +6246,48 @@ RMT_API void _rmt_BindD3D11(void* device, void* context)
 {
     if (g_Remotery != NULL)
     {
-        assert(g_Remotery->d3d11 != NULL);
+        ThreadSampler* ts;
+        if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
+        {
+            assert(ts->d3d11 != NULL);
 
-        assert(device != NULL);
-        g_Remotery->d3d11->device = (ID3D11Device*)device;
-        assert(context != NULL);
-        g_Remotery->d3d11->context = (ID3D11DeviceContext*)context;
+            assert(device != NULL);
+            ts->d3d11->device = (ID3D11Device*)device;
+            assert(context != NULL);
+            ts->d3d11->context = (ID3D11DeviceContext*)context;
+        }
     }
 }
 
 
-static void UpdateD3D11Frame(void);
+static void UpdateD3D11Frame(ThreadSampler* ts);
 
 
 RMT_API void _rmt_UnbindD3D11(void)
 {
     if (g_Remotery != NULL)
     {
-        D3D11* d3d11 = g_Remotery->d3d11;
-        assert(d3d11 != NULL);
+        ThreadSampler* ts;
+        if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
+        {
+            D3D11* d3d11 = ts->d3d11;
+            assert(d3d11 != NULL);
 
-        // Stall waiting for the D3D queue to empty into the Remotery queue
-        while (!rmtMessageQueue_IsEmpty(d3d11->mq_to_d3d11_main))
-            UpdateD3D11Frame();
-        
-        // There will be a whole bunch of D3D11 sample trees queued up the remotery queue that need releasing
-        FreePendingSampleTrees(g_Remotery, SampleType_D3D11, d3d11->flush_samples);
-        
-        // Inform sampler to not add any more samples
-        d3d11->device = NULL;
-        d3d11->context = NULL;
+            // Stall waiting for the D3D queue to empty into the Remotery queue
+            while (!rmtMessageQueue_IsEmpty(d3d11->mq_to_d3d11_main))
+                UpdateD3D11Frame(ts);
 
-        // Forcefully delete sample tree on this thread to release time stamps from
-        // the same thread that created them
-        Remotery_DeleteSampleTree(g_Remotery, SampleType_D3D11);
+            // There will be a whole bunch of D3D11 sample trees queued up the remotery queue that need releasing
+            FreePendingSampleTrees(g_Remotery, SampleType_D3D11, d3d11->flush_samples);
+
+            // Inform sampler to not add any more samples
+            d3d11->device = NULL;
+            d3d11->context = NULL;
+
+            // Forcefully delete sample tree on this thread to release time stamps from
+            // the same thread that created them
+            Remotery_DeleteSampleTree(g_Remotery, SampleType_D3D11);
+        }
     }
 }
 
@@ -6283,23 +6297,25 @@ RMT_API void _rmt_BeginD3D11Sample(rmtPStr name, rmtU32* hash_cache)
     ThreadSampler* ts;
     D3D11* d3d11;
 
-    if (g_Remotery == NULL)
-        return;
-
-    // Has D3D11 been unbound?
-    d3d11 = g_Remotery->d3d11;
-    assert(d3d11 != NULL);
-    if (d3d11->device == NULL || d3d11->context == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
         Sample* sample;
-        rmtU32 name_hash = ThreadSampler_GetNameHash(ts, name, hash_cache);
+        rmtU32 name_hash;
+        SampleTree** d3d_tree;
+
+        // Has D3D11 been unbound?
+        d3d11 = ts->d3d11;
+        assert(d3d11 != NULL);
+        if (d3d11->device == NULL || d3d11->context == NULL)
+            return;
+
+        name_hash = ThreadSampler_GetNameHash(ts, name, hash_cache);
 
         // Create the D3D11 tree on-demand as the tree needs an up-front-created root.
         // This is not possible to create on initialisation as a D3D11 binding is not yet available.
-        SampleTree** d3d_tree = &ts->sample_trees[SampleType_D3D11];
+        d3d_tree = &ts->sample_trees[SampleType_D3D11];
         if (*d3d_tree == NULL)
         {
             rmtError error;
@@ -6318,7 +6334,8 @@ RMT_API void _rmt_BeginD3D11Sample(rmtPStr name, rmtU32* hash_cache)
 }
 
 
-static rmtBool GetD3D11SampleTimes(Sample* sample, rmtU64* out_first_timestamp, rmtU64* out_last_resync)
+static rmtBool GetD3D11SampleTimes(Sample* sample, ThreadSampler* ts, rmtU64* out_first_timestamp,
+    rmtU64* out_last_resync)
 {
     Sample* child;
 
@@ -6329,7 +6346,7 @@ static rmtBool GetD3D11SampleTimes(Sample* sample, rmtU64* out_first_timestamp, 
     {
         HRESULT result;
 
-        D3D11* d3d11 = g_Remotery->d3d11;
+        D3D11* d3d11 = ts->d3d11;
         assert(d3d11 != NULL);
 
         assert(out_last_resync != NULL);
@@ -6341,7 +6358,7 @@ static rmtBool GetD3D11SampleTimes(Sample* sample, rmtU64* out_first_timestamp, 
                 rmtU64 time_diff = (d3d_sample->timestamp->cpu_timestamp - *out_last_resync) / 1000000ULL;
                 if (time_diff > RMT_GPU_CPU_SYNC_SECONDS)
                 {
-                    result = SyncD3D11CpuGpuTimes(out_first_timestamp, out_last_resync);
+                    result = SyncD3D11CpuGpuTimes(d3d11->device, d3d11->context, out_first_timestamp, out_last_resync);
                     if (result != S_OK)
                     {
                         d3d11->last_error = result;
@@ -6353,6 +6370,7 @@ static rmtBool GetD3D11SampleTimes(Sample* sample, rmtU64* out_first_timestamp, 
 
         result = D3D11Timestamp_GetData(
             d3d_sample->timestamp,
+            d3d11->device,
             d3d11->context,
             &sample->us_start,
             &sample->us_end,
@@ -6377,7 +6395,7 @@ static rmtBool GetD3D11SampleTimes(Sample* sample, rmtU64* out_first_timestamp, 
     // Get child sample times
     for (child = sample->first_child; child != NULL; child = child->next_sibling)
     {
-        if (!GetD3D11SampleTimes(child, out_first_timestamp, out_last_resync))
+        if (!GetD3D11SampleTimes(child, ts, out_first_timestamp, out_last_resync))
             return RMT_FALSE;
     }
 
@@ -6385,14 +6403,13 @@ static rmtBool GetD3D11SampleTimes(Sample* sample, rmtU64* out_first_timestamp, 
 }
 
 
-static void UpdateD3D11Frame(void)
+static void UpdateD3D11Frame(ThreadSampler* ts)
 {
     D3D11* d3d11;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
-    d3d11 = g_Remotery->d3d11;
+    d3d11 = ts->d3d11;
     assert(d3d11 != NULL);
 
     rmt_BeginCPUSample(rmt_UpdateD3D11Frame, 0);
@@ -6415,7 +6432,7 @@ static void UpdateD3D11Frame(void)
 
         // Retrieve timing of all D3D11 samples
         // If they aren't ready leave the message unconsumed, holding up later frames and maintaining order
-        if (!GetD3D11SampleTimes(sample, &d3d11->first_timestamp, &d3d11->last_resync))
+        if (!GetD3D11SampleTimes(sample, ts, &d3d11->first_timestamp, &d3d11->last_resync))
             break;
 
         // Pass samples onto the remotery thread for sending to the viewer
@@ -6432,19 +6449,20 @@ RMT_API void _rmt_EndD3D11Sample(void)
     ThreadSampler* ts;
     D3D11* d3d11;
 
-    if (g_Remotery == NULL)
-        return;
-
-    // Has D3D11 been unbound?
-    d3d11 = g_Remotery->d3d11;
-    assert(d3d11 != NULL);
-    if (d3d11->device == NULL || d3d11->context == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
+        D3D11Sample* d3d_sample;
+
+        // Has D3D11 been unbound?
+        d3d11 = ts->d3d11;
+        assert(d3d11 != NULL);
+        if (d3d11->device == NULL || d3d11->context == NULL)
+            return;
+
         // Close the timestamp
-        D3D11Sample* d3d_sample = (D3D11Sample*)ts->sample_trees[SampleType_D3D11]->current_parent;
+        d3d_sample = (D3D11Sample*)ts->sample_trees[SampleType_D3D11]->current_parent;
         if (d3d_sample->base.recurse_depth > 0)
         {
             d3d_sample->base.recurse_depth--;
@@ -6457,7 +6475,7 @@ RMT_API void _rmt_EndD3D11Sample(void)
             // Send to the update loop for ready-polling
             if (ThreadSampler_Pop(ts, d3d11->mq_to_d3d11_main, (Sample*)d3d_sample))
                 // Perform ready-polling on popping of the root sample
-                UpdateD3D11Frame();
+                UpdateD3D11Frame(ts);
         }
     }
 }
@@ -6906,7 +6924,6 @@ RMT_API void _rmt_UnbindOpenGL(void)
 			rmtMessageQueue_ConsumeNextMessage(opengl->mq_to_opengl_main, message);
 		}
 #endif
-
         // There will be a whole bunch of OpenGL sample trees queued up the remotery queue that need releasing
         FreePendingSampleTrees(g_Remotery, SampleType_OpenGL, opengl->flush_samples);
 
@@ -6928,11 +6945,8 @@ RMT_API void _rmt_BeginOpenGLSample(rmtPStr name, rmtU32* hash_cache)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
-
-    if (g_Remotery->opengl->dll_handle == NULL)
-        return;
+    CHECK_REMOTERY()
+	if (g_Remotery->opengl->dll_handle == NULL) return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -6956,10 +6970,10 @@ RMT_API void _rmt_BeginOpenGLSample(rmtPStr name, rmtU32* hash_cache)
             OpenGLSample* ogl_sample = (OpenGLSample*)sample;
             OpenGLTimestamp_Begin(ogl_sample->timestamp);
         }
+        // Empty the error queue before using it for glGenQueries
+        while ( rmtglGetError() != GL_NO_ERROR)
+			;
     }
-    // Empty the error queue before using it for glGenQueries
-    while ( rmtglGetError() != GL_NO_ERROR)
-        ;
 }
 
 
@@ -7004,8 +7018,7 @@ static void UpdateOpenGLFrame(void)
 {
     OpenGL* opengl;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     opengl = g_Remotery->opengl;
     assert(opengl != NULL);
@@ -7046,11 +7059,8 @@ RMT_API void _rmt_EndOpenGLSample(void)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
-
-    if (g_Remotery->opengl->dll_handle == NULL)
-        return;
+    CHECK_REMOTERY()
+	if (g_Remotery->opengl->dll_handle == NULL) return;
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -7074,6 +7084,7 @@ RMT_API void _rmt_EndOpenGLSample(void)
     // Empty the error queue before using it for glGenQueries
     while ( rmtglGetError() != GL_NO_ERROR)
         ;
+
 }
 
 
@@ -7267,8 +7278,7 @@ RMT_API void _rmt_BeginMetalSample(rmtPStr name, rmtU32* hash_cache)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -7326,8 +7336,7 @@ static void UpdateMetalFrame(void)
 {
     Metal* metal;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     metal = g_Remotery->metal;
     assert(metal != NULL);
@@ -7368,8 +7377,7 @@ RMT_API void _rmt_EndMetalSample(void)
 {
     ThreadSampler* ts;
 
-    if (g_Remotery == NULL)
-        return;
+    CHECK_REMOTERY()
 
     if (Remotery_GetThreadSampler(g_Remotery, &ts) == RMT_ERROR_NONE)
     {
@@ -7383,7 +7391,7 @@ RMT_API void _rmt_EndMetalSample(void)
         {
             if (metal_sample->timestamp != NULL)
                 MetalTimestamp_End(metal_sample->timestamp);
-            
+
             // Send to the update loop for ready-polling
             if (ThreadSampler_Pop(ts, g_Remotery->metal->mq_to_metal_main, (Sample*)metal_sample))
                 // Perform ready-polling on popping of the root sample
@@ -7396,6 +7404,17 @@ RMT_API void _rmt_EndMetalSample(void)
 
 #endif  // RMT_USE_METAL
 
+
+RMT_API void _rmt_EnableSampling(rmtBool enable)
+{
+	if (g_Remotery==NULL) return;
+	g_Remotery->sampling_disabled = !enable;
+}
+RMT_API rmtBool _rmt_SamplingEnabled()
+{
+	if (g_Remotery==NULL) return 0;
+	return !g_Remotery->sampling_disabled;
+}
 
 #endif // RMT_ENABLED
 

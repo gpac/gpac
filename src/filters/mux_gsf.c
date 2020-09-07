@@ -154,6 +154,7 @@ static GFINLINE u32 gsfmx_get_header_size(GSFMxCtx *ctx, GSFStream *gst, Bool us
 
 static void gsfmx_encrypt(GSFMxCtx *ctx, char *data, u32 nb_crypt_bytes)
 {
+#ifndef GPAC_DISABLE_CRYPTO
 	u32 clear_trail;
 
 	clear_trail = nb_crypt_bytes % 16;
@@ -177,6 +178,7 @@ static void gsfmx_encrypt(GSFMxCtx *ctx, char *data, u32 nb_crypt_bytes)
 	} else {
 		gf_crypt_encrypt(ctx->crypt, data, nb_crypt_bytes);
 	}
+#endif // GPAC_DISABLE_CRYPTO
 }
 
 static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType pck_type, Bool is_end, Bool is_redundant, u32 frame_size, u32 frame_hdr_size)
@@ -784,7 +786,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 		gf_bs_write_int(ctx->bs_w, duration, tsdiffmodebits);
 	}
 
-	if (sap==GF_FILTER_SAP_4) {
+	if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL)) {
 		s16 roll = gf_filter_pck_get_roll_info(pck);
 		gf_bs_write_u16(ctx->bs_w, roll);
 	}
@@ -1002,6 +1004,9 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 	gf_rand_init(GF_FALSE);
 
 	if (ctx->key.size==16) {
+#ifdef GPAC_DISABLE_CRYPTO
+		return GF_NOT_SUPPORTED;
+#else
 		GF_Err e;
 		if (ctx->IV.size==16) {
 			memcpy(ctx->crypt_IV, ctx->IV.ptr, 16);
@@ -1033,6 +1038,7 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Failed to setup encryption: %s\n", gf_error_to_string(e) ));
 			return GF_IO_ERR;
 		}
+#endif
 	} else if (ctx->key.size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Wrong key value, size %d expecting 16\n", ctx->key.size));
 		return GF_BAD_PARAM;
@@ -1057,7 +1063,9 @@ static void gsfmx_finalize(GF_Filter *filter)
 
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->buffer) gf_free(ctx->buffer);
+#ifndef GPAC_DISABLE_CRYPTO
 	if (ctx->crypt) gf_crypt_close(ctx->crypt);
+#endif
 }
 
 static const GF_FilterCapability GSFMxCaps[] =
@@ -1083,9 +1091,11 @@ static const GF_FilterArgs GSFMxArgs[] =
 	"- no: disable debug\n"
 	"- nodata: force packet size to 0\n"
 	"- nopck: skip packet", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FS_ARG_HINT_EXPERT},
+#ifndef GPAC_DISABLE_CRYPTO
 	{ OFFS(key), "encrypt packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(IV), "set IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(pattern), "set nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
+#endif // GPAC_DISABLE_CRYPTO
 	{ OFFS(mpck), "set max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(skp), "comma separated list of pid property names to skip - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1098,7 +1108,8 @@ static const GF_FilterArgs GSFMxArgs[] =
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfmx",
 	GF_FS_SET_DESCRIPTION("GSF Muxer")
-	GF_FS_SET_HELP("This filter provides GSF (__GPAC Super/Simple/Serialized/Stream/State Format__) multiplexing.\n"
+#ifndef GPAC_DISABLE_DOC
+	.help = "This filter provides GSF (__GPAC Super/Simple/Serialized/Stream/State Format__) multiplexing.\n"
 			"It serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "
 			"using either pipes or sockets. Upstream events are not serialized.\n"
@@ -1106,6 +1117,7 @@ GF_FilterRegister GSFMxRegister = {
 			"The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
 			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.\n"
 			"\n"
+#ifndef GPAC_DISABLE_CRYPTO
 			"The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optional seq num) are in the clear "
 			"and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.\n"
 			"For data packets, each fragment is encrypted individually to avoid error propagation in case of losses.\n"
@@ -1113,13 +1125,16 @@ GF_FilterRegister GSFMxRegister = {
 			"For header/tunein packets, the first 25 bytes after the header are in the clear (signature,version,IV and pattern).\n"
 			"The [-IV]() is constant to avoid packet overhead, randomly generated if not set and sent in the initial stream header. "
 			"Pattern mode can be used (cf CENC cbcs) to encrypt K block and leave N blocks in the clear.\n"
-			"\n"\
+			"\n"
+#endif
 			"The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the [-minp]() option can be used: "
 			"this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.\n"
 			"The [-skp]() option may also be used to specify which property to drop:\n"
 			"EX skp=\"4CC1,Name2\n"\
 			"This will remove properties of type 4CC1 and properties (built-in or not) of name Name2.\n"
-			"\n")
+			"\n"
+		,
+#endif
 	.private_size = sizeof(GSFMxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFMxArgs,

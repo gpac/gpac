@@ -31,6 +31,9 @@
 #include <gpac/filters.h>
 #include <gpac/user.h>
 
+#ifdef GPAC_HAS_QJS
+#include "../scenegraph/qjs_common.h"
+#endif
 
 
 #define GF_FILTER_SPEED_SCALER	1000
@@ -419,7 +422,19 @@ struct __gf_filter_session
 #endif
 	//internal video output to hidden window for GL context
 	struct _video_out *gl_driver;
+
+#ifdef GPAC_HAS_QJS
+	struct JSContext *js_ctx;
+	GF_List *jstasks;
+	struct __jsfs_task *new_f_task, *del_f_task, *on_evt_task;
+#endif
 };
+
+#ifdef GPAC_HAS_QJS
+void jsfs_on_filter_created(GF_Filter *new_filter);
+void jsfs_on_filter_destroyed(GF_Filter *del_filter);
+Bool jsfs_on_event(GF_FilterSession *session, GF_Event *evt);
+#endif
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess);
 
@@ -684,6 +699,12 @@ struct __gf_filter
 
 	GF_Filter *multi_sink_target;
 
+	Bool event_target;
+
+#ifdef GPAC_HAS_QJS
+	char *iname;
+	JSValue jsval;
+#endif
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target, Bool dynamic_filter);
@@ -781,6 +802,9 @@ struct __gf_filter_pid_inst
 	GF_FilterClockType last_clock_type;
 
 	GF_Filter *alias_orig;
+
+	GF_Fraction64 last_ts_drop;
+
 };
 
 struct __gf_filter_pid
@@ -839,6 +863,8 @@ struct __gf_filter_pid
 	//1000x speed value
 	u32 playback_speed_scaler;
 
+	GF_Fraction64 last_ts_sent;
+	
 	Bool initial_play_done;
 	Bool is_playing;
 	void *udta;
@@ -874,8 +900,6 @@ void gf_filter_update_arg_task(GF_FSTask *task);
 void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
 void gf_filter_pid_detach_task(GF_FSTask *task);
-
-Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
 
@@ -982,6 +1006,8 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path);
 void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
 
 void gf_filter_renegociate_output_task(GF_FSTask *task);
+
+void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx);
 
 #endif //_GF_FILTER_SESSION_H_
 

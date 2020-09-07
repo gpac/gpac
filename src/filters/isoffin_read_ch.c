@@ -28,6 +28,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 #include <gpac/network.h>
+#include <gpac/avparse.h>
 
 
 void isor_reset_reader(ISOMChannel *ch)
@@ -320,9 +321,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		if (ch->sap_only) {
 			Bool is_rap = gf_isom_get_sample_sync(ch->owner->mov, ch->track, ch->sample_num);
 			if (!is_rap) {
-				Bool has_roll;
-				gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &is_rap, &has_roll, NULL);
-				if (has_roll) is_rap = GF_TRUE;
+				GF_ISOSampleRollType roll_type;
+				gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &is_rap, &roll_type, NULL);
+				if (roll_type) is_rap = GF_TRUE;
 			}
 
 			if (!is_rap) {
@@ -392,7 +393,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (sample_desc_index != ch->last_sample_desc_index) {
 		if (!ch->owner->stsd) {
-			ch->needs_pid_reconfig = GF_TRUE;
+			//we used sample entry 1 by default to setup, if no active prev sample (edit list might trigger this)
+			//and new sample desc is 1, do not reconfigure
+			if (!ch->last_sample_desc_index && (sample_desc_index==1)) {
+
+			} else {
+				ch->needs_pid_reconfig = GF_TRUE;
+			}
 		}
 		ch->last_sample_desc_index = sample_desc_index;
 	}
@@ -401,10 +408,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
 
 	ch->sap_3 = GF_FALSE;
-	ch->sap_4 = GF_FALSE;
+	ch->sap_4_type = 0;
 	ch->roll = 0;
 	if (ch->sample) {
-		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4, &ch->roll);
+		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4_type, &ch->roll);
 	}
 
 	/*still seeking or not ?
@@ -596,17 +603,27 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 
 void isor_reader_check_config(ISOMChannel *ch)
 {
-	u32 nalu_len = 0;
-	u32 reset_state = 0;
-	if (ch->owner->analyze) return;
-	if (!ch->check_hevc_ps && !ch->check_avc_ps) return;
+	u32 nalu_len, reset_state;
+	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
 	//we cannot touch the payload if encrypted !!
 	//TODO, in CENC try to remove non-encrypted NALUs and update saiz accordingly
 	if (ch->is_encrypted) return;
 
+	if (ch->check_mhas_pl) {
+		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength);
+		if (PL>0) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
+			ch->check_mhas_pl = GF_FALSE;
+		}
+		return;
+	}
+
+	if (ch->owner->analyze) return;
+	
 	nalu_len = ch->hvcc ? ch->hvcc->nal_unit_size : (ch->avcc ? ch->avcc->nal_unit_size : 4);
+	reset_state = 0;
 
 	if (!ch->nal_bs) ch->nal_bs = gf_bs_new(ch->sample->data, ch->sample->dataLength, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
