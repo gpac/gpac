@@ -190,7 +190,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		/*for progress, assume only one descIndex*/
 		if (Media_IsSelfContained(writer->mdia, 1))
 			mw->total_samples += writer->stbl->SampleSize->sampleCount;
-		/*optimization for interleaving: put audio last (this can be overriden by priorities)*/
+		/*optimization for interleaving: put audio last (this can be overridden by priorities)*/
 		if (movie->storageMode != GF_ISOM_STORE_INTERLEAVED) {
 			gf_list_add(writers, writer);
 		} else {
@@ -200,8 +200,10 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 				gf_list_insert(writers, writer, 0);
 			}
 		}
-		if (movie->sample_groups_in_traf && trak->Media->information->sampleTable)
-			trak->Media->information->sampleTable->skip_sample_groups = GF_TRUE;
+		if (movie->sample_groups_in_traf && trak->Media->information->sampleTable) {
+			gf_isom_box_array_del_parent(&trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable->sampleGroupsDescription);
+			trak->Media->information->sampleTable->sampleGroupsDescription = NULL;
+		}
 	}
 	return GF_OK;
 
@@ -320,7 +322,7 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 			*box_csize = (u32) root_box->size;
 
 		gf_bs_get_content(comp_bs, &box_data, &box_size);
-		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_TRUE);
+		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_TRUE, NULL);
 		if (mov->force_compress || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
 			if (bs) {
 				gf_bs_write_u32(bs, comp_size+8);
@@ -790,6 +792,12 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 	GF_List *writers = gf_list_new();
 	GF_ISOFile *movie = mw->movie;
 	s32 moov_meta_pos=-1;
+
+	//in case we did a read on the file while producing it, seek to end of edit
+	totSize = gf_bs_get_size(bs);
+	if (gf_bs_get_position(bs) != totSize) {
+		gf_bs_seek(bs, totSize);
+	}
 	begin = totSize = 0;
 
 	//first setup the writers

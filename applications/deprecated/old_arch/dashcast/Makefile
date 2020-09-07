@@ -6,17 +6,17 @@ CFLAGS= $(OPTFLAGS) -D_GNU_SOURCE -Wno-deprecated-declarations -I"$(SRC_PATH)/in
 
 LINKFLAGS=$(GPAC_SH_FLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(GPACREADONLY), yes)
+ifeq ($(GPACREADONLY),yes)
 CFLAGS+=-DGPAC_READ_ONLY
 endif
 
@@ -53,7 +53,7 @@ CFLAGS+=-DDC_AUDIO_RESAMPLER
 LINKFLAGS+=-lswresample
 endif
 
-ifeq ($(CONFIG_DARWIN), yes)
+ifeq ($(CONFIG_DARWIN),yes)
 #fixme - use proper detection of libavdevice dependencies
 #LINKFLAGS+=-lavfilter -lswresample -lbz2
 endif

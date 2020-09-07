@@ -383,6 +383,22 @@ u32 gf_opus_check_frame(GF_OpusParser *op, u8 *data, u32 data_len);
 
 #endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
 
+/*! reads escaped value according to usac/mpegh
+\param bs bitstream object
+\param nBits1 first number of bits
+\param nBits2 second number of bits
+\param nBits3 third number set of bits
+\return value read
+*/
+u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3);
+
+/*! parse profile and level from a MHAS payload
+\param ptr the MHAS payhload
+\param size size of the MHAS payhload
+\return the MHAS profile found, or -1 of not found
+*/
+s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size);
+
 /*! reads a 32 bit sync safe integer of id3v2 from a bitstream object
 \param bs the bitstream object to use - has to be positioned on the start if an id3v2 size field
 \return the id3v2 size field read

@@ -999,14 +999,6 @@ GF_Err gf_isom_new_xml_metadata_description(GF_ISOFile *movie, u32 trackNumber,
 	return e;
 }
 
-GF_Err gf_isom_update_xml_metadata_description(GF_ISOFile *movie, u32 trackNumber,
-        const char *schema_loc, const char *encoding,
-        u32 DescriptionIndex)
-{
-	/* TODO */
-	return GF_NOT_SUPPORTED;
-}
-
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /* XMLSubtitleSampleEntry */
@@ -1202,7 +1194,16 @@ GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type
 	return e;
 }
 
+#if 0 //unused
 
+/*! updates simple streaming text config
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param encoding the text encoding, if any
+\param config the configuration string, if any
+\param sampleDescriptionIndex the target sample description index
+\return error if any
+*/
 GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
                                        const char *encoding, const char *config,
                                        u32 DescriptionIndex)
@@ -1245,6 +1246,9 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 	}
 	return GF_OK;
 }
+#endif
+
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #ifndef GPAC_DISABLE_VTT
@@ -1291,6 +1295,14 @@ const char *gf_isom_get_webvtt_config(GF_ISOFile *file, u32 track, u32 index)
 
 #ifndef GPAC_DISABLE_VTT
 
+#if 0 //unused
+/*! updates a WebVTT sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index to update
+\param config the WebVTT configuration string
+\return error if any
+*/
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config)
 {
 	GF_Err e;
@@ -1327,6 +1339,8 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 	wvtt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTC_CONFIG, config, &wvtt->child_boxes);
 	return GF_OK;
 }
+#endif
+
 
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, const char *config)
 {

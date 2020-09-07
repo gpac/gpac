@@ -390,6 +390,16 @@ Writes an integer on 32 bits in little-endian order.
 \param value the integer value to write
  */
 void gf_bs_write_u32_le(GF_BitStream *bs, u32 value);
+
+/*!
+\brief little endian large integer writing
+
+Writes an integer on 64 bits in little-endian order.
+\param bs the target bitstream
+\param value the integer value to write
+ */
+void gf_bs_write_u64_le(GF_BitStream *bs, u64 value);
+
 /*!
 \brief little endian short writing
 
@@ -581,22 +591,6 @@ void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove);
 
 /*!
 \brief Inserts a data block, moving bytes to the end
-
-Inserts a data block at a given position, pushing all bytes after the insertion point to the end of the stream.
- This does NOT work if \ref gf_bs_enable_emulation_byte_removal or  \ref gf_bs_new_cbk where used.
- The position after the call will be the same as before the call. If the position is not the end of the bitstream
- all bytes after the position will be lost.
-\param bs the target bitstream
-\param data block to insert
-\param size size of the block to insert
-\param offset insertion offset from bitstream start
-\return error code if any
- */
-GF_Err gf_bs_insert_data(GF_BitStream *bs, u8 *data, u32 size, u64 offset);
-
-/*!
-\brief Inserts a data block, moving bytes to the end
-
 
 Inserts a data block at a given position, pushing all bytes after the insertion point to the end of the stream.
  This does NOT work if \ref gf_bs_enable_emulation_byte_removal or  \ref gf_bs_new_cbk where used.

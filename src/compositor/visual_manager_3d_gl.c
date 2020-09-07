@@ -792,6 +792,9 @@ static GF_GLProgInstance *visual_3d_build_program(GF_VisualManager *visual, u32 
 		gf_free(pi);
 		return NULL;
 	}
+	if (pix_fmt == GF_PIXEL_GL_EXTERNAL) {
+		flags |= GF_GL_IS_ExternalOES;
+	}
 	pi->fragment = visual_3d_shader_with_flags(visual->compositor->fragshader , GL_FRAGMENT_SHADER, flags, pix_fmt);
 	if (!pi->fragment) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader\n"));
@@ -821,6 +824,7 @@ static GF_GLProgInstance *visual_3d_build_program(GF_VisualManager *visual, u32 
 		gf_free(pi);
 		return NULL;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] fragment shader compiled fine\n"));
 	return pi;
 }
 

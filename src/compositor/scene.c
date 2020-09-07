@@ -324,8 +324,9 @@ GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 
 	tmp->storages = gf_list_new();
 	tmp->keynavigators = gf_list_new();
-
+	tmp->attached_inlines = gf_list_new();
 #endif
+
 	tmp->on_media_event = inline_on_media_event;
 	return tmp;
 }
@@ -390,6 +391,14 @@ void gf_scene_del(GF_Scene *scene)
 		}
 		gf_list_del(scene->namespaces);
 	}
+
+#ifndef GPAC_DISABLE_VRML
+	while (gf_list_count(scene->attached_inlines)) {
+		GF_Node *n_inline = gf_list_pop_back(scene->attached_inlines);
+		gf_node_set_private(n_inline, NULL);
+	}
+	gf_list_del(scene->attached_inlines);
+#endif
 
 	if (scene->compositor->root_scene == scene)
 		scene->compositor->root_scene = NULL;
@@ -917,7 +926,7 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 	OD_ID = gf_mo_get_od_id(url);
 	if (!OD_ID) return NULL;
 
-	/*we may have overriden the time lines in parent scene, thus all objects in this scene have the same clock*/
+	/*we may have overridden the time lines in parent scene, thus all objects in this scene have the same clock*/
 	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline)
 		lock_timelines = GF_TRUE;
 

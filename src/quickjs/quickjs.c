@@ -206,7 +206,7 @@ typedef enum JSErrorEnum {
 #define JS_STACK_SIZE_MAX 65536
 #define JS_STRING_LEN_MAX ((1 << 30) - 1)
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__MINGW32__)
 #define __exception /* */
 typedef int64_t ssize_t;
 #else
@@ -15303,7 +15303,7 @@ static int js_op_define_class(JSContext *ctx, JSValue *sp,
             goto fail;
     }
 
-    /* the constructor property must be first. It can be overriden by
+    /* the constructor property must be first. It can be overridden by
        computed property names */
     if (JS_DefinePropertyValue(ctx, proto, JS_ATOM_constructor,
                                JS_DupValue(ctx, ctor),

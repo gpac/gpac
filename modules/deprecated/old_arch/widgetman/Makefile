@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/widgetman
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -20,7 +20,7 @@ LOCAL_LIB=-L../../bin/gcc
 #common objects
 OBJS=widgetman.o unzip.o widget.o wgt_load.o
 
-ifeq ($(CONFIG_ZLIB), local)
+ifeq ($(CONFIG_ZLIB),local)
 CFLAGS+=-I"$(LOCAL_INC_PATH)/zlib"
 LOCAL_LIB+= -L../../extra_lib/lib/gcc
 endif
@@ -30,7 +30,7 @@ else
 CFLAGS+=$(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
 # if local it is staticly linked with libgpac
-NEED_LOCAL_LIB="yes"
+NEED_LOCAL_LIB=yes
 LOCAL_LIB+= -L../../extra_lib/lib/gcc
 else
 LINKLIBS+= $(JS_LIBS)

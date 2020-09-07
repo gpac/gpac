@@ -580,6 +580,10 @@ GF_Err url_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->location = (char*)gf_malloc((u32) ptr->size);
 		if (! ptr->location) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->location, (u32)ptr->size);
+		if (ptr->location[ptr->size-1]) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] url box location is not 0-terminated\n" ));
+			return GF_ISOM_INVALID_FILE;
+		}
 	}
 	return GF_OK;
 }
@@ -773,6 +777,7 @@ GF_Err unkn_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (e == GF_OK) {
 		gf_bs_seek(sub_bs, 0);
+		gf_bs_set_cookie(sub_bs, GF_ISOM_BS_COOKIE_NO_LOGS);
 		e = gf_isom_box_array_read(s, sub_bs, NULL);
 	}
 	gf_bs_del(sub_bs);
@@ -3221,7 +3226,7 @@ GF_Err tfra_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Err tfra_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i;
+	u32 i, sap_nb_entries;
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
@@ -3234,10 +3239,19 @@ GF_Err tfra_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->trun_bits/8 - 1, 2);
 	gf_bs_write_int(bs, ptr->sample_bits/8 - 1, 2);
 
-	gf_bs_write_u32(bs, ptr->nb_entries);
+	sap_nb_entries = 0;
+	for (i=0; i<ptr->nb_entries; i++) {
+		GF_RandomAccessEntry *p = &ptr->entries[i];
+		//no sap found, do not store
+		if (p->trun_number) sap_nb_entries++;
+	}
+
+	gf_bs_write_u32(bs, sap_nb_entries);
 
 	for (i=0; i<ptr->nb_entries; i++) {
 		GF_RandomAccessEntry *p = &ptr->entries[i];
+		//no sap found, do not store
+		if (!p->trun_number) continue;
 		if (ptr->version==1) {
 			gf_bs_write_u64(bs, p->time);
 			gf_bs_write_u64(bs, p->moof_offset);
@@ -3254,11 +3268,16 @@ GF_Err tfra_box_write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err tfra_box_size(GF_Box *s)
 {
+	u32 i;
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
-
 	ptr->size += 12;
 
-	ptr->size += ptr->nb_entries * ( ((ptr->version==1) ? 16 : 8 ) + ptr->traf_bits/8 + ptr->trun_bits/8 + ptr->sample_bits/8);
+	for (i=0; i<ptr->nb_entries; i++) {
+		GF_RandomAccessEntry *p = &ptr->entries[i];
+		//no sap found, do not store
+		if (!p->trun_number) continue;
+		ptr->size +=  ((ptr->version==1) ? 16 : 8 ) + ptr->traf_bits/8 + ptr->trun_bits/8 + ptr->sample_bits/8;
+	}
 	return GF_OK;
 }
 
@@ -3514,6 +3533,7 @@ GF_Err minf_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->InfoHeader, &pos);
 	//then dataInfo
 	gf_isom_check_position(s, (GF_Box *)ptr->dataInformation, &pos);
+	gf_isom_check_position(s, gf_isom_box_find_child(s->child_boxes, GF_ISOM_BOX_TYPE_MVCI), &pos);
 	//then sampleTable
 	gf_isom_check_position(s, (GF_Box *)ptr->sampleTable, &pos);
 	return GF_OK;
@@ -3742,10 +3762,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
 		break;
-	case GF_ISOM_BOX_TYPE_MHA1:
-	case GF_ISOM_BOX_TYPE_MHA2:
-	case GF_ISOM_BOX_TYPE_MHM1:
-	case GF_ISOM_BOX_TYPE_MHM2:
+	case GF_ISOM_BOX_TYPE_MHAC:
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
 		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
@@ -3816,7 +3833,11 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 			cfg_ptr = (GF_Box **) &ptr->cfg_opus;
 			subtype = GF_ISOM_BOX_TYPE_DOPS;
 		}
-		else if ((s->type == GF_ISOM_BOX_TYPE_MHA1) || (s->type == GF_ISOM_BOX_TYPE_MHA2)) {
+		else if ((s->type == GF_ISOM_BOX_TYPE_MHA1)
+			|| (s->type == GF_ISOM_BOX_TYPE_MHA2)
+			|| (s->type == GF_ISOM_BOX_TYPE_MHM1)
+			|| (s->type == GF_ISOM_BOX_TYPE_MHM2)
+		) {
 			cfg_ptr = (GF_Box **) &ptr->cfg_mha;
 			subtype = GF_ISOM_BOX_TYPE_MHAC;
 		}
@@ -4288,7 +4309,10 @@ GF_Err video_sample_entry_box_size(GF_Box *s)
 	/*avc / SVC + MVC*/
 	gf_isom_check_position(s, (GF_Box *)ptr->avc_config, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->svc_config, &pos);
-	gf_isom_check_position(s, (GF_Box *)ptr->mvc_config, &pos);
+	if (ptr->mvc_config) {
+		gf_isom_check_position(s, gf_isom_box_find_child(s->child_boxes, GF_ISOM_BOX_TYPE_VWID), &pos);
+		gf_isom_check_position(s, (GF_Box *)ptr->mvc_config, &pos);
+	}
 
 	/*HEVC*/
 	gf_isom_check_position(s, (GF_Box *)ptr->hevc_config, &pos);
@@ -5053,7 +5077,7 @@ GF_Err stbl_box_size(GF_Box *s)
 	if (ptr->sub_samples) {
 		gf_isom_check_position_list(s, ptr->sub_samples, &pos);
 	}
-	if (ptr->sampleGroupsDescription && !ptr->skip_sample_groups) {
+	if (ptr->sampleGroupsDescription) {
 		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
 	}
 	if (ptr->sampleGroups) {
@@ -7077,12 +7101,7 @@ void trun_box_del(GF_Box *s)
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 	if (ptr == NULL) return;
 
-	while (gf_list_count(ptr->entries)) {
-		GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, 0);
-		gf_list_rem(ptr->entries, 0);
-		gf_free(p);
-	}
-	gf_list_del(ptr->entries);
+	if (ptr->samples) gf_free(ptr->samples);
 	if (ptr->cache) gf_bs_del(ptr->cache);
 	if (ptr->sample_order) gf_free(ptr->sample_order);
 	gf_free(ptr);
@@ -7258,17 +7277,23 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->first_sample_flags = gf_bs_read_u32(bs);
 	}
 	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
-		GF_SAFEALLOC(p, GF_TrunEntry);
-		if (!p) return GF_OUT_OF_MEM;
-		p->nb_pack = ptr->sample_count;
-		gf_list_add(ptr->entries, p);
+		ptr->samples = gf_malloc(sizeof(GF_TrunEntry));
+		if (!ptr->samples) return GF_OUT_OF_MEM;
+		ptr->sample_alloc = ptr->nb_samples = 1;
+		ptr->samples[0].nb_pack = ptr->sample_count;
 	} else {
+		//if we get here, at least one flag (so at least 4 bytes) is set, check size
+		if (ptr->sample_count * 4 > ptr->size) {
+			ISOM_DECREASE_SIZE(ptr, ptr->sample_count*4);
+		}
+		ptr->samples = gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
+		if (!ptr->samples) return GF_OUT_OF_MEM;
+		ptr->sample_alloc = ptr->nb_samples = ptr->sample_count;
 
 		//read each entry (even though nothing may be written)
 		for (i=0; i<ptr->sample_count; i++) {
 			u32 trun_size = 0;
-			p = (GF_TrunEntry *) gf_malloc(sizeof(GF_TrunEntry));
-			if (!p) return GF_OUT_OF_MEM;
+			p = &ptr->samples[i];
 			memset(p, 0, sizeof(GF_TrunEntry));
 
 			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
@@ -7292,7 +7317,6 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 				}
 				trun_size += 4;
 			}
-			gf_list_add(ptr->entries, p);
 			ISOM_DECREASE_SIZE(ptr, trun_size);
 		}
 	}
@@ -7307,7 +7331,6 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Box *trun_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TrackFragmentRunBox, GF_ISOM_BOX_TYPE_TRUN);
-	tmp->entries = gf_list_new();
 	//NO FLAGS SET BY DEFAULT
 	return (GF_Box *)tmp;
 }
@@ -7407,7 +7430,7 @@ GF_Err ctrn_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i, count;
+	u32 i;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
@@ -7430,10 +7453,8 @@ GF_Err trun_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 
 	if (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) )  {
-
-		count = gf_list_count(ptr->entries);
-		for (i=0; i<count; i++) {
-			GF_TrunEntry *p = (GF_TrunEntry*)gf_list_get(ptr->entries, i);
+		for (i=0; i<ptr->nb_samples; i++) {
+			GF_TrunEntry *p = &ptr->samples[i];
 
 			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
 				gf_bs_write_u32(bs, p->Duration);
@@ -7635,7 +7656,6 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 
 GF_Err trun_box_size(GF_Box *s)
 {
-	u32 i, count;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 
 #ifdef GF_ENABLE_CTRN
@@ -7661,14 +7681,12 @@ GF_Err trun_box_size(GF_Box *s)
 	}
 
 	//if nothing to do, this will be skipped automatically
-	count = gf_list_count(ptr->entries);
-	for (i=0; i<count; i++) {
-		if (ptr->flags & GF_ISOM_TRUN_DURATION) ptr->size += 4;
-		if (ptr->flags & GF_ISOM_TRUN_SIZE) ptr->size += 4;
-		//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
-		if (ptr->flags & GF_ISOM_TRUN_FLAGS) ptr->size += 4;
-		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) ptr->size += 4;
-	}
+	if (ptr->flags & GF_ISOM_TRUN_DURATION) ptr->size += 4*ptr->nb_samples;
+	if (ptr->flags & GF_ISOM_TRUN_SIZE) ptr->size += 4*ptr->nb_samples;
+	//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
+	if (ptr->flags & GF_ISOM_TRUN_FLAGS) ptr->size += 4*ptr->nb_samples;
+	if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) ptr->size += 4*ptr->nb_samples;
+
 	return GF_OK;
 }
 
@@ -8032,6 +8050,7 @@ GF_Err sdtp_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->sample_info = (u8 *) gf_malloc(sizeof(u8)*ptr->sampleCount);
 	if (!ptr->sample_info) return GF_OUT_OF_MEM;
+	ptr->sample_alloc = ptr->sampleCount;
 	gf_bs_read_data(bs, (char*)ptr->sample_info, ptr->sampleCount);
 	ISOM_DECREASE_SIZE(ptr, ptr->sampleCount);
 	return GF_OK;
@@ -11568,7 +11587,7 @@ void vwid_box_del(GF_Box *s)
 {
 	u32 i;
 	GF_ViewIdentifierBox *ptr = (GF_ViewIdentifierBox *) s;
-	if (ptr->num_views) {
+	if (ptr->views) {
 		for (i=0; i<ptr->num_views; i++) {
 			if (ptr->views[i].view_refs)
 				gf_free(ptr->views[i].view_refs);

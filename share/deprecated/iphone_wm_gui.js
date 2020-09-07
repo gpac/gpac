@@ -40,11 +40,11 @@ function adaptLayoutToSize() {
     if (l_deb < log_level) {
         alert("[UI] adaptLayoutToSize");
     }
-    display_width = parseInt(gpac.get_option('General', 'LastWidth'));
-    display_height = parseInt(gpac.get_option('General', 'LastHeight'));
+    display_width = parseInt(scene.get_option('General', 'LastWidth'));
+    display_height = parseInt(scene.get_option('General', 'LastHeight'));
     alert("display "+display_width+" "+display_height);
-    if (!gpac.fullscreen && display_width && display_height) {
-     gpac.set_size(display_width, display_height);
+    if (!scene.fullscreen && display_width && display_height) {
+     scene.set_size(display_width, display_height);
     }
     var tmpObject, tmpObj2;
     // get size to adapt to
@@ -485,10 +485,10 @@ function initialize() {
         alert("[UI] initialize");
     }
     init = false;
-    var display_width = parseInt(gpac.get_option('Widgets', 'LastWMWidth'));
-    var display_height = parseInt(gpac.get_option('Widgets', 'LastWMHeight'));
+    var display_width = parseInt(scene.get_option('Widgets', 'LastWMWidth'));
+    var display_height = parseInt(scene.get_option('Widgets', 'LastWMHeight'));
     if (display_width && display_height) {
-        gpac.set_size(display_width, display_height);
+        scene.set_size(display_width, display_height);
     }
     root = document.documentElement;
     homepage = document.getElementById('homepage');
@@ -834,8 +834,8 @@ function resize() {
     adjustWhereWidgets(false);
     previousWidth = document.documentElement.viewport.width;
     previousHeight = document.documentElement.viewport.height;
-    gpac.set_option("Widgets", "LastWMWidth", '' + previousWidth);
-    gpac.set_option("Widgets", "LastWMHeight", '' + previousHeight);
+    scene.set_option("Widgets", "LastWMWidth", '' + previousWidth);
+    scene.set_option("Widgets", "LastWMHeight", '' + previousHeight);
 }
 
 //
@@ -1313,7 +1313,7 @@ function refillWidgetAddList(flag) {
     removeAllChildren(widgetAddList);
     fllist = null;
     flstart = 0;
-    fllist = gpac.enum_directory(gpac.last_working_directory, "", false);
+    fllist = Sys.enum_directory(Sys.last_wdir, "", false);
     fillWidgetAddList(flag);
 }
 
@@ -1321,21 +1321,21 @@ function refillWidgetAddList(flag) {
 // go to parent directory
 //
 function flUpDir(evt) {
-    var s = gpac.last_working_directory;
+    var s = Sys.last_wdir;
     if (l_inf <= log_level) {
-        alert("[UI] lwd:" + gpac.last_working_directory);
+        alert("[UI] lwd:" + Sys.last_wdir);
     }
     var index = s.lastIndexOf("\\");
     if (index != -1) {
-        gpac.last_working_directory = s.substring(0, index);
+        Sys.last_wdir = s.substring(0, index);
         refillWidgetAddList(isThisAScan);
     } else {
         index = s.lastIndexOf("/");
         if (index != -1) {
-            gpac.last_working_directory = s.substring(0, index);
+            Sys.last_wdir = s.substring(0, index);
             refillWidgetAddList(isThisAScan);
         } else {
-            gpac.last_working_directory = "/";
+            Sys.last_wdir = "/";
             refillWidgetAddList(isThisAScan);
         }
     }
@@ -1346,17 +1346,17 @@ function flUpDir(evt) {
 //
 function flGoTo(newDir) {
     //alert("goto "+newDir);
-    var s = gpac.last_working_directory;
+    var s = Sys.last_wdir;
     if (s == "/") {
-        gpac.last_working_directory = newDir;
+        Sys.last_wdir = newDir;
     } else {
         var c = s.charAt(s.length - 1);
         if (c != '\\' && c != '/') {
             s += "/";
         }
-        gpac.last_working_directory = s + newDir;
+        Sys.last_wdir = s + newDir;
     }
-    //alert(gpac.last_working_directory);
+    //alert(Sys.last_wdir);
     refillWidgetAddList(isThisAScan);
 }
 
@@ -1390,7 +1390,7 @@ function flNextFiles(evt) {
 // scan the current directory recursively for widgets, clean up and return to home page
 //
 function flScanDir(evt) {
-    scan_directory(gpac.last_working_directory);
+    scan_directory(Sys.last_wdir);
     state = 'home';
     var nbWidgets = getNbWidgets();
     widgetContainer.setAttribute('display', 'none');
@@ -1410,7 +1410,7 @@ function flScanDir(evt) {
 //
 function scan_directory(dir) {
     var ii, j, count, list, w, uri, loadedWidgets = 0;
-    list = gpac.enum_directory(dir, '.xml;.wgt', 0);
+    list = Sys.enum_directory(dir, '.xml;.wgt', 0);
     for (ii = 0; ii < list.length; ii++) {
         uri = list[ii].path + list[ii].name;
         if (list[ii].directory) {
@@ -1448,10 +1448,10 @@ function scan_directory(dir) {
 function fillWidgetAddList(flag) {
     if (flag) {
         widgetAddList.appendChild(use("cartoucheflag"));
-        document.getElementById("dirflag").textContent = gpac.last_working_directory;
+        document.getElementById("dirflag").textContent = Sys.last_wdir;
     } else {
         widgetAddList.appendChild(use("cartouche"));
-        document.getElementById("dir").textContent = gpac.last_working_directory;
+        document.getElementById("dir").textContent = Sys.last_wdir;
     }
     // next lines are file names
     var obj;
@@ -1468,7 +1468,7 @@ function fillWidgetAddList(flag) {
             obj.listener = createGoto(escaping(fllist[i + flstart].name));
             obj.addEventListener("click", obj.listener, false);
         } else if (isWidgetFileName(fllist[i + flstart].name)) {
-            obj.listener = createWidgetInstall(escaping(gpac.last_working_directory + '/' + fllist[i + flstart].name));
+            obj.listener = createWidgetInstall(escaping(Sys.last_wdir + '/' + fllist[i + flstart].name));
             obj.addEventListener("click", obj.listener, false);
         }
     }

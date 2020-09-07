@@ -464,12 +464,12 @@ All grouping nodes (with "children" field) implement the following:
 
 addChildren: chain containing nodes to add passed as eventIn - handled internally through ROUTE
 void (*on_addChildren)(GF_Node *pNode): add feventIn signaler - this is handled internally by the scene_graph and SHALL
-NOT BE OVERRIDEN since it takes care of node(s) routing
+NOT BE overridden since it takes care of node(s) routing
 
 removeChildren: chain containing nodes to remove passed as eventIn - handled internally through ROUTE
 
 void (*on_removeChildren)(GF_Node *pNode): remove eventIn signaler - this is handled internally by the scene_graph and SHALL
-NOT BE OVERRIDEN since it takes care of node(s) routing
+NOT BE overridden since it takes care of node(s) routing
 
 children: list of children SFNodes
 */

@@ -142,6 +142,9 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9|ivf", NULL, "video/vp9"},
 	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10|ivf", NULL, "video/vp10"},
 
+	{GF_CODECID_MPHA, 0, GF_STREAM_AUDIO, "MPEG-H Audio", "mpha", "mha1", "audio/x-mpegh"},
+	{GF_CODECID_MHAS, 0, GF_STREAM_AUDIO, "MPEG-H AudioMux", "mhas", "mhm1", "audio/x-mhas"},
+
 	{GF_CODECID_APCH, 0, GF_STREAM_VISUAL, "ProRes Video 422 HQ", "prores|apch", "apch", "video/prores"},
 	{GF_CODECID_APCO, 0, GF_STREAM_VISUAL, "ProRes Video 422 Proxy", "prores|apco", "apco", "video/prores", GF_CODECID_APCH},
 	{GF_CODECID_APCN, 0, GF_STREAM_VISUAL, "ProRes Video 422 STD", "prores|apcn", "apcn", "video/prores", GF_CODECID_APCH},
@@ -177,6 +180,8 @@ GF_EXPORT
 GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 {
 	switch (isobmftype) {
+	case GF_ISOM_SUBTYPE_DVHE:
+		return GF_CODECID_HEVC;
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 		return GF_CODECID_AMR;
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -1287,3 +1292,152 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 
 
 
+
+
+static struct _itags {
+	const char *name;
+	u32 itag;
+	u32 id3tag;
+	u32 type;
+} itunes_tags[] = {
+
+	{"album", GF_ISOM_ITUNE_ALBUM, GF_ID3V2_FRAME_TALB, GF_ITAG_STR},
+	{"artist", GF_ISOM_ITUNE_ARTIST, GF_ID3V2_FRAME_TPE1, GF_ITAG_STR},
+	{"comment", GF_ISOM_ITUNE_COMMENT, 0, GF_ITAG_SUBSTR},
+	{"complilation", GF_ISOM_ITUNE_COMPILATION, GF_ID3V2_FRAME_TCMP, GF_ITAG_BOOL},
+	{"composer", GF_ISOM_ITUNE_COMPOSER, GF_ID3V2_FRAME_TCOM, GF_ITAG_STR},
+	{"year", GF_ISOM_ITUNE_CREATED, GF_ID3V2_FRAME_TDRC, GF_ITAG_STR},
+	{"disk", GF_ISOM_ITUNE_DISK, GF_ID3V2_FRAME_TPOS, GF_ITAG_STR},
+	{"tool", GF_ISOM_ITUNE_TOOL, 0, GF_ITAG_STR},
+	{"genre", GF_ISOM_ITUNE_GENRE, GF_ID3V2_FRAME_TCON, GF_ITAG_STR},
+	{"contentgroup", GF_ISOM_ITUNE_GROUP, GF_ID3V2_FRAME_TIT1, GF_ITAG_STR},
+	{"title", GF_ISOM_ITUNE_NAME, GF_ID3V2_FRAME_TIT2, GF_ITAG_STR},
+	{"tempo", GF_ISOM_ITUNE_TEMPO, GF_ID3V2_FRAME_TBPM, GF_ITAG_STR},
+	{"track", GF_ISOM_ITUNE_TRACK, 0, GF_ITAG_STR},
+	{"tracknum", GF_ISOM_ITUNE_TRACKNUMBER, GF_ID3V2_FRAME_TRCK, GF_ITAG_STR},
+	{"writer", GF_ISOM_ITUNE_WRITER, GF_ID3V2_FRAME_TEXT, GF_ITAG_STR},
+	{"encoder", GF_ISOM_ITUNE_ENCODER, GF_ID3V2_FRAME_TSSE, GF_ITAG_STR},
+	{"album_artist", GF_ISOM_ITUNE_ALBUM_ARTIST, GF_ID3V2_FRAME_TPE2, GF_ITAG_SUBSTR},
+	{"gapless", GF_ISOM_ITUNE_GAPLESS, 0, GF_ITAG_BOOL},
+	{"conductor", GF_ISOM_ITUNE_CONDUCTOR, GF_ID3V2_FRAME_TPE3, GF_ITAG_STR},
+};
+
+GF_EXPORT
+s32 gf_itags_find_by_id3tag(u32 id3tag)
+{
+	u32 i, count = GF_ARRAY_LENGTH(itunes_tags);
+	if (id3tag==GF_ID3V2_FRAME_TYER) id3tag = GF_ID3V2_FRAME_TDRC;
+	for (i=0; i<count; i++) {
+		if (itunes_tags[i].id3tag == id3tag) return i;
+	}
+	return -1;
+}
+
+GF_EXPORT
+s32 gf_itags_find_by_itag(u32 itag)
+{
+	u32 i, count = GF_ARRAY_LENGTH(itunes_tags);
+	for (i=0; i<count; i++) {
+		if (itunes_tags[i].itag == itag) return i;
+	}
+	return -1;
+}
+
+GF_EXPORT
+s32 gf_itags_find_by_name(const char *tag_name)
+{
+	u32 i, count = GF_ARRAY_LENGTH(itunes_tags);
+	for (i=0; i<count; i++) {
+		if (!strcmp(tag_name, itunes_tags[i].name)) {
+			return i;
+		} else if ((itunes_tags[i].type==GF_ITAG_SUBSTR) && !strnicmp(tag_name, itunes_tags[i].name, strlen(itunes_tags[i].name) )) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+GF_EXPORT
+u32 gf_itags_get_type(u32 tag_idx)
+{
+	u32 count = GF_ARRAY_LENGTH(itunes_tags);
+	if (tag_idx>=count) return 0;
+	return itunes_tags[tag_idx].type;
+}
+
+GF_EXPORT
+const char *gf_itags_get_name(u32 tag_idx)
+{
+	u32 count = GF_ARRAY_LENGTH(itunes_tags);
+	if (tag_idx>=count) return NULL;
+	return itunes_tags[tag_idx].name;
+}
+
+GF_EXPORT
+u32 gf_itags_get_itag(u32 tag_idx)
+{
+	u32 count = GF_ARRAY_LENGTH(itunes_tags);
+	if (tag_idx>=count) return 0;
+	return itunes_tags[tag_idx].itag;
+}
+
+GF_EXPORT
+u32 gf_itags_get_id3tag(u32 tag_idx)
+{
+	u32 count = GF_ARRAY_LENGTH(itunes_tags);
+	if (tag_idx>=count) return 0;
+	return itunes_tags[tag_idx].id3tag;
+}
+
+GF_EXPORT
+const char *gf_itags_enum_tags(u32 *idx, u32 *itag, u32 *id3tag, u32 *type)
+{
+	u32 i, count = GF_ARRAY_LENGTH(itunes_tags);
+	if (!idx || (count<= *idx)) return NULL;
+	i = *idx;
+	(*idx) ++;
+	if (itag) *itag = itunes_tags[i].itag;
+	if (id3tag) *id3tag = itunes_tags[i].id3tag;
+	if (type) *type = itunes_tags[i].type;
+	return itunes_tags[i].name;
+}
+
+
+static const char* ID3v1Genres[] = {
+	"Blues", "Classic Rock", "Country", "Dance", "Disco",
+	"Funk", "Grunge", "Hip-Hop", "Jazz", "Metal",
+	"New Age", "Oldies", "Other", "Pop", "R&B",
+	"Rap", "Reggae", "Rock", "Techno", "Industrial",
+	"Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack",
+	"Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk",
+	"Fusion", "Trance", "Classical", "Instrumental", "Acid",
+	"House", "Game", "Sound Clip", "Gospel", "Noise",
+	"AlternRock", "Bass", "Soul", "Punk", "Space",
+	"Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic",
+	"Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance",
+	"Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
+	"Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American",
+	"Cabaret", "New Wave", "Psychadelic", "Rave", "Showtunes",
+	"Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
+	"Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
+	"Folk", "Folk/Rock", "National Folk", "Swing",
+};
+
+GF_EXPORT
+const char *gf_id3_get_genre(u32 tag)
+{
+	if ((tag>0) && (tag <= (sizeof(ID3v1Genres)/sizeof(const char *)) )) {
+		return ID3v1Genres[tag-1];
+	}
+	return "Unknown";
+}
+GF_EXPORT
+u32 gf_id3_get_genre_tag(const char *name)
+{
+	u32 i, count = sizeof(ID3v1Genres)/sizeof(const char *);
+	if (!name) return 0;
+	for (i=0; i<count; i++) {
+		if (!stricmp(ID3v1Genres[i], name)) return i+1;
+	}
+	return 0;
+}

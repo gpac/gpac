@@ -428,6 +428,10 @@ GF_EXPORT
 void gf_prompt_set_echo_off(Bool echo_off) {
 	return;
 }
+GF_Err gf_prompt_get_size(u32 *width, u32 *height)
+{
+	return GF_NOT_SUPPORTED;
+}
 
 #else
 
@@ -453,15 +457,35 @@ void gf_prompt_set_echo_off(Bool echo_off)
 	if (!ret) {
 		DWORD err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONSOLE, ("[Console] GetConsoleMode() return with the following error code: %d\n", err));
+		return;
 	}
 	if (echo_off) flags &= ~ENABLE_ECHO_INPUT;
 	else flags |= ENABLE_ECHO_INPUT;
 	SetConsoleMode(hStdin, flags);
 }
+
+GF_EXPORT
+GF_Err gf_prompt_get_size(u32 *width, u32 *height)
+{
+    CONSOLE_SCREEN_BUFFER_INFO info;
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	BOOL ret = GetConsoleScreenBufferInfo(hStdin, &info);
+
+	if (!ret) {
+		DWORD err = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONSOLE, ("[Console] GetConsoleScreenBufferInfo() return with the following error code: %d\n", err));
+		return GF_IO_ERR;
+	}
+	if (width) *width = info.dwSize.X;
+	if (height) *height = info.dwSize.Y;
+	return GF_OK;
+}
+
 #endif
 #else
 /*linux kbhit/getchar- borrowed on debian mailing lists, (author Mike Brownlow)*/
 #include <termios.h>
+#include <sys/ioctl.h>
 
 static struct termios t_orig, t_new;
 static s32 ch_peek = -1;
@@ -532,6 +556,30 @@ char gf_prompt_get_char()
 		ch = 0;
 	close_keyboard(1);
 	return ch;
+}
+
+GF_EXPORT
+GF_Err gf_prompt_get_size(u32 *width, u32 *height)
+{
+#if defined(TIOCGWINSZ)
+    struct winsize ws;
+    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != 0) return GF_IO_ERR;
+
+    if (width) *width = ws.ws_col;
+    if (height) *height = ws.ws_row;
+    return GF_OK;
+#elif defined(WIOCGETD)
+	struct uwdata w;
+	if (ioctl(2, WIOCGETD, &w) != 0) return GF_IO_ERR;
+
+	if (width && (w.uw_width > 0))
+		*width = w.uw_width / w.uw_hs;
+	if (height && (w.uw_height > 0))
+		*height = w.uw_height / w.uw_vs;
+    return GF_OK;
+#else
+    return GF_NOT_SUPPORTED;
+#endif
 }
 
 #endif
@@ -1065,6 +1113,26 @@ GF_Err gf_sys_profiler_send(const char *msg)
 #endif
 }
 
+GF_EXPORT
+void gf_sys_profiler_enable_sampling(Bool enable)
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		rmt_EnableSampling(enable);
+	}
+#endif
+}
+
+GF_EXPORT
+Bool gf_sys_profiler_sampling_enabled()
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		return rmt_SamplingEnabled();
+	}
+#endif
+	return GF_FALSE;
+}
 
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config(Bool discard_config);
@@ -2479,6 +2547,22 @@ u64 gf_net_get_utc_ts(u32 year, u32 month, u32 day, u32 hour, u32 min, u32 sec)
 #endif
 
 	current_time *= 1000;
+	return current_time;
+}
+
+GF_EXPORT
+u64 gf_net_ntp_to_utc(u64 ntp)
+{
+	u64 current_time;
+	Double msec;
+	u32 sec = ntp>>32;
+	u32 frac = ntp & 0xFFFFFFFFUL;
+
+	current_time = sec - GF_NTP_SEC_1900_TO_1970;
+	current_time *= 1000;
+	msec = frac*1000.0;
+	msec /= 0xFFFFFFFF;
+	current_time += (u64) msec;
 	return current_time;
 }
 

@@ -84,6 +84,7 @@ typedef struct
 	Bool input_is_stop;
 	u64 missing_bytes, last_size;
 
+	Bool seg_name_changed;
 	u32 play_only_track_id;
 	u32 play_only_first_media;
 	Bool full_segment_flush;
@@ -136,7 +137,8 @@ typedef struct
 	GF_ISOSample *sample;
 	u64 sample_data_offset, last_valid_sample_data_offset;
 	GF_Err last_state;
-	Bool sap_3, sap_4;
+	Bool sap_3;
+	GF_ISOSampleRollType sap_4_type;
 	s32 roll;
 
 	Bool has_edit_list;
@@ -185,7 +187,7 @@ typedef struct
 	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
-	Bool check_avc_ps, check_hevc_ps;
+	Bool check_avc_ps, check_hevc_ps, check_mhas_pl;
 	GF_HEVCConfig *hvcc;
 	GF_AVCConfig *avcc;
 	GF_BitStream *nal_bs;

@@ -53,13 +53,20 @@ typedef struct
 	u32 min_temporal_id, max_temporal_id;
 } LHVCLayerInfo;
 
+enum {
+	STRICT_POC_OFF = 0,
+	STRICT_POC_ON,
+	STRICT_POC_ERROR,
+};
+
 typedef struct
 {
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool explicit, force_sync, strict_poc, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
+	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
 	u32 nal_length;
+	u32 strict_poc;
 	GF_Fraction idur;
 
 	//only one input pid declared
@@ -71,7 +78,7 @@ typedef struct
 	GF_BitStream *bs_r;
 	//write bitstream for nalus size length rewrite
 	GF_BitStream *bs_w;
-	//current CTS/DTS of the stream, may be overriden by input packet if not file (eg TS PES)
+	//current CTS/DTS of the stream, may be overridden by input packet if not file (eg TS PES)
 	u64 cts, dts, prev_dts;
 	u32 pck_duration;
 	//basic config stored here: with, height CRC of base and enh layer decoder config, sample aspect ratio
@@ -126,7 +133,7 @@ typedef struct
 	//list of packet (in decode order !!) not yet dispatched.
 	//Dispatch depends on the mode:
 	//strict_poc=0: we wait after each IDR until we find a stable poc diff between pictures, controled by poc_probe_done
-	//strict_poc=1: we dispatch only after IDR or at the end (huge delay)
+	//strict_poc>=1: we dispatch only after IDR or at the end (huge delay)
 	GF_List *pck_queue;
 	//dts of the last IDR found
 	u64 dts_last_IDR;
@@ -208,6 +215,8 @@ typedef struct
 	char init_aud[3];
 
 	Bool interlaced, eos_in_bs;
+
+	Bool is_mvc;
 } GF_NALUDmxCtx;
 
 
@@ -270,10 +279,14 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		}
 	}
 	if (ctx->is_hevc) {
+#ifdef GPAC_DISABLE_HEVC
+		return GF_NOT_SUPPORTED;
+#else
 		ctx->log_name = "HEVC";
 		if (ctx->avc_state) gf_free(ctx->avc_state);
 		if (!ctx->hevc_state) GF_SAFEALLOC(ctx->hevc_state, HEVCState);
 		ctx->min_layer_id = 0xFF;
+#endif
 	} else {
 		ctx->log_name = "AVC|H264";
 		if (ctx->hevc_state) gf_free(ctx->hevc_state);
@@ -384,6 +397,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 		gf_bs_seek(bs, nal_start);
 		if (hevc_state) {
+#ifndef GPAC_DISABLE_HEVC
 			u8 temporal_id, layer_id, nal_type;
 
 			res = gf_media_hevc_parse_nalu_bs(bs, hevc_state, &nal_type, &temporal_id, &layer_id);
@@ -411,6 +425,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 				is_slice = GF_TRUE;
 				break;
 			}
+#endif // GPAC_DISABLE_HEVC
 		} else {
 			u32 nal_type;
 			u64 pos = gf_bs_get_position(bs);
@@ -496,7 +511,39 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 	//TODO: we are dispatching frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
 	if (flush_ref && ctx->pck_queue && ctx->poc_diff) {
+		u32 dts_inc=0;
+		s32 last_poc = 0;
+		Bool patch_missing_frame = GF_FALSE;
 		//send all reference packet queued
+		if (ctx->strict_poc==STRICT_POC_ERROR) {
+			u32 i;
+			u32 nb_bframes = 0;
+			for (i=0; i<gf_list_count(ctx->pck_queue); i++) {
+				s32 poc;
+				u64 poc_ts, dts;
+				GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
+
+				if (q_pck == ctx->first_pck_in_au) break;
+
+				dts = gf_filter_pck_get_dts(q_pck);
+				if (dts == GF_FILTER_NO_TS) continue;
+				poc_ts = gf_filter_pck_get_cts(q_pck);
+				assert(poc_ts != GF_FILTER_NO_TS);
+				poc = (s32) ((s64) poc_ts - CTS_POC_OFFSET_SAFETY);
+
+				if (i) {
+					if (last_poc>poc) nb_bframes ++;
+					else if (last_poc + ctx->poc_diff<poc)
+						patch_missing_frame = GF_TRUE;
+				}
+				last_poc = poc;
+			}
+			if (nb_bframes>1)
+				patch_missing_frame = GF_FALSE;
+			else if (nb_bframes)
+				patch_missing_frame = GF_TRUE;
+		}
+		last_poc = GF_INT_MIN;
 
 		while (gf_list_count(ctx->pck_queue) ) {
 			u64 dts;
@@ -519,9 +566,30 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				}
 				gf_filter_pck_set_carousel_version(q_pck, 0);
 
+
 				poc_ts = gf_filter_pck_get_cts(q_pck);
 				assert(poc_ts != GF_FILTER_NO_TS);
 				poc = (s32) ((s64) poc_ts - CTS_POC_OFFSET_SAFETY);
+
+				if (patch_missing_frame) {
+					if (last_poc!=GF_INT_MIN) {
+						//check if we missed an IDR (poc reset)
+						if (poc && (last_poc > poc) ) {
+							last_poc = 0;
+							dts_inc += ctx->cur_fps.den;
+							ctx->dts_last_IDR = dts;
+							ctx->dts += ctx->cur_fps.den;
+						}
+						//check if we miss a frame
+						while (last_poc + ctx->poc_diff < poc) {
+							last_poc += ctx->poc_diff;
+							dts_inc += ctx->cur_fps.den;
+							ctx->dts += ctx->cur_fps.den;
+						}
+					}
+					last_poc = poc;
+					dts += dts_inc;
+				}
 				//poc is stored as diff since last IDR which has min_poc
 				cts = ( (ctx->min_poc + (s32) poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
@@ -554,6 +622,8 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 	if (!ctx->pck_queue) ctx->pck_queue = gf_list_new();
 	gf_list_add(ctx->pck_queue, n_pck);
 }
+
+#ifndef GPAC_DISABLE_HEVC
 
 static void naludmx_hevc_add_param(GF_HEVCConfig *cfg, GF_NALUConfigSlot *sl, u8 nal_type)
 {
@@ -610,6 +680,7 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 	else if (!use_tiles && (use_wpp==nb_pps) ) hevc_cfg->parallelismType = 3;
 	else hevc_cfg->parallelismType = 0;
 }
+#endif // GPAC_DISABLE_HEVC
 
 GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 {
@@ -785,6 +856,7 @@ static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 
 static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_hevc_base)
 {
+#ifndef GPAC_DISABLE_HEVC
 	u32 i, count;
 	u8 layer_id;
 	Bool first = GF_TRUE;
@@ -947,6 +1019,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	}
 	gf_odf_hevc_cfg_del(hvcc);
 	gf_odf_hevc_cfg_del(lvcc);
+#endif // GPAC_DISABLE_HEVC
 }
 
 void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar)
@@ -968,12 +1041,17 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	avcc->nal_unit_size = ctx->nal_length;
 	svcc->nal_unit_size = ctx->nal_length;
 
+	ctx->is_mvc = GF_FALSE;
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
 		Bool is_svc = GF_FALSE;
 		GF_NALUConfigSlot *sl = gf_list_get(ctx->sps, i);
 		AVC_SPS *sps = &ctx->avc_state->sps[sl->id];
 		u32 nal_type = sl->data[0] & 0x1F;
+
+		if ((sps->profile_idc == 118) || (sps->profile_idc == 128)) {
+			ctx->is_mvc = GF_TRUE;
+		}
 
 		if (ctx->explicit) {
 			cfg = svcc;
@@ -1614,9 +1692,11 @@ void naludmx_add_subsample(GF_NALUDmxCtx *ctx, u32 subs_size, u8 subs_priority, 
 	ctx->subs_mapped_bytes += subs_size + ctx->nal_length;
 }
 
-
 static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
 {
+#ifdef GPAC_DISABLE_HEVC
+	return -1;
+#else
 	s32 ps_idx = 0;
 	s32 res;
 	u8 nal_unit_type, temporal_id, layer_id;
@@ -1781,6 +1861,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		ctx->max_temporal_id[layer_id] = temporal_id;
 	if (ctx->min_layer_id > layer_id) ctx->min_layer_id = layer_id;
 	return res;
+#endif // GPAC_DISABLE_HEVC
 }
 
 static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 nal_type, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
@@ -1929,6 +2010,11 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 			}
 		}
 		*is_slice = GF_TRUE;
+		//we disable temporal scalability when parsing mvc - never used and many encoders screw up POC in enhancemen
+		if (ctx->is_mvc && (res>=0)) {
+			res=0;
+			ctx->avc_state->s_info.poc = ctx->last_poc;
+		}
         if (ctx->avc_state->s_info.sps) {
             switch (ctx->avc_state->s_info.slice_type) {
             case GF_AVC_TYPE_P:
@@ -1990,6 +2076,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 			if (ctx->first_pck_in_au) {
 				naludmx_finalize_au_flags(ctx);
 			}
+			//single-frame stream
+			if (!ctx->poc_diff) ctx->poc_diff = 1;
+			ctx->strict_poc = STRICT_POC_OFF;
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 			ctx->src_pck = NULL;
@@ -2563,7 +2652,7 @@ naldmx_flush:
 
 		//store all variables needed to compute POC/CTS and sample SAP and recovery info
 		if (ctx->is_hevc) {
-
+#ifndef GPAC_DISABLE_HEVC
 			slice_is_ref = gf_media_hevc_slice_is_IDR(ctx->hevc_state);
 
 			recovery_point_valid = ctx->hevc_state->sei.recovery_point.valid;
@@ -2598,30 +2687,31 @@ naldmx_flush:
 				slice_is_b = GF_TRUE;
 				break;
 			}
-
+#endif // GPAC_DISABLE_HEVC
 		} else {
 
 			/*fixme - we need finer grain for priority*/
 			if ((nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
-				unsigned char *p = (unsigned char *) start;
-				// RefPicFlag
-				avc_svc_subs_reserved |= (p[0] & 0x60) ? 0x80000000 : 0;
-				// RedPicFlag TODO: not supported, would require to parse NAL unit payload
-				avc_svc_subs_reserved |= (0) ? 0x40000000 : 0;
-				// VclNALUnitFlag
-				avc_svc_subs_reserved |= (1<=nal_type && nal_type<=5) || (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE) ? 0x20000000 : 0;
-				// use values of IdrFlag and PriorityId directly from SVC extension header
-				avc_svc_subs_reserved |= p[1] << 16;
-				// use values of DependencyId and QualityId directly from SVC extension header
-				avc_svc_subs_reserved |= p[2] << 8;
-				// use values of TemporalId and UseRefBasePicFlag directly from SVC extension header
-				avc_svc_subs_reserved |= p[3] & 0xFC;
-				// StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
-				avc_svc_subs_reserved |= (0) ? 0x00000002 : 0;
+				if (!ctx->is_mvc) {
+					unsigned char *p = (unsigned char *) start;
+					// RefPicFlag
+					avc_svc_subs_reserved |= (p[0] & 0x60) ? 0x80000000 : 0;
+					// RedPicFlag TODO: not supported, would require to parse NAL unit payload
+					avc_svc_subs_reserved |= (0) ? 0x40000000 : 0;
+					// VclNALUnitFlag
+					avc_svc_subs_reserved |= (1<=nal_type && nal_type<=5) || (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE) ? 0x20000000 : 0;
+					// use values of IdrFlag and PriorityId directly from SVC extension header
+					avc_svc_subs_reserved |= p[1] << 16;
+					// use values of DependencyId and QualityId directly from SVC extension header
+					avc_svc_subs_reserved |= p[2] << 8;
+					// use values of TemporalId and UseRefBasePicFlag directly from SVC extension header
+					avc_svc_subs_reserved |= p[3] & 0xFC;
+					// StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
+					avc_svc_subs_reserved |= (0) ? 0x00000002 : 0;
 
-				// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
-				avc_svc_subs_priority = (63 - (p[1] & 0x3F)) << 2;
-
+					// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
+					avc_svc_subs_priority = (63 - (p[1] & 0x3F)) << 2;
+				}
 				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
                     if (ctx->svc_prefix_buffer_size) {
                         GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] broken bitstream, two consecutive SVC prefix NALU without SVC slice inbetween\n", ctx->log_name));
@@ -2745,8 +2835,8 @@ naldmx_flush:
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
 					ctx->poc_probe_done = GF_TRUE;
 				}
+				ctx->last_poc = slice_poc;
 			}
-			ctx->last_poc = slice_poc;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is ref %d\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_ref));
 
 			/*ref slice, reset poc*/
@@ -3163,7 +3253,10 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
 	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes\n"
+		"- off: disable GOP buffering\n"
+		"- on: enable GOP buffering, assuming no error in POC\n"
+		"- error: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "false", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosei), "remove all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

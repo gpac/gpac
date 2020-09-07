@@ -12,87 +12,81 @@
 This section documents the API used to access and control the compositor and scene media objects when using interactive BIFS/VRML/X3D/SVG rendering.
 This API is not loaded by default when playing a scene and shall be loaded by a scene script using:
 \code
-import {gpac} from 'scenejs'
+import {scene} from 'scenejs'
 \endcode
 
 This API cannot be loaded from a JSFilter.
-It exports a single object "gpac", instance of JSGPAC class.
-
+It exports:
+- a single object "scene", instance of JSScene class.
+- a single object "session", instance of JSFilterSession class.
 
 @{
 
 */
 
-/*! JSGPAC is the interface to compositor*/
-interface JSGPAC {
-/*! last working directory */
-attribute DOMString last_working_directory;
-/*! indicates if running on battery or with power charge*/
-readonly attribute boolean batteryOn;
-/*! indicates if battery is charging*/
-readonly attribute boolean batteryCharging;
-/*! battery percent (0 to 100)*/
-readonly attribute unsigned long batteryPercent;
-/*! estimated battery lifetime - see \ref gf_sys_get_battery_state*/
-readonly attribute unsigned long batteryLifeTime;
-/*! estimated battery lifetime in full charge - see \ref gf_sys_get_battery_state*/
-readonly attribute unsigned long batteryFullLifeTime;
-/*! host name*/
-readonly DOMString hostname;
+/*! JSScene is the interface to compositor*/
+interface JSScene {
+
 /*! fullscreen status*/
 attribute boolean fullscreen;
+
 /*! current working directory*/
 readonly DOMString current_path;
+
 /*! audio output volume*/
 attribute unsigned long volume;
+
 /*! navigation mode*/
 attribute unsigned long navigation;
+
 /*! checks if navigation is off, 2D or 3D mode*/
 attribute unsigned long navigation_type;
+
 /*! true if display has hardware yuv 2D blit*/
 readonly attribute boolean hardware_yuv;
+
 /*! true if display has hardware rgb 2D blit*/
 readonly attribute boolean hardware_rgb;
+
 /*! true if display has hardware rgba 2D blit*/
 readonly attribute boolean hardware_rgba;
+
 /*! true if display has hardware stretch blit*/
 readonly attribute boolean hardware_stretch;
+
 /*! display width*/
 readonly attribute unsigned long screen_width;
+
 /*! display height*/
 readonly attribute unsigned long screen_height;
-/*! max capped HTTP download rate - used for DASH simulations mostly*/
-attribute unsigned long http_max_bitrate;
-/*! current http download rate averaged on all active resources*/
-readonly attribute unsigned long http_bitrate;
+
 /*! current output fps*/
 readonly attribute double fps;
+
 /*! desired output fps for animations*/
 readonly attribute double sim_fps;
+
 /*! true if display has opengl support*/
 readonly attribute boolean has_opengl;
-/*! cpu usage*/
-readonly attribute double cpu;
-/*! number of cores*/
-readonly attribute unsigned long nb_cores;
-/*! system memory*/
-readonly attribute unsigned long system_memory;
-/*! memory usage*/
-readonly attribute unsigned long memory;
-/*! number of arguments of launch command*/
-readonly attribute unsigned long argc;
+
 /*! window title*/
 attribute DOMString caption;
+
 /*! enables or disable focus highlighting*/
 attribute boolean focus_highlight;
-/*! sceen horizontal dpi*/
+
+/*! screen horizontal dpi*/
 readonly attribute unsigned long dpi_x;
-/*! sceen vertical dpi*/
+
+/*! screen vertical dpi*/
 readonly attribute unsigned long dpi_y;
+
 /*! sensor active state (gyroscope) */
 attribute boolean sensors_active;
+
 /*! compositor zoom factor*/
 readonly attribute double zoom;
+
 /*! current text selection*/
 readonly attribute DOMString text_selection;
 
@@ -102,6 +96,7 @@ readonly attribute DOMString text_selection;
 \return the key value
 */
 DOMString get_option(DOMString section, DOMString key);
+
 /*! see \ref gf_opts_get_key_name
 \param section the section name
 \param key_idx the key index in the section
@@ -109,29 +104,24 @@ DOMString get_option(DOMString section, DOMString key);
 */
 */
 DOMString get_option(DOMString section, unsigned key_idx);
+
 /*! see \ref gf_opts_set_key
 \param section the section name
 \param key the key name
 \param value the key value, null to remove the key
 */
 void set_option(DOMString section, DOMString key, optional DOMString value=null);
-/*! get program argument by index
-\param idx the argument index
-\return the argument*/
-DOMString get_arg(unsigned long idx);
-/*! enumerate directories
-\param dir the directory to enumerate
-\param filter the filter for file extensions. If "dir", only enumerate directories
-\param go_up if true, enumerate parent directory or root (/).
-\return array of FileInformation interface*/
-Array enum_directory(DOMString dir, optional DOMString filter=null, optional DOMString filter=null, optional bool go_up=false);
+
+
 /*! set output window size
 \param width desired width
 \param height desired height
 */
 void set_size(unsigned long width, unsigned long height);
+
 /*! post quit message*/
 void exit();
+
 /*! turns 3D rendering on/off
 \param use_3d if true, uses 3D for all content, otherwise use 3D based on content type
 */
@@ -143,35 +133,40 @@ void set_3d(Boolean use_3d);
 \param relative if true, use relative (delta) positioning; otherwise use absolute
 */
 void move_window(unsigned long x, unsigned long y, optional boolean relative=false);
+
 /*! assigns event filter
 \param filter_event_func the filter event function to use, or null to deactivate event filtering*/
 void set_event_filter(GPACEventFilter filter_event_func);
+
 /*! moves focus
 \param focus "next" for next element in focus ring, "prev" for previous*/
 void set_focus(DOMString focus);
+
 /*! sets focus on element
 \param elt the node on which focus should be set */
 void set_focus(Node elt);
-/*! gets string for error
-\param e the error code
-\return the corresponding string*/
-DOMString error_string(GF_Err e);
+
 /*! show or hide virtual keyboard
 \param do_show if true, show keyboard, otherwise hide it*/
 void show_keyboard(boolean do_show);
+
 /*! triggers JS garbage collection pass*/
 void trigger_gc();
+
 /*! gets object manager for the given service URL loaded in the root scene of the compositor
 \param url url of service for which the object manager is queried
 \return the object manager, or null if not found*/
 MediaObject get_object_manager(DOMString url);
+
 /*! switches quality
 \param up switches quality up (true) or down (false)*/
 void switch_quality(boolean up);
+
 /*! checks if navigation type is supported for the current content
 \param nav_type the navigation type to check
 \return true if supported, false otherwise*/
 boolean navigation_supported(unsigned long nav_type);
+
 /*! sets default back color of player
 \param r red component between 0.0 and 1.0
 \param g green component between 0.0 and 1.0
@@ -179,10 +174,6 @@ boolean navigation_supported(unsigned long nav_type);
 \param a alpha component between 0.0 and 1.0
 */
 void set_back_color(double r, double g, double b, double a);
-/*! allocates a new storage
-\param storage_name the storage name
-\return the storage object*/
-Storage new_storage(DOMString storage_name);
 
 };
 
@@ -195,25 +186,6 @@ interface GPACEventFilter{
 	boolean filter_event(GPACEVT evt);	
 };
 
-/*! object used for file enumeration*/
-interface FileInformation {
-	/*! file name*/
-	DOMString name;	
-	/*! file path*/
-	DOMString path;
-	/*! true if directory*/
-	boolean directory;
-	/*! true if drive root (local HDD, USB or other mount points)*/
-	boolean drive;
-	/*! true if hidden file*/
-	boolean hidden;
-	/*! true if system file*/
-	boolean system;
-	/*! file size in bytes*/
-	unsigned long long size;
-	/*! last modification UTC time*/
-	unsigned long long last_modified;
-};
 
 /*! interface to user event - see \ref GF_Event*/
 interface GPACEVT {
@@ -374,6 +346,11 @@ void select();
 \return the SRD information, or null*/
 SRDDesc get_srd();
 
+/*! checks if the given filter is in parent (down the source) chain of this object. The compositor filter and any filter connected after the compositor are excluded
+\param filter the filter to test
+\return true if the filter is in the parent chain, false otherwise
+*/
+boolean in_parent_chain(JSFSFilter filter);
 
 /*! declares an addon
 \param addon_url URL of addon to insert

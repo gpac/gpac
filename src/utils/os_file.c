@@ -274,14 +274,29 @@ Bool gf_file_exists_ex(const char *fileName, const char *par_name)
 	wchar_t* wname = gf_utf8_to_wcs(fileName);
 	if (!wname) return GF_FALSE;
  	res = (_waccess(wname, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res == GF_TRUE) {
+		DWORD att;
+		att = GetFileAttributesW(wname);
+		if (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY))
+			res = GF_FALSE;
+	}
 	gf_free(wname);
 	return res;
 #elif defined(GPAC_CONFIG_LINUX)
- 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	Bool res = (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res && gf_dir_exists(fileName))
+		res = GF_FALSE;
+	return res;
 #elif defined(__DARWIN__) || defined(__APPLE__)
- 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+ 	Bool res = (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res && gf_dir_exists(fileName))
+		res = GF_FALSE;
+	return res;
 #elif defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
- 	return (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+ 	Bool res = (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
+	if (res && gf_dir_exists(fileName))
+		res = GF_FALSE;
+	return res;
 #else
 	FILE *f = gf_fopen(fileName, "r");
 	if (f) {
@@ -617,6 +632,11 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		iFs.Close();
 		FlushItemList();
 		return GF_OK;
+#elif defined(GPAC_CONFIG_ANDROID)
+		dir = getenv("EXTERNAL_STORAGE");
+		if (!dir) dir = "/sdcard";
+#elif defined(GPAC_CONFIG_IOS)
+		dir = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
 #endif
 	}
 
@@ -1153,7 +1173,7 @@ u64 gf_ftell(FILE *fp)
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else
-	return (u64) gf_ftell(fp);
+	return (u64) ftell(fp);
 #endif
 #elif defined(WIN32)
 	return (u64) _ftelli64(fp);
@@ -1162,7 +1182,7 @@ u64 gf_ftell(FILE *fp)
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return (u64) ftello(fp);
 #else
-	return (u64) gf_ftell(fp);
+	return (u64) ftell(fp);
 #endif
 }
 

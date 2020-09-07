@@ -120,8 +120,8 @@ function add_widget_to_dock(wid) {
 function resize() {
   /*dummy values, assign upon window resize event*/
   alert('Size:'+root.viewport.width+'x'+root.viewport.height);    
-  display_width  = root.viewport.width;//gpac.get_screen_width();
-  display_height = root.viewport.height;//gpac.get_screen_height();
+  display_width  = root.viewport.width;//scene.screen_width;
+  display_height = root.viewport.height;//scene.screen_height;
   
   nb_icon_max = 4;
   if (display_width > 800) {

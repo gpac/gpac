@@ -72,6 +72,8 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
 	mo->odm->subscene->object_attached = GF_TRUE;
+	if (gf_list_find(mo->odm->subscene->attached_inlines, root)<0)
+		gf_list_add(mo->odm->subscene->attached_inlines, root);
 
 	/*play*/
 	gf_mo_play(mo, 0, -1, GF_FALSE);
@@ -252,6 +254,8 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (!scene) return;
 		mo = scene->root_od ? scene->root_od->mo : NULL;
 
+		gf_list_del_item(scene->attached_inlines, n);
+		
 		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL, GF_OK, GF_TRUE);
 		if (!mo) return;
 		gf_mo_event_target_remove_by_node(mo, n);

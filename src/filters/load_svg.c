@@ -412,7 +412,7 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				svgin->loader.scene_graph = svgin->scene->graph;
 				svgin->loader.localPath = gf_get_default_cache_directory();
 				
-				/*Warning: svgin->loader.type may be overriden in attach stream */
+				/*Warning: svgin->loader.type may be overridden in attach stream */
 				svgin->loader.type = GF_SM_LOAD_SVG;
 				svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
 

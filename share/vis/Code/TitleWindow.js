@@ -18,6 +18,8 @@ TitleWindow = (function()
 		this.PauseButton.SetOnClick(Bind(OnPausePressed, this));
 
 		server.AddMessageHandler("PING", Bind(OnPing, this));
+		
+		this.Window.SetOnResize(Bind(OnUserResize, this));
 	}
 
 
@@ -30,7 +32,17 @@ TitleWindow = (function()
 	TitleWindow.prototype.WindowResized = function(width, height)
 	{
 		this.Window.SetSize(width - 2 * 10, 50);
-		this.PauseButton.SetPosition(width - 80, 5);
+		ResizeInternals(this);
+	}
+
+	function OnUserResize(self, evt)
+	{
+		ResizeInternals(self);
+	}
+
+	function ResizeInternals(self)
+	{
+		self.PauseButton.SetPosition(self.Window.Size[0] - 60, 5);
 	}
 
 

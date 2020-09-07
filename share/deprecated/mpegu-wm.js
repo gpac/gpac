@@ -39,16 +39,16 @@ function initialize() {
     //var icon;
     var i, count, wid;
 
-    gpac.caption = 'MPEG-U @ Osmo4';
+    scene.caption = 'MPEG-U @ Osmo4';
 
-    display_width = parseInt(gpac.get_option('Widgets', 'LastWMWidth'));
-    display_height = parseInt(gpac.get_option('Widgets', 'LastWMHeight'));
+    display_width = parseInt(scene.get_option('Widgets', 'LastWMWidth'));
+    display_height = parseInt(scene.get_option('Widgets', 'LastWMHeight'));
     
     if (display_width && display_height) {
-     gpac.set_size(display_width, display_height);
+     scene.set_size(display_width, display_height);
     } else {
-     display_width = gpac.get_screen_width();
-     display_height = gpac.get_screen_height();
+     display_width = scene.screen_width;
+     display_height = scene.screen_height;
     }
 
     //request event listeners on the window - GPAC specific extensions !!!     
@@ -64,7 +64,7 @@ function initialize() {
     dock_height = 48;
     info_height = 32;
     toggle_bar_height = 16;
-    screen_dpi = gpac.get_horizontal_dpi();
+    screen_dpi = scene.get_horizontal_dpi();
      
     widget_remote_candidate = null;
     has_upnp = eval("(typeof(UPnP) != 'undefined');");
@@ -633,7 +633,7 @@ function display_widget_info(wid)
   info.children[i++] = text_label('Widget was pushed from device IP '+wid.originating_device_ip, 'BEGIN' );
  }
  info.children[i++] = text_label('Section name in GPAC config file: '+wid.section, 'BEGIN' );
- info.children[i++] = text_label('UA Locale: ' + gpac.get_option('core', 'lang'), 'BEGIN');
+ info.children[i++] = text_label('UA Locale: ' + scene.get_option('core', 'lang'), 'BEGIN');
  info.children[i++] = text_label('widget src: ' + wid.url , 'BEGIN');
  info.children[i++] = text_label('config src: ' + wid.manifest , 'BEGIN');
  info.children[i++] = text_label('content src : '+wid.localizedSrc, 'BEGIN' );
@@ -663,7 +663,7 @@ function display_widget_info(wid)
  i=3;
  for (j=0; j<pref.length; j++) {
   var val = pref[j].value;
-  if (val == '') val = gpac.get_option(wid.section, pref[j].name);
+  if (val == '') val = scene.get_option(wid.section, pref[j].name);
   info.children[i++] = text_label('Preference #'+(j+1)+' name=\''+pref[j].name+'\' value=\''+val+'\' readOnly=\''+pref[j].readonly +'\'', 'BEGIN');
  }
 
@@ -823,7 +823,7 @@ function setup_icons()
 
     //exit Icon
     icon = icon_button('icons/emblem-unreadable.svg', 'Exit', 0);
-    icon.button_click = function() { gpac.exit(); };
+    icon.button_click = function() { scene.exit(); };
     dock.children[4] = icon;
 }
 
@@ -922,8 +922,8 @@ function widget_screen_layout(dir)
 function layout() {
   var i, list, start_x;
 
-  gpac.set_option('Widgets', 'LastWMWidth', '' + display_width);
-  gpac.set_option('Widgets', 'LastWMHeight', '' + display_height);
+  scene.set_option('Widgets', 'LastWMWidth', '' + display_width);
+  scene.set_option('Widgets', 'LastWMHeight', '' + display_height);
 
 
   if (WidgetManager.num_widgets) {
@@ -1317,7 +1317,7 @@ function insert_widget_icon(new_wid, no_layout) {
 function scan_directory(dir)
 {
   var i, j, count, list, new_wid, uri;
-  list = gpac.enum_directory(dir, '.xml;.wgt;.mgt', 0);
+  list = Sys.enum_directory(dir, '.xml;.wgt;.mgt', 0);
   for (i=0; i<list.length; i++) {
    uri = list[i].path + list[i].name;
    if (list[i].directory) {
@@ -1380,7 +1380,7 @@ function widget_browse()
   filebrowse.nb_tools = filebrowse.children.length;
 
   filebrowse.browse = function(go_up) {
-   this.list = gpac.enum_directory(this.directory, '*.xml;*.wgt;*.mgt', go_up);
+   this.list = Sys.enum_directory(this.directory, '*.xml;*.wgt;*.mgt', go_up);
    if (this.list.length) {
     this.directory = this.list[0].path;
     this.set_label(this.directory);

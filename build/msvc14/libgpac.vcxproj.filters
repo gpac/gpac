@@ -1157,6 +1157,9 @@
     <ClCompile Include="..\..\src\filter_core\filter_session.c">
       <Filter>filter_core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filter_core\filter_session_js.c">
+      <Filter>filter_core</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\compose.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1503,6 +1506,9 @@
       <Filter>jsmods</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\jsmods\xhr.c">
+      <Filter>jsmods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\jsmods\core.c">
       <Filter>jsmods</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\dom_js.c">

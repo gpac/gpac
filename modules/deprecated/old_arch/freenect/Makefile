@@ -4,12 +4,12 @@ vpath %.c $(SRC_PATH)/modules/freenect
 
 CFLAGS= $(CXXFLAGS) -I"$(SRC_PATH)/include" -DGPAC_HAVE_CONFIG_H -I../.. $(FREENECT_CFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
@@ -17,7 +17,7 @@ endif
 
 LINKLIBS=
 
-ifeq ($(CONFIG_FREENECT), local)
+ifeq ($(CONFIG_FREENECT),local)
 LINKLIBS+=-L../../extra_lib/lib/gcc
 CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif

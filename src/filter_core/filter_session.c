@@ -31,8 +31,10 @@
 #endif
 //#define CHECK_TASK_LIST_INTEGRITY
 
+#ifndef GPAC_DISABLE_PLAYER
 struct _gf_ft_mgr *gf_font_manager_new();
 void gf_font_manager_del(struct _gf_ft_mgr *fm);
+#endif
 
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
@@ -116,9 +118,14 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 
 static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
+	GF_FilterSession *fs = (GF_FilterSession *)ptr;
+#ifdef GPAC_HAS_QJS
+	if (fs->on_evt_task)
+		return jsfs_on_event(fs, evt);
+#endif
+
 	if (evt->type==GF_EVENT_QUIT) {
-		GF_FilterSession *fsess = (GF_FilterSession *)ptr;
-		gf_fs_abort(fsess, GF_FALSE);
+		gf_fs_abort(fs, GF_FALSE);
 	}
 	return 0;
 }
@@ -617,8 +624,12 @@ void gf_fs_del(GF_FilterSession *fsess)
 		fsess->filters = NULL;
 	}
 
+	gf_fs_unload_script(fsess, NULL);
+
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
+#ifndef GPAC_DISABLE_PLAYER
 	if (fsess->font_manager) gf_font_manager_del(fsess->font_manager);
+#endif
 
 	if (fsess->registry) {
 		while (gf_list_count(fsess->registry)) {
@@ -980,16 +991,15 @@ GF_EXPORT
 GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *err_code)
 {
 	const char *args=NULL;
+	const char *sep;
 	u32 i, len, count = gf_list_count(fsess->registry);
 	Bool quiet = (err_code && (*err_code == GF_EOS)) ? GF_TRUE : GF_FALSE;
-
-	char *sep;
 
 	assert(fsess);
 	assert(name);
 	if (err_code) *err_code = GF_OK;
 
-	sep = strchr(name, fsess->sep_args);
+	sep = gf_fs_path_escape_colon(fsess, name);
 	if (sep) {
 		args = sep+1;
 		len = (u32) (sep - name);
@@ -2747,6 +2757,9 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 GF_EXPORT
 struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter)
 {
+#ifdef GPAC_DISABLE_PLAYER
+	return NULL;
+#else
 	GF_FilterSession *fsess;
 	if (!filter) return NULL;
 	fsess = filter->session;
@@ -2755,6 +2768,7 @@ struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter)
 		fsess->font_manager = gf_font_manager_new();
 	}
 	return fsess->font_manager;
+#endif
 }
 
 void gf_fs_cleanup_filters(GF_FilterSession *fsess)
@@ -2902,15 +2916,12 @@ u32 gf_fs_get_filters_count(GF_FilterSession *session)
 }
 
 GF_EXPORT
-GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
+GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
 {
-	GF_Filter *f;
 	u32 i;
 	Bool set_name=GF_FALSE;
-	if (!stats || !session) return GF_BAD_PARAM;
+	if (!stats || !f) return GF_BAD_PARAM;
 	memset(stats, 0, sizeof(GF_FilterStats));
-	f = gf_list_get(session->filters, idx);
-	if (!f) return GF_BAD_PARAM;
 	stats->filter = f;
 	stats->filter_alias = f->multi_sink_target;
 	if (f->multi_sink_target) return GF_OK;
@@ -2945,6 +2956,9 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		stats->nb_out_pck += pid->nb_pck_sent;
 		if (pid->has_seen_eos) stats->in_eos = GF_TRUE;
 
+		if (pid->last_ts_sent.num * stats->last_ts_sent.den >= stats->last_ts_sent.num * pid->last_ts_sent.den)
+			stats->last_ts_sent = pid->last_ts_sent;
+
 		if (f->num_output_pids!=1) continue;
 
 		if (!stats->codecid)
@@ -2970,6 +2984,9 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 		if (pidi->pid->stream_type==GF_STREAM_FILE)
 			stats->type = GF_FS_STATS_FILTER_DEMUX;
 
+		if (pidi->last_ts_drop.num * stats->last_ts_drop.den >= stats->last_ts_drop.num * pidi->last_ts_drop.den)
+			stats->last_ts_drop = pidi->last_ts_drop;
+
 		if ((f->num_input_pids!=1) && f->num_output_pids)
 			continue;
 
@@ -2983,7 +3000,21 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 			set_name = GF_FALSE;
 		}
 	}
+	if (!stats->type && stats->codecid) {
+		if (!stats->nb_pid_out) {
+			stats->type = GF_FS_STATS_FILTER_MEDIA_SINK;
+		} else if (!stats->nb_pid_in) {
+			stats->type = GF_FS_STATS_FILTER_MEDIA_SOURCE;
+		}
+	}
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats)
+{
+	if (!stats || !session) return GF_BAD_PARAM;
+	return gf_filter_get_stats(gf_list_get(session->filters, idx), stats);
 }
 
 Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
@@ -3007,6 +3038,11 @@ void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load)
 }
 
 #ifndef GPAC_DISABLE_3D
+
+
+#define GF_VIDEO_HW_INTERNAL	(1<<29)
+#define GF_VIDEO_HW_ATTACHED	(1<<30)
+
 static Bool fsess_on_event(void *cbk, GF_Event *evt)
 {
 	return GF_TRUE;
@@ -3034,6 +3070,7 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	if (!gf_opts_get_key("core", "video-output")) {
 		gf_opts_set_key("core", "video-output", session->gl_driver->module_name);
 	}
+	session->gl_driver->hw_caps |= GF_VIDEO_HW_INTERNAL;
 	session->gl_driver->on_event = fsess_on_event;
 	session->gl_driver->evt_cbk_hdl = session;
 
@@ -3074,6 +3111,48 @@ GF_Err gf_fs_set_gl(GF_FilterSession *session)
 	evt.type = GF_EVENT_SET_GL;
 	return session->gl_driver->ProcessEvent(session->gl_driver, &evt);
 }
+
+GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter)
+{
+	if (!filter || !filter->session || !filter->session->gl_driver) return NULL;
+
+	if (! (filter->session->gl_driver->hw_caps & GF_VIDEO_HW_INTERNAL))
+		return NULL;
+	if (filter->session->gl_driver->hw_caps & GF_VIDEO_HW_ATTACHED)
+		return NULL;
+
+	filter->session->gl_driver->hw_caps |= GF_VIDEO_HW_ATTACHED;
+	return filter->session->gl_driver;
+}
+
+Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, GF_VideoOutput * video_out)
+{
+	if (!filter || !video_out) return GF_FALSE;
+
+	if (! (video_out->hw_caps & GF_VIDEO_HW_INTERNAL))
+		return GF_FALSE;
+	if (video_out != filter->session->gl_driver)
+		return GF_FALSE;
+
+	if (filter->session->gl_driver->hw_caps & GF_VIDEO_HW_ATTACHED) {
+		filter->session->gl_driver->hw_caps &= ~GF_VIDEO_HW_ATTACHED;
+		filter->session->gl_driver->on_event = fsess_on_event;
+		filter->session->gl_driver->evt_cbk_hdl = filter->session;
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+#else
+void *gf_filter_claim_opengl_provider(GF_Filter *filter)
+{
+	return NULL;
+}
+Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, void *vout)
+{
+	return GF_FALSE;
+}
+
 #endif
 
 

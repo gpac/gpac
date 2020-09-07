@@ -55,11 +55,13 @@ static Bool gf_mpd_valid_child(GF_MPD *mpd, GF_XMLNode *child)
 
 static Bool gf_mpd_is_known_descriptor(GF_XMLNode *child)
 {
-	if (!strcmp(child->name, "FramePacking")  ||
-	!strcmp(child->name, "AudioChannelConfiguration") ||
-	!strcmp(child->name, "ContentProtection") ||
-	!strcmp(child->name, "EssentialProperty") ||
-	!strcmp(child->name, "SupplementalProperty")){
+	if (!strcmp(child->name, "FramePacking")
+		|| !strcmp(child->name, "AudioChannelConfiguration")
+		|| !strcmp(child->name, "ContentProtection")
+		|| !strcmp(child->name, "EssentialProperty")
+		|| !strcmp(child->name, "SupplementalProperty")
+		|| !strcmp(child->name, "UTCTiming")
+	) {
 		return GF_TRUE;
 	}
 	else{
@@ -130,7 +132,7 @@ static GF_MPD_Fractional *gf_mpd_parse_frac(const char * const attr, const char 
 	return res;
 }
 
-static u64 gf_mpd_parse_date(const char * const attr)
+u64 gf_mpd_parse_date(const char * const attr)
 {
 	return gf_net_parse_date(attr);
 }
@@ -548,7 +550,7 @@ static GF_Err gf_mpd_parse_content_component(GF_List *comps, GF_XMLNode *root)
 		gf_list_rem(root->content, i);	\
 		gf_list_add(_elem->children, child);	\
 
-static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
+static GF_Err gf_mpd_parse_descriptor_ex(GF_List *container, GF_MPD_Descriptor **out_ptr, GF_XMLNode *root)
 {
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
@@ -566,7 +568,12 @@ static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
 			MPD_STORE_EXTENSION_ATTR(mpd_desc)
 		}
 	}
-	gf_list_add(container, mpd_desc);
+	if (container)
+		gf_list_add(container, mpd_desc);
+	else {
+		if (*out_ptr) gf_mpd_descriptor_free(*out_ptr);
+		*out_ptr = mpd_desc;
+	}
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
@@ -575,8 +582,43 @@ static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
 		MPD_STORE_EXTENSION_NODE(mpd_desc)
 
 	}
-
 	return GF_OK;
+}
+
+static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
+{
+	return gf_mpd_parse_descriptor_ex(container, NULL, root);
+}
+
+GF_MPD_ProducerReferenceTime *gf_mpd_parse_produce_ref_time(GF_XMLNode *root)
+{
+	GF_XMLAttribute *att;
+	GF_XMLNode *child;
+	GF_MPD_ProducerReferenceTime *pref;
+	u32 i = 0;
+
+	GF_SAFEALLOC(pref, GF_MPD_ProducerReferenceTime);
+	if (!pref) return NULL;
+
+	while ( (att = gf_list_enum(root->attributes, &i)) ) {
+		if (!strcmp(att->name, "id")) pref->ID = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "inband")) pref->inband = gf_mpd_parse_bool(att->value);
+		else if (!strcmp(att->name, "type")) {
+			if (!strcmp(att->value, "application")) pref->type = GF_MPD_PRODUCER_REF_APPLICATION;
+			else if (!strcmp(att->value, "captured")) pref->type = GF_MPD_PRODUCER_REF_CAPTURED;
+		}
+		else if (!strcmp(att->name, "applicationScheme") && !pref->scheme) pref->scheme = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "wallClockTime") && !pref->wallclock) pref->wallclock = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "presentationTime")) pref->presentation_time = gf_mpd_parse_long_int(att->value);
+	}
+
+	i = 0;
+	while ( (child = gf_list_enum(root->content, &i))) {
+		if (child->type != GF_XML_NODE_TYPE) continue;
+		if (!strcmp(child->name, "UTCTiming"))
+			gf_mpd_parse_descriptor_ex(NULL, &pref->utc_timing, child);
+	}
+	return pref;
 }
 
 static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttributes *com, GF_XMLNode *root)
@@ -614,6 +656,8 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 			if (!strcmp(att->value, "progressive")) com->scan_type = GF_MPD_SCANTYPE_PROGRESSIVE;
 			else if (!strcmp(att->value, "interlaced")) com->scan_type = GF_MPD_SCANTYPE_INTERLACED;
 		}
+		else if (!strcmp(att->name, "selectionRriority")) com->selection_priority = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "tag")) com->tag = gf_mpd_parse_string(att->value);
 	}
 
 	i = 0;
@@ -633,6 +677,13 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 		}
 		else if (!strcmp(child->name, "SupplementalProperty")) {
 			gf_mpd_parse_descriptor(com->supplemental_properties, child);
+		}
+		else if (!strcmp(child->name, "ProducerReferenceTime")) {
+			GF_MPD_ProducerReferenceTime *pref = gf_mpd_parse_produce_ref_time(child);
+			if (pref) {
+				if (!com->producer_reference_time) com->producer_reference_time = gf_list_new();
+				gf_list_add(com->producer_reference_time, pref);
+			}
 		}
 	}
 }
@@ -700,7 +751,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "moofSN")) dasher->moof_sn = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "moofInc")) dasher->moof_sn_inc = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lastDynPeriodID")) dasher->last_dyn_period_id = gf_mpd_parse_int(att->value);
-
+		else if (!strcmp(att->name, "subdurForced")) dasher->subdur_forced = gf_mpd_parse_bool(att->value);
 	}
 	return dasher;
 }
@@ -1153,6 +1204,15 @@ void gf_mpd_content_component_free(void *item)
 	gf_free(item);
 }
 
+void gf_mpd_producer_reftime_free(void *item)
+{
+	GF_MPD_ProducerReferenceTime *pref=(GF_MPD_ProducerReferenceTime*) item;
+	if (pref->scheme) gf_free(pref->scheme);
+	if (pref->wallclock) gf_free(pref->wallclock);
+	if (pref->utc_timing) gf_mpd_descriptor_free(pref->utc_timing);
+	gf_free(item);
+}
+
 void gf_mpd_common_attributes_free(GF_MPD_CommonAttributes *ptr)
 {
 	if (ptr->profiles) gf_free(ptr->profiles);
@@ -1166,6 +1226,7 @@ void gf_mpd_common_attributes_free(GF_MPD_CommonAttributes *ptr)
 	gf_mpd_del_list(ptr->content_protection, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->essential_properties, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->supplemental_properties, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(ptr->producer_reference_time, gf_mpd_producer_reftime_free, 0);
 }
 
 void gf_mpd_representation_free(void *_item)
@@ -1278,6 +1339,7 @@ void gf_mpd_del(GF_MPD *mpd)
 	gf_mpd_del_list(mpd->periods, gf_mpd_period_free, 0);
 	if (mpd->profiles) gf_free(mpd->profiles);
 	if (mpd->ID) gf_free(mpd->ID);
+	gf_mpd_del_list(mpd->utc_timings, gf_mpd_descriptor_free, 0);
 	gf_mpd_extensible_free((GF_MPD_ExtensibleVirtual*) mpd);
 	gf_free(mpd);
 }
@@ -1381,6 +1443,8 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 		} else if (!strcmp(child->name, "BaseURL")) {
 			e = gf_mpd_parse_base_url(mpd->base_URLs, child);
 			if (e) return e;
+		} else if (!strcmp(child->name, "UTCTiming")) {
+			gf_mpd_parse_descriptor(mpd->utc_timings, child);
 		} else {
 			MPD_STORE_EXTENSION_NODE(mpd)
 		}
@@ -1389,18 +1453,23 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 	return GF_OK;
 }
 
-
-GF_EXPORT
-GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
+static void gf_mpd_init_struct(GF_MPD *mpd)
 {
-	if (!root || !mpd) return GF_BAD_PARAM;
-
 	assert(!mpd->periods);
 	mpd->periods = gf_list_new();
 	mpd->program_infos = gf_list_new();
 	mpd->base_URLs = gf_list_new();
 	mpd->locations = gf_list_new();
 	mpd->metrics = gf_list_new();
+	mpd->utc_timings = gf_list_new();
+}
+
+GF_EXPORT
+GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
+{
+	if (!root || !mpd) return GF_BAD_PARAM;
+
+	gf_mpd_init_struct(mpd);
 
 	/*setup some defaults*/
 	mpd->type = GF_MPD_TYPE_STATIC;
@@ -1424,12 +1493,8 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 	char str[1024];
 
 	if (!mpd) return GF_BAD_PARAM;
-	assert(!mpd->periods);
-	mpd->periods = gf_list_new();
-	mpd->program_infos = gf_list_new();
-	mpd->base_URLs = gf_list_new();
-	mpd->locations = gf_list_new();
-	mpd->metrics = gf_list_new();
+	gf_mpd_init_struct(mpd);
+
 	mpd->time_shift_buffer_depth = (u32) -1; /*infinite by default*/
 	mpd->xml_namespace = "urn:mpeg:dash:schema:mpd:2011";
 	mpd->type = is_end ? GF_MPD_TYPE_STATIC : GF_MPD_TYPE_DYNAMIC;
@@ -2601,28 +2666,32 @@ static void gf_mpd_extensible_print_nodes(FILE *out, GF_MPD_ExtensibleVirtual *i
 	}
 }
 
+static void gf_mpd_print_desc(FILE *out, GF_MPD_Descriptor *desc, char *desc_name, s32 indent)
+{
+	gf_mpd_nl(out, indent);
+	gf_fprintf(out, "<%s", desc_name);
+	if (desc->id) gf_fprintf(out, " id=\"%s\"", desc->id);
+	if (desc->scheme_id_uri) gf_fprintf(out, " schemeIdUri=\"%s\"", desc->scheme_id_uri);
+	if (desc->value) gf_fprintf(out, " value=\"%s\"", desc->value);
+
+	if (desc->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)desc);
+
+	if (desc->children) {
+		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)desc, indent);
+		gf_mpd_nl(out, indent);
+		gf_fprintf(out, "</%s>", desc_name);
+		gf_mpd_lf(out, indent);
+	} else {
+		gf_fprintf(out, "/>");
+		gf_mpd_lf(out, indent);
+	}
+}
 static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_name, s32 indent)
 {
 	u32 i=0;
 	GF_MPD_Descriptor *desc;
 	while ((desc = (GF_MPD_Descriptor *)gf_list_enum(desc_list, &i))) {
-		gf_mpd_nl(out, indent);
-		gf_fprintf(out, "<%s", desc_name);
-		if (desc->id) gf_fprintf(out, " id=\"%s\"", desc->id);
-		if (desc->scheme_id_uri) gf_fprintf(out, " schemeIdUri=\"%s\"", desc->scheme_id_uri);
-		if (desc->value) gf_fprintf(out, " value=\"%s\"", desc->value);
-
-		if (desc->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)desc);
-
-		if (desc->children) {
-			gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)desc, indent);
-			gf_mpd_nl(out, indent);
-			gf_fprintf(out, "</%s>", desc_name);
-			gf_mpd_lf(out, indent);
-		} else {
-			gf_fprintf(out, "/>");
-			gf_mpd_lf(out, indent);
-		}
+		gf_mpd_print_desc(out, desc, desc_name, indent);
 	}
 }
 
@@ -2664,6 +2733,10 @@ static void gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *c
 	if ((ca->max_playout_rate!=1.0)) gf_fprintf(out, " maxPlayoutRate=\"%g\"", ca->max_playout_rate);
 	if (ca->coding_dependency) gf_fprintf(out, " codingDependency=\"true\"");
 	if (ca->scan_type != GF_MPD_SCANTYPE_UNKNOWN) gf_fprintf(out, " scanType=\"%s\"", ca->scan_type == GF_MPD_SCANTYPE_PROGRESSIVE ? "progressive" : "interlaced");
+
+	if (ca->selection_priority) gf_fprintf(out, " selectionPriority=\"%d\"", ca->selection_priority);
+	if (ca->tag) gf_fprintf(out, " selectionPriority=\"%s\"", ca->tag);
+
 }
 
 static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, s32 indent)
@@ -2674,6 +2747,38 @@ static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, 
 	gf_mpd_print_descriptors(out, ca->essential_properties, "EssentialProperty", indent);
 	gf_mpd_print_descriptors(out, ca->supplemental_properties, "SupplementalProperty", indent);
 
+	if (ca->producer_reference_time) {
+		u32 i, count = gf_list_count(ca->producer_reference_time);
+		for (i=0; i<count; i++) {
+			GF_MPD_ProducerReferenceTime *pref = gf_list_get(ca->producer_reference_time, i);
+			gf_mpd_nl(out, indent);
+			gf_fprintf(out, "<ProducerReferenceTime id=\"%d\" presentationTime=\"%d\"", pref->ID, pref->presentation_time);
+			if (pref->inband) gf_fprintf(out, " inband=\"true\"");
+			if (pref->inband) gf_fprintf(out, " wallClockTime=\"%d\"", pref->wallclock);
+			switch (pref->type) {
+			case GF_MPD_PRODUCER_REF_ENCODER:
+				gf_fprintf(out, " type=\"encoder\"");
+				break;
+			case GF_MPD_PRODUCER_REF_CAPTURED:
+				gf_fprintf(out, " type=\"captured\"");
+				break;
+			case GF_MPD_PRODUCER_REF_APPLICATION:
+				gf_fprintf(out, " type=\"application\"");
+				if (pref->scheme) gf_fprintf(out, " applicationScheme=\"%s\"", pref->scheme);
+				break;
+			}
+			if (pref->utc_timing) {
+				gf_fprintf(out, ">");
+				gf_mpd_lf(out, indent);
+				gf_mpd_print_desc(out, pref->utc_timing, "UTCTiming", indent+1);
+				gf_fprintf(out, "</ProducerReferenceTime>");
+				gf_mpd_lf(out, indent);
+			} else {
+				gf_fprintf(out, "/>");
+				gf_mpd_lf(out, indent);
+			}
+		}
+	}
 	if (ca->isobmf_tracks) {
 		u32 k=0;
 		GF_MPD_ISOBMFInfo *info;
@@ -2749,6 +2854,9 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 
 	if (dasher->last_dyn_period_id) {
 		gf_fprintf(out, "lastDynPeriodID=\"%d\" ", dasher->last_dyn_period_id);
+	}
+	if (dasher->subdur_forced) {
+		gf_fprintf(out, "subdurForced=\"true\" ");
 	}
 
 	gf_fprintf(out, "ownsSet=\"%s\"/>", dasher->owns_set ? "true" : "false");
@@ -3019,8 +3127,29 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	return GF_OK;
 }
 
-static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Representation *rep, char *m3u8_name, const char *codec_ext, const char *g_type, const char *g_id_pref, u32 g_as_idx, const char *g2_type, const char *g2_id_pref, u32 g2_as_idx)
+static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Representation *rep, char *m3u8_name, const char *codec_ext, const char *g_type, const char *g_id_pref, u32 g_as_idx, const char *g2_type, const char *g2_id_pref, u32 g2_as_idx, GF_List *groups_done)
 {
+	if (groups_done) {
+		u32 i, count=gf_list_count(groups_done);
+		Bool g1_done = GF_FALSE;
+		Bool g2_done = GF_FALSE;
+		for (i=0; i<count; i++) {
+			const char *group_name = gf_list_get(groups_done, i);
+			if (g_id_pref && !strcmp(group_name, g_id_pref)) g1_done=GF_TRUE;
+			if (g2_id_pref && !strcmp(group_name, g2_id_pref)) g1_done=GF_TRUE;
+		}
+		if (g_id_pref) {
+			if (g1_done) return;
+			if (!g_as_idx)
+				gf_list_add(groups_done, (void *) g_id_pref);
+		}
+		if (g2_id_pref) {
+			if (g2_done) return;
+			if (!g2_as_idx)
+				gf_list_add(groups_done, (void *) g2_id_pref);
+		}
+	}
+
 	gf_fprintf(out, "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=\"%s", rep->bandwidth, rep->codecs);
 	if (codec_ext)
 		gf_fprintf(out, ",%s", codec_ext);
@@ -3031,10 +3160,18 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 	if (rep->fps)
 		gf_fprintf(out,",FRAME-RATE=\"%.03g\"", rep->fps);
 
-	if (g_type && g_id_pref)
-		gf_fprintf(out,",%s=\"%s%d\"", g_type, g_id_pref, g_as_idx);
-	if (g2_type && g2_id_pref)
-		gf_fprintf(out,",%s=\"%s%d\"", g2_type, g2_id_pref, g2_as_idx);
+	if (g_type && g_id_pref) {
+		gf_fprintf(out, ",%s=\"%s", g_type, g_id_pref);
+		if (g_as_idx)
+			gf_fprintf(out, "%d", g_as_idx);
+		gf_fprintf(out, "\"");
+	}
+	if (g2_type && g2_id_pref) {
+		gf_fprintf(out,",%s=\"%s", g2_type, g2_id_pref);
+		if (g2_as_idx)
+			gf_fprintf(out,"%d", g2_as_idx);
+		gf_fprintf(out,"\"");
+	}
 	gf_fprintf(out,"\n");
 
 	gf_fprintf(out, "%s\n",m3u8_name);
@@ -3046,6 +3183,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 	u32 i, j;
 	GF_MPD_AdaptationSet *r_as;
 	GF_MPD_Representation *r_rep;
+	GF_List *groups_done;
 
 	if (!rep->mime_type) return;
 
@@ -3059,13 +3197,16 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 			g_id = "audio";
 		}
 		else if (rep->streamtype==GF_STREAM_TEXT) {
-			g_type = "SUBTITLE";
+			g_type = "SUBTITLES";
 			g_id = "subs";
 		}
 		if (!g_type || !g_id)
 			return;
 
-		gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s%d\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, g_id, as_idx, rep->id, as->lang, m3u8_name);
+		if (rep->groupID)
+			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, rep->groupID, rep->id, as->lang, m3u8_name);
+		else
+			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s%d\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, g_id, as_idx, rep->id, as->lang, m3u8_name);
 		if (rep->nb_chan)
 			gf_fprintf(out,",CHANNELS=\"%d\"", rep->nb_chan);
 		return;
@@ -3073,9 +3214,11 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 
 	//no other streams, directly write the entry
 	if (!nb_audio && !nb_subs && !nb_cc) {
-		gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, NULL, NULL, NULL, 0, NULL, NULL, 0);
+		gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, NULL, NULL, NULL, 0, NULL, NULL, 0, NULL);
 		return;
 	}
+	groups_done = gf_list_new();
+
 	//otherwise browse all adaptation sets
 	i=0;
 	while ( (r_as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
@@ -3097,11 +3240,15 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 				g_type = "AUDIO";
 				g_id = "audio";
 				g_codec = r_rep->codecs;
+				if (r_rep->groupID) {
+					g_id = r_rep->groupID;
+					g_as_idx = 0;
+				}
 			}
 			is_audio = GF_TRUE;
 		} else {
 			if (r_rep->streamtype==GF_STREAM_TEXT) {
-				g_type = "SUBTITLE";
+				g_type = "SUBTITLES";
 				g_id = "subs";
 			}
 		}
@@ -3109,7 +3256,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 		if (!g_type) continue;
 		//no audio, or no subs
 		if (!is_audio || !nb_subs) {
-			gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, g_codec, g_type, g_id, g_as_idx, NULL, NULL, 0);
+			gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, g_codec, g_type, g_id, g_as_idx, NULL, NULL, 0, groups_done);
 			continue;
 		}
 		//audio and subs, we need a second loop on audio to get all subs
@@ -3123,20 +3270,25 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 
 			r2_rep = (GF_MPD_Representation *) gf_list_get(r2_as->representations, 0);
 			if (r2_rep->streamtype==GF_STREAM_TEXT) {
-				g2_type = "SUBTITLE";
+				g2_type = "SUBTITLES";
 				g2_id = "subs";
+				if (r_rep->groupID) {
+					g2_id = r_rep->groupID;
+					g2_as_idx = 0;
+				}
 			}
 			if (!g2_type) continue;
 
-			gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, g_codec, g_type, g_id, g_as_idx, g2_type, g2_id, g2_as_idx);
+			gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, g_codec, g_type, g_id, g_as_idx, g2_type, g2_id, g2_as_idx, groups_done);
 		}
 	}
+	gf_list_del(groups_done);
 }
 
 static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, const GF_MPD_Representation *rep)
 {
 	const char *url = NULL;
-	if (rep->segment_list) url = rep->segment_list->initialization_segment->sourceURL;
+	if (rep->segment_list && rep->segment_list->initialization_segment) url = rep->segment_list->initialization_segment->sourceURL;
 	else if (rep->segment_template && rep->segment_template->initialization) url = rep->segment_template->initialization;
 	else if (rep->segment_template && rep->segment_template->initialization_segment) url = rep->segment_template->initialization_segment->sourceURL;
 
@@ -3217,7 +3369,11 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		assert(base_url);
 
 		if (init) {
-			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+			if (init->byte_range) {
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+			} else {
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", base_url->URL);
+			}
 		}
 
 		for (i=0; i<count; i++) {
@@ -3415,10 +3571,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			gf_fprintf(out, "\n");
 		}
 	}
-
-	if (mpd->type != GF_MPD_TYPE_DYNAMIC)
-		gf_fprintf(out,"#EXT-X-ENDLIST\n");
-
 	gf_free(m3u8_name_rad);
 	gf_free(szVariantName);
 	return GF_OK;
@@ -3558,6 +3710,8 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		gf_mpd_lf(out, indent);
 	}
 
+	if (gf_list_count(mpd->utc_timings))
+		gf_mpd_print_descriptors(out, mpd->utc_timings, "UTCTiming", indent+1);
 	/*
 		i=0;
 		while ((text = (char *)gf_list_enum(mpd->metrics, &i))) {
@@ -4585,12 +4739,7 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 
     if (!root || !mpd) return GF_BAD_PARAM;
 
-    assert(!mpd->periods);
-    mpd->periods = gf_list_new();
-    mpd->program_infos = gf_list_new();
-    mpd->base_URLs = gf_list_new();
-    mpd->locations = gf_list_new();
-    mpd->metrics = gf_list_new();
+	gf_mpd_init_struct(mpd);
 
     /*setup some defaults*/
     mpd->type = GF_MPD_TYPE_STATIC;
@@ -4683,7 +4832,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	Bool is_init_template = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool is_index_template = (seg_type==GF_DASH_TEMPLATE_REPINDEX_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool needs_init=((is_init || is_init_template) && !is_bs_switching) ? GF_TRUE : GF_FALSE;
-	Bool has_init_keyword = GF_FALSE;
+	u32 has_init_keyword = 0;
 	Bool needs_index = GF_FALSE;
 	u32 char_template = 0;
 	size_t seg_rad_name_len;
@@ -4708,14 +4857,18 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 	seg_rad_name_len = strlen(seg_rad_name);
 
-	if ( (is_index || is_index_template) && !strstr(seg_rad_name, "$Index")) {
-		needs_index = GF_TRUE;
+	if (seg_type!=GF_DASH_TEMPLATE_REPINDEX) {
+		if ( (is_index || is_index_template) && !strstr(seg_rad_name, "$Index")) {
+			needs_index = GF_TRUE;
+		}
 	}
 	if (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$"))
 		needs_init = GF_FALSE;
 
 	if (strstr(seg_rad_name, "$Init="))
-		has_init_keyword = GF_TRUE;
+		has_init_keyword = 1;
+	if (strstr(seg_rad_name, "$XInit="))
+		has_init_keyword = 2;
 
 	while (char_template <= seg_rad_name_len) {
 		char szFmt[20];
@@ -4769,6 +4922,18 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			if (is_init || is_init_template) {
 				strcat(segment_name, seg_rad_name + char_template+6);
 				needs_init = GF_FALSE;
+			}
+			char_template += (u32) strlen(seg_rad_name + char_template)+1;
+			if (sep) sep[0] = '$';
+		}
+		else if (!strnicmp(& seg_rad_name[char_template], "$XInit=", 7)) {
+			char *sep = strchr(seg_rad_name + char_template+6, '$');
+			if (sep) sep[0] = 0;
+			if (is_init || is_init_template) {
+				strcpy(segment_name, seg_rad_name + char_template+7);
+				needs_init = GF_FALSE;
+				if (sep) sep[0] = '$';
+				break;
 			}
 			char_template += (u32) strlen(seg_rad_name + char_template)+1;
 			if (sep) sep[0] = '$';
@@ -4839,7 +5004,11 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		strcat(segment_name, seg_ext);
 	}
 
-	if ((seg_type != GF_DASH_TEMPLATE_TEMPLATE) && (seg_type != GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE)) {
+	if ((seg_type != GF_DASH_TEMPLATE_TEMPLATE)
+		&& (seg_type != GF_DASH_TEMPLATE_SEGMENT)
+		&& (seg_type != GF_DASH_TEMPLATE_INITIALIZATION)
+		&& (seg_type != GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE)
+	) {
 		char *sep = strrchr(segment_name, '/');
 		if (sep) {
 			char cv = sep[0];

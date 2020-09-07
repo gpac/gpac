@@ -172,6 +172,8 @@ typedef enum
 	/*file is stored in memory, and the cache name is set to gpac://%u@%p, where %d is the size in bytes and %d is the the pointer to the memory.
 	Memory cached files are destroyed upon downloader destruction*/
 	GF_NETIO_SESSION_MEMORY_CACHE = 1<<4,
+	/*! do not delete files after download*/
+	GF_NETIO_SESSION_KEEP_CACHE = 1<<5,
 } GF_NetIOFlags;
 
 

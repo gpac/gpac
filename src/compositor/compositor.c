@@ -159,7 +159,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 			compositor->msg_type &= ~GF_SR_CFG_INITIAL_RESIZE;
 		}
-		/*scene size has been overriden*/
+		/*scene size has been overridden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
 			assert(!(compositor->override_size_flags & 2));
 			compositor->msg_type &= ~GF_SR_CFG_OVERRIDE_SIZE;
@@ -268,12 +268,12 @@ static void gf_sc_frame_ifce_done(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 	GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	GF_Compositor *compositor = gf_filter_get_udta(filter);
 	if (frame_ifce) {
-		compositor->frame_ifce.user_data = NULL;
 		if (compositor->fb.video_buffer) {
 			gf_sc_release_screen_buffer(compositor, &compositor->fb);
 			compositor->fb.video_buffer = NULL;
 		}
 	}
+	compositor->frame_ifce.user_data = NULL;
 	compositor->flush_pending = (compositor->skip_flush!=1) ? GF_TRUE : GF_FALSE;
 	compositor->skip_flush = 0;
 }
@@ -2862,7 +2862,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			compositor->frame_draw_type = 0;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - STB %d\n", compositor->scene_sampled_clock));
-
 			scene_drawn = gf_sc_draw_scene(compositor);
 
 #ifndef GPAC_DISABLE_LOG
@@ -2877,6 +2876,13 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
 			else if (compositor->fonts_pending>0) emit_frame = GF_FALSE;
 			else emit_frame = GF_TRUE;
+
+#ifdef GPAC_CONFIG_ANDROID
+            if (!emit_frame && scene_drawn) {
+				compositor->frame_was_produced = GF_TRUE;
+            }
+#endif
+
 		}
 		/*and flush*/
 #ifndef GPAC_DISABLE_LOG
@@ -2896,10 +2902,11 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				compositor->passthrough_pck = NULL;
 				pck_frame_ts = gf_filter_pck_get_cts(pck);
 			} else {
+				//assign udta of frame interface event when using shared packet, as it is used to test when frame is released
+				compositor->frame_ifce.user_data = compositor;
 				if (compositor->video_out==&raw_vout) {
 					pck = gf_filter_pck_new_shared(compositor->vout, compositor->framebuffer, compositor->framebuffer_size, gf_sc_frame_ifce_done);
 				} else {
-					compositor->frame_ifce.user_data = compositor;
 					compositor->frame_ifce.get_plane = gf_sc_frame_ifce_get_plane;
 					compositor->frame_ifce.get_gl_texture = NULL;
 #ifndef GPAC_DISABLE_3D
@@ -3372,15 +3379,22 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	}
 	switch (event->type) {
 	case GF_EVENT_SHOWHIDE:
+		if (!from_user) {
+			/*switch fullscreen off!!!*/
+			compositor->is_hidden = event->show.show_type ? GF_FALSE : GF_TRUE;
+			break;
+		}
 	case GF_EVENT_SET_CAPTION:
 	case GF_EVENT_MOVE:
+		if (!from_user) {
+			if (compositor->last_had_overlays) {
+				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+			}
+			break;
+		}
 		compositor->video_out->ProcessEvent(compositor->video_out, event);
 		break;
 
-	case GF_EVENT_MOVE_NOTIF:
-		if (compositor->last_had_overlays) {
-			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-		}
 		break;
 	case GF_EVENT_REFRESH:
 		/*when refreshing a window with overlays we redraw the scene */
@@ -3481,10 +3495,6 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			gf_sc_input_sensor_string_input(compositor , event->character.unicode_char);
 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
-	/*switch fullscreen off!!!*/
-	case GF_EVENT_SHOWHIDE_NOTIF:
-		compositor->is_hidden = event->show.show_type ? GF_FALSE : GF_TRUE;
-		break;
 
 	case GF_EVENT_MOUSEMOVE:
 		event->mouse.button = 0;
@@ -3497,13 +3507,14 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 
 	case GF_EVENT_PASTE_TEXT:
-		gf_sc_paste_text(compositor, event->message.message);
+		gf_sc_paste_text(compositor, event->clipboard.text);
 		break;
 	case GF_EVENT_COPY_TEXT:
 		if (gf_sc_has_text_selection(compositor)) {
-			event->message.message = gf_sc_get_selected_text(compositor);
+			const char *str = gf_sc_get_selected_text(compositor);
+			event->clipboard.text = str ? gf_strdup(event->clipboard.text) : NULL;
 		} else {
-			event->message.message = NULL;
+			event->clipboard.text = NULL;
 		}
 		break;
 	/*when we process events we don't forward them to the user*/

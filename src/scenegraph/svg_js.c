@@ -1971,7 +1971,7 @@ static JSValue svg_mx2d_scale(JSContext *c, JSValueConst obj, int argc, JSValueC
 	GF_Matrix2D *mx1, mx2;
 	mx1 = (GF_Matrix2D *) JS_GetOpaque(obj, matrixClass.class_id);
 	if (!mx1 || (argc!=2)) return JS_EXCEPTION;
-	if (!JS_ToFloat64(c, &scale, argv[0])) return JS_EXCEPTION;
+	if (JS_ToFloat64(c, &scale, argv[0])) return JS_EXCEPTION;
 
 	gf_mx2d_init(mx2);
 	mx2.m[0] = mx2.m[4] = FLT2FIX(scale);
@@ -1986,7 +1986,7 @@ static JSValue svg_mx2d_rotate(JSContext *c, JSValueConst obj, int argc, JSValue
 
 	mx1 = (GF_Matrix2D *) JS_GetOpaque(obj, matrixClass.class_id);
 	if (!mx1 || (argc!=2)) return JS_EXCEPTION;
-	if (!JS_ToFloat64(c, &angle, argv[0])) return JS_EXCEPTION;
+	if (JS_ToFloat64(c, &angle, argv[0])) return JS_EXCEPTION;
 
 	gf_mx2d_init(mx2);
 	gf_mx2d_add_rotation(&mx2, 0, 0, gf_mulfix(FLT2FIX(angle/180), GF_PI));

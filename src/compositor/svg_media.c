@@ -276,7 +276,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		if (!stack->txh.stream || gf_mo_url_changed(stack->txh.stream, &stack->txurl)) {
 
-			gf_term_get_mfurl_from_xlink(node, &stack->txurl);
+			gf_sc_get_mfurl_from_xlink(node, &stack->txurl);
 			stack->txh.width = stack->txh.height = 0;
 
 			/*remove associated audio if any*/
@@ -712,7 +712,7 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 		stack->is_error = GF_FALSE;
 
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
-		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
+		gf_sc_get_mfurl_from_xlink(node, &(stack->aurl));
 
 		gf_svg_flatten_attributes((SVG_Element*) node, &atts);
 		if (atts.syncBehavior) lock_timeline = (*atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? GF_TRUE : GF_FALSE;
@@ -864,7 +864,7 @@ static void svg_traverse_updates(GF_Node *node, void *rs, Bool is_destroy)
 
 			if (all_atts.syncBehavior) lock_timeline = (*all_atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? GF_TRUE : GF_FALSE;
 
-			gf_term_get_mfurl_from_xlink(node, &url);
+			gf_sc_get_mfurl_from_xlink(node, &url);
 
 			new_res = gf_mo_register(node, &url, lock_timeline, GF_FALSE);
 			gf_sg_mfurl_del(url);

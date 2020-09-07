@@ -950,11 +950,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_METADATA:
 		ResetCaption();
 		break;
-
-	case GF_EVENT_RELOAD:
-		if (is_connected)
-			reload = 1;
-		break;
 	case GF_EVENT_DROPFILE:
 	{
 		u32 i, pos;
@@ -1197,7 +1192,7 @@ int mp4client_main(int argc, char **argv)
 			PrintHelp();
 			return 0;
 		} else if (!strcmp(arg, "-hc")) {
-			fprintf(stderr, "libgpac options:\n");
+			fprintf(helpout, "libgpac options:\n");
 			gf_sys_print_core_help(helpout, help_flags, GF_ARGMODE_ALL, 0);
 			return 0;
 		}

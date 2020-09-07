@@ -164,10 +164,11 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 			}
 
 			while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &j))) {
-				u32 i = 0;
+				u32 i;
 				GF_TrunEntry *entry;
 				trun->flags |= GF_ISOM_TRUN_FLAGS;
-				while ((entry = (GF_TrunEntry*)gf_list_enum(trun->entries, &i))) {
+				for (i=0; i<trun->nb_samples; i++) {
+					entry = &trun->samples[i];
 					const u8 info = traf->sdtp->sample_info[sample_index];
 					entry->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(info >> 6, info >> 4, info >> 2, info);
 					sample_index++;
@@ -229,7 +230,7 @@ void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
-	u64 totSize;
+	u64 totSize, mdat_end=0;
 	GF_Err e = GF_OK;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -315,6 +316,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 				}
 			}
 
+            if (mdat_end && mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
+                gf_isom_push_mdat_end(mov, mdat_end);
+                mdat_end=0;
+            }
 			break;
 
 		/*META box*/
@@ -350,7 +355,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 
 
 				if (mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
-					gf_isom_push_mdat_end(mov, gf_bs_get_position(mov->movieFileMap->bs) );
+                    mdat_end = gf_bs_get_position(mov->movieFileMap->bs);
+                    if (mov->moov) {
+                        gf_isom_push_mdat_end(mov, mdat_end);
+                        mdat_end=0;
+                    }
 				}
 			}
 			/*if we don't have any MDAT yet, create one (edit-write mode)
@@ -1120,14 +1129,20 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 
 	//but we have the edit one
 	if (OpenMode == GF_ISOM_OPEN_WRITE) {
+		const char *ext;
 		//THIS IS NOT A TEMP FILE, WRITE mode is used for "live capture"
 		//this file will be the final file...
 		mov->fileName = fileName ? gf_strdup(fileName) : NULL;
 		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
 		if (e) goto err_exit;
 
-		/*brand is set to ISOM by default - it may be touched until sample data is added to track*/
-		gf_isom_set_brand_info( (GF_ISOFile *) mov, GF_ISOM_BRAND_ISOM, 1);
+		/*brand is set to ISOM or QT by default - it may be touched until sample data is added to track*/
+		ext = gf_file_ext_start(fileName);
+		if (ext && (!strnicmp(ext, ".mov", 4) || !strnicmp(ext, ".qt", 3))) {
+			gf_isom_set_brand_info((GF_ISOFile *) mov, GF_ISOM_BRAND_QT, 512);
+		} else {
+			gf_isom_set_brand_info((GF_ISOFile *) mov, GF_ISOM_BRAND_ISOM, 1);
+		}
 	} else {
 		//we are in EDIT mode but we are creating the file -> temp file
 		mov->finalName = fileName ? gf_strdup(fileName) : NULL;
@@ -1243,6 +1258,7 @@ GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 s
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#if 0 //unused
 u32 gf_isom_sample_get_subsamples_count(GF_ISOFile *movie, u32 track)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
@@ -1250,6 +1266,7 @@ u32 gf_isom_sample_get_subsamples_count(GF_ISOFile *movie, u32 track)
 	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return 0;
 	return gf_list_count(trak->Media->information->sampleTable->sub_samples);
 }
+#endif
 
 Bool gf_isom_get_subsample_types(GF_ISOFile *movie, u32 track, u32 subs_index, u32 *flags)
 {

@@ -176,7 +176,7 @@ typedef struct
 {
 	/*! list of track infos*/
 	GF_List *tcis;
-	/*! global for all tracks unless overriden*/
+	/*! global for all tracks unless overridden*/
 	u32 def_crypt_type;
 	/*! indicates a common key is used*/
 	Bool has_common_key;

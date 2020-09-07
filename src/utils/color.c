@@ -1807,8 +1807,6 @@ static void load_line_nv21(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	gf_yuv_load_lines_nv12_nv21(dst_bits, 4*width, pY, pU+1, pU, y_pitch, width, dst_yuv);
 }
 
-static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_);
-
 //#define COLORKEY_MPEG4_STRICT
 
 static Bool format_is_yuv(u32 in_pf)
@@ -2327,6 +2325,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	return GF_OK;
 }
 
+#endif // GPAC_DISABLE_PLAYER
 
 
 /*
@@ -2429,7 +2428,8 @@ void gf_cmx_multiply(GF_ColorMatrix *_this, GF_ColorMatrix *w)
 
 #define CLIP_COMP(val)	{ if (val<0) { val=0; } else if (val>FIX_ONE) { val=FIX_ONE;} }
 
-static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_)
+GF_EXPORT
+void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_)
 {
 	Fixed _a, _r, _g, _b, a, r, g, b;
 	if (!_this || _this->identity) return;
@@ -2523,6 +2523,8 @@ void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fix
 	*b = INT2FIX(GF_COL_B(col)) / 255;
 }
 
+
+#ifndef GPAC_DISABLE_PLAYER
 
 
 //intrinsic code segfaults on 32 bit, need to check why
@@ -4349,5 +4351,16 @@ const char *gf_color_get_name(GF_Color col)
 		return predefined_colors[i].name;
 	}
 	return NULL;
+}
 
+
+GF_EXPORT
+Bool gf_color_enum(u32 *idx, GF_Color *col, const char **color_name)
+{
+	u32 count = sizeof(predefined_colors) / sizeof(struct predef_col);
+	if (*idx>=count) return GF_FALSE;
+	if (col) *col = GF_COL_ARGB(0xFF, predefined_colors[*idx].r, predefined_colors[*idx].g, predefined_colors[*idx].b);
+	if (color_name) *color_name = predefined_colors[*idx].name;
+	(*idx)++;
+	return GF_TRUE;
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -34,14 +34,14 @@ typedef struct
 {
 	//opts
 	s32 shift_utc, debug_as, atsc_shift;
-	u32 max_buffer, auto_switch, timeshift, tiles_rate, store, delay40X, exp_threshold, switch_count;
+	u32 max_buffer, auto_switch, init_timeshift, tiles_rate, segstore, delay40X, exp_threshold, switch_count;
 	Bool server_utc, screen_res, aggressive, speedadapt;
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	GF_DASHAdaptationAlgorithm algo;
 	Bool max_res, immediate, abort, use_bmin;
 	char *query;
-	Bool noxlink, split_as;
+	Bool noxlink, split_as, noseek;
 	u32 lowlat;
 
 	GF_FilterPid *mpd_pid;
@@ -261,11 +261,11 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	}
 	//not from file system, set cache option
 	if (url_type) {
-		if (!ctx->store) {
+		if (!ctx->segstore) {
 			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
 			strcat(sURL, ":cache=mem");
 		}
-		else if (ctx->store==2) {
+		else if (ctx->segstore==2) {
 			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
 			strcat(sURL, ":cache=keep");
 		}
@@ -278,7 +278,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 		strcat(sURL, szRange);
 	}
 
-	group->seg_filter_src = gf_filter_connect_source(ctx->filter, sURL, NULL, &e);
+	group->seg_filter_src = gf_filter_connect_source(ctx->filter, sURL, NULL, GF_FALSE, &e);
 	if (!group->seg_filter_src) {
 		gf_free(sURL);
 		gf_free(group);
@@ -319,18 +319,24 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 
 	//crude hack when using gpac downloader to initialize the MPD pid: get the pointer to the download session
 	//this should be safe unless the mpd_pid is destroyed, which should only happen upon destruction of the DASH session
-	p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
-	if (p) {
-		sess = (GF_DownloadSession *) p->value.ptr;
-		if (!ctx->store) {
-			gf_dm_sess_force_memory_mode(sess);
+	if (group_idx==-1) {
+		p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
+		if (p) {
+			sess = (GF_DownloadSession *) p->value.ptr;
+			if (!ctx->segstore) {
+				gf_dm_sess_force_memory_mode(sess);
+			}
+			ctx->reuse_download_session = GF_TRUE;
+			return (GF_DASHFileIOSession) sess;
 		}
-		ctx->reuse_download_session = GF_TRUE;
-		return (GF_DASHFileIOSession) sess;
 	}
 
-	if (!ctx->store) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
-	if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
+	if (group_idx<-1) {
+		flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+	} else {
+		if (!ctx->segstore) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+		if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
+	}
 	sess = gf_dm_sess_new(ctx->dm, url, flags, NULL, NULL, &e);
 	return (GF_DASHFileIOSession) sess;
 }
@@ -751,6 +757,17 @@ static GF_FilterPid *dashdmx_create_output_pid(GF_Filter *filter, GF_FilterPid *
 	return gf_filter_pid_new(filter);
 }
 
+Bool dashdmx_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+{
+	const GF_PropertyValue *p;
+	GF_FilterPid *pid = (GF_FilterPid *) cbk;
+
+	if (prop_4cc) p = gf_filter_pid_get_property(pid, prop_4cc);
+	else p = gf_filter_pid_get_property_str(pid, prop_name);
+	if (p) return GF_FALSE;
+	return GF_TRUE;
+}
+
 static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid)
 {
 	GF_DASHQualityInfo qinfo;
@@ -923,6 +940,13 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	//setup initial quality - this is disabled in test mode for the time being (invalidates all dash playback hashes)
 	if (!gf_sys_is_test_mode())
 		dashdmx_io_on_dash_event(&ctx->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->idx, GF_OK);
+
+
+	//if MPD file pid is defined, merge its properties. This will allow forwarding user-defined properties,
+	// eg -i dash.mpd:#MyProp=toto to all PIDs coming from media sources
+	if (ctx->mpd_pid) {
+		gf_filter_pid_merge_properties(opid, ctx->mpd_pid, dashdmx_merge_prop, ipid);
+	}
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -1072,7 +1096,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 	ctx->dash_io.on_dash_event = dashdmx_io_on_dash_event;
 
-	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->store==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, ctx->timeshift);
+	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->segstore==2) ? GF_TRUE : GF_FALSE, (ctx->algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, ctx->init_timeshift);
 
 	if (!ctx->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error - cannot create DASH Client\n"));
@@ -1130,8 +1154,6 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	u32 i, count;
 	GF_FilterEvent src_evt;
 	GF_FilterPid *ipid;
-	u64 pto;
-	u32 timescale;
 	Bool initial_play;
 	Double offset;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
@@ -1207,6 +1229,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		if (fevt->play.timestamp_based) {
 
 			if (fevt->play.timestamp_based==1) {
+				u64 pto;
+				u32 timescale;
 				gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &timescale);
 				offset = (Double) pto;
 				offset /= timescale;
@@ -1280,11 +1304,16 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 0);
 
 		//adjust start range from MPD time to media time
-		src_evt.play.start_range = gf_dash_group_get_start_range(ctx->dash, group->idx);
-		gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &timescale);
-		src_evt.play.start_range += ((Double)pto) / timescale;
+		if (gf_dash_is_dynamic_mpd(ctx->dash) && ctx->noseek) {
+			src_evt.play.start_range=0;
+		} else {
+			u64 pto;
+			u32 timescale;
+			src_evt.play.start_range = gf_dash_group_get_start_range(ctx->dash, group->idx);
+			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &timescale);
+			src_evt.play.start_range += ((Double)pto) / timescale;
+		}
 		src_evt.play.no_byterange_forward = 1;
-
 		dashdmx_setup_buffer(ctx, group);
 
 		gf_filter_prevent_blocking(filter, GF_TRUE);
@@ -1710,7 +1739,7 @@ static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 static const GF_FilterArgs DASHDmxArgs[] =
 {
 	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(store), "enable file caching\n"
+	{ OFFS(segstore), "enable file caching\n"
 		"- mem: all files are stored in memory, no disk IO\n"
 		"- file: files are stored to disk but discarded once played\n"
 		"- cache: all files are stored to disk and kept"
@@ -1742,7 +1771,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(atsc_shift), "shift ATSC requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(server_utc), "use ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timeshift), "set initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(init_timeshift), "set initial timshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tile_mode), "tile adaptation mode\n"\
 						"- none: bitrate is shared equaly accross all tiles\n"\
 						"- rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row\n"\
@@ -1754,7 +1783,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 						"- center: bitrate decreased for all tiles on the edge of the picture\n"\
 						"- edges: bitrate decreased for all tiles on the center of the picture"
 						, GF_PROP_UINT, "none", "none|rows|rrows|mrows|cols|rcols|mcols|center|edges", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tiles_rate), "indicate the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tiles_rate), "indicate the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(delay40X), "delay in millisconds to wait between two 40X on the same segment", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(exp_threshold), "delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(switch_count), "indicate how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1764,6 +1793,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(noxlink), "disable xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(query), "set query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split_as), "separate all qualities into different adaptation sets and stream all qualities", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noseek), "disable seeking of initial segment(s) in dynamic mode (useful when UTC clocks do not match)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lowlat), "segment scheduling policy in low latency mode\n"
 			"- no: disable low latency\n"
 			"- strict: strict respect of AST offset in low latency\n"

@@ -98,6 +98,12 @@ exit:
 	return NULL;
 }
 
+#if 0 //unused
+/*! rewrites ISMA sample as an ISO sample
+\param s the ISMA sample to rewrite
+\param dest the destination ISO sample
+\return error if any
+*/
 GF_Err gf_isom_ismacryp_sample_to_sample(const GF_ISMASample *s, GF_ISOSample *dest)
 {
 	GF_BitStream *bs;
@@ -121,6 +127,8 @@ GF_Err gf_isom_ismacryp_sample_to_sample(const GF_ISMASample *s, GF_ISOSample *d
 	gf_bs_del(bs);
 	return GF_OK;
 }
+#endif
+
 
 static GF_ProtectionSchemeInfoBox *isom_get_sinf_entry(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 scheme_type, GF_SampleEntryBox **out_sea)
 {
@@ -328,7 +336,13 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_EXPORT
+#if 0 //unused
+/*! removes protection info (does not perform decryption), for ISMA, OMA and CENC of a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the sample description index
+\return error if any
+*/
 GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -363,6 +377,7 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (sea->type == GF_ISOM_BOX_TYPE_265B) sea->type = GF_ISOM_BOX_TYPE_HVC1;
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, char *scheme_uri, char *kms_uri)
@@ -747,6 +762,12 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 }
 
 
+#if 0
+/*! removes CENC SAI size info
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return error if any
+*/
 GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber)
 {
 	u32 i;
@@ -783,6 +804,11 @@ GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
+/*! removes CENC SAI offset info
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return error if any
+*/
 GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 {
 	u32 i;
@@ -818,6 +844,7 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 
 	return GF_OK;
 }
+#endif
 
 GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len, Bool use_piff)
 {
@@ -995,6 +1022,11 @@ GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
+#if 0 //unused
+/*! removes CENC PSSH box
+\param isom_file the target ISO file
+\return error if any
+*/
 GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
 {
 	u32 i;
@@ -1016,6 +1048,8 @@ GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
 
 	return GF_OK;
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -1147,7 +1181,7 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio);
 	}
 
-	if (!senc->cenc_saiz->sample_count || (senc->cenc_saiz->default_sample_info_size==len)) {
+	if (!senc->cenc_saiz->sample_count || (!senc->cenc_saiz->sample_alloc && (senc->cenc_saiz->default_sample_info_size==len))) {
 		senc->cenc_saiz->sample_count ++;
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
@@ -1843,6 +1877,10 @@ Bool gf_isom_cenc_is_pattern_mode(GF_ISOFile *the_file, u32 trackNumber, u32 sam
 }
 
 
+#if 0 //unused
+/*! removes the IPMPX tools from files
+\param isom_file the target ISO file
+*/
 void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file)
 {
 	/*remove IPMPToolList if any*/
@@ -1852,5 +1890,7 @@ void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file)
 		iod->IPMPToolList = NULL;
 	}
 }
+#endif
+
 
 #endif /*GPAC_DISABLE_ISOM*/

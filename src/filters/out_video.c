@@ -29,6 +29,7 @@
 #include <gpac/modules/video_out.h>
 #include <gpac/color.h>
 
+#ifndef GPAC_DISABLE_PLAYER
 
 //#define GPAC_DISABLE_3D
 
@@ -615,6 +616,9 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 	 return GF_TRUE;
 }
 
+GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter);
+Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, GF_VideoOutput *vout);
+
 static GF_Err vout_initialize(GF_Filter *filter)
 {
 	const char *sOpt;
@@ -625,7 +629,14 @@ static GF_Err vout_initialize(GF_Filter *filter)
 
 	ctx->filter = filter;
 
-	ctx->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, ctx->drv);
+#ifdef VOUT_USE_OPENGL
+	if (ctx->disp <= MODE_GL_PBO) {
+		ctx->video_out = (GF_VideoOutput *) gf_filter_claim_opengl_provider(filter);
+	}
+#endif
+
+	if (!ctx->video_out)
+		ctx->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, ctx->drv);
 
 
 	if (ctx->dumpframes.nb_items) {
@@ -666,11 +677,10 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		return e;
 	}
 
-	if ( !(ctx->video_out->hw_caps & GF_VIDEO_HW_OPENGL)
-#ifndef VOUT_USE_OPENGL
-	|| (1)
+#ifdef VOUT_USE_OPENGL
+	if ( !(ctx->video_out->hw_caps & GF_VIDEO_HW_OPENGL) )
 #endif
-	) {
+	{
 		if (ctx->disp < MODE_2D) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("No openGL support - using 2D rasterizer!\n", ctx->video_out->module_name));
 			ctx->disp = MODE_2D;
@@ -695,6 +705,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	}
 #endif
 
+	gf_filter_set_event_target(filter, GF_TRUE);
 	return GF_OK;
 }
 
@@ -721,8 +732,10 @@ static void vout_finalize(GF_Filter *filter)
 
 	/*stop and shutdown*/
 	if (ctx->video_out) {
-		ctx->video_out->Shutdown(ctx->video_out);
-		gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
+		if (! gf_filter_unclaim_opengl_provider(filter, ctx->video_out)) {
+			ctx->video_out->Shutdown(ctx->video_out);
+			gf_modules_close_interface((GF_BaseInterface *)ctx->video_out);
+		}
 		ctx->video_out = NULL;
 	}
 	if (ctx->dump_buffer) gf_free(ctx->dump_buffer);
@@ -1458,6 +1471,14 @@ static Bool vout_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		vout_set_caption(ctx);
 		return GF_TRUE;
 	}
+	if (!fevt->base.on_pid && (fevt->base.type==GF_FEVT_USER)) {
+		GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
+		GF_Err e;
+		if (!ctx->video_out) return GF_FALSE;
+		e = ctx->video_out->ProcessEvent(ctx->video_out, (GF_Event *) &fevt->user_event.event);
+		if (e) return GF_FALSE;
+		return GF_TRUE;
+	}
 	//cancel
 	return GF_TRUE;
 }
@@ -1486,8 +1507,8 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "100", NULL, 0},
-	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames.", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT.", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1525,3 +1546,9 @@ const GF_FilterRegister *vout_register(GF_FilterSession *session)
 {
 	return &VideoOutRegister;
 }
+#else
+const GF_FilterRegister *vout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_PLAYER

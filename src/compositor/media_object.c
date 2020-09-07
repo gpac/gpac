@@ -272,22 +272,33 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 
 void gf_mo_update_caps(GF_MediaObject *mo)
 {
+	Bool changed = GF_FALSE;
 	const GF_PropertyValue *v, *v2;
 	if (!mo->odm || !mo->odm->pid) return;
 
 	mo->planar_audio = GF_FALSE;
 
+#define UPDATE_CAP(_code, _field) \
+		v = gf_filter_pid_get_property(mo->odm->pid, _code);\
+		if (v) {\
+			if (mo->_field && (mo->_field != v->value.uint)) changed=GF_TRUE;\
+			mo->_field = v->value.uint;\
+		}\
+
 	if (mo->odm->type==GF_STREAM_VISUAL) {
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_WIDTH);
-		if (v) mo->width = v->value.uint;
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_HEIGHT);
-		if (v) mo->height = v->value.uint;
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_STRIDE);
-		if (v) mo->stride = v->value.uint;
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_PIXFMT);
-		if (v) mo->pixelformat = v->value.uint;
+
+		UPDATE_CAP(GF_PROP_PID_WIDTH, width)
+		UPDATE_CAP(GF_PROP_PID_HEIGHT, height)
+		UPDATE_CAP(GF_PROP_PID_STRIDE, stride)
+		UPDATE_CAP(GF_PROP_PID_PIXFMT, pixelformat)
+		UPDATE_CAP(GF_PROP_PID_BITRATE, bitrate)
+
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAR);
-		if (v) mo->pixel_ar = (v->value.frac.num) << 16 | (v->value.frac.den);
+		if (v) {
+			u32 n_par = (v->value.frac.num) << 16 | (v->value.frac.den);
+			if (mo->pixel_ar && (mo->pixel_ar!=n_par)) changed = GF_TRUE;
+			mo->pixel_ar = n_par;
+		}
 
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SRD);
 		v2 = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SRD_REF);
@@ -333,15 +344,16 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 			}
 		}
 	} else if (mo->odm->type==GF_STREAM_AUDIO) {
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAMPLE_RATE);
-		if (v) mo->sample_rate = v->value.uint;
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_NUM_CHANNELS);
-		if (v) mo->num_channels = v->value.uint;
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CHANNEL_LAYOUT);
-		if (v) mo->channel_config = v->value.longuint;
-		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_AUDIO_FORMAT);
-		if (v) mo->afmt = v->value.uint;
+		UPDATE_CAP(GF_PROP_PID_SAMPLE_RATE, sample_rate)
+		UPDATE_CAP(GF_PROP_PID_NUM_CHANNELS, num_channels)
+		UPDATE_CAP(GF_PROP_PID_AUDIO_FORMAT, afmt)
 		else mo->afmt = GF_AUDIO_FMT_S16;
+
+		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CHANNEL_LAYOUT);
+		if (v) {
+			if (mo->channel_config && (mo->channel_config!=v->value.longuint)) changed = GF_TRUE;
+			mo->channel_config = v->value.longuint;
+		}
 
 		mo->bytes_per_sec = gf_audio_fmt_bit_depth(mo->afmt) * mo->num_channels * mo->sample_rate / 8;
 		mo->planar_audio = gf_audio_fmt_is_planar(mo->afmt);
@@ -355,6 +367,14 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		//nothing to do
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unknwon scene object type %d\n", mo->odm->type));
+	}
+
+	if (changed) {
+		GF_Event evt;
+		GF_Scene *scene = mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene;
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_QUALITY_SWITCHED;
+		gf_sc_send_event(scene->compositor, &evt);
 	}
 }
 

@@ -5,22 +5,22 @@ vpath %.c $(SRC_PATH)/modules/oss_audio
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(OSS_CFLAGS)
 LDFLAGS+=$(OSS_LDFLAGS)
 
-ifeq ($(DEBUGBUILD), yes)
+ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
-ifeq ($(GPROFBUILD), yes)
+ifeq ($(GPROFBUILD),yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(OSS_INC_TYPE), yes)
+ifeq ($(OSS_INC_TYPE),yes)
 else
 CFLAGS+=-DOSS_FIX_INC
 endif
 
-ifeq ($(TARGET_ARCH_ARMV4L), yes)
+ifeq ($(TARGET_ARCH_ARMV4L),yes)
 CFLAGS+=-DFORCE_SR_LIMIT
 endif
 

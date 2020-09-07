@@ -382,7 +382,6 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
 		return 0;
 	}
-
 	/*installed or symlink on system, user user home directory*/
 	if (!strnicmp(app_path, "/usr/", 5) || !strnicmp(app_path, "/opt/", 5)) {
 		if (path_type==GF_PATH_SHARE) {
@@ -412,10 +411,13 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 		/*GUI not found, look in gpac distribution if any */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			strcat(app_path, "/");
 			sep = strstr(app_path, "/bin/");
 			if (sep) {
 				sep[0] = 0;
 				strcat(app_path, "/share");
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				strcat(app_path, "/gpac");
 				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 			}
 			sep = strstr(app_path, "/build/");
@@ -439,6 +441,18 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			/*modules not found*/
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
 		}
+
+		/* look in distrib tree */
+		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			strcat(app_path, "/");
+			sep = strstr(app_path, "/bin/");
+			if (sep) {
+				sep[0] = 0;
+				strcat(app_path, "/lib/gpac");
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			}
+		}
+
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
 			strcpy(app_path, file_path);
@@ -511,6 +525,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_pat
 
 static GF_Config *create_default_config(char *file_path, const char *profile)
 {
+	Bool moddir_found;
 	GF_Config *cfg;
 	char szProfilePath[GF_MAX_PATH];
 	char szPath[GF_MAX_PATH];
@@ -540,13 +555,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 
 #ifndef GPAC_CONFIG_IOS
-	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
-		gf_file_delete(szPath);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] default modules not found\n"));
-		return NULL;
-	}
+	moddir_found = get_default_install_path(szPath, GF_PATH_MODULES);
 #else
-	get_default_install_path(szPath, GF_PATH_APP);
+	moddir_found = get_default_install_path(szPath, GF_PATH_APP);
 #endif
 
 #if defined(GPAC_CONFIG_IOS)
@@ -558,8 +569,11 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 #endif
 
 
-
-	gf_cfg_set_key(cfg, "core", "mod-dirs", szPath);
+	if (!moddir_found) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] default modules not found\n"));
+	} else {
+		gf_cfg_set_key(cfg, "core", "mod-dirs", szPath);
+	}
 
 #if defined(GPAC_CONFIG_IOS)
 	gf_ios_refresh_cache_directory(cfg, file_path);
@@ -1018,8 +1032,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("logs", NULL, "set log tools and levels.  \n"\
 			"  \n"\
-			"You can independently log different tools involved in a session.\n"\
-			"log_args is formatted as a ':'-separated list of `toolX[:toolZ]@levelX`\n"\
+			"You can independently log different tools involved in a session.  \n"\
+			"log_args is formatted as a ':'-separated list of `toolX[:toolZ]@levelX`  \n"\
 	        "`levelX` can be one of:\n"\
 	        "- quiet: skip logs\n"\
 	        "- error: logs only error messages\n"\
@@ -1129,12 +1143,12 @@ GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot
  GF_DEF_ARG("no-reservoir", NULL, "disable memory recycling for packets and properties. This uses much less memory but stresses the system memory allocator much more", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("switch-vres", NULL, "select smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed.\n"
+ GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed\n"
  "- always: always on hardware\n"
  "- never: always on system memory\n"
  "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("pref-yuv4cc", NULL, "set prefered YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("yuv-overlay", NULL, "indicate YUV overlay is possible on the video card. Always overriden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("yuv-overlay", NULL, "indicate YUV overlay is possible on the video card. Always overridden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("offscreen-yuv", NULL, "indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("overlay-color-key", NULL, "color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in openGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
@@ -1413,11 +1427,18 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not use tab\n", arg->name, arg->description);
 			exit(1);
 		}
+
 		u8 achar = arg->description[strlen(arg->description)-1];
 		if (achar == '.') {
 			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not end with .\n", arg->name, arg->description);
 			exit(1);
 		}
+		sep = strstr(arg->description, ".\n");
+		if (sep) {
+			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not contain .\\n", arg->name, arg->description);
+			exit(1);
+		}
+
 		sep = strchr(arg->description, ' ');
 		if (sep) {
 			sep--;
@@ -1441,14 +1462,22 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 	}
 
 	if (flags & GF_PRINTARG_MAN) {
-		fprintf(helpout, ".TP\n.B \\-%s", arg_name ? arg_name : arg->name);
+		fprintf(helpout, ".TP\n.B %s%s", (flags&GF_PRINTARG_NO_DASH) ? "" : "\\-", arg_name ? arg_name : arg->name);
 	}
 	else if (gen_doc==1) {
-		gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
-		gf_sys_format_help(helpout, flags, "</a>");
+		if (flags&GF_PRINTARG_NO_DASH) {
+			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", arg_name ? arg_name : arg->name);
+		} else {
+			gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
+			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
+			gf_sys_format_help(helpout, flags, "</a>");
+		}
 	} else {
-		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s-%s", (flags&GF_PRINTARG_ADD_DASH) ? "-" : "", arg_name ? arg_name : arg->name);
+		gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s%s%s",
+			(flags&GF_PRINTARG_ADD_DASH) ? "-" : "",
+			(flags&GF_PRINTARG_NO_DASH) ? "" : ((flags&GF_PRINTARG_COLON) ? ":" : "-"),
+			arg_name ? arg_name : arg->name
+		);
 	}
 	if (arg->altname) {
 		gf_sys_format_help(helpout, flags, ",");
@@ -1757,6 +1786,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 				}
 
 				if (i == TOK_LINKSTART) {
+					if (tid == TOK_OPTLINK) continue;
 					if (gen_doc!=1) {
 						char *link_end;
 						skip_url = strstr(tok, "](");
@@ -1989,6 +2019,12 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 	u32 olen = (u32) strlen(orig);
 	u32 dlen = (u32) strlen(dst);
 	u32 *run;
+
+	if ((olen>=3) && (olen<dlen) && !strncmp(orig, dst, olen))
+		return GF_TRUE;
+	if ((dlen>=3) && (dlen<olen) && !strncmp(orig, dst, dlen))
+		return GF_TRUE;
+		
 	if (olen*2 < dlen) {
 		char *s1 = strchr(orig, ':');
 		char *s2 = strchr(dst, ':');

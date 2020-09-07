@@ -658,13 +658,19 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	gf_isom_set_track_priority_in_group(file, tmp->HintTrack, InterleaveGroupPriority);
 
 #if 0
-	/*QT FF: not setting these flags = server uses a random offset*/
-	gf_isom_rtp_set_time_offset(file, tmp->HintTrack, 1, 0);
-	/*we don't use seq offset for maintainance pruposes*/
-	gf_isom_rtp_set_time_sequence_offset(file, tmp->HintTrack, 1, 0);
 #endif
 	*e = GF_OK;
 	return tmp;
+}
+
+GF_EXPORT
+GF_Err gf_hinter_track_force_no_offsets(GF_RTPHinter *tkHinter)
+{
+	GF_Err e;
+	if (!tkHinter) return GF_BAD_PARAM;
+	e = gf_isom_rtp_set_time_offset(tkHinter->file, tkHinter->HintTrack, 1, 0);
+	if (e) return e;
+	return gf_isom_rtp_set_time_sequence_offset(tkHinter->file, tkHinter->HintTrack, 1, 0);
 }
 
 GF_EXPORT

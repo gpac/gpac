@@ -364,6 +364,7 @@
     <ClCompile Include="..\..\src\filter_core\filter_queue.c" />
     <ClCompile Include="..\..\src\filter_core\filter_register.c" />
     <ClCompile Include="..\..\src\filter_core\filter_session.c" />
+    <ClCompile Include="..\..\src\filter_core\filter_session_js.c" />
     <ClCompile Include="..\..\src\ietf\rtcp.c" />
     <ClCompile Include="..\..\src\ietf\rtp.c" />
     <ClCompile Include="..\..\src\ietf\rtp_depacketizer.c" />
@@ -404,6 +405,7 @@
     <ClCompile Include="..\..\src\isomedia\stbl_write.c" />
     <ClCompile Include="..\..\src\isomedia\track.c" />
     <ClCompile Include="..\..\src\isomedia\tx3g.c" />
+    <ClCompile Include="..\..\src\jsmods\core.c" />
     <ClCompile Include="..\..\src\jsmods\evg.c" />
     <ClCompile Include="..\..\src\jsmods\scene_js.c" />
     <ClCompile Include="..\..\src\jsmods\storage.c" />

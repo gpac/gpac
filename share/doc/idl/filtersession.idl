@@ -1,0 +1,278 @@
+/*
+\file
+\brief silence !
+*/
+
+typedef char *DOMString;
+
+/*!
+
+\defgroup fsess_grp JS FilterSession API
+\ingroup jsapi_grp
+\brief JavaScript API for FilterSession.
+
+This section documents the JavaScript API used to query the filter session.
+
+Errors are handled through exceptions.
+
+@{
+
+*/
+
+/*! global context property representing the one and only JSFilterSession object attached to the loaded script*/
+attribute JSFilterSession session;
+
+/*! global context function for printing
+\param log the string to write
+*/
+void print(DOMString log);
+/*! global context function for printing 
+\param log_level the log level to use: GF_LOG_DEBUG, GF_LOG_INFO, GF_LOG_WARNING, GF_LOG_ERROR. The special value -2 means print as gf_sys_format_help without highlight, the special value -1 means print as gf_sys_format_help with hightlight of first)
+\param log_str the string to write
+*/
+void print(long log_level, DOMString log_str);
+
+
+/*!\brief JSFilterSession API
+
+The JSFilterSession interface has a single instance exposed to the script under the name "session".
+It implements binding to the underlying filter session object, see \ref GF_FilterSession.
+*/
+interface JSFilterSession {
+
+
+/*! posts a task to the main scheduler - see \ref gf_fs_post_user_task
+\param task_callback the callback function to use. This callback functions has no parameters, and returns false or an exception to abort the task, true to reschedule the task immediately or a reschedule time in milliseconds
+\param task_name optional value giving a label for the task
+*/
+void post_task(function task_callback, optional DOMString task_name=null);
+
+/*! aborts the filter session - see \ref gf_fs_abort
+\param do_flush if true, wait for all packets currently pending to be processed before closing the session
+*/
+void abort(optional boolean do_flush=false);
+
+/*! locks the filter session - see \ref gf_fs_lock_filters. When the session is locked, tasks are suspended and filters cannot be destroyed.
+The session only needs to be locked when enumerating filters
+\param do_lock if true, locks the session, otherwise unlocks it
+*/
+void lock_filters(boolean do_lock);
+
+/*! returns the JSFSFilter object for the given index. 
+\param index index of filter to query. This index is only valid when session is locked 
+\return the filter object, null if none found
+*/
+JSFSFilter get_filter(unsigned long index);
+
+/*! returns the JSFSFilter object for a given filter \ref iname. 
+\param iname the iname of filter to query 
+\return the filter object, null if none found
+*/
+JSFSFilter get_filter(unsigned long index);
+
+/*! sends the given string to the remotery client(s)
+\param command the command to send
+\return error code if any
+*/
+void rmt_send(DOMString command);
+
+/*! sets callback function to use when processing remotery client request
+\param callback the callback function to call. This function takes one parameter which is the text being received
+\return error code if any
+*/
+void rmt_set_fun(function callback);
+
+/*! inserts a filter in graph
+\param filter_to_add string describin the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
+\param link_from filter used as source for the created filters - see \ref gf_filter_set_source
+\param link_args arguments for the link (used to assign new filter SID - see \ref gf_filter_set_source
+\return new filter created
+*/
+JSFSFilter add_filter(DOMString filter_to_add, optional JSFSFilter link_from=null, optional DOMString link_args=null);
+
+/*! sets callback function to get notifications upon each new filter creation. The callback function is passed a single parameter, the filter object*/
+void set_new_filter_fun(function callback);
+
+/*! sets callback function to get notifications upon each filter destruction. The callback function is passed a single parameter, the filter object*/
+void set_del_filter_fun(function callback);
+
+/*! sets callback function to get events being sent back to application (see \ref gf_fs_set_ui_callback). The callback function will have a single parameter set, an event instance of FilterEvent interface. The return value of the function should be as indicated for each event type*/
+boolean set_event_fun(function callback);
+
+/*! fires a given event on all registered user event if no filter is specified, or on the filter
+\param evt the event to send
+\param filter the filter to send the event to
+\param upstream if filter is not null, indicates whether the event shall be sent upstream (towards the sink) or downstream (towards the destination)
+\return true if event was fired, false if no event target was found or if the filter is not an event target*/
+boolean fire_event(FilterEvent evt, optional JSFSFilter *filter=null, optional boolean upstream=false);
+
+/*! enables session reporting - see \ref gf_fs_enable_reporting. 
+\param enable enables reporting if true*/
+void reporting(boolean enable);
+
+/*! number of filters in the session - see \ref gf_fs_get_filters_count. 
+This number is only valid when session is locked*/
+attribute long nb_filters;
+
+/*! check if the calling task is the last task in the session - see \ref gf_fs_is_last_task*/
+readonly attribute boolean last_task;
+
+/*! max capped HTTP download rate - used for DASH simulations mostly*/
+attribute unsigned long http_max_bitrate;
+
+/*! current http download rate averaged on all active resources*/
+readonly attribute unsigned long http_bitrate;
+
+};
+
+
+/*!\brief JSFSFilter API
+
+The JSFSFilter interface provides tools to query and update filters in a session. 
+It implements binding to the underlying filter object, see \ref GF_Filter.
+*/
+interface JSFSFilter {
+/*! filter name - may be changed at run-time by the filter*/
+attribute readonly DOMString name;
+/*! filter ID - cannot be modified by filter, but may be null*/
+attribute readonly DOMString ID;
+/*! filter registry name */
+attribute readonly DOMString type;
+/*! number of input PIDs for the filter*/
+attribute readonly unsigned long nb_ipid;
+/*! number of output PIDs for the filter*/
+attribute readonly unsigned long nb_opid;
+/*! status string of the filter, or null*/
+attribute readonly DOMString status;
+/*! set to true if the filter is an alias filter (should be ignored)*/
+attribute readonly boolean alias;
+/*! set to the arguments passed to the filter, null if none*/
+attribute readonly DOMString args;
+/*! set to true if filter was dynamically loaded during graph resolution, false if filter was explicetly loaded by user/app*/
+attribute readonly boolean dynamic;
+/*! set to true if filter is done processing and will soon be removed*/
+attribute readonly boolean done;
+/*! time in microseconds the filter has been running*/
+attribute readonly unsigned long long time;
+/*! number of input packets received*/
+attribute readonly unsigned long long pck_done;
+/*! number of input bytes received*/
+attribute readonly unsigned long long bytes_done;
+/*! number of packets sent*/
+attribute readonly unsigned long long pck_sent;
+/*! number of frame interfaces packets sent*/
+attribute readonly unsigned long long pck_ifce_sent;
+/*! number of bytes sent*/
+attribute readonly unsigned long long bytes_sent;
+/*! number of tasks executed*/
+attribute readonly unsigned long tasks;
+/*! number of errors*/
+attribute readonly unsigned long errors;
+/*! set to true if report has been updated since last query*/
+attribute readonly boolean report_updated;
+/*! class of filter, can be "rawin", "demuxer", "decoder", "encoder", "muxer", "rawout", "mediasink", "mediasource", "unknown"*/
+attribute readonly DOMString class;
+/*! stream type (audio, visual, ...)*/
+attribute readonly DOMString streamtype;
+/*! codec name or null if unknown*/
+attribute readonly DOMString codec;
+/*! internal name - this can only be set and modified by this JS and allows for filter identification from JS*/
+attribute DOMString iname;
+/*! set to true if filter accepts user events*/
+attribute boolean event_target;
+
+/*! set to max timestamp of last packet sent by the filter, or null if not available*/
+attribute boolean last_ts_sent;
+
+/*! set to max timestamp of last packet dropped by the filter, or null if not available*/
+attribute boolean last_ts_drop;
+
+/*! Checks if a filter is valid or if it has been destroyed. Any query on a destroyed filter will raise an exception.
+\return true if the filter has been destroyed, false otherwise*/
+boolean is_destroyed();
+
+/*! Gets properties on input pid
+\param idx the index of the input pid to query
+\param name name of the property to query
+\return property value, or null if not found
+*/
+FilterProperty ipid_props(unsigned long idx, DOMString name);
+
+/*! Enumerates properties on input pid
+\param idx the index of the input pid to query
+\param fun_callback function called for each property in the input pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty) 
+*/
+void ipid_props(unsigned long idx, function fun_callback);
+
+/*! Gets properties on output pid
+\param idx the index of the output pid to query
+\param name name of the property to query
+\return property value, or null if not found
+*/
+FilterProperty opid_props(unsigned long idx, DOMString name);
+
+/*! Enumerates properties on output pid
+\param idx the index of the output pid to query
+\param fun_callback function called for each property in the output pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty) 
+*/
+void opid_props(unsigned long idx, function fun_callback);
+
+/*! Gets source filter for an input pid
+\param idx the index of the input pid to query
+\return input filter or null
+*/
+JSFSFilter ipid_source(unsigned long idx);
+
+/*! Gets destination filter(s) for an output pid
+\param idx the index of the output pid to query
+\return array of output filters
+*/
+Array opid_sinks(unsigned long idx);
+
+/*! Gets all arguments (options) of the filter
+\param value_only if true, only returns name (DOMString) and value (FilterProperty) of each argument. Otherwise returns the full argument (JSFSFilterArg)
+\return array of JSFSFilterArg 
+*/
+Array all_args(optional boolean value_only=true);
+
+/*! sends argument update to filter
+\param arg_name name of argument to update
+\param arg_val value of argument to update
+*/
+void update(DOMString arg_name, DOMString arg_val);
+
+/*! removes filter from graph*/
+void remove();
+
+/*! inserts a filter in graph linked to the current filter
+\param filter_to_add string describing the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
+\param link_args specify any additional arguments to pass to the SID option of the new filter - see \ref gf_filter_set_source
+*/
+void insert(DOMString filter_to_add, optional DOMString link_args=NULL);
+
+};
+
+/*! Object describing a filter argument
+*/
+interface JSFSFilterArg {
+/*! name*/
+attribute DOMString name;
+/*! value*/
+attribute FilterProperty value;
+/*! textual description*/
+optional attribute DOMString desc;
+/*! min/max/enum value or null*/
+optional attribute DOMString min_max_enum;
+/*! default value or null*/
+optional attribute DOMString default;
+/*! argument can be updated*/
+optional attribute boolean update;
+/*! indicate the UI level of the argument - string can be undefined, "advanced" or "expert"*/
+optional attribute DOMString hint;
+
+};
+
+
+
+/*! @} */
+

@@ -133,6 +133,8 @@ JSValue dom_event_add_listener(JSContext *c, JSValueConst obj, int argc, JSValue
 JSValue dom_event_remove_listener(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv);
 JSValue xml_dom3_not_implemented(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
+#ifndef GPAC_DISABLE_SVG
+
 /*dom event listener interface, exported for XHR module*/
 #define JS_DOM3_EVENT_TARGET_INTERFACE	\
 	JS_CFUNC_DEF("addEventListenerNS", 3, dom_event_add_listener),	\
@@ -140,6 +142,12 @@ JSValue xml_dom3_not_implemented(JSContext *ctx, JSValueConst this_val, int argc
 	JS_CFUNC_DEF("addEventListener", 2, dom_event_add_listener),		\
 	JS_CFUNC_DEF("removeEventListener", 2, dom_event_remove_listener),	\
 	JS_CFUNC_DEF("dispatchEvent", 1, xml_dom3_not_implemented),
+
+#else
+
+#define JS_DOM3_EVENT_TARGET_INTERFACE
+
+#endif
 
 /*defines a new global object "evt" of type Event*/
 JSValue dom_js_define_event(struct JSContext *c);
@@ -234,6 +242,7 @@ void qjs_module_init_xhr_global(JSContext *c, JSValue global);
 void qjs_module_init_xhr(JSContext *c);
 void qjs_module_init_evg(JSContext *c);
 void qjs_module_init_webgl(JSContext *c);
+void qjs_module_init_gpaccore(JSContext *c);
 
 
 #ifdef __cplusplus

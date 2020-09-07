@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -485,6 +485,10 @@ typedef enum
 	GF_FS_STATS_FILTER_MUX,
 	/*! raw output (file, socket, pipe) filter type*/
 	GF_FS_STATS_FILTER_RAWOUT,
+	/*! media sink (video out, audio out, ...) filter type*/
+	GF_FS_STATS_FILTER_MEDIA_SINK,
+	/*! media source (capture audio or video ...) filter type*/
+	GF_FS_STATS_FILTER_MEDIA_SOURCE,
 } GF_FSFilterType;
 
 /*! Filter statistics object*/
@@ -542,9 +546,13 @@ typedef struct
 	u32 stream_type;
 	/*!set to codecid of output PID if single output, GF_CODECID_NONE otherwise*/
 	u32 codecid;
+	/*! timestamp and timescale of last packet emitted on output pids*/
+	GF_Fraction64 last_ts_sent;
+	/*! timestamp and timescale of last packet droped on input pids*/
+	GF_Fraction64 last_ts_drop;
 } GF_FilterStats;
 
-/*! Gets number of active filters in the session
+/*! Gets statistics for a given filter index in the session
 \param session filter session
 \param idx index of filter to query
 \param stats statistics for filter
@@ -581,8 +589,15 @@ typedef enum
 \param val value of filter option to update
 \param propagate_mask propagation flags - 0 means no propagation
 */
-
 void gf_fs_send_update(GF_FilterSession *session, const char *fid, GF_Filter *filter, const char *name, const char *val, GF_EventPropagateType propagate_mask);
+
+
+/*! Loads JS script for filter session
+\param session filter session
+\param jsfile path to local JS script file to use
+\return error if any
+*/
+GF_Err gf_fs_load_script(GF_FilterSession *session, const char *jsfile);
 
 /*! @} */
 
@@ -818,6 +833,8 @@ enum
 	GF_PROP_PID_ID = GF_4CC('P','I','D','I'),
 	GF_PROP_PID_ESID = GF_4CC('E','S','I','D'),
 	GF_PROP_PID_ITEM_ID = GF_4CC('I','T','I','D'),
+	GF_PROP_PID_ITEM_NUM = GF_4CC('I','T','I','X'),
+	GF_PROP_PID_TRACK_NUM = GF_4CC('P','I','D','X'),
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),
 	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
@@ -981,8 +998,10 @@ enum
 	GF_PROP_PID_XLINK = GF_4CC('X','L','N','K'),
 	GF_PROP_PID_CLAMP_DUR = GF_4CC('D','C','M','D'),
 	GF_PROP_PID_HLS_PLAYLIST = GF_4CC('H','L','V','P'),
+	GF_PROP_PID_HLS_GROUPID = GF_4CC('H','L','G','I'),
 	GF_PROP_PID_DASH_CUE = GF_4CC('D','C','U','E'),
 	GF_PROP_PID_DASH_SEGMENTS = GF_4CC('D','C','N','S'),
+	GF_PROP_PID_CODEC = GF_4CC('C','O','D','S'),
 	GF_PROP_PID_SINGLE_SCALE = GF_4CC('D','S','T','S'),
 	GF_PROP_PID_UDP = GF_4CC('P','U','D','P'),
 
@@ -995,7 +1014,7 @@ enum
 	GF_PROP_PID_COLR_CHROMALOC = GF_4CC('C','L','O','C'),
 	GF_PROP_PID_COLR_SPACE = GF_4CC('C','S','P','C'),
 	GF_PROP_PID_SRC_MAGIC = GF_4CC('P','S','M','G'),
-	GF_PROP_PID_TRACK_INDEX = GF_4CC('T','I','D','X'),
+	GF_PROP_PID_MUX_INDEX = GF_4CC('T','I','D','X'),
 	GF_PROP_NO_TS_LOOP = GF_4CC('N','T','S','L'),
 	GF_PROP_PCK_FRAG_START = GF_4CC('P','F','R','B'),
 	GF_PROP_PCK_FRAG_RANGE = GF_4CC('P','F','R','R'),
@@ -2043,10 +2062,11 @@ Any filter loaded between the source and the calling filter will not use argumen
 \param filter the target filter
 \param url url of source to connect to, with optional arguments.
 \param parent_url url of parent if any
+\param inherit_args if GF_TRUE, the source to connect will inherit arguments of the target filter's destination
 \param err return code - can be NULL
 \return the new source filter instance or NULL if error
 */
-GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err);
+GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err);
 
 /*! Connects a destination to this filter
 \param filter the target filter
@@ -2213,6 +2233,15 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 \return error if any
 */
 GF_Err gf_filter_reconnect_output(GF_Filter *filter);
+
+
+/*! Indicates that the filter accept and can process events coming from outside the filter chain, typically used by application firing events.
+ The event is sent on the process_event function with no associated PID.
+\param filter the target filter
+\param enable_events if GF_TRUE, the filter is considered an event target
+\return error if any
+*/
+GF_Err gf_filter_set_event_target(GF_Filter *filter, Bool enable_events);
 
 /*! Looks for a built-in property value marked as informative on a filter on all PIDs (inputs and output)
 This is a recursive call on both input and ouput chain.
@@ -2552,6 +2581,21 @@ const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size);
 \return GF_TRUE if this is an alias  filter created by a multiple sink filter, GF_FALSE otherwise
 */
 Bool gf_filter_is_alias(GF_Filter *filter);
+
+/*! checks if the given filter is in the chain ending up at parent
+\param parent end of filter chain to check
+\param filter target filter to check
+\return GF_TRUE if filter is present in the parent chain, GF_FALSE otherwise
+*/
+Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
+
+
+/*! Gets statistics for filter
+\param filter filter session
+\param stats statistics for filter
+\return error code if any
+*/
+GF_Err gf_filter_get_stats(GF_Filter *filter, GF_FilterStats *stats);
 
 /*! @} */
 
@@ -2894,8 +2938,7 @@ typedef Bool (*gf_filter_prop_filter)(void *cbk, u32 prop_4cc, const char *prop_
 */
 GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid);
 
-/*! Push a new set of properties on destination PID, using all properties from source PID.
-Old properties of the destination are first copied to the new property set before copying the ones from the source PID, potentially filtering them.
+/*! Push a new set of properties on destination PID, using all properties from source PID, potentially filtering them. Currently defined properties are not reseted.
 \param dst_pid the destination filter PID
 \param src_pid the source filter PID
 \param filter_prop callback filtering function
@@ -3480,8 +3523,10 @@ typedef enum
 	GF_FILTER_SAP_2,
 	/*! open gop */
 	GF_FILTER_SAP_3,
-	/*! GDR */
+	/*! roll period (GDR or audio roll) - roll distance must be indicated in packet */
 	GF_FILTER_SAP_4,
+	/*! Audio preroll period - roll distance must be indicated in packet */
+	GF_FILTER_SAP_4_PROL
 } GF_FilterSAPType;
 
 /*! Sets packet SAP type

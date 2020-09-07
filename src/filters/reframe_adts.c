@@ -783,6 +783,7 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	ADTSHeader prev_hdr;
 	GF_BitStream *bs;
 	Bool has_id3=GF_FALSE;
+	Bool has_broken_data=GF_FALSE;
 
 	/*check for id3*/
 	if (size>= 10) {
@@ -823,6 +824,7 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 				break;
 		} else {
 			nb_frames=1;
+			has_broken_data=GF_TRUE;
 		}
 		prev_hdr = hdr;
 		gf_bs_skip_bytes(bs, hdr.frame_size);
@@ -830,7 +832,7 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	}
 	gf_bs_del(bs);
 	if (max_consecutive_frames>=4) {
-		*score = GF_FPROBE_SUPPORTED;
+		*score = has_broken_data ? GF_FPROBE_MAYBE_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/aac";
 	}
 	if (has_id3 && max_consecutive_frames) {

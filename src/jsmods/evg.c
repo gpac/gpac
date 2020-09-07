@@ -32,7 +32,7 @@
 
 #include <gpac/setup.h>
 
-#ifdef GPAC_HAS_QJS
+#if defined(GPAC_HAS_QJS)
 
 /*base SVG type*/
 #include <gpac/nodes_svg.h>
@@ -6626,6 +6626,10 @@ void qjs_module_init_evg(JSContext *ctx)
     return;
 }
 
+#else
+void qjs_module_init_evg(void *ctx)
+{
 
+}
 #endif
 

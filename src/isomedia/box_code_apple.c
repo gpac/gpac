@@ -612,7 +612,8 @@ GF_Err tcmi_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 len;
 	GF_TimeCodeMediaInformationBox *ptr = (GF_TimeCodeMediaInformationBox *)s;
 
-	ISOM_DECREASE_SIZE(s, 21);
+	//don't remove font name len field, some writers just skip it if no font ...
+	ISOM_DECREASE_SIZE(s, 20);
 
 	ptr->text_font = gf_bs_read_u16(bs);
 	ptr->text_face = gf_bs_read_u16(bs);
@@ -624,6 +625,12 @@ GF_Err tcmi_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->back_color_red = gf_bs_read_u16(bs);
 	ptr->back_color_green = gf_bs_read_u16(bs);
 	ptr->back_color_blue = gf_bs_read_u16(bs);
+	if (!ptr->size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] broken tmci box, missing font name length field\n" ));
+		return GF_OK;
+	}
+	ISOM_DECREASE_SIZE(s, 1);
+
 	len = gf_bs_read_u8(bs);
 	if (len > ptr->size)
 		len = (u32) ptr->size;

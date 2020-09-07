@@ -29,6 +29,8 @@
 #include <gpac/compositor.h>
 #include <gpac/internal/compositor_dev.h>
 
+#ifndef GPAC_DISABLE_BIFS
+
 
 typedef struct
 {
@@ -39,8 +41,6 @@ typedef struct
 	Bool is_playing;
 	GF_FilterPid *out_pid;
 } GF_BIFSDecCtx;
-
-#ifndef GPAC_DISABLE_BIFS
 
 static GF_Err bifs_dec_configure_bifs_dec(GF_BIFSDecCtx *ctx, GF_FilterPid *pid)
 {

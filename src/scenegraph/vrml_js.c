@@ -120,6 +120,7 @@ JSValue js_throw_err(JSContext *ctx, s32 err)
 		}	\
 		}
 
+#ifndef GPAC_DISABLE_PLAYER
 static Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
 	if (!scene) {
@@ -130,6 +131,7 @@ static Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *
 		return scene->script_action(scene->script_action_cbck, type, node, param);
 	return 0;
 }
+#endif// GPAC_DISABLE_PLAYER
 
 GF_JSClass SFNodeClass;
 #ifndef GPAC_DISABLE_VRML
@@ -288,10 +290,10 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		u32 buf_len;
 		u8 *buf;
 		JSValue func_val;
-		gf_file_load_data(module_name, &buf, &buf_len);
+		GF_Err e = gf_file_load_data(module_name, &buf, &buf_len);
 
-		if (!buf) {
-			JS_ThrowReferenceError(ctx, "could not load module filename '%s'", module_name);
+		if (e != GF_OK) {
+			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );
 			return NULL;
 		}
 		/* compile the module */
@@ -373,12 +375,17 @@ GF_Node *dom_get_element(JSContext *c, JSValue obj);
 void gf_sg_script_to_node_field(struct JSContext *c, JSValue v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool force_evaluate);
 
+#ifndef GPAC_DISABLE_PLAYER
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
+#endif
+
 
 Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSValue *rval);
 
+#ifndef GPAC_DISABLE_SVG
 static JSValue vrml_event_add_listener(JSContext *c, JSValueConst this_val, int argc, JSValueConst *argv);
 static JSValue vrml_event_remove_listener(JSContext *c, JSValueConst this_val, int argc, JSValueConst *argv);
+#endif // GPAC_DISABLE_SVG
 
 void gf_js_call_gc(JSContext *c)
 {
@@ -399,6 +406,125 @@ void do_js_gc(JSContext *c, GF_Node *node)
 	}
 }
 
+
+static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
+{
+    int i=0;
+    Bool first=GF_TRUE;
+    s32 logl = GF_LOG_INFO;
+    JSValue v, g;
+    const char *c_logname=NULL;
+    const char *log_name = "JS";
+
+    if ((argc>1) && JS_IsNumber(argv[0])) {
+		JS_ToInt32(ctx, &logl, argv[0]);
+		i=1;
+	}
+	if (error_type)
+		logl = GF_LOG_ERROR;
+	g = JS_GetGlobalObject(ctx);
+	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
+	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
+		c_logname = JS_ToCString(ctx, v);
+		JS_FreeValue(ctx, v);
+		if (c_logname) {
+			log_name = c_logname;
+			if (!strlen(log_name))
+				log_name = NULL;
+		}
+	}
+	JS_FreeValue(ctx, g);
+
+	if (log_name) {
+#ifndef GPAC_DISABLE_LOG
+		GF_LOG(logl, ltool, ("[%s] ", log_name));
+#else
+		fprintf(stderr, "[%s] ", log_name);
+#endif
+	}
+	if (error_type==2) {
+#ifndef GPAC_DISABLE_LOG
+		GF_LOG(logl, ltool, ("Throw "));
+#else
+		fprintf(stderr, "Throw ");
+#endif
+	}
+
+    for (; i < argc; i++) {
+		const char *str = JS_ToCString(ctx, argv[i]);
+        if (!str) return JS_EXCEPTION;
+
+        if (logl==-1) {
+			gf_sys_format_help(stderr, GF_PRINTARG_HIGHLIGHT_FIRST, "%s\n", str);
+		} else if (logl==-2) {
+			gf_sys_format_help(stderr, 0, "%s\n", str);
+		} else if (!log_name || (logl<0)) {
+			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+		} else {
+#ifndef GPAC_DISABLE_LOG
+			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
+#else
+			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+#endif
+		}
+        JS_FreeCString(ctx, str);
+        first=GF_FALSE;
+    }
+#ifndef GPAC_DISABLE_LOG
+ 	GF_LOG(logl, ltool, ("\n"));
+#else
+	fprintf(stderr, "\n");
+#endif
+	if (c_logname) JS_FreeCString(ctx, c_logname);
+	return JS_UNDEFINED;
+}
+JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return js_print_ex(ctx, this_val, argc, argv, GF_LOG_CONSOLE, GF_FALSE);
+
+}
+
+void js_dump_error(JSContext *ctx)
+{
+    JSValue exception_val;
+    Bool is_error;
+	u32 err_type = 1;
+    exception_val = JS_GetException(ctx);
+    is_error = JS_IsError(ctx, exception_val);
+    if (!is_error) err_type = 2;
+
+
+    js_print_ex(ctx, JS_NULL, 1, (JSValueConst *)&exception_val, GF_LOG_SCRIPT, err_type);
+
+    if (is_error) {
+        JSValue val = JS_GetPropertyStr(ctx, exception_val, "stack");
+        if (!JS_IsUndefined(val)) {
+			const char *stack = JS_ToCString(ctx, val);
+#ifndef GPAC_DISABLE_LOG
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("%s\n", stack) );
+#else
+			fprintf(stderr, "%s\n", stack);
+#endif
+            JS_FreeCString(ctx, stack);
+        }
+        JS_FreeValue(ctx, val);
+    }
+    JS_FreeValue(ctx, exception_val);
+}
+
+void js_do_loop(JSContext *ctx)
+{
+	while (1) {
+		JSContext *ctx1;
+		int err = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
+		if (err <= 0) {
+			if (err < 0) {
+				js_dump_error(ctx1);
+			}
+			break;
+		}
+	}
+}
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -507,122 +633,6 @@ static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
 	return script->sgprivate->UserPrivate;
 }
 
-static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
-{
-    int i=0;
-    Bool first=GF_TRUE;
-    s32 logl = GF_LOG_INFO;
-    JSValue v, g;
-    const char *c_logname=NULL;
-    const char *log_name = "JS";
-
-    if ((argc>1) && JS_IsNumber(argv[0])) {
-		JS_ToInt32(ctx, &logl, argv[0]);
-		i=1;
-	}
-	if (error_type)
-		logl = GF_LOG_ERROR;
-	g = JS_GetGlobalObject(ctx);
-	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
-	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
-		c_logname = JS_ToCString(ctx, v);
-		JS_FreeValue(ctx, v);
-		if (c_logname) {
-			log_name = c_logname;
-			if (!strlen(log_name))
-				log_name = NULL;
-		}
-	}
-	JS_FreeValue(ctx, g);
-
-	if (log_name) {
-#ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("[%s] ", log_name));
-#else
-		fprintf(stderr, "[%s] ", log_name);
-#endif
-	}
-	if (error_type==2) {
-#ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, (" Throw"));
-#else
-		fprintf(stderr, " Throw");
-#endif
-	}
-
-    for (; i < argc; i++) {
-		const char *str = JS_ToCString(ctx, argv[i]);
-        if (!str) return JS_EXCEPTION;
-
-        if (logl==-1) {
-			gf_sys_format_help(stderr, GF_PRINTARG_HIGHLIGHT_FIRST, "%s\n", str);
-		} else if (logl==-2) {
-			gf_sys_format_help(stderr, 0, "%s\n", str);
-		} else {
-#ifndef GPAC_DISABLE_LOG
-			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
-#else
-			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
-#endif
-		}
-        JS_FreeCString(ctx, str);
-        first=GF_FALSE;
-    }
-#ifndef GPAC_DISABLE_LOG
- 	GF_LOG(logl, ltool, ("\n"));
-#else
-	fprintf(stderr, "\n");
-#endif
-	if (c_logname) JS_FreeCString(ctx, c_logname);
-	return JS_UNDEFINED;
-}
-JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	return js_print_ex(ctx, this_val, argc, argv, GF_LOG_CONSOLE, GF_FALSE);
-
-}
-
-void js_dump_error(JSContext *ctx)
-{
-    JSValue exception_val;
-    Bool is_error;
-	u32 err_type = 1;
-    exception_val = JS_GetException(ctx);
-    is_error = JS_IsError(ctx, exception_val);
-    if (!is_error) err_type = 2;
-
-
-    js_print_ex(ctx, JS_NULL, 1, (JSValueConst *)&exception_val, GF_LOG_SCRIPT, err_type);
-
-    if (is_error) {
-        JSValue val = JS_GetPropertyStr(ctx, exception_val, "stack");
-        if (!JS_IsUndefined(val)) {
-			const char *stack = JS_ToCString(ctx, val);
-#ifndef GPAC_DISABLE_LOG
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("%s\n", stack) );
-#else
-			fprintf(stderr, "%s\n", stack);
-#endif
-            JS_FreeCString(ctx, stack);
-        }
-        JS_FreeValue(ctx, val);
-    }
-    JS_FreeValue(ctx, exception_val);
-}
-
-void js_do_loop(JSContext *ctx)
-{
-	while (1) {
-		JSContext *ctx1;
-		int err = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
-		if (err <= 0) {
-			if (err < 0) {
-				js_dump_error(ctx1);
-			}
-			break;
-		}
-	}
-}
 
 static JSValue getName(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -4373,6 +4383,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	JS_SetContextOpaque(priv->js_ctx, node);
 	vrml_js_init_api(priv, node);
 
+	qjs_module_init_gpaccore(priv->js_ctx);
 	qjs_module_init_scenejs(priv->js_ctx);
 	qjs_module_init_storage(priv->js_ctx);
 
@@ -4461,6 +4472,7 @@ static void JSScript_Load(GF_Node *node)
 }
 
 
+#ifndef GPAC_DISABLE_PLAYER
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script)
 {
 	u32 i;
@@ -4575,6 +4587,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 		}
 	}
 }
+#endif
 
 GF_EXPORT
 void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
@@ -4713,10 +4726,6 @@ Bool gf_sg_has_scripting()
 
 /*
  * locking/try-locking the JS context
- * we need to test whether the calling thread already has the lock on the script context
- * if this is not the case (i.e. first lock on mutex), we switch JS context threads and
- * call begin/end requests. Nesting begin/end request in a reentrant way crashes JS
- * (mozilla doc is wrong here)
  *
  * */
 GF_EXPORT
@@ -4739,6 +4748,12 @@ Bool gf_js_try_lock(struct JSContext *cx)
 		return 1;
 	}
 	return 0;
+}
+
+JSRuntime *gf_js_get_rt()
+{
+	if (!js_rt) return NULL;
+	return js_rt->js_runtime;
 }
 
 #endif /* GPAC_HAS_QJS */

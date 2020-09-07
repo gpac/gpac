@@ -30,6 +30,7 @@
 #include <gpac/internal/media_dev.h>
 
 #include <gpac/xml.h>
+#include <gpac/network.h>
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -1261,6 +1262,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		sprintf(szSubArg, "trackid=%d", importer->esd->ESID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
+	if (importer->flags & GF_IMPORT_FORCE_SYNC)
+		e |= gf_dynstrcat(&args, ":forcesync", NULL);
 
 	if (importer->duration.den) {
 		sprintf(szSubArg, "idur=%d/%d", importer->duration.num, importer->duration.den);
@@ -1379,7 +1382,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->track_index) {
-		sprintf(szSubArg, "#TrackIndex=%d", importer->track_index);
+		sprintf(szSubArg, "#MuxIndex=%d", importer->track_index);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 

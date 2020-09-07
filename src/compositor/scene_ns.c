@@ -556,7 +556,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	if (!parent_url && odm->parentscene && odm->parentscene->root_od->scene_ns)
 		parent_url = odm->parentscene->root_od->scene_ns->url;
 
-	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, serviceURL, parent_url, &e);
+	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, serviceURL, parent_url, GF_FALSE, &e);
 
 	if (frag) frag[0] = '#';
 	if (!odm->scene_ns->source_filter) {

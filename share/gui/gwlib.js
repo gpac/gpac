@@ -447,9 +447,9 @@ gwskin.last_hit_y = 0;
 
 gwskin.enable_background = function(do_enable) {
  if (do_enable) {
-  gpac.set_back_color(gwskin.back_color.r, gwskin.back_color.g, gwskin.back_color.b, 1.0);
+  scene.set_back_color(gwskin.back_color.r, gwskin.back_color.g, gwskin.back_color.b, 1.0);
  } else {
-  gpac.set_back_color(0, 0, 0, 1.0);
+  scene.set_back_color(0, 0, 0, 1.0);
  }
 }
 
@@ -966,7 +966,7 @@ function gwlib_init(root_node) {
         }
         if (typeof (wnd._no_focus) == 'boolean') return;
         if (gwskin.focus_on)
-            gpac.set_focus(gw_ui_top_wnd);
+            scene.set_focus(gw_ui_top_wnd);
     }
 
     gw_ui_root.remove_focus = function(wnd) {
@@ -983,7 +983,7 @@ function gwlib_init(root_node) {
         }
         if (typeof (wnd._no_focus) == 'boolean') return;
         if (gwskin.focus_on)
-            gpac.set_focus(gw_ui_top_wnd);
+            scene.set_focus(gw_ui_top_wnd);
     }
     
     gw_ui_root.add_child = function (child) {
@@ -998,31 +998,31 @@ function gwlib_init(root_node) {
     gw_ui_top_wnd = null;
     gw_event_filters = [];
 
-    gpac.set_event_filter(gwlib_filter_event);
-    gwskin.has_opengl = gpac.has_opengl;
+    scene.set_event_filter(gwlib_filter_event);
+    gwskin.has_opengl = scene.has_opengl;
 
-    gwskin.browser_mode = (gpac.get_option('Temp', 'BrowserMode') == 'yes') ? true : false;
+    gwskin.browser_mode = (scene.get_option('Temp', 'BrowserMode') == 'yes') ? true : false;
 
-    gpac.focus_highlight = false;
+    scene.focus_highlight = false;
 
     gwskin.disable_transparency = false;
     //remove window gradients 
-    if (!gwskin.has_opengl && !gpac.hardware_rgba) {
+    if (!gwskin.has_opengl && !scene.hardware_rgba) {
         s = gwskin.get_style('window', 'normal');
         s.texture = null;
         gwskin.disable_transparency = true;
         gwskin.default_window_alpha = 1;
     }
-    var device = gpac.get_option('core', 'devclass');
+    var device = scene.get_option('core', 'devclass');
 
     if ((device == 'ios') || (device == 'android')) gwskin.mobile_device = true;
     else gwskin.mobile_device = false;
     
     if (gwskin.mobile_device) {
-        var size = gw_display_width;
-        if (size> gw_display_height) size = gw_display_height;
-        gwskin_set_default_control_height(size/3);
-        gwskin_set_default_icon_height(size/3);
+        var size = scene.screen_width;
+        if (size > scene.screen_height) size = scene.screen_height;
+        gwskin_set_default_control_height(size/6);
+        gwskin_set_default_icon_height(size/12);
     }
     
 	gwskin_set_white_blue();
@@ -1165,7 +1165,7 @@ function gw_close_child_list(list) {
         }
     }
     //trigger GC whenever we have closed a child list
-    gpac.trigger_gc();
+    scene.trigger_gc();
 }
 
 
@@ -2115,7 +2115,7 @@ function gw_new_spincontrol(parent, horizontal) {
                 return false;
             }
             this._idx = idx;
-            gpac.set_focus(this.children[idx]);
+            scene.set_focus(this.children[idx]);
             return true;
         }
         return false;
@@ -2236,7 +2236,7 @@ function grid_event_navigate(dlg, children, type) {
     if (dlg.current_focus == -1) {
         if (type == 'Left') return false;
         dlg.current_focus = 0;
-        gpac.set_focus(children[0]);
+        scene.set_focus(children[0]);
         return true;
     }
 
@@ -2246,7 +2246,7 @@ function grid_event_navigate(dlg, children, type) {
         var tr = children[dlg.current_focus].translation.y - children[dlg.current_focus].height / 2;
         if (dlg.current_focus + 1 == children.length) {
             dlg.current_focus = orig_focus;
-            gpac.set_focus(children[dlg.current_focus]);
+            scene.set_focus(children[dlg.current_focus]);
             return false;
         }
         /*goto right item*/
@@ -2257,7 +2257,7 @@ function grid_event_navigate(dlg, children, type) {
                 break;
             if (dlg.current_focus + 1 == children.length) {
                 dlg.current_focus = orig_focus;
-                gpac.set_focus(children[dlg.current_focus]);
+                scene.set_focus(children[dlg.current_focus]);
                 return false;
             }
             dlg.current_focus++;
@@ -2275,7 +2275,7 @@ function grid_event_navigate(dlg, children, type) {
         var tr = children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2;
         if (!dlg.current_focus) {
             dlg.current_focus = -1;
-            gpac.set_focus(null);
+            scene.set_focus(null);
             return false;
         }
         /*goto left item*/
@@ -2371,7 +2371,7 @@ function grid_event_navigate(dlg, children, type) {
         return grid_event_navigate(dlg, children, type);
     }
 
-    gpac.set_focus(children[dlg.current_focus]);
+    scene.set_focus(children[dlg.current_focus]);
     return true;
 }
 
@@ -2431,7 +2431,7 @@ function gw_new_grid_container(parent) {
         if (this.current_focus >= 0) {
             if (this.current_focus < child) this.current_focus = child;
             else if (this.current_focus >= last_child) this.current_focus = last_child - 1;
-            gpac.set_focus(this._all_children[this.current_focus]);
+            scene.set_focus(this._all_children[this.current_focus]);
         }
 
 
@@ -2903,7 +2903,7 @@ function gw_new_text_edit(parent, text_data) {
     gw_add_child(obj, rect);
     gw_object_set_hitable(rect);
     rect.on_down = function (val) {
-        if (val) gpac.set_focus(this.parent.children[1]);
+        if (val) scene.set_focus(this.parent.children[1]);
     }
 
     edit = gw_new_text(obj, text_data, 'edit')
@@ -3185,10 +3185,10 @@ function gw_guess_mime_icon(name)
 
     var idx = 0;
     while (1) {
-        var mime = gpac.get_option('MimeTypes', idx);
+        var mime = scene.get_option('MimeTypes', idx);
         if (mime == null) break;
         idx++;
-        var mime_ext = gpac.get_option('MimeTypes', mime).split('"')[1];
+        var mime_ext = scene.get_option('MimeTypes', mime).split('"')[1];
         if (!mime_ext.match(reg)) continue;
                 
         if (mime.indexOf('video') != -1) return gwskin.images.mime_video;
@@ -3376,11 +3376,16 @@ function gw_new_file_dialog(container, label) {
         } else {
             if (dir) this.directory = dir;
             if (up && !this.path) up = false;
-            filelist = gpac.enum_directory(this.directory, this.filter, up);
+            filelist = Sys.enum_directory(this.directory, this.filter, up);
 
             if (filelist.length) {
+                let dir_name = filelist[0].path;
+                dir_name = dir_name.substr(0, dir_name.lastIndexOf("/"));
+                dir_name = dir_name.split('/').pop();
+                if (dir_name.length == 0) dir_name = "/";
+
                 this.directory = filelist[0].path;
-                this.set_label(this.directory);
+                this.set_label(dir_name);
             } else {
                 this.set_label('');
             }
@@ -3410,7 +3415,8 @@ function gw_new_file_dialog(container, label) {
 			
             if ( (!is_listing || (typeof filelist[i].directory == 'boolean'))  && (filelist[i].directory || (filelist[i].name.indexOf('.') < 0))) {
                 if (filelist[i].drive) icon_name = gwskin.images.drive;
-                else icon_name = gwskin.images.folder;
+                else if (filelist[i].directory) icon_name = gwskin.images.folder;
+                else icon_name = gwskin.images.mime_generic;
             } else {
                 icon_name = gw_guess_mime_icon(is_listing ? f_path : f_name);
             }
