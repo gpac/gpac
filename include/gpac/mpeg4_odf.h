@@ -1015,13 +1015,20 @@ typedef struct
 	u8 *general_constraint_info;
 	u8 general_level_idc;
 
-	u8 chromaFormat;
-	u8 luma_bit_depth;
-	u8 chroma_bit_depth;
+	u8 ptl_sublayer_present_mask;
+	u8 sublayer_level_idc[8];
+
+	u8 chromaformat_plus_one;
+	u8 bit_depth_plus_one;
 	u16 avgFrameRate;
 	u8 constantFrameRate;
 	u8 numTemporalLayers;
 
+	Bool ptl_present, ptl_frame_only_constraint, ptl_multilayer_enabled;
+	u8 num_sub_profiles;
+	u32 *sub_profiles_idc;
+
+	u16 ols_idx;
 	u8 nal_unit_size;
 
 	GF_List *param_array;

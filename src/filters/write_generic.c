@@ -950,6 +950,16 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/flac"),
 	{0},
 
+	//we accept unframed VVC (annex B format)
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "266|h266|vvc|lvvc"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/vvc|video/lvvc"),
+	{0},
+
+
 	//anything else: only for explicit dump (filter loaded on purpose), otherwise don't load for filter link resolution
 	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "*"),
