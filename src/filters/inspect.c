@@ -526,21 +526,15 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	}
 
 	if (vvc) {
-		u32 zero_tid = (ptr[0] & 0x80) ? 1 : 0;
-		u8 tid_plus1 = (ptr[0] & 0x70) >> 4;
-		u8 lid;
-		u32 type_lsb;
-		if (zero_tid && (tid_plus1 ^ zero_tid) ) {
+		u32 forb_zero = (ptr[0] & 0x80) ? 1 : 0;
+		u32 res_zero = (ptr[0] & 0x40) ? 1 : 0;
+		u8 tid = (ptr[0] & 0x3F);
+		u8 lid = (ptr[1] & 0x7);
+		if (forb_zero || res_zero) {
 			gf_fprintf(dump, "error=\"invalide header\"");
 			return;
 		}
-		type_lsb = ptr[0] & 0xF;
-		lid = ptr[1]>>1;
-		if ((ptr[1] & 1) != 0) {
-			gf_fprintf(dump, "error=\"invalide header\"");
-			return;
-		}
-		type = (zero_tid << 4) + type_lsb;
+		type = ptr[1]>>3;
 		gf_fprintf(dump, "code=\"%d\" type=\"", type);
 		switch (type) {
 		case GF_VVC_NALU_SLICE_TRAIL: fprintf(dump, "Slice_TRAIL"); break;
@@ -550,20 +544,21 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		case GF_VVC_NALU_SLICE_IDR_W_RADL: fprintf(dump, "IDR_RADL"); break;
 		case GF_VVC_NALU_SLICE_IDR_N_LP: fprintf(dump, "IDR"); break;
 		case GF_VVC_NALU_SLICE_CRA: fprintf(dump, "CRA"); break;
-		case GF_VVC_NALU_SLICE_GRA:fprintf(dump, "GRA"); break;
+		case GF_VVC_NALU_SLICE_GDR:fprintf(dump, "DGR"); break;
+		case GF_VVC_NALU_DEC_PARAM: fprintf(dump, "DecodeParameterSet"); break;
 		case GF_VVC_NALU_VID_PARAM: fprintf(dump, "VideoParameterSet"); break;
 		case GF_VVC_NALU_SEQ_PARAM: fprintf(dump, "SequenceParameterSet"); break;
 		case GF_VVC_NALU_PIC_PARAM: fprintf(dump, "PictureParameterSet"); break;
-		case GF_VVC_NALU_DEC_PARAM: fprintf(dump, "DecodeParameterSet"); break;
+		case GF_VVC_NALU_APS_PREFIX: fprintf(dump, "AdaptationParameterSet_Prefix"); break;
+		case GF_VVC_NALU_APS_SUFFIX: fprintf(dump, "AdaptationParameterSet_Suffix"); break;
 		case GF_VVC_NALU_ACCESS_UNIT: fprintf(dump, "AUDelimiter"); break;
 		case GF_VVC_NALU_END_OF_SEQ: fprintf(dump, "EOS"); break;
 		case GF_VVC_NALU_END_OF_STREAM: fprintf(dump, "EOB"); break;
 		case GF_VVC_NALU_FILLER_DATA: fprintf(dump, "FillerData"); break;
-		case GF_VVC_NALU_SEI_PREFIX: fprintf(dump, "PrefixSEI"); break;
-		case GF_VVC_NALU_SEI_SUFFIX: fprintf(dump, "SufixSEI"); break;
-		case GF_VVC_NALU_APS: fprintf(dump, "AdaptaionParameterSet"); break;
+		case GF_VVC_NALU_SEI_PREFIX: fprintf(dump, "SEI_Prefix"); break;
+		case GF_VVC_NALU_SEI_SUFFIX: fprintf(dump, "SEI_Suffix"); break;
 		}
-		gf_fprintf(dump, "\"");
+		gf_fprintf(dump, "\" temporalid=\"%d\" layerid=\"%d\"", tid, lid);
 
 		return;
 	}

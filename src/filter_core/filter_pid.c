@@ -5616,7 +5616,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		assert(evt->base.on_pid->filter->num_events_queued);
 		safe_int_dec(&evt->base.on_pid->filter->num_events_queued);
 	}
-
+	if (f->finalized) {
+		free_evt(evt);
+		return;
+	}
 	if (evt->base.type == GF_FEVT_BUFFER_REQ) {
 		if (!evt->base.on_pid) {
 			free_evt(evt);

@@ -1659,8 +1659,9 @@ GF_Err vvcc_box_dump(GF_Box *a, FILE * trace)
 	}
 	gf_fprintf(trace, "general_level_idc=\"%u\" ", p->config->general_level_idc);
 
-	gf_fprintf(trace, "chroma_format=\"%s\" luma_bit_depth=\"%u\" chroma_bit_depth=\"%u\" avgFrameRate=\"%u\" constantFrameRate=\"%u\" numTemporalLayers=\"%u\" ",
-		gf_avc_hevc_get_chroma_format_name(p->config->chromaFormat), p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers);
+	gf_fprintf(trace, "chroma_format=\"%s\" chroma_bit_depth=\"%u\" avgFrameRate=\"%u\" constantFrameRate=\"%u\" numTemporalLayers=\"%u\" ",
+			p->config->chromaformat_plus_one ? gf_avc_hevc_get_chroma_format_name(p->config->chromaformat_plus_one) : "n/a",
+			p->config->bit_depth_plus_one - 1, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers);
 
 	gf_fprintf(trace, ">\n");
 

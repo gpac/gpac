@@ -2111,7 +2111,7 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 	u32 k;
 	fprintf(stderr, "\tVVC Info:");
 
-	fprintf(stderr, " Profile %d @ Level %d - Chroma Format %s\n", vvccfg->general_profile_idc, vvccfg->general_level_idc, gf_avc_hevc_get_chroma_format_name(vvccfg->chromaFormat));
+	fprintf(stderr, " Profile %d @ Level %d - Chroma Format %s\n", vvccfg->general_profile_idc, vvccfg->general_level_idc, vvccfg->chromaformat_plus_one ? gf_avc_hevc_get_chroma_format_name(vvccfg->chromaformat_plus_one-1) : "n/a");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "\tNAL Unit length bits: %d", 8*vvccfg->nal_unit_size);
 	if (vvccfg->general_constraint_info && vvccfg->num_constraint_info) {
@@ -2174,7 +2174,7 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 		}
 	}
 #endif
-	fprintf(stderr, "\tBit Depth luma %d - Chroma %d - %d temporal layers\n", vvccfg->luma_bit_depth, vvccfg->chroma_bit_depth, vvccfg->numTemporalLayers);
+	fprintf(stderr, "\tBit Depth %d - %d temporal layers\n", vvccfg->bit_depth_plus_one-1, vvccfg->numTemporalLayers);
 
 	for (k=0; k<gf_list_count(vvccfg->param_array); k++) {
 		GF_NALUParamArray *ar=gf_list_get(vvccfg->param_array, k);
