@@ -3154,27 +3154,38 @@ naldmx_flush:
 #endif // GPAC_DISABLE_HEVC
 		} else if (ctx->codecid==GF_CODECID_VVC) {
 			slice_is_ref = gf_media_vvc_slice_is_ref(ctx->vvc_state);
-
 			recovery_point_valid = ctx->vvc_state->s_info.recovery_point_valid;
 			recovery_point_frame_cnt = ctx->vvc_state->s_info.gdr_recovery_count;
 
-			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic)
-				bIntraSlice = GF_TRUE; //gf_media_hevc_slice_is_intra(ctx->hevc_state);
+//			commented, set below
+//			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic)
+//				bIntraSlice = GF_TRUE; //gf_media_hevc_slice_is_intra(ctx->hevc_state);
 
+			slice_is_ref = 0;
 			au_sap_type = GF_FILTER_SAP_NONE;
 			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic) {
 				au_sap_type = GF_FILTER_SAP_1;
+				bIntraSlice = GF_TRUE;
+				slice_is_ref = 1;
 			} else {
 				switch (ctx->vvc_state->s_info.nal_unit_type) {
 				case GF_VVC_NALU_SLICE_IDR_N_LP:
 					au_sap_type = GF_FILTER_SAP_1;
+					slice_is_ref = 1;
+					bIntraSlice = GF_TRUE;
 					break;
 				case GF_VVC_NALU_SLICE_CRA:
+					au_sap_type = GF_FILTER_SAP_3;
+					bIntraSlice = GF_TRUE;
+					break;
 				case GF_VVC_NALU_SLICE_IDR_W_RADL:
-					if (ctx->vvc_state->s_info.gdr_pic)
+					bIntraSlice = GF_TRUE;
+					if (ctx->vvc_state->s_info.gdr_pic) {
 						au_sap_type = GF_FILTER_SAP_3;
-					else
+					} else {
 						au_sap_type = GF_FILTER_SAP_1;
+						slice_is_ref = 1;
+					}
 					break;
 				}
 			}

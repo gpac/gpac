@@ -244,7 +244,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 }
 
 
-static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, char *data, u32 pos, Bool *has_nal_delim, u32 *out_temporal_id, u32 *out_layer_id, u8 *avc_hdr)
+static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, Bool *has_nal_delim, u32 *out_temporal_id, u32 *out_layer_id, u8 *avc_hdr)
 {
 	Bool is_layer = GF_FALSE;
 	if (ctx->vtype==UFNAL_HEVC) {
@@ -267,6 +267,22 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, char *data, u32 pos, Bool *has
 			break;
 		}
 	} else if (ctx->vtype==UFNAL_VVC) {
+		u8 nal_type = data[pos+1] >> 3;
+		u8 temporal_id = data[pos+1] & 0x7;
+		u8 layer_id = data[pos] & 0x3f;
+		if (temporal_id > *out_temporal_id) *out_temporal_id = temporal_id;
+		if (! (*out_layer_id) ) *out_layer_id = 1+layer_id;
+
+		switch (nal_type) {
+		case GF_VVC_NALU_VID_PARAM:
+			break;
+		case GF_VVC_NALU_ACCESS_UNIT:
+			*has_nal_delim = GF_TRUE;
+			break;
+		default:
+			if (layer_id) is_layer = GF_TRUE;
+			break;
+		}
 	} else {
 		u32 nal_type = data[pos] & 0x1F;
 		switch (nal_type) {
