@@ -983,7 +983,7 @@ enum
 
 static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len)
 {
-	if (!text || !*text || !subtext || !subtext)
+	if (!*text || !subtext || !subtext_len)
 		return GF_FALSE;
 
 	while (*text) {
@@ -1145,7 +1145,7 @@ static void PrintHelp(char *arg_name, Bool search_desc, Bool no_match)
 		char *_arg_name = gf_strdup(arg_name);
 		strlwr(_arg_name);
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options mentionning `%s`:\n", arg_name));
-		res = PrintHelpArg(_arg_name, SEARCH_DESC, fs);
+		PrintHelpArg(_arg_name, SEARCH_DESC, fs);
 		gf_free(_arg_name);
 	} else {
 		res = no_match ? GF_FALSE : PrintHelpArg(arg_name, SEARCH_ARG_EXACT, fs);

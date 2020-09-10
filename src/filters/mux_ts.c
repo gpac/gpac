@@ -783,7 +783,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 				temi_cfg += 1;
 				break;
 			}
-			if (sep) sep[0] = 0;
+			sep[0] = 0;
 			switch (temi_cfg[1]) {
 			case 'S':
 				service_id = atoi(temi_cfg+2);
@@ -822,7 +822,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 				done=GF_TRUE;
 				break;
 			}
-			if (sep) sep[0] = '#';
+			sep[0] = '#';
 			if (done) {
 				temi_cfg++;
 				break;
@@ -981,7 +981,6 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u64 first_pts_val;
 		u64 pcr_offset=0;
 		u32 pmt_id = ctx->pmt_id;
-		const GF_PropertyValue *p;
 
 		if (!pmt_id) pmt_id = 100;
 		nb_progs = gf_m2ts_mux_program_count(ctx->mux);

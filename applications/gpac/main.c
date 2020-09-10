@@ -2560,7 +2560,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len)
 {
-	if (!text || !*text || !subtext || !subtext)
+	if (!*text || !subtext || !subtext_len)
 		return GF_FALSE;
 
 	while (*text) {
