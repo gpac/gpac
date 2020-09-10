@@ -1108,6 +1108,8 @@ enum
 	/*! CRA VVC slice*/
 	GF_VVC_NALU_SLICE_GDR = 10,
 
+	/*! Operation Point Info */
+	GF_VVC_NALU_OPI = 12,
 	/*! Decode Parameter Set*/
 	GF_VVC_NALU_DEC_PARAM = 13,
 	/*! Video Parameter Set*/

@@ -1241,7 +1241,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 		cfg->num_constraint_info = gf_bs_read_u8(bs);
 		cfg->general_profile_idc = gf_bs_read_int(bs, 7);
 		cfg->general_tier_flag = gf_bs_read_int(bs, 1);
-		cfg->general_profile_idc = gf_bs_read_u8(bs);
+		cfg->general_level_idc = gf_bs_read_u8(bs);
 		cfg->ptl_frame_only_constraint = gf_bs_read_int(bs, 1);
 		cfg->ptl_multilayer_enabled = gf_bs_read_int(bs, 1);
 

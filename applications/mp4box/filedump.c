@@ -2114,11 +2114,10 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 	fprintf(stderr, " Profile %d @ Level %d - Chroma Format %s\n", vvccfg->general_profile_idc, vvccfg->general_level_idc, vvccfg->chromaformat_plus_one ? gf_avc_hevc_get_chroma_format_name(vvccfg->chromaformat_plus_one-1) : "n/a");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "\tNAL Unit length bits: %d", 8*vvccfg->nal_unit_size);
-	if (vvccfg->general_constraint_info && vvccfg->num_constraint_info) {
+	if (vvccfg->general_constraint_info && vvccfg->num_constraint_info && vvccfg->general_constraint_info[0]) {
 		fprintf(stderr, " - general constraint info 0x");
 		for (idx=0; idx<vvccfg->num_constraint_info; idx++) {
 			fprintf(stderr, "%02X", vvccfg->general_constraint_info[idx]);
-
 		}
 	}
 	fprintf(stderr, "\n");
