@@ -528,38 +528,155 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (vvc) {
 		u32 forb_zero = (ptr[0] & 0x80) ? 1 : 0;
 		u32 res_zero = (ptr[0] & 0x40) ? 1 : 0;
-		u8 tid = (ptr[0] & 0x3F);
-		u8 lid = (ptr[1] & 0x7);
-		if (forb_zero || res_zero) {
-			gf_fprintf(dump, "error=\"invalide header\"");
+		u8 lid = (ptr[0] & 0x3F);
+		u8 tid = (ptr[1] & 0x7);
+		if (forb_zero || res_zero || !tid) {
+			gf_fprintf(dump, "error=\"invalid header (forb %d res_zero %d tid %d)\"", forb_zero, res_zero, tid);
 			return;
 		}
+		tid -= 1;
 		type = ptr[1]>>3;
-		gf_fprintf(dump, "code=\"%d\" type=\"", type);
+		res = gf_media_vvc_parse_nalu(ptr, ptr_size, vvc, &type, &lid, &tid);
+		gf_fprintf(dump, "code=\"%d\" temporalid=\"%d\" layerid=\"%d\" type=\"", type, tid, lid);
 		switch (type) {
-		case GF_VVC_NALU_SLICE_TRAIL: fprintf(dump, "Slice_TRAIL"); break;
-		case GF_VVC_NALU_SLICE_STSA: fprintf(dump, "Slice_STSA"); break;
-		case GF_VVC_NALU_SLICE_RADL: fprintf(dump, "Slice_RADL"); break;
-		case GF_VVC_NALU_SLICE_RASL:fprintf(dump, "Slice_RASL"); break;
-		case GF_VVC_NALU_SLICE_IDR_W_RADL: fprintf(dump, "IDR_RADL"); break;
-		case GF_VVC_NALU_SLICE_IDR_N_LP: fprintf(dump, "IDR"); break;
-		case GF_VVC_NALU_SLICE_CRA: fprintf(dump, "CRA"); break;
-		case GF_VVC_NALU_SLICE_GDR:fprintf(dump, "DGR"); break;
-		case GF_VVC_NALU_DEC_PARAM: fprintf(dump, "DecodeParameterSet"); break;
-		case GF_VVC_NALU_VID_PARAM: fprintf(dump, "VideoParameterSet"); break;
-		case GF_VVC_NALU_SEQ_PARAM: fprintf(dump, "SequenceParameterSet"); break;
-		case GF_VVC_NALU_PIC_PARAM: fprintf(dump, "PictureParameterSet"); break;
-		case GF_VVC_NALU_APS_PREFIX: fprintf(dump, "AdaptationParameterSet_Prefix"); break;
-		case GF_VVC_NALU_APS_SUFFIX: fprintf(dump, "AdaptationParameterSet_Suffix"); break;
-		case GF_VVC_NALU_ACCESS_UNIT: fprintf(dump, "AUDelimiter"); break;
-		case GF_VVC_NALU_END_OF_SEQ: fprintf(dump, "EOS"); break;
-		case GF_VVC_NALU_END_OF_STREAM: fprintf(dump, "EOB"); break;
-		case GF_VVC_NALU_FILLER_DATA: fprintf(dump, "FillerData"); break;
-		case GF_VVC_NALU_SEI_PREFIX: fprintf(dump, "SEI_Prefix"); break;
-		case GF_VVC_NALU_SEI_SUFFIX: fprintf(dump, "SEI_Suffix"); break;
-		}
-		gf_fprintf(dump, "\" temporalid=\"%d\" layerid=\"%d\"", tid, lid);
+		case GF_VVC_NALU_SLICE_TRAIL:
+			gf_fprintf(dump, "Slice_TRAIL");
+			break;
+		case GF_VVC_NALU_SLICE_STSA:
+			gf_fprintf(dump, "Slice_STSA");
+			break;
+		case GF_VVC_NALU_SLICE_RADL:
+			gf_fprintf(dump, "Slice_RADL");
+			break;
+		case GF_VVC_NALU_SLICE_RASL:
+			gf_fprintf(dump, "Slice_RASL");
+			break;
+		case GF_VVC_NALU_SLICE_IDR_W_RADL:
+			gf_fprintf(dump, "IDR_RADL");
+			break;
+		case GF_VVC_NALU_SLICE_IDR_N_LP:
+			gf_fprintf(dump, "IDR");
+			break;
+		case GF_VVC_NALU_SLICE_CRA:
+			gf_fprintf(dump, "CRA");
+			break;
+		case GF_VVC_NALU_SLICE_GDR:
+			gf_fprintf(dump, "GDR");
+			break;
+		case GF_VVC_NALU_OPI:
+			gf_fprintf(dump, "OperationPointInfo");
+			break;
+		case GF_VVC_NALU_DEC_PARAM:
+			gf_fprintf(dump, "DecodeParameterSet");
+			break;
+		case GF_VVC_NALU_VID_PARAM:
+			gf_fprintf(dump, "VideoParameterSet");
+			if (res>=0) {
+				u32 j;
+				VVC_VPS *vps = &vvc->vps[vvc->last_parsed_vps_id];
+				gf_fprintf(dump, "\" id=\"%d\" num_ptl=\"%d\" max_layers=\"%d\" max_sublayers=\"%d", vps->id, vps->num_ptl, vps->max_layers, vps->max_sub_layers);
+				if (vps->max_layers>1) {
+					gf_fprintf(dump, "\" max_layer_id=\"%d\", all_layers_independent=\"%d\" each_layer_is_ols=\"%d", vps->max_layer_id, vps->all_layers_independent, vps->each_layer_is_ols);
+				}
+				for (j=0; j<vps->num_ptl; j++) {
+					VVC_ProfileTierLevel *ptl = &vps->ptl[j];
+					gf_fprintf(dump, "\" general_level_idc=\"%d\", frame_only_constraint=\"%d\" multilayer_enabled=\"%d\" max_tid=\"%d", ptl->general_level_idc, ptl->frame_only_constraint, ptl->multilayer_enabled, ptl->ptl_max_tid);
 
+					if (ptl->pt_present) {
+						gf_fprintf(dump, "\" general_profile_idc=\"%d\", general_tier_flag=\"%d\" gci_present=\"%d", ptl->general_profile_idc, ptl->general_tier_flag, ptl->gci_present);
+					}
+				}
+			}
+			res = -2;
+			break;
+		case GF_VVC_NALU_SEQ_PARAM:
+			gf_fprintf(dump, "SequenceParameterSet");
+			if (res>=0) {
+				VVC_SPS *sps = &vvc->sps[vvc->last_parsed_sps_id];
+
+				gf_fprintf(dump, "\" id=\"%d\" vps_id=\"%d\" max_sublayers=\"%d\" chroma_idc=\"%d\" bit_depth=\"%d\" CTBsizeY=\"%d\" gdr_enabled=\"%d\" ref_pic_sampling=\"%d\" subpic_info_present=\"%d\" poc_msb_cycle_flag=\"%d", sps->id, sps->vps_id, sps->max_sublayers, sps->chroma_format_idc, sps->bitdepth, 1<<sps->log2_ctu_size, sps->gdr_enabled, sps->ref_pic_resampling, sps->subpic_info_present, sps->poc_msb_cycle_flag);
+				if (sps->ref_pic_resampling) {
+					gf_fprintf(dump, "\" res_change_in_clvs=\"%d", sps->res_change_in_clvs);
+				}
+				gf_fprintf(dump, "\" width=\"%d\" height=\"%d\" conf_window=\"%d", sps->width, sps->height, sps->conf_window);
+				if (sps->conf_window) {
+					gf_fprintf(dump, "\" cw_left=\"%d\" cw_right=\"%d\" cw_top=\"%d\" cw_bottom=\"%d", sps->cw_left, sps->cw_right, sps->cw_top, sps->cw_bottom);
+				}
+			}
+			res=-2;
+			break;
+		case GF_VVC_NALU_PIC_PARAM:
+			gf_fprintf(dump, "PictureParameterSet");
+			if (res>=0) {
+				VVC_PPS *pps = &vvc->pps[vvc->last_parsed_pps_id];
+				gf_fprintf(dump, "\" id=\"%d\" sps_id=\"%d\" width=\"%d\" height=\"%d\" mixed_nal_types=\"%d\" conf_window=\"%d", pps->id, pps->sps_id, pps->width, pps->height, pps->mixed_nal_types, pps->conf_window);
+
+				if (pps->conf_window) {
+					gf_fprintf(dump, "\" cw_left=\"%d\" cw_right=\"%d\" cw_top=\"%d\" cw_bottom=\"%d", pps->cw_left, pps->cw_right, pps->cw_top, pps->cw_bottom);
+				}
+				gf_fprintf(dump, "\" output_flag_present_flag=\"%d\" no_pic_partition_flag=\"%d\" subpic_id_mapping_present_flag=\"%d", pps->output_flag_present_flag, pps->no_pic_partition_flag, pps->subpic_id_mapping_present_flag);
+			}
+			res=-2;
+			break;
+		case GF_VVC_NALU_APS_PREFIX:
+			gf_fprintf(dump, "AdaptationParameterSet_Prefix");
+			res=-2;
+			break;
+		case GF_VVC_NALU_APS_SUFFIX:
+			gf_fprintf(dump, "AdaptationParameterSet_Suffix");
+			res=-2;
+			break;
+		case GF_VVC_NALU_ACCESS_UNIT:
+			gf_fprintf(dump, "AUDelimiter");
+			res=-2;
+			break;
+		case GF_VVC_NALU_END_OF_SEQ:
+			gf_fprintf(dump, "EOS");
+			res=-2;
+			break;
+		case GF_VVC_NALU_END_OF_STREAM:
+			gf_fprintf(dump, "EOB");
+			res=-2;
+			break;
+		case GF_VVC_NALU_FILLER_DATA:
+			gf_fprintf(dump, "FillerData");
+			res=-2;
+			break;
+		case GF_VVC_NALU_SEI_PREFIX:
+			gf_fprintf(dump, "SEI_Prefix");
+			res=-2;
+			break;
+		case GF_VVC_NALU_SEI_SUFFIX:
+			gf_fprintf(dump, "SEI_Suffix");
+			res=-2;
+			break;
+		case GF_VVC_NALU_PIC_HEADER:
+			gf_fprintf(dump, "PictureHeader");
+			break;
+		default:
+			gf_fprintf(dump, "Unknwon");
+			res = -2;
+			break;
+		}
+		gf_fprintf(dump, "\"");
+
+		//picture header or slice
+		if (res>=0) {
+			if (type!=GF_VVC_NALU_PIC_HEADER)
+				gf_fprintf(dump, " picture_header_in_slice_header_flag=\"%d\"", vvc->s_info.picture_header_in_slice_header_flag);
+
+			if ((type==GF_VVC_NALU_PIC_HEADER) || vvc->s_info.picture_header_in_slice_header_flag) {
+				gf_fprintf(dump, " pps_id=\"%d\" poc=\"%d\" irap_or_gdr_pic=\"%d\" non_ref_pic=\"%d\" inter_slice_allowed_flag=\"%d\" poc_lsb=\"%d\"", vvc->s_info.pps->id, vvc->s_info.poc, vvc->s_info.irap_or_gdr_pic, vvc->s_info.non_ref_pic, vvc->s_info.inter_slice_allowed_flag, vvc->s_info.poc_lsb);
+				if (vvc->s_info.irap_or_gdr_pic)
+					gf_fprintf(dump, " gdr_pic=\"%d\" gdr_recovery_count=\"%d\"", vvc->s_info.gdr_pic, vvc->s_info.gdr_recovery_count);
+				if (vvc->s_info.inter_slice_allowed_flag)
+					gf_fprintf(dump, " intra_slice_allowed_flag=\"%d\"", vvc->s_info.intra_slice_allowed_flag);
+				if (vvc->s_info.sps->poc_msb_cycle_flag && vvc->s_info.poc_msb_cycle_present_flag)
+					gf_fprintf(dump, " poc_msb_cycle=\"%d\"", vvc->s_info.poc_msb_cycle);
+			}
+			if (type!=GF_VVC_NALU_PIC_HEADER)
+				gf_fprintf(dump, " slice_type=\"%d\"", vvc->s_info.slice_type);
+		}
 		return;
 	}
 
@@ -2154,6 +2271,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	svcc = NULL;
 	hvcc = NULL;
 	lhcc = NULL;
+	vvcC = NULL;
 	pctx->has_svcc = 0;
 
 	switch (pctx->codec_id) {
@@ -2460,6 +2578,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	if (svcc) gf_odf_avc_cfg_del(svcc);
 	if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 	if (lhcc) gf_odf_hevc_cfg_del(lhcc);
+	if (vvcC) gf_odf_vvc_cfg_del(vvcC);
 
 	gf_fprintf(dump, "</%s>\n", elt_name);
 }

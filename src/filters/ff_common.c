@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -57,7 +57,11 @@ typedef struct
 	u32 gpac_pf;
 } GF_FF_PFREG;
 
-#define FFMPEG_ENABLE_VVC
+#ifndef FFMPEG_ENABLE_VVC
+//enable this when compiling under xcode or visual (eg without ./configure), or add macro to configuration.h or project settings
+//to remove once we have a known API version number for vvc in libavcodec
+//#define FFMPEG_ENABLE_VVC
+#endif
 
 static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 {

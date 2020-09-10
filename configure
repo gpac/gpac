@@ -78,6 +78,7 @@ has_xvid="no"
 has_mad="no"
 has_faad="no"
 has_ffmpeg="no"
+ffmpeg_vvc="no"
 has_amr_nb_fixed="no"
 has_amr_nb="no"
 has_amr_wb="no"
@@ -1346,6 +1347,19 @@ else
     has_libswresample="no"
 fi
 
+
+#detect vvc support in ffmpegf
+cat > $TMPC << EOF
+#include <libavcodec/avcodec.h>
+int main(void) {
+    AVCodec *codec = avcodec_find_decoder(AV_CODEC_ID_VVC);
+    return 0;
+}
+EOF
+
+if docc $ffmpeg_cflags $ffmpeg_lflags ; then
+    ffmpeg_vvc="yes"
+fi
 
 #look for FREENECT support
 freenect_flags=""
@@ -2629,6 +2643,9 @@ echo "MAD: $has_mad"
 echo "FAAD: $has_faad"
 echo "XVID: $has_xvid"
 echo "FFMPEG: $has_ffmpeg"
+if test "$ffmpeg_vvc" = "yes" ; then
+echo "FFMPG VVC Support: $ffmpeg_vvc"
+fi
 echo "LZMA: $has_lzma"
 echo "Xiph OGG: $has_ogg"
 echo "Platinum UPnP: $has_platinum"
@@ -2643,6 +2660,7 @@ echo "A52 (AC3): $has_a52"
 echo "OpenSVCDecoder: $has_opensvc"
 echo "OpenHEVCDecoder: $has_openhevc"
 echo "Freenect: $has_freenect"
+
 
 if test "$enable_renoir" = "yes" ; then
     echo "Renoir enabled - make sure the driver libraries are present in modules/viren_out directory"
@@ -2938,6 +2956,9 @@ else
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
     echo "CONFIG_LIBSWRESAMPLE=$has_libswresample" >> config.mak
     echo "#define GPAC_HAS_FFMPEG" >> $TMPH
+    if test "$ffmpeg_vvc" = "yes"; then
+      echo "#define FFMPEG_ENABLE_VVC" >> $TMPH
+    fi
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 

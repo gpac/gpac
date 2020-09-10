@@ -1414,6 +1414,30 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.0x%02X", gf_4cc_to_str(subtype), mha_pl);
 		return GF_OK;
 
+	case GF_CODECID_VVC:
+		if (!subtype) {
+			subtype = force_inband ? GF_ISOM_SUBTYPE_VVI1 : GF_ISOM_SUBTYPE_VVC1;
+		}
+		if (dcd) {
+			GF_VVCConfig *vvcc = dcd ? gf_odf_vvc_cfg_read(dcd->value.data.ptr, dcd->value.data.size) : NULL;
+
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
+			if (vvcc) {
+				char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
+				sprintf(szTemp, "%d", vvcc->general_profile_idc);
+				strcat(szCodec, szTemp);
+
+				sprintf(szTemp, ".%s%d", vvcc->general_tier_flag ? "H" : "L", vvcc->general_level_idc);
+				strcat(szCodec, szTemp);
+
+				gf_odf_vvc_cfg_del(vvcc);
+			}
+			return GF_OK;
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VVC config, using default %s\n", szCodec));
+		return GF_OK;
+
 	default:
 		subtype = gf_codecid_4cc_type(ds->codec_id);
 		if (!subtype) {

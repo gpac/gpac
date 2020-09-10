@@ -553,6 +553,118 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 
 void gf_media_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
 
 
+
+enum
+{
+	GF_VVC_SLICE_TYPE_B = 0,
+	GF_VVC_SLICE_TYPE_P = 1,
+	GF_VVC_SLICE_TYPE_I = 2,
+};
+
+typedef struct
+{
+	s32 id;
+	u32 vps_id;
+	u8 state;
+
+	u8 max_sublayers, chroma_format_idc, log2_ctu_size, sps_ptl_dpb_hrd_params_present_flag;
+	u8 gdr_enabled, ref_pic_resampling, res_change_in_clvs;
+
+	u8 conf_window;
+	u32 cw_left, cw_right, cw_top, cw_bottom;
+
+	u8 subpic_info_present, independent_subpic_flags, subpic_same_size, subpicid_mapping_explicit, subpicid_mapping_present;
+	u32 nb_subpics; //up to 600
+	u32 subpicid_len;
+
+	Bool aspect_ratio_info_present_flag;
+	u8 sar_idc;
+	u16 sar_width, sar_height;
+	Bool has_timing_info;
+	u32 num_units_in_tick, time_scale;
+	u32 width, height;
+
+	u32 bitdepth;
+
+	u8 ph_num_extra_bits, sh_num_extra_bits;
+	u8 log2_max_poc_lsb, poc_msb_cycle_flag;
+	u32 poc_msb_cycle_len;
+} VVC_SPS;
+
+typedef struct
+{
+	s32 id;
+	u32 sps_id;
+	u8 state, conf_window, mixed_nal_types, output_flag_present_flag, no_pic_partition_flag, subpic_id_mapping_present_flag, rect_slice_flag;
+
+	u32 width, height;
+	u32 cw_left, cw_right, cw_top, cw_bottom;
+
+} VVC_PPS;
+
+#define VVC_MAX_LAYERS	4
+#define VVC_MAX_NUM_LAYER_SETS 1024
+
+
+typedef struct
+{
+	u8 profile_present_flag, level_present_flag;
+	u8 sublayer_level_idc;
+
+} VVC_SublayerPTL;
+
+typedef struct
+{
+	u8 pt_present;
+	u8 ptl_max_tid;
+
+	u8 general_profile_idc, general_tier_flag, general_level_idc, frame_only_constraint, multilayer_enabled;
+	VVC_SublayerPTL sub_ptl[8];
+
+	u8 num_sub_profiles;
+	u32 sub_profile_idc[255];
+
+	u8 gci_present;
+	//holds 81 bits, the last byte contains the remainder (low bit set, not high)
+	u8 gci[12];
+} VVC_ProfileTierLevel;
+
+typedef struct
+{
+	s32 id;
+	u8 state;
+
+	HEVC_RateInfo rates[8];
+	u32 max_layers, max_sub_layers;
+	Bool all_layers_independent, each_layer_is_ols;
+	u32 max_layer_id; //, num_layer_sets;
+
+	u16 num_ptl; //max 256
+	VVC_ProfileTierLevel ptl[256];
+} VVC_VPS;
+
+typedef struct
+{
+	u8 nal_unit_type;
+	u32 frame_num, poc_lsb, slice_type;
+
+	u8 poc_msb_cycle_present_flag;
+	s32 poc;
+	u32 poc_msb, poc_msb_cycle, poc_msb_prev, poc_lsb_prev, frame_num_prev;
+
+	VVC_SPS *sps;
+	VVC_PPS *pps;
+
+	u8 picture_header_in_slice_header_flag, inter_slice_allowed_flag, intra_slice_allowed_flag;
+	u8 irap_or_gdr_pic;
+	u8 non_ref_pic;
+	u8 gdr_pic;
+	u32 gdr_recovery_count;
+	u8 recovery_point_valid;
+
+	u8 prev_layer_id_plus1;
+} VVCSliceInfo;
+
 /*TODO once we add HLS parsing (FDIS) */
 typedef struct _vvc_state
 {
@@ -562,8 +674,19 @@ typedef struct _vvc_state
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
+	s32 last_parsed_aps_id;
+
+	VVC_SPS sps[16];
+	VVC_PPS pps[64];
+	VVC_VPS vps[16];
+
+	VVCSliceInfo s_info;
 } VVCState;
 
+s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+void gf_media_vvc_parse_sei(char* buffer, u32 nal_size, VVCState *vvc);
+Bool gf_media_vvc_slice_is_ref(VVCState *vvc);
+s32 gf_media_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 
 
 

@@ -2383,6 +2383,12 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			stream->mpeg2_stream_id = 0xFA;
 			gf_m2ts_stream_set_default_slconfig(stream);
 			break;
+		case GF_CODECID_VVC:
+			stream->mpeg2_stream_type = GF_M2TS_VIDEO_VVC;
+			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
+			+ 4 byte start code + first nal header*/
+			stream->min_bytes_copy_from_next = 12;
+			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as PES private using codec 4CC in registration descriptor\n", gf_codecid_name(ifce->codecid) ));
 
