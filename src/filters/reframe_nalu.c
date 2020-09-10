@@ -79,7 +79,7 @@ typedef struct
 	//write bitstream for nalus size length rewrite
 	GF_BitStream *bs_w;
 	//current CTS/DTS of the stream, may be overridden by input packet if not file (eg TS PES)
-	u64 cts, dts, prev_dts;
+	u64 cts, dts, prev_dts, prev_cts;
 	u32 pck_duration;
 	//basic config stored here: with, height CRC of base and enh layer decoder config, sample aspect ratio
 	//when changing, a new pid config will be emitted
@@ -2045,6 +2045,45 @@ static void naludmx_on_eos(void *par)
 	ctx->eos_in_bs = GF_TRUE;
 }
 
+static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
+{
+	//input pid sets some timescale - we flushed pending data , update cts
+	if (ctx->timescale) {
+		u64 ts = gf_filter_pck_get_cts(pck);
+		if (ts != GF_FILTER_NO_TS) {
+			ctx->prev_cts = ctx->cts;
+			ctx->cts = ts;
+		}
+		ts = gf_filter_pck_get_dts(pck);
+		if (ts != GF_FILTER_NO_TS) {
+			GF_FilterClockType ck_type = gf_filter_pid_get_clock_info(ctx->ipid, NULL, NULL);
+			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
+				ctx->dts = ts;
+			else if (ctx->dts<ts)
+				ctx->dts=ts;
+
+			if (!ctx->prev_dts) ctx->prev_dts = ts;
+			else if (ctx->prev_dts != ts) {
+				u64 diff = ts;
+				diff -= ctx->prev_dts;
+				if (!ctx->cur_fps.den)
+					ctx->cur_fps.den = (u32) diff;
+				else if (ctx->cur_fps.den > diff)
+					ctx->cur_fps.den = (u32) diff;
+
+				ctx->prev_dts = ts;
+			}
+		}
+		ctx->pck_duration = gf_filter_pck_get_duration(pck);
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
+		//store framing flags. If input_is_au_start, the first NAL of the first frame begining in this packet will
+		//use the DTS/CTS of the input packet, otherwise we will use our internal POC recompute
+		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, NULL);
+	}
+}
+
 GF_Err naludmx_process(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
@@ -2101,39 +2140,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 	start = data;
 	remain = pck_size;
 
-	//input pid sets some timescale - we flushed pending data , update cts
-	if (ctx->timescale) {
-		u64 ts = gf_filter_pck_get_cts(pck);
-		if (ts != GF_FILTER_NO_TS)
-			ctx->cts = ts;
-		ts = gf_filter_pck_get_dts(pck);
-		if (ts != GF_FILTER_NO_TS) {
-			GF_FilterClockType ck_type = gf_filter_pid_get_clock_info(ctx->ipid, NULL, NULL);
-			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
-				ctx->dts = ts;
-			else if (ctx->dts<ts)
-				ctx->dts=ts;
-
-			if (!ctx->prev_dts) ctx->prev_dts = ts;
-			else if (ctx->prev_dts != ts) {
-				u64 diff = ts;
-				diff -= ctx->prev_dts;
-				if (!ctx->cur_fps.den)
-					ctx->cur_fps.den = (u32) diff;
-				else if (ctx->cur_fps.den > diff)
-					ctx->cur_fps.den = (u32) diff;
-
-				ctx->prev_dts = ts;
-			}
-		}
-		ctx->pck_duration = gf_filter_pck_get_duration(pck);
-		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
-		ctx->src_pck = pck;
-		gf_filter_pck_ref_props(&ctx->src_pck);
-		//store framing flags. If input_is_au_start, the first NAL of the first frame begining in this packet will
-		//use the DTS/CTS of the inout packet, otherwise we will use our internal POC recompute
-		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, NULL);
-	}
+	//if we have bytes from previous packet in the header, we cannot switch timing until we know what these bytes are
+	if (!ctx->bytes_in_header)
+		naldmx_switch_timestamps(ctx, pck);
 
 	//we stored some data to find the complete vosh, aggregate this packet with current one
 	if (!ctx->resume_from && ctx->hdr_store_size) {
@@ -2258,6 +2267,9 @@ naldmx_flush:
 					//hence current+sc_pos-ctx->bytes_in_header in the new packet
 					hdr_offset = current + sc_size - ctx->bytes_in_header;
 					nal_sc_in_store = GF_TRUE;
+
+					//since the nal is completely in the pes, its timestamp is the one of the source packet, switch timing
+					naldmx_switch_timestamps(ctx, pck);
 				} else {
 					//this is trickier, nal start is in the store buffer
 					u8 lastb2, lastb1, nextb1;
@@ -2973,6 +2985,8 @@ naldmx_flush:
 				ctx->bytes_in_header -= next_size+store_sc_size;
 				continue;
 			}
+			//we're done consuming data from previous packet, switch timing
+			naldmx_switch_timestamps(ctx, pck);
 		} else {
 			//bytes only come from the data packet
 			memcpy(pck_data, pck_start, (size_t) size);
@@ -3256,7 +3270,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes\n"
 		"- off: disable GOP buffering\n"
 		"- on: enable GOP buffering, assuming no error in POC\n"
-		"- error: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "false", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
+		"- error: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "off", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosei), "remove all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
