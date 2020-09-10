@@ -9097,7 +9097,10 @@ static s32 gf_media_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bo
 	//nalu header already parsed
 	vps_id = gf_bs_read_int(bs, 4);
 	if (vps_id >= 16) return -1;
-
+	if (!vps_id) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] VPS ID 0 is forbidden\n"));
+		return -1;
+	}
 	vps = &vvc->vps[vps_id];
 	if (!vps->state) {
 		vps->id = vps_id;
@@ -9105,7 +9108,7 @@ static s32 gf_media_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bo
 	}
 	vps->max_layers = 1 + gf_bs_read_int(bs, 6);
 	if (vps->max_layers > MAX_LHVC_LAYERS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] sorry, %d layers in VPS but only %d supported\n", vps->max_layers, MAX_LHVC_LAYERS));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sorry, %d layers in VPS but only %d supported\n", vps->max_layers, MAX_LHVC_LAYERS));
 		return -1;
 	}
 	vps->max_sub_layers = gf_bs_read_int(bs, 3) + 1;
@@ -9179,7 +9182,6 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 	s32 vps_id, sps_id;
 	u32 i, CtbSizeY;
 	VVC_SPS *sps;
-	VVC_ProfileTierLevel ptl;
 	u8 sps_ptl_dpb_hrd_params_present_flag;
 
 	if (vui_flag_pos) *vui_flag_pos = 0;
@@ -9192,7 +9194,12 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 	if (vps_id >= 16) {
 		return -1;
 	}
-	memset(&ptl, 0, sizeof(ptl));
+	if (!vps_id && !vvc->vps[0].state) {
+		vvc->vps[0].state = 1;
+		vvc->vps[0].num_ptl = 1;
+		vvc->vps[0].max_layers = 1;
+		vvc->vps[0].all_layers_independent = 1;
+	}
 
 	sps = &vvc->sps[sps_id];
 	if (!sps->state) {
@@ -9207,9 +9214,16 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 
 	sps_ptl_dpb_hrd_params_present_flag = gf_bs_read_int(bs, 1);
 	if (sps_ptl_dpb_hrd_params_present_flag) {
-		ptl.pt_present = 1;
-		ptl.ptl_max_tid = sps->max_sublayers;
-		vvc_profile_tier_level(bs, &ptl);
+		VVC_ProfileTierLevel ptl, *p_ptl;
+		if (sps->vps_id) {
+			p_ptl = &ptl;
+		} else {
+			p_ptl = &vvc->vps[0].ptl[0];
+		}
+		memset(p_ptl, 0, sizeof(VVC_ProfileTierLevel));
+		p_ptl->pt_present = 1;
+		p_ptl->ptl_max_tid = sps->max_sublayers;
+		vvc_profile_tier_level(bs, p_ptl);
 	}
 	sps->gdr_enabled = gf_bs_read_int(bs, 1);
 	sps->ref_pic_resampling = gf_bs_read_int(bs, 1);
@@ -9305,7 +9319,7 @@ static s32 gf_media_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 	}
 	pps->sps_id = gf_bs_read_int(bs, 4);
 	if (pps->sps_id >= 16) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] wrong SPS ID %d in PPS\n", pps->sps_id));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong SPS ID %d in PPS\n", pps->sps_id));
 		pps->sps_id=0;
 		return -1;
 	}

@@ -576,14 +576,14 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				VVC_VPS *vps = &vvc->vps[vvc->last_parsed_vps_id];
 				gf_fprintf(dump, "\" id=\"%d\" num_ptl=\"%d\" max_layers=\"%d\" max_sublayers=\"%d", vps->id, vps->num_ptl, vps->max_layers, vps->max_sub_layers);
 				if (vps->max_layers>1) {
-					gf_fprintf(dump, "\" max_layer_id=\"%d\", all_layers_independent=\"%d\" each_layer_is_ols=\"%d", vps->max_layer_id, vps->all_layers_independent, vps->each_layer_is_ols);
+					gf_fprintf(dump, "\" max_layer_id=\"%d\" all_layers_independent=\"%d\" each_layer_is_ols=\"%d", vps->max_layer_id, vps->all_layers_independent, vps->each_layer_is_ols);
 				}
 				for (j=0; j<vps->num_ptl; j++) {
 					VVC_ProfileTierLevel *ptl = &vps->ptl[j];
-					gf_fprintf(dump, "\" general_level_idc=\"%d\", frame_only_constraint=\"%d\" multilayer_enabled=\"%d\" max_tid=\"%d", ptl->general_level_idc, ptl->frame_only_constraint, ptl->multilayer_enabled, ptl->ptl_max_tid);
+					gf_fprintf(dump, "\" general_level_idc=\"%d\" frame_only_constraint=\"%d\" multilayer_enabled=\"%d\" max_tid=\"%d", ptl->general_level_idc, ptl->frame_only_constraint, ptl->multilayer_enabled, ptl->ptl_max_tid);
 
 					if (ptl->pt_present) {
-						gf_fprintf(dump, "\" general_profile_idc=\"%d\", general_tier_flag=\"%d\" gci_present=\"%d", ptl->general_profile_idc, ptl->general_tier_flag, ptl->gci_present);
+						gf_fprintf(dump, "\" general_profile_idc=\"%d\" general_tier_flag=\"%d\" gci_present=\"%d", ptl->general_profile_idc, ptl->general_tier_flag, ptl->gci_present);
 					}
 				}
 			}
@@ -598,7 +598,16 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				if (sps->ref_pic_resampling) {
 					gf_fprintf(dump, "\" res_change_in_clvs=\"%d", sps->res_change_in_clvs);
 				}
-				gf_fprintf(dump, "\" width=\"%d\" height=\"%d\" conf_window=\"%d", sps->width, sps->height, sps->conf_window);
+				gf_fprintf(dump, "\" width=\"%d\" height=\"%d", sps->width, sps->height);
+				if (!sps->vps_id) {
+					VVC_ProfileTierLevel *ptl = &vvc->vps[0].ptl[0];
+					gf_fprintf(dump, "\" general_level_idc=\"%d\" frame_only_constraint=\"%d\" multilayer_enabled=\"%d\" max_tid=\"%d", ptl->general_level_idc, ptl->frame_only_constraint, ptl->multilayer_enabled, ptl->ptl_max_tid);
+
+					if (ptl->pt_present) {
+						gf_fprintf(dump, "\" general_profile_idc=\"%d\" general_tier_flag=\"%d\" gci_present=\"%d", ptl->general_profile_idc, ptl->general_tier_flag, ptl->gci_present);
+					}
+				}
+				gf_fprintf(dump, "\" conf_window=\"%d", sps->conf_window);
 				if (sps->conf_window) {
 					gf_fprintf(dump, "\" cw_left=\"%d\" cw_right=\"%d\" cw_top=\"%d\" cw_bottom=\"%d", sps->cw_left, sps->cw_right, sps->cw_top, sps->cw_bottom);
 				}
@@ -2425,13 +2434,19 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			for (idx=0; idx<gf_list_count(vvcC->param_array); idx++) {
 				GF_NALUParamArray *ar = gf_list_get(vvcC->param_array, idx);
 				if (ar->type==GF_VVC_NALU_SEQ_PARAM) {
-					DUMP_ARRAY(ar->nalus, "VVCSPS", "hvcC", 0)
+					DUMP_ARRAY(ar->nalus, "VVCSPS", "vvcC", 0)
 				} else if (ar->type==GF_VVC_NALU_PIC_PARAM) {
-					DUMP_ARRAY(ar->nalus, "VVCPPS", "hvcC", 0)
+					DUMP_ARRAY(ar->nalus, "VVCPPS", "vvcC", 0)
 				} else if (ar->type==GF_VVC_NALU_VID_PARAM) {
-					DUMP_ARRAY(ar->nalus, "VVCVPS", "hvcC", 0)
+					DUMP_ARRAY(ar->nalus, "VVCVPS", "vvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_APS_PREFIX) {
+					DUMP_ARRAY(ar->nalus, "VVCAPS", "vvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_SEI_PREFIX) {
+					DUMP_ARRAY(ar->nalus, "VVCSEI", "vvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_DEC_PARAM) {
+					DUMP_ARRAY(ar->nalus, "VVCDCI", "vvcC", 0)
 				} else {
-					DUMP_ARRAY(ar->nalus, "VVCUnknownPS", "hvcC", 0)
+					DUMP_ARRAY(ar->nalus, "VVCUnknownPS", "vvcC", 0)
 				}
 			}
 		}
