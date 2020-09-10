@@ -1,3 +1,16 @@
+10/09/2020: GPAC 1.0.1
+This release fixes build and installation issues in 1.0.0, as well as various bugs introduced during the migration to the filters architecture.
+
+It also adds several small features:
+- better ttml import
+- better support for MPEGH audio
+- support fur DASH UTCTiming
+- manifest generation from pre-fragmented DASH/HLS mp4
+- speed optimization in isobmf reading (normal and fragmented)
+- improved JS API for the filter session
+- core tools exposed as JS module (file io, bitstream, etc ...)
+- android fixes
+
 16/06/2020: GPAC 1.0
  - Complete rewrite of GPAC streaming core:
     * addition of a filter-based architecture, used by MP4Client and MP4Box.
