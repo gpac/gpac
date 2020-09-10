@@ -20,7 +20,7 @@
 [![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=master)](https://tests.gpac.io/testres/)
 
 ![License](https://img.shields.io/badge/license-LGPL-blue.svg)
-![OpenHub](https://www.openhub.net/p/gpac/widgets/project_thin_badge.gif)
+[![OpenHub](https://www.openhub.net/p/gpac/widgets/project_thin_badge.gif)](https://www.openhub.net/p/gpac)
 
 
 # GPAC Introduction
