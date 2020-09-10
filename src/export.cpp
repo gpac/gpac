@@ -56,6 +56,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_quiet) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_copyright) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_copyright_cite) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_features) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_sleep) )
