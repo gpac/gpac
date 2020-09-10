@@ -308,7 +308,6 @@ void dashdmx_io_delete_cache_file(GF_DASHFileIO *dashio, GF_DASHFileIOSession se
 GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, const char *url, s32 group_idx)
 {
 	GF_DownloadSession *sess;
-	const GF_PropertyValue *p;
 	GF_Err e;
 	u32 flags = GF_NETIO_SESSION_NOT_THREADED;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
@@ -320,7 +319,7 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	//crude hack when using gpac downloader to initialize the MPD pid: get the pointer to the download session
 	//this should be safe unless the mpd_pid is destroyed, which should only happen upon destruction of the DASH session
 	if (group_idx==-1) {
-		p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
 		if (p) {
 			sess = (GF_DownloadSession *) p->value.ptr;
 			if (!ctx->segstore) {

@@ -2948,7 +2948,7 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 
 	case JSF_EVENT_USER_TEXT:
 	{
-		const char *str = JS_ToCString(ctx, value);
+		str = JS_ToCString(ctx, value);
 		evt->user_event.event.clipboard.text = gf_strdup(str ? str : "");
 		if (str) JS_FreeCString(ctx, str);
 		return JS_UNDEFINED;
@@ -2971,7 +2971,7 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 
 	case JSF_EVENT_USER_CAPTION:
 	{
-		const char *str = JS_ToCString(ctx, value);
+		str = JS_ToCString(ctx, value);
 		evt->user_event.event.caption.caption = gf_strdup(str ? str : "");
 		if (str) JS_FreeCString(ctx, str);
 		return JS_UNDEFINED;

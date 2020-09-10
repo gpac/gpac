@@ -7240,7 +7240,6 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
-	GF_TrunEntry *p;
 	GF_TrackFragmentRunBox *ptr = (GF_TrackFragmentRunBox *)s;
 
 #ifdef GF_ENABLE_CTRN
@@ -7284,7 +7283,7 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		//read each entry (even though nothing may be written)
 		for (i=0; i<ptr->sample_count; i++) {
 			u32 trun_size = 0;
-			p = &ptr->samples[i];
+			GF_TrunEntry *p = &ptr->samples[i];
 			memset(p, 0, sizeof(GF_TrunEntry));
 
 			if (ptr->flags & GF_ISOM_TRUN_DURATION) {

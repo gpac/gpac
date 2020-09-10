@@ -2113,7 +2113,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	}
 	for (i = 0; i < gf_isom_get_track_count(dest); ++i) {
 		if (gf_isom_get_media_type(dest, i+1) == GF_ISOM_MEDIA_TIMECODE) {
-			u32 video_ref = 0, j;
+			u32 video_ref = 0;
 			for (j = 0; j < gf_isom_get_track_count(dest); ++j) {
 				if (gf_isom_is_video_handler_type(gf_isom_get_media_type(dest, j+1))) {
 					video_ref = j+1;
