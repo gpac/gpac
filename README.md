@@ -14,13 +14,14 @@
 [![Tests](https://tests.gpac.io/testres/badge/tests/macos)](https://tests.gpac.io/)
 
 [![Build Status](https://tests.gpac.io/testres/badge/build/ios)](https://buildbot.gpac.io/#/grid?branch=master)
-
 [![Build Status](https://tests.gpac.io/testres/badge/build/android)](https://buildbot.gpac.io/#/grid?branch=master)
 
 [![Coverage](https://tests.gpac.io/testres/badge/cov/linux64?branch=master)](https://tests.gpac.io/testres/)
 [![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=master)](https://tests.gpac.io/testres/)
 
 ![License](https://img.shields.io/badge/license-LGPL-blue.svg)
+![OpenHub](https://www.openhub.net/p/gpac/widgets/project_thin_badge.gif)
+
 
 # GPAC Introduction
 Current version: 1.0.0
