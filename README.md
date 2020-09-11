@@ -14,16 +14,17 @@
 [![Tests](https://tests.gpac.io/testres/badge/tests/macos)](https://tests.gpac.io/)
 
 [![Build Status](https://tests.gpac.io/testres/badge/build/ios)](https://buildbot.gpac.io/#/grid?branch=master)
-
 [![Build Status](https://tests.gpac.io/testres/badge/build/android)](https://buildbot.gpac.io/#/grid?branch=master)
 
 [![Coverage](https://tests.gpac.io/testres/badge/cov/linux64?branch=master)](https://tests.gpac.io/testres/)
 [![Coverage](https://tests.gpac.io/testres/badge/covfn/linux64?branch=master)](https://tests.gpac.io/testres/)
 
 ![License](https://img.shields.io/badge/license-LGPL-blue.svg)
+[![OpenHub](https://www.openhub.net/p/gpac/widgets/project_thin_badge.gif)](https://www.openhub.net/p/gpac)
+
 
 # GPAC Introduction
-Current version: 1.0.0
+Current version: 1.0.1
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
@@ -32,6 +33,10 @@ GPAC is best-known for its wide MP4 capabilities and is popular among video enth
 For more information, visit [GPAC website](http://gpac.io)
 
 GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.gpac-licensing.com).
+
+Please cite our work in your research:
+- GPAC Filters: https://doi.org/10.1145/3339825.3394929
+- GPAC: https://doi.org/10.1145/1291233.1291452
 
 # Features
 

@@ -79,7 +79,8 @@ static u64 sys_start_time_hr = 0;
 
 #include <gpac/revision.h>
 #define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
-#define GPAC_COPYRIGHT       "(c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io"
+#define GPAC_COPYRIGHT "(c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io"
+
 
 GF_EXPORT
 const char *gf_gpac_version()
@@ -91,6 +92,16 @@ GF_EXPORT
 const char *gf_gpac_copyright()
 {
 	return GPAC_COPYRIGHT;
+}
+GF_EXPORT
+const char *gf_gpac_copyright_cite()
+{
+	return GPAC_COPYRIGHT"\n\n" \
+			"Please cite our work in your research:\n"\
+		"\tGPAC Filters: https://doi.org/10.1145/3339825.3394929\n"\
+		"\tGPAC: https://doi.org/10.1145/1291233.1291452\n"\
+		;
+
 }
 
 

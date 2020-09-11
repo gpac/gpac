@@ -541,7 +541,7 @@ static JSValue bitstream_constructor(JSContext *ctx, JSValueConst new_target, in
 
 	if (!argc) {
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	} else if (argc && JS_IsObject(argv[0])){
+	} else if (JS_IsObject(argv[0])){
 		FILE *f = JS_GetOpaque(argv[0], file_class_id);
 		if (f) {
 			if ((argc>1) && JS_ToBool(ctx, argv[1])) {
@@ -1752,7 +1752,6 @@ static JSValue js_file_putc(JSContext *ctx, JSValueConst this_val, int argc, JSV
 {
 	int val=0;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
 	if (!f || !argc) return JS_EXCEPTION;
 
 	if (JS_IsString(argv[0])) {
@@ -1797,15 +1796,14 @@ static JSValue file_constructor(JSContext *ctx, JSValueConst new_target, int arg
 	} else {
 		GF_Err e = GF_OK;
 		const char *name=NULL, *mode=NULL, *parent_io=NULL;
-		if (argc) {
-			name = JS_ToCString(ctx, argv[0] );
-			if (argc>1) {
-				mode = JS_ToCString(ctx, argv[1] );
-				if (argc>2) {
-					parent_io = JS_ToCString(ctx, argv[2] );
-				}
+		name = JS_ToCString(ctx, argv[0] );
+		if (argc>1) {
+			mode = JS_ToCString(ctx, argv[1] );
+			if (argc>2) {
+				parent_io = JS_ToCString(ctx, argv[2] );
 			}
 		}
+
 		if (!name || !mode) {
 			e = GF_BAD_PARAM;
 		} else {

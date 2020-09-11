@@ -2754,7 +2754,7 @@ static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, 
 			gf_mpd_nl(out, indent);
 			gf_fprintf(out, "<ProducerReferenceTime id=\"%d\" presentationTime=\"%d\"", pref->ID, pref->presentation_time);
 			if (pref->inband) gf_fprintf(out, " inband=\"true\"");
-			if (pref->inband) gf_fprintf(out, " wallClockTime=\"%d\"", pref->wallclock);
+			if (pref->wallclock) gf_fprintf(out, " wallClockTime=\"%s\"", pref->wallclock);
 			switch (pref->type) {
 			case GF_MPD_PRODUCER_REF_ENCODER:
 				gf_fprintf(out, " type=\"encoder\"");
