@@ -4319,7 +4319,7 @@ GF_Err video_sample_entry_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->lhvc_config, &pos);
 
 	/*VVC*/
-	gf_isom_check_position(s, (GF_Box *)ptr->hevc_config, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->vvc_config, &pos);
 	
 	/*AV1*/
 	gf_isom_check_position(s, (GF_Box *)ptr->av1_config, &pos);
