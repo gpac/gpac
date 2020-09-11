@@ -260,6 +260,14 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		case GF_CODECID_VVC:
 			ctx->codecid = GF_CODECID_VVC;
 			break;
+		case GF_CODECID_AVC:
+		case GF_CODECID_AVC_PS:
+		case GF_CODECID_SVC:
+		case GF_CODECID_MVC:
+			ctx->codecid = GF_CODECID_AVC;
+			break;
+		default:
+			return GF_NOT_SUPPORTED;
 		}
 	}
 	else {
@@ -3787,7 +3795,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 static const GF_FilterCapability NALUDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "264|h264|26L|h26L|h26l|avc|svc|mvc|hevc|hvc|265|h265|shvc|lvhc|mhvc|hvc|266|vvc|lvvc"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "264|h264|26L|h26L|h26l|avc|svc|mvc|hevc|hvc|265|h265|shvc|lvhc|mhvc|266|vvc|lvvc"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/avc|video/h264|video/svc|video/mvc|video/hevc|video/lhvc|video/shvc|video/mhvc|video/vvc"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AVC),
