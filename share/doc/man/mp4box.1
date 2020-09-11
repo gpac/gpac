@@ -2098,13 +2098,9 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .TP
 .B \-add-image (string)
 .br
-add the given file (with parameters) as HEIF image item. Same syntax as .I add-item
+add the given file as HEIF image item, with parameter syntax file_path[:opt1:optN]
 .br
-* name=str: see .I add-item
-.br
-* id=id: see .I add-item
-.br
-* ref=4cc, id: see .I add-item
+* name, id, ref: see .I add-item
 .br
 * primary: indicate that this item should be the primary item
 .br
@@ -2116,11 +2112,15 @@ add the given file (with parameters) as HEIF image item. Same syntax as .I add-i
 .br
 * hidden: indicate that this image item should be hidden
 .br
-* icc_path: path to icc to add as colr
+* icc_path: path to icc data to add as color info
 .br
 * alpha: indicate that the image is an alpha image (should use ref=auxl also)
 .br
-- any other option will be passed as options to the media importer, see .I add
+* tk=tkID: indicate the track ID of the source sample
+.br
+* samp=N: indicate the sample number of the source sample. If file_path is ref, do not copy the data but refer to the final sample location (Warning: remuxing the file will loose this optimization). If file_path is self, this or not set, copy data from the track sample
+.br
+- any other options will be passed as options to the media importer, see .I add
 .br
 .TP
 .B \-rem-item  item_ID[:tk=tkID] (string)
@@ -2308,7 +2308,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev11-g967e34c27-vvc
+build: 1.1.0-DEV-rev15-gbd04f09fe-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

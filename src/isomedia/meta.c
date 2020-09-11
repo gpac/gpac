@@ -883,7 +883,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
                                       const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding,
                                       GF_ImageItemProperties *image_props,
                                       const char *URL, const char *URN,
-                                      char *data, u32 data_len, GF_List *item_extent_refs)
+                                      char *data, u32 data_len, GF_List *item_extent_refs, u32 tk_id, u32 sample_num)
 {
 	u32 i;
 	GF_Err e;
@@ -892,7 +892,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	GF_MetaBox *meta;
 	u32 lastItemID = 0;
 
-	if (!self_reference && !resource_path && !data && !item_extent_refs) return GF_BAD_PARAM;
+	if (!self_reference && !resource_path && !data && !tk_id && !item_extent_refs) return GF_BAD_PARAM;
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -938,8 +938,11 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		infe->item_ID = ++lastItemID;
 	}
 
+	if (tk_id && sample_num) {
+		data_len = gf_isom_get_sample_size(file, tk_id, sample_num);
+	}
 	/*get relative name*/
-	if (item_name) {
+	else if (item_name) {
 		infe->item_name = gf_strdup(item_name);
 	} else if (resource_path) {
 		infe->item_name = gf_strdup(gf_file_basename( resource_path ));
@@ -1031,6 +1034,24 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, *item_index, GF_ISOM_REF_ILOC, &(entry->extent_index));
 		}
 	}
+	else if (tk_id && sample_num) {
+		if (file->openMode == GF_ISOM_OPEN_WRITE) {
+			GF_ItemExtentEntry *entry;
+			GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+			if (!entry) return GF_OUT_OF_MEM;
+
+			entry->extent_length = data_len;
+			location_entry->base_offset = gf_bs_get_position(file->editFileMap->bs);
+			GF_ISOSample *samp = gf_isom_get_sample_info(file, tk_id, sample_num, NULL, &entry->extent_offset);
+			if (samp) gf_isom_sample_del(&samp);
+			gf_list_add(location_entry->extent_entries, entry);
+		} else {
+			infe->tk_id = tk_id;
+			infe->sample_num = sample_num;
+			infe->data_len = data_len;
+		}
+		meta->use_item_sample_sharing = GF_TRUE;
+	}
 	else {
 		/*capture mode, write to disk*/
 		if ((file->openMode == GF_ISOM_OPEN_WRITE) && !location_entry->data_reference_index) {
@@ -1101,13 +1122,19 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
                              const char *mime_type, const char *content_encoding, const char *URL, const char *URN,
                              GF_ImageItemProperties *image_props)
 {
-	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, item_id, item_type, mime_type, content_encoding, image_props, URL, URN, NULL, 0, NULL);
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, item_id, item_type, mime_type, content_encoding, image_props, URL, URN, NULL, 0, NULL, 0, 0);
 }
 
 GF_EXPORT
 GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, char *data, u32 data_len, GF_List *item_extent_refs)
 {
-	return gf_isom_add_meta_item_extended(file, root_meta, track_num, GF_FALSE, NULL, item_name, item_id, item_type, mime_type, content_encoding, image_props, NULL, NULL, data, data_len, item_extent_refs);
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, GF_FALSE, NULL, item_name, item_id, item_type, mime_type, content_encoding, image_props, NULL, NULL, data, data_len, item_extent_refs, 0, 0);
+}
+
+GF_EXPORT
+GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, u32 tk_id, u32 sample_len)
+{
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, GF_FALSE, NULL, item_name, item_id, item_type, mime_type, content_encoding, image_props, NULL, NULL, NULL, 0, NULL, tk_id, sample_len);
 }
 
 GF_EXPORT

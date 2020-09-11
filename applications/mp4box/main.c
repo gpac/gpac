@@ -806,18 +806,19 @@ GF_GPACArg m4b_meta_args[] =
 		"- encoding=enctype: item content-encoding type\n"
 		"- id=ID: item ID\n"
 		"- ref=4cc,id: reference of type 4cc to an other item", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("add-image", NULL, "add the given file (with parameters) as HEIF image item. Same syntax as [-add-item]()\n"
-		"- name=str: see [-add-item]()\n"
-		"- id=id: see [-add-item]()\n"
-		"- ref=4cc, id: see [-add-item]()\n"
+	GF_DEF_ARG("add-image", NULL, "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`\n"
+		"- name, id, ref: see [-add-item]()\n"
 		"- primary: indicate that this item should be the primary item\n"
 		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
 		"- hidden: indicate that this image item should be hidden\n"
-		"- icc_path: path to icc to add as colr\n"
+		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
-		"- any other option will be passed as options to the media importer, see [-add]()", NULL, NULL, GF_ARG_STRING, 0),
+		"- tk=tkID: indicate the track ID of the source sample\n"
+		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location (Warning: remuxing the file will loose this optimization). If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
+		"- any other options will be passed as options to the media importer, see [-add]()"
+		, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rem-item `item_ID[:tk=tkID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-primary `item_ID[:tk=tkID]`", NULL, "set item as primary for meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-xml `xml_file_path[:tk=tkID][:binary]`", NULL, "set meta XML data", NULL, NULL, GF_ARG_STRING, 0),
@@ -1661,6 +1662,15 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				if (!meta->image_props) return 0;
 			}
 			meta->image_props->time = atof(szSlot+5);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "samp=", 5)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			meta->image_props->sample_num = atoi(szSlot+5);
+			meta->root_meta = 1;
 			ret = 1;
 		}
 		else if (!stricmp(szSlot, "split_tiles")) {
@@ -5716,9 +5726,25 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case META_ACTION_ADD_IMAGE_ITEM:
 		{
+			u32 self_ref = 0;
 			u32 old_tk_count = gf_isom_get_track_count(file);
 			GF_Fraction _frac = {0,0};
-			e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
+
+			tk = 0;
+			if (meta->szPath && (!strcmp(meta->szPath, "this") || !strcmp(meta->szPath, "self") || !strcmp(meta->szPath, "ref"))
+				&& meta->trackID && meta->image_props  && meta->image_props->sample_num
+			) {
+				e = GF_OK;
+				self_ref = 2;
+			} else if (!meta->szPath && meta->trackID) {
+				e = GF_OK;
+				self_ref = 1;
+			} else if (meta->szPath) {
+				e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
+			} else {
+				fprintf(stderr, "Missing file name to import\n");
+				e = GF_BAD_PARAM;
+			}
 			if (e == GF_OK) {
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {
@@ -5734,10 +5760,12 @@ int mp4boxMain(int argc, char **argv)
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
-								meta->szName,
-								meta->item_id,
-								meta->image_props, NULL);
+						const char *it_name;
+						if (self_ref==2) it_name = "ref";
+						else if (self_ref==1) it_name = "self";
+						else it_name = meta->szName;
+
+						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1, it_name, meta->item_id, meta->image_props, NULL);
 						if (e == GF_OK && meta->primary) {
 							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}
@@ -5747,7 +5775,8 @@ int mp4boxMain(int argc, char **argv)
 					}
 				}
 			}
-			gf_isom_remove_track(file, old_tk_count+1);
+			if (!self_ref)
+				gf_isom_remove_track(file, old_tk_count+1);
 			needSave = GF_TRUE;
 		}
 			break;
