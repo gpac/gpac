@@ -1142,7 +1142,7 @@ static s64 ttml_get_timestamp(const char *value)
 	return ts;
 }
 
-static GF_Err ttml_push_interval(GF_TXTIn *ctx, s32 begin, s32 end)
+static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 {
 	u32 i;
 	TTMLInterval *interval;

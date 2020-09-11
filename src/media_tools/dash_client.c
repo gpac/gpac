@@ -658,18 +658,18 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			utc = gf_net_parse_date(utc_timing->value);
 			res = GF_TRUE;
 		} else {
-			char *val = utc_timing->value;
+			char *time_refs = utc_timing->value;
 			utc = 0;
-			while (val) {
-				char *sep = strchr(val, ' ');
+			while (time_refs) {
+				char *sep = strchr(time_refs, ' ');
 				if (sep) sep[0] = 0;
 
-				res = gf_dash_get_date(group->dash, utc_timing->scheme_id_uri, val, &utc);
+				res = gf_dash_get_date(group->dash, utc_timing->scheme_id_uri, time_refs, &utc);
 
-				val = NULL;
+				time_refs = NULL;
 				if (sep) {
 					sep[0] = ' ';
-					val = sep+1;
+					time_refs = sep+1;
 				}
 				if (res) break;
 			}

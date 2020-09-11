@@ -291,7 +291,7 @@ void PrintUsage(Bool show_all)
 			"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`  \n  \n"
 			"# Options  \n  \n",
 			(help_flags == GF_PRINTARG_MD) ? GPAC_VERSION : gf_gpac_version(),
-			gf_gpac_copyright()
+			gf_gpac_copyright_cite()
 		);
 	}
 

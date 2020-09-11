@@ -3132,7 +3132,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 				tkw->sample.DTS -= tkw->ts_shift;
 				cts -= tkw->ts_shift;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] broken timing in track, initial ts "LLU" gretaer than TS "LLU"\n", tkw->ts_shift, tkw->sample.DTS));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] broken timing in track, initial ts "LLU" greater than TS "LLU"\n", tkw->ts_shift, tkw->sample.DTS));
 			}
 		}
 	}

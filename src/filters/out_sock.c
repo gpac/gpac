@@ -123,9 +123,9 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		ext = gf_file_ext_start(ctx->dst);
 		if (ext) ext++;
 		if (ext) {
-			const char *port = strchr(ext, ':');
-			if (port)
-				ext = gf_file_ext_start(port);
+			const char *szport = strchr(ext, ':');
+			if (szport)
+				ext = gf_file_ext_start(szport);
 		}
 	}
 

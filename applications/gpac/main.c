@@ -660,7 +660,7 @@ static void gpac_usage(GF_SysArgMode argmode)
 			gpac_alias_help(GF_ARGMODE_BASE);
 		}
 
-		gf_sys_format_help(helpout, help_flags, "\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright() );
+		gf_sys_format_help(helpout, help_flags, "\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright_cite() );
 	}
 }
 
@@ -2081,7 +2081,7 @@ restart:
 	}
 	if (!gf_list_count(loaded_filters) && !session_js) {
 		if (nothing_to_do && !gen_doc) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright()));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright_cite()));
 			e = GF_BAD_PARAM;
 		} else {
 			e = GF_EOS;
@@ -2560,7 +2560,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len)
 {
-	if (!text || !*text || !subtext || !subtext)
+	if (!*text || !subtext || !subtext_len)
 		return GF_FALSE;
 
 	while (*text) {

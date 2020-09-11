@@ -6460,7 +6460,6 @@ GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
 		ctts->version = 1;
 		//if we had edit lists, shift all media times by the given amount
 		if (trak->editBox && trak->editBox->editList) {
-			u32 i;
 			for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
 				GF_EdtsEntry *ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
 				//empty edit
@@ -6540,7 +6539,6 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 			dur /= trak->Media->mediaHeader->timeScale;
 			gf_isom_set_edit(file, gf_list_find(file->moov->trackList, trak)+1, 0, dur, shift, GF_ISOM_EDIT_NORMAL);
 		} else {
-			u32 i;
 			//otherwise shift media times in all entries
 			for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
 				GF_EdtsEntry *ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);

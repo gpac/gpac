@@ -9002,14 +9002,14 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size)
 	while (gf_bs_available(bs)) {
 		u32 type = (u32) gf_mpegh_escaped_value(bs, 3, 8, 8);
 		/*u64 label = */gf_mpegh_escaped_value(bs, 2, 8, 32);
-		u64 size = gf_mpegh_escaped_value(bs, 11, 24, 24);
+		u64 mh_size = gf_mpegh_escaped_value(bs, 11, 24, 24);
 		//MHAS config
 		if (type==1) {
 			u32 PL = gf_bs_read_int(bs, 8);
 			gf_bs_del(bs);
 			return PL;
 		}
-		gf_bs_skip_bytes(bs, size);
+		gf_bs_skip_bytes(bs, mh_size);
 	}
 	gf_bs_del(bs);
 	return -1;

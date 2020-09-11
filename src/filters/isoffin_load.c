@@ -634,11 +634,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			char *tx3g_config_sdp = NULL;
 			for (i=0; i<gf_isom_get_sample_description_count(read->mov, ch->track); i++) {
 				u8 *tx3g;
-				char buffer[2000];
 				u32 l1;
 				u32 tx3g_len, len;
 				e = gf_isom_text_get_encoded_tx3g(read->mov, ch->track, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
 				if (e==GF_OK) {
+					char buffer[2000];
 					len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
 					gf_free(tx3g);
 					buffer[len] = 0;
