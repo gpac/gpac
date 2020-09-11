@@ -5546,7 +5546,9 @@ typedef struct
 	/*! tile number */
 	u32 single_tile_number;
 	/*! time for importing*/
-	double time;
+	Double time;
+	/*! sample num for importing*/
+	u32 sample_num;
 	/*! file containg iCC data for importing*/
 	char iccPath[GF_MAX_PATH];
 	/*! is alpha*/
@@ -5648,6 +5650,22 @@ typedef struct
 \return error if any
 */
 GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, char *data, u32 data_len, GF_List *item_extent_refs);
+
+/*! adds an item to a meta box as a reference to a sample
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param item_name name of the item
+\param item_id ID of the item, can be 0
+\param item_type four character code of item type
+\param mime_type mime type of the item, can be NULL
+\param content_encoding content encoding of the item, can be NULL
+\param image_props image properties information for image items
+\param tk_id source track ID
+\param sample_num number of sample to reference
+\return error if any
+*/
+GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, GF_ISOTrackID tk_id, u32 sample_num);
 
 /*! creates image item(s) from samples of a media track
 \param isom_file the target ISO file
