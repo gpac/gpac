@@ -1503,9 +1503,9 @@ static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
 	u32 j, k;
 	for (j=0; j<gf_list_count(src); j++) {
 		Bool found = 0;
-		GF_NALUConfigSlot *slc = gf_list_get(src, j);
+		GF_NALUFFParam *slc = gf_list_get(src, j);
 		for (k=0; k<gf_list_count(dst); k++) {
-			GF_NALUConfigSlot *slc_dst = gf_list_get(dst, k);
+			GF_NALUFFParam *slc_dst = gf_list_get(dst, k);
 			if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
 				found = 1;
 				break;
@@ -1589,9 +1589,9 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 		/*merge PS*/
 		for (i=0; i<gf_list_count(hevc_src->param_array); i++) {
 			u32 k;
-			GF_NALUParamArray *src_ar = gf_list_get(hevc_src->param_array, i);
+			GF_NALUFFParamArray *src_ar = gf_list_get(hevc_src->param_array, i);
 			for (k=0; k<gf_list_count(hevc_dst->param_array); k++) {
-				GF_NALUParamArray *dst_ar = gf_list_get(hevc_dst->param_array, k);
+				GF_NALUFFParamArray *dst_ar = gf_list_get(hevc_dst->param_array, k);
 				if (dst_ar->type==src_ar->type) {
 					if (!merge_parameter_set(src_ar->nalus, dst_ar->nalus, "SPS"))
 						dst_tk = 0;

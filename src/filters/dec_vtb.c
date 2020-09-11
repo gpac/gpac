@@ -354,8 +354,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			s32 idx;
 			u32 i;
 			GF_AVCConfig *cfg;
-			GF_NALUConfigSlot *sps = NULL;
-			GF_NALUConfigSlot *pps = NULL;
+			GF_NALUFFParam *sps = NULL;
+			GF_NALUFFParam *pps = NULL;
 
 			for (i=0; i<gf_list_count(ctx->SPSs); i++) {
 				sps = gf_list_get(ctx->SPSs, i);
@@ -473,12 +473,12 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			s32 idx;
 			u32 i;
 			GF_HEVCConfig *cfg;
-			GF_NALUParamArray *vpsa = NULL;
-			GF_NALUParamArray *spsa = NULL;
-			GF_NALUParamArray *ppsa = NULL;
-			GF_NALUConfigSlot *vps = NULL;
-			GF_NALUConfigSlot *sps = NULL;
-			GF_NALUConfigSlot *pps = NULL;
+			GF_NALUFFParamArray *vpsa = NULL;
+			GF_NALUFFParamArray *spsa = NULL;
+			GF_NALUFFParamArray *ppsa = NULL;
+			GF_NALUFFParam *vps = NULL;
+			GF_NALUFFParam *sps = NULL;
+			GF_NALUFFParam *pps = NULL;
 
 			for (i=0; i<gf_list_count(ctx->VPSs); i++) {
 				vps = gf_list_get(ctx->VPSs, i);
@@ -571,7 +571,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 			cfg->nal_unit_size = 4;
 
-			GF_SAFEALLOC(vpsa, GF_NALUParamArray);
+			GF_SAFEALLOC(vpsa, GF_NALUFFParamArray);
 			if (!vpsa) return GF_OUT_OF_MEM;
 			vpsa->array_completeness = 1;
 			vpsa->type = GF_HEVC_NALU_VID_PARAM;
@@ -579,7 +579,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			gf_list_add(vpsa->nalus, vps);
 			gf_list_add(cfg->param_array, vpsa);
 
-			GF_SAFEALLOC(spsa, GF_NALUParamArray);
+			GF_SAFEALLOC(spsa, GF_NALUFFParamArray);
 			if (!spsa) return GF_OUT_OF_MEM;
 			spsa->array_completeness = 1;
 			spsa->type = GF_HEVC_NALU_SEQ_PARAM;
@@ -587,7 +587,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			gf_list_add(spsa->nalus, sps);
 			gf_list_add(cfg->param_array, spsa);
 
-			GF_SAFEALLOC(ppsa, GF_NALUParamArray);
+			GF_SAFEALLOC(ppsa, GF_NALUFFParamArray);
 			if (!ppsa) return GF_OUT_OF_MEM;
 			ppsa->array_completeness = 1;
 			ppsa->type = GF_HEVC_NALU_PIC_PARAM;
@@ -854,7 +854,7 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 	
 	count = gf_list_count(dest);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *a_slc = gf_list_get(dest, i);
+		GF_NALUFFParam *a_slc = gf_list_get(dest, i);
 		if (a_slc->id != ps_id) continue;
 		//not same size or different content but same ID, remove old xPS
 		if ((a_slc->size != size) || memcmp(a_slc->data, data, size) ) {
@@ -868,8 +868,8 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 		break;
 	}
 	if (add) {
-		GF_NALUConfigSlot *slc;
-		GF_SAFEALLOC(slc, GF_NALUConfigSlot);
+		GF_NALUFFParam *slc;
+		GF_SAFEALLOC(slc, GF_NALUFFParam);
 		if (!slc) return;
 		slc->data = gf_malloc(size);
 		if (!slc->data) {
@@ -892,12 +892,12 @@ static u32 vtbdec_purge_param_sets(GF_VTBDecCtx *ctx, Bool is_sps, s32 idx)
 	//remove all xPS sharing the same ID, use only the last occurence
 	count = gf_list_count(dest);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *slc = gf_list_get(dest, i);
+		GF_NALUFFParam *slc = gf_list_get(dest, i);
 		if (slc->id != idx) continue;
 		crc_res = slc->crc;
 
 		for (j=i+1; j<count; j++) {
-			GF_NALUConfigSlot *a_slc = gf_list_get(dest, j);
+			GF_NALUFFParam *a_slc = gf_list_get(dest, j);
 			if (a_slc->id != slc->id) continue;
 			//not same size or different content but same ID, remove old xPS
 			if ((slc->size != a_slc->size) || memcmp(a_slc->data, slc->data, a_slc->size) ) {
@@ -917,7 +917,7 @@ static u32 vtbdec_purge_param_sets(GF_VTBDecCtx *ctx, Bool is_sps, s32 idx)
 static void vtbdec_del_param_list(GF_List *list)
 {
 	while (gf_list_count(list)) {
-		GF_NALUConfigSlot *slc = gf_list_get(list, 0);
+		GF_NALUFFParam *slc = gf_list_get(list, 0);
 		gf_free(slc->data);
 		gf_free(slc);
 		gf_list_rem(list, 0);
@@ -1052,7 +1052,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			return GF_OK;
 		} else {
 			u32 i;
-			GF_NALUConfigSlot *slc;
+			GF_NALUFFParam *slc;
 			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 			for (i=0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
 				slc = gf_list_get(cfg->sequenceParameterSets, i);
@@ -1110,11 +1110,11 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			return GF_OK;
 		} else {
 			u32 i, j;
-			GF_NALUConfigSlot *slc;
+			GF_NALUFFParam *slc;
 			GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 
 			for (i=0; i<gf_list_count(cfg->param_array); i++) {
-				GF_NALUParamArray *pa = gf_list_get(cfg->param_array, i);
+				GF_NALUFFParamArray *pa = gf_list_get(cfg->param_array, i);
 
 
 				for (j=0; j<gf_list_count(pa->nalus); j++) {

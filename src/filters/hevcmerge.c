@@ -400,10 +400,10 @@ static GF_Err hevcmerge_rewrite_config(GF_HEVCMergeCtx *ctx, GF_FilterPid *opid,
 
 	// for all the list objects in param_array
 	for (i = 0; i < gf_list_count(hvcc->param_array); i++) { // hvcc->param_array:list object
-		GF_NALUParamArray *ar = (GF_NALUParamArray *) gf_list_get(hvcc->param_array, i); // ar contains the i-th item in param_array
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *) gf_list_get(hvcc->param_array, i); // ar contains the i-th item in param_array
 		for (j = 0; j < gf_list_count(ar->nalus); j++) { // for all the nalus the i-th param got
 			/*! used for storing AVC sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
-			GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j); // store j-th nalus in *sl
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j); // store j-th nalus in *sl
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
 				char *outSPS=NULL;
@@ -1228,9 +1228,9 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	ctx->hevc_nalu_size_length = 4;
 	e = GF_OK;
 	for (i = 0; i < gf_list_count(hvcc->param_array); i++) {
-		GF_NALUParamArray *ar = (GF_NALUParamArray *) gf_list_get(hvcc->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *) gf_list_get(hvcc->param_array, i);
 		for (j = 0; j < gf_list_count(ar->nalus); j++) {
-			GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			s32 idx = 0;
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {

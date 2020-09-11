@@ -659,9 +659,9 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 	gf_list_add(ctx->pck_queue, n_pck);
 }
 
-static void naludmx_add_param_nalu(GF_List *param_list, GF_NALUConfigSlot *sl, u8 nal_type)
+static void naludmx_add_param_nalu(GF_List *param_list, GF_NALUFFParam *sl, u8 nal_type)
 {
-	GF_NALUParamArray *pa = NULL;
+	GF_NALUFFParamArray *pa = NULL;
 	u32 i, count;
 	count = gf_list_count(param_list);
 	for (i=0; i<count; i++) {
@@ -670,7 +670,7 @@ static void naludmx_add_param_nalu(GF_List *param_list, GF_NALUConfigSlot *sl, u
 		pa = NULL;
 	}
 	if (!pa) {
-		GF_SAFEALLOC(pa, GF_NALUParamArray);
+		GF_SAFEALLOC(pa, GF_NALUFFParamArray);
 		if (!pa) return;
 
 		pa->array_completeness = 1;
@@ -698,7 +698,7 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 	nb_pps = 0;
 
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *slc = (GF_NALUConfigSlot*)gf_list_get(ctx->pps, i);
+		GF_NALUFFParam *slc = (GF_NALUFFParam*)gf_list_get(ctx->pps, i);
 		s32 idx = gf_media_hevc_read_pps(slc->data, slc->size, &hevc);
 
 		if (idx>=0) {
@@ -726,7 +726,7 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 	u32 data_size;
 	u32 i;
 	HEVC_VPS *vps;
-	GF_NALUConfigSlot *vps_sl = gf_list_get(ctx->vps, 0);
+	GF_NALUFFParam *vps_sl = gf_list_get(ctx->vps, 0);
 	if (!vps_sl) return GF_SERVICE_ERROR;
 
 	vps = &ctx->hevc_state->vps[vps_sl->id];
@@ -917,7 +917,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	//check we have one pps or sps in base layer
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->sps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 		if (!layer_id) {
 			*has_hevc_base = GF_TRUE;
@@ -926,7 +926,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	}
 	count = gf_list_count(ctx->pps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->pps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 		if (!layer_id) {
 			*has_hevc_base = GF_TRUE;
@@ -936,7 +936,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	//assign vps first so that they are serialized first
 	count = gf_list_count(ctx->vps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->vps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->vps, i);
 		HEVC_VPS *vps = &ctx->hevc_state->vps[sl->id];
 
 		if (!i) {
@@ -953,7 +953,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
 		Bool is_lhvc = GF_FALSE;
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->sps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		HEVC_SPS *sps = &ctx->hevc_state->sps[sl->id];
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 		if (!layer_id) *has_hevc_base = GF_TRUE;
@@ -1016,7 +1016,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	cfg = ctx->explicit ? lvcc : hvcc;
 	count = gf_list_count(ctx->pps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->pps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 		if (!layer_id) *has_hevc_base = GF_TRUE;
 		if (!ctx->analyze)
@@ -1045,12 +1045,12 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	}
 	count = gf_list_count(hvcc->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *pa = gf_list_get(hvcc->param_array, i);
+		GF_NALUFFParamArray *pa = gf_list_get(hvcc->param_array, i);
 		gf_list_reset(pa->nalus);
 	}
 	count = gf_list_count(lvcc->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *pa = gf_list_get(lvcc->param_array, i);
+		GF_NALUFFParamArray *pa = gf_list_get(lvcc->param_array, i);
 		gf_list_reset(pa->nalus);
 	}
 	gf_odf_hevc_cfg_del(hvcc);
@@ -1080,7 +1080,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 	//check we have one pps or sps in base layer
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->sps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		layer_id = (sl->data[0] & 0x3f);
 		//todo, base is not always 0 !
 		if (!layer_id) {
@@ -1090,7 +1090,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 	}
 	count = gf_list_count(ctx->pps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->pps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = (sl->data[0] & 0x3f);
 		//todo, base is not always 0 !
 		if (!layer_id) {
@@ -1101,7 +1101,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 	//assign vps first so that they are serialized first
 	count = gf_list_count(ctx->vps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->vps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->vps, i);
 		VVC_VPS *vps = &ctx->vvc_state->vps[sl->id];
 
 		if (!i) {
@@ -1116,7 +1116,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
 		Bool is_lvvc = GF_FALSE;
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->sps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		VVC_SPS *sps = &ctx->vvc_state->sps[sl->id];
 		layer_id = sl->data[0] & 0x3f;
 		if (!layer_id) *has_vvc_base = GF_TRUE;
@@ -1187,7 +1187,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 
 	count = gf_list_count(ctx->pps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->pps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = sl->data[0] & 0x3F;
 		if (!layer_id) *has_vvc_base = GF_TRUE;
 		if (!ctx->analyze)
@@ -1196,7 +1196,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 
 	count = gf_list_count(ctx->vvc_dci);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->vvc_dci, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->vvc_dci, i);
 		layer_id = sl->data[0] & 0x3F;
 		if (!layer_id) *has_vvc_base = GF_TRUE;
 		if (!ctx->analyze)
@@ -1205,7 +1205,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 
 	count = gf_list_count(ctx->vvc_aps_pre);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->vvc_aps_pre, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->vvc_aps_pre, i);
 		layer_id = sl->data[0] & 0x3F;
 		if (!layer_id) *has_vvc_base = GF_TRUE;
 		if (!ctx->analyze)
@@ -1223,7 +1223,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 
 	count = gf_list_count(cfg->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *pa = gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *pa = gf_list_get(cfg->param_array, i);
 		gf_list_reset(pa->nalus);
 	}
 	gf_odf_vvc_cfg_del(cfg);
@@ -1252,7 +1252,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	count = gf_list_count(ctx->sps);
 	for (i=0; i<count; i++) {
 		Bool is_svc = GF_FALSE;
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->sps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		AVC_SPS *sps = &ctx->avc_state->sps[sl->id];
 		u32 nal_type = sl->data[0] & 0x1F;
 
@@ -1340,7 +1340,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	cfg = ctx->explicit ? svcc : avcc;
 	count = gf_list_count(ctx->sps_ext);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->sps_ext, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->sps_ext, i);
 		if (!cfg->sequenceParameterSetExtensions) cfg->sequenceParameterSetExtensions = gf_list_new();
 		if (!ctx->analyze)
 			gf_list_add(cfg->sequenceParameterSetExtensions, sl);
@@ -1349,7 +1349,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	cfg = ctx->explicit ? svcc : avcc;
 	count = gf_list_count(ctx->pps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->pps, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		if (!ctx->analyze)
 			gf_list_add(cfg->pictureParameterSets, sl);
 	}
@@ -1357,7 +1357,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	cfg = svcc;
 	count = gf_list_count(ctx->pps_svc);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ctx->pps_svc, i);
+		GF_NALUFFParam *sl = gf_list_get(ctx->pps_svc, i);
 		if (!ctx->analyze)
 			gf_list_add(cfg->pictureParameterSets, sl);
 	}
@@ -1625,7 +1625,7 @@ static GFINLINE void naludmx_update_time(GF_NALUDmxCtx *ctx)
 static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 ps_type, s32 ps_id)
 {
 	GF_List *list = NULL, *alt_list = NULL;
-	GF_NALUConfigSlot *sl;
+	GF_NALUFFParam *sl;
 	u32 i, count;
 	u32 crc = gf_crc_32(data, size);
 
@@ -1726,7 +1726,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 	}
 	//TODO we might want to purge the list after a while !!
 
-	GF_SAFEALLOC(sl, GF_NALUConfigSlot);
+	GF_SAFEALLOC(sl, GF_NALUFFParam);
 	if (!sl) return;
 	sl->data = gf_malloc(sizeof(char) * size);
 	if (!sl->data) {
@@ -2409,7 +2409,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		if (!ctx->explicit) {
 			u32 i;
 			for (i = 0; i < gf_list_count(ctx->pps); i ++) {
-				GF_NALUConfigSlot *slc = (GF_NALUConfigSlot*)gf_list_get(ctx->pps, i);
+				GF_NALUFFParam *slc = (GF_NALUFFParam*)gf_list_get(ctx->pps, i);
 				if (ctx->avc_state->s_info.pps->id == slc->id) {
 					/* This PPS is used by an SVC NAL unit, it should be moved to the SVC Config Record) */
 					gf_list_rem(ctx->pps, i);
@@ -3567,7 +3567,7 @@ static void naludmx_del_param_list(GF_List *ps)
 {
 	if (!ps) return;
 	while (gf_list_count(ps)) {
-		GF_NALUConfigSlot *sl = gf_list_pop_back(ps);
+		GF_NALUFFParam *sl = gf_list_pop_back(ps);
 		if (sl->data) gf_free(sl->data);
 		gf_free(sl);
 	}
@@ -3600,7 +3600,7 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 		count = gf_list_count(ctx->sps);
 		for (i=0; i<count; i++) {
 			AVC_SPS *sps;
-			GF_NALUConfigSlot *svcc = (GF_NALUConfigSlot*)gf_list_get(ctx->sps, i);
+			GF_NALUFFParam *svcc = (GF_NALUFFParam*)gf_list_get(ctx->sps, i);
 			sps = & ctx->avc_state->sps[svcc->id];
 			if (sps->nb_ei || sps->nb_ep) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s SVC (SSPS ID %d, %dx%d) %s Slices: %d I %d P %d B\n", ctx->log_name, svcc->id - GF_SVC_SSPS_ID_SHIFT, sps->width, sps->height, msg_import, sps->nb_ei, sps->nb_ep, sps->nb_eb ));

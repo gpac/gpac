@@ -1,11 +1,11 @@
 # $Id: gpac.spec,v 1.5 2008-12-02 18:04:42 jeanlf Exp $
 Summary: Framework for production, encoding, delivery and interactive playback of multimedia content
 Name: gpac
-Version: 1.0.1
-Release: 1.0.1
+Version: 1.1.0-DEV
+Release: 1.1.0-DEV
 License: LGPL
 Group: Applications/Multimedia
-Source0: gpac-1.0.1.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip}
+Source0: gpac-1.1.0-DEV.tar.gz%{?_with_amr:Source1:http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip}
 URL: http://gpac.io/
 BuildRoot: %{_tmppath}/%{name}-root
 Requires: SDL

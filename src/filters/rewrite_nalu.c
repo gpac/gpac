@@ -64,7 +64,7 @@ static void nalumx_write_ps_list(GF_NALUMxCtx *ctx, GF_BitStream *bs, GF_List *l
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(list, i);
+		GF_NALUFFParam *sl = gf_list_get(list, i);
 		gf_bs_write_u32(bs, 1);
 		gf_bs_write_data(bs, sl->data, sl->size);
 		ctx->nb_nalu_in_hdr++;
@@ -75,7 +75,7 @@ static GF_List *nalumx_get_hevc_ps(GF_HEVCConfig *cfg, u8 type)
 {
 	u32 i, count = gf_list_count(cfg->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *pa = gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *pa = gf_list_get(cfg->param_array, i);
 		if (pa->type == type) return pa->nalus;
 	}
 	return NULL;
@@ -84,7 +84,7 @@ static GF_List *nalumx_get_vvc_ps(GF_VVCConfig *cfg, u8 type)
 {
 	u32 i, count = gf_list_count(cfg->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *pa = gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *pa = gf_list_get(cfg->param_array, i);
 		if (pa->type == type) return pa->nalus;
 	}
 	return NULL;

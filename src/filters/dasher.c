@@ -776,7 +776,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
 				AVCState avc;
 				GF_AVCConfig* avccfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
-				GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(avccfg->sequenceParameterSets, 0);
+				GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avccfg->sequenceParameterSets, 0);
 				if (sl) {
 					s32 idx;
 					memset(&avc, 0, sizeof(AVCState));

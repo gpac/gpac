@@ -124,7 +124,7 @@ void mcdec_init_media_format(GF_MCDecCtx *ctx, AMediaFormat *format)
 static void mcdec_reset_ps_list(GF_List *list)
 {
 	while (list && gf_list_count(list)) {
-		GF_NALUConfigSlot *slc = gf_list_get(list, 0);
+		GF_NALUFFParam *slc = gf_list_get(list, 0);
 		gf_free(slc->data);
 		gf_free(slc);
 		gf_list_rem(list, 0);
@@ -136,8 +136,8 @@ GF_Err mcdec_init_avc_dec(GF_MCDecCtx *ctx)
 {
 	s32 idx;
 	u32 i;
-	GF_NALUConfigSlot *sps = NULL;
-	GF_NALUConfigSlot *pps = NULL;
+	GF_NALUFFParam *sps = NULL;
+	GF_NALUFFParam *pps = NULL;
 
 	for (i=0; i<gf_list_count(ctx->SPSs); i++) {
 		sps = gf_list_get(ctx->SPSs, i);
@@ -244,9 +244,9 @@ GF_Err mcdec_init_hevc_dec(GF_MCDecCtx *ctx)
 	s32 idx;
 
 	u32 i;
-	GF_NALUConfigSlot *sps = NULL;
-	GF_NALUConfigSlot *pps = NULL;
-	GF_NALUConfigSlot *vps = NULL;
+	GF_NALUFFParam *sps = NULL;
+	GF_NALUFFParam *pps = NULL;
+	GF_NALUFFParam *vps = NULL;
 
 	for (i=0; i<gf_list_count(ctx->SPSs); i++) {
 		sps = gf_list_get(ctx->SPSs, i);
@@ -442,7 +442,7 @@ static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u
 	}
 	count = gf_list_count(dest);
 	for (i = 0; i<count; i++) {
-		GF_NALUConfigSlot *a_slc = gf_list_get(dest, i);
+		GF_NALUFFParam *a_slc = gf_list_get(dest, i);
 		if (a_slc->id != ps_id) continue;
 		//not same size or different content but same ID, remove old xPS
 		if ((a_slc->size != size) || memcmp(a_slc->data, data, size)) {
@@ -457,8 +457,8 @@ static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u
 		break;
 	}
 	if (add) {
-		GF_NALUConfigSlot *slc;
-		GF_SAFEALLOC(slc, GF_NALUConfigSlot);
+		GF_NALUFFParam *slc;
+		GF_SAFEALLOC(slc, GF_NALUFFParam);
 		if (!slc) return;
 		slc->data = gf_malloc(size);
 		if (!slc->data) {
@@ -505,7 +505,7 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 
 	count = gf_list_count(dest);
 	for (i = 0; i<count; i++) {
-		GF_NALUConfigSlot *a_slc = gf_list_get(dest, i);
+		GF_NALUFFParam *a_slc = gf_list_get(dest, i);
 		if (a_slc->id != ps_id) continue;
 		//not same size or different content but same ID, remove old xPS
 		if ((a_slc->size != size) || memcmp(a_slc->data, data, size)) {
@@ -520,8 +520,8 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 		break;
 	}
 	if (add && dest) {
-		GF_NALUConfigSlot *slc;
-		GF_SAFEALLOC(slc, GF_NALUConfigSlot);
+		GF_NALUFFParam *slc;
+		GF_SAFEALLOC(slc, GF_NALUFFParam);
 		if (!slc) return;
 		slc->data = gf_malloc(size);
 		if (!slc->data) {
@@ -650,7 +650,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//check AVC config
     if (ctx->codecid == GF_CODECID_AVC) {
 		GF_AVCConfig *cfg;
-		GF_NALUConfigSlot *slc;
+		GF_NALUFFParam *slc;
 
 		ctx->mime = "video/avc";
 		ctx->avc.sps_active_idx = -1;
@@ -689,7 +689,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	else if (codecid == GF_CODECID_HEVC) {
 		ctx->mime = "video/hevc";
         GF_HEVCConfig *hvcc;
-	    GF_NALUConfigSlot *sl;
+	    GF_NALUFFParam *sl;
 	    HEVCState hevc;
 	    u32 j;
 
@@ -700,9 +700,9 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	    ctx->nalu_size_length = hvcc->nal_unit_size;
 
 	    for (i=0; i< gf_list_count(hvcc->param_array); i++) {
-			GF_NALUParamArray *ar = (GF_NALUParamArray *)gf_list_get(hvcc->param_array, i);
+			GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *)gf_list_get(hvcc->param_array, i);
 			for (j=0; j< gf_list_count(ar->nalus); j++) {
-				sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+				sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					mcdec_register_hevc_param_set(ctx, sl->data, sl->size, MCDEC_SPS);
@@ -735,7 +735,7 @@ static void mcdec_write_ps(GF_BitStream *bs, GF_List *ps, s32 active_ps, Bool al
 	if (!all && (active_ps<0)) return;
 	count = gf_list_count(ps);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(ps, i);
+		GF_NALUFFParam *sl = gf_list_get(ps, i);
 		if (all || (sl->id==active_ps)) {
 			gf_bs_write_u32(bs, 1);
 			gf_bs_write_data(bs, sl->data, sl->size);

@@ -477,7 +477,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 {
 	if (!cfg) return;
 	while (gf_list_count(cfg->sequenceParameterSets)) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(cfg->sequenceParameterSets, 0);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
 		if (sl->data) gf_free(sl->data);
 		gf_free(sl);
@@ -486,7 +486,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 	cfg->sequenceParameterSets = NULL;
 
 	while (gf_list_count(cfg->pictureParameterSets)) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(cfg->pictureParameterSets, 0);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->pictureParameterSets, 0);
 		gf_list_rem(cfg->pictureParameterSets, 0);
 		if (sl->data) gf_free(sl->data);
 		gf_free(sl);
@@ -496,7 +496,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 
 	if (cfg->sequenceParameterSetExtensions) {
 		while (gf_list_count(cfg->sequenceParameterSetExtensions)) {
-			GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(cfg->sequenceParameterSetExtensions, 0);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->sequenceParameterSetExtensions, 0);
 			gf_list_rem(cfg->sequenceParameterSetExtensions, 0);
 			if (sl->data) gf_free(sl->data);
 			gf_free(sl);
@@ -527,7 +527,7 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs)
 		gf_bs_write_int(bs, count, 5);
 	}
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(cfg->sequenceParameterSets, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->sequenceParameterSets, i);
 		if (!cfg->write_annex_b) {
 			gf_bs_write_u16(bs, sl->size);
 		} else {
@@ -540,7 +540,7 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs)
 		gf_bs_write_int(bs, count, 8);
 	}
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(cfg->pictureParameterSets, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(cfg->pictureParameterSets, i);
 		if (!cfg->write_annex_b) {
 			gf_bs_write_u16(bs, sl->size);
 		} else {
@@ -562,7 +562,7 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs)
 			gf_bs_write_u8(bs, count);
 		}
 		for (i=0; i<count; i++) {
-			GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *) gf_list_get(cfg->sequenceParameterSetExtensions, i);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *) gf_list_get(cfg->sequenceParameterSetExtensions, i);
 			if (!cfg->write_annex_b) {
 				gf_bs_write_u16(bs, sl->size);
 			} else {
@@ -601,7 +601,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 	gf_bs_read_int(bs, 3);
 	count = gf_bs_read_int(bs, 5);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_malloc(sizeof(GF_NALUConfigSlot));
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
 		sl->size = gf_bs_read_int(bs, 16);
 		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
@@ -609,7 +609,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 	}
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_malloc(sizeof(GF_NALUConfigSlot));
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
 		sl->size = gf_bs_read_int(bs, 16);
 		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
@@ -627,7 +627,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 		if (count) {
 			avcc->sequenceParameterSetExtensions = gf_list_new();
 			for (i=0; i<count; i++) {
-				GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_malloc(sizeof(GF_NALUConfigSlot));
+				GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
 				sl->size = gf_bs_read_u16(bs);
 				sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 				gf_bs_read_data(bs, sl->data, sl->size);
@@ -874,11 +874,11 @@ void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg)
 {
 	if (!cfg) return;
 	while (gf_list_count(cfg->param_array)) {
-		GF_NALUParamArray *pa = (GF_NALUParamArray*)gf_list_get(cfg->param_array, 0);
+		GF_NALUFFParamArray *pa = (GF_NALUFFParamArray*)gf_list_get(cfg->param_array, 0);
 		gf_list_rem(cfg->param_array, 0);
 
 		while (gf_list_count(pa->nalus)) {
-			GF_NALUConfigSlot *n = (GF_NALUConfigSlot*)gf_list_get(pa->nalus, 0);
+			GF_NALUFFParam *n = (GF_NALUFFParam*)gf_list_get(pa->nalus, 0);
 			gf_list_rem(pa->nalus, 0);
 			if (n->data) gf_free(n->data);
 			gf_free(n);
@@ -943,7 +943,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(cfg->param_array, i);
 
 		nalucount = gf_list_count(ar->nalus);
 		if (!cfg->write_annex_b) {
@@ -954,7 +954,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 		}
 
 		for (j=0; j<nalucount; j++) {
-			GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			if (!cfg->write_annex_b) {
 				gf_bs_write_int(bs, sl->size, 16);
 			} else {
@@ -1034,8 +1034,8 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_NALUParamArray *ar;
-		GF_SAFEALLOC(ar, GF_NALUParamArray);
+		GF_NALUFFParamArray *ar;
+		GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 		if (!ar) {
 			gf_odf_hevc_cfg_del(cfg);
 			return NULL;
@@ -1048,14 +1048,14 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 		ar->type = gf_bs_read_int(bs, 6);
 		nalucount = gf_bs_read_int(bs, 16);
 		for (j=0; j<nalucount; j++) {
-			GF_NALUConfigSlot *sl;
+			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
 			if (size>gf_bs_available(bs)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Wrong param set size %d\n", size));
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
 			}
-			GF_SAFEALLOC(sl, GF_NALUConfigSlot );
+			GF_SAFEALLOC(sl, GF_NALUFFParam );
 			if (!sl) {
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
@@ -1096,11 +1096,11 @@ void gf_odf_vvc_cfg_del(GF_VVCConfig *cfg)
 {
 	if (!cfg) return;
 	while (gf_list_count(cfg->param_array)) {
-		GF_NALUParamArray *pa = (GF_NALUParamArray*)gf_list_get(cfg->param_array, 0);
+		GF_NALUFFParamArray *pa = (GF_NALUFFParamArray*)gf_list_get(cfg->param_array, 0);
 		gf_list_rem(cfg->param_array, 0);
 
 		while (gf_list_count(pa->nalus)) {
-			GF_NALUConfigSlot *n = (GF_NALUConfigSlot*)gf_list_get(pa->nalus, 0);
+			GF_NALUFFParam *n = (GF_NALUFFParam*)gf_list_get(pa->nalus, 0);
 			gf_list_rem(pa->nalus, 0);
 			if (n->data) gf_free(n->data);
 			gf_free(n);
@@ -1185,7 +1185,7 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(cfg->param_array, i);
 
 		nalucount = gf_list_count(ar->nalus);
 		if (!cfg->write_annex_b) {
@@ -1196,7 +1196,7 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 		}
 
 		for (j=0; j<nalucount; j++) {
-			GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			if (!cfg->write_annex_b) {
 				gf_bs_write_int(bs, sl->size, 16);
 			} else {
@@ -1305,8 +1305,8 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_NALUParamArray *ar;
-		GF_SAFEALLOC(ar, GF_NALUParamArray);
+		GF_NALUFFParamArray *ar;
+		GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 		if (!ar) {
 			gf_odf_vvc_cfg_del(cfg);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] alloc failed while parsing vvc config\n"));
@@ -1320,14 +1320,14 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 		ar->type = gf_bs_read_int(bs, 6);
 		nalucount = gf_bs_read_int(bs, 16);
 		for (j=0; j<nalucount; j++) {
-			GF_NALUConfigSlot *sl;
+			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
 			if (size>gf_bs_available(bs)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Wrong param set size %d\n", size));
 				gf_odf_vvc_cfg_del(cfg);
 				return NULL;
 			}
-			GF_SAFEALLOC(sl, GF_NALUConfigSlot );
+			GF_SAFEALLOC(sl, GF_NALUFFParam );
 			if (!sl) {
 				gf_odf_vvc_cfg_del(cfg);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] alloc failed while parsing vvc config\n"));

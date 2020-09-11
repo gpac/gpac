@@ -522,7 +522,7 @@ void isor_reader_release_sample(ISOMChannel *ch)
 static void isor_reset_seq_list(GF_List *list)
 {
 	while (gf_list_count(list)) {
-		GF_NALUConfigSlot *sl = gf_list_pop_back(list);
+		GF_NALUFFParam *sl = gf_list_pop_back(list);
 		gf_free(sl->data);
 		gf_free(sl);
 	}
@@ -539,7 +539,7 @@ enum
 static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
 {
 	u32 i, count, state=0;
-	GF_NALUConfigSlot *sl;
+	GF_NALUFFParam *sl;
 	GF_List *list=NULL;
 	if (avcc) {
 		if (nal_type==GF_AVC_NALU_PIC_PARAM) {
@@ -553,7 +553,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 			state=RESET_STATE_SPS_EXT;
 		} else return;
 	} else if (hvcc) {
-		GF_NALUParamArray *hvca=NULL;
+		GF_NALUFFParamArray *hvca=NULL;
 		count = gf_list_count(hvcc->param_array);
 		for (i=0; i<count; i++) {
 			hvca = gf_list_get(hvcc->param_array, i);
@@ -564,7 +564,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 			hvca = NULL;
 		}
 		if (!hvca) {
-			GF_SAFEALLOC(hvca, GF_NALUParamArray);
+			GF_SAFEALLOC(hvca, GF_NALUFFParamArray);
 			if (hvca) {
 				list = hvca->nalus = gf_list_new();
 				hvca->type = nal_type;
@@ -593,7 +593,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 		isor_reset_seq_list(list);
 		*reset_state |= state;
 	}
-	GF_SAFEALLOC(sl, GF_NALUConfigSlot);
+	GF_SAFEALLOC(sl, GF_NALUFFParam);
 	if (!sl) return;
 	sl->data = gf_malloc(sizeof(char)*size);
 	memcpy(sl->data, data, size);

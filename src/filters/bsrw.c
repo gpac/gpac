@@ -180,7 +180,7 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if ((ctx->lev>=0) || (ctx->prof>=0) || (ctx->pcomp>=0)) {
 		u32 i, count = gf_list_count(avcc->sequenceParameterSets);
 		for (i=0; i<count; i++) {
-			GF_NALUConfigSlot *sps = gf_list_get(avcc->sequenceParameterSets, i);
+			GF_NALUFFParam *sps = gf_list_get(avcc->sequenceParameterSets, i);
 			//first byte is nalu header, then profile_idc (8bits), prof_comp (8buts) a,d level_idc (8bits)
 			if (ctx->prof>=0) {
 				sps->data[1] = (u8) ctx->prof;
