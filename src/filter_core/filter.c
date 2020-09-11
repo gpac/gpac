@@ -59,7 +59,6 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 	char szEscape[7];
 	char *args_striped = NULL;
 	if (in_args) {
-		char szDst[6];
 		const char *key;
 		if (is_dst) {
 			key = "dst";
@@ -69,6 +68,7 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 		if (!strncmp(in_args, key, 3) && (in_args[3]==fsess->sep_name)) {
 			args_striped = (char *) in_args;
 		} else {
+			char szDst[6];
 			sprintf(szDst, "%c%s%c", fsess->sep_name, key, fsess->sep_name);
 			args_striped = strstr(in_args, szDst);
 		}

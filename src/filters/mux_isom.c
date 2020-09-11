@@ -592,7 +592,6 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 				}
 			}
 			else if (itag==GF_ISOM_ITUNE_GENRE) {
-				val = 0;
 				if ((tag->type==GF_PROP_STRING) && tag->value.string) {
 					val = gf_id3_get_genre_tag(tag->value.string);
 					if (val) {

@@ -1769,7 +1769,8 @@ static void scenejs_finalize(JSRuntime *rt, JSValue obj)
 	/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 	JS_FreeValueRT(rt, sjs->evt_fun);
 	if (sjs->evt_filter.udta) {
-		gf_filter_remove_event_listener(sjs->compositor->filter, &sjs->evt_filter);
+		if (sjs->compositor)
+			gf_filter_remove_event_listener(sjs->compositor->filter, &sjs->evt_filter);
 		sjs->evt_filter.udta = NULL;
 	}
 

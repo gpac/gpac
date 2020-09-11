@@ -810,6 +810,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		}
 		if (pck->info.cts!=GF_FILTER_NO_TS) {
 			pid->last_ts_sent.num = pck->info.cts;
+			assert(pck->pid_props);
 			pid->last_ts_sent.den = pck->pid_props->timescale;
 		}
 	}

@@ -100,6 +100,7 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 	} else if (new_filter) {
 		arg = jsfs_new_filter_obj(task->ctx, new_filter);
 	} else {
+		assert(del_filter);
 		arg = JS_DupValue(task->ctx, del_filter->jsval);
 	}
 
