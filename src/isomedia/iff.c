@@ -1024,6 +1024,11 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		return GF_OK;
 	}
 
+	if (!image_props) {
+		image_props = &local_image_props;
+		memset(image_props, 0, sizeof(GF_ImageItemProperties));
+	}
+
 import_next_sample:
 
 	timescale = gf_isom_get_media_timescale(movie, imported_track);
@@ -1166,10 +1171,6 @@ import_next_sample:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image aspect ratio\n"));
 		if (config_box) gf_isom_box_del(config_box);
 		return e;
-	}
-	if (!image_props) {
-		image_props = &local_image_props;
-		memset(image_props, 0, sizeof(GF_ImageItemProperties));
 	}
 	if (!image_props->width && !image_props->height) {
 		image_props->width = w;
