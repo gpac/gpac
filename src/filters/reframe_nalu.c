@@ -3169,7 +3169,6 @@ naldmx_flush:
 //			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic)
 //				bIntraSlice = GF_TRUE; //gf_media_hevc_slice_is_intra(ctx->hevc_state);
 
-			slice_is_ref = 0;
 			au_sap_type = GF_FILTER_SAP_NONE;
 			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic) {
 				au_sap_type = GF_FILTER_SAP_1;

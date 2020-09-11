@@ -571,6 +571,7 @@ static GF_Err gf_mpd_parse_descriptor_ex(GF_List *container, GF_MPD_Descriptor *
 	if (container)
 		gf_list_add(container, mpd_desc);
 	else {
+		assert(out_ptr);
 		if (*out_ptr) gf_mpd_descriptor_free(*out_ptr);
 		*out_ptr = mpd_desc;
 	}

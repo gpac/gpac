@@ -5165,6 +5165,8 @@ static char *dasher_strip_base(GF_DasherCtx *ctx, char *url)
 	char *file_path = url;
 	char *res = url;
 
+	if (!manifest_path || !url) return NULL;
+	
 	if (!strncmp(manifest_path, "./", 2)) manifest_path+=2;
 	if (!strncmp(file_path, "./", 2)) file_path+=2;
 

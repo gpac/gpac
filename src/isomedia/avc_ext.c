@@ -1321,7 +1321,7 @@ static GF_Err gf_isom_check_mvc(GF_ISOFile *the_file, GF_TrackBox *trak, GF_MPEG
 			mvcg->num_entries += 1;
 		mvcg->num_entries += gf_list_count(entry->avc_config->config->sequenceParameterSetExtensions);
 	}
-	if (entry->mvc_config) {
+	if (entry->mvc_config && entry->mvc_config->config) {
 		mvcg->num_entries += gf_list_count(entry->mvc_config->config->sequenceParameterSets);
 	}
 	mvcg->entries = gf_malloc(sizeof(MVCIEntry)*mvcg->num_entries);

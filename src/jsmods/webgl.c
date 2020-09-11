@@ -1132,6 +1132,12 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 	} else {
 		final_source = source;
 	}
+
+	if (!final_source) {
+		JS_FreeCString(ctx, source);
+		return js_throw_err_msg(ctx, WGL_INVALID_VALUE, "Failed to rewrite shader");
+	}
+
 	len = (u32) strlen(final_source);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONSOLE, ("[WebGL] Shader rewritten as\n%s", final_source));
 

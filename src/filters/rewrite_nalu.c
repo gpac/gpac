@@ -314,7 +314,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *data, *output;
-	u32 pck_size, size, sap, temporal_id, layer_id;
+	u32 pck_size, size, sap=0, temporal_id, layer_id;
 	u8 avc_hdr;
 	Bool insert_dsi = GF_FALSE;
 	Bool has_nalu_delim = GF_FALSE;

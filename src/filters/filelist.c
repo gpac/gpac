@@ -292,6 +292,14 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_TRUE;
 }
 
+enum
+{
+	FL_ARG_BOOL=0,
+	FL_ARG_INT,
+	FL_ARG_DOUBLE,
+	FL_ARG_LUINT
+};
+
 void filelist_parse_arg(char *com, char *name, u32 type, u32 *int_val, Double *float_val, u64 *luint_val)
 {
 	char *val = strstr(com, name);
@@ -306,14 +314,18 @@ void filelist_parse_arg(char *com, char *name, u32 type, u32 *int_val, Double *f
 			sep[0] = 0;
 		}
 		val += strlen(name);
-		if (type==1) {
-			(*int_val) = atoi(val);
-		} else if (type==2) {
-			(*int_val) = atoi(val);
-		} else if (type==3) {
-			sscanf(val, LLU, luint_val);
-		} else if (type==0) {
-			(*int_val) = 1;
+		if (type==FL_ARG_INT) {
+			if (int_val)
+				(*int_val) = atoi(val);
+		} else if (type==FL_ARG_DOUBLE) {
+			if (float_val)
+				(*float_val) = atof(val);
+		} else if (type==FL_ARG_LUINT) {
+			if (luint_val)
+				sscanf(val, LLU, luint_val);
+		} else if (type==FL_ARG_BOOL) {
+			if (int_val)
+				(*int_val) = 1;
 		}
 		if (sep) sep[0] = c;
 	}
@@ -354,7 +366,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	Bool last_found = GF_FALSE;
 	FILE *f;
 	u32 nb_repeat=0, lineno=0;
-	u64 start_range, end_range;
+	u64 start_range=0, end_range=0;
 	Double start=0, stop=0;
 	Bool do_cat=0;
 	Bool is_end=0;
@@ -431,16 +443,16 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			do_cat = 0;
 			start_range=end_range=0;
 
-			filelist_parse_arg(szURL, "repeat=", 1, &nb_repeat, NULL, NULL);
-			filelist_parse_arg(szURL, "start=", 2, NULL, &start, NULL);
-			filelist_parse_arg(szURL, "stop=", 2, NULL, &stop, NULL);
-			filelist_parse_arg(szURL, "cat", 0, (u32 *)&do_cat, NULL, NULL);
+			filelist_parse_arg(szURL, "repeat=", FL_ARG_INT, &nb_repeat, NULL, NULL);
+			filelist_parse_arg(szURL, "start=", FL_ARG_DOUBLE, NULL, &start, NULL);
+			filelist_parse_arg(szURL, "stop=", FL_ARG_DOUBLE, NULL, &stop, NULL);
+			filelist_parse_arg(szURL, "cat", FL_ARG_BOOL, (u32 *)&do_cat, NULL, NULL);
 			if (do_cat) {
-				filelist_parse_arg(szURL, "srange=", 3, NULL, NULL, &start_range);
-				filelist_parse_arg(szURL, "send=", 3, NULL, NULL, &end_range);
+				filelist_parse_arg(szURL, "srange=", FL_ARG_LUINT, NULL, NULL, &start_range);
+				filelist_parse_arg(szURL, "send=", FL_ARG_LUINT, NULL, NULL, &end_range);
 			}
 			if (ctx->ka) {
-				filelist_parse_arg(szURL, "end", 0, (u32 *)&is_end, NULL, NULL);
+				filelist_parse_arg(szURL, "end", FL_ARG_BOOL, (u32 *)&is_end, NULL, NULL);
 			}
 			strcpy(ctx->szCom, szURL);
 			continue;
