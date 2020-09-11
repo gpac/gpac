@@ -915,15 +915,21 @@ typedef struct {
 	u8 profileLevelIndicationIndex;
 } GF_PL_IDX;
 
-/*! used for storing AVC sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
+/*! used for storing NALU-based parameter set in AVC/HEVC/VVC configuration record*/
 typedef struct
 {
+	/*! size of nal*/
 	u16 size;
+	/*! nal data*/
 	u8 *data;
-	/* used of AVC/SVC detection */
+	/*! ID of param set, used by some importers but not written in file*/
 	s32 id;
+	/*! CRC of nal, used by some importers but not written in file*/
 	u32 crc;
-} GF_NALUConfigSlot;
+} GF_NALUFFParam;
+
+/*! pre v1.1 naming of NALU config record*/
+typedef GF_NALUFFParam GF_AVCConfigSlot;
 
 /*! AVC config record - not a real MPEG-4 descriptor
 */
@@ -959,7 +965,10 @@ typedef struct
 	u8 type;
 	u8 array_completeness;
 	GF_List *nalus;
-} GF_NALUParamArray;
+} GF_NALUFFParamArray;
+
+/*! pre v1.1 naming of NALU param array*/
+typedef GF_NALUFFParamArray GF_HEVCParamArray;
 
 /*! HEVC config record - not a real MPEG-4 descriptor*/
 typedef struct

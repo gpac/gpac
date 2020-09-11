@@ -1512,14 +1512,14 @@ GF_Err avcc_box_dump(GF_Box *a, FILE * trace)
 
 	count = gf_list_count(p->config->sequenceParameterSets);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(p->config->sequenceParameterSets, i);
+		GF_NALUFFParam *c = (GF_NALUFFParam *)gf_list_get(p->config->sequenceParameterSets, i);
 		gf_fprintf(trace, "<SequenceParameterSet size=\"%d\" content=\"", c->size);
 		dump_data(trace, c->data, c->size);
 		gf_fprintf(trace, "\"/>\n");
 	}
 	count = gf_list_count(p->config->pictureParameterSets);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(p->config->pictureParameterSets, i);
+		GF_NALUFFParam *c = (GF_NALUFFParam *)gf_list_get(p->config->pictureParameterSets, i);
 		gf_fprintf(trace, "<PictureParameterSet size=\"%d\" content=\"", c->size);
 		dump_data(trace, c->data, c->size);
 		gf_fprintf(trace, "\"/>\n");
@@ -1528,7 +1528,7 @@ GF_Err avcc_box_dump(GF_Box *a, FILE * trace)
 	if (p->config->sequenceParameterSetExtensions) {
 		count = gf_list_count(p->config->sequenceParameterSetExtensions);
 		for (i=0; i<count; i++) {
-			GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(p->config->sequenceParameterSetExtensions, i);
+			GF_NALUFFParam *c = (GF_NALUFFParam *)gf_list_get(p->config->sequenceParameterSetExtensions, i);
 			gf_fprintf(trace, "<SequenceParameterSetExtensions size=\"%d\" content=\"", c->size);
 			dump_data(trace, c->data, c->size);
 			gf_fprintf(trace, "\"/>\n");
@@ -1601,11 +1601,11 @@ GF_Err hvcc_box_dump(GF_Box *a, FILE * trace)
 	count = gf_list_count(p->config->param_array);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(p->config->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(p->config->param_array, i);
 		gf_fprintf(trace, "<ParameterSetArray nalu_type=\"%d\" complete_set=\"%d\">\n", ar->type, ar->array_completeness);
 		nalucount = gf_list_count(ar->nalus);
 		for (j=0; j<nalucount; j++) {
-			GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+			GF_NALUFFParam *c = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			gf_fprintf(trace, "<ParameterSet size=\"%d\" content=\"", c->size);
 			dump_data(trace, c->data, c->size);
 			gf_fprintf(trace, "\"/>\n");
@@ -1668,11 +1668,11 @@ GF_Err vvcc_box_dump(GF_Box *a, FILE * trace)
 	count = gf_list_count(p->config->param_array);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(p->config->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(p->config->param_array, i);
 		gf_fprintf(trace, "<ParameterSetArray nalu_type=\"%d\" complete_set=\"%d\">\n", ar->type, ar->array_completeness);
 		nalucount = gf_list_count(ar->nalus);
 		for (j=0; j<nalucount; j++) {
-			GF_NALUConfigSlot *c = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+			GF_NALUFFParam *c = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			gf_fprintf(trace, "<ParameterSet size=\"%d\" content=\"", c->size);
 			dump_data(trace, c->data, c->size);
 			gf_fprintf(trace, "\"/>\n");

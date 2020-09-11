@@ -376,7 +376,7 @@ static void mp4_mux_write_ps_list(GF_BitStream *bs, GF_List *list, u32 nalu_size
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = gf_list_get(list, i);
+		GF_NALUFFParam *sl = gf_list_get(list, i);
 		gf_bs_write_int(bs, sl->size, 8*nalu_size_length);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
@@ -386,7 +386,7 @@ static GF_List *mp4_mux_get_nalus_ps(GF_List *list, u8 type)
 {
 	u32 i, count = gf_list_count(list);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *pa = gf_list_get(list, i);
+		GF_NALUFFParamArray *pa = gf_list_get(list, i);
 		if (pa->type == type) return pa->nalus;
 	}
 	return NULL;
@@ -2680,7 +2680,7 @@ sample_entry_done:
 			memset(&avc, 0, sizeof(AVCState));
 			count = gf_list_count(tkw->svcc->sequenceParameterSets);
 			for (i=0; i<count; i++) {
-				GF_NALUConfigSlot *sl = gf_list_get(tkw->svcc->sequenceParameterSets, i);
+				GF_NALUFFParam *sl = gf_list_get(tkw->svcc->sequenceParameterSets, i);
 				u8 nal_type = sl->data[0] & 0x1F;
 				Bool is_subseq = (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM) ? GF_TRUE : GF_FALSE;
 				s32 ps_idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, is_subseq, NULL);

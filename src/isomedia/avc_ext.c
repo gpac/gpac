@@ -90,7 +90,7 @@ static void rewrite_nalus_list(GF_List *nalus, GF_BitStream *bs, Bool rewrite_st
 {
 	u32 i, count = gf_list_count(nalus);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot*)gf_list_get(nalus, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(nalus, i);
 		if (rewrite_start_codes) gf_bs_write_u32(bs, 1);
 		else gf_bs_write_int(bs, sl->size, 8*nal_unit_size_field);
 		gf_bs_write_data(bs, sl->data, sl->size);
@@ -371,7 +371,7 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 		if (entry->hevc_config) {
 			count = gf_list_count(entry->hevc_config->config->param_array);
 			for (i=0; i<count; i++) {
-				GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(entry->hevc_config->config->param_array, i);
+				GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(entry->hevc_config->config->param_array, i);
 				if (ar->type == GF_HEVC_NALU_VID_PARAM) {
 					if (! *has_vps)  *has_vps = GF_TRUE;
 					else continue;
@@ -382,7 +382,7 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 		if (entry->lhvc_config) {
 			count = gf_list_count(entry->lhvc_config->config->param_array);
 			for (i=0; i<count; i++) {
-				GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(entry->lhvc_config->config->param_array, i);
+				GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(entry->lhvc_config->config->param_array, i);
 				if (ar->type == GF_HEVC_NALU_VID_PARAM) {
 					if (! *has_vps)  *has_vps = GF_TRUE;
 					else continue;
@@ -901,7 +901,7 @@ GF_VVCConfig *VVC_DuplicateConfig(GF_VVCConfig *cfg)
 static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 {
 	u32 i, count;
-	GF_NALUConfigSlot *p1, *p2;
+	GF_NALUFFParam *p1, *p2;
 	GF_AVCConfig *cfg_new;
 	if (!cfg)
 		return NULL;
@@ -918,8 +918,8 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 
 	count = gf_list_count(cfg->sequenceParameterSets);
 	for (i=0; i<count; i++) {
-		p1 = (GF_NALUConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
-		p2 = (GF_NALUConfigSlot*)gf_malloc(sizeof(GF_NALUConfigSlot));
+		p1 = (GF_NALUFFParam*)gf_list_get(cfg->sequenceParameterSets, i);
+		p2 = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 		p2->size = p1->size;
 		p2->id = p1->id;
 		p2->data = (char *)gf_malloc(sizeof(char)*p1->size);
@@ -929,8 +929,8 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 
 	count = gf_list_count(cfg->pictureParameterSets);
 	for (i=0; i<count; i++) {
-		p1 = (GF_NALUConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
-		p2 = (GF_NALUConfigSlot*)gf_malloc(sizeof(GF_NALUConfigSlot));
+		p1 = (GF_NALUFFParam*)gf_list_get(cfg->pictureParameterSets, i);
+		p2 = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 		p2->size = p1->size;
 		p2->id = p1->id;
 		p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
@@ -942,8 +942,8 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 		cfg_new->sequenceParameterSetExtensions = gf_list_new();
 		count = gf_list_count(cfg->sequenceParameterSetExtensions);
 		for (i=0; i<count; i++) {
-			p1 = (GF_NALUConfigSlot*)gf_list_get(cfg->sequenceParameterSetExtensions, i);
-			p2 = (GF_NALUConfigSlot*)gf_malloc(sizeof(GF_NALUConfigSlot));
+			p1 = (GF_NALUFFParam*)gf_list_get(cfg->sequenceParameterSetExtensions, i);
+			p2 = (GF_NALUFFParam*)gf_malloc(sizeof(GF_NALUFFParam));
 			p2->size = p1->size;
 			p2->id = p1->id;
 			p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
@@ -962,12 +962,12 @@ static void merge_avc_config(GF_AVCConfig *dst_cfg, GF_AVCConfig *src_cfg)
 	if (!cfg) return;
 	
 	while (gf_list_count(cfg->sequenceParameterSets)) {
-		GF_NALUConfigSlot *p = (GF_NALUConfigSlot*)gf_list_get(cfg->sequenceParameterSets, 0);
+		GF_NALUFFParam *p = (GF_NALUFFParam*)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
 		gf_list_insert(dst_cfg->sequenceParameterSets, p, 0);
 	}
 	while (gf_list_count(cfg->pictureParameterSets)) {
-		GF_NALUConfigSlot *p = (GF_NALUConfigSlot*)gf_list_get(cfg->pictureParameterSets, 0);
+		GF_NALUFFParam *p = (GF_NALUFFParam*)gf_list_get(cfg->pictureParameterSets, 0);
 		gf_list_rem(cfg->pictureParameterSets, 0);
 		gf_list_insert(dst_cfg->pictureParameterSets, p, 0);
 	}
@@ -980,11 +980,11 @@ void merge_hevc_config(GF_HEVCConfig *dst_cfg, GF_HEVCConfig *src_cfg, Bool forc
 	//merge all xPS
 	u32 i, j, count = cfg->param_array ? gf_list_count(cfg->param_array) : 0;
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *ar_h = NULL;
+		GF_NALUFFParamArray *ar_h = NULL;
 		u32 count2 = dst_cfg->param_array ? gf_list_count(dst_cfg->param_array) : 0;
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(cfg->param_array, i);
 		for (j=0; j<count2; j++) {
-			ar_h = (GF_NALUParamArray*)gf_list_get(dst_cfg->param_array, j);
+			ar_h = (GF_NALUFFParamArray*)gf_list_get(dst_cfg->param_array, j);
 			if (ar_h->type==ar->type) {
 				break;
 			}
@@ -997,7 +997,7 @@ void merge_hevc_config(GF_HEVCConfig *dst_cfg, GF_HEVCConfig *src_cfg, Bool forc
 			i--;
 		} else {
 			while (gf_list_count(ar->nalus)) {
-				GF_NALUConfigSlot *p = (GF_NALUConfigSlot*)gf_list_get(ar->nalus, 0);
+				GF_NALUFFParam *p = (GF_NALUFFParam*)gf_list_get(ar->nalus, 0);
 				gf_list_rem(ar->nalus, 0);
 				if (force_insert)
 					gf_list_insert(ar_h->nalus, p, 0);
@@ -1276,11 +1276,11 @@ void gf_media_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_typ
 	if (!hevccfg) return;
 	
 	for (i = 0; i < gf_list_count(hevccfg->param_array); i++) {
-		GF_NALUParamArray* ar = gf_list_get(hevccfg->param_array, i);
+		GF_NALUFFParamArray* ar = gf_list_get(hevccfg->param_array, i);
 		if (ar->type != nal_type) continue;
 		for (j = 0; j < gf_list_count(ar->nalus); j++) {
 			u8 ntype, tid, lid;
-			GF_NALUConfigSlot* sl = gf_list_get(ar->nalus, j);
+			GF_NALUFFParam* sl = gf_list_get(ar->nalus, j);
 			gf_media_hevc_parse_nalu(sl->data, sl->size, hevc, &ntype, &tid, &lid);
 		}
 	}
@@ -1602,21 +1602,21 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 
 
 				while (gf_list_count(a_cfg->config->sequenceParameterSets)) {
-					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot*)gf_list_get(a_cfg->config->sequenceParameterSets, 0);
+					GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(a_cfg->config->sequenceParameterSets, 0);
 					gf_list_rem(a_cfg->config->sequenceParameterSets, 0);
 					if (sl->data) gf_free(sl->data);
 					gf_free(sl);
 				}
 
 				while (gf_list_count(a_cfg->config->pictureParameterSets)) {
-					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot*)gf_list_get(a_cfg->config->pictureParameterSets, 0);
+					GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(a_cfg->config->pictureParameterSets, 0);
 					gf_list_rem(a_cfg->config->pictureParameterSets, 0);
 					if (sl->data) gf_free(sl->data);
 					gf_free(sl);
 				}
 
 				while (gf_list_count(a_cfg->config->sequenceParameterSetExtensions)) {
-					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot*)gf_list_get(a_cfg->config->sequenceParameterSetExtensions, 0);
+					GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(a_cfg->config->sequenceParameterSetExtensions, 0);
 					gf_list_rem(a_cfg->config->sequenceParameterSetExtensions, 0);
 					if (sl->data) gf_free(sl->data);
 					gf_free(sl);
@@ -2010,7 +2010,7 @@ static Bool nalu_cleanup_config(GF_List *param_array, Bool set_inband, Bool keep
 	if (!param_array) return 0;
 
 	for (i=0; i<gf_list_count(param_array); i++) {
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(param_array, i);
 
 		/*we want to force inband signaling*/
 		if (set_inband) {
@@ -2021,7 +2021,7 @@ static Bool nalu_cleanup_config(GF_List *param_array, Bool set_inband, Bool keep
 			}
 
 			while (gf_list_count(ar->nalus)) {
-				GF_NALUConfigSlot *sl = (GF_NALUConfigSlot*)gf_list_get(ar->nalus, 0);
+				GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(ar->nalus, 0);
 				gf_list_rem(ar->nalus, 0);
 				if (sl->data) gf_free(sl->data);
 				gf_free(sl);
@@ -2746,7 +2746,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 	count = gf_bs_read_int(bs, 5);
 
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *) gf_malloc(sizeof(GF_NALUConfigSlot));
+		GF_NALUFFParam *sl = (GF_NALUFFParam *) gf_malloc(sizeof(GF_NALUFFParam));
 		ISOM_DECREASE_SIZE(ptr, 2)
 		sl->size = gf_bs_read_u16(bs);
 		if (!sl->size || (gf_bs_available(bs) < sl->size) || (ptr->size < sl->size) ) {
@@ -2762,7 +2762,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 
 	count = gf_bs_read_u8(bs);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_malloc(sizeof(GF_NALUConfigSlot));
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
 		ISOM_DECREASE_SIZE(ptr, 2)
 		sl->size = gf_bs_read_u16(bs);
 		if (!sl->size || (gf_bs_available(bs) < sl->size) || (ptr->size<sl->size)) {
@@ -2782,7 +2782,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_AV_PARSERS
 				AVCState avc;
 				s32 idx;
-				GF_NALUConfigSlot *sl = (GF_NALUConfigSlot*)gf_list_get(ptr->config->sequenceParameterSets, 0);
+				GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(ptr->config->sequenceParameterSets, 0);
 				idx = sl ? gf_media_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, NULL) : -1;
 
 				if (idx>=0) {
@@ -2815,7 +2815,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 			if (count) {
 				ptr->config->sequenceParameterSetExtensions = gf_list_new();
 				for (i=0; i<count; i++) {
-					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_malloc(sizeof(GF_NALUConfigSlot));
+					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
 					ISOM_DECREASE_SIZE(ptr, 2)
 					sl->size = gf_bs_read_u16(bs);
 					if ((gf_bs_available(bs) < sl->size) || (ptr->size<sl->size)) {
@@ -2869,7 +2869,7 @@ GF_Err avcc_box_write(GF_Box *s, GF_BitStream *bs)
 	count = gf_list_count(ptr->config->sequenceParameterSets);
 	gf_bs_write_int(bs, count, 5);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *) gf_list_get(ptr->config->sequenceParameterSets, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *) gf_list_get(ptr->config->sequenceParameterSets, i);
 		gf_bs_write_u16(bs, sl->size);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
@@ -2877,7 +2877,7 @@ GF_Err avcc_box_write(GF_Box *s, GF_BitStream *bs)
 	count = gf_list_count(ptr->config->pictureParameterSets);
 	gf_bs_write_u8(bs, count);
 	for (i=0; i<count; i++) {
-		GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *) gf_list_get(ptr->config->pictureParameterSets, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *) gf_list_get(ptr->config->pictureParameterSets, i);
 		gf_bs_write_u16(bs, sl->size);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
@@ -2895,7 +2895,7 @@ GF_Err avcc_box_write(GF_Box *s, GF_BitStream *bs)
 			count = ptr->config->sequenceParameterSetExtensions ? gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
 			gf_bs_write_u8(bs, count);
 			for (i=0; i<count; i++) {
-				GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *) gf_list_get(ptr->config->sequenceParameterSetExtensions, i);
+				GF_NALUFFParam *sl = (GF_NALUFFParam *) gf_list_get(ptr->config->sequenceParameterSetExtensions, i);
 				gf_bs_write_u16(bs, sl->size);
 				gf_bs_write_data(bs, sl->data, sl->size);
 			}
@@ -2915,18 +2915,18 @@ GF_Err avcc_box_size(GF_Box *s)
 	ptr->size += 7;
 	count = gf_list_count(ptr->config->sequenceParameterSets);
 	for (i=0; i<count; i++)
-		ptr->size += 2 + ((GF_NALUConfigSlot *)gf_list_get(ptr->config->sequenceParameterSets, i))->size;
+		ptr->size += 2 + ((GF_NALUFFParam *)gf_list_get(ptr->config->sequenceParameterSets, i))->size;
 
 	count = gf_list_count(ptr->config->pictureParameterSets);
 	for (i=0; i<count; i++)
-		ptr->size += 2 + ((GF_NALUConfigSlot *)gf_list_get(ptr->config->pictureParameterSets, i))->size;
+		ptr->size += 2 + ((GF_NALUFFParam *)gf_list_get(ptr->config->pictureParameterSets, i))->size;
 
 	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
 		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
 			ptr->size += 4;
 			count = ptr->config->sequenceParameterSetExtensions ?gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
 			for (i=0; i<count; i++)
-				ptr->size += 2 + ((GF_NALUConfigSlot *)gf_list_get(ptr->config->sequenceParameterSetExtensions, i))->size;
+				ptr->size += 2 + ((GF_NALUFFParam *)gf_list_get(ptr->config->sequenceParameterSetExtensions, i))->size;
 		}
 	}
 	return GF_OK;
@@ -2996,11 +2996,11 @@ GF_Err hvcc_box_size(GF_Box *s)
 
 	count = gf_list_count(ptr->config->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(ptr->config->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(ptr->config->param_array, i);
 		ptr->size += 3;
 		subcount = gf_list_count(ar->nalus);
 		for (j=0; j<subcount; j++) {
-			ptr->size += 2 + ((GF_NALUConfigSlot *)gf_list_get(ar->nalus, j))->size;
+			ptr->size += 2 + ((GF_NALUFFParam *)gf_list_get(ar->nalus, j))->size;
 		}
 	}
 	return GF_OK;
@@ -3081,11 +3081,11 @@ GF_Err vvcc_box_size(GF_Box *s)
 
 	count = gf_list_count(ptr->config->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUParamArray *ar = (GF_NALUParamArray*)gf_list_get(ptr->config->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray*)gf_list_get(ptr->config->param_array, i);
 		ptr->size += 3;
 		subcount = gf_list_count(ar->nalus);
 		for (j=0; j<subcount; j++) {
-			ptr->size += 2 + ((GF_NALUConfigSlot *)gf_list_get(ar->nalus, j))->size;
+			ptr->size += 2 + ((GF_NALUFFParam *)gf_list_get(ar->nalus, j))->size;
 		}
 	}
 	return GF_OK;

@@ -2192,7 +2192,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	u32 idx=0, nalh_size;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i;
-	GF_NALUConfigSlot *slc;
+	GF_NALUFFParam *slc;
 #endif
 	GF_AVCConfig *avcc, *svcc;
 	GF_HEVCConfig *hvcc, *lhcc;
@@ -2376,7 +2376,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (hvcc) {
 			for (idx=0; idx<gf_list_count(hvcc->param_array); idx++) {
-				GF_NALUParamArray *ar = gf_list_get(hvcc->param_array, idx);
+				GF_NALUFFParamArray *ar = gf_list_get(hvcc->param_array, idx);
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					DUMP_ARRAY(ar->nalus, "HEVCSPS", "hvcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -2390,7 +2390,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		}
 		if (lhcc) {
 			for (idx=0; idx<gf_list_count(lhcc->param_array); idx++) {
-				GF_NALUParamArray *ar = gf_list_get(lhcc->param_array, idx);
+				GF_NALUFFParamArray *ar = gf_list_get(lhcc->param_array, idx);
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					DUMP_ARRAY(ar->nalus, "HEVCSPS", "lhcC", 0)
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -2432,7 +2432,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (vvcC) {
 			for (idx=0; idx<gf_list_count(vvcC->param_array); idx++) {
-				GF_NALUParamArray *ar = gf_list_get(vvcC->param_array, idx);
+				GF_NALUFFParamArray *ar = gf_list_get(vvcC->param_array, idx);
 				if (ar->type==GF_VVC_NALU_SEQ_PARAM) {
 					DUMP_ARRAY(ar->nalus, "VVCSPS", "vvcC", 0)
 				} else if (ar->type==GF_VVC_NALU_PIC_PARAM) {

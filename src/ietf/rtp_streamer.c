@@ -579,7 +579,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 				strcat(sdpLine, "; sprop-parameter-sets=");
 				count = gf_list_count(avcc->sequenceParameterSets);
 				for (i=0; i<count; i++) {
-					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(avcc->sequenceParameterSets, i);
+					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
 					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 					b64[b64s]=0;
 					strcat(sdpLine, b64);
@@ -588,7 +588,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 				if (i) strcat(sdpLine, ",");
 				count = gf_list_count(avcc->pictureParameterSets);
 				for (i=0; i<count; i++) {
-					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(avcc->pictureParameterSets, i);
+					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->pictureParameterSets, i);
 					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 					b64[b64s]=0;
 					strcat(sdpLine, b64);
@@ -608,7 +608,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 			sprintf(sdpLine, "a=fmtp:%d", rtp->packetizer->PayloadType);
 			count = gf_list_count(hevcc->param_array);
 			for (i = 0; i < count; i++) {
-				GF_NALUParamArray *ar = (GF_NALUParamArray *)gf_list_get(hevcc->param_array, i);
+				GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *)gf_list_get(hevcc->param_array, i);
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					strcat(sdpLine, "; sprop-sps=");
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -617,7 +617,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 					strcat(sdpLine, "; sprop-vps=");
 				}
 				for (j = 0; j < gf_list_count(ar->nalus); j++) {
-					GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_list_get(ar->nalus, j);
+					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 					b64[b64s]=0;
 					if (j) strcat(sdpLine, ", ");

@@ -1536,7 +1536,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 
 					nalt = b64_d[0] & 0x1F;
 					if (/*SPS*/(nalt==0x07) || /*PPS*/(nalt==0x08) || /*SSPS*/(nalt==0x0F)) {
-						GF_NALUConfigSlot *sl = (GF_NALUConfigSlot *)gf_malloc(sizeof(GF_NALUConfigSlot));
+						GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
 						sl->size = ret;
 						sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 						memcpy(sl->data, b64_d, sizeof(char)*sl->size);
@@ -1590,21 +1590,21 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			j=0;
 			while ((att = (GF_X_Attribute *)gf_list_enum(fmtp->Attributes, &j))) {
 				char *nal_ptr, *sep;
-				GF_NALUParamArray *ar;
+				GF_NALUFFParamArray *ar;
 				if (!stricmp(att->Name, "sprop-vps")) {
-					GF_SAFEALLOC(ar, GF_NALUParamArray);
+					GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_VID_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-sps")) {
-					GF_SAFEALLOC(ar, GF_NALUParamArray);
+					GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_SEQ_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-pps")) {
-					GF_SAFEALLOC(ar, GF_NALUParamArray);
+					GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_PIC_PARAM;
@@ -1615,7 +1615,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 				while (nal_ptr) {
 					u32 b64size, ret;
 					char *b64_d;
-					GF_NALUConfigSlot *sl;
+					GF_NALUFFParam *sl;
 
 					sep = strchr(nal_ptr, ',');
 					if (sep) sep[0] = 0;
@@ -1625,7 +1625,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 					ret = gf_base64_decode(nal_ptr, b64size, b64_d, b64size);
 					b64_d[ret] = 0;
 
-					sl = (GF_NALUConfigSlot *)gf_malloc(sizeof(GF_NALUConfigSlot));
+					sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
 					sl->size = ret;
 					sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 					memcpy(sl->data, b64_d, sizeof(char)*sl->size);

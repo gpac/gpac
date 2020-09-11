@@ -566,11 +566,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (avccfg) {
 				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
-					GF_NALUConfigSlot *slc = gf_list_get(avccfg->sequenceParameterSets, i);
+					GF_NALUFFParam *slc = gf_list_get(avccfg->sequenceParameterSets, i);
 					gf_media_avc_read_sps(slc->data, slc->size, &cstr->avc, 0, NULL);
 				}
 				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
-					GF_NALUConfigSlot *slc = gf_list_get(avccfg->pictureParameterSets, i);
+					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
 					gf_media_avc_read_pps(slc->data, slc->size, &cstr->avc);
 				}
 
