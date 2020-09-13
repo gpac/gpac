@@ -816,7 +816,7 @@ GF_GPACArg m4b_meta_args[] =
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
 		"- tk=tkID: indicate the track ID of the source sample\n"
-		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location (Warning: remuxing the file will loose this optimization). If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
+		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location. If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rem-item `item_ID[:tk=tkID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
