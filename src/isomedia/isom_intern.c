@@ -302,6 +302,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
                 return GF_ISOM_INVALID_FILE;
             }
 
+            if (mov->meta) {
+				gf_isom_meta_restore_items_ref(mov, mov->meta);
+			}
+
 			//dump senc info in dump mode
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				u32 k;
@@ -334,6 +338,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 				return e;
 			}
 			totSize += a->size;
+            if (mov->moov) {
+				gf_isom_meta_restore_items_ref(mov, mov->meta);
+			}
 			break;
 
 		/*we only keep the MDAT in READ for dump purposes*/
