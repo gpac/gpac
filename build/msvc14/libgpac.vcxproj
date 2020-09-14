@@ -36,7 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\gpac\ait.h" />
-    <ClInclude Include="..\..\include\gpac\atsc.h" />
+    <ClInclude Include="..\..\include\gpac\route.h" />
     <ClInclude Include="..\..\include\gpac\avparse.h" />
     <ClInclude Include="..\..\include\gpac\base_coding.h" />
     <ClInclude Include="..\..\include\gpac\bifs.h" />
@@ -295,7 +295,7 @@
     <ClCompile Include="..\..\src\filters\hevcmerge.c" />
     <ClCompile Include="..\..\src\filters\hevcsplit.c" />
     <ClCompile Include="..\..\src\filters\inspect.c" />
-    <ClCompile Include="..\..\src\filters\in_atsc.c" />
+    <ClCompile Include="..\..\src\filters\in_route.c" />
     <ClCompile Include="..\..\src\filters\in_dvb4linux.c" />
     <ClCompile Include="..\..\src\filters\in_file.c" />
     <ClCompile Include="..\..\src\filters\in_http.c" />
@@ -429,7 +429,7 @@
     <ClCompile Include="..\..\src\evg\stencil.c" />
     <ClCompile Include="..\..\src\evg\surface.c" />
     <ClCompile Include="..\..\src\media_tools\ait.c" />
-    <ClCompile Include="..\..\src\media_tools\atsc_dmx.c" />
+    <ClCompile Include="..\..\src\media_tools\route_dmx.c" />
     <ClCompile Include="..\..\src\media_tools\avilib.c" />
     <ClCompile Include="..\..\src\media_tools\av_parsers.c" />
     <ClCompile Include="..\..\src\media_tools\dash_client.c" />
