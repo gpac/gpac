@@ -47,8 +47,40 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 	if (sess->sep_args != ':')
 		return strchr(path, sess->sep_args);
 
-	arg = strchr(path, sess->sep_name);
 	res = gf_url_colon_suffix(path);
+	//if path is one of this proto, check if we have a port specified
+	if (!strncmp(path, "tcp://", 6)
+		|| !strncmp(path, "udp://", 6)
+		|| !strncmp(path, "tcpu://", 7)
+		|| !strncmp(path, "udpu://", 7)
+		|| !strncmp(path, "rtp://", 6)
+	) {
+		char *sep2 = res ? strchr(res+1, ':') : NULL;
+		char *sep3 = res ? strchr(res+1, '/') : NULL;
+		if (sep2 && sep3 && (sep2>sep3)) {
+			sep2 = strchr(sep3, ':');
+		}
+		if (sep2 || sep3 || res) {
+			u32 port = 0;
+			if (sep2) {
+				sep2[0] = 0;
+				if (sep3) sep3[0] = 0;
+			}
+			else if (sep3) sep3[0] = 0;
+			if (sscanf(res+1, "%d", &port)==1) {
+				char szPort[20];
+				snprintf(szPort, 20, "%d", port);
+				if (strcmp(res+1, szPort))
+					port = 0;
+			}
+			if (sep2) sep2[0] = ':';
+			if (sep3) sep3[0] = '/';
+
+			if (port) res = sep2;
+		}
+	}
+
+	arg = strchr(path, sess->sep_name);
 	if (arg && res && (res > arg))
 		res = gf_url_colon_suffix(arg+1);
 	return res;

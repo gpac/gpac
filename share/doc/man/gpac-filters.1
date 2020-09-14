@@ -1274,6 +1274,14 @@ Data format can be specified by setting either .I ext or .I mime options. If not
 .br
 
 .br
+When ports are specified in the URL and the default option separators are used (see gpac -h doc), the URL must either:
+.br
+- have a trailing '/', eg udp://localhost:1234/[:opts]
+.br
+- use gpac separator, eg udp://localhost:1234[:gpac:opts]
+.br
+
+.br
 On OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0
 .br
 
@@ -4501,6 +4509,14 @@ If your sources are not real time, consider adding a real-time scheduler in the 
 .br
 
 .br
+When ports are specified in the URL and the default option separators are used (see gpac -h doc), the URL must either:
+.br
+- have a trailing '/', eg udp://localhost:1234/[:opts]
+.br
+- use gpac '/', eg udp://localhost:1234[:gpac:opts]
+.br
+
+.br
 The socket output can be configured to drop or revert packet order for test purposes.
 .br
 For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator/
@@ -5997,7 +6013,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev17-gc6ca4f24d-master
+build: 1.1.0-DEV-rev19-gd58ce6c43-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
