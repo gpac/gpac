@@ -1234,6 +1234,7 @@ GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *file, Bool root_meta, u32 track_num
 void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 {
 	u32 i, nb_items, nb_tracks;
+	if (!meta->item_locations || !meta->item_infos) return;
 	nb_tracks = gf_list_count(movie->moov->trackList);
 	nb_items = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<nb_items; i++) {
