@@ -33,7 +33,7 @@
 typedef struct
 {
 	//opts
-	s32 shift_utc, debug_as, atsc_shift;
+	s32 shift_utc, debug_as, route_shift;
 	u32 max_buffer, auto_switch, init_timeshift, tiles_rate, segstore, delay40X, exp_threshold, switch_count;
 	Bool server_utc, screen_res, aggressive, speedadapt;
 	GF_DASHInitialSelectionMode start_with;
@@ -1110,7 +1110,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 	gf_dash_set_algo(ctx->dash, ctx->algo);
 	gf_dash_set_utc_shift(ctx->dash, ctx->shift_utc);
-	gf_dash_set_atsc_ast_shift(ctx->dash, ctx->atsc_shift);
+	gf_dash_set_route_ast_shift(ctx->dash, ctx->route_shift);
 	gf_dash_enable_utc_drift_compensation(ctx->dash, ctx->server_utc);
 	gf_dash_set_tile_adaptation_mode(ctx->dash, ctx->tile_mode, ctx->tiles_rate);
 
@@ -1491,7 +1491,7 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_BYTES, &pe);
 	if (p) bytes_done = p->value.longuint;
 
-	p = gf_filter_get_info_str(group->seg_filter_src, "x-atsc", &pe);
+	p = gf_filter_get_info_str(group->seg_filter_src, "x-route", &pe);
 	if (p && p->value.string && !strcmp(p->value.string, "yes")) {
 		broadcast_flag = GF_TRUE;
 	}
@@ -1767,7 +1767,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(use_bmin), "use the indicated min buffer time of the MPD if true, otherwise uses default player settings", GF_PROP_BOOL, "false", NULL, 0},
 
 	{ OFFS(shift_utc), "shift DASH UTC clock in ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(atsc_shift), "shift ATSC requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(route_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(server_utc), "use ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(init_timeshift), "set initial timshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},

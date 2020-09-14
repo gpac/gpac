@@ -975,12 +975,12 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, GF_Err
 */
 void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast);
 
-/*! sets availabilityStartTime shift for ATSC. By default the ATSC tune-in is done by matching the last received segment name
-to the segment template and deriving the ATSC UTC reference from that. The function allows shifting the computed value by a given amount.
+/*! sets availabilityStartTime shift for ROUTE. By default the ROUTE tune-in is done by matching the last received segment name
+to the segment template and deriving the ROUTE UTC reference from that. The function allows shifting the computed value by a given amount.
 \param dash the target dash client
-\param ast_shift clock shift in milliseconds of the ATSC receiver tune-in. Positive values shift the clock in the future, negative ones in the past
+\param ast_shift clock shift in milliseconds of the ROUTE receiver tune-in. Positive values shift the clock in the future, negative ones in the past
 */
-void gf_dash_set_atsc_ast_shift(GF_DashClient *dash, u32 ast_shift);
+void gf_dash_set_route_ast_shift(GF_DashClient *dash, u32 ast_shift);
 
 /*! gets the minimum wait time before calling \ref gf_dash_process again for unthreaded mode
 \param dash the target dash client

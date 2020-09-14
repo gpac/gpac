@@ -183,7 +183,7 @@ typedef struct
 	GF_List *extensionDescriptors;
 	/*MPEG-2 (or other service mux formats) service ID*/
 	u32 ServiceID;
-	/*for ATSC, instructs client to keep OD alive even though URL string is set*/
+	/*for ROUTE, instructs client to keep OD alive even though URL string is set*/
 	Bool RedirectOnly;
 	/*set to true for fake remote ODs in BT/XMT (remote ODs created for OD with ESD with MuxInfo)*/
 	Bool fake_remote;
@@ -205,7 +205,7 @@ typedef struct
 	GF_List *extensionDescriptors;
 	/*MPEG-2 (or other service mux formats) service ID*/
 	u16 ServiceID;
-	/*for ATSC, instructs client to keep OD alive even though URL string is set*/
+	/*for ROUTE, instructs client to keep OD alive even though URL string is set*/
 	Bool RedirectOnly;
 	/*set to true for fake remote ODs in BT/XMT (remote ODs created for OD with ESD with MuxInfo)*/
 	Bool fake_remote;
@@ -235,7 +235,7 @@ typedef struct
 
 	/*MPEG-2 (or other service mux formats) service ID*/
 	u32 ServiceID;
-	/*for ATSC, instructs client to keep OD alive even though URL string is set*/
+	/*for ROUTE, instructs client to keep OD alive even though URL string is set*/
 	Bool RedirectOnly;
 	/*set to true for fake remote ODs in BT/XMT (remote ODs created for OD with ESD with MuxInfo)*/
 	Bool fake_remote;
