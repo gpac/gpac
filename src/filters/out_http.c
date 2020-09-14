@@ -1343,6 +1343,10 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				}
 //				gf_sk_group_register(ctx->sg, pctx->socket);
 			} else {
+				if (!pctx->path) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Output path not specified\n"));
+					return GF_BAD_PARAM;
+				}
 				httpout_set_local_path(ctx, pctx);
 			}
 
