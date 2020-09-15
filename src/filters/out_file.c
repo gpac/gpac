@@ -28,6 +28,13 @@
 #include <gpac/constants.h>
 #include <gpac/xml.h>
 
+enum
+{
+	FOUT_CAT_NONE = 0,
+	FOUT_CAT_AUTO,
+	FOUTE_CAT_ALL
+};
+
 typedef struct
 {
 	//options
@@ -105,6 +112,9 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
+		if (!strcmp(szFinalName, ctx->szFileName) && (ctx->cat==FOUT_CAT_AUTO))
+			append = GF_TRUE;
+
 		if (!ctx->ow && gf_file_exists(szFinalName) && !append) {
 			char szRes[21];
 			s32 res;
@@ -120,8 +130,8 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] opening output file %s\n", szFinalName));
 		ctx->file = gf_fopen_ex(szFinalName, ctx->original_url, append ? "a+b" : "w+b");
 
-		if (!strcmp(szFinalName, ctx->szFileName) && !ctx->append && ctx->nb_write && !explicit_overwrite) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite\n", szFinalName));
+		if (!strcmp(szFinalName, ctx->szFileName) && !append && ctx->nb_write && !explicit_overwrite) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite (use `cat` option to enable append)\n", szFinalName));
 		}
 		strcpy(ctx->szFileName, szFinalName);
 	}
@@ -366,7 +376,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 		return fileout_process(filter);
 	}
 
-	if (ctx->file && start && ctx->cat)
+	if (ctx->file && start && (ctx->cat==FOUTE_CAT_ALL))
 		start = GF_FALSE;
 
 	if (ctx->dash_mode) {
@@ -599,7 +609,11 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cat), "cat each file of input pid rather than creating one file per filename", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(cat), "cat each file of input pid rather than creating one file per filename\n"
+			"- none: never cat files\n"
+			"- auto: only cat if files have same names\n"
+			"- all: always cat regardless of file names"
+	, GF_PROP_UINT, "none", "none|auto|all", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ow), "overwrite output if existing", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mvbk), "block size used when moving parts of the file around in patch mode", GF_PROP_UINT, "8192", NULL, 0},
 	{ OFFS(redund), "keep redundant packet in output file", GF_PROP_BOOL, "false", NULL, 0},
