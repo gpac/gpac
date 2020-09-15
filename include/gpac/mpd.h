@@ -440,6 +440,9 @@ typedef struct
 	u32 enhancement_rep_index_plus_one;
 	/*! set to true if the representation comes from a broadcast link (ATSC3, eMBMS)*/
 	Bool broadcast_flag;
+
+	/*! start of segment name in full url*/
+	const char *init_seg_name_start;
 	/*! opaque data*/
 	void *udta;
 } GF_DASH_RepresentationPlayback;

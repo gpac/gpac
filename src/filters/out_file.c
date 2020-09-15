@@ -136,21 +136,40 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 {
+	const char *dst = ctx->dst;
 	const GF_PropertyValue *p, *ext;
 	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
 	ext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 
 	if (p && p->value.string) {
 		fileout_open_close(ctx, p->value.string, (ext && ctx->dynext) ? ext->value.string : NULL, 0, explicit_overwrite, NULL);
-	} else if (ctx->dynext) {
+		return;
+	}
+	if (!dst) {
+		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILEPATH);
+		if (p && p->value.string) {
+			dst = p->value.string;
+			char *sep = strstr(dst, "://");
+			if (sep) {
+				dst = strchr(sep+3, '/');
+				if (!dst) return;
+			} else {
+				if (!strncmp(dst, "./", 2)) dst+= 2;
+				else if (!strncmp(dst, ".\\", 2)) dst+= 2;
+				else if (!strncmp(dst, "../", 3)) dst+= 3;
+				else if (!strncmp(dst, "..\\", 3)) dst+= 3;
+			}
+		}
+	}
+	if (ctx->dynext) {
 		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
 		if (!p) {
 			if (ext && ext->value.string) {
-				fileout_open_close(ctx, ctx->dst, ext->value.string, 0, explicit_overwrite, NULL);
+				fileout_open_close(ctx, dst, ext->value.string, 0, explicit_overwrite, NULL);
 			}
 		}
 	} else {
-		fileout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite, NULL);
+		fileout_open_close(ctx, dst, NULL, 0, explicit_overwrite, NULL);
 	}
 }
 static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)

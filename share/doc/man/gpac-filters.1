@@ -1500,7 +1500,7 @@ use_bmin (bool, default: false): use the indicated min buffer time of the MPD if
 .br
 shift_utc (sint, default: 0):  shift DASH UTC clock in ms
 .br
-atsc_shift (sint, default: 0): shift ATSC requests time by given ms
+route_shift (sint, default: 0): shift ROUTE requests time by given ms
 .br
 server_utc (bool, default: yes): use ServerUTC: or Date: http headers instead of local UTC
 .br
@@ -1561,6 +1561,8 @@ lowlat (enum, default: early): segment scheduling policy in low latency mode
 * early: allow fetching segments earlier than their AST in low latency when input demux is empty
 .br
 
+.br
+filemode (bool, default: no):  do not demux files and forward them as file pids (imply segstore=mem)
 .br
 
 .br
@@ -4670,21 +4672,21 @@ fmode (enum, default: gl):     frame output mode
 .br
 
 .br
-.SH atscin
+.SH routein
 .LP
 .br
-Description: ATSC input
+Description: ROUTE input
 .br
 
 .br
-This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
+This filter is a receiver for ROUTE sessions (ATSC 3.0). Source is identified using the string atsc://.
 .br
 The filter can work in cached mode, source mode or standalone mode.
 .br
 .SH Cached mode
 .LP
 .br
-The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
+The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using http://groute/serviceN/ as service root, N being the ROUTE service ID.
 .br
 In cached mode, repeated files are always send.
 .br
@@ -4692,17 +4694,17 @@ In cached mode, repeated files are always send.
 .br
 The cached MPD is assigned the following headers:
 .br
-* x-dash-atsc: integer value, indicates the ATSC service ID.
+* x-dash-route: integer value, indicates the ROUTE service ID.
 .br
 * x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast.
 .br
-* x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
+* x-route-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
 .br
   
 .br
 The cached files are assigned the following headers:
 .br
-* x-atsc: boolean value, if yes indicates the file comes from an ATSC session.
+* x-route: boolean value, if yes indicates the file comes from an ROUTE session.
 .br
 
 .br
@@ -4743,7 +4745,7 @@ This will grab the files and write them to output directory.
 .br
 On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.
 .br
-You will have to do this for the base ATSC3 multicast (224.0.23.60):
+You will have to do this for the base ROUTE multicast (224.0.23.60):
 .br
 Example
 .br
@@ -6013,7 +6015,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev19-gd58ce6c43-master
+build: 1.1.0-DEV-rev21-gb82810eac-route_out
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

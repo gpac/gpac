@@ -191,6 +191,9 @@ typedef struct
 	char *key_url;
 	bin128 key_IV;
 	Bool has_dep_following;
+	u32 seg_number;
+	const char *seg_name_start;
+	GF_Fraction64 time;
 } segment_cache_entry;
 
 typedef enum
@@ -1954,6 +1957,11 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		dash->reload_count = 0;
 		memcpy(dash->lastMPDSignature, signature, GF_SHA1_DIGEST_SIZE);
 
+		if (dash->dash_io->manifest_updated) {
+			char *szName = gf_file_basename(dash->base_url);
+			dash->dash_io->manifest_updated(dash->dash_io, szName, local_url);
+		}
+
 		/* It means we have to reparse the file ... */
 		/* parse the MPD */
 		mpd_parser = gf_xml_dom_new();
@@ -3641,6 +3649,16 @@ static char *gf_dash_get_fileio_url(const char *base_url, char *res_url)
 	return gf_strdup(new_res);
 }
 
+static const char *dash_strip_base_url(const char *url, const char *base_url)
+{
+	const char *base_url_end = base_url ? strrchr(base_url, '/') : NULL;
+	if (base_url_end) {
+		u32 diff = (u32) (base_url_end - base_url);
+		return url + diff + 1;
+	}
+	return url;
+}
+
 static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *group)
 {
 	GF_Err e;
@@ -3754,6 +3772,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			rep->playback.owned_gmem = data_url_processed;
 			rep->playback.init_start_range = start_range;
 			rep->playback.init_end_range = end_range;
+			rep->playback.init_seg_name_start = dash_strip_base_url(rep->playback.cached_init_segment_url, base_url);
 		}
 
 
@@ -3771,7 +3790,8 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 				if (!e && a_base_init_url) {
 					a_rep->playback.cached_init_segment_url = a_base_init_url;
 					a_rep->playback.init_start_range = a_start;
-					a_rep->playback.init_end_range =a_end ;
+					a_rep->playback.init_end_range = a_end;
+					a_rep->playback.init_seg_name_start = dash_strip_base_url(a_base_init_url, base_url);
 				} else if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot solve initialization segment for representation: %s - discarding representation\n", gf_error_to_string(e) ));
 					a_rep->playback.disabled = 1;
@@ -3822,6 +3842,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			rep->playback.init_start_range = start_range;
 			rep->playback.init_end_range = end_range;
 			rep->playback.owned_gmem = data_url_processed;
+			rep->playback.init_seg_name_start = dash_strip_base_url(rep->playback.cached_init_segment_url, base_url);
 		}
 		group->nb_cached_segments = 1;
 		group->download_segment_index += nb_segment_read;
@@ -3842,6 +3863,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 					a_rep->playback.cached_init_segment_url = a_base_init_url;
 					a_rep->playback.init_start_range = a_start;
 					a_rep->playback.init_end_range = a_end;
+					a_rep->playback.init_seg_name_start = dash_strip_base_url(a_rep->playback.cached_init_segment_url, base_url);
 				} else if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot solve initialization segment for representation: %s - disabling representation\n", gf_error_to_string(e) ));
 					a_rep->playback.disabled = 1;
@@ -3987,6 +4009,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		rep->playback.init_start_range = 0;
 		rep->playback.init_end_range = 0;
 		rep->playback.owned_gmem = data_url_processed;
+		rep->playback.init_seg_name_start = dash_strip_base_url(rep->playback.cached_init_segment_url, base_url);
 	}
 
 	group->nb_cached_segments = 1;
@@ -4025,6 +4048,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 					a_rep->playback.cached_init_segment_url = gf_strdup( dash->dash_io->get_cache_name(dash->dash_io, group->segment_download) );
 					a_rep->playback.init_start_range = 0;
 					a_rep->playback.init_end_range = 0;
+					a_rep->playback.init_seg_name_start = dash_strip_base_url(a_rep->playback.cached_init_segment_url, base_url);
 				}
 				gf_free(a_base_init_url);
 			} else if (e) {
@@ -6154,7 +6178,13 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				memcpy(cache_entry->key_IV, key_iv, sizeof(bin128));
 				key_url = NULL;
 			}
+			u64 sdur;
+			u32 sscale;
+			cache_entry->time.num = gf_dash_get_segment_start_time_with_timescale(group, &sdur, &sscale);
+			cache_entry->time.den = sscale;
 
+			cache_entry->seg_number = group->download_segment_index;
+			cache_entry->seg_name_start = dash_strip_base_url(cache_entry->url, base_url);
 			group->loop_detected = GF_FALSE;
 
 			if (group->local_files && use_byterange) {
@@ -7356,6 +7386,10 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
 		goto exit;
 	}
+	if (dash->dash_io->manifest_updated) {
+		const char *szName = gf_file_basename(manifest_url);
+		dash->dash_io->manifest_updated(dash->dash_io, szName, local_url);
+	}
 
 	if (dash->is_m3u8) {
 		if (is_local) {
@@ -8150,6 +8184,37 @@ u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *gro
 	if (group->cache_mutex) gf_mx_v(group->cache_mutex);
 	if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
 	return res;
+}
+
+GF_EXPORT
+GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, const char **init_segment)
+{
+	GF_Err res = GF_OK;
+	GF_DASH_Group *group;
+	if (dash->dash_mutex) gf_mx_p(dash->dash_mutex);
+	group = gf_list_get(dash->groups, idx);
+	if (group->cache_mutex) gf_mx_p(group->cache_mutex);
+
+	if (!group) {
+		if (group->cache_mutex) gf_mx_v(group->cache_mutex);
+		if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
+		return GF_BAD_PARAM;
+	}
+	if (init_segment) {
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+		*init_segment = rep ? rep->playback.init_seg_name_start : NULL;
+	} else {
+		if (!group->nb_cached_segments) {
+			res = GF_BUFFER_TOO_SMALL;
+		} else {
+			if (seg_name) *seg_name = group->cached[0].seg_name_start;
+			if (seg_number) *seg_number = group->cached[0].seg_number;
+			if (seg_time) *seg_time = group->cached[0].time;
+		}
+	}
+	if (group->cache_mutex) gf_mx_v(group->cache_mutex);
+	if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
+	return GF_OK;
 }
 
 GF_EXPORT
