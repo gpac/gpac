@@ -148,6 +148,9 @@ struct _gf_dash_io
 	u32 (*get_total_size)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*! get the total size on bytes for the session*/
 	u32 (*get_bytes_done)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+
+	void (*manifest_updated)(GF_DASHFileIO *dashio, const char *manifest_name, const char *local_path);
+
 };
 
 /*! DASH client object*/
@@ -493,6 +496,18 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
 */
 GF_EXPORT
 GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 group_idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url, Bool *switched);
+
+
+/*! gets some info on the segment
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\param seg_name  set to the segment name, without base url - optional, may be NULL
+\param seg_number  set to the segment number for $Number$ addressing - optional, may be NULL
+\param seg_time  set to the segment start time  - optional, may be NULL
+\param init_segment set to the init segment name, without base url  - optional, may be NULL
+\return error if any, GF_BUFFER_TOO_SMALL if no segments queued for download
+*/
+GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, const char **init_segment);
 
 /*! checks if loop was detected in playback. This is mostly used for broadcast (eMBMS, ROUTE) based on pcap replay.
 \param dash the target dash client
