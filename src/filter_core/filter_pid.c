@@ -951,7 +951,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 {
 	GF_Filter *filter = task->filter;
 	GF_FilterSession *fsess = filter->session;
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s connecting to %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s connecting to %s (%p)\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name, filter));
 
 	//filter will require a new instance, clone it
 	if (filter->num_input_pids && (filter->max_extra_pids <= filter->num_input_pids - 1)) {
@@ -3752,6 +3752,10 @@ single_retry:
 		if (filter_dst->cloned_from) {
 			if (gf_filter_in_parent_chain(filter, filter_dst->cloned_from) ) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has the original of cloned filter %s in its parent chain\n", pid->name, filter_dst->name));
+				continue;
+			}
+			if (gf_filter_in_parent_chain(filter_dst->cloned_from, filter) ) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has the original of cloned filter %s in its output filter chain\n", pid->name, filter_dst->name));
 				continue;
 			}
 		}
