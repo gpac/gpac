@@ -2422,7 +2422,15 @@ ext (cstr):                    set extension for graph resolution, regardless of
 .br
 mime (cstr):                   set mime type for graph resolution
 .br
-cat (bool, default: false):    cat each file of input pid rather than creating one file per filename
+cat (enum, default: none):     cat each file of input pid rather than creating one file per filename
+.br
+* none: never cat files
+.br
+* auto: only cat if files have same names
+.br
+* all: always cat regardless of file names
+.br
+
 .br
 ow (bool, default: true):      overwrite output if existing
 .br
@@ -6015,7 +6023,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev21-gb82810eac-route_out
+build: 1.1.0-DEV-rev24-gc3a810964-route_out
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
