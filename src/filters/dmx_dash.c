@@ -124,18 +124,31 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 		if (is_start) {
 			if (group->prev_is_init_segment) {
 				const char *init_segment = NULL;
-				gf_dash_group_next_seg_info(ctx->dash, group->idx, NULL, NULL, NULL, &init_segment);
+				gf_dash_group_next_seg_info(ctx->dash, group->idx, NULL, NULL, NULL, NULL, &init_segment);
 				if (init_segment) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(init_segment) );
 				}
 			} else {
 				GF_Fraction64 seg_time;
 				const char *seg_name = NULL;
-				u32 seg_number;
-				gf_dash_group_next_seg_info(ctx->dash, group->idx, &seg_name, &seg_number, &seg_time, NULL);
+				u32 seg_number, seg_dur;
+				gf_dash_group_next_seg_info(ctx->dash, group->idx, &seg_name, &seg_number, &seg_time, &seg_dur, NULL);
 				if (seg_name) {
+					u64 ts;
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(seg_name) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENUM, &PROP_UINT(seg_number) );
+					gf_filter_pck_set_duration(ref, seg_dur);
+					if (seg_time.den) {
+						ts = seg_time.num;
+						if (seg_time.den != 1000) {
+							ts *= 1000;
+							ts /= seg_time.den;
+						}
+					} else {
+						ts = GF_FILTER_NO_TS;
+					}
+					gf_filter_pck_set_cts(ref, ts);
+					gf_filter_pck_set_cts(ref, ts);
 				}
 			}
 		}
@@ -661,6 +674,19 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 					}
 					gf_filter_pid_set_property_str(opid, "has:auto", &PROP_UINT(gf_dash_get_automatic_switching(ctx->dash) ) );
 					gf_filter_pid_set_property_str(opid, "has:tilemode", &PROP_UINT(gf_dash_get_tile_adaptation_mode(ctx->dash) ) );
+
+					//setup some info for consuming filters
+					if (ctx->filemode) {
+						GF_DASHQualityInfo q;
+						//we dispatch timing in milliseconds
+						gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
+						if (gf_dash_group_get_quality_info(ctx->dash, group_idx, sel, &q)==GF_OK) {
+							if (q.bandwidth)
+								gf_filter_pid_set_property(opid, GF_PROP_PID_BITRATE, &PROP_UINT(q.bandwidth));
+							if (q.codec)
+								gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
+						}
+					}
 				}
 			}
 		}
