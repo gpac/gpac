@@ -504,10 +504,11 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 \param seg_name  set to the segment name, without base url - optional, may be NULL
 \param seg_number  set to the segment number for $Number$ addressing - optional, may be NULL
 \param seg_time  set to the segment start time  - optional, may be NULL
+\param seg_dur_ms  set to the segment estimated duration in ms  - optional, may be NULL
 \param init_segment set to the init segment name, without base url  - optional, may be NULL
 \return error if any, GF_BUFFER_TOO_SMALL if no segments queued for download
 */
-GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, const char **init_segment);
+GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment);
 
 /*! checks if loop was detected in playback. This is mostly used for broadcast (eMBMS, ROUTE) based on pcap replay.
 \param dash the target dash client

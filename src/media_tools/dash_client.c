@@ -1804,6 +1804,42 @@ static void gf_dash_mark_group_done(GF_DASH_Group *group)
 	group->done = GF_TRUE;
 }
 
+
+static const char *dash_strip_base_url(const char *url, const char *base_url)
+{
+	const char *base_url_end = base_url ? strrchr(base_url, '/') : NULL;
+	if (base_url_end) {
+		u32 diff = (u32) (base_url_end - base_url);
+		if (!strncmp(url, base_url, diff))
+			return url + diff + 1;
+	}
+	return url;
+}
+
+static GF_Err gf_dash_solve_m3u8_representation_xlink(GF_DashClient *dash, GF_MPD_Representation *rep, Bool *is_static, u64 *duration)
+{
+	GF_Err e;
+	char *xlink_copy;
+	const char *name, *local_url;
+	if (!dash->dash_io->manifest_updated) {
+		return gf_m3u8_solve_representation_xlink(rep, &dash->getter, is_static, duration);
+	}
+
+	xlink_copy = gf_strdup(rep->segment_list->xlink_href);;
+	e = gf_m3u8_solve_representation_xlink(rep, &dash->getter, is_static, duration);
+
+	if (gf_url_is_local(xlink_copy)) {
+		local_url = xlink_copy;
+	} else {
+		local_url = dash->getter.get_cache_name(&dash->getter);
+	}
+	name = dash_strip_base_url(xlink_copy, dash->base_url);
+	dash->dash_io->manifest_updated(dash->dash_io, name, local_url);
+	gf_free(xlink_copy);
+	return e;
+}
+
+
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
 	GF_Err e;
@@ -2206,7 +2242,7 @@ restart_period_check:
 
 					while (retry) {
 						if (dash->is_m3u8) {
-							e = gf_m3u8_solve_representation_xlink(new_rep, &group->dash->getter, &is_static, &dur);
+							e = gf_dash_solve_m3u8_representation_xlink(group->dash, new_rep, &is_static, &dur);
 						} else {
 							e = gf_dash_solve_representation_xlink(group->dash, new_rep);
 						}
@@ -2513,7 +2549,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 
 		while (retry) {
 			if (group->dash->is_m3u8) {
-				e = gf_m3u8_solve_representation_xlink(rep, &group->dash->getter, &is_static, &dur);
+				e = gf_dash_solve_m3u8_representation_xlink(group->dash, rep, &is_static, &dur);
 			} else {
 				e = gf_dash_solve_representation_xlink(group->dash, rep);
 			}
@@ -3647,16 +3683,6 @@ static char *gf_dash_get_fileio_url(const char *base_url, char *res_url)
 	if (!new_res) return res_url;
 	gf_free(res_url);
 	return gf_strdup(new_res);
-}
-
-static const char *dash_strip_base_url(const char *url, const char *base_url)
-{
-	const char *base_url_end = base_url ? strrchr(base_url, '/') : NULL;
-	if (base_url_end) {
-		u32 diff = (u32) (base_url_end - base_url);
-		return url + diff + 1;
-	}
-	return url;
 }
 
 static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *group)
@@ -6158,6 +6184,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		assert(local_file_name);
 
 		if (!empty_file) {
+			u64 sdur;
+			u32 sscale;
 			segment_cache_entry *cache_entry = &base_group->cached[base_group->nb_cached_segments];
 
 			cache_entry->cache = gf_strdup(local_file_name);
@@ -6178,8 +6206,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				memcpy(cache_entry->key_IV, key_iv, sizeof(bin128));
 				key_url = NULL;
 			}
-			u64 sdur;
-			u32 sscale;
+
 			cache_entry->time.num = gf_dash_get_segment_start_time_with_timescale(group, &sdur, &sscale);
 			cache_entry->time.den = sscale;
 
@@ -8187,7 +8214,7 @@ u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *gro
 }
 
 GF_EXPORT
-GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, const char **init_segment)
+GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment)
 {
 	GF_Err res = GF_OK;
 	GF_DASH_Group *group;
@@ -8210,6 +8237,7 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **se
 			if (seg_name) *seg_name = group->cached[0].seg_name_start;
 			if (seg_number) *seg_number = group->cached[0].seg_number;
 			if (seg_time) *seg_time = group->cached[0].time;
+			if (seg_dur_ms) *seg_dur_ms = group->cached[0].duration;
 		}
 	}
 	if (group->cache_mutex) gf_mx_v(group->cache_mutex);
