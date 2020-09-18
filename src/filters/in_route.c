@@ -25,6 +25,7 @@
 
 #include <gpac/filters.h>
 #include <gpac/route.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_ROUTE
 
@@ -60,7 +61,7 @@ typedef struct
 
 	u32 sync_tsi, last_toi;
 
-	u32 start_time, tune_time;
+	u32 start_time, tune_time, last_timeout;
 	GF_FilterPid *opid;
 	GF_List *tsi_outs;
 
@@ -72,6 +73,7 @@ typedef struct
 static GF_FilterProbeScore routein_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "atsc://", 7)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "route://", 8)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -203,6 +205,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		}
 		break;
 	case GF_ROUTE_EVT_MPD:
+		if (!ctx->tune_time) ctx->tune_time = gf_sys_clock();
 
 		if (!ctx->gcache) {
 			routein_send_file(ctx, evt_param, finfo, evt);
@@ -332,8 +335,20 @@ static GF_Err routein_process(GF_Filter *filter)
 	while (1) {
 		GF_Err e = gf_route_dmx_process(ctx->route_dmx);
 		if (e == GF_IP_NETWORK_EMPTY) {
+			if (ctx->tune_time) {
+				if (!ctx->last_timeout) ctx->last_timeout = gf_sys_clock();
+				else {
+					u32 diff = gf_sys_clock() - ctx->last_timeout;
+					if (diff > ctx->timeout) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] No data for %d ms, aborting\n", diff));
+						return GF_EOS;
+					}
+				}
+			}
 			gf_filter_ask_rt_reschedule(filter, 1000);
 			break;
+		} else if (!e) {
+			ctx->last_timeout = 0;
 		}
 	}
 	if (!ctx->tune_time) {
@@ -375,11 +390,15 @@ static GF_Err routein_process(GF_Filter *filter)
 
 static GF_Err routein_initialize(GF_Filter *filter)
 {
+	Bool is_atsc = GF_TRUE;
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
 	ctx->filter = filter;
 
 	if (!ctx->src) return GF_BAD_PARAM;
-	if (strcmp(ctx->src, "atsc://")) return GF_BAD_PARAM;
+	if (!strncmp(ctx->src, "route://", 8)) {
+		is_atsc = GF_FALSE;
+	} else if (strcmp(ctx->src, "atsc://"))
+		return GF_BAD_PARAM;
 
 	if (ctx->odir)
 		ctx->gcache = GF_FALSE;
@@ -390,7 +409,30 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		gf_dm_set_localcache_provider(ctx->dm, routein_local_cache_probe, ctx);
 	}
 
-	ctx->route_dmx = gf_route_dmx_new(ctx->ifce, ctx->odir, ctx->buffer);
+	if (is_atsc) {
+		ctx->route_dmx = gf_route_atsc_dmx_new(ctx->ifce, ctx->odir, ctx->buffer);
+	} else {
+		char *sep, *root;
+		u32 port;
+		sep = strrchr(ctx->src+8, ':');
+		if (!sep) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing port number\n"));
+			return GF_BAD_PARAM;
+		}
+		sep[0] = 0;
+		root = strchr(sep+1, '/');
+		if (root) root[0] = 0;
+		port = atoi(sep+1);
+		if (root) root[0] = '/';
+
+		if (!gf_sk_is_multicast_address(ctx->src+8)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] %s is not a multicast address\n"));
+			sep[0] = ':';
+			return GF_BAD_PARAM;
+		}
+		ctx->route_dmx = gf_route_dmx_new(ctx->src+8, port, ctx->ifce, ctx->odir, ctx->buffer);
+		sep[0] = ':';
+	}
 	if (ctx->odir && ctx->max_segs) {
 		gf_route_set_max_objects_store(ctx->route_dmx, (u32) ctx->max_segs);
 	}
@@ -404,10 +446,12 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	gf_route_set_callback(ctx->route_dmx, routein_on_event, ctx);
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
-	if (ctx->tune_service_id)
-		gf_route_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
-	else
-		gf_route_tune_in(ctx->route_dmx, (u32) ctx->tunein, GF_TRUE);
+	if (is_atsc) {
+		if (ctx->tune_service_id)
+			gf_route_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
+		else
+			gf_route_tune_in(ctx->route_dmx, (u32) ctx->tunein, GF_TRUE);
+	}
 
 	ctx->start_time = gf_sys_clock();
 
@@ -424,7 +468,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(src), "location of source content - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gcache), "indicate the files should populate GPAC HTTP cache - see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tunein), "service ID to bootstrap on. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
+	{ OFFS(tunein), "service ID to bootstrap on for ATSC 3.0 mode. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
 	{ OFFS(buffer), "receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -448,7 +492,10 @@ GF_FilterRegister ROUTEInRegister = {
 	.name = "routein",
 	GF_FS_SET_DESCRIPTION("ROUTE input")
 #ifndef GPAC_DISABLE_DOC
-	.help = "This filter is a receiver for ROUTE sessions (ATSC 3.0). Source is identified using the string `atsc://`.\n"
+	.help = "This filter is a receiver for ROUTE sessions (ATSC 3.0 and generic ROUTE).\n"
+	"- ATSC 3.0 mode is identified by the URL `atsc://`.\n"
+	"- generic ROUTE mode is identified by the URL `route://IP:PORT`.\n"
+	"\n"
 	"The filter can work in cached mode, source mode or standalone mode.\n"
 	"# Cached mode\n"
 	"The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using `http://groute/serviceN/` as service root, N being the ROUTE service ID.\n"

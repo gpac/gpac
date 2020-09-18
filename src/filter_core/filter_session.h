@@ -493,7 +493,9 @@ struct __gf_filter
 	char *src_args;
 	//allocated argument string of the destingation filter for filters dynamically loaded, if any
 	char *dst_args;
-
+	//filter tag
+	char *tag;
+	
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex
 	GF_FilterQueue *tasks;
@@ -776,7 +778,7 @@ struct __gf_filter_pid_inst
 	u64 last_pck_fetch_time;
 	u64 stats_start_ts, stats_start_us;
 	u32 cur_bit_size, avg_bit_rate, max_bit_rate, avg_process_rate, max_process_rate;
-	u32 nb_processed, nb_sap_processed;
+	u32 nb_processed, nb_sap_processed, nb_reagg_pck;
 	//all times in us
 	u64 total_process_time, total_sap_process_time;
 	u64 max_process_time, max_sap_process_time;

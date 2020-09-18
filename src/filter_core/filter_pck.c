@@ -548,6 +548,9 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 	count=gf_list_count(dst->pck_reassembly);
 	//no packet to reaggregate
 	if (!count) return GF_FALSE;
+
+	dst->nb_reagg_pck++;
+
 	//single packet, update PID buffer and dispatch to packet queue
 	if (count==1) {
 		GF_FilterPacketInstance *pcki = gf_list_pop_back(dst->pck_reassembly);
@@ -1035,6 +1038,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				//single block packet, direct dispatch in packet queue (aggregation done before)
 				else {
 					assert(dst->last_block_ended);
+					dst->nb_reagg_pck++;
 
 					if (pck->info.duration && timescale) {
 						duration = ((u64)pck->info.duration) * 1000000;

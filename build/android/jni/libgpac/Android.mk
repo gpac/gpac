@@ -221,6 +221,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_audio.c \
 	../../../../src/filters/out_file.c \
 	../../../../src/filters/out_http.c \
+	../../../../src/filters/out_route.c \
 	../../../../src/filters/out_rtp.c \
 	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \

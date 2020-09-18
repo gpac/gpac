@@ -306,6 +306,11 @@ typedef struct
 
 	u32 next_file_idx;
 	const char *next_file_suffix;
+
+	//for route scheduling
+	u64 min_cts_plus_one, next_seg_start;
+	u64 min_cts_next_frag;
+
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -775,6 +780,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		mux_assign_mime_file_ext(pid, ctx->opid, ISOM_FILE_EXT, ISOM_FILE_MIME, NULL);
 		
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
+		//we dispatch timing in milliseconds
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+		if (p)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(p->value.uint));
 
 		switch (ctx->store) {
 		case MP4MX_MODE_FLAT:
@@ -3689,8 +3699,14 @@ static void mp4_mux_flush_frag(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ra
 			Bool s, e;
 			gf_filter_pck_get_framing(ctx->dst_pck, &s, &e);
 			gf_filter_pck_set_framing(ctx->dst_pck, s, GF_TRUE);
+			if (!is_init) {
+				u64 dur = ctx->next_seg_start - (ctx->min_cts_plus_one-1);
+				gf_filter_pck_set_duration(ctx->dst_pck, dur);
+			}
 			ctx->first_pck_sent = GF_FALSE;
 			ctx->current_offset = 0;
+			if (is_init && s)
+				gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_INIT, &PROP_BOOL(GF_TRUE) );
 		}
 		if (is_init) {
 			gf_filter_pck_set_dependency_flags(ctx->dst_pck, 0xFF);
@@ -4102,6 +4118,7 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 	//setup some default
 	gf_isom_set_next_moof_number(ctx->file, ctx->msn);
 	ctx->msn += ctx->msninc;
+	ctx->min_cts_plus_one = 0;
 
 	if (ctx->moof_first) flags |= GF_ISOM_FRAG_MOOF_FIRST;
 #ifdef GF_ENABLE_CTRN
@@ -4533,6 +4550,11 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			//discard
 			gf_filter_pid_drop_packet(tkw->ipid);
 
+			cts *= 1000;
+			cts /= tkw->src_timescale;
+			if (!ctx->min_cts_plus_one) ctx->min_cts_plus_one = cts + 1;
+			else if (ctx->min_cts_plus_one-1 > cts) ctx->min_cts_plus_one = cts + 1;
+
 			if (e) return e;
 		}
 		//done with this track - if single track per moof, request new fragment but don't touch the
@@ -4567,6 +4589,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			next_ref_ts = ctx->ref_tkw->cts_next;
 		ref_start = (Double) next_ref_ts;
 		ref_start /= ctx->ref_tkw->src_timescale;
+
+		ctx->next_seg_start = ref_start * 1000;
+		ctx->min_cts_next_frag = ctx->next_frag_start * 1000;
 
 		ctx->next_frag_start += ctx->cdur;
 		while (ctx->next_frag_start <= ctx->adjusted_next_frag_start) {
@@ -5104,7 +5129,14 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 	if (!ctx->first_pck_sent && ctx->seg_name) {
 		ctx->current_offset = 0;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->seg_name) );
+		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num) );
 	}
+	if (ctx->min_cts_plus_one) {
+		u64 orig = ctx->min_cts_plus_one-1;
+		gf_filter_pck_set_cts(ctx->dst_pck, orig);
+		gf_filter_pck_set_duration(ctx->dst_pck, ctx->min_cts_next_frag - orig);
+	}
+
 	ctx->first_pck_sent = GF_TRUE;
 	ctx->current_size += block_size;
 	//non-frag mode, send right away

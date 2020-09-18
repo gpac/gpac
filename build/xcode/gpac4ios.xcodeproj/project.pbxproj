@@ -392,6 +392,7 @@
 		929A92A016EF8BC200B7C64F /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929A16EF8BC200B7C64F /* icon.png */; };
 		929DE74924183FB40056AFA7 /* gzio.c in Sources */ = {isa = PBXBuildFile; fileRef = 929DE74824183FB40056AFA7 /* gzio.c */; };
 		929FA64321A3E83F000455A7 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 929FA64221A3E83E000455A7 /* reframe_latm.c */; };
+		92A8710025150CF70047560D /* out_route.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A870FF25150CF70047560D /* out_route.c */; };
 		92B039F716F2050100B2568F /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B039F616F2050100B2568F /* libSDL2.a */; };
 		92B2A4A7229C0F47002A65A7 /* out_rtsp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4A6229C0F47002A65A7 /* out_rtsp.c */; };
 		92B2A4AE229D6646002A65A7 /* hevcmerge.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B2A4AC229D6646002A65A7 /* hevcmerge.c */; };
@@ -981,6 +982,7 @@
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
 		929DE74824183FB40056AFA7 /* gzio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gzio.c; sourceTree = "<group>"; };
 		929FA64221A3E83E000455A7 /* reframe_latm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_latm.c; path = ../../src/filters/reframe_latm.c; sourceTree = "<group>"; };
+		92A870FF25150CF70047560D /* out_route.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_route.c; path = ../../src/filters/out_route.c; sourceTree = "<group>"; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
 		92B2A4A6229C0F47002A65A7 /* out_rtsp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtsp.c; path = ../../src/filters/out_rtsp.c; sourceTree = "<group>"; };
 		92B2A4AC229D6646002A65A7 /* hevcmerge.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevcmerge.c; path = ../../src/filters/hevcmerge.c; sourceTree = "<group>"; };
@@ -1953,6 +1955,7 @@
 				92EB6D7020E4E19200A97A49 /* out_file.c */,
 				92261A88239E326900C14199 /* out_http.c */,
 				8959AC81211C9C3C004D2C87 /* out_pipe.c */,
+				92A870FF25150CF70047560D /* out_route.c */,
 				92C0F37F21EDFA8D002961C8 /* out_rtp.c */,
 				92B2A4A6229C0F47002A65A7 /* out_rtsp.c */,
 				8959AC82211C9C3C004D2C87 /* out_sock.c */,
@@ -2488,6 +2491,7 @@
 				71CCF2E01277045100339E12 /* mpeg2_ps.c in Sources */,
 				71CCF2E21277045100339E12 /* mpegts.c in Sources */,
 				71CCF2E31277045100339E12 /* reedsolomon.c in Sources */,
+				92A8710025150CF70047560D /* out_route.c in Sources */,
 				929FA64321A3E83F000455A7 /* reframe_latm.c in Sources */,
 				92E9DFB22215CEA700628420 /* raster_yuv.c in Sources */,
 				92EB6D6920E4E17F00A97A49 /* filter_queue.c in Sources */,

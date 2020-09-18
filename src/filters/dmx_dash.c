@@ -102,6 +102,7 @@ typedef struct
 	Bool signal_seg_name;
 } GF_DASHGroup;
 
+char *gf_dash_get_manifest(GF_DashClient *dash, u32 group_idx, char **manifest_name);
 
 void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_FilterPid *in_pid, GF_FilterPid *out_pid, GF_DASHGroup *group)
 {
@@ -113,7 +114,27 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 	if (ctx->filemode) {
 		Bool is_end = GF_FALSE;
 		Bool is_start = group->signal_seg_name;
-		GF_FilterPacket *ref = gf_filter_pck_new_ref(out_pid, NULL, 0, in_pck);
+		GF_FilterPacket *ref;
+
+		if (is_start) {
+			char *manifest_name=NULL;
+			char *manifest = gf_dash_get_manifest(ctx->dash, group->idx, &manifest_name);
+			if (manifest) {
+				u8 *output;
+				u32 len = (u32) strlen(manifest);
+				GF_FilterPacket *pck = gf_filter_pck_new_alloc(out_pid, len, &output);
+				if (pck) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s for group %d updated, forwarding\n", manifest_name, group->idx));
+					memcpy(output, manifest, len);
+					gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+					gf_filter_pck_set_property(pck, GF_PROP_PID_HLS_PLAYLIST, &PROP_STRING_NO_COPY(manifest_name));
+					gf_filter_pck_send(pck);
+				}
+				gf_free(manifest);
+			}
+		}
+
+		ref = gf_filter_pck_new_ref(out_pid, NULL, 0, in_pck);
 
 		group->signal_seg_name = 0;
 		gf_filter_pid_drop_packet(in_pid);
@@ -127,6 +148,7 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 				gf_dash_group_next_seg_info(ctx->dash, group->idx, NULL, NULL, NULL, NULL, &init_segment);
 				if (init_segment) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(init_segment) );
+					gf_filter_pck_set_property(ref, GF_PROP_PCK_INIT, &PROP_BOOL(GF_TRUE) );
 				}
 			} else {
 				GF_Fraction64 seg_time;
@@ -147,7 +169,6 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 					} else {
 						ts = GF_FILTER_NO_TS;
 					}
-					gf_filter_pck_set_cts(ref, ts);
 					gf_filter_pck_set_cts(ref, ts);
 				}
 			}
@@ -465,7 +486,9 @@ u32 dashdmx_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession sessio
 }
 #endif
 
-void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_name, const char *cache_url)
+void gf_dash_store_manifest(GF_DashClient *dash, u32 group_idx, char *manifest, char *manifest_name);
+
+void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_name, const char *cache_url, s32 group_idx)
 {
 	u8 *manifest_payload;
 	u32 manifest_payload_len;
@@ -474,15 +497,19 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 
 	if (gf_file_load_data(cache_url, &manifest_payload, &manifest_payload_len) == GF_OK) {
 		u8 *output;
-		GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->output_mpd_pid, manifest_payload_len, &output);
-		if (pck) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s updated, forwarding\n", manifest_name));
-			memcpy(output, manifest_payload, manifest_payload_len);
-			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(manifest_name));
-			gf_filter_pck_send(pck);
+		if (group_idx>=0) {
+			gf_dash_store_manifest(ctx->dash, group_idx, manifest_payload, gf_strdup(manifest_name) );
+		} else {
+			GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->output_mpd_pid, manifest_payload_len, &output);
+			if (pck) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s updated, forwarding\n", manifest_name));
+				memcpy(output, manifest_payload, manifest_payload_len);
+				gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(manifest_name));
+				gf_filter_pck_send(pck);
+			}
+			gf_free(manifest_payload);
 		}
-		gf_free(manifest_payload);
 	}
 }
 
@@ -677,6 +704,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 					//setup some info for consuming filters
 					if (ctx->filemode) {
+						const char *template;
 						GF_DASHQualityInfo q;
 						//we dispatch timing in milliseconds
 						gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
@@ -686,6 +714,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 							if (q.codec)
 								gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
 						}
+						template = gf_dash_group_get_template(ctx->dash, group_idx);
+						gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, template ? &PROP_STRING(template) : NULL );
 					}
 				}
 			}
@@ -858,6 +888,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	GF_DASHQualityInfo qinfo;
 	GF_PropertyValue qualities, srd, srdref;
 	GF_Err e;
+	u32 stream_type = GF_STREAM_UNKNOWN;
 	u32 count, i;
 	u32 dur, mode;
 
@@ -908,6 +939,24 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		if (!qinfo.ID) qinfo.ID="";
 		if (!qinfo.mime) qinfo.mime="unknown";
 		if (!qinfo.codec) qinfo.codec="codec";
+
+		if (ctx->filemode) {
+			if (qinfo.width && qinfo.height) {
+				stream_type = GF_STREAM_VISUAL;
+			} else if (qinfo.sample_rate || qinfo.nb_channels) {
+				stream_type = GF_STREAM_AUDIO;
+			} else if (strstr(qinfo.mime, "text")
+				|| strstr(qinfo.codec, "vtt")
+				|| strstr(qinfo.codec, "srt")
+				|| strstr(qinfo.codec, "text")
+				|| strstr(qinfo.codec, "tx3g")
+				|| strstr(qinfo.codec, "stxt")
+				|| strstr(qinfo.codec, "stpp")
+			) {
+				stream_type = GF_STREAM_TEXT;
+			}
+		}
+
 
 		snprintf(szInfo, 500, "id=%s", qinfo.ID);
 
@@ -971,6 +1020,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		qdesc = NULL;
 	}
 	gf_filter_pid_set_info_str(opid, "has:qualities", &qualities);
+
+	if (ctx->filemode && (stream_type!=GF_STREAM_UNKNOWN)) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(stream_type) );
+	}
 
 	const char *title, *source;
 	gf_dash_get_info(ctx->dash, &title, &source);

@@ -321,6 +321,7 @@
     <ClCompile Include="..\..\src\filters\out_file.c" />
     <ClCompile Include="..\..\src\filters\out_http.c" />
     <ClCompile Include="..\..\src\filters\out_pipe.c" />
+    <ClCompile Include="..\..\src\filters\out_route.c" />
     <ClCompile Include="..\..\src\filters\out_rtp.c" />
     <ClCompile Include="..\..\src\filters\out_rtsp.c" />
     <ClCompile Include="..\..\src\filters\out_sock.c" />

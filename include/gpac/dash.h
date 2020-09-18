@@ -149,7 +149,7 @@ struct _gf_dash_io
 	/*! get the total size on bytes for the session*/
 	u32 (*get_bytes_done)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 
-	void (*manifest_updated)(GF_DASHFileIO *dashio, const char *manifest_name, const char *local_path);
+	void (*manifest_updated)(GF_DASHFileIO *dashio, const char *manifest_name, const char *local_path, s32 group_idx);
 
 };
 
@@ -808,6 +808,13 @@ typedef struct
 \return error if any
 */
 GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 group_idx, u32 quality_idx, GF_DASHQualityInfo *quality);
+
+/*! gets segment template used by group
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return segment template, NULL if no templates used
+*/
+const char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx);
 
 /*! checks automatic switching mode
 \param dash the target dash client
