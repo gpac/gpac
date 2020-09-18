@@ -27,7 +27,7 @@
 Current version: 1.0.1
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
-GPAC provides tools to process, inspect, package, stream playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
+GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
 GPAC is best-known for its wide MP4 capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and professional broadcasters.
 
 For more information, visit [GPAC website](http://gpac.io)
@@ -56,7 +56,7 @@ GPAC can process, analyse, package, stream, encode, decode and playback a wide v
 
 Features are encapsulated in processing modules called filters:
 - to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://github.com/gpac/gpac/wiki/Filters).
-- to get the full list of playback features, check [our wiki](https://github.com/gpac/gpac/wiki/Player-Features).
+- to get the full list of playback features, check [the dedicated wiki page](https://github.com/gpac/gpac/wiki/Player-Features).
 
 
 # Tools
@@ -66,7 +66,7 @@ MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media 
 
 
 ## gpac 
-As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more dicussion on how this impacts MP4Box and MP4Client.
+As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box and MP4Client.
 The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
 
 ## MP4Client
@@ -88,7 +88,7 @@ GPAC tools are mostly wrappers around an underlying library called libgpac which
 
 
 ## Testing
-GPAC has a test suite exercicing most features of the framework. The test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
+GPAC has a test suite exercising most features of the framework. The test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
 
 For more details on the test suite, read [this page](https://github.com/gpac/gpac/wiki/GPAC_tests) and check the [testsuite readme](https://github.com/gpac/testsuite).
 
