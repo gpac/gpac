@@ -1316,6 +1316,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			gf_free(sess->orig_url);
 			sess->orig_url = gf_strdup(url);
 			sess->last_error = GF_OK;
+			sess->use_cache_file = GF_TRUE;
 			gf_dm_configure_cache(sess);
 			sess->status = GF_NETIO_DATA_TRANSFERED;
 			sess->total_size = gf_cache_get_content_length(sess->cache_entry);
@@ -4369,7 +4370,6 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 	gf_cache_set_range(the_entry, size, start_range, end_range);
 	gf_cache_set_content(the_entry, data, (u32) size, clone_memory ? GF_TRUE : GF_FALSE);
 	gf_cache_set_downtime(the_entry, download_time_ms);
-
 	gf_mx_v(dm->cache_mx );
 	return the_entry;
 }

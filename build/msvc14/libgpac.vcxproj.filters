@@ -1460,6 +1460,9 @@
     <ClCompile Include="..\..\src\evg\ftgrays.c">
       <Filter>evg</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\out_route.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\out_rtp.c">
       <Filter>filters</Filter>
     </ClCompile>

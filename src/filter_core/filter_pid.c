@@ -1292,6 +1292,28 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	psep[0] = 0;
 	pent=NULL;
 
+	//special case for tag
+	if (!strcmp(frag_name, "TAG")) {
+		psep[0] = c;
+		if (src_pid->filter->tag) {
+			Bool is_eq;
+			//check for negation
+			if ( (psep[0]==src_pid->filter->session->sep_name) && (psep[1]==src_pid->filter->session->sep_neg) ) {
+				psep++;
+				use_not_equal = GF_TRUE;
+			}
+
+			is_eq = !strcmp(psep+1, src_pid->filter->tag);
+			if (use_not_equal) is_eq = !is_eq;
+			if (is_eq) return GF_TRUE;
+			*pid_excluded = GF_TRUE;
+			return GF_FALSE;
+		}
+		//not tag set for pid's filter, assume match
+		return GF_TRUE;
+	}
+
+
 	//check for built-in property
 	p4cc = gf_props_get_id(frag_name);
 	if (!p4cc && !strcmp(frag_name, "PID") )
@@ -1422,8 +1444,15 @@ sourceid_reassign:
 		Bool all_frags_not_found = GF_TRUE;
 		u32 len, sublen;
 		Bool last=GF_FALSE;
-		char *sep = strchr(source_ids, src_pid->filter->session->sep_list);
 		char *frag_name, *frag_clone;
+		char *sep;
+		Bool use_neg = GF_FALSE;
+		if (source_ids[0] == src_pid->filter->session->sep_neg) {
+			source_ids++;
+			use_neg = GF_TRUE;
+		}
+
+		sep = strchr(source_ids, src_pid->filter->session->sep_list);
 		if (sep) {
 			len = (u32) (sep - source_ids);
 		} else {
@@ -1440,10 +1469,14 @@ sourceid_reassign:
 		//any ID, always match
 		if (source_ids[0]=='*') { }
 		// id does not match
-		else if (strncmp(id, source_ids, sublen)) {
-			source_ids += len+1;
-			if (last) break;
-			continue;
+		else {
+			Bool res = strncmp(id, source_ids, sublen) ? GF_FALSE : GF_TRUE;
+			if (use_neg) res = !res;
+			if (!res) {
+				source_ids += len+1;
+				if (last) break;
+				continue;
+			}
 		}
 		//no fragment or fragment match pid name, OK
 		if (!frag_name || !strcmp(src_pid->name, frag_name)) {
@@ -3432,12 +3465,17 @@ skip_arg:
 static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 {
 	char *args;
+	Bool req_map_bck;
 	if (!filter->src_args && !filter->orig_args) return;
 	args = filter->orig_args ? filter->orig_args : filter->src_args;
 
+	//pid props specified by user are merged directly
+	req_map_bck = pid->request_property_map;
+	pid->request_property_map = GF_FALSE;
 	gf_filter_pid_set_args_internal(filter, pid, args, 0);
-
+	pid->request_property_map = req_map_bck;
 }
+
 static const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first)
 {
 	u32 i;
@@ -3805,7 +3843,10 @@ single_retry:
 		//no filterID and dst expects only specific filters, continue
 		else if (filter_dst->source_ids && !ignore_source_ids) {
 			Bool pid_excluded=GF_FALSE;
-			if ( (filter_dst->source_ids[0]!='*') && (filter_dst->source_ids[0]!=filter->session->sep_frag)) {
+			if ( (filter_dst->source_ids[0]!='*')
+				&& (filter_dst->source_ids[0]!=filter->session->sep_frag)
+				&& (filter_dst->source_ids[0]!=filter->session->sep_neg)
+				) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s does not match filter %s source ID\n", pid->name, filter_dst->name));
 				continue;
 			}

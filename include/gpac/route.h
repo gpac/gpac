@@ -50,6 +50,12 @@ It can write received files to disk, or send them back to the user for cache pop
 @{
 */
 
+
+/*! ATSC3.0 bootstrap address for LLS*/
+#define GF_ATSC_MCAST_ADDR	"224.0.23.60"
+/*! ATSC3.0 bootstrap port  for LLS*/
+#define GF_ATSC_MCAST_PORT	4937
+
 /*!The GF_ROUTEDmx object.*/
 typedef struct __gf_routedmx GF_ROUTEDmx;
 
@@ -67,6 +73,27 @@ typedef enum
 	/*! Segment reception, service ID is in evt_param, file info is in finfo*/
 	GF_ROUTE_EVT_SEG,
 } GF_ROUTEEventType;
+
+
+enum
+{
+	/*No-operation extension header*/
+	GF_LCT_EXT_NOP = 0,
+	/*Authentication extension header*/
+	GF_LCT_EXT_AUTH = 1,
+	/*Time extension header*/
+	GF_LCT_EXT_TIME = 2,
+	/*FEC object transmission information extension header*/
+	GF_LCT_EXT_FTI = 64,
+	/*Extension header for FDT - FLUTE*/
+	GF_LCT_EXT_FDT = 192,
+	/*Extension header for FDT content encoding - FLUTE*/
+	GF_LCT_EXT_CENC = 193,
+	/*TOL extension header - ROUTE - 24 bit payload*/
+	GF_LCT_EXT_TOL24 = 194,
+	/*TOL extension header - ROUTE - HEL + 28 bit payload*/
+	GF_LCT_EXT_TOL48 = 67,
+};
 
 /*! Structure used to communicate file objects properties to the user*/
 typedef struct
@@ -87,13 +114,24 @@ typedef struct
 	Bool corrupted;
 } GF_ROUTEEventFileInfo;
 
-/*! Creates a new ROUTE demultiplexer
+/*! Creates a new ROUTE ATSC3.0 demultiplexer
 \param ifce network interface to monitor, NULL for INADDR_ANY
 \param dir output directory for files. If NULL, files are not written to disk and user callback will be called if set
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
 \return the ROUTE demultiplexer created
 */
-GF_ROUTEDmx *gf_route_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
+GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
+
+/*! Creates a new ROUTE demultiplexer
+\param ip IP address of ROUTE session
+\param port port of ROUTE session
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param dir output directory for files. If NULL, files are not written to disk and user callback will be called if set
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\return the ROUTE demultiplexer created
+*/
+GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, const char *dir, u32 sock_buffer_size);
+
 /*! Deletes an ROUTE demultiplexer
 \param routedmx the ROUTE demultiplexer to delete
 */
@@ -128,7 +166,7 @@ GF_Err gf_route_set_max_objects_store(GF_ROUTEDmx *routedmx, u32 max_segs);
  */
 GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms);
 
-/*! Sets the maximum number of objects to store on disk per TSI
+/*! Sets the service ID to tune into for ATSC 3.0
 \param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to tune in. 0 means no service, 0xFFFFFFFF means all services and 0xFFFFFFFE means first service found
 \param tune_others if set, will tune all non-selected services to get the MPD, but won't receive any media data

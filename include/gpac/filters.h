@@ -1020,9 +1020,16 @@ enum
 	GF_PROP_PCK_FRAG_RANGE = GF_4CC('P','F','R','R'),
 	GF_PROP_PCK_SIDX_RANGE = GF_4CC('P','F','S','R'),
 	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
+	GF_PROP_PCK_INIT = GF_4CC('P','C','K','I'),
 	GF_PROP_PID_RAWGRAB = GF_4CC('P','G','R','B'),
 	GF_PROP_PID_KEEP_AFTER_EOS = GF_4CC('P','K','A','E'),
 	GF_PROP_PID_COVER_ART = GF_4CC('P','C','O','V'),
+	GF_PROP_PID_ROUTE_IP = GF_4CC('R','S','I','P'),
+	GF_PROP_PID_ROUTE_PORT = GF_4CC('R','S','P','N'),
+	GF_PROP_PID_ROUTE_NAME = GF_4CC('R','S','F','N'),
+	GF_PROP_PID_ROUTE_CAROUSEL = GF_4CC('R','S','C','R'),
+	GF_PROP_PID_ROUTE_SENDTIME = GF_4CC('R','S','S','T'),
+
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T')
 };

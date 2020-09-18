@@ -958,6 +958,14 @@ Gets timezone adjustment in seconds, with localtime - timezone = UTC time
 s32 gf_net_get_timezone();
 
 /*!
+\brief gets timezone daylight saving time status
+
+Gets timezone daylight saving time
+\return GF_TRUE if DST is active
+ */
+Bool gf_net_time_is_dst();
+
+/*!
 \brief gets time from UTC timestamp
 
 Gets time from UTC timestamp

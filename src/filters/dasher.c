@@ -1796,7 +1796,6 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (ds->rep->codecs) gf_free(ds->rep->codecs);
 	ds->rep->codecs = gf_strdup(szCodec);
 
-
 	if (ds->interlaced) ds->rep->scan_type = GF_MPD_SCANTYPE_INTERLACED;
 	else {
 		//profiles forcing scanType=progressive for progressive
@@ -2396,6 +2395,18 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	/*timescale forced (bitstream switching) */
 	if (ds->force_timescale)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ds->force_timescale) );
+
+	if (ds->rep->segment_template)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->rep->segment_template->media));
+	else if (ds->set->segment_template)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->set->segment_template->media));
+
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_BITRATE, &PROP_UINT(ds->bitrate));
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_FILENAME, &PROP_STRING(ds->init_seg));
+
+	if (ds->rep->codecs)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_CODEC, &PROP_STRING(ds->rep->codecs));
+
 
 	if (multi_pids) {
 		s32 idx = 1+gf_list_find(multi_pids, ds->ipid);
