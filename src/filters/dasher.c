@@ -3385,7 +3385,10 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		}
 
 		if (do_m3u8) {
-			if (for_mpd_only) continue;
+			if (for_mpd_only) {
+				gf_fclose(tmp);
+				continue;
+			}
 			ctx->mpd->m3u8_time = ctx->hlsc;
 			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
 		} else {
