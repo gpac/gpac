@@ -477,7 +477,12 @@ static Bool gf_dash_get_date(GF_DashClient *dash, char *scheme_id, char *url, u6
 		else if (!strcmp(scheme_id, "urn:mpeg:dash:utc:http-ntp:2014")) {
 			u64 ntp_ts;
 			if (sscanf((char *) data, LLU, &ntp_ts) == 1) {
-				*utc = gf_net_ntp_to_utc(ntp_ts);
+				//ntp value not counted since 1900, assume format is seconds till 1 jan 1970
+				if (ntp_ts<=GF_NTP_SEC_1900_TO_1970) {
+					*utc = ntp_ts*1000;
+				} else {
+					*utc = gf_net_ntp_to_utc(ntp_ts);
+				}
 			} else {
 				res = GF_FALSE;
 			}

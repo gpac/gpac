@@ -4101,7 +4101,12 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 		//ntp
 		else if (sscanf(data, LLU, &remote_utc) == 1) {
-			remote_utc = gf_net_ntp_to_utc(remote_utc);
+			//ntp value not counted since 1900, assume format is seconds till 1 jan 1970
+			if (remote_utc<=GF_NTP_SEC_1900_TO_1970) {
+				remote_utc = remote_utc*1000;
+			} else {
+				remote_utc = gf_net_ntp_to_utc(remote_utc);
+			}
 			if (remote_utc)
 				ctx->utc_timing_type = DASHER_UTCREF_NTP;
 		}
@@ -4121,7 +4126,12 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to parse response %s from remote UTC source %s\n", data, url ));
 	} else {
 		ctx->utc_diff = (s32) ( (s64) gf_net_get_utc() - (s64) remote_utc );
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Synchronized clock to remote %s - UTC diff (local - remote) %d ms\n", url, ctx->utc_diff));
+		if (ABS(ctx->utc_diff) > 3600000) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Diff between local clock and remote %s is %d, way too large! Assuming 0 ms UTC diff\n", url, ctx->utc_diff));
+			ctx->utc_diff = 0;
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Synchronized clock to remote %s - UTC diff (local - remote) %d ms\n", url, ctx->utc_diff));
+		}
 
 		if (!gf_list_count(ctx->mpd->utc_timings) ) {
 			GF_MPD_Descriptor *utc_t;
