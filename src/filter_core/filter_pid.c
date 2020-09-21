@@ -658,8 +658,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 		pidinst = gf_filter_pid_inst_new(filter, pid);
 		new_pid_inst=GF_TRUE;
-		pidinst->alias_orig = alias_orig;
 	}
+	if (!pidinst->alias_orig)
+		pidinst->alias_orig = alias_orig;
 
 	//if new, add the PID to input/output before calling configure
 	if (new_pid_inst) {
