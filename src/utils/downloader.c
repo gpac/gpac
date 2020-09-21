@@ -3527,6 +3527,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	sess->connection_close = connection_closed;
 
 	switch (rsp_code) {
+	//100 continue
+	case 100:
+		break;
 	case 200:
 	case 201:
 	case 202:
