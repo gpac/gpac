@@ -217,6 +217,7 @@ struct __dash_group
 	u32 prev_active_rep_index;
 
 	Bool timeline_setup;
+	Bool force_timeline_reeval;
 
 	GF_DASHGroupSelection selection;
 
@@ -804,7 +805,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	if (current_time < group->period->start)
 		current_time = 0;
 	else {
-		if (group->dash->initial_period_tunein) {
+		if (group->dash->initial_period_tunein || group->force_timeline_reeval) {
 			current_time -= group->period->start;
 		} else {
 			//initial period was setup, consider we are moving to a new period, so time in this period is 0
@@ -995,9 +996,12 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			availabilityStartTime += group->dash->atsc_ast_shift;
 		}
 
-		if (group->dash->initial_period_tunein) {
+		if (group->dash->initial_period_tunein || group->force_timeline_reeval) {
 			u64 seg_start_ms, seg_end_ms;
-
+			if (group->force_timeline_reeval) {
+				group->start_number_at_last_ast = 0;
+				group->force_timeline_reeval = GF_FALSE;
+			}
 			seg_start_ms = (u64) (group->segment_duration * (shift+start_number) * 1000);
 			seg_end_ms = (u64) (seg_start_ms + group->segment_duration*1000);
 			//we are in the right period
@@ -5848,6 +5852,9 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	if (base_group->nb_cached_segments>=base_group->max_cached_segments) {
 		return GF_DASH_DownloadCancel;
 	}
+	if (!group->timeline_setup) {
+		gf_dash_group_timeline_setup(dash->mpd, group, 0);
+	}
 
 	/*remember the active rep index, since group->active_rep_index may change because of bandwidth control algorithm*/
 	representation_index = group->active_rep_index;
@@ -6558,6 +6565,10 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 			return e;
 		}
 		group->group_setup = GF_TRUE;
+		if (dash->initial_period_tunein) {
+			group->timeline_setup = GF_FALSE;
+			group->force_timeline_reeval = GF_TRUE;
+		}
 		if (e) break;
 	}
 	dash->initial_period_tunein = GF_FALSE;
