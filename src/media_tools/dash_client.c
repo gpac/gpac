@@ -2383,7 +2383,7 @@ restart_period_check:
 		}
 
 		if (force_timeline_setup) {
-			group->timeline_setup = 0;
+			group->timeline_setup = GF_FALSE;
 			group->start_number_at_last_ast = 0;
 			gf_dash_group_timeline_setup(new_mpd, group, fetch_time);
 		}
@@ -2730,7 +2730,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 
 		if (group->dash->reinit_period_index)
 			return GF_IP_NETWORK_EMPTY;
-		group->timeline_setup = 1;
+		group->timeline_setup = GF_TRUE;
 		item_index = group->download_segment_index;
 	}
 
@@ -4129,7 +4129,7 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 		gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
 	}
 
-	group->timeline_setup = 0;
+	group->timeline_setup = GF_FALSE;
 }
 
 static void gf_dash_reset_groups(GF_DashClient *dash)
@@ -5854,6 +5854,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	}
 	if (!group->timeline_setup) {
 		gf_dash_group_timeline_setup(dash->mpd, group, 0);
+		group->timeline_setup = GF_TRUE;
 	}
 
 	/*remember the active rep index, since group->active_rep_index may change because of bandwidth control algorithm*/
@@ -6565,7 +6566,7 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 			return e;
 		}
 		group->group_setup = GF_TRUE;
-		if (dash->initial_period_tunein) {
+		if (dash->initial_period_tunein && !dash->atsc_clock_state) {
 			group->timeline_setup = GF_FALSE;
 			group->force_timeline_reeval = GF_TRUE;
 		}
@@ -6810,6 +6811,7 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 	GF_Err e;
 	Bool cache_is_full;
 	if (dash->mpd_stop_request) return GF_EOS;
+	if (dash->in_error) return GF_SERVICE_ERROR;
 
 	switch (dash->dash_state) {
 	case GF_DASH_STATE_SETUP:
@@ -7125,7 +7127,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 		group->start_number_at_last_ast = 0;
 		/*remember to adjust time in timeline steup*/
 		group->start_playback_range = seek_to;
-		group->timeline_setup = 0;
+		group->timeline_setup = GF_FALSE;
 	}
 
 
