@@ -1176,7 +1176,7 @@ Note: one trick to avoid the escape sequence is to declare the URLs option at th
 .br
 
 .br
-It is possible to disable option parsing (for string options) by duplicating the seperator.
+It is possible to disable option parsing (for string options) by duplicating the separator.
 .br
 Example
 .br
@@ -1313,7 +1313,7 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .B
 Quick links
 .br
-Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates which filter previously specified at prompt should be link to the next filter listed. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous delaration, ...).
+Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates that the following filter specified at prompt should be linked only to a previous listed filter. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).
 .br
 Only the last link directive occuring before a filter is used to setup links for that filter.
 .br
@@ -1323,7 +1323,7 @@ fA fB @1 fC
 .br
 
 .br
-This indicates to direct fA outputs to fC.
+This indicates that fC only accepts inputs from fA.
 .br
 Example
 .br
@@ -1331,7 +1331,7 @@ fA fB @1 @0 fC
 .br
 
 .br
-This indicates to direct fB outputs to fC, @1 is ignored.
+This indicates that fC only accepts inputs from fB, @1 is ignored.
 .br
 
 .br
@@ -1435,7 +1435,7 @@ fA fB @1#video fC
 .br
 
 .br
-This indicates to direct fA video outputs to fC.
+This indicates that fC only accepts inputs from fA, and of type video.
 .br
 Example
 .br
@@ -1491,7 +1491,7 @@ This indicates to connect to vout only PIDs with Width property equal to 640 and
 .br
 
 .br
-Warning: If a filter PID gets connected to a loaded filter, no further dynamic link resolution will be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.
+Warning: If a filter PID gets connected to an explicitly loaded filter, no further dynamic link resolution will be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.
 .br
 Example
 .br
@@ -1499,7 +1499,7 @@ src=file.mp4 @ reframer dst=dump.mp4
 .br
 
 .br
-This will link src file.mp4 PID (type file) to dst dump.mp4filter (type file) because dst has no sourceID and therefore will accept input from src. Since the PID is connected, the filter engine will not try to solve a link between src and reframer. The result is a direct copy of the source file, reframer being unused.
+This will link src file.mp4 PID (type file) to dst dump.mp4 filter (type file) because dst has no sourceID and therefore will accept input from src. Since the PID is connected, the filter engine will not try to solve a link between src and reframer. The result is a direct copy of the source file, reframer being unused.
 .br
 Example
 .br
@@ -1508,6 +1508,10 @@ src=file.mp4 reframer @ dst=dump.mp4
 
 .br
 This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and src PID will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file.
+.br
+
+.br
+Note: the linker will prevent cycles in the graph, and a given filter can never have the same PID connected twice as an input, whether directly or through a filter chain.
 .br
 .SH Arguments inheriting
 .LP
@@ -3709,7 +3713,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev19-gd58ce6c43-master
+build: 1.1.0-DEV-rev30-g68f5e3583-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

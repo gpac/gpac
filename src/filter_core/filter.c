@@ -202,6 +202,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->blacklisted = gf_list_new();
 	filter->destination_filters = gf_list_new();
 	filter->destination_links = gf_list_new();
+	filter->temp_input_pids = gf_list_new();
 
 	filter->bundle_idx_at_resolution = -1;
 	filter->cap_idx_at_resolution = -1;
@@ -437,6 +438,8 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->destination_filters);
 	gf_list_del(filter->destination_links);
 	gf_list_del(filter->source_filters);
+	gf_list_del(filter->temp_input_pids);
+
 	gf_list_del(filter->input_pids);
 	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
