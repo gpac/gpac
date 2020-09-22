@@ -4174,6 +4174,8 @@ utcs (str):                    URL to use as time server / UTCTiming source. Spe
 .br
 force_flush (bool, default: false): force generating a single segment for each input. This can be usefull in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater
 .br
+last_seg_merge (bool, default: false): force merging last segment if less than half the target duration
+.br
 
 .br
 .SH tileagg
@@ -6013,7 +6015,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev30-g68f5e3583-master
+build: 1.1.0-DEV-rev31-g34fc20f04-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
