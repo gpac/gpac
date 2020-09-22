@@ -328,7 +328,7 @@ GF_GPACArg m4b_dash_args[] =
 
 	GF_DEF_ARG("cues", NULL, "ignore dash duration and segment according to cue times in given XML file (tests/media/dash_cues for examples)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("strict-cues", NULL, "throw error if something is wrong while parsing cues or applying cue-based segmentation", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("-merge-last-seg", NULL, "merge last segment if shorter than half the target duration", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("merge-last-seg", NULL, "merge last segment if shorter than half the target duration", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	{0}
 };
 
