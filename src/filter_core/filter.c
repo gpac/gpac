@@ -203,6 +203,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->blacklisted = gf_list_new();
 	filter->destination_filters = gf_list_new();
 	filter->destination_links = gf_list_new();
+	filter->temp_input_pids = gf_list_new();
 
 	filter->bundle_idx_at_resolution = -1;
 	filter->cap_idx_at_resolution = -1;
@@ -244,7 +245,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		char *all_args;
 		const char *dbsep;
 		char *localarg_marker;
-		u32 nb_db_sep=0;
+		u32 nb_db_sep=0, src_arg_len;
 		char szDBSep[3];
 		Bool insert_escape = GF_FALSE;
 		u32 len = 2 + (u32) strlen(src_striped) + (u32) strlen(dst_striped);
@@ -273,6 +274,11 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		all_args = gf_malloc(sizeof(char)*(len+nb_db_sep));
 		if (!nb_db_sep) {
 			szDBSep[1] = 0;
+		}
+		//src_striped is ending with our seperator, don't insert a new one
+		src_arg_len = strlen(src_striped);
+		if (src_arg_len && (src_striped[src_arg_len-1] == filter->session->sep_args)) {
+			szDBSep[0] = 0;
 		}
 
 		if (insert_escape) {
@@ -433,6 +439,8 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->destination_filters);
 	gf_list_del(filter->destination_links);
 	gf_list_del(filter->source_filters);
+	gf_list_del(filter->temp_input_pids);
+
 	gf_list_del(filter->input_pids);
 	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
@@ -1113,6 +1121,9 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 			while (args[0] == filter->session->sep_args) {
 				args++;
 			}
+			if (!args[0])
+				break;
+
 			sep = (char *) args + 1;
 			while (1) {
 				sep = strchr(sep, filter->session->sep_args);
@@ -1184,7 +1195,20 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						}
 
 					} else {
-						char *sep2 = strstr(sep+3, "::");
+						//loog for '::' vs ':gfopt' and ':gpac:' - if '::' appears before these, jump to '::'
+						char *sep2 = strstr(sep+3, ":gfopt:");
+						char *sep3 = strstr(sep+3, szEscape);
+						if (sep2 && sep3 && sep2<sep3)
+							sep3 = sep2;
+						else if (!sep3)
+							sep3 = sep2;
+
+						sep2 = strstr(sep+3, "::");
+						if (sep2 && sep3 && sep3<sep2)
+							sep2 = sep3;
+						else if (sep2)
+							opaque_arg = GF_TRUE; //skip an extra ':' at the end of the arg parsing
+
 						//escape sequence present after this argument, use it
 						if (sep2) {
 							sep = sep2;

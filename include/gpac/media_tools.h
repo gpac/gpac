@@ -989,6 +989,15 @@ typedef enum
 */
 GF_Err gf_dasher_set_split_mode(GF_DASHSegmenter *dasher, GF_DASH_SplitMode split_mode);
 
+
+/*!
+ Enable/Disable last segment merging (disabled by default).
+ *	\param dasher the DASH segmenter object
+ *	\param merge_last_seg if true, last segment is merged into previous if duration less than half target dur
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_last_segment_merge(GF_DASHSegmenter *dasher, Bool merge_last_seg);
+
 /*!
  Sets m3u8 file name - if not set, no m3u8 output
 \param dasher the DASH segmenter object

@@ -1500,7 +1500,7 @@ use_bmin (bool, default: false): use the indicated min buffer time of the MPD if
 .br
 shift_utc (sint, default: 0):  shift DASH UTC clock in ms
 .br
-route_shift (sint, default: 0): shift ROUTE requests time by given ms
+atsc_shift (sint, default: 0): shift ATSC requests time by given ms
 .br
 server_utc (bool, default: yes): use ServerUTC: or Date: http headers instead of local UTC
 .br
@@ -1561,8 +1561,6 @@ lowlat (enum, default: early): segment scheduling policy in low latency mode
 * early: allow fetching segments earlier than their AST in low latency when input demux is empty
 .br
 
-.br
-filemode (bool, default: no):  do not demux files and forward them as file pids (imply segstore=mem)
 .br
 
 .br
@@ -2422,15 +2420,7 @@ ext (cstr):                    set extension for graph resolution, regardless of
 .br
 mime (cstr):                   set mime type for graph resolution
 .br
-cat (enum, default: none):     cat each file of input pid rather than creating one file per filename
-.br
-* none: never cat files
-.br
-* auto: only cat if files have same names
-.br
-* all: always cat regardless of file names
-.br
-
+cat (bool, default: false):    cat each file of input pid rather than creating one file per filename
 .br
 ow (bool, default: true):      overwrite output if existing
 .br
@@ -4184,6 +4174,8 @@ utcs (str):                    URL to use as time server / UTCTiming source. Spe
 .br
 force_flush (bool, default: false): force generating a single segment for each input. This can be usefull in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater
 .br
+last_seg_merge (bool, default: false): force merging last segment if less than half the target duration
+.br
 
 .br
 .SH tileagg
@@ -4680,21 +4672,21 @@ fmode (enum, default: gl):     frame output mode
 .br
 
 .br
-.SH routein
+.SH atscin
 .LP
 .br
-Description: ROUTE input
+Description: ATSC input
 .br
 
 .br
-This filter is a receiver for ROUTE sessions (ATSC 3.0). Source is identified using the string atsc://.
+This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
 .br
 The filter can work in cached mode, source mode or standalone mode.
 .br
 .SH Cached mode
 .LP
 .br
-The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using http://groute/serviceN/ as service root, N being the ROUTE service ID.
+The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the recieved files, using http://gpatsc/serviceN/ as service root, N being the ATSC service ID.
 .br
 In cached mode, repeated files are always send.
 .br
@@ -4702,17 +4694,17 @@ In cached mode, repeated files are always send.
 .br
 The cached MPD is assigned the following headers:
 .br
-* x-dash-route: integer value, indicates the ROUTE service ID.
+* x-dash-atsc: integer value, indicates the ATSC service ID.
 .br
 * x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast.
 .br
-* x-route-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
+* x-atsc-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
 .br
   
 .br
 The cached files are assigned the following headers:
 .br
-* x-route: boolean value, if yes indicates the file comes from an ROUTE session.
+* x-atsc: boolean value, if yes indicates the file comes from an ATSC session.
 .br
 
 .br
@@ -4753,7 +4745,7 @@ This will grab the files and write them to output directory.
 .br
 On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.
 .br
-You will have to do this for the base ROUTE multicast (224.0.23.60):
+You will have to do this for the base ATSC3 multicast (224.0.23.60):
 .br
 Example
 .br
@@ -5948,124 +5940,6 @@ js (cstr):                     location of script source
 .br
 
 .br
-.SH routeout
-.LP
-.br
-Description: ROUTE output
-.br
-
-.br
-The ROUTE output filter is used to distribute a live file-based session using ROUTE.
-.br
-It currently only supports DASH inputs, ATSC3.0 signaling and generic ROUTE signaling.
-.br
-
-.br
-The filter is identified using the following URL schemes:
-.br
-* `atsc://`: session is a full ATSC 3.0 session
-.br
-* `route://IP:port`: session is a ROUTE session running on given multicast IP and port
-.br
-
-.br
-The filter requires a file extension, either in .I dst or in .I ext, in order to identify the HAS session type (DASH or HLS).
-.br
-Example
-.br
-atsc://.mpd
-.br
-
-.br
-Example
-.br
-atsc://:ext=mpd
-.br
-
-.br
-Example
-.br
-route://IP:PORT/.mpd
-.br
-
-.br
-Example
-.br
-route://IP:PORT/:ext=mpd
-.br
-
-.br
-
-.br
-By default, all streams in a service are assigned to a single route session, and differentiated by ROUTE TSI.
-.br
-This behaviour can be changed using .I splitltc.
-.br
-TSI are assigned as follows:
-.br
-- signaling TSI is always 0
-.br
-- the first PID found is assigned TSI 10, the second TSI 20 etc ...
-.br
-
-.br
-.SH ATSC 3.0 mode
-.LP
-.br
-In this mode, the filter allows multiple service multiplexing.
-.br
-By default, a single multicast IP is used for route sessions, each service will be assigned a different port.
-.br
-The filter will look for ROUTEIP and ROUTEPort properties on the incoming PID. If not found, the default .I ip and .I port will be used.
-.br
-
-.br
-.SH ROUTE mode
-.LP
-.br
-In this mode, a single service may be distributed by the ROUTE session.
-.br
-Note: .I ip is ignored, and .I first_port is used if no port is specified in .I dst].
-.br
-The ROUTE session will include a multi-part MIME packaged containing manifest and S-TSID, sent on TSI=0.
-.br
-
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-dst (cstr):                    location of destination file - see filter help 
-.br
-ext (cstr):                    set extension for graph resolution, regardless of file extension
-.br
-mime (cstr):                   set mime type for graph resolution
-.br
-ifce (str):                    default interface to use for multicast. If NULL, the default system interface will be used
-.br
-carousel (uint, default: 1000): carousel period in ms for repeating signaling (xml data and init segments)
-.br
-first_port (uint, default: 6000): port number of first ROUTE session in ATSC mode
-.br
-ip (str, default: 225.1.1.0):  mulicast IP address for ROUTE session in ATSC mode
-.br
-bsid (uint, default: 800):     ID for ATSC broadcast stream
-.br
-mtu (uint, default: 1472):     size of LCT MTU in bytes
-.br
-splitlct (enum, default: off): split mode for LCT channels
-.br
-* off: all streams are in the same LCT channel
-.br
-* type: each new stream type results in a new LCT channel
-.br
-* all: all streams are in dedicated LCT channel, the first stream being used for STSID signaling
-.br
-
-.br
-
-.br
 .SH dtout
 .LP
 .br
@@ -6141,7 +6015,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev26-g4646f377a-route_out
+build: 1.1.0-DEV-rev33-ga9f524c73-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

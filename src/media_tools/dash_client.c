@@ -221,6 +221,7 @@ struct __dash_group
 	u32 prev_active_rep_index;
 
 	Bool timeline_setup;
+	Bool force_timeline_reeval;
 
 	GF_DASHGroupSelection selection;
 
@@ -484,7 +485,12 @@ static Bool gf_dash_get_date(GF_DashClient *dash, char *scheme_id, char *url, u6
 		else if (!strcmp(scheme_id, "urn:mpeg:dash:utc:http-ntp:2014")) {
 			u64 ntp_ts;
 			if (sscanf((char *) data, LLU, &ntp_ts) == 1) {
-				*utc = gf_net_ntp_to_utc(ntp_ts);
+				//ntp value not counted since 1900, assume format is seconds till 1 jan 1970
+				if (ntp_ts<=GF_NTP_SEC_1900_TO_1970) {
+					*utc = ntp_ts*1000;
+				} else {
+					*utc = gf_net_ntp_to_utc(ntp_ts);
+				}
 			} else {
 				res = GF_FALSE;
 			}
@@ -824,7 +830,7 @@ setup_route:
 	if (current_time < group->period->start)
 		current_time = 0;
 	else {
-		if (group->dash->initial_period_tunein) {
+		if (group->dash->initial_period_tunein || group->force_timeline_reeval) {
 			current_time -= group->period->start;
 		} else {
 			//initial period was setup, consider we are moving to a new period, so time in this period is 0
@@ -1015,9 +1021,12 @@ setup_route:
 			availabilityStartTime += group->dash->route_ast_shift;
 		}
 
-		if (group->dash->initial_period_tunein) {
+		if (group->dash->initial_period_tunein || group->force_timeline_reeval) {
 			u64 seg_start_ms, seg_end_ms;
-
+			if (group->force_timeline_reeval) {
+				group->start_number_at_last_ast = 0;
+				group->force_timeline_reeval = GF_FALSE;
+			}
 			seg_start_ms = (u64) (group->segment_duration * (shift+start_number) * 1000);
 			seg_end_ms = (u64) (seg_start_ms + group->segment_duration*1000);
 			//we are in the right period
@@ -2441,7 +2450,7 @@ restart_period_check:
 		}
 
 		if (force_timeline_setup) {
-			group->timeline_setup = 0;
+			group->timeline_setup = GF_FALSE;
 			group->start_number_at_last_ast = 0;
 			gf_dash_group_timeline_setup(new_mpd, group, fetch_time);
 		}
@@ -2788,7 +2797,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 
 		if (group->dash->reinit_period_index)
 			return GF_IP_NETWORK_EMPTY;
-		group->timeline_setup = 1;
+		group->timeline_setup = GF_TRUE;
 		item_index = group->download_segment_index;
 	}
 
@@ -4195,7 +4204,7 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 		gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
 	}
 
-	group->timeline_setup = 0;
+	group->timeline_setup = GF_FALSE;
 }
 
 static void gf_dash_reset_groups(GF_DashClient *dash)
@@ -5919,6 +5928,10 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	if (base_group->nb_cached_segments>=base_group->max_cached_segments) {
 		return GF_DASH_DownloadCancel;
 	}
+	if (!group->timeline_setup) {
+		gf_dash_group_timeline_setup(dash->mpd, group, 0);
+		group->timeline_setup = GF_TRUE;
+	}
 
 	/*remember the active rep index, since group->active_rep_index may change because of bandwidth control algorithm*/
 	representation_index = group->active_rep_index;
@@ -6636,6 +6649,10 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 			return e;
 		}
 		group->group_setup = GF_TRUE;
+		if (dash->initial_period_tunein && !dash->route_clock_state) {
+			group->timeline_setup = GF_FALSE;
+			group->force_timeline_reeval = GF_TRUE;
+		}
 		if (e) break;
 	}
 	dash->initial_period_tunein = GF_FALSE;
@@ -6877,6 +6894,7 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 	GF_Err e;
 	Bool cache_is_full;
 	if (dash->mpd_stop_request) return GF_EOS;
+	if (dash->in_error) return GF_SERVICE_ERROR;
 
 	switch (dash->dash_state) {
 	case GF_DASH_STATE_SETUP:
@@ -7195,7 +7213,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 		group->start_number_at_last_ast = 0;
 		/*remember to adjust time in timeline steup*/
 		group->start_playback_range = seek_to;
-		group->timeline_setup = 0;
+		group->timeline_setup = GF_FALSE;
 	}
 
 

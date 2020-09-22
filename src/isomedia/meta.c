@@ -1277,7 +1277,7 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 				if (samp_offset == item_offset) {
 					iinf->tk_id = trak->Header->trackID;
 					iinf->sample_num = k+1;
-					iinf->data_len = entry->extent_length;
+					iinf->data_len = (u32) entry->extent_length;
 					meta->use_item_sample_sharing = GF_TRUE;
 					break;
 				}
