@@ -2203,7 +2203,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_cues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_isobmff_options) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_test_mode) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_last_segment_merge) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
 

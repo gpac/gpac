@@ -939,6 +939,14 @@ GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop);
 GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_bound);
 
 /*!
+ Enable/Disable last segment merging (disabled by default).
+ *	\param dasher the DASH segmenter object
+ *	\param merge_last_seg if true, last segment is merged into previous if duration less than half target dur
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_last_segment_merge(GF_DASHSegmenter *dasher, Bool merge_last_seg);
+
+/*!
  Enable/Disable split on closest mode.
  *	\param dasher the DASH segmenter object
  *	\param split_on_bound if true, video streams are segmented as close to the segment boundary as possible

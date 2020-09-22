@@ -148,9 +148,11 @@ struct __gf_dash_segmenter
 
 	/* indicates if a segment must contain its theorical boundary */
 	Bool split_on_bound;
-
 	/* used to segment video as close to the boundary as possible */
 	Bool split_on_closest;
+
+	Bool merge_last_seg;
+
 	const char *cues_file;
 	Bool strict_cues;
 
@@ -2274,8 +2276,12 @@ restart_fragmentation_pass:
 							next_sap_time = isom_get_next_sap_time(input, tf, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2, &next_sap_is_eos);
 
 							//align behaviour of -bound and -closest in legacy with master: if eos, do not create last segment
-							if ((dasher->split_on_bound || dasher->split_on_closest) && next_sap_is_eos)
-								next_sap_time = 0;
+							if ((dasher->split_on_bound || dasher->split_on_closest) && next_sap_is_eos && dasher->merge_last_seg) {
+								u64 next_seg_dur = (next_sap_time - tf->last_sample_cts);
+								if (2 * next_seg_dur * dasher->dash_scale < MaxSegmentDuration * tf->TimeScale) {
+									next_sap_time = 0;
+								}
+							}
 
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
@@ -6581,6 +6587,14 @@ GF_Err gf_dasher_set_split_on_bound(GF_DASHSegmenter *dasher, Bool split_on_boun
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->split_on_bound = split_on_bound;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dasher_set_last_segment_merge(GF_DASHSegmenter *dasher, Bool merge_last_seg)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	dasher->merge_last_seg = merge_last_seg;
 	return GF_OK;
 }
 

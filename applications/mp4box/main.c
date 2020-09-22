@@ -461,6 +461,7 @@ void PrintDASHUsage()
 	        "                        !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!\n"
 	        " -cues                ignores dash duration and segment according to cue times in given XML file. See tests/media/dash_cues for examples.\n"
 	        " -strict-cues         throw error if something is wrong while parsing cues or applying cue-based segmentation.\n"
+	        " -merge-last-seg      merges last segment if shorter than half the target duration.\n"
 	        "\n");
 }
 
@@ -2288,6 +2289,7 @@ Bool do_bin_nhml = GF_FALSE;
 #endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
+Bool merge_last_seg = GF_FALSE;
 u64 dash_start_date=0;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
@@ -3856,6 +3858,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-frag-rt")) {
 			frag_real_time = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-merge-last-seg")) {
+			merge_last_seg = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-start-date")) {
 			dash_start_date = gf_net_parse_date(argv[i+1]);
 			i++;
@@ -4696,6 +4701,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_on_bound(dasher, split_on_bound);
+		if (!e) e = gf_dasher_set_last_segment_merge(dasher, merge_last_seg);
 		if (!e) e = gf_dasher_set_split_on_closest(dasher, split_on_closest);
 		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
 		if (!e) e = gf_dasher_set_isobmff_options(dasher, mvex_after_traks, sdtp_in_traf);
