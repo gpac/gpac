@@ -2098,6 +2098,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_split_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_cues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_print_session_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_last_segment_merge) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )

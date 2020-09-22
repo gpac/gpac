@@ -98,7 +98,7 @@ typedef struct
 	u32 bs_switch, profile, cp, ntp;
 	s32 subs_sidx;
 	s32 buf, timescale;
-	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush;
+	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge;
 	u32 strict_sap;
 	u32 pssh;
 	Double segdur;
@@ -5993,7 +5993,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 				}
 			}
-			//cue base - FIXME, check what was wrong before we merged  PR #1121
+			//cue base
 			else if (ds->cues) {
 				u32 cidx;
 				GF_DASHCueInfo *cue=NULL;
@@ -6112,12 +6112,20 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//we have a SAP and we work in closest mode: check the next SAP in the queue, and decide if we
 			//split the segment at this SAP or wait for the next one
-			else if (ds->segment_started && ctx->sbound && sap_type && !is_queue_flush) {
-				u32 idx, nb_queued = gf_list_count(ds->packet_queue);
+			else if (ds->segment_started && ctx->sbound && sap_type) {
+				u32 idx, nb_queued, nb_pck = gf_list_count(ds->packet_queue);
+				nb_queued = nb_pck;
+				if (is_queue_flush) nb_queued += 1;
+				
 				for (idx=1; idx<nb_queued; idx++) {
-					GF_FilterPacket *next = gf_list_get(ds->packet_queue, idx);
-					u32 sap_next = gf_filter_pck_get_sap(next);
-					if (!sap_next) continue;
+					GF_FilterPacket *next;
+					if (idx==nb_pck) {
+						next = gf_list_last(ds->packet_queue);
+					} else {
+						next = gf_list_get(ds->packet_queue, idx);
+						u32 sap_next = gf_filter_pck_get_sap(next);
+						if (!sap_next) continue;
+					}
 					u32 next_dur = gf_filter_pck_get_duration(next);
 					//compute cts next
 					u64 cts_next = gf_filter_pck_get_cts(next);
@@ -6125,6 +6133,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 						cts_next += ds->ts_offset;
 					}
 					cts_next -= ds->first_cts;
+
+					if ((idx==nb_pck) && ctx->last_seg_merge) {
+						u64 next_seg_dur = (cts_next + next_dur - cts);
+						if (next_seg_dur < ds->dash_dur * ds->timescale / 2)
+							continue;
+					}
+
 					//same rule as above
 					if ((cts_next + next_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
 						Bool force_seg_flush = GF_FALSE;
@@ -7074,6 +7089,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(scope_deps), "scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(utcs), "URL to use as time server / UTCTiming source. Special value `inband` enables inband UTC (same as publishTime), special prefix `xsd@` uses xsDateTime schemeURI rather than ISO", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_flush), "force generating a single segment for each input. This can be usefull in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(last_seg_merge), "force merging last segment if less than half the target duration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
