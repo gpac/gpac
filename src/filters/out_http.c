@@ -1909,8 +1909,8 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		}
 		e = gf_dm_sess_process(sess->http_sess);
 
-		if (e==GF_IP_CONNECTION_CLOSED) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Connection to %s closed\n", sess->peer_address));
+		if (e<0) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Connection to %s closed: %s\n", sess->peer_address, gf_error_to_string(e) ));
 			httpout_reset_socket(sess);
 			if (!sess->done)
 				log_request_done(sess);

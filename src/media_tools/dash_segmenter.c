@@ -104,6 +104,7 @@ struct __gf_dash_segmenter
 	Bool enable_mix_codecs;
 	Bool enable_sar_mix;
 	Bool check_duration;
+	Bool merge_last_seg;
 
 	const char *dash_state;
 
@@ -446,6 +447,14 @@ GF_Err gf_dasher_set_split_mode(GF_DASHSegmenter *dasher, GF_DASH_SplitMode spli
 }
 
 GF_EXPORT
+GF_Err gf_dasher_set_last_segment_merge(GF_DASHSegmenter *dasher, Bool merge_last_seg)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	dasher->merge_last_seg = merge_last_seg;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_dasher_set_cues(GF_DASHSegmenter *dasher, const char *cues_file, Bool strict_cues)
 {
 	dasher->cues_file = cues_file;
@@ -752,6 +761,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		e |= gf_dynstrcat(&args, "sbound=closest", ":");
 	else if (dasher->split_mode==GF_DASH_SPLIT_IN)
 		e |= gf_dynstrcat(&args, "sbound=in", ":");
+
+	if (dasher->merge_last_seg)
+		e |= gf_dynstrcat(&args, "last_seg_merge", ":");
 
 	//finally append profiles/info/etc with double separators as these may contain ':'
 	if (dasher->dash_profile_extension) {

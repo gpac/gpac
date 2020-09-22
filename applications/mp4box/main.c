@@ -328,6 +328,7 @@ GF_GPACArg m4b_dash_args[] =
 
 	GF_DEF_ARG("cues", NULL, "ignore dash duration and segment according to cue times in given XML file (tests/media/dash_cues for examples)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("strict-cues", NULL, "throw error if something is wrong while parsing cues or applying cue-based segmentation", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("merge-last-seg", NULL, "merge last segment if shorter than half the target duration", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	{0}
 };
 
@@ -2478,6 +2479,7 @@ u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type;
 GF_ISOTrackID trackID;
 u32 do_flat, box_patch_trackID=0, print_info;
 Bool comp_lzma=GF_FALSE;
+Bool merge_last_seg=GF_FALSE;
 Bool freeze_box_order=GF_FALSE;
 Bool chap_qt=GF_FALSE;
 Bool no_odf_conf=GF_FALSE;
@@ -4300,6 +4302,9 @@ Bool mp4box_parse_args(int argc, char **argv)
         else if (!stricmp(arg, "-tfdt-traf")) {
             tfdt_per_traf = 1;
         }
+		else if (!stricmp(arg, "-merge-last-seg")) {
+			merge_last_seg = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-mpd-title")) {
 			CHECK_NEXT_ARG dash_title = argv[i + 1];
 			i++;
@@ -5199,6 +5204,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 		if (!e) e = gf_dasher_set_split_mode(dasher, dash_split_mode);
+		if (!e) e = gf_dasher_set_last_segment_merge(dasher, merge_last_seg);
 		if (!e) e = gf_dasher_set_hls_clock(dasher, hls_clock);
 		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
 		if (!e && fs_dump_flags) e = gf_dasher_print_session_info(dasher, fs_dump_flags);
