@@ -568,6 +568,8 @@ struct __gf_filter
 	GF_List *destination_filters;
 	//list of potential destination for which we need to perform link resolution
 	GF_List *destination_links;
+	//temp list of input PIDs during graph resolution, added during pid_init task and removed at pid_configure task
+	GF_List *temp_input_pids;
 
 	//statistics
 	//number of tasks executed by this filter

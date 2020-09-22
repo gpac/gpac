@@ -963,10 +963,14 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
 			assert(filter->in_pid_connection_pending);
 			safe_int_dec(&filter->in_pid_connection_pending);
+			if (task->pid->pid) {
+				gf_list_del_item(filter->temp_input_pids, task->pid->pid);
+			}
 			return;
 		}
 	}
 	if (task->pid->pid) {
+		gf_list_del_item(filter->temp_input_pids, task->pid->pid);
 		gf_filter_pid_configure(filter, task->pid->pid, GF_PID_CONF_CONNECT);
 		//once connected, any set_property before the first packet dispatch will have to trigger a reconfigure
 		if (!task->pid->pid->nb_pck_sent) {
@@ -1561,11 +1565,12 @@ Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	count = parent->num_input_pids;
 	if (!count) return GF_FALSE;
 	for (i=0; i<count; i++) {
-		GF_FilterPidInst *pid = gf_list_get(parent->input_pids, i);
-		if (gf_filter_in_parent_chain(pid->pid->filter, filter)) return GF_TRUE;
+		GF_FilterPidInst *pidi = gf_list_get(parent->input_pids, i);
+		if (gf_filter_in_parent_chain(pidi->pid->filter, filter)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
+
 
 static Bool cap_code_match(u32 c1, u32 c2)
 {
@@ -3560,6 +3565,23 @@ static void dump_pid_props(GF_FilterPid *pid)
 }
 #endif
 
+static Bool gf_pid_in_parent_chain(GF_FilterPid *pid, GF_FilterPid *look_for_pid)
+{
+	u32 i, count;
+	if (pid == look_for_pid) return GF_TRUE;
+	//browse all parent PIDs
+	count = pid->filter->num_input_pids;
+	if (!count) return GF_FALSE;
+	//stop checking at the first explicit filter with ID
+	if (!pid->filter->dynamic_filter && pid->filter->id) return GF_FALSE;
+
+	for (i=0; i<count; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+		if (gf_pid_in_parent_chain(pidi->pid, look_for_pid)) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
@@ -3673,6 +3695,9 @@ single_retry:
 			if (ours<0) {
 				ours = gf_list_find(possible_linked_resolutions, filter_dst);
 				if (ours<0) {
+					ours = gf_list_find(force_link_resolutions, filter_dst);
+				}
+				if (ours<0) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has destination links, filter %s not one of them\n", pid->name, filter_dst->name));
 					continue;
 				}
@@ -3749,6 +3774,49 @@ single_retry:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has filter %s in its parent chain\n", pid->name, filter_dst->name));
 			continue;
 		}
+
+		//do not create cyclic graphs due to link resolution (dynamic filters)
+		//look in all registered input PIDs of filter_dst and check if the current PID being linked has one of these pid in its source chain.
+		//If so, do not link. this solves:
+		//      fin:ID1 [-> dmx] (PID1) -> dynf1 (PID2) -> dst1:SID=1
+		//                              -> dynf2 (PID3) -> dst2:SID=1
+		//In this case, PID2 will inherit ID1 and could be accepted a source of dynf2 which already has PID1 registered
+		//by walking up PID2 parent chain we check that PID1 will not be linked twice to the same filter
+		//
+		//We stop inspecting at the first filter with ID in the source
+		if (filter->dynamic_filter)  {
+			Bool cyclic_detected = GF_FALSE;
+			u32 k;
+			//check filters pending a configure on filter_dst
+			for (k=0; k<gf_list_count(filter_dst->temp_input_pids); k++) {
+				GF_FilterPid *a_src_pid = gf_list_get(filter_dst->temp_input_pids, k);
+				if (a_src_pid == pid) continue;
+				if (gf_pid_in_parent_chain(pid, a_src_pid))
+					cyclic_detected = GF_TRUE;
+			}
+			//check filters already connected on filter_dst
+			for (k=0; k<filter_dst->num_input_pids && !cyclic_detected; k++) {
+				GF_FilterPidInst *pidi = gf_list_get(filter_dst->input_pids, k);
+				if (pidi->pid == pid) continue;
+				if (gf_pid_in_parent_chain(pid, pidi->pid))
+					cyclic_detected = GF_TRUE;
+			}
+
+			if (cyclic_detected) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s has input chain already connected to filter %s\n", pid->name, pid->filter->name, filter_dst->name));
+				gf_list_del_item(force_link_resolutions, filter_dst);
+				for (k=0; k<gf_list_count(filter_dst->destination_links); k++) {
+					GF_Filter *a_dst = gf_list_get(filter_dst->destination_links, k);
+                   gf_list_del_item(force_link_resolutions, a_dst);
+				}
+				for (k=0; k<gf_list_count(filter_dst->destination_filters); k++) {
+					GF_Filter *a_dst = gf_list_get(filter_dst->destination_filters, k);
+                    gf_list_del_item(force_link_resolutions, a_dst);
+				}
+				continue;
+			}
+		}
+
 		//if the original filter is in the parent chain of this PID's filter, don't connect (equivalent to re-entrant)
 		if (filter_dst->cloned_from) {
 			if (gf_filter_in_parent_chain(filter, filter_dst->cloned_from) ) {
@@ -3983,10 +4051,12 @@ single_retry:
 		assert(pid->pid->filter->freg != filter_dst->freg);
 
 		safe_int_inc(&pid->filter->out_pid_connection_pending);
+		gf_list_add(filter_dst->temp_input_pids, pid);
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
 		found_dest = GF_TRUE;
 		gf_list_add(linked_dest_filters, filter_dst);
+
 		gf_list_del_item(filter->destination_links, filter_dst);
 		/*we are linking to a mux, check all destination filters registered with the muxer and remove them from our possible destination links*/
 		if (filter_dst->max_extra_pids) {
