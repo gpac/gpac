@@ -139,6 +139,7 @@ struct __dash_client
 	u32 min_wait_sys_clock;
 
 	Bool force_mpd_update;
+	u32 force_period_reload;
 
 	u32 user_buffer_ms;
 
@@ -358,10 +359,6 @@ struct __dash_group
 	//in non-threaded mode, indicates that the demux for this group has nothing to do...
 	Bool force_early_fetch;
 	Bool is_low_latency;
-
-	//hls child playlist when running in file mode
-	char *manifest;
-	char *manifest_name;
 };
 
 static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list, u32 period_idx);
@@ -501,6 +498,7 @@ static Bool gf_dash_get_date(GF_DashClient *dash, char *scheme_id, char *url, u6
 	return res;
 }
 
+GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess, const char *url, u64 start_range, u64 end_range, u32 persistent_mode, GF_DASH_Group *group);
 
 static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 fetch_time)
 {
@@ -546,11 +544,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	}
 	//if ROUTE and clock not setup, do it
 setup_route:
-	val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-dash-route");
+	val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route");
 	if (val && !group->dash->utc_drift_estimate) {
 		u32 i;
 		GF_MPD_Period *dyn_period=NULL;
-		Bool found = GF_FALSE;
+		u32 found = 0;
 		u64 timeline_offset_ms=0;
 		if (!group->dash->route_clock_state) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Detected ROUTE DASH service ID %s\n", val));
@@ -568,16 +566,22 @@ setup_route:
 			return;
 		}
 
+		//for m3u8 we force refreshing the root manifest, because the download session might be tuned on a child playlist
+		//which will not have the x-route-first-seg set
+		if (group->dash->is_m3u8) {
+			gf_dash_download_resource(group->dash, &(group->dash->mpd_dnload), group->dash->base_url, 0, 0, 1, NULL);
+		}
+		val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route-first-seg");
+		if (!val) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Waiting for ROUTE clock ...\n"));
+			return;
+		}
+
 		for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
 			u64 sr, seg_dur;
 			u32 j, len, nb_space=0;
 			GF_MPD_AdaptationSet *set;
 			char *sep, *start, *end, *seg_url = NULL;
-			val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-dash-first-seg");
-			if (!val) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Waiting for ROUTE clock ...\n"));
-				return;
-			}
 
 			set = gf_list_get(dyn_period->adaptation_sets, i);
 			for (j=0; j<gf_list_count(set->representations); j++) {
@@ -585,6 +589,22 @@ setup_route:
 				rep = gf_list_get(set->representations, j);
 
 				dyn_period->duration = 0;
+
+				if (group->dash->is_m3u8) {
+					u32 k, count;
+					if (found) break;
+					if (!rep->segment_list)
+						continue;
+					count = gf_list_count(rep->segment_list->segment_URLs);
+					for (k=0; k<count; k++) {
+						GF_MPD_SegmentURL *surl = gf_list_get(rep->segment_list->segment_URLs, k);
+						if (surl->media && strstr(surl->media, val)) {
+							found = k+1;
+							break;
+						}
+					}
+					continue;
+				}
 
 				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL, NULL);
 
@@ -618,17 +638,14 @@ setup_route:
 					strcat(szTemplate, end);
 					if (sscanf(val, szTemplate, &number) == 1) {
 						u32 startNum = 1;
-						//safety check for now, in case one of the segment is send too early compared to the rest
-						if (mpd->type!=GF_MPD_TYPE_STATIC) {
-							if (number) number--;
-						}
 						if (dyn_period->segment_template) startNum = dyn_period->segment_template->start_number;
 						if (set->segment_template) startNum = set->segment_template->start_number;
 						if (rep->segment_template) startNum = rep->segment_template->start_number;
 						if (number>=startNum) {
-							timeline_offset_ms = seg_dur*(number-startNum);
+							//clock is init which means the segment is available, so the timeline offset must match the AST of the segment (includes seg dur)
+							timeline_offset_ms = seg_dur * ( 1 + number - startNum);
 						}
-						found = GF_TRUE;
+						found = 1;
 					}
 				} else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] ROUTE bootstrap segment URL %s does not match template %s for rep #%d\n", val, seg_url+2, j+1));
@@ -639,16 +656,34 @@ setup_route:
 			if (found) break;
 		}
 		if (found) {
-			//adjust so that nb_seg = current_time/segdur = (fetch-ast)/seg_dur;
-			// = (fetch- ( mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate) / segdur;
-			//hence nb_seg*seg_dur = fetch - mpd->availabilityStartTime - group->dash->utc_shift - group->dash->utc_drift_estimate
-			//so group->dash->utc_drift_estimate = fetch - (mpd->availabilityStartTime + nb_seg*seg_dur)
+			if (group->dash->is_m3u8) {
+				//purge segments (we assume we roughly are in the same state on all child playlists, we could keep one for safety)
+				for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
+					u32 j;
+					GF_MPD_AdaptationSet *set = gf_list_get(dyn_period->adaptation_sets, i);
+					for (j=0; j<gf_list_count(set->representations); j++) {
+						u32 to_rem;
+						rep = gf_list_get(set->representations, j);
+						if (!rep->segment_list) continue;
+						to_rem = found-1;
+						while (to_rem) {
+							GF_MPD_SegmentURL *surl = gf_list_pop_front(rep->segment_list->segment_URLs);
+							gf_mpd_segment_url_free(surl);
+							to_rem--;
+						}
+					}
+				}
+			} else {
+				//adjust so that nb_seg = current_time/segdur = (fetch-ast)/seg_dur;
+				// = (fetch- ( mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate) / segdur;
+				//hence nb_seg*seg_dur = fetch - mpd->availabilityStartTime - group->dash->utc_shift - group->dash->utc_drift_estimate
+				//so group->dash->utc_drift_estimate = fetch - (mpd->availabilityStartTime + nb_seg*seg_dur)
 
 
-			u64 utc = mpd->availabilityStartTime + dyn_period->start + timeline_offset_ms;
-			group->dash->utc_drift_estimate = ((s64) fetch_time - (s64) utc);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff of ROUTE broadcast "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU" - bootstraping on segment %s\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime, val));
-
+				u64 utc = mpd->availabilityStartTime + dyn_period->start + timeline_offset_ms;
+				group->dash->utc_drift_estimate = ((s64) fetch_time - (s64) utc);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff of ROUTE broadcast "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU" - bootstraping on segment %s\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime, val));
+			}
 			group->dash->route_clock_state = 2;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Failed to setup ROUTE clock from segment template with bootstrap URL %s, using NTP\n", val));
@@ -1833,11 +1868,14 @@ static void gf_dash_mark_group_done(GF_DASH_Group *group)
 
 static const char *dash_strip_base_url(const char *url, const char *base_url)
 {
-	const char *base_url_end = base_url ? strrchr(base_url, '/') : NULL;
-	if (base_url_end) {
-		u32 diff = (u32) (base_url_end - base_url);
-		if (!strncmp(url, base_url, diff))
-			return url + diff + 1;
+	const char *url_start = gf_url_get_path(url);
+	const char *base_url_start = gf_url_get_path(base_url);
+	const char *base_url_end = base_url_start ? strrchr(base_url_start, '/') : NULL;
+
+	if (base_url_start && url_start) {
+		u32 diff = (u32) (base_url_end - base_url_start);
+		if (!strncmp(url_start, base_url_start, diff))
+			return url_start + diff + 1;
 	}
 	return url;
 }
@@ -2567,26 +2605,16 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	while (rep->segment_list && rep->segment_list->xlink_href) {
 		Bool is_static = GF_FALSE;
 		u64 dur = 0;
-		u32 retry=10;
 		GF_Err e=GF_OK;
 
 		if (rep->segment_list->consecutive_xlink_count) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", rep->segment_list->consecutive_xlink_count));
 		}
 
-		while (retry) {
-			if (group->dash->is_m3u8) {
-				e = gf_dash_solve_m3u8_representation_xlink(group, rep, &is_static, &dur);
-			} else {
-				e = gf_dash_solve_representation_xlink(group->dash, rep);
-			}
-			if (e==GF_OK) break;
-			if (e==GF_NON_COMPLIANT_BITSTREAM) break;
-			if (group->dash->dash_state != GF_DASH_STATE_RUNNING)
-				break;
-
-			retry--;
-			gf_sleep(100);
+		if (group->dash->is_m3u8) {
+			e = gf_dash_solve_m3u8_representation_xlink(group, rep, &is_static, &dur);
+		} else {
+			e = gf_dash_solve_representation_xlink(group->dash, rep);
 		}
 
 		//after resolving xlink: if this represenstation is marked as disabled, we have nothing to do
@@ -2594,8 +2622,13 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			return;
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Could not reslove XLINK %s in time - using old representation\n", (rep->segment_list && rep->segment_list->xlink_href) ? rep->segment_list->xlink_href : ""));
-			group->active_rep_index = prev_active_rep_index;
+			if (group->dash->dash_state != GF_DASH_STATE_RUNNING) {
+				group->dash->force_period_reload = 1;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Could not reslove XLINK %s of initial rep, will retry\n", (rep->segment_list && rep->segment_list->xlink_href) ? rep->segment_list->xlink_href : "", gf_error_to_string(e) ));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Could not reslove XLINK %s in time: %s - using old representation\n", (rep->segment_list && rep->segment_list->xlink_href) ? rep->segment_list->xlink_href : "", gf_error_to_string(e) ));
+				group->active_rep_index = prev_active_rep_index;
+			}
 			return;
 		}
 
@@ -3576,15 +3609,13 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	if not force, let algorithm know that they should switch to a lower resolution*/
 	max_available_speed = gf_dash_get_max_available_speed(dash, base_group, rep);
 	if (!dash->disable_speed_adaptation && !rep->playback.waiting_codec_reset) {
-		if (max_available_speed && (speed > max_available_speed)) {
+		if (max_available_speed && (0.9 * speed > max_available_speed)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Forcing a lower complexity to achieve desired playback speed\n"));
 			force_lower_complexity = GF_TRUE;
-		}
-		else {
+		} else {
 			force_lower_complexity = GF_FALSE;
 		}
-	}
-	else {
+	} else {
 		force_lower_complexity = GF_FALSE;
 	}
 
@@ -3686,7 +3717,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	} else {
 		group->active_rep_index = old_index;
 		if (force_lower_complexity) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Speed %f is too fast to play - speed down\n", dash->speed));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Forced to lower quality/rate because of playback speed %f higher than max speed possible %f, but no other quality available: cannot switch down\n", speed, max_available_speed));
 			/*FIXME: should do something here*/
 		}
 	}
@@ -5584,6 +5615,13 @@ select_active_rep:
 		rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
 
 		gf_dash_set_group_representation(group, rep_sel);
+		if (group->dash->force_period_reload) {
+			gf_dash_reset_groups(dash);
+			dash->period_groups_setup = GF_FALSE;
+			dash->dash_state = GF_DASH_STATE_SETUP;
+			return GF_OK;
+		}
+		
 		// active representation is marked as disabled, we need to redo the selection
 		if (rep_sel->playback.disabled)
 			goto select_active_rep;
@@ -6614,6 +6652,8 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 			dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, -1, e);
 			return e;
 		}
+		if (dash->force_period_reload) return GF_OK;
+
 		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SELECT_GROUPS, -1, GF_OK);
 
 		dash->period_groups_setup = GF_TRUE;
@@ -6896,11 +6936,22 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 	if (dash->mpd_stop_request) return GF_EOS;
 	if (dash->in_error) return GF_SERVICE_ERROR;
 
+	if (dash->force_period_reload) {
+		if (gf_sys_clock() - dash->force_period_reload < 500) return GF_OK;
+		dash->force_period_reload = 0;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Retrying period reload after previous failure\n"));
+	}
+
 	switch (dash->dash_state) {
 	case GF_DASH_STATE_SETUP:
 		dash->in_period_setup = 1;
 		e = dash_setup_period_and_groups(dash);
 		if (e) return e;
+
+		if (dash->force_period_reload) {
+			dash->force_period_reload = gf_sys_clock();
+			return GF_OK;
+		}
 
 		dash->last_update_time = gf_sys_clock();
 		if (dash->dash_mutex) gf_mx_p(dash->dash_mutex);
@@ -7281,6 +7332,7 @@ static void gf_dash_seek_groups(GF_DashClient *dash, Double seek_time, Bool is_d
 static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
 {
 	GF_Err e;
+	Bool owns_sess = GF_FALSE;
 	GF_DASHFileIOSession *sess;
 	GF_DashClient *dash = (GF_DashClient*) getter->udta;
 	if (!getter->session) {
@@ -7289,6 +7341,7 @@ static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
 			if (!sess) return GF_IO_ERR;
 			getter->session = sess;
 			e = GF_OK;
+			owns_sess = GF_TRUE;
 		} else {
 			sess = getter->session = dash->mpd_dnload;
 			e = dash->dash_io->setup_from_url(dash->dash_io, getter->session, url, -1);
@@ -7314,9 +7367,11 @@ static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
 		e = dash->dash_io->init(dash->dash_io, sess);
 
 	if (e) {
-		dash->dash_io->del(dash->dash_io, sess);
-		if (getter->session == sess)
-			getter->session = NULL;
+		if (owns_sess) {
+			dash->dash_io->del(dash->dash_io, sess);
+			if (getter->session == sess)
+				getter->session = NULL;
+		}
 		return e;
 	}
 	return dash->dash_io->run(dash->dash_io, sess);
@@ -7517,13 +7572,14 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		if (dash->ignore_xlink)
 			dash_purge_xlink(dash->mpd);
 
-		if (!is_local) {
-			const char *hdr = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "x-dash-route");
-			if (hdr) {
-				if (!dash->route_clock_state) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Detected ROUTE DASH service ID %s\n", hdr));
-					dash->route_clock_state = 1;
-				}
+	}
+	//for both DASH and HLS, we support ROUTE
+	if (!is_local) {
+		const char *hdr = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "x-route");
+		if (hdr) {
+			if (!dash->route_clock_state) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Detected ROUTE DASH service ID %s\n", hdr));
+				dash->route_clock_state = 1;
 			}
 		}
 	}
@@ -7584,11 +7640,13 @@ void gf_dash_close(GF_DashClient *dash)
 		gf_dash_download_stop(dash);
 		if (dash->dash_mutex) gf_mx_p(dash->dash_mutex);
 		if (dash->mpd_dnload) {
+			if (dash->mpd_dnload == dash->getter.session)
+				dash->getter.session = NULL;
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
 			dash->mpd_dnload = NULL;
 		}
 
-		if (dash->getter.del_session)
+		if (dash->getter.del_session && dash->getter.session)
 			dash->getter.del_session(&dash->getter);
 
 		if (dash->dash_mutex) gf_mx_v(dash->dash_mutex);
@@ -8953,11 +9011,12 @@ u32 gf_dash_group_get_num_components(GF_DashClient *dash, u32 idx)
 }
 
 GF_EXPORT
-const char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
+char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	GF_MPD_Representation *rep;
 	const char *tpl;
+	char *solved_template;
 	if (!group) return NULL;
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	if (!rep)
@@ -8967,7 +9026,61 @@ const char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
 	if (rep && rep->segment_template) tpl = rep->segment_template->media;
 	if (!tpl && group->adaptation_set && group->adaptation_set->segment_template) tpl = group->adaptation_set->segment_template->media;
 	if (!tpl && group->period && group->period->segment_template) tpl = group->period->segment_template->media;
-	return tpl;
+
+	if (tpl) {
+		u64 range_start, range_end, segment_duration_in_ms;
+		gf_mpd_resolve_url(dash->mpd, rep, group->adaptation_set, group->period, "", 0, GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE, 0, 0, &solved_template, &range_start, &range_end, &segment_duration_in_ms, NULL, NULL, NULL, NULL);
+		return solved_template;
+	}
+	if (dash->is_m3u8 && rep) {
+		char *ext;
+		u32 i, len, last_num, last_non_num;
+		GF_MPD_SegmentURL *first_seg, *last_seg;
+		first_seg = gf_list_get(rep->segment_list->segment_URLs, 0);
+		last_seg = gf_list_last(rep->segment_list->segment_URLs);
+		if (!first_seg) return NULL;
+		if (!first_seg->media) return NULL;
+		if (first_seg->media_range) return NULL;
+
+		solved_template = NULL;
+		ext = strrchr(first_seg->media, '.');
+		if (ext) ext[0] = 0;
+		gf_dynstrcat(&solved_template, first_seg->media, NULL);
+		if (ext) ext[0] = '.';
+		len = strlen(solved_template);
+		last_num = last_non_num = 0;
+		for (i=len; i>0; i--) {
+			if (isdigit(solved_template[i-1])) {
+				if (!last_num) last_num = i-1;
+			} else {
+				if (last_num) {
+					last_non_num = i-1;
+					break;
+				}
+			}
+		}
+		if (!last_non_num || (last_num>=last_non_num+1)) {
+			u32 num, pad;
+			char szVal[100];
+			solved_template[last_num] = 0;
+			num = atoi(solved_template+last_non_num+1);
+			snprintf(szVal, 100, "%u", num);
+			len = strlen(szVal);
+			pad = 0;
+			if (len < last_num - last_non_num) {
+				pad = last_num - last_non_num - len;
+				snprintf(szVal, 100, "$Number%%0%dd$", pad);
+				gf_dynstrcat(&solved_template, szVal, NULL);
+			} else {
+				gf_dynstrcat(&solved_template, "$Number$", NULL);
+			}
+			gf_dynstrcat(&solved_template, first_seg->media + last_num + 1, NULL);
+			return solved_template;
+		}
+
+	}
+
+	return NULL;
 }
 
 
@@ -9413,33 +9526,6 @@ u32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx)
 	group = gf_list_get(dash->groups, group_idx);
 	if (!group) return 0;
 	return group->adaptation_set->id;
-}
-
-void gf_dash_store_manifest(GF_DashClient *dash, u32 group_idx, char *manifest, char *manifest_name)
-{
-	GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
-	if (!group) {
-		gf_free(manifest);
-		return;
-	}
-	if (group->manifest) gf_free(group->manifest);
-	group->manifest = manifest;
-	if (group->manifest_name) gf_free(group->manifest_name);
-	group->manifest_name = manifest_name;
-}
-
-char *gf_dash_get_manifest(GF_DashClient *dash, u32 group_idx, const char **manifest_name)
-{
-	GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
-	char *res = NULL;
-	*manifest_name = NULL;
-	if (group) {
-		res = group->manifest;
-		group->manifest = NULL;
-		*manifest_name = group->manifest_name;
-		group->manifest_name = NULL;
-	}
-	return res;
 }
 
 

@@ -44,10 +44,17 @@ typedef struct
 
 typedef struct
 {
+	char *filename;
+	u32 toi;
+	u32 crc;
+} GF_ROUTELCTFile;
+
+typedef struct
+{
 	u32 tsi;
-	char *init_filename;
-	u32 init_toi;
 	char *toi_template;
+	GF_List *static_files;
+
 	GF_ROUTELCTReg CPs[8];
 	u32 nb_cps;
 	u32 last_dispatched_tsi, last_dispatched_toi;
@@ -85,6 +92,7 @@ typedef struct
 	u32 last_gather_time;
 
 	GF_ROUTELCTChannel *rlct;
+	GF_ROUTELCTFile *rlct_file;
 
 	u32 prev_start_offset;
 } GF_LCTObject;
@@ -161,12 +169,22 @@ struct __gf_routedmx {
 	u64 first_pck_time, last_pck_time;
 };
 
+static void gf_route_static_files_del(GF_List *files)
+{
+	while (gf_list_count(files)) {
+		GF_ROUTELCTFile *rf = gf_list_pop_back(files);
+		gf_free(rf->filename);
+		gf_free(rf);
+	}
+	gf_list_del(files);
+}
+
 static void gf_route_route_session_del(GF_ROUTESession *rs)
 {
 	if (rs->sock) gf_sk_del(rs->sock);
 	while (gf_list_count(rs->channels)) {
 		GF_ROUTELCTChannel *lc = gf_list_pop_back(rs->channels);
-		if (lc->init_filename) gf_free(lc->init_filename);
+		gf_route_static_files_del(lc->static_files);
 		gf_free(lc->toi_template);
 		gf_free(lc);
 	}
@@ -575,6 +593,7 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 	obj->nb_frags = GF_FALSE;
 	obj->nb_recv_frags = 0;
 	obj->rlct = NULL;
+	obj->rlct_file = NULL;
 	obj->toi = 0;
 	obj->tsi = 0;
 	obj->total_length = 0;
@@ -598,6 +617,7 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 	char szPath[GF_MAX_PATH], *sep;
 	u32 i, count, nb_objs;
 	Bool partial = GF_FALSE;
+	Bool updated = GF_TRUE;
 	FILE *out;
 
 	if (!obj->rlct) {
@@ -616,11 +636,21 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 	if (obj->status == GF_LCT_OBJ_DISPATCHED) return GF_OK;
 	obj->status = GF_LCT_OBJ_DISPATCHED;
 
+	if (obj->rlct_file) {
+		u32 crc = gf_crc_32(obj->payload, obj->total_length);
+		if (crc != obj->rlct_file->crc) {
+			obj->rlct_file->crc = crc;
+			updated = GF_TRUE;
+		} else {
+			updated = GF_FALSE;
+		}
+	}
+
 	if (!routedmx->base_dir) {
 		Bool is_init = GF_FALSE;
 
-		if (obj->rlct->init_toi == obj->toi) {
-			sprintf(szPath, "%s", obj->rlct->init_filename ? obj->rlct->init_filename : "ghost-init.mp4");
+		if (obj->rlct_file) {
+			sprintf(szPath, "%s", obj->rlct_file->filename ? obj->rlct_file->filename : "ghost-init.mp4");
 			is_init = GF_TRUE;
 		} else {
 			sprintf(szPath, obj->rlct->toi_template, obj->toi);
@@ -659,15 +689,16 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 			finfo.size = obj->total_length;
 			finfo.tsi = obj->tsi;
 			finfo.toi = obj->toi;
+			finfo.updated = updated;
 			finfo.corrupted = partial;
 			finfo.download_ms = obj->download_time_ms;
-			routedmx->on_event(routedmx->udta, is_init ? GF_ROUTE_EVT_INIT_SEG : GF_ROUTE_EVT_SEG, s->service_id, &finfo);
+			routedmx->on_event(routedmx->udta, is_init ? GF_ROUTE_EVT_FILE : GF_ROUTE_EVT_DYN_SEG, s->service_id, &finfo);
 		}
 		return GF_OK;
 	}
 
-	if (obj->rlct->init_toi == obj->toi) {
-		sprintf(szPath, "%s/%s", s->output_dir, obj->rlct->init_filename ? obj->rlct->init_filename : "ghost-init.mp4");
+	if (obj->rlct_file) {
+		sprintf(szPath, "%s/%s", s->output_dir, obj->rlct_file->filename ? obj->rlct_file->filename : "ghost-init.mp4");
 	} else {
 		char szFileName[1024];
 		sprintf(szFileName, obj->rlct->toi_template, obj->toi);
@@ -719,21 +750,21 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got file %s (TSI %u TOI %u) size %d in %d ms\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
 	}
 #endif
-	//keep init segment active
-	if (obj->toi==obj->rlct->init_toi) return GF_OK;
+	//keep static files active
+	if (obj->rlct_file) return GF_OK;
 	//no limit on objects, move to reservoir
 	if (!routedmx->max_seg_store) {
 		gf_route_obj_to_reservoir(routedmx, s, obj);
 		return GF_OK;
 	}
 
-	//remove all pending objects except init segment
+	//remove all pending objects except static files
 	count = gf_list_count(s->objects);
 	nb_objs = 0;
 	for (i=0; i<count; i++) {
 		GF_LCTObject *o = gf_list_get(s->objects, i);
 		if (o->tsi != obj->tsi) continue;
-		if (obj->rlct && (o->toi==obj->rlct->init_toi)) continue;
+		if (obj->rlct_file) continue;
 		nb_objs++;
 		if (o==obj) break;
 	}
@@ -747,7 +778,7 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 		o = gf_list_get(s->objects, i);
 		if (o->tsi != obj->tsi) continue;
 		if (o==obj) break;
-		if (o->toi==obj->rlct->init_toi) continue;
+		if (o->rlct_file) continue;
 
 		sprintf(szFileName, o->rlct->toi_template, o->toi);
 		sprintf(szPath, "%s/%s", s->output_dir, szFileName);
@@ -835,7 +866,18 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->tsi = tsi;
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
-		if (tsi && rlct) obj->rlct = rlct;
+		if (tsi && rlct) {
+			u32 i, count = gf_list_count(rlct->static_files);
+			obj->rlct = rlct;
+			obj->rlct_file = NULL;
+			for (i=0; i<count; i++) {
+				GF_ROUTELCTFile *rf = gf_list_get(rlct->static_files, i);
+				if (rf->toi == toi) {
+					obj->rlct_file = rf;
+					break;
+				}
+			}
+		}
 
 		if (!total_len) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u started without total-length assigned !\n", s->service_id, tsi, toi ));
@@ -1113,10 +1155,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		char *dst_ip = s->dst_ip;
 		u32 dst_port = s->port;
 		char *file_template = NULL;
-		char *init_file_name = NULL;
 		GF_ROUTESession *rsess;
 		GF_ROUTELCTChannel *rlct;
-		u32 init_file_toi=0;
 		u32 tsi = 0;
 		if (rs->type != GF_XML_NODE_TYPE) continue;
 		if (strcmp(rs->name, "RS")) continue;
@@ -1150,6 +1190,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 		j=0;
 		while ((ls = gf_list_enum(rs->content, &j))) {
+			GF_List *static_files;
 			char *sep;
 			if (ls->type != GF_XML_NODE_TYPE) continue;
 			if (strcmp(ls->name, "LS")) continue;
@@ -1185,6 +1226,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				return GF_NOT_SUPPORTED;
 			}
 
+			static_files = gf_list_new();
+
 			k=0;
 			while ((node = gf_list_enum(efdt->content, &k))) {
 				if (node->type != GF_XML_NODE_TYPE) continue;
@@ -1197,14 +1240,22 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					u32 l=0;
 					GF_XMLNode *fdt = NULL;
 					while ((fdt = gf_list_enum(node->content, &l))) {
-						if ((fdt->type == GF_XML_NODE_TYPE) && (strstr(fdt->name, "File")!=NULL)) break;
-						fdt = NULL;
-					}
-					if (fdt) {
-						l=0;
-						while ((att = gf_list_enum(fdt->attributes, &l))) {
-							if (!strcmp(att->name, "Content-Location")) init_file_name = att->value;
-							else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &init_file_toi);
+						GF_ROUTELCTFile *rf;
+						if (fdt->type != GF_XML_NODE_TYPE) continue;
+						if (strstr(fdt->name, "File")==NULL) continue;
+
+						GF_SAFEALLOC(rf, GF_ROUTELCTFile)
+						if (rf) {
+							u32 n=0;
+							while ((att = gf_list_enum(fdt->attributes, &n))) {
+								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
+								else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &rf->toi);
+							}
+							if (!rf->filename) {
+								gf_free(rf);
+							} else {
+								gf_list_add(static_files, rf);
+							}
 						}
 					}
 				}
@@ -1217,43 +1268,56 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					}
 					l=0;
 					while ((fdt = gf_list_enum(node->content, &l))) {
-						if ((fdt->type == GF_XML_NODE_TYPE) && (strstr(fdt->name, "File")!=NULL)) break;
-						fdt = NULL;
-					}
-					if (fdt) {
-						l=0;
-						while ((att = gf_list_enum(fdt->attributes, &l))) {
-							if (!strcmp(att->name, "Content-Location")) init_file_name = att->value;
-							else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &init_file_toi);
+						GF_ROUTELCTFile *rf;
+						if (fdt->type != GF_XML_NODE_TYPE) continue;
+						if (strstr(fdt->name, "File")==NULL) continue;
+
+						GF_SAFEALLOC(rf, GF_ROUTELCTFile)
+						if (rf) {
+							u32 n=0;
+							while ((att = gf_list_enum(fdt->attributes, &n))) {
+								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
+								else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &rf->toi);
+							}
+							if (!rf->filename) {
+								gf_free(rf);
+							} else {
+								gf_list_add(static_files, rf);
+							}
 						}
 					}
 				}
 			}
 
-			if (!init_file_name) {
+			if (!gf_list_count(static_files)) {
+				GF_ROUTELCTFile *rf;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d missing init file name in LS/ROUTE session, could be problematic - will consider any TOI %u (-1) present as a ghost init segment\n", s->service_id, (u32)-1));
 				//force an init at -1, some streams still have the init not declared but send on TOI -1
 				// interpreting it as a regular segment would break clock setup
-				init_file_toi = (u32) -1;
+				GF_SAFEALLOC(rf, GF_ROUTELCTFile)
+				rf->toi = (u32) -1;
+				gf_list_add(static_files, rf);
 			}
 			if (!file_template) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d missing file TOI template in LS/ROUTE session, not supported - skipping stream\n", s->service_id));
-				continue;
-			}
-			sep = strstr(file_template, "$TOI$");
-			if (!sep) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI template %s in LS/ROUTE session\n", s->service_id, file_template));
-				return GF_NOT_SUPPORTED;
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d missing file TOI template in LS/ROUTE session, static content only\n", s->service_id));
+			} else {
+				sep = strstr(file_template, "$TOI$");
+				if (!sep) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI template %s in LS/ROUTE session\n", s->service_id, file_template));
+					gf_route_static_files_del(static_files);
+					return GF_NOT_SUPPORTED;
+				}
 			}
 			nb_lct_channels++;
 
 			//OK setup LCT channel for route
 			GF_SAFEALLOC(rlct, GF_ROUTELCTChannel);
-			if (!rlct) return GF_OUT_OF_MEM;
-			
-			rlct->init_toi = init_file_toi;
+			if (!rlct) {
+				gf_route_static_files_del(static_files);
+				return GF_OUT_OF_MEM;
+			}
+			rlct->static_files = static_files;
 			rlct->tsi = tsi;
-			rlct->init_filename = init_file_name ? gf_strdup(init_file_name) : NULL;
 			rlct->toi_template = gf_strdup(file_template);
 			sep = strstr(rlct->toi_template, "$TOI$");
 			sep[0] = 0;
@@ -1417,7 +1481,11 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 				return e ? e : GF_SERVICE_ERROR;
 			}
 		} else if (!strcmp(szContentType, "application/mbms-user-service-description+xml")) {
-		} else if (!strcmp(szContentType, "application/dash+xml")) {
+		} else if (!strcmp(szContentType, "application/dash+xml")
+			|| !strcmp(szContentType, "video/vnd.3gpp.mpd")
+			|| !strcmp(szContentType, "audio/mpegurl")
+			|| !strcmp(szContentType, "video/mpegurl")
+		) {
 			if (!s->mpd_version || (mpd_version && (mpd_version+1 != s->mpd_version))) {
 				s->mpd_version = mpd_version+1;
 				gf_route_service_setup_dash(routedmx, s, payload, szContentLocation);
@@ -1835,7 +1903,7 @@ void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, c
 					i=0;
 					while ((obj = gf_list_enum(s->objects, &i))) {
 						if (obj->rlct != rlct) continue;
-						if (obj->toi==rlct->init_toi) continue;
+						if (obj->rlct_file) continue;
 						if (obj->toi<toi) {
 							i--;
 							//we likely have a loop here
@@ -1847,7 +1915,7 @@ void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, c
 				return;
 			}
 		}
-		else if (obj->rlct && obj->rlct->init_filename && !strcmp(fileName, obj->rlct->init_filename)) {
+		else if (obj->rlct && obj->rlct_file->filename && !strcmp(fileName, obj->rlct_file->filename)) {
 			gf_route_obj_to_reservoir(routedmx, s, obj);
 			return;
 		}
@@ -1873,8 +1941,8 @@ Bool gf_route_dmx_remove_first_object(GF_ROUTEDmx *routedmx, u32 service_id)
 		if (obj == s->last_active_obj) continue;
 		//object is active, abort
 		if (obj->status<=GF_LCT_OBJ_RECEPTION) break;
-		//keep init segment active
-		if (obj->rlct && (obj->toi==obj->rlct->init_toi))
+		//keep static files active
+		if (obj->rlct_file)
 			continue;
 
 		gf_route_obj_to_reservoir(routedmx, s, obj);
@@ -1901,8 +1969,8 @@ void gf_route_dmx_purge_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 		if (!obj->tsi) continue;
 		//if object is being received keep it
 		if (s->last_active_obj == obj) continue;
-		//if object is init segment keep it - this may need refinement in case we had init segment updates
-		if (obj->rlct && (obj->rlct->init_toi==obj->toi)) continue;
+		//if object is static file keep it - this may need refinement in case we had init segment updates
+		if (obj->rlct_file) continue;
 		//trash
 		gf_route_obj_to_reservoir(routedmx, s, obj);
 	}

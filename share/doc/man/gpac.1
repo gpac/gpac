@@ -1041,7 +1041,7 @@ toolX can be one of:
 .br
 * mutex: log all mutex calls
 .br
-* atsc: ATSC3 debugging
+* route: ROUTE (ATSC3) debugging
 .br
 * all: all tools logged - other tools can be specified afterwards.  
 .br
@@ -1189,6 +1189,12 @@ This will pass UDP://IP:PORT/:someopt=VAL to opt1 without inspecting it, and VAL
   
 .br
 A filter may be assigned a name (for inspection purposes) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
+.br
+  
+.br
+A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution.
+.br
+  
 .br
 .P
 .B
@@ -1389,6 +1395,8 @@ A sourceID name can be further extended using fragment identifier (# by default)
 .br
 * name#TYPEN: accepts only Nth PID of matching type from source
 .br
+* name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching VAL
+.br
 * name#P4CC=VAL: accepts only PIDs with property matching VAL.
 .br
 * name#PName=VAL: same as above, using the builtin name corresponding to the property.
@@ -1401,7 +1409,7 @@ If the property is not defined on the PID, the property is matched. Otherwise, i
 .br
 
 .br
-The following modifiers for comparisons are allowed (for both P4CC=, PName= and AnyName=):
+The following modifiers for comparisons are allowed (for any fragment format using =):
 .br
 * name#P4CC=!VAL: accepts only PIDs with property NOT matching VAL.
 .br
@@ -2712,12 +2720,12 @@ List of descriptors for the DASH Representation containing this pid
 List of base URLs for this pid
 .br
 .TP
-.B Template (DTPL,str,D )
+.B Template (DTPL,str,  )
 .br
 Template to use for DASH generation for this pid
 .br
 .TP
-.B StartNumber (DRSN,uint,D )
+.B StartNumber (DRSN,uint,  )
 .br
 Start number to use for this pid - cf dasher help
 .br
@@ -2812,24 +2820,29 @@ Indicate target track index in destination file, stored by lowest value first (n
 Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)
 .br
 .TP
-.B FragStart (PFRB,uint,D )
+.B FragStart (PFRB,uint,DP)
 .br
 Indicate if packet is a fragment start (value 1) or a segment start (value 2)
 .br
 .TP
-.B FragRange (PFRR,lfrac,D )
+.B FragRange (PFRR,lfrac,DP)
 .br
 Indicate start and end position in bytes of fragment if packet is a fragment or segment start
 .br
 .TP
-.B SIDXRange (PFSR,lfrac,D )
+.B SIDXRange (PFSR,lfrac,DP)
 .br
 Indicate start and end position in bytes of sidx if packet is a fragment or segment start
 .br
 .TP
-.B MoofTemplate (MFTP,mem,D )
+.B MoofTemplate (MFTP,mem,DP)
 .br
 Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)
+.br
+.TP
+.B InitSeg (PCKI,bool, P)
+.br
+Set to true if packet is a complete DASH init segment file
 .br
 .TP
 .B RawGrab (PGRB,bool,D )
@@ -2845,6 +2858,31 @@ Indicate the PID must be kept alive after EOS (LASeR and BIFS)
 .B CoverArt (PCOV,mem,D )
 .br
 Indicate PID cover art image data. If associated data is NULL, the data is carried in the PID
+.br
+.TP
+.B ROUTEIP (RSIP,str,D )
+.br
+Indicate ROUTE session IP address
+.br
+.TP
+.B ROUTEPort (RSPN,uint,D )
+.br
+Indicate ROUTE session port number
+.br
+.TP
+.B ROUTEName (RSFN,str,D )
+.br
+Name (location) of raw file to advertise in ROUTE session
+.br
+.TP
+.B ROUTECarousel (RSCR,frac,D )
+.br
+Carousel period in seconds of raw file in ROUTE session
+.br
+.TP
+.B ROUTEUpload (RSST,frac,D )
+.br
+Upload time in seconds of raw file in ROUTE session
 .br
 .SH Pixel formats
 .LP
@@ -3713,7 +3751,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev33-ga9f524c73-master
+build: 1.1.0-DEV-rev41-g4c60e31ac-route_out
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

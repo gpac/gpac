@@ -1015,6 +1015,8 @@ typedef enum
 	GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE,
 	/*! same as GF_MPD_RESOLVE_URL_MEDIA but does not use startNumber*/
 	GF_MPD_RESOLVE_URL_MEDIA_NOSTART,
+	/*! same as GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE but ignores base URL*/
+	GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE,
 } GF_MPD_URLResolveType;
 
 /*! resolves a URL based for a given segment, based on the MPD url, the type of resolution

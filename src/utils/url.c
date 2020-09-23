@@ -463,17 +463,13 @@ const char *gf_url_get_resource_name(const char *sURL)
 }
 
 GF_EXPORT
-Bool gf_url_get_resource_path(const char *sURL, char *res_path)
+const char *gf_url_get_path(const char *sURL)
 {
-	char *sep;
-	strcpy(res_path, sURL);
-	sep = strrchr(res_path, '/');
-	if (!sep) sep = strrchr(res_path, '\\');
-	if (sep) {
-		sep[1] = 0;
-		return GF_TRUE;
-	}
-	return GF_FALSE;
+	char *sep = strstr(sURL, "://");
+	if (!sep) return sURL;
+	sep = strchr(sep + 3, '/');
+	if (sep) return sep;
+	return NULL;
 }
 
 

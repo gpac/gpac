@@ -68,10 +68,10 @@ typedef enum
 	GF_ROUTE_EVT_SERVICE_SCAN,
 	/*! New MPD available for service, service ID is in evt_param*/
 	GF_ROUTE_EVT_MPD,
-	/*! Init segment update, service ID is in evt_param, file info is in finfo*/
-	GF_ROUTE_EVT_INIT_SEG,
-	/*! Segment reception, service ID is in evt_param, file info is in finfo*/
-	GF_ROUTE_EVT_SEG,
+	/*! static file update (with predefined TOI), service ID is in evt_param, file info is in finfo*/
+	GF_ROUTE_EVT_FILE,
+	/*! Segment reception, identified through a file template, service ID is in evt_param, file info is in finfo*/
+	GF_ROUTE_EVT_DYN_SEG,
 } GF_ROUTEEventType;
 
 
@@ -110,6 +110,8 @@ typedef struct
 	u32 toi;
 	/*! download time in ms*/
 	u32 download_ms;
+	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/
+	Bool updated;
 	/*! flag set if file is corrupted*/
 	Bool corrupted;
 } GF_ROUTEEventFileInfo;

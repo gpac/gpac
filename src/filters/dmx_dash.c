@@ -35,7 +35,7 @@ typedef struct
 	//opts
 	s32 shift_utc, debug_as, route_shift;
 	u32 max_buffer, auto_switch, init_timeshift, tiles_rate, segstore, delay40X, exp_threshold, switch_count;
-	Bool server_utc, screen_res, aggressive, speedadapt, filemode;
+	Bool server_utc, screen_res, aggressive, speedadapt, filemode, fmodefwd;
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	GF_DASHAdaptationAlgorithm algo;
@@ -102,7 +102,6 @@ typedef struct
 	Bool signal_seg_name;
 } GF_DASHGroup;
 
-char *gf_dash_get_manifest(GF_DashClient *dash, u32 group_idx, char **manifest_name);
 
 void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_FilterPid *in_pid, GF_FilterPid *out_pid, GF_DASHGroup *group)
 {
@@ -116,25 +115,12 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 		Bool is_start = group->signal_seg_name;
 		GF_FilterPacket *ref;
 
-		if (is_start) {
-			char *manifest_name=NULL;
-			char *manifest = gf_dash_get_manifest(ctx->dash, group->idx, &manifest_name);
-			if (manifest) {
-				u8 *output;
-				u32 len = (u32) strlen(manifest);
-				GF_FilterPacket *pck = gf_filter_pck_new_alloc(out_pid, len, &output);
-				if (pck) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s for group %d updated, forwarding\n", manifest_name, group->idx));
-					memcpy(output, manifest, len);
-					gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-					gf_filter_pck_set_property(pck, GF_PROP_PID_HLS_PLAYLIST, &PROP_STRING_NO_COPY(manifest_name));
-					gf_filter_pck_send(pck);
-				}
-				gf_free(manifest);
-			}
+		if (ctx->fmodefwd) {
+			ref = gf_filter_pck_new_ref(out_pid, NULL, 0, in_pck);
+		} else {
+			u8 *output;
+			ref = gf_filter_pck_new_copy(out_pid, in_pck, &output);
 		}
-
-		ref = gf_filter_pck_new_ref(out_pid, NULL, 0, in_pck);
 
 		group->signal_seg_name = 0;
 		gf_filter_pid_drop_packet(in_pid);
@@ -486,8 +472,6 @@ u32 dashdmx_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession sessio
 }
 #endif
 
-void gf_dash_store_manifest(GF_DashClient *dash, u32 group_idx, char *manifest, char *manifest_name);
-
 void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_name, const char *cache_url, s32 group_idx)
 {
 	u8 *manifest_payload;
@@ -497,19 +481,36 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 
 	if (gf_file_load_data(cache_url, &manifest_payload, &manifest_payload_len) == GF_OK) {
 		u8 *output;
-		if (group_idx>=0) {
-			gf_dash_store_manifest(ctx->dash, group_idx, manifest_payload, gf_strdup(manifest_name) );
-		} else {
-			GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->output_mpd_pid, manifest_payload_len, &output);
-			if (pck) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s updated, forwarding\n", manifest_name));
-				memcpy(output, manifest_payload, manifest_payload_len);
-				gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(manifest_name));
-				gf_filter_pck_send(pck);
-			}
-			gf_free(manifest_payload);
+
+		//strip baseURL since we are recording, links are already resolved
+		char *man_pay_start = manifest_payload;
+		while (1) {
+			u32 end_len, offset;
+			manifest_payload_len = strlen(manifest_payload);
+			char *base_url_start = strstr(man_pay_start, "<BaseURL>");
+			if (!base_url_start) break;
+			char *base_url_end = strstr(base_url_start, "</BaseURL>");
+			if (!base_url_end) break;
+			offset = 10;
+			while (base_url_end[offset] == '\n')
+				offset++;
+			end_len = strlen(base_url_end+offset);
+			memmove(base_url_start, base_url_end+offset, end_len);
+			base_url_start[end_len]=0;
+			man_pay_start = base_url_start;
 		}
+		GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->output_mpd_pid, manifest_payload_len, &output);
+		if (pck) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s updated, forwarding\n", manifest_name));
+			memcpy(output, manifest_payload, manifest_payload_len);
+			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(manifest_name));
+			if (group_idx>=0)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) 1+group_idx) );
+
+			gf_filter_pck_send(pck);
+		}
+		gf_free(manifest_payload);
 	}
 }
 
@@ -704,7 +705,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 					//setup some info for consuming filters
 					if (ctx->filemode) {
-						const char *template;
+						char *template;
 						GF_DASHQualityInfo q;
 						//we dispatch timing in milliseconds
 						gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
@@ -715,7 +716,12 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 								gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
 						}
 						template = gf_dash_group_get_template(ctx->dash, group_idx);
-						gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, template ? &PROP_STRING(template) : NULL );
+						if (!template) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Cannot extract template string for %s\n", gf_dash_get_url(ctx->dash) ));
+							gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, NULL);
+						} else {
+							gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, &PROP_STRING_NO_COPY(template) );
+						}
 					}
 				}
 			}
@@ -1023,6 +1029,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	if (ctx->filemode && (stream_type!=GF_STREAM_UNKNOWN)) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(stream_type) );
+
+		gf_filter_pid_set_property(opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) 1+group->idx) );
 	}
 
 	const char *title, *source;
@@ -1147,6 +1155,8 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_copy_properties(ctx->output_mpd_pid, pid);
 			gf_filter_pid_set_name(ctx->output_mpd_pid, "manifest");
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Creating manifest output PID\n"));
+			//for route
+			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
 		}
 
 		e = gf_dash_open(ctx->dash, p->value.string);
@@ -1973,7 +1983,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 			"- no: disable low latency\n"
 			"- strict: strict respect of AST offset in low latency\n"
 			"- early: allow fetching segments earlier than their AST in low latency when input demux is empty", GF_PROP_UINT, "early", "no|strict|early", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(filemode), "do not demux files and forward them as file pids (imply `segstore=mem`)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(filemode), "do not demux files and forward them as file pids (imply `segstore=mem`)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fmodefwd), "forward packet rather than copy them in [-filemode](). Packet copy might improve performances in low latency mode", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

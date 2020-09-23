@@ -97,6 +97,9 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 {
 	Bool unblock;
 
+	if (pid->ignore_blocking) {
+		return;
+	}
 	//if we are in end of stream state and done with all packets, stay blocked
 	if (pid->has_seen_eos && !pid->nb_buffer_unit) {
 		if (!pid->would_block) {
@@ -2186,9 +2189,13 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 {
 	u8 priority;
 	Bool res;
+	GF_Filter *f;
+	GF_FilterPidInst *pidi;
 	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
+	pidi = (GF_FilterPidInst *)pid;
 	pid->pid->local_props = ((GF_FilterPidInst*)pid)->props;
-	res = gf_filter_pid_caps_match(pid->pid, NULL, pid->filter, &priority, NULL, pid->filter, -1);
+	f = pidi->alias_orig ? pidi->alias_orig : pidi->filter;
+	res = gf_filter_pid_caps_match(pidi->pid, NULL, f, &priority, NULL, f, -1);
 	pid->pid->local_props = NULL;
 	return res;
 }
@@ -4004,6 +4011,11 @@ single_retry:
                 //we have an explicit link instruction so we must try dynamic link even if we connect to another filter
 				if (filter_dst->source_ids) {
                     gf_list_add(force_link_resolutions, filter_dst);
+                    //! filter is an alias, prevent linking to the filter being aliased
+                    if (filter_dst->multi_sink_target) {
+						gf_list_del_item(force_link_resolutions, filter_dst->multi_sink_target);
+						gf_list_add(linked_dest_filters, filter_dst->multi_sink_target);
+					}
 				} else {
 					//register as possible destination link. If a filter already registered is a destination of this possible link
 					//only the possible link will be kept
@@ -6941,4 +6953,17 @@ void *gf_filter_pid_get_alias_udta(GF_FilterPid *_pid)
 	pidi = (GF_FilterPidInst *) _pid;
 	if (!pidi->alias_orig) return NULL;
 	return pidi->alias_orig->filter_udta;
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *pid, Bool do_ignore)
+{
+	GF_FilterPidInst *pidi;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set output pid  %s in filter %s to ignore block mode not allowed\n", pid->pid->name, pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	pidi = (GF_FilterPidInst *) pid;
+	pidi->pid->ignore_blocking = do_ignore;
+	return GF_OK;
 }

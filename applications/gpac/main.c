@@ -1160,7 +1160,7 @@ static void gpac_sig_handler(int sig)
 			int res;
 			if (sigint_catched) {
 				if (sigint_processed) {
-					fprintf(stderr, "catched SIGINT twice and session not responding, forcing exit. Please report to GPAC devs https://github.com/gpac/gpac\n");
+					fprintf(stderr, "catched SIGINT twice and session not responding, forcing exit.\n");
 				}
 				exit(1);
 			}

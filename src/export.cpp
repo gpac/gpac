@@ -2494,6 +2494,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_reporting_enabled) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negociate_property_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negociate_property_dyn) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_ignore_blocking) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
