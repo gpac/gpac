@@ -34,7 +34,6 @@ typedef struct
 	u32 sid;
 	u32 tsi;
 	GF_FilterPid *opid;
-	Bool init_sent;
 } TSI_Output;
 
 typedef struct
@@ -130,9 +129,8 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 			}
 			p_pid = &tsio->opid;
 
-			if ((evt_type==GF_ROUTE_EVT_INIT_SEG) || (evt_type==GF_ROUTE_EVT_MPD)) {
-				if (ctx->sr && tsio->init_sent) return;
-				tsio->init_sent = GF_TRUE;
+			if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD)) {
+				if (ctx->sr && !finfo->updated) return;
 			}
 		}
 		pid = *p_pid;
@@ -153,7 +151,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		if (finfo->corrupted) gf_filter_pck_set_corrupted(pck, GF_TRUE);
 		gf_filter_pck_send(pck);
 
-		if (ctx->received_seg_names && (evt_type==GF_ROUTE_EVT_SEG)) {
+		if (ctx->received_seg_names && (evt_type==GF_ROUTE_EVT_DYN_SEG)) {
 			SegInfo *si;
 			GF_SAFEALLOC(si, SegInfo);
 			if (!si) return;
@@ -227,7 +225,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 
 		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->data, finfo->size, 0, 0, "application/dash+xml", GF_TRUE, 0);
 
-		sprintf(szPath, "x-dash-route: %d\r\n", evt_param);
+		sprintf(szPath, "x-route: %d\r\n", evt_param);
 		gf_dm_force_headers(ctx->dm, cache_entry, szPath);
 		gf_route_dmx_set_service_udta(ctx->route_dmx, evt_param, cache_entry);
 
@@ -237,7 +235,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		ctx->clock_init_seg = NULL;
 		ctx->tune_service_id = evt_param;
 		break;
-	case GF_ROUTE_EVT_SEG:
+	case GF_ROUTE_EVT_DYN_SEG:
 
 		if (!ctx->gcache) {
 			routein_send_file(ctx, evt_param, finfo, evt);
@@ -247,7 +245,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
 		if (cache_entry) {
 			if (!ctx->clock_init_seg) ctx->clock_init_seg = gf_strdup(finfo->filename);
-			sprintf(szPath, "x-dash-route: %d\r\nx-dash-first-seg: %s\r\n", evt_param, ctx->clock_init_seg);
+			sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\n", evt_param, ctx->clock_init_seg);
 			gf_dm_force_headers(ctx->dm, cache_entry, szPath);
 		}
 		is_init = GF_FALSE;
@@ -263,7 +261,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 				if (cache_entry) {
 					if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 					ctx->clock_init_seg = gf_strdup(finfo->filename);
-					sprintf(szPath, "x-dash-route: %d\r\nx-dash-first-seg: %s\r\nx-route-loop: yes\r\n", evt_param, ctx->clock_init_seg);
+					sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\nx-route-loop: yes\r\n", evt_param, ctx->clock_init_seg);
 					gf_dm_force_headers(ctx->dm, cache_entry, szPath);
 				}
 			}
@@ -271,7 +269,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		}
 		//fallthrough
 
-	case GF_ROUTE_EVT_INIT_SEG:
+	case GF_ROUTE_EVT_FILE:
 		if (!ctx->gcache) {
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
@@ -502,8 +500,8 @@ GF_FilterRegister ROUTEInRegister = {
 	"In cached mode, repeated files are always send.\n"
 	"  \n"
 	"The cached MPD is assigned the following headers:\n"
-	"- x-dash-route: integer value, indicates the ROUTE service ID.\n"
-	"- x-dash-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast.\n"
+	"- x-route: integer value, indicates the ROUTE service ID.\n"
+	"- x-route-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast.\n"
 	"- x-route-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).\n"
 	"  \n"
 	"The cached files are assigned the following headers:\n"

@@ -1030,6 +1030,9 @@ enum
 	GF_PROP_PID_ROUTE_CAROUSEL = GF_4CC('R','S','C','R'),
 	GF_PROP_PID_ROUTE_SENDTIME = GF_4CC('R','S','S','T'),
 
+	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
+	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
+
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T')
 };
@@ -3232,6 +3235,17 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
 \return the temporary alias filter private stack, NULL otherwise
 */
 void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
+
+
+/*! Ignore this PID in blocking mode estimations.
+
+This is typically used when a filter consumes N pids, with some at very low frequency for which an empty queue should not imply unblocking the filter to refill the queue.
+
+\param PID the target filter PID
+\param do_ignore if GF_TRUE, the PID will not be considered when trying to unblock the filter
+\return error if any
+*/
+GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *PID, Bool do_ignore);
 
 /*! @} */
 

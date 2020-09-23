@@ -812,9 +812,9 @@ GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 group_idx, u32 qu
 /*! gets segment template used by group
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
-\return segment template, NULL if no templates used
+\return segment template, NULL if no templates used. Memory must be freed by caller
 */
-const char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx);
+char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx);
 
 /*! checks automatic switching mode
 \param dash the target dash client

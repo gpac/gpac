@@ -81,6 +81,7 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 		}
 	}
 
+
 	arg = strchr(path, sess->sep_name);
 	if (arg && res && (res > arg))
 		res = gf_url_colon_suffix(arg+1);

@@ -546,6 +546,11 @@ void reset_props();
 */
 void copy_props(FilterPid from);
 
+/*! ignore this pid in blocking computations - see gf_filter_pid_ignore_blocking*
+\param do_ignore if true, pid is not used in blocking mode evaluation
+*/
+void ignore_blocking(optional boolean do_ignore=true);
+
 /*! creates a new output packet with no associated data
 \return new packet or null*/
 FilterPacket new_packet();
