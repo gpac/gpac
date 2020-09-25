@@ -805,7 +805,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	if (ctx->use_bmin) {
 		u32 max = gf_dash_get_min_buffer_time(ctx->dash);
-		gf_filter_pid_set_property_str(opid, "BufferLength", &PROP_UINT(max));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(max));
 	}
 
 	memset(&qualities, 0, sizeof(GF_PropertyValue));

@@ -919,7 +919,7 @@ u64 gf_net_get_utc();
 \brief converts an ntp timestamp into UTC time in milliseconds
 
 Converts NTP 64-bit timestamp to UTC clock in milliseconds
-\u64 ntp NTP timestamp
+\param ntp NTP timestamp
 \return UTC time in milliseconds
  */
 u64 gf_net_ntp_to_utc(u64 ntp);

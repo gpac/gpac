@@ -54,7 +54,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_BOOL:
 		if (!value || !strcmp(value, "yes") || !strcmp(value, "true") || !strcmp(value, "1")) {
 			p.value.boolean = GF_TRUE;
-		} else if ( !strcmp(value, "no") || !strcmp(value, "false") ) {
+		} else if ( !strcmp(value, "no") || !strcmp(value, "false") || !strcmp(value, "0")) {
 			p.value.boolean = GF_FALSE;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for boolean arg %s - using false\n", value, name));
@@ -1308,6 +1308,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_KEEP_AFTER_EOS, "KeepAfterEOS", "Indicate the PID must be kept alive after EOS (LASeR and BIFS)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COVER_ART, "CoverArt", "Indicate PID cover art image data. If associated data is NULL, the data is carried in the PID", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 
+	{ GF_PROP_PID_PLAY_BUFFER, "BufferLength", "Indicate playout buffer in ms", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_MAX_BUFFER, "MaxBuffer", "Indicate maximum buffer occupancy in ms", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_RE_BUFFER, "ReBuffer", "Indicate rebuffer threshold in ms, 0 disable rebuffering", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 };
 
 GF_EXPORT

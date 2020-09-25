@@ -315,7 +315,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc_ts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_ntp_to_utc) )
 
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_errno_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_blob_get_data) )
 
@@ -2345,6 +2344,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_args) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_caps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_release_property) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_udta ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_max_extra_input_pids ) )

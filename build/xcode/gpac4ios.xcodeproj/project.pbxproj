@@ -352,6 +352,8 @@
 		92334CDD2333AB9A00DA6051 /* quickjs.h in Headers */ = {isa = PBXBuildFile; fileRef = 92334CCC2333AB9A00DA6051 /* quickjs.h */; };
 		923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* libbf.c */; };
 		9246EE7724A1240600F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7624A1240600F72EAD /* filter_session_js.c */; };
+		9251E540251E398700CEB84D /* res in Resources */ = {isa = PBXBuildFile; fileRef = 9251E53F251E398600CEB84D /* res */; };
+		9251E542251E39A300CEB84D /* scripts in Resources */ = {isa = PBXBuildFile; fileRef = 9251E541251E39A300CEB84D /* scripts */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
 		925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A31A0916DB0057FF04 /* libbz2.dylib */; };
 		925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A31ABC53F30085B04C /* odf_parse_common.h */; };
@@ -937,6 +939,8 @@
 		9236FDEF1DD23F1400B3E86F /* iTunesArtwork */ = {isa = PBXFileReference; lastKnownFileType = file; name = iTunesArtwork; path = ../../applications/osmo4_ios/Resources/iTunesArtwork; sourceTree = "<group>"; };
 		923EB53323D1B87E00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = ../../src/quickjs/libbf.c; sourceTree = "<group>"; };
 		9246EE7624A1240600F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = ../../src/filter_core/filter_session_js.c; sourceTree = "<group>"; };
+		9251E53F251E398600CEB84D /* res */ = {isa = PBXFileReference; lastKnownFileType = folder; name = res; path = ../../share/res; sourceTree = "<group>"; };
+		9251E541251E39A300CEB84D /* scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = scripts; path = ../../share/scripts; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
@@ -1190,6 +1194,8 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				9251E541251E39A300CEB84D /* scripts */,
+				9251E53F251E398600CEB84D /* res */,
 				9281B62E21C92D00006B0FD5 /* gui */,
 				9281B62F21C92D00006B0FD5 /* shaders */,
 				71CCF1381277041D00339E12 /* libgpac */,
@@ -2195,8 +2201,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				9281B63021C92D00006B0FD5 /* gui in Resources */,
+				9251E542251E39A300CEB84D /* scripts in Resources */,
 				9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */,
 				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
+				9251E540251E398700CEB84D /* res in Resources */,
 				929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */,
 				929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */,
 				929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */,

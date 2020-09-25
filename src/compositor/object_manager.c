@@ -388,12 +388,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		odm->buffer_max_us = scene->compositor->mbuf * 1000;
 
 		//check the same on the pid
-		prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "BufferLength");
-		if (prop) odm->buffer_playout_us = prop->value.uint;
-		prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "RebufferLength");
-		if (prop) odm->buffer_min_us = prop->value.uint;
-		prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "BufferMaxOccupancy");
-		if (prop) odm->buffer_max_us = prop->value.uint;
+		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_PLAY_BUFFER);
+		if (prop) odm->buffer_playout_us = 1000 * prop->value.uint;
+		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_RE_BUFFER);
+		if (prop) odm->buffer_min_us = 1000 * prop->value.uint;
+		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_MAX_BUFFER);
+		if (prop) odm->buffer_max_us = 1000 * prop->value.uint;
 
 		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_TIMESHIFT_DEPTH);
 		if (prop && prop->value.frac.den) {
@@ -405,9 +405,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_FILE_CACHED);
 		if (prop) {
-			odm->buffer_playout_us = odm->buffer_max_us = 1000;
+			odm->buffer_playout_us = odm->buffer_max_us = 1000; //1 ms
 			odm->buffer_min_us = 0;
 		}
+
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, for_pid ? for_pid : odm->pid);
 		evt.buffer_req.max_buffer_us = odm->buffer_max_us;
 		evt.buffer_req.min_playout_us = odm->buffer_min_us;
@@ -417,7 +418,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		if (odm->buffer_min_us>evt.buffer_req.max_playout_us)
 			odm->buffer_min_us = 0;
 	}
-
 
 	/*setup mediaobject info except for top-level OD*/
 	if (odm->parentscene) {
@@ -1478,6 +1478,9 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 			odm->parentscene->root_od->media_current_time = 0;
 		}
 		gf_odm_check_clock_mediatime(odm);
+
+		if (pck && gf_filter_pck_is_blocking_ref(pck))
+			odm->blocking_media = GF_TRUE;
 
 		if (pck && gf_filter_pck_is_blocking_ref(pck))
 			odm->blocking_media = GF_TRUE;

@@ -593,8 +593,6 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "font-reader", "FreeType Font Reader");
 	gf_cfg_set_key(cfg, "core", "rescan-fonts", "yes");
 
-	gf_cfg_set_key(cfg, "core", "js-dirs", "$GJS");
-
 
 #if defined(_WIN32_WCE)
 	/*FIXME - is this true on all WinCE systems??*/

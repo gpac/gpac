@@ -118,7 +118,9 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (!ctx->copy) {
-		gf_filter_pid_set_property_str(ctx->opid, "BufferLength", &PROP_UINT(0));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(0));
+		if (!gf_sys_is_test_mode())
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_RE_BUFFER, &PROP_UINT(0));
 	}
 	return GF_OK;
 }

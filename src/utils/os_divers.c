@@ -2290,6 +2290,39 @@ s32 gf_net_get_ntp_diff_ms(u64 ntp)
 	return (s32) (local - remote);
 }
 
+#if 0
+/*!
+
+Adds or remove a given amount of microseconds to an NTP timestamp
+\param ntp NTP timestamp
+\param usec microseconds to add/remove
+\return adjusted NTP timestamp
+ */
+GF_EXPORT
+u64 gf_net_add_usec(u64 ntp, s32 usec)
+{
+	u64 sec, frac;
+	s64 usec_ntp;
+
+	sec = (ntp >> 32);
+	frac = (ntp & 0xFFFFFFFFULL);
+	usec_ntp = (s64) ( frac*1000000 / 0xFFFFFFFFULL );
+	usec_ntp += usec;
+	while (usec_ntp > 1000000) {
+		usec_ntp -= 1000000;
+		sec += 1;
+	}
+	while (usec_ntp < 0) {
+		usec_ntp += 1000000;
+		sec -= 1;
+	}
+	ntp = ( usec_ntp * 0xFFFFFFFFULL / 1000000 ) & 0xFFFFFFFFULL;
+	ntp |= (sec<<32);
+	return ntp;
+}
+#endif
+
+
 GF_EXPORT
 u64 gf_net_get_ntp_ms()
 {

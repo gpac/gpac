@@ -69,7 +69,7 @@ install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.
 
 cd ../../../..
 
-echo Copying GUI
+echo Copying shared resources
 rsync -r --exclude=.git $source_path/share/res ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/gui ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/vis ./tmpdmg/GPAC.app/Contents/MacOS/share/
