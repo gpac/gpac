@@ -516,8 +516,13 @@ unsigned long long value;
 Object get_clock_info();
 
 /*! sets property on a pid - see \ref gf_filter_pid_set_property and \ref gf_filter_pid_set_property_str
+
+\note if the name identifies the SenderNTP or ReceiverNTP properties:
+- if the value is 'true', the property is set to the current NTP timestamp
+- if the value is an object with properties 'n' and 'd', NTP timestamp is computed using 'n' as seconds and 'd' as fractional part
+
 \param name the ID or name of the builtin property
-\param prop the property to set
+\param prop the property to set. If not set, removes the property.
 \param is_user if set, indicates the queried property is a user-defined property rather than a built-in property
 */
 void set_prop(DOMString name, FilterProperty prop, optional boolean is_user=false);
@@ -886,7 +891,7 @@ interface JSArgDesc {
     /*! type of the argument*/
     attribute unsigned long type;
     /*! default value of the argument*/
-    optional attribute DOMString default=null;
+    optional attribute DOMString def=null;
     /*! min/max or enum values of the argument*/
     optional attribute DOMString minmax_enum=null;
 };

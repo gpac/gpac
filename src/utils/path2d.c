@@ -99,7 +99,7 @@ void gf_path_del(GF_Path *gp)
 
 #define GF_2D_REALLOC(_gp)	\
 	if (_gp->n_alloc_points < _gp->n_points+3) {	\
-		_gp->n_alloc_points = (_gp->n_alloc_points<5) ? 10 : (_gp->n_alloc_points*3/2);	\
+		_gp->n_alloc_points = (_gp->n_alloc_points<5) ? 10 : (_gp->n_alloc_points*2);	\
 		_gp->points = (GF_Point2D *)gf_realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
 		_gp->tags = (u8 *) gf_realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
 	}	\

@@ -302,11 +302,11 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			ctx->stride = p ? p->value.uint : 0;
 
 			if (!ctx->stride) {
-				gf_pixel_get_size_info(ctx->target_pfmt, ctx->w, ctx->h, NULL, &ctx->stride, NULL, NULL, NULL);
+				gf_pixel_get_size_info(ctx->target_pfmt ? ctx->target_pfmt : pf, ctx->w, ctx->h, NULL, &ctx->stride, NULL, NULL, NULL);
 			}
 
 		} else if (stype==GF_STREAM_AUDIO) {
-			strcpy(szExt, gf_audio_fmt_sname(ctx->target_pfmt ? ctx->target_afmt : sfmt));
+			strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt ? ctx->target_afmt : sfmt));
 			p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 			if (p) {
 				strncpy(szExt, p->value.string, GF_4CC_MSIZE-1);

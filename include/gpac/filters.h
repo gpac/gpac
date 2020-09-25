@@ -1007,6 +1007,10 @@ enum
 
 	GF_PROP_PID_PRIMARY_ITEM = GF_4CC('P','I','T','M'),
 
+	GF_PROP_PID_PLAY_BUFFER = GF_4CC('P','B','P','L'),
+	GF_PROP_PID_MAX_BUFFER = GF_4CC('P','B','M','X'),
+	GF_PROP_PID_RE_BUFFER = GF_4CC('P','B','R','E'),
+
 	GF_PROP_PID_COLR_PRIMARIES = GF_4CC('C','P','R','M'),
 	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),
 	GF_PROP_PID_COLR_MX = GF_4CC('C','M','X','C'),
@@ -2567,6 +2571,12 @@ GF_Err gf_filter_define_args(GF_Filter *filter, GF_FilterArgs *new_args);
 */
 GF_FilterArgs *gf_filter_get_args(GF_Filter *filter);
 
+/*! get per-instance caps
+\param filter target filter
+\param nb_caps set to the number of caps
+\return the filter instance caps if any, NULL otherwise
+*/
+const GF_FilterCapability *gf_filter_get_caps(GF_Filter *filter, u32 *nb_caps);
 
 /*! probes mime type of a given block of data (should be begining of file )
 \param filter target filter

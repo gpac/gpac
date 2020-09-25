@@ -236,7 +236,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->pid_delay = p ? p->value.sint : 0;
 
-	p = gf_filter_pid_get_property_str(pid, "BufferLength");
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAY_BUFFER);
 	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;
 	if (ctx->no_buffering) ctx->buffer_done = GF_TRUE;
 

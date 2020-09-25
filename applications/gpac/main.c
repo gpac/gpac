@@ -102,7 +102,7 @@ const char *gpac_doc =
 "# Property format\n"
 "- boolean: formatted as `yes`|`true`|`1` or `no`|`false`|`0`\n"
 "- enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value `0` (first in enum) is assumed.\n"
-"-  1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`|`K` (x1000) or `m`|`M` (x1000000) or `g`|`G` (x1000000000). "
+"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`|`K` (x1000) or `m`|`M` (x1000000) or `g`|`G` (x1000000000). "
 "For such properties, value `+I` means maximum possible value, `-I` minimum possible value.\n"
 "- fraction: formatted as `num/den` or `num-den` or `num`, in which case the denominator is 1 if `num` is an integer, or 1000000 if `num` is a floating-point value.\n"
 "- unsigned 32 bit integer: formated as number or hexadecimal using the format `0xAABBCCDD`.\n"
@@ -359,8 +359,8 @@ const char *gpac_doc =
 "Some specific keywords are replaced when processing filter options.\n"
 "Warning: These keywords do not apply to PID properties. Multiple keywords cannot be defined for a single option.\n"
 "Defined keywords:\n"
-"- $GSHARE: replaced by system path to GPAC shared directory (e.g. /usr/share)\n"
-"- $GJS: replaced by the first path specified by global config option [-js-dirs](CORE) that contains the file name following the macro, e.g. $GJS/source.js\n"
+"- $GSHARE: replaced by system path to GPAC shared directory (e.g. /usr/share/gpac)\n"
+"- $GJS: replaced by the first path from global share directory and set through [-js-dirs](CORE) that contains the file name following the macro, e.g. $GJS/source.js\n"
 "- $GLANG: replaced by the global config language option [-lang](CORE)\n"
 "- $GUA: replaced by the global config user agent option [-user-agent](CORE)\n"
 "- $GINC(init_val[,inc]): replaced by `init_val` and increment `init_val` by `inc` (positive or negative number, 1 if not specified) each time a new filter using this string is created.\n"
@@ -605,7 +605,7 @@ GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("wfx", NULL, "write all filter options and all meta filter arguments in the config file unless already set (__large config file !__)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("unit-tests", NULL, "enable unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
-	GF_DEF_ARG("xopt", NULL, "do not throw error on any unrecognized options following this option - used to pass arguments to GUI", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("xopt", NULL, "unrecognized options and filters declaration following this option are ignored - used to pass arguments to GUI", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	{0}
 };
 
@@ -1996,7 +1996,7 @@ restart:
 			if (!strcmp(arg, "-xopt")) has_xopt = GF_TRUE;
 			continue;
 		}
-		if (!f_loaded) {
+		if (!f_loaded && !has_xopt) {
 			if (arg[0]== separator_set[SEP_LINK] ) {
 				char *ext = strchr(arg, separator_set[SEP_FRAG]);
 				if (ext) {
@@ -2053,6 +2053,8 @@ restart:
 		}
 
 		if (!filter) {
+			if (has_xopt)
+				continue;
 			if (!e) e = GF_FILTER_NOT_FOUND;
 
 			if (e!=GF_FILTER_NOT_FOUND) {
@@ -2302,17 +2304,22 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 	fprintf(stderr, "No such option %s for filter %s\n", optname, filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
 }
 
-static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst)
+static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst, char *inst_name)
 {
 	const GF_FilterArgs *args = NULL;
+	const char *reg_name = filter_inst ? inst_name : reg->name;
+	const char *reg_desc = filter_inst ? gf_filter_get_description(filter_inst) : reg->description;
+#ifndef GPAC_DISABLE_DOC
+	const char *reg_help = filter_inst ? gf_filter_get_help(filter_inst) : reg->help;
+#endif
 
 	if (gen_doc==1) {
 		char szName[1024];
-		sprintf(szName, "%s.md", reg->name);
+		sprintf(szName, "%s.md", reg_name);
 		if (gen_doc==1) {
 			gf_fclose(helpout);
 			helpout = gf_fopen(szName, "w");
-			fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » %s\n", reg->description);
+			fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » %s\n", reg_desc);
 			fprintf(helpout, "%s", auto_gen_md_warning);
 
 			if (!sidebar_md) {
@@ -2346,36 +2353,40 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 				}
 			}
 #ifndef GPAC_DISABLE_DOC
-			if (reg->description) {
-				fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg->description, reg->name, reg->name);
+			if (reg_desc) {
+				fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg_desc, reg_name, reg_name);
 			} else {
-				fprintf(sidebar_md, "[[%s|%s]]  \n", reg->name, reg->name);
+				fprintf(sidebar_md, "[[%s|%s]]  \n", reg_name, reg_name);
 			}
-			if (!reg->help) {
-				fprintf(stderr, "filter %s without help, forbidden\n", reg->name);
+			if (!reg_help) {
+				fprintf(stderr, "filter %s without help, forbidden\n", reg_name);
 				exit(1);
 			}
-			if (!reg->description) {
-				fprintf(stderr, "filter %s without description, forbidden\n", reg->name);
+			if (!reg_desc) {
+				fprintf(stderr, "filter %s without description, forbidden\n", reg_name);
 				exit(1);
 			}
 #endif
 		}
 
 #ifndef GPAC_DISABLE_DOC
-		gf_sys_format_help(helpout, help_flags, "# %s\n", reg->description);
+		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_desc);
 #endif
-		gf_sys_format_help(helpout, help_flags, "Register name used to load filter: **%s**\n", reg->name);
-		if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) {
-			gf_sys_format_help(helpout, help_flags, "This filter is not checked during graph resolution and needs explicit loading.\n");
+		gf_sys_format_help(helpout, help_flags, "Register name used to load filter: **%s**\n", reg_name);
+		if (reg) {
+			if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) {
+				gf_sys_format_help(helpout, help_flags, "This filter is not checked during graph resolution and needs explicit loading.\n");
+			} else {
+				gf_sys_format_help(helpout, help_flags, "This filter may be automatically loaded during graph resolution.\n");
+			}
+			if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) {
+				gf_sys_format_help(helpout, help_flags, "This filter requires the graph resolver to be activated.\n");
+			}
 		} else {
-			gf_sys_format_help(helpout, help_flags, "This filter may be automatically loaded during graph resolution.\n");
-		}
-		if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) {
-			gf_sys_format_help(helpout, help_flags, "This filter requires the graph resolver to be activated.\n");
+			gf_sys_format_help(helpout, help_flags, "This is a JavaScript filter, not checked during graph resolution and needs explicit loading.\n");
 		}
 	} else {
-		gf_sys_format_help(helpout, help_flags, "# %s\n", filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
+		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_name);
 		if (filter_inst)
 			gf_sys_format_help(helpout, help_flags, "Description: %s\n", gf_filter_get_description(filter_inst) );
 		else {
@@ -2415,7 +2426,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 #endif
 	}
 
-	if (argmode==GF_ARGMODE_EXPERT) {
+	if (reg && (argmode==GF_ARGMODE_EXPERT)) {
 		if (reg->max_extra_pids==(u32) -1) gf_sys_format_help(helpout, help_flags, "Max Input PIDs: any\n");
 		else gf_sys_format_help(helpout, help_flags, "Max Input PIDs: %d\n", 1 + reg->max_extra_pids);
 
@@ -2487,8 +2498,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			u32 j=0;
 			char szArg[100];
 			sprintf(szArg, " %s ", a->arg_name);
-			if (reg->help && strstr(reg->help, szArg)) {
-				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link\n", reg->name, a->arg_name);
+			const char *reg_help = filter_inst ? gf_filter_get_help(filter_inst) : reg->help;
+			if (reg_help && strstr(reg_help, szArg)) {
+				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link\n", reg_name, a->arg_name);
 				exit(1);
 			}
 			while (1) {
@@ -2496,8 +2508,8 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 				if (!anarg || !anarg->arg_name) break;
 				j++;
 				if (a == anarg) continue;
-				if (reg->help && strstr(reg->help, szArg)) {
-					fprintf(stderr, "\nWARNING: filter %s bad description for argument %s, uses arg %s without link\n", reg->name, anarg->arg_name, a->arg_name);
+				if (reg_help && strstr(reg_help, szArg)) {
+					fprintf(stderr, "\nWARNING: filter %s bad description for argument %s, uses arg %s without link\n", reg_name, anarg->arg_name, a->arg_name);
 					exit(1);
 				}
 			}
@@ -2506,15 +2518,15 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 				//check format
                 if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') ) {
                 	if (!strstr(a->arg_desc, "- ")) {
-                    	fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, missing list bullet \"- \"\n", reg->name, a->arg_name);
+                    	fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, missing list bullet \"- \"\n", reg_name, a->arg_name);
                     	exit(1);
 					}
                 	if (strstr(a->arg_desc, ":\n")) {
-                    	fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should not use \":\\n\"\n", reg->name, a->arg_name);
+                    	fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should not use \":\\n\"\n", reg_name, a->arg_name);
                     	exit(1);
 					}
                 } else if (!(a->flags&GF_FS_ARG_META) && strchr(a->arg_desc, '\n')) {
-					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should not contain \"\\n\"\n", reg->name, a->arg_name);
+					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should not contain \"\\n\"\n", reg_name, a->arg_name);
 					exit(1);
 				}
 			}
@@ -2523,7 +2535,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 				achar = a->arg_desc[strlen(a->arg_desc)-1];
 				if (achar == '\n') {
-					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should not end with \"\\n\"\n", reg->name, a->arg_name);
+					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should not end with \"\\n\"\n", reg_name, a->arg_name);
 					exit(1);
 				}
 
@@ -2531,18 +2543,18 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 				if ((achar >= 'A') && (achar <= 'Z')) {
 					achar = a->arg_desc[1];
 					if ((achar < 'A') || (achar > 'Z')) {
-						fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should start with lowercase\n", reg->name, a->arg_name);
+						fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, should start with lowercase\n", reg_name, a->arg_name);
 						exit(1);
 					}
 				}
 				if (a->arg_desc[0] == ' ') {
-					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, first character should not be space\n", reg->name, a->arg_name);
+					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, first character should not be space\n", reg_name, a->arg_name);
 					exit(1);
 				}
 				sep = strchr(a->arg_desc+1, ' ');
 				if (sep) sep--;
 				if (sep && (sep[0] == 's') && (sep[-1] != 's')) {
-					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, first word should be infinitive\n", reg->name, a->arg_name);
+					fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, first word should be infinitive\n", reg_name, a->arg_name);
 					exit(1);
 				}
 			}
@@ -2552,8 +2564,12 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		gf_sys_format_help(helpout, help_flags, "No options\n");
 	}
 
-	if (reg->nb_caps) {
-		if (!gen_doc && (argmode==GF_ARGMODE_ALL)) {
+	if (!gen_doc && (argmode==GF_ARGMODE_ALL)) {
+		if (filter_inst) {
+			u32 nb_caps;
+			const GF_FilterCapability *caps = gf_filter_get_caps(filter_inst, &nb_caps);
+			dump_caps(nb_caps, caps);
+		} else if (reg->nb_caps) {
 			dump_caps(reg->nb_caps, reg->caps);
 		}
 	}
@@ -2576,19 +2592,47 @@ static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len
 	return GF_FALSE;
 }
 
+struct __jsenum_info
+{
+	GF_FilterSession *session;
+	GF_SysArgMode argmode;
+	Bool print_filter_info;
+};
+
+static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
+	GF_Filter *f = gf_fs_load_filter(jsi->session, item_path, NULL);
+	if (f) {
+		char szPath[GF_MAX_PATH];
+		char *ext;
+		strcpy(szPath, item_name);
+		ext = gf_file_ext_start(szPath);
+		if (ext) ext[0] = 0;
+		if (jsi->print_filter_info || gen_doc)
+			print_filter(NULL, jsi->argmode, f, szPath);
+		else
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", szPath, gf_filter_get_description(f));
+	}
+	return GF_FALSE;
+}
+
 static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode)
 {
 	Bool found = GF_FALSE;
+	Bool print_all = GF_FALSE;
 	char *fname = NULL;
 	char *l_fname = NULL;
 	u32 lf_len = 0;
 	u32 i, count = gf_fs_filters_registers_count(session);
 
+	gf_opts_set_key("temp", "helponly", "yes");
+
 	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
 		if (gen_doc) {
-			print_filter(reg, argmode, NULL);
+			print_filter(reg, argmode, NULL, NULL);
 			found = GF_TRUE;
 		} else if (print_filter_info) {
 			u32 k;
@@ -2615,7 +2659,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					if (optname)
 						print_filter_single_opt(reg, optname, NULL);
 					else
-						print_filter(reg, argmode, NULL);
+						print_filter(reg, argmode, NULL, NULL);
 					found = GF_TRUE;
 				} else {
 					char *sepo = strchr(arg, ':');
@@ -2637,19 +2681,27 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 						if (optname)
 							print_filter_single_opt(reg, optname, NULL);
 						else
-							print_filter(reg, argmode, NULL);
+							print_filter(reg, argmode, NULL, NULL);
 						found = GF_TRUE;
+						if (!strcmp(arg, "*")) print_all = GF_TRUE;
 						break;
 					}
-					//quick shortcuts
-					else if (!strcmp(reg->name, "jsf") && (!strncmp(arg, "jsf:", 4) || strstr(arg, ".js")) ) {
+					//try to load the filter if first pass
+					else if (!i) {
 						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 						if (f) {
-							if (optname)
+							char *ext;
+							char szPath[GF_MAX_PATH];
+							strcpy(szPath, gf_file_basename(arg) );
+							ext = gf_file_ext_start(szPath);
+							if (ext) ext[0] = 0;
+							if (optname) {
 								print_filter_single_opt(reg, optname, f);
-							else
-								print_filter(reg, argmode, f);
+							} else {
+								print_filter(reg, argmode, f, szPath);
+							}
 							found = GF_TRUE;
+							break;
 						}
 					}
 				}
@@ -2665,6 +2717,45 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 
 		}
 	}
+
+	if (print_all || !print_filter_info || gen_doc) {
+		const char *js_dirs = gf_opts_get_key("core", "js-dirs");
+		char szPath[GF_MAX_PATH];
+		struct __jsenum_info jsi;
+		jsi.argmode = argmode;
+		jsi.session = session;
+		jsi.print_filter_info = print_filter_info;
+
+		gf_log_set_tools_levels("console@error", GF_FALSE);
+
+		if (gf_opts_default_shared_directory(szPath)) {
+			strcat(szPath, "/scripts/jsf/");
+			gf_enum_directory(szPath, GF_FALSE, jsinfo_enum, &jsi, ".js");
+		}
+		while (js_dirs && js_dirs[0]) {
+			char *sep = strchr(js_dirs, ',');
+			if (sep) {
+				u32 cplen = (u32) (sep-js_dirs);
+				if (cplen>=GF_MAX_PATH) cplen = GF_MAX_PATH-1;
+				strncpy(szPath, js_dirs, cplen);
+				szPath[cplen]=0;
+				js_dirs = sep+1;
+			} else {
+				strcpy(szPath, js_dirs);
+			}
+			//pre 1.1, $GJS was inserted by default
+			if (strcmp(szPath, "$GJS")) {
+				u32 len = (u32) strlen(szPath);
+				if (len && (szPath[len-1]!='/') && (szPath[len-1]!='\\'))
+					strcat(szPath, "/");
+				gf_enum_directory(szPath, GF_FALSE, jsinfo_enum, &jsi, ".js");
+			}
+			if (!sep) break;
+		}
+		return GF_TRUE;
+	}
+
+
 	if (found) return GF_TRUE;
 	if (!fname) return GF_FALSE;
 	if (!print_filter_info) return GF_FALSE;

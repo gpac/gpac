@@ -987,11 +987,58 @@ Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 	return GF_FALSE;
 }
 
+static Bool locate_js_script(char *path, const char *file_name, const char *file_ext)
+{
+	strcat(path, file_name);
+	if (gf_file_exists(path))
+		return GF_TRUE;
+
+	if (!file_ext) {
+		strcat(path, ".js");
+		if (gf_file_exists(path))
+			return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file_ext)
+{
+	const char *js_dirs;
+	if (gf_opts_default_shared_directory(szPath)) {
+		strcat(szPath, "/scripts/jsf/");
+		if (locate_js_script(szPath, file_name, file_ext)) {
+			return GF_TRUE;
+		}
+	}
+	js_dirs = gf_opts_get_key("core", "js-dirs");
+	while (js_dirs && js_dirs[0]) {
+		char *sep = strchr(js_dirs, ',');
+		if (sep) {
+			u32 cplen = (u32) (sep-js_dirs);
+			if (cplen>=GF_MAX_PATH) cplen = GF_MAX_PATH-1;
+			strncpy(szPath, js_dirs, cplen);
+			szPath[cplen]=0;
+			js_dirs = sep+1;
+		} else {
+			strcpy(szPath, js_dirs);
+		}
+		if (strcmp(szPath, "$GJS")) {
+			u32 len = (u32) strlen(szPath);
+			if (len && (szPath[len-1]!='/') && (szPath[len-1]!='\\'))
+				strcat(szPath, "/");
+			if (locate_js_script(szPath, file_name, file_ext))
+				return GF_TRUE;
+		}
+		if (!sep) break;
+	}
+	return GF_FALSE;
+}
+
 GF_EXPORT
 GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *err_code)
 {
 	const char *args=NULL;
-	const char *sep;
+	const char *sep, *file_ext;
 	u32 i, len, count = gf_list_count(fsess->registry);
 	Bool quiet = (err_code && (*err_code == GF_EOS)) ? GF_TRUE : GF_FALSE;
 
@@ -1040,16 +1087,29 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 		}
 	}
 	/*check JS file*/
-	if (strstr(name, ".js") || strstr(name, ".jsf") || strstr(name, ".mjs") ) {
+	file_ext = gf_file_ext_start(name);
+	if (!file_ext || strstr(name, ".js") || strstr(name, ".jsf") || strstr(name, ".mjs") ) {
+		Bool file_exists = GF_FALSE;
+		char szName[10+GF_MAX_PATH];
 		char szPath[10+GF_MAX_PATH];
 		if (len>GF_MAX_PATH)
 			return NULL;
+
 		strncpy(szPath, name, len);
 		szPath[len]=0;
 		if (gf_file_exists(szPath)) {
-			sprintf(szPath, "jsf%cjs%c", fsess->sep_args, fsess->sep_name);
-			strcat(szPath, name);
-			return gf_fs_load_filter(fsess, szPath, err_code);
+			file_exists = GF_TRUE;
+		} else {
+			strcpy(szName, szPath);
+			file_exists = gf_fs_solve_js_script(szPath, szName, file_ext);
+		}
+
+		if (file_exists) {
+			sprintf(szName, "jsf%cjs%c", fsess->sep_args, fsess->sep_name);
+			strcat(szName, szPath);
+			if (name[len])
+				strcat(szName, name+len);
+			return gf_fs_load_filter(fsess, szName, err_code);
 		}
 	}
 
@@ -1814,9 +1874,13 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 
 static GFINLINE void print_filter_name(GF_Filter *f, Bool skip_id, Bool skip_args)
 {
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->freg->name));
-	if (strcmp(f->name, f->freg->name)) {
+	if (f->freg->flags & GF_FS_REG_SCRIPT) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" \"%s\"", f->name));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", f->freg->name));
+		if (strcmp(f->name, f->freg->name)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" \"%s\"", f->name));
+		}
 	}
 	if (!skip_id && f->id) GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" ID %s", f->id));
 	if (f->dynamic_filter || skip_args) return;
@@ -2180,7 +2244,6 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 	return GF_FPROBE_SUPPORTED;
 }
 
-
 GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
@@ -2258,11 +2321,18 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			}
 
 			if (strcmp(sURL, "null") && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
+				char szPath[GF_MAX_PATH];
+				Bool try_js = gf_fs_solve_js_script(szPath, sURL, NULL);
 				if (sep) sep[0] = fsess->sep_args;
 				if (frag_par) frag_par[0] = f_c;
+				gf_free(sURL);
+
+				if (try_js) {
+					if (!strncmp(url, "gpac://", 7)) url += 7;
+					return gf_fs_load_filter(fsess, url, err);
+				}
 
 				if (err) *err = GF_URL_ERROR;
-				gf_free(sURL);
 				return NULL;
 			}
 			if (frag_par) frag_par[0] = f_c;

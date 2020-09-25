@@ -6006,6 +6006,86 @@ reset_switch (bool, default: false): reset decoder at config change
 .br
 
 .br
+.SH avgen
+.LP
+.br
+Description: AV Counter Generator
+.br
+Version: 1.0
+.br
+Author: GPAC Team
+.br
+
+.br
+This filter generates AV streams representing a counter. Streams can be enabled or disabled using .I type.
+.br
+
+.br
+First video frame is adjusted such that a full circle happens at each exact second according to the system UTC clock.
+.br
+By default, video UTC and date are computed at each frame generation from current clock and not from frame number.
+.br
+This will result in broken timing when playing at speeds other than 1.0.
+.br
+This can be changed using .I lock.
+.br
+
+.br
+Audio beep is generated every second, with octave (2xfreq) of even beep used every 10 seconds.
+.br
+When video is generated, beep is synchronized to video at each exact second.
+.br
+
+.br
+Video packets always have a SenderNTP property injected.
+.br
+If video is not used, audio packets always have a SenderNTP property injected.
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+type (enum, default: av):      output selection
+.br
+* a: audio only
+.br
+* v: video only
+.br
+* av: audio and video
+.br
+
+.br
+freq (uint, default: 440):     frequency of beep
+.br
+freq2 (uint, default: 659):    frequency of odd beep
+.br
+sr (uint, default: 44100):     output samplerate
+.br
+flen (uint, default: 1024):    output frame length in samples
+.br
+ch (uint, default: 1):         number of channels
+.br
+alter (bool, default: false):  beep alternatively on each channel
+.br
+blen (uint, default: 50):      length of beep in milliseconds
+.br
+fps (frac, default: 25):       video frame rate
+.br
+w (uint, default: 1280):       video width
+.br
+h (uint, default: 720):        video height
+.br
+lock (bool, default: false):   lock timing to video generation
+.br
+dyn (bool, default: true):     move bottom banner
+.br
+ntp (bool, default: true):     send NTP along with packets
+.br
+
+.br
 .SH EXAMPLES
 .TP
 Basic and advanced examples are available at https://wiki.gpac.io/Filters
@@ -6015,7 +6095,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev32-gd69ceaa90-master
+build: 1.1.0-DEV-rev33-ga9f524c73-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

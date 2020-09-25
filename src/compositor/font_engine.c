@@ -183,6 +183,7 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 		GF_Font *best_font = NULL;
 		GF_Font *font = fm->font;
 		font_name = alt_fonts[i];
+		if (!font_name) font_name = "SANS";
 
 		if (!stricmp(font_name, "SERIF")) {
 			opt = gf_opts_get_key("FontCache", "FontSerif");

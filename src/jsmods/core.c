@@ -1085,6 +1085,54 @@ static JSValue js_sys_get_utc(JSContext *ctx, JSValueConst this_val, int argc, J
 	return JS_NewInt64(ctx, gf_net_get_utc_ts(y, mo, d, h, m, s) );
 }
 
+static JSValue js_sys_get_ntp(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 sec, frac;
+	gf_net_get_ntp(&sec, &frac);
+	JSValue ret = JS_NewObject(ctx);
+	if (JS_IsException(ret)) return ret;
+	JS_SetPropertyStr(ctx, ret, "n", JS_NewInt64(ctx, sec));
+	JS_SetPropertyStr(ctx, ret, "d", JS_NewInt64(ctx, frac));
+	return ret;
+}
+
+static JSValue js_sys_ntp_shift(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSValue v;
+	u64 sec, frac, shift;
+	s64 frac_usec;
+	if ((argc<2) || !JS_IsObject(argv[0]))
+		return JS_EXCEPTION;
+
+	v = JS_GetPropertyStr(ctx, argv[0], "n");
+	if (JS_IsNull(v)) return JS_EXCEPTION;
+	JS_ToInt64(ctx, &sec, v);
+	JS_FreeValue(ctx, v);
+
+	v = JS_GetPropertyStr(ctx, argv[0], "d");
+	if (JS_IsNull(v)) return JS_EXCEPTION;
+	JS_ToInt64(ctx, &frac, v);
+	JS_FreeValue(ctx, v);
+
+	JS_ToInt64(ctx, &shift, argv[1]);
+	frac_usec = (s64) (frac * 1000000) / 0xFFFFFFFFULL;
+	frac_usec += shift;
+	while (frac_usec<0) {
+		frac_usec += 1000000;
+		sec -= 1;
+	}
+	while (frac_usec>1000000) {
+		frac_usec -= 1000000;
+		sec += 1;
+	}
+	frac = (frac_usec * 0xFFFFFFFFULL) / 1000000;
+	v = JS_NewObject(ctx);
+	if (JS_IsException(v)) return v;
+	JS_SetPropertyStr(ctx, v, "n", JS_NewInt64(ctx, sec));
+	JS_SetPropertyStr(ctx, v, "d", JS_NewInt64(ctx, frac));
+	return v;
+}
+
 
 static JSValue js_sys_crc32(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1489,6 +1537,8 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("rand64", 0, js_sys_rand64),
 	JS_CFUNC_DEF("getenv", 0, js_sys_getenv),
 	JS_CFUNC_DEF("get_utc", 0, js_sys_get_utc),
+	JS_CFUNC_DEF("get_ntp", 0, js_sys_get_ntp),
+	JS_CFUNC_DEF("ntp_shift", 0, js_sys_ntp_shift),
 	JS_CFUNC_DEF("crc32", 0, js_sys_crc32),
 	JS_CFUNC_DEF("sha1", 0, js_sys_sha1),
 	JS_CFUNC_DEF("load_file", 0, js_sys_file_data),

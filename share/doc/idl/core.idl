@@ -143,6 +143,19 @@ unsigned long long get_utc();
 */
 unsigned long long get_utc(DOMString date);
 
+/*! gets NTP 64-bit timestamp - see \ref gf_net_get_ntp_ts
+\return NTP 64 bit timestamp as fraction, 'n' continaing seconds, 'd' containing fractional part
+*/
+Fraction get_ntp();
+
+
+/*! shifts an NTP 64-bit timestamp by the given number of microseconds 
+\param ntp source NTP 
+\param microseconds number of microseconds to add (positive) or remove (negative)
+\return adjusted NTP 64 bit timestamp as fraction, 'n' continaing seconds, 'd' containing fractional part
+*/
+Fraction ntp_shift(Fraction ntp, long microseconds);
+
 /*! gets CRC32 of an arraybuffer - see \ref gf_crc_32
 \param abuf array buffer
 \return CRC32 of the data
@@ -755,7 +768,13 @@ attribute readonly unsigned long long refreshed_size;
 
 }
 
-
+/*! FILE object*/
+interface Fraction {
+/*! numerator*/
+long n;
+/*! denumerator*/
+unsigned long d;
+};
 
 
 /*! @} */

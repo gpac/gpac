@@ -3580,8 +3580,10 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	gf_filter_pck_send(pck);
 	JS_SetOpaque(this_val, NULL);
 	if (!(pckctx->flags & GF_JS_PCK_IS_SHARED)) {
-		gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
-		memset(pckctx, 0, sizeof(GF_JSPckCtx));
+		if (pckctx->jspid) {
+			gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
+			memset(pckctx, 0, sizeof(GF_JSPckCtx));
+		}
 	}
 	return JS_UNDEFINED;
 }
@@ -3620,16 +3622,35 @@ static JSValue jsf_pck_set_property(JSContext *ctx, JSValueConst this_val, int a
 			e = gf_filter_pck_set_property_dyn(pck, (char *) name, NULL);
 		}
 	} else {
+		JSValue ret;
 		u32 p4cc = gf_props_get_id(name);
+		if (!p4cc) {
+			JS_FreeCString(ctx, name);
+			ret = js_throw_err_msg(ctx, GF_BAD_PARAM, "Urecognized builtin property name %s\n", name);
+			return ret;
+		}
 		JS_FreeCString(ctx, name);
-		if (!p4cc) return js_throw_err(ctx, GF_OUT_OF_MEM);
-		if (!!JS_IsNull(argv[1])) {
+		if ( ((p4cc==GF_PROP_PCK_SENDER_NTP) || (p4cc==GF_PROP_PCK_RECEIVER_NTP))
+			&& JS_IsBool(argv[1]) && JS_ToBool(ctx, argv[1])
+		) {
+			e = gf_filter_pck_set_property(pck, p4cc, &PROP_LONGUINT(gf_net_get_ntp_ts()) );
+		}
+		else if (JS_IsNull(argv[1])) {
+			e = gf_filter_pck_set_property(pck, p4cc, NULL);
+		}
+		else {
 			e = jsf_ToProp(pckctx->jspid->jsf->filter, ctx, argv[1], p4cc, &prop);
 			if (e) return js_throw_err(ctx, e);
+			if ( ((p4cc==GF_PROP_PCK_SENDER_NTP) || (p4cc==GF_PROP_PCK_RECEIVER_NTP)) && (prop.type==GF_PROP_FRACTION)) {
+				u64 ntp = (u32) prop.value.frac.num;
+				ntp <<= 32;
+				ntp |= prop.value.frac.den;
+				prop.type = GF_PROP_LUINT;
+				prop.value.longuint = ntp;
+			}
+
 			e = gf_filter_pck_set_property(pck, p4cc, &prop);
 			gf_props_reset_single(&prop);
-		} else {
-			e = gf_filter_pck_set_property(pck, p4cc, NULL);
 		}
 	}
 	if (e) return js_throw_err(ctx, e);
@@ -4217,7 +4238,9 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 
 	if (!arg_name && !new_val) {
 		gf_js_lock(jsf->ctx, GF_TRUE);
-		if (JS_IsFunction(jsf->ctx, jsf->funcs[JSF_EVT_INITIALIZE]) ) {
+		if (gf_opts_get_bool("temp", "helponly")) {
+			jsf->disable_filter = 1;
+		} else if (JS_IsFunction(jsf->ctx, jsf->funcs[JSF_EVT_INITIALIZE]) ) {
 			ret = JS_Call(jsf->ctx, jsf->funcs[JSF_EVT_INITIALIZE], jsf->filter_obj, 0, NULL);
 			if (JS_IsException(ret)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[%s] Error initializing filter\n", jsf->log_name));

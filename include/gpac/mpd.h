@@ -389,7 +389,7 @@ typedef struct {
 	char *wallclock;
 	/*! presentation time in timescale of the Representation*/
 	u64 presentation_time;
-	/*! UTC timing desc if any/*/
+	/*! UTC timing desc if any */
 	GF_MPD_Descriptor *utc_timing;
 } GF_MPD_ProducerReferenceTime;
 
@@ -783,7 +783,7 @@ typedef struct {
 	/*! set during parsing, to set during authoring, won't be freed by GPAC*/
 	const char *xml_namespace;
 
-	/*! UTC timing desc if any/*/
+	/*! UTC timing desc if any */
 	GF_List *utc_timings;
 
 	/* internal variables for dasher*/

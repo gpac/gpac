@@ -814,38 +814,12 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 		}
 	}
 	else if (!strnicmp(value, "$GJS", 4)) {
-		Bool found = GF_FALSE;
-		const char *all_dirs = gf_opts_get_key("core", "js-dirs");
-		if (all_dirs) {
-			const char *dirs = all_dirs;
-			while (dirs && dirs[0]) {
-				char *sep = strchr(dirs, ',');
-				if (sep) {
-					u32 cplen = (u32) (sep-dirs);
-					if (cplen>=GF_MAX_PATH) cplen = GF_MAX_PATH-1;
-					strncpy(szPath, dirs, cplen);
-					szPath[cplen]=0;
-					dirs = sep+1;
-				} else {
-					strcpy(szPath, dirs);
-				}
-				if (!strcmp(szPath, "$GJS")) {
-					gf_opts_default_shared_directory(szPath);
-					strcat(szPath, "/scripts/jsf");
-				}
-				strcat(szPath, value+4);
-				if (gf_file_exists(szPath)) {
-					value = szPath;
-					found = GF_TRUE;
-					break;
-				}
-				if (!sep) break;
-			}
-			if (!found) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed solve to %s in GPAC script directories %s, file not found\n", value, all_dirs));
-			}
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
+		Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file_ext);
+
+		Bool found = gf_fs_solve_js_script(szPath, value+4, NULL);
+
+		if (!found) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed solve to %s in GPAC script directories, file not found\n", value));
 		}
 	}
 	else if (!strnicmp(value, "$GLANG", 6)) {
@@ -3812,6 +3786,14 @@ GF_EXPORT
 GF_FilterArgs *gf_filter_get_args(GF_Filter *filter)
 {
 	return filter ? filter->instance_args : NULL;
+}
+
+GF_EXPORT
+const GF_FilterCapability *gf_filter_get_caps(GF_Filter *filter, u32 *nb_caps)
+{
+	if (!filter || !filter->forced_caps || !nb_caps) return NULL;
+	*nb_caps = filter->nb_forced_caps;
+	return filter->forced_caps;
 }
 
 GF_EXPORT
