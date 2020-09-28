@@ -671,6 +671,10 @@ typedef enum
 	GF_PROP_STRING_LIST,
 	/*! unsigned 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
 	GF_PROP_UINT_LIST,
+	/*! signed 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
+	GF_PROP_SINT_LIST,
+	/*! 2D signed integer vector list, memory is ALWAYS duplicated when setting the property*/
+	GF_PROP_VEC2I_LIST,
 
 	/*! not allowed*/
 	GF_PROP_LAST_DEFINED,
@@ -685,15 +689,6 @@ typedef struct
 	u32 size;
 } GF_PropData;
 
-/*! List of unsigned int property*/
-typedef struct
-{
-	/*! array of unsigned integers */
-	u32 *vals;
-	/*! number of items in array */
-	u32 nb_items;
-} GF_PropUIntList;
-
 /*! 2D signed integer vector property*/
 typedef struct
 {
@@ -702,6 +697,7 @@ typedef struct
 	/*! y coord */
 	s32 y;
 } GF_PropVec2i;
+
 
 /*! 2D double number vector property*/
 typedef struct
@@ -760,6 +756,33 @@ typedef struct
 	Double w;
 } GF_PropVec4;
 
+/*! List of unsigned int property - do not change field order !*/
+typedef struct
+{
+	/*! array of unsigned integers */
+	u32 *vals;
+	/*! number of items in array */
+	u32 nb_items;
+} GF_PropUIntList;
+
+/*! List of signed int property - do not change field order !*/
+typedef struct
+{
+	/*! array of signed integers */
+	s32 *vals;
+	/*! number of items in array */
+	u32 nb_items;
+} GF_PropIntList;
+
+/*! List of unsigned int property*/
+typedef struct
+{
+	/*! array of vec2i  */
+	GF_PropVec2i *vals;
+	/*! number of items in array */
+	u32 nb_items;
+} GF_PropVec2iList;
+
 /*! Property value used by PIDs and packets*/
 struct __gf_prop_val
 {
@@ -808,6 +831,10 @@ struct __gf_prop_val
 		GF_List *string_list;
 		/*! unsigned integer list value of property - memory is handled by filter session (always copy)*/
 		GF_PropUIntList uint_list;
+		/*! signed integer list value of property - memory is handled by filter session (always copy)*/
+		GF_PropIntList sint_list;
+		/*! vec2i list value of property - memory is handled by filter session (always copy)*/
+		GF_PropVec2iList v2i_list;
 	} value;
 };
 
@@ -901,6 +928,7 @@ enum
 	GF_PROP_PID_DOLBY_VISION = GF_4CC('D','O','V','I'),
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 	GF_PROP_PID_MAXRATE = GF_4CC('M','R','A','T'),
+	GF_PROP_PID_TARGET_RATE = GF_4CC('T','B','R','T'),
 	GF_PROP_PID_DBSIZE = GF_4CC('D','B','S','Z'),
 	GF_PROP_PID_MEDIA_DATA_SIZE = GF_4CC('M','D','S','Z'),
 	GF_PROP_PID_CAN_DATAREF = GF_4CC('D','R','E','F'),
@@ -1010,6 +1038,7 @@ enum
 	GF_PROP_PID_PLAY_BUFFER = GF_4CC('P','B','P','L'),
 	GF_PROP_PID_MAX_BUFFER = GF_4CC('P','B','M','X'),
 	GF_PROP_PID_RE_BUFFER = GF_4CC('P','B','R','E'),
+	GF_PROP_PID_VIEW_IDX = GF_4CC('V','I','D','X'),
 
 	GF_PROP_PID_COLR_PRIMARIES = GF_4CC('C','P','R','M'),
 	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),

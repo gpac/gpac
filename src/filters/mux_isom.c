@@ -5563,7 +5563,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- no: paramater sets are not inband, several sample descriptions might be created\n"
 	"- all: paramater sets are inband, no param sets in sample description\n"
 	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample descripton\n"
-	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|both|mix|", 0},
+	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|both|mix", 0},
 	{ OFFS(store), "file storage mode\n"
 	"- inter: perform precise interleave of the file using [-cdur]() (requires temporary storage of all media)\n"
 	"- flat: write samples as they arrive and moov at end (fastest mode)\n"

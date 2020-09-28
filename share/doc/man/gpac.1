@@ -1579,7 +1579,7 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
 * URL: URL of source file
 .br
-* File: path on disk for source file
+* File: path on disk for source file; if not found, use URL if set, or PID name otherwise
 .br
 * p4cc=ABCD: uses PID property with 4CC value ABCD
 .br
@@ -1616,7 +1616,7 @@ In this case, only one item (likely the first declared in the file) will connect
 .br
 Other items will not be connected since the destination only accepts one input PID.
 .br
-There is a special option clone allowing destination filters (and only them) to be cloned with the same arguments:
+There is a special option clone allowing filters to be cloned with the same arguments. The cloned filters have the same ID as the original one.
 .br
 Example
 .br
@@ -1625,6 +1625,14 @@ src=img.heif dst=dump_$ItemID$.jpg:clone
 
 .br
 In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.
+.br
+Example
+.br
+src=vid.mpd enc:c=avc:FID=1:clone dst=transcode.mpd:SID=1
+.br
+
+.br
+In this case, the encoder will be cloned for each video PIDs in the source, and the destination will only use PIDs coming from the encoders.
 .br
 .SH Templating filter chains
 .LP
@@ -1904,6 +1912,11 @@ const data buffer
 .B strl
 .br
 UTF-8 string list
+.br
+.TP
+.B uintl
+.br
+unsigned 32 bit integer list
 .br
 
 .br
@@ -2274,6 +2287,11 @@ Bitrate in bps
 .B Maxrate (MRAT,uint,  )
 .br
 Max bitrate in bps
+.br
+.TP
+.B TargetRate (TBRT,uint,  )
+.br
+Target bitrate in bps, used to setup encoders
 .br
 .TP
 .B DBSize (DBSZ,uint,  )
@@ -2847,7 +2865,7 @@ Indicate the PID must be kept alive after EOS (LASeR and BIFS)
 Indicate PID cover art image data. If associated data is NULL, the data is carried in the PID
 .br
 .TP
-.B PlayBuffer (PBPL,uint,D )
+.B BufferLength (PBPL,uint,D )
 .br
 Indicate playout buffer in ms
 .br
@@ -2860,6 +2878,11 @@ Indicate maximum buffer occupancy in ms
 .B ReBuffer (PBRE,uint,D )
 .br
 Indicate rebuffer threshold in ms, 0 disable rebuffering
+.br
+.TP
+.B ViewIdx (VIDX,uint,D )
+.br
+Indicate view index for multiview (1 being left)
 .br
 .SH Pixel formats
 .LP
@@ -3728,7 +3751,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev33-ga9f524c73-master
+build: 1.1.0-DEV-rev34-gb2fa5dc24-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

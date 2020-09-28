@@ -3707,7 +3707,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			nb_hevc++;
 			switch (nal_type) {
 			case GF_HEVC_NALU_PIC_PARAM:
-				nb_pps_hevc++;
+				if (nb_sps_hevc)
+					nb_pps_hevc++;
 				break;
 			case GF_HEVC_NALU_SEQ_PARAM:
 				nb_sps_hevc++;
@@ -3728,7 +3729,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			nb_avc++;
 			switch (nal_type) {
 			case GF_AVC_NALU_PIC_PARAM:
-				nb_pps_avc++;
+				if (nb_sps_avc)
+					nb_pps_avc++;
 				break;
 			case GF_AVC_NALU_SEQ_PARAM:
 				nb_sps_avc++;
@@ -3754,7 +3756,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		nb_vvc++;
 		switch (nal_type) {
 		case GF_VVC_NALU_PIC_PARAM:
-			nb_pps_vvc++;
+			if (nb_sps_vvc)
+				nb_pps_vvc++;
 			break;
 		case GF_VVC_NALU_SEQ_PARAM:
 			nb_sps_vvc++;

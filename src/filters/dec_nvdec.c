@@ -1462,7 +1462,7 @@ static const GF_FilterArgs NVDecArgs[] =
 		"- copy: each frame is copied and dispatched\n"
 		"- single: frame data is only retrieved when used, single memory space for all frames (not safe if multiple consummers)\n"
 		"- gl: frame data is mapped to an OpenGL texture"
-	, GF_PROP_UINT, "gl", "copy|single|gl|", 0 },
+	, GF_PROP_UINT, "gl", "copy|single|gl", 0 },
 
 	{ 0 }
 };

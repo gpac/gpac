@@ -288,7 +288,7 @@ const char *gpac_doc =
 "- num: replaced by file number if defined, 0 otherwise\n"
 "- PID: ID of the source PID\n"
 "- URL: URL of source file\n"
-"- File: path on disk for source file\n"
+"- File: path on disk for source file; if not found, use URL if set, or PID name otherwise\n"
 "- p4cc=ABCD: uses PID property with 4CC value `ABCD`\n"
 "- pname=VAL: uses PID property with name `VAL`\n"
 "- OTHER: locates property 4CC for the given name, or property name if no 4CC matches.\n"
@@ -302,9 +302,11 @@ const char *gpac_doc =
 "EX src=img.heif dst=dump_$ItemID$.jpg\n"
 "In this case, only one item (likely the first declared in the file) will connect to the destination.\n"
 "Other items will not be connected since the destination only accepts one input PID.\n"
-"There is a special option `clone` allowing destination filters (**and only them**) to be cloned with the same arguments:\n"
+"There is a special option `clone` allowing filters to be cloned with the same arguments. The cloned filters have the same ID as the original one.\n"
 "EX src=img.heif dst=dump_$ItemID$.jpg:clone\n"
 "In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.\n"
+"EX src=vid.mpd enc:c=avc:FID=1:clone dst=transcode.mpd:SID=1\n"
+"In this case, the encoder will be cloned for each video PIDs in the source, and the destination will only use PIDs coming from the encoders.\n"
 "# Templating filter chains\n"
 "There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone`option is not enough since the muxer will always accept the input PIDs.\n"
 "To handle this, it is possible to use a PID property name in the sourceID of a filter with the value `*` or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.\n"
@@ -2517,6 +2519,26 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			if (a->min_max_enum) {
 				//check format
                 if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') ) {
+					const char *a_val = a->min_max_enum;
+					while (a_val[0] == '|') a_val++;
+					if (strstr(a->arg_desc, "see filter info"))
+						a_val = NULL;
+					while (a_val) {
+						char szName[100];
+						const char *a_sep = strchr(a_val, '|');
+						u32 len = a_sep ? (a_sep - a_val) : strlen(a_val);
+						strcpy(szName, "- ");
+						strncat(szName, a_val, len);
+						szName[2+len]=0;
+						strcat(szName, ": ");
+
+						if (!strstr(a->arg_desc, szName)) {
+							fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, missing list bullet \"%s\"\n", reg_name, a->arg_name, szName);
+							exit(1);
+						}
+						if (!a_sep) break;
+						a_val = a_sep+1;
+					}
                 	if (!strstr(a->arg_desc, "- ")) {
                     	fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, missing list bullet \"- \"\n", reg_name, a->arg_name);
                     	exit(1);

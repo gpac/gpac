@@ -872,6 +872,9 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 		}
 		break;
 	}
+	//if target rate is not known yet (encoder default and we setup an adaptation chain for the PID), signal a default 100k
+	//this prevents a warning in the dasher complaining that no rate is set, unaware that we will reconfigure the PID before sending data
+	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->target_rate ? ctx->target_rate : 100000));
 }
 
 static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -985,10 +988,16 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->process = ffenc_process_video;
 	}
 
-	ffenc_copy_pid_props(ctx);
-	if (ctx->target_rate)
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->target_rate));
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TARGET_RATE);
+	if (prop && prop->value.uint && (prop->value.uint != ctx->target_rate)) {
+		char szRate[100];
+		ctx->target_rate = prop->value.uint;
+		snprintf(szRate, 99, "%d", ctx->target_rate);
+		szRate[99] = 0;
+		av_dict_set(&ctx->options, "b", szRate, 0);
+	}
 
+	ffenc_copy_pid_props(ctx);
 
 #define GET_PROP(_a, _code, _name) \
 	prop = gf_filter_pid_get_property(pid, _code); \
@@ -1331,7 +1340,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_BAD_PARAM;
 	}
 	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
-
+	if (!ctx->target_rate)
+		ctx->target_rate = ctx->encoder->bit_rate;
 
 	ffmpeg_report_unused_options(filter, ctx->options);
 
@@ -1412,6 +1422,8 @@ GF_FilterRegister FFEncodeRegister = {
 	GF_FS_SET_HELP("Encodes audio and video streams.\nSee FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details"
 		"\n"
 		"Note: if no codec is explicited through [-ffc]() option and no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
+		"\n"
+		"The encoder will look for property `TargetRate` on input PID to set the desired bitrate per PID.\n"
 		"\n"
 		"The encoder will force a closed gop boundary at each packet with a `FileNumber` property set.\n"
 	)

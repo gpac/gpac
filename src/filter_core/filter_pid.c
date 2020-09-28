@@ -3382,7 +3382,8 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			if (prop_type==GF_PROP_STRING_LIST) {
 				p.value.string_list = NULL;
 			}
-			else if (prop_type==GF_PROP_UINT_LIST) {
+			//use uint_list as base type for lists
+			else if ((prop_type==GF_PROP_UINT_LIST) || (prop_type==GF_PROP_SINT_LIST) || (prop_type==GF_PROP_VEC2I_LIST)) {
 				p.value.uint_list.vals = NULL;
 			}
 			gf_props_reset_single(&p);
@@ -6524,6 +6525,11 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 		} else if (!strcmp(name, "File")) {
 			prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEPATH);
 			if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
+			if (!prop_val && pid->pid->name) {
+				prop_val_patched.type = GF_PROP_STRING;
+				prop_val_patched.value.string = pid->pid->name;
+				prop_val = &prop_val_patched;
+			}
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "PID")) {
 			prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ID);
