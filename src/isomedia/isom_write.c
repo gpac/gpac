@@ -682,9 +682,6 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 				udta = trak->udta;
 				trak->udta = NULL;
 				gf_isom_box_del((GF_Box*)trak);
-			} else {
-				if (trak->References) gf_isom_box_del_parent(&trak->child_boxes, (GF_Box*)trak->References);
-				trak->References = NULL;
 			}
 		}
 	}
@@ -4480,7 +4477,24 @@ GF_Err gf_isom_remove_track_references(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
+GF_Err gf_isom_remove_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 ref_type)
+{
+	GF_TrackBox *trak;
+	u32 i=0;
+	GF_TrackReferenceTypeBox *ref;
+	trak = gf_isom_get_track_from_file(isom_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
 
+	if (!trak->References) return GF_OK;
+	while ((ref = gf_list_enum(trak->References->child_boxes, &i))) {
+		if (ref->reference_type == ref_type) {
+			gf_isom_box_del_parent(&trak->References->child_boxes, (GF_Box *)ref);
+			break;
+		}
+	}
+	return GF_OK;
+
+}
 
 //changes track ID
 GF_EXPORT

@@ -1117,6 +1117,24 @@ s32 gf_isom_get_reference_count(GF_ISOFile *movie, u32 trackNumber, u32 referenc
 }
 
 
+//Return the number of track references of a track for a given ReferenceType
+//return 0 if error
+GF_EXPORT
+const GF_ISOTrackID *gf_isom_enum_track_references(GF_ISOFile *movie, u32 trackNumber, u32 idx, u32 *referenceType, u32 *referenceCount)
+{
+	GF_TrackBox *trak;
+	GF_TrackReferenceTypeBox *dpnd;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return NULL;
+	if (!trak->References) return NULL;
+	dpnd = gf_list_get(trak->References->child_boxes, idx);
+	if (!dpnd) return NULL;
+	*referenceType = dpnd->reference_type;
+	*referenceCount = dpnd->trackIDCount;
+	return dpnd->trackIDs;
+}
+
+
 //Return the referenced track number for a track and a given ReferenceType and Index
 //return -1 if error, 0 if the reference is a NULL one, or the trackNumber
 GF_EXPORT
