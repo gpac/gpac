@@ -1846,8 +1846,12 @@ sample_entry_setup:
 		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
 
 		//not yet known
-		if (!dsi) return GF_OK;
+		if (!dsi && !enh_dsi) return GF_OK;
 
+		if (!dsi) {
+			dsi = enh_dsi;
+			enh_dsi = NULL;
+		}
 		tkw->avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
 		if (needs_sample_entry) {
@@ -3932,6 +3936,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_SEGMENTS);
 		if (p && (p->value.uint>nb_segments))
 			nb_segments = p->value.uint;
+
+		if (!ctx->dash_mode)
+			gf_isom_purge_track_reference(ctx->file, tkw->track_num);
 	}
 
 	if (max_dur.num) {
@@ -5351,6 +5358,8 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			gf_isom_update_edit_list_duration(ctx->file, tkw->track_num);
 		}
 
+		gf_isom_purge_track_reference(ctx->file, tkw->track_num);
+		
 		if (ctx->importer && ctx->idur.num && ctx->idur.den) {
 			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 			u64 pdur = gf_isom_get_track_duration(ctx->file, tkw->track_num);

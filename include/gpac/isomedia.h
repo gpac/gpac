@@ -1813,6 +1813,13 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 r
 */
 GF_Err gf_isom_remove_track_references(GF_ISOFile *isom_file, u32 trackNumber);
 
+/*! removes any track reference poiting to a non-existing track
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return error if any
+*/
+GF_Err gf_isom_purge_track_reference(GF_ISOFile *isom_file, u32 trackNumber);
+
 /*! removes all track references of a given type
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -2609,7 +2616,7 @@ the specific codec (equivalent to 0xFF value in MPEG profiles)
 \param ProfileLevel the profile and level value to set
 \return error if any
 */
-GF_Err gf_isom_set_pl_indication(GF_ISOFile *isom_file, u8 PL_Code, GF_ISOProfileLevelType ProfileLevel);
+GF_Err gf_isom_set_pl_indication(GF_ISOFile *isom_file, GF_ISOProfileLevelType PL_Code, u8 ProfileLevel);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! sets the rootOD ID of the movie if you need it. By default, movies are created without root ODs
