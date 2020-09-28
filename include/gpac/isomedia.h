@@ -1096,6 +1096,16 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *isom_file, u32 trackNumber,
 */
 u32 gf_isom_get_sample_from_dts(GF_ISOFile *isom_file, u32 trackNumber, u64 dts);
 
+
+/*! enumerates the type and references IDs of a track
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param idx 0-based index of reference to query
+\param referenceType set to the four character code of the reference entry
+\param referenceCount set to the number of track ID references for  the reference entry
+\return list of track IDs, NULL if no references - do NOT modify !*/
+const GF_ISOTrackID *gf_isom_enum_track_references(GF_ISOFile *isom_file, u32 trackNumber, u32 idx, u32 *referenceType, u32 *referenceCount);
+
 /*! get the number of track references of a track for a given ReferenceType
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -1802,6 +1812,14 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 r
 \return error if any
 */
 GF_Err gf_isom_remove_track_references(GF_ISOFile *isom_file, u32 trackNumber);
+
+/*! removes all track references of a given type
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param ref_type the reference type to remove
+\return error if any
+*/
+GF_Err gf_isom_remove_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 ref_type);
 
 /*! sets track handler name.
 \param isom_file the target ISO file

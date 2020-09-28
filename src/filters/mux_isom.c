@@ -1090,6 +1090,14 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			if (!tkw->track_num) {
 				tkw->track_num = gf_isom_new_track_from_template(ctx->file, 0, mtype, tkw->tk_timescale, p->value.data.ptr, p->value.data.size, udta_only);
 			}
+			//purge all track references we inject internally
+			if (tkw->track_num) {
+				gf_isom_remove_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_SCAL);
+				gf_isom_remove_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_SABT);
+				gf_isom_remove_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_TBAS);
+				gf_isom_remove_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_OREF);
+				gf_isom_remove_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_BASE);
+			}
 
 			if (!ctx->btrt) {
 				gf_isom_update_bitrate(ctx->file, tkw->track_num, 0, 0, 0, 0);
@@ -4548,6 +4556,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to start new fragment: %s\n", gf_error_to_string(e) ));
 				return e;
 			}
+			gf_isom_set_next_moof_number(ctx->file, ctx->msn);
+			ctx->msn++;
 			if (ctx->sdtp_traf)
 				gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, ctx->sdtp_traf);
 		}
