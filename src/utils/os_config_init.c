@@ -572,7 +572,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	if (!moddir_found) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] default modules not found\n"));
 	} else {
-		gf_cfg_set_key(cfg, "core", "mod-dirs", szPath);
+		gf_cfg_set_key(cfg, "core", "module-dir", szPath);
 	}
 
 #if defined(GPAC_CONFIG_IOS)
@@ -717,16 +717,16 @@ static void check_modules_dir(GF_Config *cfg)
 	const char *opt;
 
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
-		opt = gf_cfg_get_key(cfg, "core", "mod-dirs");
+		opt = gf_cfg_get_key(cfg, "core", "module-dir");
 		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
 #if defined(__DARWIN__) || defined(__APPLE__)
 		if (!opt || strcmp(opt, path))
-			gf_cfg_set_key(cfg, "core", "mod-dirs", path);
+			gf_cfg_set_key(cfg, "core", "module-dir", path);
 #else
 
 		//otherwise only check we didn't switch between a 64 bit version and a 32 bit version
 		if (!opt) {
-			gf_cfg_set_key(cfg, "core", "mod-dirs", path);
+			gf_cfg_set_key(cfg, "core", "module-dir", path);
 		} else  {
 			Bool erase_modules_dir = GF_FALSE;
 			const char *opt64 = gf_cfg_get_key(cfg, "core", "64bits");
@@ -751,7 +751,7 @@ static void check_modules_dir(GF_Config *cfg)
 			gf_cfg_set_key(cfg, "core", "64bits", opt64);
 
 			if (erase_modules_dir) {
-				gf_cfg_set_key(cfg, "core", "mod-dirs", path);
+				gf_cfg_set_key(cfg, "core", "module-dir", path);
 			}
 		}
 #endif
@@ -1075,7 +1075,7 @@ GF_GPACArg GPAC_Args[] = {
 
  GF_DEF_ARG("strict-error", "se", "exit after the first error is reported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("store-dir", NULL, "set storage directory", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("mod-dirs", NULL, "set module directories", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("mod-dirs", NULL, "set additional module directories as a semi-colon `;` separated list", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("js-dirs", NULL, "set javascript directories", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-js-mods", NULL, "disable javascript module loading", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("ifce", NULL, "set default multicast interface through interface IP address", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
@@ -1307,6 +1307,8 @@ Bool gf_sys_set_cfg_option(const char *opt_string)
 	return GF_TRUE;
 }
 
+void gf_module_reload_dirs();
+
 Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e)
 {
 	const GF_GPACArg *arg = NULL;
@@ -1353,8 +1355,12 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 		*consumed_next = GF_TRUE;
 		if (!val && (arg->type==GF_ARG_BOOL))
 			gf_opts_set_key("temp", arg->name, "true");
-		else
+		else {
 			gf_opts_set_key("temp", arg->name, val);
+			if (!strcmp(arg->name, "mod-dirs")) {
+				gf_module_reload_dirs();
+			}
+		}
 	}
 	return GF_TRUE;
 }

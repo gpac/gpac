@@ -63,7 +63,7 @@ typedef struct
 struct __tag_mod_man
 {
 	/*location of the modules*/
-	const char* dirs[MAX_MODULE_DIRS];
+	char* dirs[MAX_MODULE_DIRS];
 	u32 num_dirs;
 	GF_List *plug_list;
 	GF_Config *cfg;

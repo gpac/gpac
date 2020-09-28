@@ -372,8 +372,8 @@ const char *gpac_doc =
 "This will dump first service in dump_10.ts, second service in dump_12.ts, etc...\n"
 "# External filters\n"
 "GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in "
-"folders listed in [-mod-dirs](CORE) option. The files shall be named `gf_*` and shall export"
-" a single function returning a filter register - see [libgpac documentation](https://doxygen.gpac.io/) for more details.\n"
+"default module folder or folders listed in [-mod-dirs](CORE) option. The files shall be named `gf_*` and shall export"
+" a single function `RegisterFilter` returning a filter register - see [libgpac documentation](https://doxygen.gpac.io/) for more details.\n"
 "\n";
 #endif
 
