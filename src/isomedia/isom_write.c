@@ -461,7 +461,7 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 
 
 GF_EXPORT
-GF_Err gf_isom_set_pl_indication(GF_ISOFile *movie, u8 PL_Code, GF_ISOProfileLevelType ProfileLevel)
+GF_Err gf_isom_set_pl_indication(GF_ISOFile *movie, GF_ISOProfileLevelType PL_Code, u8 ProfileLevel)
 {
 	GF_IsomInitialObjectDescriptor *iod;
 	GF_Err e;
@@ -492,6 +492,8 @@ GF_Err gf_isom_set_pl_indication(GF_ISOFile *movie, u8 PL_Code, GF_ISOProfileLev
 		break;
 	case GF_ISOM_PL_INLINE:
 		iod->inlineProfileFlag = ProfileLevel ? 1 : 0;
+		break;
+	default:
 		break;
 	}
 	return GF_OK;
@@ -4419,47 +4421,41 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 	return reftype_AddRefTrack(dpnd, ReferencedTrackID, NULL);
 }
 
-//removes a track reference
-#if 0 //unused
-GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferenceIndex)
+GF_EXPORT
+GF_Err gf_isom_purge_track_reference(GF_ISOFile *the_file, u32 trackNumber)
 {
-	GF_Err e;
 	GF_TrackBox *trak;
-	GF_TrackReferenceBox *tref;
-	GF_TrackReferenceTypeBox *dpnd;
-	u32 i, k, *newIDs;
+	GF_TrackReferenceTypeBox *ref;
+	u32 i=0;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !ReferenceIndex) return GF_BAD_PARAM;
+	if (!trak) return GF_BAD_PARAM;
 
 	//no tref, nothing to remove
-	tref = trak->References;
-	if (!tref) return GF_OK;
-	//find a ref of the given type otherwise return
-	e = Track_FindRef(trak, referenceType, &dpnd);
-	if (e || !dpnd) return GF_OK;
-	//remove the ref
-	if (ReferenceIndex > dpnd->trackIDCount) return GF_BAD_PARAM;
-	//last one
-	if (dpnd->trackIDCount==1) {
-		gf_isom_box_del_parent(&tref->child_boxes, (GF_Box *) dpnd);
-		return GF_OK;
-	}
-	k = 0;
-	newIDs = (u32*)gf_malloc(sizeof(u32)*(dpnd->trackIDCount-1));
-	if (!newIDs) return GF_OUT_OF_MEM;
+	if (!trak->References) return GF_OK;
 
-	for (i=0; i<dpnd->trackIDCount; i++) {
-		if (i+1 != ReferenceIndex) {
-			newIDs[k] = dpnd->trackIDs[i];
-			k++;
+	while ((ref = gf_list_enum(trak->References->child_boxes, &i))) {
+		u32 k;
+		if (!ref->reference_type) continue;
+
+		for (k=0; k<ref->trackIDCount; k++) {
+			u32 tk = gf_isom_get_track_by_id(the_file, ref->trackIDs[k]);
+			if (!tk) {
+				memmove(&ref->trackIDs[k], &ref->trackIDs[k+1], ref->trackIDCount-k-1);
+				k--;
+				ref->trackIDCount--;
+			}
+		}
+		if (!ref->trackIDCount) {
+			i--;
+			gf_isom_box_del_parent(&trak->References->child_boxes, (GF_Box *) ref);
 		}
 	}
-	gf_free(dpnd->trackIDs);
-	dpnd->trackIDCount -= 1;
-	dpnd->trackIDs = newIDs;
+	if (!trak->References->child_boxes || !gf_list_count(trak->References->child_boxes)) {
+		gf_isom_box_del_parent(&trak->child_boxes, (GF_Box *) trak->References);
+		trak->References = NULL;
+	}
 	return GF_OK;
 }
-#endif
 
 //sets a track reference
 GF_EXPORT
