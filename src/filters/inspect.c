@@ -93,7 +93,7 @@ typedef struct
 	Double speed, start;
 	u32 test;
 	GF_Fraction dur;
-	Bool dump_crc, dtype;
+	Bool crc, dtype;
 	Bool fftmcd;
 
 	FILE *dump;
@@ -2058,7 +2058,7 @@ props_done:
 				break;
 			} else {
 				gf_fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
-				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->dump_crc, pctx->is_cenc_protected, pctx);
+				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->crc, pctx->is_cenc_protected, pctx);
 				gf_fprintf(dump, "/>\n");
 			}
 			idx++;
@@ -2078,7 +2078,7 @@ props_done:
 				break;
 			}
 
-			gf_inspect_dump_obu(dump, pctx->av1_state, (char *) data, obu_size, obu_type, obu_size, hdr_size, ctx->dump_crc);
+			gf_inspect_dump_obu(dump, pctx->av1_state, (char *) data, obu_size, obu_type, obu_size, hdr_size, ctx->crc);
 			data += obu_size;
 			size -= (u32)obu_size;
 			idx++;
@@ -2129,7 +2129,7 @@ props_done:
 		case GF_CODECID_APCS:
 		case GF_CODECID_AP4X:
 		case GF_CODECID_AP4H:
-			gf_inspect_dump_prores_internal(dump, (char *) data, size, ctx->dump_crc, pctx);
+			gf_inspect_dump_prores_internal(dump, (char *) data, size, ctx->crc, pctx);
 			break;
 
 		case GF_CODECID_MPHA:
@@ -2138,7 +2138,7 @@ props_done:
 			break;
 
 		case GF_CODECID_MHAS:
-			gf_inspect_dump_mhas(dump, (char *) data, size, ctx->dump_crc, pctx);
+			gf_inspect_dump_mhas(dump, (char *) data, size, ctx->crc, pctx);
 			break;
 
 		}
@@ -2153,7 +2153,7 @@ props_done:
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			gf_fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->dump_crc, GF_FALSE, pctx);\
+			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->crc, GF_FALSE, pctx);\
 			gf_fprintf(dump, "/>\n");\
 		}\
 		gf_fprintf(dump, "  </%sArray>\n", name);\
@@ -2486,7 +2486,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 				gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
 
 			gf_media_aom_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
-			gf_inspect_dump_obu(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->dump_crc);
+			gf_inspect_dump_obu(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc);
 			idx++;
 		}
 #endif
@@ -2890,6 +2890,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
 	{ OFFS(analyze), "analyze sample content (NALU, OBU)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(crc), "dump crc of packets, NALU and OBU", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(dtype), "dump property type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
