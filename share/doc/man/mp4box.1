@@ -537,11 +537,31 @@ Warning: This does not modify generated files location (see segment template).
 .br
 * :trackID=N: only use the track ID N from the source file
 .br
-* @@f1[:args][@@fN:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set, they will be chained in the given order.
+* @f1[:args][@fN:args][@@fK:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set:
+.br
+  - they will be chained in the given order if separated by a single @
+.br
+  - a new filter chain will be created if separated by a double @@
+.br
+Example
+.br
+source.mp4:@enc:c=avc:b=1M@@enc:c=avc:b=500k
 .br
 
 .br
-Note: @@f must be placed after all other options.
+This will load a filter chain with two encoders connected to the source and to the dasher.
+.br
+Example
+.br
+source.mp4:@enc:c=avc:b=1M@enc:c=avc:b=500k
+.br
+
+.br
+This will load a filter chain with the second encoder connected to the output of the first (!!).
+.br
+
+.br
+Note: @f must be placed after all other options.
 .br
 
 .br
@@ -1726,13 +1746,13 @@ set OPTS as additional arguments to source filter. OPTS can be any usual filter 
 X set OPTS as additional arguments to destination filter. OPTS can be any usual filter argument, see filter doc `gpac -h doc`
 .br
 .TP
-.B @@f1[:args][@@fN:args]
+.B @f1[:args][@fN:args]
 .br
-set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified
+set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. A @@ separator starts a new chain (see DASH help). The last filter in each chain shall not have any ID specified
 .br
 
 .br
-Note: sopt, dopt and @@f must be placed after all other options.
+Note: sopt, dopt and @f must be placed after all other options.
 .br
 .SH Global import options
 .LP
@@ -2313,7 +2333,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev34-gb2fa5dc24-master
+build: 1.1.0-DEV-rev40-gc11d16918-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

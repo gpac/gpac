@@ -1303,9 +1303,23 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->filter_chain) {
 		GF_Filter *prev_filter=NULL;
 		char *fargs = (char *) importer->filter_chain;
+		char *sep1 = strstr(fargs, "@@");
+		char *sep2 = strstr(fargs, "@");
+		Bool old_syntax = GF_FALSE;
+		if (sep1 && sep2 && (sep1==sep2))
+			old_syntax = GF_TRUE;
+
 		while (fargs) {
 			GF_Filter *f;
-			char *sep = strstr(fargs, "@@");
+			char *sep;
+			Bool end_of_sub_chain = GF_FALSE;
+			if (old_syntax) {
+				sep = strstr(fargs, "@@");
+			} else {
+				sep = strstr(fargs, "@");
+				if (sep && (sep[1] == '@'))
+					end_of_sub_chain = GF_TRUE;
+			}
 			if (sep) sep[0] = 0;
 			f = gf_fs_load_filter(fsess, fargs, &e);
 			if (!f) {
@@ -1318,32 +1332,42 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			}
 			prev_filter = f;
 			if (!filter_orig) filter_orig = f;
+
+			if (!sep) end_of_sub_chain = GF_TRUE;
+			//we cannot directly set the source id in case we run in an existing session
+			if (end_of_sub_chain && prev_filter) {
+				const char *prev_id;
+				if (importer->trackID) {
+					if (gf_filter_get_id(prev_filter)) {
+						if (!importer->run_in_session)
+							gf_fs_del(fsess);
+						return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] last filter in chain cannot use filter ID (%s)", fargs);
+					}
+					gf_filter_assign_id(prev_filter, szFilterID);
+					source_id_set=GF_TRUE;
+				}
+				prev_id = gf_filter_get_id(prev_filter);
+				if (!prev_id) {
+					gf_filter_assign_id(prev_filter, NULL);
+					prev_id = gf_filter_get_id(prev_filter);
+				}
+				if (importer->run_in_session) {
+					gf_dynstrcat(&importer->update_mux_args, ":SID=", NULL);
+					gf_dynstrcat(&importer->update_mux_args, prev_id, NULL);
+				} else {
+					assert(isobmff_mux);
+					gf_filter_set_source(isobmff_mux, prev_filter, NULL);
+				}
+				prev_filter = NULL;
+			}
+
 			if (!sep) break;
 			sep[0] = '@';
-			fargs = sep+2;
-		}
-		if (prev_filter) {
-			const char *prev_id;
-			if (importer->trackID) {
-				if (gf_filter_get_id(prev_filter)) {
-					if (!importer->run_in_session)
-						gf_fs_del(fsess);
-					return gf_import_message(importer, GF_FILTER_NOT_FOUND, "[Importer] last filter in chain cannot use filter ID (%s)", fargs);
-				}
-				gf_filter_assign_id(prev_filter, szFilterID);
-				source_id_set=GF_TRUE;
-			}
-			prev_id = gf_filter_get_id(prev_filter);
-			if (!prev_id) {
-				gf_filter_assign_id(prev_filter, NULL);
-				prev_id = gf_filter_get_id(prev_filter);
-			}
-			if (importer->run_in_session) {
-				gf_dynstrcat(&importer->update_mux_args, ":SID=", NULL);
-				gf_dynstrcat(&importer->update_mux_args, prev_id, NULL);
+
+			if (old_syntax || end_of_sub_chain) {
+				fargs = sep+2;
 			} else {
-				assert(isobmff_mux);
-				gf_filter_set_source(isobmff_mux, prev_filter, NULL);
+				fargs = sep+1;
 			}
 		}
 	}

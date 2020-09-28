@@ -648,18 +648,21 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			print_stats_graph |= 1;
 		else if (!stricmp(ext+1, "fgraph"))
 			print_stats_graph |= 2;
-		else if (!strncmp(ext+1, "sopt", 4) || !strncmp(ext+1, "dopt", 4) || !strncmp(ext+1, "@@", 2)) {
+		else if (!strncmp(ext+1, "sopt", 4) || !strncmp(ext+1, "dopt", 4) || !strncmp(ext+1, "@", 1)) {
 			if (ext2) ext2[0] = ':';
 			opt_src = strstr(ext, ":sopt:");
 			opt_dst = strstr(ext, ":dopt:");
-			fchain = strstr(ext, ":@@");
+			fchain = strstr(ext, ":@");
 			if (opt_src) opt_src[0] = 0;
 			if (opt_dst) opt_dst[0] = 0;
 			if (fchain) fchain[0] = 0;
 
 			if (opt_src) import.filter_src_opts = opt_src+6;
 			if (opt_dst) import.filter_dst_opts = opt_dst+6;
-			if (fchain) import.filter_chain = fchain+3;
+			if (fchain) {
+				//check for old syntax (0.9->1.0) :@@
+				import.filter_chain = fchain + ((fchain[2]=='@') ? 3 : 2);
+			}
 
 			ext = NULL;
 			break;

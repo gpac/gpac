@@ -167,6 +167,8 @@ analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
 .br
+crc (bool, default: false, updatable): dump crc of packets, NALU and OBU
+.br
 fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
 dtype (bool, default: false, updatable): dump property type
@@ -246,6 +248,8 @@ dur (frac, default: 0/0):      set inspect duration
 analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
+.br
+crc (bool, default: false, updatable): dump crc of packets, NALU and OBU
 .br
 fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
@@ -6164,7 +6168,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev34-gb2fa5dc24-master
+build: 1.1.0-DEV-rev40-gc11d16918-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -551,7 +551,7 @@ set storage directory
 .TP
 .B \-mod-dirs (string list)
 .br
-set module directories
+set additional module directories as a semi-colon ; separated list
 .br
 .TP
 .B \-js-dirs (string list)
@@ -1789,7 +1789,7 @@ This will dump first service in dump_10.ts, second service in dump_12.ts, etc...
 .SH External filters
 .LP
 .br
-GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in folders listed in .I -mod-dirs option. The files shall be named gf_* and shall export a single function returning a filter register - see libgpac documentation for more details.
+GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in default module folder or folders listed in .I -mod-dirs option. The files shall be named gf_* and shall export a single function RegisterFilter returning a filter register - see libgpac documentation for more details.
 .br
 
 .br
@@ -1917,6 +1917,11 @@ UTF-8 string list
 .B uintl
 .br
 unsigned 32 bit integer list
+.br
+.TP
+.B sintl
+.br
+signed 32 bit integer list
 .br
 
 .br
@@ -3751,7 +3756,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev34-gb2fa5dc24-master
+build: 1.1.0-DEV-rev40-gc11d16918-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

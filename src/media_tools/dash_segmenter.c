@@ -1041,10 +1041,25 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		//filter chain
 		GF_Filter *prev_filter=src;
 		char *fargs = (char *) di->filter_chain;
+		char *sep1 = strstr(fargs, "@@");
+		char *sep2 = strstr(fargs, "@");
+		Bool old_syntax = GF_FALSE;
+		if (sep1 && sep2 && (sep1==sep2))
+			old_syntax = GF_TRUE;
+
 		while (fargs) {
 			GF_Filter *f;
-			char *sep = strstr(fargs, "@@");
+			char *sep;
+			Bool end_of_sub_chain = GF_FALSE;
+			if (old_syntax) {
+				sep = strstr(fargs, "@@");
+			} else {
+				sep = strstr(fargs, "@");
+				if (sep && (sep[1] == '@'))
+					end_of_sub_chain = GF_TRUE;
+			}
 			if (sep) sep[0] = 0;
+
 			f = gf_fs_load_filter(dasher->fsess, fargs, &e);
 			if (!f) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load filter %s: %s\n", fargs, gf_error_to_string(e) ));
@@ -1056,7 +1071,15 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			prev_filter = f;
 			if (!sep) break;
 			sep[0] = '@';
-			fargs = sep+2;
+			if (old_syntax || end_of_sub_chain) {
+				fargs = sep+2;
+				if (end_of_sub_chain && prev_filter) {
+					gf_filter_set_source(dasher->output, prev_filter, NULL);
+					prev_filter = src;
+				}
+			} else {
+				fargs = sep+1;
+			}
 		}
 		if (prev_filter) {
 			gf_filter_set_source(dasher->output, prev_filter, NULL);
