@@ -834,6 +834,7 @@ static GF_FilterArgs CompositorArgs[] =
 	"", GF_PROP_UINT, "none", "none|point|strip", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nbviews), "number of views to use in stereo mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(stereo), "stereo output type. If your graphic card does not support OpenGL shaders, only `top` and `side` modes will be available\n"\
+		"- none: no stereo\n"\
 		"- side: images are displayed side by side from left to right\n"\
 		"- top: images are displayed from top (laft view) to bottom (right view)\n"\
 		"- hmd: same as side except that view aspect ratio is not changed\n"\

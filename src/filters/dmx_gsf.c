@@ -351,10 +351,19 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		break;
 
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_SINT_LIST:
 		p->value.uint_list.nb_items = len = gsfdmx_read_vlen(bs);
 		p->value.uint_list.vals = gf_malloc(sizeof(u32)*len);
 		for (i=0; i<len; i++) {
 			p->value.uint_list.vals[i] = gsfdmx_read_vlen(bs);
+		}
+		break;
+	case GF_PROP_VEC2I_LIST:
+		p->value.v2i_list.nb_items = len = gsfdmx_read_vlen(bs);
+		p->value.v2i_list.vals = gf_malloc(sizeof(GF_PropVec2i)*len);
+		for (i=0; i<len; i++) {
+			p->value.v2i_list.vals[i].x = gsfdmx_read_vlen(bs);
+			p->value.v2i_list.vals[i].y = gsfdmx_read_vlen(bs);
 		}
 		break;
 	case GF_PROP_POINTER:
@@ -793,8 +802,10 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			}
 			gf_filter_pck_set_property_dyn(gpck->pck, pname, &p);
 			gf_free(pname);
-			if ((p.type==GF_PROP_UINT_LIST) && p.value.uint_list.vals)
-				gf_free(p.value.uint_list.vals);
+			if ((p.type==GF_PROP_UINT_LIST) || (p.type==GF_PROP_SINT_LIST) || (p.type==GF_PROP_VEC2I_LIST) ) {
+				if (p.value.uint_list.vals)
+					gf_free(p.value.uint_list.vals);
+			}
 		}
 	}
 

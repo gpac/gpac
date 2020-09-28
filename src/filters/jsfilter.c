@@ -535,7 +535,22 @@ JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
 	case GF_PROP_UINT_LIST:
 		res = JS_NewArray(ctx);
 		for (i=0; i<new_val->value.uint_list.nb_items; i++) {
-        	JS_SetPropertyUint32(ctx, res, i, JS_NewInt32(ctx, new_val->value.uint_list.vals[i]) );
+        	JS_SetPropertyUint32(ctx, res, i, JS_NewInt64(ctx, new_val->value.uint_list.vals[i]) );
+		}
+		return res;
+	case GF_PROP_SINT_LIST:
+		res = JS_NewArray(ctx);
+		for (i=0; i<new_val->value.sint_list.nb_items; i++) {
+        	JS_SetPropertyUint32(ctx, res, i, JS_NewInt32(ctx, new_val->value.sint_list.vals[i]) );
+		}
+		return res;
+	case GF_PROP_VEC2I_LIST:
+		res = JS_NewArray(ctx);
+		for (i=0; i<new_val->value.v2i_list.nb_items; i++) {
+			JSValue item = JS_NewObject(ctx);
+			JS_SetPropertyStr(ctx, item, "x", JS_NewInt32(ctx, new_val->value.v2i_list.vals[i].x));
+			JS_SetPropertyStr(ctx, item, "y", JS_NewInt32(ctx, new_val->value.v2i_list.vals[i].y));
+        	JS_SetPropertyUint32(ctx, res, i, item);
 		}
 		return res;
 	case GF_PROP_STRING_LIST:
@@ -3914,6 +3929,8 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_PROP_POINTER)
 	DEF_CONST(GF_PROP_STRING_LIST)
 	DEF_CONST(GF_PROP_UINT_LIST)
+	DEF_CONST(GF_PROP_SINT_LIST)
+	DEF_CONST(GF_PROP_VEC2I_LIST)
 
 
 	DEF_CONST(GF_FEVT_PLAY)

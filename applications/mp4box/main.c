@@ -1106,6 +1106,8 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 					break;
 				case GF_PROP_STRING_LIST:
 				case GF_PROP_UINT_LIST:
+				case GF_PROP_SINT_LIST:
+				case GF_PROP_VEC2I_LIST:
 					an_arg.type = GF_ARG_STRINGS;
 					break;
 				default:

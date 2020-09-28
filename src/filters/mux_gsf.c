@@ -415,10 +415,19 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 		break;
 
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_SINT_LIST:
 		len = p->value.uint_list.nb_items;
 		gsfmx_write_vlen(ctx, len);
 		for (i=0; i<len; i++) {
 			gsfmx_write_vlen(ctx, p->value.uint_list.vals[i] );
+		}
+		break;
+	case GF_PROP_VEC2I_LIST:
+		len = p->value.v2i_list.nb_items;
+		gsfmx_write_vlen(ctx, len);
+		for (i=0; i<len; i++) {
+			gsfmx_write_vlen(ctx, p->value.v2i_list.vals[i].x );
+			gsfmx_write_vlen(ctx, p->value.v2i_list.vals[i].y );
 		}
 		break;
 	case GF_PROP_POINTER:

@@ -715,6 +715,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_SINGLE_SCALE, ds->sscale, GF_EOS)
 
+		if (!ds->src_url)
+			ds->src_url = "file";
 		ds->startNumber = 1;
 		CHECK_PROP(GF_PROP_PID_START_NUMBER, ds->startNumber, GF_EOS)
 		ds->dash_dur = ctx->segdur;
@@ -2635,10 +2637,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
 			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_FILEPATH);
-			if (gf_props_equal(p1, p2)) split_rep_names = GF_TRUE;
+			if (p1 && p2 && gf_props_equal(p1, p2)) split_rep_names = GF_TRUE;
+			else if (!p1 && !p2) split_rep_names = GF_TRUE;
 			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
 			p2 = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_URL);
-			if (gf_props_equal(p1, p2)) split_rep_names = GF_TRUE;
+			if (p1 && p2 && gf_props_equal(p1, p2)) split_rep_names = GF_TRUE;
+			else if (!p1 && !p2) split_rep_names = GF_TRUE;
 
 			if (split_rep_names) break;
 		}
@@ -7019,6 +7023,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- ts: uses MPEG-2 TS format\n"
 		"- mkv: uses Matroska format\n"
 		"- webm: uses WebM format\n"
+		"- ogg: uses OGG format\n"
 		"- raw: uses raw media format (disables muxed representations)\n"
 		"- auto: guess format based on extension, default to mp4 if no extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
 	{ OFFS(asto), "availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},

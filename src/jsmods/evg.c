@@ -5705,7 +5705,9 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	if (!argc) return JS_UNDEFINED;
 
 	txt->font = gf_font_manager_set_font(txt->fm, &txt->fontname, 1, txt->styles);
-	if (!txt->font) return js_throw_err_msg(c, GF_NOT_FOUND, "Font %s not found and no default font available - check your GPAC configuration", txt->fontname);
+	if (!txt->font)
+		return js_throw_err_msg(c, GF_NOT_FOUND, "Font %s not found and no default font available!\n"
+			"Check your GPAC configuration, or use `-rescan-fonts` to refresh font directory.\n", txt->fontname);
 
 	for (i=0; i<argc; i++) {
 		if (JS_IsArray(c, argv[i])) {

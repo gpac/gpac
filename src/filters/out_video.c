@@ -143,7 +143,16 @@ typedef struct
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
 
+
 #ifdef VOUT_USE_OPENGL
+
+static void vout_make_gl_current(GF_VideoOutCtx *ctx)
+{
+	GF_Event evt;
+	evt.type = GF_EVENT_SET_GL;
+	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+}
+
 static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {
 	GLint blen = 0;
@@ -478,6 +487,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
 	
+	vout_make_gl_current(ctx);
 	DEL_SHADER(ctx->vertex_shader);
 	DEL_SHADER(ctx->fragment_shader);
 	DEL_PROGRAM(ctx->glsl_program );
@@ -845,7 +855,6 @@ static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterfac
 static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 {
 	char *data;
-	GF_Event evt;
 	GF_Matrix mx;
 	Float hw, hh;
 	u32 wsize;
@@ -853,9 +862,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	if (!ctx->glsl_program) return;
 
-	memset(&evt, 0, sizeof(GF_Event));
-	evt.type = GF_EVENT_SET_GL;
-	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	vout_make_gl_current(ctx);
 
 	if (ctx->display_changed) {
 		//if we fill width to display width and height is outside

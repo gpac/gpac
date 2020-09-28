@@ -711,6 +711,9 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 		}
 		break;
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_SINT_LIST:
+	case GF_PROP_VEC2I_LIST:
+		//use uint_list as base type for lists
 		if (a->offset_in_private + sizeof(void *) <= filter->freg->private_size) {
 			GF_PropUIntList *l = (GF_PropUIntList *)ptr;
 			if (l->vals) gf_free(l->vals);
@@ -3429,7 +3432,10 @@ static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, 
 		case GF_PROP_STRING_LIST:
 			p.value.string_list = * (GF_List **) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
+		//use uint_list as base type for lists
 		case GF_PROP_UINT_LIST:
+		case GF_PROP_SINT_LIST:
+		case GF_PROP_VEC2I_LIST:
 			p.value.uint_list = * (GF_PropUIntList *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_PIXFMT:

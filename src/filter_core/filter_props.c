@@ -415,12 +415,14 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	}
 		break;
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_SINT_LIST:
+	case GF_PROP_VEC2I_LIST:
 	{
 		char *v = (char *) value;
 		if (!list_sep_char) list_sep_char = ',';
 		while (v && v[0]) {
 			char szV[100];
-			u32 val_uint=0, len=0;
+			u32 len=0;
 			char *sep = strchr(v, list_sep_char);
 			if (sep) {
 				len = (u32) (sep - v);
@@ -430,9 +432,25 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			if (len>=99) len=99;
 			strncpy(szV, v, len);
 			szV[len] = 0;
-			sscanf(szV, "%u", &val_uint);
-			p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
-			p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+			if (p.type == GF_PROP_UINT_LIST) {
+				u32 val_uint;
+				sscanf(szV, "%u", &val_uint);
+				p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
+				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+			} else if (p.type == GF_PROP_SINT_LIST) {
+				s32 val_int;
+				sscanf(szV, "%d", &val_int);
+				p.value.sint_list.vals = gf_realloc(p.value.sint_list.vals, (p.value.sint_list.nb_items+1) * sizeof(u32));
+				p.value.sint_list.vals[p.value.sint_list.nb_items] = val_int;
+			} else {
+				s32 v1=0, v2=0;
+				if (sscanf(szV, "%dx%d", &v1, &v2) != 2) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s[%d] - using {0,0}\n", value, name, p.value.v2i_list.nb_items));
+				}
+				p.value.v2i_list.vals = gf_realloc(p.value.v2i_list.vals, (p.value.v2i_list.nb_items+1) * sizeof(GF_PropVec2i));
+				p.value.v2i_list.vals[p.value.v2i_list.nb_items].x = v1;
+				p.value.v2i_list.vals[p.value.v2i_list.nb_items].y = v2;
+			}
 			p.value.uint_list.nb_items++;
 			if (!sep) break;
 			v = sep+1;
@@ -548,12 +566,16 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		return GF_TRUE;
 	}
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_SINT_LIST:
+	case GF_PROP_VEC2I_LIST:
 	{
-		u32 i;
+		size_t it_size = sizeof(u32);
+		if (p1->type==GF_PROP_UINT_LIST) it_size = sizeof(u32);
+		else if (p1->type==GF_PROP_SINT_LIST) it_size = sizeof(s32);
+		else if (p1->type==GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
+		//use uint list for checking
 		if (p1->value.uint_list.nb_items != p2->value.uint_list.nb_items) return GF_FALSE;
-		for (i=0; i<p1->value.uint_list.nb_items; i++) {
-			if (p1->value.uint_list.vals[i] != p2->value.uint_list.vals[i]) return GF_FALSE;
-		}
+		if (memcmp(p1->value.uint_list.vals, p2->value.uint_list.vals, it_size * p1->value.uint_list.nb_items)) return GF_FALSE;
 		return GF_TRUE;
 	}
 
@@ -618,7 +640,8 @@ void gf_props_reset_single(GF_PropertyValue *p)
 		p->value.data.ptr = NULL;
 		p->value.data.size = 0;
 	}
-	else if (p->type==GF_PROP_UINT_LIST) {
+	//use uint_list as base type for list
+	else if ((p->type==GF_PROP_UINT_LIST) || (p->type==GF_PROP_SINT_LIST) || (p->type==GF_PROP_VEC2I_LIST)) {
 		gf_free(p->value.uint_list.vals);
 		p->value.uint_list.vals = NULL;
 		p->value.uint_list.nb_items = 0;
@@ -659,8 +682,8 @@ void gf_props_del_property(GF_PropertyEntry *it)
 			}
 			gf_list_del(l);
 		}
-		//string list are destroyed
-		else if (it->prop.type==GF_PROP_UINT_LIST) {
+		//use uint_list as base type for list
+		else if ((it->prop.type==GF_PROP_UINT_LIST) || (it->prop.type==GF_PROP_SINT_LIST) || (it->prop.type==GF_PROP_VEC2I_LIST)) {
 			if (it->prop.value.uint_list.vals)
 				gf_free(it->prop.value.uint_list.vals);
 			it->prop.value.uint_list.nb_items = 0;
@@ -812,9 +835,14 @@ static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue
 		prop->alloc_size = value->value.data.size;
 		assert(prop->alloc_size);
 	}
-	else if (prop->prop.type == GF_PROP_UINT_LIST) {
-		prop->prop.value.uint_list.vals = gf_malloc(sizeof(u32) * value->value.uint_list.nb_items);
-		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, sizeof(u32) * value->value.uint_list.nb_items);
+	//use uint_list as base type for list
+	else if ((prop->prop.type == GF_PROP_UINT_LIST) || (prop->prop.type == GF_PROP_SINT_LIST) || (prop->prop.type == GF_PROP_VEC2I_LIST)) {
+		size_t it_size = sizeof(u32);
+		if (prop->prop.type == GF_PROP_UINT_LIST) it_size = sizeof(u32);
+		else if (prop->prop.type == GF_PROP_SINT_LIST) it_size = sizeof(s32);
+		else if (prop->prop.type == GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
+		prop->prop.value.uint_list.vals = gf_malloc(it_size * value->value.uint_list.nb_items);
+		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, it_size * value->value.uint_list.nb_items);
 		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
 	}
 }
@@ -1065,7 +1093,9 @@ GF_PropTypeDef PropTypes[] =
 	{GF_PROP_PIXFMT, "pfmt", "raw pixel format"},
 	{GF_PROP_PCMFMT, "afmt", "raw audio format"},
 	{GF_PROP_STRING_LIST, "strl", "UTF-8 string list"},
-	{GF_PROP_UINT_LIST, "uintl", "unsigned 32 bit integer list"}
+	{GF_PROP_UINT_LIST, "uintl", "unsigned 32 bit integer list"},
+	{GF_PROP_SINT_LIST, "sintl", "signed 32 bit integer list"},
+	{GF_PROP_VEC2I_LIST, "v2il", "2D 32-bit integer vector list"}
 };
 
 GF_EXPORT
@@ -1177,6 +1207,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ALPHA, "Alpha", "Indicates the video in this pid is an alpha map", GF_PROP_BOOL},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "Bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_MAXRATE, "Maxrate", "Max bitrate in bps", GF_PROP_UINT},
+	{ GF_PROP_PID_TARGET_RATE, "TargetRate", "Target bitrate in bps, used to setup encoders", GF_PROP_UINT},
 	{ GF_PROP_PID_DBSIZE, "DBSize", "Decode buffer size in bytes", GF_PROP_UINT},
 	{ GF_PROP_PID_MEDIA_DATA_SIZE, "MediaDataSize", "Size in bytes of media data", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CAN_DATAREF, "DataRef", "Data referencing is possible (each compressed frame is a continuous set of bytes in source, with no transformation)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
@@ -1311,6 +1342,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_PLAY_BUFFER, "BufferLength", "Indicate playout buffer in ms", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MAX_BUFFER, "MaxBuffer", "Indicate maximum buffer occupancy in ms", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_RE_BUFFER, "ReBuffer", "Indicate rebuffer threshold in ms, 0 disable rebuffering", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+
+	{ GF_PROP_PID_VIEW_IDX, "ViewIdx", "Indicate view index for multiview (1 being left)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 };
 
 GF_EXPORT
@@ -1520,16 +1553,24 @@ const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_
 		return dump;
 	}
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_SINT_LIST:
+	case GF_PROP_VEC2I_LIST:
 	{
 		u32 i, count = att->value.uint_list.nb_items;
 		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
 		dump[len]=0;
 		for (i=0; i<count; i++) {
 			char szItem[1024];
-			if (is_4cc) {
-				sprintf(szItem, "%s", gf_4cc_to_str(att->value.uint_list.vals[i]) );
+			if (att->type==GF_PROP_UINT_LIST) {
+				if (is_4cc) {
+					sprintf(szItem, "%s", gf_4cc_to_str(att->value.uint_list.vals[i]) );
+				} else {
+					sprintf(szItem, "%u", att->value.uint_list.vals[i]);
+				}
+			} else if (att->type==GF_PROP_SINT_LIST) {
+				sprintf(szItem, "%d", att->value.sint_list.vals[i]);
 			} else {
-				sprintf(szItem, "%u", att->value.uint_list.vals[i]);
+				sprintf(szItem, "%dx%d", att->value.v2i_list.vals[i].x, att->value.v2i_list.vals[i].x);
 			}
 			if (!i) {
 				strncpy(dump, szItem, len);
@@ -1539,7 +1580,7 @@ const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_
 			}
 			len = GF_PROP_DUMP_ARG_SIZE - 1 - (u32) strlen(dump);
 			if (len<=1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Uint list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("List is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
 				return dump;
 			}
 		}
