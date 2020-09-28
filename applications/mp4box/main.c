@@ -362,9 +362,15 @@ void PrintDASHUsage()
 		"- :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.\n"
 		"- :sscale: force movie timescale to match media timescale of the first track in the segment.\n"
 		"- :trackID=N: only use the track ID N from the source file\n"
-		"- @@f1[:args][@@fN:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](filters_general). If several filters are set, they will be chained in the given order.\n"
+		"- @f1[:args][@fN:args][@@fK:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](filters_general). If several filters are set:\n"
+		"  - they will be chained in the given order if separated by a single `@`\n"
+		"  - a new filter chain will be created if separated by a double `@@`\n"
+		"EX source.mp4:@enc:c=avc:b=1M@@enc:c=avc:b=500k\n"
+		"This will load a filter chain with two encoders connected to the source and to the dasher.\n"
+		"EX source.mp4:@enc:c=avc:b=1M@enc:c=avc:b=500k\n"
+		"This will load a filter chain with the second encoder connected to the output of the first (!!).\n"
 		"\n"
-		"Note: `@@f` must be placed after all other options.\n"
+		"Note: `@f` must be placed after all other options.\n"
 		"\n"
 		"# Options\n"
 		);
@@ -521,7 +527,7 @@ static GF_GPACArg ImportFileOpts [] = {
 	GF_DEF_ARG("fgraph", NULL, "print filter session graph after import", NULL, NULL, GF_ARG_BOOL, 0),
 	{"sopt:[OPTS]", NULL, "set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
 	{"dopt:[OPTS]", NULL, "`X` set `OPTS` as additional arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
-	{"@@f1[:args][@@fN:args]", NULL, "set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). If several filters are set, they will be chained in the given order. The last filter shall not have any Filter ID specified"},
+	{"@f1[:args][@fN:args]", NULL, "set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). A `@@` separator starts a new chain (see DASH help). The last filter in each chain shall not have any ID specified"},
 	{0}
 };
 
@@ -567,7 +573,7 @@ void PrintImportUsage()
 	}
 
 	gf_sys_format_help(helpout, help_flags, "\n"
-		"Note: `sopt`, `dopt` and `@@f` must be placed after all other options.\n"
+		"Note: `sopt`, `dopt` and `@f` must be placed after all other options.\n"
 		"# Global import options\n"
 	);
 
@@ -1715,7 +1721,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			case META_ACTION_ADD_IMAGE_ITEM:
 			case META_ACTION_SET_XML:
 			case META_ACTION_DUMP_XML:
-				if (!strncmp(szSlot, "dopt", 4) || !strncmp(szSlot, "sopt", 4) || !strncmp(szSlot, "@@", 2)) {
+				if (!strncmp(szSlot, "dopt", 4) || !strncmp(szSlot, "sopt", 4) || !strncmp(szSlot, "@", 1)) {
 					if (next) next[0]=':';
 					next=NULL;
 				}
@@ -1929,7 +1935,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":tpl=", 5) ||
 				        !strnicmp(sep, ":hls=", 5) ||
 				        !strnicmp(sep, ":trackID=", 9) ||
-				        !strnicmp(sep, ":@@", 3)
+				        !strnicmp(sep, ":@", 2)
 				        ) {
 					break;
 				} else {
@@ -1943,7 +1949,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					sep = strchr(sep+1, ':');
 				}
 			}
-			if (sep && !strncmp(sep, "://", 3) && strnicmp(sep, ":@@", 3)) sep = gf_url_colon_suffix(sep+3);
+			if (sep && !strncmp(sep, "://", 3) && strncmp(sep, ":@", 2)) sep = gf_url_colon_suffix(sep+3);
 			if (sep) sep[0] = 0;
 
 			if (!strnicmp(opts, "id=", 3)) {
@@ -2004,8 +2010,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
 			else if (!strnicmp(opts, "hls=", 4)) di->hls_pl = gf_strdup(opts+4);
 			else if (!strnicmp(opts, "trackID=", 8)) di->track_id = atoi(opts+8);
-			else if (!strnicmp(opts, "@@", 2)) {
-				di->filter_chain = gf_strdup(opts+2);
+			else if (!strnicmp(opts, "@", 1)) {
+				di->filter_chain = gf_strdup(opts + ((opts[1]=='@') ? 2 : 1) );
 				if (sep) sep[0] = ':';
 				sep = NULL;
 			}
