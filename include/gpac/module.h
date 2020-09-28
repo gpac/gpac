@@ -211,15 +211,6 @@ Gets the number of modules found in the manager directory
 u32 gf_modules_count();
 
 /*!
-\brief get all modules directories
-
-Update module manager with all modules directories
-\param num_dirs the number of module directories
-\return The list of modules directories
- */
-const char **gf_modules_get_module_directories(u32* num_dirs);
-
-/*!
 \brief get module file name
 
 Gets a module shared library file name based on its index

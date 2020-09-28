@@ -95,7 +95,7 @@ The filter management in GPAC is built using the following core objects:
 
 
 GPAC comes with a set of built-in filters in libgpac. It is also possible to define external filters in dynamic libraries. GPAC will look for such libraries
- in folders listed in GPAC config file section core, key mod-dirs. The files SHALL be named gf_* and export a function called RegisterFilter
+ in default module folder and  folders listed in GPAC config file section core, key mod-dirs. The files SHALL be named gf_* and export a function called RegisterFilter
  with the following prototype:
 
 \param fsess is set to NULL unless meta filters are listed, in which case the filter register should list all possible meta filters it supports
