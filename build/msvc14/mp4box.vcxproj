@@ -199,6 +199,9 @@
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Bscmake>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|Win32'">
     <Midl>
@@ -287,6 +290,9 @@
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Bscmake>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">
     <Midl>
@@ -374,6 +380,9 @@
       <Command>
       </Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|Win32'">
     <Midl>
@@ -459,6 +468,9 @@
       <Command>
       </Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">
     <Midl>
@@ -548,16 +560,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="libgpac_dll.vcxproj"  Condition="'$(Configuration)'=='Release'" >
+    <ProjectReference Include="libgpac_dll.vcxproj" Condition="'$(Configuration)'=='Release'">
       <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
     </ProjectReference>
-    <ProjectReference Include="libgpac_dll.vcxproj"  Condition="'$(Configuration)'=='Debug'" >
+    <ProjectReference Include="libgpac_dll.vcxproj" Condition="'$(Configuration)'=='Debug'">
       <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
     </ProjectReference>
-    <ProjectReference Include="libgpac.vcxproj"  Condition="'$(Configuration)'=='Release - MP4Box_only'">
+    <ProjectReference Include="libgpac.vcxproj" Condition="'$(Configuration)'=='Release - MP4Box_only'">
       <Project>{233014d5-f6e5-419d-8757-fa9ce7337088}</Project>
     </ProjectReference>
-    <ProjectReference Include="libgpac.vcxproj"  Condition="'$(Configuration)'=='Debug - MP4Box_only'">
+    <ProjectReference Include="libgpac.vcxproj" Condition="'$(Configuration)'=='Debug - MP4Box_only'">
       <Project>{233014d5-f6e5-419d-8757-fa9ce7337088}</Project>
     </ProjectReference>
   </ItemGroup>
