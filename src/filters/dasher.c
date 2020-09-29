@@ -501,6 +501,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				if (force_ext)
 					segext = force_ext;
 				gf_filter_pid_set_property(opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(segext) );
+
+				if (!strcmp(segext, "m3u8")) {
+
+					gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("video/mpegurl"));
+				} else {
+					gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("application/dash+xml"));
+				}
 			}
 
 			if (!strcmp(segext, "m3u8")) {

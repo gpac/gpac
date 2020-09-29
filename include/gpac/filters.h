@@ -1543,6 +1543,8 @@ typedef enum
 	GF_FS_ARG_META = 1<<5,
 	/*! internal flag used by meta filters (ffmpeg & co) to indicate the description of the argument is a dynamic allocated memory*/
 	GF_FS_ARG_META_ALLOC = 1<<6,
+	/*! internal flag used by filters acting as sinks (gsfmx in file mode) to allow retrieving dst url but avoid being used as direct sinks*/
+	GF_FS_ARG_SINK_ALIAS = 1<<7,
 } GF_FSArgumentFlags;
 
 /*! Structure holding arguments for a filter*/
@@ -2219,6 +2221,12 @@ const char *gf_filter_get_id(GF_Filter *filter);
 \return error code if any
 */
 GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps );
+
+/*! Indicates this filter acts as a sink and will be used as such in graph resolution. Such filters must provide a use_alias function in their registry.
+\param filter the target filter
+\return error code if any
+*/
+GF_Err gf_filter_act_as_sink(GF_Filter *filter);
 
 /*! Filter session separator set query*/
 typedef enum

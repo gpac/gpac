@@ -3122,6 +3122,15 @@ GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *cap
 }
 
 GF_EXPORT
+GF_Err gf_filter_act_as_sink(GF_Filter *filter)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->act_as_sink = GF_TRUE;
+	return GF_OK;
+}
+
+
+GF_EXPORT
 void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Double start, Double speed, const char *log_name)
 {
 	u32 pmode = GF_PLAYBACK_MODE_NONE;

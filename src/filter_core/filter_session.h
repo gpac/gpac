@@ -668,6 +668,8 @@ struct __gf_filter
 	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
 	u32 encoder_stream_type;
 
+	Bool act_as_sink;
+	
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif
