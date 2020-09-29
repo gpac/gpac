@@ -346,7 +346,7 @@ void PrintDASHUsage()
 		"- #N: only use the track ID N from the source file (mapped to [-tkid](mp4dmx))\n"
 		"- #video: only use the first video track from the source file\n"
 		"- #audio: only use the first audio track from the source file\n"
-		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs\n"
+		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output mux.\n"
 		"- :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
 		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option\n"
 		"- :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs\nWarning: This does not modify generated files location (see segment template).\n"
@@ -364,7 +364,7 @@ void PrintDASHUsage()
 		"- :trackID=N: only use the track ID N from the source file\n"
 		"- @f1[:args][@fN:args][@@fK:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](filters_general). If several filters are set:\n"
 		"  - they will be chained in the given order if separated by a single `@`\n"
-		"  - a new filter chain will be created if separated by a double `@@`\n"
+		"  - a new filter chain will be created if separated by a double `@@`. In this case, no representation ID is assigned to the source.\n"
 		"EX source.mp4:@enc:c=avc:b=1M@@enc:c=avc:b=500k\n"
 		"This will load a filter chain with two encoders connected to the source and to the dasher.\n"
 		"EX source.mp4:@enc:c=avc:b=1M@enc:c=avc:b=500k\n"
@@ -1903,6 +1903,7 @@ enum
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
 {
 	GF_DashSegmenterInput *di;
+	Bool skip_rep_id = GF_FALSE;
 	char *other_opts = NULL;
 	char *sep = gf_url_colon_suffix(name);
 
@@ -1913,47 +1914,18 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 
 	if (sep) {
 		char *opts, *first_opt;
-		opts = first_opt = sep;
+		first_opt = sep;
+		opts = sep+1;
 		while (opts) {
 			sep = gf_url_colon_suffix(opts);
-			while (sep) {
-				/* this is a real separator if it is followed by a keyword we are looking for */
-				if (!strnicmp(sep, ":id=", 4) ||
-				        !strnicmp(sep, ":dur=", 5) ||
-				        !strnicmp(sep, ":period=", 8) ||
-				        !strnicmp(sep, ":BaseURL=", 9) ||
-				        !strnicmp(sep, ":bandwidth=", 11) ||
-				        !strnicmp(sep, ":role=", 6) ||
-				        !strnicmp(sep, ":desc", 5) ||
-				        !strnicmp(sep, ":sscale", 7) ||
-				        !strnicmp(sep, ":duration=", 10) ||
-				        !strnicmp(sep, ":period_duration=", 10) ||
-				        !strnicmp(sep, ":pdur=", 6) ||
-				        !strnicmp(sep, ":xlink=", 7) ||
-				        !strnicmp(sep, ":asID=", 6) ||
-				        !strnicmp(sep, ":sn=", 4) ||
-				        !strnicmp(sep, ":tpl=", 5) ||
-				        !strnicmp(sep, ":hls=", 5) ||
-				        !strnicmp(sep, ":trackID=", 9) ||
-				        !strnicmp(sep, ":@", 2)
-				        ) {
-					break;
-				} else {
-					char *nsep = gf_url_colon_suffix(sep+1);
-					if (nsep) nsep[0] = 0;
-
-					gf_dynstrcat(&other_opts, sep, ":");
-
-					if (nsep) nsep[0] = ':';
-
-					sep = strchr(sep+1, ':');
-				}
-			}
 			if (sep && !strncmp(sep, "://", 3) && strncmp(sep, ":@", 2)) sep = gf_url_colon_suffix(sep+3);
 			if (sep) sep[0] = 0;
 
 			if (!strnicmp(opts, "id=", 3)) {
-				di->representationID = gf_strdup(opts+3);
+				if (!stricmp(opts+3, "NULL"))
+					skip_rep_id = GF_TRUE;
+				else
+					di->representationID = gf_strdup(opts+3);
 				/*we allow the same repID to be set to force muxed representations*/
 			}
 			else if (!strnicmp(opts, "dur=", 4)) di->media_duration = (Double)atof(opts+4);
@@ -2011,9 +1983,15 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			else if (!strnicmp(opts, "hls=", 4)) di->hls_pl = gf_strdup(opts+4);
 			else if (!strnicmp(opts, "trackID=", 8)) di->track_id = atoi(opts+8);
 			else if (!strnicmp(opts, "@", 1)) {
-				di->filter_chain = gf_strdup(opts + ((opts[1]=='@') ? 2 : 1) );
+				Bool old_syntax = (opts[1]=='@') ? GF_TRUE : GF_FALSE;
 				if (sep) sep[0] = ':';
+				di->filter_chain = gf_strdup(opts + (old_syntax ? 2 : 1) );
 				sep = NULL;
+				if (!old_syntax && (strstr(di->filter_chain, "@@")!=NULL)) {
+					skip_rep_id = GF_TRUE;
+				}
+			} else {
+				gf_dynstrcat(&other_opts, opts, ":");
 			}
 
 			if (!sep) break;
@@ -2025,7 +2003,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 	di->file_name = name;
 	di->source_opts = other_opts;
 
-	if (!di->representationID) {
+	if (!skip_rep_id && !di->representationID) {
 		char szRep[100];
 		sprintf(szRep, "%d", *nb_dash_inputs);
 		di->representationID = gf_strdup(szRep);

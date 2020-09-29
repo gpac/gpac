@@ -570,11 +570,11 @@ typedef struct
 {
 	/*! source file to be used*/
 	char *file_name;
-	/*! ID of the representation. If not set, assigned automatically*/
+	/*! ID of the representation, may be NULL (assigned by dasher)*/
 	char *representationID;
-	/*! ID of the period. If not set, assigned automatically*/
+	/*! ID of the period, may be NULL (assigned by dasher)*/
 	char *periodID;
-	/*! ID of the adaptation set. If not set, assigned automatically.*/
+	/*! ID of the adaptation set, may be 0 (assigned by dasher)*/
 	u32 asID;
 	/*! forced media duration.*/
 	Double media_duration;
