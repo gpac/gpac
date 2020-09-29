@@ -109,6 +109,7 @@ typedef struct
 	GF_List *pck_res;
 	Bool buffer_too_small;
 
+	Bool corrupted;
 	Bool file_pids;
 } GSF_DemuxCtx;
 
@@ -205,8 +206,9 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
 		ctx->nb_playing--;
+		if (ctx->file_pids) return GF_TRUE;
 		//cancel
-		return GF_TRUE;
+		return ctx->nb_playing ? GF_TRUE : GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
 		//cancel event
@@ -453,7 +455,8 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		else gf_filter_pid_set_property(gst->opid, p4cc, &p);
 
 		if (p4cc==GF_PROP_PID_STREAM_TYPE) {
-			if (p.value.uint==GF_STREAM_FILE) pid_is_file = GF_TRUE;
+			if (p.value.uint==GF_STREAM_FILE)
+				pid_is_file = GF_TRUE;
 		}
 	}
 
@@ -1070,7 +1073,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 			block_offset = 0;
 		}
 
-		if ( (pck_type==GFS_PCKTYPE_PCK) && !ctx->nb_playing && ctx->tuned && !ctx->file_pids && gf_list_count(ctx->streams) ) {
+		if (!ctx->corrupted && (pck_type==GFS_PCKTYPE_PCK) && !ctx->nb_playing && ctx->tuned && !ctx->file_pids && gf_list_count(ctx->streams) ) {
 			ctx->wait_for_play = GF_TRUE;
 			break;
 		}
@@ -1153,6 +1156,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] error decoding packet: %s\n", gf_error_to_string(e) ));
 			if (ctx->tune_error) return e;
+			ctx->corrupted = GF_TRUE;
 		}
 		gf_bs_skip_bytes(ctx->bs_r, pck_len);
 		last_pck_end = (u32) gf_bs_get_position(ctx->bs_r);

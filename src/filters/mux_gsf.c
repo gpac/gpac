@@ -169,13 +169,13 @@ static void gsfmx_encrypt(GSFMxCtx *ctx, char *data, u32 nb_crypt_bytes)
 	//reset IV at each packet
 	gf_crypt_set_IV(ctx->crypt, ctx->crypt_IV, 16);
 	if (ctx->pattern.den && ctx->pattern.num) {
-		//u32 pos = 0;
+		u32 bytes_per_pattern = 16 * (ctx->pattern.num + ctx->pattern.den);
+		u32 offset = 0;
 		while (nb_crypt_bytes) {
-			u32 bbytes = 16 * (ctx->pattern.num + ctx->pattern.den);
-			gf_crypt_encrypt(ctx->crypt, data, nb_crypt_bytes >= (u32) (16*ctx->pattern.num) ? 16*ctx->pattern.num : nb_crypt_bytes);
-			if (nb_crypt_bytes >= bbytes) {
-				//pos += bbytes;
-				nb_crypt_bytes -= bbytes;
+			gf_crypt_encrypt(ctx->crypt, data + offset, nb_crypt_bytes >= (u32) (16*ctx->pattern.num) ? 16*ctx->pattern.num : nb_crypt_bytes);
+			if (nb_crypt_bytes >= bytes_per_pattern) {
+				offset += bytes_per_pattern;
+				nb_crypt_bytes -= bytes_per_pattern;
 			} else {
 				nb_crypt_bytes = 0;
 			}
@@ -496,7 +496,8 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 			}
 			//file, only send mime, url, ext and streamtype
 			else if (!gst->is_file) {
-				nb_4cc_props++;
+				if (prop_4cc != GF_PROP_PID_MUX_SRC)
+					nb_4cc_props++;
 			}
 		}
 		else if (prop_name)
@@ -579,6 +580,8 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		if (gst->is_file) {
 			continue;
 		}
+		if (prop_4cc == GF_PROP_PID_MUX_SRC)
+			continue;
 
 		gf_bs_write_u32(ctx->bs_w, prop_4cc);
 
@@ -1107,7 +1110,7 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 
 		gf_filter_override_caps(filter, ctx->caps, 4);
 
-		if (gf_filter_is_alias(filter)) {
+		if (gf_filter_is_alias(filter) && ctx->mixed) {
 			ctx->caps[0].code =	GF_PROP_PID_STREAM_TYPE;
 			ctx->caps[0].val = PROP_UINT(GF_STREAM_UNKNOWN);
 			ctx->caps[0].flags = GF_CAPS_INPUT_EXCLUDED;
