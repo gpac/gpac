@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2019
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
- *  This file is part of GPAC / GPAC stream serializer filter
+ *  This file is part of GPAC / GPAC stream deserializer filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -108,6 +108,8 @@ typedef struct
 
 	GF_List *pck_res;
 	Bool buffer_too_small;
+
+	Bool file_pids;
 } GSF_DemuxCtx;
 
 
@@ -173,6 +175,7 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->wait_for_play = GF_FALSE;
 
 		if (! ctx->is_file) {
+			gf_filter_post_process_task(filter);
 			return GF_FALSE;
 		}
 //		safdmx_check_dur(ctx);
@@ -202,8 +205,8 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
 		ctx->nb_playing--;
-		//don't cancel event
-		return GF_FALSE;
+		//cancel
+		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:
 		//cancel event
@@ -408,6 +411,7 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 	u32 i;
 	u8 cfg_version;
 	GF_BitStream *bs=NULL;
+	Bool pid_is_file = GF_FALSE;
 
 	if (pck->crypted) {
 		gsfdmx_decrypt(ctx, pck->output, pck->full_block_size);
@@ -438,9 +442,43 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		e = gsfdmx_read_prop(bs, &p);
 		if (e) return e;
 
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+			char dump[GF_PROP_DUMP_ARG_SIZE];
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFDemux] Set pid %d %s %s to %s\n", gst->idx, gf_props_4cc_get_name(p4cc), is_info_update ? "info" : "property", gf_props_dump(p4cc, &p, dump, GF_FALSE) ) );
+		}
+#endif
+
 		if (is_info_update) gf_filter_pid_set_info(gst->opid, p4cc, &p);
 		else gf_filter_pid_set_property(gst->opid, p4cc, &p);
+
+		if (p4cc==GF_PROP_PID_STREAM_TYPE) {
+			if (p.value.uint==GF_STREAM_FILE) pid_is_file = GF_TRUE;
+		}
 	}
+
+	//PID is a file, we must start dispatch asap for demuxers to work
+	if (pid_is_file) {
+		const GF_PropertyValue *url = gf_filter_pid_get_property(gst->opid, GF_PROP_PID_URL);
+		if (url) {
+			const char *base_name = gf_file_basename(url->value.string);
+			if (base_name) gf_filter_pid_set_name(gst->opid, base_name);
+		}
+		gf_filter_pid_set_property(gst->opid, GF_PROP_PID_FILE_CACHED, NULL);
+		gf_filter_pid_set_property(gst->opid, GF_PROP_PID_FILEPATH, NULL);
+		gf_filter_pid_set_property(gst->opid, GF_PROP_PID_DOWN_SIZE, NULL);
+		gf_filter_pid_set_property(gst->opid, GF_PROP_PID_DOWN_BYTES, NULL);
+
+		ctx->wait_for_play = GF_FALSE;
+		if (!ctx->file_pids) {
+			GF_FilterEvent evt;
+			ctx->file_pids = GF_TRUE;
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, ctx->ipid);
+			gf_filter_pid_send_event(ctx->ipid, &evt);
+		}
+	}
+
+
 	for (i=0; i<nb_str_props; i++) {
 		GF_PropertyValue p;
 
@@ -1032,7 +1070,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 			block_offset = 0;
 		}
 
-		if ( (pck_type==GFS_PCKTYPE_PCK) && !ctx->nb_playing && ctx->tuned && gf_list_count(ctx->streams) ) {
+		if ( (pck_type==GFS_PCKTYPE_PCK) && !ctx->nb_playing && ctx->tuned && !ctx->file_pids && gf_list_count(ctx->streams) ) {
 			ctx->wait_for_play = GF_TRUE;
 			break;
 		}
@@ -1145,7 +1183,10 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) is_eos = GF_TRUE;
-		else return GF_OK;
+		else {
+			gf_filter_post_process_task(filter);
+			return GF_OK;
+		}
 	}
 
 	//check if all the streams are in block state, if so return.
@@ -1159,7 +1200,8 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 			}
 		}
 	}
-	if (is_eos) return GF_EOS;
+	if (is_eos)
+		return GF_EOS;
 
 	if (would_block && (would_block+1==i))
 		return GF_OK;
@@ -1249,6 +1291,8 @@ static const GF_FilterCapability GSFDemuxCaps[] =
 	//we deliver more than these two but this make the filter chain loading stop until we declare a pid
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 };
 
@@ -1271,7 +1315,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	.name = "gsfdmx",
 	GF_FS_SET_DESCRIPTION("GSF Demuxer")
 #ifndef GPAC_DISABLE_DOC
-	.help = "This filter provides GSF (__GPAC Super/Simple/Serialized/Stream/State Format__) demultiplexing.\n"
+	.help = "This filter provides GSF (__GPAC Serialized Format__) demultiplexing.\n"
 			"It deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC using either pipes or sockets\n"
 			"\n"

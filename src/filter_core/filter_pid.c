@@ -2149,14 +2149,17 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 }
 
 GF_EXPORT
-Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
+Bool gf_filter_pid_check_caps(GF_FilterPid *_pid)
 {
 	u8 priority;
 	Bool res;
-	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
-	pid->pid->local_props = ((GF_FilterPidInst*)pid)->props;
-	res = gf_filter_pid_caps_match(pid->pid, NULL, pid->filter, &priority, NULL, pid->filter, -1);
-	pid->pid->local_props = NULL;
+	GF_Filter *on_filter;
+	if (PID_IS_OUTPUT(_pid)) return GF_FALSE;
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)_pid;
+	on_filter = pidi->alias_orig ? pidi->alias_orig : pidi->filter;
+	pidi->pid->local_props = pidi->props;
+	res = gf_filter_pid_caps_match(pidi->pid, NULL, on_filter, &priority, NULL, on_filter, -1);
+	pidi->pid->local_props = NULL;
 	return res;
 }
 

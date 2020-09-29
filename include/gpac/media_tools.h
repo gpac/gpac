@@ -383,7 +383,7 @@ typedef struct __track_import
 	const char *filter_src_opts;
 	/*! any filter options to pass to sink*/
 	const char *filter_dst_opts;
-	/*! filter chain to insert before destination, formated as f1[:args]@f2[:args] options to pass to sink*/
+	/*! filter chain to insert before destination, formated as "f1[:args]@f2[:args]" options to pass to sink*/
 	const char *filter_chain;
 
 

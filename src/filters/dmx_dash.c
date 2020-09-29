@@ -280,10 +280,10 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 	group->seg_filter_src = gf_filter_connect_source(ctx->filter, sURL, NULL, GF_FALSE, &e);
 	if (!group->seg_filter_src) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d error locating plugin for segment - mime type %s name %s: %s\n", group_index, mime, sURL, gf_error_to_string(e) ));
 		gf_free(sURL);
 		gf_free(group);
 		gf_dash_set_group_udta(ctx->dash, group_index, NULL);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d error locating plugin for segment - mime type %s name %s\n", group_index, mime, sURL));
 		return e;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] setting up group %d from %s\n", group->idx, sURL));

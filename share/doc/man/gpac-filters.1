@@ -4377,7 +4377,7 @@ Description: GSF Muxer
 .br
 
 .br
-This filter provides GSF (GPAC Super/Simple/Serialized/Stream/State Format) multiplexing.
+This filter provides GSF (GPAC Serialized Format) multiplexing.
 .br
 It serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC using either pipes or sockets. Upstream events are not serialized.
 .br
@@ -4388,6 +4388,9 @@ The default behaviour does not insert sequence numbers. When running over genera
 The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.
 .br
 
+.br
+.SH Encryption
+.LP
 .br
 The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optional seq num) are in the clear and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.
 .br
@@ -4400,6 +4403,9 @@ For header/tunein packets, the first 25 bytes after the header are in the clear 
 The .I IV is constant to avoid packet overhead, randomly generated if not set and sent in the initial stream header. Pattern mode can be used (cf CENC cbcs) to encrypt K block and leave N blocks in the clear.
 .br
 
+.br
+.SH Filtering properties
+.LP
 .br
 The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the .I minp option can be used: this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.
 .br
@@ -4414,6 +4420,43 @@ skp="4CC1,Name2
 This will remove properties of type 4CC1 and properties (built-in or not) of name Name2.
 .br
 
+.br
+.SH File mode
+.LP
+.br
+By default the filter only accepts framed media streams as input PID, not files. This can be changed by explictly loading the filter with .I ext or .I dst set.
+.br
+Example
+.br
+gpac -i source.mp4 gsfmx:dst=manifest.mpd @ -o dump.gsf
+.br
+
+.br
+This will DASH the source and store every files produced as PIDs in the GSF mux.
+.br
+In order to demux such a file, the GSF demuxer will likely need to be explictly loaded:
+.br
+Example
+.br
+gpac -i mux.gsf gsfdmx @ -o dump/$File$:dynext:clone
+.br
+
+.br
+This will extract all files from the GSF mux.
+.br
+
+.br
+When working in file mode, the filter by default only accepts PID of type file as input.
+.br
+To allow a mix of files and streams, use .I mixed:
+.br
+Example
+.br
+gpac -i source.mp4 gsfmx:dst=manifest.mpd:mixed @ -o dump.gsf
+.br
+
+.br
+This will DASH the source, store the manifest file and the media streams with their packet properties in the GSF mux.
 .br
 
 .br
@@ -4456,6 +4499,12 @@ minp (bool, default: false):   include only the minimum set of properties requir
 .br
 crate (dbl, default: 0):       carousel period for tune-in info in seconds - see filter help
 .br
+ext (str):                     file extension for file mode - see filter help
+.br
+dst (str):                     target URL in file mode - see filter help
+.br
+mixed (bool, default: false):  allow GSF to contain both files and media streams - see filter help
+.br
 
 .br
 .SH gsfdmx
@@ -4465,7 +4514,7 @@ Description: GSF Demuxer
 .br
 
 .br
-This filter provides GSF (GPAC Super/Simple/Serialized/Stream/State Format) demultiplexing.
+This filter provides GSF (GPAC Serialized Format) demultiplexing.
 .br
 It deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.
 .br
@@ -6168,7 +6217,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev40-gc11d16918-master
+build: 1.1.0-DEV-rev41-g87bb5d7a2-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

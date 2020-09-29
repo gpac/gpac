@@ -42,7 +42,7 @@ typedef struct
 	FILE *file;
 	Bool is_std;
 	u64 nb_write;
-
+	Bool use_templates;
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
 	char szFileName[GF_MAX_PATH];
@@ -85,6 +85,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	} else {
 		char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 		Bool append = ctx->append;
+		Bool check_templates = GF_FALSE;
 		const char *url = filename;
 
 		if (!strncmp(filename, "gfio://", 7))
@@ -93,15 +94,34 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		if (ctx->dynext) {
 			const char *has_ext = gf_file_ext_start(url);
 
-			strcpy(szName, url);
+			strcpy(szFinalName, url);
 			if (!has_ext && ext) {
-				strcat(szName, ".");
-				strcat(szName, ext);
+				strcat(szFinalName, ".");
+				strcat(szFinalName, ext);
 			}
 		} else {
-			strcpy(szName, url);
+			strcpy(szFinalName, url);
 		}
+		if (ctx->dst && !strcmp(filename, ctx->dst)) {
+			strcpy(szName, szFinalName);
+			check_templates = GF_TRUE;
+		} else if (ctx->use_templates) {
+			char *basename = ctx->dst ? gf_file_basename(ctx->dst) : NULL;
+			if (basename && (basename == ctx->dst)) {
+				strcpy(szName, szFinalName);
+			} else {
+				strcpy(szName, ctx->dst);
+				basename = gf_file_basename(szName);
+				if (basename) basename[0] = 0;
+				strcat(szName, szFinalName);
+			}
+		} else {
+			strcpy(szName, szFinalName);
+		}
+
 		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
+		if (check_templates && strcmp(szName, szFinalName))
+			ctx->use_templates = GF_TRUE;
 
 		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
@@ -149,8 +169,13 @@ static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 				fileout_open_close(ctx, ctx->dst, ext->value.string, 0, explicit_overwrite, NULL);
 			}
 		}
-	} else {
+	} else if (ctx->dst) {
 		fileout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite, NULL);
+	} else {
+		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILEPATH);
+		if (!p) p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_URL);
+		if (p && p->value.string)
+			fileout_open_close(ctx, p->value.string, NULL, 0, explicit_overwrite, NULL);
 	}
 }
 static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)

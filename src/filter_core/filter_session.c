@@ -2197,7 +2197,7 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 				dst_arg=NULL;
 				break;
 			}
-			if (!strcmp(dst_arg->arg_name, "dst")) break;
+			if (!strcmp(dst_arg->arg_name, "dst") && !(dst_arg->flags&GF_FS_ARG_SINK_ALIAS)) break;
 			dst_arg = NULL;
 			j++;
 		}
@@ -2242,6 +2242,29 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 		}
 	}
 	return GF_FPROBE_SUPPORTED;
+}
+
+static GF_Filter *locate_alias_sink(GF_Filter *filter, const char *url, const char *mime_type)
+{
+	u32 i;
+	for (i=0; i<filter->num_output_pids; i++) {
+		u32 j;
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_Filter *f;
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			if (!pidi->filter) continue;
+			if (pidi->filter->act_as_sink && pidi->filter->freg->use_alias
+				&& pidi->filter->freg->use_alias(pidi->filter, url, mime_type)
+			) {
+				return pidi->filter;
+			}
+			//recursovely walk towards the sink
+			f = locate_alias_sink(pidi->filter, url, mime_type);
+			if (f) return f;
+		}
+	}
+	return NULL;
 }
 
 GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only)
@@ -2353,9 +2376,18 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	if (force_freg)
 		force_freg += 6;
 
+
+	if (!for_source && dst_filter) {
+		alias_for_filter = locate_alias_sink(dst_filter, sURL, mime_type);
+		if (alias_for_filter) {
+			candidate_freg = (GF_FilterRegister *) alias_for_filter->freg;
+		}
+	}
+
 restart:
 	//check all our registered filters
 	count = gf_list_count(fsess->registry);
+	if (candidate_freg) count = 0;
 	for (i=0; i<count; i++) {
 		u32 j;
 		GF_FilterProbeScore s;
@@ -2373,7 +2405,7 @@ restart:
 				break;
 			}
 			if (for_source && !strcmp(src_dst_arg->arg_name, "src")) break;
-			else if (!for_source && !strcmp(src_dst_arg->arg_name, "dst")) break;
+			else if (!for_source && !strcmp(src_dst_arg->arg_name, "dst") && !(src_dst_arg->flags&GF_FS_ARG_SINK_ALIAS)) break;
 			src_dst_arg = NULL;
 			j++;
 		}
@@ -2442,7 +2474,7 @@ restart:
 		else arg_type = GF_FILTER_ARG_EXPLICIT_SOURCE;
 	}
 
-	if (!for_source && candidate_freg->use_alias) {
+	if (!for_source && !alias_for_filter && candidate_freg->use_alias) {
 		u32 fcount = gf_list_count(fsess->filters);
 		for (i=0; i<fcount; i++) {
 			GF_Filter *f = gf_list_get(fsess->filters, i);
