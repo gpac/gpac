@@ -814,6 +814,8 @@ second_pass:
 		freg->args = NULL;
 		freg->caps = NULL;
 		freg->nb_caps = 0;
+		//no help
+		freg->help = NULL;
 
 		gf_list_add(all_filters, freg);
 
