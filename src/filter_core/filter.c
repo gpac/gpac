@@ -275,7 +275,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 			szDBSep[1] = 0;
 		}
 		//src_striped is ending with our seperator, don't insert a new one
-		src_arg_len = strlen(src_striped);
+		src_arg_len = (u32)strlen(src_striped);
 		if (src_arg_len && (src_striped[src_arg_len-1] == filter->session->sep_args)) {
 			szDBSep[0] = 0;
 		}
