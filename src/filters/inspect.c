@@ -1407,6 +1407,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		switch (p4cc) {
 		case GF_PROP_PID_FILEPATH:
 		case GF_PROP_PID_URL:
+		case GF_PROP_PID_MUX_SRC:
 			return;
 		case GF_PROP_PID_FILE_CACHED:
 		case GF_PROP_PID_DURATION:
