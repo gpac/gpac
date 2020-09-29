@@ -1343,7 +1343,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
 	if (!ctx->target_rate)
-		ctx->target_rate = ctx->encoder->bit_rate;
+		ctx->target_rate = (u32)ctx->encoder->bit_rate;
 
 	ffmpeg_report_unused_options(filter, ctx->options);
 
