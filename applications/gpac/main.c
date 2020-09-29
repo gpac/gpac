@@ -31,7 +31,7 @@ static GF_FilterSession *session=NULL;
 static u32 list_filters = 0;
 static Bool dump_stats = GF_FALSE;
 static Bool dump_graph = GF_FALSE;
-static Bool print_filter_info = GF_FALSE;
+static u32 print_filter_info = 0;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
@@ -1692,6 +1692,8 @@ static int gpac_main(int argc, char **argv)
 				i++;
 			} else {
 				print_filter_info = 1;
+				if (!strcmp(argv[i+1], "*:*") || !strcmp(argv[i+1], "@:@"))
+					print_filter_info = 2;
 				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 			}
 		}
@@ -2651,39 +2653,58 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	gf_opts_set_key("temp", "helponly", "yes");
 
 	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
-	for (i=0; i<count; i++) {
-		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
-		if (gen_doc) {
-			print_filter(reg, argmode, NULL, NULL);
-			found = GF_TRUE;
-		} else if (print_filter_info) {
-			u32 k;
-			//all good to go, load filters
-			for (k=1; k<(u32) argc; k++) {
-				char *arg = argv[k];
-				char *sepe;
-				char *optname = NULL;
-				if (arg[0]=='-') continue;
 
-				sepe = gf_file_basename(arg);
-				if (sepe) sepe = strchr(sepe, '.');
+	if (print_filter_info != 1) {
+		for (i=0; i<count; i++) {
+			const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
+			if (gen_doc) {
+				print_filter(reg, argmode, NULL, NULL);
+			} else if (print_filter_info) {
+				print_filter(reg, argmode, NULL, NULL);
+			} else {
+#ifndef GPAC_DISABLE_DOC
+				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", reg->name, reg->description);
+#else
+				gf_sys_format_help(helpout, help_flags, "%s (compiled without built-in doc)\n", reg->name);
+#endif
+			}
+		}
+		found = GF_TRUE;
+	}
+	//print a specific filter info, browse args
+	else {
+		u32 k;
+		//all good to go, load filters
+		for (k=1; k<(u32) argc; k++) {
+			char *arg = argv[k];
+			char *sepe;
+			Bool found_freg = GF_FALSE;
+			char *optname = NULL;
+			if (arg[0]=='-') continue;
+
+			sepe = gf_file_basename(arg);
+			if (sepe) sepe = strchr(sepe, '.');
+			if (sepe) {
+				if (!strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
+				else if (!strcmp(sepe, ".js")) sepe = NULL;
 				if (sepe) {
-					if (!strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
-					else if (!strcmp(sepe, ".js")) sepe = NULL;
-					if (sepe) {
-						sepe[0] = 0;
-						optname = sepe+1;
-					}
+					sepe[0] = 0;
+					optname = sepe+1;
 				}
-				fname = arg;
-
+			}
+			fname = arg;
+			for (i=0; i<count; i++) {
+				const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
+				//exact match
 				if (!strcmp(arg, reg->name) ) {
 					if (optname)
 						print_filter_single_opt(reg, optname, NULL);
 					else
 						print_filter(reg, argmode, NULL, NULL);
-					found = GF_TRUE;
-				} else {
+					found_freg = GF_TRUE;
+				}
+				//search for name:*, also accept *:*
+				else {
 					char *sepo = strchr(arg, ':');
 					char *sepd = strchr(reg->name, ':');
 					Bool patch_meta = GF_FALSE;
@@ -2697,46 +2718,38 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					}
 					if (!strcmp(arg, "*:*") || !strcmp(arg, "@:@")
 						|| (!sepo && (!strcmp(arg, "*") || !strcmp(arg, "@")) )
-					 	|| (sepo && (!strcmp(sepo, ":*") || !strcmp(sepo, ":@"))  && !strncmp(reg->name, arg, 1+sepo - arg) )
-					 	|| patch_meta
+						|| (sepo && (!strcmp(sepo, ":*") || !strcmp(sepo, ":@"))  && !strncmp(reg->name, arg, 1+sepo - arg) )
+						|| patch_meta
 					) {
 						if (optname)
 							print_filter_single_opt(reg, optname, NULL);
 						else
 							print_filter(reg, argmode, NULL, NULL);
-						found = GF_TRUE;
+						found_freg = GF_TRUE;
 						if (!strcmp(arg, "*")) print_all = GF_TRUE;
-						break;
-					}
-					//try to load the filter if first pass
-					else if (!i) {
-						GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
-						if (f) {
-							char *ext;
-							char szPath[GF_MAX_PATH];
-							strcpy(szPath, gf_file_basename(arg) );
-							ext = gf_file_ext_start(szPath);
-							if (ext) ext[0] = 0;
-							if (optname) {
-								print_filter_single_opt(reg, optname, f);
-							} else {
-								print_filter(reg, argmode, f, szPath);
-							}
-							found = GF_TRUE;
-							break;
-						}
 					}
 				}
-				if (sepe) sepe[0] = '.';
 			}
-		} else {
-#ifndef GPAC_DISABLE_DOC
-			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", reg->name, reg->description);
-#else
-			gf_sys_format_help(helpout, help_flags, "%s (compiled without built-in doc)\n", reg->name);
-#endif
-			found = GF_TRUE;
-
+			if (found_freg) {
+				found = GF_TRUE;
+			} else {
+				//try to load the filter (JS)
+				GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
+				if (f) {
+					char *ext;
+					char szPath[GF_MAX_PATH];
+					strcpy(szPath, gf_file_basename(arg) );
+					ext = gf_file_ext_start(szPath);
+					if (ext) ext[0] = 0;
+					if (optname) {
+						print_filter_single_opt(NULL, optname, f);
+					} else {
+						print_filter(NULL, argmode, f, szPath);
+					}
+					found = GF_TRUE;
+				}
+			}
+			if (sepe) sepe[0] = '.';
 		}
 	}
 
