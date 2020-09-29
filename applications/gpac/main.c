@@ -2526,7 +2526,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 					while (a_val) {
 						char szName[100];
 						const char *a_sep = strchr(a_val, '|');
-						u32 len = a_sep ? (a_sep - a_val) : strlen(a_val);
+						u32 len = a_sep ? (u32)(a_sep - a_val) : (u32)strlen(a_val);
 						strcpy(szName, "- ");
 						strncat(szName, a_val, len);
 						szName[2+len]=0;
@@ -2588,7 +2588,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 	if (!gen_doc && (argmode==GF_ARGMODE_ALL)) {
 		if (filter_inst) {
-			u32 nb_caps;
+			u32 nb_caps = 0;
 			const GF_FilterCapability *caps = gf_filter_get_caps(filter_inst, &nb_caps);
 			dump_caps(nb_caps, caps);
 		} else if (reg->nb_caps) {

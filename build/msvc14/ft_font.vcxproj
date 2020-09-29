@@ -129,6 +129,7 @@
     </Link>
     <Manifest>
       <OutputManifestFile>$(IntDir)$(TargetFileName).embed.manifest</OutputManifestFile>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -174,6 +175,7 @@
     </Link>
     <Manifest>
       <OutputManifestFile>$(IntDir)$(TargetFileName).embed.manifest</OutputManifestFile>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -223,6 +225,9 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
     </Bscmake>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -266,6 +271,9 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
     </Bscmake>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)gpac_manifest.xml %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\modules\ft_font\ft_font.c" />
