@@ -3825,6 +3825,64 @@ The segmenter can also be configured to:
 .br
 .P
 .B
+Dynamic (real-time live) Mode
+.br
+The dasher does not perform real-time regulation by default.
+.br
+For regular segmentation, you should enable segment regulation .I sreg if your sources are not real-time.
+.br
+Example
+.br
+gpac -i source.mp4 -o live.mpd:segdur=2:profile=live:dmode=dynamic:sreg
+.br
+
+.br
+For low latency segmentation with fMP4, you will need to specify the following options:
+.br
+* cdur: set the fMP4 fragment duration
+.br
+* asto: set the availability time offset. This value should be equal or slightly greater than segment duration minus cdur
+.br
+If your sources are not real-time, insert a reframer filter with real-time regulation
+.br
+Example
+.br
+gpac -i source.mp4 reframer:rt=on @ -o live.mpd:segdur=2:cdur=0.2:asto=1.8:profile=live:dmode=dynamic
+.br
+
+.br
+This will create DASH segments of 2 seconds made of fragments of 200 ms and indicate to the client that requests can be made 1.8 seconds earlier than segment complete availability on server.
+.br
+Note: Low latency HLS is not yet supported.
+.br
+
+.br
+For DASH, the filter will use the local clock for UTC anchor points in DASH.
+.br
+The filter can fetch and signal clock in other ways using .I utcs.
+.br
+Example
+.br
+[opts]:utcs=inband
+.br
+
+.br
+This will use the local clock and insert in the MPD a UTCTiming descriptor containing the local clock.
+.br
+Example
+.br
+[opts]::utcs=http://time.akamai.com[::opts]
+.br
+
+.br
+This will fetch time from http://time.akamai.com, use it as the UTC reference for segment generation and insert in the MPD a UTCTiming descriptor containing the time server URL.
+.br
+Note: if not set as a global option using --utcs=, you must escape the url using double :: or use other separators.
+.br
+
+.br
+.P
+.B
 Cue-driven segmentation
 .br
 The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.
@@ -4065,6 +4123,8 @@ profile (enum, default: auto): target DASH profile. This will set default option
 * dashavc264.live: DASH-IF live profile
 .br
 * dashavc264.onDemand: DASH-IF onDemand profile
+.br
+* dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)
 .br
 
 .br
@@ -6115,7 +6175,7 @@ Target encoding bitrates can be assigned to each output using .I rates. This can
 .br
 Example
 .br
-gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M enc:c=aac:FID=1 enc:c=264:FID=2:clone @ -o live.mpd:SID=1,2
+gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M enc:c=aac:FID=1 enc:c=264:FID=2:clone -o live.mpd:SID=1,2
 .br
 
 .br
@@ -6123,6 +6183,8 @@ gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M enc:c=aac:FID=1 enc:c=264:FID=2:
 .br
 .SH Multiview generation
 .LP
+.br
+In multiview mode, only the animated counter will move in depth backward and forward, as indicated by the .I disparity value.
 .br
 When .I pack is set, a packed stereo couple is generated for each video packet.
 .br
@@ -6217,7 +6279,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev41-g87bb5d7a2-master
+build: 1.1.0-DEV-rev49-g0a5d05d21-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

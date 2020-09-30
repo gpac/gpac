@@ -653,6 +653,8 @@ typedef enum
 	GF_DASH_PROFILE_AVC264_LIVE,
 	/*! industry profile DASH-IF ISOBMFF onDemand */
 	GF_DASH_PROFILE_AVC264_ONDEMAND,
+	/*! industry profile DASH-IF ISOBMFF low latency */
+	GF_DASH_PROFILE_DASHIF_LL,
 } GF_DashProfile;
 
 

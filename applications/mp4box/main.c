@@ -244,7 +244,7 @@ GF_GPACArg m4b_dash_args[] =
 	GF_DEF_ARG("frag", NULL, "specify the fragment duration in ms. If not set, this is the DASH duration (one fragment per segment)", NULL, NULL, GF_ARG_DOUBLE, 0),
 	GF_DEF_ARG("out", NULL, "specify the output MPD file name", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("tmp", NULL, "specify directory for temporary file creation", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("profile", NULL, "specify the target DASH profile, and set default options to ensure conformance to the desired profile. Default profile is `full` in static mode, `live` in dynamic mode", NULL, "onDemand|live|main|simple|full|hbbtv1.5:live|dashavc264:live|dashavc264:onDemand", GF_ARG_STRING, 0),
+	GF_DEF_ARG("profile", NULL, "specify the target DASH profile, and set default options to ensure conformance to the desired profile. Default profile is `full` in static mode, `live` in dynamic mode (old syntax using `:live` instead of `.live` as separator still possible)", NULL, "onDemand|live|main|simple|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll", GF_ARG_STRING, 0),
 	GF_DEF_ARG("profile-ext", NULL, "specify a list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used", NULL, NULL, GF_ARG_STRING, 0),
 
 	GF_DEF_ARG("rap", NULL, "ensure that segments begin with random access points, segment durations might vary depending on the source encoding", NULL, NULL, GF_ARG_BOOL, 0),
@@ -4356,15 +4356,13 @@ Bool mp4box_parse_args(int argc, char **argv)
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i + 1], "live") || !stricmp(argv[i + 1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
 			else if (!stricmp(argv[i + 1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
-			else if (!stricmp(argv[i + 1], "hbbtv1.5:live")) {
+			else if (!stricmp(argv[i + 1], "hbbtv1.5:live") || !stricmp(argv[i + 1], "hbbtv1.5.live"))
 				dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
-			}
-			else if (!stricmp(argv[i + 1], "dashavc264:live")) {
+			else if (!stricmp(argv[i + 1], "dashavc264:live") || !stricmp(argv[i + 1], "dashavc264.live"))
 				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
-			}
-			else if (!stricmp(argv[i + 1], "dashavc264:onDemand")) {
+			else if (!stricmp(argv[i + 1], "dashavc264:onDemand") || !stricmp(argv[i + 1], "dashavc264.onDemand"))
 				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
-			}
+			else if (!stricmp(argv[i + 1], "dashif.ll")) dash_profile = GF_DASH_PROFILE_DASHIF_LL;
 			else if (!stricmp(argv[i + 1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
 			else if (!stricmp(argv[i + 1], "full")) dash_profile = GF_DASH_PROFILE_FULL;
 			else {

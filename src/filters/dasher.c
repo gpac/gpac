@@ -810,7 +810,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_AAC_MPEG2_LCP:
 			case GF_CODECID_AAC_MPEG2_SSRP:
 				//DASH-IF and MPEG disagree here:
-				if (ctx->profile == GF_DASH_PROFILE_AVC264_LIVE || ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+				if ((ctx->profile == GF_DASH_PROFILE_AVC264_LIVE)
+					|| (ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND)
+					|| (ctx->profile == GF_DASH_PROFILE_DASHIF_LL)
+				) {
 					GF_Err res = dasher_get_audio_info_with_m4a_sbr_ps(ds, dsi, &_sr, &_nb_ch);
 					if (res) {
 						//DASH-IF IOP 3.3 mandates the SBR/PS info
@@ -963,6 +966,8 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264");
 	} else if (ctx->profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
 		strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011,http://dashif.org/guidelines/dash264");
+	} else if (ctx->profile==GF_DASH_PROFILE_DASHIF_LL) {
+		strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-live:2011,http://www.dashif.org/guidelines/low-latency-live-v5");
 	} else {
 		strcpy(profiles_string, "urn:mpeg:dash:profile:full:2011");
 	}
@@ -4086,7 +4091,7 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	sess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create session for remote UTC source %s: %s\n", url, gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create session for remote UTC source %s: %s - local clock will be used instead\n", url, gf_error_to_string(e) ));
 		return;
 	}
 	while (1) {
@@ -4145,6 +4150,7 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 
 		if (!gf_list_count(ctx->mpd->utc_timings) ) {
+			Bool dashif_ok = GF_FALSE;
 			GF_MPD_Descriptor *utc_t;
 			GF_SAFEALLOC(utc_t, GF_MPD_Descriptor);
 			utc_t->value = gf_strdup(url);
@@ -4153,13 +4159,16 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-head:2014");
 				break;
 			case DASHER_UTCREF_XSDATE:
-				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http- xsdate:2014");
+				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-xsdate:2014");
+				dashif_ok = GF_TRUE;
 				break;
 			case DASHER_UTCREF_ISO:
 				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-iso:2014");
+				dashif_ok = GF_TRUE;
 				break;
 			case DASHER_UTCREF_NTP:
 				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-ntp:2014");
+				dashif_ok = GF_TRUE;
 				break;
 			case DASHER_UTCREF_INBAND:
 				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:direct:2014");
@@ -4167,6 +4176,12 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 			default:
 				break;
 			}
+			if (!dashif_ok && (ctx->profile==GF_DASH_PROFILE_DASHIF_LL)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] UTC reference %s allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n", utc_t->scheme_id_uri));
+				ctx->profile = GF_DASH_PROFILE_LIVE;
+			}
+			if (!ctx->mpd->utc_timings)
+				ctx->mpd->utc_timings = gf_list_new();
 			gf_list_add(ctx->mpd->utc_timings, utc_t);
 		}
 	}
@@ -4486,6 +4501,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				} else if (ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
 					ctx->profile = GF_DASH_PROFILE_ONDEMAND;
+				} else if (ctx->profile == GF_DASH_PROFILE_DASHIF_LL) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n"));
+					ctx->profile = GF_DASH_PROFILE_LIVE;
 				}
 			}
 		}
@@ -4682,6 +4700,11 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		if (!ctx->utc_initialized) {
 			dasher_init_utc(filter, ctx);
+
+			//setup service description
+			if (ctx->profile == GF_DASH_PROFILE_DASHIF_LL) {
+				ctx->mpd->inject_service_desc = GF_TRUE;
+			}
 		}
 
 		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
@@ -6730,6 +6753,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	switch (ctx->profile) {
 	case GF_DASH_PROFILE_AVC264_LIVE:
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
+	case GF_DASH_PROFILE_DASHIF_LL:
 		if (ctx->cp == GF_DASH_CPMODE_REPRESENTATION) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element, updating.\n"));
 			ctx->cp = GF_DASH_CPMODE_ADAPTATION_SET;
@@ -6741,6 +6765,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		switch (ctx->profile) {
 		case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
 		case GF_DASH_PROFILE_AVC264_LIVE:
+		case GF_DASH_PROFILE_DASHIF_LL:
 			ctx->profile = GF_DASH_PROFILE_LIVE;
 			break;
 		case GF_DASH_PROFILE_ONDEMAND:
@@ -6787,6 +6812,14 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	case GF_DASH_PROFILE_MAIN:
 		ctx->align = ctx->sap = GF_TRUE;
 		ctx->sseg = ctx->tpl = GF_FALSE;
+		break;
+	case GF_DASH_PROFILE_DASHIF_LL:
+		ctx->sseg = ctx->sfile = GF_FALSE;
+		ctx->no_fragments_defaults = ctx->align = ctx->tpl = ctx->sap = GF_TRUE;
+		if (!ctx->utcs) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH-IF LL requires UTCTiming but none specified, using http://time.akamai.com/?iso \n"));
+			ctx->utcs = gf_strdup("http://time.akamai.com/?iso");
+		}
 		break;
 	default:
 		break;
@@ -7042,8 +7075,9 @@ static const GF_FilterArgs DasherArgs[] =
 		"- full: MPEG-DASH full profile\n"
 		"- hbbtv1.5.live: HBBTV 1.5 DASH profile\n"
 		"- dashavc264.live: DASH-IF live profile\n"
-		"- dashavc264.onDemand: DASH-IF onDemand profile"
-		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand", 0 },
+		"- dashavc264.onDemand: DASH-IF onDemand profile\n"
+		"- dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)"
+		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll", 0 },
 	{ OFFS(profX), "list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(cp), "content protection element location\n"
 	"- set: in adaptation set element\n"
@@ -7199,6 +7233,26 @@ GF_FilterRegister DasherRegister = {
 			"The segmenter can also be configured to:\n"
 			"- completely ignore SAP when segmenting using [-sap]().\n"
 			"- ignore SAP on non-video streams when segmenting using [-strict_sap]().\n"
+			"\n"
+			"## Dynamic (real-time live) Mode\n"
+			"The dasher does not perform real-time regulation by default.\n"
+			"For regular segmentation, you should enable segment regulation [-sreg]() if your sources are not real-time.\n"
+			"EX gpac -i source.mp4 -o live.mpd:segdur=2:profile=live:dmode=dynamic:sreg\n"
+			"For low latency segmentation with fMP4, you will need to specify the following options:\n"
+			"- cdur: set the fMP4 fragment duration\n"
+			"- asto: set the availability time offset. This value should be equal or slightly greater than segment duration minus cdur\n"
+			"If your sources are not real-time, insert a reframer filter with real-time regulation\n"
+			"EX gpac -i source.mp4 reframer:rt=on @ -o live.mpd:segdur=2:cdur=0.2:asto=1.8:profile=live:dmode=dynamic\n"
+			"This will create DASH segments of 2 seconds made of fragments of 200 ms and indicate to the client that requests can be made 1.8 seconds earlier than segment complete availability on server.\n"
+			"Note: Low latency HLS is not yet supported.\n"
+			"\n"
+			"For DASH, the filter will use the local clock for UTC anchor points in DASH.\n"
+			"The filter can fetch and signal clock in other ways using [-utcs]().\n"
+			"EX [opts]:utcs=inband\n"
+			"This will use the local clock and insert in the MPD a UTCTiming descriptor containing the local clock.\n"
+			"EX [opts]::utcs=http://time.akamai.com[::opts]\n"
+			"This will fetch time from `http://time.akamai.com`, use it as the UTC reference for segment generation and insert in the MPD a UTCTiming descriptor containing the time server URL.\n"
+			"Note: if not set as a global option using `--utcs=`, you must escape the url using double `::` or use other separators.\n"
 			"\n"
 			"## Cue-driven segmentation\n"
 			"The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.\n"
