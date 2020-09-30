@@ -11164,6 +11164,63 @@ GF_Err mhac_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void mhap_box_del(GF_Box *s)
+{
+	GF_MHACompatibleProfilesBox *ptr = (GF_MHACompatibleProfilesBox *) s;
+	if (ptr->compat_profiles) gf_free(ptr->compat_profiles);
+	gf_free(s);
+}
+
+GF_Err mhap_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	u32 i;
+	GF_MHACompatibleProfilesBox *ptr = (GF_MHACompatibleProfilesBox *) s;
+
+	ISOM_DECREASE_SIZE(s, 1)
+	ptr->num_profiles = gf_bs_read_u8(bs);
+	if (!ptr->num_profiles) return GF_OK;
+
+	ISOM_DECREASE_SIZE(s, ptr->num_profiles)
+	ptr->compat_profiles = gf_malloc(sizeof(u8) * ptr->num_profiles);
+	if (!ptr->compat_profiles) return GF_OUT_OF_MEM;
+	for (i=0; i<ptr->num_profiles; i++) {
+		ptr->compat_profiles[i] = gf_bs_read_u8(bs);
+	}
+	return GF_OK;
+}
+
+GF_Box *mhap_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MHACompatibleProfilesBox, GF_ISOM_BOX_TYPE_MHAP);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err mhap_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_Err e;
+	GF_MHACompatibleProfilesBox *ptr = (GF_MHACompatibleProfilesBox *) s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->num_profiles);
+	for (i=0; i<ptr->num_profiles; i++) {
+		gf_bs_write_u8(bs, ptr->compat_profiles[i]);
+	}
+	return GF_OK;
+}
+
+GF_Err mhap_box_size(GF_Box *s)
+{
+	GF_MHACompatibleProfilesBox *ptr = (GF_MHACompatibleProfilesBox *) s;
+	s->size += 1 + ptr->num_profiles;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 void jp2h_box_del(GF_Box *s)
 {

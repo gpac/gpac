@@ -885,6 +885,22 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(d1));
 			}
 		}
+
+		if ((codec_id==GF_CODECID_MPHA) || (codec_id==GF_CODECID_MHAS)) {
+			u32 nb_profiles;
+			const u8 *prof_compat = gf_isom_get_mpegh_compatible_profiles(read->mov, ch->track, stsd_idx, &nb_profiles);
+			if (prof_compat) {
+				u32 j;
+				GF_PropertyValue prop;
+				prop.type = GF_PROP_UINT_LIST;
+				prop.value.uint_list.nb_items = nb_profiles;
+				prop.value.uint_list.vals = gf_malloc(sizeof(u32)*nb_profiles);
+				for (j=0; j<nb_profiles; j++)
+					prop.value.uint_list.vals[j] = prof_compat[j];
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES, &prop);
+				gf_free(prop.value.uint_list.vals);
+			}
+		}
 	}
 
 	gf_isom_get_bitrate(read->mov, ch->track, stsd_idx, &avg_rate, &max_rate, &buffer_size);

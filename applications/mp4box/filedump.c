@@ -2968,35 +2968,48 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 		if (vvc_state) gf_free(vvc_state);
 #endif
-	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHA1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHA2)) {
+	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHA1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHA2)
+			|| (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2)
+	) {
+		const u8 *compat_profiles;
+		u32 i, nb_compat_profiles;
+		Bool valid = GF_FALSE;
+		Bool allow_inband = GF_FALSE;
+		if ( (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2))
+			allow_inband = GF_TRUE;
+
 		fprintf(stderr, "\tMPEG-H Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
+
 		esd = gf_media_map_esd(file, trackNum, 1);
 		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
-		|| !esd->decoderConfig->decoderSpecificInfo->data || (esd->decoderConfig->decoderSpecificInfo->dataLength<5)
+			|| !esd->decoderConfig->decoderSpecificInfo->data
 		) {
-			fprintf(stderr, "\tInvalid MPEG-H audio config\n");
-		} else {
-			fprintf(stderr, "\tProfileLevelIndication: %02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
-		}
-		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
-	} else if ((msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2)) {
-		fprintf(stderr, "\tMPEG-H AudioMux stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
-		esd = gf_media_map_esd(file, trackNum, 1);
-		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
-			|| !esd->decoderConfig->decoderSpecificInfo->data) {
-			GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, NULL);
-			if (samp) {
-				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength);
-				if (PL>=0)
-					fprintf(stderr, "\tProfileLevelIndication: %02X\n", PL);
-				gf_isom_sample_del(&samp);
+			if (allow_inband) {
+				GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, NULL);
+				if (samp) {
+					s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength);
+					if (PL>=0)
+						fprintf(stderr, "\tProfileLevelIndication: 0x%02X\n", PL);
+					gf_isom_sample_del(&samp);
+				}
+				valid = GF_TRUE;
 			}
-		} else if (esd->decoderConfig->decoderSpecificInfo->dataLength<5) {
+		} else if (esd->decoderConfig->decoderSpecificInfo->dataLength>=5) {
+			fprintf(stderr, "\tProfileLevelIndication: 0x%02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
+			valid = GF_TRUE;
+		}
+		if (!valid) {
 			fprintf(stderr, "\tInvalid MPEG-H audio config\n");
-		} else {
-			fprintf(stderr, "\tProfileLevelIndication: %02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
+		compat_profiles = gf_isom_get_mpegh_compatible_profiles(file, trackNum, 1, &nb_compat_profiles);
+		for (i=0; i<nb_compat_profiles; i++) {
+			if (!i)
+				fprintf(stderr, "\tCompatible profiles:");
+			fprintf(stderr, " 0x%02X", compat_profiles[i]);
+		}
+		if (i) fprintf(stderr, "\n");
+
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {

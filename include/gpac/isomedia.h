@@ -3563,6 +3563,16 @@ GF_Err gf_isom_get_tmcd_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampl
 */
 GF_Err gf_isom_get_pcm_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *flags, u32 *pcm_size);
 
+
+/*! gets compatible profile list for mpegh entry
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param nb_compatible_profiles set to the number of compatible profiles returned
+\return array of compatible profiles, NULL if none found
+*/
+const u8 *gf_isom_get_mpegh_compatible_profiles(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *nb_compatible_profiles);
+
 /*! @} */
 
 
@@ -4933,6 +4943,7 @@ GF_ISOSample *gf_isom_xml_subtitle_to_sample(GF_GenericSubtitleSample *subt_samp
 \return error if any
 */
 GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *subt_samp, char *text_data, u32 text_len);
+
 
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 

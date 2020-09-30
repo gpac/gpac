@@ -1327,7 +1327,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_SRC_MAGIC, "SrcMagic", "Indicate a magic number to store in the track, only used by importers", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MUX_INDEX, "MuxIndex", "Indicate target track index in destination file, stored by lowest value first (not set by demuxers)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_NO_TS_LOOP, "NoTSLoop", "Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)", GF_PROP_BOOL, 0},
-
+	{ GF_PROP_PID_MHA_COMPATIBLE_PROFILES, "MHAProfiles", "Indicate a list of compatible profiles for this MPEG-H Audio object", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PCK_FRAG_START, "FragStart", "Indicate if packet is a fragment start (value 1) or a segment start (value 2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PCK_FRAG_RANGE, "FragRange", "Indicate start and end position in bytes of fragment if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},

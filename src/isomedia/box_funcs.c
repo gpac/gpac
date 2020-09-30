@@ -826,6 +826,7 @@ ISOM_BOX_IMPL_DECL(trik)
 ISOM_BOX_IMPL_DECL(bloc)
 ISOM_BOX_IMPL_DECL(ainf)
 ISOM_BOX_IMPL_DECL(mhac)
+ISOM_BOX_IMPL_DECL(mhap)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
@@ -1187,6 +1188,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM1, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHM2, audio_sample_entry, "stsd", "mpegh3Daudio"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHAC, mhac, "mha1 mha2 mhm1 mhm2 wave", "mpegh3Daudio"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MHAP, mhap, "mha1 mha2 mhm1 mhm2 wave", "mpegh3Daudio"),
 
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IPCM, audio_sample_entry, "stsd", "23003_5"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_FPCM, audio_sample_entry, "stsd", "23003_5"),

@@ -5654,6 +5654,22 @@ GF_Err mhac_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err mhap_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_MHACompatibleProfilesBox *p = (GF_MHACompatibleProfilesBox *) a;
+
+	gf_isom_box_dump_start(a, "MHACompatibleProfilesBox", trace);
+	gf_fprintf(trace, "compatible_profiles=\"");
+	for (i=0; i<p->num_profiles; i++) {
+		if (i)
+			gf_fprintf(trace, " ", p->compat_profiles[i]);
+		gf_fprintf(trace, "%d", p->compat_profiles[i]);
+	}
+	gf_fprintf(trace, "\">\n");
+	gf_isom_box_dump_done("MHACompatibleProfilesBox", a, trace);
+	return GF_OK;
+}
 GF_Err tmcd_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TimeCodeSampleEntryBox *p = (GF_TimeCodeSampleEntryBox *) a;

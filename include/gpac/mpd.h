@@ -673,6 +673,9 @@ typedef struct
 
 	/*! user private, eg used by dasher*/
 	void *udta;
+
+	/*! mpegh compatible profile hack*/
+	u32 nb_alt_mha_profiles, *alt_mha_profiles;
 } GF_MPD_AdaptationSet;
 
 /*! MPD offering type*/
