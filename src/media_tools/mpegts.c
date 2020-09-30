@@ -3049,14 +3049,20 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 {
 	GF_Err e;
 	GF_M2TS_Demuxer *ts;
-	u32 lt;
+	u32 lt, nb_pck;
 
 	lt = gf_log_get_tool_level(GF_LOG_CONTAINER);
 	gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_QUIET);
 
 	ts = gf_m2ts_demux_new();
 	e = gf_m2ts_process_data(ts, buf, size);
-	if (!ts->pck_number) e = GF_BAD_PARAM;
+	//max number of packets
+	if (ts->prefix_present)
+		nb_pck = size/192;
+	else
+		nb_pck = size/188;
+	//probe success if after align we have nbpck - 2
+	if (ts->pck_number + 2 < nb_pck) e = GF_BAD_PARAM;
 	gf_m2ts_demux_del(ts);
 
 	gf_log_set_tool_level(GF_LOG_CONTAINER, lt);
