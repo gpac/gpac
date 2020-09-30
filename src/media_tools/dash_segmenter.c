@@ -632,6 +632,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
 		e |= gf_dynstrcat(&args, "profile=dashavc264.onDemand", ":");
 		break;
+	case GF_DASH_PROFILE_DASHIF_LL:
+		e |= gf_dynstrcat(&args, "profile=dashif.ll", ":");
+		break;
 	}
 	if (dasher->cp_location_mode==GF_DASH_CPMODE_REPRESENTATION) e |= gf_dynstrcat(&args, "cp=rep", ":");
 	else if (dasher->cp_location_mode==GF_DASH_CPMODE_BOTH) e |= gf_dynstrcat(&args, "cp=both", ":");

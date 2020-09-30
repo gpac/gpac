@@ -1496,7 +1496,10 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 	GF_DownloadSession *sess;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("%s:%d gf_dm_sess_new(%s)\n", __FILE__, __LINE__, url));
 	*e = GF_OK;
-	if (gf_dm_is_local(dm, url)) return NULL;
+	if (gf_dm_is_local(dm, url)) {
+		*e = GF_NOT_SUPPORTED;
+		return NULL;
+	}
 
 	if (!gf_dm_can_handle_url(dm, url)) {
 		*e = GF_NOT_SUPPORTED;

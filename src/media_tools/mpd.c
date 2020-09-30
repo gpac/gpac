@@ -3711,8 +3711,21 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		gf_mpd_lf(out, indent);
 	}
 
-	if (gf_list_count(mpd->utc_timings))
-		gf_mpd_print_descriptors(out, mpd->utc_timings, "UTCTiming", indent+1);
+	if (mpd->inject_service_desc) {
+		gf_mpd_nl(out, indent+1);
+		gf_fprintf(out, "<ServiceDescription id=\"0\">");
+		gf_mpd_lf(out, indent);
+		gf_mpd_nl(out, indent+2);
+		gf_fprintf(out, "<Latency max=\"6000\" min=\"2000\" referenceId=\"0\" target=\"4000\"/>");
+		gf_mpd_lf(out, indent);
+		gf_mpd_nl(out, indent+2);
+		gf_fprintf(out, "<PlaybackRate max=\"1.04\" min=\"0.96\"/>");
+		gf_mpd_lf(out, indent);
+		gf_mpd_nl(out, indent+1);
+		gf_fprintf(out, "</ServiceDescription>");
+		gf_mpd_lf(out, indent);
+	}
+
 	/*
 		i=0;
 		while ((text = (char *)gf_list_enum(mpd->metrics, &i))) {
@@ -3729,6 +3742,10 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		if (!i && count>1 && mpd->was_dynamic) is_dynamic = GF_TRUE;
 		gf_mpd_print_period(period, is_dynamic, out, mpd->write_context, indent+1);
 	}
+
+	if (gf_list_count(mpd->utc_timings))
+		gf_mpd_print_descriptors(out, mpd->utc_timings, "UTCTiming", indent+1);
+
 
 	gf_fprintf(out, "</MPD>");
 

@@ -787,6 +787,7 @@ typedef struct {
 	GF_List *utc_timings;
 
 	/* internal variables for dasher*/
+	Bool inject_service_desc;
 
 	/*! dasher init NTP clock in ms - GPAC internal*/
 	u64 gpac_init_ntp_ms;

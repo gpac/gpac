@@ -503,7 +503,7 @@ Input media files to dash can use the following modifiers
 .br
 * #audio: only use the first audio track from the source file
 .br
-* :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs
+* :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output mux.
 .br
 * :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.
 .br
@@ -541,7 +541,7 @@ Warning: This does not modify generated files location (see segment template).
 .br
   - they will be chained in the given order if separated by a single @
 .br
-  - a new filter chain will be created if separated by a double @@
+  - a new filter chain will be created if separated by a double @@. In this case, no representation ID is assigned to the source.
 .br
 Example
 .br
@@ -606,9 +606,9 @@ specify the output MPD file name
 specify directory for temporary file creation
 .br
 .TP
-.B \-profile (string, values: onDemand|live|main|simple|full|hbbtv1.5:live|dashavc264:live|dashavc264:onDemand)
+.B \-profile (string, values: onDemand|live|main|simple|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll)
 .br
-specify the target DASH profile, and set default options to ensure conformance to the desired profile. Default profile is full in static mode, live in dynamic mode
+specify the target DASH profile, and set default options to ensure conformance to the desired profile. Default profile is full in static mode, live in dynamic mode (old syntax using :live instead of .live as separator still possible)
 .br
 .TP
 .B \-profile-ext (string)
@@ -2333,7 +2333,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev41-g87bb5d7a2-master
+build: 1.1.0-DEV-rev49-g0a5d05d21-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
