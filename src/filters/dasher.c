@@ -99,6 +99,7 @@ typedef struct
 	s32 subs_sidx;
 	s32 buf, timescale;
 	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge;
+	Bool gen_mha_compat;
 	u32 strict_sap;
 	u32 pssh;
 	Double segdur;
@@ -3936,6 +3937,14 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				use_multi_pid_init = GF_TRUE;
 
 			ds->period = ctx->current_period;
+			if ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA)) {
+				const GF_PropertyValue *prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
+				if (prop) {
+					ds->set->nb_alt_mha_profiles = prop->value.uint_list.nb_items;
+					ds->set->alt_mha_profiles = prop->value.uint_list.vals;
+				}
+			}
+
 
 			gf_list_del_item(ctx->next_period->streams, ds);
 
@@ -4580,6 +4589,14 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		ds->set = gf_mpd_adaptation_set_new();
 		ds->owns_set = GF_TRUE;
 		ds->set->udta = ds;
+
+		if (ctx->gen_mha_compat && ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA))) {
+			const GF_PropertyValue *prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
+			if (prop) {
+				ds->set->nb_alt_mha_profiles = prop->value.uint_list.nb_items;
+				ds->set->alt_mha_profiles = prop->value.uint_list.vals;
+			}
+		}
 
 		if (!ds->set->representations)
 			ds->set->representations = gf_list_new();
@@ -5920,7 +5937,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (!ds->muxed_base) {
 					//force sap type to 1 for non-visual streams if strict_sap is set to off
 					if ((ds->stream_type!=GF_STREAM_VISUAL) && (ctx->strict_sap==DASHER_SAP_OFF) ) {
-						sap_type = 1;
+						switch (ds->codec_id) {
+						//MPEG-H requires saps
+						case GF_CODECID_MPHA:
+						case GF_CODECID_MHAS:
+							break;
+						default:
+							sap_type = 1;
+							break;
+						}
 					}
 					//set AS sap type
 					if (!set_start_with_sap) {
@@ -7136,6 +7161,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(utcs), "URL to use as time server / UTCTiming source. Special value `inband` enables inband UTC (same as publishTime), special prefix `xsd@` uses xsDateTime schemeURI rather than ISO", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_flush), "force generating a single segment for each input. This can be usefull in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(last_seg_merge), "force merging last segment if less than half the target duration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(gen_mha_compat), "generate one adaptation set per compatible MPEG-H Audio profile", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{0}
 };
 

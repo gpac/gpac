@@ -2897,10 +2897,10 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 	gf_mpd_lf(out, indent);
 }
 
-static void gf_mpd_print_representation(GF_MPD_Representation const * const rep, FILE *out, Bool write_context, s32 indent)
+static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, Bool write_context, s32 indent, u32 alt_mha_profile)
 {
 	u32 i;
-
+	char *bck_codecs = NULL;
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<Representation");
 	if (rep->id) gf_fprintf(out, " id=\"%s\"", rep->id);
@@ -2909,13 +2909,25 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 		can_close = 1;
 	}
 */
-
+	if (alt_mha_profile) {
+		char szTmp[10], *sep;
+		bck_codecs = rep->codecs;
+		rep->codecs = gf_strdup(bck_codecs);
+		sprintf(szTmp, "0x%02X", alt_mha_profile-1);
+		sep = strstr(rep->codecs, ".0x");
+		if (sep) strcpy(sep+1, szTmp);
+	}
 	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)rep);
 
 	if (rep->bandwidth) gf_fprintf(out, " bandwidth=\"%d\"", rep->bandwidth);
 	if (rep->quality_ranking) gf_fprintf(out, " qualityRanking=\"%d\"", rep->quality_ranking);
 	if (rep->dependency_id) gf_fprintf(out, " dependencyId=\"%s\"", rep->dependency_id);
 	if (rep->media_stream_structure_id) gf_fprintf(out, " mediaStreamStructureId=\"%s\"", rep->media_stream_structure_id);
+
+	if (bck_codecs) {
+		gf_free(rep->codecs);
+		rep->codecs = bck_codecs;
+	}
 
 
 	gf_fprintf(out, ">");
@@ -2963,7 +2975,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	gf_mpd_lf(out, indent);
 }
 
-static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Bool write_context, s32 indent)
+static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Bool write_context, s32 indent, u32 alt_mha_profile)
 {
 	u32 i;
 	GF_MPD_Representation *rep;
@@ -3042,13 +3054,17 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 
 	i=0;
 	while ((rep = (GF_MPD_Representation *)gf_list_enum(as->representations, &i))) {
-		gf_mpd_print_representation(rep, out, write_context, indent+1);
+		gf_mpd_print_representation(rep, out, write_context, indent+1, alt_mha_profile);
 	}
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "</AdaptationSet>");
 	gf_mpd_lf(out, indent);
 
-
+	if (!alt_mha_profile) {
+		for (i=0; i<as->nb_alt_mha_profiles; i++) {
+			gf_mpd_print_adaptation_set(as, out, write_context, indent, as->alt_mha_profiles[i] + 1);
+		}
+	}
 }
 
 static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context, s32 indent)
@@ -3098,7 +3114,7 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-		gf_mpd_print_adaptation_set(as, out, write_context, indent+1);
+		gf_mpd_print_adaptation_set(as, out, write_context, indent+1, 0);
 	}
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "</Period>");
@@ -5180,7 +5196,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				}
 
 				//serialize
-				gf_mpd_print_adaptation_set(set, f, GF_FALSE, 0);
+				gf_mpd_print_adaptation_set(set, f, GF_FALSE, 0, 0);
 				size = (u32) gf_ftell(f);
 				data = gf_malloc(size+1);
 				gf_fseek(f, 0, SEEK_SET);

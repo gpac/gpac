@@ -500,6 +500,7 @@ enum
 	GF_ISOM_BOX_TYPE_MHM1 	= GF_4CC('m','h','m','1'),
 	GF_ISOM_BOX_TYPE_MHM2 	= GF_4CC('m','h','m','2'),
 	GF_ISOM_BOX_TYPE_MHAC 	= GF_4CC('m','h','a','C'),
+	GF_ISOM_BOX_TYPE_MHAP 	= GF_4CC('m','h','a','P'),
 
 	GF_ISOM_BOX_TYPE_IPCM 	= GF_4CC('i','p','c','m'),
 	GF_ISOM_BOX_TYPE_FPCM 	= GF_4CC('f','p','c','m'),
@@ -1585,6 +1586,14 @@ typedef struct
 	u16 mha_config_size;
 	char *mha_config;
 } GF_MHAConfigBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u8 num_profiles;
+	u8 *compat_profiles;
+} GF_MHACompatibleProfilesBox;
 
 
 typedef struct
