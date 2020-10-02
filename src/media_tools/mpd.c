@@ -2913,7 +2913,8 @@ static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, B
 		char szTmp[10], *sep;
 		bck_codecs = rep->codecs;
 		rep->codecs = gf_strdup(bck_codecs);
-		sprintf(szTmp, "0x%02X", alt_mha_profile-1);
+		snprintf(szTmp, 9, "0x%02X", alt_mha_profile-1);
+		szTmp[9] = 0;
 		sep = strstr(rep->codecs, ".0x");
 		if (sep) strcpy(sep+1, szTmp);
 	}
