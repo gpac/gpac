@@ -2981,6 +2981,14 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	GF_MPD_Representation *rep;
 	GF_MPD_other_descriptors *o_desc;
 
+	if (!alt_mha_profile && as->nb_alt_mha_profiles && as->alt_mha_profiles_only) {
+		for (i=0; i<as->nb_alt_mha_profiles; i++) {
+			gf_mpd_print_adaptation_set(as, out, write_context, indent, as->alt_mha_profiles[i] + 1);
+		}
+
+		return;
+	}
+
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<AdaptationSet");
 
