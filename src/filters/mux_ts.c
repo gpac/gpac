@@ -1574,8 +1574,9 @@ static Bool tsmux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static const GF_FilterCapability TSMuxCaps[] =
 {
-	//first set of caps describe streams that need reframing (NAL)
+	//first set of caps describe streams that need reframing (NALU, mp4v, mpegh audio)
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	//unframed streams only
 	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//for NAL-based, we want annexB format
@@ -1588,6 +1589,9 @@ static const GF_FilterCapability TSMuxCaps[] =
 	//for m4vp2 we want DSI reinsertion
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	//for AAC we use the AAC->ADTS or AAC->LATM of the mux, so don't insert here
+
+	//for MPEG-H audio MHAS we need to insert sync packets
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MHAS),
 
 	//static output cap file extension
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -1607,7 +1611,10 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_VVC),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
-	//no RAW support for now
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_MHAS),
+	//we don't accept MPEG-H audio without MHAS
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_MPHA),
+	//no RAW support for now$
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 

@@ -841,6 +841,12 @@ const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout);
 */
 u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout);
 
+/*! get channel count from channel  layout
+\param chan_layout channel layout mask
+\return number of channels in this layout
+*/
+u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout);
+
 /*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
   */
 typedef enum

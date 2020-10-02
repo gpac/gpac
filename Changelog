@@ -1,3 +1,12 @@
+Ongoing: GPAC 1.1-DEV
+- more support for MPEG-H audio mux/demux/dashing
+- support for windows long path
+- support for multiple filter chains per source in MP4Box dash or add syntax
+- reworked mod-dirs and js-dirs usage, JSFilters now can be part of the default available filters
+- added avgen counter generation
+- support for HEIF item to sample data reference (no copy)
+- bug fixes and security patches
+
 10/09/2020: GPAC 1.0.1
 This release fixes build and installation issues in 1.0.0, as well as various bugs introduced during the migration to the filters architecture.
 

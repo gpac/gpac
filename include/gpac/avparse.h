@@ -395,9 +395,10 @@ u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3)
 /*! parse profile and level from a MHAS payload
 \param ptr the MHAS payhload
 \param size size of the MHAS payhload
+\param chan_layout set to the channel layout if found, 0 otherwise - optional, may be NULL
 \return the MHAS profile found, or -1 of not found
 */
-s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size);
+s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *chan_layout);
 
 /*! reads a 32 bit sync safe integer of id3v2 from a bitstream object
 \param bs the bitstream object to use - has to be positioned on the start if an id3v2 size field

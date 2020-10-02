@@ -2978,7 +2978,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		if ( (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2))
 			allow_inband = GF_TRUE;
 
-		fprintf(stderr, "\tMPEG-H Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
+		fprintf(stderr, "\tMPEG-H Audio stream - Sample Rate %d\n", sr);
 
 		esd = gf_media_map_esd(file, trackNum, 1);
 		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
@@ -2987,15 +2987,22 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			if (allow_inband) {
 				GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, NULL);
 				if (samp) {
-					s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength);
-					if (PL>=0)
-						fprintf(stderr, "\tProfileLevelIndication: 0x%02X\n", PL);
+					u64 ch_layout=0;
+					s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength, &ch_layout);
+					if (PL>=0) {
+						fprintf(stderr, "\tProfileLevelIndication: 0x%02X", PL);
+						if (ch_layout)
+							fprintf(stderr, " - Reference Channel Layout %s", gf_audio_fmt_get_layout_name_from_cicp(ch_layout) );
+						fprintf(stderr, "\n");
+					}
 					gf_isom_sample_del(&samp);
 				}
 				valid = GF_TRUE;
 			}
 		} else if (esd->decoderConfig->decoderSpecificInfo->dataLength>=5) {
-			fprintf(stderr, "\tProfileLevelIndication: 0x%02X\n", esd->decoderConfig->decoderSpecificInfo->data[1]);
+			fprintf(stderr, "\tProfileLevelIndication: 0x%02X - Reference Channel Layout %s\n", esd->decoderConfig->decoderSpecificInfo->data[1]
+				, gf_audio_fmt_get_layout_name_from_cicp(esd->decoderConfig->decoderSpecificInfo->data[2])
+			);
 			valid = GF_TRUE;
 		}
 		if (!valid) {

@@ -968,10 +968,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			ch->check_mhas_pl = GF_TRUE;
 			GF_ISOSample *samp = gf_isom_get_sample(ch->owner->mov, ch->track, 1, NULL);
 			if (samp) {
-				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength);
+				u64 ch_layout=0;
+				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength, &ch_layout);
 				if (PL>0) {
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
 					ch->check_mhas_pl = GF_FALSE;
+					if (ch_layout)
+						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 				}
 				gf_isom_sample_del(&samp);
 			}
