@@ -294,7 +294,7 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 		if (!data) return;
 		data[0] = 1;
 		data[1] = PL;
-		data[2] = chan_layout;
+		data[2] = CICPspeakerLayoutIdx;
 		data[3] = dsi_size>>8;
 		data[4] = dsi_size&0xFF;
 		memcpy(data+5, dsi, dsi_size);
@@ -528,7 +528,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 
 	//MHAS packet
 	while (remain > consummed) {
-		u64 pay_start, parse_end, mhas_size, mhas_label;
+		u32 pay_start, parse_end, mhas_size, mhas_label;
 		Bool mhas_sap = 0;
 		u32 mhas_type;
 		if (!ctx->is_playing && ctx->opid) {
@@ -538,8 +538,8 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		}
 
 		mhas_type = (u32) gf_mpegh_escaped_value(ctx->bs, 3, 8, 8);
-		mhas_label = gf_mpegh_escaped_value(ctx->bs, 2, 8, 32);
-		mhas_size = gf_mpegh_escaped_value(ctx->bs, 11, 24, 24);
+		mhas_label = (u32) gf_mpegh_escaped_value(ctx->bs, 2, 8, 32);
+		mhas_size = (u32) gf_mpegh_escaped_value(ctx->bs, 11, 24, 24);
 
 		if (ctx->buffer_too_small)
 			break;
@@ -600,11 +600,11 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			if (speakerLayoutType == 0) {
 				CICPspeakerLayoutIdx = gf_bs_read_int(ctx->bs, 6);
 			} else {
-				numSpeakers = gf_mpegh_escaped_value(ctx->bs, 5, 8, 16) + 1;
+				numSpeakers = (s32) gf_mpegh_escaped_value(ctx->bs, 5, 8, 16) + 1;
 				//TODO ...
 			}
 
-			mhas_dmx_check_pid(filter, ctx, pl, sr, frame_len, CICPspeakerLayoutIdx, numSpeakers, start + pay_start, mhas_size);
+			mhas_dmx_check_pid(filter, ctx, pl, sr, frame_len, CICPspeakerLayoutIdx, numSpeakers, start + pay_start, (u32) mhas_size);
 
 			has_cfg = GF_TRUE;
 		}
@@ -658,7 +658,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 				au_start = pay_start;
 				au_size = mhas_size;
 			} else {
-				au_size = gf_bs_get_position(ctx->bs) - au_start;
+				au_size = (u32) gf_bs_get_position(ctx->bs) - au_start;
 			}
 
 			if (nb_trunc_samples) {
@@ -669,7 +669,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 							offset *= ctx->timescale;
 							offset /= ctx->sample_rate;
 						}
-						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY , &PROP_SINT(-offset));
+						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY , &PROP_SINT( (s32) -offset));
 					}
 				} else {
 					pck_dur -= nb_trunc_samples;
@@ -695,7 +695,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			}
 			gf_filter_pck_set_dts(dst, ctx->cts);
 			gf_filter_pck_set_cts(dst, ctx->cts);
-			gf_filter_pck_set_duration(dst, pck_dur);
+			gf_filter_pck_set_duration(dst, (u32) pck_dur);
 			if (ctx->byte_offset != GF_FILTER_NO_BO) {
 				u64 offset = (u64) (start - ctx->mhas_buffer);
 				offset += ctx->byte_offset + au_start;
