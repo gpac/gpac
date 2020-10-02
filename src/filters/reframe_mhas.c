@@ -128,10 +128,9 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 	GF_Fraction64 duration;
 	FILE *stream;
 	GF_BitStream *bs;
-	u32 frame_len = 0;
-	u32 cur_dur;
-	Bool mhas_sap = 0;
-	u64 mhas_last_cfg = 0;
+	u32 frame_len, cur_dur;
+	Bool mhas_sap;
+	u64 mhas_last_cfg;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -155,6 +154,9 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	duration.num = duration.den = 0;
+	frame_len = cur_dur = 0;
+	mhas_sap = GF_FALSE;
+	mhas_last_cfg = 0;
 
 	while (gf_bs_available(bs)) {
 		u32 sync_code = gf_bs_peek_bits(bs, 24, 0);
@@ -164,12 +166,12 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 		gf_bs_skip_bytes(bs, 1);
 	}
 	while (gf_bs_available(bs)) {
-		u64 mhas_pck_start, pay_start, parse_end, mhas_size, mhas_label;
+		u64 mhas_pck_start, pay_start, parse_end, mhas_size;
 		u32 mhas_type;
 
 		mhas_pck_start = gf_bs_get_position(bs);
 		mhas_type = (u32) gf_mpegh_escaped_value(bs, 3, 8, 8);
-		mhas_label = gf_mpegh_escaped_value(bs, 2, 8, 32);
+		/*mhas_label = */gf_mpegh_escaped_value(bs, 2, 8, 32);
 		mhas_size = gf_mpegh_escaped_value(bs, 11, 24, 24);
 
 		pay_start = (u32) gf_bs_get_position(bs);
@@ -526,7 +528,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 
 	//MHAS packet
 	while (remain > consummed) {
-		u64 mhas_pck_start, pay_start, parse_end, mhas_size, mhas_label;
+		u64 pay_start, parse_end, mhas_size, mhas_label;
 		Bool mhas_sap = 0;
 		u32 mhas_type;
 		if (!ctx->is_playing && ctx->opid) {
@@ -535,7 +537,6 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			break;
 		}
 
-		mhas_pck_start = gf_bs_get_position(ctx->bs);
 		mhas_type = (u32) gf_mpegh_escaped_value(ctx->bs, 3, 8, 8);
 		mhas_label = gf_mpegh_escaped_value(ctx->bs, 2, 8, 32);
 		mhas_size = gf_mpegh_escaped_value(ctx->bs, 11, 24, 24);
