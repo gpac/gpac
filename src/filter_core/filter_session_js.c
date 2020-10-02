@@ -1076,6 +1076,24 @@ static JSValue jsfs_reporting(JSContext *ctx, JSValueConst this_val, int argc, J
 	return JS_UNDEFINED;
 }
 
+JSValue jsfilter_initialize_custom(GF_Filter *filter, JSContext *ctx);
+
+static JSValue jsfs_new_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Filter *f;
+	GF_Err e;
+	const char *name = NULL;
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs) return JS_EXCEPTION;
+	if (argc) name = JS_ToCString(ctx, argv[0]);
+
+	f = gf_fs_new_filter(fs, name, &e);
+	if (name) JS_FreeCString(ctx, name);
+	if (!f) return js_throw_err(ctx, e);
+
+	return jsfilter_initialize_custom(f, ctx);
+}
+
 
 static const JSCFunctionListEntry fs_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("nb_filters", jsfs_prop_get, NULL, JSFS_NB_FILTERS),
@@ -1096,6 +1114,7 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("add_filter", 0, jsfs_add_filter),
     JS_CFUNC_DEF("fire_event", 0, jsfs_fire_event),
     JS_CFUNC_DEF("reporting", 0, jsfs_reporting),
+    JS_CFUNC_DEF("new_filter", 0, jsfs_new_filter),
 
 };
 

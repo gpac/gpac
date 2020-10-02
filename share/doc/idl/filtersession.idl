@@ -115,6 +115,14 @@ boolean fire_event(FilterEvent evt, optional JSFSFilter *filter=null, optional b
 \param enable enables reporting if true*/
 void reporting(boolean enable);
 
+/*! creates a new custom JS filter. This filter will share the same script context as the filter session script - see \ref JSFilter
+\note A custom filter cannot use default arguments, and will not have the initialize callback function called.
+
+\param name name for the filter
+\return new filter
+*/
+JSFilter new_filter(DOMString name=NULL);
+
 /*! number of filters in the session - see \ref gf_fs_get_filters_count. 
 This number is only valid when session is locked*/
 attribute long nb_filters;

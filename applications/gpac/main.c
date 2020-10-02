@@ -52,6 +52,9 @@ static u32 help_flags = 0;
 static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e);
 static void cleanup_file_io();
 
+//coverage for custom filters
+static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
+
 FILE *sidebar_md=NULL;
 static FILE *helpout = NULL;
 
@@ -1799,6 +1802,7 @@ static int gpac_main(int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-ltf")) {
 			load_test_filters = GF_TRUE;
+		} else if (!strncmp(arg, "-lcf", 4)) {
 		} else if (!strcmp(arg, "-stats")) {
 			dump_stats = GF_TRUE;
 		} else if (!strcmp(arg, "-graph")) {
@@ -1994,6 +1998,10 @@ restart:
 			arg = argv[i+1];
 			i++;
 			f_loaded = GF_TRUE;
+		}
+		else if (!strncmp(arg, "-lcf", 4)) {
+			f_loaded = GF_TRUE;
+			filter = load_custom_filter(session, arg+4, &e);
 		}
 		//appart from the above src/dst, other args starting with - are not filters
 		else if (arg[0]=='-') {
@@ -4165,3 +4173,49 @@ static void cleanup_file_io()
 	all_gfio_defined = NULL;
 }
 
+static GF_Err cust_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	GF_FilterEvent evt;
+	if (is_remove) return GF_OK;
+
+	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+	gf_filter_pid_send_event(pid, &evt);
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+	return GF_OK;
+}
+static GF_Err cust_process(GF_Filter *filter)
+{
+	u32 i;
+	for (i=0; i<gf_filter_get_ipid_count(filter); i++) {
+		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
+		const char *name = gf_filter_pid_get_name(pid);
+		while (1) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+			if (!pck) break;
+			fprintf(stderr, "PID %s Got packet CTS "LLU"\n", name, gf_filter_pck_get_cts(pck));
+			gf_filter_pid_drop_packet(pid);
+		}
+	}
+	return GF_OK;
+}
+
+static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e)
+{
+	GF_Filter *f = gf_fs_new_filter(sess, "custom", e);
+	if (!f) return NULL;
+
+	*e = gf_filter_push_caps(f, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL), NULL, GF_CAPS_INPUT, 0);
+	if (*e) return NULL;
+	*e = gf_filter_set_configure_ckb(f, cust_configure_pid);
+	if (*e) return NULL;
+	*e = gf_filter_set_process_ckb(f, cust_process);
+	if (*e) return NULL;
+	*e = gf_filter_set_process_event_ckb(f, NULL);
+	if (*e) return NULL;
+	*e = gf_filter_set_reconfigure_output_ckb(f, NULL);
+	if (*e) return NULL;
+	*e = gf_filter_set_probe_data_cbk(f, NULL);
+	if (*e) return NULL;
+
+	return f;
+}
