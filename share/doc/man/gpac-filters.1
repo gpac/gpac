@@ -4262,7 +4262,15 @@ force_flush (bool, default: false): force generating a single segment for each i
 .br
 last_seg_merge (bool, default: false): force merging last segment if less than half the target duration
 .br
-gen_mha_compat (bool, default: false): generate one adaptation set per compatible MPEG-H Audio profile
+mha_compat (enum, default: no): adaptation set generation mode for compatible MPEG-H Audio profile
+.br
+* no: only generate the adaptation set for the main profile
+.br
+* comp: only generate the adaptation sets for all compatible profiles
+.br
+* all: generate the adaptation set for the main profile and all compatible profiles
+.br
+
 .br
 
 .br
@@ -6329,7 +6337,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev52-gcf5f485df-master
+build: 1.1.0-DEV-rev53-gcfba860d0-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
