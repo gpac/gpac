@@ -602,6 +602,8 @@ GF_Err gf_fs_load_script(GF_FilterSession *session, const char *jsfile);
 /*! @} */
 
 
+
+
 /*!
 \addtogroup fs_props Filter Properties
 \ingroup filters_grp
@@ -1773,6 +1775,9 @@ typedef enum
 	/*! Indicates the filter requires graph resolver (typically because it creates new destinations/sinks at run time)*/
 	GF_FS_REG_REQUIRES_RESOLVER = 1<<11,
 
+
+	/*! flag dynamically set at runtime for custom filters*/
+	GF_FS_REG_CUSTOM = 0x40000000,
 	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
 	GF_FS_REG_DYNLIB = 0x80000000
 } GF_FSRegisterFlags;
@@ -3848,6 +3853,78 @@ This is typically used by sink filters to decide if they can hold references to 
 \return GF_TRUE if the packet is blocking or is a reference to a blocking packet, GF_FALSE otherwise
 */
 Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck);
+
+/*! @} */
+
+
+/*!
+\addtogroup fs_props Filter Properties
+\ingroup filters__cust_grp
+\brief Custom Filter
+
+Custom filters are filters created by the app with no associated registry.
+The app is responsible for assigning capabilities to the filter, and setting callback functions.
+Each callback is optionnal, but a custom filter should at least have a process callback, and a configure_pid callback if not a source filter.
+
+Custom filters do not have any arguments exposed, and cannot be selected for sink or source filters.
+If your app requires custom I/Os for source or sinks, use \ref GF_FileIO.
+@{
+ */
+
+/*! Loads custom filter
+\param session filter session
+\param name name of filter to use - optional, may be NULL
+\param e set to the error code if any - optional, may be NULL
+\return filter or NULL if error
+*/
+GF_Filter *gf_fs_new_filter(GF_FilterSession *session, const char *name, GF_Err *e);
+
+/*! Push a new capability for a custom filter
+\param filter the target filter
+\param code the capability code - cf \ref GF_FilterCapability
+\param value the capability value - cf \ref GF_FilterCapability
+\param name the capability name - cf \ref GF_FilterCapability
+\param flags the capability flags - cf \ref GF_FilterCapability
+\param priority the capability priority - cf \ref GF_FilterCapability
+\return error if any
+ */
+GF_Err gf_filter_push_caps(GF_Filter *filter, u32 code, GF_PropertyValue *value, const char *name, u32 flags, u8 priority);
+
+/*! Set the process function for  a custom filter
+\param filter the target filter
+\param process_cbk the process callback, may be NULL -  cf process in  \ref __gf_filter_register
+\return error if any
+ */
+GF_Err gf_filter_set_process_ckb(GF_Filter *filter, GF_Err (*process_cbk)(GF_Filter *filter) );
+
+/*! Set the PID configuration function for  a custom filter
+\param filter the target filter
+\param configure_cbk the configure callback, may be NULL -  cf configure_pid in \ref __gf_filter_register
+\return error if any
+ */
+GF_Err gf_filter_set_configure_ckb(GF_Filter *filter, GF_Err (*configure_cbk)(GF_Filter *filter, GF_FilterPid *PID, Bool is_remove) );
+
+/*! Set the process event function for  a custom filter
+\param filter the target filter
+\param process_event_cbk the process event callback, may be NULL -  cf process_event in \ref __gf_filter_register
+\return error if any
+ */
+GF_Err gf_filter_set_process_event_ckb(GF_Filter *filter, Bool (*process_event_cbk)(GF_Filter *filter, const GF_FilterEvent *evt) );
+
+/*! Set the reconfigure output function for  a custom filter
+\param filter the target filter
+\param reconfigure_output_cbk the reconfigure callback, may be NULL -  cf reconfigure_output_cbk in \ref __gf_filter_register
+\return error if any
+ */
+GF_Err gf_filter_set_reconfigure_output_ckb(GF_Filter *filter, GF_Err (*reconfigure_output_cbk)(GF_Filter *filter, GF_FilterPid *PID) );
+
+/*! Set the data prober function for  a custom filter
+\param filter the target filter
+\param probe_data_cbk the data prober callback , may be NULL-  cf probe_data in \ref __gf_filter_register
+\return error if any
+ */
+GF_Err gf_filter_set_probe_data_cbk(GF_Filter *filter, const char * (*probe_data_cbk)(const u8 *data, u32 size, GF_FilterProbeScore *score) );
+
 
 /*! @} */
 

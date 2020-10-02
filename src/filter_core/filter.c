@@ -503,6 +503,12 @@ void gf_filter_del(GF_Filter *filter)
 		gf_free(filter->iname);
 #endif
 
+	if (filter->freg && (filter->freg->flags & GF_FS_REG_CUSTOM)) {
+		if (! (filter->freg->flags & GF_FS_REG_SCRIPT))
+			if (filter->forced_caps) gf_free( (void *) filter->forced_caps);
+		gf_free( (char *) filter->freg->name);
+		gf_free( (void *) filter->freg);
+	}
 	gf_free(filter);
 }
 
@@ -3905,3 +3911,81 @@ GF_Err gf_filter_set_event_target(GF_Filter *filter, Bool enable_events)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_filter_push_caps(GF_Filter *filter, u32 code, GF_PropertyValue *value, const char *name, u32 flags, u8 priority)
+{
+	u32 nb_caps;
+	GF_FilterCapability *caps;
+	if (! (filter->freg->flags & GF_FS_REG_CUSTOM)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to push cap on non custom filter %s\n", filter->freg->name));
+		return GF_BAD_PARAM;
+	}
+	caps = (GF_FilterCapability *)filter->forced_caps;
+	nb_caps = filter->nb_forced_caps;
+	caps = gf_realloc(caps, sizeof(GF_FilterCapability)*(nb_caps+1) );
+	if (!caps) return GF_OUT_OF_MEM;
+	caps[nb_caps].code = code;
+	caps[nb_caps].val = *value;
+	caps[nb_caps].name = name ? gf_strdup(name) : NULL;
+	caps[nb_caps].priority = priority;
+	caps[nb_caps].flags = flags;
+	filter->nb_forced_caps++;
+	filter->forced_caps = caps;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_set_process_ckb(GF_Filter *filter, GF_Err (*process_cbk)(GF_Filter *filter) )
+{
+	if (! (filter->freg->flags & GF_FS_REG_CUSTOM)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to assign filter callback on non custom filter %s\n", filter->freg->name));
+		return GF_BAD_PARAM;
+	}
+	((GF_FilterRegister *) filter->freg)->process = process_cbk;
+	return GF_OK;
+}
+
+
+GF_EXPORT
+GF_Err gf_filter_set_configure_ckb(GF_Filter *filter, GF_Err (*configure_cbk)(GF_Filter *filter, GF_FilterPid *PID, Bool is_remove) )
+{
+	if (! (filter->freg->flags & GF_FS_REG_CUSTOM)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to assign filter callback on non custom filter %s\n", filter->freg->name));
+		return GF_BAD_PARAM;
+	}
+	((GF_FilterRegister *) filter->freg)->configure_pid = configure_cbk;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_set_process_event_ckb(GF_Filter *filter, Bool (*process_event_cbk)(GF_Filter *filter, const GF_FilterEvent *evt) )
+{
+	if (! (filter->freg->flags & GF_FS_REG_CUSTOM)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to assign filter callback on non custom filter %s\n", filter->freg->name));
+		return GF_BAD_PARAM;
+	}
+	((GF_FilterRegister *) filter->freg)->process_event = process_event_cbk;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_set_reconfigure_output_ckb(GF_Filter *filter, GF_Err (*reconfigure_output_cbk)(GF_Filter *filter, GF_FilterPid *PID) )
+{
+	if (! (filter->freg->flags & GF_FS_REG_CUSTOM)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to assign filter callback on non custom filter %s\n", filter->freg->name));
+		return GF_BAD_PARAM;
+	}
+	((GF_FilterRegister *) filter->freg)->reconfigure_output = reconfigure_output_cbk;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_set_probe_data_cbk(GF_Filter *filter, const char * (*probe_data_cbk)(const u8 *data, u32 size, GF_FilterProbeScore *score) )
+{
+	if (! (filter->freg->flags & GF_FS_REG_CUSTOM)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to assign filter callback on non custom filter %s\n", filter->freg->name));
+		return GF_BAD_PARAM;
+	}
+	((GF_FilterRegister *) filter->freg)->probe_data = probe_data_cbk;
+	return GF_OK;
+}

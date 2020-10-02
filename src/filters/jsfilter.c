@@ -122,6 +122,7 @@ typedef struct
 	const char *js;
 
 	GF_Filter *filter;
+	Bool is_custom;
 
 	JSContext *ctx;
 
@@ -2023,7 +2024,9 @@ static JSValue jsf_pid_get_packet(JSContext *ctx, JSValueConst this_val, int arg
 	GF_JSPckCtx *pckctx;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
     if (!pctx) return JS_EXCEPTION;
-
+	if (!pctx->jsf->filter->in_process)
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to query packet outside process callback not allowed!\n", pctx->jsf->filter->name);
+		
     pck = gf_filter_pid_get_packet(pctx->pid);
 	if (!pck) return JS_NULL;
 
@@ -2055,6 +2058,8 @@ static JSValue jsf_pid_drop_packet(JSContext *ctx, JSValueConst this_val, int ar
 	GF_JSPckCtx *pckctx;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
     if (!pctx) return JS_EXCEPTION;
+	if (!pctx->jsf->filter->in_process)
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to drop packet outside process callback not allowed!\n", pctx->jsf->filter->name);
 
 	if (!pctx->pck_head) {
 		if (gf_filter_pid_get_packet_count(pctx->pid)) {
@@ -2270,6 +2275,9 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
 
     if (!pctx) return JS_EXCEPTION;
+	if (!pctx->jsf->filter->in_process)
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to create a new packet outside process callback not allowed!\n", pctx->jsf->filter->name);
+
 
 	pckc = gf_list_pop_back(pctx->jsf->pck_res);
 	if (!pckc) {
@@ -3587,6 +3595,9 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	GF_FilterPacket *pck;
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
     if (!pckctx || !pckctx->pck) return JS_EXCEPTION;
+	if (! pckctx->jspid->jsf->filter->in_process)
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to send packet outside process callback not allowed!\n", pckctx->jspid->jsf->filter->name);
+
     pck = pckctx->pck;
     if (!JS_IsUndefined(pckctx->data_ab)) {
     	JS_FreeValue(ctx, pckctx->data_ab);
@@ -4055,7 +4066,7 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 
 }
 
-static GF_Err jsfilter_initialize(GF_Filter *filter)
+static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 {
 	u8 *buf;
 	u32 buf_len;
@@ -4066,32 +4077,42 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
     JSRuntime *rt;
 	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
 
+	if (custom_ctx) {
+		GF_SAFEALLOC(jsf, GF_JSFilterCtx);
+		filter->filter_udta = jsf;
+	}
+
 	jsf->filter = filter;
 	jsf->pids = gf_list_new();
 	jsf->pck_res = gf_list_new();
-	jsf->log_name = gf_strdup("JSF");
+	jsf->log_name = gf_strdup(custom_ctx ? filter->name : "JSF");
 
-	if (!jsf->js) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Missing script file\n"));
-		return GF_BAD_PARAM;
-	}
-	if (!gf_file_exists(jsf->js)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Script file %s does not exist\n", jsf->js));
-		return GF_BAD_PARAM;
-	}
-	jsf->filter_obj = JS_UNDEFINED;
+	if (custom_ctx) {
+		jsf->ctx = custom_ctx;
+		jsf->is_custom = GF_TRUE;
+		global_obj = JS_GetGlobalObject(jsf->ctx);
+	} else {
+		if (!jsf->js) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Missing script file\n"));
+			return GF_BAD_PARAM;
+		}
+		if (!gf_file_exists(jsf->js)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Script file %s does not exist\n", jsf->js));
+			return GF_BAD_PARAM;
+		}
+		jsf->filter_obj = JS_UNDEFINED;
 
-	jsf->ctx = gf_js_create_context();
-	if (!jsf->ctx) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
-		return GF_IO_ERR;
+		jsf->ctx = gf_js_create_context();
+		if (!jsf->ctx) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
+			return GF_IO_ERR;
+		}
+		JS_SetContextOpaque(jsf->ctx, jsf);
+		global_obj = JS_GetGlobalObject(jsf->ctx);
+		js_load_constants(jsf->ctx, global_obj);
 	}
-	JS_SetContextOpaque(jsf->ctx, jsf);
 	rt = JS_GetRuntime(jsf->ctx);
 
-    global_obj = JS_GetGlobalObject(jsf->ctx);
-
-	js_load_constants(jsf->ctx, global_obj);
 
 
 	//initialize filter class and create a single filter object in global scope
@@ -4101,7 +4122,8 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 	jsf->filter_obj = JS_NewObjectClass(jsf->ctx, jsf_filter_class_id);
     JS_SetPropertyFunctionList(jsf->ctx, jsf->filter_obj, jsf_filter_funcs, countof(jsf_filter_funcs));
     JS_SetOpaque(jsf->filter_obj, jsf);
-    JS_SetPropertyStr(jsf->ctx, global_obj, "filter", jsf->filter_obj);
+    if (!custom_ctx)
+		JS_SetPropertyStr(jsf->ctx, global_obj, "filter", jsf->filter_obj);
 
 	//initialize filter instance class
 	JS_NewClassID(&jsf_filter_inst_class_id);
@@ -4125,8 +4147,12 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
     JS_SetPropertyFunctionList(jsf->ctx, pck_proto, jsf_pck_funcs, countof(jsf_pck_funcs));
     JS_SetClassProto(jsf->ctx, jsf_pck_class_id, pck_proto);
 
-	JS_SetPropertyStr(jsf->ctx, global_obj, "_gpac_log_name", JS_NewString(jsf->ctx, gf_file_basename(jsf->js) ) );
+    if (!custom_ctx)
+		JS_SetPropertyStr(jsf->ctx, global_obj, "_gpac_log_name", JS_NewString(jsf->ctx, gf_file_basename(jsf->js) ) );
+
     JS_FreeValue(jsf->ctx, global_obj);
+
+    if (custom_ctx) return GF_OK;
 
 
 	//load script
@@ -4176,6 +4202,12 @@ static GF_Err jsfilter_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+
+static GF_Err jsfilter_initialize(GF_Filter *filter)
+{
+	return jsfilter_initialize_ex(filter, NULL);
+}
+
 static void jsfilter_finalize(GF_Filter *filter)
 {
 	u32 i, count;
@@ -4208,7 +4240,8 @@ static void jsfilter_finalize(GF_Filter *filter)
 	if (jsf->unload_session_api)
 		gf_fs_unload_script(filter->session, jsf->ctx);
 
-	gf_js_delete_context(jsf->ctx);
+	if (!jsf->is_custom)
+		gf_js_delete_context(jsf->ctx);
 
 	while (gf_list_count(jsf->pids)) {
 		GF_JSPidCtx *pctx = gf_list_pop_back(jsf->pids);
@@ -4242,6 +4275,8 @@ static void jsfilter_finalize(GF_Filter *filter)
 
 	if (jsf->caps) gf_free(jsf->caps);
 }
+
+
 
 static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
 {
@@ -4424,6 +4459,24 @@ GF_FilterRegister JSFilterRegister = {
 const GF_FilterRegister *jsfilter_register(GF_FilterSession *session)
 {
 	return &JSFilterRegister;
+}
+
+
+JSValue jsfilter_initialize_custom(GF_Filter *filter, JSContext *ctx)
+{
+	GF_JSFilterCtx *jsf;
+	GF_Err e = jsfilter_initialize_ex(filter, ctx);
+	if (e) return js_throw_err(ctx, e);
+	jsf = gf_filter_get_udta(filter);
+	((GF_FilterRegister *) filter->freg)->finalize = jsfilter_finalize;
+	((GF_FilterRegister *) filter->freg)->process = jsfilter_process;
+	((GF_FilterRegister *) filter->freg)->configure_pid = jsfilter_configure_pid;
+	((GF_FilterRegister *) filter->freg)->process_event = jsfilter_process_event;
+//	((GF_FilterRegister *) filter->freg)->reconfigure_output = jsfilter_reconfigure_output;
+//	((GF_FilterRegister *) filter->freg)->probe_data = jsfilter_probe_data;
+	//signal reg is script, so we don't free the filter reg caps as with custom filters
+	((GF_FilterRegister *) filter->freg)->flags |= GF_FS_REG_SCRIPT;
+	return jsf->filter_obj;
 }
 
 #else
