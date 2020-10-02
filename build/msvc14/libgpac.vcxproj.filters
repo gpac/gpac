@@ -1346,6 +1346,9 @@
     <ClCompile Include="..\..\src\filters\reframe_img.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_mhas.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\reframe_mp3.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1374,6 +1377,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\rewrite_adts.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewrite_mhas.c">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\rewrite_mp4v.c">

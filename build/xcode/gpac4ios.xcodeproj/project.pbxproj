@@ -372,6 +372,8 @@
 		928607152398F4C800FDA1ED /* ff_avf.c in Sources */ = {isa = PBXBuildFile; fileRef = 928607142398F4C800FDA1ED /* ff_avf.c */; };
 		928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D111BE11BC100CAC65D /* libcrypto.a */; };
 		928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D121BE11BC100CAC65D /* libssl.a */; };
+		928EB67525271B5800E47747 /* rewrite_mhas.c in Sources */ = {isa = PBXBuildFile; fileRef = 928EB67425271B5800E47747 /* rewrite_mhas.c */; };
+		9290E74E25263F4F00BC0EE3 /* reframe_mhas.c in Sources */ = {isa = PBXBuildFile; fileRef = 9290E74D25263F4E00BC0EE3 /* reframe_mhas.c */; };
 		92910FAA233A44110052365D /* jsfilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92910FA9233A44110052365D /* jsfilter.c */; };
 		9292BEFF1CFC93C10070EB05 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */; };
 		9292BF011CFC93D50070EB05 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BF001CFC93D50070EB05 /* CoreVideo.framework */; };
@@ -957,6 +959,8 @@
 		928607142398F4C800FDA1ED /* ff_avf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_avf.c; path = ../../src/filters/ff_avf.c; sourceTree = "<group>"; };
 		928B2D111BE11BC100CAC65D /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../extra_lib/lib/iOS/libcrypto.a; sourceTree = "<group>"; };
 		928B2D121BE11BC100CAC65D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../extra_lib/lib/iOS/libssl.a; sourceTree = "<group>"; };
+		928EB67425271B5800E47747 /* rewrite_mhas.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_mhas.c; path = ../../src/filters/rewrite_mhas.c; sourceTree = "<group>"; };
+		9290E74D25263F4E00BC0EE3 /* reframe_mhas.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mhas.c; path = ../../src/filters/reframe_mhas.c; sourceTree = "<group>"; };
 		92910FA9233A44110052365D /* jsfilter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jsfilter.c; path = ../../src/filters/jsfilter.c; sourceTree = "<group>"; };
 		9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		9292BF001CFC93D50070EB05 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
@@ -1953,6 +1957,7 @@
 				92EB6DBA20E4E19700A97A49 /* reframe_h263.c */,
 				92EB6D8520E4E19300A97A49 /* reframe_img.c */,
 				929FA64221A3E83E000455A7 /* reframe_latm.c */,
+				9290E74D25263F4E00BC0EE3 /* reframe_mhas.c */,
 				92EB6DA520E4E19500A97A49 /* reframe_mp3.c */,
 				92EB6DBB20E4E19700A97A49 /* reframe_mpgvid.c */,
 				92EB6D7520E4E19200A97A49 /* reframe_nalu.c */,
@@ -1964,6 +1969,7 @@
 				92EB6DB620E4E19600A97A49 /* resample_audio.c */,
 				92EB6D9320E4E19400A97A49 /* rewind.c */,
 				92EB6D8120E4E19300A97A49 /* rewrite_adts.c */,
+				928EB67425271B5800E47747 /* rewrite_mhas.c */,
 				92EB6D9E20E4E19500A97A49 /* rewrite_mp4v.c */,
 				92EB6DB420E4E19600A97A49 /* rewrite_nalu.c */,
 				8959AC83211C9C3C004D2C87 /* rewrite_obu.c */,
@@ -2293,6 +2299,7 @@
 				92D6C5AD2343BF9400262217 /* dom_js.c in Sources */,
 				71CCF24B1277045100339E12 /* conditional.c in Sources */,
 				71CCF24C1277045100339E12 /* field_decode.c in Sources */,
+				928EB67525271B5800E47747 /* rewrite_mhas.c in Sources */,
 				92EB6E0220E4E19700A97A49 /* write_generic.c in Sources */,
 				92EB6E3020E4E58E00A97A49 /* scene_node_init.c in Sources */,
 				92EB6E0B20E4E19700A97A49 /* mux_isom.c in Sources */,
@@ -2567,6 +2574,7 @@
 				92EB6E0420E4E19700A97A49 /* ff_dmx.c in Sources */,
 				92EB6DCE20E4E19700A97A49 /* filelist.c in Sources */,
 				92EB6DE320E4E19700A97A49 /* compose.c in Sources */,
+				9290E74E25263F4F00BC0EE3 /* reframe_mhas.c in Sources */,
 				92E9DFAF2215CEA700628420 /* raster_rgb.c in Sources */,
 				929DE74924183FB40056AFA7 /* gzio.c in Sources */,
 				92EB6DF320E4E19700A97A49 /* dmx_avi.c in Sources */,

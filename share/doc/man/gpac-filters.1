@@ -2480,6 +2480,24 @@ mpeg2 (enum, default: auto):   signal as MPEG2 AAC
 .br
 
 .br
+.SH ufmhas
+.LP
+.br
+Description: MHAS writer
+.br
+
+.br
+This filter converts MPEG-H Audio streams into MHAS encapsulated data.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+syncp (bool, default: yes):    if set, insert sync packet at each frame, otherwise only at SAP
+.br
+
+.br
 .SH reframer
 .LP
 .br
@@ -5570,6 +5588,36 @@ index (dbl, default: 1.0):     indexing window length
 .br
 
 .br
+.SH rfmhas
+.LP
+.br
+Description: MPEH-H Audio Stream reframer
+.br
+
+.br
+This filter parses MHAS files/data and outputs corresponding audio PID and frames.
+.br
+By default, the filter expects a MHAS stream with SYNC packets set, otherwise tune-in will fail. Using .I nosync=false can help parsing bitstreams with no SYNC packets.
+.br
+The default behaviour is to dispatch a framed MHAS bitstream. To demultiplex into a raw MPEG-H Audio, use .I mpha.
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+index (dbl, default: 1.0):     indexing window length
+.br
+mpha (bool, default: false):   demux MHAS and only forward audio frames
+.br
+pcksync (uint, default: 4):    number of unknwon packets to tolerate before considering sync is lost
+.br
+nosync (bool, default: true):  initial sync state - see filter help
+.br
+
+.br
 .SH rfprores
 .LP
 .br
@@ -6281,7 +6329,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev50-geec71e759-master
+build: 1.1.0-DEV-rev52-gcf5f485df-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

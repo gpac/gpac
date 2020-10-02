@@ -255,6 +255,12 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			codecid = GF_CODECID_AAC_MPEG4;
 			unframed = GF_TRUE;
 			break;
+		case GF_M2TS_MHAS_MAIN:
+		case GF_M2TS_MHAS_AUX:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_MHAS;
+			unframed = GF_TRUE;
+			break;
 		case GF_M2TS_AUDIO_AC3:
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_AC3;
@@ -291,7 +297,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			codecid = GF_CODECID_EAC3;
 			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type %d not supported - ignoring pid\n", stream->stream_type));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
 		}
 	}
@@ -699,7 +705,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					gf_filter_pid_set_info(stream->user, GF_PROP_PID_UTC_TIMESTAMP, & PROP_LONGUINT(prog->last_pcr_value / 300) );
 				}
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n",
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n",
 				                                       tdt->year, tdt->month, tdt->day, tdt->hour, tdt->minute, tdt->second, prog->last_pcr_value/300, prog->number));
 		}
 	}

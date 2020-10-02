@@ -334,6 +334,7 @@
     <ClCompile Include="..\..\src\filters\reframe_h263.c" />
     <ClCompile Include="..\..\src\filters\reframe_img.c" />
     <ClCompile Include="..\..\src\filters\reframe_latm.c" />
+    <ClCompile Include="..\..\src\filters\reframe_mhas.c" />
     <ClCompile Include="..\..\src\filters\reframe_mp3.c" />
     <ClCompile Include="..\..\src\filters\reframe_mpgvid.c" />
     <ClCompile Include="..\..\src\filters\reframe_nalu.c" />
@@ -344,6 +345,7 @@
     <ClCompile Include="..\..\src\filters\resample_audio.c" />
     <ClCompile Include="..\..\src\filters\rewind.c" />
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />
+    <ClCompile Include="..\..\src\filters\rewrite_mhas.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mp4v.c" />
     <ClCompile Include="..\..\src\filters\rewrite_nalu.c" />
     <ClCompile Include="..\..\src\filters\rewrite_obu.c" />

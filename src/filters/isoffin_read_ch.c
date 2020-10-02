@@ -612,10 +612,13 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (ch->is_encrypted) return;
 
 	if (ch->check_mhas_pl) {
-		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength);
+		u64 ch_layout = 0;
+		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength, &ch_layout);
 		if (PL>0) {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
 			ch->check_mhas_pl = GF_FALSE;
+			if (ch_layout)
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 		}
 		return;
 	}

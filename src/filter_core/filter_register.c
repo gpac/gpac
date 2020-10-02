@@ -152,6 +152,8 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session);
 const GF_FilterRegister *flac_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *proresdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *bsrw_register(GF_FilterSession *session);
+const GF_FilterRegister *mhas_dmx_register(GF_FilterSession *session);
+const GF_FilterRegister *mhasmx_register(GF_FilterSession *session);
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
@@ -215,6 +217,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, fileout_register(a_sess) );
 	gf_fs_add_filter_register(fsess, latm_mx_register(a_sess) );
 	gf_fs_add_filter_register(fsess, adtsmx_register(a_sess) );
+	gf_fs_add_filter_register(fsess, mhasmx_register(a_sess) );
 
 	gf_fs_add_filter_register(fsess, reframer_register(a_sess) );
 	gf_fs_add_filter_register(fsess, writegen_register(a_sess) );
@@ -262,6 +265,8 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, hevcsplit_register(a_sess));
 	gf_fs_add_filter_register(fsess, hevcmerge_register(a_sess));
 	gf_fs_add_filter_register(fsess, flac_dmx_register(a_sess));
+	gf_fs_add_filter_register(fsess, mhas_dmx_register(a_sess));
+
 	gf_fs_add_filter_register(fsess, proresdmx_register(a_sess));
 	gf_fs_add_filter_register(fsess, m2tssplit_register(a_sess));
 	gf_fs_add_filter_register(fsess, bsrw_register(a_sess));

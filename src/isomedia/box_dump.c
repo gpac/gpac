@@ -5649,7 +5649,10 @@ GF_Err mhac_box_dump(GF_Box *a, FILE * trace)
 
 	gf_isom_box_dump_start(a, "MHAConfigurationBox", trace);
 
-	gf_fprintf(trace, "configurationVersion=\"%d\" mpegh3daProfileLevelIndication=\"%d\" referenceChannelLayout=\"%d\">\n", p->configuration_version, p->mha_pl_indication, p->reference_channel_layout);
+	gf_fprintf(trace, "configurationVersion=\"%d\" mpegh3daProfileLevelIndication=\"0x%02X\" referenceChannelLayout=\"%d\" data=\"", p->configuration_version, p->mha_pl_indication, p->reference_channel_layout);
+	dump_data(trace, p->mha_config, p->mha_config_size);
+	gf_fprintf(trace, "\">\n");
+
 	gf_isom_box_dump_done("MHAConfigurationBox", a, trace);
 	return GF_OK;
 }

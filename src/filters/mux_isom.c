@@ -1422,6 +1422,7 @@ sample_entry_setup:
 		else
 			m_subtype = m_subtype_src;
 		comp_name = "MPEG-H Audio";
+		nb_chan = 0;
 		break;
 	case GF_CODECID_MHAS:
 		if ((m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHM1) && (m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHM2))
@@ -1429,6 +1430,7 @@ sample_entry_setup:
 		else
 			m_subtype = m_subtype_src;
 		comp_name = "MPEG-H AudioMux";
+		nb_chan = 0;
 		break;
 	case GF_CODECID_FLAC:
 		m_subtype = GF_ISOM_SUBTYPE_FLAC;
@@ -2296,6 +2298,15 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new DIMS sample description: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
+	} else if (codec_id==GF_CODECID_MPHA) {
+		//not ready yet
+		if (!dsi) return GF_OK;
+
+		e = gf_isom_new_mpha_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi->value.data.ptr, dsi->value.data.size);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-H Audio sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
 	} else if (use_gen_sample_entry) {
 		u8 isor_ext_buf[14];
 		u32 len = 0;
@@ -2672,7 +2683,11 @@ sample_entry_done:
 		tkw->import_msg_header_done = GF_TRUE;
 		if (!imp_name) imp_name = comp_name;
 		if (sr) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - SampleRate %d Num Channels %d\n", dst_type, imp_name, sr, nb_chan));
+			if (nb_chan) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - SampleRate %d Num Channels %d\n", dst_type, imp_name, sr, nb_chan));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - SampleRate %d\n", dst_type, imp_name, sr));
+			}
 		} else if (is_text_subs) {
 			if (txt_fsize || txt_font) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - Text track %d x %d font %s (size %d) layer %d\n", dst_type, imp_name, width, height, txt_font ? txt_font : "unspecified", txt_fsize, z_order));

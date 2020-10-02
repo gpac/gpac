@@ -232,6 +232,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/reframe_h263.c \
 	../../../../src/filters/reframe_img.c \
 	../../../../src/filters/reframe_latm.c \
+	../../../../src/filters/reframe_mhas.c \
 	../../../../src/filters/reframe_mp3.c \
 	../../../../src/filters/reframe_mpgvid.c \
 	../../../../src/filters/reframe_nalu.c \
@@ -243,6 +244,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/resample_audio.c \
 	../../../../src/filters/rewind.c \
 	../../../../src/filters/rewrite_adts.c \
+	../../../../src/filters/rewrite_mhas.c \
 	../../../../src/filters/rewrite_mp4v.c \
 	../../../../src/filters/rewrite_nalu.c \
 	../../../../src/filters/rewrite_obu.c \
