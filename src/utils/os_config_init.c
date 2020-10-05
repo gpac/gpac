@@ -303,8 +303,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		char buf[PATH_MAX];
 		char *res;
 #endif
+
 		if (!user_home) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find HOME directory\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Couldn't find HOME directory\n"));
 			return 0;
 		}
 #ifdef GPAC_CONFIG_IOS
@@ -527,23 +528,26 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 {
 	Bool moddir_found;
 	GF_Config *cfg;
-	char szProfilePath[GF_MAX_PATH];
 	char szPath[GF_MAX_PATH];
 
 	if (! get_default_install_path(file_path, GF_PATH_CFG)) {
-		return NULL;
+		profile = "0";
 	}
-	/*Create the config file*/
-	if (profile) {
-		sprintf(szPath, "%s%cprofiles%c%s%c%s", file_path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, profile, GF_PATH_SEPARATOR, CFG_FILE_NAME);
-	} else {
-		sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
-	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to create config file: %s\n", szPath ));
+	/*Create temp config file*/
 	if (profile && !strcmp(profile, "0")) {
 		cfg = gf_cfg_new(NULL, NULL);
 	} else {
-		FILE *f = gf_fopen(szPath, "wt");
+		FILE *f;
+
+		/*create config file from disk*/
+		if (profile) {
+			sprintf(szPath, "%s%cprofiles%c%s%c%s", file_path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, profile, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+		} else {
+			sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to create config file: %s\n", szPath ));
+
+		f = gf_fopen(szPath, "wt");
 		if (!f) return NULL;
 		gf_fclose(f);
 
@@ -551,7 +555,6 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	}
 
 	if (!cfg) return NULL;
-	strcpy(szProfilePath, szPath);
 
 
 #ifndef GPAC_CONFIG_IOS
@@ -675,7 +678,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 	if (profile && !strcmp(profile, "0")) {
 		GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
-		sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+		sprintf(szPath, "%s%c%s", gf_get_default_cache_directory(), GF_PATH_SEPARATOR, CFG_FILE_NAME);
 		gf_cfg_set_filename(cfg, szPath);
 		gf_cfg_discard_changes(cfg);
 		return cfg;
@@ -825,8 +828,12 @@ static GF_Config *gf_cfg_init(const char *profile)
 	}
 
 	if (!get_default_install_path(szPath, GF_PATH_CFG)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] Fatal error: Cannot create global config file in application or user home directory - no write access\n"));
-		goto exit;
+		if (!profile || strcmp(profile, "0")) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] Cannot locate global config path in application or user home directory, using temporary config file\n"));
+		}
+		profile="0";
+		cfg = create_default_config(szPath, profile);
+		goto skip_cfg;
 	}
 
 	if (profile) {
@@ -860,6 +867,8 @@ static GF_Config *gf_cfg_init(const char *profile)
 		}
 		cfg = create_default_config(szPath, profile);
 	}
+
+skip_cfg:
 	if (!cfg) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath));
 		goto exit;
@@ -873,12 +882,17 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	if (!gf_cfg_get_key(cfg, "core", "store-dir")) {
 		char *sep;
-		strcpy(szPath, gf_cfg_get_filename(cfg));
-		sep = strrchr(szPath, '/');
-		if (!sep) sep = strrchr(szPath, '\\');
-		if (sep) sep[0] = 0;
-		strcat(szPath, "/Storage");
-		if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
+		if (profile && !strcmp(profile, "0")) {
+			strcpy(szPath, gf_get_default_cache_directory() );
+			strcat(szPath, "/Storage");
+		} else {
+			strcpy(szPath, gf_cfg_get_filename(cfg));
+			sep = strrchr(szPath, '/');
+			if (!sep) sep = strrchr(szPath, '\\');
+			if (sep) sep[0] = 0;
+			strcat(szPath, "/Storage");
+			if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
+		}
 		gf_cfg_set_key(cfg, "core", "store-dir", szPath);
 	}
 
