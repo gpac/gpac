@@ -347,11 +347,33 @@ If 3D graphics are used or display driver is forced, OpenGL will be used on offs
 .SH Specific URL syntaxes
 .LP
 .br
-The compositor accepts any URL type supported by GPAC. It also accepts the following syntaxes for URLs:
+The compositor accepts any URL type supported by GPAC. It also accepts the following schemes for URLs:
 .br
-* views: creates an auto-stereo scene of N views from views://v1:.:vN. vN can be any type of URL supported by GPAC.
+* views:// : creates an auto-stereo scene of N views from views://v1:.:vN. vN can be any type of URL supported by GPAC.
 .br
-* mosaic: creates a mosaic of N views from mosaic://v1:.:vN. vN can be any type of URL supported by GPAC.
+* mosaic:// : creates a mosaic of N views from mosaic://v1:.:vN. vN can be any type of URL supported by GPAC.
+.br
+
+.br
+The compositor can act as a source filter when the .I src option is explicitly set:
+.br
+Example
+.br
+gpac compositor:src=source.mp4 vout
+.br
+
+.br
+
+.br
+The compositor can act as a source filter when the source url uses one of the compositor buildin protocol schemes:
+.br
+Example
+.br
+gpac -i mosaic://URL1:URL2 vout
+.br
+
+.br
+
 .br
 
 .br
@@ -679,6 +701,8 @@ drv (enum, default: auto):     indicate if graphics driver should be used. Ignor
 * auto: decides based on the loaded content
 .br
 
+.br
+src (cstr):                    location of source content
 .br
 
 .br
@@ -6337,7 +6361,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev53-gcfba860d0-master
+build: 1.1.0-DEV-rev60-g5bea6d4fb-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

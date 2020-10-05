@@ -240,10 +240,6 @@ void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 
 		gf_scene_generate_mosaic(compositor->root_scene, (char *) URL+9, (char*)parent_path);
 		return;
 	}
-	else if (!strnicmp(URL, "mosaic://", 9)) {
-		gf_scene_generate_mosaic(compositor->root_scene, (char *) URL+9, (char*)parent_path);
-		return;
-	}
 
 	gf_scene_ns_connect_object(scene, odm, (char *) URL, (char*)parent_path);
 }
