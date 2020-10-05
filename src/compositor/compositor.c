@@ -2468,6 +2468,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	gf_sc_texture_cleanup_hw(compositor);
 
+	compositor->frame_was_produced = GF_FALSE;
 	/*first thing to do, let the video output handle user event if it is not threaded*/
 	compositor->video_out->ProcessEvent(compositor->video_out, NULL);
 
@@ -2970,6 +2971,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					compositor->scene_sampled_clock = (u32) res;
 				}
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u (%u ms) - next frame scene clock %d ms - passthrough %p\n", frame_ts, (frame_ts*1000)/compositor->fps.num, compositor->scene_sampled_clock, compositor->passthrough_txh));
+				compositor->frame_was_produced = GF_TRUE;
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u - AR clock %d\n", frame_ts, compositor->audio_renderer->current_time));
 			 	if (compositor->bench_mode) {

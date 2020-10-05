@@ -205,6 +205,9 @@ struct __tag_compositor
 	u32 drv;
 	GF_Err last_error;
 
+	//filter mode, we can be a source for our built-in URLs
+	char *src;
+
 	/*audio renderer*/
 	struct _audio_render *audio_renderer;
 	/*video out*/
