@@ -796,6 +796,17 @@ const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout)
 }
 
 GF_EXPORT
+const char *gf_audio_fmt_get_layout_name(u64 ch_layout)
+{
+	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	for (i = 0; i < nb_cicp; i++) {
+		if (GF_CICPLayouts[i].channel_mask == ch_layout) return GF_CICPLayouts[i].name;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout value "LLU"\n", ch_layout));
+	return "unknwon";
+}
+
+GF_EXPORT
 u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
 {
 	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
