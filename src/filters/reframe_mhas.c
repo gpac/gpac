@@ -94,7 +94,8 @@ GF_Err mhas_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid)
+			gf_filter_pid_remove(ctx->opid);
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -788,8 +789,40 @@ static void mhas_dmx_finalize(GF_Filter *filter)
 
 static const char *mhas_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	s32 mhas_pl = gf_mpegh_get_mhas_pl((u8 *)data, size, NULL);
-	if (mhas_pl>=0) {
+	s32 sync_pos = -1;
+	GF_BitStream *bs;
+	u32 nb_mhas_cfg = 0;
+	u32 nb_mhas_frames = 0;
+	u32 nb_mhas_unknown = 0;
+	const u8 *ptr = data;
+	while (ptr) {
+		u32 pos = (u32) (ptr - data);
+		const u8 *sync_start = memchr(ptr, 0xC0, size - pos);
+		if (!sync_start) return NULL;
+		if ((sync_start[1]== 0x01) && (sync_start[2]==0xA5)) {
+			sync_pos = pos;
+			break;
+		}
+		ptr = sync_start+1;
+	}
+	if (sync_pos<0) return NULL;
+	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	gf_bs_skip_bytes(bs, sync_pos);
+
+	while (gf_bs_available(bs)) {
+		u32 type = (u32) gf_mpegh_escaped_value(bs, 3, 8, 8);
+		/*u64 label = */gf_mpegh_escaped_value(bs, 2, 8, 32);
+		u64 mh_size = gf_mpegh_escaped_value(bs, 11, 24, 24);
+		if (mh_size > gf_bs_available(bs))
+			break;
+		//MHAS config
+		if (type==1) nb_mhas_cfg++;
+		else if (type==2) nb_mhas_frames++;
+		else if (type>18) nb_mhas_unknown++;
+		gf_bs_skip_bytes(bs, mh_size);
+	}
+	gf_bs_del(bs);
+	if (!nb_mhas_unknown && nb_mhas_cfg && nb_mhas_frames) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/mpegh";
 	}
