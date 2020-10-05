@@ -942,6 +942,14 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			}
 		}
 
+#ifdef GPAC_CONFIG_DARWIN
+		//if running in xcode disable color logs (not supported by output console)
+		if (getenv("__XCODE_BUILT_PRODUCTS_DIR_PATHS") != NULL) {
+			gf_log_set_tools_levels("ncl", GF_FALSE);
+		}
+#endif
+
+
 #ifndef GPAC_DISABLE_LOG
 		if (gpac_log_file_name) {
 			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
