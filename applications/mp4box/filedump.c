@@ -2992,7 +2992,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					if (PL>=0) {
 						fprintf(stderr, "\tProfileLevelIndication: 0x%02X", PL);
 						if (ch_layout)
-							fprintf(stderr, " - Reference Channel Layout %s", gf_audio_fmt_get_layout_name_from_cicp(ch_layout) );
+							fprintf(stderr, " - Reference Channel Layout %s", gf_audio_fmt_get_layout_name(ch_layout) );
 						fprintf(stderr, "\n");
 					}
 					gf_isom_sample_del(&samp);
