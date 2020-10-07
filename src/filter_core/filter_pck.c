@@ -1187,6 +1187,16 @@ GF_Err gf_filter_pck_ref(GF_FilterPacket **pck)
 }
 
 GF_EXPORT
+GF_FilterPacket *gf_filter_pck_ref_ex(GF_FilterPacket *pck)
+{
+	GF_FilterPacket *ref_pck;
+	if (! pck ) return NULL;
+	ref_pck = pck->pck;
+	safe_int_inc(& ref_pck->reference_count);
+	return ref_pck;
+}
+
+GF_EXPORT
 GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 {
 	GF_FilterPacket *npck, *srcpck;

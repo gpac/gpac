@@ -4769,6 +4769,7 @@ void gf_filter_release_property(GF_PropertyEntry *propentry)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 {
 	GF_PropertyMap *map;
@@ -6909,4 +6910,27 @@ void *gf_filter_pid_get_alias_udta(GF_FilterPid *_pid)
 	pidi = (GF_FilterPidInst *) _pid;
 	if (!pidi->alias_orig) return NULL;
 	return pidi->alias_orig->filter_udta;
+}
+
+GF_EXPORT
+GF_Filter *gf_filter_pid_get_source_filter(GF_FilterPid *pid)
+{
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query source filter on output pid %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	return pid->pid->filter;
+}
+
+GF_EXPORT
+GF_Filter *gf_filter_pid_enum_destinations(GF_FilterPid *pid, u32 idx)
+{
+	GF_FilterPidInst *dst_pid;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query destination filters on input pid %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	if (idx>=pid->num_destinations) return NULL;
+	dst_pid = gf_list_get(pid->destinations, idx);
+	return dst_pid->filter;
 }
