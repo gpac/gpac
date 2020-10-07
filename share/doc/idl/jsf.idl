@@ -164,11 +164,13 @@ void set_cap(optional JSCapDesc cap_desc = null);
 /*! sets the name of the filter, used for logs
 \param name the filter name
 */
-void set_name(DOMString name)
+void set_name(DOMString name);
+
 /*! creates a new PID - see \ref gf_filter_pid_new
 \return the new PID object
 */
 FilterPid new_pid();
+
 /*! sends an event on the filter - see \ref gf_filter_send_event
 \param evt the event to send
 \param upstream sends the evnet upstream
@@ -187,13 +189,7 @@ FilterProperty get_info(DOMString info_name, optional boolean is_string = false)
 \param mime the mime type to query
 \return true if supported
 */
-boolean is_supported_mime(DOMStrin mime);
-
-/*! disables data probing  if a MIME type is supported - see \ref gf_filter_is_supported_mime
-\param mime the mime type to query
-\return true if supported
-*/
-boolean is_supported_mime(DOMStrin mime);
+boolean is_supported_mime(DOMString mime);
 
 /*! update filter status string - see \ref gf_filter_update_status
 \param status the status string, may be null to reset the status string
@@ -432,12 +428,12 @@ FilterPaquet get_packet();
 */
 void drop_packet();
 
-/*! checks if a filter is in parent chain of pid - see \ref gf_filter_pid_get_buffer_occupancy
+/*! checks if a filter is in parent chain of pid - see \ref gf_filter_pid_is_filter_in_parents
 \param filter filter to check
 \return true if in parent chain*/
 boolean is_filter_in_parents(GF_Filter filter);
 
-/*! gets buffer occupancy - see \ref gf_filter_pid_is_filter_in_parents
+/*! gets buffer occupancy - see \ref gf_filter_pid_get_buffer_occupancy
 \param filter the Filter or FilterInstance object to check 
 \return a buffer occupancy object:
 \code
@@ -450,7 +446,7 @@ boolean is_filter_in_parents(GF_Filter filter);
 }
 \endcode
 */
-boolean is_filter_in_parents(GF_Filter filter);
+boolean get_buffer_occupancy(GF_Filter filter);
 
 /*! clears EOS on pid - see \ref gf_filter_pid_clear_eos*/
 void clear_eos();
