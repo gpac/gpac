@@ -2104,6 +2104,10 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	u32 i, count;
 	Bool removed = GF_FALSE;
 	if ((!fid && !filter) || !name) return;
+	if (!fsess) {
+		if (!filter) return;
+		fsess = filter->session;
+	}
 
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
@@ -3016,6 +3020,11 @@ u32 gf_fs_get_filters_count(GF_FilterSession *session)
 {
 	return session ? gf_list_count(session->filters) : 0;
 }
+GF_EXPORT
+GF_Filter *gf_fs_get_filter(GF_FilterSession *session, u32 idx)
+{
+	return session ? gf_list_get(session->filters, idx) : NULL;
+}
 
 GF_EXPORT
 GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
@@ -3284,6 +3293,69 @@ Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, void *vout)
 }
 
 #endif
+
+
+GF_EXPORT
+u32 gf_fs_get_http_max_rate(GF_FilterSession *fs)
+{
+	if (!fs->download_manager) return 0;
+	return gf_dm_get_data_rate(fs->download_manager);
+}
+
+GF_EXPORT
+u32 gf_fs_get_http_rate(GF_FilterSession *fs)
+{
+	if (!fs->download_manager) return 0;
+	return gf_dm_get_global_rate(fs->download_manager);
+}
+
+
+GF_EXPORT
+Bool gf_fs_fire_event(GF_FilterSession *fs, GF_Filter *f, GF_FilterEvent *evt, Bool upstream)
+{
+	Bool ret = GF_FALSE;
+	if (!fs || !evt) return GF_FALSE;
+
+	GF_FilterPid *on_pid = evt->base.on_pid;
+	evt->base.on_pid = NULL;
+	if (f) {
+		if (evt->base.type==GF_FEVT_USER) {
+			if (f->freg->process_event && f->event_target) {
+				gf_mx_p(f->tasks_mx);
+				f->freg->process_event(f, evt);
+				gf_mx_v(f->tasks_mx);
+				ret = GF_TRUE;
+			}
+		}
+		if (!ret) {
+			gf_mx_p(f->tasks_mx);
+			if (f->num_output_pids && upstream) ret = GF_TRUE;
+			else if (f->num_input_pids && !upstream) ret = GF_TRUE;
+			gf_filter_send_event(f, evt, upstream);
+			gf_mx_v(f->tasks_mx);
+		}
+	} else {
+		u32 i, count;
+		gf_fs_lock_filters(fs, GF_TRUE);
+		count = gf_list_count(fs->filters);
+		for (i=0; i<count; i++) {
+			Bool canceled;
+			f = gf_list_get(fs->filters, i);
+			if (f->disabled || f->removed) continue;
+			if (f->multi_sink_target) continue;
+			if (!f->freg->process_event) continue;
+			if (!f->event_target) continue;
+
+			gf_mx_p(f->tasks_mx);
+			canceled = f->freg->process_event(f, evt);
+			gf_mx_v(f->tasks_mx);
+			ret = GF_TRUE;
+			if (canceled) break;
+		}
+		gf_fs_lock_filters(fs, GF_FALSE);
+	}
+	evt->base.on_pid = on_pid;
+}
 
 
 #ifdef FILTER_FIXME

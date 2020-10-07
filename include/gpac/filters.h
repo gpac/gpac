@@ -468,6 +468,13 @@ void gf_fs_lock_filters(GF_FilterSession *session, Bool do_lock);
 */
 u32 gf_fs_get_filters_count(GF_FilterSession *session);
 
+/*! Gets a filter by its current index in the session
+\param session filter session
+\param idx index in the filter session
+\return filter, or NULL if none found
+*/
+GF_Filter *gf_fs_get_filter(GF_FilterSession *session, u32 idx);
+
 /*! Type of filter*/
 typedef enum
 {
@@ -598,6 +605,18 @@ void gf_fs_send_update(GF_FilterSession *session, const char *fid, GF_Filter *fi
 \return error if any
 */
 GF_Err gf_fs_load_script(GF_FilterSession *session, const char *jsfile);
+
+/*! get max download rate allowed by download manager
+\param session filter session
+\return max rate in bps
+*/
+u32 gf_fs_get_http_max_rate(GF_FilterSession *session);
+
+/*! get current download rate  of download manager, all active resources together
+\param session filter session
+\return current rate in bps
+*/
+u32 gf_fs_get_http_rate(GF_FilterSession *session);
 
 /*! @} */
 
@@ -2650,6 +2669,14 @@ Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
 */
 GF_Err gf_filter_get_stats(GF_Filter *filter, GF_FilterStats *stats);
 
+
+/*! Enumerates default arguments of a filter
+\param filter filter session
+\param idx the 0-based index of the argument to query
+\return the argument definition, or NULL if error
+*/
+const GF_FilterArgs *gf_filter_enumerate_args(GF_Filter *filter, u32 idx);
+
 /*! @} */
 
 
@@ -3279,6 +3306,19 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
 */
 void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
 
+/*! Gets the filter owning the  input PID
+\param PID the target filter PID
+\return the filter owning the PID or NULL if error
+*/
+GF_Filter *gf_filter_pid_get_source_filter(GF_FilterPid *PID);
+
+/*! Enumerates the destination filters of an output PID
+\param PID the target filter PID
+\param idx  the target destination index
+\return the destination filter for the given index, or NULL if error
+*/
+GF_Filter *gf_filter_pid_enum_destinations(GF_FilterPid *PID, u32 idx);
+
 /*! @} */
 
 
@@ -3312,6 +3352,12 @@ However, packets do not have to be send in their creation order: a created packe
 \return error if any
 */
 GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
+
+/*! Same as \ref gf_filter_pck_ref but doesn't use pointer to packet
+\param pck the target input packet
+\return the new reference to the packet
+*/
+GF_FilterPacket *gf_filter_pck_ref_ex(GF_FilterPacket *pck);
 
 /*! Remove a reference to the given input packet. The packet might be destroyed after that call.
 \param pck the target input packet
@@ -3777,7 +3823,7 @@ GF_Err gf_filter_pck_set_seq_num(GF_FilterPacket *pck, u32 seq_num);
 
 /*! Gets packet sequence number info
 \param pck target packet
-\return version_number carrousel version number associated with this data chunk
+\return sequence number associated with this packet
 */
 u32 gf_filter_pck_get_seq_num(GF_FilterPacket *pck);
 

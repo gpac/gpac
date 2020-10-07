@@ -2931,6 +2931,15 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 }
 
 GF_EXPORT
+Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const char *parent_url)
+{
+	GF_Err e;
+	Bool is_supported = GF_FALSE;
+	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported);
+	return is_supported;
+}
+
+GF_EXPORT
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
 {
 	GF_Filter *filter_src;
@@ -3189,6 +3198,7 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 	}
 }
 
+GF_EXPORT
 void gf_filter_set_max_extra_input_pids(GF_Filter *filter, u32 max_extra_pids)
 {
 	if (filter) filter->max_extra_pids = max_extra_pids;
@@ -3199,7 +3209,7 @@ u32 gf_filter_get_max_extra_input_pids(GF_Filter *filter)
 	if (filter) return filter->max_extra_pids;
 	return 0;
 }
-
+GF_EXPORT
 Bool gf_filter_block_enabled(GF_Filter *filter)
 {
 	if (!filter) return GF_FALSE;
@@ -3842,6 +3852,7 @@ Bool gf_filter_is_alias(GF_Filter *filter)
 \param filter target filter
 \return GF_TRUE if some connection tasks are pending, GF_FALSE otherwise
 */
+GF_EXPORT
 Bool gf_filter_connections_pending(GF_Filter *filter)
 {
 	u32 i, count;
@@ -3988,4 +3999,34 @@ GF_Err gf_filter_set_probe_data_cbk(GF_Filter *filter, const char * (*probe_data
 	}
 	((GF_FilterRegister *) filter->freg)->probe_data = probe_data_cbk;
 	return GF_OK;
+}
+
+
+GF_EXPORT
+const GF_FilterArgs *gf_filter_enumerate_args(GF_Filter *filter, u32 idx)
+{
+	u32 i;
+	if (!filter) return NULL;
+	if (!filter->freg->args) return NULL;
+
+	for (i=0; i<=idx; i++) {
+		if (! filter->freg->args[i].arg_name)
+			return NULL;
+	}
+	return &filter->freg->args[idx];
+}
+
+GF_EXPORT
+GF_Err gf_filter_set_rt_udta(GF_Filter *filter, void *udta)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->rt_udta = udta;
+	return GF_OK;
+}
+
+GF_EXPORT
+void *gf_filter_get_rt_udta(GF_Filter *filter)
+{
+	if (!filter) return NULL;
+	return filter->rt_udta;
 }
