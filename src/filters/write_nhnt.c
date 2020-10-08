@@ -226,7 +226,6 @@ GF_Err nhntdump_process(GF_Filter *filter)
 {
 	GF_NHNTDumpCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data;
 	u8 *output;
 	u32 size, pck_size;
 	u64 dts, cts;
@@ -290,7 +289,7 @@ GF_Err nhntdump_process(GF_Filter *filter)
 	}
 
 	//get media data
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	gf_filter_pck_get_data(pck, &pck_size);
 
 	//nhnt data size
 	size = 3 + 1 + 3*(ctx->large ? 8 : 4);
