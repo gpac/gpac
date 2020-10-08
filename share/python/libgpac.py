@@ -1740,7 +1740,7 @@ class Filter:
         if not pid:
             raise Exception('No PID with index ' + str(idx) + ' in filter ' + self.name )
 
-        _pid_enum_props_ex(self, callback_obj, pid)
+        self._pid_enum_props_ex(callback_obj, pid)
 
     ## \endcond    
 
@@ -1833,7 +1833,7 @@ class Filter:
 
     ##returns the statistics of a filter - see \ref gf_filter_get_stats
     #\return GF_FilterStatistics object
-    def stats(self):
+    def get_statistics(self):
         stats = FilterStats()
         err = _libgpac.gf_filter_get_stats(self._filter, byref(stats))
         if err<0: 
