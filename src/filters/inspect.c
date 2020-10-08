@@ -218,7 +218,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			gf_fprintf(dump, "error=\"invalid nal size 1\"");
 			return;
 		}
-		res = gf_media_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
+		res = gf_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
 
 		gf_fprintf(dump, "code=\"%d\" type=\"", type);
 
@@ -274,12 +274,12 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 
 		case GF_HEVC_NALU_VID_PARAM:
 			gf_fputs("Video Parameter Set", dump);
-			idx = gf_media_hevc_read_vps(ptr, ptr_size, hevc);
+			idx = gf_hevc_read_vps(ptr, ptr_size, hevc);
 			if (idx<0) gf_fprintf(dump, "\" vps_id=\"PARSING FAILURE");
 			else gf_fprintf(dump, "\" vps_id=\"%d", idx);
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
-			idx = gf_media_hevc_read_sps(ptr, ptr_size, hevc);
+			idx = gf_hevc_read_sps(ptr, ptr_size, hevc);
 			gf_fputs("Sequence Parameter Set", dump);
 			if (idx<0) gf_fprintf(dump, "\" sps_id=\"PARSING FAILURE");
 			else {
@@ -366,7 +366,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
-			idx = gf_media_hevc_read_pps(ptr, ptr_size, hevc);
+			idx = gf_hevc_read_pps(ptr, ptr_size, hevc);
 			gf_fputs("Picture Parameter Set", dump);
 			if (idx<0) gf_fprintf(dump, "\" pps_id=\"PARSING FAILURE");
 			else {
@@ -709,7 +709,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_NON_IDR_SLICE:
 		gf_fputs("Non IDR slice", dump);
 		if (is_encrypted) break;
-		res = gf_media_avc_parse_nalu(bs, avc);
+		res = gf_avc_parse_nalu(bs, avc);
 		break;
 	case GF_AVC_NALU_DP_A_SLICE:
 		gf_fputs("DP Type A slice", dump);
@@ -723,7 +723,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_IDR_SLICE:
 		gf_fputs("IDR slice", dump);
 		if (is_encrypted) break;
-		res = gf_media_avc_parse_nalu(bs, avc);
+		res = gf_avc_parse_nalu(bs, avc);
 		break;
 	case GF_AVC_NALU_SEI:
 		gf_fputs("SEI Message", dump);
@@ -731,7 +731,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_SEQ_PARAM:
 		gf_fputs("SequenceParameterSet", dump);
 		if (is_encrypted) break;
-		idx = gf_media_avc_read_sps_bs(bs, avc, 0, NULL);
+		idx = gf_avc_read_sps_bs(bs, avc, 0, NULL);
 		if (idx<0) gf_fprintf(dump, "\" sps_id=\"PARSING FAILURE");
 		else gf_fprintf(dump, "\" sps_id=\"%d", idx);
 		gf_fprintf(dump, "\" frame_mbs_only_flag=\"%d", avc->sps->frame_mbs_only_flag);
@@ -771,7 +771,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_PIC_PARAM:
 		gf_fputs("PictureParameterSet", dump);
 		if (is_encrypted) break;
-		idx = gf_media_avc_read_pps_bs(bs, avc);
+		idx = gf_avc_read_pps_bs(bs, avc);
 		if (idx<0) gf_fprintf(dump, "\" pps_id=\"PARSING FAILURE\" ");
 		else gf_fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
 		gf_fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
@@ -811,7 +811,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		gf_fputs("SVCSubsequenceParameterSet", dump);
 		if (is_encrypted) break;
-		idx = gf_media_avc_read_sps_bs(bs, avc, 1, NULL);
+		idx = gf_avc_read_sps_bs(bs, avc, 1, NULL);
 		assert (idx >= 0);
 		gf_fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
 		break;
@@ -822,7 +822,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_SVC_SLICE:
 		gf_fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
 		if (is_encrypted) break;
-		gf_media_avc_parse_nalu(bs, avc);
+		gf_avc_parse_nalu(bs, avc);
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);
 		temporal_id = (ptr[3] & 0xE0) >> 5;
@@ -1475,10 +1475,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 					}
 				}
 			} else if (att->type==GF_PROP_STRING_LIST) {
-				u32 plist_count = gf_list_count(att->value.string_list);
-				for (k=0; k < plist_count; k++) {
+				for (k=0; k < att->value.string_list.nb_items; k++) {
 					if (k) gf_fprintf(dump, ", ");
-					gf_xml_dump_string(dump, NULL, (char *) gf_list_get(att->value.string_list, k), NULL);
+					gf_xml_dump_string(dump, NULL, (char *) att->value.string_list.vals[k], NULL);
 				}
 			} else if ((att->type==GF_PROP_STRING) || (att->type==GF_PROP_STRING_NO_COPY)) {
 				gf_xml_dump_string(dump, NULL, att->value.string, NULL);
@@ -1517,10 +1516,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				}
 			}
 		} else if (att->type==GF_PROP_STRING_LIST) {
-			u32 k, plist_count = gf_list_count(att->value.string_list);
-			for (k=0; k < plist_count; k++) {
+			u32 k;
+			for (k=0; k < att->value.string_list.nb_items; k++) {
 				if (k) gf_fprintf(dump, ", ");
-				gf_fprintf(dump, "%s", (const char *) gf_list_get(att->value.string_list, k));
+				gf_fprintf(dump, "%s", (const char *) att->value.string_list.vals[k]);
 			}
 		}else{
 			gf_fprintf(dump, "%s", gf_props_dump(p4cc, att, szDump, ctx->dump_data) );
@@ -2072,7 +2071,7 @@ props_done:
 			ObuType obu_type;
 			u64 obu_size;
 			u32 hdr_size;
-			gf_media_aom_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
+			gf_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
 
 			if (obu_size > size) {
 				gf_fprintf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
@@ -2486,7 +2485,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			else
 				gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
 
-			gf_media_aom_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
+			gf_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
 			gf_inspect_dump_obu(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc);
 			idx++;
 		}

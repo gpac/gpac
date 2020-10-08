@@ -58,7 +58,7 @@ typedef struct
 {
 	//options
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
-	GF_List *rdirs;
+	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors;
 
@@ -293,7 +293,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 {
 	char szHost[GF_MAX_IP_NAME_LEN];
 	char *has_par, *dir;
-	u32 i, count = gf_list_count(ctx->rdirs);
+	u32 i, count = ctx->rdirs.nb_items;
 	char *listing = NULL;
 	char *name = full_path;
 
@@ -321,7 +321,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 		//retranslate server root
 		gf_dynstrcat(&listing, ".. <a href=\"", NULL);
 		for (i=0; i<count; i++) {
-			dir = gf_list_get(ctx->rdirs, i);
+			dir = ctx->rdirs.vals[i];
 			u32 dlen = (u32) strlen(dir);
 			if (!strncmp(dir, name, dlen) && ((name[dlen]=='/') || (name[dlen]==0))) {
 				gf_dynstrcat(&listing, "/", NULL);
@@ -338,14 +338,14 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 	}
 
 	if (!full_path || !strlen(full_path)) {
-		count = gf_list_count(ctx->rdirs);
+		count = ctx->rdirs.nb_items;
 		if (count==1) {
-			dir = gf_list_get(ctx->rdirs, 0);
+			dir = ctx->rdirs.vals[0];
 			gf_enum_directory(dir, GF_TRUE, httpout_dir_enum, &listing, NULL);
 			gf_enum_directory(dir, GF_FALSE, httpout_file_enum, &listing, NULL);
 		} else {
 			for (i=0; i<count; i++) {
-				dir = gf_list_get(ctx->rdirs, i);
+				dir = ctx->rdirs.vals[i];
 				httpout_dir_file_enum(&listing, dir, NULL, NULL, GF_TRUE);
 			}
 		}
@@ -353,7 +353,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
 		Bool insert_root = GF_FALSE;
 		if (count>1) {
 			for (i=0; i<count; i++) {
-				dir = gf_list_get(ctx->rdirs, i);
+				dir = ctx->rdirs.vals[i];
 				if (!strcmp(full_path, dir)) {
 					insert_root=GF_TRUE;
 					break;
@@ -386,9 +386,9 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	u32 len;
 	assert(in->path);
 	//not recording
-	if (!ctx->rdirs) return;
+	if (!ctx->rdirs.nb_items) return;
 
-	dir = gf_list_get(ctx->rdirs, 0);
+	dir = ctx->rdirs.vals[0];
 	if (!dir) return;
 	len = (u32) strlen(dir);
 	if (in->local_path) gf_free(in->local_path);
@@ -411,7 +411,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 	sess->range_idx = 0;
 	if (!range) return GF_TRUE;
 
-	if (sess->in_source && !sess->ctx->rdirs)
+	if (sess->in_source && !sess->ctx->rdirs.nb_items)
 		return GF_FALSE;
 
 	while (range) {
@@ -757,9 +757,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	/*not resolved and no source matching, check file on disk*/
 	if (!source_pid && !full_path) {
-		count = gf_list_count(sess->ctx->rdirs);
+		count = sess->ctx->rdirs.nb_items;
 		for (i=0; i<count; i++) {
-			char *mdir = gf_list_get(sess->ctx->rdirs, i);
+			char *mdir = sess->ctx->rdirs.vals[i];
 			u32 len = (u32) strlen(mdir);
 			if (!len) continue;
 			if (count==1) {
@@ -1022,7 +1022,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&rsp_buf, sess->ctx->cache_control, NULL);
 				gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 			}
-		} else if (sess->in_source && !sess->ctx->rdirs) {
+		} else if (sess->in_source && !sess->ctx->rdirs.nb_items) {
 			sess->nb_ranges = 0;
 			gf_dynstrcat(&rsp_buf, "Cache-Control: no-cache, no-store\r\n", NULL);
 		}
@@ -1527,12 +1527,12 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (ctx->wdir)
 		ctx->hmode = MODE_DEFAULT;
 
-	if (!url && !ctx->rdirs && !ctx->wdir && (ctx->hmode!=MODE_SOURCE)) {
+	if (!url && !ctx->rdirs.nb_items && !ctx->wdir && (ctx->hmode!=MODE_SOURCE)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] No root dir(s) for server, no URL set and not configured as source, cannot run!\n" ));
 		return GF_BAD_PARAM;
 	}
 
-	if (ctx->rdirs || ctx->wdir) {
+	if (ctx->rdirs.nb_items || ctx->wdir) {
 		gf_filter_make_sticky(filter);
 	} else if (ctx->hmode!=MODE_PUSH) {
 		ctx->single_mode = GF_TRUE;
@@ -2102,11 +2102,11 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		return GF_TRUE;
 	}
 	//server mode not recording, nothing to do
-	if (!ctx->rdirs) return GF_FALSE;
+	if (!ctx->rdirs.nb_items) return GF_FALSE;
 
 	if (in->resource) return GF_FALSE;
 
-	dir = gf_list_get(ctx->rdirs, 0);
+	dir = ctx->rdirs.vals[0];
 	if (!dir) return GF_FALSE;
 	len = (u32) strlen(dir);
 	if (!len) return GF_FALSE;
@@ -2263,7 +2263,7 @@ retry:
 static Bool httpout_input_write_ready(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
 	u32 i, count;
-	if (ctx->rdirs)
+	if (ctx->rdirs.nb_items)
 		return GF_TRUE;
 
 	if (in->upload) {
@@ -2327,7 +2327,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		}
 
 		//no destination and holding for first connect, don't drop
-		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest && in->hold) {
+		if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest && in->hold) {
 			continue;
 		}
 
@@ -2387,7 +2387,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 
 			httpout_open_input(ctx, in, name, GF_FALSE);
 
-			if (!ctx->hmode && !ctx->rdirs && !in->nb_dest) {
+			if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest) {
 				if ((gf_filter_pck_get_dependency_flags(pck)==0xFF) && (gf_filter_pck_get_carousel_version(pck)==1)) {
 					pck_data = gf_filter_pck_get_data(pck, &pck_size);
 					if (pck_data) {
@@ -2400,7 +2400,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		}
 
 		//no destination and not holding packets (either first connection not here or disabled), trash packet
-		if (!ctx->hmode && !ctx->rdirs && !in->nb_dest && !in->hold) {
+		if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest && !in->hold) {
 			gf_filter_pid_drop_packet(in->ipid);
 			continue;
 		}
@@ -2506,7 +2506,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 	}
 
 	if (count && (nb_eos==count)) {
-		if (ctx->rdirs) {
+		if (ctx->rdirs.nb_items) {
 			if (gf_list_count(ctx->active_sessions))
 				gf_filter_post_process_task(ctx->filter);
 			else
@@ -2604,7 +2604,7 @@ static Bool httpout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
 		//simple server mode (no record, no push), nothing to do
-	if (!in->upload && !ctx->rdirs) return GF_TRUE;
+	if (!in->upload && !ctx->rdirs.nb_items) return GF_TRUE;
 
 	if (!in->file_deletes)
 		in->file_deletes = gf_list_new();

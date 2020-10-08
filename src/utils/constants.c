@@ -159,7 +159,7 @@ CodecIDReg CodecRegistry [] = {
 
 
 GF_EXPORT
-GF_CodecID gf_codec_parse(const char *cname)
+GF_CodecID gf_codecid_parse(const char *cname)
 {
 	u32 len = (u32) strlen(cname);
 	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);

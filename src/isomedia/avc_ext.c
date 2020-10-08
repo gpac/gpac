@@ -1270,7 +1270,7 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 }
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-void gf_media_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type)
+void gf_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type)
 {
 	u32 i, j;
 	if (!hevccfg) return;
@@ -1281,7 +1281,7 @@ void gf_media_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_typ
 		for (j = 0; j < gf_list_count(ar->nalus); j++) {
 			u8 ntype, tid, lid;
 			GF_NALUFFParam* sl = gf_list_get(ar->nalus, j);
-			gf_media_hevc_parse_nalu(sl->data, sl->size, hevc, &ntype, &tid, &lid);
+			gf_hevc_parse_nalu(sl->data, sl->size, hevc, &ntype, &tid, &lid);
 		}
 	}
 }
@@ -2783,7 +2783,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 				AVCState avc;
 				s32 idx;
 				GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(ptr->config->sequenceParameterSets, 0);
-				idx = sl ? gf_media_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, NULL) : -1;
+				idx = sl ? gf_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, NULL) : -1;
 
 				if (idx>=0) {
 					ptr->config->chroma_format = avc.sps[idx].chroma_format;

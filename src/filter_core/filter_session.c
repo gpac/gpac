@@ -935,7 +935,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	sep = strchr(cid, fsess->sep_args);
 	if (sep) sep[0] = 0;
 
-	codecid = gf_codec_parse(cid+2);
+	codecid = gf_codecid_parse(cid+2);
 	if (codecid==GF_CODECID_NONE) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized codec identifier in \"enc\" definition: %s\n", cid));
 		if (sep) sep[0] = fsess->sep_args;
@@ -1006,9 +1006,12 @@ Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file
 	const char *js_dirs;
 	if (gf_opts_default_shared_directory(szPath)) {
 		strcat(szPath, "/scripts/jsf/");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter %s\n", szPath));
 		if (locate_js_script(szPath, file_name, file_ext)) {
 			return GF_TRUE;
 		}
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Failed to get default shared dir\n"));
 	}
 	js_dirs = gf_opts_get_key("core", "js-dirs");
 	while (js_dirs && js_dirs[0]) {
@@ -1026,6 +1029,7 @@ Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file
 			u32 len = (u32) strlen(szPath);
 			if (len && (szPath[len-1]!='/') && (szPath[len-1]!='\\'))
 				strcat(szPath, "/");
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter in %s\n", szPath));
 			if (locate_js_script(szPath, file_name, file_ext))
 				return GF_TRUE;
 		}
@@ -1097,6 +1101,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 
 		strncpy(szPath, name, len);
 		szPath[len]=0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter %s\n", szPath));
 		if (gf_file_exists(szPath)) {
 			file_exists = GF_TRUE;
 		} else {
@@ -1771,6 +1776,7 @@ GF_Err gf_fs_run(GF_FilterSession *fsess)
 	return fsess->run_status;
 }
 
+GF_EXPORT
 void gf_fs_run_step(GF_FilterSession *fsess)
 {
 	gf_fs_thread_proc(&fsess->main_th);
@@ -2104,6 +2110,10 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	u32 i, count;
 	Bool removed = GF_FALSE;
 	if ((!fid && !filter) || !name) return;
+	if (!fsess) {
+		if (!filter) return;
+		fsess = filter->session;
+	}
 
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
@@ -2977,7 +2987,7 @@ Bool gf_fs_is_last_task(GF_FilterSession *fsess)
 }
 
 GF_EXPORT
-Bool gf_fs_mime_supported(GF_FilterSession *fsess, const char *mime)
+Bool gf_fs_is_supported_mime(GF_FilterSession *fsess, const char *mime)
 {
 	u32 i, count;
 	//first pass on explicit mimes
@@ -3015,6 +3025,11 @@ GF_EXPORT
 u32 gf_fs_get_filters_count(GF_FilterSession *session)
 {
 	return session ? gf_list_count(session->filters) : 0;
+}
+GF_EXPORT
+GF_Filter *gf_fs_get_filter(GF_FilterSession *session, u32 idx)
+{
+	return session ? gf_list_get(session->filters, idx) : NULL;
 }
 
 GF_EXPORT
@@ -3284,6 +3299,87 @@ Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, void *vout)
 }
 
 #endif
+
+
+GF_EXPORT
+u32 gf_fs_get_http_max_rate(GF_FilterSession *fs)
+{
+	if (!fs->download_manager) return 0;
+	return gf_dm_get_data_rate(fs->download_manager);
+}
+
+GF_EXPORT
+GF_Err gf_fs_set_http_max_rate(GF_FilterSession *fs, u32 rate)
+{
+	if (!fs || !fs->download_manager) return GF_OK;
+	gf_dm_set_data_rate(fs->download_manager, rate);
+	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_fs_get_http_rate(GF_FilterSession *fs)
+{
+	if (!fs->download_manager) return 0;
+	return gf_dm_get_global_rate(fs->download_manager);
+}
+
+GF_EXPORT
+Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const char *parent_url)
+{
+	GF_Err e;
+	Bool is_supported = GF_FALSE;
+	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported);
+	return is_supported;
+}
+
+
+GF_EXPORT
+Bool gf_fs_fire_event(GF_FilterSession *fs, GF_Filter *f, GF_FilterEvent *evt, Bool upstream)
+{
+	Bool ret = GF_FALSE;
+	if (!fs || !evt) return GF_FALSE;
+
+	GF_FilterPid *on_pid = evt->base.on_pid;
+	evt->base.on_pid = NULL;
+	if (f) {
+		if (evt->base.type==GF_FEVT_USER) {
+			if (f->freg->process_event && f->event_target) {
+				gf_mx_p(f->tasks_mx);
+				f->freg->process_event(f, evt);
+				gf_mx_v(f->tasks_mx);
+				ret = GF_TRUE;
+			}
+		}
+		if (!ret) {
+			gf_mx_p(f->tasks_mx);
+			if (f->num_output_pids && upstream) ret = GF_TRUE;
+			else if (f->num_input_pids && !upstream) ret = GF_TRUE;
+			gf_filter_send_event(f, evt, upstream);
+			gf_mx_v(f->tasks_mx);
+		}
+	} else {
+		u32 i, count;
+		gf_fs_lock_filters(fs, GF_TRUE);
+		count = gf_list_count(fs->filters);
+		for (i=0; i<count; i++) {
+			Bool canceled;
+			f = gf_list_get(fs->filters, i);
+			if (f->disabled || f->removed) continue;
+			if (f->multi_sink_target) continue;
+			if (!f->freg->process_event) continue;
+			if (!f->event_target) continue;
+
+			gf_mx_p(f->tasks_mx);
+			canceled = f->freg->process_event(f, evt);
+			gf_mx_v(f->tasks_mx);
+			ret = GF_TRUE;
+			if (canceled) break;
+		}
+		gf_fs_lock_filters(fs, GF_FALSE);
+	}
+	evt->base.on_pid = on_pid;
+	return ret;
+}
 
 
 #ifdef FILTER_FIXME

@@ -263,17 +263,19 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 	}
 	
 	if (max_ref>1) {
-		dst = gf_filter_pck_new_alloc_internal(pid, pcki->pck->data_length, data, GF_TRUE);
-		if (dst && data) {
-			memcpy(*data, pcki->pck->data, sizeof(char)*pcki->pck->data_length);
+		u8 *data_new;
+		dst = gf_filter_pck_new_alloc_internal(pid, pcki->pck->data_length, &data_new, GF_TRUE);
+		if (dst && data_new) {
+			memcpy(data_new, pcki->pck->data, sizeof(char)*pcki->pck->data_length);
+			if (data) *data = data_new;
 		}
 		if (dst) gf_filter_pck_merge_properties(pck_source, dst);
 		return dst;
 	}
-	dst = gf_filter_pck_new_ref(pid, NULL, 0, pck_source);
+	dst = gf_filter_pck_new_ref(pid, 0, 0, pck_source);
 	if (dst) {
 		gf_filter_pck_merge_properties(pck_source, dst);
-		*data = dst->data;
+		if (data) *data = dst->data;
 	}
 	return dst;
 }
@@ -339,17 +341,32 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const u8 *data, u32
 }
 
 GF_EXPORT
-GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const u8 *data, u32 data_size, GF_FilterPacket *reference)
+GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, u32 data_offset, u32 data_size, GF_FilterPacket *reference)
 {
 	GF_FilterPacket *pck;
 	if (!reference) return NULL;
 	reference=reference->pck;
-	pck = gf_filter_pck_new_shared(pid, data, data_size, NULL);
+
+	if (reference->data) {
+		if (data_offset > reference->data_length)
+			return NULL;
+
+		if (!data_size)
+			data_size = reference->data_length - data_offset;
+
+		if (data_offset + data_size > reference->data_length)
+			return NULL;
+	}
+
+	pck = gf_filter_pck_new_shared(pid, reference->data, data_size, NULL);
 	if (!pck) return NULL;
 	pck->reference = reference;
+	//apply offset
+	if (reference->data)
+		pck->data += data_offset;
 	assert(reference->reference_count);
 	safe_int_inc(&reference->reference_count);
-	if (!data && !data_size) {
+	if (!data_offset && (!data_size || (data_size==reference->data_length))) {
 		pck->data = reference->data;
 		pck->data_length = reference->data_length;
 		pck->frame_ifce = reference->frame_ifce;
@@ -1184,6 +1201,16 @@ GF_Err gf_filter_pck_ref(GF_FilterPacket **pck)
 	(*pck) = (*pck)->pck;
 	safe_int_inc(& (*pck)->reference_count);
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_FilterPacket *gf_filter_pck_ref_ex(GF_FilterPacket *pck)
+{
+	GF_FilterPacket *ref_pck;
+	if (! pck ) return NULL;
+	ref_pck = pck->pck;
+	safe_int_inc(& ref_pck->reference_count);
+	return ref_pck;
 }
 
 GF_EXPORT

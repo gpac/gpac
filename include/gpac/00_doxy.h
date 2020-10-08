@@ -112,5 +112,9 @@ Unless indicated otherwise, all errors are handled through exceptions. An except
 Types and interfaces are described using WebIDL, see https://heycam.github.io/webidl/, with some slight modifications.
 \warning These IDL files are only intended to document the APIs, and are likely useless for other purposes.
 
+
+\defgroup pyapi_grp Python APIs
+\brief Python API for using libgpac
+
 */
 

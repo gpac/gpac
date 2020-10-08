@@ -441,7 +441,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 #ifndef GPAC_DISABLE_HEVC
 			u8 temporal_id, layer_id, nal_type;
 
-			res = gf_media_hevc_parse_nalu_bs(bs, hevc_state, &nal_type, &temporal_id, &layer_id);
+			res = gf_hevc_parse_nalu_bs(bs, hevc_state, &nal_type, &temporal_id, &layer_id);
 			if (res>0) first_slice_in_pic = GF_TRUE;
 			switch (nal_type) {
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
@@ -472,7 +472,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		} else {
 			u32 nal_type;
 			u64 pos = gf_bs_get_position(bs);
-			res = gf_media_avc_parse_nalu(bs, avc_state);
+			res = gf_avc_parse_nalu(bs, avc_state);
 			if (res>0) first_slice_in_pic = GF_TRUE;
 
 			nal_type = avc_state->last_nal_type_parsed;
@@ -480,11 +480,11 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			switch (nal_type) {
 			case GF_AVC_NALU_SEQ_PARAM:
 				gf_bs_seek(bs, pos);
-				gf_media_avc_read_sps_bs(bs, avc_state, GF_FALSE, NULL);
+				gf_avc_read_sps_bs(bs, avc_state, GF_FALSE, NULL);
 				break;
 			case GF_AVC_NALU_PIC_PARAM:
 				gf_bs_seek(bs, pos);
-				gf_media_avc_read_pps_bs(bs, avc_state);
+				gf_avc_read_pps_bs(bs, avc_state);
 				break;
 			case GF_AVC_NALU_IDR_SLICE:
 				is_rap = GF_TRUE;
@@ -707,7 +707,7 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *slc = (GF_NALUFFParam*)gf_list_get(ctx->pps, i);
-		s32 idx = gf_media_hevc_read_pps(slc->data, slc->size, &hevc);
+		s32 idx = gf_hevc_read_pps(slc->data, slc->size, &hevc);
 
 		if (idx>=0) {
 			HEVC_PPS *pps;
@@ -1947,7 +1947,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	*skip_nal = GF_FALSE;
 
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
-	res = gf_media_hevc_parse_nalu_bs(ctx->bs_r, ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
+	res = gf_hevc_parse_nalu_bs(ctx->bs_r, ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 	ctx->nb_nalus++;
 
 	if (res < 0) {
@@ -1966,7 +1966,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_VID_PARAM:
 		if (ctx->novpsext) {
 			//this may modify nal_size, but we don't use it for bitstream reading
-			ps_idx = gf_media_hevc_read_vps_ex(data, &size, ctx->hevc_state, GF_TRUE);
+			ps_idx = gf_hevc_read_vps_ex(data, &size, ctx->hevc_state, GF_TRUE);
 		} else {
 			ps_idx = ctx->hevc_state->last_parsed_vps_id;
 		}
@@ -1996,7 +1996,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		*skip_nal = GF_TRUE;
 		break;
 	case GF_HEVC_NALU_SEI_PREFIX:
-		gf_media_hevc_parse_sei(data, size, ctx->hevc_state);
+		gf_hevc_parse_sei(data, size, ctx->hevc_state);
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
 
@@ -2136,7 +2136,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_VID_PARAM:
 		if (ctx->novpsext) {
 			//this may modify nal_size, but we don't use it for bitstream reading
-//			ps_idx = gf_media_hevc_read_vps_ex(data, &size, ctx->hevc_state, GF_TRUE);
+//			ps_idx = gf_hevc_read_vps_ex(data, &size, ctx->hevc_state, GF_TRUE);
 			ps_idx = ctx->vvc_state->last_parsed_vps_id;
 		} else {
 			ps_idx = ctx->vvc_state->last_parsed_vps_id;
@@ -2290,7 +2290,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	*skip_nal = GF_FALSE;
-	res = gf_media_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
+	res = gf_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
 	if (ctx->eos_in_bs)
 		return -1;
 	if (res < 0) {
@@ -3125,14 +3125,14 @@ naldmx_flush:
 		//store all variables needed to compute POC/CTS and sample SAP and recovery info
 		if (ctx->codecid==GF_CODECID_HEVC) {
 #ifndef GPAC_DISABLE_HEVC
-			slice_is_ref = gf_media_hevc_slice_is_IDR(ctx->hevc_state);
+			slice_is_ref = gf_hevc_slice_is_IDR(ctx->hevc_state);
 
 			recovery_point_valid = ctx->hevc_state->sei.recovery_point.valid;
 			recovery_point_frame_cnt = ctx->hevc_state->sei.recovery_point.frame_cnt;
-			bIntraSlice = gf_media_hevc_slice_is_intra(ctx->hevc_state);
+			bIntraSlice = gf_hevc_slice_is_intra(ctx->hevc_state);
 
 			au_sap_type = GF_FILTER_SAP_NONE;
-			if (gf_media_hevc_slice_is_IDR(ctx->hevc_state)) {
+			if (gf_hevc_slice_is_IDR(ctx->hevc_state)) {
 				au_sap_type = GF_FILTER_SAP_1;
 			}
 			else {
@@ -3167,7 +3167,7 @@ naldmx_flush:
 
 //			commented, set below
 //			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic)
-//				bIntraSlice = GF_TRUE; //gf_media_hevc_slice_is_intra(ctx->hevc_state);
+//				bIntraSlice = GF_TRUE; //gf_hevc_slice_is_intra(ctx->hevc_state);
 
 			au_sap_type = GF_FILTER_SAP_NONE;
 			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic) {

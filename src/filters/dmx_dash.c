@@ -184,7 +184,7 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 		group->pto_setup = 1;
 	}
 
-	dst_pck = gf_filter_pck_new_ref(out_pid, NULL, 0, in_pck);
+	dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
 	//this will copy over clock info for PCR in TS
 	gf_filter_pck_merge_properties(in_pck, dst_pck);
 	gf_filter_pck_set_dts(dst_pck, dts);
@@ -810,7 +810,6 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	memset(&qualities, 0, sizeof(GF_PropertyValue));
 	qualities.type = GF_PROP_STRING_LIST;
-	qualities.value.string_list = gf_list_new();
 
 	count = gf_dash_group_get_num_qualities(ctx->dash, group_idx);
 	for (i=0; i<count; i++) {
@@ -881,7 +880,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			e = gf_dynstrcat(&qdesc, szInfo, "::");
 			if (e) break;
 		}
-		gf_list_add(qualities.value.string_list, qdesc);
+		qualities.value.string_list.vals = gf_realloc(qualities.value.string_list.vals, sizeof(char *) * (qualities.value.string_list.nb_items+1));
+
+		qualities.value.string_list.vals[qualities.value.string_list.nb_items] = qdesc;
+		qualities.value.string_list.nb_items++;
 		qdesc = NULL;
 	}
 	gf_filter_pid_set_info_str(opid, "has:qualities", &qualities);

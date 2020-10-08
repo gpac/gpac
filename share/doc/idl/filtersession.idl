@@ -80,7 +80,7 @@ void rmt_send(DOMString command);
 \param callback the callback function to call. This function takes one parameter which is the text being received
 \return error code if any
 */
-void rmt_set_fun(function callback);
+void set_rmt_fun(function callback);
 
 /*! inserts a filter in graph
 \param filter_to_add string describin the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.

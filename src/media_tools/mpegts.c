@@ -3011,7 +3011,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 		if (gf_list_count(ts->dsmcc_controler)) {
 #ifdef GPAC_ENABLE_DSMCC
 			GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = (GF_M2TS_DSMCC_OVERLORD*)gf_list_get(ts->dsmcc_controler,0);
-			gf_cleanup_dir(dsmcc_overlord->root_dir);
+			gf_dir_cleanup(dsmcc_overlord->root_dir);
 			gf_rmdir(dsmcc_overlord->root_dir);
 			gf_m2ts_delete_dsmcc_overlord(dsmcc_overlord);
 			if(ts->dsmcc_root_dir) {

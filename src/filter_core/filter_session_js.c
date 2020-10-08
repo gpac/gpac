@@ -677,8 +677,6 @@ static JSValue jsff_get_pid_source(JSContext *ctx, JSValueConst this_val, int ar
 	if (!pid) return JS_NULL;
 
 	ipid = (GF_FilterPidInst *)pid;
-	idx = gf_list_find(f->session->filters, ipid->pid->filter);
-
 	return jsfs_new_filter_obj(ctx, ipid->pid->filter);
 }
 
@@ -1004,12 +1002,13 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	return jsfs_new_filter_obj(ctx, new_f);
 }
 
+Bool gf_fs_fire_event(GF_FilterSession *fs, GF_Filter *f, GF_FilterEvent *evt, Bool upstream);
+
 static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	u32 i, count;
+	Bool upstream = GF_FALSE;
 	GF_Filter *f = NULL;
 	Bool ret=GF_FALSE;
-	GF_FilterPid *on_pid;
 	GF_FilterEvent *jsf_get_event(JSContext *ctx, JSValueConst this_val);
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
 	GF_FilterEvent *evt;
@@ -1021,47 +1020,9 @@ static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, 
 
 	if (argc>1) {
 		f = jsff_get_filter(ctx, argv[1]);
+		if (argc>2) upstream = JS_ToBool(ctx, argv[2]);
 	}
-	on_pid = evt->base.on_pid;
-	evt->base.on_pid = NULL;
-	if (f) {
-		Bool upstream = GF_FALSE;
-		if (evt->base.type==GF_FEVT_USER) {
-			if (f->freg->process_event && f->event_target) {
-				gf_mx_p(f->tasks_mx);
-				f->freg->process_event(f, evt);
-				gf_mx_v(f->tasks_mx);
-				ret = GF_TRUE;
-			}
-		}
-		if (!ret) {
-			if (argc>2) upstream = JS_ToBool(ctx, argv[2]);
-			gf_mx_p(f->tasks_mx);
-			if (f->num_output_pids && upstream) ret = GF_TRUE;
-			else if (f->num_input_pids && !upstream) ret = GF_TRUE;
-			gf_filter_send_event(f, evt, upstream);
-			gf_mx_v(f->tasks_mx);
-		}
-	} else {
-		gf_fs_lock_filters(fs, GF_TRUE);
-		count = gf_list_count(fs->filters);
-		for (i=0; i<count; i++) {
-			Bool canceled;
-			f = gf_list_get(fs->filters, i);
-			if (f->disabled || f->removed) continue;
-			if (f->multi_sink_target) continue;
-			if (!f->freg->process_event) continue;
-			if (!f->event_target) continue;
-
-			gf_mx_p(f->tasks_mx);
-			canceled = f->freg->process_event(f, evt);
-			gf_mx_v(f->tasks_mx);
-			ret = GF_TRUE;
-			if (canceled) break;
-		}
-		gf_fs_lock_filters(fs, GF_FALSE);
-	}
-	evt->base.on_pid = on_pid;
+	ret = gf_fs_fire_event(fs, f, evt, upstream);
 	return JS_NewBool(ctx, ret);
 }
 

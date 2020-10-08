@@ -1255,7 +1255,7 @@ static JSValue js_sys_file_opt(JSContext *ctx, JSValueConst this_val, int argc, 
 		res = JS_NewBool(ctx, gf_dir_exists(dirname) );
 		break;
 	case OPT_DIRCLEAN:
-		e = gf_cleanup_dir(dirname);
+		e = gf_dir_cleanup(dirname);
 		if (e) res = js_throw_err_msg(ctx, e, "Failed to clean dir %s", dirname);
 		break;
 	case OPT_FILEBASENAME:

@@ -567,11 +567,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (avccfg) {
 				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 					GF_NALUFFParam *slc = gf_list_get(avccfg->sequenceParameterSets, i);
-					gf_media_avc_read_sps(slc->data, slc->size, &cstr->avc, 0, NULL);
+					gf_avc_read_sps(slc->data, slc->size, &cstr->avc, 0, NULL);
 				}
 				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
 					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
-					gf_media_avc_read_pps(slc->data, slc->size, &cstr->avc);
+					gf_avc_read_pps(slc->data, slc->size, &cstr->avc);
 				}
 
 				gf_odf_avc_cfg_del(avccfg);
@@ -598,9 +598,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-			gf_media_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
-			gf_media_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
-			gf_media_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
+			gf_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
+			gf_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
+			gf_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
 #endif
 
 			//mandatory for HEVC
@@ -1185,7 +1185,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (cstr->cenc_codec==CENC_AVC) {
 			u32 ntype;
-			gf_media_avc_parse_nalu(plaintext_bs, &cstr->avc);
+			gf_avc_parse_nalu(plaintext_bs, &cstr->avc);
 			ntype = cstr->avc.last_nal_type_parsed;
 			switch (ntype) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
@@ -1206,7 +1206,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
 			cstr->hevc.full_slice_header_parse = GF_TRUE;
-			gf_media_hevc_parse_nalu (samp_data + nal_start, nal_size, &cstr->hevc, &ntype, &ntid, &nlid);
+			gf_hevc_parse_nalu (samp_data + nal_start, nal_size, &cstr->hevc, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
 				clear_bytes = cstr->hevc.s_info.payload_start_offset;
 			} else {
@@ -1301,7 +1301,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 			case CENC_AV1:
 				pos = gf_bs_get_position(ctx->bs_r);
-				e = gf_media_aom_av1_parse_obu(ctx->bs_r, &obut, &obu_size, &hdr_size, &cstr->av1);
+				e = gf_av1_parse_obu(ctx->bs_r, &obut, &obu_size, &hdr_size, &cstr->av1);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n" ));
 					return e;
@@ -1657,7 +1657,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		u32 i, sai_size = 0;
 		Bool signal_sai = GF_FALSE;
 		GF_FilterPacket *dst_pck;
-		dst_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, pck);
+		dst_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 
 		if (force_clear && !cstr->tci->force_clear_stsd_idx)

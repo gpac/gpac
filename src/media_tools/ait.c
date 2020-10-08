@@ -520,7 +520,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 							if(e) {
 								GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Error during the creation of the directory %s \n",dsmcc_overlord->root_dir));
 								if(e == GF_BAD_PARAM) {
-									gf_cleanup_dir(dsmcc_overlord->root_dir);
+									gf_dir_cleanup(dsmcc_overlord->root_dir);
 								}
 							}
 							sprintf(app_url,"%s%cindex.html",dsmcc_overlord->root_dir,GF_PATH_SEPARATOR);
@@ -580,7 +580,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 		GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = gf_m2ts_get_dmscc_overlord(ts->dsmcc_controler,ait->service_id);
 
 		if(dsmcc_overlord && !gf_m2ts_is_dmscc_app(ChanAppInfo)) {
-			gf_cleanup_dir(dsmcc_overlord->root_dir);
+			gf_dir_cleanup(dsmcc_overlord->root_dir);
 			gf_rmdir(dsmcc_overlord->root_dir);
 			gf_m2ts_delete_dsmcc_overlord(dsmcc_overlord);
 

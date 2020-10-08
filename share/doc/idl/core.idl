@@ -209,7 +209,7 @@ void mkdir(DOMString dirname);
 */
 boolean dir_exists(DOMString dirname);
 
-/*! remove files in directory - cf \ref gf_cleanup_dir
+/*! remove files in directory - cf \ref gf_dir_cleanup
 \param dirname name of directory
 */
 void dir_clean(DOMString dirname);

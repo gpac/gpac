@@ -918,7 +918,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (prop) {
 		ctx->codecid = prop->value.uint;
 	} else if (!ctx->codecid && ctx->c) {
-		ctx->codecid = gf_codec_parse(ctx->c);
+		ctx->codecid = gf_codecid_parse(ctx->c);
 		if (!ctx->codecid) {
 			codec = avcodec_find_encoder_by_name(ctx->c);
 			if (codec)
