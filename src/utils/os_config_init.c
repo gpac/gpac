@@ -154,6 +154,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (!strstr(file_path, "gpac") && !strstr(file_path, "GPAC") ) {
 		HKEY hKey = NULL;
 		DWORD dwSize = GF_MAX_PATH;
+		file_path[0] = 0;
 
 		/*locate the key in current user, then in local machine*/
 #ifdef _WIN32_WCE
@@ -180,7 +181,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		RegCloseKey(hKey);
 #endif
 	}
-
+	//empty path, try DLL
+	if (!file_path[0] && (path_type != GF_PATH_LIB)) {
+		get_default_install_path(file_path, GF_PATH_LIB);
+	}
 
 	if (path_type==GF_PATH_APP) return GF_TRUE;
 
@@ -198,6 +202,21 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 	/*modules are stored in the GPAC directory (should be changed to GPAC/modules)*/
 	if (path_type==GF_PATH_MODULES) return GF_TRUE;
+	
+	if (path_type == GF_PATH_LIB) {
+		HMODULE hm=NULL;
+		if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			(LPCSTR)&get_default_install_path, &hm) == 0) {
+			return 0;
+		}
+		if (GetModuleFileName(hm, file_path, GF_MAX_PATH) == 0) {
+			return 0;
+		}
+		char *sep = strrchr(file_path, '\\');
+		if (!sep) sep = strrchr(file_path, '/');
+		if (sep) sep[0] = 0;
+		return 1;
+	}
 
 	/*we are looking for the config file path - make sure it is writable*/
 	assert(path_type == GF_PATH_CFG);
@@ -408,26 +427,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (sep) sep[0] = 0;
 			return 1;
 		}
-#elif defined(GPAC_CONFIG_WIN32)
-		GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
-		if (strstr(file_path, ".exe")) {
-			sep = strrchr(file_path, '\\');
-			if (sep) sep[0] = 0;
-			if ((file_path[1]==':') && (file_path[2]=='\\')) {
-				strcpy(file_path, &file_path[2]);
-			}
-			sep = file_path;
-			while ( sep[0] ) {
-				if (sep[0]=='\\') sep[0]='/';
-				sep++;
-			}
-			//get rid of /mingw32 or /mingw64
-			sep = strstr(file_path, "/usr/");
-			if (sep) {
-				strcpy(file_path, sep);
-			}
-			return 1;
-		}
+		return 0;
 #endif
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find library path\n"));
 		return 0;
