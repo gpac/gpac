@@ -574,7 +574,7 @@ static char *hevcsplit_rewrite_nal(GF_Filter *filter, GF_HEVCSplitCtx *ctx, char
 	u32 buf_size;
 	HEVCState *hevc = &ctx->hevc_state;
 
-	gf_media_hevc_parse_nalu(in_nal, in_nal_size, hevc, &nal_unit_type, &temporal_id, &layer_id);
+	gf_hevc_parse_nalu(in_nal, in_nal_size, hevc, &nal_unit_type, &temporal_id, &layer_id);
 	switch (nal_unit_type) {
 	//all VCL nal, remove slice address
 	case GF_HEVC_NALU_SLICE_TRAIL_N:
@@ -729,17 +729,17 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			s32 idx;
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
-				idx = gf_media_hevc_read_sps(sl->data, sl->size, &ctx->hevc_state);
+				idx = gf_hevc_read_sps(sl->data, sl->size, &ctx->hevc_state);
 				if ((idx >= 0) && sps_id<0)
 					sps_id = idx;
 			}
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
-				s32 id = gf_media_hevc_read_pps(sl->data, sl->size, &ctx->hevc_state);
+				s32 id = gf_hevc_read_pps(sl->data, sl->size, &ctx->hevc_state);
 				if ((id >= 0) && pps_id<0)
 					pps_id = id;
 			}
 			else if (ar->type == GF_HEVC_NALU_VID_PARAM) {
-				/*s32 id = */ gf_media_hevc_read_vps(sl->data, sl->size, &ctx->hevc_state);
+				/*s32 id = */ gf_hevc_read_vps(sl->data, sl->size, &ctx->hevc_state);
 			}
 		}
 	}
@@ -828,7 +828,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 		// skip the content of the nal from bs to buffer (useful for the next nal)
 		gf_bs_skip_bytes(ctx->bs_au_in, nal_length);
 		// data+pos is an address
-		gf_media_hevc_parse_nalu(data+pos, nal_length, &ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
+		gf_hevc_parse_nalu(data+pos, nal_length, &ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 
 		// todo: might need to rewrite crypto info
 

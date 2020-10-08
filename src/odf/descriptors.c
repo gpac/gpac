@@ -1575,7 +1575,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 
 		pos = gf_bs_get_position(bs);
 		obu_size = 0;
-		if (gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state) != GF_OK) {
+		if (gf_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}

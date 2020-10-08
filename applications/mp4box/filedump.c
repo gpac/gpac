@@ -1370,7 +1370,7 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
 		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
 		bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
-		gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
 		gf_inspect_dump_obu(dump, &av1, obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
 		gf_bs_del(bs);
 	}
@@ -1399,7 +1399,7 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 
 		bs = gf_bs_new(ptr, size, GF_BITSTREAM_READ);
 		while (size) {
-			gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+			gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
 			if (obu_size > size) {
 				fprintf(dump, "   <!-- OBU number %d is corrupted: size is %d but only %d remains -->\n", idx, (u32) obu_size, size);
 				break;
@@ -2060,7 +2060,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 			for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
 				GF_NALUFFParam *vps = gf_list_get(ar->nalus, idx);
-				s32 ps_idx=gf_media_hevc_read_vps(vps->data, vps->size, hevc_state);
+				s32 ps_idx=gf_hevc_read_vps(vps->data, vps->size, hevc_state);
 				if (hevccfg->is_lhvc && (ps_idx>=0)) {
 					non_hevc_base_layer = ! hevc_state->vps[ps_idx].base_layer_internal_flag;
 				}
@@ -2150,7 +2150,7 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 #if !defined(GPAC_DISABLE_AV_PARSERS) && 0 //TODO
 			for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
 				GF_NALUFFParam *vps = gf_list_get(ar->nalus, idx);
-				s32 ps_idx=gf_media_hevc_read_vps(vps->data, vps->size, hevc_state);
+				s32 ps_idx=gf_hevc_read_vps(vps->data, vps->size, hevc_state);
 				if (hevccfg->is_lhvc && (ps_idx>=0)) {
 					non_hevc_base_layer = ! hevc_state->vps[ps_idx].base_layer_internal_flag;
 				}

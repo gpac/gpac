@@ -57,7 +57,7 @@ typedef struct
 {
 	//options
 	char *dst, *user_agent;
-	GF_List *mounts;
+	GF_PropStringList mounts;
 	u32 port, firstport;
 	Bool xps;
 	u32 mtu;
@@ -382,7 +382,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 	ip = ctx->ifce;
 
 	if (!ctx->dst) {
-		if (!ctx->mounts) {
+		if (! ctx->mounts.nb_items) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPOut] No root dir for server, cannot run\n" ));
 			return GF_BAD_PARAM;
 		}
@@ -721,8 +721,8 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path)
 {
 	u32 i;
 	char *src_url=NULL;
-	for (i=0; i<gf_list_count(ctx->mounts); i++) {
-		char *mpoint = gf_list_get(ctx->mounts, i);
+	for (i=0; i<ctx->mounts.nb_items; i++) {
+		char *mpoint = ctx->mounts.vals[i];
 
 		gf_dynstrcat(&src_url, mpoint, NULL);
 		gf_dynstrcat(&src_url, res_path, "/");

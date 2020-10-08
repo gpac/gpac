@@ -263,11 +263,11 @@ typedef struct
 
 
 /*return sps ID or -1 if error*/
-s32 gf_media_avc_read_sps(const u8 *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
-s32 gf_media_avc_read_sps_bs(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
+s32 gf_avc_read_sps(const u8 *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
+s32 gf_avc_read_sps_bs(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
-s32 gf_media_avc_read_pps(const u8 *pps_data, u32 pps_size, AVCState *avc);
-s32 gf_media_avc_read_pps_bs(GF_BitStream *bs, AVCState *avc);
+s32 gf_avc_read_pps(const u8 *pps_data, u32 pps_size, AVCState *avc);
+s32 gf_avc_read_pps_bs(GF_BitStream *bs, AVCState *avc);
 
 /*is slice containing intra MB only*/
 Bool gf_media_avc_slice_is_intra(AVCState *avc);
@@ -276,14 +276,14 @@ Bool gf_media_avc_slice_is_intra(AVCState *avc);
 	0 if NALU part of prev frame
 	-1 if bitstream error
 */
-s32 gf_media_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
+s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 /*nota: 'buffer' remains unmodified but cannot be set const*/
 u32 gf_media_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc);
 
 #ifndef GPAC_DISABLE_ISOM
 GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
-GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d);
+GF_Err gf_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d);
 #endif
 
 
@@ -532,25 +532,25 @@ enum
 	GF_HEVC_SLICE_TYPE_P = 1,
 	GF_HEVC_SLICE_TYPE_I = 2,
 };
-s32 gf_media_hevc_read_vps(u8 *data, u32 size, HEVCState *hevc);
-s32 gf_media_hevc_read_vps_bs(GF_BitStream *bs, HEVCState *hevc);
-s32 gf_media_hevc_read_sps(u8 *data, u32 size, HEVCState *hevc);
-s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc);
-s32 gf_media_hevc_read_pps(u8 *data, u32 size, HEVCState *hevc);
-s32 gf_media_hevc_read_pps_bs(GF_BitStream *bs, HEVCState *hevc);
-s32 gf_media_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
-Bool gf_media_hevc_slice_is_intra(HEVCState *hevc);
-Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
+s32 gf_hevc_read_vps(u8 *data, u32 size, HEVCState *hevc);
+s32 gf_hevc_read_vps_bs(GF_BitStream *bs, HEVCState *hevc);
+s32 gf_hevc_read_sps(u8 *data, u32 size, HEVCState *hevc);
+s32 gf_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc);
+s32 gf_hevc_read_pps(u8 *data, u32 size, HEVCState *hevc);
+s32 gf_hevc_read_pps_bs(GF_BitStream *bs, HEVCState *hevc);
+s32 gf_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+Bool gf_hevc_slice_is_intra(HEVCState *hevc);
+Bool gf_hevc_slice_is_IDR(HEVCState *hevc);
 //parses VPS and rewrites data buffer after removing VPS extension
-s32 gf_media_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extensions);
+s32 gf_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extensions);
 
-void gf_media_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type);
-s32 gf_media_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+void gf_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type);
+s32 gf_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
 /*parses HEVC SEI and fill state accordingly*/
-void gf_media_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
+void gf_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
 
 
 
@@ -830,7 +830,7 @@ Bool gf_media_probe_ivf(GF_BitStream *bs);
 Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
 
 /*parses one OBU*/
-GF_Err gf_media_aom_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
+GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
 
 Bool av1_is_obu_header(ObuType obu_type);
 

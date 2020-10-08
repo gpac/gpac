@@ -226,7 +226,6 @@ GF_Err nhntdump_process(GF_Filter *filter)
 {
 	GF_NHNTDumpCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data;
 	u8 *output;
 	u32 size, pck_size;
 	u64 dts, cts;
@@ -290,7 +289,7 @@ GF_Err nhntdump_process(GF_Filter *filter)
 	}
 
 	//get media data
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	gf_filter_pck_get_data(pck, &pck_size);
 
 	//nhnt data size
 	size = 3 + 1 + 3*(ctx->large ? 8 : 4);
@@ -323,8 +322,8 @@ GF_Err nhntdump_process(GF_Filter *filter)
 	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_send(dst_pck);
 
-	//send data packet
-	dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, data, pck_size, pck);
+	//send the complete data packet
+	dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, 0, pck_size, pck);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//keep byte offset ?
 //	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);

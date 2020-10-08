@@ -276,7 +276,7 @@ GF_Err img_process(GF_Filter *filter)
 				}
 			}
 		}
-		dst_pck = gf_filter_pck_new_ref(ctx->opid, data+start_offset, size-start_offset, pck);
+		dst_pck = gf_filter_pck_new_ref(ctx->opid, start_offset, size-start_offset, pck);
 		if (!dst_pck) e = GF_OUT_OF_MEM;
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		if (ctx->owns_timescale) {

@@ -1234,7 +1234,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			s32 idx = 0;
 
 			if (ar->type == GF_HEVC_NALU_SEQ_PARAM) {
-				idx = gf_media_hevc_read_sps(sl->data, sl->size, &tile_pid->hevc_state);
+				idx = gf_hevc_read_sps(sl->data, sl->size, &tile_pid->hevc_state);
 				if (idx>=0) {
 					if (!ctx->max_CU_width) {
 						ctx->max_CU_width = tile_pid->hevc_state.sps[idx].max_CU_width;
@@ -1253,10 +1253,10 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 				}
 			}
 			else if (ar->type == GF_HEVC_NALU_VID_PARAM) {
-				idx = gf_media_hevc_read_vps(sl->data, sl->size, &tile_pid->hevc_state);
+				idx = gf_hevc_read_vps(sl->data, sl->size, &tile_pid->hevc_state);
 			}
 			else if (ar->type == GF_HEVC_NALU_PIC_PARAM) {
-				idx = gf_media_hevc_read_pps(sl->data, sl->size, &tile_pid->hevc_state);
+				idx = gf_hevc_read_pps(sl->data, sl->size, &tile_pid->hevc_state);
 			}
 			if (idx < 0) {
 				// WARNING
@@ -1459,7 +1459,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 
 			nal_length = gf_bs_read_int(ctx->bs_au_in, tile_pid->nalu_size_length * 8);
 			pos = (u32) gf_bs_get_position(ctx->bs_au_in);
-			gf_media_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
+			gf_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 			gf_bs_skip_bytes(ctx->bs_au_in, nal_length); //skip nal in bs
 
 			//VCL nal, rewrite slice header
@@ -1474,7 +1474,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 			}
 			//NON-vcl, copy for SEI or drop (we should not have any SPS/PPS/VPS in the bitstream, they are in the decoder config prop)
 			else {
-				gf_media_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
+				gf_hevc_parse_nalu(data + pos, nal_length, &tile_pid->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 				// Copy SEI_PREFIX only for the first sample.
 				if (nal_unit_type == GF_HEVC_NALU_SEI_PREFIX && !found_sei_prefix) {
 					found_sei_prefix = GF_TRUE;

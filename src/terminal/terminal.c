@@ -248,7 +248,7 @@ void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 
 GF_EXPORT
 Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime)
 {
-	return gf_fs_mime_supported(term->fsess, mime);
+	return gf_fs_is_supported_mime(term->fsess, mime);
 }
 
 //todo: move this to compositor ?

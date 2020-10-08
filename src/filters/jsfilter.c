@@ -556,8 +556,8 @@ JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
 		return res;
 	case GF_PROP_STRING_LIST:
 		res = JS_NewArray(ctx);
-		for (i=0; i<gf_list_count(new_val->value.string_list); i++) {
-        	JS_SetPropertyUint32(ctx, res, i, JS_NewString(ctx, gf_list_get(new_val->value.string_list, i)  ) );
+		for (i=0; i<new_val->value.string_list.nb_items; i++) {
+        	JS_SetPropertyUint32(ctx, res, i, JS_NewString(ctx, new_val->value.string_list.vals[i] ) );
 		}
 		return res;
 	case GF_PROP_DATA:
@@ -616,7 +616,7 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 			prop->value.uint = gf_stream_type_by_name(val_str);
 		} else if (p4cc==GF_PROP_PID_CODECID) {
 			prop->type = GF_PROP_UINT;
-			prop->value.uint = gf_codec_parse(val_str);
+			prop->value.uint = gf_codecid_parse(val_str);
 		} else {
 			*prop = gf_props_parse_value(type, NULL, val_str, NULL, gf_filter_get_sep(filter, GF_FS_SEP_LIST));
 		}
@@ -670,15 +670,16 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 			}
 			if (!i) {
 				if (atype==1) {
-					prop->value.string_list = gf_list_new();
+					prop->value.uint_list.nb_items = (u32) len;
+					prop->value.uint_list.vals = gf_malloc((u32) (sizeof(char *)*len));
+				} else {
+					prop->value.uint_list.nb_items = (u32) len;
+					prop->value.uint_list.vals = gf_malloc((u32) (sizeof(s32)*len));
 				}
-			} else {
-				prop->value.uint_list.nb_items = (u32) len;
-				prop->value.uint_list.vals = gf_malloc((u32) (sizeof(s32)*len));
 			}
 			if (atype==1) {
 				const char *str = JS_ToCString(ctx, v);
-				gf_list_add(prop->value.string_list, gf_strdup(str));
+				prop->value.string_list.vals[i] = gf_strdup(str);
 				JS_FreeCString(ctx, str);
 			} else {
 				JS_ToInt32(ctx, &prop->value.uint_list.vals[i], v);
@@ -1115,7 +1116,7 @@ static JSValue jsf_filter_set_cap(JSContext *ctx, JSValueConst this_val, int arg
 			p.value.uint = gf_stream_type_by_name(name);
 		} else if (prop_id==GF_PROP_PID_CODECID) {
 			p.type = GF_PROP_UINT;
-			p.value.uint = gf_codec_parse(name);
+			p.value.uint = gf_codecid_parse(name);
 		} else {
 			p = gf_props_parse_value(prop_type, NULL, name, NULL, gf_filter_get_sep(jsf->filter, GF_FS_SEP_LIST) );
 		}
@@ -2342,7 +2343,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	GF_JSPckCtx *pckc_ref = JS_GetOpaque(argv[0], jsf_pck_class_id);
 	if (pckc_ref) {
 		if (use_shared) {
-			pckc->pck = gf_filter_pck_new_ref(pctx->pid, NULL, 0, pckc_ref->pck);
+			pckc->pck = gf_filter_pck_new_ref(pctx->pid, 0, 0, pckc_ref->pck);
 			if ((argc>2) && JS_IsFunction(ctx, argv[2]))
 				pckc->cbck_val = JS_DupValue(ctx, argv[2]);
 		} else {

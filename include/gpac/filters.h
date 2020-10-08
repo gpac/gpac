@@ -411,7 +411,7 @@ Bool gf_fs_is_last_task(GF_FilterSession *session);
 \param mime MIME type to query
 \return GF_TRUE if MIME is supported
 */
-Bool gf_fs_mime_supported(GF_FilterSession *session, const char *mime);
+Bool gf_fs_is_supported_mime(GF_FilterSession *session, const char *mime);
 
 
 /*! Sets UI callback event
@@ -467,6 +467,13 @@ void gf_fs_lock_filters(GF_FilterSession *session, Bool do_lock);
 \return number of active filters
 */
 u32 gf_fs_get_filters_count(GF_FilterSession *session);
+
+/*! Gets a filter by its current index in the session
+\param session filter session
+\param idx index in the filter session
+\return filter, or NULL if none found
+*/
+GF_Filter *gf_fs_get_filter(GF_FilterSession *session, u32 idx);
 
 /*! Type of filter*/
 typedef enum
@@ -599,6 +606,34 @@ void gf_fs_send_update(GF_FilterSession *session, const char *fid, GF_Filter *fi
 */
 GF_Err gf_fs_load_script(GF_FilterSession *session, const char *jsfile);
 
+/*! get max download rate allowed by download manager
+\param session filter session
+\return max rate in bps
+*/
+u32 gf_fs_get_http_max_rate(GF_FilterSession *session);
+
+/*! set max download rate allowed by download manager
+\param session filter session
+\param rate max rate in bps
+\return error if any
+*/
+GF_Err gf_fs_set_http_max_rate(GF_FilterSession *session, u32 rate);
+
+
+/*! get current download rate  of download manager, all active resources together
+\param session filter session
+\return current rate in bps
+*/
+u32 gf_fs_get_http_rate(GF_FilterSession *session);
+
+/*! check if a URL is likely to be supported
+\param session filter session
+\param url the URL to test
+\param parent_url  the parent URL
+\return GF_TRUE if a filter for such a source could be loaded
+*/
+Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const char *parent_url);
+
 /*! @} */
 
 
@@ -668,8 +703,7 @@ typedef enum
 	GF_PROP_CONST_DATA,
 	/*! user-managed pointer*/
 	GF_PROP_POINTER,
-	/*! string list, memory is NOT duplicated when setting the property, the GF_List * of
-	the passed property is directly assigned to the new property and will be and managed internally (freed by the filter session)*/
+	/*! string list, memory is NOT duplicated when setting the property, the passed array is directly assigned to the new property and will be and managed internally (freed by the filter session)*/
 	GF_PROP_STRING_LIST,
 	/*! unsigned 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
 	GF_PROP_UINT_LIST,
@@ -758,6 +792,15 @@ typedef struct
 	Double w;
 } GF_PropVec4;
 
+/*! List of strings property - do not change field order !*/
+typedef struct
+{
+	/*! array of unsigned integers */
+	char **vals;
+	/*! number of items in array */
+	u32 nb_items;
+} GF_PropStringList;
+
 /*! List of unsigned int property - do not change field order !*/
 typedef struct
 {
@@ -830,7 +873,7 @@ struct __gf_prop_val
 		/*! pointer value of property */
 		void *ptr;
 		/*! string list value of property - memory is handled by filter session (always copy)*/
-		GF_List *string_list;
+		GF_PropStringList string_list;
 		/*! unsigned integer list value of property - memory is handled by filter session (always copy)*/
 		GF_PropUIntList uint_list;
 		/*! signed integer list value of property - memory is handled by filter session (always copy)*/
@@ -1453,7 +1496,7 @@ typedef struct
 	u32 min_x, max_x, min_y, max_y;
 	/*! if set, only min_x, min_y are used and indicate the gaze direction in pixels in the visual with/height frame (0,0) being top-left*/
 	Bool is_gaze;
-} GF_FEVT_VisibililityHint;
+} GF_FEVT_VisibilityHint;
 
 
 /*! Event structure for GF_FEVT_BUFFER_REQ*/
@@ -1474,7 +1517,9 @@ typedef struct
 	Bool pid_only;
 } GF_FEVT_BufferRequirement;
 
-/*! Event object*/
+/*!
+Filter Event object
+ */
 union __gf_filter_event
 {
 	GF_FEVT_Base base;
@@ -1483,7 +1528,7 @@ union __gf_filter_event
 	GF_FEVT_AttachScene attach_scene;
 	GF_FEVT_Event user_event;
 	GF_FEVT_QualitySwitch quality_switch;
-	GF_FEVT_VisibililityHint visibility_hint;
+	GF_FEVT_VisibilityHint visibility_hint;
 	GF_FEVT_BufferRequirement buffer_req;
 	GF_FEVT_SegmentSize seg_size;
 	GF_FEVT_FileDelete file_del;
@@ -2650,6 +2695,14 @@ Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter);
 */
 GF_Err gf_filter_get_stats(GF_Filter *filter, GF_FilterStats *stats);
 
+
+/*! Enumerates default arguments of a filter
+\param filter filter session
+\param idx the 0-based index of the argument to query
+\return the argument definition, or NULL if error
+*/
+const GF_FilterArgs *gf_filter_enumerate_args(GF_Filter *filter, u32 idx);
+
 /*! @} */
 
 
@@ -3279,6 +3332,19 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
 */
 void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
 
+/*! Gets the filter owning the  input PID
+\param PID the target filter PID
+\return the filter owning the PID or NULL if error
+*/
+GF_Filter *gf_filter_pid_get_source_filter(GF_FilterPid *PID);
+
+/*! Enumerates the destination filters of an output PID
+\param PID the target filter PID
+\param idx  the target destination index
+\return the destination filter for the given index, or NULL if error
+*/
+GF_Filter *gf_filter_pid_enum_destinations(GF_FilterPid *PID, u32 idx);
+
 /*! @} */
 
 
@@ -3312,6 +3378,12 @@ However, packets do not have to be send in their creation order: a created packe
 \return error if any
 */
 GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
+
+/*! Same as \ref gf_filter_pck_ref but doesn't use pointer to packet
+\param pck the target input packet
+\return the new reference to the packet
+*/
+GF_FilterPacket *gf_filter_pck_ref_ex(GF_FilterPacket *pck);
 
 /*! Remove a reference to the given input packet. The packet might be destroyed after that call.
 \param pck the target input packet
@@ -3350,12 +3422,12 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *PID, const u8 *data, u32
 /*! Allocates a new packet on the output PID referencing data of some input packet.
 The packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) and all other flags set to 0 (including SAP type).
 \param PID the target output PID
-\param data the data block to dispatch - if NULL, the entire data of the source packet is used
-\param data_size the size of the data block to dispatch - if 0, the entire data of the source packet is used
+\param data_offset offset in the source data block
+\param data_size the size of the data block to dispatch - if 0, the entire data of the source packet begining at offset is used
 \param source_packet the source packet this data belongs to (at least from the filter point of view).
 \return new packet or NULL if error
 */
-GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *PID, const u8 *data, u32 data_size, GF_FilterPacket *source_packet);
+GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *PID, u32 data_offset, u32 data_size, GF_FilterPacket *source_packet);
 
 /*! Allocates a new packet on the output PID with associated allocated data.
 The packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) and all other flags set to 0 (including SAP type).
@@ -3777,7 +3849,7 @@ GF_Err gf_filter_pck_set_seq_num(GF_FilterPacket *pck, u32 seq_num);
 
 /*! Gets packet sequence number info
 \param pck target packet
-\return version_number carrousel version number associated with this data chunk
+\return sequence number associated with this packet
 */
 u32 gf_filter_pck_get_seq_num(GF_FilterPacket *pck);
 

@@ -367,7 +367,6 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_STRING_LIST:
 	{
 		Bool is_xml = GF_FALSE;
-		p.value.string_list = gf_list_new();
 		char *v = (char *) value;
 		if (v && v[0]=='<') is_xml = GF_TRUE;
 		if (!list_sep_char) list_sep_char = ',';
@@ -403,11 +402,15 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", nv+5));
 				} else {
-					gf_list_add(p.value.string_list, data);
+					p.value.string_list.vals = gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
+					p.value.string_list.vals[p.value.string_list.nb_items] = data;
+					p.value.string_list.nb_items++;
 				}
 				gf_free(nv);
 			} else {
-				gf_list_add(p.value.string_list, nv);
+				p.value.string_list.vals = gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
+				p.value.string_list.vals[p.value.string_list.nb_items] = nv;
+				p.value.string_list.nb_items++;
 			}
 			if (!sep) break;
 			v = sep+1;
@@ -550,15 +553,15 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 
 	case GF_PROP_STRING_LIST:
 	{
-		u32 c1, c2, i, j;
-		c1 = gf_list_count(p1->value.string_list);
-		c2 = gf_list_count(p2->value.string_list);
+		u32 i, j, c1, c2;
+		c1 = p1->value.string_list.nb_items;
+		c2 = p2->value.string_list.nb_items;
 		if (c1 != c2) return GF_FALSE;
 		for (i=0; i<c1; i++) {
 			u32 found = 0;
-			char *s1 = gf_list_get(p1->value.string_list, i);
+			char *s1 = p1->value.string_list.vals[i];
 			for (j=0; j<c2; j++) {
-				char *s2 = gf_list_get(p2->value.string_list, j);
+				char *s2 = p2->value.string_list.vals[j];
 				if (s1 && s2 && !strcmp(s1, s2)) found++;
 			}
 			if (found!=1) return GF_FALSE;
@@ -647,12 +650,14 @@ void gf_props_reset_single(GF_PropertyValue *p)
 		p->value.uint_list.nb_items = 0;
 	}
 	else if (p->type==GF_PROP_STRING_LIST) {
-		while (gf_list_count(p->value.string_list)) {
-			char *str = gf_list_pop_back(p->value.string_list);
+		u32 i;
+		for (i=0; i<p->value.string_list.nb_items; i++) {
+			char *str = p->value.string_list.vals[i];
 			gf_free(str);
 		}
-		gf_list_del(p->value.string_list);
-		p->value.string_list = NULL;
+		gf_free(p->value.string_list.vals);
+		p->value.string_list.vals = NULL;
+		p->value.string_list.nb_items = 0;
 	}
 }
 void gf_props_del_property(GF_PropertyEntry *it)
@@ -674,13 +679,14 @@ void gf_props_del_property(GF_PropertyEntry *it)
 		}
 		//string list are destroyed
 		else if (it->prop.type==GF_PROP_STRING_LIST) {
-			GF_List *l = it->prop.value.string_list;
-			it->prop.value.string_list = NULL;
-			while (gf_list_count(l)) {
-				char *s = gf_list_pop_back(l);
+			u32 i;
+			for (i=0; i<it->prop.value.string_list.nb_items; i++) {
+				char *s = it->prop.value.string_list.vals[i];
 				gf_free(s);
 			}
-			gf_list_del(l);
+			gf_free(it->prop.value.string_list.vals);
+			it->prop.value.string_list.vals = NULL;
+			it->prop.value.string_list.nb_items = 0;
 		}
 		//use uint_list as base type for list
 		else if ((it->prop.type==GF_PROP_UINT_LIST) || (it->prop.type==GF_PROP_SINT_LIST) || (it->prop.type==GF_PROP_VEC2I_LIST)) {
@@ -1533,11 +1539,11 @@ const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_
 		break;
 	case GF_PROP_STRING_LIST:
 	{
-		u32 i, count = gf_list_count(att->value.string_list);
+		u32 i, count = att->value.string_list.nb_items;
 		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
 		dump[len]=0;
 		for (i=0; i<count; i++) {
-			char *s = gf_list_get(att->value.string_list, i);
+			char *s = att->value.string_list.vals[i];
 			if (!i) {
 				strncpy(dump, s, len);
 			} else {

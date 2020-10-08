@@ -159,7 +159,7 @@ static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnum
 	Bool directory_clean_mode = *(Bool*)cbck;
 
 	if(directory_clean_mode) {
-		gf_cleanup_dir(item_path);
+		gf_dir_cleanup(item_path);
 		gf_rmdir(item_path);
 	} else {
 		gf_file_delete(item_path);
@@ -168,7 +168,7 @@ static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnum
 }
 
 GF_EXPORT
-GF_Err gf_cleanup_dir(const char* DirPathName)
+GF_Err gf_dir_cleanup(const char* DirPathName)
 {
 	Bool directory_clean_mode;
 

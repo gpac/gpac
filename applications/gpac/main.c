@@ -3681,7 +3681,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_file_modification_time(url);
 	gf_m2ts_probe_file(url);
 
-	gf_cleanup_dir("testdir");
+	gf_dir_cleanup("testdir");
 	gf_rmdir("testdir");
 
 	//math.c not covered yet by our sample files
@@ -3850,9 +3850,9 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_odf_desc_del((GF_Descriptor *) txtc);
 
 	//stuff only used by vtbdec
-	gf_media_hevc_read_pps_bs(NULL, NULL);
-	gf_media_hevc_read_sps_bs(NULL, NULL);
-	gf_media_hevc_read_vps_bs(NULL, NULL);
+	gf_hevc_read_pps_bs(NULL, NULL);
+	gf_hevc_read_sps_bs(NULL, NULL);
+	gf_hevc_read_vps_bs(NULL, NULL);
 	gf_mpegv12_get_config(NULL, 0, NULL);
 
 	//hinting stuff

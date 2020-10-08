@@ -802,15 +802,15 @@ attribute unsigned long set_tile_mode_plus_one;
 /*! quality switch - see \ref GF_FEVT_QualitySwitch*/
 attribute unsigned long quality_degradation;
 
-/*! visibility hint - see \ref GF_FEVT_VisibililityHint*/
+/*! visibility hint - see \ref GF_FEVT_VisibilityHint*/
 attribute unsigned long min_x;
-/*! visibility hint - see \ref GF_FEVT_VisibililityHint*/
+/*! visibility hint - see \ref GF_FEVT_VisibilityHint*/
 attribute unsigned long min_y;
-/*! visibility hint - see \ref GF_FEVT_VisibililityHint*/
+/*! visibility hint - see \ref GF_FEVT_VisibilityHint*/
 attribute unsigned long max_x;
-/*! visibility hint - see \ref GF_FEVT_VisibililityHint*/
+/*! visibility hint - see \ref GF_FEVT_VisibilityHint*/
 attribute unsigned long max_y;
-/*! visibility hint - see \ref GF_FEVT_VisibililityHint*/
+/*! visibility hint - see \ref GF_FEVT_VisibilityHint*/
 attribute boolean is_gaze;
 
 /*! buffer reqs - see \ref GF_FEVT_BufferRequirement*/

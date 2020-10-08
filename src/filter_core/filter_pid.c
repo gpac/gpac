@@ -1333,7 +1333,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	//parse the property, based on its property type
 	if (pent->p4cc==GF_PROP_PID_CODECID) {
 		prop_val.type = GF_PROP_UINT;
-		prop_val.value.uint = gf_codec_parse(psep+1);
+		prop_val.value.uint = gf_codecid_parse(psep+1);
 	} else {
 		u32 val_is_prop = gf_props_get_id(psep+1);
 		if (val_is_prop) {
@@ -3383,7 +3383,8 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				gf_filter_pid_set_property(pid, p4cc, &p);
 			}
 			if (prop_type==GF_PROP_STRING_LIST) {
-				p.value.string_list = NULL;
+				p.value.string_list.vals = NULL;
+				p.value.string_list.nb_items = 0;
 			}
 			//use uint_list as base type for lists
 			else if ((prop_type==GF_PROP_UINT_LIST) || (prop_type==GF_PROP_SINT_LIST) || (prop_type==GF_PROP_VEC2I_LIST)) {
@@ -4769,6 +4770,7 @@ void gf_filter_release_property(GF_PropertyEntry *propentry)
 	}
 }
 
+GF_EXPORT
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 {
 	GF_PropertyMap *map;
@@ -6909,4 +6911,27 @@ void *gf_filter_pid_get_alias_udta(GF_FilterPid *_pid)
 	pidi = (GF_FilterPidInst *) _pid;
 	if (!pidi->alias_orig) return NULL;
 	return pidi->alias_orig->filter_udta;
+}
+
+GF_EXPORT
+GF_Filter *gf_filter_pid_get_source_filter(GF_FilterPid *pid)
+{
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query source filter on output pid %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	return pid->pid->filter;
+}
+
+GF_EXPORT
+GF_Filter *gf_filter_pid_enum_destinations(GF_FilterPid *pid, u32 idx)
+{
+	GF_FilterPidInst *dst_pid;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query destination filters on input pid %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	if (idx>=pid->num_destinations) return NULL;
+	dst_pid = gf_list_get(pid->destinations, idx);
+	return dst_pid->filter;
 }

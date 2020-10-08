@@ -289,7 +289,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	hvcc = gf_odf_hevc_cfg_read(prop->value.data.ptr, prop->value.data.size, (pctx->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 	if (ctx->sar.num && ctx->sar.den) {
-		e = gf_media_hevc_change_par(hvcc, ctx->sar.num, ctx->sar.den);
+		e = gf_hevc_change_par(hvcc, ctx->sar.num, ctx->sar.den);
 		if (!e)
 			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
 	}

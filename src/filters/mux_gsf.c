@@ -409,10 +409,10 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 
 	//string list: memory is ALWAYS duplicated
 	case GF_PROP_STRING_LIST:
-		len2 = gf_list_count(p->value.string_list);
+		len2 = p->value.string_list.nb_items;
 		gsfmx_write_vlen(ctx, len2);
 		for (i=0; i<len2; i++) {
-			const char *str = gf_list_get(p->value.string_list, i);
+			const char *str = p->value.string_list.vals[i];
 			len = (u32) strlen(str);
 			gsfmx_write_vlen(ctx, len);
 			gf_bs_write_data(ctx->bs_w, str, len);

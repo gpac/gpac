@@ -77,7 +77,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 		else if (stype==GF_ISOM_SUBTYPE_HVC1) {
 			GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
 			if (rewrite_bs) {
-				gf_media_hevc_change_par(hvcc, ar_num, ar_den);
+				gf_hevc_change_par(hvcc, ar_num, ar_den);
 				e = gf_isom_hevc_config_update(file, track, 1, hvcc);
 			} else {
 				u32 i=0;
@@ -1434,7 +1434,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	{
 		slc = (GF_NALUFFParam *)gf_list_get(svccfg->sequenceParameterSets, i);
 		nal_type = slc->data[0] & 0x1F;
-		sps_id = gf_media_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
+		sps_id = gf_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
 		if (sps_id < 0) {
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
@@ -1453,7 +1453,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	for (j = 0; j < num_pps; j++)
 	{
 		slc = (GF_NALUFFParam *)gf_list_get(svccfg->pictureParameterSets, j);
-		pps_id = gf_media_avc_read_pps(slc->data, slc->size, &avc);
+		pps_id = gf_avc_read_pps(slc->data, slc->size, &avc);
 		if (pps_id < 0) {
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
@@ -1491,7 +1491,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			max_size = size;
 		}
 
-		gf_media_avc_parse_nalu(bs, &avc);
+		gf_avc_parse_nalu(bs, &avc);
 		nal_type = avc.last_nal_type_parsed;
 
 		e = gf_bs_seek(bs, offset+nalu_size_length/8);
@@ -1716,7 +1716,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				max_size = size;
 			}
 
-			gf_media_avc_parse_nalu(bs, &avc);
+			gf_avc_parse_nalu(bs, &avc);
 			nal_type = avc.last_nal_type_parsed;
 			e = gf_bs_seek(bs, offset+nalu_size_length/8);
 			if (e)
@@ -1861,7 +1861,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			for (i = 0; i < gf_list_count(svccfg->sequenceParameterSets); i++)
 			{
 				slc = (GF_NALUFFParam *)gf_list_get(svccfg->sequenceParameterSets, i);
-				sps_id = gf_media_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
+				sps_id = gf_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
 				if (sps_id < 0) {
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
@@ -1879,7 +1879,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 			for (j = 0; j < gf_list_count(svccfg->pictureParameterSets); j++)
 			{
 				slc = (GF_NALUFFParam *)gf_list_get(svccfg->pictureParameterSets, j);
-				pps_id = gf_media_avc_read_pps(slc->data, slc->size, &avc);
+				pps_id = gf_avc_read_pps(slc->data, slc->size, &avc);
 				if (pps_id < 0) {
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
@@ -2493,9 +2493,9 @@ reparse:
 						if (lh > sti[layer_id].height) sti[layer_id].height = lh;
 					}
 				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-					gf_media_hevc_read_pps(sl->data, sl->size, &hevc_state);
+					gf_hevc_read_pps(sl->data, sl->size, &hevc_state);
 				} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-					gf_media_hevc_read_vps(sl->data, sl->size, &hevc_state);
+					gf_hevc_read_vps(sl->data, sl->size, &hevc_state);
 				}
 
 				//don't touch base layer
@@ -2675,9 +2675,9 @@ reparse:
 						if (lh > sti[layer_id].height) sti[layer_id].height = lh;
 					}
 				} else if (nal_type==GF_HEVC_NALU_PIC_PARAM) {
-					gf_media_hevc_read_pps(sample->data + offset, nal_size, &hevc_state);
+					gf_hevc_read_pps(sample->data + offset, nal_size, &hevc_state);
 				} else if (nal_type==GF_HEVC_NALU_VID_PARAM) {
-					gf_media_hevc_read_vps(sample->data + offset, nal_size, &hevc_state);
+					gf_hevc_read_vps(sample->data + offset, nal_size, &hevc_state);
 				}
 			}
 
@@ -3140,13 +3140,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			if (!sl) continue;
 			switch (ar->type) {
 			case GF_HEVC_NALU_PIC_PARAM:
-				pps_idx = gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
+				pps_idx = gf_hevc_read_pps(sl->data, sl->size, &hevc);
 				break;
 			case GF_HEVC_NALU_SEQ_PARAM:
-				sps_idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
+				sps_idx = gf_hevc_read_sps(sl->data, sl->size, &hevc);
 				break;
 			case GF_HEVC_NALU_VID_PARAM:
-				gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+				gf_hevc_read_vps(sl->data, sl->size, &hevc);
 				break;
 			}
 		}
@@ -3169,17 +3169,17 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			for (j=0; j<nalu_size_length; j++) {
 				nalu_size = (nalu_size<<8) + data[j];
 			}
-			gf_media_hevc_parse_nalu(data + nalu_size_length, nalu_size, &hevc, &nal_type, &temporal_id, &layer_id);
+			gf_hevc_parse_nalu(data + nalu_size_length, nalu_size, &hevc, &nal_type, &temporal_id, &layer_id);
 
 			switch (nal_type) {
 			case GF_HEVC_NALU_PIC_PARAM:
-				pps_idx = gf_media_hevc_read_pps((char *) data+nalu_size_length, nalu_size, &hevc);
+				pps_idx = gf_hevc_read_pps((char *) data+nalu_size_length, nalu_size, &hevc);
 				break;
 			case GF_HEVC_NALU_SEQ_PARAM:
-				sps_idx = gf_media_hevc_read_sps((char *) data+nalu_size_length, nalu_size, &hevc);
+				sps_idx = gf_hevc_read_sps((char *) data+nalu_size_length, nalu_size, &hevc);
 				break;
 			case GF_HEVC_NALU_VID_PARAM:
-				gf_media_hevc_read_vps((char *) data+nalu_size_length, nalu_size, &hevc);
+				gf_hevc_read_vps((char *) data+nalu_size_length, nalu_size, &hevc);
 				break;
 			}
 			data += nalu_size + nalu_size_length;
@@ -3261,7 +3261,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			for (j=0; j<nalu_size_length; j++) {
 				nalu_size = (nalu_size<<8) + data[j];
 			}
-			ret = gf_media_hevc_parse_nalu(data + nalu_size_length, nalu_size, &hevc, &nal_type, &temporal_id, &layer_id);
+			ret = gf_hevc_parse_nalu(data + nalu_size_length, nalu_size, &hevc, &nal_type, &temporal_id, &layer_id);
 
 			//error parsing NAL, set nal to fallback to regular import
 			if (ret<0) nal_type = GF_HEVC_NALU_VID_PARAM;

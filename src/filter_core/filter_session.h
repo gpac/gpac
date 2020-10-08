@@ -709,6 +709,8 @@ struct __gf_filter
 	char *iname;
 	JSValue jsval;
 #endif
+	//for external bindings
+	void *rt_udta;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target, Bool dynamic_filter);
