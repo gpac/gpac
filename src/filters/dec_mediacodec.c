@@ -433,11 +433,11 @@ static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u
 	GF_List *dest = (xps == MCDEC_SPS) ? ctx->SPSs : ctx->PPSs;
 
 	if (xps == MCDEC_SPS) {
-		ps_id = gf_media_avc_read_sps(data, size, &ctx->avc, 0, NULL);
+		ps_id = gf_avc_read_sps(data, size, &ctx->avc, 0, NULL);
 		if (ps_id<0) return;
 	}
 	else {
-		ps_id = gf_media_avc_read_pps(data, size, &ctx->avc);
+		ps_id = gf_avc_read_pps(data, size, &ctx->avc);
 		if (ps_id<0) return;
 	}
 	count = gf_list_count(dest);
@@ -486,17 +486,17 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 	switch(xps) {
 		case MCDEC_SPS:
 			dest = ctx->SPSs;
-			ps_id = gf_media_hevc_read_sps(data, size, &ctx->hevc);
+			ps_id = gf_hevc_read_sps(data, size, &ctx->hevc);
 			if (ps_id<0) return;
 			break;
 		case MCDEC_PPS:
 			dest = ctx->PPSs;
-			ps_id = gf_media_hevc_read_pps(data, size, &ctx->hevc);
+			ps_id = gf_hevc_read_pps(data, size, &ctx->hevc);
 			if (ps_id<0) return;
 			break;
 		case MCDEC_VPS:
 			dest = ctx->VPSs;
-			ps_id = gf_media_hevc_read_vps(data, size, &ctx->hevc);
+			ps_id = gf_hevc_read_vps(data, size, &ctx->hevc);
 			if (ps_id<0) return;
 			break;
 		default:
@@ -805,7 +805,7 @@ static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBufferL
 
 		if (ctx->codecid==GF_CODECID_AVC) {
 			//this will turn it back on
-			gf_media_avc_parse_nalu (bs, &ctx->avc);
+			gf_avc_parse_nalu (bs, &ctx->avc);
 			gf_bs_seek(bs, pos + nal_size);
 
 			nal_type = ctx->avc.last_nal_type_parsed;
@@ -828,7 +828,7 @@ static GF_Err mcdec_check_ps_state(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBufferL
 			}
 		} else {
 			u8 quality_id, temporal_id;
-			gf_media_hevc_parse_nalu_bs (bs, &ctx->hevc, &nal_type, &temporal_id, &quality_id);
+			gf_hevc_parse_nalu_bs (bs, &ctx->hevc, &nal_type, &temporal_id, &quality_id);
 			gf_bs_seek(bs, pos + nal_size);
 
 			switch(nal_type) {

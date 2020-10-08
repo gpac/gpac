@@ -1131,7 +1131,7 @@ Cleanup a directory within the full path, removing all the files and the directo
 \param DirPathName the dir path name.
 \return error if any
  */
-GF_Err gf_cleanup_dir(const char* DirPathName);
+GF_Err gf_dir_cleanup(const char* DirPathName);
 
 
 /**

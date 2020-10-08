@@ -935,7 +935,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	sep = strchr(cid, fsess->sep_args);
 	if (sep) sep[0] = 0;
 
-	codecid = gf_codec_parse(cid+2);
+	codecid = gf_codecid_parse(cid+2);
 	if (codecid==GF_CODECID_NONE) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized codec identifier in \"enc\" definition: %s\n", cid));
 		if (sep) sep[0] = fsess->sep_args;
@@ -2987,7 +2987,7 @@ Bool gf_fs_is_last_task(GF_FilterSession *fsess)
 }
 
 GF_EXPORT
-Bool gf_fs_mime_supported(GF_FilterSession *fsess, const char *mime)
+Bool gf_fs_is_supported_mime(GF_FilterSession *fsess, const char *mime)
 {
 	u32 i, count;
 	//first pass on explicit mimes

@@ -770,8 +770,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					HEVCState hevc;
 					HEVC_SPS* sps;
 					memset(&hevc, 0, sizeof(HEVCState));
-					gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
-					gf_media_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
+					gf_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
+					gf_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
 					sps = &hevc.sps[hevc.sps_active_idx];
 					if (sps && sps->colour_description_present_flag) {
 						DasherHDRType old_hdr_type = ds->hdr_type;
@@ -797,7 +797,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				if (sl) {
 					s32 idx;
 					memset(&avc, 0, sizeof(AVCState));
-					idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
+					idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
 					if (idx>=0) {
 						Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
 						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;

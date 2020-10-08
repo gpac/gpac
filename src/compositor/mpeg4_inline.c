@@ -454,7 +454,6 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 }
 
 
-GF_EXPORT
 Bool gf_inline_is_default_viewpoint(GF_Node *node)
 {
 	const char *nname, *seg_name;

@@ -580,7 +580,7 @@ u32 gf_codecid_4cc_type(GF_CodecID codecid);
 \param cname target codec short name
 \return codecid codec ID
 */
-GF_CodecID gf_codec_parse(const char *cname);
+GF_CodecID gf_codecid_parse(const char *cname);
 
 /*! Gets the raw file ext (one or more, | separated) for the given codecid
 \param codecid codec ID

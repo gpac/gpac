@@ -887,6 +887,8 @@
 		925974FC2215BA3A0007E02B /* raster_yuv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_yuv.c; path = evg/raster_yuv.c; sourceTree = "<group>"; };
 		925975072215BAC30007E02B /* evg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = evg.h; path = ../include/gpac/evg.h; sourceTree = "<group>"; };
 		925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = decrypt_cenc_isma.c; path = filters/decrypt_cenc_isma.c; sourceTree = "<group>"; };
+		92609BD2252F56CC00DB821E /* export.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = export.cpp; sourceTree = "<group>"; };
+		92609BD3252F570200DB821E /* share */ = {isa = PBXFileReference; lastKnownFileType = folder; name = share; path = ../../share; sourceTree = "<group>"; };
 		926245971FD691A000184072 /* ff_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ff_common.h; path = filters/ff_common.h; sourceTree = "<group>"; };
 		926656C11F7D10F400299CC6 /* dec_vorbis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vorbis.c; path = filters/dec_vorbis.c; sourceTree = "<group>"; };
 		926656C31F7D3DF700299CC6 /* dec_theora.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_theora.c; path = filters/dec_theora.c; sourceTree = "<group>"; };
@@ -1430,6 +1432,7 @@
 		9201F92718D5A359003D1ACA = {
 			isa = PBXGroup;
 			children = (
+				92609BD3252F570200DB821E /* share */,
 				92912946218A3B2B004F1A6C /* README.md */,
 				92FA48841D0191570072C8A4 /* linklibs */,
 				92BE50AE18D6378C00AA59D8 /* xcode */,
@@ -1458,6 +1461,7 @@
 		9201FE7E18D5A444003D1ACA /* libgpac */ = {
 			isa = PBXGroup;
 			children = (
+				92609BD2252F56CC00DB821E /* export.cpp */,
 				92BBFC471A71228A006A7735 /* include */,
 				9201FF8918D5A444003D1ACA /* bifs */,
 				9201FF9A18D5A444003D1ACA /* compositor */,

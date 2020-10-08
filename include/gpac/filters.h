@@ -411,7 +411,7 @@ Bool gf_fs_is_last_task(GF_FilterSession *session);
 \param mime MIME type to query
 \return GF_TRUE if MIME is supported
 */
-Bool gf_fs_mime_supported(GF_FilterSession *session, const char *mime);
+Bool gf_fs_is_supported_mime(GF_FilterSession *session, const char *mime);
 
 
 /*! Sets UI callback event

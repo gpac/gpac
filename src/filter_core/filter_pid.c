@@ -1333,7 +1333,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	//parse the property, based on its property type
 	if (pent->p4cc==GF_PROP_PID_CODECID) {
 		prop_val.type = GF_PROP_UINT;
-		prop_val.value.uint = gf_codec_parse(psep+1);
+		prop_val.value.uint = gf_codecid_parse(psep+1);
 	} else {
 		u32 val_is_prop = gf_props_get_id(psep+1);
 		if (val_is_prop) {
