@@ -1010,7 +1010,7 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 		return JS_NULL;
 	}
 	qdesc = NULL;
-	if (idx<prop->value.string_list.nb_items)
+	if (idx < (s32) prop->value.string_list.nb_items)
 		qdesc = prop->value.string_list.vals[idx];
 	if (!qdesc) {
 		gf_filter_release_property(pe);

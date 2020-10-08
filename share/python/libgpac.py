@@ -199,7 +199,7 @@ try:
     import numpy as np
 except ModuleNotFoundError as err:
     numpy_support=False
-    print("\n\t!! Module numpy not present, packet data access not available !!\n")
+    print("\nWARNING! numpy not present, packet data type is ctypes POINTER(c_ubyte)\n")
 
 ##ctypes instance of libgpac
 ##\hideinitializer
