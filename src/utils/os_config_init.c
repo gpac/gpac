@@ -289,8 +289,22 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 /*Linux, OSX, iOS*/
 #else
 
-#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX)
+//dlinfo
+#if defined(__DARWIN__) || defined(__APPLE__)
 #include <dlfcn.h>
+
+typedef _Dl_info Dl_info
+#elif defined(GPAC_CONFIG_LINUX)
+
+
+typedef struct
+{
+	const char *dli_fname;
+	void *dli_fbase;
+	const char *dli_sname;
+	void *dli_saddr;
+} _Dl_info;
+int dladdr(void *, _Dl_info *);
 
 #endif
 
@@ -385,7 +399,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	if (path_type==GF_PATH_LIB) {
 #if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX)
-		Dl_info dl_info;
+		_Dl_info dl_info;
 		dladdr((void *)get_default_install_path, &dl_info);
 		if (dl_info.dli_fname) {
 			char *sep;
@@ -394,8 +408,6 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (sep) sep[0] = 0;
 			return 1;
 		}
-		return 0;
-
 #elif defined(GPAC_CONFIG_WIN32)
 		GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
 		if (strstr(file_path, ".exe")) {
@@ -417,7 +429,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			return 1;
 		}
 #endif
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find executable path\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find library path\n"));
 		return 0;
 	}
 
