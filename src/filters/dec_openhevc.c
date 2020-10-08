@@ -449,7 +449,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 			for (i=0; i< gf_list_count(avcc->sequenceParameterSets); i++) {
 				GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
-				s32 idx = gf_media_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
+				s32 idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
 				ctx->width = MAX(avc.sps[idx].width, ctx->width);
 				ctx->height = MAX(avc.sps[idx].height, ctx->height);
 				ctx->luma_bpp = avcc->luma_bit_depth;
@@ -505,7 +505,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					u16 hdr = sl->data[0] << 8 | sl->data[1];
 
 					if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-						idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
+						idx = gf_hevc_read_sps(sl->data, sl->size, &hevc);
 						ctx->width = MAX(hevc.sps[idx].width, ctx->width);
 						ctx->height = MAX(hevc.sps[idx].height, ctx->height);
 						ctx->luma_bpp = MAX(hevc.sps[idx].bit_depth_luma, ctx->luma_bpp);
@@ -518,7 +518,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 						SPSs = ar->nalus;
 					}
 					else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-						s32 vps_id = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+						s32 vps_id = gf_hevc_read_vps(sl->data, sl->size, &hevc);
 						//multiview
 						if ((vps_id>=0) && (hevc.vps[vps_id].scalability_mask[1])) {
 							ctx->is_multiview = GF_TRUE;
@@ -526,7 +526,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 						VPSs = ar->nalus;
 					}
 					else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-						gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
+						gf_hevc_read_pps(sl->data, sl->size, &hevc);
 						PPSs = ar->nalus;
 					}
 				}

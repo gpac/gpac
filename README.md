@@ -24,7 +24,8 @@
 
 
 # GPAC Introduction
-Current version: 1.0.1
+Current version: 1.1-DEV
+Latest Release: 1.0.1
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
@@ -127,8 +128,8 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 Targets:
 - [ ] add kvazaar/other encoders support?
 - [ ] improve remotery support
-- [ ] more JS filters
-- [ ] filters scriptable through other languages (python) ?
+- [x] more JS filters
+- [x] Python bindings for libgpac
 - [ ] move input sensors to filter ?
 - [ ] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
-- [ ] move Android client to filters
+- [x] move Android client to filters

@@ -358,7 +358,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 			nal_type = nal[0] & 0x1F;
 			if (nal_type == GF_AVC_NALU_SEQ_PARAM) {
 /*				AVCState avcc;
-				u32 idx = gf_media_avc_read_sps(slc->data, slc->size, &avcc, 0, NULL);
+				u32 idx = gf_avc_read_sps(slc->data, slc->size, &avcc, 0, NULL);
 				avc->avc_config->config->profile_compatibility = avcc.sps[idx].prof_compat;
 				avc->avc_config->config->AVCProfileIndication = avcc.sps[idx].profile_idc;
 				avc->avc_config->config->AVCLevelIndication = avcc.sps[idx].level_idc;

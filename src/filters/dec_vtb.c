@@ -383,9 +383,9 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			
 			ctx->vtb_type = kCMVideoCodecType_H264;
 
-			if (gf_media_avc_read_sps(sps->data, sps->size, &ctx->avc, 0, NULL)<0)
+			if (gf_avc_read_sps(sps->data, sps->size, &ctx->avc, 0, NULL)<0)
 				return GF_NON_COMPLIANT_BITSTREAM;
-			if (gf_media_avc_read_pps(pps->data, pps->size, &ctx->avc)<0)
+			if (gf_avc_read_pps(pps->data, pps->size, &ctx->avc)<0)
 				return GF_NON_COMPLIANT_BITSTREAM;
 
 			idx = ctx->active_sps;
@@ -825,17 +825,17 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 #ifndef GPAC_DISABLE_HEVC
 		if (hevc_nal_type==GF_HEVC_NALU_SEQ_PARAM) {
 			dest = ctx->SPSs;
-			ps_id = gf_media_hevc_read_sps_bs(ctx->ps_bs, &ctx->hevc);
+			ps_id = gf_hevc_read_sps_bs(ctx->ps_bs, &ctx->hevc);
 			if (ps_id<0) return;
 		}
 		else if (hevc_nal_type==GF_HEVC_NALU_PIC_PARAM) {
 			dest = ctx->PPSs;
-			ps_id = gf_media_hevc_read_pps_bs(ctx->ps_bs, &ctx->hevc);
+			ps_id = gf_hevc_read_pps_bs(ctx->ps_bs, &ctx->hevc);
 			if (ps_id<0) return;
 		}
 		else if (hevc_nal_type==GF_HEVC_NALU_VID_PARAM) {
 			dest = ctx->VPSs;
-			ps_id = gf_media_hevc_read_vps_bs(ctx->ps_bs, &ctx->hevc);
+			ps_id = gf_hevc_read_vps_bs(ctx->ps_bs, &ctx->hevc);
 			if (ps_id<0) return;
 		}
 #endif //GPAC_DISABLE_HEVC
@@ -844,10 +844,10 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 		dest = is_sps ? ctx->SPSs : ctx->PPSs;
 
 		if (is_sps) {
-			ps_id = gf_media_avc_read_sps_bs(ctx->ps_bs, &ctx->avc, 0, NULL);
+			ps_id = gf_avc_read_sps_bs(ctx->ps_bs, &ctx->avc, 0, NULL);
 			if (ps_id<0) return;
 		} else {
-			ps_id = gf_media_avc_read_pps_bs(ctx->ps_bs, &ctx->avc);
+			ps_id = gf_avc_read_pps_bs(ctx->ps_bs, &ctx->avc);
 			if (ps_id<0) return;
 		}
 	}
@@ -1263,7 +1263,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 				break;
 			}
 
-			gf_media_avc_parse_nalu(ctx->nal_bs, &ctx->avc);
+			gf_avc_parse_nalu(ctx->nal_bs, &ctx->avc);
 
 			if ((nal_type<=GF_AVC_NALU_IDR_SLICE) && ctx->avc.s_info.sps) {
 				if (ctx->avc.sps_active_idx != ctx->active_sps) {
@@ -1282,7 +1282,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			if (!ctx->nal_bs) ctx->nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
 			else gf_bs_reassign_buffer(ctx->nal_bs, ptr, nal_size);
 
-			s32 res = gf_media_hevc_parse_nalu_bs(ctx->nal_bs, &ctx->hevc, &nal_type, &temporal_id, &ayer_id);
+			s32 res = gf_hevc_parse_nalu_bs(ctx->nal_bs, &ctx->hevc, &nal_type, &temporal_id, &ayer_id);
 			if (res>=0) {
 				switch (nal_type) {
 				case GF_HEVC_NALU_VID_PARAM:

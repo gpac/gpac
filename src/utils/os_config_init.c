@@ -312,7 +312,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #if defined(__DARWIN__) || defined(__APPLE__)
 #include <dlfcn.h>
 
-typedef _Dl_info Dl_info
+typedef Dl_info _Dl_info;
 #elif defined(GPAC_CONFIG_LINUX)
 
 

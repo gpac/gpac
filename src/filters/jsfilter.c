@@ -616,7 +616,7 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 			prop->value.uint = gf_stream_type_by_name(val_str);
 		} else if (p4cc==GF_PROP_PID_CODECID) {
 			prop->type = GF_PROP_UINT;
-			prop->value.uint = gf_codec_parse(val_str);
+			prop->value.uint = gf_codecid_parse(val_str);
 		} else {
 			*prop = gf_props_parse_value(type, NULL, val_str, NULL, gf_filter_get_sep(filter, GF_FS_SEP_LIST));
 		}
@@ -1116,7 +1116,7 @@ static JSValue jsf_filter_set_cap(JSContext *ctx, JSValueConst this_val, int arg
 			p.value.uint = gf_stream_type_by_name(name);
 		} else if (prop_id==GF_PROP_PID_CODECID) {
 			p.type = GF_PROP_UINT;
-			p.value.uint = gf_codec_parse(name);
+			p.value.uint = gf_codecid_parse(name);
 		} else {
 			p = gf_props_parse_value(prop_type, NULL, name, NULL, gf_filter_get_sep(jsf->filter, GF_FS_SEP_LIST) );
 		}

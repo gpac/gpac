@@ -3492,7 +3492,7 @@ Bool gf_filter_get_arg(GF_Filter *filter, const char *arg_name, GF_PropertyValue
 GF_EXPORT
 Bool gf_filter_is_supported_mime(GF_Filter *filter, const char *mime)
 {
-	return gf_fs_mime_supported(filter->session, mime);
+	return gf_fs_is_supported_mime(filter->session, mime);
 }
 
 GF_EXPORT

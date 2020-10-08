@@ -1207,11 +1207,11 @@ _libgpac.gf_fs_print_connections.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_fire_event.argtypes = [_gf_filter_session, _gf_filter, POINTER(FilterEvent), c_bool]
 _libgpac.gf_fs_fire_event.restype = c_bool
 
-_libgpac.gf_fs_mime_supported.argtypes = [_gf_filter_session, c_char_p]
-_libgpac.gf_fs_mime_supported.restype = c_bool
+_libgpac.gf_fs_is_supported_mime.argtypes = [_gf_filter_session, c_char_p]
+_libgpac.gf_fs_is_supported_mime.restype = c_bool
 
-_libgpac.gf_fs_mime_supported.argtypes = [_gf_filter_session, c_char_p]
-_libgpac.gf_fs_mime_supported.restype = c_bool
+_libgpac.gf_fs_is_supported_mime.argtypes = [_gf_filter_session, c_char_p]
+_libgpac.gf_fs_is_supported_mime.restype = c_bool
 
 _libgpac.gf_fs_is_supported_source.argtypes = [_gf_filter_session, c_char_p]
 _libgpac.gf_fs_is_supported_source.restype = c_bool
@@ -1420,11 +1420,11 @@ class FilterSession:
             return _libgpac.gf_fs_fire_event(self._sess, filter._filter, byref(evt), upstream)
         return _libgpac.gf_fs_fire_event(self._sess, None, byref(evt), upstream)
 
-    ##checks if a given mime is supported - see \ref gf_fs_mime_supported
+    ##checks if a given mime is supported - see \ref gf_fs_is_supported_mime
     # \param mime mime type to check
     # \return true or false
     def is_supported_mime(self, mime):
-        return _libgpac.gf_fs_mime_supported(self._sess, mime.encode('utf-8'))
+        return _libgpac.gf_fs_is_supported_mime(self._sess, mime.encode('utf-8'))
 
     ##checks if a given source URL is supported - see \ref gf_fs_is_supported_source
     # \param url URL to check
@@ -1873,8 +1873,8 @@ _libgpac.gf_props_4cc_get_type.argtypes = [c_uint]
 _libgpac.gf_stream_type_by_name.argtypes = [c_char_p]
 _libgpac.gf_stream_type_by_name.restype = c_uint
 
-_libgpac.gf_codec_parse.argtypes = [c_char_p]
-_libgpac.gf_codec_parse.restype = c_uint
+_libgpac.gf_codecid_parse.argtypes = [c_char_p]
+_libgpac.gf_codecid_parse.restype = c_uint
 
 _libgpac.gf_pixel_fmt_parse.argtypes = [c_char_p]
 _libgpac.gf_pixel_fmt_parse.restype = c_uint
@@ -1898,7 +1898,7 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
         prop_val.value.uint = _libgpac.gf_stream_type_by_name(prop.encode('utf-8'))
         return prop_val
     elif propname=="CodecID":
-        prop_val.value.uint = _libgpac.gf_codec_parse(prop.encode('utf-8'))
+        prop_val.value.uint = _libgpac.gf_codecid_parse(prop.encode('utf-8'))
         return prop_val
     elif propname=="PixelFormat":
         prop_val.value.uint = _libgpac.gf_pixel_fmt_parse(prop.encode('utf-8'))
