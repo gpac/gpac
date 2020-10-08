@@ -219,12 +219,12 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		ctx->last_frame_ts = ts;
 	} else if (ctx->pkt.pts != AV_NOPTS_VALUE) {
 		AVStream *stream = ctx->demuxer->streams[ctx->pkt.stream_index];
-		u64 ts = ctx->pkt.pts * stream->time_base.num;
+		u64 ts = (ctx->pkt.pts - stream->first_dts) * stream->time_base.num;
 
 		gf_filter_pck_set_cts(pck_dst, ts );
 
 		if (ctx->pkt.dts != AV_NOPTS_VALUE) {
-			ts = ctx->pkt.dts * stream->time_base.num;
+			ts = (ctx->pkt.dts - stream->first_dts) * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
@@ -350,6 +350,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(stream->duration, stream->time_base.den) );
 			else if (ctx->demuxer->duration>=0)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ctx->demuxer->duration, AV_TIME_BASE) );
+
+			if (stream->first_dts<0)
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_SINT(stream->first_dts) );
 		}
 
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)
