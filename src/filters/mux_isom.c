@@ -5398,7 +5398,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 
 			if (has_bframes && (tkw->media_profile_level <= 3)) {
 				PL = 0xF5;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Indicated profile doesn't include B-VOPs - forcing %s", gf_m4v_get_profile_name((u8) PL) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Indicated profile doesn't include B-VOPs - forcing %s\n", gf_m4v_get_profile_name((u8) PL) ));
 				force_rewrite = GF_TRUE;
 			}
 			if (PL != tkw->media_profile_level) {

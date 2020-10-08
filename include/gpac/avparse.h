@@ -166,7 +166,7 @@ thus you can seek the bitstream to copy the payload without re-seeking it
 \param time_inc set to the time increment since last frame
 \param size set to the size of the compressed frame
 \param start set to the position of the first byte in the buffer/bitstream
-\param is_coded set to 1 if frame is coded, 0 if skip frame
+\param is_coded set to 1 if frame is coded, 0 if skip frame, untouched if no frame found
 \return error if any
 */
 GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded);

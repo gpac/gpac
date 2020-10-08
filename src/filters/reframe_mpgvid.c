@@ -1054,6 +1054,8 @@ static void mpgviddmx_finalize(GF_Filter *filter)
 	}
 }
 
+u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v);
+
 static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	GF_M4VParser *parser;
@@ -1075,6 +1077,12 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 			break;
 		if (is_coded) nb_frames++;
 		if (e==GF_EOS) {
+			//special case if the only frame we have is not coded
+			if (gf_m4v_parser_get_obj_type(parser) == M4V_VOP_START_CODE) {
+				if (!nb_frames) nb_frames++;
+				is_coded = 1;
+			}
+
 			if (is_coded) nb_frames++;
 			e = GF_OK;
 			break;
