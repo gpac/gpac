@@ -121,7 +121,7 @@ typedef struct
 	char *state;
 	char *cues;
 	char *title, *source, *info, *cprt, *lang;
-	GF_List *location, *base;
+	GF_PropStringList location, base;
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
@@ -1061,15 +1061,15 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 		if (ctx->lang) info->lang = gf_strdup(ctx->lang);
 	}
 
-	count = ctx->location ? gf_list_count(ctx->location) : 0;
+	count = ctx->location.nb_items;
 	for (i=0; i<count; i++) {
-		char *l = gf_list_get(ctx->location, i);
+		char *l = ctx->location.vals[i];
 		gf_list_add(ctx->mpd->locations, gf_strdup(l));
 	}
-	count = ctx->base ? gf_list_count(ctx->base) : 0;
+	count = ctx->base.nb_items;
 	for (i=0; i<count; i++) {
 		GF_MPD_BaseURL *base;
-		char *b = gf_list_get(ctx->base, i);
+		char *b = ctx->base.vals[i];
 		GF_SAFEALLOC(base, GF_MPD_BaseURL);
 		if (base) {
 			base->URL = gf_strdup(b);
@@ -1871,7 +1871,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 
 static Bool dasher_same_roles(GF_DashStream *ds1, GF_DashStream *ds2)
 {
-	GF_List *list;
+	const GF_PropStringList *slist;
 	if (ds1->p_role && ds2->p_role) {
 		if (gf_props_equal(ds1->p_role, ds2->p_role)) return GF_TRUE;
 	}
@@ -1879,10 +1879,9 @@ static Bool dasher_same_roles(GF_DashStream *ds1, GF_DashStream *ds2)
 		return GF_TRUE;
 
 	//special case, if one is set and the other is not, compare with "main" role
-	list = ds2->p_role ?  ds2->p_role->value.string_list : ds1->p_role->value.string_list;
-	if (gf_list_count(list)==1) {
-		char *s = gf_list_get(list, 0);
-		if (!strcmp(s, "main")) return GF_TRUE;
+	slist = ds2->p_role ?  &ds2->p_role->value.string_list : &ds1->p_role->value.string_list;
+	if (slist->nb_items==1) {
+		if (!strcmp(slist->vals[0], "main")) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -1978,12 +1977,12 @@ static void dasher_add_descriptors(GF_List **p_dst_list, const GF_PropertyValue 
 	GF_List *dst_list;
 	if (!desc_val) return;
 	if (desc_val->type != GF_PROP_STRING_LIST) return;
-	count = gf_list_count(desc_val->value.string_list);
+	count = desc_val->value.string_list.nb_items;
 	if (!count) return;
 	if ( ! (*p_dst_list)) *p_dst_list = gf_list_new();
 	dst_list = *p_dst_list;
 	for (j=0; j<count; j++) {
-		char *desc = gf_list_get(desc_val->value.string_list, j);
+		char *desc = desc_val->value.string_list.vals[j];
 		if (desc[0] == '<') {
 			GF_MPD_other_descriptors *d;
 			GF_SAFEALLOC(d, GF_MPD_other_descriptors);
@@ -2022,9 +2021,9 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		/*set role*/
 		if (ds->p_role) {
 			u32 j, role_count;
-			role_count = gf_list_count(ds->p_role->value.string_list);
+			role_count = ds->p_role->value.string_list.nb_items;
 			for (j=0; j<role_count; j++) {
-				char *role = gf_list_get(ds->p_role->value.string_list, j);
+				char *role = ds->p_role->value.string_list.vals[j];
 				GF_MPD_Descriptor *desc;
 				char *uri;
 				if (!strcmp(role, "caption") || !strcmp(role, "subtitle") || !strcmp(role, "main")
@@ -2902,10 +2901,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			ds->pending_segment_states = gf_list_new();
 		}
 		/* baseURLs */
-		nb_base = ds->p_base_url ? gf_list_count(ds->p_base_url->value.string_list) : 0;
+		nb_base = ds->p_base_url ? ds->p_base_url->value.string_list.nb_items : 0;
 		for (j=0; j<nb_base; j++) {
 			GF_MPD_BaseURL *base_url;
-			char *url = gf_list_get(ds->p_base_url->value.string_list, j);
+			char *url = ds->p_base_url->value.string_list.vals[j];
 			GF_SAFEALLOC(base_url, GF_MPD_BaseURL);
 			if (base_url) {
 				base_url->URL = gf_strdup(url);
@@ -6358,7 +6357,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				continue;
 			}
 			//create new ref to input
-			dst = gf_filter_pck_new_ref(ds->opid, NULL, 0, pck);
+			dst = gf_filter_pck_new_ref(ds->opid, 0, 0, pck);
 			//merge all props
 			gf_filter_pck_merge_properties(pck, dst);
 			//we have ts offset, use computed cts and dts

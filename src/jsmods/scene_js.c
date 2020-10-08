@@ -753,7 +753,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 			u32 nb_qualities = 0;
 			GF_PropertyEntry *pe=NULL;
 			const GF_PropertyValue *prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
-			if (prop) nb_qualities = gf_list_count( prop->value.string_list);
+			if (prop) nb_qualities = prop->value.string_list.nb_items;
 			gf_filter_release_property(pe);
 
 			if (nb_qualities)
@@ -1009,7 +1009,9 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 		gf_filter_release_property(pe);
 		return JS_NULL;
 	}
-	qdesc = gf_list_get(prop->value.string_list, idx);
+	qdesc = NULL;
+	if (idx<prop->value.string_list.nb_items)
+		qdesc = prop->value.string_list.vals[idx];
 	if (!qdesc) {
 		gf_filter_release_property(pe);
 		return JS_NULL;

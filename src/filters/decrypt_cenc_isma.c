@@ -336,7 +336,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		return GF_SERVICE_ERROR;
 
 	if (! gf_filter_pck_get_crypt_flags(in_pck)) {
-		out_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, in_pck);
+		out_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, in_pck);
 		gf_filter_pck_merge_properties(in_pck, out_pck);
 		gf_filter_pck_set_crypt_flags(out_pck, 0);
 		gf_filter_pck_send(out_pck);
@@ -764,7 +764,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	gf_filter_pck_get_data(in_pck, &data_size);
 
 	if (!data_size || ! gf_filter_pck_get_crypt_flags(in_pck)) {
-		out_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, in_pck);
+		out_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, in_pck);
 		gf_filter_pck_merge_properties(in_pck, out_pck);
 		gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
 		gf_filter_pck_set_crypt_flags(out_pck, 0);

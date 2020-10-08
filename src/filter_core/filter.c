@@ -703,16 +703,14 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 		break;
 	case GF_PROP_STRING_LIST:
 		if (a->offset_in_private + sizeof(void *) <= filter->freg->private_size) {
-			GF_List *l = *(GF_List **)ptr;
-			if (l) {
-				while (gf_list_count(l)) {
-					char *s = gf_list_pop_back(l);
-					gf_free(s);
-				}
-				gf_list_del(l);
+			u32 k;
+			GF_PropStringList *l = (GF_PropStringList *)ptr;
+			for (k=0; k<l->nb_items; k++) {
+				gf_free(l->vals[k]);
 			}
+			if (l->vals) gf_free(l->vals);
 			//we don't clone since we don't free the string at the caller site
-			*(GF_List **)ptr = argv->value.string_list;
+			*l = argv->value.string_list;
 			res = GF_TRUE;
 		}
 		break;
@@ -2931,15 +2929,6 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 }
 
 GF_EXPORT
-Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const char *parent_url)
-{
-	GF_Err e;
-	Bool is_supported = GF_FALSE;
-	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported);
-	return is_supported;
-}
-
-GF_EXPORT
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
 {
 	GF_Filter *filter_src;
@@ -3454,10 +3443,8 @@ static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, 
 		case GF_PROP_NAME:
 			p.value.ptr = * (char **) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
-		case GF_PROP_STRING_LIST:
-			p.value.string_list = * (GF_List **) ((char *)filter->filter_udta + arg->offset_in_private);
-			break;
 		//use uint_list as base type for lists
+		case GF_PROP_STRING_LIST:
 		case GF_PROP_UINT_LIST:
 		case GF_PROP_SINT_LIST:
 		case GF_PROP_VEC2I_LIST:

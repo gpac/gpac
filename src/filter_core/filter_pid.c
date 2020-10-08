@@ -3383,7 +3383,8 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				gf_filter_pid_set_property(pid, p4cc, &p);
 			}
 			if (prop_type==GF_PROP_STRING_LIST) {
-				p.value.string_list = NULL;
+				p.value.string_list.vals = NULL;
+				p.value.string_list.nb_items = 0;
 			}
 			//use uint_list as base type for lists
 			else if ((prop_type==GF_PROP_UINT_LIST) || (prop_type==GF_PROP_SINT_LIST) || (prop_type==GF_PROP_VEC2I_LIST)) {

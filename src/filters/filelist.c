@@ -76,7 +76,7 @@ typedef struct
 	s32 floop;
 	u32 fsort;
 	u32 ka;
-	GF_List *srcs;
+	GF_PropStringList srcs;
 	GF_Fraction fdur;
 	u32 timescale;
 
@@ -705,7 +705,7 @@ GF_Err filelist_process(GF_Filter *filter)
 			if (gf_filter_pid_would_block(iopid->opid))
 				break;
 
-			dst_pck = gf_filter_pck_new_ref(iopid->opid, NULL, 0, pck);
+			dst_pck = gf_filter_pck_new_ref(iopid->opid, 0, 0, pck);
 			gf_filter_pck_merge_properties(pck, dst_pck);
 			dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS) dts=0;
@@ -882,16 +882,16 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	if (ctx->ka)
 		ctx->floop = 0;
 
-	if (!ctx->srcs || !gf_list_count(ctx->srcs)) {
+	if (! ctx->srcs.nb_items ) {
 		if (! gf_filter_is_dynamic(filter)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
 		}
 		return GF_OK;
 	}
 	ctx->file_list = gf_list_new();
-	count = gf_list_count(ctx->srcs);
+	count = ctx->srcs.nb_items;
 	for (i=0; i<count; i++) {
-		char *list = gf_list_get(ctx->srcs, i);
+		char *list = ctx->srcs.vals[i];
 
 		if (strchr(list, '*') ) {
 			sep_dir = strrchr(list, '/');

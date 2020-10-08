@@ -319,7 +319,8 @@ GF_Err qcpmx_process(GF_Filter *filter)
 		output[0] = rate_found;
 		memcpy(output+1, data, pck_size);
 	} else {
-		dst_pck = gf_filter_pck_new_ref(ctx->opid, data, size, pck);
+		//send the complete data
+		dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, size, pck);
 	}
 
 	gf_filter_pck_merge_properties(pck, dst_pck);

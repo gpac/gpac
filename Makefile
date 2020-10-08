@@ -200,10 +200,14 @@ ifeq ($(CONFIG_DARWIN),yes)
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX)
 	ln -sf $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.$(VERSION_MAJOR)$(DYN_LIB_SUFFIX)
 	ln -sf $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac$(DYN_LIB_SUFFIX)
+
+	ln -s $(BUILD_PATH)/bin/gcc/ $(DESTDIR)$(prefix)/$(lib_dir)/gpac
+	ln -s $(SRC_PATH)/share/ $(DESTDIR)$(prefix)/share/gpac
 else
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf $(DESTDIR)$(prefix)/$(lib_dir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.so.$(VERSION_MAJOR)
 	ln -sf $(DESTDIR)$(prefix)/$(lib_dir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.so
+	ln -s $(BUILD_PATH)/bin/gcc/ $(DESTDIR)$(prefix)/$(lib_dir)/gpac
 
 	ln -s $(SRC_PATH)/share/ $(DESTDIR)$(prefix)/share/gpac
 	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png

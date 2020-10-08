@@ -1475,10 +1475,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 					}
 				}
 			} else if (att->type==GF_PROP_STRING_LIST) {
-				u32 plist_count = gf_list_count(att->value.string_list);
-				for (k=0; k < plist_count; k++) {
+				for (k=0; k < att->value.string_list.nb_items; k++) {
 					if (k) gf_fprintf(dump, ", ");
-					gf_xml_dump_string(dump, NULL, (char *) gf_list_get(att->value.string_list, k), NULL);
+					gf_xml_dump_string(dump, NULL, (char *) att->value.string_list.vals[k], NULL);
 				}
 			} else if ((att->type==GF_PROP_STRING) || (att->type==GF_PROP_STRING_NO_COPY)) {
 				gf_xml_dump_string(dump, NULL, att->value.string, NULL);
@@ -1517,10 +1516,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				}
 			}
 		} else if (att->type==GF_PROP_STRING_LIST) {
-			u32 k, plist_count = gf_list_count(att->value.string_list);
-			for (k=0; k < plist_count; k++) {
+			u32 k;
+			for (k=0; k < att->value.string_list.nb_items; k++) {
 				if (k) gf_fprintf(dump, ", ");
-				gf_fprintf(dump, "%s", (const char *) gf_list_get(att->value.string_list, k));
+				gf_fprintf(dump, "%s", (const char *) att->value.string_list.vals[k]);
 			}
 		}else{
 			gf_fprintf(dump, "%s", gf_props_dump(p4cc, att, szDump, ctx->dump_data) );

@@ -95,7 +95,7 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 	if (!strcmp(name, TEST_MODULE)) {
 		Bool res = GF_FALSE;
 #if defined(GPAC_STATIC_MODULES) || defined(GPAC_MP4BOX_MINI)
-		if (gf_dir_exists(path)) res = GF_TRUE;
+		res = GF_TRUE;
 #else
 		gf_enum_directory(path, GF_FALSE, mod_enum, &res, NULL);
 #endif
@@ -120,6 +120,7 @@ enum
 	//were we store gui/%, shaders/*, scripts/*
 	GF_PATH_SHARE,
 	GF_PATH_MODULES,
+	GF_PATH_LIB
 };
 
 #if defined(WIN32) || defined(_WIN32_WCE)
@@ -288,6 +289,11 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 /*Linux, OSX, iOS*/
 #else
 
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX)
+#include <dlfcn.h>
+
+#endif
+
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
 	char app_path[GF_MAX_PATH];
@@ -377,6 +383,43 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		return 0;
 	}
 
+	if (path_type==GF_PATH_LIB) {
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX)
+		Dl_info dl_info;
+		dladdr((void *)get_default_install_path, &dl_info);
+		if (dl_info.dli_fname) {
+			char *sep;
+			strcpy(file_path, dl_info.dli_fname);
+			sep = strrchr(file_path, '/');
+			if (sep) sep[0] = 0;
+			return 1;
+		}
+		return 0;
+
+#elif defined(GPAC_CONFIG_WIN32)
+		GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
+		if (strstr(file_path, ".exe")) {
+			sep = strrchr(file_path, '\\');
+			if (sep) sep[0] = 0;
+			if ((file_path[1]==':') && (file_path[2]=='\\')) {
+				strcpy(file_path, &file_path[2]);
+			}
+			sep = file_path;
+			while ( sep[0] ) {
+				if (sep[0]=='\\') sep[0]='/';
+				sep++;
+			}
+			//get rid of /mingw32 or /mingw64
+			sep = strstr(file_path, "/usr/");
+			if (sep) {
+				strcpy(file_path, sep);
+			}
+			return 1;
+		}
+#endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find executable path\n"));
+		return 0;
+	}
 
 	/*locate the app*/
 	if (!get_default_install_path(app_path, GF_PATH_APP)) {
@@ -404,15 +447,20 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 
 	if (path_type==GF_PATH_SHARE) {
+		Bool try_lib=GF_TRUE;
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
+			char *sep = strstr(app_path, ".gpac/");
+			if (sep) sep[5]=0;
 			/*GUI not found, look in ~/.gpac/share/gui/ */
-			strcat(app_path, "/.gpac/share");
-			if (check_file_exists("share/gui.bt", app_path, file_path)) return 1;
+			strcat(app_path, "/share");
+			if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 		}
 
 		/*GUI not found, look in gpac distribution if any */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] trying to locate share from application dir %s\n", app_path));
 			strcat(app_path, "/");
+retry_lib:
 			sep = strstr(app_path, "/bin/");
 			if (sep) {
 				sep[0] = 0;
@@ -428,23 +476,32 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 			}
 		}
+		if (get_default_install_path(app_path, GF_PATH_LIB)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] trying to locate share from dynamic libgpac dir %s\n", app_path));
+			sep = strstr(app_path, "/lib");
+			if (sep) {
+				sep[0] = 0;
+				strcat(app_path, "/share");
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+			}
+			if (try_lib) {
+				try_lib = GF_FALSE;
+				goto retry_lib;
+			}
+		}
 		/*GUI not found, look in .app for OSX case*/
 	}
 
 	if (path_type==GF_PATH_MODULES) {
-		/*look in gpac compilation tree (modules are output in the same folder as apps) */
+		/*look in gpac compilation tree (modules are output in the same folder as apps) and in distrib tree */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+
 			/*on OSX check modules subdirectory */
 			strcat(app_path, "/modules");
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 
-			/*modules not found*/
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
-		}
-
-		/* look in distrib tree */
-		if (get_default_install_path(app_path, GF_PATH_APP)) {
+			get_default_install_path(app_path, GF_PATH_APP);
 			strcat(app_path, "/");
 			sep = strstr(app_path, "/bin/");
 			if (sep) {
@@ -452,16 +509,27 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 				strcat(app_path, "/lib/gpac");
 				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 			}
+
+			/*modules not found*/
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
 		}
+
+		/*look in lib install */
+		if (get_default_install_path(app_path, GF_PATH_LIB)) {
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			strcat(app_path, "/gpac");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find any modules in lib path %s\n", app_path));
+		}
+
 
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
-			strcpy(app_path, file_path);
-			strcat(app_path, "/.gpac/modules");
+			strcat(app_path, "/modules");
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 		}
 		/*modules not found, failure*/
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
 		return 0;
 	}
 
@@ -573,7 +641,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 
 	if (!moddir_found) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] default modules not found\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] default modules directory not found\n"));
 	} else {
 		gf_cfg_set_key(cfg, "core", "module-dir", szPath);
 	}

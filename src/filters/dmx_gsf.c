@@ -344,14 +344,15 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		break;
 
 	case GF_PROP_STRING_LIST:
-		p->value.string_list = gf_list_new();
 		len2 = gsfdmx_read_vlen(bs);
+		p->value.string_list.nb_items = len2;
+		p->value.string_list.vals = gf_malloc(sizeof(char*) * len2);
 		for (i=0; i<len2; i++) {
 			len = gsfdmx_read_vlen(bs);
 			char *str = gf_malloc(sizeof(char)*(len+1));
 			gf_bs_read_data(bs, str, len);
 			str[len] = 0;
-			gf_list_add(p->value.string_list, str);
+			p->value.string_list.vals[i] = str;
 		}
 		break;
 

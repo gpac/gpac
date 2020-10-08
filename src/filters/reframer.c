@@ -103,7 +103,7 @@ typedef struct
 	u32 rt;
 	Double speed;
 	Bool raw;
-	GF_List *xs, *xe;
+	GF_PropStringList xs, xe;
 	Bool nosap, splitrange, xadjust;
 	u32 xround;
 	Double seeksafe;
@@ -360,7 +360,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	ctx->cur_end.num = 0;
 	ctx->cur_end.den = 0;
 
-	count = gf_list_count(ctx->xs);
+	count = ctx->xs.nb_items;
 	if (!count) {
 		if (ctx->range_type) goto range_done;
 		return;
@@ -368,8 +368,10 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (ctx->cur_range_idx>=count) {
 		goto range_done;
 	} else {
-		start_date = gf_list_get(ctx->xs, ctx->cur_range_idx);
-		end_date = gf_list_get(ctx->xe, ctx->cur_range_idx);
+		start_date = ctx->xs.vals[ctx->cur_range_idx];
+		end_date = NULL;
+		if (ctx->cur_range_idx < ctx->xe.nb_items)
+			end_date = ctx->xe.vals[ctx->cur_range_idx];
 	}
 	if (!start_date)
 		goto range_done;
@@ -591,16 +593,18 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 	//range processing
 	if (st->ts_at_range_start_plus_one) {
 		s64 ts;
-		GF_FilterPacket *new_pck = gf_filter_pck_new_ref(st->opid, NULL, 0, pck);
+		GF_FilterPacket *new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
 		gf_filter_pck_merge_properties(pck, new_pck);
 
 		//signal chunk start boundary
 		if (!st->first_pck_sent) {
 			u32 i, len;
 			char *file_suf_name = NULL;
-			char *start = gf_list_get(ctx->xs, ctx->cur_range_idx-1);
+			char *start = ctx->xs.vals[ctx->cur_range_idx-1];
 			char *end = NULL;
-			if (ctx->range_type==1) end = gf_list_get(ctx->xe, ctx->cur_range_idx-1);
+			if ((ctx->range_type==1) && (ctx->cur_range_idx<ctx->xe.nb_items+1)) {
+				end = ctx->xe.vals[ctx->cur_range_idx-1];
+			}
 			st->first_pck_sent = GF_TRUE;
 
 			if (ctx->extract_mode==EXTRACT_RANGE) {
