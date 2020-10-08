@@ -417,7 +417,7 @@ static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 d
 	sig[6] = sig[7] = ' ';
 
 	if ((data_size>16) && !memcmp(data, sig, 8)) {
-		return gf_filter_pck_new_ref(ctx->opid, NULL, 0, in_pck);
+		return gf_filter_pck_new_ref(ctx->opid, 0, 0, in_pck);
 	}
 
 	size = data_size + 8*4 /*jP%20%20 + ftyp*/ + ctx->dcfg_size + 8;
@@ -669,7 +669,7 @@ GF_Err writegen_process(GF_Filter *filter)
 		ctx->nb_bytes += 44;
 		return GF_OK;
 	} else {
-		dst_pck = gf_filter_pck_new_ref(ctx->opid, NULL, 0, pck);
+		dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 	}
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//don't keep byte offset

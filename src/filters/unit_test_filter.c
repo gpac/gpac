@@ -174,6 +174,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 		const u8 *data;
 		u32 pck_size;
 		u8 *data_ptr;
+		u32 data_offset=0;
 		PIDCtx *pidctx = gf_list_get(stack->pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
 		assert (pck);
@@ -211,9 +212,9 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 		//packet reference
 		else {
 			if (stack->framing) {
-				pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, data_ptr, pck_size, pck);
+				pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, data_offset, pck_size, pck);
 			} else {
-				pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, NULL, 0, pck);
+				pck_dst = gf_filter_pck_new_ref(pidctx->dst_pid, 0, 0, pck);
 			}
 		}
 
@@ -237,6 +238,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 		}
 		//move our data pointer
 		data_ptr += pck_size;
+		data_offset += pck_size;
 
 		} //end framing loop
 
@@ -348,10 +350,10 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			p.type = GF_PROP_VEC4I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','j'), &p);
 			p.type = GF_PROP_STRING_LIST;
-			p.value.string_list = gf_list_new();
-			gf_list_add(p.value.string_list, gf_strdup("custom"));
+			char *_str = "custom";
+			p.value.string_list.nb_items = 1;
+			p.value.string_list.vals = &_str;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','k'), &p);
-			p.value.string_list = NULL;
 			p.type = GF_PROP_UINT_LIST;
 			p.value.uint_list.nb_items = 1;
 			p.value.uint_list.vals = &val;
@@ -520,7 +522,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_filter_pid_reset_properties(pidctx->src_pid);
 		gf_filter_pck_new_alloc(pidctx->src_pid, 20, &data);
 		gf_filter_pck_new_shared(pidctx->src_pid, "foo", 3, NULL);
-		gf_filter_pck_new_ref(pidctx->src_pid, "foo", 3, NULL);
+		gf_filter_pck_new_ref(pidctx->src_pid, 0, 3, NULL);
 		gf_log_set_strict_error(old_strict);
 	}
 

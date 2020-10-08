@@ -1006,9 +1006,12 @@ Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file
 	const char *js_dirs;
 	if (gf_opts_default_shared_directory(szPath)) {
 		strcat(szPath, "/scripts/jsf/");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter %s\n", szPath));
 		if (locate_js_script(szPath, file_name, file_ext)) {
 			return GF_TRUE;
 		}
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Failed to get default shared dir\n"));
 	}
 	js_dirs = gf_opts_get_key("core", "js-dirs");
 	while (js_dirs && js_dirs[0]) {
@@ -1026,6 +1029,7 @@ Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file
 			u32 len = (u32) strlen(szPath);
 			if (len && (szPath[len-1]!='/') && (szPath[len-1]!='\\'))
 				strcat(szPath, "/");
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter in %s\n", szPath));
 			if (locate_js_script(szPath, file_name, file_ext))
 				return GF_TRUE;
 		}
@@ -1097,6 +1101,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 
 		strncpy(szPath, name, len);
 		szPath[len]=0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter %s\n", szPath));
 		if (gf_file_exists(szPath)) {
 			file_exists = GF_TRUE;
 		} else {
@@ -1771,6 +1776,7 @@ GF_Err gf_fs_run(GF_FilterSession *fsess)
 	return fsess->run_status;
 }
 
+GF_EXPORT
 void gf_fs_run_step(GF_FilterSession *fsess)
 {
 	gf_fs_thread_proc(&fsess->main_th);
@@ -3303,10 +3309,27 @@ u32 gf_fs_get_http_max_rate(GF_FilterSession *fs)
 }
 
 GF_EXPORT
+GF_Err gf_fs_set_http_max_rate(GF_FilterSession *fs, u32 rate)
+{
+	if (!fs || !fs->download_manager) return GF_OK;
+	gf_dm_set_data_rate(fs->download_manager, rate);
+	return GF_OK;
+}
+
+GF_EXPORT
 u32 gf_fs_get_http_rate(GF_FilterSession *fs)
 {
 	if (!fs->download_manager) return 0;
 	return gf_dm_get_global_rate(fs->download_manager);
+}
+
+GF_EXPORT
+Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const char *parent_url)
+{
+	GF_Err e;
+	Bool is_supported = GF_FALSE;
+	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported);
+	return is_supported;
 }
 
 
@@ -3355,6 +3378,7 @@ Bool gf_fs_fire_event(GF_FilterSession *fs, GF_Filter *f, GF_FilterEvent *evt, B
 		gf_fs_lock_filters(fs, GF_FALSE);
 	}
 	evt->base.on_pid = on_pid;
+	return ret;
 }
 
 

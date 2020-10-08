@@ -803,8 +803,8 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	ctx->mdia_pos += data_size;
 
 	if (ctx->opid_mdia) {
-		//send data packet
-		dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, data, data_size, pck);
+		//send the complete data packet
+		dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, 0, data_size, pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		//keep byte offset ?
 //		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);

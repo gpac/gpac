@@ -131,7 +131,7 @@ typedef enum
 	GF_SCRIPT_ERROR							= -8,
 	/*! Buffer is too small to contain decoded data. Decoders shall use this error whenever they need to resize their output memory buffers*/
 	GF_BUFFER_TOO_SMALL						= -9,
-	/*! Bitstream is not compliant to the specfication it refers to*/
+	/*! The bitstream is not compliant to the specfication it refers to*/
 	GF_NON_COMPLIANT_BITSTREAM				= -10,
 	/*! No filter could be found to handle the desired media type*/
 	GF_FILTER_NOT_FOUND						= -11,

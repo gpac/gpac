@@ -1657,7 +1657,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		u32 i, sai_size = 0;
 		Bool signal_sai = GF_FALSE;
 		GF_FilterPacket *dst_pck;
-		dst_pck = gf_filter_pck_new_ref(cstr->opid, NULL, 0, pck);
+		dst_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 
 		if (force_clear && !cstr->tci->force_clear_stsd_idx)

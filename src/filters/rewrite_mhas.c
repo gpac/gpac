@@ -195,7 +195,7 @@ GF_Err mhasmx_process(GF_Filter *filter)
 			output[2] = 0xA5;
 			memcpy(output+3, data, pck_size);
 		} else {
-			dst_pck = gf_filter_pck_new_ref(ctx->opid, NULL, 0, pck);
+			dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 		}
 	}
 

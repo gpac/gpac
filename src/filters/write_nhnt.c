@@ -323,8 +323,8 @@ GF_Err nhntdump_process(GF_Filter *filter)
 	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_send(dst_pck);
 
-	//send data packet
-	dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, data, pck_size, pck);
+	//send the complete data packet
+	dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, 0, pck_size, pck);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//keep byte offset ?
 //	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);

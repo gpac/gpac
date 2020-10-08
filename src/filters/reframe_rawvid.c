@@ -180,7 +180,7 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	u64 byte_offset;
 	char *data;
-	u32 pck_size;
+	u32 pck_size, offset_in_pck;
 
 	if (ctx->done) return GF_EOS;
 
@@ -202,13 +202,14 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
+	offset_in_pck = 0;
 
 	while (pck_size) {
 		Bool use_ref = GF_FALSE;
 		if (!ctx->out_pck) {
 			assert(! ctx->nb_bytes_in_frame);
 			if (!ctx->copy && (pck_size >= ctx->frame_size)) {
-				ctx->out_pck = gf_filter_pck_new_ref(ctx->opid, data, ctx->frame_size, pck);
+				ctx->out_pck = gf_filter_pck_new_ref(ctx->opid, offset_in_pck, ctx->frame_size, pck);
 				use_ref = GF_TRUE;
 			} else {
 				ctx->out_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->frame_size, &ctx->out_data);
@@ -235,6 +236,8 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 			pck_size -= remain;
 			data += remain;
 			byte_offset += remain;
+			offset_in_pck += remain;
+			
 			ctx->out_pck = NULL;
 			ctx->nb_bytes_in_frame = 0;
 
