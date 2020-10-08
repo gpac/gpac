@@ -350,9 +350,9 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			p.type = GF_PROP_VEC4I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','j'), &p);
 			p.type = GF_PROP_STRING_LIST;
-			char *_str = "custom";
 			p.value.string_list.nb_items = 1;
-			p.value.string_list.vals = &_str;
+			p.value.string_list.vals = gf_malloc(sizeof(char *));
+			p.value.string_list.vals[0] = gf_strdup("custom");
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','k'), &p);
 			p.type = GF_PROP_UINT_LIST;
 			p.value.uint_list.nb_items = 1;
