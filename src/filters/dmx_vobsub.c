@@ -236,6 +236,7 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->vobsub->height) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_LANGUAGE, &PROP_STRING(ctx->vobsub->langs[i].name) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 
 			gf_filter_pid_set_udta(opid, &ctx->vobsub->langs[i]);
 		}

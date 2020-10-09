@@ -233,7 +233,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
-	if (!p || (p->value.uint < GF_PLAYBACK_MODE_SEEK))
+	if (!p || (p->value.uint < GF_PLAYBACK_MODE_FASTFORWARD))
 		ctx->seekable = GF_FALSE;
 
 

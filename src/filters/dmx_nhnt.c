@@ -171,7 +171,11 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 	dur.den = timescale;
 	if (!ctx->duration.num || (ctx->duration.num * dur.den != dur.num * ctx->duration.den)) {
 		ctx->duration = dur;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+		if (ctx->opid) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+			if (ctx->duration.num)
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
+		}
 	}
 }
 

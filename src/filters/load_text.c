@@ -328,6 +328,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 			tdur.num = frame_count;
 			tdur.den = frame_rate;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(tdur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 		}
 #endif
 		return;
@@ -372,6 +373,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		if (dur.num) {
 			dur.den = 1000;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 		}
 		return;
 	}
@@ -413,6 +415,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		if (dur.num) {
 			dur.den = 1000;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 		}
 		return;
 	}
@@ -453,6 +456,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		if (dur.num) {
 			dur.den = 1000;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(dur));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 		}
 		return;
 	}

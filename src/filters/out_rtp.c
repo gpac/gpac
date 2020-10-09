@@ -152,7 +152,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 				if (dur>max_dur) max_dur = dur;
 			}
 			p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_PLAYBACK_MODE);
-			if (!p || (p->value.uint<GF_PLAYBACK_MODE_SEEK))
+			if (!p || (p->value.uint<GF_PLAYBACK_MODE_FASTFORWARD))
 				disable_seek = GF_TRUE;
 		}
 
@@ -665,7 +665,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (ctx->loop) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
-		if (!p || (p->value.uint<GF_PLAYBACK_MODE_SEEK)) {
+		if (!p || (p->value.uint<GF_PLAYBACK_MODE_FASTFORWARD)) {
 			ctx->loop = GF_FALSE;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] PID %s cannot be seek, disabling loop\n", gf_filter_pid_get_name(pid) ));
 		}
