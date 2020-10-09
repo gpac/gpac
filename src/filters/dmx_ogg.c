@@ -261,9 +261,10 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	if (st->info.frame_rate.den)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_FPS, &PROP_FRAC(st->info.frame_rate) );
 
-	if (ctx->duration.num)
+	if (ctx->duration.num) {
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
-
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
+	}
 }
 
 static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *oggpage)
@@ -721,8 +722,9 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					if (ogg_page_eos(&oggpage)) {
 						//compat with old arch (keep same hashes), to remove once droping it
 						if (!gf_sys_old_arch_compat()) {
+							/*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845 */
 							if (oggpacket.granulepos != -1 && granulepos_init != -1)
-								block_size = (u32)(oggpacket.granulepos - granulepos_init - st->recomputed_ts); /*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845*/
+								block_size = (u32)(oggpacket.granulepos - granulepos_init - st->recomputed_ts);
 						}
 					}
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);

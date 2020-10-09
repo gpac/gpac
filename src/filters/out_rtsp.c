@@ -321,7 +321,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (ctx->loop) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
-		if (!p || (p->value.uint<GF_PLAYBACK_MODE_SEEK)) {
+		if (!p || (p->value.uint<GF_PLAYBACK_MODE_FASTFORWARD)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPOut] PID %s cannot be seek, disabling loop\n", gf_filter_pid_get_name(pid) ));
 
 			sess->loop_disabled = GF_TRUE;

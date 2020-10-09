@@ -1218,7 +1218,10 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	odm->flags |= GF_ODM_PAUSED;
 
 	//cleanup - we need to enter in stop state for broadcast modes
-	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
+	if (odm->flags & GF_ODM_NO_TIME_CTRL) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d %s] PID %s: no time control available in source filter, will not pause\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid)));
+		return;
+	}
 
 	scene = gf_scene_get_root_scene(scene);
 
