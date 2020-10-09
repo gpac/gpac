@@ -174,6 +174,7 @@ avcap_ldflags="-lavcap"
 has_opensvc="no"
 has_openhevc="no"
 has_vtb="no"
+vtb_hevc="no"
 
 win32="no"
 mingw32="no"
@@ -1474,6 +1475,22 @@ EOF
 if docc $LDFLAGS $vtb_ldflags ; then
     has_vtb="yes"
 fi
+
+#check for hevc support
+if test "$has_vtb" = "yes" ; then
+  cat > $TMPC << EOF
+#include <VideoToolbox/VideoToolbox.h>
+int main( void ) {
+    int vtb_type = kCMVideoCodecType_HEVC;
+    return 0; 
+}
+EOF
+if docc $LDFLAGS $vtb_ldflags ; then
+    vtb_hevc="yes"
+fi
+
+fi
+
 fi
 
 
@@ -2909,6 +2926,10 @@ echo "CONFIG_VTB=$has_vtb" >> config.mak
 if test "$has_vtb" != "no" ; then
     echo "#define GPAC_HAS_VTB" >> $TMPH
     echo "vtb_ldflags=$vtb_ldflags" >> config.mak
+
+    if test "$vtb_hevc" != "no" ; then
+      echo "#define GPAC_HAS_VTB_HEVC" >> $TMPH
+    fi
 fi
 
 if test "$has_sock_un" != "no" ; then

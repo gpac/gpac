@@ -144,7 +144,9 @@ typedef struct
 	AVCState avc;
 	Bool check_h264_isma;
 
+#ifdef GPAC_HAS_VTB_HEVC
 	HEVCState hevc;
+#endif
 	Bool is_hevc;
 
 	Bool profile_supported, can_reconfig;
@@ -468,6 +470,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		}
         break;
 
+#ifdef GPAC_HAS_VTB_HEVC
     case GF_CODECID_HEVC:
 		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs)) {
 			s32 idx;
@@ -614,6 +617,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			gf_free(dsi_data);
 		}
         break;
+#endif
 
 	case GF_CODECID_MPEG2_SIMPLE:
 	case GF_CODECID_MPEG2_MAIN:
@@ -822,7 +826,7 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 	else gf_bs_reassign_buffer(ctx->ps_bs, data, size);
 
 	if (hevc_nal_type) {
-#ifndef GPAC_DISABLE_HEVC
+#if !defined(GPAC_DISABLE_HEVC) && defined(GPAC_HAS_VTB_HEVC)
 		if (hevc_nal_type==GF_HEVC_NALU_SEQ_PARAM) {
 			dest = ctx->SPSs;
 			ps_id = gf_hevc_read_sps_bs(ctx->ps_bs, &ctx->hevc);
@@ -1090,6 +1094,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	//check HEVC config
+#ifdef GPAC_HAS_VTB_HEVC
 	if (codecid==GF_CODECID_HEVC) {
 		if (ctx->SPSs) vtbdec_del_param_list(ctx->SPSs);
 		ctx->SPSs = gf_list_new();
@@ -1144,6 +1149,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			return e;
 		}
 	}
+#endif //GPAC_HAS_VTB_HEVC
 
 	if (ctx->vtb_session) {
 		assert(ctx->reconfig_needed);
@@ -1274,7 +1280,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 				}
 			}
 		} else if (ctx->is_hevc) {
-#ifdef GPAC_DISABLE_HEVC
+#if defined(GPAC_DISABLE_HEVC) || !defined(GPAC_HAS_VTB_HEVC)
 			return GF_NOT_SUPPORTED;
 #else
 			u8 temporal_id, ayer_id;
@@ -1956,8 +1962,10 @@ static const GF_FilterCapability VTBDecCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
+#ifdef GPAC_HAS_VTB_HEVC
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_TILE_BASE, GF_TRUE),
+#endif
 
 #ifndef GPAC_CONFIG_IOS
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_SIMPLE),
@@ -1987,7 +1995,7 @@ static const GF_FilterArgs VTBDecArgs[] =
 GF_FilterRegister GF_VTBDecCtxRegister = {
 	.name = "vtbdec",
 	GF_FS_SET_DESCRIPTION("VideoToolBox decoder")
-	GF_FS_SET_HELP("This filter decodes MPEG-2, H263, AVC|H264 and HEVC streams through VideoToolBox. It allows GPU frame dispatch or direct frame copy.")
+	GF_FS_SET_HELP("This filter decodes video streams through OSX/iOS VideoToolBox (MPEG-2, H263, AVC|H264, HEVC). It allows GPU frame dispatch or direct frame copy.")
 	.private_size = sizeof(GF_VTBDecCtx),
 	.args = VTBDecArgs,
 	.priority = 1,
