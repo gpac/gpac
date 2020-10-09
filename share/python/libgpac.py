@@ -46,14 +46,14 @@
 # For example, when querying or setting a stream type property, use the property name `StreamType`.
 # See [`gpac -h props`](https://github.com/gpac/gpac/wiki/filters_properties) for the complete list of built-in property names.
 #
-# Properties values are automatically converted to or from python types whenever possible. Types with no pythin equivalent (vectors, fractions) are defined as classes in python.
+# Properties values are automatically converted to or from python types whenever possible. Types with no python equivalent (vectors, fractions) are defined as classes in python.
 # For example:
 # - when setting a UIntList property, pass a python list of ints 
 # - when reading a UIntList property, a python list of ints will be returned 
 # - when setting a PropVec2i property, pass a PropVec2i object 
 # - when setting a PropVec2iList property, pass a python list of PropVec2i 
 #
-# The following builtin property types are converted to and from string:
+# The following builtin property types are always handled as strings in Python instead of int in libgpac :
 # - StreamType:  string containing the streamtype name
 # - CodecID:  string containing the codec name
 # - PixelFormat:  string containing the pixel format name
@@ -191,14 +191,16 @@ from ctypes import *
 import datetime
 import types
 import os
+import importlib
 
 ## set to True if numpy was successfully loaded
 ##\hideinitializer
 numpy_support=True
+
 try:
-    import numpy as np
-except ModuleNotFoundError as err:
-    numpy_support=False
+    importlib.import_module('numpy')
+except ImportError:
+    numpy_support = False
     print("\nWARNING! numpy not present, packet data type is ctypes POINTER(c_ubyte)\n")
 
 ##ctypes instance of libgpac
@@ -1031,13 +1033,13 @@ _libgpac.gf_sys_profiler_enable_sampling.argtypes = [c_bool]
 
 ##libgpac version (string)
 #\hideinitializer
-version = str(_libgpac.gf_gpac_version(), "utf-8")
+version = _libgpac.gf_gpac_version().decode("utf-8")
 ##libgpac copyright notice (string)
 #\hideinitializer
-copyright = str(_libgpac.gf_gpac_copyright(), "utf-8")
+copyright = _libgpac.gf_gpac_copyright().decode("utf-8")
 ##libgpac full copyright notice (string)
 #\hideinitializer
-copyright_cite = str(_libgpac.gf_gpac_copyright_cite(), "utf-8")
+copyright_cite = _libgpac.gf_gpac_copyright_cite().decode("utf-8")
 
 ## convert error value to string message
 # \param err gpac error code (int)
@@ -1113,7 +1115,7 @@ _libgpac.gf_sys_profiler_set_callback.argtypes = [py_object, c_void_p]
 @CFUNCTYPE(c_int, c_void_p, c_char_p)
 def rmt_fun_cbk(_udta, text):
     obj = cast(_udta, py_object).value
-    obj.on_rmt_event(text.decoder('utf-8'))
+    obj.on_rmt_event(text.decode('utf-8'))
     return 0
 ##\endcond private
 
@@ -1844,11 +1846,11 @@ class Filter:
 
     @property
     def name(self):
-        return str(_libgpac.gf_filter_get_name(self._filter), 'utf-8')
+        return _libgpac.gf_filter_get_name(self._filter).decode('utf-8')
 
     @property
     def ID(self):
-        return str(_libgpac.gf_filter_get_id(self._filter), 'utf-8')
+        return _libgpac.gf_filter_get_id(self._filter).decode('utf-8')
 
     @property
     def nb_ipid(self):
@@ -1987,7 +1989,7 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
     elif type==GF_PROP_STRING or type==GF_PROP_STRING_NO_COPY or type==GF_PROP_NAME:
         prop_val.value.string = str(prop).encode('utf-8')
     elif type==GF_PROP_DATA or type==GF_PROP_DATA_NO_COPY or type==GF_PROP_CONST_DATA:
-        raise Exception('Setting data property from pythin not yet implemented !')
+        raise Exception('Setting data property from python not yet implemented !')
     elif type==GF_PROP_POINTER:
         raise Exception('Setting pointer property from python not yet implemented !')
     elif type==GF_PROP_STRING_LIST:
