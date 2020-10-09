@@ -411,12 +411,13 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 		const char *shellv = getenv("SHELL");
 		if (shellv) {
 			is_mintty = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Console] Detected MSys/MinGW/Cygwin TTY, will use VT for coloring\n"))
 		} else {
 			console = GetStdHandle(STD_ERROR_HANDLE);
-			assert(console != INVALID_HANDLE_VALUE);
 			if (console != INVALID_HANDLE_VALUE) {
 				GetConsoleScreenBufferInfo(console, &console_info);
 				console_attr_ori = console_info.wAttributes;
+				GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Console] Detected Windows shell, will use SetConsoleTextAttribute for coloring\n"))
 			}
 		}
 	}
