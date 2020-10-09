@@ -195,6 +195,7 @@ GF_GPACArg m4b_gen_args[] =
 	        "- box=base64,DATA: base64 encoded udta data, formatted as serialized boxes\n"
 	        "- src=FILE: location of the udta data (will be stored in a single box of type CODE)\n"
 	        "- src=base64,DATA: base64 encoded udta data (will be stored in a single box of type CODE)\n"
+	        "- str=STRING: use the given string as payload for the udta box\n"
 	        "Note: If no source is set, UDTA of type CODE will be removed\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("patch [tkID=]FILE", NULL, "apply box patch described in FILE, for given trackID if set\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("bo", NULL, "freeze the order of boxes in input file\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
@@ -1881,6 +1882,7 @@ typedef struct
 	u32 dump_type, sample_num;
 	char *out_name;
 	char *src_name;
+	char *string;
 	u32 udta_type;
 	char *kind_scheme, *kind_value;
 	u32 newTrackID;
@@ -2035,6 +2037,8 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 				action->out_name = gf_strdup(param+7);
 			} else if (!strncmp("src=", param, 4)) {
 				action->src_name = gf_strdup(param+4);
+			} else if (!strncmp("str=", param, 4)) {
+				action->string = gf_strdup(param+4);
 			} else if (!strncmp("box=", param, 4)) {
 				action->src_name = gf_strdup(param+4);
 				action->sample_num = 1;
@@ -2572,6 +2576,8 @@ u32 mp4box_cleanup(u32 ret_code) {
 				gf_free(tracks[i].out_name);
 			if (tracks[i].src_name)
 				gf_free(tracks[i].src_name);
+			if (tracks[i].string)
+				gf_free(tracks[i].string);
 			if (tracks[i].kind_scheme)
 				gf_free(tracks[i].kind_scheme);
 			if (tracks[i].kind_value)
@@ -6157,7 +6163,7 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case TRAC_ACTION_SET_UDTA:
 			fprintf(stderr, "Assigning udta box\n");
-			e = set_file_udta(file, track, tka->udta_type, tka->src_name, tka->sample_num ? GF_TRUE : GF_FALSE);
+			e = set_file_udta(file, track, tka->udta_type, tka->string ? tka->string : tka->src_name , tka->sample_num ? GF_TRUE : GF_FALSE, tka->string ? GF_TRUE : GF_FALSE);
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
 			break;
