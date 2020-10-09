@@ -757,11 +757,22 @@ force_line:
 						style_def_type = 2;
 						font_style = 0xFFFFFFFF;
 					}
+
+
+					else if (!strncmp(szLine, "<strike>", 8) ) {
+						style_nb_chars = 8;
+						style_def_type = 1;
+					}
+					else if (!strncmp(szLine, "</strike>", 9) ) {
+						style_nb_chars = 9;
+						style_def_type = 2;
+						font_style = 0xFFFFFFFF;
+					}
 					//skip unknown
 					else {
 						char *a_sep = strstr(szLine, ">");
 						if (a_sep) {
-							style_nb_chars = (u32) (a_sep - szLine);
+							style_nb_chars = (u32) (1 + a_sep - szLine);
 							i += style_nb_chars;
 							continue;
 						}
@@ -806,6 +817,12 @@ force_line:
 						set_start_char = GF_TRUE;
 						ctx->style.startCharOffset = char_len + j;
 						break;
+					case 's':
+					case 'S':
+						ctx->style.style_flags |= GF_TXT_STYLE_STRIKETHROUGH;
+						set_start_char = GF_TRUE;
+						ctx->style.startCharOffset = char_len + j;
+						break;
 					case 'f':
 					case 'F':
 						if (font_style) {
@@ -837,6 +854,12 @@ force_line:
 					case 'u':
 					case 'U':
 						rem_styles |= GF_TXT_STYLE_UNDERLINED;
+						set_end_char = GF_TRUE;
+						ctx->style.endCharOffset = char_len + j;
+						break;
+					case 's':
+					case 'S':
+						rem_styles |= GF_TXT_STYLE_STRIKETHROUGH;
 						set_end_char = GF_TRUE;
 						ctx->style.endCharOffset = char_len + j;
 						break;
@@ -1924,6 +1947,7 @@ static void ttxt_parse_text_style(GF_TXTIn *ctx, GF_XMLNode *n, GF_StyleRecord *
 			if (strstr(att->value, "Bold")) style->style_flags |= GF_TXT_STYLE_BOLD;
 			if (strstr(att->value, "Italic")) style->style_flags |= GF_TXT_STYLE_ITALIC;
 			if (strstr(att->value, "Underlined")) style->style_flags |= GF_TXT_STYLE_UNDERLINED;
+			if (strstr(att->value, "Strikethrough")) style->style_flags |= GF_TXT_STYLE_STRIKETHROUGH;
 		}
 	}
 }
@@ -2591,6 +2615,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
 								else if (!strcmp(css_style, "font-style") && !strcmp(css_val, "italic")) styles[nb_styles].style_flags |= GF_TXT_STYLE_ITALIC;
 								else if (!strcmp(css_style, "font-weight") && !strcmp(css_val, "bold")) styles[nb_styles].style_flags |= GF_TXT_STYLE_BOLD;
 								else if (!strcmp(css_style, "text-decoration") && !strcmp(css_val, "underline")) styles[nb_styles].style_flags |= GF_TXT_STYLE_UNDERLINED;
+								else if (!strcmp(css_style, "text-decoration") && !strcmp(css_val, "strikethrough")) styles[nb_styles].style_flags |= GF_TXT_STYLE_STRIKETHROUGH;
 								else if (!strcmp(css_style, "color")) styles[nb_styles].text_color = tx3g_get_color(css_val);
 							}
 							if (!nb_styles) td.default_style = styles[0];

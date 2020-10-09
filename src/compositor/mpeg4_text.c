@@ -93,6 +93,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 		if (strstr(fs->style.buffer, "BOLD") || strstr(fs->style.buffer, "bold")) styles |= GF_FONT_WEIGHT_BOLD;
 		if (strstr(fs->style.buffer, "ITALIC") || strstr(fs->style.buffer, "italic")) styles |= GF_FONT_ITALIC;
 		if (strstr(fs->style.buffer, "UNDERLINED") || strstr(fs->style.buffer, "underlined")) styles |= GF_FONT_UNDERLINED;
+		if (strstr(fs->style.buffer, "STRIKETHROUGH") || strstr(fs->style.buffer, "strikethrough")) styles |= GF_FONT_STRIKEOUT;
 	}
 
 	font = gf_font_manager_set_font(ft_mgr, fs ? fs->family.vals : NULL, fs ? fs->family.count : 0, styles);
@@ -226,6 +227,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		if (strstr(fs->style.buffer, "BOLD") || strstr(fs->style.buffer, "bold")) styles |= GF_FONT_WEIGHT_BOLD;
 		if (strstr(fs->style.buffer, "ITALIC") || strstr(fs->style.buffer, "italic")) styles |= GF_FONT_ITALIC;
 		if (strstr(fs->style.buffer, "UNDERLINED") || strstr(fs->style.buffer, "underlined")) styles |= GF_FONT_UNDERLINED;
+		if (strstr(fs->style.buffer, "STRIKETHROUGH") || strstr(fs->style.buffer, "strikethrough")) styles |= GF_FONT_STRIKEOUT;
 	}
 
 	font = gf_font_manager_set_font(ft_mgr, fs ? fs->family.vals : NULL, fs ? fs->family.count : 0, styles);

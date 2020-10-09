@@ -411,6 +411,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 //	span->lang = xml_lang;
 	if (fliped_text) span->flags |= GF_TEXT_SPAN_FLIP;
 	if (styles & GF_FONT_UNDERLINED) span->flags |= GF_TEXT_SPAN_UNDERLINE;
+	if (styles & GF_FONT_STRIKEOUT) span->flags |= GF_TEXT_SPAN_STRIKEOUT;
 	span->nb_glyphs = len;
 	span->glyphs = gf_malloc(sizeof(void *)*len);
 	if (needs_x_offset) {
@@ -1061,7 +1062,7 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 	ctx->aspect.line_scale = lscale;
 }
 
-void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx)
+void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx, Bool is_strikeout)
 {
 	GF_Matrix2D mx, m;
 	u32 col;
@@ -1075,6 +1076,9 @@ void gf_font_underline_span(GF_TraverseState *tr_state, GF_TextSpan *span, Drawa
 		diff = sx * (span->font->descent - span->font->underline);
 	else
 		diff = sx * (- span->font->ascent + span->font->underline);
+
+	if (is_strikeout)
+		diff = 2*diff/3;
 
 	gf_mx2d_init(m);
 	gf_mx2d_add_scale(&m, span->bounds.width, FIX_ONE);
@@ -1332,7 +1336,8 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 		} else {
 			gf_font_span_draw_2d(tr_state, span, ctx, bounds);
 		}
-		if (span->anchor || (span->flags & GF_TEXT_SPAN_UNDERLINE) ) gf_font_underline_span(tr_state, span, ctx);
+		if (span->anchor || (span->flags & GF_TEXT_SPAN_UNDERLINE) ) gf_font_underline_span(tr_state, span, ctx, GF_FALSE);
+		if (span->flags & GF_TEXT_SPAN_STRIKEOUT) gf_font_underline_span(tr_state, span, ctx, GF_TRUE);
 		if (ctx->sub_path_index) break;
 	}
 	if (is_rv) tr_state->ctx->aspect.fill_color = hl_color;

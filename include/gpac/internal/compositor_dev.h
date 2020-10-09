@@ -1498,7 +1498,9 @@ enum
 	/*span is in the current text selection*/
 	GF_TEXT_SPAN_RIGHT_TO_LEFT = 1<<3,
 	/*span is in the current text selection*/
-	GF_TEXT_SPAN_SELECTED = 1<<4
+	GF_TEXT_SPAN_SELECTED = 1<<4,
+	/*span is strikeout*/
+	GF_TEXT_SPAN_STRIKEOUT = 1<<5
 };
 
 typedef struct __text_span

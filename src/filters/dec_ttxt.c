@@ -563,6 +563,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 	if (!strlen(szStyle)) strcpy(szStyle, "PLAIN");
 	/*also underline for URLs*/
 	if ((styleFlags & GF_TXT_STYLE_UNDERLINED) || (tc->hlink && tc->hlink->URL)) strcat(szStyle, " UNDERLINED");
+	if (styleFlags & GF_TXT_STYLE_STRIKETHROUGH) strcat(szStyle, " STRIKETHROUGH");
 
 	if (tc->is_hilight) {
 		if (tc->hilight_col) {

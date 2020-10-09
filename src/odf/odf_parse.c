@@ -564,6 +564,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			if (strstr(szStyles, "bold")) sd->default_style.style_flags |= GF_TXT_STYLE_BOLD;
 			if (strstr(szStyles, "italic")) sd->default_style.style_flags |= GF_TXT_STYLE_ITALIC;
 			if (strstr(szStyles, "underlined")) sd->default_style.style_flags |= GF_TXT_STYLE_UNDERLINED;
+			if (strstr(szStyles, "strikethrough")) sd->default_style.style_flags |= GF_TXT_STYLE_STRIKETHROUGH;
 			ret = 1;
 		}
 		else if (!stricmp(fieldName, "fontID") || !stricmp(fieldName, "fontName")) {
