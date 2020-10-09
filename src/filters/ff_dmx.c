@@ -219,12 +219,20 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		ctx->last_frame_ts = ts;
 	} else if (ctx->pkt.pts != AV_NOPTS_VALUE) {
 		AVStream *stream = ctx->demuxer->streams[ctx->pkt.stream_index];
-		u64 ts = (ctx->pkt.pts - stream->first_dts) * stream->time_base.num;
+		u64 ts;
+		if (stream->first_dts<0)
+			ts = (ctx->pkt.pts - stream->first_dts) * stream->time_base.num;
+		else
+			ts = ctx->pkt.pts * stream->time_base.num;
 
 		gf_filter_pck_set_cts(pck_dst, ts );
 
 		if (ctx->pkt.dts != AV_NOPTS_VALUE) {
-			ts = (ctx->pkt.dts - stream->first_dts) * stream->time_base.num;
+			if (stream->first_dts<0)
+				ts = (ctx->pkt.dts - stream->first_dts) * stream->time_base.num;
+			else
+				ts = ctx->pkt.dts * stream->time_base.num;
+
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
