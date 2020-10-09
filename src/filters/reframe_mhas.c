@@ -753,6 +753,9 @@ skip:
 			ctx->byte_offset += ctx->mhas_buffer_size - remain;
 	}
 	ctx->mhas_buffer_size = remain;
+	if (final_flush)
+		ctx->mhas_buffer_size = 0;
+
 	if (!ctx->mhas_buffer_size) {
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 		ctx->src_pck = NULL;
