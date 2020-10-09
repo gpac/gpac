@@ -734,6 +734,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 
 			if (gf_filter_pid_would_block(ctx->opid)) {
 				ctx->resume_from = 1;
+				final_flush = GF_FALSE;
 				break;
 			}
 		}
