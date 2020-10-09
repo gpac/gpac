@@ -175,6 +175,7 @@ has_opensvc="no"
 has_openhevc="no"
 has_vtb="no"
 vtb_hevc="no"
+vtb_prores="no"
 
 win32="no"
 mingw32="no"
@@ -1476,7 +1477,7 @@ if docc $LDFLAGS $vtb_ldflags ; then
     has_vtb="yes"
 fi
 
-#check for hevc support
+#check for hevc and prores support
 if test "$has_vtb" = "yes" ; then
   cat > $TMPC << EOF
 #include <VideoToolbox/VideoToolbox.h>
@@ -1488,6 +1489,18 @@ EOF
 if docc $LDFLAGS $vtb_ldflags ; then
     vtb_hevc="yes"
 fi
+
+  cat > $TMPC << EOF
+#include <VideoToolbox/VideoToolbox.h>
+int main( void ) {
+    int vtb_type = kCMVideoCodecType_AppleProRes422;
+    return 0; 
+}
+EOF
+if docc $LDFLAGS $vtb_ldflags ; then
+    vtb_prores="yes"
+fi
+
 
 fi
 
@@ -2929,6 +2942,9 @@ if test "$has_vtb" != "no" ; then
 
     if test "$vtb_hevc" != "no" ; then
       echo "#define GPAC_HAS_VTB_HEVC" >> $TMPH
+    fi
+    if test "$vtb_prores" != "no" ; then
+      echo "#define GPAC_HAS_VTB_PRORES" >> $TMPH
     fi
 fi
 
