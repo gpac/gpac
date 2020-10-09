@@ -346,7 +346,10 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	if (p) w = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 	if (p) h = p->value.uint;
-
+	if (w && h) {
+		ctx->width = w;
+		ctx->height = h;
+	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 
@@ -701,14 +704,27 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	case GF_CODECID_S263:
 		ctx->reorder_probe = 0;
 		ctx->reconfig_needed = GF_FALSE;
-		if (w && h) {
-			ctx->width = w;
-			ctx->height = h;
-			ctx->vtb_type = kCMVideoCodecType_H263;
-			break;
-		}
+		ctx->vtb_type = kCMVideoCodecType_H263;
 		break;
-		
+
+	case GF_CODECID_AP4X:
+		ctx->vtb_type = kCMVideoCodecType_AppleProRes4444XQ;
+		break;
+	case GF_CODECID_AP4H:
+		ctx->vtb_type = kCMVideoCodecType_AppleProRes4444;
+		break;
+	case GF_CODECID_APCH:
+		ctx->vtb_type = kCMVideoCodecType_AppleProRes422HQ;
+		break;
+	case GF_CODECID_APCN:
+		ctx->vtb_type = kCMVideoCodecType_AppleProRes422;
+		break;
+	case GF_CODECID_APCS:
+		ctx->vtb_type = kCMVideoCodecType_AppleProRes422LT;
+		break;
+	case GF_CODECID_APCO:
+		ctx->vtb_type = kCMVideoCodecType_AppleProRes422Proxy;
+		break;
 	default :
 		ctx->reconfig_needed = GF_FALSE;
 		return GF_NOT_SUPPORTED;
@@ -1976,6 +1992,13 @@ static const GF_FilterCapability VTBDecCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_422),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_H263),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_S263),
+
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AP4X),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AP4H),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_APCH),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_APCN),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_APCS),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_APCO),
 #endif
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
@@ -1995,7 +2018,7 @@ static const GF_FilterArgs VTBDecArgs[] =
 GF_FilterRegister GF_VTBDecCtxRegister = {
 	.name = "vtbdec",
 	GF_FS_SET_DESCRIPTION("VideoToolBox decoder")
-	GF_FS_SET_HELP("This filter decodes video streams through OSX/iOS VideoToolBox (MPEG-2, H263, AVC|H264, HEVC). It allows GPU frame dispatch or direct frame copy.")
+	GF_FS_SET_HELP("This filter decodes video streams through OSX/iOS VideoToolBox (MPEG-2, H263, AVC|H264, HEVC, ProRes). It allows GPU frame dispatch or direct frame copy.")
 	.private_size = sizeof(GF_VTBDecCtx),
 	.args = VTBDecArgs,
 	.priority = 1,
