@@ -425,10 +425,16 @@ typedef struct __tag_bifs_config
 /*! flags for text style*/
 enum
 {
+	/*! normal*/
 	GF_TXT_STYLE_NORMAL = 0,
+	/*! bold*/
 	GF_TXT_STYLE_BOLD = 1,
-	GF_TXT_STYLE_ITALIC = 2,
-	GF_TXT_STYLE_UNDERLINED = 4
+	/*! italic*/
+	GF_TXT_STYLE_ITALIC = 1<<1,
+	/*! underlined*/
+	GF_TXT_STYLE_UNDERLINED = 1<<2,
+	/*! strikethrough - not 3GPP/QT defined, GPAC only*/
+	GF_TXT_STYLE_STRIKETHROUGH = 1<<3,
 };
 
 /*! text style record*/
