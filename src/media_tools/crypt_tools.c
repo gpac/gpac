@@ -471,7 +471,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 
 	sprintf(szArgs, "SID=1");
 	if (fragment_name) {
-		strcat(szArgs, ":sseg:noinit:store=frag:cdur=1000000000");
+		strcat(szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000");
 	} else {
 		if (interleave_time) {
 			char an_arg[100];
@@ -595,7 +595,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 
 	gf_dynstrcat(&szArgs, "SID=1", NULL);
 	if (fragment_name) {
-		gf_dynstrcat(&szArgs, ":sseg:noinit:store=frag:cdur=1000000000", NULL);
+		gf_dynstrcat(&szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000", NULL);
 	} else {
 		if (interleave_time) {
 			sprintf(an_arg, ":cdur=%g", interleave_time);

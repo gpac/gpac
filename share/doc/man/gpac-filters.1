@@ -1965,6 +1965,8 @@ mfra (bool, default: false):   enable movie fragment random access when fragment
 .br
 forcesync (bool, default: false): force all SAP types to be considered sync samples (might produce non-conformant files)
 .br
+refrag (bool, default: false): indicate to use track fragment defaults from initial file if any rather than computing them from PID propertyes (used when processing standalone segments/fragments)
+.br
 tags (enum, default: strict):  tag injection mode
 .br
 * none: do not inject tags
@@ -6361,7 +6363,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev60-g5bea6d4fb-master
+build: 1.1.0-DEV-rev74-g13b3f61a1-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

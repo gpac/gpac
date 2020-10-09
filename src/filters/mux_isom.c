@@ -238,7 +238,7 @@ typedef struct
 	Bool ctrni;
 #endif
 	Bool mfra;
-	Bool forcesync;
+	Bool forcesync, refrag;
 	u32 tags;
 
 	//internal
@@ -3917,6 +3917,16 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			return e;
 		}
 
+		if (ctx->refrag) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TREX_TEMPLATE);
+			if (p) {
+				gf_isom_setup_track_fragment_template(ctx->file, tkw->track_id, p->value.data.ptr, p->value.data.size, ctx->nofragdef);
+			} else if (!ctx->nofragdef) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Refragmentation with default track fragment flags signaling but no TREX found in source track %d, using defaults computed from PID, result might be broken\n", tkw->track_id));
+			}
+		}
+
+
 		if (ctx->tfdt.den && ctx->tfdt.num) {
 			tkw->offset_dts = ctx->tfdt.num * tkw->tk_timescale;
 			tkw->offset_dts /= ctx->tfdt.den;
@@ -5684,6 +5694,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mfra), "enable movie fragment random access when fragmenting (ignored when dashing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(forcesync), "force all SAP types to be considered sync samples (might produce non-conformant files)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(refrag), "indicate to use track fragment defaults from initial file if any rather than computing them from PID propertyes (used when processing standalone segments/fragments)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tags), "tag injection mode\n"
 			"- none: do not inject tags\n"
 			"- strict: only inject recognized itunes tags\n"
