@@ -6030,13 +6030,22 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			if (ds->splitable && !ds->split_dur_next) {
+				Bool do_split = GF_FALSE;
 				//adding this sampl would exceed the segment duration
-				if ( (cts + dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
+				if (gf_sys_old_arch_compat()) {
+					if ( (cts + dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale )
+						do_split = GF_TRUE;
+				} else {
+					if ( (cts + dur) * base_ds->timescale > base_ds->adjusted_next_seg_start * ds->timescale )
+						do_split = GF_TRUE;
+				}
+				if (do_split) {
 					//this sample starts in the current segment - split it
 					if (cts * base_ds->timescale < base_ds->adjusted_next_seg_start * ds->timescale ) {
 						split_dur = (u32) (base_ds->adjusted_next_seg_start * ds->timescale / base_ds->timescale - ds->last_cts);
-						//we should patch the above >= once we get rid of master, but changing it might break some hashes
-						if (split_dur==dur) split_dur=0;
+
+						if (gf_sys_old_arch_compat() && (split_dur==dur))
+							split_dur=0;
 					}
 				}
 			}
@@ -6386,18 +6395,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 				dasher_mark_segment_start(ctx, ds, dst, pck);
 				ds->segment_started = GF_TRUE;
 			}
-			//if split, adjust duration
-			if (split_dur) {
-				u32 cumulated_split_dur = split_dur;
-				gf_filter_pck_set_duration(dst, split_dur);
-				//adjust dur
-				cumulated_split_dur += (u32) (cts - orig_cts);
-				assert( dur > split_dur);
-				ds->split_dur_next = cumulated_split_dur;
-				dur = split_dur;
-			}
 			//prev packet was split
-			else if (is_packet_split) {
+			if (is_packet_split) {
 				u64 diff=0;
 				u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 				u64 ts = gf_filter_pck_get_cts(pck);
@@ -6417,7 +6416,19 @@ static GF_Err dasher_process(GF_Filter *filter)
 				//add sample is redundant flag
 				dep_flags |= 0x1;
 				gf_filter_pck_set_dependency_flags(dst, dep_flags);
+				//this one might be incorrect of this split packet is also split, but we update the duration right below
 				gf_filter_pck_set_duration(dst, dur);
+			}
+
+			//if split, adjust duration - this may happen on a split packet, if it covered 3 or more segments
+			if (split_dur) {
+				u32 cumulated_split_dur = split_dur;
+				gf_filter_pck_set_duration(dst, split_dur);
+				//adjust dur
+				cumulated_split_dur += (u32) (cts - orig_cts);
+				assert( dur > split_dur);
+				ds->split_dur_next = cumulated_split_dur;
+				dur = split_dur;
 			}
 
 			//remove NTP
