@@ -3068,10 +3068,7 @@
 					GPAC_STATIC_MODULES,
 					GPAC_CONFIG_DARWIN,
 					CONFIG_DARWIN_GL,
-					NO_JS_RUNTIMETHREAD,
-					SPIDERMONKEY_NEW_API,
 					"DEBUG=1",
-					GPAC_AMR_IN_STANDALONE,
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
@@ -3082,15 +3079,13 @@
 					GPAC_HAS_OPENSVC,
 					GPAC_HAS_OPENHEVC,
 					GPAC_HAS_FFMPEG,
+					GPAC_HAS_VTB_HEVC,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
 					GPAC_STATIC_MODULES,
 					GPAC_CONFIG_DARWIN,
 					CONFIG_DARWIN_GL,
-					NO_JS_RUNTIMETHREAD,
-					SPIDERMONKEY_NEW_API,
 					"DEBUG=1",
-					GPAC_AMR_IN_STANDALONE,
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
@@ -3101,6 +3096,7 @@
 					GPAC_HAS_OPENSVC,
 					GPAC_HAS_OPENHEVC,
 					GPAC_HAS_FFMPEG,
+					GPAC_HAS_VTB_HEVC,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3115,8 +3111,6 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
-					/opt/local/include/mozjs185,
-					/opt/local/include/nspr,
 					../../include,
 					/usr/local/include,
 					"/opt/local/include/openjpeg-1.5",
@@ -3124,7 +3118,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
-					/opt/local/lib/nspr,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
@@ -3200,9 +3193,6 @@
 					GPAC_STATIC_MODULES,
 					GPAC_CONFIG_DARWIN,
 					CONFIG_DARWIN_GL,
-					NO_JS_RUNTIMETHREAD,
-					SPIDERMONKEY_NEW_API,
-					GPAC_AMR_IN_STANDALONE,
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
@@ -3213,6 +3203,7 @@
 					GPAC_HAS_OPENSVC,
 					GPAC_HAS_OPENHEVC,
 					GPAC_HAS_FFMPEG,
+					GPAC_HAS_VTB_HEVC,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_TREAT_INCOMPATIBLE_POINTER_TYPE_WARNINGS_AS_ERRORS = YES;
@@ -3226,8 +3217,6 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
-					/opt/local/include/mozjs185,
-					/opt/local/include/nspr,
 					../../include,
 					/usr/local/include,
 					"/opt/local/include/openjpeg-1.5",
@@ -3235,7 +3224,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
-					/opt/local/lib/nspr,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
