@@ -56,7 +56,7 @@ typedef struct
 	GF_List *imports;
 } WGTEnum;
 
-GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array)
+GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array, Bool is_string)
 {
 	u8 *data = NULL;
 	GF_Err res = GF_OK;
@@ -78,7 +78,11 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		size = gf_base64_decode((u8 *)src, size, data, size);
 	} else
 #endif
-	{
+	if (is_string) {
+		data = (u8 *) src;
+		size = strlen(src)+1;
+		is_box_array = 0;
+	} else {
 		GF_Err e = gf_file_load_data(src, (u8 **) &data, &size);
 		if (e) return e;
 	}
@@ -89,7 +93,8 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		} else {
 			res = gf_isom_add_user_data(dest, tracknum, udta_type, uuid, data, size);
 		}
-		gf_free(data);
+		if (!is_string)
+			gf_free(data);
 	}
 	return res;
 }
