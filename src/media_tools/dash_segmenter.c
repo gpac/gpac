@@ -519,6 +519,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	char *sep_ext;
 	char *args=NULL, szArg[1024];
 	Bool multi_period = GF_FALSE;
+	Bool use_filter_chains = GF_FALSE;
 
 	if (!dasher->mpd_name) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Missing MPD name\n"));
@@ -857,6 +858,13 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			cur_period_order++;
 		}
 	}
+	for (i=0; i<count; i++) {
+		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
+		if (di->filter_chain) {
+			use_filter_chains = GF_TRUE;
+			break;
+		}
+	}
 
 	for (i=0; i<count; i++) {
 		u32 j;
@@ -898,7 +906,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		//set all args
-		if (di->representationID && strcmp(di->representationID, "NULL")) {
+		if (!use_filter_chains && di->representationID && strcmp(di->representationID, "NULL")) {
 			sprintf(szArg, "#Representation=%s", di->representationID );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
@@ -1037,8 +1045,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			src = rt;
 		}
 
-		if (!di->filter_chain) continue;
-
+		if (!di->filter_chain) {
+			//assign this source 
+			gf_filter_set_source(dasher->output, src, NULL);
+			continue;
+		}
 		//create the filter chain between source (or rt if it was set) and dasher
 
 		//filter chain

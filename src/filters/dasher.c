@@ -378,7 +378,9 @@ static GF_Err dasher_get_audio_info_with_m4a_sbr_ps(GF_DashStream *ds, const GF_
 	if (Channels) *Channels = ds->nb_ch;
 
 	if (!dsi) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] missing AAC config\n"));
+		if (!ds->dcd_not_ready) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] missing AAC config\n"));
+		}
 		return GF_OK;
 	}
 	e = gf_m4a_get_config(dsi->value.data.ptr, dsi->value.data.size, &a_cfg);
