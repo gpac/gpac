@@ -139,7 +139,11 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("ab", NULL, "add given brand to file's alternate brand list", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("rb", NULL, "remove given brand to file's alternate brand list", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("cprt", NULL, "add copyright string to file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("chap", NULL, "set chapter information from given file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("chap", NULL, "set chapter information from given file. The following formats are supported (but cannot be mixed) in the chapter text file:\n"
+		"  - ZoomPlayer: `AddChapter(nb_frames,chapter name)`, `AddChapterBySeconds(nb_sec,chapter name)` and `AddChapterByTime(h,m,s,chapter name)` with 1 chapter per line\n"
+		"  - Time codes: `h:m:s chapter_name`, `h:m:s:ms chapter_name` and `h:m:s.ms chapter_name` with 1 chapter per line\n"
+		"  - SMPTE codes: `h:m:s;nb_f/fps chapter_name` and `h:m:s;nb_f chapter_name` with `nb_f` the number of frames and `fps` the framerate with 1 chapter per line\n"
+		"  - Common syntax: `CHAPTERX=h:m:s[:ms or .ms]` on first line and `CHAPTERXNAME=name` on next line (reverse order accepted)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("chapqt", NULL, "set chapter information from given file, using QT signaling for text tracks", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("set-track-id `id1:id2`", NULL, "change id of track with id1 to id2", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("swap-track-id `id1:id2`", NULL, "swap the id between tracks with id1 to id2", NULL, NULL, GF_ARG_STRING, 0),
