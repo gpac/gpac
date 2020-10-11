@@ -385,10 +385,10 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	if (out_data) {
 		gf_bs_get_content_no_truncate(item_bs, out_data, out_size, out_alloc_size);
 	}
+	gf_bs_del(item_bs);
 	if (resource) {
 		gf_fclose(resource);
 	}
-	gf_bs_del(item_bs);
 	return GF_OK;
 }
 

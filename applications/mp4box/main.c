@@ -5619,8 +5619,8 @@ int mp4boxMain(int argc, char **argv)
 				} else {
 					fprintf(stderr, "Error writing IOD %s\n", szName);
 				}
-				gf_fclose(iodf);
 				gf_bs_del(bs);
+				gf_fclose(iodf);
 			}
 			gf_odf_desc_del((GF_Descriptor*)iod);
 		}

@@ -104,6 +104,7 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode);
 \brief bitstream destructor from file handle
 
 Deletes the bitstream object. If the buffer was created by the bitstream, it is deleted if still present.
+\WARNING If the bitstream was constructed from a FILE object in write mode, the FILE object MUST be closed after destructing the bitstream
 \param bs the target bitstream
  */
 void gf_bs_del(GF_BitStream *bs);
