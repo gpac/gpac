@@ -169,7 +169,15 @@ add copyright string to file
 .TP
 .B \-chap (string)
 .br
-set chapter information from given file
+set chapter information from given file. The following formats are supported (but cannot be mixed) in the chapter text file:
+.br
+  * ZoomPlayer: AddChapter(nb_frames,chapter name), AddChapterBySeconds(nb_sec,chapter name) and AddChapterByTime(h,m,s,chapter name) with 1 chapter per line
+.br
+  * Time codes: h:m:s chapter_name, h:m:s:ms chapter_name and h:m:s.ms chapter_name with 1 chapter per line
+.br
+  * SMPTE codes: h:m:s;nb_f/fps chapter_name and h:m:s;nb_f chapter_name with nb_f the number of frames and fps the framerate with 1 chapter per line
+.br
+  * Common syntax: CHAPTERX=h:m:s[:ms or .ms] on first line and CHAPTERXNAME=name on next line (reverse order accepted)
 .br
 .TP
 .B \-chapqt (string)
@@ -2335,7 +2343,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev84-g7579ca16f-master
+build: 1.1.0-DEV-rev88-g94b10de5b-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
