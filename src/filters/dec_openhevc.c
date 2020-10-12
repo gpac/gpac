@@ -575,24 +575,31 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 #endif
 
 	if (dsi) {
+		u32 active_layer = 0;
 		if (has_scalable) {
 			ctx->cur_layer = ctx->nb_layers;
 			oh_select_active_layer(ctx->codec, ctx->cur_layer-1);
 			oh_select_view_layer(ctx->codec, ctx->cur_layer-1);
+			active_layer = ctx->cur_layer-1;
 		} else {
 			//there is a bug with select active layer on win32 with avc base
 #ifdef WIN32
 			if (!ctx->avc_base_id) {
 #endif
 				oh_select_active_layer(ctx->codec, 1);
+				active_layer = 1;
 				if (!ctx->avc_base_id)
 					oh_select_view_layer(ctx->codec, 0);
 #ifdef WIN32
 			}
 #endif
-			}
+		}
 
 		if (!ctx->decoder_started) {
+			//hack: openhevc does not not infer nalu_size_length on all layers, we therefore
+			//activate max layer which will copy extradata on each layer's decoder
+			oh_select_active_layer(ctx->codec, HEVC_MAX_STREAMS-1);
+
 #ifdef  OPENHEVC_HAS_AVC_BASE
 			if (ctx->avc_base_id) {
 				oh_extradata_cpy_lhvc(ctx->codec, (u8 *) dsi->value.data.ptr, NULL, dsi->value.data.size, 0);
@@ -605,6 +612,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					oh_extradata_cpy(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
 				}
 			}
+			oh_select_active_layer(ctx->codec, active_layer);
 		}
 	} else {
 		//decode and display layer 0 by default - will be changed when attaching enhancement layers
