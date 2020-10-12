@@ -1713,14 +1713,19 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 			}
 		}
 
-		//optional cap
-		if (cap->flags & GF_CAPFLAG_OPTIONAL) continue;
-
 		//try by name
 		if (!pid_cap && cap->name) pid_cap = gf_filter_pid_get_property_str_first(src_pid_or_ipid, cap->name);
 
 		if (ext_not_trusted && (cap->code==GF_PROP_PID_FILE_EXT)) {
 			has_file_ext_cap = GF_TRUE;
+			continue;
+		}
+
+		//optional cap, only adjust priority
+		if (cap->flags & GF_CAPFLAG_OPTIONAL) {
+			if (pid_cap && priority && cap->priority && ((*priority) < cap->priority)) {
+				(*priority) = cap->priority;
+			}
 			continue;
 		}
 
@@ -1774,13 +1779,16 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 						}
 						prop_excluded = GF_TRUE;
 					}
-					if (prop_equal) break;
+					if (prop_equal) {
+						if (priority && a_cap->priority && ((*priority) < a_cap->priority)) {
+							(*priority) = a_cap->priority;
+						}
+						break;
+					}
 				}
 			}
 			if (!prop_equal && !prop_excluded) {
 				all_caps_matched=GF_FALSE;
-			} else if (priority && cap->priority) {
-				(*priority) = cap->priority;
 			}
 			if (ext_not_trusted && prop_equal && (cap->code==GF_PROP_PID_MIME))
 				mime_matched = GF_TRUE;
@@ -2708,6 +2716,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 					edge->status = EDGE_STATUS_DISABLED;
 					continue;
 				}
+				if (priority)
+					path_weight *= priority;
 			}
 
 			//if source is not edge origin and edge is only valid for explicitly loaded filters, disable edge

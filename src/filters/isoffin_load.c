@@ -361,6 +361,21 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			default:
 				break;
 			}
+
+			if (!has_scalable_layers) {
+				u32 i;
+				GF_ISOTrackID track_id = gf_isom_get_track_id(read->mov, track);
+				for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
+					if (gf_isom_get_reference_count(read->mov, i+1, GF_ISOM_REF_BASE)>=0) {
+						GF_ISOTrackID tkid;
+						gf_isom_get_reference_ID(read->mov, i+1, GF_ISOM_REF_BASE, 1, &tkid);
+						if (tkid==track_id) {
+							has_scalable_layers = GF_TRUE;
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		if (base_track && !ocr_es_id) {
@@ -782,7 +797,6 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 			if (lhcc) gf_odf_hevc_cfg_del(lhcc);
-
 		}
 		if ((codec_id==GF_CODECID_AVC) || (codec_id==GF_CODECID_SVC) || (codec_id==GF_CODECID_MVC)) {
 			Bool is_mvc = GF_FALSE;

@@ -1179,7 +1179,7 @@ GF_Err gf_isom_get_reference_ID(GF_ISOFile *movie, u32 trackNumber, u32 referenc
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 
 	*refTrackID = 0;
-	if (!trak || !trak->References) return GF_BAD_PARAM;
+	if (!trak || !trak->References || !referenceIndex) return GF_BAD_PARAM;
 
 	dpnd = NULL;
 	e = Track_FindRef(trak, referenceType, &dpnd);
