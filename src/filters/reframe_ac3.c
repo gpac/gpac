@@ -544,6 +544,9 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 		if (pos) {
 			nb_frames=0;
 			has_broken_frames = GF_TRUE;
+			//what is before is bigger than max ac3 frame size (1920), this is packaged ac3 (mkv) at best
+			if (pos > 2000)
+				break;
 		}
 		nb_frames++;
 		if (fsize > size+pos) break;
