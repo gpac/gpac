@@ -191,7 +191,7 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	ctx->fd = open(szFinalName, O_WRONLY );
 
 	if (ctx->fd<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_str(errno)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_str(errno)));
 		e = ctx->owns_pipe ? GF_IO_ERR : GF_URL_ERROR;
 	}
 #endif
@@ -438,7 +438,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeOut] No data associated with packet, cannot write\n"));
 		}
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] output file handle is not opened, discarding %d bytes\n", pck_size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Output file handle is not opened, discarding %d bytes\n", pck_size));
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
 	if (end) {

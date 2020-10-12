@@ -1272,10 +1272,10 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	if (sess->status==GF_NETIO_STATE_ERROR)
 		socket_changed = GF_TRUE;
 
-	if (!socket_changed && info.userName  && !strcmp(info.userName, sess->creds->username)) {
+	if (!socket_changed && info.userName && !strcmp(info.userName, sess->creds->username)) {
 	} else {
 		sess->creds = NULL;
-		if (info.userName ) {
+		if (info.userName) {
 			if (! sess->dm) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] Did not found any download manager, credentials not supported\n"));
 			} else
@@ -3738,8 +3738,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 		sess->http_read_type = GET;
 		return GF_OK;
-
-
 	}
 
 
