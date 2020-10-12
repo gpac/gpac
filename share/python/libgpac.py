@@ -188,17 +188,17 @@
 
 
 from ctypes import *
+from ctypes.util import find_library
 import datetime
 import types
 import os
-import importlib
 
 ## set to True if numpy was successfully loaded
 ##\hideinitializer
 numpy_support=True
 
 try:
-    importlib.import_module('numpy')
+    import numpy as np
 except ImportError:
     numpy_support = False
     print("\nWARNING! numpy not present, packet data type is ctypes POINTER(c_ubyte)\n")
@@ -208,7 +208,11 @@ except ImportError:
 _libgpac=None
 #load libgpac
 try:
-    _libgpac = cdll.LoadLibrary("libgpac.dll")
+    dll_path = find_library("libgpac.dll")
+    if not dll_path:
+        raise OSError("No libgpac.dll")
+
+    _libgpac = cdll.LoadLibrary(os.path.abspath(dll_path))
 except OSError:
     try:
         _libgpac = cdll.LoadLibrary("libgpac.so")
