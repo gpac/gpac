@@ -93,6 +93,17 @@ Returns the length in character of a wide-char string
 char *gf_utf_get_utf8_string_from_bom(u8 *data, u32 size, char **out_ptr);
 
 /*!
+\brief Checks validity of a UTF8 string
+
+Checks if a given byte sequence is a valid UTF-8 encoding
+\param data the byte equence buffer
+\param size the length of the byte sequence
+\return GF_TRUE if valid UTF8, GF_FALSE otherwise
+ */
+Bool gf_utf8_is_legal(const u8 *data, u32 size);
+
+
+/*!
 \brief string bidi reordering
 
 Performs a simple reordering of words in the string based on each word direction, so that glyphs are sorted in display order.
