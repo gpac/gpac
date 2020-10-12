@@ -2600,7 +2600,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 static GF_Err inspect_process(GF_Filter *filter)
 {
-	u32 i, count, nb_done=0;
+	u32 i, count, nb_done=0, nb_hdr_done=0;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
 	count = gf_list_count(ctx->src_pids);
@@ -2630,6 +2630,9 @@ static GF_Err inspect_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
+
+		if (pctx->init_pid_config_done)
+			nb_hdr_done++;
 
 		if (!pck && !gf_filter_pid_is_eos(pctx->src_pid))
 			continue;
@@ -2679,14 +2682,17 @@ static GF_Err inspect_process(GF_Filter *filter)
 		}
 		gf_filter_pid_drop_packet(pctx->src_pid);
 	}
-	if (ctx->is_prober && !ctx->probe_done && (nb_done==count) && !ctx->allp) {
+	if ((ctx->is_prober && !ctx->probe_done && (nb_done==count) && !ctx->allp)
+		|| (!ctx->is_prober && !ctx->allp && !ctx->dump_pck && (nb_hdr_done==count) )
+	) {
 		for (i=0; i<count; i++) {
 			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 			gf_filter_pid_send_event(pctx->src_pid, &evt);
 		}
-		ctx->probe_done = GF_TRUE;
+		if (ctx->is_prober)
+			ctx->probe_done = GF_TRUE;
 		return GF_EOS;
 	}
 	return GF_OK;
