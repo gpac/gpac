@@ -2585,7 +2585,7 @@ found:
 			memcpy(*userData, ptr->data, sizeof(char)*ptr->dataSize);
 			*userDataSize = ptr->dataSize;
 			return GF_OK;
-		} else if (ptr->type != GF_ISOM_BOX_TYPE_UUID) {
+		} else if (ptr->type == GF_ISOM_BOX_TYPE_UUID) {
 			GF_UnknownUUIDBox *p_uuid = (GF_UnknownUUIDBox *)ptr;
 			*userData = (char *)gf_malloc(sizeof(char)*p_uuid->dataSize);
 			if (!*userData) return GF_OUT_OF_MEM;
@@ -2593,7 +2593,25 @@ found:
 			*userDataSize = p_uuid->dataSize;
 			return GF_OK;
 		} else {
-			return GF_ISOM_INVALID_FILE;
+			char *str = NULL;
+			switch (ptr->type) {
+			case GF_ISOM_BOX_TYPE_NAME:
+			//case GF_QT_BOX_TYPE_NAME: same as above
+				str = ((GF_NameBox *)ptr)->string;
+				break;
+			case GF_ISOM_BOX_TYPE_KIND:
+				str = ((GF_KindBox *)ptr)->value;
+				break;
+			}
+			if (str) {
+				u32 len = (u32) strlen(str) + 1;
+				*userData = (char *)gf_malloc(sizeof(char) * len);
+				if (!*userData) return GF_OUT_OF_MEM;
+				memcpy(*userData, str, sizeof(char)*len);
+				*userDataSize = len;
+				return GF_OK;
+			}
+			return GF_NOT_SUPPORTED;
 		}
 	}
 
