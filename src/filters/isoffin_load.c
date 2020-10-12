@@ -730,6 +730,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 
 		if (!gf_sys_is_test_mode()) {
+			u32 nb_udta;
 			const char *hdlr = NULL;
 			gf_isom_get_handler_name(read->mov, ch->track, &hdlr);
 			if (hdlr)
@@ -747,6 +748,37 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				p.value.uint_list.vals = vals;
 				gf_isom_get_track_matrix(read->mov, ch->track, vals);
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_TRACK_MATRIX, &p);
+			}
+
+
+			nb_udta =  gf_isom_get_udta_count(read->mov, ch->track);
+			if (nb_udta) {
+				for (i=0; i<nb_udta; i++) {
+					u32 j, type, nb_items;
+					bin128 uuid;
+					gf_isom_get_udta_type(read->mov, ch->track, i+1, &type, &uuid);
+					nb_items = gf_isom_get_user_data_count(read->mov, ch->track, type, uuid);
+					//we only export 4CC udta boxes
+					if (!type) continue;
+
+					for (j=0; j<nb_items; j++) {
+						char szName[31];
+						u8 *udta=NULL;
+						u32 udta_size;
+						gf_isom_get_user_data(read->mov, ch->track, type, uuid, j+1, &udta, &udta_size);
+						if (!udta) continue;
+						if (nb_items>1)
+							snprintf(szName, 30, "udta_%s_%d", gf_4cc_to_str(type), j+1);
+						else
+							snprintf(szName, 30, "udta_%s", gf_4cc_to_str(type));
+						szName[30]=0;
+						if (gf_utf8_is_legal(udta, udta_size)) {
+							gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(udta));
+						} else {
+							gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_DATA_NO_COPY(udta, udta_size));
+						}
+					}
+				}
 			}
 		}
 	}

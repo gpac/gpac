@@ -1830,16 +1830,6 @@ static char *format_date(u64 time, char *szTime)
 	return szTime;
 }
 
-static Bool is_printable(u8 *data, u32 data_size)
-{
-	u32 i;
-	for (i=0; i<data_size; i++) {
-		if (i && data[i]==0) return GF_TRUE;
-		if (!isascii(data[i])) return GF_FALSE;
-	}
-	return GF_TRUE;
-}
-
 void print_udta(GF_ISOFile *file, u32 track_number)
 {
 	u32 i, count;
@@ -1859,7 +1849,8 @@ void print_udta(GF_ISOFile *file, u32 track_number)
 			u8 *udta=NULL;
 			u32 udta_size;
 			gf_isom_get_user_data(file, track_number, type, uuid, j+1, &udta, &udta_size);
-			if (udta && is_printable(udta, udta_size)) {
+			if (!udta) continue;
+			if (gf_utf8_is_legal(udta, udta_size)) {
 				if (first) {
 					fprintf(stderr, "\n");
 					first = GF_FALSE;
