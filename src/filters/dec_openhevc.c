@@ -368,7 +368,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		for (i=0; i<ctx->nb_streams; i++) {
 
 			if (!dep_id && !ctx->streams[i].dep_id) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[SVC Decoder] Detected multiple independent base (%s and %s)\n", gf_filter_pid_get_name(pid), gf_filter_pid_get_name(ctx->streams[i].ipid)));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVC Decoder] Detected multiple independent base (%s and %s)\n", gf_filter_pid_get_name(pid), gf_filter_pid_get_name(ctx->streams[i].ipid)));
 				return GF_REQUIRES_NEW_INSTANCE;
 			}
 
