@@ -178,7 +178,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	u32 i, count;
 	Bool is_new_mov = GF_FALSE;
 	u64 tfdt;
-	GF_ISOTrackID trackID;
+//	GF_ISOTrackID trackID;
 	GF_ISOSegOpenMode flags=0;
 	GF_Err e;
 
@@ -287,11 +287,11 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		ch->last_state = GF_OK;
 		ch->eos_sent = GF_FALSE;
 
+		//old code from master, currently no longer used
+		//in filters we don't use extractors for the time being, we only do implicit reconstruction at the decoder side
+#if 0
 		if (ch->base_track) {
-#ifdef FILTER_FIXME
 			if (scalable_segment)
-#endif
-			if ((0)) {
 				trackID = gf_isom_get_highest_track_in_scalable_segment(read->mov, ch->base_track);
 				if (trackID) {
 					ch->track_id = trackID;
@@ -302,6 +302,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 				ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 			}
 		}
+#endif
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 
@@ -720,8 +721,41 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 			}
 		}
 		/*this is the highest quality*/
-		if (!next_track)
+		if (!next_track) {
+			ch->playing = GF_TRUE;
+			ref_count = gf_isom_get_reference_count(the_file, ch->track, GF_ISOM_REF_BASE);
+			trackID = 0;
+			if (ref_count) {
+				gf_isom_get_reference(the_file, ch->track, GF_ISOM_REF_BASE, 1, &trackID);
+				for (i=0; i<gf_list_count(ch->owner->channels) && trackID; i++) {
+					ISOMChannel *base = gf_list_get(ch->owner->channels, i);
+					if (base->track_id==trackID) {
+						u32 sample_desc_index;
+						u64 resume_at;
+						GF_Err e;
+						//try to locate sync after current time in base
+						resume_at = base->static_sample->DTS;
+						resume_at *= ch->time_scale;
+						resume_at /= base->time_scale;
+						e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+						//found, rewind so that next fetch is the sync
+						if (e==GF_OK) {
+							ch->sample = NULL;
+						}
+						//no further sync found, realign with base timescale
+						else if (e==GF_EOS) {
+							e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+						}
+						//unknown state, realign sample num with base
+						if (e<0) {
+							ch->sample_num = base->sample_num;
+						}
+						break;
+					}
+				}
+			}
 			return cur_track;
+		}
 	} else {
 		if (cur_track == ch->base_track)
 			return cur_track;
@@ -731,10 +765,17 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 		gf_isom_get_reference(the_file, cur_track, GF_ISOM_REF_SCAL, ref_count, &next_track);
 		if (!next_track)
 			return cur_track;
+
+		if (ch->track != next_track) {
+			ch->playing = GF_FALSE;
+			ch->eos_sent = GF_TRUE;
+			gf_filter_pid_set_eos(ch->pid);
+		}
 	}
 
 	/*in scalable mode add SPS/PPS in-band*/
-	gf_isom_set_nalu_extract_mode(the_file, next_track, ch->nalu_extract_mode);
+	if (ch->owner->smode)
+		gf_isom_set_nalu_extract_mode(the_file, next_track, ch->nalu_extract_mode);
 
 	return next_track;
 }
@@ -753,14 +794,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		for (i = 0; i < count; i++) {
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
-				ch->next_track = isoffin_channel_switch_quality(ch, read->mov, evt->quality_switch.up);
-			}
-#ifdef GPAC_ENABLE_COVERAGE
-			else if (gf_sys_is_cov_mode()) {
+				/*ch->next_track = */ //old code, see not in isoffin_reconfigure
 				isoffin_channel_switch_quality(ch, read->mov, evt->quality_switch.up);
 			}
-#endif
-
 		}
 		return GF_TRUE;
 	}

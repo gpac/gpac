@@ -961,19 +961,21 @@ void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo);
 /*! sets group download status of the last downloaded segment for non threaded modes
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
+\param dep_rep_idx the 0-based index of the current dependent rep
 \param err error status of the download, GF_OK if no error
 */
-void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, GF_Err err);
+void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, GF_Err err);
 
 /*! sets group download statistics of the last downloaded segment for non threaded modes
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
+\param dep_rep_idx the 0-based index of the dependent rep
 \param bytes_per_sec transfer rates in bytes per seconds
 \param file_size segment size in bytes
 \param bytes_done number of received bytes
 \param is_broadcast set to GF_TRUE if the file is received over a multicast/broadcast link such as eMBMS or ROUTE (i.e. file was pushed to cache)
 */
-void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast);
+void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast);
 
 /*! sets availabilityStartTime shift for ATSC. By default the ATSC tune-in is done by matching the last received segment name
 to the segment template and deriving the ATSC UTC reference from that. The function allows shifting the computed value by a given amount.
