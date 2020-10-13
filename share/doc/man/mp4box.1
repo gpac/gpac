@@ -952,7 +952,7 @@ extract a new file from source. VAL can be formated as:
 .TP
 .B \-splitz  S:E (string)
 .br
-same as -split-chunk, but adjust the end time to be before the last RAP sample
+same as -split-chunk, but adjust the end time to be before the next RAP sample, so that ranges A:B and B:C share exactly the same boundary B
 .br
 .SH File Dumping
 .LP
@@ -2347,7 +2347,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev109-g3ea38c085-master
+build: 1.1.0-DEV-rev113-gcbf8e5433-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
