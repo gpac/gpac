@@ -535,7 +535,7 @@ static void gf_m4v_parse_vol(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 	} else {
 		dsi->width = dsi->height = 0;
 	}
-
+	gf_bs_align(m4v->bs);
 }
 
 static GF_Err gf_m4v_parse_config_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)

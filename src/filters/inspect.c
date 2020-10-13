@@ -1745,7 +1745,7 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 				gf_fprintf(dump, " name=\"VOS\" PL=\"%d\"", pctx->dsi.VideoPL);
 				break;
 			case M4V_VOL_START_CODE:
-				gf_fprintf(dump, " name=\"VOL\" RAP=\"%d\" objectType=\"%d\" par=\"%d/%d\" hasShape=\"%d\"", pctx->dsi.RAP_stream, pctx->dsi.objectType, pctx->dsi.par_num, pctx->dsi.par_den, pctx->dsi.has_shape);
+				gf_fprintf(dump, " name=\"VOL\" RAPStream=\"%d\" objectType=\"%d\" par=\"%d/%d\" hasShape=\"%d\"", pctx->dsi.RAP_stream, pctx->dsi.objectType, pctx->dsi.par_num, pctx->dsi.par_den, pctx->dsi.has_shape);
 				if (pctx->dsi.clock_rate)
 					gf_fprintf(dump, " clockRate=\"%d\"", pctx->dsi.clock_rate);
 				if (pctx->dsi.time_increment)
@@ -1756,7 +1756,7 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 				break;
 
 			case M4V_VOP_START_CODE:
-				gf_fprintf(dump, " name=\"VOP\" frameType=\"%d\" timeInc=\"%d\" isCoded=\"%d\"", ftype, tinc, is_coded);
+				gf_fprintf(dump, " name=\"VOP\" RAP=\"%d\" frameType=\"%d\" timeInc=\"%d\" isCoded=\"%d\"", (ftype==0) ? 1 : 0, ftype, tinc, is_coded);
 				break;
 			case M4V_GOV_START_CODE:
 				gf_fprintf(dump, " name=\"GOV\"");
