@@ -1352,7 +1352,7 @@ static Bool on_split_event(void *_udta, GF_Event *evt)
 	return GF_FALSE;
 }
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, char *outName, const char *tmpdir, Bool force_rap_split, const char *split_range_str)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, char *outName, const char *tmpdir, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
 {
 	Bool chunk_extraction, rap_split, split_until_end;
 	GF_Err e;
@@ -1410,7 +1410,14 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		sprintf(szArgs, ":xs=S"LLU"k", split_size_kb);
 		gf_dynstrcat(&filter_args, szArgs, NULL);
 	} else if (chunk_extraction) {
-		gf_dynstrcat(&filter_args, ":xround=closest", NULL);
+		//we adjust end: start at the iframe at or after requested time and use xadjust (move end to next I-frame)
+		//so that two calls with X:Y and Y:Z have the same Y boundary
+		if (adjust_split_end) {
+			gf_dynstrcat(&filter_args, ":xadjust:xround=after", NULL);
+		} else {
+			gf_dynstrcat(&filter_args, ":xround=closest", NULL);
+		}
+
 		if (split_range_str) {
 			char *end = (char *) strchr(split_range_str, '-');
 			assert(end);
@@ -1435,9 +1442,6 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 			sprintf(szArgs, ":xs=%u/1000:xe=%u/1000", (u32) (chunk_start*1000), (u32) ((chunk_start+split_dur) * 1000) );
 		}
 		gf_dynstrcat(&filter_args, szArgs, NULL);
-		if (adjust_split_end) {
-			gf_dynstrcat(&filter_args, ":xadjust", NULL);
-		}
 		if (!outName) {
 			sprintf(szFile, "%s_$FS$", szName);
 		}
@@ -1498,7 +1502,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		if (e>=GF_OK)
 			e = gf_fs_get_last_process_error(fs);
 	}
+	if (fs_dump_flags & 1) gf_fs_print_stats(fs);
+	if (fs_dump_flags & 2) gf_fs_print_connections(fs);
 	gf_fs_del(fs);
+	
 	if (e<GF_OK)
 		fprintf(stderr, "Split failed: %s\n", gf_error_to_string(e) );
 	return e;

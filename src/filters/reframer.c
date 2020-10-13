@@ -1231,7 +1231,7 @@ GF_Err reframer_process(GF_Filter *filter)
 					st->prev_sap_ts = ts;
 					st->prev_sap_frame_idx = st->nb_frames_range;
 				}
-				//video stream start and xadjust set, prevent all other streams from being processed until wee determine the end of the video range
+				//video stream start and xadjust set, prevent all other streams from being processed until we determine the end of the video range
 				//and re-enable other streams processing
 				if (!ctx->wait_video_range_adjust && ctx->xadjust && st->needs_adjust) {
 					ctx->wait_video_range_adjust = GF_TRUE;

@@ -233,7 +233,7 @@ GF_GPACArg m4b_split_args[] =
 	GF_DEF_ARG("split-chunk VAL", "splitx", "extract a new file from source. `VAL` can be formated as:\n"
 	"- `S:E`: `S` (number of seconds) to `E` with `E` a number (in seconds), `end` or `end-N`, N  number of seconds before the end\n"
 	"- `S-E`: start and end dates, each formatted as `HH:MM:SS.ms` or `MM:SS.ms`", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("splitz `S:E`", NULL, "same as -split-chunk, but adjust the end time to be before the last RAP sample", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("splitz `S:E`", NULL, "same as -split-chunk, but adjust the end time to be before the next RAP sample, so that ranges `A:B` and `B:C` share exactly the same boundary `B`", NULL, NULL, GF_ARG_STRING, 0),
 	{0}
 };
 
@@ -5658,7 +5658,8 @@ int mp4boxMain(int argc, char **argv)
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size || split_range_str) {
-		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir, seg_at_rap, split_range_str);
+		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir, seg_at_rap, split_range_str, fs_dump_flags);
+
 		/*never save file when splitting is desired*/
 		open_edit = GF_FALSE;
 		needSave = GF_FALSE;
