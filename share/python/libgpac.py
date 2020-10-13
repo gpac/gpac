@@ -124,7 +124,7 @@
 # A custom filter allows your application to interact closely with the media pipeline, but cannot be used in graph resolution.
 # Custom filters can be sources, sinks, or intermediate filters. The following limitations however exist:
 #- custom filters will not be cloned
-#- custom filters cannot be used as destination of filters loading source or destination a filter graph dynamically, such as the dashin or dasher filters.
+#- custom filters cannot be used as destination of filters loading a source or destination filter graph dynamically, such as the dashin or dasher filters.
 #
 # A custom filter must implement the \ref FilterCustom class, and optionaly provide the following methods
 # - configure_pid: callback for PID configuration, mandatory if your filter is not a source
