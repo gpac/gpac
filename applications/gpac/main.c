@@ -2279,8 +2279,10 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 	u32 idx=0;
 	Bool found = GF_FALSE;
 	const GF_FilterArgs *args = NULL;
-	if (filter_inst) args = gf_filter_get_args(filter_inst);
-	else args = reg->args;
+	if (filter_inst)
+		args = gf_filter_get_args(filter_inst);
+	else if (reg)
+		args = reg->args;
 
 	if (!args) return;
 
@@ -2510,7 +2512,6 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			u32 j=0;
 			char szArg[100];
 			sprintf(szArg, " %s ", a->arg_name);
-			const char *reg_help = filter_inst ? gf_filter_get_help(filter_inst) : reg->help;
 			if (reg_help && strstr(reg_help, szArg)) {
 				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link\n", reg_name, a->arg_name);
 				exit(1);

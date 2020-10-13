@@ -9025,7 +9025,7 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 				u32 idx = gf_bs_read_int(bs, 5);
 				if (idx==0x1f)
 					gf_bs_read_int(bs, 24);
-				idx = gf_bs_read_int(bs, 3);
+				/*idx = */gf_bs_read_int(bs, 3);
 				gf_bs_read_int(bs, 1);
 				gf_bs_read_int(bs, 1);
 

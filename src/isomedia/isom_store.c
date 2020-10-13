@@ -579,10 +579,8 @@ static GF_Err store_meta_item_sample_ref_offsets(GF_ISOFile *movie, GF_List *wri
 		j=0;
 		while ((iinf = (GF_ItemInfoEntryBox *)gf_list_enum(meta->item_infos->item_infos, &j))) {
 			if (iinf->item_ID==iloc->item_ID) break;
-			iinf = NULL;
 		}
-
-		if (!iinf->tk_id || !iinf->sample_num) continue;
+		if (!iinf || !iinf->tk_id || !iinf->sample_num) continue;
 
 		entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 		if (!entry) continue;

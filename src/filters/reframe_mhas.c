@@ -156,7 +156,6 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	duration.num = duration.den = 0;
 	frame_len = cur_dur = 0;
-	mhas_sap = GF_FALSE;
 	mhas_last_cfg = 0;
 
 	while (gf_bs_available(bs)) {

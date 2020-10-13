@@ -2044,7 +2044,7 @@ sample_entry_setup:
 			}
 		}
 
-		if (dsi && ctx->xps_inband) {
+		if (ctx->xps_inband) {
 			//this will cleanup all PS in vvcC
 			gf_isom_vvc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
 		} else {
@@ -3930,7 +3930,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		}
 
 		if (ctx->refrag) {
-			const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TREX_TEMPLATE);
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TREX_TEMPLATE);
 			if (p) {
 				gf_isom_setup_track_fragment_template(ctx->file, tkw->track_id, p->value.data.ptr, p->value.data.size, ctx->nofragdef);
 			} else if (!ctx->nofragdef) {

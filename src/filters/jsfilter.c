@@ -3649,9 +3649,9 @@ static JSValue jsf_pck_set_property(JSContext *ctx, JSValueConst this_val, int a
 			e = gf_filter_pck_set_property_dyn(pck, (char *) name, NULL);
 		}
 	} else {
-		JSValue ret;
 		u32 p4cc = gf_props_get_id(name);
 		if (!p4cc) {
+			JSValue ret;
 			JS_FreeCString(ctx, name);
 			ret = js_throw_err_msg(ctx, GF_BAD_PARAM, "Urecognized builtin property name %s\n", name);
 			return ret;
