@@ -1223,15 +1223,15 @@ _libgpac.gf_fs_is_supported_source.argtypes = [_gf_filter_session, c_char_p]
 _libgpac.gf_fs_is_supported_source.restype = c_bool
 
 
-@CFUNCTYPE(c_bool, _gf_filter_session, c_void_p, POINTER(c_uint))
+@CFUNCTYPE(c_int, _gf_filter_session, c_void_p, POINTER(c_uint))
 def fs_task_fun(sess, cbk, resched):
  obj = cast(cbk, py_object).value
  res = obj.execute()
  if res==None or res<0:
     obj.session.rem_task(obj)
-    return False
+    return 0
  resched.contents.value=res
- return True
+ return 1
 
 ##\endcond
 
@@ -2057,7 +2057,7 @@ def filter_cbk_configure(_f, _pid, is_remove):
     else:
         pid_obj = FilterPid(filter, _pid, True)
         _libgpac.gf_filter_pid_set_udta(_pid, py_object(pid_obj))
-    res = filter.configure_pid(pid_obj, is_remove);
+    res = filter.configure_pid(pid_obj, is_remove)
 
     if is_remove:
         _libgpac.gf_filter_pid_set_udta(_pid, None)
@@ -2075,14 +2075,17 @@ _libgpac.gf_filter_set_process_ckb.argtypes = [_gf_filter, c_void_p]
 def filter_cbk_process(_f):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
     filter = cast(obj, py_object).value
-    return filter.process();
+    return filter.process()
 
 _libgpac.gf_filter_set_process_event_ckb.argtypes = [_gf_filter, c_void_p]
-@CFUNCTYPE(c_bool, _gf_filter, POINTER(FilterEvent) )
+@CFUNCTYPE(c_int, _gf_filter, POINTER(FilterEvent) )
 def filter_cbk_process_event(_f, _evt):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
     filter = cast(obj, py_object).value
-    return filter.process_event(_evt.contents);
+    res = filter.process_event(_evt.contents)
+    if res:
+        return 1
+    return 0
 
 _libgpac.gf_filter_set_probe_data_cbk.argtypes = [_gf_filter, c_void_p]
 @CFUNCTYPE(c_int, c_char_p, c_uint, POINTER(c_uint) )
@@ -2092,9 +2095,9 @@ def filter_cbk_probe_data(_data, _size, _probe):
     if numpy_support:
         ar_data = np.ctypeslib.as_array(_data, (_size,))
         ar_data.flags.writeable=False
-        res = filter.probe_data(ar_data, _size);
+        res = filter.probe_data(ar_data, _size)
     else:
-        res = filter.probe_data(_data, _size);
+        res = filter.probe_data(_data, _size)
     if res==None:
         _probe.contents=0
         return None
@@ -2113,7 +2116,7 @@ def filter_cbk_reconfigure_output(_f, _pid):
     else:
         pid_obj=None
     if pid_obj:
-        return filter.reconfigure_output(_f);
+        return filter.reconfigure_output(_f)
     raise Exception('Reconfigure on unknown output pid !')
 
 
@@ -2741,7 +2744,7 @@ class FilterPid:
         timestamp = c_longlong(0)
         timescale = c_uint(0)
         _libgpac.gf_filter_pid_get_clock_info(self._pid, byref(timestamp), byref(timescale))
-        v = Fraction64();
+        v = Fraction64()
         v.value.num = timestamp.value
         v.value.den = timescale.value
         return v
@@ -2750,7 +2753,7 @@ class FilterPid:
     #\param filter Filter to check
     #\return True or False
     def is_filter_in_parents(self, filter):
-        return _libgpac.gf_filter_pid_is_filter_in_parents(self._pid, filter._f);
+        return _libgpac.gf_filter_pid_is_filter_in_parents(self._pid, filter._f)
 
     ##get buffer occupancy - see \ref gf_filter_pid_get_buffer_occupancy
     #\return BufferOccupancy object
@@ -2851,7 +2854,7 @@ class FilterPid:
     #\return the resolved template string
     def resolve_template(self, template, file_idx=0, suffix=None):
         res = create_string_buffer(2000)
-        err = _libgpac.gf_filter_pid_resolve_file_template(self._pid, res, template.encode('utf-8'), file_idx, suffix);
+        err = _libgpac.gf_filter_pid_resolve_file_template(self._pid, res, template.encode('utf-8'), file_idx, suffix)
         if err<0:
             raise Exception('Cannot resolve file template ' + template + ': ' + e2s(err))
         return res.raw.decode('utf-8')
