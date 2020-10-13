@@ -71,7 +71,6 @@ typedef struct
 
 	u64 ts_at_range_start_plus_one;
 	u64 ts_at_range_end;
-	s64 cts_init;
 
 	GF_List *pck_queue;
 	//0: not comuted, 1: computed and valid TS, 2: end of stream on pid
@@ -126,7 +125,6 @@ typedef struct
 	GF_Fraction64 cur_start, cur_end;
 	u64 start_frame_idx_plus_one, end_frame_idx_plus_one;
 
-	Bool timing_initialized;
 	Bool in_range;
 
 	Bool seekable;
@@ -496,18 +494,6 @@ range_done:
 
 }
 
-static void reframer_update_ts_shift(GF_ReframerCtx *ctx, s64 diff_ts, u32 timescale)
-{
-	u32 i, count = gf_list_count(ctx->streams);
-	for (i=0; i<count; i++) {
-		s64 ts_shift;
-		RTStream *st = gf_list_get(ctx->streams, i);
-		ts_shift = diff_ts;
-		ts_shift *= st->timescale;
-		ts_shift /= timescale;
-		st->cts_init -= ts_shift;
-	}
-}
 void reframer_drop_packet(GF_ReframerCtx *ctx, RTStream *st, GF_FilterPacket *pck, Bool pck_is_ref)
 {
 	if (pck_is_ref) {
@@ -598,6 +584,8 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 		//signal chunk start boundary
 		if (!st->first_pck_sent) {
+			u64 start_t, end_t;
+			char szFileSuf[1000];
 			u32 i, len;
 			char *file_suf_name = NULL;
 			char *start = ctx->xs.vals[ctx->cur_range_idx-1];
@@ -608,25 +596,39 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			st->first_pck_sent = GF_TRUE;
 
 			if (ctx->extract_mode==EXTRACT_RANGE) {
-				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->cur_range_idx) );
-				gf_dynstrcat(&file_suf_name, start, NULL);
-				if (end)
-					gf_dynstrcat(&file_suf_name, end, "_");
 
-				len = (u32) strlen(file_suf_name);
-				//replace : and / characters
-				for (i=0; i<len; i++) {
-					switch (file_suf_name[i]) {
-					case ':':
-					case '/':
-						file_suf_name[i] = '.';
-						break;
+				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->cur_range_idx) );
+
+				if (strchr(start, '/')) {
+					start_t = ctx->cur_start.num;
+					start_t /= ctx->cur_start.den;
+					if (ctx->cur_end.den) {
+						end_t = ctx->cur_end.num;
+						end_t /= ctx->cur_end.den;
+						sprintf(szFileSuf, LLU"-"LLU, start_t, end_t);
+					} else {
+						sprintf(szFileSuf, LLU, start_t);
 					}
+					gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING(szFileSuf) );
+				} else {
+
+					gf_dynstrcat(&file_suf_name, start, NULL);
+					if (end)
+						gf_dynstrcat(&file_suf_name, end, "_");
+
+					len = (u32) strlen(file_suf_name);
+					//replace : and / characters
+					for (i=0; i<len; i++) {
+						switch (file_suf_name[i]) {
+						case ':':
+						case '/':
+							file_suf_name[i] = '.';
+							break;
+						}
+					}
+					gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 				}
-				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 			} else {
-				u64 start_t, end_t;
-				char szFileSuf[1000];
 				start_t = ctx->cur_start.num * 1000;
 				start_t /= ctx->cur_start.den;
 				end_t = ctx->cur_end.num * 1000;
@@ -645,9 +647,9 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			ts += st->tk_delay;
 			ts += st->ts_at_range_end;
 			ts -= st->ts_at_range_start_plus_one - 1;
-			ts -= st->cts_init;
+
 			if (ts<0) {
-				reframer_update_ts_shift(ctx, -ts, st->timescale);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while spliting, something went wrong during range estimation, forcing to 0\n"));
 				ts = 0;
 			}
 
@@ -686,54 +688,6 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 	reframer_drop_packet(ctx, st, pck, pck_is_ref);
 	st->nb_frames++;
-	return GF_TRUE;
-}
-
-static Bool reframer_init_timing(GF_Filter *filter, GF_ReframerCtx *ctx)
-{
-	u32 i, count = gf_filter_get_ipid_count(filter);
-	u64 min_dts_plus_one = 0;
-	u32 pid_scale=0;
-	for (i=0; i<count; i++) {
-		u64 ts;
-		GF_FilterPacket *pck;
-		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		RTStream *st = ipid ? gf_filter_pid_get_udta(ipid) : NULL;
-		if (!st) continue;
-		
-		pck = gf_filter_pid_get_packet(ipid);
-		if (!pck) {
-			//not ready yet
-			if (st->is_playing && !gf_filter_pid_is_eos(ipid))
-				return GF_FALSE;
-			//not playing or eos
-			continue;
-		}
-		ts = gf_filter_pck_get_dts(pck);
-		ts += st->tk_delay;
-
-		if (!min_dts_plus_one) {
-			min_dts_plus_one = 1 + ts;
-			pid_scale = st->timescale;
-		} else if (ts * pid_scale < (min_dts_plus_one-1) * st->timescale) {
-			min_dts_plus_one = 1 + ts;
-			pid_scale = st->timescale;
-		}
-	}
-	for (i=0; i<count; i++) {
-		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		RTStream *st = ipid ? gf_filter_pid_get_udta(ipid) : NULL;
-		if (!st) continue;
-
-		if (!pid_scale) pid_scale = st->timescale;
-
-		st->cts_init = min_dts_plus_one-1;
-		if (st->timescale != pid_scale) {
-			st->cts_init *= st->timescale;
-			st->cts_init /= pid_scale;
-		}
-	}
-	ctx->timing_initialized = GF_TRUE;
 	return GF_TRUE;
 }
 
@@ -1100,10 +1054,6 @@ GF_Err reframer_process(GF_Filter *filter)
 	if (ctx->range_type && (ctx->range_type!=RANGE_DONE)) {
 		u32 nb_start_range_reached = 0;
 		Bool check_split = GF_FALSE;
-		//init timing
-		if (!ctx->timing_initialized) {
-			if (!reframer_init_timing(filter, ctx)) return GF_OK;
-		}
 
 		//fetch input packets
 		for (i=0; i<count; i++) {
@@ -1423,6 +1373,7 @@ GF_Err reframer_process(GF_Filter *filter)
 			}
 			//purge everything before min ts
 			for (i=0; i<count; i++) {
+				Bool start_found = GF_FALSE;
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 				RTStream *st = gf_filter_pid_get_udta(ipid);
 
@@ -1481,6 +1432,7 @@ GF_Err reframer_process(GF_Filter *filter)
 								s32 delay = (s32) ((s64) ots - (s64) orig);
 								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_SINT(delay) );
 							}
+							start_found = GF_TRUE;
 							break;
 						}
 					}
@@ -1488,8 +1440,22 @@ GF_Err reframer_process(GF_Filter *filter)
 					gf_filter_pck_unref(pck);
 					st->nb_frames++;
 				}
+				//we couldn't find a sample with dts >= to our min_ts - this happens when the min_ts
+				//is located a few seconds AFTER the target split point
+				//so force stream to reevaluate and enqueue more packets
+				if (!start_found) {
+					st->range_start_computed = 0;
+					return GF_OK;
+				}
+			}
+
+			//OK every stream has now packets starting at the min_ts, ready to go
+			for (i=0; i<count; i++) {
+				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+				RTStream *st = gf_filter_pid_get_udta(ipid);
 				//reset start range computed
 				st->range_start_computed = 0;
+
 				if (ctx->extract_mode==EXTRACT_DUR) {
 					st->first_pck_sent = GF_FALSE;
 				} else {
@@ -1685,12 +1651,6 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	if (ctx->raw) {
 		gf_filter_override_caps(filter, ReframerRAWCaps, sizeof(ReframerRAWCaps) / sizeof(GF_FilterCapability) );
 	}
-
-#ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_cov_mode()) {
-		reframer_update_ts_shift(ctx, -1, 1000);
-	}
-#endif
 	return GF_OK;
 }
 
