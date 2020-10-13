@@ -2353,7 +2353,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 				frag_par[0] = 0;
 			}
 
-			if (strcmp(sURL, "null") && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
+			if (strcmp(sURL, "null") && strncmp(sURL, "rand", 4) && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
 				char szPath[GF_MAX_PATH];
 				Bool try_js = gf_fs_solve_js_script(szPath, sURL, NULL);
 				if (sep) sep[0] = fsess->sep_args;
