@@ -1348,8 +1348,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_PLAY_BUFFER, "BufferLength", "Indicate playout buffer in ms", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MAX_BUFFER, "MaxBuffer", "Indicate maximum buffer occupancy in ms", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_RE_BUFFER, "ReBuffer", "Indicate rebuffer threshold in ms, 0 disable rebuffering", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-
 	{ GF_PROP_PID_VIEW_IDX, "ViewIdx", "Indicate view index for multiview (1 being left)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ORIG_FRAG_URL, "FragURL", "Indicate fragment URL (without '#') of original URL (used by dash demux to set the property on media PIDs)", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 };
 
 GF_EXPORT
