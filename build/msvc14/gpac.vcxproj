@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -340,7 +340,7 @@
       <Optimization>Full</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>GPAC_MP4BOX_MINI;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GPAC_MP4BOX_MINI;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_WIN64;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -385,8 +385,17 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="libgpac_dll.vcxproj">
+    <ProjectReference Include="libgpac_dll.vcxproj" Condition="'$(Configuration)'=='Release'">
       <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
+    </ProjectReference>
+    <ProjectReference Include="libgpac_dll.vcxproj" Condition="'$(Configuration)'=='Debug'">
+      <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
+    </ProjectReference>
+    <ProjectReference Include="libgpac.vcxproj" Condition="'$(Configuration)'=='Release - MP4Box_only'">
+      <Project>{233014d5-f6e5-419d-8757-fa9ce7337088}</Project>
+    </ProjectReference>
+    <ProjectReference Include="libgpac.vcxproj" Condition="'$(Configuration)'=='Debug - MP4Box_only'">
+      <Project>{233014d5-f6e5-419d-8757-fa9ce7337088}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

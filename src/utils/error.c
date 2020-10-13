@@ -381,7 +381,7 @@ char *gf_log_get_tools_levels()
 }
 
 
-#if defined(GPAC_CONFIG_WIN32)
+#if defined(GPAC_CONFIG_WIN32) || defined(WIN32)
 #include <windows.h>
 #include <wincon.h>
 static HANDLE console = NULL;
@@ -404,7 +404,7 @@ void gf_sys_set_console_code(FILE *std, GF_ConsoleCodes code)
 	if (gf_sys_is_test_mode() || gpac_no_color_logs)
 		return;
 	color_code = code & 0xFFFF;
-#if defined(GPAC_CONFIG_WIN32)
+#if defined(GPAC_CONFIG_WIN32) || defined(WIN32)
 	WORD attribs=0;
 	if (!is_mintty && (console == NULL)) {
 		CONSOLE_SCREEN_BUFFER_INFO console_info;
