@@ -228,9 +228,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			else
  				pix_fmt = GF_PIXEL_RGB;
 			break;
-		case GF_QT_SUBTYPE_YUV422:
+		case GF_QT_SUBTYPE_YUYV:
 			codec_id = GF_CODECID_RAW;
-			pix_fmt = GF_PIXEL_YUV422;
+			pix_fmt = GF_PIXEL_YUYV;
+			break;
+		case GF_QT_SUBTYPE_UYVY:
+			codec_id = GF_CODECID_RAW;
+			pix_fmt = GF_PIXEL_UYVY;
 			break;
 		case GF_QT_SUBTYPE_YUV444:
 			codec_id = GF_CODECID_RAW;
@@ -243,6 +247,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		case GF_QT_SUBTYPE_YUV444_10:
 			codec_id = GF_CODECID_RAW;
 			pix_fmt = GF_PIXEL_YUV444_10;
+			break;
+		case GF_QT_SUBTYPE_YUV420:
+			codec_id = GF_CODECID_RAW;
+			pix_fmt = GF_PIXEL_YUV;
 			break;
 		case GF_ISOM_SUBTYPE_IPCM:
 			if (gf_isom_get_pcm_config(read->mov, track, stsd_idx, &pcm_flags, &pcm_size) == GF_OK) {

@@ -621,8 +621,16 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		name = "RGBSampleEntryBox";
 		full_dump=GF_TRUE;
 		break;
-	case GF_QT_SUBTYPE_YUV422:
+	case GF_QT_SUBTYPE_YUYV:
 		name = "YUV422SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_UYVY:
+		name = "YUV422SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_YUV420:
+		name = "YUV420SampleEntryBox";
 		full_dump=GF_TRUE;
 		break;
 	case GF_QT_SUBTYPE_YUV422_10:
