@@ -3409,6 +3409,8 @@ fsort (enum, default: no):     sort list of files
 .br
 
 .br
+sigcues (bool, default: false): inject CueStart property at each source begin (new or repeated) for DASHing
+.br
 
 .br
 .SH m2tsmx
@@ -3929,7 +3931,9 @@ Note: if not set as a global option using --utcs=, you must escape the url using
 .B
 Cue-driven segmentation
 .br
-The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.
+The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries. Cues can be set through XML files or injected in input packets.
+.br
+
 .br
 Cue files can be specified for the entire segmenter, or per PID using DashCue property.
 .br
@@ -3954,6 +3958,16 @@ The children of <Stream> are one or more <Cue> elements, with attributes:
 * cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen
 .br
 Warning: Cues shall be listed in decoding order.
+.br
+
+.br
+If the DashCue property of a PID equals inband, the PID will be segmented according to the CueStart property of input packets.
+.br
+This feature is typically combined with a list of files as input:
+.br
+Example
+.br
+-i list.m3u:sigcues -o res/live.mpdThis will load the flist filter in cue mode, generating continuous timelines from the sources and injecting a CueStart property at each new file.
 .br
 
 .br
@@ -6365,7 +6379,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev102-g1b4be8497-master
+build: 1.1.0-DEV-rev103-g5d8ed63f9-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
