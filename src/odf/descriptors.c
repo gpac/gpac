@@ -1132,7 +1132,7 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 		gf_bs_write_int(bs, cfg->ptl_present, 1);
 
 		if (cfg->ptl_present) {
-			s32 i;
+			s32 idx;
 			if (!cfg->general_constraint_info)
 				cfg->num_constraint_info = 0;
 
@@ -1149,21 +1149,21 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 			} else {
 				gf_bs_write_int(bs, 0, 6);
 			}
-			for (i=cfg->numTemporalLayers-2; i>=0; i--) {
-				u8 val = cfg->ptl_sublayer_present_mask & (1<<i);
+			for (idx=cfg->numTemporalLayers-2; idx>=0; idx--) {
+				u8 val = cfg->ptl_sublayer_present_mask & (1<<idx);
 				gf_bs_write_int(bs, val, 1);
 			}
-			for (i=cfg->numTemporalLayers; i<8 && cfg->numTemporalLayers>1; i++) {
+			for (idx=cfg->numTemporalLayers; idx<8 && cfg->numTemporalLayers>1; idx++) {
 				gf_bs_write_int(bs, 0, 1);
 			}
-			for (i=cfg->numTemporalLayers-2; i>=0; i--) {
-				if (cfg->ptl_sublayer_present_mask & (1<<i))
-					gf_bs_write_u8(bs, cfg->sublayer_level_idc[i]);
+			for (idx=cfg->numTemporalLayers-2; idx>=0; idx--) {
+				if (cfg->ptl_sublayer_present_mask & (1<<idx))
+					gf_bs_write_u8(bs, cfg->sublayer_level_idc[idx]);
 			}
 			if (!cfg->sub_profiles_idc) cfg->num_sub_profiles = 0;
 			gf_bs_write_u8(bs, cfg->num_sub_profiles);
-			for (i=0; i<cfg->num_sub_profiles; i++) {
-				gf_bs_write_u32(bs, cfg->sub_profiles_idc[i]);
+			for (idx=0; idx<cfg->num_sub_profiles; idx++) {
+				gf_bs_write_u32(bs, cfg->sub_profiles_idc[idx]);
 			}
 			gf_bs_write_int(bs, cfg->ols_idx, 16);
 		}

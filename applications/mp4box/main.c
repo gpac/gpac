@@ -5752,9 +5752,9 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case META_ACTION_ADD_IMAGE_ITEM:
 		{
-			u32 self_ref = 0;
 			u32 old_tk_count = gf_isom_get_track_count(file);
 			GF_Fraction _frac = {0,0};
+			self_ref = 0;
 
 			tk = 0;
 			if (meta->szPath && (!strcmp(meta->szPath, "this") || !strcmp(meta->szPath, "self") || !strcmp(meta->szPath, "ref"))

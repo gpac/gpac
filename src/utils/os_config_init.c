@@ -421,7 +421,6 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		_Dl_info dl_info;
 		dladdr((void *)get_default_install_path, &dl_info);
 		if (dl_info.dli_fname) {
-			char *sep;
 			strcpy(file_path, dl_info.dli_fname);
 			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
@@ -461,7 +460,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (path_type==GF_PATH_SHARE) {
 		Bool try_lib=GF_TRUE;
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
-			char *sep = strstr(app_path, ".gpac/");
+			sep = strstr(app_path, ".gpac/");
 			if (sep) sep[5]=0;
 			/*GUI not found, look in ~/.gpac/share/gui/ */
 			strcat(app_path, "/share");
@@ -961,11 +960,11 @@ skip_cfg:
 	check_modules_dir(cfg);
 
 	if (!gf_cfg_get_key(cfg, "core", "store-dir")) {
-		char *sep;
 		if (profile && !strcmp(profile, "0")) {
 			strcpy(szPath, gf_get_default_cache_directory() );
 			strcat(szPath, "/Storage");
 		} else {
+			char *sep;
 			strcpy(szPath, gf_cfg_get_filename(cfg));
 			sep = strrchr(szPath, '/');
 			if (!sep) sep = strrchr(szPath, '\\');

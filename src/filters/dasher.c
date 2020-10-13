@@ -1457,7 +1457,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			subtype = force_inband ? GF_ISOM_SUBTYPE_VVI1 : GF_ISOM_SUBTYPE_VVC1;
 		}
 		if (dcd) {
-			GF_VVCConfig *vvcc = dcd ? gf_odf_vvc_cfg_read(dcd->value.data.ptr, dcd->value.data.size) : NULL;
+			GF_VVCConfig *vvcc = gf_odf_vvc_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
 			if (vvcc) {

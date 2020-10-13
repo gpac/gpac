@@ -2683,7 +2683,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(pctx->src_pid);
 	}
 	if ((ctx->is_prober && !ctx->probe_done && (nb_done==count) && !ctx->allp)
-		|| (!ctx->is_prober && !ctx->allp && !ctx->dump_pck && (nb_hdr_done==count) )
+		|| (!ctx->is_prober && !ctx->allp && !ctx->dump_pck && (nb_hdr_done==count) && !gf_filter_connections_pending(filter))
 	) {
 		for (i=0; i<count; i++) {
 			PidCtx *pctx = gf_list_get(ctx->src_pids, i);

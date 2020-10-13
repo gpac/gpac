@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1195,7 +1195,7 @@ import_next_sample:
 	if (image_props->sample_num && item_name && !strcmp(item_name, "ref")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Refering trackID %d sample %d as item %d\n", imported_track, sample_number, item_id));
 
-		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
+		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, !strlen(item_name) ? "Image" : item_name, item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
 	} else {
 
 		if (image_props->sample_num) {

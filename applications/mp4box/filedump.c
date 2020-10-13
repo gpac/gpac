@@ -2987,7 +2987,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			|| (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2)
 	) {
 		const u8 *compat_profiles;
-		u32 i, nb_compat_profiles;
+		u32 nb_compat_profiles;
 		Bool valid = GF_FALSE;
 		Bool allow_inband = GF_FALSE;
 		if ( (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM1) || (msub_type == GF_ISOM_SUBTYPE_MH3D_MHM2))

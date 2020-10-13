@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3064,7 +3064,6 @@ GF_Err vvcc_box_size(GF_Box *s)
 
 	ptr->size += 6;
 	if (ptr->config->ptl_present) {
-		u32 i;
 		if (!ptr->config->general_constraint_info)
 			ptr->config->num_constraint_info = 0;
 		if (!ptr->config->sub_profiles_idc)
