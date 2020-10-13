@@ -1317,6 +1317,9 @@ sample_entry_setup:
 	case GF_CODECID_MPEG2_PART3:
 		m_subtype = GF_ISOM_SUBTYPE_MP3;
 		comp_name = "MP3";
+		//if source had a DSI, this was mpeg4 systems signaling, reuse that
+		if (dsi)
+			use_m4sys = GF_TRUE;
 		break;
 	case GF_CODECID_AAC_MPEG4:
 	case GF_CODECID_AAC_MPEG2_MP:
