@@ -60,7 +60,8 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid)
+			gf_filter_pid_remove(ctx->opid);
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
