@@ -3941,6 +3941,8 @@ Cues are given in an XML file with a root element called <DASHCues>, with curren
 .br
 * mode: if present and value is edit, the timestamp are in presentation time (edit list applied) otherwise they are in media time
 .br
+* ts_offset: integer giving a value (in timescale) to substract to the DTS/CTS values listed
+.br
 
 .br
 The children of <Stream> are one or more <Cue> elements, with attributes:
@@ -6363,7 +6365,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev90-g98d790119-master
+build: 1.1.0-DEV-rev102-g1b4be8497-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -5067,7 +5067,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 }
 
 
-GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, GF_DASHCueInfo **out_cues, u32 *nb_cues)
+GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, s32 *ts_offset, GF_DASHCueInfo **out_cues, u32 *nb_cues)
 {
 	GF_XMLNode *root, *stream, *cue;
 	GF_XMLAttribute *att;
@@ -5101,11 +5101,13 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 		if (strcmp(stream->name, "Stream")) continue;
 
 		*use_edit_list = GF_FALSE;
+		*ts_offset = 0;
 		j=0;
 		while ((att = gf_list_enum(stream->attributes, &j))) {
 			if (!strcmp(att->name, "id")) id = atoi(att->value);
 			else if (!strcmp(att->name, "timescale")) timescale = atoi(att->value);
 			else if (!strcmp(att->name, "mode") && !strcmp(att->value, "edit") ) *use_edit_list = GF_TRUE;
+			else if (!strcmp(att->name, "ts_offset")) *ts_offset = atoi(att->value);
 		}
 		if (id != stream_id) continue;
 
