@@ -67,6 +67,8 @@ typedef struct
 	Bool mpd_open;
 	Bool initial_play;
 	Bool check_eos;
+
+	char *frag_url;
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -949,6 +951,9 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	if (ctx->mpd_pid) {
 		gf_filter_pid_merge_properties(opid, ctx->mpd_pid, dashdmx_merge_prop, ipid);
 	}
+
+	if (ctx->frag_url)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_FRAG_URL, &PROP_NAME(ctx->frag_url) );
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -994,6 +999,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	//configure MPD pid
 	if (!ctx->mpd_pid) {
+		char *frag;
 		const GF_PropertyValue *p;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 		if (!p || !p->value.string) {
@@ -1011,6 +1017,11 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error - cannot initialize DASH Client for %s: %s\n", p->value.string, gf_error_to_string(e)));
 			gf_filter_setup_failure(filter, e);
 			return e;
+		}
+		frag = strchr(p->value.string, '#');
+		if (frag) {
+			if (ctx->frag_url) gf_free(ctx->frag_url);
+			ctx->frag_url = gf_strdup(frag+1);
 		}
 		//we have a redirect URL on mpd pid, this means this comes from a service feeding the cache so we won't get any data on the pid.
 		//request a process task
@@ -1149,6 +1160,9 @@ static void dashdmx_finalize(GF_Filter *filter)
 
 	if (ctx->dash)
 		gf_dash_del(ctx->dash);
+
+	if (ctx->frag_url)
+		gf_free(ctx->frag_url);
 }
 
 static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)

@@ -284,6 +284,12 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			break;
 		}
 
+		if (!ctx->root_scene->root_od->scene_ns->url_frag) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_FRAG_URL);
+			if (p && p->value.string)
+				ctx->root_scene->root_od->scene_ns->url_frag = gf_strdup(p->value.string);
+		}
+
 		if (!ctx->player)
 			gf_filter_post_process_task(filter);
 	}

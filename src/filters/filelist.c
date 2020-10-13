@@ -108,6 +108,8 @@ typedef struct
 
 	Bool wait_update;
 	u64 last_file_modif_time;
+
+	char *frag_url;
 } GF_FileListCtx;
 
 static const GF_FilterCapability FileListCapsSrc[] =
@@ -266,6 +268,9 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		delay /= iopid->o_timescale;
 	}
 #endif
+
+	if (ctx->frag_url)
+		gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_ORIG_FRAG_URL, &PROP_NAME(ctx->frag_url) );
 
 	//if we reattached the input, we must send a play request
 	if (reassign) {
@@ -559,12 +564,18 @@ GF_Err filelist_process(GF_Filter *filter)
 				FILE *f=NULL;
 				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_FILEPATH);
 				if (p) {
+					char *frag;
 					if (ctx->file_path) {
 						gf_free(ctx->file_path);
 						is_first = GF_FALSE;
 					}
 					ctx->file_path = gf_strdup(p->value.string);
-					f = gf_fopen(p->value.string, "rt");
+					frag = strchr(ctx->file_path, '#');
+					if (frag) {
+						frag[0] = 0;
+						ctx->frag_url = gf_strdup(frag+1);
+					}
+					f = gf_fopen(ctx->file_path, "rt");
 				}
 				if (!f) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
@@ -1003,6 +1014,7 @@ void filelist_finalize(GF_Filter *filter)
 	gf_list_del(ctx->io_pids);
 	gf_list_del(ctx->filter_srcs);
 	if (ctx->file_path) gf_free(ctx->file_path);
+	if (ctx->frag_url) gf_free(ctx->frag_url);
 }
 
 
