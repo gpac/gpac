@@ -234,6 +234,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	Bool insert_jp2c = GF_FALSE;
 	GF_FilterPacket *dst_pck, *src_pck;
 	GF_FilterPacket *pck;
+	const GF_PropertyValue *p;
 
 	if (!ctx->in_pid) return GF_EOS;
 
@@ -275,6 +276,12 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (pck && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
 		force_intra = 2;
 	}
+	//if CUE_START is set on input, this is a segment boundary, force IDR sync
+	p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_CUE_START) : NULL;
+	if (p && p->value.boolean) {
+		force_intra = 2;
+	}
+
 	//check if we need to force a closed gop
 	if (pck && (ctx->fintra.den && ctx->fintra.num) && !ctx->force_reconfig) {
 		u64 cts = gf_filter_pck_get_cts(pck);
@@ -297,6 +304,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			}
 		}
 	}
+
 	if (force_intra) {
 		//file switch we force a full reset to force injecting xPS in the stream
 		//we could also inject them manually but we don't have them !!
@@ -1427,7 +1435,7 @@ GF_FilterRegister FFEncodeRegister = {
 		"\n"
 		"The encoder will look for property `TargetRate` on input PID to set the desired bitrate per PID.\n"
 		"\n"
-		"The encoder will force a closed gop boundary at each packet with a `FileNumber` property set.\n"
+		"The encoder will force a closed gop boundary at each packet with a `FileNumber` property set or a `CueStart` property set to true.\n"
 	)
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
