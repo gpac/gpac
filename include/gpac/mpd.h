@@ -1128,11 +1128,12 @@ typedef struct
 \param stream_id the ID of the stream for which we load cues (typically, TrackID or GF_PROP_PID_ID)
 \param cues_timescale set to the timescale used in the cues document
 \param use_edit_list set to GF_TRUE if the cts values of cues have edit list applied (i.e. are ISOBMFF presentation times)
+\param ts_offset set to the timestamp offset to substract from DTS/CTS values
 \param out_cues set to a newly allocated list of cues, to free by the caller
 \param nb_cues set to the number of cues parsed
 \return error if any
 */
-GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, GF_DASHCueInfo **out_cues, u32 *nb_cues);
+GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, s32 *ts_offset, GF_DASHCueInfo **out_cues, u32 *nb_cues);
 
 
 /*! @} */
