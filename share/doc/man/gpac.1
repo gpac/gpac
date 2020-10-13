@@ -2605,6 +2605,11 @@ File suffix name, replacement for $FS$ in tile templates
 End of DASH segment
 .br
 .TP
+.B CueStart (PCUS,bool, P)
+.br
+Set on packets marking the begining of a DASH/HLS segment for cue-driven segmentation - see dasher help
+.br
+.TP
 .B MaxFrameSize (MFRS,uint,D )
 .br
 Max size of frame in stream - changes are signaled through pid_set_info (no reconfigure)
@@ -3761,7 +3766,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev102-g1b4be8497-master
+build: 1.1.0-DEV-rev103-g5d8ed63f9-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

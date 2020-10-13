@@ -340,6 +340,7 @@ typedef struct _dash_stream
 	GF_DASHCueInfo *cues;
 	Bool cues_use_edits;
 	s32 cues_ts_offset;
+	Bool inband_cues;
 	
 	Bool clamp_done;
 	Bool dcd_not_ready;
@@ -658,11 +659,17 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			CHECK_PROPL(GF_PROP_PID_CHANNEL_LAYOUT, ds->ch_layout, GF_EOS)
 		}
 
+		Bool old_period_switch = period_switch;
+
 		CHECK_PROP(GF_PROP_PID_ID, ds->id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
+		CHECK_PROP_BOOL(GF_PROP_PID_HAS_SYNC, ds->has_sync_points, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_NB_FRAMES, ds->nb_samples_in_source, GF_EOS)
 		CHECK_PROP_FRAC64(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
-		CHECK_PROP_BOOL(GF_PROP_PID_HAS_SYNC, ds->has_sync_points, GF_EOS)
+		CHECK_PROP_STR(GF_PROP_PID_URL, ds->src_url, GF_EOS)
+
+		if (ds->inband_cues)
+			period_switch = old_period_switch;
 
 		if (ctx->scope_deps) {
 			const char *src_args = gf_filter_pid_orig_src_args(pid);
@@ -721,7 +728,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 		ds->dsi_crc = dc_crc;
 
-		CHECK_PROP_STR(GF_PROP_PID_URL, ds->src_url, GF_EOS)
 		CHECK_PROP_STR(GF_PROP_PID_TEMPLATE, ds->template, GF_EOS)
 		CHECK_PROP_STR(GF_PROP_PID_LANGUAGE, ds->lang, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_INTERLACED, ds->interlaced, GF_EOS)
@@ -864,9 +870,16 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (ds->cues) gf_free(ds->cues);
 			ds->cues = NULL;
 			ds->nb_cues = 0;
+			ds->inband_cues = GF_FALSE;
 			if (cue_file) {
-				GF_Err e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues_ts_offset, &ds->cues, &ds->nb_cues);
-				if (e) return e;
+				if (!strcmp(cue_file, "inband")) {
+					ds->inband_cues = GF_TRUE;
+				} else {
+					GF_Err e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues_ts_offset, &ds->cues, &ds->nb_cues);
+					if (e) return e;
+					if (!ds->cues_timescale)
+						ds->cues_timescale = ds->timescale;
+				}
 			}
 		}
 	} else {
@@ -6071,7 +6084,17 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 				}
 			}
-			//cue base
+			//inband-cue based segmentation
+			else if (ds->inband_cues) {
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CUE_START);
+				if (p && p->value.boolean && base_ds->segment_started) {
+					seg_over = GF_TRUE;
+					if (ds == base_ds) {
+						base_ds->adjusted_next_seg_start = cts;
+					}
+				}
+			}
+			//cue-list based segmentation
 			else if (ds->cues) {
 				u32 cidx;
 				GF_DASHCueInfo *cue=NULL;
@@ -7308,8 +7331,9 @@ GF_FilterRegister DasherRegister = {
 "Note: if not set as a global option using `--utcs=`, you must escape the url using double `::` or use other separators.\n"
 "\n"
 "## Cue-driven segmentation\n"
-"The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries.\n"
-"Cue files can be specified for the entire segmenter, or per PID using DashCue property.\n"
+"The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries. Cues can be set through XML files or injected in input packets.\n"
+"\n"
+"Cue files can be specified for the entire segmenter, or per PID using `DashCue` property.\n"
 "Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are one or more <Stream> elements, with attributes:\n"
 "- id: integer for stream/track/pid ID\n"
 "- timescale: integer giving the units of following timestamps\n"
@@ -7320,6 +7344,11 @@ GF_FilterRegister DasherRegister = {
 "- dts: long integer giving the decoding time stamp of a sample at which spliting shall happen\n"
 "- cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"
 "Warning: Cues shall be listed in decoding order.\n"
+"\n"
+"If the `DashCue` property of a PID equals `inband`, the PID will be segmented according to the `CueStart` property of input packets.\n"
+"This feature is typically combined with a list of files as input:\n"
+"EX -i list.m3u:sigcues -o res/live.mpd"
+"This will load the `flist` filter in cue mode, generating continuous timelines from the sources and injecting a `CueStart` property at each new file."
 "\n"
 "## Manifest Generation only mode\n"
 "The segmenter can be used to generate manifests from already fragmented ISOBMFF inputs using [-sigfrag]().\n"
