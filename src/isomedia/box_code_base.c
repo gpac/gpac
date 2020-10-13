@@ -6433,10 +6433,12 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_QT_SUBTYPE_APCS:
 		case GF_QT_SUBTYPE_AP4X:
 		case GF_QT_SUBTYPE_AP4H:
-		case GF_QT_SUBTYPE_YUV422:
+		case GF_QT_SUBTYPE_YUYV:
+		case GF_QT_SUBTYPE_UYVY:
 		case GF_QT_SUBTYPE_YUV444:
 		case GF_QT_SUBTYPE_YUV422_10:
 		case GF_QT_SUBTYPE_YUV444_10:
+		case GF_QT_SUBTYPE_YUV420:
 		case GF_ISOM_BOX_TYPE_IPCM:
 		case GF_ISOM_BOX_TYPE_FPCM:
 		case GF_ISOM_BOX_TYPE_VVC1:

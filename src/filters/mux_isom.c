@@ -1645,8 +1645,16 @@ sample_entry_setup:
 			case GF_PIXEL_RGB:
 				m_subtype = GF_QT_SUBTYPE_RAW;
 				break;
-			case GF_PIXEL_YUV422:
-				m_subtype = GF_QT_SUBTYPE_YUV422;
+			case GF_PIXEL_YUV:
+				m_subtype = GF_QT_SUBTYPE_YUV420;
+				force_colr = GF_TRUE;
+				break;
+			case GF_PIXEL_YUYV:
+				m_subtype = GF_QT_SUBTYPE_YUYV;
+				force_colr = GF_TRUE;
+				break;
+			case GF_PIXEL_UYVY:
+				m_subtype = GF_QT_SUBTYPE_UYVY;
 				force_colr = GF_TRUE;
 				break;
 			case GF_PIXEL_YUV422_10:
@@ -1655,6 +1663,10 @@ sample_entry_setup:
 				break;
 			case GF_PIXEL_YUV444:
 				m_subtype = GF_QT_SUBTYPE_YUV444;
+				force_colr = GF_TRUE;
+				break;
+			case GF_PIXEL_YUVA444:
+				m_subtype = GF_QT_SUBTYPE_YUVA444;
 				force_colr = GF_TRUE;
 				break;
 			case GF_PIXEL_YUV444_10:

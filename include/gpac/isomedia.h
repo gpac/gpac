@@ -329,11 +329,13 @@ enum
 	GF_QT_SUBTYPE_APCS	= GF_4CC( 'a', 'p', 'c', 's' ),
 	GF_QT_SUBTYPE_AP4X	= GF_4CC( 'a', 'p', '4', 'x' ),
 	GF_QT_SUBTYPE_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
-	GF_QT_SUBTYPE_YUV422 	= GF_4CC('y','u','v','2'),
-//	GF_QT_SUBTYPE_YUV422 	= GF_4CC('2','v','u','Y'),
-	GF_QT_SUBTYPE_YUV444 	= GF_4CC('v','3','0','8'),
-	GF_QT_SUBTYPE_YUV422_10 	= GF_4CC('v','2','1','0'),
-	GF_QT_SUBTYPE_YUV444_10 	= GF_4CC('v','4','1','0'),
+	GF_QT_SUBTYPE_YUYV = GF_4CC('y','u','v','2'),
+	GF_QT_SUBTYPE_UYVY = GF_4CC('2','v','u','y'),
+	GF_QT_SUBTYPE_YUV444 = GF_4CC('v','3','0','8'),
+	GF_QT_SUBTYPE_YUVA444 = GF_4CC('v','4','0','8'),
+	GF_QT_SUBTYPE_YUV422_10 = GF_4CC('v','2','1','0'),
+	GF_QT_SUBTYPE_YUV444_10 = GF_4CC('v','4','1','0'),
+	GF_QT_SUBTYPE_YUV420 = GF_4CC('j','4','2','0'),
 };
 
 
