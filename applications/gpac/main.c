@@ -2129,6 +2129,31 @@ restart:
 		gpac_print_report(session, GF_TRUE, GF_FALSE);
 	}
 
+	if (!session_js) {
+		Bool has_vout = GF_FALSE;
+		Bool has_compositor = GF_FALSE;
+		for (i=0; i<gf_list_count(loaded_filters); i++) {
+			GF_FilterStats stats;
+			GF_Filter *f = gf_list_get(loaded_filters, i);
+			gf_filter_get_stats(f, &stats);
+			if (!stats.reg_name) continue;
+			if (!strcmp(stats.reg_name, "vout")) has_vout=GF_TRUE;
+			//if compositor in player mode, don't load script
+			else if (!strcmp(stats.reg_name, "compositor")) {
+				GF_PropertyValue p;
+				gf_filter_get_arg(f, "player", &p);
+				if (p.value.uint!=0)
+					has_compositor=GF_TRUE;
+			}
+		}
+		if (has_vout && !has_compositor) {
+			session_js = "$GSHARE/scripts/vout.js";
+			gf_fs_load_script(session, session_js);
+		}
+	}
+
+
+
 	e = gf_fs_run(session);
 	if (e>0) e = GF_OK;
 
@@ -2217,7 +2242,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		//dump some interesting predefined ones which are not mapped to types
 		if (cap->code==GF_PROP_PID_STREAM_TYPE) szVal = gf_stream_type_name(cap->val.value.uint);
 		else if (cap->code==GF_PROP_PID_CODECID) szVal = (const char *) gf_codecid_name(cap->val.value.uint);
-		else szVal = gf_props_dump_val(&cap->val, szDump, GF_FALSE, NULL);
+		else szVal = gf_props_dump_val(&cap->val, szDump, GF_PROP_DUMP_DATA_NONE, NULL);
 
 		gf_sys_format_help(helpout, help_flags, " %s=\"%s\"", szName,  szVal);
 		if (cap->priority) gf_sys_format_help(helpout, help_flags, ", priority=%d", cap->priority);

@@ -206,6 +206,8 @@ except ImportError:
 ##ctypes instance of libgpac
 ##\hideinitializer
 _libgpac=None
+
+## \cond private
 #load libgpac
 try:
     dll_path = find_library("libgpac.dll")
@@ -222,6 +224,9 @@ except OSError:
         except OSError:
             print('Failed to locate libgpac (.so/.dll/.dylib) - make sure it is in your system path')
             os._exit(1)
+
+## \endcond private
+
 #
 # Type definitions
 #
@@ -379,6 +384,7 @@ class PropData(Structure):
 ## filter prop type, as defined in libgpac and usable as a Python object
 #Fields have the same types, names and semantics as \ref GF_PropUIntList
 class PropStringList(Structure):
+    ## \cond private
     _fields_ = [("vals", POINTER(c_char_p)), ("nb_items", c_uint)]
     def __str__(self):
         res=''
@@ -387,6 +393,7 @@ class PropStringList(Structure):
                 res += ','
             res += self.vals[i].decode('utf-8')
         return res
+    ## \endcond private
 
 ## \cond private
 

@@ -351,18 +351,33 @@ GF_DownloadManager *jsf_get_download_manager(JSContext *c)
 	return gf_filter_get_download_manager(jsf->filter);
 }
 
+GF_FilterSession *jsff_get_session(JSContext *c, JSValue this_val);
+struct _gf_ft_mgr *gf_fs_get_font_manager(GF_FilterSession *fsess);
+
 struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c)
 {
-	GF_JSFilterCtx *jsf;
 	JSValue global = JS_GetGlobalObject(c);
+	JSValue obj;
 
-	JSValue filter_obj = JS_GetPropertyStr(c, global, "filter");
+	obj = JS_GetPropertyStr(c, global, "session");
+	if (!JS_IsNull(obj) && !JS_IsException(obj)) {
+		GF_FilterSession *fs = jsff_get_session(c, obj);
+		JS_FreeValue(c, obj);
+		if (fs) {
+			JS_FreeValue(c, global);
+			return gf_fs_get_font_manager(fs);
+		}
+	}
+
+	obj = JS_GetPropertyStr(c, global, "filter");
 	JS_FreeValue(c, global);
-	if (JS_IsNull(filter_obj) || JS_IsException(filter_obj)) return NULL;
-	jsf = JS_GetOpaque(filter_obj, jsf_filter_class_id);
-	JS_FreeValue(c, filter_obj);
-	if (!jsf) return NULL;
-	return gf_filter_get_font_manager(jsf->filter);
+	if (!JS_IsNull(obj) && !JS_IsException(obj)) {
+		GF_JSFilterCtx *jsf = JS_GetOpaque(obj, jsf_filter_class_id);
+		JS_FreeValue(c, obj);
+		if (jsf)
+			return gf_filter_get_font_manager(jsf->filter);
+	}
+	return NULL;
 }
 
 GF_Err jsf_request_opengl(JSContext *c)
@@ -600,12 +615,12 @@ JSValue jsf_NewPropTranslate(JSContext *ctx, const GF_PropertyValue *prop, u32 p
 	return res;
 }
 
-GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF_PropertyValue *prop)
+GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF_PropertyValue *prop, u32 prop_type)
 {
 	u32 type;
 	memset(prop, 0, sizeof(GF_PropertyValue));
 
-	type = GF_PROP_STRING;
+	type = prop_type ? prop_type : GF_PROP_STRING;
 	if (p4cc)
 		type = gf_props_4cc_get_type(p4cc);
 
@@ -801,9 +816,24 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 			u8 *data = JS_GetArrayBuffer(ctx, &ab_size, value);
 			if (!data)
 				return GF_BAD_PARAM;
-			prop->value.data.ptr = gf_malloc(ab_size);
-			memcpy(prop->value.data.ptr, data, ab_size);
-			prop->value.data.size = (u32) ab_size;
+
+			if (prop_type==GF_PROP_CONST_DATA) {
+				prop->value.data.ptr = data;
+				prop->value.data.size = (u32) ab_size;
+				prop->type = GF_PROP_CONST_DATA;
+ 			} else {
+				prop->value.data.ptr = gf_malloc(ab_size);
+				memcpy(prop->value.data.ptr, data, ab_size);
+				prop->value.data.size = (u32) ab_size;
+				prop->type = GF_PROP_DATA;
+			}
+		}
+	} else if (JS_IsNull(value)) {
+		prop->value.data.ptr = NULL;
+		prop->value.data.size = 0;
+		if (prop_type==GF_PROP_CONST_DATA) {
+			prop->type = GF_PROP_CONST_DATA;
+		} else {
 			prop->type = GF_PROP_DATA;
 		}
 	} else {
@@ -822,7 +852,11 @@ GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF
 	return GF_OK;
 }
 
+GF_Err jsf_ToProp(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF_PropertyValue *prop)
+{
+	return jsf_ToProp_ex(filter, ctx, value, p4cc, prop, 0);
 
+}
 static JSValue jsf_filter_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
 {
 	u32 ival;
@@ -2638,6 +2672,8 @@ enum
 
 	JSF_EVENT_USER_TYPE,
 	JSF_EVENT_USER_KEYCODE,
+	JSF_EVENT_USER_KEYNAME,
+	JSF_EVENT_USER_KEYMODS,
 	JSF_EVENT_USER_MOUSE_X,
 	JSF_EVENT_USER_MOUSE_Y,
 	JSF_EVENT_USER_WHEEL,
@@ -2782,6 +2818,8 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 		case GF_EVENT_TEXTINPUT:
 			switch (magic) {
 			case JSF_EVENT_USER_KEYCODE:
+			case JSF_EVENT_USER_KEYNAME:
+			case JSF_EVENT_USER_KEYMODS:
 			case JSF_EVENT_USER_HWKEY:
 			case JSF_EVENT_USER_DROPFILES:
 				return GF_TRUE;
@@ -2958,6 +2996,8 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 		return JS_UNDEFINED;
 	case JSF_EVENT_USER_BUTTON: return JS_ToInt32(ctx, &evt->user_event.event.mouse.button, value) ? JS_EXCEPTION : JS_UNDEFINED;
 	case JSF_EVENT_USER_HWKEY: return JS_ToInt32(ctx, &evt->user_event.event.key.hw_code, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_KEYCODE: return JS_ToInt32(ctx, &evt->user_event.event.key.key_code, value) ? JS_EXCEPTION : JS_UNDEFINED;
+	case JSF_EVENT_USER_KEYMODS: return JS_ToInt32(ctx, &evt->user_event.event.key.flags, value) ? JS_EXCEPTION : JS_UNDEFINED;
 
 	case JSF_EVENT_USER_MT_ROTATION:
 		if (JS_ToFloat64(ctx, &dval, value)) return JS_EXCEPTION;
@@ -3091,7 +3131,10 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 	case JSF_EVENT_BUFREQ_PID_ONLY: return JS_NewBool(ctx, evt->buffer_req.pid_only);
 	/*user event*/
 	case JSF_EVENT_USER_TYPE: return JS_NewInt32(ctx, evt->user_event.event.type);
-	case JSF_EVENT_USER_KEYCODE:
+	case JSF_EVENT_USER_KEYCODE: return JS_NewInt32(ctx, evt->user_event.event.key.key_code);
+	case JSF_EVENT_USER_KEYMODS:
+		return JS_NewInt32(ctx, evt->user_event.event.key.flags);
+	case JSF_EVENT_USER_KEYNAME:
 #ifndef GPAC_DISABLE_SVG
 		return JS_NewString(ctx, gf_dom_get_key_name(evt->user_event.event.key.key_code) );
 #else
@@ -3199,6 +3242,8 @@ static const JSCFunctionListEntry jsf_event_funcs[] =
     /*ui events*/
     JS_CGETSET_MAGIC_DEF("ui_type", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_TYPE),
     JS_CGETSET_MAGIC_DEF("keycode", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_KEYCODE),
+    JS_CGETSET_MAGIC_DEF("keyname", jsf_event_get_prop, NULL, JSF_EVENT_USER_KEYNAME),
+    JS_CGETSET_MAGIC_DEF("keymods", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_KEYMODS),
     JS_CGETSET_MAGIC_DEF("mouse_x", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_X),
     JS_CGETSET_MAGIC_DEF("mouse_y", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_Y),
     JS_CGETSET_MAGIC_DEF("wheel", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_WHEEL),
@@ -4051,6 +4096,222 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_EVENT_REFRESH)
 	DEF_CONST(GF_EVENT_QUIT)
 
+	DEF_CONST(GF_KEY_UNIDENTIFIED)
+	DEF_CONST(GF_KEY_ACCEPT)
+	DEF_CONST(GF_KEY_AGAIN)
+	DEF_CONST(GF_KEY_ALLCANDIDATES)
+	DEF_CONST(GF_KEY_ALPHANUM)
+	DEF_CONST(GF_KEY_ALT)
+	DEF_CONST(GF_KEY_ALTGRAPH)
+	DEF_CONST(GF_KEY_APPS)
+	DEF_CONST(GF_KEY_ATTN)
+	DEF_CONST(GF_KEY_BROWSERBACK)
+	DEF_CONST(GF_KEY_BROWSERFAVORITES)
+	DEF_CONST(GF_KEY_BROWSERFORWARD)
+	DEF_CONST(GF_KEY_BROWSERHOME)
+	DEF_CONST(GF_KEY_BROWSERREFRESH)
+	DEF_CONST(GF_KEY_BROWSERSEARCH)
+	DEF_CONST(GF_KEY_BROWSERSTOP)
+	DEF_CONST(GF_KEY_CAPSLOCK)
+	DEF_CONST(GF_KEY_CLEAR)
+	DEF_CONST(GF_KEY_CODEINPUT)
+	DEF_CONST(GF_KEY_COMPOSE)
+	DEF_CONST(GF_KEY_CONTROL)
+	DEF_CONST(GF_KEY_CRSEL)
+	DEF_CONST(GF_KEY_CONVERT)
+	DEF_CONST(GF_KEY_COPY)
+	DEF_CONST(GF_KEY_CUT)
+	DEF_CONST(GF_KEY_DOWN)
+	DEF_CONST(GF_KEY_END)
+	DEF_CONST(GF_KEY_ENTER)
+	DEF_CONST(GF_KEY_ERASEEOF)
+	DEF_CONST(GF_KEY_EXECUTE)
+	DEF_CONST(GF_KEY_EXSEL)
+	DEF_CONST(GF_KEY_F1)
+	DEF_CONST(GF_KEY_F2)
+	DEF_CONST(GF_KEY_F3)
+	DEF_CONST(GF_KEY_F4)
+	DEF_CONST(GF_KEY_F5)
+	DEF_CONST(GF_KEY_F6)
+	DEF_CONST(GF_KEY_F7)
+	DEF_CONST(GF_KEY_F8)
+	DEF_CONST(GF_KEY_F9)
+	DEF_CONST(GF_KEY_F10)
+	DEF_CONST(GF_KEY_F11)
+	DEF_CONST(GF_KEY_F12)
+	DEF_CONST(GF_KEY_F13)
+	DEF_CONST(GF_KEY_F14)
+	DEF_CONST(GF_KEY_F15)
+	DEF_CONST(GF_KEY_F16)
+	DEF_CONST(GF_KEY_F17)
+	DEF_CONST(GF_KEY_F18)
+	DEF_CONST(GF_KEY_F19)
+	DEF_CONST(GF_KEY_F20)
+	DEF_CONST(GF_KEY_F21)
+	DEF_CONST(GF_KEY_F22)
+	DEF_CONST(GF_KEY_F23)
+	DEF_CONST(GF_KEY_F24)
+	DEF_CONST(GF_KEY_FINALMODE)
+	DEF_CONST(GF_KEY_FIND)
+	DEF_CONST(GF_KEY_FULLWIDTH)
+	DEF_CONST(GF_KEY_HALFWIDTH)
+	DEF_CONST(GF_KEY_HANGULMODE)
+	DEF_CONST(GF_KEY_HANJAMODE)
+	DEF_CONST(GF_KEY_HELP)
+	DEF_CONST(GF_KEY_HIRAGANA)
+	DEF_CONST(GF_KEY_HOME)
+	DEF_CONST(GF_KEY_INSERT)
+	DEF_CONST(GF_KEY_JAPANESEHIRAGANA)
+	DEF_CONST(GF_KEY_JAPANESEKATAKANA)
+	DEF_CONST(GF_KEY_JAPANESEROMAJI)
+	DEF_CONST(GF_KEY_JUNJAMODE)
+	DEF_CONST(GF_KEY_KANAMODE)
+	DEF_CONST(GF_KEY_KANJIMODE)
+	DEF_CONST(GF_KEY_KATAKANA)
+	DEF_CONST(GF_KEY_LAUNCHAPPLICATION1)
+	DEF_CONST(GF_KEY_LAUNCHAPPLICATION2)
+	DEF_CONST(GF_KEY_LAUNCHMAIL)
+	DEF_CONST(GF_KEY_LEFT)
+	DEF_CONST(GF_KEY_META)
+	DEF_CONST(GF_KEY_MEDIANEXTTRACK)
+	DEF_CONST(GF_KEY_MEDIAPLAYPAUSE)
+	DEF_CONST(GF_KEY_MEDIAPREVIOUSTRACK)
+	DEF_CONST(GF_KEY_MEDIASTOP)
+	DEF_CONST(GF_KEY_MODECHANGE)
+	DEF_CONST(GF_KEY_NONCONVERT)
+	DEF_CONST(GF_KEY_NUMLOCK)
+	DEF_CONST(GF_KEY_PAGEDOWN)
+	DEF_CONST(GF_KEY_PAGEUP)
+	DEF_CONST(GF_KEY_PASTE)
+	DEF_CONST(GF_KEY_PAUSE)
+	DEF_CONST(GF_KEY_PLAY)
+	DEF_CONST(GF_KEY_PREVIOUSCANDIDATE)
+	DEF_CONST(GF_KEY_PRINTSCREEN)
+	DEF_CONST(GF_KEY_PROCESS)
+	DEF_CONST(GF_KEY_PROPS)
+	DEF_CONST(GF_KEY_RIGHT)
+	DEF_CONST(GF_KEY_ROMANCHARACTERS)
+	DEF_CONST(GF_KEY_SCROLL)
+	DEF_CONST(GF_KEY_SELECT)
+	DEF_CONST(GF_KEY_SELECTMEDIA)
+	DEF_CONST(GF_KEY_SHIFT)
+	DEF_CONST(GF_KEY_STOP)
+	DEF_CONST(GF_KEY_UP)
+	DEF_CONST(GF_KEY_UNDO)
+	DEF_CONST(GF_KEY_VOLUMEDOWN)
+	DEF_CONST(GF_KEY_VOLUMEMUTE)
+	DEF_CONST(GF_KEY_VOLUMEUP)
+	DEF_CONST(GF_KEY_WIN)
+	DEF_CONST(GF_KEY_ZOOM)
+	DEF_CONST(GF_KEY_BACKSPACE)
+	DEF_CONST(GF_KEY_TAB)
+	DEF_CONST(GF_KEY_CANCEL)
+	DEF_CONST(GF_KEY_ESCAPE)
+	DEF_CONST(GF_KEY_SPACE)
+	DEF_CONST(GF_KEY_EXCLAMATION)
+	DEF_CONST(GF_KEY_QUOTATION)
+	DEF_CONST(GF_KEY_NUMBER)
+	DEF_CONST(GF_KEY_DOLLAR)
+	DEF_CONST(GF_KEY_AMPERSAND)
+	DEF_CONST(GF_KEY_APOSTROPHE)
+	DEF_CONST(GF_KEY_LEFTPARENTHESIS)
+	DEF_CONST(GF_KEY_RIGHTPARENTHESIS)
+	DEF_CONST(GF_KEY_STAR)
+	DEF_CONST(GF_KEY_PLUS)
+	DEF_CONST(GF_KEY_COMMA)
+	DEF_CONST(GF_KEY_HYPHEN)
+	DEF_CONST(GF_KEY_FULLSTOP)
+	DEF_CONST(GF_KEY_SLASH)
+	DEF_CONST(GF_KEY_0)
+	DEF_CONST(GF_KEY_1)
+	DEF_CONST(GF_KEY_2)
+	DEF_CONST(GF_KEY_3)
+	DEF_CONST(GF_KEY_4)
+	DEF_CONST(GF_KEY_5)
+	DEF_CONST(GF_KEY_6)
+	DEF_CONST(GF_KEY_7)
+	DEF_CONST(GF_KEY_8)
+	DEF_CONST(GF_KEY_9)
+	DEF_CONST(GF_KEY_COLON)
+	DEF_CONST(GF_KEY_SEMICOLON)
+	DEF_CONST(GF_KEY_LESSTHAN)
+	DEF_CONST(GF_KEY_EQUALS)
+	DEF_CONST(GF_KEY_GREATERTHAN)
+	DEF_CONST(GF_KEY_QUESTION)
+	DEF_CONST(GF_KEY_AT)
+	DEF_CONST(GF_KEY_A)
+	DEF_CONST(GF_KEY_B)
+	DEF_CONST(GF_KEY_C)
+	DEF_CONST(GF_KEY_D)
+	DEF_CONST(GF_KEY_E)
+	DEF_CONST(GF_KEY_F)
+	DEF_CONST(GF_KEY_G)
+	DEF_CONST(GF_KEY_H)
+	DEF_CONST(GF_KEY_I)
+	DEF_CONST(GF_KEY_J)
+	DEF_CONST(GF_KEY_K)
+	DEF_CONST(GF_KEY_L)
+	DEF_CONST(GF_KEY_M)
+	DEF_CONST(GF_KEY_N)
+	DEF_CONST(GF_KEY_O)
+	DEF_CONST(GF_KEY_P)
+	DEF_CONST(GF_KEY_Q)
+	DEF_CONST(GF_KEY_R)
+	DEF_CONST(GF_KEY_S)
+	DEF_CONST(GF_KEY_T)
+	DEF_CONST(GF_KEY_U)
+	DEF_CONST(GF_KEY_V)
+	DEF_CONST(GF_KEY_W)
+	DEF_CONST(GF_KEY_X)
+	DEF_CONST(GF_KEY_Y)
+	DEF_CONST(GF_KEY_Z)
+	DEF_CONST(GF_KEY_LEFTSQUAREBRACKET)
+	DEF_CONST(GF_KEY_BACKSLASH)
+	DEF_CONST(GF_KEY_RIGHTSQUAREBRACKET)
+	DEF_CONST(GF_KEY_CIRCUM)
+	DEF_CONST(GF_KEY_UNDERSCORE)
+	DEF_CONST(GF_KEY_GRAVEACCENT)
+	DEF_CONST(GF_KEY_LEFTCURLYBRACKET)
+	DEF_CONST(GF_KEY_PIPE)
+	DEF_CONST(GF_KEY_RIGHTCURLYBRACKET)
+	DEF_CONST(GF_KEY_DEL)
+	DEF_CONST(GF_KEY_INVERTEXCLAMATION)
+	DEF_CONST(GF_KEY_DEADGRAVE)
+	DEF_CONST(GF_KEY_DEADEACUTE)
+	DEF_CONST(GF_KEY_DEADCIRCUM)
+	DEF_CONST(GF_KEY_DEADTILDE)
+	DEF_CONST(GF_KEY_DEADMACRON)
+	DEF_CONST(GF_KEY_DEADBREVE)
+	DEF_CONST(GF_KEY_DEADABOVEDOT)
+	DEF_CONST(GF_KEY_DEADDIARESIS)
+	DEF_CONST(GF_KEY_DEADRINGABOVE)
+	DEF_CONST(GF_KEY_DEADDOUBLEACUTE)
+	DEF_CONST(GF_KEY_DEADCARON)
+	DEF_CONST(GF_KEY_DEADCEDILLA)
+	DEF_CONST(GF_KEY_DEADOGONEK)
+	DEF_CONST(GF_KEY_DEADIOTA)
+	DEF_CONST(GF_KEY_EURO)
+	DEF_CONST(GF_KEY_DEADVOICESOUND)
+	DEF_CONST(GF_KEY_DEADSEMIVOICESOUND)
+	DEF_CONST(GF_KEY_CHANNELUP)
+	DEF_CONST(GF_KEY_CHANNELDOWN)
+	DEF_CONST(GF_KEY_TEXT)
+	DEF_CONST(GF_KEY_INFO)
+	DEF_CONST(GF_KEY_EPG)
+	DEF_CONST(GF_KEY_RECORD)
+	DEF_CONST(GF_KEY_BEGINPAGE)
+	DEF_CONST(GF_KEY_CELL_SOFT1)
+	DEF_CONST(GF_KEY_CELL_SOFT2)
+	DEF_CONST(GF_KEY_JOYSTICK)
+
+	DEF_CONST(GF_KEY_MOD_SHIFT)
+	DEF_CONST(GF_KEY_MOD_CTRL)
+	DEF_CONST(GF_KEY_MOD_ALT)
+	DEF_CONST(GF_KEY_EXT_NUMPAD)
+	DEF_CONST(GF_KEY_EXT_LEFT)
+	DEF_CONST(GF_KEY_EXT_RIGHT)
+
+
     JS_SetPropertyStr(ctx, global_obj, "print", JS_NewCFunction(ctx, js_print, "print", 1));
     JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
 
@@ -4141,7 +4402,7 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
     JS_SetClassProto(jsf->ctx, jsf_pid_class_id, pid_proto);
 
 
-	//initialize filter event class
+	//initialize filter packet class
 	JS_NewClassID(&jsf_pck_class_id);
 	JS_NewClass(rt, jsf_pck_class_id, &jsf_pck_class);
 	JSValue pck_proto = JS_NewObjectClass(jsf->ctx, jsf_pck_class_id);

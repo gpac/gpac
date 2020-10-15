@@ -1170,23 +1170,34 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 /*! Maximum string size to use when dumping a property*/
 #define GF_PROP_DUMP_ARG_SIZE	100
 
+/*! Data property dump mode*/
+typedef enum
+{
+	/*! do not dump data*/
+	GF_PROP_DUMP_DATA_NONE=0,
+	/*! dump data if less than 40 bytes, otherwise dump ptr adress and CRC*/
+	GF_PROP_DUMP_DATA_INFO,
+	/*! dump data to parsable property, as ADDRESS+'@'+POINTER*/
+	GF_PROP_DUMP_DATA_PTR,
+} GF_PropDumDataMode;
+
 /*! Dumps a property value to string
 \param att property value
 \param dump buffer holding the resulting value for types requiring string conversions (integers, ...)
-\param dump_data if set data will be dumped in hexadecimal. Otherwise, data buffer is not dumped
+\param dump_data_mode data dump mode
 \param min_max_enum optional, gives the min/max or enum string when the property is a filter argument
 \return string
 */
-const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum);
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumDataMode dump_data_mode, const char *min_max_enum);
 
 /*! Dumps a property value to string, resolving any built-in types (pix formats, codec id, ...)
 \param p4cc property 4CC
 \param att property value
 \param dump buffer holding the resulting value for types requiring string conversions (integers, ...)
-\param dump_data if set data will be dumped in hexadecimal. Otherwise, data buffer is not dumped
+\param dump_data_mode data dump mode
 \return string
 */
-const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data);
+const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumDataMode dump_data_mode);
 
 /*! Resets a property value, freeing allocated data or strings depending on the property type
 \param prop property 4CC

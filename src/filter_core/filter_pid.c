@@ -1321,7 +1321,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	//check for dynamic assignment
 	if ( (psep[0]==src_pid->filter->session->sep_name) && ((psep[1]=='*') || (psep[1]=='\0') ) ) {
 		*needs_resolve = GF_TRUE;
-		gf_props_dump_val(&pent->prop, prop_dump_buffer, GF_FALSE, NULL);
+		gf_props_dump_val(&pent->prop, prop_dump_buffer, GF_PROP_DUMP_DATA_NONE, NULL);
 		return GF_FALSE;
 	}
 
@@ -3575,7 +3575,7 @@ static void dump_pid_props(GF_FilterPid *pid)
 	const GF_PropertyEntry *p;
 	GF_PropertyMap *pmap = gf_list_get(pid->properties, 0);
 	while (pmap && (p = gf_list_enum(pmap->properties, &idx))) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Pid prop %s: %s\n", gf_props_4cc_get_name(p->p4cc), gf_props_dump(p->p4cc, &p->prop, szDump, GF_FALSE) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Pid prop %s: %s\n", gf_props_4cc_get_name(p->p4cc), gf_props_dump(p->p4cc, &p->prop, szDump, GF_PROP_DUMP_DATA_NONE) ));
 	}
 }
 #endif
@@ -6670,7 +6670,7 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				value = prop_val->value.uint;
 				has_val = GF_TRUE;
 			} else {
-				str_val = gf_props_dump_val(prop_val, szPropVal, GF_FALSE, NULL);
+				str_val = gf_props_dump_val(prop_val, szPropVal, GF_PROP_DUMP_DATA_NONE, NULL);
 			}
 		}
 		szTemplateVal[0]=0;

@@ -3478,7 +3478,7 @@ const char *gf_filter_get_arg_str(GF_Filter *filter, const char *arg_name, char 
 	if (p.type==GF_PROP_PCMFMT)
 		return gf_audio_fmt_name(p.value.uint);
 
-	return gf_props_dump_val(&p, dump, GF_FALSE, arg_min_max);
+	return gf_props_dump_val(&p, dump, GF_PROP_DUMP_DATA_NONE, arg_min_max);
 }
 
 GF_EXPORT

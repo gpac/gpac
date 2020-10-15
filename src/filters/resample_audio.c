@@ -358,6 +358,22 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	return GF_OK;
 }
 
+static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	if (evt->base.type==GF_FEVT_SET_SPEED) {
+		GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+		ctx->speed = evt->play.speed;
+		ctx->passthrough = GF_FALSE;
+		if (ctx->speed > FIX_ONE) {
+			GF_FilterEvent anevt;
+			GF_FEVT_INIT(anevt, GF_FEVT_BUFFER_REQ, ctx->ipid);
+			anevt.buffer_req.max_buffer_us = FIX2INT( ctx->speed * 100000 );
+			gf_filter_pid_send_event(ctx->ipid, &anevt);
+		}
+	}
+	return GF_FALSE;
+}
+
 static const GF_FilterCapability ResamplerCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
@@ -387,6 +403,7 @@ GF_FilterRegister ResamplerRegister = {
 	.configure_pid = resample_configure_pid,
 	.process = resample_process,
 	.reconfigure_output = resample_reconfigure_output,
+	.process_event = resample_process_event,
 };
 
 

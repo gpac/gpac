@@ -52,7 +52,7 @@ typedef struct
 	u32 pck_offset;
 	u64 first_cts;
 	Bool aborted;
-	Bool speed_set;
+	u32 speed_set;
 	GF_Filter *filter;
 	Bool is_eos;
 	Bool first_write_done;
@@ -61,6 +61,8 @@ typedef struct
 
 	Bool buffer_done, no_buffering;
 	u64 hwdelay_us, totaldelay_us;
+
+	Bool do_seek;
 } GF_AudioOutCtx;
 
 
@@ -89,7 +91,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		sr = 44100;
 		nb_ch = 2;
 	}
-	if (ctx->speed == FIX_ONE) ctx->speed_set = GF_TRUE;
+	if (ctx->speed == FIX_ONE) ctx->speed_set = 1;
 
 	if (ctx->vol<=100) {
 		if (ctx->audio_out->SetVolume)
@@ -114,7 +116,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
-		ctx->speed_set = GF_TRUE;
+		ctx->speed_set = (ctx->speed==1.0) ? 1 : 2;
 		ctx->needs_recfg = GF_FALSE;
 		//drop all packets until next reconfig
 		ctx->wait_recfg = GF_TRUE;
@@ -173,6 +175,25 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 
 	memset(buffer, 0, buffer_size);
 	if (!ctx->pid || ctx->aborted) return 0;
+	if (!ctx->speed) return 0;
+
+	if (ctx->do_seek) {
+		GF_FilterEvent evt;
+
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
+		gf_filter_pid_send_event(ctx->pid, &evt);
+
+		gf_filter_pid_init_play_event(ctx->pid, &evt, ctx->start, ctx->speed, "VideoOut");
+		gf_filter_pid_send_event(ctx->pid, &evt);
+		ctx->do_seek = GF_FALSE;
+
+		//reinit clock
+		ctx->first_write_done = GF_FALSE;
+		ctx->buffer_done = GF_FALSE;
+		ctx->do_seek = GF_FALSE;
+		return 0;
+	}
+
 
 	if (!ctx->buffer_done) {
 		u32 size;
@@ -373,7 +394,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//whenever change of sample rate / format / channel, force buffer requirements and speed setup
 	if ((ctx->sr!=sr) || (ctx->afmt != afmt) || (ctx->nb_ch != nb_ch)) {
 		GF_FilterEvent evt;
-		ctx->speed_set = GF_FALSE;
+		ctx->speed_set = 0;
 
 		//set buffer reqs to bdur or 100 ms - we don't "buffer" in the filter, but this will allow dispatching
 		//several input frames in the buffer (default being 1 pck / 1000 us max in buffers). Not doing so could cause
@@ -531,6 +552,35 @@ static Bool aout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_TRUE;
 }
 
+GF_Err aout_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
+{
+	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
+
+	if (!strcmp(arg_name, "start")) {
+		if (!ctx->pid) return GF_OK;
+		ctx->do_seek = GF_TRUE;
+	}
+	else if (!strcmp(arg_name, "speed")) {
+		if (ctx->speed != new_val->value.number) {
+			if (new_val->value.number==0) return GF_OK;
+			if ((new_val->value.number==1) && ((ctx->speed==0) || (ctx->speed==1)))
+				return GF_OK;
+			if (ctx->speed_set != 2) {
+				ctx->needs_recfg = GF_TRUE;
+				ctx->speed_set = 0;
+			} else {
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_SET_SPEED, ctx->pid)
+				evt.play.speed = new_val->value.number;
+				gf_filter_pid_send_event(ctx->pid, &evt);
+			}
+		}
+	}
+	return GF_OK;
+}
+
+
+
 #define OFFS(_n)	#_n, offsetof(GF_AudioOutCtx, _n)
 
 static const GF_FilterArgs AudioOutArgs[] =
@@ -541,8 +591,8 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(clock), "hint audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vol), "set default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "200", NULL, 0},
@@ -569,7 +619,8 @@ GF_FilterRegister AudioOutRegister = {
 	.finalize = aout_finalize,
 	.configure_pid = aout_configure_pid,
 	.process = aout_process,
-	.process_event = aout_process_event
+	.process_event = aout_process_event,
+	.update_arg = aout_update_arg
 };
 
 const GF_FilterRegister *aout_register(GF_FilterSession *session)

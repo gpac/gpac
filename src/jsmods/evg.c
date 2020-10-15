@@ -4054,7 +4054,7 @@ static JSValue path_point_over(JSContext *c, JSValueConst obj, int argc, JSValue
 #undef GETIT
 	} else if (argc==2) {
 		if (JS_ToFloat64(c, &x, argv[0])) return JS_EXCEPTION;
-		if (JS_ToFloat64(c, &y, argv[0])) return JS_EXCEPTION;
+		if (JS_ToFloat64(c, &y, argv[1])) return JS_EXCEPTION;
 	} else {
 		return JS_EXCEPTION;
 	}
@@ -5729,6 +5729,8 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	for (i=0; i<nb_lines; i++) {
 		GF_TextSpan *span = gf_list_get(txt->spans, i);
 		gf_font_manager_refresh_span_bounds(span);
+		span->bounds.y += i*txt->lineSpacing;
+
 		if (!txt->max_h && !txt->max_w) {
 			txt->max_w = span->bounds.width;
 			txt->max_h = span->bounds.height;
@@ -5824,7 +5826,7 @@ static JSValue text_measure(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	if (!txt) return JS_EXCEPTION;
 	res = JS_NewObject(c);
 	JS_SetPropertyStr(c, res, "width", JS_NewFloat64(c, txt->max_w) );
-	JS_SetPropertyStr(c, res, "height", JS_NewFloat64(c, txt->max_h) );
+	JS_SetPropertyStr(c, res, "height", JS_NewFloat64(c, txt->max_y-txt->min_y) );
 	if (txt->font) {
 		JS_SetPropertyStr(c, res, "em_size", JS_NewInt32(c, txt->font->em_size) );
 		JS_SetPropertyStr(c, res, "ascent", JS_NewInt32(c, txt->font->ascent) );
@@ -5871,7 +5873,7 @@ static JSValue text_constructor(JSContext *c, JSValueConst new_target, int argc,
 
 	if (!txt->fm) {
 		gf_free(txt);
-		return JS_EXCEPTION;
+		return js_throw_err_msg(c, GF_IO_ERR, "Failed to load font manager\n");
 	}
 	txt->spans = gf_list_new();
 	if (!txt->spans) {
