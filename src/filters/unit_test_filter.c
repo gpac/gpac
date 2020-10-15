@@ -825,7 +825,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 			gf_props_get_type_name(i);
 			p.type = p2.type = i;
 			gf_props_equal(&p, &p2);
-			gf_props_dump_val(&p, dump, GF_FALSE, NULL);
+			gf_props_dump_val(&p, dump, GF_PROP_DUMP_DATA_NONE, NULL);
 		}
 		p.type = GF_PROP_DATA;
 		p.value.data.size = 4;

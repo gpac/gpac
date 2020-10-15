@@ -3479,7 +3479,6 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 				compositor->key_states &= ~GF_KEY_MOD_ALT;
 			}
 			break;
-
 		}
 
 		ret = GF_FALSE;

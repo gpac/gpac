@@ -448,7 +448,7 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
 			char dump[GF_PROP_DUMP_ARG_SIZE];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFDemux] Set pid %d %s %s to %s\n", gst->idx, gf_props_4cc_get_name(p4cc), is_info_update ? "info" : "property", gf_props_dump(p4cc, &p, dump, GF_FALSE) ) );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFDemux] Set pid %d %s %s to %s\n", gst->idx, gf_props_4cc_get_name(p4cc), is_info_update ? "info" : "property", gf_props_dump(p4cc, &p, dump, GF_PROP_DUMP_DATA_NONE) ) );
 		}
 #endif
 

@@ -1008,6 +1008,15 @@ static JSValue js_sys_prompt_size(JSContext *ctx, JSValueConst this_val, int arg
 	return res;
 }
 
+const char *gf_dom_get_friendly_name(u32 key_identifier);
+
+static JSValue js_sys_keyname(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 code;
+	if (JS_ToInt32(ctx, &code, argv[0])) return JS_EXCEPTION;
+	return JS_NewString(ctx, gf_dom_get_friendly_name(code));
+}
+
 
 static JSValue js_sys_gc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1526,6 +1535,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
     JS_CFUNC_DEF("prompt_code", 0, js_sys_prompt_code),
     JS_CFUNC_DEF("prompt_size", 0, js_sys_prompt_size),
 
+    JS_CFUNC_DEF("keyname", 0, js_sys_keyname),
     JS_CFUNC_DEF("gc", 0, js_sys_gc),
 
 	JS_CFUNC_DEF("enum_directory", 0, js_sys_enum_directory),

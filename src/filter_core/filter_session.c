@@ -119,14 +119,14 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
 	GF_FilterSession *fs = (GF_FilterSession *)ptr;
+	if (evt->type==GF_EVENT_QUIT) {
+		gf_fs_abort(fs, GF_FALSE);
+	}
+
 #ifdef GPAC_HAS_QJS
 	if (fs->on_evt_task)
 		return jsfs_on_event(fs, evt);
 #endif
-
-	if (evt->type==GF_EVENT_QUIT) {
-		gf_fs_abort(fs, GF_FALSE);
-	}
 	return 0;
 }
 
@@ -2867,20 +2867,23 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 }
 
 GF_EXPORT
-struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter)
+struct _gf_ft_mgr *gf_fs_get_font_manager(GF_FilterSession *fsess)
 {
 #ifdef GPAC_DISABLE_PLAYER
 	return NULL;
 #else
-	GF_FilterSession *fsess;
-	if (!filter) return NULL;
-	fsess = filter->session;
-
 	if (!fsess->font_manager) {
 		fsess->font_manager = gf_font_manager_new();
 	}
 	return fsess->font_manager;
 #endif
+}
+
+GF_EXPORT
+struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter)
+{
+	if (!filter) return NULL;
+	return gf_fs_get_font_manager(filter->session);
 }
 
 void gf_fs_cleanup_filters(GF_FilterSession *fsess)

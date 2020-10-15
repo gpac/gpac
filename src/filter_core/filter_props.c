@@ -1417,7 +1417,7 @@ Bool gf_props_4cc_check_props()
 	return res;
 }
 
-const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum, Bool is_4cc)
+static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_type, const char *min_max_enum, Bool is_4cc)
 {
 	switch (att->type) {
 	case GF_PROP_NAME:
@@ -1524,7 +1524,9 @@ const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
 	case GF_PROP_DATA_NO_COPY:
-		if (dump_data && att->value.data.size < 40) {
+		if (dump_data_type==2) {
+			sprintf(dump, "%d@%p", att->value.data.size, att->value.data.ptr);
+		} else if (dump_data_type && att->value.data.size < 40) {
 			u32 i;
 			sprintf(dump, "%d bytes 0x", att->value.data.size);
 			for (i=0; i<att->value.data.size; i++) {
@@ -1603,13 +1605,13 @@ const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_
 }
 
 GF_EXPORT
-const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data, const char *min_max_enum)
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_mode, const char *min_max_enum)
 {
-	return gf_props_dump_val_ex(att, dump, dump_data, min_max_enum, GF_FALSE);
+	return gf_props_dump_val_ex(att, dump, dump_data_mode, min_max_enum, GF_FALSE);
 }
 
 GF_EXPORT
-const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], Bool dump_data)
+const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_mode)
 {
 	Bool is_4cc = GF_FALSE;
 
@@ -1638,7 +1640,7 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		is_4cc = GF_TRUE;
 
 	default:
-		return gf_props_dump_val_ex(att, dump, dump_data, NULL, is_4cc);
+		return gf_props_dump_val_ex(att, dump, dump_data_mode, NULL, is_4cc);
 	}
 	return "";
 }

@@ -121,7 +121,7 @@ void reporting(boolean enable);
 \param name name for the filter
 \return new filter
 */
-JSFilter new_filter(DOMString name=NULL);
+JSFilter new_filter(DOMString name=null);
 
 /*! number of filters in the session - see \ref gf_fs_get_filters_count. 
 This number is only valid when session is locked*/
@@ -135,6 +135,9 @@ attribute unsigned long http_max_bitrate;
 
 /*! current http download rate averaged on all active resources*/
 readonly attribute unsigned long http_bitrate;
+
+/*! set to true if no PID initialization task (connections) is pending*/
+readonly attribute boolean connected;
 
 };
 
@@ -195,16 +198,22 @@ attribute DOMString iname;
 attribute boolean event_target;
 
 /*! set to max timestamp of last packet sent by the filter, or null if not available*/
-attribute boolean last_ts_sent;
+attribute Fraction last_ts_sent;
 
 /*! set to max timestamp of last packet dropped by the filter, or null if not available*/
-attribute boolean last_ts_drop;
+attribute Fraction last_ts_drop;
 
 /*! Checks if a filter is valid or if it has been destroyed. Any query on a destroyed filter will raise an exception.
 \return true if the filter has been destroyed, false otherwise*/
 boolean is_destroyed();
 
 /*! Gets properties on input pid
+This function accepts the following extra names (not property names) to query PID status:
+- buffer: return the PID buffer level in microsecond
+- buffer_total: return the cumulated buffer from source to PID level in microsecond
+- name: return the PID name
+- eos: return true if PID is in EOS state
+
 \param idx the index of the input pid to query
 \param name name of the property to query
 \return property value, or null if not found
@@ -248,9 +257,15 @@ Array opid_sinks(unsigned long idx);
 */
 Array all_args(optional boolean value_only=true);
 
+/*! Gets value of a given argument of the filter
+\param arg_name argument name
+\return property value, or null 
+*/
+FilterProperty get_arg(DOMString arg_name);
+
 /*! sends argument update to filter
 \param arg_name name of argument to update
-\param arg_val value of argument to update
+\param arg_val value of argument to update. Can be a string or a native type which will be serialized based on the argument type
 */
 void update(DOMString arg_name, DOMString arg_val);
 
@@ -261,7 +276,7 @@ void remove();
 \param filter_to_add string describing the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
 \param link_args specify any additional arguments to pass to the SID option of the new filter - see \ref gf_filter_set_source
 */
-void insert(DOMString filter_to_add, optional DOMString link_args=NULL);
+void insert(DOMString filter_to_add, optional DOMString link_args=null);
 
 };
 
