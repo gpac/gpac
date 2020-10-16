@@ -156,8 +156,6 @@ typedef struct
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
 
 
-#ifdef VOUT_USE_OPENGL
-
 static void vout_reset_overlay(GF_VideoOutCtx *ctx)
 {
 #ifdef VOUT_USE_OPENGL
@@ -168,6 +166,7 @@ static void vout_reset_overlay(GF_VideoOutCtx *ctx)
 #endif
 }
 
+#ifdef VOUT_USE_OPENGL
 
 static void vout_make_gl_current(GF_VideoOutCtx *ctx)
 {
