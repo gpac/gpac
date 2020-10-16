@@ -56,6 +56,7 @@ typedef struct
 
 	/*default fonts*/
 	char *font_serif, *font_sans, *font_fixed, *font_default;
+	Bool cache_checked;
 } FTBuilder;
 
 static const char * BEST_FIXED_FONTS[] = {
@@ -208,6 +209,8 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 {
 	u32 i, count;
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
+
+	ftpriv->cache_checked = GF_TRUE;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] Rescaning %d font directories\n", gf_list_count(ftpriv->font_dirs) ));
 
@@ -441,6 +444,7 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	char *fname;
 	char *fontName;
 	const char *opt;
+	Bool is_def_font = GF_FALSE;
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
 	fontName = (char *) OrigFontName;
@@ -451,21 +455,30 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 
 	if (!fontName || !strlen(fontName) || !stricmp(fontName, "SERIF")) {
 		fontName = ftpriv->font_serif;
+		is_def_font = GF_TRUE;
 	}
 	else if (!stricmp(fontName, "SANS") || !stricmp(fontName, "sans-serif")) {
 		fontName = ftpriv->font_sans;
+		is_def_font = GF_TRUE;
 	}
 	else if (!stricmp(fontName, "TYPEWRITER") || !stricmp(fontName, "monospace")) {
 		fontName = ftpriv->font_fixed;
+		is_def_font = GF_TRUE;
 	}
 
 	/*first look in loaded fonts*/
 	ftpriv->active_face = ft_font_in_cache(ftpriv, fontName, styles);
 	if (ftpriv->active_face) return GF_OK;
 
-	/*check cfg file - gf_free(type is slow at loading fonts so we keep the (font name + styles)=fontfile associations
-	in the cfg file*/
-	if (!fontName || !strlen(fontName)) return GF_NOT_SUPPORTED;
+	//we likely have a problem with the font cache, rebuild if
+	if (!fontName || !strlen(fontName)) {
+		if (is_def_font && !ftpriv->cache_checked) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] No default font set, rescanning fonts\n"));
+			ft_rescan_fonts(dr);
+			return ft_set_font(dr, OrigFontName, styles);
+		}
+		return GF_NOT_SUPPORTED;
+	}
 	fname = gf_malloc(sizeof(char) * (strlen(fontName) + 50));
 
 	{
