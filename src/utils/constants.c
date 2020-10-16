@@ -828,6 +828,43 @@ u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout)
 	return nb_chan;
 }
 
+u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
+{
+	u16 res = 0;
+	u64 layout = gf_audio_fmt_get_layout_from_cicp(cicp);
+
+	if (layout & GF_AUDIO_CH_FRONT_LEFT) res |= (1<<15); // 0
+	if (layout & GF_AUDIO_CH_FRONT_CENTER) res |= (1<<14); //1
+	if (layout & GF_AUDIO_CH_FRONT_RIGHT) res |= (1<<13); //2
+	if (layout & GF_AUDIO_CH_REAR_SURROUND_LEFT) res |= (1<<12); //3
+	if (layout & GF_AUDIO_CH_REAR_SURROUND_RIGHT) res |= (1<<11); //4
+	//Lc/Rc
+	if (layout & GF_AUDIO_CH_FRONT_CENTER_LEFT) res |= (1<<11); //5
+	//Lrs/Rrs
+	if (layout & GF_AUDIO_CH_SURROUND_LEFT) res |= (1<<9); //6
+	//Cs
+	if (layout & GF_AUDIO_CH_REAR_CENTER) res |= (1<<8); //7
+	//Ts
+	if (layout & GF_AUDIO_CH_REAR_CENTER) res |= (1<<7); //8
+	//Lsd/Rsd
+	if (layout & GF_AUDIO_CH_SIDE_SURROUND_LEFT) res |= (1<<6); //9
+	//Lw/Rw
+	if (layout & GF_AUDIO_CH_FRONT_CENTER_LEFT) res |= (1<<5); //10
+	//Vhl/Vhr
+	if (layout & GF_AUDIO_CH_FRONT_TOP_LEFT) res |= (1<<4); //11
+	//Vhc
+	if (layout & GF_AUDIO_CH_FRONT_TOP_CENTER) res |= (1<<3); //12
+	//Lts/Rts
+	if (layout & GF_AUDIO_CH_SURROUND_TOP_LEFT) res |= (1<<2); //13
+	//LFE2
+	if (layout & GF_AUDIO_CH_LFE2) res |= (1<<1); //14
+	//LFE
+	if (layout & GF_AUDIO_CH_LFE) res |= (1); //15
+	return res;
+
+}
+
+
 typedef struct
 {
 	GF_PixelFormat pixfmt;

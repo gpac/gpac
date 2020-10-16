@@ -54,6 +54,7 @@ This section documents the audio and video parsing functions of the GPAC framewo
 
 
 #include <gpac/bitstream.h>
+#include <gpac/mpeg4_odf.h>
 
 
 
@@ -627,28 +628,9 @@ const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-/*! AC-3 header*/
-typedef struct
-{
-	u8 fscod, bsid, bsmod, acmod, lfon, brcode;
-	u8 asvc, num_dep_sub;
-	u16 chan_loc;
-} GF_AC3StreamInfo;
+//old name
+typedef struct __ac3_config GF_AC3Header;
 
-/*! AC-3 header*/
-typedef struct
-{
-	u32 bitrate;
-	u32 sample_rate;
-	u32 framesize;
-	u32 channels;
-	u16 substreams; //bit-mask, used for channel map > 5.1
-	/*only set if full parse*/
-	GF_AC3StreamInfo streams[8]; //0->7 sibstream ids
-	u8 nb_streams; //main and substream, only independent ones
-	//data rate in kbps
-	u32 data_rate;
-} GF_AC3Header;
 
 /*! parses an AC-3 header from a buffer
 \param buffer buffer to parse
@@ -658,21 +640,21 @@ typedef struct
 \param full_parse if GF_TRUE, complete parsing of the header will be done
 \return GF_TRUE if success
 */
-Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr, Bool full_parse);
+Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Config *out_hdr, Bool full_parse);
 /*! parses an AC-3 header from a bitstream
 \param bs bitstream to parse
 \param hdr will be filled by parser
 \param full_parse if GF_TRUE, complete parsing of the header will be done
 \return GF_TRUE if success
 */
-Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
+Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 /*! parses an EAC-3 header from a bitstream
 \param bs bitstream to parse
 \param hdr will be filled by parser
 \param full_parse if GF_TRUE, complete parsing of the header will be done
 \return GF_TRUE if success
 */
-Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
+Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 /*! gets the number of channels in an AC3 frame
 \param acmod acmod of the associated frame header
 \return number of channels

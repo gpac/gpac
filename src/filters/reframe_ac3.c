@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / AC3 reframer filter
@@ -55,7 +55,7 @@ typedef struct
 	Bool in_seek;
 	u32 timescale;
 
-	GF_AC3Header hdr;
+	GF_AC3Config hdr;
 	u8 *ac3_buffer;
 	u32 ac3_buffer_size, ac3_buffer_alloc, resume_from;
 	u64 byte_offset;
@@ -65,7 +65,7 @@ typedef struct
 	Bool initial_play_done;
 
 	Bool is_eac3;
-	Bool (*ac3_parser_bs)(GF_BitStream*, GF_AC3Header*, Bool);
+	Bool (*ac3_parser_bs)(GF_BitStream*, GF_AC3Config*, Bool);
 
 	GF_FilterPacket *src_pck;
 
@@ -121,7 +121,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	GF_AC3Header hdr;
+	GF_AC3Config hdr;
 	u64 duration, cur_dur;
 	s32 sr = -1;
 	const GF_PropertyValue *p;
@@ -189,7 +189,6 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 {
-	GF_BitStream *bs;
 	u8 *data;
 	u32 size;
 	if (!ctx->opid) {
@@ -222,44 +221,10 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (ctx->is_eac3) {
-		u32 i;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_EAC3) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_eac3 ? GF_CODECID_EAC3 : GF_CODECID_AC3) );
 
-		gf_bs_write_int(bs, ctx->hdr.data_rate, 13);
-		gf_bs_write_int(bs, ctx->hdr.nb_streams-1, 3);
-		for (i=0; i<ctx->hdr.nb_streams; i++) {
-			gf_bs_write_int(bs, ctx->hdr.streams[i].fscod, 2);
-			gf_bs_write_int(bs, ctx->hdr.streams[i].bsid, 5);
-			gf_bs_write_int(bs, 0, 1);
-			//TODO, expose asvc as an option of reframer, the info is not carried in the bitstream
-			gf_bs_write_int(bs, ctx->hdr.streams[i].asvc, 1);
-			gf_bs_write_int(bs, ctx->hdr.streams[i].bsmod, 3);
-			gf_bs_write_int(bs, ctx->hdr.streams[i].acmod, 3);
-			gf_bs_write_int(bs, ctx->hdr.streams[i].lfon, 1);
-			gf_bs_write_int(bs, 0, 3);
-			gf_bs_write_int(bs, ctx->hdr.streams[i].num_dep_sub, 4);
-			if (ctx->hdr.streams[i].num_dep_sub) {
-				gf_bs_write_int(bs, ctx->hdr.streams[i].chan_loc, 9);
-			} else {
-				gf_bs_write_int(bs, 0, 1);
-			}
-		}
-	} else {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_AC3) );
-
-		gf_bs_write_int(bs, ctx->hdr.streams[0].fscod, 2);
-		gf_bs_write_int(bs, ctx->hdr.streams[0].bsid, 5);
-		gf_bs_write_int(bs, ctx->hdr.streams[0].bsmod, 3);
-		gf_bs_write_int(bs, ctx->hdr.streams[0].acmod, 3);
-		gf_bs_write_int(bs, ctx->hdr.streams[0].lfon, 1);
-		gf_bs_write_int(bs, ctx->hdr.streams[0].brcode, 5);
-		gf_bs_write_int(bs, 0, 5);
-	}
-
-	gf_bs_get_content(bs, &data, &size);
-	gf_bs_del(bs);
+	ctx->hdr.is_ec3 = ctx->is_eac3;
+	gf_odf_ac3_cfg_write(&ctx->hdr, &data, &size);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(data, size) );
 
 	if (ctx->is_file && ctx->index) {
@@ -537,7 +502,7 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 	Bool has_broken_frames = GF_FALSE;
 	u32 pos=0;
 	while (1) {
-		GF_AC3Header ahdr;
+		GF_AC3Config ahdr;
 		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
 		 	break;
 		u32 fsize = ahdr.framesize;

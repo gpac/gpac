@@ -853,6 +853,12 @@ u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout);
 */
 u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout);
 
+/*! get dloby chanmap value from cicp layout
+\param cicp_layout channel CICP layout
+\return dolby chanmap
+*/
+u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
+
 /*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
   */
 typedef enum

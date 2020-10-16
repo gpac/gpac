@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP input module
@@ -1023,8 +1023,8 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 	size -= 2;
 
 	if (!ft) {
-		GF_AC3Header ac3hdr;
-		memset(&ac3hdr, 0, sizeof(GF_AC3Header));
+		GF_AC3Config ac3hdr;
+		memset(&ac3hdr, 0, sizeof(GF_AC3Config));
 		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
 		while (size) {
 			u32 offset;

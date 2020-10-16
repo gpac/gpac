@@ -8478,13 +8478,12 @@ void dac3_box_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err gf_isom_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
 
 GF_Err dac3_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
-	return gf_isom_ac3_config_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
+	return gf_odf_ac3_config_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
 }
 
 
@@ -8499,35 +8498,8 @@ GF_Err dac3_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (ptr->cfg.is_ec3) s->type = GF_ISOM_BOX_TYPE_DAC3;
 	if (e) return e;
-
-	if (ptr->cfg.is_ec3) {
-		u32 i;
-		gf_bs_write_int(bs, ptr->cfg.brcode, 13);
-		gf_bs_write_int(bs, ptr->cfg.nb_streams - 1, 3);
-		for (i=0; i<ptr->cfg.nb_streams; i++) {
-			gf_bs_write_int(bs, ptr->cfg.streams[i].fscod, 2);
-			gf_bs_write_int(bs, ptr->cfg.streams[i].bsid, 5);
-			gf_bs_write_int(bs, ptr->cfg.streams[i].bsmod, 5);
-			gf_bs_write_int(bs, ptr->cfg.streams[i].acmod, 3);
-			gf_bs_write_int(bs, ptr->cfg.streams[i].lfon, 1);
-			gf_bs_write_int(bs, 0, 3);
-			gf_bs_write_int(bs, ptr->cfg.streams[i].nb_dep_sub, 4);
-			if (ptr->cfg.streams[i].nb_dep_sub) {
-				gf_bs_write_int(bs, ptr->cfg.streams[i].chan_loc, 9);
-			} else {
-				gf_bs_write_int(bs, 0, 1);
-			}
-		}
-	} else {
-		gf_bs_write_int(bs, ptr->cfg.streams[0].fscod, 2);
-		gf_bs_write_int(bs, ptr->cfg.streams[0].bsid, 5);
-		gf_bs_write_int(bs, ptr->cfg.streams[0].bsmod, 3);
-		gf_bs_write_int(bs, ptr->cfg.streams[0].acmod, 3);
-		gf_bs_write_int(bs, ptr->cfg.streams[0].lfon, 1);
-		gf_bs_write_int(bs, ptr->cfg.brcode, 5);
-		gf_bs_write_int(bs, 0, 5);
-	}
-	return GF_OK;
+	
+	return gf_odf_ac3_cfg_write_bs(&ptr->cfg, bs);
 }
 
 GF_Err dac3_box_size(GF_Box *s)

@@ -1673,3 +1673,98 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
     gf_bs_write_u32(bs, 0);
 	return GF_OK;
 }
+
+
+GF_Err gf_odf_ac3_cfg_write_bs(GF_AC3Config *cfg, GF_BitStream *bs)
+{
+	if (!cfg || !bs) return GF_BAD_PARAM;
+
+	if (cfg->is_ec3) {
+		u32 i;
+		gf_bs_write_int(bs, cfg->brcode, 13);
+		gf_bs_write_int(bs, cfg->nb_streams - 1, 3);
+		for (i=0; i<cfg->nb_streams; i++) {
+			gf_bs_write_int(bs, cfg->streams[i].fscod, 2);
+			gf_bs_write_int(bs, cfg->streams[i].bsid, 5);
+			gf_bs_write_int(bs, cfg->streams[i].bsmod, 5);
+			gf_bs_write_int(bs, cfg->streams[i].acmod, 3);
+			gf_bs_write_int(bs, cfg->streams[i].lfon, 1);
+			gf_bs_write_int(bs, 0, 3);
+			gf_bs_write_int(bs, cfg->streams[i].nb_dep_sub, 4);
+			if (cfg->streams[i].nb_dep_sub) {
+				gf_bs_write_int(bs, cfg->streams[i].chan_loc, 9);
+			} else {
+				gf_bs_write_int(bs, 0, 1);
+			}
+		}
+	} else {
+		gf_bs_write_int(bs, cfg->streams[0].fscod, 2);
+		gf_bs_write_int(bs, cfg->streams[0].bsid, 5);
+		gf_bs_write_int(bs, cfg->streams[0].bsmod, 3);
+		gf_bs_write_int(bs, cfg->streams[0].acmod, 3);
+		gf_bs_write_int(bs, cfg->streams[0].lfon, 1);
+		gf_bs_write_int(bs, cfg->brcode, 5);
+		gf_bs_write_int(bs, 0, 5);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_Err e = gf_odf_ac3_cfg_write_bs(cfg, bs);
+
+	gf_bs_get_content(bs, data, size);
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg)
+{
+	if (!cfg || !bs) return GF_BAD_PARAM;
+	memset(cfg, 0, sizeof(GF_AC3Config));
+	cfg->is_ec3 = is_ec3;
+	if (is_ec3) {
+		u32 j;
+		cfg->is_ec3 = 1;
+		cfg->brcode = gf_bs_read_int(bs, 13);
+		cfg->nb_streams = 1 + gf_bs_read_int(bs, 3);
+		for (j=0; j<cfg->nb_streams; j++) {
+			cfg->streams[j].fscod = gf_bs_read_int(bs, 2);
+			cfg->streams[j].bsid = gf_bs_read_int(bs, 5);
+			gf_bs_read_int(bs, 1);
+			cfg->streams[j].asvc = gf_bs_read_int(bs, 1);
+			cfg->streams[j].bsmod = gf_bs_read_int(bs, 3);
+			cfg->streams[j].acmod = gf_bs_read_int(bs, 3);
+			cfg->streams[j].lfon = gf_bs_read_int(bs, 1);
+			gf_bs_read_int(bs, 3);
+			cfg->streams[j].nb_dep_sub = gf_bs_read_int(bs, 4);
+			if (cfg->streams[j].nb_dep_sub) {
+				cfg->streams[j].chan_loc = gf_bs_read_int(bs, 9);
+			} else {
+				gf_bs_read_int(bs, 1);
+			}
+		}
+	} else {
+		cfg->nb_streams = 1;
+		cfg->streams[0].fscod = gf_bs_read_int(bs, 2);
+		cfg->streams[0].bsid = gf_bs_read_int(bs, 5);
+		cfg->streams[0].bsmod = gf_bs_read_int(bs, 3);
+		cfg->streams[0].acmod = gf_bs_read_int(bs, 3);
+		cfg->streams[0].lfon = gf_bs_read_int(bs, 1);
+		cfg->brcode = gf_bs_read_int(bs, 5);
+		gf_bs_read_int(bs, 5);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg)
+{
+	GF_BitStream *bs;
+	GF_Err e;
+	if (!cfg || !dsi) return GF_BAD_PARAM;
+	bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
+	e = gf_odf_ac3_config_parse_bs(bs, is_ec3, cfg);
+	gf_bs_del(bs);
+	return e;
+}
