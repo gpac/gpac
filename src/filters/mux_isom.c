@@ -3203,12 +3203,18 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	if (tkw->nb_samples && (prev_dts >= tkw->sample.DTS) ) {
 		//the fragmented API will patch the duration on the fly
 		if (!for_fragment) {
-			gf_isom_patch_last_sample_duration(ctx->file, tkw->track_num, prev_dts);
+			gf_isom_patch_last_sample_duration(ctx->file, tkw->track_num, prev_dts ? prev_dts : 1);
 		}
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID %s Sample %d with DTS "LLU" less than previous sample DTS "LLU", adjusting prev sample duration\n", gf_filter_pid_get_name(tkw->ipid), tkw->nb_samples, tkw->sample.DTS, prev_dts ));
 
-		tkw->dts_patch = prev_dts - tkw->sample.DTS;
-		tkw->sample.DTS += tkw->dts_patch;
+		if (prev_dts) {
+			tkw->dts_patch = prev_dts - tkw->sample.DTS;
+			tkw->sample.DTS += tkw->dts_patch;
+		} else {
+			tkw->sample.DTS += 1;
+			if (tkw->sample.CTS_Offset) tkw->sample.CTS_Offset -= 1;
+			duration-=1;
+		}
 	}
 
 
