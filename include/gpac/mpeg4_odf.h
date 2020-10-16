@@ -1560,6 +1560,87 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
 \param cfg the DolbyVision config to destroy*/
 void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg);
 
+
+/*! AC-3 config record extension for EAC-3 - see dolby specs*/
+typedef struct __ec3_stream
+{
+	/*! AC3 fs code*/
+	u8 fscod;
+	/*! AC3 bsid code*/
+	u8 bsid;
+	/*! AC3 bs mode*/
+	u8 bsmod;
+	/*! AC3 ac mode*/
+	u8 acmod;
+	/*! LF on*/
+	u8 lfon;
+	/*! asvc mode, only for EC3*/
+	u8 asvc;
+	/*! deps, only for EC3*/
+	u8 nb_dep_sub;
+	/*! channel loc, only for EC3*/
+	u8 chan_loc;
+} GF_AC3StreamInfo;
+
+/*! AC3 config record*/
+typedef struct __ac3_config
+{
+	/*! indicates if ec3*/
+	u8 is_ec3;
+	/*! if AC3 this is the bitrate code, otherwise cumulated data rate of EC3 streams*/
+	u16 brcode;
+	/*! number of streams :
+		1 for AC3
+		max 8 for EC3, main stream is included
+	*/
+	u8 nb_streams;
+	/*! streams info*/
+	GF_AC3StreamInfo streams[8];
+
+	/* \cond  used in parsing not part of the AC3 config record*/
+	u32 bitrate;
+	u32 sample_rate;
+	u32 framesize;
+	u32 channels;
+	u16 substreams; //bit-mask, used for channel map > 5.1
+
+	//\endcond private
+
+} GF_AC3Config;
+
+
+/*! writes Dolby AC3/EAC3 config to buffer
+\param cfg the Dolby AC3 config to write
+\param bs the bitstream object in which to write the config
+\return error if any
+*/
+GF_Err gf_odf_ac3_cfg_write_bs(GF_AC3Config *cfg, GF_BitStream *bs);
+/*! writes Dolby AC3/EAC3 config to buffer
+\param cfg the Dolby AC3 config to write
+\param data set to created output buffer, must be freed by caller
+\param size set to created output buffer size
+\return error if any
+*/
+GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size);
+
+
+/*! parses an AC3/EC3 sample description
+\param dsi the encoded config
+\param dsi_len the encoded config size
+\param is_ec3 indicates that the encoded config is for an EC3 track
+\param cfg the AC3/EC3 config to fill
+\return Error if any
+*/
+GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg);
+
+/*! parses an AC3/EC3 sample description from bitstream
+\param bs the bitstream object
+\param is_ec3 indicates that the encoded config is for an EC3 track
+\param cfg the AC3/EC3 config to fill
+\return Error if any
+*/
+GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
+
 /*! destroy the descriptors in a list but not the list
 \param descList descriptor list to destroy
 \return error if any

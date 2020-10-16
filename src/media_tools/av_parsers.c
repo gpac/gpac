@@ -8398,7 +8398,7 @@ u32 gf_ac3_get_bitrate(u32 brcode)
 	return ac3_sizecod_to_bitrate[brcode];
 }
 
-Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr, Bool full_parse)
+Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_parse)
 {
 	GF_BitStream *bs;
 	Bool ret;
@@ -8415,7 +8415,7 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr, Bool full_p
 }
 
 GF_EXPORT
-Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
+Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 {
 	u32 fscod, frmsizecod, bsid, ac3_mod, freq, framesize, bsmod, syncword;
 	u64 pos;
@@ -8472,7 +8472,7 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 		hdr->streams[0].acmod = ac3_mod;
 		hdr->streams[0].lfon = 0;
 		hdr->streams[0].fscod = fscod;
-		hdr->streams[0].brcode = frmsizecod / 2;
+		hdr->brcode = frmsizecod / 2;
 	}
 	if (ac3_mod >= 2 * sizeof(ac3_mod_to_chans) / sizeof(u32))
 		return GF_FALSE;
@@ -8493,7 +8493,7 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 }
 
 GF_EXPORT
-Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
+Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 {
 	u32 fscod, bsid, ac3_mod, freq, framesize, syncword, substreamid, lfon, channels, numblkscod, strmtyp, frmsiz;
 	u64 pos;
@@ -8508,7 +8508,7 @@ Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 	pos = gf_bs_get_position(bs);
 	framesize = 0;
 	numblkscod = 0;
-	memset(hdr, 0, sizeof(GF_AC3Header));
+	memset(hdr, 0, sizeof(GF_AC3Config));
 
 block:
 	syncword = gf_bs_read_u16(bs);
@@ -8607,17 +8607,17 @@ block:
 			hdr->streams[substreamid].bsmod = 0;
 			hdr->streams[substreamid].acmod = ac3_mod;
 			hdr->streams[substreamid].fscod = fscod;
-			hdr->streams[substreamid].brcode = 0;
+			hdr->brcode = 0;
 		}
 		hdr->nb_streams++;
 		//not clear if this is only for the independent streams
-		hdr->data_rate += ((frmsiz+1) * freq) / (numblks[numblkscod]*16) / 1000;
+		hdr->brcode += ((frmsiz+1) * freq) / (numblks[numblkscod]*16) / 1000;
 
 		if (lfon)
 			hdr->channels += 1;
 
 	} else {
-		hdr->streams[substreamid].num_dep_sub = substreamid;
+		hdr->streams[substreamid].nb_dep_sub = substreamid;
 		hdr->streams[substreamid].chan_loc |= chanmap;
 	}
 

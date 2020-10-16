@@ -845,7 +845,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				if (dsi) {
 					u32 i;
 					GF_AC3Config ac3;
-					gf_isom_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
+					gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
 					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
 					_nb_ch = gf_ac3_get_channels(ac3.streams[0].acmod);
@@ -1809,6 +1809,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 	else if (ds->stream_type==GF_STREAM_AUDIO) {
 		Bool use_cicp = GF_FALSE;
+		Bool use_dolbyx = GF_FALSE;
 		GF_MPD_Descriptor *desc;
 		char value[256];
 		ds->rep->samplerate = ds->sr;
@@ -1816,7 +1817,21 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		if (ds->nb_surround || ds->nb_lfe) use_cicp = GF_TRUE;
 		if ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA)) use_cicp = GF_TRUE;
 
-		if (!use_cicp) {
+		if ((ds->codec_id==GF_CODECID_AC3) || (ds->codec_id==GF_CODECID_EAC3)) {
+			//if regular MPEG-DASH, use CICP, otherwise use Dolby signaling
+			if (ctx->profile > GF_DASH_PROFILE_FULL) {
+				use_dolbyx = GF_TRUE;
+			}
+		}
+		if (use_dolbyx) {
+			u64 layout = ds->ch_layout;
+			if (!layout)
+				layout = gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe);
+			sprintf(value, "%X", gf_audio_fmt_get_dolby_chanmap(layout) );
+
+			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
+		}
+		else if (!use_cicp) {
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011", value);
 		} else {

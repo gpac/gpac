@@ -282,6 +282,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 			break;
 
+		case GF_ISOM_SUBTYPE_AC3:
+		case GF_ISOM_SUBTYPE_EC3:
+		{
+			GF_AC3Config *ac3cfg = gf_isom_ac3_config_get(read->mov, track, stsd_idx);
+			codec_id = (m_subtype==GF_ISOM_SUBTYPE_AC3) ? GF_CODECID_AC3 : GF_CODECID_EAC3;
+			if (ac3cfg) {
+				gf_odf_ac3_cfg_write(ac3cfg, &dsi, &dsi_size);
+				gf_free(ac3cfg);
+			}
+		}
+			break;
+
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id)

@@ -850,8 +850,8 @@ static Bool mpeg2ps_stream_find_ac3_frame (mpeg2ps_stream_t *sptr)
 {
 	u32 diff;
 	Bool started_new_pes = 0;
-	GF_AC3Header hdr;
-	memset(&hdr, 0, sizeof(GF_AC3Header));
+	GF_AC3Config hdr;
+	memset(&hdr, 0, sizeof(GF_AC3Config));
 	sptr->frame_ts = sptr->next_pes_ts; // set timestamp after searching
 	if (sptr->pes_buffer_size <= sptr->pes_buffer_on + 6) {
 		if (sptr->pes_buffer_size != sptr->pes_buffer_on)
@@ -1015,8 +1015,8 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 			// PCM - ???
 		} else if (sptr->m_substream_id >= 0x80) {
 			u32 pos;
-			GF_AC3Header hdr;
-			memset(&hdr, 0, sizeof(GF_AC3Header));
+			GF_AC3Config hdr;
+			memset(&hdr, 0, sizeof(GF_AC3Config));
 			gf_ac3_parser(buffer, buflen, &pos, &hdr, 0);
 			sptr->bitrate = hdr.bitrate;
 			sptr->freq = hdr.sample_rate;
