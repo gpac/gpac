@@ -33,7 +33,6 @@ _gpac_log_name="";
 
 print("Type 'h' in window for command list");
 
-
 let aout = null
 let vout = null
 
@@ -300,7 +299,7 @@ function prog_interact(evt)
 		x -= prog_ox;
 		x /= prog_length;
 		x += 0.5;
-		if (x>1.1) reverse = !reverse;
+		if (x>1) reverse = !reverse;
 		return true;
 	}
 
@@ -389,12 +388,12 @@ function update_play()
 	vout.update('oldata', ol_buffer);
 }
 
-function build_graph(f, str, stats, fdone)
+function build_graph(f, str, str_list, fdone)
 {
 	let i, j;
 	if (!f.nb_opid) {
 		str += '->' + f.name;
-		stats.push(str);
+		str_list.push(str);
 		str = '';
 		fdone.push(f);
 		return;
@@ -424,6 +423,11 @@ function build_graph(f, str, stats, fdone)
 		sub_str = str;
 		if (f.nb_opid>1) sub_str += '#' + f.opid_props(i, 'name');
 
+		if (!sinks.length) {
+			str_list.push(sub_str + ': Not connected');
+			continue;
+		}
+
 		for (j=0; j<sinks.length; j++) {
 			let sf = sinks[j];
 
@@ -440,13 +444,15 @@ function build_graph(f, str, stats, fdone)
 					sub_str += ' ';
 				}
 			}
-			build_graph(sinks[j], sub_str, stats, fdone);
+			build_graph(sinks[j], sub_str, str_list, fdone);
 		}
 	}
 	fdone.push(f);
 }
 
 let stats_translate_y=0;
+let stats_graph = [];
+
 function update_stats()
 {
 	let stats = [];
@@ -455,17 +461,12 @@ function update_stats()
 	stats.push(sys_info);
 	stats.push('  ');
 
-	let sinks = [];
-	let sources = [];
-	let fdone = [];
 	let i;
 	for (i=0; i< session.nb_filters; i++) {
 	 	let f = session.get_filter(i);
 	 	//only output filters (no out, single in) 
-	 	if ((f.nb_ipid==1) && !f.nb_opid) sinks.push(f)
-	 	if (!f.nb_ipid && f.nb_opid) sources.push(f)
-	}
-	sinks.forEach( (f) => {
+	 	if ((f.nb_ipid!=1) || f.nb_opid) continue;
+
 		let str = f.streamtype;
 		let src = f.ipid_source(0);
 		str += ' ' + src.name;
@@ -501,29 +502,44 @@ function update_stats()
 		}
 
 		str += ' buffer ' + Math.floor(f.ipid_props(0, 'buffer')/1000) + ' ms';
-
 		stats.push(str);
-	});
+	}
 
 	stats.push(' ');
 
-	sources.forEach( (f) => {
-		build_graph(f, '', stats, fdone);
-	});
-	sources = [];
-	for (i=0; i< session.nb_filters; i++) {
-	 	let f = session.get_filter(i);
-	 	if (f.alias) continue;
+	//recompute graph only when initializing the window
+	if (init_wnd)
+		stats_graph = [];
 
-	 	if (fdone.indexOf(f)<0)
-	 		sources.push(f);
+	if (! stats_graph.length) {
+		let fdone = [];
+		//browse all sources, and build graph
+		for (i=0; i< session.nb_filters; i++) {
+		 	let f = session.get_filter(i);
+		 	//source filter: no input and outputs
+		 	if (f.nb_ipid || !f.nb_opid) continue;
+
+		 	build_graph(f, '', stats_graph, fdone);
+		}
+		let not_done = [];
+		for (i=0; i< session.nb_filters; i++) {
+		 	let f = session.get_filter(i);
+		 	if (f.alias) continue;
+
+		 	if (fdone.indexOf(f)<0)
+		 		not_done.push(f);
+		 }
+		 if (not_done.length) {
+			stats.push(' ');
+		 	let str = "Filters not connected:";
+		 	not_done.forEach(f => { str += ' '+f.name;});
+			stats.push(str);
+		 }
 	 }
-	 if (sources.length) {
-		stats.push(' ');
-	 	let str = "Filters not connected:";
-	 	sources.forEach(f => { str += ' '+f.name;});
-		stats.push(str);
-	 }
+
+	 //push graph to stats string array
+	 stats_graph.forEach(str => { stats.push(str);});
+
 
 	text.fontsize = 20; 
 	text.set_text(stats);
@@ -533,7 +549,7 @@ function update_stats()
 
 		ol_width = Math.floor(txtdim.width*1.2);
 		while (ol_width%2) ol_width--;
-		ol_height = Math.floor(txtdim.height*1.2);
+		ol_height = Math.floor(txtdim.height*1.4);
 		while (ol_height%2) ol_height--;
 		ol_buffer = new ArrayBuffer(ol_width*ol_height*4);
 		ol_canvas = new evg.Canvas(ol_width, ol_height, 'rgba', ol_buffer);
