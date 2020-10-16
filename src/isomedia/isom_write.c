@@ -3384,12 +3384,13 @@ GF_Err gf_isom_remove_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 
 	if (trackNumber) {
 		trak = gf_isom_get_track_from_file(movie, trackNumber);
-		if (!trak) return GF_BAD_PARAM;
+		if (!trak) return GF_EOS;
 		udta = trak->udta;
 	} else {
 		udta = movie->moov->udta;
 	}
-	if (!udta) return GF_BAD_PARAM;
+	//do not return any error if no udta
+	if (!udta) return GF_EOS;
 
 	i=0;
 	while ((map = (GF_UserDataMap*)gf_list_enum(udta->recordList, &i))) {
