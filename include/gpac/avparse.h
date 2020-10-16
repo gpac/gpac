@@ -628,9 +628,9 @@ const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-//old name
+//! \cond old name
 typedef struct __ac3_config GF_AC3Header;
-
+//! \endcond 
 
 /*! parses an AC-3 header from a buffer
 \param buffer buffer to parse

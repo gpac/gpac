@@ -1597,14 +1597,14 @@ typedef struct __ac3_config
 	/*! streams info*/
 	GF_AC3StreamInfo streams[8];
 
-	/* \cond  used in parsing not part of the AC3 config record*/
+	//! \cond  used in parsing not part of the AC3 config record
 	u32 bitrate;
 	u32 sample_rate;
 	u32 framesize;
 	u32 channels;
 	u16 substreams; //bit-mask, used for channel map > 5.1
 
-	//\endcond private
+	//! \endcond private
 
 } GF_AC3Config;
 
