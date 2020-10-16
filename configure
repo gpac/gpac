@@ -1,8 +1,8 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2021 Telecom ParisTech
-#     Authors: Jean Le Feuvre, Romain Bouqueau
+#     (c) 2003-2020 Telecom ParisTech
+#     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
 
