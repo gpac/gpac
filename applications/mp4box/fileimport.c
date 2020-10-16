@@ -67,7 +67,12 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 	if (!udta_type && !is_box_array) return GF_BAD_PARAM;
 
 	if (!src || !strlen(src)) {
-		return gf_isom_remove_user_data(dest, tracknum, udta_type, uuid);
+		GF_Err e = gf_isom_remove_user_data(dest, tracknum, udta_type, uuid);
+		if (e==GF_EOS) {
+			e = GF_OK;
+			fprintf(stderr, "No track.udta found, ignoring\n");
+		}
+		return e;
 	}
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
