@@ -895,6 +895,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter->has_pending_pids = GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
 			GF_FilterPid *a_pid=gf_fq_pop(filter->pending_pids);
+			//filter is a pid adaptation filter (dynamically loaded to solve prop negociation)
+			//copy over play state if the input PID was already playing
+			if (pid->is_playing && filter->is_pid_adaptation_filter)
+				a_pid->is_playing = GF_TRUE;
 
 			gf_filter_pid_post_init_task(filter, a_pid);
 		}

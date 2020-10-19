@@ -45,7 +45,7 @@ for (i=0; i< session.nb_filters; i++) {
 
 let speed=0;
 let drop=0;
-let paused=false;
+let paused=0;
 let duration=-1
 let fullscreen = false;
 
@@ -168,7 +168,12 @@ session.set_event_fun( (evt)=> {
 	case GF_EVENT_MOUSEUP:
 		if (overlay_type==OL_PLAY) 
 			if (prog_interact(evt)) return 0;
-		if (ol_visible) toggle_overlay();
+		if (ol_visible) {
+			toggle_overlay();
+		} else if (!audio_only) {
+			overlay_type=OL_PLAY;
+			toggle_overlay();
+		}
 		break;
 
 	case GF_EVENT_KEYDOWN:
@@ -384,6 +389,21 @@ function update_play()
 		progress_path.rectangle(prog_ox - prog_length/2, 9, prog_length*progress, 18, false);
 		ol_canvas.path = progress_path;
 		ol_canvas.fill(brush);
+	}
+
+	if (paused || (speed != 1)) {
+		text.fontsize = 16; 
+		if (paused)
+			text.set_text((paused==2) ? 'Step mode' : 'Paused');
+		else
+			text.set_text('Speed: ' + speed);
+		let mx = new evg.Matrix2D();
+		mx.translate(0, ol_height/4);
+		ol_canvas.matrix = mx;
+		ol_canvas.path = text;
+		brush.set_color('cyan');
+		ol_canvas.fill(brush);
+		brush.set_color('white');
 	}
 	vout.update('oldata', ol_buffer);
 }
@@ -663,11 +683,13 @@ function process_keyboard(evt)
 {
 	switch (evt.keycode) {
 	case GF_KEY_B:
-		speed *= 2;
+		if (evt.keymods & GF_KEY_MOD_SHIFT) speed *= 1.2;
+		else speed *= 2;
 		set_speed(speed);
 		return;
 	case GF_KEY_V:
-		speed /= 2;
+		if (evt.keymods & GF_KEY_MOD_SHIFT) speed /= 1.2;
+		else speed /= 2;
 		set_speed(speed);
 		return;
 	case GF_KEY_N:
@@ -679,7 +701,7 @@ function process_keyboard(evt)
 		set_speed(paused ? 0 : speed);
 		return;
 	case GF_KEY_S:
-		paused = true;
+		paused = 2;
 		vout.update('step', '1');
 		if (aout) aout.update('speed', '0');
 		check_duration();

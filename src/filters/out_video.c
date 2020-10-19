@@ -1284,6 +1284,13 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 	ctx->video_out->ProcessEvent(ctx->video_out, NULL);
 
+	if (!ctx->step && !ctx->speed) {
+		if (ctx->oldata.ptr && ctx->update_oldata)
+			return vout_draw_frame(ctx);
+		gf_filter_ask_rt_reschedule(filter, 50000);
+		return GF_OK;
+	}
+
 	if (ctx->do_seek) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
@@ -1442,6 +1449,7 @@ static GF_Err vout_process(GF_Filter *filter)
 					ctx->last_pck = NULL;
 				}
 				gf_filter_pid_drop_packet(ctx->pid);
+				gf_filter_ask_rt_reschedule(filter, 50000);
 				return GF_OK;
 			}
 			cts = 0;
@@ -1472,10 +1480,13 @@ static GF_Err vout_process(GF_Filter *filter)
 			#define DEF_VIDEO_AUDIO_ADVANCE_MS	15
 			safety = DEF_VIDEO_AUDIO_ADVANCE_MS * ctx->timescale / 1000;
 			if (!ctx->step && !ctx->raw_grab && ((s64) cts > ref_ts + safety)) {
+				u32 resched_time = (u32) ((cts-ref_ts - safety) * 1000000 / ctx->timescale);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame CTS "LLU" CTS greater than reference clock CTS "LLU" (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
-				gf_filter_ask_rt_reschedule(filter, (u32) ((cts-ref_ts - safety) * 1000000 / ctx->timescale) );
+				if (resched_time>100000)
+					resched_time = 100000;
+				gf_filter_ask_rt_reschedule(filter, resched_time );
 				//not ready yet
 				return GF_OK;
 			}
@@ -1564,12 +1575,8 @@ static GF_Err vout_process(GF_Filter *filter)
 		if (ctx->drop) {
 			u64 next_ts;
 			Bool do_drop = GF_FALSE;
-			//peeking next packet CTS might fail if no packet in buffer, in which case we don't drop
-			if (gf_filter_pid_get_first_packet_cts(ctx->pid, &next_ts)) {
-				if (next_ts<ref_clock) {
-					do_drop = GF_TRUE;
-				}
-			} else if (ctx->speed > 2){
+
+			if (ctx->speed > 2){
 				u32 speed = (u32) ABS(ctx->speed);
 
 				ctx->nb_drawn++;
@@ -1579,10 +1586,18 @@ static GF_Err vout_process(GF_Filter *filter)
 					ctx->nb_drawn = 0;
 				}
 			}
+			//peeking next packet CTS might fail if no packet in buffer, in which case we don't drop
+			else if (gf_filter_pid_get_first_packet_cts(ctx->pid, &next_ts)) {
+				if (next_ts<ref_clock) {
+					do_drop = GF_TRUE;
+				}
+			}
+
 			if (do_drop) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms drop frame "LLU" ms reference clock "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale, (1000*ref_clock)/ctx->timescale));
 
 				gf_filter_pck_unref(pck);
+				gf_filter_ask_rt_reschedule(filter, 10);
 				return GF_OK;
 			}
 		}
@@ -1634,7 +1649,7 @@ draw_frame:
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 {
-	ctx->force_release = GF_TRUE;
+	ctx->force_release = GF_FALSE;
 	if ((ctx->pfmt && ctx->last_pck) || !ctx->pid) {
 #ifdef VOUT_USE_OPENGL
 		if (ctx->disp < MODE_2D) {
@@ -1651,7 +1666,7 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 	}
 	if (ctx->no_buffering)
 		ctx->force_release = GF_TRUE;
-	else if (ctx->last_pck && gf_filter_pck_is_blocking_ref(ctx->last_pck) )
+	else if (ctx->speed && ctx->last_pck && gf_filter_pck_is_blocking_ref(ctx->last_pck) )
 		ctx->force_release = GF_TRUE;
 
 	if (ctx->force_release && ctx->last_pck && !ctx->dump_f_idx) {
@@ -1732,6 +1747,7 @@ GF_Err vout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 		return GF_OK;
 	}
 	if (!strcmp(arg_name, "start")) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] Seek request to %f\n", new_val->value.number));
 		if (!ctx->pid)
 			return GF_OK;
 		ctx->do_seek = GF_TRUE;

@@ -460,7 +460,6 @@
 		92BBFCF01A7122AD006A7735 /* nodes_mpeg4.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC8F1A7122AD006A7735 /* nodes_mpeg4.h */; };
 		92BBFCF11A7122AD006A7735 /* nodes_svg.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC901A7122AD006A7735 /* nodes_svg.h */; };
 		92BBFCF21A7122AD006A7735 /* nodes_x3d.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC911A7122AD006A7735 /* nodes_x3d.h */; };
-		92BBFCF31A7122AD006A7735 /* nodes_xbl.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC921A7122AD006A7735 /* nodes_xbl.h */; };
 		92BBFCF41A7122AD006A7735 /* options.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC931A7122AD006A7735 /* options.h */; };
 		92BBFCF51A7122AD006A7735 /* path2d.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC941A7122AD006A7735 /* path2d.h */; };
 		92BBFCF61A7122AD006A7735 /* revision.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC951A7122AD006A7735 /* revision.h */; };
@@ -1124,7 +1123,6 @@
 		92BBFC8F1A7122AD006A7735 /* nodes_mpeg4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nodes_mpeg4.h; path = ../include/gpac/nodes_mpeg4.h; sourceTree = "<group>"; };
 		92BBFC901A7122AD006A7735 /* nodes_svg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nodes_svg.h; path = ../include/gpac/nodes_svg.h; sourceTree = "<group>"; };
 		92BBFC911A7122AD006A7735 /* nodes_x3d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nodes_x3d.h; path = ../include/gpac/nodes_x3d.h; sourceTree = "<group>"; };
-		92BBFC921A7122AD006A7735 /* nodes_xbl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nodes_xbl.h; path = ../include/gpac/nodes_xbl.h; sourceTree = "<group>"; };
 		92BBFC931A7122AD006A7735 /* options.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = options.h; path = ../include/gpac/options.h; sourceTree = "<group>"; };
 		92BBFC941A7122AD006A7735 /* path2d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = path2d.h; path = ../include/gpac/path2d.h; sourceTree = "<group>"; };
 		92BBFC951A7122AD006A7735 /* revision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = revision.h; path = ../include/gpac/revision.h; sourceTree = "<group>"; };
@@ -1820,7 +1818,6 @@
 				92BBFC8F1A7122AD006A7735 /* nodes_mpeg4.h */,
 				92BBFC901A7122AD006A7735 /* nodes_svg.h */,
 				92BBFC911A7122AD006A7735 /* nodes_x3d.h */,
-				92BBFC921A7122AD006A7735 /* nodes_xbl.h */,
 				92BBFC931A7122AD006A7735 /* options.h */,
 				92BBFC941A7122AD006A7735 /* path2d.h */,
 				92BBFC951A7122AD006A7735 /* revision.h */,
@@ -2244,7 +2241,6 @@
 				92BBFCFF1A7122AD006A7735 /* svg_types.h in Headers */,
 				9234CF491FD8344000CCDFA1 /* in_rtp.h in Headers */,
 				92BBFCD21A7122AD006A7735 /* ogg.h in Headers */,
-				92BBFCF31A7122AD006A7735 /* nodes_xbl.h in Headers */,
 				92BBFCDD1A7122AD006A7735 /* list.h in Headers */,
 				92BBFCB81A7122AD006A7735 /* download.h in Headers */,
 				92B9A5A21F8660D700A24FE4 /* mpeg4_grouping.h in Headers */,

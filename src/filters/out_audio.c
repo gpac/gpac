@@ -183,6 +183,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
 		gf_filter_pid_send_event(ctx->pid, &evt);
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Seek request to %f speed %f\n", ctx->start, ctx->speed));
 		gf_filter_pid_init_play_event(ctx->pid, &evt, ctx->start, ctx->speed, "VideoOut");
 		gf_filter_pid_send_event(ctx->pid, &evt);
 		ctx->do_seek = GF_FALSE;
@@ -191,6 +192,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		ctx->first_write_done = GF_FALSE;
 		ctx->buffer_done = GF_FALSE;
 		ctx->do_seek = GF_FALSE;
+		ctx->pck_offset = 0;
 		return 0;
 	}
 

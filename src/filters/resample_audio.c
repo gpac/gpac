@@ -276,14 +276,13 @@ static GF_Err resample_process(GF_Filter *filter)
 		gf_filter_pck_send(dstpck);
 
 		if (ctx->timescale==ctx->freq) {
-			ctx->out_cts += written / bytes_per_samp;
+			ctx->out_cts += (u64) (ctx->speed * written / bytes_per_samp);
 		} else {
 			u64 ts_inc = written / bytes_per_samp;
 			ts_inc *= ctx->timescale;
 			ts_inc /= ctx->freq;
 
-			ctx->out_cts += ts_inc;
-
+			ctx->out_cts += (u64) (ctx->speed * ts_inc);
 		}
 		//still some bytes to use from packet, do not discard
 		if (ctx->bytes_consumed<ctx->size) {
