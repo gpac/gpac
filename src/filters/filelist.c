@@ -50,7 +50,7 @@ typedef struct
 	u64 dts_sub;
 	u64 first_dts_plus_one;
 
-	Bool is_playing;
+	Bool is_playing, skip_dts_init;
 
 	Bool send_cue;
 } FileListPid;
@@ -127,9 +127,11 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 		//if we reattached the input, we must send a play request
 		gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
 		gf_filter_pid_send_event(iopid->ipid, &evt);
+        iopid->skip_dts_init = GF_FALSE;
         if (!iopid->is_playing) {
             GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid)
             gf_filter_pid_send_event(iopid->ipid, &evt);
+            iopid->skip_dts_init = GF_TRUE;
         }
 	}
 
@@ -687,8 +689,9 @@ GF_Err filelist_process(GF_Filter *filter)
 			GF_FilterPacket *pck;
 			u64 dts;
 			iopid = gf_list_get(ctx->io_pids, i);
-			if (!iopid->ipid) return GF_OK;
-			pck = gf_filter_pid_get_packet(iopid->ipid);
+            if (!iopid->ipid) return GF_OK;
+            if (iopid->skip_dts_init) continue;
+            pck = gf_filter_pid_get_packet(iopid->ipid);
 			if (!pck) {
 				if (gf_filter_pid_is_eos(iopid->ipid)) {
 					nb_eos++;
