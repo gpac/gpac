@@ -219,6 +219,7 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 	if (!strcmp(url, "null")) return GF_FPROBE_SUPPORTED;
 	if (!strcmp(url, "rand")) return GF_FPROBE_SUPPORTED;
 	if (!strcmp(url, "randsc")) return GF_FPROBE_SUPPORTED;
+	if (!strncmp(src, "isobmff://", 10)) return GF_FPROBE_SUPPORTED;
 	if (!strncmp(url, "gfio://", 7)) {
 		GF_FileIO *gfio = gf_fileio_from_url(url);
 		if (gfio && gf_fileio_read_mode(gfio))

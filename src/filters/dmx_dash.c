@@ -258,7 +258,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 		if (url_type==1)
 			sprintf(sURL, "http://%s", init_segment_name);
 		else if (url_type==2)
-			sprintf(sURL, "http://%s", init_segment_name);
+			sprintf(sURL, "https://%s", init_segment_name);
 		else
 			sprintf(sURL, "file://%s", init_segment_name);
 	}
