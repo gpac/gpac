@@ -127,6 +127,10 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 		//if we reattached the input, we must send a play request
 		gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
 		gf_filter_pid_send_event(iopid->ipid, &evt);
+        if (!iopid->is_playing) {
+            GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid)
+            gf_filter_pid_send_event(iopid->ipid, &evt);
+        }
 	}
 
 	//and convert back cts/dts offsets from 1Mhs to OLD timescale (since we dispatch in this timescale)
@@ -313,6 +317,10 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	for (i=0; i<count; i++) {
 		iopid = gf_list_get(ctx->io_pids, i);
 		if (!iopid->ipid) continue;
+
+        //only send on non connected inputs or on the one matching the pid event
+        if (iopid->opid && (iopid->opid != evt->base.on_pid))
+            continue;
 
 		fevt.base.on_pid = iopid->ipid;
 		if (evt->base.type==GF_FEVT_PLAY) {
@@ -719,11 +727,18 @@ GF_Err filelist_process(GF_Filter *filter)
 			nb_inactive++;
 			continue;
 		}
+        if (!iopid->is_playing) {
+            //in case the input still dispatch packets, drop them
+            while (1) {
+                GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->ipid);
+                if (!pck) break;
+                gf_filter_pid_drop_packet(iopid->ipid);
+            }
+            nb_done++;
+            continue;
+        }
 		if (iopid->is_eos) {
 			nb_done++;
-			continue;
-		}
-		if (!iopid->is_playing) {
 			continue;
 		}
 		if (gf_filter_pid_would_block(iopid->opid))
