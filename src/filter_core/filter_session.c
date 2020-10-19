@@ -2499,7 +2499,11 @@ restart:
 	if (!filter) {
 		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err, alias_for_filter, GF_FALSE);
 	} else {
-		filter->freg = candidate_freg;
+        //destroy underlying JS object - gf_filter_new_finalize always reassign it to JS_UNDEFINED
+#ifdef GPAC_HAS_QJS
+        jsfs_on_filter_destroyed(filter);
+#endif
+        filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, arg_type);
 		if (err) *err = e;
 	}
