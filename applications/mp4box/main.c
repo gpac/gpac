@@ -5722,7 +5722,7 @@ int mp4boxMain(int argc, char **argv)
 	for (i=0; i<nb_meta_act; i++) {
 		u32 tk = 0;
 #ifndef GPAC_DISABLE_ISOM_WRITE
-		Bool self_ref;
+		u32 self_ref;
 #endif
 		MetaAction *meta = &metas[i];
 

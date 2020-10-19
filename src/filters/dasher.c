@@ -1824,11 +1824,13 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			}
 		}
 		if (use_dolbyx) {
-			u64 layout = ds->ch_layout;
-			if (!layout)
-				layout = gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe);
-			sprintf(value, "%X", gf_audio_fmt_get_dolby_chanmap(layout) );
+			u32 cicp_layout = 0;
+			if (ds->ch_layout)
+				cicp_layout = gf_audio_fmt_get_cicp_from_layout(ds->ch_layout);
+			if (!cicp_layout)
+				cicp_layout = gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe);
 
+			sprintf(value, "%X", gf_audio_fmt_get_dolby_chanmap(cicp_layout) );
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
 		}
 		else if (!use_cicp) {

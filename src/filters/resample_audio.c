@@ -359,9 +359,11 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 
 static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	if (evt->base.type==GF_FEVT_SET_SPEED) {
+	if ((evt->base.type==GF_FEVT_SET_SPEED) && evt->play.speed) {
 		GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 		ctx->speed = evt->play.speed;
+		if (ctx->speed<0) ctx->speed = -ctx->speed;
+
 		ctx->passthrough = GF_FALSE;
 		if (ctx->speed > FIX_ONE) {
 			GF_FilterEvent anevt;
