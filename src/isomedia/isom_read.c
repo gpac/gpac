@@ -248,7 +248,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		sep[0] = ' ';
 		val = sep+1;
 	}
-	if (!stricmp(sz4cc, "H264")) {
+	if (!stricmp(sz4cc, "H264") || !stricmp(sz4cc, "AVC1")) {
 	}
 	else if (!stricmp(sz4cc, "AACL")) {
 	}
@@ -320,7 +320,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	trak->dts_at_seg_start = tfdt;
 
 
-	if (!stricmp(sz4cc, "H264")) {
+	if (!stricmp(sz4cc, "H264") || !stricmp(sz4cc, "AVC1")) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 pos = 0;
 		u32 end, sc_size=0;

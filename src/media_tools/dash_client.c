@@ -1151,6 +1151,8 @@ static Bool gf_dash_is_smooth_mime(const char *url, const char * mime)
 		return GF_FALSE;
 	if (strstr(url, ".mpd") || strstr(url, ".MPD"))
 		return GF_FALSE;
+	if (strstr(url, "manifest"))
+		return GF_TRUE;
 
 	for (i = 0 ; GF_DASH_SMOOTH_MIME_TYPES[i] ; i++) {
 		if ( !stricmp(mime, GF_DASH_SMOOTH_MIME_TYPES[i]))
