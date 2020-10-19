@@ -2130,11 +2130,12 @@ restart:
 	}
 
 	if (!session_js) {
+		u32 j;
 		Bool has_vout = GF_FALSE;
 		Bool has_compositor = GF_FALSE;
-		for (i=0; i<gf_list_count(loaded_filters); i++) {
+		for (j=0; j<gf_list_count(loaded_filters); j++) {
 			GF_FilterStats stats;
-			GF_Filter *f = gf_list_get(loaded_filters, i);
+			GF_Filter *f = gf_list_get(loaded_filters, j);
 			gf_filter_get_stats(f, &stats);
 			if (!stats.reg_name) continue;
 			if (!strcmp(stats.reg_name, "vout")) has_vout=GF_TRUE;
