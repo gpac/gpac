@@ -5652,7 +5652,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(tfdt), "set TFDT of first traf", GF_PROP_FRACTION64, "0", NULL, 0},
 	{ OFFS(tfdt_traf), "set TFDT in each traf", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(nofragdef), "disable default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(straf), "use a single traf per moov (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(straf), "use a single traf per moof (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strun), "use a single trun per traf (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(psshs), "set PSSH boxes store mode\n"
 	"- moof: in first moof of each segments\n"
