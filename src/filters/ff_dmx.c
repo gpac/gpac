@@ -67,6 +67,7 @@ typedef struct
 	Bool stop_seen;
 	u64 first_sample_clock, last_frame_ts;
 	u32 probe_frames;
+    u32 nb_pck_sent;
 
 	AVPacket pkt;
 	s32 audio_idx, video_idx;
@@ -158,6 +159,10 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		av_free_packet(&ctx->pkt);
 		return GF_OK;
 	}
+    if (! gf_filter_pid_is_playing( ctx->pids[ctx->pkt.stream_index] ) ) {
+        av_free_packet(&ctx->pkt);
+        return GF_OK;
+    }
 
 	if (ctx->raw_data && (ctx->probe_frames<ctx->probes) ) {
 		if (ctx->pkt.stream_index==ctx->audio_idx) {
@@ -254,7 +259,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ntp) );
 	}
 	e = gf_filter_pck_send(pck_dst);
-
+    ctx->nb_pck_sent++;
 	if (!ctx->raw_pck_out)
 		av_free_packet(&ctx->pkt);
 	return e;
@@ -659,7 +664,7 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	case GF_FEVT_STOP:
 		if (ctx->nb_playing) {
 			ctx->nb_playing--;
-			if (!ctx->nb_playing)
+			if (!ctx->nb_playing && ctx->nb_pck_sent)
 				ctx->stop_seen = GF_TRUE;
 		}
 		//cancel event
