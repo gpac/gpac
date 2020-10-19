@@ -2334,7 +2334,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			sURL[ulen]=0;
 		}
 
-		if (for_source && gf_url_is_local(sURL)) {
+		if (for_source && gf_url_is_local(sURL) && !strstr(sURL, "isobmff://")) {
 			char *frag_par, *cgi, *ext_start;
 			char f_c=0;
 			gf_url_to_fs_path(sURL);
