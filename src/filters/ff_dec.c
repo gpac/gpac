@@ -148,6 +148,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		gf_filter_pid_drop_packet(ctx->in_pid);
 		return GF_OK;
 	}
+    //we don't own the codec and we're in end of stream, don't try to decode (the context might have been closed)
+    if (!pck && !ctx->owns_context) {
+        gf_filter_pid_set_eos(ctx->out_pid);
+        return GF_EOS;
+    }
 
 	frame = ctx->frame;
 
@@ -655,11 +660,16 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+        ctx->owns_context = GF_FALSE;
 	}
 	//we reconfigure the stream
 	else {
 		AVCodec *codec=NULL;
 		u32 codec_id, ff_codectag=0;
+        
+        if (!ctx->owns_context) {
+            ctx->decoder = NULL;
+        }
 		if (ctx->decoder) {
 			codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
 			//same codec, same config, don't reinit
@@ -674,6 +684,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				}
 			}
 
+            
 			//we could further optimize by detecting we have the same codecid and injecting the extradata
 			//but this is not 100% reliable, and will require parsing AVC/HEVC config
 			//since this seems to work properly with decoder close/open, we keep it as is
