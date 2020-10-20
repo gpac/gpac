@@ -318,7 +318,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	}
 	if (!streamtype || !codec_id) {
 		if (udesc) gf_free(udesc);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to %s pid for track %d, couldnot extract codec/streamtype info\n", ch ? "update" : "create", track));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to %s pid for track %d, could not extract codec/streamtype info\n", ch ? "update" : "create", track));
 		if (lang_desc) gf_odf_desc_del((GF_Descriptor *)lang_desc);
 		if (dsi) gf_free(dsi);
 		return;
