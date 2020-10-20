@@ -2133,7 +2133,7 @@ retry_cache:
 	}
 
 	/*use it in in BYTES per second*/
-	dm->limit_data_rate = 1000 * gf_opts_get_int("core", "maxrate") / 8;
+	dm->limit_data_rate = gf_opts_get_int("core", "maxrate") / 8;
 
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 	//when rate is limited, use smaller smaller read size
