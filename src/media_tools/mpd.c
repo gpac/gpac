@@ -4183,7 +4183,8 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 					GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, k);
 					if (item_index>cur_idx+ent->repeat_count) {
 						cur_idx += 1 + ent->repeat_count;
-						if (ent->start_time) start_time = ent->start_time;
+						if (ent->start_time)
+							start_time = ent->start_time;
 						if (k<nb_seg-1) {
 							start_time += ent->duration * (1 + ent->repeat_count);
 							continue;
@@ -4202,7 +4203,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 
 					/*replace final 'd' with LLD (%lld or I64d)*/
 					szPrintFormat[strlen(szPrintFormat)-1] = 0;
-					strcat(szPrintFormat, &LLD[1]);
+					strcat(szPrintFormat, &LLU[1]);
 					sprintf(szFormat, szPrintFormat, time);
 					strcat(solved_template, szFormat);
 					break;
@@ -4587,9 +4588,17 @@ static GF_Err smooth_parse_chunk(GF_MPD *mpd, GF_List *container, GF_XMLNode *ro
     gf_list_add(container, chunk);
     i = 0;
     while ( (att = gf_list_enum(root->attributes, &i)) ) {
-        if (!strcmp(att->name, "n")) {}
-        else if (!strcmp(att->name, "d")) chunk->duration = atoi(att->value);
-        else if (!strcmp(att->name, "t")) chunk->start_time = atoi(att->value);
+        if (!strcmp(att->name, "r")) {
+			chunk->repeat_count = atoi(att->value);
+			//repeat count is one-based in smooth (number of repeats), 0-based in dash (number of additional repeats)
+			if (chunk->repeat_count)
+				chunk->repeat_count -= 1;
+		}
+        else if (!strcmp(att->name, "d"))
+			chunk->duration = atoi(att->value);
+        else if (!strcmp(att->name, "t")) {
+			sscanf(att->value, LLU, &chunk->start_time);
+		}
     }
     return GF_OK;
 }
@@ -4699,7 +4708,8 @@ static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XML
 		v = (char *)szTS;
         ISBMFFI_ADD_KEYWORD("scale", v)
     }
-    ISBMFFI_ADD_KEYWORD_CONST("tfdt", "0000000000000000000")
+    //reserve space for max u64 as hex, without 0x prefix
+    ISBMFFI_ADD_KEYWORD_CONST("tfdt", "0000000000000000")
     //create a url for the IS to be reconstructed
     rep->mime_type = gf_strdup(is_audio ? "audio/mp4" : "video/mp4");
     GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
@@ -4736,7 +4746,9 @@ static GF_Err smooth_parse_stream_index(GF_MPD *mpd, GF_List *container, GF_XMLN
     while ((att = gf_list_enum(root->attributes, &i))) {
         if (!strcmp(att->name, "Type")) {}
         else if (!strcmp(att->name, "Name")) {}
-        else if (!strcmp(att->name, "Chunks")) {}
+        else if (!strcmp(att->name, "Chunks")) {
+			set->smooth_max_chunks = atoi(att->value);
+		}
         else if (!strcmp(att->name, "MaxWidth")) set->max_width = atoi(att->value);
         else if (!strcmp(att->name, "MaxHeight")) set->max_height = atoi(att->value);
         else if (!strcmp(att->name, "Url")) {
@@ -4779,6 +4791,7 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
     GF_XMLAttribute *att;
     GF_XMLNode *child;
     GF_MPD_Period *period;
+    u64 tsb = 0;
 
     if (!root || !mpd) return GF_BAD_PARAM;
 
@@ -4794,19 +4807,19 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
     i=0;
     while ((att = gf_list_enum(root->attributes, &i))) {
         if (!strcmp(att->name, "TimeScale"))
-        timescale = atoi(att->value);
+			timescale = atoi(att->value);
         else if (!strcmp(att->name, "Duration"))
-        mpd->media_presentation_duration = atoi(att->value);
-        else if (!strcmp(att->name, "IsLive") && stricmp(att->value, "true") )
-        mpd->type = GF_MPD_TYPE_DYNAMIC;
-        else if (!strcmp(att->name, "LookaheadCount"))
-        {}
+			mpd->media_presentation_duration = atoi(att->value);
+        else if (!strcmp(att->name, "IsLive") && !stricmp(att->value, "true") )
+			mpd->type = GF_MPD_TYPE_DYNAMIC;
         else if (!strcmp(att->name, "DVRWindowLength"))
-        mpd->time_shift_buffer_depth = atoi(att->value);
+			sscanf(att->value, LLU, &tsb);
+//        else if (!strcmp(att->name, "LookaheadCount")) { }
     }
     mpd->media_presentation_duration = mpd->media_presentation_duration * 1000 / timescale;
-    mpd->time_shift_buffer_depth = mpd->time_shift_buffer_depth * 1000 / timescale;
-
+    tsb *= 1000;
+    tsb /= timescale;
+    mpd->time_shift_buffer_depth = tsb;
 
     GF_SAFEALLOC(period, GF_MPD_Period);
     if (!period) return GF_OUT_OF_MEM;

@@ -452,7 +452,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	u8 *moof_template=NULL;
 	u32 moof_template_size=0;
 	Bool is_seg_start = GF_FALSE;
-	u64 seg_start=0, sidx_start=0, sidx_end=0, frag_start=0;
+	u64 seg_start=0, sidx_start=0, sidx_end=0, frag_start=0, last_dts=0;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
 #ifdef GF_ENABLE_CTRN
@@ -535,6 +535,20 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		}
 #endif
 		trak->dts_at_seg_start = traf->tfdt->baseMediaDecodeTime;
+	}
+	else if (traf->tfxd) {
+		trak->dts_at_seg_start = traf->tfxd->absolute_time_in_track_timescale;
+	}
+
+	if (traf->tfxd) {
+		trak->last_tfxd_value = traf->tfxd->absolute_time_in_track_timescale;
+		trak->last_tfxd_value += traf->tfxd->fragment_duration_in_track_timescale;
+	}
+	if (traf->tfrf) {
+		if (trak->tfrf) gf_isom_box_del_parent(&trak->child_boxes, (GF_Box *)trak->tfrf);
+		trak->tfrf = traf->tfrf;
+		gf_list_del_item(traf->child_boxes, traf->tfrf);
+		gf_list_add(trak->child_boxes, trak->tfrf);
 	}
 
 	if (trak->moov->mov->signal_frag_bounds) {
@@ -675,6 +689,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			ent->flags = flags;
 			ent->CTS_Offset = cts_offset;
 
+			last_dts += duration;
+
 			//add size first
 			if (!trak->Media->information->sampleTable->SampleSize) {
 				trak->Media->information->sampleTable->SampleSize = (GF_SampleSizeBox *) gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_STSZ);
@@ -789,6 +805,12 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			e = stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 			if (e) return e;
 		}
+	}
+
+	if (trak->moov->mov->is_smooth && !traf->tfdt && !traf->tfxd) {
+		if (is_first_merge)
+			trak->dts_at_seg_start = trak->dts_at_next_seg_start;
+		trak->dts_at_next_seg_start += last_dts;
 	}
 	if (traf_duration && trak->editBox && trak->editBox->editList) {
 		for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {

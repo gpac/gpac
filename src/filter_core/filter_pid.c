@@ -5764,9 +5764,22 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (pid->not_connected)
 			pid->not_connected = 2;
 		return;
-	} else if (f->freg->process_event) {
-		FSESS_CHECK_THREAD(f)
-		canceled = f->freg->process_event(f, evt);
+	}
+	//otherwise process
+	else {
+		//reset EOS to false on source switch before executing the event, so that a filter may set a pid to EOS in the callback
+		if (evt->base.type==GF_FEVT_SOURCE_SWITCH) {
+			for (i=0; i<f->num_output_pids; i++) {
+				GF_FilterPid *apid = gf_list_get(f->output_pids, i);
+				apid->has_seen_eos = GF_FALSE;
+				gf_filter_pid_check_unblock(apid);
+			}
+		}
+
+		if (f->freg->process_event) {
+			FSESS_CHECK_THREAD(f)
+			canceled = f->freg->process_event(f, evt);
+		}
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type), canceled ? "yes" : "no" ));
@@ -5855,13 +5868,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 				else
 					gf_filter_pid_check_unblock(evt->base.on_pid);
 			}
-		}
-	}
-	else if (evt->base.type==GF_FEVT_SOURCE_SWITCH) {
-		for (i=0; i<f->num_output_pids; i++) {
-			GF_FilterPid *apid = gf_list_get(f->output_pids, i);
-			apid->has_seen_eos = GF_FALSE;
-			gf_filter_pid_check_unblock(apid);
 		}
 	}
 

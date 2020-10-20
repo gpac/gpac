@@ -627,6 +627,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
 //writes box header then version+flags
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
 
+void gf_isom_box_array_reset(GF_List *boxlist);
 void gf_isom_box_array_del(GF_List *child_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
@@ -880,6 +881,10 @@ typedef struct
 	Bool first_traf_merged;
 	Bool present_in_scalable_segment;
 	u32 current_traf_stsd_idx;
+
+	u64 last_tfxd_value;
+	struct __traf_mss_timeref_box *tfrf;
+	u64 dts_at_next_seg_start;
 #endif
 } GF_TrackBox;
 
@@ -2537,6 +2542,7 @@ typedef struct
 	//can be senc or PIFF psec
 	struct __sample_encryption_box *sample_encryption;
 	struct __traf_mss_timeext_box *tfxd; /*similar to PRFT but for Smooth Streaming*/
+	struct __traf_mss_timeref_box *tfrf;
 
 	/*when data caching is on*/
 	u32 DataCache;
@@ -3398,6 +3404,25 @@ typedef struct __traf_mss_timeext_box
 	u64 absolute_time_in_track_timescale;
 	u64 fragment_duration_in_track_timescale;
 } GF_MSSTimeExtBox;
+
+typedef struct
+{
+	u64 absolute_time_in_track_timescale;
+	u64 fragment_duration_in_track_timescale;
+} GF_MSSTimeEntry;
+
+typedef struct __traf_mss_timeref_box
+{
+	GF_ISOM_UUID_BOX
+	/*u8 version; field in included in base box version */
+	u32 flags;
+
+	u32 frags_count;
+	GF_MSSTimeEntry *frags;
+
+} GF_MSSTimeRefBox;
+
+
 
 GF_SampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);

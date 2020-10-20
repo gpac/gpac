@@ -900,6 +900,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_current_tfdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_smooth_streaming_moov) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_smooth_next_tfdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_adobe_protection_media) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_adobe_protection_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_group_info) )

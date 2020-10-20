@@ -6185,6 +6185,14 @@ GF_Err traf_on_child_box(GF_Box *s, GF_Box *a)
 			ptr->sample_encryption = (GF_SampleEncryptionBox *)a;
 			ptr->sample_encryption->traf = ptr;
 			return GF_OK;
+		} else if ( ((GF_UUIDBox *)a)->internal_4cc==GF_ISOM_BOX_UUID_TFXD) {
+			if (ptr->tfxd) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->tfxd = (GF_MSSTimeExtBox *)a;
+			return GF_OK;
+		} else if ( ((GF_UUIDBox *)a)->internal_4cc==GF_ISOM_BOX_UUID_TFRF) {
+			if (ptr->tfrf) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->tfrf = (GF_MSSTimeRefBox *)a;
+			return GF_OK;
 		} else {
 			return GF_OK;
 		}
@@ -6221,61 +6229,6 @@ GF_Box *traf_box_new()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-
-GF_Box *tfxd_box_new()
-{
-	ISOM_DECL_BOX_ALLOC(GF_MSSTimeExtBox, GF_ISOM_BOX_TYPE_UUID);
-	tmp->internal_4cc = GF_ISOM_BOX_UUID_TFXD;
-	return (GF_Box *)tmp;
-}
-
-void tfxd_box_del(GF_Box *s)
-{
-	gf_free(s);
-}
-
-
-GF_Err tfxd_box_read(GF_Box *s, GF_BitStream *bs)
-{
-	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox *)s;
-	ISOM_DECREASE_SIZE(ptr, 4);
-	ptr->version = gf_bs_read_u8(bs);
-	ptr->flags = gf_bs_read_u24(bs);
-
-	if (ptr->version == 0x01) {
-		ISOM_DECREASE_SIZE(ptr, 16);
-		ptr->absolute_time_in_track_timescale = gf_bs_read_u64(bs);
-		ptr->fragment_duration_in_track_timescale = gf_bs_read_u64(bs);
-	} else {
-		ISOM_DECREASE_SIZE(ptr, 8);
-		ptr->absolute_time_in_track_timescale = gf_bs_read_u32(bs);
-		ptr->fragment_duration_in_track_timescale = gf_bs_read_u32(bs);
-	}
-
-	return GF_OK;
-}
-
-GF_Err tfxd_box_write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_MSSTimeExtBox *uuid = (GF_MSSTimeExtBox*)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_bs_write_u8(bs, 1);
-	gf_bs_write_u24(bs, 0);
-	gf_bs_write_u64(bs, uuid->absolute_time_in_track_timescale);
-	gf_bs_write_u64(bs, uuid->fragment_duration_in_track_timescale);
-
-	return GF_OK;
-}
-
-GF_Err tfxd_box_size(GF_Box *s)
-{
-	s->size += 20;
-	return GF_OK;
-}
-
 GF_Err traf_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	return gf_isom_box_write_header(s, bs);
@@ -6310,6 +6263,146 @@ GF_Err traf_box_size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *tfxd_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MSSTimeExtBox, GF_ISOM_BOX_TYPE_UUID);
+	tmp->internal_4cc = GF_ISOM_BOX_UUID_TFXD;
+	return (GF_Box *)tmp;
+}
+
+void tfxd_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+
+GF_Err tfxd_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 4);
+	ptr->version = gf_bs_read_u8(bs);
+	ptr->flags = gf_bs_read_u24(bs);
+
+	if (ptr->version == 0x01) {
+		ISOM_DECREASE_SIZE(ptr, 16);
+		ptr->absolute_time_in_track_timescale = gf_bs_read_u64(bs);
+		ptr->fragment_duration_in_track_timescale = gf_bs_read_u64(bs);
+	} else {
+		ISOM_DECREASE_SIZE(ptr, 8);
+		ptr->absolute_time_in_track_timescale = gf_bs_read_u32(bs);
+		ptr->fragment_duration_in_track_timescale = gf_bs_read_u32(bs);
+	}
+
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err tfxd_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox*)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->version);
+	gf_bs_write_u24(bs, 0);
+	if (ptr->version) {
+		gf_bs_write_u64(bs, ptr->absolute_time_in_track_timescale);
+		gf_bs_write_u64(bs, ptr->fragment_duration_in_track_timescale);
+	} else {
+		gf_bs_write_u32(bs, ptr->absolute_time_in_track_timescale);
+		gf_bs_write_u32(bs, ptr->fragment_duration_in_track_timescale);
+	}
+	return GF_OK;
+}
+
+GF_Err tfxd_box_size(GF_Box *s)
+{
+	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox*)s;
+	s->size += 4 + (ptr->version) ? 16 : 8;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+
+
+GF_Box *tfrf_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MSSTimeRefBox, GF_ISOM_BOX_TYPE_UUID);
+	tmp->internal_4cc = GF_ISOM_BOX_UUID_TFRF;
+	return (GF_Box *)tmp;
+}
+
+void tfrf_box_del(GF_Box *s)
+{
+	GF_MSSTimeRefBox *ptr = (GF_MSSTimeRefBox *)s;
+	if (ptr->frags) gf_free(ptr->frags);
+	gf_free(s);
+}
+
+
+GF_Err tfrf_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_MSSTimeRefBox *ptr = (GF_MSSTimeRefBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 5);
+	ptr->version = gf_bs_read_u8(bs);
+	ptr->flags = gf_bs_read_u24(bs);
+	ptr->frags_count = gf_bs_read_u8(bs);
+	ptr->frags = gf_malloc(sizeof(GF_MSSTimeEntry) * ptr->frags_count);
+	if (!ptr->frags) return GF_OUT_OF_MEM;
+
+	for (i=0; i<ptr->frags_count; i++) {
+		if (ptr->version == 0x01) {
+			ISOM_DECREASE_SIZE(ptr, 16);
+			ptr->frags[i].absolute_time_in_track_timescale = gf_bs_read_u64(bs);
+			ptr->frags[i].fragment_duration_in_track_timescale = gf_bs_read_u64(bs);
+		} else {
+			ISOM_DECREASE_SIZE(ptr, 8);
+			ptr->frags[i].absolute_time_in_track_timescale = gf_bs_read_u32(bs);
+			ptr->frags[i].fragment_duration_in_track_timescale = gf_bs_read_u32(bs);
+		}
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err tfrf_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_MSSTimeRefBox *ptr = (GF_MSSTimeRefBox*)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->version);
+	gf_bs_write_u24(bs, 0);
+	gf_bs_write_u8(bs, ptr->frags_count);
+	for (i=0; i<ptr->frags_count; i++) {
+		if (ptr->version==0x01) {
+			gf_bs_write_u64(bs, ptr->frags[i].absolute_time_in_track_timescale);
+			gf_bs_write_u64(bs, ptr->frags[i].fragment_duration_in_track_timescale);
+		} else {
+			gf_bs_write_u32(bs, ptr->frags[i].absolute_time_in_track_timescale);
+			gf_bs_write_u32(bs, ptr->frags[i].fragment_duration_in_track_timescale);
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err tfrf_box_size(GF_Box *s)
+{
+	GF_MSSTimeRefBox *ptr = (GF_MSSTimeRefBox*)s;
+	s->size += 5;
+	if (ptr->version) s->size += 16 * ptr->frags_count;
+	else s->size += 8 * ptr->frags_count;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
@@ -10306,6 +10399,11 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size
 
 	*out_str = gf_malloc(sizeof(char)*len);
 	if (! *out_str) return GF_OUT_OF_MEM;
+
+	if (!s->size) {
+		*out_str[0] = 0;
+		return GF_OK;
+	}
 
 	while (1) {
 		ISOM_DECREASE_SIZE(s, 1 );

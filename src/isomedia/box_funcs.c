@@ -336,7 +336,7 @@ GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs)
 	return gf_isom_box_parse_ex(outBox, bs, 0, GF_FALSE);
 }
 
-void gf_isom_box_array_del(GF_List *boxlist)
+void gf_isom_box_array_reset(GF_List *boxlist)
 {
 	u32 count, i;
 	if (!boxlist) return;
@@ -345,6 +345,11 @@ void gf_isom_box_array_del(GF_List *boxlist)
 		GF_Box *a = (GF_Box *)gf_list_get(boxlist, i);
 		if (a) gf_isom_box_del(a);
 	}
+}
+
+void gf_isom_box_array_del(GF_List *boxlist)
+{
+	gf_isom_box_array_reset(boxlist);
 	gf_list_del(boxlist);
 }
 
@@ -621,6 +626,7 @@ ISOM_BOX_IMPL_DECL(styp)
 ISOM_BOX_IMPL_DECL(mehd)
 /*smooth streaming timing*/
 ISOM_BOX_IMPL_DECL(tfxd)
+ISOM_BOX_IMPL_DECL(tfrf)
 
 #endif
 
@@ -1423,6 +1429,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_PSEC, piff_psec, "trak traf", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_PSSH, piff_pssh, "moov moof", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFXD, tfxd, "traf", "smooth"),
+	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFRF, tfrf, "traf", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_MSSM, uuid, "file", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFRF, uuid, "traf", "smooth"),
 

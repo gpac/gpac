@@ -1549,7 +1549,6 @@ GF_Err gf_isom_get_current_top_box_offset(GF_ISOFile *isom_file, u64 *current_to
 */
 GF_Err gf_isom_purge_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 nb_samples);
 
-
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
 /*! dumps file structures into XML trace file
@@ -3645,6 +3644,13 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *isom_file, u64 *MissingBytes, cons
 \return the track fragment decode time in media timescale
 */
 u64 gf_isom_get_current_tfdt(GF_ISOFile *isom_file, u32 trackNumber);
+
+/*! gets the estimated DTS of the first sample of the next segment for SmoothStreaming files (no tfdt, no tfxd)
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return the next track fragment decode time in media timescale
+*/
+u64 gf_isom_get_smooth_next_tfdt(GF_ISOFile *the_file, u32 trackNumber);
 
 /*! checks if the movie is a smooth streaming recomputed initial movie
 \param isom_file the target ISO file

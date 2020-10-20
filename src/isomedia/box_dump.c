@@ -2510,6 +2510,20 @@ GF_Err tfxd_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err tfrf_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_MSSTimeRefBox *ptr = (GF_MSSTimeRefBox*)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "MSSTimeReferenceBox", trace);
+	gf_fprintf(trace, "FragmentsCount=\"%d\">\n", ptr->frags_count);
+	gf_fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
+	for (i=0; i<ptr->frags_count; i++) {
+		gf_fprintf(trace, "<Fragment AbsoluteTime=\""LLU"\" FragmentDuration=\""LLU"\">\n", ptr->frags[i].absolute_time_in_track_timescale, ptr->frags[i].fragment_duration_in_track_timescale);
+	}
+	gf_isom_box_dump_done("MSSTimeReferenceBox", a, trace);
+	return GF_OK;
+}
 GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, flags;
