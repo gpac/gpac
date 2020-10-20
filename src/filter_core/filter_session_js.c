@@ -156,7 +156,7 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 
 	case JSFS_HTTP_RATE:
 		if (fs->download_manager)
-			return JS_NewInt32(ctx, gf_dm_get_global_rate(fs->download_manager) / 1000);
+			return JS_NewInt32(ctx, gf_dm_get_global_rate(fs->download_manager) );
 		return JS_NULL;
 	case JSFS_RMT_SAMPLING:
 		return JS_NewBool(ctx, gf_sys_profiler_sampling_enabled() );

@@ -339,37 +339,36 @@ function update_play()
 		return;
 	}
 
-	if (last_ts_f != null) {
-		let h, m, s;
-		let last_ts = last_ts_f.n;
-		last_ts /= last_ts_f.d;
+	let h, m, s;
+	let last_ts = last_ts_f.n;
+	last_ts /= last_ts_f.d;
 
-		if (reverse) last_ts = duration - last_ts;
+	if (reverse) last_ts = duration - last_ts;
 
-		h = Math.floor(last_ts/3600);
-		m = Math.floor(last_ts/60 - h*60);
-		s = Math.floor(last_ts - h*360) - m*60;
-		let str = reverse ? '-' : ' ';
+	h = Math.floor(last_ts/3600);
+	m = Math.floor(last_ts/60 - h*60);
+	s = Math.floor(last_ts - h*360) - m*60;
+	let str = reverse ? '-' : ' ';
 
-		if (duration>=3600) {
-			if (h<10) str+='0';
-			str+=h+':';
-		}
-		if (m<10) str+='0';
-		str+=m+':';
-		if (s<10) str+='0';
-		str+=s;
-		let fs = Math.floor(0.5*ol_height);
-		if (fs > 60) fs=60;
-		text.fontsize = fs; 
-		text.set_text(str);
-		let mx = new evg.Matrix2D();
-		mx.translate(ol_width/2 - str.length * text.fontsize/2, -10);
-		ol_canvas.matrix = mx;
-		ol_canvas.path = text;
-		ol_canvas.fill(brush);
-		length -= str.length * text.fontsize/2;
+	if (duration>=3600) {
+		if (h<10) str+='0';
+		str+=h+':';
 	}
+	if (m<10) str+='0';
+	str+=m+':';
+	if (s<10) str+='0';
+	str+=s;
+	let fs = Math.floor(0.5*ol_height);
+	if (fs > 60) fs=60;
+	text.fontsize = fs; 
+	text.set_text(str);
+	let mx = new evg.Matrix2D();
+	mx.translate(ol_width/2 - str.length * text.fontsize/2, -10);
+	ol_canvas.matrix = mx;
+	ol_canvas.path = text;
+	ol_canvas.fill(brush);
+	length -= str.length * text.fontsize/2;
+	
 
 	if (check_duration()) {
 		if (!progress_bar_path) {
@@ -416,6 +415,12 @@ function build_graph(f, str, str_list, fdone)
 		str_list.push(str);
 		str = '';
 		fdone.push(f);
+		return;
+	}
+	if (fdone.indexOf(f)>=0) {
+		str += '->' + f.name;
+		str_list.push(str);
+		str = '';
 		return;
 	}
 
@@ -479,6 +484,14 @@ function update_stats()
 
 	let sys_info='CPU: '+sys.process_cpu_usage + ' Mem: ' + Math.floor(sys.process_memory/1000000) + ' MB';
 	stats.push(sys_info);
+	if (session.http_bitrate) {
+		let r = session.http_bitrate;
+		sys_info = 'HTTP rate: '; 
+		if (r>1000000) sys_info += '' + Math.floor(r/10000) / 100 + ' mbps';
+		else if (r>1000) sys_info += '' + Math.floor(r/10) / 100 + ' kbps';
+		else sys_info += '' + r + ' bps';
+		stats.push(sys_info);
+	}
 	stats.push('  ');
 
 	let i;
