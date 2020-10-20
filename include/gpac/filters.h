@@ -2808,7 +2808,6 @@ GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *PID, char *name, const GF_Pr
 Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain and to not trigger PID reconfiguration.
 First packet dispatched after calling this function will be marked, and its fetching by the consuming filter will trigger a process_event notification.
 If the consumming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
-Note: any property type can be used for info, except \ref GF_PROP_POINTER.
 
 \param PID the target filter PID
 \param prop_4cc the built-in property code to modify
