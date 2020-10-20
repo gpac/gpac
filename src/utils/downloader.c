@@ -737,7 +737,8 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 		}
 		if (!found) {
 			sess->reused_cache_entry = GF_FALSE;
-			gf_cache_close_write_cache(sess->cache_entry, sess, GF_FALSE);
+			if (sess->cache_entry)
+				gf_cache_close_write_cache(sess->cache_entry, sess, GF_FALSE);
 		}
 		gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
 		if (sess->needs_range)
@@ -861,7 +862,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 				gf_sk_del(sx);
 			}
 		}
-		if (force_close && sess->use_cache_file) {
+		if (force_close && sess->use_cache_file && sess->cache_entry) {
 			gf_cache_close_write_cache(sess->cache_entry, sess, GF_FALSE);
 		}
 	}
