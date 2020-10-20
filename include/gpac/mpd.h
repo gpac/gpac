@@ -677,6 +677,10 @@ typedef struct
 	/*! mpegh compatible profile hack*/
 	u32 nb_alt_mha_profiles, *alt_mha_profiles;
 	Bool alt_mha_profiles_only;
+
+	/*! max number of valid chunks in smooth manifest*/
+	u32 smooth_max_chunks;
+
 } GF_MPD_AdaptationSet;
 
 /*! MPD offering type*/

@@ -225,14 +225,17 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	//this is a movie, reload
 	case 2:
 	case 1:
-		tfdt = gf_isom_get_current_tfdt(read->mov, 1);
+		//get tfdt of next segment (cumulated sample dur since moov load)
+		//if the next segment has a tfdt or a tfrx, this will be ignored
+		//otherwise this value will be used as base tfdt for next segment
+		tfdt = gf_isom_get_smooth_next_tfdt(read->mov, 1);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU") - range "LLU"-"LLU"\n", next_url, tfdt, read->start_range, read->end_range));
 
 		if (gf_isom_is_smooth_streaming_moov(read->mov)) {
 			char *tfdt_val = strstr(next_url, "tfdt=");
-			//smooth addressing, replace tfdt=0000000000000000000 with proper value
+			//smooth addressing, replace tfdt=0000000000000000 with proper value
 			if (tfdt_val) {
-				sprintf(tfdt_val+5, LLU, tfdt);
+				sprintf(tfdt_val+5, LLX, tfdt);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", next_url, gf_net_get_utc() ));
 			}
@@ -1328,8 +1331,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				nb_pck--;
 			} else if (ch->last_state==GF_EOS) {
 				if (in_is_eos && !ch->eos_sent) {
+					void *tfrf;
+					const void *gf_isom_get_tfrf(GF_ISOFile *movie, u32 trackNumber);
+
 					ch->eos_sent = GF_TRUE;
 					read->eos_signaled = GF_TRUE;
+
+					tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);
+					if (tfrf) {
+						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", &PROP_POINTER(tfrf) );
+					} else {
+						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL );
+					}
 					gf_filter_pid_set_eos(ch->pid);
 				}
 				break;

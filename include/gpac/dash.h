@@ -232,6 +232,12 @@ const char *gf_dash_get_url(GF_DashClient *dash);
 */
 Bool gf_dash_is_m3u8(GF_DashClient *dash);
 
+/*! tells whether we are playing some MS SmoothStreaming
+\param dash the target dash client
+\return GF_TRUE if the manifest is SmoothStreaming
+*/
+Bool gf_dash_is_smooth_streaming(GF_DashClient *dash);
+
 /*! gets title and source for this MPD
 \param dash the target dash client
 \param title set to the title of the manifest (may be NULL)

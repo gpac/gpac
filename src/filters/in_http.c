@@ -140,6 +140,14 @@ static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_ty
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
+static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
+	ctx->pck_out = GF_FALSE;
+	//ready to process again
+	gf_filter_post_process_task(filter);
+}
+
 static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_Err e;
@@ -202,6 +210,21 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->cached) gf_fclose(ctx->cached);
 		ctx->cached = NULL;
 
+		//handle isobmff:// url
+		if (!strncmp(ctx->src, "isobmff://", 10)) {
+			GF_FilterPacket *pck;
+			gf_filter_pid_raw_new(filter, ctx->src, ctx->src, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
+			ctx->is_end = GF_TRUE;
+			pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
+			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+
+			ctx->pck_out = GF_TRUE;
+			gf_filter_pck_send(pck);
+
+			gf_filter_pid_set_eos(ctx->pid);
+			return GF_TRUE;
+		}
+
 		//abort type
 		if (evt->seek.start_offset == (u64) -1) {
 			if (!ctx->is_end) {
@@ -246,14 +269,6 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		break;
 	}
 	return GF_TRUE;
-}
-
-static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
-{
-	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
-	ctx->pck_out = GF_FALSE;
-	//ready to process again
-	gf_filter_post_process_task(filter);
 }
 
 static GF_Err httpin_process(GF_Filter *filter)

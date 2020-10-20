@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Pierre Souchay, Jean Le Feuvre, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2010-2012, Romain Bouqueau
+ *			Copyright (c) Telecom ParisTech 2010-2020, Romain Bouqueau
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -686,7 +686,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		//todo extract I/intra rate for speed adaptation
 		return NULL;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unknown line in M3U8 file %s\n", line));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unsupported directive %s\n", line));
 	return NULL;
 }
 
