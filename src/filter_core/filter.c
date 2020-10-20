@@ -2463,30 +2463,15 @@ struct _gf_filter_setup_failure
 
 static void gf_filter_setup_failure_task(GF_FSTask *task)
 {
-	s32 res;
 	GF_Err e;
 	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
 	if (task->udta) {
 		e = ((struct _gf_filter_setup_failure *)task->udta)->e;
 		gf_free(task->udta);
-
 		f->session->last_connect_error = e;
 	}
-
-	if (!f->finalized && f->freg->finalize) {
-		FSESS_CHECK_THREAD(f)
-		f->freg->finalize(f);
-	}
-	if (f->session->filters_mx) gf_mx_p(f->session->filters_mx);
-
-	res = gf_list_del_item(f->session->filters, f);
-	if (res < 0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s task failure callback on already removed filter!\n", f->name));
-	}
-
-	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
-
-	gf_filter_del(f);
+	f->finalized = GF_TRUE;
+	gf_fs_post_task(f->session, gf_filter_remove_task, f, NULL, "filter_destroy", NULL);
 }
 
 static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
@@ -2615,6 +2600,15 @@ void gf_filter_remove_task(GF_FSTask *task)
 		GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
 		pidinst->filter = NULL;
 	}
+	//detach all output pids
+	while (gf_list_count(f->output_pids)) {
+		u32 j;
+		GF_FilterPid *pid = gf_list_pop_back(f->output_pids);
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_FilterPid *pidinst = gf_list_get(pid->destinations, j);
+			pidinst->pid = NULL;
+		}
+	}
 
 	gf_filter_del(f);
 	task->filter = NULL;
@@ -2674,13 +2668,17 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 
 	if (!filter) return;
 
-	if (filter->removed) 
+	if (filter->removed)
 		return;
 
 	if (filter==until_filter)
 		return;
 
 	if (until_filter) {
+		//check if filter has not been removed
+		s32 res = gf_list_find(until_filter->session->filters, filter);
+		if (res<0)
+			return;
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s up to %s\n", filter->name, until_filter->name));
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s from session\n", filter->name));
