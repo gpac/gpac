@@ -3650,7 +3650,7 @@ u64 gf_isom_get_current_tfdt(GF_ISOFile *isom_file, u32 trackNumber);
 \param trackNumber the target track
 \return the next track fragment decode time in media timescale
 */
-u64 gf_isom_get_smooth_next_tfdt(GF_ISOFile *the_file, u32 trackNumber);
+u64 gf_isom_get_smooth_next_tfdt(GF_ISOFile *isom_file, u32 trackNumber);
 
 /*! checks if the movie is a smooth streaming recomputed initial movie
 \param isom_file the target ISO file

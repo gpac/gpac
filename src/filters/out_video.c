@@ -268,6 +268,14 @@ static GF_Err resize_video_output(GF_VideoOutCtx *ctx, u32 dw, u32 dh)
 		evt.size.height = dh;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
+
+	if (ctx->pid) {
+		GF_FilterEvent fevt;
+		GF_FEVT_INIT(fevt, GF_FEVT_VISIBILITY_HINT, ctx->pid);
+		fevt.visibility_hint.max_x = dw;
+		fevt.visibility_hint.max_y = dh;
+		gf_filter_pid_send_event(ctx->pid, &fevt);
+	}
 	return GF_OK;
 }
 
@@ -638,6 +646,13 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 			ctx->owsize.x = ctx->display_width;
 			ctx->owsize.y = ctx->display_height;
 			vout_reset_overlay(ctx);
+
+			if (ctx->pid) {
+				GF_FEVT_INIT(fevt, GF_FEVT_VISIBILITY_HINT, ctx->pid);
+				fevt.visibility_hint.max_x = ctx->display_width;
+				fevt.visibility_hint.max_y = ctx->display_height;
+				gf_filter_pid_send_event(ctx->pid, &fevt);
+			}
 		}
 		break;
 	case GF_EVENT_CLICK:
@@ -1751,6 +1766,21 @@ GF_Err vout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 		if (!ctx->pid)
 			return GF_OK;
 		ctx->do_seek = GF_TRUE;
+	}
+	if (!strcmp(arg_name, "speed") && ctx->pid) {
+		GF_FilterEvent fevt;
+		GF_FEVT_INIT(fevt, 0, ctx->pid);
+		if (new_val->value.number) {
+			if (!ctx->speed) {
+				fevt.base.type = GF_FEVT_RESUME;
+			} else {
+				fevt.base.type = GF_FEVT_SET_SPEED;
+				fevt.play.speed = new_val->value.number;
+			}
+		} else {
+			fevt.base.type = GF_FEVT_PAUSE;
+		}
+		gf_filter_pid_send_event(ctx->pid, &fevt);
 	}
 	//reinit clock
 	ctx->first_cts_plus_one = 0;

@@ -29,7 +29,6 @@
 #include "../scenegraph/qjs_common.h"
 
 #ifdef GPAC_HAS_QJS
-void js_load_constants(JSContext *ctx, JSValue global_obj);
 
 
 
@@ -960,6 +959,22 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 	return jsfs_new_filter_obj(ctx, new_f);
 }
 
+static JSValue jsff_bind(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f || !argc)
+		return JS_EXCEPTION;
+	if (!JS_IsObject(argv[0]) && !JS_IsNull(argv[0]))
+		return JS_EXCEPTION;
+
+	if (f->freg && !strcmp(f->freg->name, "dashin")) {
+		JSValue dashdmx_bind_js(GF_Filter *f, JSContext *jsctx, JSValueConst obj);
+		return dashdmx_bind_js(f, ctx, argv[0]);
+	}
+
+	return js_throw_err_msg(ctx, GF_BAD_PARAM, "filter class %s has no JS bind capabilities", f->freg->name);
+}
+
 #define JS_CGETSET_MAGIC_DEF_ENUM(name, fgetter, fsetter, magic) { name, JS_PROP_CONFIGURABLE|JS_PROP_ENUMERABLE, JS_DEF_CGETSET_MAGIC, magic, .u = { .getset = { .get = { .getter_magic = fgetter }, .set = { .setter_magic = fsetter } } } }
 
 static const JSCFunctionListEntry fs_f_funcs[] = {
@@ -1000,6 +1015,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("update", 0, jsff_update),
 	JS_CFUNC_DEF("remove", 0, jsff_remove),
 	JS_CFUNC_DEF("insert", 0, jsff_insert_filter),
+	JS_CFUNC_DEF("bind", 0, jsff_bind),
 };
 
 static JSValue jsfs_new_filter_obj(JSContext *ctx, GF_Filter *f)

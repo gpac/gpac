@@ -60,6 +60,8 @@ void js_do_loop(JSContext *ctx);
 void js_dump_error(JSContext *ctx);
 JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
+void js_load_constants(JSContext *ctx, JSValue global_obj);
+
 /********************************************
 
 	SceneGraph JS tools

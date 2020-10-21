@@ -428,6 +428,9 @@ struct __gf_filter_session
 	GF_List *jstasks;
 	struct __jsfs_task *new_f_task, *del_f_task, *on_evt_task;
 #endif
+
+	gf_fs_on_filter_creation on_filter_create_destroy;
+	void *rt_udta;
 };
 
 #ifdef GPAC_HAS_QJS

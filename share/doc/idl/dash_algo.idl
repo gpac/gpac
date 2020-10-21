@@ -1,0 +1,154 @@
+/*
+\file
+\brief silence !
+*/
+
+typedef char *DOMString;
+
+/*!
+
+\defgroup dash_grp JS DASH Adaptation API
+\ingroup jsapi_grp
+\brief JavaScript API for DASH client adaptation algorithm.
+
+This section documents the JavaScript API available for implementing your own adaptation logic in GPAC DASH client.
+
+The algorithm is chosen using the option `algo` of the dashin filter :
+```
+gpac -i source.mpd:algo=myalgo.js vout
+//or
+gpac -i source.mpd --algo=myalgo.js vout
+```
+
+The loaded JavaScript context has all JS modules available in GPAC, except WebGL. 
+
+@{
+
+*/
+
+/*! global context property representing the one and only JSFilterSession object attached to the loaded script*/
+attribute JSDASHClient dashin;
+
+/*!\brief JSDASHClient API
+
+The JSDASHClient interface has a single instance exposed to the script under the name "dashin".
+It implements callbacks from the DASH client.
+The object can also be bound to a running filter using JSFSFilter.bind
+*/
+interface JSDASHClient {
+
+/*! perform rate adaptation on the given group (AdaptationSet in DASH, corresponds to one adaptable media)
+\param group group being created, can be kept for future use
+*/
+attribute void new_group(JSDASHGroup group);
+
+/*! indicate the period has changed, the old groups are no longer valid*/
+attribute void period_reset();
+
+/*! perform rate adaptation on the given group (AdaptationSet in DASH, corresponds to one adaptable media)
+\param group_idx index of group on which to perform adaptation
+\param base_group_idx index of associated base group (usually same as group, differs in tiling mode),
+\param force_lower_complexity set to true if the dash client would like a lower complexity 
+\param stats current statistics for the group JSDASHStats
+
+\return the index of the new quality to select (as listed in group.reps[]), or -1 to not take decision now and postpon it until dependent groups are done 
+*/
+attribute int rate_adaptation(unsigned long group_idx, unsigned long base_group_idx, Boolean force_lower_complexity, JSDASHStats stats);
+
+};
+
+
+/*!\brief JSDASHGroup API
+
+The JSDASHGroup object provides a description of a group (AdaptationSet in DASH), and its available qualities.
+*/
+interface JSDASHGroup {
+
+/*! group index, as used in rate_adaptation callback*/
+attribute readonly unsigned long idx;
+
+/*! list of available qualites, array of JSDASHQuality objects*/
+attribute readonly Array qualities;
+
+};
+
+/*!\brief JSDASHQuality Object
+
+The JSDASHQuality object provides a description of a quality (Representation in DASH).
+*/
+interface JSDASHQuality {
+
+/*! ID (Representation ID) */
+attribute readonly DOMString ID;
+
+/*! MIME type */
+attribute readonly DOMString mime;
+
+/*! codec parameter */
+attribute readonly DOMString codec;
+
+/*! average bitrate in bits per second*/
+attribute readonly unsigned long bitrate;
+
+/*! if true, the quality is disabled (cannot be played)*/
+attribute readonly boolean disabled;
+
+/*! video width in pixels*/
+attribute readonly unsigned long width;
+
+/*! video height in pixels*/
+attribute readonly unsigned long height;
+
+/*! video frame rate*/
+attribute readonly Fraction fps;
+
+/*! video sample aspect ratio*/
+attribute readonly Fraction sar;
+
+/*! audio samplerate*/
+attribute readonly unsigned long samplerate;
+
+/*! audio number of channels*/
+attribute readonly unsigned long channels;
+
+};
+
+
+
+/*!\brief JSDASHStats API
+
+The JSDASHStats object provides a description of current group state before adaptation logic
+*/
+interface JSDASHStats {
+
+/*! last segment download rate in bits per second*/
+attribute readonly unsigned long rate;
+
+/*! current playback speed*/
+attribute readonly float speed;
+
+/*! max supported playback speed computed from associated decoder runtime statistics, 0 if unknown*/
+attribute readonly float max_speed;
+
+/*! display width of the object in pixels, 0 if no video in object*/
+attribute readonly unsigned long display_width;
+
+/*! display height of the object in pixels, 0 if no video in object*/
+attribute readonly unsigned long display_height;
+
+/*! index of active quality at the time the algo is run*/
+attribute readonly unsigned long active_quality;
+
+/*! minimum buffer level in milliseconds below witch rebuffer will happen*/
+attribute readonly unsigned long buffer_min;
+
+/*! maximum buffer level allowed in milliseconds. Packets won't get dropped if overflow, but the algorithm should try not to overflow this buffer*/
+attribute readonly unsigned long buffer_max;
+
+/*! current buffer level in milliseconds*/
+attribute readonly unsigned long buffer;
+};
+
+
+/*! @} */
+

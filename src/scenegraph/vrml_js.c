@@ -346,19 +346,22 @@ JSContext *gf_js_create_context()
 
 void gf_js_delete_context(JSContext *ctx)
 {
+	if (!js_rt) return;
+
 	gf_js_call_gc(ctx);
 
+	gf_mx_p(js_rt->mx);
 	gf_list_del_item(js_rt->allocated_contexts, ctx);
 	JS_FreeContext(ctx);
-	if (js_rt) {
-		js_rt->nb_inst --;
-		if (js_rt->nb_inst == 0) {
-			JS_FreeRuntime(js_rt->js_runtime);
-			gf_list_del(js_rt->allocated_contexts);
-			gf_mx_del(js_rt->mx);
-			gf_free(js_rt);
-			js_rt = NULL;
-		}
+	gf_mx_v(js_rt->mx);
+
+	js_rt->nb_inst --;
+	if (js_rt->nb_inst == 0) {
+		JS_FreeRuntime(js_rt->js_runtime);
+		gf_list_del(js_rt->allocated_contexts);
+		gf_mx_del(js_rt->mx);
+		gf_free(js_rt);
+		js_rt = NULL;
 	}
 }
 
