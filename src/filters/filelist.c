@@ -35,6 +35,13 @@
 #include <gpac/avparse.h>
 #endif
 
+enum
+{
+	FLIST_STATE_STOP=0,
+	FLIST_STATE_PLAY,
+	FLIST_STATE_WAIT_PLAY,
+};
+
 typedef struct
 {
 	GF_FilterPid *ipid;
@@ -50,7 +57,8 @@ typedef struct
 	u64 dts_sub;
 	u64 first_dts_plus_one;
 
-	Bool is_playing, skip_dts_init;
+	Bool skip_dts_init;
+	u32 play_state;
 
 	Bool send_cue;
 } FileListPid;
@@ -128,7 +136,7 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 		gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
 		gf_filter_pid_send_event(iopid->ipid, &evt);
         iopid->skip_dts_init = GF_FALSE;
-        if (!iopid->is_playing) {
+        if (iopid->play_state==FLIST_STATE_STOP) {
             GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid)
             gf_filter_pid_send_event(iopid->ipid, &evt);
             iopid->skip_dts_init = GF_TRUE;
@@ -224,6 +232,7 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 		gf_list_add(ctx->io_pids, iopid);
 		iopid->send_cue = ctx->sigcues;
+		iopid->play_state = FLIST_STATE_WAIT_PLAY;
 	}
 	gf_filter_pid_set_udta(pid, iopid);
 
@@ -327,10 +336,10 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		fevt.base.on_pid = iopid->ipid;
 		if (evt->base.type==GF_FEVT_PLAY) {
 			gf_filter_pid_init_play_event(iopid->ipid, &fevt, ctx->start, 1.0, "FileList");
-			iopid->is_playing = GF_TRUE;
+			iopid->play_state = FLIST_STATE_PLAY;
 			iopid->is_eos = GF_FALSE;
 		} else if (evt->base.type==GF_FEVT_STOP) {
-			iopid->is_playing = GF_FALSE;
+			iopid->play_state = FLIST_STATE_STOP;
 			iopid->is_eos = GF_TRUE;
 		}
 		gf_filter_pid_send_event(iopid->ipid, &fevt);
@@ -730,7 +739,9 @@ GF_Err filelist_process(GF_Filter *filter)
 			nb_inactive++;
 			continue;
 		}
-        if (!iopid->is_playing) {
+		if (iopid->play_state==FLIST_STATE_WAIT_PLAY)
+			continue;
+        if (iopid->play_state==FLIST_STATE_STOP) {
             //in case the input still dispatch packets, drop them
             while (1) {
                 GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->ipid);
