@@ -4403,12 +4403,6 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 
 	//info property, do not request a new property map
 	if (is_info) {
-#if 0
-		if (value && (value->type==GF_PROP_POINTER)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set info property of type pointer is forbidden (filter %s) - ignoring\n", pid->filter->name));
-			return GF_BAD_PARAM;
-		}
-#endif
 		map = pid->infos;
 		if (!map) {
 			map = pid->infos = gf_props_new(pid->filter);
