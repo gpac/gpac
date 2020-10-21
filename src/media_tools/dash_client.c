@@ -174,6 +174,12 @@ struct __dash_client
 												  GF_MPD_Representation *rep, Bool go_up_bitrate);
 
 	GF_Err (*rate_adaptation_download_monitor)(GF_DashClient *dash, GF_DASH_Group *group);
+
+
+
+	gf_dash_rate_adaptation rate_adaptation_algo_custom;
+	gf_dash_download_monitor rate_adaptation_download_monitor_custom;
+	void *udta_custom_algo;
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
@@ -354,6 +360,8 @@ struct __dash_group
 	//in non-threaded mode, indicates that the demux for this group has nothing to do...
 	Bool force_early_fetch;
 	Bool is_low_latency;
+
+	u32 hint_visible_width, hint_visible_height;
 };
 
 static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list, u32 period_idx);
@@ -2878,6 +2886,11 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 	}
 #endif
 
+	
+	if (!bytes_per_sec && group->local_files) {
+		bytes_per_sec = (u32) -1;
+		bytes_per_sec /= 8;
+	}
 
 	group->total_size = file_size;
 	//in broadcast mode, just store the rate
@@ -3662,7 +3675,8 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	if (new_index != group->active_rep_index) {
 		GF_MPD_Representation *new_rep = gf_list_get(group->adaptation_set->representations, (u32)new_index);
 		if (!new_rep) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Cannot find new representation index %d\n", new_index));
+			group->active_rep_index = old_index;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot find new representation index %d, using previous one\n", new_index));
 			return;
 		}
 
@@ -7616,6 +7630,42 @@ void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo)
 	}
 }
 
+static s32 dash_do_rate_adaptation_custom(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
+		  	  	  	  	  	  	  	  	  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
+										  	  GF_MPD_Representation *rep, Bool go_up_bitrate)
+{
+	u32 g_idx = gf_list_find(dash->groups, group);
+	u32 b_idx = gf_list_find(dash->groups, base_group);
+
+	return dash->rate_adaptation_algo_custom(dash->udta_custom_algo, g_idx, b_idx, dl_rate,
+			speed, max_available_speed,
+			group->hint_visible_width, group->hint_visible_height,
+			force_lower_complexity,
+			group->active_rep_index,
+			group->buffer_min_ms, group->buffer_max_ms, group->buffer_occupancy_ms
+	);
+}
+
+static GF_Err dash_do_rate_monitor_custom(GF_DashClient *dash, GF_DASH_Group *group)
+{
+	return GF_OK;
+}
+
+GF_EXPORT
+void gf_dash_set_algo_custom(GF_DashClient *dash, void *udta,
+		gf_dash_rate_adaptation algo_custom,
+		gf_dash_download_monitor download_monitor_custom)
+{
+	dash->adaptation_algorithm = GF_DASH_ALGO_CUSTOM;
+	dash->rate_adaptation_algo = dash_do_rate_adaptation_custom;
+	dash->rate_adaptation_download_monitor = dash_do_rate_monitor_custom;
+
+	dash->udta_custom_algo = udta;
+	dash->rate_adaptation_algo_custom = algo_custom;
+	dash->rate_adaptation_download_monitor_custom = download_monitor_custom;
+
+}
+
 GF_EXPORT
 GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, GF_DASHThreadMode thread_mode, u32 max_cache_duration, u32 auto_switch_count, Bool keep_files, Bool disable_switching, GF_DASHInitialSelectionMode first_select_mode, u32 initial_time_shift_percent)
 {
@@ -9214,6 +9264,8 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 		group->quality_degradation_hint = 0;
 	}
 
+	group->hint_visible_width = max_x - min_x;
+	group->hint_visible_height = max_y - min_y;
 
 	//TODO - single video, we may want to switch down quality if not a lot of the video is visible
 	//we will need the zoom factor as well
@@ -9310,7 +9362,7 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, u32 cur_dep_
 	}
 }
 
-void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 dep_rep_idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast)
+void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 dep_rep_idx, u32 bytes_per_sec, u64 file_size, Bool is_broadcast)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (dash->thread_mode) return;
@@ -9319,9 +9371,7 @@ void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 dep_rep_idx, u3
 
 	dash_store_stats(dash, group, bytes_per_sec, file_size, is_broadcast, 1+dep_rep_idx);
 
-	if (file_size==bytes_done) {
-		dash_global_rate_adaptation(dash, GF_FALSE);
-	}
+	dash_global_rate_adaptation(dash, GF_FALSE);
 }
 
 u32 gf_dash_get_min_wait_ms(GF_DashClient *dash)
@@ -9425,6 +9475,8 @@ GF_Err gf_dash_group_push_tfrf(GF_DashClient *dash, u32 group_idx, void *_tfrf, 
 	}
 	return GF_OK;
 }
+
+
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

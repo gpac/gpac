@@ -634,6 +634,22 @@ u32 gf_fs_get_http_rate(GF_FilterSession *session);
 */
 Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const char *parent_url);
 
+/*! callback functions for external monitoring of filter creation or destruction
+\param udta user data passed back to callback
+\param filter created or destroyed filter
+\param is_destroy if GF_TRUE, the filter is being destroyed, otherwise it is being created
+ */
+typedef	void (*gf_fs_on_filter_creation)(void *udta, GF_Filter *filter, Bool is_destroy);
+
+/*! assign callbacks for filter creation and destruction monitoring
+\param session filter session
+\param on_create_destroy filter creation/destruction callback
+\param udta user data for callbacks
+\return error if any
+ */
+GF_Err gf_fs_set_filter_creation_callback(GF_FilterSession *session, gf_fs_on_filter_creation on_create_destroy, void *udta);
+
+
 /*! @} */
 
 
@@ -1765,6 +1781,13 @@ void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
 \param caps session capability new values - completely replace the old ones
 */
 void gf_filter_set_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
+
+/*! Check if the filter is an instance of a  filter register
+\param filter filter to test
+\param freg  filter register to test
+\return GF_TRUE if filter is an instance of this register, GF_FALSE otehrwise
+*/
+Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg);
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum

@@ -773,9 +773,9 @@ typedef struct
 	/*! video interlaced flag*/
 	Bool interlaced;
 	/*! video framerate numerator*/
-	u32 fps_den;
-	/*! video framerate denominator*/
 	u32 fps_num;
+	/*! video framerate denominator*/
+	u32 fps_den;
 	/*! video sample aspect ratio numerator*/
 	u32 par_num;
 	/*! video sample aspect ratio denominator*/
@@ -955,7 +955,9 @@ typedef enum {
 	/*! BOLA-U*/
 	GF_DASH_ALGO_BOLA_U,
 	/*! BOLA-O*/
-	GF_DASH_ALGO_BOLA_O
+	GF_DASH_ALGO_BOLA_O,
+	/*! Custom*/
+	GF_DASH_ALGO_CUSTOM
 } GF_DASHAdaptationAlgorithm;
 
 /*! sets dash adaptation algorithm. Cannot be called on an active session
@@ -978,10 +980,9 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, u32 de
 \param dep_rep_idx the 0-based index of the dependent rep
 \param bytes_per_sec transfer rates in bytes per seconds
 \param file_size segment size in bytes
-\param bytes_done number of received bytes
 \param is_broadcast set to GF_TRUE if the file is received over a multicast/broadcast link such as eMBMS or ROUTE (i.e. file was pushed to cache)
 */
-void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done, Bool is_broadcast);
+void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, u32 bytes_per_sec, u64 file_size, Bool is_broadcast);
 
 /*! sets availabilityStartTime shift for ATSC. By default the ATSC tune-in is done by matching the last received segment name
 to the segment template and deriving the ATSC UTC reference from that. The function allows shifting the computed value by a given amount.
@@ -1003,6 +1004,44 @@ u32 gf_dash_get_min_wait_ms(GF_DashClient *dash);
 */
 u32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
 
+/*! Callback function for custom rate adaptation
+\param udta user data
+\param group_idx index of group to adapt
+\param base_group_idx index of associated base group if group is a dependent group
+\param download_rate last segment download rate in bits per second
+\param speed current playback speed
+\param max_available_speed max supported playback speed according to associated decoder stats
+\param display_width display width of the video in pixels, 0 if audio stream
+\param display_height display height of the video in pixels, 0 if audio stream
+\param force_lower_complexity set to true if the dash client would like a lower complexity
+\param active_quality_idx index of currently selected quality
+\param buffer_min_ms minimum buffer level in milliseconds below witch rebuffer will happen
+\param buffer_max_ms maximum buffer level allowed in milliseconds. Packets won't get dropped if overflow, but the algorithm should try not to overflow this buffer
+\param buffer_occupancy_ms current buffer level in milliseconds
+
+\return the index of the new quality to select (as listed in group.reps[]), or -1 to not take decision now and postpon it until dependent groups are done
+ */
+typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx,
+				u32 download_rate, Double speed, Double max_available_speed,
+				u32 disp_width, u32 disp_height, Bool force_lower_complexity,
+				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms
+								  );
+
+/*! Callback function for custom rate monitor, not final yet
+\param udta user data
+\param group_idx index of group to adapt
+ */
+typedef GF_Err (*gf_dash_download_monitor)(void *udta, u32 group_idx);
+
+/*! sets custom rate adaptation logic
+\param dash the target dash client
+\param udta user data to pass back to callback functions
+\param algo_custom rate adaptation custom logic
+\param download_monitor_custom download monitor custom logic
+ */
+void gf_dash_set_algo_custom(GF_DashClient *dash, void *udta,
+		gf_dash_rate_adaptation algo_custom,
+		gf_dash_download_monitor download_monitor_custom);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

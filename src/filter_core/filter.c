@@ -361,7 +361,8 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 #ifdef GPAC_HAS_QJS
 	jsfs_on_filter_created(filter);
 #endif
-
+	if (filter->session->on_filter_create_destroy)
+		filter->session->on_filter_create_destroy(filter->session->rt_udta, filter, GF_FALSE);
 	return GF_OK;
 }
 
@@ -401,6 +402,9 @@ void gf_filter_del(GF_Filter *filter)
 #ifdef GPAC_HAS_QJS
 	jsfs_on_filter_destroyed(filter);
 #endif
+
+	if (filter->session->on_filter_create_destroy)
+		filter->session->on_filter_create_destroy(filter->session->rt_udta, filter, GF_TRUE);
 
 #ifndef GPAC_DISABLE_3D
 	gf_list_del_item(filter->session->gl_providers, filter);
@@ -4034,4 +4038,12 @@ void *gf_filter_get_rt_udta(GF_Filter *filter)
 {
 	if (!filter) return NULL;
 	return filter->rt_udta;
+}
+
+
+Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg)
+{
+	if (filter && freg && (filter->freg==freg))
+		return GF_TRUE;
+	return GF_FALSE;
 }

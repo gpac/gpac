@@ -2367,6 +2367,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_fire_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_source) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_filter_creation_callback) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_update ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
@@ -2566,3 +2567,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_recompute_dts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_min_pck_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_is_playing) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_dash_algo_callbacks) )
+
+

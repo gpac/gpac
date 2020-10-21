@@ -2503,6 +2503,9 @@ restart:
 #ifdef GPAC_HAS_QJS
         jsfs_on_filter_destroyed(filter);
 #endif
+		if (filter->session->on_filter_create_destroy)
+			filter->session->on_filter_create_destroy(filter->session->rt_udta, filter, GF_TRUE);
+			
         filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, arg_type);
 		if (err) *err = e;
@@ -3387,6 +3390,16 @@ Bool gf_fs_fire_event(GF_FilterSession *fs, GF_Filter *f, GF_FilterEvent *evt, B
 	evt->base.on_pid = on_pid;
 	return ret;
 }
+
+GF_EXPORT
+GF_Err gf_fs_set_filter_creation_callback(GF_FilterSession *session, gf_fs_on_filter_creation on_create_destroy, void *udta)
+{
+	if (!session) return GF_BAD_PARAM;
+	session->rt_udta = udta;
+	session->on_filter_create_destroy = on_create_destroy;
+	return GF_OK;
+}
+
 
 
 #ifdef FILTER_FIXME

@@ -244,6 +244,9 @@ _gf_property_entry = c_void_p
 #Fields have the same types, names and semantics as \ref GF_Fraction
 class Fraction(Structure):
     ## \cond private
+    def  __init(self, num, den):
+        self.num = num
+        self.den = den
     _fields_ = [ ("num", c_int), ("den", c_uint)]
     def __str__(self):
         return str(self.num)+'/' + str(self.den)
@@ -1240,6 +1243,21 @@ def fs_task_fun(sess, cbk, resched):
  resched.contents.value=res
  return 1
 
+
+
+_libgpac.gf_fs_set_filter_creation_callback.argtypes = [_gf_filter_session, c_void_p, py_object]
+@CFUNCTYPE(c_int, c_void_p, _gf_filter, c_bool)
+def on_filter_new_del(cbk, _filter, is_del):
+ sess = cast(cbk, py_object).value
+ f = sess._to_filter(_filter)
+ if is_del:
+    sess.on_filter_del(f)
+    sess._filters.remove(f)
+ else:
+    sess.on_filter_new(f)
+
+ return 0
+
 ##\endcond
 
 
@@ -1278,6 +1296,9 @@ class FilterSession:
             raise Exception('Failed to create new filter session')
         self._filters = []
         self._tasks = []
+
+        _libgpac.gf_fs_set_filter_creation_callback(self._sess, on_filter_new_del, py_object(self))
+
         ##\endcond
         #hack for doxygen to generate member vars (not support for parsing @property)
         if 0:
@@ -1301,6 +1322,17 @@ class FilterSession:
             self._sess=None
         ##\endcond private
 
+    ## called whenever a new filter is added, typically used by classes deriving from FilterSession
+    #\param filter Filter object being added
+    #\return
+    def on_filter_del(self, filter):
+        pass
+
+    ## called whenever a filter is destroyed, typically used by classes deriving from FilterSession
+    #\param filter Filter object being removed
+    #\return
+    def on_filter_del(self, filter):
+        pass
 
     ##\cond private
     def _to_filter(self, f):
@@ -1547,6 +1579,165 @@ _libgpac.gf_filter_get_info.argtypes = [_gf_filter, c_uint, POINTER(POINTER(_gf_
 _libgpac.gf_filter_get_info.restype = POINTER(PropertyValue)
 _libgpac.gf_filter_get_info_str.argtypes = [_gf_filter, c_char_p, POINTER(POINTER(_gf_property_entry))]
 _libgpac.gf_filter_get_info_str.restype = POINTER(PropertyValue)
+
+
+_libgpac.gf_filter_bind_dash_algo_callbacks.argtypes = [_gf_filter, py_object, c_void_p, c_void_p, c_void_p]
+@CFUNCTYPE(c_int, c_void_p)
+def dash_period_reset(cbk):
+ obj = cast(cbk, py_object).value
+ if hasattr(obj, 'on_period_reset'):
+    obj.on_period_reset()
+    obj.groups = []
+ return 0
+
+class DASHQualityInfoNat(Structure):
+    _fields_ = [
+        ("bandwidth", c_uint),
+        ("ID", c_char_p),
+        ("mime", c_char_p),
+        ("codec", c_char_p),
+        ("width", c_uint),
+        ("height", c_uint),
+        ("interlaced", c_bool),
+        ("fps_num", c_uint),
+        ("fps_den", c_uint),
+        ("sar_num", c_uint),
+        ("sar_den", c_uint),
+        ("sample_rate", c_uint),
+        ("nb_channels", c_uint),
+        ("disabled", c_bool),
+        ("is_selected", c_bool),
+    ]
+
+_libgpac.gf_dash_group_get_num_qualities.argtypes = [c_void_p, c_uint]
+_libgpac.gf_dash_group_get_quality_info.argtypes = [c_void_p, c_uint, c_uint, POINTER(DASHQualityInfoNat) ]
+
+## \endcond
+
+## DASH media quality information (Representation info)
+class DASHQualityInfo:
+    ## \cond priv
+    def __init__(self, qinfon):
+    ## \endcond
+        ## bandwidth in bits per second
+        self.bandwidth = qinfon.bandwidth
+        ## ID (representation ID in DASH)
+        self.ID = qinfon.ID.decode('utf-8')
+        ## MIME type
+        self.mime = qinfon.mime.decode('utf-8')
+        ## codec parameter string
+        self.codec = qinfon.codec.decode('utf-8')
+        ## width in pixels, 0 if not visual
+        self.width = qinfon.width
+        ## height in pixels, 0 if not visual
+        self.height = qinfon.height
+        ## interlaced flaf, false 0 if not visual
+        self.interlaced = qinfon.interlaced
+        ## Frame Rate (Fraction), 0/0 if not visual
+        self.fps = Fraction(qinfon.fps_num, qinfon.fps_den)
+        ## Sample Aspect Ration (Fraction), 0/0 if not visual
+        self.sar = Fraction(qinfon.sar_num, qinfon.sar_den)
+        ## Samplerate, 0 if not audio
+        self.sample_rate = qinfon.sample_rate
+        ## Number of channels, 0 if not audio
+        self.nb_channels = qinfon.nb_channels
+        ## set to true if quality is disabled (no playback support)
+        self.disabled = qinfon.disabled;
+        ## set to true if quality is selected
+        self.is_selected = qinfon.is_selected
+
+## DASH group object
+class DASHGroup:
+    ## \cond priv
+    def __init__(self, ptr_dash, groupidx):
+    ## \endcond
+        ## Index of group, as used in callbacks
+        self.idx = groupidx
+        ## List of DASHQualityInfo for group
+        self.qualities = []
+        ## \cond priv
+        self._dash = ptr_dash
+        nb_qualities = _libgpac.gf_dash_group_get_num_qualities(ptr_dash, groupidx)
+        for i in range(nb_qualities):
+            qinfo = DASHQualityInfoNat()
+            _libgpac.gf_dash_group_get_quality_info(ptr_dash, groupidx, i, byref(qinfo))
+
+            self.qualities.append( DASHQualityInfo(qinfo) )
+        ## \endcond
+
+## DASH groups statistics object
+class DASHGroupStatistics(Structure):
+    ## \cond priv
+    def __init__(self):
+    ## \endcond
+        ##download rate of last segment in bits per second, divided by current playback speed
+        self.download_rate = 0
+        ##current playback speed
+        self.speed = 0
+        ##max playback speed based on associated codec runtime statistics
+        self.max_available_speed = 0
+        ##display width in pixels of object
+        self.display_width = 0
+        ##display height in pixels of object
+        self.display_height = 0
+        ##index of current quality
+        self.active_quality_idx = 0
+        ##minimum buffer in milliseconds, below witch rebuffer occurs
+        self.buffer_min = 0
+        ##maximum buffer in milliseconds, algorithm should not fill more than this
+        self.buffer_max = 0
+        ##current buffer in milliseconds
+        self.buffer = 0
+
+    ## \cond private
+    _fields_ = [
+        ("download_rate", c_uint),
+        ("speed", c_double),
+        ("max_available_speed", c_double),
+        ("display_width", c_uint),
+        ("display_height", c_uint),
+        ("active_quality_idx", c_uint),
+        ("buffer_min", c_uint),
+        ("buffer_max", c_uint),
+        ("buffer", c_uint),
+    ]
+    def __str__(self):
+        res = 'active_quality_idx ' + str(self.active_quality_idx)
+        res += ' rate ' + str(self.download_rate) + ' speed ' + str(self.speed) + ' max_speed ' + str(self.max_available_speed)
+        res += ' display_width ' + str(self.display_width) + ' display_height ' + str(self.display_height)
+        res += ' buffer_min ' + str(self.buffer_min) + ' buffer_max ' + str(self.buffer_max) + ' buffer ' + str(self.buffer)
+        return res
+    ## \endcond
+
+## \cond priv
+
+
+@CFUNCTYPE(c_int, c_void_p, c_uint, c_void_p)
+def dash_group_new(cbk, groupidx, _dashobj):
+ obj = cast(cbk, py_object).value
+ if not hasattr(obj, 'on_new_group'):
+    return 0
+ new_group = DASHGroup(_dashobj, groupidx);
+ obj.groups.append(new_group);
+ obj.on_new_group(new_group)
+ return 0
+
+
+
+@CFUNCTYPE(c_int, c_void_p, c_uint, c_uint, c_bool, POINTER(DASHGroupStatistics))
+def dash_rate_adaptation(cbk, groupidx, base_groupidx, force_low_complex, stats):
+ obj = cast(cbk, py_object).value
+ group = None
+ base_group = None
+ for i in range(len(obj.groups)):
+    if obj.groups[i].idx==groupidx:
+        group = obj.groups[i]
+    if obj.groups[i].idx==base_groupidx:
+        base_group = obj.groups[i]
+
+ return obj.on_rate_adaptation(group, base_group, force_low_complex, stats.contents);
+
+
 
 
 def _prop_to_python(pname, prop):
@@ -1844,7 +2035,7 @@ class Filter:
             return res
         return None
 
-    ##returns the statistics of a filter - see \ref gf_filter_get_stats
+    ##Gets the statistics of a filter - see \ref gf_filter_get_stats
     #\return GF_FilterStatistics object
     def get_statistics(self):
         stats = FilterStats()
@@ -1852,6 +2043,40 @@ class Filter:
         if err<0: 
             raise Exception('Failed to fetch filter stats: ' + e2s(err))
         return stats
+
+    ##\cond private
+    def _bind_dash_algo(self, object):
+        if not hasattr(object, 'on_rate_adaptation'):
+            raise Exception('Missing on_rate_adaptation member function on object, cannot bind')
+        print('binding dash')
+        object.groups = [];
+        err = _libgpac.gf_filter_bind_dash_algo_callbacks(self._filter, py_object(object), dash_period_reset, dash_group_new, dash_rate_adaptation)
+        if err<0: 
+            raise Exception('Failed to bind dash algo: ' + e2s(err))
+
+
+        return 0
+    ##\endcond private
+
+
+    ## \brief binds a given object to the filter
+    #
+    #Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
+    #
+    #For DASH, the object must implement the following methods:
+    # - void on_period_reset(): indicates period switch, groups are reset (optional callback)
+    # - void on_new_group(\ref DASHGroup group): new group created (optional callback)
+    # - int on_rate_adaptation(\ref DASHGroup group, \ref DASHGroup base_group, bool force_low_complexity, \ref DASHGroupStatistics stats): group adaptation, returns new quality index, or -1 to postpone  (mandatory callback)
+    #
+    # The object will be assigned a list member called groups, containing the declared group for the active period
+    #
+    #
+    #\param object object to bind
+    #\return
+    def bind(self, object):
+        if self.name=="dashin":
+            return self._bind_dash_algo(object)
+        raise Exception('No possible binding to filter class ' + self.name)
 
     ##\cond private: until end, properties
 
