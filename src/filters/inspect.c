@@ -2672,7 +2672,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
 
 			if (!pctx->init_ts) pctx->init_ts = ts;
-			else if (ctx->dur.den * (ts - pctx->init_ts) >= ctx->dur.num * timescale) {
+			else if ((ts - pctx->init_ts) * (u64)ctx->dur.den >= timescale * (u64) ctx->dur.num) {
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 				gf_filter_pid_send_event(pctx->src_pid, &evt);
