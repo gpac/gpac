@@ -6836,6 +6836,7 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 
 	/*parse SEI*/
 	while (gf_bs_available(bs)) {
+		u32 consummed;
 		ptype = 0;
 		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
 			gf_bs_read_int(bs, 8);
@@ -6858,16 +6859,17 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		switch (ptype) {
 		case 4: /*user registered ITU-T T35*/
 			if (hevc) {
-				GF_BitStream * itu_t_t35_bs = gf_bs_new(buffer + start, psize, GF_BITSTREAM_READ);
-				avc_parse_itu_t_t35_sei(itu_t_t35_bs, &hevc->sei.dovi);
-				gf_bs_del(itu_t_t35_bs);
+				avc_parse_itu_t_t35_sei(bs, &hevc->sei.dovi);
 			}
+			break;
 		default:
 			break;
 		}
 
-		gf_bs_skip_bytes(bs, (u64) psize);
 		gf_bs_align(bs);
+		consummed = (u32) (gf_bs_get_position(bs) - start);
+		psize-=consummed;
+		gf_bs_skip_bytes(bs, psize);
 		if (gf_bs_available(bs) <= 2)
 			break;
 	}

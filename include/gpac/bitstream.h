@@ -179,7 +179,7 @@ Double gf_bs_read_double(GF_BitStream *bs);
 /*!
 \brief data reading
 
-Reads a data buffer. Emultation prevention byte removal is not applied here !
+Reads a data buffer. Emultation prevention byte removal is applied here if enabled (reading byte per byte)
 \param bs the target bitstream
 \param data the data buffer to be filled
 \param nbBytes the amount of bytes to read
@@ -487,7 +487,7 @@ void gf_bs_get_content_no_truncate(GF_BitStream *bs, u8 **output, u32 *outSize, 
 \brief byte skipping
 
 Skips bytes in the bitstream. In Write mode, this will write the 0 integer value for memory-based bitstreams or seek the stream
- for file-based bitstream. In read mode, emultation prevention byte removal is not applied !
+ for file-based bitstream. In read mode, emultation prevention byte  is applied if enabled
 \param bs the target bitstream
 \param nbBytes the number of bytes to skip
  */
