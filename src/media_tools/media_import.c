@@ -4855,7 +4855,7 @@ static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 	Bool first_avc;
 	u32 use_opengop_gdr = 0;
 	u32 last_svc_sps;
-	u32 prev_nalu_prefix_size, res_prev_nalu_prefix;
+	u32 prev_nalu_prefix_size, res_prev_nalu_prefix, last_ppc_crc;
 	u8 priority_prev_nalu_prefix;
 	Double FPS;
 	char *buffer;
@@ -4905,6 +4905,7 @@ restart_import:
 	sei_recovery_frame_count = -1;
 	sample_is_ref = GF_FALSE;
 	has_redundant = GF_FALSE;
+	last_ppc_crc = 0;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -4968,6 +4969,7 @@ restart_import:
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps, nal_ref_idc;
 		u32 nal_and_trailing_size;
+		Bool dup_pps_found = GF_FALSE;
 
 		nal_and_trailing_size = nal_size = gf_media_nalu_next_start_code_bs(bs);
 		if (!(import->flags & GF_IMPORT_KEEP_TRAILING)) {
@@ -5027,6 +5029,7 @@ restart_import:
 					goto exit;
 				}
 			}
+			last_ppc_crc = 0;
 			add_sps = 0;
 			dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
 			if (is_subseq) {
@@ -5179,11 +5182,18 @@ restart_import:
 				u32 pps_crc = gf_crc_32(buffer, nal_size);
 				if (pps_crc != avc.pps[idx].status) {
 					copy_size = nal_size;
+				} else if (last_ppc_crc == pps_crc) {
+					dup_pps_found = GF_TRUE;
+				} else {
+					last_ppc_crc = pps_crc;
 				}
 			}
 
-			//always keep NAL
-			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+			if (last_ppc_crc) {
+				copy_size = 0;
+			}
+			//inband, always keep NAL
+			else if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
 				if (sample_has_slice) flush_sample = GF_TRUE;
 			} else {
@@ -5199,6 +5209,7 @@ restart_import:
 					  they will be moved to the SVC layer upon analysis of SVC slice. */
 					//dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
 					dstcfg = avccfg;
+					last_ppc_crc = avc.pps[idx].status;
 
 					if (import->flags & GF_IMPORT_SVC_EXPLICIT)
 						dstcfg = svccfg;
@@ -6128,6 +6139,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	Bool detect_fps;
 	u64 nal_start, nal_end, total_size;
 	u32 i, nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_w_b, max_h_b, max_total_delay, nb_nalus, hevc_base_track;
+	u32 last_pps_crc;
 	s32 idx, sei_recovery_frame_count;
 	u64 duration;
 	GF_Err e;
@@ -6206,6 +6218,7 @@ restart_import:
 	/*has_hevc = */has_lhvc = GF_FALSE;
 	sample_is_ref = 0;
 	sar_w = sar_h = 0;
+	last_pps_crc = 0;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -6273,7 +6286,7 @@ restart_import:
 		u8 nal_unit_type, temporal_id, layer_id;
 		Bool skip_nal, add_sps, is_slice, has_vcl_nal;
 		u32 nal_and_trailing_size;
-
+		Bool dup_pps_found = GF_FALSE;
 		has_vcl_nal = GF_FALSE;
 		nal_and_trailing_size = nal_size = gf_media_nalu_next_start_code_bs(bs);
 		if (!(import->flags & GF_IMPORT_KEEP_TRAILING)) {
@@ -6361,6 +6374,7 @@ restart_import:
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Video Param");
 				goto exit;
 			}
+			last_pps_crc = 0;
 			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
 			if (hevc.vps[idx].state == 2) {
 				if (hevc.vps[idx].crc != gf_crc_32(buffer, nal_size)) {
@@ -6419,6 +6433,7 @@ restart_import:
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
 				break;
 			}
+			last_pps_crc = 0;
 			add_sps = GF_FALSE;
 			if ((hevc.sps[idx].state & AVC_SPS_PARSED) && !(hevc.sps[idx].state & AVC_SPS_DECLARED)) {
 				hevc.sps[idx].state |= AVC_SPS_DECLARED;
@@ -6539,7 +6554,8 @@ restart_import:
 			}
 			/*if we get twice the same PPS put it in the bitstream and set array_completeness to 0 ...*/
 			if (hevc.pps[idx].state == 2) {
-				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
+				u32 pps_crc = gf_crc_32(buffer, nal_size);
+				if (hevc.pps[idx].crc != pps_crc) {
 					copy_size = nal_size;
 					if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					} else if (!ppss) {
@@ -6547,12 +6563,18 @@ restart_import:
 					} else {
 						ppss->array_completeness = 0;
 					}
+					last_pps_crc = hevc.pps[idx].crc;
+				} else if (last_pps_crc == pps_crc) {
+					dup_pps_found = GF_TRUE;
+				} else {
+					last_pps_crc = pps_crc;
 				}
 			}
 
 			if (hevc.pps[idx].state==1) {
 				hevc.pps[idx].state = 2;
 				hevc.pps[idx].crc = gf_crc_32(buffer, nal_size);
+				last_pps_crc = hevc.pps[idx].crc;
 
 				if (!ppss) {
 					GF_SAFEALLOC(ppss, GF_HEVCParamArray);
@@ -6575,7 +6597,11 @@ restart_import:
 
 				gf_list_add(ppss->nalus, slc);
 			}
-			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+			//hack for some bitstreams injecting PPS before each slice, remove from bitstream if same as PPS injetced at last VPS/PPS
+			if (dup_pps_found) {
+				copy_size = 0;
+			}
+			else if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
 				if (!is_empty_sample && !layer_id)
 					flush_sample = GF_TRUE;

@@ -126,7 +126,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		if (!esd->dependsOnESID) {
 			if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
 		}
-		ctx->pixel_ar = (1<<16) || 1;
+		ctx->pixel_ar = 0x10001; //(1<<16) || 1;
 	}
 	ctx->stride = ctx->width + 32;
 	ctx->CurrentDqId = ctx->MaxDqId = 0;
