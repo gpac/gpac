@@ -932,7 +932,8 @@ struct __m4a_oti
 	{33, "MPEG-1 Audio Layer-2"},
 	{34, "MPEG-1 Audio Layer-3"},
 	{35, "MPEG-4 Audio DST"},
-	{36, "MPEG-4 Audio ALS"}
+	{36, "MPEG-4 Audio ALS"},
+	{42, "MPEG Audio xHE-AAC"},
 };
 
 GF_EXPORT
@@ -1120,6 +1121,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	case 21:
 	case 22:
 	case 23:
+	case 42:
 	{
 		Bool ext_flag;
 		/*frame length flag*/
@@ -1363,6 +1365,7 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 	case 21:
 	case 22:
 	case 23:
+	case 42:
 	{
 		/*frame length flag*/
 		gf_bs_write_int(bs, 0, 1);

@@ -98,6 +98,7 @@ enum
 	GF_ISOM_BOX_TYPE_MFRA	= GF_4CC( 'm', 'f', 'r', 'a' ),
 	GF_ISOM_BOX_TYPE_MFRO	= GF_4CC( 'm', 'f', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_TFRA	= GF_4CC( 't', 'f', 'r', 'a' ),
+	GF_ISOM_BOX_TYPE_CSGP	= GF_4CC( 'c', 's', 'g', 'p'),
 
 	GF_ISOM_BOX_TYPE_TENC	= GF_4CC( 't', 'e', 'n', 'c' ),
 
@@ -1962,6 +1963,7 @@ typedef struct
 	GF_List *sub_samples;
 
 	GF_List *sampleGroups;
+	GF_List *compactSampleGroups;
 	GF_List *sampleGroupsDescription;
 	u32 nb_sgpd_in_stbl;
 	u32 nb_stbl_boxes;
@@ -2534,6 +2536,7 @@ typedef struct
 	GF_List *sub_samples;
 
 	GF_List *sampleGroups;
+	GF_List *compactSampleGroups;
 	GF_List *sampleGroupsDescription;
 
 	GF_List *sai_sizes;
@@ -3177,6 +3180,23 @@ typedef struct
 	GF_SampleGroupEntry *sample_entries;
 
 } GF_SampleGroupBox;
+
+typedef struct
+{
+	u32 length;
+	u32 sample_count;
+	u32 *sample_group_description_indices;
+} GF_CompactSampleGroupPattern;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 grouping_type;
+	u32 grouping_type_parameter;
+
+	u32 pattern_count;
+	GF_CompactSampleGroupPattern *patterns;
+} GF_CompactSampleGroupBox;
 
 typedef struct
 {

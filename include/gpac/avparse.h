@@ -471,7 +471,9 @@ enum
 	/*! DST*/
 	GF_M4A_DST = 35,
 	/*! ALS*/
-	GF_M4A_ALS = 36
+	GF_M4A_ALS = 36,
+	/*! USAC*/
+	GF_M4A_USAC = 42,
 };
 
 /*! AAC sample rates*/

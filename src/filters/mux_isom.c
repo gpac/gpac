@@ -911,6 +911,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_AAC_MPEG2_MP:
 	case GF_CODECID_AAC_MPEG2_LCP:
 	case GF_CODECID_AAC_MPEG2_SSRP:
+	case GF_CODECID_USAC:
 	case GF_CODECID_MPEG4_PART2:
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:
@@ -1356,6 +1357,12 @@ sample_entry_setup:
 				}
 			}
 		}
+		break;
+	case GF_CODECID_USAC:
+		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
+		use_m4sys = GF_TRUE;
+		comp_name = "xHE-AAC / USAC";
+		use_gen_sample_entry = GF_FALSE;
 		break;
 	case GF_CODECID_JPEG:
 		m_subtype = GF_ISOM_BOX_TYPE_JPEG;

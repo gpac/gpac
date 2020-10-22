@@ -1097,6 +1097,14 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (esd) {
 			if (esd->decoderConfig->objectTypeIndication<GF_CODECID_LAST_MPEG4_MAPPING) {
 				codec_id = gf_codecid_from_oti(esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+#ifndef GPAC_DISABLE_AV_PARSERS
+				if (esd->decoderConfig->decoderSpecificInfo && (codec_id==GF_CODECID_AAC_MPEG4)) {
+					GF_M4ADecSpecInfo acfg;
+					gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &acfg);
+					if (acfg.base_object_type == GF_M4A_USAC)
+						codec_id = GF_CODECID_USAC;
+				}
+#endif
 			} else {
 				codec_id = esd->decoderConfig->objectTypeIndication;
 			}

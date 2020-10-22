@@ -524,8 +524,12 @@ typedef enum
 
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D'),
 
-	/*! codecid for HEVC video */
+	/*! codecid for VVC video */
 	GF_CODECID_VVC = GF_4CC('v','v','c',' '),
+
+	/*! codecid for USAC / xHE-AACv2 audio */
+	GF_CODECID_USAC = GF_4CC('u','s','a','c'),
+
 
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')

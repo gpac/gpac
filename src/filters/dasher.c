@@ -714,6 +714,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_AAC_MPEG2_MP:
 			case GF_CODECID_AAC_MPEG2_LCP:
 			case GF_CODECID_AAC_MPEG2_SSRP:
+			case GF_CODECID_USAC:
 			case GF_CODECID_AC3:
 			case GF_CODECID_EAC3:
 			case GF_CODECID_AV1:
@@ -826,6 +827,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_AAC_MPEG2_MP:
 			case GF_CODECID_AAC_MPEG2_LCP:
 			case GF_CODECID_AAC_MPEG2_SSRP:
+			case GF_CODECID_USAC:
 				//DASH-IF and MPEG disagree here:
 				if ((ctx->profile == GF_DASH_PROFILE_AVC264_LIVE)
 					|| (ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND)
@@ -1160,6 +1162,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	case GF_CODECID_AAC_MPEG2_MP:
 	case GF_CODECID_AAC_MPEG2_LCP:
 	case GF_CODECID_AAC_MPEG2_SSRP:
+	case GF_CODECID_USAC:
 		if (dcd) {
 			u8 audio_object_type;
 			if (dcd->value.data.size < 2) {
@@ -1184,7 +1187,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				}
 			}
 #endif
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X.%01d", ds->codec_id, audio_object_type);
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X.%01d", gf_codecid_oti(ds->codec_id), audio_object_type);
 			return GF_OK;
 		}
 
