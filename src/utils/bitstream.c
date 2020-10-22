@@ -649,7 +649,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes)
 
 	if (bs->position+nbBytes > bs->size) return 0;
 
-	if (gf_bs_is_align(bs) ) {
+	if (!bs->remove_emul_prevention_byte && gf_bs_is_align(bs) ) {
 		s32 bytes_read, bytes_read_cache;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
@@ -1210,7 +1210,14 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 
 	/*special case for reading*/
 	if (bs->bsmode == GF_BITSTREAM_READ) {
-		bs->position += nbBytes;
+		if (bs->remove_emul_prevention_byte) {
+			while (nbBytes) {
+				gf_bs_read_u8(bs);
+				nbBytes--;
+			}
+		} else {
+			bs->position += nbBytes;
+		}
 		return;
 	}
 	/*for writing we must do it this way, otherwise pb in dynamic buffers*/
