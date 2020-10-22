@@ -649,7 +649,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes)
 
 	if (bs->position+nbBytes > bs->size) return 0;
 
-	if (!bs->remove_emul_prevention_byte && gf_bs_is_align(bs) ) {
+	if (gf_bs_is_align(bs) ) {
 		s32 bytes_read, bytes_read_cache;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:

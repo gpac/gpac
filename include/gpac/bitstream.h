@@ -179,7 +179,7 @@ Double gf_bs_read_double(GF_BitStream *bs);
 /*!
 \brief data reading
 
-Reads a data buffer. Emultation prevention byte removal is applied here if enabled (reading byte per byte)
+Reads a data buffer. Emultation prevention byte removal is NOT applied here
 \param bs the target bitstream
 \param data the data buffer to be filled
 \param nbBytes the amount of bytes to read
