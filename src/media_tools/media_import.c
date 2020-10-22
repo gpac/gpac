@@ -5189,7 +5189,7 @@ restart_import:
 				}
 			}
 
-			if (last_ppc_crc) {
+			if (dup_pps_found) {
 				copy_size = 0;
 			}
 			//inband, always keep NAL
