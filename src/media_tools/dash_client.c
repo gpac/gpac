@@ -7637,7 +7637,7 @@ static s32 dash_do_rate_adaptation_custom(GF_DashClient *dash, GF_DASH_Group *gr
 	u32 g_idx = gf_list_find(dash->groups, group);
 	u32 b_idx = gf_list_find(dash->groups, base_group);
 
-	return dash->rate_adaptation_algo_custom(dash->udta_custom_algo, g_idx, b_idx, dl_rate,
+	return dash->rate_adaptation_algo_custom(dash->udta_custom_algo, g_idx, b_idx, dl_rate, group->total_size,
 			speed, max_available_speed,
 			group->hint_visible_width, group->hint_visible_height,
 			force_lower_complexity,

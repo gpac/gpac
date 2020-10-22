@@ -1672,6 +1672,8 @@ class DASHGroupStatistics(Structure):
     ## \endcond
         ##download rate of last segment in bits per second, divided by current playback speed
         self.download_rate = 0
+        ##size of last segment in bytes
+        self.filesize = 0
         ##current playback speed
         self.speed = 0
         ##max playback speed based on associated codec runtime statistics
@@ -1692,6 +1694,7 @@ class DASHGroupStatistics(Structure):
     ## \cond private
     _fields_ = [
         ("download_rate", c_uint),
+        ("filesize", c_uint),
         ("speed", c_double),
         ("max_available_speed", c_double),
         ("display_width", c_uint),

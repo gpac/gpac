@@ -124,6 +124,9 @@ interface JSDASHStats {
 /*! last segment download rate in bits per second*/
 attribute readonly unsigned long rate;
 
+/*! last segment size in bytes*/
+attribute readonly unsigned long filesize;
+
 /*! current playback speed*/
 attribute readonly float speed;
 

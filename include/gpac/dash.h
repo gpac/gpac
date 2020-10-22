@@ -1022,7 +1022,7 @@ u32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
 \return the index of the new quality to select (as listed in group.reps[]), or -1 to not take decision now and postpon it until dependent groups are done
  */
 typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx,
-				u32 download_rate, Double speed, Double max_available_speed,
+				u32 download_rate, u32 file_size, Double speed, Double max_available_speed,
 				u32 disp_width, u32 disp_height, Bool force_lower_complexity,
 				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms
 								  );
