@@ -5729,7 +5729,7 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	for (i=0; i<nb_lines; i++) {
 		GF_TextSpan *span = gf_list_get(txt->spans, i);
 		gf_font_manager_refresh_span_bounds(span);
-		span->bounds.y += i*txt->lineSpacing;
+		span->bounds.y += FLT2FIX( i*txt->lineSpacing );
 
 		if (!txt->max_h && !txt->max_w) {
 			txt->max_w = span->bounds.width;

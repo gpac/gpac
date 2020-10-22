@@ -361,7 +361,7 @@ static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if ((evt->base.type==GF_FEVT_SET_SPEED) && evt->play.speed) {
 		GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
-		ctx->speed = evt->play.speed;
+		ctx->speed = FLT2FIX(evt->play.speed);
 		if (ctx->speed<0) ctx->speed = -ctx->speed;
 
 		ctx->passthrough = GF_FALSE;

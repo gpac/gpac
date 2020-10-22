@@ -566,7 +566,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 				dur = e->duration * (e->repeat_count+1);
 				if (cumulated_dur + dur >= timeshift) {
-					u32 nb_segs = (timeshift - cumulated_dur) / e->duration;
+					u32 nb_segs = (u32) ( (timeshift - cumulated_dur) / e->duration );
 					seg_idx += nb_segs;
 					break;
 				}
@@ -9369,7 +9369,7 @@ void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 dep_rep_idx, u3
 	if (!group) return;
 	if (!group->nb_cached_segments) return;
 
-	dash_store_stats(dash, group, bytes_per_sec, file_size, is_broadcast, 1+dep_rep_idx);
+	dash_store_stats(dash, group, bytes_per_sec, (u32) file_size, is_broadcast, 1+dep_rep_idx);
 
 	dash_global_rate_adaptation(dash, GF_FALSE);
 }
@@ -9466,7 +9466,7 @@ GF_Err gf_dash_group_push_tfrf(GF_DashClient *dash, u32 group_idx, void *_tfrf, 
 				GF_SAFEALLOC(se, GF_MPD_SegmentTimelineEntry);
 				if (frag_time != start)
 					se->start_time = frag_time;
-				se->duration = frag_dur;
+				se->duration = (u32) frag_dur;
 				gf_list_add(stpl->segment_timeline->entries, se);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Smooth push new fragment start "LLU" dur "LLU" (inserted at start_time "LLU")\n", frag_time, frag_dur, start));

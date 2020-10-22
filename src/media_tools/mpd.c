@@ -4819,7 +4819,7 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
     mpd->media_presentation_duration = mpd->media_presentation_duration * 1000 / timescale;
     tsb *= 1000;
     tsb /= timescale;
-    mpd->time_shift_buffer_depth = tsb;
+    mpd->time_shift_buffer_depth = (u32) tsb;
 
     GF_SAFEALLOC(period, GF_MPD_Period);
     if (!period) return GF_OUT_OF_MEM;

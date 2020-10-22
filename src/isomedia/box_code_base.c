@@ -6313,8 +6313,8 @@ GF_Err tfxd_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u64(bs, ptr->absolute_time_in_track_timescale);
 		gf_bs_write_u64(bs, ptr->fragment_duration_in_track_timescale);
 	} else {
-		gf_bs_write_u32(bs, ptr->absolute_time_in_track_timescale);
-		gf_bs_write_u32(bs, ptr->fragment_duration_in_track_timescale);
+		gf_bs_write_u32(bs, (u32) ptr->absolute_time_in_track_timescale);
+		gf_bs_write_u32(bs, (u32) ptr->fragment_duration_in_track_timescale);
 	}
 	return GF_OK;
 }
@@ -6387,8 +6387,8 @@ GF_Err tfrf_box_write(GF_Box *s, GF_BitStream *bs)
 			gf_bs_write_u64(bs, ptr->frags[i].absolute_time_in_track_timescale);
 			gf_bs_write_u64(bs, ptr->frags[i].fragment_duration_in_track_timescale);
 		} else {
-			gf_bs_write_u32(bs, ptr->frags[i].absolute_time_in_track_timescale);
-			gf_bs_write_u32(bs, ptr->frags[i].fragment_duration_in_track_timescale);
+			gf_bs_write_u32(bs, (u32) ptr->frags[i].absolute_time_in_track_timescale);
+			gf_bs_write_u32(bs, (u32) ptr->frags[i].fragment_duration_in_track_timescale);
 		}
 	}
 	return GF_OK;
