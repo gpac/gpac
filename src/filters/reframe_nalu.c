@@ -2864,8 +2864,8 @@ naldmx_flush:
 			case GF_HEVC_NALU_PIC_PARAM:
 			case GF_HEVC_NALU_SEI_PREFIX:
 			case GF_HEVC_NALU_SEI_SUFFIX:
-				if (!ctx->analyze)
-					full_nal_required = GF_TRUE;
+				//require full nal even in analyze mode
+				full_nal_required = GF_TRUE;
 				break;
 			case GF_HEVC_NALU_SLICE_TRAIL_N:
 			case GF_HEVC_NALU_SLICE_TSA_N:
@@ -2902,8 +2902,8 @@ naldmx_flush:
 			case GF_VVC_NALU_APS_PREFIX:
 			case GF_VVC_NALU_APS_SUFFIX:
 			case GF_VVC_NALU_PIC_HEADER:
-				if (!ctx->analyze)
-					full_nal_required = GF_TRUE;
+				//require full nal even in analyze mode
+				full_nal_required = GF_TRUE;
 				break;
 
 			case GF_VVC_NALU_SLICE_TRAIL:
@@ -2937,8 +2937,8 @@ naldmx_flush:
 			case GF_AVC_NALU_SVC_PREFIX_NALU:
 			//we also need the SEI in AVC since some SEI messages have to be removed
 			case GF_AVC_NALU_SEI:
-				if (!ctx->analyze)
-					full_nal_required = GF_TRUE;
+				//require full nal even in analyze mode
+				full_nal_required = GF_TRUE;
 				break;
 			default:
 				break;
@@ -3032,7 +3032,7 @@ naldmx_flush:
 			break;
 		}
 
-
+		//dispatch right away if analyze
 		if (ctx->analyze) {
 			skip_nal = GF_FALSE;
 			ctx->sei_buffer_size = 0;

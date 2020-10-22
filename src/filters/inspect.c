@@ -156,16 +156,105 @@ static u32 inspect_get_nal_size(char *ptr, u32 nalh_size)
 	return nal_size;
 }
 
+static const char *get_sei_name(u32 sei_type, u32 is_hevc)
+{
+	switch (sei_type) {
+	case 0: return "buffering_period";
+	case 1: return "pic_timing";
+	case 2: return "pan_scan_rect";
+	case 3: return "filler_payload";
+	case 4: return "itu_t_t35";
+	case 5: return "user_data_unregistered";
+	case 6: return "recovery_point";
+	case 7: return "dec_ref_pic_marking_repetition";
+	case 8: return "spare_pic";
+	case 9: return "scene_info";
+	case 10: return "sub_seq_info";
+	case 11: return "sub_seq_layer_characteristics";
+	case 12: return "sub_seq_characteristics";
+	case 13: return "full_frame_freeze";
+	case 14: return "full_frame_freeze_release";
+	case 15: return "picture_snapshot";
+	case 16: return "progressive_refinement_segment_start";
+	case 17: return "progressive_refinement_segment_end";
+	case 18: return "motion_constrained_slice_group_set";
+	case 19: return "film_grain_characteristics";
+	case 20: return "deblocking_filter_display_preference";
+	case 21: return "stereo_video_info";
+	case 22: return "post_filter_hint";
+	case 23: return "tone_mapping_info";
+
+	case 24: return "scalability_info";
+	case 25: return "sub_pic_scalable_layer";
+	case 26: return "non_required_layer_rep";
+	case 27: return "priority_layer_info";
+	case 28: return "layers_not_present";
+	case 29: return "layer_dependency_change";
+	case 30: return "scalable_nesting";
+	case 31: return "base_layer_temporal_hrd";
+	case 32: return "quality_layer_integrity_check";
+	case 33: return "redundant_pic_property";
+	case 34: return "tl0_dep_rep_index";
+	case 35: return "tl_switching_point";
+	case 36: return "parallel_decoding_info";
+	case 37: return "mvc_scalable_nesting";
+	case 38: return "view_scalability_info";
+	case 39: return "multiview_scene_info";
+	case 40: return "multiview_acquisition_info";
+	case 41: return "non_required_view_component";
+	case 42: return "view_dependency_change";
+	case 43: return "operation_points_not_present";
+	case 44: return "base_view_temporal_hrd";
+	case 45: return "frame_packing_arrangement";
+	case 47: return "display_orientation";
+	case 56: return "green_metadata";
+	case 128: return "structure_of_pictures_info";
+	case 129: return "active_parameter_sets";
+	case 130: return "decoding_unit_info";
+	case 131: return "temporal_sub_layer_zero_index";
+	case 132: return "decoded_picture_hash";
+	case 133: return "scalable_nesting";
+	case 134: return "region_refresh_info";
+	case 135: return "no_display";
+	case 136: return "time_code";
+	case 137: return "mastering_display_colour_volume";
+	case 138: return "segmented_rect_frame_packing_arrangement";
+	case 140: return "temporal_motion_constrained_tile_sets";
+	case 141: return "knee_function_info";
+	case 142: return "colour_remapping_info";
+	case 143: return "deinterlaced_field_identification";
+	case 144: return "content_light_level_info";
+	case 145: return "dependent_rap_indication";
+	case 146: return "coded_region_completion";
+	case 147: return "alternative_transfer_characteristics";
+	case 148: return "ambient_viewing_environment";
+	case 160: return "layers_not_present";
+	case 161: return "inter_layer_constrained_tile_sets";
+	case 162: return "bsp_nesting";
+	case 163: return "bsp_initial_arrival_time";
+	case 164: return "sub_bitstream_property";
+	case 165: return "alpha_channel_info";
+	case 166: return "overlay_info";
+	case 167: return "temporal_mv_prediction_constraints";
+	case 168: return "frame_field_info";
+	case 176: return "three_dimensional_reference_displays_info";
+	case 177: return "depth_representation_info";
+	case 178: return "multiview_scene_info";
+	case 179: return "multiview_acquisition_info";
+	case 180: return "multiview_view_position";
+	case 181: return "alternative_depth_info";
+	}
+	return "Unknown";
+}
+
 static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 {
-	u32 sei_idx=0;
 	u32 i;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	//skip nal header
 	gf_bs_read_int(bs, is_hevc ? 16 : 8);
 
-	gf_fprintf(dump, " SEI=\"");
 	while (gf_bs_available(bs) ) {
 		u32 sei_type = 0;
 		u32 sei_size = 0;
@@ -184,14 +273,12 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			gf_bs_read_u8(bs);
 			i++;
 		}
-		if (sei_idx) gf_fprintf(dump, ",");
-		gf_fprintf(dump, "(type=%u, size=%u)", sei_type, sei_size);
-		sei_idx++;
+
+		gf_fprintf(dump, "<SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"/>", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
 	}
-	gf_fprintf(dump, "\"");
 }
 
 static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, PidCtx *pctx)
@@ -206,7 +293,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	GF_BitStream *bs;
 
 	if (!ptr_size) {
-		gf_fprintf(dump, "error=\"invalid nal size 0\"");
+		gf_fprintf(dump, "error=\"invalid nal size 0\"/>\n");
 		return;
 	}
 
@@ -215,7 +302,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (hevc) {
 #ifndef GPAC_DISABLE_HEVC
 		if (ptr_size==1) {
-			gf_fprintf(dump, "error=\"invalid nal size 1\"");
+			gf_fprintf(dump, "error=\"invalid nal size 1\"/>\n");
 			return;
 		}
 		res = gf_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
@@ -463,7 +550,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				if (mode) {
 					u32 len = s[0];
 					if (len+1>remain) {
-						gf_fprintf(dump, "error=\"invalid inband data extractor size: %d vs %d remaining\"", len, remain);
+						gf_fprintf(dump, "error=\"invalid inband data extractor size: %d vs %d remaining\"/>\n", len, remain);
 						return;
 					}
 					remain -= len+1;
@@ -471,7 +558,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 					gf_fprintf(dump, "\" inband_size=\"%d", len);
 				} else {
 					if (remain < 2 + 2*nalh_size) {
-						gf_fprintf(dump, "error=\"invalid ref data extractor size: %d vs %d remaining\"", 2 + 2*nalh_size, remain);
+						gf_fprintf(dump, "error=\"invalid ref data extractor size: %d vs %d remaining\"/>\n", 2 + 2*nalh_size, remain);
 						return;
 					}
 					track_ref_index = (u8) s[0];
@@ -492,20 +579,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		}
 		gf_fputs("\"", dump);
 
-		if ((type == GF_HEVC_NALU_SEI_PREFIX) || (type == GF_HEVC_NALU_SEI_SUFFIX)) {
-			if (pctx) {
-				if (!pctx->bs)
-					pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-				else
-					gf_bs_reassign_buffer(pctx->bs, ptr, ptr_size);
-				bs = pctx->bs;
-			} else {
-				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-			}
-			dump_sei(dump, bs, GF_TRUE);
-			if (!pctx) gf_bs_del(bs);
-		}
-
 		if (type < GF_HEVC_NALU_VID_PARAM) {
 			gf_fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
 			gf_fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
@@ -521,6 +594,27 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 
 		gf_fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
 
+		if ((type == GF_HEVC_NALU_SEI_PREFIX) || (type == GF_HEVC_NALU_SEI_SUFFIX)) {
+			gf_fprintf(dump, ">\n");
+			if (pctx) {
+				if (!pctx->bs)
+					pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+				else
+					gf_bs_reassign_buffer(pctx->bs, ptr, ptr_size);
+				bs = pctx->bs;
+			} else {
+				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+			}
+			dump_sei(dump, bs, GF_TRUE);
+			if (!pctx) gf_bs_del(bs);
+			gf_fprintf(dump, "</NALU>\n");
+		} else {
+			gf_fprintf(dump, "/>\n");
+		}
+
+
+#else
+		gf_fprintf(dump, "/>\n");
 #endif //GPAC_DISABLE_HEVC
 		return;
 	}
@@ -531,7 +625,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		u8 lid = (ptr[0] & 0x3F);
 		u8 tid = (ptr[1] & 0x7);
 		if (forb_zero || res_zero || !tid) {
-			gf_fprintf(dump, "error=\"invalid header (forb %d res_zero %d tid %d)\"", forb_zero, res_zero, tid);
+			gf_fprintf(dump, "error=\"invalid header (forb %d res_zero %d tid %d)\"/>\n", forb_zero, res_zero, tid);
 			return;
 		}
 		tid -= 1;
@@ -685,6 +779,25 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			if (type!=GF_VVC_NALU_PIC_HEADER)
 				gf_fprintf(dump, " slice_type=\"%d\"", vvc->s_info.slice_type);
+		}
+
+
+		if ((type == GF_VVC_NALU_SEI_PREFIX) || (type == GF_VVC_NALU_SEI_SUFFIX)) {
+			gf_fprintf(dump, ">\n");
+			if (pctx) {
+				if (!pctx->bs)
+					pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+				else
+					gf_bs_reassign_buffer(pctx->bs, ptr, ptr_size);
+				bs = pctx->bs;
+			} else {
+				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+			}
+			dump_sei(dump, bs, GF_TRUE);
+			if (!pctx) gf_bs_del(bs);
+			gf_fprintf(dump, "</NALU>\n");
+		} else {
+			gf_fprintf(dump, "/>\n");
 		}
 		return;
 	}
@@ -855,15 +968,16 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		gf_fprintf(dump, " poc=\"%d\" pps_id=\"%d\" field_pic_flag=\"%d\"", avc->s_info.poc, avc->s_info.pps->id, (int)avc->s_info.field_pic_flag);
 	}
 
-	if (!is_encrypted) {
-		if (type == GF_AVC_NALU_SEI) {
-			dump_sei(dump, bs, GF_FALSE);
-		}
-	}
-
 	if (res == -1)
 		gf_fprintf(dump, " status=\"error decoding slice\"");
 
+	if (!is_encrypted && (type == GF_AVC_NALU_SEI)) {
+		gf_fprintf(dump, ">\n");
+		dump_sei(dump, bs, GF_FALSE);
+		gf_fprintf(dump, "</NALU>\n");
+	} else {
+		gf_fprintf(dump, "/>\n");
+	}
 	if (bs && !pctx) gf_bs_del(bs);
 }
 
@@ -2059,7 +2173,6 @@ props_done:
 			} else {
 				gf_fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
 				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->crc, pctx->is_cenc_protected, pctx);
-				gf_fprintf(dump, "/>\n");
 			}
 			idx++;
 			data += nal_size;
@@ -2154,7 +2267,6 @@ props_done:
 			slc = gf_list_get(arr, i);\
 			gf_fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
 			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->crc, GF_FALSE, pctx);\
-			gf_fprintf(dump, "/>\n");\
 		}\
 		gf_fprintf(dump, "  </%sArray>\n", name);\
 	}\
