@@ -406,6 +406,8 @@ typedef struct __track_import
 	GF_FilterSession *run_in_session;
 	char *update_mux_args;
 	u32 track_index;
+
+	s32 moov_timescale;
 } GF_MediaImporter;
 
 /*!

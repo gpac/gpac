@@ -948,6 +948,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		import.source_magic = source_magic;
 		import.track_index = tk_idx;
 
+		//try to set moov timescale at import time, this will get better precision for edit list
+		if (moov_timescale && !gf_sys_old_arch_compat()) {
+			import.moov_timescale = moov_timescale;
+		}
+
 		import.run_in_session = fsess;
 		import.update_mux_args = NULL;
 		if (do_all)
@@ -983,7 +988,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 		if (moov_timescale) {
 			if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(dest, track);
-			gf_isom_set_timescale(dest, moov_timescale);
+
+			if (gf_sys_old_arch_compat() || (gf_isom_get_timescale(dest)!=moov_timescale))
+				gf_isom_set_timescale(dest, moov_timescale);
+
 			moov_timescale = 0;
 		}
 

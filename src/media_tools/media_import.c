@@ -1273,6 +1273,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		sprintf(szSubArg, "pack3gp=%d", importer->frames_per_sample);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
+	if (importer->moov_timescale) {
+		sprintf(szSubArg, "moovts=%d", importer->moov_timescale);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
 	if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { e |= gf_dynstrcat(&args, "ase=v0s", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { e |= gf_dynstrcat(&args, "ase=v1", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { e |= gf_dynstrcat(&args, "ase=v1qt", ":"); }
