@@ -1184,7 +1184,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 #ifdef GPAC_HAS_QJS
 
 static s32 dashdmx_algo_custom(void *udta, u32 group, u32 base_group,
-				u32 dl_rate, Double speed, Double max_available_speed,
+				u32 dl_rate, u32 file_size, Double speed, Double max_available_speed,
 				u32 disp_width, u32 disp_height,
 				Bool force_lower_complexity,
 				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms
@@ -1199,6 +1199,7 @@ static s32 dashdmx_algo_custom(void *udta, u32 group, u32 base_group,
 	args[2] = JS_NewBool(ctx->js_ctx, force_lower_complexity);
 	args[3] = JS_NewObject(ctx->js_ctx);
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "rate", JS_NewInt32(ctx->js_ctx, dl_rate) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "filesize", JS_NewInt32(ctx->js_ctx, file_size) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "speed", JS_NewFloat64(ctx->js_ctx, speed) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "max_speed", JS_NewFloat64(ctx->js_ctx, max_available_speed) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_width", JS_NewInt32(ctx->js_ctx, disp_width) );
@@ -2224,6 +2225,7 @@ const GF_FilterRegister *dashdmx_register(GF_FilterSession *session)
 typedef struct
 {
 	u32 download_rate;
+	u32 filesize;
 	Double speed;
 	Double max_available_speed;
 	u32 display_width;
@@ -2235,7 +2237,7 @@ typedef struct
 } GF_DASHAlgoStats;
 
 static s32 dashdmx_rate_adaptation_ext(void *udta, u32 group_idx, u32 base_group_idx,
-				u32 download_rate, Double speed, Double max_available_speed,
+				u32 download_rate, u32 filesize, Double speed, Double max_available_speed,
 				u32 display_width, u32 display_height, Bool force_lower_complexity,
 				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms
 								  )
@@ -2243,6 +2245,7 @@ static s32 dashdmx_rate_adaptation_ext(void *udta, u32 group_idx, u32 base_group
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) udta;
 	GF_DASHAlgoStats stats;
 	stats.download_rate = download_rate;
+	stats.filesize = filesize;
 	stats.speed = speed;
 	stats.max_available_speed = max_available_speed;
 	stats.display_width = display_width;
