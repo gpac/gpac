@@ -152,6 +152,9 @@ typedef struct
 	u32 prev_tid_group;
 
 	Bool box_patched;
+
+	u64 imported_edit_sdur, imported_edit_offset;
+
 } TrackWriter;
 
 enum
@@ -2762,6 +2765,15 @@ sample_entry_done:
 			if (!gf_sys_old_arch_compat()) {
 				gf_isom_remove_edits(ctx->file, tkw->track_num);
 			} else {
+				//old arch compat: if we had a simple edit list in source, keep dur and offset
+				//and avoid rewriting it when recomputing edit for b-frames
+				u64 etime, sdur;
+				GF_ISOEditType etype;
+				gf_isom_get_edit(ctx->file, tkw->track_num, 1, &etime, &sdur, &moffset, &etype);
+				if (!etime && sdur) {
+					tkw->imported_edit_sdur = sdur;
+					tkw->imported_edit_offset = moffset;
+				}
 				remove_edits = GF_TRUE;
 			}
 		}
@@ -5265,7 +5277,6 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 
 	gf_isom_remove_edits(ctx->file, tkw->track_num);
 
-
 	count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
 	max_cts = 0;
 	min_cts = (u64) -1;
@@ -5293,6 +5304,14 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 			gf_isom_set_edit(ctx->file, tkw->track_num, 0, tkw->empty_init_dur, 0, GF_ISOM_EDIT_EMPTY);
 			if (max_cts >= tkw->empty_init_dur) max_cts -= tkw->empty_init_dur;
 			else max_cts = 0;
+		}
+		//old arch compat: if we had a simple edit list in source try to keep the original segduration indicated
+		else if (gf_sys_old_arch_compat() && tkw->imported_edit_sdur && (tkw->imported_edit_offset==min_cts)) {
+			u64 old_dur_ms = tkw->imported_edit_sdur * 1000 / tkw->src_timescale;
+			u64 new_dur_ms = max_cts * 1000 / tkw->tk_timescale;
+
+			if (new_dur_ms==old_dur_ms)
+				max_cts = tkw->imported_edit_sdur;
 		}
 
 		gf_isom_set_edit(ctx->file, tkw->track_num, tkw->empty_init_dur, max_cts, min_cts, GF_ISOM_EDIT_NORMAL);
