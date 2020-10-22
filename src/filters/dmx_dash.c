@@ -2126,8 +2126,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"", GF_PROP_UINT, "mem", "mem|file|cache", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(algo), "adaptation algorithm to use\n"
 		"- none: no adaptation logic\n"
-		"- grate: GAPC legacy algo based on available rate\n"
-		"- gbuf: GAPC legacy algo based on buffer occupancy\n"
+		"- grate: GPAC legacy algo based on available rate\n"
+		"- gbuf: GPAC legacy algo based on buffer occupancy\n"
 		"- bba0: BBA-0\n"
 		"- bolaf: BOLA Finite\n"
 		"- bolab: BOLA Basic\n"
