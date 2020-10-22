@@ -1403,20 +1403,30 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 		return GF_BAD_PARAM;
 #else
 		char szFile[GF_MAX_PATH];
-		Bool found = GF_TRUE;
+		Bool found = GF_FALSE;
 		GF_Err e;
 		//init to default, overwrite later
 		algo = GF_DASH_ALGO_GPAC_LEGACY_BUFFER;
 		if (gf_file_exists(ctx->algo)) {
 			strcpy(szFile, ctx->algo);
-		} else {
+			found = GF_TRUE;
+		} else if (!strstr(ctx->algo, ".js")) {
+			strcpy(szFile, ctx->algo);
+			strcat(szFile, ".js");
+			if (gf_file_exists(ctx->algo)) {
+				found = GF_TRUE;
+			}
+		}
+		if (!found) {
 			gf_opts_default_shared_directory(szFile);
 			strcat(szFile, "/scripts/");
 			strcat(szFile, ctx->algo);
-			if (!gf_file_exists(szFile)) {
+			if (gf_file_exists(szFile)) {
+				found = GF_TRUE;
+			} else if (!strstr(ctx->algo, ".js")) {
 				strcat(szFile, ".js");
-				if (!gf_file_exists(szFile))
-					found = GF_FALSE;
+				if (gf_file_exists(szFile))
+					found = GF_TRUE;
 			}
 		}
 		if (!found) {
@@ -2123,7 +2133,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"- bolab: BOLA Basic\n"
 		"- bolau: BOLA-U\n"
 		"- bolao: BOLA-O\n"
-		"- JS: use file JS (either with specified path or in $GSHARE/scripts/dash/) for algo"
+		"- JS: use file JS (either with specified path or in $GSHARE/scripts/) for algo (.js extension may be omitted)"
 		, GF_PROP_STRING, "gbuf", "none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao|JS", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(start_with), "initial selection criteria\n"
 		"- min_q: start with lowest quality\n"

@@ -1486,7 +1486,7 @@ segstore (enum, default: mem): enable file caching
 .br
 
 .br
-algo (enum, default: gbuf):    adaptation algorithm to use
+algo (str, default: gbuf, minmax: none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao|JS): adaptation algorithm to use
 .br
 * none: no adaptation logic
 .br
@@ -1503,6 +1503,8 @@ algo (enum, default: gbuf):    adaptation algorithm to use
 * bolau: BOLA-U
 .br
 * bolao: BOLA-O
+.br
+* JS: use file JS (either with specified path or in $GSHARE/scripts/) for algo (.js extension may be omitted)
 .br
 
 .br
@@ -1536,7 +1538,7 @@ server_utc (bool, default: yes): use ServerUTC: or Date: http headers instead of
 .br
 screen_res (bool, default: yes): use screen resolution in selection phase
 .br
-init_timeshift (uint, default: 0): set initial timshift in ms (if >0) or in per-cent of timeshift buffer (if <0)
+init_timeshift (sint, default: 0): set initial timshift in ms (if >0) or in per-cent of timeshift buffer (if <0)
 .br
 tile_mode (enum, default: none): tile adaptation mode
 .br
@@ -1841,7 +1843,7 @@ tfdt_traf (bool, default: false): set TFDT in each traf
 .br
 nofragdef (bool, default: false): disable default flags in fragments
 .br
-straf (bool, default: false):  use a single traf per moov (smooth streaming and co)
+straf (bool, default: false):  use a single traf per moof (smooth streaming and co)
 .br
 strun (bool, default: false):  use a single trun per traf (smooth streaming and co)
 .br
@@ -2976,9 +2978,9 @@ dur (frac, default: 0):        only play the specified duration
 .br
 clock (bool, default: true):   hint audio clock for this stream (reports system time and CTS), for other filters to use
 .br
-speed (dbl, default: 1.0):     set playback speed. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0, updatable): set playback speed. If speed is negative and start is 0, start is set to -1
 .br
-start (dbl, default: 0.0):     set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0, updatable): set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
 vol (uint, default: 100, minmax: 0-100, updatable): set default audio volume, as a percentage between 0 and 100
 .br
@@ -3064,7 +3066,7 @@ drv (cstr):                    video driver name
 .br
 vsync (bool, default: true):   enable video screen sync
 .br
-drop (bool, default: false):   enable droping late frames
+drop (bool, default: false, updatable): enable droping late frames
 .br
 disp (enum, default: gl):      display mode
 .br
@@ -3078,11 +3080,11 @@ disp (enum, default: gl):      display mode
 .br
 
 .br
-start (dbl, default: 0.0):     set playback start offset. Negative value means percent of media dur with -1 <=> dur
+start (dbl, default: 0.0, updatable): set playback start offset. Negative value means percent of media dur with -1 <=> dur
 .br
 dur (lfrac, default: 0):       only play the specified duration
 .br
-speed (dbl, default: 1.0):     set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1
+speed (dbl, default: 1.0, updatable): set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1
 .br
 hold (dbl, default: 1.0):      number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams
 .br
@@ -3098,13 +3100,15 @@ vdelay (frac, default: 0, updatable): set delay in sec, positive value displays 
 .br
 hide (bool, default: false):   hide output window
 .br
-fullscreen (bool, default: false): use fullcreen
+fullscreen (bool, default: false, updatable): use fullcreen
 .br
 buffer (uint, default: 100):   set buffer in ms
 .br
 dumpframes (uintl):            ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames
 .br
 out (str, default: dump):      radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT
+.br
+owsize (v2di):                 output window size (readonly)
 .br
 
 .br
@@ -6379,7 +6383,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev113-gcbf8e5433-master
+build: 1.1.0-DEV-rev143-gadbb8b036-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
