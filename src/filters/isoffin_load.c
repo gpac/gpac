@@ -139,6 +139,16 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 
 		gf_odf_desc_del((GF_Descriptor *)an_esd);
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if (dsi && (codec_id==GF_CODECID_AAC_MPEG4)) {
+			GF_M4ADecSpecInfo acfg;
+			gf_m4a_get_config(dsi, dsi_size, &acfg);
+			if (acfg.base_object_type == GF_M4A_USAC)
+				codec_id = GF_CODECID_USAC;
+		}
+#endif
+
 	} else {
 		u32 pcm_flags, pcm_size;
 		Bool load_default = GF_FALSE;

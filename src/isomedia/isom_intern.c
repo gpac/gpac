@@ -226,6 +226,60 @@ void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 
 #endif
 
+//for now we only use regular sample to group internally (except when dumping), not the pattern version
+//we unrill the pattern and replace the compact version with a regular one
+static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleGroups)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(sampleGroups); i++) {
+		u32 j;
+		GF_SampleGroupBox *sbgp;
+		GF_CompactSampleGroupBox *csgp = gf_list_get(sampleGroups, i);
+		if (csgp->type != GF_ISOM_BOX_TYPE_CSGP) continue;
+
+		gf_list_rem(sampleGroups, i);
+		gf_list_del_item(child_boxes, csgp);
+
+		sbgp = (GF_SampleGroupBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SBGP);
+		gf_list_insert(sampleGroups, sbgp, i);
+		gf_list_add(child_boxes, sbgp);
+		i--;
+
+		sbgp->grouping_type = csgp->grouping_type;
+		if (csgp->grouping_type_parameter) {
+			sbgp->grouping_type_parameter = csgp->grouping_type_parameter;
+			sbgp->version = 1;
+		}
+		sbgp->entry_count = 0;
+		for (j=0; j<csgp->pattern_count; j++) {
+			u32 k=0;
+			u32 nb_samples = csgp->patterns[j].sample_count;
+			//unroll the pattern
+			while (nb_samples) {
+				u32 nb_same_index=1;
+				u32 sg_idx = csgp->patterns[j].sample_group_description_indices[k];
+				while (nb_same_index+k<csgp->patterns[j].length) {
+					if (csgp->patterns[j].sample_group_description_indices[k+nb_same_index] != sg_idx)
+						break;
+					nb_same_index++;
+				}
+				sbgp->sample_entries = gf_realloc(sbgp->sample_entries, sizeof(GF_SampleGroupEntry) * (sbgp->entry_count+1));
+				if (nb_same_index>nb_samples)
+					nb_same_index = nb_samples;
+
+				sbgp->sample_entries[sbgp->entry_count].sample_count = nb_same_index;
+				sbgp->sample_entries[sbgp->entry_count].group_description_index = sg_idx;
+				nb_samples -= nb_same_index;
+				sbgp->entry_count++;
+				k+= nb_same_index;
+				if (k==csgp->patterns[j].length)
+					k = 0;
+			}
+		}
+	}
+}
+
+
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
@@ -315,6 +369,14 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 					if (trak->sample_encryption) {
 						e = senc_Parse(mov->movieFileMap->bs, trak, NULL, trak->sample_encryption);
 						if (e) return e;
+					}
+				}
+			} else {
+				u32 k;
+				for (k=0; k<gf_list_count(mov->moov->trackList); k++) {
+					GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(mov->moov->trackList, k);
+					if (trak->Media->information->sampleTable->sampleGroups) {
+						convert_compact_sample_groups(trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable->sampleGroups);
 					}
 				}
 			}
@@ -482,6 +544,14 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 			FixTrackID(mov);
 			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
 				FixSDTPInTRAF(mov->moof);
+			} else {
+				u32 k;
+				for (k=0; k<gf_list_count(mov->moof->TrackList); k++) {
+					GF_TrackFragmentBox *traf = (GF_TrackFragmentBox *)gf_list_get(mov->moof->TrackList, k);
+					if (traf->sampleGroups) {
+						convert_compact_sample_groups(traf->child_boxes, traf->sampleGroups);
+					}
+				}
 			}
 
 			/*read & debug: store at root level*/

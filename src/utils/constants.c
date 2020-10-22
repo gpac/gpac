@@ -155,6 +155,7 @@ CodecIDReg CodecRegistry [] = {
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc"},
+	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac"},
 };
 
 

@@ -5927,5 +5927,46 @@ GF_Err emsg_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err csgp_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_CompactSampleGroupBox *ptr = (GF_CompactSampleGroupBox*)a;
+	Bool use_msb_traf = ptr->flags & (1<<7);
+	Bool use_grpt_param = ptr->flags & (1<<6);
+
+	gf_isom_box_dump_start(a, "CompactSampleGroupBox", trace);
+	fprintf(trace, "version=\"%u\" index_msb_indicates_fragment_local_description=\"%d\" grouping_type_parameter_present=\"%d\" pattern_size_code=\"%d\" count_size_code=\"%d\" index_size_code=\"%d\" grouping_type=\"%s\" pattern_count=\"%d\"",
+		ptr->version,
+		use_msb_traf,
+		use_grpt_param,
+		((ptr->flags>>4) & 0x3),
+		((ptr->flags>>2) & 0x3),
+		(ptr->flags & 0x3),
+		gf_4cc_to_str(ptr->grouping_type),
+		ptr->pattern_count
+	);
+
+	if (use_grpt_param)
+		fprintf(trace, " grouping_type_paramter=\"%u\"", ptr->grouping_type_parameter);
+	fprintf(trace, ">\n");
+
+	for (i=0; i<ptr->pattern_count; i++) {
+		u32 j;
+		fprintf(trace, "<Pattern length=\"%u\" sample_count=\"%u\" sample_group_indices=\"", ptr->patterns[i].length, ptr->patterns[i].sample_count);
+		for (j=0; j<ptr->patterns[i].length; j++) {
+			u32 idx = ptr->patterns[i].sample_group_description_indices[j];
+			if (j) fprintf(trace, " ");
+			if (use_msb_traf && (idx>0x10000))
+				fprintf(trace, "%d(traf)", idx-0x10000);
+			else
+				fprintf(trace, "%d", idx);
+		}
+		fprintf(trace, "\">\n");
+	}
+
+	gf_isom_box_dump_done("CompactSampleGroupBox", a, trace);
+	return GF_OK;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

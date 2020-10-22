@@ -573,6 +573,7 @@ ISOM_BOX_IMPL_DECL(gnra)
 ISOM_BOX_IMPL_DECL(pdin)
 ISOM_BOX_IMPL_DECL(def_parent)
 ISOM_BOX_IMPL_DECL(def_parent_full)
+ISOM_BOX_IMPL_DECL(csgp)
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -1017,6 +1018,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PDIN, pdin, "file", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SBGP, sbgp, "stbl traf", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", 2),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_CSGP, csgp, "stbl traf"),
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_SAIZ, saiz, "stbl traf", 0, 0),
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_SAIZ, saiz, "stbl traf", 0, 1),
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_SAIO, saio, "stbl traf", 1, 0),

@@ -4985,6 +4985,7 @@ GF_Err stbl_on_child_box(GF_Box *s, GF_Box *a)
 		break;
 
 	case GF_ISOM_BOX_TYPE_SBGP:
+	case GF_ISOM_BOX_TYPE_CSGP:
 		if (!ptr->sampleGroups) ptr->sampleGroups = gf_list_new();
 		gf_list_add(ptr->sampleGroups, a);
 		break;
@@ -6163,6 +6164,7 @@ GF_Err traf_on_child_box(GF_Box *s, GF_Box *a)
 		if (!ptr->sub_samples) ptr->sub_samples = gf_list_new();
 		return gf_list_add(ptr->sub_samples, a);
 	case GF_ISOM_BOX_TYPE_SBGP:
+	case GF_ISOM_BOX_TYPE_CSGP:
 		if (!ptr->sampleGroups) ptr->sampleGroups = gf_list_new();
 		gf_list_add(ptr->sampleGroups, a);
 		return GF_OK;
@@ -12090,5 +12092,177 @@ GF_Err emsg_box_size(GF_Box *s)
 	return GF_OK;
 }
 #endif // GPAC_DISABLE_ISOM_WRITE
+
+
+
+
+GF_Box *csgp_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_CompactSampleGroupBox, GF_ISOM_BOX_TYPE_CSGP);
+	return (GF_Box *)tmp;
+}
+void csgp_box_del(GF_Box *a)
+{
+	GF_CompactSampleGroupBox *p = (GF_CompactSampleGroupBox *)a;
+	if (p->patterns) {
+		u32 i;
+		for (i=0; i<p->pattern_count; i++) {
+			gf_free(p->patterns[i].sample_group_description_indices);
+		}
+		gf_free(p->patterns);
+	}
+	gf_free(p);
+}
+
+u32 get_size_by_code(u32 code)
+{
+	if (code==0) return 4;
+	if (code==1) return 8;
+	if (code==2) return 16;
+	return 32;
+}
+GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i, bits;
+	Bool index_msb_indicates_fragment_local_description, grouping_type_parameter_present;
+	u32 pattern_size, scount_size, index_size;
+	GF_CompactSampleGroupBox *ptr = (GF_CompactSampleGroupBox *)s;
+
+	ISOM_DECREASE_SIZE(ptr, 8);
+	ptr->version = gf_bs_read_u8(bs);
+	ptr->flags = gf_bs_read_u24(bs);
+
+	index_msb_indicates_fragment_local_description = (ptr->flags & (1<<7)) ? GF_TRUE : GF_FALSE;
+	grouping_type_parameter_present = (ptr->flags & (1<<6)) ? GF_TRUE : GF_FALSE;
+
+	pattern_size = get_size_by_code( ((ptr->flags>>4) & 0x3) );
+	scount_size = get_size_by_code( ((ptr->flags>>2) & 0x3) );
+	index_size = get_size_by_code( (ptr->flags & 0x3) );
+
+	if (((pattern_size==4) && (scount_size!=4)) || ((pattern_size!=4) && (scount_size==4))) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern_size and sample_count_size mare not both 4 bits\n"));
+		return GF_ISOM_INVALID_FILE;
+	}
+
+	ptr->grouping_type = gf_bs_read_u32(bs);
+	if (grouping_type_parameter_present) {
+		ISOM_DECREASE_SIZE(ptr, 4);
+		ptr->grouping_type_parameter = gf_bs_read_u32(bs);
+	}
+	ISOM_DECREASE_SIZE(ptr, 4);
+	ptr->pattern_count = gf_bs_read_u32(bs);
+
+
+	if (ptr->size < ptr->pattern_count * (pattern_size + scount_size) / 8 )
+	    return GF_ISOM_INVALID_FILE;
+
+	ptr->patterns = gf_malloc(sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);
+	if (!ptr->patterns) return GF_OUT_OF_MEM;
+
+	bits = 0;
+	for (i=0; i<ptr->pattern_count; i++) {
+		ptr->patterns[i].length = gf_bs_read_int(bs, pattern_size);
+		ptr->patterns[i].sample_count = gf_bs_read_int(bs, scount_size);
+		bits += pattern_size + scount_size;
+		if (! (bits % 8)) {
+			bits/=8;
+			ISOM_DECREASE_SIZE(ptr, bits);
+			bits=0;
+		}
+		ptr->patterns[i].sample_group_description_indices = gf_malloc(sizeof(u32) * ptr->patterns[i].length);
+		if (!ptr->patterns[i].sample_group_description_indices) return GF_OUT_OF_MEM;
+	}
+	bits=0;
+	for (i=0; i<ptr->pattern_count; i++) {
+		u32 j;
+		for (j=0; j<ptr->patterns[i].length; j++) {
+			u32 idx = gf_bs_read_int(bs, index_size);
+			if (index_msb_indicates_fragment_local_description) {
+				Bool is_traf = idx & (1<<(index_size-1)) ? GF_TRUE : GF_FALSE;
+				if (is_traf) {
+					idx += 0x1000;
+				}
+			}
+			ptr->patterns[i].sample_group_description_indices[j] = idx;
+			bits += index_size;
+
+			if (! (bits % 8)) {
+				bits/=8;
+				ISOM_DECREASE_SIZE(ptr, bits);
+				bits=0;
+			}
+		}
+	}
+	if (bits)
+		gf_bs_align(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err csgp_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_Err e;
+	GF_CompactSampleGroupBox *ptr = (GF_CompactSampleGroupBox*)s;
+	u32 pattern_size = get_size_by_code( ((ptr->flags>>4) & 0x3) );
+	u32 scount_size = get_size_by_code( ((ptr->flags>>2) & 0x3) );
+	u32 index_size = get_size_by_code( (ptr->flags & 0x3) );
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->version);
+	gf_bs_write_int(bs, ptr->flags, 24);
+	gf_bs_write_u32(bs, ptr->grouping_type);
+
+	if (ptr->flags & (1<<6))
+		gf_bs_write_u32(bs, ptr->grouping_type_parameter);
+
+	gf_bs_write_u32(bs, ptr->pattern_count);
+
+	for (i = 0; i<ptr->pattern_count; i++ ) {
+		gf_bs_write_int(bs, ptr->patterns[i].length, pattern_size);
+		gf_bs_write_int(bs, ptr->patterns[i].sample_count, scount_size);
+	}
+
+	for (i = 0; i<ptr->pattern_count; i++ ) {
+		u32 j;
+		for (j=0; j<ptr->patterns[i].length; j++) {
+			u32 idx = ptr->patterns[i].sample_group_description_indices[j];
+			if (idx>0x1000) {
+				idx -= 0x1000;
+				gf_bs_write_int(bs, 1, 1);
+				gf_bs_write_int(bs, idx, index_size-1);
+			} else {
+				gf_bs_write_int(bs, idx, index_size);
+			}
+		}
+	}
+	gf_bs_align(bs);
+	return GF_OK;
+}
+
+GF_Err csgp_box_size(GF_Box *s)
+{
+	u32 i, bits;
+	GF_CompactSampleGroupBox *ptr = (GF_CompactSampleGroupBox*)s;
+	u32 pattern_size = get_size_by_code( ((ptr->flags>>4) & 0x3) );
+	u32 scount_size = get_size_by_code( ((ptr->flags>>2) & 0x3) );
+	u32 index_size = get_size_by_code( (ptr->flags & 0x3) );
+
+	ptr->size += 12; //v, flags , grouping_type, pattern_length
+	if (ptr->flags & (1<<6))
+		ptr->size+=4;
+
+	ptr->size += ptr->pattern_count * (pattern_size + scount_size) / 8;
+	bits=0;
+	for (i=0; i<ptr->pattern_count; i++)
+		bits += ptr->patterns[i].length * index_size;
+	ptr->size += bits/8;
+	if (bits % 8) ptr->size++;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM*/

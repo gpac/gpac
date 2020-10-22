@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS reframer filter
@@ -70,6 +70,8 @@ typedef struct
 	LATMIdx *indexes;
 	u32 index_alloc_size, index_size;
 	u32 resume_from;
+
+	Bool prev_sap;
 } GF_LATMDmxCtx;
 
 
@@ -291,7 +293,7 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 {
 	u8 *dsi_b;
 	u32 dsi_s, sr, timescale=0;
-
+	u32 codecid;
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
@@ -301,9 +303,13 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	if ((ctx->sr_idx == ctx->acfg.base_sr_index) && (ctx->nb_ch == ctx->acfg.nb_chan )
 		&& (ctx->base_object_type == ctx->acfg.base_object_type) ) return;
 
+	if (ctx->acfg.base_object_type==GF_M4A_USAC)
+		codecid = GF_CODECID_USAC;
+	else
+		codecid = GF_CODECID_AAC_MPEG4;
 	//copy properties at init or reconfig
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_AAC_MPEG4));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( codecid));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 	if (ctx->is_file && ctx->index) {
@@ -325,8 +331,6 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		}
 	}
 	ctx->sr_idx = ctx->acfg.base_sr_index;
-
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_AAC_MPEG4) );
 
 	ctx->dts_inc = ctx->frame_size;
 	gf_m4a_write_config(&ctx->acfg, &dsi_b, &dsi_s);
@@ -514,11 +518,13 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 
 			/*xHE-AAC, check RAP*/
-			if (ctx->acfg.base_object_type==42) {
-				if (latm_frame_size && (output[0] & 0x80)) {
+			if (ctx->acfg.base_object_type==GF_CODECID_USAC) {
+				if (latm_frame_size && (output[0] & 0x80) && !ctx->prev_sap) {
 					sap = GF_FILTER_SAP_1;
+					ctx->prev_sap = GF_TRUE;
 				} else {
 					sap = GF_FILTER_SAP_NONE;
+					ctx->prev_sap = GF_FALSE;
 				}
 			}
 			gf_filter_pck_set_sap(dst_pck, sap);

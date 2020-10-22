@@ -213,17 +213,23 @@ GF_Err adtsmx_process(GF_Filter *filter)
 
 		gf_bs_write_int(ctx->bs_w, 0x2B7, 11);
 		gf_bs_write_int(ctx->bs_w, 0, 13);
+		if (ctx->codecid==GF_CODECID_USAC) {
+			GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
+			if ((sap == GF_FILTER_SAP_1) || (sap == GF_FILTER_SAP_4_PROL)) {
+				ctx->update_dsi = GF_TRUE;
+			}
+		} else {
 
-		if (ctx->fdsi.num && ctx->fdsi.den) {
-			u64 ts = gf_filter_pck_get_cts(pck);
-			if (ts != GF_FILTER_NO_TS) {
-				if ((ts - ctx->last_cts) * ctx->fdsi.den >= ctx->timescale * ctx->fdsi.num) {
-					ctx->last_cts = ts;
-					ctx->update_dsi = GF_TRUE;
+			if (ctx->fdsi.num && ctx->fdsi.den) {
+				u64 ts = gf_filter_pck_get_cts(pck);
+				if (ts != GF_FILTER_NO_TS) {
+					if ((ts - ctx->last_cts) * ctx->fdsi.den >= ctx->timescale * ctx->fdsi.num) {
+						ctx->last_cts = ts;
+						ctx->update_dsi = GF_TRUE;
+					}
 				}
 			}
 		}
-
 		/*same mux config = 0 (refresh aac config)*/
 		if (ctx->update_dsi) {
 			gf_bs_write_int(ctx->bs_w, 0, 1);
@@ -372,6 +378,7 @@ static const GF_FilterCapability LATMMxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_USAC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED_LATM, GF_TRUE),
 };

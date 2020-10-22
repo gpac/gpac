@@ -161,6 +161,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	case GF_CODECID_AAC_MPEG2_MP:
 	case GF_CODECID_AAC_MPEG2_LCP:
 	case GF_CODECID_AAC_MPEG2_SSRP:
+		//override extension to latm for aac if unframed latm data - NOT for usac
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED_LATM);
 		if (p && p->value.boolean) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("latm") );
@@ -843,6 +844,15 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "latm"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/aac+latm"),
+	{0},
+
+	//we accept unframed USAC + LATM
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_USAC),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED_LATM, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "usac|xheaac|latm"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/xheaac+latm"),
 	{0},
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
