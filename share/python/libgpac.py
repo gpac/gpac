@@ -237,6 +237,7 @@ _gf_filter = c_void_p
 _gf_filter_pid = c_void_p
 _gf_filter_packet = c_void_p
 _gf_property_entry = c_void_p
+gf_bool = c_uint
 ##\endcond
 
 
@@ -278,16 +279,16 @@ class FilterStats(Structure):
 		("time_process", c_ulonglong),
 		("percent", c_int),
 		("status", c_char_p),
-		("report_updated", c_bool),
+		("report_updated", gf_bool),
 		("name", c_char_p),
 		("reg_name", c_char_p),
 		("filter_id", c_char_p),
-		("done", c_bool),
+		("done", gf_bool),
 		("nb_pid_in", c_uint),
 		("nb_in_pck", c_ulonglong),
 		("nb_pid_out", c_uint),
 		("nb_out_pck", c_ulonglong),
-		("in_eos", c_bool),
+		("in_eos", gf_bool),
 		("type", c_int),
 		("stream_type", c_int),
 		("codecid", c_int),
@@ -444,7 +445,7 @@ class PropertyValueUnion(Union):
 		("longsint", c_longlong),
 		("sint", c_int),
 		("uint", c_uint),
-		("boolean", c_bool),
+		("boolean", gf_bool),
 		("frac", Fraction),
 		("lfrac", Fraction64),
 		("fnumber", c_float),
@@ -527,7 +528,7 @@ class FEVT_SegmentSize(Structure):
         ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("seg_url", c_char_p),
-        ("is_init", c_bool),
+        ("is_init", gf_bool),
         ("media_range_start", c_ulonglong),
         ("media_range_end", c_ulonglong),
         ("idx_range_start", c_ulonglong),
@@ -554,7 +555,7 @@ class FEVT_QualitySwitch(Structure):
     _fields_ =  [
         ("type", c_uint),
         ("on_pid", _gf_filter_pid),
-        ("up", c_bool),
+        ("up", gf_bool),
         ("dependent_group_index", c_uint),
         ("q_idx", c_int),
         ("set_tile_mode_plus_one", c_uint),
@@ -586,7 +587,7 @@ class FEVT_VisibilityHint(Structure):
         ("max_x", c_uint),
         ("min_y", c_uint),
         ("max_y", c_uint),
-        ("is_gaze", c_bool)
+        ("is_gaze", gf_bool)
     ]
     ## \endcond
 
@@ -600,7 +601,7 @@ class FEVT_BufferRequirement(Structure):
         ("max_buffer_us", c_uint),
         ("max_playout_us", c_uint),
         ("min_playout_us", c_uint),
-        ("pid_only", c_bool)
+        ("pid_only", gf_bool)
     ]
     ## \endcond
 
@@ -1040,8 +1041,8 @@ _libgpac.gf_sys_clock.res = c_uint
 _libgpac.gf_sys_clock_high_res.res = c_ulonglong
 
 _libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
-_libgpac.gf_sys_profiler_sampling_enabled.restype = c_bool
-_libgpac.gf_sys_profiler_enable_sampling.argtypes = [c_bool]
+_libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
+_libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
 
 #\endcond
 
@@ -1202,35 +1203,35 @@ _libgpac.gf_fs_post_user_task.argtypes = [_gf_filter_session, c_void_p, py_objec
 _libgpac.gf_fs_post_user_task.restype = c_int
 
 _libgpac.gf_fs_is_last_task.argtypes = [_gf_filter_session]
-_libgpac.gf_fs_is_last_task.restype = c_bool
+_libgpac.gf_fs_is_last_task.restype = gf_bool
 
 _libgpac.gf_fs_get_filters_count.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_get_filter.argtypes = [_gf_filter_session, c_int]
 _libgpac.gf_fs_get_filter.restype = _gf_filter
 
-_libgpac.gf_fs_abort.argtypes = [_gf_filter_session, c_bool]
+_libgpac.gf_fs_abort.argtypes = [_gf_filter_session, gf_bool]
 
 _libgpac.gf_fs_get_http_max_rate.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_get_http_rate.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_set_http_max_rate.argtypes = [_gf_filter_session, c_uint]
 
-_libgpac.gf_fs_lock_filters.argtypes = [_gf_filter_session, c_bool]
-_libgpac.gf_fs_enable_reporting.argtypes = [_gf_filter_session, c_bool]
+_libgpac.gf_fs_lock_filters.argtypes = [_gf_filter_session, gf_bool]
+_libgpac.gf_fs_enable_reporting.argtypes = [_gf_filter_session, gf_bool]
 
 _libgpac.gf_fs_print_stats.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_print_connections.argtypes = [_gf_filter_session]
 
-_libgpac.gf_fs_fire_event.argtypes = [_gf_filter_session, _gf_filter, POINTER(FilterEvent), c_bool]
-_libgpac.gf_fs_fire_event.restype = c_bool
+_libgpac.gf_fs_fire_event.argtypes = [_gf_filter_session, _gf_filter, POINTER(FilterEvent), gf_bool]
+_libgpac.gf_fs_fire_event.restype = gf_bool
 
 _libgpac.gf_fs_is_supported_mime.argtypes = [_gf_filter_session, c_char_p]
-_libgpac.gf_fs_is_supported_mime.restype = c_bool
+_libgpac.gf_fs_is_supported_mime.restype = gf_bool
 
 _libgpac.gf_fs_is_supported_mime.argtypes = [_gf_filter_session, c_char_p]
-_libgpac.gf_fs_is_supported_mime.restype = c_bool
+_libgpac.gf_fs_is_supported_mime.restype = gf_bool
 
 _libgpac.gf_fs_is_supported_source.argtypes = [_gf_filter_session, c_char_p]
-_libgpac.gf_fs_is_supported_source.restype = c_bool
+_libgpac.gf_fs_is_supported_source.restype = gf_bool
 
 
 @CFUNCTYPE(c_int, _gf_filter_session, c_void_p, POINTER(c_uint))
@@ -1246,7 +1247,7 @@ def fs_task_fun(sess, cbk, resched):
 
 
 _libgpac.gf_fs_set_filter_creation_callback.argtypes = [_gf_filter_session, c_void_p, py_object]
-@CFUNCTYPE(c_int, c_void_p, _gf_filter, c_bool)
+@CFUNCTYPE(c_int, c_void_p, _gf_filter, gf_bool)
 def on_filter_new_del(cbk, _filter, is_del):
  sess = cast(cbk, py_object).value
  f = sess._to_filter(_filter)
@@ -1598,15 +1599,15 @@ class DASHQualityInfoNat(Structure):
         ("codec", c_char_p),
         ("width", c_uint),
         ("height", c_uint),
-        ("interlaced", c_bool),
+        ("interlaced", gf_bool),
         ("fps_num", c_uint),
         ("fps_den", c_uint),
         ("sar_num", c_uint),
         ("sar_den", c_uint),
         ("sample_rate", c_uint),
         ("nb_channels", c_uint),
-        ("disabled", c_bool),
-        ("is_selected", c_bool),
+        ("disabled", gf_bool),
+        ("is_selected", gf_bool),
     ]
 
 _libgpac.gf_dash_group_get_num_qualities.argtypes = [c_void_p, c_uint]
@@ -1727,7 +1728,7 @@ def dash_group_new(cbk, groupidx, _dashobj):
 
 
 
-@CFUNCTYPE(c_int, c_void_p, c_uint, c_uint, c_bool, POINTER(DASHGroupStatistics))
+@CFUNCTYPE(c_int, c_void_p, c_uint, c_uint, gf_bool, POINTER(DASHGroupStatistics))
 def dash_rate_adaptation(cbk, groupidx, base_groupidx, force_low_complex, stats):
  obj = cast(cbk, py_object).value
  group = None
@@ -2276,7 +2277,7 @@ _libgpac.gf_filter_pid_send_event.argtypes = [_gf_filter_pid, POINTER(FilterEven
 
 
 _libgpac.gf_filter_set_configure_ckb.argtypes = [_gf_filter, c_void_p]
-@CFUNCTYPE(c_int, _gf_filter, _gf_filter_pid, c_bool)
+@CFUNCTYPE(c_int, _gf_filter, _gf_filter_pid, gf_bool)
 def filter_cbk_configure(_f, _pid, is_remove):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
     filter = cast(obj, py_object).value
@@ -2369,22 +2370,22 @@ _libgpac.gf_filter_ask_rt_reschedule.argtypes = [_gf_filter]
 _libgpac.gf_filter_post_process_task.argtypes = [_gf_filter]
 
 
-_libgpac.gf_filter_ask_rt_reschedule.argtypes = [_gf_filter, c_int, c_bool]
+_libgpac.gf_filter_ask_rt_reschedule.argtypes = [_gf_filter, c_int, gf_bool]
 _libgpac.gf_filter_setup_failure.argtypes = [_gf_filter, c_int]
 _libgpac.gf_filter_make_sticky.argtypes = [_gf_filter]
-_libgpac.gf_filter_prevent_blocking.argtypes = [_gf_filter, c_bool]
-_libgpac.gf_filter_block_eos.argtypes = [_gf_filter, c_bool]
+_libgpac.gf_filter_prevent_blocking.argtypes = [_gf_filter, gf_bool]
+_libgpac.gf_filter_block_eos.argtypes = [_gf_filter, gf_bool]
 _libgpac.gf_filter_set_max_extra_input_pids.argtypes = [_gf_filter, c_uint]
 _libgpac.gf_filter_block_enabled.argtypes = [_gf_filter]
-_libgpac.gf_filter_block_enabled.restype = c_bool
+_libgpac.gf_filter_block_enabled.restype = gf_bool
 _libgpac.gf_filter_get_output_buffer_max.argtypes = [_gf_filter, POINTER(c_uint), POINTER(c_uint)]
 _libgpac.gf_filter_all_sinks_done.argtypes = [_gf_filter]
-_libgpac.gf_filter_all_sinks_done.restype = c_bool
+_libgpac.gf_filter_all_sinks_done.restype = gf_bool
 _libgpac.gf_filter_get_num_events_queued.argtypes = [_gf_filter]
 
 _libgpac.gf_filter_get_clock_hint.argtypes = [_gf_filter, POINTER(c_ulonglong), POINTER(Fraction64)]
 _libgpac.gf_filter_connections_pending.argtypes = [_gf_filter]
-_libgpac.gf_filter_connections_pending.restype = c_bool
+_libgpac.gf_filter_connections_pending.restype = gf_bool
 _libgpac.gf_filter_hint_single_clock.argtypes = [_gf_filter, c_ulonglong, Fraction64]
 
 ##\endcond
@@ -2617,60 +2618,60 @@ _libgpac.gf_filter_pid_set_property.argtypes = [_gf_filter_pid, c_uint, POINTER(
 _libgpac.gf_filter_pid_set_property_str.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
 _libgpac.gf_filter_pid_set_info.argtypes = [_gf_filter_pid, c_uint, POINTER(PropertyValue)]
 _libgpac.gf_filter_pid_set_info_str.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
-_libgpac.gf_filter_pid_clear_eos.argtypes = [_gf_filter_pid, c_bool]
+_libgpac.gf_filter_pid_clear_eos.argtypes = [_gf_filter_pid, gf_bool]
 _libgpac.gf_filter_pid_check_caps.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_check_caps.restype = c_bool
+_libgpac.gf_filter_pid_check_caps.restype = gf_bool
 _libgpac.gf_filter_pid_discard_block.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_allow_direct_dispatch.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_reset_properties.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_get_clock_info.argtypes = [_gf_filter_pid, POINTER(c_longlong), POINTER(c_uint)]
 _libgpac.gf_filter_pid_remove.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_is_filter_in_parents.argtypes = [_gf_filter_pid, _gf_filter]
-_libgpac.gf_filter_pid_is_filter_in_parents.restype = c_bool
+_libgpac.gf_filter_pid_is_filter_in_parents.restype = gf_bool
 
 _libgpac.gf_filter_pid_get_name.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_get_name.restype = c_char_p
 _libgpac.gf_filter_pid_set_name.argtypes = [_gf_filter_pid, c_char_p]
 
 _libgpac.gf_filter_pid_is_eos.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_is_eos.restype = c_bool
+_libgpac.gf_filter_pid_is_eos.restype = gf_bool
 _libgpac.gf_filter_pid_set_eos.argtypes = [_gf_filter_pid]
 
 _libgpac.gf_filter_pid_has_seen_eos.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_has_seen_eos.restype = c_bool
+_libgpac.gf_filter_pid_has_seen_eos.restype = gf_bool
 
 _libgpac.gf_filter_pid_would_block.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_would_block.restype = c_bool
+_libgpac.gf_filter_pid_would_block.restype = gf_bool
 _libgpac.gf_filter_pid_set_loose_connect.argtypes = [_gf_filter_pid]
 
-_libgpac.gf_filter_pid_set_framing_mode.argtypes = [_gf_filter_pid, c_bool]
+_libgpac.gf_filter_pid_set_framing_mode.argtypes = [_gf_filter_pid, gf_bool]
 
 _libgpac.gf_filter_pid_get_max_buffer.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_get_max_buffer.restype = c_uint
 _libgpac.gf_filter_pid_set_max_buffer.argtypes = [_gf_filter_pid, c_uint]
 
-_libgpac.gf_filter_pid_query_buffer_duration.argtypes = [_gf_filter_pid, c_bool]
+_libgpac.gf_filter_pid_query_buffer_duration.argtypes = [_gf_filter_pid, gf_bool]
 _libgpac.gf_filter_pid_query_buffer_duration.restype = c_ulonglong
 
 _libgpac.gf_filter_pid_first_packet_is_empty.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_first_packet_is_empty.restype = c_bool
+_libgpac.gf_filter_pid_first_packet_is_empty.restype = gf_bool
 
 _libgpac.gf_filter_pid_get_first_packet_cts.argtypes = [_gf_filter_pid, POINTER(c_ulonglong)]
-_libgpac.gf_filter_pid_get_first_packet_cts.restype = c_bool
+_libgpac.gf_filter_pid_get_first_packet_cts.restype = gf_bool
 
 _libgpac.gf_filter_pid_get_packet_count.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_get_timescale.argtypes = [_gf_filter_pid]
 
-_libgpac.gf_filter_pid_set_clock_mode.argtypes = [_gf_filter_pid, c_bool]
-_libgpac.gf_filter_pid_set_discard.argtypes = [_gf_filter_pid, c_bool]
+_libgpac.gf_filter_pid_set_clock_mode.argtypes = [_gf_filter_pid, gf_bool]
+_libgpac.gf_filter_pid_set_discard.argtypes = [_gf_filter_pid, gf_bool]
 
 _libgpac.gf_filter_pid_require_source_id.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_recompute_dts.argtypes = [_gf_filter_pid, c_bool]
+_libgpac.gf_filter_pid_recompute_dts.argtypes = [_gf_filter_pid, gf_bool]
 
 
 _libgpac.gf_filter_pid_get_min_pck_duration.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_is_playing.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_is_playing.restype = c_bool
+_libgpac.gf_filter_pid_is_playing.restype = gf_bool
 
 _libgpac.gf_filter_pid_get_filter_name.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_is_playing.restype = c_char_p
@@ -3319,8 +3320,8 @@ _libgpac.gf_filter_pck_set_duration.argtypes = [_gf_filter_packet, c_uint]
 _libgpac.gf_filter_pck_get_data.argtypes = [_gf_filter_packet, POINTER(c_uint)]
 _libgpac.gf_filter_pck_get_data.restype = POINTER(c_ubyte)
 
-_libgpac.gf_filter_pck_get_framing.argtypes = [_gf_filter_packet, POINTER(c_bool), POINTER(c_bool)]
-_libgpac.gf_filter_pck_set_framing.argtypes = [_gf_filter_packet, c_bool, c_bool]
+_libgpac.gf_filter_pck_get_framing.argtypes = [_gf_filter_packet, POINTER(gf_bool), POINTER(gf_bool)]
+_libgpac.gf_filter_pck_set_framing.argtypes = [_gf_filter_packet, gf_bool, gf_bool]
 
 _libgpac.gf_filter_pck_get_timescale.argtypes = [_gf_filter_packet]
 _libgpac.gf_filter_pck_get_timescale.restype = c_uint
@@ -3330,12 +3331,12 @@ _libgpac.gf_filter_pck_get_interlaced.restype = c_uint
 _libgpac.gf_filter_pck_set_interlaced.argtypes = [_gf_filter_packet, c_uint]
 
 _libgpac.gf_filter_pck_get_corrupted.argtypes = [_gf_filter_packet]
-_libgpac.gf_filter_pck_get_corrupted.restype = c_bool
-_libgpac.gf_filter_pck_set_corrupted.argtypes = [_gf_filter_packet, c_bool]
+_libgpac.gf_filter_pck_get_corrupted.restype = gf_bool
+_libgpac.gf_filter_pck_set_corrupted.argtypes = [_gf_filter_packet, gf_bool]
 
 _libgpac.gf_filter_pck_get_seek_flag.argtypes = [_gf_filter_packet]
-_libgpac.gf_filter_pck_get_seek_flag.restype = c_bool
-_libgpac.gf_filter_pck_set_seek_flag.argtypes = [_gf_filter_packet, c_bool]
+_libgpac.gf_filter_pck_get_seek_flag.restype = gf_bool
+_libgpac.gf_filter_pck_set_seek_flag.argtypes = [_gf_filter_packet, gf_bool]
 
 _libgpac.gf_filter_pck_get_byte_offset.argtypes = [_gf_filter_packet]
 _libgpac.gf_filter_pck_get_byte_offset.restype = c_ulonglong
@@ -3369,7 +3370,7 @@ _libgpac.gf_filter_pck_get_frame_interface.argtypes = [_gf_filter_packet]
 _libgpac.gf_filter_pck_get_frame_interface.restype = c_void_p
 
 _libgpac.gf_filter_pck_is_blocking_ref.argtypes = [_gf_filter_packet]
-_libgpac.gf_filter_pck_is_blocking_ref.restype = c_bool
+_libgpac.gf_filter_pck_is_blocking_ref.restype = gf_bool
 
 _libgpac.gf_filter_pck_enum_properties.argtypes = [_gf_filter_packet, POINTER(c_uint), POINTER(c_uint), POINTER(c_char_p)]
 _libgpac.gf_filter_pck_enum_properties.restype = POINTER(PropertyValue)
@@ -3667,8 +3668,8 @@ class FilterPacket:
 
     @property
     def start(self):
-        start = c_bool(False)
-        end = c_bool(False)
+        start = gf_bool(False)
+        end = gf_bool(False)
         _libgpac.gf_filter_pck_get_framing(self._pck, byref(start), byref(end))
         return start.value
 
@@ -3676,15 +3677,15 @@ class FilterPacket:
     def start(self, value):
         if self._is_src:
             raise Exception('Cannot set framing on source packet')
-        start = c_bool(False)
-        end = c_bool(False)
+        start = gf_bool(False)
+        end = gf_bool(False)
         _libgpac.gf_filter_pck_get_framing(self._pck, byref(start), byref(end))
         _libgpac.gf_filter_pck_set_framing(self._pck, value, end.value)
 
     @property
     def end(self):
-        start = c_bool(False)
-        end = c_bool(False)
+        start = gf_bool(False)
+        end = gf_bool(False)
         _libgpac.gf_filter_pck_get_framing(self._pck, byref(start), byref(end))
         return end.value
 
@@ -3692,8 +3693,8 @@ class FilterPacket:
     def end(self, value):
         if self._is_src:
             raise Exception('Cannot set framing on source packet')
-        start = c_bool(False)
-        end = c_bool(False)
+        start = gf_bool(False)
+        end = gf_bool(False)
         _libgpac.gf_filter_pck_get_framing(self._pck, byref(start), byref(end))
         _libgpac.gf_filter_pck_set_framing(self._pck, start.value, value)
 
