@@ -5615,7 +5615,7 @@ typedef struct
 	char string[1];
 } GF_RefString;
 
-#define TO_REFSTRING(_v) (GF_RefString *) (_v - offsetof(GF_RefString, string))
+#define TO_REFSTRING(_v) _v ? (GF_RefString *) (_v - offsetof(GF_RefString, string)) : NULL
 
 static GF_RefString *evt_get_refstr(GF_FilterEvent *evt)
 {
@@ -5673,11 +5673,15 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 	}
 	if (url_addr_src) {
 		char *url = *url_addr_src;
-		u32 len = url ? (u32) strlen(url) : 0;
-		GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
-		rstr->ref_count=1;
-		strcpy( (char *) &rstr->string[0], url ? url : "");
-		*url_addr_dst = (char *) &rstr->string[0];
+		if (!url) {
+			*url_addr_dst = NULL;
+		} else {
+			u32 len = (u32) strlen(url);
+			GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
+			rstr->ref_count=1;
+			strcpy( (char *) &rstr->string[0], url ? url : "");
+			*url_addr_dst = (char *) &rstr->string[0];
+		}
 	}
 	return an_evt;
 }
