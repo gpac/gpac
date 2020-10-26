@@ -3261,7 +3261,17 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	rate_max = ((GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, gf_list_count(group->adaptation_set->representations) - 1))->bandwidth;
 
 	if (!buf_max) buf_max = 3*segment_duration_ms;
-	/* if the current buffer cannot hold an entire new segment, we indicate that we don't want to download it
+
+	/* buffer level higher than max buffer, keep high quality*/
+	if (group->buffer_occupancy_ms > buf_max) {
+		return gf_list_count(group->adaptation_set->representations) - 1;
+	}
+	/* we cannot run bba if segments are longer than the max buffer*/
+	if (buf_max < segment_duration_ms) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] BBA-0: max buffer %d shorter than segment duration %d, cannot adapt - will use current quality\n", buf_max, group->buffer_occupancy_ms));
+		return group->active_rep_index;
+	}
+	/* if the current buffer cannot hold an entire new segment, we indicate that we don't want to download it now
 	   NOTE: This is not described in the paper
 	*/
 	if (group->buffer_occupancy_ms + segment_duration_ms > buf_max) {
