@@ -38,7 +38,7 @@ typedef struct
 	u8 dump_pid; //0: no, 1: configure/reconfig, 2: info update
 	u8 init_pid_config_done;
 	u64 pck_for_config;
-	u64 prev_dts, prev_cts, init_ts;
+	u64 prev_dts, prev_cts, init_ts_plus_one;
 	u32 codec_id;
 	u32 stream_type;
 
@@ -2783,8 +2783,8 @@ static GF_Err inspect_process(GF_Filter *filter)
 			u64 ts = gf_filter_pck_get_dts(pck);
 			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
 
-			if (!pctx->init_ts) pctx->init_ts = ts;
-			else if ((ts - pctx->init_ts) * (u64)ctx->dur.den >= timescale * (u64) ctx->dur.num) {
+			if (!pctx->init_ts_plus_one) pctx->init_ts_plus_one = 1 + ts;
+			else if ((ts - pctx->init_ts_plus_one + 1) * (u64)ctx->dur.den >= timescale * (u64) ctx->dur.num) {
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 				gf_filter_pid_send_event(pctx->src_pid, &evt);
