@@ -198,14 +198,27 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
-		assert(ctx->is_end);
-		assert(!ctx->pck_out);
 		if (evt->seek.source_switch) {
+			assert(ctx->is_end);
+			assert(!ctx->pck_out);
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src);
 			}
 			if (ctx->src) gf_free(ctx->src);
 			ctx->src = gf_strdup(evt->seek.source_switch);
+		} else {
+			if (!ctx->is_end) {
+				gf_filter_pid_set_eos(ctx->pid);
+				ctx->is_end = GF_TRUE;
+				if (ctx->sess) {
+					gf_dm_sess_abort(ctx->sess);
+					gf_dm_sess_del(ctx->sess);
+					ctx->sess = NULL;
+				}
+			}
+			if (ctx->src) gf_free(ctx->src);
+			ctx->src = NULL;
+			return GF_TRUE;
 		}
 		if (ctx->cached) gf_fclose(ctx->cached);
 		ctx->cached = NULL;
@@ -264,6 +277,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->is_end = GF_FALSE;
 		ctx->last_state = GF_OK;
 		gf_filter_post_process_task(filter);
+		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );
 		return GF_TRUE;
 	default:
 		break;
