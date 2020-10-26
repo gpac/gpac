@@ -61,6 +61,8 @@ typedef struct
 	GF_Fraction tmcd_rate;
 	u32 tmcd_flags;
 	u32 tmcd_fpt;
+
+	Bool buffer_done;
 } PidCtx;
 
 enum
@@ -95,6 +97,7 @@ typedef struct
 	GF_Fraction dur;
 	Bool crc, dtype;
 	Bool fftmcd;
+	u32 buffer;
 
 	FILE *dump;
 
@@ -2749,6 +2752,16 @@ static GF_Err inspect_process(GF_Filter *filter)
 		if (!pck && !gf_filter_pid_is_eos(pctx->src_pid))
 			continue;
 
+		if (!pctx->buffer_done) {
+			if (pck) {
+				u64 dur = gf_filter_pid_query_buffer_duration(pctx->src_pid, GF_FALSE);
+				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(pctx->src_pid)) {
+					continue;
+				}
+			}
+			pctx->buffer_done = GF_TRUE;
+		}
+
 		if (pctx->dump_pid) {
 			inspect_dump_pid(ctx, pctx->tmp, pctx->src_pid, pctx->idx, pctx->init_pid_config_done ? GF_FALSE : GF_TRUE, GF_FALSE, pctx->pck_for_config, (pctx->dump_pid==2) ? GF_TRUE : GF_FALSE, pctx);
 			pctx->dump_pid = 0;
@@ -2829,6 +2842,14 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!pctx) return GF_OUT_OF_MEM;
 	if (ctx->analyze)
 		pctx->bs = gf_bs_new((u8 *)pctx, 0, GF_BITSTREAM_READ);
+	if (!ctx->buffer) {
+		pctx->buffer_done = GF_TRUE;
+	} else {
+		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
+		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
+		evt.buffer_req.pid_only = GF_TRUE;
+		gf_filter_pid_send_event(pid, &evt);
+	}
 
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
@@ -3011,6 +3032,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(crc), "dump crc of packets, NALU and OBU", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(dtype), "dump property type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(buffer), "set buffer in ms (mostly used for testing DASH algo)", GF_PROP_UINT, "0", NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on pid are skipped, only packets are dumped\n"
