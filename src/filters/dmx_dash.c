@@ -290,10 +290,7 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 
 	gf_dash_set_group_download_state(group->ctx->dash, group->idx, group->current_dependent_rep_idx, err);
 	if (err) {
-		Bool group_done=GF_FALSE;
-
-		gf_dash_group_get_num_segments_ready(group->ctx->dash, group->idx, &group_done);
-
+		Bool group_done = gf_dash_get_group_done(group->ctx->dash, group->idx);
 		group->stats_uploaded = GF_TRUE;
 		group->segment_sent = GF_FALSE;
 		gf_filter_post_process_task(group->ctx->filter);
@@ -649,14 +646,10 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			gf_dash_is_group_selected(ctx->dash, 0);
 			gf_dash_get_url(ctx->dash);
 			gf_dash_group_get_segment_init_keys(ctx->dash, 0, NULL);
-			gf_dash_group_get_max_segments_in_cache(ctx->dash, 0);
-			gf_dash_group_get_num_segments_ready(ctx->dash, 0, &done);
-			gf_dash_group_probe_current_download_segment_location(ctx->dash, 0, NULL, NULL, NULL, NULL, NULL);
 			gf_dash_group_loop_detected(ctx->dash, 0);
 			gf_dash_is_dynamic_mpd(ctx->dash);
 			gf_dash_group_get_language(ctx->dash, 0);
 			gf_dash_group_get_num_components(ctx->dash, 0);
-			gf_dash_group_get_download_rate(ctx->dash, 0);
 			gf_dash_get_utc_drift_estimate(ctx->dash);
 
 
@@ -1674,7 +1667,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 #endif
 	}
 
-	ctx->dash = gf_dash_new(&ctx->dash_io, GF_DASH_THREAD_NONE, 0, ctx->auto_switch, (ctx->segstore==2) ? GF_TRUE : GF_FALSE, (algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, timeshift);
+	ctx->dash = gf_dash_new(&ctx->dash_io, 0, ctx->auto_switch, (ctx->segstore==2) ? GF_TRUE : GF_FALSE, (algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, timeshift);
 
 	if (!ctx->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error - cannot create DASH Client\n"));

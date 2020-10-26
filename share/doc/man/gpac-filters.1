@@ -173,6 +173,8 @@ fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatib
 .br
 dtype (bool, default: false, updatable): dump property type
 .br
+buffer (uint, default: 0):     set buffer in ms (mostly used for testing DASH algo)
+.br
 test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
@@ -254,6 +256,8 @@ crc (bool, default: false, updatable): dump crc of packets, NALU and OBU
 fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
 dtype (bool, default: false, updatable): dump property type
+.br
+buffer (uint, default: 0):     set buffer in ms (mostly used for testing DASH algo)
 .br
 test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
@@ -6632,7 +6636,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev157-g0c2648fdd-master
+build: 1.1.0-DEV-rev167-g71f7a57de-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

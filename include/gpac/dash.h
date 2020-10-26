@@ -172,20 +172,9 @@ typedef enum
 	GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES
 } GF_DASHInitialSelectionMode;
 
-/*! DASH client threading mode*/
-typedef enum
-{
-	/*! no threads used, gf_dash_process shall be called on regular basis*/
-	GF_DASH_THREAD_NONE = 0,
-	/*! single thread used for MPD and segment download*/
-	GF_DASH_THREAD_SINGLE,
-	/*! one thread for MPD and each independent representations*/
-	GF_DASH_THREAD_ALL
-} GF_DASHThreadMode;
 
 /*! create a new DASH client
 \param dash_io DASH callbacks to the user
-\param thread_mode threading mode of the dash client
 \param max_cache_duration maximum duration in milliseconds for the cached media. If less than \code mpd@minBufferTime \endcode , \code mpd@minBufferTime \endcode  is used
 \param auto_switch_count forces representation switching every auto_switch_count segments, set to 0 to disable
 \param keep_files do not delete files from the cache
@@ -194,7 +183,7 @@ typedef enum
 \param initial_time_shift_value sets initial buffering: if between 0 and 100, this is a percentage of the time shift window of the session. If greater than 100, this is a time shift in milliseconds.
 \return a new DASH client
 */
-GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, GF_DASHThreadMode thread_mode,
+GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io,
                            u32 max_cache_duration,
                            u32 auto_switch_count,
                            Bool keep_files,
@@ -491,20 +480,6 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
         s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range,
         const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV);
 
-/*! same as gf_dash_group_get_next_segment_location but query the current downloaded segment
-\param dash the target dash client
-\param group_idx the 0-based index of the target group
-\param url set to the URL of the next segment
-\param switching_index set to the quality index of the segment (optional, may be NULL)
-\param switching_url set to the URL of the switching segment if needed (optional, may be NULL)
-\param original_url set to original URL value of the segment (optional, may be NULL)
-\param switched set to GF_TRUE if current segment being downloaded follows an aborted download (optional, may be NULL)
-\return GF_BUFFER_TOO_SMALL if no segment found, GF_EOS if end of session or error if any
-*/
-GF_EXPORT
-GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 group_idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url, Bool *switched);
-
-
 /*! gets some info on the segment
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
@@ -537,22 +512,6 @@ Double gf_dash_group_get_start_range(GF_DashClient *dash, u32 group_idx);
 \param group_idx the 0-based index of the target group
 */
 void gf_dash_group_discard_segment(GF_DashClient *dash, u32 group_idx);
-
-/*! gets the number of media resources available in the cache for this group
-\param dash the target dash client
-\param group_idx the 0-based index of the target group
-\param group_is_done setto GF_TRUE if group is done playing
-\return number of segments ready
-*/
-u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 group_idx, Bool *group_is_done);
-
-/*! get the maximum number of media resources that can be put in the cache for this group in threaded mode.
-In unthreaded mode, only the next URL is available and the caller is responsible for fetching the media
-\param dash the target dash client
-\param group_idx the 0-based index of the target group
-\return maximum number of cached segments
-*/
-u32 gf_dash_group_get_max_segments_in_cache(GF_DashClient *dash, u32 group_idx);
 
 /*! indicates to the DASH engine that the group playback has been stopped by the user
 \param dash the target dash client
@@ -865,13 +824,6 @@ GF_Err gf_dash_group_select_quality(GF_DashClient *dash, u32 group_idx, const ch
 \param group_idx the 0-based index of the target group
 \return the current quality index for the given group*/
 s32 gf_dash_group_get_active_quality(GF_DashClient *dash, u32 group_idx);
-
-/*! gets download rate for a given group
-\param dash the target dash client
-\param group_idx the 0-based index of the target group
-\return download rate in bytes per second
-*/
-u32 gf_dash_group_get_download_rate(GF_DashClient *dash, u32 group_idx);
 
 /*! forces NTP of the DASH client to be the given NTP
 \param dash the target dash client
