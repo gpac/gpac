@@ -492,7 +492,7 @@ Forces session to use memory storage for future downloads
 void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess);
 
 /*!
-Registers a locacl cache provider (bypassing the http session), used when populating cache from input data (atsc for example)
+Registers a local cache provider (bypassing the http session), used when populating cache from input data (ROUTE for example)
 
 \param dm the download manager
 \param local_cache_url_provider_cbk callback function to the cache provider. The callback function shall return GF_TRUE if the requested URL is provided by this local cache

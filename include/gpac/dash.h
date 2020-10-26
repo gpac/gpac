@@ -149,6 +149,9 @@ struct _gf_dash_io
 	u32 (*get_total_size)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*! get the total size on bytes for the session*/
 	u32 (*get_bytes_done)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+
+	void (*manifest_updated)(GF_DASHFileIO *dashio, const char *manifest_name, const char *local_path, s32 group_idx);
+
 };
 
 /*! DASH client object*/
@@ -501,6 +504,19 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
 GF_EXPORT
 GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash, u32 group_idx, const char **url, s32 *switching_index, const char **switching_url, const char **original_url, Bool *switched);
 
+
+/*! gets some info on the segment
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\param seg_name  set to the segment name, without base url - optional, may be NULL
+\param seg_number  set to the segment number for $Number$ addressing - optional, may be NULL
+\param seg_time  set to the segment start time  - optional, may be NULL
+\param seg_dur_ms  set to the segment estimated duration in ms  - optional, may be NULL
+\param init_segment set to the init segment name, without base url  - optional, may be NULL
+\return error if any, GF_BUFFER_TOO_SMALL if no segments queued for download
+*/
+GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment);
+
 /*! checks if loop was detected in playback. This is mostly used for broadcast (eMBMS, ROUTE) based on pcap replay.
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
@@ -815,6 +831,13 @@ typedef struct
 */
 GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 group_idx, u32 quality_idx, GF_DASHQualityInfo *quality);
 
+/*! gets segment template used by group
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return segment template, NULL if no templates used. Memory must be freed by caller
+*/
+char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx);
+
 /*! checks automatic switching mode
 \param dash the target dash client
 \return GF_TRUE if automatic quality switching is enabled
@@ -1001,12 +1024,12 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, u32 de
 */
 void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, u32 bytes_per_sec, u64 file_size, Bool is_broadcast, u64 us_since_start);
 
-/*! sets availabilityStartTime shift for ATSC. By default the ATSC tune-in is done by matching the last received segment name
-to the segment template and deriving the ATSC UTC reference from that. The function allows shifting the computed value by a given amount.
+/*! sets availabilityStartTime shift for ROUTE. By default the ROUTE tune-in is done by matching the last received segment name
+to the segment template and deriving the ROUTE UTC reference from that. The function allows shifting the computed value by a given amount.
 \param dash the target dash client
-\param ast_shift clock shift in milliseconds of the ATSC receiver tune-in. Positive values shift the clock in the future, negative ones in the past
+\param ast_shift clock shift in milliseconds of the ROUTE receiver tune-in. Positive values shift the clock in the future, negative ones in the past
 */
-void gf_dash_set_atsc_ast_shift(GF_DashClient *dash, u32 ast_shift);
+void gf_dash_set_route_ast_shift(GF_DashClient *dash, u32 ast_shift);
 
 /*! gets the minimum wait time before calling \ref gf_dash_process again for unthreaded mode
 \param dash the target dash client

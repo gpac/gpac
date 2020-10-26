@@ -516,7 +516,7 @@ typedef enum
 	GF_LHVC_EXTRACTORS_ON,
 	/*! don't use extractors and keep base track inband/outofband param set signaling*/
 	GF_LHVC_EXTRACTORS_OFF,
-	/*! don't use extractors and force inband signaling in enhancement layer (for ATSC3)*/
+	/*! don't use extractors and force inband signaling in enhancement layer*/
 	GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND
 } GF_LHVCExtractoreMode;
 

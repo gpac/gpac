@@ -1961,7 +1961,11 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		for (k=0; k<ipids; k++) {
 			GF_FilterPidInst *pid = gf_list_get(f->input_pids, k);
 			if (!pid->pid) continue;
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent));
+			if (pid->requires_full_data_block && (pid->nb_reagg_pck != pid->pid->nb_pck_sent) ) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d frames (%d packets) received\n", pid->pid->name, pid->nb_reagg_pck, pid->pid->nb_pck_sent));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent));
+			}
 		}
 #ifndef GPAC_DISABLE_LOG
 		for (k=0; k<opids; k++) {

@@ -148,6 +148,9 @@ const char *gpac_doc =
 "This will pass `UDP://IP:PORT/:someopt=VAL` to `opt1` without inspecting it, and `VAL2` to `opt2`.\n"
 "  \n"
 "A filter may be assigned a name (for inspection purposes) using `:N=name` option. This name is not used in link resolution and may be changed at runtime by the filter instance.\n"
+"  \n"
+"A filter may be assigned a tag (any string) using `:TAG=name` option. This tag does not need to be unique, and can be used to exclude filter in link resolution.\n"
+"  \n"
 "## Source and Sink filters\n"
 "Source and sink filters do not need to be addressed by the filter name, specifying `src=` or `dst=` instead is enough. "
 "You can also use the syntax `-src URL` or `-i URL` for sources and `-dst URL` or `-o URL` for destination, this allows prompt completion in shells.\n"
@@ -221,13 +224,14 @@ const char *gpac_doc =
 "- name#PIDNAME: accepts only PID(s) with name `PIDNAME`\n"
 "- name#TYPE: accepts only PIDs of matching media type. TYPE can be `audio`, `video`, `scene`, `text`, `font`, `meta`\n"
 "- name#TYPEN: accepts only `N`th PID of matching type from source\n"
+"- name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching `VAL`\n"
 "- name#P4CC=VAL: accepts only PIDs with property matching `VAL`.\n"
 "- name#PName=VAL: same as above, using the builtin name corresponding to the property.\n"
 "- name#AnyName=VAL: same as above, using the name of a non built-in property.\n"
 "- name#Name=OtherPropName: compares the value with the value of another property of the PID. The matching will fail if the value to compare to is not present or different from the value to check. The property to compare with shall be a built-in property.\n"
 "If the property is not defined on the PID, the property is matched. Otherwise, its value is checked against the given value.\n"
 "\n"
-"The following modifiers for comparisons are allowed (for both `P4CC=`, `PName=` and `AnyName=`):\n"
+"The following modifiers for comparisons are allowed (for any fragment format using `=`):\n"
 "- name#P4CC=!VAL: accepts only PIDs with property NOT matching `VAL`.\n"
 "- name#P4CC-VAL: accepts only PIDs with property strictly less than `VAL` (only for 1-dimension number properties).\n"
 "- name#P4CC+VAL: accepts only PIDs with property strictly greater than `VAL` (only for 1-dimension number properties).\n"
@@ -1161,7 +1165,7 @@ static void gpac_sig_handler(int sig)
 			int res;
 			if (sigint_catched) {
 				if (sigint_processed) {
-					fprintf(stderr, "catched SIGINT twice and session not responding, forcing exit. Please report to GPAC devs https://github.com/gpac/gpac\n");
+					fprintf(stderr, "catched SIGINT twice and session not responding, forcing exit.\n");
 				}
 				exit(1);
 			}

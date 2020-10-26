@@ -225,7 +225,7 @@ static u32 gf_mpd_parse_duration_u32(const char * const duration)
 	if (dur <= GF_UINT_MAX) {
 		return (u32)dur;
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Parsed duration %s ("LLU") doesn't fit on 32 bits! Setting to the 32 bits max.\n", duration, dur));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD] Parsed duration %s ("LLU") doesn't fit on 32 bits! Setting to the 32 bits max.\n", duration, dur));
 		return GF_UINT_MAX;
 	}
 }
@@ -3463,7 +3463,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			}
 
 			sctx = gf_list_get(rep->state_seg_list, 0);
-			if (!sctx->filename) use_range = GF_TRUE;
+			if (sctx && !sctx->filename) use_range = GF_TRUE;
 			if (gf_list_count(rep->content_protection))  { /*use_crypt = GF_TRUE; */ }
 
 			init_seg = gf_mpd_m3u8_get_init_seg(period, as, rep);
@@ -3842,7 +3842,7 @@ static char *gf_mpd_get_base_url(GF_List *baseURLs, char *parent_url, u32 *base_
 }
 
 GF_EXPORT
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv)
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv, u32 *out_start_number)
 {
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	u32 start_number = 1;
@@ -3865,6 +3865,11 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	url = gf_mpd_get_base_url(set->base_URLs, url, &base_url_index);
 	url = gf_mpd_get_base_url(rep->base_URLs, url, &base_url_index);
 	assert(url);
+
+	if (resolve_type == GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE) {
+		resolve_type = GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE;
+		url[0] = 0;
+	}
 
 	/*single URL*/
 	if (!rep->segment_list && !set->segment_list && !period->segment_list && !rep->segment_template && !set->segment_template && !period->segment_template) {
@@ -4144,9 +4149,11 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE) {
 				strcat(solved_template, "$Number$");
 			} else if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_NOSTART) {
+				if (out_start_number) *out_start_number = 0;
 				sprintf(szFormat, szPrintFormat, item_index);
 				strcat(solved_template, szFormat);
 			} else {
+				if (out_start_number) *out_start_number = start_number;
 				sprintf(szFormat, szPrintFormat, start_number + item_index);
 				strcat(solved_template, szFormat);
 			}

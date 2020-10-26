@@ -440,6 +440,9 @@ typedef struct
 	u32 enhancement_rep_index_plus_one;
 	/*! set to true if the representation comes from a broadcast link (ATSC3, eMBMS)*/
 	Bool broadcast_flag;
+
+	/*! start of segment name in full url*/
+	const char *init_seg_name_start;
 	/*! opaque data*/
 	void *udta;
 } GF_DASH_RepresentationPlayback;
@@ -1021,6 +1024,8 @@ typedef enum
 	GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE,
 	/*! same as GF_MPD_RESOLVE_URL_MEDIA but does not use startNumber*/
 	GF_MPD_RESOLVE_URL_MEDIA_NOSTART,
+	/*! same as GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE but ignores base URL*/
+	GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE,
 } GF_MPD_URLResolveType;
 
 /*! resolves a URL based for a given segment, based on the MPD url, the type of resolution
@@ -1040,10 +1045,12 @@ typedef enum
 \param is_in_base_url set to GF_TRUE if the resuloved URL is a sub-part of the baseURL (optional, may be NULL)
 \param out_key_url set to the key URL for the segment for HLS (optional, may be NULL)
 \param key_iv set to the key IV for the segment for HLS (optional, may be NULL)
+\param out_start_number set to the start_number used (optional, may be NULL)
+
 \return error if any
 */
 GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
-                          char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
+                          char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv, u32 *out_start_number);
 
 /*! get duration of the presentation
 \param mpd the target MPD

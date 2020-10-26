@@ -1151,6 +1151,20 @@ import_next_sample:
 			//media_brand = GF_ISOM_BRAND_AVIF;
 		}
 		break;
+
+	case GF_ISOM_SUBTYPE_VVC1:
+		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_VVCC);
+		if (!config_box) return GF_OUT_OF_MEM;
+		((GF_VVCConfigurationBox *)config_box)->config = gf_isom_vvc_config_get(movie, imported_track, sample_desc_index);
+		if (! ((GF_VVCConfigurationBox *)config_box)->config) return GF_OUT_OF_MEM;
+		item_type = GF_ISOM_SUBTYPE_VVC1;
+
+		config_needed = 1;
+		num_channels = 3;
+		bits_per_channel[0] = ((GF_VVCConfigurationBox *)config_box)->config->bit_depth_plus_one - 1;
+		bits_per_channel[1] = bits_per_channel[2] = bits_per_channel[0];
+		//media_brand = GF_ISOM_BRAND_HEIC;
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec not supported to create HEIF image items\n"));
 		return GF_NOT_SUPPORTED;

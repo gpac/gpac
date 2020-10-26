@@ -196,7 +196,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/filelist.c \
 	../../../../src/filters/hevcmerge.c \
 	../../../../src/filters/hevcsplit.c \
-	../../../../src/filters/in_atsc.c \
+	../../../../src/filters/in_route.c \
 	../../../../src/filters/in_dvb4linux.c \
 	../../../../src/filters/in_file.c \
 	../../../../src/filters/in_http.c \
@@ -221,6 +221,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_audio.c \
 	../../../../src/filters/out_file.c \
 	../../../../src/filters/out_http.c \
+	../../../../src/filters/out_route.c \
 	../../../../src/filters/out_rtp.c \
 	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \
@@ -308,7 +309,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/laser/lsr_enc.c \
 	../../../../src/laser/lsr_tables.c \
 	../../../../src/media_tools/ait.c \
-	../../../../src/media_tools/atsc_dmx.c \
+	../../../../src/media_tools/route_dmx.c \
 	../../../../src/media_tools/avilib.c \
 	../../../../src/media_tools/av_parsers.c \
 	../../../../src/media_tools/crypt_tools.c \

@@ -2385,9 +2385,22 @@ s32 gf_net_get_timezone()
 	t_timezone = (t_gmt.tm_hour - t_local.tm_hour) * 3600 + (t_gmt.tm_min - t_local.tm_min) * 60;
 	return t_timezone;
 #endif
-
 }
 
+GF_EXPORT
+Bool gf_net_time_is_dst()
+{
+#if defined(_WIN32_WCE)
+	return GF_FALSE;
+#else
+	struct tm t_gmt, t_local;
+	time_t t_time;
+	t_time = time(NULL);
+	t_gmt = *gf_gmtime(&t_time);
+	t_local = *localtime(&t_time);
+	return t_local.tm_isdst ? GF_TRUE : GF_FALSE;
+#endif
+}
 //no mkgmtime on mingw..., use our own
 #if (defined(WIN32) && defined(__GNUC__))
 
