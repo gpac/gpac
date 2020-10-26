@@ -7044,8 +7044,6 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
 		on_group_download_error(NULL, NULL, NULL, GF_OK, NULL, NULL, NULL, GF_FALSE);
-		dash_download_threaded(NULL);
-		dash_main_thread_proc(NULL);
 		gf_dash_is_running(dash);
 	}
 #endif
