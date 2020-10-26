@@ -582,8 +582,8 @@ typedef enum
 	GF_LOG_FILTER,
 	/*! Log for filter scheduler only */
 	GF_LOG_SCHEDULER,
-	/*! Log for all ATSC3 message */
-	GF_LOG_ATSC,
+	/*! Log for all ROUTE message */
+	GF_LOG_ROUTE,
 	/*! Log for all messages coming from GF_Terminal or script alert()*/
 	GF_LOG_CONSOLE,
 	/*! Log for all messages coming the application, not used by libgpac or the modules*/
@@ -956,6 +956,14 @@ Gets timezone adjustment in seconds, with localtime - timezone = UTC time
 \return timezone shift in seconds
  */
 s32 gf_net_get_timezone();
+
+/*!
+\brief gets timezone daylight saving time status
+
+Gets timezone daylight saving time
+\return GF_TRUE if DST is active
+ */
+Bool gf_net_time_is_dst();
 
 /*!
 \brief gets time from UTC timestamp

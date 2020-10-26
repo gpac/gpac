@@ -2527,6 +2527,17 @@ static JSValue jsf_pid_negociate_prop(JSContext *ctx, JSValueConst this_val, int
 	return jsf_pid_set_property_ex(ctx, this_val, argc, argv, 2);
 }
 
+static JSValue jsf_pid_ignore_blocking(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	Bool do_ignore = GF_TRUE;
+	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
+    if (!pctx) return JS_EXCEPTION;
+    if (argc) do_ignore = JS_ToBool(ctx, argv[0]) ? GF_TRUE : GF_FALSE;
+    gf_filter_pid_ignore_blocking(pctx->pid, do_ignore);
+	return JS_UNDEFINED;
+
+}
+
 static JSValue jsf_pid_remove(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
@@ -2624,6 +2635,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CFUNC_DEF("copy_props", 0, jsf_pid_copy_props),
     JS_CFUNC_DEF("forward", 0, jsf_pid_forward),
     JS_CFUNC_DEF("negociate_prop", 0, jsf_pid_negociate_prop),
+    JS_CFUNC_DEF("ignore_blocking", 0, jsf_pid_ignore_blocking),
 };
 
 enum

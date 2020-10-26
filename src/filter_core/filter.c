@@ -54,6 +54,7 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 		|| !strncmp(path, "tcpu://", 7)
 		|| !strncmp(path, "udpu://", 7)
 		|| !strncmp(path, "rtp://", 6)
+		|| !strncmp(path, "route://", 8)
 	) {
 		char *sep2 = res ? strchr(res+1, ':') : NULL;
 		char *sep3 = res ? strchr(res+1, '/') : NULL;
@@ -79,6 +80,7 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 			if (port) res = sep2;
 		}
 	}
+
 
 	arg = strchr(path, sess->sep_name);
 	if (arg && res && (res > arg))
@@ -1141,6 +1143,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						|| !strncmp(args+4, "rtp://", 6)
 						|| !strncmp(args+4, "atsc://", 7)
 						|| !strncmp(args+4, "gfio://", 7)
+						|| !strncmp(args+4, "route://", 8)
 						)
 					) {
 						internal_url = GF_TRUE;
@@ -1150,6 +1153,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							|| !strncmp(args+4, "tcpu://", 7)
 							|| !strncmp(args+4, "udpu://", 7)
 							|| !strncmp(args+4, "rtp://", 6)
+							|| !strncmp(args+4, "route://", 8)
 						) {
 							char *sep2 = sep ? strchr(sep+1, ':') : NULL;
 							char *sep3 = sep ? strchr(sep+1, '/') : NULL;
@@ -1250,6 +1254,7 @@ skip_date:
 				if (!strcmp(args+4, "null")) file_exists = GF_TRUE;
 				else if (!strncmp(args+4, "tcp://", 6)) file_exists = GF_TRUE;
 				else if (!strncmp(args+4, "udp://", 6)) file_exists = GF_TRUE;
+				else if (!strncmp(args+4, "route://", 8)) file_exists = GF_TRUE;
 				else file_exists = gf_file_exists(args+4);
 
 				if (!file_exists) {
@@ -1377,44 +1382,59 @@ skip_date:
 		if (!strlen(szArg)) {
 			found = GF_TRUE;
 		} else if (!found) {
+			//filter ID
 			if (!strcmp("FID", szArg)) {
 				if (arg_type != GF_FILTER_ARG_INHERIT)
 					gf_filter_set_id(filter, value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			//filter sources
 			else if (!strcmp("SID", szArg)) {
 				if (arg_type!=GF_FILTER_ARG_INHERIT)
 					gf_filter_set_sources(filter, value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
-			} else if (!strcmp("clone", szArg)) {
+			}
+			//clonable filter
+			else if (!strcmp("clone", szArg)) {
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
 					filter->clonable=GF_TRUE;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//codec for generic enc load
+			//generic encoder load
 			else if (!strcmp("c", szArg)) {
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
-			} else if (!strcmp("N", szArg)) {
-				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT) || (arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE))
-
+			}
+			//filter name
+			else if (!strcmp("N", szArg)) {
+				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT) || (arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE)) {
 					gf_filter_set_name(filter, value);
+				}
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//codec for generic enc load
+			//prefered registry to use
 			else if (!strcmp("gfreg", szArg)) {
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//codec for generic enc load
+			//non tracked options
 			else if (!strcmp("gfopt", szArg)) {
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 				opts_optional = GF_TRUE;
+			}
+			//filter tag
+			else if (!strcmp("TAG", szArg)) {
+				if (! filter->dynamic_filter) {
+					if (filter->tag) gf_free(filter->tag);
+					filter->tag = value[0] ? gf_strdup(value) : NULL;
+				}
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
 			}
 			else if (gf_file_exists(szArg)) {
 				if (!for_script && (argfile_level<5) ) {

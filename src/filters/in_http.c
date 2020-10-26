@@ -37,6 +37,13 @@ typedef enum
 	GF_HTTPIN_STORE_NONE,
 } GF_HTTPInStoreMode;
 
+enum
+{
+	HTTP_PCK_NONE=0,
+	HTTP_PCK_OUT=1,
+	HTTP_PCK_OUT_EOS=2,
+};
+
 typedef struct
 {
 	//options
@@ -57,7 +64,8 @@ typedef struct
 	GF_DownloadSession *sess;
 
 	char *block;
-	Bool pck_out, is_end;
+	u32 pck_out;
+	Bool is_end;
 	u64 nb_read, file_size;
 	FILE *cached;
 
@@ -122,6 +130,17 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+
+static void httpin_set_eos(GF_HTTPInCtx *ctx)
+{
+	//no pending packets, signal eos right away
+	if (!ctx->pck_out)
+		gf_filter_pid_set_eos(ctx->pid);
+	else
+		ctx->pck_out = HTTP_PCK_OUT_EOS;
+}
+
+
 void httpin_finalize(GF_Filter *filter)
 {
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
@@ -143,7 +162,12 @@ static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_ty
 static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
-	ctx->pck_out = GF_FALSE;
+
+	if (ctx->pck_out==HTTP_PCK_OUT_EOS) {
+		assert(ctx->is_end);
+		gf_filter_pid_set_eos(ctx->pid);
+	}
+	ctx->pck_out = HTTP_PCK_NONE;
 	//ready to process again
 	gf_filter_post_process_task(filter);
 }
@@ -162,14 +186,14 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 	case GF_FEVT_STOP:
 		if (!ctx->is_end) {
-			//abort session
-			gf_filter_pid_set_eos(ctx->pid);
 			ctx->is_end = GF_TRUE;
+			//abort session
 			if (ctx->sess) {
 				gf_dm_sess_abort(ctx->sess);
 				gf_dm_sess_del(ctx->sess);
 				ctx->sess = NULL;
 			}
+			httpin_set_eos(ctx);
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SEEK:
@@ -194,7 +218,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Requested seek outside file range !\n") );
 			ctx->is_end = GF_TRUE;
-			gf_filter_pid_set_eos(ctx->pid);
+
+			httpin_set_eos(ctx);
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
@@ -244,7 +269,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				if (ctx->sess)
 					gf_dm_sess_abort(ctx->sess);
 				ctx->is_end = GF_TRUE;
-				gf_filter_pid_set_eos(ctx->pid);
+				httpin_set_eos(ctx);
 			}
 			ctx->nb_read = 0;
 			ctx->last_state = GF_OK;
@@ -284,6 +309,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 	return GF_TRUE;
 }
+
+
 
 static GF_Err httpin_process(GF_Filter *filter)
 {
@@ -333,10 +360,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 			gf_filter_pck_set_framing(pck, is_start, ctx->is_end);
 
 			//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
-			ctx->pck_out = GF_TRUE;
+			ctx->pck_out = HTTP_PCK_OUT;
 			gf_filter_pck_send(pck);
 
-			gf_filter_pid_set_eos(ctx->pid);
+			httpin_set_eos(ctx);
 			return GF_EOS;
 		}
 		nb_read = (u32) gf_fread(ctx->block, to_read, ctx->cached);
@@ -360,8 +387,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 				httpin_notify_error(filter, ctx, e);
 
 			ctx->is_end = GF_TRUE;
-			if (ctx->pid)
+			//no packet out, we can signal eos
+			if (ctx->pid) {
 				gf_filter_pid_set_eos(ctx->pid);
+			}
 			return e;
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
@@ -434,7 +463,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	gf_filter_pck_set_byte_offset(pck, byte_offset);
 
 	//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
-	ctx->pck_out = GF_TRUE;
+	ctx->pck_out = HTTP_PCK_OUT;
 	gf_filter_pck_send(pck);
 
 	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
@@ -450,7 +479,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 		if (cached)
 			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 
-		gf_filter_pid_set_eos(ctx->pid);
+		httpin_set_eos(ctx);
 		return GF_EOS;
 	}
 

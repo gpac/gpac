@@ -131,7 +131,7 @@ typedef struct
 	Bool sigfrag;
 	u32 sbound;
 	char *utcs;
-
+	char *mname;
 
 	//internal
 	Bool in_error;
@@ -190,6 +190,8 @@ typedef struct
 	Bool utc_initialized;
 	DasherUTCTimingType utc_timing_type;
 	s32 utc_diff;
+
+	Bool is_route;
 } GF_DasherCtx;
 
 typedef enum
@@ -399,6 +401,33 @@ static GF_Err dasher_get_audio_info_with_m4a_sbr_ps(GF_DashStream *ds, const GF_
 #endif
 
 
+static void dasher_check_outpath(GF_DasherCtx *ctx)
+{
+	if (!ctx->out_path) {
+		ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
+		if (!ctx->out_path) return;
+
+		if (ctx->mname) {
+			char *sep = strstr(ctx->out_path, "://");
+			if (sep) {
+				char *opath = gf_url_concatenate(ctx->out_path, ctx->mname);
+				if (opath) {
+					gf_free(ctx->out_path);
+					ctx->out_path = opath;
+				}
+			}
+		}
+		//check if we have a route/atsc output, in which we will case assign hls ref prop
+		if (!strncmp(ctx->out_path, "route://", 8) || !strncmp(ctx->out_path, "atsc://", 7))
+			ctx->is_route = GF_TRUE;
+	}
+	//for routeout
+	if (ctx->opid)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_URL, &PROP_STRING(ctx->out_path) );
+	if (ctx->opid_alt)
+		gf_filter_pid_set_property(ctx->opid_alt, GF_PROP_PID_URL, &PROP_STRING(ctx->out_path) );
+}
+
 static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool period_switch = GF_FALSE;
@@ -495,9 +524,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, NULL);
 			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, NULL);
 			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
+			//for routeout
+			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
-			if (!ctx->out_path)
-				ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
+			dasher_check_outpath(ctx);
 
 			p = gf_filter_pid_caps_query(pid, GF_PROP_PID_FILE_EXT);
 			if (p) {
@@ -507,6 +537,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				segext = NULL;
 				if (ctx->out_path) {
 					segext = gf_file_ext_start(ctx->out_path);
+				} else if (ctx->mname) {
+					segext = gf_file_ext_start(ctx->mname);
 				}
 				if (!segext) segext = "mpd";
 				else segext++;
@@ -921,7 +953,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->period_id = DEFAULT_PERIOD_ID;
 
 	if (!period_switch) {
-		if (ds->opid) gf_filter_pid_copy_properties(ds->opid, pid);
+		if (ds->opid) {
+			gf_filter_pid_copy_properties(ds->opid, pid);
+			//for route out
+			if (ctx->is_route && ctx->do_m3u8)
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) ds->opid) );
+		}
 		if (ds->rep)
 			dasher_update_rep(ctx, ds);
 		return GF_OK;
@@ -1854,7 +1891,6 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (ds->rep->codecs) gf_free(ds->rep->codecs);
 	ds->rep->codecs = gf_strdup(szCodec);
 
-
 	if (ds->interlaced) ds->rep->scan_type = GF_MPD_SCANTYPE_INTERLACED;
 	else {
 		//profiles forcing scanType=progressive for progressive
@@ -2427,6 +2463,9 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 			ncues++;
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_SEGMENTS, &PROP_UINT(ncues) );
 	}
+	//for route out
+	if (ctx->is_route && ctx->do_m3u8)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) ds->opid) );
 
 	gf_filter_pid_require_source_id(ds->opid);
 
@@ -2453,6 +2492,18 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	/*timescale forced (bitstream switching) */
 	if (ds->force_timescale)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ds->force_timescale) );
+
+	if (ds->rep->segment_template)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->rep->segment_template->media));
+	else if (ds->set->segment_template)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->set->segment_template->media));
+
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_BITRATE, &PROP_UINT(ds->bitrate));
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_FILENAME, &PROP_STRING(ds->init_seg));
+
+	if (ds->rep->codecs)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_CODEC, &PROP_STRING(ds->rep->codecs));
+
 
 	if (multi_pids) {
 		s32 idx = 1+gf_list_find(multi_pids, ds->ipid);
@@ -3335,7 +3386,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 	}
 }
 
-static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
+static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name, GF_DashStream *ds)
 {
 	GF_FilterPacket *pck;
 	u32 size, nb_read;
@@ -3352,6 +3403,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name)
 	gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 	if (name) {
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(name) );
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) ds->opid) );
 	}
 	gf_filter_pck_send(pck);
 }
@@ -3467,7 +3519,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(tmp) / 1024));
 		}
 
-		dasher_transfer_file(tmp, opid, NULL);
+		dasher_transfer_file(tmp, opid, NULL, NULL);
 		gf_fclose(tmp);
 	}
 
@@ -3493,6 +3545,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 			j=0;
 			while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
 				if (rep->m3u8_var_file) {
+					GF_DashStream *ds;
 					char *outfile = rep->m3u8_var_name;
 					Bool do_free = GF_FALSE;
 
@@ -3503,7 +3556,8 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 							do_free = GF_TRUE;
 						}
 					}
-					dasher_transfer_file(rep->m3u8_var_file, ctx->opid, outfile);
+					ds = rep->playback.udta;
+					dasher_transfer_file(rep->m3u8_var_file, ctx->opid, outfile, ds);
 					gf_fclose(rep->m3u8_var_file);
 					rep->m3u8_var_file = NULL;
 					if (do_free) gf_free(outfile);
@@ -4257,7 +4311,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	p = ctx->current_period;
 
 	if (!ctx->out_path) {
-		ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
+		dasher_check_outpath(ctx);
 	}
 	if (ctx->current_period->period) {
 		dasher_udpate_periods_and_manifest(filter, ctx);
@@ -4844,6 +4898,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	if (ctx->state)
 		dasher_context_update_period_start(ctx);
+
 	return GF_OK;
 }
 
@@ -6548,6 +6603,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (!ctx->mpd->publishTime) {
 					update_manifest = GF_TRUE;
 				}
+				//whenever we have a new seg in HLS, push new manifest
+				else if (ctx->do_m3u8) {
+					update_manifest = GF_TRUE;
+				}
 				//we have a minimum ipdate period
 				else if (ctx->mpd->minimum_update_period) {
 					u64 diff = dasher_get_utc(ctx) - ctx->mpd->publishTime;
@@ -6594,7 +6653,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		if (!ctx->last_evt_check_time) ctx->last_evt_check_time = gf_sys_clock_high_res();
 
 		diff = gf_sys_clock_high_res() - ctx->last_evt_check_time;
-		if (diff < 1000000) {
+		if (diff < 10000000) {
 			gf_filter_post_process_task(filter);
 			return GF_OK;
 		}
@@ -7230,7 +7289,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- comp: only generate the adaptation sets for all compatible profiles\n"
 		"- all: generate the adaptation set for the main profile and all compatible profiles"
 		, GF_PROP_UINT, "no", "no|comp|all", GF_FS_ARG_HINT_EXPERT},
-
+	{ OFFS(mname), "output manifest name for ATSC3 muxing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

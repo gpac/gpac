@@ -1117,10 +1117,21 @@ enum
 	GF_PROP_PCK_FRAG_RANGE = GF_4CC('P','F','R','R'),
 	GF_PROP_PCK_SIDX_RANGE = GF_4CC('P','F','S','R'),
 	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
+	GF_PROP_PCK_INIT = GF_4CC('P','C','K','I'),
 	GF_PROP_PID_RAWGRAB = GF_4CC('P','G','R','B'),
 	GF_PROP_PID_KEEP_AFTER_EOS = GF_4CC('P','K','A','E'),
 	GF_PROP_PID_COVER_ART = GF_4CC('P','C','O','V'),
 	GF_PROP_PID_ORIG_FRAG_URL = GF_4CC('O','F','R','A'),
+
+	GF_PROP_PID_ROUTE_IP = GF_4CC('R','S','I','P'),
+	GF_PROP_PID_ROUTE_PORT = GF_4CC('R','S','P','N'),
+	GF_PROP_PID_ROUTE_NAME = GF_4CC('R','S','F','N'),
+	GF_PROP_PID_ROUTE_CAROUSEL = GF_4CC('R','S','C','R'),
+	GF_PROP_PID_ROUTE_SENDTIME = GF_4CC('R','S','S','T'),
+
+	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
+	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
+
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T')
 };
@@ -3380,6 +3391,16 @@ GF_Filter *gf_filter_pid_get_source_filter(GF_FilterPid *PID);
 \return the destination filter for the given index, or NULL if error
 */
 GF_Filter *gf_filter_pid_enum_destinations(GF_FilterPid *PID, u32 idx);
+
+/*! Ignore this PID in blocking mode estimations.
+
+This is typically used when a filter consumes N pids, with some at very low frequency for which an empty queue should not imply unblocking the filter to refill the queue.
+
+\param PID the target filter PID
+\param do_ignore if GF_TRUE, the PID will not be considered when trying to unblock the filter
+\return error if any
+*/
+GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *PID, Bool do_ignore);
 
 /*! @} */
 

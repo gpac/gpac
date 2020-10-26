@@ -191,6 +191,7 @@ void gf_modules_unload_library(ModuleInstance *inst)
 static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	ModuleInstance *inst;
+	char *sep;
 #if CHECK_MODULE
 	QueryInterface query_func;
 	LoadInterface load_func;
@@ -273,7 +274,11 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	inst->plugman = pm;
 	inst->name = gf_strdup(item_name);
 	inst->dir = gf_strdup(item_path);
-	gf_url_get_resource_path(item_path, inst->dir);
+
+	sep = strrchr(inst->dir, '/');
+	if (!sep) sep = strrchr(inst->dir, '\\');
+	if (sep) sep[1] = 0;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added module %s.\n", inst->name));
 	gf_list_add(pm->plug_list, inst);
 	return GF_FALSE;

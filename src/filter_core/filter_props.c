@@ -1311,8 +1311,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_AS_ANY_DESC, "ASCDesc", "List of common descriptors for the DASH AdaptationSet containing this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_REP_DESC, "RDesc", "List of descriptors for the DASH Representation containing this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_BASE_URL, "BUrl", "List of base URLs for this pid", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_TEMPLATE, "Template", "Template to use for DASH generation for this pid", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_START_NUMBER, "StartNumber", "Start number to use for this pid - cf dasher help", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_TEMPLATE, "Template", "Template to use for DASH generation for this pid", GF_PROP_STRING, 0},
+	{ GF_PROP_PID_START_NUMBER, "StartNumber", "Start number to use for this pid - cf dasher help", GF_PROP_UINT, 0},
 	{ GF_PROP_PID_XLINK, "xlink", "Remote period URL for DASH - cf dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CLAMP_DUR, "CDur", "Max media duration to process from pid in DASH mode", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "Name of the HLS variant playlist for this media", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
@@ -1335,11 +1335,13 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_NO_TS_LOOP, "NoTSLoop", "Indicate the timestamps on this PID are adjusted in case of loops (used by TS muxer output)", GF_PROP_BOOL, 0},
 	{ GF_PROP_PID_MHA_COMPATIBLE_PROFILES, "MHAProfiles", "Indicate a list of compatible profiles for this MPEG-H Audio object", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
 
-	{ GF_PROP_PCK_FRAG_START, "FragStart", "Indicate if packet is a fragment start (value 1) or a segment start (value 2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PCK_FRAG_RANGE, "FragRange", "Indicate start and end position in bytes of fragment if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PCK_SIDX_RANGE, "SIDXRange", "Indicate start and end position in bytes of sidx if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_FRAG_START, "FragStart", "Indicate if packet is a fragment start (value 1) or a segment start (value 2)", GF_PROP_UINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_FRAG_RANGE, "FragRange", "Indicate start and end position in bytes of fragment if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_SIDX_RANGE, "SIDXRange", "Indicate start and end position in bytes of sidx if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM},
 
-	{ GF_PROP_PCK_MOOF_TEMPLATE, "MoofTemplate", "Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_MOOF_TEMPLATE, "MoofTemplate", "Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)", GF_PROP_DATA, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM},
+
+	{ GF_PROP_PCK_INIT, "InitSeg", "Set to true if packet is a complete DASH init segment file", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
 
 	{ GF_PROP_PID_RAWGRAB, "RawGrab", "Indicate PID is a raw media grabber (webcam, microphone, etc...)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_KEEP_AFTER_EOS, "KeepAfterEOS", "Indicate the PID must be kept alive after EOS (LASeR and BIFS)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
@@ -1350,6 +1352,13 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_RE_BUFFER, "ReBuffer", "Indicate rebuffer threshold in ms, 0 disable rebuffering", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_VIEW_IDX, "ViewIdx", "Indicate view index for multiview (1 being left)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ORIG_FRAG_URL, "FragURL", "Indicate fragment URL (without '#') of original URL (used by dash demux to set the property on media PIDs)", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+
+	{ GF_PROP_PID_ROUTE_IP, "ROUTEIP", "Indicate ROUTE session IP address", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ROUTE_PORT, "ROUTEPort", "Indicate ROUTE session port number", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ROUTE_NAME, "ROUTEName", "Name (location) of raw file to advertise in ROUTE session", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ROUTE_CAROUSEL, "ROUTECarousel", "Carousel period in seconds of raw file in ROUTE session", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ROUTE_SENDTIME, "ROUTEUpload", "Upload time in seconds of raw file in ROUTE session", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
+
 };
 
 GF_EXPORT

@@ -141,14 +141,13 @@ Extracts the resource name from the URL
 const char *gf_url_get_resource_name(const char *url);
 
 /*!
-\brief Extract resource path from URL
+\brief Gets  resource path from URL
 
-Extracts the reource path from the URL
+Gets the resource path and name from the URL, stripping scheme, server ID, port...
 \param url input url
-\param res_path buffer for resulting path storage
-\return 1 if path was extracted, 0 if url is a single file name.
+\return the extracted path, or the original path if no scheme indication, or NULL of no path
  */
-Bool gf_url_get_resource_path(const char *url, char *res_path);
+const char *gf_url_get_path(const char *url);
 
 /*! @} */
 

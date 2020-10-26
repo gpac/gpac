@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
- *  This file is part of GPAC / ATSC demuxer
+ *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) demuxer
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -23,50 +23,77 @@
  *
  */
 
-#ifndef _GF_ATSC_H_
-#define _GF_ATSC_H_
+#ifndef _GF_ROUTE_H_
+#define _GF_ROUTE_H_
 
 #include <gpac/tools.h>
 
-#ifndef GPAC_DISABLE_ATSC
+#ifndef GPAC_DISABLE_ROUTE
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*!
-\file <gpac/atsc.h>
-\brief Specific extensions for ATSC ROUTE demux
+\file <gpac/route.h>
+\brief Specific extensions for ROUTE ( ATSC3, DVB-I) protocol
 */
 
 /*!
-\addtogroup atsc_grp ATSC3
+\addtogroup route_grp ROUTE
 \ingroup media_grp
-\brief ATSC 3.0 reciever
+\brief ROUTE ATSC 3.0 reciever
 
-The ATSC 3.0 receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
+The ROUTE receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
 It can write received files to disk, or send them back to the user for cache population
 
 @{
 */
 
-/*!The GF_ATSCDmx object.*/
-typedef struct __gf_atscdmx GF_ATSCDmx;
+
+/*! ATSC3.0 bootstrap address for LLS*/
+#define GF_ATSC_MCAST_ADDR	"224.0.23.60"
+/*! ATSC3.0 bootstrap port  for LLS*/
+#define GF_ATSC_MCAST_PORT	4937
+
+/*!The GF_ROUTEDmx object.*/
+typedef struct __gf_routedmx GF_ROUTEDmx;
 
 /*!The types of events used to communicate withe the demuxer user.*/
 typedef enum
 {
 	/*! A new service detected, service ID is in evt_param*/
-	GF_ATSC_EVT_SERVICE_FOUND = 0,
+	GF_ROUTE_EVT_SERVICE_FOUND = 0,
 	/*! Service scan completed, no evt_param*/
-	GF_ATSC_EVT_SERVICE_SCAN,
+	GF_ROUTE_EVT_SERVICE_SCAN,
 	/*! New MPD available for service, service ID is in evt_param*/
-	GF_ATSC_EVT_MPD,
-	/*! Init segment update, service ID is in evt_param, file info is in finfo*/
-	GF_ATSC_EVT_INIT_SEG,
-	/*! Segment reception, service ID is in evt_param, file info is in finfo*/
-	GF_ATSC_EVT_SEG,
-} GF_ATSCEventType;
+	GF_ROUTE_EVT_MPD,
+	/*! static file update (with predefined TOI), service ID is in evt_param, file info is in finfo*/
+	GF_ROUTE_EVT_FILE,
+	/*! Segment reception, identified through a file template, service ID is in evt_param, file info is in finfo*/
+	GF_ROUTE_EVT_DYN_SEG,
+} GF_ROUTEEventType;
+
+
+enum
+{
+	/*No-operation extension header*/
+	GF_LCT_EXT_NOP = 0,
+	/*Authentication extension header*/
+	GF_LCT_EXT_AUTH = 1,
+	/*Time extension header*/
+	GF_LCT_EXT_TIME = 2,
+	/*FEC object transmission information extension header*/
+	GF_LCT_EXT_FTI = 64,
+	/*Extension header for FDT - FLUTE*/
+	GF_LCT_EXT_FDT = 192,
+	/*Extension header for FDT content encoding - FLUTE*/
+	GF_LCT_EXT_CENC = 193,
+	/*TOL extension header - ROUTE - 24 bit payload*/
+	GF_LCT_EXT_TOL24 = 194,
+	/*TOL extension header - ROUTE - HEL + 28 bit payload*/
+	GF_LCT_EXT_TOL48 = 67,
+};
 
 /*! Structure used to communicate file objects properties to the user*/
 typedef struct
@@ -83,147 +110,160 @@ typedef struct
 	u32 toi;
 	/*! download time in ms*/
 	u32 download_ms;
+	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/
+	Bool updated;
 	/*! flag set if file is corrupted*/
 	Bool corrupted;
-} GF_ATSCEventFileInfo;
+} GF_ROUTEEventFileInfo;
 
-/*! Creates a new ATSC demultiplexer
+/*! Creates a new ROUTE ATSC3.0 demultiplexer
 \param ifce network interface to monitor, NULL for INADDR_ANY
 \param dir output directory for files. If NULL, files are not written to disk and user callback will be called if set
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
-\return the ATSC demultiplexer created
+\return the ROUTE demultiplexer created
 */
-GF_ATSCDmx *gf_atsc3_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
-/*! Deletes an ATSC demultiplexer
-\param atscd the ATSC demultiplexer to delete
+GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
+
+/*! Creates a new ROUTE demultiplexer
+\param ip IP address of ROUTE session
+\param port port of ROUTE session
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param dir output directory for files. If NULL, files are not written to disk and user callback will be called if set
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\return the ROUTE demultiplexer created
 */
-void gf_atsc3_dmx_del(GF_ATSCDmx *atscd);
+GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, const char *dir, u32 sock_buffer_size);
+
+/*! Deletes an ROUTE demultiplexer
+\param routedmx the ROUTE demultiplexer to delete
+*/
+void gf_route_dmx_del(GF_ROUTEDmx *routedmx);
 
 /*! Processes demultiplexing, returns when nothing to read
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \return error code if any, GF_IP_NETWORK_EMPTY if nothing was read
  */
-GF_Err gf_atsc3_dmx_process(GF_ATSCDmx *atscd);
+GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 /*! Sets user callback for disk-less operations
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param on_event the user callback function
 \param udta the user data passed back by the callback
 \return error code if any
  */
-GF_Err gf_atsc3_set_callback(GF_ATSCDmx *atscd, void (*on_event)(void *udta, GF_ATSCEventType evt, u32 evt_param, GF_ATSCEventFileInfo *finfo), void *udta);
+GF_Err gf_route_set_callback(GF_ROUTEDmx *routedmx, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
 /*! Sets the maximum number of objects to store on disk per TSI
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param max_segs max number of objects (segments) to store. If 0, all objects are kept
 \return error code if any
  */
-GF_Err gf_atsc3_set_max_objects_store(GF_ATSCDmx *atscd, u32 max_segs);
+GF_Err gf_route_set_max_objects_store(GF_ROUTEDmx *routedmx, u32 max_segs);
 
 /*! Sets reordering on.
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param force_reorder if TRUE,  the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
 \param timeout_ms maximum delay to wait before considering the object is done when ROUTE/LCT order is not used. A value of 0 implies waiting forever (default value is 5s).
 \return error code if any
  */
-GF_Err gf_atsc3_set_reorder(GF_ATSCDmx *atscd, Bool force_reorder, u32 timeout_ms);
+GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms);
 
-/*! Sets the maximum number of objects to store on disk per TSI
-\param atscd the ATSC demultiplexer
+/*! Sets the service ID to tune into for ATSC 3.0
+\param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to tune in. 0 means no service, 0xFFFFFFFF means all services and 0xFFFFFFFE means first service found
 \param tune_others if set, will tune all non-selected services to get the MPD, but won't receive any media data
 \return error code if any
  */
-GF_Err gf_atsc3_tune_in(GF_ATSCDmx *atscd, u32 service_id, Bool tune_others);
+GF_Err gf_route_tune_in(GF_ROUTEDmx *routedmx, u32 service_id, Bool tune_others);
 
 
 /*! Gets the number of objects currently loaded in the service
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to query
 \return number of objects in service
  */
-u32 gf_atsc3_dmx_get_object_count(GF_ATSCDmx *atscd, u32 service_id);
+u32 gf_route_dmx_get_object_count(GF_ROUTEDmx *routedmx, u32 service_id);
 
 /*! Removes an object with a given filename
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to query
 \param fileName name of the file associated with the object
 \param purge_previous if set, indicates that all objects with the same TSI and a TOI less than TOI of the deleted object will be removed
  */
-void gf_atsc3_dmx_remove_object_by_name(GF_ATSCDmx *atscd, u32 service_id, char *fileName, Bool purge_previous);
+void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous);
 
 /*! Removes the first object loaded in the service
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to query
 \return GF_TRUE if success, GF_FALSE if no object could be removed (the object is in download)
  */
-Bool gf_atsc3_dmx_remove_first_object(GF_ATSCDmx *atscd, u32 service_id);
+Bool gf_route_dmx_remove_first_object(GF_ROUTEDmx *routedmx, u32 service_id);
 
 /*! Checks existence of a service
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to query
 \return true if service is found, false otherwise
  */
-Bool gf_atsc3_dmx_find_service(GF_ATSCDmx *atscd, u32 service_id);
+Bool gf_route_dmx_find_service(GF_ROUTEDmx *routedmx, u32 service_id);
 
 /*! Removes all non-signaling objects (ie TSI!=0), keeping only init segments and currently/last downloaded objects
 \note this is mostly useful in case of looping session, or at MPD switch boundaries
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to cleanup
  */
-void gf_atsc3_dmx_purge_objects(GF_ATSCDmx *atscd, u32 service_id);
+void gf_route_dmx_purge_objects(GF_ROUTEDmx *routedmx, u32 service_id);
 
 
 /*! Gets high resolution system time clock of the first packet received
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \return system clock in microseconds of first packet received
  */
-u64 gf_atsc3_dmx_get_first_packet_time(GF_ATSCDmx *atscd);
+u64 gf_route_dmx_get_first_packet_time(GF_ROUTEDmx *routedmx);
 
 /*! Gets high resolution system time clock of the last packet received
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \return system clock in microseconds of last packet received
  */
-u64 gf_atsc3_dmx_get_last_packet_time(GF_ATSCDmx *atscd);
+u64 gf_route_dmx_get_last_packet_time(GF_ROUTEDmx *routedmx);
 
 /*! Gets the number of packets received since start of the session, for all active services
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \return number of packets received
  */
-u64 gf_atsc3_dmx_get_nb_packets(GF_ATSCDmx *atscd);
+u64 gf_route_dmx_get_nb_packets(GF_ROUTEDmx *routedmx);
 
 /*! Gets the number of bytes received since start of the session, for all active services
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \return number of bytes received
  */
-u64 gf_atsc3_dmx_get_recv_bytes(GF_ATSCDmx *atscd);
+u64 gf_route_dmx_get_recv_bytes(GF_ROUTEDmx *routedmx);
 
 /*! Gather only  objects with given TSI (for debug purposes)
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param tsi the target TSI, 0 for no filtering
  */
-void gf_atsc3_dmx_debug_tsi(GF_ATSCDmx *atscd, u32 tsi);
+void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi);
 
 /*! Sets udta for given service id
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param service_id the target service
 \param udta the target user data
  */
-void gf_atsc3_dmx_set_service_udta(GF_ATSCDmx *atscd, u32 service_id, void *udta);
+void gf_route_dmx_set_service_udta(GF_ROUTEDmx *routedmx, u32 service_id, void *udta);
 
 /*! Gets udta for given service id
-\param atscd the ATSC demultiplexer
+\param routedmx the ROUTE demultiplexer
 \param service_id the target service
 \return the user data associated with the service
  */
-void *gf_atsc3_dmx_get_service_udta(GF_ATSCDmx *atscd, u32 service_id);
+void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
 
 /*! @} */
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GPAC_DISABLE_ATSC */
+#endif /* GPAC_DISABLE_ROUTE */
 
-#endif	//_GF_ATSC_H_
+#endif	//_GF_ROUTE_H_
 

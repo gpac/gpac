@@ -1649,7 +1649,25 @@ char* gf_url_colon_suffix(const char *path)
 		next_colon = strchr(sep, ':');
 		next_slash = strchr(sep, '/');
 		if (next_colon && next_slash && ((next_slash - sep) > (next_colon - sep)) ) {
-			next_colon = strchr(next_slash, ':');
+			const char *last_colon;
+			u32 i, port, nb_colons=0, nb_dots=0, nb_non_alnums=0;
+			next_slash[0] = 0;
+			last_colon = strrchr(next_colon, ':');
+			port = atoi(last_colon+1);
+			for (i=0; i<strlen(next_colon+1); i++) {
+				if (next_colon[i+1] == ':') nb_colons++;
+				else if (next_colon[i+1] == '.') nb_dots++;
+				//closing bracket of IPv6
+				else if (next_colon[i+1] == ']') {}
+				else if (!isalnum(next_colon[i+1])) {
+					nb_non_alnums++;
+					break;
+				}
+			}
+			next_slash[0] = '/';
+			//if no non-alphanum, we must have either a port (ipv4) or extra colons but no dots (ipv6)
+			if (!nb_non_alnums && (port || (nb_colons && !nb_dots)))
+				next_colon = strchr(next_slash, ':');
 		}
 		return next_colon;
 	}

@@ -220,7 +220,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 			*max_size = (u32) stream.total_out;
 			return GF_OK;
 		}
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[GZ] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[GZ] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len ));
 	}
 
 	if (out_comp_data) {
@@ -361,7 +361,7 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 	comp_size = block_size - strm.avail_out;
 
 	if (data_len < comp_size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[LZMA] compressed data (%d) larger than input (%d)\n", (u32) comp_size, (u32) data_len ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[LZMA] compressed data (%d) larger than input (%d)\n", (u32) comp_size, (u32) data_len ));
 	}
 
 	if (*max_size < comp_size) {
