@@ -9,9 +9,9 @@ print("Hello DASH custom algo !");
 
 let groups = [];
 
-dashin.rate_adaptation = function (group, base_group, force_lower_complexity, stats)
+dashin.rate_adaptation = function (group_idx, base_group_idx, force_lower_complexity, stats)
 {
-	print(`Getting called in custom algo ! group ${group} base_group ${base_group} force_lower_complexity ${force_lower_complexity}`);
+	print(`Getting called in custom algo ! group ${group_idx} base_group ${base_group_idx} force_lower_complexity ${force_lower_complexity}`);
 	print('Stats: ' + JSON.stringify(stats));
 
 	//always use lowest quality
@@ -26,8 +26,15 @@ dashin.new_group = function (group)
 	groups.push(group);
 }
 
-dashin.period_reset = function ()
+dashin.period_reset = function (reset_type)
 {
-	print("Period reset !");
-	groups = [];
+	print("Period reset type " + reset_type);
+	if (!reset_type)
+		groups = [];
+}
+
+dashin.download_monitor = function (group_idx, stats)
+{
+	print("Download info " + JSON.stringify(stats));
+	return -1;
 }

@@ -22,11 +22,12 @@ gpac -i source.mpd --algo=myalgo.js vout
 
 The loaded JavaScript context has all JS modules available in GPAC, except WebGL. 
 
+It is also possible to bind the custom agorithm from a JSFilterSession using JSFSFilter.bind
 @{
 
 */
 
-/*! global context property representing the one and only JSFilterSession object attached to the loaded script*/
+/*! global context property representing the one and only JSDASHClient object attached to the loaded script*/
 attribute JSDASHClient dashin;
 
 /*!\brief JSDASHClient API
@@ -37,13 +38,20 @@ The object can also be bound to a running filter using JSFSFilter.bind
 */
 interface JSDASHClient {
 
-/*! perform rate adaptation on the given group (AdaptationSet in DASH, corresponds to one adaptable media)
+/*! indicate a new group is being created
+\note this function is optional
 \param group group being created, can be kept for future use
 */
 attribute void new_group(JSDASHGroup group);
 
-/*! indicate the period has changed, the old groups are no longer valid*/
-attribute void period_reset();
+/*! indicate the period has changed
+\note this function is optional
+\param reset_type indicates the type of reset:
+	- 0: end of period, groups are no longer valid
+	- 1: start of a static period
+	- 2: start of a dynamic (live) period
+*/
+attribute void period_reset(unsigned long reset_type);
 
 /*! perform rate adaptation on the given group (AdaptationSet in DASH, corresponds to one adaptable media)
 \param group_idx index of group on which to perform adaptation
@@ -54,6 +62,18 @@ attribute void period_reset();
 \return the index of the new quality to select (as listed in group.reps[]), or -1 to not take decision now and postpon it until dependent groups are done 
 */
 attribute int rate_adaptation(unsigned long group_idx, unsigned long base_group_idx, Boolean force_lower_complexity, JSDASHStats stats);
+
+/*! monitor download of the current segment in a group
+\note this function is optional
+\param group_idx index of group on which to perform adaptation
+\param stats current download statistics for the group JSDASHDownloadStats
+
+\return integer value indicating the action to take. Return value can be:
+- `-1` to continue download
+- `-2` to abort download but without retrying to download the same segment at lower quality
+- the index of the new quality to download for the same segment index (same time)
+*/
+attribute int download_monitor(unsigned long group_idx, JSDASHDownloadStats stats);
 
 };
 
@@ -66,6 +86,9 @@ interface JSDASHGroup {
 
 /*! group index, as used in rate_adaptation callback*/
 attribute readonly unsigned long idx;
+
+/*! group duration in milliseconds, 0 if unknown (live) */
+attribute readonly unsigned long long duration;
 
 /*! list of available qualites, array of JSDASHQuality objects*/
 attribute readonly Array qualities;
@@ -111,6 +134,11 @@ attribute readonly unsigned long samplerate;
 /*! audio number of channels*/
 attribute readonly unsigned long channels;
 
+/*! DASH AST offset for low-latency, 0 otherwise*/
+attribute readonly double ast_offset;
+
+/*! size of all segments in this quality for onDemand profiles. If unknown, set to null*/
+attribute readonly Array sizes;
 };
 
 
@@ -150,6 +178,34 @@ attribute readonly unsigned long buffer_max;
 
 /*! current buffer level in milliseconds*/
 attribute readonly unsigned long buffer;
+};
+
+
+
+/*!\brief JSDASHDownloadStats API
+
+The JSDASHDownloadStats object provides a description of current segment download statistics for a group
+*/
+interface JSDASHDownloadStats {
+
+/*! current estimated download speed in bits per second*/
+attribute readonly unsigned long bits_per_second;
+
+/*! total bytes to download*/
+attribute readonly unsigned long long total_bytes;
+
+/*! bytes downloaded*/
+attribute readonly unsigned long long bytes_done;
+
+/*! time in microsecond since segment was scheduled for download*/
+attribute readonly unsigned long long us_since_start;
+
+/*! buffer duration in milliseconds*/
+attribute readonly unsigned long buffer_duration;
+
+/*! duration of segment being downloaded, 0 if unknown*/
+attribute readonly unsigned long current_segment_duration;
+
 };
 
 

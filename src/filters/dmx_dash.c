@@ -39,7 +39,7 @@ typedef struct
 {
 	//opts
 	s32 shift_utc, debug_as, atsc_shift;
-	u32 max_buffer, auto_switch, tiles_rate, segstore, delay40X, exp_threshold, switch_count;
+	u32 max_buffer, auto_switch, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 init_timeshift;
 	Bool server_utc, screen_res, aggressive, speedadapt;
 	GF_DASHInitialSelectionMode start_with;
@@ -84,11 +84,10 @@ typedef struct
 #endif
 
 	void *rt_udta;
-	void (*on_period_reset)(void *udta);
+	void (*on_period_reset)(void *udta, u32 reset_type);
 	void (*on_new_group)(void *udta, u32 group_idx, void *dash);
 	s32 (*on_rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_low_complex, void *stats);
-
-
+	s32 (*on_download_monitor)(void *udta, u32 group_idx, void *stats);
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -119,6 +118,9 @@ typedef struct
 	Bool is_playing;
 	Bool force_seg_switch;
 	u32 nb_group_deps, current_group_dep;
+	u32 last_bw_check;
+
+	u64 us_at_seg_start;
 } GF_DASHGroup;
 
 
@@ -439,6 +441,7 @@ u32 dashdmx_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession sessio
 #endif
 
 #ifdef GPAC_HAS_QJS
+#include <gpac/mpd.h>
 void dashdmx_js_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 {
 	u32 i, count;
@@ -446,6 +449,7 @@ void dashdmx_js_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 	JSValue obj = JS_NewObject(ctx->js_ctx);
 
 	JS_SetPropertyStr(ctx->js_ctx, obj, "idx", JS_NewInt32(ctx->js_ctx, group_idx));
+	JS_SetPropertyStr(ctx->js_ctx, obj, "duration", JS_NewInt64(ctx->js_ctx, gf_dash_get_period_duration(ctx->dash) ));
 
 	reps = JS_NewArray(ctx->js_ctx);
 
@@ -485,6 +489,20 @@ void dashdmx_js_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 		if (qinfo.sample_rate) {
 			JS_SetPropertyStr(ctx->js_ctx, rep, "samplerate", JS_NewInt32(ctx->js_ctx, qinfo.sample_rate));
 			JS_SetPropertyStr(ctx->js_ctx, rep, "channels", JS_NewInt32(ctx->js_ctx, qinfo.nb_channels));
+		}
+		JS_SetPropertyStr(ctx->js_ctx, rep, "ast_offset", JS_NewFloat64(ctx->js_ctx, qinfo.ast_offset));
+
+		if (qinfo.seg_urls) {
+			u32 k=0, nb_segs=gf_list_count(qinfo.seg_urls);
+			JSValue seg_sizes = JS_NewArray(ctx->js_ctx);
+			for (k=0; k<nb_segs; k++) {
+				GF_MPD_SegmentURL *surl = gf_list_get((GF_List *) qinfo.seg_urls, k);
+				u64 size = (1 + surl->media_range->end_range - surl->media_range->start_range);
+				JS_SetPropertyUint32(ctx->js_ctx, seg_sizes, k, JS_NewInt64(ctx->js_ctx, size) );
+			}
+			JS_SetPropertyStr(ctx->js_ctx, rep, "sizes", seg_sizes);
+		} else {
+			JS_SetPropertyStr(ctx->js_ctx, rep, "sizes", JS_NULL);
 		}
 		JS_SetPropertyUint32(ctx->js_ctx, reps, i, rep);
 	}
@@ -564,6 +582,19 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			gf_dash_set_group_download_state(ctx->dash, 0, 0, GF_OK);
 		}
 #endif
+
+		if (ctx->on_period_reset)
+			ctx->on_period_reset(ctx->rt_udta, gf_dash_is_dynamic_mpd(ctx->dash) ? 2 : 1);
+#ifdef GPAC_HAS_QJS
+		else if (ctx->js_ctx && JS_IsFunction(ctx->js_ctx, ctx->period_reset_fun)) {
+			JSValue arg;
+			arg = JS_NewInt32(ctx->js_ctx, gf_dash_is_dynamic_mpd(ctx->dash) ? 2 : 1);
+			JSValue res = JS_Call(ctx->js_ctx, ctx->period_reset_fun, ctx->js_obj, 1, &arg);
+			JS_FreeValue(ctx->js_ctx, res);
+		}
+#endif
+
+
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
 			const char *mime, *init_segment;
@@ -662,10 +693,11 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		}
 
 		if (ctx->on_period_reset)
-			ctx->on_period_reset(ctx->rt_udta);
+			ctx->on_period_reset(ctx->rt_udta, 0);
 #ifdef GPAC_HAS_QJS
 		else if (ctx->js_ctx && JS_IsFunction(ctx->js_ctx, ctx->period_reset_fun)) {
-			JSValue res = JS_Call(ctx->js_ctx, ctx->period_reset_fun, ctx->js_obj, 0, NULL);
+			JSValue arg = JS_NewInt32(ctx->js_ctx, 0);
+			JSValue res = JS_Call(ctx->js_ctx, ctx->period_reset_fun, ctx->js_obj, 1, &arg);
 			JS_FreeValue(ctx->js_ctx, res);
 		}
 #endif
@@ -729,16 +761,22 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 			if (gf_filter_pid_get_udta(opid) == group) {
 				GF_FilterPidStatistics stats;
-				if (gf_filter_pid_get_statistics(opid, &stats, GF_STATS_DECODER_SINK) != GF_OK)
-					continue;
+				Bool is_decoder = GF_TRUE;
+				//collect decoder stats, or if not found direct output
+				if (gf_filter_pid_get_statistics(opid, &stats, GF_STATS_DECODER_SINK) != GF_OK) {
+					is_decoder = GF_FALSE;
+					if (gf_filter_pid_get_statistics(opid, &stats, GF_STATS_LOCAL_INPUTS) != GF_OK)
+						continue;
+				}
+
 				if (stats.disconnected)
 					continue;
 
-				if (!stats.nb_processed) stats.nb_processed=1;
-				if (!stats.nb_saps) stats.nb_saps=1;
-
-				gf_dash_group_set_codec_stat(ctx->dash, group_idx, (u32) (stats.total_process_time/stats.nb_processed), stats.max_process_time, (u32) (stats.total_sap_process_time/stats.nb_saps), stats.max_sap_process_time, GF_FALSE, GF_FALSE);
-
+				if (is_decoder) {
+					if (!stats.nb_processed) stats.nb_processed=1;
+					if (!stats.nb_saps) stats.nb_saps=1;
+					gf_dash_group_set_codec_stat(ctx->dash, group_idx, (u32) (stats.total_process_time/stats.nb_processed), stats.max_process_time, (u32) (stats.total_sap_process_time/stats.nb_saps), stats.max_sap_process_time, GF_FALSE, GF_FALSE);
+				}
 
 				gf_dash_group_set_buffer_levels(ctx->dash, group_idx, (u32) (stats.min_playout_time/1000), (u32) (stats.max_buffer_time/1000), (u32) (stats.buffer_time/1000) );
 
@@ -1183,7 +1221,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 #ifdef GPAC_HAS_QJS
 
-static s32 dashdmx_algo_custom(void *udta, u32 group, u32 base_group,
+static s32 dashdmx_algo_js(void *udta, u32 group, u32 base_group,
 				u32 dl_rate, u32 file_size, Double speed, Double max_available_speed,
 				u32 disp_width, u32 disp_height,
 				Bool force_lower_complexity,
@@ -1211,18 +1249,41 @@ static s32 dashdmx_algo_custom(void *udta, u32 group, u32 base_group,
 	ret = JS_Call(ctx->js_ctx, ctx->rate_fun, ctx->js_obj, 4, args);
 	JS_FreeValue(ctx->js_ctx, args[3]);
 
-	if (JS_ToInt32(ctx->js_ctx, &res, ret))
+	if (JS_IsException(ret)) {
+		js_dump_error(ctx->js_ctx);
+		res = -2;
+	} else if (JS_ToInt32(ctx->js_ctx, &res, ret))
 		res = -1;
 
+	JS_FreeValue(ctx->js_ctx, ret);
 	gf_js_lock(ctx->js_ctx, GF_FALSE);
 	return res;
 }
 
-static GF_Err dashdmx_download_monitor_custom(void *udta, u32 group_idx)
+GF_Err dashdmx_download_monitor_js(void *udta, u32 group, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
 {
-//	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)udta;
-	return GF_OK;
+	s32 res = -1;
+	JSValue ret, args[2];
+	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)udta;
 
+	gf_js_lock(ctx->js_ctx, GF_TRUE);
+
+	args[0] = JS_NewInt32(ctx->js_ctx, group);
+	args[1] = JS_NewObject(ctx->js_ctx);
+	JS_SetPropertyStr(ctx->js_ctx, args[1], "bits_per_second", JS_NewInt32(ctx->js_ctx, bits_per_sec) );
+	JS_SetPropertyStr(ctx->js_ctx, args[1], "total_bytes", JS_NewInt64(ctx->js_ctx, total_bytes) );
+	JS_SetPropertyStr(ctx->js_ctx, args[1], "bytes_done", JS_NewInt64(ctx->js_ctx, bytes_done) );
+	JS_SetPropertyStr(ctx->js_ctx, args[1], "us_since_start", JS_NewInt64(ctx->js_ctx, us_since_start) );
+	JS_SetPropertyStr(ctx->js_ctx, args[1], "buffer_duration", JS_NewInt32(ctx->js_ctx, buffer_dur_ms) );
+	JS_SetPropertyStr(ctx->js_ctx, args[1], "current_segment_duration", JS_NewInt32(ctx->js_ctx, current_seg_dur) );
+	ret = JS_Call(ctx->js_ctx, ctx->download_fun, ctx->js_obj, 2, args);
+	JS_FreeValue(ctx->js_ctx, args[1]);
+	if (JS_ToInt32(ctx->js_ctx, &res, ret))
+		res = -1;
+	JS_FreeValue(ctx->js_ctx, ret);
+
+	gf_js_lock(ctx->js_ctx, GF_FALSE);
+	return res;
 }
 void dashdmx_cleanup_js(GF_DASHDmxCtx *ctx)
 {
@@ -1271,12 +1332,17 @@ JSValue dashdmx_bind_js(GF_Filter *f, JSContext *ctx, JSValueConst obj)
 	dashctx->js_obj = JS_DupValue(ctx, obj);
 	dashctx->rate_fun = rate_fun;
 
-	GET_FUN(download_fun, "new_group")
+	GET_FUN(download_fun, "download_monitor")
 	GET_FUN(new_group_fun, "new_group")
 	GET_FUN(period_reset_fun, "period_reset")
 
-	gf_dash_set_algo_custom(dashctx->dash, dashctx, dashdmx_algo_custom, dashdmx_download_monitor_custom);
-
+	if (JS_IsFunction(ctx, dashctx->download_fun)) {
+		gf_dash_set_algo_custom(dashctx->dash, dashctx, dashdmx_algo_js, dashdmx_download_monitor_js);
+		dashctx->abort = GF_TRUE;
+	} else {
+		gf_dash_set_algo_custom(dashctx->dash, dashctx, dashdmx_algo_js, NULL);
+		dashctx->abort = GF_FALSE;
+	}
 	return JS_UNDEFINED;
 }
 
@@ -1341,7 +1407,7 @@ static GF_Err dashdmx_initialize_js(GF_DASHDmxCtx *dashctx, char *jsfile)
 	}
 
 
-	GET_FUN(download_fun, "new_group")
+	GET_FUN(download_fun, "download_monitor")
 	GET_FUN(new_group_fun, "new_group")
 	GET_FUN(period_reset_fun, "period_reset")
 	return GF_OK;
@@ -1477,7 +1543,13 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 #ifdef GPAC_HAS_QJS
 	if (ctx->js_ctx) {
-		gf_dash_set_algo_custom(ctx->dash, ctx, dashdmx_algo_custom, dashdmx_download_monitor_custom);
+		if (JS_IsFunction(ctx->js_ctx, ctx->download_fun)) {
+			gf_dash_set_algo_custom(ctx->dash, ctx, dashdmx_algo_js, dashdmx_download_monitor_js);
+			ctx->abort = GF_TRUE;
+		} else {
+			gf_dash_set_algo_custom(ctx->dash, ctx, dashdmx_algo_js, NULL);
+			ctx->abort = GF_FALSE;
+		}
 	}
 #endif
 
@@ -1736,11 +1808,31 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED, &pe);
 	if (!p || !p->value.boolean) {
-		gf_filter_release_property(pe);
+		u64 us_since_start = 0;
+		u64 down_bytes = 0;
+		u32 bits_per_sec = 0;
+		u32 now = gf_sys_clock();
 
+		if (!ctx->abort || (now - group->last_bw_check < ctx->bwcheck)) {
+			gf_filter_release_property(pe);
+			return;
+		}
+		group->last_bw_check = now;
 		//we allow file abort, check the download
-		if (ctx->abort)
-			gf_dash_group_check_bandwidth(ctx->dash, group->idx);
+
+		p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_RATE, &pe);
+		if (p) bits_per_sec = p->value.uint;
+
+		p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_SIZE, &pe);
+		if (p) file_size = p->value.longuint;
+
+		p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_BYTES, &pe);
+		if (p) down_bytes = p->value.longuint;
+
+		us_since_start = gf_sys_clock_high_res() - group->us_at_seg_start;
+		gf_dash_group_check_bandwidth(ctx->dash, group->idx, bits_per_sec, file_size, down_bytes, us_since_start);
+
+		gf_filter_release_property(pe);
 		return;
 	}
 	group->stats_uploaded = GF_TRUE;
@@ -1756,7 +1848,7 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		broadcast_flag = GF_TRUE;
 	}
 
-	gf_dash_group_store_stats(ctx->dash, group->idx, group->current_dependent_rep_idx, bytes_per_sec, file_size, broadcast_flag);
+	gf_dash_group_store_stats(ctx->dash, group->idx, group->current_dependent_rep_idx, bytes_per_sec, file_size, broadcast_flag, gf_sys_clock_high_res() - group->us_at_seg_start);
 
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED, &pe);
 	if (p && p->value.boolean)
@@ -1823,11 +1915,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		return;
 	}
 	group->eos_detected = GF_FALSE;
-	if (!has_scalable_next) {
-		group->next_dependent_rep_idx = 0;
-	} else {
-		group->next_dependent_rep_idx++;
-	}
 
 	if (e != GF_OK) {
 		if (e == GF_BUFFER_TOO_SMALL) {
@@ -1840,6 +1927,12 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d error fetching next segment name: %s\n", group->idx, gf_error_to_string(e) ));
 		}
 		return;
+	}
+
+	if (!has_scalable_next) {
+		group->next_dependent_rep_idx = 0;
+	} else {
+		group->next_dependent_rep_idx++;
 	}
 
 	if (group->nb_group_deps) {
@@ -1878,6 +1971,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	group->prev_is_init_segment = GF_FALSE;
 	group->init_switch_seg_sent = GF_FALSE;
 	gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
+	group->us_at_seg_start = gf_sys_clock_high_res();
 }
 
 GF_Err gf_dash_group_push_tfrf(GF_DashClient *dash, u32 idx, void *tfrf, u32 timescale);
@@ -2002,7 +2096,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					}
 				}
 				else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] No source packet group %d and not in end of stream\n", group->idx));
+					if (ctx->abort)
+						dashdmx_update_group_stats(ctx, group);
+					//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] No source packet group %d and not in end of stream\n", group->idx));
 				}
 				if (group->in_error || group->seg_was_not_ready) {
 					dashdmx_switch_segment(ctx, group);
@@ -2060,7 +2156,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			if (!group->eos_detected && group->is_playing) {
 				all_groups_done = GF_FALSE;
 			} else if (is_in_last_period) {
-				if (gf_filter_pid_is_eos(ipid) || group->eos_detected)
+				if (gf_filter_pid_is_eos(ipid) || group->eos_detected || gf_dash_get_group_done(ctx->dash, group->idx))
 					gf_filter_pid_set_eos(opid);
 				else
 					all_groups_done = GF_FALSE;
@@ -2081,11 +2177,16 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			}
 		}
 	}
+
 	if (gf_dash_is_in_setup(ctx->dash))
 		gf_filter_post_process_task(filter);
-	else if (next_time_ms) {
+	else if (ctx->abort)
+		gf_filter_ask_rt_reschedule(filter, 50000);
+	else if (next_time_ms)
 		gf_filter_ask_rt_reschedule(filter, 1000 * next_time_ms);
-	}
+	else
+		return GF_OK;
+
 	return GF_OK;
 }
 
@@ -2175,6 +2276,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(query), "set query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split_as), "separate all qualities into different adaptation sets and stream all qualities", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noseek), "disable seeking of initial segment(s) in dynamic mode (useful when UTC clocks do not match)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(bwcheck), "minimum time in milliseconds between two bandwidth checks when allowing segment download abort", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lowlat), "segment scheduling policy in low latency mode\n"
 		"- no: disable low latency\n"
 		"- strict: strict respect of AST offset in low latency\n"
@@ -2268,17 +2370,38 @@ static s32 dashdmx_rate_adaptation_ext(void *udta, u32 group_idx, u32 base_group
 	return ctx->on_rate_adaptation(ctx->rt_udta, group_idx, base_group_idx, force_lower_complexity, &stats);
 }
 
-static GF_Err dashdmx_download_monitor_ext(void *udta, u32 group_idx)
+
+typedef struct
 {
-	return GF_OK;
+	u32 bits_per_sec;
+	u64 total_bytes;
+	u64 bytes_done;
+	u64 us_since_start;
+	u32 buffer_dur;
+	u32 current_seg_dur;
+} GF_DASHDownloadStats;
+
+s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
+{
+	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) udta;
+	GF_DASHDownloadStats stats;
+	memset(&stats, 0, sizeof(GF_DASHDownloadStats));
+	stats.bits_per_sec = bits_per_sec;
+	stats.total_bytes = total_bytes;
+	stats.bytes_done = bytes_done;
+	stats.us_since_start = us_since_start;
+	stats.buffer_dur = buffer_dur_ms;
+	stats.current_seg_dur = current_seg_dur;
+	return ctx->on_download_monitor(ctx->rt_udta, group_idx, &stats);
 }
 
 
 GF_EXPORT
 GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,
-		void (*period_reset)(void *rate_adaptation),
+		void (*period_reset)(void *rate_adaptation, u32 type),
 		void (*new_group)(void *udta, u32 group_idx, void *dash),
-		s32 (*rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_low_complex, void *stats)
+		s32 (*rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_low_complex, void *stats),
+		s32 (*download_monitor)(void *udta, u32 group_idx, void *stats)
 )
 {
 #ifdef GPAC_DISABLE_DASH_CLIENT
@@ -2292,13 +2415,17 @@ GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,
 		ctx->on_period_reset = period_reset;
 		ctx->on_new_group = new_group;
 		ctx->on_rate_adaptation = rate_adaptation;
+		ctx->on_download_monitor = download_monitor;
 		ctx->rt_udta = udta;
+		ctx->abort = download_monitor ? GF_TRUE : GF_FALSE;
 		gf_dash_set_algo_custom(ctx->dash, ctx, dashdmx_rate_adaptation_ext, dashdmx_download_monitor_ext);
 	} else {
 		ctx->on_period_reset = NULL;
 		ctx->on_new_group = NULL;
 		ctx->on_rate_adaptation = NULL;
+		ctx->on_download_monitor = NULL;
 		ctx->rt_udta = NULL;
+		ctx->abort = GF_FALSE;
 		gf_dash_set_algo(ctx->dash, GF_DASH_ALGO_GPAC_LEGACY_BUFFER);
 	}
 	return GF_OK;

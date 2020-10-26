@@ -45,6 +45,7 @@ extern "C" {
 */
 
 #include <gpac/tools.h>
+#include <gpac/list.h>
 
 #ifndef GPAC_DISABLE_DASH_CLIENT
 
@@ -560,6 +561,13 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 group
 */
 Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos);
 
+/*! checks if the group is playing
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return GF_TRUE if group is done playing
+*/
+Bool gf_dash_get_group_done(GF_DashClient *dash, u32 group_idx);
+
 /*! gets current period switching status for the session.
 \param dash the target dash client
 \return possible values:
@@ -618,9 +626,13 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed);
 /*! updates media bandwidth for the given group. Only allowed for groups without dependencies to other groups
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
+\param bits_per_sec current download rate in bits per seconds
+\param total_bytes total size of segment being downloaded
+\param bytes_done number of bytes already downloaded in current segment
+\param us_since_start time ellapsed in microseconds since  segment has been scheduled for download
 \return error if any
 */
-GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 group_idx);
+GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start);
 
 /*! enables UTC drift computation using HTTP header "Server-UTC: UTC", where UTC is in ms
 \param dash the target dash client
@@ -788,6 +800,10 @@ typedef struct
 	Bool disabled;
 	/*! selected flag*/
 	Bool is_selected;
+	/*! AST offset in seconds, 0 if not low latency*/
+	Double ast_offset;
+	/*! list of segmentURLs if known, NULL otherwise. Used for onDemand profile to get segment sizes*/
+	const GF_List *seg_urls;
 } GF_DASHQualityInfo;
 
 /*! gets information on  a given quality
@@ -981,8 +997,9 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, u32 de
 \param bytes_per_sec transfer rates in bytes per seconds
 \param file_size segment size in bytes
 \param is_broadcast set to GF_TRUE if the file is received over a multicast/broadcast link such as eMBMS or ROUTE (i.e. file was pushed to cache)
+\param us_since_start time in microseconds since start of the download
 */
-void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, u32 bytes_per_sec, u64 file_size, Bool is_broadcast);
+void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, u32 bytes_per_sec, u64 file_size, Bool is_broadcast, u64 us_since_start);
 
 /*! sets availabilityStartTime shift for ATSC. By default the ATSC tune-in is done by matching the last received segment name
 to the segment template and deriving the ATSC UTC reference from that. The function allows shifting the computed value by a given amount.
@@ -1031,7 +1048,8 @@ typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group
 \param udta user data
 \param group_idx index of group to adapt
  */
-typedef GF_Err (*gf_dash_download_monitor)(void *udta, u32 group_idx);
+typedef GF_Err (*gf_dash_download_monitor)(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur);
+
 
 /*! sets custom rate adaptation logic
 \param dash the target dash client
