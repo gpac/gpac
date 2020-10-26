@@ -237,6 +237,7 @@ _gf_filter = c_void_p
 _gf_filter_pid = c_void_p
 _gf_filter_packet = c_void_p
 _gf_property_entry = c_void_p
+_gf_list = c_void_p
 gf_bool = c_uint
 ##\endcond
 
@@ -1252,9 +1253,10 @@ def on_filter_new_del(cbk, _filter, is_del):
  sess = cast(cbk, py_object).value
  f = sess._to_filter(_filter)
  if is_del:
-    sess.on_filter_del(f)
+    if hasattr(sess, 'on_filter_del'):
+        sess.on_filter_del(f)
     sess._filters.remove(f)
- else:
+ elif hasattr(sess, 'on_filter_new'):
     sess.on_filter_new(f)
 
  return 0
@@ -1582,14 +1584,15 @@ _libgpac.gf_filter_get_info_str.argtypes = [_gf_filter, c_char_p, POINTER(POINTE
 _libgpac.gf_filter_get_info_str.restype = POINTER(PropertyValue)
 
 
-_libgpac.gf_filter_bind_dash_algo_callbacks.argtypes = [_gf_filter, py_object, c_void_p, c_void_p, c_void_p]
-@CFUNCTYPE(c_int, c_void_p)
-def dash_period_reset(cbk):
- obj = cast(cbk, py_object).value
- if hasattr(obj, 'on_period_reset'):
-    obj.on_period_reset()
-    obj.groups = []
- return 0
+_libgpac.gf_filter_bind_dash_algo_callbacks.argtypes = [_gf_filter, py_object, c_void_p, c_void_p, c_void_p, c_void_p]
+@CFUNCTYPE(c_int, c_void_p, c_uint)
+def dash_period_reset(cbk, reset_type):
+    obj = cast(cbk, py_object).value
+    if hasattr(obj, 'on_period_reset'):
+        obj.on_period_reset(reset_type)
+    if not reset_type:
+        obj.groups = []
+    return 0
 
 class DASHQualityInfoNat(Structure):
     _fields_ = [
@@ -1608,10 +1611,33 @@ class DASHQualityInfoNat(Structure):
         ("nb_channels", c_uint),
         ("disabled", gf_bool),
         ("is_selected", gf_bool),
+        ("ast_offset", c_double),
+        ("sizes", _gf_list),
     ]
+
+class DASHByteRange(Structure):
+    _fields_ = [
+        ("start", c_ulonglong),
+        ("end", c_ulonglong)
+    ]
+
+class DASHSegURL(Structure):
+    _fields_ = [
+        ("media", c_char_p),
+        ("media_range", POINTER(DASHByteRange))
+            #ignore the rest
+    ]
+
 
 _libgpac.gf_dash_group_get_num_qualities.argtypes = [c_void_p, c_uint]
 _libgpac.gf_dash_group_get_quality_info.argtypes = [c_void_p, c_uint, c_uint, POINTER(DASHQualityInfoNat) ]
+
+_libgpac.gf_list_count.argtypes = [c_void_p]
+_libgpac.gf_list_count.restype = c_uint
+
+_libgpac.gf_list_get.argtypes = [c_void_p, c_uint]
+_libgpac.gf_list_get.restype = c_void_p
+
 
 ## \endcond
 
@@ -1632,7 +1658,7 @@ class DASHQualityInfo:
         self.width = qinfon.width
         ## height in pixels, 0 if not visual
         self.height = qinfon.height
-        ## interlaced flaf, false 0 if not visual
+        ## interlaced flag, false 0 if not visual
         self.interlaced = qinfon.interlaced
         ## Frame Rate (Fraction), 0/0 if not visual
         self.fps = Fraction(qinfon.fps_num, qinfon.fps_den)
@@ -1646,6 +1672,17 @@ class DASHQualityInfo:
         self.disabled = qinfon.disabled;
         ## set to true if quality is selected
         self.is_selected = qinfon.is_selected
+        ## AST offset for DASH low latency mode, 0 otherwise
+        self.ast_offset = qinfon.ast_offset
+        ## list of segment sizes for VoD cases, None otherwise or if unknown
+        self.sizes = None
+        if qinfon.sizes == None:
+            return
+        count = _libgpac.gf_list_count(qinfon.sizes)
+        self.sizes = []
+        for i in range(count):
+            surl = cast(_libgpac.gf_list_get(qinfon.sizes, i), POINTER(DASHSegURL)).contents
+            self.sizes.append( surl.media_range.contents.end - surl.media_range.contents.start + 1)
 
 ## DASH group object
 class DASHGroup:
@@ -1713,6 +1750,42 @@ class DASHGroupStatistics(Structure):
         return res
     ## \endcond
 
+## DASH group current segment download statistics object
+class DASHGroupDownloadStatistics(Structure):
+    ## \cond priv
+    def __init__(self):
+    ## \endcond
+        ##download rate of last segment in bits per second
+        self.bits_per_sec = 0
+        ##total number of bytes in segment
+        self.total_bytes = 0
+        ##number of downloaded bytes from segment (starting from first byte)
+        self.bytes_done = 0
+        ##number of microseconds ellapsed since segment was scheduled for download
+        self.time_since_start = 0
+        ##current buffer length in milliseconds
+        self.buffer_dur = 0
+        ##duration of segment being downloaded, in milliseconds - 0 if unknown
+        self.current_seg_dur = 0
+
+    ## \cond private
+    _fields_ = [
+        ("bits_per_sec", c_uint),
+        ("total_bytes", c_ulonglong),
+        ("bytes_done", c_ulonglong),
+        ("time_since_start", c_ulonglong),
+        ("buffer_dur", c_uint),
+        ("current_seg_dur", c_uint),
+    ]
+
+    def __str__(self):
+        res = 'bits_per_sec ' + str(self.bits_per_sec)
+        res += ' - total_bytes ' + str(self.total_bytes) + ' bytes_done ' + str(self.bytes_done);
+        res += ' - time_since_start ' + str(self.time_since_start) + ' us - buffer_dur ' + str(self.buffer_dur) + ' ms - current_seg_dur ' + str(self.current_seg_dur) + ' ms';
+        return res
+    ## \endcond
+
+
 ## \cond priv
 
 
@@ -1742,6 +1815,17 @@ def dash_rate_adaptation(cbk, groupidx, base_groupidx, force_low_complex, stats)
  return obj.on_rate_adaptation(group, base_group, force_low_complex, stats.contents);
 
 
+@CFUNCTYPE(c_int, c_void_p, c_uint, POINTER(DASHGroupDownloadStatistics))
+def dash_download_monitor(cbk, groupidx, stats):
+ obj = cast(cbk, py_object).value
+ print(' in download callback')
+ group = None
+ for i in range(len(obj.groups)):
+    if obj.groups[i].idx==groupidx:
+        group = obj.groups[i]
+        break
+
+ return obj.on_download_monitor(group, stats.contents)
 
 
 def _prop_to_python(pname, prop):
@@ -2052,13 +2136,13 @@ class Filter:
     def _bind_dash_algo(self, object):
         if not hasattr(object, 'on_rate_adaptation'):
             raise Exception('Missing on_rate_adaptation member function on object, cannot bind')
-        print('binding dash')
         object.groups = [];
-        err = _libgpac.gf_filter_bind_dash_algo_callbacks(self._filter, py_object(object), dash_period_reset, dash_group_new, dash_rate_adaptation)
+        if hasattr(object, 'on_download_monitor'):
+            err = _libgpac.gf_filter_bind_dash_algo_callbacks(self._filter, py_object(object), dash_period_reset, dash_group_new, dash_rate_adaptation, dash_download_monitor)
+        else:
+            err = _libgpac.gf_filter_bind_dash_algo_callbacks(self._filter, py_object(object), dash_period_reset, dash_group_new, dash_rate_adaptation, None)
         if err<0: 
             raise Exception('Failed to bind dash algo: ' + e2s(err))
-
-
         return 0
     ##\endcond private
 
@@ -2068,9 +2152,20 @@ class Filter:
     #Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
     #
     #For DASH, the object must implement the following methods:
-    # - void on_period_reset(): indicates period switch, groups are reset (optional callback)
-    # - void on_new_group(\ref DASHGroup group): new group created (optional callback)
+    #
+    # - void on_period_reset(u32 reset_type): optional callback, called at period switch. Value can be:
+    #   - 0: end of period (groups are no longer valid)
+    #   - 1: start of a static period
+    #   - 2: start of a dynamic (live) period
+    #
+    # - void on_new_group(\ref DASHGroup group): optional callback, called when a new group created
+    #
     # - int on_rate_adaptation(\ref DASHGroup group, \ref DASHGroup base_group, bool force_low_complexity, \ref DASHGroupStatistics stats): group adaptation, returns new quality index, or -1 to postpone  (mandatory callback)
+    #
+    # - int on_rate_adaptation(\ref DASHGroup group, \ref DASHGroup base_group, bool force_low_complexity, \ref DASHGroupStatistics stats): optional callback, called during segment download. Return value is:
+    #   - `-1` to continue download
+    #   - `-2` to abort download but without retrying to downloading the same segment at lower quality
+    #   - the index of the new quality to download for the same segment index (same time)
     #
     # The object will be assigned a list member called groups, containing the declared group for the active period
     #
