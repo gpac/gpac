@@ -226,6 +226,9 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 			return GF_FPROBE_SUPPORTED;
 		return GF_FPROBE_NOT_SUPPORTED;
 	}
+	if (strstr(src, "://"))
+		return GF_FPROBE_NOT_SUPPORTED;
+
 
 	//strip any fragment identifer
 	ext_start = gf_file_ext_start(url);

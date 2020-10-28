@@ -78,7 +78,7 @@ typedef struct
 	char *frag_url;
 
 	Bool is_dash;
-
+	Bool manifest_stop_sent;
 #ifdef GPAC_HAS_QJS
 	JSContext *js_ctx;
 	Bool owns_context;
@@ -147,6 +147,7 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 		}
 
 		group->signal_seg_name = 0;
+		gf_filter_pck_get_framing(in_pck, NULL, &is_end);
 		gf_filter_pid_drop_packet(in_pid);
 		if (gf_filter_pid_is_eos(in_pid))
 			is_end = GF_TRUE;
@@ -170,6 +171,8 @@ void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, GF_Filt
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(seg_name) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENUM, &PROP_UINT(seg_number) );
 					gf_filter_pck_set_duration(ref, seg_dur);
+					//hack to avoid using a property, we set the carousel version on the packet to signal the duration applies to the entire segment, not the packet
+					gf_filter_pck_set_carousel_version(ref, 1);
 					if (seg_time.den) {
 						ts = seg_time.num;
 						if (seg_time.den != 1000) {
@@ -312,7 +315,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	char *sURL = NULL;
 	const char *base_url;
 	if (!init_segment_name) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d Error locating plugin for segment - mime type %s\n", group_index, mime));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] group %d Error locating input filter: no segment URL, mime type %s\n", group_index, mime));
 		return GF_FILTER_NOT_FOUND;
 	}
 
@@ -1029,11 +1032,17 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	gf_filter_pid_copy_properties(opid, ipid);
 
 	if (!group->nb_group_deps) {
-		u32 asid;
+		s32 asid;
 		char as_name[100];
 		asid = gf_dash_group_get_as_id(ctx->dash, group_idx);
-//		if (!asid) asid = group_idx+1;
-		sprintf(as_name, "AS%d", asid);
+		//TODO: remove and regenerate hashes
+		if (gf_sys_is_test_mode() && (asid<=0)) {
+			sprintf(as_name, "AS%d", group_idx+1);
+		} else if (asid<0) {
+			sprintf(as_name, "AS_%d", group_idx+1);
+		} else {
+			sprintf(as_name, "AS%d", asid);
+		}
 		gf_filter_pid_set_name(opid, as_name);
 	}
 
@@ -1214,7 +1223,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	}
 
 	//setup initial quality - this is disabled in test mode for the time being (invalidates all dash playback hashes)
-	if (!gf_sys_is_test_mode())
+	//in filemode, always send the event to setup dash templates
+	if (!gf_sys_is_test_mode() || ctx->filemode)
 		dashdmx_io_on_dash_event(&ctx->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->idx, GF_OK);
 
 
@@ -1312,8 +1322,12 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		//we have a redirect URL on mpd pid, this means this comes from a service feeding the cache so we won't get any data on the pid.
 		//request a process task
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_REDIRECT_URL);
-		if (p && p->value.string)
+		if (p && p->value.string) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, ctx->mpd_pid);
+			gf_filter_pid_send_event(ctx->mpd_pid, &evt);
 			gf_filter_post_process_task(filter);
+		}
 		return GF_OK;
 	} else if (ctx->mpd_pid == pid) {
 		return GF_OK;
@@ -1929,6 +1943,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 1);
 		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
 		group->is_playing = GF_FALSE;
+		group->prev_is_init_segment = GF_FALSE;
 		if (ctx->nb_playing) {
 			ctx->initial_play = GF_FALSE;
 			group->force_seg_switch = GF_TRUE;
@@ -2339,8 +2354,15 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			}
 		}
 		if (all_groups_done) {
-			if (is_in_last_period || groups_not_playing)
+			if (is_in_last_period || groups_not_playing) {
+				if (!ctx->manifest_stop_sent) {
+					GF_FilterEvent evt;
+					ctx->manifest_stop_sent = GF_TRUE;
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->mpd_pid)
+					gf_filter_pid_send_event(ctx->mpd_pid, &evt);
+				}
 				return GF_EOS;
+			}
 			if (!gf_dash_get_period_switch_status(ctx->dash)) {
 				for (i=0; i<count; i++) {
 					GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);

@@ -1173,8 +1173,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_sk_group_register(sess->ctx->sg, sess->socket);
 		}
 		sess->is_head = GF_FALSE;
-		if (not_modified)
+		if (not_modified) {
 			sess->done = GF_TRUE;
+			if (sess->ctx->quit)
+				httpout_reset_socket(sess);
+		}
 	}
 	sess->last_active_time = gf_sys_clock_high_res();
 	return;
@@ -2046,6 +2049,8 @@ session_done:
 		sess->resource = NULL;
 		//keep resource active
 		sess->done = GF_TRUE;
+		if (sess->ctx->quit)
+			httpout_reset_socket(sess);
 	}
 	if (close_session) {
 		httpout_reset_socket(sess);

@@ -689,7 +689,9 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	s32 optval;
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
-
+	if (local_ip && !strcmp(local_ip, "127.0.0.1"))
+		local_ip = NULL;
+		
 	if (sock->flags & GF_SOCK_IS_UN) {
 #ifdef GPAC_HAS_SOCK_UN
 		struct sockaddr_un server_un;

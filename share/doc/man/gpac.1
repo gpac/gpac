@@ -566,7 +566,7 @@ disable javascript module loading
 .TP
 .B \-ifce (string)
 .br
-set default multicast interface through interface IP address
+set default multicast interface through interface IP address (default is 127.0.0.1)
 .br
 .TP
 .B \-lang (string)
@@ -2158,7 +2158,7 @@ Audio sample format
 Audio playback speed, only used for audio output reconfiguration
 .br
 .TP
-.B Delay (MDLY,sint,  )
+.B Delay (MDLY,lsint,  )
 .br
 Delay of presentation compared to composition timestamps, in media timescale. Positive value imply holding (delaying) the stream. Negative value imply skipping the beginning of stream
 .br
@@ -2763,7 +2763,7 @@ Start number to use for this pid - cf dasher help
 Remote period URL for DASH - cf dasher help
 .br
 .TP
-.B CDur (DCMD,dbl,D )
+.B ClampDur (DCMD,dbl,D )
 .br
 Max media duration to process from pid in DASH mode
 .br
@@ -3814,7 +3814,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev167-g71f7a57de-master
+build: 1.1.0-DEV-rev177-g114ca775c-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

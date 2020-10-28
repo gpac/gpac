@@ -152,7 +152,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		}
 
 	} else {
-		e = gf_sk_connect(ctx->sock_c.socket, url, port, ctx->ifce);
+		e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
 	}
 
 	if (str) str[0] = ':';

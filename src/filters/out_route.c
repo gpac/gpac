@@ -41,8 +41,8 @@ enum
 typedef struct
 {
 	char *dst, *ext, *mime, *ifce, *ip;
-	u32 carousel, first_port, bsid, mtu, splitlct, llmode, ttl;
-	Bool korean;
+	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
+	Bool korean, llmode, noreg;
 
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
@@ -71,6 +71,8 @@ typedef struct
 	u64 total_size, total_bytes;
 	Bool total_size_unknown;
 	u32 nb_resources;
+
+	Bool done;
 } GF_ROUTEOutCtx;
 
 typedef struct
@@ -97,7 +99,7 @@ typedef struct
 
 	//storage for main manifest - all manifests (including HLS sub-playlists) are sent in the same PID
 	//HLS sub-playlists are stored on their related PID to be pushed at each new seg
-	char *manifest, *manifest_name, *manifest_mime;
+	char *manifest, *manifest_name, *manifest_mime, *manifest_server, *manifest_url;
 	u32 manifest_version, manifest_crc;
 	Bool stsid_changed;
 	u32 stsid_version;
@@ -109,6 +111,7 @@ typedef struct
 
 	u64 last_stsid_clock;
 	u32 manifest_type;
+	u32 creation_time;
 } ROUTEService;
 
 typedef struct
@@ -156,8 +159,11 @@ typedef struct
 
 	u32 full_frame_size, cumulated_frag_size, frag_offset;
 	u32 frag_idx;
-	Bool push_init;
-	u64 clock_at_frame_start, cts_us_at_frame_start;
+	Bool push_init, force_tol_send;
+	u64 clock_at_frame_start, cts_us_at_frame_start, cts_at_frame_start;
+	u32 pck_dur_at_frame_start;
+
+	u32 bitrate;
 } ROUTEPid;
 
 
@@ -257,6 +263,9 @@ void routeout_remove_pid(ROUTEPid *rpid, Bool is_rem)
 	if (rpid->hld_child_pl_name) gf_free(rpid->hld_child_pl_name);
 	if (rpid->template) gf_free(rpid->template);
 	if (rpid->seg_name) gf_free(rpid->seg_name);
+
+	if (rpid->current_pck)
+		gf_filter_pck_unref(rpid->current_pck);
 	gf_free(rpid);
 }
 
@@ -278,6 +287,9 @@ void routeout_delete_service(ROUTEService *serv)
 
 	if (serv->manifest_mime) gf_free(serv->manifest_mime);
 	if (serv->manifest_name) gf_free(serv->manifest_name);
+	if (serv->manifest_server) gf_free(serv->manifest_server);
+	else if (serv->manifest_url) gf_free(serv->manifest_url);
+
 	if (serv->manifest) gf_free(serv->manifest);
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
 	gf_free(serv);
@@ -415,13 +427,19 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	rpid->mode = 1;
 	rpid->tsi = 0;
 	rpid->manifest_type = manifest_type;
-	if (manifest_type)
+	if (manifest_type) {
+		rserv->creation_time = gf_sys_clock();
 		gf_filter_pid_ignore_blocking(pid, GF_TRUE);
+	}
 
 	gf_list_add(rserv->pids, rpid);
 	gf_filter_pid_set_udta(pid, rpid);
 
 	rpid->rlct = rserv->rlct_base;
+
+	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_BITRATE);
+	if (p) rpid->bitrate = p->value.uint * (100+ctx->brinc) / 100;
+
 	stream_type = 0;
 	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 	if (!p) {
@@ -495,7 +513,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_send_event(pid, &evt);
 
 	rserv->wait_for_inputs = GF_TRUE;
-	//no support for entity mode yet, we deliver full segments
+	//low-latency mode, consume media segment files as they are received (don't wait for full segment reconstruction)
 	if (ctx->llmode && !rpid->manifest_type && !rpid->raw_file) {
 		gf_filter_pid_set_framing_mode(pid, GF_FALSE);
 	} else {
@@ -590,9 +608,6 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 
 	ctx->services = gf_list_new();
 
-	if (!ctx->ifce) {
-		ctx->ifce = gf_strdup("127.0.0.1");
-	}
 	if (is_atsc) {
 		ctx->sock_atsc_lls = gf_sk_new(GF_SOCK_TYPE_UDP);
 		gf_sk_setup_multicast(ctx->sock_atsc_lls, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 0, GF_FALSE, ctx->ifce);
@@ -628,6 +643,28 @@ static void routeout_finalize(GF_Filter *filter)
 	if (ctx->lct_buffer) gf_free(ctx->lct_buffer);
 	if (ctx->lls_slt_table) gf_free(ctx->lls_slt_table);
 	if (ctx->lls_time_table) gf_free(ctx->lls_time_table);
+}
+
+char *routeout_strip_base(ROUTEService *serv, char *url)
+{
+	u32 len;
+	if (!url) return NULL;
+	if (!serv->manifest_server && !serv->manifest_url)
+		return gf_strdup(url);
+
+	len = serv->manifest_server ? (u32) strlen(serv->manifest_server) : 0;
+	if (!len || !strncmp(url, serv->manifest_server, len)) {
+		url += len;
+		char *sep = len ? strchr(url, '/') : url;
+		if (sep) {
+			if (len) sep += 1;
+			len = (u32) strlen(serv->manifest_url);
+			if (!strncmp(sep, serv->manifest_url, len)) {
+				return gf_strdup(sep + len);
+			}
+		}
+	}
+	return gf_strdup(url);
 }
 
 #define MULTIPART_BOUNDARY	"_GPAC_BOUNDARY_ROUTE_.67706163_"
@@ -677,7 +714,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 						if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PCK_FILENAME);
 						if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
-						rpid->init_seg_name = p ? gf_strdup(p->value.string) : NULL;
+						rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
 					}
 					gf_filter_pid_drop_packet(rpid->pid);
 					continue;
@@ -757,7 +794,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 					if (!media_pid->hld_child_pl_name || strcmp(media_pid->hld_child_pl_name, file_name)) {
 						if (media_pid->hld_child_pl_name) gf_free(media_pid->init_seg_name);
-						media_pid->hld_child_pl_name = gf_strdup(file_name);
+						media_pid->hld_child_pl_name = routeout_strip_base(rpid->route, (char *)file_name);
 						serv->stsid_changed = GF_TRUE;
 					}
 				}
@@ -778,6 +815,25 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					serv->manifest_name = gf_strdup(file_name);
 					manifest_updated = GF_TRUE;
 
+					if (serv->manifest_server) gf_free(serv->manifest_server);
+					else if (serv->manifest_url) gf_free(serv->manifest_url);
+					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
+					serv->manifest_url = p ? gf_strdup(p->value.string) : NULL;
+					if (serv->manifest_url) {
+						char *sep = strstr(serv->manifest_url, file_name);
+						if (sep) sep[0] = 0;
+						sep = strstr(serv->manifest_url, "://");
+						if (sep) sep = strchr(sep + 4, '/');
+						if (sep) {
+							serv->manifest_server = serv->manifest_url;
+							serv->manifest_url = sep+1;
+							sep[0] = 0;
+							sep = strchr(serv->manifest_server + 8, ':');
+							if (sep) sep[0] = 0;
+						}
+					}
+
+
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MIME);
 					if (p) {
 						if (serv->manifest_mime) gf_free(serv->manifest_mime);
@@ -789,8 +845,15 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		}
 	}
 	//not ready, waiting for init
-	if ((nb_media+nb_raw_files==0) || (nb_media_init<nb_media) || (serv->manifest && !nb_media))
+	if ((nb_media+nb_raw_files==0) || (nb_media_init<nb_media) || (serv->manifest && !nb_media)) {
+		u32 now = gf_sys_clock() - serv->creation_time;
+		if (now > 5000) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] No media PIDs found for HAS service after %d ms, aborting !\n", now));
+			serv->is_done = GF_TRUE;
+			return GF_SERVICE_ERROR;
+		}
 		return GF_OK;
+	}
 
 	//not ready, waiting for manifest
 	if (!serv->manifest && !nb_raw_files) {
@@ -1160,7 +1223,10 @@ static void routeout_fetch_packet(GF_ROUTEOutCtx *ctx, ROUTEPid *rpid)
 {
 	const GF_PropertyValue *p;
 	Bool start, end;
+	u64 pck_dur;
 	u64 ts;
+	Bool has_ts;
+	Bool pck_dur_for_segment;
 
 retry:
 
@@ -1234,7 +1300,7 @@ retry:
 			rpid->init_seg_size = rpid->pck_size;
 			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENAME);
 			if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
-			rpid->init_seg_name = p ? gf_strdup(p->value.string) : NULL;
+			rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
 		}
 		gf_filter_pck_unref(rpid->current_pck);
 		rpid->current_pck = NULL;
@@ -1257,7 +1323,7 @@ retry:
 			if (!rpid->hld_child_pl_name || strcmp(rpid->hld_child_pl_name, p->value.string)) {
 				rpid->route->stsid_changed = GF_TRUE;
 				if (rpid->hld_child_pl_name) gf_free(rpid->hld_child_pl_name);
-				rpid->hld_child_pl_name = gf_strdup(p->value.string);
+				rpid->hld_child_pl_name = routeout_strip_base(rpid->route, p->value.string);
 			}
 		}
 		gf_filter_pck_unref(rpid->current_pck);
@@ -1357,11 +1423,58 @@ retry:
 		rpid->cumulated_frag_size += rpid->pck_size;
 		if (end) {
 			rpid->full_frame_size = rpid->cumulated_frag_size;
+			rpid->force_tol_send = GF_TRUE;
 		}
 	}
 
 
+	pck_dur = gf_filter_pck_get_duration(rpid->current_pck);
+	//check if duration is for the entire segment or this fragment (cf filemode in dmx_dash.c)
+	pck_dur_for_segment = GF_FALSE;
+	if (start) {
+		rpid->pck_dur_at_frame_start = 0;
+		if (gf_filter_pck_get_carousel_version(rpid->current_pck))
+			pck_dur_for_segment = GF_TRUE;
+	}
+
 	ts = gf_filter_pck_get_cts(rpid->current_pck);
+	has_ts = (ts==GF_FILTER_NO_TS) ? GF_FALSE : GF_TRUE;
+
+	if (
+		//no TS and not initial fragment, recomute timing and dur
+		(!start && !has_ts && rpid->bitrate && rpid->pck_dur_at_frame_start)
+		//has TS, initial fragment and duration for the entire segment, recompute dur only
+		|| (has_ts && start && !end && pck_dur && pck_dur_for_segment)
+	) {
+		u64 frag_time, tot_est_size;
+
+		//fragment start, store packed duration
+		if (has_ts) {
+			rpid->pck_dur_at_frame_start = pck_dur;
+		}
+		//compute estimated file size based on segment duration and rate, use 10% overhead
+		tot_est_size = rpid->bitrate;
+		tot_est_size *= rpid->pck_dur_at_frame_start;
+		tot_est_size /= rpid->timescale;
+		tot_est_size /= 8;
+
+		//our estimate was too small...
+		if (tot_est_size < rpid->cumulated_frag_size)
+			tot_est_size = rpid->cumulated_frag_size;
+
+		//compute timing proportional to packet duration, with ratio of current size / tot_est_size
+		pck_dur = rpid->pck_size * rpid->pck_dur_at_frame_start / tot_est_size;
+		if (!pck_dur) pck_dur = 1;
+
+		if (!has_ts) {
+			frag_time = (rpid->cumulated_frag_size-rpid->pck_size) *  rpid->pck_dur_at_frame_start / tot_est_size;
+			ts = rpid->cts_at_frame_start + frag_time;
+		} else {
+			frag_time = 0;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Missing timing for fragment %d of segment %s - timing estimated from bitrate: TS "LLU" ("LLU" in segment) dur "LLU"\n", rpid->frag_idx, rpid->seg_name, ts, frag_time, pck_dur));
+	}
+
 	if (ts!=GF_FILTER_NO_TS) {
 		u64 diff;
 		if (!rpid->clock_at_first_pck) {
@@ -1379,9 +1492,10 @@ retry:
 		if (start) {
 			rpid->clock_at_frame_start = ctx->clock;
 			rpid->cts_us_at_frame_start = rpid->current_cts_us;
+			rpid->cts_at_frame_start = ts;
 		}
 
-		rpid->current_dur_us = gf_filter_pck_get_duration(rpid->current_pck);
+		rpid->current_dur_us = pck_dur;
 		if (!rpid->current_dur_us) {
 			rpid->current_dur_us = rpid->timescale;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing duration on segment %s, something is wrong in demux chain, will not be able to regulate correctly\n", rpid->seg_name));
@@ -1394,6 +1508,7 @@ retry:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing timing on fragment %d of segment %s, using previous fragment timing CTS "LLU" duration "LLU" us\nSomething could be wrong in demux chain, will not be able to regulate correctly\n", rpid->frag_idx, rpid->seg_name, rpid->current_cts_us-rpid->clock_at_first_pck, rpid->current_dur_us));
 	}
 
+
 	rpid->res_size += rpid->pck_size;
 }
 
@@ -1401,10 +1516,12 @@ retry:
 static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 {
 	u32 i, count, nb_done;
+	GF_Err e;
 #if 0
 	Bool stsid_sent = GF_FALSE;
 #endif
-	routeout_check_service_updates(ctx, serv);
+
+	e = routeout_check_service_updates(ctx, serv);
 
 	if (serv->stsid_bundle) {
 		u64 diff = ctx->clock - serv->last_stsid_clock;
@@ -1421,7 +1538,7 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 		}
 	} else {
 		//not ready
-		return GF_OK;
+		return e;
 	}
 
 	nb_done = 0;
@@ -1491,7 +1608,7 @@ next_packet:
 				if (rpid->hld_child_pl) {
 					u32 hls_len = strlen(rpid->hld_child_pl);
 					offset = 0;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] SendingHLS sub playlist %s: \n%s\n", rpid->hld_child_pl_name, rpid->hld_child_pl));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sending HLS sub playlist %s: \n%s\n", rpid->hld_child_pl_name, rpid->hld_child_pl));
 
 					while (offset < hls_len) {
 						offset += routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, rpid->fmtp, (u8 *) rpid->hld_child_pl, hls_len, offset, serv->service_id, hls_len, offset);
@@ -1505,7 +1622,7 @@ next_packet:
 			}
 		}
 
-		while (rpid->pck_offset < rpid->pck_size) {
+		while ((rpid->pck_offset < rpid->pck_size) || rpid->force_tol_send) {
 			u32 sent;
 			//we have timing info, let's regulate
 			if (rpid->current_cts_us!=GF_FILTER_NO_TS) {
@@ -1517,16 +1634,19 @@ next_packet:
 
 				//send delay proportionnal to send progress - ultimately we should follow the frame timing, not the segment timing
 				//but for the time being we only push complete segments (no LL)
-				cur_time_us = rpid->pck_offset;
-				cur_time_us *= rpid->current_dur_us;
-				cur_time_us /= rpid->pck_size;
-				cur_time_us += rpid->current_cts_us;
+				//it may happen that pck_size is 0 (last_chunk=0) when we force sending a TOL
+				if (!ctx->noreg && rpid->pck_size) {
+					cur_time_us = rpid->pck_offset;
+					cur_time_us *= rpid->current_dur_us;
+					cur_time_us /= rpid->pck_size;
+					cur_time_us += rpid->current_cts_us;
 
-				if (cur_time_us > ctx->clock ) {
-					u64 next_sched = (cur_time_us - ctx->clock) / 2;
-					if (next_sched < ctx->reschedule_us)
-						ctx->reschedule_us = next_sched;
-					break;
+					if (cur_time_us > ctx->clock ) {
+						u64 next_sched = (cur_time_us - ctx->clock) / 2;
+						if (next_sched < ctx->reschedule_us)
+							ctx->reschedule_us = next_sched;
+						break;
+					}
 				}
 			}
 			sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, rpid->fmtp, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv->service_id, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset);
@@ -1534,6 +1654,7 @@ next_packet:
 			if (ctx->reporting_on) {
 				ctx->total_bytes += sent;
 			}
+			rpid->force_tol_send = GF_FALSE;
 		}
 		assert (rpid->pck_offset <= rpid->pck_size);
 
@@ -1546,9 +1667,15 @@ next_packet:
 			//print full object push info
 			if (rpid->full_frame_size && (gf_log_get_tool_level(GF_LOG_ROUTE)>=GF_LOG_INFO)) {
 				char szFInfo[1000], szSID[31];
-				u64 seg_clock;
-				u64 target_push_dur = rpid->current_dur_us + rpid->current_cts_us - rpid->cts_us_at_frame_start;
+				u64 seg_clock, target_push_dur;
 
+				if (rpid->pck_dur_at_frame_start) {
+					target_push_dur = rpid->pck_dur_at_frame_start;
+					target_push_dur *= 1000000;
+					target_push_dur /= rpid->timescale;
+				} else {
+					target_push_dur = rpid->current_dur_us + rpid->current_cts_us - rpid->cts_us_at_frame_start;
+				}
 				if (ctx->sock_atsc_lls) {
 					snprintf(szSID, 20, "Service%d ", serv->service_id);
 					szSID[30] = 0;
@@ -1565,12 +1692,27 @@ next_packet:
 
 				//real-time stream, check we are not out of sync
 				if (!rpid->raw_file) {
+					//clock time is the clock at first pck of first seg + cts_diff(cur_seg, first_seg)
 					seg_clock = rpid->cts_us_at_frame_start + target_push_dur;
 
+					//if segment clock time is greater than clock, we've been pushing too fast
 					if (seg_clock > ctx->clock) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Segment %s pushed too late by "LLU" us\n", rpid->seg_name, seg_clock - ctx->clock));
-					} else if (ctx->clock > 1000 + seg_clock) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Segment %s pushed early by "LLU" us\n", rpid->seg_name, ctx->clock - seg_clock));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Segment %s pushed early by "LLU" us\n", rpid->seg_name, seg_clock - ctx->clock));
+					}
+					//otherwise we've been pushing too slowly
+					else if (ctx->clock > 1000 + seg_clock) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Segment %s pushed too late by "LLU" us\n", rpid->seg_name, ctx->clock - seg_clock));
+					}
+
+					if (rpid->pck_dur_at_frame_start && ctx->llmode) {
+						u64 seg_rate = rpid->full_frame_size * 8;
+						seg_rate *= rpid->timescale;
+						seg_rate /= rpid->pck_dur_at_frame_start;
+
+						if (seg_rate > rpid->bitrate) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Segment %s rate "LLU" but stream rate "LLU", updating bitrate\n", rpid->seg_name, seg_rate, rpid->bitrate));
+							rpid->bitrate = seg_rate;
+						}
 					}
 				}
 			}
@@ -1736,19 +1878,37 @@ static GF_Err routeout_process(GF_Filter *filter)
 		ctx->nb_resources = 0;
 	}
 
+	if (ctx->runfor) {
+		if (ctx->clock - ctx->clock_init > ctx->runfor*1000) {
+			if (!ctx->done) {
+				ctx->done = GF_TRUE;
+				count = gf_filter_get_ipid_count(filter);
+				for (i=0; i<count; i++) {
+					GF_FilterEvent evt;
+					GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+					gf_filter_pid_send_event(pid, &evt);
+					gf_filter_pid_set_discard(pid, GF_TRUE);
+				}
+			}
+			return GF_EOS;
+		}
+	}
+
 	if (ctx->sock_atsc_lls)
 		routeout_send_lls(ctx);
 
 	count = gf_list_count(ctx->services);
 	for (i=0; i<count; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
-		e |= routeout_process_service(ctx, serv);
+		if (!serv->is_done)
+			e |= routeout_process_service(ctx, serv);
 		if (!serv->is_done)
 			all_serv_done = GF_FALSE;
 	}
 
 	if (all_serv_done) {
-		return GF_EOS;
+		return e ? e : GF_EOS;
 	}
 
 	if (ctx->clock - ctx->clock_stats >= 1000000) {
@@ -1815,7 +1975,7 @@ static Bool routeout_use_alias(GF_Filter *filter, const char *url, const char *m
 static const GF_FilterArgs ROUTEOutArgs[] =
 {
 	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(carousel), "carousel period in ms for repeating signaling and raw file data - see filter help", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -1830,7 +1990,11 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- all: all streams are in dedicated LCT channel, the first stream being used for STSID signaling"
 		, GF_PROP_UINT, "off", "off|type|all", 0},
 	{ OFFS(korean), "use korean version of ATSC 3.0 spec instead of US", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(llmode), "use low-latency mode (experimental, will soon be removed)", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(llmode), "use low-latency mode", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(brinc), "bitrate increase in percent when estimating timing in low latency mode - see filter help", GF_PROP_UINT, "10", NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(noreg), "disable rate regulation for media segments, pushing them as fast as received", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
+
+	{ OFFS(runfor), "run for the given time in ms", GF_PROP_UINT, "0", NULL, 0},
 	{0}
 };
 
@@ -1851,20 +2015,22 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- `atsc://`: session is a full ATSC 3.0 session\n"
 		"- `route://IP:port`: session is a ROUTE session running on given multicast IP and port\n"
 		"\n"
-		"The filter only accepts input PIDs of type `FILE`. A PID without `OrigStreamType` property set is delievered as a raw file.\n"
+		"The filter only accepts input PIDs of type `FILE`. A PID without `OrigStreamType` property set is delivered as a raw file.\n"
 		"For such PIDs, the filter will look for the following properties:\n"
 		"- `ROUTEName`: set resource name. If not found, uses basename of URL\n"
 		"- `ROUTECarousel`: set repeat period. If not found, uses [-carousel](). If 0, the file is only sent once\n"
 		"- `ROUTEUpload`: set resource upload time. If not found, uses [-carousel](). If 0, the file will be sent as fast as possible.\n"
 		"\n"
-		"For ROUTE or single service ATSC, a file extension, either in [-dst]() or in [-ext](), may be used to identify the HAS session type (DASH or HLS).\n"
+		"When DASHing for ROUTE or single service ATSC, a file extension, either in [-dst]() or in [-ext](), may be used to identify the HAS session type (DASH or HLS).\n"
 		"EX \"route://IP:PORT/manifest.mpd\", \"route://IP:PORT/:ext=mpd\"\n"
 		"\n"
-		"For multi-service ATSC, forcing an extension will force all service to use the same formats\n"
-		"EX \"atsc://ext=mpd\", \"route://IP:PORT/manifest.mpd\"\n"
+		"When DASHing for multi-service ATSC, forcing an extension will force all service to use the same formats\n"
+		"EX \"atsc://:ext=mpd\", \"route://IP:PORT/manifest.mpd\"\n"
 		"If multiple services with different formats are needed, you will need to explicit your filters:\n"
 		"EX gpac -i DASH_URL:#ServiceID=1 @ dashin:filemode:FID=1 -i HLS_URL:#ServiceID=2 @ dashin:filemode:FID=2 -o atsc://:SID=1,2\n"
 		"EX gpac -i MOVIE1:#ServiceID=1 @ dasher:FID=1:mname=manifest.mpd -i MOVIE2:#ServiceID=2 @ dasher:FID=2:mname=manifest.m3u8 -o atsc://:SID=1,2\n"
+		"\n"
+		"Warning: When forwarding an existing DASH/HLS session, do NOT set any extension or manifest name.\n"
 		"\n"
 		"By default, all streams in a service are assigned to a single route session, and differentiated by ROUTE TSI (see [-splitltc]()).\n"
 		"TSI are assigned as follows:\n"
@@ -1883,17 +2049,23 @@ GF_FilterRegister ROUTEOutRegister = {
 		"Note: [-ip]() is ignored, and [-first_port]() is used if no port is specified in [-dst]().\n"
 		"The ROUTE session will include a multi-part MIME unsigned package containing manifest and S-TSID, sent on TSI=0.\n"
 		"\n"
-		"# Examples (to be refined!)\n"
-		"Since the ROUTE filter only consummes files, it is needed to insert:\n"
+		"# Low latency mode\n"
+		"When using low-latency mode, the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
+		"In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.\n"
+		"If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by [-brinc]() percent for safety.\n"
+		"If this fails, the muxer will trigger warnings and send as fast as possible.\n"
+		"\n"
+		"# Examples\n"
+		"Since the ROUTE filter only consummes files, it is required to insert:\n"
 		"- the dash demuxer in filemode when loading a DASH session\n"
 		"- the dash muxer when creating a DASH session\n"
 		"\n"
 		"Muxing an existing DASH session in route:\n"
-		"EX gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/:ext=mpd\n"
+		"EX gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/\n"
 		"Muxing an existing DASH session in atsc:\n"
-		"EX gpac -i source.mpd dashin:filemode @ -o atsc://:ext=mpd\n"
+		"EX gpac -i source.mpd dashin:filemode @ -o atsc://\n"
 		"Dashing and muxing in route:\n"
-		"EX gpac -i source.mp4 dasher @ -o route://225.1.1.0:6000/manifest.mpd:profile=live\n"
+		"EX gpac -i source.mp4 dasher:profile=live @ -o route://225.1.1.0:6000/manifest.mpd\n"
 		"Dashing and muxing in route Low Latency (experimental):\n"
 		"EX gpac -i source.mp4 dasher @ -o route://225.1.1.0:6000/manifest.mpd:profile=live:cdur=0.2:llmode\n"
 		"\n"
@@ -1904,9 +2076,10 @@ GF_FilterRegister ROUTEOutRegister = {
 		"EX gpac -i source.mpd -o route://225.1.1.0:6000/\n"
 		"This will only send the manifest file as a regular object and will not load the dash session.\n"
 		"EX gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/\n"
-		"This will load the dash session, and instantiate a muxer of the same format as the dash input to create a single file sent to ROUTE\n"
 		"EX gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/manifest.mpd\n"
-		"This will load the dash session, and instantiate a new dasher filter (hence a new DASH manifest), sending the output of the DASHER to ROUTE\n"
+		"These will load the dash session, instantiate a new dasher filter (hence a new DASH manifest), sending the output of the dasher to ROUTE\n"
+		"EX gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/manifest.mpd\n"
+		"This will force the ROUTE muxer to only accept .mpd files, and will drop all segment files (same if [-ext]() is used).\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),
 	.max_extra_pids = -1,

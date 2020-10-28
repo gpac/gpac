@@ -90,9 +90,8 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 #endif
 
 	} else {
-		char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
+		char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH], szFileName[GF_MAX_PATH];
 		Bool append = ctx->append;
-		Bool check_templates = GF_FALSE;
 		const char *url = filename;
 
 		if (!strncmp(filename, "gfio://", 7))
@@ -109,26 +108,21 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		} else {
 			strcpy(szFinalName, url);
 		}
-		if (ctx->dst && !strcmp(filename, ctx->dst)) {
-			strcpy(szName, szFinalName);
-			check_templates = GF_TRUE;
-		} else if (ctx->use_templates) {
-			char *basename = ctx->dst ? gf_file_basename(ctx->dst) : NULL;
-			if (basename && (basename == ctx->dst)) {
-				strcpy(szName, szFinalName);
-			} else {
-				strcpy(szName, ctx->dst);
-				basename = gf_file_basename(szName);
-				if (basename) basename[0] = 0;
-				strcat(szName, szFinalName);
-			}
-		} else {
-			strcpy(szName, szFinalName);
-		}
 
-		gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
-		if (check_templates && strcmp(szName, szFinalName))
-			ctx->use_templates = GF_TRUE;
+		if (ctx->use_templates) {
+			GF_Err e;
+			if (ctx->dst && !strcmp(filename, ctx->dst)) {
+				strcpy(szName, szFinalName);
+				e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
+			} else {
+				strcpy(szFileName, szFinalName);
+				strcpy(szName, ctx->dst);
+				e = gf_filter_pid_resolve_file_template_ex(ctx->pid, szName, szFinalName, file_idx, file_suffix, szFileName);
+			}
+			if (e) {
+				return ctx->is_error = e;
+			}
+		}
 
 		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
@@ -235,7 +229,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 static GF_Err fileout_initialize(GF_Filter *filter)
 {
-	char *ext=NULL;
+	char *ext=NULL, *sep;
 	const char *dst;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
@@ -270,6 +264,12 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		ctx->original_url = ctx->dst;
 	} else {
 		dst = ctx->dst;
+	}
+
+	sep = strchr(dst, '$');
+	if (sep) {
+		sep = strchr(sep+1, '$');
+		if (sep) ctx->use_templates = GF_TRUE;
 	}
 
 	if (ctx->dynext) return GF_OK;

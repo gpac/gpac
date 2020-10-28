@@ -880,7 +880,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 
 		if (!total_len) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u started without total-length assigned !\n", s->service_id, tsi, toi ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u started without total-length assigned !\n", s->service_id, tsi, toi ));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d starting object TSI %u TOI %u total-length %d\n", s->service_id, tsi, toi, total_len));
 
@@ -888,7 +888,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->download_time_ms = gf_sys_clock();
 		gf_list_add(s->objects, obj);
 	} else if (!obj->total_length && total_len) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, tsi, toi, total_len));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, tsi, toi, total_len));
 		obj->total_length = total_len;
 	} else if (total_len && (obj->total_length != total_len)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u mismatch in total-length %u  assigned, %u redeclared\n", s->service_id, tsi, toi, obj->total_length, total_len));
@@ -952,14 +952,16 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u already received - skipping\n", s->service_id, tsi, toi ));
 		return GF_EOS;
 	}
-	obj->nb_recv_bytes += size;
 	obj->last_gather_time = gf_sys_clock();
+
+	if (!size)
+		goto check_done;
+	obj->nb_recv_bytes += size;
 
 	inserted = GF_FALSE;
 	for (i=0; i<obj->nb_frags; i++) {
 		if ((obj->frags[i].offset <= start_offset) && (obj->frags[i].offset + obj->frags[i].size >= start_offset + size) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d LCT fragment already received\n", s->service_id));
-			return GF_OK;
+			goto check_done;
 		}
 
 		//insert fragment
@@ -1025,6 +1027,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	assert(obj->toi == toi);
 	assert(obj->tsi == tsi);
 
+check_done:
 	//check if we are done
 	done = GF_FALSE;
 	if (obj->total_length) {
@@ -1301,7 +1304,9 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			if (!file_template) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d missing file TOI template in LS/ROUTE session, static content only\n", s->service_id));
 			} else {
-				sep = strstr(file_template, "$TOI$");
+				sep = strstr(file_template, "$TOI");
+				if (sep) sep = strchr(sep+3, '$');
+
 				if (!sep) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI template %s in LS/ROUTE session\n", s->service_id, file_template));
 					gf_route_static_files_del(static_files);
@@ -1318,12 +1323,23 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			}
 			rlct->static_files = static_files;
 			rlct->tsi = tsi;
-			rlct->toi_template = gf_strdup(file_template);
-			sep = strstr(rlct->toi_template, "$TOI$");
+			rlct->toi_template = NULL;
+			sep = strstr(file_template, "$TOI");
 			sep[0] = 0;
-			strcat(rlct->toi_template, "%d");
-			sep = strstr(file_template, "$TOI$");
-			strcat(rlct->toi_template, sep+5);
+			gf_dynstrcat(&rlct->toi_template, file_template, NULL);
+			sep[0] = '$';
+
+			if (sep[4]=='$') {
+				gf_dynstrcat(&rlct->toi_template, "%d", NULL);
+				sep += 5;
+			} else {
+				char *sep_end = strchr(sep+3, '$');
+				sep_end[0] = 0;
+				gf_dynstrcat(&rlct->toi_template, sep+4, NULL);
+				sep_end[0] = '$';
+				sep = sep_end + 1;
+			}
+			gf_dynstrcat(&rlct->toi_template, sep, NULL);
 
 			//fill in payloads
 			k=0;
@@ -1915,7 +1931,7 @@ void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, c
 				return;
 			}
 		}
-		else if (obj->rlct && obj->rlct_file->filename && !strcmp(fileName, obj->rlct_file->filename)) {
+		else if (obj->rlct && obj->rlct_file && obj->rlct_file->filename && !strcmp(fileName, obj->rlct_file->filename)) {
 			gf_route_obj_to_reservoir(routedmx, s, obj);
 			return;
 		}
