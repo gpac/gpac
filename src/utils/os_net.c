@@ -1719,7 +1719,14 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 	}
 #endif
 	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK);
-	if (res == 0) {
+	if (res > 0) return GF_OK;
+	res = LASTSOCKERROR;
+	switch (res) {
+	case 0:
+	case EAGAIN:
+		return GF_IP_NETWORK_EMPTY;
+	default:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] probe error: %s\n", gf_errno_str(res)));
 		return GF_IP_CONNECTION_CLOSED;
 	}
 	return GF_OK;
