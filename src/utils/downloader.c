@@ -970,7 +970,8 @@ Bool gf_dm_is_thread_dead(GF_DownloadSession *sess)
 GF_EXPORT
 GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
 {
-	if (!sess) return GF_BAD_PARAM;
+	if (!sess)
+		return GF_BAD_PARAM;
 	return sess->last_error;
 }
 
@@ -1184,7 +1185,8 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	Bool socket_changed = GF_FALSE;
 	GF_URL_Info info;
 	char *sep_frag=NULL;
-	if (!url) return GF_BAD_PARAM;
+	if (!url)
+		return GF_BAD_PARAM;
 
 	gf_dm_clear_headers(sess);
 	sess->allow_direct_reuse = allow_direct_reuse;
@@ -1894,7 +1896,8 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
 GF_EXPORT
 GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache)
 {
-	if (!sess) return GF_BAD_PARAM;
+	if (!sess)
+		return GF_BAD_PARAM;
 	if (sess->cache_entry) {
 		if (!discontinue_cache) {
 			if (gf_cache_get_end_range(sess->cache_entry) + 1 != start_range)
@@ -2591,12 +2594,14 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		}
 		return GF_BAD_PARAM;
 	}
-	if (sess->th) return GF_BAD_PARAM;
+	if (sess->th)
+		return GF_BAD_PARAM;
 	if (sess->status == GF_NETIO_DISCONNECTED) {
 		if (!sess->init_data_size)
 			return GF_EOS;
 	}
-	else if (sess->status > GF_NETIO_DATA_TRANSFERED) return GF_BAD_PARAM;
+	else if (sess->status > GF_NETIO_DATA_TRANSFERED)
+		return GF_BAD_PARAM;
 
 	*read_size = 0;
 	if (sess->status == GF_NETIO_DATA_TRANSFERED) {
@@ -2637,6 +2642,43 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			return GF_IP_NETWORK_EMPTY;
 		}
 
+#if 1
+		*read_size = 0;
+		u32 nb_read = 0;
+		//perform a loop, mostly for chunk-tranfer mode where a server may push a lot of small TCP frames,
+		//we want to flush everything as fast as possible
+		while (1) {
+			u32 single_read = 0;
+
+			if (sess->remaining_data && sess->remaining_data_size) {
+				if (nb_read + sess->remaining_data_size >= buffer_size) {
+					if (!nb_read) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] No HTTP chunk header found for %d bytes, assuming broken chunk transfer and aborting\n", sess->remaining_data_size));
+						return GF_NON_COMPLIANT_BITSTREAM;
+					}
+					break;
+				}
+				memcpy(buffer + nb_read, sess->remaining_data, sess->remaining_data_size);
+			}
+
+			e = gf_dm_read_data(sess, buffer + nb_read + sess->remaining_data_size, buffer_size - sess->remaining_data_size - nb_read, &single_read);
+			if (e<0)
+				break;
+
+			size = sess->remaining_data_size + single_read;
+			sess->remaining_data_size = 0;
+			single_read = 0;
+			gf_dm_data_received(sess, (u8 *) buffer + nb_read, size, GF_FALSE, &single_read, buffer);
+			if (!sess->chunked)
+				single_read = size;
+
+			nb_read += single_read;
+		}
+		*read_size = nb_read;
+		//we had data but last call to gf_dm_read_data may have returned network empty
+		if (nb_read && (e<0))
+			e = GF_OK;
+#else
 		if (sess->remaining_data && sess->remaining_data_size) {
 			if (sess->remaining_data_size >= buffer_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] No HTTP chunk header found for %d bytes, assuming broken chunk transfer and aborting\n", sess->remaining_data_size));
@@ -2654,6 +2696,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			if (!sess->chunked)
 				*read_size = size;
 		}
+#endif
+
 	}
 
 	if (sess->server_mode && (sess->status == GF_NETIO_DATA_EXCHANGE)) {
@@ -2666,7 +2710,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 GF_EXPORT
 GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u64 *total_size, u64 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status)
 {
-	if (!sess) return GF_BAD_PARAM;
+	if (!sess)
+		return GF_BAD_PARAM;
 	if (server) *server = sess->server_name;
 	if (path) *path = sess->remote_path;
 	if (total_size) {
@@ -4059,7 +4104,8 @@ u32 gf_dm_sess_get_status(GF_DownloadSession *dnload)
  */
 GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 {
-	if (!sess) return GF_BAD_PARAM;
+	if (!sess)
+		return GF_BAD_PARAM;
 	sess->status = GF_NETIO_SETUP;
 	sess->needs_range = GF_FALSE;
 	sess->range_start = sess->range_end = 0;
@@ -4185,7 +4231,8 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk)
 {
 	/*shall only be called for non-threaded sessions!! */
-	if (sess->th) return GF_BAD_PARAM;
+	if (sess->th)
+		return GF_BAD_PARAM;
 
 	if (flags == 0xFFFFFFFF) {
 		sess->user_proc = user_io;
@@ -4284,7 +4331,8 @@ GF_EXPORT
 GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val)
 {
 	GF_HTTPHeader *hdr;
-	if( !sess || !idx || !hdr_name || !hdr_val) return GF_BAD_PARAM;
+	if( !sess || !idx || !hdr_name || !hdr_val)
+		return GF_BAD_PARAM;
 	hdr = gf_list_get(sess->headers, *idx);
 	if (!hdr) return GF_EOS;
 	(*idx) = (*idx) + 1;
@@ -4296,7 +4344,8 @@ GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **
 GF_EXPORT
 GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_hdr_size, u32 *rsp_hdr_size, u32 *connect_time, u32 *reply_time, u32 *download_time)
 {
-	if (!sess) return GF_BAD_PARAM;
+	if (!sess)
+		return GF_BAD_PARAM;
 
 	if (req_hdr_size) *req_hdr_size = sess->req_hdr_size;
 	if (rsp_hdr_size) *rsp_hdr_size = sess->rsp_hdr_size;
@@ -4316,7 +4365,8 @@ void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess)
 GF_EXPORT
 GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool is_cache_destroy), void *lc_udta)
 {
-	if (!dm) return GF_BAD_PARAM;
+	if (!dm)
+		return GF_BAD_PARAM;
 	dm->local_cache_url_provider_cbk = local_cache_url_provider_cbk;
 	dm->lc_udta = lc_udta;
 	return GF_OK;
@@ -4367,7 +4417,8 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 {
 	u32 i, count;
 	Bool res;
-	if (!entry) return GF_BAD_PARAM;
+	if (!entry)
+		return GF_BAD_PARAM;
 	gf_mx_p(dm->cache_mx);
 	res = gf_cache_set_headers(entry, headers);
 	count = gf_list_count(dm->sessions);
@@ -4396,7 +4447,8 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 #endif
 
 	gf_mx_v(dm->cache_mx);
-	return res ? GF_OK : GF_BAD_PARAM;
+	if (res) return GF_OK;
+	return GF_BAD_PARAM;
 }
 
 GF_EXPORT
