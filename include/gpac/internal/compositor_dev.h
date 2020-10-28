@@ -2133,7 +2133,7 @@ struct _od_manager
 	u32 timeshift_depth;
 
 	u32 action_type;
-	s32 delay;
+	s64 delay;
 	
 	Fixed set_speed;
 	Bool disable_buffer_at_next_play;

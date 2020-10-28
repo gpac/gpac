@@ -165,7 +165,7 @@ typedef struct
 	GF_TSMuxCtx *ctx;
 	u32 last_cv;
 	//ts media skip
-	s32 media_delay, max_media_skip;
+	s64 media_delay, max_media_skip;
 	Bool done;
 
 	GF_List *temi_descs;
@@ -1056,7 +1056,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (p) {
-		tspid->media_delay = p->value.sint;
+		tspid->media_delay = p->value.longsint;
 
 		//compute max ts skip for this program
 		s64 max_media_skip = 0;
@@ -1064,7 +1064,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ts_stream = prog->streams;
 		while (ts_stream) {
 			M2Pid *atspid = ts_stream->ifce->input_udta;
-			s64 media_skip = (s64) -atspid->media_delay;
+			s64 media_skip = -atspid->media_delay;
 			if (media_skip  > max_media_skip) {
 				max_media_skip = media_skip ;
 				max_skip_ts = atspid->esi.timescale;

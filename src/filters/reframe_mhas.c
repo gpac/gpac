@@ -669,7 +669,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 							offset *= ctx->timescale;
 							offset /= ctx->sample_rate;
 						}
-						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY , &PROP_SINT( (s32) -offset));
+						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY , &PROP_LONGSINT( -offset));
 					}
 				} else {
 					pck_dur -= nb_trunc_samples;

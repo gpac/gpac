@@ -825,9 +825,10 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 		if (p && avst->r_frame_rate.num && avst->r_frame_rate.den) {
-			avst->codecpar->video_delay = p->value.sint;
-			avst->codecpar->video_delay *= avst->r_frame_rate.num;
-			avst->codecpar->video_delay /= avst->r_frame_rate.den;
+			s64 delay = p->value.longsint;
+			delay *= avst->r_frame_rate.num;
+			delay /= avst->r_frame_rate.den;
+			avst->codecpar->video_delay = (s32) delay;
 		}
 
 	}
@@ -858,11 +859,12 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 		if (p && (p->value.sint<0) && samplerate) {
-			avst->codecpar->initial_padding = p->value.sint;
+			s64 pad = p->value.longsint;
 			if (st->in_scale.den != samplerate) {
-				avst->codecpar->initial_padding *= samplerate;
-				avst->codecpar->initial_padding /= st->in_scale.den;
+				pad *= samplerate;
+				pad /= st->in_scale.den;
 			}
+			avst->codecpar->initial_padding = (s32) pad;
 		}
 		/*
 		//not mapped in gpac

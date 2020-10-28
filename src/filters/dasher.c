@@ -274,7 +274,7 @@ typedef struct _dash_stream
 	Bool rep_init;
 	u64 first_cts;
 	u64 first_dts;
-	s32 pts_minus_cts;
+	s64 pts_minus_cts;
 	Bool is_encrypted;
 
 	//target MPD timescale
@@ -6029,7 +6029,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					break;
 				}
 				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
-				if (p) ds->pts_minus_cts = p->value.sint;
+				if (p) ds->pts_minus_cts = p->value.longsint;
 
 				set_start_with_sap = ctx->sseg ? base_ds->set->subsegment_starts_with_sap : base_ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
