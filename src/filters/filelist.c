@@ -275,15 +275,6 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	iopid->timescale = gf_filter_pid_get_timescale(pid);
 	if (!iopid->timescale) iopid->timescale = 1000;
 
-#if 0
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-	if (p) {
-		s64 delay = p->value.sint;
-		delay *= iopid->timescale;
-		delay /= iopid->o_timescale;
-	}
-#endif
-
 	if (ctx->frag_url)
 		gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_ORIG_FRAG_URL, &PROP_NAME(ctx->frag_url) );
 

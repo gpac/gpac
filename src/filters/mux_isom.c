@@ -2796,16 +2796,16 @@ sample_entry_done:
 		}
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DELAY);
 		if (p) {
-			if (p->value.sint < 0) {
+			if (p->value.longsint < 0) {
 				if (ctx->ctmode==MP4MX_CT_NEGCTTS) use_negccts = GF_TRUE;
 				else {
 					if (remove_edits) {
 						gf_isom_remove_edits(ctx->file, tkw->track_num);
 					}
-					gf_isom_set_edit(ctx->file, tkw->track_num, 0, 0, -p->value.sint, GF_ISOM_EDIT_NORMAL);
+					gf_isom_set_edit(ctx->file, tkw->track_num, 0, 0, -p->value.longsint, GF_ISOM_EDIT_NORMAL);
 				}
-			} else if (p->value.sint > 0) {
-				s64 dur = p->value.sint;
+			} else if (p->value.longsint > 0) {
+				s64 dur = p->value.longsint;
 				dur *= (u32) ctx->moovts;
 				dur /= tkw->src_timescale;
 				if (remove_edits) {

@@ -82,7 +82,7 @@ typedef struct
 	u64 sap_ts_plus_one;
 	Bool first_pck_sent;
 
-	u32 tk_delay;
+	u64 tk_delay;
 	Bool in_eos;
 	u32 split_start;
 	u32 split_end;
@@ -218,12 +218,12 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (p) {
 		//delay negative is skip: this is CTS adjustment for B-frames: we keep that notif in the stream
-		if (p->value.sint<0) {
+		if (p->value.longsint<0) {
 			st->tk_delay = 0;
 		}
 		//delay positive is delay, we keep the value for RT regulation and range
 		else {
-			st->tk_delay = (u32) p->value.sint;
+			st->tk_delay = (u64) p->value.longsint;
 			//if range processing, we drop frames not in the target playback range so do not forward delay
 			if (ctx->range_type) {
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, NULL);
@@ -1429,8 +1429,8 @@ GF_Err reframer_process(GF_Filter *filter)
 								&& ctx->splitrange
 								&& (ctx->cur_range_idx>1)
 							) {
-								s32 delay = (s32) ((s64) ots - (s64) orig);
-								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_SINT(delay) );
+								s64 delay = (s64) ots - (s64) orig;
+								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_LONGSINT(delay) );
 							}
 							start_found = GF_TRUE;
 							break;

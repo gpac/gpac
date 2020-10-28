@@ -98,7 +98,7 @@ typedef struct _gf_ffenc_ctx
 
 	//shift of TS - ffmpeg may give pkt-> PTS < frame->PTS to indicate discard samples
 	//we convert back to frame PTS but signal discard samples at the PID level
-	s32 ts_shift;
+	s64 ts_shift;
 
 	GF_List *src_packets;
 
@@ -441,14 +441,13 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		ctx->init_cts_setup = GF_FALSE;
 		if (ctx->frame->pts != pkt.pts) {
 			//check shift in PTS
-			ctx->ts_shift = (s32) ( (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.pts );
+			ctx->ts_shift = (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.pts;
 
 			//check shift in DTS
-			ctx->ts_shift += (s32) ( (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.dts );
+			ctx->ts_shift += (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.dts;
 		}
 		if (ctx->ts_shift) {
-			s64 shift = ctx->ts_shift;
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) shift) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( ctx->ts_shift ) );
 		}
 	}
 
@@ -796,11 +795,10 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (ctx->init_cts_setup) {
 		ctx->init_cts_setup = GF_FALSE;
 		if (ctx->frame->pts != pkt.pts) {
-			ctx->ts_shift = (s32) ( (s64) ctx->frame->pts - (s64) pkt.pts );
+			ctx->ts_shift = (s64) ctx->frame->pts - (s64) pkt.pts;
 		}
 //		if (ctx->ts_shift) {
-//			s64 shift = ctx->ts_shift;
-//			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) -shift) );
+//			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT( - ctx->ts_shift) );
 //		}
 	}
 

@@ -85,7 +85,7 @@ typedef struct
 	GF_HEVCConfig *hvcc;
 	u32 rtp_ts_offset;
 
-	s32 ts_delay;
+	s64 ts_delay;
 	Bool bye_sent;
 
 	/*RTSP state*/

@@ -57,7 +57,7 @@ typedef struct
 	Bool is_eos;
 	Bool first_write_done;
 
-	s32 pid_delay;
+	s64 pid_delay;
 
 	Bool buffer_done, no_buffering;
 	u64 hwdelay_us, totaldelay_us;
@@ -429,7 +429,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) aout_set_priority(ctx, p->value.uint);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-	ctx->pid_delay = p ? p->value.sint : 0;
+	ctx->pid_delay = p ? p->value.longsint : 0;
 
 	ctx->needs_recfg = GF_TRUE;
 	

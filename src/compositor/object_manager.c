@@ -677,7 +677,7 @@ clock_setup:
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (prop) {
-		odm->delay = prop->value.sint;
+		odm->delay = prop->value.longsint;
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		if (prop) {
 			odm->delay *= 1000;

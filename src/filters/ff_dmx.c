@@ -365,7 +365,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ctx->demuxer->duration, AV_TIME_BASE) );
 
 			if (stream->first_dts<0)
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) stream->first_dts) );
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( stream->first_dts) );
 		}
 
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)

@@ -641,7 +641,7 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		if (!ch->has_edit_list && ch->ts_offset) {
 			//if >0 this is a hold, we signal positive delay
 			//if <0 this is a skip, we signal negative delay
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_SINT((s32) ch->ts_offset) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( ch->ts_offset) );
 		}
 	} else
 		ch->has_edit_list = GF_FALSE;

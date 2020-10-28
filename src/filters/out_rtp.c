@@ -479,7 +479,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	}
 
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DELAY);
-	stream->ts_delay = p ? p->value.sint : 0;
+	stream->ts_delay = p ? p->value.longsint : 0;
 
 	payt++;
 	stream->microsec_ts_scale_frac.num = 1000000;

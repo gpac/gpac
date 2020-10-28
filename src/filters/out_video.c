@@ -139,7 +139,7 @@ typedef struct
 	Bool force_release;
 	GF_FilterPacket *last_pck;
 
-	s32 pid_delay;
+	s64 pid_delay;
 	Bool buffer_done;
 	Bool no_buffering;
 	Bool dump_done;
@@ -326,7 +326,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p && p->value.frac.den && p->value.frac.num) ctx->sar = p->value.frac;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-	ctx->pid_delay = p ? p->value.sint : 0;
+	ctx->pid_delay = p ? p->value.longsint : 0;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAY_BUFFER);
 	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;

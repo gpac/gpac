@@ -714,7 +714,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						if (!st->recomputed_ts) {
 							//compat with old arch (keep same hashes), to remove once droping it
 							if (!gf_sys_old_arch_compat()) {
-								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_SINT((s32)-st->opus_parser->PreSkip));
+								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -st->opus_parser->PreSkip));
 							}
 						}
 					}
