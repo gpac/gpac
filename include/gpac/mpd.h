@@ -612,8 +612,8 @@ typedef struct
 {
 	/*! inherits common attributes*/
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
-	/*! ID of this set*/
-	u32 id;
+	/*! ID of this set, -1 if not set*/
+	s32 id;
 	/*! group ID for this set, default value is -1: not set in MPD*/
 	s32 group;
 	/*! language*/

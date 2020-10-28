@@ -68,6 +68,7 @@ typedef struct
 	Bool is_end;
 	u64 nb_read, file_size;
 	FILE *cached;
+	u32 blob_size;
 
 	Bool do_reconfigure;
 	Bool full_file_only;
@@ -164,7 +165,6 @@ static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->pck_out==HTTP_PCK_OUT_EOS) {
-		assert(ctx->is_end);
 		gf_filter_pid_set_eos(ctx->pid);
 	}
 	ctx->pck_out = HTTP_PCK_NONE;
@@ -247,6 +247,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		if (ctx->cached) gf_fclose(ctx->cached);
 		ctx->cached = NULL;
+		ctx->blob_size = 0;
 
 		//handle isobmff:// url
 		if (!strncmp(ctx->src, "isobmff://", 10)) {
@@ -290,7 +291,9 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		if (!e) e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
+			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
+			//but recovered later, so we let DASH report the error
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
 			httpin_notify_error(filter, ctx, e);
 			ctx->is_end = GF_TRUE;
 			if (ctx->src) gf_free(ctx->src);
@@ -368,7 +371,29 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 		nb_read = (u32) gf_fread(ctx->block, to_read, ctx->cached);
 		bytes_per_sec = 0;
+	}
+	else if (ctx->blob_size) {
+		u8 *b_data;
+		u32 b_size;
+		const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
+		assert(cached);
 
+		gf_blob_get_data(cached, &b_data, &b_size);
+		assert(ctx->nb_read <= b_size);
+		nb_read = b_size - (u32) ctx->nb_read;
+		if (nb_read>ctx->block_size)
+			nb_read = ctx->block_size;
+
+		if (nb_read) {
+			memcpy(ctx->block, b_data + ctx->nb_read, nb_read);
+			e = GF_OK;
+		} else {
+			if (b_size == ctx->blob_size) {
+				e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
+			} else {
+				ctx->blob_size = b_size;
+			}
+		}
 	}
 	//we read from network
 	else {
@@ -400,23 +425,37 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 		if (!ctx->pid || ctx->do_reconfigure) {
 			u32 idx;
+			GF_Err cfg_e;
 			const char *hname, *hval;
 			const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
 
 			ctx->do_reconfigure = GF_FALSE;
 
-			if ((e==GF_EOS) && cached && strnicmp(cached, "gmem://", 7)) {
-				ctx->cached = gf_fopen(cached, "rb");
-				if (ctx->cached) {
-					nb_read = (u32) gf_fread(ctx->block, ctx->block_size, ctx->cached);
+			if ((e==GF_EOS) && cached) {
+				if (!strnicmp(cached, "gmem://", 7)) {
+					u8 *b_data;
+					u32 b_size;
+					gf_blob_get_data(cached, &b_data, &b_size);
+					if (b_size>ctx->block_size) {
+						ctx->blob_size = b_size;
+						b_size = ctx->block_size;
+						e = GF_OK;
+					}
+					memcpy(ctx->block, b_data, b_size);
+					nb_read = b_size;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Failed to open cached file %s\n", cached));
+					ctx->cached = gf_fopen(cached, "rb");
+					if (ctx->cached) {
+						nb_read = (u32) gf_fread(ctx->block, ctx->block_size, ctx->cached);
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Failed to open cached file %s\n", cached));
+					}
 				}
 			}
 			ctx->file_size = total_size;
 			ctx->block[nb_read] = 0;
-			e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, ctx->mime ? GF_TRUE : GF_FALSE, &ctx->pid);
-			if (e) return e;
+			cfg_e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, ctx->mime ? GF_TRUE : GF_FALSE, &ctx->pid);
+			if (cfg_e) return cfg_e;
 
 			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );
 

@@ -6530,7 +6530,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 
 
 GF_EXPORT
-GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix)
+GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix, const char *filename)
 {
 	u32 k;
 	char szFormat[30], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
@@ -6594,15 +6594,18 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			value = file_idx;
 			has_val = GF_TRUE;
 		} else if (!strcmp(name, "URL")) {
-			prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
+			if (!filename)
+				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "File")) {
-			prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEPATH);
-			if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
-			if (!prop_val && pid->pid->name) {
-				prop_val_patched.type = GF_PROP_STRING;
-				prop_val_patched.value.string = pid->pid->name;
-				prop_val = &prop_val_patched;
+			if (!filename) {
+				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEPATH);
+				if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
+				if (!prop_val && pid->pid->name) {
+					prop_val_patched.type = GF_PROP_STRING;
+					prop_val_patched.value.string = pid->pid->name;
+					prop_val = &prop_val_patched;
+				}
 			}
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "PID")) {
@@ -6731,6 +6734,8 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 			} else {
 				str_val = gf_props_dump_val(prop_val, szPropVal, GF_PROP_DUMP_DATA_NONE, NULL);
 			}
+		} else if (is_file_str) {
+			str_val = filename;
 		}
 		szTemplateVal[0]=0;
 		if (has_val) {
@@ -6743,18 +6748,22 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 				if (!strncmp(str_val, "gfio://", 7))
 					str_val = gf_fileio_translate_url(str_val);
 
-				sname = strrchr(str_val, '/');
-				if (!sname) sname = strrchr(str_val, '\\');
-				if (!sname) sname = (char *) str_val;
-				else sname++;
-				ext = strrchr(str_val, '.');
-
-				if (ext) {
-					u32 len = (u32) (ext - sname);
-					strncpy(szTemplateVal, sname, ext - sname);
-					szTemplateVal[len] = 0;
+				if (filename) {
+					strcpy(szTemplateVal, filename);
 				} else {
-					strcpy(szTemplateVal, sname);
+					sname = strrchr(str_val, '/');
+					if (!sname) sname = strrchr(str_val, '\\');
+					if (!sname) sname = (char *) str_val;
+					else sname++;
+					ext = strrchr(str_val, '.');
+
+					if (ext) {
+						u32 len = (u32) (ext - sname);
+						strncpy(szTemplateVal, sname, ext - sname);
+						szTemplateVal[len] = 0;
+					} else {
+						strcpy(szTemplateVal, sname);
+					}
 				}
 			} else {
 				strcpy(szTemplateVal, str_val);
@@ -6777,6 +6786,12 @@ GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF
 	}
 	szFinalName[k] = 0;
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix)
+{
+	return gf_filter_pid_resolve_file_template_ex(pid, szTemplate, szFinalName, file_idx, file_suffix, NULL);
 }
 
 

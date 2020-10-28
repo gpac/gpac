@@ -6212,7 +6212,7 @@ The filter is identified using the following URL schemes:
 .br
 
 .br
-The filter only accepts input PIDs of type FILE. A PID without OrigStreamType property set is delievered as a raw file.
+The filter only accepts input PIDs of type FILE. A PID without OrigStreamType property set is delivered as a raw file.
 .br
 For such PIDs, the filter will look for the following properties:
 .br
@@ -6224,7 +6224,7 @@ For such PIDs, the filter will look for the following properties:
 .br
 
 .br
-For ROUTE or single service ATSC, a file extension, either in .I dst or in .I ext, may be used to identify the HAS session type (DASH or HLS).
+When DASHing for ROUTE or single service ATSC, a file extension, either in .I dst or in .I ext, may be used to identify the HAS session type (DASH or HLS).
 .br
 Example
 .br
@@ -6234,11 +6234,11 @@ Example
 .br
 
 .br
-For multi-service ATSC, forcing an extension will force all service to use the same formats
+When DASHing for multi-service ATSC, forcing an extension will force all service to use the same formats
 .br
 Example
 .br
-"atsc://ext=mpd", "route://IP:PORT/manifest.mpd"
+"atsc://:ext=mpd", "route://IP:PORT/manifest.mpd"
 .br
 
 .br
@@ -6255,6 +6255,10 @@ Example
 gpac -i MOVIE1:#ServiceID=1 @ dasher:FID=1:mname=manifest.mpd -i MOVIE2:#ServiceID=2 @ dasher:FID=2:mname=manifest.m3u8 -o atsc://:SID=1,2
 .br
 
+.br
+
+.br
+Warning: When forwarding an existing DASH/HLS session, do NOT set any extension or manifest name.
 .br
 
 .br
@@ -6294,10 +6298,23 @@ The ROUTE session will include a multi-part MIME unsigned package containing man
 .br
 
 .br
-.SH Examples (to be refined!)
+.SH Low latency mode
 .LP
 .br
-Since the ROUTE filter only consummes files, it is needed to insert:
+When using low-latency mode, the input media segments are not re-assembled in a single packet but are instead sent as they are received.
+.br
+In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.
+.br
+If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by .I brinc percent for safety.
+.br
+If this fails, the muxer will trigger warnings and send as fast as possible.
+.br
+
+.br
+.SH Examples
+.LP
+.br
+Since the ROUTE filter only consummes files, it is required to insert:
 .br
 - the dash demuxer in filemode when loading a DASH session
 .br
@@ -6309,7 +6326,7 @@ Muxing an existing DASH session in route:
 .br
 Example
 .br
-gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/:ext=mpd
+gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/
 .br
 
 .br
@@ -6317,7 +6334,7 @@ Muxing an existing DASH session in atsc:
 .br
 Example
 .br
-gpac -i source.mpd dashin:filemode @ -o atsc://:ext=mpd
+gpac -i source.mpd dashin:filemode @ -o atsc://
 .br
 
 .br
@@ -6325,7 +6342,7 @@ Dashing and muxing in route:
 .br
 Example
 .br
-gpac -i source.mp4 dasher @ -o route://225.1.1.0:6000/manifest.mpd:profile=live
+gpac -i source.mp4 dasher:profile=live @ -o route://225.1.1.0:6000/manifest.mpd
 .br
 
 .br
@@ -6365,15 +6382,21 @@ gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/
 .br
 
 .br
-This will load the dash session, and instantiate a muxer of the same format as the dash input to create a single file sent to ROUTE
-.br
 Example
 .br
 gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/manifest.mpd
 .br
 
 .br
-This will load the dash session, and instantiate a new dasher filter (hence a new DASH manifest), sending the output of the DASHER to ROUTE
+These will load the dash session, instantiate a new dasher filter (hence a new DASH manifest), sending the output of the dasher to ROUTE
+.br
+Example
+.br
+gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/manifest.mpd
+.br
+
+.br
+This will force the ROUTE muxer to only accept .mpd files, and will drop all segment files (same if .I ext is used).
 .br
 
 .br
@@ -6414,7 +6437,13 @@ splitlct (enum, default: off): split mode for LCT channels
 .br
 korean (bool, default: false): use korean version of ATSC 3.0 spec instead of US
 .br
-llmode (bool, default: false): use low-latency mode (experimental, will soon be removed)
+llmode (bool, default: false): use low-latency mode
+.br
+brinc (uint, default: 10):     bitrate increase in percent when estimating timing in low latency mode - see filter help
+.br
+noreg (bool, default: false):  disable rate regulation for media segments, pushing them as fast as received
+.br
+runfor (uint, default: 0):     run for the given time in ms
 .br
 
 .br
@@ -6636,7 +6665,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev167-g71f7a57de-master
+build: 1.1.0-DEV-rev177-g114ca775c-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

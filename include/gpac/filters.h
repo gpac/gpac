@@ -3285,6 +3285,18 @@ Supported KEYWORD (case insensitive):
 GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *PID, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_number, const char *file_suffix);
 
 
+/*! Same as \ref  gf_filter_pid_resolve_file_template but overrides file name with given name
+\param PID the target filter PID
+\param szTemplate source template to solve
+\param szFinalName buffer for final name
+\param file_number number of file to use
+\param file_suffix if not null, will be appended after the value of the §File$ keyword if present
+\param file_name if not null, will be used instead of PID URL or local path
+\return error if any
+*/
+GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *PID, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_number, const char *file_suffix, const char *file_name);
+
+
 /*! Sets discard mode on or off on an input PID. When discard is on, all input packets for this PID are no longer dispatched.
 
 This only affect the current PID, not the source filter(s) for that PID.

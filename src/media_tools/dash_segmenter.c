@@ -591,7 +591,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		e |= gf_dynstrcat(&args, "bs_switch=force", ":");
 		break;
 	}
-	//avcp, hvcp, aacp not mapped
+
 	if (dasher->seg_rad_name) {
 		sprintf(szArg, "template=%s", dasher->seg_rad_name);
 		e |= gf_dynstrcat(&args, szArg, ":");
@@ -938,7 +938,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 		if (url && di->media_duration) {
-			sprintf(szArg, "#CDur=%g", di->media_duration );
+			sprintf(szArg, "#ClampDur=%g", di->media_duration );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 

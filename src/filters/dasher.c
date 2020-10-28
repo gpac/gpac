@@ -2493,15 +2493,15 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	if (ds->force_timescale)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ds->force_timescale) );
 
-	if (ds->rep->segment_template)
+	if (ds->rep && ds->rep->segment_template)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->rep->segment_template->media));
-	else if (ds->set->segment_template)
+	else if (ds->set && ds->set->segment_template)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->set->segment_template->media));
 
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_BITRATE, &PROP_UINT(ds->bitrate));
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_FILENAME, &PROP_STRING(ds->init_seg));
 
-	if (ds->rep->codecs)
+	if (ds->rep && ds->rep->codecs)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_CODEC, &PROP_STRING(ds->rep->codecs));
 
 

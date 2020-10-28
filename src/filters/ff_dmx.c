@@ -225,7 +225,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	} else if (ctx->pkt.pts != AV_NOPTS_VALUE) {
 		AVStream *stream = ctx->demuxer->streams[ctx->pkt.stream_index];
 		u64 ts;
-		if (stream->first_dts<0)
+		if ((stream->first_dts!=AV_NOPTS_VALUE) && (stream->first_dts<0))
 			ts = (ctx->pkt.pts - stream->first_dts) * stream->time_base.num;
 		else
 			ts = ctx->pkt.pts * stream->time_base.num;
@@ -233,7 +233,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		gf_filter_pck_set_cts(pck_dst, ts );
 
 		if (ctx->pkt.dts != AV_NOPTS_VALUE) {
-			if (stream->first_dts<0)
+			if ((stream->first_dts!=AV_NOPTS_VALUE) && (stream->first_dts<0))
 				ts = (ctx->pkt.dts - stream->first_dts) * stream->time_base.num;
 			else
 				ts = ctx->pkt.dts * stream->time_base.num;
@@ -364,7 +364,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			else if (ctx->demuxer->duration>=0)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ctx->demuxer->duration, AV_TIME_BASE) );
 
-			if (stream->first_dts<0)
+			if ((stream->first_dts!=AV_NOPTS_VALUE) && (stream->first_dts<0))
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( stream->first_dts) );
 		}
 

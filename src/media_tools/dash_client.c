@@ -267,6 +267,7 @@ struct __dash_group
 	/*usually 0-0 (no range) but can be non-zero when playing local MPD/DASH sessions*/
 	u64 bs_switching_init_segment_url_start_range, bs_switching_init_segment_url_end_range;
 	char *bs_switching_init_segment_url;
+	const char *bs_switching_init_segment_url_name_start;
 
 	u32 nb_segments_done;
 	u32 last_segment_time;
@@ -1370,7 +1371,7 @@ retry:
 		break;
 	default:
 		//log as warning, maybe the dash client can recover from this error
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Failed to download %s = %s...\n", url, gf_error_to_string(e)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Failed to download %s: %s\n", url, gf_error_to_string(e)));
 		break;
 	}
 	return e;
@@ -3915,15 +3916,26 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		e = gf_dash_download_resource(dash, &sess, base_init_url, start_range, end_range, 1, NULL);
 		dash->dash_io->del(dash->dash_io, sess);
 
-		if (e==GF_OK) {
-
-		} else {
+		if (e!=GF_OK) {
 			return e;
 		}
 	}
 
-	if (e==GF_OK) {
+	assert(!group->nb_cached_segments);
+	group->cached[0].url = base_init_url;
+	group->cached[0].cache = gf_strdup(base_init_url);
+	group->cached[0].representation_index = group->active_rep_index;
+	group->cached[0].duration = (u32) group->current_downloaded_segment_duration;
 
+	if (group->bitstream_switching) {
+		group->bs_switching_init_segment_url = gf_strdup(base_init_url);
+		group->bs_switching_init_segment_url_name_start = dash_strip_base_url(group->bs_switching_init_segment_url, base_url);
+
+		group->bs_switching_init_segment_url_start_range = start_range;
+		group->bs_switching_init_segment_url_end_range = end_range;
+		if (data_url_processed) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("URL with data scheme not handled for Bistream Switching Segments, probable memory leak"));
+		}
 	} else {
 		rep->playback.cached_init_segment_url = gf_strdup(base_init_url);
 		rep->playback.init_start_range = start_range;
@@ -5609,7 +5621,9 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		if (group->prev_segment_ok) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment %s: %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
 			group->time_at_first_failure = 0;
-			group->prev_segment_ok = GF_FALSE;
+			//for route we still consider the previous segment valid and don't attempt to resync the timeline
+			if (!group->dash->route_clock_state)
+				group->prev_segment_ok = GF_FALSE;
 		}
 		group->nb_consecutive_segments_lost ++;
 
@@ -5879,13 +5893,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	} else {
 		resource_name = local_file_name = new_base_seg_url;
 		remote_file = GF_TRUE;
-
-#if 0
-		hdr = dash->dash_io->get_header_value(dash->dash_io, base_group->segment_download, "x-route");
-		if (hdr && !strcmp(hdr, "yes"))
-			rep->playback.broadcast_flag = GF_TRUE;
-#endif
-
 	}
 
 	if (local_file_name) {
@@ -7709,8 +7716,12 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **se
 	if (!group) return GF_BAD_PARAM;
 
 	if (init_segment) {
-		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
-		*init_segment = rep ? rep->playback.init_seg_name_start : NULL;
+		if (group->bs_switching_init_segment_url) {
+			*init_segment = group->bs_switching_init_segment_url_name_start;
+		} else {
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+			*init_segment = rep ? rep->playback.init_seg_name_start : NULL;
+		}
 	} else {
 		if (!group->nb_cached_segments) {
 			res = GF_BUFFER_TOO_SMALL;
@@ -8837,7 +8848,7 @@ void gf_dash_set_period_xlink_query_string(GF_DashClient *dash, const char *quer
 }
 
 GF_EXPORT
-u32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx)
+s32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx)
 {
 	GF_DASH_Group *group;
 	if (!dash) return 0;

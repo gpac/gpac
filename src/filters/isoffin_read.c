@@ -201,9 +201,12 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 #endif
 		e = gf_isom_open_segment(read->mov, next_url, read->start_range, read->end_range, flags);
 		if (!read->input_loaded && (e==GF_ISOM_INCOMPLETE_FILE)) {
-			read->refresh_fragmented = GF_TRUE;
 			e = GF_OK;
 		}
+		//always refresh fragmented files, since we could have a full moof+mdat in buffer (not incomplete file)
+		//but still further fragments to be pushed
+		if (!read->start_range)
+			read->refresh_fragmented = GF_TRUE;
 		read->seg_name_changed = GF_TRUE;
 
 		for (i=0; i<gf_list_count(read->channels); i++) {

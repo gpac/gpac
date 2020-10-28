@@ -66,6 +66,9 @@ typedef struct
 
 	u32 nb_stats;
 	GF_List *received_seg_names;
+
+	u32 nb_playing;
+	Bool initial_play_forced;
 } ROUTEInCtx;
 
 
@@ -330,6 +333,9 @@ static GF_Err routein_process(GF_Filter *filter)
 {
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
 
+	if (!ctx->nb_playing)
+		return GF_EOS;
+
 	while (1) {
 		GF_Err e = gf_route_dmx_process(ctx->route_dmx);
 		if (e == GF_IP_NETWORK_EMPTY) {
@@ -457,7 +463,22 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	if (ctx->max_segs)
 		ctx->received_seg_names = gf_list_new();
 
+	ctx->nb_playing = 1;
+	ctx->initial_play_forced = GF_TRUE;
 	return GF_OK;
+}
+
+static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
+	if (evt->base.type==GF_FEVT_PLAY) {
+		if (!ctx->initial_play_forced)
+			ctx->nb_playing++;
+		ctx->initial_play_forced = GF_FALSE;
+	} else {
+		ctx->nb_playing--;
+	}
+	return GF_TRUE;
 }
 
 #define OFFS(_n)	#_n, offsetof(ROUTEInCtx, _n)
@@ -533,6 +554,7 @@ GF_FilterRegister ROUTEInRegister = {
 	.finalize = routein_finalize,
 	SETCAPS(ROUTEInCaps),
 	.process = routein_process,
+	.process_event = routein_process_event,
 	.probe_url = routein_probe_url
 };
 

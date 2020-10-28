@@ -214,7 +214,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 			gf_sk_server_mode(ctx->socket, GF_TRUE);
 		}
 	} else {
-		e = gf_sk_connect(ctx->socket, url, port, ctx->ifce);
+		e = gf_sk_connect(ctx->socket, url, port, NULL);
 	}
 
 	if (str) str[0] = ':';

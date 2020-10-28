@@ -871,6 +871,7 @@ GF_MPD_AdaptationSet *gf_mpd_adaptation_set_new() {
 	GF_SAFEALLOC(set->par, GF_MPD_Fractional);
 	/*assign default ID and group*/
 	set->group = -1;
+	set->id = -1;
 	return set;
 }
 
@@ -1561,6 +1562,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 		Bool use_template = use_mpd_templates;
 		GF_SAFEALLOC(set, GF_MPD_AdaptationSet);
 		if (!set) return GF_OUT_OF_MEM;
+		set->id = -1;
 		gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)set);
 		set->accessibility = gf_list_new();
 		set->role = gf_list_new();
@@ -2993,7 +2995,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<AdaptationSet");
 
-	if (as->id) gf_fprintf(out, " id=\"%d\"", as->id);
+	if (as->id>=0) gf_fprintf(out, " id=\"%d\"", as->id);
 	if (as->xlink_href) {
 		gf_fprintf(out, " xlink:href=\"%s\"", as->xlink_href);
 		if (as->xlink_actuate_on_load)
@@ -4147,7 +4149,10 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		}
 		else if (!strcmp(first_sep+1, "Number")) {
 			if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE) {
-				strcat(solved_template, "$Number$");
+				strcat(solved_template, "$Number");
+				if (format_tag)
+					strcat(solved_template, szPrintFormat);
+				strcat(solved_template, "$");
 			} else if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_NOSTART) {
 				if (out_start_number) *out_start_number = 0;
 				sprintf(szFormat, szPrintFormat, item_index);
@@ -4734,6 +4739,7 @@ static GF_Err smooth_parse_stream_index(GF_MPD *mpd, GF_List *container, GF_XMLN
 
     GF_SAFEALLOC(set, GF_MPD_AdaptationSet);
     if (!set) return GF_OUT_OF_MEM;
+    set->id = -1;
     gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)set);
 
     gf_list_add(container, set);

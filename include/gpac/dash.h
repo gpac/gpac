@@ -992,9 +992,9 @@ u32 gf_dash_get_min_wait_ms(GF_DashClient *dash);
 /*! gets the adaptation set ID of a given group
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
-\return the adaptation set ID
+\return the adaptation set ID, -1 if not set
 */
-u32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
+s32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
 
 /*! Callback function for custom rate adaptation
 \param udta user data

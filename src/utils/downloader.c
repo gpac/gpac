@@ -1542,8 +1542,11 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		s32 size;
+
+		//receive on null buffer (select only, check if data available)
 		e = gf_sk_receive(sess->sock, NULL, 0, NULL);
-		if (e==GF_IP_NETWORK_EMPTY) {
+		//empty and no pending bytes in SSL, network empty
+		if ((e==GF_IP_NETWORK_EMPTY) && !SSL_has_pending(sess->ssl)) {
 			gf_mx_v(sess->mx);
 			return e;
 		}
@@ -2659,16 +2662,19 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 					break;
 				}
 				memcpy(buffer + nb_read, sess->remaining_data, sess->remaining_data_size);
-			}
-
-			e = gf_dm_read_data(sess, buffer + nb_read + sess->remaining_data_size, buffer_size - sess->remaining_data_size - nb_read, &single_read);
-			if (e<0)
+			} else if (nb_read >= buffer_size) {
 				break;
+			}
+			e = gf_dm_read_data(sess, buffer + nb_read + sess->remaining_data_size, buffer_size - sess->remaining_data_size - nb_read, &single_read);
+			if (e<0) {
+				assert(single_read==0);
+				break;
+			}
 
 			size = sess->remaining_data_size + single_read;
 			sess->remaining_data_size = 0;
 			single_read = 0;
-			gf_dm_data_received(sess, (u8 *) buffer + nb_read, size, GF_FALSE, &single_read, buffer);
+			gf_dm_data_received(sess, (u8 *) buffer + nb_read, size, GF_FALSE, &single_read, buffer + nb_read);
 			if (!sess->chunked)
 				single_read = size;
 
