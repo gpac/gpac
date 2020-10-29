@@ -3768,7 +3768,7 @@ static void mp4_mux_flush_frag(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ra
 			gf_filter_pck_set_framing(ctx->dst_pck, s, GF_TRUE);
 			if (!is_init) {
 				u64 dur = ctx->next_seg_start - (ctx->min_cts_plus_one-1);
-				gf_filter_pck_set_duration(ctx->dst_pck, dur);
+				gf_filter_pck_set_duration(ctx->dst_pck, (u32) dur);
 			}
 			ctx->first_pck_sent = GF_FALSE;
 			ctx->current_offset = 0;
@@ -4672,8 +4672,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		ref_start = (Double) next_ref_ts;
 		ref_start /= ctx->ref_tkw->src_timescale;
 
-		ctx->next_seg_start = ref_start * 1000;
-		ctx->min_cts_next_frag = ctx->next_frag_start * 1000;
+		ctx->next_seg_start = (u64) (ref_start * 1000);
+		ctx->min_cts_next_frag = (u64) (ctx->next_frag_start * 1000);
 
 		ctx->next_frag_start += ctx->cdur;
 		while (ctx->next_frag_start <= ctx->adjusted_next_frag_start) {
@@ -5216,7 +5216,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 	if (ctx->min_cts_plus_one) {
 		u64 orig = ctx->min_cts_plus_one-1;
 		gf_filter_pck_set_cts(ctx->dst_pck, orig);
-		gf_filter_pck_set_duration(ctx->dst_pck, ctx->min_cts_next_frag - orig);
+		gf_filter_pck_set_duration(ctx->dst_pck, (u32) (ctx->min_cts_next_frag - orig) );
 	}
 
 	ctx->first_pck_sent = GF_TRUE;
