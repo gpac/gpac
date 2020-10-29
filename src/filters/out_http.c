@@ -735,7 +735,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			}
 		}
 		sess->req_start_time = gf_sys_clock_high_res();
-		//send reply once we are done recieving
+		//send reply once we are done receiving
 		return;
 	}
 
@@ -2749,7 +2749,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"Upon client GET request, the server will check if the requested URL matches the name of a file currently being written by the server.\n"
 		"- If so, the server will:\n"
 		"  - send the content using HTTP chunk transfer mode, starting with what is already written on disk\n"
-		"  - push remaining data to the client as soon as recieved while writing it to disk, until source file is done\n"
+		"  - push remaining data to the client as soon as received while writing it to disk, until source file is done\n"
 		"- If not so, the server will simply send the file from the disk as a regular HTTP session, without chunk transfer.\n"
 		"  \nThis mode is typically used for origin server in HAS sessions where clients may request files while they are being produced (low latency DASH).\n"
 		"EX gpac -i SOURCE reframer:rt=on @ -o http://localhost:8080/live.mpd --rdirs=temp --dmode=dynamic --cdur=0.1\n"

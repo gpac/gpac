@@ -869,7 +869,7 @@ It also adds several small features:
 	- moved all windowing architecture to the video output plugins (keyboard and mouse events, WM messages) in order to support SDL, moved old input functions to new event model
 	- modified jconfig.h to support both win32 and MinGW.
 	- updated V4Studio to work with new event/windowing architecture (work with SDL and DX)
-	- UDP autoconfig option (if no UDP traffic is recieved, restart with TCP)
+	- UDP autoconfig option (if no UDP traffic is received, restart with TCP)
 	- moved to FAAD2.1 (CVS), fixed faad2 compil on MinGW & winCE
 	- cleaned up install docs
 	- added support for SDL with software YUV->RGB and software stretching
