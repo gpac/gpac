@@ -5194,8 +5194,8 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 		nb_as = gf_list_count(period->adaptation_sets);
 		for (j=0; j<nb_as; j++) {
 			GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, j);
-			if (set->id > next_as_id)
-				next_as_id = set->id;
+			if (set->id > (s32) next_as_id)
+				next_as_id = (u32) set->id;
 		}
 	}
 	next_as_id++;

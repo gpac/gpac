@@ -1016,14 +1016,14 @@ s32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
 typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx,
 				u32 download_rate, u32 file_size, Double speed, Double max_available_speed,
 				u32 disp_width, u32 disp_height, Bool force_lower_complexity,
-				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms
-								  );
+				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms);
 
 /*! Callback function for custom rate monitor, not final yet
 \param udta user data
 \param group_idx index of group to adapt
+\return quality index (>=0) to switch to after abort, -1 to do nothing (no abort), -2 for internal algorithms having already setup the desired quality and requesting only abort
  */
-typedef GF_Err (*gf_dash_download_monitor)(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur);
+typedef s32 (*gf_dash_download_monitor)(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur);
 
 
 /*! sets custom rate adaptation logic

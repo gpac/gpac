@@ -739,7 +739,7 @@ setup_route:
 		}
 		if (mpd->type==GF_MPD_TYPE_STATIC) {
 			if (found)
-				group->dash->route_skip_segments_ms = timeline_offset_ms;
+				group->dash->route_skip_segments_ms = (u32) timeline_offset_ms;
 			group->timeline_setup = GF_TRUE;
 			return;
 		}
@@ -1245,7 +1245,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 group_idx, u32 bit
 	//force a call go query buffer
 	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, group_idx, GF_OK);
 
-	res = dash->rate_adaptation_download_monitor(dash, group, bits_per_sec, total_bytes, bytes_done, us_since_start, group->buffer_occupancy_ms, group->current_downloaded_segment_duration);
+	res = dash->rate_adaptation_download_monitor(dash, group, bits_per_sec, total_bytes, bytes_done, us_since_start, group->buffer_occupancy_ms, (u32) group->current_downloaded_segment_duration);
 
 	if (res==-1) return GF_OK;
 
@@ -3012,7 +3012,7 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 				time_sec /= bytes_per_sec;
 			}
 		} else {
-			time_sec = us_since_start;
+			time_sec = (Double) us_since_start;
 			time_sec /= 1000000;
 		}
 
@@ -3045,7 +3045,7 @@ static s32 dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *grou
 		return -1;
 	}
 
-	time_until_end = 8000*(total_bytes-bytes_done) / bits_per_sec;
+	time_until_end = (u32) (8000*(total_bytes-bytes_done) / bits_per_sec);
 
 	if (bits_per_sec<group->min_bitrate)
 		group->min_bitrate = bits_per_sec;
@@ -3073,7 +3073,7 @@ static s32 dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *grou
 	} else {
 		u32 target_rate;
 		//compute min bitrate needed to fetch the segment in another rep, with the time remaining
-		Double ratio = ((u32)current_seg_dur - us_since_start);
+		Double ratio = (Double) ((u32)current_seg_dur - us_since_start);
 		ratio /= (u32) current_seg_dur;
 
 		target_rate = (u32) (bits_per_sec * ratio);
@@ -8360,7 +8360,7 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
 		if (ext) ext[0] = 0;
 		gf_dynstrcat(&solved_template, first_seg->media, NULL);
 		if (ext) ext[0] = '.';
-		len = strlen(solved_template);
+		len = (u32) strlen(solved_template);
 		last_num = last_non_num = 0;
 		for (i=len; i>0; i--) {
 			if (isdigit(solved_template[i-1])) {
@@ -8378,7 +8378,7 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
 			solved_template[last_num] = 0;
 			num = atoi(solved_template+last_non_num+1);
 			snprintf(szVal, 100, "%u", num);
-			len = strlen(szVal);
+			len = (u32) strlen(szVal);
 			pad = 0;
 			if (len < last_num - last_non_num) {
 				pad = last_num - last_non_num - len;
@@ -8401,7 +8401,6 @@ GF_EXPORT
 GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_idx, GF_DASHQualityInfo *quality)
 {
 	GF_MPD_Fractional *sar;
-	u32 ast_offset, timescale;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	GF_MPD_Representation *rep;
 	if (!group || !quality) return GF_BAD_PARAM;
@@ -8439,22 +8438,15 @@ GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_
 	} else {
 		quality->is_selected = (quality_idx==group->active_rep_index) ? 1 : 0;
 	}
-	ast_offset = timescale = 0;
+
 	if (rep->segment_template) {
-		if (!ast_offset) ast_offset = rep->segment_template->availability_time_offset;
-		if (!timescale) timescale = rep->segment_template->timescale;
+		if (!quality->ast_offset) quality->ast_offset = rep->segment_template->availability_time_offset;
 	}
 	if (group->adaptation_set->segment_template) {
-		if (!ast_offset) ast_offset = group->adaptation_set->segment_template->availability_time_offset;
-		if (!timescale) timescale = group->adaptation_set->segment_template->timescale;
+		if (!quality->ast_offset) quality->ast_offset = group->adaptation_set->segment_template->availability_time_offset;
 	}
 	if (group->period->segment_template) {
-		if (!ast_offset) ast_offset = group->period->segment_template->availability_time_offset;
-		if (!timescale) timescale = group->period->segment_template->timescale;
-	}
-	if (timescale) {
-		quality->ast_offset = (Double) ast_offset;
-		quality->ast_offset /= timescale;
+		if (!quality->ast_offset) quality->ast_offset = group->period->segment_template->availability_time_offset;
 	}
 	return GF_OK;
 }

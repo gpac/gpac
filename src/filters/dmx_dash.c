@@ -585,7 +585,7 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 		char *man_pay_start = manifest_payload;
 		while (1) {
 			u32 end_len, offset;
-			manifest_payload_len = strlen(manifest_payload);
+			manifest_payload_len = (u32) strlen(manifest_payload);
 			char *base_url_start = strstr(man_pay_start, "<BaseURL>");
 			if (!base_url_start) break;
 			char *base_url_end = strstr(base_url_start, "</BaseURL>");
@@ -593,7 +593,7 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 			offset = 10;
 			while (base_url_end[offset] == '\n')
 				offset++;
-			end_len = strlen(base_url_end+offset);
+			end_len = (u32) strlen(base_url_end+offset);
 			memmove(base_url_start, base_url_end+offset, end_len);
 			base_url_start[end_len]=0;
 			man_pay_start = base_url_start;
@@ -1420,7 +1420,7 @@ static s32 dashdmx_algo_js(void *udta, u32 group, u32 base_group,
 	return res;
 }
 
-GF_Err dashdmx_download_monitor_js(void *udta, u32 group, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
+s32 dashdmx_download_monitor_js(void *udta, u32 group, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
 {
 	s32 res = -1;
 	JSValue ret, args[2];

@@ -953,16 +953,16 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 	dts += stream->rtp_ts_offset;
 	cts += stream->rtp_ts_offset;
 	if (stream->ts_delay>=0) {
-		dts += stream->ts_delay;
-		cts += stream->ts_delay;
+		dts += (u32) stream->ts_delay;
+		cts += (u32) stream->ts_delay;
 	} else {
 		if ((s32) dts >= -stream->ts_delay)
-			dts += stream->ts_delay;
+			dts += (s32) stream->ts_delay;
 		else
 			dts = 0;
 
 		if ((s32) cts >= -stream->ts_delay )
-			cts += stream->ts_delay;
+			cts += (s32) stream->ts_delay;
 		else
 			cts = 0;
 	}

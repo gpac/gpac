@@ -1107,7 +1107,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 	//compress and store as final payload
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
 	serv->stsid_bundle = (u8 *) payload_text;
-	serv->stsid_bundle_size = 1+strlen(payload_text);
+	serv->stsid_bundle_size = 1 + (u32) strlen(payload_text);
 	gf_gz_compress_payload(&serv->stsid_bundle, serv->stsid_bundle_size, &serv->stsid_bundle_size);
 
 	serv->stsid_bundle_toi = 0x80000000; //compressed
@@ -1450,7 +1450,7 @@ retry:
 
 		//fragment start, store packed duration
 		if (has_ts) {
-			rpid->pck_dur_at_frame_start = pck_dur;
+			rpid->pck_dur_at_frame_start = (u32) pck_dur;
 		}
 		//compute estimated file size based on segment duration and rate, use 10% overhead
 		tot_est_size = rpid->bitrate;
@@ -1606,7 +1606,7 @@ next_packet:
 
 				//send child m3u8 asap
 				if (rpid->hld_child_pl) {
-					u32 hls_len = strlen(rpid->hld_child_pl);
+					u32 hls_len = (u32) strlen(rpid->hld_child_pl);
 					offset = 0;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sending HLS sub playlist %s: \n%s\n", rpid->hld_child_pl_name, rpid->hld_child_pl));
 
@@ -1711,7 +1711,7 @@ next_packet:
 
 						if (seg_rate > rpid->bitrate) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Segment %s rate "LLU" but stream rate "LLU", updating bitrate\n", rpid->seg_name, seg_rate, rpid->bitrate));
-							rpid->bitrate = seg_rate;
+							rpid->bitrate = (u32) seg_rate;
 						}
 					}
 				}
@@ -1780,7 +1780,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, "\"/>\n", NULL);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Updating ATSC3 LLS.SysTime:\n%s\n", payload_text));
-		len = strlen(payload_text);
+		len = (u32) strlen(payload_text);
 		comp_size = 2*len;
 		payload = gf_malloc(sizeof(char)*(comp_size+4));
 		pay_start = payload + 4;
@@ -1837,7 +1837,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Updating ATSC3 LLS.SLT:\n%s\n", payload_text));
 
-		len = strlen(payload_text);
+		len = (u32) strlen(payload_text);
 		comp_size = 2*len;
 		payload = gf_malloc(sizeof(char)*(comp_size+4));
 		pay_start = payload + 4;
@@ -1931,7 +1931,7 @@ static GF_Err routeout_process(GF_Filter *filter)
 		ctx->clock_stats = ctx->clock;
 	}
 	ctx->reschedule_us++;
-	gf_filter_ask_rt_reschedule(filter, ctx->reschedule_us);
+	gf_filter_ask_rt_reschedule(filter, (u32) ctx->reschedule_us);
 	return e;
 }
 

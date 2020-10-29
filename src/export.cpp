@@ -304,7 +304,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_is_local) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_absolute_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_concatenate) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_get_resource_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_to_fs_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utc_time_since_1970) )
