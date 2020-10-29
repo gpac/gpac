@@ -1955,7 +1955,7 @@ typedef struct _gl_texture_wrap
 	struct _gf_filter_frame_interface *frame_ifce;
 	Bool first_tx_load;
 
-	//PBO state - must be managed by caller, especially if using seperated push and texImg steps through gf_gl_txw_setup calls
+	//PBO state - must be managed by caller, especially if using separated push and texImg steps through gf_gl_txw_setup calls
 	GF_GLPBOState pbo_state;
 	Bool flip;
 } GF_GLTextureWrapper;
