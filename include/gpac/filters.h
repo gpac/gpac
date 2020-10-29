@@ -1189,7 +1189,7 @@ GF_PropType gf_props_parse_type(const char *name);
 \param name property name to parse (for logs)
 \param value string containing the value to parse
 \param enum_values string containig enum_values, or NULL. enum_values are used for unsigned int properties, take the form "a|b|c" and resolve to 0|1|2.
-\param list_sep_char value of the list seperator character to use
+\param list_sep_char value of the list separator character to use
 \return the parsed property value
 */
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
