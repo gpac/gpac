@@ -1546,7 +1546,13 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		//receive on null buffer (select only, check if data available)
 		e = gf_sk_receive(sess->sock, NULL, 0, NULL);
 		//empty and no pending bytes in SSL, network empty
-		if ((e==GF_IP_NETWORK_EMPTY) && !SSL_has_pending(sess->ssl)) {
+		if ((e==GF_IP_NETWORK_EMPTY) &&
+#ifdef GPAC_CONFIG_IOS
+			!SSL_pending(sess->ssl)
+#else
+			!SSL_has_pending(sess->ssl)
+#endif
+		) {
 			gf_mx_v(sess->mx);
 			return e;
 		}

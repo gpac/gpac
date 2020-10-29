@@ -32,7 +32,7 @@ enum
 {
 	FOUT_CAT_NONE = 0,
 	FOUT_CAT_AUTO,
-	FOUTE_CAT_ALL
+	FOUT_CAT_ALL
 };
 
 typedef struct
@@ -40,7 +40,8 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool append, dynext, cat, ow, redund;
+	Bool append, dynext, ow, redund;
+	u32 cat;
 	u32 mvbk;
 
 	//only one input pid
@@ -401,7 +402,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 		return fileout_process(filter);
 	}
 
-	if (ctx->file && start && (ctx->cat==FOUTE_CAT_ALL))
+	if (ctx->file && start && (ctx->cat==FOUT_CAT_ALL))
 		start = GF_FALSE;
 
 	if (ctx->dash_mode) {
