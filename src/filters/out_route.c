@@ -920,7 +920,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		if (ctx->korean)
 			gf_dynstrcat(&payload_text, "application/s-tsid", NULL);
 		else
-			gf_dynstrcat(&payload_text, "route-s-tsid+xml", NULL);
+			gf_dynstrcat(&payload_text, "application/route-s-tsid+xml", NULL);
 		gf_dynstrcat(&payload_text, "\"/>\n", NULL);
 
 		gf_dynstrcat(&payload_text, "</metadataEnvelope>\n\r\n", NULL);

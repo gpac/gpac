@@ -335,6 +335,23 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, const char *dir,
 	return routedmx;
 }
 
+static void gf_route_register_service_sockets(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, Bool do_register)
+{
+    u32 i;
+    GF_ROUTESession *rsess;
+    if (do_register) gf_sk_group_register(routedmx->active_sockets, s->sock);
+    else gf_sk_group_unregister(routedmx->active_sockets, s->sock);
+
+    if (!s->secondary_sockets) return;
+
+    i=0;
+    while ((rsess = gf_list_enum(s->route_sessions, &i))) {
+        if (! rsess->sock) continue;
+        if (do_register) gf_sk_group_register(routedmx->active_sockets, rsess->sock);
+        else gf_sk_group_unregister(routedmx->active_sockets, rsess->sock);
+    }
+}
+
 static void gf_route_create_service(GF_ROUTEDmx *routedmx, const char *dst_ip, u32 dst_port, u32 service_id, u32 protocol)
 {
 	GF_ROUTEService *service;
@@ -396,8 +413,10 @@ static void gf_route_create_service(GF_ROUTEDmx *routedmx, const char *dst_ip, u
 		else if (routedmx->tune_all_sls) service->tune_mode = GF_ROUTE_TUNE_SLS_ONLY;
 
 		//we are tuning, register socket
-		if (service->tune_mode != GF_ROUTE_TUNE_OFF)
-			gf_sk_group_register(routedmx->active_sockets, service->sock);
+        if (service->tune_mode != GF_ROUTE_TUNE_OFF) {
+			//call gf_route_register_service_sockets rather than gf_sk_group_register for coverage purpose only
+            gf_route_register_service_sockets(routedmx, service, GF_TRUE);
+        }
 	} else {
 		service->tune_mode = GF_ROUTE_TUNE_ON;
 		routedmx->service_autotune = service_id;
@@ -422,25 +441,8 @@ GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, const 
 	return routedmx;
 }
 
-static void gf_route_register_service_sockets(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, Bool do_register)
-{
-	u32 i;
-	GF_ROUTESession *rsess;
-	if (do_register) gf_sk_group_register(routedmx->active_sockets, s->sock);
-	else gf_sk_group_unregister(routedmx->active_sockets, s->sock);
-
-	if (!s->secondary_sockets) return;
-
-	i=0;
-	while ((rsess = gf_list_enum(s->route_sessions, &i))) {
-		if (! rsess->sock) continue;
-		if (do_register) gf_sk_group_register(routedmx->active_sockets, rsess->sock);
-		else gf_sk_group_unregister(routedmx->active_sockets, rsess->sock);
-	}
-}
-
 GF_EXPORT
-GF_Err gf_route_tune_in(GF_ROUTEDmx *routedmx, u32 serviceID, Bool tune_all_sls)
+GF_Err gf_route_atsc3_tune_in(GF_ROUTEDmx *routedmx, u32 serviceID, Bool tune_all_sls)
 {
 	u32 i;
 	GF_ROUTEService *s;
@@ -1124,8 +1126,10 @@ static GF_Err gf_route_service_parse_mbms_enveloppe(GF_ROUTEDmx *routedmx, GF_RO
 			else if (!stricmp(att->name, "version")) version = atoi(att->value);
 		}
 		if (!content_type) continue;
-		if (!strcmp(content_type, "application/s-tsid")) *stsid_version = version;
-		else if (!strcmp(content_type, "application/dash+xml")) *mpd_version = version;
+        if (!strcmp(content_type, "application/s-tsid") || !strcmp(content_type, "application/route-s-tsid+xml"))
+            *stsid_version = version;
+		else if (!strcmp(content_type, "application/dash+xml"))
+            *mpd_version = version;
 	}
 	return GF_OK;
 }
@@ -1870,7 +1874,7 @@ GF_Err gf_route_set_callback(GF_ROUTEDmx *routedmx, void (*on_event)(void *udta,
 }
 
 GF_EXPORT
-Bool gf_route_dmx_find_service(GF_ROUTEDmx *routedmx, u32 service_id)
+Bool gf_route_dmx_find_atsc3_service(GF_ROUTEDmx *routedmx, u32 service_id)
 {
 	u32 i=0;
 	GF_ROUTEService *s;
