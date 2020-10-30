@@ -6061,7 +6061,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Segments do not start with the same SAP types: set initialized with %d but first packet got %d - bitstream will not be compliant\n", set_start_with_sap, sap_type));
 					}
 					//TODO setup proper PTO, the code below will break sync by realigning first AU of each stream
-					if ((s64) cts > ds->pts_minus_cts) {
+					if ((s64) cts + ds->pts_minus_cts > 0) {
 						u64 pto = cts - ds->pts_minus_cts;
 						if (ds->rep->segment_list)
 							ds->rep->segment_list->presentation_time_offset = pto;
