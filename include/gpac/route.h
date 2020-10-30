@@ -174,7 +174,7 @@ GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeo
 \param tune_others if set, will tune all non-selected services to get the MPD, but won't receive any media data
 \return error code if any
  */
-GF_Err gf_route_tune_in(GF_ROUTEDmx *routedmx, u32 service_id, Bool tune_others);
+GF_Err gf_route_atsc3_tune_in(GF_ROUTEDmx *routedmx, u32 service_id, Bool tune_others);
 
 
 /*! Gets the number of objects currently loaded in the service
@@ -199,12 +199,12 @@ void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, c
  */
 Bool gf_route_dmx_remove_first_object(GF_ROUTEDmx *routedmx, u32 service_id);
 
-/*! Checks existence of a service
+/*! Checks existence of a service for ats 3.0
 \param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to query
 \return true if service is found, false otherwise
  */
-Bool gf_route_dmx_find_service(GF_ROUTEDmx *routedmx, u32 service_id);
+Bool gf_route_dmx_find_atsc3_service(GF_ROUTEDmx *routedmx, u32 service_id);
 
 /*! Removes all non-signaling objects (ie TSI!=0), keeping only init segments and currently/last downloaded objects
 \note this is mostly useful in case of looping session, or at MPD switch boundaries

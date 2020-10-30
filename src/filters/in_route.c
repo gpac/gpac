@@ -47,7 +47,7 @@ typedef struct
 	//options
 	char *src, *ifce, *odir;
 	Bool gcache, kc, sr, reorder;
-	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout;
+	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached;
 	s32 tunein, stsi;
 	
 	//internal
@@ -83,7 +83,10 @@ static GF_FilterProbeScore routein_probe_url(const char *url, const char *mime)
 static void routein_finalize(GF_Filter *filter)
 {
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
-	if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
+
+    gf_route_dmx_purge_objects(ctx->route_dmx, 1);
+
+    if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 	if (ctx->route_dmx) gf_route_dmx_del(ctx->route_dmx);
 
 	if (ctx->tsi_outs) {
@@ -197,12 +200,12 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 
 		break;
 	case GF_ROUTE_EVT_SERVICE_SCAN:
-		if (ctx->tune_service_id && !gf_route_dmx_find_service(ctx->route_dmx, ctx->tune_service_id)) {
+		if (ctx->tune_service_id && !gf_route_dmx_find_atsc3_service(ctx->route_dmx, ctx->tune_service_id)) {
 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Asked to tune to service %d but no such service, tuning to first one\n", ctx->tune_service_id));
 
 			ctx->tune_service_id = 0;
-			gf_route_tune_in(ctx->route_dmx, (u32) -2, GF_TRUE);
+            gf_route_atsc3_tune_in(ctx->route_dmx, (u32) -2, GF_TRUE);
 		}
 		break;
 	case GF_ROUTE_EVT_MPD:
@@ -292,12 +295,10 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		if (is_loop) break;
 
 		nb_obj = gf_route_dmx_get_object_count(ctx->route_dmx, evt_param);
-		if (nb_obj>10) {
-			while (nb_obj>10) {
-				gf_route_dmx_remove_first_object(ctx->route_dmx, evt_param);
-				nb_obj = gf_route_dmx_get_object_count(ctx->route_dmx, evt_param);
-			}
-		}
+        while (nb_obj > ctx->nbcached) {
+            gf_route_dmx_remove_first_object(ctx->route_dmx, evt_param);
+            nb_obj = gf_route_dmx_get_object_count(ctx->route_dmx, evt_param);
+        }
 		break;
 	default:
 		break;
@@ -324,7 +325,7 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 		ctx->last_toi = 0;
 		if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 		ctx->clock_init_seg = NULL;
-		gf_route_tune_in(ctx->route_dmx, sid, GF_TRUE);
+        gf_route_atsc3_tune_in(ctx->route_dmx, sid, GF_TRUE);
 	}
 	return GF_TRUE;
 }
@@ -412,6 +413,8 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		if (!ctx->dm) return GF_SERVICE_ERROR;
 		gf_dm_set_localcache_provider(ctx->dm, routein_local_cache_probe, ctx);
 	}
+    if (!ctx->nbcached)
+        ctx->nbcached=1;
 
 	if (is_atsc) {
 		ctx->route_dmx = gf_route_atsc_dmx_new(ctx->ifce, ctx->odir, ctx->buffer);
@@ -451,10 +454,11 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
 	if (is_atsc) {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] ATSC 3.0 Tunein started\n"));
 		if (ctx->tune_service_id)
-			gf_route_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
+            gf_route_atsc3_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
 		else
-			gf_route_tune_in(ctx->route_dmx, (u32) ctx->tunein, GF_TRUE);
+            gf_route_atsc3_tune_in(ctx->route_dmx, (u32) ctx->tunein, GF_TRUE);
 	}
 
 	ctx->start_time = gf_sys_clock();
@@ -490,6 +494,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(tunein), "service ID to bootstrap on for ATSC 3.0 mode. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
 	{ OFFS(buffer), "receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
+    { OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
