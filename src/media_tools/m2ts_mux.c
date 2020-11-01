@@ -2005,7 +2005,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			while (stream->pes_data_remain) {
 				u32 remain = 0;
 				Bool res = stream->process(stream->program->mux, stream);
-				if (!res) {
+				if (!res || copy_next > stream->pes_data_remain) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Not enough data to fill current PES (PID %d) - filling with 0xFF\n", stream->pid) );
 					memset(packet+pos, 0xFF, copy_next);
 
