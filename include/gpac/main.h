@@ -177,14 +177,14 @@ typedef enum
 	GF_ARGMODE_ALL
 } GF_SysArgMode;
 
-/*! flags for help formating*/
+/*! flags for help formatting*/
 typedef enum
 {
 	/*! first word in format string should be highlighted */
  	GF_PRINTARG_HIGHLIGHT_FIRST = 1,
 	/*! prints <br/> instead of new line*/
 	GF_PRINTARG_NL_TO_BR = 1<<1,
-	/*! first word in format string is an option descritptor*/
+	/*! first word in format string is an option descripttor*/
 	GF_PRINTARG_OPT_DESC = 1<<2,
 	/*! the format string is an application string, not a gpac core one*/
 	GF_PRINTARG_IS_APP = 1<<3,

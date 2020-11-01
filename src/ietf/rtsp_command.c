@@ -266,7 +266,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 
 //format a DESCRIBE, SETUP, PLAY or PAUSE on a session
 //YOUR COMMAND MUST BE FORMATTED ACCORDINGLY
-//sCtrl contains a control string if needed, formating the REQUEST as server_url/service_name/sCtrl
+//sCtrl contains a control string if needed, formatting the REQUEST as server_url/service_name/sCtrl
 GF_EXPORT
 GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 {

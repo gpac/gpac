@@ -432,11 +432,11 @@ typedef struct {
 
 #if (defined (WIN32) || defined (_WIN32_WCE)) && (defined(__MINGW32__) || !defined(__GNUC__))
 
-/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
 #define LLD_SUF "I64d"
-/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
 #define LLU_SUF "I64u"
-/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
 #define LLX_SUF "I64x"
 
 #ifdef _WIN64
@@ -449,11 +449,11 @@ typedef struct {
 
 #elif defined (__SYMBIAN32__)
 
-/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
 #define LLD_SUF "d"
-/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
 #define LLU_SUF "u"
-/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
 #define LLX_SUF "x"
 
 /*! macro for cross-platform casting a pointer to an integer*/
@@ -462,11 +462,11 @@ typedef struct {
 /*seems that even though _LP64 is defined in OSX, %ll modifiers are still needed*/
 #elif defined(__DARWIN__) || defined(__APPLE__)
 
-/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
 #define LLD_SUF "lld"
-/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
 #define LLU_SUF "llu"
-/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
 #define LLX_SUF "llx"
 
 #ifdef __LP64__ /* Mac OS 64 bits */
@@ -479,11 +479,11 @@ typedef struct {
 
 #elif defined(_LP64) /*Unix 64 bits*/
 
-/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
 #define LLD_SUF "ld"
-/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
 #define LLU_SUF "lu"
-/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
 #define LLX_SUF "lx"
 
 /*! macro for cross-platform casting a pointer to an integer*/
@@ -491,11 +491,11 @@ typedef struct {
 
 #else /*Unix 32 bits*/
 
-/*! macro for cross-platform suffix used for formating s64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
 #define LLD_SUF "lld"
-/*! macro for cross-platform suffix used for formating u64 integers in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
 #define LLU_SUF "llu"
-/*! macro for cross-platform suffix used for formating u64 integers as hex in logs and printf routines*/
+/*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
 #define LLX_SUF "llx"
 
 /*! macro for cross-platform casting a pointer to an integer*/
