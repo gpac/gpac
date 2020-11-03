@@ -45,8 +45,8 @@ extern "C" {
 \brief ROUTE ATSC 3.0 reciever
 
 The ROUTE receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
-It gather objects from a ROUTE session and send them back to the user through a callback, or deletes them if no callback is sent.
-The route demuxer does not try to repairing files, it is the user responsability to to so.
+It gathers objects from a ROUTE session and sends them back to the user through a callback, or deletes them if no callback is sent.
+The route demuxer does not try to repairing files, it is the user responsability to do so.
 
 @{
 */
