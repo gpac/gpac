@@ -114,7 +114,7 @@ enum
 	NC_RTSP_Option_not_support	=	551,
 };
 
-/*! Gives string descritpion of error code
+/*! Gives string description of error code
 \param ErrCode the RTSP error code
 \return the description of the RTSP error code
 */

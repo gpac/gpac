@@ -2342,7 +2342,7 @@ typedef enum
 	GF_FS_SEP_NEG,
 } GF_FilterSessionSepType;
 
-/*! Queries the character code used as a given separator type in argument names. Used for formating arguments when loading sources and destinations from inside a filter
+/*! Queries the character code used as a given separator type in argument names. Used for formatting arguments when loading sources and destinations from inside a filter
 \param filter the target filter
 \param sep_type the separator type to query
 \return character code of the separator
@@ -2503,7 +2503,7 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter);
 /*! Gets a filter argument value as string for a given argument name..
 \param filter filter object
 \param arg_name name of the filter argument
-\param dump buffer in which any formating of argument value will take place
+\param dump buffer in which any formatting of argument value will take place
 \return the string value of the argument, or NULL if argument is not found or is invalid
 */
 const char *gf_filter_get_arg_str(GF_Filter *filter, const char *arg_name, char dump[GF_PROP_DUMP_ARG_SIZE]);

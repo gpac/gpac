@@ -1451,7 +1451,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		while (desc_len) {
 			if (pos + 2 > data_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PMT descriptor! size %d but position %d and need at least 2 bytes to parse descritpor\n", data_size, pos));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PMT descriptor! size %d but position %d and need at least 2 bytes to parse descriptor\n", data_size, pos));
 				break;
 			}
 			u8 tag = data[0];

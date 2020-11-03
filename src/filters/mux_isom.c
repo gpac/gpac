@@ -1823,7 +1823,7 @@ sample_entry_setup:
 	}
 
 
-	//little optim here: if no samples were added on the stream descritpion remove it
+	//little optim here: if no samples were added on the stream description remove it
 	if (!tkw->samples_in_stsd && tkw->stsd_idx) {
 		gf_isom_remove_stream_description(ctx->file, tkw->track_num, tkw->stsd_idx);
 	}

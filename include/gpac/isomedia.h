@@ -843,7 +843,7 @@ u32 gf_isom_get_sample_description_count(GF_ISOFile *isom_file, u32 trackNumber)
 \return the sample description index, or 0 if error or if empty*/
 u32 gf_isom_get_sample_description_index(GF_ISOFile *isom_file, u32 trackNumber, u64 for_time);
 
-/*! checks if a sample stream descritpion is self-contained (samples located in the file)
+/*! checks if a sample stream description is self-contained (samples located in the file)
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index (1-based)
