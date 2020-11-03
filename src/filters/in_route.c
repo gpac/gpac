@@ -756,8 +756,8 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		//for now progressive dispatch is only possible when populating cache
 		ctx->fullseg = GF_TRUE;
 	}
-    if (!ctx->nbcached)
-        ctx->nbcached=1;
+	if (!ctx->nbcached)
+		ctx->nbcached=1;
 
 	if (is_atsc) {
 		ctx->route_dmx = gf_route_atsc_dmx_new(ctx->ifce, ctx->buffer, routein_on_event, ctx);

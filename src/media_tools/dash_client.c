@@ -7763,7 +7763,7 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **se
 			if (seg_dur_ms) *seg_dur_ms = group->cached[0].duration;
 		}
 	}
-	return GF_OK;
+	return res;
 }
 
 GF_EXPORT
@@ -8379,9 +8379,8 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
 	if (dash->is_m3u8 && rep) {
 		char *ext;
 		u32 i, len, last_num, last_non_num;
-		GF_MPD_SegmentURL *first_seg, *last_seg;
-		first_seg = gf_list_get(rep->segment_list->segment_URLs, 0);
-		last_seg = gf_list_last(rep->segment_list->segment_URLs);
+		GF_MPD_SegmentURL *first_seg = gf_list_get(rep->segment_list->segment_URLs, 0);
+		//GF_MPD_SegmentURL *last_seg = gf_list_last(rep->segment_list->segment_URLs);
 		if (!first_seg) return NULL;
 		if (!first_seg->media) return NULL;
 		if (first_seg->media_range) return NULL;
