@@ -221,7 +221,7 @@ void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, c
  */
 Bool gf_route_dmx_remove_first_object(GF_ROUTEDmx *routedmx, u32 service_id);
 
-/*! Checks existence of a service for ats 3.0
+/*! Checks existence of a service for atsc 3.0
 \param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to query
 \return true if service is found, false otherwise

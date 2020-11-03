@@ -808,7 +808,7 @@ It also adds several small features:
 		* updated 2D and 3D renderer accordingly
 	- added support for rectangular textures in GL (most graphic cards support this, at least on win32)
 	- added frustum culling
-	- added SFTime->SFString formating in valuator (current MPEG-4 COR)
+	- added SFTime->SFString formatting in valuator (current MPEG-4 COR)
 	- plethora of bug fixes
 
 11/05/04: JLF: dev version 0.1.9

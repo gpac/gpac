@@ -118,7 +118,7 @@ typedef struct
 	MPD_EXTENSIBLE
 } GF_MPD_ExtensibleVirtual;
 
-/*! basic extensible MPD descritpor*/
+/*! basic extensible MPD descriptor*/
 typedef struct
 {
 	MPD_EXTENSIBLE

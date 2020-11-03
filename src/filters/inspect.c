@@ -388,7 +388,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 					gf_fprintf(dump, "\" cw_bottom=\"%d", sps->cw_bottom);
 					gf_fprintf(dump, "\" cw_top=\"%d", sps->cw_top);
 					gf_fprintf(dump, "\" cw_left=\"%d", sps->cw_left);
-					gf_fprintf(dump, "\" cw_bottom=\"%d", sps->cw_bottom);
+					gf_fprintf(dump, "\" cw_right=\"%d", sps->cw_right);
 				}
 				gf_fprintf(dump, "\" height=\"%d", sps->height);
 				gf_fprintf(dump, "\" width=\"%d", sps->width);
