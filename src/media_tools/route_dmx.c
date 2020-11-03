@@ -643,10 +643,10 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 				obj->total_length = obj->alloc_size;
 			if (partial)
 				obj->blob.flags |= GF_BLOB_CORRUPTED;
-			obj->blob.size = obj->total_length;
+			obj->blob.size = (u32) obj->total_length;
 		} else {
 			obj->blob.flags = GF_BLOB_IN_TRANSFER;
-			obj->blob.size = bytes_done;
+			obj->blob.size = (u32) bytes_done;
 		}
 		finfo.blob = &obj->blob;		
         finfo.total_size = obj->total_length;
