@@ -850,7 +850,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- no: no repair is performed\n"
 		"- simple: simple repair is performed (incomplete mdat boxes will be kept)\n"
 		"- strict: incomplete mdat boxes will be lost as well as preceeding moof box\n"
-		"- full: HTTP-based repair, not yet implemented\n"
+		"- full: HTTP-based repair, not yet implemented"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
 	
 	{0}
