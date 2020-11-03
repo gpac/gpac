@@ -3673,7 +3673,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	memset(&b, 0, sizeof(GF_Blob));
 	b.data = (u8 *) "test";
 	b.size = 5;
-	b.fl
 	char url[100];
 	u8 *data;
 	u32 size;
@@ -3681,7 +3680,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	gf_sys_profiler_set_callback(NULL, NULL);
 
-	gf_blob_ge(url, &data, &size, NULL);
+	gf_blob_get(url, &data, &size, NULL);
 	if (!data || strcmp((char *)data, "test")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] blob url parsing fail\n"));
 		return 1;
