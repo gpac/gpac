@@ -2393,10 +2393,9 @@ Bool gf_net_time_is_dst()
 #if defined(_WIN32_WCE)
 	return GF_FALSE;
 #else
-	struct tm t_gmt, t_local;
+	struct tm t_local;
 	time_t t_time;
 	t_time = time(NULL);
-	t_gmt = *gf_gmtime(&t_time);
 	t_local = *localtime(&t_time);
 	return t_local.tm_isdst ? GF_TRUE : GF_FALSE;
 #endif

@@ -4476,8 +4476,8 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 	}
 
 	gf_cache_set_mime(the_entry, mime);
-    if (blob && ! (blob->flags & GF_BLOB_IN_TRANSFER))
-        gf_cache_set_range(the_entry, blob->size, start_range, end_range);
+	if (blob && ! (blob->flags & GF_BLOB_IN_TRANSFER))
+        	gf_cache_set_range(the_entry, blob->size, start_range, end_range);
 
 	gf_cache_set_content(the_entry, blob, clone_memory ? GF_TRUE : GF_FALSE);
 	gf_cache_set_downtime(the_entry, download_time_ms);
