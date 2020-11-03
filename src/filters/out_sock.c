@@ -331,8 +331,11 @@ static GF_Err sockout_process(GF_Filter *filter)
 				u64 diff = ctx->nb_bytes_sent*8*1000000 / ctx->rate - now;
 				gf_filter_ask_rt_reschedule(filter, (u32) MAX(diff, 1000) );
 				return GF_OK;
-			} else {
-				fprintf(stderr, "[SockOut] Sending at "LLU" kbps                       \r", ctx->nb_bytes_sent*8*1000/now);
+			} else if (gf_filter_reporting_enabled(filter)) {
+				char szMsg[200];
+				snprintf(szMsg, 199, "Sending at "LLU" kbps\r", ctx->nb_bytes_sent*8*1000/now);
+				szMsg[199] = 0;
+				gf_filter_update_status(filter, 0, szMsg);
 			}
 		}
 	}

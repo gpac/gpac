@@ -1,4 +1,4 @@
-Ongoing: GPAC 1.1-DEV
+On-going: GPAC 1.1-DEV
 - more support for MPEG-H audio mux/demux/dashing
 - support for windows long path
 - support for multiple filter chains per source in MP4Box dash or add syntax
@@ -11,7 +11,7 @@ Ongoing: GPAC 1.1-DEV
 - Improved SmoothStreaming support
 - Support for custom HAS adaptation algorithms (JS and Python)
 - bug fixes and security patches
-- ROUTE muxer
+- ROUTE muxer and support for low-latency ROUTE mux and demux
 - VVC parsing, inspecting, mux and demux support (ISOBMFF and M2TS)
 - Filter TAG
 

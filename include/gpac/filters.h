@@ -2936,6 +2936,13 @@ u32 gf_filter_pid_get_max_buffer(GF_FilterPid *PID);
 */
 Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *PID, GF_Filter *filter);
 
+/*! Checks if a given PID has a common filter with another PID in the parent graph
+\param PID the target filter PID
+\param other_pid the other PID to check
+\return GF_TRUE if a filter is found that is outputing these two PIDs, GF_FALSE otherwise
+*/
+Bool gf_filter_pid_share_origin(GF_FilterPid *PID, GF_FilterPid *other_pid);
+
 /*! Gets current buffer levels of the PID
 \param PID the target filter PID
 \param max_units maximum number of packets allowed - can be 0 if buffer is measured in time

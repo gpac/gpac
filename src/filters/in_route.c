@@ -26,6 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/route.h>
 #include <gpac/network.h>
+#include <gpac/thread.h>
 
 #ifndef GPAC_DISABLE_ROUTE
 
@@ -42,12 +43,20 @@ typedef struct
 	char *seg_name;
 } SegInfo;
 
+enum
+{
+	ROUTEIN_REPAIR_NO = 0,
+	ROUTEIN_REPAIR_SIMPLE,
+	ROUTEIN_REPAIR_STRICT,
+	ROUTEIN_REPAIR_FULL,
+};
+
 typedef struct
 {
 	//options
 	char *src, *ifce, *odir;
-	Bool gcache, kc, sr, reorder;
-	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached;
+	Bool gcache, kc, sr, reorder, fullseg;
+	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
 	s32 tunein, stsi;
 	
 	//internal
@@ -72,6 +81,213 @@ typedef struct
 } ROUTEInCtx;
 
 
+static void routein_repair_segment_ts(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+{
+    u32 i, pos;
+    u8 *data = finfo->blob->data;
+    
+    pos = 0;
+    for (i=0; i<finfo->nb_frags; i++) {
+        u32 start_range = finfo->frags[i].offset;
+        u32 end_range = finfo->frags[i].size;
+
+        end_range += start_range;
+        //reset all missed byte ranges as padding packets
+        start_range -= pos;
+        while (start_range % 188) start_range++;
+        while (pos<start_range) {
+            data[pos] = 0x47;
+            data[pos+1] = 0x1F;
+            data[pos+2] = 0xFF;
+            data[pos+3] = 0x10;
+            pos += 188;
+        }
+        //end range not aligned with a packet start, rewind position to prev packet start
+        if (end_range % 188) {
+            while (end_range % 188) end_range--;
+            pos = end_range;
+        }
+    }
+    //and patch all end packets
+    while (pos<finfo->blob->size) {
+        data[pos] = 0x47;
+        data[pos+1] = 0x1F;
+        data[pos+2] = 0xFF;
+        data[pos+3] = 0x10;
+        pos += 188;
+    }
+	//remove corrupted flag
+	finfo->blob->flags = 0;
+}
+
+//top boxes we look for in segments
+static const char *top_codes[] = {"styp", "emsg", "prft", "moof", "mdat", "free", "sidx", "ssix"};
+static u32 nb_top_codes = GF_ARRAY_LENGTH(top_codes);
+
+
+u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, u32 *cur_pos, u32 *box_size)
+{
+    u32 pos = *cur_pos;
+	u32 cur_frag = 0;
+	while (cur_frag < finfo->nb_frags) {
+		//in range, can go
+		if ((finfo->frags[cur_frag].offset <= pos) && (finfo->frags[cur_frag].offset + finfo->frags[cur_frag].size > pos)) {
+			break;
+		}
+		//before range, adjust pos
+		if (finfo->frags[cur_frag].offset > pos) {
+			pos = finfo->frags[cur_frag].offset;
+			break;
+		}
+		//after range, go to next
+		cur_frag++;
+		//current pos is outside last valid range, no more top-level boxes to parse
+		if (cur_frag==finfo->nb_frags)
+			return 0;
+	}
+		
+    while (pos < size) {
+        u32 i;
+        u32 type_idx = 0;
+		u32 first_box = 0;
+		u32 first_box_size = 0;
+        for (i=0; i<nb_top_codes; i++) {
+			if ((data[pos]==top_codes[i][0]) && (data[pos+1]==top_codes[i][1]) && (data[pos+2]==top_codes[i][2]) && (data[pos+3]==top_codes[i][3])) {
+				first_box = pos;
+				type_idx = i;
+				break;
+            }
+        }
+        //we need at least 4 bytes size header
+        if (first_box<4) {
+            pos++;
+            continue;
+        }
+		first_box_size = GF_4CC(data[first_box-4], data[first_box-3], data[first_box-2], data[first_box-1]);
+		if (first_box_size<8) {
+			pos++;
+			continue;
+		}
+        *cur_pos = first_box-4;
+        *box_size = first_box_size;
+        return GF_4CC(top_codes[type_idx][0], top_codes[type_idx][1], top_codes[type_idx][2], top_codes[type_idx][3]);
+    }
+    return 0;
+}
+
+static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+{
+    u8 *data = finfo->blob->data;
+    u32 size = finfo->blob->size;
+    u32 pos = 0;
+	u32 prev_moof_pos = 0;
+    //walk through all possible top-level boxes in order
+    //if box completely in a received byte range, keep as is
+    //if mdat or free box, keep as is
+    //otherwise change box type to free
+    while (pos < size) {
+        u32 i;
+		Bool is_mdat = GF_FALSE;
+        Bool box_complete = GF_FALSE;
+        u32 prev_pos = pos;
+        u32 box_size = 0;
+        u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
+        //no more top-level found, patch from current pos until end of payload
+        if (!type) {
+            u32 remain = size - pos;
+            assert(remain);
+            if (remain<8) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
+                return;
+            }
+            data[pos] = (remain>>24) & 0xFF;
+            data[pos+1] = (remain>>16) & 0xFF;
+            data[pos+2] = (remain>>8) & 0xFF;
+            data[pos+3] = (remain) & 0xFF;
+            data[pos+4] = 'f';
+            data[pos+5] = 'r';
+            data[pos+6] = 'e';
+            data[pos+7] = 'e';
+			//remove corrupted flag
+			finfo->blob->flags = 0;
+            return;
+        }
+        //we missed a box header, insert one at previous pos, indicating a free box !!
+        if (pos > prev_pos) {
+            u32 missed_size = pos - prev_pos;
+            data[prev_pos] = (missed_size>>24) & 0xFF;
+            data[prev_pos+1] = (missed_size>>16) & 0xFF;
+            data[prev_pos+2] = (missed_size>>8) & 0xFF;
+            data[prev_pos+3] = (missed_size) & 0xFF;
+            data[prev_pos+4] = 'f';
+            data[prev_pos+5] = 'r';
+            data[prev_pos+6] = 'e';
+            data[prev_pos+7] = 'e';
+        }
+        if (type == GF_4CC('f','r','e','e')) {
+            box_complete = GF_TRUE;
+        } else if (type == GF_4CC('m','d','a','t')) {
+			if (ctx->repair != ROUTEIN_REPAIR_STRICT) {
+				box_complete = GF_TRUE;
+			} else {
+				is_mdat = GF_TRUE;
+			}
+		} else if (type == GF_4CC('m','o','o','f')) {
+			prev_moof_pos = pos;
+		}
+
+        if (!box_complete) {
+            //box is only partially received
+            for (i=0; i<finfo->nb_frags; i++) {
+                if (pos + box_size < finfo->frags[i].offset)
+                    break;
+                if ((pos >= finfo->frags[i].offset) && (pos+box_size<=finfo->frags[i].offset + finfo->frags[i].size)) {
+                    box_complete = GF_TRUE;
+                    break;
+                }
+            }
+        }
+        if (box_complete) {
+            pos += box_size;
+            continue;
+        }
+		//incomplete mdat (strict mode), discard previous moof
+		if (is_mdat) {
+			data[prev_moof_pos+4] = 'f';
+			data[prev_moof_pos+5] = 'r';
+			data[prev_moof_pos+6] = 'e';
+			data[prev_moof_pos+7] = 'e';
+		}
+        //incomplete box, move to free (not changing size)
+        data[pos+4] = 'f';
+        data[pos+5] = 'r';
+        data[pos+6] = 'e';
+        data[pos+7] = 'e';
+        pos += box_size;
+    }
+	//remove corrupted flag
+	finfo->blob->flags = 0;
+}
+
+static void routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+{
+	if (ctx->repair==ROUTEIN_REPAIR_NO)
+		return;
+
+	if (finfo->blob->mx)
+		gf_mx_p(finfo->blob->mx);
+	
+    if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
+        routein_repair_segment_ts(ctx, finfo);
+    } else {
+        routein_repair_segment_isobmf(ctx, finfo);
+    }
+
+	if (finfo->blob->mx)
+		gf_mx_v(finfo->blob->mx);
+}
+
+
 static GF_FilterProbeScore routein_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "atsc://", 7)) return GF_FPROBE_SUPPORTED;
@@ -84,8 +300,11 @@ static void routein_finalize(GF_Filter *filter)
 {
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
 
-    gf_route_dmx_purge_objects(ctx->route_dmx, 1);
-
+#ifdef GPAC_ENABLE_COVERAGE
+    if (gf_sys_is_cov_mode())
+        gf_route_dmx_purge_objects(ctx->route_dmx, 1);
+#endif
+    
     if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 	if (ctx->route_dmx) gf_route_dmx_del(ctx->route_dmx);
 
@@ -98,17 +317,43 @@ static void routein_finalize(GF_Filter *filter)
 	}
 	if (ctx->received_seg_names) {
 		while (gf_list_count(ctx->received_seg_names)) {
-			SegInfo *si = gf_list_pop_back(ctx->received_seg_names);
-			gf_free(si->seg_name);
-			gf_free(si);
+			if (ctx->odir) {
+				char *filedel = gf_list_pop_back(ctx->received_seg_names);
+				if (filedel) gf_free(filedel);
+			} else {
+				SegInfo *si = gf_list_pop_back(ctx->received_seg_names);
+				gf_free(si->seg_name);
+				gf_free(si);
+			}
 		}
 		gf_list_del(ctx->received_seg_names);
 	}
 }
 
+static void push_seg_info(ROUTEInCtx *ctx, GF_FilterPid *pid, GF_ROUTEEventFileInfo *finfo)
+{
+    if (ctx->received_seg_names) {
+        SegInfo *si;
+        GF_SAFEALLOC(si, SegInfo);
+        if (!si) return;
+        si->opid = pid;
+        si->seg_name = gf_strdup(finfo->filename);
+        gf_list_add(ctx->received_seg_names, si);
+    }
+    while (gf_list_count(ctx->received_seg_names) > ctx->max_segs) {
+        GF_FilterEvent evt;
+        SegInfo *si = gf_list_pop_front(ctx->received_seg_names);
+        GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, si->opid);
+        evt.file_del.url = si->seg_name;
+        gf_filter_pid_send_event(si->opid, &evt);
+        gf_free(si->seg_name);
+        gf_free(si);
+    }
+}
+
 static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 evt_type)
 {
-	if (!ctx->kc || !finfo->corrupted) {
+	if (!ctx->kc || !(finfo->blob->flags & GF_BLOB_CORRUPTED)) {
 		u8 *output;
 		char *ext;
 		GF_FilterPid *pid, **p_pid;
@@ -152,38 +397,59 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		ext = gf_file_ext_start(finfo->filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
 
-		pck = gf_filter_pck_new_alloc(pid, finfo->size, &output);
-		memcpy(output, finfo->data, finfo->size);
-		if (finfo->corrupted) gf_filter_pck_set_corrupted(pck, GF_TRUE);
+		pck = gf_filter_pck_new_alloc(pid, finfo->blob->size, &output);
+		memcpy(output, finfo->blob->data, finfo->blob->size);
+		if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
 		gf_filter_pck_send(pck);
 
-		if (ctx->received_seg_names && (evt_type==GF_ROUTE_EVT_DYN_SEG)) {
-			SegInfo *si;
-			GF_SAFEALLOC(si, SegInfo);
-			if (!si) return;
-			si->opid = pid;
-			si->seg_name = gf_strdup(finfo->filename);
-			gf_list_add(ctx->received_seg_names, si);
-		}
+        if (ctx->max_segs && (evt_type==GF_ROUTE_EVT_DYN_SEG))
+            push_seg_info(ctx, pid, finfo);
 	}
 
 	while (gf_route_dmx_get_object_count(ctx->route_dmx, service_id)>1) {
 		if (! gf_route_dmx_remove_first_object(ctx->route_dmx, service_id))
 			break;
 	}
+}
 
-	if (ctx->max_segs) {
+static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 evt_type)
+{
+	char szPath[GF_MAX_PATH];
+	FILE *out;
+	if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc)
+		return;
+	
+	sprintf(szPath, "%s/service%d/%s", ctx->odir, service_id, finfo->filename);
+
+	out = gf_fopen(szPath, "wb");
+	if (!out) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to create MPD file %s\n", service_id, szPath ));
+	} else {
+		u32 bytes = (u32) gf_fwrite(finfo->blob->data, finfo->blob->size, out);
+		gf_fclose(out);
+		if (bytes != finfo->blob->size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to write file %s:  %d written for %d total\n", service_id, finfo->filename, bytes, finfo->blob->size));
+		}
+	}
+	while (gf_route_dmx_get_object_count(ctx->route_dmx, service_id)>1) {
+		if (! gf_route_dmx_remove_first_object(ctx->route_dmx, service_id))
+			break;
+	}
+
+	if (ctx->max_segs && (evt_type==GF_ROUTE_EVT_DYN_SEG)) {
+		gf_list_add(ctx->received_seg_names, gf_strdup(szPath));
+
 		while (gf_list_count(ctx->received_seg_names) > ctx->max_segs) {
-			GF_FilterEvent evt;
-			SegInfo *si = gf_list_pop_front(ctx->received_seg_names);
-			GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, si->opid);
-			evt.file_del.url = si->seg_name;
-			gf_filter_pid_send_event(si->opid, &evt);
-			gf_free(si->seg_name);
-			gf_free(si);
+			char *filedel = gf_list_pop_front(ctx->received_seg_names);
+			if (filedel) {
+				gf_file_delete(filedel);
+				gf_free(filedel);
+			}
 		}
 	}
 }
+
+
 
 void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo)
 {
@@ -192,8 +458,9 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 	u32 nb_obj;
 	Bool is_init = GF_TRUE;
 	Bool is_loop = GF_FALSE;
-	DownloadedCacheEntry cache_entry;
+	DownloadedCacheEntry cache_entry = (DownloadedCacheEntry) finfo ? finfo->udta : NULL;
 
+	szPath[0] = 0;
 	switch (evt) {
 	case GF_ROUTE_EVT_SERVICE_FOUND:
 		if (!ctx->tune_time) ctx->tune_time = gf_sys_clock();
@@ -210,7 +477,11 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		break;
 	case GF_ROUTE_EVT_MPD:
 		if (!ctx->tune_time) ctx->tune_time = gf_sys_clock();
-
+			
+		if (ctx->odir) {
+			routein_write_to_disk(ctx, evt_param, finfo, evt);
+			break;
+		}
 		if (!ctx->gcache) {
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
@@ -229,7 +500,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_REDIRECT_URL, &PROP_STRING(szPath));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_URL, &PROP_STRING(szPath));
 
-		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->data, finfo->size, 0, 0, "application/dash+xml", GF_TRUE, 0);
+		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, "application/dash+xml", GF_TRUE, 0);
 
 		sprintf(szPath, "x-route: %d\r\n", evt_param);
 		gf_dm_force_headers(ctx->dm, cache_entry, szPath);
@@ -243,17 +514,59 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		break;
 	case GF_ROUTE_EVT_DYN_SEG:
 
+		//corrupted file, try to repair
+		if (finfo->blob->flags & GF_BLOB_CORRUPTED) {
+			routein_repair_segment(ctx, finfo);
+		}
+			
+		if (ctx->odir) {
+			routein_write_to_disk(ctx, evt_param, finfo, evt);
+			break;
+		}
 		if (!ctx->gcache) {
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
-		if (finfo->corrupted && !ctx->kc) return;
-		cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
-		if (cache_entry) {
-			if (!ctx->clock_init_seg) ctx->clock_init_seg = gf_strdup(finfo->filename);
-			sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\n", evt_param, ctx->clock_init_seg);
-			gf_dm_force_headers(ctx->dm, cache_entry, szPath);
+        //fallthrough
+
+    case GF_ROUTE_EVT_DYN_SEG_FRAG:
+        //for now we only push complete files
+        if (!ctx->gcache) {
+            break;
+        }
+
+#if 0
+			//couldn't repair or this is a fragment
+        if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc) {
+			
+            //force updating the cache entry since we may have reallocated the data buffer
+            sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
+            if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
+                cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, "video/mp4", GF_FALSE, finfo->download_ms);
+            } else {
+                if (ctx->fullseg)
+                    break;
+                cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, "video/mp4", GF_FALSE, finfo->download_ms);
+            }
+            //don't break yet, we want to signal the clock
+        }
+#endif
+			
+		if (!ctx->clock_init_seg) {
+			DownloadedCacheEntry mpd_cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
+			if (mpd_cache_entry) {
+				ctx->clock_init_seg = gf_strdup(finfo->filename);
+				sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\n", evt_param, ctx->clock_init_seg);
+				if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
+					strcat(szPath, "x-route-ll: yes\r\n");
+				gf_dm_force_headers(ctx->dm, mpd_cache_entry, szPath);
+				szPath[0] = 0;
+			}
 		}
+
+		if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc)
+            break;
+            
 		is_init = GF_FALSE;
 		if (!ctx->sync_tsi) {
 			ctx->sync_tsi = finfo->tsi;
@@ -269,6 +582,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 					ctx->clock_init_seg = gf_strdup(finfo->filename);
 					sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\nx-route-loop: yes\r\n", evt_param, ctx->clock_init_seg);
 					gf_dm_force_headers(ctx->dm, cache_entry, szPath);
+					szPath[0] = 0;
 				}
 			}
 			ctx->last_toi = finfo->toi;
@@ -276,21 +590,39 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		//fallthrough
 
 	case GF_ROUTE_EVT_FILE:
+
+		if (ctx->odir) {
+			routein_write_to_disk(ctx, evt_param, finfo, evt);
+			break;
+		}
 		if (!ctx->gcache) {
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
 
-		if (finfo->corrupted && !ctx->kc) return;
+		if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc) return;
 
-		sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
-		//we copy over the init segment, but only share the data pointer for segments
 
-		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->data, finfo->size, 0, 0, "video/mp4", is_init ? GF_TRUE : GF_FALSE, finfo->download_ms);
-
-		if (cache_entry) gf_dm_force_headers(ctx->dm, cache_entry, "x-route: yes\r\n");
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Pushing file %s to cache\n", szPath));
+		if (!cache_entry) {
+			sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
+			
+			//we copy over the init segment, but only share the data pointer for segments
+			cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, "video/mp4", is_init ? GF_TRUE : GF_FALSE, finfo->download_ms);
+			if (cache_entry) {
+				gf_dm_force_headers(ctx->dm, cache_entry, "x-route: yes\r\n");
+				finfo->udta = cache_entry;
+			}
+		}
+			
+        if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
+            GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Pushing fragment from file %s to cache\n", finfo->filename));
+			break;
+        }
+			
+			
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Pushing file %s to cache\n", finfo->filename));
+		if (ctx->max_segs && (evt==GF_ROUTE_EVT_DYN_SEG))
+			push_seg_info(ctx, ctx->opid, finfo);
 
 		if (is_loop) break;
 
@@ -299,6 +631,13 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
             gf_route_dmx_remove_first_object(ctx->route_dmx, evt_param);
             nb_obj = gf_route_dmx_get_object_count(ctx->route_dmx, evt_param);
         }
+		break;
+			
+    case GF_ROUTE_EVT_FILE_DELETE:
+		if (ctx->gcache) {
+			sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
+			cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, NULL, 0, 0, "video/mp4", GF_FALSE, 0);
+		}
 		break;
 	default:
 		break;
@@ -405,19 +744,23 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	} else if (strcmp(ctx->src, "atsc://"))
 		return GF_BAD_PARAM;
 
-	if (ctx->odir)
+	if (ctx->odir) {
 		ctx->gcache = GF_FALSE;
+	}
 
 	if (ctx->gcache) {
 		ctx->dm = gf_filter_get_download_manager(filter);
 		if (!ctx->dm) return GF_SERVICE_ERROR;
 		gf_dm_set_localcache_provider(ctx->dm, routein_local_cache_probe, ctx);
+	} else {
+		//for now progressive dispatch is only possible when populating cache
+		ctx->fullseg = GF_TRUE;
 	}
     if (!ctx->nbcached)
         ctx->nbcached=1;
 
 	if (is_atsc) {
-		ctx->route_dmx = gf_route_atsc_dmx_new(ctx->ifce, ctx->odir, ctx->buffer);
+		ctx->route_dmx = gf_route_atsc_dmx_new(ctx->ifce, ctx->buffer, routein_on_event, ctx);
 	} else {
 		char *sep, *root;
 		u32 port;
@@ -437,12 +780,11 @@ static GF_Err routein_initialize(GF_Filter *filter)
 			sep[0] = ':';
 			return GF_BAD_PARAM;
 		}
-		ctx->route_dmx = gf_route_dmx_new(ctx->src+8, port, ctx->ifce, ctx->odir, ctx->buffer);
+		ctx->route_dmx = gf_route_dmx_new(ctx->src+8, port, ctx->ifce, ctx->buffer, routein_on_event, ctx);
 		sep[0] = ':';
 	}
-	if (ctx->odir && ctx->max_segs) {
-		gf_route_set_max_objects_store(ctx->route_dmx, (u32) ctx->max_segs);
-	}
+	
+	gf_route_set_allow_progressive_dispatch(ctx->route_dmx, !ctx->fullseg);
 
 	gf_route_set_reorder(ctx->route_dmx, ctx->reorder, ctx->rtimeout);
 
@@ -450,7 +792,6 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		gf_route_dmx_debug_tsi(ctx->route_dmx, ctx->tsidbg);
 	}
 
-	gf_route_set_callback(ctx->route_dmx, routein_on_event, ctx);
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
 	if (is_atsc) {
@@ -494,16 +835,24 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(tunein), "service ID to bootstrap on for ATSC 3.0 mode. 0 means tune to no service, -1 tune all services -2 means tune on first service found", GF_PROP_SINT, "-2", NULL, 0},
 	{ OFFS(buffer), "receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
-    { OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_ADVANCED},
+    { OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(max_segs), "maximum number of segments to keep - ignored in cache mode", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_segs), "maximum number of segments to keep on disk", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(odir), "output directory for stand-alone mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder), "ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rtimeout), "default timeout in ms to wait when gathering out-of-order packets", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(repair), "repair mode for corrupted files (see filter help)\n"
+		"- no: no repair is performed\n"
+		"- simple: simple repair is performed (incomplete mdat boxes will be kept)\n"
+		"- strict: incomplete mdat boxes will be lost as well as preceeding moof box\n"
+		"- full: HTTP-based repair, not yet implemented\n"
+		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
+	
 	{0}
 };
 
@@ -523,27 +872,42 @@ GF_FilterRegister ROUTEInRegister = {
 	"The filter can work in cached mode, source mode or standalone mode.\n"
 	"# Cached mode\n"
 	"The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the received files, using `http://groute/serviceN/` as service root, N being the ROUTE service ID.\n"
-	"In cached mode, repeated files are always sent.\n"
+	"In cached mode, repeated files are always pushed to cache.\n"
+	"The maximum number of media segment objects in cache per service is defined by [-nbcached](); this is a safety used to force object removal in case DASH client timing is wrong and some files are never requested at cache level.\n"
 	"  \n"
 	"The cached MPD is assigned the following headers:\n"
 	"- x-route: integer value, indicates the ROUTE service ID.\n"
-	"- x-route-first-seg: string value, indicates the name of the first segment completely retrieved from the broadcast.\n"
-	"- x-route-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).\n"
+	"- x-route-first-seg: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.\n"
+    "- x-route-ll: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).\n"
+    "- x-route-loop: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).\n"
 	"  \n"
 	"The cached files are assigned the following headers:\n"
 	"- x-route: boolean value, if yes indicates the file comes from an ROUTE session.\n"
+	"\n"
+	"If [-max_segs]() is set, file deletion event will be triggered in the filter chain.\n"
 	"\n"
 	"# Source mode\n"
 	"In source mode, the filter outputs files on a single output pid of type `file`. "
 	"The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not sent unless requested.\n"
 	"If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).\n"
-	"EX gpac -i atsc://cache=false -o $ServiceID$/$File$:dynext\n"
+	"EX gpac -i atsc://gcache=false -o $ServiceID$/$File$:dynext\n"
 	"This will grab the files and forward them as output PIDs, consumed by the [fout](fout) filter.\n"
+	"\n"
+	"If [-max_segs]() is set, file deletion event will be triggered in the filter chain.\n"
 	"\n"
 	"# Standalone mode\n"
 	"In standalone mode, the filter does not produce any output pid and writes received files to the [-odir]() directory.\n"
 	"EX gpac -i atsc://odir=output\n"
 	"This will grab the files and write them to `output` directory.\n"
+	"\n"
+	"If [-max_segs]() is set, old files will be deleted.\n"
+	"\n"
+	"# File Repair\n"
+	"In case of losses or incomplete segment reception (during tune-in), the files are patched as follows:\n"
+	"- MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.\n"
+	"- ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in `free` boxes, except mdat kept as is if [-repair]() is set to simple.\n"
+	"\n"
+	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are delivered while downloaded, cirrupted files will be kept.\n"
 	"\n"
 	"# Interface setup\n"
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"

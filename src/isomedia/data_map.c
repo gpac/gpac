@@ -400,9 +400,10 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	if (!strncmp(sPath, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		if (gf_blob_get_data(sPath, &mem_address, &size) != GF_OK)
+		if (gf_blob_get(sPath, &mem_address, &size, NULL) != GF_OK)
 			return NULL;
 		tmp->bs = gf_bs_new((const char *)mem_address, size, GF_BITSTREAM_READ);
+        gf_blob_release(sPath);
 		if (!tmp->bs) {
 			gf_free(tmp);
 			return NULL;

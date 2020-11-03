@@ -95,7 +95,6 @@ typedef struct
 
 	u32 pending_scalable_enhancement_segment_index;
 
-	Bool drop_next_segment;
 	Bool in_data_flush;
 	u32 has_pending_segments, nb_force_flush;
 
@@ -103,7 +102,8 @@ typedef struct
 	Bool disconnected;
 	Bool no_order_check;
 	Bool moov_not_loaded;
-
+    Bool invalid_segment;
+    
 	u64 last_sender_ntp, ntp_at_last_sender_ntp, cts_for_last_sender_ntp;
 	Bool is_partial_download, wait_for_source;
 

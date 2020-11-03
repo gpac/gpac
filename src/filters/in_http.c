@@ -289,8 +289,10 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
 		}
 
-		if (!e) e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
-		if (e) {
+		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
+            e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
+		
+        if (e) {
 			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
 			//but recovered later, so we let DASH report the error
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
@@ -337,7 +339,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		return GF_EOS;
 
 	if (!ctx->pid) {
-		if (ctx->nb_read) return GF_SERVICE_ERROR;
+		if (ctx->nb_read)
+            return GF_SERVICE_ERROR;
 	} else {
 		//TODO: go on fetching data to cache even when not consuming, and reread from cache
 		if (gf_filter_pid_would_block(ctx->pid))
@@ -378,7 +381,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 		const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
 		assert(cached);
 
-		gf_blob_get_data(cached, &b_data, &b_size);
+		gf_blob_get(cached, &b_data, &b_size, NULL);
 		assert(ctx->nb_read <= b_size);
 		nb_read = b_size - (u32) ctx->nb_read;
 		if (nb_read>ctx->block_size)
@@ -394,6 +397,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 				ctx->blob_size = b_size;
 			}
 		}
+        gf_blob_release(cached);
 	}
 	//we read from network
 	else {
@@ -421,7 +425,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 
 		//wait until we have some data to declare the pid
-		if ((e!= GF_EOS) && !nb_read) return GF_OK;
+        if ((e!= GF_EOS) && !nb_read) {
+            gf_filter_ask_rt_reschedule(filter, 1000);
+            return GF_OK;
+        }
 
 		if (!ctx->pid || ctx->do_reconfigure) {
 			u32 idx;
@@ -434,15 +441,17 @@ static GF_Err httpin_process(GF_Filter *filter)
 			if ((e==GF_EOS) && cached) {
 				if (!strnicmp(cached, "gmem://", 7)) {
 					u8 *b_data;
-					u32 b_size;
-					gf_blob_get_data(cached, &b_data, &b_size);
+					u32 b_size, b_flags;
+					gf_blob_get(cached, &b_data, &b_size, &b_flags);
 					if (b_size>ctx->block_size) {
 						ctx->blob_size = b_size;
 						b_size = ctx->block_size;
 						e = GF_OK;
 					}
+					assert(! (b_flags&GF_BLOB_IN_TRANSFER));
 					memcpy(ctx->block, b_data, b_size);
 					nb_read = b_size;
+					gf_blob_release(cached);
 				} else {
 					ctx->cached = gf_fopen(cached, "rb");
 					if (ctx->cached) {
@@ -452,7 +461,6 @@ static GF_Err httpin_process(GF_Filter *filter)
 					}
 				}
 			}
-			ctx->file_size = total_size;
 			ctx->block[nb_read] = 0;
 			cfg_e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, ctx->mime ? GF_TRUE : GF_FALSE, &ctx->pid);
 			if (cfg_e) return cfg_e;
@@ -472,6 +480,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 				}
 			}
 		}
+		//update file size at each call to get_stats, since we may use a dynamic blob in case of route
+		ctx->file_size = total_size;
 
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 		if (ctx->range.num && ctx->file_size) {

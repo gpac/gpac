@@ -116,6 +116,8 @@ typedef struct
 
 	u8 *tunein_data;
 	u32 tunein_data_size;
+    
+    Bool force_dst_name;
 } GF_HTTPOutInput;
 
 typedef struct
@@ -396,7 +398,10 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	gf_dynstrcat(&in->local_path, dir, NULL);
 	if (!strchr("/\\", dir[len-1]))
 		gf_dynstrcat(&in->local_path, "/", NULL);
-	gf_dynstrcat(&in->local_path, in->path+1, NULL);
+    if (in->path[0]=='/')
+        gf_dynstrcat(&in->local_path, in->path+1, NULL);
+    else
+        gf_dynstrcat(&in->local_path, in->path, NULL);
 }
 
 static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
@@ -731,7 +736,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (range) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s [range: %s] start\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, range));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s start\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1));
+				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#%d %s %s %s start%s\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, sess->use_chunk_transfer ? " chunk-transfer" : ""));
 			}
 		}
 		sess->req_start_time = gf_sys_clock_high_res();
@@ -747,6 +752,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	for (i=0; i<count; i++) {
 		GF_HTTPOutInput *in = gf_list_get(sess->ctx->inputs, i);
+		assert(in->path[0] == '/');
 		//matching name and input pid not done: file has been created and is in progress
 		//if input pid done, try from file
 		if (!strcmp(in->path, url) && !in->done) {
@@ -1300,6 +1306,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_HTTPOutCtx *ctx_orig;
 		Bool patch_blocks = GF_FALSE;
 		GF_FilterEvent evt;
+        const char *res_path;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
 		if (p && p->value.uint) {
@@ -1318,7 +1325,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		/*if PID was connected to an alias, get the alias context to get the destination
 		Otherwise PID was directly connected to the main filter, use main filter destination*/
 		ctx_orig = (GF_HTTPOutCtx *) gf_filter_pid_get_alias_udta(pid);
-		if (!ctx_orig) ctx_orig = ctx;
+        if (!ctx_orig) ctx_orig = ctx;
 
 		if (!ctx_orig->dst && (ctx->hmode==MODE_PUSH))  {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Push output but no destination set !\n"));
@@ -1332,13 +1339,25 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		pctx->patch_blocks = patch_blocks;
 		pctx->hold = ctx->hold;
 
+        res_path = NULL;
 		if (ctx_orig->dst) {
-			char *path = strstr(ctx_orig->dst, "://");
-			if (path) path = strchr(path+3, '/');
-			if (path) pctx->path = gf_strdup(path);
+            res_path = ctx_orig->dst;
+            char *path = strstr(res_path, "://");
+            if (path) path = strchr(path+3, '/');
+            if (path) pctx->path = gf_strdup(path);
+        } else if (!ctx->dst) {
+            p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+            if (p && p->value.string) {
+                res_path = p->value.string;
+                pctx->path = gf_strdup(res_path);
+            }
+        }
+        if (res_path) {
 
 			if (ctx->hmode==MODE_PUSH) {
 				GF_Err e;
+				//note that ctx_orig->dst might be wrong (eg indicating MPD url rather than segment), but this is fixed in httpout_open_input by resetting up the session
+				//with the correct URL
 				pctx->upload = gf_dm_sess_new(gf_filter_get_download_manager(filter), ctx_orig->dst, GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT, httpout_in_io, pctx, &e);
 				if (!pctx->upload) {
 					gf_free(pctx);
@@ -1352,19 +1371,26 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				}
 				httpout_set_local_path(ctx, pctx);
 			}
+			if (ctx->dst && !gf_list_count(ctx->inputs))
+				pctx->force_dst_name = GF_TRUE;
 
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
-			if (p && p->value.uint) pctx->dash_mode = GF_TRUE;
-
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
-			if (p && p->value.string) pctx->mime = gf_strdup(p->value.string);
-
-			gf_filter_pid_set_udta(pid, pctx);
-			gf_list_add(ctx->inputs, pctx);
-
-			gf_filter_pid_init_play_event(pid, &evt, 0.0, 1.0, "HTTPOut");
-			gf_filter_pid_send_event(pid, &evt);
+			//reset caps to null in case a URL was given, since graph resolution is now done
+			//this allows working with input filters dispatching files without creating a new destination (dashin in file mode for example)
+			gf_filter_override_caps(filter, NULL, 0);
 		}
+		//in any cast store dash state, mime, register input and fire play
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
+		if (p && p->value.uint) pctx->dash_mode = GF_TRUE;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (p && p->value.string) pctx->mime = gf_strdup(p->value.string);
+
+		gf_filter_pid_set_udta(pid, pctx);
+		gf_list_add(ctx->inputs, pctx);
+
+		gf_filter_pid_init_play_event(pid, &evt, 0.0, 1.0, "HTTPOut");
+		gf_filter_pid_send_event(pid, &evt);
+            
 	}
 	if (is_remove) {
 		return GF_OK;
@@ -2066,26 +2092,80 @@ session_done:
 static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const char *name, Bool is_delete)
 {
 //	Bool reassign_clients = GF_TRUE;
-	u32 len;
-	const char *dir;
-	const char *sep = name ? strstr(name, "://") : NULL;
+	u32 len = 0;
+    char *o_url = NULL;
+    const char *dir = NULL;
+    const char *sep;
 
-	if (sep) sep = strchr(sep+3, '/');
+    if (in->is_open) return GF_FALSE;
+    if (!in->upload) {
+        //server mode not recording, nothing to do
+        if (!ctx->rdirs.nb_items) return GF_FALSE;
+        if (in->resource) return GF_FALSE;
+
+        dir = ctx->rdirs.vals[0];
+        if (!dir) return GF_FALSE;
+        len = (u32) strlen(dir);
+        if (!len) return GF_FALSE;
+    }
+
+    sep = name ? strstr(name, "://") : NULL;
+    if (sep) sep = strchr(sep+3, '/');
 	if (!sep) {
+        if (in->force_dst_name) {
+            sep = in->path;
+        } else if (ctx->dst) {
+            u32 i, count = gf_list_count(ctx->inputs);
+            for (i=0; i<count; i++) {
+                char *path_sep;
+                GF_HTTPOutInput *an_in = gf_list_get(ctx->inputs, i);
+                if (an_in==in) continue;
+                if (!an_in->path) continue;
+                if (ctx->dst && !an_in->force_dst_name) continue;
+                if (!gf_filter_pid_share_origin(in->ipid, an_in->ipid))
+                    continue;
+                
+                o_url = gf_strdup(an_in->path);
+                path_sep = strrchr(o_url, '/');
+                if (path_sep) {
+                    path_sep[1] = 0;
+                    gf_dynstrcat(&o_url, name, NULL);
+                    sep = o_url;
+                } else {
+                    sep = name;
+                }
+                break;
+            }
+		} else {
+			sep = name;
+		}
+		if (sep && (sep[0] != '/')) {
+			char *new_url = NULL;
+			gf_dynstrcat(&new_url, "/", NULL);
+			gf_dynstrcat(&new_url, sep, NULL);
+			if (o_url) gf_free(o_url);
+			sep = o_url = new_url;
+		}
+    }
+    if (!sep) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] %s output file %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
 		return GF_FALSE;
 	}
-	if (in->is_open) return GF_FALSE;
 	in->done = GF_FALSE;
 	in->is_open = GF_TRUE;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening",  name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening",  name));
 
 	if (in->upload) {
 		GF_Err e;
-		char *old = in->path;
 		in->is_delete = is_delete;
-		in->path = gf_strdup(name);
-		if (old) gf_free(old);
+		if (!in->force_dst_name) {
+			char *old = in->path;
+			in->path = gf_strdup(sep);
+			if (old) gf_free(old);
+		}
+		if (o_url) gf_free(o_url);
+		
 		e = gf_dm_sess_setup_from_url(in->upload, in->path, GF_TRUE);
 		if (!e) {
 			in->cur_header = 0;
@@ -2106,15 +2186,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		}
 		return GF_TRUE;
 	}
-	//server mode not recording, nothing to do
-	if (!ctx->rdirs.nb_items) return GF_FALSE;
 
-	if (in->resource) return GF_FALSE;
-
-	dir = ctx->rdirs.vals[0];
-	if (!dir) return GF_FALSE;
-	len = (u32) strlen(dir);
-	if (!len) return GF_FALSE;
 
 	if (in->path && !strcmp(in->path, sep)) {
 //		reassign_clients = GF_FALSE;
@@ -2122,6 +2194,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (in->path) gf_free(in->path);
 		in->path = gf_strdup(sep);
 	}
+    if (o_url) gf_free(o_url);
 	httpout_set_local_path(ctx, in);
 
 	if (is_delete) {
@@ -2143,7 +2216,8 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	in->is_open = GF_FALSE;
 	in->done = GF_TRUE;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Closing output file %s\n", in->local_path ? in->local_path : in->path));
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Closing output file %s\n", in->local_path ? in->local_path : in->path));
+
 	if (in->upload) {
 		GF_Err e = gf_dm_sess_send(in->upload, "0\r\n\r\n", 5);
 		if (e) {
@@ -2499,7 +2573,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 					}
 				}
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] No data associated with packet, cannot write\n"));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] No data associated with packet, cannot write\n"));
 			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] output file handle is not opened, discarding %d bytes\n", pck_size));
@@ -2613,7 +2687,6 @@ static Bool httpout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	if (!in->file_deletes)
 		in->file_deletes = gf_list_new();
-
 	gf_list_add(in->file_deletes, gf_strdup(evt->file_del.url));
 	return GF_TRUE;
 }

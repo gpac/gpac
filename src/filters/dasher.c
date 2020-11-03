@@ -4212,7 +4212,7 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 		return;
 	}
 	cache_name = gf_dm_sess_get_cache_name(sess);
-	gf_blob_get_data(cache_name, &data, &size);
+	gf_blob_get(cache_name, &data, &size, NULL);
 	if (data) {
 		//xsDate or isoDate - we always signal using iso
 		if (strchr(data, 'T')) {
@@ -4232,6 +4232,8 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 				ctx->utc_timing_type = DASHER_UTCREF_NTP;
 		}
 	}
+	gf_blob_release(cache_name);
+
 	//not match, try http date
 	if (!ctx->utc_timing_type) {
 		const char *hdr = gf_dm_sess_get_header(sess, "Date");

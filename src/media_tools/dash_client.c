@@ -147,7 +147,8 @@ struct __dash_client
 	//ROUTE AST shift in ms
 	u32 route_ast_shift;
 	u32 route_skip_segments_ms;
-	
+    Bool route_low_latency;
+
 	Bool initial_period_tunein;
 
 	//in ms
@@ -288,7 +289,7 @@ struct __dash_group
 	Bool force_segment_switch;
 	Bool loop_detected;
 
-	u32 time_at_first_failure;
+	u32 time_at_first_failure, time_at_last_request;
 	Bool prev_segment_ok, segment_in_valid_range;
 	//this is the number of 404
 	u32 nb_consecutive_segments_lost;
@@ -451,7 +452,7 @@ static Bool gf_dash_get_date(GF_DashClient *dash, char *scheme_id, char *url, u6
 		return GF_FALSE;
 	}
 	cache_name = dash->dash_io->get_cache_name(dash->dash_io, session);
-	gf_blob_get_data(cache_name, &data, &len);
+	gf_blob_get(cache_name, &data, &len, NULL);
 
 	if (!strcmp(scheme_id, "urn:mpeg:dash:utc:http-head:2014")) {
 		const char *hdr = dash->dash_io->get_header_value(dash->dash_io, session, "Date");
@@ -483,7 +484,8 @@ static Bool gf_dash_get_date(GF_DashClient *dash, char *scheme_id, char *url, u6
 			}
 		}
 	}
-
+    gf_blob_release(cache_name);
+    
 	dash->dash_io->del(dash->dash_io, session);
 	return res;
 }
@@ -690,8 +692,16 @@ setup_route:
 						if (set->segment_template) startNum = set->segment_template->start_number;
 						if (rep->segment_template) startNum = rep->segment_template->start_number;
 						if (number>=startNum) {
-							//clock is init which means the segment is available, so the timeline offset must match the AST of the segment (includes seg dur)
-							timeline_offset_ms = seg_dur * ( 1 + number - startNum);
+                            //clock is init which means the segment is available, so the timeline offset must match the AST of the segment (includes seg dur)
+
+                            const char *ll_val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route-ll");
+                            if (ll_val && !strcmp(ll_val, "yes")) {
+                                //low latency case, we are currently receiving the segment
+                                group->dash->route_low_latency = GF_TRUE;
+                                number--;
+                            }
+                            
+                            timeline_offset_ms = seg_dur * ( 1 + number - startNum);
 						}
 						found = 1;
 					}
@@ -1098,9 +1108,10 @@ setup_route:
 		shift = (u32) nb_seg;
 
 		if ((group->dash->route_clock_state == 2) && shift) {
-			//shift currently points to the next segment after the one used for clock bootstrap, use the right one
-			shift--;
-			//avoid querying too early the cache since segments do not usually arrive exactly on time ...
+			//shift currently points to the next segment after the one used for clock bootstrap
+            if (!group->dash->route_low_latency)
+                shift--;
+            //avoid querying too early the cache since segments do not usually arrive exactly on time ...
 			availabilityStartTime += group->dash->route_ast_shift;
 		}
 
@@ -1993,7 +2004,9 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		if (e!=GF_OK) {
 			if (!dash->in_error) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: download problem %s for MPD file\n", gf_error_to_string(e)));
-				dash->in_error = GF_TRUE;
+				if (e==GF_URL_ERROR) {
+					dash->in_error = GF_TRUE;
+				}
 			}
 			gf_free(purl);
 			//try to refetch MPD every second
@@ -2975,7 +2988,7 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 			if (group->current_base_url_idx) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 by switching baseURL\n", url));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule %d too early ?\n", url, gf_sys_clock() - group->time_at_first_failure));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule %d too early ?\n", url, group->time_at_last_request - group->time_at_first_failure));
 			}
 		}
 #endif
@@ -3917,6 +3930,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		dash->dash_io->del(dash->dash_io, sess);
 
 		if (e!=GF_OK) {
+			gf_free(base_init_url);
 			return e;
 		}
 	}
@@ -4446,10 +4460,11 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 	if (!strncmp(cache_name, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		e = gf_blob_get_data(cache_name, &mem_address, &size);
+		e = gf_blob_get(cache_name, &mem_address, &size, NULL);
 		if (e) return e;
 
 		bs = gf_bs_new(mem_address, size, GF_BITSTREAM_READ);
+        gf_blob_release(cache_name);
 	} else {
 		f = gf_fopen(cache_name, "rb");
 		if (!f) return GF_IO_ERR;
@@ -4487,9 +4502,9 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 		GF_Err e;
 		u32 size;
 		u8 *mem_address;
-		e = gf_blob_get_data(cache_name, &mem_address, &size);
+		e = gf_blob_get(cache_name, &mem_address, &size, NULL);
 		if (e) return e;
-
+        gf_blob_release(cache_name);
 		if (offset+8 > size)
 			return GF_IO_ERR;
 		mem_address += offset;
@@ -4700,7 +4715,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					//we need to store the init segment since it has the same name as the rest of the segments and will be destroyed when cleaning up the cache ..
 					else if (!strnicmp(cache_name, "gmem://", 7)) {
 						u8 *mem_address;
-						e = gf_blob_get_data(cache_name, &mem_address, &rep->playback.init_segment.size);
+						e = gf_blob_get(cache_name, &mem_address, &rep->playback.init_segment.size, NULL);
 						if (e) {
 							goto exit;
 						}
@@ -4710,6 +4725,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						sprintf(szName, "gmem://%p", &rep->playback.init_segment);
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
 						rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
+                        gf_blob_release(cache_name);
 					} else {
 						FILE *t = gf_fopen(cache_name, "rb");
 						if (t) {
@@ -5536,14 +5552,21 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	u32 clock_time;
 	Bool will_retry = GF_FALSE;
 	Bool is_live = GF_FALSE;
+    u32 min_wait;
 	if (!dash || !group)
 		return GF_DASH_DownloadCancel;
 
 	clock_time = gf_sys_clock();
 
-	dash_set_min_wait(dash, dash->min_timeout_between_404);
+    min_wait = dash->min_timeout_between_404;
+    if (dash->route_clock_state) {
+        if (!group->period->origin_base_url)
+            min_wait = 50; //50 ms between retries if route and not a remote period
+    }
 
-	group->retry_after_utc = dash->min_timeout_between_404 + gf_net_get_utc();
+    dash_set_min_wait(dash, min_wait);
+
+	group->retry_after_utc = min_wait + gf_net_get_utc();
 	if (!group->period->origin_base_url && (dash->mpd->type==GF_MPD_TYPE_DYNAMIC))
 		is_live = GF_TRUE;
 
@@ -5573,13 +5596,19 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			gf_dash_mark_group_done(group);
 		}
 		group->segment_in_valid_range=0;
-	} else if (group->prev_segment_ok && !group->time_at_first_failure) {
-		if (!group->loop_detected) {
-			group->time_at_first_failure = clock_time;
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
+    }
+    //ROUTE case, the file was removed from cache by the route demuxer
+    else if (e==GF_URL_REMOVED) {
+        if (dash->speed >= 0) {
+            group->download_segment_index++;
+        } else if (group->download_segment_index) {
+            group->download_segment_index--;
+        }
+	} else if (group->prev_segment_ok && !group->time_at_first_failure && !group->loop_detected) {
+        group->time_at_first_failure = clock_time;
+        GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms (delay betwwen retry %d ms)\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration, min_wait));
 
-			will_retry = GF_TRUE;
-		}
+        will_retry = GF_TRUE;
 	}
 	//if multiple baseURL, try switching the base
 	else if ((e==GF_URL_ERROR) && (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) )) {
@@ -5811,7 +5840,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 		if (group->force_early_fetch) {
 			if (to_wait>1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Set #%d demux empty but wait time for segment %d is still %d ms, forcing scheduling\n", 1+gf_list_find(dash->groups, group), group->download_segment_index + start_number, to_wait));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Set #%d demux empty but wait time for segment %d is still %d ms, forcing scheduling\n", 1+gf_list_find(dash->groups, group), group->download_segment_index + start_number, to_wait));
 				to_wait = 0;
 			} else {
 				//we officially reached segment AST
@@ -5830,13 +5859,14 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 			return GF_DASH_DownloadCancel;
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) should now be available on server since %d ms - requesting it\n", 1+gf_list_find(dash->groups, group), gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init + group->ast_offset)/1000.0, -to_wait));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) should now be available on server since %d ms - requesting it\n", 1+gf_list_find(dash->groups, group), gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init + group->ast_offset)/1000.0, -to_wait));
 
 			if (group->last_segment_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 			}
 		}
-	}
+        group->time_at_last_request = gf_sys_clock();
+    }
 
 	base_url = dash->base_url;
 	if (group->period->origin_base_url) base_url = group->period->origin_base_url;
@@ -6373,6 +6403,7 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 	has_postponed_rate_adaptation = GF_FALSE;
 
 	group_count = gf_list_count(dash->groups);
+
 	/*refresh MPD*/
 	if (dash->force_mpd_update || (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period))) {
 		u32 diff = gf_sys_clock();

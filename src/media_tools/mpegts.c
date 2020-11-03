@@ -3086,11 +3086,12 @@ Bool gf_m2ts_probe_file(const char *fileName)
 
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u8 *mem_address;
-		if (gf_blob_get_data(fileName, &mem_address, &size) != GF_OK) {
+		if (gf_blob_get(fileName, &mem_address, &size, NULL) != GF_OK) {
 			return GF_FALSE;
 		}
 		if (size>M2TS_PROBE_SIZE) size = M2TS_PROBE_SIZE;
 		memcpy(buf, mem_address, size);
+        gf_blob_release(fileName);
 	} else {
 		FILE *t = gf_fopen(fileName, "rb");
 		if (!t) return 0;

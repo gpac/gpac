@@ -1215,7 +1215,7 @@ static GF_Err routeout_service_send_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		//send lct with codepoint "unsigned package" (multipart)
 		offset += routeout_lct_send(ctx, serv->rlct_base->sock, 0, serv->stsid_bundle_toi, 3, serv->stsid_bundle, serv->stsid_bundle_size, offset, serv->service_id, serv->stsid_bundle_size, offset);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sent service %d bundle\n", serv->service_id));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sent service %d bundle (%d bytes)\n", serv->service_id, serv->stsid_bundle_size));
 	return GF_OK;
 }
 
@@ -1517,9 +1517,6 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 {
 	u32 i, count, nb_done;
 	GF_Err e;
-#if 0
-	Bool stsid_sent = GF_FALSE;
-#endif
 
 	e = routeout_check_service_updates(ctx, serv);
 
@@ -1528,9 +1525,6 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 		if (diff >= ctx->carousel) {
 			routeout_service_send_bundle(ctx, serv);
 			serv->last_stsid_clock = ctx->clock;
-#if 0
-			stsid_sent = GF_TRUE;
-#endif
 		} else {
 			u64 next_sched = ctx->carousel - diff;
 			if (next_sched < ctx->reschedule_us)
@@ -1585,14 +1579,6 @@ next_packet:
 			if (rpid->push_init) {
 				rpid->push_init = GF_FALSE;
 
-#if 0
-				//force sending stsid at each new seg
-				if (!rpid->raw_file && !stsid_sent) {
-					routeout_service_send_bundle(ctx, serv);
-					serv->last_stsid_clock = ctx->clock;
-					stsid_sent = GF_TRUE;
-				}
-#endif
 				//send init asap
 				offset = 0;
 				while (offset < rpid->init_seg_size) {

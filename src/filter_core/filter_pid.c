@@ -6137,6 +6137,21 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
 	return gf_filter_in_parent_chain(pid->filter, filter);
 }
 
+
+
+GF_EXPORT
+Bool gf_filter_pid_share_origin(GF_FilterPid *pid, GF_FilterPid *other_pid)
+{
+    if (!pid || !other_pid) return GF_FALSE;
+    pid = pid->pid;
+    other_pid = other_pid->pid;
+    if (gf_filter_in_parent_chain(pid->filter, other_pid->filter))
+        return GF_TRUE;
+    if (gf_filter_in_parent_chain(other_pid->filter, pid->filter))
+        return GF_TRUE;
+    return GF_FALSE;
+}
+
 static void filter_pid_collect_stats(GF_List *pidi_list, GF_FilterPidStatistics *stats)
 {
 	u32 i;

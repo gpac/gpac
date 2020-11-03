@@ -506,8 +506,7 @@ Adds a local entry in the cache
 
 \param dm the download manager
 \param szURL the URL this resource is caching
-\param data data of the resource
-\param size size of the resource
+\param blob blob object holding the data of the resource
 \param start_range start range of the data in the resource
 \param end_range start range of the data in the resource. If both start_range and end_range are 0, the data is the complete resource
 \param mime associated MIME type if any
@@ -515,7 +514,7 @@ Adds a local entry in the cache
 \param download_time_ms indicates the download time of the associated resource, if known, 0 otherwise.
 \return a cache entry structure
  */
-const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, u8 *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
+const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
 
 /*!
 Forces HTTP headers for a given cache entry

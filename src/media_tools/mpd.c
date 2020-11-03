@@ -5239,6 +5239,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				gf_fseek(f, 0, SEEK_SET);
 				size = (u32) gf_fread(data, size, f);
 				data[size]=0;
+				memset(&blob, 0, sizeof(GF_Blob));
 				blob.data = data;
 				blob.size = size;
 				sprintf(szAdd, "gmem://%p", &blob);

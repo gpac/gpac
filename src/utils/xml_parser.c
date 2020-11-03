@@ -1226,7 +1226,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *xml_mem_address;
-		e = gf_blob_get_data(fileName, &xml_mem_address, &size);
+		e = gf_blob_get(fileName, &xml_mem_address, &size, NULL);
 		if (e) return e;
 
 		parser->file_size = size;
@@ -1239,12 +1239,12 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		parser->current_pos = 0;
 
 		e = gf_xml_sax_init(parser, szLine);
-		if (e) return e;
-
-
-		e = gf_xml_sax_parse(parser, xml_mem_address+4);
-		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
-
+        if (!e) {
+            e = gf_xml_sax_parse(parser, xml_mem_address+4);
+            if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
+        }
+        gf_blob_release(fileName);
+        
 		parser->elt_start_pos = parser->elt_end_pos = 0;
 		parser->elt_name_start = parser->elt_name_end = 0;
 		parser->att_name_start = 0;
