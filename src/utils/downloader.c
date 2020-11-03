@@ -2703,6 +2703,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		}
 
 #if 1
+		e = GF_OK;
 		*read_size = 0;
 		u32 nb_read = 0;
 		//perform a loop, mostly for chunk-tranfer mode where a server may push a lot of small TCP frames,
