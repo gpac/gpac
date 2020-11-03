@@ -119,6 +119,9 @@ static u32 gf_isom_probe_type(u32 type)
 	case GF_ISOM_BOX_TYPE_SIDX:
 	case GF_ISOM_BOX_TYPE_EMSG:
 	case GF_ISOM_BOX_TYPE_PRFT:
+    //we map free as segment when it is first in the file - a regular file shall start with ftyp or a file sig, not free
+    //since our route stack may patch boxes to free for incomplete segments, we must map this to free
+    case GF_ISOM_BOX_TYPE_FREE:
 		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
@@ -127,7 +130,6 @@ static u32 gf_isom_probe_type(u32 type)
 #endif
 #endif
 	case GF_ISOM_BOX_TYPE_MDAT:
-	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
 	case GF_ISOM_BOX_TYPE_UDTA:
 	case GF_ISOM_BOX_TYPE_META:
@@ -148,12 +150,13 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 	if (!strncmp(fileName, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		if (gf_blob_get_data(fileName, &mem_address, &size) != GF_OK) {
+		if (gf_blob_get(fileName, &mem_address, &size, NULL) != GF_OK) {
 			return 0;
 		}
-		if (!size) return 0;
-		if (size > start_range + 8)
+        if (size && (size > start_range + 8)) {
 			type = GF_4CC(mem_address[start_range + 4], mem_address[start_range + 5], mem_address[start_range + 6], mem_address[start_range + 7]);
+        }
+        gf_blob_release(fileName);
 	} else if (!strncmp(fileName, "isobmff://", 10)) {
 		return 2;
 	} else {

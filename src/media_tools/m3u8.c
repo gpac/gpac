@@ -977,11 +977,12 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 	s_accumulated_attributes attribs;
 
 	if (!strncmp(file, "gmem://", 7)) {
-		GF_Err e = gf_blob_get_data(file, &m3u8_payload,  &m3u8_size);
+		GF_Err e = gf_blob_get(file, &m3u8_payload,  &m3u8_size, NULL);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 source %s for reading\n", file));
 			return e;
 		}
+        gf_blob_release(file);
 	} else {
 		f = gf_fopen(file, "rt");
 		if (!f) {

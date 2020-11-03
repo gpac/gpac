@@ -558,7 +558,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 					/*+ or - 10 cm*/
 					compositor->focdist += INT2FIX(key_inv);
 					cam->flags |= CAM_IS_DIRTY;
-					fprintf(stderr, "AutoStereo view distance %f - focus %f\n", FIX2FLT(compositor->video_out->dispdist)/100, FIX2FLT(compositor->focdist)/100);
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("AutoStereo view distance %f - focus %f\n", FIX2FLT(compositor->video_out->dispdist)/100, FIX2FLT(compositor->focdist)/100));
 					gf_sc_invalidate(compositor, NULL);
 					return 1;
 				}
@@ -598,7 +598,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			if (keys & GF_KEY_MOD_ALT) {
 				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
 					compositor->interoccular_offset += FLT2FIX(0.5) * key_inv;
-					fprintf(stderr, "AutoStereo interoccular distance %f\n", FIX2FLT(compositor->iod + compositor->interoccular_offset));
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("AutoStereo interoccular distance %f\n", FIX2FLT(compositor->iod + compositor->interoccular_offset)));
 					cam->flags |= CAM_IS_DIRTY;
 					gf_sc_invalidate(compositor, NULL);
 					return 1;

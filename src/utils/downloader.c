@@ -633,7 +633,7 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 
 Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime);
 Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range);
-Bool gf_cache_set_content(const DownloadedCacheEntry entry, char *data, u32 size, Bool copy);
+Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool copy);
 Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers);
 Bool gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
 
@@ -1147,6 +1147,8 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 
 char *gf_cache_get_forced_headers(const DownloadedCacheEntry entry);
 u32 gf_cache_get_downtime(const DownloadedCacheEntry entry);
+Bool gf_cache_is_done(const DownloadedCacheEntry entry);
+Bool gf_cache_is_deleted(const DownloadedCacheEntry entry);
 
 static void gf_dm_sess_reload_cached_headers(GF_DownloadSession *sess)
 {
@@ -1184,6 +1186,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 {
 	Bool socket_changed = GF_FALSE;
 	GF_URL_Info info;
+	Bool free_proto = GF_FALSE;
 	char *sep_frag=NULL;
 	if (!url)
 		return GF_BAD_PARAM;
@@ -1221,6 +1224,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		sep[3] = 0;
 		info.protocol = gf_strdup(sess->orig_url_before_redirect);
 		sep[3] = c;
+		free_proto = GF_TRUE;
 	}
 
 	if (sess->port != info.port) {
@@ -1262,9 +1266,11 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		sess->server_name = info.server_name ? gf_strdup(info.server_name) : NULL;
 	}
 
-	if (sess->orig_url) gf_free(sess->orig_url);
-	sess->orig_url = gf_strdup(info.canonicalRepresentation);
-
+	if (info.canonicalRepresentation) {
+		if (sess->orig_url) gf_free(sess->orig_url);
+		sess->orig_url = gf_strdup(info.canonicalRepresentation);
+	}
+	
 	if (!sess->orig_url_before_redirect)
 		sess->orig_url_before_redirect = gf_strdup(url);
 
@@ -1284,6 +1290,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 				sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, info.userName, info.password, info.userName && info.password);
 		}
 	}
+	if (free_proto) gf_free((char *) info.protocol);
 	gf_dm_url_info_del(&info);
 	if (sep_frag) sep_frag[0]='#';
 
@@ -1320,9 +1327,20 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			sess->last_error = GF_OK;
 			sess->use_cache_file = GF_TRUE;
 			gf_dm_configure_cache(sess);
-			sess->status = GF_NETIO_DATA_TRANSFERED;
-			sess->total_size = gf_cache_get_content_length(sess->cache_entry);
-			sess->bytes_done = sess->total_size;
+			sess->bytes_done = 0;
+            if (sess->cache_entry && gf_cache_is_deleted(sess->cache_entry)) {
+                sess->status = GF_NETIO_DATA_TRANSFERED;
+                sess->last_error = GF_URL_REMOVED;
+                //return GF_OK;
+            } else if (! gf_cache_is_done(sess->cache_entry)) {
+                sess->total_size = 0;
+                sess->status = GF_NETIO_DATA_EXCHANGE;
+            } else {
+				sess->total_size = gf_cache_get_content_length(sess->cache_entry);
+                sess->bytes_done = sess->total_size;
+                sess->status = GF_NETIO_DATA_TRANSFERED;
+            }
+            
 			sess->total_time_since_req = gf_cache_get_downtime(sess->cache_entry);
 			if (sess->total_time_since_req)
 				sess->bytes_per_sec = (u32) ((1000 * (u64) sess->bytes_done) / sess->total_time_since_req);
@@ -2588,6 +2606,8 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 	return GF_FALSE;
 }
 
+const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size);
+void gf_cache_release_content(const DownloadedCacheEntry entry);
 
 GF_EXPORT
 GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
@@ -2645,6 +2665,37 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			memmove(sess->init_data, sess->init_data+buffer_size, sizeof(char)*sess->init_data_size);
 			e = GF_OK;
 		}
+    } else if (sess->local_cache_only) {
+        u32 to_copy, data_size;
+        const u8 *ptr;
+        e = GF_OK;
+        assert(sess->cache_entry);
+        //always refresh total size
+        sess->total_size = gf_cache_get_content_length(sess->cache_entry);
+
+        ptr = gf_cache_get_content(sess->cache_entry, &data_size);
+        if (!ptr) return GF_OUT_OF_MEM;
+
+        if (sess->bytes_done >= data_size) {
+            *read_size = 0;
+			gf_cache_release_content(sess->cache_entry);
+            if (gf_cache_is_done(sess->cache_entry)) {
+                sess->status = GF_NETIO_DATA_TRANSFERED;
+                return GF_EOS;
+            }
+            return GF_IP_NETWORK_EMPTY;
+        }
+        to_copy = data_size - sess->bytes_done;
+        if (to_copy > buffer_size) to_copy = buffer_size;
+        
+        memcpy(buffer, ptr + sess->bytes_done, to_copy);
+        sess->bytes_done += to_copy;
+        *read_size = to_copy;
+        if (gf_cache_is_done(sess->cache_entry))
+            sess->status = GF_NETIO_DATA_TRANSFERED;
+		else
+			sess->total_size = 0;
+		gf_cache_release_content(sess->cache_entry);
 	} else {
 
 		if (sess->dm && sess->dm->limit_data_rate && dm_exceeds_cap_rate(sess->dm)) {
@@ -3715,16 +3766,16 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
 		e = GF_URL_ERROR;
 		goto exit;
-		break;
-	case 416:
+
+    case 416:
 		/* Range not accepted */
 		gf_dm_sess_user_io(sess, &par);
 
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
 		e = GF_SERVICE_ERROR;
 		goto exit;
-		break;
-	case 400:
+
+    case 400:
 	case 501:
 		/* Method not implemented ! */
 		if (sess->http_read_type == HEAD) {
@@ -3762,6 +3813,13 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
 		e = GF_EOS;
 		goto exit;
+
+    case 504:
+        /* gateway timeout, notified as URL error */
+        gf_dm_sess_user_io(sess, &par);
+        notify_headers(sess, sHTTP, bytesRead, BodyStart);
+        e = GF_URL_ERROR;
+        goto exit;
 
 	default:
 		gf_dm_sess_user_io(sess, &par);
@@ -4386,13 +4444,14 @@ GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_
 }
 
 GF_EXPORT
-const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, u8 *data, u64 size, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms)
+const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range, const char *mime, Bool clone_memory, u32 download_time_ms)
 {
 	u32 i, count;
 	DownloadedCacheEntry the_entry = NULL;
 
 	gf_mx_p(dm->cache_mx );
-	GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[HTTP] Pushing %s to cache\n", szURL));
+	if (blob)
+		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[HTTP] Pushing %s to cache "LLU" bytes (done %s)\n", szURL, blob->size, (blob->flags & GF_BLOB_IN_TRANSFER) ? "no" : "yes"));
 	count = gf_list_count(dm->cache_entries);
 	for (i = 0 ; i < count; i++) {
 		const char * url;
@@ -4417,8 +4476,10 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 	}
 
 	gf_cache_set_mime(the_entry, mime);
-	gf_cache_set_range(the_entry, size, start_range, end_range);
-	gf_cache_set_content(the_entry, data, (u32) size, clone_memory ? GF_TRUE : GF_FALSE);
+    if (blob && ! (blob->flags & GF_BLOB_IN_TRANSFER))
+        gf_cache_set_range(the_entry, blob->size, start_range, end_range);
+
+	gf_cache_set_content(the_entry, blob, clone_memory ? GF_TRUE : GF_FALSE);
 	gf_cache_set_downtime(the_entry, download_time_ms);
 	gf_mx_v(dm->cache_mx );
 	return the_entry;

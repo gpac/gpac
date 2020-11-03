@@ -321,7 +321,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ntohl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ntohs) )
 
-#pragma comment (linker, EXPORT_SYMBOL(gf_blob_get_data) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_blob_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_blob_release) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc) )
@@ -2245,7 +2246,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_atsc3_tune_in) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_route_set_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_get_object_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_remove_object_by_name) )
@@ -2259,7 +2259,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_set_service_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_get_service_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_debug_tsi) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_route_set_max_objects_store) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_add_cache_entry) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_force_headers) )

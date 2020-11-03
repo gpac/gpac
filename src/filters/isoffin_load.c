@@ -556,7 +556,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		track_dur = (Double) (s64) ch->duration;
 		track_dur /= read->time_scale;
 		//move channel duration in media timescale
-		ch->duration = (u32) (track_dur * ch->time_scale);
+		ch->duration = (u64) (track_dur * ch->time_scale);
 
 
 		//set stream subtype

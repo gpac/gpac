@@ -45,7 +45,8 @@ extern "C" {
 \brief ROUTE ATSC 3.0 reciever
 
 The ROUTE receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
-It can write received files to disk, or send them back to the user for cache population
+It gather objects from a ROUTE session and send them back to the user through a callback, or deletes them if no callback is sent.
+The route demuxer does not try to repairing files, it is the user responsability to to so.
 
 @{
 */
@@ -62,18 +63,23 @@ typedef struct __gf_routedmx GF_ROUTEDmx;
 /*!The types of events used to communicate withe the demuxer user.*/
 typedef enum
 {
-	/*! A new service detected, service ID is in evt_param*/
+	/*! A new service detected, service ID is in evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_FOUND = 0,
-	/*! Service scan completed, no evt_param*/
+	/*! Service scan completed, no evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_SCAN,
-	/*! New MPD available for service, service ID is in evt_param*/
+	/*! New MPD available for service, service ID is in evt_param, no file info*/
 	GF_ROUTE_EVT_MPD,
-	/*! static file update (with predefined TOI), service ID is in evt_param, file info is in finfo*/
+	/*! static file update (with predefined TOI), service ID is in evt_param*/
 	GF_ROUTE_EVT_FILE,
-	/*! Segment reception, identified through a file template, service ID is in evt_param, file info is in finfo*/
+	/*! Segment reception, identified through a file template, service ID is in evt_param*/
 	GF_ROUTE_EVT_DYN_SEG,
+    /*! fragment reception (part of a segment), identified through a file template, service ID is in evt_param
+     \note The data is always begining at the start of the object
+    */
+    GF_ROUTE_EVT_DYN_SEG_FRAG,
+    /*! Object deletion (only for dynamic TOIs), used to notify the cache that an object is no longer available. File info only contains the filename being removed*/
+    GF_ROUTE_EVT_FILE_DELETE,
 } GF_ROUTEEventType;
-
 
 enum
 {
@@ -95,15 +101,25 @@ enum
 	GF_LCT_EXT_TOL48 = 67,
 };
 
+/*! LCT fragment information*/
+typedef struct
+{
+    /*! offset in bytes of fragment in object / file*/
+    u32 offset;
+    /*! size in bytes of fragment in object / file*/
+    u32 size;
+} GF_LCTFragInfo;
+
+
 /*! Structure used to communicate file objects properties to the user*/
 typedef struct
 {
 	/*! original file name*/
 	const char *filename;
-	/*! data pointer*/
-	u8 *data;
-	/*! data size*/
-	u32 size;
+	/*! blob data pointer*/
+	GF_Blob *blob;
+    /*! total size of object if known, 0 otherwise*/
+    u32 total_size;
 	/*! object TSI*/
 	u32 tsi;
 	/*! object TOI*/
@@ -112,27 +128,37 @@ typedef struct
 	u32 download_ms;
 	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/
 	Bool updated;
-	/*! flag set if file is corrupted*/
-	Bool corrupted;
+    
+    /*! number of fragments, only set for GF_ROUTE_EVT_DYN_SEG*/
+    u32 nb_frags;
+    /*! fragment info, only set for GF_ROUTE_EVT_DYN_SEG*/
+    GF_LCTFragInfo *frags;
+	
+	/*! user data set to current object after callback, and passed back on next callbacks on same object
+	 Only used for GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG, GF_ROUTE_EVT_DYN_SEG_FRAG and GF_ROUTE_EVT_FILE_DELETE
+	 */
+	void *udta;
 } GF_ROUTEEventFileInfo;
 
 /*! Creates a new ROUTE ATSC3.0 demultiplexer
 \param ifce network interface to monitor, NULL for INADDR_ANY
-\param dir output directory for files. If NULL, files are not written to disk and user callback will be called if set
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+ \param on_event the user callback function
+ \param udta the user data passed back by the callback
 \return the ROUTE demultiplexer created
 */
-GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size);
+GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, u32 sock_buffer_size, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
 /*! Creates a new ROUTE demultiplexer
 \param ip IP address of ROUTE session
 \param port port of ROUTE session
 \param ifce network interface to monitor, NULL for INADDR_ANY
-\param dir output directory for files. If NULL, files are not written to disk and user callback will be called if set
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+ \param on_event the user callback function
+ \param udta the user data passed back by the callback
 \return the ROUTE demultiplexer created
 */
-GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, const char *dir, u32 sock_buffer_size);
+GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
 /*! Deletes an ROUTE demultiplexer
 \param routedmx the ROUTE demultiplexer to delete
@@ -145,20 +171,6 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx);
  */
 GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
-/*! Sets user callback for disk-less operations
-\param routedmx the ROUTE demultiplexer
-\param on_event the user callback function
-\param udta the user data passed back by the callback
-\return error code if any
- */
-GF_Err gf_route_set_callback(GF_ROUTEDmx *routedmx, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
-
-/*! Sets the maximum number of objects to store on disk per TSI
-\param routedmx the ROUTE demultiplexer
-\param max_segs max number of objects (segments) to store. If 0, all objects are kept
-\return error code if any
- */
-GF_Err gf_route_set_max_objects_store(GF_ROUTEDmx *routedmx, u32 max_segs);
 
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
@@ -167,6 +179,16 @@ GF_Err gf_route_set_max_objects_store(GF_ROUTEDmx *routedmx, u32 max_segs);
 \return error code if any
  */
 GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms);
+
+/*! Allow segments to be sent while being downloaded.
+ 
+\note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the begining of the file in that case.
+ 
+\param routedmx the ROUTE demultiplexer
+\param allow_progressive if TRUE,  fragments of segments will be sent during download
+\return error code if any
+ */
+GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive);
 
 /*! Sets the service ID to tune into for ATSC 3.0
 \param routedmx the ROUTE demultiplexer

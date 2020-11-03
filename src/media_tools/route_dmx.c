@@ -30,6 +30,7 @@
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
 #include <gpac/xml.h>
+#include <gpac/thread.h>
 
 #define GF_ROUTE_SOCK_SIZE	0x80000
 
@@ -61,13 +62,6 @@ typedef struct
 	Bool tsi_init;
 } GF_ROUTELCTChannel;
 
-
-typedef struct
-{
-	u32 offset;
-	u32 size;
-} GF_LCTFragInfo;
-
 typedef enum
 {
 	GF_LCT_OBJ_INIT=0,
@@ -87,14 +81,20 @@ typedef struct
 	u32 nb_frags, nb_alloc_frags, nb_recv_frags;
 	GF_LCTFragInfo *frags;
 	GF_LCTObjectStatus status;
-	Bool closed_flag;
 	u32 download_time_ms;
 	u32 last_gather_time;
+    Bool closed_flag;
 
 	GF_ROUTELCTChannel *rlct;
 	GF_ROUTELCTFile *rlct_file;
 
 	u32 prev_start_offset;
+
+    char solved_path[GF_MAX_PATH];
+    
+    GF_Blob blob;
+	
+	void *udta;
 } GF_LCTObject;
 
 
@@ -122,7 +122,7 @@ typedef struct
 	u32 secondary_sockets;
 	GF_List *objects;
 	GF_LCTObject *last_active_obj;
-	char *output_dir;
+
 	u32 port;
 	char *dst_ip;
 	u32 last_dispatched_toi_on_tsi_zero;
@@ -135,17 +135,16 @@ typedef struct
 
 struct __gf_routedmx {
 	const char *ip_ifce;
-	const char *base_dir;
 	GF_Socket *atsc_sock;
 	u8 *buffer;
 	u32 buffer_size;
 	u8 *unz_buffer;
 	u32 unz_buffer_size;
 
-	u32 max_seg_store;
 	u32 reorder_timeout;
 	Bool force_reorder;
-
+    Bool progressive_dispatch;
+    
 	u32 slt_version, rrt_version, systime_version, aeat_version;
 	GF_List *services;
 
@@ -167,6 +166,10 @@ struct __gf_routedmx {
 	u64 nb_packets;
 	u64 total_bytes_recv;
 	u64 first_pck_time, last_pck_time;
+
+    //for now use a single mutex for all blob access
+    GF_Mutex *blob_mx;
+
 };
 
 static void gf_route_static_files_del(GF_List *files)
@@ -205,7 +208,6 @@ static void gf_route_service_del(GF_ROUTEDmx *routedmx, GF_ROUTEService *s)
 		gf_sk_group_unregister(routedmx->active_sockets, s->sock);
 		gf_sk_del(s->sock);
 	}
-	if (s->output_dir) gf_free(s->output_dir);
 	while (gf_list_count(s->route_sessions)) {
 		GF_ROUTESession *rsess = gf_list_pop_back(s->route_sessions);
 		gf_route_route_session_del(rsess);
@@ -227,7 +229,8 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx)
 	if (routedmx->buffer) gf_free(routedmx->buffer);
 	if (routedmx->unz_buffer) gf_free(routedmx->unz_buffer);
 	if (routedmx->atsc_sock) gf_sk_del(routedmx->atsc_sock);
-	if (routedmx->dom) gf_xml_dom_del(routedmx->dom);
+    if (routedmx->dom) gf_xml_dom_del(routedmx->dom);
+    if (routedmx->blob_mx) gf_mx_del(routedmx->blob_mx);
 	if (routedmx->services) {
 		while (gf_list_count(routedmx->services)) {
 			GF_ROUTEService *s = gf_list_pop_back(routedmx->services);
@@ -247,7 +250,9 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx)
 	gf_free(routedmx);
 }
 
-static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, const char *dir, u32 sock_buffer_size, Bool is_atsc)
+static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_size, Bool is_atsc,
+							  void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
+							  void *udta)
 {
 	GF_ROUTEDmx *routedmx;
 	GF_Err e;
@@ -257,14 +262,6 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, const char *dir,
 		return NULL;
 	}
 	routedmx->ip_ifce = ifce;
-	routedmx->base_dir = dir;
-	if (dir && !gf_dir_exists(dir)) {
-		e = gf_mkdir(dir);
-		if (e == GF_IO_ERR) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to create output dir %s - using memory mode\n", dir));
-			routedmx->base_dir = NULL;
-		}
-	}
 	routedmx->dom = gf_xml_dom_new();
 	if (!routedmx->dom) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to allocate DOM parser\n" ));
@@ -283,6 +280,12 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, const char *dir,
 		gf_route_dmx_del(routedmx);
 		return NULL;
 	}
+    routedmx->blob_mx = gf_mx_new("ROUTEBlob");
+    if (!routedmx->blob_mx) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to allocate ROUTE blob mutex\n" ));
+        gf_route_dmx_del(routedmx);
+        return NULL;
+    }
 
 	if (!sock_buffer_size) sock_buffer_size = GF_ROUTE_SOCK_SIZE;
 	routedmx->unz_buffer_size = sock_buffer_size;
@@ -311,6 +314,9 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, const char *dir,
 	routedmx->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
 	routedmx->reorder_timeout = 5000;
+
+	routedmx->on_event = on_event;
+	routedmx->udta = udta;
 
 	if (!is_atsc)
 		return routedmx;
@@ -383,24 +389,6 @@ static void gf_route_create_service(GF_ROUTEDmx *routedmx, const char *dst_ip, u
 	service->objects = gf_list_new();
 	service->route_sessions = gf_list_new();
 
-	if (routedmx->base_dir) {
-		u32 len = (u32) strlen(routedmx->base_dir);
-		service->output_dir = gf_malloc(sizeof(char) * (len + 20) );
-		if ((routedmx->base_dir[len-1]=='/') || (routedmx->base_dir[len-1]=='\\')) {
-			sprintf(service->output_dir, "%sservice%d", routedmx->base_dir, service_id);
-		} else {
-			sprintf(service->output_dir, "%s/service%d", routedmx->base_dir, service_id);
-		}
-		if (! gf_dir_exists(service->output_dir)) {
-			e = gf_mkdir(service->output_dir);
-			if (e==GF_IO_ERR) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to create output service dir %s, working in memory mode\n", service->output_dir));
-				gf_free(service->output_dir);
-				service->output_dir = NULL;
-			}
-		}
-	}
-
 	gf_list_add(routedmx->services, service);
 
 	if (routedmx->atsc_sock) {
@@ -427,15 +415,19 @@ static void gf_route_create_service(GF_ROUTEDmx *routedmx, const char *dst_ip, u
 }
 
 GF_EXPORT
-GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, const char *dir, u32 sock_buffer_size)
+GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, u32 sock_buffer_size,
+								   void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
+								   void *udta)
 {
-	return gf_route_dmx_new_internal(ifce, dir, sock_buffer_size, GF_TRUE);
+	return gf_route_dmx_new_internal(ifce, sock_buffer_size, GF_TRUE, on_event, udta);
 
 }
 GF_EXPORT
-GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, const char *dir, u32 sock_buffer_size)
+GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size,
+							  void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
+							  void *udta)
 {
-	GF_ROUTEDmx *routedmx = gf_route_dmx_new_internal(ifce, dir, sock_buffer_size, GF_FALSE);
+	GF_ROUTEDmx *routedmx = gf_route_dmx_new_internal(ifce, sock_buffer_size, GF_FALSE, on_event, udta);
 	if (!routedmx) return NULL;
 	gf_route_create_service(routedmx, ip, port, 1, 1);
 	return routedmx;
@@ -479,14 +471,6 @@ GF_Err gf_route_atsc3_tune_in(GF_ROUTEDmx *routedmx, u32 serviceID, Bool tune_al
 }
 
 GF_EXPORT
-GF_Err gf_route_set_max_objects_store(GF_ROUTEDmx *routedmx, u32 max_segs)
-{
-	if (!routedmx) return GF_BAD_PARAM;
-	routedmx->max_seg_store = max_segs;
-	return GF_OK;
-}
-
-GF_EXPORT
 GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms)
 {
 	if (!routedmx) return GF_BAD_PARAM;
@@ -495,6 +479,13 @@ GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeo
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive)
+{
+    if (!routedmx) return GF_BAD_PARAM;
+    routedmx->progressive_dispatch = allow_progressive;
+    return GF_OK;
+}
 
 static GF_Err gf_route_dmx_process_slt(GF_ROUTEDmx *routedmx, GF_XMLNode *root)
 {
@@ -572,6 +563,14 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 
 	assert (obj->status != GF_LCT_OBJ_RECEPTION);
 
+    if (routedmx->on_event && obj->solved_path[0]) {
+        GF_ROUTEEventFileInfo finfo;
+        memset(&finfo, 0, sizeof(GF_ROUTEEventFileInfo));
+		finfo.filename = obj->solved_path;
+		finfo.udta = obj->udta;
+        routedmx->on_event(routedmx->udta, GF_ROUTE_EVT_FILE_DELETE, s->service_id, &finfo);
+    }
+    
 	//remove other objects
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : moving object tsi %u toi %u to reservoir (status %s)\n", s->service_id, obj->tsi, obj->toi, get_lct_obj_status_name(obj->status) ));
 
@@ -590,14 +589,16 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 #endif
 
 	if (s->last_active_obj==obj) s->last_active_obj = NULL;
-	obj->closed_flag = GF_FALSE;
+    obj->closed_flag = GF_FALSE;
 	obj->nb_bytes = 0;
 	obj->nb_frags = GF_FALSE;
 	obj->nb_recv_frags = 0;
 	obj->rlct = NULL;
 	obj->rlct_file = NULL;
 	obj->toi = 0;
-	obj->tsi = 0;
+    obj->tsi = 0;
+	obj->udta = NULL;
+    obj->solved_path[0] = 0;
 	obj->total_length = 0;
 	obj->prev_start_offset = 0;
 	obj->download_time_ms = 0;
@@ -608,19 +609,78 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 
 }
 
-//#define CHECK_ISOM
+static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj, Bool final_push, Bool partial, Bool updated, u64 bytes_done)
+{
+    char *filepath;
+    Bool is_init = GF_FALSE;
 
-#ifdef CHECK_ISOM
-#include <gpac/isomedia.h>
+    if (obj->rlct_file) {
+        filepath = obj->rlct_file->filename ? obj->rlct_file->filename : "ghost-init.mp4";
+        is_init = GF_TRUE;
+        assert(final_push);
+    } else {
+        if (!obj->solved_path[0])
+            sprintf(obj->solved_path, obj->rlct->toi_template, obj->toi);
+        filepath = obj->solved_path;
+    }
+#ifndef GPAC_DISABLE_LOG
+    if (partial) {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d got file %s (TSI %u TOI %u) size %d in %d ms (%d bytes in %d fragments)\n", s->service_id, filepath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
+    } else {
+        GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got file %s (TSI %u TOI %u) size %d in %d ms\n", s->service_id, filepath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
+    }
 #endif
+
+    if (routedmx->on_event) {
+        GF_ROUTEEventType evt_type;
+        GF_ROUTEEventFileInfo finfo;
+        memset(&finfo, 0, sizeof(GF_ROUTEEventFileInfo));
+        finfo.filename = filepath;
+		obj->blob.data = obj->payload;
+		obj->blob.flags = 0;
+		if (final_push) {
+			if (!obj->total_length)
+				obj->total_length = obj->alloc_size;
+			if (partial)
+				obj->blob.flags |= GF_BLOB_CORRUPTED;
+			obj->blob.size = obj->total_length;
+		} else {
+			obj->blob.flags = GF_BLOB_IN_TRANSFER;
+			obj->blob.size = bytes_done;
+		}
+		finfo.blob = &obj->blob;		
+        finfo.total_size = obj->total_length;
+        finfo.tsi = obj->tsi;
+        finfo.toi = obj->toi;
+		finfo.updated = updated;
+		finfo.udta = obj->udta;
+        finfo.download_ms = obj->download_time_ms;
+        if (is_init)
+            evt_type = GF_ROUTE_EVT_FILE;
+        else if (final_push) {
+            evt_type = GF_ROUTE_EVT_DYN_SEG;
+            finfo.nb_frags = obj->nb_frags;
+            finfo.frags = obj->frags;
+			assert(obj->total_length <= obj->alloc_size);
+        }
+        else
+            evt_type = GF_ROUTE_EVT_DYN_SEG_FRAG;
+
+		routedmx->on_event(routedmx->udta, evt_type, s->service_id, &finfo);
+		//store udta cookie
+		obj->udta = finfo.udta;
+	} else if (final_push) {
+		//keep static files active, move other to reservoir
+		if (!obj->rlct_file)
+			gf_route_obj_to_reservoir(routedmx, s, obj);
+	}
+    return GF_OK;
+}
 
 static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj)
 {
-	char szPath[GF_MAX_PATH], *sep;
-	u32 i, count, nb_objs;
 	Bool partial = GF_FALSE;
 	Bool updated = GF_TRUE;
-	FILE *out;
 
 	if (!obj->rlct) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : internal error, no LCT ROUTE channel defined for object TSI %u TOI %u\n", s->service_id, obj->tsi, obj->toi));
@@ -647,151 +707,7 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 			updated = GF_FALSE;
 		}
 	}
-
-	if (!routedmx->base_dir) {
-		Bool is_init = GF_FALSE;
-
-		if (obj->rlct_file) {
-			sprintf(szPath, "%s", obj->rlct_file->filename ? obj->rlct_file->filename : "ghost-init.mp4");
-			is_init = GF_TRUE;
-		} else {
-			sprintf(szPath, obj->rlct->toi_template, obj->toi);
-		}
-#ifndef GPAC_DISABLE_LOG
-		if (partial || gf_log_tool_level_on(GF_LOG_ROUTE, GF_LOG_DEBUG)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got file %s (TSI %u TOI %u) size %d in %d ms (%d bytes in %d fragments)\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
-		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got file %s (TSI %u TOI %u) size %d in %d ms\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
-		}
-#endif
-
-#ifdef CHECK_ISOM
-		{
-			char szBlob[1024];
-			GF_Blob blob;
-			blob.data = obj->payload;
-			blob.size = obj->total_length;
-			GF_ISOFile *file;
-			sprintf(szBlob, "gmem://%p", &blob);
-			file = gf_isom_open(szBlob, GF_ISOM_OPEN_READ_DUMP, NULL);
-			if (file) {
-				fprintf(stderr, "ISOBMF %s file OK\n", szPath);
-				gf_isom_delete(file);
-			} else {
-				fprintf(stderr, "ISOBMF %s file invalid\n", szPath);
-			}
-		}
-#endif
-
-		if (routedmx->on_event) {
-			GF_ROUTEEventFileInfo finfo;
-			memset(&finfo, 0, sizeof(GF_ROUTEEventFileInfo));
-			finfo.filename = szPath;
-			finfo.data = obj->payload;
-			finfo.size = obj->total_length;
-			finfo.tsi = obj->tsi;
-			finfo.toi = obj->toi;
-			finfo.updated = updated;
-			finfo.corrupted = partial;
-			finfo.download_ms = obj->download_time_ms;
-			routedmx->on_event(routedmx->udta, is_init ? GF_ROUTE_EVT_FILE : GF_ROUTE_EVT_DYN_SEG, s->service_id, &finfo);
-		}
-		return GF_OK;
-	}
-
-	if (obj->rlct_file) {
-		sprintf(szPath, "%s/%s", s->output_dir, obj->rlct_file->filename ? obj->rlct_file->filename : "ghost-init.mp4");
-	} else {
-		char szFileName[1024];
-		sprintf(szFileName, obj->rlct->toi_template, obj->toi);
-		sprintf(szPath, "%s/%s", s->output_dir, szFileName);
-	}
-
-
-	sep = strrchr(szPath, '/');
-	sep[0]=0;
-	if (gf_dir_exists(szPath)==GF_FALSE) {
-		GF_Err e = gf_mkdir(szPath);
-		if (e==GF_IO_ERR) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to create output dir %s\n", s->service_id, szPath ));
-			return GF_IO_ERR;
-		}
-	}
-	sep[0]='/';
-
-	out = gf_fopen(szPath, "wb");
-	if (!out) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to create file %s\n", s->service_id, szPath ));
-		return GF_IO_ERR;
-	} else {
-		u32 bytes;
-		bytes = (u32) gf_fwrite(obj->payload, (size_t) obj->total_length, out);
-		gf_fclose(out);
-		if (bytes != obj->total_length) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to write DASH resource file %d written for %d total\n", s->service_id, bytes, obj->total_length));
-			return GF_IO_ERR;
-		}
-
-#ifdef CHECK_ISOM
-		{
-			GF_ISOFile *file = gf_isom_open(szPath, GF_ISOM_OPEN_READ_DUMP, NULL);
-			if (file) {
-				fprintf(stderr, "ISOBMF %s file OK\n", szPath);
-				gf_isom_delete(file);
-			} else {
-				fprintf(stderr, "ISOBMF %s file invalid\n", szPath);
-			}
-		}
-#endif
-
-	}
-#ifndef GPAC_DISABLE_LOG
-	if (partial || gf_log_tool_level_on(GF_LOG_ROUTE, GF_LOG_DEBUG)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got file %s (TSI %u TOI %u) size %d in %d ms (%d bytes in %d fragments)\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
-	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got file %s (TSI %u TOI %u) size %d in %d ms\n", s->service_id, szPath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
-	}
-#endif
-	//keep static files active
-	if (obj->rlct_file) return GF_OK;
-	//no limit on objects, move to reservoir
-	if (!routedmx->max_seg_store) {
-		gf_route_obj_to_reservoir(routedmx, s, obj);
-		return GF_OK;
-	}
-
-	//remove all pending objects except static files
-	count = gf_list_count(s->objects);
-	nb_objs = 0;
-	for (i=0; i<count; i++) {
-		GF_LCTObject *o = gf_list_get(s->objects, i);
-		if (o->tsi != obj->tsi) continue;
-		if (obj->rlct_file) continue;
-		nb_objs++;
-		if (o==obj) break;
-	}
-	if (routedmx->max_seg_store >= nb_objs) return GF_OK;
-	nb_objs -= routedmx->max_seg_store;
-
-	for (i=0; i<count; i++) {
-		char szFileName[1024];
-		GF_LCTObject *o;
-		if (!nb_objs) break;
-		o = gf_list_get(s->objects, i);
-		if (o->tsi != obj->tsi) continue;
-		if (o==obj) break;
-		if (o->rlct_file) continue;
-
-		sprintf(szFileName, o->rlct->toi_template, o->toi);
-		sprintf(szPath, "%s/%s", s->output_dir, szFileName);
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d deleting file %s (TSI %u TOI %u)\n", s->service_id, szPath, o->tsi, o->toi));
-		gf_file_delete(szPath);
-		i--;
-		count--;
-		gf_route_obj_to_reservoir(routedmx, s, o);
-		nb_objs--;
-	}
-	return GF_OK;
+	return gf_route_dmx_push_object(routedmx, s, obj, GF_TRUE, partial, updated, 0);
 }
 
 static GF_Err gf_route_service_flush_object(GF_ROUTEService *s, GF_LCTObject *obj)
@@ -817,6 +733,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 {
 	Bool inserted, done;
 	u32 i, count;
+    Bool do_push = GF_FALSE;
 	GF_LCTObject *obj = s->last_active_obj;
 
 	if (routedmx->force_reorder)
@@ -863,6 +780,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			}
 			obj->nb_alloc_frags = 10;
 			obj->frags = gf_malloc(sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+            obj->blob.mx = routedmx->blob_mx;
 		}
 		obj->toi = toi;
 		obj->tsi = tsi;
@@ -891,6 +809,15 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		gf_list_add(s->objects, obj);
 	} else if (!obj->total_length && total_len) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, tsi, toi, total_len));
+        
+        if (obj->alloc_size < total_len) {
+            gf_mx_p(routedmx->blob_mx);
+            obj->payload = gf_realloc(obj->payload, total_len);
+            obj->alloc_size = total_len;
+            obj->blob.size = total_len;
+            obj->blob.data = obj->payload;
+            gf_mx_v(routedmx->blob_mx);
+        }
 		obj->total_length = total_len;
 	} else if (total_len && (obj->total_length != total_len)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u mismatch in total-length %u  assigned, %u redeclared\n", s->service_id, tsi, toi, obj->total_length, total_len));
@@ -929,7 +856,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u not completely received but in-order delivery signaled and new TOI %u - forcing dispatch\n", s->service_id, o->tsi, o->toi, toi ));
 				}
 
-				if (o->tsi) {
+				if (o->tsi && o->nb_frags) {
 		 			gf_route_service_flush_object(s, o);
 					gf_route_dmx_process_object(routedmx, s, o);
 				} else {
@@ -956,13 +883,15 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	}
 	obj->last_gather_time = gf_sys_clock();
 
-	if (!size)
-		goto check_done;
+    if (!size) {
+        goto check_done;
+    }
 	obj->nb_recv_bytes += size;
 
 	inserted = GF_FALSE;
 	for (i=0; i<obj->nb_frags; i++) {
 		if ((obj->frags[i].offset <= start_offset) && (obj->frags[i].offset + obj->frags[i].size >= start_offset + size) ) {
+            //data already received
 			goto check_done;
 		}
 
@@ -983,6 +912,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			obj->nb_bytes += size;
 			obj->nb_frags++;
 			inserted = GF_TRUE;
+            if (!i)
+                do_push = start_offset ? GF_FALSE : routedmx->progressive_dispatch;
 			break;
 		}
 		//expand fragment
@@ -990,6 +921,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			obj->frags[i].size += size;
 			obj->nb_bytes += size;
 			inserted = GF_TRUE;
+            if (!i)
+                do_push = obj->frags[0].offset ? GF_FALSE : routedmx->progressive_dispatch;
 			break;
 		}
 	}
@@ -1003,6 +936,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->frags[obj->nb_frags].size = size;
 		obj->nb_frags++;
 		obj->nb_bytes += size;
+        if (obj->nb_frags==1)
+            do_push = start_offset ? GF_FALSE : routedmx->progressive_dispatch;
 	}
 	obj->nb_recv_frags++;
 	obj->status = GF_LCT_OBJ_RECEPTION;
@@ -1017,9 +952,12 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		//for signaling objects, we set byte after last to 0 to use string functions
 		if (!tsi)
 			obj->alloc_size++;
+        gf_mx_p(routedmx->blob_mx);
 		obj->payload = gf_realloc(obj->payload, obj->alloc_size+1);
 		obj->payload[obj->alloc_size] = 0;
-	}
+        obj->blob.data = obj->payload;
+        gf_mx_v(routedmx->blob_mx);
+    }
 	assert(obj->alloc_size >= start_offset + size);
 
 	memcpy(obj->payload + start_offset, data, size);
@@ -1028,6 +966,13 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	obj->prev_start_offset = start_offset;
 	assert(obj->toi == toi);
 	assert(obj->tsi == tsi);
+    
+    //not a file (uses templates->segment) and can push
+    if (do_push && !obj->rlct_file && obj->rlct) {
+        gf_route_dmx_push_object(routedmx, s, obj, GF_FALSE, GF_TRUE, GF_FALSE, obj->frags[0].size);
+    } else {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u: %d bytes inserted on non-first fragment (%d totals), cannot push\n", s->service_id, obj->tsi, obj->toi, size, obj->nb_frags));
+    }
 
 check_done:
 	//check if we are done
@@ -1064,30 +1009,15 @@ static GF_Err gf_route_service_setup_dash(GF_ROUTEDmx *routedmx, GF_ROUTEService
 		gf_route_register_service_sockets(routedmx, s, GF_FALSE);
 	}
 
-	if (s->output_dir) {
-		FILE *out;
-		char szPath[GF_MAX_PATH];
-		sprintf(szPath, "%s/%s", s->output_dir, content_location);
-		out = gf_fopen(szPath, "wb");
-		if (!out) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to create MPD file %s\n", s->service_id, szPath ));
-			return GF_IO_ERR;
-		} else {
-			u32 bytes = (u32) gf_fwrite(content, (size_t) len, out);
-			gf_fclose(out);
-			if (bytes != len) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to write MPD file %d written for %d total\n", s->service_id, bytes, len));
-				return GF_IO_ERR;
-			}
-		}
-		return GF_OK;
-	}
-
 	if (routedmx->on_event) {
 		GF_ROUTEEventFileInfo finfo;
+        GF_Blob blob;
 		memset(&finfo, 0, sizeof(GF_ROUTEEventFileInfo));
-		finfo.data = content;
-		finfo.size = len;
+        memset(&blob, 0, sizeof(GF_Blob));
+        blob.data = content;
+        blob.size = len;
+        finfo.blob = &blob;
+        finfo.total_size = len;
 		finfo.filename = content_location;
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d received MPD file %s\n", s->service_id, content_location ));
 		routedmx->on_event(routedmx->udta, GF_ROUTE_EVT_MPD, s->service_id, &finfo);
@@ -1861,15 +1791,6 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 		}
 
 	}
-	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_route_set_callback(GF_ROUTEDmx *routedmx, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info), void *udta)
-{
-	if (!routedmx) return GF_BAD_PARAM;
-	routedmx->udta = udta;
-	routedmx->on_event = on_event;
 	return GF_OK;
 }
 

@@ -175,7 +175,8 @@ static void isoffin_disconnect(ISOMReader *read)
 static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const char *next_url)
 {
 	const GF_PropertyValue *prop;
-	u32 i, count;
+	u32 i, count, s_size;
+    u8 *s_data;
 	Bool is_new_mov = GF_FALSE;
 	u64 tfdt;
 //	GF_ISOTrackID trackID;
@@ -189,6 +190,9 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	read->full_segment_flush = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
 
+    //lock blob
+    gf_blob_get(next_url, &s_data, &s_size, NULL);
+    
 	switch (gf_isom_probe_file_range(next_url, read->start_range, read->end_range)) {
 	//this is a fragment
 	case 3:
@@ -256,11 +260,20 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		break;
 	//empty file
 	case 4:
+		gf_blob_release(next_url);
 		return GF_OK;
 	default:
-		return GF_NOT_SUPPORTED;
+		if (!read->mov) {
+			gf_blob_release(next_url);
+            return GF_NOT_SUPPORTED;
+		}
+        e = GF_ISOM_INVALID_FILE;
+        break;
 	}
 
+    //unlock blob
+	gf_blob_release(next_url);
+    
 	gf_filter_post_process_task(filter);
 
 	count = gf_list_count(read->channels);
@@ -268,16 +281,18 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	if (e<0) {
 		count = gf_list_count(read->channels);
 		gf_isom_release_segment(read->mov, 1);
-		//gf_isom_reset_fragment_info(read->mov, GF_TRUE);
-		read->drop_next_segment = 1;
+        read->invalid_segment = GF_TRUE;
 		//error opening the segment, reset everything ...
 		gf_isom_reset_fragment_info(read->mov, GF_FALSE);
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
-			if (ch)
-				ch->sample_num = 0;
+            if (ch) {
+                ch->sample_num = 0;
+                ch->eos_sent = GF_FALSE;
+            }
 		}
-		return e;
+        GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error opening current segment %s: %s\n", next_url, gf_error_to_string(e) ));
+		return GF_OK;
 	}
 	//segment is the first in our cache, we may need a refresh
 	if (!read->input_loaded) {
@@ -354,7 +369,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		isoffin_disconnect(read);
 		return GF_OK;
 	}
-	//we must have a file path for now, if not this is a pure stream of boxes (no local file cache)
+	//check if we  have a file path; if not, this is a pure stream of boxes (no local file cache)
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (!prop || !prop->value.string) {
 		if (!read->mem_load_mode)
@@ -1129,6 +1144,24 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;
 		}
+        //segment is invalid, wait for eos on input an send eos on all channels
+        if (read->invalid_segment) {
+            if (!in_is_eos) return GF_OK;
+            read->invalid_segment = GF_FALSE;
+
+            for (i=0; i<count; i++) {
+                ISOMChannel *ch = gf_list_get(read->channels, i);
+                if (!ch->playing) {
+                    continue;
+                }
+                if (!ch->eos_sent) {
+                    ch->eos_sent = GF_TRUE;
+                    gf_filter_pid_set_eos(ch->pid);
+                }
+            }
+            read->eos_signaled = GF_TRUE;
+            return GF_EOS;
+        }
 	} else if (read->extern_mov) {
 		in_is_eos = GF_TRUE;
 		read->input_loaded = GF_TRUE;
@@ -1365,7 +1398,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 	//if (in_is_eos)
-	gf_filter_ask_rt_reschedule(filter, 1);
+//	gf_filter_ask_rt_reschedule(filter, 1);
 	return GF_OK;
 
 }

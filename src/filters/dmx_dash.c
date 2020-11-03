@@ -63,6 +63,7 @@ typedef struct
 	Bool reuse_download_session;
 
 	Bool initial_setup_done;
+	Bool in_error;
 	u32 nb_playing;
 
 	/*max width & height in all active representations*/
@@ -123,6 +124,8 @@ typedef struct
 	u32 last_bw_check;
 	u64 us_at_seg_start;
 	Bool signal_seg_name;
+	
+	char *template;
 } GF_DASHGroup;
 
 
@@ -777,6 +780,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				gf_filter_remove_src(ctx->filter, group->seg_filter_src);
 				group->seg_filter_src = NULL;
 			}
+			if (group->template) gf_free(group->template);
 			gf_free(group);
 			gf_dash_set_group_udta(ctx->dash, i, NULL);
 		}
@@ -830,7 +834,6 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 					//setup some info for consuming filters
 					if (ctx->filemode) {
-						char *template;
 						GF_DASHQualityInfo q;
 						//we dispatch timing in milliseconds
 						gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
@@ -840,12 +843,15 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 							if (q.codec)
 								gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
 						}
-						template = gf_dash_group_get_template(ctx->dash, group_idx);
-						if (!template) {
+						if (group->template) gf_free(group->template);
+						group->template = gf_dash_group_get_template(ctx->dash, group_idx);
+						if (!group->template) {
 							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Cannot extract template string for %s\n", gf_dash_get_url(ctx->dash) ));
 							gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, NULL);
 						} else {
-							gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, &PROP_STRING_NO_COPY(template) );
+							gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(group->template) );
+							char *sep = strchr(group->template, '$');
+							if (sep) sep[0] = 0;
 						}
 					}
 				}
@@ -949,6 +955,18 @@ static s32 dashdmx_group_idx_from_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *src_pid)
 			return i;
 	}
 	return -1;
+}
+
+static GF_FilterPid *dashdmx_opid_from_group(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
+{
+	s32 i;
+
+	for (i=0; (u32) i < gf_filter_get_opid_count(ctx->filter); i++) {
+		GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i );
+		GF_DASHGroup *g = gf_filter_pid_get_udta( opid );
+		if (g == group) return opid;
+	}
+	return NULL;
 }
 
 static GF_FilterPid *dashdmx_create_output_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *input, u32 *run_status)
@@ -1804,6 +1822,26 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		gf_dash_override_ntp(ctx->dash, com->addon_time.ntp);
 		return GF_TRUE;
 #endif
+            
+	case GF_FEVT_FILE_DELETE:
+		if (ctx->filemode) {
+			for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
+				group = gf_dash_get_group_udta(ctx->dash, i);
+				if (!group || !group->template) continue;
+				
+				if (!strncmp(group->template, fevt->file_del.url, strlen(group->template) )) {
+					GF_FilterPid *pid = dashdmx_opid_from_group(ctx, group);
+					if (pid) {
+						GF_FilterEvent evt;
+						GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, pid);
+						evt.file_del.url = fevt->file_del.url;
+						gf_filter_pid_send_event(pid, &evt);
+					}
+					return GF_TRUE;
+				}
+			}
+		}
+		return GF_TRUE;
 	default:
 		break;
 	}
@@ -2163,6 +2201,26 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	group->us_at_seg_start = gf_sys_clock_high_res();
 }
 
+GF_Err dashin_abort(GF_DASHDmxCtx *ctx)
+{
+	u32 i;
+	if (ctx->in_error) return GF_EOS;
+	
+	for (i=0; i<gf_filter_get_ipid_count(ctx->filter); i++) {
+		GF_FilterEvent evt;
+		GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
+		gf_filter_pid_set_discard(pid, GF_TRUE);
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+		gf_filter_pid_send_event(pid, &evt);
+	}
+	for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+		GF_FilterPid *pid = gf_filter_get_opid(ctx->filter, i);
+		gf_filter_pid_set_eos(pid);
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Fatal error, aborting\n"));
+	ctx->in_error = GF_TRUE;
+	return GF_SERVICE_ERROR;
+}
 
 GF_Err dashdmx_process(GF_Filter *filter)
 {
@@ -2195,6 +2253,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	if (e == GF_IP_NETWORK_EMPTY) {
 		gf_filter_ask_rt_reschedule(filter, 100000);
 		return GF_OK;
+	}
+	else if (e==GF_SERVICE_ERROR) {
+		return dashin_abort(ctx);
 	}
 	if (e)
 		return e;

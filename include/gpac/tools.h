@@ -143,6 +143,9 @@ typedef enum
 	GF_REMOTE_SERVICE_ERROR					= -14,
 	/*! The desired stream could not be found in the service*/
 	GF_STREAM_NOT_FOUND						= -15,
+    /*! The URL no longer exists*/
+    GF_URL_REMOVED                          = -16,
+
 	/*! The IsoMedia file is not a valid one*/
 	GF_ISOM_INVALID_FILE					= -20,
 	/*! The IsoMedia file is not complete. Either the file is being downloaded, or it has been truncated*/
@@ -846,6 +849,13 @@ Parses 128 bit from string
  */
 GF_Err gf_bin128_parse(const char *string, bin128 value);
 
+
+enum
+{
+    GF_BLOB_IN_TRANSFER = 1,
+    GF_BLOB_CORRUPTED = 1<<1,
+};
+
 /*!
  * Blob structure used to pass data pointer around
  */
@@ -855,16 +865,27 @@ typedef struct
 	u8 *data;
 	/*! size of blob */
 	u32 size;
+    /*! blob flags */
+    u32 flags;
+    /*! blob mutex for multi-thread access */
+    struct __tag_mutex *mx;
 } GF_Blob;
 
 /*!
- * Retrieves data associated with a blob url
+ * Retrieves data associated with a blob url. If success, \ref gf_blob_release must be called after this
 \param blob_url URL of blob object (ie gmem://%p)
 \param out_data if success, set to blob data pointer
 \param out_size if success, set to blob data size
 \return error code
  */
-GF_Err gf_blob_get_data(const char *blob_url, u8 **out_data, u32 *out_size);
+GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob_flags);
+
+/*!
+ * Releases blob data
+\param blob_url URL of blob object (ie gmem://%p)
+\return error code
+ */
+GF_Err gf_blob_release(const char *blob_url);
 
 /*!
 \addtogroup time_grp
