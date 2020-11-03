@@ -648,7 +648,6 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		//coverage of a few functions from old arch not deprecated (yet)
 #ifdef GPAC_ENABLE_COVERAGE
 		if (gf_sys_is_cov_mode()) {
-			Bool done;
 			gf_dash_is_group_selected(ctx->dash, 0);
 			gf_dash_get_url(ctx->dash);
 			gf_dash_group_get_segment_init_keys(ctx->dash, 0, NULL);
