@@ -2976,12 +2976,17 @@ static void dump_all_props(void)
 	}
 	if (gen_doc==1) {
 		u32 idx=0;
+		GF_PixelFormat pfmt;
 		const char *name, *fileext, *desc;
 		gf_sys_format_help(helpout, help_flags, "# Pixel formats\n");
-		gf_sys_format_help(helpout, help_flags, "Name | File extensions | Description  \n");
-		gf_sys_format_help(helpout, help_flags, " --- | --- | ---  \n");
-		while ( gf_pixel_fmt_enum(&idx, &name, &fileext, &desc)) {
-			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s  \n", name, fileext, desc);
+		gf_sys_format_help(helpout, help_flags, "Name | File extensions | QT 4CC | Description  \n");
+		gf_sys_format_help(helpout, help_flags, " --- | --- |  --- | ---  \n");
+		while ( (pfmt = gf_pixel_fmt_enum(&idx, &name, &fileext, &desc) )) {
+			const char *qtname = "";
+			u32 qt_code = gf_pixel_fmt_to_qt_type(pfmt);
+			if (qt_code) qtname = gf_4cc_to_str(qt_code);
+
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s | %s  \n", name, fileext, qtname, desc);
 		}
 
 		idx=0;

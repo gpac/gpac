@@ -975,7 +975,7 @@ const char *gf_pixel_fmt_sname(GF_PixelFormat pfmt)
 }
 
 GF_EXPORT
-u32 gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description)
+GF_PixelFormat gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description)
 {
 	u32 nb_pfmt = sizeof(GF_PixelFormats) / sizeof(GF_PixFmt);
 	if (*idx >= nb_pfmt) return 0;
