@@ -2951,6 +2951,11 @@ Upload time in seconds of raw file in ROUTE session
 Planar YUV 420 8 bit
 .br
 .TP
+.B yvu420 (ext *.yvu)
+.br
+Planar YVU 420 8 bit
+.br
+.TP
 .B yuv420_10 (ext *.yuvl)
 .br
 Planar YUV 420 10 bit
@@ -2996,6 +3001,26 @@ Packed YUYV 422 8 bit
 Packed YVYU 422 8 bit
 .br
 .TP
+.B uyvl (ext *.uyvl)
+.br
+Packed UYVY 422 10->16 bit
+.br
+.TP
+.B vyul (ext *.vyul)
+.br
+Packed VYUV 422 10->16 bit
+.br
+.TP
+.B yuyl (ext *.yuyl)
+.br
+Packed YUYV 422 10->16 bit
+.br
+.TP
+.B yvyl (ext *.yvyl)
+.br
+Packed YVYU 422 10->16 bit
+.br
+.TP
 .B nv12 (ext *.nv12)
 .br
 Semi-planar YUV 420 8 bit, Y plane and UV packed plane
@@ -3029,6 +3054,21 @@ Planar YUV+depth  420 8 bit
 .B yuv444a (ext *.yp4a)
 .br
 Planar YUV+alpha 444 8 bit
+.br
+.TP
+.B yuv444p (ext *.yv4p)
+.br
+Packed YUV 444 8 bit
+.br
+.TP
+.B yuv444ap (ext *.y4ap)
+.br
+Packed YUV+alpha 444 8 bit
+.br
+.TP
+.B yuv444p_10 (ext *.y4lp)
+.br
+Packed YUV 444 10 bit
 .br
 .TP
 .B grey (ext *.grey)
@@ -3805,6 +3845,11 @@ VVC Video
 .br
 xHEAAC / USAC Audio
 .br
+.TP
+.B v210
+.br
+v210 YUV 422 10 bits
+.br
 .SH EXAMPLES
 .TP
 Basic and advanced examples are available at https://wiki.gpac.io/Filters
@@ -3814,7 +3859,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev194-g6bf5f097c-master
+build: 1.1.0-DEV-rev195-gccb3eb800-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

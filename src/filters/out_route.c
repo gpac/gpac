@@ -2018,7 +2018,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"\n"
 		"Warning: When forwarding an existing DASH/HLS session, do NOT set any extension or manifest name.\n"
 		"\n"
-		"By default, all streams in a service are assigned to a single route session, and differentiated by ROUTE TSI (see [-splitltc]()).\n"
+		"By default, all streams in a service are assigned to a single route session, and differentiated by ROUTE TSI (see [-splitlct]()).\n"
 		"TSI are assigned as follows:\n"
 		"- signaling TSI is always 0\n"
 		"- raw files are assigned TSI 1 and increasing number of TOI\n"

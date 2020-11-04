@@ -446,10 +446,15 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_PIXEL_YUV444_10:
 		ctx->bit_depth = 10;
 	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUVA444:
 		ctx->uv_w = ctx->width;
 		ctx->uv_h = ctx->height;
 		ctx->uv_stride = ctx->stride;
 		ctx->is_yuv = GF_TRUE;
+		if (ctx->pfmt==GF_PIXEL_YUVA444) {
+			ctx->has_alpha = GF_TRUE;
+			//ctx->pfmt = GF_PIXEL_YUV444;
+		}
 		break;
 	case GF_PIXEL_YUV422_10:
 		ctx->bit_depth = 10;
@@ -462,6 +467,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_PIXEL_YUV_10:
 		ctx->bit_depth = 10;
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 		ctx->uv_w = ctx->width/2;
 		if (ctx->width % 2) ctx->uv_w++;
 		ctx->uv_h = ctx->height/2;
@@ -482,6 +488,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->uv_stride = ctx->stride;
 		ctx->is_yuv = GF_TRUE;
 		break;
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+	case GF_PIXEL_VYUY_10:
+		ctx->bit_depth = 10;
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
@@ -493,6 +504,18 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			if (ctx->stride%2) ctx->uv_stride ++;
 		}
 		ctx->is_yuv = GF_TRUE;
+		break;
+	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_YUV444_10_PACK:
+		ctx->uv_w = ctx->width;
+		ctx->uv_h = ctx->height;
+		ctx->uv_stride = ctx->stride;
+		ctx->is_yuv = GF_TRUE;
+		if (ctx->pfmt==GF_PIXEL_YUVA444_PACK) {
+			ctx->has_alpha = GF_TRUE;
+			//ctx->pfmt = GF_PIXEL_YUV444;
+		}
 		break;
 
 	case GF_PIXEL_ALPHAGREY:
@@ -778,6 +801,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 			ctx->disp = MODE_2D;
 		}
 	}
+
 #ifdef VOUT_USE_OPENGL
 	if (ctx->disp <= MODE_GL_PBO) {
 		GF_Event evt;

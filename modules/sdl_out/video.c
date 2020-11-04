@@ -1776,8 +1776,11 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		break;
 	case GF_PIXEL_YUV:
 		pool = &ctx->pool_yuv;
-		format=SDL_PIXELFORMAT_YV12;
 		format=SDL_PIXELFORMAT_IYUV;
+		break;
+	case GF_PIXEL_YVU:
+		pool = &ctx->pool_yuv;
+		format=SDL_PIXELFORMAT_YV12;
 		break;
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV444:

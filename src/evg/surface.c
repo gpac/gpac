@@ -260,6 +260,7 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 		BPP = 3;
 		break;
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_YUV422:
@@ -404,6 +405,7 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 
 	/*YUV formats*/
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 		return evg_surface_clear_yuv420p(surf, clear, color);
 	case GF_PIXEL_YUV422:
 		return evg_surface_clear_yuv422p(surf, clear, color);
@@ -656,6 +658,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d)
 			surf->fill_single_a = evg_555_fill_single_a;
 		}
 		break;
+	case GF_PIXEL_YVU:
+		surf->swap_uv = GF_TRUE;
 	case GF_PIXEL_YUV:
 		surf->yuv_type = EVG_YUV;
 		if (use_const && !for_3d) {

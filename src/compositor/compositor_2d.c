@@ -654,22 +654,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			if (hw_caps & GF_VIDEO_HW_HAS_RGBA)
 				use_soft_stretch = GF_FALSE;
 			break;
-		case GF_PIXEL_YUV:
-		case GF_PIXEL_YVYU:
-		case GF_PIXEL_YUYV:
-		case GF_PIXEL_YUVD:
-		case GF_PIXEL_YUV422:
-		case GF_PIXEL_YUV444:
-		case GF_PIXEL_YUV444_10:
-		case GF_PIXEL_YUV422_10:
-		case GF_PIXEL_YUV_10:
-		case GF_PIXEL_NV12:
-		case GF_PIXEL_NV12_10:
-		case GF_PIXEL_NV21:
-			if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = GF_FALSE;
-			else if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
-			break;
 		default:
+			if (gf_pixel_fmt_is_yuv(txh->pixelformat)) {
+				if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = GF_FALSE;
+				else if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
+			}
 			break;
 		}
 		/*disable based on settings*/

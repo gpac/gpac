@@ -1469,6 +1469,7 @@ u32 get_pix_vyuy(EVG_Texture *_this, u32 x, u32 y)
 
 static void texture_set_callbacks(EVG_Texture *_this)
 {
+	Bool swap_uv = GF_FALSE;
 	if (_this->tx_callback)
 		return;
 	switch (_this->pixel_format) {
@@ -1521,6 +1522,8 @@ static void texture_set_callbacks(EVG_Texture *_this)
 		_this->tx_get_pixel = get_pix_greyalpha;
 		return;
 	case GF_PIXEL_YUV:
+	//we swap pU and pV at setup, use the same function
+	case GF_PIXEL_YVU:
 		_this->tx_get_pixel = get_pix_yuv420p;
 		break;
 	case GF_PIXEL_YUVA:
@@ -1580,11 +1583,18 @@ static void texture_set_callbacks(EVG_Texture *_this)
 	if (_this->pix_u) return;
 
 	switch (_this->pixel_format) {
+	case GF_PIXEL_YVU:
+		swap_uv = GF_TRUE;
 	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV:
 		if (!_this->stride_uv) _this->stride_uv = _this->stride/2;
 		_this->pix_u = _this->pixels + _this->stride*_this->height;
 		_this->pix_v = _this->pix_u + _this->stride_uv * _this->height/2;
+		if (swap_uv) {
+			u8 *tmp = _this->pix_u;
+			_this->pix_u = _this->pix_v;
+			_this->pix_v = tmp;
+		}
 		return;
 	case GF_PIXEL_YUVA:
 		if (!_this->stride_uv) _this->stride_uv = _this->stride/2;
@@ -1655,6 +1665,7 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 		_this->Bpp = 1;
 		break;
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_YUV422:

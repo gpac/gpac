@@ -1378,7 +1378,6 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_QT_SUBTYPE_APCN, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_AP4X, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_AP4H, video_sample_entry, "stsd", "apple"),
-	BOX_DEFINE_S( GF_QT_SUBTYPE_RAW_VID, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_RAW_AUD, audio_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_TWOS, audio_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_SOWT, audio_sample_entry, "stsd", "apple"),
@@ -1396,6 +1395,23 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_QT_SUBTYPE_QCELP, audio_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S( GF_QT_SUBTYPE_kMP3, audio_sample_entry, "stsd", "apple"),
 
+	BOX_DEFINE_S( GF_QT_SUBTYPE_RAW_VID, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YUYV, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_UYVY, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YUV444, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YUVA444, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YUV422_10, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YUV444_10, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YUV422_16, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YUV420, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_I420, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_IYUV, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YV12, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_YVYU, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_RGBA, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S( GF_QT_SUBTYPE_ABGR, video_sample_entry, "stsd", "apple"),
+	
+	
 	//dolby boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),

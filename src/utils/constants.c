@@ -156,6 +156,9 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc"},
 	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac"},
+	{GF_CODECID_V210, 0, GF_STREAM_VISUAL, "v210 YUV 422 10 bits", "v210", "v210", "video/x-raw-v210"},
+
+
 };
 
 
@@ -874,9 +877,11 @@ typedef struct
 	const char *sname; //short name, as used in gpac
 } GF_PixFmt;
 
+//DO NOT CHANGE ORDER, YUV formats first !
 static const GF_PixFmt GF_PixelFormats[] =
 {
 	{GF_PIXEL_YUV, "yuv420", "Planar YUV 420 8 bit", "yuv"},
+	{GF_PIXEL_YVU, "yvu420", "Planar YVU 420 8 bit", "yvu"},
 	{GF_PIXEL_YUV_10, "yuv420_10", "Planar YUV 420 10 bit", "yuvl"},
 	{GF_PIXEL_YUV422, "yuv422", "Planar YUV 422 8 bit", "yuv2"},
 	{GF_PIXEL_YUV422_10, "yuv422_10", "Planar YUV 422 10 bit", "yp2l"},
@@ -886,6 +891,10 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_VYUY, "vyuy", "Packed VYUV 422 8 bit"},
 	{GF_PIXEL_YUYV, "yuyv", "Packed YUYV 422 8 bit"},
 	{GF_PIXEL_YVYU, "yvyu", "Packed YVYU 422 8 bit"},
+	{GF_PIXEL_UYVY_10, "uyvl", "Packed UYVY 422 10->16 bit"},
+	{GF_PIXEL_VYUY_10, "vyul", "Packed VYUV 422 10->16 bit"},
+	{GF_PIXEL_YUYV_10, "yuyl", "Packed YUYV 422 10->16 bit"},
+	{GF_PIXEL_YVYU_10, "yvyl", "Packed YVYU 422 10->16 bit"},
 	{GF_PIXEL_NV12, "nv12", "Semi-planar YUV 420 8 bit, Y plane and UV packed plane"},
 	{GF_PIXEL_NV21, "nv21", "Semi-planar YUV 420 8 bit, Y plane and VU packed plane"},
 	{GF_PIXEL_NV12_10, "nv1l", "Semi-planar YUV 420 10 bit, Y plane and UV plane"},
@@ -893,6 +902,11 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_YUVA, "yuva", "Planar YUV+alpha 420 8 bit"},
 	{GF_PIXEL_YUVD, "yuvd", "Planar YUV+depth  420 8 bit"},
 	{GF_PIXEL_YUVA444, "yuv444a", "Planar YUV+alpha 444 8 bit", "yp4a"},
+	{GF_PIXEL_YUV444_PACK, "yuv444p", "Packed YUV 444 8 bit", "yv4p"},
+	{GF_PIXEL_YUVA444_PACK, "yuv444ap", "Packed YUV+alpha 444 8 bit", "y4ap"},
+	{GF_PIXEL_YUV444_10_PACK, "yuv444p_10", "Packed YUV 444 10 bit", "y4lp"},
+
+	//first non-yuv format
 	{GF_PIXEL_GREYSCALE, "grey", "Greyscale 8 bit"},
 	{GF_PIXEL_ALPHAGREY, "algr", "Alpha+Grey 8 bit"},
 	{GF_PIXEL_GREYALPHA, "gral", "Grey+Alpha 8 bit"},
@@ -976,6 +990,18 @@ u32 gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const c
 	return nb_pfmt;
 }
 
+
+GF_EXPORT
+Bool gf_pixel_fmt_is_yuv(GF_PixelFormat pfmt)
+{
+	u32 i=0;
+	while (GF_PixelFormats[i].pixfmt) {
+		if (GF_PixelFormats[i].pixfmt==pfmt) return GF_TRUE;
+		if (GF_PixelFormats[i].pixfmt==GF_PIXEL_GREYSCALE) return GF_FALSE;
+		i++;
+	}
+	return GF_FALSE;
+}
 
 static char szAllPixelFormats[5000] = {0};
 
@@ -1101,6 +1127,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		planes=1;
 		break;
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 		stride = no_in_stride ? width : *out_stride;
 		uv_height = height / 2;
 		if (height % 2) uv_height++;
@@ -1195,6 +1222,30 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		planes=1;
 		size = height * stride;
 		break;
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+		stride = no_in_stride ? 4*width : *out_stride;
+		planes=1;
+		size = height * stride;
+		break;
+	case GF_PIXEL_YUV444_PACK:
+		stride = no_in_stride ? 3 * width : *out_stride;
+		planes=1;
+		size = height * stride;
+		break;
+	case GF_PIXEL_YUVA444_PACK:
+		stride = no_in_stride ? 4 * width : *out_stride;
+		planes=1;
+		size = height * stride;
+		break;
+	case GF_PIXEL_YUV444_10_PACK:
+		stride = no_in_stride ? 4 * width : *out_stride;
+		planes = 1;
+		size = height * stride;
+		break;
+
 	case GF_PIXEL_GL_EXTERNAL:
 		planes = 1;
 		size = 0;
@@ -1244,6 +1295,7 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_RGBS:
 		return 3;
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVA444:
 	case GF_PIXEL_YUVD:
@@ -1269,6 +1321,16 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
 		return 1;
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+		return 2;
+	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_YUV444_10_PACK:
+		return 1;
+
 	case GF_PIXEL_GL_EXTERNAL:
 		return 1;
 	default:
@@ -1314,6 +1376,7 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_RGBS:
 		return 4;
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 		return 3;
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVA444:
@@ -1341,6 +1404,18 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
 		return 3;
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+		return 3;
+	case GF_PIXEL_YUV444_PACK:
+		return 3;
+	case GF_PIXEL_YUVA444_PACK:
+		return 4;
+	case GF_PIXEL_YUV444_10_PACK:
+		return 3;
+
 	case GF_PIXEL_GL_EXTERNAL:
 		return 1;
 	default:
@@ -1350,8 +1425,47 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	return 0;
 }
 
+static struct pixfmt_to_qt
+{
+	GF_PixelFormat pfmt;
+	u32 qt4cc;
+} PixelsToQT[] = {
+	{GF_PIXEL_RGB, GF_QT_SUBTYPE_RAW},
+	{GF_PIXEL_YUYV, GF_QT_SUBTYPE_YUYV},
+	{GF_PIXEL_UYVY, GF_QT_SUBTYPE_UYVY},
+	{GF_PIXEL_YUV444_PACK, GF_QT_SUBTYPE_YUV444},
+	{GF_PIXEL_YUVA444_PACK, GF_QT_SUBTYPE_YUVA444},
+	{GF_PIXEL_UYVY_10, GF_QT_SUBTYPE_YUV422_16},
+	{GF_PIXEL_YVYU, GF_QT_SUBTYPE_YVYU},
+	{GF_PIXEL_YUV444_10_PACK, GF_QT_SUBTYPE_YUV444_10},
+	{GF_PIXEL_YUV, GF_QT_SUBTYPE_YUV420},
+	{GF_PIXEL_YUV, GF_QT_SUBTYPE_I420},
+	{GF_PIXEL_YUV, GF_QT_SUBTYPE_IYUV},
+	{GF_PIXEL_YVU, GF_QT_SUBTYPE_YV12},
+	{GF_PIXEL_RGBA, GF_QT_SUBTYPE_RGBA},
+	{GF_PIXEL_ABGR, GF_QT_SUBTYPE_ABGR}
+};
 
+GF_EXPORT
+GF_PixelFormat gf_pixel_fmt_from_qt_type(u32 qt_code)
+{
+	u32 i, count = GF_ARRAY_LENGTH(PixelsToQT);
+	for (i=0; i<count; i++) {
+		if (PixelsToQT[i].qt4cc==qt_code) return PixelsToQT[i].pfmt;
+	}
+	return 0;
+}
 
+GF_EXPORT
+u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pix_fmt)
+{
+	u32 i, count = GF_ARRAY_LENGTH(PixelsToQT);
+	for (i=0; i<count; i++) {
+		if (PixelsToQT[i].pfmt==pix_fmt) return PixelsToQT[i].qt4cc;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknown mapping to QT/ISOBMFF for pixel format %s\n", gf_pixel_fmt_name(pix_fmt)));
+	return 0;
+}
 
 
 static struct _itags {

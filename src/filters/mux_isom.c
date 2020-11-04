@@ -1589,6 +1589,12 @@ sample_entry_setup:
 	case GF_CODECID_LASER:
 		use_m4sys = GF_TRUE;
 		break;
+	case GF_CODECID_V210:
+		m_subtype = GF_QT_SUBTYPE_YUV422_10;
+		comp_name = "v210 YUV 422 10 bit";
+		use_gen_sample_entry = GF_TRUE;
+		unknown_generic = GF_FALSE;
+		break;
 
 	case GF_CODECID_RAW:
 		m_subtype = codec_id;
@@ -1602,7 +1608,7 @@ sample_entry_setup:
 			if (!p) break;
 			comp_name = "RawAudio";
 			unknown_generic = GF_FALSE;
-			//todo: we currently only set QTFF-style raw media, add ISOBMFF raw audio support
+			//m_subtype used for QTFF-style raw media, m_subtype_alt_raw for ISOBMFF raw audio
 			switch (p->value.uint) {
 			case GF_AUDIO_FMT_U8P:
 			 	req_non_planar_type = GF_AUDIO_FMT_U8;
@@ -1663,43 +1669,14 @@ sample_entry_setup:
 			comp_name = "RawVideo";
 			unknown_generic = GF_FALSE;
 			tkw->skip_bitrate_update = GF_TRUE;
-			//we currently only set QTFF-style raw media
-			switch (p->value.uint) {
-			case GF_PIXEL_RGB:
-				m_subtype = GF_QT_SUBTYPE_RAW;
-				break;
-			case GF_PIXEL_YUV:
-				m_subtype = GF_QT_SUBTYPE_YUV420;
-				force_colr = GF_TRUE;
-				break;
-			case GF_PIXEL_YUYV:
-				m_subtype = GF_QT_SUBTYPE_YUYV;
-				force_colr = GF_TRUE;
-				break;
-			case GF_PIXEL_UYVY:
-				m_subtype = GF_QT_SUBTYPE_UYVY;
-				force_colr = GF_TRUE;
-				break;
-			case GF_PIXEL_YUV422_10:
-				m_subtype = GF_QT_SUBTYPE_YUV422_10;
-				force_colr = GF_TRUE;
-				break;
-			case GF_PIXEL_YUV444:
-				m_subtype = GF_QT_SUBTYPE_YUV444;
-				force_colr = GF_TRUE;
-				break;
-			case GF_PIXEL_YUVA444:
-				m_subtype = GF_QT_SUBTYPE_YUVA444;
-				force_colr = GF_TRUE;
-				break;
-			case GF_PIXEL_YUV444_10:
-				m_subtype = GF_QT_SUBTYPE_YUV444_10;
-				force_colr = GF_TRUE;
-				break;
-			default:
+
+			m_subtype = gf_pixel_fmt_to_qt_type(p->value.uint);
+			if (m_subtype) {
+				if (gf_pixel_fmt_is_yuv(p->value.uint))
+					force_colr = GF_TRUE;
+			} else {
 				unknown_generic = GF_TRUE;
 				m_subtype = p->value.uint;
-				break;
 			}
 		}
 		break;

@@ -280,10 +280,12 @@ static void overmask_yuv420p_const_run(u8 a, u8 val, u8 *ptr, u32 count, short x
 void evg_yuv420p_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y)
 {
 	u32 i, a;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV;
 	pU +=  y/2 * surf->pitch_y/2;
 	pV = pU + surf->height/2 * surf->pitch_y/2;
+
+	//no need to swap u and V in const flush, they have been swaped when setting up the brush
 
 	//we are at an odd line, write uv
 	for (i=0; i<surf->width; i+=2) {
@@ -426,10 +428,16 @@ void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 _cu, s32 _cv,  s32 y)
 {
 	u32 i;
-	char *pU, *pV;
+	u8 *pU, *pV;
 	pU = surf->pixels + surf->height *surf->pitch_y;
 	pU += y/2 * surf->pitch_y/2;
 	pV = pU + surf->height/2 * surf->pitch_y/2;
+
+	if (surf->swap_uv) {
+		u8 *tmp = pU;
+		pU = pV;
+		pV = tmp;
+	}
 
 	for (i=0; i<surf->width; i+=2) {
 		u32 a, a11, a12, a21, a22;
@@ -569,11 +577,16 @@ GF_Err evg_surface_clear_yuv420p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	s32 i;
 	u8 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
-	char *pY, *pU, *pV;
+	u8 *pY, *pU, *pV;
 
 	pY = surf->pixels + rc.y * surf->pitch_y + rc.x;
 	pU = surf->pixels + surf->height * surf->pitch_y + rc.y/2 * surf->pitch_y/2 + rc.x/2;
 	pV = surf->pixels + 5*surf->height * surf->pitch_y/4 + rc.y/2 * surf->pitch_y/2 + rc.x/2;
+	if (surf->swap_uv) {
+		u8 *tmp = pU;
+		pU = pV;
+		pV = tmp;
+	}
 
 	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
