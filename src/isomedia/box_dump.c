@@ -645,6 +645,43 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		name = "YUV444_10_SampleEntryBox";
 		full_dump=GF_TRUE;
 		break;
+	case GF_QT_SUBTYPE_RAW_VID:
+		name = "RGB_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_YUVA444:
+		name = "YUVA_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_YUV422_16:
+		name = "YUV420_16_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_I420:
+		name = "I420_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_IYUV:
+		name = "IUYV_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_YV12:
+		name = "YV12_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_YVYU:
+		name = "YVYU_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_RGBA:
+		name = "RGBA_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+	case GF_QT_SUBTYPE_ABGR:
+		name = "ABGR_SampleEntryBox";
+		full_dump=GF_TRUE;
+		break;
+
 	default:
 		//DO NOT TOUCH FOR NOW, this breaks all hashes
 		name = "MPEGVisualSampleDescriptionBox";

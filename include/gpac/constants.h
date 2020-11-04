@@ -191,7 +191,7 @@ typedef enum
 	GF_PIXEL_RGB_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
 
 	/*!YUV packed 422 format*/
-	GF_PIXEL_YUYV		=	GF_4CC('Y','U','Y','2'),
+	GF_PIXEL_YUYV		=	GF_4CC('Y','U','Y','V'),
 	/*!YUV packed 422 format*/
 	GF_PIXEL_YVYU		=	GF_4CC('Y','V','Y','U'),
 	/*!YUV packed 422 format*/
@@ -199,8 +199,19 @@ typedef enum
 	/*!YUV packed 422 format*/
 	GF_PIXEL_VYUY		=	GF_4CC('V','Y','U','Y'),
 
+	/*!YUV packed 422 format 10 bits, little endian*/
+	GF_PIXEL_YUYV_10		=	GF_4CC('Y','U','Y','L'),
+	/*!YUV packed 422 format 10 bits, little endian*/
+	GF_PIXEL_YVYU_10		=	GF_4CC('Y','V','Y','L'),
+	/*!YUV packed 422 format 10 bits, little endian*/
+	GF_PIXEL_UYVY_10		=	GF_4CC('U','Y','V','L'),
+	/*!YUV packed 422 format 10 bits, little endian*/
+	GF_PIXEL_VYUY_10		=	GF_4CC('V','Y','U','L'),
+
 	/*!YUV planar format*/
-	GF_PIXEL_YUV		=	GF_4CC('Y','V','1','2'),
+	GF_PIXEL_YUV		=	GF_4CC('Y','U','1','2'),
+	/*!YVU planar format*/
+	GF_PIXEL_YVU		=	GF_4CC('Y','V','1','2'),
 	/*!YUV420p in 10 bits mode, little endian*/
 	GF_PIXEL_YUV_10	=	GF_4CC('Y','0','1','0'),
 	/*!YUV420p + Alpha plane*/
@@ -225,6 +236,12 @@ typedef enum
 	GF_PIXEL_YUV444		=	GF_4CC('Y','4','4','4'),
 	/*!444 YUV, 10 bits, little endian*/
 	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0'),
+	/*!444 YUV packed*/
+	GF_PIXEL_YUV444_PACK	=	GF_4CC('Y','4','4','p'),
+	/*!444 YUV+Alpha packed*/
+	GF_PIXEL_YUVA444_PACK	=	GF_4CC('Y','A','4','p'),
+	/*!444 YUV 10 bit packed*/
+	GF_PIXEL_YUV444_10_PACK	=	GF_4CC('Y','4','1','p'),
 
 	/*!Unknown format exposed a single openGL texture to be consumed using samplerExternalOES*/
 	GF_PIXEL_GL_EXTERNAL	=	GF_4CC('E','X','G','L')
@@ -292,6 +309,23 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt);
 \return number of bytes per pixel
 */
 u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt);
+
+/*! Checks if format is YUV
+\param pixfmt  pixel format code
+\return GF_TRUE is YUV format, GF_FALSE otherwise (greyscale or RGB)
+*/
+Bool gf_pixel_fmt_is_yuv(GF_PixelFormat pixfmt);
+
+/*! gets pixel format associated with a given uncompressed video QT code
+\param qt_code the desired QT/ISOBMFF uncompressed video code
+\return the corresponding pixel format, or 0 if unknown code
+*/
+GF_PixelFormat gf_pixel_fmt_from_qt_type(u32 qt_code);
+/*! gets QY code associated with a given pixel format
+\param pixfmt the desired pixel format
+\return the corresponding QT code, or 0 if no asociation
+*/
+u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pixfmt);
 
 /*!
 \brief Codec IDs
@@ -530,6 +564,7 @@ typedef enum
 	/*! codecid for USAC / xHE-AACv2 audio */
 	GF_CODECID_USAC = GF_4CC('u','s','a','c'),
 
+	GF_CODECID_V210 = GF_4CC('v','2','1','0'),
 
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')

@@ -404,6 +404,7 @@ static Bool parse_crop_props(GF_VCropCtx *ctx, u32 src_w, u32 src_h, GF_PixelFor
 	ctx->packed_422 = GF_FALSE;
 	switch (pfmt) {
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV21_10:
 	case GF_PIXEL_NV12:

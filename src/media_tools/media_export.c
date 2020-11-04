@@ -1078,6 +1078,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	u32 codec_id=0;
 	u32 sample_count=0;
 	Bool skip_write_filter = GF_FALSE;
+	Bool ext_forced = GF_FALSE;
 
 	args = NULL;
 	strcpy(szExt, "");
@@ -1085,6 +1086,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		u32 msubtype = 0;
 		u32 mtype = 0;
 		u32 afmt = 0;
+		GF_PixelFormat pfmt = 0;
 		GF_ESD *esd;
 		const char *export_ext = dumper->out_name ? gf_file_ext_start(dumper->out_name) : NULL;
 		u32 track_num = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
@@ -1115,12 +1117,20 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 		mtype = gf_isom_get_media_type(dumper->file, track_num);
 		if (!codec_id) {
+			pfmt = gf_pixel_fmt_from_qt_type(msubtype);
+			if (pfmt) codec_id = GF_CODECID_RAW;
+		}
+
+		if (!codec_id) {
 			strcpy(szExt, gf_4cc_to_str(msubtype));
+			ext_forced = GF_TRUE;
 		} else if (codec_id==GF_CODECID_RAW) {
 			switch (mtype) {
 			case GF_ISOM_MEDIA_VISUAL:
 			case GF_ISOM_MEDIA_AUXV:
 			case GF_ISOM_MEDIA_PICT:
+				if (pfmt)
+					strcpy(szExt, gf_pixel_fmt_sname(pfmt));
 				break;
 			case GF_ISOM_MEDIA_AUDIO:
 				afmt = gf_audio_fmt_from_isobmf(msubtype);
@@ -1148,7 +1158,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_AUDIO:
-			skip_write_filter = GF_TRUE;
+			skip_write_filter = codec_id ? GF_TRUE : GF_FALSE;
 			break;
 		default:
 			switch (codec_id) {
@@ -1329,9 +1339,17 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	} else if (!skip_write_filter) {
-		remux = gf_fs_load_filter(fsess, "writegen", &e);
+		e = gf_dynstrcat(&args, "writegen:exporter", NULL);
+		//extension has been forced, override ext at output of writegen
+		if (ext_forced) {
+			e |= gf_dynstrcat(&args, ":#Extension=", NULL);
+			e |= gf_dynstrcat(&args, szExt, NULL);
+		}
+
+		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);
 		if (!remux) {
 			gf_fs_del(fsess);
+			if (args) gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
 			return e;
 		}

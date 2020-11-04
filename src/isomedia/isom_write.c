@@ -5073,19 +5073,27 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_QT_SUBTYPE_QCELP:
 		case GF_QT_SUBTYPE_kMP3:
 			return GF_TRUE;
-		case GF_QT_SUBTYPE_RAW_VID:
 		case GF_QT_SUBTYPE_APCH:
 		case GF_QT_SUBTYPE_APCO:
 		case GF_QT_SUBTYPE_APCN:
 		case GF_QT_SUBTYPE_APCS:
 		case GF_QT_SUBTYPE_AP4X:
 		case GF_QT_SUBTYPE_AP4H:
+		case GF_QT_SUBTYPE_RAW_VID:
 		case GF_QT_SUBTYPE_YUYV:
 		case GF_QT_SUBTYPE_UYVY:
-		case GF_QT_SUBTYPE_YUV420:
 		case GF_QT_SUBTYPE_YUV444:
+		case GF_QT_SUBTYPE_YUVA444:
 		case GF_QT_SUBTYPE_YUV422_10:
 		case GF_QT_SUBTYPE_YUV444_10:
+		case GF_QT_SUBTYPE_YUV422_16:
+		case GF_QT_SUBTYPE_YUV420:
+		case GF_QT_SUBTYPE_I420:
+		case GF_QT_SUBTYPE_IYUV:
+		case GF_QT_SUBTYPE_YV12:
+		case GF_QT_SUBTYPE_YVYU:
+		case GF_QT_SUBTYPE_RGBA:
+		case GF_QT_SUBTYPE_ABGR:
 			return GF_TRUE;
 		}
 

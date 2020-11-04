@@ -715,6 +715,12 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		ffmpeg_set_enc_dec_flags(ctx->options, ctx->decoder);
 
+		//for some raw codecs
+		if (ctx->width && ctx->height) {
+			ctx->decoder->width = ctx->width;
+			ctx->decoder->height = ctx->height;
+		}
+
 		//we may have a dsi here!
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (prop && prop->value.data.ptr && prop->value.data.size) {

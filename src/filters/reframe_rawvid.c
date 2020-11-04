@@ -47,6 +47,7 @@ typedef struct
 	GF_FilterPacket *out_pck;
 	u8 *out_data;
 	Bool reverse_play, done;
+	Bool is_v210;
 } GF_RawVidReframeCtx;
 
 
@@ -68,11 +69,18 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
+	ctx->is_v210 = GF_FALSE;
 	if (!ctx->spfmt) {
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
-		if (p && p->value.string) ctx->spfmt = gf_pixel_fmt_parse(p->value.string);
+		if (p && p->value.string) {
+			if (!strcmp(p->value.string, "v210")) {
+				ctx->is_v210 = GF_TRUE;
+			} else {
+				ctx->spfmt = gf_pixel_fmt_parse(p->value.string);
+			}
+		}
 	}
-	if (!ctx->spfmt) {
+	if (!ctx->spfmt && !ctx->is_v210) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Missing pixel format, cannot parse\n"));
 		return GF_BAD_PARAM;
 	}
@@ -82,9 +90,19 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	stride = stride_uv = 0;
-	if (! gf_pixel_get_size_info(ctx->spfmt, ctx->size.x, ctx->size.y, &ctx->frame_size, &stride, &stride_uv, NULL, NULL)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Failed to query pixel format size info\n"));
-		return GF_BAD_PARAM;
+	if (ctx->is_v210) {
+#define V210_HORIZ_ALIGN_PIXEL 48
+		if (ctx->size.x % V210_HORIZ_ALIGN_PIXEL)
+			stride = ((ctx->size.x / V210_HORIZ_ALIGN_PIXEL) + 1) * V210_HORIZ_ALIGN_PIXEL;
+		else
+			stride = ctx->size.x;
+		stride = stride * 16 / 6;
+		ctx->frame_size = stride *  ctx->size.y;
+	} else {
+		if (! gf_pixel_get_size_info(ctx->spfmt, ctx->size.x, ctx->size.y, &ctx->frame_size, &stride, &stride_uv, NULL, NULL)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Failed to query pixel format size info\n"));
+			return GF_BAD_PARAM;
+		}
 	}
 
 	if (!ctx->opid)
@@ -93,12 +111,18 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_FALSE);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+	if (ctx->is_v210) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_V210));
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->size.x));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->size.y));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->spfmt));
+	if (ctx->spfmt)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->spfmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num));
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
 	if (stride_uv)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(stride_uv));
@@ -276,6 +300,13 @@ static GF_FilterCapability RawVidReframeCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-yuv"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "v210"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-raw-v210"),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_V210),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 

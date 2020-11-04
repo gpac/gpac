@@ -1817,6 +1817,7 @@ static Bool format_is_yuv(u32 in_pf)
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_VYUY:
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
@@ -1883,15 +1884,22 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					e = color_write_yuv422_10_to_yuv422(dst, src, src_wnd, GF_FALSE);
 				else if (dst->pixel_format == GF_PIXEL_YUV)
 					e = color_write_yuv422_10_to_yuv(dst, src, src_wnd, GF_FALSE);
+				else if (dst->pixel_format == GF_PIXEL_YVU)
+					e = color_write_yuv422_10_to_yuv(dst, src, src_wnd, GF_TRUE);
 				break;
 			case GF_PIXEL_YUV444_10:
 				if (dst->pixel_format == GF_PIXEL_YUV444)
 					e = color_write_yuv444_10_to_yuv444(dst, src, src_wnd, GF_FALSE);
 				else if (dst->pixel_format == GF_PIXEL_YUV)
 					e = color_write_yuv444_10_to_yuv(dst, src, src_wnd, GF_FALSE);
+				else if (dst->pixel_format == GF_PIXEL_YVU)
+					e = color_write_yuv444_10_to_yuv(dst, src, src_wnd, GF_TRUE);
 				break;
 			case GF_PIXEL_YUV:
 				e = color_write_yuv420_to_yuv(dst, src, src_wnd, GF_FALSE);
+				break;
+			case GF_PIXEL_YVU:
+				e = color_write_yuv420_to_yuv(dst, src, src_wnd, GF_TRUE);
 				break;
 			case GF_PIXEL_YUV422:
 				e = color_write_yuv422_to_yuv(dst, src, src_wnd, GF_FALSE);
@@ -1984,6 +1992,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_rgbd;
 		break;
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 		yuv2rgb_init();
 		yuv_planar_type = 1;
 		break;
@@ -3502,6 +3511,7 @@ static Bool is_planar_yuv(u32 pf)
 {
 	switch (pf) {
 	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
 	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
