@@ -273,7 +273,7 @@ const char *gf_pixel_fmt_sname(GF_PixelFormat pfmt);
 \param description description of the pixel format
 \return pixel format code, 0 if no more pixel formats are availble
 */
-Bool gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description);
+GF_PixelFormat gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description);
 
 /*! gets the list of all supported pixel format names
 \return list of supported pixel format names
