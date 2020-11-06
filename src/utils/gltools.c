@@ -1553,10 +1553,10 @@ static void get_yuv_color_matrix(GF_GLTextureWrapper *tx, GF_Matrix *mx)
 	gf_mx_transpose(mx);
 
 	if (tx->fullrange) {
-		gf_mx_add_translation(mx, 0, -0.5, -0.5);
+		gf_mx_add_translation(mx, 0, FLT2FIX(-0.5), FLT2FIX(-0.5));
 	} else {
-		gf_mx_add_scale(mx, 255.0/216.0, 255.0/224.0, 255.0/224.0);
-		gf_mx_add_translation(mx, -0.0625, -0.5, -0.5);
+		gf_mx_add_scale(mx, FLT2FIX(255.0/216.0), FLT2FIX(255.0/224.0), FLT2FIX(255.0/224.0) );
+		gf_mx_add_translation(mx, FLT2FIX(-0.0625), FLT2FIX(-0.5), FLT2FIX(-0.5));
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[GL] YUV2RGB matrix is (column-major):\n"

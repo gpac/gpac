@@ -1379,6 +1379,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_pl) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_change_color) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_next_start_code_bs) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_svc) )
@@ -2313,6 +2314,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_4cc_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_file_ext) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_parse) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_codec_id_from_isobmf) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_codecid_from_oti) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_type_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_type_desc) )
