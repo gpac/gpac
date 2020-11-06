@@ -140,7 +140,7 @@ static void ffdec_check_pix_fmt_change(struct _gf_ffdec_ctx *ctx, u32 pix_fmt)
 		else
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_RANGE, NULL );
 
-		if (ctx->decoder->color_primaries!=GF_CICP_PRIM_UNSPECIFIED)
+		if (ctx->decoder->color_primaries!=AVCOL_PRI_UNSPECIFIED)
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(ctx->decoder->color_primaries) );
 		else
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_PRIMARIES, NULL );
