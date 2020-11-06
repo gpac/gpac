@@ -154,7 +154,7 @@ GF_GPACArg m4b_gen_args[] =
  	GF_DEF_ARG("disable", NULL, "disable given track", NULL, NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0),
  	GF_DEF_ARG("lang `[tkID=]LAN`", NULL, "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("delay `tkID=TIME`", NULL, "set track start delay in ms", NULL, NULL, GF_ARG_STRING, 0),
+ 	GF_DEF_ARG("delay `tkID=TIME`", NULL, "set track start delay in ms or in fractional seconds (`N/D`)", NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("par `tkID=PAR`", NULL, "set visual track pixel aspect ratio. PAR is:\n"
 					"  - N:D: set PAR to N:D in track, do not modify the bitstream\n"
 					"  - wN:D: set PAR to N:D in track and try to modify the bitstream\n"
@@ -181,10 +181,10 @@ GF_GPACArg m4b_gen_args[] =
 	        "\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
 	GF_DEF_ARG("group-rem-track", NULL, "remove given track from its group", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("group-rem", NULL, "remove the track's group\n", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("group-clean", NULL, "remove all group information from all tracks\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("ref `id:XXXX:refID`", NULL, "add a reference of type 4CC from track ID to track refID\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("keep-utc", NULL, "keep UTC timing in the file after edit\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("group-rem", NULL, "remove the track's group", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("group-clean", NULL, "remove all group information from all tracks", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("ref `id:XXXX:refID`", NULL, "add a reference of type 4CC from track ID to track refID", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("keep-utc", NULL, "keep UTC timing in the file after edit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("udta tkID:[OPTS]", NULL, "set udta for given track or movie if tkID is 0. OPTS is a colon separated list of:\n"
 	        "- type=CODE: 4CC code of the UDTA (not needed for `box=` option)\n"
 	        "- box=FILE: location of the udta data, formatted as serialized boxes\n"
@@ -193,10 +193,22 @@ GF_GPACArg m4b_gen_args[] =
 	        "- src=base64,DATA: base64 encoded udta data (will be stored in a single box of type CODE)\n"
 	        "- str=STRING: use the given string as payload for the udta box\n"
 	        "Note: If no source is set, UDTA of type CODE will be removed\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("patch [tkID=]FILE", NULL, "apply box patch described in FILE, for given trackID if set\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("bo", NULL, "freeze the order of boxes in input file\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("init-seg", NULL, "use the given file as an init segment for dumping or for encryption\n", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("zmov", NULL, "compress movie box according to ISOBMFF box compression\n", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("patch [tkID=]FILE", NULL, "apply box patch described in FILE, for given trackID if set", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("bo", NULL, "freeze the order of boxes in input file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("init-seg", NULL, "use the given file as an init segment for dumping or for encryption", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("zmov", NULL, "compress movie box according to ISOBMFF box compression", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+ 	GF_DEF_ARG("edits tkID=EDITS", NULL, "set edit list. The following syntax is used (no separators between entries):\n"
+			" - `r`: removes all edits\n"
+			" - `eSTART`: add empty edit with given start time (fractional or milliseconds). START can be\n"
+			"   - `VAL`: start time in milliseconds (media duration used as edit duration)\n"
+			"   - `VAL-DUR`: start time and duration in milliseconds\n"
+			"   - `VAL/NUM`: start time as fractionnal seconds (media duration used as edit duration)\n"
+			"   - `VAL-DUR/NUM`: start time and duration as fractionnal seconds\n"
+			" - `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time (ms or fraction) and rate (fraction or INT/1000)\n"
+			" - Examples: \n"
+			"   - `-edits=re0-5/1e5-3/1,100/25`: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track\n"
+			"   - `-edits=re0-4/1,0,2/1`: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 2\n"
+				, NULL, NULL, GF_ARG_INT, 0),
 	{0}
 };
 
@@ -440,7 +452,7 @@ static GF_GPACArg m4b_imp_fileopt_args [] = {
 		"  - fraction: specifies duration as NUM/DEN fraction\n"
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("lang", NULL, "set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("delay", NULL, "set imported media initial delay in ms", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("delay", NULL, "set imported media initial delay in ms or as fractionnal seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("par", NULL, "set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("clap", NULL, "set visual clean aperture (see [-clap](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("mx", NULL, "set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
@@ -509,8 +521,9 @@ static GF_GPACArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("noedit", NULL, "`X` do not set edit list when importing B-frames video tracks", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("rvc", NULL, "set RVC configuration for the media", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("fmt", NULL, "override format detection with given format (cf BT/XMTA doc)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("profile", NULL, "override AVC profile", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("level", NULL, "override AVC level", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("profile", NULL, "override AVC profile. Integer value, or `high444`, `high`, `extended`, `main`, `baseline`", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("level", NULL, "override AVC level, if value < 6, interpreted as decimal expression", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("compat", NULL, "force the profile compatibity flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("novpsext", NULL, "remove VPS extensions from HEVC VPS", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("keepav1t", NULL, "keep AV1 temporal delimiter OBU in samples, might help if source file had losses", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("font", NULL, "specify font name for text import (default `Serif`)", NULL, NULL, GF_ARG_STRING, 0),
@@ -536,15 +549,21 @@ static GF_GPACArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("stz2", NULL, "use compact size table (for low-bitrates)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("bitdepth", NULL, "set bit depth to VAL for imported video content (default is 24)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("colr", NULL, "set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:\n"
-		"  - nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef\n"
-		"  - nclx,p,t,m,r: same as `nclx` with r full range flag\n"
+		"  - nclc,p,t,m: with p colour primary (int or string), t transfer characteristics (int or string) and m matrix coef (int or string)\n"
+		"  - nclx,p,t,m,r: same as `nclx` with r full range flag (`yes`, `on` or `no`, `off`)\n"
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("dv-profile", NULL, "set the Dolby Vision profile", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("fullrange", NULL, "force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("videofmt", NULL, "force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("colorprim", NULL, "force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("colortfc", NULL, "force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("colormx", NULL, "force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("tc", NULL, "inject a single QT timecode. Value is formated as:\n"
 		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
 		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("edits", NULL, "override edit list, same syntax as [-edits]()", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("lastsampdur", NULL, "set duration of the last sample. Value is formated as:\n"
 		"  - no value: use the previous sample duration\n"
 		"  - integer: indicate the duration in milliseconds\n"
@@ -957,6 +976,30 @@ void PrintCoreUsage()
 	gf_sys_print_core_help(helpout, 0, GF_ARGMODE_ALL, 0);
 }
 
+void PrintCICP()
+{
+	u32 i;
+	gf_sys_format_help(helpout, help_flags, "# Video CICP (ISO/IEC 23091-2) Constants\n");
+	gf_sys_format_help(helpout, help_flags, "CICP Color Primaries:\n");
+	for (i=0; i<GF_CICP_PRIM_LAST; i++) {
+		const char *name = gf_cicp_color_primaries_name(i);
+		if (!name || !strcmp(name, "unknwon")) continue;
+		gf_sys_format_help(helpout, help_flags, " - `%s` (value %d)\n", name, i);
+	}
+	gf_sys_format_help(helpout, help_flags, "  \nCICP Color Transfer Characteristics:\n");
+	for (i=0; i<GF_CICP_TRANSFER_LAST; i++) {
+		const char *name = gf_cicp_color_transfer_name(i);
+		if (!name) continue;
+		gf_sys_format_help(helpout, help_flags, " - `%s` (value %d)\n", name, i);
+	}
+	gf_sys_format_help(helpout, help_flags, "  \nCICP Color Matrix Coefficients:\n");
+	for (i=0; i<GF_CICP_MX_LAST; i++) {
+		const char *name = gf_cicp_color_matrix_name(i);
+		if (!name) continue;
+		gf_sys_format_help(helpout, help_flags, " - `%s` (value %d)\n", name, i);
+	}
+}
+
 GF_GPACArg m4b_usage_args[] =
 {
  	GF_DEF_ARG("h", NULL, "print help\n"
@@ -976,6 +1019,7 @@ GF_GPACArg m4b_usage_args[] =
 		"- core: libgpac core options\n"
 		"- all: print all the above help screens\n"
 		"- opts: print all options\n"
+		"- cicp: print various CICP code points\n"
 		"- VAL: search for option named `VAL` (without `-` or `--`) in MP4Box, libgpac core and all filters\n"
 		, NULL, NULL, GF_ARG_STRING, 0),
  	GF_DEF_ARG("hx", NULL, "look for given string in all possible options"
@@ -1893,7 +1937,8 @@ typedef enum {
 	TRAC_ACTION_SWAP_ID			= 15,
 	TRAC_ACTION_REM_NON_REFS	= 16,
 	TRAC_ACTION_SET_CLAP		= 17,
-	TRAC_ACTION_SET_MX		= 18,
+	TRAC_ACTION_SET_MX			= 18,
+	TRAC_ACTION_SET_EDITS		= 19,
 } TrackActionType;
 
 typedef struct
@@ -1901,7 +1946,7 @@ typedef struct
 	TrackActionType act_type;
 	GF_ISOTrackID trackID;
 	char lang[10];
-	s32 delay_ms;
+	GF_Fraction delay;
 	const char *kms;
 	const char *hdl_name;
 	s32 par_num, par_den;
@@ -3015,6 +3060,28 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			nb_track_act++;
 			i++;
 		}
+
+		else if (!stricmp(arg, "-edits")) {
+			char *edits;
+			CHECK_NEXT_ARG
+
+			edits = strchr(argv[i+1], '=');
+			if (!edits) {
+				fprintf(stderr, "Bad format for track edits - expecting ID=EDITS got %s\n", argv[i + 1]);
+				return 2;
+			}
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_EDITS;
+			edits[0] = 0;
+			tracks[nb_track_act].trackID = atoi(argv[i + 1]);
+			edits[0] = '=';
+			tracks[nb_track_act].string = gf_strdup(edits+1);
+			open_edit = GF_TRUE;
+			nb_track_act++;
+			i++;
+		}
+
 		else if (!stricmp(arg, "-hdr")) {
 			CHECK_NEXT_ARG
 			high_dynamc_range_filename = argv[i + 1];
@@ -3119,6 +3186,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		}
 		else if (!stricmp(arg, "-delay")) {
 			char szTK[20], *ext;
+			TrackAction *tka;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
@@ -3130,10 +3198,14 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				fprintf(stderr, "Bad format for track delay - expecting tkID=DLAY got %s\n", argv[i + 1]);
 				return 2;
 			}
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_DELAY;
-			tracks[nb_track_act].delay_ms = atoi(ext + 1);
+			tka = &tracks[nb_track_act];
+			tka->act_type = TRAC_ACTION_SET_DELAY;
+			if (sscanf(ext+1, "%d/%u", &tka->delay.num, &tka->delay.den) != 2) {
+				tka->delay.num = atoi(ext + 1);
+				tka->delay.den = 1000;
+			}
 			ext[0] = 0;
-			tracks[nb_track_act].trackID = atoi(szTK);
+			tka->trackID = atoi(szTK);
 			open_edit = GF_TRUE;
 			nb_track_act++;
 			i++;
@@ -3163,7 +3235,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			ext[0] = 0;
 			strncpy(tracks[nb_track_act].lang, szTK, 10);
 			ext[0] = ':';
-			tracks[nb_track_act].delay_ms = (s32)atoi(ext + 1);
+			tracks[nb_track_act].newTrackID = (s32)atoi(ext + 1);
 			open_edit = GF_TRUE;
 			nb_track_act++;
 			i++;
@@ -3554,6 +3626,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
 #endif
 			else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
+			else if (!strcmp(argv[i + 1], "cicp")) PrintCICP();
 			else if (!strcmp(argv[i + 1], "all")) {
 				PrintGeneralUsage();
 				PrintExtractUsage();
@@ -6079,21 +6152,24 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_DELAY:
-			if (tka->delay_ms) {
+			if (tka->delay.num && tka->delay.den) {
 				u64 tk_dur;
 
 				gf_isom_remove_edits(file, track);
 				tk_dur = gf_isom_get_track_duration(file, track);
 				if (gf_isom_get_edits_count(file, track))
 					needSave = GF_TRUE;
-				if (tka->delay_ms>0) {
-					gf_isom_append_edit(file, track, (timescale*tka->delay_ms)/1000, 0, GF_ISOM_EDIT_EMPTY);
+				if (tka->delay.num>0) {
+					//cast to u64, delay_ms * timescale can be quite big before / 1000
+					gf_isom_append_edit(file, track, ((u64) tka->delay.num) * timescale / tka->delay.den, 0, GF_ISOM_EDIT_EMPTY);
 					gf_isom_append_edit(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 					needSave = GF_TRUE;
 				} else {
-					u64 to_skip = (timescale*(-tka->delay_ms))/1000;
+					//cast to u64, delay_ms * timescale can be quite big before / 1000
+					u64 to_skip = ((u64) -tka->delay.num) * timescale / tka->delay.den;
 					if (to_skip<tk_dur) {
-						u64 media_time = (-tka->delay_ms)*gf_isom_get_media_timescale(file, track) / 1000;
+						//cast to u64, delay_ms * timescale can be quite big before / 1000
+						u64 media_time = ((u64) -tka->delay.num) * gf_isom_get_media_timescale(file, track) / tka->delay.den;
 						gf_isom_append_edit(file, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
 						needSave = GF_TRUE;
 					} else {
@@ -6179,7 +6255,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 		case TRAC_ACTION_REFERENCE:
-			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), (u32) tka->delay_ms);
+			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), tka->newTrackID);
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_REM_NON_RAP:
@@ -6196,6 +6272,10 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Assigning udta box\n");
 			e = set_file_udta(file, track, tka->udta_type, tka->string ? tka->string : tka->src_name , tka->sample_num ? GF_TRUE : GF_FALSE, tka->string ? GF_TRUE : GF_FALSE);
 			if (e) goto err_exit;
+			needSave = GF_TRUE;
+			break;
+		case TRAC_ACTION_SET_EDITS:
+			e = apply_edits(file, track, tka->string);
 			needSave = GF_TRUE;
 			break;
 		default:

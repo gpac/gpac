@@ -67,6 +67,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl);
 
+GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits);
+
 #if !defined(GPAC_DISABLE_SCENE_ENCODER)
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);

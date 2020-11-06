@@ -35,7 +35,9 @@ typedef struct
 	GF_PropVec2i osize;
 	u32 ofmt, scale;
 	Double p1, p2;
-
+	Bool ofr;
+	u32 brightness, saturation, contrast;
+	GF_PropIntList otable, itable;
 	//internal data
 	Bool initialized;
 
@@ -51,7 +53,7 @@ typedef struct
 	u32 nb_planes, nb_src_planes, out_size, out_src_size, src_uv_height, dst_uv_height, ow, oh;
 
 	u32 swap_idx_1, swap_idx_2;
-
+	Bool fullrange;
 } GF_FFSWScaleCtx;
 
 static GF_Err ffsws_process(GF_Filter *filter)
@@ -199,6 +201,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	const GF_PropertyValue *p;
 	u32 w, h, stride, ofmt;
 	GF_Fraction sar;
+	Bool fullrange=GF_FALSE;
 	Double par[2], *par_p=NULL;
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 
@@ -238,6 +241,9 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (p) sar = p->value.frac;
 	else sar.den = sar.num = 1;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_RANGE);
+	if (p) fullrange = p->value.boolean;
+
 	//ctx->ofmt may be 0 if the filter is instantiated dynamically, we haven't yet been called for reconfigure
 	if (!w || !h || !ofmt) {
 		return GF_OK;
@@ -252,11 +258,13 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	ctx->ow = ctx->osize.x ? ctx->osize.x : w;
 	ctx->oh = ctx->osize.y ? ctx->osize.y : h;
-	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == ofmt) && (ctx->stride == stride)) {
+	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == ofmt) && (ctx->stride == stride) && (ctx->fullrange==fullrange)) {
 		//nothing to reconfigure
 	}
 	//passthrough mode
-	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == ofmt) && (ofmt==ctx->ofmt) ) {
+	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == ofmt) && (ofmt==ctx->ofmt) && (ctx->ofr == fullrange)
+		&& !ctx->brightness && !ctx->saturation && !ctx->contrast && (ctx->otable.nb_items!=4) && (ctx->itable.nb_items!=4)
+	) {
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
 		gf_pixel_get_size_info(ctx->ofmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
 		ctx->passthrough = GF_TRUE;
@@ -313,9 +321,29 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 #endif
 			return GF_NOT_SUPPORTED;
 		}
+		//set colorspace
+		if (fullrange || ctx->ofr || ctx->brightness || ctx->saturation || ctx->contrast || (ctx->itable.nb_items==4) || (ctx->otable.nb_items==4)) {
+			s32 in_full, out_full, brightness, contrast, saturation;
+			s32 *inv_table, *table;
+
+			sws_getColorspaceDetails(ctx->swscaler, &inv_table, &in_full, &table, &out_full, &brightness, &contrast, &saturation);
+			in_full = fullrange;
+			out_full = ctx->ofr;
+			if (ctx->brightness) brightness = ctx->brightness;
+			if (ctx->saturation) saturation = ctx->saturation;
+			if (ctx->contrast) contrast = ctx->contrast;
+
+			if (ctx->itable.nb_items==4)
+				inv_table = ctx->itable.vals;
+			if (ctx->otable.nb_items==4)
+				table = ctx->otable.vals;
+
+			sws_setColorspaceDetails(ctx->swscaler, (const int *) inv_table, in_full, (const int *)table, out_full, brightness, contrast, saturation);
+		}
 		ctx->w = w;
 		ctx->h = h;
 		ctx->s_pfmt = ofmt;
+		ctx->fullrange = fullrange;
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Setup rescaler from %dx%d fmt %s to %dx%d fmt %s\n", w, h, gf_pixel_fmt_name(ofmt), ctx->ow, ctx->oh, gf_pixel_fmt_name(ctx->ofmt)));
 
 		ctx->swap_idx_1 = ctx->swap_idx_2 = 0;
@@ -378,6 +406,13 @@ static GF_FilterArgs FFSWSArgs[] =
 	{ OFFS(scale), "scaling mode - see filter info", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(p1), "scaling algo param1 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(p2), "scaling algo param2 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
+
+	{ OFFS(ofr), "force output full range", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(brightness), "16.16 fixed point brightness correction, 0 means use default", GF_PROP_BOOL, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(contrast), "16.16 fixed point brightness correction, 0 means use default", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(saturation), "16.16 fixed point brightness correction, 0 means use default", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(otable), "the yuv2rgb coefficients describing the output yuv space, normally ff_yuv2rgb_coeffs[x], use default if not set", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(itable), "the yuv2rgb coefficients describing the input yuv space, normally ff_yuv2rgb_coeffs[x], use default if not set", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

@@ -151,6 +151,9 @@ typedef struct
 
 	Bool do_seek;
 	Bool update_oldata;
+
+	Bool full_range;
+	s32 cmx;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -284,6 +287,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_Event evt;
 	const GF_PropertyValue *p;
 	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh, hw, hh;
+	Bool full_range;
+	Bool sar_changed = GF_FALSE;
+	s32 cmx;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
 
 	//if we have a pending packet, draw it now
@@ -323,7 +329,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	ctx->sar.num = ctx->sar.den = 1;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-	if (p && p->value.frac.den && p->value.frac.num) ctx->sar = p->value.frac;
+	if (p && p->value.frac.den && p->value.frac.num) {
+		if (ctx->sar.num * p->value.frac.den != p->value.frac.num * ctx->sar.den)
+			sar_changed = GF_TRUE;
+		ctx->sar = p->value.frac;
+	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->pid_delay = p ? p->value.longsint : 0;
@@ -334,6 +344,12 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_RAWGRAB);
 	ctx->raw_grab = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_RANGE);
+	full_range = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
+	cmx = p ? (s32) p->value.uint : GF_CICP_MX_UNSPECIFIED;
+
 
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
@@ -370,8 +386,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//pid not yet ready
 	if (!pfmt || !w || !h) return GF_OK;
 
-	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) ) return GF_OK;
+	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) && (full_range==ctx->full_range) && (cmx==ctx->cmx) && !sar_changed) return GF_OK;
 
+	ctx->full_range = full_range;
+	ctx->cmx = cmx;
 	dw = w;
 	dh = h;
 	if (ctx->sar.den != ctx->sar.num) {
@@ -569,7 +587,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		vout_compile_shader(ctx->vertex_shader, "vertex", default_glsl_vertex);
 
 		ctx->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-		gf_gl_txw_setup(&ctx->tx, ctx->pfmt, ctx->width, ctx->height, ctx->stride, ctx->uv_stride, ctx->linear, NULL);
+		gf_gl_txw_setup(&ctx->tx, ctx->pfmt, ctx->width, ctx->height, ctx->stride, ctx->uv_stride, ctx->linear, NULL, ctx->full_range, ctx->cmx);
 
 		gf_dynstrcat(&frag_shader_src, "#version 120\n", NULL);
 
@@ -1460,7 +1478,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		GF_Fraction64 media_ts;
 		s64 delay;
 
-		if (ctx->dur.num) {
+		if (ctx->dur.num && ctx->clock_at_first_cts && ctx->first_cts_plus_one) {
 			if ((cts - ctx->first_cts_plus_one + 1) * ctx->dur.den > (u64) (ctx->dur.num * ctx->timescale)) {
 				GF_FilterEvent evt;
 				if (ctx->last_pck) {
@@ -1472,6 +1490,8 @@ static GF_Err vout_process(GF_Filter *filter)
 				gf_filter_pid_send_event(ctx->pid, &evt);
 				gf_filter_pid_set_discard(ctx->pid, GF_TRUE);
 				return GF_EOS;
+			} else if (gf_filter_pid_has_seen_eos(ctx->pid)) {
+				gf_filter_ask_rt_reschedule(filter, 100000);
 			}
 		}
 

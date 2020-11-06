@@ -775,6 +775,15 @@ GF_PROP_SINT_LIST=27
 ##\hideinitializer
 #see \ref GF_PROP_VEC2I_LIST
 GF_PROP_VEC2I_LIST=28
+##\hideinitializer
+#see \ref GF_PROP_CICP_COL_PRIM
+GF_PROP_CICP_COL_PRIM=29
+##\hideinitializer
+#see \ref GF_PROP_CICP_COL_TFC
+GF_PROP_CICP_COL_TFC=30
+##\hideinitializer
+#see \ref GF_PROP_CICP_COL_MX
+GF_PROP_CICP_COL_MX=31
 
 
 ##\hideinitializer
@@ -1876,6 +1885,18 @@ def _prop_to_python(pname, prop):
     if type==GF_PROP_PCMFMT:
         pname = _libgpac.gf_audio_fmt_name(prop.value.uint)
         return pname.decode('utf-8')
+    if type==GF_PROP_CICP_COL_PRIM:
+        pname = _libgpac.gf_cicp_color_primaries_name(prop.value.uint)
+        return pname.decode('utf-8')
+    if type==GF_PROP_CICP_COL_TFC:
+        pname = _libgpac.gf_cicp_color_transfer_name(prop.value.uint)
+        return pname.decode('utf-8')
+    if type==GF_PROP_CICP_COL_MX:
+        pname = _libgpac.gf_cicp_color_matrix_name(prop.value.uint)
+        return pname.decode('utf-8')
+    if type==GF_PROP_CICP_COL_PRIM:
+        pname = _libgpac.gf_cicp_color_primaries_name(prop.value.uint)
+        return pname.decode('utf-8')
     if type==GF_PROP_STRING or type==GF_PROP_STRING_NO_COPY or type==GF_PROP_NAME:
         return prop.value.string.decode('utf-8')
     if type==GF_PROP_DATA or type==GF_PROP_DATA_NO_COPY or type==GF_PROP_CONST_DATA:
@@ -2219,6 +2240,22 @@ _libgpac.gf_pixel_fmt_parse.restype = c_uint
 _libgpac.gf_audio_fmt_parse.argtypes = [c_char_p]
 _libgpac.gf_audio_fmt_parse.restype = c_uint
 
+_libgpac.gf_cicp_color_primaries_name.argtypes = [c_uint]
+_libgpac.gf_cicp_color_primaries_name.restype = c_char_p
+_libgpac.gf_cicp_color_transfer_name.argtypes = [c_uint]
+_libgpac.gf_cicp_color_transfer_name.restype = c_char_p
+_libgpac.gf_cicp_color_matrix_name.argtypes = [c_uint]
+_libgpac.gf_cicp_color_matrix_name.restype = c_char_p
+
+_libgpac.gf_cicp_parse_color_primaries.argtypes = [c_char_p]
+_libgpac.gf_cicp_parse_color_primaries.restype = c_uint
+_libgpac.gf_cicp_parse_color_transfer.argtypes = [c_char_p]
+_libgpac.gf_cicp_parse_color_transfer.restype = c_uint
+_libgpac.gf_cicp_parse_color_matrix.argtypes = [c_char_p]
+_libgpac.gf_cicp_parse_color_matrix.restype = c_uint
+
+
+
 def _make_prop(prop4cc, propname, prop, custom_type=0):
     prop_val = PropertyValue()
     if prop4cc==0:
@@ -2243,7 +2280,15 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
     elif propname=="AudioFormat":
         prop_val.value.uint = _libgpac.gf_audio_fmt_parse(prop.encode('utf-8'))
         return prop_val
-
+    elif propname=="ColorPrimaries":
+        prop_val.value.uint = _libgpac.gf_cicp_parse_color_primaries(prop.encode('utf-8'))
+        return prop_val
+    elif propname=="ColorTransfer":
+        prop_val.value.uint = _libgpac.gf_cicp_parse_color_transfer(prop.encode('utf-8'))
+        return prop_val
+    elif propname=="ColorMatrix":
+        prop_val.value.uint = _libgpac.gf_cicp_parse_color_matrix(prop.encode('utf-8'))
+        return prop_val
 
     if type==GF_PROP_SINT:
         prop_val.value.sint = prop

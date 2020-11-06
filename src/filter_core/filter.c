@@ -602,6 +602,9 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 	case GF_PROP_UINT:
 	case GF_PROP_PIXFMT:
 	case GF_PROP_PCMFMT:
+	case GF_PROP_CICP_COL_PRIM:
+	case GF_PROP_CICP_COL_TFC:
+	case GF_PROP_CICP_COL_MX:
 		if (a->offset_in_private + sizeof(u32) <= filter->freg->private_size) {
 			*(u32 *)ptr = argv->value.uint;
 			res = GF_TRUE;
@@ -3494,9 +3497,10 @@ static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, 
 			p.value.uint_list = * (GF_PropUIntList *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_PIXFMT:
-			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
-			break;
 		case GF_PROP_PCMFMT:
+		case GF_PROP_CICP_COL_PRIM:
+		case GF_PROP_CICP_COL_TFC:
+		case GF_PROP_CICP_COL_MX:
 			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		default:
@@ -3520,6 +3524,12 @@ const char *gf_filter_get_arg_str(GF_Filter *filter, const char *arg_name, char 
 		return gf_pixel_fmt_name(p.value.uint);
 	if (p.type==GF_PROP_PCMFMT)
 		return gf_audio_fmt_name(p.value.uint);
+	if (p.type==GF_PROP_CICP_COL_PRIM)
+		return gf_cicp_color_primaries_name(p.value.uint);
+	if (p.type==GF_PROP_CICP_COL_TFC)
+		return gf_cicp_color_transfer_name(p.value.uint);
+	if (p.type==GF_PROP_CICP_COL_MX)
+		return gf_cicp_color_matrix_name(p.value.uint);
 
 	return gf_props_dump_val(&p, dump, GF_PROP_DUMP_DATA_NONE, arg_min_max);
 }

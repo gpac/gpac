@@ -859,7 +859,6 @@ const char *gf_error_to_string(GF_Err e)
 	case GF_SCRIPT_ERROR:
 		return "Invalid Script";
 
-	/*MPEG-4 Errors */
 	case GF_BUFFER_TOO_SMALL:
 		return "Bad Buffer size (too small)";
 	case GF_NON_COMPLIANT_BITSTREAM:
@@ -867,9 +866,10 @@ const char *gf_error_to_string(GF_Err e)
 	case GF_FILTER_NOT_FOUND:
 		return "Filter not found for the desired type";
 
-	/*DMIF errors - local and control plane */
 	case GF_URL_ERROR:
 		return "Requested URL is not valid or cannot be found";
+	case GF_URL_REMOVED:
+		return "Requested URL is no longer available";
 
 	case GF_SERVICE_ERROR:
 		return "Internal Service Error";

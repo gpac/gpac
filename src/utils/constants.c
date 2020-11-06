@@ -233,6 +233,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 	case GF_ISOM_SUBTYPE_VVC1:
 	case GF_ISOM_SUBTYPE_VVI1:
 		return GF_CODECID_VVC;
+	case GF_QT_SUBTYPE_YUV422_10:
+		return GF_CODECID_V210;
 
 	case GF_QT_SUBTYPE_APCH:
 		return GF_CODECID_APCH;
@@ -1614,4 +1616,210 @@ u32 gf_id3_get_genre_tag(const char *name)
 		if (!stricmp(ID3v1Genres[i], name)) return i+1;
 	}
 	return 0;
+}
+
+struct cicp_prim
+{
+	u32 code;
+	const char *name;
+} CICPColorPrimaries[] = {
+	{GF_CICP_PRIM_RESERVED_0, "reserved0"},
+	{GF_CICP_PRIM_BT709, "BT709"},
+	{GF_CICP_PRIM_UNSPECIFIED, "undef"},
+	{GF_CICP_PRIM_RESERVED_3, "reserved3"},
+	{GF_CICP_PRIM_BT470M, "BT470M"},
+	{GF_CICP_PRIM_BT470G, "BT470G"},
+	{GF_CICP_PRIM_SMPTE170, "SMPTE170"},
+	{GF_CICP_PRIM_SMPTE240, "SMPTE240"},
+	{GF_CICP_PRIM_FILM, "FILM"},
+	{GF_CICP_PRIM_BT2020, "BT2020"},
+	{GF_CICP_PRIM_SMPTE428, "SMPTE428"},
+	{GF_CICP_PRIM_SMPTE431, "SMPTE431"},
+	{GF_CICP_PRIM_SMPTE432, "SMPTE432"},
+	{GF_CICP_PRIM_EBU3213, "EBU3213"},
+};
+
+static void cicp_parse_int(const char *val, u32 *ival)
+{
+	if (sscanf(val, "%u", ival)!=1) {
+		*ival = (u32) -1;
+	} else {
+		char szCoef[100];
+		sprintf(szCoef, "%u", *ival);
+		if (stricmp(szCoef, val))
+			*ival = -1;
+	}
+}
+
+GF_EXPORT
+u32 gf_cicp_parse_color_primaries(const char *val)
+{
+	u32 i, ival, count = GF_ARRAY_LENGTH(CICPColorPrimaries);
+	cicp_parse_int(val, &ival);
+	for (i=0; i<count; i++) {
+		if (!stricmp(val, CICPColorPrimaries[i].name) || (ival==CICPColorPrimaries[i].code)) {
+			return CICPColorPrimaries[i].code;
+		}
+	}
+	if (strcmp(val, "-1")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unknow CICP color primaries type %s\n", val));
+	}
+	return (u32) -1;
+}
+
+GF_EXPORT
+const char *gf_cicp_color_primaries_name(u32 cicp_mx)
+{
+	u32 i, count = GF_ARRAY_LENGTH(CICPColorPrimaries);
+	for (i=0; i<count; i++) {
+		if (CICPColorPrimaries[i].code==cicp_mx) {
+			return CICPColorPrimaries[i].name;
+		}
+	}
+	return "unknwon";
+}
+
+static char szCICPPrimAllNames[1024];
+
+GF_EXPORT
+const char *gf_cicp_color_primaries_all_names()
+{
+	if (szCICPPrimAllNames[0] == 0) {
+		u32 i, count = GF_ARRAY_LENGTH(CICPColorPrimaries);
+		for (i=0; i<count; i++) {
+			if (i) strcat(szCICPPrimAllNames, ",");
+			strcat(szCICPPrimAllNames, CICPColorPrimaries[i].name);
+		}
+	}
+	return szCICPPrimAllNames;
+}
+
+
+struct cicp_trans
+{
+	u32 code;
+	const char *name;
+} CICPColorTransfer[] = {
+	{GF_CICP_TRANSFER_RESERVED_0, "reserved0"},
+	{GF_CICP_TRANSFER_BT709, "BT709"},
+	{GF_CICP_TRANSFER_UNSPECIFIED, "undef"},
+	{GF_CICP_TRANSFER_RESERVED_3, "reserved3"},
+	{GF_CICP_TRANSFER_BT470M, "BT470M"},
+	{GF_CICP_TRANSFER_BT470BG, "BT470BG"},
+	{GF_CICP_TRANSFER_SMPTE170, "SMPTE170"},
+	{GF_CICP_TRANSFER_SMPTE240, "SMPTE249"},
+	{GF_CICP_TRANSFER_LINEAR, "Linear"},
+	{GF_CICP_TRANSFER_LOG100, "Log100"},
+	{GF_CICP_TRANSFER_LOG316, "Log316"},
+	{GF_CICP_TRANSFER_IEC61966, "IEC61966"},
+	{GF_CICP_TRANSFER_BT1361, "BT1361"},
+	{GF_CICP_TRANSFER_SRGB, "sRGB"},
+	{GF_CICP_TRANSFER_BT2020_10, "BT2020_10"},
+	{GF_CICP_TRANSFER_BT2020_12, "BT2020_12"},
+	{GF_CICP_TRANSFER_SMPTE2084, "SMPTE2084"},
+	{GF_CICP_TRANSFER_SMPTE428, "SMPTE428"},
+	{GF_CICP_TRANSFER_STDB67, "STDB67"}
+};
+
+GF_EXPORT
+u32 gf_cicp_parse_color_transfer(const char *val)
+{
+	u32 i, ival, count = GF_ARRAY_LENGTH(CICPColorTransfer);
+	cicp_parse_int(val, &ival);
+	for (i=0; i<count; i++) {
+		if (!stricmp(val, CICPColorTransfer[i].name) || (CICPColorTransfer[i].code==ival)) {
+			return CICPColorTransfer[i].code;
+		}
+	}
+	if (strcmp(val, "-1")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unknow CICP color transfer type %s\n", val));
+	}
+	return (u32) -1;
+}
+
+GF_EXPORT
+const char *gf_cicp_color_transfer_name(u32 cicp_mx)
+{
+	u32 i, count = GF_ARRAY_LENGTH(CICPColorTransfer);
+	for (i=0; i<count; i++) {
+		if (CICPColorTransfer[i].code==cicp_mx) {
+			return CICPColorTransfer[i].name;
+		}
+	}
+	return "unknwon";
+}
+
+static char szCICPTFCAllNames[1024];
+
+GF_EXPORT
+const char *gf_cicp_color_transfer_all_names()
+{
+	if (szCICPTFCAllNames[0] == 0) {
+		u32 i, count = GF_ARRAY_LENGTH(CICPColorTransfer);
+		for (i=0; i<count; i++) {
+			if (i) strcat(szCICPTFCAllNames, ",");
+			strcat(szCICPTFCAllNames, CICPColorTransfer[i].name);
+		}
+	}
+	return szCICPTFCAllNames;
+}
+
+struct cicp_mx
+{
+	u32 code;
+	const char *name;
+} CICPColorMatrixCoefficients[] = {
+	{GF_CICP_MX_IDENTITY, "GBR"},
+	{GF_CICP_MX_BT709, "BT709"},
+	{GF_CICP_MX_UNSPECIFIED, "undef"},
+	{GF_CICP_MX_FCC47, "FCC"},
+	{GF_CICP_MX_BT601_625, "BT601"},
+	{GF_CICP_MX_SMPTE170, "SMPTE170"},
+	{GF_CICP_MX_SMPTE240, "SMPTE240"},
+	{GF_CICP_MX_YCgCo, "YCgCo"},
+	{GF_CICP_MX_BT2020, "BT2020"},
+	{GF_CICP_MX_BT2020_CL, "BT2020cl"},
+	{GF_CICP_MX_YDzDx, "YDzDx"},
+};
+
+GF_EXPORT
+u32 gf_cicp_parse_color_matrix(const char *val)
+{
+	u32 i, ival, count = GF_ARRAY_LENGTH(CICPColorMatrixCoefficients);
+	cicp_parse_int(val, &ival);
+	for (i=0; i<count; i++) {
+		if (!stricmp(val, CICPColorMatrixCoefficients[i].name) || (ival==CICPColorMatrixCoefficients[i].code)) {
+			return CICPColorMatrixCoefficients[i].code;
+		}
+	}
+	if (strcmp(val, "-1")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unknow CICP color matrix type %s\n", val));
+	}
+	return (u32) -1;
+}
+
+GF_EXPORT
+const char *gf_cicp_color_matrix_name(u32 cicp_mx)
+{
+	u32 i, count = GF_ARRAY_LENGTH(CICPColorMatrixCoefficients);
+	for (i=0; i<count; i++) {
+		if (CICPColorMatrixCoefficients[i].code==cicp_mx) {
+			return CICPColorMatrixCoefficients[i].name;
+		}
+	}
+	return "unknwon";
+}
+
+static char szCICPMXAllNames[1024];
+GF_EXPORT
+const char *gf_cicp_color_matrix_all_names()
+{
+	if (szCICPMXAllNames[0] == 0) {
+		u32 i, count = GF_ARRAY_LENGTH(CICPColorMatrixCoefficients);
+		for (i=0; i<count; i++) {
+			if (i) strcat(szCICPMXAllNames, ",");
+			strcat(szCICPMXAllNames, CICPColorMatrixCoefficients[i].name);
+		}
+	}
+	return szCICPMXAllNames;
 }

@@ -333,8 +333,16 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 	ctx->full_au_source = GF_FALSE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED_FULL_AU);
-	if (p && p->value.boolean)
+	if (p && p->value.boolean) {
+		GF_FilterEvent fevt;
+		//this is a reframer used after an encoder, we want to make sure we have enough frames to compute POC otherwise we might block the chain
+		//by holding input packets - ask 1s by default
+		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, ctx->ipid);
+		fevt.buffer_req.pid_only = GF_TRUE;
+		fevt.buffer_req.max_buffer_us = 1000000;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
 		ctx->full_au_source = GF_TRUE;
+	}
 
 	//copy properties at init or reconfig
 	if (ctx->opid) {

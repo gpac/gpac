@@ -338,6 +338,9 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 	case GF_PROP_UINT:
 	case GF_PROP_PIXFMT:
 	case GF_PROP_PCMFMT:
+	case GF_PROP_CICP_COL_PRIM:
+	case GF_PROP_CICP_COL_TFC:
+	case GF_PROP_CICP_COL_MX:
 		gsfmx_write_vlen(ctx, p->value.uint);
 		break;
 	case GF_PROP_LSINT:

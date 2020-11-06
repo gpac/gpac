@@ -5804,15 +5804,35 @@ Description: Compressed bitstream rewriter
 .br
 This filter rewrites some metadata of various bitstream formats.
 .br
-The filter can currently modify the following properties in the bitstream:
+The filter can currently modify the following properties in video bitstreams:
 .br
-* MPEG-4 Visual: aspect ratio and profile/level
+- MPEG-4 Visual:
 .br
-* AVC|H264: aspect ratio, profile, level, profile compatibility
+  - sample aspect ratio
 .br
-* HEVC: aspect ratio
+  - profile and level
 .br
-* ProRes: aspect ratio, color primaries, transfer characteristics and matrix coefficients
+- AVC|H264 and HEVC:
+.br
+  - sample aspect ratio
+.br
+  - profile, level, profile compatibility
+.br
+  - video format, video fullrange
+.br
+  - color primaries, transfer characteristics and matrix coefficients (or remove all info)
+.br
+- ProRes:
+.br
+  - sample aspect ratio
+.br
+  - color primaries, transfer characteristics and matrix coefficients
+.br
+  
+.br
+Values are by default initialized to -1, implying to keep the related info (present or not) in the bitstream.
+.br
+A .I sar value of 0/0 will remove sample aspect ratio info from bitstream if possible.
 .br
   
 .br
@@ -5827,15 +5847,19 @@ The filter can currently modify the following properties in the stream configura
 .SH Options (expert):
 .LP
 .br
-sar (frac, default: 0/0, updatable): aspect ratio to rewrite
+cprim (cprm, default: -1, minmax: reserved0,BT709,undef,reserved3,BT470M,BT470G,SMPTE170,SMPTE240,FILM,BT2020,SMPTE428,SMPTE431,SMPTE432,EBU3213, updatable): color primaries according to ISO/IEC 23001-8 / 23091-2
+.br
+ctfc (ctfc, default: -1, minmax: reserved0,BT709,undef,reserved3,BT470M,BT470BG,SMPTE170,SMPTE249,Linear,Log100,Log316,IEC61966,BT1361,sRGB,BT2020_10,BT2020_12,SMPTE2084,SMPTE428,STDB67, updatable): color transfer characteristics according to ISO/IEC 23001-8 / 23091-2
+.br
+cmx (cmxc, default: -1, minmax: GBR,BT709,undef,FCC,BT601,SMPTE170,SMPTE240,YCgCo,BT2020,BT2020cl,YDzDx, updatable): color matrix coeficients according to ISO/IEC 23001-8 / 23091-2
+.br
+sar (frac, default: -1/-1, updatable): aspect ratio to rewrite - see filter help
 .br
 m4vpl (sint, default: -1, updatable): set ProfileLevel for MPEG-4 video part two
 .br
-clrp (str, updatable):         color primaries according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) BT709, BT601-625, BT601-525, BT2020, P3 or P3-D65
+fullrange (bool, default: false, updatable): video full range for AVC|H264 and HEVC
 .br
-txchar (str, updatable):       transfer characteristics according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) BT709, ST2084 or STDB67
-.br
-mxcoef (str, updatable):       matrix coeficients according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) BT709, BT601 or BT2020
+novsi (bool, default: false, updatable): remove video_signal_type from VUI in AVC|H264 and HEVC
 .br
 prof (sint, default: -1, updatable): profile indication for AVC|H264
 .br
@@ -5849,7 +5873,11 @@ pspace (sint, default: -1, updatable): profile space for HEVC
 .br
 gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
 .br
-remsei (bool, default: false, updatable): remove SEI messages from bitstream
+rmsei (bool, default: false, updatable): remove SEI messages from bitstream for AVC|H264 and HEVC
+.br
+vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC
+.br
+
 .br
 
 .br
@@ -5986,6 +6014,18 @@ scale (enum, default: bicubic): scaling mode - see filter info
 p1 (dbl, default: +I):         scaling algo param1 - see filter info
 .br
 p2 (dbl, default: +I):         scaling algo param2 - see filter info
+.br
+ofr (bool, default: false):    force output full range
+.br
+brightness (bool, default: 0): 16.16 fixed point brightness correction, 0 means use default
+.br
+contrast (uint, default: 0):   16.16 fixed point brightness correction, 0 means use default
+.br
+saturation (uint, default: 0): 16.16 fixed point brightness correction, 0 means use default
+.br
+otable (sintl):                the yuv2rgb coefficients describing the output yuv space, normally ff_yuv2rgb_coeffs[x], use default if not set
+.br
+itable (sintl):                the yuv2rgb coefficients describing the input yuv space, normally ff_yuv2rgb_coeffs[x], use default if not set
 .br
 
 .br
@@ -6712,7 +6752,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev195-gccb3eb800-master
+build: 1.1.0-DEV-rev197-g85192a6cf-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

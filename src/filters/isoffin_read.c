@@ -1094,8 +1094,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	u32 i, count = gf_list_count(read->channels);
 	Bool is_active = GF_FALSE;
 	Bool in_is_eos = GF_FALSE;
+	Bool check_forced_end = GF_FALSE;
 	Bool has_new_data = GF_FALSE;
 	u64 min_offset_plus_one = 0;
+	u32 nb_forced_end=0;
 	if (read->in_error)
 		return read->in_error;
 
@@ -1224,6 +1226,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		ISOMChannel *ch;
 		ch = gf_list_get(read->channels, i);
 		if (!ch->playing) {
+			nb_forced_end++;
 			continue;
 		}
 		//eos not sent on this channel, we are active
@@ -1366,6 +1369,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				ch->last_valid_sample_data_offset = ch->sample_data_offset;
 				nb_pck--;
 			} else if (ch->last_state==GF_EOS) {
+				if (ch->playing == 2) {
+					if (in_is_eos) {
+						ch->playing = GF_FALSE;
+					} else {
+						nb_forced_end++;
+						check_forced_end = GF_TRUE;
+					}
+				}
 				if (in_is_eos && !ch->eos_sent) {
 					void *tfrf;
 					const void *gf_isom_get_tfrf(GF_ISOFile *movie, u32 trackNumber);
@@ -1393,6 +1404,15 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	if (read->mem_load_mode && min_offset_plus_one) {
 		isoffin_purge_mem(read, min_offset_plus_one-1);
 	}
+
+	//we reached end of playback due to play range request, we must send eos - however for safety reason with DASH, we first need to cancel the input
+	if (read->pid && check_forced_end && (nb_forced_end==count)) {
+		//abort input
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);
+		gf_filter_pid_send_event(read->pid, &evt);
+	}
+
 
 	if (!is_active) {
 		return GF_EOS;

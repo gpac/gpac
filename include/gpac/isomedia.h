@@ -2044,6 +2044,25 @@ the media normal timing. EditTime and EditDuration are expressed in movie timesc
 */
 GF_Err gf_isom_set_edit(GF_ISOFile *isom_file, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, GF_ISOEditType EditMode);
 
+
+
+/*! updates or inserts a new edit in the track time line. Edits are used to modify
+the media normal timing. EditTime and EditDuration are expressed in movie timescale
+\note If a segment with EditTime already exists, it is erase
+\note If there is a segment before this new one, its duration is adjust to match EditTime of the new segment
+\warning The first segment always have an EditTime of 0. You should insert an empty or dwelled segment first
+
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param EditTime the start of the edit in movie timescale
+\param EditDuration the duration of the edit in movie timecale
+\param MediaTime the corresponding media time of the start of the edit, in media timescale. -1 for empty edits
+\param MediaRate a 16.16 rate (0x10000 means normal playback)
+\return error if any
+*/
+GF_Err gf_isom_set_edit_with_rate(GF_ISOFile *isom_file, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, u32 MediaRate);
+
+
 /*! same as \ref gf_isom_set_edit except only modifies duration type and mediaType
 \param isom_file the target ISO file
 \param trackNumber the target track

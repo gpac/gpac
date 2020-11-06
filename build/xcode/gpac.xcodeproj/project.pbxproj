@@ -1787,7 +1787,6 @@
 		92B7DC102549A1310086EC57 /* ffmpeg */ = {
 			isa = PBXGroup;
 			children = (
-				92E318CE20645036007BE021 /* ff_rescale.c */,
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
 				926245971FD691A000184072 /* ff_common.h */,
 				928607122396DF8500FDA1ED /* ff_avf.c */,
@@ -1795,6 +1794,7 @@
 				92BB85601F7BFB62009BC9C8 /* ff_dmx.c */,
 				92E9167B2073F1DB00EE92FB /* ff_enc.c */,
 				9286070A23884A6B00FDA1ED /* ff_mx.c */,
+				92E318CE20645036007BE021 /* ff_rescale.c */,
 			);
 			name = ffmpeg;
 			sourceTree = "<group>";

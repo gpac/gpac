@@ -282,8 +282,46 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
 u32 gf_media_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc);
 
 #ifndef GPAC_DISABLE_ISOM
+
+
+/*! VUI modification parameters*/
+typedef struct
+{
+	/*! if true, the structure members will be updated to the actual values written or present in bitstream. If still -1, info was not written in bitstream*/
+	Bool update;
+	/*! pixel aspect ratio num
+	a value of 0 in ar_num or ar_den removes PAR
+	a value of -1 in ar_num or ar_den keeps PAR from bitstream
+	positive values change PAR
+	*/
+	s32 ar_num;
+	/*! pixel aspect ratio den*/
+	s32 ar_den;
+
+	//if set all video info is removed
+	Bool remove_video_info;
+	//new fullrange, -1 to use info from bitstream
+	s32 fullrange;
+	//new vidformat flag, -1 to use info from bitstream
+	s32 video_format;
+	//new color primaries flag, -1 to use info from bitstream
+	s32 color_prim;
+	//new color transfer characteristics flag, -1 to use info from bitstream
+	s32 color_tfc;
+	//new color matrix flag, -1 to use info from bitstream
+	s32 color_matrix;
+} GF_VUIInfo;
+
+GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info);
+
+//shortucts for the above for API compatibility
 GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
+GF_Err gf_media_avc_change_color(GF_AVCConfig *avcc, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix);
+
+GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui);
+//shortcu for the above for API compatibility
 GF_Err gf_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d);
+GF_Err gf_hevc_change_color(GF_HEVCConfig *hvcc, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix);
 #endif
 
 

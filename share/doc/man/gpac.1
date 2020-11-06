@@ -1931,6 +1931,26 @@ unsigned 32 bit integer list
 .br
 signed 32 bit integer list
 .br
+.TP
+.B v2il
+.br
+2D 32-bit integer vector list
+.br
+.TP
+.B cprm
+.br
+color primaries, string or int value from ISO/IEC 23091-2
+.br
+.TP
+.B ctfc
+.br
+color transfer characteristics, string or int value from ISO/IEC 23091-2
+.br
+.TP
+.B cmxc
+.br
+color matrix coefficients, string or int value from ISO/IEC 23091-2
+.br
 
 .br
 
@@ -2808,24 +2828,24 @@ Indicates the PID packets come from source with losses and reordering happening 
 Indicates this is a primary item in isobmf
 .br
 .TP
-.B ColorPrimaries (CPRM,uint,D )
+.B ColorPrimaries (CPRM,cprm,D )
 .br
-Indicate color primaries for a visual pid (see ISO/IEC 23001-8 / 23091-2)
-.br
-.TP
-.B ColorTransfer (CTRC,uint,D )
-.br
-Indicate color transfer characteristics for a visual pid (see ISO/IEC 23001-8 / 23091-2)
+Indicate color primaries for a visual pid
 .br
 .TP
-.B ColorMatrixCoef (CMXC,uint,D )
+.B ColorTransfer (CTRC,ctfc,D )
 .br
-Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8 / 23091-2)
+Indicate color transfer characteristics for a visual pid
 .br
 .TP
-.B FullRange (CFRA,uint,D )
+.B ColorMatrix (CMXC,cmxc,D )
 .br
-Indicate color full range flag for a visual pid (see ISO/IEC 23001-8 / 23091-2)
+Indicate color matrix coeficient for a visual pid 
+.br
+.TP
+.B FullRange (CFRA,bool,D )
+.br
+Indicate color full range flag for a visual pid
 .br
 .TP
 .B ChromaLoc (CLOC,uint,D )
@@ -3859,7 +3879,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev195-gccb3eb800-master
+build: 1.1.0-DEV-rev197-g85192a6cf-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

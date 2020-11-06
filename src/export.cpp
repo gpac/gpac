@@ -993,6 +993,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_kind) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_kind_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_edit) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_edit_with_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_modify_edit) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_append_edit) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_edit) )
@@ -2301,6 +2302,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_bytes_per_pixel) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_parse) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_from_qt_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_to_qt_type) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_mime) )
@@ -2564,4 +2568,14 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_dash_algo_callbacks) )
 
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_parse_color_primaries) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_parse_color_transfer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_parse_color_matrix) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_primaries_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_transfer_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_matrix_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_primaries_all_names) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_transfer_all_names) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_matrix_all_names) )
 

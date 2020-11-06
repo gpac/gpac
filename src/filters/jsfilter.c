@@ -548,6 +548,12 @@ JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
 		return JS_NewString(ctx, gf_pixel_fmt_name(new_val->value.uint));
 	case GF_PROP_PCMFMT:
 		return JS_NewString(ctx, gf_audio_fmt_name(new_val->value.uint));
+	case GF_PROP_CICP_COL_PRIM:
+		return JS_NewString(ctx, gf_cicp_color_primaries_name(new_val->value.uint));
+	case GF_PROP_CICP_COL_TFC:
+		return JS_NewString(ctx, gf_cicp_color_transfer_name(new_val->value.uint));
+	case GF_PROP_CICP_COL_MX:
+		return JS_NewString(ctx, gf_cicp_color_matrix_name(new_val->value.uint));
 	case GF_PROP_UINT_LIST:
 		res = JS_NewArray(ctx);
 		for (i=0; i<new_val->value.uint_list.nb_items; i++) {
@@ -601,12 +607,6 @@ JSValue jsf_NewPropTranslate(JSContext *ctx, const GF_PropertyValue *prop, u32 p
 		break;
 	case GF_PROP_PID_STREAM_TYPE:
 		res = JS_NewString(ctx, gf_stream_type_name(prop->value.uint));
-		break;
-	case GF_PROP_PID_AUDIO_FORMAT:
-		res = JS_NewString(ctx, gf_audio_fmt_name(prop->value.uint));
-		break;
-	case GF_PROP_PID_PIXFMT:
-		res = JS_NewString(ctx, gf_pixel_fmt_name(prop->value.uint));
 		break;
 	default:
 		res = jsf_NewProp(ctx, prop);
@@ -3988,6 +3988,9 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_PROP_VEC4)
 	DEF_CONST(GF_PROP_PCMFMT)
 	DEF_CONST(GF_PROP_PIXFMT)
+	DEF_CONST(GF_PROP_CICP_COL_PRIM)
+	DEF_CONST(GF_PROP_CICP_COL_TFC)
+	DEF_CONST(GF_PROP_CICP_COL_MX)
 	DEF_CONST(GF_PROP_STRING)
 	DEF_CONST(GF_PROP_STRING)
 	DEF_CONST(GF_PROP_STRING_NO_COPY)

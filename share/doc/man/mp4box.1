@@ -219,7 +219,7 @@ set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given,
 .TP
 .B \-delay  tkID=TIME (string)
 .br
-set track start delay in ms
+set track start delay in ms or in fractional seconds (N/D)
 .br
 .TP
 .B \-par  tkID=PAR (string)
@@ -296,28 +296,20 @@ remove given track from its group
 .br
 remove the track's group
 .br
-
-.br
 .TP
 .B \-group-clean
 .br
 remove all group information from all tracks
-.br
-
 .br
 .TP
 .B \-ref  id:XXXX:refID (string)
 .br
 add a reference of type 4CC from track ID to track refID
 .br
-
-.br
 .TP
 .B \-keep-utc
 .br
 keep UTC timing in the file after edit
-.br
-
 .br
 .TP
 .B \-udta  tkID:[OPTS] (string)
@@ -345,26 +337,45 @@ Note: If no source is set, UDTA of type CODE will be removed
 .br
 apply box patch described in FILE, for given trackID if set
 .br
-
-.br
 .TP
 .B \-bo
 .br
 freeze the order of boxes in input file
-.br
-
 .br
 .TP
 .B \-init-seg (string)
 .br
 use the given file as an init segment for dumping or for encryption
 .br
-
-.br
 .TP
 .B \-zmov
 .br
 compress movie box according to ISOBMFF box compression
+.br
+.TP
+.B \-edits  tkID=EDITS (int)
+.br
+set edit list. The following syntax is used (no separators between entries):
+.br
+ * `r`: removes all edits
+.br
+ * `eSTART`: add empty edit with given start time (fractional or milliseconds). START can be
+.br
+   - VAL: start time in milliseconds (media duration used as edit duration)
+.br
+   - VAL-DUR: start time and duration in milliseconds
+.br
+   - VAL/NUM: start time as fractionnal seconds (media duration used as edit duration)
+.br
+   - VAL-DUR/NUM: start time and duration as fractionnal seconds
+.br
+ * `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time (ms or fraction) and rate (fraction or INT/1000)
+.br
+ * Examples: 
+.br
+   - -edits=re0-5/1e5-3/1,100/25: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track
+.br
+   - -edits=re0-4/1,0,2/1: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 2
 .br
 
 .br
@@ -1284,7 +1295,7 @@ set imported media language code
 .TP
 .B delay (int)
 .br
-set imported media initial delay in ms
+set imported media initial delay in ms or as fractionnal seconds (N/D)
 .br
 .TP
 .B par (string)
@@ -1581,12 +1592,17 @@ override format detection with given format (cf BT/XMTA doc)
 .TP
 .B profile (int)
 .br
-override AVC profile
+override AVC profile. Integer value, or high444, high, extended, main, baseline
 .br
 .TP
 .B level (int)
 .br
-override AVC level
+override AVC level, if value < 6, interpreted as decimal expression
+.br
+.TP
+.B compat (int)
+.br
+force the profile compatibity flags for the H.264 content
 .br
 .TP
 .B novpsext
@@ -1704,9 +1720,9 @@ set bit depth to VAL for imported video content (default is 24)
 .br
 set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:
 .br
-  * nclc,p,t,m: with p colour primary, t transfer characteristics and m matrix coef
+  * nclc,p,t,m: with p colour primary (int or string), t transfer characteristics (int or string) and m matrix coef (int or string)
 .br
-  * nclx,p,t,m,r: same as nclx with r full range flag
+  * nclx,p,t,m,r: same as nclx with r full range flag (yes, on or no, off)
 .br
   * prof,path: with path indicating the file containing the ICC color profile
 .br
@@ -1718,6 +1734,31 @@ set color profile for imported video content (see ISO/IEC 23001-8). Value is for
 set the Dolby Vision profile
 .br
 .TP
+.B fullrange (string)
+.br
+force the video fullrange type in VUI for the AVC|H264 content (value yes, on or no, off)
+.br
+.TP
+.B videofmt (string)
+.br
+force the video format in VUI for AVC|H264 and HEVC content, value can be component, pal, ntsc, secam, mac, undef
+.br
+.TP
+.B colorprim (string)
+.br
+force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf -h cicp)
+.br
+.TP
+.B colortfc (string)
+.br
+force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf -h cicp)
+.br
+.TP
+.B colormx (string)
+.br
+force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf -h cicp)
+.br
+.TP
 .B tc (string)
 .br
 inject a single QT timecode. Value is formated as:
@@ -1727,6 +1768,11 @@ inject a single QT timecode. Value is formated as:
   * : d is an optional flag used to indicate that the counter is in drop-frame format
 .br
   * : the framespertick is optional and defaults to round(framerate); it indicates the number of frames per counter tick
+.br
+.TP
+.B edits (string)
+.br
+override edit list, same syntax as .I edits
 .br
 .TP
 .B lastsampdur (string)
@@ -2347,7 +2393,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev195-gccb3eb800-master
+build: 1.1.0-DEV-rev197-g85192a6cf-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

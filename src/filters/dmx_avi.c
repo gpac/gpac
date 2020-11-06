@@ -103,6 +103,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		|| !stricmp(comp, "RMP4") /*Sigma - not tested*/
 		|| !stricmp(comp, "MP43") /*not tested*/
 		|| !stricmp(comp, "FMP4") /*not tested*/
+		|| !stricmp(comp, "VP6F") /*not tested*/
 	) {
 		codecid = GF_CODECID_MPEG4_PART2;
 	} else if ( !stricmp(comp, "H264") /*not tested*/
@@ -232,16 +233,19 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		case IBM_FORMAT_ADPCM:
 			codecid = GF_CODECID_IBM_ADPCM;
 			break;
-		case 0x55:
+		case WAVE_FORMAT_MP3:
 			codecid = GF_CODECID_MPEG_AUDIO;
 			unframed = GF_TRUE;
 			break;
-		case 0x0000706d:
+		case WAVE_FORMAT_AAC_ADTS:
 			codecid = GF_CODECID_AAC_MPEG4;
 			unframed = GF_TRUE;
 			break;
-		case 255:
+		case WAVE_FORMAT_AAC:
 			codecid = GF_CODECID_AAC_MPEG4;
+			break;
+		case WAVE_FORMAT_AC3:
+			codecid = GF_CODECID_AC3;
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Audio format %d not supported, patch welcome\n", a_fmt));

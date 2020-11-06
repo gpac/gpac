@@ -1178,7 +1178,7 @@ static JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, GF_W
 			js_evg_get_texture_info(c, pck_obj, &width, &height, &pix_fmt, NULL, &stride, NULL, NULL, &uv_stride, NULL);
 		}
 
-		if (!gf_gl_txw_setup(&named_tx->tx, pix_fmt, width, height, stride, uv_stride, GF_FALSE, frame_ifce)) {
+		if (!gf_gl_txw_setup(&named_tx->tx, pix_fmt, width, height, stride, uv_stride, GF_FALSE, frame_ifce, named_tx->tx.fullrange, named_tx->tx.mx_cicp)) {
 			return js_throw_err_msg(c, WGL_INVALID_VALUE, "[WebGL] Pixel format %s unknown, cannot setup NamedTexture\n", gf_4cc_to_str(pix_fmt));
 		}
 	}
@@ -1406,6 +1406,21 @@ static JSValue wgl_createTexture(JSContext *ctx, JSValueConst this_val, int argc
 		ret_val_js = JS_NewObjectClass(ctx, NamedTexture_class_id);
 		JS_SetOpaque(ret_val_js, named_tx);
 		gf_list_add(glc->named_textures, named_tx);
+
+		if ((argc>1) && JS_IsObject(argv[1])) {
+			JSValue v = JS_GetPropertyStr(ctx, argv[1], "fullrange");
+			if (JS_IsBool(v) && JS_ToBool(ctx, v))
+				named_tx->tx.fullrange = GF_TRUE;
+
+			v = JS_GetPropertyStr(ctx, argv[1], "matrix");
+			if (JS_IsInteger(v)) {
+				JS_ToInt32(ctx, &named_tx->tx.mx_cicp, v);
+			} else if (JS_IsString(v)) {
+				const char *cicp = JS_ToCString(ctx, v);
+				named_tx->tx.mx_cicp = gf_cicp_parse_color_matrix(cicp);
+				JS_FreeCString(ctx, cicp);
+			}
+		}
 	} else {
 		GF_WebGLObject *wglo;
 		GF_SAFEALLOC(wglo, GF_WebGLObject);

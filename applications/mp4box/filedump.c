@@ -2215,10 +2215,10 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 
 void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num)
 {
-	Float scale;
+	Double scale, max_rate, rate;
 	Bool is_od_track = 0;
-	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize, bps;
-	u64 time_slice, dur, size;
+	u32 trackNum, i, j, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize, bps;
+	u64 time_slice, dur, size, pfmt, codecid;
 	s32 cts_shift;
 	GF_ESD *esd;
 	char szDur[50];
@@ -2262,6 +2262,9 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 	fprintf(stderr, "%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
+
+	pfmt = gf_pixel_fmt_from_qt_type(msub_type);
+	codecid = gf_codec_id_from_isobmf(msub_type);
 
 	count = gf_isom_get_track_kind_count(file, trackNum);
 	for (i = 0; i < count; i++) {
@@ -2557,17 +2560,13 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					else szName = "Unknown";
 					fprintf(stderr, "Ogg/%s video / GPAC Mux  - Visual Size %d x %d\n", szName, w, h);
 				}
-				else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_JPEG) {
-					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
-					fprintf(stderr, "JPEG Stream - Visual Size %d x %d\n", w, h);
-				}
-				else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_PNG) {
-					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
-					fprintf(stderr, "PNG Stream - Visual Size %d x %d\n", w, h);
-				}
-				else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_J2K) {
-					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
-					fprintf(stderr, "JPEG2000 Stream - Visual Size %d x %d\n", w, h);
+				else {
+					//check if we know this codec from its OTI
+					u32 codec_id = gf_codecid_from_oti(GF_STREAM_VISUAL, esd->decoderConfig->objectTypeIndication);
+					if (codec_id) {
+						gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+						fprintf(stderr, "%s - Visual Size %d x %d\n", gf_codecid_name(codec_id), w, h);
+					}
 				}
 				if (!w || !h) {
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
@@ -2584,6 +2583,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 				GF_Err e;
 				u32 oti;
 #endif
+				u32 codec_id;
 				Bool is_mp2 = GF_FALSE;
 				switch (esd->decoderConfig->objectTypeIndication) {
 				case GF_CODECID_AAC_MPEG2_MP:
@@ -2646,16 +2646,6 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 #endif
 					}
 					break;
-				/*OGG media*/
-				case GF_CODECID_VORBIS:
-					fprintf(stderr, "Ogg/Vorbis audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
-					break;
-				case GF_CODECID_FLAC:
-					fprintf(stderr, "Ogg/FLAC audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
-					break;
-				case GF_CODECID_SPEEX:
-					fprintf(stderr, "Ogg/Speex audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
-					break;
 				case GF_CODECID_EVRC:
 					fprintf(stderr, "EVRC Audio - Sample Rate 8000 - 1 channel\n");
 					break;
@@ -2671,6 +2661,12 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					        && !strnicmp((char *)esd->decoderConfig->decoderSpecificInfo->data, "pvmm", 4)) {
 						if (full_dump) fprintf(stderr, "\t");
 						fprintf(stderr, "EVRC Audio (PacketVideo Mux) - Sample Rate 8000 - 1 channel\n");
+					}
+					break;
+				default:
+					codec_id = gf_codecid_from_oti(GF_STREAM_AUDIO, esd->decoderConfig->objectTypeIndication);
+					if (codec_id) {
+						fprintf(stderr, "%s - Sample Rate %d - %d channel(s)\n", gf_codecid_name(codec_id), sr, nb_ch);
 					}
 					break;
 				}
@@ -3032,15 +3028,33 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		}
 		if (i) fprintf(stderr, "\n");
 
+	} else if (codecid) {
+		if (gf_isom_is_video_handler_type(mtype) ) {
+			u32 w, h;
+			gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+			fprintf(stderr, "%s - Resolution %d x %d\n", gf_codecid_name(codecid), w, h);
+		} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
+			u32 sr, ch;
+			gf_isom_get_audio_info(file, trackNum, 1, &sr, &ch, NULL);
+			fprintf(stderr, "%s - Sample Rate %d - %d channel(s)\n", gf_codecid_name(codecid), sr, ch);
+		} else {
+			fprintf(stderr, "%s\n", gf_codecid_name(codecid) );
+		}
+	} else if (pfmt) {
+		u32 w, h;
+		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+		fprintf(stderr, "Raw video %s - Resolution %d x %d\n", gf_pixel_fmt_name(pfmt), w, h);
 	} else {
-		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
+		GF_GenericSampleDescription *udesc;
+
+		udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
 			if (gf_isom_is_video_handler_type(mtype) ) {
-                fprintf(stderr, "%s Track - Compressor \"%s\" - Resolution %d x %d\n",
-                        (mtype == GF_ISOM_MEDIA_VISUAL?"Visual":"Auxiliary Video"),
+                fprintf(stderr, "%s - Compressor \"%s\" - Resolution %d x %d\n",
+						( (mtype == GF_ISOM_MEDIA_VISUAL ? "Visual" : "Auxiliary Video") ),
                         udesc->compressor_name, udesc->width, udesc->height);
 			} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
-				fprintf(stderr, "Audio Track - Sample Rate %d - %d channel(s)\n", udesc->samplerate, udesc->nb_channels);
+				fprintf(stderr, "Audio - Sample Rate %d - %d channel(s)\n", udesc->samplerate, udesc->nb_channels);
 			} else {
 				fprintf(stderr, "Unknown media type\n");
 			}
@@ -3141,8 +3155,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			dur = samp->DTS+samp->CTS_Offset;
 			size += samp->dataLength;
 			rate += samp->dataLength;
-			if (samp->DTS - time_slice>ts) {
-				if (max_rate < rate) max_rate = rate;
+			if (samp->DTS - time_slice > ts) {
+				Double max_tmp = rate * ts / (samp->DTS - time_slice);
+				if (max_rate < max_tmp )
+					max_rate = max_tmp;
+
 				rate = 0;
 				time_slice = samp->DTS;
 			}
@@ -3153,28 +3170,25 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	if (csize && cdur) {
 		fprintf(stderr, "\tConstant sample size %d bytes and dur %d / %d\n", csize, cdur, ts);
 	}
-	scale = 1000;
-	scale /= ts;
-	dur = (u64) (scale * (s64)dur);
+	scale = 1000.0 / ts;
+	dur = (u64) (scale * dur);
 	fprintf(stderr, "\tTotal size "LLU" bytes - Total samples duration "LLU" ms\n", size, dur);
 	if (!dur) {
 		fprintf(stderr, "\n");
 		return;
 	}
 	/*rate in byte, dur is in ms*/
-	rate = (u32) ((size * 8 * 1000) / dur);
+	rate = 8000.0 * size / dur;
 
 	if (!max_rate)
 		max_rate = rate;
 	else
-		max_rate *= 8;
+		max_rate *= 8.0;
 
 	if (rate >= 1500) {
-		rate /= 1000;
-		max_rate /= 1000;
-		fprintf(stderr, "\tAverage rate %d kbps - Max Rate %d kbps\n", rate, max_rate);
+		fprintf(stderr, "\tAverage rate %.2f kbps - Max Rate %.2f kbps\n", rate/1000, max_rate/1000);
 	} else {
-		fprintf(stderr, "\tAverage rate %d bps - Max Rate %d bps\n", rate, max_rate);
+		fprintf(stderr, "\tAverage rate %.2f bps - Max Rate %.2f bps\n", rate, max_rate);
 	}
 
 	{

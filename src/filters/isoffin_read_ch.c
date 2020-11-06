@@ -432,8 +432,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset + ch->au_duration)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
+		ch->sample = NULL;
 		ch->last_state = GF_EOS;
-		ch->playing = GF_FALSE;
+		ch->playing = 2;
+		return;
 	}
 	if (ch->owner->last_sender_ntp && ch->cts==ch->owner->cts_for_last_sender_ntp) {
 		ch->sender_ntp = ch->owner->last_sender_ntp;

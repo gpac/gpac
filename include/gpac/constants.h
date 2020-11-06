@@ -1403,6 +1403,126 @@ enum {
 };
 
 
+/*! CICP code points for color primaries */
+enum
+{
+	GF_CICP_PRIM_RESERVED_0 = 0,
+	GF_CICP_PRIM_BT709,
+	GF_CICP_PRIM_UNSPECIFIED,
+	GF_CICP_PRIM_RESERVED_3,
+	GF_CICP_PRIM_BT470M,
+	GF_CICP_PRIM_BT470G,
+	GF_CICP_PRIM_SMPTE170,
+	GF_CICP_PRIM_SMPTE240,
+	GF_CICP_PRIM_FILM,
+	GF_CICP_PRIM_BT2020,
+	GF_CICP_PRIM_SMPTE428,
+	GF_CICP_PRIM_SMPTE431,
+	GF_CICP_PRIM_SMPTE432,
+
+	GF_CICP_PRIM_EBU3213=22,
+
+	GF_CICP_PRIM_LAST
+};
+
+/*! CICP code points for color transfer */
+enum
+{
+	GF_CICP_TRANSFER_RESERVED_0 = 0,
+	GF_CICP_TRANSFER_BT709,
+	GF_CICP_TRANSFER_UNSPECIFIED,
+	GF_CICP_TRANSFER_RESERVED_3,
+	GF_CICP_TRANSFER_BT470M,
+	GF_CICP_TRANSFER_BT470BG,
+	GF_CICP_TRANSFER_SMPTE170,
+	GF_CICP_TRANSFER_SMPTE240,
+	GF_CICP_TRANSFER_LINEAR,
+	GF_CICP_TRANSFER_LOG100,
+	GF_CICP_TRANSFER_LOG316,
+	GF_CICP_TRANSFER_IEC61966,
+	GF_CICP_TRANSFER_BT1361,
+	GF_CICP_TRANSFER_SRGB,
+	GF_CICP_TRANSFER_BT2020_10,
+	GF_CICP_TRANSFER_BT2020_12,
+	GF_CICP_TRANSFER_SMPTE2084,
+	GF_CICP_TRANSFER_SMPTE428,
+	GF_CICP_TRANSFER_STDB67, //prores only
+
+	GF_CICP_TRANSFER_LAST
+};
+
+
+/*! CICP code points for matrix coefficients */
+enum
+{
+	GF_CICP_MX_IDENTITY = 0,
+	GF_CICP_MX_BT709,
+	GF_CICP_MX_UNSPECIFIED,
+	GF_CICP_MX_RESERVED_3,
+	GF_CICP_MX_FCC47,
+	GF_CICP_MX_BT601_625,
+	GF_CICP_MX_SMPTE170,
+	GF_CICP_MX_SMPTE240,
+	GF_CICP_MX_YCgCo,
+	GF_CICP_MX_BT2020,
+	GF_CICP_MX_BT2020_CL,
+	GF_CICP_MX_YDzDx,
+
+	GF_CICP_MX_LAST
+	//the rest is reserved
+};
+
+/*! parse CICP color primaries
+ \param val CICP color primaries name
+\return 0xFFFFFFFF if error , value otherwise
+*/
+u32 gf_cicp_parse_color_primaries(const char *val);
+
+/*! get CICP color primaries name
+\param cicp_prim CICP color primaries code
+\return name or "unknown"" if error
+*/
+const char *gf_cicp_color_primaries_name(u32 cicp_prim);
+
+/*! get CICP color primaries names
+\return coma-separated list of GPAC names for CICP color primaries
+*/
+const char *gf_cicp_color_primaries_all_names();
+
+/*! parse CICP color transfer
+ \param val CICP color transfer name
+\return 0xFFFFFFFF if error , value otherwise
+*/
+u32 gf_cicp_parse_color_transfer(const char *val);
+
+/*! get CICP color transfer name
+\param cicp_trans CICP color transfer code
+\return name or "unknown"" if error
+*/
+const char *gf_cicp_color_transfer_name(u32 cicp_trans);
+
+/*! get CICP color transfer names
+\return coma-separated list of GPAC names for CICP color transfer
+*/
+const char *gf_cicp_color_transfer_all_names();
+
+/*! parse CICP color matrix coefficients
+ \param val CICP color matrix coefficients name
+\return 0xFFFFFFFF if error , value otherwise
+*/
+u32 gf_cicp_parse_color_matrix(const char *val);
+
+/*! get CICP color matrix coefficients name
+\param cicp_mx CICP color matrix coefficients code
+\return name or "unknown"" if error
+*/
+const char *gf_cicp_color_matrix_name(u32 cicp_mx);
+
+/*! get CICP color matrix names
+\return coma-separated list of GPAC names for CICP color matrix
+*/
+const char *gf_cicp_color_matrix_all_names();
+
 /*! @} */
 
 #ifdef __cplusplus
