@@ -511,7 +511,7 @@ static GF_FilterProbeScore sockout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterArgs SockOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "URL of destination - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(sockbuf), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, 0},
 	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},

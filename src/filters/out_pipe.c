@@ -459,7 +459,7 @@ static GF_FilterProbeScore pipeout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterArgs PipeOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "name of destination pipe", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ext), "indicate file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicate mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(dynext), "indicate the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -1960,7 +1960,7 @@ static Bool routeout_use_alias(GF_Filter *filter, const char *url, const char *m
 
 static const GF_FilterArgs ROUTEOutArgs[] =
 {
-	{ OFFS(dst), "location of destination URL - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "destination URL - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
