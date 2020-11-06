@@ -2081,7 +2081,9 @@ session_done:
 	}
 	if (close_session) {
 		httpout_reset_socket(sess);
-	} else {
+	}
+	//might be NULL if quit was set
+	else if (sess->socket) {
 		//we keep alive, recreate an dm sess
 		sess->http_sess = gf_dm_sess_new_server(sess->socket, sess->ssl, httpout_sess_io, sess, &e);
 		if (e) {
