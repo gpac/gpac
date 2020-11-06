@@ -1374,13 +1374,10 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (ctx->dst && !gf_list_count(ctx->inputs))
 				pctx->force_dst_name = GF_TRUE;
 
-			if (ctx->hmode!=MODE_PUSH) {
-				//reset caps to anything (mime or ext) in case a URL was given, since graph resolution is now done
-				//this allows working with input filters dispatching files without creating a new destination (dashin in file mode for example)
-				//we do not reset caps to default as the default caps list an output but in this mode we don't have one
-				//and we dont' want gf_filter_connections_pending to think we will produce one
-				ctx->in_caps[1].val = PROP_NAME( "*" );
-			}
+			//reset caps to anything (mime or ext) in case a URL was given, since graph resolution is now done
+			//this allows working with input filters dispatching files without creating a new destination (dashin in file mode for example)
+			//we do not reset caps to default as the default caps list an output and we don't want gf_filter_connections_pending to think we will produce one
+			ctx->in_caps[1].val = PROP_NAME( "*" );
 		}
 		//in any cast store dash state, mime, register input and fire play
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);

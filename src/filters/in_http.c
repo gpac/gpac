@@ -73,6 +73,7 @@ typedef struct
 	Bool do_reconfigure;
 	Bool full_file_only;
 	GF_Err last_state;
+	Bool is_source_switch;
 } GF_HTTPInCtx;
 
 static void httpin_notify_error(GF_Filter *filter, GF_HTTPInCtx *ctx, GF_Err e)
@@ -248,6 +249,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->cached) gf_fclose(ctx->cached);
 		ctx->cached = NULL;
 		ctx->blob_size = 0;
+		ctx->is_source_switch = GF_TRUE;
 
 		//handle isobmff:// url
 		if (!strncmp(ctx->src, "isobmff://", 10)) {
@@ -420,6 +422,12 @@ static GF_Err httpin_process(GF_Filter *filter)
 			if (ctx->pid) {
 				gf_filter_pid_set_eos(ctx->pid);
 			}
+			//do not return an error if first fetch after source switch fails with removed or 404, this happens in DASH dynamic
+			//and the error might be absorbed by the dash demux later
+			if (ctx->is_source_switch && !ctx->nb_read && ((e==GF_URL_REMOVED) || (e==GF_URL_ERROR)))
+				return GF_OK;
+
+			ctx->is_source_switch = GF_FALSE;
 			return e;
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
