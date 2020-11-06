@@ -82,6 +82,7 @@ enum
 	INSPECT_TEST_ENCODE,
 	INSPECT_TEST_ENCX,
 	INSPECT_TEST_NOCRC,
+	INSPECT_TEST_NOBR
 };
 
 typedef struct
@@ -1538,8 +1539,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			if (ctx->test>=INSPECT_TEST_ENCODE)
 				return;
 			break;
-		case GF_PROP_PID_MEDIA_DATA_SIZE:
 		case GF_PROP_PID_BITRATE:
+			if (ctx->test==INSPECT_TEST_NOBR)
+				return;
+		case GF_PROP_PID_MEDIA_DATA_SIZE:
 		case GF_PROP_PID_MAXRATE:
 		case GF_PROP_PID_AVG_FRAME_SIZE:
 		case GF_PROP_PID_MAX_FRAME_SIZE:
@@ -3041,8 +3044,9 @@ static const GF_FilterArgs InspectArgs[] =
 		"- netx: same as network but skip track duration and templates (used for hashing progressive load of fmp4)\n"
 		"- encode: same as network plus skip decoder config (used for hashing encoding results)\n"
 		"- encx: same as encode and skip bitrates, media data size and co\n"
-		"- nocrc: disable packet CRC dump"
-		, GF_PROP_UINT, "no", "no|noprop|network|netx|encode|encx|nocrc", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+		"- nocrc: disable packet CRC dump\n"
+		"- nobr: skip bitrate"
+		, GF_PROP_UINT, "no", "no|noprop|network|netx|encode|encx|nocrc|nobr", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
