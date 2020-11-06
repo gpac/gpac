@@ -267,7 +267,7 @@ Bool gf_term_process_step(GF_Terminal *term);
 /*! post user interaction to terminal
 \param term the target terminal
 \param event the event to post
-\return GF_TRUE if event was directly consummed
+\return GF_TRUE if event was directly consumed
 */
 Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
 
@@ -275,7 +275,7 @@ Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
 \warning NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)
 \param term the target terminal
 \param evt the event to post
-\return GF_TRUE if event was directly consummed
+\return GF_TRUE if event was directly consumed
 */
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt);
 

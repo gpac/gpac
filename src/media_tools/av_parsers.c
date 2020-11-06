@@ -6981,7 +6981,7 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 
 	/*parse SEI*/
 	while (gf_bs_available(bs)) {
-		u32 consummed;
+		u32 consumed;
 		ptype = 0;
 		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
 			gf_bs_read_int(bs, 8);
@@ -7012,8 +7012,8 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		}
 
 		gf_bs_align(bs);
-		consummed = (u32) (gf_bs_get_position(bs) - start);
-		psize-=consummed;
+		consumed = (u32) (gf_bs_get_position(bs) - start);
+		psize-=consumed;
 		gf_bs_skip_bytes(bs, psize);
 		if (gf_bs_available(bs) <= 2)
 			break;

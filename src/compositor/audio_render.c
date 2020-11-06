@@ -293,7 +293,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 	if (ar->need_reconfig) return;
 	if (ar->Frozen) return;
 
-	//reconfiguration is pending, wait for the packet issued at reconfig to be consummed before issuing any new frame
+	//reconfiguration is pending, wait for the packet issued at reconfig to be consumed before issuing any new frame
 	if (ar->wait_for_rcfg) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Waiting for audio output reconfiguration\n"));
 		return;

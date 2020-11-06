@@ -430,7 +430,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;
 	u32 au_start = 0;
-	u32 consummed = 0;
+	u32 consumed = 0;
 	u32 nb_trunc_samples = 0;
 	Bool trunc_from_begin = 0;
 	Bool has_cfg = 0;
@@ -527,13 +527,13 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 	ctx->buffer_too_small = GF_FALSE;
 
 	//MHAS packet
-	while (remain > consummed) {
+	while (remain > consumed) {
 		u32 pay_start, parse_end, mhas_size, mhas_label;
 		Bool mhas_sap = 0;
 		u32 mhas_type;
 		if (!ctx->is_playing && ctx->opid) {
 			ctx->resume_from = 1;
-			consummed = 0;
+			consumed = 0;
 			break;
 		}
 
@@ -549,14 +549,14 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			ctx->nb_unknown_pck++;
 			if (ctx->nb_unknown_pck > ctx->pcksync) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MHASDmx] %d packets of unknwon type, considering sync was lost\n"));
-				consummed = 0;
+				consumed = 0;
 				ctx->nosync = GF_TRUE;
 				ctx->nb_unknown_pck = 0;
 				break;
 			}
 		} else if (!mhas_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MHASDmx] MHAS packet with 0 payload size, considering sync was lost\n"));
-			consummed = 0;
+			consumed = 0;
 			ctx->nosync = GF_TRUE;
 			ctx->nb_unknown_pck = 0;
 			break;
@@ -705,7 +705,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			gf_filter_pck_send(dst);
 
 			au_start += au_size;
-			consummed = au_start;
+			consumed = au_start;
 			ctx->nb_frames ++;
 
 			mhas_dmx_update_cts(ctx);
@@ -728,7 +728,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 					}
 				}
 			}
-			if (remain==consummed)
+			if (remain==consumed)
 				break;
 
 			if (gf_filter_pid_would_block(ctx->opid)) {
@@ -738,10 +738,10 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			}
 		}
 	}
-	if (consummed) {
-		assert(remain>=consummed);
-		remain -= consummed;
-		start += consummed;
+	if (consumed) {
+		assert(remain>=consumed);
+		remain -= consumed;
+		start += consumed;
 	}
 
 skip:

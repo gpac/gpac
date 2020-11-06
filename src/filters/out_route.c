@@ -1441,7 +1441,7 @@ retry:
 	has_ts = (ts==GF_FILTER_NO_TS) ? GF_FALSE : GF_TRUE;
 
 	if (
-		//no TS and not initial fragment, recomute timing and dur
+		//no TS and not initial fragment, recompute timing and dur
 		(!start && !has_ts && rpid->bitrate && rpid->pck_dur_at_frame_start)
 		//has TS, initial fragment and duration for the entire segment, recompute dur only
 		|| (has_ts && start && !end && pck_dur && pck_dur_for_segment)
@@ -1960,7 +1960,7 @@ static Bool routeout_use_alias(GF_Filter *filter, const char *url, const char *m
 
 static const GF_FilterArgs ROUTEOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination URL - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1975,7 +1975,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- type: each new stream type results in a new LCT channel\n"
 		"- all: all streams are in dedicated LCT channel, the first stream being used for STSID signaling"
 		, GF_PROP_UINT, "off", "off|type|all", 0},
-	{ OFFS(korean), "use korean version of ATSC 3.0 spec instead of US", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(korean), "use Korean version of ATSC 3.0 spec instead of US", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(llmode), "use low-latency mode", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(brinc), "bitrate increase in percent when estimating timing in low latency mode - see filter help", GF_PROP_UINT, "10", NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(noreg), "disable rate regulation for media segments, pushing them as fast as received", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
@@ -2010,7 +2010,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"When DASHing for ROUTE or single service ATSC, a file extension, either in [-dst]() or in [-ext](), may be used to identify the HAS session type (DASH or HLS).\n"
 		"EX \"route://IP:PORT/manifest.mpd\", \"route://IP:PORT/:ext=mpd\"\n"
 		"\n"
-		"When DASHing for multi-service ATSC, forcing an extension will force all service to use the same formats\n"
+		"When DASHing for multi-service ATSC, forcing an extension will force all service to use the same formats.\n"
 		"EX \"atsc://:ext=mpd\", \"route://IP:PORT/manifest.mpd\"\n"
 		"If multiple services with different formats are needed, you will need to explicit your filters:\n"
 		"EX gpac -i DASH_URL:#ServiceID=1 @ dashin:filemode:FID=1 -i HLS_URL:#ServiceID=2 @ dashin:filemode:FID=2 -o atsc://:SID=1,2\n"
@@ -2042,7 +2042,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"If this fails, the muxer will trigger warnings and send as fast as possible.\n"
 		"\n"
 		"# Examples\n"
-		"Since the ROUTE filter only consummes files, it is required to insert:\n"
+		"Since the ROUTE filter only consumes files, it is required to insert:\n"
 		"- the dash demuxer in filemode when loading a DASH session\n"
 		"- the dash muxer when creating a DASH session\n"
 		"\n"
@@ -2058,7 +2058,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"Sending a single file in ROUTE using half a second upload time, 2 seconds carousel:\n"
 		"EX gpac -i URL:#ROUTEUpload=0.5:#ROUTECarousel=2 -o route://225.1.1.0:6000/\n"
 		"\n"
-		"Common mistakes\n"
+		"Common mistakes:\n"
 		"EX gpac -i source.mpd -o route://225.1.1.0:6000/\n"
 		"This will only send the manifest file as a regular object and will not load the dash session.\n"
 		"EX gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/\n"

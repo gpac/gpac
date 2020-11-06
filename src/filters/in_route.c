@@ -843,10 +843,10 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_segs), "maximum number of segments to keep on disk", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(odir), "output directory for stand-alone mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(odir), "output directory for standalone mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder), "ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rtimeout), "default timeout in ms to wait when gathering out-of-order packets", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes (source, standalone))", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repair), "repair mode for corrupted files (see filter help)\n"
 		"- no: no repair is performed\n"
 		"- simple: simple repair is performed (incomplete mdat boxes will be kept)\n"
@@ -868,7 +868,7 @@ GF_FilterRegister ROUTEInRegister = {
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter is a receiver for ROUTE sessions (ATSC 3.0 and generic ROUTE).\n"
 	"- ATSC 3.0 mode is identified by the URL `atsc://`.\n"
-	"- generic ROUTE mode is identified by the URL `route://IP:PORT`.\n"
+	"- Generic ROUTE mode is identified by the URL `route://IP:PORT`.\n"
 	"\n"
 	"The filter can work in cached mode, source mode or standalone mode.\n"
 	"# Cached mode\n"
@@ -908,7 +908,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"- MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.\n"
 	"- ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in `free` boxes, except mdat kept as is if [-repair]() is set to simple.\n"
 	"\n"
-	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are delivered while downloaded, cirrupted files will be kept.\n"
+	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are delivered while downloaded, corrupted files will be kept.\n"
 	"\n"
 	"# Interface setup\n"
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"

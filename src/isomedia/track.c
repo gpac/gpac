@@ -1464,7 +1464,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		esd->langDesc = NULL;
 	}
 
-	//we have a streamDescritpionIndex, use it
+	//we have a streamDescriptionIndex, use it
 	if (StreamDescriptionIndex) {
 		u32 entry_type;
 		entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex - 1);

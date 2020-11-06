@@ -685,7 +685,7 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck, u32 pck_len, Bool full_pck, GF_BitStream *bs)
 {
 	u64 dts=GF_FILTER_NO_TS, cts=GF_FILTER_NO_TS, bo=GF_FILTER_NO_BO;
-	u32 copy_size, consummed, dur, dep_flags=0, tsmodebits, durmodebits, spos;
+	u32 copy_size, consumed, dur, dep_flags=0, tsmodebits, durmodebits, spos;
 	s16 roll=0;
 	u8 carv=0;
 
@@ -851,11 +851,11 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 		}
 	}
 
-	consummed = (u32) gf_bs_get_position(bs) - spos;
-	pck_len -= consummed;
+	consumed = (u32) gf_bs_get_position(bs) - spos;
+	pck_len -= consumed;
 	if (full_pck) {
-		assert(gpck->full_block_size > consummed);
-		gpck->full_block_size -= consummed;
+		assert(gpck->full_block_size > consumed);
+		gpck->full_block_size -= consumed;
 		assert(gpck->full_block_size == pck_len);
 		gf_filter_pck_truncate(gpck->pck, gpck->full_block_size);
 	}

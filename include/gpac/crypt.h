@@ -113,7 +113,7 @@ GF_Err gf_crypt_set_IV(GF_Crypt *gfc, const void *iv, u32 size);
 
 /*! gets the IV of the algorithm.
 The size will hold the size of the state and the state must have enough bytes to hold it (17 is enough for AES 128).
-In CTR mode, the first byte will be set to the counter value (number of bytes consummed in last block), or 0 if all bytes were consummed
+In CTR mode, the first byte will be set to the counter value (number of bytes consumed in last block), or 0 if all bytes were consumed
 \param gfc the target crytpo context
 \param iv filled with the current IV
 \param size will be set to the IV size (16 for AES CBC? 17 for AES CTR)

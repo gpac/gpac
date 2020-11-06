@@ -118,7 +118,7 @@ enum
 	GF_CODEC_PIXEL_FORMAT,
 	/*signal decoder performs frame re-ordering in temporal scalability*/
 	GF_CODEC_REORDER,
-	/*signal decoder can safely handle CTS when outputing a picture. If not supported by the
+	/*signal decoder can safely handle CTS when outputting a picture. If not supported by the
 	decoder, the terminal will automatically handle CTS adjustments*/
 	GF_CODEC_TRUSTED_CTS,
 

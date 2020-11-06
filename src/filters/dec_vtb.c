@@ -1423,7 +1423,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	if (ctx->no_copy) return vtbdec_send_output_frame(filter, ctx);
 
 	vtbframe = gf_list_pop_front(ctx->frames);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Outputing frame DTS "LLU" CTS "LLU" timescale %d\n", gf_filter_pck_get_dts(vtbframe->pck_src), gf_filter_pck_get_cts(vtbframe->pck_src), gf_filter_pck_get_timescale(vtbframe->pck_src)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Outputting frame DTS "LLU" CTS "LLU" timescale %d\n", gf_filter_pck_get_dts(vtbframe->pck_src), gf_filter_pck_get_cts(vtbframe->pck_src), gf_filter_pck_get_timescale(vtbframe->pck_src)));
 
 
 	status = CVPixelBufferLockBaseAddress(vtbframe->frame, kCVPixelBufferLock_ReadOnly);
@@ -1887,7 +1887,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	vtb_frame = gf_list_pop_front(ctx->frames);
 	if (!vtb_frame) return GF_BAD_PARAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Outputing frame DTS "LLU" CTS "LLU" timescale %d\n", gf_filter_pck_get_dts(vtb_frame->pck_src), gf_filter_pck_get_cts(vtb_frame->pck_src), gf_filter_pck_get_timescale(vtb_frame->pck_src)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Outputting frame DTS "LLU" CTS "LLU" timescale %d\n", gf_filter_pck_get_dts(vtb_frame->pck_src), gf_filter_pck_get_cts(vtb_frame->pck_src), gf_filter_pck_get_timescale(vtb_frame->pck_src)));
 
 	vtb_frame->frame_ifce.user_data = vtb_frame;
 	vtb_frame->frame_ifce.get_plane = vtbframe_get_plane;
