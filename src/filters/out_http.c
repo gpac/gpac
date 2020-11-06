@@ -2738,7 +2738,7 @@ static const GF_FilterCapability HTTPOutCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_HTTPOutCtx, _n)
 static const GF_FilterArgs HTTPOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination resource - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(port), "server port", GF_PROP_UINT, "80", NULL, 0},
 	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rdirs), "list of directories to expose for read - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},

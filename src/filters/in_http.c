@@ -549,7 +549,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 static const GF_FilterArgs HTTPInArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
 	"- disk: cache to disk,  discard once session is no longer used\n"

@@ -1008,7 +1008,7 @@ GF_FilterRegister FFMuxRegister = {
 
 static const GF_FilterArgs FFMuxArgs[] =
 {
-	{ OFFS(dst), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination file or remote URL", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(interleave), "write frame in interleave mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},

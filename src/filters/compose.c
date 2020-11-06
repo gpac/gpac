@@ -918,7 +918,7 @@ static GF_FilterArgs CompositorArgs[] =
 				"- yes: always loads a graphics driver. Output pixel format will be RGB\n"\
 				"- auto: decides based on the loaded content"\
 			, GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

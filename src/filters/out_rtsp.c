@@ -1261,7 +1261,7 @@ static const GF_FilterCapability RTSPOutCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_RTSPOutCtx, _n)
 static const GF_FilterArgs RTSPOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination resource - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(port), "server port", GF_PROP_UINT, "554", NULL, 0},
 	{ OFFS(firstport), "port for first stream in session", GF_PROP_UINT, "6000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},

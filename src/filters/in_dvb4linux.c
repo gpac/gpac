@@ -403,7 +403,7 @@ static GF_Err dvblin_process(GF_Filter *filter)
 
 static const GF_FilterArgs DVBLinuxArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(src), "URL of source content - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chcfg), "path to channels.conf file", GF_PROP_NAME, NULL, NULL, 0},
 	{0}
@@ -412,7 +412,12 @@ static const GF_FilterArgs DVBLinuxArgs[] =
 GF_FilterRegister DVBLinuxRegister = {
 	.name = "dvbin",
 	GF_FS_SET_DESCRIPTION("DVB for Linux")
-	GF_FS_SET_HELP("Experimental DVB support for linux, requires a channel config file through [-chcfg]()")
+	GF_FS_SET_HELP("Experimental DVB support for linux, requires a channel config file through [-chcfg]()\n"
+	"  \n"
+	"The URL syntax is `dvb://CHANNAME[@FRONTEND]`, with:\n"
+	" - CHANNAME: the channel name as listed in the channel config file\n"
+	" - frontend: the index of the DVB adapter to use (optional, default is 0)\n"
+	)
 	.args = DVBLinuxArgs,
 #ifdef GPAC_HAS_LINUX_DVB
 	.private_size = sizeof(GF_DVBLinuxCtx),

@@ -1436,7 +1436,7 @@ static const char *isoffin_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 static const GF_FilterArgs ISOFFInArgs[] =
 {
-	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(src), "location of source content (only used when explicitly loading the demuxer)", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(allt), "load all tracks even if unknown", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itt), "convert all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
