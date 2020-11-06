@@ -81,6 +81,7 @@ enum
 	INSPECT_TEST_NETX,
 	INSPECT_TEST_ENCODE,
 	INSPECT_TEST_ENCX,
+	INSPECT_TEST_NOCRC,
 };
 
 typedef struct
@@ -2119,7 +2120,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		if (ctx->xml) {
 			gf_fprintf(dump, "\"");
 		}
-	} else if (data) {
+	} else if (data && (ctx->test!=INSPECT_TEST_NOCRC) ) {
 		DUMP_ATT_X("CRC32", gf_crc_32(data, size) )
 	}
 	if (ctx->xml) {
@@ -3029,7 +3030,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
 	{ OFFS(analyze), "analyze sample content (NALU, OBU)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(crc), "dump crc of packets, NALU and OBU", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(crc), "dump crc of NALU/OBU/... when analyzing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(dtype), "dump property type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set buffer in ms (mostly used for testing DASH algo)", GF_PROP_UINT, "0", NULL, GF_ARG_HINT_EXPERT},
@@ -3039,7 +3040,9 @@ static const GF_FilterArgs InspectArgs[] =
 		"- network: URL/path dump, cache state, file size properties skipped (used for hashing network results)\n"
 		"- netx: same as network but skip track duration and templates (used for hashing progressive load of fmp4)\n"
 		"- encode: same as network plus skip decoder config (used for hashing encoding results)\n"
-		"- encx: same as encode and skip bitrates, media data size and co", GF_PROP_UINT, "no", "no|noprop|network|netx|encode|encx", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+		"- encx: same as encode and skip bitrates, media data size and co\n"
+		"- nocrc: disable packet CRC dump"
+		, GF_PROP_UINT, "no", "no|noprop|network|netx|encode|encx|nocrc", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 

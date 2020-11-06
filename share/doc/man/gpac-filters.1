@@ -167,7 +167,7 @@ analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
 .br
-crc (bool, default: false, updatable): dump crc of packets, NALU and OBU
+crc (bool, default: false, updatable): dump crc of NALU/OBU/... when analyzing
 .br
 fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
@@ -188,6 +188,8 @@ test (enum, default: no, updatable): skip predefined set of properties, used for
 * encode: same as network plus skip decoder config (used for hashing encoding results)
 .br
 * encx: same as encode and skip bitrates, media data size and co
+.br
+* nocrc: disable packet CRC dump
 .br
 
 .br
@@ -251,7 +253,7 @@ analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
 .br
-crc (bool, default: false, updatable): dump crc of packets, NALU and OBU
+crc (bool, default: false, updatable): dump crc of NALU/OBU/... when analyzing
 .br
 fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatible signaling rather than QT compliant one
 .br
@@ -272,6 +274,8 @@ test (enum, default: no, updatable): skip predefined set of properties, used for
 * encode: same as network plus skip decoder config (used for hashing encoding results)
 .br
 * encx: same as encode and skip bitrates, media data size and co
+.br
+* nocrc: disable packet CRC dump
 .br
 
 .br
@@ -6762,7 +6766,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev202-g6afda8982-master
+build: 1.1.0-DEV-rev204-g103af0bb9-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
