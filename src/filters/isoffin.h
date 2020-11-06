@@ -156,7 +156,9 @@ typedef struct
 
 	u32 time_scale;
 	Bool to_init, has_rap;
-	Bool playing, eos_sent;
+	//0: not playing, 1: playing 2: playing but end of range reached
+	u32 playing;
+	Bool eos_sent;
 	u8 streamType;
 	Bool initial_play_seen;
 
