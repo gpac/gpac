@@ -337,7 +337,7 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 		return GF_TRUE;
 	}
 
-	if (sscanf(val, "%d", clr_full_range) == 1)
+	if (sscanf(val, "%d", (s32*) clr_full_range) == 1)
 		return GF_TRUE;
 
 	return GF_FALSE;
@@ -419,8 +419,14 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 				if (e) goto error;
 			} else {
 				rate = 0;
-				if (media_rate.den)
-					rate = (media_rate.num<<16) / media_rate.den;
+				if (media_rate.den) {
+					u64 frac;
+					rate = (u32) ( media_rate.num / media_rate.den );
+					frac = media_rate.num - rate*media_rate.den;
+					frac *= 0xFFFF;
+					frac /= media_rate.den;
+					rate = (rate<<16) | frac;
+				}
 				media_t = media_time.num * media_ts / media_time.den;
 				e = gf_isom_set_edit_with_rate(dest, track, movie_t, edit_dur, media_t, rate);
 				if (e) goto error;

@@ -358,6 +358,9 @@ typedef struct _dash_stream
 	u32 gm_nb_segments;
 
 	Bool no_seg_dur;
+	//for route
+	u64 hls_ref_id;
+
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds);
@@ -957,7 +960,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_filter_pid_copy_properties(ds->opid, pid);
 			//for route out
 			if (ctx->is_route && ctx->do_m3u8)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) ds->opid) );
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 		}
 		if (ds->rep)
 			dasher_update_rep(ctx, ds);
@@ -2452,6 +2455,13 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 
 	sprintf(szSRC, "dasher_%p", base_ds->dst_filter);
 	ds->opid = gf_filter_pid_new(filter);
+
+#ifdef GPAC_64_BITS
+	ds->hls_ref_id = (u64) ds->opid;
+#else
+	ds->hls_ref_id = (u64) ((u32) ds->opid);
+#endif
+
 	gf_filter_pid_copy_properties(ds->opid, ds->ipid);
 	if (!ds->muxed_base) {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("*"));
@@ -2465,7 +2475,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	}
 	//for route out
 	if (ctx->is_route && ctx->do_m3u8)
-		gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) ds->opid) );
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 
 	gf_filter_pid_require_source_id(ds->opid);
 
@@ -3403,7 +3413,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name, 
 	gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 	if (name) {
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(name) );
-		gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) ds->opid) );
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 	}
 	gf_filter_pck_send(pck);
 }
