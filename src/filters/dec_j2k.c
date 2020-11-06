@@ -171,6 +171,7 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (ctx->pixel_format) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT( (ctx->pixel_format == GF_PIXEL_YUV) ? ctx->width : ctx->width * ctx->nb_comp) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pixel_format) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE) );
 	}
 	return GF_OK;
 }

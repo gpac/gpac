@@ -260,15 +260,17 @@ typedef enum
 
 	GF_M2TS_VIDEO_HEVC_MCTS			= 0x31,
 
+	/*the rest is internal use*/
+
+	GF_M2TS_VIDEO_VC1				= 0xEA,
 	GF_M2TS_VIDEO_DCII				= 0x80,
 	GF_M2TS_AUDIO_AC3				= 0x81,
-	GF_M2TS_AUDIO_DTS				= 0x8A,
+	GF_M2TS_AUDIO_DTS				= 0x82,
+	GF_M2TS_AUDIO_TRUEHD			= 0x83,
+	GF_M2TS_AUDIO_EC3				= 0x84,
 	GF_M2TS_MPE_SECTIONS            = 0x90,
 	GF_M2TS_SUBTITLE_DVB			= 0x100,
 
-	/*internal use*/
-	GF_M2TS_AUDIO_EC3				= 0x150,
-	GF_M2TS_VIDEO_VC1				= 0x151,
 	GF_M2TS_DVB_TELETEXT			= 0x152,
 	GF_M2TS_DVB_VBI					= 0x153,
 	GF_M2TS_DVB_SUBTITLE			= 0x154,

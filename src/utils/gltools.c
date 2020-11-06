@@ -334,130 +334,122 @@ void gf_opengl_init()
 
 }
 
+static char *gl_shader_yuv_matrix = \
+"uniform mat4 _gf_%s_mx;\n\
+";
 
 
-static char *gl_shader_vars_yuv = \
-"uniform sampler2D _gf_%s_1;\n\
-uniform sampler2D _gf_%s_2;\n\
-uniform sampler2D _gf_%s_3;\n\
-const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
+#if 0 //old code
+static char *gl_shader_yuv_coefs = \
+"const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
 const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
 const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
 const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
 ";
 
+static char *gl_shader_yuv_coefs_jpeg = \
+"const vec3 offset = vec3(0.0, -0.5, -0.5);\n\
+const vec3 R_mul = vec3(1,  0.000,  1.40200);\n\
+const vec3 G_mul = vec3(1, -0.34414, -0.71414);\n\
+const vec3 B_mul = vec3(1,  1.77200,  0.000);\n\
+";
+#endif
+
+static char *gl_shader_vars_yuv = \
+"uniform sampler2D _gf_%s_1;\n\
+uniform sampler2D _gf_%s_2;\n\
+uniform sampler2D _gf_%s_3;\n\
+";
+
 static char *gl_shader_fun_yuv = \
 "vec2 texc;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 yuv.x = texture2D(_gf_%s_1, texc).r;\n\
 yuv.y = texture2D(_gf_%s_2, texc).r;\n\
 yuv.z = texture2D(_gf_%s_3, texc).r;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, 1.0);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 static char *gl_shader_fun_yvu = \
 "vec2 texc;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 yuv.x = texture2D(_gf_%s_1, texc).r;\n\
 yuv.y = texture2D(_gf_%s_3, texc).r;\n\
 yuv.z = texture2D(_gf_%s_2, texc).r;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, 1.0);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 static char *gl_shader_vars_yuva = \
 "uniform sampler2D _gf_%s_1;\n\
 uniform sampler2D _gf_%s_2;\n\
 uniform sampler2D _gf_%s_3;\n\
 uniform sampler2D _gf_%s_4;\n\
-const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
-const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
-const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
-const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
 ";
 
 static char *gl_shader_fun_yuva = \
 "vec2 texc;\n\
-vec3 yuv, rgb;\n\
-float a;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 yuv.x = texture2D(_gf_%s_1, texc).r;\n\
 yuv.y = texture2D(_gf_%s_2, texc).r;\n\
 yuv.z = texture2D(_gf_%s_3, texc).r;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-a = texture2D(_gf_%s_4, texc).r;\n\
-return vec4(rgb, a );\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = texture2D(_gf_%s_4, texc).r;\n\
+return yuv;\n\
 ";
 
 static char *gl_shader_vars_nv12 = \
 "uniform sampler2D _gf_%s_1;\n\
 uniform sampler2D _gf_%s_2;\n\
-const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
-const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
-const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
-const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
 ";
 
 static char *gl_shader_fun_nv12 = \
 "vec2 texc;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 yuv.x = texture2D(_gf_%s_1, texc).r;\n\
 yuv.yz = texture2D(_gf_%s_2, texc).ra;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, 1.0);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 
 static char *gl_shader_vars_nv21 = \
 "uniform sampler2D _gf_%s_1;\n\
 uniform sampler2D _gf_%s_2;\n\
-const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
-const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
-const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
-const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
 ";
 
 static char *gl_shader_fun_nv21 = \
 "vec2 texc;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 yuv.x = texture2D(_gf_%s_1, texc).r;\n\
 yuv.yz = texture2D(_gf_%s_2, texc).ar;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, 1.0);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 
 static char *gl_shader_vars_uyvu = \
-	"uniform sampler2D _gf_%s_1;\
-	uniform float _gf_%s_width;\
-	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
-	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
-	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
-	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
-	";
+"uniform sampler2D _gf_%s_1;\
+uniform float _gf_%s_width;\
+";
 
 static char *gl_shader_fun_uyvy = \
 "vec2 texc, t_texc;\
-vec3 yuv, rgb;\
+vec4 yuv;\
 vec4 uyvy;\
 float tex_s;\
 texc = _gpacTexCoord.st;\
@@ -470,17 +462,16 @@ if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
 yuv.r = uyvy.g;\
 yuv.g = uyvy.r;\
 yuv.b = uyvy.b;\
-yuv += offset; \
-rgb.r = dot(yuv, R_mul); \
-rgb.g = dot(yuv, G_mul); \
-rgb.b = dot(yuv, B_mul); \
-return vec4(rgb, 1.0);\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 
 static char *gl_shader_fun_vyuy = \
 "vec2 texc, t_texc;\
-vec3 yuv, rgb;\
+vec4 yuv;\
 vec4 vyuy;\
 float tex_s;\
 texc = _gpacTexCoord.st;\
@@ -493,17 +484,16 @@ if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
 yuv.r = vyuy.g;\
 yuv.g = vyuy.b;\
 yuv.b = vyuy.r;\
-yuv += offset; \
-rgb.r = dot(yuv, R_mul); \
-rgb.g = dot(yuv, G_mul); \
-rgb.b = dot(yuv, B_mul); \
-return vec4(rgb, 1.0);\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 
 static char *gl_shader_fun_yuyv = \
 "vec2 texc, t_texc;\
-vec3 yuv, rgb;\
+vec4 yuv;\
 vec4 yvyu;\
 float tex_s;\
 texc = _gpacTexCoord.st;\
@@ -516,16 +506,15 @@ if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
 yuv.r = yvyu.r;\
 yuv.g = yvyu.g;\
 yuv.b = yvyu.a;\
-yuv += offset; \
-rgb.r = dot(yuv, R_mul); \
-rgb.g = dot(yuv, G_mul); \
-rgb.b = dot(yuv, B_mul); \
-return vec4(rgb, 1.0);\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 static char *gl_shader_fun_yvyu = \
 "vec2 texc, t_texc;\
-vec3 yuv, rgb;\
+vec4 yuv;\
 vec4 yuyv;\
 float tex_s;\
 texc = _gpacTexCoord.st;\
@@ -538,48 +527,41 @@ if (tex_s - (2.0 * floor(tex_s/2.0)) == 1.0) {\
 yuv.r = yuyv.r;\
 yuv.g = yuyv.a;\
 yuv.b = yuyv.g;\
-yuv += offset; \
-rgb.r = dot(yuv, R_mul); \
-rgb.g = dot(yuv, G_mul); \
-rgb.b = dot(yuv, B_mul); \
-return vec4(rgb, 1.0);\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 
 static char *gl_shader_vars_yuv4_pack = \
 "uniform sampler2D _gf_%s_1;\n\
-const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
-const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
-const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
-const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
 ";
 
 static char *gl_shader_fun_yuv4_pack = \
 "vec2 texc;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 yuv = texture2D(_gf_%s_1, texc).gbr;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, 1.0);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 static char *gl_shader_fun_yuv4a_pack = \
 "vec2 texc;\n\
 vec4 tex;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 tex = texture2D(_gf_%s_1, texc).rgba;\n\
 yuv.r = tex.g;\n\
 yuv.g = tex.r;\n\
 yuv.b = tex.b;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, tex.a);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 #if 1
@@ -591,7 +573,7 @@ static char *gl_shader_fun_yuv4_10_pack = \
 "vec2 texc;\n\
 vec4 val;\n\
 int valr, valg, valb, vala, interm1, interm2;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 val = texture2D(_gf_%s_1, texc).rgba;\n\
 valr = int(val.r*255);\n\
@@ -605,11 +587,10 @@ interm2 = valb / 16;\n\
 yuv.r = float( ((valg - interm1) * 16) + (interm2) ) / 1023.0;\n\
 interm2 *= 16;\n\
 yuv.g = float( ((valb - interm2) * 64) + vala ) / 1023.0;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, 1.0);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 #else
@@ -624,7 +605,7 @@ static char *gl_shader_fun_yuv4_10_pack = \
 "vec2 texc;\n\
 vec4 val;\n\
 int valr, valg, valb, vala, interm1, interm2;\n\
-vec3 yuv, rgb;\n\
+vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
 val = texture2D(_gf_%s_1, texc).rgba;\n\
 valr = int(val.r*63);\n\
@@ -638,11 +619,10 @@ interm2 = valb / 4;\n\
 yuv.g = float( ((valg - interm1) * 64) + (interm2) ) / 1023.0;\n\
 interm2 *= 4;\n\
 yuv.r = float( ((valb - interm2) * 256) + vala ) / 1023.0;\n\
-yuv += offset;\n\
-rgb.r = dot(yuv, R_mul);\n\
-rgb.g = dot(yuv, G_mul);\n\
-rgb.b = dot(yuv, B_mul);\n\
-return vec4(rgb, 1.0);\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
 ";
 
 #endif
@@ -751,7 +731,6 @@ static char *gl_shader_fun_rgb = \
 static char *gl_shader_vars_externalOES = \
 "uniform samplerExternalOES _gf_%s_1;\n\
 ";
-
 
 
 Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source)
@@ -870,11 +849,18 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 	sprintf(szCode, shader_vars, tx_name, tx_name, tx_name, tx_name);
 	gf_dynstrcat(f_source, szCode, NULL);
 
+	if (gf_pixel_fmt_is_yuv(pix_fmt)) {
+//		gf_dynstrcat(f_source, gl_shader_yuv_matrix, NULL);
+
+		sprintf(szCode, gl_shader_yuv_matrix, tx_name);
+		gf_dynstrcat(f_source, szCode, NULL);
+	}
+
 	gf_dynstrcat(f_source, "\nvec4 ", NULL);
 	gf_dynstrcat(f_source, tx_name, NULL);
 	gf_dynstrcat(f_source, "_sample(vec2 _gpacTexCoord) {\n", NULL);
-	/*format with max 3 tx_name (for yuv)*/
-	sprintf(szCode, shader_fun, tx_name, tx_name, tx_name);
+	/*format with max 4 tx_name (for yuva) + matrix for yuv*/
+	sprintf(szCode, shader_fun, tx_name, tx_name, tx_name, tx_name, tx_name);
 
 	gf_dynstrcat(f_source, szCode, NULL);
 	gf_dynstrcat(f_source, "\n}\n", NULL);
@@ -883,7 +869,7 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 }
 
 
-Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height, u32 stride, u32 uv_stride, Bool linear_interp, GF_FilterFrameInterface *frame_ifce)
+Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height, u32 stride, u32 uv_stride, Bool linear_interp, GF_FilterFrameInterface *frame_ifce, Bool full_range, s32 matrix_coef_or_neg)
 {
 	u32 i;
 
@@ -898,6 +884,11 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 	tx->bit_depth = 8;
 	tx->gl_format = GL_LUMINANCE;
 	tx->bytes_per_pix = 1;
+	tx->fullrange = full_range;
+	if (matrix_coef_or_neg==GF_CICP_MX_UNSPECIFIED)
+		tx->mx_cicp = -1;
+	else
+		tx->mx_cicp = matrix_coef_or_neg;
 
 	switch (tx->pix_fmt) {
 	case GF_PIXEL_YUV444_10:
@@ -1492,6 +1483,96 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 	return GF_TRUE;
 }
 
+
+struct yuv_coefs {
+	u32 cicp;
+	Double Kr, Kb;
+} YUVMatrices[] = {
+	{GF_CICP_MX_BT709, 0.2126, 0.0722},
+	{GF_CICP_MX_FCC47, 0.3, 0.11},
+	{GF_CICP_MX_BT601_625, 0.299, 0.114},
+	{GF_CICP_MX_SMPTE240, 0.299, 0.114},
+	{GF_CICP_MX_SMPTE240, 0.212, 0.087},
+	{GF_CICP_MX_BT2020, 0.2627, 0.0593},
+	{GF_CICP_MX_BT2020_CL, 0.2627, 0.0593}
+};
+
+static void get_yuv_color_matrix(GF_GLTextureWrapper *tx, GF_Matrix *mx)
+{
+	Double Kg;
+	struct yuv_coefs *yc = NULL;
+
+	//setup YUV->RGB matrix, in row-major
+	gf_mx_init(*mx);
+
+	if (tx->mx_cicp>=0) {
+		u32 i, count=GF_ARRAY_LENGTH(YUVMatrices);
+		u32 mx_code = (u32) tx->mx_cicp;
+
+		if (mx_code==GF_CICP_MX_IDENTITY) {
+			return;
+		}
+
+		if (mx_code==GF_CICP_MX_YCgCo) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[GL] YCgCo matrix not supported, will use BT709\n"));
+			yc = &YUVMatrices[1];
+		}
+		else if (mx_code==GF_CICP_MX_YDzDx) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[GL] YDxDy matrix not supported, will use BT709\n"));
+			yc = &YUVMatrices[1];
+		} else {
+			for (i=0; i<count; i++) {
+				if (YUVMatrices[i].cicp == mx_code) {
+					yc = &YUVMatrices[i];
+					break;
+				}
+			}
+			if (!yc) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GL] Unrecognized matrix coefficient value %d, will use BT709\n", mx_code));
+				yc = &YUVMatrices[1];
+			}
+		}
+	} else {
+		yc = &YUVMatrices[1];
+	}
+
+	Kg = 1.0 - yc->Kr - yc->Kb;
+
+	mx->m[0] = 1.0f;
+	mx->m[2] = (Float) (2.0 * (1.0 - yc->Kr) );
+
+	mx->m[4] = 1.0;
+	mx->m[5] = (Float) ( - 2.0 * (1.0 - yc->Kb) * yc->Kb / Kg );
+	mx->m[6] = (Float) ( - 2.0 * (1.0 - yc->Kr) * yc->Kr / Kg );
+
+	mx->m[8] = 1.0f;
+	mx->m[9] = (Float) (2.0 * (1.0 - yc->Kb) );
+	mx->m[10] = 0.0;
+
+	//move to column major
+	gf_mx_transpose(mx);
+
+	if (tx->fullrange) {
+		gf_mx_add_translation(mx, 0, -0.5, -0.5);
+	} else {
+		gf_mx_add_scale(mx, 255.0/216.0, 255.0/224.0, 255.0/224.0);
+		gf_mx_add_translation(mx, -0.0625, -0.5, -0.5);
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[GL] YUV2RGB matrix is (column-major):\n"
+		"\t%.4f\t%.4f\t%.4f\t%.4f\n"
+		"\t%.4f\t%.4f\t%.4f\t%.4f\n"
+		"\t%.4f\t%.4f\t%.4f\t%.4f\n"
+		"\t%.4f\t%.4f\t%.4f\t%.4f\n",
+			mx->m[0], mx->m[1], mx->m[2], mx->m[3],
+			mx->m[4], mx->m[5], mx->m[6], mx->m[7],
+			mx->m[8], mx->m[9], mx->m[10], mx->m[11],
+			mx->m[12], mx->m[13], mx->m[14], mx->m[15]
+	));
+
+}
+
+
 Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program, u32 texture_unit)
 {
 	if (!texture_unit)
@@ -1515,6 +1596,18 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 			GL_CHECK_ERR()
 		}
 		GL_CHECK_ERR()
+
+		if (tx->is_yuv) {
+			GF_Matrix mx;
+			get_yuv_color_matrix(tx, &mx);
+			sprintf(szName, "_gf_%s_mx", tx_name);
+			loc = glGetUniformLocation(gl_program, szName);
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[GL] Failed to locate texture %s in shader\n", szName));
+				return GF_FALSE;
+			}
+			glUniformMatrix4fv(loc, 1, GL_FALSE, mx.m);
+		}
 		switch (tx->pix_fmt) {
 		case GF_PIXEL_UYVY:
 		case GF_PIXEL_YUYV:
@@ -1639,7 +1732,7 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 {
 	return GF_FALSE;
 }
-Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height, u32 stride, u32 uv_stride, Bool linear_interp, GF_FilterFrameInterface *frame_ifce)
+Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height, u32 stride, u32 uv_stride, Bool linear_interp, GF_FilterFrameInterface *frame_ifce, Bool full_range, s32 matrix_coef_or_neg)
 {
 	return GF_FALSE;
 }

@@ -107,6 +107,21 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *isom_file, u32 trackNumber, 
  */
 GF_Err gf_media_change_par(GF_ISOFile *isom_file, u32 trackNumber, s32 ar_num, s32 ar_den, Bool force_par, Bool rewrite_par);
 
+/*! Changes color property of the media (bitstream rewrite) - only AVC/H264 supported for now. See CICP for value types
+Negative values keep source settings for the corresponding flags.
+If source stream has no VUI info, create one and set corresponding flags to specified values.
+In this case, any other flags are set to prefered values (typically, flag=0 or value=undef).
+\param isom_file target ISOBMF file
+\param trackNumber target track
+\param fullrange fullrange flag
+\param video_format video format type
+\param color_primaries color primaries
+\param transfer transfer characteristics
+\param color_matrix olor matrix
+\return error if any
+*/
+GF_Err gf_media_change_color(GF_ISOFile *file, u32 track, s32 fullrange, s32 video_format, s32 color_primaries, s32 transfer, s32 color_matrix);
+
 /*!
  *Removes all non rap samples (sync and other RAP sample group info) from the track.
 \param isom_file target ISOBMF file
@@ -477,10 +492,11 @@ This section documents functions for manipulating AVC and HEVC tracks in ISOBMFF
 \param isom_file the target ISOBMF file
 \param trackNumber the target track
 \param profile the new profile to set
+\param compat profile compatibility flag for H264
 \param level the new level to set
 \return error if any
  */
-GF_Err gf_media_change_pl(GF_ISOFile *isom_file, u32 trackNumber, u32 profile, u32 level);
+GF_Err gf_media_change_pl(GF_ISOFile *isom_file, u32 trackNumber, u32 profile, u32 compat, u32 level);
 
 /*!
  Rewrite NAL-based samples (AVC/HEVC/...) samples if nalu size_length has to be changed

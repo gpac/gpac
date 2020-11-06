@@ -308,6 +308,10 @@ typedef struct
 #define IBM_FORMAT_MULAW                (0x0101)
 #define IBM_FORMAT_ALAW                 (0x0102)
 #define IBM_FORMAT_ADPCM                (0x0103)
+#define WAVE_FORMAT_MP3                 (0x0055)
+#define WAVE_FORMAT_AAC_ADTS            (0x706d)
+#define WAVE_FORMAT_AAC		            (0x00FF)
+#define WAVE_FORMAT_AC3                 (0x2000)
 
 avi_t* AVI_open_output_file(char * filename, u64 opendml_threshold);
 void AVI_set_video(avi_t *AVI, int width, int height, double fps, char *compressor);

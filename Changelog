@@ -1,6 +1,5 @@
 On-going: GPAC 1.1-DEV
 - more support for MPEG-H audio mux/demux/dashing
-- support for windows long path
 - support for multiple filter chains per source in MP4Box dash or add syntax
 - reworked mod-dirs and js-dirs usage, JSFilters now can be part of the default available filters
 - added avgen counter generation
@@ -10,10 +9,15 @@ On-going: GPAC 1.1-DEV
 - Simple UI for vout to test seeking and speed modes
 - Improved SmoothStreaming support
 - Support for custom HAS adaptation algorithms (JS and Python)
-- bug fixes and security patches
 - ROUTE muxer and support for low-latency ROUTE mux and demux
 - VVC parsing, inspecting, mux and demux support (ISOBMFF and M2TS)
+- VUI color info rewrite for AVC and HEVC (mp4box and bsrw filter)
+- Improved colorspace support in rendering (OpenGL only)
+- ISOBMFF Edit lists modification through MP4Box :edits and -edits
+- Improved raw video in ISOBMFF support
 - Filter TAG
+- support for windows long path
+- many bug fixes and security patches
 
 10/09/2020: GPAC 1.0.1
 This release fixes build and installation issues in 1.0.0, as well as various bugs introduced during the migration to the filters architecture.

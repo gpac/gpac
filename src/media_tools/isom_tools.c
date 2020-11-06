@@ -74,7 +74,9 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 #endif
 		}
 #if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
-		else if (stype==GF_ISOM_SUBTYPE_HVC1) {
+		else if ((stype==GF_ISOM_SUBTYPE_HVC1) || (stype==GF_ISOM_SUBTYPE_HVC2)
+			|| (stype==GF_ISOM_SUBTYPE_HEV1) || (stype==GF_ISOM_SUBTYPE_HEV2)
+		) {
 			GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
 			if (rewrite_bs) {
 				gf_hevc_change_par(hvcc, ar_num, ar_den);
@@ -159,6 +161,46 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 		if (e) return e;
 	}
 	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
+}
+
+GF_EXPORT
+GF_Err gf_media_change_color(GF_ISOFile *file, u32 track, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix)
+{
+	u32 stype;
+	GF_Err e = GF_OK;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+	stype = gf_isom_get_media_subtype(file, track, 1);
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC2_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC3_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC4_H264)
+	) {
+		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
+		gf_media_avc_change_color(avcc, fullrange, vidformat, colorprim, transfer, colmatrix);
+		e = gf_isom_avc_config_update(file, track, 1, avcc);
+		gf_odf_avc_cfg_del(avcc);
+		if (e) return e;
+		//remove any colr box
+		return gf_isom_set_visual_color_info(file, track, 1, 0, 0, 0, 0, 0, NULL, 0);
+	}
+	if ((stype==GF_ISOM_SUBTYPE_HEV1)
+			|| (stype==GF_ISOM_SUBTYPE_HEV2)
+			|| (stype==GF_ISOM_SUBTYPE_HVC1)
+			|| (stype==GF_ISOM_SUBTYPE_HVC2)
+			|| (stype==GF_ISOM_SUBTYPE_LHV1)
+			|| (stype==GF_ISOM_SUBTYPE_LHE1)
+	) {
+		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, 1);
+		gf_hevc_change_color(hvcc, fullrange, vidformat, colorprim, transfer, colmatrix);
+		e = gf_isom_hevc_config_update(file, track, 1, hvcc);
+		gf_odf_hevc_cfg_del(hvcc);
+		if (e) return e;
+		//remove any colr box
+		return gf_isom_set_visual_color_info(file, track, 1, 0, 0, 0, 0, 0, NULL, 0);
+	}
+#endif
+	return GF_NOT_SUPPORTED;
 }
 
 GF_EXPORT
@@ -847,8 +889,11 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 		case GF_ISOM_MEDIA_AUDIO:
 			/*if no edit list, add one*/
 			if (!gf_isom_get_edits_count(mp4, i+1)) {
-				gf_isom_remove_edits(mp4, i+1);
-				gf_isom_append_edit(mp4, i+1, gf_isom_get_track_duration(mp4, i+1), 0, GF_ISOM_EDIT_NORMAL);
+				GF_ISOSample *samp = gf_isom_get_sample_info(mp4, i+1, 1, NULL, NULL);
+				if (samp) {
+					gf_isom_append_edit(mp4, i+1, gf_isom_get_track_duration(mp4, i+1), samp->CTS_Offset, GF_ISOM_EDIT_NORMAL);
+					gf_isom_sample_del(&samp);
+				}
 			}
 			/*add PSP UUID*/
 			gf_isom_remove_uuid(mp4, i+1, psp_track_uuid);
@@ -2962,7 +3007,7 @@ exit:
 #endif /*GPAC_DISABLE_HEVC*/
 
 GF_EXPORT
-GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
+GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 compat, u32 level)
 {
 	u32 i, count, stype;
 	GF_Err e;
@@ -2981,6 +3026,7 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 
 	avcc = gf_isom_avc_config_get(file, track, 1);
 	if (level) avcc->AVCLevelIndication = level;
+	if (compat) avcc->profile_compatibility = compat;
 	if (profile) avcc->AVCProfileIndication = profile;
 	count = gf_list_count(avcc->sequenceParameterSets);
 	for (i=0; i<count; i++) {

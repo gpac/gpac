@@ -2309,12 +2309,12 @@ Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *medi
 	ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, 0);
 	if (!ent) return GF_TRUE;
 	/*mediaRate>0, the track playback shall start at media time>0 -> mediaOffset is < 0 */
-	if ((count==1) && (ent->mediaRate==1)) {
+	if ((count==1) && (ent->mediaRate == 0x10000)) {
 		*mediaOffset = - ent->mediaTime;
 		return GF_FALSE;
 	} else if (count==2) {
 		/*mediaRate==-1, the track playback shall be empty for segmentDuration -> mediaOffset is > 0 */
-		if ((ent->mediaRate==-1) || (ent->mediaTime==-1)) {
+		if ((ent->mediaRate == -0x10000) || (ent->mediaTime==-1)) {
 			Double time = (Double) ent->segmentDuration;
 			time /= trak->moov->mvhd->timeScale;
 			time *= trak->Media->mediaHeader->timeScale;

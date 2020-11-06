@@ -98,8 +98,13 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				val++;
 			}
 			if (!str_start) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using 0\n", value, name, enum_values));
-				p.value.uint = 0;
+				//special case for enums with default set to -1
+				if (!strcmp(value, "-1")) {
+					p.value.uint = (u32) -1;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using 0\n", value, name, enum_values));
+					p.value.uint = 0;
+				}
 			} else {
 				p.value.uint = val;
 			}
@@ -267,6 +272,15 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_PCMFMT:
 		p.value.uint = gf_audio_fmt_parse(value);
+		break;
+	case GF_PROP_CICP_COL_PRIM:
+		p.value.uint = gf_cicp_parse_color_primaries(value);
+		break;
+	case GF_PROP_CICP_COL_TFC:
+		p.value.uint = gf_cicp_parse_color_transfer(value);
+		break;
+	case GF_PROP_CICP_COL_MX:
+		p.value.uint = gf_cicp_parse_color_matrix(value);
 		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
@@ -485,6 +499,9 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 	case GF_PROP_SINT: return (p1->value.sint==p2->value.sint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_PIXFMT:
 	case GF_PROP_PCMFMT:
+	case GF_PROP_CICP_COL_PRIM:
+	case GF_PROP_CICP_COL_TFC:
+	case GF_PROP_CICP_COL_MX:
 	case GF_PROP_UINT:
 	 	return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_LSINT: return (p1->value.longsint==p2->value.longsint) ? GF_TRUE : GF_FALSE;
@@ -1098,6 +1115,9 @@ GF_PropTypeDef PropTypes[] =
 	{GF_PROP_VEC4, "v4df", "4D 32-bit float vector"},
 	{GF_PROP_PIXFMT, "pfmt", "raw pixel format"},
 	{GF_PROP_PCMFMT, "afmt", "raw audio format"},
+	{GF_PROP_CICP_COL_PRIM, "cprm", "color primaries, string or int value from ISO/IEC 23091-2"},
+	{GF_PROP_CICP_COL_TFC, "ctfc", "color transfer characteristics, string or int value from ISO/IEC 23091-2"},
+	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"},
 	{GF_PROP_STRING_LIST, "strl", "UTF-8 string list"},
 	{GF_PROP_UINT_LIST, "uintl", "unsigned 32 bit integer list"},
 	{GF_PROP_SINT_LIST, "sintl", "signed 32 bit integer list"},
@@ -1325,10 +1345,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_UDP, "RequireReorder", "Indicates the PID packets come from source with losses and reordering happening (UDP)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PRIMARY_ITEM, "Primary", "Indicates this is a primary item in isobmf", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 
-	{ GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Indicate color primaries for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_COLR_TRANSFER, "ColorTransfer", "Indicate color transfer characteristics for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_COLR_MX, "ColorMatrixCoef", "Indicate color matrix coeficient for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_COLR_RANGE, "FullRange", "Indicate color full range flag for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Indicate color primaries for a visual pid", GF_PROP_CICP_COL_PRIM, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COLR_TRANSFER, "ColorTransfer", "Indicate color transfer characteristics for a visual pid", GF_PROP_CICP_COL_TFC, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COLR_MX, "ColorMatrix", "Indicate color matrix coeficient for a visual pid ", GF_PROP_CICP_COL_MX, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_COLR_RANGE, "FullRange", "Indicate color full range flag for a visual pid", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_CHROMALOC, "ChromaLoc", "Indicate chrom location for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SRC_MAGIC, "SrcMagic", "Indicate a magic number to store in the track, only used by importers", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MUX_INDEX, "MuxIndex", "Indicate target track index in destination file, stored by lowest value first (not set by demuxers)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
@@ -1525,6 +1545,12 @@ static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[G
 		return gf_pixel_fmt_name(att->value.uint);
 	case GF_PROP_PCMFMT:
 		return gf_audio_fmt_name(att->value.uint);
+	case GF_PROP_CICP_COL_PRIM:
+		return gf_cicp_color_primaries_name(att->value.uint);
+	case GF_PROP_CICP_COL_TFC:
+		return gf_cicp_color_transfer_name(att->value.uint);
+	case GF_PROP_CICP_COL_MX:
+		return gf_cicp_color_matrix_name(att->value.uint);
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:

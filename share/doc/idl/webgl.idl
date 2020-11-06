@@ -395,10 +395,11 @@ interface WebGLContext : implements WebGLRenderingContextBase {
 	void texImage2D(GLenum target, GLint level, GLint internalformat, GLenum format, GLenum type, FilterPacket source);
 
 	/*! creates a named texture
-	\param name the name of the texture
+  \param name the name of the texture
+  \param vcfg video config options - if null, default are assumed (everything unspecified, no full range)
 	\return a new named texture
 	*/
-	NamedTexture createTexture(DOMString name);
+	NamedTexture createTexture(DOMString name, optional VideoColorConfig vcfg = null);
 
 	/*!
 	\param target ignored, default to gl.TEXTURE_2D
@@ -440,6 +441,16 @@ void upload(FilterPacket pck);
 void upload(Texture tx);
 
 };
+
+
+/*! Video color space config for named textures*/
+interface VideoColorConfig {
+/*! fullrange video flag*/
+attribute boolean fullrange;
+/*! GPAC name for CICP MatrixCoeficients, or interger value*/
+attribute DOMString matrix;  
+};
+
 
 /*! The FilterPid object is extended as follows*/
 interface FilterPid {

@@ -36,21 +36,23 @@ struct _bsrw_pid_ctx
 	GF_FilterPid *ipid, *opid;
 	u32 codec_id;
 	Bool reconfigure;
-	s32 clrp, txchar, mxcoef;
 	GF_Err (*rewrite_pid_config)(GF_BSRWCtx *ctx, BSRWPid *pctx);
 	GF_Err (*rewrite_packet)(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck);
 
-	s32 prev_clrp, prev_txchar, prev_mxcoef, prev_sar;
+	s32 prev_cprim, prev_ctfc, prev_cmx, prev_sar;
 
 	u32 nalu_size_length;
+
+	GF_VUIInfo vui;
+	Bool rewrite_vui;
 };
 
 struct _bsrw_ctx
 {
 	GF_Fraction sar;
 	s32 m4vpl, prof, lev, pcomp, pidc, pspace, gpcflags;
-	char *clrp, *txchar, *mxcoef;
-	Bool remsei;
+	s32 cprim, ctfc, cmx, vidfmt;
+	Bool rmsei, fullrange, novsi;
 
 
 	GF_List *pids;
@@ -158,6 +160,24 @@ static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 	return gf_filter_pck_send(dst);
 }
 
+static void update_props(BSRWPid *pctx, GF_VUIInfo *vui)
+{
+	if ((vui->ar_num>0) && (vui->ar_num>0))
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(vui->ar_num, vui->ar_den) );
+
+	if (vui->fullrange>0)
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(vui->fullrange) );
+
+	if (!vui->remove_video_info) {
+		if (vui->color_prim>=0)
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(vui->color_prim) );
+		if (vui->color_tfc>=0)
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(vui->color_tfc) );
+		if (vui->color_matrix>=0)
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(vui->color_matrix) );
+	}
+}
+
 static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
 	GF_AVCConfig *avcc;
@@ -171,10 +191,14 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	pctx->reconfigure = GF_FALSE;
 
 	avcc = gf_odf_avc_cfg_read(prop->value.data.ptr, prop->value.data.size);
-	if (ctx->sar.num && ctx->sar.den) {
-		e = gf_media_avc_change_par(avcc, ctx->sar.num, ctx->sar.den);
-		if (!e)
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
+
+	if (pctx->rewrite_vui) {
+		GF_VUIInfo tmp_vui = pctx->vui;
+		tmp_vui.update = GF_TRUE;
+		e = gf_avc_change_vui(avcc, &tmp_vui);
+		if (!e) {
+			update_props(pctx, &tmp_vui);
+		}
 	}
 
 	if ((ctx->lev>=0) || (ctx->prof>=0) || (ctx->pcomp>=0)) {
@@ -205,7 +229,7 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->remsei) {
+	if (ctx->rmsei) {
 		pctx->rewrite_packet = avc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -288,11 +312,15 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	pctx->reconfigure = GF_FALSE;
 
 	hvcc = gf_odf_hevc_cfg_read(prop->value.data.ptr, prop->value.data.size, (pctx->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
-	if (ctx->sar.num && ctx->sar.den) {
-		e = gf_hevc_change_par(hvcc, ctx->sar.num, ctx->sar.den);
-		if (!e)
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
+	if (pctx->rewrite_vui) {
+		GF_VUIInfo tmp_vui = pctx->vui;
+		tmp_vui.update = GF_TRUE;
+		e = gf_hevc_change_vui(hvcc, &tmp_vui);
+		if (!e) {
+			update_props(pctx, &tmp_vui);
+		}
 	}
+
 	if (ctx->pidc>=0) hvcc->profile_idc = ctx->pidc;
 	if (ctx->pspace>=0) hvcc->profile_space = ctx->pspace;
 	if (ctx->gpcflags>=0) hvcc->general_profile_compatibility_flags = ctx->gpcflags;
@@ -305,7 +333,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->remsei) {
+	if (ctx->rmsei) {
 		pctx->rewrite_packet = hevc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -324,51 +352,33 @@ static GF_Err rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
 	GF_Err e = pctx->rewrite_pid_config(ctx, pctx);
 	if (e) return e;
-	pctx->clrp = pctx->txchar = pctx->mxcoef = -1;
-	pctx->prev_clrp = pctx->prev_txchar = pctx->prev_mxcoef = pctx->prev_sar = -1;
-
-	if (ctx->clrp) {
-		if (!stricmp(ctx->clrp, "BT.709") || !stricmp(ctx->clrp, "BT709")) pctx->clrp = 1;
-		else if (!stricmp(ctx->clrp, "BT.601-625") || !stricmp(ctx->clrp, "BT601-625")) pctx->clrp = 5;
-		else if (!stricmp(ctx->clrp, "BT.601-525") || !stricmp(ctx->clrp, "BT601-525")) pctx->clrp = 6;
-		else if (!stricmp(ctx->clrp, "BT.2020") || !stricmp(ctx->clrp, "BT2020")) pctx->clrp = 9;
-		else if (!stricmp(ctx->clrp, "P3")) pctx->clrp = 11;
-		else if (!stricmp(ctx->clrp, "P3-D65")) pctx->clrp = 12;
-		else {
-			char szCoef[100];
-			pctx->clrp = atoi(ctx->clrp);
-			sprintf(szCoef, "%u", pctx->clrp);
-			if (stricmp(szCoef, ctx->clrp))
-				pctx->clrp = -1;
-		}
-	}
-	if (ctx->txchar) {
-		if (!strcmp(ctx->txchar, "BT-709") || !strcmp(ctx->txchar, "BT709")) pctx->txchar=1;
-		else if (!strcmp(ctx->txchar, "ST-2084") || !strcmp(ctx->txchar, "ST2084")) pctx->txchar=16;
-		else if (!strcmp(ctx->txchar, "STD-B67") || !strcmp(ctx->txchar, "STDB67")) pctx->txchar=18;
-		else {
-			char szTxChar[100];
-			pctx->txchar = atoi(ctx->txchar);
-			sprintf(szTxChar, "%u", pctx->txchar);
-			if (stricmp(szTxChar, ctx->txchar))
-				pctx->txchar = -1;
-		}
-	}
-	if (ctx->mxcoef) {
-		if (!strcmp(ctx->mxcoef, "BT.709") || !strcmp(ctx->mxcoef, "BT709")) pctx->mxcoef = 1;
-		else if (!strcmp(ctx->mxcoef, "BT.601") || !strcmp(ctx->mxcoef, "BT601")) pctx->mxcoef = 6;
-		else if (!strcmp(ctx->mxcoef, "BT.2020") || !strcmp(ctx->mxcoef, "BT2020")) pctx->mxcoef = 9;
-		else {
-			char szMx[100];
-			pctx->mxcoef = atoi(ctx->mxcoef);
-			sprintf(szMx, "%u", pctx->mxcoef);
-			if (stricmp(szMx, ctx->mxcoef))
-				pctx->mxcoef = -1;
-		}
-	}
+	pctx->prev_cprim = pctx->prev_ctfc = pctx->prev_cmx = pctx->prev_sar = -1;
 	return GF_OK;
 }
 
+static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
+{
+	pctx->vui.ar_num = ctx->sar.num;
+	pctx->vui.ar_den = ctx->sar.den;
+	pctx->vui.color_matrix = ctx->cmx;
+	pctx->vui.color_prim = ctx->cprim;
+	pctx->vui.fullrange = ctx->fullrange;
+	pctx->vui.remove_video_info = ctx->novsi;
+	pctx->vui.color_tfc = ctx->ctfc;
+	pctx->vui.video_format = ctx->vidfmt;
+
+	pctx->rewrite_vui = GF_TRUE;
+	if (ctx->sar.num>=0) return;
+	if ((s32) ctx->sar.den>=0) return;
+	if (ctx->cmx>-1) return;
+	if (ctx->cprim>-1) return;
+	if (ctx->fullrange) return;
+	if (ctx->novsi) return;
+	if (ctx->ctfc>-1) return;
+	if (ctx->vidfmt>-1) return;
+	//all default
+	pctx->rewrite_vui = GF_FALSE;
+}
 
 static GF_Err prores_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
@@ -409,25 +419,25 @@ static GF_Err prores_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPac
 			pctx->prev_sar = new_ar;
 		}
 	}
-	if (pctx->clrp>=0) {
-		output[22] = (u8) pctx->clrp;
-		if (pctx->prev_clrp != pctx->clrp) {
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(pctx->clrp) );
-			pctx->prev_clrp = pctx->clrp;
+	if (ctx->cprim>=0) {
+		output[22] = (u8) ctx->cprim;
+		if (pctx->prev_cprim != ctx->cprim) {
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(ctx->cprim) );
+			pctx->prev_cprim = ctx->cprim;
 		}
 	}
-	if (pctx->txchar>=0) {
-		output[23] = (u8) pctx->txchar;
-		if (pctx->prev_txchar != pctx->txchar) {
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(pctx->txchar) );
-			pctx->prev_txchar = pctx->txchar;
+	if (ctx->ctfc>=0) {
+		output[23] = (u8) ctx->ctfc;
+		if (ctx->ctfc != pctx->prev_ctfc) {
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(ctx->ctfc) );
+			pctx->prev_ctfc = ctx->ctfc;
 		}
 	}
-	if (pctx->mxcoef>=0) {
-		output[24] = (u8) pctx->mxcoef;
-		if (pctx->prev_mxcoef != pctx->mxcoef) {
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(pctx->mxcoef) );
-			pctx->prev_mxcoef = pctx->mxcoef;
+	if (ctx->cmx>=0) {
+		output[24] = (u8) ctx->cmx;
+		if (pctx->prev_cmx != ctx->cmx) {
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(ctx->cmx) );
+			pctx->prev_cmx = ctx->cmx;
 		}
 	}
 	return gf_filter_pck_send(dst_pck);
@@ -464,6 +474,7 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_list_add(ctx->pids, pctx);
 		pctx->opid = gf_filter_pid_new(filter);
 		if (!pctx->opid) return GF_OUT_OF_MEM;
+		init_vui(ctx, pctx);
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
@@ -525,6 +536,7 @@ static GF_Err bsrw_process(GF_Filter *filter)
 			pctx->reconfigure = GF_TRUE;
 
 		if (pctx->reconfigure) {
+			init_vui(ctx, pctx);
 			GF_Err e = rewrite_pid_config(ctx, pctx);
 			if (e) return e;
 		}
@@ -569,23 +581,24 @@ static void bsrw_finalize(GF_Filter *filter)
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_BSRWCtx, _n)
-static const GF_FilterArgs BSRWArgs[] =
+static GF_FilterArgs BSRWArgs[] =
 {
-	{ OFFS(sar), "aspect ratio to rewrite", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_UPDATE},
+	///do not change order of the first 3
+	{ OFFS(cprim), "color primaries according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_PRIM, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(ctfc), "color transfer characteristics according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_TFC, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(cmx), "color matrix coeficients according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_MX, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(sar), "aspect ratio to rewrite - see filter help", GF_PROP_FRACTION, "-1/-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(m4vpl), "set ProfileLevel for MPEG-4 video part two", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(clrp), "color primaries according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) `BT709`, `BT601-625`, `BT601-525`, `BT2020`, `P3` or `P3-D65`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(txchar), "transfer characteristics according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) `BT709`, `ST2084` or `STDB67`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(mxcoef), "matrix coeficients according to ISO/IEC 23001-8 / 23091-2. Value can be the integer value or (case insensitive) `BT709`, `BT601` or `BT2020`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
-
+	{ OFFS(fullrange), "video full range for AVC|H264 and HEVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(novsi), "remove video_signal_type from VUI in AVC|H264 and HEVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(prof), "profile indication for AVC|H264", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(lev), "level indication for AVC|H264", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pcomp), "profile compatibility for AVC|H264", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pidc), "profile IDC for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pspace), "profile space for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
-
-	{ OFFS(remsei), "remove SEI messages from bitstream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-
+	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264 and HEVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(vidfmt), "video format for AVC|H264 and HEVC", GF_PROP_UINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -615,11 +628,21 @@ GF_FilterRegister BSRWRegister = {
 	.name = "bsrw",
 	GF_FS_SET_DESCRIPTION("Compressed bitstream rewriter")
 	GF_FS_SET_HELP("This filter rewrites some metadata of various bitstream formats.\n"
-	"The filter can currently modify the following properties in the bitstream:\n"
-	"- MPEG-4 Visual: aspect ratio and profile/level\n"
-	"- AVC|H264: aspect ratio, profile, level, profile compatibility\n"
-	"- HEVC: aspect ratio\n"
-	"- ProRes: aspect ratio, color primaries, transfer characteristics and matrix coefficients\n"
+	"The filter can currently modify the following properties in video bitstreams:\n"
+	"- MPEG-4 Visual:\n"
+	"  - sample aspect ratio\n"
+	"  - profile and level\n"
+	"- AVC|H264 and HEVC:\n"
+	"  - sample aspect ratio\n"
+	"  - profile, level, profile compatibility\n"
+	"  - video format, video fullrange\n"
+	"  - color primaries, transfer characteristics and matrix coefficients (or remove all info)\n"
+	"- ProRes:\n"
+	"  - sample aspect ratio\n"
+	"  - color primaries, transfer characteristics and matrix coefficients\n"
+	"  \n"
+	"Values are by default initialized to -1, implying to keep the related info (present or not) in the bitstream.\n"
+	"A [-sar]() value of `0/0` will remove sample aspect ratio info from bitstream if possible.\n"
 	"  \n"
 	"The filter can currently modify the following properties in the stream configuration but not in the bitstream:\n"
 	"- HEVC: profile IDC, profile space, general compatibility flags\n"
@@ -638,5 +661,11 @@ GF_FilterRegister BSRWRegister = {
 
 const GF_FilterRegister *bsrw_register(GF_FilterSession *session)
 {
-	return &BSRWRegister;
+	//assign runtime caps on first load
+	if (gf_opts_get_bool("temp", "helponly")) {
+		BSRWArgs[0].min_max_enum = gf_cicp_color_primaries_all_names();
+		BSRWArgs[1].min_max_enum = gf_cicp_color_transfer_all_names();
+		BSRWArgs[2].min_max_enum = gf_cicp_color_matrix_all_names();
+	}
+	return (const GF_FilterRegister *) &BSRWRegister;
 }

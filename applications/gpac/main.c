@@ -1923,6 +1923,8 @@ static int gpac_main(int argc, char **argv)
 	if (view_filter_conn || list_filters || (print_filter_info && (argmode == GF_ARGMODE_ALL)) )
 		gf_opts_set_key("temp", "gendoc", "yes");
 
+	if (list_filters || print_filter_info)
+		gf_opts_set_key("temp", "helponly", "yes");
 
 restart:
 
@@ -2559,7 +2561,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			
 			if (a->min_max_enum) {
 				//check format
-                if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') ) {
+                if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') && (!a->arg_default_val || strcmp(a->arg_default_val, "-1")) ) {
 					const char *a_val = a->min_max_enum;
 					while (a_val[0] == '|') a_val++;
 					if (strstr(a->arg_desc, "see filter info"))
@@ -2688,8 +2690,6 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	char *l_fname = NULL;
 	u32 lf_len = 0;
 	u32 i, count = gf_fs_filters_registers_count(session);
-
-	gf_opts_set_key("temp", "helponly", "yes");
 
 	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 
@@ -2906,7 +2906,7 @@ static void dump_all_props(void)
 		gf_sys_format_help(helpout, help_flags, "--- | --- | --- | --- | ---  \n");
 	} else {
 		gf_sys_format_help(helpout, help_flags, "Built-in property types\n");
-		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED-1; i++) {
+		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
 
@@ -2968,6 +2968,12 @@ static void dump_all_props(void)
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
 			} else if (prop_info->data_type==GF_PROP_PCMFMT) {
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
+			} else if (prop_info->data_type==GF_PROP_CICP_COL_PRIM) {
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_primaries_all_names() );
+			} else if (prop_info->data_type==GF_PROP_CICP_COL_TFC) {
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_transfer_all_names() );
+			} else if (prop_info->data_type==GF_PROP_CICP_COL_MX) {
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_matrix_all_names() );
 			} else if (prop_info->type==GF_PROP_PID_STREAM_TYPE) {
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_stream_type_all_names() );
 			}
@@ -4251,3 +4257,4 @@ static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err 
 
 	return f;
 }
+

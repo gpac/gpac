@@ -1028,7 +1028,12 @@ GF_Err elst_box_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((t = (GF_EdtsEntry *)gf_list_enum(p->entryList, &i))) {
-		gf_fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%u\"/>\n", t->segmentDuration, t->mediaTime, t->mediaRate);
+		u32 rate_int = t->mediaRate>>16;
+		u32 rate_frac = t->mediaRate&0xFFFF;
+		if (rate_frac)
+			gf_fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%u.%u\"/>\n", t->segmentDuration, t->mediaTime, rate_int, rate_frac*100/0xFFFF);
+		else
+			gf_fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%u\"/>\n", t->segmentDuration, t->mediaTime, rate_int);
 	}
 	if (!p->size) {
 		gf_fprintf(trace, "<EditListEntry Duration=\"\" MediaTime=\"\" MediaRate=\"\"/>\n");

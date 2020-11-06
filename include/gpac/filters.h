@@ -665,6 +665,8 @@ Documents the property object used for PID and packets.
  */
 
 /*! Property types*/
+
+//DO NOT MODIFY WITHOUT APPLYNG SIMILAR CHANGE TO share/python/libgpac.py
 typedef enum
 {
 	/*! not allowed*/
@@ -727,9 +729,15 @@ typedef enum
 	GF_PROP_SINT_LIST,
 	/*! 2D signed integer vector list, memory is ALWAYS duplicated when setting the property*/
 	GF_PROP_VEC2I_LIST,
+	/*! CICP Color Primaries*/
+	GF_PROP_CICP_COL_PRIM,
+	/*! CICP Color Transfer Characteristics*/
+	GF_PROP_CICP_COL_TFC,
+	/*! CICP Color Matrix*/
+	GF_PROP_CICP_COL_MX,
 
 	/*! not allowed*/
-	GF_PROP_LAST_DEFINED,
+	GF_PROP_LAST_DEFINED
 } GF_PropType;
 
 /*! Data property*/

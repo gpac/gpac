@@ -1384,9 +1384,9 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		res = (s32) recvfrom(sock->socket, (char *) buffer, length, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {
 		res = (s32) recv(sock->socket, (char *) buffer, length, 0);
-		if (res == 0)
-			return GF_IP_CONNECTION_CLOSED;
 	}
+	if (do_select && (res == 0))
+		return GF_IP_CONNECTION_CLOSED;
 
 	if (res == SOCKET_ERROR) {
 		res = LASTSOCKERROR;

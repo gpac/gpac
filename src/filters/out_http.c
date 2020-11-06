@@ -1374,9 +1374,13 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (ctx->dst && !gf_list_count(ctx->inputs))
 				pctx->force_dst_name = GF_TRUE;
 
-			//reset caps to null in case a URL was given, since graph resolution is now done
-			//this allows working with input filters dispatching files without creating a new destination (dashin in file mode for example)
-			gf_filter_override_caps(filter, NULL, 0);
+			if (ctx->hmode!=MODE_PUSH) {
+				//reset caps to anything (mime or ext) in case a URL was given, since graph resolution is now done
+				//this allows working with input filters dispatching files without creating a new destination (dashin in file mode for example)
+				//we do not reset caps to default as the default caps list an output but in this mode we don't have one
+				//and we dont' want gf_filter_connections_pending to think we will produce one
+				ctx->in_caps[1].val = PROP_NAME( "*" );
+			}
 		}
 		//in any cast store dash state, mime, register input and fire play
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
@@ -2099,14 +2103,20 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 
     if (in->is_open) return GF_FALSE;
     if (!in->upload) {
+        //singe session mode, not recording, nothing to do
+        if (ctx->single_mode) {
+			in->done = GF_FALSE;
+			in->is_open = GF_TRUE;
+			return GF_FALSE;
+		}
         //server mode not recording, nothing to do
-        if (!ctx->rdirs.nb_items) return GF_FALSE;
-        if (in->resource) return GF_FALSE;
+		if (!ctx->rdirs.nb_items) return GF_FALSE;
+		dir = ctx->rdirs.vals[0];
+		if (!dir) return GF_FALSE;
+		len = (u32) strlen(dir);
+		if (!len) return GF_FALSE;
 
-        dir = ctx->rdirs.vals[0];
-        if (!dir) return GF_FALSE;
-        len = (u32) strlen(dir);
-        if (!len) return GF_FALSE;
+        if (in->resource) return GF_FALSE;
     }
 
     sep = name ? strstr(name, "://") : NULL;

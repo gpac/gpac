@@ -628,7 +628,8 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 
 		nb_obj = gf_route_dmx_get_object_count(ctx->route_dmx, evt_param);
         while (nb_obj > ctx->nbcached) {
-            gf_route_dmx_remove_first_object(ctx->route_dmx, evt_param);
+            if (!gf_route_dmx_remove_first_object(ctx->route_dmx, evt_param))
+				break;
             nb_obj = gf_route_dmx_get_object_count(ctx->route_dmx, evt_param);
         }
 		break;

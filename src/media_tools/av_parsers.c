@@ -933,6 +933,7 @@ struct __m4a_oti
 	{34, "MPEG-1 Audio Layer-3"},
 	{35, "MPEG-4 Audio DST"},
 	{36, "MPEG-4 Audio ALS"},
+	{37, "MPEG-4 Audio SLS"},
 	{42, "MPEG Audio xHE-AAC"},
 };
 
@@ -1011,6 +1012,8 @@ struct __m4a_profile
 	{0x38, "Baseline MPEG Surround Profile @ Level 4"},
 	{0x39, "Baseline MPEG Surround Profile @ Level 5"},
 	{0x3A, "Baseline MPEG Surround Profile @ Level 6"},
+	{0x3B, "High Definition AAC Profile @ Level 1"},
+	{0x3C, "ALS Simple Profile @ Level 1"},
 	{0x50, "AAC Profile @ Level 6"},
 	{0x51, "AAC Profile @ Level 7"},
 	{0x52, "High Efficiency AAC Profile @ Level 6"},
@@ -4803,11 +4806,9 @@ Bool gf_media_avc_slice_is_IDR(AVCState *avc)
 }
 #endif
 
-struct sar_ {
+static const struct  {
 	u32 w, h;
-};
-
-static const struct sar_ avc_sar[] = {
+} avc_hevc_sar[] = {
 	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
 	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
 	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
@@ -5167,9 +5168,9 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 				sps->vui.par_num = gf_bs_read_int(bs, 16); /*AR num*/
 				sps->vui.par_den = gf_bs_read_int(bs, 16); /*AR den*/
 			}
-			else if (aspect_ratio_idc < sizeof(avc_sar) / sizeof(struct sar_)) {
-				sps->vui.par_num = avc_sar[aspect_ratio_idc].w;
-				sps->vui.par_den = avc_sar[aspect_ratio_idc].h;
+			else if (aspect_ratio_idc < GF_ARRAY_LENGTH(avc_hevc_sar) ) {
+				sps->vui.par_num = avc_hevc_sar[aspect_ratio_idc].w;
+				sps->vui.par_den = avc_hevc_sar[aspect_ratio_idc].h;
 			}
 			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] Unknown aspect_ratio_idc: your video may have a wrong aspect ratio. Contact the GPAC team!\n"));
@@ -6229,34 +6230,180 @@ u32 gf_media_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVC
 }
 
 
-static u8 avc_get_sar_idx(u32 w, u32 h)
+static u8 avc_hevc_get_sar_idx(u32 w, u32 h)
 {
-	u32 i;
-	for (i = 0; i < 14; i++) {
-		if ((avc_sar[i].w == w) && (avc_sar[i].h == h)) return i;
+	u32 i, count = GF_ARRAY_LENGTH(avc_hevc_sar);
+	for (i = 0; i < count; i++) {
+		if ((avc_hevc_sar[i].w == w) && (avc_hevc_sar[i].h == h))
+			return i;
 	}
 	return 0xFF;
 }
 
-GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
+static void avc_hevc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, GF_BitStream *mod)
+{
+	/* VUI present flag*/
+	Bool vui_present_flag = gf_bs_read_int(orig, 1);
+
+	/*setup default values*/
+	Bool aspect_ratio_info_present_flag = 0;
+	s32 aspect_ratio_idc = -1;
+	u32 ar_n=0, ar_d=0;
+	Bool overscan_info_present_flag = 0;
+	u32 overscan_info=0;
+	u32 video_signal_type_present_flag=0;
+	u32 video_format = 5;
+	u32 video_full_range_flag = 0;
+	u32 colour_description_present_flag = 0;
+	u32 colour_primaries = 2;
+	u32 transfer_characteristics = 2;
+	u32 matrix_coefficients = 2;
+
+	//if VUI is present, read all SAR and overscan values
+	if (vui_present_flag) { /* VUI found in input bitstream */
+		aspect_ratio_info_present_flag = gf_bs_read_int(orig, 1);
+		if (aspect_ratio_info_present_flag) {
+			aspect_ratio_idc = gf_bs_read_int(orig, 8); /*aspect_ratio_idc*/
+			if (aspect_ratio_idc == 255) {
+				ar_n = gf_bs_read_int(orig, 16); /*sar_width*/
+				ar_d = gf_bs_read_int(orig, 16); /*sar_height*/
+			}
+		}
+
+		/*overscan_info_present_flag */
+		overscan_info_present_flag = gf_bs_read_int(orig, 1);
+		if(overscan_info_present_flag) {
+			overscan_info = gf_bs_read_int(orig, 1);
+		}
+
+		/* read all video signal related flags first */
+		video_signal_type_present_flag = gf_bs_read_int(orig, 1);
+		if(video_signal_type_present_flag) {
+			video_format = gf_bs_read_int(orig, 3);
+			video_full_range_flag = gf_bs_read_int(orig, 1);
+			colour_description_present_flag = gf_bs_read_int(orig, 1);
+			if(colour_description_present_flag) {
+				colour_primaries = gf_bs_read_int(orig, 8);
+				transfer_characteristics = gf_bs_read_int(orig, 8);
+				matrix_coefficients = gf_bs_read_int(orig, 8);
+			}
+		}
+	}
+
+	//recompute values
+	//no change
+	if ((vui_info->ar_num<0) || (vui_info->ar_den<0)) {
+	}
+	//remove par
+	else if ((vui_info->ar_num==0) || (vui_info->ar_den==0)) {
+		aspect_ratio_info_present_flag = 0;
+	}
+	//set par
+	else {
+		aspect_ratio_info_present_flag = 1;
+		ar_n = vui_info->ar_num;
+		ar_d = vui_info->ar_den;
+		aspect_ratio_idc = avc_hevc_get_sar_idx((u32) ar_n, (u32) ar_d);
+	}
+
+	if (vui_info->remove_video_info) {
+		video_signal_type_present_flag = 0;
+	}
+	/* correct the values of each flags */
+	else if ((vui_info->fullrange==0) && (vui_info->video_format==5) && (vui_info->color_prim==2) && (vui_info->color_tfc==2) && (vui_info->color_matrix==2)) {
+		video_signal_type_present_flag = 0; /* all default, nothing to write*/
+	} else {
+		video_signal_type_present_flag = 1;
+		video_format = (vui_info->video_format < 0) ? video_format : vui_info->video_format;
+		video_full_range_flag = (vui_info->fullrange < 0) ? video_full_range_flag : vui_info->fullrange;
+		if ((vui_info->color_prim==2) && (vui_info->color_tfc==2) && (vui_info->color_matrix==2)) {
+			colour_description_present_flag = 0;
+		} else {
+			colour_description_present_flag = 1;
+			colour_primaries = (vui_info->color_prim < 0) ? colour_primaries : vui_info->color_prim;
+			transfer_characteristics = (vui_info->color_tfc < 0) ? transfer_characteristics : vui_info->color_tfc;
+			matrix_coefficients = (vui_info->color_matrix < 0) ? matrix_coefficients : vui_info->color_matrix;
+		}
+		if ((colour_primaries==2) && (transfer_characteristics==2) && (matrix_coefficients==2)) {
+			colour_description_present_flag = 0;
+			if ((video_format==5) && (video_full_range_flag==0))
+				video_signal_type_present_flag = 0;
+		}
+	}
+
+	//always rewrite VUI
+	gf_bs_write_int(mod, 1, 1);
+	gf_bs_write_int(mod, aspect_ratio_info_present_flag, 1);
+	if (aspect_ratio_info_present_flag) {
+		gf_bs_write_int(mod, aspect_ratio_idc, 8);
+		if (aspect_ratio_idc == 255) {
+			gf_bs_write_int(mod, ar_n, 16);
+			gf_bs_write_int(mod, ar_d, 16);
+		}
+		if (vui_info->update) {
+			vui_info->ar_num = ar_n;
+			vui_info->ar_den = ar_d;
+		}
+	}
+	gf_bs_write_int(mod, overscan_info_present_flag, 1);
+	if (overscan_info_present_flag) {
+		gf_bs_write_int(mod, overscan_info, 1);
+	}
+
+	gf_bs_write_int(mod, video_signal_type_present_flag, 1);
+	if (video_signal_type_present_flag) {
+		gf_bs_write_int(mod, video_format, 3);
+		gf_bs_write_int(mod, video_full_range_flag, 1);
+		gf_bs_write_int(mod, colour_description_present_flag, 1);
+
+		if (colour_description_present_flag) {
+			gf_bs_write_int(mod, colour_primaries, 8);
+			gf_bs_write_int(mod, transfer_characteristics, 8);
+			gf_bs_write_int(mod, matrix_coefficients, 8);
+		}
+
+		if (vui_info->update) {
+			vui_info->video_format = video_format;
+			vui_info->fullrange = video_full_range_flag;
+			if (colour_description_present_flag) {
+				vui_info->color_prim = colour_primaries;
+				vui_info->color_tfc = transfer_characteristics;
+				vui_info->color_matrix = matrix_coefficients;
+			}
+		}
+	}
+
+	/*no VUI in input bitstream but we just inserted one, set all remaining vui flags to 0*/
+	if (!vui_present_flag) {
+		gf_bs_write_int(mod, 0, 1);		/*chroma_location_info_present_flag */
+		gf_bs_write_int(mod, 0, 1);		/*timing_info_present_flag*/
+		gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
+		gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
+		gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
+		gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+	}
+	/*otherwise we copy over th bits from the input bitrate*/
+}
+
+GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 {
 	GF_BitStream *orig, *mod;
 	AVCState avc;
 	u32 i, bit_offset, flag;
 	s32 idx;
-	GF_NALUFFParam *slc;
+	GF_AVCConfigSlot *slc;
 	orig = NULL;
 
 	memset(&avc, 0, sizeof(AVCState));
 	avc.sps_active_idx = -1;
 
-	i = 0;
-	while ((slc = (GF_NALUFFParam *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
+	i=0;
+	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
 		u8 *no_emulation_buf = NULL;
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
 		idx = gf_avc_read_sps(slc->data, slc->size, &avc, 0, &bit_offset);
-		if (idx < 0) {
-			if (orig)
+		if (idx<0) {
+			if ( orig )
 				gf_bs_del(orig);
 			continue;
 		}
@@ -6277,44 +6424,8 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 			gf_bs_write_int(mod, flag, 1);
 			bit_offset--;
 		}
-		/*check VUI*/
-		flag = gf_bs_read_int(orig, 1);
-		gf_bs_write_int(mod, 1, 1); /*vui_parameters_present_flag*/
-		if (flag) {
-			/*aspect_ratio_info_present_flag*/
-			if (gf_bs_read_int(orig, 1)) {
-				s32 aspect_ratio_idc = gf_bs_read_int(orig, 8);
-				if (aspect_ratio_idc == 255) {
-					gf_bs_read_int(orig, 16); /*AR num*/
-					gf_bs_read_int(orig, 16); /*AR den*/
-				}
-			}
-		}
-		if ((ar_d < 0) || (ar_n < 0)) {
-			/*no AR signaled*/
-			gf_bs_write_int(mod, 0, 1);
-		}
-		else {
-			u32 sarx;
-			gf_bs_write_int(mod, 1, 1);
-			sarx = avc_get_sar_idx((u32)ar_n, (u32)ar_d);
-			gf_bs_write_int(mod, sarx, 8);
-			if (sarx == 0xFF) {
-				gf_bs_write_int(mod, ar_n, 16);
-				gf_bs_write_int(mod, ar_d, 16);
-			}
-		}
-		/*no VUI in input bitstream, set all vui flags to 0*/
-		if (!flag) {
-			gf_bs_write_int(mod, 0, 1);		/*overscan_info_present_flag */
-			gf_bs_write_int(mod, 0, 1);		/*video_signal_type_present_flag */
-			gf_bs_write_int(mod, 0, 1);		/*chroma_location_info_present_flag */
-			gf_bs_write_int(mod, 0, 1);		/*timing_info_present_flag*/
-			gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
-			gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
-			gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
-			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
-		}
+
+		avc_hevc_rewrite_vui(vui_info, orig, mod);
 
 		/*finally copy over remaining*/
 		while (gf_bs_bits_available(orig)) {
@@ -6328,8 +6439,8 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 		/*set anti-emulation*/
 		gf_bs_get_content(mod, &no_emulation_buf, &flag);
 		emulation_bytes = gf_media_nalu_emulation_bytes_add_count(no_emulation_buf, flag);
-		if (flag + emulation_bytes + 1 > slc->size)
-			slc->data = (char*)gf_realloc(slc->data, flag + emulation_bytes + 1);
+		if (flag+emulation_bytes+1>slc->size)
+			slc->data = (char*)gf_realloc(slc->data, flag+emulation_bytes);
 		slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data + 1, flag) + 1;
 
 		gf_bs_del(mod);
@@ -6337,6 +6448,37 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
+{
+	GF_VUIInfo vuii;
+	memset(&vuii, 0, sizeof(GF_VUIInfo));
+	vuii.ar_num = ar_n;
+	vuii.ar_den = ar_d;
+	vuii.fullrange = -1;
+	vuii.video_format = -1;
+	vuii.color_prim = -1;
+	vuii.color_tfc = -1;
+	vuii.color_matrix = -1;
+	return gf_avc_change_vui(avcc, &vuii);
+}
+
+GF_EXPORT
+GF_Err gf_media_avc_change_color(GF_AVCConfig *avcc, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix)
+{
+	GF_VUIInfo vuii;
+	memset(&vuii, 0, sizeof(GF_VUIInfo));
+	vuii.ar_num = -1;
+	vuii.ar_den = -1;
+	vuii.fullrange = fullrange;
+	vuii.video_format = vidformat;
+	vuii.color_prim = colorprim;
+	vuii.color_tfc = transfer;
+	vuii.color_matrix = colmatrix;
+	return gf_avc_change_vui(avcc, &vuii);
+}
+
 
 GF_EXPORT
 GF_Err gf_avc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
@@ -8178,16 +8320,8 @@ s32 gf_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u
 	return ret;
 }
 
-static u8 hevc_get_sar_idx(u32 w, u32 h)
-{
-	u32 i;
-	for (i = 0; i < 14; i++) {
-		if ((avc_sar[i].w == w) && (avc_sar[i].h == h)) return i;
-	}
-	return 0xFF;
-}
-
-GF_Err gf_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
+GF_EXPORT
+GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 {
 	GF_BitStream *orig, *mod;
 	HEVCState hevc;
@@ -8237,47 +8371,7 @@ GF_Err gf_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 			bit_offset--;
 		}
 
-		/*check VUI*/
-		flag = gf_bs_read_int(orig, 1);
-		gf_bs_write_int(mod, 1, 1); /*vui_parameters_present_flag*/
-		if (flag) {
-			/*aspect_ratio_info_present_flag*/
-			if (gf_bs_read_int(orig, 1)) {
-				s32 aspect_ratio_idc = gf_bs_read_int(orig, 8);
-				if (aspect_ratio_idc == 255) {
-					gf_bs_read_int(orig, 16); /*AR num*/
-					gf_bs_read_int(orig, 16); /*AR den*/
-				}
-			}
-		}
-		if ((ar_d < 0) || (ar_n < 0)) {
-			/*no AR signaled*/
-			gf_bs_write_int(mod, 0, 1);
-		}
-		else {
-			u32 sarx;
-			gf_bs_write_int(mod, 1, 1);
-			sarx = hevc_get_sar_idx((u32)ar_n, (u32)ar_d);
-			gf_bs_write_int(mod, sarx, 8);
-			if (sarx == 0xFF) {
-				gf_bs_write_int(mod, ar_n, 16);
-				gf_bs_write_int(mod, ar_d, 16);
-			}
-		}
-		/*no VUI in input bitstream, set all vui flags to 0*/
-		if (!flag) {
-			gf_bs_write_int(mod, 0, 1);		/*overscan_info_present_flag */
-			gf_bs_write_int(mod, 0, 1);		/*video_signal_type_present_flag */
-			gf_bs_write_int(mod, 0, 1);		/*chroma_location_info_present_flag */
-
-			gf_bs_write_int(mod, 0, 1); /*neutra_chroma_indication_flag */;
-			gf_bs_write_int(mod, 0, 1); /*field_seq_flag */;
-			gf_bs_write_int(mod, 0, 1); /*frame_field_info_present_flag*/;
-			gf_bs_write_int(mod, 0, 1); /*default_display_window_flag*/;
-
-			gf_bs_write_int(mod, 0, 1);		/*timing_info_present_flag*/
-			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
-		}
+		avc_hevc_rewrite_vui(vui_info, orig, mod);
 
 		/*finally copy over remaining*/
 		while (gf_bs_bits_available(orig)) {
@@ -8301,6 +8395,38 @@ GF_Err gf_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 	}
 	return GF_OK;
 }
+
+
+GF_EXPORT
+GF_Err gf_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
+{
+	GF_VUIInfo vuii;
+	memset(&vuii, 0, sizeof(GF_VUIInfo));
+	vuii.ar_num = ar_n;
+	vuii.ar_den = ar_d;
+	vuii.fullrange = -1;
+	vuii.video_format = -1;
+	vuii.color_prim = -1;
+	vuii.color_tfc = -1;
+	vuii.color_matrix = -1;
+	return gf_hevc_change_vui(hvcc, &vuii);
+}
+
+GF_EXPORT
+GF_Err gf_hevc_change_color(GF_HEVCConfig *hvcc, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix)
+{
+	GF_VUIInfo vuii;
+	memset(&vuii, 0, sizeof(GF_VUIInfo));
+	vuii.ar_num = -1;
+	vuii.ar_den = -1;
+	vuii.fullrange = fullrange;
+	vuii.video_format = vidformat;
+	vuii.color_prim = colorprim;
+	vuii.color_tfc = transfer;
+	vuii.color_matrix = colmatrix;
+	return gf_hevc_change_vui(hvcc, &vuii);
+}
+
 
 GF_EXPORT
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc, u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d)

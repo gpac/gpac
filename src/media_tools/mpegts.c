@@ -86,9 +86,16 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 		return "MHVC Video";
 	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 		return "MHVC Video Temporal Sublayer";
-
+	case GF_M2TS_VIDEO_VVC:
+		return "VVC Video";
+	case GF_M2TS_VIDEO_VVC_TEMPORAL:
+		return "VVC Video Temporal Sublayer";
+	case GF_M2TS_VIDEO_VC1:
+		return "SMPTE VC-1 Video";
 	case GF_M2TS_AUDIO_AC3:
 		return "Dolby AC3 Audio";
+	case GF_M2TS_AUDIO_EC3:
+		return "Dolby E-AC3 Audio";
 	case GF_M2TS_AUDIO_DTS:
 		return "Dolby DTS Audio";
 	case GF_M2TS_SUBTITLE_DVB:
@@ -1335,12 +1342,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 		case GF_M2TS_VIDEO_VVC:
 		case GF_M2TS_VIDEO_VVC_TEMPORAL:
+		case GF_M2TS_VIDEO_VC1:
 			inherit_pcr = 1;
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
 		case GF_M2TS_AUDIO_AAC:
 		case GF_M2TS_AUDIO_LATM_AAC:
 		case GF_M2TS_AUDIO_AC3:
+		case GF_M2TS_AUDIO_EC3:
 		case GF_M2TS_AUDIO_DTS:
 		case GF_M2TS_MHAS_MAIN:
 		case GF_M2TS_MHAS_AUX:

@@ -86,6 +86,8 @@ typedef struct _gf_ffdec_ctx
 
 	GF_List *src_packets;
 
+	u32 o_ff_pfmt;
+	Bool force_full_range;
 	Bool drop_non_refs;
 } GF_FFDecodeCtx;
 
@@ -120,6 +122,41 @@ static void ffdec_finalize(GF_Filter *filter)
 	return;
 }
 
+static void ffdec_check_pix_fmt_change(struct _gf_ffdec_ctx *ctx, u32 pix_fmt)
+{
+	if (ctx->pixel_fmt != pix_fmt) {
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pix_fmt));
+		ctx->pixel_fmt = pix_fmt;
+		ctx->force_full_range = GF_FALSE;
+		if (ctx->decoder->color_range==AVCOL_RANGE_JPEG)
+			ctx->force_full_range = GF_TRUE;
+		else if (ctx->decoder->pix_fmt==AV_PIX_FMT_YUVJ420P)
+			ctx->force_full_range = GF_TRUE;
+		else
+			ctx->force_full_range = GF_FALSE;
+
+		if (ctx->force_full_range)
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE) );
+		else
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_RANGE, NULL );
+
+		if (ctx->decoder->color_primaries!=GF_CICP_PRIM_UNSPECIFIED)
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(ctx->decoder->color_primaries) );
+		else
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_PRIMARIES, NULL );
+
+		if (ctx->decoder->colorspace!=AVCOL_SPC_UNSPECIFIED)
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_MX, &PROP_UINT(ctx->decoder->colorspace) );
+		else
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_MX, NULL );
+
+		if (ctx->decoder->color_trc!=AVCOL_TRC_UNSPECIFIED)
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(ctx->decoder->color_trc) );
+		else
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_TRANSFER, NULL );
+	}
+}
+
 static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 {
 	AVPacket pkt;
@@ -130,8 +167,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	s32 gotpic;
 	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
-	u32 i, count;
-	u32 size=0, pix_fmt, outsize, pix_out, stride, stride_uv, uv_height, nb_planes;
+	u32 i, count, ff_pfmt;
+	u32 size=0, outsize, pix_out, stride, stride_uv, uv_height, nb_planes;
 	u8 *out_buffer;
 	GF_FilterPacket *pck_src;
 	GF_FilterPacket *dst_pck;
@@ -229,16 +266,21 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 	if (!gotpic) return GF_OK;
 
-	pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
-	if (!pix_fmt) pix_fmt = GF_PIXEL_RGB;
-
+	if (ctx->decoder->pix_fmt != ctx->o_ff_pfmt) {
+		u32 pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
+		ctx->o_ff_pfmt = ctx->decoder->pix_fmt;
+		if (!pix_fmt) {
+			pix_fmt = GF_PIXEL_RGB;
+			ctx->o_ff_pfmt = AV_PIX_FMT_RGB24;
+		}
+		ffdec_check_pix_fmt_change(ctx, pix_fmt);
+	}
 	//update all props
-	FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 	FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
 	FF_CHECK_PROP(height, height, GF_PROP_PID_HEIGHT)
 
 	stride = stride_uv = uv_height = nb_planes = 0;
-	if (! gf_pixel_get_size_info(pix_fmt, ctx->width, ctx->height, &outsize, &stride, &stride_uv, &nb_planes, &uv_height) ) {
+	if (! gf_pixel_get_size_info(ctx->pixel_fmt, ctx->width, ctx->height, &outsize, &stride, &stride_uv, &nb_planes, &uv_height) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to query pixelformat size infon", gf_filter_pid_get_name(ctx->in_pid) ));
 		return GF_NOT_SUPPORTED;
 	}
@@ -287,6 +329,14 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
+	ff_pfmt = ctx->decoder->pix_fmt;
+	if (ff_pfmt==AV_PIX_FMT_YUVJ420P) {
+		ff_pfmt = AV_PIX_FMT_YUV420P;
+		if (!ctx->force_full_range) {
+			ctx->force_full_range = GF_TRUE;
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
+		}
+	}
 
 	//TODO: cleanup, we should not convert pixel format in the decoder but through filters !
 	switch (ctx->pixel_fmt) {
@@ -347,7 +397,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 
 	ctx->sws_ctx = sws_getCachedContext(ctx->sws_ctx,
-	                                   ctx->decoder->width, ctx->decoder->height, ctx->decoder->pix_fmt,
+	                                   ctx->decoder->width, ctx->decoder->height, ff_pfmt,
 	                                   ctx->width, ctx->height, pix_out, SWS_BICUBIC, NULL, NULL, NULL);
 	if (ctx->sws_ctx) {
 		sws_scale(ctx->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
@@ -769,20 +819,28 @@ reuse_codec_context:
 
 	if (type==GF_STREAM_VISUAL) {
 		u32 pix_fmt;
+		ctx->force_full_range = GF_FALSE;
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_RANGE, NULL );
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_MX, NULL );
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_TRANSFER, NULL );
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_COLR_PRIMARIES, NULL );
+
 		ctx->process = ffdec_process_video;
 		//for some streams, we don't have w/h/pixfmt after opening the decoder
 		//to make sure we are not confusing potential filters expecting them, init to default values
 		if (ctx->decoder->pix_fmt>=0) {
+			ctx->o_ff_pfmt = ctx->decoder->pix_fmt;
 			pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
 			if (!pix_fmt) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", pix_fmt));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", ctx->decoder->pix_fmt));
 				pix_fmt = GF_PIXEL_RGB;
+				ctx->o_ff_pfmt = AV_PIX_FMT_RGB24;
 			}
-			FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 		} else {
-			ctx->pixel_fmt = GF_PIXEL_YUV;
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT( ctx->pixel_fmt) );
+			pix_fmt = GF_PIXEL_YUV;
+			ctx->o_ff_pfmt = AV_PIX_FMT_YUV420P;
 		}
+		ffdec_check_pix_fmt_change(ctx, pix_fmt);
 
 		if (ctx->decoder->width) {
 			FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)

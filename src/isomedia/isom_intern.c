@@ -1004,11 +1004,11 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 
 	if (last_is_empty) {
 		ent = (GF_EdtsEntry *)gf_list_last(trak->editBox->editList->entryList);
-		if (ent->mediaRate==1) {
+		if (ent->mediaRate == 0x10000) {
 			*MediaTime = movieTime + ent->mediaTime;
 		} else {
 			ent = (GF_EdtsEntry *)gf_list_get(trak->editBox->editList->entryList, 0);
-			if (ent->mediaRate==-1) {
+			if (ent->mediaRate == -0x10000) {
 				u64 dur = (u64) (ent->segmentDuration * scale_ts);
 				*MediaTime = (movieTime > dur) ? (movieTime-dur) : 0;
 			}
@@ -1260,7 +1260,7 @@ GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
 
 	switch (EditMode) {
 	case GF_ISOM_EDIT_EMPTY:
-		ent->mediaRate = 1;
+		ent->mediaRate = 0x10000;
 		ent->mediaTime = -1;
 		break;
 
@@ -1269,7 +1269,7 @@ GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
 		ent->mediaTime = MediaTime;
 		break;
 	default:
-		ent->mediaRate = 1;
+		ent->mediaRate = 0x10000;
 		ent->mediaTime = MediaTime;
 		break;
 	}

@@ -1979,10 +1979,13 @@ typedef struct _gl_texture_wrap
 	//PBO state - must be managed by caller, especially if using separated push and texImg steps through gf_gl_txw_setup calls
 	GF_GLPBOState pbo_state;
 	Bool flip;
+	//YUV is full video range
+	Bool fullrange;
+	s32 mx_cicp;
 } GF_GLTextureWrapper;
 
 Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source);
-Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height, u32 stride, u32 uv_stride, Bool linear_interp, struct _gf_filter_frame_interface *frame_ifce);
+Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height, u32 stride, u32 uv_stride, Bool linear_interp, struct _gf_filter_frame_interface *frame_ifce, Bool full_range, s32 matrix_coef_or_neg);
 Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, struct _gf_filter_frame_interface *frame_ifce);
 Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program, u32 texture_unit);
 void gf_gl_txw_reset(GF_GLTextureWrapper *tx);

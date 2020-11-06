@@ -94,7 +94,7 @@ then
 	full_version="$full_version-rev$rev"
 else
 	#if no revision can be extracted, use date
-   	$rev = $(date +%Y%m%d)
+   	rev = $(date +%Y%m%d)
 fi
 
 sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' tmpdmg/GPAC.app/Contents/Info.plist > tmpdmg/GPAC.app/Contents/Info.plist.new && sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' tmpdmg/GPAC.app/Contents/Info.plist.new > tmpdmg/GPAC.app/Contents/Info.plist && rm tmpdmg/GPAC.app/Contents/Info.plist.new
