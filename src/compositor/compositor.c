@@ -3416,11 +3416,11 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	}
 	break;
 	case GF_EVENT_SIZE:
-		/*user consummed the resize event, do nothing*/
+		/*user consumed the resize event, do nothing*/
 		if ( gf_sc_send_event(compositor, event) )
 			return GF_TRUE;
 
-		/*not consummed and compositor "owns" the output window (created by the output module), resize*/
+		/*not consumed and compositor "owns" the output window (created by the output module), resize*/
 		if (!compositor->os_wnd) {
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the compositor one, and the
 			compositor may be locked on the video output (flush or whatever)!!

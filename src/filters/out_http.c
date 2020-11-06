@@ -2833,7 +2833,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"- If not so, the server will simply send the file from the disk as a regular HTTP session, without chunk transfer.\n"
 		"  \nThis mode is typically used for origin server in HAS sessions where clients may request files while they are being produced (low latency DASH).\n"
 		"EX gpac -i SOURCE reframer:rt=on @ -o http://localhost:8080/live.mpd --rdirs=temp --dmode=dynamic --cdur=0.1\n"
-		"In this example, a real-time dynamic DASH session with chunks of 100ms is created, outputing files in `temp`. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.\n"
+		"In this example, a real-time dynamic DASH session with chunks of 100ms is created, outputting files in `temp`. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.\n"
 		"  \n"
 		"# HTTP client sink\n"
 		"In this mode, the filter will upload input PIDs data to remote server using PUT (or POST if [-post]() is set).\n"

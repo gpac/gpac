@@ -767,7 +767,7 @@ retry:
 		}
 	}
 
-	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
+	/*also adjust CU time based on consumed bytes in input, since some codecs output very large audio chunks*/
 	if (mo->bytes_per_sec) mo->timestamp += mo->RenderedLength * 1000 / mo->bytes_per_sec;
 
 	if (mo->odm->parentscene->compositor->bench_mode) {

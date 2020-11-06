@@ -66,7 +66,7 @@ static u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u
 	assert(ctx->data);
 	*size = ctx->size - ctx->bytes_consumed;
 	sample_offset = ctx->bytes_consumed;
-	//planar mode, bytes consummed correspond to all channels, so move frame pointer
+	//planar mode, bytes consumed correspond to all channels, so move frame pointer
 	//to first sample non consumed = bytes_consumed/nb_channels
 	if (ctx->src_is_planar) {
 		*planar_stride = ctx->size / ctx->nb_ch;

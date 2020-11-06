@@ -1460,7 +1460,7 @@ static const GF_FilterArgs NVDecArgs[] =
 		"- dxva: go through DXVA internally if possible (requires D3D9 interop)", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(fmode), "frame output mode\n"
 		"- copy: each frame is copied and dispatched\n"
-		"- single: frame data is only retrieved when used, single memory space for all frames (not safe if multiple consummers)\n"
+		"- single: frame data is only retrieved when used, single memory space for all frames (not safe if multiple consumers)\n"
 		"- gl: frame data is mapped to an OpenGL texture"
 	, GF_PROP_UINT, "gl", "copy|single|gl", 0 },
 

@@ -826,7 +826,7 @@ typedef struct tag_m2ts_pes
 
 	/*! PES reframer callback. If NULL, pes processing is skiped
 
-	returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
+	returns the number of bytes NOT consumed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
 	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, u8 *data, u32 data_len, GF_M2TS_PESHeader *hdr);
 
 	/*! DVB subtitling info*/
@@ -1237,7 +1237,7 @@ typedef struct
 \brief Basic stream interface API used by MPEG-2 TS muxer.
 
 This section documents the ES interface used by the MPEG-2 TS muxer. This interface is used to
-describe streams and packets consummed by the TS muxer independently from the rest of GPAC (filter packets)
+describe streams and packets consumed by the TS muxer independently from the rest of GPAC (filter packets)
 
 @{
 */

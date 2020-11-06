@@ -271,7 +271,7 @@ const char *gf_pixel_fmt_sname(GF_PixelFormat pfmt);
 \param name name of the pixel format
 \param fileext file extension of the pixel format
 \param description description of the pixel format
-\return pixel format code, 0 if no more pixel formats are availble
+\return pixel format code, 0 if no more pixel formats are available
 */
 GF_PixelFormat gf_pixel_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **description);
 
@@ -850,7 +850,7 @@ GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype);
 \param name name of the audio format
 \param fileext file extension of the pixel format
 \param desc audio format description
-\return audio format or 0 if no more audio formats are availble
+\return audio format or 0 if no more audio formats are available
 */
 GF_AudioFormat gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc);
 
