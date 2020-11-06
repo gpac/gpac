@@ -2000,6 +2000,15 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		case GF_NETIO_WAIT_FOR_REPLY:
 		case GF_NETIO_CONNECTED:
 			sess->do_requests(sess);
+			if (sess->server_mode) {
+				if (sess->status == GF_NETIO_STATE_ERROR) {
+					sess->status = GF_NETIO_DISCONNECTED;
+					sess->last_error = GF_IP_CONNECTION_CLOSED;
+					go = GF_FALSE;
+				} else if (sess->last_error==GF_IP_NETWORK_EMPTY) {
+					go = GF_FALSE;
+				}
+			}
 			break;
 		case GF_NETIO_DATA_EXCHANGE:
 			if (sess->put_state==2) {
@@ -3311,6 +3320,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 					return GF_IP_NETWORK_EMPTY;
 				}
 				assert(res==0);
+				if (sess->server_mode) {
+					sess->last_error = GF_IP_NETWORK_EMPTY;
+				}
 				return GF_OK;
 			}
 			continue;
