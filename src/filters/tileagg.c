@@ -60,22 +60,41 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		return GF_OK;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (!p) return GF_NOT_SUPPORTED;
+	if (!p)
+		return GF_NOT_SUPPORTED;
 	codec_id = p->value.uint;
 
+	//a single HEVC base is allowed per instance
+	if ((codec_id==GF_CODECID_HEVC) && ctx->base_ipid && (ctx->base_ipid != pid))
+		return GF_REQUIRES_NEW_INSTANCE;
 
-	if ((codec_id==GF_CODECID_HEVC) && ctx->base_ipid && (ctx->base_ipid != pid)) return GF_REQUIRES_NEW_INSTANCE;
+	//a tile pid connected before our base, check we have the same base ID, otherwise we need a new instance
+	if ((codec_id==GF_CODECID_HEVC) && !ctx->base_ipid && ctx->base_id) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+		if (!p)
+			return GF_NOT_SUPPORTED;
 
-	if ((codec_id==GF_CODECID_HEVC_TILES) && !ctx->base_ipid) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TileAggr] Base HEVC PID not found for tiled HEVC PID %s\n", gf_filter_pid_get_name(pid) ));
-		return GF_NOT_SUPPORTED;
-	}
+		if (ctx->base_id != p->value.uint)
+			return GF_REQUIRES_NEW_INSTANCE;
 
-	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
-
-	if (!ctx->base_ipid) {
 		ctx->base_ipid = pid;
 	}
+	//tile pid connecting after another tile pid,  we share the same base
+	if ((codec_id==GF_CODECID_HEVC_TILES) && ctx->base_id) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
+		if (!p) return GF_NOT_SUPPORTED;
+		if (ctx->base_id != p->value.uint)
+			return GF_REQUIRES_NEW_INSTANCE;
+	}
+
+
+	if (!ctx->base_ipid && (codec_id==GF_CODECID_HEVC) ) {
+		ctx->base_ipid = pid;
+		if (!ctx->opid) {
+			ctx->opid = gf_filter_pid_new(filter);
+		}
+	}
+
 	if (ctx->base_ipid == pid) {
 		gf_filter_pid_copy_properties(ctx->opid, ctx->base_ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TILE_BASE, NULL);
@@ -90,12 +109,16 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-		if (!p) return GF_NOT_SUPPORTED;
+		if (!p)
+			return GF_NOT_SUPPORTED;
 		ctx->base_id = p->value.uint;
 	} else {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 		if (!p) return GF_NOT_SUPPORTED;
-		if (ctx->base_id != p->value.uint) return GF_NOT_SUPPORTED;
+		if (!ctx->base_ipid) {
+			ctx->base_id = p->value.uint;
+		}
+		//we already checked the same base ID is used
 	}
 
 	return GF_OK;
