@@ -2139,7 +2139,16 @@ static void gf_filter_process_task(GF_FSTask *task)
 		//do not cancel the process task since it might have been triggered by the filter itself,
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
- 		task->schedule_next_time = gf_sys_clock_high_res() + 10000;
+
+		//in we are during the graph resolution phase, to not ask for RT reschedule: this can post-pone process tasks and change their initial
+		//scheduling order, resulting in random change of input pid declaration, for example:
+		//fin1 -> reframe1 -> fA
+		//fin2 -> reframe2 -> fA
+		//if we postpone by 10 us finX process while wating for rfX->fA setup, depending on the CPU charge fin2 might be rescheduled before fin1
+		//leading to pushing new/pending packets ro reframe2 before reframe1, and having fA declare its pid in the reverse order as the one expected
+		//note that this is only valid for single-thread case, as in multithread we do not guarantee PID declaration order
+		if (!filter->out_pid_connection_pending)
+			task->schedule_next_time = gf_sys_clock_high_res() + 10000;
  		assert(filter->process_task_queued);
 		check_filter_error(filter, GF_OK, GF_TRUE);
 		return;
