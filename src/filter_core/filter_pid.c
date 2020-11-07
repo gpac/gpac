@@ -3642,6 +3642,20 @@ static Bool gf_pid_in_parent_chain(GF_FilterPid *pid, GF_FilterPid *look_for_pid
 	return GF_FALSE;
 }
 
+static Bool filter_match_target_dst(GF_List *flist, GF_Filter *dst)
+{
+	u32 i, count=gf_list_count(flist);
+	for (i=0;i<count;i++) {
+		GF_Filter *f = gf_list_get(flist, i);
+		if (f==dst) return GF_TRUE;
+		if (filter_match_target_dst(f->destination_filters, dst))
+			return GF_TRUE;
+		if (filter_match_target_dst(f->destination_links, dst))
+			return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
@@ -4147,8 +4161,11 @@ single_retry:
 					gf_filter_in_parent_chain(filter_dst, dst_link)
 					|| gf_filter_in_parent_chain(dst_link, filter_dst)
 					//if forced filter is in destination of filter (connection pending), don't force a link
-					|| (gf_list_find(filter_dst->destination_filters, dst_link)>=0)
-					|| (gf_list_find(filter_dst->destination_links, dst_link)>=0)
+					//we need to walk up the destination chain, not just check the first level since the filter_dst might be connected
+					//and  no longer have dst_link in its destination filter list
+					//typical case is multithreaded mode with mux or tileagg filter
+					|| filter_match_target_dst(filter_dst->destination_filters, dst_link)
+					|| filter_match_target_dst(filter_dst->destination_links, dst_link)
 					//if forced filter's target is the same as what we connected to, don't force a link
 					|| (dst_link->target_filter == filter_dst)
 				) {
