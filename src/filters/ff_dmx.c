@@ -538,6 +538,12 @@ static int ffavio_read_packet(void *opaque, uint8_t *buf, int buf_size)
 static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)
 {
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
+	if (whence==AVSEEK_SIZE) {
+		u64 pos = gf_ftell(ctx->gfio);
+		u64 size = gf_fsize(ctx->gfio);
+		gf_fseek(ctx->gfio, pos, SEEK_SET);
+		return size;
+	}
 	return (int64_t) gf_fseek(ctx->gfio, offset, whence);
 }
 
