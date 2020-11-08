@@ -513,9 +513,12 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 		if (pos+size+2 > data_size)
 			break;
 
-		prev = data[pos+2+size];
-		data[pos+2+size] = 0;
 
+		prev = 0;
+		if (pos+2+size<data_size) {
+			prev = data[pos+2+size];
+			data[pos+2+size] = 0;
+		}
 
 		sprintf(nhml, "<DIMSUnit time=\""LLU"\"", cts);
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
@@ -579,6 +582,8 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 #else
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Error: your version of GPAC was compiled with no libz support."));
 			gf_bs_del(ctx->bs_r);
+			if (prev)
+				data[pos+2+size] = prev;
 			return;
 #endif
 		} else {
@@ -587,7 +592,8 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 		sprintf(nhml, "</DIMSUnit>\n");
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
-		data[pos+2+size] = prev;
+		if (prev)
+			data[pos+2+size] = prev;
 		gf_bs_skip_bytes(ctx->bs_r, size-1);
 	}
 
