@@ -288,7 +288,7 @@ void routeout_delete_service(ROUTEService *serv)
 	if (serv->manifest_mime) gf_free(serv->manifest_mime);
 	if (serv->manifest_name) gf_free(serv->manifest_name);
 	if (serv->manifest_server) gf_free(serv->manifest_server);
-	else if (serv->manifest_url) gf_free(serv->manifest_url);
+	if (serv->manifest_url) gf_free(serv->manifest_url);
 
 	if (serv->manifest) gf_free(serv->manifest);
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
@@ -816,7 +816,9 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					manifest_updated = GF_TRUE;
 
 					if (serv->manifest_server) gf_free(serv->manifest_server);
-					else if (serv->manifest_url) gf_free(serv->manifest_url);
+					if (serv->manifest_url) gf_free(serv->manifest_url);
+					serv->manifest_server = serv->manifest_url = NULL;
+
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
 					serv->manifest_url = p ? gf_strdup(p->value.string) : NULL;
 					if (serv->manifest_url) {
@@ -826,7 +828,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						if (sep) sep = strchr(sep + 4, '/');
 						if (sep) {
 							serv->manifest_server = serv->manifest_url;
-							serv->manifest_url = sep+1;
+							serv->manifest_url = gf_strdup(sep+1);
 							sep[0] = 0;
 							sep = strchr(serv->manifest_server + 8, ':');
 							if (sep) sep[0] = 0;
