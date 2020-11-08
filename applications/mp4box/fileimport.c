@@ -425,7 +425,7 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 					frac = media_rate.num - rate*media_rate.den;
 					frac *= 0xFFFF;
 					frac /= media_rate.den;
-					rate = (rate<<16) | frac;
+					rate = (rate<<16) | (u32) frac;
 				}
 				media_t = media_time.num * media_ts / media_time.den;
 				e = gf_isom_set_edit_with_rate(dest, track, movie_t, edit_dur, media_t, rate);
