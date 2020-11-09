@@ -898,7 +898,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"\n"
 	"# Standalone mode\n"
 	"In standalone mode, the filter does not produce any output pid and writes received files to the [-odir]() directory.\n"
-	"EX gpac -i atsc://odir=output\n"
+	"EX gpac -i atsc://:odir=output\n"
 	"This will grab the files and write them to `output` directory.\n"
 	"\n"
 	"If [-max_segs]() is set, old files will be deleted.\n"

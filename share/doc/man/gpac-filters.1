@@ -4979,7 +4979,7 @@ In standalone mode, the filter does not produce any output pid and writes receiv
 .br
 Example
 .br
-gpac -i atsc://odir=output
+gpac -i atsc://:odir=output
 .br
 
 .br
@@ -6317,9 +6317,17 @@ The filter is identified using the following URL schemes:
 .br
 
 .br
-The filter only accepts input PIDs of type FILE. A PID without OrigStreamType property set is delivered as a raw file.
+The filter only accepts input PIDs of type FILE.
 .br
-For such PIDs, the filter will look for the following properties:
+- HAS Manifests files are detected by file extension and/or MIME types, and sent as part of the signaling bundle or as LCT object files for HLS subplaylists.
+.br
+- HAS Media segments are detected using the OrigStreamType property, and send as LCT object files using the DASH template string.
+.br
+- A PID without OrigStreamType property set is delivered as a regular LCT object file (called raw hereafter).
+.br
+  
+.br
+For raw file PIDs, the filter will look for the following properties:
 .br
 * `ROUTEName`: set resource name. If not found, uses basename of URL
 .br
@@ -6384,7 +6392,7 @@ Init segments and HLS subplaylists are sent before each new segment, independent
 .SH ATSC 3.0 mode
 .LP
 .br
-In this mode, the filter allows multiple service multiplexing.
+In this mode, the filter allows multiple service multiplexing, identified through the ServiceID property.
 .br
 By default, a single multicast IP is used for route sessions, each service will be assigned a different port.
 .br
@@ -6413,6 +6421,8 @@ In order for the real-time scheduling of data chunks to work, each fragment of t
 If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by .I brinc percent for safety.
 .br
 If this fails, the muxer will trigger warnings and send as fast as possible.
+.br
+Note: The LCT objects are sent with no length (TOL header) assigned until the final segment size is known, potentially leading to a final 0-size LCT fragment signaling only the final size.
 .br
 
 .br
@@ -6770,7 +6780,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev205-g71affc0d4-master
+build: 1.1.0-DEV-rev213-g00483e9d1-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

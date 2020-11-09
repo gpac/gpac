@@ -1729,6 +1729,12 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	if (ctx->split_as)
 		gf_dash_split_adaptation_sets(ctx->dash);
 
+
+	//in test mode, we disable seeking inside the segment: this initial seek range is dependent from tune-in time and would lead to different start range
+	//at each run, possibly breaking all tests
+	if (gf_sys_is_test_mode())
+		ctx->noseek = GF_TRUE;
+
 	ctx->initial_play = GF_TRUE;
 	gf_filter_block_eos(filter, GF_TRUE);
 
