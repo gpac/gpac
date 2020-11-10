@@ -150,6 +150,7 @@ struct _gf_dash_io
 	/*! get the total size on bytes for the session*/
 	u32 (*get_bytes_done)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 
+	/*! callback when manifest (DASH, HLS) or sub-playlist (HLS) is updated*/
 	void (*manifest_updated)(GF_DASHFileIO *dashio, const char *manifest_name, const char *local_path, s32 group_idx);
 
 };
@@ -795,7 +796,7 @@ GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 group_idx, u32 qu
 \param group_idx the 0-based index of the target group
 \return segment template, NULL if no templates used. Memory must be freed by caller
 */
-char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx);
+char *gf_dash_group_get_template(GF_DashClient *dash, u32 group_idx);
 
 /*! checks automatic switching mode
 \param dash the target dash client

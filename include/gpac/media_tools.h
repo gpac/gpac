@@ -120,7 +120,7 @@ In this case, any other flags are set to prefered values (typically, flag=0 or v
 \param color_matrix olor matrix
 \return error if any
 */
-GF_Err gf_media_change_color(GF_ISOFile *file, u32 track, s32 fullrange, s32 video_format, s32 color_primaries, s32 transfer, s32 color_matrix);
+GF_Err gf_media_change_color(GF_ISOFile *isom_file, u32 trackNumber, s32 fullrange, s32 video_format, s32 color_primaries, s32 transfer, s32 color_matrix);
 
 /*!
  *Removes all non rap samples (sync and other RAP sample group info) from the track.

@@ -116,6 +116,22 @@ const char *gf_gpac_copyright_cite()
 
 }
 
+GF_EXPORT
+u32 gf_gpac_abi_major()
+{
+	return GPAC_VERSION_MAJOR;
+}
+GF_EXPORT
+u32 gf_gpac_abi_minor()
+{
+	return GPAC_VERSION_MINOR;
+}
+GF_EXPORT
+u32 gf_gpac_abi_micro()
+{
+	return GPAC_VERSION_MICRO;
+}
+
 
 #ifndef WIN32
 
