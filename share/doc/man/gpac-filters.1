@@ -4809,6 +4809,8 @@ pckr (frac, default: 0/0):     reverse packet every N - see filter help
 .br
 pckd (frac, default: 0/0):     drop packet every N - see filter help
 .br
+ttl (uint, default: 0, minmax: 0-127): multicast TTL
+.br
 
 .br
 .SH rfav1
@@ -5011,7 +5013,7 @@ If .I kc option is set, corrupted files will be kept. If .I fullseg is not set a
 .br
 On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.
 .br
-You will have to do this for the base ROUTE multicast (224.0.23.60):
+For ATSC, you will have to do this for the base signaling multicast (224.0.23.60):
 .br
 Example
 .br
@@ -5019,7 +5021,7 @@ route add -net 224.0.23.60/32 -interface vboxnet0
 .br
 
 .br
-and on each service multicast:
+Then for each ROUTE service in the multicast:
 .br
 Example
 .br
@@ -6780,7 +6782,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev213-g00483e9d1-master
+build: 1.1.0-DEV-rev214-g1f9bdbdad-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
