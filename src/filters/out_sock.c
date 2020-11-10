@@ -42,7 +42,7 @@ typedef struct
 	Double start, speed;
 	char *dst, *mime, *ext, *ifce;
 	Bool listen;
-	u32 maxc, port, sockbuf, ka, kp, rate;
+	u32 maxc, port, sockbuf, ka, kp, rate, ttl;
 	GF_Fraction pckr, pckd;
 
 	GF_Socket *socket;
@@ -197,7 +197,8 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	}
 
 	if (gf_sk_is_multicast_address(url)) {
-		e = gf_sk_setup_multicast(ctx->socket, url, port, 0, 0, ctx->ifce);
+		//server socket, do not bind
+		e = gf_sk_setup_multicast(ctx->socket, url, port, ctx->ttl, GF_TRUE, ctx->ifce);
 		ctx->listen = GF_FALSE;
 	} else if ((sock_type == GF_SOCK_TYPE_UDP)
 #ifdef GPAC_HAS_SOCK_UN
@@ -526,6 +527,7 @@ static const GF_FilterArgs SockOutArgs[] =
 	{ OFFS(rate), "set send rate in bps, disabled by default (as fast as possible)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pckr), "reverse packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pckd), "drop packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ttl), "multicast TTL", GF_PROP_UINT, "0", "0-127", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
