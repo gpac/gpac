@@ -124,7 +124,8 @@
 # A custom filter allows your application to interact closely with the media pipeline, but cannot be used in graph resolution.
 # Custom filters can be sources, sinks, or intermediate filters. The following limitations however exist:
 #- custom filters will not be cloned
-#- custom filters cannot be used as destination of filters loading a source or destination filter graph dynamically, such as the dashin or dasher filters.
+#- custom filters cannot be used as sources of filters loading a source filter graph dynamically, such as the dashin filter.
+#- custom filters cannot be used as destination of filters loading a destination filter graph dynamically, such as the dasher filters.
 #
 # A custom filter must implement the \ref FilterCustom class, and optionaly provide the following methods
 # - configure_pid: callback for PID configuration, mandatory if your filter is not a source
@@ -187,6 +188,14 @@
 #
 
 
+## 
+#  \defgroup pycore_grp libgpac core tools
+#  \ingroup pyapi_grp Python APIs
+#  \brief Core tools for libgpac.
+#
+# @{
+
+
 from ctypes import *
 from ctypes.util import find_library
 import datetime
@@ -225,6 +234,24 @@ except OSError:
             print('Failed to locate libgpac (.so/.dll/.dylib) - make sure it is in your system path')
             os._exit(1)
 
+#change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
+GF_ABI_MAJOR=10
+GF_ABI_MINOR=4
+
+gpac_abi_major=_libgpac.gf_gpac_abi_major()
+gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
+
+## \endcond private
+
+## Set to true if mismatch was detected between the ABI version the Python wrapper was designed and the libgpac shared library ABI version
+# A warning is thrown if mismatched, but it is left up to the pythin script to decide whether it still wants to use libgpac wrapper
+_libgpac_abi_mismatch=False
+
+## \cond private
+if (gpac_abi_major != GF_ABI_MAJOR) or (gpac_abi_minor != GF_ABI_MINOR):
+    abi_mismatch=True
+    print('WARNING: this python wrapper is for GPAC ABI ' + str(GF_ABI_MAJOR) + '.' + str(GF_ABI_MINOR)  + ' but native libgpac ABI is ' + str(gpac_abi_major) + '.'  + str(gpac_abi_minor) + '\n\tUndefined behaviour or crashes might happen, please update libgpac.py')
+
 ## \endcond private
 
 #
@@ -239,8 +266,169 @@ _gf_filter_packet = c_void_p
 _gf_property_entry = c_void_p
 _gf_list = c_void_p
 gf_bool = c_uint
+
 ##\endcond
 
+
+
+
+##\cond private
+#error to string helper
+_libgpac.gf_error_to_string.argtypes = [c_int]
+_libgpac.gf_error_to_string.restype = c_char_p
+ 
+_libgpac.gf_gpac_version.restype = c_char_p
+_libgpac.gf_gpac_copyright.restype = c_char_p
+_libgpac.gf_gpac_copyright_cite.restype = c_char_p
+
+_libgpac.gf_sys_set_args.argtypes = [c_int, POINTER(POINTER(c_char))]
+
+_libgpac.gf_sys_init.argtypes = [c_int, c_char_p]
+_libgpac.gf_log_set_tools_levels.argtypes = [c_char_p, c_int]
+_libgpac.gf_props_get_type_name.argtypes = [c_uint]
+_libgpac.gf_props_get_type_name.restype = c_char_p
+
+_libgpac.gf_sys_clock.res = c_uint
+_libgpac.gf_sys_clock_high_res.res = c_ulonglong
+
+_libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
+_libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
+_libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
+
+#\endcond
+
+##libgpac version (string)
+#\hideinitializer
+version = _libgpac.gf_gpac_version().decode("utf-8")
+##libgpac copyright notice (string)
+#\hideinitializer
+copyright = _libgpac.gf_gpac_copyright().decode("utf-8")
+##libgpac full copyright notice (string)
+#\hideinitializer
+copyright_cite = _libgpac.gf_gpac_copyright_cite().decode("utf-8")
+
+## convert error value to string message
+# \param err gpac error code (int)
+# \return string
+def e2s(err):
+    return _libgpac.gf_error_to_string(err).decode('utf-8')
+
+
+mem_track_on=0
+## initialize libgpac - see \ref gf_sys_init
+# \param mem_track
+# \param profile
+# \return
+#
+def init(mem_track=0, profile=None):
+    if mem_track!=0 or profile != None:
+        err = _libgpac.gf_sys_init(mem_track, profile)
+    else:
+        err = _libgpac.gf_sys_init(0, None)
+
+    mem_track_on=mem_track
+    if not hasattr(_libgpac, 'gf_memory_size'):
+        mem_track_on=0
+    else:
+        mem_track_on=mem_track
+    
+    if err<0: 
+        raise Exception('Failed to initialize libgpac: ' + e2s(err))
+
+
+## close libgpac - see \ref gf_sys_close
+# \note Make sure you have destroyed all associated gpac resources before calling this !
+# \return
+#
+def close():
+    _libgpac.gf_sys_close()
+    if mem_track_on:
+        if _libgpac.gf_memory_size() or _libgpac.gf_file_handles_count():
+            set_logs("mem@info")
+            _libgpac.gf_memory_print()
+
+## set log tools and levels - see \ref gf_log_set_tools_levels
+# \note Make sure you have destroyed all associated gpac resources before calling this !
+# \param logs
+# \param reset if true, resets all logs to default
+# \return
+def set_logs(logs, reset=False):
+    _libgpac.gf_log_set_tools_levels(logs.encode('utf-8'), reset)
+
+## get clock - see \ref gf_sys_clock
+# \return clock in milliseconds
+def sys_clock():
+    return _libgpac.gf_sys_clock()
+
+## get high res clock - see \ref gf_sys_clock_high_res
+# \return clock in microseconds
+def sys_clock_high_res():
+    return _libgpac.gf_sys_clock_high_res()
+
+## set libgpac arguments - see \ref gf_sys_set_args
+# \param args list of strings
+# \return
+def set_args(args):
+    p = (POINTER(c_char)*len(args))()
+    for i, arg in enumerate(args):
+        enc_arg = arg.encode('utf-8')
+        p[i] = create_string_buffer(enc_arg)
+    _libgpac.gf_sys_set_args(len(args), cast(p, POINTER(POINTER(c_char))) )
+
+
+##\cond private
+_libgpac.gf_sys_profiler_set_callback.argtypes = [py_object, c_void_p]
+@CFUNCTYPE(c_int, c_void_p, c_char_p)
+def rmt_fun_cbk(_udta, text):
+    obj = cast(_udta, py_object).value
+    obj.on_rmt_event(text.decode('utf-8'))
+    return 0
+##\endcond private
+
+
+## set profiler (Remotery) callback - see \ref gf_sys_profiler_set_callback
+# \param callback_obj object to call back, must have a method `on_rmt_event` taking a single string parameter
+# \return True if success, False if no Remotery support
+def set_rmt_fun(callback_obj):
+    if hasattr(callback_obj, 'on_rmt_event')==False:
+        raise Exception('No on_rmt_event function on callback')
+    err = _libgpac.gf_sys_profiler_set_callback(py_object(callback_obj), rmt_fun_cbk)
+    if err<0:
+        return False
+    return True
+
+## send message to profiler (Remotery) - see \ref gf_sys_profiler_send
+# \param text text to send
+# \return True if success, False if no Remotery support
+def rmt_send(text):
+    err = _libgpac.gf_sys_profiler_send(text.encode('utf-8'))
+    if err<0:
+        return False
+    return True
+
+## check if profiler (Remotery) sampling is enabled - see \ref gf_sys_profiler_sampling_enabled
+# \return True if enabled, False otherwise
+def rmt_on():
+    return _libgpac.gf_sys_profiler_sampling_enabled()
+
+## enable or disable sampling in profiler (Remotery) - see \ref gf_sys_profiler_enable_sampling
+# \param value enable or disable sampling
+# \return
+def rmt_enable(value):
+    _libgpac.gf_sys_profiler_enable_sampling(value)
+    
+
+## @}
+
+
+## 
+#  \defgroup pystruct_grp Structure Wrappers
+#  \ingroup pyapi_grp
+#  \brief Python Structures 
+#
+# Python Wrappers for gpac C structures used in this API
+#
+# @{
 
 ## fraction object, as defined in libgpac and usable as a Python object
 #Fields have the same types, names and semantics as \ref GF_Fraction
@@ -630,9 +818,34 @@ class FilterEvent(Union):
     ## \endcond
 
 
+## Buffer occupancy object 
+class BufferOccupancy:
+  ##\cond private
+  def __init__(self, max_units, nb_pck, max_dur, dur, is_final_flush):
+  ##\endcond
+    ##maximum number of packets (partial or full AU) allowed in buffer
+    self.max_units = max_units
+    ##number of block allowed in buffer
+    self.nb_pck = nb_pck
+    ##maximum buffer duration in microseconds
+    self.max_dur = max_dur
+    ## buffer duration in microseconds
+    self.dur = dur
+    ##if true, the session has been aborted and this is the final flush for this buffer
+    self.is_final_flush = is_final_flush
+
+
+## @}
+
+
+## 
+#  \defgroup pycst_grp Constants
+#  \ingroup pyapi_grp
+#  \brief Constants definitions
 #
-# Constants definitions
+# Python Wrappers for gpac C constants used in this API
 #
+# @{
 
 
 # scheduler type definitions
@@ -987,6 +1200,9 @@ GF_REMOTE_SERVICE_ERROR = -14
 #see \ref GF_STREAM_NOT_FOUND
 GF_STREAM_NOT_FOUND = -15
 ##\hideinitializer
+#see \ref GF_URL_REMOVED
+GF_URL_REMOVED = -16
+##\hideinitializer
 #see \ref GF_IP_ADDRESS_NOT_FOUND
 GF_IP_ADDRESS_NOT_FOUND = -40
 ##\hideinitializer
@@ -1029,153 +1245,14 @@ GF_REQUIRES_NEW_INSTANCE = -56
 #see \ref GF_FILTER_NOT_SUPPORTED
 GF_FILTER_NOT_SUPPORTED = -57
 
+##notification is a setup error, the filter chain was never connected
+GF_SETUP_ERROR=0
+##notification is an error but keep the filter chain connected
+GF_NOTIF_ERROR=1
+##notification is an error and disconnect the filter chain
+GF_NOTIF_ERROR_AND_DISCONNECT=2
 
-
-##\cond private
-#error to string helper
-_libgpac.gf_error_to_string.argtypes = [c_int]
-_libgpac.gf_error_to_string.restype = c_char_p
- 
-_libgpac.gf_gpac_version.restype = c_char_p
-_libgpac.gf_gpac_copyright.restype = c_char_p
-_libgpac.gf_gpac_copyright_cite.restype = c_char_p
-
-_libgpac.gf_sys_set_args.argtypes = [c_int, POINTER(POINTER(c_char))]
-
-_libgpac.gf_sys_init.argtypes = [c_int, c_char_p]
-_libgpac.gf_log_set_tools_levels.argtypes = [c_char_p, c_int]
-_libgpac.gf_props_get_type_name.argtypes = [c_uint]
-_libgpac.gf_props_get_type_name.restype = c_char_p
-
-_libgpac.gf_sys_clock.res = c_uint
-_libgpac.gf_sys_clock_high_res.res = c_ulonglong
-
-_libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
-_libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
-_libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
-
-#\endcond
-
-##libgpac version (string)
-#\hideinitializer
-version = _libgpac.gf_gpac_version().decode("utf-8")
-##libgpac copyright notice (string)
-#\hideinitializer
-copyright = _libgpac.gf_gpac_copyright().decode("utf-8")
-##libgpac full copyright notice (string)
-#\hideinitializer
-copyright_cite = _libgpac.gf_gpac_copyright_cite().decode("utf-8")
-
-## convert error value to string message
-# \param err gpac error code (int)
-# \return string
-def e2s(err):
-    return _libgpac.gf_error_to_string(err).decode('utf-8')
-
-
-mem_track_on=0
-## initialize libgpac - see \ref gf_sys_init
-# \param mem_track
-# \param profile
-# \return
-#
-def init(mem_track=0, profile=None):
-    if mem_track!=0 or profile != None:
-        err = _libgpac.gf_sys_init(mem_track, profile)
-    else:
-        err = _libgpac.gf_sys_init(0, None)
-
-    mem_track_on=mem_track
-    if not hasattr(_libgpac, 'gf_memory_size'):
-        mem_track_on=0
-    else:
-        mem_track_on=mem_track
-    
-    if err<0: 
-        raise Exception('Failed to initialize libgpac: ' + e2s(err))
-
-
-## close libgpac - see \ref gf_sys_close
-# \note Make sure you have destroyed all associated gpac resources before calling this !
-# \return
-#
-def close():
-    _libgpac.gf_sys_close()
-    if mem_track_on:
-        if _libgpac.gf_memory_size() or _libgpac.gf_file_handles_count():
-            set_logs("mem@info")
-            _libgpac.gf_memory_print()
-
-## set log tools and levels - see \ref gf_log_set_tools_levels
-# \note Make sure you have destroyed all associated gpac resources before calling this !
-# \param logs
-# \param reset if true, resets all logs to default
-# \return
-def set_logs(logs, reset=False):
-    _libgpac.gf_log_set_tools_levels(logs.encode('utf-8'), reset)
-
-## get clock - see \ref gf_sys_clock
-# \return clock in milliseconds
-def sys_clock():
-    return _libgpac.gf_sys_clock()
-
-## get high res clock - see \ref gf_sys_clock_high_res
-# \return clock in microseconds
-def sys_clock_high_res():
-    return _libgpac.gf_sys_clock_high_res()
-
-## set libgpac arguments - see \ref gf_sys_set_args
-# \param args list of strings
-# \return
-def set_args(args):
-    p = (POINTER(c_char)*len(args))()
-    for i, arg in enumerate(args):
-        enc_arg = arg.encode('utf-8')
-        p[i] = create_string_buffer(enc_arg)
-    _libgpac.gf_sys_set_args(len(args), cast(p, POINTER(POINTER(c_char))) )
-
-
-##\cond private
-_libgpac.gf_sys_profiler_set_callback.argtypes = [py_object, c_void_p]
-@CFUNCTYPE(c_int, c_void_p, c_char_p)
-def rmt_fun_cbk(_udta, text):
-    obj = cast(_udta, py_object).value
-    obj.on_rmt_event(text.decode('utf-8'))
-    return 0
-##\endcond private
-
-
-## set profiler (Remotery) callback - see \ref gf_sys_profiler_set_callback
-# \param callback_obj object to call back, must have a method `on_rmt_event` taking a single string parameter
-# \return True if success, False if no Remotery support
-def set_rmt_fun(callback_obj):
-    if hasattr(callback_obj, 'on_rmt_event')==False:
-        raise Exception('No on_rmt_event function on callback')
-    err = _libgpac.gf_sys_profiler_set_callback(py_object(callback_obj), rmt_fun_cbk)
-    if err<0:
-        return False
-    return True
-
-## send message to profiler (Remotery) - see \ref gf_sys_profiler_send
-# \param text text to send
-# \return True if success, False if no Remotery support
-def rmt_send(text):
-    err = _libgpac.gf_sys_profiler_send(text.encode('utf-8'))
-    if err<0:
-        return False
-    return True
-
-## check if profiler (Remotery) sampling is enabled - see \ref gf_sys_profiler_sampling_enabled
-# \return True if enabled, False otherwise
-def rmt_on():
-    return _libgpac.gf_sys_profiler_sampling_enabled()
-
-## enable or disable sampling in profiler (Remotery) - see \ref gf_sys_profiler_enable_sampling
-# \param value enable or disable sampling
-# \return
-def rmt_enable(value):
-    _libgpac.gf_sys_profiler_enable_sampling(value)
-    
+## @}
 
 ##\cond private
 
@@ -1650,6 +1727,13 @@ _libgpac.gf_list_get.restype = c_void_p
 
 ## \endcond
 
+## 
+#  \defgroup pydash_grp DASH custom algorithm
+#  \ingroup pyapi_grp
+#  \brief Python API for libgpac.
+#
+# @{
+
 ## DASH media quality information (Representation info)
 class DASHQualityInfo:
     ## \cond priv
@@ -1685,6 +1769,7 @@ class DASHQualityInfo:
         self.ast_offset = qinfon.ast_offset
         ## list of segment sizes for VoD cases, None otherwise or if unknown
         self.sizes = None
+        ## \cond priv
         if qinfon.sizes == None:
             return
         count = _libgpac.gf_list_count(qinfon.sizes)
@@ -1692,6 +1777,7 @@ class DASHQualityInfo:
         for i in range(count):
             surl = cast(_libgpac.gf_list_get(qinfon.sizes, i), POINTER(DASHSegURL)).contents
             self.sizes.append( surl.media_range.contents.end - surl.media_range.contents.start + 1)
+        ## \endcond priv
 
 ## DASH group object
 class DASHGroup:
@@ -1795,6 +1881,49 @@ class DASHGroupDownloadStatistics(Structure):
     ## \endcond
 
 
+
+## DASH custom algo
+# Upon successfull binding to the dashin filter, the object will be assigned a list member called `groups`, containing the declared group for the active period
+class DASHCustomAlgorithm:
+
+    ##Callback (optional) called upon a period reset.
+    #\param reset_type indicate the type of period reset. Values can be:
+    #   - 0: end of period (groups are no longer valid)
+    #   - 1: start of a static period
+    #   - 2: start of a dynamic (live) period
+    #\return 
+    def on_period_reset(self, reset_type):
+        pass
+
+    ##Callback (optional) called when a new group (adaptation set) is created
+    #\param group the newly created \ref DASHGroup
+    #\return 
+    def on_new_group(self, group):
+        pass
+
+
+    ##Callback (mandatory) called at the end of the segment download to perform rate adaptation
+    #\param group the \ref DASHGroup on which to perform adaptation
+    #\param base_group the associated base \ref DASHGroup (tiling only), or None if no base group
+    #\param force_low_complexity indicates that the client would like a lower complexity (typically because it is dropping frames)
+    #\param stats the \ref DASHGroupStatistics  for the downloaded segment
+    #\return new quality index, or -1 to postpone (for tiling)
+    def on_new_group(self, group, base_group, force_low_complexity, stats):
+        pass
+
+    ##Callback (optional) called on regular basis during a segment download
+    #\param group the \ref DASHGroup associated with the current download
+    #\param stats the \ref DASHGroupDownloadStatistics for the download
+    #\return value can be:
+    #   - `-1` to continue download
+    #   - `-2` to abort download but without retrying to downloading the same segment at lower quality
+    #   - the index of the new quality to download for the same segment index (same time)
+    def on_download_monitor(self, group, stats):
+        pass
+
+## @}
+
+
 ## \cond priv
 
 
@@ -1835,6 +1964,7 @@ def dash_download_monitor(cbk, groupidx, stats):
         break
 
  return obj.on_download_monitor(group, stats.contents)
+
 
 
 def _prop_to_python(pname, prop):
@@ -2145,7 +2275,7 @@ class Filter:
         return None
 
     ##Gets the statistics of a filter - see \ref gf_filter_get_stats
-    #\return GF_FilterStatistics object
+    #\return FilterStats object
     def get_statistics(self):
         stats = FilterStats()
         err = _libgpac.gf_filter_get_stats(self._filter, byref(stats))
@@ -2172,24 +2302,7 @@ class Filter:
     #
     #Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
     #
-    #For DASH, the object must implement the following methods:
-    #
-    # - void on_period_reset(u32 reset_type): optional callback, called at period switch. Value can be:
-    #   - 0: end of period (groups are no longer valid)
-    #   - 1: start of a static period
-    #   - 2: start of a dynamic (live) period
-    #
-    # - void on_new_group(\ref DASHGroup group): optional callback, called when a new group created
-    #
-    # - int on_rate_adaptation(\ref DASHGroup group, \ref DASHGroup base_group, bool force_low_complexity, \ref DASHGroupStatistics stats): group adaptation, returns new quality index, or -1 to postpone  (mandatory callback)
-    #
-    # - int on_rate_adaptation(\ref DASHGroup group, \ref DASHGroup base_group, bool force_low_complexity, \ref DASHGroupStatistics stats): optional callback, called during segment download. Return value is:
-    #   - `-1` to continue download
-    #   - `-2` to abort download but without retrying to downloading the same segment at lower quality
-    #   - the index of the new quality to download for the same segment index (same time)
-    #
-    # The object will be assigned a list member called groups, containing the declared group for the active period
-    #
+    #For DASH, the object must derive from or implement the methods of the \ref DASHCustomAlgorithm class:
     #
     #\param object object to bind
     #\return
@@ -2530,13 +2643,6 @@ _libgpac.gf_filter_hint_single_clock.argtypes = [_gf_filter, c_ulonglong, Fracti
 
 ##\endcond
 
-##notification is a setup error, the filter chain was never connected
-GF_SETUP_ERROR=0
-##notification is an error but keep the filter chain connected
-GF_NOTIF_ERROR=1
-##notification is an error and disconnect the filter chain
-GF_NOTIF_ERROR_AND_DISCONNECT=2
-
 ## Base class used to create custom filters in python
 class FilterCustom(Filter):
 
@@ -2837,22 +2943,6 @@ _libgpac.gf_filter_pck_new_copy.argtypes = [_gf_filter_pid, _gf_filter_packet, P
 _libgpac.gf_filter_pck_new_copy.restype = _gf_filter_packet
 
 ## \endcond private
-
-## Buffer occupancy object 
-class BufferOccupancy:
-  ##\cond private
-  def __init__(self, max_units, nb_pck, max_dur, dur, is_final_flush):
-  ##\endcond
-    ##maximum number of packets (partial or full AU) allowed in buffer
-    self.max_units = max_units
-    ##number of block allowed in buffer
-    self.nb_pck = nb_pck
-    ##maximum buffer duration in microseconds
-    self.max_dur = max_dur
-    ## buffer duration in microseconds
-    self.dur = dur
-    ##if true, the session has been aborted and this is the final flush for this buffer
-    self.is_final_flush = is_final_flush
 
 
 ## \cond private

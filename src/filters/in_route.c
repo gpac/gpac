@@ -912,9 +912,9 @@ GF_FilterRegister ROUTEInRegister = {
 	"\n"
 	"# Interface setup\n"
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"
-	"You will have to do this for the base ROUTE multicast (224.0.23.60):\n"
+	"For ATSC, you will have to do this for the base signaling multicast (224.0.23.60):\n"
 	"EX route add -net 224.0.23.60/32 -interface vboxnet0\n"
-	"and on each service multicast:\n"
+	"Then for each ROUTE service in the multicast:\n"
 	"EX route add -net 239.255.1.4/32 -interface vboxnet0\n"
 	"",
 #endif //GPAC_DISABLE_DOC

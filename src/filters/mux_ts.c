@@ -1064,8 +1064,12 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ts_stream = prog->streams;
 		while (ts_stream) {
 			M2Pid *atspid = ts_stream->ifce->input_udta;
-			s64 media_skip = -atspid->media_delay;
-			if (media_skip  > max_media_skip) {
+			s64 media_skip;
+			if (atspid->media_delay>=0)
+				continue;
+
+			media_skip = -atspid->media_delay;
+			if (!max_media_skip || (media_skip * max_skip_ts > max_media_skip * atspid->esi.timescale) ) {
 				max_media_skip = media_skip ;
 				max_skip_ts = atspid->esi.timescale;
 			}
@@ -1076,7 +1080,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		while (ts_stream) {
 			M2Pid *atspid = ts_stream->ifce->input_udta;
 			if (max_skip_ts) {
-				atspid->max_media_skip = (s32) (max_media_skip * atspid->esi.timescale / max_skip_ts);
+				atspid->max_media_skip = (max_media_skip * atspid->esi.timescale / max_skip_ts);
 			} else {
 				atspid->max_media_skip = 0;
 			}

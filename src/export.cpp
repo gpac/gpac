@@ -41,6 +41,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_copyright) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gpac_copyright_cite) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_abi_major) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_abi_minor) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gpac_abi_micro) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_close) )

@@ -43,10 +43,12 @@
  */
 /*! Macro giving GPAC version name expressed as a printable string*/
 #define GPAC_VERSION          "1.1.0-DEV"
+
+// WARNING: when bumping, reflect the changes in share/python/libgpac.py !!
 /*! ABI Major number of libgpac */
 #define GPAC_VERSION_MAJOR 10
 /*! ABI Minor number of libgpac */
-#define GPAC_VERSION_MINOR 3
+#define GPAC_VERSION_MINOR 4
 /*! ABI Micro number of libgpac */
 #define GPAC_VERSION_MICRO 0
 
@@ -64,6 +66,18 @@ const char *gf_gpac_copyright();
 \return GPAC copyright
 */
 const char *gf_gpac_copyright_cite();
+
+/*!gets libgpac ABI major version
+\return major number of libgpac ABI version*/
+u32 gf_gpac_abi_major();
+
+/*!gets libgpac ABI minor version
+\return minor number of libgpac ABI version*/
+u32 gf_gpac_abi_minor();
+
+/*!gets libgpac ABI major version
+\return micro number of libgpac ABI version*/
+u32 gf_gpac_abi_micro();
 
 /*! @} */
 

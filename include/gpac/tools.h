@@ -876,6 +876,7 @@ typedef struct
 \param blob_url URL of blob object (ie gmem://%p)
 \param out_data if success, set to blob data pointer
 \param out_size if success, set to blob data size
+\param blob_flags if success, set to blob flags - may be NULL
 \return error code
  */
 GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob_flags);
