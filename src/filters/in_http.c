@@ -190,6 +190,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->is_end = GF_TRUE;
 			//abort session
 			if (ctx->sess) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Stop requested, aborting download %s\n", ctx->src) );
 				gf_dm_sess_abort(ctx->sess);
 				gf_dm_sess_del(ctx->sess);
 				ctx->sess = NULL;
@@ -230,6 +231,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src);
 			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Switch from %s to %s\n", gf_file_basename(ctx->src), gf_file_basename(evt->seek.source_switch) ));
 			if (ctx->src) gf_free(ctx->src);
 			ctx->src = gf_strdup(evt->seek.source_switch);
 		} else {
