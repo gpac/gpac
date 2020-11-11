@@ -1929,6 +1929,8 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		if (f->multi_sink_target) continue;
 
+		gf_mx_p(f->tasks_mx);
+
 		ipids = f->num_input_pids;
 		opids = f->num_output_pids;
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\tFilter "));
@@ -1977,6 +1979,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		}
 #endif
 
+		gf_mx_v(f->tasks_mx);
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
@@ -3103,6 +3106,7 @@ GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
 			set_name = GF_FALSE;
 		}
 	}
+	gf_mx_p(f->tasks_mx);
 	stats->nb_pid_in = f->num_input_pids;
 	for (i=0; i<f->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(f->input_pids, i);
@@ -3131,6 +3135,7 @@ GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
 			set_name = GF_FALSE;
 		}
 	}
+	gf_mx_v(f->tasks_mx);
 	if (!stats->type && stats->codecid) {
 		if (!stats->nb_pid_out) {
 			stats->type = GF_FS_STATS_FILTER_MEDIA_SINK;
