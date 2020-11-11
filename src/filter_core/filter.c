@@ -925,6 +925,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 
 			}
 			if (arg->recursive & GF_FILTER_UPDATE_DOWNSTREAM) {
+				gf_mx_p(task->filter->tasks_mx);
 				for (i=0; i<task->filter->num_input_pids; i++) {
 					GF_FilterPidInst *pidi = gf_list_get(task->filter->input_pids, i);
 					if (gf_list_find(flist, pidi->pid->filter)<0) gf_list_add(flist, pidi->pid->filter);
@@ -935,6 +936,8 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 					//only allow downstream propagation
 					gf_fs_send_update(task->filter->session, NULL, a_f, arg->name, arg->val, GF_FILTER_UPDATE_DOWNSTREAM);
 				}
+
+				gf_mx_v(task->filter->tasks_mx);
 			}
 
 			gf_list_del(flist);
@@ -1703,15 +1706,20 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 	while (1) {
 		u32 fchain_len;
 		GF_FilterPidInst *an_inpid = NULL;
-		if (cur_filter->num_input_pids>1) break;
-		if (cur_filter->num_output_pids>1) break;
+		gf_mx_p(cur_filter->tasks_mx);
+		if ((cur_filter->num_input_pids>1) || (cur_filter->num_output_pids>1)) {
+			gf_mx_v(cur_filter->tasks_mx);
+			break;
+		}
 
 		an_inpid = gf_list_get(cur_filter->input_pids, 0);
-		if (!an_inpid)
+		if (!an_inpid) {
+			gf_mx_v(cur_filter->tasks_mx);
 			break;
-
+		}
 		if (gf_filter_pid_caps_match((GF_FilterPid *)an_inpid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
 			link_from_pid = an_inpid->pid;
+			gf_mx_v(cur_filter->tasks_mx);
 			break;
 		}
 		fchain_len = gf_filter_pid_resolve_link_length(an_inpid->pid, filter_dst);
@@ -1719,6 +1727,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 			min_chain_len = fchain_len;
 			link_from_pid = an_inpid->pid;
 		}
+		gf_mx_v(cur_filter->tasks_mx);
 		cur_filter = an_inpid->pid->filter;
 	}
 
@@ -1831,8 +1840,12 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	GF_Err e;
-	GF_FilterPidInst *src_pidi = gf_list_get(filter->input_pids, 0);
-	GF_FilterPid *src_pid = src_pidi->pid;
+	GF_FilterPidInst *src_pidi;
+	GF_FilterPid *src_pid;
+
+	gf_mx_p(filter->tasks_mx);
+	src_pidi = gf_list_get(filter->input_pids, 0);
+	src_pid = src_pidi->pid;
 	if (filter->is_pid_adaptation_filter) {
 		//do not remove from destination_filters, needed for end of pid_init task
 		if (!filter->dst_filter) filter->dst_filter = gf_list_get(filter->destination_filters, 0);
@@ -1849,6 +1862,7 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (e!=GF_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration error %s, discarding filter and reloading new adaptation chain\n", filter->name, gf_error_to_string(e)));
 		gf_filter_pid_retry_caps_negotiate(src_pid, pid, filter->dst_filter);
+		gf_mx_v(filter->tasks_mx);
 		return GF_FALSE;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration OK (between filters %s and %s)\n", filter->name, src_pid->filter->name, filter->dst_filter->name));
@@ -1868,6 +1882,7 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (filter->is_pid_adaptation_filter) {
 		filter->dst_filter = NULL;
 	}
+	gf_mx_v(filter->tasks_mx);
 	return GF_TRUE;
 }
 
@@ -1886,6 +1901,8 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 	u32 i, j;
 	assert(filter->nb_caps_renegociate );
 	safe_int_dec(& filter->nb_caps_renegociate );
+
+	gf_mx_p(filter->tasks_mx);
 
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
@@ -1957,6 +1974,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 			pid->caps_negociate_pidi = NULL;
 		}
 	}
+	gf_mx_v(filter->tasks_mx);
 }
 
 void gf_filter_renegociate_output_task(GF_FSTask *task)
@@ -2100,6 +2118,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 
 	if (kill_filter) {
 		u32 i;
+		gf_mx_p(filter->tasks_mx);
 		for (i=0; i<filter->num_input_pids; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 			gf_filter_pid_set_discard((GF_FilterPid *)pidi, GF_TRUE);
@@ -2108,6 +2127,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 			gf_filter_pid_set_eos(pid);
 		}
+		gf_mx_v(filter->tasks_mx);
 		filter->session->last_process_error = out_e;
 		filter->disabled = GF_TRUE;
 	}
@@ -2588,18 +2608,19 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	if (filter->num_input_pids) {
 		gf_filter_reset_pending_packets(filter);
 		filter->removed = GF_TRUE;
+		gf_mx_p(filter->tasks_mx);
 		while (filter->num_input_pids) {
 			GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, 0);
 			GF_Filter *sfilter = pidinst->pid->filter;				
 			gf_list_del_item(filter->input_pids, pidinst);
 			pidinst->filter = NULL;
-			gf_mx_p(filter->tasks_mx);
 			filter->num_input_pids = gf_list_count(filter->input_pids);
-			gf_mx_v(filter->tasks_mx);
 
 			//post a pid_delete task to also trigger removal of the filter if needed
 			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
 		}
+		gf_mx_v(filter->tasks_mx);
+
 		filter->session->last_connect_error = reason;
 		return;
 	}
@@ -2662,11 +2683,13 @@ void gf_filter_remove_task(GF_FSTask *task)
 
 	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
 
+	gf_mx_p(f->tasks_mx);
 	//detach all input pids
 	while (gf_list_count(f->input_pids)) {
 		GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
 		pidinst->filter = NULL;
 	}
+	gf_mx_v(f->tasks_mx);
 
 	gf_filter_del(f);
 	task->filter = NULL;
@@ -2689,19 +2712,24 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 	Bool mark_only = GF_FALSE;
 	if (filter==until_filter) return;
 
-	count = gf_list_count(filter->input_pids);
-	for (i=0; i<count; i++) {
+	gf_mx_p(filter->tasks_mx);
+	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		if (pidi->pid->filter==source_filter) nb_rem_inst++;
 	}
-	if (!nb_rem_inst)
+	if (!nb_rem_inst) {
+		gf_mx_v(filter->tasks_mx);
 		return;
+	}
 	filter->marked_for_removal = GF_TRUE;
-	if (nb_rem_inst != count)
+	if (nb_rem_inst != filter->num_input_pids)
 		mark_only = GF_TRUE;
+
 	//already removed
-	if (filter->removed) return;
-	
+	if (filter->removed) {
+		gf_mx_v(filter->tasks_mx);
+		return;
+	}
 	//filter will be removed, propagate on all output pids
 	if (!mark_only)
 		filter->removed = GF_TRUE;
@@ -2718,6 +2746,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 				gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
 		}
 	}
+	gf_mx_v(filter->tasks_mx);
 }
 
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections)
@@ -2763,6 +2792,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 	}
 	if (keep_end_connections) return;
 
+	gf_mx_p(filter->tasks_mx);
 	//check all pids connected to this filter, ensure their owner is only connected to this filter
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPid *pid;
@@ -2782,6 +2812,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 			gf_filter_remove_internal(pid->filter, NULL, GF_FALSE);
 		}
 	}
+	gf_mx_v(filter->tasks_mx);
 }
 
 GF_EXPORT
@@ -2797,6 +2828,7 @@ void gf_filter_remove(GF_Filter *filter)
 	if (!filter) return;
 
 	//locate source filter(s)
+	gf_mx_p(filter->tasks_mx);
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		//fanout, only disconnect this pid instance
@@ -2813,6 +2845,7 @@ void gf_filter_remove(GF_Filter *filter)
 			gf_filter_remove(pidi->pid->filter);
 		}
 	}
+	gf_mx_v(filter->tasks_mx);
 }
 
 #if 0
@@ -2911,6 +2944,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 
 	for (i=0; i<gf_list_count(filter->destination_links); i++) {
 		GF_Filter *af = gf_list_get(filter->destination_links, i);
+		gf_mx_p(af->tasks_mx);
 		if (af->num_input_pids) {
 			u32 j;
 			for (j=0; j<af->num_input_pids; j++) {
@@ -2918,6 +2952,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 				pidi->is_end_of_stream = GF_TRUE;
 			}
 		}
+		gf_mx_v(af->tasks_mx);
 		if (af->sticky) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s\n", src_url));
 		} else {
@@ -3578,13 +3613,16 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter)
 		u32 j;
 		GF_Filter *f = gf_list_get(filter->session->filters, i);
 		if (f->num_output_pids) continue;
+		gf_mx_p(f->tasks_mx);
 		for (j=0; j<f->num_input_pids; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(f->input_pids, j);
 			if (pidi->pid->is_playing && !pidi->is_end_of_stream) {
 				res = GF_FALSE;
+				gf_mx_v(f->tasks_mx);
 				goto exit;
 			}
 		}
+		gf_mx_v(f->tasks_mx);
 	}
 exit:
 	gf_mx_v(filter->session->filters_mx);
