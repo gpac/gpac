@@ -1065,8 +1065,10 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		while (ts_stream) {
 			M2Pid *atspid = ts_stream->ifce->input_udta;
 			s64 media_skip;
-			if (atspid->media_delay>=0)
+			if (atspid->media_delay>=0) {
+				ts_stream = ts_stream->next;
 				continue;
+			}
 
 			media_skip = -atspid->media_delay;
 			if (!max_media_skip || (media_skip * max_skip_ts > max_media_skip * atspid->esi.timescale) ) {
