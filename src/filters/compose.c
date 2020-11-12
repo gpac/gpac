@@ -987,7 +987,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"- views:// : creates an auto-stereo scene of N views from `views://v1:.:vN`. vN can be any type of URL supported by GPAC.\n"
 	"- mosaic:// : creates a mosaic of N views from `mosaic://v1:.:vN`. vN can be any type of URL supported by GPAC.\n"
 	"\n"
-	"The compositor can act as a source filter when the [-src]() option is explicitly set:\n"
+	"The compositor can act as a source filter when the [-src]() option is explicitly set, independently from the operating mode:\n"
 	"EX gpac compositor:src=source.mp4 vout\n"
 	"\n"
 	"The compositor can act as a source filter when the source url uses one of the compositor buildin protocol schemes:\n"
