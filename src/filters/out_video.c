@@ -85,7 +85,7 @@ typedef struct
 	GF_PropVec2i wsize, owsize;
 	GF_PropVec2i wpos;
 	Double start;
-	u32 buffer;
+	u32 buffer, mbuffer;
 	GF_Fraction vdelay;
 	const char *out;
 	GF_PropUIntList dumpframes;
@@ -356,7 +356,12 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, pid);
 		fevt.buffer_req.max_buffer_us = ctx->buffer * 1000;
-//		if (!fevt.buffer_req.max_buffer_us) fevt.buffer_req.max_buffer_us = 100000;
+		//we have a max buffer, move our computed max to playout and setup max buffer
+		if (ctx->mbuffer > ctx->buffer) {
+			fevt.buffer_req.max_playout_us = fevt.buffer_req.max_buffer_us;
+			fevt.buffer_req.max_buffer_us = ctx->mbuffer * 1000;
+		}
+
 		gf_filter_pid_send_event(pid, &fevt);
 
 		gf_filter_pid_init_play_event(pid, &fevt, ctx->start, ctx->speed, "VideoOut");
@@ -1857,7 +1862,8 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(vdelay), "set delay in sec, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "100", NULL, 0},
+	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "100", NULL, 0},
+	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(step), "step frame", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},

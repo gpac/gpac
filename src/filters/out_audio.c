@@ -37,7 +37,7 @@ typedef struct
 	Bool clock;
 	GF_Fraction64 dur;
 	Double speed, start;
-	u32 vol, pan, buffer;
+	u32 vol, pan, buffer, mbuffer;
 	GF_Fraction adelay;
 	
 	GF_FilterPid *pid;
@@ -409,7 +409,15 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			if (evt.buffer_req.max_buffer_us < b)
 				evt.buffer_req.max_buffer_us = (u32) b;
 		}
-		evt.buffer_req.pid_only = GF_TRUE;
+		//we have a max buffer, move our computed max to playout and setup max buffer
+		if (ctx->mbuffer > evt.buffer_req.max_buffer_us / 1000 ) {
+			evt.buffer_req.max_playout_us = evt.buffer_req.max_buffer_us;
+			evt.buffer_req.max_buffer_us = ctx->mbuffer * 1000;
+		}
+		//we don't have a max buffer, set buffer requirements to PID only
+		else {
+			evt.buffer_req.pid_only = GF_TRUE;
+		}
 
 		gf_filter_pid_send_event(pid, &evt);
 
@@ -597,7 +605,8 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vol), "set default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
-	{ OFFS(buffer), "set buffer in ms", GF_PROP_UINT, "200", NULL, 0},
+	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "200", NULL, 0},
+	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(adelay), "set audio delay in sec", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{0}
 };
