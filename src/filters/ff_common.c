@@ -1261,7 +1261,7 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
 void ffmpeg_report_unused_options(GF_Filter *filter, AVDictionary *options)
 {
 	AVDictionaryEntry *prev_e = NULL;
-	while (1) {
+	while (options) {
 		prev_e = av_dict_get(options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
 		if (!prev_e) break;
 		gf_filter_report_unused_meta_option(filter, prev_e->key);

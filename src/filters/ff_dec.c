@@ -209,9 +209,13 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 		//seems ffmpeg is not properly handling the decoding after a flush, we close and reopen the codec
 		if (ctx->flush_done) {
+			AVDictionary *options = NULL;
 			const AVCodec *codec = ctx->decoder->codec;
 			avcodec_close(ctx->decoder);
-			avcodec_open2(ctx->decoder, codec, NULL );
+
+			av_dict_copy(&options, ctx->options, 0);
+			avcodec_open2(ctx->decoder, codec, &options );
+			if (options) av_dict_free(&options);
 			ctx->flush_done = GF_FALSE;
 		}
 
@@ -637,6 +641,7 @@ static GF_Err ffdec_process(GF_Filter *filter)
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 	if (gf_filter_pid_would_block(ctx->out_pid))
 		return GF_OK;
+
 	return ctx->process(filter, ctx);
 }
 
@@ -644,7 +649,9 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 {
 	s32 res;
 	u32 type=0, gpac_codecid=0;
+	AVDictionary *options = NULL;
 	const GF_PropertyValue *prop;
+	AVCodec *codec=NULL;
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
 	//disconnect of src pid (not yet supported)
@@ -695,7 +702,6 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
-		AVCodec *codec=NULL;
 		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
 		if (!prop || !prop->value.ptr) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
@@ -705,16 +711,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		codec = avcodec_find_decoder(ctx->decoder->codec_id);
 		if (!codec) return GF_NOT_SUPPORTED;
 
-		res = avcodec_open2(ctx->decoder, codec, NULL );
-		if (res < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
         ctx->owns_context = GF_FALSE;
 	}
 	//we reconfigure the stream
 	else {
-		AVCodec *codec=NULL;
 		u32 codec_id, ff_codectag=0;
         
         if (!ctx->owns_context) {
@@ -787,15 +787,23 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 			ctx->extra_data_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
 		}
-
-		res = avcodec_open2(ctx->decoder, codec, NULL );
-		if (res < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
 	}
 
-	ffmpeg_report_unused_options(filter, ctx->options);
+	//by default let libavcodec decide - if single thread is required, let the user define -threads option
+	ctx->decoder->thread_count=0;
+	//clone options (in case we need to destroy/recreate the codec) and open codec
+	av_dict_copy(&options, ctx->options, 0);
+	res = avcodec_open2(ctx->decoder, codec, &options);
+	if (res < 0) {
+		if (options) av_dict_free(&options);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	if (options) {
+		ffmpeg_report_unused_options(filter, options);
+		av_dict_free(&options);
+	}
 
 	//we're good to go, declare our output pid
 	ctx->in_pid = pid;
@@ -930,6 +938,15 @@ static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED) || (evt->base.type==GF_FEVT_RESUME)) {
 		ctx->drop_non_refs = evt->play.drop_non_ref;
+		//play request, detach all pending source packets and trigger a reconfig to start from a clean state
+		if (evt->base.type==GF_FEVT_PLAY) {
+			while (gf_list_count(ctx->src_packets)) {
+				GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+				gf_filter_pck_unref(pck);
+				//reconfig will only be set if we had a source packet pending
+				ctx->reconfig_pending = GF_TRUE;
+			}
+		}
 	}
 	return GF_FALSE;
 }
@@ -971,7 +988,11 @@ GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
 	.version = LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG decoder")
-	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
+	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	"\n"
+	"Options can be passed from prompt using `-+OPT=VAL`\n"
+	"The default threading mode is to let libavcodec decide how many threads to use. To enforce single thread, use `-+threads=1`\n"
+	)
 	.private_size = sizeof(GF_FFDecodeCtx),
 	SETCAPS(FFDecodeCaps),
 	.initialize = ffdec_initialize,
