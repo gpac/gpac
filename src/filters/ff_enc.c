@@ -1343,7 +1343,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	else if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
-	if (codec->capabilities & (AV_CODEC_CAP_AUTO_THREADS|AV_CODEC_CAP_FRAME_THREADS|AV_CODEC_CAP_SLICE_THREADS))
+	if (codec->capabilities & AV_CODEC_CAP_AUTO_THREADS)
 		ctx->encoder->thread_count = 0;
 	res = avcodec_open2(ctx->encoder, codec, &ctx->options );
 	if (res < 0) {
