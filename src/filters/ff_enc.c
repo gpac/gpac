@@ -1343,7 +1343,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	else if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
-	ctx->encoder->thread_count = 0;
+	if (codec->capabilities & (AV_CODEC_CAP_AUTO_THREADS|AV_CODEC_CAP_FRAME_THREADS|AV_CODEC_CAP_SLICE_THREADS))
+		ctx->encoder->thread_count = 0;
 	res = avcodec_open2(ctx->encoder, codec, &ctx->options );
 	if (res < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
