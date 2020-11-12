@@ -2710,15 +2710,18 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 	u32 i, count, j, nb_inst;
 	u32 nb_rem_inst=0;
 	Bool mark_only = GF_FALSE;
+	Bool do_unlock;
 	if (filter==until_filter) return;
 
-	gf_mx_p(filter->tasks_mx);
+	//we do a try-lock here, as the filter could be locked by another thread
+	//this typically happens upon compositor source disconnection while an event or packet drop is still being processed on that filter
+	do_unlock = gf_mx_try_lock(filter->tasks_mx);
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		if (pidi->pid->filter==source_filter) nb_rem_inst++;
 	}
 	if (!nb_rem_inst) {
-		gf_mx_v(filter->tasks_mx);
+		if (do_unlock) gf_mx_v(filter->tasks_mx);
 		return;
 	}
 	filter->marked_for_removal = GF_TRUE;
@@ -2727,7 +2730,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 
 	//already removed
 	if (filter->removed) {
-		gf_mx_v(filter->tasks_mx);
+		if (do_unlock) gf_mx_v(filter->tasks_mx);
 		return;
 	}
 	//filter will be removed, propagate on all output pids
@@ -2746,7 +2749,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 				gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
 		}
 	}
-	gf_mx_v(filter->tasks_mx);
+	if (do_unlock) gf_mx_v(filter->tasks_mx);
 }
 
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections)
