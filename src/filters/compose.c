@@ -714,10 +714,13 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	gf_filter_set_event_target(filter, GF_TRUE);
 	if (ctx->player==2) {
 		const char *gui_path = gf_opts_get_key("General", "StartupFile");
-		if (gui_path)
+		if (gui_path) {
 			gf_sc_connect_from_time_ex(ctx, gui_path, 0, 0, 0, NULL);
+			gf_opts_set_key("temp", "gui_load_url", ctx->src);
+		}
 	}
-	else if (!ctx->player && ctx->src) {
+	//src set, connect it (whether player mode or not)
+	else if (ctx->src) {
 		gf_sc_connect_from_time_ex(ctx, ctx->src, 0, 0, 0, NULL);
 	}
 	return GF_OK;
