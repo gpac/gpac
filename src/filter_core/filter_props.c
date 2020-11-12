@@ -461,7 +461,14 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			szV[len] = 0;
 			if (p.type == GF_PROP_UINT_LIST) {
 				u32 val_uint;
-				sscanf(szV, "%u", &val_uint);
+				if (sscanf(szV, "%u", &val_uint) != 1) {
+					if (strlen(value)==4) {
+						val_uint = GF_4CC(value[0],value[1],value[2],value[3]);
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for uint arg %s[%d] - using 0\n", value, name, p.value.uint_list.nb_items));
+						val_uint = 0;
+					}
+				}
 				p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
 				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
 			} else if (p.type == GF_PROP_SINT_LIST) {
