@@ -46,7 +46,17 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			u8 unit_char = unit_sep[0];
 			if ((unit_char=='k') || (unit_char=='K')) unit = 1000;
 			else if ((unit_char=='m') || (unit_char=='M')) unit = 1000000;
-			if ((unit_char=='G') || (unit_char=='g')) unit = 1000000000;
+			else if ((unit_char=='G') || (unit_char=='g')) unit = 1000000000;
+		}
+		else if (type==GF_PROP_UINT) {
+			unit_sep = strstr(value, "sec");
+			if (unit_sep && strlen(unit_sep)==3)
+				unit = 1000;
+			else {
+				unit_sep = strstr(value, "min");
+				if (unit_sep && strlen(unit_sep)==3)
+					unit = 60000;
+			}
 		}
 	}
 

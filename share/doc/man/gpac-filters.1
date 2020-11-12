@@ -3022,7 +3022,9 @@ vol (uint, default: 100, minmax: 0-100, updatable): set default audio volume, as
 .br
 pan (uint, default: 50, minmax: 0-100, updatable): set stereo pan, as a percentage between 0 and 100, 50 being centered
 .br
-buffer (uint, default: 200):   set buffer in ms
+buffer (uint, default: 200):   set playout buffer in ms
+.br
+mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
 adelay (frac, default: 0, updatable): set audio delay in sec
 .br
@@ -3138,7 +3140,9 @@ hide (bool, default: false):   hide output window
 .br
 fullscreen (bool, default: false, updatable): use fullcreen
 .br
-buffer (uint, default: 100):   set buffer in ms
+buffer (uint, default: 100):   set playout buffer in ms
+.br
+mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
 dumpframes (uintl):            ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames
 .br
@@ -6782,7 +6786,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev214-g1f9bdbdad-master
+build: 1.1.0-DEV-rev219-g059cb8fb1-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

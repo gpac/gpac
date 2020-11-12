@@ -105,7 +105,7 @@ const char *gpac_doc =
 "# Property format\n"
 "- boolean: formatted as `yes`|`true`|`1` or `no`|`false`|`0`\n"
 "- enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value `0` (first in enum) is assumed.\n"
-"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`|`K` (x1000) or `m`|`M` (x1000000) or `g`|`G` (x1000000000). "
+"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`|`K` (x 1000) or `m`|`M` (x 1000000) or `g`|`G` (x 1000000000) or `sec` (x 1000) or `min` (x 60000). "
 "For such properties, value `+I` means maximum possible value, `-I` minimum possible value.\n"
 "- fraction: formatted as `num/den` or `num-den` or `num`, in which case the denominator is 1 if `num` is an integer, or 1000000 if `num` is a floating-point value.\n"
 "- unsigned 32 bit integer: formated as number or hexadecimal using the format `0xAABBCCDD`.\n"
