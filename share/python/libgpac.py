@@ -1788,6 +1788,8 @@ class DASHGroup:
         self.idx = groupidx
         ## List of DASHQualityInfo for group
         self.qualities = []
+        ## period duration, 0 if unknwon
+        self.duration = _libgpac.gf_dash_get_period_duration(ptr_dash)
         ## \cond priv
         self._dash = ptr_dash
         nb_qualities = _libgpac.gf_dash_group_get_num_qualities(ptr_dash, groupidx)
