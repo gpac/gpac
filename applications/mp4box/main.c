@@ -1584,6 +1584,8 @@ typedef struct
 	u32 item_type;
 	u32 ref_item_id;
 	u32 ref_type;
+	u32 group_id;
+	u32 group_type;
 	GF_ImageItemProperties *image_props;
 } MetaAction;
 
@@ -1708,6 +1710,12 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			}
 			meta->image_props->sample_num = atoi(szSlot+5);
 			meta->root_meta = 1;
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "group=", 6)) {
+			char type[4];
+			sscanf(szSlot, "group=%4s,%u", type, &meta->group_id);
+			meta->group_type = GF_4CC(type[0], type[1], type[2], type[3]);
 			ret = 1;
 		}
 		else if (!stricmp(szSlot, "split_tiles")) {
@@ -5799,6 +5807,9 @@ int mp4boxMain(int argc, char **argv)
 						if (e == GF_OK && meta->ref_type) {
 							e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
 						}
+						if (e == GF_OK && meta->group_type) {
+							e = gf_isom_meta_add_item_group(file, meta->root_meta, tk, meta->item_id, meta->group_id, meta->group_type);
+						}
 					}
 				}
 			}
@@ -5830,7 +5841,7 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case META_ACTION_DUMP_ITEM:
 			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
-				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, strlen(meta->szPath) ? meta->szPath : NULL);
+				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, meta->szPath && strlen(meta->szPath) ? meta->szPath : NULL);
 			} else {
 				fprintf(stderr, "No meta box in input file\n");
 			}
