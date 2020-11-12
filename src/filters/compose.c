@@ -882,8 +882,11 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(rview), "reverse view order", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(tvtn), "number of point sampling for tile visibility algo", GF_PROP_UINT, "30", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tvtt), "number of points above which the tile is considered visible", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tvtd), "disable the tile having full coverage of the SRD, only displaying partial tiles", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tvtt), "number of points above which the tile is considered visible", GF_PROP_UINT, "8", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tvtd), "debug tiles and full coverage SRD\n"
+		"- off: regular draw\n"
+		"- partial: only displaying partial tiles, not the full sphere video\n"
+		"- full: only display the full sphere video", GF_PROP_UINT, "off", "off|partial|full", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tvtf), "force all tiles to be considered visible, regardless of viewpoint", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fov), "default field of view for VR", GF_PROP_FLOAT, "1.570796326794897", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vertshader), "path to vertex shader file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT },

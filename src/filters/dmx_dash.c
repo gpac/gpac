@@ -2366,6 +2366,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			}
 			has_pck = GF_TRUE;
 			check_eos = GF_FALSE;
+			if (gf_filter_pid_would_block(opid))
+				break;
+
 			dashdmx_forward_packet(ctx, pck, ipid, opid, group);
 			group->wait_for_pck = GF_FALSE;
 			dashdmx_update_group_stats(ctx, group);

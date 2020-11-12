@@ -651,7 +651,8 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			break;
 		case GF_KEY_D:
 			if (keys & GF_KEY_MOD_CTRL) {
-				compositor->tvtd = !compositor->tvtd;
+				if (compositor->tvtd==TILE_DEBUG_FULL) compositor->tvtd = 0;
+				else compositor->tvtd ++;
 				gf_sc_invalidate(compositor, NULL);
 				return 1;
 			}

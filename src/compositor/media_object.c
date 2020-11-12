@@ -380,14 +380,14 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 
 static u64 convert_ts_to_ms(GF_MediaObject *mo, u64 ts, u32 timescale, Bool *discard)
 {
-	if (mo->odm->delay) {
-		if (mo->odm->delay >= 0) {
-			ts += mo->odm->delay;
-		} else if (ts < (u64) -mo->odm->delay) {
+	if (mo->odm->timestamp_offset) {
+		if (mo->odm->timestamp_offset >= 0) {
+			ts += mo->odm->timestamp_offset;
+		} else if (ts < (u64) -mo->odm->timestamp_offset) {
 			*discard = GF_TRUE;
 			return 0;
 		} else {
-			ts -= -mo->odm->delay;
+			ts -= -mo->odm->timestamp_offset;
 		}
 	}
 	ts *= 1000;
@@ -433,9 +433,14 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 	}
 
 	if ( gf_odm_check_buffering(mo->odm, NULL) ) {
-		//if buffering, first frame fetched and still buffering return
-		if (mo->first_frame_fetched && mo->odm->nb_buffering)
+		//special flag set for tiles only, return NULL until we are done buffering
+		if (mo->odm->flags & GF_ODM_TILED_SHARED_CLOCK) {
 			return NULL;
+		}
+		//if buffering, first frame fetched and still buffering return last frame
+		if (mo->first_frame_fetched && mo->odm->nb_buffering) {
+			return mo->frame_ifce ? (u8 *) mo->frame_ifce : mo->frame;
+		}
 	}
 
 retry:
@@ -631,6 +636,7 @@ retry:
 			//delete our packet
 			gf_filter_pck_unref(mo->pck);
 			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
+			assert(mo->pck);
 			gf_filter_pck_ref( &mo->pck);
 
 			pck_ts = convert_ts_to_ms(mo, gf_filter_pck_get_cts(mo->pck), timescale, &discard);
@@ -790,7 +796,7 @@ retry:
 //	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
 	if (mo->frame_ifce)
-		return (char *) mo->frame_ifce;
+		return (u8 *) mo->frame_ifce;
 
 	return mo->frame;
 }
@@ -874,7 +880,7 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 				return;
 			}
 		}
-		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
+		if ( (mo->odm->flags & GF_ODM_NO_TIME_CTRL) || (clipBegin<0) ) {
 			mo->odm->media_start_time = 0;
 		} else {
 			mo->odm->media_start_time = (u64) (clipBegin*1000);
