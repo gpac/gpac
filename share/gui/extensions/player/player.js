@@ -991,10 +991,10 @@ extension = {
 		
         if (!this.movie) {
             this.init_extension();
-
             //check our args
             var i;
-            var url_arg = null;
+            //get URL when loading compositor in GUI mode with src option set
+            var url_arg = scene.get_option('temp', 'gui_load_url');
             var prog_name = Sys.args[0]; 
             var check_gpac_args = 1;
             //check mp4client or MP4Client
