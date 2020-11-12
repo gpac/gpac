@@ -1956,7 +1956,6 @@ def dash_rate_adaptation(cbk, groupidx, base_groupidx, force_low_complex, stats)
 @CFUNCTYPE(c_int, c_void_p, c_uint, POINTER(DASHGroupDownloadStatistics))
 def dash_download_monitor(cbk, groupidx, stats):
  obj = cast(cbk, py_object).value
- print(' in download callback')
  group = None
  for i in range(len(obj.groups)):
     if obj.groups[i].idx==groupidx:
