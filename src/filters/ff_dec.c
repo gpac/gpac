@@ -794,7 +794,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
-	if (codec->capabilities & (AV_CODEC_CAP_AUTO_THREADS|AV_CODEC_CAP_FRAME_THREADS|AV_CODEC_CAP_SLICE_THREADS))
+	if (codec->capabilities & AV_CODEC_CAP_AUTO_THREADS)
 		ctx->decoder->thread_count = 0;
 
 	//clone options (in case we need to destroy/recreate the codec) and open codec
