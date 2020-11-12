@@ -136,8 +136,9 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 static void httpin_set_eos(GF_HTTPInCtx *ctx)
 {
 	//no pending packets, signal eos right away
-	if (!ctx->pck_out)
+	if (!ctx->pck_out) {
 		gf_filter_pid_set_eos(ctx->pid);
+	}
 	else
 		ctx->pck_out = HTTP_PCK_OUT_EOS;
 }
@@ -181,16 +182,17 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid)) return GF_FALSE;
 
 	switch (evt->base.type) {
+	//we only check PLAY for full_file_only hint
 	case GF_FEVT_PLAY:
-		ctx->is_end = GF_FALSE;
 		ctx->full_file_only = evt->play.full_file_only;
+		//do NOT reset is_end to false, restarting the session is always done via a source_seek event
 		return GF_TRUE;
 	case GF_FEVT_STOP:
 		if (!ctx->is_end) {
 			ctx->is_end = GF_TRUE;
 			//abort session
 			if (ctx->sess) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Stop requested, aborting download %s\n", ctx->src) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Stop requested, aborting download %s (pck out %d) this %p\n", ctx->src, ctx->pck_out, ctx) );
 				gf_dm_sess_abort(ctx->sess);
 				gf_dm_sess_del(ctx->sess);
 				ctx->sess = NULL;

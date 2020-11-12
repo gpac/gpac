@@ -835,6 +835,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ch->speed = evt->play.speed;
 		ch->initial_play_seen = GF_TRUE;
 		read->reset_frag_state = 1;
+		//it can happen that input_is_stop is still TRUE because we did not get called back after the stop - reset to FALSE since we now play
+		read->input_is_stop = GF_FALSE;
 		if (read->frag_type)
 			read->frag_type = 1;
 
@@ -976,7 +978,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	default:
 		break;
 	}
-	//by default don't cancel event - to rework once we have downloading in place
+	//by default don't cancel event
 	return GF_FALSE;
 }
 
@@ -1390,6 +1392,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					} else {
 						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL );
 					}
+
 					gf_filter_pid_set_eos(ch->pid);
 				}
 				break;

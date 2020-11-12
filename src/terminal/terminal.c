@@ -339,7 +339,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	def_h = opt ? atoi(opt) : 0;
 
 	if (def_w && def_h) {
-		sprintf(szArgs, "compositor:FID=compose:player=base:size=%dx%d", def_w, def_h);
+		sprintf(szArgs, "compositor:FID=compose:player=base:osize=%dx%d", def_w, def_h);
 	} else {
 		strcpy(szArgs, "compositor:FID=compose:player=base");
 	}

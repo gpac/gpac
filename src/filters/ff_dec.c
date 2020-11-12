@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -209,6 +209,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 		//seems ffmpeg is not properly handling the decoding after a flush, we close and reopen the codec
 		if (ctx->flush_done) {
+#if 0
 			AVDictionary *options = NULL;
 			const AVCodec *codec = ctx->decoder->codec;
 			avcodec_close(ctx->decoder);
@@ -216,6 +217,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			av_dict_copy(&options, ctx->options, 0);
 			avcodec_open2(ctx->decoder, codec, &options );
 			if (options) av_dict_free(&options);
+#else
+			avcodec_flush_buffers(ctx->decoder);
+#endif
 			ctx->flush_done = GF_FALSE;
 		}
 
@@ -938,16 +942,17 @@ static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED) || (evt->base.type==GF_FEVT_RESUME)) {
 		ctx->drop_non_refs = evt->play.drop_non_ref;
-		//play request, detach all pending source packets and trigger a reconfig to start from a clean state
-		if (evt->base.type==GF_FEVT_PLAY) {
-			while (gf_list_count(ctx->src_packets)) {
-				GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
-				gf_filter_pck_unref(pck);
-				//reconfig will only be set if we had a source packet pending
-				ctx->reconfig_pending = GF_TRUE;
-			}
+	}
+	//play request, detach all pending source packets and trigger a reconfig to start from a clean state
+	else if (evt->base.type==GF_FEVT_STOP) {
+		while (gf_list_count(ctx->src_packets)) {
+			GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+			gf_filter_pck_unref(pck);
+			//for video, this will reset the decoder
+			ctx->flush_done = GF_TRUE;
 		}
 	}
+
 	return GF_FALSE;
 }
 

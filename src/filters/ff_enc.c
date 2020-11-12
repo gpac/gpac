@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -1342,6 +1342,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (ctx->all_intra) ctx->encoder->gop_size = 0;
 	else if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
 
+	//by default let libavcodec decide - if single thread is required, let the user define -threads option
+	ctx->encoder->thread_count = 0;
 	res = avcodec_open2(ctx->encoder, codec, &ctx->options );
 	if (res < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));

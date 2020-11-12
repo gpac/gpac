@@ -676,14 +676,7 @@ clock_setup:
 	odm->clock_inherited = clock_inherited;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-	if (prop) {
-		odm->delay = prop->value.longsint;
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-		if (prop) {
-			odm->delay *= 1000;
-			odm->delay /= (s32) prop->value.uint;
-		}
-	}
+	odm->timestamp_offset = prop ? prop->value.longsint : 0;
 
 	gf_odm_update_duration(odm, pid);
 	/*regular setup*/
@@ -769,7 +762,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		return;
 	}
 
-	if ( !(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->owns_clock ) {
+	if ( !(odm->flags & (GF_ODM_INHERIT_TIMELINE|GF_ODM_TILED_SHARED_CLOCK) ) && odm->owns_clock ) {
 		gf_clock_reset(clock);
 	}
 
@@ -916,10 +909,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	if (odm->state != GF_ODM_STATE_PLAY) {
 		odm->state = GF_ODM_STATE_PLAY;
+
 		odm->nb_buffering ++;
 		scene->nb_buffering++;
 		//start buffering
 		gf_clock_buffer_on(odm->ck);
+
 		odm->has_seen_eos = GF_FALSE;
 
 		if ((odm->type!=GF_STREAM_VISUAL) && (odm->type!=GF_STREAM_AUDIO)) {
@@ -937,6 +932,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 				xpid->state = GF_ODM_STATE_PLAY;
 				com.base.on_pid = xpid->pid;
 				odm->has_seen_eos = GF_FALSE;
+
 				odm->nb_buffering ++;
 				scene->nb_buffering++;
 				//start buffering
@@ -1450,7 +1446,7 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *pid, Bool *signal_eob)
 {
 	u32 timescale;
-	u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid, GF_TRUE);
+	u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid, GF_FALSE);
 	if (odm->ck && ! odm->ck->clock_init) {
 		u64 time;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
@@ -1464,12 +1460,12 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("No timestamp on first packet, using 0\n"));
 			time = 0;
 		}
-		if (odm->delay<0) {
-			if (time < (u64) -odm->delay) {
+		if (odm->timestamp_offset<0) {
+			if (time < (u64) -odm->timestamp_offset) {
 				gf_filter_pid_drop_packet(pid);
 				return GF_TRUE;
 			}
-			time-= -odm->delay;
+			time-= -odm->timestamp_offset;
 		}
 
 		time *= 1000;
@@ -1568,7 +1564,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	 			odm_update_buffer(scene, an_odm, an_odm->pid, &signal_eob);
 		}
 	} else if (!odm->blocking_media && odm->buffer_min_us && odm->pid && odm->ck && odm->ck->clock_init && !gf_filter_pid_has_seen_eos(odm->pid) ) {
-		u64 buffer_duration = gf_filter_pid_query_buffer_duration(odm->pid, GF_TRUE);
+		u64 buffer_duration = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
 		if (buffer_duration < odm->buffer_min_us) {
 			gf_clock_buffer_on(odm->ck);
 			odm->nb_buffering++;

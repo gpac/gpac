@@ -150,6 +150,12 @@ typedef struct
 
 #define DOUBLECLICK_TIME_MS		250
 
+enum
+{
+	TILE_DEBUG_NONE=0,
+	TILE_DEBUG_PARTIAL,
+	TILE_DEBUG_FULL
+};
 
 enum
 {
@@ -646,8 +652,8 @@ struct __tag_compositor
 	u8 *screen_buffer, *line_buffer;
 	u32 screen_buffer_alloc_size;
 
-	u32 tvtn, tvtt;
-	Bool tvtd, tvtf;
+	u32 tvtn, tvtt, tvtd;
+	Bool tvtf;
 	u32 vrhud_mode;
 	Fixed fov;
 
@@ -2037,6 +2043,8 @@ enum
 
 	/*flag indicates the odm is a target passthrough*/
 	GF_ODM_PASSTHROUGH = (1<<15),
+	/*flag indicates the clock is shared between tiles and a play should not trigger a rebuffer*/
+	GF_ODM_TILED_SHARED_CLOCK = (1<<16),
 };
 
 enum
@@ -2133,7 +2141,8 @@ struct _od_manager
 	u32 timeshift_depth;
 
 	u32 action_type;
-	s64 delay;
+	//delay in PID timescale
+	s64 timestamp_offset;
 	
 	Fixed set_speed;
 	Bool disable_buffer_at_next_play;
