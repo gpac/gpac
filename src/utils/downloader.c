@@ -1565,9 +1565,10 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		e = gf_sk_receive(sess->sock, NULL, 0, NULL);
 		//empty and no pending bytes in SSL, network empty
 		if ((e==GF_IP_NETWORK_EMPTY) &&
-#ifdef GPAC_CONFIG_IOS
+#if 1
 			!SSL_pending(sess->ssl)
 #else
+			//no support for SSL_has_pending in old libSSL and same result can be achieved with SSL_pending
 			!SSL_has_pending(sess->ssl)
 #endif
 		) {
