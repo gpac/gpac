@@ -292,13 +292,15 @@ let reverse=false;
 function prog_interact(evt)
 {
 	let ret = audio_only ? true : false;
-
 	let x = evt.mouse_x - disp_size.x/2;
 	let y = disp_size.y - evt.mouse_y - ol_height/2;
 
 	if (x<-ol_width/2) return ret;
 	if (x>ol_width/2) return ret;
 	if (y>ol_height/2) return ret;
+
+	if (!check_duration())
+		return true;
 
 	if (!progress_bar_path.point_over(x, y)) {
 		x -= prog_ox;
@@ -339,6 +341,9 @@ function update_play()
 		return;
 	}
 
+	let has_dur = check_duration();
+	if (!has_dur) reverse = false;
+
 	let h, m, s;
 	let last_ts = last_ts_f.n;
 	last_ts /= last_ts_f.d;
@@ -363,14 +368,17 @@ function update_play()
 	text.fontsize = fs; 
 	text.set_text(str);
 	let mx = new evg.Matrix2D();
-	mx.translate(ol_width/2 - str.length * text.fontsize/2, -10);
+	if (has_dur)
+		mx.translate(ol_width/2 - str.length * text.fontsize/2, -10);
+	else
+		mx.translate(- str.length * text.fontsize/3, -10);
 	ol_canvas.matrix = mx;
 	ol_canvas.path = text;
 	ol_canvas.fill(brush);
 	length -= str.length * text.fontsize/2;
 	
 
-	if (check_duration()) {
+	if (has_dur) {
 		if (!progress_bar_path) {
 			prog_length = length;
 			prog_ox = 10 + (length - ol_width) / 2;
