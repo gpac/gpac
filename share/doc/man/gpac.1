@@ -576,13 +576,17 @@ set preferred language
 .TP
 .B \-cfg,-opt (string)
 .br
-set configuration file value. The string parameter can be formatted as:
+get or set configuration file value. The string parameter can be formatted as:
 .br
 * `section:key=val`: set the key to a new value
 .br
 * `section:key=null`, `section:key`: remove the key
 .br
-* `section:*=null`: remove the section
+* `section:*=null`: remove the section- no argument: print the entire configuration file
+.br
+* `section`: print the given section
+.br
+* `section:key`: print the given key in section (section can be set to *)- *:key: print the given key in all sections
 .br
 .TP
 .B \-no-save
@@ -3879,7 +3883,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev227-g6c7c730b4-master
+build: 1.1.0-DEV-rev238-g9d367bb45-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

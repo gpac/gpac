@@ -1173,10 +1173,14 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-js-mods", NULL, "disable javascript module loading", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("ifce", NULL, "set default multicast interface through interface IP address (default is 127.0.0.1)", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("lang", NULL, "set preferred language", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("cfg", "opt", "set configuration file value. The string parameter can be formatted as:\n"\
+ GF_DEF_ARG("cfg", "opt", "get or set configuration file value. The string parameter can be formatted as:\n"\
 	        "- `section:key=val`: set the key to a new value\n"\
 	        "- `section:key=null`, `section:key`: remove the key\n"\
 	        "- `section:*=null`: remove the section"\
+	        "- no argument: print the entire configuration file\n"\
+	        "- `section`: print the given section\n"\
+	        "- `section:key`: print the given `key` in `section` (section can be set to `*`)"\
+	        "- `*:key`: print the given `key` in all sections"\
 			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-save", NULL, "discard any changes made to the config file upon exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("version", NULL, "set to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
@@ -1421,7 +1425,48 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 
 	if (!strcmp(arg->name, "cfg")) {
 		*consumed_next = GF_TRUE;
-		if (! gf_sys_set_cfg_option(val)) *e = GF_BAD_PARAM;
+		if (val && strchr(val, '=')) {
+			if (! gf_sys_set_cfg_option(val)) *e = GF_BAD_PARAM;
+		} else {
+			u32 sec_len = 0;
+			char *sep = val ? strchr(val, ':') : NULL;
+			u32 sec_count = gf_opts_get_section_count();
+			if (sep) {
+				sec_len = sep - val - 1;
+				sep++;
+			} else if (val) {
+				sec_len = strlen(val);
+			}
+			for (i=0; i<sec_count; i++) {
+				u32 k, key_count;
+				Bool sec_hdr_done = GF_FALSE;
+				const char *sname = gf_opts_get_section_name(i);
+				key_count = sname ? gf_opts_get_key_count(sname) : 0;
+				if (!key_count) continue;
+
+				if (sec_len) {
+					if (!strncmp(val, "*", sec_len) || !strncmp(val, "@", sec_len)) {
+					} else if (strncmp(val, sname, sec_len) || (sec_len != (u32) strlen(sname) ) ) {
+						continue;
+					}
+				}
+				for (k=0; k<key_count; k++) {
+					const char *kname = gf_opts_get_key_name(sname, k);
+					const char *kval = kname ? gf_opts_get_key(sname, kname) : NULL;
+					if (!kval) continue;
+					if (sep && strcmp(sep, kname)) continue;
+
+					if (!sec_hdr_done) {
+						sec_hdr_done = GF_TRUE;
+						fprintf(stdout, "[%s]\n", sname);
+					}
+					fprintf(stdout, "%s=%s\n", kname, kval);
+				}
+				if (sec_hdr_done)
+					fprintf(stdout, "\n");
+			}
+			exit(0);
+		}
 		return GF_TRUE;
 	}
 	if (!strcmp(arg->name, "strict-error")) {
