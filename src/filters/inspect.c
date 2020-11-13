@@ -2831,6 +2831,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 {
 	GF_FilterEvent evt;
 	PidCtx *pctx;
+	u32 w, h, sr, ch;
 	const GF_PropertyValue *p;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
@@ -2864,14 +2865,48 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	pctx->codec_id = p ? p->value.uint : 0;
 
+	w = h = sr = ch = 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (p) w = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+	if (p) h = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+	if (p) sr = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+	if (p) ch = p->value.uint;
+
 	if (! ctx->interleave) {
 		u32 insert_idx = 0;
 		u32 i;
 		//sort all PIDs by codec IDs
 		for (i=0; i<gf_list_count(ctx->src_pids); i++) {
+			Bool insert = GF_FALSE;
 			PidCtx *actx = gf_list_get(ctx->src_pids, i);
 
 			if (pctx->codec_id < actx->codec_id) {
+				insert = GF_TRUE;
+			}
+			//same codec ID, sort by increasing width/height/samplerate/channels
+			else if (pctx->codec_id==actx->codec_id) {
+				u32 aw, ah, asr, ach;
+
+				aw = ah = asr = ach = 0;
+				p = gf_filter_pid_get_property(actx->src_pid, GF_PROP_PID_WIDTH);
+				if (p) aw = p->value.uint;
+				p = gf_filter_pid_get_property(actx->src_pid, GF_PROP_PID_HEIGHT);
+				if (p) ah = p->value.uint;
+				p = gf_filter_pid_get_property(actx->src_pid, GF_PROP_PID_SAMPLE_RATE);
+				if (p) asr = p->value.uint;
+				p = gf_filter_pid_get_property(actx->src_pid, GF_PROP_PID_NUM_CHANNELS);
+				if (p) ach = p->value.uint;
+
+				if (w && aw && (w<aw)) insert = GF_TRUE;
+				if (h && ah && (h<ah)) insert = GF_TRUE;
+				if (sr && asr && (sr<asr)) insert = GF_TRUE;
+				if (ch && ach && (ch<ach)) insert = GF_TRUE;
+			}
+
+			if (insert) {
 				insert_idx = i+1;
 				break;
 			}
