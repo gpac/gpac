@@ -2870,19 +2870,20 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		//sort all PIDs by codec IDs
 		for (i=0; i<gf_list_count(ctx->src_pids); i++) {
 			PidCtx *actx = gf_list_get(ctx->src_pids, i);
-			insert_idx = i;
 
-			p = gf_filter_pid_get_property(actx->src_pid, GF_PROP_PID_CODECID);
-			if (!p || (pctx->codec_id < p->value.uint)) {
+			if (pctx->codec_id < actx->codec_id) {
+				insert_idx = i+1;
 				break;
 			}
 		}
-
-		gf_list_insert(ctx->src_pids, pctx, insert_idx);
-
-		for (i=insert_idx+1; i<gf_list_count(ctx->src_pids); i++) {
-			PidCtx *actx = gf_list_get(ctx->src_pids, i);
-			actx->idx = i+1;
+		if (insert_idx) {
+			gf_list_insert(ctx->src_pids, pctx, insert_idx-1);
+			for (i=insert_idx; i<gf_list_count(ctx->src_pids); i++) {
+				PidCtx *actx = gf_list_get(ctx->src_pids, i);
+				actx->idx = i+1;
+			}
+		} else {
+			gf_list_add(ctx->src_pids, pctx);
 		}
 	} else {
 		pctx->tmp = ctx->dump;
