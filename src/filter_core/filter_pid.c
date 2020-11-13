@@ -5967,12 +5967,15 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 		GF_FilterPidInst *apidi = gf_list_get(f->input_pids, 0);
 		if (apidi->pid) {
+			//unlock before setting discard to avoid deadlocks during shutdown
+			gf_mx_v(f->tasks_mx);
 			if (evt->base.type==GF_FEVT_STOP) {
 				if (!canceled)
 					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_TRUE);
 			} else if (evt->base.type==GF_FEVT_PLAY) {
 				gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_FALSE);
 			}
+			gf_mx_p(f->tasks_mx);
 		}
 	}
 	gf_mx_v(f->tasks_mx);
