@@ -307,6 +307,10 @@ Section "GPAC Player" SecOsmo4
   SetOutPath $INSTDIR\share\scripts
   File /r /x .git ${GPAC_ROOT}\share\scripts\*
 
+  ;copy python
+  SetOutPath $INSTDIR\share\python
+  File /r /x .git ${GPAC_ROOT}\share\python\*
+
   ;copy shaders
   SetOutPath $INSTDIR\share\shaders
   File /r /x .git ${GPAC_ROOT}\share\shaders\*
