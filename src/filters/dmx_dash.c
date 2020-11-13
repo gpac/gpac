@@ -550,6 +550,7 @@ void dashdmx_js_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 			JS_SetPropertyStr(ctx->js_ctx, rep, "channels", JS_NewInt32(ctx->js_ctx, qinfo.nb_channels));
 		}
 		JS_SetPropertyStr(ctx->js_ctx, rep, "ast_offset", JS_NewFloat64(ctx->js_ctx, qinfo.ast_offset));
+		JS_SetPropertyStr(ctx->js_ctx, rep, "avg_duration", JS_NewFloat64(ctx->js_ctx, qinfo.average_duration));
 
 		if (qinfo.seg_urls) {
 			u32 k=0, nb_segs=gf_list_count(qinfo.seg_urls);

@@ -744,6 +744,7 @@ u32 gf_dash_group_get_num_components(GF_DashClient *dash, u32 group_idx);
 void gf_dash_disable_speed_adaptation(GF_DashClient *dash, Bool disable);
 
 /*! DASH/HLS quality information structure*/
+//UPDATE DASHQualityInfoNat in libgpac.py whenever modifying this structure !!
 typedef struct
 {
 	/*! bandwidth in bits per second*/
@@ -778,6 +779,8 @@ typedef struct
 	Bool is_selected;
 	/*! AST offset in seconds, 0 if not low latency*/
 	Double ast_offset;
+	/*! average segment duration, 0 if unknown*/
+	Double average_duration;
 	/*! list of segmentURLs if known, NULL otherwise. Used for onDemand profile to get segment sizes*/
 	const GF_List *seg_urls;
 } GF_DASHQualityInfo;
