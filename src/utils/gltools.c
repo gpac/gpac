@@ -1480,6 +1480,17 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
 	}
+
+	//restore red/alpha scale
+	if (tx->scale_10bit) {
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+		glPixelTransferi(GL_RED_SCALE, 1);
+		glPixelTransferi(GL_ALPHA_SCALE, 1);
+		glPixelStorei(GL_UNPACK_LSB_FIRST, 0);
+#endif
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	}
+
 	return GF_TRUE;
 }
 
