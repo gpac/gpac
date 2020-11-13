@@ -1142,7 +1142,8 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 
 	if (gf_fs_is_last_task(fsess))
 		return GF_FALSE;
-	*reschedule_ms = 500;
+	//check every 50 ms
+	*reschedule_ms = 50;
 	return GF_TRUE;
 }
 

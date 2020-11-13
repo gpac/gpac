@@ -1698,6 +1698,7 @@ class DASHQualityInfoNat(Structure):
         ("disabled", gf_bool),
         ("is_selected", gf_bool),
         ("ast_offset", c_double),
+        ("avg_duration", c_double),
         ("sizes", _gf_list),
     ]
 
@@ -1769,6 +1770,8 @@ class DASHQualityInfo:
         self.is_selected = qinfon.is_selected
         ## AST offset for DASH low latency mode, 0 otherwise
         self.ast_offset = qinfon.ast_offset
+        ## Average segment duration in seconds, 0 if unknown
+        self.avg_duration = qinfon.avg_duration
         ## list of segment sizes for VoD cases, None otherwise or if unknown
         self.sizes = None
         ## \cond priv

@@ -8431,6 +8431,7 @@ GF_EXPORT
 GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_idx, GF_DASHQualityInfo *quality)
 {
 	GF_MPD_Fractional *sar;
+	u32 timescale = 0;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	GF_MPD_Representation *rep;
 	if (!group || !quality) return GF_BAD_PARAM;
@@ -8471,12 +8472,24 @@ GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_
 
 	if (rep->segment_template) {
 		if (!quality->ast_offset) quality->ast_offset = rep->segment_template->availability_time_offset;
+		if (!timescale) timescale = rep->segment_template->timescale;
+		if (!quality->average_duration) quality->average_duration = (Double) rep->segment_template->duration;
 	}
 	if (group->adaptation_set->segment_template) {
 		if (!quality->ast_offset) quality->ast_offset = group->adaptation_set->segment_template->availability_time_offset;
+		if (!timescale) timescale = group->adaptation_set->segment_template->timescale;
+		if (!quality->average_duration) quality->average_duration =  (Double) group->adaptation_set->segment_template->duration;
 	}
 	if (group->period->segment_template) {
 		if (!quality->ast_offset) quality->ast_offset = group->period->segment_template->availability_time_offset;
+		if (!timescale) timescale = group->period->segment_template->timescale;
+		if (!quality->average_duration) quality->average_duration =  (Double) group->period->segment_template->duration;
+	}
+
+	if (timescale) {
+		quality->average_duration /= timescale;
+	} else {
+		quality->average_duration = 0;
 	}
 	return GF_OK;
 }
