@@ -478,6 +478,8 @@ struct __gf_filter
 	//but dynamic_source_ids still contains the unresolved pattern (eg ServiceID=*)
 	char *dynamic_source_ids;
 
+	char *restricted_source_id;
+	
 	//parent media session
 	GF_FilterSession *session;
 

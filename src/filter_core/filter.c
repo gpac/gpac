@@ -472,6 +472,7 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->dst_args) gf_free(filter->dst_args);
 	if (filter->name) gf_free(filter->name);
 	if (filter->status_str) gf_free(filter->status_str);
+	if (filter->restricted_source_id) gf_free(filter->restricted_source_id);
 
 	if (!filter->session->in_final_flush && !filter->session->run_status) {
 		u32 i, count;
@@ -3205,6 +3206,19 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_filter_set_source_restricted(GF_Filter *filter, GF_Filter *link_from, const char *link_ext)
+{
+	GF_Err e =  gf_filter_set_source(filter, link_from, link_ext);
+	if (e) return e;
+	if (link_from->restricted_source_id)
+		gf_free(link_from->restricted_source_id);
+
+	link_from->restricted_source_id = gf_strdup(link_from->id);
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps )

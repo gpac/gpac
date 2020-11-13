@@ -309,6 +309,12 @@ void send_update(DOMString filter_id, DOMString arg_name, DOMString arg_value, l
 */
 void set_source(Filter from, optional DOMString source_id=null);
 
+/*! assigns restricted source name to a filter - see \ref gf_filter_set_source_restricted
+\param from a Filter or a FilterInstance object to set a a source for this filter
+\param source_id the source ID to assign
+*/
+void set_source_restricted(Filter from, optional DOMString source_id=null);
+
 /*! removes a source filter - see \ref gf_filter_remove_src*/
 void remove();
 

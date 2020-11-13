@@ -1618,6 +1618,7 @@ _libgpac.gf_filter_get_stats.argtypes = [_gf_filter, POINTER(FilterStats)]
 _libgpac.gf_filter_remove.argtypes = [_gf_filter]
 _libgpac.gf_fs_send_update.argtypes = [_gf_filter_session, c_char_p, _gf_filter, c_char_p, c_char_p, c_uint]
 _libgpac.gf_filter_set_source.argtypes = [_gf_filter, _gf_filter, c_char_p]
+_libgpac.gf_filter_set_source_restricted.argtypes = [_gf_filter, _gf_filter, c_char_p]
 _libgpac.gf_filter_reconnect_output.argtypes = [_gf_filter]
 
 _libgpac.gf_props_get_id.argtypes = [c_char_p]
@@ -2116,6 +2117,15 @@ class Filter:
     def set_source(self, f, link_args=None):
         if f:
             _libgpac.gf_filter_set_source(self._filter, f._filter, link_args)
+
+    ## set a given filter as restricted source for this filter - see \ref gf_filter_set_source_restricted
+    #\param f source Filter
+    #\param link_args link options (string)
+    #\return
+    def set_source_restricted(self, f, link_args=None):
+        if f:
+            _libgpac.gf_filter_set_source_restricted(self._filter, f._filter, link_args)
+
 
     ## insert a given filter after this filter - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
     #\param f  Filter to insert

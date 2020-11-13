@@ -1704,7 +1704,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
 
 
 
-static JSValue jsf_filter_set_source_id(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool use_restricted)
 {
 	GF_Err e=GF_OK;
 	const char *source_id=NULL;
@@ -1720,12 +1720,25 @@ static JSValue jsf_filter_set_source_id(JSContext *ctx, JSValueConst this_val, i
     	source_id = JS_ToCString(ctx, argv[2]);
 		if (!source_id) return JS_EXCEPTION;
 	}
-	
-	e = gf_filter_set_source(f_inst->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
+
+	if (use_restricted)
+		e = gf_filter_set_source_restricted(f_inst->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
+	else
+		e = gf_filter_set_source(f_inst->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
 
 	JS_FreeCString(ctx, source_id);
 	if (e) return js_throw_err(ctx, e);
 	return JS_UNDEFINED;
+}
+
+static JSValue jsf_filter_set_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsf_filter_set_source_internal(ctx, this_val, argc, argv, GF_FALSE);
+}
+
+static JSValue jsf_filter_set_source_restricted(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsf_filter_set_source_internal(ctx, this_val, argc, argv, GF_TRUE);
 }
 
 static JSValue jsf_filter_reset_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1840,7 +1853,8 @@ static const JSCFunctionListEntry jsf_filter_inst_funcs[] = {
     JS_CFUNC_DEF("send_event", 0, jsf_filter_send_event),
     JS_CFUNC_DEF("get_info", 0, jsf_filter_get_info),
     JS_CFUNC_DEF("send_update", 0, jsf_filter_send_update),
-    JS_CFUNC_DEF("set_source", 0, jsf_filter_set_source_id),
+    JS_CFUNC_DEF("set_source", 0, jsf_filter_set_source),
+    JS_CFUNC_DEF("set_source_restricted", 0, jsf_filter_set_source_restricted),
     JS_CFUNC_DEF("remove", 0, jsf_filter_remove),
     JS_CFUNC_DEF("has_pid_connections_pending", 0, jsf_filter_has_pid_connections_pending),
     JS_CFUNC_DEF("get_arg", 0, jsf_filter_inst_get_arg),
