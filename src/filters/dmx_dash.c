@@ -1075,6 +1075,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	dur = (u32) (1000*gf_dash_get_duration(ctx->dash) );
 	if (dur>0)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, 1000) );
+	else
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, NULL);
 
 	dur = (1000*gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx) );
 	if (dur>0)
