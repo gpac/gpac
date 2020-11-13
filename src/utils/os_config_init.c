@@ -1432,10 +1432,10 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 			char *sep = val ? strchr(val, ':') : NULL;
 			u32 sec_count = gf_opts_get_section_count();
 			if (sep) {
-				sec_len = sep - val - 1;
+				sec_len = (u32) (sep - val - 1);
 				sep++;
 			} else if (val) {
-				sec_len = strlen(val);
+				sec_len = (u32) strlen(val);
 			}
 			for (i=0; i<sec_count; i++) {
 				u32 k, key_count;
