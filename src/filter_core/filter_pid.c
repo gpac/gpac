@@ -3237,7 +3237,12 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			//we cannot figure out the destination sourceID when initializing PID connection tasks
 			//by walking up the filter chain because PIDs connection might be pending
 			//(upper chain not yet fully connected)
-			if (dst->source_ids)
+			//if the source had a restricted source_id set, use it, otherwise use the destination source_id
+			if (!prev_af && pid->filter->restricted_source_id)
+				af->source_ids = gf_strdup(pid->filter->restricted_source_id);
+			else if (prev_af && prev_af->source_ids)
+				af->source_ids = gf_strdup(prev_af->source_ids);
+			else if (dst->source_ids)
 				af->source_ids = gf_strdup(dst->source_ids);
 
 			//remember our target filter

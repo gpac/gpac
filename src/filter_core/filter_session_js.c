@@ -920,6 +920,7 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 	const char *fname, *link_args;
 	GF_Filter *new_f;
 	GF_Err e;
+	Bool is_source = GF_FALSE;
 	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
 	if (!f || !argc)
 		return JS_EXCEPTION;
@@ -937,6 +938,7 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 
 	if (!strncmp(fname, "src=", 4)) {
 		new_f = gf_fs_load_source(f->session, fname+4, NULL, NULL, &e);
+		is_source = GF_TRUE;
 	} else if (!strncmp(fname, "dst=", 4)) {
 		new_f = gf_fs_load_destination(f->session, fname+4, NULL, NULL, &e);
 	} else {
@@ -949,7 +951,10 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 		if (link_args) JS_FreeCString(ctx, link_args);
 		return ret;
 	}
-	gf_filter_set_source(new_f, (GF_Filter *) f, link_args);
+	if (is_source)
+		gf_filter_set_source_restricted(new_f, (GF_Filter *) f, link_args);
+	else
+		gf_filter_set_source(new_f, (GF_Filter *) f, link_args);
 	//reconnect outputs of source
 	gf_filter_reconnect_output((GF_Filter *) f);
 
@@ -1066,6 +1071,7 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	const char *fname, *link_args;
 	GF_Filter *new_f;
 	GF_Err e;
+	Bool is_source = GF_FALSE;
 	GF_Filter *link_from = NULL;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
 	if (!fs || !argc)
@@ -1088,6 +1094,7 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 
 	if (!strncmp(fname, "src=", 4)) {
 		new_f = gf_fs_load_source(fs, fname+4, NULL, NULL, &e);
+		is_source = GF_TRUE;
 	} else if (!strncmp(fname, "dst=", 4)) {
 		new_f = gf_fs_load_destination(fs, fname+4, NULL, NULL, &e);
 	} else {
@@ -1102,7 +1109,10 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	}
 	JS_FreeCString(ctx, fname);
 	if (link_from) {
-		gf_filter_set_source(new_f, link_from, link_args);
+		if (is_source)
+			gf_filter_set_source_restricted(link_from, new_f, link_args);
+		else
+			gf_filter_set_source(new_f, link_from, link_args);
 	}
 
 	if (link_args) JS_FreeCString(ctx, link_args);

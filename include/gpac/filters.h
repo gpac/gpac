@@ -2299,6 +2299,16 @@ If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (
 */
 GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
 
+/*! Similar to \ref gf_filter_set_source
+ This should be used on source filters when the calling filter is expected to have more possible sources added in the future, thereby dynamically changing its source IDs.
+ Typically the compositor running the GUI is one such filter. This variant will make sure the sourceID used in the adaptation chain is always the ID of the source and not the source ID of the calling filter
+\param filter the target filter
+\param link_from the filter to link from
+\param link_ext any link extensions allowed in link syntax:
+\return error code if any
+*/
+GF_Err gf_filter_set_source_restricted(GF_Filter *filter, GF_Filter *link_from, const char *link_ext);
+
 /*! Explicitly reset sourceID of a filter. This shall be called before connecting the filter (eg creating PIDs).
 
  This is mostly used to reset a source ID of a filter created from a destination (e.g., dasher creating muxers from the MPD URL) where the destination arguments could have sourceIDs specified/
