@@ -120,9 +120,10 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	e = gf_isom_open_progressive(szURL, read->start_range, read->end_range, read->sigfrag, &read->mov, &read->missing_bytes);
 
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
-		read->moov_not_loaded = GF_TRUE;
+		read->moov_not_loaded = 1;
 		return GF_OK;
 	}
+	read->input_loaded = GF_TRUE;
 
 	if (e != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] error while opening %s, error=%s\n", szURL,gf_error_to_string(e)));
@@ -186,6 +187,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
 	if (prop && prop->value.boolean)
 		read->input_loaded = GF_TRUE;
+
 	read->refresh_fragmented = GF_FALSE;
 	read->full_segment_flush = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
@@ -250,6 +252,16 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 
 		if (read->mov) gf_isom_close(read->mov);
 		e = gf_isom_open_progressive(next_url, read->start_range, read->end_range, read->sigfrag, &read->mov, &read->missing_bytes);
+
+		//init seg not completely downloaded, retry at next packet
+		if (!read->input_loaded && (e==GF_ISOM_INCOMPLETE_FILE)) {
+			read->src_crc = 0;
+			read->moov_not_loaded = 2;
+			gf_blob_release(next_url);
+			return GF_OK;
+		}
+
+		read->moov_not_loaded = 0;
 		if (e < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
 		}
@@ -1015,7 +1027,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 				read->in_error = GF_NOT_SUPPORTED;
 				break;
 			default:
-				read->moov_not_loaded = GF_TRUE;
+				read->moov_not_loaded = 1;
 				break;
 			}
 			return;
@@ -1025,7 +1037,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 		read->time_scale = gf_isom_get_timescale(read->mov);
 		isor_declare_objects(read);
 		read->mem_load_mode = 2;
-		read->moov_not_loaded = GF_FALSE;
+		read->moov_not_loaded = 0;
 		return;
 	}
 	//refresh file
@@ -1105,6 +1117,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 	if (read->pid) {
 		Bool fetch_input = GF_TRUE;
+
+		//we failed at loading the init segment during a dash switch, retry
+		if (!read->is_partial_download && !read->mem_load_mode && (read->moov_not_loaded==2) ) {
+			isoffin_configure_pid(filter, read->pid, GF_FALSE);
+			if (read->moov_not_loaded) return GF_OK;
+		}
 		if (read->mem_load_mode==2) {
 			if (!read->force_fetch && read->mem_blob.size > read->mstore_size) {
 				fetch_input = GF_FALSE;
@@ -1130,6 +1148,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				u32 data_size;
 				const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);
 				isoffin_push_buffer(filter, read, pck_data, data_size);
+			}
+			//we just had a switch but init seg is not completely done: input packet is only a part of the init, drop it
+			else if (read->moov_not_loaded==2) {
+				gf_filter_pid_drop_packet(read->pid);
+				return GF_OK;
 			}
 			gf_filter_pid_drop_packet(read->pid);
 			has_new_data = GF_TRUE;
@@ -1170,7 +1193,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		in_is_eos = GF_TRUE;
 		read->input_loaded = GF_TRUE;
 	}
-	if (read->moov_not_loaded) {
+	if (read->moov_not_loaded==1) {
 		if (read->mem_load_mode)
 			return GF_OK;
 		read->moov_not_loaded = GF_FALSE;
