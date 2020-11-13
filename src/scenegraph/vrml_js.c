@@ -2600,7 +2600,6 @@ static void array_finalize_ex(JSRuntime *rt, JSValue obj, Bool is_js_call)
 	GF_JSField *ptr = JS_GetOpaque_Nocheck(obj);
 
 	JS_ObjectDestroyed(rt, obj, ptr, 1);
-
 	if (!ptr) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering MFField %s\n", ptr->field.name));
@@ -4031,6 +4030,7 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 {
 	/*pop the list rather than walk through it since unprotecting an element could trigger GC which in turn could modify this list content*/
 	while (gf_list_count(priv->jsf_cache)) {
+		JSValue obj;
 		GF_JSField *jsf = gf_list_pop_back(priv->jsf_cache);
 		assert(jsf);
 
@@ -4041,16 +4041,16 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 		We therefore destroy by hand all SFNode (obj rooted) and MFNode (for js_list)
 		*/
 
-		JS_FreeValue(priv->js_ctx, jsf->obj);
-
+		obj = jsf->obj;
+		jsf->obj = JS_UNDEFINED;
 		if (jsf->mfvals)
-			array_finalize_ex(js_rt->js_runtime, jsf->obj, 0);
+			array_finalize_ex(js_rt->js_runtime, obj, 0);
 		else if (jsf->node)
-			node_finalize_ex(js_rt->js_runtime, jsf->obj, 0);
+			node_finalize_ex(js_rt->js_runtime, obj, 0);
 		else
 			jsf->js_ctx=NULL;
 
-		jsf->obj = JS_UNDEFINED;
+		JS_FreeValue(priv->js_ctx, obj);
 	}
 }
 
