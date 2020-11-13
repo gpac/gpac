@@ -3726,6 +3726,7 @@ typedef struct
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	char *temp_file;
 #endif
+	GF_Blob *blob;
 } GF_FileDataMap;
 
 /*file mapping handler. used if supported, only on read mode for complete files  (not in file download)*/

@@ -258,16 +258,8 @@ static void init_prng (void)
  * Private methods of cache
  */
 
-/**
- * \brief Write data to cache
- * Writes data to the cache. A call to gf_cache_open_write_cache should have been issued before calling this function.
-\param entry The entry to use
-\param sess The download session
-\param data data to write
-\param size number of elements to write
-\param GF_OK is everything went fine, GF_BAD_PARAM if cache has not been opened, GF_IO_ERR if a failure occurs
- */
-GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size);
+//Writes data to the cache. A call to gf_cache_open_write_cache should have been issued before calling this function.
+GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size, GF_Mutex *mx);
 
 /**
  * \brief Close the write file pointer of cache
@@ -613,15 +605,8 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
 
 /**
  * Creates a new cache entry
-\param dm The download manager to create this entry
-\param cache_directory The path to the directory containing cache files
-\param url The full URL
-\param start_range the start of the byte range request
-\param end_range the end of the byte range request
-\param mem_storage Boolean indicating if the cache data should be stored in memory
-\param The DownloadedCacheEntry
  */
-DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url, u64 start_range, u64 end_range, Bool mem_storage);
+DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url, u64 start_range, u64 end_range, Bool mem_storage, GF_Mutex *mx);
 
 /*!
  * Removes a session for a DownloadedCacheEntry
@@ -633,7 +618,7 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 
 Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime);
 Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range);
-Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool copy);
+Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool copy, GF_Mutex *mx);
 Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers);
 Bool gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
 
@@ -715,7 +700,7 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 				}
 				sess->cache_entry = NULL;
 			}
-			entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, (sess->flags&GF_NETIO_SESSION_MEMORY_CACHE) ? GF_TRUE : GF_FALSE);
+			entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, (sess->flags&GF_NETIO_SESSION_MEMORY_CACHE) ? GF_TRUE : GF_FALSE, sess->dm->cache_mx);
 			gf_mx_p( sess->dm->cache_mx );
 			gf_list_add(sess->dm->cache_entries, entry);
 			gf_mx_v( sess->dm->cache_mx );
@@ -2546,7 +2531,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			gf_icy_skip_data(sess, (char *) data, nbBytes);
 		else {
 			if (sess->use_cache_file)
-				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes);
+				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes, sess->dm->cache_mx);
 
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;
@@ -4484,7 +4469,7 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 		break;
 	}
 	if (!the_entry) {
-		the_entry = gf_cache_create_entry(dm, "", szURL, 0, 0, GF_TRUE);
+		the_entry = gf_cache_create_entry(dm, "", szURL, 0, 0, GF_TRUE, dm->cache_mx);
 		if (!the_entry) return NULL;
 		gf_list_add(dm->cache_entries, the_entry);
 	}
@@ -4493,7 +4478,7 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 	if (blob && ! (blob->flags & GF_BLOB_IN_TRANSFER))
         	gf_cache_set_range(the_entry, blob->size, start_range, end_range);
 
-	gf_cache_set_content(the_entry, blob, clone_memory ? GF_TRUE : GF_FALSE);
+	gf_cache_set_content(the_entry, blob, clone_memory ? GF_TRUE : GF_FALSE, dm->cache_mx);
 	gf_cache_set_downtime(the_entry, download_time_ms);
 	gf_mx_v(dm->cache_mx );
 	return the_entry;

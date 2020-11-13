@@ -25,6 +25,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/network.h>
+#include <gpac/thread.h>
 
 
 /*File Mapping object, read-only mode on complete files (no download)*/
@@ -398,12 +399,9 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	}
 #endif
 	if (!strncmp(sPath, "gmem://", 7)) {
-		u32 size;
-		u8 *mem_address;
-		if (gf_blob_get(sPath, &mem_address, &size, NULL) != GF_OK)
+		if (sscanf(sPath, "gmem://%p", &tmp->blob) != 1)
 			return NULL;
-		tmp->bs = gf_bs_new((const char *)mem_address, size, GF_BITSTREAM_READ);
-        gf_blob_release(sPath);
+		tmp->bs = gf_bs_new(tmp->blob->data, tmp->blob->size, GF_BITSTREAM_READ);
 		if (!tmp->bs) {
 			gf_free(tmp);
 			return NULL;
@@ -491,7 +489,14 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 	if (fileOffset > gf_bs_get_size(ptr->bs))
 		return 0;
 
-	if (gf_bs_get_position(ptr->bs) != fileOffset) {
+	if (ptr->blob) {
+		gf_mx_p(ptr->blob->mx);
+		gf_bs_reassign_buffer(ptr->bs, ptr->blob->data, ptr->blob->size);
+		if (gf_bs_seek(ptr->bs, fileOffset) != GF_OK) {
+			gf_mx_v(ptr->blob->mx);
+			return 0;
+		}
+	} else if (gf_bs_get_position(ptr->bs) != fileOffset) {
 		//we are not at the previous location, do a seek
 		if (gf_bs_seek(ptr->bs, fileOffset) != GF_OK) return 0;
 	}
@@ -515,6 +520,10 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 		}
 	}
 	ptr->last_acces_was_read = 1;
+
+	if (ptr->blob) {
+		gf_mx_v(ptr->blob->mx);
+	}
 	return bytesRead;
 }
 
