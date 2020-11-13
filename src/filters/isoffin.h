@@ -101,7 +101,7 @@ typedef struct
 	Bool clock_discontinuity;
 	Bool disconnected;
 	Bool no_order_check;
-	Bool moov_not_loaded;
+	u32 moov_not_loaded;
     Bool invalid_segment;
     
 	u64 last_sender_ntp, ntp_at_last_sender_ntp, cts_for_last_sender_ntp;
