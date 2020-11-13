@@ -26,6 +26,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
+#include <gpac/thread.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -2859,6 +2860,8 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 #else
 	u64 prevsize, size;
 	u32 i;
+	GF_Err e;
+	GF_Blob *blob = NULL;
 	if (!movie || !movie->movieFileMap || !movie->moov) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
 
@@ -2868,12 +2871,15 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	if (new_location) {
 		Bool delete_map;
 		GF_DataMap *previous_movie_fileMap_address = movie->movieFileMap;
-		GF_Err e;
 
 		e = gf_isom_datamap_new(new_location, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
 		if (e) {
 			movie->movieFileMap = previous_movie_fileMap_address;
 			return e;
+		}
+
+		if ((movie->movieFileMap->type == GF_ISOM_DATA_MEM) || (movie->movieFileMap->type == GF_ISOM_DATA_FILE)) {
+			blob = ((GF_FileDataMap *)movie->movieFileMap)->blob;
 		}
 
 		delete_map = (previous_movie_fileMap_address != NULL ? GF_TRUE: GF_FALSE);
@@ -2898,8 +2904,16 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 
 	if (!movie->moov->mvex)
 		return GF_OK;
+
+	if (blob)
+		gf_mx_p(blob->mx);
+
 	//ok parse root boxes
-	return gf_isom_parse_movie_boxes(movie, NULL, MissingBytes, GF_TRUE);
+	e = gf_isom_parse_movie_boxes(movie, NULL, MissingBytes, GF_TRUE);
+
+	if (blob)
+		gf_mx_v(blob->mx);
+	return e;
 #endif
 }
 

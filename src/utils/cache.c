@@ -380,7 +380,7 @@ GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * htt
 static const char * default_cache_file_suffix = ".dat";
 static const char * cache_file_info_suffix = ".txt";
 
-DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char * cache_directory, const char * url , u64 start_range, u64 end_range, Bool mem_storage)
+DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char * cache_directory, const char * url , u64 start_range, u64 end_range, Bool mem_storage, GF_Mutex *mx)
 {
 	char tmp[_CACHE_TMP_SIZE];
 	u8 hash[_CACHE_HASH_SIZE];
@@ -478,6 +478,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	}
 
 	if (entry->memory_stored) {
+		entry->cache_blob.mx = mx;
 		entry->cache_blob.data = entry->mem_storage;
 		entry->cache_blob.size = entry->contentLength;
 		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
@@ -623,7 +624,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	return e;
 }
 
-GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess )
+GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, GF_Mutex *mx )
 {
 	CHECK_ENTRY;
 	if (!sess)
@@ -641,19 +642,26 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 	entry->flags &= ~CORRUPTED;
 
 	if (entry->memory_stored) {
+		if (!entry->cache_blob.mx)
+			entry->cache_blob.mx = mx;
+
+		gf_mx_p(entry->cache_blob.mx);
+
 		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
 		if (!entry->mem_allocated || (entry->mem_allocated < entry->contentLength)) {
 			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
 			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
 			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );
 		}
+		entry->cache_blob.data = entry->mem_storage;
+		entry->cache_blob.size = entry->contentLength;
+		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
+		gf_mx_v(entry->cache_blob.mx);
+
 		if (!entry->mem_allocated) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CACHE, ("[CACHE] Failed to create memory storage for file %s\n", entry->url));
 			return GF_OUT_OF_MEM;
 		}
-		entry->cache_blob.data = entry->mem_storage;
-		entry->cache_blob.size = entry->contentLength;
-		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
 		return GF_OK;
 	}
 
@@ -674,7 +682,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 	return GF_OK;
 }
 
-GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size) {
+GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size, GF_Mutex *mx) {
 	u32 read;
 	CHECK_ENTRY;
 
@@ -684,6 +692,10 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	}
 
 	if (entry->memory_stored) {
+		if (!entry->cache_blob.mx)
+			entry->cache_blob.mx = mx;
+		assert(mx);
+		gf_mx_p(entry->cache_blob.mx);
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
 			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, (new_size+2));
@@ -697,6 +709,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		entry->written_in_cache += size;
 		memset(entry->mem_storage + entry->written_in_cache, 0, 2);
 		entry->cache_blob.size = entry->written_in_cache;
+		gf_mx_v(entry->cache_blob.mx);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Storing %d bytes to memory\n", size));
 		return GF_OK;
@@ -991,7 +1004,7 @@ Bool gf_cache_is_deleted(const DownloadedCacheEntry entry)
     return GF_FALSE;
 }
 
-Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool copy)
+Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool copy, GF_Mutex *mx)
 {
 	if (!entry || !entry->memory_stored) return GF_FALSE;
 
@@ -1014,6 +1027,10 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
         entry->external_blob = blob;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Storing %d bytes to memory from external module\n", blob->size));
     } else {
+		if (!entry->cache_blob.mx)
+			entry->cache_blob.mx = mx;
+		gf_mx_p(entry->cache_blob.mx);
+
         if (blob->size >= entry->mem_allocated) {
             u32 new_size;
             new_size = MAX(entry->mem_allocated*2, blob->size+1);
@@ -1029,6 +1046,8 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
         entry->mem_storage[blob->size] = 0;
         entry->cache_blob.size = entry->written_in_cache = blob->size;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Storing %d bytes to cache memory\n", blob->size));
+
+		gf_mx_v(entry->cache_blob.mx);
 
 		entry->cache_blob.flags = blob->flags;
     }
