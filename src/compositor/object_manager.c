@@ -677,6 +677,13 @@ clock_setup:
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	odm->timestamp_offset = prop ? prop->value.longsint : 0;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	//if offset greater than 30sec, move it down to [0s,1s] range to avoid presenting nothing
+	if ((odm->timestamp_offset > 0) && (prop && prop->value.uint) && (odm->timestamp_offset > 30 * prop->value.uint)
+	) {
+		u64 to_rem = odm->timestamp_offset / prop->value.uint;
+		odm->timestamp_offset -= to_rem * prop->value.uint;
+	}
 
 	gf_odm_update_duration(odm, pid);
 	/*regular setup*/
