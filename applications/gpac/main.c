@@ -2119,7 +2119,7 @@ restart:
 	}
 
 	if (enable_prompt || (runfor>0)) {
-		if (enable_prompt) {
+		if (enable_prompt && !loops_done) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session, press 'h' for help\n"));
 		}
 		gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
