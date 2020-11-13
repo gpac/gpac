@@ -75,6 +75,7 @@ rsync -r --exclude=.git $source_path/share/gui ./tmpdmg/GPAC.app/Contents/MacOS/
 rsync -r --exclude=.git $source_path/share/vis ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/shaders ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/scripts ./tmpdmg/GPAC.app/Contents/MacOS/share/
+rsync -r --exclude=.git $source_path/share/python ./tmpdmg/GPAC.app/Contents/MacOS/share/
 cp $source_path/share/default.cfg ./tmpdmg/GPAC.app/Contents/MacOS/share/
 
 echo Building DMG
