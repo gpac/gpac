@@ -1784,6 +1784,16 @@ void gf_fs_run_step(GF_FilterSession *fsess)
 	gf_fs_thread_proc(&fsess->main_th);
 }
 
+static void filter_abort(GF_FSTask *task)
+{
+	GF_FilterEvent evt;
+	GF_FEVT_INIT(evt, GF_FEVT_STOP, task->pid);
+
+	task->pid->filter->freg->process_event(task->pid->filter, &evt);
+	gf_filter_pid_set_eos(task->pid);
+	task->pid->filter->disabled = GF_TRUE;
+}
+
 GF_EXPORT
 GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 {
@@ -1823,22 +1833,31 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 				gf_mx_p(filter->tasks_mx);
 
 				for (k=0; k<pid->num_destinations; k++) {
+					Bool force_disable = GF_TRUE;
 					GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
-					pidi->filter->disabled = GF_TRUE;
 					gf_mx_v(filter->tasks_mx);
 					gf_mx_p(pidi->filter->tasks_mx);
 					for (l=0; l<pidi->filter->num_output_pids; l++) {
 						GF_FilterPid *opid = gf_list_get(pidi->filter->output_pids, l);
+						//We cannot directly call process_event as this would make concurrent access to the filter
+						//wich we guarantee we will never do
+						//but we don't want to send a regular stop event which will reset PID buffers
+						//so:
+						//- post a task to the filter
+						//- only disable the filter once the filter_abort has been called
+						//- only move to EOS if no filter_abort is pending
 						if (opid->filter->freg->process_event) {
-							GF_FilterEvent evt;
-							GF_FEVT_INIT(evt, GF_FEVT_STOP, opid);
-							//We cannot directly call process_event as this would make concurrent access to the filter
-							//wich we guarantee we will never do
-							gf_filter_pid_send_event_internal(opid, &evt, GF_TRUE);
+							gf_fs_post_task(opid->filter->session, filter_abort, opid->filter, opid, "filter_abort", NULL);
+							force_disable = GF_FALSE;
+						} else {
+							gf_filter_pid_set_eos(opid);
 						}
 					}
 					gf_mx_v(pidi->filter->tasks_mx);
 					gf_mx_p(filter->tasks_mx);
+					//no filter_abort pending, disable the filter
+					if (force_disable)
+						pidi->filter->disabled = GF_TRUE;
 				}
 			}
 		}
