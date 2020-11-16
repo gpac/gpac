@@ -36,17 +36,18 @@ static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
-Bool runfor_exit = GF_FALSE;
-Bool enable_prompt = GF_FALSE;
-u32 enable_reports = 0;
-char *report_filter = NULL;
-Bool do_unit_tests = GF_FALSE;
+static Bool runfor_exit = GF_FALSE;
+static Bool enable_prompt = GF_FALSE;
+static u32 enable_reports = 0;
+static char *report_filter = NULL;
+static Bool do_unit_tests = GF_FALSE;
 static int alias_argc = 0;
 static char **alias_argv = NULL;
 static GF_List *args_used = NULL;
 static GF_List *args_alloc = NULL;
 static u32 gen_doc = 0;
 static u32 help_flags = 0;
+static u32 loops_done = 0;
 
 //coverage for FileIO
 static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e);
@@ -55,7 +56,7 @@ static void cleanup_file_io();
 //coverage for custom filters
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
 
-FILE *sidebar_md=NULL;
+static FILE *sidebar_md=NULL;
 static FILE *helpout = NULL;
 
 static const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/main.c -->\n";
@@ -546,7 +547,7 @@ static void gpac_core_help(GF_SysArgMode mode, Bool for_logs)
 	gf_sys_print_core_help(helpout, help_flags, mode, mask);
 }
 
-GF_GPACArg gpac_args[] =
+static GF_GPACArg gpac_args[] =
 {
 #ifdef GPAC_MEMORY_TRACKING
  	GF_DEF_ARG("mem-track", NULL, "enable memory tracker", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -676,7 +677,7 @@ static void gpac_usage(GF_SysArgMode argmode)
 }
 
 #ifndef GPAC_DISABLE_DOC
-const char *gpac_config =
+static const char *gpac_config =
 {
 "# Configuration file\n"
 "GPAC uses a configuration file to modify default options of libgpac and filters. This configuration file is located in `$HOME/.gpac/GPAC.cfg`.\n"
@@ -787,7 +788,7 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 	}
 }
 
-u64 last_report_clock_us = 0;
+static u64 last_report_clock_us = 0;
 static void print_date(u64 time)
 {
 	time_t gtime;
@@ -938,7 +939,7 @@ typedef enum
 	GPAC_PRINT_HELP
 } GPAC_Command;
 
-struct _gpac_key
+static struct _gpac_key
 {
 	u8 char_code;
 	GPAC_Command cmd_type;
@@ -979,8 +980,8 @@ static void gpac_fsess_task_help()
 	}
 }
 
-char szFilter[100];
-char szCom[2048];
+static char szFilter[100];
+static char szCom[2048];
 static u64 run_start_time = 0;
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
@@ -1131,11 +1132,14 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		u64 now = gf_sys_clock_high_res();
 		if (!run_start_time) run_start_time = now;
 		else if (now - run_start_time > runfor) {
-			if (runfor_exit)
-				exit(0);
-
-			gf_fs_abort(fsess, GF_TRUE);
-			nb_loops = 0;
+			if (nb_loops || loops_done) {
+				gf_fs_abort(fsess, runfor_exit ? GF_FALSE : GF_TRUE);
+				run_start_time = 0;
+			} else {
+				if (runfor_exit)
+					exit(0);
+				gf_fs_abort(fsess, GF_TRUE);
+			}
 			return GF_FALSE;
 		}
 	}
@@ -1557,7 +1561,6 @@ static int gpac_main(int argc, char **argv)
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
 	GF_FilterSession *tmp_sess;
-	u32 loops_done = 0;
 	Bool has_xopt = GF_FALSE;
 	helpout = stdout;
 
