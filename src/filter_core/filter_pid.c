@@ -5917,8 +5917,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (f->freg->process_event) {
 			FSESS_CHECK_THREAD(f)
 			canceled = f->freg->process_event(f, evt);
-			if (f->session->in_final_flush && (evt->base.type==GF_FEVT_STOP))
-				canceled = GF_TRUE;
 		}
 	}
 
