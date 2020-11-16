@@ -599,10 +599,12 @@ void gf_fs_del(GF_FilterSession *fsess)
 				gf_list_del(filter->postponed_packets);
 				filter->postponed_packets = NULL;
 			}
+			gf_mx_p(filter->tasks_mx);
 			for (j=0; j<filter->num_input_pids; j++) {
 				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, j);
 				gf_filter_pid_inst_reset(pidi);
 			}
+			gf_mx_v(filter->tasks_mx);
 			filter->scheduled_for_next_task = GF_FALSE;
 		}
 		//second pass, finalize all
@@ -1795,6 +1797,8 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 		return GF_OK;
 	}
 
+	fsess->in_final_flush = GF_TRUE;
+
 	gf_mx_p(fsess->filters_mx);
 	count = gf_list_count(fsess->filters);
 	//disable all sources
@@ -1803,30 +1807,43 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 		//force end of session on all sources, and on all filters connected to these sources, and dispatch end of stream on all outputs pids of these filters
 		//if we don't propagate on connected filters, we take the risk of not deactivating demuxers working from file
 		//(eg ignoring input packets)
+		//
+		//we shortcut the thread execution state here by directly calling set_eos, we need to lock/unlock our filters carefully
+		//to avoid deadlocks or crashes
+		gf_mx_p(filter->tasks_mx);
+
 		if (!filter->num_input_pids) {
 			u32 j, k, l;
 			filter->disabled = GF_TRUE;
 			for (j=0; j<filter->num_output_pids; j++) {
 				GF_FilterPid *pid = gf_list_get(filter->output_pids, j);
+				//unlock before forcing eos as this could trigger a post task on a filter waiting for this mutex to be unlocked
+				gf_mx_v(filter->tasks_mx);
 				gf_filter_pid_set_eos(pid);
+				gf_mx_p(filter->tasks_mx);
+
 				for (k=0; k<pid->num_destinations; k++) {
 					GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
 					pidi->filter->disabled = GF_TRUE;
+					gf_mx_v(filter->tasks_mx);
+					gf_mx_p(pidi->filter->tasks_mx);
 					for (l=0; l<pidi->filter->num_output_pids; l++) {
 						GF_FilterPid *opid = gf_list_get(pidi->filter->output_pids, l);
 						if (opid->filter->freg->process_event) {
 							GF_FilterEvent evt;
 							GF_FEVT_INIT(evt, GF_FEVT_STOP, opid);
-							opid->filter->freg->process_event(opid->filter, &evt);
+							//We cannot directly call process_event as this would make concurrent access to the filter
+							//wich we guarantee we will never do
+							gf_filter_pid_send_event_internal(opid, &evt, GF_TRUE);
 						}
-						gf_filter_pid_set_eos(opid);
 					}
+					gf_mx_v(pidi->filter->tasks_mx);
+					gf_mx_p(filter->tasks_mx);
 				}
 			}
 		}
+		gf_mx_v(filter->tasks_mx);
 	}
-	fsess->in_final_flush = GF_TRUE;
-
 	gf_mx_v(fsess->filters_mx);
 	return GF_OK;
 }

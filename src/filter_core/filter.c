@@ -2544,6 +2544,7 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 
 	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
 
+	gf_mx_p(f->tasks_mx);
 	//detach all input pids
 	while (gf_list_count(f->input_pids)) {
 		GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
@@ -2558,6 +2559,7 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 			pidinst->pid = NULL;
 		}
 	}
+	gf_mx_v(f->tasks_mx);
 
 	gf_filter_del(f);
 }

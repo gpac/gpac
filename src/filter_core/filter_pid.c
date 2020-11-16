@@ -190,7 +190,7 @@ static void gf_filter_pid_inst_check_dependencies(GF_FilterPidInst *pidi)
 static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 {
 	u32 mtype=0, codecid=0;
-	u32 i, count;
+	u32 i;
 	const GF_PropertyValue *p;
 
 	pid->raw_media = GF_FALSE;
@@ -213,10 +213,11 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	pid->raw_media = GF_FALSE;
 
 	if (codecid!=GF_CODECID_RAW) {
-		count=pid->filter->num_input_pids;
-		for (i=0; i<count; i++) {
-			GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+		gf_mx_p(pid->filter->tasks_mx);
+		for (i=0; i<pid->filter->num_input_pids; i++) {
 			u32 i_codecid=0, i_type=0;
+			GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+			if (!pidi->pid) continue;
 			p = gf_filter_pid_get_property_first(pidi->pid, GF_PROP_PID_STREAM_TYPE);
 			if (p) i_type = p->value.uint;
 
@@ -227,6 +228,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 				pidi->is_encoder_input = GF_TRUE;
 			}
 		}
+		gf_mx_v(pid->filter->tasks_mx);
 		return;
 	}
 
@@ -238,10 +240,11 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 
 	//output is a decoded raw stream: if some input has same type but different codecid this is a decoder
 	//set input buffer size
-	count=pid->filter->num_input_pids;
-	for (i=0; i<count; i++) {
+	gf_mx_p(pid->filter->tasks_mx);
+	for (i=0; i<pid->filter->num_input_pids; i++) {
 		u32 i_codecid=0, i_type=0;
 		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+		if (!pidi->pid) continue;
 
 		p = gf_filter_pid_get_property_first(pidi->pid, GF_PROP_PID_STREAM_TYPE);
 		if (p) i_type = p->value.uint;
@@ -284,9 +287,10 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		}
 	}
 	//source pid, mark raw media
-	if (!count && pid->num_destinations) {
+	if (!pid->filter->num_input_pids && pid->num_destinations) {
 		pid->raw_media = GF_TRUE;
 	}
+	gf_mx_v(pid->filter->tasks_mx);
 }
 
 #define TASK_REQUEUE(_t) \
@@ -370,25 +374,27 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 		return;
 	}
+	gf_mx_p(filter->tasks_mx);
 	//still some input to the filter, cannot destroy the output pid
-	if (gf_list_count(filter->input_pids))
+	if (gf_list_count(filter->input_pids)) {
+		gf_mx_v(filter->tasks_mx);
 		return;
+	}
 	//no more destinations on pid, destroy it
 	if (pid->would_block) {
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 	}
 	
-	gf_mx_p(filter->tasks_mx);
 	gf_list_del_item(filter->output_pids, pid);
 	filter->num_output_pids = gf_list_count(filter->output_pids);
 	gf_filter_pid_del(pid);
-	gf_mx_v(filter->tasks_mx);
 
 	//no more pids on filter, destroy it
 	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids)) {
 		gf_filter_post_remove(filter);
 	}
+	gf_mx_v(filter->tasks_mx);
 }
 
 void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPidInst *pidinst, GF_FilterPidInst *dst_swapinst)
@@ -674,11 +680,13 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_list_add(pid->destinations, pidinst);
 		pid->num_destinations = gf_list_count(pid->destinations);
 
+		gf_mx_v(pid->filter->tasks_mx);
+
+		gf_mx_p(filter->tasks_mx);
 		if (!filter->input_pids) filter->input_pids = gf_list_new();
 		gf_list_add(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
-
-		gf_mx_v(pid->filter->tasks_mx);
+		gf_mx_v(filter->tasks_mx);
 
 		//new connection, update caps in case we have events using caps (buffer req) being sent
 		//while processing the configure (they would be dispatched on the source filter, not the dest one being
@@ -1013,12 +1021,14 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 	gf_filter_pid_configure(task->filter, task->pid->pid, GF_PID_CONF_REMOVE);
 
+	gf_mx_p(task->filter->tasks_mx);
 	//if the filter has no more connected ins and outs, remove it
 	if (task->filter->removed && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
 		Bool direct_mode = task->filter->session->direct_mode;
 		gf_filter_post_remove(task->filter);
 		if (direct_mode) task->filter = NULL;
 	}
+	gf_mx_v(task->filter->tasks_mx);
 }
 
 void gf_filter_pid_detach_task(GF_FSTask *task)
@@ -5009,19 +5019,21 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 	ctype = (pcki->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
 
 	if (ctype) {
+		u32 timescale;
 		if (pcki->pid->handles_clock_references) return GF_FALSE;
 		assert(pcki->pid->nb_clocks_signaled);
 		safe_int_dec(&pcki->pid->nb_clocks_signaled);
 		//signal destination
 		assert(!pcki->pid->filter->next_clock_dispatch_type || !pcki->pid->filter->num_output_pids);
 
+		timescale = pcki->pck->pid_props ? pcki->pck->pid_props->timescale : 0;
 		pcki->pid->filter->next_clock_dispatch = pcki->pck->info.cts;
-		pcki->pid->filter->next_clock_dispatch_timescale = pcki->pck->pid_props->timescale;
+		pcki->pid->filter->next_clock_dispatch_timescale = timescale;
 		pcki->pid->filter->next_clock_dispatch_type = ctype;
 
 		//keep clock values but only override clock type if no discontinuity is pending
 		pcki->pid->last_clock_value = pcki->pck->info.cts;
-		pcki->pid->last_clock_timescale = pcki->pck->pid_props->timescale;
+		pcki->pid->last_clock_timescale = timescale;
 		if (pcki->pid->last_clock_type != GF_FILTER_CLOCK_PCR_DISC)
 			pcki->pid->last_clock_type = ctype;
 
@@ -5225,7 +5237,7 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 	if (pck->data_length) {
 		Bool has_ts = GF_TRUE;
 		u64 ts = (pck->info.dts != GF_FILTER_NO_TS) ? pck->info.dts : pck->info.cts;
-		if ((ts != GF_FILTER_NO_TS) && (pck->pid_props->timescale)) {
+		if ((ts != GF_FILTER_NO_TS) && pck->pid_props && pck->pid_props->timescale) {
 			ts *= 1000000;
 			ts /= pck->pid_props->timescale;
 		} else {
@@ -5300,7 +5312,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 #ifdef GPAC_MEMORY_TRACKING
 	u32 prev_nb_allocs, prev_nb_reallocs, nb_allocs, nb_reallocs;
 #endif
-
+	u32 timescale = 0;
 	u32 nb_pck=0;
 	GF_FilterPacket *pck=NULL;
 	GF_FilterPacketInstance *pcki;
@@ -5327,11 +5339,13 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	pck = pcki->pck;
 	//move to source pid
 	pid = pid->pid;
+	if (pck->pid_props)
+		timescale = pck->pid_props->timescale;
 
 	gf_filter_pidinst_update_stats(pidinst, pck);
-	if (pck->info.cts!=GF_FILTER_NO_TS) {
+	if (timescale && (pck->info.cts!=GF_FILTER_NO_TS)) {
 		pidinst->last_ts_drop.num = pck->info.cts;
-		pidinst->last_ts_drop.den = pck->pid_props->timescale;
+		pidinst->last_ts_drop.den = timescale;
 	}
 
 
@@ -5342,9 +5356,9 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	if (!nb_pck) {
 		safe_int64_sub(&pidinst->buffer_duration, pidinst->buffer_duration);
-	} else if (pck->info.duration && (pck->info.flags & GF_PCKF_BLOCK_START)  && pck->pid_props->timescale) {
+	} else if (pck->info.duration && (pck->info.flags & GF_PCKF_BLOCK_START) && timescale) {
 		s64 d = ((u64)pck->info.duration) * 1000000;
-		d /= pck->pid_props->timescale;
+		d /= timescale;
 		if (d > pidinst->buffer_duration) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Corrupted buffer level in PID instance %s (%s -> %s), droping packet duration "LLD" us greater than buffer duration "LLU" us\n", pid->name, pid->filter->name, pidinst->filter ? pidinst->filter->name : "disconnected", d, pidinst->buffer_duration));
 			d = pidinst->buffer_duration;
@@ -5718,7 +5732,6 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 	pidi->pid->nb_buffer_unit = 0;
 	pidi->pid->buffer_duration = 0;
 	gf_filter_pid_check_unblock(pidi->pid);
-
 	safe_int_dec(& pidi->pid->discard_input_packets );
 }
 static void gf_filter_pid_reset_task(GF_FSTask *task)
@@ -5819,7 +5832,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	GF_FilterEvent *evt = task->udta;
 	GF_Filter *f = task->filter;
 	GF_List *dispatched_filters = NULL;
-	Bool evt_reused=GF_FALSE;
 
 	//if stream reset task is posted, wait for it before processing this event
 	if (f->stream_reset_pending) {
@@ -5870,6 +5882,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		GF_FilterPid *pid = (GF_FilterPid *) evt->base.on_pid->pid;
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
 
+		gf_mx_p(f->tasks_mx);
 		for (i=0; i<pid->num_destinations; i++) {
 			GF_FilterPidInst *pidi = (GF_FilterPidInst *) gf_list_get(pid->destinations, i);
 			//don't forget we pre-processed stop by incrementing the discard counter and setting discard_packets on pid instances
@@ -5882,7 +5895,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 
 		free_evt(evt);
-		gf_mx_p(f->tasks_mx);
 		if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
 		}
@@ -5905,6 +5917,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (f->freg->process_event) {
 			FSESS_CHECK_THREAD(f)
 			canceled = f->freg->process_event(f, evt);
+			if (f->session->in_final_flush && (evt->base.type==GF_FEVT_STOP))
+				canceled = GF_TRUE;
 		}
 	}
 
@@ -5947,6 +5961,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 			safe_int_inc(& pid->filter->stream_reset_pending );
 
+			assert(pid->discard_input_packets);
+
 			//post task on destination filter
 			if (evt->base.type==GF_FEVT_STOP)
 				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_stop_task, pidi->filter, NULL, "reset_pid", pidi);
@@ -5956,8 +5972,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		pid->nb_reaggregation_pending = 0;
 	}
 	
+	gf_mx_p(f->tasks_mx);
+
 	//after  play or seek, request a process task for source filters or filters having pending packets
-	if (!f->input_pids || f->pending_packets) {
+	if (!f->num_input_pids || f->pending_packets) {
 		if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 			gf_filter_post_process_task(f);
 		}
@@ -5968,7 +5986,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	//which ends up in session deadlock (filter still flagged as active and with pending packets)
 	//if more than one input or more than one output, only the filter can decide what to do if some of the
 	//streams are active and other not
-	gf_mx_p(f->tasks_mx);
 	if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 		GF_FilterPidInst *apidi = gf_list_get(f->input_pids, 0);
 		if (apidi->pid) {
@@ -6033,13 +6050,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			pid_inst->discard_packets = GF_TRUE;
 			safe_int_inc(& pid_inst->pid->discard_input_packets );
 		}
-		//allocate a copy except for the last PID where we use the one from the input
-		if (evt_reused) {
-			an_evt = dup_evt(evt);
-		} else {
-			an_evt = evt;
-			evt_reused = GF_TRUE;
-		}
+		an_evt = dup_evt(evt);
 		an_evt->base.on_pid = task->pid ? pid : NULL;
 
 		safe_int_inc(&pid->filter->num_events_queued);
@@ -6048,7 +6059,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	}
 	gf_mx_v(f->tasks_mx);
 	if (dispatched_filters) gf_list_del(dispatched_filters);
-	if (!evt_reused) free_evt(evt);
+	free_evt(evt);
 	return;
 }
 
@@ -6124,8 +6135,9 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 
 
 	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type == GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
-		u32 i, count = pid->pid->num_destinations;
-		for (i=0; i<count; i++) {
+		u32 i;
+		gf_mx_p(pid->pid->filter->tasks_mx);
+		for (i=0; i<pid->pid->num_destinations; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
 			if (evt->base.type == GF_FEVT_PLAY) {
 				pidi->is_end_of_stream = GF_FALSE;
@@ -6136,6 +6148,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 				safe_int_inc(& pidi->pid->discard_input_packets );
 			}
 		}
+		gf_mx_v(pid->pid->filter->tasks_mx);
 	}
 
 	an_evt = init_evt(evt);
