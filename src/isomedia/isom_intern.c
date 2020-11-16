@@ -25,6 +25,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/network.h>
+#include <gpac/thread.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -280,7 +281,7 @@ static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleG
 }
 
 
-GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
+static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
 	u64 totSize, mdat_end=0;
@@ -708,6 +709,27 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	return GF_OK;
+}
+
+GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
+{
+	GF_Err e;
+	GF_Blob *blob = NULL;
+
+	//if associated file is a blob, lock blob before parsing !
+	if (mov->movieFileMap && ((mov->movieFileMap->type == GF_ISOM_DATA_MEM) || (mov->movieFileMap->type == GF_ISOM_DATA_FILE))) {
+		blob = ((GF_FileDataMap *)mov->movieFileMap)->blob;
+	}
+
+	if (blob)
+		gf_mx_p(blob->mx);
+
+	e = gf_isom_parse_movie_boxes_internal(mov, boxType, bytesMissing, progressive_mode);
+
+	if (blob)
+		gf_mx_v(blob->mx);
+	return e;
+
 }
 
 GF_ISOFile *gf_isom_new_movie()

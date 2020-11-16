@@ -176,8 +176,7 @@ static void isoffin_disconnect(ISOMReader *read)
 static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const char *next_url)
 {
 	const GF_PropertyValue *prop;
-	u32 i, count, s_size;
-    u8 *s_data;
+	u32 i, count;
 	Bool is_new_mov = GF_FALSE;
 	u64 tfdt;
 //	GF_ISOTrackID trackID;
@@ -192,9 +191,8 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	read->full_segment_flush = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
 
-    //lock blob
-    gf_blob_get(next_url, &s_data, &s_size, NULL);
-    
+	//no need to lock blob if next_url is a blob, all parsing and probing functions below will lock the blob if any
+
 	switch (gf_isom_probe_file_range(next_url, read->start_range, read->end_range)) {
 	//this is a fragment
 	case 3:
@@ -257,7 +255,6 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		if (!read->input_loaded && (e==GF_ISOM_INCOMPLETE_FILE)) {
 			read->src_crc = 0;
 			read->moov_not_loaded = 2;
-			gf_blob_release(next_url);
 			return GF_OK;
 		}
 
@@ -272,20 +269,15 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		break;
 	//empty file
 	case 4:
-		gf_blob_release(next_url);
 		return GF_OK;
 	default:
 		if (!read->mov) {
-			gf_blob_release(next_url);
             return GF_NOT_SUPPORTED;
 		}
         e = GF_ISOM_INVALID_FILE;
         break;
 	}
 
-    //unlock blob
-	gf_blob_release(next_url);
-    
 	gf_filter_post_process_task(filter);
 
 	count = gf_list_count(read->channels);
