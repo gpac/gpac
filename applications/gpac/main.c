@@ -1633,7 +1633,7 @@ static int gpac_main(int argc, char **argv)
 		}
 
 		gf_sys_mark_arg_used(i, GF_TRUE);
-		
+
 		if ((!has_xopt && !strcmp(arg, "-h")) || !strcmp(arg, "-help") || !strcmp(arg, "-ha") || !strcmp(arg, "-hx") || !strcmp(arg, "-hh")) {
 			if (!strcmp(arg, "-ha")) argmode = GF_ARGMODE_ADVANCED;
 			else if (!strcmp(arg, "-hx")) argmode = GF_ARGMODE_EXPERT;
@@ -2562,7 +2562,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 					exit(1);
 				}
 			}
-			
+
 			if (a->min_max_enum) {
 				//check format
                 if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') && (!a->arg_default_val || strcmp(a->arg_default_val, "-1")) ) {
@@ -2575,7 +2575,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 						const char *a_sep = strchr(a_val, '|');
 						u32 len = a_sep ? (u32)(a_sep - a_val) : (u32)strlen(a_val);
 						strcpy(szName, "- ");
-						strncat(szName, a_val, len);
+						strncat(szName, a_val, MIN(sizeof(szName)-3,len));
 						szName[2+len]=0;
 						strcat(szName, ": ");
 
@@ -3803,7 +3803,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_path_add_quadratic_to(path, 5, 5, 10, 0);
 	gf_path_point_over(path, 4, 0);
 	gf_path_del(path);
-	
+
 	//xml dom - to update once we find a way to integrate atsc demux in tests
 	GF_DOMParser *dom = gf_xml_dom_new();
 	gf_xml_dom_parse_string(dom, "<Dummy>test</Dummy>");
@@ -3934,7 +3934,7 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 		u32 i, len, dir_len=0, k=0;
 		char *dst_name;
 		char *sep;
-		
+
 		sep = strstr(item_path, "gpac_cache_");
 		if (sep) {
 			sep[0] = 0;
@@ -4203,7 +4203,7 @@ static void cleanup_file_io()
 		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);
 		FileIOCtx *ioctx = gf_fileio_get_udta(gfio);
 		gf_fileio_del(gfio);
-		
+
 		if (ioctx->filep) {
 			fprintf(stderr, "Warning: file IO for %s still opened!\n", ioctx->path);
 			gf_fclose(ioctx->filep);
@@ -4261,4 +4261,3 @@ static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err 
 
 	return f;
 }
-

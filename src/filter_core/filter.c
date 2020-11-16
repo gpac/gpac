@@ -1075,7 +1075,7 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		} else {
 			u32 cplen = (u32) strlen(arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
-			strncpy(szArg, arg, cplen);
+			memcpy(szArg, arg, cplen);
 			szArg[META_MAX_ARG] = 0;
 		}
 #undef META_MAX_ARG
@@ -1765,7 +1765,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		if (!filter_dst->sticky) filter_dst->sticky = 2;
 		gf_filter_remove_internal(a_dst_pidi->filter, filter_dst, GF_TRUE);
 		is_new_chain = GF_FALSE;
-		
+
 		//we will reassign packets from that pid instance to the new connection
 		filter_dst->swap_pidinst_dst = a_dst_pidi;
 
@@ -2614,7 +2614,7 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 		gf_mx_p(filter->tasks_mx);
 		while (filter->num_input_pids) {
 			GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, 0);
-			GF_Filter *sfilter = pidinst->pid->filter;				
+			GF_Filter *sfilter = pidinst->pid->filter;
 			gf_list_del_item(filter->input_pids, pidinst);
 			pidinst->filter = NULL;
 			filter->num_input_pids = gf_list_count(filter->input_pids);
@@ -2671,7 +2671,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 
 	//avoid destruction of the task
 	gf_fq_pop(f->tasks);
-	
+
 	if (f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)
 		f->freg->finalize(f);
@@ -2761,7 +2761,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 
 	if (!filter) return;
 
-	if (filter->removed) 
+	if (filter->removed)
 		return;
 
 	if (filter==until_filter)
@@ -2980,7 +2980,7 @@ void gf_filter_forward_clock(GF_Filter *filter)
 	u64 clock_val;
 	if (!filter->next_clock_dispatch_type) return;
 	if (!filter->num_output_pids) return;
-	
+
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPacket *pck;
 		Bool req_props_map, info_modified;
@@ -3376,7 +3376,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			}
 		}
 	}
-	
+
 	ext_not_trusted = GF_FALSE;
 	//probe data
 	if ((!mime_type || !trust_mime) && !filter->no_probe && is_new_pid && probe_data && probe_size && !(filter->session->flags & GF_FS_FLAG_NO_PROBE)) {
@@ -3489,7 +3489,7 @@ static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, 
 		const GF_FilterArgs *arg = &filter->freg->args[i];
 		if (!arg || !arg->arg_name) break;
 		i++;
-		
+
 		if (strcmp(arg->arg_name, arg_name)) continue;
 		if (arg->offset_in_private < 0) continue;
 
@@ -3625,7 +3625,7 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter)
 	Bool res = GF_TRUE;
 	if (!filter || filter->session->in_final_flush || (filter->session->run_status==GF_EOS) )
 		return GF_TRUE;
-		
+
 	gf_mx_p(filter->session->filters_mx);
 	count = gf_list_count(filter->session->filters);
 	for (i=0; i<count; i++) {
@@ -3810,7 +3810,7 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 	if (!filter) return GF_BAD_PARAM;
 	if (!filter->session->reporting_on)
 		return GF_OK;
-		
+
 	if (!szStatus) {
 		if (filter->status_str) filter->status_str[0] = 0;
 		return GF_OK;

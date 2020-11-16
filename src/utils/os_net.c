@@ -271,10 +271,10 @@ static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber
 		service = (char *)portstring;
 	}
 	if (PeerName) {
-		strncpy(node, PeerName, MAX_PEER_NAME_LEN);
+		strncpy(node, PeerName, MAX_PEER_NAME_LEN-1);
 		if (node[0]=='[') {
 			node[strlen(node)-1] = 0;
-			strncpy(node, &node[1], MAX_PEER_NAME_LEN);
+			memmove(node, &node[1], MAX_PEER_NAME_LEN-1);
 		}
 		node[MAX_PEER_NAME_LEN - 1] = 0;
 		dest = (char *) node;
@@ -691,7 +691,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	if (!sock || sock->socket) return GF_BAD_PARAM;
 	if (local_ip && !strcmp(local_ip, "127.0.0.1"))
 		local_ip = NULL;
-		
+
 	if (sock->flags & GF_SOCK_IS_UN) {
 #ifdef GPAC_HAS_SOCK_UN
 		struct sockaddr_un server_un;
@@ -866,7 +866,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 			ret = GF_IP_CONNECTION_FAILURE;
 		}
 	}
-	
+
 	if (peer_name && peer_port) {
 		sock->dest_addr.sin_port = htons(peer_port);
 		sock->dest_addr.sin_family = AF_INET;
@@ -1263,7 +1263,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 
 	if (!gf_list_count(sg->sockets))
 		return GF_IP_NETWORK_EMPTY;
-		
+
 	FD_ZERO(&sg->rgroup);
 	FD_ZERO(&sg->wgroup);
 
@@ -1379,7 +1379,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 	}
 #endif
 	if (!buffer) return GF_OK;
-	
+
 	if (sock->flags & GF_SOCK_HAS_PEER)
 		res = (s32) recvfrom(sock->socket, (char *) buffer, length, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {

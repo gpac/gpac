@@ -1790,7 +1790,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sending ATSC3 LLS.SysTime\n"));
 	gf_sk_send(ctx->sock_atsc_lls, ctx->lls_time_table, ctx->lls_time_table_len);
 	ctx->bytes_sent += ctx->lls_time_table_len;
-	
+
 	//SLT
 	if (!ctx->lls_slt_table) {
 		count = gf_list_count(ctx->services);
@@ -1816,9 +1816,12 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 				gf_sk_get_local_ip(serv->rlct_base->sock, szIP);
 				src_ip = szIP;
 			}
-			snprintf(tmp, 1000, "\">\n"
+			int res = snprintf(tmp, 1000, "\">\n"
 				"  <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n"
 				" </Service>\n", serv->rlct_base->ip, serv->rlct_base->port, src_ip);
+			if (res<0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] String truncated will trying to write: <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n", serv->rlct_base->ip, serv->rlct_base->port, src_ip));
+			}
 			gf_dynstrcat(&payload_text, tmp, NULL);
 		}
 		gf_dynstrcat(&payload_text, "</SLT>\n", NULL);
@@ -2091,4 +2094,3 @@ const GF_FilterRegister *routeout_register(GF_FilterSession *session)
 {
 	return &ROUTEOutRegister;
 }
-
