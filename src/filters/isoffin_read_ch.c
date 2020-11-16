@@ -410,33 +410,35 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->sap_3 = GF_FALSE;
 	ch->sap_4_type = 0;
 	ch->roll = 0;
-	if (ch->sample) {
-		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4_type, &ch->roll);
-	}
-
-	/*still seeking or not ?
-	 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
-	 2- otherwise set DTS+CTS to start value
-	 */
-	if ((ch->speed < 0) || (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset)) {
-		ch->dts = ch->sample->DTS;
-		ch->cts = ch->sample->DTS + ch->sample->CTS_Offset;
-		ch->seek_flag = 0;
-	} else {
-		ch->cts = ch->start;
-		ch->seek_flag = 1;
-		ch->dts = ch->start;
-	}
 	ch->set_disc = ch->owner->clock_discontinuity ? 2 : 0;
 	ch->owner->clock_discontinuity = 0;
 
-	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset + ch->au_duration)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
-		ch->sample = NULL;
-		ch->last_state = GF_EOS;
-		ch->playing = 2;
-		return;
+	if (ch->sample) {
+		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4_type, &ch->roll);
+
+		/*still seeking or not ?
+		 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
+		 2- otherwise set DTS+CTS to start value
+		 */
+		if ((ch->speed < 0) || (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset)) {
+			ch->dts = ch->sample->DTS;
+			ch->cts = ch->sample->DTS + ch->sample->CTS_Offset;
+			ch->seek_flag = 0;
+		} else {
+			ch->cts = ch->start;
+			ch->seek_flag = 1;
+			ch->dts = ch->start;
+		}
+
+		if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset + ch->au_duration)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
+			ch->sample = NULL;
+			ch->last_state = GF_EOS;
+			ch->playing = 2;
+			return;
+		}
 	}
+
 	if (ch->owner->last_sender_ntp && ch->cts==ch->owner->cts_for_last_sender_ntp) {
 		ch->sender_ntp = ch->owner->last_sender_ntp;
 		ch->ntp_at_server_ntp = ch->owner->ntp_at_last_sender_ntp;

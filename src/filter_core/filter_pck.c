@@ -828,10 +828,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		} else if (pck->frame_ifce) {
 			pid->filter->nb_hw_pck_sent++;
 		}
-		if (pck->info.cts!=GF_FILTER_NO_TS) {
+		if (timescale && (pck->info.cts!=GF_FILTER_NO_TS)) {
 			pid->last_ts_sent.num = pck->info.cts;
-			assert(pck->pid_props);
-			pid->last_ts_sent.den = pck->pid_props->timescale;
+			pid->last_ts_sent.den = timescale;
 		}
 	}
 

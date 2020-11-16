@@ -124,12 +124,27 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	return GF_OK;
 }
 
+static GF_Err tileagg_set_eos(GF_Filter *filter, GF_TileAggCtx *ctx)
+{
+	u32 i, count = gf_filter_get_ipid_count(filter);
+	for (i=0; i<count; i++) {
+		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
+		while (1) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+			if (!pck) break;
+			gf_filter_pid_drop_packet(pid);
+		}
+	}
+
+	gf_filter_pid_set_eos(ctx->opid);
+	return GF_EOS;
+}
 
 static GF_Err tileagg_process(GF_Filter *filter)
 {
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
 	u32 i, j, count = gf_filter_get_ipid_count(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *dst_pck, *base_pck;
 	u64 min_cts = GF_FILTER_NO_TS;
 	u32 pck_size, size = 0;
 	u32 pos;
@@ -138,19 +153,19 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	u8 *output;
 	if (!ctx->base_ipid) return GF_EOS;
 
-	pck = gf_filter_pid_get_packet(ctx->base_ipid);
-	if (!pck) {
+	base_pck = gf_filter_pid_get_packet(ctx->base_ipid);
+	if (!base_pck) {
 		if (gf_filter_pid_is_eos(ctx->base_ipid)) {
-			gf_filter_pid_set_eos(ctx->opid);
-			return GF_EOS;
+			return tileagg_set_eos(filter, ctx);
 		}
 		return GF_OK;
 	}
-	min_cts = gf_filter_pck_get_cts(pck);
-	gf_filter_pck_get_data(pck, &pck_size);
+	min_cts = gf_filter_pck_get_cts(base_pck);
+	gf_filter_pck_get_data(base_pck, &pck_size);
 	size = pck_size;
 
 	for (i=0; i<count; i++) {
+		GF_FilterPacket *pck;
 		u64 cts;
 		Bool do_drop=GF_FALSE;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
@@ -159,8 +174,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 			pck = gf_filter_pid_get_packet(pid);
 			if (!pck) {
 				if (gf_filter_pid_is_eos(pid)) {
-					gf_filter_pid_set_eos(ctx->opid);
-					return GF_EOS;
+					return tileagg_set_eos(filter, ctx);
 				}
 				return GF_OK;
 			}
@@ -190,9 +204,8 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	}
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 
-	pck = gf_filter_pid_get_packet(ctx->base_ipid);
-	gf_filter_pck_merge_properties(pck, dst_pck);
-	data = gf_filter_pck_get_data(pck, &pck_size);
+	gf_filter_pck_merge_properties(base_pck, dst_pck);
+	data = gf_filter_pck_get_data(base_pck, &pck_size);
 
 	//copy all NAL from base except SEI suffixes
 	gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
@@ -216,6 +229,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 
 	for (i=0; i<count; i++) {
 		u64 cts;
+		GF_FilterPacket *pck;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		if (pid==ctx->base_ipid) continue;
 		pck = gf_filter_pid_get_packet(pid);
@@ -234,8 +248,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 
 	//append all SEI suffixes
 	if (has_sei_suffix) {
-		pck = gf_filter_pid_get_packet(ctx->base_ipid);
-		data = gf_filter_pck_get_data(pck, &pck_size);
+		data = gf_filter_pck_get_data(base_pck, &pck_size);
 		gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
 
 		pos = 0;

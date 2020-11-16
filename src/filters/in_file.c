@@ -344,7 +344,6 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (ctx->pck_out)
 		return GF_EOS;
 	if (ctx->pid && gf_filter_pid_would_block(ctx->pid)) {
-		assert(0);
 		return GF_OK;
 	}
 
