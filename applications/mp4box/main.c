@@ -228,7 +228,7 @@ void PrintGeneralUsage()
 		"  \n"
 	);
 
-	
+
 	while (m4b_gen_args[i].name) {
 		GF_GPACArg *arg = &m4b_gen_args[i];
 		i++;
@@ -579,7 +579,7 @@ static GF_GPACArg m4b_imp_fileopt_args [] = {
 void PrintImportUsage()
 {
 	u32 i;
-	
+
 	gf_sys_format_help(helpout, help_flags, "# Importing Options\n"
 		"# File importing\n"
 		"Syntax is [-add]() / [-cat]() `filename[#FRAGMENT][:opt1...:optN=val]`\n"
@@ -2041,7 +2041,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					len = (u32) strlen(opts);
 					(*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
 					(*descs)[(*nb_descs)-1] = (char *)gf_malloc((len+1)*sizeof(char));
-					strncpy((*descs)[(*nb_descs)-1], opts, len);
+					memcpy((*descs)[(*nb_descs)-1], opts, len);
 					(*descs)[(*nb_descs)-1][len] = 0;
 				}
 
@@ -2957,7 +2957,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_PAR;
 			assert(strlen(argv[i + 1]) + 1 <= sizeof(szTK));
-			strncpy(szTK, argv[i + 1], sizeof(szTK));
+			strncpy(szTK, argv[i + 1], sizeof(szTK)-1);
 			ext = strchr(szTK, '=');
 			if (!ext) {
 				fprintf(stderr, "Bad format for track par - expecting tkID=none or tkID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
@@ -3002,7 +3002,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_CLAP;
 			assert(strlen(argv[i + 1]) + 1 <= sizeof(szTK));
-			strncpy(szTK, argv[i + 1], sizeof(szTK));
+			strncpy(szTK, argv[i + 1], sizeof(szTK)-1);
 			ext = strchr(szTK, '=');
 			if (!ext) {
 				fprintf(stderr, "Bad format for track clap - expecting tkID=none or tkID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", argv[i + 1]);
@@ -3033,7 +3033,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_MX;
 			assert(strlen(argv[i + 1]) + 1 <= sizeof(szTK));
-			strncpy(szTK, argv[i + 1], sizeof(szTK));
+			strncpy(szTK, argv[i + 1], sizeof(szTK)-1);
 			ext = strchr(szTK, '=');
 			if (!ext) {
 				fprintf(stderr, "Bad format for track matrix - expecting ID=none or ID=M1:M2:M3:M4:M5:M6:M7:M8:M9 got %s\n", argv[i + 1]);
@@ -3115,13 +3115,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			szTK[sizeof(szTK)-1] = 0;
 			ext = strchr(szTK, '=');
 			if (!strnicmp(argv[i + 1], "all=", 4)) {
-				strncpy(tracks[nb_track_act].lang, argv[i + 1] + 4, 10);
+				strncpy(tracks[nb_track_act].lang, argv[i + 1] + 4, 10-1);
 			}
 			else if (!ext) {
-				strncpy(tracks[nb_track_act].lang, argv[i + 1], 10);
+				strncpy(tracks[nb_track_act].lang, argv[i + 1], 10-1);
 			}
 			else {
-				strncpy(tracks[nb_track_act].lang, ext + 1, 10);
+				strncpy(tracks[nb_track_act].lang, ext + 1, 10-1);
 				ext[0] = 0;
 				tracks[nb_track_act].trackID = atoi(szTK);
 				ext[0] = '=';
@@ -3153,7 +3153,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				if (strlen(argv[i + 1]) > 200) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("Warning: track kind parameter is too long!"));
 				}
-				strncpy(szTK, argv[i + 1], 200);
+				strncpy(szTK, argv[i + 1], 200-1);
 				ext = strchr(szTK, '=');
 				if (ext && !has_track_id) {
 					ext[0] = 0;
@@ -3233,7 +3233,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				return 2;
 			}
 			ext[0] = 0;
-			strncpy(tracks[nb_track_act].lang, szTK, 10);
+			strncpy(tracks[nb_track_act].lang, szTK, 9);
 			ext[0] = ':';
 			tracks[nb_track_act].newTrackID = (s32)atoi(ext + 1);
 			open_edit = GF_TRUE;
@@ -5206,7 +5206,7 @@ int mp4boxMain(int argc, char **argv)
 		} else {
 			strcat(szMPD, ".mpd");
 		}
-		
+
 		if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
 			fprintf(stderr, "Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration);
 			dash_subduration = dash_duration;
@@ -6601,7 +6601,7 @@ int mp4boxMain(int argc, char **argv)
 					fprintf(stderr, "Error removing file %s\n", inName);
 				}
 			}
-			
+
 			e = gf_file_move(outfile, inName);
 			if (e) {
 				fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);

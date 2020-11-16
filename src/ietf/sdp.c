@@ -446,19 +446,19 @@ static s32 SDP_MakeSeconds(char *buf)
 	test = strstr(buf, "d");
 	if (test) {
 		assert(strlen(buf)-strlen(test) < sizeof(num));
-		strncpy(num, buf, strlen(buf)-strlen(test));
+		memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
 		return (atoi(num)*sign*86400);
 	}
 	test = strstr(buf, "h");
 	if (test) {
 		assert(strlen(buf)-strlen(test) < sizeof(num));
-		strncpy(num, buf, strlen(buf)-strlen(test));
+		memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
 		return (atoi(num)*sign*3600);
 	}
 	test = strstr(buf, "m");
 	if (test) {
 		assert(strlen(buf)-strlen(test) < sizeof(num));
-		strncpy(num, buf, strlen(buf)-strlen(test));
+		memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
 		return (atoi(num)*sign*60);
 	}
 	return (atoi(buf) * sign);
@@ -826,7 +826,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 	if (str) { \
 		SDP_WRITE_ALLOC_STR_WITHOUT_CHECK(str, space); \
 	}		\
- 
+
 #define SDP_WRITE_ALLOC_INT(d, spa, sig)		\
 	if (sig < 0) { \
 		sprintf(temp, "%d", d);		\

@@ -1045,8 +1045,12 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 	char szFile[GF_MAX_PATH];
 	u64 fsize;
 	FILE *f;
+	int concatres;
 
-	sprintf(szFile, "%s%04X%s", base_file, idx, ext);
+	concatres = snprintf(szFile, GF_MAX_PATH, "%s%04X%s", base_file, idx, ext);
+	if (concatres<0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Path too long (limit %d) when trying to concatenate %s and %s\n", GF_MAX_PATH, base_file, ext));
+	}
 
 	f = gf_fopen(szFile, "rb");
 	if (!f) return 0;
@@ -1165,4 +1169,3 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 
 
 #endif /*GPAC_DISABLE_SVG*/
-

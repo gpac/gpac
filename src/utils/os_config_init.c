@@ -89,6 +89,7 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 {
 	char szPath[GF_MAX_PATH];
 	FILE *f;
+	int concatres;
 
 	if (! gf_dir_exists(path)) return 0;
 
@@ -104,7 +105,11 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 		return 1;
 	}
 
-	sprintf(szPath, "%s%c%s", path, GF_PATH_SEPARATOR, name);
+	concatres = snprintf(szPath, GF_MAX_PATH, "%s%c%s", path, GF_PATH_SEPARATOR, name);
+	if (concatres<0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Path too long (limit %d) when trying to concatenate %s and %s\n", GF_MAX_PATH, path, name));
+	}
+
 	//do not use gf_fopen here, we don't want to throw en error if failure
 	f = fopen(szPath, "rb");
 	if (!f) return GF_FALSE;
@@ -202,7 +207,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 	/*modules are stored in the GPAC directory (should be changed to GPAC/modules)*/
 	if (path_type==GF_PATH_MODULES) return GF_TRUE;
-	
+
 	if (path_type == GF_PATH_LIB) {
 		HMODULE hm=NULL;
 		if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -1377,7 +1382,7 @@ Bool gf_sys_set_cfg_option(const char *opt_string)
 	sepIdx = strlen(sep2+1);
 	if (sepIdx>=1024)
 		sepIdx = 1023;
-	strncpy(szVal, sep2+1, sepIdx);
+	memcpy(szVal, sep2+1, sepIdx);
 	szVal[sepIdx] = 0;
 
 	if (!stricmp(szKey, "*")) {
@@ -2166,7 +2171,7 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 		return GF_TRUE;
 	if ((dlen>=3) && (dlen<olen) && !strncmp(orig, dst, dlen))
 		return GF_TRUE;
-		
+
 	if (olen*2 < dlen) {
 		char *s1 = strchr(orig, ':');
 		char *s2 = strchr(dst, ':');
