@@ -3012,9 +3012,9 @@ naldmx_flush:
 				} else if (hdr_avail>(u32) size && !nal_bytes_from_store)
 					hdr_avail = (u32) size;
 			}
-			if (!full_nal && (size < SAFETY_NAL_STORE/2)) {
+			//if nal_hdr_in_store is set, we are sure this is a valid NAL start, otherwise if too small we copy it to the reassemble buffer
+			if (!full_nal && !nal_hdr_in_store && (size < SAFETY_NAL_STORE/2)) {
 				assert(!nal_sc_in_store);
-				assert(!nal_hdr_in_store);
 				assert(remain < SAFETY_NAL_STORE);
 				//we may have garbage at the end os stream, if the stream was cancelled in the middle (truncated nal)
 				if (!is_eos) {
