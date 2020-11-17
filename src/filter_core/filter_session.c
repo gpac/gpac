@@ -1798,8 +1798,10 @@ GF_EXPORT
 GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 {
 	u32 i, count;
+	Bool threaded;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user, stoping sources\n"));
 	if (!fsess) return GF_BAD_PARAM;
+	threaded = (!fsess->filters_mx && (fsess->main_th.th_id==gf_th_id())) ? GF_FALSE : GF_TRUE;
 
 	if (!do_flush) {
 		fsess->in_final_flush = GF_TRUE;
@@ -1841,14 +1843,24 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 						GF_FilterPid *opid = gf_list_get(pidi->filter->output_pids, l);
 						//We cannot directly call process_event as this would make concurrent access to the filter
 						//wich we guarantee we will never do
-						//but we don't want to send a regular stop event which will reset PID buffers
-						//so:
+						//but we don't want to send a regular stop event which will reset PID buffers, so:
+						//- if called in main thread of session in single-thread mode we can safely force a STOP event
+						//otherwise:
 						//- post a task to the filter
 						//- only disable the filter once the filter_abort has been called
 						//- only move to EOS if no filter_abort is pending
+						//
 						if (opid->filter->freg->process_event) {
-							gf_fs_post_task(opid->filter->session, filter_abort, opid->filter, opid, "filter_abort", NULL);
-							force_disable = GF_FALSE;
+							if (threaded) {
+								gf_fs_post_task(opid->filter->session, filter_abort, opid->filter, opid, "filter_abort", NULL);
+								force_disable = GF_FALSE;
+							} else {
+								GF_FilterEvent evt;
+								GF_FEVT_INIT(evt, GF_FEVT_STOP, opid);
+
+								opid->filter->freg->process_event(opid->filter, &evt);
+								gf_filter_pid_set_eos(opid);
+							}
 						} else {
 							gf_filter_pid_set_eos(opid);
 						}
