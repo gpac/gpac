@@ -1974,8 +1974,8 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 }
 
 static char szCacheDir[GF_MAX_PATH];
-GF_EXPORT
-const char * gf_get_default_cache_directory()
+
+const char * gf_get_default_cache_directory_ex(Bool do_create)
 {
 	const char *cache_dir;
 	char root_tmp[GF_MAX_PATH];
@@ -2004,11 +2004,17 @@ const char * gf_get_default_cache_directory()
 
 	strcat(szCacheDir, "gpac_cache");
 
-	if ( !gf_dir_exists(szCacheDir) && gf_mkdir(szCacheDir)!=GF_OK ) {
+	if (do_create && !gf_dir_exists(szCacheDir) && gf_mkdir(szCacheDir)!=GF_OK ) {
 		strcpy(szCacheDir, root_tmp);
 		return szCacheDir;
 	}
 	return szCacheDir;
+}
+
+GF_EXPORT
+const char * gf_get_default_cache_directory()
+{
+	return gf_get_default_cache_directory_ex(GF_TRUE);
 }
 
 
