@@ -607,6 +607,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_pat
 
 #endif
 
+const char * gf_get_default_cache_directory_ex(Bool do_create);
 
 static GF_Config *create_default_config(char *file_path, const char *profile)
 {
@@ -671,7 +672,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	}
 #else
 	/*get default temporary directoy */
-	gf_cfg_set_key(cfg, "core", "cache", gf_get_default_cache_directory());
+	gf_cfg_set_key(cfg, "core", "cache", gf_get_default_cache_directory_ex(GF_FALSE));
 #endif
 
 	gf_cfg_set_key(cfg, "core", "ds-disable-notif", "no");
@@ -762,8 +763,8 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 	if (profile && !strcmp(profile, "0")) {
 		GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName);
-		sprintf(szPath, "%s%c%s", gf_get_default_cache_directory(), GF_PATH_SEPARATOR, CFG_FILE_NAME);
-		gf_cfg_set_filename(cfg, szPath);
+//		sprintf(szPath, "%s%c%s", gf_get_default_cache_directory(), GF_PATH_SEPARATOR, CFG_FILE_NAME);
+		gf_cfg_set_filename(cfg, CFG_FILE_NAME);
 		gf_cfg_discard_changes(cfg);
 		return cfg;
 	}
@@ -966,7 +967,7 @@ skip_cfg:
 
 	if (!gf_cfg_get_key(cfg, "core", "store-dir")) {
 		if (profile && !strcmp(profile, "0")) {
-			strcpy(szPath, gf_get_default_cache_directory() );
+			strcpy(szPath, gf_get_default_cache_directory_ex(GF_FALSE) );
 			strcat(szPath, "/Storage");
 		} else {
 			char *sep;

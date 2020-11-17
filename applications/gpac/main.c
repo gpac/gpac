@@ -2213,6 +2213,7 @@ exit:
 		if (nb_loops>0) nb_loops--;
 		loops_done++;
 		fprintf(stderr, "session done, restarting (loop %d)\n", loops_done);
+		fflush(stderr);
 		gf_log_reset_file();
 		goto restart;
 	}
