@@ -688,6 +688,7 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 
 	vfprintf(stderr, fmt, vlist);
 	gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+	gf_fflush(stderr);
 }
 
 

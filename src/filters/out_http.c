@@ -2620,7 +2620,7 @@ static GF_Err httpout_process(GF_Filter *filter)
 	//wakeup every 50ms when inactive
 	ctx->next_wake_us = 50000;
 
-	gf_sk_group_select(ctx->sg, 10, GF_SK_SELECT_BOTH);
+	e = gf_sk_group_select(ctx->sg, 10, GF_SK_SELECT_BOTH);
 	if ((e==GF_OK) && ctx->server_sock) {
 		//server mode, check pending connections
 		if (gf_sk_group_sock_is_set(ctx->sg, ctx->server_sock, GF_SK_SELECT_READ)) {
