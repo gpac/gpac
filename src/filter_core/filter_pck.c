@@ -1062,7 +1062,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 						safe_int64_add(&dst->buffer_duration, duration);
 					}
 					inst->pck->info.flags |= GF_PCKF_BLOCK_START;
-
 					safe_int_inc(&dst->filter->pending_packets);
 					gf_fq_add(dst->packets, inst);
 				}
@@ -1139,7 +1138,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				duration /= timescale;
 				safe_int64_add(&dst->buffer_duration, duration);
 			}
-
 			safe_int_inc(&dst->filter->pending_packets);
 //
 			gf_fq_add(dst->packets, inst);

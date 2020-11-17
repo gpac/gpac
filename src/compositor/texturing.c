@@ -96,7 +96,7 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 		if (e != GF_OK) return e;
 	}
 	txh->is_open = 1;
-
+	txh->stream_finished = GF_FALSE;
 	/*request play*/
 	gf_mo_play(txh->stream, start_offset, end_offset, can_loop);
 
@@ -242,7 +242,6 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 	//if first frame use 20ms as upload time
 	push_time = txh->nb_frames ? txh->upload_time/txh->nb_frames : 20;
-	
 	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame_ifce, NULL);
 
 	if (txh->stream->config_changed) {

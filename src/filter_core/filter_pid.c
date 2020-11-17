@@ -1087,7 +1087,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	pidinst->props = NULL;
 
 	gf_mx_p(filter->tasks_mx);
-	//detach pid - remove all packets in our pid instance and alos update filter pending_packets
+	//detach pid - remove all packets in our pid instance and also update filter pending_packets
 	count = gf_fq_count(pidinst->packets);
 	assert(!count || (count >= filter->pending_packets));
 	safe_int_sub(&filter->pending_packets, (s32) count);
@@ -5907,6 +5907,11 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	else {
 		//reset EOS to false on source switch before executing the event, so that a filter may set a pid to EOS in the callback
 		if (evt->base.type==GF_FEVT_SOURCE_SWITCH) {
+			//if session has been aborted, cancel event - this avoids the dashin requesting a source switch on a source that is not yet over
+			if (f->session->in_final_flush) {
+				free_evt(evt);
+				return;
+			}
 			for (i=0; i<f->num_output_pids; i++) {
 				GF_FilterPid *apid = gf_list_get(f->output_pids, i);
 				apid->has_seen_eos = GF_FALSE;

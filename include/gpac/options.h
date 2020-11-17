@@ -198,7 +198,7 @@ enum
 	GF_BACK_CULL_OFF = 0,
 	/*! backface culliong enabled*/
 	GF_BACK_CULL_ON,
-	/*! backface culling enabled alos for transparent meshes*/
+	/*! backface culling enabled also for transparent meshes*/
 	GF_BACK_CULL_ALPHA,
 };
 
