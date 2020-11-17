@@ -557,24 +557,29 @@ GF_EXPORT
 void gf_filter_reset_source(GF_Filter *filter)
 {
 	if (filter && filter->source_ids) {
+		gf_mx_p(filter->session->filters_mx);
 		gf_free(filter->source_ids);
 		filter->source_ids = NULL;
+		gf_mx_v(filter->session->filters_mx);
 	}
 }
 
 static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
 	assert(filter);
+
+	gf_mx_p(filter->session->filters_mx);
+
 	if (!sources_ID) {
 		if (filter->source_ids) gf_free(filter->source_ids);
 		filter->source_ids = NULL;
-		return;
-	}
-	if (!filter->source_ids) {
+	} else if (!filter->source_ids) {
 		filter->source_ids = gf_strdup(sources_ID);
-		return;
+	} else {
+		gf_dynstrcat(&filter->source_ids, sources_ID, ",");
 	}
-	gf_dynstrcat(&filter->source_ids, sources_ID, ",");
+
+	gf_mx_v(filter->session->filters_mx);
 }
 
 static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
@@ -2329,6 +2334,14 @@ static void gf_filter_process_task(GF_FSTask *task)
 			&& filter->pending_packets
 			&& (gf_fq_count(filter->tasks)<=1)
 	) {
+		//prune eos packets that could still be present
+		if (filter->pending_packets && filter->session->in_final_flush) {
+			u32 i;
+			for (i=0; i<filter->num_input_pids; i++) {
+				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+				gf_filter_pid_get_packet((GF_FilterPid *)pidi);
+			}
+		}
 		task->requeue_request = GF_TRUE;
 		assert(filter->process_task_queued);
 	}

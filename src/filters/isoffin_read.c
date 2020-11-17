@@ -1220,7 +1220,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			}
 
 			if (!read->refresh_fragmented && (e==GF_ISOM_INCOMPLETE_FILE)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received - "LLU" bytes missing but EOF found\n", bytesMissing ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received - "LLU" bytes missing but EOF found\n", bytesMissing ));
 			}
 
 #ifndef GPAC_DISABLE_LOG

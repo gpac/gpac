@@ -468,8 +468,7 @@ retry:
 	}
 	assert(mo->pck);
 	mo->first_frame_fetched = GF_TRUE;
-	mo->is_eos = GF_FALSE;
-
+	*eos = mo->is_eos = GF_FALSE;
 
 	/*not running and no resync (ie audio)*/
 	if (!gf_clock_is_started(mo->odm->ck)) {
@@ -510,8 +509,7 @@ retry:
 		} else {
 			if (gf_filter_pid_is_eos(mo->odm->pid)) {
 				if (!mo->is_eos) {
-					mo->is_eos = GF_TRUE;
-					*eos = mo->is_eos;
+					*eos = mo->is_eos = GF_TRUE;
 					mediasensor_update_timing(mo->odm, GF_TRUE);
 					gf_odm_on_eos(mo->odm, mo->odm->pid);
 					force_decode_mode=0;
@@ -926,6 +924,11 @@ void gf_mo_stop(GF_MediaObject **_mo)
 		if (mo->odm->flags & GF_ODM_DESTROYED) {
 			*_mo = NULL;
 			return;
+		}
+
+		if (mo->pck) {
+			gf_filter_pck_unref(mo->pck);
+			mo->pck = NULL;
 		}
 
 		/*signal STOP request*/
