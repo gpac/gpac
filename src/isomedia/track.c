@@ -1541,7 +1541,9 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		if (StreamDescriptionIndex) {
 			entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex - 1);
 			if (!entry) return GF_ISOM_INVALID_FILE;
-			if (entry->esd && entry->esd->desc->URLString) return GF_BAD_PARAM;
+			//get ESD (only if present, do not emulate)
+			Media_GetESD(trak->Media, StreamDescriptionIndex, &esd, GF_TRUE);
+			if (esd && esd->URLString) return GF_BAD_PARAM;
 		}
 
 		//OK, check the handler and create the entry
