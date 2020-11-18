@@ -57,7 +57,6 @@ enum
 	GF_SEG_BOUNDARY_FORCE_PCR,
 };
 
-
 static GFINLINE Bool gf_m2ts_time_less(GF_M2TS_Time *a, GF_M2TS_Time *b) {
 	if (a->sec>b->sec) return GF_FALSE;
 	if (a->sec==b->sec) return (a->nanosec<b->nanosec) ? GF_TRUE : GF_FALSE;
@@ -1457,6 +1456,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 	Bool ignore_next = GF_FALSE;
 	stream->next_payload_size = 0;
 	stream->next_next_payload_size = 0;
+	stream->next_next_next_payload_size = 0;
 
 	stream->next_pck_flags = 0;
 	stream->next_pck_sap = 0;
@@ -1490,8 +1490,11 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 			if (!stream->pck_first->next && stream->ifce->input_ctrl) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
 			if (stream->pck_first->next) {
 				stream->next_next_payload_size = stream->pck_first->next->data_len;
+				if (!stream->pck_first->next->next && stream->ifce->input_ctrl) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
+				if (stream->pck_first->next->next) {
+					stream->next_next_next_payload_size = stream->pck_first->next->next->data_len;
+				}
 			}
-
 		}
 	}
 	/*consider we don't have the next AU if:
@@ -1515,8 +1518,12 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 
 	if (stream->next_payload_size) {
 		stream->next_payload_size += stream->reframe_overhead;
-		if (stream->next_next_payload_size)
+		if (stream->next_next_payload_size) {
 			stream->next_next_payload_size += stream->reframe_overhead;
+			if (stream->next_next_next_payload_size) {
+				stream->next_next_next_payload_size += stream->reframe_overhead;
+			}
+		}
 
 		gf_m2ts_remap_timestamps_for_pes(stream, stream->next_pck_flags, &stream->next_pck_dts, &stream->next_pck_cts, NULL);
 
@@ -1556,6 +1563,13 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 		else if (stream->next_payload_size) {
 			/*how much more TS packets do we need to send next AU ?*/
 			while (ts_bytes < pck_size + stream->next_payload_size) {
+				//check we have enough bytes in the next 3 AUs if we increase by 1 TS packet the PES
+				//bytes_to_copy from next will be: ts_bytes + 184 - pck_size
+				//check bytes_to_copy is <= next_payload_size + next_next_payload_size + next_next_next_payload_size
+				//if not, do not add - we do not want to take the risk of having no data while filling a PES packet with an announced length
+				if (ts_bytes + 184 > pck_size + stream->next_payload_size + stream->next_next_payload_size + stream->next_next_next_payload_size)
+					break;
+
 				ts_bytes += 184;
 			}
 			/*don't end next AU in next PES if we don't want to start 2 AUs in one PES
@@ -1573,6 +1587,10 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 		/*that's how much bytes we copy from the following AUs*/
 		if (ts_bytes >= pck_size) {
 			stream->copy_from_next_packets = ts_bytes - pck_size;
+			//very low rate case, we didn't enter the previous while loop:
+			//we can't fill the complete TS packet with the next two AUs, do not copy over
+			if (stream->copy_from_next_packets > stream->next_payload_size + stream->next_next_payload_size + stream->next_next_next_payload_size)
+				stream->copy_from_next_packets = 0;
 		} else {
 			u32 skipped = pck_size-ts_bytes;
 			if (stream->pes_data_len > skipped)

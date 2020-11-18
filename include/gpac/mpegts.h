@@ -1536,8 +1536,10 @@ typedef struct __m2ts_mux_stream {
 	u32 next_payload_size;
 	/*! number of bytes to copy from next packet*/
 	u32 copy_from_next_packets;
-	/*! size of nex next payload, 0 if unknown*/
+	/*! size of next next payload, 0 if unknown*/
 	u32 next_next_payload_size;
+	/*! size of next next next payload, 0 if unknown*/
+	u32 next_next_next_payload_size;
 	/*! size of packetized packet*/
 	u32 pes_data_len;
 	/*! remaining bytes to send as TS packets*/
