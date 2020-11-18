@@ -1668,8 +1668,8 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "ref=", 4)) {
-			char type[10];
-			sscanf(szSlot, "ref=%9s,%u", type, &meta->ref_item_id);
+			char type[5];
+			sscanf(szSlot, "ref=%4s,%u", type, &meta->ref_item_id);
 			meta->ref_type = GF_4CC(type[0], type[1], type[2], type[3]);
 			ret = 1;
 		}

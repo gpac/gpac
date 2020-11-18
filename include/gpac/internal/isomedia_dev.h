@@ -2564,6 +2564,7 @@ typedef struct
 	u8 force_new_trun;
 	u8 IFrameSwitching;
 	u8 use_sdtp;
+	u8 truns_first;
 } GF_TrackFragmentBox;
 
 GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID);

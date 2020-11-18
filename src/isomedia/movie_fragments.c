@@ -516,6 +516,11 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 			traf->interleave_id = Param;
 		}
 		break;
+	case GF_ISOM_TRAF_TRUNS_FIRST:
+		traf = gf_isom_get_traf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->truns_first = Param;
+		break;
 	}
 	return GF_OK;
 }
@@ -2609,6 +2614,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		traf_2->IFrameSwitching = traf->IFrameSwitching;
 		traf_2->use_sample_interleave = traf->use_sample_interleave;
 		traf_2->interleave_id = traf->interleave_id;
+		traf_2->truns_first = traf->truns_first;
 		traf_2->DataCache  = traf->DataCache;
 		traf_2->tfhd->sample_desc_index  = DescIndex;
 
