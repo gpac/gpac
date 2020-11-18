@@ -754,8 +754,10 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 #endif
 	if (entry->file_exists && entry->deletableFilesOnDelete) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[CACHE] url %s cleanup, deleting %s...\n", entry->url, entry->cache_filename));
-		if (GF_OK != gf_file_delete(entry->cache_filename))
+		//if file exists, delete it (dash client may trash m3u8 files on the fly while converting them to MPD ...)
+		if (gf_file_exists(entry->cache_filename) && (gf_file_delete(entry->cache_filename)!=GF_OK) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CACHE, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, entry->cache_filename));
+		}
 	}
 #ifdef ENABLE_WRITE_MX
 	entry->write_mutex = NULL;

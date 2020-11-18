@@ -1799,7 +1799,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 #ifndef GPAC_DISABLE_LOG
 						for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
 							const char *valid_name = (const char*) gf_list_get(valid_names, i);
-							GF_LOG(success ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Tried name: %s\n", valid_name));
+							GF_LOG(success ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Tried name: %s\n", valid_name));
 						}
 #endif
 					}
