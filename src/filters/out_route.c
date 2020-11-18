@@ -132,6 +132,8 @@ typedef struct
 	//0: not manifest, 1: MPD, 2: HLS
 	u32 manifest_type;
 
+	Bool init_seg_sent;
+
 	char *template;
 
 	char *hld_child_pl, *hld_child_pl_name;
@@ -708,6 +710,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						memcpy(rpid->init_seg_data, data, len);
 						rpid->init_seg_size = len;
 						rpid->init_seg_crc = crc;
+						rpid->init_seg_sent = GF_FALSE;
 						serv->stsid_changed = GF_TRUE;
 						rpid->current_toi = 0;
 
@@ -1214,7 +1217,11 @@ static GF_Err routeout_service_send_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 	//we don't regulate
 	while (offset < serv->stsid_bundle_size) {
-		//send lct with codepoint "unsigned package" (multipart)
+		/*send lct with codepoint "NRT - Unsigned Package Mode" (multipart):
+		"In broadcast delivery of SLS for a DASH-formatted streaming Service delivered using ROUTE, since SLS fragments are NRT files in nature,
+		their carriage over the ROUTE session/LCT channel assigned by the SLT shall be in accordance to the Unsigned Packaged Mode or
+		the Signed Package Mode as described in Section A.3.3.4 and A.3.3.5, respectively"
+		*/
 		offset += routeout_lct_send(ctx, serv->rlct_base->sock, 0, serv->stsid_bundle_toi, 3, serv->stsid_bundle, serv->stsid_bundle_size, offset, serv->service_id, serv->stsid_bundle_size, offset);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sent service %d bundle (%d bytes)\n", serv->service_id, serv->stsid_bundle_size));
@@ -1300,6 +1307,7 @@ retry:
 			rpid->init_seg_data = gf_malloc(rpid->pck_size);
 			memcpy(rpid->init_seg_data, rpid->pck_data, rpid->pck_size);
 			rpid->init_seg_size = rpid->pck_size;
+			rpid->init_seg_sent = GF_FALSE;
 			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENAME);
 			if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
 			rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
@@ -1584,7 +1592,15 @@ next_packet:
 				//send init asap
 				offset = 0;
 				while (offset < rpid->init_seg_size) {
-					offset += routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI, rpid->fmtp, (u8 *) rpid->init_seg_data, rpid->init_seg_size, offset, serv->service_id, rpid->init_seg_size, offset);
+					//we use codepoint 5 (new IS) or 7 (repeated IS)
+					u32 codepoint;
+					if (rpid->init_seg_sent) {
+						codepoint = 7;
+					} else {
+						rpid->init_seg_sent = GF_FALSE;
+						codepoint = 5;
+					}
+					offset += routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI, codepoint, (u8 *) rpid->init_seg_data, rpid->init_seg_size, offset, serv->service_id, rpid->init_seg_size, offset);
 				}
 				if (ctx->reporting_on) {
 					ctx->total_size += rpid->init_seg_size;
@@ -1599,7 +1615,8 @@ next_packet:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sending HLS sub playlist %s: \n%s\n", rpid->hld_child_pl_name, rpid->hld_child_pl));
 
 					while (offset < hls_len) {
-						offset += routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, rpid->fmtp, (u8 *) rpid->hld_child_pl, hls_len, offset, serv->service_id, hls_len, offset);
+						//we use codepoint 1 (NRT - file mode) for subplaylists
+						offset += routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, 1, (u8 *) rpid->hld_child_pl, hls_len, offset, serv->service_id, hls_len, offset);
 					}
 					if (ctx->reporting_on) {
 						ctx->total_size += hls_len;
@@ -1611,7 +1628,7 @@ next_packet:
 		}
 
 		while ((rpid->pck_offset < rpid->pck_size) || rpid->force_tol_send) {
-			u32 sent;
+			u32 sent, codepoint;
 			//we have timing info, let's regulate
 			if (rpid->current_cts_us!=GF_FILTER_NO_TS) {
 				u64 cur_time_us;
@@ -1637,7 +1654,9 @@ next_packet:
 					}
 				}
 			}
-			sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, rpid->fmtp, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv->service_id, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset);
+			//we use codepoint 8 (media segment, file mode) for media segments, otherwise as listed in S-TSID
+			codepoint = rpid->raw_file ? rpid->fmtp : 8;
+			sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv->service_id, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset);
 			rpid->pck_offset += sent;
 			if (ctx->reporting_on) {
 				ctx->total_bytes += sent;

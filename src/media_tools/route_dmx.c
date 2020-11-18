@@ -1547,6 +1547,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 	//look for TSI 0 first
 	if (tsi!=0) {
+		Bool cp_found = GF_FALSE;
 		u32 i=0;
 		Bool in_session = GF_FALSE;
 		if (s->tune_mode==GF_ROUTE_TUNE_SLS_ONLY) return GF_OK;
@@ -1576,7 +1577,14 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		for (i=0; rlct && i<rlct->nb_cps; i++) {
 			if (rlct->CPs[i].codepoint==cp) {
 				in_order = rlct->CPs[i].order;
+				cp_found = GF_TRUE;
 				break;
+			}
+		}
+		if (!cp_found) {
+			if ((cp==0) || (cp==2) || (cp>=9) ) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : unsupported code point %d, skipping packet (TOI %u)\n", s->service_id, cp, toi));
+				return GF_OK;
 			}
 		}
 	} else {
