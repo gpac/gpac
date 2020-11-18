@@ -5753,6 +5753,17 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *isom_file, Bool root_meta, u32 
 */
 GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 from_id, u32 to_id, u32 type, u64 *ref_index);
 
+/*! adds the item to the given group
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param item_id ID of item to add
+\param group_id ID of group, 0 if needs to be determined from the file
+\param group_type four character code of group
+\return error if any
+*/
+GF_Err gf_isom_meta_add_item_group(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, u32 group_id, u32 group_type);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*!

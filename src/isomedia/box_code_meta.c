@@ -54,6 +54,7 @@ void meta_reset(GF_Box *s)
 	ptr->IPMP_control = NULL;
 	ptr->item_refs = NULL;
 	ptr->item_props = NULL;
+	ptr->groups_list = NULL;
 }
 
 void meta_box_del(GF_Box *s)
@@ -99,6 +100,10 @@ GF_Err meta_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->item_props) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->item_props = (GF_ItemPropertiesBox*)a;
 		break;
+	case GF_ISOM_BOX_TYPE_GRPL:
+		if (ptr->groups_list) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->groups_list = (GF_GroupListBox*)a;
+		break;
 	}
 	return GF_OK;
 }
@@ -137,6 +142,7 @@ GF_Err meta_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->item_infos, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->item_refs, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->item_props, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->groups_list, &pos);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

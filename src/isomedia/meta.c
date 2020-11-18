@@ -876,6 +876,15 @@ GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *file, Bool root_meta, u32 track
 	else {
 		*item_id = lastItemID + 1;
 	}
+	if (meta->groups_list) {
+		u32 i;
+		u32 groups_count = gf_list_count(meta->groups_list->child_boxes);
+		for (i = 0; i < groups_count; i++) {
+			GF_EntityToGroupTypeBox *g = (GF_EntityToGroupTypeBox *)gf_list_get(meta->groups_list->child_boxes, i);
+			if (g->group_id > lastItemID) lastItemID = g->group_id;
+		}
+		*item_id = lastItemID+1;
+	}
 	return GF_OK;
 }
 
@@ -1286,6 +1295,52 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 		}
 	}
 
+}
+
+GF_EXPORT
+GF_Err gf_isom_meta_add_item_group(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, u32 group_id, u32 group_type)
+{
+	u32 i, count;
+	GF_EntityToGroupTypeBox *group;
+	s32 index = -1;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta) return GF_BAD_PARAM;
+	if (!group_type) return GF_BAD_PARAM;
+	if (!group_id) {
+		GF_Err e = gf_isom_meta_get_next_item_id(file, root_meta, track_num, &group_id);
+		if (e != GF_OK) return e;
+	}
+	if (!meta->groups_list) {
+		meta->groups_list = (GF_GroupListBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_GRPL);
+		if (!meta->groups_list) return GF_OUT_OF_MEM;
+		meta->groups_list->child_boxes = gf_list_new();
+		if (!meta->groups_list->child_boxes) return GF_OUT_OF_MEM;
+	}
+	count = gf_list_count(meta->groups_list->child_boxes);
+	for (i = 0; i < count; i++) {
+		group = (GF_EntityToGroupTypeBox *)gf_list_get(meta->groups_list->child_boxes, i);
+		if (group->grouping_type == group_type && group->group_id == group_id) {
+			index = i;
+			break;
+		}
+	}
+	if (index < 0) {
+		group = (GF_EntityToGroupTypeBox *)gf_isom_box_new_parent(&meta->groups_list->child_boxes, GF_ISOM_BOX_TYPE_GRPT);
+		if (!group) return GF_OUT_OF_MEM;
+		group->grouping_type = group_type;
+		group->group_id = group_id;
+		group->entity_ids = NULL;
+		group->entity_id_count = 0;
+	} else {
+		group = (GF_EntityToGroupTypeBox *)gf_list_get(meta->groups_list->child_boxes, index);
+	}
+
+	group->entity_ids = (u32 *)gf_realloc(group->entity_ids, (group->entity_id_count + 1) * sizeof(u32));
+	if (!group->entity_ids) return GF_OUT_OF_MEM;
+	group->entity_ids[group->entity_id_count] = item_id;
+	group->entity_id_count++;
+
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
