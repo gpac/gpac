@@ -2405,6 +2405,7 @@ typedef struct __tag_meta_box
 	GF_IPMPControlBox *IPMP_control;
 	GF_ItemPropertiesBox *item_props;
 	GF_ItemReferenceBox *item_refs;
+	GF_GroupListBox *groups_list;
 
 	Bool use_item_sample_sharing;
 } GF_MetaBox;
