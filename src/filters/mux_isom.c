@@ -231,6 +231,7 @@ typedef struct
 	Bool saio32;
 	u32 compress;
 	Bool trun_inter;
+	Bool truns_first;
 	char *boxpatch;
 	Bool fcomp;
 	Bool deps;
@@ -4221,6 +4222,9 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 		if (ctx->trun_inter) {
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRUN_SET_INTERLEAVE_ID, 0);
 		}
+		if (ctx->truns_first) {
+			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_TRUNS_FIRST, 1);
+		}
 
 		if (ctx->sdtp_traf)
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, ctx->sdtp_traf);
@@ -5745,6 +5749,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(fcomp), "force using compress box even when compressed size is larger than uncompressed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(trun_inter), "interleave samples in trun based on the temporal level, the lowest level are stored first - this will create as many trun as required", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(truns_first), "store track runs before sample group description and sample encryption information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},

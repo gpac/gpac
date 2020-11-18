@@ -1993,6 +1993,8 @@ fcomp (bool, default: false):  force using compress box even when compressed siz
 .br
 trun_inter (bool, default: false): interleave samples in trun based on the temporal level, the lowest level are stored first - this will create as many trun as required
 .br
+truns_first (bool, default: false): store track runs before sample group description and sample encryption information
+.br
 block_size (uint, default: 10000): target output block size, 0 for default internal value (10k)
 .br
 boxpatch (str):                apply box patch before writing
@@ -6802,7 +6804,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev238-g9d367bb45-master
+build: 1.1.0-DEV-rev263-g3bea3b4d9-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

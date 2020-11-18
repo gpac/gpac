@@ -4220,6 +4220,9 @@ typedef enum
 	This will enable data cache
 	param: interleave ID*/
 	GF_ISOM_TRUN_SET_INTERLEAVE_ID,
+	/*! store truns before sample groups and encryption info
+ 	param: 1 to store before, 0, to store after*/
+	GF_ISOM_TRAF_TRUNS_FIRST,
 } GF_ISOTrackFragmentOption;
 
 /*! sets a track fragment option. Options can be set at the beginning of each new fragment only, and for the
@@ -5762,7 +5765,7 @@ GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *isom_file, Bool root_meta, u32 trac
 \param group_type four character code of group
 \return error if any
 */
-GF_Err gf_isom_meta_add_item_group(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, u32 group_id, u32 group_type);
+GF_Err gf_isom_meta_add_item_group(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_id, u32 group_id, u32 group_type);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
