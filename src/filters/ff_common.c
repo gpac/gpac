@@ -55,6 +55,7 @@ typedef struct
 {
 	u32 ff_pf;
 	u32 gpac_pf;
+	u32 flags; //only 1 used, for full range
 } GF_FF_PFREG;
 
 #ifndef FFMPEG_ENABLE_VVC
@@ -100,9 +101,9 @@ static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 	{AV_PIX_FMT_BGRA, GF_PIXEL_BGRA},
 
 	/*aliases*/
-	{AV_PIX_FMT_YUVJ420P, GF_PIXEL_YUV},
-	{AV_PIX_FMT_YUVJ422P, GF_PIXEL_YUV422},
-	{AV_PIX_FMT_YUVJ444P, GF_PIXEL_YUV444},
+	{AV_PIX_FMT_YUVJ420P, GF_PIXEL_YUV, 1},
+	{AV_PIX_FMT_YUVJ422P, GF_PIXEL_YUV422, 1},
+	{AV_PIX_FMT_YUVJ444P, GF_PIXEL_YUV444, 1},
 	{0},
 };
 
@@ -132,6 +133,34 @@ u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
 		i++;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
+	return 0;
+}
+
+Bool ffmpeg_pixfmt_is_fullrange(u32 pfmt)
+{
+	u32 i=0;
+	while (FF2GPAC_PixelFormats[i].gpac_pf) {
+		if (FF2GPAC_PixelFormats[i].ff_pf == pfmt)
+			return FF2GPAC_PixelFormats[i].flags & 1 ? GF_TRUE : GF_FALSE;
+		i++;
+	}
+	return GF_FALSE;
+}
+
+u32 ffmpeg_pixfmt_from_codec_tag(u32 codec_tag, Bool *is_full_range)
+{
+	u32 i=0;
+	if (is_full_range) *is_full_range = 0;
+
+	while (FF2GPAC_PixelFormats[i].gpac_pf) {
+		if (avcodec_pix_fmt_to_codec_tag(FF2GPAC_PixelFormats[i].ff_pf) == codec_tag) {
+			if (is_full_range && (FF2GPAC_PixelFormats[i].flags & 1)) {
+				*is_full_range = GF_TRUE;
+			}
+			return FF2GPAC_PixelFormats[i].gpac_pf;
+		}
+		i++;
+	}
 	return 0;
 }
 

@@ -607,6 +607,11 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, &PROP_UINT(frame->width));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(frame->height));
 				opid->gf_pfmt = ffmpeg_pixfmt_to_gpac(frame->format);
+				if (ffmpeg_pixfmt_is_fullrange(frame->format)) {
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
+				} else {
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, NULL);
+				}
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(opid->gf_pfmt));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE, &PROP_UINT(frame->linesize[0]));
 				if (frame->linesize[1])
