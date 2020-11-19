@@ -130,7 +130,7 @@ static void ffdec_check_pix_fmt_change(struct _gf_ffdec_ctx *ctx, u32 pix_fmt)
 		ctx->force_full_range = GF_FALSE;
 		if (ctx->decoder->color_range==AVCOL_RANGE_JPEG)
 			ctx->force_full_range = GF_TRUE;
-		else if (ctx->decoder->pix_fmt==AV_PIX_FMT_YUVJ420P)
+		else if (ffmpeg_pixfmt_is_fullrange(ctx->decoder->pix_fmt))
 			ctx->force_full_range = GF_TRUE;
 		else
 			ctx->force_full_range = GF_FALSE;

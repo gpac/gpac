@@ -58,6 +58,11 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 
 u32 ffmpeg_pixfmt_from_gpac(u32 pfmt);
 u32 ffmpeg_pixfmt_to_gpac(u32 pfmt);
+//return GPAC pix format from codec tag
+u32 ffmpeg_pixfmt_from_codec_tag(u32 codec_tag, Bool *is_full_range);
+//check if FF pixfmt is an old format fullrange
+Bool ffmpeg_pixfmt_is_fullrange(u32 pfmt);
+
 u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt);
 u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt);
 u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag);

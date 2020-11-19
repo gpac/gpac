@@ -460,37 +460,23 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		if ((codec->codec_type==AVMEDIA_TYPE_VIDEO)
 			&& (codec->pix_fmt || ((codec->codec_id==AV_CODEC_ID_RAWVIDEO) && codec->codec_tag))
 		) {
+			Bool is_full_range = GF_FALSE;
 			u32 pfmt = 0;
 
-#define CHECK_FF_PFMT(__ff_cid, __gp_cid)\
-			if ((codec->pix_fmt && (codec->pix_fmt==__ff_cid)) \
-				|| (codec->codec_tag && (avcodec_pix_fmt_to_codec_tag(__ff_cid) == codec->codec_tag))) { \
-				pfmt = __gp_cid; \
-			} \
-
-			CHECK_FF_PFMT(AV_PIX_FMT_YUV420P, GF_PIXEL_YUV)
-			else CHECK_FF_PFMT(AV_PIX_FMT_YUV420P10LE, GF_PIXEL_YUV_10)
-			else CHECK_FF_PFMT(AV_PIX_FMT_YUV422P, GF_PIXEL_YUV422)
-			else CHECK_FF_PFMT(AV_PIX_FMT_YUV422P10LE, GF_PIXEL_YUV422_10)
-			else CHECK_FF_PFMT(AV_PIX_FMT_YUV444P, GF_PIXEL_YUV444)
-			else CHECK_FF_PFMT(AV_PIX_FMT_YUV444P10LE, GF_PIXEL_YUV444_10)
-			else CHECK_FF_PFMT(AV_PIX_FMT_RGBA, GF_PIXEL_RGBA)
-			else CHECK_FF_PFMT(AV_PIX_FMT_RGB24, GF_PIXEL_RGB)
-			else CHECK_FF_PFMT(AV_PIX_FMT_BGR24, GF_PIXEL_BGR)
-			else CHECK_FF_PFMT(AV_PIX_FMT_UYVY422, GF_PIXEL_UYVY)
-			else CHECK_FF_PFMT(AV_PIX_FMT_YUYV422, GF_PIXEL_YUYV)
-			else CHECK_FF_PFMT(AV_PIX_FMT_NV12, GF_PIXEL_NV12)
-			else CHECK_FF_PFMT(AV_PIX_FMT_NV21, GF_PIXEL_NV21)
-			else CHECK_FF_PFMT(AV_PIX_FMT_0RGB, GF_PIXEL_XRGB)
-			else CHECK_FF_PFMT(AV_PIX_FMT_RGB0, GF_PIXEL_RGBX)
-			else CHECK_FF_PFMT(AV_PIX_FMT_0BGR, GF_PIXEL_XBGR)
-			else CHECK_FF_PFMT(AV_PIX_FMT_BGR0, GF_PIXEL_BGRX)
-			else {
-				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unsupported pixel format %d\n", ctx->fname, codec->pix_fmt));
+			if (codec->pix_fmt) {
+				pfmt = ffmpeg_pixfmt_to_gpac(codec->pix_fmt);
+				is_full_range = ffmpeg_pixfmt_is_fullrange(codec->pix_fmt);
+			} else if (codec->codec_tag) {
+				pfmt = ffmpeg_pixfmt_from_codec_tag(codec->codec_tag, &is_full_range);
 			}
-			gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT( pfmt) );
 
-#undef CHECK_FF_PFMT
+			if (!pfmt) {
+				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unsupported pixel format %d\n", ctx->fname, codec->pix_fmt));
+			} else {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT( pfmt) );
+				if (is_full_range)
+					gf_filter_pid_set_property(pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL( GF_TRUE ) );
+			}
 		}
 
 
@@ -773,7 +759,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 
 static GF_Err ffavin_initialize(GF_Filter *filter)
 {
-	s32 res, i;
+	s32 res, i, dev_idx=-1;
 	Bool has_a, has_v;
 	char szPatchedName[1024];
 	const char *dev_name=NULL;
@@ -843,6 +829,14 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	else if (!strncmp(ctx->src, "audio://", 8)) wants_audio = GF_TRUE;
 	else if (!strncmp(ctx->src, "av://", 5)) wants_video = wants_audio = GF_TRUE;
 
+	if (sscanf(dev_name, "%d", &dev_idx)==1) {
+		sprintf(szPatchedName, "%d", dev_idx);
+		if (strcmp(szPatchedName, dev_name)) 
+			dev_idx = -1;
+	} else {
+		dev_idx = -1;
+	}
+
 	szPatchedName[0]=0;
 
 #if defined(__DARWIN) || defined(__APPLE__)
@@ -852,9 +846,17 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		dev_name = (char *) szPatchedName;
 	}
 #endif
+	if (!strncmp(dev_fmt->priv_class->class_name, "V4L2", 4) && (dev_idx>=0) ) {
+		if (wants_audio) {
+			sprintf(szPatchedName, "/dev/video%d:hw:%d", dev_idx, dev_idx);
+		} else {
+			sprintf(szPatchedName, "/dev/video%d", dev_idx);
+		}
+		dev_name = (char *) szPatchedName;
+	}
 
-	if (wants_video && wants_audio && !strcmp(dev_name, "0")) {
-		strcpy(szPatchedName, "0:0");
+	else if (wants_video && wants_audio && (dev_idx>=0)) {
+		sprintf(szPatchedName, "%d:%d", dev_idx, dev_idx);
 		dev_name = (char *) szPatchedName;
 	}
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
@@ -979,8 +981,8 @@ static GF_FilterProbeScore ffavin_probe_url(const char *url, const char *mime)
 static const GF_FilterCapability FFAVInCaps[] =
 {
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL)
+	//do not expose a specific codec ID (eg raw) as some grabbers might give us mjpeg
 };
 
 GF_FilterRegister FFAVInRegister = {
