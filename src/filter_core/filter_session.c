@@ -1792,6 +1792,8 @@ static void filter_abort(GF_FSTask *task)
 	task->pid->filter->freg->process_event(task->pid->filter, &evt);
 	gf_filter_pid_set_eos(task->pid);
 	task->pid->filter->disabled = GF_TRUE;
+	safe_int_dec(&task->pid->filter->abort_pending);
+
 }
 
 GF_EXPORT
@@ -1856,6 +1858,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 						//
 						if (opid->filter->freg->process_event) {
 							if (threaded) {
+								safe_int_inc(&opid->filter->abort_pending);
 								gf_fs_post_task(opid->filter->session, filter_abort, opid->filter, opid, "filter_abort", NULL);
 								force_disable = GF_FALSE;
 							} else {

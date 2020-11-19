@@ -1739,7 +1739,7 @@
 #endif
 
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_dom_pre_destroy) )
@@ -1747,7 +1747,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_remove_listener) )
 #endif
 
-#endif /*GPAC_HAS_SPIDERMONKEY*/
+#endif /*GPAC_HAS_QJS*/
 
 /* scenegraph_vrml.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_replace_child) )
@@ -1816,7 +1816,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_in_table_by_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_get_field_type_name) )
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_vrml_flush_event_out) )
 #endif
 
@@ -1836,7 +1836,7 @@
 
 #endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_get_node) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_add_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_add_named_root) )
@@ -1844,6 +1844,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_has_instance) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_lock_javascript) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_try_lock_javascript) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_js_delete_runtime) )
+
 #endif
 
 

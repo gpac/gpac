@@ -480,6 +480,7 @@ void gf_filter_del(GF_Filter *filter)
 		count = gf_list_count(filter->session->filters);
 		for (i=0; i<count; i++) {
 			GF_Filter *a_filter = gf_list_get(filter->session->filters, i);
+			gf_mx_p(a_filter->tasks_mx);
 			gf_list_del_item(a_filter->destination_filters, filter);
 			gf_list_del_item(a_filter->destination_links, filter);
 			gf_list_del_item(a_filter->source_filters, filter);
@@ -493,6 +494,7 @@ void gf_filter_del(GF_Filter *filter)
 				a_filter->target_filter = NULL;
 			if (a_filter->dst_filter == filter)
 				a_filter->dst_filter = NULL;
+			gf_mx_v(a_filter->tasks_mx);
 		}
 		gf_mx_v(filter->session->filters_mx);
 	}
@@ -2761,8 +2763,12 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 		for (j=0; j<nb_inst; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			gf_filter_tag_remove(pidi->filter, filter, until_filter);
-			if (!mark_only)
+			if (!mark_only) {
+				//unlock filter before posting remove task on other filter
+				if (do_unlock) gf_mx_v(filter->tasks_mx);
 				gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
+				do_unlock = gf_mx_try_lock(filter->tasks_mx);
+			}
 		}
 	}
 	if (do_unlock) gf_mx_v(filter->tasks_mx);
@@ -3081,9 +3087,11 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 
 	if (!filter_src) return NULL;
 
+	gf_mx_p(filter->tasks_mx);
 	if (!filter->source_filters)
 		filter->source_filters = gf_list_new();
 	gf_list_add(filter->source_filters, filter_src);
+	gf_mx_v(filter->tasks_mx);
 	return filter_src;
 }
 
