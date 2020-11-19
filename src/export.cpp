@@ -1826,7 +1826,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_x3d_get_node_type) )
 #endif
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_HAS_QJS
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_handle_dom_event_for_vrml) )
 #endif
@@ -1838,14 +1838,7 @@
 
 #ifdef GPAC_HAS_QJS
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_get_node) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_js_add_root) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_js_add_named_root) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_js_remove_root) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_has_instance) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_lock_javascript) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_try_lock_javascript) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_delete_runtime) )
-
 #endif
 
 
