@@ -828,7 +828,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						char *sep = strstr(serv->manifest_url, file_name);
 						if (sep) sep[0] = 0;
 						sep = strstr(serv->manifest_url, "://");
-						if (sep) sep = strchr(sep + 4, '/');
+						if (sep) sep = strchr(sep + 3, '/');
 						if (sep) {
 							serv->manifest_server = serv->manifest_url;
 							serv->manifest_url = gf_strdup(sep+1);

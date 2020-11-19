@@ -25,6 +25,7 @@
 
 #include <gpac/main.h>
 #include <gpac/filters.h>
+#include <gpac/thread.h>
 
 static GF_SystemRTInfo rti;
 static GF_FilterSession *session=NULL;
@@ -1832,6 +1833,9 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-sloop")) {
 			nb_loops = -1;
 			if (arg_val) nb_loops = atoi(arg_val);
+			if (nb_loops) {
+				gf_opts_set_key("temp", "peristent-jsrt", "true");
+			}
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*atoi(arg_val);
 		} else if (!strcmp(arg, "-runforx")) {
@@ -1920,7 +1924,7 @@ static int gpac_main(int argc, char **argv)
 	}
 
 	if (dump_stats && gf_sys_get_rti(0, &rti, 0) ) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("System info: %d MB RAM - %d cores\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("System info: %d MB RAM - %d cores - main thread ID %d\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores, gf_th_id() ));
 	}
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 
@@ -2217,6 +2221,13 @@ exit:
 		gf_log_reset_file();
 		goto restart;
 	}
+
+#ifdef GPAC_HAS_QJS
+	if (loops_done) {
+		void gf_js_delete_runtime();
+		gf_js_delete_runtime();
+	}
+#endif
 
 	gpac_exit(e<0 ? 1 : 0);
 }

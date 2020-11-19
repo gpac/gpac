@@ -330,7 +330,6 @@ JSContext *gf_js_create_context()
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated %p\n", js_runtime));
 
     	JS_SetModuleLoaderFunc(js_rt->js_runtime, NULL, qjs_module_loader, NULL);
-
 	}
 	js_rt->nb_inst++;
 
@@ -357,6 +356,12 @@ void gf_js_delete_context(JSContext *ctx)
 
 	js_rt->nb_inst --;
 	if (js_rt->nb_inst == 0) {
+		//persistent context, do not delete runtime but perform GC
+		if (gf_opts_get_bool("temp", "peristent-jsrt")) {
+			JS_RunGC(js_rt->js_runtime);
+			return;
+		}
+
 		JS_FreeRuntime(js_rt->js_runtime);
 		gf_list_del(js_rt->allocated_contexts);
 		gf_mx_del(js_rt->mx);
@@ -364,7 +369,17 @@ void gf_js_delete_context(JSContext *ctx)
 		js_rt = NULL;
 	}
 }
-
+GF_EXPORT
+void gf_js_delete_runtime()
+{
+	if (js_rt) {
+		JS_FreeRuntime(js_rt->js_runtime);
+		gf_list_del(js_rt->allocated_contexts);
+		gf_mx_del(js_rt->mx);
+		gf_free(js_rt);
+		js_rt = NULL;
+	}
+}
 
 
 #ifndef GPAC_DISABLE_SVG

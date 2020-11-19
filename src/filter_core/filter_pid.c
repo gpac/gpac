@@ -306,7 +306,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 	assert(filter);
 	//reset in process
-	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
+	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending || filter->abort_pending) {
 		TASK_REQUEUE(task)
 		return;
 	}
@@ -3831,6 +3831,7 @@ single_retry:
 			pid->filter->dst_filter = NULL;
 		}
 
+		gf_mx_p(filter_dst->tasks_mx);
 		if (gf_list_count(filter_dst->source_filters)) {
 			u32 j, count2 = gf_list_count(filter_dst->source_filters);
 			for (j=0; j<count2; j++) {
@@ -3841,7 +3842,8 @@ single_retry:
 				}
 			}
 		}
-		
+		gf_mx_v(filter_dst->tasks_mx);
+
 		//if destination accepts only one input and connected or connection pending
 		//note that if destination uses dynamic clone through source ids, we need to check this filter
 		if (!filter_dst->max_extra_pids
