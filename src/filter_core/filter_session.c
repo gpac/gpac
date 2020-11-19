@@ -1828,12 +1828,16 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 			u32 j, k, l;
 			filter->disabled = GF_TRUE;
 			for (j=0; j<filter->num_output_pids; j++) {
+				const GF_PropertyValue *p;
 				GF_FilterPid *pid = gf_list_get(filter->output_pids, j);
 				//unlock before forcing eos as this could trigger a post task on a filter waiting for this mutex to be unlocked
 				gf_mx_v(filter->tasks_mx);
 				gf_filter_pid_set_eos(pid);
 				gf_mx_p(filter->tasks_mx);
-
+				//if the PID has a codecid set (demuxed pid, e.g. ffavin or other grabbers), do not force STOP on its destinations
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+				if (p) continue;
+				
 				for (k=0; k<pid->num_destinations; k++) {
 					Bool force_disable = GF_TRUE;
 					GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
