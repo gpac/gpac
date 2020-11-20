@@ -361,6 +361,45 @@ GF_Err irot_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *imir_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ImageMirrorBox, GF_ISOM_BOX_TYPE_IMIR);
+	return (GF_Box *)tmp;
+}
+
+void imir_box_del(GF_Box *a)
+{
+	GF_ImageMirrorBox *p = (GF_ImageMirrorBox *)a;
+	gf_free(p);
+}
+
+GF_Err imir_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_ImageMirrorBox *p = (GF_ImageMirrorBox *)s;
+	p->axis = gf_bs_read_u8(bs) & 0x1;
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err imir_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ImageMirrorBox *p = (GF_ImageMirrorBox*)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, p->axis);
+	return GF_OK;
+}
+
+GF_Err imir_box_size(GF_Box *s)
+{
+	GF_ImageMirrorBox *p = (GF_ImageMirrorBox*)s;
+	p->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 GF_Box *ipco_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ItemPropertyContainerBox, GF_ISOM_BOX_TYPE_IPCO);

@@ -420,6 +420,7 @@ enum
 	GF_ISOM_BOX_TYPE_PIXI   = GF_4CC( 'p', 'i', 'x', 'i' ),
 	GF_ISOM_BOX_TYPE_RLOC   = GF_4CC( 'r', 'l', 'o', 'c' ),
 	GF_ISOM_BOX_TYPE_IROT   = GF_4CC( 'i', 'r', 'o', 't' ),
+	GF_ISOM_BOX_TYPE_IMIR   = GF_4CC( 'i', 'm', 'i', 'r' ),
 	GF_ISOM_BOX_TYPE_IPCO   = GF_4CC( 'i', 'p', 'c', 'o' ),
 	GF_ISOM_BOX_TYPE_IPRP   = GF_4CC( 'i', 'p', 'r', 'p' ),
 	GF_ISOM_BOX_TYPE_IPMA   = GF_4CC( 'i', 'p', 'm', 'a' ),
@@ -3543,6 +3544,11 @@ typedef struct {
 	GF_ISOM_BOX
 	u8 angle;
 } GF_ImageRotationBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	u8 axis;
+} GF_ImageMirrorBox;
 
 typedef struct
 {

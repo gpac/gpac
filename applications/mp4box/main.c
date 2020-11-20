@@ -1744,6 +1744,14 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->angle = atoi(szSlot+9);
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "mirror=", 7)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			meta->image_props->mirror = atoi(szSlot+7);
+			ret = 1;
+		}
 		else if (!stricmp(szSlot, "hidden")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
