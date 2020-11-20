@@ -5282,6 +5282,16 @@ GF_Err irot_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err imir_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ImageMirrorBox *ptr = (GF_ImageMirrorBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ImageMirrorBox", trace);
+	gf_fprintf(trace, "axis=\"%s\">\n", (ptr->axis ? "horizontal" : "vertical"));
+	gf_isom_box_dump_done("ImageMirrorBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err clli_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_ContentLightLevelBox *ptr = (GF_ContentLightLevelBox *)a;

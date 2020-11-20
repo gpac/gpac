@@ -5582,6 +5582,8 @@ typedef struct
 	u32 vOffset;
 	/*! angle in radians*/
 	u32 angle;
+	/*! mirroring axis: 0 = not set, 1 = vertical, 2 = horizontal*/
+	u32 mirror;
 	/*! hidden flag*/
 	Bool hidden;
 	/*! pointer to configuration box*/

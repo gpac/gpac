@@ -602,6 +602,12 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 					prop->angle = irot->angle * 90;
 				}
 				break;
+				case GF_ISOM_BOX_TYPE_IMIR:
+				{
+					GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)b;
+					prop->mirror = imir->axis+1;
+				}
+				break;
 				case GF_ISOM_BOX_TYPE_HVCC:
 				case GF_ISOM_BOX_TYPE_AVCC:
 					prop->config = b;
@@ -648,6 +654,14 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 		{
 			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
 			if (prop->angle && irot->angle*90 == prop->angle) {
+				return i;
+			}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_IMIR:
+		{
+			GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)b;
+			if (prop->mirror && imir->axis == prop->mirror-1) {
 				return i;
 			}
 		}
@@ -806,6 +820,19 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
 		searchprop.angle = 0;
+	}
+	if (image_props->mirror) {
+		searchprop.mirror = image_props->mirror;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IMIR);
+			if (!imir) return GF_OUT_OF_MEM;
+			imir->axis = image_props->mirror-1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.mirror = 0;
 	}
 	if (image_props->config) {
 		searchprop.config = image_props->config;
