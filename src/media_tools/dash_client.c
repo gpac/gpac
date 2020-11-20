@@ -160,6 +160,7 @@ struct __dash_client
 	Bool period_groups_setup;
 	u32 tile_rate_decrease;
 	GF_DASHTileAdaptationMode tile_adapt_mode;
+	Bool disable_low_quality_tiles;
 
 	GF_List *SRDs;
 
@@ -171,7 +172,8 @@ struct __dash_client
 
 	s32 (*rate_adaptation_download_monitor)(GF_DashClient *dash, GF_DASH_Group *group, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur);
 
-
+	//for custom algo, total rate of all active groups being downloaded
+	u32 total_rate;
 
 	gf_dash_rate_adaptation rate_adaptation_algo_custom;
 	gf_dash_download_monitor rate_adaptation_download_monitor_custom;
@@ -181,6 +183,13 @@ struct __dash_client
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
 
 
+enum
+{
+	SEG_FLAG_LOOP_DETECTED = 1,
+	SEG_FLAG_DEP_FOLLOWING = 1<<1,
+	SEG_FLAG_DISABLED = 1<<2,
+};
+
 typedef struct
 {
 	char *cache;
@@ -188,14 +197,14 @@ typedef struct
 	u64 start_range, end_range;
 	/*representation index in adaptation_set->representations*/
 	u32 representation_index;
-	Bool loop_detected;
 	u32 duration;
 	char *key_url;
 	bin128 key_IV;
-	Bool has_dep_following;
 	u32 seg_number;
 	const char *seg_name_start;
 	GF_Fraction64 time;
+
+	u32 flags;
 } segment_cache_entry;
 
 typedef enum
@@ -341,6 +350,10 @@ struct __dash_group
 	u32 quality_degradation_hint;
 
 	Bool rate_adaptation_postponed;
+	Bool update_tile_qualities;
+
+	//for dash custom, allows temporary disabling a group
+	Bool disabled;
 
 	/* current segment index in BBA and BOLA algorithm */
 	u32 current_index;
@@ -3639,7 +3652,9 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	   All adaptation algorithms should use this value */
 	speed = dash->speed;
 	if (speed<0) speed = -speed;
-	dl_rate = (u32)  (8*group->bytes_per_sec / speed);
+	dl_rate = (u32) (8 * (u64) group->bytes_per_sec / speed);
+	if ((s32) dl_rate < 0)
+		dl_rate = GF_INT_MAX;
 
 	/* Get the active representation in the AdaptationSet */
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
@@ -3719,13 +3734,16 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 		return;
 	}
 	group->rate_adaptation_postponed = GF_FALSE;
-
 	if (new_index < 0) {
+		if (new_index == -2) {
+			group->disabled = GF_TRUE;
+		}
 		group->active_rep_index = old_index;
 		return;
 	}
 	if (new_index != group->active_rep_index) {
 		GF_MPD_Representation *new_rep = gf_list_get(group->adaptation_set->representations, (u32)new_index);
+		group->disabled = GF_FALSE;
 		if (!new_rep) {
 			group->active_rep_index = old_index;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot find new representation index %d, using previous one\n", new_index));
@@ -4979,8 +4997,11 @@ static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *ti
 	if (tile_group->quality_degradation_hint) {
 		u32 v = tile_group->quality_degradation_hint * MAX(srd->srd_nb_rows, srd->srd_nb_cols);
 		v/=100;
+		if (dash->disable_low_quality_tiles)
+			tile_group->disabled = GF_TRUE;
 		return v;
 	}
+	tile_group->disabled = GF_FALSE;
 
 
 	switch (dash->tile_adapt_mode) {
@@ -5677,7 +5698,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	if (!will_retry) {
 		if (rep->dependency_id) {
 			segment_cache_entry *cache_entry = &base_group->cached[base_group->nb_cached_segments];
-			cache_entry->has_dep_following = 0;
+			cache_entry->flags &= ~SEG_FLAG_DEP_FOLLOWING;
 		}
 
 		if (group->base_rep_index_plus_one) {
@@ -5945,8 +5966,10 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			}
 			cache_entry->representation_index = representation_index;
 			cache_entry->duration = (u32) group->current_downloaded_segment_duration;
-			cache_entry->loop_detected = group->loop_detected;
-			cache_entry->has_dep_following = has_dep_following;
+			cache_entry->flags = group->loop_detected ? SEG_FLAG_LOOP_DETECTED : 0;
+			if (has_dep_following) cache_entry->flags |= SEG_FLAG_DEP_FOLLOWING;
+			if (group->disabled)
+				cache_entry->flags |= SEG_FLAG_DISABLED;
 			if (key_url) {
 				cache_entry->key_url = key_url;
 				memcpy(cache_entry->key_IV, key_iv, sizeof(bin128));
@@ -6049,6 +6072,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 	u32 min_bandwidth = 0;
 	Bool force_rep_idx = GF_FALSE;
 	Bool local_file_mode = GF_FALSE;
+	Bool use_custom_algo = GF_FALSE;
 	GF_MPD_Representation *rep, *rep_new;
 	u32 total_rate, max_fsize, bandwidths[20], groups_per_quality[20], max_level;
 	u32 q_idx, nb_qualities = 0;
@@ -6075,11 +6099,21 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 		if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 		if (group->local_files) local_files ++;
 		if (!group->bytes_per_sec) {
-			if (!for_postponed_only)
+			if (!for_postponed_only && !group->disabled)
 				return;
 			continue;
 		}
 		if (group->done) continue;
+
+		//change of tile qualities
+		if (group->update_tile_qualities) {
+			group->update_tile_qualities = GF_FALSE;
+			if (!dash->rate_adaptation_algo_custom) {
+				if (group->srd_desc)
+					gf_dash_set_tiles_quality(dash, group->srd_desc);
+			}
+		}
+
 
 		group->backup_Bps = group->bytes_per_sec;
 		//only count broadband ones
@@ -6104,6 +6138,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 			}
 		}
 	}
+
 	if (total_rate == (u32) -1) {
 		total_rate = 0;
 	}
@@ -6114,7 +6149,13 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 		return;
 	}
 
-  for (q_idx=0; q_idx<nb_qualities; q_idx++) {
+	if (dash->rate_adaptation_algo_custom) {
+		use_custom_algo = GF_TRUE;
+		dash->total_rate = total_rate;
+		goto custom_algo;
+	}
+
+	for (q_idx=0; q_idx<nb_qualities; q_idx++) {
 		bandwidths[q_idx] = 0;
 		groups_per_quality[q_idx] = 0;
 
@@ -6258,6 +6299,8 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 		}
 	}
 
+custom_algo:
+
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. 2. dowload at %d \n", 8*bandwidths[q_idx]/1000));
 	//bandwitdh sharing done, perform rate adaptation with theses new numbers
 	for (i=0; i<count; i++) {
@@ -6265,17 +6308,20 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 		if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 		if (group->done) continue;
 
-		if (force_rep_idx) {
-			rep = gf_list_get(group->adaptation_set->representations, group->target_new_rep);
-			//add 100 bytes/sec to make sure we select the target one
-			group->bytes_per_sec = 100 + rep->bandwidth / 8;
-		}
-		//decrease by quality level
-		else if (dash->tile_rate_decrease) {
-			quality_rank = gf_dash_get_tiles_quality_rank(dash, group);
-			if (quality_rank >= nb_qualities) quality_rank = nb_qualities-1;
-			assert(groups_per_quality[quality_rank]);
-			group->bytes_per_sec = bandwidths[quality_rank] / groups_per_quality[quality_rank];
+		//in custom algo case, we don't change the bitrate of the group
+		if (!use_custom_algo) {
+			if (force_rep_idx) {
+				rep = gf_list_get(group->adaptation_set->representations, group->target_new_rep);
+				//add 100 bytes/sec to make sure we select the target one
+				group->bytes_per_sec = 100 + rep->bandwidth / 8;
+			}
+			//decrease by quality level
+			else if (dash->tile_rate_decrease) {
+				quality_rank = gf_dash_get_tiles_quality_rank(dash, group);
+				if (quality_rank >= nb_qualities) quality_rank = nb_qualities-1;
+				assert(groups_per_quality[quality_rank]);
+				group->bytes_per_sec = bandwidths[quality_rank] / groups_per_quality[quality_rank];
+			}
 		}
 
 		if (for_postponed_only) {
@@ -6284,6 +6330,16 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 			group->bytes_per_sec = group->backup_Bps;
 		} else {
 			dash_do_rate_adaptation(dash, group);
+			//reset/restore bytes_per_sec once all groups have been called
+		}
+	}
+
+	if (!for_postponed_only) {
+		for (i=0; i<count; i++) {
+			GF_DASH_Group *group = gf_list_get(dash->groups, i);
+			if (group->selection != GF_DASH_GROUP_SELECTED) continue;
+			if (group->done) continue;
+
 			if (!group->rate_adaptation_postponed)
 				group->bytes_per_sec = 0;
 			else
@@ -7135,16 +7191,25 @@ static s32 dash_do_rate_adaptation_custom(GF_DashClient *dash, GF_DASH_Group *gr
 		  	  	  	  	  	  	  	  	  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
 										  	  GF_MPD_Representation *rep, Bool go_up_bitrate)
 {
+	GF_DASHCustomAlgoInfo stats;
 	u32 g_idx = gf_list_find(dash->groups, group);
 	u32 b_idx = gf_list_find(dash->groups, base_group);
 
-	return dash->rate_adaptation_algo_custom(dash->udta_custom_algo, g_idx, b_idx, dl_rate, group->total_size,
-			speed, max_available_speed,
-			group->hint_visible_width, group->hint_visible_height,
-			force_lower_complexity,
-			group->active_rep_index,
-			group->buffer_min_ms, group->buffer_max_ms, group->buffer_occupancy_ms
-	);
+	stats.download_rate = dl_rate;
+	stats.file_size = group->total_size;
+	stats.speed = speed;
+	stats.max_available_speed = max_available_speed;
+	stats.disp_width = group->hint_visible_width;
+	stats.disp_height = group->hint_visible_height;
+	stats.active_quality_idx = group->active_rep_index;
+	stats.buffer_min_ms = group->buffer_min_ms;
+	stats.buffer_max_ms = group->buffer_max_ms;
+	stats.buffer_occupancy_ms = group->buffer_occupancy_ms;
+	stats.quality_degradation_hint = group->quality_degradation_hint;
+	stats.total_rate = dash->total_rate;
+
+	return dash->rate_adaptation_algo_custom(dash->udta_custom_algo, g_idx, b_idx, force_lower_complexity, &stats);
+
 }
 
 static s32 dash_do_rate_monitor_custom(GF_DashClient *dash, GF_DASH_Group *group, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
@@ -7778,7 +7843,7 @@ discard_segment:
 	if (!group->nb_cached_segments) {
 		return;
 	}
-	delete_next = group->cached[0].has_dep_following ? GF_TRUE : GF_FALSE;
+	delete_next = (group->cached[0].flags & SEG_FLAG_DEP_FOLLOWING) ? GF_TRUE : GF_FALSE;
 
 	if (group->cached[0].cache) {
 		assert(group->cached[0].url);
@@ -7870,7 +7935,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	}
 
 	/*check the dependent rep is in the cache and does not target next segment (next in time)*/
-	has_dep_following = group->cached[0].has_dep_following;
+	has_dep_following = (group->cached[0].flags & SEG_FLAG_DEP_FOLLOWING) ? GF_TRUE : GF_FALSE;
 	index = 0;
 	while (dependent_representation_index) {
 		GF_Err err = GF_OK;
@@ -7878,7 +7943,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 		if (has_dep_following) {
 			if (index+1 >= group->nb_cached_segments)
 				err = GF_BUFFER_TOO_SMALL;
-			else if (! group->cached[index].has_dep_following)
+			else if (! (group->cached[index].flags & SEG_FLAG_DEP_FOLLOWING) )
 				err = GF_BAD_PARAM;
 		} else {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->cached[index].representation_index);
@@ -7918,7 +7983,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	group->force_segment_switch = 0;
 
 	if (has_next_segment) {
-		if (group->cached[index].has_dep_following) {
+		if (group->cached[index].flags & SEG_FLAG_DEP_FOLLOWING) {
 			*has_next_segment = GF_TRUE;
 		} else if ((index+1<group->max_cached_segments) && group->cached[index+1].cache  && group->adaptation_set) {
 			GF_MPD_Representation *rep;
@@ -7931,6 +7996,8 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 			*has_next_segment = GF_TRUE;
 		}
 	}
+	if (group->cached[index].flags & SEG_FLAG_DISABLED)
+		return GF_URL_REMOVED;
 	return GF_OK;
 }
 
@@ -8025,7 +8092,9 @@ GF_EXPORT
 Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
-	return (group && group->nb_cached_segments) ? group->cached[0].loop_detected : GF_FALSE;
+	if (!group || !group->nb_cached_segments)
+		return GF_FALSE;
+	return (group->cached[0].flags & SEG_FLAG_LOOP_DETECTED) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
@@ -8680,6 +8749,12 @@ void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptation
 }
 
 GF_EXPORT
+void gf_dash_disable_low_quality_tiles(GF_DashClient *dash, Bool disable_tiles)
+{
+	dash->disable_low_quality_tiles = disable_tiles;
+}
+
+GF_EXPORT
 Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *srd_x, u32 *srd_y, u32 *srd_w, u32 *srd_h, u32 *srd_width, u32 *srd_height)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
@@ -8744,11 +8819,10 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 		group->quality_degradation_hint = 0;
 	}
 
+	//for both regular or tiled, store visible width/height
 	group->hint_visible_width = max_x - min_x;
 	group->hint_visible_height = max_y - min_y;
 
-	//TODO - single video, we may want to switch down quality if not a lot of the video is visible
-	//we will need the zoom factor as well
 	if (!group->groups_depending_on) return GF_OK;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group Visible rect %d,%d,%d,%d \n", min_x, max_x, min_y, max_y));
@@ -8756,8 +8830,10 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 	for (i=0; i<count; i++) {
 		Bool is_visible = GF_TRUE;
 		GF_DASH_Group *a_group = gf_list_get(group->groups_depending_on, i);
+		u32 old_hint;
 		if (!a_group->srd_w || !a_group->srd_h) continue;
 
+		old_hint = a_group->quality_degradation_hint;
 		if (is_gaze) {
 
 			if (min_x < a_group->srd_x)
@@ -8783,10 +8859,13 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 			else if (a_group->srd_y+a_group->srd_h < min_y) is_visible = GF_FALSE;
 
 		}
-
 		a_group->quality_degradation_hint = is_visible ? 0 : 100;
+		if (old_hint != a_group->quality_degradation_hint) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group SRD %d,%d,%d,%d is %s\n", a_group->srd_x, a_group->srd_w, a_group->srd_y, a_group->srd_h, is_visible ? "visible" : "hidden"));
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group SRD %d,%d,%d,%d is %s\n", a_group->srd_x, a_group->srd_w, a_group->srd_y, a_group->srd_h, is_visible ? "visible" : "hidden"));
+			//remember to update tile quality for non-custom algo
+			group->update_tile_qualities = GF_TRUE;
+		}
 	}
 	return GF_OK;
 }
@@ -8820,7 +8899,7 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, u32 cur_dep_
 		if (!group->nb_cached_segments)
 			break;
 	}
-	has_dep_following = group->cached[0].has_dep_following;
+	has_dep_following = (group->cached[0].flags & SEG_FLAG_DEP_FOLLOWING) ? GF_TRUE : GF_FALSE;
 	key_url = group->cached[0].key_url;
 	url = group->cached[0].url;
 	gf_free(group->cached[0].cache);
@@ -8847,9 +8926,22 @@ void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 dep_rep_idx, u3
 	if (!group) return;
 	if (!group->nb_cached_segments) return;
 
-	dash_store_stats(dash, group, bytes_per_sec, (u32) file_size, is_broadcast, 1+dep_rep_idx, us_since_start);
+	if (group->groups_depending_on) {
+		Bool is_last = (dep_rep_idx == gf_list_count(group->groups_depending_on)) ? GF_TRUE : GF_FALSE;
+		if (dep_rep_idx) {
+			group = gf_list_get(group->groups_depending_on, dep_rep_idx-1);
+			if (!group)
+				return;
+		}
+		dash_store_stats(dash, group, bytes_per_sec, (u32) file_size, is_broadcast, 1+dep_rep_idx, us_since_start);
 
-	dash_global_rate_adaptation(dash, GF_FALSE);
+		if (is_last)
+			dash_global_rate_adaptation(dash, GF_FALSE);
+	} else {
+		dash_store_stats(dash, group, bytes_per_sec, (u32) file_size, is_broadcast, 1+dep_rep_idx, us_since_start);
+
+		dash_global_rate_adaptation(dash, GF_FALSE);
+	}
 }
 
 u32 gf_dash_get_min_wait_ms(GF_DashClient *dash)

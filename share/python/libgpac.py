@@ -365,15 +365,23 @@ def sys_clock():
 def sys_clock_high_res():
     return _libgpac.gf_sys_clock_high_res()
 
+##\cond private
+
+#keep args at libgpac level to avoid python GC
+_libgpac._args=None
+
+##\endcond private
+
 ## set libgpac arguments - see \ref gf_sys_set_args
 # \param args list of strings
 # \return
 def set_args(args):
-    p = (POINTER(c_char)*len(args))()
+    nb_args = len(args)
+    _libgpac._args = (POINTER(c_char)*nb_args)()
     for i, arg in enumerate(args):
         enc_arg = arg.encode('utf-8')
-        p[i] = create_string_buffer(enc_arg)
-    _libgpac.gf_sys_set_args(len(args), cast(p, POINTER(POINTER(c_char))) )
+        _libgpac._args[i] = create_string_buffer(enc_arg)
+    _libgpac.gf_sys_set_args(nb_args, cast(_libgpac._args, POINTER(POINTER(c_char))) )
 
 
 ##\cond private
@@ -1721,6 +1729,7 @@ _libgpac.gf_dash_group_get_num_qualities.argtypes = [c_void_p, c_uint]
 _libgpac.gf_dash_get_period_duration.argtypes = [c_void_p]
 _libgpac.gf_dash_group_get_quality_info.argtypes = [c_void_p, c_uint, c_uint, POINTER(DASHQualityInfoNat) ]
 
+_libgpac.gf_dash_group_get_srd_info.argtypes = [c_void_p, c_uint, POINTER(c_uint), POINTER(c_uint), POINTER(c_uint), POINTER(c_uint), POINTER(c_uint), POINTER(c_uint), POINTER(c_uint) ]
 
 _libgpac.gf_list_count.argtypes = [c_void_p]
 _libgpac.gf_list_count.restype = c_uint
@@ -1785,6 +1794,42 @@ class DASHQualityInfo:
             self.sizes.append( surl.media_range.contents.end - surl.media_range.contents.start + 1)
         ## \endcond priv
 
+##DASH Spatial Relation Descriptor object, used for tiling
+class DASHSRD:
+    ## \cond priv
+    def __init__(self, id, x, y, w, h, fw, fh):
+    ## \endcond
+        ## ID of SRD source - all SRD with same source describe the same video composition, possibly with different grid sizes
+        self.id = id
+        ## X coordinate of SRD for this tile
+        self.x = x
+        ## Y coordinate of SRD for this tile
+        self.y = y
+        ## width of SRD for this tile - 0 for tile base track
+        self.w = w
+        ## height of SRD for this tile - 0 for tile base track
+        self.h = h
+        ## total width of SRD descriptor for this tile
+        self.fw = fw
+        ## total height of SRD descriptor for this tile
+        self.fh = fh
+
+##\cond priv
+def make_srd(dashptr, groupidx):
+    srd_id=c_uint(0)
+    srd_x=c_uint(0)
+    srd_y=c_uint(0)
+    srd_w=c_uint(0)
+    srd_h=c_uint(0)
+    srd_fw=c_uint(0)
+    srd_fh=c_uint(0)
+    _libgpac.gf_dash_group_get_srd_info(dashptr, groupidx, byref(srd_id), byref(srd_x), byref(srd_y), byref(srd_w), byref(srd_h), byref(srd_fw), byref(srd_fh) )
+    if not srd_fw.value or not srd_fh.value:
+        return None
+    return DASHSRD(srd_id.value, srd_x.value, srd_y.value, srd_w.value, srd_h.value, srd_fw.value, srd_fh.value)
+
+##\endcond
+
 ## DASH group object
 class DASHGroup:
     ## \cond priv
@@ -1796,6 +1841,8 @@ class DASHGroup:
         self.qualities = []
         ## period duration in milliseconds, 0 if unknwon
         self.duration = _libgpac.gf_dash_get_period_duration(ptr_dash)
+        ## SRD object or None if no SRD defined
+        self.SRD = make_srd(ptr_dash, groupidx)
         ## \cond priv
         self._dash = ptr_dash
         nb_qualities = _libgpac.gf_dash_group_get_num_qualities(ptr_dash, groupidx)
@@ -1831,6 +1878,10 @@ class DASHGroupStatistics(Structure):
         self.buffer_max = 0
         ##current buffer in milliseconds
         self.buffer = 0
+        ##degradation hint, 0 means no degradation, 100 means tile completely hidden
+        self.quality_degradation_hint = 0
+        ##cumulated download rate of all active groups - 0 means all files are local
+        self.total_rate = 0
 
     ## \cond private
     _fields_ = [
@@ -1844,6 +1895,8 @@ class DASHGroupStatistics(Structure):
         ("buffer_min", c_uint),
         ("buffer_max", c_uint),
         ("buffer", c_uint),
+        ("degradation_hint", c_uint),
+        ("total_rate", c_uint)
     ]
     def __str__(self):
         res = 'active_quality_idx ' + str(self.active_quality_idx)
@@ -1915,8 +1968,12 @@ class DASHCustomAlgorithm:
     #\param base_group the associated base \ref DASHGroup (tiling only), or None if no base group
     #\param force_low_complexity indicates that the client would like a lower complexity (typically because it is dropping frames)
     #\param stats the \ref DASHGroupStatistics  for the downloaded segment
-    #\return new quality index, or -1 to postpone (for tiling)
-    def on_new_group(self, group, base_group, force_low_complexity, stats):
+    #\return value can be:
+    # - new quality index,
+    # - -1 to take no decision
+    # - -2 to disable quality (debug, will drop segment)
+    # - other negative values are handled as error
+    def on_rate_adaptation(self, group, base_group, force_low_complexity, stats):
         pass
 
     ##Callback (optional) called on regular basis during a segment download

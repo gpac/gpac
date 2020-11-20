@@ -41,7 +41,7 @@ typedef struct
 	s32 shift_utc, debug_as, route_shift;
 	u32 max_buffer, auto_switch, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 init_timeshift;
-	Bool server_utc, screen_res, aggressive, speedadapt, filemode, fmodefwd;
+	Bool server_utc, screen_res, aggressive, speedadapt, filemode, fmodefwd, skip_lqt;
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	char *algo;
@@ -124,7 +124,9 @@ typedef struct
 	u32 last_bw_check;
 	u64 us_at_seg_start;
 	Bool signal_seg_name;
-	
+
+	u32 seg_discard_state;
+
 	char *template;
 } GF_DASHGroup;
 
@@ -504,11 +506,29 @@ u32 dashdmx_io_get_bytes_done(GF_DASHFileIO *dashio, GF_DASHFileIOSession sessio
 void dashdmx_js_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 {
 	u32 i, count;
+	u32 srd_id, srd_x, srd_y, srd_w, srd_h, srd_fw, srd_fh;
 	JSValue res, reps;
 	JSValue obj = JS_NewObject(ctx->js_ctx);
 
 	JS_SetPropertyStr(ctx->js_ctx, obj, "idx", JS_NewInt32(ctx->js_ctx, group_idx));
 	JS_SetPropertyStr(ctx->js_ctx, obj, "duration", JS_NewInt64(ctx->js_ctx, gf_dash_get_period_duration(ctx->dash) ));
+
+	srd_id = srd_x = srd_y = srd_w = srd_h = srd_fw = srd_fh = 0;
+	gf_dash_group_get_srd_info(ctx->dash, group_idx, &srd_id, &srd_x, &srd_y, &srd_w, &srd_h, &srd_fw, &srd_fh);
+
+	if (srd_fw && srd_fh) {
+		JSValue srd = JS_NewObject(ctx->js_ctx);
+		JS_SetPropertyStr(ctx->js_ctx, srd, "ID", JS_NewInt32(ctx->js_ctx, srd_id));
+		JS_SetPropertyStr(ctx->js_ctx, srd, "x", JS_NewInt32(ctx->js_ctx, srd_x));
+		JS_SetPropertyStr(ctx->js_ctx, srd, "y", JS_NewInt32(ctx->js_ctx, srd_y));
+		JS_SetPropertyStr(ctx->js_ctx, srd, "w", JS_NewInt32(ctx->js_ctx, srd_w));
+		JS_SetPropertyStr(ctx->js_ctx, srd, "h", JS_NewInt32(ctx->js_ctx, srd_h));
+		JS_SetPropertyStr(ctx->js_ctx, srd, "fw", JS_NewInt32(ctx->js_ctx, srd_fw));
+		JS_SetPropertyStr(ctx->js_ctx, srd, "fh", JS_NewInt32(ctx->js_ctx, srd_fh));
+		JS_SetPropertyStr(ctx->js_ctx, obj, "SRD", srd);
+	} else {
+		JS_SetPropertyStr(ctx->js_ctx, obj, "SRD", JS_NULL);
+	}
 
 	reps = JS_NewArray(ctx->js_ctx);
 
@@ -574,6 +594,18 @@ void dashdmx_js_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 	JS_FreeValue(ctx->js_ctx, res);
 }
 #endif
+
+static void dashdmx_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
+{
+	if (ctx->on_new_group)
+		ctx->on_new_group(ctx->rt_udta, group_idx, ctx->dash);
+#ifdef GPAC_HAS_QJS
+	else if (ctx->js_ctx && JS_IsFunction(ctx->js_ctx, ctx->new_group_fun)) {
+		dashdmx_js_declare_group(ctx, group_idx);
+	}
+#endif
+}
+
 
 void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_name, const char *cache_url, s32 group_idx)
 {
@@ -720,6 +752,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 			if (gf_dash_group_has_dependent_group(ctx->dash, i) >=0 ) {
 				gf_dash_group_select(ctx->dash, i, GF_TRUE);
+				dashdmx_declare_group(ctx, i);
 				continue;
 			}
 
@@ -741,13 +774,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 					ctx->width = w;
 					ctx->height = h;
 				}
-				if (ctx->on_new_group)
-					ctx->on_new_group(ctx->rt_udta, i, ctx->dash);
-#ifdef GPAC_HAS_QJS
-				else if (ctx->js_ctx && JS_IsFunction(ctx->js_ctx, ctx->new_group_fun)) {
-					dashdmx_js_declare_group(ctx, i);
-				}
-#endif
+				dashdmx_declare_group(ctx, i);
 			}
 		}
 
@@ -1401,12 +1428,8 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 #ifdef GPAC_HAS_QJS
 
-static s32 dashdmx_algo_js(void *udta, u32 group, u32 base_group,
-				u32 dl_rate, u32 file_size, Double speed, Double max_available_speed,
-				u32 disp_width, u32 disp_height,
-				Bool force_lower_complexity,
-				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms
-) {
+static s32 dashdmx_algo_js(void *udta, u32 group, u32 base_group, Bool force_lower_complexity, GF_DASHCustomAlgoInfo *stats)
+{
 	s32 res;
 	JSValue ret, args[4];
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)udta;
@@ -1416,22 +1439,24 @@ static s32 dashdmx_algo_js(void *udta, u32 group, u32 base_group,
 	args[1] = JS_NewInt32(ctx->js_ctx, base_group);
 	args[2] = JS_NewBool(ctx->js_ctx, force_lower_complexity);
 	args[3] = JS_NewObject(ctx->js_ctx);
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "rate", JS_NewInt32(ctx->js_ctx, dl_rate) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "filesize", JS_NewInt32(ctx->js_ctx, file_size) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "speed", JS_NewFloat64(ctx->js_ctx, speed) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "max_speed", JS_NewFloat64(ctx->js_ctx, max_available_speed) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_width", JS_NewInt32(ctx->js_ctx, disp_width) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_height", JS_NewInt32(ctx->js_ctx, disp_height) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "active_quality", JS_NewInt32(ctx->js_ctx, active_quality_idx) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer_min", JS_NewInt32(ctx->js_ctx, buffer_min_ms) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer_max", JS_NewInt32(ctx->js_ctx, buffer_max_ms) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer", JS_NewInt32(ctx->js_ctx, buffer_occupancy_ms) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "rate", JS_NewInt32(ctx->js_ctx, stats->download_rate) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "filesize", JS_NewInt32(ctx->js_ctx, stats->file_size) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "speed", JS_NewFloat64(ctx->js_ctx, stats->speed) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "max_speed", JS_NewFloat64(ctx->js_ctx, stats->max_available_speed) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_width", JS_NewInt32(ctx->js_ctx, stats->disp_width) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_height", JS_NewInt32(ctx->js_ctx, stats->disp_height) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "active_quality", JS_NewInt32(ctx->js_ctx, stats->active_quality_idx) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer_min", JS_NewInt32(ctx->js_ctx, stats->buffer_min_ms) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer_max", JS_NewInt32(ctx->js_ctx, stats->buffer_max_ms) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer", JS_NewInt32(ctx->js_ctx, stats->buffer_occupancy_ms) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "degradation_hint", JS_NewInt32(ctx->js_ctx, stats->quality_degradation_hint) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "total_rate", JS_NewInt32(ctx->js_ctx, stats->total_rate) );
 	ret = JS_Call(ctx->js_ctx, ctx->rate_fun, ctx->js_obj, 4, args);
 	JS_FreeValue(ctx->js_ctx, args[3]);
 
 	if (JS_IsException(ret)) {
 		js_dump_error(ctx->js_ctx);
-		res = -2;
+		res = -3;
 	} else if (JS_ToInt32(ctx->js_ctx, &res, ret))
 		res = -1;
 
@@ -1731,6 +1756,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_low_latency_mode(ctx->dash, ctx->lowlat);
 	if (ctx->split_as)
 		gf_dash_split_adaptation_sets(ctx->dash);
+	gf_dash_disable_low_quality_tiles(ctx->dash, ctx->skip_lqt);
 
 
 	//in test mode, we disable seeking inside the segment: this initial seek range is dependent from tune-in time and would lead to different start range
@@ -2032,6 +2058,7 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 {
 	u32 bytes_per_sec = 0;
 	u64 file_size = 0;
+	u32 dep_rep_idx;
 	const GF_PropertyValue *p;
 	GF_PropertyEntry *pe=NULL;
 	Bool broadcast_flag = GF_FALSE;
@@ -2080,8 +2107,12 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	if (p && p->value.string && !strcmp(p->value.string, "yes")) {
 		broadcast_flag = GF_TRUE;
 	}
+	if (group->nb_group_deps)
+		dep_rep_idx = group->current_group_dep ? (group->current_group_dep-1) : group->nb_group_deps;
+	else
+		dep_rep_idx = group->current_dependent_rep_idx;
 
-	gf_dash_group_store_stats(ctx->dash, group->idx, group->current_dependent_rep_idx, bytes_per_sec, file_size, broadcast_flag, gf_sys_clock_high_res() - group->us_at_seg_start);
+	gf_dash_group_store_stats(ctx->dash, group->idx, dep_rep_idx, bytes_per_sec, file_size, broadcast_flag, gf_sys_clock_high_res() - group->us_at_seg_start);
 
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_FILE_CACHED, &pe);
 	if (p && p->value.boolean)
@@ -2093,22 +2124,39 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 {
-	u32 dependent_representation_index = 0;
+	u32 dependent_representation_index;
 	GF_Err e;
 	Bool has_scalable_next;
+	Bool seg_disabled;
 	GF_FilterEvent evt;
 	const char *next_url, *next_url_init_or_switch_segment, *src_url, *key_url;
 	u64 start_range, end_range, switch_start_range, switch_end_range;
 	bin128 key_IV;
 	u32 group_idx;
 
+fetch_next:
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
 	group->wait_for_pck = GF_TRUE;
 	group->in_error = GF_FALSE;
 	if (group->segment_sent) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d drop current segment\n", group->idx));
-		if (!group->current_group_dep && !group->next_dependent_rep_idx)
+		if (!group->current_group_dep && !group->next_dependent_rep_idx) {
 			gf_dash_group_discard_segment(ctx->dash, group->idx);
+
+			//special case for group dependencies (tiling): signal segment switch
+			//so that tileagg may detect losses
+			if (group->nb_group_deps) {
+				GF_FilterPid *opid = dashdmx_opid_from_group(ctx, group);
+				if (opid) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_PLAY_HINT, opid);
+					evt.play.forced_dash_segment_switch = GF_TRUE;
+					gf_filter_pid_send_event(opid, &evt);
+				}
+			}
+			if (group->seg_discard_state==1)
+				group->seg_discard_state = 2;
+		}
 
 		group->segment_sent = GF_FALSE;
 		//no thread mode, we work with at most one entry in cache, call process right away to get the group next URL ready
@@ -2123,12 +2171,31 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	}
 #endif
 
+	//special case if we had a discard of a dependent seg: we wait for the output PIDs to be flushed
+	//so that we don't send a GF_FEVT_PLAY_HINT event before the previous segment is completely produced
+	//this is mostly for tileagg for the time being and could need further refinements
+	if (group->seg_discard_state == 2) {
+		u32 i;
+		for (i=0; i < gf_filter_get_opid_count(ctx->filter); i++) {
+			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i );
+			GF_DASHGroup *g = gf_filter_pid_get_udta( opid );
+			if (g != group) continue;
+			if (gf_filter_pid_would_block(opid)) {
+				group->seg_was_not_ready = GF_TRUE;
+				group->stats_uploaded = GF_TRUE;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] some pids blocked on group with discard, waiting before fetching next segment\n"));
+				return;
+			}
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] all pids unblocked on group with discard, fetching next segment\n"));
+		group->seg_discard_state = 0;
+	}
+
+
+	dependent_representation_index = 0;
 	group_idx = group->idx;
 	if (group->nb_group_deps) {
-		if (group->current_group_dep) {
-			dependent_representation_index = group->current_group_dep;
-//			s32 res = gf_dash_get_dependent_group_index(ctx->dash, group->idx, group->current_group_dep-
-		}
+		dependent_representation_index = group->current_group_dep;
 	} else if (group->next_dependent_rep_idx) {
 		dashdmx_update_group_stats(ctx, group);
 		dependent_representation_index = group->current_dependent_rep_idx = group->next_dependent_rep_idx;
@@ -2147,7 +2214,12 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		group->eos_detected = GF_TRUE;
 		return;
 	}
+	seg_disabled = GF_FALSE;
 	group->eos_detected = GF_FALSE;
+	if (e == GF_URL_REMOVED) {
+		seg_disabled = GF_TRUE;
+		e = GF_OK;
+	}
 
 	if (e != GF_OK) {
 		if (e == GF_BUFFER_TOO_SMALL) {
@@ -2196,17 +2268,31 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d queuing next media segment %s\n", group->idx, next_url));
 
+	group->segment_sent = GF_TRUE;
+	group->prev_is_init_segment = GF_FALSE;
+	group->init_switch_seg_sent = GF_FALSE;
+	group->signal_seg_name = ctx->filemode;
+	group->us_at_seg_start = gf_sys_clock_high_res();
+
+	if (seg_disabled) {
+		u32 dep_rep_idx;
+		if (group->nb_group_deps)
+			dep_rep_idx = group->current_group_dep ? (group->current_group_dep-1) : group->nb_group_deps;
+		else
+			dep_rep_idx = group->current_dependent_rep_idx;
+
+		gf_dash_group_store_stats(ctx->dash, group->idx, dep_rep_idx, 0, 0, 0, 0);
+		if (!group->seg_discard_state)
+			group->seg_discard_state = 1;
+		goto fetch_next;
+	}
+
 	GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH, NULL);
 	evt.seek.source_switch = next_url;
 	evt.seek.start_offset = start_range;
 	evt.seek.end_offset = end_range;
 	evt.seek.previous_is_init_segment = group->prev_is_init_segment;
-	group->segment_sent = GF_TRUE;
-	group->prev_is_init_segment = GF_FALSE;
-	group->init_switch_seg_sent = GF_FALSE;
-	group->signal_seg_name = ctx->filemode;
 	gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
-	group->us_at_seg_start = gf_sys_clock_high_res();
 }
 
 GF_Err dashin_abort(GF_DASHDmxCtx *ctx)
@@ -2548,6 +2634,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"- early: allow fetching segments earlier than their AST in low latency when input demux is empty", GF_PROP_UINT, "early", "no|strict|early", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(filemode), "do not demux files and forward them as file pids (imply `segstore=mem`)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fmodefwd), "forward packet rather than copy them in [-filemode](). Packet copy might improve performances in low latency mode", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
+
+	{ OFFS(skip_lqt), "disable decoding of tiles with highest degradation hints (not visible, not gazed at) for debug purposes", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -2601,40 +2689,10 @@ const GF_FilterRegister *dashdmx_register(GF_FilterSession *session)
 #endif
 }
 
-typedef struct
-{
-	u32 download_rate;
-	u32 filesize;
-	Double speed;
-	Double max_available_speed;
-	u32 display_width;
-	u32 display_height;
-	u32 active_quality_idx;
-	u32 buffer_min_ms;
-	u32 buffer_max_ms;
-	u32 buffer_occupancy_ms;
-} GF_DASHAlgoStats;
-
-static s32 dashdmx_rate_adaptation_ext(void *udta, u32 group_idx, u32 base_group_idx,
-				u32 download_rate, u32 filesize, Double speed, Double max_available_speed,
-				u32 display_width, u32 display_height, Bool force_lower_complexity,
-				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms
-								  )
+static s32 dashdmx_rate_adaptation_ext(void *udta, u32 group_idx, u32 base_group_idx, Bool force_lower_complexity, GF_DASHCustomAlgoInfo *stats)
 {
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) udta;
-	GF_DASHAlgoStats stats;
-	stats.download_rate = download_rate;
-	stats.filesize = filesize;
-	stats.speed = speed;
-	stats.max_available_speed = max_available_speed;
-	stats.display_width = display_width;
-	stats.display_height = display_height;
-	stats.active_quality_idx = active_quality_idx;
-	stats.buffer_min_ms = buffer_min_ms;
-	stats.buffer_max_ms = buffer_max_ms;
-	stats.buffer_occupancy_ms = buffer_occupancy_ms;
-
-	return ctx->on_rate_adaptation(ctx->rt_udta, group_idx, base_group_idx, force_lower_complexity, &stats);
+	return ctx->on_rate_adaptation(ctx->rt_udta, group_idx, base_group_idx, force_lower_complexity, stats);
 }
 
 
