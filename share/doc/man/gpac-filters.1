@@ -724,6 +724,12 @@ drv (enum, default: auto):     indicate if graphics driver should be used. Ignor
 .br
 src (cstr):                    URL of source content
 .br
+gaze_x (sint, default: 0, updatable): horizontal gaze coordinate (0=left, width=right)
+.br
+gaze_y (sint, default: 0, updatable): vertical gaze coordinate (0=top, height=bottom)
+.br
+gazer_enabled (bool, default: false, updatable): enable gaze event dispatch
+.br
 
 .br
 .SH mp4dmx
@@ -1629,6 +1635,8 @@ lowlat (enum, default: early): segment scheduling policy in low latency mode
 filemode (bool, default: no):  do not demux files and forward them as file pids (imply segstore=mem)
 .br
 fmodefwd (bool, default: yes): forward packet rather than copy them in .I filemode. Packet copy might improve performances in low latency mode
+.br
+skip_lqt (bool, default: no):  disable decoding of tiles with highest degradation hints (not visible, not gazed at) for debug purposes
 .br
 
 .br
@@ -6804,7 +6812,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev263-g3bea3b4d9-master
+build: 1.1.0-DEV-rev272-g3ed13ae45-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

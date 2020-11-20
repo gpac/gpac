@@ -475,7 +475,7 @@ Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDe
 \param has_next_segment set to GF_TRUE if next segment location is known (unthreaded mode) or next segment is downloaded (threaded mode) (optional, may be NULL)
 \param key_url set to the key URL of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL)
 \param key_IV set to the key initialization vector of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL)
-\return GF_BUFFER_TOO_SMALL if no segment found, GF_EOS if end of session or error if any
+\return GF_BUFFER_TOO_SMALL if no segment found, GF_EOS if end of session, GF_URL_REMOVED if segment is disabled (but all output info is OK, this can be ignored and considered as GF_OK by the user) or error if any
 */
 GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range,
         s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range,
@@ -867,6 +867,13 @@ typedef enum
 */
 void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptationMode mode, u32 tile_rate_decrease);
 
+
+/*! consider tile with highest quality degradation hints (not visible ones or not gazed at) as lost, triggering a  GF_URL_REMOVE  upon \ref gf_dash_group_get_next_segment_location calls. Mostly used to debug tiling adaptation
+\param dash the target dash client
+\param disable_tiles if GF_TRUE, tiles with highest quality degradation hints will not be played.
+*/
+void gf_dash_disable_low_quality_tiles(GF_DashClient *dash, Bool disable_tiles);
+
 /*! gets current tile adaptation mode
 \param dash the target dash client
 \return tile adaptation mode*/
@@ -1000,27 +1007,50 @@ u32 gf_dash_get_min_wait_ms(GF_DashClient *dash);
 */
 s32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
 
+//any change to the structure below MUST be reflected in libgpac.py !!
+
+/*! Information passed to DASH custom algorithm*/
+typedef struct
+{
+	/*! last segment download rate in bits per second */
+	u32 download_rate;
+	/*! size of last downloaded segment*/
+	u32 file_size;
+	/*! current playback speed*/
+	Double speed;
+	/*! max supported playback speed according to associated decoder stats*/
+	Double max_available_speed;
+	/*! display width of the video in pixels, 0 if audio stream*/
+	u32 disp_width;
+	/*! display height of the video in pixels, 0 if audio stream*/
+	u32 disp_height;
+	/*! index of currently selected quality*/
+	u32 active_quality_idx;
+	/*! minimum buffer level in milliseconds below witch rebuffer will happen*/
+	u32 buffer_min_ms;
+	/*! maximum buffer level allowed in milliseconds. Packets won't get dropped if overflow, but the algorithm should try not to overflow this buffer*/
+	u32 buffer_max_ms;
+	/*! current buffer level in milliseconds*/
+	u32 buffer_occupancy_ms;
+	/*! degradation hint, 0 means no degradation, 100 means tile completely hidden*/
+	u32 quality_degradation_hint;
+	/*! cumulated download rate of all active groups - 0 means all files are local*/
+	u32 total_rate;
+} GF_DASHCustomAlgoInfo;
+
 /*! Callback function for custom rate adaptation
 \param udta user data
 \param group_idx index of group to adapt
 \param base_group_idx index of associated base group if group is a dependent group
-\param download_rate last segment download rate in bits per second
-\param speed current playback speed
-\param max_available_speed max supported playback speed according to associated decoder stats
-\param display_width display width of the video in pixels, 0 if audio stream
-\param display_height display height of the video in pixels, 0 if audio stream
 \param force_lower_complexity set to true if the dash client would like a lower complexity
-\param active_quality_idx index of currently selected quality
-\param buffer_min_ms minimum buffer level in milliseconds below witch rebuffer will happen
-\param buffer_max_ms maximum buffer level allowed in milliseconds. Packets won't get dropped if overflow, but the algorithm should try not to overflow this buffer
-\param buffer_occupancy_ms current buffer level in milliseconds
-
-\return the index of the new quality to select (as listed in group.reps[]), or -1 to not take decision now and postpon it until dependent groups are done
+\param stats statistics for last downloaded segment
+\return value can be:
+- the index of the new quality to select (as listed in group.reps[])
+- `-1` to not take decision now and postpone it until dependent groups are done
+- `-2` to disable quality
+- any other negative value means error
  */
-typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx,
-				u32 download_rate, u32 file_size, Double speed, Double max_available_speed,
-				u32 disp_width, u32 disp_height, Bool force_lower_complexity,
-				u32 active_quality_idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms);
+typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_lower_complexity, GF_DASHCustomAlgoInfo *stats);
 
 /*! Callback function for custom rate monitor, not final yet
 \param udta user data

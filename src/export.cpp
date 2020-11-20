@@ -2220,6 +2220,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_dependent_group_index) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_tile_adaptation_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_tile_adaptation_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_disable_low_quality_tiles) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_max_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_quality_degradation_hint) )

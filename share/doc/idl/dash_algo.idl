@@ -59,7 +59,11 @@ attribute void period_reset(unsigned long reset_type);
 \param force_lower_complexity set to true if the dash client would like a lower complexity 
 \param stats current statistics for the group JSDASHStats
 
-\return the index of the new quality to select (as listed in group.reps[]), or -1 to not take decision now and postpon it until dependent groups are done 
+\return value can be:
+- the index of the new quality to select (as listed in group.reps[])
+- -1 to not take decision now
+- -2 to disable the group (debug, will drop segment)
+- other negative values are handled as error
 */
 attribute int rate_adaptation(unsigned long group_idx, unsigned long base_group_idx, Boolean force_lower_complexity, JSDASHStats stats);
 
@@ -89,6 +93,10 @@ attribute readonly unsigned long idx;
 
 /*! group duration in milliseconds, 0 if unknown (live) */
 attribute readonly unsigned long long duration;
+
+
+/*! Spatial Relationship Description, or null if none*/
+attribute readonly JSDASHSRD SRD;
 
 /*! list of available qualites, array of JSDASHQuality objects*/
 attribute readonly Array qualities;
@@ -206,6 +214,37 @@ attribute readonly unsigned long buffer_duration;
 /*! duration of segment being downloaded, 0 if unknown*/
 attribute readonly unsigned long current_segment_duration;
 
+};
+
+
+
+/*!\brief JSDASHSRD
+
+The JSDASHSRD object provides the SRD description of a group.
+*/
+interface JSDASHSRD {
+
+/*! ID of SRD source - all SRD with same source describe the same video composition, possibly with different grid sizes*/
+attribute readonly unsigned long ID;
+
+
+/*! X coordinate of SRD for this tile*/
+attribute readonly long x;
+
+/*! Y coordinate of SRD for this tile*/
+attribute readonly long y;
+
+/*! width of SRD for this tile - 0 for tile base track*/
+attribute readonly long w;
+
+/*! height of SRD for this tile - 0 for tile base track*/
+attribute readonly long h;
+
+/*! total width of SRD descriptor for this tile*/
+attribute readonly long fw;
+
+/*! total height of SRD descriptor for this tile*/
+attribute readonly long fh;
 };
 
 
