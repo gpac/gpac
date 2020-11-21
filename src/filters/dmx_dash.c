@@ -703,11 +703,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			//these are not used yet in the test suite (require TEMI)
 			gf_dash_override_ntp(ctx->dash, 0);
 
-			//these are not used yet in the test suite (require tiling + long run)
+			//this is not used yet in the test suite (require user interaction)
 			gf_dash_group_set_quality_degradation_hint(ctx->dash, 0, 0);
-			gf_dash_group_set_visible_rect(ctx->dash, 0, 0, 0, 0, 0, 0);
-			//this happen only when error downloading a segment
-			gf_dash_set_group_download_state(ctx->dash, 0, 0, GF_OK);
 		}
 #endif
 
