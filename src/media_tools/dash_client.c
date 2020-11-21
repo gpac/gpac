@@ -5003,6 +5003,7 @@ static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *ti
 	}
 	tile_group->disabled = GF_FALSE;
 
+	//TODO - use visibility rect as well
 
 	switch (dash->tile_adapt_mode) {
 	case GF_DASH_ADAPT_TILE_NONE:
@@ -5038,7 +5039,7 @@ static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *ti
 }
 
 //used upon startup of the session only
-static void gf_dash_set_tiles_quality(GF_DashClient *dash, struct _dash_srd_desc *srd)
+static void gf_dash_set_tiles_quality(GF_DashClient *dash, struct _dash_srd_desc *srd, Bool force_all)
 {
 	u32 i, count;
 	Bool tiles_use_lowest = (dash->first_select_mode==GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES) ? GF_TRUE : GF_FALSE;
@@ -5048,6 +5049,12 @@ static void gf_dash_set_tiles_quality(GF_DashClient *dash, struct _dash_srd_desc
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		u32 lower_quality;
 		if (group->srd_desc != srd) continue;
+
+		//dynamic changes of qualities, only update if changed
+		if (!force_all) {
+			if (!group->update_tile_qualities) continue;
+			group->update_tile_qualities = GF_FALSE;
+		}
 
 		lower_quality = gf_dash_get_tiles_quality_rank(dash, group);
 		if (!lower_quality) continue;
@@ -5482,7 +5489,7 @@ select_active_rep:
 			}
 
 		}
-		gf_dash_set_tiles_quality(dash, srd);
+		gf_dash_set_tiles_quality(dash, srd, GF_TRUE);
 	}
 
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
@@ -6110,7 +6117,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 			group->update_tile_qualities = GF_FALSE;
 			if (!dash->rate_adaptation_algo_custom) {
 				if (group->srd_desc)
-					gf_dash_set_tiles_quality(dash, group->srd_desc);
+					gf_dash_set_tiles_quality(dash, group->srd_desc, GF_FALSE);
 			}
 		}
 
@@ -7499,7 +7506,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 			group->max_cached_segments = nb_cached_seg_per_rep * gf_dash_group_count_rep_needed(group);
 
 			if (group->srd_desc)
-				gf_dash_set_tiles_quality(dash, group->srd_desc);
+				gf_dash_set_tiles_quality(dash, group->srd_desc, GF_TRUE);
 		}
 	}
 }
@@ -8744,7 +8751,7 @@ void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptation
 	dash->tile_rate_decrease = (tile_rate_decrease<100) ? tile_rate_decrease : 100;
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, i);
-		if (group->srd_desc) gf_dash_set_tiles_quality(dash, group->srd_desc);
+		if (group->srd_desc) gf_dash_set_tiles_quality(dash, group->srd_desc, GF_TRUE);
 	}
 }
 
@@ -8864,6 +8871,7 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group SRD %d,%d,%d,%d is %s\n", a_group->srd_x, a_group->srd_w, a_group->srd_y, a_group->srd_h, is_visible ? "visible" : "hidden"));
 
 			//remember to update tile quality for non-custom algo
+			a_group->update_tile_qualities = GF_TRUE;
 			group->update_tile_qualities = GF_TRUE;
 		}
 	}
