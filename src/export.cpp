@@ -1013,6 +1013,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_brand_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_modify_alternate_brand) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_alt_brands) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_alt_brands_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_color_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_visual_bit_depth) )

@@ -2159,6 +2159,13 @@ GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *isom_file, u32 Brand, Bool Add
 */
 GF_Err gf_isom_reset_alt_brands(GF_ISOFile *isom_file);
 
+/*! removes all alternate brands except major brand
+\param isom_file the target ISO file
+\param leave_empty if GF_TRUE, does not create a default alternate brand matching the major brand
+\return error if any
+*/
+GF_Err gf_isom_reset_alt_brands_ex(GF_ISOFile *isom_file, Bool leave_empty);
+
 /*! set sample dependency flags - see ISO/IEC 14496-12 and \ref gf_filter_pck_set_dependency_flags
 \param isom_file the target ISO file
 \param trackNumber the target track number

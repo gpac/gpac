@@ -155,6 +155,7 @@ typedef struct
 
 	u64 imported_edit_sdur, imported_edit_offset;
 
+	Bool force_ctts;
 } TrackWriter;
 
 enum
@@ -1229,6 +1230,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_REPLACE) );
 			}
 		}
+
+		if (gf_sys_old_arch_compat()) {
+			p = gf_filter_pid_get_property_str(pid, "isom_force_ctts");
+			if (p && p->value.boolean) tkw->force_ctts = GF_TRUE;
+		}
 	}
 
 	if (!tkw->has_brands) {
@@ -1250,11 +1256,14 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				ctx->major_brand_set = p->value.uint_list.vals[0];
 				gf_isom_set_brand_info(ctx->file, p->value.uint_list.vals[0], 1);
 			}
-
+			//reset alt brands, push old ones
+			gf_isom_reset_alt_brands_ex(ctx->file, GF_TRUE);
 			for (i=0; i<p->value.uint_list.nb_items; i++) {
 				gf_isom_modify_alternate_brand(ctx->file, p->value.uint_list.vals[i], GF_TRUE);
 				if (p->value.uint_list.vals[i] == GF_ISOM_BRAND_ISOM) is_isom = GF_TRUE;
 			}
+			//and in case it was not present add major brand
+			gf_isom_modify_alternate_brand(ctx->file, ctx->major_brand_set, GF_TRUE);
 		}
 		if (!ctx->m4sys && !is_isom && !ctx->def_brand_patched) {
 			//remove default brand
@@ -5326,11 +5335,13 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 			else max_cts = 0;
 		}
 		//old arch compat: if we had a simple edit list in source try to keep the original segduration indicated
+		//we tolerate a diff of 100ms
 		else if (gf_sys_old_arch_compat() && tkw->imported_edit_sdur && (tkw->imported_edit_offset==min_cts)) {
+			s32 diff;
 			u64 old_dur_ms = tkw->imported_edit_sdur * 1000 / tkw->src_timescale;
 			u64 new_dur_ms = max_cts * 1000 / tkw->tk_timescale;
-
-			if (new_dur_ms==old_dur_ms)
+			diff = (s32) new_dur_ms - (s32) old_dur_ms;
+			if (ABS(diff)<100)
 				max_cts = tkw->imported_edit_sdur;
 		}
 
@@ -5441,6 +5452,11 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			has_bframes = GF_TRUE;
 		} else if (tkw->ts_delay || tkw->empty_init_dur) {
 			gf_isom_update_edit_list_duration(ctx->file, tkw->track_num);
+		}
+
+		if (tkw->force_ctts) {
+			GF_Err gf_isom_force_ctts(GF_ISOFile *file, u32 track);
+			gf_isom_force_ctts(ctx->file, tkw->track_num);
 		}
 
 		gf_isom_purge_track_reference(ctx->file, tkw->track_num);
