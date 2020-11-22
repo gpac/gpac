@@ -107,6 +107,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 	u32 sub_type;
 	GF_Box *a = NULL;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
+
 	/*iTunes way: there's a data atom containing the data*/
 	sub_type = gf_bs_peek_bits(bs, 32, 4);
 	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
@@ -171,12 +172,6 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 GF_Box *ilst_item_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, GF_ISOM_BOX_TYPE_CPIL); //type will be overwrite
-	tmp->data = (GF_DataBox *)gf_isom_box_new_parent(&tmp->child_boxes, GF_ISOM_BOX_TYPE_DATA);
-	if (tmp->data == NULL) {
-		if (tmp->child_boxes) gf_list_del(tmp->child_boxes);
-		gf_free(tmp);
-		return NULL;
-	}
 	return (GF_Box *)tmp;
 }
 

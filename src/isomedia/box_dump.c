@@ -1400,15 +1400,30 @@ GF_Err elng_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 {
+	Bool str_dump = GF_FALSE;
 	const char *name = "UnknownBox";
 	GF_UnknownBox *u = (GF_UnknownBox *)a;
-	if (!a->type && (a->size==8))
+	if (!a->type && (a->size==8)) {
 		name = "TerminatorBox";
+	} else if (u->original_4cc==GF_4CC('n','a','m','e') && (u->dataSize>4) && !u->data[0] && !u->data[1] && !u->data[2] && !u->data[3]) {
+		name = "iTunesName";
+		str_dump = GF_TRUE;
+	} else if (u->original_4cc==GF_4CC('m','e','a','n') && (u->dataSize>4) && !u->data[0] && !u->data[1] && !u->data[2] && !u->data[3]) {
+		name = "iTunesMean";
+		str_dump = GF_TRUE;
+	}
 
 	gf_isom_box_dump_start(a, name, trace);
 
-	if (u->dataSize && u->dataSize<100)
+	if (str_dump) {
+		u32 i;
+		gf_fprintf(trace, " value=\"");
+		for (i=4; i<u->dataSize; i++)
+			gf_fprintf(trace, "%c", (char) u->data[i]);
+		gf_fprintf(trace, "\"");
+	} else if (u->dataSize && u->dataSize<100) {
 		dump_data_attribute(trace, "data", u->data, u->dataSize);
+	}
 
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done(name, a, trace);

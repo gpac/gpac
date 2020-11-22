@@ -5617,6 +5617,18 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u
 }
 
 /*Apple extensions*/
+static GF_ListItemBox *create_tag(u32 btype)
+{
+	GF_ListItemBox *info = (GF_ListItemBox *)gf_isom_box_new(btype);
+	if (info == NULL) return NULL;
+
+	info->data = (GF_DataBox *)gf_isom_box_new_parent(&info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+	if (info->data == NULL) {
+		gf_isom_box_del((GF_Box *)info);
+		return NULL;
+	}
+	return info;
+}
 
 GF_EXPORT
 GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *data, u32 data_len)
@@ -5656,8 +5668,9 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 	}
 
 	if (data != NULL) {
-		info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		info = create_tag(btype);
 		if (info == NULL) return GF_OUT_OF_MEM;
+
 		switch (btype) {
 		case GF_ISOM_BOX_TYPE_TRKN:
 		case GF_ISOM_BOX_TYPE_DISK:
@@ -5691,15 +5704,16 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		memcpy(info->data->data , data, sizeof(char)*data_len);
 	}
 	else if (data_len && (tag==GF_ISOM_ITUNE_GENRE)) {
-		info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		info = create_tag(btype);
 		if (info == NULL) return GF_OUT_OF_MEM;
+
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u16(bs, data_len);
 		gf_bs_get_content(bs, & info->data->data, &info->data->dataSize);
 		info->data->flags = 0x0;
 		gf_bs_del(bs);
 	} else if (data_len && (tag==GF_ISOM_ITUNE_COMPILATION)) {
-		info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		info = create_tag(btype);
 		if (info == NULL) return GF_OUT_OF_MEM;
 		info->data->data = (char*)gf_malloc(sizeof(char));
 		if (!info->data->data) return GF_OUT_OF_MEM;
@@ -5707,7 +5721,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		info->data->dataSize = 1;
 		info->data->flags = 21;
 	} else if (data_len && (tag==GF_ISOM_ITUNE_TEMPO)) {
-		info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		info = create_tag(btype);
 		if (info == NULL) return GF_OUT_OF_MEM;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u16(bs, data_len);
