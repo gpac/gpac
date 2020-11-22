@@ -2792,10 +2792,13 @@ static GF_Err inspect_process(GF_Filter *filter)
 
 			if (ctx->is_prober) {
 				nb_done++;
-			} else if (ctx->fmt) {
-				inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
 			} else {
-				inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num, pctx);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Inspec] PID %d (codec %s) dump packet CTS "LLU"\n", pctx->idx, gf_codecid_name(pctx->codec_id), gf_filter_pck_get_cts(pck) ));
+				if (ctx->fmt) {
+					inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
+				} else {
+					inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num, pctx);
+				}
 			}
 		}
 		
@@ -2808,6 +2811,8 @@ static GF_Err inspect_process(GF_Filter *filter)
 			else if ((ts - pctx->init_ts) * (u64)ctx->dur.den >= timescale * (u64) ctx->dur.num) {
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Inspec] PID %d (codec %s) done dumping, aborting\n", pctx->idx, gf_codecid_name(pctx->codec_id) ));
 				gf_filter_pid_send_event(pctx->src_pid, &evt);
 				gf_filter_pid_set_discard(pctx->src_pid, GF_TRUE);
 				break;
@@ -3005,7 +3010,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	else {
 		ctx->dump = gf_fopen(ctx->log, "wt");
 		if (!ctx->dump) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspec] Failed to open file %s\n", ctx->log));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Inspec] Failed to open file %s\n", ctx->log));
 			return GF_IO_ERR;
 		}
 	}
