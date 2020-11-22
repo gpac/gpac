@@ -3292,8 +3292,7 @@ found:
 }
 
 
-GF_EXPORT
-GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
+GF_Err gf_isom_reset_alt_brands_ex(GF_ISOFile *movie, Bool leave_empty)
 {
 	u32 *p;
 
@@ -3312,13 +3311,23 @@ GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
 		if (!movie->brand) return GF_OUT_OF_MEM;
 		gf_list_add(movie->TopBoxes, movie->brand);
 	}
-	p = (u32*)gf_malloc(sizeof(u32));
-	if (!p) return GF_OUT_OF_MEM;
-	p[0] = movie->brand->majorBrand;
-	movie->brand->altCount = 1;
 	gf_free(movie->brand->altBrand);
-	movie->brand->altBrand = p;
+	if (leave_empty) {
+		movie->brand->altCount = 0;
+		movie->brand->altBrand = NULL;
+	} else {
+		p = (u32*)gf_malloc(sizeof(u32));
+		if (!p) return GF_OUT_OF_MEM;
+		p[0] = movie->brand->majorBrand;
+		movie->brand->altCount = 1;
+		movie->brand->altBrand = p;
+	}
 	return GF_OK;
+}
+GF_EXPORT
+GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
+{
+	return gf_isom_reset_alt_brands_ex(movie, GF_FALSE);
 }
 
 #if 0 //unused
@@ -6472,6 +6481,24 @@ GF_EXPORT
 GF_Err gf_isom_set_sample_cenc_default_group(GF_ISOFile *movie, u32 track, u32 sample_number)
 {
 	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_SEIG, 0, NULL, NULL, NULL);
+}
+
+GF_Err gf_isom_force_ctts(GF_ISOFile *file, u32 track)
+{
+	GF_TrackBox *trak;
+	GF_Err e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+ 	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+	if (trak->Media->information->sampleTable->CompositionOffset) return GF_OK;
+
+	trak->Media->information->sampleTable->CompositionOffset = (GF_CompositionOffsetBox *) gf_isom_box_new_parent(&trak->Media->information->sampleTable->child_boxes, GF_ISOM_BOX_TYPE_CTTS);
+	if (!trak->Media->information->sampleTable->CompositionOffset) return GF_OUT_OF_MEM;
+	trak->Media->information->sampleTable->CompositionOffset->nb_entries = 1;
+	trak->Media->information->sampleTable->CompositionOffset->entries = gf_malloc(sizeof(GF_DttsEntry));
+	trak->Media->information->sampleTable->CompositionOffset->entries[0].decodingOffset = 0;
+	trak->Media->information->sampleTable->CompositionOffset->entries[0].sampleCount = 	trak->Media->information->sampleTable->SampleSize->sampleCount;
+	return GF_OK;
 }
 
 GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)

@@ -1518,6 +1518,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
+	else {
+		if (!strcmp(pname, "isom_force_ctts"))
+			return;
+	}
 
 	if (p4cc==GF_PROP_PID_DOWNLOAD_SESSION)
 		return;
