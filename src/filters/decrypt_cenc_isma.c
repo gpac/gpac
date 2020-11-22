@@ -824,6 +824,12 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	if (const_IV) IV_size = const_IV->value.data.size;
 
+	//in case the IV is only 0s, force an initial copy of first IV and first Key
+	if (!cstr->crypt_init && cstr->KID_count) {
+		memcpy(cstr->kid, cstr->KIDs[0], sizeof(bin128));
+		memcpy(cstr->key, cstr->keys[0], sizeof(bin128));
+	}
+
 	if (strncmp(cstr->kid, KID, 16)) {
 		bin128 blank_KID;
 		Bool found = GF_FALSE;
@@ -924,8 +930,8 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			if (cbc_pattern && cbc_pattern->value.frac.den && cbc_pattern->value.frac.num) {
 				u32 pos = cur_pos;
 				u32 res = bytes_encrypted_data;
-				u32 skip_byte_block = cbc_pattern->value.frac.num;
-				u32 crypt_byte_block = cbc_pattern->value.frac.den;
+				u32 cryp_block = 16 * cbc_pattern->value.frac.den;
+				u32 full_block = 16 * (cbc_pattern->value.frac.den + cbc_pattern->value.frac.num);
 
 				if (cstr->is_cbc) {
 					u32 clear_trailing = res % 16;
@@ -933,10 +939,11 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				}
 
 				while (res) {
-					gf_crypt_decrypt(cstr->crypt, out_data + pos, res >= (u32) (16* crypt_byte_block) ? 16* crypt_byte_block : res);
-					if (res >= (u32) (16 * (crypt_byte_block + skip_byte_block))) {
-						pos += 16 * (crypt_byte_block + skip_byte_block);
-						res -= 16 * (crypt_byte_block + skip_byte_block);
+					gf_crypt_decrypt(cstr->crypt, out_data + pos, (res >= cryp_block) ? cryp_block : res);
+					if (res >= full_block) {
+						pos += full_block;
+						assert(res>=full_block);
+						res -= full_block;
 					} else {
 						res = 0;
 					}
