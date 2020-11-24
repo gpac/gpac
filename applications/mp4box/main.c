@@ -1752,6 +1752,17 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->mirror = atoi(szSlot+7);
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "clap=", 5)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			sscanf(szSlot + 5, "%d,%d,%d,%d,%d,%d,%d,%d", &meta->image_props->clap_wnum, &meta->image_props->clap_wden,
+					   &meta->image_props->clap_hnum, &meta->image_props->clap_hden,
+					   &meta->image_props->clap_honum, &meta->image_props->clap_hoden,
+					   &meta->image_props->clap_vonum, &meta->image_props->clap_voden);
+			ret = 1;
+		}
 		else if (!stricmp(szSlot, "hidden")) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
