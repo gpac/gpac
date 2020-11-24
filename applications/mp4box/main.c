@@ -857,13 +857,18 @@ GF_GPACArg m4b_meta_args[] =
 		"- mime=mtype: item mime type\n"
 		"- encoding=enctype: item content-encoding type\n"
 		"- id=ID: item ID\n"
-		"- ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)", NULL, NULL, GF_ARG_STRING, 0),
+		"- ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)\n"
+		"- group=id,type: indicate the id and type of an alternate group for this item"
+		, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("add-image", NULL, "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`\n"
 		"- name, id, ref: see [-add-item]()\n"
 		"- primary: indicate that this item should be the primary item\n"
 		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
+		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
+		"- mirror-axis=axis: set the mirror axis: vertical, horizontal\n"
+		"- clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap\n"
 		"- hidden: indicate that this image item should be hidden\n"
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
@@ -871,6 +876,9 @@ GF_GPACArg m4b_meta_args[] =
 		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location. If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("add-image-grid", NULL, "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
+		"- image-grid-size=rxc: set the number of rows and colums of the grid\n"
+	    "- any other options from [-add-image]() can be used\n", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rem-item `item_ID[:tk=tkID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-primary `item_ID[:tk=tkID]`", NULL, "set item as primary for meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-xml `xml_file_path[:tk=tkID][:binary]`", NULL, "set meta XML data", NULL, NULL, GF_ARG_STRING, 0),
@@ -1744,12 +1752,12 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->angle = atoi(szSlot+9);
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "mirror=", 7)) {
+		else if (!strnicmp(szSlot, "mirror-axis=", 12)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 				if (!meta->image_props) return 0;
 			}
-			meta->image_props->mirror = atoi(szSlot+7);
+			meta->image_props->mirror = (!strnicmp(szSlot+12, "vertical", 8) ? 1 : 2);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "clap=", 5)) {
