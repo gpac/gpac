@@ -5586,6 +5586,8 @@ typedef struct
 	u32 mirror;
 	/*! hidden flag*/
 	Bool hidden;
+	/*! clean aperture */
+	s32 clap_wnum, clap_wden, clap_hnum, clap_hden, clap_honum, clap_hoden, clap_vonum, clap_voden;
 	/*! pointer to configuration box*/
 	void *config;
 	/*! tile item mode*/

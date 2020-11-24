@@ -608,6 +608,19 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 					prop->mirror = imir->axis+1;
 				}
 				break;
+				case GF_ISOM_BOX_TYPE_CLAP:
+				{
+					GF_CleanApertureBox *clap = (GF_CleanApertureBox *)b;
+					prop->clap_hden = clap->cleanApertureHeightD;
+					prop->clap_hnum = clap->cleanApertureHeightN;
+					prop->clap_wden = clap->cleanApertureWidthD;
+					prop->clap_wnum = clap->cleanApertureWidthN;
+					prop->clap_hoden = clap->horizOffD;
+					prop->clap_honum = clap->horizOffN;
+					prop->clap_voden = clap->vertOffD;
+					prop->clap_vonum = clap->vertOffN;
+				}
+				break;
 				case GF_ISOM_BOX_TYPE_HVCC:
 				case GF_ISOM_BOX_TYPE_AVCC:
 					prop->config = b;
@@ -662,6 +675,21 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 		{
 			GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)b;
 			if (prop->mirror && imir->axis == prop->mirror-1) {
+				return i;
+			}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_CLAP:
+		{
+			GF_CleanApertureBox *clap = (GF_CleanApertureBox *)b;
+			if (prop->clap_hden == clap->cleanApertureHeightD &&
+				prop->clap_hnum == clap->cleanApertureHeightN &&
+				prop->clap_wden == clap->cleanApertureWidthD &&
+				prop->clap_wnum == clap->cleanApertureWidthN &&
+				prop->clap_hoden == clap->horizOffD &&
+				prop->clap_honum == clap->horizOffN &&
+				prop->clap_voden == clap->vertOffD &&
+				prop->clap_vonum == clap->vertOffN) {
 				return i;
 			}
 		}
@@ -833,6 +861,33 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
 		searchprop.mirror = 0;
+	}
+	if (image_props->clap_wnum || image_props->clap_wden || image_props->clap_hnum || image_props->clap_hden || image_props->clap_honum || image_props->clap_hoden || image_props->clap_vonum || image_props->clap_voden) {
+		searchprop.clap_wnum = image_props->clap_wnum;
+		searchprop.clap_wden = image_props->clap_wden;
+		searchprop.clap_hnum = image_props->clap_hnum;
+		searchprop.clap_hden = image_props->clap_hden;
+		searchprop.clap_honum = image_props->clap_honum;
+		searchprop.clap_hoden = image_props->clap_hoden;
+		searchprop.clap_vonum = image_props->clap_vonum;
+		searchprop.clap_voden = image_props->clap_voden;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_CleanApertureBox *clap = (GF_CleanApertureBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_CLAP);
+			if (!clap) return GF_OUT_OF_MEM;
+			clap->cleanApertureHeightD = image_props->clap_hden;
+			clap->cleanApertureHeightN = image_props->clap_hnum;
+			clap->cleanApertureWidthD = image_props->clap_wden;
+			clap->cleanApertureWidthN = image_props->clap_wnum;
+			clap->horizOffD = image_props->clap_hoden;
+			clap->horizOffN = image_props->clap_honum;
+			clap->vertOffD = image_props->clap_voden;
+			clap->vertOffN = image_props->clap_vonum;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.clap_wnum = searchprop.clap_wden = searchprop.clap_hnum = searchprop.clap_hden = searchprop.clap_honum = searchprop.clap_hoden = searchprop.clap_vonum = searchprop.clap_voden = 0;
 	}
 	if (image_props->config) {
 		searchprop.config = image_props->config;
