@@ -593,6 +593,26 @@ Checks if connection has been closed by remote peer
  */
 GF_Err gf_sk_probe(GF_Socket *sock);
 
+
+/*! socket selection mode*/
+typedef enum
+{
+	/*! select for both read and write operations */
+	GF_SK_SELECT_BOTH=0,
+	/*! select for both read operations */
+	GF_SK_SELECT_READ,
+	/*! select for both write operations */
+	GF_SK_SELECT_WRITE,
+} GF_SockSelectMode;
+
+/*!
+Checks if socket can is ready for read or write
+\param sock the socket object
+\param mode the operation mode desired
+\return GF_OK if ready, GF_IP_SOCK_WOULD_BLOCK if not ready, otherwise error if any (GF_IP_CONNECTION_CLOSED if connection is closed)
+ */
+GF_Err gf_sk_select(GF_Socket *sock, GF_SockSelectMode mode);
+
 /*! @} */
 
 /*!
@@ -623,17 +643,6 @@ Unregisters a socket from a socket group
 \param sk socket object to unregister
  */
 void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk);
-
-/*! socket selection mode*/
-typedef enum
-{
-	/*! select for both read and write operations */
-	GF_SK_SELECT_BOTH=0,
-	/*! select for both read operations */
-	GF_SK_SELECT_READ,
-	/*! select for both write operations */
-	GF_SK_SELECT_WRITE,
-} GF_SockSelectMode;
 
 /*!
 Performs a select (wait) on the socket group

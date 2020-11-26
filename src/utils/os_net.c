@@ -973,6 +973,55 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 	return GF_OK;
 }
 
+GF_Err gf_sk_select(GF_Socket *sock, u32 mode)
+{
+#ifndef __SYMBIAN32__
+	int ready;
+	struct timeval timeout;
+	fd_set RGroup;
+	fd_set WGroup;
+#endif
+
+	//the socket must be bound or connected
+	if (!sock || !sock->socket)
+		return GF_BAD_PARAM;
+
+#ifndef __SYMBIAN32__
+	//can we write?
+	FD_ZERO(&RGroup);
+	FD_ZERO(&WGroup);
+	if (mode != GF_SK_SELECT_WRITE)
+		FD_SET(sock->socket, &RGroup);
+	if (mode != GF_SK_SELECT_READ)
+		FD_SET(sock->socket, &WGroup);
+	timeout.tv_sec = 0;
+	timeout.tv_usec = sock->usec_wait;
+
+	//TODO CHECK IF THIS IS CORRECT
+	ready = select((int) sock->socket+1, &RGroup, &WGroup, NULL, &timeout);
+	if (ready == SOCKET_ERROR) {
+		switch (LASTSOCKERROR) {
+		case EAGAIN:
+			return GF_IP_SOCK_WOULD_BLOCK;
+		default:
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] select failure: %s\n", gf_errno_str(LASTSOCKERROR)));
+			return GF_IP_NETWORK_FAILURE;
+		}
+	}
+
+	//should never happen (to check: is writeability is guaranteed for not-connected sockets)
+	if (!ready)
+		return GF_IP_SOCK_WOULD_BLOCK;
+	if ((mode != GF_SK_SELECT_WRITE) && !FD_ISSET(sock->socket, &RGroup))
+		return GF_IP_SOCK_WOULD_BLOCK;
+	if ((mode != GF_SK_SELECT_READ) && !FD_ISSET(sock->socket, &WGroup))
+		return GF_IP_SOCK_WOULD_BLOCK;
+	return GF_OK;
+#else
+	return GF_IP_SOCK_WOULD_BLOCK;
+#endif
+}
+
 
 GF_EXPORT
 u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
@@ -1722,6 +1771,7 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 #endif
 	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK);
 	if (res > 0) return GF_OK;
+#if 0
 	res = LASTSOCKERROR;
 	switch (res) {
 	case 0:
@@ -1731,6 +1781,10 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] probe error: %s\n", gf_errno_str(res)));
 		return GF_IP_CONNECTION_CLOSED;
 	}
+#else
+	return GF_IP_CONNECTION_CLOSED;
+#endif
+
 	return GF_OK;
 }
 

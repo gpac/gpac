@@ -1,4 +1,5 @@
 On-going: GPAC 1.1-DEV
+- support for LL-HLS (dashing, playback and server side)
 - more support for MPEG-H audio mux/demux/dashing
 - support for multiple filter chains per source in MP4Box dash or add syntax
 - reworked mod-dirs and js-dirs usage, JSFilters now can be part of the default available filters

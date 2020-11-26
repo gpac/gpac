@@ -1638,6 +1638,8 @@ fmodefwd (bool, default: yes): forward packet rather than copy them in .I filemo
 .br
 skip_lqt (bool, default: no):  disable decoding of tiles with highest degradation hints (not visible, not gazed at) for debug purposes
 .br
+llhls_merge (bool, default: yes): merge LL-HLS byte range parts into a single open byte range request
+.br
 
 .br
 .SH cdcrypt
@@ -4378,6 +4380,16 @@ mha_compat (enum, default: no): adaptation set generation mode for compatible MP
 .br
 mname (str):                   output manifest name for ATSC3 muxing
 .br
+hlsll (enum, default: off):    HLS low latency type
+.br
+* off: do not use LL-HLS
+.br
+* br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)
+.br
+* sf: use separated files for segment parts
+.br
+
+.br
 
 .br
 .SH tileagg
@@ -5597,7 +5609,7 @@ sutc (bool, default: false):   insert server UTC in response headers as Server-U
 .br
 cors (bool, default: false):   insert CORS header allowing all domains
 .br
-reqlog (str):                  provide short log of the requests indicated in this option (comma separated list, * for all) regardless of HTTP log settings
+reqlog (str):                  provide short log of the requests indicated in this option (comma separated list, * for all) regardless of HTTP log settings. Value REClogs file writing start/end
 .br
 ice (bool, default: false):    insert ICE meta-data in response headers in sink mode - see filter help
 .br
@@ -6812,7 +6824,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev272-g3ed13ae45-master
+build: 1.1.0-DEV-rev280-g0ad5b2add-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

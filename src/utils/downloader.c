@@ -1296,11 +1296,11 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			sess->ssl = NULL;
 		}
 #endif
-
 	}
 	sess->total_size = 0;
 	sess->bytes_done = 0;
-	assert(sess->remaining_data_size==0);
+	//could be not-0 after a byte-range request using chunk transfer
+	sess->remaining_data_size = 0;
 
 	sess->local_cache_only = GF_FALSE;
 	if (sess->dm && sess->dm->local_cache_url_provider_cbk) {
@@ -1334,7 +1334,9 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			gf_dm_sess_reload_cached_headers(sess);
 		}
 	}
-	return sess->last_error;
+	if (sess->last_error)
+		return sess->last_error;
+	return gf_dm_sess_set_range(sess, 0, 0, GF_TRUE);
 }
 
 
@@ -2756,6 +2758,16 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 				*read_size = size;
 		}
 #endif
+
+		if (! (*read_size) && (e=GF_IP_NETWORK_EMPTY)) {
+			e = gf_sk_probe(sess->sock);
+			if ((e==GF_IP_CONNECTION_CLOSED) || (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout)
+			) {
+				sess->last_error = (e==GF_IP_CONNECTION_CLOSED) ? e : GF_IP_NETWORK_EMPTY;
+				sess->status = GF_NETIO_STATE_ERROR;
+				return GF_IP_NETWORK_EMPTY;
+			}
+		}
 
 	}
 
@@ -4429,7 +4441,6 @@ void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess)
 {
 	if (sess) sess->flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 }
-
 
 GF_EXPORT
 GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool is_cache_destroy), void *lc_udta)

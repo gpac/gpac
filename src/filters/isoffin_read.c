@@ -209,7 +209,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		}
 		//always refresh fragmented files, since we could have a full moof+mdat in buffer (not incomplete file)
 		//but still further fragments to be pushed
-		if (!read->start_range)
+		if (!read->start_range && !read->end_range)
 			read->refresh_fragmented = GF_TRUE;
 		read->seg_name_changed = GF_TRUE;
 

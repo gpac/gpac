@@ -62,6 +62,8 @@ typedef struct
 	u64 offset_at_seg_start;
 	const char *original_url;
 	GF_FileIO *gfio_ref;
+
+	FILE *hls_chunk;
 } GF_FileOutCtx;
 
 #ifdef WIN32
@@ -69,11 +71,20 @@ typedef struct
 #include <fcntl.h>
 #endif //WIN32
 
+static void fileout_close_hls_chunk(GF_FileOutCtx *ctx, Bool final_flush)
+{
+	if (!ctx->hls_chunk) return;
+	gf_fclose(ctx->hls_chunk);
+	ctx->hls_chunk = NULL;
+}
+
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite, char *file_suffix)
 {
 	if (ctx->file && !ctx->is_std) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] closing output file %s\n", ctx->szFileName));
 		gf_fclose(ctx->file);
+
+		fileout_close_hls_chunk(ctx, GF_FALSE);
 	}
 	ctx->file = NULL;
 
@@ -312,6 +323,9 @@ static void fileout_finalize(GF_Filter *filter)
 {
 	GF_Err e;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
+
+	fileout_close_hls_chunk(ctx, GF_TRUE);
+
 	fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 	if (ctx->gfio_ref)
 		gf_fileio_open_url((GF_FileIO *)ctx->gfio_ref, NULL, "unref", &e);
@@ -461,6 +475,14 @@ static GF_Err fileout_process(GF_Filter *filter)
 		}
 	}
 
+	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM);
+	if (p) {
+		char szHLSChunk[GF_MAX_PATH];
+		snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", ctx->szFileName, p->value.uint);
+		if (ctx->hls_chunk) gf_fclose(ctx->hls_chunk);
+		ctx->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->original_url, "w+b");
+	}
+
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (ctx->file) {
 		GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
@@ -536,6 +558,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 				}
 				ctx->nb_write += nb_write;
+
+				if (ctx->hls_chunk) {
+					nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->hls_chunk);
+					if (nb_write!=pck_size) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+					}
+				}
 			}
 		} else if (hwf) {
 			u32 w, h, stride, stride_uv, pf;

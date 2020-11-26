@@ -2199,6 +2199,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_switching_probe_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_agressive_adaptation) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_enable_single_range_llhls) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_language) )

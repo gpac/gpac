@@ -1139,6 +1139,9 @@ enum
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
+	//internal for HLS low latency
+	GF_PROP_PID_HLSLL = GF_4CC('H','L','S','L'),
+	GF_PROP_PCK_HLS_FRAG_NUM = GF_4CC('H','L','S','N'),
 
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T')
@@ -1405,6 +1408,9 @@ typedef enum
 	GF_FEVT_PLAY_HINT,
 	/*! file delete event, sent upstream by dahser to notify file deletion*/
 	GF_FEVT_FILE_DELETE,
+
+	/*! DASH fragment (cmaf chunk) size info, sent down from muxers to manifest generators*/
+	GF_FEVT_FRAGMENT_SIZE,
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1495,6 +1501,22 @@ typedef struct
 	u64 idx_range_end;
 } GF_FEVT_SegmentSize;
 
+/*! Event structure for  GF_FEVT_FRAGMENT_SIZE*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	/*! set to TRUE if last fragment in segment*/
+	Bool is_last;
+	/*! media start range in segment file*/
+	u64 offset;
+	/*! media end range in segment file*/
+	u64 size;
+	/*! media duration of fragment*/
+	GF_Fraction duration;
+	/*! fragment contains an IDR*/
+	Bool independent;
+} GF_FEVT_FragmentSize;
+
 /*! Event structure for GF_FEVT_ATTACH_SCENE and GF_FEVT_RESET_SCENE
 For GF_FEVT_RESET_SCENE, THIS IS A DIRECT FILTER CALL NOT THREADSAFE, filters processing this event SHALL run on the main thread*/
 typedef struct
@@ -1580,6 +1602,7 @@ union __gf_filter_event
 	GF_FEVT_VisibilityHint visibility_hint;
 	GF_FEVT_BufferRequirement buffer_req;
 	GF_FEVT_SegmentSize seg_size;
+	GF_FEVT_FragmentSize frag_size;
 	GF_FEVT_FileDelete file_del;
 };
 

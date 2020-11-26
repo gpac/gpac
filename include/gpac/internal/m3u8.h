@@ -71,7 +71,7 @@ struct s_playlistElement {
 	MediaType media_type;
 	double duration_info;
 	u64 byte_range_start, byte_range_end;
-	int bandwidth, width, height;
+	int bandwidth, width, height, low_lat_chunk, independent_chunk;
 	char *title;
 	char *codecs;
 	char *language;
@@ -108,7 +108,7 @@ struct s_masterPlaylist {
 	GF_List *streams; /*Stream*/
 	int current_stream;
 	Bool playlist_needs_refresh;
-	Bool independent_segments;
+	Bool independent_segments, low_latency;
 };
 typedef struct s_masterPlaylist MasterPlaylist;
 
