@@ -86,6 +86,7 @@ typedef struct
 	void *ssl_ctx;
 
 	u64 req_id;
+	Bool log_record;
 } GF_HTTPOutCtx;
 
 typedef struct
@@ -113,6 +114,9 @@ typedef struct
 	//for server mode, recording
 	char *local_path;
 	FILE *resource;
+
+	FILE *hls_chunk;
+	char *hls_chunk_path;
 
 	u8 *tunein_data;
 	u32 tunein_data_size;
@@ -159,6 +163,7 @@ typedef struct __httpout_session
 
 	GF_HTTPOutInput *in_source;
 	Bool send_init_data;
+	Bool in_source_is_ll_hls_chunk;
 
 	u32 nb_ranges, alloc_ranges, range_idx;
 	HTTByteRange *ranges;
@@ -521,9 +526,16 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 	if ((sess->nb_ranges == 1) && known_file_size && !sess->ranges[0].start && (sess->ranges[0].end==known_file_size-1))
 		sess->nb_ranges = 0;
 
-	if (!request_ok) return GF_FALSE;
+	if (!request_ok) {
+		if (!sess->in_source || (sess->nb_ranges>1))
+			return GF_FALSE;
+		//source in progress, we accept single range - note that this could be further refined by postponing the request until the source
+		//is done or has written the requested byte range, however this will delay sending chunk in LL-HLS byterange ...
+		//for now, since we use chunk transfer in this case, we will send less data than asked and close resource using last 0-size chunk
+	}
 	sess->file_pos = sess->ranges[0].start;
-	if (sess->resource) gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
+	if (sess->resource)
+		gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 	return GF_TRUE;
 }
 
@@ -606,6 +618,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	Bool is_upload = GF_FALSE;
 	u32 i, count;
 	GF_HTTPOutInput *source_pid = NULL;
+	Bool source_pid_is_ll_hls_chunk = GF_FALSE;
 	GF_HTTPOutSession *source_sess = NULL;
 	GF_HTTPOutSession *sess = usr_cbk;
 
@@ -633,6 +646,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		goto exit;
 	}
 
+	sess->file_pos = 0;
+	sess->file_size = 0;
+	sess->bytes_in_req = 0;
+	sess->nb_ranges = 0;
 	sess->do_log = httpout_do_log(sess, parameter->reply);
 
 	//resolve name against upload dir
@@ -734,7 +751,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			sess->req_id = ++sess->ctx->req_id;
 			sess->method_type = parameter->reply;
 			if (range) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s [range: %s] start\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, range));
+				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s [range: %s] start%s\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, range, sess->use_chunk_transfer ? " chunk-transfer" : ""));
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s start%s\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, sess->use_chunk_transfer ? " chunk-transfer" : ""));
 			}
@@ -757,6 +774,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		//if input pid done, try from file
 		if (!strcmp(in->path, url) && !in->done) {
 			source_pid = in;
+			break;
+		}
+		if (in->hls_chunk_path && !strcmp(in->hls_chunk_path, url) && !in->done) {
+			source_pid = in;
+			source_pid_is_ll_hls_chunk = GF_TRUE;
 			break;
 		}
 	}
@@ -870,8 +892,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (sess->path) gf_free(sess->path);
 		sess->path = NULL;
 		sess->in_source = source_pid;
-		sess->send_init_data = GF_TRUE;
 		source_pid->nb_dest++;
+		sess->send_init_data = GF_TRUE;
 		source_pid->hold = GF_FALSE;
 
 		sess->file_pos = sess->file_size = 0;
@@ -883,23 +905,27 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->path = full_path;
 		not_modified = GF_TRUE;
 	}
-	/*we have the same URL and no associated source*/
-	else if (!sess->in_source && (sess->last_file_modif == modif_time) && sess->path && full_path && !strcmp(sess->path, full_path) ) {
+	/*we have the same URL, source file is setup and not modified, no need to resetup - byte-range is setup after */
+	else if (!sess->in_source && sess->resource && (sess->last_file_modif == modif_time) && sess->path && full_path && !strcmp(sess->path, full_path) ) {
 		gf_free(full_path);
 		sess->file_pos = 0;
-	} else {
+	}
+	else {
 		if (sess->path) gf_free(sess->path);
 		if (source_pid) {
+			assert(source_pid->resource);
 			sess->in_source = source_pid;
 			source_pid->nb_dest++;
 			source_pid->hold = GF_FALSE;
 			sess->send_init_data = GF_TRUE;
+			sess->in_source_is_ll_hls_chunk = source_pid_is_ll_hls_chunk;
 
 			sess->file_in_progress = GF_TRUE;
 			assert(!full_path);
 			assert(source_pid->local_path);
 			full_path = gf_strdup(source_pid->local_path);
 			sess->use_chunk_transfer = GF_TRUE;
+			sess->file_size = 0;
 		}
 		sess->path = full_path;
 		if (!full_path || gf_dir_exists(full_path)) {
@@ -924,8 +950,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&response_body, "File exists but no read access", NULL);
 				goto exit;
 			}
+			assert(sess->resource);
 
-			if (!sess->in_source) {
+			mime = source_pid ? source_pid->mime : NULL;
+			//probe for mime
+			if (!mime) {
 				u8 probe_buf[5001];
 				u32 read = (u32) gf_fread(probe_buf, 5000, sess->resource);
 				if ((s32) read < 0) {
@@ -941,16 +970,14 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 					probe_buf[read] = 0;
 					mime = gf_filter_probe_data(sess->ctx->filter, probe_buf, read);
 				}
-
-				sess->file_size = gf_fsize(sess->resource);
-				if (source_sess) {
-					sess->file_size = 0;
-					sess->use_chunk_transfer = GF_TRUE;
-					sess->put_in_progress = 1;
-				}
-			} else {
-				mime = source_pid ? source_pid->mime : NULL;
+			}
+			if (source_sess) {
 				sess->file_size = 0;
+				sess->use_chunk_transfer = GF_TRUE;
+				sess->put_in_progress = 1;
+			} else {
+				//get file size, might be incomplete if file writing is in progress
+				sess->file_size = gf_fsize(sess->resource);
 			}
 		}
 		sess->file_pos = 0;
@@ -961,8 +988,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->last_file_modif = gf_file_modification_time(full_path);
 	}
 
-	if (!sess->in_source && ! httpout_sess_parse_range(sess, (char *) range) ) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Unsupported Range format: %s", range));
+	//parse byte range except if associated input in single mode where byte ranges are ignored
+	if ( (!sess->in_source || !sess->ctx->single_mode) && ! httpout_sess_parse_range(sess, (char *) range) ) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Unsupported Range format: %s\n", range));
 		response = "416 Requested Range Not Satisfiable\r\n";
 		gf_dynstrcat(&response_body, "Range format is not supported, only \"bytes\" units allowed: ", NULL);
 		gf_dynstrcat(&response_body, range, NULL);
@@ -1032,7 +1060,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			sess->nb_ranges = 0;
 			gf_dynstrcat(&rsp_buf, "Cache-Control: no-cache, no-store\r\n", NULL);
 		}
-		if (sess->bytes_in_req) {
+		//only put content length if not using chunk transfer - bytes_in_req may be > 0 if we have a byte range on a chunk-transfer session
+		if (sess->bytes_in_req && !sess->use_chunk_transfer) {
 			sprintf(szFmt, LLU, sess->bytes_in_req);
 			gf_dynstrcat(&rsp_buf, "Content-Length: ", NULL);
 			gf_dynstrcat(&rsp_buf, szFmt, NULL);
@@ -1631,6 +1660,8 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Server running on port %d\n", ctx->port));
 	if (ctx->reqlog) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Server running on port %d\n", ctx->port));
+		if (strstr(ctx->reqlog, "REC"))
+			ctx->log_record = GF_TRUE;
 	}
 	gf_filter_post_process_task(filter);
 	return GF_OK;
@@ -1651,6 +1682,40 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	gf_free(s);
 }
 
+static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool final_flush)
+{
+	if (!in->hls_chunk) return;
+	u64 hls_chunk_size = gf_ftell(in->hls_chunk);
+
+	gf_fclose(in->hls_chunk);
+	in->hls_chunk = NULL;
+
+	if (!final_flush) {
+		u32 i, count;
+		//detach all clients from this input and reassign to a regular output
+		count = gf_list_count(ctx->sessions);
+		for (i=0; i<count; i++) {
+			GF_HTTPOutSession *sess = gf_list_get(ctx->sessions, i);
+			if (sess->in_source != in) continue;
+			if (!sess->in_source_is_ll_hls_chunk) continue;
+			if (strcmp(sess->path, in->local_path)) continue;
+
+			assert(sess->file_in_progress);
+			if (sess->in_source) {
+				sess->in_source->nb_dest--;
+				sess->in_source = NULL;
+			}
+			sess->in_source_is_ll_hls_chunk = GF_FALSE;
+			sess->file_size = hls_chunk_size;
+			sess->file_in_progress = GF_FALSE;
+		}
+	}
+
+	if (in->hls_chunk_path) gf_free(in->hls_chunk_path);
+	in->hls_chunk_path = NULL;
+}
+
+
 static void httpout_finalize(GF_Filter *filter)
 {
 	GF_HTTPOutCtx *ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
@@ -1668,20 +1733,23 @@ static void httpout_finalize(GF_Filter *filter)
 	gf_list_del(ctx->active_sessions);
 
 	while (gf_list_count(ctx->inputs)) {
-		GF_HTTPOutInput *tmp = gf_list_pop_back(ctx->inputs);
-		if (tmp->local_path) gf_free(tmp->local_path);
-		if (tmp->path) gf_free(tmp->path);
-		if (tmp->mime) gf_free(tmp->mime);
-		if (tmp->resource) gf_fclose(tmp->resource);
-		if (tmp->upload) gf_dm_sess_del(tmp->upload);
-		if (tmp->file_deletes) {
-			while (gf_list_count(tmp->file_deletes)) {
-				char *url = gf_list_pop_back(tmp->file_deletes);
+		GF_HTTPOutInput *in = gf_list_pop_back(ctx->inputs);
+		if (in->local_path) gf_free(in->local_path);
+		if (in->path) gf_free(in->path);
+		if (in->mime) gf_free(in->mime);
+
+		httpout_close_hls_chunk(ctx, in, GF_TRUE);
+
+		if (in->resource) gf_fclose(in->resource);
+		if (in->upload) gf_dm_sess_del(in->upload);
+		if (in->file_deletes) {
+			while (gf_list_count(in->file_deletes)) {
+				char *url = gf_list_pop_back(in->file_deletes);
 				gf_free(url);
 			}
-			gf_list_del(tmp->file_deletes);
+			gf_list_del(in->file_deletes);
 		}
-		gf_free(tmp);
+		gf_free(in);
 	}
 	gf_list_del(ctx->inputs);
 	if (ctx->server_sock) gf_sk_del(ctx->server_sock);
@@ -1724,6 +1792,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		if (write != size) {
 			return GF_IO_ERR;
 		}
+		gf_fflush(sess->resource);
 		sess->nb_bytes += write;
 		sess->file_pos += write;
 		return GF_OK;
@@ -1736,6 +1805,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 			if (write != remain) {
 				return GF_IO_ERR;
 			}
+			gf_fflush(sess->resource);
 			sess->nb_bytes += write;
 			sess->file_pos += remain;
 			remain = 0;
@@ -1745,6 +1815,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		sess->nb_bytes += write;
 		remain -= to_write;
 		sess->range_idx++;
+		gf_fflush(sess->resource);
 		if (sess->range_idx>=sess->nb_ranges) break;
 		sess->file_pos = sess->ranges[sess->range_idx].start;
 		gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
@@ -1785,6 +1856,14 @@ static void log_request_done(GF_HTTPOutSession *sess)
 		} else if (bps>1000) {
 			unit = "kbps";
 			bps/=1000;
+		}
+		assert(sess->nb_bytes);
+		if (sess->nb_ranges) {
+			u32 i, tot_bytes = 0;
+			for (i=0; i<sess->nb_ranges; i++) {
+				tot_bytes += sess->ranges[i].end - sess->ranges[i].start + 1;
+			}
+			assert(tot_bytes==sess->nb_bytes);
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s done: reply %d - "LLU" bytes in %d ms at %g %s\n", sess->req_id, get_method_name(sess->method_type), sess->reply_code, sess->nb_bytes, (u32) (diff_us/1000), bps, unit));
 	}
@@ -1966,7 +2045,8 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	}
 	if (!sess->socket) return;
 	if (sess->done) return;
-	if (sess->in_source) return;
+	//assoicated input directly writes to session
+	if (sess->in_source && !sess->in_source->resource) return;
 
 	if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE)) {
 		return;
@@ -1989,13 +2069,15 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 	}
 
+resend:
+
 	//we have ranges
 	if (sess->nb_ranges) {
 		//current range is done
 		if ((s64) sess->file_pos >= sess->ranges[sess->range_idx].end) {
-			sess->range_idx++;
 			//load next range, seeking file
-			if (sess->range_idx<sess->nb_ranges) {
+			if (sess->range_idx+1<sess->nb_ranges) {
+				sess->range_idx++;
 				sess->file_pos = (u64) sess->ranges[sess->range_idx].start;
 				gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 			}
@@ -2014,7 +2096,11 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			to_read = (u64) sess->ctx->block_size;
 
 		read = (u32) gf_fread(sess->buffer, (u32) to_read, sess->resource);
-
+		//may happen when file writing is in progress
+		if (!read) {
+			sess->last_active_time = gf_sys_clock_high_res();
+			return;
+		}
 		//transfer of file being uploaded, use chunk transfer
 		if (sess->use_chunk_transfer) {
 			char szHdr[100];
@@ -2044,6 +2130,10 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s for %s: %s\n", sess->peer_address, sess->path, gf_error_to_string(e) ));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sending data to %s for %s: "LLU"/"LLU" bytes\n", sess->peer_address, sess->path, sess->nb_bytes, sess->bytes_in_req));
+
+			if (gf_sk_select(sess->socket, GF_SK_SELECT_WRITE)==GF_OK) {
+				goto resend;
+			}
 		}
 		return;
 	}
@@ -2070,6 +2160,7 @@ session_done:
 
 	if (!sess->done) {
 		if (sess->use_chunk_transfer) {
+			assert(sess->nb_bytes);
 			httpout_sess_send(sess, "0\r\n\r\n", 5);
 		}
 		if (sess->resource) gf_fclose(sess->resource);
@@ -2100,7 +2191,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
     const char *dir = NULL;
     const char *sep;
 
-    if (in->is_open) return GF_FALSE;
+    if (in->is_open && !is_delete) return GF_FALSE;
     if (!in->upload) {
         //singe session mode, not recording, nothing to do
         if (ctx->single_mode) {
@@ -2160,13 +2251,13 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
         GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] %s output file %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
 		return GF_FALSE;
 	}
-	in->done = GF_FALSE;
-	in->is_open = GF_TRUE;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening",  name));
-
 	if (in->upload) {
 		GF_Err e;
+		in->done = GF_FALSE;
+		in->is_open = GF_TRUE;
+
 		in->is_delete = is_delete;
 		if (!in->force_dst_name) {
 			char *old = in->path;
@@ -2196,6 +2287,30 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		return GF_TRUE;
 	}
 
+	if (ctx->log_record) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening",  name));
+	}
+
+	//file delete is async (the resource associated with the input can still be active)
+	if (is_delete) {
+		char *loc_path = NULL;
+		gf_dynstrcat(&loc_path, dir, NULL);
+		if (!strchr("/\\", dir[len-1]))
+			gf_dynstrcat(&loc_path, "/", NULL);
+		if (sep[0]=='/')
+			gf_dynstrcat(&loc_path, sep+1, NULL);
+		else
+			gf_dynstrcat(&loc_path, sep, NULL);
+
+		gf_file_delete(loc_path);
+		if (o_url) gf_free(o_url);
+		gf_free(loc_path);
+		return GF_TRUE;
+	}
+
+	in->done = GF_FALSE;
+	in->is_open = GF_TRUE;
+
 
 	if (in->path && !strcmp(in->path, sep)) {
 //		reassign_clients = GF_FALSE;
@@ -2204,18 +2319,12 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		in->path = gf_strdup(sep);
 	}
     if (o_url) gf_free(o_url);
+
 	httpout_set_local_path(ctx, in);
 
-	if (is_delete) {
-		gf_file_delete(in->local_path);
-		in->done = GF_TRUE;
+	in->resource = gf_fopen(in->local_path, "wb");
+	if (!in->resource)
 		in->is_open = GF_FALSE;
-		in->is_delete = GF_FALSE;
-	} else {
-		in->resource = gf_fopen(in->local_path, "wb");
-		if (!in->resource)
-			in->is_open = GF_FALSE;
-	}
 	return GF_TRUE;
 }
 
@@ -2243,9 +2352,12 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	} else {
 		u32 i, count;
-		if (in->resource) {
-			u64 file_size = gf_ftell(in->resource);
 
+		if (ctx->log_record) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Closing output file %s\n", in->local_path ? in->local_path : in->path));
+		}
+
+		if (in->resource) {
 			assert(in->local_path);
 			//detach all clients from this input and reassign to a regular output
 			count = gf_list_count(ctx->sessions);
@@ -2253,18 +2365,25 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 				GF_HTTPOutSession *sess = gf_list_get(ctx->sessions, i);
 				if (sess->in_source != in) continue;
 				assert(sess->file_in_progress);
-				sess->in_source = NULL;
-				sess->file_size = file_size;
+				if (sess->in_source) {
+					sess->in_source->nb_dest--;
+					sess->in_source = NULL;
+				}
+				//get final size by forcing a seek
+				sess->file_size = gf_fsize(sess->resource);
+				gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 				sess->file_in_progress = GF_FALSE;
 			}
 			gf_fclose(in->resource);
 			in->resource = NULL;
+
+			httpout_close_hls_chunk(ctx, in, GF_FALSE);
 		} else {
 			count = gf_list_count(ctx->active_sessions);
 			for (i=0; i<count; i++) {
 				GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
 				if (sess->in_source != in) continue;
-
+				assert(sess->nb_bytes);
 				httpout_sess_send(sess, "0\r\n\r\n", 5);
 				log_request_done(sess);
 			}
@@ -2313,6 +2432,15 @@ retry:
 
 		if (in->resource) {
 			out = (u32) gf_fwrite(pck_data, pck_size, in->resource);
+			gf_fflush(in->resource);
+
+			if (in->hls_chunk) {
+				u32 wb = (u32) gf_fwrite(pck_data, pck_size, in->hls_chunk);
+				if (wb != pck_size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Write error for HLS chunk, wrote %d bytes but had %d to write\n", wb, pck_size));
+				}
+				gf_fflush(in->hls_chunk);
+			}
 		}
 
 		for (i=0; i<count; i++) {
@@ -2331,9 +2459,10 @@ retry:
 			sess->send_init_data = GF_FALSE;
 			out = pck_size;
 
-			/*source is read from disk, but update file size (this avoids refreshing the file size at each process)*/
+			/*source is read from disk but a different file handle is used, force refresh by using fseek (so use fsize and seek back to current pos)*/
 			if (sess->file_in_progress) {
-				sess->file_size += pck_size;
+				sess->file_size = gf_fsize(sess->resource);
+				gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 			}
 			/*source is not read from disk, write data*/
 			else {
@@ -2398,6 +2527,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 	u32 i, nb_eos=0, nb_nopck=0, count = gf_list_count(ctx->inputs);
 	for (i=0; i<count; i++) {
 		Bool start, end;
+		const GF_PropertyValue *p;
 		const u8 *pck_data;
 		u32 pck_size, nb_write;
 		GF_FilterPacket *pck;
@@ -2485,6 +2615,16 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 					}
 				}
 			}
+		}
+
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM);
+		if (p && in->resource) {
+			char szHLSChunk[GF_MAX_PATH];
+			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);
+			httpout_close_hls_chunk(ctx, in, GF_FALSE);
+			in->hls_chunk = gf_fopen(szHLSChunk, "w+b");
+			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
+			in->hls_chunk_path = gf_strdup(szHLSChunk);
 		}
 
 		//no destination and not holding packets (either first connection not here or disabled), trash packet
@@ -2766,7 +2906,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(dlist), "enable HTML listing for GET requests on directories", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sutc), "insert server UTC in response headers as `Server-UTC: VAL_IN_MS`", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cors), "insert CORS header allowing all domains", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings. Value `REC`logs file writing start/end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };

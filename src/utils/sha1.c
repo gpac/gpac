@@ -690,12 +690,30 @@ void gf_sha1_finish(GF_SHA1Context *context, u8 output[GF_SHA1_DIGEST_SIZE] )
  * Output = SHA-1( file contents )
  */
 GF_EXPORT
-GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
+GF_Err gf_sha1_file_ptr(FILE *f, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
-	FILE *f;
+	u64 pos = gf_ftell(f);
 	size_t n;
 	GF_SHA1Context *ctx;
 	u8 buf[1024];
+
+	ctx  = gf_sha1_starts();
+	gf_fseek(f, 0, SEEK_SET);
+
+	while( ( n = gf_fread( buf, sizeof( buf ), f ) ) > 0 )
+		gf_sha1_update(ctx, buf, (s32) n );
+
+	gf_sha1_finish(ctx, output );
+
+	gf_fseek(f, pos, SEEK_SET);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
+{
+	FILE *f;
+	GF_Err e;
 
 	if (!strncmp(path, "gmem://", 7)) {
 		u32 size;
@@ -711,15 +729,9 @@ GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 	if( ( f = gf_fopen( path, "rb" ) ) == NULL )
 		return GF_URL_ERROR;
 
-	ctx  = gf_sha1_starts();
-
-	while( ( n = gf_fread( buf, sizeof( buf ), f ) ) > 0 )
-		gf_sha1_update(ctx, buf, (s32) n );
-
-	gf_sha1_finish(ctx, output );
-
+	e = gf_sha1_file_ptr(f, output);
 	gf_fclose( f );
-	return GF_OK;
+	return e;
 }
 
 /*

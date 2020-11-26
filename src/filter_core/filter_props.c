@@ -41,12 +41,13 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	unit_sep = NULL;
 	if (value) {
 		u32 len = (u32) strlen(value);
-		unit_sep = len ? strrchr("kKgGmM", value[len-1]) : NULL;
+		unit_sep = len ? strrchr("kKgGmMsS", value[len-1]) : NULL;
 		if (unit_sep) {
 			u8 unit_char = unit_sep[0];
 			if ((unit_char=='k') || (unit_char=='K')) unit = 1000;
 			else if ((unit_char=='m') || (unit_char=='M')) unit = 1000000;
 			else if ((unit_char=='G') || (unit_char=='g')) unit = 1000000000;
+			else if ((unit_char=='s') || (unit_char=='S')) unit = 1000;
 		}
 		else if (type==GF_PROP_UINT) {
 			unit_sep = strstr(value, "sec");

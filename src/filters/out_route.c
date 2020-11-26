@@ -139,6 +139,7 @@ typedef struct
 	char *hld_child_pl, *hld_child_pl_name;
 	u32 hld_child_pl_version, hld_child_pl_crc;
 	u64 hls_ref_id;
+	Bool update_hls_child_pl;
 
 	u32 fmtp, mode;
 
@@ -800,6 +801,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						media_pid->hld_child_pl_name = routeout_strip_base(rpid->route, (char *)file_name);
 						serv->stsid_changed = GF_TRUE;
 					}
+					media_pid->update_hls_child_pl = GF_TRUE;
 				}
 			} else {
 				man_data = gf_filter_pck_get_data(pck, &man_size);
@@ -1549,6 +1551,7 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 	count = gf_list_count(serv->pids);
 	for (i=0; i<count; i++) {
 		ROUTEPid *rpid = gf_list_get(serv->pids, i);
+		Bool send_hls_child = rpid->update_hls_child_pl;
 		if (rpid->manifest_type) {
 			nb_done++;
 			continue;
@@ -1588,6 +1591,7 @@ next_packet:
 
 			if (rpid->push_init) {
 				rpid->push_init = GF_FALSE;
+				send_hls_child = GF_TRUE;
 
 				//send init asap
 				offset = 0;
@@ -1607,24 +1611,24 @@ next_packet:
 					ctx->total_bytes = rpid->init_seg_size;
 					ctx->nb_resources++;
 				}
-
-				//send child m3u8 asap
-				if (rpid->hld_child_pl) {
-					u32 hls_len = (u32) strlen(rpid->hld_child_pl);
-					offset = 0;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Sending HLS sub playlist %s: \n%s\n", rpid->hld_child_pl_name, rpid->hld_child_pl));
-
-					while (offset < hls_len) {
-						//we use codepoint 1 (NRT - file mode) for subplaylists
-						offset += routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, 1, (u8 *) rpid->hld_child_pl, hls_len, offset, serv->service_id, hls_len, offset);
-					}
-					if (ctx->reporting_on) {
-						ctx->total_size += hls_len;
-						ctx->total_bytes = hls_len;
-						ctx->nb_resources++;
-					}
-				}
 			}
+		}
+		//send child m3u8 asap
+		if (send_hls_child && rpid->hld_child_pl) {
+			u32 hls_len = (u32) strlen(rpid->hld_child_pl);
+			u32 offset = 0;
+			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Sending HLS sub playlist %s: \n%s\n", rpid->hld_child_pl_name, rpid->hld_child_pl));
+
+			while (offset < hls_len) {
+				//we use codepoint 1 (NRT - file mode) for subplaylists
+				offset += routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, 1, (u8 *) rpid->hld_child_pl, hls_len, offset, serv->service_id, hls_len, offset);
+			}
+			if (ctx->reporting_on) {
+				ctx->total_size += hls_len;
+				ctx->total_bytes = hls_len;
+				ctx->nb_resources++;
+			}
+			rpid->update_hls_child_pl = GF_FALSE;
 		}
 
 		while ((rpid->pck_offset < rpid->pck_size) || rpid->force_tol_send) {

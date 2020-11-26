@@ -450,9 +450,11 @@ GF_Err gf_isom_open_progressive_ex(const char *fileName, u64 start_range, u64 en
 			return e;
 		}
 
-		if (end_range>start_range) {
-			gf_bs_seek(movie->movieFileMap->bs, end_range+1);
-			gf_bs_truncate(movie->movieFileMap->bs);
+		if (start_range || end_range) {
+			if (end_range>start_range) {
+				gf_bs_seek(movie->movieFileMap->bs, end_range+1);
+				gf_bs_truncate(movie->movieFileMap->bs);
+			}
 			gf_bs_seek(movie->movieFileMap->bs, start_range);
 		}
 		e = gf_isom_parse_movie_boxes(movie, outBoxType, BytesMissing, GF_TRUE);
@@ -3261,9 +3263,11 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 	movie->moov->compressed_diff = 0;
 	movie->current_top_box_start = 0;
 
-	if (end_range > start_range) {
-		gf_bs_seek(movie->movieFileMap->bs, end_range+1);
-		gf_bs_truncate(movie->movieFileMap->bs);
+	if (start_range || end_range) {
+		if (end_range > start_range) {
+			gf_bs_seek(movie->movieFileMap->bs, end_range+1);
+			gf_bs_truncate(movie->movieFileMap->bs);
+		}
 		gf_bs_seek(movie->movieFileMap->bs, start_range);
 		movie->current_top_box_start = start_range;
 	}
@@ -4178,7 +4182,8 @@ void gf_isom_reset_fragment_info(GF_ISOFile *movie, Bool keep_sample_count)
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	}
 #else
-		trak->dts_at_seg_start = 0;
+		//do not reset tfdt for LL-HLS case where parts do not contain a TFDT
+		//trak->dts_at_seg_start = 0;
 		if (!keep_sample_count)
 			trak->sample_count_at_seg_start = 0;
 	}

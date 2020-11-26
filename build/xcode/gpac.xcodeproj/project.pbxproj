@@ -1802,8 +1802,6 @@
 		92BBFC471A71228A006A7735 /* include */ = {
 			isa = PBXGroup;
 			children = (
-				928E9F9E250F5BA6000C0631 /* route.h */,
-				9225DD742326790C00F94C42 /* mpd.h */,
 				92BBFC481A7122AD006A7735 /* ait.h */,
 				92BBFC491A7122AD006A7735 /* avparse.h */,
 				92BBFC4A1A7122AD006A7735 /* base_coding.h */,
@@ -1841,6 +1839,7 @@
 				92BBFC811A7122AD006A7735 /* modules */,
 				92BBFC8C1A7122AD006A7735 /* mpeg4_odf.h */,
 				92BBFC8D1A7122AD006A7735 /* mpegts.h */,
+				9225DD742326790C00F94C42 /* mpd.h */,
 				92BBFC8E1A7122AD006A7735 /* network.h */,
 				92BBFC8F1A7122AD006A7735 /* nodes_mpeg4.h */,
 				92BBFC901A7122AD006A7735 /* nodes_svg.h */,
@@ -1849,6 +1848,7 @@
 				92BBFC941A7122AD006A7735 /* path2d.h */,
 				92BBFC951A7122AD006A7735 /* revision.h */,
 				9231B3AE2321533F00ADB4A9 /* Remotery.h */,
+				928E9F9E250F5BA6000C0631 /* route.h */,
 				92BBFC971A7122AD006A7735 /* rtp_streamer.h */,
 				92BBFC981A7122AD006A7735 /* scene_engine.h */,
 				92BBFC991A7122AD006A7735 /* scene_manager.h */,
@@ -3071,6 +3071,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -3157,6 +3158,7 @@
 					"-lpostproc",
 					"-lavresample",
 					"-lavfilter",
+					"-ldav1d",
 					"-liconv",
 					"-weak_framework",
 					VideoDecodeAcceleration,
@@ -3195,6 +3197,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -3261,6 +3264,7 @@
 					"-lpostproc",
 					"-lavresample",
 					"-lavfilter",
+					"-ldav1d",
 					"-liconv",
 					"-weak_framework",
 					VideoDecodeAcceleration,
@@ -3299,6 +3303,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -3332,6 +3337,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -3360,6 +3366,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
@@ -3404,6 +3411,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
@@ -3441,6 +3449,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
@@ -3481,6 +3490,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
@@ -3514,6 +3524,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
@@ -3546,6 +3557,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = YES;
@@ -3571,6 +3583,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
@@ -3602,6 +3615,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = YES;
@@ -3626,6 +3640,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -3682,6 +3697,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";

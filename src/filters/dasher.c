@@ -132,6 +132,9 @@ typedef struct
 	u32 sbound;
 	char *utcs;
 	char *mname;
+	u32 hlsll;
+	//inherited from mp4mx
+	Double cdur;
 
 	//internal
 	Bool in_error;
@@ -177,6 +180,7 @@ typedef struct
 
 	Bool force_period_switch;
 	Bool streams_not_ready;
+	Bool check_connections;
 
 	//-1 forces report update, otherwise this is a packet count
 	s32 update_report;
@@ -192,6 +196,10 @@ typedef struct
 	s32 utc_diff;
 
 	Bool is_route;
+
+	Bool force_hls_ll_manifest;
+
+	u8 last_hls_signature[GF_SHA1_DIGEST_SIZE], last_mpd_signature[GF_SHA1_DIGEST_SIZE];
 } GF_DasherCtx;
 
 typedef enum
@@ -444,7 +452,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (is_remove) {
 		return GF_OK;
 	}
-
+	ctx->check_connections = GF_TRUE;
 	if (!ctx->opid) {
 		u32 i, nb_opids = ctx->dual ? 2 : 1;
 		for (i=0; i < nb_opids; i++) {
@@ -961,6 +969,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			//for route out
 			if (ctx->is_route && ctx->do_m3u8)
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
+			if (ctx->hlsll)
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_HLSLL, &PROP_UINT(ctx->hlsll) );
 		}
 		if (ds->rep)
 			dasher_update_rep(ctx, ds);
@@ -2246,6 +2256,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	GF_DashStream *ds = rep->playback.udta;
 	if (ds->muxed_base) return;
 
+	ctx->check_connections = GF_TRUE;
 	gf_dynstrcat(&szDST, szInitURL, NULL);
 	if (ctx->out_path) {
 		char *rel = NULL;
@@ -2546,7 +2557,10 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 			gf_list_del(ds->multi_tracks);
 			ds->multi_tracks = NULL;
 		}
+	}
 
+	if (ctx->hlsll) {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_HLSLL, &PROP_UINT(ctx->hlsll) );
 	}
 }
 
@@ -3489,6 +3503,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 
 	max_opid = (ctx->dual && ctx->opid_alt) ? 2 : 1;
 	for (i=0; i < max_opid; i++) {
+		u8 sig[GF_SHA1_DIGEST_SIZE];
 		Bool do_m3u8 = GF_FALSE;
 		tmp = gf_file_temp(NULL);
 		GF_FilterPid *opid;
@@ -3529,7 +3544,11 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(tmp) / 1024));
 		}
 
-		dasher_transfer_file(tmp, opid, NULL, NULL);
+		gf_sha1_file_ptr(tmp, sig);
+		if (memcmp(sig, do_m3u8 ? ctx->last_hls_signature : ctx->last_mpd_signature, GF_SHA1_DIGEST_SIZE)) {
+			memcpy(do_m3u8 ? ctx->last_hls_signature : ctx->last_mpd_signature, sig, GF_SHA1_DIGEST_SIZE);
+			dasher_transfer_file(tmp, opid, NULL, NULL);
+		}
 		gf_fclose(tmp);
 	}
 
@@ -4696,6 +4715,10 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//not setup, create new AS
 		ds->set = gf_mpd_adaptation_set_new();
 		ds->owns_set = GF_TRUE;
+		if (ctx->hlsll) {
+			ds->set->use_hls_ll = GF_TRUE;
+			ds->set->hls_ll_frag_dur = ctx->cdur;
+		}
 		ds->set->udta = ds;
 
 		if (ctx->mha_compat && ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA))) {
@@ -5420,6 +5443,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (!seg_state) return;
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
+		seg_state->hlsll_mode = ctx->hlsll;
 		gf_list_add(ds->rep->state_seg_list, seg_state);
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *frag_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
@@ -5873,8 +5897,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->streams_not_ready) {
 		if (! dasher_check_streams_ready(ctx)) return GF_OK;
 	}
-	if (gf_filter_connections_pending(filter))
-		return GF_OK;
+	if (ctx->check_connections) {
+		if (gf_filter_connections_pending(filter))
+			return GF_OK;
+		ctx->check_connections = GF_FALSE;
+	}
 
 	if (ctx->is_eos)
 		return GF_EOS;
@@ -6632,7 +6659,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (update_manifest)
 				dasher_send_manifest(filter, ctx, GF_FALSE);
 		}
-
+	} else if (ctx->force_hls_ll_manifest) {
+		ctx->force_hls_ll_manifest = GF_FALSE;
+		dasher_send_manifest(filter, ctx, GF_FALSE);
 	}
 
 	//still some running streams in period
@@ -6748,6 +6777,53 @@ static void dasher_resume_subdur(GF_Filter *filter, GF_DasherCtx *ctx)
 	gf_filter_post_process_task(filter);
 }
 
+static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
+{
+	u32 i, count = gf_list_count(ctx->pids);
+	GF_DASH_SegmentContext *sctx;
+	GF_DashStream *ds = NULL;
+
+	if (!ctx->store_seg_states) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received fragment size info event but no associated segment state\n"));
+		return;
+	}
+	for (i=0; i<count; i++) {
+		ds = gf_list_get(ctx->pids, i);
+		if (ds->opid == evt->base.on_pid) break;
+		ds = NULL;
+	}
+	if (!ds) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received fragment size info event but no associated pid\n"));
+		return;
+	}
+	if (ds->muxed_base)
+		ds = ds->muxed_base;
+
+	sctx = gf_list_get(ds->pending_segment_states, 0);
+	if (!sctx || !ctx->nb_seg_url_pending) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received segment size info event but no pending segments\n"));
+		return;
+	}
+	sctx->frags = gf_realloc(sctx->frags, sizeof (GF_DASH_FragmentContext) * (sctx->nb_frags+1));
+	if (!sctx->frags) {
+		sctx->nb_frags = 0;
+		return;
+	}
+	sctx->frags[sctx->nb_frags].size = evt->frag_size.size;
+	sctx->frags[sctx->nb_frags].offset = evt->frag_size.offset;
+	if (evt->frag_size.duration.den) {
+		sctx->frags[sctx->nb_frags].duration = (u32) ((u64) evt->frag_size.duration.num * ds->rep->timescale / evt->frag_size.duration.den);
+	} else {
+		sctx->frags[sctx->nb_frags].duration = 0;
+	}
+	sctx->frags[sctx->nb_frags].independent = evt->frag_size.independent;
+	sctx->nb_frags++;
+	if (evt->frag_size.is_last) {
+		sctx->hlsll_done = GF_TRUE;
+	} else {
+		ctx->force_hls_ll_manifest = GF_TRUE;
+	}
+}
 
 static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
@@ -6782,6 +6858,10 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_FALSE;
 	}
 
+	if (evt->base.type == GF_FEVT_FRAGMENT_SIZE) {
+		dasher_process_hls_ll(ctx, evt);
+		return GF_TRUE;
+	}
 	if (evt->base.type != GF_FEVT_SEGMENT_SIZE) return GF_FALSE;
 
 	count = gf_list_count(ctx->pids);
@@ -6806,6 +6886,31 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			sctx->file_offset = evt->seg_size.media_range_start;
 			sctx->index_size = 1 + (u32) (evt->seg_size.idx_range_end - evt->seg_size.idx_range_start);
 			sctx->index_offset = evt->seg_size.idx_range_start;
+
+			if (sctx->hlsll_mode) {
+				sctx->hlsll_done = GF_TRUE;
+				//reset frags of past segments
+				s32 i, reset_until = gf_list_find(ds->rep->state_seg_list, sctx);
+				for (i=reset_until-4; i>=0; i--) {
+					GF_DASH_SegmentContext *prev_sctx = gf_list_get(ds->rep->state_seg_list, i);
+					if (!prev_sctx->hlsll_mode)
+						break;
+
+					//send file delete events
+					if (prev_sctx->hlsll_mode==2) {
+						u32 k;
+						for (k=0; k<prev_sctx->nb_frags; k++) {
+							GF_FilterEvent evt;
+							char szPath[GF_MAX_PATH];
+							sprintf(szPath, "%s.%d", prev_sctx->filepath, k+1);
+							GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
+							evt.file_del.url = szPath;
+							gf_filter_pid_send_event(ds->opid, &evt);
+						}
+					}
+					prev_sctx->hlsll_mode = 0;
+				}
+			}
 		}
 
 		//in state mode we store everything
@@ -7302,6 +7407,11 @@ static const GF_FilterArgs DasherArgs[] =
 		"- all: generate the adaptation set for the main profile and all compatible profiles"
 		, GF_PROP_UINT, "no", "no|comp|all", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mname), "output manifest name for ATSC3 muxing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(hlsll), "HLS low latency type\n"
+		"- off: do not use LL-HLS\n"
+		"- br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)\n"
+		"- sf: use separated files for segment parts", GF_PROP_UINT, "off", "off|br|sf", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_DOUBLE, "-1.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

@@ -1799,6 +1799,13 @@ void gf_sha1_finish(GF_SHA1Context *ctx, u8 digest[GF_SHA1_DIGEST_SIZE] );
 */
 GF_Err gf_sha1_file(const char *filename, u8 digest[GF_SHA1_DIGEST_SIZE]);
 
+/*! gets SHA1 message digest of a opened file
+\param file  handle to open file
+\param digest buffer to store message digest
+\return error if any
+*/
+GF_Err gf_sha1_file_ptr(FILE *file, u8 digest[GF_SHA1_DIGEST_SIZE] );
+
 /*! gets SHA-1 of input buffer
 \param buf input buffer to hash
 \param buflen sizeo of input buffer in bytes

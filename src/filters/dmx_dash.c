@@ -41,7 +41,7 @@ typedef struct
 	s32 shift_utc, debug_as, route_shift;
 	u32 max_buffer, auto_switch, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 init_timeshift;
-	Bool server_utc, screen_res, aggressive, speedadapt, filemode, fmodefwd, skip_lqt;
+	Bool server_utc, screen_res, aggressive, speedadapt, filemode, fmodefwd, skip_lqt, llhls_merge;
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	char *algo;
@@ -1746,6 +1746,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_segment_expiration_threshold(ctx->dash, ctx->exp_threshold);
 	gf_dash_set_switching_probe_count(ctx->dash, ctx->switch_count);
 	gf_dash_set_agressive_adaptation(ctx->dash, ctx->aggressive);
+	gf_dash_enable_single_range_llhls(ctx->dash, ctx->llhls_merge);
 	gf_dash_debug_group(ctx->dash, ctx->debug_as);
 	gf_dash_disable_speed_adaptation(ctx->dash, !ctx->speedadapt);
 	gf_dash_ignore_xlink(ctx->dash, ctx->noxlink);
@@ -2633,6 +2634,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(fmodefwd), "forward packet rather than copy them in [-filemode](). Packet copy might improve performances in low latency mode", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(skip_lqt), "disable decoding of tiles with highest degradation hints (not visible, not gazed at) for debug purposes", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(llhls_merge), "merge LL-HLS byte range parts into a single open byte range request", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

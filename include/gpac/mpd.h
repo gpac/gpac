@@ -276,6 +276,10 @@ typedef struct
 	bin128 key_iv;
 	/*! UTC start time of segment, HLS only*/
 	u64 hls_utc_start_time;
+	/*! 0: full segment, 1: LL-HLS part, 2: independent LL-HLS part */
+	u8 hls_ll_chunk_type;
+	/*! merge flag for byte-range subsegs 0: cannot merge, 1: can merge */
+	u8 can_merge;
 } GF_MPD_SegmentURL;
 
 /*! SegmentList*/
@@ -445,6 +449,10 @@ typedef struct
 	const char *init_seg_name_start;
 	/*! opaque data*/
 	void *udta;
+	/*! SHA1 digest for xlinks / m3u8*/
+	u8 xlink_digest[GF_SHA1_DIGEST_SIZE];
+	/*! set to TRUE if not modified in the update of an xlink*/
+	Bool not_modified;
 } GF_DASH_RepresentationPlayback;
 
 /*! segment context used by the dasher, GPAC internal*/
@@ -516,6 +524,19 @@ typedef struct
 	Bool subdur_forced;
 } GF_DASH_SegmenterContext;
 
+/*! fragment context info for LL-HLS*/
+typedef struct
+{
+	/*! frag offset in bytes*/
+	u64 offset;
+	/*! frag size in bytes*/
+	u32 size;
+	/*! frag duration in representation timescale*/
+	u32 duration;
+	/*! fragment contains an IDR*/
+	Bool independent;
+} GF_DASH_FragmentContext;
+
 /*! Segment context - GPAC internal, used to produce HLS manifests and segment lists/timeline*/
 typedef struct
 {
@@ -537,6 +558,14 @@ typedef struct
 	u64 index_offset;
 	/*! segment number */
 	u32 seg_num;
+	/*! number of fragment infos */
+	u32 nb_frags;
+	/*! number of fragment infos */
+	GF_DASH_FragmentContext *frags;
+	/*! HLS LL signaling - 0: disabled, 1: byte range, 2: files */
+	u32 hlsll_mode;
+	/*! HLS LL segment done */
+	Bool hlsll_done;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -577,6 +606,10 @@ typedef struct {
 	u32 m3u8_media_seq_min;
 	/*! internal, HLS: max sequence number of segments in playlist*/
 	u32 m3u8_media_seq_max;
+	/*! internal, HLS: indicate this is a low latency rep*/
+	u32 m3u8_low_latency;
+	/*! internal, HLS:  sequence number of last indeendent  segment or PART in playlist*/
+	u32 m3u8_media_seq_indep_last;
 
 	/*! GPAC dasher context*/
 	GF_DASH_SegmenterContext *dasher_ctx;
@@ -684,6 +717,10 @@ typedef struct
 	/*! max number of valid chunks in smooth manifest*/
 	u32 smooth_max_chunks;
 
+	/*! adaptation set uses HLS LL*/
+	Bool use_hls_ll;
+	/*! target part (cmaf chunk) duration for HLS LL*/
+	Double hls_ll_frag_dur;
 } GF_MPD_AdaptationSet;
 
 /*! MPD offering type*/
@@ -954,9 +991,10 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *m
 \param getter HTTP interface object
 \param is_static set to GF_TRUE if the variant subplaylist is on demand
 \param duration set to the duration of the parsed subplaylist
-\return error if any
+\param signature SHA1 digest of last solved version, updated if changed
+\return error if any, GF_EOS if no changes
 */
-GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration);
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration, u8 signature[GF_SHA1_DIGEST_SIZE]);
 
 /*! creates a segment list from a remote segment list DOM root
 \param mpd the target MPD to write

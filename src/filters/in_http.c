@@ -120,7 +120,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		ctx->initial_ack_done = GF_TRUE;
 		return e;
 	}
-	if (ctx->range.den) {
+	if (ctx->range.num || ctx->range.den) {
 		gf_dm_sess_set_range(ctx->sess, ctx->range.num, ctx->range.den, GF_TRUE);
 	}
 

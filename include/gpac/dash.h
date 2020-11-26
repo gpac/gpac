@@ -711,6 +711,17 @@ void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_cou
 */
 void gf_dash_set_agressive_adaptation(GF_DashClient *dash, Bool enable_agressive_switch);
 
+/*! enables single-range requests for LL-HLS byterange, rather than issuing a request per PART. This assumes that:
+ -  each URI in the different parts is the SAME
+ -  byte ranges are contiguous in the URL
+
+Errors will be thrown if these are not met on future parts and merging will be disabled, however the scheduled buggy segment will NOT be disarded
+
+\param dash the target dash client
+\param enable_single_range if GF_TRUE, enables single range, otherwise disables it
+*/
+void gf_dash_enable_single_range_llhls(GF_DashClient *dash, Bool enable_single_range);
+
 /*! returns active period start
 \param dash the target dash client
 \return period start in milliseconds

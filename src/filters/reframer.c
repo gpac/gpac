@@ -58,6 +58,8 @@ enum
 	EXTRACT_DUR,
 };
 
+#define RT_PRECISION_US	2000
+
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;
@@ -542,9 +544,11 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				else if (ctx->speed<0) diff = (u64) ( diff / -ctx->speed);
 
 				clock -= st->sys_clock_at_init;
-				if (clock + 1000 >= diff) {
+				if (clock + RT_PRECISION_US >= diff) {
 					do_send = GF_TRUE;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Reframer] Sending packet "LLU" us too late (clock diff "LLU" - CTS diff "LLU")\n", 1000+clock - diff, clock, diff));
+					if (clock > diff) {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Reframer] Sending packet "LLU" us too late (clock diff "LLU" - CTS diff "LLU")\n", 1000+clock - diff, clock, diff));
+					}
 				} else {
 					diff -= clock;
 					if (!ctx->reschedule_in)
@@ -1623,11 +1627,25 @@ load_next_range:
 	if (nb_eos==count) return GF_EOS;
 
 	if (ctx->rt) {
-		if (ctx->reschedule_in>2000) {
-			gf_filter_ask_rt_reschedule(filter, (u32) (ctx->reschedule_in - 2000));
+		//while technically correct this increases the CPU load by shuffing the task around and querying gf_sys_clock_high_res too often
+		//needs more investigation
+		//using a simple callback every RT_PRECISION_US is a good workaround
+#if 0
+		u32 rsus = 0;
+		if (ctx->reschedule_in > RT_PRECISION_US) {
+			rsus = (u32) (ctx->reschedule_in - RT_PRECISION_US);
+			if (rsus<RT_PRECISION_US) rsus = RT_PRECISION_US;
 		} else if (ctx->reschedule_in>1000) {
-			gf_filter_ask_rt_reschedule(filter, (u32) (ctx->reschedule_in / 2));
+			rsus = (u32) (ctx->reschedule_in / 2);
 		}
+		if (rsus) {
+			gf_filter_ask_rt_reschedule(filter, rsus);
+		}
+#else
+		if (ctx->reschedule_in) {
+			gf_filter_ask_rt_reschedule(filter, RT_PRECISION_US);
+		}
+#endif
 	}
 
 	return GF_OK;
