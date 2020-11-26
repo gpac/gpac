@@ -991,7 +991,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HLSLL);
 	ctx->hlsll_mode = p ? p->value.uint : 0;
-	//insert tfdt in heach traf for LL-HLS so that correct timing can be found when doint in-segment tune-in
+	//insert tfdt in each traf for LL-HLS so that correct timing can be found when doing in-segment tune-in
 	if (ctx->hlsll_mode) {
 		ctx->tfdt_traf = GF_TRUE;
 		ctx->store = MP4MX_MODE_SFRAG;
