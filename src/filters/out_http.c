@@ -116,7 +116,7 @@ typedef struct
 	FILE *resource;
 
 	FILE *hls_chunk;
-	char *hls_chunk_path;
+	char *hls_chunk_path, *hls_chunk_local_path;
 
 	u8 *tunein_data;
 	u32 tunein_data_size;
@@ -488,7 +488,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 	}
 	if (!request_ok) return GF_FALSE;
 
-	if (sess->in_source) {
+	if (sess->in_source && !sess->resource) {
 		//cannot fetch end of file it is not yet known !
 		if (has_file_end) return GF_FALSE;
 		known_file_size = sess->in_source->nb_write;
@@ -913,7 +913,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	else {
 		if (sess->path) gf_free(sess->path);
 		if (source_pid) {
-			assert(source_pid->resource);
+			//source_pid->resource may be NULL at this point (PID created but no data written yet), typically happens on manifest PIDs or init segments
 			sess->in_source = source_pid;
 			source_pid->nb_dest++;
 			source_pid->hold = GF_FALSE;
@@ -923,7 +923,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			sess->file_in_progress = GF_TRUE;
 			assert(!full_path);
 			assert(source_pid->local_path);
-			full_path = gf_strdup(source_pid->local_path);
+			if (source_pid_is_ll_hls_chunk)
+				full_path = gf_strdup(source_pid->hls_chunk_local_path);
+			else
+				full_path = gf_strdup(source_pid->local_path);
 			sess->use_chunk_transfer = GF_TRUE;
 			sess->file_size = 0;
 		}
@@ -1685,7 +1688,6 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool final_flush)
 {
 	if (!in->hls_chunk) return;
-	u64 hls_chunk_size = gf_ftell(in->hls_chunk);
 
 	gf_fclose(in->hls_chunk);
 	in->hls_chunk = NULL;
@@ -1706,13 +1708,16 @@ static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Boo
 				sess->in_source = NULL;
 			}
 			sess->in_source_is_ll_hls_chunk = GF_FALSE;
-			sess->file_size = hls_chunk_size;
+			sess->file_size = gf_fsize(sess->resource);
+			gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
 			sess->file_in_progress = GF_FALSE;
 		}
 	}
 
 	if (in->hls_chunk_path) gf_free(in->hls_chunk_path);
 	in->hls_chunk_path = NULL;
+	if (in->hls_chunk_local_path) gf_free(in->hls_chunk_local_path);
+	in->hls_chunk_local_path = NULL;
 }
 
 
@@ -1857,14 +1862,17 @@ static void log_request_done(GF_HTTPOutSession *sess)
 			unit = "kbps";
 			bps/=1000;
 		}
+#if 0
 		assert(sess->nb_bytes);
 		if (sess->nb_ranges) {
-			u32 i, tot_bytes = 0;
+			u32 i;
+			u64 tot_bytes = 0;
 			for (i=0; i<sess->nb_ranges; i++) {
 				tot_bytes += sess->ranges[i].end - sess->ranges[i].start + 1;
 			}
 			assert(tot_bytes==sess->nb_bytes);
 		}
+#endif
 		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s done: reply %d - "LLU" bytes in %d ms at %g %s\n", sess->req_id, get_method_name(sess->method_type), sess->reply_code, sess->nb_bytes, (u32) (diff_us/1000), bps, unit));
 	}
 }
@@ -2359,6 +2367,9 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 		if (in->resource) {
 			assert(in->local_path);
+			//close all LL-HLS chunks before closing session
+			httpout_close_hls_chunk(ctx, in, GF_FALSE);
+
 			//detach all clients from this input and reassign to a regular output
 			count = gf_list_count(ctx->sessions);
 			for (i=0; i<count; i++) {
@@ -2376,8 +2387,6 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 			}
 			gf_fclose(in->resource);
 			in->resource = NULL;
-
-			httpout_close_hls_chunk(ctx, in, GF_FALSE);
 		} else {
 			count = gf_list_count(ctx->active_sessions);
 			for (i=0; i<count; i++) {
@@ -2567,7 +2576,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		gf_filter_pck_get_framing(pck, &start, &end);
 
 		if (in->dash_mode) {
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (p) {
 				httpin_send_seg_info(in);
 
@@ -2623,6 +2632,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
 			in->hls_chunk = gf_fopen(szHLSChunk, "w+b");
+			in->hls_chunk_local_path = gf_strdup(szHLSChunk);
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
 			in->hls_chunk_path = gf_strdup(szHLSChunk);
 		}
@@ -2682,7 +2692,6 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			} else if (hwf) {
 				u32 w, h, stride, stride_uv, pf;
 				u32 nb_planes, uv_height;
-				const GF_PropertyValue *p;
 				p = gf_filter_pid_get_property(in->ipid, GF_PROP_PID_WIDTH);
 				w = p ? p->value.uint : 0;
 				p = gf_filter_pid_get_property(in->ipid, GF_PROP_PID_HEIGHT);

@@ -698,7 +698,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				GF_FilterPacket *pck = gf_filter_pid_get_packet(rpid->pid);
 				if (!pck) break;
 
-				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_INIT);
+				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_INIT);
 				if (p && p->value.boolean) {
 					const u8 *data;
 					u32 len, crc;
@@ -738,7 +738,6 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		//manifest pid, wait for manifest
 		while (1) {
 			char szLocManfest[100];
-			const u8 *man_data;
 			u32 man_size, man_crc;
 			const char *file_name=NULL, *proto;
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(rpid->pid);
@@ -804,7 +803,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					media_pid->update_hls_child_pl = GF_TRUE;
 				}
 			} else {
-				man_data = gf_filter_pck_get_data(pck, &man_size);
+				const u8 *man_data = gf_filter_pck_get_data(pck, &man_size);
 				man_crc = gf_crc_32(man_data, man_size);
 				if (man_crc != serv->manifest_crc) {
 					serv->manifest_crc = man_crc;
@@ -1915,10 +1914,11 @@ static GF_Err routeout_process(GF_Filter *filter)
 	count = gf_list_count(ctx->services);
 	for (i=0; i<count; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
-		if (!serv->is_done)
+		if (!serv->is_done) {
 			e |= routeout_process_service(ctx, serv);
-		if (!serv->is_done)
-			all_serv_done = GF_FALSE;
+			if (!serv->is_done)
+				all_serv_done = GF_FALSE;
+		}
 	}
 
 	if (all_serv_done) {

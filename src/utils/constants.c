@@ -851,7 +851,7 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 	//Cs
 	if (layout & GF_AUDIO_CH_REAR_CENTER) res |= (1<<8); //7
 	//Ts
-	if (layout & GF_AUDIO_CH_REAR_CENTER) res |= (1<<7); //8
+	if (layout & GF_AUDIO_CH_REAR_CENTER_TOP) res |= (1<<7); //8
 	//Lsd/Rsd
 	if (layout & GF_AUDIO_CH_SIDE_SURROUND_LEFT) res |= (1<<6); //9
 	//Lw/Rw

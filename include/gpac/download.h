@@ -174,6 +174,8 @@ typedef enum
 	GF_NETIO_SESSION_MEMORY_CACHE = 1<<4,
 	/*! do not delete files after download*/
 	GF_NETIO_SESSION_KEEP_CACHE = 1<<5,
+	/*! do not delete files after download of first resource (used for init segments)*/
+	GF_NETIO_SESSION_KEEP_FIRST_CACHE = 1<<6,
 } GF_NetIOFlags;
 
 
@@ -488,8 +490,9 @@ GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_
 
 Forces session to use memory storage for future downloads
 \param sess the current session
+\param force_cache_type if 1, cache will be kept even if session is reassigned. If 2, cache will ne kept for next resource downloaded, then no caching for subsequent resources (used for init segments)
  */
-void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess);
+void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess, u32 force_cache_type);
 
 /*!
 Registers a local cache provider (bypassing the http session), used when populating cache from input data (ROUTE for example)

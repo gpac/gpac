@@ -1757,7 +1757,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "group=", 6)) {
-			char type[4];
+			char type[5];
 			sscanf(szSlot, "group=%4s,%u", type, &meta->group_id);
 			meta->group_type = GF_4CC(type[0], type[1], type[2], type[3]);
 			ret = 1;

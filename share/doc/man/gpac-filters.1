@@ -966,6 +966,8 @@ cache (enum, default: disk):   set cache mode
 .br
 * mem: stores to memory, discard once session is no longer used
 .br
+* mem_keep: stores to memory, keep after session is reassigned but move to mem after first download
+.br
 * none: no cache
 .br
 
@@ -3365,9 +3367,9 @@ At each new source, the filter tries to remap input PIDs to already declared out
 .SH Source list mode
 .LP
 .br
-The source list mode is activated by using flist:srcs=f1[,f2], where f1 can be a file or a directory to enum.
+The source list mode is activated by using flist:srcs=f1[,f2], where f1 can be a file or a directory to enumerate.
 .br
-The syntax for directory enum is:
+The syntax for directory enumeration is:
 .br
 * dir/*: enumerates everything in dir
 .br
@@ -6824,7 +6826,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev280-g0ad5b2add-master
+build: 1.1.0-DEV-rev285-g9271d1e77-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -711,7 +711,7 @@ class FEVT_SourceSeek(Structure):
         ("start_offset", c_ulonglong),
         ("end_offset", c_ulonglong),
         ("source_switch", c_char_p),
-        ("previous_is_init_segment", c_ubyte),
+        ("is_init_segment", c_ubyte),
         ("skip_cache_expiration", c_ubyte),
         ("hint_block_size", c_uint)
     ]

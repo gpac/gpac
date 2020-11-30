@@ -643,8 +643,14 @@ GF_Err filelist_process(GF_Filter *filter)
 		s_idx = 0;
 		url = szURL;
 		while (url) {
+			char c = 0;
 			char *sep = strstr(url, " && ");
-			if (sep) sep[0] = 0;
+			if (!sep && ctx->srcs.nb_items)
+				sep = strstr(url, "&&");
+			if (sep) {
+				c = sep[0];
+				sep[0] = 0;
+			}
 
 			if (ctx->do_cat) {
 				char *f_url;
@@ -674,12 +680,11 @@ GF_Err filelist_process(GF_Filter *filter)
 				gf_list_add(ctx->filter_srcs, fsrc);
 			}
 			if (!sep) break;
-			sep[0] = ' ';
-			url = sep+4;
+			sep[0] = c;
+			url = (sep[0]==' ') ? sep+4 : sep+2;
 		}
 		//wait for PIDs to connect
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Switching to file %s\n", szURL));
-
 	}
 
 	//init first timestamp
@@ -977,17 +982,25 @@ GF_Err filelist_initialize(GF_Filter *filter)
 			gf_enum_directory(dir, GF_FALSE, filelist_enum, ctx, pattern);
 			if (c && sep_dir) sep_dir[0] = c;
 		} else {
-			if (gf_file_exists(list)) {
+			u32 type = 0;
+			if (strstr(list, " && ") || strstr(list, "&&"))
+				type = 1;
+			else if (gf_file_exists(list))
+				type = 2;
+
+			if (type) {
 				FileListEntry *fentry;
 				GF_SAFEALLOC(fentry, FileListEntry);
 				if (fentry) {
-					FILE *fo;
 					fentry->file_name = gf_strdup(list);
-					fentry->last_mod_time = gf_file_modification_time(list);
-					fo = gf_fopen(list, "rb");
-					if (fo) {
-						fentry->file_size = gf_fsize(fo);
-						gf_fclose(fo);
+					if (type==2) {
+						FILE *fo;
+						fentry->last_mod_time = gf_file_modification_time(list);
+						fo = gf_fopen(list, "rb");
+						if (fo) {
+							fentry->file_size = gf_fsize(fo);
+							gf_fclose(fo);
+						}
 					}
 					filelist_add_entry(ctx, fentry);
 				}
@@ -1080,8 +1093,8 @@ GF_FilterRegister FileListRegister = {
 		"At each new source, the filter tries to remap input PIDs to already declared output PIDs of the same type, if any, or declares new output PIDs otherwise. If no input PID matches the type of an output, no packets are send for that PID.\n"
 		"\n"
 		"# Source list mode\n"
-		"The source list mode is activated by using `flist:srcs=f1[,f2]`, where f1 can be a file or a directory to enum.\n"
-		"The syntax for directory enum is:\n"
+		"The source list mode is activated by using `flist:srcs=f1[,f2]`, where f1 can be a file or a directory to enumerate.\n"
+		"The syntax for directory enumeration is:\n"
 		"- dir/*: enumerates everything in dir\n"
 		"- foo/*.png: enumerates all files with extension png in foo\n"
 		"- foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo\n"

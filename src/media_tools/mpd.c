@@ -1131,6 +1131,7 @@ void gf_mpd_segment_list_free(void *_item)
 	if (ptr->segment_timeline) gf_mpd_segment_timeline_free(ptr->segment_timeline);
 	gf_mpd_del_list(ptr->segment_URLs, gf_mpd_segment_url_free, 0);
 	if (ptr->dasher_segment_name) gf_free(ptr->dasher_segment_name);
+	if (ptr->previous_xlink_href) gf_free(ptr->previous_xlink_href);
 	gf_free(ptr);
 }
 
@@ -2236,7 +2237,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	Stream *stream;
 	PlaylistElement *pe;
 	u32 k, count_elements;
-	u64 start_time=0;
+	u64 seq_num;
 	u32 base_url_len = 0;
 	Bool has_full_seg_following = GF_FALSE;
 	Bool can_merge_parts = GF_FALSE;
@@ -2257,7 +2258,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		if (!strncmp(loc_file, "gmem://", 7)) {
 			u8 *m3u8_payload;
 			u32 m3u8_size;
-			GF_Err e = gf_blob_get(loc_file, &m3u8_payload,  &m3u8_size, NULL);
+			e = gf_blob_get(loc_file, &m3u8_payload,  &m3u8_size, NULL);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot load m3u8 source blob %s\n", loc_file));
 				return e;
@@ -2281,7 +2282,6 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	if (! memcmp(signature, last_sig, GF_SHA1_DIGEST_SIZE)) {
 		return GF_EOS;
 	}
-	memcpy(last_sig, signature, GF_SHA1_DIGEST_SIZE);
 
 	e = gf_m3u8_parse_master_playlist(loc_file, &pl, rep->segment_list->xlink_href);
 	if (e) {
@@ -2291,7 +2291,17 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 
 	assert(pl);
 	assert(pl->streams);
+
+	if (!gf_list_count(pl->streams)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M3U8] Playlist %s still empty\n", rep->segment_list->xlink_href));
+		gf_m3u8_master_playlist_del(&pl);
+		return GF_IP_NETWORK_EMPTY;
+	}
+
 	assert(gf_list_count(pl->streams) == 1);
+
+
+	memcpy(last_sig, signature, GF_SHA1_DIGEST_SIZE);
 
 	if (is_static) {
 		*is_static = pl->playlist_needs_refresh ? GF_FALSE : GF_TRUE;
@@ -2353,6 +2363,10 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	if (!rep->segment_list->segment_URLs)
 		rep->segment_list->segment_URLs = gf_list_new();
 	count_elements = gf_list_count(pe->element.playlist.elements);
+
+	seq_num = pe->element.playlist.media_seq_min;
+	seq_num += pe->element.playlist.discontinuity;
+
 	for (k=0; k<count_elements; k++) {
 		GF_MPD_SegmentURL *segment_url;
 		char *seg_url;
@@ -2423,12 +2437,15 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 
 		segment_url->duration = (u64) (rep->segment_list->timescale * elt->duration_info);
 
-		if (! elt->utc_start_time) elt->utc_start_time = start_time;
-		segment_url->hls_utc_start_time = elt->utc_start_time;
-		start_time = elt->utc_start_time + (u64) (1000*elt->duration_info);
+		segment_url->hls_utc_time = elt->utc_start_time;
+
+		//we keep the same seq num for each part
+		segment_url->hls_seq_num = seq_num;
+
 		if (elt->low_lat_chunk) {
 			segment_url->hls_ll_chunk_type = (elt->independent_chunk || first_ll_part) ? 2 : 1;
 			segment_url->can_merge = can_merge_parts ? 1 : 0;
+			segment_url->is_first_part = first_ll_part;
 			rep->m3u8_low_latency = GF_TRUE;
 			first_ll_part = GF_FALSE;
 			if (segment_url->hls_ll_chunk_type==2)
@@ -2438,6 +2455,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 			has_full_seg_following = GF_FALSE;
 			can_merge_parts = GF_FALSE;
 			rep->m3u8_media_seq_indep_last = gf_list_count(rep->segment_list->segment_URLs) - 1;
+			seq_num++;
 		}
 
 		if (elt->drm_method != DRM_NONE) {
@@ -2460,7 +2478,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		rep->segment_list->segment_URLs = NULL;
 	}
 
-	gf_free(rep->segment_list->xlink_href);
+	if (rep->segment_list->previous_xlink_href) gf_free(rep->segment_list->previous_xlink_href);
+	rep->segment_list->previous_xlink_href = rep->segment_list->xlink_href;
 	rep->segment_list->xlink_href = NULL;
 
 	gf_m3u8_master_playlist_del(&pl);

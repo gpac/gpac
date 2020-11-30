@@ -864,7 +864,7 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 
 static JSValue jsff_update(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	const char *aname, *aval;
+	const char *aname;
 	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
 	if (!f || (argc!=2) )
 		return JS_EXCEPTION;
@@ -872,7 +872,7 @@ static JSValue jsff_update(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	aname = JS_ToCString(ctx, argv[0]);
 	if (!aname) return JS_EXCEPTION;
 	if (JS_IsString(argv[1])) {
-		aval = JS_ToCString(ctx, argv[1]);
+		const char *aval = JS_ToCString(ctx, argv[1]);
 		if (!aval) {
 			JS_FreeCString(ctx, aname);
 			return JS_EXCEPTION;
@@ -1240,7 +1240,6 @@ GF_EXPORT
 GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 {
 	GF_Err e;
-	char szPath[GF_MAX_PATH];
     JSValue global_obj;
 	u8 *buf;
 	u32 buf_len;
@@ -1270,6 +1269,7 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 
 	//load script
 	if (!strncmp(jsfile, "$GSHARE/", 8)) {
+		char szPath[GF_MAX_PATH];
 		if (gf_opts_default_shared_directory(szPath)) {
 			strcat(szPath, jsfile + 7);
 			e = gf_file_load_data(szPath, &buf, &buf_len);

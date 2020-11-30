@@ -64,6 +64,7 @@ typedef struct _s_accumulated_attributes {
 	bin128 key_iv;
 	Bool independent_segments;
 	Bool low_latency, independent_part;
+	u32 discontinuity;
 } s_accumulated_attributes;
 
 
@@ -161,6 +162,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	memcpy(e->key_iv, attribs->key_iv, sizeof(bin128));
 
 	e->utc_start_time = attribs->playlist_utc_timestamp;
+	e->discontinuity = attribs->discontinuity;
 
 	assert(url);
 	e->url = gf_strdup(url);
@@ -551,8 +553,18 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 	}
 	ret = extract_attributes("#EXT-X-DISCONTINUITY", line, 0);
 	if (ret) {
-		/* #EXT-X-DISCONTINUITY */
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] EXT-X-DISCONTINUITY not supported.\n", line));
+		attributes->discontinuity = 1;
+		M3U8_COMPATIBILITY_VERSION(1);
+		return ret;
+	}
+	ret = extract_attributes("#EXT-X-DISCONTINUITY-SEQUENCE", line, 0);
+	if (ret) {
+		if (ret[0]) {
+			int_value = (s32)strtol(ret[0], &end_ptr, 10);
+			if (end_ptr != ret[0]) {
+				attributes->discontinuity = int_value;
+			}
+		}
 		M3U8_COMPATIBILITY_VERSION(1);
 		return ret;
 	}
@@ -703,7 +715,9 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
  */
 MasterPlaylist* master_playlist_new()
 {
-	MasterPlaylist *pl = (MasterPlaylist*)gf_malloc(sizeof(MasterPlaylist));
+	MasterPlaylist *pl;
+	GF_SAFEALLOC(pl, MasterPlaylist);
+
 	if (pl == NULL)
 		return NULL;
 	pl->streams = gf_list_new();
@@ -938,6 +952,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 		}
 		curr_playlist->element.playlist.media_seq_min = attribs->min_media_sequence;
 		curr_playlist->element.playlist.media_seq_max = attribs->current_media_seq;
+		curr_playlist->element.playlist.discontinuity = attribs->discontinuity;
 		if (attribs->bandwidth > 1)
 			curr_playlist->bandwidth = attribs->bandwidth;
 		if (attribs->is_playlist_ended)
@@ -983,7 +998,7 @@ typedef struct
 } HLS_LLChunk;
 
 
-GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL, Stream *in_stream, PlaylistElement *sub_playlist)
+GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playlist, const char *baseURL, Stream *in_stream, PlaylistElement *sub_playlist)
 {
 	int i, currentLineNumber;
 	FILE *f = NULL;
@@ -994,24 +1009,24 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 	Bool release_blob = GF_FALSE;
 	s_accumulated_attributes attribs;
 
-	if (!strncmp(file, "gmem://", 7)) {
-		GF_Err e = gf_blob_get(file, &m3u8_payload,  &m3u8_size, NULL);
+	if (!strncmp(m3u8_file, "gmem://", 7)) {
+		GF_Err e = gf_blob_get(m3u8_file, &m3u8_payload,  &m3u8_size, NULL);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 source %s for reading\n", file));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot Open m3u8 source %s for reading\n", m3u8_file));
 			return e;
 		}
 		release_blob = GF_TRUE;
 	} else {
-		f = gf_fopen(file, "rt");
+		f = gf_fopen(m3u8_file, "rt");
 		if (!f) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot open m3u8 file %s for reading\n", file));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot open m3u8 file %s for reading\n", m3u8_file));
 			return GF_URL_ERROR;
 		}
 	}
 
 #define _CLEANUP \
 	if (f) gf_fclose(f); \
-	else if (release_blob) gf_blob_release(file);
+	else if (release_blob) gf_blob_release(m3u8_file);
 
 
 	if (*playlist == NULL) {

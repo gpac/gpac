@@ -2369,6 +2369,9 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst, char *inst_name)
 {
 	const GF_FilterArgs *args = NULL;
+
+	if (!filter_inst && !reg) return;
+
 	const char *reg_name = filter_inst ? inst_name : reg->name;
 	const char *reg_desc = filter_inst ? gf_filter_get_description(filter_inst) : reg->description;
 #ifndef GPAC_DISABLE_DOC

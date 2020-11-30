@@ -633,7 +633,7 @@ static void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
 		gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
 		if (sess->dm
 		        /*JLF - not sure what the rationale of this test is, and it prevents cleanup of cache entry
-		        which then results to crash when restarting the session (entry->writeFilePtr i snot set back to NULL)*/
+		        which then results to crash when restarting the session (entry->writeFilePtr is not set back to NULL)*/
 		        && gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry)
 
 		        && (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
@@ -663,6 +663,8 @@ static void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
 \param the number of sessions in the cached entry, -1 if one of the parameters is wrong
  */
 s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
+Bool gf_cache_entry_persistent(const DownloadedCacheEntry entry);
+void gf_cache_entry_set_persistent(const DownloadedCacheEntry entry);
 
 static void gf_dm_sess_notify_state(GF_DownloadSession *sess, GF_NetIOStatus dnload_status, GF_Err error);
 
@@ -687,11 +689,19 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 			}
 			/* We found the existing session */
 			if (sess->cache_entry) {
+				Bool delete_cache = GF_TRUE;
+
+				if (sess->flags & GF_NETIO_SESSION_KEEP_CACHE) {
+					delete_cache = GF_FALSE;
+				}
+				if (gf_cache_entry_persistent(sess->cache_entry))
+					delete_cache = GF_FALSE;
+
 				/*! indicate we can destroy file upon destruction, except if disabled at session level*/
-				if (! (sess->flags & GF_NETIO_SESSION_KEEP_CACHE))
+				if (delete_cache)
 					gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
 
-				if (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)) {
+				if (!gf_cache_entry_persistent(sess->cache_entry) && !gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)) {
 					gf_mx_p( sess->dm->cache_mx );
 					/* No session attached anymore... we can delete it */
 					gf_list_del_item(sess->dm->cache_entries, sess->cache_entry);
@@ -729,13 +739,22 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 			gf_cache_set_range(sess->cache_entry, 0, sess->range_start, sess->range_end);
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 
+		if (sess->cache_entry) {
+			if (sess->flags & GF_NETIO_SESSION_KEEP_FIRST_CACHE) {
+				sess->flags &= ~GF_NETIO_SESSION_KEEP_FIRST_CACHE;
+				gf_cache_entry_set_persistent(sess->cache_entry);
+			}
+			if ((sess->flags & GF_NETIO_SESSION_MEMORY_CACHE) && (sess->flags & GF_NETIO_SESSION_KEEP_CACHE) ) {
+				gf_cache_entry_set_persistent(sess->cache_entry);
+			}
+		}
 
 		if ( (sess->allow_direct_reuse || sess->dm->allow_offline_cache) && !gf_cache_check_if_cache_file_is_corrupted(sess->cache_entry)
 		) {
 			sess->from_cache_only = GF_TRUE;
 			sess->connect_time = 0;
 			sess->status = GF_NETIO_CONNECTED;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] using existing cache entry\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP] using existing cache entry\n"));
 			gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
 		}
 	}
@@ -753,7 +772,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 	gf_dm_url_info_init(&info);
 	e = gf_dm_get_url_info(url, &info, NULL);
 	if (e != GF_OK) {
-		gf_mx_p( dm->cache_mx );
+		gf_mx_v( dm->cache_mx );
 		gf_dm_url_info_del(&info);
 		return;
 	}
@@ -2770,7 +2789,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		}
 #endif
 
-		if (! (*read_size) && (e=GF_IP_NETWORK_EMPTY)) {
+		if (! (*read_size) && (e==GF_IP_NETWORK_EMPTY)) {
 			e = gf_sk_probe(sess->sock);
 			if ((e==GF_IP_CONNECTION_CLOSED) || (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout)
 			) {
@@ -4448,9 +4467,15 @@ GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_
 }
 
 GF_EXPORT
-void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess)
+void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess, u32 force_keep)
 {
-	if (sess) sess->flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+	if (sess) {
+		sess->flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+		if (force_keep==1)
+			sess->flags |= GF_NETIO_SESSION_KEEP_CACHE;
+		else if (force_keep==2)
+			sess->flags |= GF_NETIO_SESSION_KEEP_FIRST_CACHE;
+	}
 }
 
 GF_EXPORT
@@ -4492,13 +4517,16 @@ const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const c
 	}
 	if (!the_entry) {
 		the_entry = gf_cache_create_entry(dm, "", szURL, 0, 0, GF_TRUE, dm->cache_mx);
-		if (!the_entry) return NULL;
+		if (!the_entry) {
+			gf_mx_v(dm->cache_mx );
+			return NULL;
+		}
 		gf_list_add(dm->cache_entries, the_entry);
 	}
 
 	gf_cache_set_mime(the_entry, mime);
 	if (blob && ! (blob->flags & GF_BLOB_IN_TRANSFER))
-        	gf_cache_set_range(the_entry, blob->size, start_range, end_range);
+		gf_cache_set_range(the_entry, blob->size, start_range, end_range);
 
 	gf_cache_set_content(the_entry, blob, clone_memory ? GF_TRUE : GF_FALSE, dm->cache_mx);
 	gf_cache_set_downtime(the_entry, download_time_ms);

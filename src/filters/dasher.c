@@ -6890,9 +6890,9 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (sctx->hlsll_mode) {
 				sctx->hlsll_done = GF_TRUE;
 				//reset frags of past segments
-				s32 i, reset_until = gf_list_find(ds->rep->state_seg_list, sctx);
-				for (i=reset_until-4; i>=0; i--) {
-					GF_DASH_SegmentContext *prev_sctx = gf_list_get(ds->rep->state_seg_list, i);
+				s32 idx, reset_until = gf_list_find(ds->rep->state_seg_list, sctx);
+				for (idx=reset_until-4; idx>=0; idx--) {
+					GF_DASH_SegmentContext *prev_sctx = gf_list_get(ds->rep->state_seg_list, idx);
 					if (!prev_sctx->hlsll_mode)
 						break;
 
@@ -6900,12 +6900,12 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					if (prev_sctx->hlsll_mode==2) {
 						u32 k;
 						for (k=0; k<prev_sctx->nb_frags; k++) {
-							GF_FilterEvent evt;
+							GF_FilterEvent anevt;
 							char szPath[GF_MAX_PATH];
 							sprintf(szPath, "%s.%d", prev_sctx->filepath, k+1);
-							GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
-							evt.file_del.url = szPath;
-							gf_filter_pid_send_event(ds->opid, &evt);
+							GF_FEVT_INIT(anevt, GF_FEVT_FILE_DELETE, ds->opid);
+							anevt.file_del.url = szPath;
+							gf_filter_pid_send_event(ds->opid, &anevt);
 						}
 					}
 					prev_sctx->hlsll_mode = 0;

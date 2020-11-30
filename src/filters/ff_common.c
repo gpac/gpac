@@ -141,7 +141,7 @@ Bool ffmpeg_pixfmt_is_fullrange(u32 pfmt)
 	u32 i=0;
 	while (FF2GPAC_PixelFormats[i].gpac_pf) {
 		if (FF2GPAC_PixelFormats[i].ff_pf == pfmt)
-			return FF2GPAC_PixelFormats[i].flags & 1 ? GF_TRUE : GF_FALSE;
+			return (FF2GPAC_PixelFormats[i].flags & 1) ? GF_TRUE : GF_FALSE;
 		i++;
 	}
 	return GF_FALSE;

@@ -1475,8 +1475,8 @@ typedef struct
 	u64 end_offset;
 	/*! new path to switch to*/
 	const char *source_switch;
-	/*! indicates previous source was a DASH init segment and should be kept in memory cache*/
-	u8 previous_is_init_segment;
+	/*! indicates  source is a DASH init segment and should be kept in memory cache*/
+	u8 is_init_segment;
 	/*! ignore cache expiration directive for HTTP*/
 	u8 skip_cache_expiration;
 	/*! hint block size for source, might not be respected*/
