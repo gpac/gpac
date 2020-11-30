@@ -159,11 +159,10 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		av_free_packet(&ctx->pkt);
 		return GF_OK;
 	}
-    if (! gf_filter_pid_is_playing( ctx->pids[ctx->pkt.stream_index] ) ) {
+    if (ctx->stop_seen && ! gf_filter_pid_is_playing( ctx->pids[ctx->pkt.stream_index] ) ) {
         av_free_packet(&ctx->pkt);
         return GF_OK;
     }
-
 	if (ctx->raw_data && (ctx->probe_frames<ctx->probes) ) {
 		if (ctx->pkt.stream_index==ctx->audio_idx) {
 			av_free_packet(&ctx->pkt);
@@ -649,7 +648,6 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		}
 		ctx->nb_playing++;
 		ctx->stop_seen = GF_FALSE;
-
 		//cancel event
 		return GF_TRUE;
 
