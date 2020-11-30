@@ -337,6 +337,10 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
+    //rewrite dts and pts to PTS value
+    gf_filter_pck_set_dts(dst_pck, frame->pkt_pts);
+    gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
+
 	ff_pfmt = ctx->decoder->pix_fmt;
 	if (ff_pfmt==AV_PIX_FMT_YUVJ420P) {
 		ff_pfmt = AV_PIX_FMT_YUV420P;
