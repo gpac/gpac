@@ -57,6 +57,7 @@ typedef struct
 	u32 nalu_size_length;
 	Bool is_adobe_protected;
 	Bool is_cenc_protected;
+	Bool aborted;
 
 	GF_Fraction tmcd_rate;
 	u32 tmcd_flags;
@@ -2759,6 +2760,8 @@ static GF_Err inspect_process(GF_Filter *filter)
 
 		if (!pck && !gf_filter_pid_is_eos(pctx->src_pid))
 			continue;
+		if (pctx->aborted)
+			continue;
 
 		if (!pctx->buffer_done) {
 			if (pck) {
@@ -2805,16 +2808,20 @@ static GF_Err inspect_process(GF_Filter *filter)
 		if (ctx->dur.num && ctx->dur.den) {
 			u64 timescale = gf_filter_pck_get_timescale(pck);
 			u64 ts = gf_filter_pck_get_dts(pck);
+			u64 dur = gf_filter_pck_get_duration(pck);
 			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
 
-			if (!pctx->init_ts) pctx->init_ts = ts;
-			else if ((ts - pctx->init_ts) * (u64)ctx->dur.den >= timescale * (u64) ctx->dur.num) {
+			if (!pctx->init_ts) pctx->init_ts = ts+1;
+			else if ((ts + dur - pctx->init_ts + 1) * (u64)ctx->dur.den >= timescale * (u64) ctx->dur.num) {
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Inspec] PID %d (codec %s) done dumping, aborting\n", pctx->idx, gf_codecid_name(pctx->codec_id) ));
+				gf_filter_pid_drop_packet(pctx->src_pid);
+
 				gf_filter_pid_send_event(pctx->src_pid, &evt);
 				gf_filter_pid_set_discard(pctx->src_pid, GF_TRUE);
+				pctx->aborted = GF_TRUE;
 				break;
 			}
 		}
