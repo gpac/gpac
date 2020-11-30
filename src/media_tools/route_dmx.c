@@ -787,7 +787,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
 		if (tsi && rlct) {
-			u32 i, count = gf_list_count(rlct->static_files);
+			count = gf_list_count(rlct->static_files);
 			obj->rlct = rlct;
 			obj->rlct_file = NULL;
 			for (i=0; i<count; i++) {

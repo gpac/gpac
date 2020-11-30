@@ -6333,7 +6333,7 @@ GF_Err tfxd_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err tfxd_box_size(GF_Box *s)
 {
 	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox*)s;
-	s->size += 4 + (ptr->version) ? 16 : 8;
+	s->size += 4 + (ptr->version ? 16 : 8);
 	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
@@ -12195,8 +12195,8 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 		for (j=0; j<ptr->patterns[i].length; j++) {
 			u32 idx = gf_bs_read_int(bs, index_size);
 			if (index_msb_indicates_fragment_local_description) {
-				Bool is_traf = idx & (1<<(index_size-1)) ? GF_TRUE : GF_FALSE;
-				if (is_traf) {
+				//MSB set, this is a index of a group described in the fragment
+				if (idx & (1<<(index_size-1)) ) {
 					idx += 0x1000;
 				}
 			}

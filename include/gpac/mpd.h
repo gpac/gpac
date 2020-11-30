@@ -274,12 +274,16 @@ typedef struct
 	char *key_url;
 	/*! key IV of segment, HLS only*/
 	bin128 key_iv;
-	/*! UTC start time of segment, HLS only*/
-	u64 hls_utc_start_time;
+	/*! sequence number of segment, HLS only*/
+	u32 hls_seq_num;
+	/*! informative UTC start time of segment, HLS only*/
+	u64 hls_utc_time;
 	/*! 0: full segment, 1: LL-HLS part, 2: independent LL-HLS part */
 	u8 hls_ll_chunk_type;
 	/*! merge flag for byte-range subsegs 0: cannot merge, 1: can merge */
 	u8 can_merge;
+	/*! merge flag for byte-range subsegs 0: cannot merge, 1: can merge */
+	u8 is_first_part;
 } GF_MPD_SegmentURL;
 
 /*! SegmentList*/
@@ -294,10 +298,12 @@ typedef struct
 	/*! xlink evaluation on load if set, otherwise on use*/
 	Bool xlink_actuate_on_load;
 
-	/*! GPAC intenral, number of consecutive xlink while solving*/
+	/*! GPAC internal, number of consecutive xlink while solving*/
 	u32 consecutive_xlink_count;
-	/*! GPAC intenral, we store the segment template here*/
+	/*! GPAC internal, we store the segment template here*/
 	char *dasher_segment_name;
+	/*! GPAC internal, we store the previous xlink before resolution*/
+	char *previous_xlink_href;
 } GF_MPD_SegmentList;
 
 /*! SegmentTemplate*/
@@ -530,7 +536,7 @@ typedef struct
 	/*! frag offset in bytes*/
 	u64 offset;
 	/*! frag size in bytes*/
-	u32 size;
+	u64 size;
 	/*! frag duration in representation timescale*/
 	u32 duration;
 	/*! fragment contains an IDR*/

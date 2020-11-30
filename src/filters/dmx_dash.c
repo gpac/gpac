@@ -349,7 +349,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	if (url_type) {
 		if (!ctx->segstore) {
 			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
-			strcat(sURL, ":cache=mem");
+			strcat(sURL, ":cache=mem_keep");
 		}
 		else if (ctx->segstore==2) {
 			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
@@ -410,7 +410,7 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 		if (p) {
 			sess = (GF_DownloadSession *) p->value.ptr;
 			if (!ctx->segstore) {
-				gf_dm_sess_force_memory_mode(sess);
+				gf_dm_sess_force_memory_mode(sess, 1);
 			}
 			ctx->reuse_download_session = GF_TRUE;
 			return (GF_DASHFileIOSession) sess;
@@ -846,15 +846,18 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			}
 			if (group) {
 				for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+					s32 sel = -1;
 					GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 					if (gf_filter_pid_get_udta(opid) != group) continue;
 
-					s32 sel = gf_dash_group_get_active_quality(ctx->dash, group_idx);
-					if (sel>=0) {
-						gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT(sel) );
+					if (!gf_sys_is_test_mode() || ctx->filemode) {
+						sel = gf_dash_group_get_active_quality(ctx->dash, group_idx);
+						if (sel>=0) {
+							gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT(sel) );
+						}
+						gf_filter_pid_set_property_str(opid, "has:auto", &PROP_UINT(gf_dash_get_automatic_switching(ctx->dash) ) );
+						gf_filter_pid_set_property_str(opid, "has:tilemode", &PROP_UINT(gf_dash_get_tile_adaptation_mode(ctx->dash) ) );
 					}
-					gf_filter_pid_set_property_str(opid, "has:auto", &PROP_UINT(gf_dash_get_automatic_switching(ctx->dash) ) );
-					gf_filter_pid_set_property_str(opid, "has:tilemode", &PROP_UINT(gf_dash_get_tile_adaptation_mode(ctx->dash) ) );
 
 					//setup some info for consuming filters
 					if (ctx->filemode) {
@@ -2146,7 +2149,6 @@ fetch_next:
 			if (group->nb_group_deps) {
 				GF_FilterPid *opid = dashdmx_opid_from_group(ctx, group);
 				if (opid) {
-					GF_FilterEvent evt;
 					GF_FEVT_INIT(evt, GF_FEVT_PLAY_HINT, opid);
 					evt.play.forced_dash_segment_switch = GF_TRUE;
 					gf_filter_pid_send_event(opid, &evt);
@@ -2252,7 +2254,7 @@ fetch_next:
 		evt.seek.start_offset = switch_start_range;
 		evt.seek.end_offset = switch_end_range;
 		evt.seek.source_switch = next_url_init_or_switch_segment;
-		evt.seek.previous_is_init_segment = group->prev_is_init_segment;
+		evt.seek.is_init_segment = GF_TRUE;
 		evt.seek.skip_cache_expiration = GF_TRUE;
 
 		group->prev_is_init_segment = GF_TRUE;
@@ -2289,7 +2291,7 @@ fetch_next:
 	evt.seek.source_switch = next_url;
 	evt.seek.start_offset = start_range;
 	evt.seek.end_offset = end_range;
-	evt.seek.previous_is_init_segment = group->prev_is_init_segment;
+	evt.seek.is_init_segment = GF_FALSE;
 	gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
 }
 

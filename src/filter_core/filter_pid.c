@@ -5820,7 +5820,7 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			u32 len = (u32) strlen(url);
 			GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
 			rstr->ref_count=1;
-			strcpy( (char *) &rstr->string[0], url ? url : "");
+			strcpy( (char *) &rstr->string[0], url);
 			*url_addr_dst = (char *) &rstr->string[0];
 		}
 	}
@@ -6874,16 +6874,14 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 			sprintf(szTemplateVal, szFormat, value);
 		} else if (str_val) {
 			if (is_file_str) {
-				char *ext;
-				char *sname;
-
 				if (!strncmp(str_val, "gfio://", 7))
 					str_val = gf_fileio_translate_url(str_val);
 
 				if (filename) {
 					strcpy(szTemplateVal, filename);
 				} else {
-					sname = strrchr(str_val, '/');
+					char *ext;
+					char *sname = strrchr(str_val, '/');
 					if (!sname) sname = strrchr(str_val, '\\');
 					if (!sname) sname = (char *) str_val;
 					else sname++;

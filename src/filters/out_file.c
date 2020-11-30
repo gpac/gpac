@@ -102,7 +102,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 #endif
 
 	} else {
-		char szName[GF_MAX_PATH], szFinalName[GF_MAX_PATH], szFileName[GF_MAX_PATH];
+		char szFinalName[GF_MAX_PATH];
 		Bool append = ctx->append;
 		const char *url = filename;
 
@@ -123,6 +123,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 		if (ctx->use_templates) {
 			GF_Err e;
+			char szName[GF_MAX_PATH], szFileName[GF_MAX_PATH];
 			if (ctx->dst && !strcmp(filename, ctx->dst)) {
 				strcpy(szName, szFinalName);
 				e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
@@ -278,7 +279,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		dst = ctx->dst;
 	}
 
-	sep = strchr(dst, '$');
+	sep = dst ? strchr(dst, '$') : NULL;
 	if (sep) {
 		sep = strchr(sep+1, '$');
 		if (sep) ctx->use_templates = GF_TRUE;
@@ -477,8 +478,8 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM);
 	if (p) {
-		char szHLSChunk[GF_MAX_PATH];
-		snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", ctx->szFileName, p->value.uint);
+		char szHLSChunk[GF_MAX_PATH+21];
+		snprintf(szHLSChunk, GF_MAX_PATH+20, "%s.%d", ctx->szFileName, p->value.uint);
 		if (ctx->hls_chunk) gf_fclose(ctx->hls_chunk);
 		ctx->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->original_url, "w+b");
 	}

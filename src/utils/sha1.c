@@ -718,7 +718,7 @@ GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 	if (!strncmp(path, "gmem://", 7)) {
 		u32 size;
 		u8 *mem_address;
-		GF_Err e = gf_blob_get(path, &mem_address, &size, NULL);
+		e = gf_blob_get(path, &mem_address, &size, NULL);
 		if (e) return e;
 
 		gf_sha1_csum(mem_address, size, output);

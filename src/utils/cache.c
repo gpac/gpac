@@ -169,7 +169,17 @@ struct __DownloadedCacheEntryStruct
 
     GF_Blob cache_blob;
     GF_Blob *external_blob;
+    Bool persistent;
 };
+
+Bool gf_cache_entry_persistent(const DownloadedCacheEntry entry)
+{
+	return entry ? entry->persistent : GF_FALSE;
+}
+void gf_cache_entry_set_persistent(const DownloadedCacheEntry entry)
+{
+	if (entry) entry->persistent = GF_TRUE;
+}
 
 Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info) {
 	const char * startPattern;
@@ -209,7 +219,7 @@ GF_Err gf_cache_delete_all_cached_files(const char * directory) {
 }
 
 void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry entry) {
-	if (entry)
+	if (entry && !entry->persistent)
 		entry->deletableFilesOnDelete = GF_TRUE;
 }
 
@@ -354,22 +364,30 @@ const char * gf_cache_get_cache_filename( const DownloadedCacheEntry entry )
 	return entry ? entry->cache_filename : NULL;
 }
 
-GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest) {
+GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest)
+{
+	char *etag, *last_modif;
 	if (!entry || !httpRequest)
 		return GF_BAD_PARAM;
 	if (entry->flags)
 		return GF_OK;
 	if (gf_cache_check_if_cache_file_is_corrupted(entry))
 		return GF_OK;
-	/* OK, this is potentially bad if httpRequest is not big enough */
-	if (entry->diskETag) {
+
+	etag = entry->diskETag;
+	last_modif = entry->diskLastModified;
+	if (entry->persistent && entry->memory_stored) {
+		etag = entry->serverETag;
+		last_modif = entry->serverLastModified;
+	}
+	if (etag) {
 		strcat(httpRequest, "If-None-Match: ");
-		strcat(httpRequest, entry->diskETag);
+		strcat(httpRequest, etag);
 		strcat(httpRequest, "\r\n");
 	}
-	if (entry->diskLastModified) {
+	if (last_modif) {
 		strcat(httpRequest, "If-Modified-Since: ");
-		strcat(httpRequest, entry->diskLastModified);
+		strcat(httpRequest, last_modif);
 		strcat(httpRequest, "\r\n");
 	}
 	return GF_OK;

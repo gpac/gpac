@@ -34,6 +34,7 @@ typedef enum
 	GF_HTTPIN_STORE_DISK=0,
 	GF_HTTPIN_STORE_DISK_KEEP,
 	GF_HTTPIN_STORE_MEM,
+	GF_HTTPIN_STORE_MEM_KEEP,
 	GF_HTTPIN_STORE_NONE,
 } GF_HTTPInStoreMode;
 
@@ -74,6 +75,7 @@ typedef struct
 	Bool full_file_only;
 	GF_Err last_state;
 	Bool is_source_switch;
+	Bool prev_was_init_segment;
 } GF_HTTPInCtx;
 
 static void httpin_notify_error(GF_Filter *filter, GF_HTTPInCtx *ctx, GF_Err e)
@@ -103,9 +105,16 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	ctx->block = gf_malloc(ctx->block_size +1);
 
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
-	if (ctx->cache==GF_HTTPIN_STORE_MEM) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
-	else if (ctx->cache==GF_HTTPIN_STORE_NONE) flags |= GF_NETIO_SESSION_NOT_CACHED;
-	else if (ctx->cache==GF_HTTPIN_STORE_DISK_KEEP) flags |= GF_NETIO_SESSION_KEEP_CACHE;
+	if (ctx->cache==GF_HTTPIN_STORE_MEM)
+		flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+	else if (ctx->cache==GF_HTTPIN_STORE_NONE)
+		flags |= GF_NETIO_SESSION_NOT_CACHED;
+	else if (ctx->cache==GF_HTTPIN_STORE_DISK_KEEP)
+		flags |= GF_NETIO_SESSION_KEEP_CACHE;
+	else if (ctx->cache==GF_HTTPIN_STORE_MEM_KEEP) {
+		flags |= GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
+		ctx->cache = GF_HTTPIN_STORE_MEM;
+	}
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
@@ -230,7 +239,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (evt->seek.source_switch) {
 			assert(ctx->is_end);
 			assert(!ctx->pck_out);
-			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !evt->seek.previous_is_init_segment) {
+			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !ctx->prev_was_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Switch from %s to %s\n", gf_file_basename(ctx->src), gf_file_basename(evt->seek.source_switch) ));
@@ -254,6 +263,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->cached = NULL;
 		ctx->blob_size = 0;
 		ctx->is_source_switch = GF_TRUE;
+		ctx->prev_was_init_segment = GF_FALSE;
 
 		//handle isobmff:// url
 		if (!strncmp(ctx->src, "isobmff://", 10)) {
@@ -269,6 +279,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_filter_pid_set_eos(ctx->pid);
 			return GF_TRUE;
 		}
+		ctx->prev_was_init_segment = evt->seek.is_init_segment;
 
 		//abort type
 		if (evt->seek.start_offset == (u64) -1) {
@@ -284,12 +295,18 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		ctx->last_state = GF_OK;
 		if (ctx->sess) {
+			if ((ctx->cache==GF_HTTPIN_STORE_MEM) && evt->seek.is_init_segment)
+				gf_dm_sess_force_memory_mode(ctx->sess, 2);
 			e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration);
 		} else {
 			u32 flags;
 
 			flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
-			if (ctx->cache==GF_HTTPIN_STORE_MEM) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+			if (ctx->cache==GF_HTTPIN_STORE_MEM) {
+				flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+				if (evt->seek.is_init_segment)
+					flags |= GF_NETIO_SESSION_KEEP_FIRST_CACHE;
+			}
 			else if (ctx->cache==GF_HTTPIN_STORE_NONE) flags |= GF_NETIO_SESSION_NOT_CACHED;
 
 			ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
@@ -559,7 +576,8 @@ static const GF_FilterArgs HTTPInArgs[] =
 	"- disk: cache to disk,  discard once session is no longer used\n"
 	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
-	"- none: no cache", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FS_ARG_HINT_ADVANCED},
+	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"
+	"- none: no cache", GF_PROP_UINT, "disk", "disk|keep|mem|mem_keep|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "set byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},

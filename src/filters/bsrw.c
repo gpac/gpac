@@ -162,7 +162,7 @@ static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 
 static void update_props(BSRWPid *pctx, GF_VUIInfo *vui)
 {
-	if ((vui->ar_num>0) && (vui->ar_num>0))
+	if ((vui->ar_num>0) && (vui->ar_den>0))
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(vui->ar_num, vui->ar_den) );
 
 	if (vui->fullrange>0)

@@ -1216,6 +1216,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		u64 tk_source_magic;
 		track = i+1;
 		tk_source_magic = gf_isom_get_track_magic(dest, track);
+		e = GF_OK;
 
 		if ((tk_source_magic & 0xFFFFFFFFUL) != source_magic)
 			continue;
@@ -1228,38 +1229,48 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (moov_timescale) {
 			if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(dest, track);
 
-			if (gf_sys_old_arch_compat() || (gf_isom_get_timescale(dest)!=moov_timescale))
-				gf_isom_set_timescale(dest, moov_timescale);
+			if (gf_sys_old_arch_compat() || (gf_isom_get_timescale(dest)!=moov_timescale)) {
+				e = gf_isom_set_timescale(dest, moov_timescale);
+				GOTO_EXIT("changing timescale")
+			}
 
 			moov_timescale = 0;
 		}
 
 		timescale = gf_isom_get_timescale(dest);
-		if (szLan) gf_isom_set_media_language(dest, track, (char *) szLan);
-		if (disable) gf_isom_set_track_enabled(dest, track, GF_FALSE);
+		if (szLan) {
+			e = gf_isom_set_media_language(dest, track, (char *) szLan);
+			GOTO_EXIT("changing language")
+		}
+		if (disable) {
+			e = gf_isom_set_track_enabled(dest, track, GF_FALSE);
+			GOTO_EXIT("disabling track")
+		}
 
-        if (import_flags & GF_IMPORT_NO_EDIT_LIST)
-			gf_isom_remove_edits(dest, track);
-
+		if (import_flags & GF_IMPORT_NO_EDIT_LIST) {
+			e = gf_isom_remove_edits(dest, track);
+			GOTO_EXIT("removing edits")
+		}
 		if (delay.num && delay.den) {
 			u64 tk_dur;
-			gf_isom_remove_edits(dest, track);
+			e = gf_isom_remove_edits(dest, track);
 			tk_dur = gf_isom_get_track_duration(dest, track);
 			if (delay.num>0) {
 				//cast to s64, timescale*delay could be quite large before /1000
-				gf_isom_append_edit(dest, track, ((s64) delay.num) * timescale / delay.den, 0, GF_ISOM_EDIT_EMPTY);
-				gf_isom_append_edit(dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+				e |= gf_isom_append_edit(dest, track, ((s64) delay.num) * timescale / delay.den, 0, GF_ISOM_EDIT_EMPTY);
+				e |= gf_isom_append_edit(dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			} else {
 					//cast to s64, timescale*delay could be quite large before /1000
 				u64 to_skip = ((s64) -delay.num) * timescale / delay.den;
 				if (to_skip<tk_dur) {
 					//cast to s64, timescale*delay could be quite large before /1000
 					u64 media_time = ((s64) -delay.num) * gf_isom_get_media_timescale(dest, track) / delay.den;
-					gf_isom_append_edit(dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+					e |= gf_isom_append_edit(dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
 				} else {
 					fprintf(stderr, "Warning: request negative delay longer than track duration - ignoring\n");
 				}
 			}
+			GOTO_EXIT("assigning delay")
 		}
 		if (gf_isom_is_video_handler_type(media_type)) {
 			if (((par_n>=0) && (par_d>=0)) || force_par) {
@@ -1308,7 +1319,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			e = gf_media_remove_non_rap(dest, track, refs_only);
 			GOTO_EXIT("removing non RAPs")
 		}
-		if (handler_name) gf_isom_set_handler_name(dest, track, handler_name);
+		if (handler_name) {
+			e = gf_isom_set_handler_name(dest, track, handler_name);
+			GOTO_EXIT("setting handler name")
+		}
 		else if (!keep_handler) {
 			char szHName[1024];
 			const char *fName = gf_url_get_resource_name((const  char *)inName);
@@ -1378,7 +1392,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 
-        if (has_last_sample_dur) {
+		if (has_last_sample_dur) {
 			e = gf_isom_set_last_sample_duration_ex(dest, track, last_sample_dur.num, last_sample_dur.den);
 			GOTO_EXIT("setting last sample duration")
 		}

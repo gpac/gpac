@@ -3034,9 +3034,8 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 			fprintf(stderr, "%s - Resolution %d x %d\n", gf_codecid_name(codecid), w, h);
 		} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
-			u32 sr, ch;
-			gf_isom_get_audio_info(file, trackNum, 1, &sr, &ch, NULL);
-			fprintf(stderr, "%s - Sample Rate %d - %d channel(s)\n", gf_codecid_name(codecid), sr, ch);
+			gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, NULL);
+			fprintf(stderr, "%s - Sample Rate %d - %d channel(s)\n", gf_codecid_name(codecid), sr, nb_ch);
 		} else {
 			fprintf(stderr, "%s\n", gf_codecid_name(codecid) );
 		}

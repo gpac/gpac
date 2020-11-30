@@ -45,6 +45,7 @@ struct s_playList {
 	int current_media_seq;
 	int media_seq_min;
 	int media_seq_max;
+	int discontinuity;
 	double target_duration;
 	double computed_duration;
 	Bool is_ended;
@@ -80,8 +81,9 @@ struct s_playlistElement {
 	char *url;
 	char *init_segment_url;
 	u64 init_byte_range_start, init_byte_range_end;
+	//informative UTC start time
 	u64 utc_start_time;
-
+	u32 discontinuity;
 	PlaylistElementDRMMethod drm_method;
 	char *key_uri;
 	bin128 key_iv;
