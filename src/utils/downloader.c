@@ -1733,10 +1733,21 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 			sess->ssl = SSL_new(sess->dm->ssl_ctx);
 			SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
+			SSL_ctrl(sess->ssl, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, (void*) proxy);
 			SSL_set_connect_state(sess->ssl);
 			ret = SSL_connect(sess->ssl);
 			if (ret<=0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
+				ret = SSL_get_error(sess->ssl, ret);
+				if (ret==SSL_ERROR_SSL) {
+					char msg[1024];
+					SSL_load_error_strings();
+					ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
+					sess->last_error = GF_SERVICE_ERROR;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
+					sess->last_error = GF_REMOTE_SERVICE_ERROR;
+				}
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
 			}
