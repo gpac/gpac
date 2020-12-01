@@ -409,6 +409,7 @@
 		92BC212F16EF8E7A000E0620 /* sdl_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1999D1278778800ACFF58 /* sdl_out.h */; };
 		92BC213716EF8E7A000E0620 /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999E1278778800ACFF58 /* video.c */; };
 		92C0F38021EDFA8E002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37F21EDFA8D002961C8 /* out_rtp.c */; };
+		92C236E82576DC4E00CD59A9 /* tilesplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C236E72576DC4E00CD59A9 /* tilesplit.c */; };
 		92D6C5A62343BF6A00262217 /* xhr.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5A42343BF6A00262217 /* xhr.c */; };
 		92D6C5A72343BF6A00262217 /* scene_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5A52343BF6A00262217 /* scene_js.c */; };
 		92D6C5AB2343BF9400262217 /* svg_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C5A82343BF9400262217 /* svg_js.c */; };
@@ -996,6 +997,7 @@
 		92B2A4AC229D6646002A65A7 /* hevcmerge.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevcmerge.c; path = ../../src/filters/hevcmerge.c; sourceTree = "<group>"; };
 		92B2A4AD229D6646002A65A7 /* hevcsplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevcsplit.c; path = ../../src/filters/hevcsplit.c; sourceTree = "<group>"; };
 		92C0F37F21EDFA8D002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = ../../src/filters/out_rtp.c; sourceTree = "<group>"; };
+		92C236E72576DC4E00CD59A9 /* tilesplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tilesplit.c; path = ../../src/filters/tilesplit.c; sourceTree = "<group>"; };
 		92D6C5A42343BF6A00262217 /* xhr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = xhr.c; path = ../../src/jsmods/xhr.c; sourceTree = "<group>"; };
 		92D6C5A52343BF6A00262217 /* scene_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = scene_js.c; path = ../../src/jsmods/scene_js.c; sourceTree = "<group>"; };
 		92D6C5A82343BF9400262217 /* svg_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = svg_js.c; sourceTree = "<group>"; };
@@ -1890,6 +1892,7 @@
 		92EB6D5E20E4E16700A97A49 /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92C236E72576DC4E00CD59A9 /* tilesplit.c */,
 				9274295924647B98009ADD8D /* bsrw.c */,
 				92EB6D8B20E4E19300A97A49 /* compose.c */,
 				92EB6D9420E4E19400A97A49 /* dasher.c */,
@@ -2522,6 +2525,7 @@
 				71CCF2EA1277045100339E12 /* ipmpx_dump.c in Sources */,
 				92EB6DE420E4E19700A97A49 /* dmx_saf.c in Sources */,
 				71CCF2EB1277045100339E12 /* ipmpx_parse.c in Sources */,
+				92C236E82576DC4E00CD59A9 /* tilesplit.c in Sources */,
 				71CCF2EC1277045100339E12 /* oci_codec.c in Sources */,
 				71CCF2ED1277045100339E12 /* odf_code.c in Sources */,
 				71CCF2EE1277045100339E12 /* odf_codec.c in Sources */,

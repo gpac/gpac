@@ -1539,11 +1539,12 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		//need to check we're not in URL mode where only ONE description is allowed...
 		StreamDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 		if (StreamDescriptionIndex) {
+			GF_ESD *old_esd=NULL;
 			entry = (GF_MPEGSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex - 1);
 			if (!entry) return GF_ISOM_INVALID_FILE;
 			//get ESD (only if present, do not emulate)
-			Media_GetESD(trak->Media, StreamDescriptionIndex, &esd, GF_TRUE);
-			if (esd && esd->URLString) return GF_BAD_PARAM;
+			Media_GetESD(trak->Media, StreamDescriptionIndex, &old_esd, GF_TRUE);
+			if (old_esd && old_esd->URLString) return GF_BAD_PARAM;
 		}
 
 		//OK, check the handler and create the entry

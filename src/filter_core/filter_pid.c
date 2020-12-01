@@ -2790,8 +2790,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 					edge->status = EDGE_STATUS_DISABLED;
 					continue;
 				}
+#if 0
 				if (priority)
 					path_weight *= priority;
+#endif
 			}
 
 			//if source is not edge origin and edge is only valid for explicitly loaded filters, disable edge

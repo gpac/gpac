@@ -1445,6 +1445,9 @@
     <ClCompile Include="..\..\src\filters\tileagg.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\tilesplit.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c">
       <Filter>filters</Filter>
     </ClCompile>

@@ -497,6 +497,7 @@
 		92BE50AB18D6348A00AA59D8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A718D6348A00AA59D8 /* main.c */; };
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92C0F37E21EC7BB0002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37D21EC7BB0002961C8 /* out_rtp.c */; };
+		92C236DD25769BA500CD59A9 /* tilesplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C236DC25769BA500CD59A9 /* tilesplit.c */; };
 		92C403DD2181F17E00331F39 /* dec_openhevc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C403DC2181F17E00331F39 /* dec_openhevc.c */; };
 		92C403EA2181F57600331F39 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92CDAEE81FBD9D0C0007C1C0 /* reframe_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */; };
@@ -1158,6 +1159,7 @@
 		92BE50A718D6348A00AA59D8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp4box/main.c; sourceTree = SOURCE_ROOT; };
 		92BE50C718D6D60100AA59D8 /* MP4Client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Client; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C0F37D21EC7BB0002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = filters/out_rtp.c; sourceTree = "<group>"; };
+		92C236DC25769BA500CD59A9 /* tilesplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tilesplit.c; path = filters/tilesplit.c; sourceTree = "<group>"; };
 		92C403D72181F10500331F39 /* gf_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gf_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C403DC2181F17E00331F39 /* dec_openhevc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_openhevc.c; path = ../../src/filters/dec_openhevc.c; sourceTree = "<group>"; };
 		92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_nalu.c; path = filters/reframe_nalu.c; sourceTree = "<group>"; };
@@ -2104,6 +2106,7 @@
 				9257307E2056948D009DB328 /* rewrite_nalu.c */,
 				92EB479220F6333800E1F2DD /* rewrite_obu.c */,
 				92A08DBC20D946B6003589FF /* tileagg.c */,
+				92C236DC25769BA500CD59A9 /* tilesplit.c */,
 				9286070E239576D900FDA1ED /* tssplit.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
 				92E318D020651834007BE021 /* vcrop.c */,
@@ -2600,6 +2603,7 @@
 				92EE76411FD0315D008926F5 /* load_text.c in Sources */,
 				92FE596D2088E52900CF0C5A /* dasher.c in Sources */,
 				9201011918D5A444003D1ACA /* box_code_drm.c in Sources */,
+				92C236DD25769BA500CD59A9 /* tilesplit.c in Sources */,
 				9201011A18D5A444003D1ACA /* box_code_meta.c in Sources */,
 				9201011B18D5A444003D1ACA /* box_dump.c in Sources */,
 				9201011C18D5A444003D1ACA /* box_funcs.c in Sources */,
