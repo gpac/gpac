@@ -1073,7 +1073,8 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ftype = 0;
 		is_coded = GF_FALSE;
 		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
-		if (!nb_frames && start)
+		//if start is more than 4 (start-code size), we have garbage at the begining, do not parse
+		if (!nb_frames && (start>4))
 			break;
 		if (is_coded) nb_frames++;
 		if (e==GF_EOS) {
@@ -1104,7 +1105,8 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ftype = 0;
 		is_coded = GF_FALSE;
 		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
-		if (!nb_frames && start)
+		//if start is more than 4 (start-code size), we have garbage at the begining, do not parse
+		if (!nb_frames && (start>4))
 			break;
 		if (is_coded) nb_frames++;
 		if (e==GF_EOS) {
