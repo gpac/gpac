@@ -709,7 +709,6 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			ctx->nb_frames ++;
 
 			mhas_dmx_update_cts(ctx);
-			mhas_sap = 0;
 			has_cfg = 0;
 
 			if (prev_pck_size) {

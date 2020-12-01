@@ -1446,7 +1446,7 @@ skip_date:
 			else if (!strcmp("TAG", szArg)) {
 				if (! filter->dynamic_filter) {
 					if (filter->tag) gf_free(filter->tag);
-					filter->tag = value[0] ? gf_strdup(value) : NULL;
+					filter->tag = value ? gf_strdup(value) : NULL;
 				}
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;

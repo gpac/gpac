@@ -495,7 +495,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				prop.value.uint_list.nb_items = nb_refs;
 				prop.value.uint_list.vals = gf_malloc(sizeof(u32)*nb_refs);
 				for (j=0; j<nb_refs; j++) {
-					gf_isom_get_reference(read->mov, track, rtype, j+1, &prop.value.uint_list.vals[j] );
+					u32 ref_tk;
+					gf_isom_get_reference(read->mov, track, rtype, j+1, &ref_tk );
+					prop.value.uint_list.vals[j] = gf_isom_get_track_id(read->mov, ref_tk);
 				}
 				gf_filter_pid_set_property_str(pid, rname, &prop);
 				gf_free(prop.value.uint_list.vals);

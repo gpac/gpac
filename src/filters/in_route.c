@@ -416,6 +416,9 @@ static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEvent
 {
 	char szPath[GF_MAX_PATH];
 	FILE *out;
+	if (!finfo->blob)
+		return;
+
 	if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc)
 		return;
 	
@@ -458,23 +461,41 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 	u32 nb_obj;
 	Bool is_init = GF_TRUE;
 	Bool is_loop = GF_FALSE;
-	DownloadedCacheEntry cache_entry = (DownloadedCacheEntry) finfo ? finfo->udta : NULL;
+	DownloadedCacheEntry cache_entry;
 
-	szPath[0] = 0;
-	switch (evt) {
-	case GF_ROUTE_EVT_SERVICE_FOUND:
+	//events without finfo
+	if (evt==GF_ROUTE_EVT_SERVICE_FOUND) {
 		if (!ctx->tune_time) ctx->tune_time = gf_sys_clock();
-
-		break;
-	case GF_ROUTE_EVT_SERVICE_SCAN:
+		return;
+	}
+	if (evt==GF_ROUTE_EVT_SERVICE_SCAN) {
 		if (ctx->tune_service_id && !gf_route_dmx_find_atsc3_service(ctx->route_dmx, ctx->tune_service_id)) {
 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Asked to tune to service %d but no such service, tuning to first one\n", ctx->tune_service_id));
 
 			ctx->tune_service_id = 0;
-            gf_route_atsc3_tune_in(ctx->route_dmx, (u32) -2, GF_TRUE);
+			gf_route_atsc3_tune_in(ctx->route_dmx, (u32) -2, GF_TRUE);
 		}
-		break;
+		return;
+	}
+	if (!finfo)
+		return;
+
+	//events without finfo->blob
+	if (evt==GF_ROUTE_EVT_FILE_DELETE) {
+		if (ctx->gcache) {
+			sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
+			gf_dm_add_cache_entry(ctx->dm, szPath, NULL, 0, 0, "video/mp4", GF_FALSE, 0);
+		}
+		return;
+	}
+	
+	if (!finfo->blob)
+		return;
+
+	cache_entry = finfo->udta;
+	szPath[0] = 0;
+	switch (evt) {
 	case GF_ROUTE_EVT_MPD:
 		if (!ctx->tune_time) ctx->tune_time = gf_sys_clock();
 			
@@ -632,13 +653,6 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 				break;
             nb_obj = gf_route_dmx_get_object_count(ctx->route_dmx, evt_param);
         }
-		break;
-			
-    case GF_ROUTE_EVT_FILE_DELETE:
-		if (ctx->gcache) {
-			sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
-			cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, NULL, 0, 0, "video/mp4", GF_FALSE, 0);
-		}
 		break;
 	default:
 		break;

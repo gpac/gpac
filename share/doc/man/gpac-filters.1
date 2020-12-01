@@ -4440,6 +4440,32 @@ tiledrop (uintl, default: , updatable): specify indexes of tiles to drop
 .br
 
 .br
+.SH tilesplit
+.LP
+.br
+Description: HEVC tile bitstream spliter
+.br
+
+.br
+This filter splits an HEVC tiled stream into tiled HEVC streams (hvt1 or hvt2 in isobmff).
+.br
+The filter will move to passthrough mode if the bitstream is not tiled.
+.br
+If the Bitrate property is set on the input PID, the output tile PIDs will have a bitrate set to (Bitrate - 10k)/nb_opids, 10 kbps being reserved for the base.
+.br
+Warning: The filter does not check if tiles are independently-coded (MCTS) !
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+tiledrop (uintl, default: , updatable): specify 0-based indexes of tiles to drop
+.br
+
+.br
 .SH pin
 .LP
 .br
@@ -6854,7 +6880,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev287-ge38cd93d8-master
+build: 1.1.0-DEV-rev289-g71af72386-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

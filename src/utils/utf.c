@@ -429,8 +429,6 @@ Bool gf_utf8_is_legal(const u8 *data, u32 length)
 		} else if (ch > UNI_MAX_UTF16) {
 			result = sourceIllegal;
 			break; /* Bail out; shouldn't continue */
-		} else {
-			ch -= halfBase;
 		}
 	}
 	return (result==conversionOK) ? GF_TRUE : GF_FALSE;

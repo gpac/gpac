@@ -147,7 +147,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	u32 i, j, count = gf_filter_get_ipid_count(filter);
 	GF_FilterPacket *dst_pck, *base_pck;
 	u64 min_cts = GF_FILTER_NO_TS;
-	u32 pck_size, size = 0;
+	u32 pck_size, final_size, size = 0;
 	u32 pos, nb_ready=0;
 	u32 sabt_idx;
 	Bool has_sei_suffix = GF_FALSE;
@@ -218,6 +218,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		ctx->flush_packets--;
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	final_size = size;
 
 	gf_filter_pck_merge_properties(base_pck, dst_pck);
 	data = gf_filter_pck_get_data(base_pck, &pck_size);
@@ -303,6 +304,9 @@ static GF_Err tileagg_process(GF_Filter *filter)
 
 	gf_filter_pid_drop_packet(ctx->base_ipid);
 
+	if (size < 	final_size)
+		gf_filter_pck_truncate(dst_pck, size);
+		
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
 }

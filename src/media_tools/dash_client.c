@@ -559,7 +559,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				timeshift /= 100;
 			} else {
 				timeshift = (u32) group->dash->initial_time_shift_value;
-				if (timeshift > mpd->time_shift_buffer_depth) shift = mpd->time_shift_buffer_depth;
+				if (timeshift > mpd->time_shift_buffer_depth) timeshift = mpd->time_shift_buffer_depth;
 			}
 			timeshift = mpd->time_shift_buffer_depth - timeshift;
 		}
@@ -2045,7 +2045,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	const char *local_url;
 	char mime[128];
 	char * purl;
-	Double timeline_start_time;
+	Double timeline_start_time=0;
 	GF_MPD *new_mpd=NULL;
 	Bool fetch_only = GF_FALSE;
 	u32 nb_group_unchanged = 0;
