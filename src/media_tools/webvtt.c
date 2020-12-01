@@ -263,7 +263,7 @@ GF_Err wvtt_box_size(GF_Box *s)
 	return GF_OK;
 }
 
-static GF_Err webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
+static GF_Err wvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 {
 	GF_Err e;
 	GF_VTTCueBox *cuebox;
@@ -303,7 +303,7 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 		GF_WebVTTCue *cue;
 		i=0;
 		while ((cue = (GF_WebVTTCue *)gf_list_enum(samp->cues, &i))) {
-			e = webvtt_write_cue(bs, cue);
+			e = wvtt_write_cue(bs, cue);
 			if (e) break;
 		}
 		if (e) {
@@ -1097,13 +1097,13 @@ exit:
 }
 
 GF_EXPORT
-GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start)
+GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start, u64 end)
 {
-	return gf_webvtt_parse_cues_from_data(iso_sample->data, iso_sample->dataLength, start);
+	return gf_webvtt_parse_cues_from_data(iso_sample->data, iso_sample->dataLength, start, end);
 }
 
 GF_EXPORT
-GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 start)
+GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 start, u64 end)
 {
 	GF_List *cues;
 	GF_WebVTTCue *cue;
@@ -1130,6 +1130,7 @@ GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 star
 			}
 			gf_list_add(cues, cue);
 			gf_webvtt_timestamp_set(&cue->start, start);
+			gf_webvtt_timestamp_set(&cue->end, end);
 			if (cuebox->id) {
 				gf_webvtt_cue_add_property(cue, WEBVTT_ID, cuebox->id->string, (u32) strlen(cuebox->id->string));
 			}
@@ -1251,13 +1252,15 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 	return GF_OK;
 }
 
-GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISOSample *iso_sample, Bool merge, Bool box_mode)
+static GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISOSample *iso_sample, u32 duration, Bool merge, Bool box_mode)
 {
 	if (merge) {
 		u64             start;
+		u64             end;
 		GF_List         *cues;
 		start = (iso_sample->DTS * 1000) / timescale;
-		cues = gf_webvtt_parse_iso_cues(iso_sample, start);
+		end = (iso_sample->DTS + duration) * 1000 / timescale;
+		cues = gf_webvtt_parse_iso_cues(iso_sample, start, end);
 		gf_webvtt_merge_cues(parser, start, cues);
 		gf_list_del(cues);
 	} else {
@@ -1503,12 +1506,14 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, u32 track, Bool merge,
 
 	count = gf_isom_get_sample_count(dumper->file, track);
 	for (i=0; i<count; i++) {
+		u32 sdur;
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
 		if (!samp) {
 			e = gf_isom_last_error(dumper->file);
 			goto exit;
 		}
-		e = gf_webvtt_parse_iso_sample(parser, timescale, samp, merge, box_dump);
+		sdur = gf_isom_get_sample_duration(dumper->file, track, i+1);
+		e = gf_webvtt_parse_iso_sample(parser, timescale, samp, sdur, merge, box_dump);
 		if (e) {
 			goto exit;
 		}

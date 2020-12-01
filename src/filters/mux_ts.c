@@ -599,17 +599,20 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		//serialize webvtt cue formatting for TX3G
 		else if (tspid->codec_id == GF_CODECID_WEBVTT) {
 			u32 i;
-			u64 start_ts;
-			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue);
+			u64 start_ts, end_ts;
+			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt);
 			GF_List *cues;
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 			start_ts = es_pck.cts * 1000;
 			start_ts /= tspid->esi.timescale;
-			cues = gf_webvtt_parse_cues_from_data(es_pck.data, es_pck.data_len, start_ts);
+			end_ts = (es_pck.cts + es_pck.duration) * 1000;
+			end_ts /= tspid->esi.timescale;
+
+			cues = gf_webvtt_parse_cues_from_data(es_pck.data, es_pck.data_len, start_ts, end_ts);
 			for (i = 0; i < gf_list_count(cues); i++) {
 				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, i);
-				webvtt_write_cue(bs, cue);
+				webvtt_write_cue(bs, cue, GF_FALSE);
 				gf_webvtt_cue_del(cue);
 			}
 			gf_list_del(cues);

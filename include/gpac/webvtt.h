@@ -110,9 +110,10 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const u8 *data, u32 dataLength, u
 \param data the WebVTT ISOBMFF sample payload
 \param dataLength the size of the payload in bytes
 \param start the start time in milliseconds of the WebVTT cue
+\param end the end time in milliseconds of the WebVTT cue
 \return new list of cues, to destroy by caller
 */
-GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 start);
+GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 start, u64 end);
 
 /*! @} */
 

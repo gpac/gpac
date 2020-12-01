@@ -122,14 +122,14 @@ void vttmx_timestamp_dump(GF_BitStream *bs, GF_WebVTTTimestamp *ts, Bool dump_ho
 	gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
 }
 
-void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
+void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt)
 {
 	if (!cue) return;
-	if (cue->pre_text) {
+	if (!write_srt && cue->pre_text) {
 		gf_bs_write_data(bs, cue->pre_text, (u32) strlen(cue->pre_text));
 		gf_bs_write_data(bs, "\n\n", 2);
 	}
-	if (cue->id) gf_bs_write_data(bs, cue->id, (u32) strlen(cue->id) );
+	if (!write_srt && cue->id) gf_bs_write_data(bs, cue->id, (u32) strlen(cue->id) );
 	if (cue->start.hour || cue->end.hour) {
 		vttmx_timestamp_dump(bs, &cue->start, GF_TRUE);
 		gf_bs_write_data(bs, " --> ", 5);
@@ -139,16 +139,20 @@ void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 		gf_bs_write_data(bs, " --> ", 5);
 		vttmx_timestamp_dump(bs, &cue->end, GF_FALSE);
 	}
-	if (cue->settings) {
+	if (!write_srt && cue->settings) {
 		gf_bs_write_data(bs, " ", 1);
 		gf_bs_write_data(bs, cue->settings, (u32) strlen(cue->settings));
 	}
 	gf_bs_write_data(bs, "\n", 1);
 	if (cue->text)
 		gf_bs_write_data(bs, cue->text, (u32) strlen(cue->text));
-	gf_bs_write_data(bs, "\n\n", 2);
 
-	if (cue->post_text) {
+	if (!write_srt)
+		gf_bs_write_data(bs, "\n\n", 2);
+	else
+		gf_bs_write_data(bs, "\n", 1);
+
+	if (!write_srt && cue->post_text) {
 		gf_bs_write_data(bs, cue->post_text, (u32) strlen(cue->post_text));
 		gf_bs_write_data(bs, "\n\n", 2);
 	}
@@ -157,7 +161,7 @@ void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 static void vttmx_write_cue(void *udta, GF_WebVTTCue *cue)
 {
 	GF_WebVTTMxCtx *ctx = (GF_WebVTTMxCtx *)udta;
-	webvtt_write_cue(ctx->bs_w, cue);
+	webvtt_write_cue(ctx->bs_w, cue, GF_FALSE);
 }
 
 void vttmx_parser_flush(GF_WebVTTMxCtx *ctx)
@@ -195,7 +199,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 	GF_WebVTTMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *data, *output;
-	u64 start_ts;
+	u64 start_ts, end_ts;
 	u32 i, pck_size, size, timescale;
 	GF_List *cues;
 
@@ -230,12 +234,15 @@ GF_Err vttmx_process(GF_Filter *filter)
 	else gf_bs_reassign_buffer(ctx->bs_w, ctx->cues_buffer, ctx->cues_buffer_size);
 
 	start_ts = gf_filter_pck_get_cts(pck);
+	end_ts = start_ts + gf_filter_pck_get_duration(pck);
 	start_ts *= 1000;
+	end_ts *= 1000;
 	timescale = gf_filter_pck_get_timescale(pck);
 	if (!timescale) timescale=1000;
 	start_ts /= timescale;
+	end_ts /= timescale;
 
-	cues = gf_webvtt_parse_cues_from_data(data, pck_size, start_ts);
+	cues = gf_webvtt_parse_cues_from_data(data, pck_size, start_ts, end_ts);
 	if (ctx->parser) {
 		gf_webvtt_merge_cues(ctx->parser, start_ts, cues);
 	} else {
