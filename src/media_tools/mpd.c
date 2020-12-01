@@ -2248,7 +2248,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	Stream *stream;
 	PlaylistElement *pe;
 	u32 k, count_elements;
-	u64 seq_num;
+	u32 seq_num;
 	u32 base_url_len = 0;
 	Bool has_full_seg_following = GF_FALSE;
 	Bool can_merge_parts = GF_FALSE;

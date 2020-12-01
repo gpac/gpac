@@ -1512,7 +1512,7 @@ typedef struct
 	/*! media end range in segment file*/
 	u64 size;
 	/*! media duration of fragment*/
-	GF_Fraction duration;
+	GF_Fraction64 duration;
 	/*! fragment contains an IDR*/
 	Bool independent;
 } GF_FEVT_FragmentSize;

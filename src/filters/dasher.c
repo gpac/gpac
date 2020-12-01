@@ -1082,7 +1082,7 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 
 		if (ctx->refresh>=0) {
 			if (ctx->refresh) {
-				ctx->mpd->minimum_update_period = 1000*ctx->refresh;
+				ctx->mpd->minimum_update_period = (u32) (1000*ctx->refresh);
 			} else {
 				ctx->mpd->minimum_update_period = ctx->segdur.num * 1000;
 				ctx->mpd->minimum_update_period /= ctx->segdur.den;
@@ -4845,12 +4845,12 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to regular DASH AVC/264 live profile\n"));
 			ctx->profile = GF_DASH_PROFILE_AVC264_LIVE;
 		}
-		if (ctx->segdur.num < ctx->segdur.den) {
+		if (ctx->segdur.num < (s32) ctx->segdur.den) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
 			ctx->segdur.num = 1;
 			ctx->segdur.den = 1;
 		}
-		if (ctx->segdur.num > 15 * ctx->segdur.den) {
+		if (ctx->segdur.num > 15 * (s32) ctx->segdur.den) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
 			ctx->segdur.num = 15;
 			ctx->segdur.den = 1;
@@ -5168,7 +5168,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 					ds->gm_duration_min = seg_duration;
 				if (ds->gm_duration_max<seg_duration)
 					ds->gm_duration_max = seg_duration;
-				ds->dash_dur.num = 1000.0 * ds->gm_duration_total / ds->gm_nb_segments;
+				ds->dash_dur.num = (s32) (1000.0 * ds->gm_duration_total / ds->gm_nb_segments);
 				ds->dash_dur.den = 1000;
 				ds->rep->dash_dur = ds->dash_dur;
 			}

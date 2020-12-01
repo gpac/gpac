@@ -2390,9 +2390,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		return;
 	}
 
+	//happens on some meta filter or JS filters
 	if (!reg_desc) {
-		fprintf(stderr, "filter %s without description, forbidden\n", reg_name);
-		exit(1);
+		reg_desc = "No description available";
 	}
 
 	if (gen_doc==1) {
