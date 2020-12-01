@@ -130,7 +130,7 @@ typedef struct
 	Bool has_brands;
 	Bool force_inband_inject;
 
-	u32 dur_in_frag;
+	u64 dur_in_frag;
 
 	u32 amr_mode_set;
 	Bool has_seig;
@@ -210,7 +210,7 @@ typedef struct
 	u32 block_size;
 	u32 store, tktpl, mudta;
 	s32 subs_sidx;
-	Double cdur;
+	GF_Fraction cdur;
 	s32 moovts;
 	char *m4cc;
 	Bool chain_sidx;
@@ -256,7 +256,8 @@ typedef struct
 	GF_BitStream *bs_r;
 	//fragmentation state
 	Bool init_movie_done, fragment_started, segment_started, insert_tfdt, insert_pssh, cdur_set;
-	Double next_frag_start, adjusted_next_frag_start;
+
+	u64 next_frag_start, adjusted_next_frag_start;
 
 	u64 current_offset;
 	u64 current_size;
@@ -274,8 +275,8 @@ typedef struct
 	FILE *tmp_store;
 	u64 flush_size, flush_done;
 
-	u32 dash_mode, hlsll_mode;
-	Double dash_dur;
+	u32 dash_mode, llhls_mode;
+	GF_Fraction dash_dur;
 	Double media_dur;
 	u32 sidx_max_size, sidx_chunk_offset;
 	Bool final_sidx_flush;
@@ -301,7 +302,7 @@ typedef struct
 
 	GF_SegmentIndexBox *cloned_sidx;
 	u32 cloned_sidx_index;
-	Double faststart_ts_regulate;
+	GF_Fraction faststart_ts_regulate;
 
 	Bool is_rewind;
 	Bool box_patched;
@@ -330,7 +331,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		const GF_PropertyValue *p;
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_DUR);
 		if (p) {
-			ctx->dash_dur = p->value.number;
+			ctx->dash_dur = p->value.frac;
 		}
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 		if (p && p->value.lfrac.den) {
@@ -340,7 +341,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 	}
 	ctx->dash_mode = MP4MX_DASH_VOD;
-	ctx->hlsll_mode = 0;
+	ctx->llhls_mode = 0;
 	if ((ctx->vodcache==MP4MX_VODCACHE_ON) && !ctx->tmp_store) {
 		ctx->tmp_store = gf_file_temp(NULL);
 		if (!ctx->tmp_store) {
@@ -989,21 +990,23 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		ctx->dash_mode = MP4MX_DASH_ON;
 	}
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_HLSLL);
-	ctx->hlsll_mode = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHLS);
+	ctx->llhls_mode = p ? p->value.uint : 0;
 	//insert tfdt in each traf for LL-HLS so that correct timing can be found when doing in-segment tune-in
-	if (ctx->hlsll_mode) {
+	if (ctx->llhls_mode) {
 		ctx->tfdt_traf = GF_TRUE;
 		ctx->store = MP4MX_MODE_SFRAG;
 	}
 
 	if (!ctx->cdur_set) {
 		ctx->cdur_set = GF_TRUE;
-		if (ctx->cdur<0) {
-			if (ctx->make_qt)
-				ctx->cdur = 0.5;
-			else {
-				ctx->cdur = 1.0;
+		if (ctx->cdur.num<0) {
+			if (ctx->make_qt) {
+				ctx->cdur.num = 1000;
+				ctx->cdur.den = 2000;
+			} else {
+				ctx->cdur.num = 1000;
+				ctx->cdur.den = 1000;
 				if (ctx->dash_mode)
 					ctx->fragdur = GF_FALSE;
 			}
@@ -1063,7 +1066,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				}
 			}
 			if (ctx->store==MP4MX_MODE_FASTSTART) {
-				gf_isom_make_interleave(ctx->file, ctx->cdur);
+				gf_isom_make_interleave_ex(ctx->file, &ctx->cdur);
 			}
 		}
 
@@ -1232,7 +1235,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		if (ctx->dash_mode==MP4MX_DASH_VOD) {
 			Bool use_cache = (ctx->vodcache == MP4MX_VODCACHE_ON) ? GF_TRUE : GF_FALSE;
-			if ((ctx->vodcache == MP4MX_VODCACHE_REPLACE) && (!ctx->media_dur || !ctx->dash_dur) ) {
+			if ((ctx->vodcache == MP4MX_VODCACHE_REPLACE) && (!ctx->media_dur || !ctx->dash_dur.num) ) {
 				use_cache = GF_TRUE;
 			}
 
@@ -3816,7 +3819,7 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		}
 		mp4mux_send_output(ctx);
 	}
-	if (!is_init && ctx->hlsll_mode && ctx->frag_size) {
+	if (!is_init && ctx->llhls_mode && ctx->frag_size) {
 		mp4_mux_flush_frag_hls(ctx);
 	}
 	if (ctx->dash_mode) {
@@ -4135,10 +4138,12 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	ctx->init_movie_done = GF_TRUE;
 
 	if (min_dts_scale) {
-		ctx->next_frag_start = (Double) min_dts;
-		ctx->next_frag_start /= min_dts_scale;
+		u64 rs_dts = min_dts;
+		rs_dts *= ctx->cdur.den;
+		rs_dts /= min_dts_scale;
+		ctx->next_frag_start = rs_dts;
 	}
-	ctx->next_frag_start += ctx->cdur;
+	ctx->next_frag_start += ctx->cdur.num;
 	ctx->adjusted_next_frag_start = ctx->next_frag_start;
 	ctx->fragment_started = GF_FALSE;
 
@@ -4162,7 +4167,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	}
 
 	if (ctx->dash_mode==MP4MX_DASH_VOD) {
-		if ((ctx->vodcache==MP4MX_VODCACHE_REPLACE) && !nb_segments && (!ctx->media_dur || !ctx->dash_dur) ) {
+		if ((ctx->vodcache==MP4MX_VODCACHE_REPLACE) && !nb_segments && (!ctx->media_dur || !ctx->dash_dur.num) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Media duration unknown, cannot use replace mode of vodcache, using temp file for VoD storage\n"));
 			ctx->vodcache = MP4MX_VODCACHE_ON;
 			e = mp4mx_setup_dash_vod(ctx, NULL);
@@ -4179,7 +4184,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 			if (!nb_segments) {
 				exact_sidx = GF_FALSE;
-				nb_segments = (u32) ( ctx->media_dur / ctx->dash_dur);
+				nb_segments = (u32) ( ctx->media_dur * ctx->dash_dur.den / ctx->dash_dur.num);
 				//always add an extra segment
 				nb_segments ++;
 				//and safety alloc of 10%
@@ -4614,15 +4619,16 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			} else if (ctx->fragdur && (!ctx->dash_mode || !tkw->fragment_done) ) {
 				Bool frag_done = GF_FALSE;
 				u32 dur = gf_filter_pck_get_duration(pck);
-				if (tkw->dur_in_frag && (tkw->dur_in_frag >= ctx->cdur * tkw->src_timescale)) {
+				if (tkw->dur_in_frag && (tkw->dur_in_frag * ctx->cdur.den >= ((u64)ctx->cdur.num) * tkw->src_timescale)) {
 					frag_done = GF_TRUE;
 				} else if ((ctx->store==MP4MX_MODE_SFRAG)
-					&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->src_timescale) + tkw->ts_delay)
+					&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->src_timescale / ctx->cdur.den) + tkw->ts_delay)
 				) {
 					GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 					if ((sap && sap<GF_FILTER_SAP_3)) {
 						frag_done = GF_TRUE;
-						ctx->adjusted_next_frag_start = (Double) (cts - tkw->ts_delay);
+						ctx->adjusted_next_frag_start = (cts - tkw->ts_delay);
+						ctx->adjusted_next_frag_start *= ctx->cdur.den;
 						ctx->adjusted_next_frag_start /= tkw->src_timescale;
 					}
 				}
@@ -4634,12 +4640,12 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					break;
 				}
 				tkw->dur_in_frag += dur;
-				if (ctx->hlsll_mode && (ctx->frag_duration * tkw->src_timescale <= tkw->dur_in_frag * ctx->frag_timescale)) {
+				if (ctx->llhls_mode && (ctx->frag_duration * tkw->src_timescale <= tkw->dur_in_frag * ctx->frag_timescale)) {
 					ctx->frag_duration = tkw->dur_in_frag;
 					ctx->frag_timescale = tkw->src_timescale;
 				}
 			} else if (!ctx->flush_seg && !ctx->dash_mode
-				&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->src_timescale) + tkw->ts_delay)
+				&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->src_timescale  / ctx->cdur.den) + tkw->ts_delay)
 			 ) {
 				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 				if ((ctx->store==MP4MX_MODE_FRAG) || (sap && sap<GF_FILTER_SAP_3)) {
@@ -4647,7 +4653,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					tkw->samples_in_frag = 0;
 					nb_done ++;
 					if (ctx->store==MP4MX_MODE_SFRAG) {
-						ctx->adjusted_next_frag_start = (Double) (cts - tkw->ts_delay);
+						ctx->adjusted_next_frag_start = (cts - tkw->ts_delay);
+						ctx->adjusted_next_frag_start *= ctx->cdur.den;
 						ctx->adjusted_next_frag_start /= tkw->src_timescale;
 					}
 					break;
@@ -4726,19 +4733,19 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 	if (nb_done==count) {
 		Bool is_eos = (count == nb_eos) ? GF_TRUE : GF_FALSE;
-		Double ref_start;
+		u32 ref_timescale;
 		u64 next_ref_ts = ctx->ref_tkw->next_seg_cts;
 		if (is_eos)
 			next_ref_ts = ctx->ref_tkw->cts_next;
-		ref_start = (Double) next_ref_ts;
-		ref_start /= ctx->ref_tkw->src_timescale;
 
-		ctx->next_seg_start = (u64) (ref_start * 1000);
-		ctx->min_cts_next_frag = (u64) (ctx->next_frag_start * 1000);
+		ref_timescale = ctx->ref_tkw->src_timescale;
+		//both in ms
+		ctx->next_seg_start = (u64) (next_ref_ts) * 1000 / ref_timescale;
+		ctx->min_cts_next_frag = (u64) (ctx->next_frag_start) * 1000 / ctx->cdur.den;
 
-		ctx->next_frag_start += ctx->cdur;
+		ctx->next_frag_start += ctx->cdur.num;
 		while (ctx->next_frag_start <= ctx->adjusted_next_frag_start) {
-			ctx->next_frag_start += ctx->cdur;
+			ctx->next_frag_start += ctx->cdur.num;
 		}
 		ctx->adjusted_next_frag_start = ctx->next_frag_start;
 
@@ -4766,7 +4773,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 			if (e) return e;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num, ref_start, ctx->next_frag_start ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
 				mp4_mux_flush_seg(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
@@ -4787,7 +4794,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
 
-			if (ctx->hlsll_mode) {
+			if (ctx->llhls_mode) {
 				mp4_mux_flush_frag_hls(ctx);
 			}
 
@@ -4795,7 +4802,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
 			}
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ctx->next_frag_start ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 		}
 		ctx->fragment_started = GF_FALSE;
 
@@ -4990,11 +4997,12 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 		Bool is_frag = GF_FALSE;
 
 		if (ctx->store>=MP4MX_MODE_FRAG) {
+			Double next = ((Double)ctx->next_frag_start)/ctx->cdur.den;
 			is_frag = GF_TRUE;
 			if (ctx->dash_mode) {
-				sprintf(szStatus, "mux segments %d (frags %d) next %02.02g", ctx->nb_segs, ctx->nb_frags_in_seg, ctx->next_frag_start);
+				sprintf(szStatus, "mux segments %d (frags %d) next %02.02g", ctx->nb_segs, ctx->nb_frags_in_seg, next);
 			} else {
-				sprintf(szStatus, "mux frags %d next %02.02g", ctx->nb_frags, ctx->next_frag_start);
+				sprintf(szStatus, "mux frags %d next %02.02g", ctx->nb_frags, next);
 			}
 		} else {
 			sprintf(szStatus, "%s", ((ctx->store==MP4MX_MODE_FLAT) || (ctx->store==MP4MX_MODE_FASTSTART)) ? "mux" : "import");
@@ -5127,18 +5135,18 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 		//basic regulation in case we do on-the-fly interleaving
 		//we need to regulate because sources do not produce packets at the same rate
-		if ((ctx->store==MP4MX_MODE_FASTSTART) && ctx->cdur) {
-			Double cts = (Double) gf_filter_pck_get_cts(pck);
+		if ((ctx->store==MP4MX_MODE_FASTSTART) && ctx->cdur.num) {
+			u64 cts = gf_filter_pck_get_cts(pck);
 			if (ctx->is_rewind)
 				cts = tkw->ts_shift - cts;
 			else
 				cts -= tkw->ts_shift;
-			cts /= tkw->src_timescale;
-			if (!ctx->faststart_ts_regulate) {
+
+			if (!ctx->faststart_ts_regulate.num) {
 				ctx->faststart_ts_regulate = ctx->cdur;
 			}
 			//ahead of our interleaving window, don't write yet
-			else if (cts > ctx->faststart_ts_regulate) {
+			else if (cts * ctx->faststart_ts_regulate.den > ((u64) ctx->faststart_ts_regulate.num) * tkw->src_timescale) {
 				nb_skip++;
 				continue;
 			}
@@ -5173,7 +5181,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	}
 	//done with this interleaving window, start next one
 	else if (nb_skip + nb_eos == count) {
-		ctx->faststart_ts_regulate += ctx->cdur;
+		ctx->faststart_ts_regulate.num += ctx->cdur.num;
 	} else if (ctx->importer) {
 		u64 prog_done=0, prog_total=0;
 		for (i=0; i<count; i++) {
@@ -5285,7 +5293,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 		gf_filter_pck_set_duration(ctx->dst_pck, (u32) (ctx->min_cts_next_frag - orig) );
 	}
 
-	if ((ctx->hlsll_mode>1) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
+	if ((ctx->llhls_mode>1) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
 		ctx->frag_num++;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
 	}
@@ -5347,7 +5355,18 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		}
 
 	}
-	if (!ctx->moovts) ctx->moovts=600;
+	if (!ctx->moovts)
+		ctx->moovts=600;
+	if (!ctx->cdur.den) {
+		ctx->cdur.num = 0;
+		ctx->cdur.den = 1000;
+	}
+	//we need at least ms precision for sfrag mode
+	if (ctx->cdur.den < 1000) {
+		ctx->cdur.num *= 1000;
+		ctx->cdur.num /= ctx->cdur.den;
+		ctx->cdur.den = 1000;
+	}
 
 	if (ctx->mfra && (ctx->store>=MP4MX_MODE_FRAG)) {
 		GF_Err e = gf_isom_enable_mfra(ctx->file);
@@ -5671,10 +5690,10 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 	if (ctx->owns_mov) {
 		switch (ctx->store) {
 		case MP4MX_MODE_INTER:
-			if (ctx->cdur==0) {
+			if (ctx->cdur.num==0) {
 				e = gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_STREAMABLE);
 			} else {
-				e = gf_isom_make_interleave(ctx->file, ctx->cdur);
+				e = gf_isom_make_interleave_ex(ctx->file, &ctx->cdur);
 			}
 			break;
 		case MP4MX_MODE_FLAT:
@@ -5775,7 +5794,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes\n"
 	"- 0: no specific interleaving but moov first\n"
-	"- negative: defaults to 1.0 unless overridden by storage profile", GF_PROP_DOUBLE, "-1.0", NULL, 0},
+	"- negative: defaults to 1.0 unless overridden by storage profile", GF_PROP_FRACTION, "-1/1", NULL, 0},
 	{ OFFS(moovts), "timescale to use for movie. A negative value picks the media timescale of the first track added", GF_PROP_SINT, "600", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(moof_first), "generate fragments starting with moof then mdat", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(abs_offset), "use absolute file offset in fragments rather than offsets from moof", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

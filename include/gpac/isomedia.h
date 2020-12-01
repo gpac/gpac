@@ -2530,6 +2530,13 @@ GF_Err gf_isom_hint_max_chunk_size(GF_ISOFile *isom_file, u32 trackNumber, u32 m
 */
 GF_Err gf_isom_make_interleave(GF_ISOFile *isom_file, Double TimeInSec);
 
+/*! sets up interleaving for storage (shortcut for storeage mode + interleave_time)
+\param isom_file the target ISO file
+\param fTimeInSec the desired interleaving time in seconds, as a fraction
+\return error if any
+*/
+GF_Err gf_isom_make_interleave_ex(GF_ISOFile *isom_file, GF_Fraction *fTimeInSec);
+
 /*! sets progress callback when writing a file
 \param isom_file the target ISO file
 \param progress_cbk the progress callback function

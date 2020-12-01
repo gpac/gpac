@@ -5372,21 +5372,33 @@ u32 gf_isom_get_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber)
 
 
 GF_EXPORT
-GF_Err gf_isom_make_interleave(GF_ISOFile *file, Double TimeInSec)
+GF_Err gf_isom_make_interleave_ex(GF_ISOFile *file, GF_Fraction *fTimeInSec)
 {
 	GF_Err e;
-	if (!file) return GF_BAD_PARAM;
+	u64 itime;
+	if (!file || !fTimeInSec->den || (fTimeInSec->num<=0)) return GF_BAD_PARAM;
 
+	itime = (u64) fTimeInSec->num;
+	itime *= gf_isom_get_timescale(file);
+	itime /= fTimeInSec->den;
 	if (file->storageMode==GF_ISOM_STORE_FASTSTART) {
-		return gf_isom_set_interleave_time(file, (u32) (TimeInSec * gf_isom_get_timescale(file)));
+		return gf_isom_set_interleave_time(file, (u32) itime);
 	}
 	if (gf_isom_get_mode(file) < GF_ISOM_OPEN_EDIT) return GF_BAD_PARAM;
 	e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_DRIFT_INTERLEAVED);
 	if (e) return e;
-	return gf_isom_set_interleave_time(file, (u32) (TimeInSec * gf_isom_get_timescale(file)));
+	return gf_isom_set_interleave_time(file, (u32) itime);
 }
 
+GF_EXPORT
+GF_Err gf_isom_make_interleave(GF_ISOFile *file, Double TimeInSec)
+{
+	GF_Fraction f;
+	f.num = (s32) (TimeInSec * 1000);
+	f.den = 1000;
+	return gf_isom_make_interleave_ex(file, &f);
 
+}
 GF_EXPORT
 GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const char *nameUTF8)
 {

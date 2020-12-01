@@ -132,6 +132,17 @@ static GF_MPD_Fractional *gf_mpd_parse_frac(const char * const attr, const char 
 	return res;
 }
 
+static GF_Fraction gf_mpd_parse_fraction(const char * const attr)
+{
+	GF_Fraction res;
+	int ok = sscanf(attr, "%d/%u", &res.num, &res.den);
+	if (ok!=2) {
+		res.den = 1;
+		res.num = atoi(attr);
+	}
+	return res;
+}
+
 u64 gf_mpd_parse_date(const char * const attr)
 {
 	return gf_net_parse_date(attr);
@@ -735,7 +746,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "periodDuration")) dasher->period_duration = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "ownsSet")) dasher->owns_set = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "multiPIDInit")) dasher->multi_pids = gf_mpd_parse_bool(att->value);
-		else if (!strcmp(att->name, "dashDuration")) dasher->dash_dur = gf_mpd_parse_double(att->value);
+		else if (!strcmp(att->name, "dashDuration")) dasher->dash_dur = gf_mpd_parse_fraction(att->value);
 		else if (!strcmp(att->name, "nextSegmentStart")) dasher->next_seg_start = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "firstCTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "firstDTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
@@ -2932,7 +2943,7 @@ static void gf_mpd_print_dasher_context(FILE *out, GF_DASH_SegmenterContext *das
 		gf_fprintf(out, "periodStart=\"%g\" ", dasher->period_start);
 
 	gf_fprintf(out, "multiPIDInit=\"%s\" ", dasher->multi_pids ? "true" : "false");
-	gf_fprintf(out, "dashDuration=\"%g\" ", dasher->dash_dur);
+	gf_fprintf(out, "dashDuration=\"%d/%d\" ", dasher->dash_dur.num, dasher->dash_dur.den);
 	gf_fprintf(out, "nextSegmentStart=\""LLU"\" ", dasher->next_seg_start);
 	gf_fprintf(out, "firstCTS=\""LLU"\" ", dasher->first_cts);
 	gf_fprintf(out, "firstDTS=\""LLU"\" ", dasher->first_dts);
@@ -3456,7 +3467,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	sctx = gf_list_get(rep->state_seg_list, 0);
 
 	gf_fprintf(out,"#EXTM3U\n");
-	gf_fprintf(out,"#EXT-X-TARGETDURATION:%d\n",(u32) (rep->dash_dur) );
+	gf_fprintf(out,"#EXT-X-TARGETDURATION:%d\n", (u32) ((Double) rep->dash_dur.num) / rep->dash_dur.den);
 	gf_fprintf(out,"#EXT-X-VERSION:%d\n", hls_version);
 	gf_fprintf(out,"#EXT-X-MEDIA-SEQUENCE:%d\n", sctx->seg_num);
 	if (as->use_hls_ll) {
@@ -3484,13 +3495,13 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			sctx = gf_list_get(rep->state_seg_list, i);
 			assert(sctx->filename);
 
-			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->hlsll_mode) {
+			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {
 				u32 k;
 				for (k=0; k<sctx->nb_frags; k++) {
 					dur = sctx->frags[k].duration;
 					dur /= rep->timescale;
 					gf_fprintf(out, "#EXT-X-PART:DURATION=%g,URI=%s", dur, sctx->filename);
-					if (sctx->hlsll_mode==1)
+					if (sctx->llhls_mode==1)
 						gf_fprintf(out, ",BYTERANGE=\""LLU"@"LLU"\"", sctx->frags[k].size, sctx->frags[k].offset );
 					else
 						gf_fprintf(out, ".%d", k+1);
@@ -3500,7 +3511,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					gf_fprintf(out, "\n");
 				}
 				//live edge not done yet
-				if (! sctx->hlsll_done) {
+				if (! sctx->llhls_mode) {
 					if (close_file)
 						gf_fclose(out);
 

@@ -370,9 +370,9 @@ struct __dash_group
 	u32 hint_visible_width, hint_visible_height;
 
 	//last chunk scheduled for download
-	GF_MPD_SegmentURL *hlsll_edge_chunk;
-	Bool hlsll_last_was_merged;
-	s32 hlsll_switch_request;
+	GF_MPD_SegmentURL *llhls_edge_chunkllhls;
+	Bool llhls_last_was_merged;
+	s32 llhls_switch_request;
 	u64 last_mpd_change_time;
 };
 
@@ -2538,7 +2538,7 @@ process_m3u8_manifest:
 				u32 dld_index_offset = 0;
 				GF_MPD_SegmentURL *first_added_chunk = NULL;
 				GF_MPD_SegmentURL *first_to_keep = NULL;
-				GF_MPD_SegmentURL *hls_last_chunk = group->hlsll_edge_chunk;
+				GF_MPD_SegmentURL *hls_last_chunk = group->llhls_edge_chunkllhls;
 
 				if (dash->is_m3u8 && group->is_low_latency) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Representation #%d: merging segments, current live chunk %s\n", rep_idx+1, hls_last_chunk ? hls_last_chunk->media : "none"));
@@ -2608,13 +2608,12 @@ process_m3u8_manifest:
 					}
 					//first full seg after our live edge, insert before the first fragment of this segment still in our list
 					if (!new_seg->hls_ll_chunk_type && skip_next_seg_url && !found) {
-						GF_Err e = GF_URL_REMOVED;
 						//starting from our current live edge, rewind and insert after the first full segment found
 						s32 pos = group->download_segment_index;
 						while (pos>0) {
 							GF_MPD_SegmentURL *prev = gf_list_get(segments, pos);
 							if (!prev->hls_ll_chunk_type) {
-								e = gf_list_insert(segments, new_seg, pos+1);
+								gf_list_insert(segments, new_seg, pos+1);
 								pos = pos+1;
 								break;
 							}
@@ -2622,13 +2621,13 @@ process_m3u8_manifest:
 						}
 						assert(pos>=0);
 						if (pos==0) {
-							e = gf_list_insert(segments, new_seg, 0);
+							gf_list_insert(segments, new_seg, 0);
 						}
 						//remove from new segments
 						gf_list_rem(new_segments, i);
 						i--;
 
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Representation #%d: Injecting segment %s before LL chunk (err %s)\n", rep_idx+1, new_seg->media, gf_error_to_string(e)));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Representation #%d: Injecting segment %s before LL chunk\n", rep_idx+1, new_seg->media));
 						found = GF_TRUE;
 						//no longer at live edge point
 						skip_next_seg_url = GF_FALSE;
@@ -2688,14 +2687,14 @@ process_m3u8_manifest:
 				if (has_ll_hls) {
 					s32 live_edge_idx = -1;
 					//active rep, find live edge index before purge
-					if (group->hlsll_edge_chunk && (group->active_rep_index==rep_idx)) {
-						live_edge_idx = gf_list_find(new_segments, group->hlsll_edge_chunk);
+					if (group->llhls_edge_chunkllhls && (group->active_rep_index==rep_idx)) {
+						live_edge_idx = gf_list_find(new_segments, group->llhls_edge_chunkllhls);
 					}
 					ls_hls_purge_segments(live_edge_idx, new_segments);
 
 					//active rep, update download_segment_index after purge
-					if (group->hlsll_edge_chunk && (group->active_rep_index==rep_idx)) {
-						live_edge_idx = gf_list_find(new_segments, group->hlsll_edge_chunk);
+					if (group->llhls_edge_chunkllhls && (group->active_rep_index==rep_idx)) {
+						live_edge_idx = gf_list_find(new_segments, group->llhls_edge_chunkllhls);
 						if (live_edge_idx>=0)
 							group->download_segment_index = (u32) live_edge_idx + dld_index_offset;
 					}
@@ -3053,20 +3052,20 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	s32 timeshift;
 	GF_MPD_AdaptationSet *set;
 	GF_MPD_Period *period;
-	u32 nb_segs;
+	u32 ol_nb_segs_in_rep;
 	u32 i = gf_list_find(group->adaptation_set->representations, rep);
 	u32 prev_active_rep_index = group->active_rep_index;
 	u32 nb_cached_seg_per_rep = group->max_cached_segments / gf_dash_group_count_rep_needed(group);
 	assert((s32) i >= 0);
 
-	if (group->hlsll_edge_chunk && group->hlsll_edge_chunk->hls_ll_chunk_type) {
-		group->hlsll_switch_request = i;
+	if (group->llhls_edge_chunkllhls && group->llhls_edge_chunkllhls->hls_ll_chunk_type) {
+		group->llhls_switch_request = i;
 		return;
 	}
-	group->hlsll_switch_request = -1;
+	group->llhls_switch_request = -1;
 
 	//we do not support switching in the middle of a segment
-	if (group->hlsll_edge_chunk && group->hlsll_edge_chunk->hls_ll_chunk_type) {
+	if (group->llhls_edge_chunkllhls && group->llhls_edge_chunkllhls->hls_ll_chunk_type) {
 		return;
 	}
 
@@ -3074,15 +3073,13 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	if (group->base_rep_index_plus_one)
 		group->max_complementary_rep_index = i;
 	else {
-		if (group->active_rep_index != i) {
-			group->active_rep_index = i;
+		group->active_rep_index = i;
 //			if (group->timeline_setup)
-//				group->hlsll_edge_chunk = NULL;
-		}
+//				group->llhls_edge_chunkllhls = NULL;
 	}
 	group->active_bitrate = rep->bandwidth;
 	group->max_cached_segments = nb_cached_seg_per_rep * gf_dash_group_count_rep_needed(group);
-	nb_segs = group->nb_segments_in_rep;
+	ol_nb_segs_in_rep = group->nb_segments_in_rep;
 
 	group->min_bandwidth_selected = GF_TRUE;
 	for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
@@ -3280,7 +3277,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 
 	/*if broken indication in duration restore previous seg count*/
 	if (group->dash->ignore_mpd_duration)
-		group->nb_segments_in_rep = nb_segs;
+		group->nb_segments_in_rep = ol_nb_segs_in_rep;
 
 	timeshift = (s32) (rep->segment_base ? rep->segment_base->time_shift_buffer_depth : (rep->segment_list ? rep->segment_list->time_shift_buffer_depth : (rep->segment_template ? rep->segment_template->time_shift_buffer_depth : -1) ) );
 	if (timeshift == -1) timeshift = (s32) (set->segment_base ? set->segment_base->time_shift_buffer_depth : (set->segment_list ? set->segment_list->time_shift_buffer_depth : (set->segment_template ? set->segment_template->time_shift_buffer_depth : -1) ) );
@@ -4480,7 +4477,7 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 
 		gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
 	}
-	group->hlsll_edge_chunk = NULL;
+	group->llhls_edge_chunkllhls = NULL;
 
 	group->timeline_setup = GF_FALSE;
 }
@@ -6204,13 +6201,13 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 llhls_rety:
 	//spectial case for LL-HLS: if we have a switch request pending, check if next fragment is the first of a new seg
 	//or a complete seg (we do not switch in the middle of a segment)
-	if (group->hlsll_switch_request>=0) {
+	if (group->llhls_switch_request>=0) {
 		GF_MPD_SegmentURL *hlsseg = gf_list_get(rep->segment_list->segment_URLs, group->download_segment_index);
 		if (hlsseg && (! hlsseg->hls_ll_chunk_type || hlsseg->is_first_part)) {
-			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->hlsll_switch_request);
-			group->hlsll_edge_chunk = NULL;
+			rep = gf_list_get(group->adaptation_set->representations, group->llhls_switch_request);
+			group->llhls_edge_chunkllhls = NULL;
 			gf_dash_set_group_representation(group, rep, GF_TRUE);
-			assert(group->hlsll_switch_request<0);
+			assert(group->llhls_switch_request<0);
 			//we are waiting for playlist update, return
 			if (group->hls_next_seq_num) {
 				return GF_DASH_DownloadCancel;
@@ -6379,7 +6376,7 @@ llhls_rety:
 	e = gf_dash_resolve_url(dash->mpd, rep, group, base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL, &start_number);
 
 
-	if ((e==GF_EOS)	&& group->hlsll_edge_chunk && group->hlsll_edge_chunk->hls_ll_chunk_type) {
+	if ((e==GF_EOS)	&& group->llhls_edge_chunkllhls && group->llhls_edge_chunkllhls->hls_ll_chunk_type) {
 		HLS_MIN_RELOAD_TIME(dash)
 		return GF_DASH_DownloadCancel;
 	}
@@ -6393,7 +6390,7 @@ llhls_rety:
 		}
 		if (new_base_seg_url) gf_free(new_base_seg_url);
 		if (key_url) gf_free(key_url);
-		group->hlsll_edge_chunk = NULL;
+		group->llhls_edge_chunkllhls = NULL;
 		return GF_DASH_DownloadCancel;
 	}
 
@@ -6402,7 +6399,7 @@ llhls_rety:
 		GF_MPD_SegmentURL *hlsseg = gf_list_get(rep->segment_list->segment_URLs, group->download_segment_index);
 		assert(hlsseg);
 
-		if (dash->llhls_single_range && hlsseg->media_range && (hlsseg->can_merge || group->hlsll_last_was_merged) ) {
+		if (dash->llhls_single_range && hlsseg->media_range && (hlsseg->can_merge || group->llhls_last_was_merged) ) {
 			//if not very first request (tune in) and not first part of seg, if mergeable issue a single byterange
 			if (!group->first_hls_chunk && hlsseg->media_range->start_range) {
 				if (!hlsseg->can_merge) {
@@ -6419,11 +6416,11 @@ llhls_rety:
 			group->first_hls_chunk = GF_FALSE;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Changing LL-HLS request %s @ "LLU"->"LLU" to open end range\n", new_base_seg_url, start_range, end_range));
 			end_range = 0;
-			group->hlsll_last_was_merged = GF_TRUE;
+			group->llhls_last_was_merged = GF_TRUE;
 		} else {
-			group->hlsll_last_was_merged = GF_FALSE;
+			group->llhls_last_was_merged = GF_FALSE;
 		}
-		group->hlsll_edge_chunk = hlsseg;
+		group->llhls_edge_chunkllhls = hlsseg;
 	}
 	use_byterange = (start_range || end_range) ? 1 : 0;
 	if (use_byterange) {
@@ -6531,8 +6528,8 @@ llhls_rety:
 			group->has_pending_enhancement = GF_FALSE;
 		}
 		if (dash->auto_switch_count) {
-			if (group->hlsll_edge_chunk && group->hlsll_edge_chunk->hls_ll_chunk_type) {
-				if (group->hlsll_edge_chunk->is_first_part)
+			if (group->llhls_edge_chunkllhls && group->llhls_edge_chunkllhls->hls_ll_chunk_type) {
+				if (group->llhls_edge_chunkllhls->is_first_part)
 					group->nb_segments_done++;
 			} else {
 				group->nb_segments_done++;

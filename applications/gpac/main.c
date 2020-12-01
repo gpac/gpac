@@ -2369,14 +2369,31 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst, char *inst_name)
 {
 	const GF_FilterArgs *args = NULL;
-
-	if (!filter_inst && !reg) return;
-
-	const char *reg_name = filter_inst ? inst_name : reg->name;
-	const char *reg_desc = filter_inst ? gf_filter_get_description(filter_inst) : reg->description;
+	const char *reg_name, *reg_desc;
 #ifndef GPAC_DISABLE_DOC
-	const char *reg_help = filter_inst ? gf_filter_get_help(filter_inst) : reg->help;
+	const char *reg_help;
 #endif
+
+	if (filter_inst) {
+		reg_name = inst_name;
+		reg_desc = gf_filter_get_description(filter_inst);
+#ifndef GPAC_DISABLE_DOC
+		reg_help = gf_filter_get_help(filter_inst);
+#endif
+	} else if (reg) {
+		reg_name = reg->name;
+		reg_desc = reg->description;
+#ifndef GPAC_DISABLE_DOC
+		reg_help = reg->help;
+#endif
+	} else {
+		return;
+	}
+
+	if (!reg_desc) {
+		fprintf(stderr, "filter %s without description, forbidden\n", reg_name);
+		exit(1);
+	}
 
 	if (gen_doc==1) {
 		char szName[1024];
@@ -2417,18 +2434,11 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 					gf_free(sbbuf);
 				}
 			}
+			fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg_desc, reg_name, reg_name);
 #ifndef GPAC_DISABLE_DOC
-			if (reg_desc) {
-				fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg_desc, reg_name, reg_name);
-			} else {
-				fprintf(sidebar_md, "[[%s|%s]]  \n", reg_name, reg_name);
-			}
+
 			if (!reg_help) {
 				fprintf(stderr, "filter %s without help, forbidden\n", reg_name);
-				exit(1);
-			}
-			if (!reg_desc) {
-				fprintf(stderr, "filter %s without description, forbidden\n", reg_name);
 				exit(1);
 			}
 #endif
@@ -2438,7 +2448,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_desc);
 #endif
 		gf_sys_format_help(helpout, help_flags, "Register name used to load filter: **%s**\n", reg_name);
-		if (reg) {
+		if (filter_inst) {
+			gf_sys_format_help(helpout, help_flags, "This is a JavaScript filter, not checked during graph resolution and needs explicit loading.\n");
+		} else {
 			if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) {
 				gf_sys_format_help(helpout, help_flags, "This filter is not checked during graph resolution and needs explicit loading.\n");
 			} else {
@@ -2447,23 +2459,16 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) {
 				gf_sys_format_help(helpout, help_flags, "This filter requires the graph resolver to be activated.\n");
 			}
-		} else {
-			gf_sys_format_help(helpout, help_flags, "This is a JavaScript filter, not checked during graph resolution and needs explicit loading.\n");
 		}
 	} else {
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_name);
-		if (filter_inst)
-			gf_sys_format_help(helpout, help_flags, "Description: %s\n", gf_filter_get_description(filter_inst) );
-		else {
-#ifndef GPAC_DISABLE_DOC
-			if (reg->description) gf_sys_format_help(helpout, help_flags, "Description: %s\n", reg->description);
-#endif
+		gf_sys_format_help(helpout, help_flags, "Description: %s\n", reg_desc );
 
-		}
-
-		if (filter_inst)
-			gf_sys_format_help(helpout, help_flags, "Version: %s\n", gf_filter_get_version(filter_inst) );
-		else {
+		if (filter_inst) {
+			const char *version = gf_filter_get_version(filter_inst);
+			if (version)
+				gf_sys_format_help(helpout, help_flags, "Version: %s\n", version );
+		} else {
 			if (reg->version) {
 				if (!strncmp(reg->version, "! ", 2)) {
 					if (!gen_doc)
@@ -2476,11 +2481,16 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	}
 
 	if (filter_inst) {
-		gf_sys_format_help(helpout, help_flags, "Author: %s\n", gf_filter_get_author(filter_inst) );
-		gf_sys_format_help(helpout, help_flags, "\n%s\n\n", gf_filter_get_help(filter_inst) );
+		const char *str = gf_filter_get_author(filter_inst);
+		if (str)
+			gf_sys_format_help(helpout, help_flags, "Author: %s\n", str );
+		str = gf_filter_get_help(filter_inst);
+		if (str)
+			gf_sys_format_help(helpout, help_flags, "\n%s\n\n", str);
 	} else {
 #ifndef GPAC_DISABLE_DOC
-		if (reg->author) gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
+		if (reg->author)
+			gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
 		if (reg->help) {
 			u32 hf = help_flags;
 			if (gen_doc==1) hf |= GF_PRINTARG_ESCAPE_XML;

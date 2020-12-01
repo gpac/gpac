@@ -167,7 +167,7 @@ GF_EXPORT
 GF_Err gf_media_change_color(GF_ISOFile *file, u32 track, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
-	GF_Err e = GF_OK;
+	GF_Err e;
 	u32 stype = gf_isom_get_media_subtype(file, track, 1);
 	if ((stype==GF_ISOM_SUBTYPE_AVC_H264)
 			|| (stype==GF_ISOM_SUBTYPE_AVC2_H264)

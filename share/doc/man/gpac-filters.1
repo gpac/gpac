@@ -1861,7 +1861,7 @@ store (enum, default: inter):  file storage mode
 .br
 
 .br
-cdur (dbl, default: -1.0):     chunk duration for interleaving and fragmentation modes
+cdur (frac, default: -1/1):    chunk duration for interleaving and fragmentation modes
 .br
 * 0: no specific interleaving but moov first
 .br
@@ -3949,11 +3949,15 @@ gpac -i source.mp4 -o live.mpd:segdur=2:profile=live:dmode=dynamic:sreg
 .br
 
 .br
+
+.br
 For low latency segmentation with fMP4, you will need to specify the following options:
 .br
 * cdur: set the fMP4 fragment duration
 .br
-* asto: set the availability time offset. This value should be equal or slightly greater than segment duration minus cdur
+* asto: set the availability time offset for DASH. This value should be equal or slightly greater than segment duration minus cdur
+.br
+* llhls: enable low latency for HLS
 .br
 If your sources are not real-time, insert a reframer filter with real-time regulation
 .br
@@ -3965,7 +3969,31 @@ gpac -i source.mp4 reframer:rt=on @ -o live.mpd:segdur=2:cdur=0.2:asto=1.8:profi
 .br
 This will create DASH segments of 2 seconds made of fragments of 200 ms and indicate to the client that requests can be made 1.8 seconds earlier than segment complete availability on server.
 .br
-Note: Low latency HLS is not yet supported.
+Example
+.br
+gpac -i source.mp4 reframer:rt=on @ -o live.m3u8:segdur=2:cdur=0.2:llhls=br:dmode=dynamic
+.br
+
+.br
+This will create DASH segments of 2 seconds made of fragments of 200 ms and produce HLS low latency parts using byte ranges in the final segment.
+.br
+Example
+.br
+gpac -i source.mp4 reframer:rt=on @ -o live.m3u8:segdur=2:cdur=0.2:llhls=sf:dmode=dynamic
+.br
+
+.br
+This will create DASH segments of 2 seconds made of fragments of 200 ms and produce HLS low latency parts using dedicated files.
+.br
+
+.br
+You can combine LL-HLS and DASH-LL generation:
+.br
+Example
+.br
+gpac -i source.mp4 reframer:rt=on @ -o live.mpd:dual:segdur=2:cdur=0.2:asto=1.8:llhls=br:profile=live:dmode=dynamic
+.br
+
 .br
 
 .br
@@ -4150,7 +4178,7 @@ The segmenter will add the following properties to the output PIDs:
 .SH Options (expert):
 .LP
 .br
-segdur (dbl, default: 0.0):    target segment duration in seconds. A value less than or equal to 0 means to 1.0 second
+segdur (frac, default: 0/0):   target segment duration in seconds. A value less than or equal to 0 means to 1.0 second
 .br
 tpl (bool, default: true):     use template mode (multiple segment, template URLs)
 .br
@@ -4382,7 +4410,7 @@ mha_compat (enum, default: no): adaptation set generation mode for compatible MP
 .br
 mname (str):                   output manifest name for ATSC3 muxing
 .br
-hlsll (enum, default: off):    HLS low latency type
+llhls (enum, default: off):    HLS low latency type
 .br
 * off: do not use LL-HLS
 .br
@@ -6826,7 +6854,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev285-g9271d1e77-master
+build: 1.1.0-DEV-rev287-ge38cd93d8-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

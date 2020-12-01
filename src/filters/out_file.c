@@ -123,11 +123,12 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 
 		if (ctx->use_templates) {
 			GF_Err e;
-			char szName[GF_MAX_PATH], szFileName[GF_MAX_PATH];
+			char szName[GF_MAX_PATH];
 			if (ctx->dst && !strcmp(filename, ctx->dst)) {
 				strcpy(szName, szFinalName);
 				e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
 			} else {
+				char szFileName[GF_MAX_PATH];
 				strcpy(szFileName, szFinalName);
 				strcpy(szName, ctx->dst);
 				e = gf_filter_pid_resolve_file_template_ex(ctx->pid, szName, szFinalName, file_idx, file_suffix, szFileName);
