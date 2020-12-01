@@ -495,7 +495,7 @@ typedef struct
 	/*! indicates if uses multi PID (eg, multiple sample descriptions in init segment)*/
 	Bool multi_pids;
 	/*! target segment duration for this stream*/
-	Double dash_dur;
+	GF_Fraction dash_dur;
 	/*! estimated next segment start time in MPD timescale*/
 	u64 next_seg_start;
 	/*! first CTS of stream in stream timescale*/
@@ -569,9 +569,9 @@ typedef struct
 	/*! number of fragment infos */
 	GF_DASH_FragmentContext *frags;
 	/*! HLS LL signaling - 0: disabled, 1: byte range, 2: files */
-	u32 hlsll_mode;
+	u32 llhls_mode;
 	/*! HLS LL segment done */
-	Bool hlsll_done;
+	Bool llhls_done;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -628,7 +628,7 @@ typedef struct {
 	/*! segment manifest timescale (for HLS)*/
 	u32 timescale_mpd;
 	/*! dash duration*/
-	Double dash_dur;
+	GF_Fraction dash_dur;
 	/*! init segment name for HLS single file*/
 	const char *hls_single_file_name;
 	/*! number of audio channels - HLS only*/

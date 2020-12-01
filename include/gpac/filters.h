@@ -1140,7 +1140,7 @@ enum
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
 	//internal for HLS low latency
-	GF_PROP_PID_HLSLL = GF_4CC('H','L','S','L'),
+	GF_PROP_PID_LLHLS = GF_4CC('H','L','S','L'),
 	GF_PROP_PCK_HLS_FRAG_NUM = GF_4CC('H','L','S','N'),
 
 	//internal property indicating pointer to associated GF_DownloadSession

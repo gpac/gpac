@@ -1385,9 +1385,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
                 if (e==GF_EOS) {
 					fprintf(stderr, "Rescale ignored, same config in source file\n");
 					e = GF_OK;
-				} else {
-					GOTO_EXIT("rescaling media track")
 				}
+				GOTO_EXIT("rescaling media track")
 				break;
 			}
 		}

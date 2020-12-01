@@ -953,11 +953,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&response_body, "File exists but no read access", NULL);
 				goto exit;
 			}
-			assert(sess->resource);
+			//warning, sess->resource may still be NULL here !
 
 			mime = source_pid ? source_pid->mime : NULL;
 			//probe for mime
-			if (!mime) {
+			if (!mime && sess->resource) {
 				u8 probe_buf[5001];
 				u32 read = (u32) gf_fread(probe_buf, 5000, sess->resource);
 				if ((s32) read < 0) {
@@ -978,9 +978,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				sess->file_size = 0;
 				sess->use_chunk_transfer = GF_TRUE;
 				sess->put_in_progress = 1;
-			} else {
+			} else if (sess->resource) {
 				//get file size, might be incomplete if file writing is in progress
 				sess->file_size = gf_fsize(sess->resource);
+			} else {
+				sess->file_size = 0;
 			}
 		}
 		sess->file_pos = 0;
@@ -1706,6 +1708,9 @@ static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Boo
 			if (sess->in_source) {
 				sess->in_source->nb_dest--;
 				sess->in_source = NULL;
+				if (!sess->resource && sess->path) {
+					sess->resource = gf_fopen(sess->path, "rb");
+				}
 			}
 			sess->in_source_is_ll_hls_chunk = GF_FALSE;
 			sess->file_size = gf_fsize(sess->resource);
@@ -2053,7 +2058,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	}
 	if (!sess->socket) return;
 	if (sess->done) return;
-	//assoicated input directly writes to session
+	//associated input directly writes to session
 	if (sess->in_source && !sess->in_source->resource) return;
 
 	if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE)) {
@@ -2379,6 +2384,9 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 				if (sess->in_source) {
 					sess->in_source->nb_dest--;
 					sess->in_source = NULL;
+					if (!sess->resource && sess->path) {
+						sess->resource = gf_fopen(sess->path, "rb");
+					}
 				}
 				//get final size by forcing a seek
 				sess->file_size = gf_fsize(sess->resource);
