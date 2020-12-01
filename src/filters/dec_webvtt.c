@@ -404,7 +404,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	}
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 
-	cues = gf_webvtt_parse_cues_from_data(pck_data, pck_size, 0);
+	cues = gf_webvtt_parse_cues_from_data(pck_data, pck_size, 0, 0);
 	vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
 	if (gf_list_count(cues)) {
 		while (gf_list_count(cues)) {

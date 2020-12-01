@@ -3287,6 +3287,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	u64 start, end;
 	GF_Tx3gSampleEntryBox *txtd;
 	char szDur[100];
+	Bool is_wvtt = GF_FALSE;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
 	u32 subtype = gf_isom_get_media_subtype(the_file, track, 1);
 	if (!trak) return GF_BAD_PARAM;
@@ -3306,7 +3307,9 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	case GF_ISOM_SUBTYPE_TX3G:
 	case GF_ISOM_SUBTYPE_TEXT:
 	case GF_ISOM_SUBTYPE_STXT:
+		break;
 	case GF_ISOM_SUBTYPE_WVTT:
+		is_wvtt = GF_TRUE;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -3333,27 +3336,43 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		} else {
 			end = gf_isom_get_media_duration(the_file, track) ;
 		}
-		cur_frame++;
-		gf_fprintf(dump, "%d\n", cur_frame);
-		tx3g_format_time(start, ts, szDur, GF_TRUE);
-		gf_fprintf(dump, "%s --> ", szDur);
-		tx3g_format_time(end, ts, szDur, GF_TRUE);
-		gf_fprintf(dump, "%s\n", szDur);
+		if (!is_wvtt) {
+			cur_frame++;
+			gf_fprintf(dump, "%d\n", cur_frame);
+			tx3g_format_time(start, ts, szDur, GF_TRUE);
+			gf_fprintf(dump, "%s --> ", szDur);
+			tx3g_format_time(end, ts, szDur, GF_TRUE);
+			gf_fprintf(dump, "%s\n", szDur);
+		}
 
-		if (subtype == GF_ISOM_SUBTYPE_WVTT) {
-			u64 start_ts;
-			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue);
+
+		if (is_wvtt) {
+			u64 start_ts, end_ts;
+			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt);
 			GF_List *cues;
+			u32 nb_cues;
 			u8 *data;
 			u32 data_len;
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 			start_ts = s->DTS * 1000;
 			start_ts /= trak->Media->mediaHeader->timeScale;
-			cues = gf_webvtt_parse_cues_from_data(s->data, s->dataLength, start_ts);
+			end_ts = end * 1000;
+			end_ts /= trak->Media->mediaHeader->timeScale;
+			cues = gf_webvtt_parse_cues_from_data(s->data, s->dataLength, start_ts, end_ts);
+			nb_cues = gf_list_count(cues);
+
+			if (!nb_cues) {
+				gf_list_del(cues);
+				continue;
+			}
+
+			cur_frame++;
+			gf_fprintf(dump, "%d\n", cur_frame);
+
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			for (j = 0; j < gf_list_count(cues); j++) {
 				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, j);
-				webvtt_write_cue(bs, cue);
+				webvtt_write_cue(bs, cue, GF_TRUE);
 				gf_webvtt_cue_del(cue);
 			}
 			gf_list_del(cues);
