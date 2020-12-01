@@ -319,7 +319,8 @@ typedef struct
 
 	u64 frag_size, frag_offset;
 	u32 frag_num;
-	u32 frag_duration, frag_timescale;
+	u64 frag_duration;
+	u32 frag_timescale;
 	Bool frag_has_intra;
 } GF_MP4MuxCtx;
 
@@ -3782,7 +3783,7 @@ static void mp4_mux_flush_frag_hls(GF_MP4MuxCtx *ctx)
 	evt.frag_size.is_last = ctx->flush_seg ? GF_TRUE : GF_FALSE;
 	evt.frag_size.offset = ctx->frag_offset;
 	evt.frag_size.size = ctx->frag_size;
-	evt.frag_size.duration.num = ctx->frag_duration;
+	evt.frag_size.duration.num = (s64) ctx->frag_duration;
 	evt.frag_size.duration.den = ctx->frag_timescale;
 	evt.frag_size.independent = ctx->frag_has_intra;
 

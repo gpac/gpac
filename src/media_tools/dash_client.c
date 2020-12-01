@@ -373,7 +373,7 @@ struct __dash_group
 	GF_MPD_SegmentURL *llhls_edge_chunkllhls;
 	Bool llhls_last_was_merged;
 	s32 llhls_switch_request;
-	u64 last_mpd_change_time;
+	u32 last_mpd_change_time;
 };
 
 //currently wait 50ms when reloading a child playlist with a missing URL - waiting more would break LL-HLS
@@ -2654,7 +2654,7 @@ process_m3u8_manifest:
 							if (first_added_chunk) {
 								s32 pos = gf_list_find(segments, first_added_chunk);
 								assert(pos>=0);
-								while (pos < gf_list_count(segments)) {
+								while (pos < (s32) gf_list_count(segments)) {
 									GF_MPD_SegmentURL *surl = gf_list_pop_back(segments);
 									assert(surl->hls_ll_chunk_type);
 									gf_mpd_segment_url_free(surl);
