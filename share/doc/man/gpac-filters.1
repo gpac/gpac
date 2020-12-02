@@ -6014,7 +6014,13 @@ Version: Lavf58.42.101
 .br
 
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+Demuxes files and open protocol using FFMPEG.
+.br
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+.br
+To list all supported demuxers for your GPAC build, use gpac -h ffdmx:*.
+.br
+
 .br
 
 .br
@@ -6036,7 +6042,11 @@ Version: Lavc58.81.100
 .br
 
 .br
+Encodes audio and video streams.
+.br
 See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+.br
+To list all supported decoders for your GPAC build, use gpac -h ffdec:*.
 .br
 
 .br
@@ -6064,21 +6074,30 @@ Version: Lavd58.9.103
 .br
 
 .br
+Reads from audio/video capture devices using FFMPEG.
+.br
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+.br
+To list all supported grabbers for your GPAC build, use gpac -h ffavin:*.
+.br
+
+.br
+.SH Device identification
+.LP
+.br
 Typical classes are dshow on windows, avfoundation on OSX, video4linux2 or x11grab on linux
 .br
 
 .br
 Typical device name can be the webcam name:
 .br
-FaceTime HD Camera on OSX, device name on windows, /dev/video0 on linux
+- FaceTime HD Camera on OSX, device name on windows, /dev/video0 on linux
 .br
-screen-capture-recorder, see http://screencapturer.sf.net/ on windows
+- screen-capture-recorder, see http://screencapturer.sf.net/ on windows
 .br
-Capture screen 0 on OSX (0=first screen), or screenN for short
+- Capture screen 0 on OSX (0=first screen), or screenN for short
 .br
-X display name (eg :0.0) on linux
-.br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+- X display name (eg :0.0) on linux
 .br
 
 .br
@@ -6172,17 +6191,33 @@ Version: Lavc58.81.100
 .br
 Encodes audio and video streams.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
-Note: if no codec is explicited through .I ffc option and no pixel format is given, codecs will be enumerated to find a matching pixel format.
-.br
-
-.br
-The encoder will look for property TargetRate on input PID to set the desired bitrate per PID.
+To list all supported encoders for your GPAC build, use gpac -h ffenc:*.
 .br
 
 .br
-The encoder will force a closed gop boundary at each packet with a FileNumber property set or a CueStart property set to true.
+The filter will try to resolve the codec name in .I c against a libavcodec codec name (eg libx264) and use it if found.
+.br
+If not found, it will consider the name to be a GPAC codec name and find a codec for it. In that case, if no pixel format is given, codecs will be enumerated to find a matching pixel format.
+.br
+
+.br
+Options can be passed from prompt using -+OPT=VAL (global options) or appending ::OPT=VAL to the desired encoder filter.
+.br
+
+.br
+The filter will look for property TargetRate on input PID to set the desired bitrate per PID.
+.br
+
+.br
+The filter will force a closed gop boundary:
+.br
+- at each packet with a FileNumber property set or a CueStart property set to true.
+.br
+- if .I fintra and .I rc is set.
+.br
+When forcing a closed GOP boundary, the filter will flush, destroy and recreate the encoder to make sure a clean context is used, as currently many encoders in libavcodec do not support clean reset when forcing picture types.
 .br
 
 .br
@@ -6191,7 +6226,7 @@ The encoder will force a closed gop boundary at each packet with a FileNumber pr
 .SH Options (expert):
 .LP
 .br
-c (str):                       codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name
+c (str):                       codec identifier. Can be any supported GPAC codec name or ffmpeg codec name
 .br
 pfmt (pfmt, default: none):    pixel format for input video. When not set, input format is used
 .br
@@ -6201,7 +6236,7 @@ all_intra (bool, default: false, updatable): only produce intra frames
 .br
 ls (bool, default: false):     log stats
 .br
-ffc (str):                     ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)
+rc (bool, default: false):     reset encoder when forcing intra frame (some encoders might not support intra frame forcing)
 .br
 * (str):                       any possible options defined for AVCodecContext and sub-classes. see gpac -hx ffenc and gpac -hx ffenc:*
 .br
@@ -6216,13 +6251,13 @@ Version: Lavf58.42.101
 .br
 
 .br
-FFMPEG output for files and streamers.
+Muxes files and open output protocols using FFMPEG.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
-
+To list all supported demuxers for your GPAC build, use gpac -h ffmx:*.
 .br
-Note: Some URL formats may not be sufficient to derive the multiplexing format, you must then use .I ffmt to specify the desired format.
+Some URL formats may not be sufficient to derive the multiplexing format, you must then use .I ffmt to specify the desired format.
 .br
 
 .br
@@ -6270,7 +6305,11 @@ Version: Lavf58.42.101
 .br
 
 .br
-This filter provides libavfilter raw audio and video tools. See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+This filter provides libavfilter raw audio and video tools.
+.br
+See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+.br
+To list all supported avfilters for your GPAC build, use gpac -h ffavf:*.
 .br
 
 .br
@@ -6894,7 +6933,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev293-g127964906-master
+build: 1.1.0-DEV-rev296-g7e42eb0b4-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

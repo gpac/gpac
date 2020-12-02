@@ -726,7 +726,10 @@ GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG demuxer")
-	GF_FS_SET_HELP("See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
+	GF_FS_SET_HELP("Demuxes files and open protocol using FFMPEG.\n"
+	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	"To list all supported demuxers for your GPAC build, use `gpac -h ffdmx:*`.\n"
+	)
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFDmxCaps),
 	.initialize = ffdmx_initialize,
@@ -987,14 +990,19 @@ GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.version = LIBAVDEVICE_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG AV Capture")
-	GF_FS_SET_HELP("Typical classes are `dshow` on windows, `avfoundation` on OSX, `video4linux2` or `x11grab` on linux\n\n"\
-	"Typical device name can be the webcam name:\n"\
-		"`FaceTime HD Camera` on OSX, device name on windows, `/dev/video0` on linux\n"\
-		"`screen-capture-recorder`, see http://screencapturer.sf.net/ on windows\n"\
-		"`Capture screen 0` on OSX (0=first screen), or `screenN` for short\n"\
-		"X display name (eg `:0.0`) on linux"\
-		"\n"\
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
+	GF_FS_SET_HELP("Reads from audio/video capture devices using FFMPEG.\n"
+	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	"To list all supported grabbers for your GPAC build, use `gpac -h ffavin:*`.\n"
+	"\n"
+	"# Device identification\n"
+	"Typical classes are `dshow` on windows, `avfoundation` on OSX, `video4linux2` or `x11grab` on linux\n"
+	"\n"
+	"Typical device name can be the webcam name:\n"
+	"- `FaceTime HD Camera` on OSX, device name on windows, `/dev/video0` on linux\n"
+	"- `screen-capture-recorder`, see http://screencapturer.sf.net/ on windows\n"
+	"- `Capture screen 0` on OSX (0=first screen), or `screenN` for short\n"
+	"- X display name (eg `:0.0`) on linux"
+	)
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFAVInCaps),
 	.initialize = ffavin_initialize,

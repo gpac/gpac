@@ -984,10 +984,12 @@ GF_FilterRegister FFMuxRegister = {
 	.name = "ffmx",
 	.version = LIBAVFORMAT_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG muxer")
-	GF_FS_SET_HELP("FFMPEG output for files and streamers.\n"
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details\n"
+
+	GF_FS_SET_HELP("Muxes files and open output protocols using FFMPEG.\n"
+		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+		"To list all supported demuxers for your GPAC build, use `gpac -h ffmx:*`."
 		"\n"
-		"Note: Some URL formats may not be sufficient to derive the multiplexing format, you must then use [-ffmt]() to specify the desired format.\n"
+		"Some URL formats may not be sufficient to derive the multiplexing format, you must then use [-ffmt]() to specify the desired format.\n"
 		"\n"
 		"Unlike other multiplexing filters in GPAC, this filter is a sink filter and does not produce any PID to be redirected in the graph.\n"
 		"The filter can however use template names for its output, using the first input PID to resolve the final name.\n"
