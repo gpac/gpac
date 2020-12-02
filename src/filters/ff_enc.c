@@ -37,10 +37,11 @@ typedef struct _gf_ffenc_ctx
 {
 	//opts
 	Bool all_intra;
-	char *c, *ffc;
+	char *c;
 	Bool ls;
 	u32 pfmt;
 	GF_Fraction fintra;
+	Bool rc;
 
 	//internal data
 	Bool initialized;
@@ -49,7 +50,7 @@ typedef struct _gf_ffenc_ctx
 	u32 target_rate;
 
 	AVCodecContext *encoder;
-	//decode options
+	//encode options
 	AVDictionary *options;
 
 	GF_FilterPid *in_pid, *out_pid;
@@ -121,10 +122,11 @@ typedef struct _gf_ffenc_ctx
 	AVCodec *force_codec;
 } GF_FFEncodeCtx;
 
-static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
+static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove, Bool is_force_reconf);
 
 static GF_Err ffenc_initialize(GF_Filter *filter)
 {
+	u32 codec_id;
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
 	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
@@ -132,17 +134,20 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 
 	ffmpeg_setup_logs(GF_LOG_CODEC);
 
+
 	if (!ctx->c) return GF_OK;
-	u32 codec_id = gf_codecid_parse(ctx->c);
-	if (codec_id==GF_CODECID_NONE) {
-		ctx->force_codec = avcodec_find_encoder_by_name(ctx->c);
-	} else {
+
+	//first look by name, to handle cases such as "aac" vs "vo_aacenc"
+	ctx->force_codec = avcodec_find_encoder_by_name(ctx->c);
+	if (ctx->force_codec) return GF_OK;
+
+	//then look by codec ID
+	codec_id = gf_codecid_parse(ctx->c);
+	if (codec_id!=GF_CODECID_NONE) {
 		ctx->force_codec = avcodec_find_encoder(ffmpeg_codecid_from_gpac(codec_id, NULL) );
 	}
-	if (!ctx->force_codec)
-		return GF_NOT_SUPPORTED;
-	if (codec_id != GF_CODECID_NONE)
-		ctx->force_codec = NULL;
+	if (!ctx->force_codec) return GF_NOT_SUPPORTED;
+	ctx->force_codec = NULL;
 	return GF_OK;
 }
 
@@ -321,7 +326,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (force_intra) {
 		//file switch we force a full reset to force injecting xPS in the stream
 		//we could also inject them manually but we don't have them !!
-		if (force_intra==2) {
+		if ((ctx->rc && ctx->nb_frames_in) || (force_intra==2)) {
 			if (!ctx->force_reconfig) {
 				ctx->reconfig_pending = GF_TRUE;
 				ctx->force_reconfig = GF_TRUE;
@@ -421,11 +426,16 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (!gotpck) {
 			//done flushing encoder while reconfiguring
 			if (ctx->reconfig_pending) {
+				GF_Err e;
+				Bool bck_init_cts = ctx->init_cts_setup;
 				ctx->reconfig_pending = GF_FALSE;
+				ctx->force_reconfig = GF_FALSE;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				avcodec_close(ctx->encoder);
 				ctx->encoder = NULL;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
-				return ffenc_configure_pid(filter, ctx->in_pid, GF_FALSE);
+				e = ffenc_configure_pid_ex(filter, ctx->in_pid, GF_FALSE, GF_TRUE);
+				ctx->init_cts_setup = bck_init_cts;
+				return e;
 			}
 			ctx->flush_done = 1;
 			gf_filter_pid_set_eos(ctx->out_pid);
@@ -749,11 +759,16 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (!gotpck) {
 			//done flushing encoder while reconfiguring
 			if (ctx->reconfig_pending) {
+				GF_Err e;
+				Bool bck_init_cts = ctx->init_cts_setup;
+
 				ctx->reconfig_pending = GF_FALSE;
 				avcodec_close(ctx->encoder);
 				ctx->encoder = NULL;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
-				return ffenc_configure_pid(filter, ctx->in_pid, GF_FALSE);
+				e = ffenc_configure_pid_ex(filter, ctx->in_pid, GF_FALSE, GF_TRUE);
+				ctx->init_cts_setup = bck_init_cts;
+				return e;
 			}
 			ctx->flush_done = 1;
 			gf_filter_pid_set_eos(ctx->out_pid);
@@ -899,11 +914,12 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TARGET_RATE, NULL);
 }
 
-static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove, Bool is_force_reconf)
 {
 	s32 res;
 	u32 type=0, fftype, ff_codectag=0;
 	u32 i=0;
+	AVDictionary *options = NULL;
 	u32 change_input_fmt = 0;
 	const GF_PropertyValue *prop;
 	const AVCodec *codec=NULL;
@@ -949,10 +965,6 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	} else {
 		ctx->codecid = ffmpeg_codecid_to_gpac(ctx->force_codec->id);
 		desired_codec = ctx->force_codec;
-	}
-	//if the codec was set using ffc, get it
-	if (ctx->ffc) {
-		desired_codec = avcodec_find_encoder_by_name(ctx->ffc);
 	}
 
 	if (!ctx->codecid && !desired_codec) {
@@ -1024,7 +1036,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		av_dict_set(&ctx->options, "b", szRate, 0);
 	}
 
-	ffenc_copy_pid_props(ctx);
+	if (!is_force_reconf)
+		ffenc_copy_pid_props(ctx);
 
 #define GET_PROP(_a, _code, _name) \
 	prop = gf_filter_pid_get_property(pid, _code); \
@@ -1111,7 +1124,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				}
 				i++;
 			}
-			if (!ctx->ffc && !ctx->force_codec && (change_input_fmt == AV_PIX_FMT_NONE)) {
+			if (!ctx->force_codec && (change_input_fmt == AV_PIX_FMT_NONE)) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 				void *ff_opaque=NULL;
 #else
@@ -1259,7 +1272,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 #endif
 		}
 
-		if (ctx->fintra.den && ctx->fintra.num) {
+		if (ctx->fintra.den && ctx->fintra.num && !ctx->rc) {
 			av_dict_set(&ctx->options, "forced-idr", "1", 0);
 		}
 
@@ -1335,23 +1348,22 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		case GF_CODECID_AAC_MPEG2_MP:
 		case GF_CODECID_AAC_MPEG2_LCP:
 		case GF_CODECID_AAC_MPEG2_SSRP:
-		{
+			if (!is_force_reconf) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-			GF_M4ADecSpecInfo acfg;
-			u8 *dsi;
-			u32 dsi_len;
-			memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
-			acfg.base_object_type = GF_M4A_AAC_LC;
-			acfg.base_sr = ctx->sample_rate;
-			acfg.nb_chan = ctx->channels;
-			acfg.sbr_object_type = 0;
-			acfg.audioPL = gf_m4a_get_profile(&acfg);
+				GF_M4ADecSpecInfo acfg;
+				u8 *dsi;
+				u32 dsi_len;
+				memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
+				acfg.base_object_type = GF_M4A_AAC_LC;
+				acfg.base_sr = ctx->sample_rate;
+				acfg.nb_chan = ctx->channels;
+				acfg.sbr_object_type = 0;
+				acfg.audioPL = gf_m4a_get_profile(&acfg);
 
-			gf_m4a_write_config(&acfg, &dsi, &dsi_len);
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_len) );
+				gf_m4a_write_config(&acfg, &dsi, &dsi_len);
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_len) );
 #endif
-
-		}
+			}
 			break;
 		}
 	}
@@ -1364,8 +1376,12 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
 	if (codec->capabilities & AV_CODEC_CAP_AUTO_THREADS)
 		ctx->encoder->thread_count = 0;
-	res = avcodec_open2(ctx->encoder, codec, &ctx->options );
+
+
+	av_dict_copy(&options, ctx->options, 0);
+	res = avcodec_open2(ctx->encoder, codec, &options );
 	if (res < 0) {
+		if (options) av_dict_free(&options);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
 		return GF_BAD_PARAM;
 	}
@@ -1373,10 +1389,20 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!ctx->target_rate)
 		ctx->target_rate = (u32)ctx->encoder->bit_rate;
 
-	ffmpeg_report_unused_options(filter, ctx->options);
+	if (options) {
+		ffmpeg_report_unused_options(filter, options);
+		av_dict_free(&options);
+	}
 
-	ffenc_copy_pid_props(ctx);
+	if (!is_force_reconf)
+		ffenc_copy_pid_props(ctx);
 	return GF_OK;
+}
+
+static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	return ffenc_configure_pid_ex(filter, pid, is_remove, GF_FALSE);
+
 }
 
 
@@ -1449,13 +1475,21 @@ GF_FilterRegister FFEncodeRegister = {
 	.name = "ffenc",
 	.version=LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG encoder")
-	GF_FS_SET_HELP("Encodes audio and video streams.\nSee FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details"
+	GF_FS_SET_HELP("Encodes audio and video streams.\n"
+		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+		"To list all supported encoders for your GPAC build, use `gpac -h ffenc:*`.\n"
 		"\n"
-		"Note: if no codec is explicited through [-ffc]() option and no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
+		"The filter will try to resolve the codec name in [-c]() against a libavcodec codec name (eg `libx264`) and use it if found.\n"
+		"If not found, it will consider the name to be a GPAC codec name and find a codec for it. In that case, if no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
 		"\n"
-		"The encoder will look for property `TargetRate` on input PID to set the desired bitrate per PID.\n"
+		"Options can be passed from prompt using `-+OPT=VAL` (global options) or appending `::OPT=VAL` to the desired encoder filter.\n"
 		"\n"
-		"The encoder will force a closed gop boundary at each packet with a `FileNumber` property set or a `CueStart` property set to true.\n"
+		"The filter will look for property `TargetRate` on input PID to set the desired bitrate per PID.\n"
+		"\n"
+		"The filter will force a closed gop boundary:\n"
+		"- at each packet with a `FileNumber` property set or a `CueStart` property set to true.\n"
+		"- if [-fintra]() and [-rc]() is set.\n"
+		"When forcing a closed GOP boundary, the filter will flush, destroy and recreate the encoder to make sure a clean context is used, as currently many encoders in libavcodec do not support clean reset when forcing picture types.\n"
 	)
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
@@ -1470,13 +1504,13 @@ GF_FilterRegister FFEncodeRegister = {
 #define OFFS(_n)	#_n, offsetof(GF_FFEncodeCtx, _n)
 static const GF_FilterArgs FFEncodeArgs[] =
 {
-	{ OFFS(c), "codec identifier. Can be any supported GPAC ID or ffmpeg ID or filter subclass name", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(c), "codec identifier. Can be any supported GPAC codec name or ffmpeg codec name", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, eg `fintra=60000/1001` will force an intra every 2 seconds on 29.97 fps video; ignored for audio", GF_PROP_FRACTION, "0", NULL, 0},
 
 	{ OFFS(all_intra), "only produce intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ls), "log stats", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ffc), "ffmpeg codec name. This allows enforcing a given codec if multiple codecs support the codec ID set (eg aac vs vo_aacenc)", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(rc), "reset encoder when forcing intra frame (some encoders might not support intra frame forcing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. see `gpac -hx ffenc` and `gpac -hx ffenc:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}

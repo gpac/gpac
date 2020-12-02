@@ -125,6 +125,8 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	}
 	gf_filter_pid_copy_properties(ctx->base_opid, pid);
+	//set SABT to true by default for link resolution
+	gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE) );
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!p) return GF_OK;
@@ -167,6 +169,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	if (! ctx->hevc.pps[pps_idx].tiles_enabled_flag) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[TileSplit] Tiles not enabled, using passthrough\n"));
+		gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_TILE_BASE, NULL);
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
 	}
@@ -262,7 +265,13 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		bitrate /= nb_tiles-ctx->tiledrop.nb_items;
 	}
 
+	const char *pname = gf_filter_pid_get_name(ctx->ipid);
+	if (pname) pname = gf_file_basename(pname);
+	if (!pname) pname = "video";
+
+
 	for (i=ctx->nb_tiles; i<nb_tiles; i++) {
+		char szName[GF_MAX_PATH];
 		TileSplitPid *tinfo = &ctx->opids[i];
 		if (!tinfo->opid) {
 			Bool drop = GF_FALSE;
@@ -292,6 +301,9 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_TILE_ID, &PROP_UINT(i + 1 ) );
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ctx->base_id) );
 		tilesplit_update_pid_props(ctx, tinfo);
+
+		sprintf(szName, "%s_tile%d", pname, i+1);
+		gf_filter_pid_set_name(tinfo->opid, szName);
 	}
 	if (dsi) gf_free(dsi);
 	ctx->nb_tiles = nb_tiles;
@@ -321,7 +333,6 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	gf_free(pval.value.uint_list.vals);
 
 	gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(ctx->width, ctx->height) );
-	gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE) );
 	gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_BITRATE, bitrate ? &PROP_UINT(10000) : NULL);
 
 	gf_odf_hevc_cfg_del(hvcc);
