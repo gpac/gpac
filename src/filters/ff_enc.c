@@ -118,6 +118,7 @@ typedef struct _gf_ffenc_ctx
 	u64 orig_ts;
 	u32 nb_forced;
 
+	AVCodec *force_codec;
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
@@ -130,6 +131,18 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 	ctx->sdbs = gf_bs_new((u8*)ctx, 1, GF_BITSTREAM_READ);
 
 	ffmpeg_setup_logs(GF_LOG_CODEC);
+
+	if (!ctx->c) return GF_OK;
+	u32 codec_id = gf_codecid_parse(ctx->c);
+	if (codec_id==GF_CODECID_NONE) {
+		ctx->force_codec = avcodec_find_encoder_by_name(ctx->c);
+	} else {
+		ctx->force_codec = avcodec_find_encoder(ffmpeg_codecid_from_gpac(codec_id, NULL) );
+	}
+	if (!ctx->force_codec)
+		return GF_NOT_SUPPORTED;
+	if (codec_id != GF_CODECID_NONE)
+		ctx->force_codec = NULL;
 	return GF_OK;
 }
 
@@ -864,6 +877,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	gf_filter_pid_copy_properties(ctx->out_pid, ctx->in_pid);
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, NULL);
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(ctx->codecid) );
+	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL);
 
 	switch (ctx->codecid) {
 	case GF_CODECID_AVC:
@@ -919,17 +933,22 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!prop || prop->value.uint!=GF_CODECID_RAW) return GF_NOT_SUPPORTED;
 
-	//figure out if output was preconfigured during filter chain setup
-	prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_CODECID);
-	if (prop) {
-		ctx->codecid = prop->value.uint;
-	} else if (!ctx->codecid && ctx->c) {
-		ctx->codecid = gf_codecid_parse(ctx->c);
-		if (!ctx->codecid) {
-			codec = avcodec_find_encoder_by_name(ctx->c);
-			if (codec)
-				ctx->codecid = ffmpeg_codecid_to_gpac(codec->id);
+	if (!ctx->force_codec) {
+		//figure out if output was preconfigured during filter chain setup
+		prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_CODECID);
+		if (prop) {
+			ctx->codecid = prop->value.uint;
+		} else if (!ctx->codecid && ctx->c) {
+			ctx->codecid = gf_codecid_parse(ctx->c);
+			if (!ctx->codecid) {
+				codec = avcodec_find_encoder_by_name(ctx->c);
+				if (codec)
+					ctx->codecid = ffmpeg_codecid_to_gpac(codec->id);
+			}
 		}
+	} else {
+		ctx->codecid = ffmpeg_codecid_to_gpac(ctx->force_codec->id);
+		desired_codec = ctx->force_codec;
 	}
 	//if the codec was set using ffc, get it
 	if (ctx->ffc) {
@@ -1092,7 +1111,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				}
 				i++;
 			}
-			if (!ctx->ffc && (change_input_fmt == AV_PIX_FMT_NONE)) {
+			if (!ctx->ffc && !ctx->force_codec && (change_input_fmt == AV_PIX_FMT_NONE)) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 				void *ff_opaque=NULL;
 #else

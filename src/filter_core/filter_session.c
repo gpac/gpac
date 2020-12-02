@@ -866,8 +866,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, udta, GF_FALSE, GF_FALSE);
 }
 
-GF_EXPORT
-Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output, Bool exact_match_only)
+Bool gf_fs_check_filter_register_cap_ex(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output, Bool exact_match_only, Bool out_cap_excluded)
 {
 	u32 j;
 	u32 has_raw_in = 0;
@@ -898,10 +897,18 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode,
 		if ( (cap->flags & GF_CAPFLAG_OUTPUT) && (cap->code == outcode) ) {
 			if (! (cap->flags & GF_CAPFLAG_EXCLUDED)) {
 				if (gf_props_equal(&cap->val, cap_output) ) {
-					has_cid_match = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
+					if (out_cap_excluded) {
+						exclude_cid_out = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
+					} else {
+						has_cid_match = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
+					}
 				}
 			} else {
-				if (gf_props_equal(&cap->val, cap_output) ) {
+				Bool prop_equal = gf_props_equal(&cap->val, cap_output);
+				if (out_cap_excluded)
+					prop_equal = !prop_equal;
+
+				if (prop_equal) {
 					exclude_cid_out = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
 				} else {
 					has_exclude_cid_out = (cap->flags & GF_CAPS_OUTPUT_STATIC) ? 2 : 1;
@@ -915,6 +922,12 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode,
 	}
 	return GF_FALSE;
 }
+GF_EXPORT
+Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output, Bool exact_match_only)
+{
+	return gf_fs_check_filter_register_cap_ex(f_reg, incode, cap_input, outcode, cap_output, exact_match_only, GF_FALSE);
+}
+
 static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 {
 	GF_Err e;
@@ -925,6 +938,8 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	GF_Filter *filter;
 	u32 i, count;
 	GF_PropertyValue cap_in, cap_out;
+	GF_List *blacklist = NULL;
+	Bool ocap_excluded = GF_FALSE;
 	szCodec[0] = 'c';
 	szCodec[1] = fsess->sep_name;
 	szCodec[2] = 0;
@@ -938,37 +953,54 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	if (sep) sep[0] = 0;
 
 	codecid = gf_codecid_parse(cid+2);
+#if 0
 	if (codecid==GF_CODECID_NONE) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized codec identifier in \"enc\" definition: %s\n", cid));
 		if (sep) sep[0] = fsess->sep_args;
 		return NULL;
 	}
+#endif
 	if (sep) sep[0] = fsess->sep_args;
 
 	cap_in.type = GF_PROP_UINT;
 	cap_in.value.uint = GF_CODECID_RAW;
 	cap_out.type = GF_PROP_UINT;
-	cap_out.value.uint = codecid;
+	if (codecid==GF_CODECID_NONE) {
+		cap_out.value.uint = GF_CODECID_RAW;
+		ocap_excluded = GF_TRUE;
+	} else {
+		cap_out.value.uint = codecid;
+	}
 
+retry:
 	count = gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
+		if (blacklist && gf_list_find(blacklist, (void *) f_reg))
+			continue;
 
-		if ( gf_fs_check_filter_register_cap(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out, GF_FALSE)) {
+		if ( gf_fs_check_filter_register_cap_ex(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out, GF_FALSE, ocap_excluded)) {
 			if (!candidate || (candidate->priority>f_reg->priority))
 				candidate = f_reg;
 		}
 	}
 	if (!candidate) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot find any filter providing encoding for %s\n", cid));
+		if (blacklist) gf_list_del(blacklist);
 		return NULL;
 	}
 	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL, GF_FALSE);
 	if (!filter) {
+		if (e==GF_NOT_SUPPORTED) {
+			if (!blacklist) blacklist = gf_list_new();
+			gf_list_add(blacklist, (void *) candidate);
+			goto retry;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", candidate->name, gf_error_to_string(e) ));
 	} else {
 		filter->encoder_stream_type = gf_codecid_type(codecid);
 	}
+	if (blacklist) gf_list_del(blacklist);
 	return filter;
 }
 
