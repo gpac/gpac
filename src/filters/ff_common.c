@@ -741,6 +741,9 @@ second_pass:
 		} else if (type==FF_REG_TYPE_DECODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
+			if (!av_codec_is_decoder(codec))
+				continue;
+
 			av_class = codec->priv_class;
 			subname = codec->name;
 #ifndef GPAC_DISABLE_DOC
@@ -788,6 +791,8 @@ second_pass:
 		} else if (type==FF_REG_TYPE_ENCODE) {
 			codec = av_codec_next(codec);
 			if (!codec) break;
+			if (!av_codec_is_encoder(codec))
+				continue;
 			av_class = codec->priv_class;
 			subname = codec->name;
 #ifndef GPAC_DISABLE_DOC
