@@ -2777,11 +2777,14 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					char *sepd = strchr(reg->name, ':');
 					Bool patch_meta = GF_FALSE;
 					if (sepo && sepd) {
-						char *subf = strstr(reg->name, sepo+1);
-						if (subf) {
-							u32 slen = (u32) strlen(sepo+1);
-							if ((subf[slen]==0) || (subf[slen]==','))
-								patch_meta = GF_TRUE;
+						u32 slen = (u32) (sepd - reg->name);
+						if (!strnicmp(arg, reg->name, slen)) {
+							char *subf = strstr(reg->name, sepo+1);
+							if (subf) {
+								slen = (u32) strlen(sepo+1);
+								if ((subf[slen]==0) || (subf[slen]==','))
+									patch_meta = GF_TRUE;
+							}
 						}
 					}
 					if (!strcmp(arg, "*:*") || !strcmp(arg, "@:@")
@@ -2800,7 +2803,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			}
 			if (found_freg) {
 				found = GF_TRUE;
-			} else {
+			} else if (!strchr(arg, ':')) {
 				//try to load the filter (JS)
 				GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 				if (f) {
