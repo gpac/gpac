@@ -71,7 +71,7 @@ typedef struct
 static void tilesplit_update_pid_props(GF_TileSplitCtx *ctx, TileSplitPid *tinfo)
 {
 	gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_WIDTH, &PROP_UINT(tinfo->w) );
-	gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_WIDTH, &PROP_UINT(tinfo->h) );
+	gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(tinfo->h) );
 
 #if 0
 	GF_PropertyValue pval;
@@ -167,7 +167,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	if (! ctx->hevc.pps[pps_idx].tiles_enabled_flag) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[TileSplit] Tiles not enabled, using passthrough\n"));
-		ctx->passthrough = GF_FALSE;
+		ctx->passthrough = GF_TRUE;
 		return GF_OK;
 	}
 	ctx->passthrough = GF_FALSE;
@@ -248,10 +248,8 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	}
 
 	pval.type = GF_PROP_VEC2I;
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_WIDTH);
-	if (p) pval.value.vec2i.x = p->value.uint;
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_HEIGHT);
-	if (p) pval.value.vec2i.y = p->value.uint;
+	pval.value.vec2i.x = ctx->width;
+	pval.value.vec2i.y = ctx->height;
 
 	memcpy(&tile_cfg, hvcc, sizeof(GF_HEVCConfig));
 	tile_cfg.param_array = NULL;
@@ -553,7 +551,10 @@ GF_FilterRegister TileSplitRegister = {
 	"\n"
 	"The filter will move to passthrough mode if the bitstream is not tiled.\n"
 	"If the `Bitrate` property is set on the input PID, the output tile PIDs will have a bitrate set to `(Bitrate - 10k)/nb_opids`, 10 kbps being reserved for the base.\n"
+	"\n"
 	"Warning: The filter does not check if tiles are independently-coded (MCTS) !\n"
+	"\n"
+	"Warning: Support for dynamic changes of tiling grid has not been tested !\n"
 	)
 	.private_size = sizeof(GF_TileSplitCtx),
 	SETCAPS(TileSplitCaps),
