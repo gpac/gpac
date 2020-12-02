@@ -403,7 +403,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts;
-
 		res = avcodec_encode_video2(ctx->encoder, &pkt, ctx->frame, &gotpck);
 		ctx->nb_frames_in++;
 
@@ -1409,6 +1408,8 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	s32 res;
+	char szOverrideOpt[1000];
+	Bool do_override = GF_FALSE;
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
 
 	if (!strcmp(arg_name, "global_header"))	return GF_OK;
@@ -1432,6 +1433,9 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 			ctx->target_rate *= 1000000;
 		else if (strchr(arg_val->value.string, 'k') || strchr(arg_val->value.string, 'K'))
 			ctx->target_rate *= 1000;
+
+		sprintf(szOverrideOpt, "%d", ctx->target_rate);
+		do_override = GF_TRUE;
 	}
 
 	//initial parsing of arguments
@@ -1439,8 +1443,12 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		const char *arg_val_str;
 		switch (arg_val->type) {
 		case GF_PROP_STRING:
-			arg_val_str = arg_val->value.string;
-			if (!arg_val_str) arg_val_str = "1";
+			if (do_override)
+				arg_val_str = szOverrideOpt;
+			else {
+				arg_val_str = arg_val->value.string;
+				if (!arg_val_str) arg_val_str = "1";
+			}
 			res = av_dict_set(&ctx->options, arg_name, arg_val_str, 0);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s:%s\n", arg_name, arg_val ));

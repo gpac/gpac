@@ -1143,7 +1143,7 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid)
 }
 
 GF_EXPORT
-const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid)
+const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid, Bool for_unicity)
 {
 	u32 i;
 	const char *args;
@@ -1158,10 +1158,18 @@ const char *gf_filter_pid_orig_src_args(GF_FilterPid *pid)
 	}
 	for (i=0; i<pid->filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
-		const char *arg_src = gf_filter_pid_orig_src_args(pidi->pid);
-		if (arg_src) {
+		if (for_unicity && (pidi->pid->num_destinations>1)) {
 			gf_mx_v(pid->filter->tasks_mx);
-			return arg_src;
+			return "__GPAC_SRC_FANOUT__";
+		}
+		const char *arg_src = gf_filter_pid_orig_src_args(pidi->pid, for_unicity);
+		if (arg_src) {
+			if (for_unicity && !strcmp(arg_src, "__GPAC_SRC_FANOUT__"))
+				arg_src = pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args;
+			if (arg_src) {
+				gf_mx_v(pid->filter->tasks_mx);
+				return arg_src;
+			}
 		}
 	}
 	gf_mx_v(pid->filter->tasks_mx);
@@ -4607,15 +4615,18 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 	}
 	pid = pid->pid;
 	if (!pid->caps_negociate) {
-		assert(!pid->caps_negociate_pidi);
+		assert(!pid->caps_negociate_pidi_list);
 		pid->caps_negociate = gf_props_new(pid->filter);
-		pid->caps_negociate_pidi = pidi;
+		pid->caps_negociate_pidi_list = gf_list_new();
+		gf_list_add(pid->caps_negociate_pidi_list, pidi);
 		//we start a new caps negotiation step, reset any blacklist on pid
 		if (pid->adapters_blacklist) {
 			gf_list_del(pid->adapters_blacklist);
 			pid->adapters_blacklist = NULL;
 		}
 		safe_int_inc(&pid->filter->nb_caps_renegociate);
+	} else if (gf_list_find(pid->caps_negociate_pidi_list, pidi)<0) {
+		gf_list_add(pid->caps_negociate_pidi_list, pidi);
 	}
 	//pid is end of stream of pid instance has packet pendings, we will need a new chain to adapt these packets formats
 	if (pid->has_seen_eos || gf_fq_count(pidi->packets)) {

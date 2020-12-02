@@ -156,6 +156,7 @@ enum
 	JSF_PID_FILTER_SRC,
 	JSF_PID_FILTER_ARGS,
 	JSF_PID_FILTER_SRC_ARGS,
+	JSF_PID_FILTER_UNICITY_ARGS,
 	JSF_PID_MAX_BUFFER,
 	JSF_PID_LOOSE_CONNECT,
 	JSF_PID_FRAMING_MODE,
@@ -1936,7 +1937,9 @@ static JSValue jsf_pid_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 	case JSF_PID_FILTER_ARGS:
 		return JS_NewString(ctx, gf_filter_pid_get_args(pctx->pid) );
 	case JSF_PID_FILTER_SRC_ARGS:
-		return JS_NewString(ctx, gf_filter_pid_orig_src_args(pctx->pid) );
+		return JS_NewString(ctx, gf_filter_pid_orig_src_args(pctx->pid, GF_FALSE) );
+	case JSF_PID_FILTER_UNICITY_ARGS:
+		return JS_NewString(ctx, gf_filter_pid_orig_src_args(pctx->pid, GF_TRUE) );
 	case JSF_PID_MAX_BUFFER:
 		return JS_NewInt32(ctx, gf_filter_pid_get_max_buffer(pctx->pid) );
 	case JSF_PID_BUFFER:
@@ -2608,6 +2611,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("src_name", jsf_pid_get_prop, NULL, JSF_PID_FILTER_SRC),
     JS_CGETSET_MAGIC_DEF("args", jsf_pid_get_prop, NULL, JSF_PID_FILTER_ARGS),
     JS_CGETSET_MAGIC_DEF("src_args", jsf_pid_get_prop, NULL, JSF_PID_FILTER_SRC_ARGS),
+    JS_CGETSET_MAGIC_DEF("unicity_args", jsf_pid_get_prop, NULL, JSF_PID_FILTER_UNICITY_ARGS),
     JS_CGETSET_MAGIC_DEF("max_buffer", jsf_pid_get_prop, jsf_pid_set_prop, JSF_PID_MAX_BUFFER),
     JS_CGETSET_MAGIC_DEF("loose_connect", NULL, jsf_pid_set_prop, JSF_PID_LOOSE_CONNECT),
     JS_CGETSET_MAGIC_DEF("framing", NULL, jsf_pid_set_prop, JSF_PID_FRAMING_MODE),

@@ -168,6 +168,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (p) ctx->base_id = p->value.uint;
 
 	if (! ctx->hevc.pps[pps_idx].tiles_enabled_flag) {
+		gf_odf_hevc_cfg_del(hvcc);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[TileSplit] Tiles not enabled, using passthrough\n"));
 		gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_TILE_BASE, NULL);
 		ctx->passthrough = GF_TRUE;

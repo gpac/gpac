@@ -2942,9 +2942,10 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *PID);
 
 /*! Gets the source arguments of the PID, walking down the chain until the source filter
 \param PID the target filter PID
+\param for_unicity if GF_TRUE, will return the arguments of the first filter responsible for a fan-out leading to this PID
 \return argument of the source filter
 */
-const char *gf_filter_pid_orig_src_args(GF_FilterPid *PID);
+const char *gf_filter_pid_orig_src_args(GF_FilterPid *PID, Bool for_unicity);
 
 /*! Gets the source filter name or class name for the PID, walking down the chain until the source filter (ony the first input PID of each filter is used).
 \param PID the target filter PID
