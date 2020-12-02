@@ -103,7 +103,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	HEVC_SPS *sps;
 	u8 *dsi;
 	u32 dsi_size, bitrate;
-	u32 i, j, count, nb_tiles, PicWidthInCtbsY, PicHeightInCtbsY, tile_y;
+	u32 i, j, count, nb_tiles, PicWidthInCtbsY, PicHeightInCtbsY, tile_y, active_tiles;
 	s32 pps_idx=-1, sps_idx=-1;
 	GF_TileSplitCtx *ctx = (GF_TileSplitCtx *) gf_filter_get_udta(filter);
 
@@ -289,12 +289,13 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_BITRATE, bitrate ? &PROP_UINT(bitrate) : NULL);
 
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_ID, &PROP_UINT(ctx->base_id + i + 1 ) );
+		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_TILE_ID, &PROP_UINT(i + 1 ) );
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ctx->base_id) );
 		tilesplit_update_pid_props(ctx, tinfo);
 	}
 	if (dsi) gf_free(dsi);
 	ctx->nb_tiles = nb_tiles;
-
+	active_tiles = 0;
 	//setup tbas track ref
 	for (i=0; i<nb_tiles; i++) {
 		if (!ctx->opids[i].opid)
@@ -302,16 +303,19 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		pval.type = GF_PROP_UINT_LIST;
 		pval.value.uint_list.nb_items = 1;
 		pval.value.uint_list.vals = &ctx->base_id;
+		active_tiles ++;
 		gf_filter_pid_set_property_str(ctx->opids[i].opid, "isom:tbas", &pval);
 	}
 	//setup sabt track ref
 	pval.type = GF_PROP_UINT_LIST;
-	pval.value.uint_list.nb_items = ctx->nb_tiles;
-	pval.value.uint_list.vals = gf_malloc(sizeof(u32) * ctx->nb_tiles);
+	pval.value.uint_list.nb_items = active_tiles;
+	pval.value.uint_list.vals = gf_malloc(sizeof(u32) * active_tiles);
+	active_tiles = 0;
 	for (i=0; i<nb_tiles; i++) {
 		if (!ctx->opids[i].opid)
 			continue;
-		pval.value.uint_list.vals[i] = ctx->base_id + i + 1;
+		pval.value.uint_list.vals[active_tiles] = ctx->base_id + i + 1;
+		active_tiles++;
 	}
 	gf_filter_pid_set_property_str(ctx->base_opid, "isom:sabt", &pval);
 	gf_free(pval.value.uint_list.vals);
@@ -539,7 +543,7 @@ static const GF_FilterCapability TileSplitCaps[] =
 
 static const GF_FilterArgs TileSplitArgs[] =
 {
-	{ OFFS(tiledrop), "specify 0-based indexes of tiles to drop", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tiledrop), "specify indexes of tiles to drop (0-based, in tile raster scan order)", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -551,6 +555,10 @@ GF_FilterRegister TileSplitRegister = {
 	"\n"
 	"The filter will move to passthrough mode if the bitstream is not tiled.\n"
 	"If the `Bitrate` property is set on the input PID, the output tile PIDs will have a bitrate set to `(Bitrate - 10k)/nb_opids`, 10 kbps being reserved for the base.\n"
+	"\n"
+	"Each tile PID will be assigned the following properties:\n"
+	"- `ID`: equal to the base PID ID (same as input) plus the 1-based index of the tile in raster scan order.\n"
+	"- `TileID`: equal to the 1-based index of the tile in raster scan order.\n"
 	"\n"
 	"Warning: The filter does not check if tiles are independently-coded (MCTS) !\n"
 	"\n"

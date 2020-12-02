@@ -3188,6 +3188,7 @@
 					"-laom",
 					"-lvpx",
 					"-llzma",
+					"-lkvazaar",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
@@ -3294,6 +3295,7 @@
 					"-laom",
 					"-lvpx",
 					"-llzma",
+					"-lkvazaar",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;

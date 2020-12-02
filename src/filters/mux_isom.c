@@ -156,6 +156,8 @@ typedef struct
 	u64 imported_edit_sdur, imported_edit_offset;
 
 	Bool force_ctts;
+
+	Bool is_hevc_tile_base;
 } TrackWriter;
 
 enum
@@ -811,7 +813,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TILE_BASE);
-	if (p && p->value.boolean) is_tile_base = GF_TRUE;
+	if (p && p->value.boolean)
+		is_tile_base = GF_TRUE;
 
 	if (is_true_pid && !is_tile_base) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MULTI_TRACK);
@@ -852,6 +855,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (is_true_pid) {
 			gf_filter_pid_set_udta(pid, tkw);
 
+			tkw->is_hevc_tile_base = is_tile_base;
 #ifdef GPAC_ENABLE_COVERAGE
 			if (gf_sys_is_cov_mode()) {
 				gf_filter_pid_get_min_pck_duration(pid);
@@ -2569,6 +2573,15 @@ multipid_stsd_setup:
 		mp4_mux_write_track_refs(ctx, tkw, "isom:scal", GF_ISOM_REF_SCAL);
 		mp4_mux_write_track_refs(ctx, tkw, "isom:sabt", GF_ISOM_REF_SABT);
 		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
+		//whenever we add a new tile track, rewrite sabt on main tile track
+		if (codec_id==GF_CODECID_HEVC_TILES) {
+			count = gf_list_count(ctx->tracks);
+			for (i=0; i<count; i++) {
+				TrackWriter *base_tk = gf_list_get(ctx->tracks, i);
+				if (base_tk->is_hevc_tile_base)
+					mp4_mux_write_track_refs(ctx, base_tk, "isom:sabt", GF_ISOM_REF_SABT);
+			}
+		}
 	} else if (codec_id==GF_CODECID_HEVC_TILES) {
 		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
 	}
@@ -3252,7 +3265,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (!for_fragment) {
 			gf_isom_patch_last_sample_duration(ctx->file, tkw->track_num, prev_dts ? prev_dts : 1);
 		}
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID %s Sample %d with DTS "LLU" less than previous sample DTS "LLU", adjusting prev sample duration\n", gf_filter_pid_get_name(tkw->ipid), tkw->nb_samples, tkw->sample.DTS, prev_dts ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID %s ID %d Sample %d with DTS "LLU" less than previous sample DTS "LLU", adjusting prev sample duration\n", gf_filter_pid_get_name(tkw->ipid), tkw->track_id, tkw->nb_samples+1, tkw->sample.DTS, prev_dts ));
 
 		if (prev_dts) {
 			tkw->dts_patch = prev_dts - tkw->sample.DTS;
@@ -4886,6 +4899,16 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		GF_FilterPacket *pck;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		if (tkw->fake_track) continue;
+		//already setup (happens when new PIDs are declared after a packet has already been written on other PIDs)
+		if (tkw->nb_samples) {
+			dts_min = tkw->ts_shift * 1000000;
+			dts_min /= tkw->src_timescale;
+
+			if (first_ts_min > dts_min) {
+				first_ts_min = (u64) dts_min;
+			}
+			continue;
+		}
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		//check this after fetching a packet since it may reconfigure the track
 		if (!tkw->track_num) {

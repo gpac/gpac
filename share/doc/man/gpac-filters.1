@@ -4453,7 +4453,21 @@ The filter will move to passthrough mode if the bitstream is not tiled.
 .br
 If the Bitrate property is set on the input PID, the output tile PIDs will have a bitrate set to (Bitrate - 10k)/nb_opids, 10 kbps being reserved for the base.
 .br
+
+.br
+Each tile PID will be assigned the following properties:
+.br
+* `ID`: equal to the base PID ID (same as input) plus the 1-based index of the tile in raster scan order.
+.br
+* `TileID`: equal to the 1-based index of the tile in raster scan order.
+.br
+
+.br
 Warning: The filter does not check if tiles are independently-coded (MCTS) !
+.br
+
+.br
+Warning: Support for dynamic changes of tiling grid has not been tested !
 .br
 
 .br
@@ -4462,7 +4476,7 @@ Warning: The filter does not check if tiles are independently-coded (MCTS) !
 .SH Options (expert):
 .LP
 .br
-tiledrop (uintl, default: , updatable): specify 0-based indexes of tiles to drop
+tiledrop (uintl, default: , updatable): specify indexes of tiles to drop (0-based, in tile raster scan order)
 .br
 
 .br
@@ -5094,7 +5108,7 @@ In case of losses or incomplete segment reception (during tune-in), the files ar
 .br
 
 .br
-If .I kc option is set, corrupted files will be kept. If .I fullseg is not set and files are delivered while downloaded, corrupted files will be kept.
+If .I kc option is set, corrupted files will be kept. If .I fullseg is not set and files are only partially recieved, they will be kept.
 .br
 
 .br
@@ -6880,7 +6894,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev289-g71af72386-master
+build: 1.1.0-DEV-rev293-g127964906-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
