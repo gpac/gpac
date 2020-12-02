@@ -200,7 +200,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 
 			cts = gf_filter_pck_get_cts(pck);
 			if (cts < min_cts) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAggr] Tiled pid %s with cts "LLU" less than base tile pid cts "LLU" - discarding packet\n", gf_filter_pid_get_name(pid), cts, min_cts ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Tiled pid %s with cts "LLU" less than base tile pid cts "LLU" - discarding packet\n", gf_filter_pid_get_name(pid), cts, min_cts ));
 				gf_filter_pid_drop_packet(pid);
 			} else {
 				break;
@@ -225,7 +225,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		nb_ready++;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TileAggr] reaggregating CTS "LLU" %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TileAgg] reaggregating CTS "LLU" %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
 	if (ctx->flush_packets)
 		ctx->flush_packets--;
 
@@ -344,8 +344,11 @@ static Bool tileagg_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (evt->play.forced_dash_segment_switch) {
 		//this assumes the dashin module performs regulation of output in case of losses
 		//otherwise it may dispatch more than one segment in the input buffer
-		assert(!ctx->flush_packets);
-		gf_filter_pid_get_buffer_occupancy(ctx->base_ipid, NULL, &ctx->flush_packets, NULL, NULL);
+		if (!ctx->flush_packets)
+			gf_filter_pid_get_buffer_occupancy(ctx->base_ipid, NULL, &ctx->flush_packets, NULL, NULL);
+		else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Something is wrong in demuxer, received segment flush event but previous segment is not yet flushed !\n" ));
+		}
 	}
 	return GF_TRUE;
 }

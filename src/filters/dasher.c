@@ -715,7 +715,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			period_switch = old_period_switch;
 
 		if (ctx->scope_deps) {
-			const char *src_args = gf_filter_pid_orig_src_args(pid);
+			const char *src_args = gf_filter_pid_orig_src_args(pid, GF_TRUE);
 			if (src_args) {
 				ds->src_id = gf_crc_32(src_args, (u32) strlen(src_args));
 			}
@@ -2060,8 +2060,10 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	//ok, we are video or audio with mixed codecs
 	if (ctx->mix_codecs) return GF_TRUE;
 	//we need dependencies, unless SRD case
-	if (ds_test->dep_id && (ds_test->src_id==ds->src_id) && gf_list_find(ds->complementary_streams, ds_test) < 0) {
-		return GF_FALSE;
+	if (!ds_test->srd.z && !ds_test->srd.w) {
+		if (ds_test->dep_id && (ds_test->src_id==ds->src_id) && gf_list_find(ds->complementary_streams, ds_test) < 0) {
+			return GF_FALSE;
+		}
 	}
 	//we should be good
 	return GF_TRUE;
@@ -2418,15 +2420,17 @@ static void dasher_gather_deps(GF_DasherCtx *ctx, u32 dependency_id, GF_List *mu
 
 static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const char *ref_type)
 {
-	u32 i, j, count;
+	u32 i, j, count, base_id;
 	GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_property_str(ds->opid, ref_type);
 	if (!p) return;
+	base_id = ds->dep_id ? ds->dep_id : ds->id;
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<p->value.uint_list.nb_items; i++) {
 		for (j=0; j<count; j++) {
 			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
+			if (a_ds->dep_id != base_id) continue;
 			if ((a_ds->id == p->value.uint_list.vals[i]) && a_ds->pid_id) {
-				p->value.uint_list.vals[j] = a_ds->pid_id;
+				p->value.uint_list.vals[i] = a_ds->pid_id;
 			}
 		}
 	}

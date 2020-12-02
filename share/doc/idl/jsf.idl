@@ -359,6 +359,8 @@ readonly attribute DOMString src_name;
 readonly attribute DOMString args;
 /*! argument of source filter*/
 readonly attribute DOMString src_args;
+/*! argument of source filter or first filter responsible for a fan-out*/
+readonly attribute DOMString unicity_args;
 /*! max buffer requirement of the pid - see \ref gf_filter_pid_get_max_buffer and \ref gf_filter_pid_set_max_buffer*/
 attribute long max_buffer;
 /*! enables loose connect of the pid - see \ref gf_filter_pid_set_loose_connect*/

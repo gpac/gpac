@@ -885,7 +885,7 @@ struct __gf_filter_pid
 	void *udta;
 
 	GF_PropertyMap *caps_negociate;
-	GF_FilterPidInst *caps_negociate_pidi;
+	GF_List *caps_negociate_pidi_list;
 	GF_List *adapters_blacklist;
 	GF_Filter *caps_dst_filter;
 

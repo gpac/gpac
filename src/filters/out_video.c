@@ -212,7 +212,7 @@ static void vout_set_caption(GF_VideoOutCtx *ctx)
 	GF_Event evt;
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_SET_CAPTION;
-	evt.caption.caption = gf_filter_pid_orig_src_args(ctx->pid);
+	evt.caption.caption = gf_filter_pid_orig_src_args(ctx->pid, GF_FALSE);
 	if (!evt.caption.caption) evt.caption.caption = gf_filter_pid_get_source_filter_name(ctx->pid);
 	if (evt.caption.caption) {
 		if (!strncmp(evt.caption.caption, "src=", 4)) evt.caption.caption += 4;

@@ -1077,13 +1077,13 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 			u32 cplen = (u32) (sep - arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
 			strncpy(szArg, arg, cplen);
-			szArg[META_MAX_ARG] = 0;
+			szArg[cplen] = 0;
 			argv.value.string = (char *) sep+1;
 		} else {
 			u32 cplen = (u32) strlen(arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
 			memcpy(szArg, arg, cplen);
-			szArg[META_MAX_ARG] = 0;
+			szArg[cplen] = 0;
 		}
 #undef META_MAX_ARG
 
@@ -1950,7 +1950,8 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 				if (pid->num_destinations) {
 					for (j=0; j<pid->num_destinations; j++) {
 						GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
-						if (pid->caps_negociate_pidi != pidi) continue;
+						if (gf_list_find(pid->caps_negociate_pidi_list, pidi)<0)
+							continue;
 						filter_dst = pidi->filter;
 
 						if (filter_dst->freg->reconfigure_output) {
@@ -1979,7 +1980,10 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 				gf_props_del(pid->caps_negociate);
 			}
 			pid->caps_negociate = NULL;
-			pid->caps_negociate_pidi = NULL;
+			if (pid->caps_negociate_pidi_list) {
+				gf_list_del(pid->caps_negociate_pidi_list);
+				pid->caps_negociate_pidi_list = NULL;
+			}
 		}
 	}
 	gf_mx_v(filter->tasks_mx);

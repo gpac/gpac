@@ -108,7 +108,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		gf_fprintf(sdp_out, "i=%s\n", info);
 	} else {
 		GF_RTPOutStream *stream = gf_list_get(streams, 0);
-		const char *src = gf_filter_pid_orig_src_args(stream->pid);
+		const char *src = gf_filter_pid_orig_src_args(stream->pid, GF_FALSE);
 		if (!src) src = gf_filter_pid_get_source_filter_name(stream->pid);
 		else {
 			src = gf_file_basename(src);
