@@ -45,6 +45,9 @@ typedef struct
 
 	u32 flush_packets;
 	const GF_PropertyValue *sabt;
+
+	Bool check_connections;
+
 } GF_TileAggCtx;
 
 
@@ -53,6 +56,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	u32 codec_id=0;
 	const GF_PropertyValue *p;
 	GF_HEVCConfig *hvcc;
+
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -97,6 +101,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			ctx->opid = gf_filter_pid_new(filter);
 		}
 	}
+	ctx->check_connections = GF_TRUE;
 
 	if (ctx->base_ipid == pid) {
 		gf_filter_pid_copy_properties(ctx->opid, ctx->base_ipid);
@@ -106,7 +111,8 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_property_str(ctx->opid, "isom:sabt", NULL);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-		if (!p) return GF_NOT_SUPPORTED;
+		//not ready yet
+		if (!p) return GF_OK;
 		hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
 		ctx->nalu_size_length = hvcc ? hvcc->nal_unit_size : 4;
 		if (hvcc) gf_odf_hevc_cfg_del(hvcc);
@@ -154,6 +160,12 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	const char *data;
 	u8 *output;
 	if (!ctx->base_ipid) return GF_EOS;
+
+	if (ctx->check_connections) {
+		if (gf_filter_connections_pending(filter))
+			return GF_OK;
+		ctx->check_connections = GF_FALSE;
+	}
 
 	base_pck = gf_filter_pid_get_packet(ctx->base_ipid);
 	if (!base_pck) {
