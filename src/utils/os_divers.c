@@ -906,6 +906,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			Bool consumed;
 			GF_Err e;
 			Bool use_sep=GF_FALSE;
+			Bool bool_value = GF_TRUE;
+
 			const char *arg = argv[i];
 			char *arg_val = strchr(arg, '=');
 			if (arg_val) {
@@ -922,6 +924,10 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				}
 				continue;
 			}
+			if (arg_val && (!strcmp(arg_val, "no") || !strcmp(arg_val, "false") || !strcmp(arg_val, "°0") ) )
+				bool_value = GF_FALSE;
+
+
 			if (arg[1]=='-') {
 				gpac_has_global_filter_args = GF_TRUE;
 			} else if (arg[1]=='+') {
@@ -949,11 +955,11 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			} else if (!strcmp(arg, "-noprog")) {
 				if (!gpac_quiet) gpac_quiet = 1;
 			} else if (!stricmp(arg, "-for-test")) {
-				gpac_test_mode = GF_TRUE;
+				gpac_test_mode = bool_value;
 			} else if (!stricmp(arg, "-old-arch")) {
-				gpac_old_arch = GF_TRUE;
+				gpac_old_arch = bool_value;
 			} else if (!stricmp(arg, "-no-save")) {
-				gpac_discard_config = GF_TRUE;
+				gpac_discard_config = bool_value;
 			} else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;
 				gf_net_set_ntp_shift(shift);

@@ -922,7 +922,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"- MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.\n"
 	"- ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in `free` boxes, except mdat kept as is if [-repair]() is set to simple.\n"
 	"\n"
-	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are delivered while downloaded, corrupted files will be kept.\n"
+	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are only partially recieved, they will be kept.\n"
 	"\n"
 	"# Interface setup\n"
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"
