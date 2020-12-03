@@ -1916,11 +1916,19 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		if (pid->caps_negociate) {
 			Bool is_ok = GF_FALSE;
+			Bool reconfig_direct = GF_FALSE;
 
-			//the property map is create with ref count 1
+			//the caps_negociate property map is create with ref count 1
+
+			//no fanout, we can try direct reconfigure of the filter
+			if (pid->num_destinations<=1)
+				reconfig_direct = GF_TRUE;
+			//fanout but we have as many pid instances being negociated as there are destinations, we can try direct reconfigure
+			else if (pid->num_destinations==gf_list_count(pid->caps_negociate_pidi_list) && pid->caps_negociate_direct)
+				reconfig_direct = GF_TRUE;
 
 			//we cannot reconfigure output if more than one destination
-			if ((pid->num_destinations<=1) && filter->freg->reconfigure_output && !force_afchain_insert) {
+			if (reconfig_direct && filter->freg->reconfigure_output && !force_afchain_insert) {
 				GF_Err e = filter->freg->reconfigure_output(filter, pid);
 				if (e) {
 					if (filter->is_pid_adaptation_filter) {
@@ -1967,7 +1975,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 						}
 					}
 				}
-				//we are deconnected (unload of a previous adaptation filter)
+				//we are disconnected (unload of a previous adaptation filter)
 				else {
 					filter_dst = pid->caps_dst_filter;
 					assert(pid->num_destinations==0);
