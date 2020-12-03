@@ -4618,6 +4618,7 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 		assert(!pid->caps_negociate_pidi_list);
 		pid->caps_negociate = gf_props_new(pid->filter);
 		pid->caps_negociate_pidi_list = gf_list_new();
+		pid->caps_negociate_direct = GF_TRUE;
 		gf_list_add(pid->caps_negociate_pidi_list, pidi);
 		//we start a new caps negotiation step, reset any blacklist on pid
 		if (pid->adapters_blacklist) {
@@ -4625,10 +4626,24 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 			pid->adapters_blacklist = NULL;
 		}
 		safe_int_inc(&pid->filter->nb_caps_renegociate);
-	} else if (gf_list_find(pid->caps_negociate_pidi_list, pidi)<0) {
-		gf_list_add(pid->caps_negociate_pidi_list, pidi);
 	}
-	//pid is end of stream of pid instance has packet pendings, we will need a new chain to adapt these packets formats
+	else {
+		const GF_PropertyValue *p;
+		//new PID instance asking for cap negociation
+		if (gf_list_find(pid->caps_negociate_pidi_list, pidi)<0) {
+			gf_list_add(pid->caps_negociate_pidi_list, pidi);
+		}
+
+		//check if same property to list
+		p = gf_props_get_property(pid->caps_negociate, prop_4cc, prop_name);
+		if (p) {
+			if (gf_props_equal(p, value))
+				return GF_OK;
+			//not the same value, disable direct caps negociate
+			pid->caps_negociate_direct = GF_FALSE;
+		}
+	}
+	//pid is end of stream or pid instance has packet pendings, we will need a new chain to adapt these packets formats
 	if (pid->has_seen_eos || gf_fq_count(pidi->packets)) {
 		gf_fs_post_task(pid->filter->session, gf_filter_renegociate_output_task, pid->filter, NULL, "filter renegociate", NULL);
 	}
