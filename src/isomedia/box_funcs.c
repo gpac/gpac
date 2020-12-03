@@ -808,6 +808,7 @@ ISOM_BOX_IMPL_DECL(colr)
 ISOM_BOX_IMPL_DECL(pixi)
 ISOM_BOX_IMPL_DECL(rloc)
 ISOM_BOX_IMPL_DECL(irot)
+ISOM_BOX_IMPL_DECL(imir)
 ISOM_BOX_IMPL_DECL(ipco)
 ISOM_BOX_IMPL_DECL(iprp)
 ISOM_BOX_IMPL_DECL(ipma)
@@ -1252,6 +1253,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PIXI, pixi, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_RLOC, rloc, "ipco", 0, "iff"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IROT, irot, "ipco", "iff"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IMIR, imir, "ipco", "iff"),
 	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_IPMA, ipma, "iprp", 1, 1, "iff"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GRPL, grpl, "meta", "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CCST, ccst, "sample_entry", 0, "iff"),
