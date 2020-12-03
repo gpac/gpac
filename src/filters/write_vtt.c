@@ -111,34 +111,40 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	return GF_OK;
 }
 
-void vttmx_timestamp_dump(GF_BitStream *bs, GF_WebVTTTimestamp *ts, Bool dump_hour)
+static void vttmx_timestamp_dump(GF_BitStream *bs, GF_WebVTTTimestamp *ts, Bool dump_hour, Bool write_srt)
 {
 	char szTS[200];
 	szTS[0] = 0;
-	if (dump_hour || ts->hour != 0) {
+	if (dump_hour) {
 		sprintf(szTS, "%02u:", ts->hour);
+		gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
 	}
-	sprintf(szTS, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
+	sprintf(szTS, "%02u:%02u%c%03u", ts->min, ts->sec, write_srt ? ',' : '.', ts->ms);
 	gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
 }
 
 void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt)
 {
+	Bool write_hour = GF_FALSE;
 	if (!cue) return;
 	if (!write_srt && cue->pre_text) {
 		gf_bs_write_data(bs, cue->pre_text, (u32) strlen(cue->pre_text));
 		gf_bs_write_data(bs, "\n\n", 2);
 	}
-	if (!write_srt && cue->id) gf_bs_write_data(bs, cue->id, (u32) strlen(cue->id) );
-	if (cue->start.hour || cue->end.hour) {
-		vttmx_timestamp_dump(bs, &cue->start, GF_TRUE);
-		gf_bs_write_data(bs, " --> ", 5);
-		vttmx_timestamp_dump(bs, &cue->end, GF_TRUE);
-	} else {
-		vttmx_timestamp_dump(bs, &cue->start, GF_FALSE);
-		gf_bs_write_data(bs, " --> ", 5);
-		vttmx_timestamp_dump(bs, &cue->end, GF_FALSE);
+	if (!write_srt && cue->id) {
+		u32 len = (u32) strlen(cue->id) ;
+		gf_bs_write_data(bs, cue->id, len);
+		if (len && (cue->id[len-1]!='\n'))
+			gf_bs_write_data(bs, "\n", 1);
 	}
+
+	if (cue->start.hour || cue->end.hour) write_hour = GF_TRUE;
+	if (write_srt) write_hour = GF_TRUE;
+
+	vttmx_timestamp_dump(bs, &cue->start, write_hour, write_srt);
+	gf_bs_write_data(bs, " --> ", 5);
+	vttmx_timestamp_dump(bs, &cue->end, write_hour, write_srt);
+
 	if (!write_srt && cue->settings) {
 		gf_bs_write_data(bs, " ", 1);
 		gf_bs_write_data(bs, cue->settings, (u32) strlen(cue->settings));
