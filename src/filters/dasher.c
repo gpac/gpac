@@ -344,6 +344,8 @@ typedef struct _dash_stream
 	u32 nb_segments_purged;
 	Double dur_purged;
 	Bool tile_base;
+	Bool tile_dep_id_merged;
+	struct _dash_stream *merged_tile_dep;
 
 	u32 cues_timescale;
 	u32 nb_cues;
@@ -1585,6 +1587,19 @@ static u32 dasher_get_dep_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
 	return bitrate;
 }
 
+static GF_DashStream *get_base_ds(GF_DasherCtx *ctx, GF_DashStream *for_ds)
+{
+	u32 i, count;
+	if (!for_ds->dep_id) return NULL;
+	count = gf_list_count(ctx->pids);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->pids, i);
+		if (ds->id == for_ds->dep_id)
+			return ds;
+	}
+	return NULL;
+}
+
 static void get_canon_urn(bin128 URN, char *res)
 {
 	char sres[4];
@@ -1859,15 +1874,15 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		if (ds->rep->sar) {
 			ds->rep->sar->num = ds->sar.num;
 			ds->rep->sar->den = ds->sar.den;
-			if (ds->fps.num && ds->fps.den) {
-				if (!ds->rep->framerate) {
-					GF_SAFEALLOC(ds->rep->framerate, GF_MPD_Fractional);
-				}
-				if (ds->rep->framerate) {
-					ds->rep->framerate->num = ds->fps.num;
-					ds->rep->framerate->den = ds->fps.den;
-					gf_media_get_reduced_frame_rate(&ds->rep->framerate->num, &ds->rep->framerate->den);
-				}
+		}
+		if (ds->fps.num && ds->fps.den) {
+			if (!ds->rep->framerate) {
+				GF_SAFEALLOC(ds->rep->framerate, GF_MPD_Fractional);
+			}
+			if (ds->rep->framerate) {
+				ds->rep->framerate->num = ds->fps.num;
+				ds->rep->framerate->den = ds->fps.den;
+				gf_media_get_reduced_frame_rate(&ds->rep->framerate->num, &ds->rep->framerate->den);
 			}
 		}
 	}
@@ -2148,11 +2163,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
 				gf_list_add(set->supplemental_properties, desc);
 			} else {
-				if (gf_sys_old_arch_compat()) {
-					sprintf(value, "1,0,0,0,0"); //compat with old arch, don't set W and H
-				} else {
-					sprintf(value, "1,0,0,0,0,%d,%d", ds->srd.z, ds->srd.w);
-				}
+				sprintf(value, "1,0,0,0,0,%d,%d", ds->srd.z, ds->srd.w);
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
 				gf_list_add(set->essential_properties, desc);
 			}
@@ -2191,6 +2202,21 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 	}
 }
 
+static void rewrite_dep_ids(GF_DasherCtx *ctx, GF_DashStream *base_ds)
+{
+	u32 i, count = gf_list_count(ctx->pids);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->pids, i);
+		if (ds->src_id != base_ds->src_id) continue;
+		if (!ds->dep_id || !ds->rep) continue;
+		if (ds->dep_id != base_ds->id) continue;
+
+		ds->tile_dep_id_merged = GF_TRUE;
+		if (ds->rep->dependency_id) gf_free(ds->rep->dependency_id);
+		ds->rep->dependency_id = gf_strdup(base_ds->merged_tile_dep->rep->id);
+	}
+}
+
 static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, j, count;
@@ -2223,8 +2249,17 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 		if (ds->codec_id == base_ds->codec_id) {
 			//we will use inband params, so bs switching is OK
 			if (use_inband || use_multi) continue;
-			//we have deps, cannot use bitstream switching
-			if (ds->dep_id) return;
+			//we have deps, cannot use bitstream switching except for merged tile base
+			if (ds->dep_id) {
+				if (ds->codec_id==GF_CODECID_HEVC_TILES) {
+					u32 id;
+					GF_DashStream *tile_base = get_base_ds(ctx, ds);
+					if (!tile_base) return;
+					id = tile_base->merged_tile_dep ? tile_base->merged_tile_dep->id : tile_base->id;
+					if (base_ds->dep_id==id) continue;
+				}
+				return;
+			}
 			//we consider we can switch in non-inband only if we have same CRC for the decoder config
 			if (base_ds->dsi_crc == ds->dsi_crc) continue;
 			//not the same config, no BS switching
@@ -2239,6 +2274,18 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 	for (i=0; i<count; i++) {
 		GF_MPD_Representation *rep = gf_list_get(set->representations, i);
 		GF_DashStream *ds = rep->playback.udta;
+		if (base_ds->tile_base && ds->tile_base && (base_ds != ds) ) {
+			ds->merged_tile_dep = base_ds;
+			if (ds->rep) {
+				gf_list_rem(set->representations, i);
+				i--;
+				count--;
+				gf_mpd_representation_free(ds->rep);
+				ds->rep = NULL;
+				//switch dependencyID of all reps depending on this one to the new base
+				rewrite_dep_ids(ctx, ds);
+			}
+		}
 		for (j=i+1; j<count; j++) {
 			GF_DashStream *a_ds;
 			rep = gf_list_get(set->representations, j);
@@ -2562,7 +2609,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		}
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MULTI_TRACK, &PROP_POINTER(ds->multi_tracks) );
 	}
-	if (ds->dep_id) {
+	if (ds->dep_id && !init_trashed) {
 		if (!ds->multi_tracks) ds->multi_tracks = gf_list_new();
 		gf_list_reset(ds->multi_tracks);
 		dasher_gather_deps(ctx, ds->dep_id, ds->multi_tracks);
@@ -2798,11 +2845,14 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	//and assign the same PID ID for each component of the same type
 	//we could refine this using roles, but most HAS solutions don't use roles at the mulitplexed level
 	for (i=0; i<count; i++) {
+		Bool is_bs_switching;
 		rep = gf_list_get(set->representations, i);
 		ds = rep->playback.udta;
 		if (ds->pid_id) continue;
 		//in bitstream switching mode, ensure each track in the set has the same ID
-		if (set->bitstream_switching) {
+		//except when tile merge is used
+		is_bs_switching = ds->tile_dep_id_merged ? GF_FALSE : set->bitstream_switching;
+		if (is_bs_switching) {
 			ctx->next_pid_id_in_period++;
 			ds->pid_id = ctx->next_pid_id_in_period;
 
@@ -2858,7 +2908,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		GF_Err e;
 		char szRawExt[20];
 		Bool use_dash_suffix = GF_FALSE;
-		const char *seg_ext, *init_ext, *idx_ext;
+		const char *seg_ext, *init_ext, *idx_ext, *force_init_seg_tpl;
+		GF_MPD_URL *force_init_seg_sl;
 		Bool skip_init = GF_FALSE;
 		Bool is_bs_switch;
 		u32 init_template_mode = GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE;
@@ -2977,8 +3028,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		is_bs_switch = set->bitstream_switching;
-		//patch for old arch compat
-		if (ds->tile_base || (ds->codec_id==GF_CODECID_HEVC_TILES)) is_bs_switch = GF_FALSE;
+		//only used to force _init in default templates
+		if (ds->tile_base) is_bs_switch = GF_FALSE;
 
 		//get final segment template with path resolution - output file name is NULL, we already have solved this
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
@@ -2993,18 +3044,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			ds->idx_template = gf_strdup(szIndexSegmentName);
 
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE, is_bs_switch, szIndexSegmentName, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ctx->stl);
-		}
-
-		//patch for old arch, override template name for init segment UGLY, to remove asap
-		if (gf_sys_old_arch_compat() && ds->tile_base && !ctx->sseg && !ctx->sfile ) {
-			char *sep;
-			char szTemp[100];
-			const char *out_path = gf_file_basename(ctx->out_path);
-			strcpy(szDASHTemplate, out_path);
-			sep = gf_file_ext_start(szDASHTemplate);
-			if (sep) sep[0]=0;
-			sprintf(szTemp, "_set%d_", 1+gf_list_find(ctx->current_period->period->adaptation_sets, ds->set) );
-			strcat(szDASHTemplate, szTemp);
 		}
 
 		//get final init name - output file name is NULL, we already have solved this
@@ -3037,8 +3076,18 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				gf_list_add(rep->base_URLs, base_url);
 			}
 		}
-		//commented for compat with old arch
-		//if (ds->codec_id==GF_CODECID_HEVC_TILES) skip_init = GF_TRUE;
+
+		force_init_seg_tpl = NULL;
+		force_init_seg_sl = NULL;
+		if (ds->codec_id==GF_CODECID_HEVC_TILES) {
+			GF_DashStream *base_ds = get_base_ds(ctx, ds);
+			skip_init = GF_TRUE;
+			if (base_ds->rep->segment_template) force_init_seg_tpl = base_ds->rep->segment_template->initialization;
+			if (!force_init_seg_tpl && base_ds->set->segment_template) force_init_seg_tpl = base_ds->set->segment_template->initialization;
+
+			if (base_ds->rep->segment_list) force_init_seg_sl = base_ds->rep->segment_list->initialization_segment;
+			if (!force_init_seg_sl && base_ds->set->segment_list) force_init_seg_sl = base_ds->set->segment_list->initialization_segment;
+		}
 		if (ctx->m2ts) skip_init = GF_TRUE;
 		else if (ctx->muxtype==DASHER_MUX_RAW) skip_init = GF_TRUE;
 		else if (ctx->muxtype==DASHER_MUX_TS) skip_init = GF_TRUE;
@@ -3051,10 +3100,15 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (!i && (set->bitstream_switching || single_template) ) {
 				init_template_done = GF_TRUE;
 				seg_template = NULL;
-				if (!skip_init || single_template) {
+				if (!skip_init || force_init_seg_tpl || single_template) {
 					GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
-					if (seg_template)
-						seg_template->initialization = skip_init ? NULL : gf_strdup(szInitSegmentTemplate);
+					if (seg_template) {
+						if (skip_init) {
+							seg_template->initialization = force_init_seg_tpl ? gf_strdup(force_init_seg_tpl) : NULL;
+						} else {
+							seg_template->initialization = gf_strdup(szInitSegmentTemplate);
+						}
+					}
 				}
 
 				dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, skip_init);
@@ -3084,7 +3138,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
 				if (seg_template) {
 					if (!init_template_done) {
-						seg_template->initialization = skip_init ? NULL : gf_strdup(szInitSegmentTemplate);
+						if (skip_init) {
+							seg_template->initialization = force_init_seg_tpl ? gf_strdup(force_init_seg_tpl) : NULL;
+						} else {
+							seg_template->initialization = gf_strdup(szInitSegmentTemplate);
+						}
 						dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, skip_init);
 					} else if (i) {
 						dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, (set->bitstream_switching || skip_init) ? GF_TRUE : GF_FALSE);
@@ -4627,7 +4685,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			if (a_ds->dep_id && (a_ds->src_id==ds->src_id) && (a_ds->dep_id==ds->id) ) {
 				gf_list_add(ds->complementary_streams, a_ds);
 				has_deps = GF_TRUE;
-				if (!a_ds->rep->dependency_id) a_ds->rep->dependency_id = gf_strdup(ds->rep->id);
+				if (!a_ds->rep->dependency_id) {
+					a_ds->rep->dependency_id = gf_strdup(ds->rep->id);
+				}
 			}
 			if (!a_ds->muxed_base && !strcmp(a_ds->rep_id, ds->rep_id) && (ctx->muxtype!=DASHER_MUX_RAW) ) {
 				a_ds->muxed_base = ds;
@@ -5971,8 +6031,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 				is_queue_flush = GF_TRUE;
 			}
 
+			//skipped merged tile base
+			if (ds->merged_tile_dep) {
+				if (pck) gf_filter_pid_drop_packet(ds->ipid);
+				pck = NULL;
+			}
 			//queue mode
-			if (ctx->sbound) {
+			else if (ctx->sbound) {
 				if (!is_queue_flush && pck) {
 					gf_filter_pck_ref(&pck);
 					gf_filter_pid_drop_packet(ds->ipid);
@@ -6014,7 +6079,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 					ds->clamp_done = GF_FALSE;
 
 					ctx->update_report = -1;
-					if (!ctx->sigfrag)
+					//opid may be NULL for skipped tile rep
+					if (!ctx->sigfrag && ds->opid)
 						gf_filter_pid_set_eos(ds->opid);
 
 					if (!ds->done) ds->done = ds_done;
@@ -6178,7 +6244,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			if (ds->splitable && !ds->split_dur_next) {
 				Bool do_split = GF_FALSE;
-				//adding this sampl would exceed the segment duration
+				//adding this sample would exceed the segment duration
 				if (gf_sys_old_arch_compat()) {
 					if ( (cts + dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale )
 						do_split = GF_TRUE;
