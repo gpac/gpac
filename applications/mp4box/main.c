@@ -857,13 +857,18 @@ GF_GPACArg m4b_meta_args[] =
 		"- mime=mtype: item mime type\n"
 		"- encoding=enctype: item content-encoding type\n"
 		"- id=ID: item ID\n"
-		"- ref=4cc,id: reference of type 4cc to an other item", NULL, NULL, GF_ARG_STRING, 0),
+		"- ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)\n"
+		"- group=id,type: indicate the id and type of an alternate group for this item"
+		, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("add-image", NULL, "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`\n"
 		"- name, id, ref: see [-add-item]()\n"
 		"- primary: indicate that this item should be the primary item\n"
 		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
+		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
+		"- mirror-axis=axis: set the mirror axis: vertical, horizontal\n"
+		"- clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap\n"
 		"- hidden: indicate that this image item should be hidden\n"
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
@@ -871,6 +876,9 @@ GF_GPACArg m4b_meta_args[] =
 		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location. If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("add-image-grid", NULL, "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
+		"- image-grid-size=rxc: set the number of rows and colums of the grid\n"
+	    "- any other options from [-add-image]() can be used\n", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rem-item `item_ID[:tk=tkID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-primary `item_ID[:tk=tkID]`", NULL, "set item as primary for meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-xml `xml_file_path[:tk=tkID][:binary]`", NULL, "set meta XML data", NULL, NULL, GF_ARG_STRING, 0),
@@ -1614,7 +1622,13 @@ typedef enum {
 	META_ACTION_DUMP_ITEM			= 7,
 	META_ACTION_DUMP_XML			= 8,
 	META_ACTION_ADD_IMAGE_ITEM		= 9,
+	META_ACTION_ADD_IMAGE_GRID		= 10,
 } MetaActionType;
+
+typedef struct {
+	u32 ref_item_id;
+	u32 ref_type;
+} MetaRef;
 
 typedef struct
 {
@@ -1627,7 +1641,7 @@ typedef struct
 	Bool primary;
 	u32 item_type;
 	u32 ref_item_id;
-	u32 ref_type;
+	GF_List *item_refs;
 	u32 group_id;
 	u32 group_type;
 	GF_ImageItemProperties *image_props;
@@ -1669,8 +1683,16 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		}
 		else if (!strnicmp(szSlot, "ref=", 4)) {
 			char type[5];
-			sscanf(szSlot, "ref=%4s,%u", type, &meta->ref_item_id);
-			meta->ref_type = GF_4CC(type[0], type[1], type[2], type[3]);
+			MetaRef	*ref;
+			if (!meta->item_refs) {
+				meta->item_refs = gf_list_new();
+				if (!meta->item_refs) return 0;
+			}
+			GF_SAFEALLOC(ref, MetaRef);
+			if (!ref) return 0;
+			sscanf(szSlot, "ref=%4s,%u", type, &(ref->ref_item_id));
+			ref->ref_type = GF_4CC(type[0], type[1], type[2], type[3]);
+			gf_list_add(meta->item_refs, ref);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "name=", 5)) {
@@ -1699,6 +1721,13 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->width, &meta->image_props->height);
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "image-grid-size=", 16)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			sscanf(szSlot+16, "%dx%d", &meta->image_props->num_grid_rows, &meta->image_props->num_grid_columns);
+			ret = 1;
+		}
 		else if (!strnicmp(szSlot, "image-pasp=", 11)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
@@ -1721,6 +1750,25 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				if (!meta->image_props) return 0;
 			}
 			meta->image_props->angle = atoi(szSlot+9);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "mirror-axis=", 12)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			meta->image_props->mirror = (!strnicmp(szSlot+12, "vertical", 8) ? 1 : 2);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "clap=", 5)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			sscanf(szSlot + 5, "%d,%d,%d,%d,%d,%d,%d,%d", &meta->image_props->clap_wnum, &meta->image_props->clap_wden,
+					   &meta->image_props->clap_hnum, &meta->image_props->clap_hden,
+					   &meta->image_props->clap_honum, &meta->image_props->clap_hoden,
+					   &meta->image_props->clap_vonum, &meta->image_props->clap_voden);
 			ret = 1;
 		}
 		else if (!stricmp(szSlot, "hidden")) {
@@ -3495,6 +3543,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-add-image")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
 			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_ITEM, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = GF_TRUE;
+			i++;
+		}
+		else if (!stricmp(arg, "-add-image-grid")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_GRID, argv[i + 1]);
 			nb_meta_act++;
 			open_edit = GF_TRUE;
 			i++;
@@ -5827,8 +5882,12 @@ int mp4boxMain(int argc, char **argv)
 			                          meta->enc_type,
 			                          meta->use_dref ? meta->szPath : NULL,  NULL,
 			                          meta->image_props);
-			if (meta->ref_type) {
-				e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
+			if (meta->item_refs && gf_list_count(meta->item_refs)) {
+				u32 ref_i;
+				for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
+					MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
+					e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
+				}
 			}
 			needSave = GF_TRUE;
 			break;
@@ -5877,8 +5936,12 @@ int mp4boxMain(int argc, char **argv)
 						if (e == GF_OK && meta->primary) {
 							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}
-						if (e == GF_OK && meta->ref_type) {
-							e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
+						if (e == GF_OK && meta->item_refs && gf_list_count(meta->item_refs)) {
+							u32 ref_i;
+							for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
+								MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
+								e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
+							}
 						}
 						if (e == GF_OK && meta->group_type) {
 							e = gf_isom_meta_add_item_group(file, meta->root_meta, tk, meta->item_id, meta->group_id, meta->group_type);
@@ -5890,6 +5953,41 @@ int mp4boxMain(int argc, char **argv)
 				gf_isom_remove_track(file, old_tk_count+1);
 			needSave = GF_TRUE;
 		}
+			break;
+		case META_ACTION_ADD_IMAGE_GRID:
+			{
+				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
+				if (!meta_type) {
+					e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_META_ITEM_TYPE_PICT);
+				} else {
+					if (meta_type != GF_META_ITEM_TYPE_PICT) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: file already has a root 'meta' box of type %s\n", gf_4cc_to_str(meta_type)));
+						e = GF_BAD_PARAM;
+					}
+				}
+				if (e == GF_OK) {
+					if (!meta->item_id) {
+						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
+					}
+					if (e == GF_OK) {
+						e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
+							    meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props, NULL);
+						if (e == GF_OK && meta->primary) {
+							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
+						}
+						if (e == GF_OK && meta->item_refs && gf_list_count(meta->item_refs)) {
+							u32 ref_i;
+							for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
+								MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
+								e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
+							}
+						}
+					}
+				}
+				needSave = GF_TRUE;
+			}
 			break;
 		case META_ACTION_REM_ITEM:
 			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);
@@ -5930,6 +6028,13 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		default:
 			break;
+		}
+		if (meta->item_refs) {
+			while (gf_list_count(meta->item_refs)) {
+				gf_free(gf_list_pop_back(meta->item_refs));
+			}
+			gf_list_del(meta->item_refs);
+			meta->item_refs = NULL;
 		}
 		if (meta->image_props) {
 			gf_free(meta->image_props);
