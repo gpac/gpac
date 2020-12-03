@@ -1294,11 +1294,12 @@ GF_EXPORT
 GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
 	GF_Err e = GF_OK;
 	u32 grid4cc = GF_4CC('g', 'r', 'i', 'd');
-	GF_BitStream *grid_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (!grid_bs) return GF_OUT_OF_MEM;
+	GF_BitStream *grid_bs;
 	if (image_props->num_grid_rows < 1 || image_props->num_grid_columns < 1 || image_props->width == 0 || image_props->height == 0) {
 		return GF_BAD_PARAM;
 	}
+	grid_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!grid_bs) return GF_OUT_OF_MEM;
 	gf_bs_write_u8(grid_bs, 0);
 	gf_bs_write_u8(grid_bs, 0);
 	gf_bs_write_u8(grid_bs, image_props->num_grid_rows-1);
@@ -1310,6 +1311,7 @@ GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32
 	gf_bs_get_content(grid_bs, &grid_data, &grid_data_size);
 	e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, item_id, grid4cc, NULL, NULL, image_props, grid_data, grid_data_size, item_extent_refs);
 	gf_free(grid_data);
+	gf_bs_del(grid_bs);
 	return e;
 }
 
