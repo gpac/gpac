@@ -1740,8 +1740,11 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	if (!ctx->dm) return GF_SERVICE_ERROR;
 
 	//old syntax
-	if (ctx->filemode)
+	if (ctx->filemode) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] `filemode` option will soon be deprecated, update your script to use `:forward=file` option.\n"));
 		ctx->forward = DFWD_FILE;
+		ctx->filemode = GF_FALSE;
+	}
 
 	ctx->dash_io.udta = ctx;
 	ctx->dash_io.delete_cache_file = dashdmx_io_delete_cache_file;
