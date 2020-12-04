@@ -865,7 +865,7 @@ GF_GPACArg m4b_meta_args[] =
 		"- primary: indicate that this item should be the primary item\n"
 		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
-		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid and overlay images also\n"
+		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid, overlay and identity derived images also\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
 		"- mirror-axis=axis: set the mirror axis: vertical, horizontal\n"
 		"- clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap\n"
@@ -876,10 +876,8 @@ GF_GPACArg m4b_meta_args[] =
 		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location. If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("add-image-grid", NULL, "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
+	GF_DEF_ARG("add-derived-image", NULL, "create an image grid, overlay or identity item, with parameter syntax `(grid|overlay|identity)[:opt1:optN]`\n"
 		"- image-grid-size=rxc: set the number of rows and colums of the grid\n"
-	    "- any other options from [-add-image]() can be used\n", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("add-image-overlay", NULL, "create an image overlay item, with parameter syntax `overlay[:opt1:optN]`\n"
 		"- image-overlay-offsets=h,v[,h,v]*: set the horizontal and vertical offsets of the images in the overlay\n"
 		"- image-overlay-color=r,g,b,a: set the canvas color of the overlay [0-65535]\n"
 		"- any other options from [-add-image]() can be used\n", NULL, NULL, GF_ARG_STRING, 0),
@@ -1626,8 +1624,7 @@ typedef enum {
 	META_ACTION_DUMP_ITEM			= 7,
 	META_ACTION_DUMP_XML			= 8,
 	META_ACTION_ADD_IMAGE_ITEM		= 9,
-	META_ACTION_ADD_IMAGE_GRID		= 10,
-	META_ACTION_ADD_IMAGE_OVERLAY   = 11,
+	META_ACTION_ADD_IMAGE_DERIVED	= 10,
 } MetaActionType;
 
 typedef struct {
@@ -3602,16 +3599,9 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			open_edit = GF_TRUE;
 			i++;
 		}
-		else if (!stricmp(arg, "-add-image-grid")) {
+		else if (!stricmp(arg, "-add-derived-image")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_GRID, argv[i + 1]);
-			nb_meta_act++;
-			open_edit = GF_TRUE;
-			i++;
-		}
-		else if (!stricmp(arg, "-add-image-overlay")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_OVERLAY, argv[i + 1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_DERIVED, argv[i + 1]);
 			nb_meta_act++;
 			open_edit = GF_TRUE;
 			i++;
@@ -6016,8 +6006,7 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 		}
 			break;
-		case META_ACTION_ADD_IMAGE_GRID:
-		case META_ACTION_ADD_IMAGE_OVERLAY:
+		case META_ACTION_ADD_IMAGE_DERIVED:
 			{
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {
@@ -6032,19 +6021,24 @@ int mp4boxMain(int argc, char **argv)
 					if (!meta->item_id) {
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
-					if (e == GF_OK) {
-						if (meta->act_type == META_ACTION_ADD_IMAGE_GRID) {
+					if (e == GF_OK && meta->item_type) {
+						if (meta->item_type == GF_4CC('g','r','i','d')) {
 							e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
 									meta->szName && strlen(meta->szName) ? meta->szName : NULL,
 									meta->item_id,
 									meta->image_props, NULL);
-						} else if (meta->act_type == META_ACTION_ADD_IMAGE_OVERLAY) {
+						} else if (meta->item_type == GF_4CC('i','o','v','l')) {
 							e = gf_isom_iff_create_image_overlay_item(file, meta->root_meta, tk,
 									meta->szName && strlen(meta->szName) ? meta->szName : NULL,
 									meta->item_id,
 									meta->image_props, NULL);
+						} else if (meta->item_type == GF_4CC('i','d','e','n')) {
+							e = gf_isom_iff_create_image_identity_item(file, meta->root_meta, tk,
+									meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+									meta->item_id,
+									meta->image_props, NULL);
 						} else {
-							e = GF_BAD_PARAM;
+							e = GF_NOT_SUPPORTED;
 						}
 						if (e == GF_OK && meta->primary) {
 							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
