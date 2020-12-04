@@ -876,7 +876,7 @@ GF_GPACArg m4b_meta_args[] =
 		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location. If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("add-derived-image", NULL, "create an image grid, overlay or identity item, with parameter syntax `(grid|overlay|identity)[:opt1:optN]`\n"
+	GF_DEF_ARG("add-derived-image", NULL, "create an image grid, overlay or identity item, with parameter syntax `:type=(grid|iovl|iden)[:opt1:optN]`\n"
 		"- image-grid-size=rxc: set the number of rows and colums of the grid\n"
 		"- image-overlay-offsets=h,v[,h,v]*: set the horizontal and vertical offsets of the images in the overlay\n"
 		"- image-overlay-color=r,g,b,a: set the canvas color of the overlay [0-65535]\n"
