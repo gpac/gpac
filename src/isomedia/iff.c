@@ -1366,4 +1366,16 @@ GF_Err gf_isom_iff_create_image_overlay_item(GF_ISOFile *movie, Bool root_meta, 
 	gf_bs_del(overlay_bs);
 	return e;
 }
+
+GF_EXPORT
+GF_Err gf_isom_iff_create_image_identity_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
+	GF_Err e = GF_OK;
+	u32 identity4cc = GF_4CC('i', 'd', 'e', 'n');
+	if (image_props->width == 0 || image_props->height == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong overlay parameters: %d, %d, %d\n", image_props->width, image_props->height));
+		return GF_BAD_PARAM;
+	}
+	e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, item_id, identity4cc, NULL, NULL, image_props, NULL, 0, item_extent_refs);
+	return e;
+}
 #endif /*GPAC_DISABLE_ISOM*/

@@ -983,7 +983,6 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	GF_MetaBox *meta;
 	u32 lastItemID = 0;
 
-	if (!self_reference && !resource_path && !data && !tk_id && !item_extent_refs) return GF_BAD_PARAM;
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -1143,7 +1142,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		}
 		meta->use_item_sample_sharing = GF_TRUE;
 	}
-	else {
+	else if (data || resource_path){
 		/*capture mode, write to disk*/
 		if ((file->openMode == GF_ISOM_OPEN_WRITE) && !location_entry->data_reference_index) {
 			FILE *src;
@@ -1199,7 +1198,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 				memcpy(infe->full_path, data, sizeof(char) * data_len);
 				infe->data_len = data_len;
 			}
-			else {
+			else if (resource_path) {
 				infe->full_path = gf_strdup(resource_path);
 				infe->data_len = 0;
 			}

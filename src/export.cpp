@@ -1091,6 +1091,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_iff_create_image_item_from_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_iff_create_image_grid_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_iff_create_image_overlay_item) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_iff_create_image_identity_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_set_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_next_alternate_group_id) )
