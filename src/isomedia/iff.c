@@ -1187,6 +1187,12 @@ import_next_sample:
 				bits_per_channel[1] = depth;
 				bits_per_channel[2] = depth;
 			}
+			// presence of OBU SH in config is not recommended and properties should be used instead of metadata OBUs
+			while (gf_list_count(((GF_AV1ConfigurationBox *)config_box)->config->obu_array)) {
+				gf_free(gf_list_pop_back(((GF_AV1ConfigurationBox *)config_box)->config->obu_array));
+			}
+			gf_list_del(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
+			((GF_AV1ConfigurationBox *)config_box)->config->obu_array = NULL;
 			//media_brand = GF_ISOM_BRAND_AVIF;
 		}
 		break;
