@@ -3649,7 +3649,7 @@ static Bool dasher_merge_rep(GF_DashStream *ds, GF_MPD_Representation *rep)
 #undef CHECK_STR
 #undef CHECK_FRAC
 
-	return transcode_detected;
+	return recompute_set;
 }
 static void dasher_forward_manifest_raw(GF_DasherCtx *ctx, GF_DashStream *ds, const char *manifest, const char *manifest_name)
 {
@@ -3738,7 +3738,7 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 			}
 		}
 	}
-	//update sets
+	//update sets - TODO
 
 	//and send
 	tmp = gf_file_temp(NULL);
