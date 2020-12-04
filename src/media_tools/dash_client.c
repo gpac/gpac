@@ -4326,6 +4326,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			group->bs_switching_init_segment_url = gf_strdup(init_segment_local_url);
 			group->bs_switching_init_segment_url_start_range = start_range;
 			group->bs_switching_init_segment_url_end_range = end_range;
+			group->bs_switching_init_segment_url_name_start = dash_strip_base_url(group->bs_switching_init_segment_url, base_url);
 			if (data_url_processed) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("URL with data scheme not handled for Bistream Switching Segments, probable memory leak"));
 			}
@@ -4632,7 +4633,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		if (found) continue;
 
 		if (! gf_list_count(set->representations)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Empty adaptation set found (ID %s) - ignoring\n", set->id));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Empty adaptation set found (ID %d) - ignoring\n", set->id));
 			continue;
 		}
 
@@ -7560,6 +7561,10 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
 			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, M3U8_TO_MPD_USE_SEGTIMELINE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
 		}
+
+		if (!e && dash->split_adaptation_set)
+			gf_mpd_split_adaptation_sets(dash->mpd);
+
 	} else {
 		u32 res = gf_dash_check_mpd_root_type(local_url);
 		if (res==2) {
@@ -8337,6 +8342,35 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed)
 }
 
 GF_EXPORT
+GF_Err gf_dash_group_get_segment_duration(GF_DashClient *dash, u32 idx, u32 *dur, u32 *timescale)
+{
+	GF_MPD_Representation *rep;
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return GF_BAD_PARAM;
+	if (!group->adaptation_set) return GF_BAD_PARAM;
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	if (!rep) return GF_BAD_PARAM;
+
+	*dur = 0;
+	*timescale = 0;
+	if (rep->segment_template) { *dur = rep->segment_template->duration; *timescale = rep->segment_template->timescale; }
+	else if (rep->segment_list) { *dur = rep->segment_list->duration; *timescale = rep->segment_list->timescale; }
+
+	if (group->adaptation_set->segment_template && ! *dur) *dur = group->adaptation_set->segment_template->duration;
+	else if (group->adaptation_set->segment_list && ! *dur) *dur = group->adaptation_set->segment_list->duration;
+
+	if (group->adaptation_set->segment_template && ! *timescale) *timescale = group->adaptation_set->segment_template->timescale;
+	else if (group->adaptation_set->segment_list && ! *timescale) *timescale = group->adaptation_set->segment_list->timescale;
+
+	if (group->period->segment_template && ! *dur) *dur = group->period->segment_template->timescale;
+	else if (group->period->segment_list && ! *dur) *dur = group->period->segment_list->timescale;
+
+	if (group->period->segment_template && ! *timescale) *timescale = group->period->segment_template->timescale;
+	else if (group->period->segment_list && ! *timescale) *timescale = group->period->segment_list->timescale;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment)
 {
 	GF_Err res = GF_OK;
@@ -8362,6 +8396,17 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **se
 	}
 	return res;
 }
+
+GF_EXPORT
+const char *gf_dash_group_get_representation_id(GF_DashClient *dash, u32 idx)
+{
+	GF_MPD_Representation *rep;
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return NULL;
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	return rep->id;
+}
+
 
 GF_EXPORT
 void gf_dash_group_discard_segment(GF_DashClient *dash, u32 idx)

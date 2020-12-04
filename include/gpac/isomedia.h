@@ -3743,7 +3743,7 @@ typedef struct
 	/*! mdat end offset*/
 	u64 mdat_end;
 	/*segment start offset plus one:
-		0 if regular fragment, 1 if dash sedment, offset indicates start of segment (styp or sidx)
+		0 if regular fragment, 1 if dash segment, offset indicates start of segment (styp or sidx)
 		if sidx, it is writtent in the moof_template
 	*/
 	u64 seg_start_plus_one;
@@ -5742,7 +5742,7 @@ GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *isom_file, Bool root_meta, u
 \param item_extent_refs list of item extend description, or NULL
 \return error if any
 */
-GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs);
+GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *isom_file, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs);
 
 /*! creates image item(s) from samples of a media track
 \param isom_file the target ISO file

@@ -59,7 +59,7 @@ typedef struct
 {
 	//opts
 	const char *temi_url;
-	Bool dsmcc, seeksrc;
+	Bool dsmcc, seeksrc, sigfrag;
 
 	GF_Filter *filter;
 	GF_FilterPid *ipid;
@@ -450,6 +450,11 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		gf_filter_pck_set_sap(dst_pck, (pck->flags & GF_M2TS_PES_PCK_RAP) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	}
 	m2tdmx_merge_temi((GF_M2TS_ES *)pck->stream, dst_pck);
+
+	if (pck->stream->is_seg_start) {
+		pck->stream->is_seg_start = GF_FALSE;
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+	}
 	gf_filter_pck_send(dst_pck);
 }
 
@@ -508,6 +513,10 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 	gf_filter_pck_set_carousel_version(dst_pck, pck->version_number);
 
 	m2tdmx_merge_temi(pck->stream, dst_pck);
+	if (pck->stream->is_seg_start) {
+		pck->stream->is_seg_start = GF_FALSE;
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+	}
 	gf_filter_pck_send(dst_pck);
 
 	if (pck->version_number + 1 == pck->stream->slcfg->carousel_version)
@@ -678,6 +687,10 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			dst_pck = gf_filter_pck_new_shared(stream->user, NULL, 0, NULL);
 			gf_filter_pck_set_cts(dst_pck, pcr);
 			gf_filter_pck_set_clock_type(dst_pck, discontinuity ? GF_FILTER_CLOCK_PCR_DISC : GF_FILTER_CLOCK_PCR);
+			if (pck->stream->is_seg_start) {
+				pck->stream->is_seg_start = GF_FALSE;
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+			}
 			gf_filter_pck_send(dst_pck);
 
 			if (map_time) {
@@ -1074,6 +1087,13 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
+	if (ctx->sigfrag) {
+		Bool is_start;
+		gf_filter_pck_get_framing(pck, &is_start, NULL);
+		if (is_start) {
+			gf_m2ts_mark_seg_start(ctx->ts);
+		}
+	}
 	//we process even if no stream playing: since we use unframed dispatch we may need to send packets to configure reframers
 	//which will in turn connect to the sink which will send the PLAY event marking stream(s) as playing
 	if (ctx->in_seek) {
@@ -1136,6 +1156,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 	{ OFFS(temi_url), "force TEMI URL", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sigfrag), "signal segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

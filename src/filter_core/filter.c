@@ -4178,3 +4178,25 @@ Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg)
 		return GF_TRUE;
 	return GF_FALSE;
 }
+
+GF_EXPORT
+void gf_filter_abort(GF_Filter *filter)
+{
+	u32 i;
+	GF_FilterEvent evt;
+	if (!filter) return;
+	gf_mx_p(filter->tasks_mx);
+	GF_FEVT_INIT(evt, GF_FEVT_STOP, NULL);
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->input_pids, i);
+		gf_filter_pid_set_discard(pid, GF_TRUE);
+		evt.base.on_pid = pid;
+		gf_filter_pid_send_event(pid, &evt);
+	}
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		gf_filter_pid_set_eos(pid);
+	}
+	gf_mx_v(filter->tasks_mx);
+}
+

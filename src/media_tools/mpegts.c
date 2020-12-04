@@ -2814,6 +2814,23 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 
 }
 
+void gf_m2ts_mark_seg_start(GF_M2TS_Demuxer *ts)
+{
+	u32 i;
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		GF_M2TS_ES *es = (GF_M2TS_ES *) ts->ess[i];
+		if (!es) continue;
+
+		if (es->flags & GF_M2TS_ES_IS_SECTION) {
+			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
+			ses->is_seg_start = GF_TRUE;
+		} else {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
+			pes->is_seg_start = GF_TRUE;
+		}
+	}
+}
+
 
 #if 0 //unused
 u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes)

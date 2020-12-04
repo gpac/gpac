@@ -2178,7 +2178,9 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .br
 * id=ID: item ID
 .br
-* ref=4cc,id: reference of type 4cc to an other item
+* ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)
+.br
+* group=id,type: indicate the id and type of an alternate group for this item
 .br
 .TP
 .B \-add-image (string)
@@ -2193,7 +2195,13 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * split_tiles: for an HEVC tiled image, each tile is stored as a separate item
 .br
+* image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also
+.br
 * rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise
+.br
+* mirror-axis=axis: set the mirror axis: vertical, horizontal
+.br
+* clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap
 .br
 * hidden: indicate that this image item should be hidden
 .br
@@ -2206,6 +2214,17 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 * samp=N: indicate the sample number of the source sample. If file_path is ref, do not copy the data but refer to the final sample location. If file_path is self, this or not set, copy data from the track sample
 .br
 - any other options will be passed as options to the media importer, see .I add
+.br
+.TP
+.B \-add-image-grid (string)
+.br
+create an image grid item, with parameter syntax grid[:opt1:optN]
+.br
+* image-grid-size=rxc: set the number of rows and colums of the grid
+.br
+- any other options from .I add-image can be used
+.br
+
 .br
 .TP
 .B \-rem-item  item_ID[:tk=tkID] (string)
@@ -2393,7 +2412,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev296-g7e42eb0b4-master
+build: 1.1.0-DEV-rev309-gec6dbc7c7-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -1352,6 +1352,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {
 						u64 start=0;
 						u32 traf_start = finfo.seg_start_plus_one ? 2 : 1;
+
+						if (finfo.seg_start_plus_one)
+							gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+
 						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_START, &PROP_UINT(traf_start));
 
 						start = finfo.frag_start;

@@ -1640,6 +1640,14 @@ static JSValue jsf_filter_block_eos(JSContext *ctx, JSValueConst this_val, int a
 }
 
 
+static JSValue jsf_filter_abort(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+    if (!jsf) return JS_EXCEPTION;
+	gf_filter_abort(jsf->filter);
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
     JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_FINALIZE),
@@ -1701,6 +1709,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("make_sticky", 0, jsf_filter_make_sticky),
 	JS_CFUNC_DEF("prevent_blocking", 1, jsf_filter_prevent_blocking),
 	JS_CFUNC_DEF("block_eos", 1, jsf_filter_block_eos),
+    JS_CFUNC_DEF("abort", 0, jsf_filter_abort),
 };
 
 
@@ -1758,6 +1767,8 @@ static JSValue jsf_filter_remove(JSContext *ctx, JSValueConst this_val, int argc
 		gf_filter_remove_src(jsfi->jsf->filter, jsfi->filter);
 	return JS_UNDEFINED;
 }
+
+
 
 static JSValue jsf_filter_has_pid_connections_pending(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1862,7 +1873,6 @@ static const JSCFunctionListEntry jsf_filter_inst_funcs[] = {
     JS_CFUNC_DEF("disable_probe", 0, jsf_filter_inst_disable_probe),
     JS_CFUNC_DEF("disable_inputs", 0, jsf_filter_inst_disable_inputs),
     JS_CFUNC_DEF("reset_source", 0, jsf_filter_reset_source),
-
 };
 
 
