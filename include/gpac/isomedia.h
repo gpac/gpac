@@ -5579,6 +5579,11 @@ typedef enum {
 	TILE_ITEM_SINGLE
 } GF_TileItemMode;
 
+typedef struct {
+	u32 horizontal;
+	u32 vertical;
+} GF_ImageItemOverlayOffset;
+
 /*! Image item properties*/
 typedef struct
 {
@@ -5622,6 +5627,15 @@ typedef struct
 	u8 bits_per_channel[3];
 	u32 num_grid_columns;
 	u32 num_grid_rows;
+	/*! number of overlayed images*/
+	u32 overlay_count;
+	/*! overlay offsets*/
+	GF_ImageItemOverlayOffset *overlay_offsets;
+	/*! canvas overlay color*/
+	u32 overlay_canvas_fill_value_r;
+	u32 overlay_canvas_fill_value_g;
+	u32 overlay_canvas_fill_value_b;
+	u32 overlay_canvas_fill_value_a;
 } GF_ImageItemProperties;
 
 
@@ -5732,7 +5746,7 @@ GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *isom_file, Bool root_meta, u32 t
 */
 GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, GF_ISOTrackID tk_id, u32 sample_num);
 
-/*! creates image item(s) from samples of a media track
+/*! creates an image grid item
 \param isom_file the target ISO file
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if meta_track_number is 0
 \param meta_track_number if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
@@ -5743,6 +5757,18 @@ GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *isom_file, Bool root_meta, u
 \return error if any
 */
 GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs);
+
+/*! creates an image overlay item
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if meta_track_number is 0
+\param meta_track_number if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param item_name name of the item
+\param item_id ID of the item, can be 0
+\param image_props image properties information for image items
+\param item_extent_refs list of item extend description, or NULL
+\return error if any
+*/
+GF_Err gf_isom_iff_create_image_overlay_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs);
 
 /*! creates image item(s) from samples of a media track
 \param isom_file the target ISO file

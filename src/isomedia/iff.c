@@ -1296,12 +1296,13 @@ GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32
 	u32 grid4cc = GF_4CC('g', 'r', 'i', 'd');
 	GF_BitStream *grid_bs;
 	if (image_props->num_grid_rows < 1 || image_props->num_grid_columns < 1 || image_props->width == 0 || image_props->height == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong grid parameters: %d, %d, %d, %d\n", image_props->num_grid_rows, image_props->num_grid_columns, image_props->width, image_props->height));
 		return GF_BAD_PARAM;
 	}
 	grid_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (!grid_bs) return GF_OUT_OF_MEM;
-	gf_bs_write_u8(grid_bs, 0);
-	gf_bs_write_u8(grid_bs, 0);
+	gf_bs_write_u8(grid_bs, 0); //version
+	gf_bs_write_u8(grid_bs, (image_props->width > 1<<16 || image_props->width > 1<<16) ? 1 : 0); // flags
 	gf_bs_write_u8(grid_bs, image_props->num_grid_rows-1);
 	gf_bs_write_u8(grid_bs, image_props->num_grid_columns-1);
 	gf_bs_write_u16(grid_bs, image_props->width);
@@ -1315,4 +1316,48 @@ GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32
 	return e;
 }
 
+GF_EXPORT
+GF_Err gf_isom_iff_create_image_overlay_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
+	u32 i;
+	Bool use32bitFields = GF_FALSE;
+	GF_Err e = GF_OK;
+	u32 overlay4cc = GF_4CC('i', 'o', 'v', 'l');
+	GF_BitStream *overlay_bs;
+	if (image_props->overlay_count == 0 || image_props->width == 0 || image_props->height == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong overlay parameters: %d, %d, %d\n", image_props->overlay_count, image_props->width, image_props->height));
+		return GF_BAD_PARAM;
+	}
+	if (image_props->width <= 1<<16 || image_props->height <= 1<<16) {
+		for (i=0; i< image_props->overlay_count; i++) {
+			if ( image_props->overlay_offsets[i].horizontal > 1<<16 ||
+				image_props->overlay_offsets[i].vertical > 1<<16) {
+				use32bitFields = GF_TRUE;
+				break;
+			}
+		}
+	} else {
+		use32bitFields = GF_TRUE;
+	}
+	overlay_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!overlay_bs) return GF_OUT_OF_MEM;
+	gf_bs_write_u8(overlay_bs, 0); // version
+	gf_bs_write_u8(overlay_bs, use32bitFields ? 1 : 0); // flags
+	gf_bs_write_u16(overlay_bs, image_props->overlay_canvas_fill_value_r);
+	gf_bs_write_u16(overlay_bs, image_props->overlay_canvas_fill_value_g);
+	gf_bs_write_u16(overlay_bs, image_props->overlay_canvas_fill_value_b);
+	gf_bs_write_u16(overlay_bs, image_props->overlay_canvas_fill_value_a);
+	gf_bs_write_u16(overlay_bs, image_props->width);
+	gf_bs_write_u16(overlay_bs, image_props->height);
+	for (i = 0; i <image_props->overlay_count; i++) {
+		gf_bs_write_u16(overlay_bs, image_props->overlay_offsets[i].horizontal);
+		gf_bs_write_u16(overlay_bs, image_props->overlay_offsets[i].vertical);
+	}
+	u8 *overlay_data;
+	u32 overlay_data_size;
+	gf_bs_get_content(overlay_bs, &overlay_data, &overlay_data_size);
+	e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, item_id, overlay4cc, NULL, NULL, image_props, overlay_data, overlay_data_size, item_extent_refs);
+	gf_free(overlay_data);
+	gf_bs_del(overlay_bs);
+	return e;
+}
 #endif /*GPAC_DISABLE_ISOM*/

@@ -865,7 +865,7 @@ GF_GPACArg m4b_meta_args[] =
 		"- primary: indicate that this item should be the primary item\n"
 		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
-		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also\n"
+		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid and overlay images also\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
 		"- mirror-axis=axis: set the mirror axis: vertical, horizontal\n"
 		"- clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap\n"
@@ -879,6 +879,10 @@ GF_GPACArg m4b_meta_args[] =
 	GF_DEF_ARG("add-image-grid", NULL, "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
 		"- image-grid-size=rxc: set the number of rows and colums of the grid\n"
 	    "- any other options from [-add-image]() can be used\n", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("add-image-overlay", NULL, "create an image overlay item, with parameter syntax `overlay[:opt1:optN]`\n"
+		"- image-overlay-offsets=h,v[,h,v]*: set the horizontal and vertical offsets of the images in the overlay\n"
+		"- image-overlay-color=r,g,b,a: set the canvas color of the overlay [0-65535]\n"
+		"- any other options from [-add-image]() can be used\n", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rem-item `item_ID[:tk=tkID]`", NULL, "remove resource from meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-primary `item_ID[:tk=tkID]`", NULL, "set item as primary for meta", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("set-xml `xml_file_path[:tk=tkID][:binary]`", NULL, "set meta XML data", NULL, NULL, GF_ARG_STRING, 0),
@@ -1623,6 +1627,7 @@ typedef enum {
 	META_ACTION_DUMP_XML			= 8,
 	META_ACTION_ADD_IMAGE_ITEM		= 9,
 	META_ACTION_ADD_IMAGE_GRID		= 10,
+	META_ACTION_ADD_IMAGE_OVERLAY   = 11,
 } MetaActionType;
 
 typedef struct {
@@ -1726,6 +1731,56 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
 			sscanf(szSlot+16, "%dx%d", &meta->image_props->num_grid_rows, &meta->image_props->num_grid_columns);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "image-overlay-color=", 20)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			sscanf(szSlot+20, "%d,%d,%d,%d", &meta->image_props->overlay_canvas_fill_value_r,&meta->image_props->overlay_canvas_fill_value_g,&meta->image_props->overlay_canvas_fill_value_b,&meta->image_props->overlay_canvas_fill_value_a);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "image-overlay-offsets=", 22)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			u32 position = 22;
+			u32 comma_count = 0;
+			u32 offset_index = 0;
+			char *prev = szSlot+position;
+			char *next = strchr(szSlot+position, ',');
+			while (next != NULL) {
+				comma_count++;
+				next++;
+				next = strchr(next, ',');
+			}
+			meta->image_props->overlay_count = comma_count/2+1;
+			meta->image_props->overlay_offsets = (GF_ImageItemOverlayOffset *)gf_malloc(meta->image_props->overlay_count*sizeof(GF_ImageItemOverlayOffset));
+			if (!meta->image_props->overlay_offsets) {
+				return 0;
+			}
+			next = strchr(szSlot+position, ',');
+			while (next != NULL) {
+				*next = 0;
+				meta->image_props->overlay_offsets[offset_index].horizontal = atoi(prev);
+				*next = ',';
+				next++;
+				prev = next;
+				if (next) {
+					next = strchr(next, ',');
+					if (next) *next = 0;
+					meta->image_props->overlay_offsets[offset_index].vertical = atoi(prev);
+					if (next) {
+						*next = ',';
+						next++;
+						prev = next;
+						next = strchr(next, ',');
+					}
+				} else {
+					meta->image_props->overlay_offsets[offset_index].vertical = 0;
+				}
+				offset_index++;
+			}
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "image-pasp=", 11)) {
@@ -3550,6 +3605,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-add-image-grid")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
 			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_GRID, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = GF_TRUE;
+			i++;
+		}
+		else if (!stricmp(arg, "-add-image-overlay")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_OVERLAY, argv[i + 1]);
 			nb_meta_act++;
 			open_edit = GF_TRUE;
 			i++;
@@ -5955,6 +6017,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 			break;
 		case META_ACTION_ADD_IMAGE_GRID:
+		case META_ACTION_ADD_IMAGE_OVERLAY:
 			{
 				u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (!meta_type) {
@@ -5970,10 +6033,19 @@ int mp4boxMain(int argc, char **argv)
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
-							    meta->szName && strlen(meta->szName) ? meta->szName : NULL,
-								meta->item_id,
-								meta->image_props, NULL);
+						if (meta->act_type == META_ACTION_ADD_IMAGE_GRID) {
+							e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
+									meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+									meta->item_id,
+									meta->image_props, NULL);
+						} else if (meta->act_type == META_ACTION_ADD_IMAGE_OVERLAY) {
+							e = gf_isom_iff_create_image_overlay_item(file, meta->root_meta, tk,
+									meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+									meta->item_id,
+									meta->image_props, NULL);
+						} else {
+							e = GF_BAD_PARAM;
+						}
 						if (e == GF_OK && meta->primary) {
 							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}
