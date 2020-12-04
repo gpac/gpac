@@ -268,7 +268,7 @@ typedef struct
 
 	GF_FilterPacket *dst_pck;
 	char *seg_name;
-	u32 dash_seg_num;
+	u32 dash_seg_num_plus_one;
 	Bool flush_seg;
 	u32 eos_marker;
 	TrackWriter *ref_tkw;
@@ -4585,7 +4585,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (ctx->dash_mode) {
 				if (p) {
 					//start of next segment, abort fragmentation for this track and flush all other writers
-					if (ctx->dash_seg_num && (ctx->dash_seg_num != p->value.uint) ) {
+					if (ctx->dash_seg_num_plus_one && (ctx->dash_seg_num_plus_one != 1 + p->value.uint) ) {
 						tkw->fragment_done = GF_TRUE;
 						tkw->samples_in_frag = 0;
 						nb_done ++;
@@ -4597,7 +4597,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 						break;
 					}
 					//start of current segment, remember segment number and name
-					ctx->dash_seg_num = p->value.uint;
+					ctx->dash_seg_num_plus_one = 1 + p->value.uint;
 					//get file name prop if any - only send on one pid for muxed content
 					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 					if (p && p->value.string) {
@@ -4787,7 +4787,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 			if (e) return e;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num_plus_one - 1, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
 				mp4_mux_flush_seg(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
@@ -4823,7 +4823,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		if (ctx->flush_seg) {
 			ctx->segment_started = GF_FALSE;
 			ctx->flush_seg = GF_FALSE;
-			ctx->dash_seg_num = 0;
+			ctx->dash_seg_num_plus_one = 0;
 			ctx->nb_segs++;
 			ctx->nb_frags_in_seg=0;
 		}
@@ -5309,7 +5309,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 	if (!ctx->first_pck_sent && ctx->seg_name) {
 		ctx->current_offset = 0;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->seg_name) );
-		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num) );
+		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num_plus_one-1) );
 	}
 	if (ctx->min_cts_plus_one) {
 		u64 orig = ctx->min_cts_plus_one-1;

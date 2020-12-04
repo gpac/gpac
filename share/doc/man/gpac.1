@@ -2837,6 +2837,31 @@ Indicates the PID packets come from source with losses and reordering happening 
 Indicates this is a primary item in isobmf
 .br
 .TP
+.B DFMode (DFWD,uint,D )
+.br
+Indicates that forward mode is used for this PID. If 2, indicates the manifest is also carried in packet propery
+.br
+.TP
+.B DFManifest (DMPD,str,D )
+.br
+Value of manifest in forward mode
+.br
+.TP
+.B DFVariant (DHLV,strl,D )
+.br
+Value of variant playlist in forward mode
+.br
+.TP
+.B DFVariantName (DHLN,strl,D )
+.br
+Value of variant playlist name in forward mode
+.br
+.TP
+.B DFPStart (DPST,luint,D )
+.br
+Value of active period start time in forward mode
+.br
+.TP
 .B ColorPrimaries (CPRM,cprm,D )
 .br
 Indicate color primaries for a visual pid
@@ -3888,7 +3913,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev296-g7e42eb0b4-master
+build: 1.1.0-DEV-rev309-gec6dbc7c7-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

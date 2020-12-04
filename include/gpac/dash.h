@@ -500,6 +500,23 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, const cha
 */
 Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 group_idx);
 
+
+/*! gets average duration of segments for the current rep.
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\param duration set to average segment duration
+\param timescale set to timescale used to exprss duration
+\return error if any
+*/
+GF_Err gf_dash_group_get_segment_duration(GF_DashClient *dash, u32 group_idx, u32 *duration, u32 *timescale);
+
+/*! gets ID of active representaion.
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return ID of representation, NULL if error
+*/
+const char *gf_dash_group_get_representation_id(GF_DashClient *dash, u32 group_idx);
+
 /*! returns number of seconds at which playback shall start for the group in the current period.
 The first segment available for the period will be so that gf_dash_group_get_start_range is in this range after the caller
 adjusts it with PTO (eg the returned time is in period timeline, not media timeline)

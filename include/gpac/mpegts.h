@@ -706,6 +706,7 @@ enum
 			void *user; \
 			GF_List *props; \
 			u64 first_dts; \
+			Bool is_seg_start; \
 			u32 service_id;
 
 /*! abstract Section/PES stream object*/
@@ -1118,6 +1119,12 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *demux);
 \param demux the target MPEG-2 TS demultiplexer
 */
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *demux);
+
+/*! set all streams is_seg_start variable to GF_TRUE
+\param demux the target MPEG-2 TS demultiplexer
+*/
+void gf_m2ts_mark_seg_start(GF_M2TS_Demuxer *demux);
+
 /*! resets all parsers (PES, sections) of a given program
 \param demux the target MPEG-2 TS demultiplexer
 \param program the target MPEG-2 TS program

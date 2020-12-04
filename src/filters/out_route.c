@@ -1440,7 +1440,7 @@ retry:
 
 
 	pck_dur = gf_filter_pck_get_duration(rpid->current_pck);
-	//check if duration is for the entire segment or this fragment (cf filemode in dmx_dash.c)
+	//check if duration is for the entire segment or this fragment (cf forward=file in dmx_dash.c)
 	pck_dur_for_segment = GF_FALSE;
 	if (start) {
 		rpid->pck_dur_at_frame_start = 0;
@@ -2045,7 +2045,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"When DASHing for multi-service ATSC, forcing an extension will force all service to use the same formats.\n"
 		"EX \"atsc://:ext=mpd\", \"route://IP:PORT/manifest.mpd\"\n"
 		"If multiple services with different formats are needed, you will need to explicit your filters:\n"
-		"EX gpac -i DASH_URL:#ServiceID=1 @ dashin:filemode:FID=1 -i HLS_URL:#ServiceID=2 @ dashin:filemode:FID=2 -o atsc://:SID=1,2\n"
+		"EX gpac -i DASH_URL:#ServiceID=1 @ dashin:forward=file:FID=1 -i HLS_URL:#ServiceID=2 @ dashin:forward=file:FID=2 -o atsc://:SID=1,2\n"
 		"EX gpac -i MOVIE1:#ServiceID=1 @ dasher:FID=1:mname=manifest.mpd -i MOVIE2:#ServiceID=2 @ dasher:FID=2:mname=manifest.m3u8 -o atsc://:SID=1,2\n"
 		"\n"
 		"Warning: When forwarding an existing DASH/HLS session, do NOT set any extension or manifest name.\n"
@@ -2076,13 +2076,13 @@ GF_FilterRegister ROUTEOutRegister = {
 		"\n"
 		"# Examples\n"
 		"Since the ROUTE filter only consumes files, it is required to insert:\n"
-		"- the dash demuxer in filemode when loading a DASH session\n"
+		"- the dash demuxer in file forwarding mode when loading a DASH session\n"
 		"- the dash muxer when creating a DASH session\n"
 		"\n"
 		"Muxing an existing DASH session in route:\n"
-		"EX gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/\n"
+		"EX gpac -i source.mpd dashin:forward=file @ -o route://225.1.1.0:6000/\n"
 		"Muxing an existing DASH session in atsc:\n"
-		"EX gpac -i source.mpd dashin:filemode @ -o atsc://\n"
+		"EX gpac -i source.mpd dashin:forward=file @ -o atsc://\n"
 		"Dashing and muxing in route:\n"
 		"EX gpac -i source.mp4 dasher:profile=live @ -o route://225.1.1.0:6000/manifest.mpd\n"
 		"Dashing and muxing in route Low Latency (experimental):\n"
@@ -2097,7 +2097,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"EX gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/\n"
 		"EX gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/manifest.mpd\n"
 		"These will load the dash session, instantiate a new dasher filter (hence a new DASH manifest), sending the output of the dasher to ROUTE\n"
-		"EX gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/manifest.mpd\n"
+		"EX gpac -i source.mpd dashin:forward=file @ -o route://225.1.1.0:6000/manifest.mpd\n"
 		"This will force the ROUTE muxer to only accept .mpd files, and will drop all segment files (same if [-ext]() is used).\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),

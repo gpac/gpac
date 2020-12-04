@@ -109,14 +109,8 @@ Some elments are typically overloaded in XML, we keep the attributes / children 
 The children list is NULL if no extensions were found, otherwise it is a list of GF_XMLNode
 */
 #define MPD_EXTENSIBLE	\
-	GF_List *attributes;	\
-	GF_List *children;	\
-
-/*! basic extensible MPD element*/
-typedef struct
-{
-	MPD_EXTENSIBLE
-} GF_MPD_ExtensibleVirtual;
+	GF_List *x_attributes;	\
+	GF_List *x_children;	\
 
 /*! basic extensible MPD descriptor*/
 typedef struct
@@ -209,15 +203,6 @@ typedef struct
 	/*! media offset*/
 	s64 mediaOffset;
 } GF_MPD_ISOBMFInfo;
-
-
-/*! other XML descriptors*/
-typedef struct
-{
-	/*! list of XML descriptors*/
-	char *xml_desc;
-} GF_MPD_other_descriptors;
-
 
 /*! macro for MPD segment base*/
 #define GF_MPD_SEGMENT_BASE	\
@@ -319,6 +304,9 @@ typedef struct
 	char *initialization;
 	/*! bitstream switching segment template*/
 	char *bitstream_switching;
+
+	/*! internal, for HLS generation*/
+	const char *hls_init_name;
 } GF_MPD_SegmentTemplate;
 
 /*! MPD scan types*/
@@ -347,6 +335,8 @@ MANDATORY:
 	codecs
 */
 #define GF_MPD_COMMON_ATTRIBUTES_ELEMENTS	\
+	GF_List *x_attributes;	\
+	GF_List *x_children;	\
 	char *profiles;	\
 	u32 width;	\
 	u32 height;	\
@@ -601,9 +591,6 @@ typedef struct {
 	/*! number of subrepresentation*/
 	GF_List *sub_representations;
 
-	/*! other MPD descriptors*/
-	GF_List *other_descriptors;
-
 	/*! all the below members are GPAC internal*/
 
 	/*! GPAC playback implementation*/
@@ -710,8 +697,6 @@ typedef struct
 	char *xlink_href;
 	/*! xlink evaluation on load if set, otherwise on use*/
 	Bool xlink_actuate_on_load;
-	/*! other descriptors*/
-	GF_List *other_descriptors;
 
 	/*! user private, eg used by dasher*/
 	void *udta;
@@ -742,6 +727,9 @@ typedef enum {
 /*! Period*/
 typedef struct
 {
+	/*! inherits from extensible*/
+	MPD_EXTENSIBLE
+
 	/*! ID of period*/
 	char *ID;
 	/*! start time in milliseconds, relative to the start of the MPD */
@@ -768,8 +756,6 @@ typedef struct
 	/*! xlink evaluation on load if set, otherwise on use*/
 	Bool xlink_actuate_on_load;
 
-	/*! other descriptors*/
-	GF_List *other_descriptors;
 	/*! original xlink URL before resolution, used to identify already resolved xlinks in MPD updates - GPAC internal*/
 	char *origin_base_url;
 	/*! type of the period - GPAC internal*/
@@ -779,6 +765,9 @@ typedef struct
 /*! Program info*/
 typedef struct
 {
+	/*! inherits from extensible*/
+	MPD_EXTENSIBLE
+
 	/*! languae*/
 	char *lang;
 	/*! title*/

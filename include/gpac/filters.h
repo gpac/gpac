@@ -1144,6 +1144,13 @@ enum
 	GF_PROP_PID_LLHLS = GF_4CC('H','L','S','L'),
 	GF_PROP_PCK_HLS_FRAG_NUM = GF_4CC('H','L','S','N'),
 
+	//internal for DASH forward mode
+	GF_PROP_PID_DASH_FWD = GF_4CC('D','F','W','D'),
+	GF_PROP_PCK_DASH_MANIFEST = GF_4CC('D','M','P','D'),
+	GF_PROP_PCK_HLS_VARIANT = GF_4CC('D','H','L','V'),
+	GF_PROP_PID_DASH_PERIOD_START = GF_4CC('D','P','S','T'),
+	GF_PROP_PCK_HLS_VARIANT_NAME = GF_4CC('D','H','L','N'),
+
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T')
 };
@@ -1831,6 +1838,12 @@ void gf_filter_set_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
 \return GF_TRUE if filter is an instance of this register, GF_FALSE otehrwise
 */
 Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg);
+
+
+/*! Aborts a filter, discarding and stoping all input PIDs and sending EOS on all output PIDs
+\param filter filter to abort
+*/
+void gf_filter_abort(GF_Filter *filter);
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum

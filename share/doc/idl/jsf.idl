@@ -271,6 +271,9 @@ void prevent_blocking(boolean do_prevent);
 */
 void block_eos(boolean do_block);
 
+/*! aborts the filter - see \ref gf_filter_abort*/
+void abort();
+
 };
 
 /*! FilterInstance wraps the set of functions available for filters loaded by the script*/

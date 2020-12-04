@@ -1364,6 +1364,11 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_SINGLE_SCALE, "SingleScale", "Indicates the movie header should use the media timescale of the first track added", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_UDP, "RequireReorder", "Indicates the PID packets come from source with losses and reordering happening (UDP)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PRIMARY_ITEM, "Primary", "Indicates this is a primary item in isobmf", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_DASH_FWD, "DFMode", "Indicates that forward mode is used for this PID. If 2, indicates the manifest is also carried in packet propery", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_DASH_MANIFEST, "DFManifest", "Value of manifest in forward mode", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_HLS_VARIANT, "DFVariant", "Value of variant playlist in forward mode", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_HLS_VARIANT_NAME, "DFVariantName", "Value of variant playlist name in forward mode", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_DASH_PERIOD_START, "DFPStart", "Value of active period start time in forward mode", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Indicate color primaries for a visual pid", GF_PROP_CICP_COL_PRIM, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_TRANSFER, "ColorTransfer", "Indicate color transfer characteristics for a visual pid", GF_PROP_CICP_COL_TFC, GF_PROP_FLAG_GSF_REM},
