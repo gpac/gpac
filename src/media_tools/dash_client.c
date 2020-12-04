@@ -8353,17 +8353,17 @@ GF_Err gf_dash_group_get_segment_duration(GF_DashClient *dash, u32 idx, u32 *dur
 
 	*dur = 0;
 	*timescale = 0;
-	if (rep->segment_template) { *dur = rep->segment_template->duration; *timescale = rep->segment_template->timescale; }
-	else if (rep->segment_list) { *dur = rep->segment_list->duration; *timescale = rep->segment_list->timescale; }
+	if (rep->segment_template) { *dur = (u32) rep->segment_template->duration; (*timescale) = rep->segment_template->timescale; }
+	else if (rep->segment_list) { *dur = (u32) rep->segment_list->duration; *timescale = rep->segment_list->timescale; }
 
-	if (group->adaptation_set->segment_template && ! *dur) *dur = group->adaptation_set->segment_template->duration;
-	else if (group->adaptation_set->segment_list && ! *dur) *dur = group->adaptation_set->segment_list->duration;
+	if (group->adaptation_set->segment_template && ! *dur) *dur = (u32) group->adaptation_set->segment_template->duration;
+	else if (group->adaptation_set->segment_list && ! *dur) *dur = (u32) group->adaptation_set->segment_list->duration;
 
 	if (group->adaptation_set->segment_template && ! *timescale) *timescale = group->adaptation_set->segment_template->timescale;
 	else if (group->adaptation_set->segment_list && ! *timescale) *timescale = group->adaptation_set->segment_list->timescale;
 
-	if (group->period->segment_template && ! *dur) *dur = group->period->segment_template->timescale;
-	else if (group->period->segment_list && ! *dur) *dur = group->period->segment_list->timescale;
+	if (group->period->segment_template && ! *dur) *dur = (u32) group->period->segment_template->timescale;
+	else if (group->period->segment_list && ! *dur) *dur = (u32) group->period->segment_list->timescale;
 
 	if (group->period->segment_template && ! *timescale) *timescale = group->period->segment_template->timescale;
 	else if (group->period->segment_list && ! *timescale) *timescale = group->period->segment_list->timescale;
