@@ -1982,6 +1982,7 @@ typedef enum {
 
 static const int VP9_CS_to_23001_8_colour_primaries[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 1 };
 static const int VP9_CS_to_23001_8_transfer_characteristics[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 13 };
+static const int VP9_CS_to_23001_8_matrix_coefficients[] = { -1/*undefined*/, 6, 1, -1, -1, 9, -1/*reserved*/, 0 };
 
 static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 {
@@ -1997,6 +1998,7 @@ static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 	color_space = gf_bs_read_int(bs, 3);
 	vp9_cfg->colour_primaries = VP9_CS_to_23001_8_colour_primaries[color_space];
 	vp9_cfg->transfer_characteristics = VP9_CS_to_23001_8_transfer_characteristics[color_space];
+	vp9_cfg->matrix_coefficients = VP9_CS_to_23001_8_matrix_coefficients[color_space];
 	if (color_space != CS_RGB) {
 		vp9_cfg->video_fullRange_flag = gf_bs_read_int(bs, 1);
 		if (vp9_cfg->profile == 1 || vp9_cfg->profile == 3) {
@@ -2275,6 +2277,7 @@ GF_Err vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame,
 				u8 color_space = CS_BT_601;
 				vp9_cfg->colour_primaries = VP9_CS_to_23001_8_colour_primaries[color_space];
 				vp9_cfg->transfer_characteristics = VP9_CS_to_23001_8_transfer_characteristics[color_space];
+				vp9_cfg->matrix_coefficients = VP9_CS_to_23001_8_matrix_coefficients[color_space];
 				vp9_cfg->chroma_subsampling = 0;
 				vp9_cfg->bit_depth = 8;
 			}
