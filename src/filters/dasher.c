@@ -379,6 +379,7 @@ typedef struct _dash_stream
 	Bool no_seg_dur;
 	//for route
 	u64 hls_ref_id;
+	GF_DASH_SegmentContext *current_seg_state;
 
 	Bool transcode_detected;
 } GF_DashStream;
@@ -1967,6 +1968,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 	assert(ds->rep==NULL);
 	ds->rep = gf_mpd_representation_new();
 	ds->rep->playback.udta = ds;
+	ds->rep->is_encrypted = ds->is_encrypted ? 1 : 0;
 
 	dasher_update_rep(ctx, ds);
 
@@ -3421,6 +3423,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			ds->dur_purged += dur;
 			assert(gf_list_find(ds->pending_segment_states, sctx)<0);
 			if (sctx->filename) gf_free(sctx->filename);
+			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
@@ -5794,11 +5797,11 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 
 	if (ctx->store_seg_states) {
+		const GF_PropertyValue *p;
 		if (!ds->rep->state_seg_list) {
 			ds->rep->state_seg_list = gf_list_new();
 		}
 		if (!ds->rep->dash_dur.num) {
-			const GF_PropertyValue *p;
 			ds->rep->timescale = ds->timescale;
 			ds->rep->streamtype = ds->stream_type;
 			ds->rep->timescale_mpd = ds->mpd_timescale;
@@ -5839,6 +5842,13 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
 		seg_state->llhls_mode = ctx->llhls;
+		ds->current_seg_state = seg_state;
+		seg_state->encrypted = GF_FALSE;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_KMS);
+		//we need a hard copy as the pid may reconfigure before we flush the segment
+		if (p && p->value.string)
+			seg_state->hls_key_uri = gf_strdup(p->value.string);
+
 		gf_list_add(ds->rep->state_seg_list, seg_state);
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *frag_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
@@ -7006,6 +7016,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			ds->cumulated_dur += dur;
 
+			if (ds->current_seg_state && gf_filter_pck_get_crypt_flags(pck))
+				ds->current_seg_state->encrypted = GF_TRUE;
 			//TODO check drift between MPD start time and min CTS in segment (not just first CTS in segment)
 
 			//send packet

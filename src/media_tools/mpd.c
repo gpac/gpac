@@ -1253,6 +1253,7 @@ void gf_mpd_representation_free(void *_item)
 			if (s->filename) gf_free(s->filename);
 			if (s->filepath) gf_free(s->filepath);
 			if (s->frags) gf_free(s->frags);
+			if (s->hls_key_uri) gf_free(s->hls_key_uri);
 			gf_free(s);
 		}
 		gf_list_del(ptr->state_seg_list);
@@ -3416,6 +3417,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	u32 i, count;
 	GF_DASH_SegmentContext *sctx;
 	FILE *out;
+	const char *last_kms = NULL;
 	Bool close_file = GF_FALSE;
 
 	if (!strcmp(m3u8_name, "std")) out = stdout;
@@ -3456,10 +3458,41 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		if (rep->hls_single_file_name) {
 			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", rep->hls_single_file_name);
 		}
+
 		for (i=0; i<count; i++) {
 			Double dur;
 			sctx = gf_list_get(rep->state_seg_list, i);
 			assert(sctx->filename);
+
+			if (rep->is_encrypted) {
+				const char *kms;
+				if (!sctx->encrypted) kms = "NONE";
+				else if (sctx->hls_key_uri) kms = sctx->hls_key_uri;
+				else {
+					kms = "URI=\"gpac:hls:key:locator:null\"";
+					if (rep->is_encrypted==1) {
+						rep->is_encrypted = 2;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[HLS] Missing key URI in one or mode keys - will use dummy one %s\n", kms));
+					}
+				}
+
+				if (!last_kms || !kms || strcmp(kms, last_kms)) {
+					if (!strcmp(kms, "NONE")) {
+						gf_fprintf(out,"#EXT-X-KEY:METHOD=NONE\n");
+					} else {
+						char *subkms = (char *) kms;
+						while (1) {
+							char *next = strstr(subkms, ",URI");
+							if (next) next[0] = 0;
+							gf_fprintf(out,"#EXT-X-KEY:METHOD=SAMPLE-AES,%s\n", subkms);
+							if (!next) break;
+							next[0] = ',';
+							subkms = next+1;
+						}
+					}
+					last_kms = kms;
+				}
+			}
 
 			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {
 				u32 k;

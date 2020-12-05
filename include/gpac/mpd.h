@@ -562,6 +562,10 @@ typedef struct
 	u32 llhls_mode;
 	/*! HLS LL segment done */
 	Bool llhls_done;
+	/*! HLS set to TRUE if not encrypted */
+	Bool encrypted;
+	/*! HLS key params (URI and co)*/
+	char *hls_key_uri;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -631,6 +635,8 @@ typedef struct {
 	char *m3u8_var_name;
 	/*! temp file for m3u8 generation*/
 	FILE *m3u8_var_file;
+
+	u32 is_encrypted;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
