@@ -7438,8 +7438,12 @@ static int JS_CheckBrand(JSContext *ctx, JSValueConst obj, JSValueConst func)
     if (unlikely(JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT))
         goto not_obj;
     p = JS_VALUE_GET_OBJ(obj);
-    prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, (JSValue)brand));
-    if (!prs) {
+#if defined(JS_VALUE_CANNOT_BE_CAST)
+	prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, brand));
+#else
+	prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, (JSValue)brand));
+#endif
+	if (!prs) {
         JS_ThrowTypeError(ctx, "invalid brand on object");
         return -1;
     }
@@ -9071,8 +9075,12 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                 return -1;
             }
             /* this code relies on the fact that Uint32 are never allocated */
-            val = (JSValueConst)JS_NewUint32(ctx, array_length);
-            /* prs may have been modified */
+#if defined(JS_VALUE_CANNOT_BE_CAST)
+			val = JS_NewUint32(ctx, array_length);
+#else
+			val = (JSValueConst)JS_NewUint32(ctx, array_length);
+#endif
+			/* prs may have been modified */
             prs = find_own_property(&pr, p, prop);
             assert(prs != NULL);
         }
@@ -33726,12 +33734,14 @@ JSValue JS_EvalThis(JSContext *ctx, JSValueConst this_obj,
                     const char *input, size_t input_len,
                     const char *filename, int eval_flags)
 {
-    int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
     JSValue ret;
 
-    assert(eval_type == JS_EVAL_TYPE_GLOBAL ||
+#ifdef _DEBUG
+	int eval_type = eval_flags & JS_EVAL_TYPE_MASK;
+	assert(eval_type == JS_EVAL_TYPE_GLOBAL ||
            eval_type == JS_EVAL_TYPE_MODULE);
-    ret = JS_EvalInternal(ctx, this_obj, input, input_len, filename,
+#endif
+	ret = JS_EvalInternal(ctx, this_obj, input, input_len, filename,
                           eval_flags, -1);
     return ret;
 }
@@ -41833,6 +41843,11 @@ static uint64_t xorshift64star(uint64_t *pstate)
     return x * 0x2545F4914F6CDD1D;
 }
 
+#if defined(_MSC_VER)
+#include <time.h>
+#include <sys/timeb.h>
+#endif
+
 static void js_random_init(JSContext *ctx)
 {
 #if defined(_MSC_VER) // FIXME: more precision
@@ -41944,16 +41959,16 @@ static JSValue js___date_now(JSContext *ctx, JSValueConst this_val,
 static JSValue js___date_clock(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
 {
+	int64_t d;
 #if defined(_MSC_VER) // FIXME: more precision
 	struct _timeb	tb;
 	_ftime(&tb);
 	d = ( (int64_t)tb.time * 1000000) + (tb.millitm*1000);
 #else
-    int64_t d;
     struct timeval tv;
     gettimeofday(&tv, NULL);
+	d = (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
 #endif
-    d = (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
     return JS_NewInt64(ctx, d);
 }
 
@@ -48177,10 +48192,6 @@ static JSValue get_date_string(JSContext *ctx, JSValueConst this_val,
 }
 
 /* OS dependent: return the UTC time in ms since 1970. */
-#if defined(_MSC_VER)
-#include <time.h>
-#include <sys/timeb.h>
-#endif
 static int64_t date_now(void) {
 #if defined(_MSC_VER)
 	struct _timeb	tb;
