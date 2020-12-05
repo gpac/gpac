@@ -527,7 +527,6 @@ static int unicode_decomp_entry(uint32_t *res, uint32_t c,
     } else {
         d = unicode_decomp_data + unicode_decomp_table2[idx];
         switch(type) {
-#if defined(_MSC_VER)
         case DECOMP_TYPE_L1:
         case DECOMP_TYPE_L2:
         case DECOMP_TYPE_L3:
@@ -535,9 +534,6 @@ static int unicode_decomp_entry(uint32_t *res, uint32_t c,
         case DECOMP_TYPE_L5:
         case DECOMP_TYPE_L6:
         case DECOMP_TYPE_L7:
-#else
-        case DECOMP_TYPE_L1 ... DECOMP_TYPE_L7:
-#endif
             l = type - DECOMP_TYPE_L1 + 1;
             d += (c - code) * l * 2;
             for(i = 0; i < l; i++) {
@@ -545,12 +541,8 @@ static int unicode_decomp_entry(uint32_t *res, uint32_t c,
                     return 0;
             }
             return l;
-#if defined(_MSC_VER)
         case DECOMP_TYPE_LL1:
         case DECOMP_TYPE_LL2:
-#else
-        case DECOMP_TYPE_LL1 ... DECOMP_TYPE_LL2:
-#endif
             {
                 uint32_t k, p;
                 l = type - DECOMP_TYPE_LL1 + 1;
@@ -566,15 +558,11 @@ static int unicode_decomp_entry(uint32_t *res, uint32_t c,
                 }
             }
             return l;
-#if defined(_MSC_VER)
         case DECOMP_TYPE_S1:
         case DECOMP_TYPE_S2:
         case DECOMP_TYPE_S3:
         case DECOMP_TYPE_S4:
         case DECOMP_TYPE_S5:
-#else
-        case DECOMP_TYPE_S1 ... DECOMP_TYPE_S5:
-#endif
             l = type - DECOMP_TYPE_S1 + 1;
             d += (c - code) * l;
             for(i = 0; i < l; i++) {
@@ -605,7 +593,6 @@ static int unicode_decomp_entry(uint32_t *res, uint32_t c,
         case DECOMP_TYPE_B18:
             l = 18;
             goto decomp_type_b;
-#if defined(_MSC_VER)
         case DECOMP_TYPE_B1:
         case DECOMP_TYPE_B2:
         case DECOMP_TYPE_B3:
@@ -614,9 +601,6 @@ static int unicode_decomp_entry(uint32_t *res, uint32_t c,
         case DECOMP_TYPE_B6:
         case DECOMP_TYPE_B7:
         case DECOMP_TYPE_B8:
-#else
-        case DECOMP_TYPE_B1 ... DECOMP_TYPE_B8:
-#endif
             l = type - DECOMP_TYPE_B1 + 1;
         decomp_type_b:
             {
