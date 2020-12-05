@@ -927,8 +927,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 					GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 					if (gf_filter_pid_get_udta(opid) != group) continue;
 
+					sel = gf_dash_group_get_active_quality(ctx->dash, group_idx);
 					if (!gf_sys_is_test_mode() || (ctx->forward==DFWD_FILE)) {
-						sel = gf_dash_group_get_active_quality(ctx->dash, group_idx);
 						if (sel>=0) {
 							gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT(sel) );
 						}
@@ -1358,7 +1358,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	if (ctx->forward > DFWD_FILE) {
 		u64 pstart;
-		u32 dur, timescale;
+		u32 timescale;
 		const char *str = NULL;
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_FWD, &PROP_UINT( (ctx->forward - DFWD_FILE) ) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("inband") );
