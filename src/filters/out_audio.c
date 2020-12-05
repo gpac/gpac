@@ -54,7 +54,7 @@ typedef struct
 	Bool aborted;
 	u32 speed_set;
 	GF_Filter *filter;
-	Bool is_eos;
+	Bool is_eos, in_error;
 	Bool first_write_done;
 
 	s64 pid_delay;
@@ -127,6 +127,12 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	} else if (e==GF_OK) {
 		ctx->needs_recfg = GF_FALSE;
 		ctx->wait_recfg = GF_FALSE;
+	} else {
+		if (!ctx->in_error) {
+			ctx->in_error = GF_TRUE;
+			gf_filter_abort(ctx->filter);
+		}
+		return;
 	}
 	ctx->bytes_per_sample = gf_audio_fmt_bit_depth(afmt) * nb_ch / 8;
 	ctx->hwdelay_us = 0;
@@ -527,6 +533,9 @@ static void aout_finalize(GF_Filter *filter)
 static GF_Err aout_process(GF_Filter *filter)
 {
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
+
+	if (ctx->in_error)
+		return GF_IO_ERR;
 
 	if (!ctx->th && ctx->needs_recfg) {
 		aout_reconfig(ctx);
