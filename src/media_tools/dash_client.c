@@ -2400,6 +2400,7 @@ process_m3u8_manifest:
 			rep->playback.not_modified = GF_FALSE;
 
 			if (rep->segment_base || group->adaptation_set->segment_base || period->segment_base) {
+				assert(new_rep);
 				if (!new_rep->segment_base && !new_set->segment_base && !new_period->segment_base) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: representation does not use segment base as previous version\n"));
 					gf_mpd_del(new_mpd);
@@ -2950,7 +2951,7 @@ static void m3u8_setup_timeline(GF_DASH_Group *group, GF_MPD_Representation *rep
 	u64 tsb_depth = 0;
 	u32 i, count;
 
-	if (!group->dash->initial_time_shift_value) return;
+	if (!group->dash->initial_time_shift_value || !rep->segment_list) return;
 
 	count = gf_list_count(rep->segment_list->segment_URLs);
 	for (i=0; i<count; i++) {
