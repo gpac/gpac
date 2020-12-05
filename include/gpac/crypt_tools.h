@@ -140,6 +140,8 @@ typedef struct
 	bin128 *KIDs;
 	/*! keys defined*/
 	bin128 *keys;
+	/*! hls_info defined*/
+	char **hls_info;
 	/*! default key index to use*/
 	u32 defaultKeyIdx;
 	/*! roll period of keys (change keys every keyRoll AUs)*/

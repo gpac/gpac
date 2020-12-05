@@ -324,6 +324,8 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		tkc = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
 		tkc->KIDs = (bin128 *)gf_realloc(tkc->KIDs, sizeof(bin128)*(tkc->KID_count+1));
 		tkc->keys = (bin128 *)gf_realloc(tkc->keys, sizeof(bin128)*(tkc->KID_count+1));
+		tkc->hls_info = (char **)gf_realloc(tkc->hls_info, sizeof(char *)*(tkc->KID_count+1));
+		tkc->hls_info[tkc->KID_count] = NULL;
 
 		for (i=0; i<nb_attributes; i++) {
 			att = (GF_XMLAttribute *) &attributes[i];
@@ -342,6 +344,14 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
                     return;
                 }
 			}
+			else if (!stricmp(att->name, "hlsInfo")) {
+				if (!strstr(att->value, "URI=\"")) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Missing URI in HLS info %s\n", att->value));
+                    return;
+				}
+				tkc->hls_info[tkc->KID_count] = gf_strdup(att->value);
+			}
+
 		}
 		tkc->KID_count++;
 	}
@@ -379,6 +389,13 @@ void gf_crypt_info_del(GF_CryptInfo *info)
 		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
 		if (tci->KIDs) gf_free(tci->KIDs);
 		if (tci->keys) gf_free(tci->keys);
+		if (tci->hls_info) {
+			u32 i;
+			for (i=0; i<tci->KID_count; i++)
+				gf_free(tci->hls_info[i]);
+
+			gf_free(tci->hls_info);
+		}
 		if (tci->metadata) gf_free(tci->metadata);
 		if (tci->KMS_URI) gf_free(tci->KMS_URI);
 		if (tci->Scheme_URI) gf_free(tci->Scheme_URI);

@@ -92,7 +92,6 @@ typedef struct
 	u32 nb_pck_encrypted, kidx;
 	char IV[16];
 	bin128 default_KID;
-
 	//true if using AES-CTR mode, false if using AES-CBC mode
 	Bool ctr_mode;
 
@@ -706,14 +705,13 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			return GF_BAD_PARAM;
 		}
 		if (cstr->tci->defaultKeyIdx && (cstr->tci->defaultKeyIdx < cstr->tci->KID_count)) {
-			memcpy(cstr->key, cstr->tci->keys[cstr->tci->defaultKeyIdx], 16);
-			memcpy(cstr->default_KID, cstr->tci->KIDs[cstr->tci->defaultKeyIdx], 16);
 			cstr->kidx = cstr->tci->defaultKeyIdx;
 		} else {
-			memcpy(cstr->key, cstr->tci->keys[0], 16);
-			memcpy(cstr->default_KID, cstr->tci->KIDs[0], 16);
 			cstr->kidx = 0;
 		}
+		memcpy(cstr->key, cstr->tci->keys[cstr->tci->defaultKeyIdx], 16);
+		memcpy(cstr->default_KID, cstr->tci->KIDs[cstr->tci->defaultKeyIdx], 16);
+
 		cstr->prev_pck_encryped = cstr->tci->IsEncrypted;
 	}
 
@@ -728,6 +726,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, NULL);
 	}
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_KID, &PROP_DATA(cstr->default_KID, sizeof(bin128) ) );
+
+	char *hls_info = cstr->tci->hls_info[cstr->tci->defaultKeyIdx];
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_HLS_KMS, hls_info ? &PROP_STRING(hls_info) : NULL);
 
 	if (cstr->tci->skip_byte_block || cstr->tci->crypt_byte_block) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(cstr->tci->skip_byte_block, cstr->tci->crypt_byte_block ) );
@@ -1748,6 +1749,8 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 
 	if (key_changed) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_KID, &PROP_DATA( cstr->tci->KIDs[cstr->kidx], sizeof(bin128) ) );
+		char *hls_info = cstr->tci->hls_info[cstr->kidx];
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_HLS_KMS, hls_info ? &PROP_STRING(hls_info) : NULL);
 		//TODO add support for multiple patterns and keys ?
 		//TODO add support for multiple IV size in key roll ?
 	}
