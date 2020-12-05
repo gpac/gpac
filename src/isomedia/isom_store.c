@@ -727,7 +727,8 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				}
 			}
 			baseOffset += it_size;
-			*mdatSize += it_size;
+			if (mdatSize)
+				*mdatSize += it_size;
 		} else {
 			/*we MUST have at least one extent for the dref data*/
 			if (!gf_list_count(iloc->extent_entries)) {

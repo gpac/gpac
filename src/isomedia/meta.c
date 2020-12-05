@@ -1340,6 +1340,7 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 			if (iinf->item_ID==iloc->item_ID) break;
 			iinf = NULL;
 		}
+		if (!iinf) continue;
 		if (gf_list_count(iloc->extent_entries) != 1) continue;
 		entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 		if (!entry) continue;

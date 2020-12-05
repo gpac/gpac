@@ -3476,7 +3476,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					}
 				}
 
-				if (!last_kms || !kms || strcmp(kms, last_kms)) {
+				if (!last_kms || strcmp(kms, last_kms)) {
 					if (!strcmp(kms, "NONE")) {
 						gf_fprintf(out,"#EXT-X-KEY:METHOD=NONE\n");
 					} else {

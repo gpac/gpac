@@ -1026,7 +1026,11 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task)
 	if (task->filter->removed && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
 		Bool direct_mode = task->filter->session->direct_mode;
 		gf_filter_post_remove(task->filter);
-		if (direct_mode) task->filter = NULL;
+		if (direct_mode) {
+			gf_mx_v(task->filter->tasks_mx);
+			task->filter = NULL;
+			return;
+		}
 	}
 	gf_mx_v(task->filter->tasks_mx);
 }

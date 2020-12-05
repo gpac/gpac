@@ -971,8 +971,10 @@ static JSValue jsff_bind(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 		return JS_EXCEPTION;
 	if (!JS_IsObject(argv[0]) && !JS_IsNull(argv[0]))
 		return JS_EXCEPTION;
+	if (!f->freg)
+		return JS_EXCEPTION;
 
-	if (f->freg && !strcmp(f->freg->name, "dashin")) {
+	if (!strcmp(f->freg->name, "dashin")) {
 		JSValue dashdmx_bind_js(GF_Filter *f, JSContext *jsctx, JSValueConst obj);
 		return dashdmx_bind_js(f, ctx, argv[0]);
 	}

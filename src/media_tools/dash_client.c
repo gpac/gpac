@@ -2411,6 +2411,7 @@ process_m3u8_manifest:
 			}
 
 			else if (rep->segment_template || group->adaptation_set->segment_template || period->segment_template) {
+				assert(new_rep);
 				if (!new_rep->segment_template && !new_set->segment_template && !new_period->segment_template) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: representation does not use segment template as previous version\n"));
 					gf_mpd_del(new_mpd);
@@ -3142,6 +3143,8 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			u32 nb_segs;
 			GF_MPD_Representation *prev_active_rep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, prev_active_rep_index);
 			GF_MPD_SegmentURL *last_seg_url;
+			assert(rep->segment_list);
+			assert(prev_active_rep->segment_list);
 
 			last_seg_url = gf_list_get(prev_active_rep->segment_list->segment_URLs, group_dld_index);
 			if (last_seg_url)

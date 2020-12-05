@@ -39,10 +39,10 @@
 #define GET_DOUBLE(field) { Float v; ret = 1; sscanf(val, "%f", &v); field = (Double) v;}
 #define GET_STRING(field) { \
 		ret = 1;\
-		field = gf_strdup(val); \
+		(field) = gf_strdup(val); \
 		if (field) { \
-			if (val[0] == '"') strcpy(field, val+1); \
-			if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0;\
+			if (val[0] == '"') strcpy((field), val+1); \
+			if ((field)[strlen(field)-1] == '"') (field)[strlen(field)-1] = 0;\
 		}\
 	}
 

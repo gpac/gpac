@@ -2933,7 +2933,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		char szRawExt[20];
 		Bool use_dash_suffix = GF_FALSE;
 		const char *seg_ext, *init_ext, *idx_ext, *force_init_seg_tpl;
+#if 0
 		GF_MPD_URL *force_init_seg_sl;
+#endif
 		Bool skip_init = GF_FALSE;
 		GF_DashStream *tile_base_ds = NULL;
 		Bool is_bs_switch;
@@ -3105,15 +3107,19 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		force_init_seg_tpl = NULL;
+#if 0
 		force_init_seg_sl = NULL;
+#endif
 		if (ds->codec_id==GF_CODECID_HEVC_TILES) {
 			tile_base_ds = get_base_ds(ctx, ds);
 			skip_init = GF_TRUE;
 			if (tile_base_ds->rep->segment_template) force_init_seg_tpl = tile_base_ds->rep->segment_template->initialization;
 			if (!force_init_seg_tpl && tile_base_ds->set->segment_template) force_init_seg_tpl = tile_base_ds->set->segment_template->initialization;
 
+#if 0
 			if (tile_base_ds->rep->segment_list) force_init_seg_sl = tile_base_ds->rep->segment_list->initialization_segment;
 			if (!force_init_seg_sl && tile_base_ds->set->segment_list) force_init_seg_sl = tile_base_ds->set->segment_list->initialization_segment;
+#endif
 		}
 		if (ctx->m2ts) skip_init = GF_TRUE;
 		else if (ctx->muxtype==DASHER_MUX_RAW) skip_init = GF_TRUE;
