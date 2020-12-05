@@ -3971,7 +3971,8 @@ exit:
 void http_do_requests(GF_DownloadSession *sess)
 {
 	char sHTTP[GF_DOWNLOAD_BUFFER_SIZE+1];
-
+	sHTTP[0] = 0;
+	
 	if (sess->reused_cache_entry) {
 		//main session is done downloading, notify - to do we should send progress events on this session also ...
 		if (!gf_cache_is_in_progress(sess->cache_entry)) {

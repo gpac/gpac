@@ -221,9 +221,9 @@ const char *gf_error_to_string(GF_Err e);
 Macro allocating memory and zero-ing it
 */
 #define GF_SAFEALLOC(__ptr, __struct) {\
-		__ptr = (__struct *) gf_malloc(sizeof(__struct));\
+		(__ptr) = (__struct *) gf_malloc(sizeof(__struct));\
 		if (__ptr) {\
-			memset((void *) __ptr, 0, sizeof(__struct));\
+			memset((void *) (__ptr), 0, sizeof(__struct));\
 		}\
 	}
 
@@ -234,9 +234,9 @@ Macro allocating memory and zero-ing it
 Macro allocating memory for n structures and zero-ing it
 */
 #define GF_SAFE_ALLOC_N(__ptr, __n, __struct) {\
-		__ptr = (__struct *) gf_malloc( __n * sizeof(__struct));\
+		(__ptr) = (__struct *) gf_malloc( __n * sizeof(__struct));\
 		if (__ptr) {\
-			memset((void *) __ptr, 0, __n * sizeof(__struct));\
+			memset((void *) (__ptr), 0, __n * sizeof(__struct));\
 		}\
 	}
 

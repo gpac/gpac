@@ -599,7 +599,11 @@ static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] resolution factor %g too small to allow coding of %g - adjusting to smallest integer!\n", lsr->res_factor, FIX2FLT(x) ));
 		res = (x>0) ? 1 : -1;
 	}
-	max = (1<<(nb_bits-1)) - 1;
+	if (nb_bits>=32)
+		max = 0xFFFFFFFF;
+	else
+		max = (1<<(nb_bits-1)) - 1;
+
 	if (res>=0) {
 		if (res > max) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] nb_bits %d not large enough to encode positive number %g!\n", nb_bits, FIX2FLT(x) ));
