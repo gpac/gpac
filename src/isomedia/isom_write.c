@@ -3261,10 +3261,12 @@ GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, Bool AddIt)
 	//add it
 	p = (u32*)gf_malloc(sizeof(u32)*(movie->brand->altCount + 1));
 	if (!p) return GF_OUT_OF_MEM;
-	memcpy(p, movie->brand->altBrand, sizeof(u32)*movie->brand->altCount);
+	if (movie->brand->altBrand) {
+		memcpy(p, movie->brand->altBrand, sizeof(u32)*movie->brand->altCount);
+		gf_free(movie->brand->altBrand);
+	}
 	p[movie->brand->altCount] = Brand;
 	movie->brand->altCount += 1;
-	gf_free(movie->brand->altBrand);
 	movie->brand->altBrand = p;
 	return GF_OK;
 
