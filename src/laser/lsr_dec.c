@@ -4555,12 +4555,20 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		GF_SAFEALLOC(res, ListOfXXX);
 		if (!res) return NULL;
 		*res = gf_list_new();
+#if 0
 		pt = (SVG_Point*)gf_malloc(sizeof(SVG_Point));
 		if (pt) {
 			pt->x = lsr_read_fixed_clamp(lsr, "valueX");
 			pt->y = lsr_read_fixed_clamp(lsr, "valueY");
 			gf_list_add(*res, pt);
 		}
+#else
+		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
+		if (f_val) {
+			*f_val = lsr_read_fixed_clamp(lsr, "value");
+			gf_list_add(*res, f_val);
+		}
+#endif
 		return res;
 	}
 	case SMIL_Times_datatype/*ITYPE_smil_time*/:

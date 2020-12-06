@@ -2089,8 +2089,8 @@ restart:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to find filter%s \"%s\"\n", is_simple ? "" : " for",  arg));
 
 				gpac_suggest_filter(arg, GF_FALSE, GF_TRUE);
+				nb_filters=0;
 			}
-			nb_filters=0;
 			goto exit;
 		}
 		nb_filters++;

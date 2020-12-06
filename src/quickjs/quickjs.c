@@ -30457,9 +30457,9 @@ typedef struct CodeContext {
     JSAtom atom;
 } CodeContext;
 
-#define M2(op1, op2)            ((op1) | ((op2) << 8))
-#define M3(op1, op2, op3)       ((op1) | ((op2) << 8) | ((op3) << 16))
-#define M4(op1, op2, op3, op4)  ((op1) | ((op2) << 8) | ((op3) << 16) | ((op4) << 24))
+#define M2(op1, op2)            ((op1) | (((uint32_t) op2) << 8))
+#define M3(op1, op2, op3)       ((op1) | (((uint32_t) op2) << 8) | (((uint32_t) op3) << 16))
+#define M4(op1, op2, op3, op4)  ((op1) | (((uint32_t) op2) << 8) | (((uint32_t) op3) << 16) | (((uint32_t) op4) << 24))
 
 static BOOL code_match(CodeContext *s, int pos, ...)
 {
@@ -32610,8 +32610,10 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             }
         } else {
             b->vardefs = (void *)((uint8_t*)b + vardefs_offset);
-            memcpy(b->vardefs, fd->args, fd->arg_count * sizeof(fd->args[0]));
-            memcpy(b->vardefs + fd->arg_count, fd->vars, fd->var_count * sizeof(fd->vars[0]));
+            if (fd->arg_count)
+                memcpy(b->vardefs, fd->args, fd->arg_count * sizeof(fd->args[0]));
+            if (fd->var_count)
+                memcpy(b->vardefs + fd->arg_count, fd->vars, fd->var_count * sizeof(fd->vars[0]));
         }
         b->var_count = fd->var_count;
         b->arg_count = fd->arg_count;

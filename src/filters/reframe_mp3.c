@@ -216,7 +216,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 {
 	GF_BitStream *bs = gf_bs_new(id3_buf, id3_buf_size, GF_BITSTREAM_READ);
 	char *sep_desc;
-	char *buf=NULL;
+	char *_buf=NULL;
 	u32 buf_alloc=0;
 	gf_bs_skip_bytes(bs, 3);
 	/*u8 major = */gf_bs_read_u8(bs);
@@ -232,6 +232,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 	}
 
 	while (size && (gf_bs_available(bs)>=10) ) {
+		char *buf;
 		char szTag[1024];
 		char *sep;
 		s32 tag_idx;
@@ -251,13 +252,14 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 		}
 
 		if (buf_alloc<=fsize) {
-			buf = gf_realloc(buf, fsize+2);
-			buf_alloc = fsize+2;
+			_buf = gf_realloc(_buf, fsize+3);
+			buf_alloc = fsize+3;
 		}
-
-		gf_bs_read_data(bs, buf, fsize);
-		buf[fsize]=0;
-		buf[fsize+1]=0;
+		//read into _buf+1 so that buf+1 is always %2 mem aligned as it can be loaded as unsigned short
+		gf_bs_read_data(bs, _buf+1, fsize);
+		_buf[fsize+1]=0;
+		_buf[fsize+2]=0;
+		buf = _buf+1;
 
 		tag_idx = gf_itags_find_by_id3tag(ftag);
 		if (tag_idx>=0) {
@@ -319,7 +321,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 		size -= fsize;
 	}
 	gf_bs_del(bs);
-	if (buf) gf_free(buf);
+	if (_buf) gf_free(_buf);
 }
 static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 {

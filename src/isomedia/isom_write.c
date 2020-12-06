@@ -3573,9 +3573,15 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 	if (!e) e = gf_isom_box_write((GF_Box *) src, bs);
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
-	if (e) return e;
+	if (e) {
+		if (data) gf_free(data);
+		return e;
+	}
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-	if (!bs) return GF_OUT_OF_MEM;
+	if (!bs) {
+		if (data) gf_free(data);
+		return GF_OUT_OF_MEM;
+	}
 	e = gf_isom_box_parse(dst, bs);
 	gf_bs_del(bs);
 	gf_free(data);

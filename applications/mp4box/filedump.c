@@ -765,7 +765,10 @@ void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 	if (dump_nodes) {
 		for (i=GF_SG_VRML_SFBOOL; i<GF_SG_VRML_SCRIPT_FUNCTION; i++) {
 			void *fp = gf_sg_vrml_field_pointer_new(i);
-			if (fp) gf_sg_vrml_field_pointer_del(fp, i);
+			if (fp) {
+				if (i==GF_SG_VRML_SFSCRIPT) gf_free(fp);
+				else gf_sg_vrml_field_pointer_del(fp, i);
+			}
 		}
 
 	}

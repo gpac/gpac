@@ -597,12 +597,19 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 
 	while (1) {
+		Bool is_empty = GF_FALSE;
 		char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
 
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
-		if (!sOK || !strlen(szLine)) {
-			u32 nb_empty = 1;
+		if (sOK) {
+			if (ctx->unicode_type<=1) is_empty = strlen(szLine) ? GF_FALSE : GF_TRUE;
+			else is_empty =  (!szLine[0] && !szLine[1]) ? GF_TRUE : GF_FALSE;
+		}
+
+		if (!sOK || is_empty) {
+			u32 utf_inc = (ctx->unicode_type<=1) ? 1 : 2;
+			u32 nb_empty = utf_inc;
 			u32 pos = (u32) gf_ftell(ctx->src);
 			if (ctx->state) {
 				while (!gf_feof(ctx->src)) {
@@ -613,7 +620,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 						gf_fseek(ctx->src, pos, SEEK_SET);
 						break;
 					} else if (!strlen(szLine+nb_empty)) {
-						nb_empty++;
+						nb_empty+=utf_inc;
 						continue;
 					} else if (	sscanf(szLine+nb_empty, "%u", &line) == 1) {
 						gf_fseek(ctx->src, pos, SEEK_SET);
@@ -1610,8 +1617,9 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		}
 
 		if (!skip_pck) {
-			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
+			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+1, &pck_data);
 			memcpy(pck_data, txt_str, txt_len);
+			pck_data[txt_len] = 0;
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
 			gf_filter_pck_send(pck);
