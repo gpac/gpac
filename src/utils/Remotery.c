@@ -49,7 +49,7 @@
 #define RMT_IMPL
 #include <gpac/tools.h>
 
-#ifdef RMT_PLATFORM_WINDOWS
+#if defined(RMT_PLATFORM_WINDOWS) && !defined(__GNUC__)
   #pragma comment(lib, "ws2_32.lib")
 #endif
 
@@ -5242,7 +5242,7 @@ RMT_API Remotery* _rmt_GetGlobalInstance(void)
 
 static void SetDebuggerThreadName(const char* name)
 {
-    #ifdef RMT_PLATFORM_WINDOWS
+    #if defined(RMT_PLATFORM_WINDOWS) && !defined(__GNUC__)
         THREADNAME_INFO info;
         info.dwType = 0x1000;
         info.szName = name;
