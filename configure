@@ -602,7 +602,7 @@ EOF
           CFLAGS="$CFLAGS -I/mingw32/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
           LDFLAGS="$LDFLAGS -L/mingw32/lib"
         else
-          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
+          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp -ldbghelp"
           CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
         fi
 		LDFLAGS="$LDFLAGS"

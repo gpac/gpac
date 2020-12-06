@@ -71,7 +71,7 @@
 
 /* define to include Atomics.* operations which depend on the OS
    threads */
-#if !defined(EMSCRIPTEN) && !defined(_MSC_VER) && !defined(GPAC_CONFIG_ANDROID)
+#if !defined(EMSCRIPTEN) && !defined(_MSC_VER) && !defined(GPAC_CONFIG_ANDROID) && !defined(__MINGW32__) && !defined(__CYGWIN__)
 #define CONFIG_ATOMICS
 #endif
 
@@ -211,7 +211,7 @@ typedef enum JSErrorEnum {
 #define JS_STACK_SIZE_MAX 65534
 #define JS_STRING_LEN_MAX ((1 << 30) - 1)
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__GNUC__)
 #define __exception /* */
 typedef int64_t ssize_t;
 #else
