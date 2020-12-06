@@ -605,7 +605,9 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 	return;
 #else
 /* use VerifyVersionInfo() instead of GetVersionEx? */
+#if	!defined(__GNUC__)
 #pragma warning(disable : 4996)
+#endif
 	const char *opt;
 	u32 a, r, g, b;
 	COLORREF ckey;

@@ -64,7 +64,7 @@ The thread object allows executing some code independently of the main process o
 
 
  //atomic ref_count++ / ref_count--
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 #include <windows.h>
 #include <winbase.h>
 
