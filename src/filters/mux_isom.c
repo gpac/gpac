@@ -5387,8 +5387,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	}
 	//we need at least ms precision for sfrag mode
 	if (ctx->cdur.den < 1000) {
-		ctx->cdur.num *= 1000;
-		ctx->cdur.num /= ctx->cdur.den;
+		ctx->cdur.num = (s32) ( ((s64)ctx->cdur.num) * 1000 / ctx->cdur.den);
 		ctx->cdur.den = 1000;
 	}
 

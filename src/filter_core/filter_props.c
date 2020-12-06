@@ -613,7 +613,8 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		else if (p1->type==GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
 		//use uint list for checking
 		if (p1->value.uint_list.nb_items != p2->value.uint_list.nb_items) return GF_FALSE;
-		if (memcmp(p1->value.uint_list.vals, p2->value.uint_list.vals, it_size * p1->value.uint_list.nb_items)) return GF_FALSE;
+		if (p1->value.uint_list.nb_items && memcmp(p1->value.uint_list.vals, p2->value.uint_list.vals, it_size * p1->value.uint_list.nb_items))
+			return GF_FALSE;
 		return GF_TRUE;
 	}
 
@@ -884,7 +885,8 @@ static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue
 		else if (prop->prop.type == GF_PROP_SINT_LIST) it_size = sizeof(s32);
 		else if (prop->prop.type == GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
 		prop->prop.value.uint_list.vals = gf_malloc(it_size * value->value.uint_list.nb_items);
-		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, it_size * value->value.uint_list.nb_items);
+		if (value->value.uint_list.nb_items)
+			memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, it_size * value->value.uint_list.nb_items);
 		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
 	}
 }

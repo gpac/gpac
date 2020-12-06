@@ -2022,7 +2022,7 @@ void evg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32 count
 		} else {
 			u32 *col = (u32 *)surf->stencil_pix_run;
 			for (i=0; i<count; i++) {
-				u8 a = GF_COL_A(*col);
+				u32 a = GF_COL_A(*col);
 				a = surf->get_alpha(surf->get_alpha_udta, a, x+i, y);
 				*col = (a<<24) | ((*col) & 0x00FFFFFF);
 				col ++;

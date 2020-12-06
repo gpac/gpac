@@ -2667,12 +2667,18 @@ naldmx_flush:
 		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
+			u32 hcopy_size = SAFETY_NAL_STORE - ctx->bytes_in_header;
+			u32 hstore_size = SAFETY_NAL_STORE;
 			Bool split_start_code=GF_FALSE;
+			if (hcopy_size>remain) {
+					hstore_size -= hcopy_size - remain;
+					hcopy_size = remain;
+			}
 
-			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, SAFETY_NAL_STORE - ctx->bytes_in_header);
-			current = gf_media_nalu_next_start_code(ctx->hdr_store, SAFETY_NAL_STORE, &sc_size);
-			if (current==SAFETY_NAL_STORE)
-				current = -1;
+			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, hcopy_size);
+			current = gf_media_nalu_next_start_code(ctx->hdr_store, hstore_size, &sc_size);
+			if (current==hstore_size)
+					current = -1;
 
 			//no start code in stored buffer
 			if (current<0) {
@@ -2764,15 +2770,17 @@ naldmx_flush:
 					break;
 				}
 				size = remain;
-				b3 = start[remain-3];
-				b2 = start[remain-2];
-				b1 = start[remain-1];
-				//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
-				if (!is_eos && (!b1 || !b2 || !b3)) {
-					copy_last_bytes = GF_TRUE;
-					assert(size >= 3);
-					size -= 3;
-					ctx->bytes_in_header = 3;
+				if (!is_eos) {
+					b3 = start[remain-3];
+					b2 = start[remain-2];
+					b1 = start[remain-1];
+					//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
+					if (!b1 || !b2 || !b3) {
+						copy_last_bytes = GF_TRUE;
+						assert(size >= 3);
+						size -= 3;
+						ctx->bytes_in_header = 3;
+					}
 				}
 				if (!ctx->next_nal_end_skip) {
 					e = naludmx_realloc_last_pck(ctx, (u32) size, &pck_data);

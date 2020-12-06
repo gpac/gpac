@@ -2130,7 +2130,8 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 		stream->force_new = (esi_pck->flags & GF_ESI_DATA_AU_END) ? GF_TRUE : GF_FALSE;
 
 		stream->pck_reassembler->data = (char*)gf_realloc(stream->pck_reassembler->data , sizeof(char)*(stream->pck_reassembler->data_len+esi_pck->data_len) );
-		memcpy(stream->pck_reassembler->data + stream->pck_reassembler->data_len, esi_pck->data, esi_pck->data_len);
+		if (esi_pck->data_len)
+			memcpy(stream->pck_reassembler->data + stream->pck_reassembler->data_len, esi_pck->data, esi_pck->data_len);
 		stream->pck_reassembler->data_len += esi_pck->data_len;
 
 		stream->pck_reassembler->flags |= esi_pck->flags;

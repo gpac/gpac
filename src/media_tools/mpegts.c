@@ -2237,7 +2237,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 	af_extension = data + 1;
 
 	if (paf->PCR_flag == 1) {
-		u32 base = (data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4];
+		u32 base = ((u32)data[1] << 24) | ((u32)data[2] << 16) | ((u32)data[3] << 8) | (u32) data[4];
 		u64 PCR = (u64) base;
 		paf->PCR_base = (PCR << 1) | (data[5] >> 7);
 		paf->PCR_ext = ((data[5] & 1) << 8) | data[6];

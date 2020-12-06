@@ -3359,6 +3359,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			end_ts = end * 1000;
 			end_ts /= trak->Media->mediaHeader->timeScale;
 			cues = gf_webvtt_parse_cues_from_data(s->data, s->dataLength, start_ts, end_ts);
+			gf_isom_sample_del(&s);
 			nb_cues = gf_list_count(cues);
 
 			if (!nb_cues) {
@@ -3389,11 +3390,13 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			continue;
 		} else if (subtype == GF_ISOM_SUBTYPE_STXT) {
 			if (s->dataLength)
-			gf_fprintf(dump, "%s\n", s->data);
+				gf_fprintf(dump, "%s\n", s->data);
+			gf_isom_sample_del(&s);
 			continue;
 		}
 		else if ((subtype!=GF_ISOM_SUBTYPE_TX3G) && (subtype!=GF_ISOM_SUBTYPE_TEXT)) {
 			gf_fprintf(dump, "unknwon\n");
+			gf_isom_sample_del(&s);
 			continue;
 		}
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);

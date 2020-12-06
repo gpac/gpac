@@ -2499,6 +2499,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName, char *compress_
 		nb_added_box_bytes += idx_size;
 
 	}
+	if (buf) gf_free(buf);
 	gf_bs_del(bs_in);
 	gf_bs_del(bs_out);
 	gf_fclose(in);

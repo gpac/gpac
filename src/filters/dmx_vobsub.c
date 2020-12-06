@@ -285,7 +285,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 		}
 
 		if (*(u32*)&buf[0x00] != 0xba010000		   ||
-		        *(u32*)&buf[0x0e] != 0xbd010000		   ||
+			    (buf[14] || buf[15] || (buf[16]!=0x01) || (buf[17]!=0xbd)) ||
 		        !(buf[0x15] & 0x80)				   ||
 		        (buf[0x17] & 0xf0) != 0x20			   ||
 		        (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)

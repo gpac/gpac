@@ -162,11 +162,18 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 	dx = x2 - x1;
 	ex1 = TRUNC( x1 ); /* if (ex1 >= raster->max_ex) ex1 = raster->max_ex-1; */
 	ex2 = TRUNC( x2 ); /* if (ex2 >= raster->max_ex) ex2 = raster->max_ex-1; */
-	if (ex1<0) ex1=0;
-	if (ex2<0) ex2=0;
-	fx1 = (TCoord)( x1 - SUBPIXELS( ex1 ) );
-	fx2 = (TCoord)( x2 - SUBPIXELS( ex2 ) );
-
+	if (ex1<0) {
+		ex1=0;
+		fx1 = (TCoord) 0;
+	} else {
+		fx1 = (TCoord)( x1 - SUBPIXELS( ex1 ) );
+	}
+	if (ex2<0) {
+		ex2=0;
+		fx2 = (TCoord) 0;
+	} else {
+		fx2 = (TCoord)( x2 - SUBPIXELS( ex2 ) );
+	}
 	/* trivial case.  Happens often */
 	if ( y1 == y2 ) {
 		gray_set_cell( raster, ex2, ey );
@@ -278,7 +285,14 @@ void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
 	incr = 1;
 	if (dx == 0 ) {
 		TCoord  ex     = TRUNC( raster->x );
-		TCoord  two_fx = (TCoord)( ( raster->x - SUBPIXELS( ex ) ) << 1 );
+		TCoord tdiff;
+		if (ex<0) {
+			ex = 0;
+			tdiff=0;
+		} else {
+			tdiff = raster->x - SUBPIXELS( ex );
+		}
+		TCoord  two_fx = (TCoord)( ( tdiff ) << 1 );
 		TPos    area;
 
 		first = ONE_PIXEL;

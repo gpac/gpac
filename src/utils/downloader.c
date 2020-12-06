@@ -919,6 +919,13 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 	sess->orig_url = sess->server_name = sess->remote_path;
 	sess->creds = NULL;
+#ifdef GPAC_HAS_SSL
+	if (sess->ssl) {
+		SSL_shutdown(sess->ssl);
+		SSL_free(sess->ssl);
+		sess->ssl = NULL;
+	}
+#endif
 	if (sess->sock && !sess->server_mode)
 		gf_sk_del(sess->sock);
 	gf_list_del(sess->headers);

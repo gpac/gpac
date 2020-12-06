@@ -6684,11 +6684,12 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const char *prop_name)
 {
-	GF_PropertyMap *map = pid->caps_negociate;
+	GF_PropertyMap *map;
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
 		return NULL;
 	}
+	map = pid->caps_negociate;
 	return map ? gf_props_get_property(map, 0, prop_name) : NULL;
 }
 
