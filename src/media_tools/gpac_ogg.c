@@ -40,9 +40,6 @@ static u32 mask[]=
 
 
 #ifdef GPAC_CONFIG_WIN32
-static u32 mask8B[]=
-{0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff};
-
 void oggpack_writeinit(oggpack_buffer *b) {
 	memset(b,0,sizeof(*b));
 	b->ptr = b->buffer = (unsigned char *)gf_malloc(BUFFER_INCREMENT);
@@ -53,6 +50,9 @@ void oggpack_writeinit(oggpack_buffer *b) {
 
 
 #if 0 //unused
+static u32 mask8B[] =
+{ 0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff };
+
 
 void oggpackB_writeinit(oggpack_buffer *b) {
 	oggpack_writeinit(b);

@@ -25,14 +25,12 @@
 
 #include "filter_session.h"
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(__GNUC__)
 
-#ifndef __GCC__
 #ifdef GPAC_64_BITS
 #define atomic_compare_and_swap(_ptr, _comparand, _replacement) (InterlockedCompareExchange64((__int64*)_ptr,(__int64)_replacement,(__int64)_comparand)==(__int64)_comparand)
 #else
 #define atomic_compare_and_swap(_ptr, _comparand, _replacement) (InterlockedCompareExchange((int *)_ptr,(int )_replacement,(int )_comparand)==(int)_comparand)
-#endif
 #endif
 
 #else

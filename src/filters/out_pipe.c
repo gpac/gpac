@@ -377,7 +377,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
 		if (pck_data) {
 #ifdef WIN32
-			if (! WriteFile(ctx->pipe, pck_data, pck_size, &nb_write, NULL)) {
+			if (! WriteFile(ctx->pipe, pck_data, pck_size, (LPDWORD) &nb_write, NULL)) {
 				nb_write = 0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: error %d\n", nb_write, pck_size, GetLastError() ));
 			}
@@ -420,7 +420,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 
 					for (j=0; j<write_h; j++) {
 #ifdef WIN32
-						if (!WriteFile(ctx->pipe, out_ptr, lsize, &nb_write, NULL)) {
+						if (!WriteFile(ctx->pipe, out_ptr, lsize, (LPDWORD) &nb_write, NULL)) {
 							nb_write = 0;
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %d\n", nb_write, pck_size, GetLastError()));
 						}

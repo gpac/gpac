@@ -214,9 +214,13 @@ static int gf_mem_backtrace_enabled = 0;
 #define SYMBOL_MAX_SIZE  50
 #include <windows.h>
 /* on visual studio 2015 windows sdk 8.1 dbghelp has a typedef enum with no name that throws a warning */
+#if	!defined(__GNUC__)
 #pragma warning(disable: 4091)
+#endif
 #include <dbghelp.h>
+#if	!defined(__GNUC__)
 #pragma comment(lib, "dbghelp.lib")
+#endif
 /*memory ownership to the caller*/
 static void store_backtrace(char *s_backtrace)
 {
