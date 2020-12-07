@@ -967,7 +967,7 @@ do_mix:
 				oval += *(in->ch_buf[k] + j);
 				if (oval>GF_INT_MAX) oval = GF_INT_MAX;
 				else if (oval<GF_INT_MIN) oval = GF_INT_MIN;
-				(*out_mix) = oval;
+				(*out_mix) = (s32) oval;
 				out_mix += 1;
 			}
 		}
