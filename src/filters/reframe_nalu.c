@@ -2670,7 +2670,7 @@ naldmx_flush:
 			u32 hcopy_size = SAFETY_NAL_STORE - ctx->bytes_in_header;
 			u32 hstore_size = SAFETY_NAL_STORE;
 			Bool split_start_code=GF_FALSE;
-			if (hcopy_size>remain) {
+			if (hcopy_size > (u32) remain) {
 					hstore_size -= hcopy_size - remain;
 					hcopy_size = remain;
 			}

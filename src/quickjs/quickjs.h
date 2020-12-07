@@ -558,14 +558,17 @@ static js_force_inline JSValue JS_NewFloat64(JSContext *ctx, double d)
     } u, t;
     u.d = d;
 
-    if (isnan(d))
+	/*for asan tests*/
+#if defined(_DEBUG) && defined(__GNUC__)
+	if (isnan(d))
 		return JS_NAN;
 
-	if (d > 2147483647)
+	if (d > 2147483647.0)
         return __JS_NewFloat64(ctx, d);
 
-	if (d < -2147483648)
+	if (d < -2147483648.0)
         return __JS_NewFloat64(ctx, d);
+#endif
 
     val = (int32_t) d;
     t.d = val;
