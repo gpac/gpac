@@ -1024,6 +1024,7 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 	{
 		GF_Fraction64 frac;
 		gf_filter_get_clock_hint(jsf->filter, NULL, &frac);
+		if (!frac.den) return JS_NULL;
 		dval = ((Double)frac.num) / frac.den;
 	}
 		return JS_NewFloat64(ctx, dval);

@@ -963,7 +963,11 @@ do_mix:
 		/*only write what has been filled in the source buffer (may be less than output size)*/
 		for (j = 0; j < in->out_samples_written; j++) {
 			for (k = 0; k < am->nb_channels; k++) {
-				(*out_mix) += *(in->ch_buf[k] + j);
+				s64 oval = (*out_mix);
+				oval += *(in->ch_buf[k] + j);
+				if (oval>GF_INT_MAX) oval = GF_INT_MAX;
+				else if (oval<GF_INT_MIN) oval = GF_INT_MIN;
+				(*out_mix) = oval;
 				out_mix += 1;
 			}
 		}

@@ -2882,7 +2882,7 @@ function gw_new_slider(parent, vertical, class_name) {
     obj.width = 0;
     obj.set_size(vertical ? 10 : 200, vertical ? 200 : 10, 10, 10);
 
-    obj.set_trackpoint(0);
+    obj.set_trackpoint( new SFVec2f(0,0) );
 
     obj.move = function (x, y) {
         this.translation.x = x;

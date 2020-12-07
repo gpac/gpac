@@ -920,7 +920,8 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	sess->orig_url = sess->server_name = sess->remote_path;
 	sess->creds = NULL;
 #ifdef GPAC_HAS_SSL
-	if (sess->ssl) {
+	//in server mode SSL context is managed by caller
+	if (sess->ssl && !sess->server_mode) {
 		SSL_shutdown(sess->ssl);
 		SSL_free(sess->ssl);
 		sess->ssl = NULL;

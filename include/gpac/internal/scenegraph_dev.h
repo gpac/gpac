@@ -305,8 +305,10 @@ GF_Node *gf_sg_new_base_node();
 struct _route
 {
 	u8 is_setup;
-	/*set to true for proto IS fields*/
+	/*set to 1 for proto IS fields*/
 	u8 IS_route;
+	/*set to 1 for JS route to fun*/
+	u8 script_route;
 
 	u32 ID;
 	char *name;

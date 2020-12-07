@@ -141,6 +141,11 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 static void StatFixed(GF_SceneStatistics *stat, Fixed v, Bool scale)
 {
 	u32 int_res, frac_res;
+	if (v > 32767.0)
+		v = 32767.0;
+	else if (v < -32768.0)
+		v = -32768.0;
+
 	u32 fixv  = FIX2INT((v>0?v:-v) * (1<<16));
 	s32 intv  = (fixv & 0xFFFF0000)>>16;
 	u32 fracv = fixv & 0x0000FFFF;

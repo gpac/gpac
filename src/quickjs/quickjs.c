@@ -31517,7 +31517,9 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
                 put_short_code(&bc_out, op, argc);
                 break;
             }
+#if 0
             goto no_change;
+#endif
 
         case OP_return:
         case OP_return_undef:
