@@ -836,32 +836,6 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		searchprop.hSpacing = 0;
 		searchprop.vSpacing = 0;
 	}
-	if (image_props->angle) {
-		searchprop.angle = image_props->angle;
-		prop_index = meta_find_prop(ipco, &searchprop);
-		if (prop_index < 0) {
-			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IROT);
-			if (!irot) return GF_OUT_OF_MEM;
-			irot->angle = image_props->angle/90;
-			prop_index = gf_list_count(ipco->child_boxes) - 1;
-		}
-		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
-		if (e) return e;
-		searchprop.angle = 0;
-	}
-	if (image_props->mirror) {
-		searchprop.mirror = image_props->mirror;
-		prop_index = meta_find_prop(ipco, &searchprop);
-		if (prop_index < 0) {
-			GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IMIR);
-			if (!imir) return GF_OUT_OF_MEM;
-			imir->axis = image_props->mirror-1;
-			prop_index = gf_list_count(ipco->child_boxes) - 1;
-		}
-		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
-		if (e) return e;
-		searchprop.mirror = 0;
-	}
 	if (image_props->clap_wnum || image_props->clap_wden || image_props->clap_hnum || image_props->clap_hden || image_props->clap_honum || image_props->clap_hoden || image_props->clap_vonum || image_props->clap_voden) {
 		searchprop.clap_wnum = image_props->clap_wnum;
 		searchprop.clap_wden = image_props->clap_wden;
@@ -888,6 +862,32 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
 		searchprop.clap_wnum = searchprop.clap_wden = searchprop.clap_hnum = searchprop.clap_hden = searchprop.clap_honum = searchprop.clap_hoden = searchprop.clap_vonum = searchprop.clap_voden = 0;
+	}
+	if (image_props->angle) {
+		searchprop.angle = image_props->angle;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IROT);
+			if (!irot) return GF_OUT_OF_MEM;
+			irot->angle = image_props->angle/90;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.angle = 0;
+	}
+	if (image_props->mirror) {
+		searchprop.mirror = image_props->mirror;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IMIR);
+			if (!imir) return GF_OUT_OF_MEM;
+			imir->axis = image_props->mirror-1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.mirror = 0;
 	}
 	if (image_props->config) {
 		searchprop.config = image_props->config;
