@@ -2825,7 +2825,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"\n"
 	"This mode can be used to process media data and regenerating the same manifest/segmentation.\n"
 	"\n"
-	"EX gpac -i MANIFEST_URL:forward=man cecrypt:cfile=DRM.xml @ -o encrypted/live.mpd:pssh=mv\n"
+	"EX gpac -i MANIFEST_URL:forward=mani cecrypt:cfile=DRM.xml @ -o encrypted/live.mpd:pssh=mv\n"
 	"This will encrypt an existing DASH session, inject PSSH in manifest and segments.\n"
 	"\n"
 	"EX gpac -i MANIFEST_URL:forward=segb cecrypt:cfile=DRM.xml @ -o encrypted/live.m3u8\n"

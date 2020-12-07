@@ -562,7 +562,7 @@ typedef struct
 	u32 llhls_mode;
 	/*! HLS LL segment done */
 	Bool llhls_done;
-	/*! HLS set to TRUE if not encrypted */
+	/*! HLS set to TRUE if encrypted */
 	Bool encrypted;
 	/*! HLS key params (URI and co)*/
 	char *hls_key_uri;

@@ -557,7 +557,17 @@ static js_force_inline JSValue JS_NewFloat64(JSContext *ctx, double d)
         uint64_t u;
     } u, t;
     u.d = d;
-    val = (int32_t)d;
+
+    if (isnan(d))
+		return JS_NAN;
+
+	if (d > 2147483647)
+        return __JS_NewFloat64(ctx, d);
+
+	if (d < -2147483648)
+        return __JS_NewFloat64(ctx, d);
+
+    val = (int32_t) d;
     t.d = val;
     /* -0 cannot be represented as integer, so we compare the bit
         representation */

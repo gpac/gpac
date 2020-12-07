@@ -704,9 +704,13 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-	ctx->width = prop ? prop->value.uint : 320;
+	ctx->width = prop ? prop->value.uint : 0;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-	ctx->height = prop ? prop->value.uint : 240;
+	ctx->height = prop ? prop->value.uint : 0;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+	ctx->sample_rate = prop ? prop->value.uint : 0;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+	ctx->channels = prop ? prop->value.uint : 0;
 
 
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
@@ -777,6 +781,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->width && ctx->height) {
 			ctx->decoder->width = ctx->width;
 			ctx->decoder->height = ctx->height;
+		}
+		if (ctx->sample_rate && ctx->channels) {
+			ctx->decoder->sample_rate = ctx->sample_rate;
+			ctx->decoder->channels = ctx->channels;
 		}
 
 		//we may have a dsi here!

@@ -50,7 +50,7 @@
 /*exported to access the strike list ...*/
 typedef struct
 {
-	Drawable *graph;
+	struct _drawable s_graph;
 	Fixed ascent, descent;
 	GF_List *spans;
 	GF_Rect bounds;
@@ -68,7 +68,7 @@ void text_clean_paths(GF_Compositor *compositor, TextStack *stack)
 		gf_font_manager_delete_span(compositor->font_manager, span);
 	}
 	stack->bounds.width = stack->bounds.height = 0;
-	drawable_reset_path(stack->graph);
+	drawable_reset_path(&stack->s_graph);
 }
 
 
@@ -567,11 +567,11 @@ static void text_check_changes(GF_Node *node, TextStack *stack, GF_TraverseState
 		text_clean_paths(tr_state->visual->compositor, stack);
 		build_text(stack, (M_Text*)node, tr_state);
 		gf_node_dirty_clear(node, 0);
-		drawable_mark_modified(stack->graph, tr_state);
+		drawable_mark_modified(&stack->s_graph, tr_state);
 	}
 
 	if (tr_state->visual->compositor->edited_text && (tr_state->visual->compositor->focus_node==node)) {
-		drawable_mark_modified(stack->graph, tr_state);
+		drawable_mark_modified(&stack->s_graph, tr_state);
 		tr_state->visual->has_text_edit = GF_TRUE;
 		if (!stack->bounds.width) stack->bounds.width = INT2FIX(1)/100;
 		if (!stack->bounds.height) stack->bounds.height = INT2FIX(1)/100;
@@ -587,8 +587,9 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 
 	if (is_destroy) {
-		text_clean_paths(gf_sc_get_compositor(n), st);
-		drawable_del(st->graph);
+		GF_Compositor *compositor = gf_sc_get_compositor(n);
+		text_clean_paths(compositor, st);
+		drawable_del_ex(&st->s_graph, compositor, GF_TRUE);
 		gf_list_del(st->spans);
 		gf_free(st);
 		return;
@@ -638,7 +639,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 	if (tr_state->visual->type_3d) return;
 #endif
 
-	ctx = drawable_init_context_mpeg4(st->graph, tr_state);
+	ctx = drawable_init_context_mpeg4(&st->s_graph, tr_state);
 	if (!ctx) return;
 	ctx->sub_path_index = tr_state->text_split_idx;
 
@@ -687,9 +688,9 @@ void compositor_init_text(GF_Compositor *compositor, GF_Node *node)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate text stack\n"));
 		return;
 	}
-	stack->graph = drawable_new();
-	stack->graph->node = node;
-	stack->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;
+	drawable_init_ex(&stack->s_graph);
+	stack->s_graph.node = node;
+	stack->s_graph.flags = DRAWABLE_USE_TRAVERSE_DRAW;
 	stack->ascent = stack->descent = 0;
 	stack->spans = gf_list_new();
 	stack->texture_text_flag = 0;
@@ -711,7 +712,7 @@ void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh 
 		ParentNode2D *parent = tr_state->parent;
 		tr_state->parent = NULL;
 		text_clean_paths(tr_state->visual->compositor, st);
-		drawable_reset_path(st->graph);
+		drawable_reset_path(&st->s_graph);
 		gf_node_dirty_clear(node, 0);
 		build_text(st, (M_Text *)node, tr_state);
 		tr_state->parent = parent;

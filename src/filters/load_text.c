@@ -1617,9 +1617,8 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		}
 
 		if (!skip_pck) {
-			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+1, &pck_data);
+			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
 			memcpy(pck_data, txt_str, txt_len);
-			pck_data[txt_len] = 0;
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
 			gf_filter_pck_send(pck);
@@ -1874,7 +1873,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (ctx->prev_end) {
 			samp = gf_isom_new_text_sample();
-			txtin_process_send_text_sample(ctx, samp, (u64) (ts_scale*(s64)ctx->prev_end), (u32) (ts_scale*(ctx->prev_end - ctx->start)), GF_TRUE);
+			txtin_process_send_text_sample(ctx, samp, (u64) (ts_scale*(s64)ctx->prev_end), (u32) (ts_scale*(ctx->start - ctx->prev_end)), GF_TRUE);
 			gf_isom_delete_text_sample(samp);
 		}
 

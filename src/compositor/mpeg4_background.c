@@ -176,7 +176,7 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 
 		/*switch cols*/
 		if (angle >= next_angle) {
-			if (ang_idx+1<=angles->count) {
+			if (ang_idx+1 < angles->count) {
 				start_angle = next_angle;
 				next_angle = angles->vals[ang_idx+1];
 				if (next_angle>GF_PI) next_angle=GF_PI;

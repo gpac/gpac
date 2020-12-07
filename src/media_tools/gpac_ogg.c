@@ -536,16 +536,16 @@ s64 ogg_page_granulepos(ogg_page *og) {
 
 s32 ogg_page_serialno(ogg_page *og) {
 	return(og->header[14] |
-	       (og->header[15]<<8) |
-	       (og->header[16]<<16) |
-	       (og->header[17]<<24));
+	       ((u32) og->header[15]<<8) |
+	       ((u32) og->header[16]<<16) |
+	       ((u32) og->header[17]<<24));
 }
 
 s32 ogg_page_pageno(ogg_page *og) {
-	return(og->header[18] |
-	       (og->header[19]<<8) |
-	       (og->header[20]<<16) |
-	       (og->header[21]<<24));
+	return((u32) og->header[18] |
+	       ((u32) og->header[19]<<8) |
+	       ((u32) og->header[20]<<16) |
+	       ((u32) og->header[21]<<24));
 }
 
 

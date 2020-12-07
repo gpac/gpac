@@ -4555,20 +4555,11 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		GF_SAFEALLOC(res, ListOfXXX);
 		if (!res) return NULL;
 		*res = gf_list_new();
-#if 0
-		pt = (SVG_Point*)gf_malloc(sizeof(SVG_Point));
-		if (pt) {
-			pt->x = lsr_read_fixed_clamp(lsr, "valueX");
-			pt->y = lsr_read_fixed_clamp(lsr, "valueY");
-			gf_list_add(*res, pt);
-		}
-#else
 		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
 		if (f_val) {
 			*f_val = lsr_read_fixed_clamp(lsr, "value");
 			gf_list_add(*res, f_val);
 		}
-#endif
 		return res;
 	}
 	case SMIL_Times_datatype/*ITYPE_smil_time*/:
@@ -5101,7 +5092,6 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				} else if (idx==-1) {
 					lsr_read_update_value(lsr, (GF_Node*)n, fieldIndex, field_type, info.far_ptr, n->sgprivate->tag);
 				} else {
-					SVG_Point *pt;
 					Fixed *v1, *v2;
 					//SMIL_Time *t;
 					void *prev, *new_item;
@@ -5127,12 +5117,8 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 						break;
 					/*list of floats - to check when implementing it...*/
 					case SMIL_KeyPoints_datatype/*ITYPE_0to1 - keyPoints*/:
-						pt = (SVG_Point*) gf_list_pop_front(*(GF_List **)tmp);
-						v1 = (Fixed *) gf_malloc(sizeof(Fixed));
-						*v1 = pt->x;
-						v2 = (Fixed *) gf_malloc(sizeof(Fixed));
-						*v2 = pt->y;
-						gf_free(pt);
+						v1 = (Fixed *) gf_list_pop_front(*(GF_List **)tmp);
+						v2 = (Fixed *) gf_list_pop_front(*(GF_List **)tmp);
 						gf_list_del(*(GF_List **)tmp);
 						gf_free(tmp);
 
