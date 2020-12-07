@@ -84,7 +84,6 @@ typedef struct
 	AVIOContext *avio_ctx;
 	FILE *gfio;
 
-
 	u32 cur_file_idx_plus_one;
 } GF_FFMuxCtx;
 
@@ -899,6 +898,9 @@ static void ffmx_finalize(GF_Filter *filter)
 			av_write_trailer(ctx->muxer);
 		}
 		ctx->status = FFMX_STATE_TRAILER_DONE;
+	} 
+	if (ctx->muxer->pb) {
+		ctx->muxer->io_close(ctx->muxer, ctx->muxer->pb);
 	}
 
 	if (ctx->options) av_dict_free(&ctx->options);
