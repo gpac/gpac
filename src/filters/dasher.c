@@ -1175,6 +1175,19 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	return dasher_update_mpd(ctx);
 }
 
+
+GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size, Bool force_sbr);
+GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size);
+GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc);
+GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc);
+GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c);
+GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc);
+GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecoderConfigurationRecord *dovi);
+GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc);
+GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl);
+GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id);
+
+
 static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *ds, char *szCodec, Bool force_inband, Bool force_sbr)
 {
 	u32 subtype=0, subtype_src=0, mha_pl=0;
@@ -1227,12 +1240,9 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_BAD_PARAM;
 		}
-
-		subtype = GF_ISOM_SUBTYPE_DVHE;
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(subtype), dvcc->dv_profile, dvcc->dv_level);
+		GF_Err e = rfc_6381_get_codec_dolby_vision(szCodec, GF_ISOM_SUBTYPE_DVHE, dvcc);
 		gf_odf_dovi_cfg_del(dvcc);
-
-		return GF_OK;
+		return e;
 	}
 
 	switch (ds->codec_id) {
@@ -1241,50 +1251,10 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	case GF_CODECID_AAC_MPEG2_LCP:
 	case GF_CODECID_AAC_MPEG2_SSRP:
 	case GF_CODECID_USAC:
-		if (dcd) {
-			u8 audio_object_type;
-			if (dcd->value.data.size < 2) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381-AAC] invalid DSI size %u < 2\n", dcd->value.data.size));
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
-			/*5 first bits of AAC config*/
-			audio_object_type = (dcd->value.data.ptr[0] & 0xF8) >> 3;
-			if (audio_object_type == 31) { /*escape code*/
-				const u8 audio_object_type_ext = ((dcd->value.data.ptr[0] & 0x07) << 3) + ((dcd->value.data.ptr[1] & 0xE0) >> 5);
-				audio_object_type = 32 + audio_object_type_ext;
-			}
-#ifndef GPAC_DISABLE_AV_PARSERS
-			if (force_sbr && (audio_object_type==2) ) {
-				GF_M4ADecSpecInfo a_cfg;
-				GF_Err e = gf_m4a_get_config(dcd->value.data.ptr, dcd->value.data.size, &a_cfg);
-				if (e==GF_OK) {
-					if (a_cfg.sbr_sr)
-						audio_object_type = a_cfg.sbr_object_type;
-					if (a_cfg.has_ps)
-						audio_object_type = 29;
-				}
-			}
-#endif
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X.%01d", gf_codecid_oti(ds->codec_id), audio_object_type);
-			return GF_OK;
-		}
+		return rfc_6381_get_codec_aac(szCodec, ds->codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, force_sbr);
 
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X", ds->codec_id);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AAC config, using default %s\n", szCodec));
-		return GF_OK;
-
-		break;
 	case GF_CODECID_MPEG4_PART2:
-#ifndef GPAC_DISABLE_AV_PARSERS
-		if (dcd) {
-			GF_M4VDecSpecInfo dsi;
-			gf_m4v_get_config(dcd->value.data.ptr, dcd->value.data.size, &dsi);
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X.%01x", ds->codec_id, dsi.VideoPL);
-		} else
-#endif
-		{
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X", ds->codec_id);
-		}
+		return rfc_6381_get_codec_m4v(szCodec, ds->codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
 		break;
 	case GF_CODECID_SVC:
 	case GF_CODECID_MVC:
@@ -1298,18 +1268,18 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				subtype = dcd_enh ? GF_ISOM_SUBTYPE_AVC2_H264 : GF_ISOM_SUBTYPE_AVC_H264;
 			}
 		}
-
 		if (dcd) {
 			GF_AVCConfig *avcc = gf_odf_avc_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 			if (avcc) {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+				GF_Err e = rfc_6381_get_codec_avc(szCodec, subtype, avcc);
 				gf_odf_avc_cfg_del(avcc);
-				return GF_OK;
+				return e;
 			}
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AVC config, using default %s\n", szCodec));
 		return GF_OK;
+
 #ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_LHVC:
 		subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
@@ -1341,72 +1311,14 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			}
 		}
 		if (dcd || dcd_enh) {
-			u8 c;
 			GF_HEVCConfig *hvcc = dcd ? gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE) : NULL;
-
-			//TODO - check we do expose hvcC for tiled tracks !
-
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
 			if (hvcc) {
-				char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
-				if (hvcc->profile_space==1) strcat(szCodec, "A");
-				else if (hvcc->profile_space==2) strcat(szCodec, "B");
-				else if (hvcc->profile_space==3) strcat(szCodec, "C");
-				//profile idc encoded as a decimal number
-				sprintf(szTemp, "%d", hvcc->profile_idc);
-				strcat(szCodec, szTemp);
-				//general profile compatibility flags: hexa, bit-reversed
-				{
-					u32 val = hvcc->general_profile_compatibility_flags;
-					u32 i, res = 0;
-					for (i=0; i<32; i++) {
-						res |= val & 1;
-						if (i==31) break;
-						res <<= 1;
-						val >>=1;
-					}
-					sprintf(szTemp, ".%X", res);
-					strcat(szCodec, szTemp);
-				}
-
-				if (hvcc->tier_flag) strcat(szCodec, ".H");
-				else strcat(szCodec, ".L");
-				sprintf(szTemp, "%d", hvcc->level_idc);
-				strcat(szCodec, szTemp);
-
-				c = hvcc->progressive_source_flag << 7;
-				c |= hvcc->interlaced_source_flag << 6;
-				c |= hvcc->non_packed_constraint_flag << 5;
-				c |= hvcc->frame_only_constraint_flag << 4;
-				c |= (hvcc->constraint_indicator_flags >> 40);
-				sprintf(szTemp, ".%X", c);
-				strcat(szCodec, szTemp);
-				if (hvcc->constraint_indicator_flags & 0xFFFFFFFF) {
-					c = (hvcc->constraint_indicator_flags >> 32) & 0xFF;
-					sprintf(szTemp, ".%X", c);
-					strcat(szCodec, szTemp);
-					if (hvcc->constraint_indicator_flags & 0x00FFFFFF) {
-						c = (hvcc->constraint_indicator_flags >> 24) & 0xFF;
-						sprintf(szTemp, ".%X", c);
-						strcat(szCodec, szTemp);
-						if (hvcc->constraint_indicator_flags & 0x0000FFFF) {
-							c = (hvcc->constraint_indicator_flags >> 16) & 0xFF;
-							sprintf(szTemp, ".%X", c);
-							strcat(szCodec, szTemp);
-							if (hvcc->constraint_indicator_flags & 0x000000FF) {
-								c = (hvcc->constraint_indicator_flags >> 8) & 0xFF;
-								sprintf(szTemp, ".%X", c);
-								strcat(szCodec, szTemp);
-								c = (hvcc->constraint_indicator_flags ) & 0xFF;
-								sprintf(szTemp, ".%X", c);
-								strcat(szCodec, szTemp);
-							}
-						}
-					}
-				}
+				GF_Err e = rfc_6381_get_codec_hevc(szCodec, subtype, hvcc);
 				gf_odf_hevc_cfg_del(hvcc);
+				return e;
 			}
-			return GF_OK;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Dasher] HEVC config not compliant !\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
@@ -1420,62 +1332,19 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 
 		if (dcd) {
 			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
-
-			if (!av1c) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] Error loading config for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
-			} else {
-#ifndef GPAC_DISABLE_AV_PARSERS
-				GF_Err e;
-				u32 i = 0;
-				AV1State av1_state;
-				gf_av1_init_state(&av1_state);
-				av1_state.config = av1c;
-
-				for (i = 0; i < gf_list_count(av1c->obu_array); ++i) {
-					GF_BitStream *bs;
-					GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
-					bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
-					if (!av1_is_obu_header(a->obu_type))
-						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. PArsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
-
-					e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
-					gf_bs_del(bs);
-					bs = NULL;
-					if (e) {
-						gf_odf_av1_cfg_del(av1c);
-						return e;
-					}
-				}
-
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%u%c.%u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
-					av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M',
-					av1_state.bit_depth, av1_state.config->monochrome,
-					av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
-					av1_state.config->chroma_subsampling_x && av1_state.config->chroma_subsampling_y ? av1_state.config->chroma_sample_position : 0);
-
-				if (av1_state.color_description_present_flag) {
-					char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
-					snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%01u.%01u.%01u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
-					strcat(szCodec, tmp);
-				} else {
-					if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
-
-					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
-					}
-				}
+			if (av1c) {
+				GF_Err e = rfc_6381_get_codec_av1(szCodec, subtype, av1c);
 				gf_odf_av1_cfg_del(av1c);
-				gf_av1_reset_state(&av1_state, GF_TRUE);
-				return GF_OK;
-#else
-				return GF_NOT_SUPPORTED;
-#endif
+				return e;
 			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[DASHER] AV1 config not conformant\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AV1 config, using default %s\n", szCodec));
 		return GF_OK;
 #endif /*GPAC_DISABLE_AV1*/
+
 
 	case GF_CODECID_VP8:
 		if (!subtype) subtype = GF_ISOM_SUBTYPE_VP08;
@@ -1485,53 +1354,30 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		if (dcd) {
 			GF_VPConfig *vpcc = gf_odf_vp_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 
-			if (!vpcc) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
-			} else {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
-					vpcc->profile,
-					vpcc->level,
-					vpcc->bit_depth,
-					vpcc->chroma_subsampling,
-					vpcc->colour_primaries,
-					vpcc->transfer_characteristics,
-					vpcc->matrix_coefficients,
-					vpcc->video_fullRange_flag);
-
+			if (vpcc) {
+				GF_Err e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc);
 				gf_odf_vp_cfg_del(vpcc);
-				return GF_OK;
+				return e;
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Dasher] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VPX config, using default %s\n", szCodec));
 		return GF_OK;
 
-	case GF_CODECID_MPHA:
-		subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHA1;
-
-		if (!dcd || (dcd->value.data.size<2) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find MPEG-H Audio Config, defaulting to profile 0x01\n"));
-			mha_pl = 1;
-		} else {
-			mha_pl = dcd->value.data.ptr[1];
-		}
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.0x%02X", gf_4cc_to_str(subtype), mha_pl);
-		return GF_OK;
 	case GF_CODECID_MHAS:
 		subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHM1;
-		if (dcd && (dcd->value.data.size>2)) {
-			mha_pl = dcd->value.data.ptr[1];
-		} else {
+		if (!dcd) {
 			const GF_PropertyValue *pl = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_PROFILE_LEVEL);
-			if (pl) {
-				mha_pl = pl->value.uint;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find MPEG-H Audio Config or audio PL, defaulting to profile 0x01\n"));
-				mha_pl = 1;
-			}
+			if (pl) mha_pl = pl->value.uint;
 		}
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.0x%02X", gf_4cc_to_str(subtype), mha_pl);
-		return GF_OK;
+		//fallthrough
+	case GF_CODECID_MPHA:
+		if (!subtype)
+			subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHA1;
+
+		return rfc_6381_get_codec_mpegha(szCodec, subtype, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, -1);
 
 	case GF_CODECID_VVC:
 		if (!subtype) {
@@ -1542,16 +1388,12 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
 			if (vvcc) {
-				char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
-				sprintf(szTemp, "%d", vvcc->general_profile_idc);
-				strcat(szCodec, szTemp);
-
-				sprintf(szTemp, ".%s%d", vvcc->general_tier_flag ? "H" : "L", vvcc->general_level_idc);
-				strcat(szCodec, szTemp);
-
+				GF_Err e = rfc_6381_get_codec_vvc(szCodec, subtype, vvcc);
 				gf_odf_vvc_cfg_del(vvcc);
+				return e;
 			}
-			return GF_OK;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Dasher] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VVC config, using default %s\n", szCodec));
@@ -1568,18 +1410,8 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			strcpy(szCodec, "unkn");
 			return GF_OK;
 		}
-		if (ds->codec_id<GF_CODECID_LAST_MPEG4_MAPPING) {
-			if (ds->stream_type==GF_STREAM_VISUAL) {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X", ds->codec_id);
-			} else if (ds->stream_type==GF_STREAM_AUDIO) {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X", ds->codec_id);
-			} else {
-				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4s.%02X", ds->codec_id);
-			}
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Dasher] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
-			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		}
+
+		return rfc6381_codec_name_default(szCodec, subtype, ds->codec_id);
 	}
 	return GF_OK;
 }
