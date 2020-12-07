@@ -5624,7 +5624,7 @@ typedef struct
 	/*! number of channels*/
 	u8 num_channels;
 	/*! bits per channels in bits*/
-	u8 bits_per_channel[3];
+	u32 bits_per_channel[3];
 	u32 num_grid_columns;
 	u32 num_grid_rows;
 	/*! number of overlayed images*/
