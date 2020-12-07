@@ -1560,7 +1560,6 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
 			ctx->cts = ctx->dts = 0;
-			ctx->bytes_in_header = 0;
 		}
 		if (! ctx->is_file) {
 			if (!ctx->initial_play_done) {
@@ -1594,8 +1593,13 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
 			//seek will not change the current source state, don't send a seek
-			if (!file_pos)
+			if (!file_pos) {
+				//very short streams, input is done before we get notified for play and everything stored in memory: flush
+				if (gf_filter_pid_is_eos(ctx->ipid) && (ctx->bytes_in_header || ctx->hdr_store_size)) {
+					gf_filter_post_process_task(filter);
+				}
 				return GF_TRUE;
+			}
 		}
 		ctx->resume_from = 0;
 		
@@ -1610,6 +1614,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		//don't cancel event
 		ctx->is_playing = GF_FALSE;
+		ctx->bytes_in_header = 0;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -2532,6 +2537,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->bytes_in_header || ctx->hdr_store_size) {
+				if (!ctx->is_playing)
+					return GF_OK;
+
 				start = data = ctx->hdr_store;
 				remain = pck_size = ctx->bytes_in_header ? ctx->bytes_in_header : ctx->hdr_store_size;
 				ctx->bytes_in_header = 0;
@@ -3029,6 +3037,8 @@ naldmx_flush:
 					memcpy(ctx->hdr_store, start, remain);
 					ctx->bytes_in_header = remain;
 				}
+				if (!skip_nal)
+					naludmx_check_pid(filter, ctx);
 				break;
 			}
 		} else {
