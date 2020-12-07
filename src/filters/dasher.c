@@ -1190,7 +1190,8 @@ GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id);
 
 static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *ds, char *szCodec, Bool force_inband, Bool force_sbr)
 {
-	u32 subtype=0, subtype_src=0, mha_pl=0;
+	u32 subtype=0, subtype_src=0;
+	s32 mha_pl=-1;
 	const GF_PropertyValue *dcd, *dcd_enh, *dovi, *codec;
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
@@ -1370,14 +1371,14 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHM1;
 		if (!dcd) {
 			const GF_PropertyValue *pl = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_PROFILE_LEVEL);
-			if (pl) mha_pl = pl->value.uint;
+			if (pl) mha_pl = (s32) pl->value.uint;
 		}
 		//fallthrough
 	case GF_CODECID_MPHA:
 		if (!subtype)
 			subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHA1;
 
-		return rfc_6381_get_codec_mpegha(szCodec, subtype, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, -1);
+		return rfc_6381_get_codec_mpegha(szCodec, subtype, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, mha_pl);
 
 	case GF_CODECID_VVC:
 		if (!subtype) {
