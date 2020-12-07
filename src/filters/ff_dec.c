@@ -116,8 +116,7 @@ static void ffdec_finalize(GF_Filter *filter)
 	gf_list_del(ctx->src_packets);
 
 	if (ctx->owns_context && ctx->decoder) {
-		if (ctx->decoder->extradata) av_free(ctx->decoder->extradata);
-		avcodec_close(ctx->decoder);
+		avcodec_free_context(&ctx->decoder);
 	}
 	return;
 }
@@ -212,7 +211,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 #if 0
 			AVDictionary *options = NULL;
 			const AVCodec *codec = ctx->decoder->codec;
-			avcodec_close(ctx->decoder);
+			avcodec_free_context(&ctx->decoder);
 
 			av_dict_copy(&options, ctx->options, 0);
 			avcodec_open2(ctx->decoder, codec, &options );
@@ -246,9 +245,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			return GF_EOS;
 		}
 		if (ctx->reconfig_pending) {
-			if (ctx->decoder->extradata) av_free(ctx->decoder->extradata);
-			ctx->decoder->extradata = NULL;
-			avcodec_close(ctx->decoder);
+			avcodec_free_context(&ctx->decoder);
 			ctx->decoder = NULL;
 			ctx->reconfig_pending = GF_FALSE;
 			//these properties are checked after decode, when we reconfigure we copy props from input to output
@@ -491,9 +488,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			return GF_EOS;
 		}
 		if (ctx->reconfig_pending) {
-			if (ctx->decoder->extradata) av_free(ctx->decoder->extradata);
-			ctx->decoder->extradata = NULL;
-			avcodec_close(ctx->decoder);
+			avcodec_free_context(&ctx->decoder);
 			ctx->decoder = NULL;
 			ctx->reconfig_pending = GF_FALSE;
 			//these properties are checked after decode, when we reconfigure we copy props from input to output
