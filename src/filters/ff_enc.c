@@ -166,7 +166,7 @@ static void ffenc_finalize(GF_Filter *filter)
 	gf_list_del(ctx->src_packets);
 
 	if (ctx->encoder) {
-		avcodec_close(ctx->encoder);
+		avcodec_free_context(&ctx->encoder);
 	}
 	if (ctx->sdbs) gf_bs_del(ctx->sdbs);
 	return;
@@ -762,7 +762,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				Bool bck_init_cts = ctx->init_cts_setup;
 
 				ctx->reconfig_pending = GF_FALSE;
-				avcodec_close(ctx->encoder);
+				avcodec_free_context(&ctx->encoder);
 				ctx->encoder = NULL;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				e = ffenc_configure_pid_ex(filter, ctx->in_pid, GF_FALSE, GF_TRUE);
