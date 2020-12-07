@@ -1788,6 +1788,20 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->hSpacing, &meta->image_props->vSpacing);
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "image-pixi=", 11)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			if (strchr(szSlot+11, ',') == NULL) {
+				meta->image_props->num_channels = 1;
+				meta->image_props->bits_per_channel[0] = atoi(szSlot+11);
+			} else {
+				meta->image_props->num_channels = 3;
+				sscanf(szSlot+11, "%u,%u,%u", &(meta->image_props->bits_per_channel[0]), &(meta->image_props->bits_per_channel[1]), &(meta->image_props->bits_per_channel[2]));
+			}
+			ret = 1;
+		}
 		else if (!strnicmp(szSlot, "image-rloc=", 11)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
