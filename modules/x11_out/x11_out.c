@@ -240,7 +240,7 @@ GF_Err X11_Blit(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *
 	}
 
 	/*different size, recreate an image*/
-	if ((xwin->overlay->width != video_src->width) || (xwin->overlay->height != video_src->height)) {
+	if (xwin->overlay && ((xwin->overlay->width != video_src->width) || (xwin->overlay->height != video_src->height))) {
 		XFree(xwin->overlay);
 		xwin->overlay = XvCreateImage(xwin->display, xwin->xvport, xwin->xv_pf_format, NULL, video_src->width, video_src->height);
 		if (!xwin->overlay) return GF_IO_ERR;
