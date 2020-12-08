@@ -331,6 +331,7 @@ Jack_Configure(GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels, u32 *aud
 					i++;
 				}
 			}
+			jack_free (matching_outputs);
 		}
 		ctx->isActive = GF_TRUE;
 	}
