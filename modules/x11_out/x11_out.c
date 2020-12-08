@@ -137,7 +137,7 @@ static int X11_GetXVideoPort(GF_VideoOutput *vout, u32 pixel_format, Bool check_
 		formats = XvListImageFormats(xwin->display, adaptors[i].base_id, &num_formats);
 
 		for (j=0; j<num_formats && (selected_port == -1 ); j++) {
-			XvAttribute *attr;
+			XvAttribute *attr=NULL;
 			int k, nb_attributes;
 			u32 pformat = X11_GetPixelFormat(formats[j].id);
 
@@ -161,6 +161,11 @@ static int X11_GetXVideoPort(GF_VideoOutput *vout, u32 pixel_format, Bool check_
 									}
 					*/
 				}
+				if (attr) {
+					free(attr);
+					attr=NULL;
+				}
+
 				if (check_color && !has_color_key) continue;
 
 				if (XvGrabPort(xwin->display, port, CurrentTime) == Success) {
@@ -1159,12 +1164,12 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		break;
 	case 24:
 #ifdef GPAC_BIG_ENDIAN
-		if (xWindow->visual->red_mask==0x00FF0000)	
+		if (xWindow->visual->red_mask==0x00FF0000)
 			xWindow->pixel_format = GF_PIXEL_RGB;
 		else
 			xWindow->pixel_format = GF_PIXEL_BGR;
 #else
-		if (xWindow->visual->red_mask==0x00FF0000)	
+		if (xWindow->visual->red_mask==0x00FF0000)
 			xWindow->pixel_format = GF_PIXEL_BGR;
 		else
 			xWindow->pixel_format = GF_PIXEL_RGB;
