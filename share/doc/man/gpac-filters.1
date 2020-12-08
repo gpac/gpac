@@ -163,7 +163,15 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)- off: no analyzing
+.br
+* on: simple analyzing
+.br
+* bs: log bitstream syntax (all elements read from bitstream)
+.br
+* full: log bitstream syntax and bit sizes signaled as (N) after field value, except 1-bit fields (ommited)
+.br
+
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
 .br
@@ -251,7 +259,15 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)- off: no analyzing
+.br
+* on: simple analyzing
+.br
+* bs: log bitstream syntax (all elements read from bitstream)
+.br
+* full: log bitstream syntax and bit sizes signaled as (N) after field value, except 1-bit fields (ommited)
+.br
+
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
 .br
@@ -7074,7 +7090,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev326-g42fae0473-master
+build: 1.1.0-DEV-rev334-ga89d24210-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
