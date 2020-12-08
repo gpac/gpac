@@ -1836,7 +1836,9 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 		GF_FilterSession *fs = sjs->compositor->filter->session;
 
 		//don't check error code, this may fail if global JS has been set but the script may still run
-		gf_fs_load_js_api(c, fs);
+		if (gf_fs_load_js_api(c, fs) == GF_OK) {
+			scene->attached_session = fs;
+		}
 	}
 
 	sjs->evt_obj = JS_NewObjectClass(c, gpacevt_class_id);

@@ -1200,6 +1200,24 @@ static const JSCFunctionListEntry fs_funcs[] = {
 
 };
 
+void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
+{
+	u32 i, count;
+	gf_mx_p(fs->filters_mx);
+	count = gf_list_count(fs->filters);
+	//detach all script objects, the context having created them is about to be destroyed
+	//not doing so would result in potential crashes during final destruction of filter(s)
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fs->filters, i);
+		if (!JS_IsUndefined(f->jsval)) {
+			JS_SetOpaque(f->jsval, NULL);
+			JS_FreeValue(c, f->jsval);
+			f->jsval = JS_UNDEFINED;
+		}
+	}
+	gf_mx_v(fs->filters_mx);
+}
+
 GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 {
 	JSValue fs_obj;
