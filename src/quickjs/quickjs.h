@@ -559,8 +559,7 @@ static js_force_inline JSValue JS_NewFloat64(JSContext *ctx, double d)
     u.d = d;
 
 	/*for asan tests*/
-//#ifdef ASAN_ENABLED
-#if 1
+#ifdef ASAN_ENABLED
 	if (isnan(d))
 		return JS_NAN;
 
