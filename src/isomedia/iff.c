@@ -1301,8 +1301,12 @@ GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32
 	GF_Err e = GF_OK;
 	u32 grid4cc = GF_4CC('g', 'r', 'i', 'd');
 	GF_BitStream *grid_bs;
-	if (image_props->num_grid_rows < 1 || image_props->num_grid_columns < 1 || image_props->width == 0 || image_props->height == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong grid parameters: %d, %d, %d, %d\n", image_props->num_grid_rows, image_props->num_grid_columns, image_props->width, image_props->height));
+	if (image_props->num_grid_rows < 1 || image_props->num_grid_columns < 1 || image_props->num_grid_rows > 256 || image_props->num_grid_columns > 256) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong grid parameters: %d, %d\n", image_props->num_grid_rows, image_props->num_grid_columns));
+		return GF_BAD_PARAM;
+	}
+	if (image_props->width == 0 || image_props->height == 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("At least one grid dimension set to 0: %d, %d\n", image_props->width, image_props->height));
 		return GF_BAD_PARAM;
 	}
 	grid_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1330,8 +1334,7 @@ GF_Err gf_isom_iff_create_image_overlay_item(GF_ISOFile *movie, Bool root_meta, 
 	u32 overlay4cc = GF_4CC('i', 'o', 'v', 'l');
 	GF_BitStream *overlay_bs;
 	if (image_props->overlay_count == 0 || image_props->width == 0 || image_props->height == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong overlay parameters: %d, %d, %d\n", image_props->overlay_count, image_props->width, image_props->height));
-		return GF_BAD_PARAM;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Unusual overlay parameters: %d, %d, %d\n", image_props->overlay_count, image_props->width, image_props->height));
 	}
 	if (image_props->width <= 1<<16 || image_props->height <= 1<<16) {
 		for (i=0; i< image_props->overlay_count; i++) {
@@ -1372,8 +1375,7 @@ GF_Err gf_isom_iff_create_image_identity_item(GF_ISOFile *movie, Bool root_meta,
 	GF_Err e = GF_OK;
 	u32 identity4cc = GF_4CC('i', 'd', 'e', 'n');
 	if (image_props->width == 0 || image_props->height == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Wrong overlay parameters: %d, %d, %d\n", image_props->width, image_props->height));
-		return GF_BAD_PARAM;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("At least one identity dimension set to 0: %d, %d\n", image_props->width, image_props->height));
 	}
 	e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, item_id, identity4cc, NULL, NULL, image_props, NULL, 0, item_extent_refs);
 	return e;
