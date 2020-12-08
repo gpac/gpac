@@ -295,7 +295,7 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 		hevc_write_profile_tier_level(bs_in, bs_out, 1, max_sub_layers_minus1);
 	}
 
-	gf_bs_set_ue(bs_out, gf_bs_get_ue(bs_in)); //copy sps_id
+	gf_bs_write_ue(bs_out, gf_bs_read_ue(bs_in)); //copy sps_id
 
 	if (multiLayerExtSpsFlag) {
 		u8 update_rep_format_flag = gf_bs_read_int(bs_in, 1);
@@ -305,16 +305,16 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 		}
 	}
 	else {
-		chroma_format_idc = gf_bs_get_ue(bs_in);
-		gf_bs_set_ue(bs_out, chroma_format_idc);
+		chroma_format_idc = gf_bs_read_ue(bs_in);
+		gf_bs_write_ue(bs_out, chroma_format_idc);
 		if (chroma_format_idc == 3)
 			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // copy separate_colour_plane_flag
-		/*w =*/ gf_bs_get_ue(bs_in); //skip width bits in input bitstream
-		/*h =*/ gf_bs_get_ue(bs_in); //skip height bits in input bitstream
+		/*w =*/ gf_bs_read_ue(bs_in); //skip width bits in input bitstream
+		/*h =*/ gf_bs_read_ue(bs_in); //skip height bits in input bitstream
 
 		//Copy the new width and height in output bitstream
-		gf_bs_set_ue(bs_out, width);
-		gf_bs_set_ue(bs_out, height);
+		gf_bs_write_ue(bs_out, width);
+		gf_bs_write_ue(bs_out, height);
 
 		//Get rid of the bit conformance_window_flag
 		conformance_window_flag = gf_bs_read_int(bs_in, 1);
@@ -324,10 +324,10 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 		//Skip the bits related to conformance_window_offset
 		if (conformance_window_flag)
 		{
-			gf_bs_get_ue(bs_in);
-			gf_bs_get_ue(bs_in);
-			gf_bs_get_ue(bs_in);
-			gf_bs_get_ue(bs_in);
+			gf_bs_read_ue(bs_in);
+			gf_bs_read_ue(bs_in);
+			gf_bs_read_ue(bs_in);
+			gf_bs_read_ue(bs_in);
 		}
 	}
 
@@ -375,19 +375,19 @@ static void hevcsplit_rewrite_pps_no_grid(GF_HEVCSplitCtx *ctx, char *in_PPS, u3
 
 	//Read and write NAL header bits
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 16), 16);
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //pps_pic_parameter_set_id
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //pps_seq_parameter_set_id
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //pps_pic_parameter_set_id
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //pps_seq_parameter_set_id
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 7), 7); //from dependent_slice_segments_enabled_flag to cabac_init_present_flag
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //num_ref_idx_l0_default_active_minus1
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //num_ref_idx_l1_default_active_minus1
-	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); //init_qp_minus26
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //num_ref_idx_l0_default_active_minus1
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //num_ref_idx_l1_default_active_minus1
+	gf_bs_write_se(ctx->bs_nal_out, gf_bs_read_se(ctx->bs_nal_in)); //init_qp_minus26
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 2), 2); //from constrained_intra_pred_flag to transform_skip_enabled_flag
 	cu_qp_delta_enabled_flag = gf_bs_read_int(ctx->bs_nal_in, 1); //cu_qp_delta_enabled_flag
 	gf_bs_write_int(ctx->bs_nal_out, cu_qp_delta_enabled_flag, 1); //
 	if (cu_qp_delta_enabled_flag)
-		gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); // diff_cu_qp_delta_depth
-	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); // pps_cb_qp_offset
-	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); // pps_cr_qp_offset
+		gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); // diff_cu_qp_delta_depth
+	gf_bs_write_se(ctx->bs_nal_out, gf_bs_read_se(ctx->bs_nal_in)); // pps_cb_qp_offset
+	gf_bs_write_se(ctx->bs_nal_out, gf_bs_read_se(ctx->bs_nal_in)); // pps_cr_qp_offset
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
 
 	tiles_enabled_flag = gf_bs_read_int(ctx->bs_nal_in, 1); // tiles_enabled_flag
@@ -397,15 +397,15 @@ static void hevcsplit_rewrite_pps_no_grid(GF_HEVCSplitCtx *ctx, char *in_PPS, u3
 
 	//read tile info from source
 	if (tiles_enabled_flag) {
-		u32 num_tile_columns_minus1 = gf_bs_get_ue(ctx->bs_nal_in);
-		u32 num_tile_rows_minus1 = gf_bs_get_ue(ctx->bs_nal_in);
+		u32 num_tile_columns_minus1 = gf_bs_read_ue(ctx->bs_nal_in);
+		u32 num_tile_rows_minus1 = gf_bs_read_ue(ctx->bs_nal_in);
 		u8 uniform_spacing_flag = gf_bs_read_int(ctx->bs_nal_in, 1);
 
 		if (!uniform_spacing_flag) {
 			for (i = 0; i < num_tile_columns_minus1; i++)
-				gf_bs_get_ue(ctx->bs_nal_in);
+				gf_bs_read_ue(ctx->bs_nal_in);
 			for (i = 0; i < num_tile_rows_minus1; i++)
-				gf_bs_get_ue(ctx->bs_nal_in);
+				gf_bs_read_ue(ctx->bs_nal_in);
 		}
 		gf_bs_read_int(ctx->bs_nal_in, 1);
 	}
@@ -495,8 +495,8 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
 
-	pps_id = gf_bs_get_ue(ctx->bs_nal_in);					 //pps_id
-	gf_bs_set_ue(ctx->bs_nal_out, pps_id);
+	pps_id = gf_bs_read_ue(ctx->bs_nal_in);					 //pps_id
+	gf_bs_write_ue(ctx->bs_nal_out, pps_id);
 
 	pps = &hevc->pps[pps_id];
 	sps = &hevc->sps[pps->sps_id];

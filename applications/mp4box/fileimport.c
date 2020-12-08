@@ -215,7 +215,7 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 		}
 	}
 	fprintf(stderr, "\n");
-	fprintf(stderr, "For more details, use `gpac -i %s inspect[:deep][:analyze]`\n", gf_file_basename(inName));
+	fprintf(stderr, "For more details, use `gpac -i %s inspect[:deep][:analyze=on|bs]`\n", gf_file_basename(inName));
 	if (!found && trackID) fprintf(stderr, "Cannot find track %d in file\n", trackID);
 }
 
