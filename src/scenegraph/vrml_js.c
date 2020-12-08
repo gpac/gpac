@@ -4077,6 +4077,7 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 
 static void JS_PreDestroy(GF_Node *node)
 {
+	GF_SceneGraph *scene;
 	GF_ScriptPriv *priv = node->sgprivate->UserPrivate;
 	if (!priv) return;
 
@@ -4104,6 +4105,19 @@ static void JS_PreDestroy(GF_Node *node)
 #endif
 
 	JS_FreeValue(priv->js_ctx, priv->js_obj);
+
+
+	scene = JS_GetContextOpaque(priv->js_ctx);
+	if (scene && scene->__reserved_null) {
+		GF_Node *n = JS_GetContextOpaque(priv->js_ctx);
+		scene = n->sgprivate->scenegraph;
+	}
+	if (scene && scene->attached_session) {
+		void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs);
+
+		gf_fs_unload_js_api(priv->js_ctx, scene->attached_session);
+	}
+
 
 	gf_js_lock(priv->js_ctx, 0);
 

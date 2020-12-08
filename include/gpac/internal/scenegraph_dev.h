@@ -280,6 +280,7 @@ struct __tag_scene_graph
 
 	u32 (*get_element_class)(GF_Node *n);
 	u32 (*get_document_class)(GF_SceneGraph *n);
+	struct __gf_filter_session *attached_session;
 #endif
 };
 
