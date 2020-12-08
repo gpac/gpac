@@ -376,7 +376,7 @@ void PrintDASHUsage()
 	gf_sys_format_help(helpout, help_flags, "# DASH Options\n"
 		"Also see:\n"
 		"- the [dasher `gpac -h dash`](dasher) filter documentation\n"
-		"- [[online DASH Intro doc|DASH Introduction]].\n"
+		"- [[DASH wiki|DASH-intro]].\n"
 		"\n"
 		"# Specifying input files\n"
 		"Input media files to dash can use the following modifiers\n"
