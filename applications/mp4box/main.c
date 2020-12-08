@@ -869,6 +869,8 @@ GF_GPACArg m4b_meta_args[] =
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
 		"- mirror-axis=axis: set the mirror axis: vertical, horizontal\n"
 		"- clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap\n"
+		"- image-pasp=axb: force the aspect ratio of the image\n"
+		"- image-pixi=(a|a,b,c): force the bit depth (1 or 3 channels)\n"
 		"- hidden: indicate that this image item should be hidden\n"
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
