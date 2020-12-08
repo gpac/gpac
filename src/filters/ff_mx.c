@@ -899,7 +899,7 @@ static void ffmx_finalize(GF_Filter *filter)
 		}
 		ctx->status = FFMX_STATE_TRAILER_DONE;
 	} 
-	if (ctx->muxer->pb) {
+	if (!ctx->gfio && ctx->muxer->pb) {
 		ctx->muxer->io_close(ctx->muxer, ctx->muxer->pb);
 	}
 
