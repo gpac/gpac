@@ -5102,6 +5102,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"0x%X\"/>\n", ptr->version, ptr->flags);
 	for (i=0; i<sample_count; i++) {
 		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+		if (cenc_sample->isNotProtected) continue;
 
 		if (cenc_sample) {
 			gf_fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);

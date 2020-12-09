@@ -1430,12 +1430,15 @@ import_next_sample:
 	//}
 
 	if (!e && !image_props->sample_num && (image_props->time<0)) {
-		if (sample_number >= gf_isom_get_sample_count(movie, imported_track)) return e;
-		sample_number++;
 		item_id=0;
 		gf_isom_sample_del(&sample);
-		if (config_box) gf_isom_box_del(config_box);
+		if (config_box) {
+			gf_isom_box_del(config_box);
+			config_box = NULL;
+		}
 		is_first = GF_FALSE;
+		if (sample_number >= gf_isom_get_sample_count(movie, imported_track)) return e;
+		sample_number++;
 		//avoid recursion this could get quite big
 		goto import_next_sample;
 	}
