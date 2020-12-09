@@ -1104,6 +1104,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_tmcd_config_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_auto_timescale) )
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING

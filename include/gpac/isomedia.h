@@ -1114,6 +1114,9 @@ Bool gf_isom_sample_was_traf_start(GF_ISOFile *movie, u32 trackNumber, u32 sampl
 /*set the timescale of the movie*/
 GF_Err gf_isom_set_timescale(GF_ISOFile *the_file, u32 timeScale);
 
+/*set auto timescale for the movie (NOT AVAILABLE in GPAC >0.9) */
+GF_Err gf_isom_set_auto_timescale(GF_ISOFile *the_file);
+
 /*creates a new Track. If trackID = 0, the trackID is chosen by the API
 returns the track number or 0 if error*/
 u32 gf_isom_new_track(GF_ISOFile *the_file, u32 trackID, u32 MediaType, u32 TimeScale);

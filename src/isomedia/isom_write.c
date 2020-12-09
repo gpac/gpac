@@ -387,6 +387,14 @@ GF_Err gf_isom_add_desc_to_root_od(GF_ISOFile *movie, GF_Descriptor *theDesc)
 	return movie->LastError;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_auto_timescale(GF_ISOFile *movie)
+{
+	GF_Err e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	movie->auto_timescale = GF_TRUE;
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
@@ -642,6 +650,12 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 	if (trakID+1> movie->moov->mvhd->nextTrackID)
 		movie->moov->mvhd->nextTrackID = trakID+1;
 
+	//auto timescale mode
+	if (movie->auto_timescale) {
+		movie->auto_timescale = GF_FALSE;
+		trak->was_auto_timescale = GF_TRUE;
+		gf_isom_set_timescale(movie, TimeScale);
+	}
 	//and return our track number
 	return gf_isom_get_track_by_id(movie, trakID);
 
@@ -2269,6 +2283,9 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 			trak->References = NULL;
 		}
 	}
+
+	if (the_trak->was_auto_timescale)
+		movie->auto_timescale = GF_TRUE;
 
 	//delete the track
 	gf_isom_box_del((GF_Box *)the_trak);

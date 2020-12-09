@@ -821,6 +821,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.flags = import_flags;
 	import.keep_audelim = keep_audelim;
 
+	if (moov_timescale<0) {
+		gf_isom_set_auto_timescale(dest);
+	} else if (moov_timescale>0) {
+		gf_isom_set_timescale(dest, moov_timescale);
+	}
+
     if (do_all)
         import.flags |= GF_IMPORT_KEEP_REFS;
 
@@ -855,12 +861,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
         if (e) goto exit;
 
         track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
-
-        if (moov_timescale) {
-            if (moov_timescale<0) moov_timescale = gf_isom_get_media_timescale(import.dest, track);
-            gf_isom_set_timescale(import.dest, moov_timescale);
-            moov_timescale = 0;
-        }
 
         timescale = gf_isom_get_timescale(dest);
         if (szLan) gf_isom_set_media_language(import.dest, track, (char *) szLan);

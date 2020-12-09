@@ -834,6 +834,8 @@ typedef struct
 	Bool has_base_layer;
 	u32 pack_num_samples;
 
+	Bool was_auto_timescale;
+	
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u64 dts_at_seg_start;
 	u32 sample_count_at_seg_start;
@@ -3539,6 +3541,7 @@ struct __tag_isom {
 	GF_MetaBox *meta;
 
 	Bool dump_mode_alloc;
+	Bool auto_timescale;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 FragmentsFlags, NextMoofNumber;
