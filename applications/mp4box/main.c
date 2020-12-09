@@ -874,6 +874,7 @@ GF_GPACArg m4b_meta_args[] =
 		"- hidden: indicate that this image item should be hidden\n"
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
+	    "- depth: indicate that the image is a depth image (should use ref=auxl also)\n"
 		"- tk=tkID: indicate the track ID of the source sample\n"
 		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location. If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
@@ -1853,6 +1854,14 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				if (!meta->image_props) return 0;
 			}
 			meta->image_props->alpha = GF_TRUE;
+			ret = 1;
+		}
+		else if (!stricmp(szSlot, "depth")) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			meta->image_props->depth = GF_TRUE;
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {

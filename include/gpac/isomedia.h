@@ -5621,6 +5621,8 @@ typedef struct
 	char iccPath[GF_MAX_PATH];
 	/*! is alpha*/
 	Bool alpha;
+	/*! is depth*/
+	Bool depth;
 	/*! number of channels*/
 	u8 num_channels;
 	/*! bits per channels in bits*/
