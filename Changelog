@@ -2,6 +2,7 @@ On-going: GPAC 1.1-DEV
 - support for LL-HLS (dashing, playback and server side)
 - support for various forwarding modes of DASH reader, allowing for example to encrypt/decrypt a live DASH/HLS session
 - support for IFF grid creation
+- support for IFF encryption
 - tile splitting now available as a filter 
 - playback improvements for SRD (HEVC tiling and independent streams)
 - more support for MPEG-H audio mux/demux/dashing
@@ -20,8 +21,10 @@ On-going: GPAC 1.1-DEV
 - Improved colorspace support in rendering (OpenGL only)
 - ISOBMFF Edit lists modification through MP4Box :edits and -edits
 - Improved raw video in ISOBMFF support
+- Improved bitstream dumping for inspect analyse mode
 - Filter TAG
 - support for windows long path
+- Moved to latest QuickJS (2020-11-08 rc2)
 - many bug fixes and security patches
 
 10/09/2020: GPAC 1.0.1

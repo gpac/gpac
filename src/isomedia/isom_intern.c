@@ -206,7 +206,8 @@ void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 	}
 }
 
-void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
+#ifdef GF_ENABLE_CTRN
+static void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 {
 	u32 i, count;
 	if (!mov->moov->mvex)
@@ -224,6 +225,7 @@ void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 		}
 	}
 }
+#endif
 
 #endif
 
@@ -343,9 +345,12 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			if (mov->moov->mvex) mov->moov->mvex->mov = mov;
 
+#ifdef GF_ENABLE_CTRN
 			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
 				gf_isom_setup_traf_inheritance(mov);
 			}
+#endif
+
 #endif
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;

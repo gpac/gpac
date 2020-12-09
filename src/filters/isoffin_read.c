@@ -474,11 +474,45 @@ static void isoffin_finalize(GF_Filter *filter)
 	if (read->mem_url) gf_free(read->mem_url);
 }
 
+void isor_declare_pssh(ISOMChannel *ch)
+{
+	u32 i, PSSH_count;
+	u8 *psshd;
+	GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	u32 s;
+
+	PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+	gf_bs_write_u32(pssh_bs, PSSH_count);
+
+	/*fill PSSH in the structure. We will free it in CENC_Setup*/
+	for (i=0; i<PSSH_count; i++) {
+		bin128 SystemID;
+		u32 version;
+		u32 KID_count;
+		bin128 *KIDs;
+		u32 private_data_size;
+		u8 *private_data;
+		gf_isom_get_pssh_info(ch->owner->mov, i+1, SystemID, &version, &KID_count, (const bin128 **) & KIDs, (const u8 **) &private_data, &private_data_size);
+
+		gf_bs_write_data(pssh_bs, SystemID, 16);
+		gf_bs_write_u32(pssh_bs, version);
+		gf_bs_write_u32(pssh_bs, KID_count);
+		for (s=0; s<KID_count; s++) {
+			gf_bs_write_data(pssh_bs, KIDs[s], 16);
+		}
+		gf_bs_write_u32(pssh_bs, private_data_size);
+		gf_bs_write_data(pssh_bs, private_data, private_data_size);
+	}
+	gf_bs_get_content(pssh_bs, &psshd, &s);
+	gf_bs_del(pssh_bs);
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PSSH, & PROP_DATA_NO_COPY(psshd, s) );
+}
+
 void isor_set_crypt_config(ISOMChannel *ch)
 {
 	GF_ISOFile *mov = ch->owner->mov;
 	u32 track = ch->track;
-	u32 scheme_type, scheme_version, PSSH_count=0, i, count;
+	u32 scheme_type, scheme_version, i, count;
 	const char *kms_uri, *scheme_uri;
 	Bool selectiveEncryption=0;
 	u32 IVLength=0;
@@ -537,7 +571,6 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 		gf_isom_get_cenc_info(ch->owner->mov, ch->track, stsd_idx, NULL, &scheme_type, &scheme_version, NULL);
 
-		PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
 		//if no PSSH declared, DO update the properties (PSSH is not mandatory)
 	} else if (gf_isom_is_adobe_protection_media(mov, track, stsd_idx)) {
 		u32 ofmt;
@@ -564,34 +597,9 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	if (plainTextLen) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_OMA_CLEAR_LEN, &PROP_LONGUINT(plainTextLen) );
 
 	if (ch->is_cenc) {
-		u8 *psshd;
-		GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		u32 s, container_type;
+		u32 container_type;
 
-		gf_bs_write_u32(pssh_bs, PSSH_count);
-
-		/*fill PSSH in the structure. We will free it in CENC_Setup*/
-		for (i=0; i<PSSH_count; i++) {
-			bin128 SystemID;
-			u32 version;
-			u32 KID_count;
-			bin128 *KIDs;
-			u32 private_data_size;
-			u8 *private_data;
-			gf_isom_get_pssh_info(ch->owner->mov, i+1, SystemID, &version, &KID_count, (const bin128 **) & KIDs, (const u8 **) &private_data, &private_data_size);
-
-			gf_bs_write_data(pssh_bs, SystemID, 16);
-			gf_bs_write_u32(pssh_bs, version);
-			gf_bs_write_u32(pssh_bs, KID_count);
-			for (s=0; s<KID_count; s++) {
-				gf_bs_write_data(pssh_bs, KIDs[s], 16);
-			}
-			gf_bs_write_u32(pssh_bs, private_data_size);
-			gf_bs_write_data(pssh_bs, private_data, private_data_size);
-		}
-		gf_bs_get_content(pssh_bs, &psshd, &s);
-		gf_bs_del(pssh_bs);
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PSSH, & PROP_DATA_NO_COPY(psshd, s) );
+		isor_declare_pssh(ch);
 
 		gf_isom_cenc_get_default_info(ch->owner->mov, ch->track, stsd_idx, &container_type, &ch->pck_encrypted, &ch->IV_size, &ch->KID, &ch->constant_IV_size, &ch->constant_IV, &ch->crypt_byte_block, &ch->skip_byte_block);
 

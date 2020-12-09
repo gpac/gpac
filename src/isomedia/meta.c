@@ -127,7 +127,7 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *file, Bool root_meta, u32 track_num)
 
 GF_EXPORT
 GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num,
-                                  u32 *itemID, u32 *type, u32 *protection_idx, Bool *is_self_reference,
+                                  u32 *itemID, u32 *type, u32 *protection_scheme, u32 *protection_scheme_version, Bool *is_self_reference,
                                   const char **item_name, const char **item_mime_type, const char **item_encoding,
                                   const char **item_url, const char **item_urn)
 {
@@ -140,7 +140,6 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 	if (!iinf) return GF_BAD_PARAM;
 
 	if (itemID) (*itemID) = iinf->item_ID;
-	if (protection_idx) (*protection_idx) = iinf->item_protection_index;
 	if (item_name) (*item_name) = iinf->item_name;
 	if (item_mime_type) (*item_mime_type) = iinf->content_type;
 	if (item_encoding) (*item_encoding) = iinf->content_encoding;
@@ -149,6 +148,26 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 
 	if (item_url) (*item_url) = NULL;
 	if (item_urn) (*item_urn) = NULL;
+
+
+	if (iinf->item_protection_index) {
+		GF_ProtectionSchemeInfoBox *sinf;
+		if (!meta->protections) return GF_ISOM_INVALID_FILE;
+		sinf = gf_list_get(meta->protections->protection_information, iinf->item_protection_index-1);
+		if (!sinf) return GF_ISOM_INVALID_FILE;
+
+		if (sinf->scheme_type) {
+			if (protection_scheme) *protection_scheme = sinf->scheme_type->scheme_type;
+			if (protection_scheme_version) *protection_scheme_version = sinf->scheme_type->scheme_version;
+		} else {
+			if (protection_scheme) *protection_scheme = GF_4CC('u','k','n','w');
+			if (protection_scheme_version) *protection_scheme_version = 0;
+
+		}
+	} else {
+		if (protection_scheme) *protection_scheme = 0;
+		if (protection_scheme_version) *protection_scheme_version = 0;
+	}
 
 	count = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<count; i++) {
@@ -405,6 +424,73 @@ GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track
 }
 
 GF_EXPORT
+GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, Bool *is_protected,
+	u8 *skip_byte_block, u8 *crypt_byte_block, u8 *IV_size, bin128 *KeyID, u8 *constant_IV_size, bin128 *constant_IV,
+	u8 **cenc_sai_data, u32 *cenc_sai_data_size, u32 *cenc_sai_alloc_size)
+{
+	u32 count, i;
+	u32 j, sai_item_id;
+	Bool found = GF_FALSE;
+	GF_ItemPropertyAssociationBox *ipma = NULL;
+	GF_ItemPropertyContainerBox *ipco = NULL;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta) return GF_BAD_PARAM;
+
+	ipma = meta->item_props->property_association;
+	ipco = meta->item_props->property_container;
+
+	count = gf_list_count(ipma->entries);
+	for (i = 0; i < count; i++) {
+		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
+		if (entry->item_id != item_id) continue;
+		for (j = 0; j < entry->nb_associations; j++) {
+			GF_ItemEncryptionPropertyBox *ienc;
+			u32 index = entry->associations[j].index;
+			ienc = index ? (GF_ItemEncryptionPropertyBox *)gf_list_get(ipco->child_boxes, index - 1) : NULL;
+			if (!ienc) continue;
+
+			if (ienc->type!=GF_ISOM_BOX_TYPE_IENC) continue;
+			if (!ienc->num_keys) return GF_ISOM_INVALID_FILE;
+			
+			*skip_byte_block = ienc->skip_byte_block;
+			*crypt_byte_block = ienc->crypt_byte_block;
+			*IV_size = ienc->keys[0].per_sample_IV_size;
+			*constant_IV_size = ienc->keys[0].constant_IV_size;
+			if (ienc->keys[0].constant_IV_size)
+				memcpy(*constant_IV, ienc->keys[0].constant_IV, ienc->keys[0].constant_IV_size);
+			memcpy(*KeyID, ienc->keys[0].KeyID, sizeof(bin128));
+			found = GF_TRUE;
+			break;
+		}
+		if (found) break;
+	}
+	if (!found) {
+		*is_protected = GF_FALSE;
+		return GF_OK;
+	}
+	*is_protected = GF_TRUE;
+	sai_item_id = 0;
+
+	//look for item reference
+	if (!meta->item_refs)
+		return GF_ISOM_INVALID_FILE;
+	count = gf_list_count(meta->item_refs->references);
+	for (i=0; i<count; i++) {
+		GF_ItemReferenceTypeBox *iref = gf_list_get(meta->item_refs->references, i);
+		if (iref->reference_type!=GF_ISOM_REF_AUXR) continue;
+		sai_item_id = iref->to_item_IDs[0];
+		break;
+	}
+	if (!sai_item_id) return GF_ISOM_INVALID_FILE;
+
+	if (cenc_sai_data) {
+		return gf_isom_extract_meta_item_mem(file, root_meta, track_num, sai_item_id, cenc_sai_data, cenc_sai_data_size, cenc_sai_alloc_size, NULL, GF_FALSE);
+	}
+	return GF_OK;
+}
+
+
+GF_EXPORT
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -556,76 +642,75 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 	count = gf_list_count(ipma->entries);
 	for (i = 0; i < count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
-		if (entry->item_id == item_id) {
-			for (j = 0; j < entry->nb_associations; j++) {
-				GF_Box *b;
-				u32 index = entry->associations[j].index;
-				b = index ? (GF_Box *)gf_list_get(ipco->child_boxes, index - 1) : NULL;
-				if (!b) continue;
+		if (entry->item_id != item_id) continue;
+		for (j = 0; j < entry->nb_associations; j++) {
+			GF_Box *b;
+			u32 index = entry->associations[j].index;
+			b = index ? (GF_Box *)gf_list_get(ipco->child_boxes, index - 1) : NULL;
+			if (!b) continue;
 
-				switch (b->type) {
-				case GF_ISOM_BOX_TYPE_ISPE:
-				{
-					GF_ImageSpatialExtentsPropertyBox *ispe = (GF_ImageSpatialExtentsPropertyBox *)b;
-					prop->width = ispe->image_width;
-					prop->height = ispe->image_height;
+			switch (b->type) {
+			case GF_ISOM_BOX_TYPE_ISPE:
+			{
+				GF_ImageSpatialExtentsPropertyBox *ispe = (GF_ImageSpatialExtentsPropertyBox *)b;
+				prop->width = ispe->image_width;
+				prop->height = ispe->image_height;
+			}
+			break;
+			case GF_ISOM_BOX_TYPE_RLOC:
+			{
+				GF_RelativeLocationPropertyBox *rloc = (GF_RelativeLocationPropertyBox *)b;
+				prop->hOffset = rloc->horizontal_offset;
+				prop->vOffset = rloc->vertical_offset;
+			}
+			break;
+			case GF_ISOM_BOX_TYPE_PASP:
+			{
+				GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *)b;
+				prop->hSpacing = pasp->hSpacing;
+				prop->vSpacing = pasp->vSpacing;
+			}
+			break;
+			case GF_ISOM_BOX_TYPE_PIXI:
+			{
+				GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)b;
+				if (pixi->num_channels > 3) {
+					return GF_BAD_PARAM;
 				}
+				prop->num_channels = pixi->num_channels;
+				memset(prop->bits_per_channel, 0, 3);
+				memcpy(prop->bits_per_channel, pixi->bits_per_channel, pixi->num_channels);
+			}
+			break;
+			case GF_ISOM_BOX_TYPE_IROT:
+			{
+				GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
+				prop->angle = irot->angle * 90;
+			}
+			break;
+			case GF_ISOM_BOX_TYPE_IMIR:
+			{
+				GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)b;
+				prop->mirror = imir->axis+1;
+			}
+			break;
+			case GF_ISOM_BOX_TYPE_CLAP:
+			{
+				GF_CleanApertureBox *clap = (GF_CleanApertureBox *)b;
+				prop->clap_hden = clap->cleanApertureHeightD;
+				prop->clap_hnum = clap->cleanApertureHeightN;
+				prop->clap_wden = clap->cleanApertureWidthD;
+				prop->clap_wnum = clap->cleanApertureWidthN;
+				prop->clap_hoden = clap->horizOffD;
+				prop->clap_honum = clap->horizOffN;
+				prop->clap_voden = clap->vertOffD;
+				prop->clap_vonum = clap->vertOffN;
+			}
+			break;
+			case GF_ISOM_BOX_TYPE_HVCC:
+			case GF_ISOM_BOX_TYPE_AVCC:
+				prop->config = b;
 				break;
-				case GF_ISOM_BOX_TYPE_RLOC:
-				{
-					GF_RelativeLocationPropertyBox *rloc = (GF_RelativeLocationPropertyBox *)b;
-					prop->hOffset = rloc->horizontal_offset;
-					prop->vOffset = rloc->vertical_offset;
-				}
-				break;
-				case GF_ISOM_BOX_TYPE_PASP:
-				{
-					GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *)b;
-					prop->hSpacing = pasp->hSpacing;
-					prop->vSpacing = pasp->vSpacing;
-				}
-				break;
-				case GF_ISOM_BOX_TYPE_PIXI:
-				{
-					GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)b;
-					if (pixi->num_channels > 3) {
-						return GF_BAD_PARAM;
-					}
-					prop->num_channels = pixi->num_channels;
-					memset(prop->bits_per_channel, 0, 3);
-					memcpy(prop->bits_per_channel, pixi->bits_per_channel, pixi->num_channels);
-				}
-				break;
-				case GF_ISOM_BOX_TYPE_IROT:
-				{
-					GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
-					prop->angle = irot->angle * 90;
-				}
-				break;
-				case GF_ISOM_BOX_TYPE_IMIR:
-				{
-					GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)b;
-					prop->mirror = imir->axis+1;
-				}
-				break;
-				case GF_ISOM_BOX_TYPE_CLAP:
-				{
-					GF_CleanApertureBox *clap = (GF_CleanApertureBox *)b;
-					prop->clap_hden = clap->cleanApertureHeightD;
-					prop->clap_hnum = clap->cleanApertureHeightN;
-					prop->clap_wden = clap->cleanApertureWidthD;
-					prop->clap_wnum = clap->cleanApertureWidthN;
-					prop->clap_hoden = clap->horizOffD;
-					prop->clap_honum = clap->horizOffN;
-					prop->clap_voden = clap->vertOffD;
-					prop->clap_vonum = clap->vertOffN;
-				}
-				break;
-				case GF_ISOM_BOX_TYPE_HVCC:
-				case GF_ISOM_BOX_TYPE_AVCC:
-					prop->config = b;
-					break;
-				}
 			}
 		}
 	}
@@ -708,6 +793,15 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 			}
 		}
 		break;
+		case GF_ISOM_BOX_TYPE_IENC:
+		{
+			GF_ItemEncryptionPropertyBox *ienc = (GF_ItemEncryptionPropertyBox *)b;
+			if (prop->cenc_info && (prop->cenc_info->skip_byte_block == ienc->skip_byte_block) && (prop->cenc_info->crypt_byte_block == ienc->crypt_byte_block)) {
+				return i;
+			}
+		}
+		break;
+		
 		default:
 			if (gf_isom_box_equal(prop->config, b)) {
 				return i;
@@ -930,6 +1024,66 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		if (e) return e;
 		searchprop.num_channels = 0;
 	}
+
+	if (image_props->cenc_info) {
+		u32 i;
+		Bool has_KID_match = GF_FALSE;
+		GF_ItemEncryptionPropertyBox *ienc = NULL;
+		if (!image_props->cenc_info->constant_IV_size && !image_props->cenc_info->IV_size)
+			return GF_BAD_PARAM;
+
+		searchprop.cenc_info = image_props->cenc_info;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			ienc = (GF_ItemEncryptionPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IENC);
+			if (!ienc) return GF_OUT_OF_MEM;
+			ienc->skip_byte_block = image_props->cenc_info->skip_byte_block;
+			ienc->crypt_byte_block = image_props->cenc_info->crypt_byte_block;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		} else {
+			ienc = (GF_ItemEncryptionPropertyBox *) gf_list_get(ipco->child_boxes, prop_index);
+		}
+		for (i=0; i<ienc->num_keys; i++) {
+			if (memcmp(ienc->keys[i].KeyID, image_props->cenc_info->KID, sizeof(bin128) )) continue;
+			has_KID_match = GF_TRUE;
+
+			if (ienc->keys[i].per_sample_IV_size != image_props->cenc_info->IV_size) continue;
+			if (ienc->keys[i].constant_IV_size != image_props->cenc_info->constant_IV_size) continue;
+			if (image_props->cenc_info->constant_IV_size) {
+				if (memcmp(ienc->keys[i].constant_IV, image_props->cenc_info->constant_IV, image_props->cenc_info->constant_IV_size))
+					continue;
+			}
+			
+			//found key in same config
+			break;
+		}
+		if (i>=ienc->num_keys) {
+			//KID must be unique within the ienc info, we need another one !
+			if (has_KID_match) {
+				ienc = (GF_ItemEncryptionPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IENC);
+				if (!ienc) return GF_OUT_OF_MEM;
+				ienc->skip_byte_block = image_props->cenc_info->skip_byte_block;
+				ienc->crypt_byte_block = image_props->cenc_info->crypt_byte_block;
+				prop_index = gf_list_count(ipco->child_boxes) - 1;
+			}
+
+			ienc->keys = gf_realloc(ienc->keys, sizeof(IENCKeyInfo) * (ienc->num_keys+1) );
+			if (!ienc->keys) return GF_OUT_OF_MEM;
+
+			memcpy(ienc->keys[ienc->num_keys].KeyID, image_props->cenc_info->KID, sizeof(bin128));
+			ienc->keys[ienc->num_keys].per_sample_IV_size = image_props->cenc_info->IV_size;
+			if (!image_props->cenc_info->IV_size) {
+				ienc->keys[ienc->num_keys].constant_IV_size = image_props->cenc_info->constant_IV_size;
+				memcpy(ienc->keys[i].constant_IV, image_props->cenc_info->constant_IV, image_props->cenc_info->constant_IV_size);
+			}
+			ienc->num_keys++;
+			//add property
+			e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+			if (e) return e;
+		}
+		searchprop.cenc_info = NULL;
+	}
+
 	return GF_OK;
 }
 
@@ -1076,6 +1230,40 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		}
 		e = meta_process_image_properties(meta, infe->item_ID, image_props);
 		if (e) return e;
+
+		if (image_props->cenc_info) {
+			GF_ProtectionSchemeInfoBox *sinf;
+
+			//create a new auxi item
+			e = gf_isom_add_meta_item_memory(file, root_meta, track_num, NULL, infe->item_ID + 1, GF_ISOM_ITEM_TYPE_AUXI, NULL, NULL, NULL, (u8 *) image_props->cenc_info->sai_data, image_props->cenc_info->sai_data_size, NULL);
+			if (e) return e;
+			//add item reference
+			e = gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, infe->item_ID+1, GF_ISOM_REF_AUXR, NULL);
+
+			//look for scheme in ipro
+			if (!meta->protections) {
+				meta->protections = (GF_ItemProtectionBox *) gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_IPRO);
+				if (!meta->protections) return GF_OUT_OF_MEM;
+			}
+			sinf = NULL;
+			for (i=0; i<gf_list_count(meta->protections->protection_information); i++) {
+				sinf = gf_list_get(meta->protections->protection_information, i);
+				if (sinf->scheme_type && (sinf->scheme_type->scheme_type==image_props->cenc_info->scheme_type)
+					&& (sinf->scheme_type->scheme_version==image_props->cenc_info->scheme_version))
+					break;
+				sinf = NULL;
+			}
+			if (!sinf) {
+				sinf = (GF_ProtectionSchemeInfoBox *)gf_isom_box_new_parent(&meta->protections->child_boxes, GF_ISOM_BOX_TYPE_SINF);
+				if (!sinf) return GF_OUT_OF_MEM;
+				gf_list_add(meta->protections->protection_information, sinf);
+				sinf->scheme_type = (GF_SchemeTypeBox *)gf_isom_box_new_parent(&sinf->child_boxes, GF_ISOM_BOX_TYPE_SCHM);
+				if (!sinf->scheme_type) return GF_OUT_OF_MEM;
+				sinf->scheme_type->scheme_type = image_props->cenc_info->scheme_type;
+				sinf->scheme_type->scheme_version = image_props->cenc_info->scheme_version;
+			}
+			infe->item_protection_index = 1 + gf_list_find(meta->protections->protection_information, sinf);
+		}
 	}
 
 	/*0: the current file*/

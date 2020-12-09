@@ -4531,9 +4531,17 @@ u32 gf_isom_get_pssh_count(GF_ISOFile *file)
 	u32 count=0;
 	u32 i=0;
 	GF_Box *a_box;
-	while ((a_box = (GF_Box*)gf_list_enum(file->moov->child_boxes, &i))) {
-		if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
-		count++;
+	if (file->moov) {
+		while ((a_box = (GF_Box*)gf_list_enum(file->moov->child_boxes, &i))) {
+			if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			count++;
+		}
+	}
+	if (file->meta) {
+		while ((a_box = (GF_Box*)gf_list_enum(file->meta->child_boxes, &i))) {
+			if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			count++;
+		}
 	}
 	return count;
 }
@@ -4574,11 +4582,20 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 {
 	u32 count=1;
 	u32 i=0;
-	GF_ProtectionSystemHeaderBox *pssh;
-	while ((pssh = (GF_ProtectionSystemHeaderBox *)gf_list_enum(file->moov->child_boxes, &i))) {
-		if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
-		if (count == pssh_index) break;
-		count++;
+	GF_ProtectionSystemHeaderBox *pssh=NULL;
+	if (file->moov) {
+		while ((pssh = (GF_ProtectionSystemHeaderBox *)gf_list_enum(file->moov->child_boxes, &i))) {
+			if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			if (count == pssh_index) break;
+			count++;
+		}
+	}
+	if (!pssh && file->meta) {
+		while ((pssh = (GF_ProtectionSystemHeaderBox *)gf_list_enum(file->meta->child_boxes, &i))) {
+			if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			if (count == pssh_index) break;
+			count++;
+		}
 	}
 	if (!pssh) return GF_BAD_PARAM;
 

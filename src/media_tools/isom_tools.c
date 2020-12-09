@@ -1187,7 +1187,7 @@ GF_EXPORT
 GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 {
 	u32 item_type;
-	u32 prot_idx;
+	u32 prot_scheme, prot_scheme_version;
 	Bool is_self_ref;
 	const char *name;
 	const char *mime;
@@ -1200,7 +1200,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 	u32 item_idx = gf_isom_get_meta_item_by_id(mp4, GF_TRUE, 0, item_id);
 	if (!item_idx) return NULL;
 
-	e = gf_isom_get_meta_item_info(mp4, GF_TRUE, 0, item_idx, &item_id, &item_type, &prot_idx, &is_self_ref, &name, &mime, &encoding, &url, &urn);
+	e = gf_isom_get_meta_item_info(mp4, GF_TRUE, 0, item_idx, &item_id, &item_type, &prot_scheme, &prot_scheme_version, &is_self_ref, &name, &mime, &encoding, &url, &urn);
 	if (e != GF_OK) return NULL;
 
 	if (item_type == GF_ISOM_SUBTYPE_HVC1) {

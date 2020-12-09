@@ -257,7 +257,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
-	Bool is_nalu_video=GF_FALSE, has_seig;
+	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur, bps;
 	s32 trans_x, trans_y;
 	s16 layer;
@@ -473,10 +473,6 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	if (gf_isom_is_media_encrypted(import->orig, track_in, 0)) {
 		gf_isom_get_original_format_type(import->orig, track_in, 0, &mstype);
 	}
-	has_seig = GF_FALSE;
-	if (is_cenc && gf_isom_has_cenc_sample_group(import->orig, track_in)) {
-		has_seig = GF_TRUE;
-	}
 
 	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
 	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
@@ -582,6 +578,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			i+= samp->nb_pack-1;
 		gf_isom_sample_del(&samp);
 
+		//this will also copy all sample to group mapping, including seig for CENC
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
 
 		if (e)
@@ -598,15 +595,14 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			GF_BitStream *bs;
 			u8 *buffer;
 
-			sai = NULL;
-			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &sai, &container_type);
-			if (e)
-				goto exit;
-
 			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &IV_size, &KID, &crypt_byte_block, &skip_byte_block, &constant_IV_size, &constant_IV);
 			if (e) goto exit;
 
 			if (Is_Encrypted) {
+				sai = NULL;
+				e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &sai, &container_type);
+				if (e) goto exit;
+
 				bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				gf_bs_write_data(bs, (const char *)sai->IV, IV_size);
 				if (sai->subsample_count) {
@@ -622,14 +618,11 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video, NULL, GF_FALSE);
 				gf_free(buffer);
 			} else {
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0, is_nalu_video, NULL, GF_FALSE);
+				//we don't set container type since we don't add data to the container (senc/...)
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, 0, IV_size, NULL, 0, is_nalu_video, NULL, GF_FALSE);
 			}
-			if (e) goto exit;
-
-			if (has_seig) {
-				e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
-				if (e) goto exit;
-			}
+			if (e)
+				goto exit;
 		}
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
