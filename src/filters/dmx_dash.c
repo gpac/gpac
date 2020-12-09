@@ -2762,7 +2762,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"- no: disable low latency\n"
 		"- strict: strict respect of AST offset in low latency\n"
 		"- early: allow fetching segments earlier than their AST in low latency when input demux is empty", GF_PROP_UINT, "early", "no|strict|early", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(forward), "segment forwarding mode  -see filter help"
+	{ OFFS(forward), "segment forwarding mode  -see filter help\n"
 		"- none: regular DASH read\n"
 		"- file: do not demux files and forward them as file pids (imply `segstore=mem`)\n"
 		"- segb: turn on [-split_as](), segment and fragment bounds signaling and DASH cue insertion\n"
