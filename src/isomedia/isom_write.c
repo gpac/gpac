@@ -421,6 +421,7 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 	GF_TrackBox *trak;
 	u32 i;
 	GF_Err e;
+	if (!timeScale) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	e = gf_isom_insert_moov(movie);
