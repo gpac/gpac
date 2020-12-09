@@ -142,8 +142,13 @@ enum
 	GF_ISOM_REF_LYRA = GF_4CC( 'l', 'y', 'r', 'a' ),
 	/*! File Delivery Item Information Extension */
 	GF_ISOM_REF_FDEL = GF_4CC( 'f', 'd', 'e', 'l' ),
+#ifdef GF_ENABLE_CTRN
 	/*! Track fragment inherit */
 	GF_ISOM_REF_TRIN = GF_4CC( 't', 'r', 'i', 'n' ),
+#endif
+
+	/*! Item auxiliary reference */
+	GF_ISOM_REF_AUXR = GF_4CC( 'a', 'u', 'x', 'r' ),
 };
 
 /*! Track Edit list type*/
@@ -344,6 +349,10 @@ enum
 	GF_QT_SUBTYPE_YVYU = GF_4CC('Y','V','Y','U'),
 	GF_QT_SUBTYPE_RGBA = GF_4CC('R','G','B','A'),
 	GF_QT_SUBTYPE_ABGR = GF_4CC('A','B','G','R'),
+
+
+	GF_ISOM_ITEM_TYPE_AUXI 	= GF_4CC('a', 'u', 'x', 'i'),
+
 };
 
 
@@ -5156,6 +5165,8 @@ typedef struct __cenc_sample_aux_info
 {
  	/*! IV size: 0, 8 or 16; it MUST NOT be written to file*/
 	u8 IV_size;
+ 	/*! flag set if sample is clear - it MUST NOT be written to file*/
+	u8 isNotProtected;
  	/*! IV can be 0, 64 or 128 bits - if 64, bytes 0-7 are used and 8-15 are 0-padded*/
 	bin128 IV;
 	/*! number of subsamples*/
@@ -5279,10 +5290,10 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 \param KID the list of key IDs
 \param data opaque data for the protection system
 \param len size of the opaque data
-\param use_piff if GF_TRUE, use PIFF pssh UUID box when creating the pssh
+\param pssh_mode 0: regular PSSH in moov, 1: PIFF PSSH in moov, 2: regular PSSH in meta
 \return error if any
 */
-GF_Err gf_cenc_set_pssh(GF_ISOFile *isom_file, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, u8 *data, u32 len, Bool use_piff);
+GF_Err gf_cenc_set_pssh(GF_ISOFile *isom_file, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, u8 *data, u32 len, u32 pssh_mode);
 
 /*! removes CENC senc box info
 \param isom_file the target ISO file
@@ -5510,7 +5521,8 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *isom_file, Bool root_meta, u32 track
 \param item_num 1-based index of item to query
 \param itemID set to item ID in file (optional, can be NULL)
 \param type set to item 4CC type
-\param protection_idx set to the 1-based index of the protection in used, 0 if not protected
+\param protection_scheme set to 0 if not protected, or scheme type used if item is protected. If protected but scheme type not present, set to 'unkw'
+\param protection_scheme_version set to 0 if not protected, or scheme version used if item is protected
 \param is_self_reference set to item is the file itself
 \param item_name set to the item name (optional, can be NULL)
 \param item_mime_type set to the item mime type (optional, can be NULL)
@@ -5520,10 +5532,9 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *isom_file, Bool root_meta, u32 track
 \return error if any
 */
 GF_Err gf_isom_get_meta_item_info(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_num,
-                                  u32 *itemID, u32 *type, u32 *protection_idx, Bool *is_self_reference,
+                                  u32 *itemID, u32 *type, u32 *protection_scheme, u32 *protection_scheme_version, Bool *is_self_reference,
                                   const char **item_name, const char **item_mime_type, const char **item_encoding,
                                   const char **item_url, const char **item_urn);
-
 
 /*! gets item index from item ID
 \param isom_file the target ISO file
@@ -5558,6 +5569,28 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *isom_file, Bool root_meta, u32 trac
 */
 GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_id, u8 **out_data, u32 *out_size, u32 *out_alloc_size, const char **mime_type, Bool use_annex_b);
 
+
+/*! fetch CENC info for an item
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param item_id the ID of the item to dump
+\param is_protected set to GF_TRUE if item is protected
+\param skip_byte_block set to skip_byte_block or 0 if no pattern
+\param crypt_byte_block set to crypt_byte_block or 0 if no pattern
+\param IV_size set to per-sample IV size, or 0 if constant IV
+\param KeyID set to sample KEY ID
+\param constant_IV_size set to constant IV size, or 0 if per-sample IV
+\param constant_IV set to constant IV used, not modified if per-sample IV
+\param sai_out_data set to allocated buffer containing the item, shall be freeed by user - may be NULL to only retrieve the info
+\param sai_out_size set to the size of the allocated buffer - may be NULL if  sai_out_data is NULL
+\param sai_out_alloc_size set to the allocated size of the buffer (this allows passing an existing buffer without always reallocating it) - may be NULL if  sai_out_data is NULL
+\return error if any
+*/
+GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_id, Bool *is_protected,
+	u8 *skip_byte_block, u8 *crypt_byte_block, u8 *IV_size, bin128 *KeyID, u8 *constant_IV_size, bin128 *constant_IV,
+	u8 **sai_out_data, u32 *sai_out_size, u32 *sai_out_alloc_size);
+
 /*! gets primary item ID
 \param isom_file the target ISO file
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
@@ -5578,6 +5611,22 @@ typedef enum {
 	/*! a tile item single*/
 	TILE_ITEM_SINGLE
 } GF_TileItemMode;
+
+
+/*! Image protection item properties*/
+typedef struct
+{
+	u32 scheme_type;
+	u32 scheme_version;
+	u8 IV_size;
+	bin128 KID;
+	u8 crypt_byte_block;
+	u8 skip_byte_block;
+	u8 constant_IV_size;
+	bin128 constant_IV;
+	const u8 *sai_data;
+	u32 sai_data_size;
+} GF_ImageItemProtection;
 
 /*! Image item properties*/
 typedef struct
@@ -5620,8 +5669,12 @@ typedef struct
 	u8 num_channels;
 	/*! bits per channels in bits*/
 	u8 bits_per_channel[3];
+	/*! number of columns in grid*/
 	u32 num_grid_columns;
+	/*! number of rows in grid*/
 	u32 num_grid_rows;
+	/*! protection info, NULL if item is not protected*/
+	GF_ImageItemProtection *cenc_info;
 } GF_ImageItemProperties;
 
 

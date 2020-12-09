@@ -430,6 +430,8 @@ enum
 	GF_ISOM_BOX_TYPE_AUXI	= GF_4CC( 'a', 'u', 'x', 'i' ),
 	GF_ISOM_BOX_TYPE_OINF	= GF_4CC( 'o', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_TOLS	= GF_4CC( 't', 'o', 'l', 's' ),
+	GF_ISOM_BOX_TYPE_IENC	= GF_4CC( 'i', 'e', 'n', 'c' ),
+	GF_ISOM_BOX_TYPE_IAUX 	= GF_4CC('i', 'a', 'u', 'x'),
 
 	/* MIAF Boxes */
 	GF_ISOM_BOX_TYPE_CLLI	= GF_4CC('c', 'l', 'l', 'i'),
@@ -3574,6 +3576,22 @@ typedef struct {
 	u32 data_size;
 	u8 *data;
 } GF_AuxiliaryTypePropertyBox;
+
+
+typedef struct
+{
+	u8 per_sample_IV_size;
+	bin128 KeyID;
+	u8 constant_IV_size;
+	bin128 constant_IV;
+} IENCKeyInfo;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u8 skip_byte_block, crypt_byte_block;
+	u32 num_keys;
+	IENCKeyInfo *keys;
+} GF_ItemEncryptionPropertyBox;
 
 typedef struct {
 	GF_ISOM_FULL_BOX

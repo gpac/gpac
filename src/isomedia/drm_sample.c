@@ -846,18 +846,24 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 }
 #endif
 
-GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len, Bool use_piff)
+GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len, u32 pssh_mode)
 {
 	GF_ProtectionSystemHeaderBox *pssh = NULL;
 	GF_PIFFProtectionSystemHeaderBox *pssh_piff = NULL;
 	u32 i=0;
 	GF_Box *a;
 	GF_List **child_boxes = NULL;
-	if (file->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
+
+	if (pssh_mode==2) {
+		if (!file->meta) return GF_BAD_PARAM;
+		if (!file->meta->child_boxes) file->meta->child_boxes = gf_list_new();
+		child_boxes = &file->meta->child_boxes;
+	} else if (file->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
 		if (!file->moof) return GF_BAD_PARAM;
 		if (!file->moof->PSSHs) file->moof->PSSHs = gf_list_new();
 		child_boxes = &file->moof->PSSHs;
 	} else {
+		if (!file->moov) return GF_BAD_PARAM;
 		if (!file->moov->child_boxes) file->moov->child_boxes = gf_list_new();
 		child_boxes = &file->moov->child_boxes;
 	}
@@ -883,7 +889,7 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	}
 
 	if (!pssh && !pssh_piff) {
-		if (use_piff) {
+		if (pssh_mode==1) {
 			pssh_piff = (GF_PIFFProtectionSystemHeaderBox *)gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_UUID_PSSH);
 			if (!pssh_piff) return GF_IO_ERR;
 			memcpy((char *)pssh_piff->SystemID, systemID, sizeof(bin128));
@@ -1236,6 +1242,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	switch (container_type) {
 	case GF_ISOM_BOX_UUID_PSEC:
 	case GF_ISOM_BOX_TYPE_SENC:
+	case 0:
 		senc = trak->sample_encryption;
 		break;
 	default:
@@ -1294,6 +1301,11 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 			}
 		}
 		len = IV_size + 2 + 6*sai->subsample_count;
+	} else {
+		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		if (!sai) return GF_OUT_OF_MEM;
+		gf_list_add(senc->samp_aux_info, sai);
+		sai->isNotProtected = 1;
 	}
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1401,6 +1413,9 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saio box without flags nor aux info type and no default scheme, ignoring\n"));
 			continue;
 		}
+		//special case for query on a file that has just been imported but not yet written: saio offset is NULL, we must use senc
+		if (saio->entry_count && !saio->offsets)
+			continue;
 		switch (saio_aux_info_type) {
 		case GF_ISOM_CENC_SCHEME:
 		case GF_ISOM_CBC_SCHEME:
@@ -1633,8 +1648,28 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 		return GF_NOT_FOUND;
 	}
 
-	if (!sai)
-		return GF_BAD_PARAM;
+	if (out_buffer) {
+		u32 alloc_size;
+		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (*outSize)
+			gf_bs_reassign_buffer(bs, *out_buffer, *outSize);
+
+		if (a_sai->IV_size)
+			gf_bs_write_data(bs, a_sai->IV, a_sai->IV_size);
+
+		if (is_Protected && a_sai->subsample_count) {
+			u32 i;
+			gf_bs_write_u16(bs, a_sai->subsample_count);
+			for (i=0; i<a_sai->subsample_count; i++) {
+				gf_bs_write_u16(bs, a_sai->subsamples[i].bytes_clear_data);
+				gf_bs_write_u32(bs, a_sai->subsamples[i].bytes_encrypted_data);
+			}
+		}
+
+		gf_bs_get_content_no_truncate(bs, out_buffer, outSize, &alloc_size);
+		gf_bs_del(bs);
+		return GF_OK;
+	}
 
 	GF_SAFEALLOC((*sai), GF_CENCSampleAuxInfo);
 	if (!(*sai) ) return GF_OUT_OF_MEM;

@@ -756,7 +756,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	u32 IV_size;
 	Bool crypt_reinit = GF_FALSE;
 	GF_FilterPacket *out_pck;
-	const GF_PropertyValue *prop, *const_IV=NULL, *cbc_pattern=NULL;
+	const GF_PropertyValue *prop, *const_IV=NULL, *crypt_pattern=NULL;
 
 	if (!cstr->crypt)
 		return GF_SERVICE_ERROR;
@@ -811,7 +811,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	}
 	
-	cbc_pattern = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_PATTERN);
+	crypt_pattern = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_PATTERN);
 
 	/*read sample auxiliary information from bitstream*/
 	subsample_count = 0;
@@ -927,11 +927,11 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			cur_pos += bytes_clear_data;
 
 			//pattern decryption
-			if (cbc_pattern && cbc_pattern->value.frac.den && cbc_pattern->value.frac.num) {
+			if (crypt_pattern && crypt_pattern->value.frac.den && crypt_pattern->value.frac.num) {
 				u32 pos = cur_pos;
 				u32 res = bytes_encrypted_data;
-				u32 cryp_block = 16 * cbc_pattern->value.frac.den;
-				u32 full_block = 16 * (cbc_pattern->value.frac.den + cbc_pattern->value.frac.num);
+				u32 cryp_block = 16 * crypt_pattern->value.frac.den;
+				u32 full_block = 16 * (crypt_pattern->value.frac.den + crypt_pattern->value.frac.num);
 
 				if (cstr->is_cbc) {
 					u32 clear_trailing = res % 16;

@@ -1286,20 +1286,37 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	GF_FilterPid *pid;
 	GF_ESD *esd;
 	u32 item_id=0;
+	u32 scheme_type=0, scheme_version=0, item_type;
 	const char *item_name, *item_mime_type, *item_encoding;
 
 	if (item_idx>gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0))
 		return GF_FALSE;
 
 	item_name = item_mime_type = item_encoding = NULL;
-	gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, item_idx, &item_id, NULL, NULL, NULL, NULL, NULL, &item_name, &item_mime_type, &item_encoding);
+	gf_isom_get_meta_item_info(read->mov, GF_TRUE, 0, item_idx, &item_id, &item_type, &scheme_type, &scheme_version, NULL, NULL, NULL, &item_name, &item_mime_type, &item_encoding);
 
 	if (!item_id) return GF_FALSE;
+	if (item_type==GF_ISOM_ITEM_TYPE_AUXI) return GF_FALSE;
 
 	gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props);
 
+	//check we support the protection scheme
+	switch (scheme_type) {
+	case GF_ISOM_CBC_SCHEME:
+	case GF_ISOM_CENS_SCHEME:
+	case GF_ISOM_CBCS_SCHEME:
+	case GF_ISOM_CENC_SCHEME:
+	case GF_ISOM_PIFF_SCHEME:
+	case 0:
+		break;
+	default:
+		return GF_FALSE;
+	}
+
+
 	esd = gf_media_map_item_esd(read->mov, item_id);
 	if (!esd) return GF_FALSE;
+
 
 	//OK declare PID
 	if (!ch)
@@ -1334,7 +1351,6 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	if (props.hidden) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_HIDDEN, &PROP_BOOL(props.hidden));
 	}
-	gf_odf_desc_del((GF_Descriptor *)esd);
 
 	if (gf_isom_get_meta_primary_item_id(read->mov, GF_TRUE, 0) == item_id) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PRIMARY_ITEM, &PROP_BOOL(GF_TRUE));
@@ -1349,8 +1365,28 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	gf_filter_pid_set_property_str(pid, "meta:name", item_name ? &PROP_STRING(item_name) : NULL );
 	gf_filter_pid_set_property_str(pid, "meta:encoding", item_encoding ? &PROP_STRING(item_encoding) : NULL );
 
+
+	//setup cenc
+	if (scheme_type) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(GF_TRUE) );
+
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
+	}
+
+	gf_odf_desc_del((GF_Descriptor *)esd);
+
 	if (!ch) {
-		/*ch = */isor_create_channel(read, pid, 0, item_id, GF_FALSE);
+		ch = isor_create_channel(read, pid, 0, item_id, GF_FALSE);
+		if (ch && scheme_type) {
+			ch->is_cenc = GF_TRUE;
+			ch->is_encrypted = GF_TRUE;
+
+			isor_declare_pssh(ch);
+
+		}
 	}
 	return GF_TRUE;
 }

@@ -6058,4 +6058,32 @@ GF_Err csgp_box_dump(GF_Box *a, FILE * trace)
 }
 
 
+GF_Err ienc_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_ItemEncryptionPropertyBox *ptr = (GF_ItemEncryptionPropertyBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ItemEncryptionPropertyBox", trace);
+	if (ptr->version)
+		gf_fprintf(trace, " skip_byte_block=\"%d\" crypt_byte_block=\"%d\"", ptr->skip_byte_block, ptr->crypt_byte_block);
+	gf_fprintf(trace, ">\n");
+	for (i = 0; i < ptr->num_keys; i++) {
+		gf_fprintf(trace, "<KeyInfo KID=\"");
+		dump_data_hex(trace, ptr->keys[i].KeyID, 16);
+		gf_fprintf(trace, "\"");
+		if (ptr->keys[i].per_sample_IV_size) {
+			gf_fprintf(trace, " IV_size=\"%d\"/>\n", ptr->keys[i].per_sample_IV_size);
+		} else {
+			gf_fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->keys[i].constant_IV_size);
+			dump_data_hex(trace, ptr->keys[i].constant_IV, ptr->keys[i].constant_IV_size);
+			gf_fprintf(trace, "\"/>\n");
+		}
+	}
+	if (!ptr->size)
+		gf_fprintf(trace, "<KeyInfo KID=\"\" IV_size=\"\" constant_IV_size=\"\" constant_IV=\"\" />\n");
+
+	gf_isom_box_dump_done("ItemEncryptionPropertyBox", a, trace);
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

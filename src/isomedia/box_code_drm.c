@@ -1366,6 +1366,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			}
 		} else {
 			i--;
+			sai->isNotProtected = 1;
 		}
 		gf_list_add(senc->samp_aux_info, sai);
 	}
@@ -1421,6 +1422,8 @@ GF_Err senc_box_write(GF_Box *s, GF_BitStream *bs)
 
 	for (i = 0; i < sample_count; i++) {
 		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+		if (sai->isNotProtected)
+			continue;
 
 		//for cbcs scheme, IV_size is 0, constant IV shall be used. It is written in tenc box rather than in sai
 		if (sai->IV_size)
@@ -1455,6 +1458,8 @@ GF_Err senc_box_size(GF_Box *s)
 	ptr->size += 4; //sample count
 	for (i = 0; i < sample_count; i++) {
 		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+		if (sai->isNotProtected)
+			continue;
 
 		ptr->size += sai->IV_size;
 

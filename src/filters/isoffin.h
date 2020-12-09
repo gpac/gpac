@@ -218,6 +218,8 @@ void isor_reader_check_config(ISOMChannel *ch);
 
 Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_idx);
 
+void isor_declare_pssh(ISOMChannel *ch);
+
 #endif /*GPAC_DISABLE_ISOM*/
 
 #endif /*_ISMO_IN_H_*/

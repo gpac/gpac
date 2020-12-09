@@ -2016,14 +2016,30 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 	for (i=0; i<count; i++) {
 		const char *it_name, *mime, *enc, *url, *urn;
 		Bool self_ref;
-		u32 ID;
-		u32 it_type;
-		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, &it_type, NULL, &self_ref, &it_name, &mime, &enc, &url, &urn);
+		u32 ID, j;
+		u32 it_type, cenc_scheme, cenc_version;
+		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, &it_type, &cenc_scheme, &cenc_version, &self_ref, &it_name, &mime, &enc, &url, &urn);
 		fprintf(stderr, "Item #%d - ID %d - type %s ", i+1, ID, gf_4cc_to_str(it_type));
 		if (self_ref) fprintf(stderr, " - Self-Reference");
-		else if (it_name) fprintf(stderr, " - Name: %s", it_name);
+		else if (it_name && it_name[0]) fprintf(stderr, " - Name: %s", it_name);
 		if (mime) fprintf(stderr, " - MimeType: %s", mime);
 		if (enc) fprintf(stderr, " - ContentEncoding: %s", enc);
+		if (cenc_scheme) {
+			Bool is_protected;
+			u8 skip_byte_block, crypt_byte_block, IV_size, constant_IV_size;
+			bin128 KeyID, constant_IV;
+			fprintf(stderr, " - Protection scheme: %s v0x%08X", gf_4cc_to_str(cenc_scheme), cenc_version);
+
+			gf_isom_extract_meta_item_get_cenc_info(file, root_meta, tk_num, ID, &is_protected, &skip_byte_block, &crypt_byte_block, &IV_size, &KeyID, &constant_IV_size, &constant_IV, NULL, NULL, NULL);
+
+			fprintf(stderr, "\n\t");
+			fprintf(stderr, "KID ");
+			for (j=0; j<16; j++) fprintf(stderr, "%02X", KeyID[j]);
+			fprintf(stderr, " - %sIV size %d ", constant_IV_size ? "const " : "", constant_IV_size ? constant_IV_size : IV_size);
+			if (skip_byte_block && crypt_byte_block)
+				fprintf(stderr, " - Pattern %d:%d", skip_byte_block, crypt_byte_block);
+		}
+
 		fprintf(stderr, "\n");
 		if (url) fprintf(stderr, "URL: %s\n", url);
 		if (urn) fprintf(stderr, "URN: %s\n", urn);

@@ -6803,80 +6803,82 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 	}
 
 	/*copy sampleToGroup info if any*/
-	if (src_trak->Media->information->sampleTable->sampleGroups) {
+	count = 0;
+	if (src_trak->Media->information->sampleTable->sampleGroups)
 		count = gf_list_count(src_trak->Media->information->sampleTable->sampleGroups);
-		for (i=0; i<count; i++) {
-			GF_SampleGroupBox *sg;
-			u32 j, k, default_index;
-			u32 first_sample_in_entry, last_sample_in_entry, group_desc_index_src, group_desc_index_dst;
-			first_sample_in_entry = 1;
 
-			sg = (GF_SampleGroupBox*)gf_list_get(src_trak->Media->information->sampleTable->sampleGroups, i);
-			for (j=0; j<sg->entry_count; j++) {
-				last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
-				if ((sampleNumber<first_sample_in_entry) || (sampleNumber>last_sample_in_entry)) {
-					first_sample_in_entry = last_sample_in_entry+1;
-					continue;
-				}
+	for (i=0; i<count; i++) {
+		GF_SampleGroupBox *sg;
+		u32 j, k, default_index;
+		u32 first_sample_in_entry, last_sample_in_entry, group_desc_index_src, group_desc_index_dst;
+		first_sample_in_entry = 1;
 
-				if (!dst_trak->Media->information->sampleTable->sampleGroups)
-					dst_trak->Media->information->sampleTable->sampleGroups = gf_list_new();
-
-				group_desc_index_src = group_desc_index_dst = sg->sample_entries[j].group_description_index;
-
-				if (group_desc_index_src) {
-					GF_SampleGroupDescriptionBox *sgd_src, *sgd_dst;
-					GF_DefaultSampleGroupDescriptionEntry *sgde_src, *sgde_dst;
-
-					group_desc_index_dst = 0;
-					//check that the sample group description exists !!
-					sgde_src = gf_isom_get_sample_group_info_entry(src, src_trak, sg->grouping_type, sg->sample_entries[j].group_description_index, &default_index, &sgd_src);
-
-					if (!sgde_src) break;
-
-					if (!dst_trak->Media->information->sampleTable->sampleGroupsDescription)
-						dst_trak->Media->information->sampleTable->sampleGroupsDescription = gf_list_new();
-
-					sgd_dst = NULL;
-					for (k=0; k< gf_list_count(dst_trak->Media->information->sampleTable->sampleGroupsDescription); k++) {
-						sgd_dst = gf_list_get(dst_trak->Media->information->sampleTable->sampleGroupsDescription, k);
-						if (sgd_dst->grouping_type==sgd_src->grouping_type) break;
-						sgd_dst = NULL;
-					}
-					if (!sgd_dst) {
-						gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **) &sgd_dst);
-						if (!sgd_dst) return GF_OUT_OF_MEM;
-						gf_list_add(dst_trak->Media->information->sampleTable->sampleGroupsDescription, sgd_dst);
-					}
-
-					//find the same entry
-					for (k=0; k<gf_list_count(sgd_dst->group_descriptions); k++) {
-						sgde_dst = gf_list_get(sgd_dst->group_descriptions, i);
-						if (gf_isom_is_identical_sgpd(sgde_src, sgde_dst, sgd_src->grouping_type)) {
-							group_desc_index_dst = k+1;
-							break;
-						}
-					}
-					if (!group_desc_index_dst) {
-						GF_SampleGroupDescriptionBox *cloned=NULL;
-						gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **)  &cloned);
-						if (!cloned) return GF_OUT_OF_MEM;
-						sgde_dst = gf_list_get(cloned->group_descriptions, group_desc_index_dst);
-						gf_list_rem(cloned->group_descriptions, group_desc_index_dst);
-						gf_isom_box_del( (GF_Box *) cloned);
-						gf_list_add(sgd_dst->group_descriptions, sgde_dst);
-						group_desc_index_dst = gf_list_count(sgd_dst->group_descriptions);
-					}
-				}
-
-
-				/*found our sample, add it to trak->sampleGroups*/
-				e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sg->grouping_type, sg->grouping_type_parameter, group_desc_index_dst, dst_trak->Media->information->sampleTable->child_boxes);
-				if (e) return e;
-				break;
+		sg = (GF_SampleGroupBox*)gf_list_get(src_trak->Media->information->sampleTable->sampleGroups, i);
+		for (j=0; j<sg->entry_count; j++) {
+			last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+			if ((sampleNumber<first_sample_in_entry) || (sampleNumber>last_sample_in_entry)) {
+				first_sample_in_entry = last_sample_in_entry+1;
+				continue;
 			}
+
+			if (!dst_trak->Media->information->sampleTable->sampleGroups)
+				dst_trak->Media->information->sampleTable->sampleGroups = gf_list_new();
+
+			group_desc_index_src = group_desc_index_dst = sg->sample_entries[j].group_description_index;
+
+			if (group_desc_index_src) {
+				GF_SampleGroupDescriptionBox *sgd_src, *sgd_dst;
+				GF_DefaultSampleGroupDescriptionEntry *sgde_src, *sgde_dst;
+
+				group_desc_index_dst = 0;
+				//check that the sample group description exists !!
+				sgde_src = gf_isom_get_sample_group_info_entry(src, src_trak, sg->grouping_type, sg->sample_entries[j].group_description_index, &default_index, &sgd_src);
+
+				if (!sgde_src) break;
+
+				if (!dst_trak->Media->information->sampleTable->sampleGroupsDescription)
+					dst_trak->Media->information->sampleTable->sampleGroupsDescription = gf_list_new();
+
+				sgd_dst = NULL;
+				for (k=0; k< gf_list_count(dst_trak->Media->information->sampleTable->sampleGroupsDescription); k++) {
+					sgd_dst = gf_list_get(dst_trak->Media->information->sampleTable->sampleGroupsDescription, k);
+					if (sgd_dst->grouping_type==sgd_src->grouping_type) break;
+					sgd_dst = NULL;
+				}
+				if (!sgd_dst) {
+					gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **) &sgd_dst);
+					if (!sgd_dst) return GF_OUT_OF_MEM;
+					gf_list_add(dst_trak->Media->information->sampleTable->sampleGroupsDescription, sgd_dst);
+				}
+
+				//find the same entry
+				for (k=0; k<gf_list_count(sgd_dst->group_descriptions); k++) {
+					sgde_dst = gf_list_get(sgd_dst->group_descriptions, i);
+					if (gf_isom_is_identical_sgpd(sgde_src, sgde_dst, sgd_src->grouping_type)) {
+						group_desc_index_dst = k+1;
+						break;
+					}
+				}
+				if (!group_desc_index_dst) {
+					GF_SampleGroupDescriptionBox *cloned=NULL;
+					gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **)  &cloned);
+					if (!cloned) return GF_OUT_OF_MEM;
+					sgde_dst = gf_list_get(cloned->group_descriptions, group_desc_index_dst);
+					gf_list_rem(cloned->group_descriptions, group_desc_index_dst);
+					gf_isom_box_del( (GF_Box *) cloned);
+					gf_list_add(sgd_dst->group_descriptions, sgde_dst);
+					group_desc_index_dst = gf_list_count(sgd_dst->group_descriptions);
+				}
+			}
+
+
+			/*found our sample, add it to trak->sampleGroups*/
+			e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sg->grouping_type, sg->grouping_type_parameter, group_desc_index_dst, dst_trak->Media->information->sampleTable->child_boxes);
+			if (e) return e;
+			break;
 		}
 	}
+
 	return GF_OK;
 }
 

@@ -1069,7 +1069,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		import.in_name = szName;
 		import.flags = GF_IMPORT_PROBE_ONLY;
 		e = gf_media_import(&import);
-		GOTO_EXIT("media import failure");
+		GOTO_EXIT("importing import");
 
 		if (!strnicmp(ext, "audio", 5)) do_audio = 1;
 		else if (!strnicmp(ext, "video", 5)) do_video = 1;
@@ -1205,7 +1205,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		e = gf_media_import(&import);
 		if (e) {
 			if (import.update_mux_args) gf_free(import.update_mux_args);
-			GOTO_EXIT("media import failure");
+			GOTO_EXIT("importing media");
 		}
 
 		if (fsess) {
