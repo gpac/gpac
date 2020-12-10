@@ -2251,7 +2251,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	} else {
 		e = getter->new_session(getter, rep->segment_list->xlink_href);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Download failed for %s\n", rep->segment_list->xlink_href));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Download failed for %s: %s\n", rep->segment_list->xlink_href, gf_error_to_string(e) ));
 			return e;
 		}
 		loc_file = getter->get_cache_name(getter);

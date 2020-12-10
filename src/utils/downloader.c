@@ -3022,8 +3022,13 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	if (sess->proxy_enabled==1) strcat(sHTTP, "Proxy-Connection: Keep-alive\r\n");
 	else if (!has_connection) strcat(sHTTP, "Connection: Keep-Alive\r\n");
 	if (!has_range && sess->needs_range) {
-		if (!sess->range_end) sprintf(range_buf, "Range: bytes="LLD"-\r\n", sess->range_start);
-		else sprintf(range_buf, "Range: bytes="LLD"-"LLD"\r\n", sess->range_start, sess->range_end);
+		if (!sess->range_end)
+			sprintf(range_buf, "Range: bytes="LLD"-\r\n", sess->range_start);
+		//if end is set to -1 use open end
+		else if (sess->range_end==(u64)-1)
+			sprintf(range_buf, "Range: bytes="LLD"-\r\n", sess->range_start);
+		else
+			sprintf(range_buf, "Range: bytes="LLD"-"LLD"\r\n", sess->range_start, sess->range_end);
 		strcat(sHTTP, range_buf);
 
 		no_cache = GF_TRUE;
@@ -3355,7 +3360,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 					sess->status = GF_NETIO_STATE_ERROR;
 					return GF_IP_NETWORK_EMPTY;
 				}
-				assert(res==0);
 				if (sess->server_mode) {
 					sess->last_error = GF_IP_NETWORK_EMPTY;
 				}
@@ -3392,6 +3396,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			goto exit;
 		}
 		bytesRead += res;
+		//weird bug on some servers sending twice the last chunk
+		if (bytesRead && !strncmp(sHTTP, "0\r\n\r\n", 5) ) {
+			bytesRead -= res;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] End of chunk found while waiting server response when processing %s - retrying\n", sess->remote_path));
+		}
 
 		/*locate body start*/
 		BodyStart = gf_token_find(sHTTP, 0, bytesRead, "\r\n\r\n");
@@ -4422,9 +4431,12 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm)
 
 	for (i=0; i<count; i++) {
 		GF_DownloadSession *sess = (GF_DownloadSession*)gf_list_get(dm->sessions, i);
-		if (sess->total_size==sess->bytes_done) {
-			if (gf_sys_clock_high_res() - sess->start_time>2000000) {
-				continue;
+		if (sess->status >= GF_NETIO_DATA_TRANSFERED) {
+			if (sess->total_size==sess->bytes_done) {
+				//do not aggregate session if done/interrupted since more than 1/2 a sec
+				if (gf_sys_clock_high_res() - sess->start_time > 500000) {
+					continue;
+				}
 			}
 		}
 		dm_sess_update_download_rate(sess, GF_FALSE);

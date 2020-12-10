@@ -432,7 +432,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 		gf_dash_set_group_udta(ctx->dash, group_index, NULL);
 		return e;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] setting up group %d from %s\n", group->idx, sURL));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] setting up group %d from %s\n", group->idx, init_segment_name));
 	group->signal_seg_name = (ctx->forward==DFWD_FILE) ? GF_TRUE : GF_FALSE;
 
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
