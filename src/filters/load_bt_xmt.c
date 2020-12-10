@@ -914,7 +914,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		}
 		
 		if (!strncmp(probe_data, "InitialObjectDescriptor", strlen("InitialObjectDescriptor"))
-			|| !strncmp(probe_data, "EXTERNPROTO", strlen("InitialObjectDescriptor"))
+			|| !strncmp(probe_data, "EXTERNPROTO", strlen("EXTERNPROTO"))
 			|| !strncmp(probe_data, "PROTO", strlen("PROTO"))
 			|| !strncmp(probe_data, "Group", strlen("Group"))
 			|| !strncmp(probe_data, "OrderedGroup", strlen("OrderedGroup"))
