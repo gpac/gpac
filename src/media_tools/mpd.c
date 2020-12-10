@@ -3499,11 +3499,11 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 				for (k=0; k<sctx->nb_frags; k++) {
 					dur = sctx->frags[k].duration;
 					dur /= rep->timescale;
-					gf_fprintf(out, "#EXT-X-PART:DURATION=%g,URI=%s", dur, sctx->filename);
+					gf_fprintf(out, "#EXT-X-PART:DURATION=%g,URI=\"%s", dur, sctx->filename);
 					if (sctx->llhls_mode==1)
-						gf_fprintf(out, ",BYTERANGE=\""LLU"@"LLU"\"", sctx->frags[k].size, sctx->frags[k].offset );
+						gf_fprintf(out, "\",BYTERANGE=\""LLU"@"LLU"\"", sctx->frags[k].size, sctx->frags[k].offset );
 					else
-						gf_fprintf(out, ".%d", k+1);
+						gf_fprintf(out, ".%d\"", k+1);
 
 					if (sctx->frags[k].independent)
 						gf_fprintf(out, ",INDEPENDENT=YES");
