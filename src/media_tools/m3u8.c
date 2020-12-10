@@ -705,6 +705,14 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		attributes->low_latency = GF_TRUE;
 		return NULL;
 	}
+	//TODO for now we don't use preload hint
+	if (!strncmp(line, "#EXT-X-SERVER-CONTROL", strlen("#EXT-X-SERVER-CONTROL") )) {
+		return NULL;
+	}
+	//TODO for now we don't use preload hint
+	if (!strncmp(line, "#EXT-X-PRELOAD-HINT", strlen("#EXT-X-PRELOAD-HINT") )) {
+		return NULL;
+	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unsupported directive %s\n", line));
 	return NULL;
 }
