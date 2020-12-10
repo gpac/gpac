@@ -1640,7 +1640,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			break;
 
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d : unsupported header extension HEL %d HET %d\n", s->service_id, hel, het));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : unsupported header extension HEL %d HET %d, ignoring\n", s->service_id, hel, het));
 			break;
 		}
 		if (hdr_len<hel) {
