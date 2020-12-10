@@ -491,15 +491,14 @@ function update_stats()
 	let stats = [];
 
 	let sys_info='CPU: '+sys.process_cpu_usage + ' Mem: ' + Math.floor(sys.process_memory/1000000) + ' MB';
-	stats.push(sys_info);
 	if (session.http_bitrate) {
 		let r = session.http_bitrate;
-		sys_info = 'HTTP rate: '; 
+		sys_info += ' HTTP: '; 
 		if (r>1000000) sys_info += '' + Math.floor(r/10000) / 100 + ' mbps';
 		else if (r>1000) sys_info += '' + Math.floor(r/10) / 100 + ' kbps';
 		else sys_info += '' + r + ' bps';
-		stats.push(sys_info);
 	}
+	stats.push(sys_info);
 	stats.push('  ');
 
 	let i;
