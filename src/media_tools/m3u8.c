@@ -1085,7 +1085,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 			if (!strncmp("#EXT-X-PART:", currentLine, 12)) {
 				GF_Err e = GF_NON_COMPLIANT_BITSTREAM;
 				char *sep;
-				char *file = strstr(currentLine, "URI=");
+				char *file = strstr(currentLine, "URI=\"");
 				char *dur = strstr(currentLine, "DURATION=");
 				char *br = strstr(currentLine, "BYTERANGE=");
 
@@ -1109,14 +1109,22 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 				}
 
 				if (file && dur) {
-					sep = strchr(file, ',');
-					if (sep) sep[0] = 0;
+					file += 5; // file starts with `URI:"`, move to start of URL
+					//find end quote
+					sep = strchr(file, '"');
+					if (!sep) {
+						e = GF_NON_COMPLIANT_BITSTREAM;
+						_CLEANUP
+						return e;
+					}
+					sep[0] = 0;
 
 					attribs.low_latency = GF_TRUE;
 					attribs.is_media_segment = GF_TRUE;
-					e = declare_sub_playlist(file+4, baseURL, &attribs, sub_playlist, playlist, in_stream);
+					e = declare_sub_playlist(file, baseURL, &attribs, sub_playlist, playlist, in_stream);
 
 					(*playlist)->low_latency = GF_TRUE;
+					sep[0] = '"';
 				}
 				attribs.is_media_segment = GF_FALSE;
 				attribs.low_latency = GF_FALSE;
