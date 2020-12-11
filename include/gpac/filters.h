@@ -1673,6 +1673,12 @@ typedef enum
 	GF_FS_ARG_META_ALLOC = 1<<6,
 	/*! internal flag used by filters acting as sinks (gsfmx in file mode) to allow retrieving dst url but avoid being used as direct sinks*/
 	GF_FS_ARG_SINK_ALIAS = 1<<7,
+	/*! if set indicates that the argument is updatable only as a direct synchronous call (typically used for shared data).
+		If so, the value will only be updated if the update directly targets the filter, and the global filter mutex will be locked before calling update_arg.
+		It is however recommended for the calling app to lock the target filter whenever shared data is modified (see vout filter overlay argument  for example)
+		The filter should lock itself whenever appropriate using \ref gf_filter_lock
+	*/
+	GF_FS_ARG_UPDATE_SYNC = 1<<8,
 } GF_FSArgumentFlags;
 
 /*! Structure holding arguments for a filter*/
@@ -1844,6 +1850,13 @@ Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg);
 \param filter filter to abort
 */
 void gf_filter_abort(GF_Filter *filter);
+
+
+/*! Locks a filter. A filter should only lock itself when using updatable arguments of type GF_FS_ARG_UPDATE_SYNC
+\param filter filter to lock
+\param do_lock if GF_TRUE, locks the filter global mutex, otherwise unlocks it
+*/
+void gf_filter_lock(GF_Filter *filter, Bool do_lock);
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum

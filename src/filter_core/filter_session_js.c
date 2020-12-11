@@ -814,6 +814,7 @@ static JSValue jsff_all_args(JSContext *ctx, JSValueConst this_val, int argc, JS
 			if (arg->arg_default_val)
 				JS_SetPropertyStr(ctx, aval, "default", JS_NewString(ctx, arg->arg_default_val) );
 			JS_SetPropertyStr(ctx, aval, "update", JS_NewBool(ctx, (arg->flags & GF_FS_ARG_UPDATE) ) );
+			JS_SetPropertyStr(ctx, aval, "update_sync", JS_NewBool(ctx, (arg->flags & GF_FS_ARG_UPDATE_SYNC) ) );
 			if (arg->flags & GF_FS_ARG_HINT_ADVANCED) {
 				JS_SetPropertyStr(ctx, aval, "hint", JS_NewString(ctx, "advanced") );
 			}
@@ -902,6 +903,20 @@ static JSValue jsff_update(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	}
 
 	JS_FreeCString(ctx, aname);
+	return JS_UNDEFINED;
+}
+
+static JSValue jsff_lock(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f || (argc!=1) )
+		return JS_EXCEPTION;
+
+	if (JS_ToBool(ctx, argv[0]))
+		gf_filter_lock(f, GF_TRUE);
+	else
+		gf_filter_lock(f, GF_FALSE);
+
 	return JS_UNDEFINED;
 }
 
@@ -1023,6 +1038,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("remove", 0, jsff_remove),
 	JS_CFUNC_DEF("insert", 0, jsff_insert_filter),
 	JS_CFUNC_DEF("bind", 0, jsff_bind),
+	JS_CFUNC_DEF("lock", 0, jsff_lock),
 };
 
 static JSValue jsfs_new_filter_obj(JSContext *ctx, GF_Filter *f)

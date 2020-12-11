@@ -284,6 +284,11 @@ This will throw an exception if failure or no JS binding available
 */
 void bind(Object obj);
 
+/*! locks a filter. This should only be used when updating sync arguments of the filter - see \ref gf_filter_lock.
+\param do_lock if true, locks the filter global mutex, otherwise unlocks it.
+*/
+void lock(boolean do_lock);
+
 };
 
 /*! Object describing a filter argument
@@ -301,6 +306,8 @@ optional attribute DOMString min_max_enum;
 optional attribute DOMString default;
 /*! argument can be updated*/
 optional attribute boolean update;
+/*! argument can be updated in synchronous way only, and filter must be locked whenever shared data is modified*/
+optional attribute boolean update_sync;
 /*! indicate the UI level of the argument - string can be undefined, "advanced" or "expert"*/
 optional attribute DOMString hint;
 

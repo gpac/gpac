@@ -1028,6 +1028,8 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx);
 
 Bool gf_fs_check_filter_register_cap_ex(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output, Bool exact_match_only, Bool out_cap_excluded);
 
+Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const char *arg_value, Bool is_sync_call);
+
 #endif //_GF_FILTER_SESSION_H_
 
 

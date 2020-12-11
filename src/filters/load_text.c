@@ -600,9 +600,9 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 		Bool is_empty = GF_FALSE;
 		char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
 
-		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
-
 		if (sOK) {
+			REM_TRAIL_MARKS(szLine, "\r\n\t ")
+
 			if (ctx->unicode_type<=1) is_empty = strlen(szLine) ? GF_FALSE : GF_TRUE;
 			else is_empty =  (!szLine[0] && !szLine[1]) ? GF_TRUE : GF_FALSE;
 		}

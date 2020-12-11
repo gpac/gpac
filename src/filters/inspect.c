@@ -392,8 +392,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			if (full_bs_dump)
-				gf_bs_set_logger(bs, regular_bs_log, &lcbk);
+			gf_bs_set_logger(bs, regular_bs_log, &lcbk);
 			res = gf_hevc_parse_nalu_bs(bs, hevc, &type, &temporal_id, &quality_id);
 		} else {
 			bs = NULL;
@@ -744,8 +743,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			if (full_bs_dump)
-				gf_bs_set_logger(bs, regular_bs_log, &lcbk);
+			gf_bs_set_logger(bs, regular_bs_log, &lcbk);
 			res = gf_media_vvc_parse_nalu_bs(bs, vvc, &type, &lid, &tid);
 		} else {
 			bs = NULL;

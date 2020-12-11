@@ -3745,7 +3745,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			}
 
 			if (mpd->force_llhls_mode==2) {
-				char *sep;
 				strcpy(szSuffixName, name);
 				sep = gf_file_ext_start(szSuffixName);
 				if (sep) sep[0] = 0;
