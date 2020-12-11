@@ -1239,6 +1239,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			if (e) return e;
 			//add item reference
 			e = gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, infe->item_ID+1, GF_ISOM_REF_AUXR, NULL);
+			if (e) return e;
 
 			//look for scheme in ipro
 			if (!meta->protections) {

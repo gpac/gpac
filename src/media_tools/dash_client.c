@@ -2755,8 +2755,7 @@ process_m3u8_manifest:
 				}
 
 #ifdef DUMP_LIST
-				GF_MPD_SegmentURL *surl = gf_list_last(new_segments);
-				fprintf(stderr, "%d updated segment list  - last in new list %s (chunk %d) - min/max seq num in new list %d / %d\n", gf_sys_clock(), surl->media, surl->hls_ll_chunk_type, new_rep->m3u8_media_seq_min, new_rep->m3u8_media_seq_max);
+				fprintf(stderr, "%d updated segment list - min/max seq num in new list %d / %d\n", gf_sys_clock(), new_rep->m3u8_media_seq_min, new_rep->m3u8_media_seq_max);
 
 				for (i=0; i<gf_list_count(new_segments); i++) {
 					GF_MPD_SegmentURL *surl = gf_list_get(new_segments, i);
