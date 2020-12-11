@@ -1235,6 +1235,8 @@ Specific source or sink filters may also be specified using filterName:src=URL o
 .br
 The src= and dst= syntaxes can also be used in alias for dynamic argument cloning (see gpac -hx alias).
 .br
+
+.br
 .P
 .B
 Forcing specific filters
@@ -1323,6 +1325,8 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .br
 .SH Expliciting links between filters [LINK]
 .LP
+.br
+
 .br
 .P
 .B
@@ -1512,7 +1516,7 @@ Warning: If a filter PID gets connected to an explicitly loaded filter, no furth
 .br
 Example
 .br
-src=file.mp4 @ reframer dst=dump.mp4
+src=video.264.mp4 @ reframer dst=dump.mp4
 .br
 
 .br
@@ -3923,7 +3927,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev350-g9b9c8cfb8-master
+build: 1.1.0-DEV-rev355-g67ae77d0b-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

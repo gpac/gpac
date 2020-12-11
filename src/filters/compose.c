@@ -636,12 +636,13 @@ static GF_Err compose_initialize(GF_Filter *filter)
 		ctx->vfr = GF_TRUE;
 	}
 
-	if (ctx->buf > ctx->mbuf)
-		ctx->buf = ctx->mbuf;
-	if (ctx->rbuf > ctx->mbuf)
-		ctx->buf = ctx->mbuf;
-	if (ctx->rbuf >= ctx->buf)
-		ctx->rbuf = 0;
+	//playout buffer not greater than max buffer
+	if (ctx->buffer > ctx->mbuffer)
+		ctx->buffer = ctx->mbuffer;
+
+	//rebuffer level not greater than playout buffer
+	if (ctx->rbuffer >= ctx->buffer)
+		ctx->rbuffer = 0;
 
     if (ctx->player) {
 		if (ctx->ogl == GF_SC_GLMODE_AUTO)
@@ -803,9 +804,9 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(max_aspeed), "silence audio if playback speed is greater than sepcified value", GF_PROP_DOUBLE, "2.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_vspeed), "move to i-frame only decoding if playback speed is greater than sepcified value", GF_PROP_DOUBLE, "4.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 
-	{ OFFS(buf), "playout buffer in ms. overridden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(rbuf), "rebuffer trigger in ms. overridden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(mbuf), "max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(buffer), "playout buffer in ms. overridden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(rbuffer), "rebuffer trigger in ms. overridden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(mbuffer), "max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(ntpsync), "ntp resync threshold in ms (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 
 	{ OFFS(nojs), "disable javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

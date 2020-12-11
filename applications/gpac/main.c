@@ -2193,6 +2193,7 @@ restart:
 		}
 		gpac_print_report(session, GF_FALSE, GF_TRUE);
 	}
+	gf_fs_print_non_connected(session);
 
 exit:
 	if (enable_reports==2) {
@@ -2202,7 +2203,6 @@ exit:
 	if (e && nb_filters) {
 		gf_fs_run(session);
 	}
-	gf_fs_print_non_connected(session);
 	if (dump_stats)
 		gf_fs_print_stats(session);
 	if (dump_graph)
