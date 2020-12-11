@@ -164,6 +164,7 @@ const char *gpac_doc =
 "Specific source or sink filters may also be specified using `filterName:src=URL` or `filterName:dst=URL`.\n"
 "\n"
 "The `src=` and `dst=` syntaxes can also be used in alias for dynamic argument cloning (see `gpac -hx alias`).\n"
+"\n"
 "## Forcing specific filters\n"
 "There is a special option called `gfreg` which allows specifying preferred filters to use when handling URLs.\n"
 "EX src=file.mp4:gfreg=ffdmx,ffdec\n"
@@ -198,6 +199,7 @@ const char *gpac_doc =
 "EX f:a=foo::b=bar:c::d=fun\n"
 "This will set option `a` to `foo`, `b` to `bar:c` and the option `d` to `fun` on the filter.\n"
 "# Expliciting links between filters [__LINK__]\n"
+"\n"
 "## Quick links\n"
 "Link between filters may be manually specified. The syntax is an `@` character optionaly followed by an integer (0 if omitted). "
 "This indicates that the following filter specified at prompt should be linked only to a previous listed filter. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).\n"
@@ -262,7 +264,7 @@ const char *gpac_doc =
 "\n"
 "Warning: If a filter PID gets connected to an explicitly loaded filter, no further dynamic link resolution will "
 "be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.\n"
-"EX src=file.mp4 @ reframer dst=dump.mp4\n"
+"EX src=video.264.mp4 @ reframer dst=dump.mp4\n"
 "This will link src `file.mp4` PID (type `file`) to dst `dump.mp4` filter (type `file`) because dst has no sourceID and therefore will "
 "accept input from src. Since the PID is connected, the filter engine will not try to solve "
 "a link between src and `reframer`. The result is a direct copy of the source file, `reframer` being unused.\n"
@@ -2200,6 +2202,7 @@ exit:
 	if (e && nb_filters) {
 		gf_fs_run(session);
 	}
+	gf_fs_print_non_connected(session);
 	if (dump_stats)
 		gf_fs_print_stats(session);
 	if (dump_graph)

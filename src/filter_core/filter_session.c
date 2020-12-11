@@ -302,6 +302,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			fsess->blocking_mode = GF_FS_NOBLOCK;
 		}
 	}
+
 	fsess->run_status = GF_EOS;
 	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;
@@ -2109,10 +2110,11 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (ptr=%p)\n", f));
 	}
-	if (gf_list_find(filters_done, f)>=0)
+	if (filters_done && (gf_list_find(filters_done, f)>=0))
 		return;
 
-	gf_list_add(filters_done, f);
+	if (filters_done)
+		gf_list_add(filters_done, f);
 	if (alias_for) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (<=> "));
 		print_filter_name(alias_for, GF_TRUE, GF_TRUE);
@@ -2144,15 +2146,37 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 			}
 		}
 	}
-
 }
+
+static void gf_fs_print_not_connected_filters(GF_FilterSession *fsess, GF_List *filters_done)
+{
+	u32 i, count;
+	Bool has_unconnected=GF_FALSE;
+	count=gf_list_count(fsess->filters);
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		//only dump not connected ones
+		if (f->num_input_pids || f->num_output_pids || f->multi_sink_target || f->nb_tasks_done) continue;
+		if (!has_unconnected) {
+			has_unconnected = GF_TRUE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Filters not connected:\n"));
+		}
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL);
+	}
+}
+
+GF_EXPORT
+void gf_fs_print_non_connected(GF_FilterSession *fsess)
+{
+	gf_fs_print_not_connected_filters(fsess, NULL);
+}
+
 GF_EXPORT
 void gf_fs_print_connections(GF_FilterSession *fsess)
 {
 	u32 i, count;
 	Bool has_undefined=GF_FALSE;
 	Bool has_connected=GF_FALSE;
-	Bool has_unconnected=GF_FALSE;
 	GF_List *filters_done;
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
@@ -2171,16 +2195,9 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 		}
 		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL);
 	}
-	for (i=0; i<count; i++) {
-		GF_Filter *f = gf_list_get(fsess->filters, i);
-		//only dump not connected ones
-		if (f->num_input_pids || f->num_output_pids || f->multi_sink_target) continue;
-		if (!has_unconnected) {
-			has_unconnected = GF_TRUE;
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters not connected:\n"));
-		}
-		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL);
-	}
+
+	gf_fs_print_not_connected_filters(fsess, filters_done);
+
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		if (f->multi_sink_target) continue;
