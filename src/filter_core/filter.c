@@ -864,54 +864,63 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 	return argv;
 }
 
-void gf_filter_update_arg_task(GF_FSTask *task)
+Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const char *arg_value, Bool is_sync_call)
 {
 	u32 i=0;
-	Bool found = GF_FALSE;
-	GF_FilterUpdate *arg=task->udta;
 	//find arg
-	i=0;
-	while (task->filter->freg->args) {
+	while (filter->freg->args) {
 		GF_PropertyValue argv;
-		const GF_FilterArgs *a = &task->filter->freg->args[i];
+		const GF_FilterArgs *a = &filter->freg->args[i];
 		i++;
 		Bool is_meta = GF_FALSE;
 		if (!a || !a->arg_name) break;
 
 		if ((a->flags & GF_FS_ARG_META) && !strcmp(a->arg_name, "*")) {
-			if (!task->filter->freg->update_arg)
+			if (!filter->freg->update_arg)
 				continue;
 			is_meta = GF_TRUE;
-		} else if (strcmp(a->arg_name, arg->name)) {
+		} else if (strcmp(a->arg_name, arg_name)) {
 			continue;
 		}
+		//we found the argument
 
-		found = GF_TRUE;
-		if (!is_meta && ! (a->flags & GF_FS_ARG_UPDATE) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, task->filter->name));
-			break;
+		if (!is_meta && ! (a->flags & (GF_FS_ARG_UPDATE|GF_FS_ARG_UPDATE_SYNC) ) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, filter->name));
+			return GF_TRUE;
 		}
 
-		argv = gf_filter_parse_prop_solve_env_var(task->filter, a->arg_type, a->arg_name, arg->val, a->min_max_enum);
+		if (a->flags & GF_FS_ARG_UPDATE_SYNC) {
+			if (!is_sync_call) return GF_TRUE;
+		}
+
+		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, arg_value, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			GF_Err e = GF_OK;
-			FSESS_CHECK_THREAD(task->filter)
+			FSESS_CHECK_THREAD(filter)
 			//if no update function consider the arg OK
-			if (task->filter->freg->update_arg) {
-				e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
+			if (filter->freg->update_arg) {
+				e = filter->freg->update_arg(filter, arg_name, &argv);
 			}
 			if (e==GF_OK) {
 				if (!is_meta)
-					gf_filter_set_arg(task->filter, a, &argv);
+					gf_filter_set_arg(filter, a, &argv);
 			} else if (e!=GF_NOT_FOUND) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", task->filter->name, arg->name, arg->val, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", filter->name, arg_name, arg_value, gf_error_to_string(e) ));
 			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
 		}
-		break;
+		return GF_TRUE;
 	}
+	return GF_FALSE;
+}
+void gf_filter_update_arg_task(GF_FSTask *task)
+{
+	u32 i=0;
+	GF_FilterUpdate *arg=task->udta;
+
+	Bool found = gf_filter_update_arg_apply(task->filter, arg->name, arg->val, GF_FALSE);
 
 	if (!found) {
 		if (arg->recursive) {
@@ -4200,3 +4209,12 @@ void gf_filter_abort(GF_Filter *filter)
 	gf_mx_v(filter->tasks_mx);
 }
 
+GF_EXPORT
+void gf_filter_lock(GF_Filter *filter, Bool do_lock)
+{
+	if (!filter) return;
+	if (do_lock)
+		gf_mx_p(filter->tasks_mx);
+	else
+		gf_mx_v(filter->tasks_mx);
+}

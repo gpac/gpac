@@ -2202,6 +2202,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 {
 	GF_FilterUpdate *upd;
 	u32 i, count;
+	char *sep = NULL;
 	Bool removed = GF_FALSE;
 	if ((!fid && !filter) || !name) return;
 	if (!fsess) {
@@ -2238,10 +2239,36 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 
 	if (removed) return;
 
+	if (!val) {
+		sep = strchr(name, fsess->sep_name);
+		if (sep) sep[0] = 0;
+	}
+
+	//find arg and check if it is only a sync update - if so do it now
+	i=0;
+	while (filter->freg->args) {
+		const GF_FilterArgs *a = &filter->freg->args[i];
+		i++;
+		if (!a || !a->arg_name) break;
+
+		if ((a->flags & GF_FS_ARG_META) && !strcmp(a->arg_name, "*")) {
+			continue;
+		} else if (strcmp(a->arg_name, name)) {
+			continue;
+		}
+
+		if (a->flags & GF_FS_ARG_UPDATE_SYNC) {
+			gf_mx_p(filter->tasks_mx);
+			gf_filter_update_arg_apply(filter, name, sep ? sep+1 : val, GF_TRUE);
+			gf_mx_v(filter->tasks_mx);
+			if (sep) sep[0] = fsess->sep_name;
+			return;
+		}
+		break;
+	}
+
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
 	if (!val) {
-		char *sep = strchr(name, fsess->sep_name);
-		if (sep) sep[0] = 0;
 		upd->name = gf_strdup(name);
 		upd->val = sep ? gf_strdup(sep+1) : NULL;
 		if (sep) sep[0] = fsess->sep_name;

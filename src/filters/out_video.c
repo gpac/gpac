@@ -1139,33 +1139,39 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 exit:
 
+	//we don't lock since most of the time overlay is not set
 	if (ctx->oldata.ptr) {
-		if (!ctx->overlay_tx) {
-			glGenTextures(1, &ctx->overlay_tx);
+		// overlay is set, lock filter to make sure the data is still valid
+		gf_filter_lock(ctx->filter, GF_TRUE);
+		if (ctx->oldata.ptr) {
+			if (!ctx->overlay_tx) {
+				glGenTextures(1, &ctx->overlay_tx);
 
-			glEnable(GL_TEXTURE_2D);
+				glEnable(GL_TEXTURE_2D);
 #if !defined(GPAC_USE_GLES1X)
-			glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
+				glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
 #if defined(GPAC_USE_GLES2)
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 #else
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 #endif
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 #endif
 
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ctx->olsize.x, ctx->olsize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
-			ctx->update_oldata = GF_FALSE;
-		} else if (ctx->update_oldata) {
-			glEnable(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ctx->olsize.x, ctx->olsize.y, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
-			ctx->update_oldata = GF_FALSE;
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ctx->olsize.x, ctx->olsize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
+				ctx->update_oldata = GF_FALSE;
+			} else if (ctx->update_oldata) {
+				glEnable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ctx->olsize.x, ctx->olsize.y, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
+				ctx->update_oldata = GF_FALSE;
+			}
+			vout_draw_overlay(ctx);
 		}
-		vout_draw_overlay(ctx);
+		gf_filter_lock(ctx->filter, GF_FALSE);
 	}
 
 	//final flush
@@ -1347,6 +1353,7 @@ static GF_Err vout_process(GF_Filter *filter)
 	ctx->video_out->ProcessEvent(ctx->video_out, NULL);
 
 	if (!ctx->step && !ctx->speed) {
+		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
 		gf_filter_ask_rt_reschedule(filter, 50000);
@@ -1374,6 +1381,7 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (!ctx->pid) {
+		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
 		return ctx->oldata.ptr ? GF_OK : GF_EOS;
@@ -1869,8 +1877,8 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(step), "step frame", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
 
 	{ OFFS(olwnd), "overlay window position and size", GF_PROP_VEC4I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
-	{ OFFS(olsize), "overlay texture size (must be RGBA)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
-	{ OFFS(oldata), "overlay texture data (must be RGBA)", GF_PROP_CONST_DATA, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
+	{ OFFS(olsize), "overlay texture size (must be RGBA)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE_SYNC},
+	{ OFFS(oldata), "overlay texture data (must be RGBA)", GF_PROP_CONST_DATA, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE_SYNC},
 	{ OFFS(owsize), "output window size (readonly)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
