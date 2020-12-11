@@ -3497,10 +3497,16 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {
 				u32 k;
 				for (k=0; k<sctx->nb_frags; k++) {
+					Bool write_br = GF_FALSE;
 					dur = sctx->frags[k].duration;
 					dur /= rep->timescale;
 					gf_fprintf(out, "#EXT-X-PART:DURATION=%g,URI=\"%s", dur, sctx->filename);
-					if (sctx->llhls_mode==1)
+
+					if (mpd->force_llhls_mode==1) write_br = GF_TRUE;
+					else if (mpd->force_llhls_mode==2) write_br = GF_FALSE;
+					else if (sctx->llhls_mode==1) write_br = GF_TRUE;
+
+					if (write_br)
 						gf_fprintf(out, "\",BYTERANGE=\""LLU"@"LLU"\"", sctx->frags[k].size, sctx->frags[k].offset );
 					else
 						gf_fprintf(out, ".%d\"", k+1);
@@ -3729,12 +3735,25 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			char szSuffixName[GF_MAX_PATH+1];
 			char *name = (char *) rep->m3u8_name;
 			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
 				continue;
 			}
 			if (rep->m3u8_var_name) {
 				name = gf_file_basename(rep->m3u8_var_name);
+			}
+
+			if (mpd->force_llhls_mode==2) {
+				char *sep;
+				strcpy(szSuffixName, name);
+				sep = gf_file_ext_start(szSuffixName);
+				if (sep) sep[0] = 0;
+				strcat(szSuffixName, "_IF");
+				sep = gf_file_ext_start(name);
+				if (sep)
+					strcat(szSuffixName, sep);
+				name = szSuffixName;
 			}
 
 			gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, name, is_primary ? period : NULL, nb_audio, nb_subs, nb_cc);

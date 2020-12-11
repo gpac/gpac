@@ -208,7 +208,7 @@ typedef struct
 
 	u32 forward_mode;
 	
-	u8 last_hls_signature[GF_SHA1_DIGEST_SIZE], last_mpd_signature[GF_SHA1_DIGEST_SIZE];
+	u8 last_hls_signature[GF_SHA1_DIGEST_SIZE], last_mpd_signature[GF_SHA1_DIGEST_SIZE], last_hls2_signature[GF_SHA1_DIGEST_SIZE];
 } GF_DasherCtx;
 
 typedef enum
@@ -3415,6 +3415,8 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name, 
 	gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 	if (name) {
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(name) );
+	}
+	if (ds) {
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 	}
 	gf_filter_pck_send(pck);
@@ -3603,6 +3605,57 @@ err_exit:
 		ctx->in_error = GF_TRUE;
 }
 
+static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_dur, Bool do_m3u8, Bool m3u8_second_pass, GF_FilterPid *opid, char *alt_name)
+{
+	void *last_signature;
+	u8 sig[GF_SHA1_DIGEST_SIZE];
+	GF_Err e;
+	FILE *tmp = gf_file_temp(NULL);
+	if (do_m3u8) {
+		ctx->mpd->m3u8_time = ctx->hlsc;
+		if (ctx->llhls==3)
+			ctx->mpd->force_llhls_mode = m3u8_second_pass ? 2 : 1;
+		else
+			ctx->mpd->force_llhls_mode = 0;
+
+		if (m3u8_second_pass) {
+			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
+		} else {
+			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
+		}
+	} else {
+		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
+	}
+
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write %s file: %s\n", do_m3u8 ? "M3U8" : "MPD", gf_error_to_string(e) ));
+		gf_fclose(tmp);
+		if (ctx->current_period->period)
+			ctx->current_period->period->duration = last_period_dur;
+		return e;
+	}
+
+	if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		if (gf_ftell(tmp) > 100 * 1024)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(tmp) / 1024));
+	}
+
+	gf_sha1_file_ptr(tmp, sig);
+	if (do_m3u8) {
+		last_signature = (void *) m3u8_second_pass ? ctx->last_hls2_signature : ctx->last_hls_signature;
+	} else {
+		last_signature = (void *) ctx->last_mpd_signature;
+	}
+
+	if (memcmp(sig, last_signature, GF_SHA1_DIGEST_SIZE)) {
+		memcpy(last_signature, sig, GF_SHA1_DIGEST_SIZE);
+
+		dasher_transfer_file(tmp, opid, alt_name, NULL);
+	}
+	gf_fclose(tmp);
+	return GF_OK;
+}
+
 GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_only)
 {
 	GF_Err e;
@@ -3675,9 +3728,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 
 	max_opid = (ctx->dual && ctx->opid_alt) ? 2 : 1;
 	for (i=0; i < max_opid; i++) {
-		u8 sig[GF_SHA1_DIGEST_SIZE];
 		Bool do_m3u8 = GF_FALSE;
-		tmp = gf_file_temp(NULL);
 		GF_FilterPid *opid;
 
 		if (i==0) {
@@ -3691,37 +3742,15 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 			do_m3u8 = ctx->opid_alt_m3u8;
 			opid = ctx->opid_alt;
 		}
-
-		if (do_m3u8) {
-			if (for_mpd_only) {
-				gf_fclose(tmp);
-				continue;
-			}
-			ctx->mpd->m3u8_time = ctx->hlsc;
-			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
-		} else {
-			e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
+		if (do_m3u8 && for_mpd_only) {
+			continue;
 		}
+		if ((ctx->llhls==3) && do_m3u8)
+			ctx->mpd->force_llhls_mode = 1;
+		e = dasher_write_and_send_manifest(ctx, last_period_dur, do_m3u8, GF_FALSE, opid, NULL);
+		if (e) return e;
 
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write %s file: %s\n", do_m3u8 ? "M3U8" : "MPD", gf_error_to_string(e) ));
-			gf_fclose(tmp);
-			if (ctx->current_period->period)
-				ctx->current_period->period->duration = last_period_dur;
-			return e;
-		}
-
-		if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-			if (gf_ftell(tmp) > 100 * 1024)
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(tmp) / 1024));
-		}
-
-		gf_sha1_file_ptr(tmp, sig);
-		if (memcmp(sig, do_m3u8 ? ctx->last_hls_signature : ctx->last_mpd_signature, GF_SHA1_DIGEST_SIZE)) {
-			memcpy(do_m3u8 ? ctx->last_hls_signature : ctx->last_mpd_signature, sig, GF_SHA1_DIGEST_SIZE);
-			dasher_transfer_file(tmp, opid, NULL, NULL);
-		}
-		gf_fclose(tmp);
+		ctx->mpd->force_llhls_mode = 0;
 	}
 
 	if (ctx->current_period->period)
@@ -3736,11 +3765,17 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	}
 
 	if (ctx->do_m3u8) {
+		Bool m3u8_second_pass = GF_FALSE;
 		u32 j;
 		GF_MPD_Period *period = gf_list_get(ctx->mpd->periods, 0);
 		GF_MPD_AdaptationSet *as;
 		GF_MPD_Representation *rep;
+		GF_FilterPid *opid;
 		assert(period);
+		if (ctx->opid_alt_m3u8) opid = ctx->opid_alt;
+		else opid = ctx->opid;
+
+resend:
 		i=0;
 		while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
 			j=0;
@@ -3757,13 +3792,47 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 							do_free = GF_TRUE;
 						}
 					}
+					if (m3u8_second_pass) {
+						char *sep;
+						char *new_name = gf_strdup(outfile);
+
+						sep = gf_file_ext_start(new_name);
+						if (sep) sep[0] = 0;
+						gf_dynstrcat(&new_name, "_IF", NULL);
+						sep = gf_file_ext_start(outfile);
+						if (sep)
+							gf_dynstrcat(&new_name, sep, NULL);
+
+						if (do_free) gf_free(outfile);
+						outfile = new_name;
+						do_free = GF_TRUE;
+					}
 					ds = rep->playback.udta;
-					dasher_transfer_file(rep->m3u8_var_file, ctx->opid, outfile, ds);
+					dasher_transfer_file(rep->m3u8_var_file, opid, outfile, ds);
 					gf_fclose(rep->m3u8_var_file);
 					rep->m3u8_var_file = NULL;
 					if (do_free) gf_free(outfile);
 				}
 			}
+		}
+
+		if ((ctx->llhls==3) && !m3u8_second_pass) {
+			char *sep;
+			char szAltName[GF_MAX_PATH];
+			strcpy(szAltName, ctx->out_path);
+			sep = gf_file_ext_start(szAltName);
+			if (sep) sep[0] = 0;
+			strcat(szAltName, "_IF");
+			sep = gf_file_ext_start(ctx->out_path);
+			if (sep) strcat(szAltName, sep);
+
+			ctx->mpd->force_llhls_mode = 2;
+			e = dasher_write_and_send_manifest(ctx, last_period_dur, GF_TRUE, GF_TRUE, ctx->opid, szAltName);
+			if (e) return e;
+
+			m3u8_second_pass = GF_TRUE;
+			goto resend;
+
 		}
 	}
 
@@ -7162,7 +7231,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 						break;
 
 					//send file delete events
-					if (prev_sctx->llhls_mode==2) {
+					if (prev_sctx->llhls_mode>1) {
 						u32 k;
 						for (k=0; k<prev_sctx->nb_frags; k++) {
 							GF_FilterEvent anevt;
@@ -7676,7 +7745,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(llhls), "HLS low latency type\n"
 		"- off: do not use LL-HLS\n"
 		"- br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)\n"
-		"- sf: use separated files for segment parts", GF_PROP_UINT, "off", "off|br|sf", GF_FS_ARG_HINT_EXPERT},
+		"- sf: use separated files for segment parts\n"
+		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };

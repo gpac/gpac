@@ -853,6 +853,8 @@ typedef struct {
 	Bool create_m3u8_files;
 	/*! indicates to insert clock reference in variant playlists*/
 	Bool m3u8_time;
+	/*! indicates  LL-HLS forced generation. 0: regular write, 1: write as byterange, 2: write as independent files*/
+	u32 force_llhls_mode;
 } GF_MPD;
 
 /*! parses an MPD Element (and subtree) from DOM
