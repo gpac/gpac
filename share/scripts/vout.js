@@ -99,7 +99,7 @@ function setup_overlay()
 	case OL_STATS:
 		target_width = Math.floor(disp_size.x/2);
 		target_height = Math.floor(disp_size.y/2);
-		task_reschedule = 50;
+		task_reschedule = 250;
 		break;
 	default:
 		if (!ol_width)
@@ -501,12 +501,12 @@ function update_stats()
 	if (session.http_bitrate) {
 		let r = session.http_bitrate;
 		sys_info += ' HTTP: '; 
-		if (r>1000000) sys_info += '' + Math.floor(r/10000) / 100 + ' mbps';
-		else if (r>1000) sys_info += '' + Math.floor(r/10) / 100 + ' kbps';
+		if (r>1000000) sys_info += '' + Math.floor(r/100000) / 10 + ' mbps';
+		else if (r>1000) sys_info += '' + Math.floor(r/100) / 10 + ' kbps';
 		else sys_info += '' + r + ' bps';
 	}
 	stats.push(sys_info);
-	stats.push('  ');
+//	stats.push('  ');
 
 	let i;
 	for (i=0; i< session.nb_filters; i++) {
@@ -568,7 +568,7 @@ function update_stats()
 		stats.push(str);
 	}
 
-	stats.push(' ');
+//	stats.push(' ');
 
 	//recompute graph only when initializing the window
 	if (init_wnd)

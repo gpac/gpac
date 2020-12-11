@@ -29,6 +29,7 @@ extension.view_stats = function () {
     var nb_http = root_odm.nb_http;
     var nb_buffering = 0;
     var nb_ntp_diff = 0;
+    var nb_qualities = 0;
     var srd_obj = null;
 
     wnd.has_select = false;
@@ -63,6 +64,7 @@ extension.view_stats = function () {
 		}
 
         if (num_qualities > 1) {
+            nb_qualities++;
             wnd.has_select = true;
             m.gui.select_label = gw_new_button(wnd.area, 'Quality');
             m.gui.select_label.odm = m;
@@ -528,7 +530,11 @@ extension.view_stats = function () {
             wnd.s_bw = null;
         }
         wnd.s_bitrate = wnd.plot.add_serie('Rate', 'Kbps', 0, 0.8, 0);
-        wnd.s_quality = wnd.plot.add_serie('Quality', 'Kbps', 1, 0.65, 0);
+        if (nb_qualities)  
+            wnd.s_quality = wnd.plot.add_serie('Quality', 'Kbps', 1, 0.65, 0);
+        else
+            wnd.s_quality = null;
+
         if (nb_buffering)
             wnd.s_buf = wnd.plot.add_serie('Buffer', 'ms', 0, 0, 0.8);
         else
@@ -564,7 +570,9 @@ extension.view_stats = function () {
         }
         this.s_cpu.refresh_serie(ext.stats_data, 'time', 'cpu', length, 10);
         this.s_mem.refresh_serie(ext.stats_data, 'time', 'memory', length, 6);
-        this.s_quality.refresh_serie(ext.stats_data, 'time', 'quality', length, 2.5);
+        if (this.s_quality) {
+            this.s_quality.refresh_serie(ext.stats_data, 'time', 'quality', length, 2.5);
+        }
     }
 
     wnd.quality_changed = function () {

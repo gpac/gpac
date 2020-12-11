@@ -1791,7 +1791,7 @@ Bool gf_scene_is_root(GF_Scene *scene);
 
 void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
-void gf_scene_buffering_info(GF_Scene *scene);
+void gf_scene_buffering_info(GF_Scene *scene, Bool rebuffer_done);
 void gf_scene_attach_to_compositor(GF_Scene *scene);
 struct _mediaobj *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
 struct _mediaobj *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr);
@@ -2107,7 +2107,7 @@ struct _od_manager
 	Bool clock_inherited;
 	//0 or 1, except for IOD where we may have several BIFS/OD streams
 	u32 nb_buffering, nb_rebuffer;
-	u32 buffer_max_us, buffer_min_us, buffer_playout_us;
+	u32 buffer_max_ms, buffer_min_ms, buffer_playout_ms;
 	Bool blocking_media;
 
 	//internal hash for source allowing to distinguish input PIDs sources
@@ -2349,7 +2349,7 @@ GF_MediaObject *gf_mo_new();
 
 /*media access events */
 void gf_odm_service_media_event(GF_ObjectManager *odm, GF_EventType event_type);
-void gf_odm_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec);
+void gf_odm_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec, u32 buffer_level_plus_one, u32 min_buffer_time);
 
 /*checks the URL and returns the ODID (MPEG-4 od://) or GF_MEDIA_EXTERNAL_ID for all regular URLs*/
 u32 gf_mo_get_od_id(MFURL *url);

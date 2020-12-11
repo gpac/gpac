@@ -202,6 +202,10 @@ struct __gf_download_session
 	Bool server_mode;
 	//0: not PUT/POST, 1: waiting for body to be completed, 2: body done
 	u32 put_state;
+
+	u64 last_cap_rate_time;
+	u64 last_cap_rate_bytes;
+	u32 last_cap_rate_bytes_per_sec;
 };
 
 struct __gf_download_manager
@@ -2621,7 +2625,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 {
 	u32 cumul_rate = 0;
-	u32 nb_sess = 0;
+//	u32 nb_sess = 0;
+	u64 now = gf_sys_clock_high_res();
 	u32 i, count = gf_list_count(dm->sessions);
 
 	//check if this fits with all other sessions
@@ -2631,11 +2636,31 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 		//session not running done
 		if (sess->status != GF_NETIO_DATA_EXCHANGE) continue;
 
-		dm_sess_update_download_rate(sess, GF_FALSE);
-		cumul_rate += sess->bytes_per_sec;
-		nb_sess ++;
+		//compute average rate on a window of 200 ms
+		//we cannot just use sess->bytes_per_sec because the rate limit might be changed dynamically
+		//so we need a recent history, not the session history
+		if (!sess->last_cap_rate_time) {
+			sess->last_cap_rate_time = sess->start_time;
+			sess->last_cap_rate_bytes = sess->bytes_done;
+			dm_sess_update_download_rate(sess, GF_FALSE);
+			sess->last_cap_rate_bytes_per_sec = sess->bytes_per_sec;
+		} else if (now > sess->last_cap_rate_time) {
+			u64 time = now - sess->last_cap_rate_time;
+			u64 bytes = sess->bytes_done - sess->last_cap_rate_bytes;
+			sess->last_cap_rate_bytes_per_sec = (u32) ((1000000 * (u64) bytes) / time);
+			if (time > 200000) {
+				//this is an approximation we don't know precisely when these were received
+				//and we don't really care since next rate estimation will be really high anyway and will exceed cap
+				sess->last_cap_rate_bytes = sess->bytes_done;
+				sess->last_cap_rate_time = now;
+			}
+		} else {
+			return GF_TRUE;
+		}
+		cumul_rate += sess->last_cap_rate_bytes_per_sec;
+		//nb_sess ++;
 	}
-	if ( cumul_rate >= nb_sess * dm->limit_data_rate)
+	if ( cumul_rate >= dm->limit_data_rate)
 		return GF_TRUE;
 
 	return GF_FALSE;
@@ -2832,7 +2857,14 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
 		else *total_size = sess->total_size;
 	}
 	if (bytes_done) *bytes_done = sess->bytes_done;
-	if (bytes_per_sec) *bytes_per_sec = sess->bytes_per_sec;
+	if (bytes_per_sec) {
+		if (sess->dm && sess->dm->limit_data_rate && sess->last_cap_rate_bytes_per_sec) {
+			*bytes_per_sec = sess->last_cap_rate_bytes_per_sec;
+		} else {
+			*bytes_per_sec = sess->bytes_per_sec;
+		}
+	}
+
 	if (net_status) *net_status = sess->status;
 	if (sess->status == GF_NETIO_DISCONNECTED) return GF_EOS;
 	else if (sess->status == GF_NETIO_STATE_ERROR) return GF_SERVICE_ERROR;

@@ -702,33 +702,38 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 
 
 //browse all channels and update buffering info
-void gf_scene_buffering_info(GF_Scene *scene)
+void gf_scene_buffering_info(GF_Scene *scene, Bool rebuffer_done)
 {
 	GF_ODMExtraPid *xpid;
 	u32 i, j;
-	u64 max_buffer, cur_buffer, max_buff_val=0;
+	u64 max_buffer, cur_buffer, min_time, max_buff_val=0;
 	u64 buf_val;
 	GF_Event evt;
 	GF_ObjectManager *odm;
 	if (!scene) return;
 
 	max_buffer = cur_buffer = 0;
+	min_time = (u64) -1;
 
 	/*get buffering on root OD*/
 	odm = scene->root_od;
-	if (odm->pid && odm->buffer_playout_us) {
-		if (max_buff_val < odm->buffer_playout_us)
-			max_buff_val = odm->buffer_playout_us;
+	if (!scene->is_dynamic_scene && odm->pid && odm->buffer_playout_ms) {
+		if (max_buff_val < odm->buffer_playout_ms)
+			max_buff_val = odm->buffer_playout_ms;
 
 		if (odm->nb_buffering) {
-			max_buffer += odm->buffer_playout_us;
-			buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
+			max_buffer += odm->buffer_playout_ms;
+			buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE) / 1000;
+			if (min_time>buf_val) min_time = buf_val;
+
 			if (buf_val > max_buffer) buf_val = max_buffer;
 			cur_buffer += (buf_val>0) ? buf_val : 1;
 			i=0;
 			while ((xpid = gf_list_enum(odm->extra_pids, &i))) {
-				max_buffer += odm->buffer_playout_us;
-				buf_val = gf_filter_pid_query_buffer_duration(xpid->pid, GF_FALSE);
+				max_buffer += odm->buffer_playout_ms;
+				buf_val = gf_filter_pid_query_buffer_duration(xpid->pid, GF_FALSE) / 1000;
+				if (min_time>buf_val) min_time = buf_val;
+
 				if (buf_val > max_buffer) buf_val = max_buffer;
 				cur_buffer += (buf_val>0) ? buf_val : 1;
 			}
@@ -738,20 +743,24 @@ void gf_scene_buffering_info(GF_Scene *scene)
 	/*get buffering on all ODs*/
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (!odm->buffer_playout_us) continue;
-		if (max_buff_val < odm->buffer_playout_us)
-			max_buff_val = odm->buffer_playout_us;
+		if (!odm->buffer_playout_ms) continue;
+		if (max_buff_val < odm->buffer_playout_ms)
+			max_buff_val = odm->buffer_playout_ms;
 
 		if (!odm->nb_buffering) continue;
 
-		max_buffer += odm->buffer_playout_us;
-		buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE);
+		max_buffer += odm->buffer_playout_ms;
+		buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE) / 1000;
+		if (min_time>buf_val) min_time = buf_val;
+
 		if (buf_val > max_buffer) buf_val = max_buffer;
 		cur_buffer += (buf_val>0) ? buf_val : 1;
 		j=0;
 		while ((xpid = gf_list_enum(odm->extra_pids, &j))) {
-			max_buffer += odm->buffer_playout_us;
-			buf_val = gf_filter_pid_query_buffer_duration(xpid->pid, GF_FALSE);
+			max_buffer += odm->buffer_playout_ms;
+			buf_val = gf_filter_pid_query_buffer_duration(xpid->pid, GF_FALSE) / 1000;
+			if (min_time>buf_val) min_time = buf_val;
+
 			if (buf_val > max_buffer) buf_val = max_buffer;
 			cur_buffer += (buf_val>0) ? buf_val : 1;
 		}
@@ -762,6 +771,11 @@ void gf_scene_buffering_info(GF_Scene *scene)
 	//destruction
 	if (!scene->root_od->scene_ns)
 		return;
+
+	//if buffering, fire GF_EVENT_MEDIA_PROGRESS - use the min buffer we just computed
+	if ((rebuffer_done || scene->nb_buffering) && max_buffer) {
+		gf_odm_service_media_event_with_download(scene->root_od, GF_EVENT_MEDIA_PROGRESS, 0, 0, 0, (u32) (100 * cur_buffer / max_buffer) + 1, min_time);
+	}
 
 	evt.type = GF_EVENT_PROGRESS;
 	evt.progress.progress_type = 0;
