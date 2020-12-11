@@ -1184,6 +1184,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	e = gf_fs_run(dasher->fsess);
 	if (e>0) e = GF_OK;
 
+	gf_fs_print_non_connected(dasher->fsess);
 	if (dasher->print_stats_graph & 1) gf_fs_print_stats(dasher->fsess);
 	if (dasher->print_stats_graph & 2) gf_fs_print_connections(dasher->fsess);
 

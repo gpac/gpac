@@ -5168,6 +5168,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 		}
 		if (fs) {
+			gf_fs_print_non_connected(fs);
 			if (fs_dump_flags & 1) gf_fs_print_stats(fs);
 			if (fs_dump_flags & 2) gf_fs_print_connections(fs);
 			gf_fs_del(fs);

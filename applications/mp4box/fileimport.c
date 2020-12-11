@@ -1803,8 +1803,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		if (e>=GF_OK)
 			e = gf_fs_get_last_process_error(fs);
 	}
+	gf_fs_print_non_connected(fs);
 	if (fs_dump_flags & 1) gf_fs_print_stats(fs);
 	if (fs_dump_flags & 2) gf_fs_print_connections(fs);
+
 	gf_fs_del(fs);
 	
 	if (e<GF_OK)

@@ -431,6 +431,11 @@ void gf_fs_print_stats(GF_FilterSession *session);
 */
 void gf_fs_print_connections(GF_FilterSession *session);
 
+/*! Prints the list of filters not connected using \code LOG_APP@LOG_WARNING \endcode
+\param session filter session
+*/
+void gf_fs_print_non_connected(GF_FilterSession *fsess);
+
 /*! Prints all possible connections between filter registries to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session
 \param filter_name if not null, only prints input connection for this filter register

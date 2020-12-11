@@ -526,6 +526,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
 
+	gf_fs_print_non_connected(fsess);
 	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
 	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);
 
@@ -656,6 +657,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
 
+	gf_fs_print_non_connected(fsess);
 	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
 	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);
 	gf_fs_del(fsess);

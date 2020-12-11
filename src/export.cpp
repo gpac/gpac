@@ -2339,6 +2339,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_run_step) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_connections) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_non_connected) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_separators) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_filters_registers_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_filter_register) )
