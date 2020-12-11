@@ -605,6 +605,7 @@ static JSValue jsff_is_destroyed(JSContext *ctx, JSValueConst this_val, int argc
 }
 
 JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val);
+JSValue jsf_NewPropTranslate(JSContext *ctx, const GF_PropertyValue *prop, u32 p4cc);
 
 static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool is_output)
 {
@@ -659,6 +660,9 @@ static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int ar
 			p = gf_filter_pid_get_property_str(pid, pname);
 
 		JS_FreeCString(ctx, pname);
+		if (p && p4cc)
+			return jsf_NewPropTranslate(ctx, p, p4cc);
+
 		return jsf_NewProp(ctx, p);
 	}
 
@@ -673,7 +677,11 @@ static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int ar
 
 		args[0] = JS_NewString(ctx, prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc) );
 		args[1] = JS_NewString(ctx, gf_props_get_type_name(prop->type) );
-		args[2] = jsf_NewProp(ctx, prop);
+		if (prop_4cc) {
+			args[2] = jsf_NewPropTranslate(ctx, prop, prop_4cc);
+		} else {
+			args[2] = jsf_NewProp(ctx, prop);
+		}
 		ret = JS_Call(ctx, argv[1], this_val, 3, args);
 		if (JS_IsException(ret)) {
 			js_dump_error(ctx);

@@ -2656,6 +2656,7 @@ process_m3u8_manifest:
 						s32 pos = group->download_segment_index;
 						while (pos>0) {
 							GF_MPD_SegmentURL *prev = gf_list_get(segments, pos);
+							if (!prev) break;
 							if (!prev->hls_ll_chunk_type) {
 								gf_list_insert(segments, new_seg, pos+1);
 								pos = pos+1;

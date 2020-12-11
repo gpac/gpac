@@ -2733,8 +2733,12 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		gf_cache_release_content(sess->cache_entry);
 	} else {
 
-		if (sess->dm && sess->dm->limit_data_rate && dm_exceeds_cap_rate(sess->dm)) {
-			return GF_IP_NETWORK_EMPTY;
+		if (sess->dm && sess->dm->limit_data_rate) {
+			if (dm_exceeds_cap_rate(sess->dm))
+				return GF_IP_NETWORK_EMPTY;
+
+			if (buffer_size > sess->dm->read_buf_size)
+				buffer_size = sess->dm->read_buf_size;
 		}
 
 #if 1

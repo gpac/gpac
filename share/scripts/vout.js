@@ -516,12 +516,14 @@ function update_stats()
 
 		let str = f.streamtype;
 		let src = f.ipid_source(0);
-		str += ' ' + src.name;
+		let names = src.name.split(':');
+
+		str += ' (' + names[0];
 		let decrate = src.pck_done;
 		if (!decrate) decrate = src.pck_sent + src.pck_ifce_sent;
 		decrate /= src.time/1000000;
 		decrate = Math.floor(decrate);
-		str += ' (' + decrate + ' f/s)';
+		str += ') ' + decrate + ' f/s';
 		let p = f.ipid_props(0, 'Width');
 		if (p) {
 			str += ' ' + p;
@@ -548,7 +550,21 @@ function update_stats()
 			} 
 		}
 
-		str += ' buffer ' + Math.floor(f.ipid_props(0, 'buffer')/1000) + ' ms';
+		let buffer = f.ipid_props(0, 'buffer')/1000;
+		let rebuf = 0;
+		if (audio_only) {
+			rebuf = aout.get_arg('rebuffer');			
+		}
+		else {
+			rebuf = vout.get_arg('rebuffer');
+		}
+		if (rebuf>0) {
+			let play_buf = audio_only ? aout.get_arg('buffer') : vout.get_arg('buffer');
+			let pc = Math.floor(100 * buffer / play_buf);
+			str += ' - rebuffering ' + pc + ' %';
+		} else {
+			str += ' - buffer ' + Math.floor(f.ipid_props(0, 'buffer')/1000) + ' ms';
+		}
 		stats.push(str);
 	}
 

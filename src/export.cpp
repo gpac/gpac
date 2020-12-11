@@ -2289,6 +2289,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_from_cicp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_name_from_cicp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_layout_from_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_cicp_from_layout) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_shortnames) )

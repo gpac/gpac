@@ -383,9 +383,9 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		u32 tsdepth=0;
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 
-		odm->buffer_playout_us = scene->compositor->buf * 1000;
-		odm->buffer_min_us = scene->compositor->rbuf * 1000;
-		odm->buffer_max_us = scene->compositor->mbuf * 1000;
+		odm->buffer_playout_us = scene->compositor->buffer * 1000;
+		odm->buffer_min_us = scene->compositor->rbuffer * 1000;
+		odm->buffer_max_us = scene->compositor->mbuffer * 1000;
 
 		//check the same on the pid
 		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_PLAY_BUFFER);

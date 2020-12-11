@@ -520,11 +520,11 @@ max_aspeed (dbl, default: 2.0, updatable): silence audio if playback speed is gr
 .br
 max_vspeed (dbl, default: 4.0, updatable): move to i-frame only decoding if playback speed is greater than sepcified value
 .br
-buf (uint, default: 3000, updatable): playout buffer in ms. overridden by BufferLenth property of input pid
+buffer (uint, default: 3000, updatable): playout buffer in ms. overridden by BufferLenth property of input pid
 .br
-rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. overridden by RebufferLenth property of input pid
+rbuffer (uint, default: 1000, updatable): rebuffer trigger in ms. overridden by RebufferLenth property of input pid
 .br
-mbuf (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid
+mbuffer (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid
 .br
 ntpsync (uint, default: 0, updatable): ntp resync threshold in ms (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop
 .br
@@ -3207,7 +3207,13 @@ buffer (uint, default: 200):   set playout buffer in ms
 .br
 mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
+rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering
+.br
 adelay (frac, default: 0, updatable): set audio delay in sec
+.br
+buffer_done (bool):            buffer done indication (readonly)
+.br
+rebuffer (luint):              time at which rebuffer started, 0 if not rebuffering (readonly)
 .br
 
 .br
@@ -3325,11 +3331,17 @@ buffer (uint, default: 100):   set playout buffer in ms
 .br
 mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
+rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering
+.br
 dumpframes (uintl):            ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames
 .br
 out (str, default: dump):      radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT
 .br
 owsize (v2di):                 output window size (readonly)
+.br
+buffer_done (bool):            buffer done indication (readonly)
+.br
+rebuffer (luint):              time at which rebuffer started, 0 if not rebuffering (readonly)
 .br
 
 .br
@@ -7094,7 +7106,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev350-g9b9c8cfb8-master
+build: 1.1.0-DEV-rev355-g67ae77d0b-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

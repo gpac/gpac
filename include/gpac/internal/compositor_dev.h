@@ -299,7 +299,7 @@ struct __tag_compositor
 	Bool amc, async;
 	u32 asr, ach, alayout, afmt, asize, avol, apan, abuf;
 	Double max_aspeed, max_vspeed;
-	u32 buf, rbuf, mbuf, ntpsync;
+	u32 buffer, rbuffer, mbuffer, ntpsync;
 	
 	u32 ogl, mode2d;
 

@@ -37,7 +37,7 @@ typedef struct
 	Bool clock;
 	GF_Fraction64 dur;
 	Double speed, start;
-	u32 vol, pan, buffer, mbuffer;
+	u32 vol, pan, buffer, mbuffer, rbuffer;
 	GF_Fraction adelay;
 	
 	GF_FilterPid *pid;
@@ -62,6 +62,7 @@ typedef struct
 	Bool buffer_done, no_buffering;
 	u64 hwdelay_us, totaldelay_us;
 
+	u64 rebuffer;
 	Bool do_seek;
 } GF_AudioOutCtx;
 
@@ -229,6 +230,20 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 				return 0;
 		}
 		ctx->buffer_done = GF_TRUE;
+		if (ctx->rebuffer) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] rebuffer done in "LLU" ms\n", (u32) ( (gf_sys_clock_high_res() - ctx->rebuffer) /1000) ));
+			ctx->rebuffer = 0;
+		}
+	} else if (ctx->rbuffer && !ctx->rebuffer) {
+		//query full buffer duration in us
+		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		if ((dur < ctx->rbuffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u less than min threshold %u, rebuffering\n", (u32) (dur/1000), ctx->rbuffer));
+			ctx->rebuffer = gf_sys_clock_high_res();
+			ctx->buffer_done = GF_FALSE;
+			return GF_OK;
+		}
+
 	}
 	//do not throw underflow log util first packet is fetched
 	if (ctx->first_write_done)
@@ -615,7 +630,10 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(adelay), "set audio delay in sec", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(rebuffer), "time at which rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 
