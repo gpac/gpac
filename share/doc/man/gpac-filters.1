@@ -1783,7 +1783,9 @@ lowlat (enum, default: early): segment scheduling policy in low latency mode
 .br
 
 .br
-forward (enum, default: none): segment forwarding mode  -see filter help- none: regular DASH read
+forward (enum, default: none): segment forwarding mode  -see filter help
+.br
+* none: regular DASH read
 .br
 * file: do not demux files and forward them as file pids (imply segstore=mem)
 .br
@@ -4575,6 +4577,8 @@ llhls (enum, default: off):    HLS low latency type
 .br
 * sf: use separated files for segment parts
 .br
+* brsf: generate two sets of manifest, one for byte-range and one for files (_IF added before extension of manifest)
+.br
 
 .br
 
@@ -7090,7 +7094,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev342-g0675ef3b3-master
+build: 1.1.0-DEV-rev350-g9b9c8cfb8-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
