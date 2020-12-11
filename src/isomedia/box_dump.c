@@ -5102,27 +5102,26 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"0x%X\"/>\n", ptr->version, ptr->flags);
 	for (i=0; i<sample_count; i++) {
 		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+		if (!cenc_sample) break;
 		if (cenc_sample->isNotProtected) continue;
 
-		if (cenc_sample) {
-			gf_fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);
-			if (cenc_sample->IV_size) {
-				gf_fprintf(trace, " IV=\"");
-				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
-				gf_fprintf(trace, "\"");
-			}
-			if (ptr->flags & 0x2) {
-				gf_fprintf(trace, " SubsampleCount=\"%d\"", cenc_sample->subsample_count);
-				gf_fprintf(trace, ">\n");
-
-				for (j=0; j<cenc_sample->subsample_count; j++) {
-					gf_fprintf(trace, "<SubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
-				}
-			} else {
-				gf_fprintf(trace, ">\n");
-			}
-			gf_fprintf(trace, "</SampleEncryptionEntry>\n");
+		gf_fprintf(trace, "<SampleEncryptionEntry sampleNumber=\"%d\" IV_size=\"%u\"", i+1, cenc_sample->IV_size);
+		if (cenc_sample->IV_size) {
+			gf_fprintf(trace, " IV=\"");
+			dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
+			gf_fprintf(trace, "\"");
 		}
+		if (ptr->flags & 0x2) {
+			gf_fprintf(trace, " SubsampleCount=\"%d\"", cenc_sample->subsample_count);
+			gf_fprintf(trace, ">\n");
+
+			for (j=0; j<cenc_sample->subsample_count; j++) {
+				gf_fprintf(trace, "<SubSampleEncryptionEntry NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", cenc_sample->subsamples[j].bytes_clear_data, cenc_sample->subsamples[j].bytes_encrypted_data);
+			}
+		} else {
+			gf_fprintf(trace, ">\n");
+		}
+		gf_fprintf(trace, "</SampleEncryptionEntry>\n");
 	}
 	if (!ptr->size) {
 		gf_fprintf(trace, "<SampleEncryptionEntry sampleCount=\"\" IV=\"\" SubsampleCount=\"\">\n");

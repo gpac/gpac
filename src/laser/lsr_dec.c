@@ -4497,12 +4497,12 @@ static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVG_Element *el
 static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32 fieldType, void *rep_val, u32 idx, Bool is_insert, Bool is_com, u32 *single_field_type)
 {
 	Fixed *f_val;
-	SVG_Point *pt;
 	SVG_Number num;
 
 	switch (fieldType) {
 	case SVG_Points_datatype/*ITYPE_point*/:
 	{
+		SVG_Point *pt;
 		ListOfXXX *res;
 		GF_SAFEALLOC(res, ListOfXXX);
 		if (!res) return NULL;

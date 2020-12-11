@@ -4009,7 +4009,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_MH3D_MHM1:
 	case GF_ISOM_SUBTYPE_MH3D_MHM2:
 	{
-		GF_ESD *esd = gf_media_map_esd(movie, track, 1);
+		esd = gf_media_map_esd(movie, track, 1);
 		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
 			|| !esd->decoderConfig->decoderSpecificInfo->data
 		) {

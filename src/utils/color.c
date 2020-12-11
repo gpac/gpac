@@ -2119,7 +2119,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	dst_w = dst_wnd ? dst_wnd->w : dst->width;
 	dst_h = dst_wnd ? dst_wnd->h : dst->height;
 
-	if (!src_w || !src_w || !dst_w || !dst_h)
+	if (!src_w || !src_h || !dst_w || !dst_h)
 		return GF_OK;
 		
 	if (yuv_planar_type && (src_w%2)) src_w++;

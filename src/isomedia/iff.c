@@ -1422,6 +1422,8 @@ import_next_sample:
 
 	}
 
+	image_props->cenc_info = NULL;
+
 	gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
 	gf_isom_reset_alt_brands(movie);
 	// TODO Analyze configuration to determine the brand */
@@ -1447,7 +1449,7 @@ exit:
 	if (sai) gf_free(sai);
 	gf_isom_sample_del(&sample);
 	if (config_box) gf_isom_box_del(config_box);
-	if (orig_ipro) image_props->cenc_info = orig_ipro;
+	image_props->cenc_info = orig_ipro;
 	return e;
 
 
