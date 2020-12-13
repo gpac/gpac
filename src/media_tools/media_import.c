@@ -402,6 +402,13 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
 	if (e) goto exit;
 
+
+	if ((gf_isom_get_track_count(import->dest)==1) && gf_isom_has_keep_utc_times(import->dest)) {
+		u64 cdate, mdate;
+		gf_isom_get_creation_time(import->orig, &cdate, &mdate);
+		gf_isom_set_creation_time(import->dest, cdate, mdate);
+	}
+
 	di = 1;
 
 	if (import->esd && import->esd->ESID) {
@@ -1068,6 +1075,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	char szSubArg[1024];
 	char szFilterID[20];
 	Bool source_id_set = GF_FALSE;
+	Bool source_is_isom = GF_FALSE;
 	GF_Filter *isobmff_mux, *source;
 	GF_Filter *filter_orig;
 	char *ext;
@@ -1092,6 +1100,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		magic <<= 32;
 		magic |= (importer->source_magic & 0xFFFFFFFFUL);
 		importer->source_magic = magic;
+		source_is_isom = GF_TRUE;
 		if ((!importer->filter_chain && !importer->filter_dst_opts && !importer->run_in_session)
 			|| (importer->flags & GF_IMPORT_PROBE_ONLY)
 		) {
@@ -1273,6 +1282,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { e |= gf_dynstrcat(&args, "ase=v0s", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { e |= gf_dynstrcat(&args, "ase=v1", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { e |= gf_dynstrcat(&args, "ase=v1qt", ":"); }
+
+	if (source_is_isom && gf_isom_has_keep_utc_times(importer->dest) ) { e |= gf_dynstrcat(&args, "keep_utc", ":"); }
 
 	if (e) {
 		gf_fs_del(fsess);

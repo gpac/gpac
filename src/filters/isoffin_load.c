@@ -889,6 +889,14 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (avcc) gf_odf_avc_cfg_del(avcc);
 			if (svcc) gf_odf_avc_cfg_del(svcc);
 		}
+
+		if (!gf_sys_is_test_mode()) {
+			u64 create_date, modif_date;
+			gf_isom_get_creation_time(read->mov, &create_date, &modif_date);
+			gf_filter_pid_set_property_str(ch->pid, "isom:creation_date", &PROP_LONGUINT(create_date));
+			gf_filter_pid_set_property_str(ch->pid, "isom:modification_date", &PROP_LONGUINT(modif_date));
+		}
+
 	}
 
 	//all stsd specific init/reconfig

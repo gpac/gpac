@@ -208,7 +208,7 @@ typedef struct
 	Bool m4sys, dref;
 	GF_Fraction idur;
 	u32 pack3gp, ctmode;
-	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf;
+	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc;
 	u32 xps_inband;
 	u32 block_size;
 	u32 store, tktpl, mudta;
@@ -1122,6 +1122,20 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MUX_INDEX);
 		if (p) {
 			tk_idx = p->value.uint;
+		}
+
+		if (ctx->keep_utc) {
+			if (!gf_isom_get_track_count(ctx->file)) {
+				u64 create_date=0, modif_date=0;
+				p = gf_filter_pid_get_property_str(tkw->ipid, "isom:creation_date");
+				if (p && (p->type==GF_PROP_LUINT)) create_date = p->value.longuint;
+				p = gf_filter_pid_get_property_str(tkw->ipid, "isom:modification_date");
+				if (p && (p->type==GF_PROP_LUINT)) modif_date = p->value.longuint;
+
+				if (create_date && modif_date)
+					gf_isom_set_creation_time(ctx->file, create_date, modif_date);
+			}
+			gf_isom_keep_utc_times(ctx->file, GF_TRUE);
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_TEMPLATE);
@@ -5973,6 +5987,9 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			"- strict: only inject recognized itunes tags\n"
 			"- all: inject all possible tags"
 			, GF_PROP_UINT, "strict", "none|strict|all", GF_FS_ARG_HINT_EXPERT},
+
+	{ OFFS(keep_utc), "force all new files and tracks to keep the source UTC creation and modification times", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+
 	{0}
 };
 

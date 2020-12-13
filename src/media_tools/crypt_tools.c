@@ -455,7 +455,8 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 
 static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, const char *fragment_name, u32 fs_dump_flags)
 {
-	char szArgs[4096];
+	char *szArgs = NULL;
+	char an_arg[100];
 	GF_Filter *src, *dst, *dcrypt;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
@@ -466,40 +467,52 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Failed to create filter session\n"));
 		return GF_OUT_OF_MEM;
 	}
-	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
+
+	sprintf(an_arg, "mp4dmx:mov=%p", mp4);
+	gf_dynstrcat(&szArgs, an_arg, NULL);
 	if (fragment_name) {
-		strcat(szArgs, ":sigfrag:catseg=");
-		strcat(szArgs, fragment_name);
+		gf_dynstrcat(&szArgs, ":sigfrag:catseg=", NULL);
+		gf_dynstrcat(&szArgs, fragment_name, NULL);
 	}
 	src = gf_fs_load_filter(fsess, szArgs, &e);
+	gf_free(szArgs);
+	szArgs = NULL;
+
 	if (!src) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load demux filter for source file\n"));
 		return e;
 	}
 
-	sprintf(szArgs, "cdcrypt:FID=1:cfile=%s", drm_file);
+	gf_dynstrcat(&szArgs, "cdcrypt:FID=1:cfile=", NULL);
+	gf_dynstrcat(&szArgs, drm_file, NULL);
 	dcrypt = gf_fs_load_filter(fsess, szArgs, &e);
+	gf_free(szArgs);
+	szArgs = NULL;
 	if (!dcrypt) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load decryptor filter\n"));
 		return e;
 	}
 
-	sprintf(szArgs, "SID=1");
+	gf_dynstrcat(&szArgs, "SID=1", NULL);
 	if (fragment_name) {
-		strcat(szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000");
+		gf_dynstrcat(&szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000", NULL);
 	} else {
 		if (interleave_time) {
-			char an_arg[100];
 			sprintf(an_arg, ":cdur=%g", interleave_time);
-			strcat(szArgs, an_arg);
+			gf_dynstrcat(&szArgs, an_arg, NULL);
 		} else {
-			strcat(szArgs, ":store=flat");
+			gf_dynstrcat(&szArgs, ":store=flat", NULL);
 		}
 	}
+	if (gf_isom_has_keep_utc_times(mp4))
+		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
+	gf_free(szArgs);
+	szArgs = NULL;
+
 	if (!dst) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load destination muxer\n"));
@@ -622,6 +635,9 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 			gf_dynstrcat(&szArgs, ":store=flat", NULL);
 		}
 	}
+
+	if (gf_isom_has_keep_utc_times(mp4))
+		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
 	arg_dst = gf_url_colon_suffix(dst_file);
 	if (arg_dst) {

@@ -401,28 +401,38 @@ typedef struct __track_import
 	/*! filter chain to insert before destination, formated as "f1[:args]@f2[:args]" options to pass to sink*/
 	const char *filter_chain;
 
-
+	/*! force mode for the created  ISOBMFF sample entry*/
 	GF_AudioSampleEntryImportMode asemode;
-
+	/*! set audio roll using audio_roll below*/
 	Bool audio_roll_change;
+	/*! audio_roll distance */
 	s16 audio_roll;
 
+	/*! indicate to tag the imported media as an alpha channel stream*/
 	Bool is_alpha;
+	/*! keep AU delimiter in file if allowed by specification*/
 	Bool keep_audelim;
+	/*! import as NAL-based video using inband parameter sets*/
 	u32 xps_inband;
+	/*! flag for session stats and graph dumping*/
 	u32 print_stats_graph;
+	/*! target program ID of source MPEG-2 stream to import*/
 	u32 prog_id;
+
+	/*! target timescale to set*/
+	s32 moov_timescale;
 
 	/*magic number for identifying source, will be set to the destination track. Only the low 32 bits are used
 	the high 32 bits are updated by the importer as follows:
 		1<<33: if bit is set, source was an isobmff file
 	*/
 	u64 source_magic;
+	/*! the session in which to add the importer (for -new-fs option only). If null, the importer runs its own session right away*/
 	GF_FilterSession *run_in_session;
+	/*! muxer arguments when running multiple importers in one session*/
 	char *update_mux_args;
+	/*! index of source importer when running multiple importers in one session*/
 	u32 track_index;
-
-	s32 moov_timescale;
 } GF_MediaImporter;
 
 /*!
@@ -1075,6 +1085,14 @@ void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, const char *dash_utc_sta
 \return error if any
 */
 GF_Err gf_dasher_print_session_info(GF_DASHSegmenter *dasher, u32 fs_print_flags);
+
+/*!
+ Keeps UTC creation and modification dates from sources, if any (default is no)
+\param dasher the DASH segmenter object
+\param keep_utc if GF_TRUE, keeps UTC times
+\return error if any
+*/
+GF_Err gf_dasher_keep_source_utc(GF_DASHSegmenter *dasher, Bool keep_utc);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!

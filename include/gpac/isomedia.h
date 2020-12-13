@@ -787,6 +787,16 @@ u64 gf_isom_get_original_duration(GF_ISOFile *isom_file);
 */
 GF_Err gf_isom_get_creation_time(GF_ISOFile *isom_file, u64 *creationTime, u64 *modificationTime);
 
+
+/*! gets the creation info of the movie
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param creationTime set to the creation time of the movie
+\param modificationTime set to the modification time of the movie
+\return error if any
+*/
+GF_Err gf_isom_get_track_creation_time(GF_ISOFile *isom_file, u32 trackNumber, u64 *creationTime, u64 *modificationTime);
+
 /*! gets the ID of a track
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -1632,6 +1642,12 @@ GF_Err gf_isom_freeze_order(GF_ISOFile *isom_file);
 */
 void gf_isom_keep_utc_times(GF_ISOFile *isom_file, Bool keep_utc);
 
+/*! Checks if UTC keeping is enabled
+\param isom_file the target ISO file
+\return GF_TRUE if UTC keeping is enabled
+*/
+Bool gf_isom_has_keep_utc_times(GF_ISOFile *file);
+
 /*! sets the timescale of the movie. This rescales times expressed in movie timescale in edit lists and mvex boxes
 \param isom_file the target ISO file
 \param timeScale the target timescale
@@ -1704,20 +1720,22 @@ typedef enum
 */
 GF_Err gf_isom_set_track_flags(GF_ISOFile *isom_file, u32 trackNumber, u32 flags, GF_ISOMTrackFlagOp op);
 
-/*! sets creationTime and modificationTime of the movie to the specified date
+/*! sets creationTime and modificationTime of the movie to the specified dates (no validty check)
 \param isom_file the target ISO file
-\param time the new time
+\param create_time the new creation time
+\param modif_time the new modification time
 \return error if any
 */
-GF_Err gf_isom_set_creation_time(GF_ISOFile *isom_file, u64 time);
+GF_Err gf_isom_set_creation_time(GF_ISOFile *isom_file, u64 create_time, u64 modif_time);
 
-/*! sets creationTime and modificationTime of the track to the specified date
+/*! sets creationTime and modificationTime of the track to the specified dates
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param time the new time
+\param create_time the new creation time
+\param modif_time the new modification time
 \return error if any
 */
-GF_Err gf_isom_set_track_creation_time(GF_ISOFile *isom_file,u32 trackNumber, u64 time);
+GF_Err gf_isom_set_track_creation_time(GF_ISOFile *isom_file,u32 trackNumber, u64 create_time, u64 modif_time);
 
 /*! changes the ID of a track - all track references present in the file are updated
 \param isom_file the target ISO file

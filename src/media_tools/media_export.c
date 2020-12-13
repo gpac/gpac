@@ -394,6 +394,12 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 	newTk = gf_isom_new_track(outfile, TrackID, gf_isom_get_media_type(infile, inTrackNum), gf_isom_get_media_timescale(infile, inTrackNum));
 	gf_isom_set_track_enabled(outfile, newTk, GF_TRUE);
 
+	if (gf_isom_has_keep_utc_times(infile)) {
+		u64 cdate, mdate;
+		gf_isom_get_track_creation_time(infile, inTrackNum, &cdate, &mdate);
+		gf_isom_set_track_creation_time(outfile, newTk, cdate, mdate);
+	}
+
 	if (esd) {
 		gf_isom_new_mpeg4_description(outfile, newTk, esd, NULL, NULL, &descIndex);
 		if ((esd->decoderConfig->streamType == GF_STREAM_VISUAL) || (esd->decoderConfig->streamType == GF_STREAM_SCENE)) {
@@ -568,6 +574,11 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 		gf_isom_set_pl_indication(outfile, GF_ISOM_PL_OD, 0xFF);
 		gf_isom_set_pl_indication(outfile, GF_ISOM_PL_MPEGJ, 0xFF);
 	}
+	if (gf_isom_has_keep_utc_times(dumper->file)) {
+		u64 cdate, mdate;
+		gf_isom_get_creation_time(dumper->file, &cdate, &mdate);
+		gf_isom_set_creation_time(outfile, cdate, mdate);
+	}
 
 	e = gf_export_isom_copy_track(dumper, dumper->file, track, outfile, 1, add_to_iod);
 	if (!add_to_iod) {
@@ -576,6 +587,10 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 			gf_isom_remove_track_from_root_od(outfile, i+1);
 		}
 	}
+
+	if (gf_isom_has_keep_utc_times(dumper->file))
+		gf_isom_keep_utc_times(outfile, GF_TRUE);
+
 	if (e) gf_isom_delete(outfile);
 	else gf_isom_close(outfile);
 
