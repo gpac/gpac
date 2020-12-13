@@ -1695,6 +1695,14 @@ Non built-in properties are parsed as follows:
 .br
 - TYPE@FOO will be parsed according to TYPE. If the type is not recognized, the entire value is copied as string. See gpac -h props for defined types.
 .br
+
+.br
+User-assigned PID properties on filter fA will be inherited by all filters dynamically loaded to solve fA -> fB connection.
+.br
+If fB also has user-assigned PID properties, these only apply starting from fB in the chain and are not inherited by filters between fA and fB.
+.br
+
+.br
 Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break the session by overriding core properties such as width/height/samplerate/... !
 .br
 Example
@@ -3927,7 +3935,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev355-g67ae77d0b-master
+build: 1.1.0-DEV-rev357-g1ddbb50d1-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

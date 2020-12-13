@@ -336,7 +336,10 @@ const char *gpac_doc =
 "- `bxml@FOO` will be declared as data with a value set to the binarized content of `FOO`.\n"
 "- `FOO` will be declared as string with a value set to `FOO`.\n"
 "- `TYPE@FOO` will be parsed according to `TYPE`. If the type is not recognized, the entire value is copied as string. See `gpac -h props` for defined types.\n"
-
+"\n"
+"User-assigned PID properties on filter `fA` will be inherited by all filters dynamically loaded to solve `fA -> fB` connection.\n"
+"If `fB` also has user-assigned PID properties, these only apply starting from `fB` in the chain and are not inherited by filters between fA and fB.\n"
+"\n"
 "Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break "
 "the session by overriding core properties such as width/height/samplerate/... !\n"
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"

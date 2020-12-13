@@ -160,6 +160,54 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 	return res;
 }
 
+/*push arguments from source and dest into the final argument string. We strip the following
+- FID: will be inherited from last explicit filter in the chain
+- SID: is cloned during the resolution while loading the filter chain
+- user-assigned PID properties on destination (they only apply after the destination, not in the new chain).
+
+Note that user-assigned PID properties assigned on source are inherited so that
+	-i SRC:#PidProp=PidVal -o dst
+
+will have all intermediate filters loaded for the resolution (eg demux) set this property.
+
+*/
+static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_args, Bool is_src, Bool first_sep_inserted)
+{
+	char szSep[2];
+	Bool prev_is_db_sep = GF_FALSE;
+	szSep[0] = fsess->sep_args;
+	szSep[1] = 0;
+	while (in_args) {
+		char *sep = strchr(in_args, fsess->sep_args);
+		if (sep) sep[0] = 0;
+
+		if (!strncmp(in_args, "FID", 3) && (in_args[3]==fsess->sep_name)) {
+		}
+		else if (!strncmp(in_args, "SID", 3) && (in_args[3]==fsess->sep_name)) {
+		}
+		else if (!is_src && (in_args[0]==fsess->sep_frag)) {
+
+		} else {
+			if (*out_args && !first_sep_inserted) {
+				gf_dynstrcat(out_args, szSep, NULL);
+				if (prev_is_db_sep)
+					gf_dynstrcat(out_args, szSep, NULL);
+			}
+			gf_dynstrcat(out_args, in_args, NULL);
+			first_sep_inserted = GF_FALSE;
+		}
+		if (!sep) break;
+		sep[0] = fsess->sep_args;
+		in_args = sep+1;
+		prev_is_db_sep = GF_FALSE;
+		if (in_args[0] == fsess->sep_args) {
+			in_args ++;
+			prev_is_db_sep = GF_TRUE;
+		}
+	}
+
+}
+
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target, Bool is_dynamic_filter)
 {
 	char szName[200];
@@ -249,8 +297,9 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		u32 nb_db_sep=0, src_arg_len;
 		char szDBSep[3];
 		Bool insert_escape = GF_FALSE;
+		Bool dst_sep_inserted = GF_FALSE;
 		u32 len = 2 + (u32) strlen(src_striped) + (u32) strlen(dst_striped);
-		//source has a URL (locat or not), escape it to make sure we don't pass dst args as params to the URL
+		//source has a URL (local or not), escape it to make sure we don't pass dst args as params to the URL
 		if ((strstr(src_striped, "src=") || strstr(src_striped, "dst=")) && strstr(src_striped, "://")){
 			char szEscape[10];
 			sprintf(szEscape, "%cgpac", fsess->sep_args);
@@ -272,7 +321,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		if (nb_db_sep % 2) nb_db_sep=1;
 		else nb_db_sep=0;
 
-		all_args = gf_malloc(sizeof(char)*(len+nb_db_sep));
 		if (!nb_db_sep) {
 			szDBSep[1] = 0;
 		}
@@ -282,12 +330,23 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 			szDBSep[0] = 0;
 		}
 
-		if (insert_escape) {
-			sprintf(all_args, "%s%sgpac%c%s", src_striped, szDBSep, fsess->sep_args, dst_striped);
-		} else {
-			sprintf(all_args, "%s%s%s", src_striped, szDBSep, dst_striped);
+		//push src args
+		all_args = NULL;
+		filter_push_args(fsess, &all_args, (char *) src_striped, GF_TRUE, GF_FALSE);
+
+		if (all_args && insert_escape) {
+			gf_dynstrcat(&all_args, szDBSep, NULL);
+			gf_dynstrcat(&all_args, "gpac", NULL);
+			dst_sep_inserted = GF_TRUE;
+		} else if (all_args) {
+			gf_dynstrcat(&all_args, szDBSep, NULL);
+			dst_sep_inserted = GF_TRUE;
 		}
-		localarg_marker = strstr(all_args, "gfloc");
+		//push dst args
+		filter_push_args(fsess, &all_args, (char *) dst_striped, GF_FALSE, dst_sep_inserted);
+
+
+		localarg_marker = all_args ? strstr(all_args, "gfloc") : NULL;
 		if (localarg_marker) {
 			localarg_marker[0]=0;
 			if (strlen(all_args) && (localarg_marker[-1]==fsess->sep_args))
@@ -318,7 +377,8 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		}
 		return NULL;
 	}
-	if (filter && src_striped) filter->orig_args = gf_strdup(src_striped);
+	if (filter && src_striped)
+		filter->orig_args = gf_strdup(src_striped);
 
 	for (i=0; i<freg->nb_caps; i++) {
 		if (freg->caps[i].flags & GF_CAPFLAG_OUTPUT) {
@@ -1333,6 +1393,7 @@ skip_date:
 			value++;
 		}
 
+		//arg is a PID property assignment
 		if (szArg[0] == filter->session->sep_frag) {
 			filter->user_pid_props = GF_TRUE;
 			goto skip_arg;
