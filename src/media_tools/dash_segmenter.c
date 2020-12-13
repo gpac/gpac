@@ -115,6 +115,7 @@ struct __gf_dash_segmenter
 	u32 print_stats_graph;
 	s32 dash_filter_idx_plus_one;
 	u32 last_prog;
+	Bool keep_utc;
 };
 
 
@@ -309,6 +310,14 @@ GF_Err gf_dasher_print_session_info(GF_DASHSegmenter *dasher, u32 fs_print_flags
 
 }
 
+GF_EXPORT
+GF_Err gf_dasher_keep_source_utc(GF_DASHSegmenter *dasher, Bool keep_utc)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	dasher->keep_utc = keep_utc;
+	return GF_OK;
+
+}
 
 GF_EXPORT
 GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool use_ssix)
@@ -768,6 +777,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	if (dasher->merge_last_seg)
 		e |= gf_dynstrcat(&args, "last_seg_merge", ":");
+
+	if (dasher->keep_utc)
+		e |= gf_dynstrcat(&args, "keep_utc", ":");
 
 	//finally append profiles/info/etc with double separators as these may contain ':'
 	if (dasher->dash_profile_extension) {

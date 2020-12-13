@@ -338,7 +338,7 @@ const char *gpac_doc =
 "- `TYPE@FOO` will be parsed according to `TYPE`. If the type is not recognized, the entire value is copied as string. See `gpac -h props` for defined types.\n"
 "\n"
 "User-assigned PID properties on filter `fA` will be inherited by all filters dynamically loaded to solve `fA -> fB` connection.\n"
-"If `fB` also has user-assigned PID properties, these only apply starting from `fB` in the chain and are not inherited by filters between fA and fB.\n"
+"If `fB` also has user-assigned PID properties, these only apply starting from `fB` in the chain and are not inherited by filters between `fA` and `fB`.\n"
 "\n"
 "Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break "
 "the session by overriding core properties such as width/height/samplerate/... !\n"

@@ -5030,6 +5030,10 @@ int mp4boxMain(int argc, char **argv)
 				gf_isom_freeze_order(file);
 		}
 
+		if (file && keep_utc && open_edit) {
+			gf_isom_keep_utc_times(file, 1);
+		}
+
 		if (do_flat && interleaving_time) {
 			char szSubArg[100];
 			gf_isom_set_storage_mode(file, GF_ISOM_STORE_FASTSTART);
@@ -5366,7 +5370,8 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_last_segment_merge(dasher, merge_last_seg);
 		if (!e) e = gf_dasher_set_hls_clock(dasher, hls_clock);
 		if (!e && dash_cues) e = gf_dasher_set_cues(dasher, dash_cues, strict_cues);
-		if (!e && fs_dump_flags) e = gf_dasher_print_session_info(dasher, fs_dump_flags);
+		if (!e) e = gf_dasher_print_session_info(dasher, fs_dump_flags);
+		if (!e)  e = gf_dasher_keep_source_utc(dasher, keep_utc);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
@@ -5615,7 +5620,7 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 
-	if (file && keep_utc && open_edit) {
+	if (file && keep_utc) {
 		gf_isom_keep_utc_times(file, 1);
 	}
 
@@ -6525,9 +6530,9 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	if (movie_time) {
-		gf_isom_set_creation_time(file, movie_time);
+		gf_isom_set_creation_time(file, movie_time, movie_time);
 		for (i=0; i<gf_isom_get_track_count(file); i++) {
-			gf_isom_set_track_creation_time(file, i+1, movie_time);
+			gf_isom_set_track_creation_time(file, i+1, movie_time, movie_time);
 		}
 		needSave = GF_TRUE;
 	}

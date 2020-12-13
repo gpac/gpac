@@ -940,6 +940,18 @@ GF_Err gf_isom_get_creation_time(GF_ISOFile *movie, u64 *creationTime, u64 *modi
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_track_creation_time(GF_ISOFile *movie, u32 trackNumber, u64 *creationTime, u64 *modificationTime)
+{
+	GF_TrackBox *trak;
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return 0;
+
+	if (creationTime) *creationTime = trak->Media->mediaHeader->creationTime;
+	if (creationTime) *modificationTime = trak->Media->mediaHeader->modificationTime;
+	return GF_OK;
+}
 
 //check the presence of a track in IOD. 0: NO, 1: YES, 2: ERROR
 GF_EXPORT
@@ -4523,6 +4535,14 @@ void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc)
 	if (!file) return;
 	file->keep_utc = keep_utc;
 }
+
+GF_EXPORT
+Bool gf_isom_has_keep_utc_times(GF_ISOFile *file)
+{
+	if (!file) return GF_FALSE;
+	return file->keep_utc;
+}
+
 
 
 GF_EXPORT
