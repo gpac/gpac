@@ -229,6 +229,7 @@ typedef struct _dash_stream
 	u32 sr, nb_ch;
 	const char *lang;
 	Bool interlaced;
+	Bool hls_intra_only;
 	const GF_PropertyValue *p_role;
 	const GF_PropertyValue *p_period_desc;
 	const GF_PropertyValue *p_as_desc;
@@ -793,6 +794,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_PROP(GF_PROP_PID_REP_DESC, ds->p_rep_desc, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_BASE_URL, ds->p_base_url, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_ROLE, ds->p_role, GF_EOS)
+		CHECK_PROP_BOOL(GF_PROP_PID_INTRA_ONLY, ds->hls_intra_only, GF_EOS)
 		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_SINGLE_SCALE, ds->sscale, GF_EOS)
 
@@ -4959,6 +4961,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//not setup, create new AS
 		ds->set = gf_mpd_adaptation_set_new();
 		ds->owns_set = GF_TRUE;
+		ds->set->hls_intra_only = ds->hls_intra_only;
 		if (ctx->llhls) {
 			ds->set->use_hls_ll = GF_TRUE;
 			if (ctx->cdur.den)
@@ -7808,6 +7811,7 @@ GF_FilterRegister DasherRegister = {
 "- Template: overrides segmenter [-template]() for this PID\n"
 "- DashDur: overrides segmenter segment duration for this PID\n"
 "- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
+"- IntraOnly: indicates input pid follows HLS EXT-X-I-FRAMES-ONLY guidelines\n"
 "- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 "  \n"
 "EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"

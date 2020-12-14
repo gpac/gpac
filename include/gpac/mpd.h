@@ -714,6 +714,8 @@ typedef struct
 	/*! max number of valid chunks in smooth manifest*/
 	u32 smooth_max_chunks;
 
+	/*! HLS EXTRA-ONLY trick mode*/
+	Bool hls_intra_only;
 	/*! adaptation set uses HLS LL*/
 	Bool use_hls_ll;
 	/*! target part (cmaf chunk) duration for HLS LL*/
