@@ -1202,11 +1202,11 @@ This will pass UDP://IP:PORT/:someopt=VAL to opt1 without inspecting it, and VAL
 .br
   
 .br
-A filter may be assigned a name (for inspection purposes) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
+A filter may be assigned a name (for inspection purposes, not inherited) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
 .br
   
 .br
-A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution.
+A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution. Tags are not inherited, therefore dynamically loaded filters never have a tag.
 .br
   
 .br
@@ -1578,7 +1578,7 @@ src=file.mp4 dst=file.aac:OPTFOO:gfloc:OPTBAR dst=file.264
 .br
 
 .br
-This will pass the :OPTFOO to all filters loaded between file.mp4source and file.aac destination, but not OPTBAR
+This will pass :OPTFOO to all filters loaded between file.mp4source and file.aac destination, but not OPTBAR
 .br
 Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.
 .br
@@ -1595,7 +1595,7 @@ This will warn if OPTFOO is not consumed, but will not track OPTBAR.
 .SH URL templating
 .LP
 .br
-Destination URLs can be templated using the same mechanism as MPEG-DASH, where $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with N zeros if needed. $$ is an escape for $
+Destination URLs can be templated using the same mechanism as MPEG-DASH, where $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with up to N zeros if needed.
 .br
 KEYWORD is case sensitive, and may be present multiple times in the string. Supported KEYWORD are:
 .br
@@ -1613,9 +1613,11 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
 * OTHER: locates property 4CC for the given name, or property name if no 4CC matches.
 .br
-
-.br
   
+.br
+$$ is an escape for $
+.br
+
 .br
 Templating can be useful when encoding several qualities in one pass.
 .br
@@ -1663,11 +1665,11 @@ In this case, the encoder will be cloned for each video PIDs in the source, and 
 .SH Templating filter chains
 .LP
 .br
-There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :cloneoption is not enough since the muxer will always accept the input PIDs.
+There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :clone option is not enough since the muxer will always accept the input PIDs.
 .br
 To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.
 .br
-Warning: This feature should only be called with a single property set to * per source ID, results are undefined otherwise.
+Warning: This feature should only be called with a single property set to * (or empty) per source ID, results are undefined otherwise.
 .br
 Example
 .br
@@ -1800,7 +1802,7 @@ Defined keywords:
 .br
 * $GSHARE: replaced by system path to GPAC shared directory (e.g. /usr/share/gpac)
 .br
-* $GJS: replaced by the first path from global share directory and set through .I -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
+* $GJS: replaced by the first path from global share directory and paths set through .I -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
 .br
 * $GLANG: replaced by the global config language option .I -lang
 .br
@@ -3940,7 +3942,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev359-gdcd7c11e5-master
+build: 1.1.0-DEV-rev360-g6680ea709-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

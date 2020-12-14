@@ -163,6 +163,8 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 /*push arguments from source and dest into the final argument string. We strip the following
 - FID: will be inherited from last explicit filter in the chain
 - SID: is cloned during the resolution while loading the filter chain
+- TAG: TAG is never inherited
+- local options: by definition these options only apply to the loaded filter, and are never inherited
 - user-assigned PID properties on destination (they only apply after the destination, not in the new chain).
 
 Note that user-assigned PID properties assigned on source are inherited so that
@@ -181,9 +183,15 @@ static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_
 		char *sep = strchr(in_args, fsess->sep_args);
 		if (sep) sep[0] = 0;
 
+		if (!strncmp(in_args, "gfloc", 5) && (!in_args[5] || (in_args[5]==fsess->sep_args))) {
+			if (sep) sep[0] = fsess->sep_args;
+			return;
+		}
 		if (!strncmp(in_args, "FID", 3) && (in_args[3]==fsess->sep_name)) {
 		}
 		else if (!strncmp(in_args, "SID", 3) && (in_args[3]==fsess->sep_name)) {
+		}
+		else if (!strncmp(in_args, "TAG", 3) && (in_args[3]==fsess->sep_name)) {
 		}
 		else if (!is_src && (in_args[0]==fsess->sep_frag)) {
 
@@ -205,7 +213,6 @@ static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_
 			prev_is_db_sep = GF_TRUE;
 		}
 	}
-
 }
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target, Bool is_dynamic_filter)
@@ -1488,11 +1495,6 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//generic encoder load
-			else if (!strcmp("c", szArg)) {
-				found = GF_TRUE;
-				internal_arg = GF_TRUE;
-			}
 			//filter name
 			else if (!strcmp("N", szArg)) {
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT) || (arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE)) {
@@ -1501,8 +1503,15 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//prefered registry to use
-			else if (!strcmp("gfreg", szArg)) {
+			//internal options, nothing to do here
+			else if (
+				//generic encoder load
+				!strcmp("c", szArg)
+				//prefered registry to use
+				|| !strcmp("gfreg", szArg)
+				//non inherited options
+				|| !strcmp("gfloc", szArg)
+			) {
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
