@@ -1872,6 +1872,9 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	//not the same roles
 	if (!dasher_same_roles(ds, ds_test)) return GF_FALSE;
 
+	//intra-only trick mode belongs to a separate AS
+	if (ds->hls_intra_only != ds_test->stream_type) return GF_FALSE;
+
 	/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 	   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
 	if (!ds->p_as_desc && ds_test->p_as_desc)
