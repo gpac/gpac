@@ -1357,6 +1357,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_CLAMP_DUR, "ClampDur", "Max media duration to process from pid in DASH mode", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "Name of the HLS variant playlist for this media", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HLS_GROUPID, "HLSGroup", "Name of HLS Group of a stream", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_INTRA_ONLY, "IntraOnly", "Indicates the media contains intra frames only (SAP=1)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_CUE, "DCue", "Name of a cue list file for this pid - see dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_SEGMENTS, "DSegs", "Number of DASH segments defined by the DASH cue info", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CODEC, "Codec", "codec parameter string to force. If starting with '.', appended to ISOBMF code point; otherwise replace the codec string", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},

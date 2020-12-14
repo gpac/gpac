@@ -1195,7 +1195,7 @@ GF_Err reframer_process(GF_Filter *filter)
 					reframer_purge_queues(ctx, ts, st->timescale);
 				}
 
-				//packet in range and global context not yet in range, mark which SAP will be the begining of our range
+				//packet in range and global context not yet in range, mark which SAP will be the beginning of our range
 				if (!ctx->in_range && (pck_in_range==1)) {
 					if (ctx->xround==REFRAME_ROUND_CLOSEST) {
 						Bool cur_closer = GF_FALSE;
