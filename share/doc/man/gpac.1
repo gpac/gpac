@@ -704,6 +704,11 @@ insert query string (without ?) to URL on requests
 force using threads for async download requests rather than session scheduler
 .br
 .TP
+.B \-cte-rate-wnd (int, default: 20)
+.br
+set window analysis length in milliseconds for chunk-transfer encoding rate estimation
+.br
+.TP
 .B \-dbg-edges
 .br
 log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
@@ -3935,7 +3940,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev358-g15119f209-master
+build: 1.1.0-DEV-rev359-gdcd7c11e5-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
