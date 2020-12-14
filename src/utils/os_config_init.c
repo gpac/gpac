@@ -1217,6 +1217,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("user-profile", NULL, "set user profile filename. Content of file is appended as body to HTTP HEAD/GET requests, associated Mime is **text/xml**", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("query-string", NULL, "insert query string (without `?`) to URL on requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("dm-threads", NULL, "force using threads for async download requests rather than session scheduler", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("cte-rate-wnd", NULL, "set window analysis length in milliseconds for chunk-transfer encoding rate estimation", "20", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 
  GF_DEF_ARG("dbg-edges", NULL, "log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot be linked", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
