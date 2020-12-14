@@ -1569,6 +1569,7 @@ static int gpac_main(int argc, char **argv)
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
 	GF_FilterSession *tmp_sess;
+	Bool alias_is_play = GF_FALSE;
 	Bool has_xopt = GF_FALSE;
 	helpout = stdout;
 
@@ -1598,6 +1599,8 @@ static int gpac_main(int argc, char **argv)
 			char *arg = argv[i];
 			if (gf_opts_get_key("gpac.alias", arg) != NULL) {
 				has_alias = GF_TRUE;
+				if (!strcmp(arg, "-play"))
+					alias_is_play = GF_TRUE;
 				break;
 			}
 		}
@@ -2198,7 +2201,7 @@ restart:
 		}
 		gpac_print_report(session, GF_FALSE, GF_TRUE);
 	}
-	gf_fs_print_non_connected(session);
+	gf_fs_print_non_connected_ex(session, alias_is_play);
 
 exit:
 	if (enable_reports==2) {
