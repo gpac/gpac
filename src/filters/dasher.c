@@ -229,7 +229,6 @@ typedef struct _dash_stream
 	u32 sr, nb_ch;
 	const char *lang;
 	Bool interlaced;
-	Bool hls_intra_only;
 	const GF_PropertyValue *p_role;
 	const GF_PropertyValue *p_period_desc;
 	const GF_PropertyValue *p_as_desc;
@@ -794,7 +793,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_PROP(GF_PROP_PID_REP_DESC, ds->p_rep_desc, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_BASE_URL, ds->p_base_url, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_ROLE, ds->p_role, GF_EOS)
-		CHECK_PROP_BOOL(GF_PROP_PID_INTRA_ONLY, ds->hls_intra_only, GF_EOS)
 		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_SINGLE_SCALE, ds->sscale, GF_EOS)
 
@@ -1873,7 +1871,7 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	if (!dasher_same_roles(ds, ds_test)) return GF_FALSE;
 
 	//intra-only trick mode belongs to a separate AS
-	if (ds->hls_intra_only != ds_test->stream_type) return GF_FALSE;
+	if (ds->has_sync_points != ds_test->has_sync_points) return GF_FALSE;
 
 	/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 	   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
@@ -4964,7 +4962,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//not setup, create new AS
 		ds->set = gf_mpd_adaptation_set_new();
 		ds->owns_set = GF_TRUE;
-		ds->set->hls_intra_only = ds->hls_intra_only;
+		ds->set->hls_intra_only = !ds->has_sync_points;
 		if (ctx->llhls) {
 			ds->set->use_hls_ll = GF_TRUE;
 			if (ctx->cdur.den)
