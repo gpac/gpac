@@ -5721,7 +5721,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!file) {
 			fprintf(stderr, "Cannot print info on a non ISOM file (%s)\n", inName);
 		} else {
-			if (info_track_id) DumpTrackInfo(file, info_track_id, 1, (print_info==2) ? GF_TRUE : GF_FALSE);
+			if (info_track_id) DumpTrackInfo(file, info_track_id, 1, (print_info==2) ? GF_TRUE : GF_FALSE, GF_FALSE);
 			else DumpMovieInfo(file);
 		}
 	}
@@ -6576,7 +6576,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_CRYPTO
 	if (crypt) {
-		if (!drm_file) {
+		if (!drm_file && (crypt==1) ) {
 			fprintf(stderr, "Missing DRM file location - usage '-%s drm_file input_file\n", (crypt==1) ? "crypt" : "decrypt");
 			e = GF_BAD_PARAM;
 			goto err_exit;

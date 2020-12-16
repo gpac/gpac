@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -9509,23 +9509,74 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		GF_CENCSampleEncryptionGroupEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_CENCSampleEncryptionGroupEntry);
 		if (!ptr) return NULL;
-		gf_bs_read_u8(bs); //reserved
+		Bool use_mkey = gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 7); //reserved
 		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
 		ptr->IsProtected = gf_bs_read_u8(bs);
-		ptr->Per_Sample_IV_size = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, (char *)ptr->KID, 16);
-		*total_bytes = 20;
-		if ((ptr->IsProtected == 1) && !ptr->Per_Sample_IV_size) {
-			ptr->constant_IV_size = gf_bs_read_u8(bs);
-			if ((ptr->constant_IV_size != 8) && (ptr->constant_IV_size != 16)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] seig sample group have invalid constant_IV size\n"));
+		if (use_mkey) {
+			u64 pos = gf_bs_get_position(bs);
+			u32 i, count = gf_bs_read_u16(bs);
+			for (i=0; i<count; i++) {
+				u8 ivsize = gf_bs_read_u8(bs);
+				gf_bs_skip_bytes(bs, 16);
+				if (!ivsize) {
+					//const IV
+					ivsize = gf_bs_read_u8(bs);
+					gf_bs_skip_bytes(bs, ivsize);
+				}
+			}
+			ptr->key_info_size = 1 + (u32) (gf_bs_get_position(bs) - pos);
+			ptr->key_info = gf_malloc(sizeof(u8) * ptr->key_info_size);
+			if (!ptr->key_info) {
 				gf_free(ptr);
 				return NULL;
 			}
-			gf_bs_read_data(bs, (char *)ptr->constant_IV, ptr->constant_IV_size);
-			*total_bytes += 1 + ptr->constant_IV_size;
+			gf_bs_seek(bs, pos);
+			ptr->key_info[0] = 1;
+			gf_bs_read_data(bs, ptr->key_info + 1, ptr->key_info_size - 1);
+			*total_bytes = 3 + ptr->key_info_size;
+
+			if (!gf_cenc_validate_key_info(ptr->key_info, ptr->key_info_size)) {
+				gf_free(ptr->key_info);
+				gf_free(ptr);
+				return NULL;
+			}
+		} else {
+			bin128 kid;
+			u8 const_iv_size = 0;
+			u8 iv_size = gf_bs_read_u8(bs);
+			gf_bs_read_data(bs, kid, 16);
+			*total_bytes = 20;
+			if ((ptr->IsProtected == 1) && !iv_size) {
+				const_iv_size = gf_bs_read_u8(bs);
+				if ((const_iv_size != 8) && (const_iv_size != 16)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] seig sample group have invalid constant_IV size\n"));
+					gf_free(ptr);
+					return NULL;
+				}
+			}
+			ptr->key_info_size = 20;
+			if (!iv_size && ptr->IsProtected) {
+				ptr->key_info_size += 1 + const_iv_size;
+			}
+			ptr->key_info = gf_malloc(sizeof(u8) * ptr->key_info_size);
+			if (!ptr->key_info) {
+				gf_free(ptr);
+				return NULL;
+			}
+			ptr->key_info[0] = 0;
+			ptr->key_info[1] = 0;
+			ptr->key_info[2] = 0;
+			ptr->key_info[3] = iv_size;
+			memcpy(ptr->key_info+4, kid, 16);
+			if (!iv_size && ptr->IsProtected) {
+				ptr->key_info[20] = const_iv_size;
+				gf_bs_read_data(bs, (char *)ptr->key_info+21, const_iv_size);
+				*total_bytes += 1 + const_iv_size;
+			}
 		}
+
 		if (!entry_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] seig sample group does not indicate entry size, deprecated in spec\n"));
 		}
@@ -9628,10 +9679,16 @@ static void	sgpd_del_entry(u32 grouping_type, void *entry)
 	case GF_ISOM_SAMPLE_GROUP_ROLL:
 	case GF_ISOM_SAMPLE_GROUP_PROL:
 	case GF_ISOM_SAMPLE_GROUP_RAP:
-	case GF_ISOM_SAMPLE_GROUP_SEIG:
 	case GF_ISOM_SAMPLE_GROUP_TELE:
 	case GF_ISOM_SAMPLE_GROUP_SAP:
 		gf_free(entry);
+		return;
+	case GF_ISOM_SAMPLE_GROUP_SEIG:
+	{
+		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
+		if (seig->key_info) gf_free(seig->key_info);
+		gf_free(entry);
+	}
 		return;
 	case GF_ISOM_SAMPLE_GROUP_OINF:
 		gf_isom_oinf_del_entry(entry);
@@ -9673,16 +9730,26 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 		gf_bs_write_int(bs, 0, 7);
 		return;
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
-		gf_bs_write_u8(bs, 0x0);
-		gf_bs_write_int(bs, ((GF_CENCSampleEncryptionGroupEntry*)entry)->crypt_byte_block, 4);
-		gf_bs_write_int(bs, ((GF_CENCSampleEncryptionGroupEntry*)entry)->skip_byte_block, 4);
-		gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected);
-		gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size);
-		gf_bs_write_data(bs, (char *)((GF_CENCSampleEncryptionGroupEntry *)entry)->KID, 16);
-		if ((((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size) {
-			gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size);
-			gf_bs_write_data(bs, (char *)((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV, ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size);
+	{
+		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
+		Bool use_mkey = seig->key_info[0];
+		u32 nb_keys = 1;
+		if (use_mkey) {
+			nb_keys = seig->key_info[1];
+			nb_keys<<=8;
+			nb_keys |= seig->key_info[2];
 		}
+		gf_bs_write_int(bs, use_mkey ? 1 : 0, 1);
+		gf_bs_write_int(bs, 0, 7);
+		gf_bs_write_int(bs, seig->crypt_byte_block, 4);
+		gf_bs_write_int(bs, seig->skip_byte_block, 4);
+		gf_bs_write_u8(bs, seig->IsProtected);
+		if (nb_keys>1) {
+			gf_bs_write_data(bs, seig->key_info+1, seig->key_info_size-1);
+		} else {
+			gf_bs_write_data(bs, seig->key_info+3, seig->key_info_size - 3);
+		}
+	}
 		return;
 	case GF_ISOM_SAMPLE_GROUP_OINF:
 		gf_isom_oinf_write_entry(entry, bs);
@@ -9719,7 +9786,14 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 	case GF_ISOM_SAMPLE_GROUP_STSA:
 		return 0;
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
-		return ((((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size) ? 21 + ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size : 20;
+	{
+		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
+		Bool use_mkey = seig->key_info[0] ? GF_TRUE : GF_FALSE;
+		if (use_mkey) {
+			return 3 + seig->key_info_size-1;
+		}
+		return seig->key_info_size; //== 3 + (seig->key_info_size-3);
+	}
 	case GF_ISOM_SAMPLE_GROUP_OINF:
 		return gf_isom_oinf_size_entry(entry);
 	case GF_ISOM_SAMPLE_GROUP_LINF:

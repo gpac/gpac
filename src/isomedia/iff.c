@@ -1000,13 +1000,13 @@ GF_Box *ienc_box_new()
 void ienc_box_del(GF_Box *a)
 {
 	GF_ItemEncryptionPropertyBox *p = (GF_ItemEncryptionPropertyBox *)a;
-	if (p->keys) gf_free(p->keys);
+	if (p->key_info) gf_free(p->key_info);
 	gf_free(p);
 }
 
 GF_Err ienc_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 i;
+	u32 nb_keys;
 	GF_ItemEncryptionPropertyBox *p = (GF_ItemEncryptionPropertyBox *)s;
 
 	ISOM_DECREASE_SIZE(p, 3)
@@ -1017,41 +1017,27 @@ GF_Err ienc_box_read(GF_Box *s, GF_BitStream *bs)
 		p->skip_byte_block = gf_bs_read_int(bs, 4);
 		p->crypt_byte_block = gf_bs_read_int(bs, 4);
 	}
-	p->num_keys = gf_bs_read_u8(bs);
-	if (p->num_keys * (sizeof(bin128)+1) > p->size)
+	nb_keys = gf_bs_read_u8(bs);
+	if (nb_keys * (sizeof(bin128)+1) > p->size)
 		return GF_NON_COMPLIANT_BITSTREAM;
-	p->keys = gf_malloc(sizeof(IENCKeyInfo) * p->num_keys);
-	if (!p->keys) return GF_OUT_OF_MEM;
-
-	for (i=0; i<p->num_keys; i++) {
-		ISOM_DECREASE_SIZE(p, 17)
-		p->keys[i].per_sample_IV_size = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, p->keys[i].KeyID, 16);
-		if (!p->keys[i].per_sample_IV_size) {
-			ISOM_DECREASE_SIZE(p, 1)
-			p->keys[i].constant_IV_size = gf_bs_read_u8(bs);
-			switch (p->keys[i].constant_IV_size) {
-			case 0:
-			case 8:
-			case 16:
-				break;
-			default:
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
-			ISOM_DECREASE_SIZE(p, p->keys[i].constant_IV_size)
-			gf_bs_read_data(bs, p->keys[i].constant_IV, p->keys[i].constant_IV_size);
-		} else {
-			p->keys[i].constant_IV_size = 0;
-		}
-	}
+	p->key_info_size = 3+p->size;
+	p->key_info = gf_malloc(sizeof(u8) * p->key_info_size);
+	if (!p->key_info) return GF_OUT_OF_MEM;
+	p->key_info[0] = 1;
+	p->key_info[1] = 0;
+	p->key_info[2] = nb_keys;
+	gf_bs_read_data(bs, p->key_info+3, p->size);
+	p->size = 0;
+	if (!gf_cenc_validate_key_info(p->key_info, p->key_info_size))
+		return GF_ISOM_INVALID_FILE;
 	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err ienc_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 i;
 	GF_Err e;
+	u32 nb_keys;
 	GF_ItemEncryptionPropertyBox *p = (GF_ItemEncryptionPropertyBox*)s;
 	if (p->skip_byte_block || p->crypt_byte_block)
 		p->version = 1;
@@ -1064,34 +1050,74 @@ GF_Err ienc_box_write(GF_Box *s, GF_BitStream *bs)
 	} else {
 		gf_bs_write_u8(bs, 0);
 	}
-	gf_bs_write_u8(bs, p->num_keys);
-	for (i = 0; i < p->num_keys; i++) {
-		gf_bs_write_u8(bs, p->keys[i].per_sample_IV_size);
-		gf_bs_write_data(bs, p->keys[i].KeyID, sizeof(bin128));
-		if (!p->keys[i].per_sample_IV_size) {
-			gf_bs_write_u8(bs, p->keys[i].constant_IV_size);
-			gf_bs_write_data(bs, p->keys[i].constant_IV, p->keys[i].constant_IV_size);
+	if (p->key_info[0]) {
+		if (p->key_info[1]) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Too many keys for ienc box, max is 255)\n"))
+			return GF_BAD_PARAM;
 		}
+		nb_keys = p->key_info[2];
+	} else {
+		nb_keys = 1;
 	}
+	gf_bs_write_u8(bs, nb_keys);
+	gf_bs_write_data(bs, p->key_info+3, p->key_info_size-3);
 	return GF_OK;
 }
 
 GF_Err ienc_box_size(GF_Box *s)
 {
-	u32 i;
 	GF_ItemEncryptionPropertyBox *p = (GF_ItemEncryptionPropertyBox*)s;
-
-	p->size += 3;
-	for (i=0; i<p->num_keys; i++) {
-		p->size += 17;
-		if (!p->keys[i].per_sample_IV_size)
-			p->size += 1 + p->keys[i].constant_IV_size;
-	}
+	if (!p->key_info || (p->key_info_size<19))
+		return GF_BAD_PARAM;
+	p->size += 3 + p->key_info_size-3;
 	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+GF_Box *iaux_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AuxiliaryInfoPropertyBox, GF_ISOM_BOX_TYPE_IAUX);
+	return (GF_Box *)tmp;
+}
+
+void iaux_box_del(GF_Box *a)
+{
+	gf_free(a);
+}
+
+GF_Err iaux_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AuxiliaryInfoPropertyBox *p = (GF_AuxiliaryInfoPropertyBox *)s;
+
+	ISOM_DECREASE_SIZE(p, 8)
+	p->aux_info_type = gf_bs_read_u32(bs);
+	p->aux_info_parameter = gf_bs_read_u32(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err iaux_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AuxiliaryInfoPropertyBox *p = (GF_AuxiliaryInfoPropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, p->aux_info_type);
+	gf_bs_write_u32(bs, p->aux_info_parameter);
+	return GF_OK;
+}
+
+GF_Err iaux_box_size(GF_Box *s)
+{
+	GF_AuxiliaryInfoPropertyBox *p = (GF_AuxiliaryInfoPropertyBox*)s;
+	p->size += 8;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -1366,13 +1392,13 @@ import_next_sample:
 		Bool Is_Encrypted;
 
 		memset(&ipro, 0, sizeof(GF_ImageItemProtection));
-		gf_isom_get_cenc_info(movie, imported_track, sample_desc_index, NULL, &ipro.scheme_type, &ipro.scheme_version, NULL);
-		e = gf_isom_get_sample_cenc_info(movie, imported_track, sample_desc_index, &Is_Encrypted, &ipro.IV_size, &ipro.KID, &ipro.crypt_byte_block, &ipro.skip_byte_block, &ipro.constant_IV_size, &ipro.constant_IV);
+		gf_isom_get_cenc_info(movie, imported_track, sample_desc_index, NULL, &ipro.scheme_type, &ipro.scheme_version);
+		e = gf_isom_get_sample_cenc_info(movie, imported_track, sample_desc_index, &Is_Encrypted, &ipro.crypt_byte_block, &ipro.skip_byte_block, &ipro.key_info, &ipro.key_info_size);
 		if (e) goto exit;
 
 		if (Is_Encrypted) {
 			sai_size = sai_alloc_size;
-			e = gf_isom_cenc_get_sample_aux_info_buffer(movie, imported_track, sample_number, sample_desc_index, NULL, &sai, &sai_size);
+			e = gf_isom_cenc_get_sample_aux_info(movie, imported_track, sample_number, sample_desc_index, NULL, &sai, &sai_size);
 			if (e) goto exit;
 
 			if (sai_size > sai_alloc_size)

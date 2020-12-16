@@ -1728,6 +1728,62 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	if (p4cc==GF_PROP_PID_DOWNLOAD_SESSION)
 		return;
 
+	if (p4cc==GF_PROP_PID_CENC_KEY_INFO) {
+		u32 i, nb_keys, kpos;
+		u8 *data;
+		if (ctx->xml) {
+			if (ctx->dtype)
+				gf_fprintf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
+			gf_fprintf(dump, " %s=\"", pname);
+		} else {
+			if (ctx->dtype) {
+				gf_fprintf(dump, "\t%s (%s): ", pname, gf_props_get_type_name(att->type));
+			} else {
+				gf_fprintf(dump, "\t%s: ", pname);
+			}
+		}
+		data = att->value.data.ptr;
+		nb_keys = 1;
+		if (data[0]) {
+			nb_keys = data[1];
+			nb_keys <<= 8;
+			nb_keys |= data[2];
+		}
+		if (nb_keys>1) gf_fprintf(dump, "[");
+		kpos = 3;
+		for (i=0; i<nb_keys; i++) {
+			u32 j;
+			bin128 KID;
+			u8 iv_size = data[kpos];
+			memcpy(KID, data+kpos+1, 16);
+			gf_fprintf(dump, "IV_size:%d,KID:0x", iv_size);
+			for (j=0; j<16; j++) {
+				gf_fprintf(dump, "%02X", (unsigned char) data[kpos + 1 + j]);
+			}
+			kpos+=17;
+			if (!iv_size) {
+				iv_size = data[kpos];
+				gf_fprintf(dump, ",const_IV_size:%d", iv_size);
+				if (iv_size) {
+					gf_fprintf(dump, ",const_IV:0x");
+					for (j=0; j<iv_size; j++) {
+						gf_fprintf(dump, "%02X", (unsigned char) data[kpos + 1 + j]);
+					}
+				}
+				kpos += iv_size+1;
+			}
+		}
+
+		if (nb_keys>1) gf_fprintf(dump, "]");
+		if (ctx->xml) {
+			gf_fprintf(dump, "\"");
+		} else {
+			gf_fprintf(dump, "\n");
+		}
+
+		return;
+	}
+
 	if (gf_sys_is_test_mode() || ctx->test) {
 		switch (p4cc) {
 		case GF_PROP_PID_FILEPATH:

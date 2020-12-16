@@ -1825,6 +1825,20 @@ When the file is set per PID, the first CryptInfo with the same ID is used, othe
 .br
 cfile (str):                   crypt file location - see filter help
 .br
+decrypt (enum, default: full): decrypt mode (CENC only)
+.br
+* full: decrypt everything, throwing error if keys are not found
+.br
+* nokey: decrypt everything for which a key is found, skip decryption otherwise
+.br
+* skip: decrypt nothing
+.br
+
+.br
+drop_keys (uintl):             consider keys with given 1-based indexes as not available (multi-key debug)
+.br
+drop_kids (strl):              consider keys with given KID (as hex string) as not available (debug)
+.br
 
 .br
 .SH cecrypt
@@ -7108,7 +7122,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev360-g6680ea709-master
+build: 1.1.0-DEV-rev362-g3e0d0a086-buildbot-cencmkey
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

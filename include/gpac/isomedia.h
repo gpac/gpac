@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -4308,14 +4308,14 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *isom_file, GF_ISOTrackID TrackID
 /*! sets side information for common encryption for the last added sample
 \param isom_file the target ISO file
 \param trackID the ID of the target track
-\param IV_size the size of the init vector (8 or 16 bytes)
 \param sai_b buffer containing the SAI information of the sample
-\param sai_b_size size of the SAI buffer. If sai_b is NULL, this indicates the original sample size, and an SAI will be created describing the proper byte ranges if use_subsample is set
+\param sai_b_size size of the SAI buffer. If sai_b is NULL or sai_b_size is 0, add a clear SAI data
 \param use_subsample indicates if the media uses CENC subsamples
 \param use_saio_32bit indicates if 32-bit saio shall be used
+\param use_multikey indicates if multikey is in use (required to tag saiz/saio boxes)
 \return error if any
 */
-GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsample, Bool use_saio_32bit);
+GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u8 *sai_b, u32 sai_b_size, Bool use_subsample, Bool use_saio_32bit, Bool use_multikey);
 /*! clones PSSH data between two files
 \param dst_file the target ISO file
 \param src_file the source ISO file
@@ -5169,30 +5169,6 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 */
 GF_Err gf_isom_get_original_format_type(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat);
 
-/*! CENC subsample entry*/
-typedef struct
-{
-	/*! size of bytes in clear - 16 bit stored but we use 32*/
-	u32 bytes_clear_data;
-	/*! size of bytes encrypted*/
-	u32 bytes_encrypted_data;
-} GF_CENCSubSampleEntry;
-
-/*! CENC auxiliary info*/
-typedef struct __cenc_sample_aux_info
-{
- 	/*! IV size: 0, 8 or 16; it MUST NOT be written to file*/
-	u8 IV_size;
- 	/*! flag set if sample is clear - it MUST NOT be written to file*/
-	u8 isNotProtected;
- 	/*! IV can be 0, 64 or 128 bits - if 64, bytes 0-7 are used and 8-15 are 0-padded*/
-	bin128 IV;
-	/*! number of subsamples*/
-	u16 subsample_count;
-	/*! subsamples*/
-	GF_CENCSubSampleEntry *subsamples;
-} GF_CENCSampleAuxInfo;
-
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*! creates ISMACryp protection info for a sample description
@@ -5254,30 +5230,36 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 sa
 */
 GF_Err gf_isom_set_generic_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 scheme_type, u32 scheme_version, char *scheme_uri, char *kms_URI);
 
-/*! allocates storage for CENC side data in a senc or UUID box
+/*! allocates storage for CENC side data in a senc box
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param container_type the code of the container (currently 'senc' for CENC or 'PSEC' for smooth)
+\return error if any
+*/
+GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *isom_file, u32 trackNumber);
+
+/*! allocates storage for CENC side data in a PIFF senc UUID box
+\param isom_file the target ISO file
+\param trackNumber the target track
 \param AlgorithmID algorith ID, usually 0
 \param IV_size the size of the init vector
 \param KID the default Key ID
 \return error if any
 */
-GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *isom_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID);
+GF_Err gf_isom_piff_allocate_storage(GF_ISOFile *isom_file, u32 trackNumber, u32 AlgorithmID, u8 IV_size, bin128 KID);
+
 
 /*! adds cenc SAI for the last sample added to a track
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param container_type the code of the container (currently 'senc' for CENC or 'PSEC' for smooth)
-\param IV_size the size of the init vector
 \param buf the SAI buffer
-\param len the size of the SAI buffer. If buf is NULL but len is given, this adds an unencrypted entry. otherwise, buf && len represent the sai cenc info to add
+\param len the size of the SAI buffer. If buf is NULL or len is 0, this adds an unencrypted entry (not writtent to file)
 \param use_subsamples if GF_TRUE, the media format uses CENC subsamples
-\param clear_IV the IV used for clear samples (when buf is null)
 \param use_saio_32bit forces usage of 32-bit saio boxes
+\param is_multi_key indicates if multi key is in use (required to tag saio and saiz boxes)
 \return error if any
 */
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *isom_file, u32 trackNumber, u32 container_type, u8 IV_size, u8 *buf, u32 len, Bool use_subsamples, u8 *clear_IV, Bool use_saio_32bit);
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *isom_file, u32 trackNumber, u32 container_type, u8 *buf, u32 len, Bool use_subsamples, Bool use_saio_32bit, Bool is_multi_key);
 
 
 
@@ -5288,18 +5270,35 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *isom_file, u32 trackNumber
 \param scheme_type 4CC of protection scheme (GF_ISOM_ISMACRYP_SCHEME = iAEC in ISMACryp 1.0)
 \param scheme_version version of protection scheme (1 in ISMACryp 1.0)
 \param default_IsEncrypted default isEncrypted flag
-\param default_IV_size default IV size flag
-\param default_KID default key ID used
 \param default_crypt_byte_block default crypt block size for pattern encryption
 \param default_skip_byte_block default skip block size for pattern encryption
-\param default_constant_IV_size default constant IV size
-\param default_constant_IV default constant IV
+\param key_info key descriptor formatted as a multi-key info (cf GF_PROP_PID_CENC_KEY)
+\param key_info_size key descriptor size
 \return error if any
 */
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size, bin128 default_KID,
-								   u8 default_crypt_byte_block, u8 default_skip_byte_block,
-								   u8 default_constant_IV_size, bin128 default_constant_IV);
+                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_crypt_byte_block, u8 default_skip_byte_block,
+								    u8 *key_info, u32 key_info_size);
+
+
+/*! creates CENC protection for a multi-key sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the sample description index
+\param scheme_type 4CC of protection scheme (GF_ISOM_ISMACRYP_SCHEME = iAEC in ISMACryp 1.0)
+\param scheme_version version of protection scheme (1 in ISMACryp 1.0)
+\param default_IsEncrypted default isEncrypted flag
+\param default_crypt_byte_block default crypt block size for pattern encryption
+\param default_skip_byte_block default skip block size for pattern encryption
+\param key_info key  info (cf CENC and GF_PROP_PID_CENC_KEY)
+\param key_info_size key info size
+\return error if any
+*/
+GF_Err gf_isom_set_cenc_protection_mkey(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 scheme_type,
+                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_crypt_byte_block, u8 default_skip_byte_block,
+								    u8 *key_info, u32 key_info_size);
+
+
 /*! adds PSSH info for a file, can be called several time per system ID
 \param isom_file the target ISO file
 \param systemID the ID of the protection system
@@ -5378,29 +5377,13 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDes
 \param outOriginalFormat set to orginal unprotected media format
 \param outSchemeType set to 4CC of protection scheme (GF_ISOM_ISMACRYP_SCHEME = iAEC in ISMACryp 1.0)
 \param outSchemeVersion set to version of protection scheme (1 in ISMACryp 1.0)
-\param outIVLength set to the IV size in bytes
 \return error if any
 */
-GF_Err gf_isom_get_cenc_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, u32 *outIVLength);
+GF_Err gf_isom_get_cenc_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion);
 
-/*! destroys a CENC sample auxiliary structure
-\param samp_aux_info the target auxiliary buffer
-*/
-void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
-
-/*! gets CENC auxiliary info of a sample
-\param isom_file the target ISO file
-\param trackNumber the target track
-\param sampleNumber the target sample
-\param sampleDescIndex the target sample description index
-\param sai set to the auxiliary info - shall be freeed by caller
-\param container_type set to type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC
-\return error if any
-*/
-GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, GF_CENCSampleAuxInfo **sai, u32 *container_type);
 
 /*! gets CENC auxiliary info of a sample as a buffer
-\note the serialized buffer format is IV on IV_size bytes, then subsample count if any an [clear_bytes(u16), crypt_bytes(u32)] subsamples
+\note the serialized buffer format is exactly a CencSampleAuxiliaryDataFormat
 
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -5411,7 +5394,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, 
 \param outSize set to the size of the serialized buffer. If an existing buffer was passed, the passed value shall be the allocated buffer size (the returned value is still the buffer size)
 \return error if any
 */
-GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, u32 *container_type, u8 **out_buffer, u32 *outSize);
+GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, u32 *container_type, u8 **out_buffer, u32 *outSize);
 
 /*! gets CENC default info for a sample description
 \param isom_file the target ISO file
@@ -5419,23 +5402,14 @@ GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *isom_file, u32 trackN
 \param sampleDescriptionIndex the sample description index
 \param container_type set to the container type of SAI data
 \param default_IsEncrypted set to default isEncrypted flag
-\param default_IV_size set to default IV size flag
-\param default_KID set to default key ID used
-\param constant_IV_size set to default constant IV size
-\param constant_IV set to default constant IV
 \param crypt_byte_block set to default crypt block size for pattern encryption
 \param skip_byte_block set to default skip block size for pattern encryption
+\param key_info set to multikey descriptor (cf CENC and GF_PROP_PID_CENC_KEY)
+\param key_info_size set to multikey descriptor size
+\return error if any
 */
-void gf_isom_cenc_get_default_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block);
+GF_Err gf_isom_cenc_get_default_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
-
-/*! checks if CENC protection uses pattern encryption
-\param isom_file the target ISO file
-\param trackNumber the target track
-\param sampleDescriptionIndex the sample description index
-\return GF_TRUE if protection uses pattern encryption
-*/
-Bool gf_isom_cenc_is_pattern_mode(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 /*! gets the number of PSSH defined
 \param isom_file the target ISO file
 \return number of PSSH defined
@@ -5478,16 +5452,13 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 
 \param trackNumber the target track
 \param sampleNumber the target sample number
 \param IsEncrypted set to GF_TRUE if the sample is encrypted, GF_FALSE otherwise (optional can be NULL)
-\param IV_size set to IV size in bytes used for the sample (optional can be NULL)
-\param KID set to key ID used for the sample (optional can be NULL)
 \param crypt_byte_block set to crypt block count for pattern encryption (optional can be NULL)
 \param skip_byte_block set to skip block count for pattern encryption (optional can be NULL)
-\param constant_IV_size set to constant IV size (optional can be NULL)
-\param constant_IV set to constant IV (optional can be NULL)
+\param key_info set to key descriptor (cf GF_PROP_PID_CENC_KEY)
+\param key_info_size set to key descriptor size
 \return error if any
 */
-GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV);
-
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 /*! @} */
 
@@ -5596,17 +5567,16 @@ GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *isom_file, Bool root_meta, u32 
 \param is_protected set to GF_TRUE if item is protected
 \param skip_byte_block set to skip_byte_block or 0 if no pattern
 \param crypt_byte_block set to crypt_byte_block or 0 if no pattern
-\param IV_size set to per-sample IV size, or 0 if constant IV
-\param KeyID set to sample KEY ID
-\param constant_IV_size set to constant IV size, or 0 if per-sample IV
-\param constant_IV set to constant IV used, not modified if per-sample IV
+\param key_info set to key info
+\param key_info_size set to key info size
+\param aux_info_type_parameter set to the CENC auxiliary type param of SAI data
 \param sai_out_data set to allocated buffer containing the item, shall be freeed by user - may be NULL to only retrieve the info
 \param sai_out_size set to the size of the allocated buffer - may be NULL if  sai_out_data is NULL
 \param sai_out_alloc_size set to the allocated size of the buffer (this allows passing an existing buffer without always reallocating it) - may be NULL if  sai_out_data is NULL
 \return error if any
 */
 GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_id, Bool *is_protected,
-	u8 *skip_byte_block, u8 *crypt_byte_block, u8 *IV_size, bin128 *KeyID, u8 *constant_IV_size, bin128 *constant_IV,
+	u8 *skip_byte_block, u8 *crypt_byte_block, const u8 **key_info, u32 *key_info_size, u32 *aux_info_type_parameter,
 	u8 **sai_out_data, u32 *sai_out_size, u32 *sai_out_alloc_size);
 
 /*! gets primary item ID
@@ -5636,12 +5606,10 @@ typedef struct
 {
 	u32 scheme_type;
 	u32 scheme_version;
-	u8 IV_size;
-	bin128 KID;
 	u8 crypt_byte_block;
 	u8 skip_byte_block;
-	u8 constant_IV_size;
-	bin128 constant_IV;
+	const u8 *key_info;
+	u32 key_info_size;
 	const u8 *sai_data;
 	u32 sai_data_size;
 } GF_ImageItemProtection;
@@ -6206,15 +6174,14 @@ GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *isom_file, u32 trackNumber, u32
 \param trackNumber the target track
 \param sampleNumber the target sample number
 \param isEncrypted isEncrypted flag
-\param IV_size IV size, can be 0 if not encrypted
-\param KeyID key ID used
 \param crypt_byte_block crypt block size for pattern encryption, can be 0
 \param skip_byte_block skip block size for pattern encryption, can be 0
-\param constant_IV_size constant IV size, can be 0
-\param constant_IV constant IV, can be 0
+\param key_info multikey descriptor (cf CENC and GF_PROP_PID_CENC_KEY)
+\param key_info_size multikey descriptor size
 \return error if any
 */
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u8 isEncrypted, u8 IV_size, bin128 KeyID, u8 crypt_byte_block, u8 skip_byte_block, u8 constant_IV_size, bin128 constant_IV);
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u8 isEncrypted, u8 crypt_byte_block, u8 skip_byte_block, u8 *key_info, u32 key_info_size);
+
 
 /*! sets a sample using the default CENC parameters in a CENC saig sample group SEIG, creating a sample group description if needed (when seig is already defined)
 \param isom_file the target ISO file

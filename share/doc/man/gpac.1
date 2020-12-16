@@ -2590,19 +2590,31 @@ PSSH blob for CENC, formatted as (u32)NbSystems [ (bin128)SystemID(u32)version(u
 CENC SAI for the packet, formated as (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]
 .br
 .TP
-.B KID (SKID,mem,  )
+.B KeyInfo (CBIV,mem,  )
 .br
-Key ID for packets of the PID - changes are signaled through pid_set_info (no reconfigure)
+Multi key info formatted as:
 .br
-.TP
-.B IVSize (SAIV,uint,  )
+ is_mkey(u8);
 .br
-IV size for packets of the PID
+nb_keys(u16);
 .br
-.TP
-.B ConstantIV (CBIV,mem,  )
+[
 .br
-Constant IV for packets of the PID
+	IV_size(u8);
+.br
+	KID(bin128);
+.br
+	if (!IV_size) {;
+.br
+		const_IV_size(u8);
+.br
+		constIV(const_IV_size);
+.br
+}
+.br
+]
+.br
+
 .br
 .TP
 .B CENCPattern (CPTR,frac,  )
@@ -3942,7 +3954,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev360-g6680ea709-master
+build: 1.1.0-DEV-rev362-g3e0d0a086-buildbot-cencmkey
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

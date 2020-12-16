@@ -1521,15 +1521,17 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 		p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
 		if (p) prot_scheme = p->value.uint;
 
-		if ((prot_scheme==GF_ISOM_CENC_SCHEME) || (prot_scheme==GF_ISOM_CBC_SCHEME) || (prot_scheme==GF_ISOM_CENS_SCHEME) || (prot_scheme==GF_ISOM_CBCS_SCHEME)) {
+		if ((prot_scheme==GF_ISOM_CENC_SCHEME) || (prot_scheme==GF_ISOM_CBC_SCHEME) || (prot_scheme==GF_ISOM_CENS_SCHEME) || (prot_scheme==GF_ISOM_CBCS_SCHEME)
+		) {
+			const GF_PropertyValue *ki;
 			u32 j, nb_pssh;
 			GF_XMLAttribute *att;
 			char szVal[GF_MAX_PATH];
 
 			ctx->use_cenc = GF_TRUE;
 
-			p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_KID);
-			if (!p) {
+			ki = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CENC_KEY_INFO);
+			if (!ki || !ki->value.data.ptr) {
 				continue;
 			}
 
@@ -1537,8 +1539,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:mp4protection:2011", gf_4cc_to_str(prot_scheme));
 			gf_list_add(res, desc);
 
-
-			get_canon_urn(p->value.data.ptr, sCan);
+			get_canon_urn(ki->value.data.ptr + 4, sCan);
 			att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
 			if (!desc->x_attributes) desc->x_attributes = gf_list_new();
 			gf_list_add(desc->x_attributes, att);

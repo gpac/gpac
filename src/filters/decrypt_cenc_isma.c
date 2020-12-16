@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -41,17 +41,32 @@ enum
 	DECRYPT_STATE_PLAY,
 };
 
+enum
+{
+	DECRYPT_FULL=0,
+	DECRYPT_NOKEY,
+	DECRYPT_SKIP,
+};
+
+typedef struct
+{
+	GF_Crypt *crypt;
+	bin128 key;
+	u32 key_valid;
+} CENCDecKey;
+
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;
 
-	GF_Crypt *crypt;
-	bin128 key, kid;
 	u32 state;
 	u32 pssh_crc;
 	u32 scheme_type, scheme_version;
 
 	GF_Err key_error;
+
+	CENCDecKey *crypts;
+	u32 nb_crypts;
 
 	//ISMA & OMA
 	char salt[8];
@@ -70,14 +85,22 @@ typedef struct
 	bin128 *KIDs;
 	bin128 *keys;
 
+	const GF_PropertyValue *cenc_ki;
+	u32 multikey;
+	const GF_PropertyValue *cenc_pattern;
+
 	/*adobe and CENC*/
 	Bool crypt_init;
+
+
 } GF_CENCDecStream;
 
 typedef struct
 {
 	const char *cfile;
-
+	Bool decrypt;
+	GF_PropUIntList drop_keys;
+	GF_PropStringList drop_kids;
 	GF_CryptInfo *cinfo;
 	
 	GF_List *streams;
@@ -217,7 +240,7 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	if (!strnicmp(kms_uri, "(key)", 5)) {
 		char data[100];
 		gf_base64_decode((char*) kms_uri+5, (u32)strlen(kms_uri)-5, data, 100);
-		memcpy(cstr->key, data, sizeof(char)*16);
+		memcpy(cstr->crypts[0].key, data, sizeof(char)*16);
 		memcpy(cstr->salt, data+16, sizeof(char)*8);
 	}
 	/*hexadecimal inband encoding*/
@@ -233,7 +256,7 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 			szT[0] = k[2*i];
 			szT[1] = k[2*i + 1];
 			sscanf(szT, "%X", &v);
-			cstr->key[i] = v;
+			cstr->crypts[0].key[i] = v;
 		}
 
 		k = (char *)kms_uri + 10 + 32;
@@ -272,7 +295,7 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 			}
 		};
 		memcpy(cstr->salt, mysalt, sizeof(char)*8);
-		memcpy(cstr->key, mykey, sizeof(char)*16);
+		memcpy(cstr->crypts[0].key, mykey, sizeof(char)*16);
 	}
 	cstr->state = DECRYPT_STATE_SETUP;
 
@@ -296,18 +319,18 @@ static GF_Err cenc_dec_access_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 		char IV[16];
 		if (cstr->state != DECRYPT_STATE_SETUP)
 			return GF_SERVICE_ERROR;
-		assert(!cstr->crypt);
+		assert(!cstr->crypts[0].crypt);
 
 		//if (!ctx->nb_allow_play) return GF_AUTHENTICATION_FAILURE;
 		//ctx->nb_allow_play--;
 
 		/*init decrypter*/
-		cstr->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
-		if (!cstr->crypt) return GF_IO_ERR;
+		cstr->crypts[0].crypt = gf_crypt_open(GF_AES_128, GF_CTR);
+		if (!cstr->crypts[0].crypt) return GF_IO_ERR;
 
 		memset(IV, 0, sizeof(char)*16);
 		memcpy(IV, cstr->salt, sizeof(char)*8);
-		e = gf_crypt_init(cstr->crypt, cstr->key, IV);
+		e = gf_crypt_init(cstr->crypts[0].crypt, cstr->crypts[0].key, IV);
 		if (e) return e;
 
 		cstr->state = DECRYPT_STATE_PLAY;
@@ -315,8 +338,8 @@ static GF_Err cenc_dec_access_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 	} else {
 		if (cstr->state != DECRYPT_STATE_PLAY)
 			return GF_SERVICE_ERROR;
-		if (cstr->crypt) gf_crypt_close(cstr->crypt);
-		cstr->crypt = NULL;
+		if (cstr->crypts[0].crypt) gf_crypt_close(cstr->crypts[0].crypt);
+		cstr->crypts[0].crypt = NULL;
 		cstr->state = DECRYPT_STATE_SETUP;
 		return GF_OK;
 	}
@@ -332,7 +355,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	u32 offset=0;
 	GF_FilterPacket *out_pck;
 	Bool is_encrypted=GF_FALSE;
-	if (!cstr->crypt)
+	if (!cstr->crypts[0].crypt)
 		return GF_SERVICE_ERROR;
 
 	if (! gf_filter_pck_get_crypt_flags(in_pck)) {
@@ -379,12 +402,12 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		gf_bs_write_data(bs, cstr->salt, 8);
 		gf_bs_write_u64(bs, (s64) count);
 		gf_bs_del(bs);
-		gf_crypt_set_IV(cstr->crypt, IV, 17);
+		gf_crypt_set_IV(cstr->crypts[0].crypt, IV, 17);
 
 		/*decrypt remain bytes*/
 		if (remain) {
 			char dummy[20];
-			gf_crypt_decrypt(cstr->crypt, dummy, remain);
+			gf_crypt_decrypt(cstr->crypts[0].crypt, dummy, remain);
 		}
 		cstr->last_IV = isma_BSO;
 	}
@@ -395,7 +418,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	memcpy(out_data, in_data, data_size);
 	/*decrypt*/
-	gf_crypt_decrypt(cstr->crypt, out_data, data_size);
+	gf_crypt_decrypt(cstr->crypts[0].crypt, out_data, data_size);
 	cstr->last_IV += data_size;
 
 	/*replace AVC start codes (0x00000001) by nalu size*/
@@ -461,12 +484,99 @@ static GF_Err cenc_dec_setup_oma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32
 }
 #endif
 
+static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
+{
+	bin128 blank_KID;
+	const u8 *key_info;
+	u32 key_info_size;
+	u32 i, j, kpos=3, nb_keys;
+	cstr->crypt_init = GF_FALSE;
+
+	//this can be NULL when set per sample and not at init
+	if (!cstr->cenc_ki)
+		return GF_OK;
+
+	memset(blank_KID, 0, 16);
+	key_info = cstr->cenc_ki->value.data.ptr;
+	key_info_size = cstr->cenc_ki->value.data.size;
+	if (key_info[0]) {
+		nb_keys = key_info[1];
+		nb_keys<<=8;
+		nb_keys |= key_info[2];
+	} else {
+		nb_keys = 1;
+	}
+	for (i=0; i<nb_keys; i++) {
+		Bool found = GF_FALSE;
+		u8 iv_size = key_info[kpos];
+		const u8 *KID = key_info + kpos+1;
+		kpos += 17;
+		if (!iv_size) {
+			iv_size = key_info[kpos];
+			kpos += 1 + iv_size;
+		}
+
+		cstr->crypts[i].key_valid = GF_TRUE;
+		if (ctx->drop_keys.nb_items) {
+			for (j=0; j<ctx->drop_keys.nb_items; j++) {
+				if (ctx->drop_keys.vals[j] == i+1) {
+					cstr->crypts[i].key_valid = GF_FALSE;
+					break;
+				}
+			}
+		}
+		if (ctx->drop_kids.nb_items) {
+			char szKID[33];
+			szKID[0] = 0;
+			for (j=0; j<16; j++) {
+				char szC[3];
+				sprintf(szC, "%02X", KID[j]);
+				strcat(szKID, szC);
+			}
+			for (j=0; j<ctx->drop_kids.nb_items; j++) {
+				char *kid_d = ctx->drop_kids.vals[j];
+				if (!strncmp(kid_d, "0x", 2)) kid_d+=2;
+				if (!stricmp(szKID, kid_d)) {
+					cstr->crypts[i].key_valid = GF_FALSE;
+					break;
+				}
+			}
+		}
+		if (!cstr->crypts[i].key_valid) continue;
+
+		for (j=0; j<cstr->KID_count; j++) {
+			if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
+				memcpy(cstr->crypts[i].key, cstr->keys[j], 16);
+				found = GF_TRUE;
+				if (ctx->decrypt==DECRYPT_SKIP) {
+					cstr->crypts[i].key_valid = GF_FALSE;
+				} else {
+					cstr->crypts[i].key_valid = GF_TRUE;
+				}
+				break;
+			}
+		}
+		if (!found) {
+			if (ctx->decrypt==DECRYPT_FULL) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot locate key #%d for given KID, abprting !\n\tUse '--decrypt=nokey' to force decrypting\n", i+1));
+				return cstr->key_error = GF_SERVICE_ERROR;
+			}
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannot locate key #%d for given KID, will leave data encrypted\n", i+1));
+			cstr->crypts[i].key_valid = GF_FALSE;
+		}
+	}
+
+	cstr->key_error = GF_OK;
+	cstr->crypt_init = GF_FALSE;
+	return GF_OK;
+}
+
 static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
+	GF_Err e;
 	GF_CryptInfo *cinfo=NULL;
-	u32 i, nb_pssh, pssh_crc=0;
-	const GF_PropertyValue *prop, *cinfo_prop;
-	char *pssh_data=NULL;
+	u32 i, nb_pssh, pssh_crc=0, ki_crc=0;
+	const GF_PropertyValue *prop, *cinfo_prop, *pssh_prop;
 	GF_FilterPid *pid = cstr->ipid;
 	Bool is_playing = (cstr->state == DECRYPT_STATE_PLAY) ? GF_TRUE : GF_FALSE;
 
@@ -484,11 +594,41 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid scheme version %08X for scheme type %s, results might be wrong\n", scheme_version, gf_4cc_to_str(scheme_type) ));
 	}
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_PSSH);
-	if (prop) {
-		pssh_data = (char *) prop->value.data.ptr;
-		pssh_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
+	pssh_prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_PSSH);
+	if (pssh_prop) {
+		pssh_crc = gf_crc_32(pssh_prop->value.data.ptr, pssh_prop->value.data.size);
 	}
+
+	cstr->cenc_pattern = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_PATTERN);
+	if (cstr->cenc_pattern && (!cstr->cenc_pattern->value.frac.num || !cstr->cenc_pattern->value.frac.den))
+		cstr->cenc_pattern = NULL;
+
+	ki_crc = 0;
+	if (cstr->cenc_ki) {
+		ki_crc = gf_crc_32(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size);
+	}
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_KEY_INFO);
+	if (prop) {
+		cstr->cenc_ki = prop;
+		cstr->multikey = 0;
+		if (prop->value.data.ptr[0]) {
+			cstr->multikey = prop->value.data.ptr[1];
+			cstr->multikey <<= 8;
+			cstr->multikey |= prop->value.data.ptr[2];
+		}
+		u32 new_crc = gf_crc_32(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size);
+
+		//change of key config and same pssh, setup single key
+		if ((new_crc != ki_crc) && (pssh_crc==cstr->pssh_crc)) {
+			e = cenc_dec_load_keys(ctx, cstr);
+			if (e) return e;
+		}
+		//if no pssh or pssh change we setup the key later
+		//and if same key/pssh nothing to do for crypto reinit
+	} else {
+		cstr->cenc_ki = NULL;
+	}
+
 	if ((cstr->scheme_type==scheme_type) && (cstr->scheme_version==scheme_version) && (cstr->pssh_crc==pssh_crc) )
 		return GF_OK;
 
@@ -507,17 +647,23 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECRYPT_INFO);
 	if (!cinfo_prop) cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CRYPT_INFO);
 
-	if (pssh_data) gf_bs_reassign_buffer(ctx->bs_r, prop->value.data.ptr, prop->value.data.size);
-	nb_pssh = pssh_data ? gf_bs_read_u32(ctx->bs_r) : 0;
+	if (pssh_prop) {
+		gf_bs_reassign_buffer(ctx->bs_r, pssh_prop->value.data.ptr, pssh_prop->value.data.size);
+		nb_pssh = gf_bs_read_u32(ctx->bs_r);
+	} else {
+		nb_pssh = 0;
+	}
+
 	for (i = 0; i < nb_pssh; i++) {
-		u8 cypherOffset;
+		u32 cypherOffset;
 		char *enc_data;
 		bin128 cypherKey, cypherIV;
 		GF_Crypt *mc;
 		u32 pos, priv_len;
 		char szSystemID[33];
 		bin128 sysID;
-		u32 j, kid_count;
+		u32 j, kid_count, enc_payload_len;
+		u8 *pssh_data = (u8 *) pssh_prop->value.data.ptr	;
 
 		gf_bs_read_data(ctx->bs_r, sysID, 16);
 		/*version =*/ gf_bs_read_u32(ctx->bs_r);
@@ -560,6 +706,12 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		gf_bin128_parse("0x6770616363656E6364726D746F6F6C31", cypherKey);
 		gf_bin128_parse("0x00000000000000000000000000000001", cypherIV);
 
+		enc_payload_len = priv_len - cypherOffset;
+		if ((priv_len < cypherOffset) || (enc_payload_len < (u32) (cstr->KID_count*sizeof(bin128)))) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid GPAC init blob\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
 		mc = gf_crypt_open(GF_AES_128, GF_CTR);
 		if (!mc) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
@@ -574,7 +726,8 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		memmove(cstr->keys, enc_data, cstr->KID_count*sizeof(bin128));
 		gf_bs_skip_bytes(ctx->bs_r, cstr->KID_count*sizeof(bin128));
 		gf_free(enc_data);
-		return GF_OK;
+
+		return cenc_dec_load_keys(ctx, cstr);
 	}
 
 	if (cinfo_prop) {
@@ -604,21 +757,23 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		if (!tci && any_tci) tci = any_tci;
 
 		if (tci) {
-			cstr->KID_count = tci->KID_count;
-			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->KID_count*sizeof(bin128));
-			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->KID_count*sizeof(bin128));
-			for (i=0; i<tci->KID_count; i++) {
-				memcpy(cstr->KIDs[i], tci->KIDs[i], sizeof(bin128));
-				memcpy(cstr->keys[i], tci->keys[i], sizeof(bin128));
+			cstr->KID_count = tci->nb_keys;
+			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->nb_keys*sizeof(bin128));
+			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->nb_keys*sizeof(bin128));
+			for (i=0; i<tci->nb_keys; i++) {
+				memcpy(cstr->KIDs[i], tci->keys[i].KID, sizeof(bin128));
+				memcpy(cstr->keys[i], tci->keys[i].key, sizeof(bin128));
 			}
 			if (cinfo != ctx->cinfo)
 				gf_crypt_info_del(cinfo);
-			return GF_OK;
+
+			return cenc_dec_load_keys(ctx, cstr);
 		}
 		if (cinfo != ctx->cinfo)
 			gf_crypt_info_del(cinfo);
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found\n"));
+	if (ctx->decrypt!=DECRYPT_FULL) return GF_OK;
+	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found, aboring!\n\tUse '--decrypt=nokey' to force decrypting\n"));
 	return GF_NOT_SUPPORTED;
 }
 
@@ -671,12 +826,12 @@ static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u
 		if (!tci && any_tci) tci = any_tci;
 
 		if (tci) {
-			cstr->KID_count = tci->KID_count;
-			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->KID_count*sizeof(bin128));
-			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->KID_count*sizeof(bin128));
-			for (i=0; i<tci->KID_count; i++) {
-				memcpy(cstr->KIDs[i], tci->KIDs[i], sizeof(bin128));
-				memcpy(cstr->keys[i], tci->keys[i], sizeof(bin128));
+			cstr->KID_count = tci->nb_keys;
+			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->nb_keys*sizeof(bin128));
+			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->nb_keys*sizeof(bin128));
+			for (i=0; i<tci->nb_keys; i++) {
+				memcpy(cstr->KIDs[i], tci->keys[i].KID, sizeof(bin128));
+				memcpy(cstr->keys[i], tci->keys[i].key, sizeof(bin128));
 			}
 			if (cinfo != ctx->cinfo)
 				gf_crypt_info_del(cinfo);
@@ -691,28 +846,32 @@ static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u
 
 static GF_Err cenc_dec_access_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, Bool is_play)
 {
+	u32 i;
 	if (is_play) {
 		if (cstr->state != DECRYPT_STATE_SETUP)
 			return GF_SERVICE_ERROR;
-		assert(!cstr->crypt);
 
 		//if (!ctx->nb_allow_play) return GF_AUTHENTICATION_FAILURE;
 		//ctx->nb_allow_play--;
 
 		/*open decrypter - we do NOT initialize decrypter; it wil be done when we decrypt the first crypted sample*/
-		if (cstr->is_cenc)
-			cstr->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
-		else
-			cstr->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
-		if (!cstr->crypt) return GF_IO_ERR;
-
+		for (i=0; i<cstr->nb_crypts; i++) {
+			assert(!cstr->crypts[i].crypt);
+			if (cstr->is_cenc)
+				cstr->crypts[i].crypt = gf_crypt_open(GF_AES_128, GF_CTR);
+			else
+				cstr->crypts[i].crypt = gf_crypt_open(GF_AES_128, GF_CBC);
+			if (!cstr->crypts[i].crypt) return GF_IO_ERR;
+		}
 		cstr->state = DECRYPT_STATE_PLAY;
 		return GF_OK;
 	} else {
 		if (cstr->state != DECRYPT_STATE_PLAY)
 			return GF_SERVICE_ERROR;
-		if (cstr->crypt) gf_crypt_close(cstr->crypt);
-		cstr->crypt = NULL;
+		for (i=0; i<cstr->nb_crypts; i++) {
+			if (cstr->crypts[i].crypt) gf_crypt_close(cstr->crypts[i].crypt);
+			cstr->crypts[i].crypt = NULL;
+		}
 		cstr->state = DECRYPT_STATE_SETUP;
 		return GF_OK;
 	}
@@ -724,42 +883,83 @@ static GF_Err cenc_dec_access_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	if (is_play) {
 		if (cstr->state != DECRYPT_STATE_SETUP)
 			return GF_SERVICE_ERROR;
-		assert(!cstr->crypt);
+		assert(!cstr->crypts[0].crypt);
 
-		cstr->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
-		if (!cstr->crypt) return GF_IO_ERR;
+		cstr->crypts[0].crypt = gf_crypt_open(GF_AES_128, GF_CBC);
+		if (!cstr->crypts[0].crypt) return GF_IO_ERR;
 
 		cstr->state = DECRYPT_STATE_PLAY;
 		return GF_OK;
 	} else {
 		if (cstr->state != DECRYPT_STATE_PLAY)
 			return GF_SERVICE_ERROR;
-		if (cstr->crypt) gf_crypt_close(cstr->crypt);
-		cstr->crypt = NULL;
+		if (cstr->crypts[0].crypt) gf_crypt_close(cstr->crypts[0].crypt);
+		cstr->crypts[0].crypt = NULL;
 		cstr->state = DECRYPT_STATE_SETUP;
 		return GF_OK;
 	}
 	return GF_BAD_PARAM;
 }
 
+static GF_Err denc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 iv_size, u32 const_iv_size, const u8 *const_iv)
+{
+	GF_Err e;
+
+	if (!cstr->crypt_init) {
+		if (const_iv) {
+			memcpy(IV, const_iv, const_iv_size);
+		}
+		e = gf_crypt_init(cstr->crypts[key_idx].crypt, cstr->crypts[key_idx].key, IV);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 AES-128 %s (%s)\n", cstr->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
+			return GF_IO_ERR;
+		}
+	} else {
+		//always restore IV at begining of sample regardless of the mode (const IV or IV CBC or CTR)
+		if (!cstr->is_cbc) {
+			if (!iv_size)
+				iv_size = const_iv_size;
+
+			memmove(&IV[1], &IV[0], sizeof(char) * iv_size);
+			IV[0] = 0;	/*begin of counter*/
+			e = gf_crypt_set_IV(cstr->crypts[key_idx].crypt, IV, 17);
+		} else {
+			if (const_iv) {
+				memcpy(IV, const_iv, const_iv_size);
+			}
+			e = gf_crypt_set_IV(cstr->crypts[key_idx].crypt, IV, 16);
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", cstr->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
+			return e;
+		}
+	}
+	return GF_OK;
+}
+
+u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_size, const u8 **const_iv);
+
 
 static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
 {
 	GF_Err e;
-	char IV[17];
-	bin128 KID;
-	u32 i, subsample_count;
+	u32 subsample_count;
 	u32 data_size;
 	u8 *out_data;
 	const char *sai_payload=NULL;
 	u32 saiz=0;
-	u32 IV_size;
-	Bool crypt_reinit = GF_FALSE;
+	u32 min_sai_size_subs = 6;
 	GF_FilterPacket *out_pck;
-	const GF_PropertyValue *prop, *const_IV=NULL, *crypt_pattern=NULL;
+	const GF_PropertyValue *prop;
+	u32 skey_const_iv_size = 0;
+	Bool has_subsamples = GF_FALSE;
+	const u8 *skey_const_iv = NULL;
 
-	if (!cstr->crypt)
+	//packet has been fetched, we now MUST have a key info
+	if (!cstr->cenc_ki) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no KID info\n" ) );
 		return GF_SERVICE_ERROR;
+	}
 
 	gf_filter_pck_get_data(in_pck, &data_size);
 
@@ -771,12 +971,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		gf_filter_pck_send(out_pck);
 		return GF_OK;
 	}
-	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_KID);
-	if (!prop) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no KID info\n" ) );
-		return GF_SERVICE_ERROR;
-	}
-	memcpy(KID, prop->value.data.ptr, 16);
+
 
 	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_CENC_SAI);
 	if (prop) {
@@ -793,130 +988,163 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		return GF_SERVICE_ERROR;
 	}
 
-	//memset to 0 in case we use <16 byte key
-	memset(IV, 0, sizeof(char)*17);
-	prop = NULL;
-	if (sai_payload)
-		prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_IV_SIZE);
-
-	if (!prop) {
-		const_IV = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_IV_CONST);
-		IV_size = 0;
-	} else {
-		IV_size = prop->value.uint;
-	}
-	if (!sai_payload && !const_IV) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
-		return GF_SERVICE_ERROR;
-
-	}
-	
-	crypt_pattern = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CENC_PATTERN);
-
-	/*read sample auxiliary information from bitstream*/
 	subsample_count = 0;
-	if (sai_payload) {
-		gf_bs_read_data(ctx->bs_r, (char *) IV, IV_size);
 
-		if (gf_bs_available(ctx->bs_r))
-			subsample_count = gf_bs_read_u16(ctx->bs_r);
-	}
-
-	if (const_IV) IV_size = const_IV->value.data.size;
-
-	//in case the IV is only 0s, force an initial copy of first IV and first Key
-	if (!cstr->crypt_init && cstr->KID_count) {
-		memcpy(cstr->kid, cstr->KIDs[0], sizeof(bin128));
-		memcpy(cstr->key, cstr->keys[0], sizeof(bin128));
-	}
-
-	if (strncmp(cstr->kid, KID, 16)) {
-		bin128 blank_KID;
-		Bool found = GF_FALSE;
-		memcpy(cstr->kid, KID, 16);
-		memset(blank_KID, 0, 16);
-		for (i = 0; i < cstr->KID_count; i++) {
-			if (!strncmp((const char *)KID, (const char *)cstr->KIDs[i], 16)
-			 || !strncmp((const char *)blank_KID, (const char *)cstr->KIDs[i], 16)
-			) {
-				memcpy(cstr->key, cstr->keys[i], 16);
-				found = GF_TRUE;
-				break;
-			}
-		}
-		if (!found) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot locate key with given KID !\n" ));
-			cstr->key_error = e = GF_SERVICE_ERROR;
+	if (cstr->multikey) {
+		u8 IV[17];
+		u32 k, nb_iv_init;
+		min_sai_size_subs = 8;
+		if (!sai_payload
+			//we need at least 2bytes for IV counts and 4 for nb_subsamples, mandatory in multikey
+			|| (gf_bs_available(ctx->bs_r) < 6 )
+		) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Multikey with no associated auxiliary info !\n" ) );
+			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
 		}
-		cstr->key_error = GF_OK;
-		crypt_reinit = GF_TRUE;
-		cstr->crypt_init  =GF_TRUE;
+		nb_iv_init = gf_bs_read_u16(ctx->bs_r);
+		//init all non-const IV listed
+		for (k=0; k<nb_iv_init; k++) {
+			u8 IV_size;
+			u8 kidx = gf_bs_read_u8(ctx->bs_r);
+
+			if (!kidx || (kidx>cstr->nb_crypts)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, kidx %d but valid range is [1,%d]\n", kidx, cstr->nb_crypts));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
+			IV_size = key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, NULL, NULL);
+			if (!IV_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[CENC] invalid SAI multikey with IV size 0\n" ));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
+			//memset to 0 in case we use <16 byte key
+			memset(IV, 0, sizeof(u8)*17);
+			gf_bs_read_data(ctx->bs_r, IV, IV_size);
+
+			e = denc_dec_push_iv(cstr, kidx-1, IV, IV_size, 0, NULL);
+			if (e) goto exit;
+		}
+		if (nb_iv_init < cstr->multikey) {
+			//init all const IV listed
+			for (k=0; k<cstr->multikey; k++) {
+				u8 const_iv_size;
+				const u8 *const_iv=NULL;
+				u8 IV_size = key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, k+1, &const_iv_size, &const_iv);
+				if (IV_size) continue;
+				memset(IV, 0, sizeof(char)*17);
+				e = denc_dec_push_iv(cstr, k, IV, 0, const_iv_size, const_iv);
+				if (e) goto exit;
+			}
+		}
+	} else {
+		u8 IV[17];
+		u32 iv_size = 0;
+
+		//check single key IV is OK - in multikey we ALWAYS have SAI payload
+		if (sai_payload) {
+			iv_size = cstr->cenc_ki->value.data.ptr[3];
+		}
+		if (!iv_size) {
+			skey_const_iv_size = cstr->cenc_ki->value.data.ptr[20];
+		}
+
+		if (!sai_payload && !skey_const_iv_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
+			return GF_SERVICE_ERROR;
+		}
+
+		//memset to 0 in case we use <16 byte key
+		memset(IV, 0, sizeof(char)*17);
+		if (sai_payload) {
+			if (iv_size)
+				gf_bs_read_data(ctx->bs_r, IV, iv_size);
+		}
+
+		if (skey_const_iv_size)
+			skey_const_iv = cstr->cenc_ki->value.data.ptr+21;
+
+		e = denc_dec_push_iv(cstr, 0, IV, iv_size, skey_const_iv_size, skey_const_iv);
+		if (e) goto exit;
 	}
-	if (!cstr->crypt_init) {
-		crypt_reinit = GF_TRUE;
-		cstr->crypt_init = GF_TRUE;
-	}
+	cstr->crypt_init = GF_TRUE;
+
 	if (cstr->key_error) {
 		e = cstr->key_error;
 		goto exit;
 	}
 
-	if (crypt_reinit) {
-		if (const_IV) {
-			memcpy(IV, const_IV->value.data.ptr, const_IV->value.data.size);
-		}
-		e = gf_crypt_init(cstr->crypt, cstr->key, IV);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 AES-128 %s (%s)\n", cstr->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
-			e = GF_IO_ERR;
-			goto exit;
-		}
+	if (cstr->multikey) {
+		subsample_count = gf_bs_read_u32(ctx->bs_r);
+		has_subsamples = GF_TRUE;
 	} else {
-		//always restore IV at begining of sample regardless of the mode (const IV or IV CBC or CTR
-		if (!cstr->is_cbc) {
-			memmove(&IV[1], &IV[0], sizeof(char) * IV_size);
-			IV[0] = 0;	/*begin of counter*/
-			e = gf_crypt_set_IV(cstr->crypt, IV, 17);
-		} else {
-		 	if (const_IV) {
-				memcpy(IV, const_IV->value.data.ptr, const_IV->value.data.size);
-			}
-			e = gf_crypt_set_IV(cstr->crypt, IV, 16);
-		}
-
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", cstr->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
-			e = GF_IO_ERR;
-			goto exit;
+		if (sai_payload && gf_bs_available(ctx->bs_r)) {
+			subsample_count = gf_bs_read_u16(ctx->bs_r);
+			has_subsamples = GF_TRUE;
 		}
 	}
+	if (has_subsamples && !subsample_count) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Subsample field present but no subsamples indicated, assuming clear payload\n"));
+		goto send_packet;
+	}
 
-	//sub-sample encryption
-	if (subsample_count) {
+	//sub-sample encryption, always on for multikey
+	if (subsample_count || cstr->multikey) {
 		u32 cur_pos = 0;
 
 		while (cur_pos < data_size) {
+			u8 const_iv_size=0;
+			const u8 *const_iv=NULL;
+			u32 kidx = 0;
 			u32 bytes_clear_data, bytes_encrypted_data;
 			if (subsample_count==0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, not enough subsamples described\n" ));
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			if (gf_bs_available(ctx->bs_r) < 6) {
+			if (gf_bs_available(ctx->bs_r) < min_sai_size_subs) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, not enough bytes in subsample info\n" ));
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			bytes_clear_data = gf_bs_read_u16(ctx->bs_r);
-			bytes_encrypted_data = gf_bs_read_u32(ctx->bs_r);
+			if (cstr->multikey) {
+				kidx = gf_bs_read_u16(ctx->bs_r);
+				//check index is valid
+				if (kidx>cstr->nb_crypts) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai key idx %d, should be in range [1, %d]\n", kidx, cstr->nb_crypts));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
+				bytes_clear_data = gf_bs_read_u16(ctx->bs_r);
+				bytes_encrypted_data = gf_bs_read_u32(ctx->bs_r);
+
+				if (kidx) {
+					key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, &const_iv_size, &const_iv);
+					kidx-=1;
+				}
+				//to clarify in the speck: kidx 0 should be allowed for clear subsamples
+				else if (bytes_encrypted_data) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai key idx 0 but encrypted payload\n", cstr->nb_crypts));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
+			} else {
+				const_iv = skey_const_iv;
+				const_iv_size = skey_const_iv_size;
+				bytes_clear_data = gf_bs_read_u16(ctx->bs_r);
+				bytes_encrypted_data = gf_bs_read_u32(ctx->bs_r);
+			}
+
 			subsample_count--;
 
-			if (const_IV) {
-				memmove(IV, const_IV->value.data.ptr, const_IV->value.data.size);
-				if (const_IV->value.data.size == 8)
+			//const IV is applied at each subsample
+			if (const_iv_size) {
+				u8 IV[17];
+				memcpy(IV, const_iv, const_iv_size);
+				if (const_iv_size == 8)
 					memset(IV+8, 0, sizeof(char)*8);
-				gf_crypt_set_IV(cstr->crypt, IV, 16);
+				gf_crypt_set_IV(cstr->crypts[kidx].crypt, IV, 16);
 			}
 			if (cur_pos + bytes_clear_data + bytes_encrypted_data > data_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, subsample info describe more bytes (%d) than in packet (%d)\n", cur_pos + bytes_clear_data + bytes_encrypted_data , data_size ));
@@ -926,12 +1154,17 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			/*skip clear data*/
 			cur_pos += bytes_clear_data;
 
+			if (!cstr->crypts[kidx].key_valid) {
+				cur_pos += bytes_encrypted_data;
+				continue;
+			}
+
 			//pattern decryption
-			if (crypt_pattern && crypt_pattern->value.frac.den && crypt_pattern->value.frac.num) {
+			if (cstr->cenc_pattern) {
 				u32 pos = cur_pos;
 				u32 res = bytes_encrypted_data;
-				u32 cryp_block = 16 * crypt_pattern->value.frac.den;
-				u32 full_block = 16 * (crypt_pattern->value.frac.den + crypt_pattern->value.frac.num);
+				u32 cryp_block = 16 * cstr->cenc_pattern->value.frac.den;
+				u32 full_block = 16 * (cstr->cenc_pattern->value.frac.den + cstr->cenc_pattern->value.frac.num);
 
 				if (cstr->is_cbc) {
 					u32 clear_trailing = res % 16;
@@ -939,7 +1172,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				}
 
 				while (res) {
-					gf_crypt_decrypt(cstr->crypt, out_data + pos, (res >= cryp_block) ? cryp_block : res);
+					gf_crypt_decrypt(cstr->crypts[kidx].crypt, out_data + pos, (res >= cryp_block) ? cryp_block : res);
 					if (res >= full_block) {
 						pos += full_block;
 						assert(res>=full_block);
@@ -951,23 +1184,24 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			}
 			//full subsample decryption
 			else {
-				gf_crypt_decrypt(cstr->crypt, out_data+cur_pos, bytes_encrypted_data);
+				gf_crypt_decrypt(cstr->crypts[kidx].crypt, out_data+cur_pos, bytes_encrypted_data);
 			}
 			cur_pos += bytes_encrypted_data;
 		}
 	}
-	//full sample encryption
+	//full sample encryption in single key mode
 	else {
 		if (cstr->is_cenc) {
-			gf_crypt_decrypt(cstr->crypt, out_data, data_size);
+			gf_crypt_decrypt(cstr->crypts[0].crypt, out_data, data_size);
 		} else {
 			u32 ret = data_size % 16;
 			if (data_size >= 16) {
-				gf_crypt_decrypt(cstr->crypt, out_data, data_size-ret);
+				gf_crypt_decrypt(cstr->crypts[0].crypt, out_data, data_size-ret);
 			}
 		}
 	}
 
+send_packet:
 	gf_filter_pck_merge_properties(in_pck, out_pck);
 	gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
 	gf_filter_pck_set_crypt_flags(out_pck, 0);
@@ -992,7 +1226,7 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 	u32 offset, size;
 	Bool encrypted_au;
 
-	if (!cstr->crypt)
+	if (!cstr->crypts[0].crypt)
 		return GF_SERVICE_ERROR;
 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
@@ -1012,14 +1246,14 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 		}
 		memmove(IV, out_data+1, 16);
 		if (!cstr->crypt_init) {
-			e = gf_crypt_init(cstr->crypt, cstr->keys[0], IV);
+			e = gf_crypt_init(cstr->crypts[0].crypt, cstr->keys[0], IV);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot initialize AES-128 CBC (%s)\n", gf_error_to_string(e)) );
 				return GF_IO_ERR;
 			}
 			cstr->crypt_init = GF_TRUE;
 		} else {
-			e = gf_crypt_set_IV(cstr->crypt, IV, GF_AES_128_KEYSIZE);
+			e = gf_crypt_set_IV(cstr->crypts[0].crypt, IV, GF_AES_128_KEYSIZE);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot set state AES-128 CBC (%s)\n", gf_error_to_string(e)) );
 				return GF_IO_ERR;
@@ -1028,7 +1262,7 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 		offset += 17;
 		size -= 17;
 
-		gf_crypt_decrypt(cstr->crypt, out_data+offset, size);
+		gf_crypt_decrypt(cstr->crypts[0].crypt, out_data+offset, size);
 		trim_bytes = out_data[offset + size - 1];
 		size -= trim_bytes;
 	} else {
@@ -1045,7 +1279,13 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 
 static void cenc_dec_stream_del(GF_CENCDecStream *cstr)
 {
-	if (cstr->crypt) gf_crypt_close(cstr->crypt);
+	if (cstr->crypts) {
+		u32 i;
+		for (i=0; i<cstr->nb_crypts; i++) {
+			if (cstr->crypts[i].crypt) gf_crypt_close(cstr->crypts[i].crypt);
+		}
+		gf_free(cstr->crypts);
+	}
 	if (cstr->KIDs) gf_free(cstr->KIDs);
 	if (cstr->keys) gf_free(cstr->keys);
 
@@ -1061,8 +1301,10 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	u32 scheme_version = 0;
 	const char *scheme_uri = NULL;
 	const char *kms_uri = NULL;
+	u32 nb_keys;
 	GF_CENCDecStream *cstr;
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
+	u32 i;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
 	if (prop) scheme_type = prop->value.uint;
@@ -1089,6 +1331,9 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_list_add(ctx->streams, cstr);
 		gf_filter_pid_set_udta(pid, cstr);
 		gf_filter_pid_set_udta(cstr->opid, cstr);
+		//we need full sample
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
@@ -1112,7 +1357,37 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				break;
 			}
 		}
+	}
 
+	nb_keys = 1;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_KEY_INFO);
+	if (prop && prop->value.data.ptr && prop->value.data.ptr[0]) {
+		nb_keys = prop->value.data.ptr[1];
+		nb_keys<<=8;
+		nb_keys |= prop->value.data.ptr[2];
+	}
+	if (nb_keys > cstr->nb_crypts) {
+		cstr->crypts = gf_realloc(cstr->crypts, sizeof(CENCDecKey) * nb_keys);
+		memset(&cstr->crypts[cstr->nb_crypts], 0, sizeof(CENCDecKey) * (nb_keys-cstr->nb_crypts) );
+
+		if (cstr->crypts[0].crypt) {
+			for (i=cstr->nb_crypts; i<nb_keys; i++) {
+				if (cstr->is_cenc)
+					cstr->crypts[i].crypt = gf_crypt_open(GF_AES_128, GF_CTR);
+				else
+					cstr->crypts[i].crypt = gf_crypt_open(GF_AES_128, GF_CBC);
+				if (!cstr->crypts[i].crypt) return GF_IO_ERR;
+			}
+		}
+		cstr->nb_crypts = nb_keys;
+	}
+	//resetup, check decrypter
+	if (cstr->state==DECRYPT_STATE_PLAY) {
+		for (i=0; i<cstr->nb_crypts; i++) {
+			if (!cstr->crypts[i].crypt) {
+				return GF_SERVICE_ERROR;
+			}
+		}
 	}
 
 	switch (scheme_type) {
@@ -1161,9 +1436,9 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_PREVIEW_RANGE, NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PSSH, NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ENCRYPTED, NULL);
-	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_SIZE, NULL);
-	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_IV_CONST, NULL);
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_KEY_INFO, NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_HLS_KMS, NULL);
 
 	cstr->is_nalu = GF_FALSE;;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
@@ -1307,6 +1582,13 @@ static const GF_FilterCapability CENCDecCaps[] =
 static const GF_FilterArgs GF_CENCDecArgs[] =
 {
 	{ OFFS(cfile), "crypt file location - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(decrypt), "decrypt mode (CENC only)\n"
+		"- full: decrypt everything, throwing error if keys are not found\n"
+		"- nokey: decrypt everything for which a key is found, skip decryption otherwise\n"
+		"- skip: decrypt nothing"
+		, GF_PROP_UINT, "full", "full|nokey|skip", GF_ARG_HINT_ADVANCED},
+	{ OFFS(drop_keys), "consider keys with given 1-based indexes as not available (multi-key debug)", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(drop_kids), "consider keys with given KID (as hex string) as not available (debug)", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 

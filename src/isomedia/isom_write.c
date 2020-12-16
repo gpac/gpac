@@ -6478,6 +6478,12 @@ void *sg_encryption_create_entry(void *udta)
 	if (!entry) return NULL;
 	from_entry = (GF_CENCSampleEncryptionGroupEntry *)udta;
 	memcpy(entry, from_entry, sizeof(GF_CENCSampleEncryptionGroupEntry) );
+	entry->key_info = gf_malloc(sizeof(u8) * entry->key_info_size);
+	if (!entry->key_info) {
+		gf_free(entry);
+		return NULL;
+	}
+	memcpy(entry->key_info, from_entry->key_info, entry->key_info_size);
 	return entry;
 }
 
@@ -6485,32 +6491,37 @@ Bool sg_encryption_compare_entry(void *udta, void *_entry)
 {
 	GF_CENCSampleEncryptionGroupEntry *entry = (GF_CENCSampleEncryptionGroupEntry *)_entry;
 	GF_CENCSampleEncryptionGroupEntry *with_entry = (GF_CENCSampleEncryptionGroupEntry *)udta;
-	if (!memcmp(entry, with_entry, sizeof(GF_CENCSampleEncryptionGroupEntry)))
-		return GF_TRUE;
 
+	if (entry->IsProtected != with_entry->IsProtected) return GF_FALSE;
+	if (entry->skip_byte_block != with_entry->skip_byte_block) return GF_FALSE;
+	if (entry->crypt_byte_block != with_entry->crypt_byte_block) return GF_FALSE;
+	if (entry->key_info_size != with_entry->key_info_size) return GF_FALSE;
+
+	if (!memcmp(entry->key_info, with_entry->key_info, with_entry->key_info_size))
+		return GF_TRUE;
 	return GF_FALSE;
 }
 
 
 /*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 IV_size, bin128 KeyID, u8 crypt_byte_block, u8 skip_byte_block, u8 constant_IV_size, bin128 constant_IV)
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 crypt_byte_block, u8 skip_byte_block, u8 *key_info, u32 key_info_size)
 {
 	GF_CENCSampleEncryptionGroupEntry entry;
-	if ((IV_size!=0) && (IV_size!=8) && (IV_size!=16)) return GF_BAD_PARAM;
+	if (!key_info || (key_info_size<19))
+		return GF_BAD_PARAM;
 
 	memset(&entry, 0, sizeof(GF_CENCSampleEncryptionGroupEntry));
 	entry.crypt_byte_block = crypt_byte_block;
 	entry.skip_byte_block = skip_byte_block;
 	entry.IsProtected = isEncrypted;
-	entry.Per_Sample_IV_size = IV_size;
-	if (!IV_size && isEncrypted) {
-		entry.constant_IV_size = constant_IV_size;
-		memcpy(entry.constant_IV, constant_IV, constant_IV_size);
-	}
-	memcpy(entry.KID, KeyID, 16);
+	entry.key_info = key_info;
+	entry.key_info_size = key_info_size;
+
 	return gf_isom_set_sample_group_info(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_SEIG, 0, &entry, sg_encryption_create_entry, sg_encryption_compare_entry);
 }
+
+
 
 GF_EXPORT
 GF_Err gf_isom_set_sample_cenc_default_group(GF_ISOFile *movie, u32 track, u32 sample_number)

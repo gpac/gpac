@@ -262,6 +262,8 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	s32 trans_x, trans_y;
 	s16 layer;
 	char *lang;
+	u8 *sai_buffer = NULL;
+	u32 sai_buffer_size = 0, sai_buffer_alloc = 0;
 	const char *orig_name = gf_url_get_resource_name(gf_isom_get_filename(import->orig));
 	Bool sbr, ps;
 	GF_ISOSample *samp;
@@ -533,10 +535,14 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 
 	if (is_cenc) {
 		u32 container_type;
-		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, NULL, &container_type);
+		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, &container_type, NULL, NULL);
 		if (e)
 			goto exit;
-		e = gf_isom_cenc_allocate_storage(import->dest, track, container_type, 0, 0, NULL);
+		if (container_type==GF_ISOM_BOX_UUID_PSEC) {
+			e = gf_isom_piff_allocate_storage(import->dest, track, 0, 0, NULL);
+		} else {
+			e = gf_isom_cenc_allocate_storage(import->dest, track);
+		}
 		if (e) goto exit;
 		e = gf_isom_clone_pssh(import->dest, import->orig, GF_FALSE);
 		if (e) goto exit;
@@ -591,42 +597,35 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		if (e)
 			goto exit;
 		if (is_cenc) {
-			GF_CENCSampleAuxInfo *sai;
-			u32 container_type, len, j;
+			u32 container_type;
 			Bool Is_Encrypted;
-			u8 IV_size;
-			bin128 KID;
+			Bool is_mkey;
+			u8 IV_size=16;
 			u8 crypt_byte_block, skip_byte_block;
-			u8 constant_IV_size;
-			bin128 constant_IV;
-			GF_BitStream *bs;
-			u8 *buffer;
+			const u8 *key_info=NULL;
+			u32 key_info_len = 0;
 
-			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &IV_size, &KID, &crypt_byte_block, &skip_byte_block, &constant_IV_size, &constant_IV);
+			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &crypt_byte_block, &skip_byte_block, &key_info, &key_info_len);
 			if (e) goto exit;
+			if (!key_info) {
+				IV_size = key_info_len; //piff default
+			} else {
+				IV_size = key_info[3];
+				is_mkey = key_info[0];
+			}
 
 			if (Is_Encrypted) {
-				sai = NULL;
-				e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &sai, &container_type);
+				sai_buffer_size = sai_buffer_alloc;
+				e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &container_type, &sai_buffer, &sai_buffer_size);
 				if (e) goto exit;
+				if (sai_buffer_size > sai_buffer_alloc)
+					sai_buffer_alloc = sai_buffer_size;
 
-				bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-				gf_bs_write_data(bs, (const char *)sai->IV, IV_size);
-				if (sai->subsample_count) {
-					gf_bs_write_u16(bs, sai->subsample_count);
-					for (j = 0; j < sai->subsample_count; j++) {
-						gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
-						gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
-					}
-				}
-				gf_isom_cenc_samp_aux_info_del(sai);
-				gf_bs_get_content(bs, &buffer, &len);
-				gf_bs_del(bs);
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video, NULL, GF_FALSE);
-				gf_free(buffer);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, sai_buffer, sai_buffer_size, is_nalu_video, GF_FALSE, is_mkey);
+
 			} else {
 				//we don't set container type since we don't add data to the container (senc/...)
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, 0, IV_size, NULL, 0, is_nalu_video, NULL, GF_FALSE);
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, 0, NULL, 0, is_nalu_video, GF_FALSE, is_mkey);
 			}
 			if (e)
 				goto exit;
@@ -675,6 +674,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	}
 
 exit:
+	if (sai_buffer) gf_free(sai_buffer);
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, cur_extract_mode);
 	return e;

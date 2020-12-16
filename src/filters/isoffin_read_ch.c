@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -184,20 +184,47 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 	GF_Err e;
 	Bool Is_Encrypted;
 	u32 out_size;
-	u8 crypt_byte_block, skip_byte_block, IV_size, constant_IV_size;
-	bin128 KID, constant_IV;
+	u8 crypt_byte_block, skip_byte_block;
+	u8 piff_info[20];
+	u8 *key_info = NULL;
+	u32 key_info_size = 0;
+	u8 item_mkey = 0;
 
-	ch->cenc_state_changed = 0;
+	//this will be skipped anyways, don't fectch ...
+	if (ch->owner->stsd && (ch->last_sample_desc_index != ch->owner->stsd) && ch->sample) {
+		return;
+	}
+
 
 	out_size = ch->sai_alloc_size;
 	if (for_item) {
-		e = gf_isom_extract_meta_item_get_cenc_info(ch->owner->mov, GF_TRUE, 0, ch->item_id, &Is_Encrypted, &skip_byte_block, &crypt_byte_block, &IV_size, &KID, &constant_IV_size, &constant_IV, &ch->sai_buffer, &out_size, &ch->sai_alloc_size);
-	} else {
-		e = gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_byte_block, &skip_byte_block, &constant_IV_size, &constant_IV);
+		u32 aux_info_param=0;
+		e = gf_isom_extract_meta_item_get_cenc_info(ch->owner->mov, GF_TRUE, 0, ch->item_id, &Is_Encrypted, &skip_byte_block, &crypt_byte_block, (const u8 **) &key_info, &key_info_size, &aux_info_param, &ch->sai_buffer, &out_size, &ch->sai_alloc_size);
 
-		if ((e==GF_OK) && Is_Encrypted) {
-			e = gf_isom_cenc_get_sample_aux_info_buffer(ch->owner->mov, ch->track, ch->sample_num, ch->last_sample_desc_index, NULL, &ch->sai_buffer, &out_size);
+		/*The ienc property is always exposed as a multiple key info in GPAC
+		However the type of SAI may be single-key (aux_info_param==0) or multiple-key (aux_info_param==1) for the same ienc used
+		We therefore temporary force the key info type to single key if v0 SAI CENC are used
+		Note that this is thread safe as this filter is the only one using the opened file
+		*/
+		if (aux_info_param==0) {
+			item_mkey = key_info[0];
 		}
+	} else {
+		e = gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &crypt_byte_block, &skip_byte_block, (const u8 **) &key_info, &key_info_size);
+	}
+	if (!key_info) {
+		piff_info[0] = 0;
+		piff_info[1] = 0;
+		piff_info[2] = 0;
+		piff_info[3] = key_info_size;
+		memset(piff_info + 4, 0, 16);
+		key_info_size = 20;
+		key_info = (u8 *) piff_info;
+	}
+
+
+	if (!for_item && (e==GF_OK) && Is_Encrypted) {
+		e = gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, ch->last_sample_desc_index, NULL, &ch->sai_buffer, &out_size);
 	}
 
 	if (out_size > ch->sai_alloc_size) ch->sai_alloc_size = out_size;
@@ -208,36 +235,31 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 		return;
 	}
 
-	if (Is_Encrypted != ch->pck_encrypted) {
-		ch->pck_encrypted = Is_Encrypted;
-		ch->cenc_state_changed = 1;
-	}
+	ch->pck_encrypted = Is_Encrypted;
+
 	/*notify change of IV/KID only when packet is encrypted
 	1- these info are ignored when packet is not encrypted
 	2- this allows us to define the initial CENC state for multi-stsd cases*/
 	if (Is_Encrypted) {
-		if (ch->IV_size != IV_size) {
-			ch->IV_size = IV_size;
-			ch->cenc_state_changed = 1;
-		}
+		u32 ki_crc;
+
 		if ((ch->crypt_byte_block != crypt_byte_block) || (ch->skip_byte_block != skip_byte_block)) {
 			ch->crypt_byte_block = crypt_byte_block;
 			ch->skip_byte_block = skip_byte_block;
-			ch->cenc_state_changed = 1;
+
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
 		}
-		if (!ch->IV_size) {
-			if (ch->constant_IV_size != constant_IV_size) {
-				ch->constant_IV_size = constant_IV_size;
-				ch->cenc_state_changed = 1;
-			} else if (memcmp(ch->constant_IV, constant_IV, ch->constant_IV_size)) {
-				ch->cenc_state_changed = 1;
-			}
-			memmove(ch->constant_IV, constant_IV, ch->constant_IV_size);
+		if (item_mkey)
+			key_info[0] = 0;
+
+		ki_crc = gf_crc_32(key_info, key_info_size);
+		if (ch->key_info_crc != ki_crc) {
+			ch->key_info_crc = ki_crc;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_KEY_INFO, &PROP_DATA((u8 *)key_info, key_info_size) );
 		}
-		if (memcmp(ch->KID, KID, sizeof(bin128))) {
-			memcpy(ch->KID, KID, sizeof(bin128));
-			ch->cenc_state_changed = 1;
-		}
+
+		if (item_mkey)
+			key_info[0] = item_mkey;
 	}
 }
 
