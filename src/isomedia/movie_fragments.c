@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2746,11 +2746,10 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, u32 IV_size, u8 *sai_b, u32 sai_b_size, Bool use_subsamples, Bool use_saio_32bit)
+GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, u8 *sai_b, u32 sai_b_size, Bool use_subsamples, Bool use_saio_32bit, Bool use_multikey)
 {
 	GF_CENCSampleAuxInfo *sai;
 	GF_TrackFragmentBox  *traf = gf_isom_get_traf(output, TrackID);
-	u32 i;
 	GF_SampleEncryptionBox *senc;
 
 	if (!traf)  return GF_BAD_PARAM;
@@ -2775,77 +2774,33 @@ GF_Err gf_isom_fragment_set_cenc_sai(GF_ISOFile *output, GF_ISOTrackID TrackID, 
 	}
 	senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
 
-	if (!IV_size && !sai_b_size && !sai_b) {
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 0, use_saio_32bit);
+	if (!sai_b_size && !sai_b) {
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 0, use_saio_32bit, use_multikey);
 		return GF_OK;
 	}
 
 	GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 	if (!sai) return GF_OUT_OF_MEM;
-	sai->IV_size = IV_size;
-	if (sai_b && sai_b_size) {
-		GF_BitStream *bs;
-		if (sai_b_size < IV_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isofile] corrupted SAI info size %d but IV size %d\n", sai_b_size, IV_size ));
-			gf_free(sai);
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-		bs = gf_bs_new(sai_b, sai_b_size, GF_BITSTREAM_READ);
-		gf_bs_read_data(bs, sai->IV, IV_size);
-		if (use_subsamples) {
-			sai->subsample_count = gf_bs_read_u16(bs);
-			if (sai_b_size < IV_size + 2 + sai->subsample_count*6) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isofile] corrupted SAI info size %d but IV size %d subsamples %d (6 bytes each)\n", sai_b_size, IV_size, sai->subsample_count));
-				gf_bs_del(bs);
-				gf_free(sai);
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
 
-			sai->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
-			if (!sai->subsamples) {
-				gf_free(sai);
-				return GF_OUT_OF_MEM;
-			}
-			for (i=0; i<sai->subsample_count; i++) {
-				sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
-				sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
-			}
+	if (sai_b && sai_b_size) {
+		sai->cenc_data_size = sai_b_size;
+		sai->cenc_data = gf_malloc(sizeof(u8) * sai_b_size);
+		if (!sai->cenc_data) {
+			gf_free(sai);
+			return GF_OUT_OF_MEM;
 		}
-		gf_bs_del(bs);
-	} else if (sai_b_size) {
-		u32 olen = sai_b_size;
-		if (use_subsamples) {
-			sai->subsample_count = 1;
-			/*if (sai->subsample_count) */ senc->flags = 0x00000002;
-			while (olen>0xFFFF) {
-				olen -= 0xFFFF;
-				sai->subsample_count ++;
-			}
-			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-			olen = sai_b_size;
-			for (i = 0; i < sai->subsample_count; i++) {
-				if (olen<0xFFFF) {
-					sai->subsamples[i].bytes_clear_data = olen;
-				} else {
-					sai->subsamples[i].bytes_clear_data = 0xFFFF;
-					olen -= 0xFFFF;
-				}
-				sai->subsamples[i].bytes_encrypted_data = 0;
-			}
-		}
+		memcpy(sai->cenc_data, sai_b, sai_b_size);
+	} else {
+		sai->isNotProtected = 1;
 	}
 
 	gf_list_add(senc->samp_aux_info, sai);
-	if (sai->subsample_count) senc->flags = 0x00000002;
+	if (use_subsamples)
+		senc->flags = 0x00000002;
+	if (use_multikey)
+		senc->version = 1;
 
-	//no subsample (not NAL-based data), saiz is IV size only
-	if (! sai->subsample_count) {
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size, use_saio_32bit);
-	}
-	// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample
-	else {
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count, use_saio_32bit);
-	}
+	gf_isom_cenc_set_saiz_saio(senc, NULL, traf, sai->cenc_data_size, use_saio_32bit, use_multikey);
 	return GF_OK;
 }
 

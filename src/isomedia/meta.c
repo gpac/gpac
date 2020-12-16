@@ -425,7 +425,7 @@ GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track
 
 GF_EXPORT
 GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, Bool *is_protected,
-	u8 *skip_byte_block, u8 *crypt_byte_block, u8 *IV_size, bin128 *KeyID, u8 *constant_IV_size, bin128 *constant_IV,
+	u8 *skip_byte_block, u8 *crypt_byte_block, const u8 **key_info, u32 *key_info_size, u32 *aux_info_type_param,
 	u8 **cenc_sai_data, u32 *cenc_sai_data_size, u32 *cenc_sai_alloc_size)
 {
 	u32 count, i;
@@ -450,15 +450,12 @@ GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *file, Bool root_meta,
 			if (!ienc) continue;
 
 			if (ienc->type!=GF_ISOM_BOX_TYPE_IENC) continue;
-			if (!ienc->num_keys) return GF_ISOM_INVALID_FILE;
+			if (ienc->key_info_size<19) return GF_ISOM_INVALID_FILE;
 			
 			*skip_byte_block = ienc->skip_byte_block;
 			*crypt_byte_block = ienc->crypt_byte_block;
-			*IV_size = ienc->keys[0].per_sample_IV_size;
-			*constant_IV_size = ienc->keys[0].constant_IV_size;
-			if (ienc->keys[0].constant_IV_size)
-				memcpy(*constant_IV, ienc->keys[0].constant_IV, ienc->keys[0].constant_IV_size);
-			memcpy(*KeyID, ienc->keys[0].KeyID, sizeof(bin128));
+			*key_info = ienc->key_info;
+			*key_info_size = ienc->key_info_size;
 			found = GF_TRUE;
 			break;
 		}
@@ -483,10 +480,40 @@ GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *file, Bool root_meta,
 	}
 	if (!sai_item_id) return GF_ISOM_INVALID_FILE;
 
-	if (cenc_sai_data) {
-		return gf_isom_extract_meta_item_mem(file, root_meta, track_num, sai_item_id, cenc_sai_data, cenc_sai_data_size, cenc_sai_alloc_size, NULL, GF_FALSE);
+	if (aux_info_type_param) {
+		count = gf_list_count(ipma->entries);
+		found = GF_FALSE;
+		for (i = 0; i < count; i++) {
+			GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
+			if (entry->item_id != sai_item_id) continue;
+			for (j = 0; j < entry->nb_associations; j++) {
+				GF_AuxiliaryInfoPropertyBox *iaux;
+				u32 index = entry->associations[j].index;
+				iaux = index ? (GF_AuxiliaryInfoPropertyBox *)gf_list_get(ipco->child_boxes, index - 1) : NULL;
+				if (!iaux) continue;
+
+				if (iaux->type!=GF_ISOM_BOX_TYPE_IAUX) continue;
+				switch (iaux->aux_info_type) {
+				case GF_ISOM_CENC_SCHEME:
+				case GF_ISOM_CENS_SCHEME:
+				case GF_ISOM_CBC_SCHEME:
+				case GF_ISOM_CBCS_SCHEME:
+				case 0:
+					break;
+				default:
+					continue;
+				}
+				*aux_info_type_param = iaux->aux_info_parameter;
+				found = GF_TRUE;
+				break;
+			}
+			if (found) break;
+		}
 	}
-	return GF_OK;
+	if (!cenc_sai_data)
+		return GF_OK;
+
+	return gf_isom_extract_meta_item_mem(file, root_meta, track_num, sai_item_id, cenc_sai_data, cenc_sai_data_size, cenc_sai_alloc_size, NULL, GF_FALSE);
 }
 
 
@@ -796,7 +823,13 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 		case GF_ISOM_BOX_TYPE_IENC:
 		{
 			GF_ItemEncryptionPropertyBox *ienc = (GF_ItemEncryptionPropertyBox *)b;
-			if (prop->cenc_info && (prop->cenc_info->skip_byte_block == ienc->skip_byte_block) && (prop->cenc_info->crypt_byte_block == ienc->crypt_byte_block)) {
+			if (prop->cenc_info
+				&& (prop->cenc_info->skip_byte_block == ienc->skip_byte_block)
+				&& (prop->cenc_info->crypt_byte_block == ienc->crypt_byte_block)
+				&& (prop->cenc_info->key_info_size == ienc->key_info_size)
+				&& prop->cenc_info->key_info && ienc->key_info
+				&& !memcmp(prop->cenc_info->key_info, ienc->key_info, ienc->key_info_size)
+			) {
 				return i;
 			}
 		}
@@ -1026,61 +1059,32 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 	}
 
 	if (image_props->cenc_info) {
-		u32 i;
-		Bool has_KID_match = GF_FALSE;
 		GF_ItemEncryptionPropertyBox *ienc = NULL;
-		if (!image_props->cenc_info->constant_IV_size && !image_props->cenc_info->IV_size)
+
+		if (!gf_cenc_validate_key_info(image_props->cenc_info->key_info, image_props->cenc_info->key_info_size))
 			return GF_BAD_PARAM;
 
 		searchprop.cenc_info = image_props->cenc_info;
+
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
 			ienc = (GF_ItemEncryptionPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IENC);
 			if (!ienc) return GF_OUT_OF_MEM;
 			ienc->skip_byte_block = image_props->cenc_info->skip_byte_block;
 			ienc->crypt_byte_block = image_props->cenc_info->crypt_byte_block;
+			ienc->key_info_size = image_props->cenc_info->key_info_size;
+			ienc->key_info = gf_malloc(sizeof(u8) * image_props->cenc_info->key_info_size);
+			if (!ienc->key_info) {
+				gf_free(ienc);
+				return GF_OUT_OF_MEM;
+			}
+			memcpy(ienc->key_info, image_props->cenc_info->key_info, image_props->cenc_info->key_info_size);
 			prop_index = gf_list_count(ipco->child_boxes) - 1;
-		} else {
-			ienc = (GF_ItemEncryptionPropertyBox *) gf_list_get(ipco->child_boxes, prop_index);
 		}
-		for (i=0; i<ienc->num_keys; i++) {
-			if (memcmp(ienc->keys[i].KeyID, image_props->cenc_info->KID, sizeof(bin128) )) continue;
-			has_KID_match = GF_TRUE;
 
-			if (ienc->keys[i].per_sample_IV_size != image_props->cenc_info->IV_size) continue;
-			if (ienc->keys[i].constant_IV_size != image_props->cenc_info->constant_IV_size) continue;
-			if (image_props->cenc_info->constant_IV_size) {
-				if (memcmp(ienc->keys[i].constant_IV, image_props->cenc_info->constant_IV, image_props->cenc_info->constant_IV_size))
-					continue;
-			}
-			
-			//found key in same config
-			break;
-		}
-		if (i>=ienc->num_keys) {
-			//KID must be unique within the ienc info, we need another one !
-			if (has_KID_match) {
-				ienc = (GF_ItemEncryptionPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IENC);
-				if (!ienc) return GF_OUT_OF_MEM;
-				ienc->skip_byte_block = image_props->cenc_info->skip_byte_block;
-				ienc->crypt_byte_block = image_props->cenc_info->crypt_byte_block;
-				prop_index = gf_list_count(ipco->child_boxes) - 1;
-			}
-
-			ienc->keys = gf_realloc(ienc->keys, sizeof(IENCKeyInfo) * (ienc->num_keys+1) );
-			if (!ienc->keys) return GF_OUT_OF_MEM;
-
-			memcpy(ienc->keys[ienc->num_keys].KeyID, image_props->cenc_info->KID, sizeof(bin128));
-			ienc->keys[ienc->num_keys].per_sample_IV_size = image_props->cenc_info->IV_size;
-			if (!image_props->cenc_info->IV_size) {
-				ienc->keys[ienc->num_keys].constant_IV_size = image_props->cenc_info->constant_IV_size;
-				memcpy(ienc->keys[i].constant_IV, image_props->cenc_info->constant_IV, image_props->cenc_info->constant_IV_size);
-			}
-			ienc->num_keys++;
-			//add property
-			e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
-			if (e) return e;
-		}
+		//add property
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
 		searchprop.cenc_info = NULL;
 	}
 
@@ -1240,6 +1244,39 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			//add item reference
 			e = gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, infe->item_ID+1, GF_ISOM_REF_AUXR, NULL);
 			if (e) return e;
+
+			if (image_props->cenc_info->key_info[0]) {
+				GF_ItemPropertyContainerBox *ipco = meta->item_props->property_container;
+				GF_ItemPropertyAssociationBox *ipma = meta->item_props->property_association;
+				u32 k, pcount = gf_list_count(ipco->child_boxes);
+				s32 prop_index = -1;
+				for (k=0; k<pcount; k++) {
+					GF_AuxiliaryInfoPropertyBox *b = (GF_AuxiliaryInfoPropertyBox*)gf_list_get(ipco->child_boxes, k);
+					if (b->type != GF_ISOM_BOX_TYPE_IAUX) continue;
+					switch (b->aux_info_type) {
+					case GF_ISOM_CENC_SCHEME:
+					case GF_ISOM_CENS_SCHEME:
+					case GF_ISOM_CBC_SCHEME:
+					case GF_ISOM_CBCS_SCHEME:
+					case 0:
+						break;
+					default:
+						continue;
+					}
+					if (b->aux_info_parameter!=1) continue;
+				}
+
+				if (prop_index < 0) {
+					GF_AuxiliaryInfoPropertyBox *iaux = (GF_AuxiliaryInfoPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IAUX);
+					if (!iaux) return GF_OUT_OF_MEM;
+					iaux->aux_info_parameter = 1;
+					prop_index = gf_list_count(ipco->child_boxes) - 1;
+				}
+
+				//add property
+				e = meta_add_item_property_association(ipma, infe->item_ID+1, prop_index + 1, GF_TRUE);
+				if (e) return e;
+			}
 
 			//look for scheme in ipro
 			if (!meta->protections) {

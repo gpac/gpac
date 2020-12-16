@@ -1248,7 +1248,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 #ifndef GPAC_DISABLE_AV_PARSERS
 				Bool is_encrypted = 0;
 				if (is_cenc_protected) {
-					GF_Err e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL, NULL, NULL);
+					GF_Err e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL);
 					if (e != GF_OK) {
 						fprintf(dump, "dump_msg=\"Error %s while fetching encryption info for sample, assuming sample is encrypted\" ", gf_error_to_string(e) );
 						is_encrypted = GF_TRUE;
@@ -1660,7 +1660,7 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 		}
 	} else {
 		dump = stdout;
-		fprintf(dump, "* File SDP content *\n\n");
+		fprintf(dump, "# File SDP content \n\n");
 	}
 	//get the movie SDP
 	gf_isom_sdp_get(file, &sdp, &size);
@@ -1993,56 +1993,88 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 }
 
 
+static void dump_key_info(const u8 *key_info, u32 key_info_size, Bool is_protected)
+{
+	if (!key_info) return;
+	u32 j, k, kpos=3;
+	u32 nb_keys = 1;
+	if (key_info[0]) {
+		nb_keys = key_info[1];
+		nb_keys <<= 8;
+		nb_keys |= key_info[2];
+	}
+	for (k=0; k<nb_keys; k++) {
+		u8 constant_iv_size=0;
+		u8 iv_size=key_info[kpos+1];
+		fprintf(stderr, "\t\tKID");
+		if (nb_keys>1)
+			fprintf(stderr, "%d", k+1);
+		fprintf(stderr, " ");
+		for (j=0; j<16; j++) fprintf(stderr, "%02X", key_info[kpos+1+j]);
+		kpos+=17;
+		if (!iv_size && is_protected) {
+			constant_iv_size = key_info[1];
+			kpos += 1 + constant_iv_size;
+		}
+		fprintf(stderr, " - %sIV size %d \n", constant_iv_size ? "const " : "", constant_iv_size ? constant_iv_size : iv_size);
+	}
+}
+
 static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *name)
 {
+	char szInd[2];
 	u32 i, count, brand, primary_id;
 	brand = gf_isom_get_meta_type(file, root_meta, tk_num);
 	if (!brand) return;
+	if (name[0]=='\t') {
+		szInd[0] = '\t';
+		szInd[1] = 0;
+	} else {
+		szInd[0] = 0;
+	}
 
 	count = gf_isom_get_meta_item_count(file, root_meta, tk_num);
 	primary_id = gf_isom_get_meta_primary_item_id(file, root_meta, tk_num);
 	fprintf(stderr, "%s type: \"%s\" - %d resource item(s)\n", name, gf_4cc_to_str(brand), (count+(primary_id>0)));
 	switch (gf_isom_has_meta_xml(file, root_meta, tk_num)) {
 	case 1:
-		fprintf(stderr, "Meta has XML resource\n");
+		fprintf(stderr, "%sMeta has XML resource\n", szInd);
 		break;
 	case 2:
-		fprintf(stderr, "Meta has BinaryXML resource\n");
+		fprintf(stderr, "%sMeta has BinaryXML resource\n", szInd);
 		break;
 	}
 	if (primary_id) {
-		fprintf(stderr, "Primary Item - ID %d\n", primary_id);
+		fprintf(stderr, "%sPrimary Item - ID %d\n", szInd, primary_id);
 	}
 	for (i=0; i<count; i++) {
 		const char *it_name, *mime, *enc, *url, *urn;
 		Bool self_ref;
-		u32 ID, j;
+		u32 ID;
 		u32 it_type, cenc_scheme, cenc_version;
 		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, &it_type, &cenc_scheme, &cenc_version, &self_ref, &it_name, &mime, &enc, &url, &urn);
-		fprintf(stderr, "Item #%d - ID %d - type %s ", i+1, ID, gf_4cc_to_str(it_type));
+		fprintf(stderr, "%sItem #%d - ID %d - type %s ", szInd, i+1, ID, gf_4cc_to_str(it_type));
 		if (self_ref) fprintf(stderr, " - Self-Reference");
 		else if (it_name && it_name[0]) fprintf(stderr, " - Name: %s", it_name);
 		if (mime) fprintf(stderr, " - MimeType: %s", mime);
 		if (enc) fprintf(stderr, " - ContentEncoding: %s", enc);
 		if (cenc_scheme) {
 			Bool is_protected;
-			u8 skip_byte_block, crypt_byte_block, IV_size, constant_IV_size;
-			bin128 KeyID, constant_IV;
+			u8 skip_byte_block, crypt_byte_block;
+			const u8 *key_info;
+			u32 key_info_size;
 			fprintf(stderr, " - Protection scheme: %s v0x%08X", gf_4cc_to_str(cenc_scheme), cenc_version);
 
-			gf_isom_extract_meta_item_get_cenc_info(file, root_meta, tk_num, ID, &is_protected, &skip_byte_block, &crypt_byte_block, &IV_size, &KeyID, &constant_IV_size, &constant_IV, NULL, NULL, NULL);
-
-			fprintf(stderr, "\n\t");
-			fprintf(stderr, "KID ");
-			for (j=0; j<16; j++) fprintf(stderr, "%02X", KeyID[j]);
-			fprintf(stderr, " - %sIV size %d ", constant_IV_size ? "const " : "", constant_IV_size ? constant_IV_size : IV_size);
+			gf_isom_extract_meta_item_get_cenc_info(file, root_meta, tk_num, ID, &is_protected, &skip_byte_block, &crypt_byte_block, &key_info, &key_info_size, NULL, NULL, NULL, NULL);
 			if (skip_byte_block && crypt_byte_block)
 				fprintf(stderr, " - Pattern %d:%d", skip_byte_block, crypt_byte_block);
+			fprintf(stderr, "\n");
+			dump_key_info(key_info, key_info_size, is_protected);
 		}
 
 		fprintf(stderr, "\n");
-		if (url) fprintf(stderr, "URL: %s\n", url);
-		if (urn) fprintf(stderr, "URN: %s\n", urn);
+		if (url) fprintf(stderr, "%sURL: %s\n", szInd, url);
+		if (urn) fprintf(stderr, "%sURN: %s\n", szInd, urn);
 	}
 }
 
@@ -2232,12 +2264,13 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 }
 
 
-void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num)
+void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num, Bool dump_m4sys)
 {
+	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 	Double scale, max_rate, rate;
 	Bool is_od_track = 0;
-	u32 trackNum, i, j, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize, bps;
-	u64 time_slice, dur, size, pfmt, codecid;
+	u32 trackNum, i, j, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits, cdur, csize, bps, pfmt, codecid;
+	u64 time_slice, dur, size;
 	s32 cts_shift;
 	GF_ESD *esd;
 	char szDur[50];
@@ -2255,9 +2288,14 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	}
 
 	timescale = gf_isom_get_media_timescale(file, trackNum);
-	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d\n", trackNum, trackID, timescale);
-	fprintf(stderr, "Media Duration %s - ", format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
-	fprintf(stderr, "Indicated Duration %s\n", format_duration(gf_isom_get_media_original_duration(file, trackNum), timescale, szDur));
+	fprintf(stderr, "# Track %d Info - ID %d - TimeScale %d\n", trackNum, trackID, timescale);
+
+	dur = gf_isom_get_media_original_duration(file, trackNum);
+	size = gf_isom_get_media_duration(file, trackNum);
+	fprintf(stderr, "Media Duration %s ", format_duration(dur, timescale, szDur));
+	if (dur != size)
+		fprintf(stderr, " (recomputed %s)", format_duration(size, timescale, szDur));
+	fprintf(stderr, "\n");
 
 	if (gf_isom_check_data_reference(file, trackNum, 1) != GF_OK) {
 		fprintf(stderr, "Track uses external data reference not supported by GPAC!\n");
@@ -2367,13 +2405,16 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 		} else {
 			const char *st = gf_stream_type_name(esd->decoderConfig->streamType);
-			if (st) {
-				fprintf(stderr, "MPEG-4 Config%s%s Stream - ObjectTypeIndication 0x%02x\n",
-				        full_dump ? "\n\t" : ": ", st, esd->decoderConfig->objectTypeIndication);
-			} else {
-				fprintf(stderr, "MPEG-4 Config%sStream Type 0x%02x - ObjectTypeIndication 0x%02x\n",
-				        full_dump ? "\n\t" : ": ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+			if (dump_m4sys) {
+				if (st) {
+					fprintf(stderr, "MPEG-4 Config%s%s Stream - ObjectTypeIndication 0x%02x\n",
+							full_dump ? "\n\t" : ": ", st, esd->decoderConfig->objectTypeIndication);
+				} else {
+					fprintf(stderr, "MPEG-4 Config%sStream Type 0x%02x - ObjectTypeIndication 0x%02x\n",
+							full_dump ? "\n\t" : ": ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+				}
 			}
+
 			if (esd->decoderConfig->streamType==GF_STREAM_OD)
 				is_od_track=1;
 
@@ -2719,10 +2760,12 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 
 			/*sync is only valid if we open all tracks to take care of default MP4 sync..*/
 			if (!full_dump) {
-				if (!esd->OCRESID || (esd->OCRESID == esd->ESID))
-					fprintf(stderr, "Self-synchronized\n");
-				else
-					fprintf(stderr, "Synchronized on stream %d\n", esd->OCRESID);
+				if (dump_m4sys) {
+					if (!esd->OCRESID || (esd->OCRESID == esd->ESID))
+						fprintf(stderr, "Self-synchronized\n");
+					else
+						fprintf(stderr, "Synchronized on stream %d\n", esd->OCRESID);
+				}
 			} else {
 				fprintf(stderr, "\tDecoding Buffer size %d - Bitrate: avg %d - max %d kbps\n", esd->decoderConfig->bufferSizeDB, esd->decoderConfig->avgBitrate/1000, esd->decoderConfig->maxBitrate/1000);
 				if (esd->dependsOnESID)
@@ -2734,69 +2777,6 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 				if (esd->URLString) fprintf(stderr, "\tRemote Data Source %s\n", esd->URLString);
 			}
 			gf_odf_desc_del((GF_Descriptor *) esd);
-
-			/*ISMACryp*/
-			if (msub_type == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
-				const char *scheme_URI, *KMS_URI;
-				u32 scheme_type, version;
-				u32 IV_size;
-				Bool use_sel_enc;
-
-				if (gf_isom_is_ismacryp_media(file, trackNum, 1)) {
-					gf_isom_get_ismacryp_info(file, trackNum, 1, NULL, &scheme_type, &version, &scheme_URI, &KMS_URI, &use_sel_enc, &IV_size, NULL);
-					fprintf(stderr, "\n*Encrypted stream - ISMA scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
-					if (scheme_URI) fprintf(stderr, "scheme location: %s\n", scheme_URI);
-					if (KMS_URI) {
-						if (!strnicmp(KMS_URI, "(key)", 5)) fprintf(stderr, "KMS location: key in file\n");
-						else fprintf(stderr, "KMS location: %s\n", KMS_URI);
-					}
-					fprintf(stderr, "Selective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
-					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
-				} else if (gf_isom_is_omadrm_media(file, trackNum, 1)) {
-					const char *textHdrs;
-					u32 enc_type, hdr_len;
-					u64 orig_len;
-					fprintf(stderr, "\n*Encrypted stream - OMA DRM\n");
-					gf_isom_get_omadrm_info(file, trackNum, 1, NULL, NULL, NULL, &scheme_URI, &KMS_URI, &textHdrs, &hdr_len, &orig_len, &enc_type, &use_sel_enc, &IV_size, NULL);
-					fprintf(stderr, "Rights Issuer: %s\n", KMS_URI);
-					fprintf(stderr, "Content ID: %s\n", scheme_URI);
-					if (textHdrs) {
-						u32 offset;
-						const char *start = textHdrs;
-						fprintf(stderr, "OMA Textual Headers:\n");
-						i=0;
-						offset=0;
-						while (i<hdr_len) {
-							if (start[i]==0) {
-								fprintf(stderr, "\t%s\n", start+offset);
-								offset=i+1;
-							}
-							i++;
-						}
-						fprintf(stderr, "\t%s\n", start+offset);
-					}
-					if (orig_len) fprintf(stderr, "Original media size "LLD"\n", orig_len);
-					fprintf(stderr, "Encryption algorithm %s\n", (enc_type==1) ? "AEA 128 CBC" : (enc_type ? "AEA 128 CTR" : "None"));
-
-
-					fprintf(stderr, "Selective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
-					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
-				} else if(gf_isom_is_cenc_media(file, trackNum, 1)) {
-					gf_isom_get_cenc_info(file, trackNum, 1, NULL, &scheme_type, &version, &IV_size);
-					fprintf(stderr, "\n*Encrypted stream - CENC scheme %s (version: major=%u, minor=%u)\n", gf_4cc_to_str(scheme_type), (version&0xFFFF0000)>>16, version&0xFFFF);
-					if (IV_size)
-						fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
-					if (gf_isom_cenc_is_pattern_mode(file, trackNum, 1))
-						fprintf(stderr, "Pattern mode enabled\n");
-
-				} else if(gf_isom_is_adobe_protection_media(file, trackNum, 1)) {
-					gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version, NULL);
-					fprintf(stderr, "\n*Encrypted stream - Adobe protection scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
-				} else {
-					fprintf(stderr, "\n*Encrypted stream - unknown scheme %s\n", gf_4cc_to_str(gf_isom_is_media_encrypted(file, trackNum, 0) ));
-				}
-			}
-
 		}
 	} else if (msub_type == GF_ISOM_SUBTYPE_AV01) {
 		GF_AV1Config *av1c;
@@ -3089,15 +3069,86 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		}
 	}
 
-	{
-		char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
-		GF_Err e = gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE, GF_FALSE);
-		if (e == GF_OK) {
-			fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
+
+	/*Crypto info*/
+	if (gf_isom_is_track_encrypted(file, trackNum)) {
+		const char *scheme_URI, *KMS_URI;
+		u32 scheme_type, version;
+		u32 IV_size;
+		Bool use_sel_enc;
+
+		if (gf_isom_is_ismacryp_media(file, trackNum, 1)) {
+			gf_isom_get_ismacryp_info(file, trackNum, 1, NULL, &scheme_type, &version, &scheme_URI, &KMS_URI, &use_sel_enc, &IV_size, NULL);
+			fprintf(stderr, "\n\tProtected by ISMA E&A scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
+			if (scheme_URI) fprintf(stderr, "scheme location: %s\n", scheme_URI);
+			if (KMS_URI) {
+				if (!strnicmp(KMS_URI, "(key)", 5)) fprintf(stderr, "\tKMS location: key in file\n");
+				else fprintf(stderr, "\tKMS location: %s\n", KMS_URI);
+			}
+			fprintf(stderr, "\tSelective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
+			if (IV_size) fprintf(stderr, "\tInitialization Vector size: %d bits\n", IV_size*8);
+		} else if (gf_isom_is_omadrm_media(file, trackNum, 1)) {
+			const char *textHdrs;
+			u32 enc_type, hdr_len;
+			u64 orig_len;
+			gf_isom_get_omadrm_info(file, trackNum, 1, NULL, &scheme_type, &version, &scheme_URI, &KMS_URI, &textHdrs, &hdr_len, &orig_len, &enc_type, &use_sel_enc, &IV_size, NULL);
+			fprintf(stderr, "\n\tProtected by OMA DRM scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
+			fprintf(stderr, "\tRights Issuer: %s\n", KMS_URI);
+			fprintf(stderr, "\tContent ID: %s\n", scheme_URI);
+			if (textHdrs) {
+				u32 offset;
+				const char *start = textHdrs;
+				fprintf(stderr, "\tOMA Textual Headers:\n");
+				i=0;
+				offset=0;
+				while (i<hdr_len) {
+					if (start[i]==0) {
+						fprintf(stderr, "\t\t%s\n", start+offset);
+						offset=i+1;
+					}
+					i++;
+				}
+				fprintf(stderr, "\\tt%s\n", start+offset);
+			}
+			if (orig_len) fprintf(stderr, "\tOriginal media size "LLD"\n", orig_len);
+			fprintf(stderr, "\tEncryption algorithm %s\n", (enc_type==1) ? "AEA 128 CBC" : (enc_type ? "AEA 128 CTR" : "None"));
+			fprintf(stderr, "\tSelective Encryption: %s\n", use_sel_enc ? "Yes" : "No");
+			if (IV_size) fprintf(stderr, "\tInitialization Vector size: %d bits\n", IV_size*8);
+		} else if(gf_isom_is_cenc_media(file, trackNum, 1)) {
+			const u8 *def_key;
+			u32 def_key_size;
+			Bool IsEncrypted;
+			u8 crypt_byte_block, skip_byte_block;
+			IV_size = 0;
+			gf_isom_get_cenc_info(file, trackNum, 1, NULL, &scheme_type, &version);
+
+			gf_isom_cenc_get_default_info(file, trackNum, 1, NULL, &IsEncrypted, &crypt_byte_block, &skip_byte_block, &def_key, &def_key_size);
+
+			fprintf(stderr, "\n\tProtected by CENC scheme %s version 0x%08X", gf_4cc_to_str(scheme_type), version);
+
+			if (crypt_byte_block && skip_byte_block)
+				fprintf(stderr, " - Pattern %d:%d", (u32) skip_byte_block, (u32) crypt_byte_block);
+			if (def_key && def_key[0])
+				fprintf(stderr, " - MultiKey");
+
+			fprintf(stderr, "\n");
+			dump_key_info(def_key, def_key_size, IsEncrypted);
+
+		} else if(gf_isom_is_adobe_protection_media(file, trackNum, 1)) {
+			gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version, NULL);
+			fprintf(stderr, "\nProtected by Adobe scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
+		} else {
+			fprintf(stderr, "\nProtected by unknown scheme %s\n", gf_4cc_to_str(gf_isom_is_media_encrypted(file, trackNum, 0) ));
 		}
+		fprintf(stderr, "\n");
 	}
 
-	DumpMetaItem(file, 0, trackNum, "Track Meta");
+	if ( gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE, GF_FALSE) == GF_OK) {
+		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
+	}
+
+
+	DumpMetaItem(file, 0, trackNum, "\tTrack Meta");
 
 	gf_isom_get_track_switch_group_count(file, trackNum, &alt_group, &nb_groups);
 	if (alt_group) {
@@ -3232,12 +3283,13 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
+	Bool dump_m4sys = GF_FALSE;
 	u32 i, brand, min, timescale, count, tag_len;
 	const u8 *tag;
 	u64 create, modif;
 	char szDur[50];
 
-	DumpMetaItem(file, 1, 0, "Root Meta");
+	DumpMetaItem(file, 1, 0, "# File Meta");
 	if (!gf_isom_has_movie(file)) {
 		if (gf_isom_has_segment(file, &brand, &min)) {
 			count = gf_isom_segment_get_fragment_count(file);
@@ -3259,24 +3311,29 @@ void DumpMovieInfo(GF_ISOFile *file)
 
 	timescale = gf_isom_get_timescale(file);
 	i=gf_isom_get_track_count(file);
-	fprintf(stderr, "* Movie Info *\n\tTimescale %d - %d track%s\n", timescale, i, i>1 ? "s" : "");
+	fprintf(stderr, "# Movie Info - %d track%s - TimeScale %d\n", i, i>1 ? "s" : "", timescale);
 
-	fprintf(stderr, "\tComputed Duration %s", format_duration(gf_isom_get_duration(file), timescale, szDur));
-	fprintf(stderr, " - Indicated Duration %s\n", format_duration(gf_isom_get_original_duration(file), timescale, szDur));
+	modif = gf_isom_get_duration(file);
+	create = gf_isom_get_original_duration(file);
+	fprintf(stderr, "Duration %s", format_duration(create, timescale, szDur));
+	if (create!=modif) {
+		fprintf(stderr, " (recomputed %s)", format_duration(modif, timescale, szDur));
+	}
+	fprintf(stderr, "\n");
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_is_fragmented(file)) {
-		fprintf(stderr, "\tFragmented File: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, 0) , gf_isom_get_fragments_count(file, 1) );
+		fprintf(stderr, "Fragmented: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, 0) , gf_isom_get_fragments_count(file, 1) );
 	} else {
-		fprintf(stderr, "\tFragmented File: no\n");
+		fprintf(stderr, "Fragmented: no\n");
 	}
 #endif
 
 	if (gf_isom_moov_first(file))
-		fprintf(stderr, "\tFile suitable for progressive download (moov before mdat)\n");
+		fprintf(stderr, "Progressive (moov before mdat)\n");
 
 	if (gf_isom_get_brand_info(file, &brand, &min, &count) == GF_OK) {
-		fprintf(stderr, "\tFile Brand %s - version %d\n\t\tCompatible brands:", gf_4cc_to_str(brand), min);
+		fprintf(stderr, "Major Brand %s - version %d - compatible brands:", gf_4cc_to_str(brand), min);
 		for (i=0; i<count;i++) {
 			if (gf_isom_get_alternate_brand(file, i+1, &brand)==GF_OK)
 				fprintf(stderr, " %s", gf_4cc_to_str(brand) );
@@ -3284,11 +3341,12 @@ void DumpMovieInfo(GF_ISOFile *file)
 		fprintf(stderr, "\n");
 	}
 	gf_isom_get_creation_time(file, &create, &modif);
-	fprintf(stderr, "\tCreated: %s", format_date(create, szDur));
-	fprintf(stderr, "\tModified: %s", format_date(modif, szDur));
+	fprintf(stderr, "Created: %s", format_date(create, szDur));
+	if (create != modif)
+		fprintf(stderr, "Modified: %s", format_date(modif, szDur));
 	fprintf(stderr, "\n");
 
-	DumpMetaItem(file, 0, 0, "Moov Meta");
+	DumpMetaItem(file, 0, 0, "# Movie Meta");
 
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);
 	if (iod) {
@@ -3302,10 +3360,12 @@ void DumpMovieInfo(GF_ISOFile *file)
 		} else {
 			fprintf(stderr, "File has root OD (%d bytes)\n", desc_size);
 		}
-		if (!gf_list_count(iod->ESDescriptors)) fprintf(stderr, "No streams included in root OD\n");
+		if (!gf_list_count(iod->ESDescriptors))
+			fprintf(stderr, "No streams included in root OD\n");
+		else
+			dump_m4sys = GF_TRUE;
+
 		gf_odf_desc_del((GF_Descriptor *) iod);
-	} else {
-		fprintf(stderr, "File has no MPEG4 IOD/OD\n");
 	}
 	if (gf_isom_is_JPEG2000(file)) fprintf(stderr, "File is JPEG 2000\n");
 
@@ -3380,7 +3440,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	print_udta(file, 0);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		DumpTrackInfo(file, i+1, 0, GF_TRUE);
+		DumpTrackInfo(file, i+1, 0, GF_TRUE, dump_m4sys);
 	}
 }
 

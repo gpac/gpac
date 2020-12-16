@@ -434,13 +434,11 @@
 		92BBFCCC1A7122AD006A7735 /* m3u8.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC6A1A7122AD006A7735 /* m3u8.h */; };
 		92BBFCCD1A7122AD006A7735 /* media_dev.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC6B1A7122AD006A7735 /* media_dev.h */; };
 		92BBFCCE1A7122AD006A7735 /* mesh.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC6C1A7122AD006A7735 /* mesh.h */; };
-		92BBFCCF1A7122AD006A7735 /* mpd.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC6D1A7122AD006A7735 /* mpd.h */; };
 		92BBFCD01A7122AD006A7735 /* odf_dev.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC6E1A7122AD006A7735 /* odf_dev.h */; };
 		92BBFCD11A7122AD006A7735 /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC6F1A7122AD006A7735 /* odf_parse_common.h */; };
 		92BBFCD21A7122AD006A7735 /* ogg.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC701A7122AD006A7735 /* ogg.h */; };
 		92BBFCD31A7122AD006A7735 /* reedsolomon.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC711A7122AD006A7735 /* reedsolomon.h */; };
 		92BBFCD41A7122AD006A7735 /* scenegraph_dev.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC721A7122AD006A7735 /* scenegraph_dev.h */; };
-		92BBFCD51A7122AD006A7735 /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC731A7122AD006A7735 /* smjs_api.h */; };
 		92BBFCD61A7122AD006A7735 /* swf_dev.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC741A7122AD006A7735 /* swf_dev.h */; };
 		92BBFCD81A7122AD006A7735 /* vobsub.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC761A7122AD006A7735 /* vobsub.h */; };
 		92BBFCDA1A7122AD006A7735 /* iso639.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC781A7122AD006A7735 /* iso639.h */; };
@@ -1099,13 +1097,11 @@
 		92BBFC6A1A7122AD006A7735 /* m3u8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = m3u8.h; sourceTree = "<group>"; };
 		92BBFC6B1A7122AD006A7735 /* media_dev.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = media_dev.h; sourceTree = "<group>"; };
 		92BBFC6C1A7122AD006A7735 /* mesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mesh.h; sourceTree = "<group>"; };
-		92BBFC6D1A7122AD006A7735 /* mpd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mpd.h; sourceTree = "<group>"; };
 		92BBFC6E1A7122AD006A7735 /* odf_dev.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_dev.h; sourceTree = "<group>"; };
 		92BBFC6F1A7122AD006A7735 /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
 		92BBFC701A7122AD006A7735 /* ogg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ogg.h; sourceTree = "<group>"; };
 		92BBFC711A7122AD006A7735 /* reedsolomon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = reedsolomon.h; sourceTree = "<group>"; };
 		92BBFC721A7122AD006A7735 /* scenegraph_dev.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = scenegraph_dev.h; sourceTree = "<group>"; };
-		92BBFC731A7122AD006A7735 /* smjs_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smjs_api.h; sourceTree = "<group>"; };
 		92BBFC741A7122AD006A7735 /* swf_dev.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = swf_dev.h; sourceTree = "<group>"; };
 		92BBFC761A7122AD006A7735 /* vobsub.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vobsub.h; sourceTree = "<group>"; };
 		92BBFC781A7122AD006A7735 /* iso639.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iso639.h; path = ../include/gpac/iso639.h; sourceTree = "<group>"; };
@@ -1892,13 +1888,11 @@
 				92BBFC6A1A7122AD006A7735 /* m3u8.h */,
 				92BBFC6B1A7122AD006A7735 /* media_dev.h */,
 				92BBFC6C1A7122AD006A7735 /* mesh.h */,
-				92BBFC6D1A7122AD006A7735 /* mpd.h */,
 				92BBFC6E1A7122AD006A7735 /* odf_dev.h */,
 				92BBFC6F1A7122AD006A7735 /* odf_parse_common.h */,
 				92BBFC701A7122AD006A7735 /* ogg.h */,
 				92BBFC711A7122AD006A7735 /* reedsolomon.h */,
 				92BBFC721A7122AD006A7735 /* scenegraph_dev.h */,
-				92BBFC731A7122AD006A7735 /* smjs_api.h */,
 				92BBFC741A7122AD006A7735 /* swf_dev.h */,
 				92BBFC761A7122AD006A7735 /* vobsub.h */,
 			);
@@ -2209,7 +2203,6 @@
 				92BBFCB51A7122AD006A7735 /* constants.h in Headers */,
 				92BBFD041A7122AD006A7735 /* token.h in Headers */,
 				92BBFCB11A7122AD006A7735 /* color.h in Headers */,
-				92BBFCD51A7122AD006A7735 /* smjs_api.h in Headers */,
 				92BBFCF41A7122AD006A7735 /* options.h in Headers */,
 				92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */,
 				92BBFCE51A7122AD006A7735 /* font.h in Headers */,
@@ -2269,7 +2262,6 @@
 				925975082215BAC30007E02B /* evg.h in Headers */,
 				92BBFCB41A7122AD006A7735 /* configuration.h in Headers */,
 				92BBFCEF1A7122AD006A7735 /* network.h in Headers */,
-				92BBFCCF1A7122AD006A7735 /* mpd.h in Headers */,
 				92B9A5751F8660D700A24FE4 /* drawable.h in Headers */,
 				92BBFCD01A7122AD006A7735 /* odf_dev.h in Headers */,
 				92BBFCCD1A7122AD006A7735 /* media_dev.h in Headers */,

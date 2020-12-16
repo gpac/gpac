@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1304,9 +1304,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_OMA_PREVIEW_RANGE, "OMAPreview", "OMA Preview range ", GF_PROP_LUINT},
 	{ GF_PROP_PID_CENC_PSSH, "CENC_PSSH", "PSSH blob for CENC, formatted as (u32)NbSystems [ (bin128)SystemID(u32)version(u32)KID_count[ (bin128)keyID ] (u32)priv_size(char*priv_size)priv_data]", GF_PROP_DATA},
 	{ GF_PROP_PCK_CENC_SAI, "CENC_SAI", "CENC SAI for the packet, formated as (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]", GF_PROP_DATA, GF_PROP_FLAG_PCK},
-	{ GF_PROP_PID_KID, "KID", "Key ID for packets of the PID - changes are signaled through pid_set_info (no reconfigure)", GF_PROP_DATA},
-	{ GF_PROP_PID_CENC_IV_SIZE, "IVSize", "IV size for packets of the PID", GF_PROP_UINT},
-	{ GF_PROP_PID_CENC_IV_CONST, "ConstantIV", "Constant IV for packets of the PID", GF_PROP_DATA},
+	{ GF_PROP_PID_CENC_KEY_INFO, "KeyInfo", "Multi key info formatted as:\n `is_mkey(u8);\nnb_keys(u16);\n[\n\tIV_size(u8);\n\tKID(bin128);\n\tif (!IV_size) {;\n\t\tconst_IV_size(u8);\n\t\tconstIV(const_IV_size);\n}\n]\n`", GF_PROP_DATA},
 	{ GF_PROP_PID_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den", GF_PROP_FRACTION},
 	{ GF_PROP_PID_CENC_STORE, "CENCStore", "Storage location 4CC of SAI data", GF_PROP_UINT},
 	{ GF_PROP_PID_CENC_STSD_MODE, "CENCstsdMode", "Mode for CENC sample description when using clear samples:\n"

@@ -791,8 +791,13 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		else if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
-			if ((e==GF_BAD_PARAM) || (e==GF_FILTER_NOT_SUPPORTED) || (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)) {
-				if (e!=GF_FILTER_NOT_SUPPORTED) {
+			if ((e==GF_BAD_PARAM)
+				|| (e==GF_SERVICE_ERROR)
+				|| (e==GF_REMOTE_SERVICE_ERROR)
+				|| (e==GF_FILTER_NOT_SUPPORTED)
+				|| (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)
+			) {
+				if (filter->session->flags & GF_FS_FLAG_NO_REASSIGN) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter reassignment disabled, skippping chain reload for filter %s PID %s\n", pid->filter->name, pid->name ));
 				}
 				filter->session->last_connect_error = e;
