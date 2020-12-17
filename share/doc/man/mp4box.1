@@ -2193,7 +2193,11 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * primary: indicate that this item should be the primary item
 .br
-* time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items
+* time=t[-e][/i]: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items
+.br
+ - If e is set (float, in sec), import all sync samples between tand e
+.br
+ - If i is set (float, in sec), sets time increment between samples to import
 .br
 * split_tiles: for an HEVC tiled image, each tile is stored as a separate item
 .br
@@ -2416,7 +2420,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev367-g0d8d2f540-master
+build: 1.1.0-DEV-rev368-g4bd1aafcb-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
