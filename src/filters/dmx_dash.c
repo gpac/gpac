@@ -207,7 +207,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 		if (is_start) {
 			if (group->prev_is_init_segment) {
 				const char *init_segment = NULL;
-				gf_dash_group_next_seg_info(ctx->dash, group->idx, NULL, NULL, NULL, NULL, &init_segment);
+				gf_dash_group_next_seg_info(ctx->dash, group->idx, 0, NULL, NULL, NULL, NULL, &init_segment);
 				if (init_segment) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(init_segment) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_INIT, &PROP_BOOL(GF_TRUE) );
@@ -216,7 +216,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				GF_Fraction64 seg_time;
 				const char *seg_name = NULL;
 				u32 seg_number, seg_dur;
-				gf_dash_group_next_seg_info(ctx->dash, group->idx, &seg_name, &seg_number, &seg_time, &seg_dur, NULL);
+				gf_dash_group_next_seg_info(ctx->dash, group->idx, group->current_dependent_rep_idx, &seg_name, &seg_number, &seg_time, &seg_dur, NULL);
 				if (seg_name) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(seg_name) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENUM, &PROP_UINT(seg_number) );
@@ -1366,7 +1366,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_dash_group_get_segment_duration(ctx->dash, group->idx, &dur, &timescale);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(dur, timescale) );
 
-		gf_dash_group_next_seg_info(ctx->dash, group->idx, NULL, NULL, NULL, NULL, &str);
+		gf_dash_group_next_seg_info(ctx->dash, group->idx, group->current_dependent_rep_idx, NULL, NULL, NULL, NULL, &str);
 		if (str) {
 			gf_filter_pid_set_property(opid, GF_PROP_PCK_FILENAME, &PROP_STRING(str) );
 		}
@@ -1873,7 +1873,6 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	if (ctx->split_as)
 		gf_dash_split_adaptation_sets(ctx->dash);
 	gf_dash_disable_low_quality_tiles(ctx->dash, ctx->skip_lqt);
-
 
 	//in test mode, we disable seeking inside the segment: this initial seek range is dependent from tune-in time and would lead to different start range
 	//at each run, possibly breaking all tests
@@ -2755,7 +2754,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(speedadapt), "enable adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(noxlink), "disable xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(query), "set query string (without initial '?') to append to xlink of periods", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(split_as), "separate all qualities into different adaptation sets and stream all qualities", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(split_as), "separate all qualities into different adaptation sets and stream all qualities. Dependent representations (scalable) are treated as independent", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noseek), "disable seeking of initial segment(s) in dynamic mode (useful when UTC clocks do not match)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(bwcheck), "minimum time in milliseconds between two bandwidth checks when allowing segment download abort", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lowlat), "segment scheduling policy in low latency mode\n"
@@ -2819,6 +2818,8 @@ GF_FilterRegister DASHDmxRegister = {
 	"EX gpac -i MANIFEST_URL dashin:forward=file @ -o route://225.0.0.1:8000/\n"
 	"\n"
 	"Note: This mode used to be trigger by [-filemode]() option, still recognized.\n"
+	"\n"
+	"If the source has dependent media streams (scability) and all qualities and initialization segments need to be forwarded, add [-split_as]().\n"
 	"\n"
 	"# Segment bound modes\n"
 	"When [-forward]() is set to `segs` or `mani`, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.\n"

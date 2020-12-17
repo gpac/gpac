@@ -5400,6 +5400,10 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				gf_list_rem(reps, 1);
 				set->representations = gf_list_new();
 				gf_list_add(set->representations, rep);
+				if (rep->dependency_id) {
+					gf_free(rep->dependency_id);
+					rep->dependency_id = NULL;
+				}
 
 				if (set->id) {
 					set->id = next_as_id;

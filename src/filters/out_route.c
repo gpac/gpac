@@ -1591,6 +1591,7 @@ next_packet:
 			if (rpid->push_init) {
 				rpid->push_init = GF_FALSE;
 				send_hls_child = GF_TRUE;
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Sending init segment %s\n", rpid->init_seg_name));
 
 				//send init asap
 				offset = 0;

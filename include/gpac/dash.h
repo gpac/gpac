@@ -484,6 +484,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
 /*! gets some info on the segment
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
+\param dependent_representation_index index of the dependent representation to query, 0-based
 \param seg_name  set to the segment name, without base url - optional, may be NULL
 \param seg_number  set to the segment number for $Number$ addressing - optional, may be NULL
 \param seg_time  set to the segment start time  - optional, may be NULL
@@ -491,7 +492,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
 \param init_segment set to the init segment name, without base url  - optional, may be NULL
 \return error if any, GF_BUFFER_TOO_SMALL if no segments queued for download
 */
-GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment);
+GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 dependent_representation_index, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment);
 
 /*! checks if loop was detected in playback. This is mostly used for broadcast (eMBMS, ROUTE) based on pcap replay.
 \param dash the target dash client
@@ -1097,6 +1098,7 @@ typedef s32 (*gf_dash_download_monitor)(void *udta, u32 group_idx, u32 bits_per_
 void gf_dash_set_algo_custom(GF_DashClient *dash, void *udta,
 		gf_dash_rate_adaptation algo_custom,
 		gf_dash_download_monitor download_monitor_custom);
+
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

@@ -8463,10 +8463,10 @@ GF_Err gf_dash_group_get_segment_duration(GF_DashClient *dash, u32 idx, u32 *dur
 }
 
 GF_EXPORT
-GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment)
+GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 dependent_representation_index, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment)
 {
 	GF_Err res = GF_OK;
-	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
 	if (!group) return GF_BAD_PARAM;
 
 	if (init_segment) {
@@ -8477,13 +8477,14 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 idx, const char **se
 			*init_segment = rep ? rep->playback.init_seg_name_start : NULL;
 		}
 	} else {
-		if (!group->nb_cached_segments) {
+		u32 rep_idx = dependent_representation_index;
+		if (group->nb_cached_segments <= rep_idx) {
 			res = GF_BUFFER_TOO_SMALL;
 		} else {
-			if (seg_name) *seg_name = group->cached[0].seg_name_start;
-			if (seg_number) *seg_number = group->cached[0].seg_number;
-			if (seg_time) *seg_time = group->cached[0].time;
-			if (seg_dur_ms) *seg_dur_ms = group->cached[0].duration;
+			if (seg_name) *seg_name = group->cached[rep_idx].seg_name_start;
+			if (seg_number) *seg_number = group->cached[rep_idx].seg_number;
+			if (seg_time) *seg_time = group->cached[rep_idx].time;
+			if (seg_dur_ms) *seg_dur_ms = group->cached[rep_idx].duration;
 		}
 	}
 	return res;
