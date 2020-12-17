@@ -5026,7 +5026,7 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 
 	gf_fprintf(trace, "isEncrypted=\"%d\"", ptr->isProtected);
 
-	is_mkey = ptr->key_info[0] ? GF_TRUE : GF_FALSE;
+	is_mkey = (ptr->key_info && ptr->key_info[0]) ? GF_TRUE : GF_FALSE;
 
 	if (is_mkey) {
 		u32 i, kpos=3, nb_keys;
@@ -5056,7 +5056,7 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 			}
 			gf_fprintf(trace, "/>\n");
 		}
-	} else {
+	} else if (ptr->key_info) {
 		if (ptr->key_info[3])
 			gf_fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->key_info[3]);
 		else {
@@ -5068,6 +5068,10 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 		if (ptr->version)
 			gf_fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
 		gf_fprintf(trace, "\">\n");
+	}
+	if (!ptr->size) {
+		gf_fprintf(trace, " IV_size=\"\" KID=\"\" constant_IV_size=\"\" constant_IV=\"\" crypt_byte_block=\"\" skip_byte_block=\"\">\n");
+		gf_fprintf(trace, "<TENCKey IV_size=\"\" KID=\"\" const_IV_size=\"\" constIV=\"\"/>\n");
 	}
 	gf_isom_box_dump_done("TrackEncryptionBox", a, trace);
 	return GF_OK;
@@ -5143,7 +5147,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 		//WARNING - PSEC (UUID) IS TYPECASTED TO SENC (FULL BOX) SO WE CANNOT USE USUAL FULL BOX FUNCTIONS
 		gf_fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"0x%X\"/>\n", ptr->version, ptr->flags);
 
-		if (ptr->version==1)
+		if ((ptr->version==1) && !ptr->piff_type)
 			use_multikey = GF_TRUE;
 	}
 
@@ -5208,15 +5212,19 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			u32 j, nb_subs;
 
 			nb_subs = gf_bs_read_int(bs, subs_bits);
-			gf_fprintf(trace, " SubsampleCount=\"%d\"", nb_subs);
+			gf_fprintf(trace, " SubsampleCount=\"%u\"", nb_subs);
 			gf_fprintf(trace, ">\n");
 
 			for (j=0; j<nb_subs; j++) {
+				u32 clear, crypt;
 				gf_fprintf(trace, "<SubSampleEncryptionEntry");
 				if (nb_keys>1) {
-					gf_fprintf(trace, " MultiKeyIndex=\"%d\"", gf_bs_read_u16(bs));
+					u32 kidx = gf_bs_read_u16(bs);
+					gf_fprintf(trace, " MultiKeyIndex=\"%u\"", kidx);
 				}
-				gf_fprintf(trace, " NumClearBytes=\"%d\" NumEncryptedBytes=\"%d\"/>\n", gf_bs_read_u16(bs), gf_bs_read_u32(bs) );
+				clear = gf_bs_read_u16(bs);
+				crypt = gf_bs_read_u32(bs);
+				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, crypt);
 			}
 		} else {
 			gf_fprintf(trace, ">\n");
@@ -6175,7 +6183,7 @@ GF_Err ienc_box_dump(GF_Box *a, FILE * trace)
 	if (ptr->version)
 		gf_fprintf(trace, " skip_byte_block=\"%d\" crypt_byte_block=\"%d\"", ptr->skip_byte_block, ptr->crypt_byte_block);
 	gf_fprintf(trace, ">\n");
-	nb_keys = ptr->key_info[2];
+	nb_keys = ptr->key_info ? ptr->key_info[2] : 0;
 	kpos = 3;
 	for (i = 0; i < nb_keys; i++) {
 		u8 iv_size = ptr->key_info[kpos];

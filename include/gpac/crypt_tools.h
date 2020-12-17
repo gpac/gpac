@@ -181,11 +181,16 @@ typedef struct
 	/*! force using type set in XML rather than type indicated in file when decrypting*/
 	Bool force_type;
 
+	/*! randomly encrypts subsample if rand() % subs_rand is 0*/
 	u32 subs_rand;
+	/*! list of VCL NAL/OBU indices to encrypt, 1-based*/
 	char *subs_crypt;
 	/*! use multiple keys per sample*/
 	Bool multi_key;
+	/*! roll key over subsamples. If 0, roll by 1 every encrypted sample. If 1 (-1==0) disable key roll*/
 	u32 mkey_roll_plus_one;
+	/*!coma-separated list of indices of keys to use per subsample. Value 0 means keep clear. If less indices than subsamples, keep subsamples in clear*/
+	char *mkey_subs;
 } GF_TrackCryptInfo;
 
 /*! Crypto information*/

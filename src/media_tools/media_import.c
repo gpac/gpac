@@ -599,18 +599,14 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		if (is_cenc) {
 			u32 container_type;
 			Bool Is_Encrypted;
-			Bool is_mkey;
-			u8 IV_size=16;
+			Bool is_mkey=GF_FALSE;
 			u8 crypt_byte_block, skip_byte_block;
 			const u8 *key_info=NULL;
 			u32 key_info_len = 0;
 
 			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &crypt_byte_block, &skip_byte_block, &key_info, &key_info_len);
 			if (e) goto exit;
-			if (!key_info) {
-				IV_size = key_info_len; //piff default
-			} else {
-				IV_size = key_info[3];
+			if (key_info) {
 				is_mkey = key_info[0];
 			}
 

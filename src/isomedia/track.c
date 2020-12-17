@@ -987,7 +987,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				senc = trak->sample_encryption;
 
 			if (!senc) {
-				if (traf->sample_encryption->is_piff) {
+				if (traf->sample_encryption->piff_type==1) {
 					senc = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
 				} else {
 					senc = gf_isom_create_samp_enc_box(1, 0x2);

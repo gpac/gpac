@@ -98,9 +98,10 @@ typedef struct
 typedef struct
 {
 	const char *cfile;
-	Bool decrypt;
+	u32 decrypt;
 	GF_PropUIntList drop_keys;
-	GF_PropStringList drop_kids;
+	GF_PropStringList kids;
+	GF_PropStringList keys;
 	GF_CryptInfo *cinfo;
 	
 	GF_List *streams;
@@ -484,11 +485,11 @@ static GF_Err cenc_dec_setup_oma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32
 }
 #endif
 
+
 static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 {
 	bin128 blank_KID;
 	const u8 *key_info;
-	u32 key_info_size;
 	u32 i, j, kpos=3, nb_keys;
 	cstr->crypt_init = GF_FALSE;
 
@@ -498,7 +499,6 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 
 	memset(blank_KID, 0, 16);
 	key_info = cstr->cenc_ki->value.data.ptr;
-	key_info_size = cstr->cenc_ki->value.data.size;
 	if (key_info[0]) {
 		nb_keys = key_info[1];
 		nb_keys<<=8;
@@ -525,7 +525,7 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 				}
 			}
 		}
-		if (ctx->drop_kids.nb_items) {
+		if (ctx->kids.nb_items) {
 			char szKID[33];
 			szKID[0] = 0;
 			for (j=0; j<16; j++) {
@@ -533,16 +533,44 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 				sprintf(szC, "%02X", KID[j]);
 				strcat(szKID, szC);
 			}
-			for (j=0; j<ctx->drop_kids.nb_items; j++) {
-				char *kid_d = ctx->drop_kids.vals[j];
+			for (j=0; j<ctx->kids.nb_items; j++) {
+				char *kid_d = ctx->kids.vals[j];
 				if (!strncmp(kid_d, "0x", 2)) kid_d+=2;
-				if (!stricmp(szKID, kid_d)) {
+
+				if (stricmp(szKID, kid_d)) continue;
+
+				//no global key, disable key
+				if (!ctx->keys.nb_items) {
 					cstr->crypts[i].key_valid = GF_FALSE;
-					break;
 				}
+				//use global keys
+				else {
+					u32 len;
+					bin128 key;
+					char *key_str = ctx->keys.vals[j];
+					if (!strncmp(key_str, "0x", 2)) key_str+= 2;
+					len = strlen(key_str);
+					if (len!=32) {
+						cstr->crypts[i].key_valid = GF_FALSE;
+						break;
+					}
+					for (j=0; j<16; j++) {
+						u32 val;
+						char szV[3];
+						szV[0] = key_str[2*j];
+						szV[1] = key_str[2*j+1];
+						szV[2] = 0;
+						sscanf(szV, "%02X", &val);
+						key[j] = val;
+					}
+					memcpy(cstr->crypts[i].key, key, 16);
+					found = GF_TRUE;
+				}
+				break;
 			}
 		}
 		if (!cstr->crypts[i].key_valid) continue;
+		if (found) continue;
 
 		for (j=0; j<cstr->KID_count; j++) {
 			if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
@@ -772,6 +800,11 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		if (cinfo != ctx->cinfo)
 			gf_crypt_info_del(cinfo);
 	}
+
+	if (ctx->keys.nb_items) {
+		return GF_OK;
+	}
+
 	if (ctx->decrypt!=DECRYPT_FULL) return GF_OK;
 	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found, aboring!\n\tUse '--decrypt=nokey' to force decrypting\n"));
 	return GF_NOT_SUPPORTED;
@@ -1047,10 +1080,17 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			iv_size = cstr->cenc_ki->value.data.ptr[3];
 		}
 		if (!iv_size) {
-			skey_const_iv_size = cstr->cenc_ki->value.data.ptr[20];
+			if (! cstr->cenc_ki->value.data.ptr[3]) {
+				skey_const_iv_size = cstr->cenc_ki->value.data.ptr[20];
+			}
 		}
 
 		if (!sai_payload && !skey_const_iv_size) {
+			if (ctx->decrypt == DECRYPT_SKIP) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
+				e = GF_OK;
+				goto send_packet;
+			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
 			return GF_SERVICE_ERROR;
 		}
@@ -1527,6 +1567,13 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 static GF_Err cenc_dec_initialize(GF_Filter *filter)
 {
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
+
+	if (ctx->keys.nb_items) {
+		if (ctx->keys.nb_items != ctx->kids.nb_items) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENCCrypt] Number of defined keys (%d) must be the same as number of defined KIDs (%d)\n", ctx->keys.nb_items, ctx->kids.nb_items ));
+			return GF_BAD_PARAM;
+		}
+	}
 	ctx->streams = gf_list_new();
 	if (!ctx->streams) return GF_OUT_OF_MEM;
 
@@ -1588,7 +1635,8 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 		"- skip: decrypt nothing"
 		, GF_PROP_UINT, "full", "full|nokey|skip", GF_ARG_HINT_ADVANCED},
 	{ OFFS(drop_keys), "consider keys with given 1-based indexes as not available (multi-key debug)", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
-	{ OFFS(drop_kids), "consider keys with given KID (as hex string) as not available (debug)", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(kids), "define KIDs. If `keys` is empty, consider keys with given KID (as hex string) as not available (debug)", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(keys), "define key values for each of the specififed KID", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 

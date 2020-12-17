@@ -1837,7 +1837,9 @@ decrypt (enum, default: full): decrypt mode (CENC only)
 .br
 drop_keys (uintl):             consider keys with given 1-based indexes as not available (multi-key debug)
 .br
-drop_kids (strl):              consider keys with given KID (as hex string) as not available (debug)
+kids (strl):                   define KIDs. If keys is empty, consider keys with given KID (as hex string) as not available (debug)
+.br
+keys (strl):                   define key values for each of the specififed KID
 .br
 
 .br
@@ -7122,7 +7124,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev362-g3e0d0a086-buildbot-cencmkey
+build: 1.1.0-DEV-rev363-g48ea22fea-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

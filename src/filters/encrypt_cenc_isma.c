@@ -114,6 +114,8 @@ typedef struct
 	AV1State av1;
 #endif
 	Bool slice_header_clear;
+
+	GF_PropUIntList mkey_indices;
 } GF_CENCStream;
 
 typedef struct
@@ -740,6 +742,10 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			cstr->rap_roll = GF_TRUE;
 		}
 	}
+	if (cstr->multi_key && !cstr->mkey_indices.nb_items && cstr->tci->mkey_subs) {
+		GF_PropertyValue p = gf_props_parse_value(GF_PROP_UINT_LIST, "subs", cstr->tci->mkey_subs, NULL, ',');
+		cstr->mkey_indices = p.value.uint_list;
+	}
 
 	if (is_reinit) {
 		u32 nb_keys;
@@ -848,6 +854,8 @@ static void cenc_free_pid_context(GF_CENCStream *cstr)
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (cstr->av1.config) gf_odf_av1_cfg_del(cstr->av1.config);
 #endif
+
+	if (cstr->mkey_indices.vals) gf_free(cstr->mkey_indices.vals);
 	gf_free(cstr);
 }
 
@@ -1592,8 +1600,20 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				(cstr->tci->subs_crypt || cstr->tci->subs_rand || cstr->multi_key)
 			) {
 				Bool do_crypt = GF_TRUE;
+
+				if (cstr->mkey_indices.nb_items) {
+					if (subsample_idx>=cstr->mkey_indices.nb_items)
+						do_crypt = GF_FALSE;
+					else {
+						key_idx = cstr->mkey_indices.vals[subsample_idx];
+						if (!key_idx || (key_idx>cstr->nb_keys))
+							do_crypt = GF_FALSE;
+						else
+							key_idx-=1;
+					}
+				}
 				subsample_idx++;
-				if (cstr->tci->subs_crypt) {
+				if (do_crypt && cstr->tci->subs_crypt) {
 					char szSub[20], *sep;
 					sprintf(szSub, "%d", subsample_idx);
 					sep = strstr(cstr->tci->subs_crypt, szSub);
@@ -1703,6 +1723,8 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				if (!prev_entry_bytes_crypt) {
 					prev_entry_bytes_clear += cstr->nalu_size_length + clear_bytes;
 					prev_entry_bytes_crypt += nalu_size - clear_bytes;
+					if (prev_entry_bytes_crypt)
+						prev_entry_mkey_idx = key_idx;
 				} else {
 					//store current
 					if (!nb_subsamples) gf_bs_write_int(sai_bs, 0, nb_subsamples_bits);
@@ -1719,7 +1741,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 
 				//subsample was a possible encryption target, apply key roll
-				if (multi_key && prev_entry_bytes_crypt) {
+				if (multi_key && prev_entry_bytes_crypt && !cstr->mkey_indices.nb_items) {
 					Bool change_key = GF_FALSE;
 					if (!cstr->tci->mkey_roll_plus_one) {
 						change_key = GF_TRUE;

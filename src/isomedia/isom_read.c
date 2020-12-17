@@ -4754,13 +4754,13 @@ GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_S
 
 exit:
 	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
-	if (( (senc && senc->is_piff) || (trak->moov && trak->moov->mov->is_smooth) ) && key_info && ! (*key_info) ) {
+	if (( (senc && senc->piff_type==1) || (trak->moov && trak->moov->mov->is_smooth) ) && key_info && ! (*key_info) ) {
 		if (!senc) {
 			if (IsEncrypted) *IsEncrypted = GF_TRUE;
 			if (key_info_size) *key_info_size = 8;
 		} else {
-			if (!senc->is_piff) {
-				senc->is_piff = GF_TRUE;
+			if (!senc->piff_type) {
+				senc->piff_type = 2;
 				senc->IV_size = 8;
 			}
 			assert(senc->IV_size);
