@@ -5661,6 +5661,8 @@ typedef struct
 	u32 num_grid_rows;
 	/*! protection info, NULL if item is not protected*/
 	GF_ImageItemProtection *cenc_info;
+	/*! If set, reference image from sample sample_num (same file data used for sample and item)*/
+	Bool use_reference;
 } GF_ImageItemProperties;
 
 

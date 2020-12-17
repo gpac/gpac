@@ -1221,7 +1221,17 @@ import_next_sample:
 		if (!sample) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("No sample found%s\n", (image_props->time<0) ? "" : " for requested time"));
 		} else if (image_props->time<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: imported sample %d (DTS "LLU") is not a sync sample (RAP %d size %d)\n", sample_number, sample->DTS, sample->IsRAP, sample->dataLength));
+			if (image_props->sample_num) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: imported sample %d (DTS "LLU") is not a sync sample (RAP %d size %d)\n", sample_number, sample->DTS, sample->IsRAP, sample->dataLength));
+			} else {
+				gf_isom_sample_del(&sample);
+				sample_number++;
+				if (sample_number == gf_isom_get_sample_count(movie, imported_track)) {
+					e = GF_OK;
+					goto exit;
+				}
+				goto import_next_sample;
+			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error no sync sample found after time %g\n", image_props->time));
 		}
@@ -1433,10 +1443,10 @@ import_next_sample:
 		e = gf_isom_meta_get_next_item_id(movie, root_meta, meta_track_number, &item_id);
 		if (e) goto exit;
 	}
-	if (image_props->sample_num && item_name && !strcmp(item_name, "ref")) {
+	if (image_props->sample_num && image_props->use_reference) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Refering trackID %d sample %d as item %d\n", imported_track, sample_number, item_id));
 
-		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, !strlen(item_name) ? "Image" : item_name, item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
+		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name)) ? "Image" : item_name, item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
 	} else {
 
 		if (image_props->sample_num) {

@@ -2162,7 +2162,7 @@ set meta box type, with ABCD the four char meta type (NULL or 0 to remove meta)
 * tkID != 0: use meta of given track
 .br
 .TP
-.B \-add-items (string)
+.B \-add-item (string)
 .br
 add resource to meta, with parameter syntax file_path[:opt1:optN]
 .br
@@ -2187,13 +2187,13 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .TP
 .B \-add-image (string)
 .br
-add the given file as HEIF image item, with parameter syntax file_path[:opt1:optN]
+add the given file as HEIF image item, with parameter syntax file_path[:opt1:optN]. If filepath is omitted, source is the input MP4 file
 .br
 * name, id, ref: see .I add-item
 .br
 * primary: indicate that this item should be the primary item
 .br
-* time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items
+* time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items
 .br
 * split_tiles: for an HEVC tiled image, each tile is stored as a separate item
 .br
@@ -2211,9 +2211,11 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * alpha: indicate that the image is an alpha image (should use ref=auxl also)
 .br
-* tk=tkID: indicate the track ID of the source sample
+* tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file
 .br
-* samp=N: indicate the sample number of the source sample. If file_path is ref, do not copy the data but refer to the final sample location. If file_path is self, this or not set, copy data from the track sample
+* samp=N: indicate the sample number of the source sample
+.br
+* ref: do not copy the data but refer to the final sample location
 .br
 - any other options will be passed as options to the media importer, see .I add
 .br
@@ -2414,7 +2416,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev363-g48ea22fea-master
+build: 1.1.0-DEV-rev364-g8c22fb2e3-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

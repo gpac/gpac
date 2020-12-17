@@ -1584,7 +1584,7 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		}
 		sep = strstr(arg->description, ".\n");
 		if (sep) {
-			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not contain .\\n", arg->name, arg->description);
+			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not contain .\\n \n", arg->name, arg->description);
 			exit(1);
 		}
 
