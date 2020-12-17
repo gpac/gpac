@@ -305,14 +305,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		char szDBSep[3];
 		Bool insert_escape = GF_FALSE;
 		Bool dst_sep_inserted = GF_FALSE;
-		u32 len = 2 + (u32) strlen(src_striped) + (u32) strlen(dst_striped);
 		//source has a URL (local or not), escape it to make sure we don't pass dst args as params to the URL
 		if ((strstr(src_striped, "src=") || strstr(src_striped, "dst=")) && strstr(src_striped, "://")){
 			char szEscape[10];
 			sprintf(szEscape, "%cgpac", fsess->sep_args);
 			if (strstr(src_striped, szEscape)==NULL) {
 				insert_escape = GF_TRUE;
-				len += 5;
 			}
 		}
 
