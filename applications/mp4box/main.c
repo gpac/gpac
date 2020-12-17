@@ -850,7 +850,7 @@ GF_GPACArg m4b_meta_args[] =
 		"- tk not set: use root (file) meta\n"
 		"- tkID == 0: use moov meta\n"
 		"- tkID != 0: use meta of given track", NULL, NULL, GF_ARG_STRING, 0),
- 	GF_DEF_ARG("add-items", NULL, "add resource to meta, with parameter syntax `file_path[:opt1:optN]`\n"
+ 	GF_DEF_ARG("add-item", NULL, "add resource to meta, with parameter syntax `file_path[:opt1:optN]`\n"
 		"- file_path `this` or `self`: item is the file itself\n"
 		"- tk=tkID: meta location (file, moov, track)\n"
 		"- name=str: item name\n"
@@ -861,10 +861,10 @@ GF_GPACArg m4b_meta_args[] =
 		"- ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)\n"
 		"- group=id,type: indicate the id and type of an alternate group for this item"
 		, NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("add-image", NULL, "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`\n"
+	GF_DEF_ARG("add-image", NULL, "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`. If `filepath` is omitted, source is the input MP4 file\n"
 		"- name, id, ref: see [-add-item]()\n"
 		"- primary: indicate that this item should be the primary item\n"
-		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items\n"
+		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
 		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
@@ -873,8 +873,9 @@ GF_GPACArg m4b_meta_args[] =
 		"- hidden: indicate that this image item should be hidden\n"
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
-		"- tk=tkID: indicate the track ID of the source sample\n"
-		"- samp=N: indicate the sample number of the source sample. If `file_path` is `ref`, do not copy the data but refer to the final sample location. If `file_path` is `self`, `this` or not set, copy data from the track sample\n"
+		"- tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file\n"
+		"- samp=N: indicate the sample number of the source sample\n"
+		"- ref: do not copy the data but refer to the final sample location\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("add-image-grid", NULL, "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
@@ -1682,6 +1683,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->item_type = GF_4CC(szSlot[5], szSlot[6], szSlot[7], szSlot[8]);
 			ret = 1;
 		}
+		//"ref" (without '=') is for data reference, "ref=" is for item references
 		else if (!strnicmp(szSlot, "ref=", 4)) {
 			char type[5];
 			MetaRef	*ref;
@@ -1786,6 +1788,15 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				if (!meta->image_props) return 0;
 			}
 			meta->image_props->alpha = GF_TRUE;
+			ret = 1;
+		}
+		//"ref" (without '=') is for data reference, "ref=" is for item references
+		else if (!stricmp(szSlot, "ref")) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			meta->image_props->use_reference = GF_TRUE;
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {
@@ -5866,7 +5877,7 @@ int mp4boxMain(int argc, char **argv)
 	for (i=0; i<nb_meta_act; i++) {
 		u32 tk = 0;
 #ifndef GPAC_DISABLE_ISOM_WRITE
-		u32 self_ref;
+		Bool self_ref;
 #endif
 		MetaAction *meta = &metas[i];
 
@@ -5903,17 +5914,12 @@ int mp4boxMain(int argc, char **argv)
 		{
 			u32 old_tk_count = gf_isom_get_track_count(file);
 			GF_Fraction _frac = {0,0};
-			self_ref = 0;
+			self_ref = GF_FALSE;
 
 			tk = 0;
-			if (meta->szPath && (!strcmp(meta->szPath, "this") || !strcmp(meta->szPath, "self") || !strcmp(meta->szPath, "ref"))
-				&& meta->trackID && meta->image_props  && meta->image_props->sample_num
-			) {
+			if (!meta->szPath || (meta->image_props && meta->image_props->sample_num && meta->image_props->use_reference)) {
 				e = GF_OK;
-				self_ref = 2;
-			} else if (!meta->szPath && meta->trackID) {
-				e = GF_OK;
-				self_ref = 1;
+				self_ref = GF_TRUE;
 			} else if (meta->szPath) {
 				e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
 			} else {
@@ -5935,12 +5941,27 @@ int mp4boxMain(int argc, char **argv)
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						const char *it_name;
-						if (self_ref==2) it_name = "ref";
-						else if (self_ref==1) it_name = "self";
-						else it_name = meta->szName;
+						u32 src_tk_id = 1;
 
-						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1, it_name, meta->item_id, meta->image_props, NULL);
+						if (self_ref) {
+							src_tk_id = meta->trackID;
+							if (!src_tk_id) {
+								u32 j;
+								for (j=0; j<gf_isom_get_track_count(file); i++) {
+									if (gf_isom_is_video_handler_type (gf_isom_get_media_type(file, i+1))) {
+										src_tk_id = gf_isom_get_track_id(file, i+1);
+										break;
+									}
+								}
+							}
+							if (!src_tk_id) {
+								fprintf(stderr, "No video track in file, cannot add image from track\n");
+								e = GF_BAD_PARAM;
+								break;
+							}
+						}
+
+						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, src_tk_id, meta->szName, meta->item_id, meta->image_props, NULL);
 						if (e == GF_OK && meta->primary) {
 							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}
