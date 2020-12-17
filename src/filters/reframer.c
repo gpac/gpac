@@ -240,10 +240,14 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->filter_sap1 = ctx->filter_sap2 = ctx->filter_sap3 = ctx->filter_sap4 = ctx->filter_sap_none = GF_FALSE;
 	for (i=0; i<ctx->saps.nb_items; i++) {
 		switch (ctx->saps.vals[i]) {
-		case 1: ctx->filter_sap1 = GF_TRUE;
+		case 1:
+			ctx->filter_sap1 = GF_TRUE;
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(GF_FALSE)); //false: all samples are sync
 			break;
-		case 2: ctx->filter_sap2 = GF_TRUE; break;
+		case 2:
+			ctx->filter_sap2 = GF_TRUE;
+			gf_filter_pid_set_property(st->opid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(GF_FALSE)); //false: all samples are sync
+			break;
 		case 3: ctx->filter_sap3 = GF_TRUE; break;
 		case 4: ctx->filter_sap4 = GF_TRUE; break;
 		default: ctx->filter_sap_none = GF_TRUE; break;
