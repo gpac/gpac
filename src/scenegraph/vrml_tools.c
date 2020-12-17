@@ -1414,7 +1414,8 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 			((GenMFField *)dest)->array = gf_realloc(((GenMFField *)dest)->array, size);
 			((GenMFField *)dest)->count = ((GenMFField *)orig)->count;
 		}
-		memcpy(((GenMFField *)dest)->array, ((GenMFField *)orig)->array, size);
+		if (size)
+			memcpy(((GenMFField *)dest)->array, ((GenMFField *)orig)->array, size);
 		break;
 	//complex MFFields
 	case GF_SG_VRML_MFSTRING:

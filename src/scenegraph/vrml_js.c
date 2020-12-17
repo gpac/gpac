@@ -35,9 +35,12 @@
 
 typedef struct
 {
+
 	u8 is_setup;
-	/*set to true for proto IS fields*/
+	/*set to 1 for proto IS fields*/
 	u8 IS_route;
+	/*set to 1 for JS route to fun*/
+	u8 script_route;
 
 	u32 ID;
 	char *name;
@@ -974,6 +977,7 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 		if ( !r ) {
 			GF_SAFEALLOC(r, GF_RouteToScript)
 			if (!r) return JS_FALSE;
+			r->script_route = 1;
 			r->FromNode = n1;
 			r->FromField.fieldIndex = f_id1;
 			gf_node_get_field(r->FromNode, f_id1, &r->FromField);
@@ -3173,8 +3177,10 @@ static void field_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_fun
 		u32 i=0;
 		GF_RouteToScript *r;
 		while ( (r = gf_list_enum(jsf->node->sgprivate->interact->routes, &i))) {
-			JS_MarkValue(rt, r->fun, mark_func);
-			JS_MarkValue(rt, r->obj, mark_func);
+			if (r->script_route) {
+				JS_MarkValue(rt, r->fun, mark_func);
+				JS_MarkValue(rt, r->obj, mark_func);
+			}
 		}
 	}
 	if (jsf->mfvals) {
@@ -4071,6 +4077,7 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 
 static void JS_PreDestroy(GF_Node *node)
 {
+	GF_SceneGraph *scene;
 	GF_ScriptPriv *priv = node->sgprivate->UserPrivate;
 	if (!priv) return;
 
@@ -4098,6 +4105,19 @@ static void JS_PreDestroy(GF_Node *node)
 #endif
 
 	JS_FreeValue(priv->js_ctx, priv->js_obj);
+
+
+	scene = JS_GetContextOpaque(priv->js_ctx);
+	if (scene && scene->__reserved_null) {
+		GF_Node *n = JS_GetContextOpaque(priv->js_ctx);
+		scene = n->sgprivate->scenegraph;
+	}
+	if (scene && scene->attached_session) {
+		void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs);
+
+		gf_fs_unload_js_api(priv->js_ctx, scene->attached_session);
+	}
+
 
 	gf_js_lock(priv->js_ctx, 0);
 

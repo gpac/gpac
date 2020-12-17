@@ -1210,7 +1210,7 @@ static void TraverseCustomTexture(GF_Node *node, void *rs, Bool is_destroy)
 static void CustomTexture_update(GF_TextureHandler *txh)
 {
 #ifndef GPAC_DISABLE_3D
-    u8 data[12];
+    u8 data[16];
 #endif
     CustomTextureStack *stack = gf_node_get_private(txh->owner);
     //alloc texture

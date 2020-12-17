@@ -704,6 +704,11 @@ insert query string (without ?) to URL on requests
 force using threads for async download requests rather than session scheduler
 .br
 .TP
+.B \-cte-rate-wnd (int, default: 20)
+.br
+set window analysis length in milliseconds for chunk-transfer encoding rate estimation
+.br
+.TP
 .B \-dbg-edges
 .br
 log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
@@ -894,6 +899,11 @@ indicate the font directory must be rescanned
 .B \-wait-fonts
 .br
 wait for SVG fonts to be loaded before displaying frames
+.br
+.TP
+.B \-webvtt-hours
+.br
+force writing hour when serializing WebVTT
 .br
 .TP
 .B \-rmt
@@ -1192,11 +1202,11 @@ This will pass UDP://IP:PORT/:someopt=VAL to opt1 without inspecting it, and VAL
 .br
   
 .br
-A filter may be assigned a name (for inspection purposes) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
+A filter may be assigned a name (for inspection purposes, not inherited) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
 .br
   
 .br
-A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution.
+A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution. Tags are not inherited, therefore dynamically loaded filters never have a tag.
 .br
   
 .br
@@ -1229,6 +1239,8 @@ Specific source or sink filters may also be specified using filterName:src=URL o
 
 .br
 The src= and dst= syntaxes can also be used in alias for dynamic argument cloning (see gpac -hx alias).
+.br
+
 .br
 .P
 .B
@@ -1318,6 +1330,8 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .br
 .SH Expliciting links between filters [LINK]
 .LP
+.br
+
 .br
 .P
 .B
@@ -1507,7 +1521,7 @@ Warning: If a filter PID gets connected to an explicitly loaded filter, no furth
 .br
 Example
 .br
-src=file.mp4 @ reframer dst=dump.mp4
+src=video.264.mp4 @ reframer dst=dump.mp4
 .br
 
 .br
@@ -1564,7 +1578,7 @@ src=file.mp4 dst=file.aac:OPTFOO:gfloc:OPTBAR dst=file.264
 .br
 
 .br
-This will pass the :OPTFOO to all filters loaded between file.mp4source and file.aac destination, but not OPTBAR
+This will pass :OPTFOO to all filters loaded between file.mp4source and file.aac destination, but not OPTBAR
 .br
 Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.
 .br
@@ -1581,7 +1595,7 @@ This will warn if OPTFOO is not consumed, but will not track OPTBAR.
 .SH URL templating
 .LP
 .br
-Destination URLs can be templated using the same mechanism as MPEG-DASH, where $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with N zeros if needed. $$ is an escape for $
+Destination URLs can be templated using the same mechanism as MPEG-DASH, where $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with up to N zeros if needed.
 .br
 KEYWORD is case sensitive, and may be present multiple times in the string. Supported KEYWORD are:
 .br
@@ -1599,9 +1613,11 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
 * OTHER: locates property 4CC for the given name, or property name if no 4CC matches.
 .br
-
-.br
   
+.br
+$$ is an escape for $
+.br
+
 .br
 Templating can be useful when encoding several qualities in one pass.
 .br
@@ -1649,11 +1665,11 @@ In this case, the encoder will be cloned for each video PIDs in the source, and 
 .SH Templating filter chains
 .LP
 .br
-There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :cloneoption is not enough since the muxer will always accept the input PIDs.
+There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :clone option is not enough since the muxer will always accept the input PIDs.
 .br
 To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.
 .br
-Warning: This feature should only be called with a single property set to * per source ID, results are undefined otherwise.
+Warning: This feature should only be called with a single property set to * (or empty) per source ID, results are undefined otherwise.
 .br
 Example
 .br
@@ -1685,6 +1701,14 @@ Non built-in properties are parsed as follows:
 - FOO will be declared as string with a value set to FOO.
 .br
 - TYPE@FOO will be parsed according to TYPE. If the type is not recognized, the entire value is copied as string. See gpac -h props for defined types.
+.br
+
+.br
+User-assigned PID properties on filter fA will be inherited by all filters dynamically loaded to solve fA -> fB connection.
+.br
+If fB also has user-assigned PID properties, these only apply starting from fB in the chain and are not inherited by filters between fA and fB.
+.br
+
 .br
 Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break the session by overriding core properties such as width/height/samplerate/... !
 .br
@@ -1778,7 +1802,7 @@ Defined keywords:
 .br
 * $GSHARE: replaced by system path to GPAC shared directory (e.g. /usr/share/gpac)
 .br
-* $GJS: replaced by the first path from global share directory and set through .I -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
+* $GJS: replaced by the first path from global share directory and paths set through .I -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
 .br
 * $GLANG: replaced by the global config language option .I -lang
 .br
@@ -2566,19 +2590,31 @@ PSSH blob for CENC, formatted as (u32)NbSystems [ (bin128)SystemID(u32)version(u
 CENC SAI for the packet, formated as (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]
 .br
 .TP
-.B KID (SKID,mem,  )
+.B KeyInfo (CBIV,mem,  )
 .br
-Key ID for packets of the PID - changes are signaled through pid_set_info (no reconfigure)
+Multi key info formatted as:
 .br
-.TP
-.B IVSize (SAIV,uint,  )
+ is_mkey(u8);
 .br
-IV size for packets of the PID
+nb_keys(u16);
 .br
-.TP
-.B ConstantIV (CBIV,mem,  )
+[
 .br
-Constant IV for packets of the PID
+	IV_size(u8);
+.br
+	KID(bin128);
+.br
+	if (!IV_size) {;
+.br
+		const_IV_size(u8);
+.br
+		constIV(const_IV_size);
+.br
+}
+.br
+]
+.br
+
 .br
 .TP
 .B CENCPattern (CPTR,frac,  )
@@ -2835,6 +2871,36 @@ Indicates the PID packets come from source with losses and reordering happening 
 .B Primary (PITM,bool,D )
 .br
 Indicates this is a primary item in isobmf
+.br
+.TP
+.B DFMode (DFWD,uint,D )
+.br
+Indicates that forward mode is used for this PID. If 2, indicates the manifest is also carried in packet propery
+.br
+.TP
+.B DFManifest (DMPD,str,D )
+.br
+Value of manifest in forward mode
+.br
+.TP
+.B DFVariant (DHLV,strl,D )
+.br
+Value of variant playlist in forward mode
+.br
+.TP
+.B DFVariantName (DHLN,strl,D )
+.br
+Value of variant playlist name in forward mode
+.br
+.TP
+.B DFPStart (DPST,luint,D )
+.br
+Value of active period start time in forward mode
+.br
+.TP
+.B HLSKey (HLSK,str,  )
+.br
+URI, KEYFORMAT and KEYFORMATVERSIONS for HLS
 .br
 .TP
 .B ColorPrimaries (CPRM,cprm,D )
@@ -3888,7 +3954,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev296-g7e42eb0b4-master
+build: 1.1.0-DEV-rev368-g4bd1aafcb-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

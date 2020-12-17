@@ -597,12 +597,19 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 
 	while (1) {
+		Bool is_empty = GF_FALSE;
 		char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
 
-		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
+		if (sOK) {
+			REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
-		if (!sOK || !strlen(szLine)) {
-			u32 nb_empty = 1;
+			if (ctx->unicode_type<=1) is_empty = strlen(szLine) ? GF_FALSE : GF_TRUE;
+			else is_empty =  (!szLine[0] && !szLine[1]) ? GF_TRUE : GF_FALSE;
+		}
+
+		if (!sOK || is_empty) {
+			u32 utf_inc = (ctx->unicode_type<=1) ? 1 : 2;
+			u32 nb_empty = utf_inc;
 			u32 pos = (u32) gf_ftell(ctx->src);
 			if (ctx->state) {
 				while (!gf_feof(ctx->src)) {
@@ -613,7 +620,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 						gf_fseek(ctx->src, pos, SEEK_SET);
 						break;
 					} else if (!strlen(szLine+nb_empty)) {
-						nb_empty++;
+						nb_empty+=utf_inc;
 						continue;
 					} else if (	sscanf(szLine+nb_empty, "%u", &line) == 1) {
 						gf_fseek(ctx->src, pos, SEEK_SET);
@@ -1866,7 +1873,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (ctx->prev_end) {
 			samp = gf_isom_new_text_sample();
-			txtin_process_send_text_sample(ctx, samp, (u64) (ts_scale*(s64)ctx->prev_end), (u32) (ts_scale*(ctx->prev_end - ctx->start)), GF_TRUE);
+			txtin_process_send_text_sample(ctx, samp, (u64) (ts_scale*(s64)ctx->prev_end), (u32) (ts_scale*(ctx->start - ctx->prev_end)), GF_TRUE);
 			gf_isom_delete_text_sample(samp);
 		}
 

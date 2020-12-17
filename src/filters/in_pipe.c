@@ -380,7 +380,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 				}
 			}
 		}
-		if (! ReadFile(ctx->pipe, ctx->buffer, to_read, &nb_read, ctx->blk ? NULL : &ctx->overlap) ) {
+		if (! ReadFile(ctx->pipe, ctx->buffer, to_read, (LPDWORD) &nb_read, ctx->blk ? NULL : &ctx->overlap) ) {
 			s32 error = GetLastError();
 			if (error == ERROR_PIPE_LISTENING) return GF_OK;
 			else if ((error == ERROR_IO_PENDING) || (error== ERROR_MORE_DATA)) {
@@ -398,7 +398,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 				ctx->is_end = GF_TRUE;
 				return GF_EOS;
 			}
-			else if (error = ERROR_BROKEN_PIPE) {
+			else if (error == ERROR_BROKEN_PIPE) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
 				CloseHandle(ctx->pipe);
 				ctx->pipe = INVALID_HANDLE_VALUE;

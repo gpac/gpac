@@ -940,6 +940,18 @@ GF_Err gf_isom_get_creation_time(GF_ISOFile *movie, u64 *creationTime, u64 *modi
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_track_creation_time(GF_ISOFile *movie, u32 trackNumber, u64 *creationTime, u64 *modificationTime)
+{
+	GF_TrackBox *trak;
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return 0;
+
+	if (creationTime) *creationTime = trak->Media->mediaHeader->creationTime;
+	if (creationTime) *modificationTime = trak->Media->mediaHeader->modificationTime;
+	return GF_OK;
+}
 
 //check the presence of a track in IOD. 0: NO, 1: YES, 2: ERROR
 GF_EXPORT
@@ -4524,6 +4536,14 @@ void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc)
 	file->keep_utc = keep_utc;
 }
 
+GF_EXPORT
+Bool gf_isom_has_keep_utc_times(GF_ISOFile *file)
+{
+	if (!file) return GF_FALSE;
+	return file->keep_utc;
+}
+
+
 
 GF_EXPORT
 u32 gf_isom_get_pssh_count(GF_ISOFile *file)
@@ -4531,9 +4551,17 @@ u32 gf_isom_get_pssh_count(GF_ISOFile *file)
 	u32 count=0;
 	u32 i=0;
 	GF_Box *a_box;
-	while ((a_box = (GF_Box*)gf_list_enum(file->moov->child_boxes, &i))) {
-		if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
-		count++;
+	if (file->moov) {
+		while ((a_box = (GF_Box*)gf_list_enum(file->moov->child_boxes, &i))) {
+			if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			count++;
+		}
+	}
+	if (file->meta) {
+		while ((a_box = (GF_Box*)gf_list_enum(file->meta->child_boxes, &i))) {
+			if (a_box->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			count++;
+		}
 	}
 	return count;
 }
@@ -4574,11 +4602,20 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 {
 	u32 count=1;
 	u32 i=0;
-	GF_ProtectionSystemHeaderBox *pssh;
-	while ((pssh = (GF_ProtectionSystemHeaderBox *)gf_list_enum(file->moov->child_boxes, &i))) {
-		if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
-		if (count == pssh_index) break;
-		count++;
+	GF_ProtectionSystemHeaderBox *pssh=NULL;
+	if (file->moov) {
+		while ((pssh = (GF_ProtectionSystemHeaderBox *)gf_list_enum(file->moov->child_boxes, &i))) {
+			if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			if (count == pssh_index) break;
+			count++;
+		}
+	}
+	if (!pssh && file->meta) {
+		while ((pssh = (GF_ProtectionSystemHeaderBox *)gf_list_enum(file->meta->child_boxes, &i))) {
+			if (pssh->type != GF_ISOM_BOX_TYPE_PSSH) continue;
+			if (count == pssh_index) break;
+			count++;
+		}
 	}
 	if (!pssh) return GF_BAD_PARAM;
 
@@ -4591,11 +4628,10 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 	return GF_OK;
 }
 
-GF_EXPORT
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
+GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 #else
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
+GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 #endif
 {
 	GF_SampleGroupBox *sample_group;
@@ -4607,14 +4643,12 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	u32 first_sample_in_entry, last_sample_in_entry;
 	GF_CENCSampleEncryptionGroupEntry *entry;
 
-	if (IsEncrypted) *IsEncrypted = 0;
-	if (IV_size) *IV_size = 0;
-	if (KID) memset(*KID, 0, 16);
+	if (IsEncrypted) *IsEncrypted = GF_FALSE;
 	if (crypt_byte_block) *crypt_byte_block = 0;
 	if (skip_byte_block) *skip_byte_block = 0;
-	if (constant_IV_size) *constant_IV_size = 0;
-	if (constant_IV) memset(*constant_IV, 0, 16);
-
+	if (key_info) *key_info = NULL;
+	if (key_info_size) *key_info_size = 0;
+	
 	if (!trak) return GF_BAD_PARAM;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -4631,7 +4665,8 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 		descIndex = trak->current_traf_stsd_idx;
 		if (!descIndex) descIndex = 1;
 	}
-	gf_isom_cenc_get_default_info_ex(trak, descIndex, NULL, IsEncrypted, IV_size, KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
+
+	gf_isom_cenc_get_default_info_internal(trak, descIndex, NULL, IsEncrypted, crypt_byte_block, skip_byte_block, key_info, key_info_size);
 
 	sample_group = NULL;
 	group_desc_index = 0;
@@ -4711,27 +4746,26 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 	if (!entry) return GF_ISOM_INVALID_FILE;
 
 	if (IsEncrypted) *IsEncrypted = entry->IsProtected;
-	if (IV_size) *IV_size = entry->Per_Sample_IV_size;
-	if (KID) memmove(*KID, entry->KID, 16);
 	if (crypt_byte_block) *crypt_byte_block = entry->crypt_byte_block;
 	if (skip_byte_block) *skip_byte_block = entry->skip_byte_block;
-	if (constant_IV_size) *constant_IV_size = entry->constant_IV_size;
-	if (constant_IV) memmove(*constant_IV, entry->constant_IV, 16);
+
+	if (key_info) *key_info = entry->key_info;
+	if (key_info_size) *key_info_size = entry->key_info_size;
 
 exit:
 	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
-	if (( (senc && senc->is_piff) || (trak->moov && trak->moov->mov->is_smooth) ) && IV_size && !(*IV_size) ) {
+	if (( (senc && senc->piff_type==1) || (trak->moov && trak->moov->mov->is_smooth) ) && key_info && ! (*key_info) ) {
 		if (!senc) {
-			*IV_size = 8;
 			if (IsEncrypted) *IsEncrypted = GF_TRUE;
+			if (key_info_size) *key_info_size = 8;
 		} else {
-			if (!senc->is_piff) {
-				senc->is_piff = GF_TRUE;
+			if (!senc->piff_type) {
+				senc->piff_type = 2;
 				senc->IV_size = 8;
 			}
 			assert(senc->IV_size);
-			*IV_size = senc->IV_size;
 			if (IsEncrypted) *IsEncrypted = GF_TRUE;
+			if (key_info_size) *key_info_size = senc->IV_size;
 		}
 	}
 
@@ -4739,14 +4773,14 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, Bool *IsEncrypted, u8 *IV_size, bin128 *KID,
-									u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
 	GF_SampleEncryptionBox *senc = trak->sample_encryption;
 
-	return gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sample_number, IsEncrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+	return gf_isom_get_sample_cenc_info_internal(trak, NULL, senc, sample_number, IsEncrypted, crypt_byte_block, skip_byte_block, key_info, key_info_size);
 }
+
 
 GF_EXPORT
 Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, GF_ISOTrackID *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info)

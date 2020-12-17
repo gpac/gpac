@@ -791,8 +791,13 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		else if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
-			if ((e==GF_BAD_PARAM) || (e==GF_FILTER_NOT_SUPPORTED) || (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)) {
-				if (e!=GF_FILTER_NOT_SUPPORTED) {
+			if ((e==GF_BAD_PARAM)
+				|| (e==GF_SERVICE_ERROR)
+				|| (e==GF_REMOTE_SERVICE_ERROR)
+				|| (e==GF_FILTER_NOT_SUPPORTED)
+				|| (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)
+			) {
+				if (filter->session->flags & GF_FS_FLAG_NO_REASSIGN) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter reassignment disabled, skippping chain reload for filter %s PID %s\n", pid->filter->name, pid->name ));
 				}
 				filter->session->last_connect_error = e;
@@ -1026,7 +1031,11 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task)
 	if (task->filter->removed && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
 		Bool direct_mode = task->filter->session->direct_mode;
 		gf_filter_post_remove(task->filter);
-		if (direct_mode) task->filter = NULL;
+		if (direct_mode) {
+			gf_mx_v(task->filter->tasks_mx);
+			task->filter = NULL;
+			return;
+		}
 	}
 	gf_mx_v(task->filter->tasks_mx);
 }
@@ -6680,11 +6689,12 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const char *prop_name)
 {
-	GF_PropertyMap *map = pid->caps_negociate;
+	GF_PropertyMap *map;
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
 		return NULL;
 	}
+	map = pid->caps_negociate;
 	return map ? gf_props_get_property(map, 0, prop_name) : NULL;
 }
 

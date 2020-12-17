@@ -123,6 +123,7 @@ enum {
 	GJS_OM_PROP_DEPENDENT_GROUPS,
 	GJS_OM_PROP_DISABLED,
 	GJS_OM_PROP_NTP_SENDER_DIFF,
+	GJS_OM_PROP_BUFFERING,
 };
 
 enum {
@@ -974,6 +975,10 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewBool(ctx, odm->subscene && odm->subscene->vr_type);
 	case GJS_OM_PROP_DISABLED:
 		return JS_NewBool(ctx, odm->redirect_url ? 1 : 0);
+	case GJS_OM_PROP_BUFFERING:
+		if (odm->parentscene)
+			return JS_NewBool(ctx, odm->parentscene->nb_buffering ? 1 : 0);
+		return JS_NewBool(ctx, odm->subscene->nb_buffering ? 1 : 0);
 	}
 	return JS_UNDEFINED;
 }
@@ -1728,6 +1733,7 @@ static const JSCFunctionListEntry odm_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("dependent_groups", odm_getProperty, NULL, GJS_OM_PROP_DEPENDENT_GROUPS),
 	JS_CGETSET_MAGIC_DEF("vr_scene", odm_getProperty, NULL, GJS_OM_PROP_IS_VR_SCENE),
 	JS_CGETSET_MAGIC_DEF("disabled", odm_getProperty, NULL, GJS_OM_PROP_DISABLED),
+	JS_CGETSET_MAGIC_DEF("buffering", odm_getProperty, NULL, GJS_OM_PROP_BUFFERING),
 
 	JS_CFUNC_DEF("declare_addon", 0, gjs_odm_declare_addon),
 	JS_CFUNC_DEF("enable_addon", 0, gjs_odm_enable_addon),
@@ -1836,7 +1842,9 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 		GF_FilterSession *fs = sjs->compositor->filter->session;
 
 		//don't check error code, this may fail if global JS has been set but the script may still run
-		gf_fs_load_js_api(c, fs);
+		if (gf_fs_load_js_api(c, fs) == GF_OK) {
+			scene->attached_session = fs;
+		}
 	}
 
 	sjs->evt_obj = JS_NewObjectClass(c, gpacevt_class_id);

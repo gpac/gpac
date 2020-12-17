@@ -609,6 +609,9 @@ JSValue jsf_NewPropTranslate(JSContext *ctx, const GF_PropertyValue *prop, u32 p
 	case GF_PROP_PID_STREAM_TYPE:
 		res = JS_NewString(ctx, gf_stream_type_name(prop->value.uint));
 		break;
+	case GF_PROP_PID_CHANNEL_LAYOUT:
+		res = JS_NewString(ctx, gf_audio_fmt_get_layout_name(prop->value.longuint));
+		break;
 	default:
 		res = jsf_NewProp(ctx, prop);
 		break;
@@ -633,6 +636,9 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 		} else if (p4cc==GF_PROP_PID_CODECID) {
 			prop->type = GF_PROP_UINT;
 			prop->value.uint = gf_codecid_parse(val_str);
+		} else if (p4cc==GF_PROP_PID_CHANNEL_LAYOUT) {
+			prop->type = GF_PROP_UINT;
+			prop->value.uint = gf_audio_fmt_get_layout_from_name(val_str);
 		} else {
 			*prop = gf_props_parse_value(type, NULL, val_str, NULL, gf_filter_get_sep(filter, GF_FS_SEP_LIST));
 		}
@@ -1024,6 +1030,7 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 	{
 		GF_Fraction64 frac;
 		gf_filter_get_clock_hint(jsf->filter, NULL, &frac);
+		if (!frac.den) return JS_NULL;
 		dval = ((Double)frac.num) / frac.den;
 	}
 		return JS_NewFloat64(ctx, dval);
@@ -1640,6 +1647,14 @@ static JSValue jsf_filter_block_eos(JSContext *ctx, JSValueConst this_val, int a
 }
 
 
+static JSValue jsf_filter_abort(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+    if (!jsf) return JS_EXCEPTION;
+	gf_filter_abort(jsf->filter);
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
     JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_FINALIZE),
@@ -1701,6 +1716,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("make_sticky", 0, jsf_filter_make_sticky),
 	JS_CFUNC_DEF("prevent_blocking", 1, jsf_filter_prevent_blocking),
 	JS_CFUNC_DEF("block_eos", 1, jsf_filter_block_eos),
+    JS_CFUNC_DEF("abort", 0, jsf_filter_abort),
 };
 
 
@@ -1758,6 +1774,8 @@ static JSValue jsf_filter_remove(JSContext *ctx, JSValueConst this_val, int argc
 		gf_filter_remove_src(jsfi->jsf->filter, jsfi->filter);
 	return JS_UNDEFINED;
 }
+
+
 
 static JSValue jsf_filter_has_pid_connections_pending(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1862,7 +1880,6 @@ static const JSCFunctionListEntry jsf_filter_inst_funcs[] = {
     JS_CFUNC_DEF("disable_probe", 0, jsf_filter_inst_disable_probe),
     JS_CFUNC_DEF("disable_inputs", 0, jsf_filter_inst_disable_inputs),
     JS_CFUNC_DEF("reset_source", 0, jsf_filter_reset_source),
-
 };
 
 

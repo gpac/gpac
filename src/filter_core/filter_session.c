@@ -302,6 +302,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			fsess->blocking_mode = GF_FS_NOBLOCK;
 		}
 	}
+
 	fsess->run_status = GF_EOS;
 	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;
@@ -2109,10 +2110,11 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (ptr=%p)\n", f));
 	}
-	if (gf_list_find(filters_done, f)>=0)
+	if (filters_done && (gf_list_find(filters_done, f)>=0))
 		return;
 
-	gf_list_add(filters_done, f);
+	if (filters_done)
+		gf_list_add(filters_done, f);
 	if (alias_for) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (<=> "));
 		print_filter_name(alias_for, GF_TRUE, GF_TRUE);
@@ -2144,15 +2146,52 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 			}
 		}
 	}
-
 }
+
+static void gf_fs_print_not_connected_filters(GF_FilterSession *fsess, GF_List *filters_done, Bool ignore_sinks)
+{
+	u32 i, count;
+	Bool has_unconnected=GF_FALSE;
+	count=gf_list_count(fsess->filters);
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		//only dump not connected ones
+		if (f->num_input_pids || f->num_output_pids || f->multi_sink_target || f->nb_tasks_done) continue;
+		if (ignore_sinks) {
+			Bool has_outputs;
+			if (f->forced_caps)
+				has_outputs = gf_filter_has_out_caps(f->forced_caps, f->nb_forced_caps);
+			else
+				has_outputs = gf_filter_has_out_caps(f->freg->caps, f->freg->nb_caps);
+			if (!has_outputs) continue;
+		}
+
+		if (!has_unconnected) {
+			has_unconnected = GF_TRUE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Filters not connected:\n"));
+		}
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL);
+	}
+}
+
+GF_EXPORT
+void gf_fs_print_non_connected(GF_FilterSession *fsess)
+{
+	gf_fs_print_not_connected_filters(fsess, NULL, GF_FALSE);
+}
+
+GF_EXPORT
+void gf_fs_print_non_connected_ex(GF_FilterSession *fsess, Bool ignore_sinks)
+{
+	gf_fs_print_not_connected_filters(fsess, NULL, ignore_sinks);
+}
+
 GF_EXPORT
 void gf_fs_print_connections(GF_FilterSession *fsess)
 {
 	u32 i, count;
 	Bool has_undefined=GF_FALSE;
 	Bool has_connected=GF_FALSE;
-	Bool has_unconnected=GF_FALSE;
 	GF_List *filters_done;
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
@@ -2171,16 +2210,9 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 		}
 		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL);
 	}
-	for (i=0; i<count; i++) {
-		GF_Filter *f = gf_list_get(fsess->filters, i);
-		//only dump not connected ones
-		if (f->num_input_pids || f->num_output_pids || f->multi_sink_target) continue;
-		if (!has_unconnected) {
-			has_unconnected = GF_TRUE;
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters not connected:\n"));
-		}
-		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL);
-	}
+
+	gf_fs_print_not_connected_filters(fsess, filters_done, GF_FALSE);
+
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		if (f->multi_sink_target) continue;
@@ -2202,6 +2234,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 {
 	GF_FilterUpdate *upd;
 	u32 i, count;
+	char *sep = NULL;
 	Bool removed = GF_FALSE;
 	if ((!fid && !filter) || !name) return;
 	if (!fsess) {
@@ -2238,10 +2271,36 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 
 	if (removed) return;
 
+	if (!val) {
+		sep = strchr(name, fsess->sep_name);
+		if (sep) sep[0] = 0;
+	}
+
+	//find arg and check if it is only a sync update - if so do it now
+	i=0;
+	while (filter->freg->args) {
+		const GF_FilterArgs *a = &filter->freg->args[i];
+		i++;
+		if (!a || !a->arg_name) break;
+
+		if ((a->flags & GF_FS_ARG_META) && !strcmp(a->arg_name, "*")) {
+			continue;
+		} else if (strcmp(a->arg_name, name)) {
+			continue;
+		}
+
+		if (a->flags & GF_FS_ARG_UPDATE_SYNC) {
+			gf_mx_p(filter->tasks_mx);
+			gf_filter_update_arg_apply(filter, name, sep ? sep+1 : val, GF_TRUE);
+			gf_mx_v(filter->tasks_mx);
+			if (sep) sep[0] = fsess->sep_name;
+			return;
+		}
+		break;
+	}
+
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
 	if (!val) {
-		char *sep = strchr(name, fsess->sep_name);
-		if (sep) sep[0] = 0;
 		upd->name = gf_strdup(name);
 		upd->val = sep ? gf_strdup(sep+1) : NULL;
 		if (sep) sep[0] = fsess->sep_name;
@@ -2387,6 +2446,10 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	Bool free_url=GF_FALSE;
 	memset(szExt, 0, sizeof(szExt));
 
+	if (!url) {
+		if (err) *err = GF_BAD_PARAM;
+		return NULL;
+	}
 	if (err) *err = GF_OK;
 
 	mime_type = NULL;
@@ -2406,9 +2469,6 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		}
 	}
 	sURL = NULL;
-	if (!url || !strncmp(url, "\\\\", 2) ) {
-		return NULL;
-	}
 	if (filter) {
 		sURL = (char *) url;
 	} else {

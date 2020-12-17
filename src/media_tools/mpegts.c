@@ -2237,7 +2237,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 	af_extension = data + 1;
 
 	if (paf->PCR_flag == 1) {
-		u32 base = (data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4];
+		u32 base = ((u32)data[1] << 24) | ((u32)data[2] << 16) | ((u32)data[3] << 8) | (u32) data[4];
 		u64 PCR = (u64) base;
 		paf->PCR_base = (PCR << 1) | (data[5] >> 7);
 		paf->PCR_ext = ((data[5] & 1) << 8) | data[6];
@@ -2812,6 +2812,23 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 	gf_m2ts_section_filter_reset(ts->eit);
 	gf_m2ts_section_filter_reset(ts->tdt_tot);
 
+}
+
+void gf_m2ts_mark_seg_start(GF_M2TS_Demuxer *ts)
+{
+	u32 i;
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		GF_M2TS_ES *es = (GF_M2TS_ES *) ts->ess[i];
+		if (!es) continue;
+
+		if (es->flags & GF_M2TS_ES_IS_SECTION) {
+			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
+			ses->is_seg_start = GF_TRUE;
+		} else {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
+			pes->is_seg_start = GF_TRUE;
+		}
+	}
 }
 
 

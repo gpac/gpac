@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato / Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2019
+ *			Copyright (c) Telecom ParisTech 2005-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -687,7 +687,7 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, u32 *outIVLength)
+GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion)
 {
 	GF_TrackBox *trak;
 	GF_ProtectionSchemeInfoBox *sinf;
@@ -710,26 +710,21 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 	}
 	if (outSchemeType) *outSchemeType = sinf->scheme_type->scheme_type;
 	if (outSchemeVersion) *outSchemeVersion = sinf->scheme_type->scheme_version;
-
-	if (outIVLength) {
-		if (sinf->info && sinf->info->tenc)
-			*outIVLength = sinf->info->tenc->Per_Sample_IV_Size;
-		else
-			*outIVLength = 0;
-	}
-
 	return GF_OK;
 }
+
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID,
-								   u8 default_crypt_byte_block, u8 default_skip_byte_block,
-								    u8 default_constant_IV_size, bin128 default_constant_IV)
+                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_crypt_byte_block, u8 default_skip_byte_block,
+								    u8 *key_info, u32 key_info_size)
 {
 	GF_Err e;
 	GF_ProtectionSchemeInfoBox *sinf;
+
+	if (!gf_cenc_validate_key_info(key_info, key_info_size))
+		return GF_BAD_PARAM;
 
 	//setup generic protection
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
@@ -739,24 +734,25 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 		sinf->info->piff_tenc = (GF_PIFFTrackEncryptionBox *) gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_UUID_TENC);
 		if (!sinf->info->piff_tenc) return GF_OUT_OF_MEM;
 		sinf->info->piff_tenc->AlgorithmID = 1;
-		sinf->info->piff_tenc->IV_size = default_IV_size;
-		memcpy(sinf->info->piff_tenc->KID, default_KID, 16*sizeof(char));
+		sinf->info->piff_tenc->key_info[0] = 0;
+		sinf->info->piff_tenc->key_info[1] = 0;
+		sinf->info->piff_tenc->key_info[2] = 0;
+		sinf->info->piff_tenc->key_info[3] = key_info[3];
+		memcpy(sinf->info->piff_tenc->key_info+4, key_info+4, 16*sizeof(char));
 	} else {
 		sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_TYPE_TENC);
 		if (!sinf->info->tenc) return GF_OUT_OF_MEM;
 
 		sinf->info->tenc->isProtected = default_IsEncrypted;
-		sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
-		memcpy(sinf->info->tenc->KID, default_KID, 16*sizeof(char));
 		if ((scheme_type == GF_ISOM_CENS_SCHEME) || (scheme_type == GF_ISOM_CBCS_SCHEME)) {
 			sinf->info->tenc->version = 1;
 			sinf->info->tenc->crypt_byte_block = default_crypt_byte_block;
 			sinf->info->tenc->skip_byte_block = default_skip_byte_block;
 		}
-		if (scheme_type == GF_ISOM_CBCS_SCHEME) {
-			sinf->info->tenc->constant_IV_size = default_constant_IV_size;
-			memcpy(sinf->info->tenc->constant_IV, default_constant_IV, 16*sizeof(char));
-		}
+		sinf->info->tenc->key_info_size = key_info_size;
+		sinf->info->tenc->key_info = gf_malloc(sizeof(u8) * key_info_size);
+		if (!sinf->info->tenc->key_info) return GF_OUT_OF_MEM;
+		memcpy(sinf->info->tenc->key_info, key_info, sizeof(u8) * key_info_size);
 	}
 	return GF_OK;
 }
@@ -846,18 +842,24 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 }
 #endif
 
-GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len, Bool use_piff)
+GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len, u32 pssh_mode)
 {
 	GF_ProtectionSystemHeaderBox *pssh = NULL;
 	GF_PIFFProtectionSystemHeaderBox *pssh_piff = NULL;
 	u32 i=0;
 	GF_Box *a;
 	GF_List **child_boxes = NULL;
-	if (file->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
+
+	if (pssh_mode==2) {
+		if (!file->meta) return GF_BAD_PARAM;
+		if (!file->meta->child_boxes) file->meta->child_boxes = gf_list_new();
+		child_boxes = &file->meta->child_boxes;
+	} else if (file->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
 		if (!file->moof) return GF_BAD_PARAM;
 		if (!file->moof->PSSHs) file->moof->PSSHs = gf_list_new();
 		child_boxes = &file->moof->PSSHs;
 	} else {
+		if (!file->moov) return GF_BAD_PARAM;
 		if (!file->moov->child_boxes) file->moov->child_boxes = gf_list_new();
 		child_boxes = &file->moov->child_boxes;
 	}
@@ -883,7 +885,7 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	}
 
 	if (!pssh && !pssh_piff) {
-		if (use_piff) {
+		if (pssh_mode==1) {
 			pssh_piff = (GF_PIFFProtectionSystemHeaderBox *)gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_UUID_PSSH);
 			if (!pssh_piff) return GF_IO_ERR;
 			memcpy((char *)pssh_piff->SystemID, systemID, sizeof(bin128));
@@ -1062,7 +1064,7 @@ GF_SampleEncryptionBox * gf_isom_create_piff_psec_box(u8 version, u32 flags, u32
 		return NULL;
 	psec->version = version;
 	psec->flags = flags;
-	psec->is_piff = GF_TRUE;
+	psec->piff_type = 1;
 	if (psec->flags & 0x1) {
 		psec->AlgorithmID = AlgorithmID;
 		psec->IV_size = IV_size;
@@ -1087,29 +1089,32 @@ GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags)
 	return senc;
 }
 
-GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID)
+GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
 	if (trak->sample_encryption) return GF_OK;
-	switch (container_type) {
-	case GF_ISOM_BOX_UUID_PSEC:
-		trak->sample_encryption = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0, AlgorithmID, IV_size, KID);
-		break;
-	case GF_ISOM_BOX_TYPE_SENC:
-		trak->sample_encryption = (GF_SampleEncryptionBox *)gf_isom_create_samp_enc_box(0, 0);
-		break;
-	default:
-		return GF_NOT_SUPPORTED;
-	}
+	trak->sample_encryption = (GF_SampleEncryptionBox *)gf_isom_create_samp_enc_box(0, 0);
+	//senc will be written and destroyed with the other boxes
+	if (!trak->child_boxes) trak->child_boxes = gf_list_new();
+	return gf_list_add(trak->child_boxes, trak->sample_encryption);
+}
+
+GF_Err gf_isom_piff_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 AlgorithmID, u8 IV_size, bin128 KID)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	if (trak->sample_encryption) return GF_OK;
+	trak->sample_encryption = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0, AlgorithmID, IV_size, KID);
 	//senc will be written and destroyed with the other boxes
 	if (!trak->child_boxes) trak->child_boxes = gf_list_new();
 	return gf_list_add(trak->child_boxes, trak->sample_encryption);
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits)
+void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits, Bool use_multikey)
 {
 	u32  i;
 	GF_List **child_boxes = stbl ? &stbl->child_boxes : &traf->child_boxes;
@@ -1118,7 +1123,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		if (!senc->cenc_saiz) return;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
 		senc->cenc_saiz->aux_info_type = 0;
-		senc->cenc_saiz->aux_info_type_parameter = 0;
+		senc->cenc_saiz->aux_info_type_parameter = use_multikey ? 1 : 0;
 		if (stbl)
 			stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz);
 		else
@@ -1131,7 +1136,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saio->version = saio_32bits ? 0 : 1;
 		//as per 3rd edition of cenc "so content SHOULD be created omitting these optional fields" ...
 		senc->cenc_saio->aux_info_type = 0;
-		senc->cenc_saio->aux_info_type_parameter = 0;
+		senc->cenc_saiz->aux_info_type_parameter = use_multikey ? 1 : 0;
 		senc->cenc_saio->entry_count = 1;
 		if (stbl)
 			stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio);
@@ -1222,9 +1227,8 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
-GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, u8 *buf, u32 len, Bool use_subsamples, u8 *clear_IV, Bool use_saio_32bit)
+GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 *buf, u32 len, Bool use_subsamples, Bool use_saio_32bit, Bool use_multikey)
 {
-	u32 i;
 	GF_SampleEncryptionBox *senc;
 	GF_CENCSampleAuxInfo *sai;
 	GF_SampleTableBox *stbl;
@@ -1236,6 +1240,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	switch (container_type) {
 	case GF_ISOM_BOX_UUID_PSEC:
 	case GF_ISOM_BOX_TYPE_SENC:
+	case 0:
 		senc = trak->sample_encryption;
 		break;
 	default:
@@ -1243,61 +1248,30 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	}
 
 	if (len && buf) {
-		GF_BitStream *bs = gf_bs_new(buf, len, GF_BITSTREAM_READ);
+		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		if (!sai) return GF_OUT_OF_MEM;
+		sai->cenc_data_size = len;
+		sai->cenc_data = gf_malloc(sizeof(u8) * len);
+		if (!sai->cenc_data) {
+			gf_free(sai);
+			return GF_OUT_OF_MEM;
+		}
+		memcpy(sai->cenc_data, buf, len);
 
+		gf_list_add(senc->samp_aux_info, sai);
+	} else {
 		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 		if (!sai) return GF_OUT_OF_MEM;
 		gf_list_add(senc->samp_aux_info, sai);
-
-		sai->IV_size = IV_size;
-		gf_bs_read_data(bs, (char *)sai->IV, IV_size);
-		if (use_subsamples) {
-			sai->subsample_count = gf_bs_read_u16(bs);
-			if (sai->subsample_count) senc->flags = 0x00000002;
-			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-			if (!sai->subsamples) return GF_OUT_OF_MEM;
-
-			for (i = 0; i < sai->subsample_count; i++) {
-				sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(bs);
-				sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(bs);
-			}
-		}
-		gf_bs_del(bs);
-	} else if (len) {
-		u32 olen = len;
-
-		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
-		if (!sai) return GF_OUT_OF_MEM;
-		gf_list_add(senc->samp_aux_info, sai);
-
-		sai->IV_size = IV_size;
-		if (clear_IV) memcpy(sai->IV, clear_IV, sizeof(bin128));
-		if (use_subsamples) {
-			sai->subsample_count = 1;
-			/*if (sai->subsample_count) */senc->flags = 0x00000002;
-			while (olen>0xFFFF) {
-				olen -= 0xFFFF;
-				sai->subsample_count ++;
-			}
-			sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-			if (!sai->subsamples) return GF_OUT_OF_MEM;
-
-			olen = len;
-			for (i = 0; i < sai->subsample_count; i++) {
-				if (olen<0xFFFF) {
-					sai->subsamples[i].bytes_clear_data = olen;
-				} else {
-					sai->subsamples[i].bytes_clear_data = 0xFFFF;
-					olen -= 0xFFFF;
-				}
-				sai->subsamples[i].bytes_encrypted_data = 0;
-			}
-		}
-		len = IV_size + 2 + 6*sai->subsample_count;
+		sai->isNotProtected = 1;
 	}
+	if (use_subsamples)
+		senc->flags = 0x00000002;
+	if (use_multikey)
+		senc->version = 1;
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, len, use_saio_32bit);
+	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, sai->cenc_data_size, use_saio_32bit, use_multikey);
 #endif
 
 	return GF_OK;
@@ -1308,7 +1282,7 @@ GF_EXPORT
 void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 {
 	if (!samp) return;
-	if (samp->subsamples) gf_free(samp->subsamples);
+	if (samp->cenc_data) gf_free(samp->cenc_data);
 	gf_free(samp);
 }
 
@@ -1401,6 +1375,9 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saio box without flags nor aux info type and no default scheme, ignoring\n"));
 			continue;
 		}
+		//special case for query on a file that has just been imported but not yet written: saio offset is NULL, we must use senc
+		if (saio->entry_count && !saio->offsets)
+			continue;
 		switch (saio_aux_info_type) {
 		case GF_ISOM_CENC_SCHEME:
 		case GF_ISOM_CBC_SCHEME:
@@ -1427,7 +1404,7 @@ Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type)
 #endif
 
 
-static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u32 scheme_type, u8 IV_size, GF_CENCSampleAuxInfo **sai, u8 **out_buffer, u32 *out_size)
+static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u32 scheme_type, u8 **out_buffer, u32 *out_size)
 {
 	u32  prev_sai_size, size, i, j, nb_saio;
 	u64 cur_position, offset;
@@ -1436,6 +1413,8 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 	GF_SampleAuxiliaryInfoSizeBox *saiz_cenc=NULL;
 	nb_saio = size = prev_sai_size = 0;
 	offset = 0;
+
+	if (! out_buffer || !out_size) return GF_BAD_PARAM;
 
 	for (i = 0; i < gf_list_count(mdia->information->sampleTable->sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(mdia->information->sampleTable->sai_offsets, i);
@@ -1527,49 +1506,28 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 	cur_position = gf_bs_get_position(mdia->information->dataHandler->bs);
 	gf_bs_seek(mdia->information->dataHandler->bs, offset);
 
-	if (sai) {
-		*sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-		if (! *sai) return GF_OUT_OF_MEM;
-		memset(*sai, 0, sizeof(GF_CENCSampleAuxInfo));
-
-		if (size) {
-			gf_bs_read_data(mdia->information->dataHandler->bs, (char *)(*sai)->IV, IV_size);
-			if (size > IV_size) {
-				(*sai)->subsample_count = gf_bs_read_u16(mdia->information->dataHandler->bs);
-				(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
-				if (! (*sai)->subsamples) return GF_OUT_OF_MEM;
-				for (i = 0; i < (*sai)->subsample_count; i++) {
-					(*sai)->subsamples[i].bytes_clear_data = gf_bs_read_u16(mdia->information->dataHandler->bs);
-					(*sai)->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(mdia->information->dataHandler->bs);
-				}
-			}
+	if (out_buffer) {
+		if ((*out_size) < size) {
+			(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
+			if (! *out_buffer) return GF_OUT_OF_MEM;
 		}
-	} else if (out_size) {
-		if (out_buffer) {
-			if ((*out_size) < size) {
-				(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
-				if (! *out_buffer) return GF_OUT_OF_MEM;
-			}
-			gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer), size);
-		}
-		(*out_size) = size;
+		gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer), size);
 	}
+	(*out_size) = size;
+
 	gf_bs_seek(mdia->information->dataHandler->bs, cur_position);
 
 	return e;
 }
 
-
-static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, GF_CENCSampleAuxInfo **sai, u32 *container_type, u8 **out_buffer, u32 *outSize)
+GF_EXPORT
+GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, u32 *container_type, u8 **out_buffer, u32 *outSize)
 {
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
 	GF_SampleEncryptionBox *senc = NULL;
 	u32 type, scheme_type = -1;
 	GF_CENCSampleAuxInfo *a_sai;
-	u8 IV_size, constant_IV_size;
-	bin128 constant_IV;
-	Bool is_Protected;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -1590,23 +1548,17 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 		if (container_type) *container_type = type;
 	}
 
-	if (!sai && !out_buffer) return GF_OK; /*we need only container_type*/
+	if (!out_buffer) return GF_OK; /*we need only container_type*/
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	sampleNumber -= trak->sample_count_at_seg_start;
 #endif
 
-	if (sai && *sai) {
-		gf_isom_cenc_samp_aux_info_del(*sai);
-		*sai = NULL;
-	}
-	gf_isom_get_cenc_info(the_file, trackNumber, sampleDescIndex, NULL, &scheme_type, NULL, NULL);
-	gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sampleNumber, &is_Protected, &IV_size, NULL, NULL, NULL, &constant_IV_size, &constant_IV);
+	gf_isom_get_cenc_info(the_file, trackNumber, sampleDescIndex, NULL, &scheme_type, NULL);
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-	if ((!type || !sai) && gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
-		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, scheme_type, IV_size, sai, out_buffer, outSize);
-
+	if (gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
+		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, scheme_type, out_buffer, outSize);
 	}
 	if (!senc)
 		return GF_OK;
@@ -1628,55 +1580,47 @@ static GF_Err gf_isom_cenc_get_sample_aux_info_internal(GF_ISOFile *the_file, u3
 			a_sai = (GF_CENCSampleAuxInfo *)gf_list_get(senc->samp_aux_info, sampleNumber-1);
 		break;
 	}
+	//not present, check we use constant IV and no IV size
 	if (!a_sai) {
-		if (!IV_size && constant_IV_size) return GF_OK;
+		const u8 *key_info=NULL;
+		u32 key_info_size=0;
+		u8 IV_size=0, constant_IV_size=0;
+		Bool is_Protected;
+
+		gf_isom_get_sample_cenc_info_internal(trak, NULL, senc, sampleNumber, &is_Protected, NULL, NULL, &key_info, &key_info_size);
+		if (!key_info) {
+			IV_size = key_info_size; //piff default
+		} else {
+			IV_size = key_info[3];
+			if (!IV_size)
+				constant_IV_size = key_info[20];
+		}
+		if (!IV_size && constant_IV_size)
+			return GF_OK;
 		return GF_NOT_FOUND;
 	}
 
-	if (!sai)
-		return GF_BAD_PARAM;
-
-	GF_SAFEALLOC((*sai), GF_CENCSampleAuxInfo);
-	if (!(*sai) ) return GF_OUT_OF_MEM;
-	if (senc) {
-		u8 size;
-		(*sai)->IV_size = a_sai->IV_size;
-		size = ((*sai)->IV_size != 0) ? (*sai)->IV_size : 8/*default for modern PIFF/CENC with AES-CTR*/;
-		memmove((*sai)->IV, a_sai->IV, size);
-		(*sai)->subsample_count = a_sai->subsample_count;
-		if ((*sai)->subsample_count > 0) {
-			(*sai)->subsamples = (GF_CENCSubSampleEntry*)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
-			if (! (*sai)->subsamples) return GF_OUT_OF_MEM;
-			memmove((*sai)->subsamples, a_sai->subsamples, sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
-		}
+	if (*outSize < a_sai->cenc_data_size) {
+		*out_buffer = gf_realloc(*out_buffer, sizeof(char) * a_sai->cenc_data_size);
+		if (! *out_buffer) return GF_OUT_OF_MEM;
+		*outSize = a_sai->cenc_data_size;
 	}
-
+	memcpy(*out_buffer, a_sai->cenc_data, a_sai->cenc_data_size);
 	return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, u32 *container_type, u8 **out_buffer, u32 *outSize)
-{
-	return gf_isom_cenc_get_sample_aux_info_internal(the_file, trackNumber, sampleNumber, sampleDescIndex, NULL, container_type, out_buffer, outSize);
-}
-
-GF_EXPORT
-GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 sampleDescIndex, GF_CENCSampleAuxInfo **sai, u32 *container_type)
-{
-	return gf_isom_cenc_get_sample_aux_info_internal(the_file, trackNumber, sampleNumber, sampleDescIndex, sai, container_type, NULL, NULL);
-}
-
-void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block)
+void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 {
 	GF_ProtectionSchemeInfoBox *sinf;
-	if (default_IsEncrypted) *default_IsEncrypted = 0;
-	if (default_IV_size) *default_IV_size = 0;
-	if (default_KID) memset(*default_KID, 0, 16);
-	if (constant_IV_size) *constant_IV_size = 0;
-	if (constant_IV) memset(*constant_IV, 0, 16);
+
+
+	//setup all default as not encrypted
+	if (default_IsEncrypted) *default_IsEncrypted = GF_FALSE;
 	if (crypt_byte_block) *crypt_byte_block = 0;
 	if (skip_byte_block) *skip_byte_block = 0;
 	if (container_type) *container_type = 0;
+	if (key_info) *key_info = NULL;
+	if (key_info_size) *key_info_size = 0;
 
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
@@ -1693,32 +1637,24 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 			sentry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, i);
 			a_sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(sentry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 			if (!a_sinf) continue;
-
-			if (default_IsEncrypted) *default_IsEncrypted = GF_FALSE;
-			if (default_IV_size) *default_IV_size = 0;
-			if (default_KID) memset(*default_KID, 0, 16);
-			if (constant_IV_size) *constant_IV_size = 0;
-			if (constant_IV) memset(*constant_IV, 0, 16);
-			if (crypt_byte_block) *crypt_byte_block = 0;
-			if (skip_byte_block) *skip_byte_block = 0;
+			//signal default (not encrypted)
 			return;
 		}
 	}
 
 	if (sinf && sinf->info && sinf->info->tenc) {
 		if (default_IsEncrypted) *default_IsEncrypted = sinf->info->tenc->isProtected;
-		if (default_IV_size) *default_IV_size = sinf->info->tenc->Per_Sample_IV_Size;
-		if (default_KID) memmove(*default_KID, sinf->info->tenc->KID, 16);
-		if (constant_IV_size) *constant_IV_size = sinf->info->tenc->constant_IV_size;
-		if (constant_IV) memmove(*constant_IV, sinf->info->tenc->constant_IV, 16);
 		if (crypt_byte_block) *crypt_byte_block = sinf->info->tenc->crypt_byte_block;
 		if (skip_byte_block) *skip_byte_block = sinf->info->tenc->skip_byte_block;
+		if (key_info) *key_info = sinf->info->tenc->key_info;
+		if (key_info_size) *key_info_size = sinf->info->tenc->key_info_size;
+
 		//set default value, overwritten below
 		if (container_type) *container_type = GF_ISOM_BOX_TYPE_SENC;
 	} else if (sinf && sinf->info && sinf->info->piff_tenc) {
-		if (default_IsEncrypted) *default_IsEncrypted = 1;
-		if (default_IV_size) *default_IV_size = sinf->info->piff_tenc->IV_size;
-		if (default_KID) memmove(*default_KID, sinf->info->piff_tenc->KID, 16);
+		if (default_IsEncrypted) *default_IsEncrypted = GF_TRUE;
+		if (key_info) *key_info = sinf->info->piff_tenc->key_info;
+		if (key_info_size) *key_info_size = 19;
 		//set default value, overwritten below
 		if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
 	} else {
@@ -1727,8 +1663,6 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] senc box without tenc, assuming MS smooth+piff\n"));
 		}
 		if (default_IsEncrypted) *default_IsEncrypted = GF_TRUE;
-		//leave as 0 to make sure we use the default IV size from PIFF_PSEC if any ...
-		if (default_IV_size) *default_IV_size = 0;
 		//set default value, overwritten below
 		if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
 	}
@@ -1740,11 +1674,12 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 }
 
 GF_EXPORT
-void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block)
+GF_Err gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return;
-	gf_isom_cenc_get_default_info_ex(trak, sampleDescriptionIndex, container_type, default_IsEncrypted, default_IV_size, default_KID, constant_IV_size, constant_IV, crypt_byte_block, skip_byte_block);
+	if (!trak) return GF_BAD_PARAM;
+	gf_isom_cenc_get_default_info_internal(trak, sampleDescriptionIndex, container_type, default_IsEncrypted, crypt_byte_block, skip_byte_block, key_info, key_info_size);
+	return GF_OK;
 }
 
 /*
@@ -1856,26 +1791,6 @@ GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, 
 	return GF_OK;
 }
 
-GF_EXPORT
-Bool gf_isom_cenc_is_pattern_mode(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
-{
-	GF_TrackBox *trak;
-	GF_ProtectionSchemeInfoBox *sinf;
-
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return GF_FALSE;
-
-	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
-	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
-
-	if (!sinf) return GF_FALSE;
-
-	if (!sinf->info || !sinf->info->tenc || !sinf->info->tenc->crypt_byte_block || !sinf->info->tenc->skip_byte_block)
-		return GF_FALSE;
-
-	return GF_TRUE;
-}
-
 
 #if 0 //unused
 /*! removes the IPMPX tools from files
@@ -1891,6 +1806,48 @@ void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file)
 	}
 }
 #endif
+
+
+Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size)
+{
+	u32 i, n_keys, kpos, nb_missing = 19;
+	if (!key_info|| (key_info_size<19))
+		goto exit;
+
+	n_keys = 1;
+	if (key_info[0]) {
+		n_keys = key_info[1];
+		n_keys <<= 8;
+		n_keys |= key_info[2];
+	}
+	kpos=3;
+	for (i=0;i<n_keys; i++) {
+		u8 iv_size;
+		if (kpos + 17 > key_info_size) {
+			nb_missing = kpos + 17 - key_info_size;
+			goto exit;
+		}
+		iv_size = key_info[kpos];
+		kpos += 17;
+		if (!iv_size) {
+			if (kpos + 1 > key_info_size) {
+				nb_missing = kpos + 1  - key_info_size;
+				goto exit;
+			}
+			iv_size = key_info[kpos];
+			if (kpos + 1 + iv_size > key_info_size) {
+				nb_missing = kpos + 1 + iv_size - key_info_size;
+				goto exit;
+			}
+			kpos += 1 + iv_size;
+		}
+	}
+	return GF_TRUE;
+
+exit:
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid key info formating, missing %d bytes\n", nb_missing));
+	return GF_FALSE;
+}
 
 
 #endif /*GPAC_DISABLE_ISOM*/

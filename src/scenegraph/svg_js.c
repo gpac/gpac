@@ -2668,11 +2668,11 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	else __this = observer ? dom_element_construct(svg_js->js_ctx, observer) : svg_js->global;
 
 	if (txt && hdl && hdl->js_data && !JS_IsUndefined(hdl->js_data->fun_val)) {
-		hdl->js_data->fun_val = JS_EvalWithTarget(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), "handler", flags|JS_EVAL_FLAG_COMPILE_ONLY);
+		hdl->js_data->fun_val = JS_EvalThis(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), "handler", flags|JS_EVAL_FLAG_COMPILE_ONLY);
 	}
 
 	if (utf8_script) {
-		ret = JS_EvalWithTarget(svg_js->js_ctx, __this, utf8_script, (u32) strlen(utf8_script), "inline script", flags);
+		ret = JS_EvalThis(svg_js->js_ctx, __this, utf8_script, (u32) strlen(utf8_script), "inline script", flags);
 	}
 	else if (hdl && hdl->js_data
 		&& (!JS_IsUndefined(hdl->js_data->fun_val) || !JS_IsUndefined(hdl->js_data->evt_listen_obj) )
@@ -2699,7 +2699,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			}
 		}
 		else {
-			ret = JS_EvalWithTarget(svg_js->js_ctx, __this, txt->textContent, (u32) strlen(txt->textContent), "internal", flags);
+			ret = JS_EvalThis(svg_js->js_ctx, __this, txt->textContent, (u32) strlen(txt->textContent), "internal", flags);
 		}
 		JS_FreeValue(svg_js->js_ctx, fun);
 	} else {

@@ -605,6 +605,7 @@ static JSValue jsff_is_destroyed(JSContext *ctx, JSValueConst this_val, int argc
 }
 
 JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val);
+JSValue jsf_NewPropTranslate(JSContext *ctx, const GF_PropertyValue *prop, u32 p4cc);
 
 static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool is_output)
 {
@@ -659,6 +660,9 @@ static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int ar
 			p = gf_filter_pid_get_property_str(pid, pname);
 
 		JS_FreeCString(ctx, pname);
+		if (p && p4cc)
+			return jsf_NewPropTranslate(ctx, p, p4cc);
+
 		return jsf_NewProp(ctx, p);
 	}
 
@@ -673,7 +677,11 @@ static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int ar
 
 		args[0] = JS_NewString(ctx, prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc) );
 		args[1] = JS_NewString(ctx, gf_props_get_type_name(prop->type) );
-		args[2] = jsf_NewProp(ctx, prop);
+		if (prop_4cc) {
+			args[2] = jsf_NewPropTranslate(ctx, prop, prop_4cc);
+		} else {
+			args[2] = jsf_NewProp(ctx, prop);
+		}
 		ret = JS_Call(ctx, argv[1], this_val, 3, args);
 		if (JS_IsException(ret)) {
 			js_dump_error(ctx);
@@ -814,6 +822,7 @@ static JSValue jsff_all_args(JSContext *ctx, JSValueConst this_val, int argc, JS
 			if (arg->arg_default_val)
 				JS_SetPropertyStr(ctx, aval, "default", JS_NewString(ctx, arg->arg_default_val) );
 			JS_SetPropertyStr(ctx, aval, "update", JS_NewBool(ctx, (arg->flags & GF_FS_ARG_UPDATE) ) );
+			JS_SetPropertyStr(ctx, aval, "update_sync", JS_NewBool(ctx, (arg->flags & GF_FS_ARG_UPDATE_SYNC) ) );
 			if (arg->flags & GF_FS_ARG_HINT_ADVANCED) {
 				JS_SetPropertyStr(ctx, aval, "hint", JS_NewString(ctx, "advanced") );
 			}
@@ -905,6 +914,20 @@ static JSValue jsff_update(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	return JS_UNDEFINED;
 }
 
+static JSValue jsff_lock(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f || (argc!=1) )
+		return JS_EXCEPTION;
+
+	if (JS_ToBool(ctx, argv[0]))
+		gf_filter_lock(f, GF_TRUE);
+	else
+		gf_filter_lock(f, GF_FALSE);
+
+	return JS_UNDEFINED;
+}
+
 static JSValue jsff_remove(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
@@ -971,8 +994,10 @@ static JSValue jsff_bind(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 		return JS_EXCEPTION;
 	if (!JS_IsObject(argv[0]) && !JS_IsNull(argv[0]))
 		return JS_EXCEPTION;
+	if (!f->freg)
+		return JS_EXCEPTION;
 
-	if (f->freg && !strcmp(f->freg->name, "dashin")) {
+	if (!strcmp(f->freg->name, "dashin")) {
 		JSValue dashdmx_bind_js(GF_Filter *f, JSContext *jsctx, JSValueConst obj);
 		return dashdmx_bind_js(f, ctx, argv[0]);
 	}
@@ -1021,6 +1046,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("remove", 0, jsff_remove),
 	JS_CFUNC_DEF("insert", 0, jsff_insert_filter),
 	JS_CFUNC_DEF("bind", 0, jsff_bind),
+	JS_CFUNC_DEF("lock", 0, jsff_lock),
 };
 
 static JSValue jsfs_new_filter_obj(JSContext *ctx, GF_Filter *f)
@@ -1197,6 +1223,24 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("new_filter", 0, jsfs_new_filter),
 
 };
+
+void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
+{
+	u32 i, count;
+	gf_mx_p(fs->filters_mx);
+	count = gf_list_count(fs->filters);
+	//detach all script objects, the context having created them is about to be destroyed
+	//not doing so would result in potential crashes during final destruction of filter(s)
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fs->filters, i);
+		if (!JS_IsUndefined(f->jsval)) {
+			JS_SetOpaque(f->jsval, NULL);
+			JS_FreeValue(c, f->jsval);
+			f->jsval = JS_UNDEFINED;
+		}
+	}
+	gf_mx_v(fs->filters_mx);
+}
 
 GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 {

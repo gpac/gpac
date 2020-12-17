@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -430,6 +430,8 @@ enum
 	GF_ISOM_BOX_TYPE_AUXI	= GF_4CC( 'a', 'u', 'x', 'i' ),
 	GF_ISOM_BOX_TYPE_OINF	= GF_4CC( 'o', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_TOLS	= GF_4CC( 't', 'o', 'l', 's' ),
+	GF_ISOM_BOX_TYPE_IENC	= GF_4CC( 'i', 'e', 'n', 'c' ),
+	GF_ISOM_BOX_TYPE_IAUX 	= GF_4CC('i', 'a', 'u', 'x'),
 
 	/* MIAF Boxes */
 	GF_ISOM_BOX_TYPE_CLLI	= GF_4CC('c', 'l', 'l', 'i'),
@@ -3339,10 +3341,8 @@ typedef struct
 {
 	u8 crypt_byte_block, skip_byte_block;
 	u8 IsProtected;
-	u8 Per_Sample_IV_size;
-	u8 constant_IV_size;
-	bin128 KID;
-	bin128 constant_IV;
+	u8 *key_info;
+	u32 key_info_size;
 } GF_CENCSampleEncryptionGroupEntry;
 
 typedef struct
@@ -3362,10 +3362,9 @@ typedef struct __cenc_tenc_box
 
 	u8 crypt_byte_block, skip_byte_block;
 	u8 isProtected;
-	u8 Per_Sample_IV_Size;
-	bin128 KID;
-	u8 constant_IV_size;
-	bin128 constant_IV;
+
+	u32 key_info_size;
+	u8 *key_info;
 } GF_TrackEncryptionBox;
 
 typedef struct __piff_tenc_box
@@ -3375,8 +3374,7 @@ typedef struct __piff_tenc_box
 	u32 flags;
 
 	u32 AlgorithmID;
-	u8 IV_size;
-	bin128 KID;
+	u8 key_info[20];
 } GF_PIFFTrackEncryptionBox;
 
 typedef struct
@@ -3397,7 +3395,8 @@ typedef struct __sample_encryption_box
 	/*u8 version; field in included in base box version */
 	u32 flags;
 
-	Bool is_piff;
+	//0: regular senc, 1: PIFF PSEC, 2: MS senc with version 1 (not compatible with ISOBMFF senc v1)
+	u32 piff_type;
 
 	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
@@ -3450,17 +3449,26 @@ typedef struct __traf_mss_timeref_box
 GF_SampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
-void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID, u8 *constant_IV_size, bin128 *constant_IV, u8 *crypt_byte_block, u8 *skip_byte_block);
+void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 
+GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak,
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV);
-GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr);
+	GF_TrackFragmentBox *traf,
 #else
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, uGF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *IV_size, bin128 *KID,
-										u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV);
-GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *ptr);
+	void *traf,
 #endif
+	GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
+
+
+GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak,
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_TrackFragmentBox *traf,
+#else
+	void *traf,
+#endif
+	GF_SampleEncryptionBox *ptr);
+
 
 /*
 	Boxes for Adobe's protection scheme
@@ -3574,6 +3582,20 @@ typedef struct {
 	u32 data_size;
 	u8 *data;
 } GF_AuxiliaryTypePropertyBox;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u8 skip_byte_block, crypt_byte_block;
+	u8 *key_info;
+	u32 key_info_size;
+} GF_ItemEncryptionPropertyBox;
+
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u32 aux_info_type;
+	u32 aux_info_parameter;
+} GF_AuxiliaryInfoPropertyBox;
 
 typedef struct {
 	GF_ISOM_FULL_BOX
@@ -3854,8 +3876,9 @@ struct __tag_isom {
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
 	void *progress_cbk_udta;
 
+	u32 FragmentsFlags;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	u32 FragmentsFlags, NextMoofNumber;
+	u32 NextMoofNumber;
 	/*active fragment*/
 	GF_MovieFragmentBox *moof;
 	/*in WRITE mode, this is the current MDAT where data is written*/
@@ -4121,13 +4144,37 @@ Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl, u32 scheme_type);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf, u32 scheme_type);
-void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits);
+void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len, Bool saio_32bits, Bool use_mkey);
 #endif
 GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len);
 
 void gf_isom_parse_trif_info(const u8 *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h);
 
 Bool gf_isom_is_encrypted_entry(u32 entryType);
+
+//too export in constants
+Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size);
+
+
+/*! CENC auxiliary info*/
+typedef struct __cenc_sample_aux_info
+{
+	u8 *cenc_data;
+	u32 cenc_data_size;
+ 	/*! flag set if sample is clear - it MUST NOT be written to file*/
+	u8 isNotProtected;
+
+	/*! key info, for dump only (not valid otherwise)*/
+	const u8 *key_info;
+	u32 key_info_size;
+} GF_CENCSampleAuxInfo;
+
+
+/*! destroys a CENC sample auxiliary structure
+\param samp_aux_info the target auxiliary buffer
+*/
+void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
+
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 

@@ -1258,22 +1258,24 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			rlct->static_files = static_files;
 			rlct->tsi = tsi;
 			rlct->toi_template = NULL;
-			sep = strstr(file_template, "$TOI");
-			sep[0] = 0;
-			gf_dynstrcat(&rlct->toi_template, file_template, NULL);
-			sep[0] = '$';
+			if (file_template) {
+				sep = strstr(file_template, "$TOI");
+				sep[0] = 0;
+				gf_dynstrcat(&rlct->toi_template, file_template, NULL);
+				sep[0] = '$';
 
-			if (sep[4]=='$') {
-				gf_dynstrcat(&rlct->toi_template, "%d", NULL);
-				sep += 5;
-			} else {
-				char *sep_end = strchr(sep+3, '$');
-				sep_end[0] = 0;
-				gf_dynstrcat(&rlct->toi_template, sep+4, NULL);
-				sep_end[0] = '$';
-				sep = sep_end + 1;
+				if (sep[4]=='$') {
+					gf_dynstrcat(&rlct->toi_template, "%d", NULL);
+					sep += 5;
+				} else {
+					char *sep_end = strchr(sep+3, '$');
+					sep_end[0] = 0;
+					gf_dynstrcat(&rlct->toi_template, sep+4, NULL);
+					sep_end[0] = '$';
+					sep = sep_end + 1;
+				}
+				gf_dynstrcat(&rlct->toi_template, sep, NULL);
 			}
-			gf_dynstrcat(&rlct->toi_template, sep, NULL);
 
 			//fill in payloads
 			k=0;
@@ -1638,7 +1640,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			break;
 
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d : unsupported header extension HEL %d HET %d\n", s->service_id, hel, het));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : unsupported header extension HEL %d HET %d, ignoring\n", s->service_id, hel, het));
 			break;
 		}
 		if (hdr_len<hel) {

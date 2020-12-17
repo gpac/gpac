@@ -160,6 +160,61 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 	return res;
 }
 
+/*push arguments from source and dest into the final argument string. We strip the following
+- FID: will be inherited from last explicit filter in the chain
+- SID: is cloned during the resolution while loading the filter chain
+- TAG: TAG is never inherited
+- local options: by definition these options only apply to the loaded filter, and are never inherited
+- user-assigned PID properties on destination (they only apply after the destination, not in the new chain).
+
+Note that user-assigned PID properties assigned on source are inherited so that
+	-i SRC:#PidProp=PidVal -o dst
+
+will have all intermediate filters loaded for the resolution (eg demux) set this property.
+
+*/
+static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_args, Bool is_src, Bool first_sep_inserted)
+{
+	char szSep[2];
+	Bool prev_is_db_sep = GF_FALSE;
+	szSep[0] = fsess->sep_args;
+	szSep[1] = 0;
+	while (in_args) {
+		char *sep = strchr(in_args, fsess->sep_args);
+		if (sep) sep[0] = 0;
+
+		if (!strncmp(in_args, "gfloc", 5) && (!in_args[5] || (in_args[5]==fsess->sep_args))) {
+			if (sep) sep[0] = fsess->sep_args;
+			return;
+		}
+		if (!strncmp(in_args, "FID", 3) && (in_args[3]==fsess->sep_name)) {
+		}
+		else if (!strncmp(in_args, "SID", 3) && (in_args[3]==fsess->sep_name)) {
+		}
+		else if (!strncmp(in_args, "TAG", 3) && (in_args[3]==fsess->sep_name)) {
+		}
+		else if (!is_src && (in_args[0]==fsess->sep_frag)) {
+
+		} else {
+			if (*out_args && !first_sep_inserted) {
+				gf_dynstrcat(out_args, szSep, NULL);
+				if (prev_is_db_sep)
+					gf_dynstrcat(out_args, szSep, NULL);
+			}
+			gf_dynstrcat(out_args, in_args, NULL);
+			first_sep_inserted = GF_FALSE;
+		}
+		if (!sep) break;
+		sep[0] = fsess->sep_args;
+		in_args = sep+1;
+		prev_is_db_sep = GF_FALSE;
+		if (in_args[0] == fsess->sep_args) {
+			in_args ++;
+			prev_is_db_sep = GF_TRUE;
+		}
+	}
+}
+
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg, const char *src_args, const char *dst_args, GF_FilterArgType arg_type, GF_Err *err, GF_Filter *multi_sink_target, Bool is_dynamic_filter)
 {
 	char szName[200];
@@ -249,14 +304,13 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		u32 nb_db_sep=0, src_arg_len;
 		char szDBSep[3];
 		Bool insert_escape = GF_FALSE;
-		u32 len = 2 + (u32) strlen(src_striped) + (u32) strlen(dst_striped);
-		//source has a URL (locat or not), escape it to make sure we don't pass dst args as params to the URL
+		Bool dst_sep_inserted = GF_FALSE;
+		//source has a URL (local or not), escape it to make sure we don't pass dst args as params to the URL
 		if ((strstr(src_striped, "src=") || strstr(src_striped, "dst=")) && strstr(src_striped, "://")){
 			char szEscape[10];
 			sprintf(szEscape, "%cgpac", fsess->sep_args);
 			if (strstr(src_striped, szEscape)==NULL) {
 				insert_escape = GF_TRUE;
-				len += 5;
 			}
 		}
 
@@ -272,7 +326,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		if (nb_db_sep % 2) nb_db_sep=1;
 		else nb_db_sep=0;
 
-		all_args = gf_malloc(sizeof(char)*(len+nb_db_sep));
 		if (!nb_db_sep) {
 			szDBSep[1] = 0;
 		}
@@ -282,12 +335,23 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 			szDBSep[0] = 0;
 		}
 
-		if (insert_escape) {
-			sprintf(all_args, "%s%sgpac%c%s", src_striped, szDBSep, fsess->sep_args, dst_striped);
-		} else {
-			sprintf(all_args, "%s%s%s", src_striped, szDBSep, dst_striped);
+		//push src args
+		all_args = NULL;
+		filter_push_args(fsess, &all_args, (char *) src_striped, GF_TRUE, GF_FALSE);
+
+		if (all_args && insert_escape) {
+			gf_dynstrcat(&all_args, szDBSep, NULL);
+			gf_dynstrcat(&all_args, "gpac", NULL);
+			dst_sep_inserted = GF_TRUE;
+		} else if (all_args) {
+			gf_dynstrcat(&all_args, szDBSep, NULL);
+			dst_sep_inserted = GF_TRUE;
 		}
-		localarg_marker = strstr(all_args, "gfloc");
+		//push dst args
+		filter_push_args(fsess, &all_args, (char *) dst_striped, GF_FALSE, dst_sep_inserted);
+
+
+		localarg_marker = all_args ? strstr(all_args, "gfloc") : NULL;
 		if (localarg_marker) {
 			localarg_marker[0]=0;
 			if (strlen(all_args) && (localarg_marker[-1]==fsess->sep_args))
@@ -318,7 +382,8 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		}
 		return NULL;
 	}
-	if (filter && src_striped) filter->orig_args = gf_strdup(src_striped);
+	if (filter && src_striped)
+		filter->orig_args = gf_strdup(src_striped);
 
 	for (i=0; i<freg->nb_caps; i++) {
 		if (freg->caps[i].flags & GF_CAPFLAG_OUTPUT) {
@@ -864,54 +929,63 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 	return argv;
 }
 
-void gf_filter_update_arg_task(GF_FSTask *task)
+Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const char *arg_value, Bool is_sync_call)
 {
 	u32 i=0;
-	Bool found = GF_FALSE;
-	GF_FilterUpdate *arg=task->udta;
 	//find arg
-	i=0;
-	while (task->filter->freg->args) {
+	while (filter->freg->args) {
 		GF_PropertyValue argv;
-		const GF_FilterArgs *a = &task->filter->freg->args[i];
+		const GF_FilterArgs *a = &filter->freg->args[i];
 		i++;
 		Bool is_meta = GF_FALSE;
 		if (!a || !a->arg_name) break;
 
 		if ((a->flags & GF_FS_ARG_META) && !strcmp(a->arg_name, "*")) {
-			if (!task->filter->freg->update_arg)
+			if (!filter->freg->update_arg)
 				continue;
 			is_meta = GF_TRUE;
-		} else if (strcmp(a->arg_name, arg->name)) {
+		} else if (strcmp(a->arg_name, arg_name)) {
 			continue;
 		}
+		//we found the argument
 
-		found = GF_TRUE;
-		if (!is_meta && ! (a->flags & GF_FS_ARG_UPDATE) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, task->filter->name));
-			break;
+		if (!is_meta && ! (a->flags & (GF_FS_ARG_UPDATE|GF_FS_ARG_UPDATE_SYNC) ) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, filter->name));
+			return GF_TRUE;
 		}
 
-		argv = gf_filter_parse_prop_solve_env_var(task->filter, a->arg_type, a->arg_name, arg->val, a->min_max_enum);
+		if (a->flags & GF_FS_ARG_UPDATE_SYNC) {
+			if (!is_sync_call) return GF_TRUE;
+		}
+
+		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, arg_value, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			GF_Err e = GF_OK;
-			FSESS_CHECK_THREAD(task->filter)
+			FSESS_CHECK_THREAD(filter)
 			//if no update function consider the arg OK
-			if (task->filter->freg->update_arg) {
-				e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
+			if (filter->freg->update_arg) {
+				e = filter->freg->update_arg(filter, arg_name, &argv);
 			}
 			if (e==GF_OK) {
 				if (!is_meta)
-					gf_filter_set_arg(task->filter, a, &argv);
+					gf_filter_set_arg(filter, a, &argv);
 			} else if (e!=GF_NOT_FOUND) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", task->filter->name, arg->name, arg->val, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", filter->name, arg_name, arg_value, gf_error_to_string(e) ));
 			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
 		}
-		break;
+		return GF_TRUE;
 	}
+	return GF_FALSE;
+}
+void gf_filter_update_arg_task(GF_FSTask *task)
+{
+	u32 i=0;
+	GF_FilterUpdate *arg=task->udta;
+
+	Bool found = gf_filter_update_arg_apply(task->filter, arg->name, arg->val, GF_FALSE);
 
 	if (!found) {
 		if (arg->recursive) {
@@ -1324,6 +1398,7 @@ skip_date:
 			value++;
 		}
 
+		//arg is a PID property assignment
 		if (szArg[0] == filter->session->sep_frag) {
 			filter->user_pid_props = GF_TRUE;
 			goto skip_arg;
@@ -1418,11 +1493,6 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//generic encoder load
-			else if (!strcmp("c", szArg)) {
-				found = GF_TRUE;
-				internal_arg = GF_TRUE;
-			}
 			//filter name
 			else if (!strcmp("N", szArg)) {
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT) || (arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE)) {
@@ -1431,8 +1501,15 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//prefered registry to use
-			else if (!strcmp("gfreg", szArg)) {
+			//internal options, nothing to do here
+			else if (
+				//generic encoder load
+				!strcmp("c", szArg)
+				//prefered registry to use
+				|| !strcmp("gfreg", szArg)
+				//non inherited options
+				|| !strcmp("gfloc", szArg)
+			) {
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
@@ -4177,4 +4254,35 @@ Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg)
 	if (filter && freg && (filter->freg==freg))
 		return GF_TRUE;
 	return GF_FALSE;
+}
+
+GF_EXPORT
+void gf_filter_abort(GF_Filter *filter)
+{
+	u32 i;
+	GF_FilterEvent evt;
+	if (!filter) return;
+	gf_mx_p(filter->tasks_mx);
+	GF_FEVT_INIT(evt, GF_FEVT_STOP, NULL);
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->input_pids, i);
+		gf_filter_pid_set_discard(pid, GF_TRUE);
+		evt.base.on_pid = pid;
+		gf_filter_pid_send_event(pid, &evt);
+	}
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		gf_filter_pid_set_eos(pid);
+	}
+	gf_mx_v(filter->tasks_mx);
+}
+
+GF_EXPORT
+void gf_filter_lock(GF_Filter *filter, Bool do_lock)
+{
+	if (!filter) return;
+	if (do_lock)
+		gf_mx_p(filter->tasks_mx);
+	else
+		gf_mx_v(filter->tasks_mx);
 }

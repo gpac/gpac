@@ -63,10 +63,10 @@ u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size);
 u32 gf_media_nalu_emulation_bytes_remove_count(const u8 *buffer, u32 nal_size);
 u32 gf_media_nalu_remove_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u32 nal_size);
 
-u32 gf_bs_get_ue(GF_BitStream *bs);
-s32 gf_bs_get_se(GF_BitStream *bs);
-void gf_bs_set_ue(GF_BitStream *bs, u32 num);
-void gf_bs_set_se(GF_BitStream *bs, s32 num);
+u32 gf_bs_read_ue(GF_BitStream *bs);
+s32 gf_bs_read_se(GF_BitStream *bs);
+void gf_bs_write_ue(GF_BitStream *bs, u32 num);
+void gf_bs_write_se(GF_BitStream *bs, s32 num);
 
 enum
 {

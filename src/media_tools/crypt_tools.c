@@ -78,17 +78,31 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		}
 		return;
 	}
+
+
 	if (!strcmp(node_name, "CrypTrack")) {
+		Bool has_key = GF_FALSE;
 		Bool has_common_key = GF_TRUE;
 		GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
 		if (!tkc) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannnot allocate crypt track, skipping\n"));
+			info->last_parse_error = GF_OUT_OF_MEM;
 			return;
 		}
 		//by default track is encrypted
 		tkc->IsEncrypted = 1;
 		tkc->sai_saved_box_type = GF_ISOM_BOX_TYPE_SENC;
 		tkc->scheme_type = info->def_crypt_type;
+
+		//allocate a key to store the default values in single-key mode
+		tkc->keys = gf_malloc(sizeof(GF_CryptKeyInfo));
+		if (!tkc->keys) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannnot allocate key IDs\n"));
+			gf_free(tkc);
+			info->last_parse_error = GF_OUT_OF_MEM;
+			return;
+		}
+		memset(tkc->keys, 0, sizeof(GF_CryptKeyInfo));
 		gf_list_add(info->tcis, tkc);
 
 		for (i=0; i<nb_attributes; i++) {
@@ -108,13 +122,11 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "key")) {
 				GF_Err e;
-				if (!tkc->keys) {
-					tkc->KID_count = 1;
-					tkc->keys = gf_malloc(sizeof(bin128));
-				}
-				e = gf_bin128_parse(att->value, tkc->keys[0] );
+				has_key = GF_TRUE;
+				e = gf_bin128_parse(att->value, tkc->keys[0].key );
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value in CrypTrack\n"));
+					info->last_parse_error = GF_BAD_PARAM;
                     return;
                 }
 			}
@@ -128,7 +140,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					u32 v;
 					sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
 					sscanf(szV, "%x", &v);
-					tkc->first_IV[j/2] = v;
+					tkc->keys[0].IV[j/2] = v;
 					if (j>=30) break;
 				}
 			}
@@ -206,7 +218,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					tkc->IsEncrypted = 0;
 			}
 			else if (!stricmp(att->name, "IV_size")) {
-				tkc->IV_size = atoi(att->value);
+				tkc->keys[0].IV_size = atoi(att->value);
 			}
 			else if (!stricmp(att->name, "first_IV")) {
 				char *sKey = att->value;
@@ -218,9 +230,9 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 						char szV[5];
 						sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
 						sscanf(szV, "%x", &v);
-						tkc->first_IV[j/2] = v;
+						tkc->keys[0].IV[j/2] = v;
 					}
-					if (!tkc->IV_size) tkc->IV_size = (u8) strlen(sKey) / 2;
+					if (!tkc->keys[0].IV_size) tkc->keys[0].IV_size = (u8) strlen(sKey) / 2;
 				}
 			}
 			else if (!stricmp(att->name, "saiSavedBox")) {
@@ -235,6 +247,8 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					tkc->defaultKeyIdx = atoi(att->value+4);
 				else if (!strncmp(att->value, "roll=", 5))
 					tkc->keyRoll = atoi(att->value+5);
+				else if (!strcmp(att->value, "rap"))
+					tkc->roll_rap = GF_TRUE;
 				else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized roll parameter %s, ignoring\n", att->value));
 				}
@@ -255,8 +269,10 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				tkc->clear_bytes = atoi(att->value);
 			}
 			else if (!stricmp(att->name, "constant_IV_size")) {
-				tkc->constant_IV_size = atoi(att->value);
-				assert((tkc->constant_IV_size == 8) || (tkc->constant_IV_size == 16));
+				tkc->keys[0].constant_IV_size = atoi(att->value);
+				if ((tkc->keys[0].constant_IV_size != 8) && (tkc->keys[0].constant_IV_size != 16)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Constant IV size %d is not 8 or 16\n", att->value));
+				}
 			}
 			else if (!stricmp(att->name, "constant_IV")) {
 				char *sKey = att->value;
@@ -268,10 +284,10 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 						char szV[5];
 						sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
 						sscanf(szV, "%x", &v);
-						tkc->constant_IV[j/2] = v;
+						tkc->keys[0].IV[j/2] = v;
 					}
+					if (!tkc->keys[0].constant_IV_size) tkc->keys[0].constant_IV_size = (u8) strlen(sKey) / 2;
 				}
-				if (!tkc->constant_IV_size) tkc->constant_IV_size = (u8) strlen(sKey) / 2;
 			}
 			else if (!stricmp(att->name, "encryptSliceHeader")) {
 				tkc->allow_encrypted_slice_header = !strcmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
@@ -281,15 +297,65 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				else if (!strcmp(att->value, "always")) tkc->block_align = 2;
 				else tkc->block_align = 0;
 			}
+			else if (!stricmp(att->name, "subsamples")) {
+				char *val = att->value;
+				while (val) {
+					char *sep = strchr(val, ';');
+					if (sep) sep[0] = 0;
+					if (!strncmp(val, "subs=", 5)) {
+						if (tkc->subs_crypt) gf_free(tkc->subs_crypt);
+						tkc->subs_crypt = gf_strdup(val+4);
+					}
+					else if (!strncmp(val, "rand", 4)) {
+						tkc->subs_rand = 2;
+						if (val[4]=='=')
+							tkc->subs_rand = atoi(val+5);
+					}
+					else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] unrecognized attribute value %s for `subsamples`, ignoring\n", val));
+					}
+					if (!sep) break;
+					sep[0] = ';';
+					val = sep+1;
+				}
+			}
+			else if (!stricmp(att->name, "multiKey")) {
+				if (!strcmp(att->value, "all") || !strcmp(att->value, "on")) tkc->multi_key = GF_TRUE;
+				else if (!strcmp(att->value, "no")) tkc->multi_key = GF_FALSE;
+				else {
+					char *val = att->value;
+					tkc->multi_key = GF_TRUE;
+					while (val) {
+						char *sep = strchr(val, ';');
+						if (sep) sep[0] = 0;
+						if (!strncmp(val, "roll=", 5)) {
+							tkc->mkey_roll_plus_one = 1 + atoi(val+5);
+						}
+						else if (!strncmp(val, "subs=", 5)) {
+							if (tkc->mkey_subs) gf_free(tkc->mkey_subs);
+							tkc->mkey_subs = gf_strdup(val+5);
+						}
+						else {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] unrecognized attribute value %s for `multiKey`, ignoring\n", val));
+							tkc->multi_key = GF_FALSE;
+							if (sep) sep[0] = ';';
+							break;
+						}
+						if (!sep) break;
+						sep[0] = ';';
+						val = sep+1;
+					}
+				}
+			}
 		}
 		if (tkc->scheme_type==GF_CRYPT_TYPE_PIFF) {
 			tkc->sai_saved_box_type = GF_ISOM_BOX_UUID_PSEC;
 		}
 		if (has_common_key) info->has_common_key = 1;
 
-		if ((tkc->IV_size != 0) && (tkc->IV_size != 8) && (tkc->IV_size != 16)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] wrong IV size %d for AES-128, using 16\n", (u32) tkc->IV_size));
-			tkc->IV_size = 16;
+		if ((tkc->keys[0].IV_size != 0) && (tkc->keys[0].IV_size != 8) && (tkc->keys[0].IV_size != 16)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] wrong IV size %d for AES-128, using 16\n", (u32) tkc->keys[0].IV_size));
+			tkc->keys[0].IV_size = 16;
 		}
 
 		if ((tkc->scheme_type == GF_CRYPT_TYPE_CENC) || (tkc->scheme_type == GF_CRYPT_TYPE_CBC1)) {
@@ -300,15 +366,13 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		}
 
 		if ((tkc->scheme_type == GF_CRYPT_TYPE_CENC) || (tkc->scheme_type == GF_CRYPT_TYPE_CBC1) || (tkc->scheme_type == GF_CRYPT_TYPE_CENS)) {
-			if (tkc->constant_IV_size) {
-				if (!tkc->IV_size) {
-					tkc->IV_size = tkc->constant_IV_size;
-					memcpy(tkc->first_IV, tkc->constant_IV, 16);
+			if (tkc->keys[0].constant_IV_size) {
+				if (!tkc->keys[0].IV_size) {
+					tkc->keys[0].IV_size = tkc->keys[0].constant_IV_size;
 					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, using constant IV as first IV\n", gf_4cc_to_str(tkc->scheme_type)));
-					tkc->constant_IV_size = 0;
+					tkc->keys[0].constant_IV_size = 0;
 				} else {
-					tkc->constant_IV_size = 0;
-					memset(tkc->constant_IV, 0, 16);
+					tkc->keys[0].constant_IV_size = 0;
 					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, ignoring\n", gf_4cc_to_str(tkc->scheme_type)));
 				}
 			}
@@ -318,32 +382,71 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			tkc->encryption = 2;
 		}
 
+		if (has_key) tkc->nb_keys = 1;
 	}
 
 	if (!strcmp(node_name, "key")) {
+		u32 IV_size, const_IV_size;
+		Bool kas_civ = GF_FALSE;
 		tkc = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
-		tkc->KIDs = (bin128 *)gf_realloc(tkc->KIDs, sizeof(bin128)*(tkc->KID_count+1));
-		tkc->keys = (bin128 *)gf_realloc(tkc->keys, sizeof(bin128)*(tkc->KID_count+1));
+		if (!tkc) return;
+		//only realloc for 2nd and more
+		if (tkc->nb_keys) {
+			tkc->keys = (GF_CryptKeyInfo *)gf_realloc(tkc->keys, sizeof(GF_CryptKeyInfo)*(tkc->nb_keys+1));
+			memset(&tkc->keys[tkc->nb_keys], 0, sizeof(GF_CryptKeyInfo));
+		}
+		IV_size = tkc->keys[0].IV_size;
+		const_IV_size = tkc->keys[0].constant_IV_size;
 
 		for (i=0; i<nb_attributes; i++) {
 			att = (GF_XMLAttribute *) &attributes[i];
 
 			if (!stricmp(att->name, "KID")) {
-				GF_Err e = gf_bin128_parse(att->value, tkc->KIDs[tkc->KID_count]);
+				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].KID);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse KID\n"));
                     return;
                 }
 			}
 			else if (!stricmp(att->name, "value")) {
-				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->KID_count]);
+				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].key);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse key value\n"));
                     return;
                 }
 			}
+			else if (!stricmp(att->name, "hlsInfo")) {
+				if (!strstr(att->value, "URI=\"")) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Missing URI in HLS info %s\n", att->value));
+                    return;
+				}
+				tkc->keys[tkc->nb_keys].hls_info = gf_strdup(att->value);
+			}
+			else if (!stricmp(att->name, "IV_size")) {
+				IV_size = atoi(att->value);
+			}
+			else if (!stricmp(att->name, "constant_IV")) {
+				char *sKey = att->value;
+				if (!strnicmp(sKey, "0x", 2)) sKey += 2;
+				if ((strlen(sKey) == 16) || (strlen(sKey) == 32)) {
+					u32 j;
+					for (j=0; j<strlen(sKey); j+=2) {
+						u32 v;
+						char szV[5];
+						sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
+						sscanf(szV, "%x", &v);
+						tkc->keys[tkc->nb_keys].IV[j/2] = v;
+					}
+					const_IV_size = (u8) strlen(sKey) / 2;
+					kas_civ = GF_TRUE;
+				}
+			}
 		}
-		tkc->KID_count++;
+		tkc->keys[tkc->nb_keys].IV_size = IV_size;
+		tkc->keys[tkc->nb_keys].constant_IV_size = const_IV_size;
+		if (!kas_civ && tkc->nb_keys)
+			memcpy(tkc->keys[tkc->nb_keys].IV, tkc->keys[0].IV, 16);
+		tkc->nb_keys++;
 	}
 }
 
@@ -376,13 +479,19 @@ static void cryptinfo_text(void *sax_cbck, const char *text, Bool is_cdata)
 void gf_crypt_info_del(GF_CryptInfo *info)
 {
 	while (gf_list_count(info->tcis)) {
+		u32 i;
 		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
-		if (tci->KIDs) gf_free(tci->KIDs);
+		for (i=0; i<tci->nb_keys; i++) {
+			if (tci->keys[i].hls_info)
+				gf_free(tci->keys[i].hls_info);
+		}
 		if (tci->keys) gf_free(tci->keys);
 		if (tci->metadata) gf_free(tci->metadata);
 		if (tci->KMS_URI) gf_free(tci->KMS_URI);
 		if (tci->Scheme_URI) gf_free(tci->Scheme_URI);
 		if (tci->TextualHeaders) gf_free(tci->TextualHeaders);
+		if (tci->subs_crypt) gf_free(tci->subs_crypt);
+		if (tci->mkey_subs) gf_free(tci->mkey_subs);
 		gf_list_rem_last(info->tcis);
 		gf_free(tci);
 	}
@@ -406,6 +515,10 @@ GF_CryptInfo *gf_crypt_info_load(const char *file, GF_Err *out_err)
 	if (e<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[DRM] Failed to parse DRM config file: %s", gf_xml_sax_get_error(sax) ));
 		if (out_err) *out_err = e;
+		gf_crypt_info_del(info);
+		info = NULL;
+	} else if (info->last_parse_error) {
+		if (out_err) *out_err = info->last_parse_error;
 		gf_crypt_info_del(info);
 		info = NULL;
 	} else {
@@ -438,7 +551,8 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 
 static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char *dst_file, Double interleave_time, const char *fragment_name, u32 fs_dump_flags)
 {
-	char szArgs[4096];
+	char *szArgs = NULL;
+	char an_arg[100];
 	GF_Filter *src, *dst, *dcrypt;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
@@ -449,40 +563,55 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Failed to create filter session\n"));
 		return GF_OUT_OF_MEM;
 	}
-	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
+
+	sprintf(an_arg, "mp4dmx:mov=%p", mp4);
+	gf_dynstrcat(&szArgs, an_arg, NULL);
 	if (fragment_name) {
-		strcat(szArgs, ":sigfrag:catseg=");
-		strcat(szArgs, fragment_name);
+		gf_dynstrcat(&szArgs, ":sigfrag:catseg=", NULL);
+		gf_dynstrcat(&szArgs, fragment_name, NULL);
 	}
 	src = gf_fs_load_filter(fsess, szArgs, &e);
+	gf_free(szArgs);
+	szArgs = NULL;
+
 	if (!src) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load demux filter for source file\n"));
 		return e;
 	}
 
-	sprintf(szArgs, "cdcrypt:FID=1:cfile=%s", drm_file);
+	gf_dynstrcat(&szArgs, "cdcrypt:FID=1", NULL);
+	if (drm_file) {
+		gf_dynstrcat(&szArgs, ":cfile=", NULL);
+		gf_dynstrcat(&szArgs, drm_file, NULL);
+	}
 	dcrypt = gf_fs_load_filter(fsess, szArgs, &e);
+	gf_free(szArgs);
+	szArgs = NULL;
 	if (!dcrypt) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load decryptor filter\n"));
 		return e;
 	}
 
-	sprintf(szArgs, "SID=1");
+	gf_dynstrcat(&szArgs, "SID=1", NULL);
 	if (fragment_name) {
-		strcat(szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000");
+		gf_dynstrcat(&szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000", NULL);
 	} else {
 		if (interleave_time) {
-			char an_arg[100];
 			sprintf(an_arg, ":cdur=%g", interleave_time);
-			strcat(szArgs, an_arg);
+			gf_dynstrcat(&szArgs, an_arg, NULL);
 		} else {
-			strcat(szArgs, ":store=flat");
+			gf_dynstrcat(&szArgs, ":store=flat", NULL);
 		}
 	}
+	if (gf_isom_has_keep_utc_times(mp4))
+		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
 	dst = gf_fs_load_destination(fsess, dst_file, szArgs, NULL, &e);
+	gf_free(szArgs);
+	szArgs = NULL;
+
 	if (!dst) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Decrypter] Cannot load destination muxer\n"));
@@ -509,6 +638,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
 
+	gf_fs_print_non_connected(fsess);
 	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
 	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);
 
@@ -605,6 +735,9 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 		}
 	}
 
+	if (gf_isom_has_keep_utc_times(mp4))
+		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
+
 	arg_dst = gf_url_colon_suffix(dst_file);
 	if (arg_dst) {
 		gf_dynstrcat(&szArgs, arg_dst, NULL);
@@ -639,6 +772,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
 
+	gf_fs_print_non_connected(fsess);
 	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
 	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);
 	gf_fs_del(fsess);

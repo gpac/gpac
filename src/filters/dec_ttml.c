@@ -366,13 +366,20 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[TTMLDec] Invalid subsample size %d for packet size %d\n", subs_size, pck_size));
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
-				pck_alloc = gf_malloc(sizeof(char)*subs_size+2);
+				pck_alloc = gf_malloc(sizeof(char)*(subs_size+2));
 				memcpy(pck_alloc, pck_data, sizeof(char)*subs_size);
 				pck_alloc[subs_size] = 0;
 				pck_alloc[subs_size+1] = 0;
 				ttml_doc = pck_alloc;
 			}
 		}
+	} else {
+		//we cannot assume the doc ends with 0
+		pck_alloc = gf_malloc(sizeof(char)*(pck_size+2));
+		memcpy(pck_alloc, ttml_doc, sizeof(char)*pck_size);
+		pck_alloc[pck_size] = 0;
+		pck_alloc[pck_size+1] = 0;
+		ttml_doc = pck_alloc;
 	}
 
 	GF_DOMParser *dom = gf_xml_dom_new();

@@ -5714,9 +5714,11 @@ static GF_Err svg_dasharray_copy(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 	a->type = b->type;
 	a->array.count = b->array.count;
 	a->array.units = (u8*)gf_malloc(sizeof(u8)*a->array.count);
-	memcpy(a->array.units, b->array.units, sizeof(u8)*a->array.count);
+	if (a->array.count)
+		memcpy(a->array.units, b->array.units, sizeof(u8)*a->array.count);
 	a->array.vals = (Fixed*)gf_malloc(sizeof(Fixed)*a->array.count);
-	memcpy(a->array.vals, b->array.vals, sizeof(Fixed)*a->array.count);
+	if (a->array.count)
+		memcpy(a->array.vals, b->array.vals, sizeof(Fixed)*a->array.count);
 	return GF_OK;
 }
 

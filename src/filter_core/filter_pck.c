@@ -705,6 +705,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	s64 duration=0;
 	u32 timescale=0;
 	GF_FilterClockType cktype;
+	Bool is_cmd_pck;
 #ifdef GPAC_MEMORY_TRACKING
 	u32 nb_allocs=0, nb_reallocs=0, prev_nb_allocs=0, prev_nb_reallocs=0;
 #endif
@@ -750,6 +751,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
+	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 	//send from filter, update flags
 	if (from_filter) {
 		Bool is_cmd = (pck->info.flags & GF_PCK_CKTYPE_MASK) ? GF_TRUE : GF_FALSE;
@@ -774,13 +776,13 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		//a new property map was created -  flag the packet; don't do this if first packet dispatched on pid
 		pck->info.flags &= ~GF_PCKF_PROPS_CHANGED;
 
-		if (!pid->request_property_map && !(pck->info.flags & GF_PCK_CMD_MASK) && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
+		if (!pid->request_property_map && !is_cmd_pck && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
 			pck->info.flags |= GF_PCKF_PROPS_CHANGED;
 		}
 		//any new pid_set_property after this packet will trigger a new property map
-		if (! (pck->info.flags & GF_PCK_CMD_MASK)) {
+		if (! is_cmd_pck) {
 			pid->request_property_map = GF_TRUE;
 			pid->props_changed_since_connect = GF_FALSE;
 		}
@@ -820,7 +822,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	pck->src_filter = NULL;
 
 	assert(pck->pid);
-	if (! (pck->info.flags & GF_PCK_CMD_MASK) ) {
+	if (! is_cmd_pck ) {
 		pid->nb_pck_sent++;
 		if (pck->data_length) {
 			pid->filter->nb_pck_sent++;
@@ -1054,7 +1056,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				//single block packet, direct dispatch in packet queue (aggregation done before)
 				else {
 					assert(dst->last_block_ended);
-					dst->nb_reagg_pck++;
+					if (!is_cmd_pck)
+						dst->nb_reagg_pck++;
 
 					if (pck->info.duration && timescale) {
 						duration = ((u64)pck->info.duration) * 1000000;

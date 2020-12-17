@@ -33,7 +33,7 @@
 
 typedef struct _bitmap_stack
 {
-	Drawable *graph;
+	Drawable s_graph;
 	/*cached size for 3D mode*/
 	SFVec2f size, scale;
 	u32 prev_tx_w, prev_tx_h;
@@ -107,8 +107,8 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	if (notify_changes) gf_node_dirty_set(node, 0, 1);
 
 	/*get size with scale*/
-	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, 0, 0, st->size.x, st->size.y);
+	drawable_reset_path(&st->s_graph);
+	gf_path_add_rect_center(st->s_graph.path, 0, 0, st->size.x, st->size.y);
 }
 
 #ifndef GPAC_DISABLE_3D
@@ -144,7 +144,7 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 		}
 	}
 
-	compositor_3d_draw_bitmap(st->graph, &asp, tr_state, st->size.x, st->size.y, bmp->scale.x, bmp->scale.y);
+	compositor_3d_draw_bitmap(&st->s_graph, &asp, tr_state, st->size.x, st->size.y, bmp->scale.x, bmp->scale.y);
 
 	tr_state->col_key = NULL;
 }
@@ -186,12 +186,12 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		gf_mx2d_inverse(&_mat);
 		gf_mx2d_apply_rect(&_mat, &rc);
 		if ((st->unclip_rc.width != rc.width) || (st->unclip_rc.height != rc.height)) {
-			drawable_reset_path(st->graph);
-			gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
+			drawable_reset_path(&st->s_graph);
+			gf_path_add_rect_center(st->s_graph.path, 0, 0, rc.width, rc.height);
 			st->unclip_rc = rc;
 		}
 		ctx->flags |= CTX_NO_ANTIALIAS;
-		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx, tr_state);
+		visual_2d_texture_path(tr_state->visual, st->s_graph.path, ctx, tr_state);
 	}
 	tr_state->col_key = NULL;
 }
@@ -205,11 +205,11 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 
 	if (is_destroy) {
-		drawable_del(st->graph);
+		drawable_del_ex(&st->s_graph, gf_sc_get_compositor(node), GF_TRUE);
 		gf_free(st);
 		return;
 	}
-	if (! rectangle_check_adaptation(node, st->graph, tr_state))
+	if (! rectangle_check_adaptation(node, &st->s_graph, tr_state))
 		return;
 
 	switch (tr_state->traversing_mode) {
@@ -223,7 +223,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 	case TRAVERSE_PICK:
 		//drawable_pick(st->graph, tr_state);
-		vrml_drawable_pick(st->graph, tr_state);
+		vrml_drawable_pick(&st->s_graph, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds,
@@ -248,7 +248,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 	Bitmap_BuildGraph(node, st, tr_state, &rc, 1);
 	if (!rc.width || !rc.height) return;
 
-	ctx = drawable_init_context_mpeg4(st->graph, tr_state);
+	ctx = drawable_init_context_mpeg4(&st->s_graph, tr_state);
 	if (!ctx || !ctx->aspect.fill_texture ) {
 		visual_2d_remove_last_context(tr_state->visual);
 		return;
@@ -298,9 +298,9 @@ void compositor_init_bitmap(GF_Compositor  *compositor, GF_Node *node)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate bitmap stack\n"));
 		return;
 	}
-	st->graph = drawable_new();
-	st->graph->node = node;
-	st->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;
+	drawable_init_ex(&st->s_graph);
+	st->s_graph.node = node;
+	st->s_graph.flags = DRAWABLE_USE_TRAVERSE_DRAW;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, TraverseBitmap);
 }

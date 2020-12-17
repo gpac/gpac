@@ -257,11 +257,13 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
-	Bool is_nalu_video=GF_FALSE, has_seig;
+	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur, bps;
 	s32 trans_x, trans_y;
 	s16 layer;
 	char *lang;
+	u8 *sai_buffer = NULL;
+	u32 sai_buffer_size = 0, sai_buffer_alloc = 0;
 	const char *orig_name = gf_url_get_resource_name(gf_isom_get_filename(import->orig));
 	Bool sbr, ps;
 	GF_ISOSample *samp;
@@ -402,6 +404,13 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
 	if (e) goto exit;
 
+
+	if ((gf_isom_get_track_count(import->dest)==1) && gf_isom_has_keep_utc_times(import->dest)) {
+		u64 cdate, mdate;
+		gf_isom_get_creation_time(import->orig, &cdate, &mdate);
+		gf_isom_set_creation_time(import->dest, cdate, mdate);
+	}
+
 	di = 1;
 
 	if (import->esd && import->esd->ESID) {
@@ -473,10 +482,6 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	if (gf_isom_is_media_encrypted(import->orig, track_in, 0)) {
 		gf_isom_get_original_format_type(import->orig, track_in, 0, &mstype);
 	}
-	has_seig = GF_FALSE;
-	if (is_cenc && gf_isom_has_cenc_sample_group(import->orig, track_in)) {
-		has_seig = GF_TRUE;
-	}
 
 	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
 	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
@@ -530,10 +535,14 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 
 	if (is_cenc) {
 		u32 container_type;
-		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, NULL, &container_type);
+		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, &container_type, NULL, NULL);
 		if (e)
 			goto exit;
-		e = gf_isom_cenc_allocate_storage(import->dest, track, container_type, 0, 0, NULL);
+		if (container_type==GF_ISOM_BOX_UUID_PSEC) {
+			e = gf_isom_piff_allocate_storage(import->dest, track, 0, 0, NULL);
+		} else {
+			e = gf_isom_cenc_allocate_storage(import->dest, track);
+		}
 		if (e) goto exit;
 		e = gf_isom_clone_pssh(import->dest, import->orig, GF_FALSE);
 		if (e) goto exit;
@@ -582,54 +591,40 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			i+= samp->nb_pack-1;
 		gf_isom_sample_del(&samp);
 
+		//this will also copy all sample to group mapping, including seig for CENC
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
 
 		if (e)
 			goto exit;
 		if (is_cenc) {
-			GF_CENCSampleAuxInfo *sai;
-			u32 container_type, len, j;
+			u32 container_type;
 			Bool Is_Encrypted;
-			u8 IV_size;
-			bin128 KID;
+			Bool is_mkey=GF_FALSE;
 			u8 crypt_byte_block, skip_byte_block;
-			u8 constant_IV_size;
-			bin128 constant_IV;
-			GF_BitStream *bs;
-			u8 *buffer;
+			const u8 *key_info=NULL;
+			u32 key_info_len = 0;
 
-			sai = NULL;
-			e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &sai, &container_type);
-			if (e)
-				goto exit;
-
-			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &IV_size, &KID, &crypt_byte_block, &skip_byte_block, &constant_IV_size, &constant_IV);
+			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &crypt_byte_block, &skip_byte_block, &key_info, &key_info_len);
 			if (e) goto exit;
+			if (key_info) {
+				is_mkey = key_info[0];
+			}
 
 			if (Is_Encrypted) {
-				bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-				gf_bs_write_data(bs, (const char *)sai->IV, IV_size);
-				if (sai->subsample_count) {
-					gf_bs_write_u16(bs, sai->subsample_count);
-					for (j = 0; j < sai->subsample_count; j++) {
-						gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
-						gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
-					}
-				}
-				gf_isom_cenc_samp_aux_info_del(sai);
-				gf_bs_get_content(bs, &buffer, &len);
-				gf_bs_del(bs);
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, buffer, len, is_nalu_video, NULL, GF_FALSE);
-				gf_free(buffer);
-			} else {
-				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, IV_size, NULL, 0, is_nalu_video, NULL, GF_FALSE);
-			}
-			if (e) goto exit;
-
-			if (has_seig) {
-				e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+				sai_buffer_size = sai_buffer_alloc;
+				e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, i+1, di, &container_type, &sai_buffer, &sai_buffer_size);
 				if (e) goto exit;
+				if (sai_buffer_size > sai_buffer_alloc)
+					sai_buffer_alloc = sai_buffer_size;
+
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, container_type, sai_buffer, sai_buffer_size, is_nalu_video, GF_FALSE, is_mkey);
+
+			} else {
+				//we don't set container type since we don't add data to the container (senc/...)
+				e = gf_isom_track_cenc_add_sample_info(import->dest, track, 0, NULL, 0, is_nalu_video, GF_FALSE, is_mkey);
 			}
+			if (e)
+				goto exit;
 		}
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
@@ -675,6 +670,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	}
 
 exit:
+	if (sai_buffer) gf_free(sai_buffer);
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, cur_extract_mode);
 	return e;
@@ -1075,6 +1071,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	char szSubArg[1024];
 	char szFilterID[20];
 	Bool source_id_set = GF_FALSE;
+	Bool source_is_isom = GF_FALSE;
 	GF_Filter *isobmff_mux, *source;
 	GF_Filter *filter_orig;
 	char *ext;
@@ -1099,6 +1096,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		magic <<= 32;
 		magic |= (importer->source_magic & 0xFFFFFFFFUL);
 		importer->source_magic = magic;
+		source_is_isom = GF_TRUE;
 		if ((!importer->filter_chain && !importer->filter_dst_opts && !importer->run_in_session)
 			|| (importer->flags & GF_IMPORT_PROBE_ONLY)
 		) {
@@ -1280,6 +1278,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { e |= gf_dynstrcat(&args, "ase=v0s", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { e |= gf_dynstrcat(&args, "ase=v1", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { e |= gf_dynstrcat(&args, "ase=v1qt", ":"); }
+
+	if (source_is_isom && gf_isom_has_keep_utc_times(importer->dest) ) { e |= gf_dynstrcat(&args, "keep_utc", ":"); }
 
 	if (e) {
 		gf_fs_del(fsess);
@@ -1471,6 +1471,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 	}
 
+	gf_fs_print_non_connected(fsess);
 	if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
 	if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);
 	gf_fs_del(fsess);

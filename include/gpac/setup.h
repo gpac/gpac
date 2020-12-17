@@ -432,12 +432,21 @@ typedef struct {
 
 #if (defined (WIN32) || defined (_WIN32_WCE)) && (defined(__MINGW32__) || !defined(__GNUC__))
 
+#if defined(__MINGW32__)
+/*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
+#define LLD_SUF "lld"
+/*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
+#define LLU_SUF "llu"
+/*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
+#define LLX_SUF "llx"
+#else
 /*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
 #define LLD_SUF "I64d"
 /*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/
 #define LLU_SUF "I64u"
 /*! macro for cross-platform suffix used for formatting u64 integers as hex in logs and printf routines*/
 #define LLX_SUF "I64x"
+#endif
 
 #ifdef _WIN64
 /*! macro for cross-platform casting a pointer to an integer*/

@@ -760,7 +760,7 @@ static void tex_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 _x, s32 _y, 
 
 		if (has_alpha) {
 			cx = ((GF_COL_A(pix) + 1) * _this->alpha) >> 8;
-			pix = ( ((cx<<24) & 0xFF000000) ) | (pix & 0x00FFFFFF);
+			pix = ( (((u32)cx<<24) & 0xFF000000) ) | (pix & 0x00FFFFFF);
 		}
 		if (has_replace_cmat) {
 			u32 __a;
@@ -2022,7 +2022,7 @@ void evg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32 count
 		} else {
 			u32 *col = (u32 *)surf->stencil_pix_run;
 			for (i=0; i<count; i++) {
-				u8 a = GF_COL_A(*col);
+				u32 a = GF_COL_A(*col);
 				a = surf->get_alpha(surf->get_alpha_udta, a, x+i, y);
 				*col = (a<<24) | ((*col) & 0x00FFFFFF);
 				col ++;

@@ -173,18 +173,16 @@ typedef struct
 	u64 dts, cts;
 	u8 skip_byte_block, crypt_byte_block;
 	Bool is_protected;
-	u8 constant_IV_size;
-	bin128 constant_IV;
-	u8 IV_size;
 	u32 au_seq_num;
 	u64 sender_ntp, ntp_at_server_ntp;
 	u32 seek_flag;
 	u32 au_duration;
 	Bool set_disc;
-	Bool cenc_state_changed;
+
 	u64 isma_BSO;
-	bin128 KID;
 	Bool pck_encrypted;
+
+	u32 key_info_crc;
 
 	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
@@ -217,6 +215,8 @@ void isor_set_crypt_config(ISOMChannel *ch);
 void isor_reader_check_config(ISOMChannel *ch);
 
 Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_idx);
+
+void isor_declare_pssh(ISOMChannel *ch);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

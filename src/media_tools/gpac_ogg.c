@@ -40,9 +40,6 @@ static u32 mask[]=
 
 
 #ifdef GPAC_CONFIG_WIN32
-static u32 mask8B[]=
-{0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff};
-
 void oggpack_writeinit(oggpack_buffer *b) {
 	memset(b,0,sizeof(*b));
 	b->ptr = b->buffer = (unsigned char *)gf_malloc(BUFFER_INCREMENT);
@@ -53,6 +50,9 @@ void oggpack_writeinit(oggpack_buffer *b) {
 
 
 #if 0 //unused
+static u32 mask8B[] =
+{ 0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff };
+
 
 void oggpackB_writeinit(oggpack_buffer *b) {
 	oggpack_writeinit(b);
@@ -536,16 +536,16 @@ s64 ogg_page_granulepos(ogg_page *og) {
 
 s32 ogg_page_serialno(ogg_page *og) {
 	return(og->header[14] |
-	       (og->header[15]<<8) |
-	       (og->header[16]<<16) |
-	       (og->header[17]<<24));
+	       ((u32) og->header[15]<<8) |
+	       ((u32) og->header[16]<<16) |
+	       ((u32) og->header[17]<<24));
 }
 
 s32 ogg_page_pageno(ogg_page *og) {
-	return(og->header[18] |
-	       (og->header[19]<<8) |
-	       (og->header[20]<<16) |
-	       (og->header[21]<<24));
+	return((u32) og->header[18] |
+	       ((u32) og->header[19]<<8) |
+	       ((u32) og->header[20]<<16) |
+	       ((u32) og->header[21]<<24));
 }
 
 
