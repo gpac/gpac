@@ -5032,7 +5032,7 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 		u32 i, kpos=3, nb_keys;
 		nb_keys = ptr->key_info[1];
 		nb_keys <<= 8;
-		nb_keys = ptr->key_info[2];
+		nb_keys |= ptr->key_info[2];
 
 		gf_fprintf(trace, ">\n");
 		for (i=0; i<nb_keys; i++) {
