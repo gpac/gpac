@@ -1579,6 +1579,10 @@ Note: This mode used to be trigger by .I filemode option, still recognized.
 .br
 
 .br
+If the source has dependent media streams (scability) and all qualities and initialization segments need to be forwarded, add .I split_as.
+.br
+
+.br
 .SH Segment bound modes
 .LP
 .br
@@ -1767,7 +1771,7 @@ noxlink (bool, default: no):   disable xlink if period has both xlink and adapta
 .br
 query (str):                   set query string (without initial '?') to append to xlink of periods
 .br
-split_as (bool, default: no):  separate all qualities into different adaptation sets and stream all qualities
+split_as (bool, default: no):  separate all qualities into different adaptation sets and stream all qualities. Dependent representations (scalable) are treated as independent
 .br
 noseek (bool, default: no):    disable seeking of initial segment(s) in dynamic mode (useful when UTC clocks do not match)
 .br
@@ -7124,7 +7128,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev364-g8c22fb2e3-master
+build: 1.1.0-DEV-rev367-g0d8d2f540-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
