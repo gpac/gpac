@@ -2446,6 +2446,10 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	Bool free_url=GF_FALSE;
 	memset(szExt, 0, sizeof(szExt));
 
+	if (!url) {
+		if (err) *err = GF_BAD_PARAM;
+		return NULL;
+	}
 	if (err) *err = GF_OK;
 
 	mime_type = NULL;
@@ -2465,9 +2469,6 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		}
 	}
 	sURL = NULL;
-	if (!url || !strncmp(url, "\\\\", 2) ) {
-		return NULL;
-	}
 	if (filter) {
 		sURL = (char *) url;
 	} else {
