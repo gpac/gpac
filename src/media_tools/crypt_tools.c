@@ -331,6 +331,10 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 						if (!strncmp(val, "roll=", 5)) {
 							tkc->mkey_roll_plus_one = 1 + atoi(val+5);
 						}
+						else if (!strncmp(val, "subs=", 5)) {
+							if (tkc->mkey_subs) gf_free(tkc->mkey_subs);
+							tkc->mkey_subs = gf_strdup(val+5);
+						}
 						else {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] unrecognized attribute value %s for `multiKey`, ignoring\n", val));
 							tkc->multi_key = GF_FALSE;
@@ -487,6 +491,7 @@ void gf_crypt_info_del(GF_CryptInfo *info)
 		if (tci->Scheme_URI) gf_free(tci->Scheme_URI);
 		if (tci->TextualHeaders) gf_free(tci->TextualHeaders);
 		if (tci->subs_crypt) gf_free(tci->subs_crypt);
+		if (tci->mkey_subs) gf_free(tci->mkey_subs);
 		gf_list_rem_last(info->tcis);
 		gf_free(tci);
 	}

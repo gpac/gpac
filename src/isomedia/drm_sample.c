@@ -1064,7 +1064,7 @@ GF_SampleEncryptionBox * gf_isom_create_piff_psec_box(u8 version, u32 flags, u32
 		return NULL;
 	psec->version = version;
 	psec->flags = flags;
-	psec->is_piff = GF_TRUE;
+	psec->piff_type = 1;
 	if (psec->flags & 0x1) {
 		psec->AlgorithmID = AlgorithmID;
 		psec->IV_size = IV_size;

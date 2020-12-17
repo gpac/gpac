@@ -933,7 +933,7 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
-	is_mkey = ptr->key_info[0] ? GF_TRUE : GF_FALSE;
+	is_mkey = (ptr->key_info && ptr->key_info[0]) ? GF_TRUE : GF_FALSE;
 
 	gf_bs_write_int(bs, is_mkey, 1);
 	gf_bs_write_int(bs, 0, 7); //reserved
@@ -947,13 +947,19 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->isProtected);
 	if (is_mkey) {
 		gf_bs_write_data(bs, ptr->key_info+1, ptr->key_info_size-1);
-	} else {
+	} else if (ptr->key_info) {
 		gf_bs_write_u8(bs, ptr->key_info[3]);
 		gf_bs_write_data(bs, ptr->key_info + 4, 16);
 		if ((ptr->isProtected == 1) && !ptr->key_info[3]) {
 			gf_bs_write_u8(bs, ptr->key_info[20]);
 			gf_bs_write_data(bs, ptr->key_info + 21, ptr->key_info[20]);
 		}
+	}
+	//for boxcov
+	else {
+		gf_bs_write_u8(bs, 8);
+		gf_bs_write_u64(bs, 0);
+		gf_bs_write_u64(bs, 0);
 	}
 	return GF_OK;
 }
@@ -963,6 +969,11 @@ GF_Err tenc_box_size(GF_Box *s)
 	Bool is_mkey;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 	ptr->size += 3;
+	//for boxcov
+	if (!ptr->key_info) {
+		ptr->size += 17;
+		return GF_OK;
+	}
 
 	is_mkey = ptr->key_info[0] ? GF_TRUE : GF_FALSE;
 	if (is_mkey) {
@@ -1040,7 +1051,7 @@ GF_Box *piff_psec_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_SampleEncryptionBox, GF_ISOM_BOX_TYPE_UUID);
 	tmp->internal_4cc = GF_ISOM_BOX_UUID_PSEC;
-	tmp->is_piff = GF_TRUE;
+	tmp->piff_type = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -1332,11 +1343,11 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	if (senc_size<12) return GF_BAD_PARAM;
 	senc_size -= 12;
 
-	if (senc->is_piff) {
+	if (senc->piff_type==1) {
 		//UUID
 		if (senc_size<16) return GF_BAD_PARAM;
 		senc_size -= 16;
-	} else {
+	} else if (!senc->piff_type) {
 		if (senc->version==1)
 			use_multikey = GF_TRUE;
 	}
@@ -1386,6 +1397,8 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			e = gf_isom_get_sample_cenc_info_internal(trak, traf, senc, sample_number, &is_encrypted, NULL, NULL, &key_info, &key_info_size);
 			if (! key_info) {
 				IV_size = key_info_size; //piff default
+				use_multikey = GF_FALSE;
+				senc->piff_type = 2;
 			} else if (use_multikey) {
 				nb_keys = key_info[1];
 				nb_keys <<= 8;
@@ -1436,7 +1449,6 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 					if (!IV_size) {
 						gf_isom_cenc_samp_aux_info_del(sai);
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI multikey with IV size 0\n" ));
-						gf_free(sai);
 						gf_bs_seek(bs, pos);
 						return GF_ISOM_INVALID_FILE;
 					}
@@ -1447,7 +1459,6 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				if (IV_size > 16) {
 					gf_isom_cenc_samp_aux_info_del(sai);
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI size\n" ));
-					gf_free(sai);
 					gf_bs_seek(bs, pos);
 					return GF_ISOM_INVALID_FILE;
 				}
@@ -1471,7 +1482,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 
 			sai->cenc_data = gf_malloc(sizeof(u8) * sai->cenc_data_size);
 			if (!sai->cenc_data) {
-				gf_free(sai);
+				gf_isom_cenc_samp_aux_info_del(sai);
 				gf_bs_seek(bs, pos);
 				return GF_OUT_OF_MEM;
 			}

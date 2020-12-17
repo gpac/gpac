@@ -3395,7 +3395,8 @@ typedef struct __sample_encryption_box
 	/*u8 version; field in included in base box version */
 	u32 flags;
 
-	Bool is_piff;
+	//0: regular senc, 1: PIFF PSEC, 2: MS senc with version 1 (not compatible with ISOBMFF senc v1)
+	u32 piff_type;
 
 	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
