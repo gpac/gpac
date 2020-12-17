@@ -5645,6 +5645,10 @@ typedef struct
 	u32 single_tile_number;
 	/*! time for importing*/
 	Double time;
+	/*! end time for importing*/
+	Double end_time;
+	/*! step time between imports*/
+	Double step_time;
 	/*! sample num for importing*/
 	u32 sample_num;
 	/*! file containg iCC data for importing*/
@@ -5663,6 +5667,8 @@ typedef struct
 	GF_ImageItemProtection *cenc_info;
 	/*! If set, reference image from sample sample_num (same file data used for sample and item)*/
 	Bool use_reference;
+	/*only set when importing non-ref from ISOBMF*/
+	GF_ISOFile *src_file;
 } GF_ImageItemProperties;
 
 

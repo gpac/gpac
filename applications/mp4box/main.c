@@ -864,7 +864,9 @@ GF_GPACArg m4b_meta_args[] =
 	GF_DEF_ARG("add-image", NULL, "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`. If `filepath` is omitted, source is the input MP4 file\n"
 		"- name, id, ref: see [-add-item]()\n"
 		"- primary: indicate that this item should be the primary item\n"
-		"- time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items\n"
+		"- time=t[-e][/i]: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items\n"
+		" - If `e` is set (float, in sec), import all sync samples between `t`and `e`\n"
+		" - If `i` is set (float, in sec), sets time increment between samples to import\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
 		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
@@ -1800,12 +1802,28 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {
+			Float s=0, e=0, step=0;
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 				if (!meta->image_props) return 0;
 			}
-			meta->image_props->time = atof(szSlot+5);
-			ret = 1;
+			if (sscanf(szSlot+5, "%f-%f/%f", &s, &e, &step)==3) {
+				meta->image_props->time = s;
+				meta->image_props->end_time = e;
+				meta->image_props->step_time = step;
+				ret = 1;
+			} else if (sscanf(szSlot+5, "%f-%f", &s, &e)==2) {
+				meta->image_props->time = s;
+				meta->image_props->end_time = e;
+				ret = 1;
+			} else if (sscanf(szSlot+5, "%f/%f", &s, &step)==2) {
+				meta->image_props->time = s;
+				meta->image_props->step_time = step;
+				ret = 1;
+			} else if (sscanf(szSlot+5, "%f", &s)==1) {
+				meta->image_props->time = s;
+				ret = 1;
+			}
 		}
 		else if (!strnicmp(szSlot, "samp=", 5)) {
 			if (!meta->image_props) {
@@ -5913,15 +5931,24 @@ int mp4boxMain(int argc, char **argv)
 		case META_ACTION_ADD_IMAGE_ITEM:
 		{
 			u32 old_tk_count = gf_isom_get_track_count(file);
+			u32 src_tk_id = 1;
 			GF_Fraction _frac = {0,0};
+			GF_ISOFile *fsrc = file;
 			self_ref = GF_FALSE;
 
 			tk = 0;
 			if (!meta->szPath || (meta->image_props && meta->image_props->sample_num && meta->image_props->use_reference)) {
 				e = GF_OK;
 				self_ref = GF_TRUE;
+				src_tk_id = meta->trackID;
 			} else if (meta->szPath) {
-				e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
+				if (meta->image_props && gf_isom_probe_file(meta->szPath) && !meta->image_props->tile_mode) {
+					meta->image_props->src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
+					e = gf_isom_last_error(meta->image_props->src_file);
+					fsrc = meta->image_props->src_file;
+				} else {
+					e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
+				}
 			} else {
 				fprintf(stderr, "Missing file name to import\n");
 				e = GF_BAD_PARAM;
@@ -5941,19 +5968,15 @@ int mp4boxMain(int argc, char **argv)
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						u32 src_tk_id = 1;
-
-						if (self_ref) {
-							src_tk_id = meta->trackID;
-							if (!src_tk_id) {
-								u32 j;
-								for (j=0; j<gf_isom_get_track_count(file); i++) {
-									if (gf_isom_is_video_handler_type (gf_isom_get_media_type(file, i+1))) {
-										src_tk_id = gf_isom_get_track_id(file, i+1);
-										break;
-									}
+						if (!src_tk_id) {
+							u32 j;
+							for (j=0; j<gf_isom_get_track_count(fsrc); i++) {
+								if (gf_isom_is_video_handler_type (gf_isom_get_media_type(fsrc, i+1))) {
+									src_tk_id = gf_isom_get_track_id(fsrc, i+1);
+									break;
 								}
 							}
+
 							if (!src_tk_id) {
 								fprintf(stderr, "No video track in file, cannot add image from track\n");
 								e = GF_BAD_PARAM;
@@ -5978,8 +6001,12 @@ int mp4boxMain(int argc, char **argv)
 					}
 				}
 			}
-			if (!self_ref)
+			if (meta->image_props && meta->image_props->src_file) {
+				gf_isom_delete(meta->image_props->src_file);
+				meta->image_props->src_file = NULL;
+			} else if (!self_ref) {
 				gf_isom_remove_track(file, old_tk_count+1);
+			}
 			needSave = GF_TRUE;
 		}
 			break;
