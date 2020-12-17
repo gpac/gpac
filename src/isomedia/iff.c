@@ -1490,10 +1490,12 @@ import_next_sample:
 		if (image_props->end_time || ((image_props->time<0) && image_props->step_time) ) {
 			Float t = sample->DTS + sample->CTS_Offset;
 			t /= timescale;
-			if (image_props->step_time)
+			if (image_props->step_time) {
 				t += image_props->step_time;
-			else
-				t += 1.0 / timescale;
+			} else {
+				//step 1ms
+				t += 0.001;
+			}
 
 			if ((image_props->end_time>0) && (t>image_props->end_time)) {
 				goto exit;
