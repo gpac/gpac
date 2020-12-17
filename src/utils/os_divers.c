@@ -907,9 +907,11 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			GF_Err e;
 			Bool use_sep=GF_FALSE;
 			Bool bool_value = GF_TRUE;
-
+			char *arg_val;
 			const char *arg = argv[i];
-			char *arg_val = strchr(arg, '=');
+			if (!arg) continue;
+
+			arg_val = strchr(arg, '=');
 			if (arg_val) {
 				arg_val[0]=0;
 				arg_val++;

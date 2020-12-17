@@ -437,6 +437,8 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 		if (mo->odm->flags & GF_ODM_TILED_SHARED_CLOCK) {
 			return NULL;
 		}
+		if (mo->type==GF_MEDIA_OBJECT_AUDIO)
+			return NULL;
 		//if buffering, first frame fetched and still buffering return last frame
 		if (mo->first_frame_fetched && mo->odm->nb_buffering) {
 			return mo->frame_ifce ? (u8 *) mo->frame_ifce : mo->frame;
@@ -561,7 +563,7 @@ retry:
 	if ((mo->odm->ck->speed == FIX_ONE)
 		&& (mo->type==GF_MEDIA_OBJECT_VIDEO)
 		//if no buffer playout we are in low latency configuration, don"t skip resync
-		&& mo->odm->buffer_playout_us
+		&& mo->odm->buffer_playout_ms
 	) {
 		assert(mo->odm->parentscene);
 		if (! mo->odm->parentscene->compositor->drop) {

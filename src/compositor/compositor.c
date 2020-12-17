@@ -962,7 +962,7 @@ void gf_sc_unload(GF_Compositor *compositor)
 
 	if (compositor->focus_highlight) {
 		gf_node_unregister(compositor->focus_highlight->node, NULL);
-		drawable_del_ex(compositor->focus_highlight, compositor);
+		drawable_del_ex(compositor->focus_highlight, compositor, GF_FALSE);
 	}
 	if (compositor->selected_text) gf_free(compositor->selected_text);
 	if (compositor->sel_buffer) gf_free(compositor->sel_buffer);

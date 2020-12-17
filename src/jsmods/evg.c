@@ -6281,7 +6281,7 @@ static JSValue mx_lookat(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 {
 	GF_Vec pos, target, up;
 	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
-	if (!mx || (argc<3) ) return JS_EXCEPTION;
+	if (!mx || (argc!=3) ) return JS_EXCEPTION;
 
 	WGL_GET_VEC3F(pos, argv[0]);
 	WGL_GET_VEC3F(target, argv[1]);

@@ -120,10 +120,13 @@ struct _drawable
 /*construction destruction*/
 Drawable *drawable_new();
 void drawable_del(Drawable *dr);
-void drawable_del_ex(Drawable *dr, GF_Compositor *compositor);
+void drawable_del_ex(Drawable *dr, GF_Compositor *compositor, Bool no_free);
 
 /*cleans up the drawable attached to the node*/
 void drawable_node_del(GF_Node *node);
+
+/*init drawable structure when stack extends drawable (text, bitmap)*/
+void drawable_init_ex(Drawable *tmp);
 
 
 /*

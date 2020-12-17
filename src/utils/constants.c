@@ -757,8 +757,8 @@ typedef struct
 
 static const GF_CICPAudioLayout GF_CICPLayouts[] =
 {
-	{1, "1/0.0", GF_AUDIO_CH_FRONT_CENTER },
-	{2, "2/0.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT },
+	{1, "mono"/*"1/0.0"*/, GF_AUDIO_CH_FRONT_CENTER },
+	{2, "stereo"/*"2/0.0"*/, GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT },
 	{3, "3/0.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER },
 	{4, "3/1.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_CENTER },
 	{5, "3/2.0", GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT },
@@ -810,6 +810,19 @@ const char *gf_audio_fmt_get_layout_name(u64 ch_layout)
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout value "LLU"\n", ch_layout));
 	return "unknwon";
+}
+
+GF_EXPORT
+u64 gf_audio_fmt_get_layout_from_name(const char *name)
+{
+	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	if (!name) return 0;
+	for (i = 0; i < nb_cicp; i++) {
+		if (!strcmp(GF_CICPLayouts[i].name, name))
+			return GF_CICPLayouts[i].channel_mask;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout name %s\n", name));
+	return 0;
 }
 
 GF_EXPORT

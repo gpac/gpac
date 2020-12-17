@@ -1560,7 +1560,6 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
 			ctx->cts = ctx->dts = 0;
-			ctx->bytes_in_header = 0;
 		}
 		if (! ctx->is_file) {
 			if (!ctx->initial_play_done) {
@@ -1594,8 +1593,13 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
 			//seek will not change the current source state, don't send a seek
-			if (!file_pos)
+			if (!file_pos) {
+				//very short streams, input is done before we get notified for play and everything stored in memory: flush
+				if (gf_filter_pid_is_eos(ctx->ipid) && (ctx->bytes_in_header || ctx->hdr_store_size)) {
+					gf_filter_post_process_task(filter);
+				}
 				return GF_TRUE;
+			}
 		}
 		ctx->resume_from = 0;
 		
@@ -1610,6 +1614,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		//don't cancel event
 		ctx->is_playing = GF_FALSE;
+		ctx->bytes_in_header = 0;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -2532,6 +2537,9 @@ GF_Err naludmx_process(GF_Filter *filter)
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->bytes_in_header || ctx->hdr_store_size) {
+				if (!ctx->is_playing)
+					return GF_OK;
+
 				start = data = ctx->hdr_store;
 				remain = pck_size = ctx->bytes_in_header ? ctx->bytes_in_header : ctx->hdr_store_size;
 				ctx->bytes_in_header = 0;
@@ -2667,12 +2675,18 @@ naldmx_flush:
 		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
+			u32 hcopy_size = SAFETY_NAL_STORE - ctx->bytes_in_header;
+			u32 hstore_size = SAFETY_NAL_STORE;
 			Bool split_start_code=GF_FALSE;
+			if (hcopy_size > (u32) remain) {
+					hstore_size -= hcopy_size - remain;
+					hcopy_size = remain;
+			}
 
-			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, SAFETY_NAL_STORE - ctx->bytes_in_header);
-			current = gf_media_nalu_next_start_code(ctx->hdr_store, SAFETY_NAL_STORE, &sc_size);
-			if (current==SAFETY_NAL_STORE)
-				current = -1;
+			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, hcopy_size);
+			current = gf_media_nalu_next_start_code(ctx->hdr_store, hstore_size, &sc_size);
+			if (current==hstore_size)
+					current = -1;
 
 			//no start code in stored buffer
 			if (current<0) {
@@ -2764,15 +2778,17 @@ naldmx_flush:
 					break;
 				}
 				size = remain;
-				b3 = start[remain-3];
-				b2 = start[remain-2];
-				b1 = start[remain-1];
-				//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
-				if (!is_eos && (!b1 || !b2 || !b3)) {
-					copy_last_bytes = GF_TRUE;
-					assert(size >= 3);
-					size -= 3;
-					ctx->bytes_in_header = 3;
+				if (!is_eos) {
+					b3 = start[remain-3];
+					b2 = start[remain-2];
+					b1 = start[remain-1];
+					//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
+					if (!b1 || !b2 || !b3) {
+						copy_last_bytes = GF_TRUE;
+						assert(size >= 3);
+						size -= 3;
+						ctx->bytes_in_header = 3;
+					}
 				}
 				if (!ctx->next_nal_end_skip) {
 					e = naludmx_realloc_last_pck(ctx, (u32) size, &pck_data);
@@ -3021,6 +3037,8 @@ naldmx_flush:
 					memcpy(ctx->hdr_store, start, remain);
 					ctx->bytes_in_header = remain;
 				}
+				if (!skip_nal)
+					naludmx_check_pid(filter, ctx);
 				break;
 			}
 		} else {
@@ -3693,7 +3711,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 nb_sps_avc=0,nb_pps_avc=0;
 	u32 nb_sps_vvc=0,nb_pps_vvc=0,nb_vps_vvc=0;
 
-	while (size) {
+	while (size>3) {
 		u32 nal_type=0;
 		sc = gf_media_nalu_next_start_code(data, size, &sc_size);
 		if (!sc_size) break;
@@ -3848,7 +3866,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keep Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

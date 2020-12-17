@@ -814,6 +814,8 @@ ISOM_BOX_IMPL_DECL(iprp)
 ISOM_BOX_IMPL_DECL(ipma)
 ISOM_BOX_IMPL_DECL(trgr)
 ISOM_BOX_IMPL_DECL(trgt)
+ISOM_BOX_IMPL_DECL(ienc)
+ISOM_BOX_IMPL_DECL(iaux)
 
 /* MIAF declarations */
 ISOM_BOX_IMPL_DECL(clli)
@@ -1262,6 +1264,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TOLS, tols, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IENC, ienc, "ipco", 0, "cenc"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IAUX, iaux, "ipco", 0, "cenc"),
 
 	//MIAF
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CLLI, clli, "mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 vvc1 vvi1 encv resv", "miaf"),
@@ -1302,7 +1306,7 @@ static struct box_registry_entry {
 
 
 	//CENC boxes
-	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PSSH, pssh, "moov moof", 0, "cenc"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PSSH, pssh, "moov moof meta", 0, "cenc"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TENC, tenc, "schi", 1, "cenc"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_SENC, senc, "trak traf", "cenc"),
 

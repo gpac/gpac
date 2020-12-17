@@ -155,33 +155,33 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, char *in_PPS, u32 in_PPS
 
 	//Read and write NAL header bits
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 16), 16);
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //pps_pic_parameter_set_id
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //pps_seq_parameter_set_id
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //pps_pic_parameter_set_id
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //pps_seq_parameter_set_id
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 7), 7); //from dependent_slice_segments_enabled_flag to cabac_init_present_flag
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //num_ref_idx_l0_default_active_minus1
-	gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); //num_ref_idx_l1_default_active_minus1
-	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); //init_qp_minus26
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //num_ref_idx_l0_default_active_minus1
+	gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); //num_ref_idx_l1_default_active_minus1
+	gf_bs_write_se(ctx->bs_nal_out, gf_bs_read_se(ctx->bs_nal_in)); //init_qp_minus26
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 2), 2); //from constrained_intra_pred_flag to transform_skip_enabled_flag
 	cu_qp_delta_enabled_flag = gf_bs_read_int(ctx->bs_nal_in, 1); //cu_qp_delta_enabled_flag
 	gf_bs_write_int(ctx->bs_nal_out, cu_qp_delta_enabled_flag, 1); //
 	if (cu_qp_delta_enabled_flag)
-		gf_bs_set_ue(ctx->bs_nal_out, gf_bs_get_ue(ctx->bs_nal_in)); // diff_cu_qp_delta_depth
-	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); // pps_cb_qp_offset
-	gf_bs_set_se(ctx->bs_nal_out, gf_bs_get_se(ctx->bs_nal_in)); // pps_cr_qp_offset
+		gf_bs_write_ue(ctx->bs_nal_out, gf_bs_read_ue(ctx->bs_nal_in)); // diff_cu_qp_delta_depth
+	gf_bs_write_se(ctx->bs_nal_out, gf_bs_read_se(ctx->bs_nal_in)); // pps_cb_qp_offset
+	gf_bs_write_se(ctx->bs_nal_out, gf_bs_read_se(ctx->bs_nal_in)); // pps_cr_qp_offset
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 4), 4); // from pps_slice_chroma_qp_offsets_present_flag to transquant_bypass_enabled_flag
 
 
 	gf_bs_read_int(ctx->bs_nal_in, 1);
 	gf_bs_write_int(ctx->bs_nal_out, 1, 1);
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);//entropy_coding_sync_enabled_flag
-	gf_bs_set_ue(ctx->bs_nal_out, ctx->nb_cols-1);//write num_tile_columns_minus1
+	gf_bs_write_ue(ctx->bs_nal_out, ctx->nb_cols-1);//write num_tile_columns_minus1
 	//num_tile_rows_minus1
 	if (ctx->enable_multi_rows) {
 		u32 nb_rows = ctx->nb_rows - 1;
 		assert(ctx->nb_rows);
-		gf_bs_set_ue(ctx->bs_nal_out, nb_rows);
+		gf_bs_write_ue(ctx->bs_nal_out, nb_rows);
 	} else {
-		gf_bs_set_ue(ctx->bs_nal_out, 0);//num_tile_rows_minus1
+		gf_bs_write_ue(ctx->bs_nal_out, 0);//num_tile_rows_minus1
 	}
 	gf_bs_write_int(ctx->bs_nal_out, 0, 1);  //uniform_spacing_flag
 
@@ -189,7 +189,7 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, char *in_PPS, u32 in_PPS
 	{
 		u32 i;
 		for (i = 0; i < ctx->nb_cols-1; i++)
-			gf_bs_set_ue(ctx->bs_nal_out, (ctx->grid[i].width / ctx->max_CU_width - 1));
+			gf_bs_write_ue(ctx->bs_nal_out, (ctx->grid[i].width / ctx->max_CU_width - 1));
 
 		//if multi row is possible, declare the row height
 		if (ctx->enable_multi_rows && (ctx->nb_rows>1))  {
@@ -201,7 +201,7 @@ static void hevcmerge_rewrite_pps(GF_HEVCMergeCtx *ctx, char *in_PPS, u32 in_PPS
 				HEVCTilePidCtx *tile = gf_list_get(ctx->ordered_pids, i);
 				//only check height in the first column
 				if (tile->pos_col) continue;
-				gf_bs_set_ue(ctx->bs_nal_out, (tile->height / ctx->max_CU_width - 1)); // row_height_minus1[i]
+				gf_bs_write_ue(ctx->bs_nal_out, (tile->height / ctx->max_CU_width - 1)); // row_height_minus1[i]
 				nb_rows--;
 				if (!nb_rows) break;
 			}
@@ -301,8 +301,8 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
 
-	pps_id = gf_bs_get_ue(ctx->bs_nal_in);
-	gf_bs_set_ue(ctx->bs_nal_out, pps_id);
+	pps_id = gf_bs_read_ue(ctx->bs_nal_in);
+	gf_bs_write_ue(ctx->bs_nal_out, pps_id);
 
 	pps = &hevc->pps[pps_id];
 	sps = &hevc->sps[pps->sps_id];
@@ -331,15 +331,15 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 	}
 	//compute new qp delta
 	new_slice_qp_delta = hevc->s_info.pps->pic_init_qp_minus26 + hevc->s_info.slice_qp_delta - ctx->base_pps_init_qp_delta_minus26;
-	gf_bs_set_se(ctx->bs_nal_out, new_slice_qp_delta);
-	gf_bs_get_se(ctx->bs_nal_in);
+	gf_bs_write_se(ctx->bs_nal_out, new_slice_qp_delta);
+	gf_bs_read_se(ctx->bs_nal_in);
 
 	//copy over until num_entry_points
 	while (num_entry_point_start != (gf_bs_get_position(ctx->bs_nal_in) - 1) * 8 + gf_bs_get_bit_position(ctx->bs_nal_in)) {
 		gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	}
 	//write num_entry_points to 0 (always present since we use tiling)
-	gf_bs_set_ue(ctx->bs_nal_out, 0);
+	gf_bs_write_ue(ctx->bs_nal_out, 0);
 
 	//write slice extension to 0
 	if (pps->slice_segment_header_extension_present_flag)

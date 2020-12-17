@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -782,9 +782,8 @@ GF_Err gf_list_transfer(GF_List *dst, GF_List *src)
 	if (dst == src) return GF_OK;
 
 	while (gf_list_count(src)) {
-		void *ptr = gf_list_get(src, 0);
-		e = gf_list_rem(src, 0);
-		if (e) return e;
+		void *ptr = gf_list_pop_front(src);
+		if (!ptr) return GF_BAD_PARAM;
 		e = gf_list_add(dst, ptr);
 		if (e) return e;
 	}

@@ -166,7 +166,7 @@ static void ffenc_finalize(GF_Filter *filter)
 	gf_list_del(ctx->src_packets);
 
 	if (ctx->encoder) {
-		avcodec_close(ctx->encoder);
+		avcodec_free_context(&ctx->encoder);
 	}
 	if (ctx->sdbs) gf_bs_del(ctx->sdbs);
 	return;
@@ -450,11 +450,13 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	ctx->time_spent += now;
 
 	if (res<0) {
+		av_packet_free_side_data(&pkt);
 		ctx->nb_frames_out++;
 		return GF_SERVICE_ERROR;
 	}
 
 	if (!gotpck) {
+		av_packet_free_side_data(&pkt);
 		return GF_OK;
 	}
 
@@ -588,6 +590,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	}
 #endif
 	gf_filter_pck_send(dst_pck);
+
+	av_packet_free_side_data(&pkt);
 
 	//we're in final flush, request a process task until all frames flushe
 	//we could recursiveley call ourselves, same result
@@ -762,7 +766,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				Bool bck_init_cts = ctx->init_cts_setup;
 
 				ctx->reconfig_pending = GF_FALSE;
-				avcodec_close(ctx->encoder);
+				avcodec_free_context(&ctx->encoder);
 				ctx->encoder = NULL;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				e = ffenc_configure_pid_ex(filter, ctx->in_pid, GF_FALSE, GF_TRUE);
@@ -811,9 +815,11 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error encoding frame: %s\n", av_err2str(res) ));
+		av_packet_free_side_data(&pkt);
 		return GF_SERVICE_ERROR;
 	}
 	if (!gotpck) {
+		av_packet_free_side_data(&pkt);
 		return GF_OK;
 	}
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, pkt.size, &output);
@@ -869,6 +875,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	gf_filter_pck_send(dst_pck);
 
+	av_packet_free_side_data(&pkt);
 	//we're in final flush, request a process task until all frames flushe
 	//we could recursiveley call ourselves, same result
 	if (!pck) {

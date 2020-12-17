@@ -138,8 +138,9 @@ void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt)
 			gf_bs_write_data(bs, "\n", 1);
 	}
 
-	if (cue->start.hour || cue->end.hour) write_hour = GF_TRUE;
-	if (write_srt) write_hour = GF_TRUE;
+	if (gf_opts_get_bool("core", "webvtt-hours")) write_hour = GF_TRUE;
+	else if (cue->start.hour || cue->end.hour) write_hour = GF_TRUE;
+	else if (write_srt) write_hour = GF_TRUE;
 
 	vttmx_timestamp_dump(bs, &cue->start, write_hour, write_srt);
 	gf_bs_write_data(bs, " --> ", 5);

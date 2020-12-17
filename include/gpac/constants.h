@@ -880,6 +880,13 @@ const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout);
 */
 const char *gf_audio_fmt_get_layout_name(u64 chan_layout);
 
+
+/*! get channel layout from name
+\param name channel layout name
+\return channel layout mask
+*/
+u64 gf_audio_fmt_get_layout_from_name(const char *name);
+
 /*! get CICP layout value from channel layout mask 
 \param chan_layout channel layout mask
 \return CICP code point or 255 if unknown

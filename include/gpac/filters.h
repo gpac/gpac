@@ -431,6 +431,18 @@ void gf_fs_print_stats(GF_FilterSession *session);
 */
 void gf_fs_print_connections(GF_FilterSession *session);
 
+/*! Prints the list of filters not connected using \code LOG_APP@LOG_WARNING \endcode
+\param session filter session
+*/
+void gf_fs_print_non_connected(GF_FilterSession *session);
+
+/*! Prints the list of filters not connected using \code LOG_APP@LOG_WARNING \endcode
+\param session filter session
+\param ignore_sinks if set, do not warn if some sinks are not connected (mostly used for playback cases)
+*/
+void gf_fs_print_non_connected_ex(GF_FilterSession *session, Bool ignore_sinks);
+
+
 /*! Prints all possible connections between filter registries to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session
 \param filter_name if not null, only prints input connection for this filter register
@@ -1048,9 +1060,7 @@ enum
 	GF_PROP_PID_OMA_PREVIEW_RANGE = GF_4CC('O','D','P','R'),
 	GF_PROP_PID_CENC_PSSH = GF_4CC('P','S','S','H'),
 	GF_PROP_PCK_CENC_SAI = GF_4CC('S','A','I','S'),
-	GF_PROP_PID_KID = GF_4CC('S','K','I','D'),
-	GF_PROP_PID_CENC_IV_SIZE = GF_4CC('S','A','I','V'),
-	GF_PROP_PID_CENC_IV_CONST = GF_4CC('C','B','I','V'),
+	GF_PROP_PID_CENC_KEY_INFO = GF_4CC('C','B','I','V'),
 	GF_PROP_PID_CENC_PATTERN = GF_4CC('C','P','T','R'),
 	GF_PROP_PID_CENC_STORE = GF_4CC('C','S','T','R'),
 	GF_PROP_PID_CENC_STSD_MODE = GF_4CC('C','S','T','M'),
@@ -1144,6 +1154,13 @@ enum
 	GF_PROP_PID_LLHLS = GF_4CC('H','L','S','L'),
 	GF_PROP_PCK_HLS_FRAG_NUM = GF_4CC('H','L','S','N'),
 
+	//internal for DASH forward mode
+	GF_PROP_PID_DASH_FWD = GF_4CC('D','F','W','D'),
+	GF_PROP_PCK_DASH_MANIFEST = GF_4CC('D','M','P','D'),
+	GF_PROP_PCK_HLS_VARIANT = GF_4CC('D','H','L','V'),
+	GF_PROP_PID_DASH_PERIOD_START = GF_4CC('D','P','S','T'),
+	GF_PROP_PCK_HLS_VARIANT_NAME = GF_4CC('D','H','L','N'),
+	GF_PROP_PID_HLS_KMS = GF_4CC('H','L','S','K'),
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T')
 };
@@ -1666,6 +1683,12 @@ typedef enum
 	GF_FS_ARG_META_ALLOC = 1<<6,
 	/*! internal flag used by filters acting as sinks (gsfmx in file mode) to allow retrieving dst url but avoid being used as direct sinks*/
 	GF_FS_ARG_SINK_ALIAS = 1<<7,
+	/*! if set indicates that the argument is updatable only as a direct synchronous call (typically used for shared data).
+		If so, the value will only be updated if the update directly targets the filter, and the global filter mutex will be locked before calling update_arg.
+		It is however recommended for the calling app to lock the target filter whenever shared data is modified (see vout filter overlay argument  for example)
+		The filter should lock itself whenever appropriate using \ref gf_filter_lock
+	*/
+	GF_FS_ARG_UPDATE_SYNC = 1<<8,
 } GF_FSArgumentFlags;
 
 /*! Structure holding arguments for a filter*/
@@ -1831,6 +1854,19 @@ void gf_filter_set_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
 \return GF_TRUE if filter is an instance of this register, GF_FALSE otehrwise
 */
 Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg);
+
+
+/*! Aborts a filter, discarding and stoping all input PIDs and sending EOS on all output PIDs
+\param filter filter to abort
+*/
+void gf_filter_abort(GF_Filter *filter);
+
+
+/*! Locks a filter. A filter should only lock itself when using updatable arguments of type GF_FS_ARG_UPDATE_SYNC
+\param filter filter to lock
+\param do_lock if GF_TRUE, locks the filter global mutex, otherwise unlocks it
+*/
+void gf_filter_lock(GF_Filter *filter, Bool do_lock);
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum

@@ -99,6 +99,8 @@ typedef struct _xml_node
 	GF_List *attributes;
 	/*! list of children nodes of the node, for XML node type only*/
 	GF_List *content;
+	/*! original pos in parent (used for DASH MPD)*/
+	u32 orig_pos;
 } GF_XMLNode;
 
 /*! @} */

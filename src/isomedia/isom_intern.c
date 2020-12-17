@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -206,7 +206,8 @@ void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 	}
 }
 
-void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
+#ifdef GF_ENABLE_CTRN
+static void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 {
 	u32 i, count;
 	if (!mov->moov->mvex)
@@ -224,6 +225,7 @@ void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 		}
 	}
 }
+#endif
 
 #endif
 
@@ -307,7 +309,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 		*bytesMissing = 0;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Starting to parse a top-level box at position %d\n", mov->current_top_box_start));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Parsing a top-level box at position %d\n", mov->current_top_box_start));
 #endif
 
 		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, boxType, bytesMissing, progressive_mode);
@@ -343,9 +345,12 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			if (mov->moov->mvex) mov->moov->mvex->mov = mov;
 
+#ifdef GF_ENABLE_CTRN
 			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
 				gf_isom_setup_traf_inheritance(mov);
 			}
+#endif
+
 #endif
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
@@ -789,9 +794,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 		}
 
 		if (OpenMode == GF_ISOM_OPEN_READ_DUMP) {
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 			mov->FragmentsFlags |= GF_ISOM_FRAG_READ_DEBUG;
-#endif
 		}
 	} else {
 

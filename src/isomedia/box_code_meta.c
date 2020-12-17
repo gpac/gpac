@@ -199,7 +199,7 @@ void bxml_box_del(GF_Box *s)
 {
 	GF_BinaryXMLBox *ptr = (GF_BinaryXMLBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->data_length && ptr->data) gf_free(ptr->data);
+	if (ptr->data) gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -495,6 +495,8 @@ GF_Err ipro_on_child_box(GF_Box *s, GF_Box *a)
 }
 GF_Err ipro_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	ISOM_DECREASE_SIZE(s, 2)
+	gf_bs_read_u16(bs);
 	return gf_isom_box_array_read(s, bs, ipro_on_child_box);
 }
 

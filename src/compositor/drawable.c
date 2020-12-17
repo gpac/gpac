@@ -115,6 +115,16 @@ picked:
 }
 #endif /*GPAC_DISABLE_VRML*/
 
+void drawable_init_ex(Drawable *tmp)
+{
+	tmp->path = gf_path_new();
+	GF_SAFEALLOC(tmp->dri, DRInfo);
+	if (tmp->dri) {
+		/*allocate a default bounds container*/
+		GF_SAFEALLOC(tmp->dri->current_bounds, BoundInfo);
+	}
+}
+
 Drawable *drawable_new()
 {
 	Drawable *tmp;
@@ -164,7 +174,7 @@ void drawable_reset_bounds(Drawable *dr, GF_VisualManager *visual)
 	}
 }
 
-void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
+void drawable_del_ex(Drawable *dr, GF_Compositor *compositor, Bool no_free)
 {
 	StrikeInfo2D *si;
 	DRInfo *dri;
@@ -230,13 +240,14 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 		delete_strikeinfo2d(si);
 		si = next;
 	}
-	gf_free(dr);
+	if (!no_free)
+		gf_free(dr);
 }
 
 void drawable_del(Drawable *dr)
 {
 	GF_Compositor *compositor = gf_sc_get_compositor(dr->node);
-	drawable_del_ex(dr, compositor);
+	drawable_del_ex(dr, compositor, GF_FALSE);
 }
 void drawable_node_del(GF_Node *node)
 {

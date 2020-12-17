@@ -395,6 +395,11 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static void faaddec_finalize(GF_Filter *filter)
+{
+	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->codec) NeAACDecClose(ctx->codec);
+}
 static const GF_FilterCapability FAADCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
@@ -415,6 +420,7 @@ GF_FilterRegister FAADRegister = {
 	.priority = 1,
 	SETCAPS(FAADCaps),
 	.configure_pid = faaddec_configure_pid,
+	.finalize = faaddec_finalize,
 	.process = faaddec_process,
 };
 

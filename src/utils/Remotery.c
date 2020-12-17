@@ -49,7 +49,7 @@
 #define RMT_IMPL
 #include <gpac/tools.h>
 
-#ifdef RMT_PLATFORM_WINDOWS
+#if defined(RMT_PLATFORM_WINDOWS) && !defined(__GNUC__)
   #pragma comment(lib, "ws2_32.lib")
 #endif
 
@@ -3574,7 +3574,12 @@ static rmtU32 rmtMessageQueue_SizeForPayload(rmtU32 payload_size)
 {
     // Add message header and align for ARM platforms
     rmtU32 size = sizeof(Message) + payload_size;
+#ifdef GPAC_64_BITS
+    size = (size + 7) & ~7U;
+#else
     size = (size + 3) & ~3U;
+#endif
+
     return size;
 }
 
@@ -5242,7 +5247,7 @@ RMT_API Remotery* _rmt_GetGlobalInstance(void)
 
 static void SetDebuggerThreadName(const char* name)
 {
-    #ifdef RMT_PLATFORM_WINDOWS
+    #if defined(RMT_PLATFORM_WINDOWS) && !defined(__GNUC__)
         THREADNAME_INFO info;
         info.dwType = 0x1000;
         info.szName = name;

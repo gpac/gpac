@@ -169,7 +169,8 @@ int dbuf_putstr(DynBuf *s, const char *str)
 #if defined(_MSC_VER)
 int dbuf_printf(DynBuf *s, const char *fmt, ...)
 #else
-int __attribute__((format(printf, 2, 3))) dbuf_printf(DynBuf *s, const char *fmt, ...)
+int __attribute__((format(printf, 2, 3))) dbuf_printf(DynBuf *s,
+                                                      const char *fmt, ...)
 #endif
 {
     va_list ap;
@@ -260,43 +261,37 @@ int unicode_from_utf8(const uint8_t *p, int max_len, const uint8_t **pp)
         *pp = p;
         return c;
     }
-#if defined(_MSC_VER)
-	else if (c < 0xc0)
-		return -1;
-	else if (c < 0xe0)
-		l = 1;
-	else if (c < 0xf0)
-		l = 2;
-	else if (c < 0xf8)
-		l = 3;
-	else if (c < 0xfc)
-		l = 4;
-	else if (c < 0xfe)
-		l = 5;
-	else
-		return -1;
-#else
-	switch(c) {
-    case 0xc0 ... 0xdf:
+    switch(c) {
+    case 0xc0: case 0xc1: case 0xc2: case 0xc3:
+    case 0xc4: case 0xc5: case 0xc6: case 0xc7:
+    case 0xc8: case 0xc9: case 0xca: case 0xcb:
+    case 0xcc: case 0xcd: case 0xce: case 0xcf:
+    case 0xd0: case 0xd1: case 0xd2: case 0xd3:
+    case 0xd4: case 0xd5: case 0xd6: case 0xd7:
+    case 0xd8: case 0xd9: case 0xda: case 0xdb:
+    case 0xdc: case 0xdd: case 0xde: case 0xdf:
         l = 1;
         break;
-    case 0xe0 ... 0xef:
+    case 0xe0: case 0xe1: case 0xe2: case 0xe3:
+    case 0xe4: case 0xe5: case 0xe6: case 0xe7:
+    case 0xe8: case 0xe9: case 0xea: case 0xeb:
+    case 0xec: case 0xed: case 0xee: case 0xef:
         l = 2;
         break;
-    case 0xf0 ... 0xf7:
+    case 0xf0: case 0xf1: case 0xf2: case 0xf3:
+    case 0xf4: case 0xf5: case 0xf6: case 0xf7:
         l = 3;
         break;
-    case 0xf8 ... 0xfb:
+    case 0xf8: case 0xf9: case 0xfa: case 0xfb:
         l = 4;
         break;
-    case 0xfc ... 0xfd:
+    case 0xfc: case 0xfd:
         l = 5;
         break;
     default:
         return -1;
     }
-#endif
-	/* check that we have enough characters */
+    /* check that we have enough characters */
     if (l > (max_len - 1))
         return -1;
     c &= utf8_first_code_mask[l - 1];

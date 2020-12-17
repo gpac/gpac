@@ -99,7 +99,7 @@ function setup_overlay()
 	case OL_STATS:
 		target_width = Math.floor(disp_size.x/2);
 		target_height = Math.floor(disp_size.y/2);
-		task_reschedule = 50;
+		task_reschedule = 250;
 		break;
 	default:
 		if (!ol_width)
@@ -182,10 +182,12 @@ session.set_event_fun( (evt)=> {
 	case GF_EVENT_SIZE:
 		if (ol_visible) {
 			let old_type = overlay_type;
+			vout.lock(true);
 			toggle_overlay();
 			overlay_type = old_type;
 			toggle_overlay();
 			vout.update('oldata', ol_buffer);
+			vout.lock(false);
 		}
 		break;
 	default:
@@ -258,6 +260,9 @@ function update_help()
 		text.fontsize = Math.floor(0.6*ol_height/args.length);
 	text.set_text(args);
 
+	//lock vout since we will modify data of the canvas
+	vout.lock(true);
+
 	if (init_wnd && audio_only) {
 		let txtdim = text.measure();
 
@@ -282,6 +287,7 @@ function update_help()
 
 	overlay_type=OL_NONE;
 	vout.update('oldata', ol_buffer);
+	vout.lock(false);
 }
 
 let progress_bar_path=null;
@@ -412,6 +418,7 @@ function update_play()
 		ol_canvas.fill(brush);
 		brush.set_color('white');
 	}
+	//we could lock vout to avoid any tearing ...
 	vout.update('oldata', ol_buffer);
 }
 
@@ -491,16 +498,15 @@ function update_stats()
 	let stats = [];
 
 	let sys_info='CPU: '+sys.process_cpu_usage + ' Mem: ' + Math.floor(sys.process_memory/1000000) + ' MB';
-	stats.push(sys_info);
 	if (session.http_bitrate) {
 		let r = session.http_bitrate;
-		sys_info = 'HTTP rate: '; 
-		if (r>1000000) sys_info += '' + Math.floor(r/10000) / 100 + ' mbps';
-		else if (r>1000) sys_info += '' + Math.floor(r/10) / 100 + ' kbps';
+		sys_info += ' HTTP: '; 
+		if (r>1000000) sys_info += '' + Math.floor(r/100000) / 10 + ' mbps';
+		else if (r>1000) sys_info += '' + Math.floor(r/100) / 10 + ' kbps';
 		else sys_info += '' + r + ' bps';
-		stats.push(sys_info);
 	}
-	stats.push('  ');
+	stats.push(sys_info);
+//	stats.push('  ');
 
 	let i;
 	for (i=0; i< session.nb_filters; i++) {
@@ -510,12 +516,14 @@ function update_stats()
 
 		let str = f.streamtype;
 		let src = f.ipid_source(0);
-		str += ' ' + src.name;
+		let names = src.name.split(':');
+
+		str += ' (' + names[0];
 		let decrate = src.pck_done;
 		if (!decrate) decrate = src.pck_sent + src.pck_ifce_sent;
 		decrate /= src.time/1000000;
 		decrate = Math.floor(decrate);
-		str += ' (' + decrate + ' f/s)';
+		str += ') ' + decrate + ' f/s';
 		let p = f.ipid_props(0, 'Width');
 		if (p) {
 			str += ' ' + p;
@@ -542,11 +550,25 @@ function update_stats()
 			} 
 		}
 
-		str += ' buffer ' + Math.floor(f.ipid_props(0, 'buffer')/1000) + ' ms';
+		let buffer = f.ipid_props(0, 'buffer')/1000;
+		let rebuf = 0;
+		if (audio_only) {
+			rebuf = aout.get_arg('rebuffer');			
+		}
+		else {
+			rebuf = vout.get_arg('rebuffer');
+		}
+		if (rebuf>0) {
+			let play_buf = audio_only ? aout.get_arg('buffer') : vout.get_arg('buffer');
+			let pc = Math.floor(100 * buffer / play_buf);
+			str += ' - rebuffering ' + pc + ' %';
+		} else {
+			str += ' - buffer ' + Math.floor(f.ipid_props(0, 'buffer')/1000) + ' ms';
+		}
 		stats.push(str);
 	}
 
-	stats.push(' ');
+//	stats.push(' ');
 
 	//recompute graph only when initializing the window
 	if (init_wnd)
@@ -592,10 +614,14 @@ function update_stats()
 		while (ol_width%2) ol_width--;
 		ol_height = Math.floor(txtdim.height*1.4);
 		while (ol_height%2) ol_height--;
+		//we resize / realloc the overlay buffer, lock vout and update it
+		vout.lock(true);
 		ol_buffer = new ArrayBuffer(ol_width*ol_height*4);
 		ol_canvas = new evg.Canvas(ol_width, ol_height, 'rgba', ol_buffer);
 		vout.update('olsize', ''+ol_width+'x'+ol_height);
 		stats_translate_y = txtdim.height/2;
+		vout.update('oldata', ol_buffer);
+		vout.lock(false);
 
 		let pos;
 		if (audio_only)
@@ -613,6 +639,7 @@ function update_stats()
 	ol_canvas.matrix = mx;
 	ol_canvas.path = text;
 	ol_canvas.fill(brush);
+	//we could lock vout to avoid any tearing ...
 	vout.update('oldata', ol_buffer);
 }
 
@@ -643,20 +670,27 @@ function toggle_overlay()
 {
 	ol_visible = !ol_visible;
 	if (!ol_visible) {
+		//we don't lock vout because the overlay buffer is still valid
 		vout.update('oldata', null);
 		overlay_type=OL_NONE;
 		return;
 	}
-	if (!setup_overlay())
+	//we will potentially destroy the previous overlay bffer, lock vout
+	vout.lock(true);
+	if (!setup_overlay()) {
+		vout.lock(false);
 		return;
+	}
 
 	vout.update('olwnd', '0x0x'+ol_width+'x'+ol_height);
 	vout.update('olsize', ''+ol_width+'x'+ol_height);
 	vout.update('oldata', ol_buffer);
+	vout.lock(false);
 	if (!oltask_scheduled) {
 		session.post_task( () => {
 			oltask_scheduled=false;
 			if (audio_only && aout.ipid_props(0, 'eos') ) {
+				//we don't lock vout because the overlay buffer is still valid
 				vout.update('oldata', null);
 				return false;
 			}

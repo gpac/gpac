@@ -174,9 +174,10 @@ static GF_Err svgin_process(GF_Filter *filter)
 		}
 		data = gf_filter_pck_get_data(pck, &size);
 
-		buf2 = gf_malloc(size);
+		buf2 = gf_malloc(size+1);
 		bs = gf_bs_new((u8 *)data, size, GF_BITSTREAM_READ);
 		memcpy(buf2, data, size);
+		buf2[size] = 0;
 
 		gf_filter_pid_drop_packet(svgin->in_pid);
 		e = GF_OK;

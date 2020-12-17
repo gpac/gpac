@@ -149,9 +149,9 @@ const char *gpac_doc =
 "EX filter::opt1=UDP://IP:PORT/:someopt=VAL::opt2=VAL2\n"
 "This will pass `UDP://IP:PORT/:someopt=VAL` to `opt1` without inspecting it, and `VAL2` to `opt2`.\n"
 "  \n"
-"A filter may be assigned a name (for inspection purposes) using `:N=name` option. This name is not used in link resolution and may be changed at runtime by the filter instance.\n"
+"A filter may be assigned a name (for inspection purposes, not inherited) using `:N=name` option. This name is not used in link resolution and may be changed at runtime by the filter instance.\n"
 "  \n"
-"A filter may be assigned a tag (any string) using `:TAG=name` option. This tag does not need to be unique, and can be used to exclude filter in link resolution.\n"
+"A filter may be assigned a tag (any string) using `:TAG=name` option. This tag does not need to be unique, and can be used to exclude filter in link resolution. Tags are not inherited, therefore dynamically loaded filters never have a tag.\n"
 "  \n"
 "## Source and Sink filters\n"
 "Source and sink filters do not need to be addressed by the filter name, specifying `src=` or `dst=` instead is enough. "
@@ -164,6 +164,7 @@ const char *gpac_doc =
 "Specific source or sink filters may also be specified using `filterName:src=URL` or `filterName:dst=URL`.\n"
 "\n"
 "The `src=` and `dst=` syntaxes can also be used in alias for dynamic argument cloning (see `gpac -hx alias`).\n"
+"\n"
 "## Forcing specific filters\n"
 "There is a special option called `gfreg` which allows specifying preferred filters to use when handling URLs.\n"
 "EX src=file.mp4:gfreg=ffdmx,ffdec\n"
@@ -198,6 +199,7 @@ const char *gpac_doc =
 "EX f:a=foo::b=bar:c::d=fun\n"
 "This will set option `a` to `foo`, `b` to `bar:c` and the option `d` to `fun` on the filter.\n"
 "# Expliciting links between filters [__LINK__]\n"
+"\n"
 "## Quick links\n"
 "Link between filters may be manually specified. The syntax is an `@` character optionaly followed by an integer (0 if omitted). "
 "This indicates that the following filter specified at prompt should be linked only to a previous listed filter. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).\n"
@@ -262,7 +264,7 @@ const char *gpac_doc =
 "\n"
 "Warning: If a filter PID gets connected to an explicitly loaded filter, no further dynamic link resolution will "
 "be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.\n"
-"EX src=file.mp4 @ reframer dst=dump.mp4\n"
+"EX src=video.264.mp4 @ reframer dst=dump.mp4\n"
 "This will link src `file.mp4` PID (type `file`) to dst `dump.mp4` filter (type `file`) because dst has no sourceID and therefore will "
 "accept input from src. Since the PID is connected, the filter engine will not try to solve "
 "a link between src and `reframer`. The result is a direct copy of the source file, `reframer` being unused.\n"
@@ -284,15 +286,14 @@ const char *gpac_doc =
 "This will pass the `:OPTBAR` to all filters loaded between `file.mp4` source and `file.aac` destination, but not `OPTFOO`.\n"
 "Arguments inheriting can be stopped by using the keyword `gfloc`: arguments after the keyword will not be inherited.\n"
 "EX src=file.mp4 dst=file.aac:OPTFOO:gfloc:OPTBAR dst=file.264\n"
-"This will pass the `:OPTFOO` to all filters loaded between `file.mp4`source and `file.aac` destination, but not `OPTBAR`\n"
+"This will pass `:OPTFOO` to all filters loaded between `file.mp4`source and `file.aac` destination, but not `OPTBAR`\n"
 "Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.\n"
 "It may be usefull to specify arguments which may not be consumed depending on the graph resolution; the specific keyword `gfopt` indicates that arguments after the keyword will not be tracked.\n"
 "EX src=file.mp4 dst=file.aac:OPTFOO:gfopt:OPTBAR dst=file.264\n"
 "This will warn if `OPTFOO` is not consumed, but will not track `OPTBAR`.\n"
 "# URL templating\n"
 "Destination URLs can be templated using the same mechanism as MPEG-DASH, where `$KEYWORD$` is replaced in the template with the "
-"resolved value and `$KEYWORD%%0Nd$` is replaced in the template with the resolved integer, padded with N zeros if needed. "
-"`$$` is an escape for $\n"
+"resolved value and `$KEYWORD%%0Nd$` is replaced in the template with the resolved integer, padded with up to N zeros if needed.\n"
 "`KEYWORD` is **case sensitive**, and may be present multiple times in the string. Supported `KEYWORD` are:\n"
 "- num: replaced by file number if defined, 0 otherwise\n"
 "- PID: ID of the source PID\n"
@@ -301,7 +302,10 @@ const char *gpac_doc =
 "- p4cc=ABCD: uses PID property with 4CC value `ABCD`\n"
 "- pname=VAL: uses PID property with name `VAL`\n"
 "- OTHER: locates property 4CC for the given name, or property name if no 4CC matches.\n"
-"\n  \nTemplating can be useful when encoding several qualities in one pass.\n"
+"  \n"
+"`$$` is an escape for $\n"
+"\n"
+"Templating can be useful when encoding several qualities in one pass.\n"
 "EX src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone\n"
 "This will create a croped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k. "
 "Outputs will be `dump_0x0x320x180.264` for the croped version and `dump_0x0x640x360.264` for the non-croped one.\n"
@@ -317,9 +321,9 @@ const char *gpac_doc =
 "EX src=vid.mpd enc:c=avc:FID=1:clone dst=transcode.mpd:SID=1\n"
 "In this case, the encoder will be cloned for each video PIDs in the source, and the destination will only use PIDs coming from the encoders.\n"
 "# Templating filter chains\n"
-"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone`option is not enough since the muxer will always accept the input PIDs.\n"
+"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone` option is not enough since the muxer will always accept the input PIDs.\n"
 "To handle this, it is possible to use a PID property name in the sourceID of a filter with the value `*` or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.\n"
-"Warning: This feature should only be called with a single property set to `*` per source ID, results are undefined otherwise.\n"
+"Warning: This feature should only be called with a single property set to `*` (or empty) per source ID, results are undefined otherwise.\n"
 "EX src=source.ts dst=file_$ServiceID$.mp4:SID=*#ServiceID=*\n"
 "EX src=source.ts dst=file_$ServiceID$.mp4:SID=#ServiceID=\n"
 "In this case, each new `ServiceID` value found when connecting PIDs to the destination will create a new destination file.\n"
@@ -334,7 +338,10 @@ const char *gpac_doc =
 "- `bxml@FOO` will be declared as data with a value set to the binarized content of `FOO`.\n"
 "- `FOO` will be declared as string with a value set to `FOO`.\n"
 "- `TYPE@FOO` will be parsed according to `TYPE`. If the type is not recognized, the entire value is copied as string. See `gpac -h props` for defined types.\n"
-
+"\n"
+"User-assigned PID properties on filter `fA` will be inherited by all filters dynamically loaded to solve `fA -> fB` connection.\n"
+"If `fB` also has user-assigned PID properties, these only apply starting from `fB` in the chain and are not inherited by filters between `fA` and `fB`.\n"
+"\n"
 "Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break "
 "the session by overriding core properties such as width/height/samplerate/... !\n"
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
@@ -371,7 +378,7 @@ const char *gpac_doc =
 "Warning: These keywords do not apply to PID properties. Multiple keywords cannot be defined for a single option.\n"
 "Defined keywords:\n"
 "- $GSHARE: replaced by system path to GPAC shared directory (e.g. /usr/share/gpac)\n"
-"- $GJS: replaced by the first path from global share directory and set through [-js-dirs](CORE) that contains the file name following the macro, e.g. $GJS/source.js\n"
+"- $GJS: replaced by the first path from global share directory and paths set through [-js-dirs](CORE) that contains the file name following the macro, e.g. $GJS/source.js\n"
 "- $GLANG: replaced by the global config language option [-lang](CORE)\n"
 "- $GUA: replaced by the global config user agent option [-user-agent](CORE)\n"
 "- $GINC(init_val[,inc]): replaced by `init_val` and increment `init_val` by `inc` (positive or negative number, 1 if not specified) each time a new filter using this string is created.\n"
@@ -1562,6 +1569,7 @@ static int gpac_main(int argc, char **argv)
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
 	GF_FilterSession *tmp_sess;
+	Bool alias_is_play = GF_FALSE;
 	Bool has_xopt = GF_FALSE;
 	helpout = stdout;
 
@@ -1591,6 +1599,8 @@ static int gpac_main(int argc, char **argv)
 			char *arg = argv[i];
 			if (gf_opts_get_key("gpac.alias", arg) != NULL) {
 				has_alias = GF_TRUE;
+				if (!strcmp(arg, "-play"))
+					alias_is_play = GF_TRUE;
 				break;
 			}
 		}
@@ -2089,8 +2099,8 @@ restart:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to find filter%s \"%s\"\n", is_simple ? "" : " for",  arg));
 
 				gpac_suggest_filter(arg, GF_FALSE, GF_TRUE);
+				nb_filters=0;
 			}
-			nb_filters=0;
 			goto exit;
 		}
 		nb_filters++;
@@ -2191,6 +2201,7 @@ restart:
 		}
 		gpac_print_report(session, GF_FALSE, GF_TRUE);
 	}
+	gf_fs_print_non_connected_ex(session, alias_is_play);
 
 exit:
 	if (enable_reports==2) {

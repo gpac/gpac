@@ -343,21 +343,8 @@ static GF_ISOSAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_M
 			u8 nal_hdr = gf_bs_read_u8(mdia->nalu_parser);
 			nal_type = nal_hdr & 0x1F;
 
-			switch (nal_type) {
-			/*			case GF_AVC_NALU_SEQ_PARAM:
-						case GF_AVC_NALU_PIC_PARAM:
-						case GF_AVC_NALU_SEQ_PARAM_EXT:
-						case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-		*/
-			case GF_AVC_NALU_IDR_SLICE:
-				return SAP_TYPE_1;
-			case GF_AVC_NALU_ACCESS_UNIT:
-			case GF_AVC_NALU_FILLER_DATA:
-			case GF_AVC_NALU_SEI:
-				break;
-			default:
-				return RAP_NO;
-			}
+			if (nal_type==GF_AVC_NALU_IDR_SLICE) return SAP_TYPE_1;
+			if (nal_type<GF_AVC_NALU_IDR_SLICE) return RAP_NO;
 			gf_bs_skip_bytes(mdia->nalu_parser, size - 1);
 		}
 	}

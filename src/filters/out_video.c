@@ -85,7 +85,7 @@ typedef struct
 	GF_PropVec2i wsize, owsize;
 	GF_PropVec2i wpos;
 	Double start;
-	u32 buffer, mbuffer;
+	u32 buffer, mbuffer, rbuffer;
 	GF_Fraction vdelay;
 	const char *out;
 	GF_PropUIntList dumpframes;
@@ -154,6 +154,8 @@ typedef struct
 
 	Bool full_range;
 	s32 cmx;
+
+	u64 rebuffer;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -340,8 +342,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAY_BUFFER);
 	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;
-	if (ctx->no_buffering) ctx->buffer_done = GF_TRUE;
-
+	if (ctx->no_buffering) {
+		ctx->buffer_done = GF_TRUE;
+		ctx->rebuffer = 0;
+	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_RAWGRAB);
 	ctx->raw_grab = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
 
@@ -1139,33 +1143,39 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 exit:
 
+	//we don't lock since most of the time overlay is not set
 	if (ctx->oldata.ptr) {
-		if (!ctx->overlay_tx) {
-			glGenTextures(1, &ctx->overlay_tx);
+		// overlay is set, lock filter to make sure the data is still valid
+		gf_filter_lock(ctx->filter, GF_TRUE);
+		if (ctx->oldata.ptr) {
+			if (!ctx->overlay_tx) {
+				glGenTextures(1, &ctx->overlay_tx);
 
-			glEnable(GL_TEXTURE_2D);
+				glEnable(GL_TEXTURE_2D);
 #if !defined(GPAC_USE_GLES1X)
-			glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
+				glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
 #if defined(GPAC_USE_GLES2)
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 #else
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 #endif
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 #endif
 
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ctx->olsize.x, ctx->olsize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
-			ctx->update_oldata = GF_FALSE;
-		} else if (ctx->update_oldata) {
-			glEnable(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ctx->olsize.x, ctx->olsize.y, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
-			ctx->update_oldata = GF_FALSE;
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ctx->olsize.x, ctx->olsize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
+				ctx->update_oldata = GF_FALSE;
+			} else if (ctx->update_oldata) {
+				glEnable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ctx->olsize.x, ctx->olsize.y, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
+				ctx->update_oldata = GF_FALSE;
+			}
+			vout_draw_overlay(ctx);
 		}
-		vout_draw_overlay(ctx);
+		gf_filter_lock(ctx->filter, GF_FALSE);
 	}
 
 	//final flush
@@ -1347,6 +1357,7 @@ static GF_Err vout_process(GF_Filter *filter)
 	ctx->video_out->ProcessEvent(ctx->video_out, NULL);
 
 	if (!ctx->step && !ctx->speed) {
+		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
 		gf_filter_ask_rt_reschedule(filter, 50000);
@@ -1374,6 +1385,7 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (!ctx->pid) {
+		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
 		return ctx->oldata.ptr ? GF_OK : GF_EOS;
@@ -1398,14 +1410,26 @@ static GF_Err vout_process(GF_Filter *filter)
 			if ((ctx->nb_frames>1) && ctx->last_pck_dur_us) {
 				gf_filter_ask_rt_reschedule(filter, ctx->last_pck_dur_us);
 				ctx->last_pck_dur_us = 0;
+				//we don't lock here since we don't access the pointer
+				if (ctx->oldata.ptr && ctx->update_oldata)
+					return vout_draw_frame(ctx);
 				return GF_OK;
 			}
-			//fallthrough
+		} else if (ctx->rbuffer && ctx->buffer_done) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer empty, rebuffering\n"));
+			ctx->rebuffer = gf_sys_clock_high_res();
+			ctx->buffer_done = GF_FALSE;
 		}
+
 		//check if all sinks are done - if not keep requesting a process to pump window event loop
 		if (!gf_filter_all_sinks_done(filter)) {
 			gf_filter_ask_rt_reschedule(filter, 100000);
-			if (ctx->display_changed) goto draw_frame;
+			if (ctx->display_changed)
+				goto draw_frame;
+
+			//we don't lock here since we don't access the pointer
+			if (ctx->oldata.ptr && ctx->update_oldata)
+				return vout_draw_frame(ctx);
 			return GF_OK;
 		}
 		return ctx->aborted ? GF_EOS : GF_OK;
@@ -1453,7 +1477,8 @@ static GF_Err vout_process(GF_Filter *filter)
 	if (ctx->buffer) {
 		if (gf_filter_pck_is_blocking_ref(pck)) {
 			ctx->buffer_done = GF_TRUE;
-			ctx->buffer = 0;
+			ctx->rebuffer = 0;
+			ctx->buffer = ctx->rbuffer = 0;
 		} else {
 			//query full buffer duration in us
 			u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
@@ -1468,12 +1493,30 @@ static GF_Err vout_process(GF_Filter *filter)
 						sprintf(szStatus, "buffering %d / %d ms", (u32) (dur/1000), ctx->buffer);
 						gf_filter_update_status(filter, -1, szStatus);
 					}
+					//we don't lock here since we don't access the pointer
+					if (ctx->oldata.ptr && ctx->update_oldata)
+						return vout_draw_frame(ctx);
 					return GF_OK;
 				}
 				ctx->buffer_done = GF_TRUE;
+				if (ctx->rebuffer) {
+					u64 rebuf_time = gf_sys_clock_high_res() - ctx->rebuffer;
+					ctx->rebuffer = 0;
+					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] rebuffer done in "LLU" ms\n", (u32) (rebuf_time/1000)));
+					if (ctx->clock_at_first_cts)
+						ctx->clock_at_first_cts += rebuf_time;
+				}
+			} else if (ctx->rbuffer) {
+				if ((dur < ctx->rbuffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %u less than min threshold %u, rebuffering\n", (u32) (dur/1000), ctx->rbuffer));
+					ctx->rebuffer = gf_sys_clock_high_res();
+					ctx->buffer_done = GF_FALSE;
+					return GF_OK;
+				}
 			}
 		}
 	}
+
 
 	if (!ctx->step && (ctx->vsync || ctx->drop)) {
 		u64 ref_clock = 0;
@@ -1864,14 +1907,18 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(step), "step frame", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
 
 	{ OFFS(olwnd), "overlay window position and size", GF_PROP_VEC4I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
-	{ OFFS(olsize), "overlay texture size (must be RGBA)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
-	{ OFFS(oldata), "overlay texture data (must be RGBA)", GF_PROP_CONST_DATA, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
+	{ OFFS(olsize), "overlay texture size (must be RGBA)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE_SYNC},
+	{ OFFS(oldata), "overlay texture data (must be RGBA)", GF_PROP_CONST_DATA, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE_SYNC},
 	{ OFFS(owsize), "output window size (readonly)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(rebuffer), "time at which rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
+
 	{0}
 };
 

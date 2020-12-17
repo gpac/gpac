@@ -163,7 +163,15 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)- off: no analyzing
+.br
+* on: simple analyzing
+.br
+* bs: log bitstream syntax (all elements read from bitstream)
+.br
+* full: log bitstream syntax and bit sizes signaled as (N) after field value, except 1-bit fields (ommited)
+.br
+
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
 .br
@@ -251,7 +259,15 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (bool, default: false, updatable): analyze sample content (NALU, OBU)
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)- off: no analyzing
+.br
+* on: simple analyzing
+.br
+* bs: log bitstream syntax (all elements read from bitstream)
+.br
+* full: log bitstream syntax and bit sizes signaled as (N) after field value, except 1-bit fields (ommited)
+.br
+
 .br
 xml (bool, default: false, updatable): use xml formatting (implied if (-analyze]() is set) and disable .I fmt
 .br
@@ -504,11 +520,11 @@ max_aspeed (dbl, default: 2.0, updatable): silence audio if playback speed is gr
 .br
 max_vspeed (dbl, default: 4.0, updatable): move to i-frame only decoding if playback speed is greater than sepcified value
 .br
-buf (uint, default: 3000, updatable): playout buffer in ms. overridden by BufferLenth property of input pid
+buffer (uint, default: 3000, updatable): playout buffer in ms. overridden by BufferLenth property of input pid
 .br
-rbuf (uint, default: 1000, updatable): rebuffer trigger in ms. overridden by RebufferLenth property of input pid
+rbuffer (uint, default: 1000, updatable): rebuffer trigger in ms. overridden by RebufferLenth property of input pid
 .br
-mbuf (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid
+mbuffer (uint, default: 3000, updatable): max buffer in ms (must be greater than playout buffer). overridden by BufferMaxOccupancy property of input pid
 .br
 ntpsync (uint, default: 0, updatable): ntp resync threshold in ms (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop
 .br
@@ -1305,6 +1321,8 @@ dsmcc (bool, default: no):     enable DSMCC receiver
 .br
 seeksrc (bool, default: true): seek local source file back to origin once all programs are setup
 .br
+sigfrag (bool, default: false): signal segment boundaries of source on output packets
+.br
 
 .br
 .SH sockin
@@ -1505,7 +1523,142 @@ Description: MPEG-DASH and HLS client
 .br
 
 .br
-This filter reads MPEG-DASH, HLS and MS Smooth (on demand only for now) manifests and produces media PIDs and frames.
+This filter reads MPEG-DASH, HLS and MS Smooth manifests and produce media output according to its mode.
+.br
+
+.br
+.SH Regular mode
+.LP
+.br
+This is the default mode, in which the filter produces media PIDs and frames from sources indicated in the manifest.
+.br
+The default behaviour is to perform adaptation according to .I algo, but the filter can:
+.br
+- run with no adaptation, to grab maximum quality.
+.br
+Example
+.br
+gpac -i MANIFEST_URL:algo=none:start_with=max_bw -o dest.mp4
+.br
+
+.br
+- run with no adaptation, fetching all qualities.
+.br
+Example
+.br
+gpac -i MANIFEST_URL:split_as fout:dst=$File$.mp4:clone
+.br
+
+.br
+
+.br
+.SH File mode
+.LP
+.br
+When .I forward is set to file, the client forwards media files without demultiplexing them.
+.br
+This is mostly used to expose the DASH session to a file server such as ROUTE or HTTP.
+.br
+In this mode, the manifest is forwarded as an output PID.
+.br
+Warning: This mode cannot be set through inheritance as it changes the link capabilities of the filter. The filter MUST be explicitely declared.
+.br
+
+.br
+To expose a live DASH session to route:
+.br
+Example
+.br
+gpac -i MANIFEST_URL dashin:forward=file @ -o route://225.0.0.1:8000/
+.br
+
+.br
+
+.br
+Note: This mode used to be trigger by .I filemode option, still recognized.
+.br
+
+.br
+If the source has dependent media streams (scability) and all qualities and initialization segments need to be forwarded, add .I split_as.
+.br
+
+.br
+.SH Segment bound modes
+.LP
+.br
+When .I forward is set to segs or mani, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.
+.br
+
+.br
+This mode can be used to process media data and regenerating the same manifest/segmentation.
+.br
+
+.br
+Example
+.br
+gpac -i MANIFEST_URL:forward=mani cecrypt:cfile=DRM.xml @ -o encrypted/live.mpd:pssh=mv
+.br
+
+.br
+This will encrypt an existing DASH session, inject PSSH in manifest and segments.
+.br
+
+.br
+Example
+.br
+gpac -i MANIFEST_URL:forward=segb cecrypt:cfile=DRM.xml @ -o encrypted/live.m3u8
+.br
+
+.br
+This will encrypt an existing DASH session and republish it as HLS, using same segment names and boundaries.
+.br
+
+.br
+This mode will force .I noseek to true to ensure the first segment fetched is complete, and .I split_as to trueto fetch all qualities.
+.br
+
+.br
+Each first packet of a segment will have the following properties attached:
+.br
+* `CueStart`: to indicate this is a segment start (set by demuxer if it offers sigfrag option)
+.br
+* `FileNumber`: current segment number
+.br
+* `FileName`: current segment file name without manifest base url
+.br
+
+.br
+If .I forward is set to mani, the first packet of a segment dispatched after a manifest update will also carry the manifest payload as a property:
+.br
+* `DFManifest`: contains main manifest (MPD, M3U8 master)
+.br
+* `DFVariant`: contains list of HLS child playlists as strings for the given quality
+.br
+* `DFVariantName`: contains list of associated HLS child playlists name
+.br
+
+.br
+Each output PID will have the following properties assigned:
+.br
+* `DFMode`: set to 1 for segb or 2 for mani
+.br
+* `DCue`: set to inband
+.br
+* `DFPStart`: set to current period start value
+.br
+* `FileName`: set to associated init segment if any
+.br
+* `Representation`: set to the associated representation ID in the manifest
+.br
+* `DashDur`: set to the average segment duration as advertized in the manifest
+.br
+
+.br
+When the dasher is used together with this mode, this will force all generated segments to have the same name, duration and fragmentation properties as the input ones.
+.br
+It is therefore not recommended for sessions stored/generated on local storage to generate the output in the same directory.
+.br
+
 .br
 
 .br
@@ -1618,7 +1771,7 @@ noxlink (bool, default: no):   disable xlink if period has both xlink and adapta
 .br
 query (str):                   set query string (without initial '?') to append to xlink of periods
 .br
-split_as (bool, default: no):  separate all qualities into different adaptation sets and stream all qualities
+split_as (bool, default: no):  separate all qualities into different adaptation sets and stream all qualities. Dependent representations (scalable) are treated as independent
 .br
 noseek (bool, default: no):    disable seeking of initial segment(s) in dynamic mode (useful when UTC clocks do not match)
 .br
@@ -1634,9 +1787,19 @@ lowlat (enum, default: early): segment scheduling policy in low latency mode
 .br
 
 .br
-filemode (bool, default: no):  do not demux files and forward them as file pids (imply segstore=mem)
+forward (enum, default: none): segment forwarding mode  -see filter help
 .br
-fmodefwd (bool, default: yes): forward packet rather than copy them in .I filemode. Packet copy might improve performances in low latency mode
+* none: regular DASH read
+.br
+* file: do not demux files and forward them as file pids (imply segstore=mem)
+.br
+* segb: turn on .I split_as, segment and fragment bounds signaling and DASH cue insertion
+.br
+* mani: same as segb and also forward manifests
+.br
+
+.br
+fmodefwd (bool, default: yes): forward packet rather than copy them in file forward mode. Packet copy might improve performances in low latency mode
 .br
 skip_lqt (bool, default: no):  disable decoding of tiles with highest degradation hints (not visible, not gazed at) for debug purposes
 .br
@@ -1665,6 +1828,22 @@ When the file is set per PID, the first CryptInfo with the same ID is used, othe
 .LP
 .br
 cfile (str):                   crypt file location - see filter help
+.br
+decrypt (enum, default: full): decrypt mode (CENC only)
+.br
+* full: decrypt everything, throwing error if keys are not found
+.br
+* nokey: decrypt everything for which a key is found, skip decryption otherwise
+.br
+* skip: decrypt nothing
+.br
+
+.br
+drop_keys (uintl):             consider keys with given 1-based indexes as not available (multi-key debug)
+.br
+kids (strl):                   define KIDs. If keys is empty, consider keys with given KID (as hex string) as not available (debug)
+.br
+keys (strl):                   define key values for each of the specififed KID
 .br
 
 .br
@@ -2028,6 +2207,8 @@ tags (enum, default: strict):  tag injection mode
 * all: inject all possible tags
 .br
 
+.br
+keep_utc (bool, default: false): force all new files and tracks to keep the source UTC creation and modification times
 .br
 
 .br
@@ -3048,7 +3229,13 @@ buffer (uint, default: 200):   set playout buffer in ms
 .br
 mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
+rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering
+.br
 adelay (frac, default: 0, updatable): set audio delay in sec
+.br
+buffer_done (bool):            buffer done indication (readonly)
+.br
+rebuffer (luint):              time at which rebuffer started, 0 if not rebuffering (readonly)
 .br
 
 .br
@@ -3166,11 +3353,17 @@ buffer (uint, default: 100):   set playout buffer in ms
 .br
 mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
+rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering
+.br
 dumpframes (uintl):            ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames
 .br
 out (str, default: dump):      radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT
 .br
 owsize (v2di):                 output window size (readonly)
+.br
+buffer_done (bool):            buffer done indication (readonly)
+.br
+rebuffer (luint):              time at which rebuffer started, 0 if not rebuffering (readonly)
 .br
 
 .br
@@ -4417,6 +4610,8 @@ llhls (enum, default: off):    HLS low latency type
 * br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)
 .br
 * sf: use separated files for segment parts
+.br
+* brsf: generate two sets of manifest, one for byte-range and one for files (_IF added before extension of manifest)
 .br
 
 .br
@@ -6010,7 +6205,7 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.42.101
+Version: Lavf58.64.100
 .br
 
 .br
@@ -6038,7 +6233,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.81.100
+Version: Lavc58.114.100
 .br
 
 .br
@@ -6070,7 +6265,7 @@ The default threading mode is to let libavcodec decide how many threads to use. 
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd58.9.103
+Version: Lavd58.11.103
 .br
 
 .br
@@ -6137,7 +6332,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS5.6.101
+Version: SwS5.8.100
 .br
 
 .br
@@ -6185,7 +6380,7 @@ itable (sintl):                the yuv2rgb coefficients describing the input yuv
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.81.100
+Version: Lavc58.114.100
 .br
 
 .br
@@ -6247,7 +6442,7 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf58.42.101
+Version: Lavf58.64.100
 .br
 
 .br
@@ -6301,7 +6496,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf58.42.101
+Version: Lavf58.64.100
 .br
 
 .br
@@ -6512,7 +6707,7 @@ If multiple services with different formats are needed, you will need to explici
 .br
 Example
 .br
-gpac -i DASH_URL:#ServiceID=1 @ dashin:filemode:FID=1 -i HLS_URL:#ServiceID=2 @ dashin:filemode:FID=2 -o atsc://:SID=1,2
+gpac -i DASH_URL:#ServiceID=1 @ dashin:forward=file:FID=1 -i HLS_URL:#ServiceID=2 @ dashin:forward=file:FID=2 -o atsc://:SID=1,2
 .br
 
 .br
@@ -6584,7 +6779,7 @@ Note: The LCT objects are sent with no length (TOL header) assigned until the fi
 .br
 Since the ROUTE filter only consumes files, it is required to insert:
 .br
-- the dash demuxer in filemode when loading a DASH session
+- the dash demuxer in file forwarding mode when loading a DASH session
 .br
 - the dash muxer when creating a DASH session
 .br
@@ -6594,7 +6789,7 @@ Muxing an existing DASH session in route:
 .br
 Example
 .br
-gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/
+gpac -i source.mpd dashin:forward=file @ -o route://225.1.1.0:6000/
 .br
 
 .br
@@ -6602,7 +6797,7 @@ Muxing an existing DASH session in atsc:
 .br
 Example
 .br
-gpac -i source.mpd dashin:filemode @ -o atsc://
+gpac -i source.mpd dashin:forward=file @ -o atsc://
 .br
 
 .br
@@ -6660,7 +6855,7 @@ These will load the dash session, instantiate a new dasher filter (hence a new D
 .br
 Example
 .br
-gpac -i source.mpd dashin:filemode @ -o route://225.1.1.0:6000/manifest.mpd
+gpac -i source.mpd dashin:forward=file @ -o route://225.1.1.0:6000/manifest.mpd
 .br
 
 .br
@@ -6933,7 +7128,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev296-g7e42eb0b4-master
+build: 1.1.0-DEV-rev368-g4bd1aafcb-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

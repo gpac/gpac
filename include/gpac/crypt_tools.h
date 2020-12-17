@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2020
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -92,6 +92,23 @@ enum
 	GF_CRYPT_SELENC_CLEAR_FORCED,
 };
 
+typedef struct
+{
+	/*! KEY ID*/
+	bin128 KID;
+	/*! key value*/
+	bin128 key;
+	/*! hls_info defined*/
+	char *hls_info;
+	/*!IV size */
+	u8 IV_size;
+	/*! constant IV size */
+	u8 constant_IV_size;
+	/*! constant IV or initial IV if not constant*/
+	unsigned char IV[16];
+} GF_CryptKeyInfo;
+
+
 /*! Crypto information for one media stream*/
 typedef struct
 {
@@ -99,8 +116,6 @@ typedef struct
 	u32 scheme_type;
 	/*! ID of track / PID / ... to be encrypted*/
 	u32 trackID;
-	/*! Initialization vector of the first sample/AU in track/media for CENC. For IMA/OMA, the first 8 bytes contain the salt data.*/
-	unsigned char first_IV[16];
 	/*! URI of key management system / rightsIssuerURL*/
 	char *KMS_URI;
 	/*! Scheme URI or contentID for OMA*/
@@ -132,26 +147,22 @@ typedef struct
 	and also add support for multiple keys in ISMA ?*/
 	/*! default encryption state for samples*/
 	u32 IsEncrypted;
-	/*! size of init vector: 0, 8 or 16*/
-	u8 IV_size;
-	/*! number of KEY IDs and Keys defined*/
-	u32 KID_count;
-	/*! KEY IDs defined*/
-	bin128 *KIDs;
+	/*! number of defined keys*/
+	u32 nb_keys;
 	/*! keys defined*/
-	bin128 *keys;
+	GF_CryptKeyInfo *keys;
+
 	/*! default key index to use*/
 	u32 defaultKeyIdx;
 	/*! roll period of keys (change keys every keyRoll AUs)*/
 	u32 keyRoll;
+	/*! roll keys at each SAP type 1 or 2 for streams with SAPs*/
+	Bool roll_rap;
 	/*! number of bytes to leave in the clear for non NAL-based tracks. Only used in cbcs mode*/
 	u32 clear_bytes;
+
 	/*! CENS/CBCS pattern */
 	u8 crypt_byte_block, skip_byte_block;
-	/*! cponstant IV size */
-	u8 constant_IV_size;
-	/*! constant IV */
-	unsigned char constant_IV[16];
 
 	/* ! for avc1 ctr CENC edition 1 */
 	Bool allow_encrypted_slice_header;
@@ -169,6 +180,17 @@ typedef struct
 
 	/*! force using type set in XML rather than type indicated in file when decrypting*/
 	Bool force_type;
+
+	/*! randomly encrypts subsample if rand() % subs_rand is 0*/
+	u32 subs_rand;
+	/*! list of VCL NAL/OBU indices to encrypt, 1-based*/
+	char *subs_crypt;
+	/*! use multiple keys per sample*/
+	Bool multi_key;
+	/*! roll key over subsamples. If 0, roll by 1 every encrypted sample. If 1 (-1==0) disable key roll*/
+	u32 mkey_roll_plus_one;
+	/*!coma-separated list of indices of keys to use per subsample. Value 0 means keep clear. If less indices than subsamples, keep subsamples in clear*/
+	char *mkey_subs;
 } GF_TrackCryptInfo;
 
 /*! Crypto information*/
@@ -182,6 +204,8 @@ typedef struct
 	Bool has_common_key;
 	/*! intern to parser*/
 	Bool in_text_header;
+	/*! intern to parser*/
+	GF_Err last_parse_error;
 } GF_CryptInfo;
 
 /*! loads a given crypto configuration file. Full doc is available at https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/

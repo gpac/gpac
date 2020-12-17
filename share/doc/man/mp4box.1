@@ -465,7 +465,7 @@ Also see:
 .br
 - the dasher `gpac -h dash` filter documentation
 .br
-- [[online DASH Intro doc|DASH Introduction]].
+- [[DASH wiki|DASH-intro]].
 .br
 
 .br
@@ -2118,6 +2118,8 @@ MP4Box supports encryption and decryption of ISMA, OMA and CENC content, see enc
 .br
 It requires a specific XML file called CryptFile, whose syntax is available at https://wiki.gpac.io/Common-Encryption
 .br
+Image files (HEIF) can also be crypted / decrypted, using CENC only.
+.br
   
 .br
 Options:
@@ -2160,7 +2162,7 @@ set meta box type, with ABCD the four char meta type (NULL or 0 to remove meta)
 * tkID != 0: use meta of given track
 .br
 .TP
-.B \-add-items (string)
+.B \-add-item (string)
 .br
 add resource to meta, with parameter syntax file_path[:opt1:optN]
 .br
@@ -2178,22 +2180,34 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .br
 * id=ID: item ID
 .br
-* ref=4cc,id: reference of type 4cc to an other item
+* ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)
+.br
+* group=id,type: indicate the id and type of an alternate group for this item
 .br
 .TP
 .B \-add-image (string)
 .br
-add the given file as HEIF image item, with parameter syntax file_path[:opt1:optN]
+add the given file as HEIF image item, with parameter syntax file_path[:opt1:optN]. If filepath is omitted, source is the input MP4 file
 .br
 * name, id, ref: see .I add-item
 .br
 * primary: indicate that this item should be the primary item
 .br
-* time=t: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL frames as items
+* time=t[-e][/i]: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items
+.br
+ - If e is set (float, in sec), import all sync samples between tand e
+.br
+ - If i is set (float, in sec), sets time increment between samples to import
 .br
 * split_tiles: for an HEVC tiled image, each tile is stored as a separate item
 .br
+* image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also
+.br
 * rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise
+.br
+* mirror-axis=axis: set the mirror axis: vertical, horizontal
+.br
+* clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap
 .br
 * hidden: indicate that this image item should be hidden
 .br
@@ -2201,11 +2215,24 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * alpha: indicate that the image is an alpha image (should use ref=auxl also)
 .br
-* tk=tkID: indicate the track ID of the source sample
+* tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file
 .br
-* samp=N: indicate the sample number of the source sample. If file_path is ref, do not copy the data but refer to the final sample location. If file_path is self, this or not set, copy data from the track sample
+* samp=N: indicate the sample number of the source sample
+.br
+* ref: do not copy the data but refer to the final sample location
 .br
 - any other options will be passed as options to the media importer, see .I add
+.br
+.TP
+.B \-add-image-grid (string)
+.br
+create an image grid item, with parameter syntax grid[:opt1:optN]
+.br
+* image-grid-size=rxc: set the number of rows and colums of the grid
+.br
+- any other options from .I add-image can be used
+.br
+
 .br
 .TP
 .B \-rem-item  item_ID[:tk=tkID] (string)
@@ -2393,7 +2420,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev296-g7e42eb0b4-master
+build: 1.1.0-DEV-rev368-g4bd1aafcb-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
