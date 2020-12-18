@@ -1187,7 +1187,8 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	} else {
 		infe->item_ID = ++lastItemID;
 	}
-
+	if (io_item_id) *io_item_id = infe->item_ID;
+	
 	if (tk_id && sample_num) {
 		data_len = gf_isom_get_sample_size(file, tk_id, sample_num);
 	}
