@@ -1646,7 +1646,7 @@ void gf_isom_keep_utc_times(GF_ISOFile *isom_file, Bool keep_utc);
 \param isom_file the target ISO file
 \return GF_TRUE if UTC keeping is enabled
 */
-Bool gf_isom_has_keep_utc_times(GF_ISOFile *file);
+Bool gf_isom_has_keep_utc_times(GF_ISOFile *isom_file);
 
 /*! sets the timescale of the movie. This rescales times expressed in movie timescale in edit lists and mvex boxes
 \param isom_file the target ISO file
