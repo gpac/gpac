@@ -1233,9 +1233,13 @@ import_next_sample:
 				e = GF_OK;
 				goto exit;
 			}
-		} else if (image_props->time<0) {
+		} else if ((image_props->time<0) || (image_props->step_time)) {
 			if (image_props->sample_num) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: imported sample %d (DTS "LLU") is not a sync sample (RAP %d size %d)\n", sample_number, sample->DTS, sample->IsRAP, sample->dataLength));
+			} else if (image_props->step_time) {
+				gf_isom_sample_del(&sample);
+				e = GF_OK;
+				goto exit;
 			} else {
 				gf_isom_sample_del(&sample);
 				sample_number++;
@@ -1462,7 +1466,7 @@ import_next_sample:
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Refering trackID %d sample at time %.3f as item %d\n", imported_track, (sample->DTS+sample->CTS_Offset)*1.0/timescale, item_id));
 		}
-		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name)) ? "Image" : item_name, item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
+		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name)) ? "Image" : item_name, &item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
 	} else {
 
 		if (image_props->sample_num) {
@@ -1470,7 +1474,7 @@ import_next_sample:
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Adding sample at time %.3f as item %d\n", (sample->DTS+sample->CTS_Offset)*1.0/timescale, item_id));
 		}
-		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
+		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), &item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
 
 	}
 
@@ -1486,8 +1490,8 @@ import_next_sample:
 	if (neg_time)
 		image_props->time = -1;
 
-	if (!e && !image_props->sample_num && ((image_props->time<0) || image_props->end_time)) {
-		if (image_props->end_time || ((image_props->time<0) && image_props->step_time) ) {
+	if (!e && !image_props->sample_num && ((image_props->time<0) || image_props->end_time || image_props->step_time)) {
+		if (image_props->end_time || image_props->step_time) {
 			Float t = sample->DTS + sample->CTS_Offset;
 			t /= timescale;
 			if (image_props->step_time) {
@@ -1530,15 +1534,8 @@ exit:
 
 }
 
-GF_EXPORT
-GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs)
-{
-
- 	return gf_isom_iff_create_image_item_from_track_internal(movie, root_meta, meta_track_number, imported_track, item_name, item_id, image_props, item_extent_refs, 1);
-}
-
-GF_EXPORT
-GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
+static
+GF_Err gf_isom_iff_create_image_grid_item_internal(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 *item_id, GF_ImageItemProperties *image_props) {
 	GF_Err e = GF_OK;
 	u32 grid4cc = GF_4CC('g', 'r', 'i', 'd');
 	GF_BitStream *grid_bs;
@@ -1556,10 +1553,146 @@ GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32
 	u8 *grid_data;
 	u32 grid_data_size;
 	gf_bs_get_content(grid_bs, &grid_data, &grid_data_size);
-	e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, item_id, grid4cc, NULL, NULL, image_props, grid_data, grid_data_size, item_extent_refs);
+	e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, item_id, grid4cc, NULL, NULL, image_props, grid_data, grid_data_size, NULL);
 	gf_free(grid_data);
 	gf_bs_del(grid_bs);
 	return e;
 }
+
+GF_EXPORT
+GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props)
+{
+	return gf_isom_iff_create_image_grid_item_internal(movie, root_meta, meta_track_number, item_name, &item_id, image_props);
+}
+
+static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props)
+{
+	GF_Err e;
+	GF_ImageItemProperties props;
+	u32 w=0, h=0;
+	u32 *imgs_ids=NULL;
+	u32 nb_imgs=0, nb_src_imgs;
+	u32 nb_cols, nb_rows;
+	u32 last_valid_nb_cols;
+	Float ar;
+	u32 i, nb_items = gf_isom_get_meta_item_count(movie, root_meta, meta_track_number);
+	for (i=0; i<nb_items; i++) {
+		u32 an_item_id, item_type;
+		gf_isom_get_meta_item_info(movie, root_meta, meta_track_number, i+1, &an_item_id, &item_type, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+		if (!item_id) continue;
+		if (item_type==GF_ISOM_ITEM_TYPE_AUXI) continue;
+
+		memset(&props, 0, sizeof(props));
+		gf_isom_get_meta_image_props(movie, root_meta, meta_track_number, an_item_id, &props);
+		if (!props.width || !props.height) continue;
+
+		if (!w) w = props.width;
+		if (!h) h = props.height;
+
+		if ((w != props.width) || (h != props.height)) {
+			if (imgs_ids) gf_free(imgs_ids);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Auto grid can only be generated for images of the same size - try using `-add-image-grid`\n"));
+			return GF_NOT_SUPPORTED;
+		}
+		imgs_ids = gf_realloc(imgs_ids, sizeof(u32) * (nb_imgs+1));
+		if (!imgs_ids) return GF_OUT_OF_MEM;
+		imgs_ids[nb_imgs] = an_item_id;
+		nb_imgs++;
+	}
+
+	if (!nb_imgs || !w || !h) {
+		if (imgs_ids) gf_free(imgs_ids);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("No image items found\n"));
+		return GF_BAD_PARAM;
+	}
+
+	//try roughly the same aspect ratio
+	if (image_props->auto_grid_ratio) {
+		ar = image_props->auto_grid_ratio;
+	} else {
+		ar = w;
+		ar /= h;
+	}
+	nb_src_imgs = nb_imgs;
+
+	nb_cols=1;
+	nb_rows=1;
+	last_valid_nb_cols = 0;
+	if (nb_imgs % 2) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Not an even number of images, removing last item from grid\n"));
+		nb_imgs--;
+	}
+	if (nb_imgs>1) {
+		while (nb_cols < nb_imgs) {
+			Float target_ar = nb_cols * w;
+			nb_rows = nb_imgs / nb_cols;
+			if (nb_rows * nb_cols != nb_imgs) {
+				nb_cols++;
+				continue;
+			}
+			target_ar /= nb_rows * h;
+			if (target_ar >= ar) break;
+			last_valid_nb_cols = nb_cols;
+			nb_cols++;
+		}
+	}
+	if ((nb_cols==nb_imgs) && last_valid_nb_cols) {
+		nb_cols = last_valid_nb_cols;
+		nb_rows = nb_imgs / nb_cols;
+	}
+	memset(&props, 0, sizeof(props));
+	if (image_props)
+		memcpy(&props, image_props, sizeof(props));
+	props.hidden = GF_FALSE;
+	props.width = nb_cols * w;
+	props.height = nb_rows * h;
+	props.num_grid_rows = nb_rows;
+	props.num_grid_columns = nb_cols;
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Grid: %u rows %u cols - size %ux%u pixels\n", nb_cols, nb_rows, props.width, props.height));
+
+	e = gf_isom_iff_create_image_grid_item_internal(movie, root_meta, meta_track_number, item_name, &item_id, &props);
+	if (e) {
+		gf_free(imgs_ids);
+		return e;
+	}
+
+	for (i=0; i<nb_imgs; i++) {
+		e = gf_isom_meta_add_item_ref(movie, root_meta, meta_track_number, item_id, imgs_ids[i], GF_4CC('d','i','m','g'), NULL);
+		if (e) goto exit;
+	}
+
+	//we might want an option to avoid this?
+	//if (image_props->hidden)
+	{
+		GF_MetaBox *meta = gf_isom_get_meta(movie, root_meta, meta_track_number);
+		for (i=0; i<nb_src_imgs; i++) {
+			GF_ItemInfoEntryBox *iinf;
+			u32 j=0;
+			while ((iinf = (GF_ItemInfoEntryBox *)gf_list_enum(meta->item_infos->item_infos, &j))) {
+				if (iinf->item_ID == imgs_ids[i]) {
+					iinf->flags |= 0x1;
+					break;
+				}
+			}
+		}
+		e = gf_isom_set_meta_primary_item(movie, root_meta, meta_track_number, item_id);
+	}
+
+exit:
+	gf_free(imgs_ids);
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs)
+{
+
+	if (image_props && image_props->auto_grid)
+		return iff_create_auto_grid(movie, root_meta, meta_track_number, item_name, item_id, image_props);
+
+ 	return gf_isom_iff_create_image_item_from_track_internal(movie, root_meta, meta_track_number, imported_track, item_name, item_id, image_props, item_extent_refs, 1);
+}
+
 
 #endif /*GPAC_DISABLE_ISOM*/

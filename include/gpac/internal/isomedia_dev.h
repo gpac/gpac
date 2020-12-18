@@ -3963,6 +3963,8 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 void gf_isom_delete_movie(GF_ISOFile *mov);
 void gf_isom_meta_restore_items_ref(GF_ISOFile *file, GF_MetaBox *meta);
 
+GF_MetaBox *gf_isom_get_meta(GF_ISOFile *file, Bool root_meta, u32 track_num);
+
 /*StreamDescription reconstruction Functions*/
 GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_ESD **outESD);
 GF_Err GetESDForTime(GF_MovieBox *moov, GF_ISOTrackID trackID, u64 CTS, GF_ESD **outESD);
