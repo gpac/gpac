@@ -1329,13 +1329,19 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	//OK declare PID
 	if (!ch)
 		pid = gf_filter_pid_new(read->filter);
-	else
+	else {
 		pid = ch->pid;
+		ch->item_id = item_id;
+	}
 
-	if (read->pid)
-		gf_filter_pid_copy_properties(pid, read->pid);
 
-	gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
+	//do not override PID ID if itt is set
+	if (!ch) {
+		if (read->pid)
+			gf_filter_pid_copy_properties(pid, read->pid);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
+	}
+
 	if (read->itemid)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
 		
@@ -1366,7 +1372,7 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PRIMARY_ITEM, &PROP_BOOL(GF_FALSE));
 	}
 
-	if (!gf_sys_is_test_mode())
+	if (!gf_sys_is_test_mode() && !read->itt)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_NUM, &PROP_UINT(item_idx) );
 
 	gf_filter_pid_set_property_str(pid, "meta:mime", item_mime_type ? &PROP_STRING(item_mime_type) : NULL );

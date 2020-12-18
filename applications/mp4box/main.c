@@ -878,6 +878,7 @@ GF_GPACArg m4b_meta_args[] =
 		"- tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file\n"
 		"- samp=N: indicate the sample number of the source sample\n"
 		"- ref: do not copy the data but refer to the final sample location\n"
+		"- agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will **try to** have `AR` aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("add-image-grid", NULL, "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
@@ -1866,6 +1867,16 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				if (!meta->image_props) return 0;
 			}
 			strcpy(meta->image_props->iccPath, szSlot+9);
+			ret = 1;
+		}
+		else if (!stricmp(szSlot, "agrid") || !strnicmp(szSlot, "agrid=", 6)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			meta->image_props->auto_grid = GF_TRUE;
+			if (!strnicmp(szSlot, "agrid=", 6))
+				meta->image_props->auto_grid_ratio = atof(szSlot+6);
 			ret = 1;
 		}
 		else if (!strchr(szSlot, '=')) {
@@ -5937,7 +5948,10 @@ int mp4boxMain(int argc, char **argv)
 			self_ref = GF_FALSE;
 
 			tk = 0;
-			if (!meta->szPath || (meta->image_props && meta->image_props->sample_num && meta->image_props->use_reference)) {
+			if (meta->image_props && meta->image_props->auto_grid) {
+				e = GF_OK;
+				self_ref = GF_TRUE;
+			} else if (!meta->szPath || (meta->image_props && meta->image_props->sample_num && meta->image_props->use_reference)) {
 				e = GF_OK;
 				self_ref = GF_TRUE;
 				src_tk_id = meta->trackID;
@@ -6029,7 +6043,7 @@ int mp4boxMain(int argc, char **argv)
 						e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
 							    meta->szName && strlen(meta->szName) ? meta->szName : NULL,
 								meta->item_id,
-								meta->image_props, NULL);
+								meta->image_props);
 						if (e == GF_OK && meta->primary) {
 							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}

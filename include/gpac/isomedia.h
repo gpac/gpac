@@ -5669,6 +5669,8 @@ typedef struct
 	Bool use_reference;
 	/*only set when importing non-ref from ISOBMF*/
 	GF_ISOFile *src_file;
+	Bool auto_grid;
+	Double auto_grid_ratio;
 } GF_ImageItemProperties;
 
 
@@ -5751,7 +5753,7 @@ typedef struct
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
 \param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
 \param item_name name of the item
-\param item_id ID of the item, can be 0
+\param item_id ID of the item, can be NULL, can be 0 in input, set to item ID after call
 \param item_type four character code of item type
 \param mime_type mime type of the item, can be NULL
 \param content_encoding content encoding of the item, can be NULL
@@ -5761,7 +5763,7 @@ typedef struct
 \param item_extent_refs list of item extend description, or NULL
 \return error if any
 */
-GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, char *data, u32 data_len, GF_List *item_extent_refs);
+GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 *item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, char *data, u32 data_len, GF_List *item_extent_refs);
 
 /*! adds an item to a meta box as a reference to a sample
 \param isom_file the target ISO file
@@ -5777,7 +5779,7 @@ GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *isom_file, Bool root_meta, u32 t
 \param sample_num number of sample to reference
 \return error if any
 */
-GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, GF_ISOTrackID tk_id, u32 sample_num);
+GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 *item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, GF_ISOTrackID tk_id, u32 sample_num);
 
 /*! creates image item(s) from samples of a media track
 \param isom_file the target ISO file
@@ -5786,10 +5788,9 @@ GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *isom_file, Bool root_meta, u
 \param item_name name of the item
 \param item_id ID of the item, can be 0
 \param image_props image properties information for image items
-\param item_extent_refs list of item extend description, or NULL
 \return error if any
 */
-GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *isom_file, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs);
+GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *isom_file, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props);
 
 /*! creates image item(s) from samples of a media track
 \param isom_file the target ISO file
