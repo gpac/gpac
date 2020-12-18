@@ -720,20 +720,23 @@ typedef enum
 	/*! string property, memory is duplicated when setting the property and managed internally*/
 	GF_PROP_STRING,
 	/*! string property, memory is NOT duplicated when setting the property but is then managed (and free) internally.
-	Only used when setting a property, the type then defaults to GF_PROP_STRING*/
+	Only used when setting a property, the type then defaults to GF_PROP_STRING
+	DO NOT USE the associate string field upon return from setting the property, it might have been destroyed*/
 	GF_PROP_STRING_NO_COPY,
 	/*! data property, memory is duplicated when setting the property and managed internally*/
 	GF_PROP_DATA,
 	/*! const string property, memory is NOT duplicated when setting the property, stays user-managed*/
 	GF_PROP_NAME,
 	/*! data property, memory is NOT duplicated when setting the property but is then managed (and free) internally.
-	Only used when setting a property, the type then defaults to GF_PROP_DATA*/
+	Only used when setting a property, the type then defaults to GF_PROP_DATA
+	DO NOT USE the associate data field upon return from setting the property, it might have been destroyed*/
 	GF_PROP_DATA_NO_COPY,
 	/*! const data property, memory is NOT duplicated when setting the property, stays user-managed*/
 	GF_PROP_CONST_DATA,
 	/*! user-managed pointer*/
 	GF_PROP_POINTER,
-	/*! string list, memory is NOT duplicated when setting the property, the passed array is directly assigned to the new property and will be and managed internally (freed by the filter session)*/
+	/*! string list, memory is NOT duplicated when setting the property, the passed array is directly assigned to the new property and will be and managed internally (freed by the filter session)
+	DO NOT USE the associate string array field upon return from setting the property, it might have been destroyed*/
 	GF_PROP_STRING_LIST,
 	/*! unsigned 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
 	GF_PROP_UINT_LIST,
@@ -1193,6 +1196,13 @@ u32 gf_props_4cc_get_type(u32 prop_4cc);
 \return GF_TRUE if properties are equal, GF_FALSE otherwise
 */
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
+
+/*! Same as \ref gf_props_equal but do not match string with value "*"  to string with value different from "*"
+\param p1 first property to compare
+\param p2 second property to compare
+\return GF_TRUE if properties are equal, GF_FALSE otherwise
+*/
+Bool gf_props_equal_strict(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 
 /*! Gets the readable name for a property type
 \param type property type
@@ -2887,11 +2897,13 @@ void gf_filter_pid_remove(GF_FilterPid *PID);
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
 
 /*! Sets a new property on an output PID for built-in property names.
-Previous properties (ones set before last packet dispatch) will still be valid. Property with same type/name will be reassigned
-You need to remove them one by one using \ref gf_filter_pid_set_property with NULL property, or reset the properties with \ref gf_filter_pid_reset_properties.
 Setting a new property will trigger a PID reconfigure at the consumption point of the next dispatched packet.
+Previous properties (ones set before last packet dispatch) will still be valid. You can remove any of them using \ref gf_filter_pid_set_property with NULL property, or reset the properties with \ref gf_filter_pid_reset_properties.
+There cannot be two instances of a property a given type/name:
+- If a property with same type/name exists and has the same value, assignment will be skipped: this avoids triggering PID reconfiguration when not needed. In that case, if the property contains memory to be passed to the filter session, this memory will be destroyed (eg GF_PROP_STRING_NO_COPY, GF_PROP_DATA_NO_COPY, GF_PROP_STRING_LIST).
+- If the values differ, the property will be reassigned. There cannot be tow instances of a proerty value with a given type/name.
 
-Warning: changing a property before the final end of stream (i.e. if no more packets are sent) will have no effect. You must use \ref gf_filter_pid_set_info and  \ref gf_filter_pid_get_info for this.
+Warning: changing a property at the final end of stream (i.e. if no more packets are sent) will have no effect. You must use \ref gf_filter_pid_set_info and  \ref gf_filter_pid_get_info for this.
 
 \param PID the target filter PID
 \param prop_4cc the built-in property code to modify
@@ -2920,6 +2932,9 @@ GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *PID, char *name, const GF_Pr
 Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain and to not trigger PID reconfiguration.
 First packet dispatched after calling this function will be marked, and its fetching by the consuming filter will trigger a process_event notification.
 If the consumming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
+
+If an info property with same type/name exists and has the same value, assignment will be skipped. In that case, if the property contains memory to be passed to the filter session, this memory will be destroyed (eg GF_PROP_STRING_NO_COPY, GF_PROP_DATA_NO_COPY, GF_PROP_STRING_LIST).
+
 
 \param PID the target filter PID
 \param prop_4cc the built-in property code to modify
