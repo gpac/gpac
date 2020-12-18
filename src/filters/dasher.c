@@ -4596,6 +4596,14 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (ctx->current_period->period) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] End of Period %s\n", ctx->current_period->period->ID ? ctx->current_period->period->ID : ""));
 	}
+
+	//safety check at period switch, probe each first packet in case we have a reconfigure pending
+	count = gf_list_count(ctx->pids);
+	for (i=0; i<count;i++) {
+		GF_DashStream *ds = gf_list_get(ctx->pids, i);
+		gf_filter_pid_get_packet(ds->ipid);
+	}
+
 	//reset - don't destroy, it is in the MPD
 	ctx->current_period->period = NULL;
 	//switch
