@@ -1020,13 +1020,13 @@ GF_Err ienc_box_read(GF_Box *s, GF_BitStream *bs)
 	nb_keys = gf_bs_read_u8(bs);
 	if (nb_keys * (sizeof(bin128)+1) > p->size)
 		return GF_NON_COMPLIANT_BITSTREAM;
-	p->key_info_size = 3+p->size;
+	p->key_info_size = (u32) (3+p->size);
 	p->key_info = gf_malloc(sizeof(u8) * p->key_info_size);
 	if (!p->key_info) return GF_OUT_OF_MEM;
 	p->key_info[0] = 1;
 	p->key_info[1] = 0;
 	p->key_info[2] = nb_keys;
-	gf_bs_read_data(bs, p->key_info+3, p->size);
+	gf_bs_read_data(bs, p->key_info+3, (u32) p->size);
 	p->size = 0;
 	if (!gf_cenc_validate_key_info(p->key_info, p->key_info_size))
 		return GF_ISOM_INVALID_FILE;
@@ -1492,7 +1492,7 @@ import_next_sample:
 
 	if (!e && !image_props->sample_num && ((image_props->time<0) || image_props->end_time || image_props->step_time)) {
 		if (image_props->end_time || image_props->step_time) {
-			Float t = sample->DTS + sample->CTS_Offset;
+			Double t = (Double) (sample->DTS + sample->CTS_Offset);
 			t /= timescale;
 			if (image_props->step_time) {
 				t += image_props->step_time;
@@ -1574,7 +1574,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 	u32 nb_imgs=0, nb_src_imgs;
 	u32 nb_cols, nb_rows;
 	u32 last_valid_nb_cols;
-	Float ar;
+	Double ar;
 	u32 i, nb_items = gf_isom_get_meta_item_count(movie, root_meta, meta_track_number);
 	for (i=0; i<nb_items; i++) {
 		u32 an_item_id, item_type;
@@ -1625,13 +1625,13 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 	}
 	if (nb_imgs>1) {
 		while (nb_cols < nb_imgs) {
-			Float target_ar = nb_cols * w;
+			Double target_ar = ((Double) nb_cols) * w;
 			nb_rows = nb_imgs / nb_cols;
 			if (nb_rows * nb_cols != nb_imgs) {
 				nb_cols++;
 				continue;
 			}
-			target_ar /= nb_rows * h;
+			target_ar /= ((Double)nb_rows) * h;
 			if (target_ar >= ar) break;
 			last_valid_nb_cols = nb_cols;
 			nb_cols++;
