@@ -388,7 +388,11 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 
 	gf_odf_desc_del((GF_Descriptor *) iod);
 	if ( ! gf_isom_get_track_count(import->dest)) {
-		u32 timescale = gf_isom_get_timescale(import->orig);
+		u32 timescale;
+		if (import->moov_timescale<0)
+			timescale = gf_isom_get_media_timescale(import->orig, track_in);
+		else
+			timescale = gf_isom_get_timescale(import->orig);
 		gf_isom_set_timescale(import->dest, timescale);
 	}
 	clone_flags = GF_ISOM_CLONE_TRACK_NO_QT;
