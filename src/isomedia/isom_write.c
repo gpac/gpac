@@ -3416,6 +3416,11 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	if (dest_file->moov->mvhd->nextTrackID<= new_tk->Header->trackID)
 		dest_file->moov->mvhd->nextTrackID = new_tk->Header->trackID+1;
 
+	if (dest_file->auto_timescale) {
+		dest_file->auto_timescale = GF_FALSE;
+		new_tk->was_auto_timescale = GF_TRUE;
+		gf_isom_set_timescale(dest_file, new_tk->Media->mediaHeader->timeScale);
+	}
 	return GF_OK;
 }
 
