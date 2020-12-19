@@ -4962,7 +4962,10 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//not setup, create new AS
 		ds->set = gf_mpd_adaptation_set_new();
 		ds->owns_set = GF_TRUE;
-		ds->set->hls_intra_only = !ds->has_sync_points;
+		//only set hls intra for visual stream if we have GF_PROP_PID_HAS_SYNC set to false
+		if ((ds->stream_type==GF_STREAM_VISUAL) && gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HAS_SYNC)) {
+			ds->set->hls_intra_only = !ds->has_sync_points;
+		}
 		if (ctx->llhls) {
 			ds->set->use_hls_ll = GF_TRUE;
 			if (ctx->cdur.den)
