@@ -3455,6 +3455,9 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 
 	if (sctx->filename) {
+		if (as->hls_intra_only) {
+			gf_fprintf(out,"#EXT-X-I-FRAMES-ONLY\n");
+		}
 		if (rep->hls_single_file_name) {
 			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", rep->hls_single_file_name);
 		}
@@ -3584,6 +3587,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	GF_MPD_AdaptationSet *as;
 	GF_MPD_Representation *rep;
 	Bool use_range = GF_FALSE;
+	Bool use_intra_only = GF_FALSE;
 	Bool use_init = GF_FALSE;
 	Bool use_ind_segments = GF_TRUE;
 	Bool is_fmp4 = GF_FALSE;
@@ -3602,6 +3606,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
 		if (gf_list_count(as->content_protection)) { /*use_crypt = GF_TRUE; */ }
 		if (as->starts_with_sap>2) use_ind_segments = GF_FALSE;
+		if (as->hls_intra_only) use_intra_only = GF_TRUE;
 
 		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
@@ -3629,6 +3634,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	//we by default use floating point durations
 	hls_version = 3;
 	if (use_range) hls_version = 4;
+	if (use_intra_only) hls_version = 5;
 	if (is_fmp4 || use_init) hls_version = 6;
 
 
@@ -3684,7 +3690,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 				name = gf_file_basename(rep->m3u8_var_name);
 			}
 			var_idx++;
-
 
 			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version);
 			if (e) {

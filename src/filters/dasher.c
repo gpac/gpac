@@ -1870,6 +1870,9 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	//not the same roles
 	if (!dasher_same_roles(ds, ds_test)) return GF_FALSE;
 
+	//intra-only trick mode belongs to a separate AS
+	if (ds->has_sync_points != ds_test->has_sync_points) return GF_FALSE;
+
 	/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 	   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
 	if (!ds->p_as_desc && ds_test->p_as_desc)
@@ -4967,6 +4970,10 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//not setup, create new AS
 		ds->set = gf_mpd_adaptation_set_new();
 		ds->owns_set = GF_TRUE;
+		//only set hls intra for visual stream if we have GF_PROP_PID_HAS_SYNC set to false
+		if ((ds->stream_type==GF_STREAM_VISUAL) && gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HAS_SYNC)) {
+			ds->set->hls_intra_only = !ds->has_sync_points;
+		}
 		if (ctx->llhls) {
 			ds->set->use_hls_ll = GF_TRUE;
 			if (ctx->cdur.den)
@@ -7816,6 +7823,7 @@ GF_FilterRegister DasherRegister = {
 "- Template: overrides segmenter [-template]() for this PID\n"
 "- DashDur: overrides segmenter segment duration for this PID\n"
 "- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
+"- IntraOnly: indicates input pid follows HLS EXT-X-I-FRAMES-ONLY guidelines\n"
 "- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 "  \n"
 "EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"
