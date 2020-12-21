@@ -3854,7 +3854,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 
 	nb_items = gf_isom_get_meta_item_count(ctx->file, GF_TRUE, 0);
 
-	e = gf_isom_add_meta_item_memory(ctx->file, GF_TRUE, 0, item_name, item_id, item_type, NULL, NULL, &image_props, (u8 *)data, size, NULL);
+	e = gf_isom_add_meta_item_memory(ctx->file, GF_TRUE, 0, item_name, &item_id, item_type, NULL, NULL, &image_props, (u8 *)data, size, NULL);
 
 	if (config_box) gf_isom_box_del(config_box);
 

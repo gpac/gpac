@@ -1429,7 +1429,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	} else {
 		gf_bs_write_data(sai_bs, cstr->keys[0].IV, cstr->tci->keys[0].IV_size);
 	}
-	sai_size = nb_sub_offset = gf_bs_get_position(sai_bs);
+	sai_size = nb_sub_offset = (u32) gf_bs_get_position(sai_bs);
 
 	while (gf_bs_available(ctx->bs_r)) {
 		GF_Err e=GF_OK;

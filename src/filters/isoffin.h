@@ -195,6 +195,7 @@ typedef struct
 
 	Bool needs_pid_reconfig;
 	u32 sap_only;
+	Bool check_has_rap;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);

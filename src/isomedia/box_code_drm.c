@@ -883,7 +883,7 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 num_keys = gf_bs_peek_bits(bs, 16, 0);
 		if (num_keys * 17 > ptr->size)
 			return GF_NON_COMPLIANT_BITSTREAM;
-		ptr->key_info_size = 1+ptr->size+2; //we just did a decrease_size(2) before the peek
+		ptr->key_info_size = (u32) (1+ptr->size+2); //we just did a decrease_size(2) before the peek
 		ptr->key_info = gf_malloc(sizeof(char) * ptr->key_info_size);
 		if (!ptr->key_info) return GF_OUT_OF_MEM;
 		ptr->key_info[0] = 1;
@@ -1470,7 +1470,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				nb_subs = gf_bs_read_int(bs, nb_subs_bits);
 			}
 
-			sai->cenc_data_size = gf_bs_get_position(bs) - sai_start ;
+			sai->cenc_data_size = (u32) (gf_bs_get_position(bs) - sai_start);
 			sai->cenc_data_size += nb_subs * nb_bytes_subsample;
 			gf_bs_seek(bs, sai_start);
 

@@ -549,7 +549,7 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 					bin128 key;
 					char *key_str = ctx->keys.vals[j];
 					if (!strncmp(key_str, "0x", 2)) key_str+= 2;
-					len = strlen(key_str);
+					len = (u32) strlen(key_str);
 					if (len!=32) {
 						cstr->crypts[i].key_valid = GF_FALSE;
 						break;

@@ -5995,10 +5995,11 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	}
 	rvcc->predefined_rvc_config = rvc_predefined;
 	if (!rvc_predefined) {
+		u32 it_id=0,
 		e = gf_isom_set_meta_type(movie, GF_FALSE, track, GF_META_TYPE_RVCI);
 		if (e) return e;
 		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_ISO2, GF_TRUE);
-		e = gf_isom_add_meta_item_memory(movie, GF_FALSE, track, "rvcconfig.xml", 0, GF_META_ITEM_TYPE_MIME, mime, NULL, NULL, data, size, NULL);
+		e = gf_isom_add_meta_item_memory(movie, GF_FALSE, track, "rvcconfig.xml", &it_id, GF_META_ITEM_TYPE_MIME, mime, NULL, NULL, data, size, NULL);
 		if (e) return e;
 		rvcc->rvc_meta_idx = gf_isom_get_meta_item_count(movie, GF_FALSE, track);
 	}

@@ -774,7 +774,7 @@ void gf_scene_buffering_info(GF_Scene *scene, Bool rebuffer_done)
 
 	//if buffering, fire GF_EVENT_MEDIA_PROGRESS - use the min buffer we just computed
 	if ((rebuffer_done || scene->nb_buffering) && max_buffer) {
-		gf_odm_service_media_event_with_download(scene->root_od, GF_EVENT_MEDIA_PROGRESS, 0, 0, 0, (u32) (100 * cur_buffer / max_buffer) + 1, min_time);
+		gf_odm_service_media_event_with_download(scene->root_od, GF_EVENT_MEDIA_PROGRESS, 0, 0, 0, (u32) (100 * cur_buffer / max_buffer) + 1, (u32) min_time);
 	}
 
 	evt.type = GF_EVENT_PROGRESS;
