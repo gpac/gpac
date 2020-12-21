@@ -2221,6 +2221,8 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * ref: do not copy the data but refer to the final sample location
 .br
+* agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will try to have AR aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden
+.br
 - any other options will be passed as options to the media importer, see .I add
 .br
 .TP
@@ -2420,7 +2422,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev368-g4bd1aafcb-master
+build: 1.1.0-DEV-rev371-g47b2cc457-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

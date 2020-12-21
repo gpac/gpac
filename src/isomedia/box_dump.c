@@ -5199,7 +5199,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				u8 idx = gf_bs_read_u8(bs);
 				u8 iv_size = key_info_get_iv_size(sai->key_info, nb_keys, idx, NULL, NULL);
 				assert(iv_size);
-				pos = gf_bs_get_position(bs);
+				pos = (u32) gf_bs_get_position(bs);
 				gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, iv_size);
 				dump_data_hex(trace, (char *) sai->cenc_data+pos, iv_size);
 				gf_bs_skip_bytes(bs, iv_size);

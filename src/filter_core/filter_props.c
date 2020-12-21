@@ -503,14 +503,30 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	return p;
 }
 
-Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
+static u32 get_prop_base_type(u32 type)
+{
+	switch (type) {
+	case GF_PROP_STRING:
+	case GF_PROP_NAME:
+	case GF_PROP_STRING_NO_COPY:
+		return GF_PROP_STRING;
+	case GF_PROP_DATA_NO_COPY:
+	case GF_PROP_DATA:
+	case GF_PROP_CONST_DATA:
+		return GF_PROP_DATA;
+	default:
+		return type;
+	}
+}
+
+Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue *p2, Bool strict_compare)
 {
 	if (p1->type!=p2->type) {
-		if ((p1->type == GF_PROP_STRING) && (p2->type == GF_PROP_NAME) ) {
-		} else if ((p2->type == GF_PROP_STRING) && (p1->type == GF_PROP_NAME) ) {
-		} else {
+		u32 p1_base = get_prop_base_type(p1->type);
+		u32 p2_base = get_prop_base_type(p2->type);
+
+		if (p1_base != p2_base)
 			return GF_FALSE;
-		}
 	}
 
 	switch (p1->type) {
@@ -547,11 +563,14 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 
 
 	case GF_PROP_STRING:
+	case GF_PROP_STRING_NO_COPY:
 	case GF_PROP_NAME:
 		if (!p1->value.string) return p2->value.string ? GF_FALSE : GF_TRUE;
 		if (!p2->value.string) return GF_FALSE;
-		if (!strcmp(p1->value.string, "*")) return GF_TRUE;
-		if (!strcmp(p2->value.string, "*")) return GF_TRUE;
+		if (!strict_compare) {
+			if (!strcmp(p1->value.string, "*")) return GF_TRUE;
+			if (!strcmp(p2->value.string, "*")) return GF_TRUE;
+		}
 		if (strchr(p2->value.string, '|')) {
 			u32 len = (u32) strlen(p1->value.string);
 			char *cur = p2->value.string;
@@ -580,6 +599,7 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		return !strcmp(p1->value.string, p2->value.string) ? GF_TRUE : GF_FALSE;
 
 	case GF_PROP_DATA:
+	case GF_PROP_DATA_NO_COPY:
 	case GF_PROP_CONST_DATA:
 		if (!p1->value.data.ptr) return p2->value.data.ptr ? GF_FALSE : GF_TRUE;
 		if (!p2->value.data.ptr) return GF_FALSE;
@@ -625,6 +645,14 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 		break;
 	}
 	return GF_FALSE;
+}
+Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
+{
+	return gf_props_equal_internal(p1, p2, GF_FALSE);
+}
+Bool gf_props_equal_strict(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
+{
+	return gf_props_equal_internal(p1, p2, GF_TRUE);
 }
 
 #if GF_PROPS_HASHTABLE_SIZE

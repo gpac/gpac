@@ -4539,10 +4539,26 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value, Bool is_info)
 {
 	GF_PropertyMap *map;
-
+	const GF_PropertyValue *oldp;
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name));
 		return GF_BAD_PARAM;
+	}
+
+	if (prop_4cc) {
+		oldp = gf_filter_pid_get_property(pid, prop_4cc);
+	} else {
+		oldp = gf_filter_pid_get_property_str(pid, prop_name ? prop_name : dyn_name);
+	}
+	if (!oldp && !value)
+		return GF_OK;
+	if (oldp && value) {
+		if (gf_props_equal_strict(oldp, value)) {
+			if (value->type==GF_PROP_DATA_NO_COPY) gf_free(value->value.data.ptr);
+			else if (value->type==GF_PROP_STRING_NO_COPY) gf_free(value->value.string);
+			else if (value->type==GF_PROP_STRING_LIST) gf_props_reset_single((GF_PropertyValue *) value);
+			return GF_OK;
+		}
 	}
 
 	//info property, do not request a new property map

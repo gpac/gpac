@@ -674,6 +674,10 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? GF_TRUE : GF_FALSE;
 	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
+	//some fragmented files do not advertize a sync sample table (legal) so we need to update as soon as we fetch a fragment
+	//to see if we are all-intra (as detected here) or not
+	if (!ch->has_rap && ch->owner->frag_type)
+		ch->check_has_rap = GF_TRUE;
 	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
 	ts_shift = gf_isom_get_cts_to_dts_shift(ch->owner->mov, ch->track);
@@ -1278,6 +1282,13 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (ch->needs_pid_reconfig) {
 					isor_update_channel_config(ch);
 					ch->needs_pid_reconfig = GF_FALSE;
+				}
+
+				//we have at least two samples, update GF_PROP_PID_HAS_SYNC if needed
+				if (ch->check_has_rap && (gf_isom_get_sample_count(ch->owner->mov, ch->track)>1) && (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1)) {
+					ch->check_has_rap = GF_FALSE;
+					ch->has_rap = GF_TRUE;
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
 				}
 
 				//strip param sets from payload, trigger reconfig if needed

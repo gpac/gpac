@@ -637,8 +637,8 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 			prop->type = GF_PROP_UINT;
 			prop->value.uint = gf_codecid_parse(val_str);
 		} else if (p4cc==GF_PROP_PID_CHANNEL_LAYOUT) {
-			prop->type = GF_PROP_UINT;
-			prop->value.uint = gf_audio_fmt_get_layout_from_name(val_str);
+			prop->type = GF_PROP_LUINT;
+			prop->value.longuint = gf_audio_fmt_get_layout_from_name(val_str);
 		} else {
 			*prop = gf_props_parse_value(type, NULL, val_str, NULL, gf_filter_get_sep(filter, GF_FS_SEP_LIST));
 		}

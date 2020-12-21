@@ -92,6 +92,7 @@ enum
 	GF_CRYPT_SELENC_CLEAR_FORCED,
 };
 
+/*! Key info structure, one per defined key in the DRM XML doc*/
 typedef struct
 {
 	/*! KEY ID*/
