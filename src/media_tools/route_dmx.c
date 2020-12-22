@@ -1289,10 +1289,13 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					lreg->order = 1; //default
 					while ((att = gf_list_enum(node->attributes, &l))) {
 						if (!strcmp(att->name, "codePoint")) lreg->codepoint = (u8) atoi(att->value);
-						else if (!strcmp(att->name, "formatID")) lreg->format_id = (u8) atoi(att->value);
+						else if (!strcmp(att->name, "formatId")) lreg->format_id = (u8) atoi(att->value);
 						else if (!strcmp(att->name, "frag")) lreg->frag = (u8) atoi(att->value);
-						else if (!strcmp(att->name, "order")) lreg->order = (u8) atoi(att->value);
-						else if (!strcmp(att->name, "srcFecPayloadID")) lreg->src_fec_payload_id = (u8) atoi(att->value);
+						else if (!strcmp(att->name, "order")) {
+							if (!strcmp(att->value, "true")) lreg->order = 1;
+							else lreg->order = 0;
+						}
+						else if (!strcmp(att->name, "srcFecPayloadId")) lreg->src_fec_payload_id = (u8) atoi(att->value);
 					}
 					if (lreg->src_fec_payload_id) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d payload format indicates srcFecPayloadId %d (reserved), assuming 0\n", s->service_id, lreg->src_fec_payload_id));
@@ -1300,9 +1303,9 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					}
 					if (lreg->format_id != 1) {
 						if (lreg->format_id && (lreg->format_id<5)) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d payload formatID %d not supported\n", s->service_id, lreg->format_id));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d payload formatId %d not supported\n", s->service_id, lreg->format_id));
 						} else {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d payload formatID %d reserved, assuming 1\n", s->service_id, lreg->format_id));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d payload formatId %d reserved, assuming 1\n", s->service_id, lreg->format_id));
 						}
 					}
 					rlct->nb_cps++;

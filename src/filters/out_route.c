@@ -1091,7 +1091,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 			//we always operate in file mode for now
 			snprintf(temp, 1000,
-					"    <Payload codePoint=\"%d\" formatID=\"%d\" frag=\"0\" order=\"1\" srcFecPayloadID=\"0\"/>\n"
+					"    <Payload codePoint=\"%d\" formatId=\"%d\" frag=\"0\" order=\"true\" srcFecPayloadId=\"0\"/>\n"
 					, rpid->fmtp, rpid->mode);
 
 			gf_dynstrcat(&payload_text, temp, NULL);
