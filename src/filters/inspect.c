@@ -339,7 +339,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			i++;
 		}
 
-		gf_fprintf(dump, "<SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"/>", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
+		gf_fprintf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"/>\n", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
@@ -719,7 +719,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			dump_sei(dump, bs, GF_TRUE);
 			if (!pctx) gf_bs_del(bs);
-			gf_fprintf(dump, "</NALU>\n");
+			gf_fprintf(dump, "   </NALU>\n");
 		} else {
 			gf_fprintf(dump, "/>\n");
 		}
@@ -935,7 +935,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			dump_sei(dump, bs, GF_TRUE);
 			if (!pctx) gf_bs_del(bs);
-			gf_fprintf(dump, "</NALU>\n");
+			gf_fprintf(dump, "   </NALU>\n");
 		} else {
 			gf_fprintf(dump, "/>\n");
 		}
@@ -1134,7 +1134,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		gf_fprintf(dump, ">\n");
 		gf_bs_set_logger(bs, NULL, NULL);
 		dump_sei(dump, bs, GF_FALSE);
-		gf_fprintf(dump, "</NALU>\n");
+		gf_fprintf(dump, "   </NALU>\n");
 	} else {
 		gf_fprintf(dump, "/>\n");
 	}
