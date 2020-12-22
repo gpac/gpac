@@ -26,7 +26,7 @@
 #include "filter_session.h"
 #include <gpac/constants.h>
 
-void pcki_del(GF_FilterPacketInstance *pcki)
+static void pcki_del(GF_FilterPacketInstance *pcki)
 {
 	assert(pcki->pck->reference_count);
 	if (safe_int_dec(&pcki->pck->reference_count) == 0) {
@@ -397,7 +397,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	gf_mx_v(filter->tasks_mx);
 }
 
-void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPidInst *pidinst, GF_FilterPidInst *dst_swapinst)
+static void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPidInst *pidinst, GF_FilterPidInst *dst_swapinst)
 {
 	u32 i, j;
 
@@ -447,7 +447,7 @@ void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid, GF_Fil
 	gf_filter_post_remove(filter);
 }
 
-void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
+static void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 {
 	GF_FilterPidInst *pidinst = task->udta;
 	GF_Filter *filter = pidinst->filter;
@@ -468,7 +468,7 @@ void gf_filter_pid_inst_swap_delete_task(GF_FSTask *task)
 	gf_filter_pid_inst_swap_delete(filter, pid, pidinst, dst_swapinst);
 }
 
-void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
+static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 {
 	GF_PropertyMap *prev_dst_props;
 	u32 nb_pck_transfer=0;

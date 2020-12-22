@@ -3099,7 +3099,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (compositor->no_regulation)
 		return;
 
-	/*we are in bench mode, just release for a moment the composition, oherwise we will constantly lock the compositor wich may have impact on scene decoding*/
+	/*we are in bench mode, just release for a moment the composition, oherwise we will constantly lock the compositor which may have impact on scene decoding*/
 	if (compositor->bench_mode) {
 		gf_sleep(0);
 		return;
