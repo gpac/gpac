@@ -1574,6 +1574,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 	u32 nb_imgs=0, nb_src_imgs;
 	u32 nb_cols, nb_rows;
 	u32 last_valid_nb_cols;
+	Bool first_pass = GF_TRUE;
 	Double ar;
 	u32 i, nb_items = gf_isom_get_meta_item_count(movie, root_meta, meta_track_number);
 	for (i=0; i<nb_items; i++) {
@@ -1616,13 +1617,11 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 	}
 	nb_src_imgs = nb_imgs;
 
+recompute_grid:
 	nb_cols=1;
 	nb_rows=1;
 	last_valid_nb_cols = 0;
-	if (nb_imgs % 2) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Not an even number of images, removing last item from grid\n"));
-		nb_imgs--;
-	}
+
 	if (nb_imgs>1) {
 		while (nb_cols < nb_imgs) {
 			Double target_ar = ((Double) nb_cols) * w;
@@ -1641,6 +1640,16 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 		nb_cols = last_valid_nb_cols;
 		nb_rows = nb_imgs / nb_cols;
 	}
+
+	if (first_pass && (nb_imgs>1) && ((nb_cols==1) || (nb_rows==1) ) ) {
+		if (nb_imgs % 2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Not an even number of images, removing last item from grid\n"));
+			nb_imgs--;
+			first_pass = GF_FALSE;
+			goto recompute_grid;
+		}
+	}
+
 	memset(&props, 0, sizeof(props));
 	if (image_props)
 		memcpy(&props, image_props, sizeof(props));
