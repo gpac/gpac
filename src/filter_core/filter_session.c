@@ -1161,7 +1161,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 }
 
 //in mono thread mode, we cannot always sleep for the requested timeout in case there are more tasks to be processed
-//this defines the number of pending tasks above wich we limit sleep
+//this defines the number of pending tasks above which we limit sleep
 #define MONOTH_MIN_TASKS	2
 //this defines the sleep time for this case
 #define MONOTH_MIN_SLEEP	5
@@ -1881,7 +1881,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 					for (l=0; l<pidi->filter->num_output_pids; l++) {
 						GF_FilterPid *opid = gf_list_get(pidi->filter->output_pids, l);
 						//We cannot directly call process_event as this would make concurrent access to the filter
-						//wich we guarantee we will never do
+						//which we guarantee we will never do
 						//but we don't want to send a regular stop event which will reset PID buffers, so:
 						//- if called in main thread of session in single-thread mode we can safely force a STOP event
 						//otherwise:
