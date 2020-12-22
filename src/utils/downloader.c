@@ -3676,7 +3676,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 
 		if (cache_no_store) {
-			if (sess->cache_entry && !ContentLength && (rsp_code<300) ) {
+			if (sess->cache_entry && !ContentLength && !sess->chunked && (rsp_code<300) ) {
 				sess->use_cache_file = GF_FALSE;
 				gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
 				sess->cache_entry = NULL;
