@@ -1836,9 +1836,10 @@ static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
 	return GF_TRUE;
 }
 
-static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 src_track, Bool force_cat)
+static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u32 src_track, Bool force_cat, Bool *open_read_mode, char *fileName, char *tmp_dir)
 {
 	GF_AVCConfig *avc_src, *avc_dst;
+	GF_ISOFile *orig = *o_orig;
 	u32 dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 
 	avc_src = gf_isom_avc_config_get(orig, src_track, 1);
@@ -1855,6 +1856,12 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 s
 			gf_media_nal_rewrite_samples(dest, dst_tk, 8*avc_src->nal_unit_size);
 			avc_dst->nal_unit_size = avc_src->nal_unit_size;
 		} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
+			if (*open_read_mode) {
+				gf_isom_delete(orig);
+				orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
+				*o_orig = orig;
+				*open_read_mode = GF_FALSE;
+			}
 			gf_media_nal_rewrite_samples(orig, src_track, 8*avc_dst->nal_unit_size);
 		}
 
@@ -1883,10 +1890,11 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 s
 }
 
 #ifndef GPAC_DISABLE_HEVC
-static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 src_track, Bool force_cat)
+static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u32 src_track, Bool force_cat, Bool *open_read_mode, char *fileName, char *tmp_dir)
 {
 	u32 i;
 	GF_HEVCConfig *hevc_src, *hevc_dst;
+	GF_ISOFile *orig = *o_orig;
 	u32 dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 
 	hevc_src = gf_isom_hevc_config_get(orig, src_track, 1);
@@ -1901,6 +1909,14 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 			gf_media_nal_rewrite_samples(dest, dst_tk, 8*hevc_src->nal_unit_size);
 			hevc_dst->nal_unit_size = hevc_src->nal_unit_size;
 		} else if (hevc_src->nal_unit_size < hevc_dst->nal_unit_size) {
+
+			if (*open_read_mode) {
+				gf_isom_delete(orig);
+				orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
+				*o_orig = orig;
+				*open_read_mode = GF_FALSE;
+			}
+
 			gf_media_nal_rewrite_samples(orig, src_track, 8*hevc_dst->nal_unit_size);
 		}
 
@@ -1950,6 +1966,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	u32 dst_tk, tk_id, mtype;
 	u64 insert_dts;
 	Bool is_isom;
+	Bool open_read_mode = GF_TRUE;
 	GF_ISOSample *samp;
 	GF_Fraction64 aligned_to_DTS_frac;
 
@@ -1974,9 +1991,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
 		if (e) return e;
+		open_read_mode = GF_FALSE;
 	} else {
-		/*we open the original file in edit mode since we may have to rewrite AVC samples*/
-		orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
+		//open by default in read mode, will reopen in edit mode if needed (NALU rewrite, to optimize ...)
+		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ, tmp_dir);
+		open_read_mode = GF_TRUE;
 	}
 
 	while (multi_cat) {
@@ -2196,7 +2215,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				        || (stype == GF_ISOM_SUBTYPE_AVC2_H264)
 				        || (stype == GF_ISOM_SUBTYPE_AVC3_H264)
 				        || (stype == GF_ISOM_SUBTYPE_AVC4_H264) ) {
-					dst_tk = merge_avc_config(dest, tk_id, orig, i+1, force_cat);
+					dst_tk = merge_avc_config(dest, tk_id, &orig, i+1, force_cat, &open_read_mode, fileName, tmp_dir);
 				}
 #ifndef GPAC_DISABLE_HEVC
 				/*merge HEVC config if possible*/
@@ -2204,7 +2223,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				         || (stype == GF_ISOM_SUBTYPE_HEV1)
 				         || (stype == GF_ISOM_SUBTYPE_HVC2)
 				         || (stype == GF_ISOM_SUBTYPE_HEV2)) {
-					dst_tk = merge_hevc_config(dest, tk_id, orig, i+1, force_cat);
+					dst_tk = merge_hevc_config(dest, tk_id, &orig, i+1, force_cat, &open_read_mode, fileName, tmp_dir);
 				}
 #endif /*GPAC_DISABLE_HEVC*/
 				else if (force_cat) {
