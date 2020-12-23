@@ -1990,6 +1990,14 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		if (set->max_framerate * ds->fps.den < ds->fps.num) set->max_framerate = (u32) (ds->fps.num / ds->fps.den);
 */
 
+		/*set trick mode*/
+		if (set->intra_only) {
+			char value[256];
+			GF_MPD_Descriptor* desc;
+			sprintf(value, "%d", ds->as_id);
+			desc = gf_mpd_descriptor_new(NULL, "http://dashif.org/guidelines/trickmode", value);
+			gf_list_add(set->essential_properties, desc);
+		}
 		/*set role*/
 		if (ds->p_role) {
 			u32 j, role_count;
@@ -4972,7 +4980,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		ds->owns_set = GF_TRUE;
 		//only set hls intra for visual stream if we have GF_PROP_PID_HAS_SYNC set to false
 		if ((ds->stream_type==GF_STREAM_VISUAL) && gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HAS_SYNC)) {
-			ds->set->hls_intra_only = !ds->has_sync_points;
+			ds->set->intra_only = !ds->has_sync_points;
 		}
 		if (ctx->llhls) {
 			ds->set->use_hls_ll = GF_TRUE;
