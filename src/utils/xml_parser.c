@@ -1619,10 +1619,10 @@ struct _tag_dom_parser
 
 
 GF_EXPORT
-void gf_xml_dom_node_del(GF_XMLNode *node)
+void gf_xml_dom_node_reset(GF_XMLNode *node, Bool reset_attribs, Bool reset_children)
 {
 	if (!node) return;
-	if (node->attributes) {
+	if (node->attributes && reset_attribs) {
 		while (gf_list_count(node->attributes)) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_last(node->attributes);
 			gf_list_rem_last(node->attributes);
@@ -1630,16 +1630,24 @@ void gf_xml_dom_node_del(GF_XMLNode *node)
 			if (att->value) gf_free(att->value);
 			gf_free(att);
 		}
-		gf_list_del(node->attributes);
 	}
-	if (node->content) {
+
+	if (reset_children && node->content) {
 		while (gf_list_count(node->content)) {
 			GF_XMLNode *child = (GF_XMLNode *)gf_list_last(node->content);
 			gf_list_rem_last(node->content);
 			gf_xml_dom_node_del(child);
 		}
-		gf_list_del(node->content);
 	}
+}
+
+GF_EXPORT
+void gf_xml_dom_node_del(GF_XMLNode *node)
+{
+	if (!node) return;
+	gf_xml_dom_node_reset(node, GF_TRUE, GF_TRUE);
+	if (node->attributes) gf_list_del(node->attributes);
+	if (node->content) gf_list_del(node->content);
 	if (node->ns) gf_free(node->ns);
 	if (node->name) gf_free(node->name);
 	gf_free(node);
