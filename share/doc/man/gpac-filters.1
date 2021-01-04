@@ -2455,6 +2455,8 @@ zorder (sint, default: 0):     default z-order of the PID
 .br
 timescale (uint, default: 1000): default timescale of the PID
 .br
+sttml (bool, default: false):  force importing TTML doc as a single sample
+.br
 
 .br
 .SH ttxtdec
@@ -4005,6 +4007,8 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 * DashDur: overrides segmenter segment duration for this PID
 .br
 * StartNumber: sets the start number for the first segment in the PID, default is 1
+.br
+* IntraOnly: indicates input pid follows HLS EXT-X-I-FRAMES-ONLY guidelines
 .br
 * Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 .br
@@ -7128,7 +7132,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev371-g47b2cc457-master
+build: 1.1.0-DEV-rev401-gdd32961d2-master
 .br
 Copyright: (c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -49,7 +49,7 @@ struct __txtin_ctx
 	u32 width, height, txtx, txty, fontsize;
 	s32 zorder;
 	const char *fontname, *lang;
-	Bool nodefbox, noflush, webvtt;
+	Bool nodefbox, noflush, webvtt, sttml;
 	u32 timescale;
 	GF_Fraction fps;
 
@@ -1275,6 +1275,13 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 	interval = NULL;
 	for (i=0; i<gf_list_count(ctx->intervals); i++) {
 		interval = gf_list_get(ctx->intervals, i);
+
+		//generate a single sample for the input, merge interval
+		if (ctx->sttml) {
+			if (interval->begin > begin) interval->begin = begin;
+			if (interval->end < end) interval->end = end;
+			return GF_OK;
+		}
 		//contained, do nothing
 		if ((begin>=interval->begin) && (end<=interval->end))
 			return GF_OK;
@@ -3201,6 +3208,7 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sttml), "force importing TTML doc as a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
