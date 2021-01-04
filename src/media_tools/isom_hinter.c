@@ -793,8 +793,12 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 				}
 				remain -= size;
 				tkHint->rtp_p->sl_header.accessUnitEndFlag = remain ? 0 : 1;
-				e = gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + GF_RTP_TX3G_SIDX_OFFSET) );
-				ptr += size;
+				if (!size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp hinter] Broken AVC nalu encapsulation: NALU size is 0, ignoring it\n", size));
+				} else {
+					e = gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + GF_RTP_TX3G_SIDX_OFFSET) );
+					ptr += size;
+				}
 				tkHint->rtp_p->sl_header.accessUnitStartFlag = 0;
 			}
 		} else {
