@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -98,6 +98,7 @@ struct __txtin_ctx
 	GF_XMLNode *root_working_copy, *div_node, *sample_list_node;
 	GF_DOMParser *parser_working_copy;
 	Bool non_compliant_ttml;
+	u32 tick_rate, ttml_fps_num, ttml_fps_den, ttml_sfps;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	//SWF text
@@ -1164,13 +1165,96 @@ static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **sample_list_no
 
 #define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
 
-static s64 ttml_get_timestamp(const char *value)
+static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 {
-	u32 h, m, s, ms;
+	u32 h, m, s, ms, f, sf;
 	s64 ts = -1;
-	if (sscanf(value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+	u32 len = (u32) strlen(value);
+	//check metrics, 't' for ticks, 'h' for hours, 'm' for minutes, 's' for seconds, 'ms' for milliseconds
+	//tick metrick - cannot be fractional
+	if (len && (value[len-1]=='t')) {
+		value[len-1] = 0;
+		ts = (s64) (atof(value) * 1000);
+		value[len-1] = 't';
+		if (ctx->tick_rate)
+			ts /= ctx->tick_rate;
+	}
+	//hours metric, can be fractional
+	else if (len && (value[len-1]=='h')) {
+		value[len-1] = 0;
+		ts = (s64) (atof(value) * 1000 * 3600);
+		value[len-1] = 'h';
+	}
+	//minutes metric, can be fractional
+	else if (len && (value[len-1]=='m')) {
+		value[len-1] = 0;
+		ts = (s64) (atof(value) * 1000 * 60);
+		value[len-1] = 'm';
+	}
+	else if (len && (value[len-1]=='s')) {
+		//milliseconds metric, can be fractional but we work at 1ms clock resolution anyway
+		if ((len > 1) && (value[len-2]=='m')) {
+			value[len-2] = 0;
+			ts = (s64) (atof(value));
+			value[len-2] = 'm';
+		}
+		//seconds metric, can be fractional
+		else {
+			value[len-1] = 0;
+			ts = (s64) (atof(value) * 1000);
+			value[len-1] = 's';
+		}
+	}
+	//frames metric, can be fractional
+	else if (len && (value[len-1]=='f')) {
+		f = sf = 0;
+		value[len-1] = 0;
+		if (sscanf(value, "%u.%u", &f, &sf) != 2) {
+			sscanf(value, "%u", &f);
+			sf = 0;
+		}
+		value[len-1] = 'f';
+
+		if (!ctx->ttml_fps_num) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+			ctx->ttml_fps_num = 25;
+			ctx->ttml_fps_den = 1;
+		}
+		if (sf && !ctx->ttml_sfps) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
+			ctx->ttml_sfps = 1;
+		}
+		ts = ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+		if (sf)
+			ts += ((s64) 1000 * sf * ctx->ttml_fps_den / ctx->ttml_sfps) / ctx->ttml_fps_num;
+	}
+	else if (sscanf(value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 		ts = (h*3600 + m*60+s)*1000+ms;
-	} else if (sscanf(value, "%u:%u:%u", &h, &m, &s) == 3) {
+	}
+	else if (sscanf(value, "%u:%u:%u:%u.%u", &h, &m, &s, &f, &sf) == 5) {
+		ts = (h*3600 + m*60+s)*1000;
+		if (!ctx->ttml_fps_num) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+			ctx->ttml_fps_num = 25;
+			ctx->ttml_fps_den = 1;
+		}
+		if (!ctx->ttml_sfps) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
+			ctx->ttml_sfps = 1;
+		}
+		ts += ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+		ts += ((s64) 1000 * sf * ctx->ttml_fps_den / ctx->ttml_sfps) / ctx->ttml_fps_num;
+	}
+	else if (sscanf(value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+		ts = (h*3600 + m*60+s)*1000;
+		if (!ctx->ttml_fps_num) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+			ctx->ttml_fps_num = 25;
+			ctx->ttml_fps_den = 1;
+		}
+		ts += ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+	}
+	else if (sscanf(value, "%u:%u:%u", &h, &m, &s) == 3) {
 		ts = (h*3600 + m*60+s)*1000;
 	}
 	return ts;
@@ -1264,10 +1348,10 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 		p_idx = 0;
 		while ( (p_att = (GF_XMLAttribute*)gf_list_enum(adiv_child->attributes, &p_idx))) {
 			if (!strcmp(p_att->name, "begin")) {
-				begin = ttml_get_timestamp(p_att->value);
+				begin = ttml_get_timestamp(ctx, p_att->value);
 			}
 			if (!strcmp(p_att->name, "end")) {
-				end = ttml_get_timestamp(p_att->value);
+				end = ttml_get_timestamp(ctx, p_att->value);
 			}
 		}
 		e = ttml_push_interval(ctx, begin, end);
@@ -1283,9 +1367,9 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 			GF_XMLAttribute *span_att;
 			while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
 				if (!strcmp(span_att->name, "begin")) {
-					s_begin = ttml_get_timestamp(span_att->value);
+					s_begin = ttml_get_timestamp(ctx, span_att->value);
 				} else if (!strcmp(span_att->name, "end")) {
-					s_end = ttml_get_timestamp(span_att->value);
+					s_end = ttml_get_timestamp(ctx, span_att->value);
 				}
 			}
 			e = ttml_push_interval(ctx, s_begin, s_end);
@@ -1295,7 +1379,7 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 
 	for (k=0; k<gf_list_count(ctx->intervals); k++) {
 		TTMLInterval *ival = gf_list_get(ctx->intervals, k);
-		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
 	}
 
 	return GF_OK;
@@ -1305,6 +1389,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	GF_Err e;
 	u32 i, nb_children, ID;
 	u64 file_size;
+	s32 sub_fps_num, sub_fps_den;
 	GF_XMLAttribute *att;
 	GF_XMLNode *root, *node, *body_node;
 	const char *lang = ctx->lang;
@@ -1343,9 +1428,16 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 
 	/*** root (including language) ***/
+	sub_fps_num = 0;
+	sub_fps_den = 0;
 	i=0;
 	while ( (att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
+		const char *att_name;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML] Found root attribute name %s, value %s\n", att->name, att->value));
+
+		att_name = strchr(att->name, ':');
+		if (att_name) att_name++;
+		else att_name = att->value;
 
 		if (!strcmp(att->name, "xmlns")) {
 			if (strcmp(att->value, TTML_NAMESPACE)) {
@@ -1353,9 +1445,38 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 				ctx->non_compliant_ttml = GF_TRUE;
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-		} else if (!strcmp(att->name, "xml:lang") && att->value && strlen(att->value)) {
+		}
+		else if (!strcmp(att->name, "xml:lang") && att->value && strlen(att->value)) {
 			lang = att->value;
 		}
+		else if (!strcmp(att_name, "tickRate") && att->value) {
+			ctx->tick_rate = atoi(att->value);
+		}
+		else if (!strcmp(att_name, "frameRate") && att->value) {
+			ctx->ttml_fps_num = atoi(att->value);
+			ctx->ttml_fps_den = 1;
+		}
+		else if (!strcmp(att_name, "frameRateMultiplier") && att->value) {
+			char *sep = strchr(att->value, ' ');
+			if (!sep) sep = strchr(att->value, '\t');
+			if (sep) {
+				u8 c = sep[0];
+				sep[0] = 0;
+				sub_fps_num = atoi(sep);
+				sep[0] = c;
+				while ((sep[0]==' ') || (sep[0]=='\t'))
+					sep++;
+				sub_fps_den = atoi(sep);
+			}
+		}
+		else if (!strcmp(att_name, "subFrameRate") && att->value) {
+			ctx->ttml_sfps = atoi(att->value);
+		}
+	}
+
+	if (sub_fps_num && sub_fps_den && ctx->ttml_fps_num) {
+		ctx->ttml_fps_num *= sub_fps_num;
+		ctx->ttml_fps_den = sub_fps_den;
 	}
 
 	//locate body
@@ -1518,14 +1639,14 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
 				}
-				ts_begin = ttml_get_timestamp(p_att->value);
+				ts_begin = ttml_get_timestamp(ctx, p_att->value);
 			} else if (!strcmp(p_att->name, "end")) {
 				if (ts_end != -1) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute. Abort.\n"));
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
 				}
-				ts_end = ttml_get_timestamp(p_att->value);
+				ts_end = ttml_get_timestamp(ctx, p_att->value);
 			}
 		}
 
@@ -1555,14 +1676,14 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 						e = GF_NON_COMPLIANT_BITSTREAM;
 						goto exit;
 					}
-					ts_begin = ttml_get_timestamp(span_att->value);
+					ts_begin = ttml_get_timestamp(ctx, span_att->value);
 				} else if (!strcmp(span_att->name, "end")) {
 					if (ts_end != -1) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute under <span>. Abort.\n"));
 						e = GF_NON_COMPLIANT_BITSTREAM;
 						goto exit;
 					}
-					ts_end = ttml_get_timestamp(span_att->value);
+					ts_end = ttml_get_timestamp(ctx, span_att->value);
 				}
 			}
 
