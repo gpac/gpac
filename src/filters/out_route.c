@@ -939,10 +939,10 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		gf_dynstrcat(&payload_text, "\r\nContent-Location: usbd.xml\r\n\r\n", NULL);
 
 		snprintf(temp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-				"<bundleDescriptionROUTE xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/ROUTEUSD/1.0/\">\n"
-				" <userServiceDescription serviceId=\"%d\" globalServiceID=\"gpac://atsc30/us/%d/%d\" sTSIDUri=\"stsid.xml\">\n"
-				"  <deliveryMethod>\n"
-				"   <broadcastAppService>\n", service_id, ctx->bsid, service_id);
+				"<BundleDescriptionROUTE xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/ROUTEUSD/1.0/\">\n"
+				" <UserServiceDescription serviceId=\"%d\" globalServiceID=\"gpac://atsc30/us/%d/%d\" sTSIDUri=\"stsid.xml\">\n"
+				"  <DeliveryMethod>\n"
+				"   <BroadcastAppService>\n", service_id, ctx->bsid, service_id);
 		gf_dynstrcat(&payload_text, temp, NULL);
 
 		for (i=0;i<count; i++) {
@@ -956,18 +956,18 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				char *sep = strchr(tpl, '$');
 				if (sep) sep[0] = 0;
 				if (!strstr(payload_text, tpl)) {
-					gf_dynstrcat(&payload_text, "    <basePattern>", NULL);
+					gf_dynstrcat(&payload_text, "    <BasePattern>", NULL);
 					gf_dynstrcat(&payload_text, tpl, NULL);
-					gf_dynstrcat(&payload_text, "</basePattern>\n", NULL);
+					gf_dynstrcat(&payload_text, "</BasePattern>\n", NULL);
 				}
 				gf_free(tpl);
 			}
 		}
 
-		gf_dynstrcat(&payload_text, "   </broadcastAppService>\n"
-				"  </deliveryMethod>\n"
-				" </userServiceDescription>\n"
-				"</bundleDescriptionROUTE>\n\r\n", NULL);
+		gf_dynstrcat(&payload_text, "   </BroadcastAppService>\n"
+				"  </DeliveryMethod>\n"
+				" </UserServiceDescription>\n"
+				"</BundleDescriptionROUTE>\n\r\n", NULL);
 	}
 	//ROUTE: only inject manifest and S-TSID
 	else {
