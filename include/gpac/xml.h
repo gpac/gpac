@@ -344,6 +344,14 @@ GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child);
  */
 void gf_xml_dom_node_del(GF_XMLNode *node);
 
+/*! Reset  a node
+
+\param node the node to reset
+\param reset_attribs if GF_TRUE, reset all node attributes
+\param reset_children if GF_TRUE, reset all node children
+ */
+void gf_xml_dom_node_reset(GF_XMLNode *node, Bool reset_attribs, Bool reset_children);
+
 
 /*! Gets the element and check that the namespace is known ('xmlns'-only supported for now)
 \param n the node to process

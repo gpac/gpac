@@ -463,6 +463,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_serialize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_nodes_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_idx) )

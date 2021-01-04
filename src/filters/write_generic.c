@@ -238,10 +238,14 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 
 		if (!ctx->frame) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Subtitles re-assembling is not supported yet\n"));
-			return GF_NOT_SUPPORTED;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
+			if (!p || (p->value.uint>1)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Subtitles re-assembling is not supported yet\n"));
+				return GF_NOT_SUPPORTED;
+			}
+		} else {
+			ctx->split = GF_TRUE;
 		}
-		ctx->split = GF_TRUE;
 		if (ctx->decinfo == DECINFO_AUTO)
 			ctx->decinfo = DECINFO_FIRST;
 		break;

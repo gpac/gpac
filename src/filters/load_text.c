@@ -49,7 +49,7 @@ struct __txtin_ctx
 	u32 width, height, txtx, txty, fontsize;
 	s32 zorder;
 	const char *fontname, *lang;
-	Bool nodefbox, noflush, webvtt, sttml;
+	Bool nodefbox, noflush, webvtt, ttml_single, ttml_embed;
 	u32 timescale;
 	GF_Fraction fps;
 
@@ -99,6 +99,7 @@ struct __txtin_ctx
 	GF_DOMParser *parser_working_copy;
 	Bool non_compliant_ttml;
 	u32 tick_rate, ttml_fps_num, ttml_fps_den, ttml_sfps;
+	GF_List *ttml_resources;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	//SWF text
@@ -112,7 +113,15 @@ struct __txtin_ctx
 
 typedef struct
 {
+	u32 size;
+	u8 *data;
+	Bool global;
+} TTMLRes;
+
+typedef struct
+{
 	s64 begin, end;
+	GF_List *resources;
 } TTMLInterval;
 
 
@@ -1260,7 +1269,7 @@ static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 	return ts;
 }
 
-static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
+static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval **out_interval)
 {
 	u32 i;
 	TTMLInterval *interval;
@@ -1277,14 +1286,17 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 		interval = gf_list_get(ctx->intervals, i);
 
 		//generate a single sample for the input, merge interval
-		if (ctx->sttml) {
+		if (ctx->ttml_single) {
 			if (interval->begin > begin) interval->begin = begin;
 			if (interval->end < end) interval->end = end;
+			*out_interval = interval;
 			return GF_OK;
 		}
 		//contained, do nothing
-		if ((begin>=interval->begin) && (end<=interval->end))
+		if ((begin>=interval->begin) && (end<=interval->end)) {
+			*out_interval = interval;
 			return GF_OK;
+		}
 		//not overlapping
 		if ((end < interval->begin) || (begin > interval->end))
 			continue;
@@ -1295,7 +1307,7 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 				begin = interval->begin;
 			gf_list_rem(ctx->intervals, i);
 			gf_free(interval);
-			return ttml_push_interval(ctx, begin, end);
+			return ttml_push_interval(ctx, begin, end, out_interval);
 		}
 		//new interval starts before current and end before, remove current and push rewinded
 		if ((begin < interval->end) && (end <= interval->end)) {
@@ -1304,13 +1316,14 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 				begin = interval->begin;
 			gf_list_rem(ctx->intervals, i);
 			gf_free(interval);
-			return ttml_push_interval(ctx, begin, end);
+			return ttml_push_interval(ctx, begin, end, out_interval);
 		}
 	}
 	//need a new interval
 	GF_SAFEALLOC(interval, TTMLInterval);
 	interval->begin = begin;
 	interval->end = end;
+	*out_interval = interval;
 
 	for (i=0; i<gf_list_count(ctx->intervals); i++) {
 		TTMLInterval *an_interval = gf_list_get(ctx->intervals, i);
@@ -1325,9 +1338,168 @@ static void ttml_reset_intervals(GF_TXTIn *ctx)
 {
 	while (gf_list_count(ctx->intervals)) {
 		TTMLInterval *ival = gf_list_pop_back(ctx->intervals);
+		if (ival->resources) {
+			while (gf_list_count(ival->resources)) {
+				TTMLRes *ires = gf_list_pop_back(ival->resources);
+				if (!ires->global) {
+					gf_free(ires->data);
+					gf_free(ires);
+				}
+			}
+			gf_list_del(ival->resources);
+		}
 		gf_free(ival);
 	}
 }
+
+#include <gpac/base_coding.h>
+
+static GF_Err ttml_push_res(GF_TXTIn *ctx, TTMLInterval *interval, u8 *f_data, u32 f_size)
+{
+	GF_Err e;
+	TTMLRes *res;
+	GF_List *res_list;
+	if (interval) {
+		if (!interval->resources) {
+			if (ctx->ttml_resources)
+				interval->resources = gf_list_clone(ctx->ttml_resources);
+			else
+				interval->resources = gf_list_new();
+		}
+		res_list = interval->resources;
+	} else {
+		if (!ctx->ttml_resources) {
+			ctx->ttml_resources = gf_list_new();
+		}
+		res_list = ctx->ttml_resources;
+	}
+	if (!res_list) {
+		gf_free(f_data);
+		return GF_OUT_OF_MEM;
+	}
+	GF_SAFEALLOC(res, TTMLRes)
+	if (!res) {
+		gf_free(f_data);
+		return GF_OUT_OF_MEM;
+	}
+	res->size = f_size;
+	res->data = f_data;
+	if (!interval)
+		res->global = GF_TRUE;
+
+	e = gf_list_add(res_list, res);
+	if (e) {
+		gf_free(res);
+		gf_free(f_data);
+		return e;
+	}
+	return GF_OK;
+}
+
+static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLNode *node, GF_XMLNode *parent_source_node)
+{
+	u32 i;
+	char szURN[1024];
+	u8 *f_data;
+	u32 f_size;
+	u32 idx;
+	GF_Err e;
+	GF_XMLAttribute *att, *data_type = NULL;
+	GF_XMLNode *child;
+	Bool is_source = GF_FALSE;
+	Bool is_data = GF_FALSE;
+	Bool check_src = GF_FALSE;
+
+	if (!ctx->ttml_embed)
+		return GF_OK;
+
+	if (!strcmp(node->name, "source")) {
+		is_source = GF_TRUE;
+		check_src = GF_TRUE;
+	}
+	else if (!strcmp(node->name, "data")) {
+		is_data = parent_source_node ? GF_TRUE : GF_FALSE;
+		check_src = GF_TRUE;
+	}
+	//we don't embed chunks
+	else if (!strcmp(node->name, "chunk")) {
+		return GF_OK;
+	}
+	else if (!strcmp(node->name, "audio") || !strcmp(node->name, "font") || !strcmp(node->name, "image")) {
+		check_src = GF_TRUE;
+	}
+
+	if (check_src) {
+		i = 0;
+		while ( (att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &i))) {
+			char *url;
+			if (!att->value) continue;
+			if (is_data && !strcmp(att->name, "type")) {
+				data_type = att;
+				continue;
+			}
+			if (strcmp(att->name, "src")) continue;
+			if (att->value[0]=='#') continue;
+
+			if (!strncmp(att->value, "file://", 7)) {}
+			else if (strstr(att->value, "://"))
+				continue;
+
+			url = gf_url_concatenate(ctx->file_name, att->value);
+			//embed image
+			e = gf_file_load_data(url, &f_data, &f_size);
+			gf_free(url);
+			if (e) return e;
+
+			e = ttml_push_res(ctx, interval, f_data, f_size);
+			if (e) return e;
+
+			idx = gf_list_count(interval ? interval->resources : ctx->ttml_resources);
+			gf_free(att->value);
+			sprintf(szURN, "urn:mpeg:14496-30:%d", idx);
+			att->value = gf_strdup(szURN);
+			if (!att->value) return GF_OUT_OF_MEM;
+		}
+	}
+
+	i = 0;
+	while ( (child = (GF_XMLNode*) gf_list_enum(node->content, &i))) {
+		if (child->type) {
+			if (!is_data) continue;
+			u8 *data = child->name;
+			u32 ilen = strlen(data);
+			f_size = 3*ilen/4;
+			f_data = gf_malloc(sizeof(u8) * f_size);
+
+			f_size = gf_base64_decode(data, ilen, f_data, f_size);
+
+			e = ttml_push_res(ctx, interval, f_data, f_size);
+			if (e) return e;
+
+			idx = gf_list_count(interval ? interval->resources : ctx->ttml_resources);
+			sprintf(szURN, "urn:mpeg:14496-30:%d", idx);
+
+			GF_SAFEALLOC(att, GF_XMLAttribute)
+			if (att) {
+				att->name = gf_strdup("src");
+				att->value = gf_strdup(szURN);
+				gf_list_add(parent_source_node->attributes, att);
+			}
+			if (!att || !att->value || !att->name) return GF_OUT_OF_MEM;
+			if (data_type) {
+				gf_list_del_item(node->attributes, data_type);
+				gf_list_add(parent_source_node->attributes, data_type);
+			}
+			gf_xml_dom_node_reset(parent_source_node, GF_FALSE, GF_TRUE);
+			return GF_OK;
+		}
+
+		e = ttml_push_resources(ctx, interval, child, is_source ? node : NULL);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
 
 static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 {
@@ -1340,9 +1512,19 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	else
 		ttml_reset_intervals(ctx);
 
+	root = ctx->root_working_copy;
+	for (k=0; k<gf_list_count(root->content); k++) {
+		GF_XMLNode *head = (GF_XMLNode*)gf_list_get(root->content, k);
+		if (head->type) continue;
+		if (strcmp(head->name, "head")) continue;
+		ttml_push_resources(ctx, NULL, head, NULL);
+		break;
+	}
+
 	root = gf_xml_dom_get_root(ctx->parser);
 
 	for (k=0; k<ctx->nb_children; k++) {
+		TTMLInterval *ival=NULL;
 		u32 p_idx;
 		GF_XMLAttribute *p_att;
 		GF_XMLNode *p_node;
@@ -1361,7 +1543,10 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 				end = ttml_get_timestamp(ctx, p_att->value);
 			}
 		}
-		e = ttml_push_interval(ctx, begin, end);
+		e = ttml_push_interval(ctx, begin, end, &ival);
+		if (e) return e;
+
+		e = ttml_push_resources(ctx, ival, adiv_child, NULL);
 		if (e) return e;
 
 		p_idx = 0;
@@ -1379,7 +1564,10 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 					s_end = ttml_get_timestamp(ctx, span_att->value);
 				}
 			}
-			e = ttml_push_interval(ctx, s_begin, s_end);
+			e = ttml_push_interval(ctx, s_begin, s_end, &ival);
+			if (e) return e;
+
+			e = ttml_push_resources(ctx, ival, p_node, NULL);
 			if (e) return e;
 		}
 	}
@@ -1388,9 +1576,9 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 		TTMLInterval *ival = gf_list_get(ctx->intervals, k);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
 	}
-
 	return GF_OK;
 }
+
 static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	GF_Err e;
@@ -1594,8 +1782,9 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	GF_Err e;
 	GF_XMLNode *root;
-	u32 i;
+	u32 i, nb_res_interval=0;
 	char *samp_text=NULL;
+	GF_List *emb_resources = NULL;
 	TTMLInterval *interval;
 
 	if (!ctx->is_setup) return gf_text_ttml_setup(filter, ctx);
@@ -1617,6 +1806,9 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		return GF_EOS;
 	}
 	ctx->current_tt_interval++;
+
+	emb_resources = interval->resources ? interval->resources : ctx->ttml_resources;
+	nb_res_interval = gf_list_count(emb_resources);
 
 	root = gf_xml_dom_get_root(ctx->parser);
 
@@ -1659,6 +1851,10 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 
 		in_range = ttml_check_range(interval, ts_begin, ts_end);
 		if (in_range) {
+			GF_XMLNode *prev_child = i ? (GF_XMLNode*) gf_list_get(ctx->div_node->content, i-1) : NULL;
+			if (prev_child && prev_child->type) {
+				gf_xml_dom_append_child(ctx->sample_list_node, prev_child);
+			}
 			e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
 			assert(e == GF_OK);
 		}
@@ -1697,6 +1893,10 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			/*append the entire <p> and break (we cannot split the text content)*/
 			in_range = ttml_check_range(interval, ts_begin, ts_end);
 			if (in_range) {
+				GF_XMLNode *prev_child = i ? (GF_XMLNode*) gf_list_get(ctx->div_node->content, i-1) : NULL;
+				if (prev_child && prev_child->type) {
+					gf_xml_dom_append_child(ctx->sample_list_node, prev_child);
+				}
 				e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
 				assert(e == GF_OK);
 				break;
@@ -1705,6 +1905,11 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 
 	if (gf_list_count(ctx->sample_list_node->content)) {
+		GF_XMLNode *last_child = (GF_XMLNode*) gf_list_last(ctx->div_node->content);
+		if (last_child && last_child->type) {
+			gf_xml_dom_append_child(ctx->sample_list_node, last_child);
+		}
+
 		samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
 		gf_list_reset(ctx->sample_list_node->content);
 	}
@@ -1714,6 +1919,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		u8 *pck_data;
 		Bool skip_pck = GF_FALSE;
 		u32 txt_len;
+		u32 res_len = 0;
 		char *txt_str;
 
 
@@ -1726,6 +1932,11 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		txt_str = ttxt_parse_string(samp_text, GF_TRUE);
 		if (!txt_str) txt_str = "";
 		txt_len = (u32) strlen(txt_str);
+
+		for (i=0; i<nb_res_interval; i++) {
+			TTMLRes *res = gf_list_get(emb_resources, i);
+			res_len += res->size;
+		}
 
 		if (ctx->first_samp) {
 			interval->begin = 0; /*in MP4 we must start at T=0*/
@@ -1745,10 +1956,39 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		}
 
 		if (!skip_pck) {
-			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
+			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+res_len, &pck_data);
 			memcpy(pck_data, txt_str, txt_len);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
+
+			if (res_len) {
+				GF_BitStream *subs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				u8 *subs_data;
+				u32 subs_size;
+				//subs 0
+				gf_bs_write_u32(subs, 0);
+				gf_bs_write_u32(subs, txt_len);
+				gf_bs_write_u32(subs, 0);
+				gf_bs_write_u8(subs, 0);
+				gf_bs_write_u8(subs, 0);
+
+				pck_data += txt_len;
+				for (i=0; i<nb_res_interval; i++) {
+					TTMLRes *res = gf_list_get(emb_resources, i);
+					memcpy(pck_data, res->data, res->size);
+					pck_data += res->size;
+
+					//subs >0
+					gf_bs_write_u32(subs, 0);
+					gf_bs_write_u32(subs, res->size);
+					gf_bs_write_u32(subs, 0);
+					gf_bs_write_u8(subs, 0);
+					gf_bs_write_u8(subs, 0);
+				}
+				gf_bs_get_content(subs, &subs_data, &subs_size);
+				gf_bs_del(subs);
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_data, subs_size) );
+			}
 			gf_filter_pck_send(pck);
 		}
 
@@ -3130,7 +3370,16 @@ void txtin_finalize(GF_Filter *filter)
 		ttml_reset_intervals(ctx);
 		gf_list_del(ctx->intervals);
 	}
+	if (ctx->ttml_resources) {
+		while (gf_list_count(ctx->ttml_resources)) {
+			TTMLRes *ires = gf_list_pop_back(ctx->ttml_resources);
+			gf_free(ires->data);
+			gf_free(ires);
+		}
+		gf_list_del(ctx->ttml_resources);
+	}
 }
+
 
 static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
 {
@@ -3208,7 +3457,8 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sttml), "force importing TTML doc as a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_single), "force importing TTML doc as a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_embed), "force embedding TTML resources (images and co) as subsamples", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
