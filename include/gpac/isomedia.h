@@ -4686,7 +4686,7 @@ GF_Err gf_isom_text_dump(GF_ISOFile *isom_file, u32 trackNumber, FILE *dump, GF_
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the sample description index
-\param sidx_offset if 0, the sidx will NOT be written before the encoded TX3G. If not 0, the sidx will be written before the encoded TX3G, with the given offset. Offset sshould be at least 128 for most commmon usage of TX3G (RTP, MPEG-4 timed text, etc)
+\param sidx_offset if 0, the sidx will NOT be written before the encoded TX3G. If not 0, the sidx will be written before the encoded TX3G, with the given offset. Offset sshould be at least 128 for most common usage of TX3G (RTP, MPEG-4 timed text, etc)
 \param tx3g set to a newly allocated buffer containing the encoded tx3g - to be freed by caller
 \param tx3g_size set to the size of the encoded config
 \return error if any
