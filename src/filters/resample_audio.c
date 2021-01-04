@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / audio resample filter
@@ -150,6 +150,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		if (ctx->opid) {
 			gf_mixer_remove_input(ctx->mixer, &ctx->input_ai);
 			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
 		}
 		if (ctx->in_pck) gf_filter_pid_drop_packet(ctx->ipid);
 		ctx->in_pck = NULL;

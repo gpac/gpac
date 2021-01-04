@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML stream to file filter
@@ -115,6 +115,7 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 
 	} else if (ctx->opid_info) {
 		gf_filter_pid_remove(ctx->opid_info);
+		ctx->opid_info = NULL;
 	}
 	if (ctx->info_file) gf_free(ctx->info_file);
 	ctx->info_file = NULL;
@@ -193,9 +194,18 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid_nhml);
-		gf_filter_pid_remove(ctx->opid_mdia);
-		if (ctx->opid_info) gf_filter_pid_remove(ctx->opid_info);
+		if (ctx->opid_nhml) {
+			gf_filter_pid_remove(ctx->opid_nhml);
+			ctx->opid_nhml = NULL;
+		}
+		if (ctx->opid_mdia) {
+			gf_filter_pid_remove(ctx->opid_mdia);
+			ctx->opid_mdia = NULL;
+		}
+		if (ctx->opid_info) {
+			gf_filter_pid_remove(ctx->opid_info);
+			ctx->opid_info = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))

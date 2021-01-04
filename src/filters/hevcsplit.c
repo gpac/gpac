@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile split and rewrite filter
@@ -681,7 +681,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 				tpid->opid = NULL;
 			}
 			if (tpid) gf_free(tpid);
-			if(opid){
+			if (opid) {
 				gf_filter_pid_set_udta(opid, NULL);
 				gf_filter_pid_remove(opid);
 			}

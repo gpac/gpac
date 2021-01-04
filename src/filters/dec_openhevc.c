@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2017
+ *			Copyright (c) Telecom ParisTech 2010-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenHEVC decoder filter
@@ -297,11 +297,15 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (is_remove) {
 		if (ctx->streams[0].ipid == pid) {
 			memset(ctx->streams, 0, HEVC_MAX_STREAMS*sizeof(GF_HEVCStream));
-			if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-			ctx->opid = NULL;
+			if (ctx->opid) {
+				gf_filter_pid_remove(ctx->opid);
+				ctx->opid = NULL;
+			}
 			ctx->nb_streams = 0;
-			if (ctx->codec) oh_close(ctx->codec);
-			ctx->codec = NULL;
+			if (ctx->codec) {
+				oh_close(ctx->codec);
+				ctx->codec = NULL;
+			}
 			return GF_OK;
 		} else {
 			for (i=0; i<ctx->nb_streams; i++) {

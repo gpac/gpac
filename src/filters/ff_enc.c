@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -936,8 +936,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
 		ctx->in_pid = NULL;
-		//one in one out, this is simple
-		if (ctx->out_pid) gf_filter_pid_remove(ctx->out_pid);
+		if (ctx->out_pid) {
+			gf_filter_pid_remove(ctx->out_pid);
+			ctx->out_pid = NULL;
+		}
 		return GF_OK;
 	}
 	//check our PID: streamtype and codecid

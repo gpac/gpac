@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019
+ *			Copyright (c) Telecom Paris 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Transport Stream splitter filter
@@ -115,7 +115,7 @@ GF_Err m2tssplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		m2tssplit_flush(ctx);
 		while (gf_list_count(ctx->streams) ) {
 			GF_M2TSSplit_SPTS *st = gf_list_pop_back(ctx->streams);
-			gf_filter_pid_remove(st->opid);
+			if (st->opid) gf_filter_pid_remove(st->opid);
 			if (st->pck_buffer) gf_free(st->pck_buffer);
 			gf_free(st);
 		}

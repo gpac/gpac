@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR decoder filter
@@ -76,7 +76,8 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		out_pid = gf_filter_pid_get_udta(pid);
 		if (ctx->out_pid==out_pid)
 			ctx->out_pid = NULL;
-		gf_filter_pid_remove(out_pid);
+		if (out_pid)
+			gf_filter_pid_remove(out_pid);
 		ctx->nb_streams--;
 		if (ctx->codec && ESID) {
 			return gf_laser_decoder_remove_stream(ctx->codec, ESID);

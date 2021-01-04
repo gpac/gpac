@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / force reframer filter
@@ -171,7 +171,8 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		if (st) {
-			gf_filter_pid_remove(st->opid);
+			if (st->opid)
+				gf_filter_pid_remove(st->opid);
 			gf_list_del_item(ctx->streams, st);
 			reframer_reset_stream(ctx, st);
 		}

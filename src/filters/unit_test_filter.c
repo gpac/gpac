@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / unit test filters
@@ -279,8 +279,10 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 
 		if (pidctx->nb_packets==stack->max_pck) {
 			if (stack->gsftest && pidctx->dst_pid) {
-				gf_filter_pid_remove(pidctx->dst_pid);
-				pidctx->dst_pid = NULL;
+				if (pidctx->dst_pid) {
+					gf_filter_pid_remove(pidctx->dst_pid);
+					pidctx->dst_pid = NULL;
+				}
 			}
 			nb_eos++;
 			continue;

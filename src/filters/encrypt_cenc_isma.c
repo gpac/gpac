@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA encrypt module
@@ -879,7 +879,8 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		cstr = gf_filter_pid_get_udta(pid);
 		if (cstr) {
 			gf_list_del_item(ctx->streams, cstr);
-			gf_filter_pid_remove(cstr->opid);
+			if (cstr->opid)
+				gf_filter_pid_remove(cstr->opid);
 
 			cenc_free_pid_context(cstr);
 		}
