@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -163,7 +163,8 @@ static void isoffin_disconnect(ISOMReader *read)
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
-		gf_filter_pid_remove(ch->pid);
+		if (ch->pid)
+			gf_filter_pid_remove(ch->pid);
 		isoffin_delete_channel(ch);
 	}
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Program Stream demuxer filter
@@ -208,7 +208,8 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->ipid = NULL;
 		while (gf_list_count(ctx->streams) ) {
 			M2PSStream *st = gf_list_pop_back(ctx->streams);
-			gf_filter_pid_remove(st->opid);
+			if (st->opid)
+				gf_filter_pid_remove(st->opid);
 			gf_free(st);
 		}
 		return GF_OK;

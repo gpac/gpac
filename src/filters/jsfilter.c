@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / QuickJS bindings for GF_Filter
@@ -2576,8 +2576,10 @@ static JSValue jsf_pid_remove(JSContext *ctx, JSValueConst this_val, int argc, J
 {
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
     if (!pctx) return JS_EXCEPTION;
-    gf_filter_pid_remove(pctx->pid);
-    pctx->pid = NULL;
+    if (pctx->pid) {
+		gf_filter_pid_remove(pctx->pid);
+		pctx->pid = NULL;
+    }
     JS_SetOpaque(this_val, NULL);
 	return JS_UNDEFINED;
 }

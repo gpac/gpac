@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream metadata rewrite filter
@@ -453,8 +453,10 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
 		if (pctx) {
-			//one in one out, this is simple
-			gf_filter_pid_remove(pctx->opid);
+			if (pctx->opid) {
+				gf_filter_pid_remove(pctx->opid);
+				pctx->opid = NULL;
+			}
 			gf_filter_pid_set_udta(pid, NULL);
 			gf_list_del_item(ctx->pids, pctx);
  			gf_free(pctx);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / mediacodec decoder filter
@@ -554,8 +554,10 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		gf_list_del_item(ctx->streams, pid);
 		if (!gf_list_count(ctx->streams)) {
 			if (ctx->codec) AMediaCodec_stop(ctx->codec);
-			if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-			ctx->opid = NULL;
+			if (ctx->opid) {
+				gf_filter_pid_remove(ctx->opid);
+				ctx->opid = NULL;
+			}
 		}
 		return GF_OK;
 	}

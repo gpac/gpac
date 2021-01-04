@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NVidia Hardware decoder filter
@@ -558,8 +558,10 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	NVDecCtx *ctx = (NVDecCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-		ctx->opid = NULL;
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		ctx->ipid = NULL;
 
 		if (ctx->unload == 2) {

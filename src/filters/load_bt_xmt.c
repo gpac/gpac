@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Context loader filter
@@ -157,8 +157,10 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (is_remove) {
 		priv->in_pid = NULL;
-		gf_filter_pid_remove(priv->out_pid);
-		priv->out_pid = NULL;
+		if (priv->out_pid) {
+			gf_filter_pid_remove(priv->out_pid);
+			priv->out_pid = NULL;
+		}
 		return GF_OK;
 	}
 

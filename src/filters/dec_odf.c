@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / OD decoder filter
@@ -65,7 +65,8 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		out_pid = gf_filter_pid_get_udta(pid);
 		if (out_pid==ctx->out_pid)
 			ctx->out_pid = NULL;
-		gf_filter_pid_remove(out_pid);
+		if (out_pid)
+			gf_filter_pid_remove(out_pid);
 		return GF_OK;
 	}
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -981,7 +981,7 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gsfmx_send_pid_rem(ctx, gst);
 		gf_list_del_item(ctx->streams, gst);
 		gf_free(gst);
-		if (!gf_list_count(ctx->streams)) {
+		if (!gf_list_count(ctx->streams) && ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
 			ctx->opid = NULL;
 		}

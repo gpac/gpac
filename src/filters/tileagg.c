@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / tile aggregrator filter
@@ -61,8 +61,10 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (is_remove) {
 		if (ctx->base_ipid == pid) {
-			gf_filter_pid_remove(ctx->opid);
-			ctx->opid = NULL;
+			if (ctx->opid) {
+				gf_filter_pid_remove(ctx->opid);
+				ctx->opid = NULL;
+			}
 		}
 		return GF_OK;
 	}

@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile merger filter
@@ -1171,9 +1171,10 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_list_del_item(ctx->pids, tile_pid);
 		gf_free(tile_pid);
 		if (!gf_list_count(ctx->pids)) {
-			if (ctx->opid)
+			if (ctx->opid) {
 				gf_filter_pid_remove(ctx->opid);
-
+				ctx->opid = NULL;
+			}
 			return GF_OK;
 		}
 		grid_config_changed = GF_TRUE;

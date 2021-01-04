@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / video cropping filter
@@ -455,6 +455,7 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (is_remove) {
 		if (ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
 		}
 		return GF_OK;
 	}

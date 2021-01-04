@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / VideoToolBox decoder filter
@@ -950,8 +950,10 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-		ctx->opid = NULL;
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		gf_list_del_item(ctx->streams, pid);
 		return GF_OK;
 	}

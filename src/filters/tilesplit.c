@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / tile spliting filter
@@ -110,8 +110,10 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (is_remove) {
 		if (ctx->ipid == pid) {
 			for (i=0; i<ctx->nb_tiles; i++) {
-				gf_filter_pid_remove(ctx->opids[i].opid);
-				ctx->opids[i].opid = NULL;
+				if (ctx->opids[i].opid) {
+					gf_filter_pid_remove(ctx->opids[i].opid);
+					ctx->opids[i].opid = NULL;
+				}
 			}
 			ctx->nb_tiles = 0;
 			ctx->ipid = NULL;
@@ -179,8 +181,10 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	while (nb_tiles < ctx->nb_tiles) {
 		ctx->nb_tiles--;
-		gf_filter_pid_remove(ctx->opids[ctx->nb_tiles].opid);
-		ctx->opids[ctx->nb_tiles].opid = NULL;
+		if (ctx->opids[ctx->nb_tiles].opid) {
+			gf_filter_pid_remove(ctx->opids[ctx->nb_tiles].opid);
+			ctx->opids[ctx->nb_tiles].opid = NULL;
+		}
 	}
 
 	if (nb_tiles>ctx->nb_alloc_tiles) {

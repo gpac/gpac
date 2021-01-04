@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS decoder filter
@@ -105,7 +105,8 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		out_pid = gf_filter_pid_get_udta(pid);
 		if (ctx->out_pid==out_pid)
 			ctx->out_pid = NULL;
-		gf_filter_pid_remove(out_pid);
+		if (out_pid)
+			gf_filter_pid_remove(out_pid);
 		return GF_OK;
 	}
 	//this is a reconfigure

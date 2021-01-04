@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -34,7 +34,6 @@ static void rtpin_reset(GF_RTPIn *ctx, Bool is_finalized)
 		GF_RTPInStream *st = (GF_RTPInStream *)gf_list_get(ctx->streams, 0);
 		gf_list_rem(ctx->streams, 0);
 		if (!is_finalized && st->opid) gf_filter_pid_remove(st->opid);
-		st->opid = NULL;
 		rtpin_stream_del(st);
 	}
 
