@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -496,7 +496,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 
 	gf_scene_reset_addons(scene);
 
-	/*release the scene - at this stage, we no longer have any node stack refering to our media objects */
+	/*release the scene - at this stage, we no longer have any node stack referring to our media objects */
 
 	gf_sc_node_destroy(scene->compositor, NULL, scene->graph);
 	gf_sg_reset(scene->graph);

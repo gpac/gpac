@@ -48,7 +48,7 @@ struct __txtin_ctx
 	//opts
 	u32 width, height, txtx, txty, fontsize;
 	s32 zorder;
-	const char *fontname, *lang;
+	const char *fontname, *lang, *ttml_zero;
 	Bool nodefbox, noflush, webvtt, ttml_single, ttml_embed;
 	u32 timescale;
 	GF_Fraction fps;
@@ -1500,10 +1500,39 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 	return GF_OK;
 }
 
+static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, u64 ttml_zero, GF_XMLAttribute *att, s64 *value, Bool *drop)
+{
+	s64 v;
+	char szTS[21];
+	u32 h, m, s, ms;
+	*value = ttml_get_timestamp(ctx, att->value);
+	if (!ttml_zero)
+		return GF_OK;
+
+	if (*value < ttml_zero) {
+		*drop = GF_TRUE;
+		return GF_OK;
+	}
+
+	*value -= ttml_zero;
+	v = *value / 1000;
+	h = v / 3600;
+	m = (v - h*60) / 60;
+	s = (v - h*3600 - m*60);
+	v = *value;
+	ms = *value % 1000;
+
+	snprintf(szTS, 20, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	szTS[20] = 0;
+	gf_free(att->value);
+	att->value = gf_strdup(szTS);
+	return GF_OK;
+}
 
 static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 {
 	u32 k;
+	u64 ttml_zero_ms = 0;
 	GF_Err e;
 	GF_XMLNode *root;
 
@@ -1522,10 +1551,17 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	}
 
 	root = gf_xml_dom_get_root(ctx->parser);
+	if (ctx->ttml_zero) {
+		if (ctx->ttml_zero[0]=='T')
+			ttml_zero_ms = ttml_get_timestamp(ctx, (char *) ctx->ttml_zero+1);
+		else
+			ttml_zero_ms = ttml_get_timestamp(ctx, (char *) ctx->ttml_zero);
+	}
 
 	for (k=0; k<ctx->nb_children; k++) {
 		TTMLInterval *ival=NULL;
 		u32 p_idx;
+		Bool drop = GF_FALSE;
 		GF_XMLAttribute *p_att;
 		GF_XMLNode *p_node;
 		s64 begin=-1, end=-1;
@@ -1537,12 +1573,22 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 		p_idx = 0;
 		while ( (p_att = (GF_XMLAttribute*)gf_list_enum(adiv_child->attributes, &p_idx))) {
 			if (!strcmp(p_att->name, "begin")) {
-				begin = ttml_get_timestamp(ctx, p_att->value);
+				e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, p_att, &begin, &drop);
+				if (e) return e;
 			}
 			if (!strcmp(p_att->name, "end")) {
-				end = ttml_get_timestamp(ctx, p_att->value);
+				e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, p_att, &end, &drop);
+				if (e) return e;
 			}
 		}
+		if (drop) {
+			gf_xml_dom_node_del(adiv_child);
+			gf_list_rem(ctx->div_node->content, k);
+			k--;
+			ctx->nb_children--;
+			continue;
+		}
+
 		e = ttml_push_interval(ctx, begin, end, &ival);
 		if (e) return e;
 
@@ -1559,9 +1605,11 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 			GF_XMLAttribute *span_att;
 			while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
 				if (!strcmp(span_att->name, "begin")) {
-					s_begin = ttml_get_timestamp(ctx, span_att->value);
+					e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, span_att, &s_begin, &drop);
+					if (e) return e;
 				} else if (!strcmp(span_att->name, "end")) {
-					s_end = ttml_get_timestamp(ctx, span_att->value);
+					e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, span_att, &s_end, &drop);
+					if (e) return e;
 				}
 			}
 			e = ttml_push_interval(ctx, s_begin, s_end, &ival);
@@ -3457,16 +3505,51 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ttml_single), "force importing TTML doc as a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ttml_embed), "force embedding TTML resources (images and co) as subsamples", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_single), "force single sample - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_embed), "force embedding TTML resources - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_zero), "set subtitle zero time for TTML - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
 	GF_FS_SET_DESCRIPTION("Subtitle loader")
-	GF_FS_SET_HELP("This filter reads subtitle data (srt/webvtt/ttxt/sub) to produce media PIDs and frames.\n"
-	"The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation\n"
+	GF_FS_SET_HELP("This filter reads subtitle data from inpud file PID to produce subtitle frames on a single PID.\n"
+	"The filter supports the following formats:\n"
+	"- SRT: https://en.wikipedia.org/wiki/SubRip\n"
+	"- WebVTT: https://w3c.github.io/webvtt/\n"
+	"- TTXT: https://wiki.gpac.io/TTXT-Format-Documentation\n"
+	"- QT 3GPP Text XML (TexML): Apple QT6, likely deprecated\n"
+	"- TTML: https://www.w3.org/TR/ttml2/\n"
+	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"
+	"\n"
+	"Input files must be in UTF-8 or UTF-16 format, with or without BOM.\n"
+	"The internal frame format is: \n"
+	"- WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues\n"
+	"- TTML: ISO/IEC 14496-30 XML subtitles\n"
+	"- Others: 3GPP/QT Timed Text\n"
+	"\n"
+	"# TTML Support\n"
+	"By default, TTML documents are split in independent time segments by inspecting all overlapping subtitles.\n"
+	"Using [-ttml_single]() will force the input document to result in a single frame, using [-ttml_single]().\n"
+	"\n"
+	"By default, media resources in TTML2 documents are not included in the generated samples.\n"
+	"[-ttml_embed]() can be used to embed inside the TTML sample the following resources in `<head>` or `<body>`:\n"
+	"- <source>, <image>, <audio>, <font>: local URIs indicated in `src` will be loaded and `src` rewritten\n"
+	"- base64 <data>: data will be decoded, <data> element removed and parent <source> will be rewritten with `src` attribute\n"
+	"The embedded data is added as a subsample to the TTML frame, and the referring elements will use `src=urn:mpeg:14496-30:N` with `N` the index of the subsample.\n"
+	"\n"
+	"A `subtitle zero` may be specified using [-ttml_zero](). This will remove all subtitles before the given time `T0`, and rewrite each subtitle begin/end `T` to `T-T0` using millisecond accuracy.\n"
+	"Warning: Tick, frames/subframes and other time metrics will be lost when this option is used, converted to `HH:MM:SS.ms`.\n"
+	"\n"
+	"The subtitle zero time **must** be prefixed with `T` when the option is not set as a global argument:\n"
+	"EX gpac -i test.ttml:ttml_zero=T10:00:00 [...]\n"
+	"EX MP4Box -add test.ttml:sopt:ttml_zero=T10:00:00 [...]\n"
+	"EX gpac -i test.ttml --ttml_zero=10:00:00 [...]\n"
+	"EX MP4Box -add test.ttml --ttml_zero=10:00:00 [...]\n"
+
+
+
 	)
 
 	.private_size = sizeof(GF_TXTIn),
