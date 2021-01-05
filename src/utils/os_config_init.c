@@ -1741,6 +1741,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 	va_list vlist;
 	Bool escape_xml = GF_FALSE;
 	Bool escape_pipe = GF_FALSE;
+	Bool prev_was_example = GF_FALSE;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
 	if (flags & GF_PRINTARG_MD) {
@@ -1807,6 +1808,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 		} else if ((line[0]=='E') && (line[1]=='X') && (line[2]==' ')) {
 			line+=3;
 			console_code = GF_CONSOLE_YELLOW;
+
 			if (gen_doc==1) {
 				header_string = "Example\n```\n";
 				footer_string = "\n```";
@@ -1815,6 +1817,17 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 				footer_string = "\n.br\n";
 			} else {
 				header_string = "Example:\n";
+			}
+
+			if (prev_was_example) {
+				header_string = NULL;
+			}
+
+			if (next_line && (next_line[1]=='E') && (next_line[2]=='X') && (next_line[3]==' ')) {
+				prev_was_example = GF_TRUE;
+				footer_string = NULL;
+			} else {
+				prev_was_example = GF_FALSE;
 			}
 		} else if (!strncmp(line, "Note: ", 6)) {
 			console_code = GF_CONSOLE_CYAN | GF_CONSOLE_ITALIC;

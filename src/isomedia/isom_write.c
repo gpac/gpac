@@ -3920,7 +3920,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	u8 *data;
 	const u8 *buffer;
 	u32 data_size;
-	Double ts_scale;
 	u32 i, count;
 	GF_Err e;
 	GF_SampleTableBox *stbl, *stbl_temp;
@@ -4043,14 +4042,16 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	new_tk->originalFile = gf_crc_32(buffer, (u32) strlen(buffer));
 
 	/*rewrite edit list segmentDuration to new movie timescale*/
-	ts_scale = dest_file->moov->mvhd->timeScale;
-	ts_scale /= orig_file->moov->mvhd->timeScale;
-	new_tk->Header->duration = (u64) (s64) ((s64) new_tk->Header->duration * ts_scale);
-	if (new_tk->editBox && new_tk->editBox->editList) {
-		count = gf_list_count(new_tk->editBox->editList->entryList);
-		for (i=0; i<count; i++) {
-			GF_EdtsEntry *ent = (GF_EdtsEntry *)gf_list_get(new_tk->editBox->editList->entryList, i);
-			ent->segmentDuration = (u64) (s64) ((s64) ent->segmentDuration * ts_scale);
+	if (dest_file->moov->mvhd->timeScale != orig_file->moov->mvhd->timeScale) {
+		Double ts_scale = dest_file->moov->mvhd->timeScale;
+		ts_scale /= orig_file->moov->mvhd->timeScale;
+		new_tk->Header->duration = (u64) (new_tk->Header->duration * ts_scale);
+		if (new_tk->editBox && new_tk->editBox->editList) {
+			count = gf_list_count(new_tk->editBox->editList->entryList);
+			for (i=0; i<count; i++) {
+				GF_EdtsEntry *ent = (GF_EdtsEntry *)gf_list_get(new_tk->editBox->editList->entryList, i);
+				ent->segmentDuration = (u64) (ent->segmentDuration * ts_scale);
+			}
 		}
 	}
 
