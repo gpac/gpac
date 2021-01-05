@@ -1157,7 +1157,8 @@ GF_Err elst_box_read(GF_Box *s, GF_BitStream *bs)
 
 
 	for (entries = 0; entries < nb_entries; entries++) {
-		GF_EdtsEntry *p = (GF_EdtsEntry *) gf_malloc(sizeof(GF_EdtsEntry));
+		GF_EdtsEntry *p;
+		GF_SAFEALLOC(p, GF_EdtsEntry);
 		if (!p) return GF_OUT_OF_MEM;
 		if (ptr->version == 1) {
 			ISOM_DECREASE_SIZE(ptr, 16);
