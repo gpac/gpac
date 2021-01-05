@@ -1467,7 +1467,7 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 		if (child->type) {
 			if (!is_data) continue;
 			u8 *data = child->name;
-			u32 ilen = strlen(data);
+			u32 ilen = (u32) strlen(data);
 			f_size = 3*ilen/4;
 			f_data = gf_malloc(sizeof(u8) * f_size);
 
@@ -1500,9 +1500,9 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 	return GF_OK;
 }
 
-static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, u64 ttml_zero, GF_XMLAttribute *att, s64 *value, Bool *drop)
+static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, s64 ttml_zero, GF_XMLAttribute *att, s64 *value, Bool *drop)
 {
-	s64 v;
+	u64 v;
 	char szTS[21];
 	u32 h, m, s, ms;
 	*value = ttml_get_timestamp(ctx, att->value);
@@ -1515,12 +1515,11 @@ static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, u64 ttml_zero, GF_XMLAttribu
 	}
 
 	*value -= ttml_zero;
-	v = *value / 1000;
-	h = v / 3600;
-	m = (v - h*60) / 60;
-	s = (v - h*3600 - m*60);
-	v = *value;
-	ms = *value % 1000;
+	v = (u64) (*value / 1000);
+	h = (u32) (v / 3600);
+	m = (u32) (v - h*60) / 60;
+	s = (u32) (v - h*3600 - m*60);
+	ms = (*value) % 1000;
 
 	snprintf(szTS, 20, "%02d:%02d:%02d.%03d", h, m, s, ms);
 	szTS[20] = 0;
@@ -1532,7 +1531,7 @@ static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, u64 ttml_zero, GF_XMLAttribu
 static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 {
 	u32 k;
-	u64 ttml_zero_ms = 0;
+	s64 ttml_zero_ms = 0;
 	GF_Err e;
 	GF_XMLNode *root;
 
