@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -5452,7 +5452,7 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 		pps->sps_id = 0;
 		return -1;
 	}
-	/*sps_id may be refer to regular SPS or subseq sps, depending on the coded slice refering to the pps*/
+	/*sps_id may be refer to regular SPS or subseq sps, depending on the coded slice referring to the pps*/
 	if (!avc->sps[pps->sps_id].state && !avc->sps[pps->sps_id + GF_SVC_SSPS_ID_SHIFT].state) {
 		return -1;
 	}

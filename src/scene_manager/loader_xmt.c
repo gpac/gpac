@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -122,7 +122,7 @@ typedef struct
 {
 	char *desc_name;
 	u32 ID;
-	/*store nodes refering to this URL*/
+	/*store nodes referring to this URL*/
 	GF_List *mf_urls;
 	GF_ObjectDescriptor *od;
 } XMT_ODLink;

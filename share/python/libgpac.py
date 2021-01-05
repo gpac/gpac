@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020
+#          Copyright (c) Telecom Paris 2020-2021
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)
@@ -3398,7 +3398,7 @@ class FilterPid:
             raise Exception('Cannot resolve file template ' + template + ': ' + e2s(err))
         return res.raw.decode('utf-8')
 
-    ##creates a new packet refering to an existing packet - see \ref gf_filter_pck_new_ref
+    ##creates a new packet referring to an existing packet - see \ref gf_filter_pck_new_ref
     #\param ipck the input (referenced) packet
     #\param size the data size of the new packet
     #\param offset the offset in the original data

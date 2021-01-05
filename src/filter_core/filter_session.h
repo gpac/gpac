@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -72,7 +72,7 @@ typedef struct
 	GF_List *properties;
 #endif
 	volatile u32 reference_count;
-	//number of references hold by packet references - since these may be destroyed at the end of the refering filter
+	//number of references hold by packet references - since these may be destroyed at the end of the referring filter
 	//the pid might be dead. This is only used for pid props maps
 	volatile u32 pckrefs_reference_count;
 	GF_FilterSession *session;

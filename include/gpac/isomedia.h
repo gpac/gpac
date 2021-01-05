@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -874,7 +874,7 @@ u32 gf_isom_get_sample_description_index(GF_ISOFile *isom_file, u32 trackNumber,
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index (1-based)
-\return GF_TRUE if samples refering to the given stream description are present in the file, GF_FALSE otherwise*/
+\return GF_TRUE if samples referring to the given stream description are present in the file, GF_FALSE otherwise*/
 Bool gf_isom_is_self_contained(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 /*! gets the media duration (without edit) based on sample table

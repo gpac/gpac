@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / compositor filter
@@ -332,7 +332,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			//we are attaching an inline, create the subscene if not done already
 			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
 				//ignore system PIDs from subservice - this is typically the case when playing a bt/xmt file
-				//created from a container (mp4) and still refering to that container for the media streams
+				//created from a container (mp4) and still referring to that container for the media streams
 				if (sns->owner->ignore_sys) {
 					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 					gf_filter_pid_send_event(pid, &evt);
