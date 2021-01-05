@@ -1181,8 +1181,8 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			case GF_CODECID_SUBS_TEXT:
 			case GF_CODECID_SUBS_XML:
 			case GF_CODECID_SIMPLE_TEXT:
-				//szExt[0] = 0;
-				strcpy(szExt, "*");
+				//use dynamic extension
+				szExt[0] = 0;
 				break;
 			}
 			break;
@@ -1277,6 +1277,8 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				e |= gf_dynstrcat(&args, ":ext=", NULL);
 				e |= gf_dynstrcat(&args, szExt, NULL);
 			}
+		} else if (dumper->trackID && !strlen(szExt) ) {
+			e |= gf_dynstrcat(&args, ":dynext", NULL);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load arguments for output file dumper\n"));
