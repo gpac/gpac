@@ -1179,11 +1179,11 @@ static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 	u32 h, m, s, ms, f, sf;
 	s64 ts = -1;
 	u32 len = (u32) strlen(value);
-	//check metrics, 't' for ticks, 'h' for hours, 'm' for minutes, 's' for seconds, 'ms' for milliseconds
+
 	//tick metrick - cannot be fractional
 	if (len && (value[len-1]=='t')) {
 		value[len-1] = 0;
-		ts = (s64) (atof(value) * 1000);
+		ts = (s64) (atoi(value) * 1000);
 		value[len-1] = 't';
 		if (ctx->tick_rate)
 			ts /= ctx->tick_rate;
