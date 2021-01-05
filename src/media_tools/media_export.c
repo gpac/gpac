@@ -1090,6 +1090,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	u32 sample_count=0;
 	Bool skip_write_filter = GF_FALSE;
 	Bool ext_forced = GF_FALSE;
+	Bool use_dynext = GF_FALSE;
 
 	args = NULL;
 	strcpy(szExt, "");
@@ -1183,6 +1184,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			case GF_CODECID_SIMPLE_TEXT:
 				//use dynamic extension
 				szExt[0] = 0;
+				use_dynext = GF_TRUE;
 				break;
 			}
 			break;
@@ -1277,7 +1279,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				e |= gf_dynstrcat(&args, ":ext=", NULL);
 				e |= gf_dynstrcat(&args, szExt, NULL);
 			}
-		} else if (dumper->trackID && !strlen(szExt) ) {
+		} else if (dumper->trackID && use_dynext) {
 			e |= gf_dynstrcat(&args, ":dynext", NULL);
 		}
 		if (e) {
