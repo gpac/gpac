@@ -1791,14 +1791,17 @@ void gf_xml_dom_del(GF_DOMParser *parser)
 	gf_free(parser);
 }
 
-#if 0 //unused
+GF_EXPORT
 GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser)
 {
-	GF_XMLNode *root = parser->root;
-	parser->root = NULL;
+	GF_XMLNode *root;
+	if (!parser)
+		return NULL;
+	root = parser->root;
+	gf_list_del_item(parser->root_nodes, root);
+	parser->root = gf_list_get(parser->root_nodes, 0);
 	return root;
 }
-#endif
 
 static void dom_on_progress(void *cbck, u64 done, u64 tot)
 {
@@ -1881,8 +1884,9 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 
 #define SET_STRING(v)	\
 	vlen = (u32) strlen(v);	\
-	if (vlen+ (*size) >= (*alloc_size)) {	\
+	if (vlen + (*size) >= (*alloc_size)) {	\
 		(*alloc_size) += 1024;	\
+		if (vlen + (*size) >= (*alloc_size)) (*alloc_size) = vlen + (*size) + 1;\
 		(*str) = gf_realloc((*str), (*alloc_size));	\
 		(*str)[(*size)] = 0;	\
 	}	\

@@ -467,6 +467,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_nodes_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_idx) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_detach_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
 #endif
 
