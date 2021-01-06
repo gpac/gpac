@@ -75,7 +75,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_MPEG1, GF_CODECID_MPEG1, GF_STREAM_VISUAL, "MPEG-1 Video", "m1v", "mp1v", "video/mp1v-es"},
 	{GF_CODECID_JPEG, GF_CODECID_JPEG, GF_STREAM_VISUAL, "JPEG Image", "jpg|jpeg", "jpeg", "image/jpeg"},
 	{GF_CODECID_PNG, GF_CODECID_PNG, GF_STREAM_VISUAL, "PNG Image", "png", "png ", "image/png"},
-	{GF_CODECID_J2K, 0x6E, GF_STREAM_VISUAL, "JPEG200 Image", "jp2|j2k", "mjp2", "image/jp2"},
+	{GF_CODECID_J2K, 0x6E, GF_STREAM_VISUAL, "(High Throughput) JPEG2000 Image", "jp2|jpx|j2k|j2c", "mj2|mjp2", "image/jp2"},
 	{GF_CODECID_AAC_MPEG4, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "MPEG-4 AAC Audio", "aac", "mp4a", "audio/aac"},
 	{GF_CODECID_AAC_MPEG2_MP, GF_CODECID_AAC_MPEG2_MP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Main", "aac|aac2m", "mp4a", "audio/aac", GF_CODECID_AAC_MPEG4},
 	{GF_CODECID_AAC_MPEG2_LCP, GF_CODECID_AAC_MPEG2_LCP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Low Complexity", "aac|aac2l", "mp4a", "audio/aac", GF_CODECID_AAC_MPEG4},
