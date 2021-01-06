@@ -597,6 +597,7 @@ enum
 	GF_VVC_SLICE_TYPE_B = 0,
 	GF_VVC_SLICE_TYPE_P = 1,
 	GF_VVC_SLICE_TYPE_I = 2,
+	GF_VVC_SLICE_TYPE_UNKNOWN = 10,
 };
 
 typedef struct
@@ -627,6 +628,8 @@ typedef struct
 	u8 ph_num_extra_bits, sh_num_extra_bits;
 	u8 log2_max_poc_lsb, poc_msb_cycle_flag;
 	u32 poc_msb_cycle_len;
+
+	u8 alf_enabled_flag;
 } VVC_SPS;
 
 typedef struct

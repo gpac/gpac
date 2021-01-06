@@ -9325,8 +9325,8 @@ static void vvc_profile_tier_level(GF_BitStream *bs, VVC_ProfileTierLevel *ptl, 
 			ptl->gci[11] = 0;
 			res = gf_bs_read_int(bs, 8);
 			gf_bs_read_int(bs, res);
-			gf_bs_align(bs);
 		}
+		gf_bs_align(bs);
 	}
 	for (i=ptl->ptl_max_tid; i>0; i--) {
 		ptl->sub_ptl[i-1].level_present_flag = gf_bs_read_int_log_idx2(bs, 1, "level_present_flag", idx, i);
@@ -9554,6 +9554,77 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 			sps->sh_num_extra_bits++;
 	}
 
+	if (sps_ptl_dpb_hrd_params_present_flag) {
+		u8 sps_sublayer_dpb_params_flag = 0;
+		if (sps->max_sublayers>1) {
+			sps_sublayer_dpb_params_flag = gf_bs_read_int_log(bs, 1, "sps_sublayer_dpb_params_flag");
+		}
+		for (i=(sps_sublayer_dpb_params_flag ? 0 : sps->max_sublayers-1); i < sps->max_sublayers; i++ ) {
+			gf_bs_read_ue_log_idx(bs, "dpb_max_dec_pic_buffering_minus1", i);
+			gf_bs_read_ue_log_idx(bs, "dpb_max_num_reorder_pics", i);
+			gf_bs_read_ue_log_idx(bs, "dpb_max_latency_increase_plus1", i);
+		}
+	}
+	gf_bs_read_ue_log(bs, "sps_log2_min_luma_coding_block_size_minus2");
+	gf_bs_read_int_log(bs, 1, "sps_partition_constraints_override_enabled_flag");
+	gf_bs_read_ue_log(bs, "sps_log2_min_luma_coding_block_size_minus2");
+	u8 sps_max_mtt_hierarchy_depth_intra_slice_luma = gf_bs_read_ue_log(bs, "sps_max_mtt_hierarchy_depth_intra_slice_luma");
+	if (sps_max_mtt_hierarchy_depth_intra_slice_luma != 0) {
+		gf_bs_read_ue_log(bs, "sps_log2_diff_max_bt_min_qt_intra_slice_luma");
+		gf_bs_read_ue_log(bs, "sps_log2_diff_max_tt_min_qt_intra_slice_luma");
+	}
+	u8 sps_qtbtt_dual_tree_intra_flag = 0;
+	if (sps->chroma_format_idc) {
+		gf_bs_read_int_log(bs, 1, "sps_qtbtt_dual_tree_intra_flag");
+	}
+	if (sps_qtbtt_dual_tree_intra_flag) {
+		gf_bs_read_ue_log(bs, "sps_log2_diff_min_qt_min_cb_intra_slice_chroma");
+		u8 sps_max_mtt_hierarchy_depth_intra_slice_chroma = gf_bs_read_ue_log(bs, "sps_max_mtt_hierarchy_depth_intra_slice_chroma");
+		if( sps_max_mtt_hierarchy_depth_intra_slice_chroma != 0) {
+			gf_bs_read_ue_log(bs, "sps_log2_diff_max_bt_min_qt_intra_slice_chroma");
+			gf_bs_read_ue_log(bs, "sps_log2_diff_max_tt_min_qt_intra_slice_chroma");
+		}
+	}
+
+	gf_bs_read_ue_log(bs, "sps_log2_diff_min_qt_min_cb_inter_slice");
+	u8 sps_max_mtt_hierarchy_depth_inter_slice = gf_bs_read_ue_log(bs, "sps_max_mtt_hierarchy_depth_inter_slice");
+	if (sps_max_mtt_hierarchy_depth_inter_slice != 0) {
+		gf_bs_read_ue_log(bs, "sps_log2_diff_max_bt_min_qt_inter_slice");
+		gf_bs_read_ue_log(bs, "sps_log2_diff_max_tt_min_qt_inter_slice");
+	}
+	u8 sps_max_luma_transform_size_64_flag = 0;
+	if (CtbSizeY > 32) {
+		sps_max_luma_transform_size_64_flag = gf_bs_read_int_log(bs, 1, "sps_max_luma_transform_size_64_flag");
+	}
+	u8 sps_transform_skip_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_transform_skip_enabled_flag");
+
+	if (sps_transform_skip_enabled_flag) {
+		gf_bs_read_ue_log(bs, "sps_log2_transform_skip_max_size_minus2");
+		gf_bs_read_int_log(bs, 1, "sps_bdpcm_enabled_flag");
+	}
+	if (gf_bs_read_int_log(bs, 1, "sps_mts_enabled_flag")) {
+		gf_bs_read_int_log(bs, 1, "sps_explicit_mts_intra_enabled_flag");
+		gf_bs_read_int_log(bs, 1, "sps_explicit_mts_inter_enabled_flag");
+	}
+	gf_bs_read_int_log(bs, 1, "sps_lfnst_enabled_flag");
+	if (sps->chroma_format_idc) {
+		u8 sps_joint_cbcr_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_joint_cbcr_enabled_flag");
+		u8 sps_same_qp_table_for_chroma_flag = gf_bs_read_int_log(bs, 1, "sps_same_qp_table_for_chroma_flag");
+		u32 numQpTables = sps_same_qp_table_for_chroma_flag ? 1 : (sps_joint_cbcr_enabled_flag ? 3 : 2);
+		for (i=0; i<numQpTables; i++) {
+			gf_bs_read_se_log_idx(bs, "sps_qp_table_start_minus26", i);
+			u32 j, sps_num_points_in_qp_table = 1 + gf_bs_read_ue_log_idx(bs, "sps_num_points_in_qp_table_minus1", i);
+			for (j=0; j<sps_num_points_in_qp_table; j++) {
+				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_in_val_minus1", i, j);
+				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_diff_val", i, j);
+			}
+		}
+	}
+	gf_bs_read_int_log(bs, 1, "sps_sao_enabled_flag");
+	sps->alf_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_alf_enabled_flag");
+	if (sps->alf_enabled_flag && sps->chroma_format_idc) {
+		gf_bs_read_int_log(bs, 1, "sps_ccalf_enabled_flag");
+	}
 	/*! TODO parse the rest !*/
 
 	return sps_id;
@@ -9666,7 +9737,7 @@ s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 			si->poc_msb_cycle = gf_bs_read_int_log(bs, si->sps->poc_msb_cycle_len, "poc_msb_cycle");
 		}
 	}
-	//todo parse the rest
+
 	return 0;
 }
 
@@ -9676,7 +9747,8 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 
 	si->picture_header_in_slice_header_flag = gf_bs_read_int_log(bs, 1, "picture_header_in_slice_header_flag");
 	if (si->picture_header_in_slice_header_flag) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[VVC] Picture header in slice header incomplete support, cannot guess slice type\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[VVC] Picture header in slice header incomplete support, cannot guess slice type\n"));
+		si->slice_type = GF_VVC_SLICE_TYPE_UNKNOWN;
 		return vvc_parse_picture_header(bs, vvc, si);
 	}
 	if (!si->sps) return -1;

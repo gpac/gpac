@@ -206,6 +206,7 @@ typedef struct
 	HEVCState *hevc_state;
 	//shvc stats
 	u32 nb_e_idr, nb_e_i, nb_e_p, nb_e_b;
+	Bool vvc_no_stats;
 
 	LHVCLayerInfo linf[64];
 	u8 max_temporal_id[64];
@@ -2255,9 +2256,12 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 				else ctx->nb_i++;
 				*is_islice = GF_TRUE;
 				break;
-			case GF_HEVC_SLICE_TYPE_B:
+			case GF_VVC_SLICE_TYPE_B:
 				if (layer_id) ctx->nb_e_b++;
 				else ctx->nb_b++;
+				break;
+			case GF_VVC_SLICE_TYPE_UNKNOWN:
+				ctx->vvc_no_stats = GF_TRUE;
 				break;
 			}
 		}
@@ -2277,6 +2281,10 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_END_OF_SEQ:
 	case GF_VVC_NALU_END_OF_STREAM:
 		*skip_nal = GF_TRUE;
+		break;
+
+	case GF_VVC_NALU_OPI:
+		if (! ctx->is_playing) return 0;
 		break;
 
 	default:
@@ -3627,6 +3635,9 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 
 	if (ctx->nb_si || ctx->nb_sp) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
+	} else if (ctx->vvc_no_stats) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - %d SEI - %d IDR\n",
+			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_sei, ctx->nb_idr));
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR\n",
 			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei, ctx->nb_idr));
