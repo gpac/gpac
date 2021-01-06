@@ -633,7 +633,7 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 	u32 i=0;
 	GF_XMLNode *child;
 	u32 subs_idx=0;
-	GF_XMLAttribute *att, *type;
+	GF_XMLAttribute *att;
 	Bool is_source = GF_FALSE;
 	Bool has_src_att = GF_FALSE;
 	if (!node || node->type) return GF_BAD_PARAM;
@@ -707,10 +707,10 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 			gf_list_add(node->content, s);
 			if (!s->name || !s->content || !s->attributes) return GF_OUT_OF_MEM;
 			//move @type to source
-			type = ttml_get_attr(node, "type");
-			if (type) {
-				gf_list_del_item(node->attributes, type);
-				gf_list_add(s->attributes, type);
+			att = ttml_get_attr(node, "type");
+			if (att) {
+				gf_list_del_item(node->attributes, att);
+				gf_list_add(s->attributes, att);
 			}
 			node = s;
 		}
@@ -724,10 +724,10 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 		gf_list_add(node->content, data);
 		if (!data->name || !data->content || !data->attributes) return GF_OUT_OF_MEM;
 		//move @type to data
-		type = ttml_get_attr(node, "type");
-		if (type) {
-			gf_list_del_item(node->attributes, type);
-			gf_list_add(data->attributes, type);
+		att = ttml_get_attr(node, "type");
+		if (att) {
+			gf_list_del_item(node->attributes, att);
+			gf_list_add(data->attributes, att);
 		}
 		//base64 encode in a child
 		GF_SAFEALLOC(node, GF_XMLNode)
@@ -832,7 +832,6 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 		if (found) continue;
 
 		//insert this p - if last entry in global div is text, insert before
-		idx=0;
 		txt = gf_list_last(div_global->content);
 		if (txt && txt->type) {
 			idx = gf_list_count(div_global->content) - 1;

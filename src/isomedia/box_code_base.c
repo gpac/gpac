@@ -1327,6 +1327,11 @@ GF_Err esds_box_size(GF_Box *s)
 {
 	u32 descSize = 0;
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
+	//make sure we write with no ESID and no OCRESID
+    if (ptr->desc) {
+        ptr->desc->ESID = 0;
+        ptr->desc->OCRESID = 0;
+    }
 	descSize = gf_odf_desc_size((GF_Descriptor *)ptr->desc);
 	ptr->size += descSize;
 	return GF_OK;
@@ -9448,7 +9453,7 @@ GF_Err sbgp_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_size, u32 *total_bytes)
+static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, s32 bytes_in_box, u32 entry_size, u32 *total_bytes)
 {
 	Bool null_size_ok = GF_FALSE;
 	GF_DefaultSampleGroupDescriptionEntry *def_ptr;
@@ -9508,6 +9513,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
 	{
 		GF_CENCSampleEncryptionGroupEntry *ptr;
+		if (bytes_in_box<3) return NULL;
 		GF_SAFEALLOC(ptr, GF_CENCSampleEncryptionGroupEntry);
 		if (!ptr) return NULL;
 		Bool use_mkey = gf_bs_read_int(bs, 1);
@@ -9515,16 +9521,28 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
 		ptr->IsProtected = gf_bs_read_u8(bs);
+		bytes_in_box -= 3;
 		if (use_mkey) {
 			u64 pos = gf_bs_get_position(bs);
 			u32 i, count = gf_bs_read_u16(bs);
+			bytes_in_box -= 2;
+			if (bytes_in_box<0) {
+				gf_free(ptr);
+				return NULL;
+			}
 			for (i=0; i<count; i++) {
 				u8 ivsize = gf_bs_read_u8(bs);
 				gf_bs_skip_bytes(bs, 16);
+				bytes_in_box -= 17;
 				if (!ivsize) {
 					//const IV
 					ivsize = gf_bs_read_u8(bs);
 					gf_bs_skip_bytes(bs, ivsize);
+					bytes_in_box -= 1 + ivsize;
+				}
+				if (bytes_in_box<0) {
+					gf_free(ptr);
+					return NULL;
 				}
 			}
 			ptr->key_info_size = 1 + (u32) (gf_bs_get_position(bs) - pos);
@@ -9548,6 +9566,12 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 			u8 const_iv_size = 0;
 			u8 iv_size = gf_bs_read_u8(bs);
 			gf_bs_read_data(bs, kid, 16);
+			bytes_in_box -= 17;
+			if (bytes_in_box<0) {
+				gf_free(ptr);
+				return NULL;
+			}
+
 			*total_bytes = 20;
 			if ((ptr->IsProtected == 1) && !iv_size) {
 				const_iv_size = gf_bs_read_u8(bs);
@@ -9855,7 +9879,7 @@ GF_Err sgpd_box_read(GF_Box *s, GF_BitStream *bs)
 			size = gf_bs_read_u32(bs);
 			ISOM_DECREASE_SIZE(p, 4);
 		}
-		ptr = sgpd_parse_entry(p->grouping_type, bs, size, &parsed_bytes);
+		ptr = sgpd_parse_entry(p->grouping_type, bs, (s32) p->size, size, &parsed_bytes);
 		//don't return an error, just stop parsing so that we skip over the sgpd box
 		if (!ptr) return GF_OK;
 

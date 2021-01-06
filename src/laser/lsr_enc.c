@@ -593,6 +593,8 @@ static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 {
 	s32 res, max;
 
+	if (!nb_bits) return 0;
+
 	res = FIX2INT( gf_divfix(x, lsr->res_factor) );
 	/*don't loose too much*/
 	if (!res && x) {

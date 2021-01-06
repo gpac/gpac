@@ -278,7 +278,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		PIDCtx *pidctx=gf_list_get(stack->pids, i);
 
 		if (pidctx->nb_packets==stack->max_pck) {
-			if (stack->gsftest && pidctx->dst_pid) {
+			if (stack->gsftest) {
 				if (pidctx->dst_pid) {
 					gf_filter_pid_remove(pidctx->dst_pid);
 					pidctx->dst_pid = NULL;

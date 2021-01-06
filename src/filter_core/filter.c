@@ -982,13 +982,13 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 }
 void gf_filter_update_arg_task(GF_FSTask *task)
 {
-	u32 i=0;
 	GF_FilterUpdate *arg=task->udta;
 
 	Bool found = gf_filter_update_arg_apply(task->filter, arg->name, arg->val, GF_FALSE);
 
 	if (!found) {
 		if (arg->recursive) {
+			u32 i;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Failed to locate argument %s in filter %s, propagating %s the filter chain\n", arg->name, task->filter->freg->name,
 				(arg->recursive & (GF_FILTER_UPDATE_UPSTREAM|GF_FILTER_UPDATE_DOWNSTREAM)) ? "up and down" : ((arg->recursive & GF_FILTER_UPDATE_UPSTREAM) ? "up" : "down") ));
 

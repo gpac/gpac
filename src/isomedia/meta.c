@@ -1248,6 +1248,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			e = gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, cenc_item_id, GF_ISOM_REF_AUXR, NULL);
 			if (e) return e;
 
+			//multikey, we MUST have a 'iaux' prop with aux_info_type_param=1 associated
 			if (image_props->cenc_info->key_info[0]) {
 				GF_ItemPropertyContainerBox *ipco = meta->item_props->property_container;
 				GF_ItemPropertyAssociationBox *ipma = meta->item_props->property_association;
@@ -1267,6 +1268,8 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 						continue;
 					}
 					if (b->aux_info_parameter!=1) continue;
+					prop_index = i;
+					break;
 				}
 
 				if (prop_index < 0) {
@@ -1277,7 +1280,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 				}
 
 				//add property
-				e = meta_add_item_property_association(ipma, infe->item_ID+1, prop_index + 1, GF_TRUE);
+				e = meta_add_item_property_association(ipma, cenc_item_id, prop_index + 1, GF_TRUE);
 				if (e) return e;
 			}
 

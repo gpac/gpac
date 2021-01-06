@@ -3289,14 +3289,14 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		if (group->dash->mpd->type==GF_MPD_TYPE_STATIC)
 			group->timeline_setup = GF_TRUE;
 
-		if (!group->current_downloaded_segment_duration)
+		if (!group->current_downloaded_segment_duration && rep->segment_list && rep->segment_list->timescale)
 			group->current_downloaded_segment_duration = rep->segment_list->duration * 1000 / rep->segment_list->timescale;
 
 		//setup tune point
 		if (!group->timeline_setup) {
 			//tune to last entry (live edge)
 			group->download_segment_index = rep->m3u8_media_seq_indep_last;
-			if (rep->m3u8_low_latency) {
+			if (rep->m3u8_low_latency && rep->segment_list) {
 				u32 nb_removed = ls_hls_purge_segments(group->download_segment_index, rep->segment_list->segment_URLs);
 				group->download_segment_index -= nb_removed;
 			}
@@ -3305,7 +3305,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			group->timeline_setup = GF_TRUE;
 			group->first_hls_chunk = GF_TRUE;
 		} else {
-			if (rep->m3u8_low_latency) {
+			if (rep->m3u8_low_latency && rep->segment_list) {
 				ls_hls_purge_segments(-1, rep->segment_list->segment_URLs);
 			}
 		}

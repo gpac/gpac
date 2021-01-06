@@ -5983,10 +5983,9 @@ int mp4boxMain(int argc, char **argv)
 					}
 					if (e == GF_OK) {
 						if (!src_tk_id) {
-							u32 j;
-							for (j=0; j<gf_isom_get_track_count(fsrc); i++) {
-								if (gf_isom_is_video_handler_type (gf_isom_get_media_type(fsrc, i+1))) {
-									src_tk_id = gf_isom_get_track_id(fsrc, i+1);
+							for (j=0; j<gf_isom_get_track_count(fsrc); j++) {
+								if (gf_isom_is_video_handler_type (gf_isom_get_media_type(fsrc, j+1))) {
+									src_tk_id = gf_isom_get_track_id(fsrc, j+1);
 									break;
 								}
 							}
