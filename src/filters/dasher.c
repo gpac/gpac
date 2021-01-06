@@ -3828,7 +3828,7 @@ resend:
 			}
 		}
 
-		if ((ctx->llhls==3) && !m3u8_second_pass) {
+		if ((ctx->llhls==3) && !m3u8_second_pass && ctx->out_path) {
 			char *sep;
 			char szAltName[GF_MAX_PATH];
 			strcpy(szAltName, ctx->out_path);
@@ -7234,7 +7234,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->store_seg_states && !evt->seg_size.is_init) {
 			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);
 			if (!sctx || !ctx->nb_seg_url_pending) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received segment size info event but no pending segments\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer, received segment size info event but no pending segments\n"));
 				return GF_TRUE;
 			}
 			assert(sctx);
@@ -7332,8 +7332,12 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			*s_url = url;
 		} else if (ds->rep->segment_list && !evt->seg_size.is_init) {
 			GF_MPD_SegmentURL *url = gf_list_pop_front(ds->pending_segment_urls);
-			assert(url);
-			assert(ctx->nb_seg_url_pending);
+			if (!url || !ctx->nb_seg_url_pending) {
+				if (!ds->done) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer, received segment size info event but no pending segments\n"));
+				}
+				return GF_TRUE;
+			}
 			ctx->nb_seg_url_pending--;
 
 			if (!url->media && ctx->sfile) {

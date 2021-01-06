@@ -1695,7 +1695,6 @@ void gf_odm_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTyp
 #ifndef GPAC_DISABLE_SVG
 	u32 i, count, min_buffer, min_time;
 	GF_DOM_Event evt;
-	GF_ObjectManager *an_od;
 	GF_Scene *scene;
 
 	if (!odm || !odm->scene_ns) return;
@@ -1726,6 +1725,7 @@ void gf_odm_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTyp
 	if (!scene) return;
 
 	if (!buffer_level_plus_one) {
+		GF_ObjectManager *an_od;
 		min_time = min_buffer = (u32) -1;
 
 		/*get buffering on root OD*/

@@ -5996,7 +5996,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	}
 	rvcc->predefined_rvc_config = rvc_predefined;
 	if (!rvc_predefined) {
-		u32 it_id=0,
+		u32 it_id=0;
 		e = gf_isom_set_meta_type(movie, GF_FALSE, track, GF_META_TYPE_RVCI);
 		if (e) return e;
 		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_ISO2, GF_TRUE);

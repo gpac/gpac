@@ -152,6 +152,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	} else {
 		u32 pcm_flags, pcm_size;
 		Bool load_default = GF_FALSE;
+
+		if (an_esd)
+			gf_odf_desc_del((GF_Descriptor *)an_esd);
+
 		lang_desc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 		gf_isom_get_media_language(read->mov, track, &lang_desc->full_lang_code);
 		esid = gf_isom_get_track_id(read->mov, track);

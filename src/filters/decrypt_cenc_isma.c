@@ -759,7 +759,6 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	}
 
 	if (cinfo_prop) {
-		GF_Err e;
 		cinfo = gf_crypt_info_load(cinfo_prop->value.string, &e);
 		if (!cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", cinfo_prop->value.string));
@@ -975,7 +974,7 @@ u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_si
 
 static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 subsample_count;
 	u32 data_size;
 	u8 *out_data;
@@ -1385,7 +1384,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (ctx->cinfo) {
 		u32 stream_id=0;
-		u32 i, count = gf_list_count(ctx->cinfo->tcis);
+		u32 count = gf_list_count(ctx->cinfo->tcis);
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (!prop) prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 		if (prop) stream_id = prop->value.uint;
@@ -1636,7 +1635,7 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 		, GF_PROP_UINT, "full", "full|nokey|skip", GF_ARG_HINT_ADVANCED},
 	{ OFFS(drop_keys), "consider keys with given 1-based indexes as not available (multi-key debug)", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(kids), "define KIDs. If `keys` is empty, consider keys with given KID (as hex string) as not available (debug)", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
-	{ OFFS(keys), "define key values for each of the specififed KID", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(keys), "define key values for each of the specified KID", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 

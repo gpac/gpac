@@ -454,7 +454,10 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 	//first get the chunk
 	for (; i < stbl->SampleToChunk->nb_entries; i++) {
 		assert(stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber);
-		assert (k <= stbl->SampleToChunk->ghostNumber);
+		//corrupted file (less sample2chunk info than sample count
+		if (k > stbl->SampleToChunk->ghostNumber) {
+			return GF_ISOM_INVALID_FILE;
+		}
 
 
 		//check if sample is in current chunk

@@ -682,6 +682,8 @@ void isor_reader_check_config(ISOMChannel *ch)
 		u8 nal_type=0;
 		u32 pos = (u32) gf_bs_get_position(ch->nal_bs);
 		u32 size = gf_bs_read_int(ch->nal_bs, nalu_len*8);
+		//takes care of size being just larger than 0xFFFFFFFF + pos + nalu_len ...
+		if (ch->sample->dataLength < size) break;
 		if (ch->sample->dataLength < size + pos + nalu_len) break;
 		u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
 		if (ch->check_avc_ps) {

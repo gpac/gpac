@@ -743,8 +743,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 	}
 	if (cstr->multi_key && !cstr->mkey_indices.nb_items && cstr->tci->mkey_subs) {
-		GF_PropertyValue p = gf_props_parse_value(GF_PROP_UINT_LIST, "subs", cstr->tci->mkey_subs, NULL, ',');
-		cstr->mkey_indices = p.value.uint_list;
+		GF_PropertyValue pval = gf_props_parse_value(GF_PROP_UINT_LIST, "subs", cstr->tci->mkey_subs, NULL, ',');
+		cstr->mkey_indices = pval.value.uint_list;
 	}
 
 	if (is_reinit) {
@@ -1445,7 +1445,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 			u64 obu_size;
 			u32 hdr_size;
-			u32 i;
 #else
 			struct {
 				int clear, encrypted;
@@ -1993,7 +1992,6 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		if (cstr->tci->keyRoll) {
 			new_idx = (cstr->nb_pck_encrypted / cstr->tci->keyRoll) % cstr->tci->nb_keys;
 		} else if (cstr->rap_roll) {
-			u8 sap = gf_filter_pck_get_sap(pck);
 			if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2)) {
 				new_idx = (new_idx + 1) % cstr->tci->nb_keys;
 			}
