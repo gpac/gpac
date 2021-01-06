@@ -227,7 +227,7 @@ typedef struct _dash_stream
 	GF_Fraction sar, fps;
 	u32 width, height;
 	u32 sr, nb_ch;
-	const char *lang;
+	char *lang;
 	Bool interlaced;
 	const GF_PropertyValue *p_role;
 	const GF_PropertyValue *p_period_desc;
@@ -235,9 +235,9 @@ typedef struct _dash_stream
 	const GF_PropertyValue *p_as_any_desc;
 	const GF_PropertyValue *p_rep_desc;
 	const GF_PropertyValue *p_base_url;
-	const char *template;
-	const char *xlink;
-	const char *hls_vp_name;
+	char *template;
+	char *xlink;
+	char *hls_vp_name;
 	u32 nb_surround, nb_lfe;
 	u64 ch_layout;
 	GF_PropVec4i srd;
@@ -303,7 +303,7 @@ typedef struct _dash_stream
 
 	GF_Filter *dst_filter;
 
-	const char *src_url;
+	char *src_url;
 
 	char *init_seg, *seg_template, *idx_template;
 	u32 nb_sap_3, nb_sap_4;
@@ -653,7 +653,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
 	if (p && _mem && strcmp(_mem, p->value.string)) period_switch = GF_TRUE; \
-	if (p) _mem = p->value.string; \
+	if (p) { \
+		if (_mem) gf_free(_mem); \
+		_mem = gf_strdup(p->value.string); \
+	}\
+
 
 #define CHECK_PROP_PROP(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
@@ -983,7 +987,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//assign default ID
 	if (!ds->period_id)
-		ds->period_id = DEFAULT_PERIOD_ID;
+		ds->period_id = gf_strdup(DEFAULT_PERIOD_ID);
 
 	if (!period_switch) {
 		if (ds->opid) {
@@ -3890,6 +3894,18 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 		if (ds->cues) gf_free(ds->cues);
 		gf_list_del(ds->complementary_streams);
 		gf_free(ds->rep_id);
+		//string properties are locally copied
+#define RESET_PROP_STR(_prop) \
+		if (_prop) gf_free(_prop);
+
+		RESET_PROP_STR(ds->src_url)
+		RESET_PROP_STR(ds->template)
+		RESET_PROP_STR(ds->lang)
+		RESET_PROP_STR(ds->hls_vp_name)
+		RESET_PROP_STR(ds->xlink)
+		RESET_PROP_STR(ds->period_id)
+
+#undef RESET_PROP_STR
 		return;
 	}
 	ds->init_seg = ds->seg_template = ds->idx_template = NULL;
