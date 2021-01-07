@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / vout default ui
@@ -73,6 +73,8 @@ brush.set_color('white');
 
 let disp_size = null;
 let task_reschedule = 500;
+let rot = 0;
+let flip = 0;
 
 function setup_overlay()
 {
@@ -249,7 +251,7 @@ function do_seek(val, mods, absolute)
 let init_wnd=false;
 function update_help()
 {
-	let args = ['Shortcuts for vout', '  '];
+	let args = []; //['Shortcuts for vout', '  '];
 
 	shortcuts.forEach( (key) => {
 		args.push( '' + sys.keyname(key.code) + ': ' + key.desc);
@@ -719,6 +721,8 @@ let shortcuts = [
 	{ "code": GF_KEY_F, "desc": "fullscreen mode"},
 	{ "code": GF_KEY_I, "desc": "show info and statistics"},
 	{ "code": GF_KEY_P, "desc": "show playback info"},
+	{ "code": GF_KEY_M, "desc": "flip video"},
+	{ "code": GF_KEY_R, "desc": "rotate video by 90 degree"},
 ];
 
 function set_speed(speed)
@@ -812,6 +816,26 @@ function process_keyboard(evt)
 		overlay_type=OL_PLAY;
 		if (!ol_visible) init_wnd=true;
 		toggle_overlay();
+		return;
+	case GF_KEY_R:
+		if (audio_only) return;
+		rot = vout.get_arg('vrot');
+		rot++;
+		if (rot==4) rot = 0;
+		if (!rot) vout.update('vrot', '0');
+		else if (rot==1) vout.update('vrot', '90');
+		else if (rot==2) vout.update('vrot', '180');
+		else vout.update('vrot', '270');
+		return;
+	case GF_KEY_M:
+		if (audio_only) return;
+		flip = vout.get_arg('vflip');
+		flip++;
+		if (flip==4) flip = 0;
+		if (!flip) vout.update('vflip', 'no');
+		else if (flip==1) vout.update('vflip', 'v');
+		else if (flip==2) vout.update('vflip', 'h');
+		else vout.update('vflip', 'vh');
 		return;
 	default:
 		break;
