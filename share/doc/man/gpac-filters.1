@@ -3440,6 +3440,32 @@ buffer_done (bool):            buffer done indication (readonly)
 .br
 rebuffer (luint):              time at which rebuffer started, 0 if not rebuffering (readonly)
 .br
+vflip (enum, default: no, updatable): flip video (GL only)
+.br
+* no: no flipping
+.br
+* v: vertical flip
+.br
+* h: horizontal flip
+.br
+* vh: horizontal and vertical
+.br
+* hv: same as vh
+.br
+
+.br
+vrot (enum, default: 0, updatable): rotate video by given angle
+.br
+* 0: no rotation
+.br
+* 90: rotate 90 degree counter clockwise
+.br
+* 180: rotate 180 degree
+.br
+* 270: rotate 90 degree clockwise
+.br
+
+.br
 
 .br
 .SH vcrop
@@ -7181,7 +7207,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev415-g45475a0a8-master
+build: 1.1.0-DEV-rev419-gc6a62b5eb-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
