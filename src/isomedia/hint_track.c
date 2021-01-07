@@ -235,6 +235,8 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, HintDescriptionIndex - 1);
+	if (!hdesc) return GF_BAD_PARAM;
+
 	count = gf_list_count(hdesc->child_boxes);
 
 	for (i=0; i< count; i++) {
@@ -266,6 +268,7 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, HintDescriptionIndex - 1);
+	if (!hdesc) return GF_BAD_PARAM;
 	count = gf_list_count(hdesc->child_boxes);
 
 	for (i=0; i< count; i++) {
@@ -298,6 +301,7 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, HintDescriptionIndex - 1);
+	if (!hdesc) return GF_BAD_PARAM;
 	count = gf_list_count(hdesc->child_boxes);
 
 	for (i=0; i< count; i++) {
