@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -106,8 +106,8 @@ typedef struct
 	GF_HEVCConfig *hvcc, *lvcc;
 	GF_VVCConfig *vvcc;
 
-	u8 *inband_hdr;
-	u32 inband_hdr_size;
+	u8 *inband_hdr, *inband_hdr_non_rap;
+	u32 inband_hdr_size, inband_hdr_non_rap_size;
 	u32 is_nalu;
 	Bool is_av1, is_vpx;
 	Bool fragment_done;
@@ -211,7 +211,7 @@ typedef struct
 	Bool m4sys, dref;
 	GF_Fraction idur;
 	u32 pack3gp, ctmode;
-	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc;
+	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband;
 	u32 xps_inband;
 	u32 block_size;
 	u32 store, tktpl, mudta;
@@ -415,28 +415,36 @@ static GF_List *mp4_mux_get_nalus_ps(GF_List *list, u8 type)
 	return NULL;
 }
 
-static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw, Bool for_non_rap)
 {
 	GF_BitStream *bs;
-	if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
+	if (for_non_rap) {
+		if (tkw->inband_hdr_non_rap) gf_free(tkw->inband_hdr_non_rap);
+		tkw->inband_hdr_non_rap = NULL;
+	} else {
+		if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
+		tkw->inband_hdr = NULL;
+	}
 
 	tkw->nal_unit_size = 0;
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (tkw->avcc || tkw->svcc) {
 		if (tkw->avcc) {
-			mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSets, tkw->avcc->nal_unit_size);
+			if (!for_non_rap)
+				mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSets, tkw->avcc->nal_unit_size);
 			/*if (!tkw->nal_unit_size) */tkw->nal_unit_size = tkw->avcc->nal_unit_size;
 		}
 
 		if (tkw->svcc) {
-			mp4_mux_write_ps_list(bs, tkw->svcc->sequenceParameterSets, tkw->svcc->nal_unit_size);
+			if (!for_non_rap)
+				mp4_mux_write_ps_list(bs, tkw->svcc->sequenceParameterSets, tkw->svcc->nal_unit_size);
 			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->svcc->nal_unit_size;
 		}
 
-		if (tkw->avcc && tkw->avcc->sequenceParameterSetExtensions)
+		if (tkw->avcc && tkw->avcc->sequenceParameterSetExtensions && !for_non_rap)
 			mp4_mux_write_ps_list(bs, tkw->avcc->sequenceParameterSetExtensions, tkw->avcc->nal_unit_size);
 
-		if (tkw->svcc && tkw->svcc->sequenceParameterSetExtensions)
+		if (tkw->svcc && tkw->svcc->sequenceParameterSetExtensions && !for_non_rap)
 			mp4_mux_write_ps_list(bs, tkw->svcc->sequenceParameterSetExtensions, tkw->svcc->nal_unit_size);
 
 		if (tkw->avcc)
@@ -447,16 +455,18 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 	if (tkw->hvcc || tkw->lvcc) {
 		if (tkw->hvcc) {
-			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->hvcc->param_array, GF_HEVC_NALU_VID_PARAM), tkw->hvcc->nal_unit_size);
+			if (!for_non_rap)
+				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->hvcc->param_array, GF_HEVC_NALU_VID_PARAM), tkw->hvcc->nal_unit_size);
 			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->hvcc->nal_unit_size;
 		}
 		if (tkw->lvcc) {
-			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->lvcc->param_array, GF_HEVC_NALU_VID_PARAM), tkw->lvcc->nal_unit_size);
+			if (!for_non_rap)
+				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->lvcc->param_array, GF_HEVC_NALU_VID_PARAM), tkw->lvcc->nal_unit_size);
 			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->lvcc->nal_unit_size;
 		}
-		if (tkw->hvcc)
+		if (tkw->hvcc && !for_non_rap)
 			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->hvcc->param_array, GF_HEVC_NALU_SEQ_PARAM), tkw->hvcc->nal_unit_size);
-		if (tkw->lvcc)
+		if (tkw->lvcc && !for_non_rap)
 			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->lvcc->param_array, GF_HEVC_NALU_SEQ_PARAM), tkw->lvcc->nal_unit_size);
 		if (tkw->hvcc)
 			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->hvcc->param_array, GF_HEVC_NALU_PIC_PARAM), tkw->hvcc->nal_unit_size);
@@ -465,13 +475,22 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 
 	if (tkw->vvcc) {
-		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_VID_PARAM), tkw->vvcc->nal_unit_size);
+		if (!for_non_rap)
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_VID_PARAM), tkw->vvcc->nal_unit_size);
 		if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
-		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_SEQ_PARAM), tkw->vvcc->nal_unit_size);
+
+		if (!for_non_rap)
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_SEQ_PARAM), tkw->vvcc->nal_unit_size);
+
 		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_PIC_PARAM), tkw->vvcc->nal_unit_size);
+		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_APS_PREFIX), tkw->vvcc->nal_unit_size);
 	}
-	tkw->inband_hdr=NULL;
-	gf_bs_get_content(bs, &tkw->inband_hdr, &tkw->inband_hdr_size);
+
+	if (for_non_rap) {
+		gf_bs_get_content(bs, &tkw->inband_hdr_non_rap, &tkw->inband_hdr_non_rap_size);
+	} else {
+		gf_bs_get_content(bs, &tkw->inband_hdr, &tkw->inband_hdr_size);
+	}
 	gf_bs_del(bs);
 	//we may have cases where the param sets are updated before a non-IDR/SAP3 picture, we must inject asap at least once
 	tkw->force_inband_inject = GF_TRUE;
@@ -509,6 +528,7 @@ static void mp4_mux_track_writer_del(TrackWriter *tkw)
 	if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
 	if (tkw->vvcc) gf_odf_vvc_cfg_del(tkw->vvcc);
 	if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
+	if (tkw->inband_hdr_non_rap) gf_free(tkw->inband_hdr_non_rap);
 	gf_free(tkw);
 }
 
@@ -1816,7 +1836,9 @@ sample_entry_setup:
 				}
 				ctx->xps_inband = 2;
 			}
-			mp4_mux_make_inband_header(ctx, tkw);
+			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
+			if (ctx->pps_inband)
+				mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 			return GF_OK;
 		}
 		else if (use_hevc && dsi) {
@@ -1833,7 +1855,9 @@ sample_entry_setup:
 				}
 				ctx->xps_inband = 2;
 			}
-			mp4_mux_make_inband_header(ctx, tkw);
+			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
+			if (ctx->pps_inband)
+				mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 			return GF_OK;
 		}
 		else if (use_vvc && dsi) {
@@ -1846,7 +1870,9 @@ sample_entry_setup:
 				}
 				ctx->xps_inband = 2;
 			}
-			mp4_mux_make_inband_header(ctx, tkw);
+			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
+			if (ctx->pps_inband)
+				mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot create a new sample description entry (config changed) for finalized movie in fragmented mode\n"));
@@ -2823,7 +2849,9 @@ sample_entry_done:
 			tkw->lvcc = NULL;
 		}
 	} else if (needs_sample_entry || make_inband_headers) {
-		mp4_mux_make_inband_header(ctx, tkw);
+		mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
+		if (ctx->pps_inband)
+			mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 	}
 
 	tkw->negctts_shift = 0;
@@ -3238,7 +3266,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	u32 timescale = 0;
 	const GF_PropertyValue *subs;
 	GF_FilterSAPType sap_type;
-	Bool insert_subsample_dsi = GF_FALSE;
+	u32 insert_subsample_dsi_size = 0;
 	u32 first_nal_is_audelim = GF_FALSE;
 	u32 sample_desc_index = tkw->stsd_idx;
 
@@ -3395,14 +3423,23 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to append sample DTS "LLU" data: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
 		}
 	} else {
-		if ((tkw->sample.IsRAP || tkw->force_inband_inject) && ctx->xps_inband) {
+		if ((tkw->sample.IsRAP || tkw->force_inband_inject || ctx->pps_inband) && ctx->xps_inband) {
+			u8 *inband_xps;
+			u32 inband_xps_size;
 			char *au_delim=NULL;
 			u32 au_delim_size=0;
 			char *pck_data = tkw->sample.data;
 			u32 pck_data_len = tkw->sample.dataLength;
-			tkw->sample.data = tkw->inband_hdr;
-			tkw->sample.dataLength = tkw->inband_hdr_size;
-			tkw->force_inband_inject = GF_FALSE;
+			if (tkw->sample.IsRAP || tkw->force_inband_inject) {
+				inband_xps = tkw->inband_hdr;
+				inband_xps_size = tkw->inband_hdr_size;
+				tkw->force_inband_inject = GF_FALSE;
+			} else {
+				inband_xps = tkw->inband_hdr_non_rap;
+				inband_xps_size = tkw->inband_hdr_non_rap_size;
+			}
+			tkw->sample.data = inband_xps;
+			tkw->sample.dataLength = inband_xps_size;
 
 			if (tkw->is_nalu==NALU_AVC) {
 				char *nal = pck_data + tkw->nal_unit_size;
@@ -3428,17 +3465,17 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			if (for_fragment) {
 				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0);
 				if (!e && au_delim) {
-					e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, tkw->inband_hdr, tkw->inband_hdr_size, 0);
+					e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, inband_xps, inband_xps_size, 0);
 				}
 				if (!e) e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, pck_data, pck_data_len, 0);
 			} else {
 				e = gf_isom_add_sample(ctx->file, tkw->track_num, sample_desc_index, &tkw->sample);
 				if (au_delim && !e) {
-					e = gf_isom_append_sample_data(ctx->file, tkw->track_num, tkw->inband_hdr, tkw->inband_hdr_size);
+					e = gf_isom_append_sample_data(ctx->file, tkw->track_num, inband_xps, inband_xps_size);
 				}
 				if (!e) e = gf_isom_append_sample_data(ctx->file, tkw->track_num, pck_data, pck_data_len);
 			}
-			insert_subsample_dsi = GF_TRUE;
+			insert_subsample_dsi_size = inband_xps_size;
 		} else if (for_fragment) {
 			e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0);
 		} else {
@@ -3505,13 +3542,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	
 	if (subs) {
 		//if no AUDelim nal and inband header injection, push new subsample
-		if (!first_nal_is_audelim && insert_subsample_dsi) {
+		if (!first_nal_is_audelim && insert_subsample_dsi_size) {
 			if (for_fragment) {
-				gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, tkw->inband_hdr_size, 0, 0, 0);
+				gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, insert_subsample_dsi_size, 0, 0, 0);
 			} else {
-				gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, tkw->inband_hdr_size, 0, 0, 0);
+				gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, insert_subsample_dsi_size, 0, 0, 0);
 			}
-			insert_subsample_dsi = GF_FALSE;
+			insert_subsample_dsi_size = 0;
 		}
 
 		if (!ctx->bs_r) ctx->bs_r = gf_bs_new(subs->value.data.ptr, subs->value.data.size, GF_BITSTREAM_READ);
@@ -3531,16 +3568,16 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 
 			//we have AUDelim nal and inband header injection, push new subsample for inband header once we have pushed the first subsample (au delim)
-			if (insert_subsample_dsi) {
+			if (insert_subsample_dsi_size) {
 				if (first_nal_is_audelim != subs_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] inserting inband param after AU delimiter NALU, but sample has subsample information not aligned on NALU (got %d subsample size but expecting %d) - file might be broken!\n", subs_size, first_nal_is_audelim));
 				}
 				if (for_fragment) {
-					gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, tkw->inband_hdr_size, 0, 0, 0);
+					gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, insert_subsample_dsi_size, 0, 0, 0);
 				} else {
-					gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, tkw->inband_hdr_size, 0, 0, 0);
+					gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, insert_subsample_dsi_size, 0, 0, 0);
 				}
-				insert_subsample_dsi = GF_FALSE;
+				insert_subsample_dsi_size = GF_FALSE;
 			}
 		}
 	}
@@ -6026,6 +6063,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			, GF_PROP_UINT, "strict", "none|strict|all", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(keep_utc), "force all new files and tracks to keep the source UTC creation and modification times", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pps_inband), "when xps_inband is set, inject PPS in each non SAP 1/2/3 sample", GF_PROP_BOOL, "no", NULL, 0},
 
 	{0}
 };

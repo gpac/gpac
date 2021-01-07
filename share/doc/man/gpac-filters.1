@@ -2210,6 +2210,8 @@ tags (enum, default: strict):  tag injection mode
 .br
 keep_utc (bool, default: false): force all new files and tracks to keep the source UTC creation and modification times
 .br
+pps_inband (bool, default: no): when xps_inband is set, inject PPS in each non SAP 1/2/3 sample
+.br
 
 .br
 .SH rfqcp
@@ -3109,6 +3111,8 @@ extract (enum, default: all):  layer extraction mode
 
 .br
 delim (bool, default: true):   insert AU Delimiter NAL
+.br
+pps_inband (bool, default: false): inject PPS at each non SAP frame, ignored if rcfg is not set
 .br
 
 .br
@@ -7207,7 +7211,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev419-gc6a62b5eb-master
+build: 1.1.0-DEV-rev422-gcea89193d-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

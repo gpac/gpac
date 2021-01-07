@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -162,6 +162,7 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher)
 {
 	gf_list_reset(dasher->inputs);
 	if (dasher->fsess) {
+		gf_fs_print_unused_args(dasher->fsess);
 		gf_fs_del(dasher->fsess);
 		dasher->fsess = NULL;
 	}
@@ -1208,6 +1209,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 
 	if (dasher->no_cache) {
+		if (!e) gf_fs_print_unused_args(dasher->fsess);
 		gf_fs_del(dasher->fsess);
 		dasher->fsess = NULL;
 	}

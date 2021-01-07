@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -1433,6 +1433,8 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (e>GF_OK) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
+
+	if (!e) gf_fs_print_unused_args(fsess);
 	gf_fs_print_non_connected(fsess);
 	if (dumper->print_stats_graph & 1) gf_fs_print_stats(fsess);
 	if (dumper->print_stats_graph & 2) gf_fs_print_connections(fsess);
