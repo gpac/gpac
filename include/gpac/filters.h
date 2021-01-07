@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -442,6 +442,11 @@ void gf_fs_print_non_connected(GF_FilterSession *session);
 */
 void gf_fs_print_non_connected_ex(GF_FilterSession *session, Bool ignore_sinks);
 
+/*! Prints the list of arguments specified but not used by the filter session using \code LOG_APP@LOG_WARNING \endcode
+ Note: this is simply a wrapper to \ref gf_fs_enum_unmapped_options
+\param session filter session
+*/
+void gf_fs_print_unused_args(GF_FilterSession *session);
 
 /*! Prints all possible connections between filter registries to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session

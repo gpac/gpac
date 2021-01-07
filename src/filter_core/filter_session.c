@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -2228,6 +2228,20 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 	gf_list_del(filters_done);
 }
 
+GF_EXPORT
+void gf_fs_print_unused_args(GF_FilterSession *fsess)
+{
+	u32 idx = 0;
+	char *argname;
+	u32 argtype;
+
+	while (1) {
+		if (gf_fs_enum_unmapped_options(fsess, &idx, &argname, &argtype)==GF_FALSE)
+			break;
+
+		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Arg %s set but not used\n", argname));
+	}
+}
 
 GF_EXPORT
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, GF_EventPropagateType propagate_mask)
