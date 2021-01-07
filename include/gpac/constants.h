@@ -368,6 +368,10 @@ typedef enum
 	GF_CODECID_AVC_PS = 0x22,
 	/*! codecid for HEVC video */
 	GF_CODECID_HEVC = 0x23,
+	/*! codecid for HEIF image */
+	GF_CODECID_HEIF = GF_4CC('h','e','i','f'),
+	/*! codecid for AVIF image */
+	GF_CODECID_AVIF = GF_4CC('a','v','i','f'),
 	/*! codecid for H264-SVC streams*/
 	GF_CODECID_SVC = 0x24,
 	/*! codecid for HEVC layered streams*/
@@ -409,6 +413,11 @@ typedef enum
 
 	/*! codecid for JPEG-2000 streams*/
 	GF_CODECID_J2K = GF_4CC('j','p','2','k'),
+	GF_CODECID_JPX = GF_4CC('j','p','f',''),
+	GF_CODECID_MJ2P = GF_4CC('m','j','p','2'),
+	GF_CODECID_JPM = GF_4CC('j','p','m',''),
+	GF_CODECID_J2C = GF_4CC('j','2','c',''),
+	GF_CODECID_MJ2C = GF_4CC('m','j','2','c'),
 
 	/*!H263 visual streams*/
 	GF_CODECID_S263 = GF_4CC('s','2','6','3'),
