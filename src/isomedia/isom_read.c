@@ -4054,6 +4054,8 @@ const u32 *gf_isom_get_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber
 	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
 	if (!map) return NULL;
 	tsel = (GF_TrackSelectionBox*)gf_list_get(map->boxes, group_index-1);
+	if (!tsel) return NULL;
+	
 	*switchGroupID = tsel->switchGroup;
 	*criteriaListSize = tsel->attributeListCount;
 	return (const u32 *) tsel->attributeList;
