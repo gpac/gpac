@@ -6133,6 +6133,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	GF_Err e;
 	FILE *mdia;
 	HEVCState hevc;
+	Bool has_au_delim = GF_FALSE;
 	GF_AVCConfigSlot *slc;
 	GF_HEVCConfig *hevc_cfg, *lhvc_cfg, *dst_cfg;
 	GF_HEVCParamArray *spss, *ppss, *vpss;
@@ -6343,7 +6344,12 @@ restart_import:
 			break;
 		}
 
-		if ( (layer_id == min_layer_id) && flush_next_sample && (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)) {
+		if ( (layer_id == min_layer_id) && flush_next_sample && !has_au_delim
+			&& (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)
+			//consider DV nalus are part of SEI suffix info, do not flush sample
+			&& (nal_unit_type!=GF_HEVC_NALU_DV_RPU)
+			&& (nal_unit_type!=GF_HEVC_NALU_DV_EL)
+		) {
 			flush_next_sample = GF_FALSE;
 			flush_sample = GF_TRUE;
 		}
@@ -6663,6 +6669,7 @@ restart_import:
 			break;
 
 		case GF_HEVC_NALU_ACCESS_UNIT:
+			has_au_delim = GF_TRUE;
 			if (import->keep_audelim) {
 				copy_size = nal_size;
 			} else {
