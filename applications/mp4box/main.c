@@ -3848,9 +3848,9 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			PrintLiveUsage();
 #endif
 
-			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/MP4Box-Introduction\n");
+			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/MP4Box\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
-			".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
+			".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"
 			".br\nCopyright: %s\n.br\n"
 			".SH SEE ALSO\n"
