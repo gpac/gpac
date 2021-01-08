@@ -588,6 +588,10 @@ typedef enum
 	GF_ISOM_WRITE_EDIT,
 	/*! Opens an existing file and keep fragment information*/
 	GF_ISOM_OPEN_KEEP_FRAGMENTS,
+	/*! Opens an existing file in READ ONLY mode but enables most of the file edit functions except sample adding / fragmentation
+	\warning This is an experimental feature and should be used with caution ...
+	*/
+	GF_ISOM_OPEN_READ_EDIT,
 } GF_ISOOpenMode;
 
 /*! indicates if target file is an IsoMedia file
@@ -1101,7 +1105,7 @@ GF_Err gf_isom_get_sample_flags(GF_ISOFile *isom_file, u32 trackNumber, u32 samp
 
 /*! gets a sample given a desired decoding time and set the sampleDescriptionIndex of this sample
 
-WARNING: the sample may not be sync even though the sync was requested (depends on the media and the editList)
+\warning The sample may not be sync even though the sync was requested (depends on the media and the editList)
 the SampleNum is optional. If non-NULL, will contain the sampleNumber
 
 \param isom_file the target ISO file
@@ -1175,7 +1179,7 @@ u32 gf_isom_has_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 refe
 if no sample is playing, an empty sample is returned with no data and a DTS set to MovieTime when searching in sync modes
 if no sample is playing, the closest sample in the edit time-line is returned when searching in regular modes
 
-WARNING: the sample may not be sync even though the sync was requested (depends on the media and the editList)
+\warning The sample may not be sync even though the sync was requested (depends on the media and the editList)
 
 Note: this function will handle re-timestamping the sample according to the mapping  of the media time-line
 on the track time-line. The sample TSs (DTS / CTS offset) are expressed in MEDIA TIME SCALE
@@ -1684,7 +1688,7 @@ u32 gf_isom_new_track(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 MediaTyp
 u32 gf_isom_new_track_from_template(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only);
 
 /*! removes a track - internal cross dependencies will be updated.
-WARNING: any OD streams with references to this track through  ODUpdate, ESDUpdate, ESDRemove commands
+\warning Any OD streams with references to this track through  ODUpdate, ESDUpdate, ESDRemove commands
 will be rewritten
 \param isom_file the target ISO file
 \param trackNumber the target track to remove file
@@ -1915,16 +1919,20 @@ GF_Err gf_isom_update_sample_reference(GF_ISOFile *isom_file, u32 trackNumber, u
 */
 GF_Err gf_isom_remove_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber);
 
+
 /*! changes media time scale
 
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param new_timescale the new timescale to set
 \param new_tsinc if not 0, changes sample duration and composition offsets to new_tsinc/new_timescale. If non-constant sample dur is used, uses the samllest sample dur in the track. Otherwise, only changes the timescale
-\param force_rescale if set to GF_TRUE, only the media timescale is changed but media times are not updated. Ignored if new_tsinc is not 0.
+\param force_rescale_type type fo rescaling, Ignored if new_tsinc is not 0:
+ - if set to 0, rescale timings.
+ - if set to 1, only the media timescale is changed but media times are not updated.
+ - if set to 2,  media timescale is updated if new_timescale is set, and all sample durations are set to new_tsinc
 \return GF_EOS if no action taken (same config), or error if any
 */
-GF_Err gf_isom_set_media_timescale(GF_ISOFile *isom_file, u32 trackNumber, u32 new_timescale, u32 new_tsinc, Bool force_rescale);
+GF_Err gf_isom_set_media_timescale(GF_ISOFile *isom_file, u32 trackNumber, u32 new_timescale, u32 new_tsinc, u32 force_rescale_type);
 
 /*! sets the save file name of the (edited) movie.
 If the movie is edited, the default fileName is the open name suffixed with an internally defined extension "%p_isotmp")"
@@ -2010,7 +2018,7 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *isom_file, u32 trackNumber, const char
 GF_Err gf_isom_remove_track_kind(GF_ISOFile *isom_file, u32 trackNumber, const char *schemeURI, const char *value);
 
 /*! changes the handler type of the media
-\warning this may completely breaks the parsing of the media track
+\warning This may completely breaks the parsing of the media track
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param new_type the new handler four character type
@@ -2019,7 +2027,7 @@ GF_Err gf_isom_remove_track_kind(GF_ISOFile *isom_file, u32 trackNumber, const c
 GF_Err gf_isom_set_media_type(GF_ISOFile *isom_file, u32 trackNumber, u32 new_type);
 
 /*! changes the type of the sampleDescriptionBox
-\warning this may completely breaks the parsing of the media track
+\warning This may completely breaks the parsing of the media track
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index
@@ -3253,7 +3261,7 @@ GF_Err gf_isom_svc_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AVCConf
 */
 GF_Err gf_isom_svc_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AVCConfig *cfg, Bool is_additional);
 /*! deletes an SVC sample description
-\warning associated samples if any are NOT deleted
+\warning Associated samples if any are NOT deleted
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index to delete
@@ -3283,7 +3291,7 @@ GF_Err gf_isom_mvc_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AVCConf
 GF_Err gf_isom_mvc_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AVCConfig *cfg, Bool is_additional);
 
 /*! deletes an MVC sample description
-\warning associated samples if any are NOT deleted
+\warning Associated samples if any are NOT deleted
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index to delete
@@ -3370,7 +3378,7 @@ typedef enum {
 GF_Err gf_isom_lhvc_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_HEVCConfig *cfg, GF_ISOMLHEVCTrackType track_type);
 
 /*! sets nalu size length
-\warning any previously added samples must be rewritten by the caller
+\warning Any previously added samples must be rewritten by the caller
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index to update
@@ -3813,7 +3821,7 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *isom_file, u64 *top_box_start);
 
 /*! releases current movie segment. This closes the associated file IO object.
 \note seeking in the file is no longer possible when tables are rested
-\warning the sample count is not reseted after the release of tables. use \ref gf_isom_reset_tables for this
+\warning The sample count is not reseted after the release of tables. use \ref gf_isom_reset_tables for this
 
 \param isom_file the target ISO file
 \param reset_tables if set, sample information for all tracks setup as segment are destroyed, along with all PSSH boxes. This allows keeping the memory footprint low when playing segments.
@@ -4063,7 +4071,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *isom_file, GF_ISOTrackID TrackID
 									Bool force_traf_flags);
 
 /*! changes the default parameters of an existing trak fragment
-\warning should not be used if samples have already been added
+\warning This should not be used if samples have already been added
 
 \param isom_file the target ISO file
 \param TrackID ID of the target track
@@ -4294,7 +4302,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *isom_file, GF_ISOTrackID TrackID,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundantCoding);
 
 /*! appends data into last sample of track for video fragments/other media
-\warning this shall not be used with OD tracks
+\warning This shall not be used with OD tracks
 \param isom_file the target ISO file
 \param TrackID destination track
 \param data the data to append
@@ -6155,7 +6163,7 @@ Bool gf_isom_get_tile_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_gr
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*! sets rap flag for sample_number - this is used by non-IDR RAPs in AVC (also in USAC) were SYNC flag (stss table) cannot be used
-\warning sample group info MUST be added in order (no insertion in the tables)
+\warning Sample group info MUST be added in order (no insertion in the tables)
 
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -6168,7 +6176,7 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *isom_file, u32 trackNumber, u32 
 
 /*! sets roll_distance info for sample_number (number of frames before (<0) or after (>0) this sample to have a complete refresh of the decoded data (used by GDR in AVC)
 
-\warning sample group info MUST be added in order (no insertion in the tables)
+\warning Sample group info MUST be added in order (no insertion in the tables)
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleNumber the target sample number

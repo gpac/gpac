@@ -1562,7 +1562,12 @@ specify the track layout as WxHxXxY
 .TP
 .B rescale (int)
 .br
-force media timescale to TS !! changes the media duration
+force media timescale to TS  (int or fraction) and change the media duration
+.br
+.TP
+.B sampdur (int)
+.br
+force all samples duration (D) or sample durations and media timescale (D/TS), used to patch CFR files with broken timings
 .br
 .TP
 .B timescale (int)
@@ -2422,7 +2427,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev422-gcea89193d-master
+build: 1.1.0-DEV-rev423-g37508607a-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

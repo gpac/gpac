@@ -515,7 +515,8 @@ static GF_GPACArg m4b_imp_fileopt_args [] = {
 		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used\n"
 		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
 		"  - X and Y can be omitted: `:layout=WxH`", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("rescale", NULL, "force media timescale to TS !! changes the media duration", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("rescale", NULL, "force media timescale to TS  (int or fraction) and change the media duration", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("sampdur", NULL, "force all samples duration (`D`) or sample durations and media timescale (`D/TS`), used to patch CFR files with broken timings", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("timescale", NULL, "set imported media timescale to TS", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("moovts", NULL, "set movie timescale to TS. A negative value picks the media timescale of the first track imported", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("noedit", NULL, "`X` do not set edit list when importing B-frames video tracks", NULL, NULL, GF_ARG_BOOL, 0),

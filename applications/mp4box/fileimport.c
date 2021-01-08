@@ -474,6 +474,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 clr_prim;
 	u32 clr_tranf;
 	u32 clr_mx;
+	Bool rescale_override=GF_FALSE;
 	Bool clr_full_range=GF_FALSE;
 	Bool fmt_ok = GF_TRUE;
 	u32 icc_size=0;
@@ -491,6 +492,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	const char *fail_msg = NULL;
 	Bool set_ccst=GF_FALSE;
 	Bool has_last_sample_dur=GF_FALSE;
+	Bool fake_import = GF_FALSE;
 	GF_Fraction last_sample_dur = {0,0};
 	s32 fullrange, videofmt, colorprim, colortfc, colormx;
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
@@ -506,6 +508,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	  2: split all base and SVC layers in dedicated tracks
 	 */
 	svc_mode = 0;
+
+	if (import_flags==0xFFFFFFFF) {
+		import_flags = 0;
+		fake_import = GF_TRUE;
+	}
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -751,10 +758,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		else if (!strnicmp(ext+1, "rescale=", 8)) {
-			if (sscanf(ext+9, "%d/%d", &rescale_num, &rescale_den) != 2) {
+			if (sscanf(ext+9, "%u/%u", &rescale_num, &rescale_den) != 2) {
 				rescale_num = atoi(ext+9);
 				rescale_den = 0;
 			}
+		}
+		else if (!strnicmp(ext+1, "sampdur=", 8)) {
+			if (sscanf(ext+9, "%u/%u", &rescale_den, &rescale_num) != 2) {
+				rescale_den = atoi(ext+9);
+				rescale_num = 0;
+			}
+			rescale_override = GF_TRUE;
 		}
 		else if (!strnicmp(ext+1, "timescale=", 10)) {
 			new_timescale = atoi(ext+11);
@@ -1173,7 +1187,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	check_track_for_svc = check_track_for_lhvc = check_track_for_hevc = 0;
 
 	source_magic = (u64) gf_crc_32((u8 *)inName, (u32) strlen(inName));
-	if (!fsess || mux_args_if_first_pass) {
+	if (!fake_import && (!fsess || mux_args_if_first_pass)) {
 		import.in_name = szName;
 		import.dest = dest;
 		import.video_fps = force_fps;
@@ -1218,17 +1232,19 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	nb_tracks = gf_isom_get_track_count(dest);
 	for (i=0; i<nb_tracks; i++) {
 		u32 media_type;
-		u64 tk_source_magic;
 		track = i+1;
-		tk_source_magic = gf_isom_get_track_magic(dest, track);
 		e = GF_OK;
+		if (!fake_import) {
+			u64 tk_source_magic;
+			tk_source_magic = gf_isom_get_track_magic(dest, track);
 
-		if ((tk_source_magic & 0xFFFFFFFFUL) != source_magic)
-			continue;
-		tk_source_magic>>=32;
-		
-		keep_handler = (tk_source_magic & 1) ? GF_TRUE : GF_FALSE;
-
+			if ((tk_source_magic & 0xFFFFFFFFUL) != source_magic)
+				continue;
+			tk_source_magic>>=32;		
+			keep_handler = (tk_source_magic & 1) ? GF_TRUE : GF_FALSE;
+		} else {
+			keep_handler = GF_TRUE;
+		}
 		media_type = gf_isom_get_media_type(dest, track);
 
 		timescale = gf_isom_get_timescale(dest);
@@ -1372,10 +1388,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (rescale_num > 1) {
 			switch (gf_isom_get_media_type(dest, track)) {
 			case GF_ISOM_MEDIA_AUDIO:
-				fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
-				break;
+				if (!rescale_override) {
+					fprintf(stderr, "Cannot force media timescale for audio media types - ignoring\n");
+					break;
+				}
 			default:
-				e = gf_isom_set_media_timescale(dest, track, rescale_num, rescale_den, 1);
+				e = gf_isom_set_media_timescale(dest, track, rescale_num, rescale_den, rescale_override ? 2 : 1);
                 if (e==GF_EOS) {
 					fprintf(stderr, "Rescale ignored, same config in source file\n");
 					e = GF_OK;
@@ -1836,7 +1854,7 @@ static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
 	return GF_TRUE;
 }
 
-static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u32 src_track, Bool force_cat, Bool *open_read_mode, char *fileName, char *tmp_dir)
+static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u32 src_track, Bool force_cat, u32 *orig_nal_len, u32 *dst_nal_len)
 {
 	GF_AVCConfig *avc_src, *avc_dst;
 	GF_ISOFile *orig = *o_orig;
@@ -1856,13 +1874,8 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u3
 			gf_media_nal_rewrite_samples(dest, dst_tk, 8*avc_src->nal_unit_size);
 			avc_dst->nal_unit_size = avc_src->nal_unit_size;
 		} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
-			if (*open_read_mode) {
-				gf_isom_delete(orig);
-				orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
-				*o_orig = orig;
-				*open_read_mode = GF_FALSE;
-			}
-			gf_media_nal_rewrite_samples(orig, src_track, 8*avc_dst->nal_unit_size);
+			*orig_nal_len = avc_src->nal_unit_size;
+			*dst_nal_len = avc_dst->nal_unit_size;
 		}
 
 		/*merge PS*/
@@ -1890,7 +1903,7 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u3
 }
 
 #ifndef GPAC_DISABLE_HEVC
-static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u32 src_track, Bool force_cat, Bool *open_read_mode, char *fileName, char *tmp_dir)
+static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u32 src_track, Bool force_cat, u32 *orig_nal_len, u32 *dst_nal_len)
 {
 	u32 i;
 	GF_HEVCConfig *hevc_src, *hevc_dst;
@@ -1909,15 +1922,8 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u
 			gf_media_nal_rewrite_samples(dest, dst_tk, 8*hevc_src->nal_unit_size);
 			hevc_dst->nal_unit_size = hevc_src->nal_unit_size;
 		} else if (hevc_src->nal_unit_size < hevc_dst->nal_unit_size) {
-
-			if (*open_read_mode) {
-				gf_isom_delete(orig);
-				orig = gf_isom_open(fileName, GF_ISOM_OPEN_EDIT, tmp_dir);
-				*o_orig = orig;
-				*open_read_mode = GF_FALSE;
-			}
-
-			gf_media_nal_rewrite_samples(orig, src_track, 8*hevc_dst->nal_unit_size);
+			*orig_nal_len = hevc_src->nal_unit_size;
+			*dst_nal_len = hevc_dst->nal_unit_size;
 		}
 
 		/*merge PS*/
@@ -1953,6 +1959,47 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u
 }
 #endif /*GPAC_DISABLE_HEVC */
 
+static GF_Err rewrite_nal_size_field(GF_ISOSample *samp, u32 orig_nal_len, u32 dst_nal_len)
+{
+	GF_Err e = GF_OK;
+	u32 msize=0, remain = samp->dataLength;
+	GF_BitStream *oldbs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+	GF_BitStream *newbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	u8 *buffer = NULL;
+
+	while (remain) {
+		u32 size = gf_bs_read_int(oldbs, orig_nal_len*8);
+		if (size > remain) {
+			e = GF_ISOM_INVALID_FILE;
+			goto exit;
+		}
+		gf_bs_write_int(newbs, size, dst_nal_len*8);
+		remain -= orig_nal_len;
+		if (size > msize) {
+			msize = size;
+			buffer = (u8*)gf_realloc(buffer, sizeof(u8)*msize);
+			if (!buffer) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+		}
+		gf_bs_read_data(oldbs, buffer, size);
+		gf_bs_write_data(newbs, buffer, size);
+		remain -= size;
+	}
+	gf_free(samp->data);
+	samp->data = NULL;
+	samp->dataLength = 0;
+	gf_bs_get_content(newbs, &samp->data, &samp->dataLength);
+
+exit:
+	gf_bs_del(newbs);
+	gf_bs_del(oldbs);
+	if (buffer) gf_free(buffer);
+	return e;
+}
+
+
 GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
 GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl)
@@ -1966,7 +2013,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	u32 dst_tk, tk_id, mtype;
 	u64 insert_dts;
 	Bool is_isom;
-	Bool open_read_mode = GF_TRUE;
 	GF_ISOSample *samp;
 	GF_Fraction64 aligned_to_DTS_frac;
 
@@ -1985,17 +2031,24 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	e = GF_OK;
 
 	/*if options are specified, reimport the file*/
-	is_isom = opts ? 0 : gf_isom_probe_file(fileName);
+	if (opts) opts[0] = 0;
+	is_isom = gf_isom_probe_file(fileName);
 
-	if (!is_isom || opts) {
+	if (!is_isom || multi_cat) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
+		if (opts) opts[0] = ':';
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
 		if (e) return e;
-		open_read_mode = GF_FALSE;
 	} else {
-		//open by default in read mode, will reopen in edit mode if needed (NALU rewrite, to optimize ...)
-		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ, tmp_dir);
-		open_read_mode = GF_TRUE;
+		//open read+edit mode to allow applying options on file
+		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ_EDIT, tmp_dir);
+		if (opts) opts[0] = ':';
+		if (!orig) return gf_isom_last_error(NULL);
+
+		if (opts) {
+			e = import_file(orig, fileName, 0xFFFFFFFF, force_fps, frames_per_sample, NULL, NULL, 0);
+			if (e) return e;
+		}
 	}
 
 	while (multi_cat) {
@@ -2076,6 +2129,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		Bool merge_edits = 0;
 		Bool new_track = 0;
 		u32 dst_tk_sample_entry = 0;
+		u32 orig_nal_len = 0;
+		u32 dst_nal_len = 0;
 		mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_HINT:
@@ -2215,7 +2270,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				        || (stype == GF_ISOM_SUBTYPE_AVC2_H264)
 				        || (stype == GF_ISOM_SUBTYPE_AVC3_H264)
 				        || (stype == GF_ISOM_SUBTYPE_AVC4_H264) ) {
-					dst_tk = merge_avc_config(dest, tk_id, &orig, i+1, force_cat, &open_read_mode, fileName, tmp_dir);
+					dst_tk = merge_avc_config(dest, tk_id, &orig, i+1, force_cat, &orig_nal_len, &dst_nal_len);
 				}
 #ifndef GPAC_DISABLE_HEVC
 				/*merge HEVC config if possible*/
@@ -2223,7 +2278,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				         || (stype == GF_ISOM_SUBTYPE_HEV1)
 				         || (stype == GF_ISOM_SUBTYPE_HVC2)
 				         || (stype == GF_ISOM_SUBTYPE_HEV2)) {
-					dst_tk = merge_hevc_config(dest, tk_id, &orig, i+1, force_cat, &open_read_mode, fileName, tmp_dir);
+					dst_tk = merge_hevc_config(dest, tk_id, &orig, i+1, force_cat, &orig_nal_len, &dst_nal_len);
 				}
 #endif /*GPAC_DISABLE_HEVC*/
 				else if (force_cat) {
@@ -2326,11 +2381,22 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		for (j=0; j<count; j++) {
 			u32 di;
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
+			if (!samp) {
+				e = gf_isom_last_error(orig);
+				if (e) goto err_exit;
+			}
 			last_DTS = samp->DTS;
 			samp->DTS =  (u64) (ts_scale * samp->DTS + (new_track ? 0 : insert_dts));
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
 
 			if (gf_isom_is_self_contained(orig, i+1, di)) {
+				if (orig_nal_len && dst_nal_len) {
+					e = rewrite_nal_size_field(samp, orig_nal_len, dst_nal_len);
+					if (e) {
+						gf_isom_sample_del(&samp);
+						if (e) goto err_exit;
+					}
+				}
 				e = gf_isom_add_sample(dest, dst_tk, di + dst_tk_sample_entry, samp);
 			} else {
 				u64 offset;

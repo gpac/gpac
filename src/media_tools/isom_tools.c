@@ -1090,7 +1090,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 
 	if (target_ts != timescale) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] Adjusting timescale to %d\n", target_ts));
-		gf_isom_set_media_timescale(mp4, video_tk, target_ts, 0, GF_FALSE);
+		gf_isom_set_media_timescale(mp4, video_tk, target_ts, 0, 0);
 	}
 	gf_isom_set_timescale(mp4, target_ts);
 	if ((w<=720) && (h<=576)) chunk_size = 2000000;
