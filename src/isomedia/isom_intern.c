@@ -776,9 +776,12 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 		mov->store_traf_map = GF_TRUE;
 #endif
 
-	if ( (OpenMode == GF_ISOM_OPEN_READ) || (OpenMode == GF_ISOM_OPEN_READ_DUMP) ) {
-		//always in read ...
-		mov->openMode = GF_ISOM_OPEN_READ;
+	if ( (OpenMode == GF_ISOM_OPEN_READ) || (OpenMode == GF_ISOM_OPEN_READ_DUMP) || (OpenMode == GF_ISOM_OPEN_READ_EDIT) ) {
+		if (OpenMode == GF_ISOM_OPEN_READ_EDIT) {
+			mov->openMode = GF_ISOM_OPEN_READ_EDIT;
+		} else {
+			mov->openMode = GF_ISOM_OPEN_READ;
+		}
 		mov->es_id_default_sync = -1;
 		//for open, we do it the regular way and let the GF_DataMap assign the appropriate struct
 		//this can be FILE (the only one supported...) as well as remote

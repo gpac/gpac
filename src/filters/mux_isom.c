@@ -1790,11 +1790,11 @@ sample_entry_setup:
 	if (!ctx->init_movie_done && !tkw->nb_samples && (ctx->mediats<0) && (tkw->tk_timescale==1000)) {
 		if (sr) {
 			tkw->tk_timescale = sr;
-			gf_isom_set_media_timescale(ctx->file, tkw->track_num, sr, 0, GF_TRUE);
+			gf_isom_set_media_timescale(ctx->file, tkw->track_num, sr, 0, 1);
 		}
 		else if (width && fps.den) {
 			tkw->tk_timescale = fps.den;
-			gf_isom_set_media_timescale(ctx->file, tkw->track_num, fps.den, 0, GF_TRUE);
+			gf_isom_set_media_timescale(ctx->file, tkw->track_num, fps.den, 0, 1);
 		}
 	}
 	if (!needs_sample_entry || tkw->is_item) {
@@ -5966,7 +5966,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(xps_inband), "use inband (in sample data) param set for NALU-based video (AVC/HEVC/...)\n"
 	"- no: paramater sets are not inband, several sample descriptions might be created\n"
 	"- all: paramater sets are inband, no param sets in sample description\n"
-	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample descripton\n"
+	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample description\n"
 	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|both|mix", 0},
 	{ OFFS(store), "file storage mode\n"
 	"- inter: perform precise interleave of the file using [-cdur]() (requires temporary storage of all media)\n"

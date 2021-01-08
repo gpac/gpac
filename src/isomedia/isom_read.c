@@ -508,6 +508,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, GF_ISOOpenMode OpenMode, const ch
 		movie = gf_isom_create_movie(fileName, OpenMode, tmp_dir);
 		break;
 	case GF_ISOM_OPEN_EDIT:
+	case GF_ISOM_OPEN_READ_EDIT:
 	case GF_ISOM_OPEN_KEEP_FRAGMENTS:
 		movie = gf_isom_open_file(fileName, OpenMode, tmp_dir);
 		break;
@@ -560,7 +561,7 @@ GF_Err gf_isom_write(GF_ISOFile *movie) {
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	//write our movie to the file
-	if (movie->openMode != GF_ISOM_OPEN_READ) {
+	if ((movie->openMode != GF_ISOM_OPEN_READ) && (movie->openMode != GF_ISOM_OPEN_READ_EDIT)) {
 		gf_isom_get_duration(movie);
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		//movie fragment mode, just store the fragment
