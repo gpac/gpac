@@ -51,7 +51,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_SSL
 
 #define GPAC_HAS_QJS
-//codecs  
+//codecs
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_LIBA52
@@ -176,6 +176,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_IPV6
 #define GPAC_HAS_SSL
 #define GPAC_DISABLE_OGG
+#define GPAC_HAS_STRLCPY
 
 /*Configuration for Symbian*/
 #elif defined(__SYMBIAN32__)
@@ -335,4 +336,3 @@ this macro is currently defined in setup.h */
 /*! @} */
 
 #endif		/*_GF_CONFIG_H_*/
-
