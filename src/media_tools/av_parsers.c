@@ -9592,9 +9592,9 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 		gf_bs_read_ue_log(bs, "sps_log2_diff_max_bt_min_qt_inter_slice");
 		gf_bs_read_ue_log(bs, "sps_log2_diff_max_tt_min_qt_inter_slice");
 	}
-	u8 sps_max_luma_transform_size_64_flag = 0;
+	//u8 sps_max_luma_transform_size_64_flag = 0;
 	if (CtbSizeY > 32) {
-		sps_max_luma_transform_size_64_flag = gf_bs_read_int_log(bs, 1, "sps_max_luma_transform_size_64_flag");
+		/*sps_max_luma_transform_size_64_flag = */gf_bs_read_int_log(bs, 1, "sps_max_luma_transform_size_64_flag");
 	}
 	u8 sps_transform_skip_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_transform_skip_enabled_flag");
 

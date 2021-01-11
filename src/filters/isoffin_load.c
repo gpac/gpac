@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -812,11 +812,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	}
 
 	//update decoder configs
-	ch->check_avc_ps = ch->check_hevc_ps = GF_FALSE;
+	ch->check_avc_ps = ch->check_hevc_ps = ch->check_vvc_ps = GF_FALSE;
 	if (ch->avcc) gf_odf_avc_cfg_del(ch->avcc);
 	ch->avcc = NULL;
 	if (ch->hvcc) gf_odf_hevc_cfg_del(ch->hvcc);
 	ch->hvcc = NULL;
+	if (ch->vvcc) gf_odf_vvc_cfg_del(ch->vvcc);
+	ch->vvcc = NULL;
 
 	if (lang_desc) {
 		gf_odf_desc_del((GF_Descriptor *)lang_desc);
@@ -1042,9 +1044,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(dims.mime_type));
 	}
 	else if (codec_id==GF_CODECID_AVC)
-		ch->check_avc_ps = GF_TRUE;
+		ch->check_avc_ps = !ch->owner->no_xps_check;
 	else if (codec_id==GF_CODECID_HEVC)
-		ch->check_hevc_ps = GF_TRUE;
+		ch->check_hevc_ps = !ch->owner->no_xps_check;
+	else if (codec_id==GF_CODECID_VVC)
+		ch->check_vvc_ps = !ch->owner->no_xps_check;
 	else if (codec_id==GF_CODECID_MHAS) {
 		if (!dsi) {
 			ch->check_mhas_pl = GF_TRUE;
@@ -1104,6 +1108,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	}
 	else if (ch->check_hevc_ps) {
 		ch->hvcc = gf_isom_hevc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
+	}
+	else if (ch->check_vvc_ps) {
+		ch->vvcc = gf_isom_vvc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
 	}
 }
 

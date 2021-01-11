@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -580,9 +580,10 @@ enum
 	RESET_STATE_SPS=1<<1,
 	RESET_STATE_PPS=1<<2,
 	RESET_STATE_SPS_EXT=1<<3,
+	RESET_STATE_DCI=1<<4,
 };
 
-static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
+static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConfig *vvcc, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
 {
 	u32 i, count, state=0;
 	GF_NALUFFParam *sl;
@@ -598,7 +599,8 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 			list = avcc->sequenceParameterSetExtensions;
 			state=RESET_STATE_SPS_EXT;
 		} else return;
-	} else if (hvcc) {
+	}
+	else if (hvcc) {
 		GF_NALUFFParamArray *hvca=NULL;
 		count = gf_list_count(hvcc->param_array);
 		for (i=0; i<count; i++) {
@@ -629,6 +631,40 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 			break;
 		}
 	}
+	else if (hvcc) {
+		GF_NALUFFParamArray *vvca=NULL;
+		count = gf_list_count(vvcc->param_array);
+		for (i=0; i<count; i++) {
+			vvca = gf_list_get(vvcc->param_array, i);
+			if (vvca->type==nal_type) {
+				list = vvca->nalus;
+				break;
+			}
+			vvca = NULL;
+		}
+		if (!vvca) {
+			GF_SAFEALLOC(vvca, GF_NALUFFParamArray);
+			if (vvca) {
+				list = vvca->nalus = gf_list_new();
+				vvca->type = nal_type;
+				gf_list_add(vvcc->param_array, vvca);
+			}
+		}
+		switch (nal_type) {
+		case GF_VVC_NALU_VID_PARAM:
+			state = RESET_STATE_VPS;
+			break;
+		case GF_VVC_NALU_SEQ_PARAM:
+			state = RESET_STATE_SPS;
+			break;
+		case GF_VVC_NALU_PIC_PARAM:
+			state = RESET_STATE_PPS;
+			break;
+		case GF_VVC_NALU_DEC_PARAM:
+			state = RESET_STATE_DCI;
+			break;
+		}
+	}
 
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
@@ -650,7 +686,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 void isor_reader_check_config(ISOMChannel *ch)
 {
 	u32 nalu_len, reset_state;
-	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_mhas_pl) return;
+	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
 	//we cannot touch the payload if encrypted !!
@@ -671,7 +707,11 @@ void isor_reader_check_config(ISOMChannel *ch)
 
 	if (ch->owner->analyze) return;
 	
-	nalu_len = ch->hvcc ? ch->hvcc->nal_unit_size : (ch->avcc ? ch->avcc->nal_unit_size : 4);
+	nalu_len = 4;
+	if (ch->avcc) nalu_len = ch->avcc->nal_unit_size;
+	else if (ch->hvcc) nalu_len = ch->hvcc->nal_unit_size;
+	else if (ch->vvcc) nalu_len = ch->vvcc->nal_unit_size;
+
 	reset_state = 0;
 
 	if (!ch->nal_bs) ch->nal_bs = gf_bs_new(ch->sample->data, ch->sample->dataLength, GF_BITSTREAM_READ);
@@ -682,11 +722,11 @@ void isor_reader_check_config(ISOMChannel *ch)
 		u8 nal_type=0;
 		u32 pos = (u32) gf_bs_get_position(ch->nal_bs);
 		u32 size = gf_bs_read_int(ch->nal_bs, nalu_len*8);
-		//takes care of size being just larger than 0xFFFFFFFF + pos + nalu_len ...
+		//this takes care of size + pos + nalu_len > 0 but (s32) size < 0 ...
 		if (ch->sample->dataLength < size) break;
 		if (ch->sample->dataLength < size + pos + nalu_len) break;
-		u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
 		if (ch->check_avc_ps) {
+			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
 			nal_type = hdr & 0x1F;
 			switch (nal_type) {
 			case GF_AVC_NALU_SEQ_PARAM:
@@ -696,7 +736,8 @@ void isor_reader_check_config(ISOMChannel *ch)
 				break;
 			}
 		}
-		if (ch->check_hevc_ps) {
+		else if (ch->check_hevc_ps) {
+			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
 			nal_type = (hdr & 0x7E) >> 1;
 			switch (nal_type) {
 			case GF_HEVC_NALU_VID_PARAM:
@@ -706,11 +747,23 @@ void isor_reader_check_config(ISOMChannel *ch)
 				break;
 			}
 		}
+		else if (ch->check_vvc_ps) {
+			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 1);
+			nal_type = hdr >> 3;
+			switch (nal_type) {
+			case GF_VVC_NALU_VID_PARAM:
+			case GF_VVC_NALU_SEQ_PARAM:
+			case GF_VVC_NALU_PIC_PARAM:
+			case GF_VVC_NALU_DEC_PARAM:
+				replace_nal = GF_TRUE;
+				break;
+			}
+		}
 		gf_bs_skip_bytes(ch->nal_bs, size);
 
 		if (replace_nal) {
 			u32 move_size = ch->sample->dataLength - size - pos - nalu_len;
-			isor_replace_nal(ch->avcc, ch->hvcc, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
+			isor_replace_nal(ch->avcc, ch->hvcc, ch->vvcc, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
 			if (move_size)
 				memmove(ch->sample->data + pos, ch->sample->data + pos + size + nalu_len, ch->sample->dataLength - size - pos - nalu_len);
 
@@ -728,6 +781,9 @@ void isor_reader_check_config(ISOMChannel *ch)
 		}
 		else if (ch->check_hevc_ps) {
 			gf_odf_hevc_cfg_write(ch->hvcc, &dsi, &dsi_size);
+		}
+		else if (ch->check_vvc_ps) {
+			gf_odf_vvc_cfg_write(ch->vvcc, &dsi, &dsi_size);
 		}
 		if (dsi && dsi_size) {
 			u32 dsi_crc = gf_crc_32(dsi, dsi_size);

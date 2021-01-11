@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -59,7 +59,7 @@ typedef struct
 	Bool alltk;
 	u32 frame_size;
 	char* tkid;
-	Bool analyze;
+	Bool analyze, no_xps_check;
 	char *catseg;
 	Bool sigfrag;
 	Bool nocrypt, strtxt;
@@ -187,9 +187,10 @@ typedef struct
 	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
-	Bool check_avc_ps, check_hevc_ps, check_mhas_pl;
+	Bool check_avc_ps, check_hevc_ps, check_vvc_ps, check_mhas_pl;
 	GF_HEVCConfig *hvcc;
 	GF_AVCConfig *avcc;
+	GF_VVCConfig *vvcc;
 	GF_BitStream *nal_bs;
 	u32 dsi_crc;
 
