@@ -6063,8 +6063,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			, GF_PROP_UINT, "strict", "none|strict|all", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(keep_utc), "force all new files and tracks to keep the source UTC creation and modification times", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pps_inband), "when xps_inband is set, inject PPS in each non SAP 1/2/3 sample", GF_PROP_BOOL, "no", NULL, 0},
-
+	{ OFFS(pps_inband), "when xps_inband is set, inject PPS in each non SAP 1/2/3 sample", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

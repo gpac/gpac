@@ -154,6 +154,7 @@ static void isoffin_delete_channel(ISOMChannel *ch)
 	if (ch->nal_bs) gf_bs_del(ch->nal_bs);
 	if (ch->avcc) gf_odf_avc_cfg_del(ch->avcc);
 	if (ch->hvcc) gf_odf_hevc_cfg_del(ch->hvcc);
+	if (ch->vvcc) gf_odf_vvc_cfg_del(ch->vvcc);
 	gf_free(ch);
 }
 
@@ -1486,7 +1487,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-
+	{ OFFS(no_xps_check), "do not extract parameter sets from AVC/HEVC/VVC samples (assumes input file is compliant)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
