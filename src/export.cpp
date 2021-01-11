@@ -170,6 +170,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
 #endif /*GPAC_MEMORY_TRACKING*/
 
+#ifndef GPAC_HAS_STRLCPY
+#pragma comment (linker, EXPORT_SYMBOL(strlcpy) )
+#endif
+
 /* Sound */
 #ifndef GPAC_DISABLE_PLAYER
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_set_config) )
@@ -2595,4 +2599,3 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_primaries_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_transfer_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cicp_color_matrix_all_names) )
-
