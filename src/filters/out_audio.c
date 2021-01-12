@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / audio output filter
@@ -237,14 +237,20 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 	} else if (ctx->rbuffer && !ctx->rebuffer) {
 		//query full buffer duration in us
 		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 		if ((dur < ctx->rbuffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u less than min threshold %u, rebuffering\n", (u32) (dur/1000), ctx->rbuffer));
 			ctx->rebuffer = gf_sys_clock_high_res();
 			ctx->buffer_done = GF_FALSE;
 			return GF_OK;
 		}
-
+#ifndef GPAC_DISABLE_LOG
+	} else if (gf_log_tool_level_on(GF_LOG_MMIO, GF_LOG_DEBUG)) {
+		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+#endif
 	}
+
 	//do not throw underflow log util first packet is fetched
 	if (ctx->first_write_done)
 		is_first_pck = GF_FALSE;

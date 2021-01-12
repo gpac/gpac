@@ -264,6 +264,8 @@ enum
 	GF_ISOM_SUBTYPE_AC3			= GF_4CC( 'a', 'c', '-', '3' ),
 	GF_ISOM_SUBTYPE_EC3			= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_SUBTYPE_MP3			= GF_4CC( '.', 'm', 'p', '3' ),
+	GF_ISOM_SUBTYPE_MLPA		= GF_4CC( 'm', 'l', 'p', 'a' ),
+
 	GF_ISOM_SUBTYPE_MP4A		= GF_4CC( 'm', 'p', '4', 'a' ),
 	GF_ISOM_SUBTYPE_MP4S		= GF_4CC( 'm', 'p', '4', 's' ),
 
@@ -3505,6 +3507,30 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32
 */
 GF_Err gf_isom_ac3_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AC3Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+/*! gets TrueHD  sample description info
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param format_info set to the format info - may be NULL
+\param peak_data_rate set to the peak data rate info - may be NULL
+\return error if any
+*/
+GF_Err gf_isom_truehd_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *format_info, u32 *peak_data_rate);
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*! creates a FLAC sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param format_info TrueHD format info
+\param peak_data_rate TrueHD peak data rate
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_truehd_config_new(GF_ISOFile *isom_file, u32 trackNumber, char *URLname, char *URNname, u32 format_info, u32 peak_data_rate, u32 *outDescriptionIndex);
+#endif
 
 /*! gets a FLAC sample description
 \param isom_file the target ISO file

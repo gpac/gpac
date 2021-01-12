@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -391,6 +391,8 @@ enum
 	GF_ISOM_BOX_TYPE_DEC3	= GF_4CC( 'd', 'e', 'c', '3' ),
 	GF_ISOM_BOX_TYPE_DVCC	= GF_4CC( 'd', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_DVHE	= GF_4CC( 'd', 'v', 'h', 'e' ),
+	GF_ISOM_BOX_TYPE_MLPA	= GF_4CC( 'm', 'l', 'p', 'a' ),
+	GF_ISOM_BOX_TYPE_DMLP	= GF_4CC( 'd', 'm', 'l', 'p' ),
 
 	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
 
@@ -1557,6 +1559,16 @@ typedef struct
 	GF_AC3Config cfg;
 } GF_AC3ConfigBox;
 
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u32 format_info;
+	u16 peak_data_rate;
+} GF_TrueHDConfigBox;
+
+
 typedef struct
 {
 	GF_ISOM_FULL_BOX
@@ -1624,6 +1636,9 @@ typedef struct
 
 	//for AC3/EC3 audio
 	GF_AC3ConfigBox *cfg_ac3;
+
+	//for AC3/EC3 audio
+	GF_TrueHDConfigBox *cfg_mlp;
 
 	//for Opus
 	GF_OpusSpecificBox *cfg_opus;

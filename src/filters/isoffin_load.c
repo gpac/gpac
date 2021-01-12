@@ -260,9 +260,6 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				audio_fmt = (pcm_size==64) ? GF_AUDIO_FMT_DBL : GF_AUDIO_FMT_FLT;
 			}
 			break;
-		case GF_ISOM_SUBTYPE_MP3:
-			codec_id = GF_CODECID_MPEG_AUDIO;
-			break;
 
 		case GF_ISOM_SUBTYPE_VVC1:
 		case GF_ISOM_SUBTYPE_VVI1:
@@ -287,6 +284,23 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 		}
 			break;
+
+		case GF_ISOM_SUBTYPE_MLPA:
+		{
+			u32 fmt, prate;
+			if (gf_isom_truehd_config_get(read->mov, track, stsd_idx, &fmt, &prate) == GF_OK) {
+				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				gf_bs_write_u32(bs, fmt);
+				gf_bs_write_int(bs, prate, 15);
+				gf_bs_write_int(bs, 0, 1);
+				gf_bs_write_u32(bs, 0);
+				gf_bs_get_content(bs, &dsi, &dsi_size);
+				gf_bs_del(bs);
+				codec_id = GF_CODECID_TRUEHD;
+			}
+			break;
+		}
+
 
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
@@ -939,6 +953,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	}
 	sr = nb_ch = nb_bps = 0;
 	gf_isom_get_audio_info(read->mov,track, stsd_idx, &sr, &nb_ch, &nb_bps);
+	if (streamtype==GF_STREAM_AUDIO) {
+		if (!sr) sr = gf_isom_get_media_timescale(read->mov, track);
+	}
 	//nb_ch may be set to 0 for "not applicable" (3D / object coding audio)
 	if (sr) {
 		u32 d1, d2;
@@ -986,6 +1003,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 		}
 	}
+
 
 	gf_isom_get_bitrate(read->mov, ch->track, stsd_idx, &avg_rate, &max_rate, &buffer_size);
 

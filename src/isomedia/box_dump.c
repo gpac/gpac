@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -729,7 +729,19 @@ void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 	gf_fprintf(trace, " DataReferenceIndex=\"%d\"", p->dataReferenceIndex);
 	if (p->version)
 		gf_fprintf(trace, " Version=\"%d\"", p->version);
-	gf_fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
+
+	if (p->samplerate_lo) {
+		if (p->type==GF_ISOM_SUBTYPE_MLPA) {
+			u32 sr = p->samplerate_hi;
+			sr <<= 16;
+			sr |= p->samplerate_lo;
+			gf_fprintf(trace, " SampleRate=\"%d\"", sr);
+		} else {
+			gf_fprintf(trace, " SampleRate=\"%d.%d\"", p->samplerate_hi, p->samplerate_lo);
+		}
+	} else {
+		gf_fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
+	}
 	gf_fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
 	if (p->qtff_mode) {
 		gf_fprintf(trace, " isQTFF=\"%d\"", p->qtff_mode);
@@ -800,6 +812,11 @@ GF_Err audio_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_BOX_TYPE_MHM1:
 	case GF_ISOM_BOX_TYPE_MHM2:
 		szName = "MHASampleEntry";
+		break;
+	case GF_ISOM_BOX_TYPE_MLPA:
+		if (!p->cfg_mlp)
+		 	error = "<!--INVALID TrueHD Audio Entry: DMLP config not present in Audio Sample Description -->";
+		szName = "TrueHDSampleEntry";
 		break;
 	default:
 		szName = "AudioSampleDescriptionBox";
@@ -4329,6 +4346,17 @@ GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 		        p->cfg.streams[0].fscod, p->cfg.streams[0].bsid, p->cfg.streams[0].bsmod, p->cfg.streams[0].acmod, p->cfg.streams[0].lfon, p->cfg.brcode);
 		gf_isom_box_dump_done("AC3SpecificBox", a, trace);
 	}
+	return GF_OK;
+}
+
+GF_Err dmlp_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_TrueHDConfigBox *p = (GF_TrueHDConfigBox *)a;
+
+	gf_isom_box_dump_start(a, "TrueHDConfigBox", trace);
+	gf_fprintf(trace, "format_info=\"%u\" peak_data_rate=\"%u\">\n",
+			p->format_info, p->peak_data_rate);
+	gf_isom_box_dump_done("TrueHDConfigBox", a, trace);
 	return GF_OK;
 }
 

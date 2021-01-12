@@ -427,12 +427,15 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	AVPacket pkt;
 	s32 gotpic;
 	s32 len, in_size, i;
-	u32 output_size;
+	u32 output_size, prev_afmt;
 	Bool is_eos=GF_FALSE;
 	u8 *data;
 	AVFrame *frame;
 	GF_FilterPacket *dst_pck, *src_pck;
-	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
+	GF_FilterPacket *pck;
+
+decode_next:
+	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (ctx->reconfig_pending) {
 		pck = NULL;
@@ -472,6 +475,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		pkt.size = 0;
 	}
 
+	prev_afmt = ctx->decoder->sample_fmt;
 	frame = ctx->frame;
 	len = avcodec_decode_audio4(ctx->decoder, frame, &gotpic, &pkt);
 
@@ -506,6 +510,12 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 	FF_CHECK_PROPL(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
 	FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
+
+	if (prev_afmt != ctx->decoder->sample_fmt) {
+		ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->sample_fmt) );
+		ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
+	}
 
 	output_size = frame->nb_samples*ctx->channels*ctx->bytes_per_sample;
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, output_size, &data);
@@ -549,6 +559,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		}
 		gf_filter_pck_set_cts(dst_pck, pts);
 	}
+
 	if (frame->pkt_dts != AV_NOPTS_VALUE) {
 		gf_filter_pck_set_dts(dst_pck, frame->pkt_dts);
 	}
@@ -563,7 +574,13 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		ctx->frame_start = 0;
 		ctx->nb_samples_already_in_frame = 0;
 		gf_filter_pid_drop_packet(ctx->in_pid);
-		return GF_OK;
+
+		if (gf_filter_pid_would_block(ctx->out_pid))
+			return GF_OK;
+
+		//if space available in ouput, decode right away - needed for audio formats with very short frames
+		//avoid recursion
+		goto decode_next;
 	}
 	//still some data to decode in packet, don't drop it
 	//todo: check if frame->pkt_pts or frame->pts is updated by ffmpeg, otherwise do it ourselves !
@@ -571,7 +588,10 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	ctx->nb_samples_already_in_frame += frame->nb_samples;
 	frame->nb_samples = 0;
 
-	return ffdec_process_audio(filter, ctx);
+	//avoid recursion
+	goto decode_next;
+
+//	return ffdec_process_audio(filter, ctx);
 }
 
 #ifdef FF_SUB_SUPPORT
@@ -890,9 +910,11 @@ reuse_codec_context:
 
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffdec_process_audio;
-		ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->sample_fmt) );
-		ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
+		if (ctx->decoder->sample_fmt != AV_SAMPLE_FMT_NONE) {
+			ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->sample_fmt) );
+			ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
+		}
 
 		//override PID props with what decoder gives us
 		if (ctx->decoder->channels) {

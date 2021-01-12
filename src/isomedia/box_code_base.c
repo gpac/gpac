@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3766,6 +3766,10 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		if (ptr->cfg_ac3) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
 		break;
+	case GF_ISOM_BOX_TYPE_DMLP:
+		if (ptr->cfg_mlp) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->cfg_mlp = (GF_TrueHDConfigBox *) a;
+		break;
 	case GF_ISOM_BOX_TYPE_MHAC:
 		if (ptr->cfg_mha) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->cfg_mha = (GF_MHAConfigBox *) a;
@@ -3844,6 +3848,10 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a)
 		) {
 			cfg_ptr = (GF_Box **) &ptr->cfg_mha;
 			subtype = GF_ISOM_BOX_TYPE_MHAC;
+		}
+		else if (s->type == GF_ISOM_BOX_TYPE_MLPA) {
+			cfg_ptr = (GF_Box **) &ptr->cfg_mlp;
+			subtype = GF_ISOM_BOX_TYPE_DMLP;
 		}
 
 		if (cfg_ptr) {
@@ -4015,6 +4023,7 @@ GF_Err audio_sample_entry_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_opus, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_ac3, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_flac, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_mlp, &pos);
 	return GF_OK;
 }
 
@@ -12381,4 +12390,51 @@ GF_Err csgp_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *dmlp_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrueHDConfigBox, GF_ISOM_BOX_TYPE_DMLP);
+	return (GF_Box *)tmp;
+}
+
+void dmlp_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+
+GF_Err dmlp_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TrueHDConfigBox *ptr = (GF_TrueHDConfigBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 10)
+	ptr->format_info = gf_bs_read_u32(bs);
+	ptr->peak_data_rate = gf_bs_read_int(bs, 15);
+	gf_bs_read_int(bs, 1);
+	gf_bs_read_u32(bs);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err dmlp_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TrueHDConfigBox *ptr = (GF_TrueHDConfigBox *)s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->format_info);
+	gf_bs_write_int(bs, ptr->peak_data_rate, 15);
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_u32(bs, 0);
+	return GF_OK;
+}
+
+GF_Err dmlp_box_size(GF_Box *s)
+{
+	s->size += 10;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 #endif /*GPAC_DISABLE_ISOM*/
