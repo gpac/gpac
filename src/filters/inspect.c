@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -1715,6 +1715,35 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 	}
 }
 
+static void gf_inspect_dump_truehd_frame(FILE *dump, GF_BitStream *bs)
+{
+	u8 nibble;
+	u16 frame_size, timing;
+	u32 sync;
+	gf_fprintf(dump, " <TrueHDAudioFrame");
+	nibble = gf_bs_read_int(bs, 4);
+	frame_size = gf_bs_read_int(bs, 12);
+	timing = gf_bs_read_u16(bs);
+	sync = gf_bs_read_u32(bs);
+	gf_fprintf(dump, " nibble=\"%u\" size=\"%u\" timing=\"%u\"", nibble, frame_size, timing);
+	if (sync != 0xF8726FBA) {
+		gf_fprintf(dump, " major_sync=\"no\"/>\n");
+		return;
+	}
+	u32 fmt = gf_bs_read_u32(bs);
+	u32 sig = gf_bs_read_u16(bs);
+	u32 flags = gf_bs_read_u16(bs);
+	gf_bs_read_u16(bs);
+	Bool vrate = gf_bs_read_int(bs, 1);
+	u32 prate = gf_bs_read_int(bs, 15);
+	u32 nb_substreams = gf_bs_read_int(bs, 4);
+	gf_bs_read_int(bs, 2);
+	u32 ext_substream_info = gf_bs_read_int(bs, 2);
+	gf_fprintf(dump, " major_sync=\"yes\" format=\"%u\" signature=\"%u\" flags=\"0x%04X\" vrate=\"%u\" peak_data_rate=\"%u\" substreams=\"%u\" extended_substream_info=\"%u\" ", fmt, sig, flags, vrate, prate, nb_substreams, ext_substream_info);
+
+	gf_fprintf(dump, "/>\n");
+}
+
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att, PidCtx *pctx)
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
@@ -2618,6 +2647,10 @@ props_done:
 		case GF_CODECID_EAC3:
 			inspect_dump_ac3_eac3(ctx, dump, (char *) data, size, ctx->crc, pctx, 1);
 			break;
+		case GF_CODECID_TRUEHD:
+			gf_bs_reassign_buffer(pctx->bs, data, size);
+			gf_inspect_dump_truehd_frame(dump, pctx->bs);
+			break;
 		}
 	}
 #endif
@@ -3136,6 +3169,27 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		gf_fprintf(dump, "/>\n");
 		return;
 
+	case GF_CODECID_TRUEHD:
+		if (dsi) {
+			u16 fmt, prate;
+			gf_fprintf(dump, ">\n");
+			gf_fprintf(dump, "<TrueHDAudioConfiguration");
+
+			if (!pctx->bs)
+				pctx->bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+			else
+				gf_bs_reassign_buffer(pctx->bs, dsi->value.data.ptr, dsi->value.data.size);
+
+			fmt = gf_bs_read_u32(pctx->bs);
+			prate = gf_bs_read_int(pctx->bs, 15);
+
+			gf_fprintf(dump, " format=\"%u\" peak_data_rate=\"%u\"/>\n", fmt, prate);
+		} else {
+			gf_fprintf(dump, "/>\n");
+			return;
+		}
+		break;
+
 	default:
 		if (!pctx->no_analysis) {
 			pctx->no_analysis = GF_TRUE;
@@ -3521,7 +3575,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(analyze), "analyze sample content (NALU, OBU)"
+	{ OFFS(analyze), "analyze sample content (NALU, OBU)\n"
 	"- off: no analyzing\n"
 	"- on: simple analyzing\n"
 	"- bs: log bitstream syntax (all elements read from bitstream)\n"

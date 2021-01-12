@@ -1367,6 +1367,9 @@
     <ClCompile Include="..\..\src\filters\reframe_rawvid.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_truehd.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\reframer.c">
       <Filter>filters</Filter>
     </ClCompile>

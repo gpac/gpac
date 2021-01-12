@@ -1655,6 +1655,12 @@ sample_entry_setup:
 		use_m4sys = GF_TRUE;
 		break;
 
+	case GF_CODECID_TRUEHD:
+		m_subtype = GF_ISOM_SUBTYPE_MLPA;
+		comp_name = "Dolby TrueHD";
+		break;
+
+
 	case GF_CODECID_BIFS:
 /* ==  GF_CODECID_OD_V1:*/
 	case GF_CODECID_BIFS_V2:
@@ -2397,6 +2403,25 @@ sample_entry_setup:
 		e = gf_isom_new_mpha_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi->value.data.ptr, dsi->value.data.size);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-H Audio sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+	} else if (codec_id==GF_CODECID_TRUEHD) {
+		u32 fmt=0, prate=0;
+		//not ready yet
+		if (!dsi) return GF_OK;
+		if (dsi->value.data.size < 6) return GF_NON_COMPLIANT_BITSTREAM;
+
+		fmt = dsi->value.data.ptr[0];
+		fmt <<= 8;
+		fmt |= dsi->value.data.ptr[1];
+		prate = dsi->value.data.ptr[2];
+		prate <<= 8;
+		prate |= dsi->value.data.ptr[3];
+		prate >>= 1;
+
+		e = gf_isom_truehd_config_new(ctx->file, tkw->track_num, (char *)src_url, NULL, fmt, prate, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new TrueHD Audio sample description: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
 	} else if (use_gen_sample_entry) {

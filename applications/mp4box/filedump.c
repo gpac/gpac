@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -3026,7 +3026,12 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			fprintf(stderr, " 0x%02X", compat_profiles[i]);
 		}
 		if (i) fprintf(stderr, "\n");
-
+	} else if (msub_type==GF_ISOM_SUBTYPE_MLPA) {
+		u32 fmt, prate;
+		if (gf_isom_truehd_config_get(file, trackNum, 1, &fmt, &prate) != GF_OK) {
+			fprintf(stderr, "\tInvalid TrueHD audio config\n");
+		}
+		fprintf(stderr, "\tTrueHD Audio stream - Sample Rate %u - channels %u - format %u peak rate %u\n", sr, nb_ch, fmt, prate);
 	} else if (codecid) {
 		if (gf_isom_is_video_handler_type(mtype) ) {
 			u32 w, h;

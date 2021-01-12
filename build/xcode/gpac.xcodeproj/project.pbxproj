@@ -254,6 +254,7 @@
 		9286070F239576D900FDA1ED /* tssplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 9286070E239576D900FDA1ED /* tssplit.c */; };
 		928607132396DF8500FDA1ED /* ff_avf.c in Sources */ = {isa = PBXBuildFile; fileRef = 928607122396DF8500FDA1ED /* ff_avf.c */; };
 		9288350C1FE82E64002F603D /* write_qcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288350B1FE82E63002F603D /* write_qcp.c */; };
+		9288A4A225ADB1DD006F7355 /* reframe_truehd.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288A4A125ADB1DD006F7355 /* reframe_truehd.c */; };
 		9288E8641FB1BF07005460C5 /* reframe_mpgvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */; };
 		9289D9F51FDEFFCE00C24F83 /* out_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 9289D9F41FDEFFCD00C24F83 /* out_file.c */; };
 		928A7F812059372C00E02E89 /* out_video.c in Sources */ = {isa = PBXBuildFile; fileRef = 928A7F802059372C00E02E89 /* out_video.c */; };
@@ -911,6 +912,7 @@
 		9286070E239576D900FDA1ED /* tssplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tssplit.c; path = filters/tssplit.c; sourceTree = "<group>"; };
 		928607122396DF8500FDA1ED /* ff_avf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_avf.c; path = filters/ff_avf.c; sourceTree = "<group>"; };
 		9288350B1FE82E63002F603D /* write_qcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_qcp.c; path = filters/write_qcp.c; sourceTree = "<group>"; };
+		9288A4A125ADB1DD006F7355 /* reframe_truehd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_truehd.c; path = filters/reframe_truehd.c; sourceTree = "<group>"; };
 		9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mpgvid.c; path = filters/reframe_mpgvid.c; sourceTree = "<group>"; };
 		9289D9F41FDEFFCD00C24F83 /* out_file.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_file.c; path = filters/out_file.c; sourceTree = "<group>"; };
 		928A7F802059372C00E02E89 /* out_video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_video.c; path = filters/out_video.c; sourceTree = "<group>"; };
@@ -2094,6 +2096,7 @@
 				92EC32CA1FAC5ACA003FB9C3 /* reframe_qcp.c */,
 				924E805E206D427A00AB580F /* reframe_rawpcm.c */,
 				924E805C206D357A00AB580F /* reframe_rawvid.c */,
+				9288A4A125ADB1DD006F7355 /* reframe_truehd.c */,
 				92E2498F2057B973002CC029 /* resample_audio.c */,
 				92FA79422076687100AE005F /* rewind.c */,
 				9257307D2056948D009DB328 /* rewrite_adts.c */,
@@ -2672,6 +2675,7 @@
 				9201014D18D5A445003D1ACA /* img.c in Sources */,
 				9201014F18D5A445003D1ACA /* isom_hinter.c in Sources */,
 				9201015018D5A445003D1ACA /* isom_tools.c in Sources */,
+				9288A4A225ADB1DD006F7355 /* reframe_truehd.c in Sources */,
 				92B9A5811F8660D700A24FE4 /* svg_geometry.c in Sources */,
 				9201015118D5A445003D1ACA /* m2ts_mux.c in Sources */,
 				9201015218D5A445003D1ACA /* m3u8.c in Sources */,

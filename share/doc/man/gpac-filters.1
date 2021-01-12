@@ -163,7 +163,9 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)- off: no analyzing
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)
+.br
+* off: no analyzing
 .br
 * on: simple analyzing
 .br
@@ -259,7 +261,9 @@ start (dbl, default: 0.0):     set playback start offset. Negative value means p
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)- off: no analyzing
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)
+.br
+* off: no analyzing
 .br
 * on: simple analyzing
 .br
@@ -6995,6 +6999,24 @@ runfor (uint, default: 0):     run for the given time in ms
 .br
 
 .br
+.SH rftruehd
+.LP
+.br
+Description: TrueHD reframer
+.br
+
+.br
+This filter parses Dolby TrueHD files/data and outputs corresponding audio PID and frames.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+index (dbl, default: 1.0):     indexing window length
+.br
+
+.br
 .SH dtout
 .LP
 .br
@@ -7213,7 +7235,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev424-g54834d278-master
+build: 1.1.0-DEV-rev426-g7a6d74a88-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -438,6 +438,8 @@ typedef enum
 	GF_CODECID_AC3 = GF_4CC('a','c','-','3'),
 	/*! codecid for enhanced AC-3 audio streams*/
 	GF_CODECID_EAC3 = GF_4CC('e','c','-','3'),
+	/*! codecid for Dolby TrueHS audio streams*/
+	GF_CODECID_TRUEHD = GF_4CC('m','l','p','a'),
 	/*! codecid for DRA audio streams*/
 	GF_CODECID_DRA = GF_4CC('d','r','a','1'),
 	/*! codecid for ITU G719 audio streams*/

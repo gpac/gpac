@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -236,6 +236,8 @@ GF_Box *gf_isom_audio_sample_get_audio_codec_cfg_box(GF_AudioSampleEntryBox *ptr
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		return (GF_Box *)mpga->cfg_mha;
+	case GF_ISOM_BOX_TYPE_MLPA:
+		return (GF_Box *)mpga->cfg_mlp;
 	}
 	return NULL;
 }
@@ -377,6 +379,62 @@ GF_Err gf_isom_flac_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_truehd_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *format_info, u32 *peak_data_rate)
+{
+	GF_TrackBox *trak;
+	GF_MPEGAudioSampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
+
+	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
+	if (!entry) return GF_BAD_PARAM;
+	if (entry->type != GF_ISOM_SUBTYPE_MLPA) return GF_BAD_PARAM;
+
+	if (!entry->cfg_mlp) return GF_ISOM_INVALID_FILE;
+	if (format_info) *format_info = entry->cfg_mlp->format_info;
+	if (peak_data_rate) *peak_data_rate = entry->cfg_mlp->peak_data_rate;
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err gf_isom_truehd_config_new(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, u32 format, u32 peak_rate, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_MPEGAudioSampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	//create a new entry
+	entry = (GF_MPEGAudioSampleEntryBox *)gf_isom_box_new_parent(&stsd->child_boxes, GF_ISOM_BOX_TYPE_MLPA);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->cfg_mlp = (GF_TrueHDConfigBox *)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DMLP);
+	if (!entry->cfg_mlp) return GF_OUT_OF_MEM;
+	entry->cfg_mlp->format_info = format;
+	entry->cfg_mlp->peak_data_rate = (u16) peak_rate;
+	entry->dataReferenceIndex = dataRefIndex;
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
+	return e;
+}
+#endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT

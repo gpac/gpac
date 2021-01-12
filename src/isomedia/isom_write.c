@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2147,8 +2147,14 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
 	aud_entry = (GF_AudioSampleEntryBox*) entry;
-	aud_entry->samplerate_hi = sampleRate;
-	aud_entry->samplerate_lo = 0;
+
+	if (entry->type==GF_ISOM_BOX_TYPE_MLPA) {
+		aud_entry->samplerate_hi = sampleRate>>16;
+		aud_entry->samplerate_lo = sampleRate & 0x0000FFFF;
+	} else {
+		aud_entry->samplerate_hi = sampleRate;
+		aud_entry->samplerate_lo = 0;
+	}
 	aud_entry->bitspersample = bitsPerSample;
 
 	switch (asemode) {
@@ -2315,7 +2321,12 @@ GF_Err gf_isom_set_audio_layout(GF_ISOFile *movie, u32 trackNumber, u32 sampleDe
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
 	aud_entry = (GF_AudioSampleEntryBox*) entry;
 	if (aud_entry->qtff_mode) {
-		e = gf_isom_set_audio_info(movie, trackNumber, sampleDescriptionIndex, aud_entry->samplerate_hi, aud_entry->channel_count, (u8) aud_entry->bitspersample, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG);
+		u32 sr = aud_entry->samplerate_hi;
+		if (aud_entry->type==GF_ISOM_BOX_TYPE_MLPA) {
+			sr <<= 16;
+			sr |= aud_entry->samplerate_lo;
+		}
+		e = gf_isom_set_audio_info(movie, trackNumber, sampleDescriptionIndex, sr, aud_entry->channel_count, (u8) aud_entry->bitspersample, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG);
 		if (e) return e;
 	}
 	chnl = (GF_ChannelLayoutBox *) gf_isom_box_find_child(aud_entry->child_boxes, GF_ISOM_BOX_TYPE_CHNL);

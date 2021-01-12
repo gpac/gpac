@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -96,6 +96,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_DIRAC, 0xA4, GF_STREAM_VISUAL, "Dirac Video", "dirac", NULL, "video/dirac"},
 	{GF_CODECID_AC3, 0xA5, GF_STREAM_AUDIO, "AC3 Audio", "ac3", "ac-3", "audio/ac3"},
 	{GF_CODECID_EAC3, 0xA6, GF_STREAM_AUDIO, "Enhanced AC3 Audio", "eac3", "ec-3", "audio/eac3"},
+	{GF_CODECID_TRUEHD, 0, GF_STREAM_AUDIO, "Dolby TrueHD", "mlp", "mlpa", "audio/truehd"},
 	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL, "audio/dra"},
 	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL, "audio/g719"},
 	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics Audio", "dstca", NULL, "audio/dts"},
@@ -260,6 +261,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_RAW;
 	case GF_QT_SUBTYPE_IN32:
 		return GF_CODECID_RAW;
+	case GF_ISOM_SUBTYPE_MLPA:
+		return GF_CODECID_TRUEHD;
 	default:
 		break;
 	}

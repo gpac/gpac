@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -371,6 +371,7 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 
 	{AV_CODEC_ID_V210, GF_CODECID_V210, 0},
 
+	{AV_CODEC_ID_TRUEHD, GF_CODECID_TRUEHD, 0},
 
 	{0}
 };
