@@ -948,15 +948,23 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 
 #endif //unused
 
-#ifndef GPAC_HAS_STRLCPY
 /*
  * FROM: https://github.com/freebsd/freebsd-src/blob/master/sys/libkern/strlcpy.c
+ *
+ * Copyright (c) 1998, 2015 Todd C. Miller <Todd.Miller@courtesan.com>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ */
+/*
  * Copy string src to buffer dst of size dsize.  At most dsize-1
  * chars will be copied.  Always NUL terminates (unless dsize == 0).
  * Returns strlen(src); if retval >= dsize, truncation occurred.
  */
 GF_EXPORT
-size_t strlcpy(char * dst, const char * src, size_t dsize)
+size_t gf_strlcpy(char * dst, const char * src, size_t dsize)
 {
 	const char *osrc = src;
 	size_t nleft = dsize;
@@ -979,4 +987,3 @@ size_t strlcpy(char * dst, const char * src, size_t dsize)
 
 	return(src - osrc - 1);	/* count does not include NUL */
 }
-#endif

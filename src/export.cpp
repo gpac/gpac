@@ -170,9 +170,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
 #endif /*GPAC_MEMORY_TRACKING*/
 
-#ifndef GPAC_HAS_STRLCPY
-#pragma comment (linker, EXPORT_SYMBOL(strlcpy) )
-#endif
+#pragma comment (linker, EXPORT_SYMBOL(gf_strlcpy) )
 
 /* Sound */
 #ifndef GPAC_DISABLE_PLAYER
