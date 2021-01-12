@@ -5665,7 +5665,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_isom_keep_utc_times(file, 1);
 	}
 
-	if ( strlcpy(outfile, outName ? outName : inName, sizeof(outfile)) >= sizeof(outfile) ) {
+	if ( gf_strlcpy(outfile, outName ? outName : inName, sizeof(outfile)) >= sizeof(outfile) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Filename too long (limit is %d)\n", GF_MAX_PATH));
 		return mp4box_cleanup(1);
 	}
