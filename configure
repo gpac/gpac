@@ -3306,6 +3306,13 @@ echo '	@echo "  CC $<"' >> config.mak
 fi
 echo '	$(CXX) $(CFLAGS) -c -o $@ $<' >> config.mak
 
+echo '%.o: %.rc $(SRC_PATH)/manifest.xml' >> config.mak
+if test "$verbose" = "no" ; then
+echo '	@echo "  RC $<"' >> config.mak
+fi
+echo '	$(WINDRES) $< -o $@ ' >> config.mak
+
+
 #pkg-config
 generate_pkgconfig () {
 	echo "prefix=$prefix"

@@ -244,6 +244,8 @@ ifneq ($(MP4BOX_STATIC),yes)
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)"
 
 ifeq ($(CONFIG_WIN32),yes)
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll.a $(DESTDIR)$(prefix)/$(lib_dir)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
 else
