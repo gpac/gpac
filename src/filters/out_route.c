@@ -121,7 +121,7 @@ typedef struct
 	ROUTEService *route;
 	ROUTELCT *rlct;
 
-	u32 tsi, bandwidth;
+	u32 tsi, bandwidth, stream_type;
 
 	//we cannot hold a ref to the init segment packet, as this may lock the input waiting for its realease to dispatch next packets
 	u8 *init_seg_data;
@@ -306,7 +306,6 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ROUTEService *rserv;
 	u32 manifest_type;
 	u32 service_id = 0;
-	u32 stream_type = 0;
 	u32 pid_dash_mode = 0;
 	GF_ROUTEOutCtx *ctx = (GF_ROUTEOutCtx *) gf_filter_get_udta(filter);
 	ROUTEPid *rpid;
@@ -443,14 +442,14 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_BITRATE);
 	if (p) rpid->bitrate = p->value.uint * (100+ctx->brinc) / 100;
 
-	stream_type = 0;
+	rpid->stream_type = 0;
 	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 	if (!p) {
 		if (!rpid->manifest_type) {
 			rpid->raw_file = GF_TRUE;
 		}
 	} else {
-		stream_type = p->value.uint;
+		rpid->stream_type = p->value.uint;
 	}
 
 
@@ -486,7 +485,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			if (gf_list_count(rserv->pids)>1)
 				do_split = GF_TRUE;
 		}
-		else if (ctx->splitlct && stream_type) {
+		else if (ctx->splitlct && rpid->stream_type) {
 			for (i=0; i<gf_list_count(rserv->pids); i++) {
 				u32 astreamtype;
 				ROUTEPid *apid = gf_list_get(rserv->pids, i);
@@ -495,7 +494,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 				if (!p) continue;
 				astreamtype = p->value.uint;
-				if (astreamtype==stream_type) {
+				if (astreamtype==rpid->stream_type) {
 					do_split = GF_TRUE;
 					break;
 				}
@@ -1089,7 +1088,27 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			}
 			gf_dynstrcat(&payload_text, "    </EFDT>\n", NULL);
 
-			//we always operate in file mode for now
+			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_REP_ID);
+			gf_dynstrcat(&payload_text, "    <ContentInfo>\n", NULL);
+			gf_dynstrcat(&payload_text, "     <MediaInfo repId=\"", NULL);
+			gf_dynstrcat(&payload_text, (p && p->value.string) ? p->value.string : "v1", NULL);
+			gf_dynstrcat(&payload_text, "\"", NULL);
+			switch (rpid->stream_type) {
+			case GF_STREAM_VISUAL:
+				gf_dynstrcat(&payload_text, " contentType=\"video\"", NULL);
+				break;
+			case GF_STREAM_AUDIO:
+				gf_dynstrcat(&payload_text, " contentType=\"audio\"", NULL);
+				break;
+			case GF_STREAM_TEXT:
+				gf_dynstrcat(&payload_text, " contentType=\"subtitles\"", NULL);
+				break;
+			//other stream types are not mapped in ATSC3, do not set content type
+			}
+			gf_dynstrcat(&payload_text, "/>\n", NULL);
+			gf_dynstrcat(&payload_text, "    </ContentInfo>\n", NULL);
+
+			//setup payload format
 			snprintf(temp, 1000,
 					"    <Payload codePoint=\"%d\" formatId=\"%d\" frag=\"0\" order=\"true\" srcFecPayloadId=\"0\"/>\n"
 					, rpid->fmtp, rpid->mode);
@@ -1105,7 +1124,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 	gf_dynstrcat(&payload_text, "</S-TSID>\n\r\n", NULL);
 
-	gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"--", NULL);
+	gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"--\n", NULL);
 
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Updated Manifest+S-TSID bundle to:\n%s\n", payload_text));
