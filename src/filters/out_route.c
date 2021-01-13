@@ -1010,6 +1010,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
+			const char *rep_id;
 			ROUTEPid *rpid = gf_list_get(serv->pids, i);
 			if (rpid->manifest_type) continue;
 			if (rpid->rlct != rlct) continue;
@@ -1089,9 +1090,15 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			gf_dynstrcat(&payload_text, "    </EFDT>\n", NULL);
 
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_REP_ID);
+			if (p && p->value.string) {
+				rep_id = p->value.string;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing representation ID on PID (broken input filter), using \"1\"\n"));
+				rep_id = "1";
+			}
 			gf_dynstrcat(&payload_text, "    <ContentInfo>\n", NULL);
 			gf_dynstrcat(&payload_text, "     <MediaInfo repId=\"", NULL);
-			gf_dynstrcat(&payload_text, (p && p->value.string) ? p->value.string : "v1", NULL);
+			gf_dynstrcat(&payload_text, rep_id, NULL);
 			gf_dynstrcat(&payload_text, "\"", NULL);
 			switch (rpid->stream_type) {
 			case GF_STREAM_VISUAL:

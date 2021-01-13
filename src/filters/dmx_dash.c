@@ -961,6 +961,9 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 							char *sep = strchr(group->template, '$');
 							if (sep) sep[0] = 0;
 						}
+						if (ctx->forward==DFWD_FILE) {
+							gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, &PROP_STRING(q.ID) );
+						}
 					}
 				}
 			}
