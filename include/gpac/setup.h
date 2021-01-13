@@ -730,6 +730,7 @@ void* gf_realloc(void *ptr, size_t size);
 
 /*end GPAC memory tracking*/
 
+size_t gf_strlcpy(char * dst, const char * src, size_t dsize);
 
 #ifdef __cplusplus
 }

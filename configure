@@ -174,6 +174,7 @@ avcap_ldflags="-lavcap"
 has_opensvc="no"
 has_openhevc="no"
 has_vtb="no"
+has_strlcpy="no"
 
 win32="no"
 mingw32="no"
@@ -1686,6 +1687,23 @@ if docc $CFLAGS_DIR -llzma $LDFLAGS ; then
   fi
 fi
 
+#look for strlcpy support
+cat > $TMPC << EOF
+#include <string.h>
+int main( void ) {
+    char dest[1];
+    strlcpy(dest, "1", 1);
+    return 0;
+}
+EOF
+
+if docc $LDFLAGS ; then
+    has_strlcpy="yes"
+fi
+
+
+
+
 #overwrite detection with manual settings
 for opt do
     case "$opt" in
@@ -2910,6 +2928,11 @@ echo "CONFIG_VTB=$has_vtb" >> config.mak
 if test "$has_vtb" != "no" ; then
     echo "#define GPAC_HAS_VTB" >> $TMPH
     echo "vtb_ldflags=$vtb_ldflags" >> config.mak
+fi
+
+echo "CONFIG_STRLCPY=$has_strlcpy" >> config.mak
+if test "$has_strlcpy" != "no" ; then
+    echo "#define GPAC_HAS_STRLCPY" >> $TMPH
 fi
 
 if test "$has_sock_un" != "no" ; then
