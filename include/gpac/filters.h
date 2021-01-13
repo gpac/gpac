@@ -445,8 +445,9 @@ void gf_fs_print_non_connected_ex(GF_FilterSession *session, Bool ignore_sinks);
 /*! Prints the list of arguments specified but not used by the filter session using \code LOG_APP@LOG_WARNING \endcode
  Note: this is simply a wrapper to \ref gf_fs_enum_unmapped_options
 \param session filter session
+\param ignore_args ignore unused arguments if present in this comma-seperated list - may be NULL
 */
-void gf_fs_print_unused_args(GF_FilterSession *session);
+void gf_fs_print_unused_args(GF_FilterSession *session, const char *ignore_args);
 
 /*! Prints all possible connections between filter registries to logs using \code LOG_APP@LOG_INFO \endcode
 \param session filter session

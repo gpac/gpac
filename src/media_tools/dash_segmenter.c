@@ -162,7 +162,7 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher)
 {
 	gf_list_reset(dasher->inputs);
 	if (dasher->fsess) {
-		gf_fs_print_unused_args(dasher->fsess);
+		gf_fs_print_unused_args(dasher->fsess, "smode");
 		gf_fs_del(dasher->fsess);
 		dasher->fsess = NULL;
 	}
@@ -898,7 +898,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		args = NULL;
-
 		//if source is isobmf using extractors, we want to keep the extractors
 		e = gf_dynstrcat(&args, "smode=splitx", ":");
 
@@ -1033,7 +1032,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		if (di->sscale) e |= gf_dynstrcat(&args, "#SingleScale=true", ":");
-
 
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to setup source arguments for %s\n", di->file_name));
@@ -1209,7 +1207,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 
 	if (dasher->no_cache) {
-		if (!e) gf_fs_print_unused_args(dasher->fsess);
+		if (!e) gf_fs_print_unused_args(dasher->fsess, "smode");
 		gf_fs_del(dasher->fsess);
 		dasher->fsess = NULL;
 	}
