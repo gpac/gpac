@@ -845,7 +845,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		GF_List *groups;
 		GF_List *groupDescs;
 		Bool is_identical_sgpd = GF_TRUE;
-		u32 *new_idx = NULL;
+		u32 *new_idx = NULL, new_idx_count=0;
 
 		if (!trak->Media->information->sampleTable->sampleGroups)
 			trak->Media->information->sampleTable->sampleGroups = gf_list_new();
@@ -878,7 +878,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				if (is_identical_sgpd)
 					continue;
 
-				new_idx = (u32 *)gf_malloc(gf_list_count(sgdesc->group_descriptions)*sizeof(u32));
+				new_idx_count = gf_list_count(sgdesc->group_descriptions);
+				new_idx = (u32 *)gf_malloc(new_idx_count * sizeof(u32));
 				if (!new_idx) return GF_OUT_OF_MEM;
 
 				count = 0;
@@ -950,8 +951,17 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			} else {
 				stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count));
 				//adjust sgpd index
-				for (j = 0; j < frag_group->entry_count; j++)
-					frag_group->sample_entries[j].group_description_index = new_idx[j];
+				for (j = 0; j < frag_group->entry_count; j++) {
+					u32 sgidx = frag_group->sample_entries[j].group_description_index;
+					if (sgidx > 0x10000) {
+						sgidx -= 0x10001;
+						if (sgidx>=new_idx_count) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] corrupted sample group index in fragment %d but only %d group descriptions in fragment\n", sgidx, new_idx_count));
+						} else {
+							frag_group->sample_entries[j].group_description_index = new_idx[sgidx];
+						}
+					}
+				}
 				memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[0], sizeof(GF_SampleGroupEntry) * frag_group->entry_count);
 				stbl_group->entry_count += frag_group->entry_count;
 			}

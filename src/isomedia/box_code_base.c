@@ -9903,7 +9903,7 @@ GF_Err sgpd_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err sgpd_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 i;
+	u32 i, nb_descs;
 	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)s;
 	GF_Err e;
 	e = gf_isom_full_box_write(s, bs);
@@ -9912,9 +9912,10 @@ GF_Err sgpd_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, p->grouping_type);
 	if (p->version>=1) gf_bs_write_u32(bs, p->default_length);
 	if (p->version>=2) gf_bs_write_u32(bs, p->default_description_index);
-	gf_bs_write_u32(bs, gf_list_count(p->group_descriptions) );
+	nb_descs = gf_list_count(p->group_descriptions);
+	gf_bs_write_u32(bs, nb_descs);
 
-	for (i=0; i<gf_list_count(p->group_descriptions); i++) {
+	for (i=0; i<nb_descs; i++) {
 		void *ptr = gf_list_get(p->group_descriptions, i);
 		if ((p->version >= 1) && !p->default_length) {
 			u32 size = sgpd_size_entry(p->grouping_type, ptr);
@@ -9927,30 +9928,35 @@ GF_Err sgpd_box_write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err sgpd_box_size(GF_Box *s)
 {
-	u32 i;
+	u32 i, nb_descs;
+	Bool use_def_size = GF_TRUE;
 	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)s;
 
 	p->size += 8;
 
 	//we force all sample groups to version 1, v0 being deprecated
-	p->version=1;
+	if (!p->version)
+		p->version = 1;
 	p->size += 4;
 
-	if (p->version>=2) p->size += 4;
+	if (p->version>=2)
+		p->size += 4;
 	p->default_length = 0;
 
-	for (i=0; i<gf_list_count(p->group_descriptions); i++) {
+	nb_descs = gf_list_count(p->group_descriptions);
+	for (i=0; i<nb_descs; i++) {
 		void *ptr = gf_list_get(p->group_descriptions, i);
 		u32 size = sgpd_size_entry(p->grouping_type, ptr);
 		p->size += size;
-		if (!p->default_length) {
+		if (use_def_size && !p->default_length) {
 			p->default_length = size;
 		} else if (p->default_length != size) {
+			use_def_size = GF_FALSE;
 			p->default_length = 0;
 		}
 	}
 	if (p->version>=1) {
-		if (!p->default_length) p->size += gf_list_count(p->group_descriptions)*4;
+		if (!p->default_length) p->size += nb_descs * 4;
 	}
 	return GF_OK;
 }
@@ -12248,7 +12254,7 @@ u32 get_size_by_code(u32 code)
 }
 GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 i, bits;
+	u32 i, bits, gidx_mask;
 	Bool index_msb_indicates_fragment_local_description, grouping_type_parameter_present;
 	u32 pattern_size, scount_size, index_size;
 	GF_CompactSampleGroupBox *ptr = (GF_CompactSampleGroupBox *)s;
@@ -12297,15 +12303,16 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->patterns[i].sample_group_description_indices = gf_malloc(sizeof(u32) * ptr->patterns[i].length);
 		if (!ptr->patterns[i].sample_group_description_indices) return GF_OUT_OF_MEM;
 	}
-	bits=0;
+	bits = 0;
+	gidx_mask = ((u32)1) << (index_size-1);
 	for (i=0; i<ptr->pattern_count; i++) {
 		u32 j;
 		for (j=0; j<ptr->patterns[i].length; j++) {
 			u32 idx = gf_bs_read_int(bs, index_size);
 			if (index_msb_indicates_fragment_local_description) {
 				//MSB set, this is a index of a group described in the fragment
-				if (idx & (1<<(index_size-1)) ) {
-					idx += 0x1000;
+				if (idx & gidx_mask) {
+					idx += 0x10000;
 				}
 			}
 			ptr->patterns[i].sample_group_description_indices[j] = idx;
@@ -12354,8 +12361,8 @@ GF_Err csgp_box_write(GF_Box *s, GF_BitStream *bs)
 		u32 j;
 		for (j=0; j<ptr->patterns[i].length; j++) {
 			u32 idx = ptr->patterns[i].sample_group_description_indices[j];
-			if (idx>0x1000) {
-				idx -= 0x1000;
+			if (idx > 0x10000) {
+				idx -= 0x10000;
 				gf_bs_write_int(bs, 1, 1);
 				gf_bs_write_int(bs, idx, index_size-1);
 			} else {
