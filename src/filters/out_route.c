@@ -1005,7 +1005,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 	for (j=0; j<gf_list_count(serv->rlcts); j++) {
 		ROUTELCT *rlct = gf_list_get(serv->rlcts, j);
 
-		snprintf(temp, 1000, " <RS dIpAddr=\"%s\" dport=\"%d\">\n", rlct->ip, rlct->port);
+		snprintf(temp, 1000, " <RS dIpAddr=\"%s\" dPort=\"%d\">\n", rlct->ip, rlct->port);
 		gf_dynstrcat(&payload_text, temp, NULL);
 
 		for (i=0; i<count; i++) {
