@@ -2229,7 +2229,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 }
 
 GF_EXPORT
-void gf_fs_print_unused_args(GF_FilterSession *fsess)
+void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
 {
 	u32 idx = 0;
 	char *argname;
@@ -2238,6 +2238,14 @@ void gf_fs_print_unused_args(GF_FilterSession *fsess)
 	while (1) {
 		if (gf_fs_enum_unmapped_options(fsess, &idx, &argname, &argtype)==GF_FALSE)
 			break;
+		if (ignore_args) {
+			char *match = strstr(ignore_args, argname);
+			if (match) {
+				u32 len = (u32) strlen(argname);
+				if (!match[len] || (match[len]==','))
+					continue;
+			}
+		}
 
 		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Arg %s set but not used\n", argname));
 	}
