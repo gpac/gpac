@@ -5104,6 +5104,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	if (grouping_type) {
 		sgpd_write_entry(grouping_type, ptr1, bs1);
 	} else {
+		gf_isom_box_size((GF_Box *)ptr1);
 		gf_isom_box_write((GF_Box *)ptr1, bs1);
 	}
 	gf_bs_get_content(bs1, &buf1, &len1);
