@@ -170,8 +170,9 @@ typedef struct
 } ROUTEPid;
 
 
-ROUTELCT *route_create_lct_channel(GF_ROUTEOutCtx *ctx, const char *ip, u32 port)
+ROUTELCT *route_create_lct_channel(GF_ROUTEOutCtx *ctx, const char *ip, u32 port, GF_Err *e)
 {
+	*e = GF_OUT_OF_MEM;
 	ROUTELCT *rlct;
 	GF_SAFEALLOC(rlct, ROUTELCT);
 	if (!rlct) return NULL;
@@ -188,14 +189,15 @@ ROUTELCT *route_create_lct_channel(GF_ROUTEOutCtx *ctx, const char *ip, u32 port
 	if (rlct->ip) {
 		rlct->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
 		if (rlct->sock) {
-			GF_Err e = gf_sk_setup_multicast(rlct->sock, rlct->ip, rlct->port, ctx->ttl, GF_FALSE, ctx->ifce);
-			if (e) {
+			*e = gf_sk_setup_multicast(rlct->sock, rlct->ip, rlct->port, ctx->ttl, GF_FALSE, ctx->ifce);
+			if (*e) {
 				gf_sk_del(rlct->sock);
 				rlct->sock = NULL;
 				goto fail;
 			}
 		}
 	}
+	*e = GF_OK;
 	return rlct;
 fail:
 	if (rlct->ip) gf_free(rlct->ip);
@@ -203,14 +205,15 @@ fail:
 	return NULL;
 }
 
-ROUTEService *routeout_create_service(GF_ROUTEOutCtx *ctx, u32 service_id, const char *ip, u32 port)
+ROUTEService *routeout_create_service(GF_ROUTEOutCtx *ctx, u32 service_id, const char *ip, u32 port, GF_Err *e)
 {
 	ROUTEService *rserv;
 	ROUTELCT *rlct = NULL;
+	*e = GF_OUT_OF_MEM;
 	GF_SAFEALLOC(rserv, ROUTEService);
 	if (!rserv) return NULL;
 
-	rlct = route_create_lct_channel(ctx, ip, port);
+	rlct = route_create_lct_channel(ctx, ip, port, e);
 	if (!rlct) {
 		gf_free(rserv);
 		return NULL;
@@ -235,10 +238,11 @@ ROUTEService *routeout_create_service(GF_ROUTEOutCtx *ctx, u32 service_id, const
 		ctx->lls_slt_table = NULL;
 		ctx->last_lls_clock = 0;
 	}
+	*e = GF_OK;
 	return rserv;
 
 fail:
-
+	*e = GF_OUT_OF_MEM;
 	if (rlct->ip) gf_free(rlct->ip);
 	gf_free(rlct);
 	if (rserv->pids) gf_list_del(rserv->pids);
@@ -386,6 +390,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	if (!rserv) {
+		GF_Err e;
 		u32 port = ctx->first_port;
 		const char *service_ip = ctx->ip;
 
@@ -408,8 +413,8 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			else ctx->first_port++;
 		}
 
-		rserv = routeout_create_service(ctx, service_id, service_ip, port);
-		if (!rserv) return GF_OUT_OF_MEM;
+		rserv = routeout_create_service(ctx, service_id, service_ip, port, &e);
+		if (!rserv) return e;
 		rserv->dash_mode = pid_dash_mode;
 	}
 
@@ -501,9 +506,11 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 		}
 		if (do_split) {
+			GF_Err e;
 			rserv->first_port++;
 			ctx->first_port++;
-			rpid->rlct = route_create_lct_channel(ctx, NULL, rserv->first_port);
+			rpid->rlct = route_create_lct_channel(ctx, NULL, rserv->first_port, &e);
+			if (e) return e;
 			if (rpid->rlct) {
 				gf_list_add(rserv->rlcts, rpid->rlct);
 			}
