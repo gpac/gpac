@@ -3306,7 +3306,7 @@ echo '	@echo "  CC $<"' >> config.mak
 fi
 echo '	$(CXX) $(CFLAGS) -c -o $@ $<' >> config.mak
 
-echo '%.o: %.rc $(SRC_PATH)/manifest.xml' >> config.mak
+echo '%.o: %.rc' >> config.mak
 if test "$verbose" = "no" ; then
 echo '	@echo "  RC $<"' >> config.mak
 fi
