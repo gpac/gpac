@@ -108,6 +108,16 @@ enum
 	DASHER_FWD_ALL,
 };
 
+enum
+{
+	//unknown samples sync state at startup
+	DASHER_SYNC_UNKNOWN=0,
+	//all samples sync
+	DASHER_SYNC_NONE,
+	//some samples sync
+	DASHER_SYNC_PRESENT,
+};
+
 typedef struct
 {
 	u32 bs_switch, profile, cp, ntp;
@@ -274,6 +284,7 @@ typedef struct _dash_stream
 	char *rep_id;
 	//AS ID for this stream, may be 0
 	u32 as_id;
+	u32 sync_as_id;
 	struct _dash_stream *muxed_base;
 	GF_List *complementary_streams;
 	GF_List *comp_pids;
@@ -316,7 +327,7 @@ typedef struct _dash_stream
 	//dependency ID of output pid (renumbered)
 	u32 dep_pid_id;
 	u32 nb_samples_in_source;
-	Bool has_sync_points;
+	u32 sync_points_type;
 	//seg urls not yet handled (waiting for size/index callbacks)
 	GF_List *pending_segment_urls;
 	//segment states not yet handled (waiting for size/index/etc callbacks), used for M3U8 and state mode
@@ -803,10 +814,15 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		CHECK_PROP(GF_PROP_PID_ID, ds->id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
-		CHECK_PROP_BOOL(GF_PROP_PID_HAS_SYNC, ds->has_sync_points, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_NB_FRAMES, ds->nb_samples_in_source, GF_EOS)
 		CHECK_PROP_FRAC64(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
 		CHECK_PROP_STR(GF_PROP_PID_URL, ds->src_url, GF_EOS)
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HAS_SYNC);
+		u32 sync_type = DASHER_SYNC_UNKNOWN;
+		if (p) sync_type = p->value.boolean ? DASHER_SYNC_PRESENT : DASHER_SYNC_NONE;
+		if (sync_type != ds->sync_points_type) period_switch = GF_TRUE;
+		ds->sync_points_type = sync_type;
 
 		if (ds->inband_cues)
 			period_switch = old_period_switch;
@@ -1937,6 +1953,21 @@ static Bool dasher_same_roles(GF_DashStream *ds1, GF_DashStream *ds2)
 	return GF_FALSE;
 }
 
+static u32 dasher_get_next_as_id(GF_DasherCtx *ctx)
+{
+	u32 check_id = 1;
+	u32 i, count = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (ds->as_id == check_id) {
+			check_id++;
+			i = -1;
+			continue;
+		}
+	}
+	return check_id;
+}
+
 static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_DashStream *ds_test)
 {
 	const char *lang1, *lang2;
@@ -1961,7 +1992,18 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	if (!dasher_same_roles(ds, ds_test)) return GF_FALSE;
 
 	//intra-only trick mode belongs to a separate AS
-	if (ds->has_sync_points != ds_test->has_sync_points) return GF_FALSE;
+	if ((ds->stream_type == GF_STREAM_VISUAL) && (ds->sync_points_type != ds_test->sync_points_type)) {
+		//assign trickmode as id for dashif
+		if (ds_test->sync_points_type == DASHER_SYNC_NONE) {
+			if (!ds->as_id) ds->as_id = dasher_get_next_as_id(ctx);
+			ds_test->sync_as_id = ds->as_id;
+		}
+		else if (ds->sync_points_type == DASHER_SYNC_NONE) {
+			if (!ds_test->as_id) ds_test->as_id = dasher_get_next_as_id(ctx);
+			ds->sync_as_id = ds_test->as_id;
+		}
+		return GF_FALSE;
+	}
 
 	/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 	   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
@@ -2084,7 +2126,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		if (set->intra_only) {
 			char value[256];
 			GF_MPD_Descriptor* desc;
-			sprintf(value, "%d", ds->as_id);
+			sprintf(value, "%d", ds->sync_as_id);
 			desc = gf_mpd_descriptor_new(NULL, "http://dashif.org/guidelines/trickmode", value);
 			gf_list_add(set->essential_properties, desc);
 		}
@@ -2665,6 +2707,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	Bool template_use_source = GF_FALSE;
 	Bool split_rep_names = GF_FALSE;
 	Bool split_set_names = GF_FALSE;
+	u32 force_ds_id;
 	GF_DashStream *ds;
 	GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
 	if (!rep) {
@@ -2741,11 +2784,17 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	set->lang = gf_strdup(ds->lang ? ds->lang : "und");
 
 	//check all streams in active period not in this set
+	force_ds_id = ds->id;
 	nb_streams = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<nb_streams; i++) {
 		char *frag_uri;
 		u32 len1, len2;
 		GF_DashStream *ads = gf_list_get(ctx->current_period->streams, i);
+
+		if (force_ds_id && (ads != ds) && (ads->id == ds->id)) {
+			force_ds_id = 0;
+		}
+
 		if (ads->set == set) continue;
 		frag_uri = strrchr(ds->src_url, '#');
 		if (frag_uri) len1 = (u32) (frag_uri-1 - ds->src_url);
@@ -2758,10 +2807,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			split_set_names = GF_TRUE;
 			break;
 		}
-	}
-
-	if (split_set_names) {
-		sprintf(szSetFileSuffix, "_track%d_", ds->id);
 	}
 
 	if (ctx->timescale>0) {
@@ -2816,6 +2861,16 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (split_rep_names) break;
 		}
 		if (split_rep_names) break;
+	}
+
+	if (split_set_names) {
+		if (!force_ds_id) {
+			if (split_rep_names || !ds->split_set_names)
+				force_ds_id = ds->id;
+			else
+				force_ds_id = gf_list_find(ctx->pids, ds) + 1;
+		}
+		sprintf(szSetFileSuffix, "_track%d_", force_ds_id);
 	}
 
 	//assign PID IDs - we assume only one component of a given media type per adaptation set
@@ -5098,9 +5153,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//not setup, create new AS
 		ds->set = gf_mpd_adaptation_set_new();
 		ds->owns_set = GF_TRUE;
-		//only set hls intra for visual stream if we have GF_PROP_PID_HAS_SYNC set to false
-		if ((ds->stream_type==GF_STREAM_VISUAL) && gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HAS_SYNC)) {
-			ds->set->intra_only = !ds->has_sync_points;
+		//only set hls intra for visual stream if we have know for sure
+		if ((ds->stream_type==GF_STREAM_VISUAL) && (ds->sync_points_type==DASHER_SYNC_NONE)) {
+			ds->set->intra_only = GF_TRUE;
 		}
 		if (ctx->llhls) {
 			ds->set->use_hls_ll = GF_TRUE;
@@ -5140,6 +5195,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			//we add to the adaptation set even if shared rep, we will remove it when assigning templates and pids
 			if (dasher_same_adaptation_set(ctx, ds, a_ds)) {
 				a_ds->set = ds->set;
+
 				gf_list_add(ds->set->representations, a_ds->rep);
 				ds->nb_rep++;
 				//add non-conditional adaptation set descriptors
@@ -6865,7 +6921,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 							if (diff<0)
 								diff = -diff;
 							//old arch was only using closest for tracks with sync points
-							if (gf_sys_old_arch_compat() && !base_ds->has_sync_points) {
+							if (gf_sys_old_arch_compat() && (base_ds->sync_points_type==DASHER_SYNC_NONE) ) {
 								if (diff_next > 0) {
 									force_seg_flush = GF_TRUE;
 								}
@@ -6938,7 +6994,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			else if (seg_over && ds->nb_samples_in_source && !ctx->loop
 				&& (ds->nb_pck+1 == ds->nb_samples_in_source)
 				&& !ctx->asto
-				&& !(!ds->has_sync_points && (ds->stream_type!=GF_STREAM_AUDIO))
+				&& ! ((ds->sync_points_type==DASHER_SYNC_NONE) && (ds->stream_type!=GF_STREAM_AUDIO))
 			) {
 				seg_over = GF_FALSE;
 			}
