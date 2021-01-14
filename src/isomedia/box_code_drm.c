@@ -856,20 +856,17 @@ GF_Box *tenc_box_new()
 
 void tenc_box_del(GF_Box *s)
 {
-	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
-	if (ptr->key_info) gf_free(ptr->key_info);
 	gf_free(s);
 }
 
 GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	Bool is_mkey;
+	u8 iv_size;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 
 	ISOM_DECREASE_SIZE(ptr, 3);
 
-	is_mkey = gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 7); //reserved
+	gf_bs_read_u8(bs); //reserved
 
 	if (!ptr->version) {
 		gf_bs_read_u8(bs); //reserved
@@ -878,46 +875,20 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
 	}
 	ptr->isProtected = gf_bs_read_u8(bs);
-	if (is_mkey) {
-		ISOM_DECREASE_SIZE(ptr, 2);
-		u32 num_keys = gf_bs_peek_bits(bs, 16, 0);
-		if (num_keys * 17 > ptr->size)
-			return GF_NON_COMPLIANT_BITSTREAM;
-		ptr->key_info_size = (u32) (1+ptr->size+2); //we just did a decrease_size(2) before the peek
-		ptr->key_info = gf_malloc(sizeof(char) * ptr->key_info_size);
-		if (!ptr->key_info) return GF_OUT_OF_MEM;
-		ptr->key_info[0] = 1;
-		gf_bs_read_data(bs, ptr->key_info+1, ptr->key_info_size-1);
-		ptr->size = 0;
-		if (!gf_cenc_validate_key_info(ptr->key_info, ptr->key_info_size))
-			return GF_ISOM_INVALID_FILE;
-	} else {
-		bin128 KID;
-		u8 iv_size, const_iv_size=0;
-		ISOM_DECREASE_SIZE(ptr, 17);
 
-		iv_size = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, (char *) KID, 16);
-		if (!iv_size && ptr->isProtected) {
-			ISOM_DECREASE_SIZE(ptr, 1);
-			const_iv_size = gf_bs_read_u8(bs);
-		}
-		ptr->key_info_size = 20;
-		if (! iv_size && ptr->isProtected)
-			ptr->key_info_size += 1 + const_iv_size;
 
-		ptr->key_info = gf_malloc(sizeof(char) * ptr->key_info_size);
-		if (!ptr->key_info) return GF_OUT_OF_MEM;
-		ptr->key_info[0] = 0;
-		ptr->key_info[1] = 0;
-		ptr->key_info[2] = 0;
-		ptr->key_info[3] = iv_size;
-		memcpy(ptr->key_info+4, KID, 16);
-		if (! iv_size && ptr->isProtected) {
-			ptr->key_info[20] = const_iv_size;
-			ISOM_DECREASE_SIZE(ptr, const_iv_size);
-			gf_bs_read_data(bs, ptr->key_info+21, const_iv_size);
-		}
+	ISOM_DECREASE_SIZE(ptr, 17);
+
+	ptr->key_info[0] = 0;
+	ptr->key_info[1] = 0;
+	ptr->key_info[2] = 0;
+	ptr->key_info[3] = iv_size = gf_bs_read_u8(bs);
+	gf_bs_read_data(bs, ptr->key_info+4, 16);
+	if (!iv_size && ptr->isProtected) {
+		ISOM_DECREASE_SIZE(ptr, 1);
+		iv_size = ptr->key_info[20] = gf_bs_read_u8(bs);
+		ISOM_DECREASE_SIZE(ptr, ptr->key_info[20]);
+		gf_bs_read_data(bs, ptr->key_info+21, iv_size);
 	}
 	return GF_OK;
 }
@@ -927,62 +898,38 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	Bool is_mkey;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox *) s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
-	is_mkey = (ptr->key_info && ptr->key_info[0]) ? GF_TRUE : GF_FALSE;
-
-	gf_bs_write_int(bs, is_mkey, 1);
-	gf_bs_write_int(bs, 0, 7); //reserved
+	gf_bs_write_u8(bs, 0); //reserved
 
 	if (!ptr->version) {
-		gf_bs_write_u8(bs, 0x0); //reserved
+		gf_bs_write_u8(bs, 0); //reserved
 	} else {
 		gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
 		gf_bs_write_int(bs, ptr->skip_byte_block, 4);
 	}
 	gf_bs_write_u8(bs, ptr->isProtected);
-	if (is_mkey) {
-		gf_bs_write_data(bs, ptr->key_info+1, ptr->key_info_size-1);
-	} else if (ptr->key_info) {
-		gf_bs_write_u8(bs, ptr->key_info[3]);
-		gf_bs_write_data(bs, ptr->key_info + 4, 16);
-		if ((ptr->isProtected == 1) && !ptr->key_info[3]) {
-			gf_bs_write_u8(bs, ptr->key_info[20]);
-			gf_bs_write_data(bs, ptr->key_info + 21, ptr->key_info[20]);
-		}
-	}
-	//for boxcov
-	else {
-		gf_bs_write_u8(bs, 8);
-		gf_bs_write_u64(bs, 0);
-		gf_bs_write_u64(bs, 0);
+
+	gf_bs_write_u8(bs, ptr->key_info[3]);
+	gf_bs_write_data(bs, ptr->key_info + 4, 16);
+	if ((ptr->isProtected == 1) && !ptr->key_info[3]) {
+		gf_bs_write_u8(bs, ptr->key_info[20]);
+		gf_bs_write_data(bs, ptr->key_info + 21, ptr->key_info[20]);
 	}
 	return GF_OK;
 }
 
 GF_Err tenc_box_size(GF_Box *s)
 {
-	Bool is_mkey;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 	ptr->size += 3;
-	//for boxcov
-	if (!ptr->key_info) {
-		ptr->size += 17;
-		return GF_OK;
-	}
 
-	is_mkey = ptr->key_info[0] ? GF_TRUE : GF_FALSE;
-	if (is_mkey) {
-		ptr->size += ptr->key_info_size - 1;
-	} else {
-		ptr->size += 17;
-		if ((ptr->isProtected == 1) && ! ptr->key_info[3]) {
-			ptr->size += 1 + ptr->key_info[20];
-		}
+	ptr->size += 17;
+	if ((ptr->isProtected == 1) && ! ptr->key_info[3]) {
+		ptr->size += 1 + ptr->key_info[20];
 	}
 	return GF_OK;
 }
@@ -1444,7 +1391,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				u32 j;
 				u32 nb_iv_init = gf_bs_read_u16(bs);
 				for (j=0; j<nb_iv_init; j++) {
-					u8 idx = gf_bs_read_u8(bs);
+					u8 idx = gf_bs_read_u16(bs);
 					IV_size = key_info_get_iv_size(key_info, nb_keys, idx, NULL, NULL);
 					if (!IV_size) {
 						gf_isom_cenc_samp_aux_info_del(sai);

@@ -1038,7 +1038,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		//init all non-const IV listed
 		for (k=0; k<nb_iv_init; k++) {
 			u8 IV_size;
-			u8 kidx = gf_bs_read_u8(ctx->bs_r);
+			u16 kidx = gf_bs_read_u16(ctx->bs_r);
 
 			if (!kidx || (kidx>cstr->nb_crypts)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, kidx %d but valid range is [1,%d]\n", kidx, cstr->nb_crypts));
