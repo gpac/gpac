@@ -992,6 +992,8 @@ cache (enum, default: disk):   set cache mode
 .br
 * none: no cache
 .br
+* none_keep: stores to memory, keep after session is reassigned but move to none after first download
+.br
 
 .br
 range (lfrac, default: 0-0):   set byte range, as fraction
@@ -4728,6 +4730,8 @@ llhls (enum, default: off):    HLS low latency type
 .br
 
 .br
+hlsdrm (str):                  cryp file info for HLS full segment encryption
+.br
 
 .br
 .SH tileagg
@@ -7017,6 +7021,62 @@ index (dbl, default: 1.0):     indexing window length
 .br
 
 .br
+.SH cryptin
+.LP
+.br
+Description: CryptFile input
+.br
+
+.br
+This filter dispatch raw blocks from crypted files with AES 128 CBC in PKCS7 to clear input files
+.br
+
+.br
+The filter accepts URL with scheme gcryp://URL, where URL is the URL to decrypt.
+.br
+
+.br
+The filter can process http(s) and local file key URLs, and expects a full key (16 bytes) as result of resource fetching.
+.br
+The special URL urn:gpac:keys:value:VALUE can also be used, with VALUEcontaining the 16 bytes of the key in hexadecimal.
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+src (cstr):                    location of source file
+.br
+fullfile (bool, default: false): reassemble full file before decryption
+.br
+
+.br
+.SH cryptout
+.LP
+.br
+Description: CryptFile output
+.br
+
+.br
+This filter dispatch raw blocks from clear input files to crypted files with AES 128 CBC in PKCS7
+.br
+
+.br
+The filter accepts URL with scheme gcryp://URL, where URL is the URL to encrypt.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+dst (cstr):                    location of source file
+.br
+fullfile (bool, default: false): reassemble full file before decryption
+.br
+
+.br
 .SH dtout
 .LP
 .br
@@ -7235,7 +7295,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev426-g7a6d74a88-master
+build: 1.1.0-DEV-rev438-gc7e3d04fc-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

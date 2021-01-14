@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -36,6 +36,7 @@ typedef enum
 	GF_HTTPIN_STORE_MEM,
 	GF_HTTPIN_STORE_MEM_KEEP,
 	GF_HTTPIN_STORE_NONE,
+	GF_HTTPIN_STORE_NONE_KEEP,
 } GF_HTTPInStoreMode;
 
 enum
@@ -114,6 +115,10 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	else if (ctx->cache==GF_HTTPIN_STORE_MEM_KEEP) {
 		flags |= GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
 		ctx->cache = GF_HTTPIN_STORE_MEM;
+	}
+	else if (ctx->cache==GF_HTTPIN_STORE_NONE_KEEP) {
+		flags |= GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
+		ctx->cache = GF_HTTPIN_STORE_NONE;
 	}
 
 	server = strstr(ctx->src, "://");
@@ -577,7 +582,9 @@ static const GF_FilterArgs HTTPInArgs[] =
 	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
 	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"
-	"- none: no cache", GF_PROP_UINT, "disk", "disk|keep|mem|mem_keep|none", GF_FS_ARG_HINT_ADVANCED},
+	"- none: no cache\n"
+	"- none_keep: stores to memory, keep after session is reassigned but move to `none` after first download"
+	, GF_PROP_UINT, "disk", "disk|keep|mem|mem_keep|none|none_keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "set byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},

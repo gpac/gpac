@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -1854,6 +1854,9 @@ retry_import:
 				rep->width = width;
 				rep->height = height;
 			}
+			if (elt && elt->drm_method==DRM_AES_128)
+				rep->crypto_type = 1;
+
 			if (samplerate) {
 				rep->samplerate = samplerate;
 			}
@@ -2358,6 +2361,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 			rep->playback.disabled = GF_TRUE;
 			return GF_OK;
 		}
+		if (elt && elt->drm_method==DRM_AES_128)
+			rep->crypto_type = 1;
 
 		if (elt->low_lat_chunk && !has_full_seg_following) {
 			u32 j;
@@ -3467,15 +3472,15 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			sctx = gf_list_get(rep->state_seg_list, i);
 			assert(sctx->filename);
 
-			if (rep->is_encrypted) {
+			if (rep->crypto_type) {
 				const char *kms;
 				if (!sctx->encrypted) kms = "NONE";
 				else if (sctx->hls_key_uri) kms = sctx->hls_key_uri;
 				else {
 					kms = "URI=\"gpac:hls:key:locator:null\"";
-					if (rep->is_encrypted==1) {
-						rep->is_encrypted = 2;
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[HLS] Missing key URI in one or mode keys - will use dummy one %s\n", kms));
+					if (!rep->def_kms_used) {
+						rep->def_kms_used = 1;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[HLS] Missing key URI in one or more keys - will use dummy one %s\n", kms));
 					}
 				}
 
@@ -3487,13 +3492,21 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 						while (1) {
 							char *next = strstr(subkms, ",URI");
 							if (next) next[0] = 0;
-							gf_fprintf(out,"#EXT-X-KEY:METHOD=SAMPLE-AES,%s\n", subkms);
+							if (rep->crypto_type==1) {
+								u32 k;
+								gf_fprintf(out,"#EXT-X-KEY:METHOD=AES-128,%s,IV=0x", subkms);
+								for (k=0; k<16; k++)
+									gf_fprintf(out, "%02X", sctx->hls_iv[k]);
+								gf_fprintf(out, "\n");
+							} else {
+								gf_fprintf(out,"#EXT-X-KEY:METHOD=SAMPLE-AES,%s\n", subkms);
+							}
 							if (!next) break;
 							next[0] = ',';
 							subkms = next+1;
 						}
 					}
-					last_kms = kms;
+					last_kms = (rep->crypto_type==2) ? kms : NULL;
 				}
 			}
 

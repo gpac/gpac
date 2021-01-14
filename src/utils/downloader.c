@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -597,8 +597,6 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
 		url = gf_cache_get_url(e);
 		assert( url );
 		if (strcmp(url, sess->orig_url)) continue;
-		if (sess->needs_cache_reconfig==2)
-			continue;
 
 		if (! sess->is_range_continuation) {
 			if (sess->range_start != gf_cache_get_start_range(e)) continue;
@@ -682,10 +680,13 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 	DownloadedCacheEntry entry;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, (sess->flags & GF_NETIO_SESSION_NOT_CACHED) ? "no" : "yes" ));
 	gf_dm_remove_cache_entry_from_session(sess);
-	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
+	//session is not cached and we don't cache the first URL
+	if ((sess->flags & GF_NETIO_SESSION_NOT_CACHED) && !(sess->flags & GF_NETIO_SESSION_KEEP_FIRST_CACHE))  {
 		sess->reused_cache_entry = GF_FALSE;
 		if (sess->cache_entry)
 			gf_cache_close_write_cache(sess->cache_entry, sess, GF_FALSE);
+
+		sess->cache_entry = NULL;
 	} else {
 		Bool found = GF_FALSE;
 		u32 i, count;
@@ -812,7 +813,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 	/* If we are heren it means we did not found this URL in cache */
 	gf_mx_v( dm->cache_mx );
 	gf_free(realURL);
-	GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[CACHE] Cannot find URL %s, cache file won't be deleted.\n", url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[CACHE] Cannot find URL %s, cache file won't be deleted.\n", url));
 }
 
 GF_EXPORT
@@ -3767,6 +3768,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	/*redirection: extract the new location*/
 	case 301:
 	case 302:
+	case 303:
 	case 307:
 		if (!new_location || !strlen(new_location) ) {
 			gf_dm_sess_user_io(sess, &par);

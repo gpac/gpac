@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2012-2019
+ *			Copyright (c) Telecom ParisTech 2012-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming sub-project
@@ -362,10 +362,11 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 group_id
 This is used for full segment encryption modes of MPEG-2 TS segments. key_IV is optional
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
+\param crypto_type set to 0 if no encryption in segments, 1 if full segment encryption, 2 if CENC/per-sample encryption is used -  may be NULL
 \param key_IV set to the IV used for the first media segment (can be NULL)
 \return the key URL of the first media segment
 */
-const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 group_idx, bin128 *key_IV);
+const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 group_idx, u32 *crypto_type, bin128 *key_IV);
 
 /*! returns the language of the group
 \param dash the target dash client

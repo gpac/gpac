@@ -378,6 +378,7 @@
 		928607112395C0DE00FDA1ED /* tssplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 928607102395C0DE00FDA1ED /* tssplit.c */; };
 		928607152398F4C800FDA1ED /* ff_avf.c in Sources */ = {isa = PBXBuildFile; fileRef = 928607142398F4C800FDA1ED /* ff_avf.c */; };
 		9288A4B425ADDCED006F7355 /* reframe_truehd.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288A4B325ADDCED006F7355 /* reframe_truehd.c */; };
+		9288A54825AF6FCC006F7355 /* io_fcryp.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288A54725AF6FCC006F7355 /* io_fcryp.c */; };
 		928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D111BE11BC100CAC65D /* libcrypto.a */; };
 		928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D121BE11BC100CAC65D /* libssl.a */; };
 		928EB67525271B5800E47747 /* rewrite_mhas.c in Sources */ = {isa = PBXBuildFile; fileRef = 928EB67425271B5800E47747 /* rewrite_mhas.c */; };
@@ -974,6 +975,7 @@
 		928607102395C0DE00FDA1ED /* tssplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tssplit.c; path = ../../src/filters/tssplit.c; sourceTree = "<group>"; };
 		928607142398F4C800FDA1ED /* ff_avf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_avf.c; path = ../../src/filters/ff_avf.c; sourceTree = "<group>"; };
 		9288A4B325ADDCED006F7355 /* reframe_truehd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_truehd.c; path = ../../src/filters/reframe_truehd.c; sourceTree = "<group>"; };
+		9288A54725AF6FCC006F7355 /* io_fcryp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = io_fcryp.c; path = ../../src/filters/io_fcryp.c; sourceTree = "<group>"; };
 		928B2D111BE11BC100CAC65D /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../extra_lib/lib/iOS/libcrypto.a; sourceTree = "<group>"; };
 		928B2D121BE11BC100CAC65D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../extra_lib/lib/iOS/libssl.a; sourceTree = "<group>"; };
 		928EB67425271B5800E47747 /* rewrite_mhas.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_mhas.c; path = ../../src/filters/rewrite_mhas.c; sourceTree = "<group>"; };
@@ -1954,6 +1956,7 @@
 				92EB6DC420E4E19700A97A49 /* in_rtp.h */,
 				8959AC7F211C9C3C004D2C87 /* in_sock.c */,
 				92EB6D7C20E4E19200A97A49 /* inspect.c */,
+				9288A54725AF6FCC006F7355 /* io_fcryp.c */,
 				92EB6D9920E4E19400A97A49 /* isoffin_load.c */,
 				92EB6D9C20E4E19500A97A49 /* isoffin_read_ch.c */,
 				92EB6DAF20E4E19600A97A49 /* isoffin_read.c */,
@@ -2434,6 +2437,7 @@
 				71CCF29D1277045100339E12 /* rtp.c in Sources */,
 				71CCF29E1277045100339E12 /* rtp_depacketizer.c in Sources */,
 				92EB6DDB20E4E19700A97A49 /* dmx_m2ts.c in Sources */,
+				9288A54825AF6FCC006F7355 /* io_fcryp.c in Sources */,
 				71CCF29F1277045100339E12 /* rtp_packetizer.c in Sources */,
 				71CCF2A01277045100339E12 /* rtp_pck_3gpp.c in Sources */,
 				92EB6DD920E4E19700A97A49 /* rewrite_adts.c in Sources */,

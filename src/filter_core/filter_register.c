@@ -158,6 +158,8 @@ const GF_FilterRegister *mhas_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *mhasmx_register(GF_FilterSession *session);
 const GF_FilterRegister *routeout_register(GF_FilterSession *session);
 const GF_FilterRegister *truehd_register(GF_FilterSession *session);
+const GF_FilterRegister *cryptfin_register(GF_FilterSession *session);
+const GF_FilterRegister *cryptfout_register(GF_FilterSession *session);
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
@@ -288,6 +290,8 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, jsfilter_register(a_sess) );
 	gf_fs_add_filter_register(fsess, routeout_register(a_sess) );
 	gf_fs_add_filter_register(fsess, truehd_register(a_sess) );
+	gf_fs_add_filter_register(fsess, cryptfin_register(a_sess) );
+	gf_fs_add_filter_register(fsess, cryptfout_register(a_sess) );
 
 #if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_HAVE_DTAPI) && !defined(WIN32) 
 	gf_fs_add_filter_register(fsess, dtout_register(a_sess) );

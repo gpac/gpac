@@ -730,7 +730,13 @@ void* gf_realloc(void *ptr, size_t size);
 
 /*end GPAC memory tracking*/
 
-size_t gf_strlcpy(char * dst, const char * src, size_t dsize);
+/*! copy source string to destination, ensuring 0-terminated string result
+\param dst  destination buffer
+\param src  source buffer
+\param dsize size of destination buffer
+\return same as strlcpy
+*/
+size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
 
 #ifdef __cplusplus
 }

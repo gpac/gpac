@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -108,7 +108,10 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 		}
 
 		if (args_striped) {
-			args_striped = (char *)gf_fs_path_escape_colon(fsess, args_striped+4);
+			args_striped += 4;
+			if (!strncmp(args_striped, "gcryp://", 8))
+				args_striped += 8;
+			args_striped = (char *)gf_fs_path_escape_colon(fsess, args_striped);
 			if (args_striped) args_striped ++;
 		} else {
 			args_striped = (char *)in_args;
@@ -124,6 +127,10 @@ static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const ch
 const char *gf_filter_get_dst_args(GF_Filter *filter)
 {
 	return gf_filter_get_args_stripped(filter->session, filter->dst_args, GF_TRUE);
+}
+const char *gf_filter_get_src_args(GF_Filter *filter)
+{
+	return filter->orig_args ? filter->orig_args : filter->src_args;
 }
 
 char *gf_filter_get_dst_name(GF_Filter *filter)
@@ -406,7 +413,13 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	if (filter->freg->initialize) {
 		GF_Err e;
 		FSESS_CHECK_THREAD(filter)
-		e = filter->freg->initialize(filter);
+		if (((arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE) || (arg_type==GF_FILTER_ARG_EXPLICIT_SINK)) && !filter->orig_args) {
+			filter->orig_args = (char *)args;
+			e = filter->freg->initialize(filter);
+			filter->orig_args = NULL;
+		} else {
+			e = filter->freg->initialize(filter);
+		}
 		if (e) return e;
 	}
 	if ((filter->freg->flags & GF_FS_REG_SCRIPT) && filter->freg->update_arg) {
@@ -1215,8 +1228,12 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 			//we don't use gf_fs_path_escape_colon here because we also analyse whether the URL is internal or not, and we don't want to do that on each arg
 
 			if (filter->session->sep_args == ':') {
+				if (sep && !strncmp(args, szSrc, 4) && !strncmp(args+4, "gcryp://", 8)) {
+					sep = strstr(args+12, "://");
+				}
 				while (sep && !strncmp(sep, "://", 3)) {
 					absolute_url = GF_TRUE;
+
 					//filter internal url schemes
 					if ((!strncmp(args, szSrc, 4) || !strncmp(args, szDst, 4) ) &&
 						(!strncmp(args+4, "video://", 8)
@@ -4285,4 +4302,12 @@ void gf_filter_lock(GF_Filter *filter, Bool do_lock)
 		gf_mx_p(filter->tasks_mx);
 	else
 		gf_mx_v(filter->tasks_mx);
+}
+
+void gf_filter_mirror_forced_caps(GF_Filter *filter, GF_Filter *dst_filter)
+{
+	if (filter && dst_filter) {
+		filter->forced_caps = dst_filter->forced_caps;
+		filter->nb_forced_caps = dst_filter->nb_forced_caps;
+	}
 }

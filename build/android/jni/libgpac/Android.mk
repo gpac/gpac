@@ -207,6 +207,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/in_rtp_stream.c \
 	../../../../src/filters/in_sock.c \
 	../../../../src/filters/inspect.c \
+	../../../../src/filters/io_fcryp.c \
 	../../../../src/filters/isoffin_load.c \
 	../../../../src/filters/isoffin_read.c \
 	../../../../src/filters/isoffin_read_ch.c \

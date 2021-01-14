@@ -2639,16 +2639,24 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 	if (ts->buffer_size) {
 		//we are sync, copy remaining bytes
 		if ( (ts->buffer[0]==0x47) && (ts->buffer_size<200)) {
+			u32 copy_size;
 			pck_size = ts->prefix_present ? 192 : 188;
 
 			if (ts->alloc_size < 200) {
 				ts->alloc_size = 200;
 				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
 			}
-			memcpy(ts->buffer + ts->buffer_size, data, pck_size - ts->buffer_size);
+			copy_size = pck_size - ts->buffer_size;
+			if (copy_size > data_size) {
+				memcpy(ts->buffer + ts->buffer_size, data, data_size);
+				ts->buffer_size += data_size;
+				return GF_OK;
+			}
+			memcpy(ts->buffer + ts->buffer_size, data, copy_size);
 			e |= gf_m2ts_process_packet(ts, (unsigned char *)ts->buffer);
-			data += (pck_size - ts->buffer_size);
-			data_size = data_size - (pck_size - ts->buffer_size);
+			data += copy_size;
+			data_size = data_size - copy_size;
+			assert((s32)data_size >= 0);
 		}
 		//not sync, copy over the complete buffer
 		else {
