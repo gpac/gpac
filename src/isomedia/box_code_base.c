@@ -9563,7 +9563,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, s32 bytes_in_
 			gf_bs_seek(bs, pos);
 			ptr->key_info[0] = 1;
 			gf_bs_read_data(bs, ptr->key_info + 1, ptr->key_info_size - 1);
-			*total_bytes = 3 + ptr->key_info_size;
+			*total_bytes = 3 + ptr->key_info_size - 1;
 
 			if (!gf_cenc_validate_key_info(ptr->key_info, ptr->key_info_size)) {
 				gf_free(ptr->key_info);

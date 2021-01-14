@@ -675,12 +675,20 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 		if (!sinf) continue;
 
 		/*non-encrypted or non-CENC*/
-		if (!sinf->info || (!sinf->info->tenc && !sinf->info->piff_tenc) || !sinf->scheme_type)
+		if (!sinf->scheme_type)
 			return GF_FALSE;
 
-		//TODO: validate the fields in tenc for each scheme type
+		switch (sinf->scheme_type->scheme_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_SVE1_SCHEME:
+			return GF_TRUE;
+		default:
+			return GF_FALSE;
+		}
 		return GF_TRUE;
-
 	}
 	return GF_FALSE;
 
@@ -739,7 +747,10 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 		sinf->info->piff_tenc->key_info[2] = 0;
 		sinf->info->piff_tenc->key_info[3] = key_info[3];
 		memcpy(sinf->info->piff_tenc->key_info+4, key_info+4, 16*sizeof(char));
-	} else {
+	}
+	//tenc only for mkey
+	else if (!key_info[0]) {
+		if (key_info_size<20) return GF_BAD_PARAM;
 		sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_TYPE_TENC);
 		if (!sinf->info->tenc) return GF_OUT_OF_MEM;
 
@@ -749,10 +760,8 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 			sinf->info->tenc->crypt_byte_block = default_crypt_byte_block;
 			sinf->info->tenc->skip_byte_block = default_skip_byte_block;
 		}
-		sinf->info->tenc->key_info_size = key_info_size;
-		sinf->info->tenc->key_info = gf_malloc(sizeof(u8) * key_info_size);
-		if (!sinf->info->tenc->key_info) return GF_OUT_OF_MEM;
-		memcpy(sinf->info->tenc->key_info, key_info, sizeof(u8) * key_info_size);
+		if (key_info_size>37) key_info_size = 37;
+		memcpy(sinf->info->tenc->key_info, key_info, key_info_size);
 	}
 	return GF_OK;
 }
@@ -1609,6 +1618,8 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	return GF_OK;
 }
 
+u32 gf_isom_has_cenc_sample_group_ex(GF_TrackBox *trak);
+
 void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 {
 	GF_ProtectionSchemeInfoBox *sinf;
@@ -1647,7 +1658,11 @@ void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescrip
 		if (crypt_byte_block) *crypt_byte_block = sinf->info->tenc->crypt_byte_block;
 		if (skip_byte_block) *skip_byte_block = sinf->info->tenc->skip_byte_block;
 		if (key_info) *key_info = sinf->info->tenc->key_info;
-		if (key_info_size) *key_info_size = sinf->info->tenc->key_info_size;
+		if (key_info_size) {
+			*key_info_size = 20;
+			if (!sinf->info->tenc->key_info[3])
+				*key_info_size += 1 + sinf->info->tenc->key_info[20];
+		}
 
 		//set default value, overwritten below
 		if (container_type) *container_type = GF_ISOM_BOX_TYPE_SENC;
@@ -1658,13 +1673,39 @@ void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescrip
 		//set default value, overwritten below
 		if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
 	} else {
-		if (! trak->moov->mov->is_smooth) {
-			trak->moov->mov->is_smooth = GF_TRUE;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] senc box without tenc, assuming MS smooth+piff\n"));
+		u32 i, count = 0;
+		GF_CENCSampleEncryptionGroupEntry *seig_entry = NULL;
+
+		if (!trak->moov->mov->is_smooth)
+			count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
+
+		for (i=0; i<count; i++) {
+			GF_SampleGroupDescriptionBox *sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+			if (sgdesc->grouping_type!=GF_ISOM_SAMPLE_GROUP_SEIG) continue;
+			if (sgdesc->default_description_index)
+				seig_entry = gf_list_get(sgdesc->group_descriptions, sgdesc->default_description_index-1);
+			else
+				seig_entry = gf_list_get(sgdesc->group_descriptions, 0);
+			if (!seig_entry->key_info[0])
+				seig_entry = NULL;
+			break;
 		}
-		if (default_IsEncrypted) *default_IsEncrypted = GF_TRUE;
-		//set default value, overwritten below
-		if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
+		if (seig_entry) {
+			if (default_IsEncrypted) *default_IsEncrypted = seig_entry->IsProtected;
+			if (crypt_byte_block) *crypt_byte_block = seig_entry->crypt_byte_block;
+			if (skip_byte_block) *skip_byte_block = seig_entry->skip_byte_block;
+			if (key_info) *key_info = seig_entry->key_info;
+			if (key_info_size) *key_info_size = seig_entry->key_info_size;
+			if (container_type) *container_type = GF_ISOM_BOX_TYPE_SENC;
+		} else {
+			if (! trak->moov->mov->is_smooth ) {
+				trak->moov->mov->is_smooth = GF_TRUE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] senc box without tenc, assuming MS smooth+piff\n"));
+			}
+			if (default_IsEncrypted) *default_IsEncrypted = GF_TRUE;
+			//set default value, overwritten below
+			if (container_type) *container_type = GF_ISOM_BOX_UUID_PSEC;
+		}
 	}
 
 	if (container_type && trak->sample_encryption) {

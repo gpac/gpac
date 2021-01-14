@@ -4845,17 +4845,18 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 
 				gf_fprintf(trace, ">\n");
 				for (k=0; k<nb_keys; k++) {
-					if (kpos + 17 >= seig->key_info_size)
+					if (kpos + 17 > seig->key_info_size)
 						break;
 					u8 iv_size = seig->key_info[kpos];
 					gf_fprintf(trace, "<CENCKey IV_size=\"%d\" KID=\"", iv_size);
 					dump_data_hex(trace, seig->key_info+kpos+1, 16);
 					kpos += 17;
+					gf_fprintf(trace, "\"");
 					if ((seig->IsProtected == 1) && !iv_size) {
 						if (kpos + 1 >= seig->key_info_size)
 							break;
 						u8 const_IV_size = seig->key_info[kpos];
-						gf_fprintf(trace, "\" constant_IV_size=\"%d\"  constant_IV=\"", const_IV_size);
+						gf_fprintf(trace, " constant_IV_size=\"%d\"  constant_IV=\"", const_IV_size);
 						if (kpos + 1 + const_IV_size >= seig->key_info_size)
 							break;
 						dump_data_hex(trace, (char *)seig->key_info + kpos + 1, const_IV_size);
@@ -5046,7 +5047,6 @@ GF_Err pssh_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 {
-	Bool is_mkey;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*) a;
 	if (!a) return GF_BAD_PARAM;
 
@@ -5054,49 +5054,18 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 
 	gf_fprintf(trace, "isEncrypted=\"%d\"", ptr->isProtected);
 
-	is_mkey = (ptr->key_info && ptr->key_info[0]) ? GF_TRUE : GF_FALSE;
-
-	if (is_mkey) {
-		u32 i, kpos=3, nb_keys;
-		nb_keys = ptr->key_info[1];
-		nb_keys <<= 8;
-		nb_keys |= ptr->key_info[2];
-
-		gf_fprintf(trace, ">\n");
-		for (i=0; i<nb_keys; i++) {
-			u8 IV_size = ptr->key_info[kpos];
-			gf_fprintf(trace, "<TENCKey");
-			if (IV_size)
-				gf_fprintf(trace, " IV_size=\"%d\"", IV_size);
-
-			gf_fprintf(trace, " KID=\"");
-			dump_data_hex(trace, (char *) ptr->key_info + kpos + 1, 16);
-			gf_fprintf(trace, "\"");
-			kpos += 17;
-
-			if (!IV_size) {
-				IV_size = ptr->key_info[kpos];
-				gf_fprintf(trace, " const_IV_size=\"%d\"", IV_size);
-				gf_fprintf(trace, " constIV=\"");
-				dump_data_hex(trace, (char *) ptr->key_info + kpos + 1, IV_size);
-				gf_fprintf(trace, "\"");
-				kpos += 1 + IV_size;
-			}
-			gf_fprintf(trace, "/>\n");
-		}
-	} else if (ptr->key_info) {
-		if (ptr->key_info[3])
-			gf_fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->key_info[3]);
-		else {
-			gf_fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->key_info[20]);
-			dump_data_hex(trace, (char *) ptr->key_info+21, ptr->key_info[20]);
-			gf_fprintf(trace, "\"  KID=\"");
-		}
-		dump_data_hex(trace, (char *) ptr->key_info+4, 16);
-		if (ptr->version)
-			gf_fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
-		gf_fprintf(trace, "\">\n");
+	if (ptr->key_info[3])
+		gf_fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->key_info[3]);
+	else {
+		gf_fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->key_info[20]);
+		dump_data_hex(trace, (char *) ptr->key_info+21, ptr->key_info[20]);
+		gf_fprintf(trace, "\"  KID=\"");
 	}
+	dump_data_hex(trace, (char *) ptr->key_info+4, 16);
+	if (ptr->version)
+		gf_fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
+	gf_fprintf(trace, "\">\n");
+
 	if (!ptr->size) {
 		gf_fprintf(trace, " IV_size=\"\" KID=\"\" constant_IV_size=\"\" constant_IV=\"\" crypt_byte_block=\"\" skip_byte_block=\"\">\n");
 		gf_fprintf(trace, "<TENCKey IV_size=\"\" KID=\"\" const_IV_size=\"\" constIV=\"\"/>\n");
@@ -5224,7 +5193,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			}
 			for (k=0; k<nb_ivs; k++) {
 				u32 pos;
-				u8 idx = gf_bs_read_u8(bs);
+				u16 idx = gf_bs_read_u16(bs);
 				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, nb_keys, idx, NULL, NULL);
 				assert(mk_iv_size);
 				pos = (u32) gf_bs_get_position(bs);

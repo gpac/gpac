@@ -5066,6 +5066,8 @@ enum
 	GF_ISOM_CBCS_SCHEME	= GF_4CC('c','b','c','s'),
 	/*! PIFF Scheme Type in the SchemeTypeInfoBox */
 	GF_ISOM_PIFF_SCHEME	= GF_4CC('p','i','f','f'),
+	/*! CENC sensitive encryption */
+	GF_ISOM_SVE1_SCHEME	= GF_4CC('s','v','e','1'),
 };
 
 /*! checks if a track is encrypted or protected

@@ -1421,8 +1421,9 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	if (multi_key) {
 		gf_bs_write_u16(sai_bs, nb_iv_init);
 		for (i=0; i<nb_keys; i++) {
+			//for now we use all our keys in one sample
 			if (cstr->tci->keys[i].IV_size) {
-				gf_bs_write_u8(sai_bs, i+1);
+				gf_bs_write_u16(sai_bs, i+1);
 				gf_bs_write_data(sai_bs, cstr->keys[i].IV, cstr->tci->keys[i].IV_size);
 			}
 		}

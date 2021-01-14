@@ -3194,11 +3194,14 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	} else {
 	
 		e = GF_OK;
-		if (tkw->def_crypt_byte_block != crypt_byte_block)
+		//multikey ALWAYS uses seig
+		if (tkw->cenc_ki->value.data.ptr[0])
 			needs_seig = GF_TRUE;
-		if (tkw->def_skip_byte_block != skip_byte_block)
+		else if (tkw->def_crypt_byte_block != crypt_byte_block)
 			needs_seig = GF_TRUE;
-		if (tkw->def_cenc_key_info_crc != tkw->cenc_key_info_crc)
+		else if (tkw->def_skip_byte_block != skip_byte_block)
+			needs_seig = GF_TRUE;
+		else if (tkw->def_cenc_key_info_crc != tkw->cenc_key_info_crc)
 			needs_seig = GF_TRUE;
 
 		if (needs_seig) {

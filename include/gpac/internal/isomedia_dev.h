@@ -3378,8 +3378,8 @@ typedef struct __cenc_tenc_box
 	u8 crypt_byte_block, skip_byte_block;
 	u8 isProtected;
 
-	u32 key_info_size;
-	u8 *key_info;
+	//single key
+	u8 key_info[37];
 } GF_TrackEncryptionBox;
 
 typedef struct __piff_tenc_box
