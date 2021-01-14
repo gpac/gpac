@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -113,7 +113,7 @@ typedef struct
 
 	u32 idx;
 	Bool init_switch_seg_sent;
-	Bool segment_sent;
+	Bool segment_sent, in_is_cryptfile;
 
 	u32 nb_eos, nb_pids;
 	Bool stats_uploaded;
@@ -366,6 +366,8 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 	}
 }
 
+void gf_cryptfin_set_kms(GF_Filter *f, const char *key_url, bin128 key_IV);
+
 /*locates input service (demuxer) based on mime type or segment name*/
 static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const char *mime, const char *init_segment_name, u64 start_range, u64 end_range)
 {
@@ -373,6 +375,10 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	GF_Err e;
 	u32 url_type=0;
 	Bool has_sep = GF_FALSE;
+	u32 crypto_type;
+	bin128 key_IV;
+	char szSep[2];
+	const char *key_uri;
 	char *sURL = NULL;
 	const char *base_url;
 	if (!init_segment_name) {
@@ -391,37 +397,50 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	else if (!strnicmp(base_url, "https://", 7)) url_type=2;
 	else url_type=0;
 
-	sURL = gf_malloc(sizeof(char) * (strlen(init_segment_name) + 200) );
-	strcpy(sURL, init_segment_name);
-	if (!strncmp(sURL, "isobmff://", 10)) {
-		if (url_type==1)
-			sprintf(sURL, "http://%s", init_segment_name);
-		else if (url_type==2)
-			sprintf(sURL, "https://%s", init_segment_name);
-		else
-			sprintf(sURL, "file://%s", init_segment_name);
+	key_uri = gf_dash_group_get_segment_init_keys(ctx->dash, group_index, &crypto_type, &key_IV);
+	if (crypto_type==1) {
+		gf_dynstrcat(&sURL, "gcryp://", NULL);
+		group->in_is_cryptfile = GF_TRUE;
 	}
+
+	if (!strncmp(init_segment_name, "isobmff://", 10)) {
+		if (url_type==1)
+			gf_dynstrcat(&sURL, "http://", NULL);
+		else if (url_type==2)
+			gf_dynstrcat(&sURL, "https://", NULL);
+		else
+			gf_dynstrcat(&sURL, "file://", NULL);
+	}
+	gf_dynstrcat(&sURL, init_segment_name, NULL);
+
+	szSep[0] = gf_filter_get_sep(ctx->filter, GF_FS_SEP_ARGS);
+	szSep[1] = 0;
+
 	//not from file system, set cache option
 	if (url_type) {
 		if (!ctx->segstore) {
-			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
-			strcat(sURL, ":cache=mem_keep");
+			if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
+			//if operating in mem mode and we load a file decryptor, only store in mem cache the first seg, and no cache for segments
+			if (crypto_type==1)
+				gf_dynstrcat(&sURL, "cache=none_keep", szSep);
+			else
+				gf_dynstrcat(&sURL, "cache=mem_keep", szSep);
 		}
 		else if (ctx->segstore==2) {
-			if (!has_sep) { strcat(sURL, ":gpac"); has_sep = GF_TRUE; }
-			strcat(sURL, ":cache=keep");
+			if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
+			gf_dynstrcat(&sURL, "cache=keep", szSep);
 		}
 	}
 
 	if (start_range || end_range) {
 		char szRange[500];
-		if (!has_sep) { strcat(sURL, ":gpac"); /* has_sep = GF_TRUE; */ }
-		snprintf(szRange, 500, ":range="LLU"-"LLU, start_range, end_range);
-		strcat(sURL, szRange);
+		if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
+		snprintf(szRange, 500, "range="LLU"-"LLU, start_range, end_range);
+		gf_dynstrcat(&sURL, szRange, szSep);
 	}
 	if (ctx->forward>DFWD_FILE) {
-		if (!has_sep) { strcat(sURL, ":gpac"); /* has_sep = GF_TRUE; */ }
-		strcat(sURL, ":sigfrag");
+		if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
+		gf_dynstrcat(&sURL, "sigfrag", szSep);
 	}
 
 	group->seg_filter_src = gf_filter_connect_source(ctx->filter, sURL, NULL, GF_FALSE, &e);
@@ -436,11 +455,18 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	group->signal_seg_name = (ctx->forward==DFWD_FILE) ? GF_TRUE : GF_FALSE;
 
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
+
+	//if HLS AES-CBC, set key BEFORE discarding segment URL (if TS, discarding the segment will discard the key uri)
+	if (key_uri && (crypto_type==1)) {
+		gf_cryptfin_set_kms(group->seg_filter_src, key_uri, key_IV);
+	}
+
 	gf_dash_group_discard_segment(ctx->dash, group->idx);
 	group->prev_is_init_segment = GF_TRUE;
 	group->nb_group_deps = gf_dash_group_get_num_groups_depending_on(ctx->dash, group_index);
 	group->current_group_dep = 0;
 	gf_free(sURL);
+
 	return GF_OK;
 }
 
@@ -760,7 +786,6 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		if (gf_sys_is_cov_mode()) {
 			gf_dash_is_group_selected(ctx->dash, 0);
 			gf_dash_get_url(ctx->dash);
-			gf_dash_group_get_segment_init_keys(ctx->dash, 0, NULL);
 			gf_dash_group_loop_detected(ctx->dash, 0);
 			gf_dash_is_dynamic_mpd(ctx->dash);
 			gf_dash_group_get_language(ctx->dash, 0);
@@ -2254,7 +2279,6 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	gf_filter_release_property(pe);
 }
 
-
 static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 {
 	u32 dependent_representation_index;
@@ -2382,6 +2406,9 @@ fetch_next:
 	group->seg_was_not_ready = GF_FALSE;
 
 	if (next_url_init_or_switch_segment && !group->init_switch_seg_sent) {
+		if (group->in_is_cryptfile) {
+			gf_cryptfin_set_kms(group->seg_filter_src, key_url, key_IV);
+		}
 		GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH,  NULL);
 		evt.seek.start_offset = switch_start_range;
 		evt.seek.end_offset = switch_end_range;
@@ -2417,6 +2444,10 @@ fetch_next:
 		if (!group->seg_discard_state)
 			group->seg_discard_state = 1;
 		goto fetch_next;
+	}
+
+	if (group->in_is_cryptfile) {
+		gf_cryptfin_set_kms(group->seg_filter_src, key_url, key_IV);
 	}
 
 	GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH, NULL);

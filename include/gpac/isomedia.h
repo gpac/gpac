@@ -3516,7 +3516,7 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AC3Conf
 \param peak_data_rate set to the peak data rate info - may be NULL
 \return error if any
 */
-GF_Err gf_isom_truehd_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *format_info, u32 *peak_data_rate);
+GF_Err gf_isom_truehd_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *format_info, u32 *peak_data_rate);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! creates a FLAC sample description

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Pierre Souchay, Jean Le Feuvre, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2010-2020, Romain Bouqueau
+ *			Copyright (c) Telecom ParisTech 2010-2021
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -430,16 +430,46 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		const char *method = "METHOD=";
 		const size_t method_len = strlen(method);
 		if (safe_start_equals(method, ret[0])) {
-			if (strncmp(ret[0]+method_len, "NONE", 4)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] EXT-X-KEY not supported.\n", line));
+			if (!strncmp(ret[0]+method_len, "NONE", 4)) {
+				attributes->key_method = DRM_NONE;
+			} else if (!strncmp(ret[0]+method_len, "AES-128", 7)) {
+				attributes->key_method = DRM_AES_128;
+			} else if (!strncmp(ret[0]+method_len, "SAMPLE-AES", 10)) {
+				attributes->key_method = DRM_CENC;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] EXT-X-KEY method not recognized.\n"));
 			}
-			attributes->key_method = DRM_AES_128;
 			if (ret[1] != NULL && safe_start_equals("URI=\"", ret[1])) {
 				int_value = (u32) strlen(ret[1]);
 				if (ret[1][int_value-1] == '"') {
 					if (attributes->key_url) gf_free(attributes->key_url);
-					attributes->key_url = gf_strdup(&(ret[1][4]));
+					attributes->key_url = gf_strdup(&(ret[1][5]));
+					if (attributes->key_url) {
+						u32 klen = (u32) strlen(attributes->key_url);
+						attributes->key_url[klen-1] = 0;
+					}
 				}
+			}
+			if (ret[2] != NULL && safe_start_equals("IV=", ret[2])) {
+				char *IV = ret[2] + 3;
+				if (!strncmp(IV, "0x", 2)) IV+=2;
+				if (strlen(IV) != 32) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] EXT-X-KEY wrong IV len\n"));
+				} else {
+					for (i=0; i<16; i++) {
+						char szV[3];
+						u32 v;
+						szV[0] = IV[2*i];
+						szV[1] = IV[2*i + 1];
+						szV[2] = 0;
+						sscanf(szV, "%X", &v);
+						attributes->key_iv[i] = v;
+					}
+				}
+			} else {
+				u32 iv = gf_htonl(attributes->current_media_seq);
+				memset(attributes->key_iv, 0, sizeof(bin128) );
+				memcpy(attributes->key_iv + 12, (const void *) &iv, sizeof(iv));
 			}
 		}
 		M3U8_COMPATIBILITY_VERSION(1);
@@ -802,7 +832,7 @@ GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist
 
 GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulated_attributes *attribs, PlaylistElement *sub_playlist, MasterPlaylist **playlist, Stream *in_stream)
 {
-	u32 i, iv, count;
+	u32 i, count;
 
 	char *fullURL = currentLine;
 
@@ -817,10 +847,6 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] declaring %s %s\n", attribs->is_master_playlist ? "sub-playlist" : "media segment", fullURL));
-
-	memset(attribs->key_iv, 0, sizeof(bin128) );
-	iv = gf_htonl(attribs->current_media_seq);
-	memcpy(attribs->key_iv + 12, (const void *) &iv, sizeof(iv));
 
 	{
 		PlaylistElement *curr_playlist = sub_playlist;

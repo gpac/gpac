@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2012
+ *			Copyright (c) Telecom ParisTech 2010-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -566,6 +566,8 @@ typedef struct
 	Bool encrypted;
 	/*! HLS key params (URI and co)*/
 	char *hls_key_uri;
+	/*! HLS IV*/
+	bin128 hls_iv;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -636,7 +638,9 @@ typedef struct {
 	/*! temp file for m3u8 generation*/
 	FILE *m3u8_var_file;
 
-	u32 is_encrypted;
+	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC*/
+	u8 crypto_type;
+	u8 def_kms_used;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/

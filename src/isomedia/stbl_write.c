@@ -1095,13 +1095,14 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		} else {
 			stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTSs[0]*/;
 		}
-		sampNum = 1;
 
 		if (nb_samples==1) {
 			tot_samples = stbl->SampleSize->sampleCount - 1;
 		} else {
 			tot_samples = stbl->SampleSize->sampleCount - nb_samples;
 		}
+		sampNum = tot_samples ? 1 : 0;
+		stts->nb_entries = tot_samples ? 1 : 0;
 
 		for (i=1; i<tot_samples; i++) {
 			if (i+1 == tot_samples) {
@@ -1121,10 +1122,11 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 				j++;
 				stts->entries[j].sampleCount = 1;
 				stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
+				assert(stts->entries[j].sampleDelta);
 				sampNum ++;
 			}
 		}
-		stts->w_LastDTS = DTSs[tot_samples - 1];
+		stts->w_LastDTS = tot_samples ? DTSs[tot_samples - 1] : 0;
 		gf_free(DTSs);
 		assert(sampNum == tot_samples);
 		assert(sampNum + nb_samples == stbl->SampleSize->sampleCount);

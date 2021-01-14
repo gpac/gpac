@@ -30,6 +30,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
+#include <gpac/crypt_tools.h>
 
 #define DEFAULT_PERIOD_ID	 "_gf_dash_def_period"
 
@@ -139,6 +140,7 @@ typedef struct
 	u32 sbound;
 	char *utcs;
 	char *mname;
+	char *hlsdrm;
 	u32 llhls;
 	//inherited from mp4mx
 	GF_Fraction cdur;
@@ -209,6 +211,8 @@ typedef struct
 	u32 forward_mode;
 	
 	u8 last_hls_signature[GF_SHA1_DIGEST_SIZE], last_mpd_signature[GF_SHA1_DIGEST_SIZE], last_hls2_signature[GF_SHA1_DIGEST_SIZE];
+
+	GF_CryptInfo *cinfo;
 } GF_DasherCtx;
 
 typedef enum
@@ -382,11 +386,18 @@ typedef struct _dash_stream
 	GF_DASH_SegmentContext *current_seg_state;
 
 	Bool transcode_detected;
+
+	//HLS full seg encryption
+	GF_CryptInfo *cinfo;
+	GF_TrackCryptInfo *tci;
+	u64 iv_low, iv_high;
+	u32 key_idx;
+	u32 nb_crypt_seg;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds);
 static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds);
-
+static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy);
 
 static GF_DasherPeriod *dasher_new_period()
 {
@@ -452,17 +463,86 @@ static void dasher_check_outpath(GF_DasherCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid_alt, GF_PROP_PID_URL, &PROP_STRING(ctx->out_path) );
 }
 
+
+static GF_Err dasher_hls_setup_crypto(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	GF_Err e;
+	u32 pid_id=1;
+	u32 i, count;
+	const GF_PropertyValue *p;
+	GF_CryptInfo *cinfo = NULL;
+	const char *drm = ctx->hlsdrm;
+	if (!ctx->do_m3u8) return GF_OK;
+	if (ds->is_encrypted) return GF_OK;
+	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CRYPT_INFO);
+	if (p)
+		drm = p->value.string;
+	else
+		cinfo = ctx->cinfo;
+	if (!drm && !cinfo) return GF_OK;
+
+	if (ctx->sfile) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Dasher] Cannot use HLS segment encryption with single file output\n"));
+		return GF_BAD_PARAM;
+	}
+
+	if (!cinfo) {
+		cinfo = gf_crypt_info_load(drm, &e);
+		if (!cinfo) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Dasher] Cannot load HLS DRM file %s\n", drm ));
+			return e;
+		}
+		if (p) {
+			if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
+			ds->cinfo = cinfo;
+		} else {
+			ctx->cinfo = cinfo;
+		}
+	}
+	ds->tci = NULL;
+	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ID);
+	if (p) pid_id = p->value.uint;
+	count = gf_list_count(cinfo->tcis);
+	for (i=0; i<count; i++) {
+		GF_TrackCryptInfo *tci = gf_list_get(cinfo->tcis, i);
+		if (tci->trackID && (tci->trackID != pid_id)) continue;
+
+		ds->tci = tci;
+		break;
+	}
+	if (!ds->tci) return GF_OK;
+
+	ds->key_idx = 0;
+	ds->iv_low = ds->iv_high = 0;
+	for (i=0; i<8; i++) {
+		ds->iv_high |= ds->tci->keys[ds->key_idx].IV[i];
+		ds->iv_low |= ds->tci->keys[ds->key_idx].IV[i + 8];
+		if (i<7) {
+			ds->iv_high <<= 8;
+			ds->iv_low <<= 8;
+		}
+	}
+
+	return GF_OK;
+}
+
 static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool period_switch = GF_FALSE;
 	const GF_PropertyValue *p, *dsi=NULL;
 	u32 dc_crc, dc_enh_crc;
+	GF_Err e;
 	GF_DashStream *ds;
 	u32 prev_stream_type;
 	const char *cue_file=NULL;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
+		ds = gf_filter_pid_get_udta(pid);
+		if (ds) {
+			gf_list_del_item(ctx->pids, ds);
+			dasher_reset_stream(filter, ds, GF_TRUE);
+		}
 		return GF_OK;
 	}
 	ctx->check_connections = GF_TRUE;
@@ -988,6 +1068,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//assign default ID
 	if (!ds->period_id)
 		ds->period_id = gf_strdup(DEFAULT_PERIOD_ID);
+
+	e = dasher_hls_setup_crypto(ctx, ds);
+	if (e) return e;
 
 	if (!period_switch) {
 		if (ds->opid) {
@@ -1806,7 +1889,10 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 	assert(ds->rep==NULL);
 	ds->rep = gf_mpd_representation_new();
 	ds->rep->playback.udta = ds;
-	ds->rep->is_encrypted = ds->is_encrypted ? 1 : 0;
+	if (ds->tci)
+		ds->rep->crypto_type = 1;
+	else
+		ds->rep->crypto_type = ds->is_encrypted ? 2 : 0;
 
 	dasher_update_rep(ctx, ds);
 
@@ -2168,6 +2254,8 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 	}
 }
 
+GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV);
+
 static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Representation *rep, const char *szInitURL, Bool trash_init)
 {
 	GF_Err e;
@@ -2205,6 +2293,13 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 			gf_free(szDST);
 			szDST = rel;
 		}
+	}
+	if (ds->tci) {
+		char *tmp = szDST;
+		szDST = NULL;
+		gf_dynstrcat(&szDST, "gcryp://", NULL);
+		gf_dynstrcat(&szDST, tmp, NULL);
+		gf_free(tmp);
 	}
 
 	sprintf(szSRC, "%cgfopt", sep_args);
@@ -2323,6 +2418,11 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	sprintf(szSRC, "MuxSrc%cdasher_%p", sep_name, ds->dst_filter);
 	gf_filter_reset_source(ds->dst_filter);
 	gf_filter_set_source(ds->dst_filter, filter, szSRC);
+
+	if (ds->tci && !trash_init) {
+		//push NULL key, we are not encrypting the  init segment
+		gf_cryptfout_push_key(ds->dst_filter, NULL, NULL);
+	}
 }
 
 static void dasher_gather_deps(GF_DasherCtx *ctx, u32 dependency_id, GF_List *multi_tracks)
@@ -5749,6 +5849,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 
 	if (ctx->store_seg_states) {
+		char *kms_uri;
 		const GF_PropertyValue *p;
 		if (!ds->rep->state_seg_list) {
 			ds->rep->state_seg_list = gf_list_new();
@@ -5796,10 +5897,36 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		seg_state->llhls_mode = ctx->llhls;
 		ds->current_seg_state = seg_state;
 		seg_state->encrypted = GF_FALSE;
+
 		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_KMS);
+		kms_uri = (p && p->value.string) ? p->value.string : NULL;
+		if (ds->tci) {
+			u32 s;
+			ds->iv_low++;
+			if (ds->iv_low == 0)
+				ds->iv_high++;
+			for (s=0; s<8; s++)
+				seg_state->hls_iv[s] = (ds->iv_high >> 8*(7-s) ) & 0xFF;
+			for (s=0; s<8; s++)
+				seg_state->hls_iv[s+8] = (ds->iv_low >> 8*(7-s) ) & 0xFF;
+
+			seg_state->encrypted = GF_TRUE;
+			gf_cryptfout_push_key(ds->dst_filter, & ds->tci->keys[ds->key_idx].key, &seg_state->hls_iv);
+
+			if (ds->tci->keys[ds->key_idx].hls_info)
+				kms_uri = ds->tci->keys[ds->key_idx].hls_info;
+
+			ds->nb_crypt_seg++;
+			if (ds->tci->keyRoll) {
+				if (ds->nb_crypt_seg == ds->tci->keyRoll) {
+					ds->nb_crypt_seg = 0;
+					ds->key_idx = (ds->key_idx+1) % ds->tci->nb_keys;
+				}
+			}
+		}
 		//we need a hard copy as the pid may reconfigure before we flush the segment
-		if (p && p->value.string)
-			seg_state->hls_key_uri = gf_strdup(p->value.string);
+		if (kms_uri)
+			seg_state->hls_key_uri = gf_strdup(kms_uri);
 
 		gf_list_add(ds->rep->state_seg_list, seg_state);
 		if (ctx->sigfrag) {
@@ -7614,6 +7741,7 @@ static void dasher_finalize(GF_Filter *filter)
 		GF_DashStream *ds = gf_list_pop_back(ctx->pids);
 		dasher_reset_stream(filter, ds, GF_TRUE);
 		if (ds->packet_queue) gf_list_del(ds->packet_queue);
+		if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
 		gf_free(ds);
 	}
 	gf_list_del(ctx->pids);
@@ -7626,6 +7754,7 @@ static void dasher_finalize(GF_Filter *filter)
 	gf_free(ctx->next_period);
 	if (ctx->out_path) gf_free(ctx->out_path);
 	gf_list_del(ctx->postponed_pids);
+	if (ctx->cinfo) gf_crypt_info_del(ctx->cinfo);
 }
 
 #define MPD_EXTS "mpd|m3u8|3gm|ism"
@@ -7796,6 +7925,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- sf: use separated files for segment parts\n"
 		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

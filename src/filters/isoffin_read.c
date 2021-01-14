@@ -381,6 +381,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (!read->mem_load_mode)
 			read->mem_load_mode = 1;
 		if (!read->pid) read->pid = pid;
+		read->input_loaded = GF_FALSE;
 		return GF_OK;
 	}
 
@@ -894,6 +895,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_isom_reset_tables(read->mov, GF_TRUE);
 			gf_isom_reset_data_offset(read->mov, NULL);
 			read->refresh_fragmented = GF_TRUE;
+			read->mem_blob.size = 0;
 			//send play event
 			cancel_event = GF_FALSE;
 		} else if (!read->nb_playing && read->pid && !read->input_loaded) {
@@ -1044,6 +1046,10 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 	}
 	//refresh file
 	gf_isom_refresh_fragmented(read->mov, &bytes_missing, read->mem_url);
+
+	if ((read->mem_load_mode==2) && bytes_missing)
+		read->force_fetch = GF_TRUE;
+
 }
 
 static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
@@ -1090,16 +1096,18 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		u32 num_samples;
-#ifndef GPAC_DISABLE_LOG
 		u32 prev_samples = gf_isom_get_sample_count(read->mov, ch->track);
-#endif
 		//don't run this too often
 		if (ch->sample_num<=1+read->mstore_samples) continue;
 
-		if (gf_isom_purge_samples(read->mov, ch->track, ch->sample_num-1) == GF_OK)
+		num_samples = ch->sample_num-1;
+		if (num_samples>=prev_samples) continue;
+
+		if (gf_isom_purge_samples(read->mov, ch->track, num_samples) == GF_OK)
 			ch->sample_num = 1;
 
 		num_samples = gf_isom_get_sample_count(read->mov, ch->track);
+		assert(ch->sample_num<=num_samples);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d samples now in track %d (prev %d)\n", num_samples, ch->track_id, prev_samples));
 	}
 }
@@ -1494,6 +1502,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 static const GF_FilterCapability ISOFFInCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci|mj2|mov|qt"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic|image/avci|video/quicktime"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),

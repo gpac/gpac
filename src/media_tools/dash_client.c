@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2020
+ *			Copyright (c) Telecom ParisTech 2010-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -4434,6 +4434,10 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			rep->playback.init_start_range = start_range;
 			rep->playback.init_end_range = end_range;
 			rep->playback.init_seg_name_start = dash_strip_base_url(rep->playback.cached_init_segment_url, base_url);
+			if (key_url) {
+				rep->playback.key_url = gf_strdup(key_url);
+				memcpy(rep->playback.key_IV, key_iv, sizeof(bin128) );
+			}
 		}
 
 
@@ -8214,7 +8218,7 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64
 }
 
 GF_EXPORT
-const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 idx, bin128 *key_IV)
+const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 idx, u32 *crypt_type, bin128 *key_IV)
 {
 	GF_MPD_Representation *rep;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
@@ -8223,6 +8227,9 @@ const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 idx, bi
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	if (!rep) return NULL;
 
+	if (crypt_type) {
+		*crypt_type = rep->crypto_type;
+	}
 	if (key_IV) memcpy(*key_IV, rep->playback.key_IV, sizeof(bin128));
 	return rep->playback.key_url;
 }
