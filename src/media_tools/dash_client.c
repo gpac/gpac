@@ -2446,7 +2446,9 @@ process_m3u8_manifest:
 				/*we're using segment list*/
 				assert(rep->segment_list || group->adaptation_set->segment_list || period->segment_list);
 
+				//HLS case
 				if (!new_rep) {
+					assert(rep->segment_list);
 					assert(rep->segment_list->previous_xlink_href || rep->segment_list->xlink_href);
 					hls_temp_rep = gf_mpd_representation_new();
 					GF_SAFEALLOC(hls_temp_rep->segment_list, GF_MPD_SegmentList);

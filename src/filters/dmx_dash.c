@@ -439,7 +439,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 		gf_dynstrcat(&sURL, szRange, szSep);
 	}
 	if (ctx->forward>DFWD_FILE) {
-		if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
+		if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); }
 		gf_dynstrcat(&sURL, "sigfrag", szSep);
 	}
 

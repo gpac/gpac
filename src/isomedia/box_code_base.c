@@ -9891,10 +9891,9 @@ GF_Err sgpd_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr = sgpd_parse_entry(p->grouping_type, bs, (s32) p->size, size, &parsed_bytes);
 		//don't return an error, just stop parsing so that we skip over the sgpd box
 		if (!ptr) return GF_OK;
+		gf_list_add(p->group_descriptions, ptr);
 
 		ISOM_DECREASE_SIZE(p, parsed_bytes);
-
-		gf_list_add(p->group_descriptions, ptr);
 		entry_count--;
 	}
 	return GF_OK;
@@ -11871,6 +11870,7 @@ GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->views = gf_malloc(sizeof(ViewIDEntry)*ptr->num_views);
+	memset(ptr->views, 0, sizeof(ViewIDEntry)*ptr->num_views);
 	for (i=0; i<ptr->num_views; i++) {
 		u32 j;
 		ISOM_DECREASE_SIZE(s, 6)

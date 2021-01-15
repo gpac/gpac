@@ -2361,7 +2361,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 			rep->playback.disabled = GF_TRUE;
 			return GF_OK;
 		}
-		if (elt && elt->drm_method==DRM_AES_128)
+		if (elt->drm_method==DRM_AES_128)
 			rep->crypto_type = 1;
 
 		if (elt->low_lat_chunk && !has_full_seg_following) {

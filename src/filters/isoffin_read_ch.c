@@ -634,7 +634,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConf
 			break;
 		}
 	}
-	else if (hvcc) {
+	else if (vvcc) {
 		GF_NALUFFParamArray *vvca=NULL;
 		count = gf_list_count(vvcc->param_array);
 		for (i=0; i<count; i++) {

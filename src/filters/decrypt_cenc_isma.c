@@ -969,7 +969,7 @@ static GF_Err denc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_size, const u8 **const_iv);
+u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
 
 static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
@@ -1038,7 +1038,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		//init all non-const IV listed
 		for (k=0; k<nb_iv_init; k++) {
 			u8 IV_size;
-			u16 kidx = gf_bs_read_u16(ctx->bs_r);
+			u32 kidx = gf_bs_read_u16(ctx->bs_r);
 
 			if (!kidx || (kidx>cstr->nb_crypts)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, kidx %d but valid range is [1,%d]\n", kidx, cstr->nb_crypts));

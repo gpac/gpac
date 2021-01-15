@@ -568,7 +568,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_filter_pid_set_name(ctx->opid, "MANIFEST");
 				opid = ctx->opid;
 			} else {
-				GF_Err e;
 				if (!ctx->alt_dst && ctx->out_path) {
 					char szSRC[100];
 					GF_FileIO *gfio = NULL;
@@ -1042,7 +1041,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					if (p && p->value.uint)
 						ctx->forward_mode = p->value.uint;
 				} else {
-					GF_Err e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues_ts_offset, &ds->cues, &ds->nb_cues);
+					e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues_ts_offset, &ds->cues, &ds->nb_cues);
 					if (e) return e;
 					if (!ds->cues_timescale)
 						ds->cues_timescale = ds->timescale;

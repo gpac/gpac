@@ -1241,7 +1241,7 @@ void senc_box_del(GF_Box *s)
 }
 
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_size, const u8 **const_iv)
+u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv)
 {
 	u32 i, kpos=3;
 	if (const_iv_size) *const_iv_size = 0;
@@ -1391,7 +1391,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				u32 j;
 				u32 nb_iv_init = gf_bs_read_u16(bs);
 				for (j=0; j<nb_iv_init; j++) {
-					u8 idx = gf_bs_read_u16(bs);
+					u32 idx = gf_bs_read_u16(bs);
 					IV_size = key_info_get_iv_size(key_info, nb_keys, idx, NULL, NULL);
 					if (!IV_size) {
 						gf_isom_cenc_samp_aux_info_del(sai);
