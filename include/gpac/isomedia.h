@@ -590,8 +590,8 @@ typedef enum
 	GF_ISOM_WRITE_EDIT,
 	/*! Opens an existing file and keep fragment information*/
 	GF_ISOM_OPEN_KEEP_FRAGMENTS,
-	/*! Opens an existing file in READ ONLY mode but enables most of the file edit functions except sample adding / fragmentation
-	\warning This is an experimental feature and should be used with caution ...
+	/*! Opens an existing file in READ ONLY mode but enables most of the file edit functions except fragmentation
+	Samples may be added to the file in this mode, they will be stored in memory
 	*/
 	GF_ISOM_OPEN_READ_EDIT,
 } GF_ISOOpenMode;

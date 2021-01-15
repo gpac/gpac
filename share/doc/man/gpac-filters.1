@@ -858,7 +858,15 @@ mstore_samples (uint, default: 50): minimum number of samples to be present befo
 .br
 strtxt (bool, default: false): load text tracks (apple/tx3g) as MPEG-4 streaming text tracks
 .br
-no_xps_check (bool, default: false): do not extract parameter sets from AVC/HEVC/VVC samples (assumes input file is compliant)
+xps_check (enum, default: auto): parameter sets extraction mode from AVC/HEVC/VVC samples
+.br
+* keep: do not inspect sample (assumes input file is compliant when generating DASH/HLS/CMAF)
+.br
+* rem: removes all inband xPS and notify configuration chenges accordingly
+.br
+* auto: resolves to keep for smode=splix (dasher mode), rem otherwise
+.br
+
 .br
 
 .br
@@ -7295,7 +7303,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev438-gc7e3d04fc-master
+build: 1.1.0-DEV-rev444-g8137a40bc-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

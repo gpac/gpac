@@ -431,6 +431,10 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 	read->filter = filter;
 	read->channels = gf_list_new();
 
+	if (read->xps_check==MP4DMX_XPS_AUTO) {
+		read->xps_check = (read->smode==MP4DMX_SPLIT_EXTRACTORS) ? MP4DMX_XPS_KEEP : MP4DMX_XPS_REMOVE;
+	}
+
 	if (read->src) {
 		read->input_loaded = GF_TRUE;
 		return isoffin_setup(filter, read);
@@ -1495,7 +1499,11 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(no_xps_check), "do not extract parameter sets from AVC/HEVC/VVC samples (assumes input file is compliant)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(xps_check), "parameter sets extraction mode from AVC/HEVC/VVC samples\n"
+	"- keep: do not inspect sample (assumes input file is compliant when generating DASH/HLS/CMAF)\n"
+	"- rem: removes all inband xPS and notify configuration chenges accordingly\n"
+	"- auto: resolves to `keep` for `smode=splix` (dasher mode), `rem` otherwise"
+	, GF_PROP_UINT, "auto", "auto|keep|rem", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

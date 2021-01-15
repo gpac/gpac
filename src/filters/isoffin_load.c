@@ -1062,11 +1062,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(dims.mime_type));
 	}
 	else if (codec_id==GF_CODECID_AVC)
-		ch->check_avc_ps = !ch->owner->no_xps_check;
+		ch->check_avc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? GF_TRUE : GF_FALSE;
 	else if (codec_id==GF_CODECID_HEVC)
-		ch->check_hevc_ps = !ch->owner->no_xps_check;
+		ch->check_hevc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? GF_TRUE : GF_FALSE;
 	else if (codec_id==GF_CODECID_VVC)
-		ch->check_vvc_ps = !ch->owner->no_xps_check;
+		ch->check_vvc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? GF_TRUE : GF_FALSE;
 	else if (codec_id==GF_CODECID_MHAS) {
 		if (!dsi) {
 			ch->check_mhas_pl = GF_TRUE;

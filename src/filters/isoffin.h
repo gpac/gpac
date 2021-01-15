@@ -48,6 +48,13 @@ enum
 	MP4DMX_SINGLE,
 };
 
+enum
+{
+	MP4DMX_XPS_AUTO=0,
+	MP4DMX_XPS_KEEP,
+	MP4DMX_XPS_REMOVE,
+};
+
 typedef struct
 {
 	//options
@@ -59,7 +66,8 @@ typedef struct
 	Bool alltk;
 	u32 frame_size;
 	char* tkid;
-	Bool analyze, no_xps_check;
+	Bool analyze;
+	u32 xps_check;
 	char *catseg;
 	Bool sigfrag;
 	Bool nocrypt, strtxt;
