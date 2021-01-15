@@ -779,6 +779,14 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 	if ( (OpenMode == GF_ISOM_OPEN_READ) || (OpenMode == GF_ISOM_OPEN_READ_DUMP) || (OpenMode == GF_ISOM_OPEN_READ_EDIT) ) {
 		if (OpenMode == GF_ISOM_OPEN_READ_EDIT) {
 			mov->openMode = GF_ISOM_OPEN_READ_EDIT;
+
+			// create a memory edit map in case we add samples, typically during import
+			e = gf_isom_datamap_new(NULL, tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+			if (e) {
+				gf_isom_set_last_error(NULL, e);
+				gf_isom_delete_movie(mov);
+				return NULL;
+			}
 		} else {
 			mov->openMode = GF_ISOM_OPEN_READ;
 		}
@@ -828,7 +836,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 			return NULL;
 		}
 		//and create a temp fileName for the edit
-		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+		e = gf_isom_datamap_new("_gpac_isobmff_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);
@@ -1250,7 +1258,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 	} else {
 		//we are in EDIT mode but we are creating the file -> temp file
 		mov->finalName = fileName ? gf_strdup(fileName) : NULL;
-		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
+		e = gf_isom_datamap_new("_gpac_isobmff_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);

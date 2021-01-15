@@ -57,7 +57,10 @@ static GF_Err unpack_track(GF_TrackBox *trak)
 GF_Err FlushCaptureMode(GF_ISOFile *movie)
 {
 	GF_Err e;
-	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_OK;
+	if (movie->openMode != GF_ISOM_OPEN_WRITE) {
+		if (!movie->editFileMap) return GF_ISOM_INVALID_MODE;
+		return GF_OK;
+	}
 	/*make sure nothing was added*/
 	if (gf_bs_get_position(movie->editFileMap->bs)) return GF_OK;
 

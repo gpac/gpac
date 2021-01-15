@@ -1288,7 +1288,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				GOTO_EXIT("changing PAR")
 			}
 			if ((fullrange>=0) || (videofmt>=0) || (colorprim>=0) || (colortfc>=0) || (colormx>=0)) {
-				e = gf_media_change_color(import.dest, i+1, fullrange, videofmt, colorprim, colortfc, colormx);
+				e = gf_media_change_color(dest, i+1, fullrange, videofmt, colorprim, colortfc, colormx);
 				GOTO_EXIT("changing color in bitstream")
 			}
 			if (has_clap) {
@@ -1576,7 +1576,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			e = gf_isom_last_error(dest);
 			GOTO_EXIT("creating TMCD track")
 		}
-		e = gf_isom_set_track_enabled(import.dest, tmcd_tk, 1);
+		e = gf_isom_set_track_enabled(dest, tmcd_tk, 1);
 		if (e != GF_OK) {
 			GOTO_EXIT("enabling TMCD track")
 		}
