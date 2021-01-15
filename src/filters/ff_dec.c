@@ -436,7 +436,8 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 decode_next:
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
-
+	in_size = 0;
+	
 	if (ctx->reconfig_pending) {
 		pck = NULL;
 	} else if (!pck) {

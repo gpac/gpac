@@ -125,8 +125,7 @@ static GF_Err cryptfin_initialize(GF_Filter *filter)
 	ctx->for_filter = gf_filter_connect_source(filter, args, NULL, GF_FALSE, &e);
 	if (e) return e;
 	gf_filter_set_setup_failure_callback(filter, ctx->for_filter, cryptfile_on_filter_setup_error, filter);
-	gf_filter_set_source(filter, ctx->for_filter, NULL);
-	return e;
+	return gf_filter_set_source(filter, ctx->for_filter, NULL);
 }
 
 static void cryptfile_finalize(GF_Filter *filter)
@@ -433,7 +432,7 @@ static GF_Err cryptfout_initialize(GF_Filter *filter)
 	//use same forced cap as the solved destination
 	gf_filter_mirror_forced_caps(filter, ctx->for_filter);
 	ctx->file_done = GF_TRUE;
-	return e;
+	return GF_OK;
 }
 
 static GF_Err cryptfout_process(GF_Filter *filter)

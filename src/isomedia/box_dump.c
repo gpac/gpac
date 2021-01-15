@@ -5106,7 +5106,7 @@ GF_Err piff_tenc_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_size, const u8 **const_iv);
+u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
 GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 {
@@ -5193,7 +5193,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			}
 			for (k=0; k<nb_ivs; k++) {
 				u32 pos;
-				u16 idx = gf_bs_read_u16(bs);
+				u32 idx = gf_bs_read_u16(bs);
 				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, nb_keys, idx, NULL, NULL);
 				assert(mk_iv_size);
 				pos = (u32) gf_bs_get_position(bs);

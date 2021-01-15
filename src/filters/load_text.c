@@ -1679,7 +1679,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 		att_name = strchr(att->name, ':');
 		if (att_name) att_name++;
-		else att_name = att->value;
+		else att_name = att->name;
 
 		if (!strcmp(att->name, "xmlns")) {
 			if (strcmp(att->value, TTML_NAMESPACE)) {

@@ -9575,7 +9575,7 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 	}
 	u8 sps_qtbtt_dual_tree_intra_flag = 0;
 	if (sps->chroma_format_idc) {
-		gf_bs_read_int_log(bs, 1, "sps_qtbtt_dual_tree_intra_flag");
+		sps_qtbtt_dual_tree_intra_flag = gf_bs_read_int_log(bs, 1, "sps_qtbtt_dual_tree_intra_flag");
 	}
 	if (sps_qtbtt_dual_tree_intra_flag) {
 		gf_bs_read_ue_log(bs, "sps_log2_diff_min_qt_min_cb_intra_slice_chroma");

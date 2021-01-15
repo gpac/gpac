@@ -2383,7 +2383,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
 			if (!samp) {
 				e = gf_isom_last_error(orig);
-				if (e) goto err_exit;
+				if (!e) e = GF_OUT_OF_MEM;
+				goto err_exit;
 			}
 			last_DTS = samp->DTS;
 			samp->DTS =  (u64) (ts_scale * samp->DTS + (new_track ? 0 : insert_dts));
@@ -2394,7 +2395,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 					e = rewrite_nal_size_field(samp, orig_nal_len, dst_nal_len);
 					if (e) {
 						gf_isom_sample_del(&samp);
-						if (e) goto err_exit;
+						goto err_exit;
 					}
 				}
 				e = gf_isom_add_sample(dest, dst_tk, di + dst_tk_sample_entry, samp);
