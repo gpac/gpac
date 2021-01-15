@@ -393,7 +393,7 @@ void gf_cryptfin_set_kms(GF_Filter *filter, const char *key_url, bin128 key_IV)
 				ctx->in_error = GF_URL_ERROR;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] key %s not found\n", key_url))
 			} else {
-				u32 read = gf_fread(ctx->key_data, 16, fkey);
+				u32 read = (u32) gf_fread(ctx->key_data, 16, fkey);
 				if (read != 16) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] key %s too short, expecting 16 bytes got %d\n", key_url, read))
 					ctx->in_error = GF_BAD_PARAM;
