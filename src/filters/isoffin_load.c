@@ -708,53 +708,52 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 		u32 idx=0;
 		while (1) {
-			u32 tag_len;
-			const u8 *tag;
-			u32 itag;
-			const char *name = gf_itags_enum_tags(&idx, &itag, NULL, NULL);
-			if (!name) break;
-			if (gf_isom_apple_get_tag(read->mov, itag, &tag, &tag_len)==GF_OK) {
-				switch (itag) {
-				case GF_ISOM_ITUNE_TRACK:
-				case GF_ISOM_ITUNE_TRACKNUMBER:
-				case GF_ISOM_ITUNE_DISK:
-					if (tag_len>=6) {
-						u16 tk_n = (tag[2]<<8)|tag[3];
-						u16 tk_all = (tag[4]<<8)|tag[5];
-						gf_filter_pid_set_property_str(ch->pid, name, &PROP_FRAC_INT(tk_n, tk_all) );
-					}
-					break;
-				case GF_ISOM_ITUNE_GAPLESS:
-				case GF_ISOM_ITUNE_COMPILATION:
-					if (tag_len)
-						gf_filter_pid_set_property_str(ch->pid, name, &PROP_BOOL(tag[0]) );
-					break;
-				case GF_ISOM_ITUNE_GENRE:
-					if (tag_len>=2) {
-						u32 genre_t = tag[0]<<8 | tag[1];
-						const char *genre = gf_id3_get_genre(genre_t);
-						if (genre) {
-							gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(genre) );
-							break;
-						}
-					}
-					gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(tag) );
-					break;
-				case GF_ISOM_ITUNE_TEMPO:
-					if (tag_len==2) {
-						u32 tempo = tag[0]<<8 | tag[1];
-						gf_filter_pid_set_property_str(ch->pid, name, &PROP_UINT(tempo) );
-					} else {
-						gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(tag) );
-					}
-					break;
+			u32 data_len, int_val2, flags;
+			u64 int_val;
+			const char *name;
+			const u8 *data;
+			u32 itag, itype = 0;
+			s32 tag_idx;
 
-				default:
-					gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(tag) );
+			e = gf_isom_apple_enum_tag(read->mov, idx, &itag, &data, &data_len, &int_val, &int_val2, &flags);
+			if (e) break;
+			idx++;
+
+			tag_idx = gf_itags_find_by_itag(itag);
+			if (tag_idx>=0)
+				itype = gf_itags_get_type(tag_idx);
+
+			name = gf_itags_get_name(tag_idx);
+			switch (itype) {
+			case GF_ITAG_BOOL:
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_BOOL((Bool) int_val ) );
+				break;
+			case GF_ITAG_INT8:
+			case GF_ITAG_INT16:
+			case GF_ITAG_INT32:
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_UINT((u32) int_val ) );
+				break;
+			case GF_ITAG_INT64:
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_LONGUINT(int_val) );
+				break;
+			case GF_ITAG_FRAC8:
+			case GF_ITAG_FRAC6:
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_FRAC_INT((s32) int_val, int_val2)  );
+				break;
+			case GF_ITAG_FILE:
+				if (data && data_len)
+					gf_filter_pid_set_property_str(ch->pid, name, &PROP_DATA((u8 *)data, data_len)  );
+				break;
+			default:
+				if (data && data_len) {
+					if (gf_utf8_is_legal(data, data_len))
+						gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(data) );
+					else
+						gf_filter_pid_set_property_str(ch->pid, name, &PROP_DATA((u8 *)data, data_len)  );
 				}
+				break;
 			}
 		}
-
 
 		if (codec_id==GF_CODECID_TMCD) {
 			u32 tmcd_flags=0, tmcd_fps_num=0, tmcd_fps_den=0, tmcd_fpt=0;

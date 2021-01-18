@@ -5711,6 +5711,11 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 
 	if (tag==GF_ISOM_ITUNE_RESET) {
 		gf_isom_box_del_parent(&meta->child_boxes, (GF_Box *) ilst);
+		//if last, delete udta - we may still have a handler box remaining
+		if ((gf_list_count(meta->child_boxes) <= 1) && (gf_list_count(mov->moov->udta->recordList)==1)) {
+			gf_isom_box_del_parent(&mov->moov->child_boxes, (GF_Box *) mov->moov->udta);
+			mov->moov->udta = NULL;
+		}
 		return GF_OK;
 	}
 
@@ -5822,7 +5827,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		data_len = 4;
 		dbox->flags = int_flags;
 		break;
-	case GF_ITAG_LONGINT:
+	case GF_ITAG_INT64:
 		loc_data[0] = 0;
 		if (data && data_len) sscanf(data, LLU, &int_val);
 		loc_data[7] = (u8) int_val;

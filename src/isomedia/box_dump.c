@@ -3883,7 +3883,7 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 		default:
 			if (strcmp(name, "UnknownBox") && itune->data && itune->data->data) {
 				gf_fprintf(trace, " value=\"");
-				if ((itype==GF_ITAG_STR) || (itype==GF_ITAG_SUBSTR)) {
+				if (itype==GF_ITAG_STR) {
 					dump_data_string(trace, itune->data->data, itune->data->dataSize);
 				}
 				else if (itune->data && itune->data->data[0]) {

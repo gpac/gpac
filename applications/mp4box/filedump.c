@@ -1833,12 +1833,25 @@ static char *format_date(u64 time, char *szTime)
 	return szTime;
 }
 
-void print_udta(GF_ISOFile *file, u32 track_number)
+void print_udta(GF_ISOFile *file, u32 track_number, Bool has_itags)
 {
 	u32 i, count;
 
 	count =  gf_isom_get_udta_count(file, track_number);
 	if (!count) return;
+
+	if (has_itags) {
+		for (i=0; i<count; i++) {
+			u32 type;
+			bin128 uuid;
+			gf_isom_get_udta_type(file, track_number, i+1, &type, &uuid);
+			if (type == GF_ISOM_BOX_TYPE_META) {
+				count--;
+				break;
+			}
+		}
+		if (!count) return;
+	}
 
 	fprintf(stderr, "%d UDTA types: ", count);
 
@@ -2361,7 +2374,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		fprintf(stderr, "Handler name: %s\n", handler_name);
 	}
 
-	print_udta(file, trackNum);
+	print_udta(file, trackNum, GF_FALSE);
 
 	if (gf_isom_is_video_handler_type(mtype) ) {
 		s32 tx, ty;
@@ -3292,6 +3305,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	u32 i, brand, min, timescale, count, tag_len;
 	const u8 *tag;
 	u64 create, modif;
+	Bool has_itags = GF_FALSE;
 	char szDur[50];
 
 	DumpMetaItem(file, 1, 0, "# File Meta");
@@ -3396,53 +3410,61 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 
 	if (gf_isom_apple_get_tag(file, 0, &tag, &tag_len) == GF_OK) {
+		u32 i=0;
+		has_itags = GF_TRUE;
 		fprintf(stderr, "\niTunes Info:\n");
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tName: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tArtist: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tAlbum: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tComment: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tComposer: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tWriter: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ALBUM_ARTIST, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tAlbum Artist: %s\n", tag);
 
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) {
-			if (tag[0]) {
-				fprintf(stderr, "\tGenre: %s\n", tag);
-			} else {
-				fprintf(stderr, "\tGenre: %s\n", gf_id3_get_genre(((u8*)tag)[1]));
-			}
-		}
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPILATION, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tCompilation: %s\n", tag[0] ? "Yes" : "No");
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GAPLESS, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tGapless album: %s\n", tag[0] ? "Yes" : "No");
+		while (1) {
+			const u8 *data;
+			u32 tag, data_len, int_val2, flags, itype;
+			u64 int_val;
+			s32 tag_idx;
+			GF_Err e = gf_isom_apple_enum_tag(file, i, &tag, &data, &data_len, &int_val, &int_val2, &flags);
+			if (e) break;
+			i++;
 
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_CREATED, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tCreated: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_DISK, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tDisk: %d / %d\n", tag[3], tag[5]);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TOOL, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tEncoder Software: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ENCODER, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tEncoded by: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TEMPO, &tag, &tag_len)==GF_OK) {
-			if (tag[0]) {
-				fprintf(stderr, "\tTempo (BPM): %s\n", tag);
-			} else {
-				fprintf(stderr, "\tTempo (BPM): %d\n", tag[1]);
+			tag_idx = gf_itags_find_by_itag(tag);
+			if (tag_idx<0) {
+				fprintf(stderr, "\t%s: %s\n", gf_4cc_to_str(tag), data);
+				continue;
 			}
-		}
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) {
-			if (tag[0]) {
-				fprintf(stderr, "\tTrackNumber: %s\n", tag);
-			} else {
-				fprintf(stderr, "\tTrackNumber: %d / %d\n", (0xff00 & (tag[2]<<8)) | (0xff & tag[3]), (0xff00 & (tag[4]<<8)) | (0xff & tag[5]));
+			fprintf(stderr, "\t%s: ", gf_itags_get_name(tag_idx) );
+			itype = gf_itags_get_type(tag_idx);
+			switch (itype) {
+			case GF_ITAG_BOOL: fprintf(stderr, int_val ? "yes" : "no"); break;
+			case GF_ITAG_INT8:
+			case GF_ITAG_INT16:
+			case GF_ITAG_INT32:
+			case GF_ITAG_INT64:
+				fprintf(stderr, LLU, int_val);
+				break;
+			case GF_ITAG_FRAC6:
+			case GF_ITAG_FRAC8:
+				fprintf(stderr, LLU" / %u", int_val, int_val2);
+				break;
+			case GF_ITAG_FILE:
+				if (flags==14) fprintf(stderr, "PNG File");
+				else if (flags==13) fprintf(stderr, "JPEG File");
+				else fprintf(stderr, "unknown (flags %d)", flags);
+				break;
+			case GF_ITAG_ID3_GENRE:
+				if (int_val) {
+					fprintf(stderr, "%s", gf_id3_get_genre(int_val) );
+					break;
+				}
+				//fallthrough
+			default:
+				if (data)
+					fprintf(stderr, "%s", data);
+				else
+					fprintf(stderr, data_len ? "none" : "unknown");
+				break;
 			}
-		}
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tTrack: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GROUP, &tag, &tag_len)==GF_OK) fprintf(stderr, "\tGroup: %s\n", tag);
-
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COVER_ART, &tag, &tag_len)==GF_OK) {
-			if (tag_len>>31) fprintf(stderr, "\tCover Art: PNG File\n");
-			else fprintf(stderr, "\tCover Art: JPEG File\n");
+			fprintf(stderr, "\n");
 		}
 	}
 
-	print_udta(file, 0);
+	print_udta(file, 0, has_itags);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		DumpTrackInfo(file, i+1, 0, GF_TRUE, dump_m4sys);

@@ -888,6 +888,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sample_dependency) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_find_od_id_for_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_get_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_enum_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_data_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_omadrm_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_omadrm_media) )

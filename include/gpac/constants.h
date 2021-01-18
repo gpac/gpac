@@ -1326,12 +1326,10 @@ enum
 	GF_ITAG_INT16,
 	/*! tag is a 32 bit int*/
 	GF_ITAG_INT32,
+	/*! tag is an 64 bits int*/
+	GF_ITAG_INT64,
 	/*! tag is a boolean (8bit) */
 	GF_ITAG_BOOL,
-	/*! tag is a string but name is matched as substring*/
-	GF_ITAG_SUBSTR,
-	/*! tag is an 64 bits int*/
-	GF_ITAG_LONGINT,
 	/*! tag is ID3 genre tag, either 32 bit int or string*/
 	GF_ITAG_ID3_GENRE,
 	/*! tag is an fraction on 6 bytes (first 2 unused)*/

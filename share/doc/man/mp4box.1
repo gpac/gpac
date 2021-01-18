@@ -2341,6 +2341,8 @@ Tags are specified as a colon-separated list tag_name=tag_value[:tag2=val2]
 .br
 Setting a tag with no value or value NULL removes the tag.
 .br
+Special tag value clear (or reset) removes all tags.
+.br
 Unsupported tags can be added using their four characer code as a tag name, and string value will be assumed.
 .br
   
@@ -2353,17 +2355,17 @@ Tags can also be loaded from a text file using -itags filename. The file must be
 .br
   
 .br
-Supported tag names, values, types:
+Supported tag names, values, types, aliases:
 .br
-title (A9nam) string (alias: name)
+title (A9nam) string (alias name)
 .br
 artist (A9ART) string
 .br
-album_artist (aART) string (alias: albumArtist)
+album_artist (aART) string (alias albumArtist)
 .br
 album (A9alb) string
 .br
-group (A9grp) string (alias: grouping)
+group (A9grp) string (alias grouping)
 .br
 composer (A9com) string
 .br
@@ -2371,11 +2373,11 @@ writer (A9wrt) string
 .br
 conductor (A9con) string
 .br
-comment (A9cmt) string (alias: comments)
+comment (A9cmt) string (alias comments)
 .br
 genre (gnre) string (ID3 genre tag)
 .br
-created (A9day) string (alias: releaseDate)
+created (A9day) string (alias releaseDate)
 .br
 track (A9trk) string
 .br
@@ -2387,47 +2389,47 @@ tempo (tmpo) integer
 .br
 complilation (cpil) bool (yes or no)
 .br
-show (tvsh) string (alias: tvShow)
+show (tvsh) string (alias tvShow)
 .br
-episode_id (tven) string (alias: tvEpisodeID)
+episode_id (tven) string (alias tvEpisodeID)
 .br
-season (tvsn) integer (alias: tvSeason)
+season (tvsn) integer (alias tvSeason)
 .br
-episode (tves) integer (alias: tvEPisode)
+episode (tves) integer (alias tvEPisode)
 .br
-network (tvnn) string (alias: tvNetwork)
+network (tvnn) string (alias tvNetwork)
 .br
-sdesc (desc) string (alias: description)
+sdesc (desc) string (alias description)
 .br
-ldesc (ldes) string (alias: longDescription)
+ldesc (ldes) string (alias longDescription)
 .br
 lyrics (A9lyr) string
 .br
-sort_name (sonm) string (alias: sortName)
+sort_name (sonm) string (alias sortName)
 .br
-sort_artist (soar) string (alias: sortArtist)
+sort_artist (soar) string (alias sortArtist)
 .br
-sort_album_artist (soaa) string (alias: sortAlbumArtist)
+sort_album_artist (soaa) string (alias sortAlbumArtist)
 .br
-sort_album (soal) string (alias: sortAlbum)
+sort_album (soal) string (alias sortAlbum)
 .br
-sort_composer (soco) string (alias: sortComposer)
+sort_composer (soco) string (alias sortComposer)
 .br
-sort_show (sosn) string (alias: sortShow)
+sort_show (sosn) string (alias sortShow)
 .br
-cover (covr) file path (alias: artwork)
+cover (covr) file path (alias artwork)
 .br
 copyright (cprt) string
 .br
-tool (A9too) string (alias: encodingTool)
+tool (A9too) string (alias encodingTool)
 .br
-encoder (A9enc) string (alias: encodedBy)
+encoder (A9enc) string (alias encodedBy)
 .br
-pdate (purd) string (alias: purchaseDate)
+pdate (purd) string (alias purchaseDate)
 .br
 podcast (pcst) bool (yes or no)
 .br
-url (purl) string (alias: podcastURL)
+url (purl) string (alias podcastURL)
 .br
 keywords (kyyw) string
 .br
@@ -2435,9 +2437,9 @@ category (catg) string
 .br
 hdvideo (hdvd) bool (yes or no)
 .br
-media (stik) integer (alias: mediaType)
+media (stik) integer (alias mediaType)
 .br
-rating (rtng) integer (alias: contentRating)
+rating (rtng) integer (alias contentRating)
 .br
 gapless (pgap) bool (yes or no)
 .br
@@ -2529,7 +2531,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev447-g8c190b551-master
+build: 1.1.0-DEV-rev448-g2aa4a134f-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
