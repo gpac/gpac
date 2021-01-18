@@ -965,13 +965,14 @@ void PrintTags()
 	gf_sys_format_help(helpout, help_flags, "# Tagging support\n"
 	"Tags are specified as a colon-separated list `tag_name=tag_value[:tag2=val2]`\n"
 	"Setting a tag with no value or value `NULL` removes the tag.\n"
+	"Special tag value `clear` (or `reset`) removes all tags.\n"
 	"Unsupported tags can be added using their four characer code as a tag name, and string value will be assumed.\n"
 	"  \n"
 	"Tags can also be loaded from a text file using `-itags filename`. The file must be in UTF8 with:\n"
 	"- lines starting with `tag_name=value` specify the start of a tag\n"
 	"- other lines specify the remainer of the last declared tag\n"
 	"  \n"
-	"Supported tag names, values, types:\n"
+	"Supported tag names, values, types, aliases:\n"
 	);
 
 	while (1) {
@@ -983,12 +984,11 @@ void PrintTags()
 		gf_sys_format_help(helpout, help_flags, " (%s) ", gf_4cc_to_str(itag) );
 		switch (type) {
 		case GF_ITAG_STR:
-		case GF_ITAG_SUBSTR:
 			gf_sys_format_help(helpout, help_flags, "string"); break;
 		case GF_ITAG_INT8:
 		case GF_ITAG_INT16:
 		case GF_ITAG_INT32:
-		case GF_ITAG_LONGINT:
+		case GF_ITAG_INT64:
 			gf_sys_format_help(helpout, help_flags, "integer"); break;
 		case GF_ITAG_FRAC6:
 		case GF_ITAG_FRAC8:
@@ -1001,8 +1001,9 @@ void PrintTags()
 			gf_sys_format_help(helpout, help_flags, "file path"); break;
 		}
 		name = gf_itags_get_alt_name(i);
-		if (name)
-			gf_sys_format_help(helpout, help_flags, " (alias: %s)", name);
+		if (name) {
+			gf_sys_format_help(helpout, help_flags, " (`alias` %s)", name);
+		}
 
 		gf_sys_format_help(helpout, help_flags, "\n");
 		i++;
@@ -6508,6 +6509,7 @@ int mp4boxMain(int argc, char **argv)
 
 		while (tags) {
 			char *val;
+			Bool clear = GF_FALSE;
 			u32 tlen, tagtype, itag = 0;
 			s32 tag_idx;
 			char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags);
@@ -6527,16 +6529,20 @@ int mp4boxMain(int argc, char **argv)
 			}
 			val = strchr(tags, '=');
 			if (val) val[0] = 0;
-			tag_idx = gf_itags_find_by_name(tags);
-			if ((tag_idx<0) && (strlen(tags)==4)) {
-				itag = GF_4CC(tags[0], tags[1], tags[2], tags[3]);
-				tagtype = GF_ITAG_STR;
+			if (!strcmp(tags, "clear") || !strcmp(tags, "reset")) {
+				clear = GF_TRUE;
+			} else {
+				tag_idx = gf_itags_find_by_name(tags);
+				if ((tag_idx<0) && (strlen(tags)==4)) {
+					itag = GF_4CC(tags[0], tags[1], tags[2], tags[3]);
+					tagtype = GF_ITAG_STR;
+				}
 			}
 			if (val) {
 				val[0] = '=';
 				val++;
 			}
-			if (!itag) {
+			if (!itag && !clear) {
 				if (tag_idx<0) {
 					fprintf(stderr, "Invalid iTune tag name \"%s\" - ignoring\n", tags);
 					break;
@@ -6547,7 +6553,11 @@ int mp4boxMain(int argc, char **argv)
 			if (!val || (val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 
 			tlen = val ? (u32) strlen(val) : 0;
-			if (val && (tagtype==GF_ITAG_FILE)) {
+			if (clear) {
+				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_RESET, NULL, 0, 0, 0);
+
+			}
+			else if (val && (tagtype==GF_ITAG_FILE)) {
 				u32 flen = (u32) strlen(val);
 				u8 *d=NULL;
 				while (flen && val[flen-1]=='\n') flen--;

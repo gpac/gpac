@@ -5982,6 +5982,20 @@ Country Code 	sfID 	32-bit integer 	Identifies in which iTunes Store a file was 
 */
 GF_Err gf_isom_apple_get_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u8 **data, u32 *data_len);
 
+/*! enumerate itunes tags.
+
+\param isom_file the target ISO file
+\param idx 0-based index of the tag to get
+\param out_tag set to the tag code
+\param data set to the tag data pointer - do not modify
+\param data_len set to the size of the tag data. Data is set to NULL and data_size to 1 if the associated tag has no data
+\param out_int_val set to the int/bool/frac numerator type for known tags, in which case data is set to NULL
+\param out_int_val set to the frac denominator for known tags, in which case data is set to NULL
+\param out_flags set to the flags value of the data container box
+\return error if any (GF_URL_ERROR if no more tags)
+*/
+GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! sets the given tag info.
 
