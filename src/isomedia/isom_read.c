@@ -4009,7 +4009,7 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 **da
 	while ( (info=(GF_ListItemBox*)gf_list_enum(ilst->child_boxes, &i))) {
 		if (info->type==tag) break;
 		/*special cases*/
-		if ((tag==GF_ISOM_ITUNE_GENRE) && (info->type==(u32) GF_ISOM_BOX_TYPE_0xA9GEN)) break;
+		if ((tag==GF_ISOM_ITUNE_GENRE) && (info->type==(u32) GF_ISOM_ITUNE_GENRE_USER)) break;
 		info = NULL;
 	}
 	if (!info || !info->data || !info->data->data) return GF_URL_ERROR;

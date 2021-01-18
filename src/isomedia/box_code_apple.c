@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2019
+ *			Copyright (c) Telecom ParisTech 2006-2021
  *				All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -171,7 +171,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 
 GF_Box *ilst_item_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, GF_ISOM_BOX_TYPE_CPIL); //type will be overwrite
+	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, GF_ISOM_ITUNE_NAME); //type will be overwrite
 	return (GF_Box *)tmp;
 }
 
