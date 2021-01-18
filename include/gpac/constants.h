@@ -1254,11 +1254,13 @@ typedef enum {
 	GF_ID3V2_FRAME_SYTC = GF_4CC('S','Y','T','C'),
 	GF_ID3V2_FRAME_TALB = GF_4CC('T','A','L','B'),
 	GF_ID3V2_FRAME_TBPM = GF_4CC('T','B','P','M'),
+	GF_ID3V2_FRAME_TCAT = GF_4CC('T','C','A','T'),
 	GF_ID3V2_FRAME_TCMP = GF_4CC('T','C','M','P'),
 	GF_ID3V2_FRAME_TCOM = GF_4CC('T','C','O','M'),
 	GF_ID3V2_FRAME_TCON = GF_4CC('T','C','O','N'),
 	GF_ID3V2_FRAME_TCOP = GF_4CC('T','C','O','P'),
 	GF_ID3V2_FRAME_TDAT = GF_4CC('T','D','A','T'),
+	GF_ID3V2_FRAME_TDES = GF_4CC('T','D','E','S'),
 	GF_ID3V2_FRAME_TDLY = GF_4CC('T','D','L','Y'),
 	GF_ID3V2_FRAME_TDRC = GF_4CC('T','D','R','C'),
 	GF_ID3V2_FRAME_TENC = GF_4CC('T','E','N','C'),
@@ -1269,6 +1271,7 @@ typedef enum {
 	GF_ID3V2_FRAME_TIT2 = GF_4CC('T','I','T','2'),
 	GF_ID3V2_FRAME_TIT3 = GF_4CC('T','I','T','3'),
 	GF_ID3V2_FRAME_TKEY = GF_4CC('T','K','E','Y'),
+	GF_ID3V2_FRAME_TKWD = GF_4CC('T','K','W','D'),
 	GF_ID3V2_FRAME_TLAN = GF_4CC('T','L','A','N'),
 	GF_ID3V2_FRAME_TLEN = GF_4CC('T','L','E','N'),
 	GF_ID3V2_FRAME_TMED = GF_4CC('T','M','E','D'),
@@ -1289,6 +1292,11 @@ typedef enum {
 	GF_ID3V2_FRAME_TRSN = GF_4CC('T','R','S','N'),
 	GF_ID3V2_FRAME_TRSO = GF_4CC('T','R','S','O'),
 	GF_ID3V2_FRAME_TSIZ = GF_4CC('T','S','I','Z'),
+	GF_ID3V2_FRAME_TSO2 = GF_4CC('T','S','O','2'),
+	GF_ID3V2_FRAME_TSOA = GF_4CC('T','S','O','A'),
+	GF_ID3V2_FRAME_TSOC = GF_4CC('T','S','O','C'),
+	GF_ID3V2_FRAME_TSOT = GF_4CC('T','S','O','T'),
+	GF_ID3V2_FRAME_TSOP = GF_4CC('T','S','O','P'),
 	GF_ID3V2_FRAME_TSRC = GF_4CC('T','S','R','C'),
 	GF_ID3V2_FRAME_TSSE = GF_4CC('T','S','S','E'),
 	GF_ID3V2_FRAME_TYER = GF_4CC('T','Y','E','R'),
@@ -1312,14 +1320,26 @@ enum
 {
 	/*! tag is a string*/
 	GF_ITAG_STR=0,
-	/*! tag is an int*/
-	GF_ITAG_INT,
-	/*! tag is a fraction*/
-	GF_ITAG_FRAC,
-	/*! tag is a boolean*/
+	/*! tag is an 8 bit int*/
+	GF_ITAG_INT8,
+	/*! tag is a 16 bit int*/
+	GF_ITAG_INT16,
+	/*! tag is a 32 bit int*/
+	GF_ITAG_INT32,
+	/*! tag is a boolean (8bit) */
 	GF_ITAG_BOOL,
 	/*! tag is a string but name is matched as substring*/
 	GF_ITAG_SUBSTR,
+	/*! tag is an 64 bits int*/
+	GF_ITAG_LONGINT,
+	/*! tag is ID3 genre tag, either 32 bit int or string*/
+	GF_ITAG_ID3_GENRE,
+	/*! tag is an fraction on 6 bytes (first 2 unused)*/
+	GF_ITAG_FRAC6,
+	/*! tag is an fraction on 8 bytes (first 2 and last 2 unused)*/
+	GF_ITAG_FRAC8,
+	/*! tag is a file*/
+	GF_ITAG_FILE,
 };
 /*! finds a tag by its ID3 value
  \param id3tag ID3 tag value
@@ -1341,15 +1361,21 @@ s32 gf_itags_find_by_name(const char *tag_name);
 
 /*! gets tag associated type
  \param tag_idx tag index
- \return corresponding tag type, 0 if error
+ \return corresponding tag type, -1 if error
 */
-u32 gf_itags_get_type(u32 tag_idx);
+s32 gf_itags_get_type(u32 tag_idx);
 
 /*! gets tag associated name
  \param tag_idx tag index
  \return corresponding tag name, NULL if error
 */
 const char *gf_itags_get_name(u32 tag_idx);
+
+/*! gets tag associated alternative names
+ \param tag_idx tag index
+ \return corresponding tag name, NULL if none
+*/
+const char *gf_itags_get_alt_name(u32 tag_idx);
 
 /*! gets tag associated itunes tag
  \param tag_idx tag index

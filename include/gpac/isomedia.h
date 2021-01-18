@@ -5910,28 +5910,65 @@ typedef enum
 	/*probe is only used to check if iTunes info are present*/
 	GF_ISOM_ITUNE_PROBE = 0,
 	/*all is only used to remove all tags*/
-	GF_ISOM_ITUNE_ALL = 1,
-	GF_ISOM_ITUNE_ALBUM	= GF_4CC( 0xA9, 'a', 'l', 'b' ),
-	GF_ISOM_ITUNE_ARTIST = GF_4CC( 0xA9, 'A', 'R', 'T' ),
-	GF_ISOM_ITUNE_COMMENT = GF_4CC( 0xA9, 'c', 'm', 't' ),
-	GF_ISOM_ITUNE_COMPILATION = GF_4CC( 'c', 'p', 'i', 'l' ),
-	GF_ISOM_ITUNE_COMPOSER = GF_4CC( 0xA9, 'c', 'o', 'm' ),
-	GF_ISOM_ITUNE_COVER_ART = GF_4CC( 'c', 'o', 'v', 'r' ),
-	GF_ISOM_ITUNE_CREATED = GF_4CC( 0xA9, 'd', 'a', 'y' ),
-	GF_ISOM_ITUNE_DISK = GF_4CC( 'd', 'i', 's', 'k' ),
-	GF_ISOM_ITUNE_TOOL = GF_4CC( 0xA9, 't', 'o', 'o' ),
-	GF_ISOM_ITUNE_GENRE = GF_4CC( 'g', 'n', 'r', 'e' ),
-	GF_ISOM_ITUNE_GROUP = GF_4CC( 0xA9, 'g', 'r', 'p' ),
-	GF_ISOM_ITUNE_ITUNES_DATA = GF_4CC( '-', '-', '-', '-' ),
-	GF_ISOM_ITUNE_NAME = GF_4CC( 0xA9, 'n', 'a', 'm' ),
-	GF_ISOM_ITUNE_TEMPO = GF_4CC( 't', 'm', 'p', 'o' ),
-	GF_ISOM_ITUNE_TRACK = GF_4CC( 0xA9, 't', 'r', 'k' ),
-	GF_ISOM_ITUNE_TRACKNUMBER = GF_4CC( 't', 'r', 'k', 'n' ),
-	GF_ISOM_ITUNE_WRITER = GF_4CC( 0xA9, 'w', 'r', 't' ),
-	GF_ISOM_ITUNE_ENCODER = GF_4CC( 0xA9, 'e', 'n', 'c' ),
-	GF_ISOM_ITUNE_ALBUM_ARTIST = GF_4CC( 'a', 'A', 'R', 'T' ),
-	GF_ISOM_ITUNE_GAPLESS = GF_4CC( 'p', 'g', 'a', 'p' ),
-	GF_ISOM_ITUNE_CONDUCTOR = GF_4CC( 0xA9, 'c', 'o', 'n' ),
+	GF_ISOM_ITUNE_RESET = 1,
+	GF_ISOM_ITUNE_NAME 				= GF_4CC( 0xA9, 'n', 'a', 'm' ),
+	GF_ISOM_ITUNE_ARTIST 			= GF_4CC( 0xA9, 'A', 'R', 'T' ),
+	GF_ISOM_ITUNE_ALBUM_ARTIST 		= GF_4CC( 'a', 'A', 'R', 'T' ),
+	GF_ISOM_ITUNE_ALBUM				= GF_4CC( 0xA9, 'a', 'l', 'b' ),
+	GF_ISOM_ITUNE_GROUP 			= GF_4CC( 0xA9, 'g', 'r', 'p' ),
+	GF_ISOM_ITUNE_WRITER 			= GF_4CC( 0xA9, 'w', 'r', 't' ),
+	GF_ISOM_ITUNE_COMMENT 			= GF_4CC( 0xA9, 'c', 'm', 't' ),
+	GF_ISOM_ITUNE_GENRE_USER		= GF_4CC( 0xA9, 'g', 'n', 'r'),
+	GF_ISOM_ITUNE_GENRE 			= GF_4CC( 'g', 'n', 'r', 'e' ),
+	GF_ISOM_ITUNE_CREATED 			= GF_4CC( 0xA9, 'd', 'a', 'y' ),
+	GF_ISOM_ITUNE_TRACKNUMBER 		= GF_4CC( 't', 'r', 'k', 'n' ),
+	GF_ISOM_ITUNE_DISK 				= GF_4CC( 'd', 'i', 's', 'k' ),
+	GF_ISOM_ITUNE_TEMPO 			= GF_4CC( 't', 'm', 'p', 'o' ),
+	GF_ISOM_ITUNE_COMPILATION 		= GF_4CC( 'c', 'p', 'i', 'l' ),
+	GF_ISOM_ITUNE_TV_SHOW 			= GF_4CC( 't', 'v', 's', 'h'),
+	GF_ISOM_ITUNE_TV_EPISODE 		= GF_4CC( 't', 'v', 'e', 'n'),
+	GF_ISOM_ITUNE_TV_SEASON 		= GF_4CC( 't', 'v', 's', 'n'),
+	GF_ISOM_ITUNE_TV_EPISODE_NUM 	= GF_4CC( 't', 'v', 'e', 's'),
+	GF_ISOM_ITUNE_TV_NETWORK 		= GF_4CC( 't', 'v', 'n', 'n'),
+	GF_ISOM_ITUNE_DESCRIPTION	 	= GF_4CC( 'd', 'e', 's', 'c' ),
+	GF_ISOM_ITUNE_LONG_DESCRIPTION	= GF_4CC( 'l', 'd', 'e', 's'),
+	GF_ISOM_ITUNE_LYRICS 			= GF_4CC( 0xA9, 'l', 'y', 'r' ),
+	GF_ISOM_ITUNE_SORT_NAME 		= GF_4CC( 's', 'o', 'n', 'm' ),
+	GF_ISOM_ITUNE_SORT_ARTIST 		= GF_4CC( 's', 'o', 'a', 'r' ),
+	GF_ISOM_ITUNE_SORT_ALB_ARTIST 	= GF_4CC( 's', 'o', 'a', 'a' ),
+	GF_ISOM_ITUNE_SORT_ALBUM	 	= GF_4CC( 's', 'o', 'a', 'l' ),
+	GF_ISOM_ITUNE_SORT_COMPOSER	 	= GF_4CC( 's', 'o', 'c', 'o' ),
+	GF_ISOM_ITUNE_SORT_SHOW	 		= GF_4CC( 's', 'o', 's', 'n' ),
+	GF_ISOM_ITUNE_COVER_ART 		= GF_4CC( 'c', 'o', 'v', 'r' ),
+	GF_ISOM_ITUNE_COPYRIGHT 		= GF_4CC( 'c', 'p', 'r', 't' ),
+	GF_ISOM_ITUNE_TOOL 				= GF_4CC( 0xA9, 't', 'o', 'o' ),
+	GF_ISOM_ITUNE_ENCODER 			= GF_4CC( 0xA9, 'e', 'n', 'c' ),
+	GF_ISOM_ITUNE_PURCHASE_DATE 	= GF_4CC( 'p', 'u', 'r', 'd' ),
+	GF_ISOM_ITUNE_PODCAST		 	= GF_4CC( 'p', 'c', 's', 't' ),
+	GF_ISOM_ITUNE_PODCAST_URL	 	= GF_4CC( 'p', 'u', 'r', 'l' ),
+	GF_ISOM_ITUNE_KEYWORDS 			= GF_4CC( 'k', 'y', 'y', 'w'),
+	GF_ISOM_ITUNE_CATEGORY 			= GF_4CC( 'c', 'a', 't', 'g'),
+	GF_ISOM_ITUNE_HD_VIDEO 			= GF_4CC( 'h', 'd', 'v', 'd'),
+	GF_ISOM_ITUNE_MEDIA_TYPE 		= GF_4CC( 's', 't', 'i', 'k'),
+	GF_ISOM_ITUNE_RATING	 		= GF_4CC( 'r', 't', 'n', 'g'),
+	GF_ISOM_ITUNE_GAPLESS 			= GF_4CC( 'p', 'g', 'a', 'p' ),
+	GF_ISOM_ITUNE_COMPOSER 		= GF_4CC( 0xA9, 'c', 'o', 'm' ),
+	GF_ISOM_ITUNE_TRACK 		= GF_4CC( 0xA9, 't', 'r', 'k' ),
+	GF_ISOM_ITUNE_CONDUCTOR 	= GF_4CC( 0xA9, 'c', 'o', 'n' ),
+
+	GF_ISOM_ITUNE_ITUNES_DATA 	= GF_4CC( '-', '-', '-', '-' ),
+
+	/* not mapped:
+Purchase Account 	apID 	UTF-8 string 		iTunesAccount (read only)
+Account Type 	akID 	8-bit integer 	Identifies the iTunes Store account type 	iTunesAccountType (read only)
+	cnID 	32-bit integer 	iTunes Catalog ID, used for combing SD and HD encodes in iTunes 	cnID
+Country Code 	sfID 	32-bit integer 	Identifies in which iTunes Store a file was bought 	iTunesCountry (read only)
+	atID 	32-bit integer 	Use? 	atID
+	plID 	64-bit integer 	Use?
+	geID 	32-bit integer 	Use? 	geID
+	©st3 	UTF-8 string 	Use?
+	*/
+
 } GF_ISOiTunesTag;
 
 /*! gets the given itunes tag info.
@@ -5948,15 +5985,16 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! sets the given tag info.
 
-\warning For 'genre', data may be NULL in which case the genre ID taken from the data_len parameter
-
 \param isom_file the target ISO file
 \param tag the tag to set
-\param data tag data buffer
-\param data_len size of the tag data buffer. If data and data_len are 0, removes the given tag
+\param data tag data buffer or string to parse
+\param data_len size of the tag data buffer. If data is NLL and and data_len not  0, removes the given tag
+\param int_val value for integer/boolean tags. If data and data_len ar set, parse data as string  to get the value
+\param int_val2 value for fractional  tags. If data and data_len ar set, parse data as string to get the value
 \return error if any
 */
-GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u8 *data, u32 data_len);
+GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2);
+
 
 /*! sets compatibility tag on AVC tracks (needed by iPod to play files... hurray for standards)
 \param isom_file the target ISO file

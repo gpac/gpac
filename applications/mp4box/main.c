@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -71,37 +71,6 @@ s32 laser_resolution = 0;
 static FILE *helpout = NULL;
 static u32 help_flags = 0;
 
-typedef struct {
-	u32 code;
-	const char *name;
-	const char *comment;
-} itunes_tag;
-static const itunes_tag itags[] = {
-	{GF_ISOM_ITUNE_ALBUM_ARTIST, "album_artist", "usage: album_artist=album artist"},
-	{GF_ISOM_ITUNE_ALBUM, "album", "usage: album=name" },
-	{GF_ISOM_ITUNE_TRACKNUMBER, "tracknum", "usage: track=x/N"},
-	{GF_ISOM_ITUNE_TRACK, "track", "usage: track=name"},
-	{GF_ISOM_ITUNE_ARTIST, "artist", "usage: artist=name"},
-	{GF_ISOM_ITUNE_COMMENT, "comment", "usage: comment=any comment"},
-	{GF_ISOM_ITUNE_COMPILATION, "compilation", "usage: compilation=yes,no"},
-	{GF_ISOM_ITUNE_COMPOSER, "composer", "usage: composer=name"},
-	{GF_ISOM_ITUNE_CREATED, "created", "usage: created=time"},
-	{GF_ISOM_ITUNE_DISK, "disk", "usage: disk=x/N"},
-	{GF_ISOM_ITUNE_TOOL, "tool", "usage: tool=name"},
-	{GF_ISOM_ITUNE_GENRE, "genre", "usage: genre=name"},
-	{GF_ISOM_ITUNE_NAME, "name", "usage: name=name"},
-	{GF_ISOM_ITUNE_TEMPO, "tempo", "usage: tempo=integer"},
-	{GF_ISOM_ITUNE_WRITER, "writer", "usage: writer=name"},
-	{GF_ISOM_ITUNE_GROUP, "group", "usage: group=name"},
-	{GF_ISOM_ITUNE_COVER_ART, "cover", "usage: cover=file.jpg,file.png"},
-	{GF_ISOM_ITUNE_ENCODER, "encoder", "usage: encoder=name"},
-	{GF_ISOM_ITUNE_GAPLESS, "gapless", "usage: gapless=yes,no"},
-	{GF_ISOM_ITUNE_ALL, "all", "usage: all=NULL"},
-};
-
-u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
-
-
 void PrintVersion()
 {
 	fprintf(stderr, "MP4Box - GPAC version %s\n"
@@ -169,7 +138,6 @@ GF_GPACArg m4b_gen_args[] =
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("name `tkID=NAME`", NULL, "set track handler name to NAME (UTF-8 string)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("itags `tag1[:tag2]`", NULL, "set iTunes tags to file, see [-tag-list]()", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
- 	GF_DEF_ARG("tag-list", NULL, "print the set of supported iTunes tags", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("group-add", NULL, "create a new grouping information in the file. Format is a colon-separated list of following options:\n"
 	        "- refTrack=ID: ID of the track used as a group reference. If not set, the track will belong to the same group as the "
 	        "previous trackID specified. If 0 or no previous track specified, a new alternate group will be created\n"
@@ -990,6 +958,57 @@ void PrintCoreUsage()
 	gf_sys_print_core_help(helpout, 0, GF_ARGMODE_ALL, 0);
 }
 
+void PrintTags()
+{
+	u32 i = 0;
+
+	gf_sys_format_help(helpout, help_flags, "# Tagging support\n"
+	"Tags are specified as a colon-separated list `tag_name=tag_value[:tag2=val2]`\n"
+	"Setting a tag with no value or value `NULL` removes the tag.\n"
+	"Unsupported tags can be added using their four characer code as a tag name, and string value will be assumed.\n"
+	"  \n"
+	"Tags can also be loaded from a text file using `-itags filename`. The file must be in UTF8 with:\n"
+	"- lines starting with `tag_name=value` specify the start of a tag\n"
+	"- other lines specify the remainer of the last declared tag\n"
+	"  \n"
+	"Supported tag names, values, types:\n"
+	);
+
+	while (1) {
+		s32 type = gf_itags_get_type(i);
+		if (type<0) break;
+		const char *name = gf_itags_get_name(i);
+		u32 itag = gf_itags_get_itag(i);
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST , "%s", name);
+		gf_sys_format_help(helpout, help_flags, " (%s) ", gf_4cc_to_str(itag) );
+		switch (type) {
+		case GF_ITAG_STR:
+		case GF_ITAG_SUBSTR:
+			gf_sys_format_help(helpout, help_flags, "string"); break;
+		case GF_ITAG_INT8:
+		case GF_ITAG_INT16:
+		case GF_ITAG_INT32:
+		case GF_ITAG_LONGINT:
+			gf_sys_format_help(helpout, help_flags, "integer"); break;
+		case GF_ITAG_FRAC6:
+		case GF_ITAG_FRAC8:
+			gf_sys_format_help(helpout, help_flags, "fraction (syntax: `A/B` or `A`, B will be 0)"); break;
+		case GF_ITAG_BOOL:
+			gf_sys_format_help(helpout, help_flags, "bool (`yes` or `no`)"); break;
+		case GF_ITAG_ID3_GENRE:
+			gf_sys_format_help(helpout, help_flags, "string (ID3 genre tag)"); break;
+		case GF_ITAG_FILE:
+			gf_sys_format_help(helpout, help_flags, "file path"); break;
+		}
+		name = gf_itags_get_alt_name(i);
+		if (name)
+			gf_sys_format_help(helpout, help_flags, " (alias: %s)", name);
+
+		gf_sys_format_help(helpout, help_flags, "\n");
+		i++;
+	}
+}
+
 void PrintCICP()
 {
 	u32 i;
@@ -1033,6 +1052,7 @@ GF_GPACArg m4b_usage_args[] =
 		"- core: libgpac core options\n"
 		"- all: print all the above help screens\n"
 		"- opts: print all options\n"
+		"- tags: print supported iTunes tags\n"
 		"- cicp: print various CICP code points\n"
 		"- VAL: search for option named `VAL` (without `-` or `--`) in MP4Box, libgpac core and all filters\n"
 		, NULL, NULL, GF_ARG_STRING, 0),
@@ -3732,6 +3752,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
 #endif
 			else if (!strcmp(argv[i + 1], "core")) PrintCoreUsage();
+			else if (!strcmp(argv[i + 1], "tags")) PrintTags();
 			else if (!strcmp(argv[i + 1], "cicp")) PrintCICP();
 			else if (!strcmp(argv[i + 1], "all")) {
 				PrintGeneralUsage();
@@ -3749,6 +3770,8 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				PrintLiveUsage();
 #endif
 				PrintCoreUsage();
+				PrintTags();
+				PrintCICP();
 			} else if (!strcmp(argv[i + 1], "opts")) {
 				PrintHelp("@", GF_FALSE, GF_FALSE);
 			} else {
@@ -3822,6 +3845,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 	 		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Other Features");
 	 		fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/mp4box/main.c -->\n");
 			PrintHintUsage();
+			PrintTags();
 			gf_fclose(helpout);
 
 			gf_sys_close();
@@ -3845,6 +3869,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			PrintEncryptUsage();
 			PrintMetaUsage();
 			PrintSWFUsage();
+			PrintTags();
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 			PrintLiveUsage();
 #endif
@@ -3864,10 +3889,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 
 		else if (!stricmp(arg, "-v")) verbose++;
 		else if (!stricmp(arg, "-tag-list")) {
-			fprintf(stderr, "Supported iTunes tag modifiers:\n");
-			for (i = 0; i < nb_itunes_tags; i++) {
-				fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
-			}
+			fprintf(stderr, "Deprecated, use -h tags.\n");
 			return 1;
 		}
 		else if (!live_scene) {
@@ -6475,124 +6497,85 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	if (itunes_tags) {
+		char *itunes_data = NULL;
 		char *tags = itunes_tags;
+		if (gf_file_exists(itunes_tags)) {
+			u32 len;
+			e = gf_file_load_data(itunes_tags, (u8 **) &itunes_data, &len);
+			if (e) goto err_exit;
+			tags = itunes_data;
+		}
 
 		while (tags) {
 			char *val;
-			char *sep = gf_url_colon_suffix(tags);
-			u32 tlen, itag = 0;
-			if (sep) {
-				while (sep) {
-					for (itag=0; itag<nb_itunes_tags; itag++) {
-						if (!strnicmp(sep+1, itags[itag].name, strlen(itags[itag].name))) break;
-					}
-					if (itag<nb_itunes_tags) {
-						break;
-					}
-					sep = gf_url_colon_suffix(sep+1);
-				}
-				if (sep) sep[0] = 0;
-			}
-			for (itag=0; itag<nb_itunes_tags; itag++) {
-				if (!strnicmp(tags, itags[itag].name, strlen(itags[itag].name))) {
+			u32 tlen, tagtype, itag = 0;
+			s32 tag_idx;
+			char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags);
+			while (sep) {
+				char *eq = strchr(sep+1, '=');
+				if (eq) eq[0] = 0;
+				s32 next_tag_idx = gf_itags_find_by_name(sep+1);
+				if ((next_tag_idx<0) && strlen(sep+1)==4)
+					next_tag_idx = 0;
+
+				if (eq) eq[0] = '=';
+				if (next_tag_idx>=0) {
+					sep[0] = 0;
 					break;
 				}
+				sep = itunes_data ? strchr(sep+1, '\n') : gf_url_colon_suffix(sep+1);
 			}
-			if (itag==nb_itunes_tags) {
-				fprintf(stderr, "Invalid iTune tag format \"%s\" - ignoring\n", tags);
-				tags = NULL;
-				continue;
-			}
-			itag = itags[itag].code;
-
 			val = strchr(tags, '=');
-			if (!val) {
-				fprintf(stderr, "Invalid iTune tag format \"%s\" (expecting '=') - ignoring\n", tags);
-				tags = NULL;
-				continue;
+			if (val) val[0] = 0;
+			tag_idx = gf_itags_find_by_name(tags);
+			if ((tag_idx<0) && (strlen(tags)==4)) {
+				itag = GF_4CC(tags[0], tags[1], tags[2], tags[3]);
+				tagtype = GF_ITAG_STR;
 			}
-			val ++;
-			if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
+			if (val) {
+				val[0] = '=';
+				val++;
+			}
+			if (!itag) {
+				if (tag_idx<0) {
+					fprintf(stderr, "Invalid iTune tag name \"%s\" - ignoring\n", tags);
+					break;
+				}
+				itag = gf_itags_get_itag(tag_idx);
+				tagtype = gf_itags_get_type(tag_idx);
+			}
+			if (!val || (val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 
 			tlen = val ? (u32) strlen(val) : 0;
-			switch (itag) {
-			case GF_ISOM_ITUNE_COVER_ART:
-			{
+			if (val && (tagtype==GF_ITAG_FILE)) {
+				u32 flen = (u32) strlen(val);
 				u8 *d=NULL;
-				e = GF_OK;
-				if (val) {
-					char *ext;
-					e = gf_file_load_data(val, (u8 **) &d, &tlen);
+				while (flen && val[flen-1]=='\n') flen--;
+				val[flen] = 0;
+				e = gf_file_load_data(val, (u8 **) &d, &tlen);
+				val[flen] = '\n';
 
-					ext = strrchr(val, '.');
-					if (!stricmp(ext, ".png")) tlen |= 0x80000000;
-				}
 				if (!e)
-					e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
+					e = gf_isom_apple_set_tag(file, itag, d, tlen, 0, 0);
 
 				if (d) gf_free(d);
+			} else {
+				e = gf_isom_apple_set_tag(file, itag, (u8 *) val, tlen, 0, 0);
 			}
-			break;
-			case GF_ISOM_ITUNE_TEMPO:
-				gf_isom_apple_set_tag(file, itag, NULL, val ? atoi(val) : 0);
-				break;
-			case GF_ISOM_ITUNE_GENRE:
-			{
-				u8 _v = gf_id3_get_genre_tag(val);
-				if (_v) {
-					gf_isom_apple_set_tag(file, itag, NULL, _v);
-				} else {
-					if (!val) val="";
-					gf_isom_apple_set_tag(file, itag, (u8 *) val, (u32) strlen(val) );
-				}
+			if (e) {
+				fprintf(stderr, "Error assigning tag %s: %s\n", tags, gf_error_to_string(e) );
 			}
-			break;
-			case GF_ISOM_ITUNE_DISK:
-			case GF_ISOM_ITUNE_TRACKNUMBER:
-			{
-				u32 n, t;
-				char _t[8];
-				n = t = 0;
-				if (val) {
-					memset(_t, 0, sizeof(char) * 8);
-					tlen = (itag == GF_ISOM_ITUNE_DISK) ? 6 : 8;
-					if (sscanf(val, "%u/%u", &n, &t) == 2) {
-						_t[3] = n;
-						_t[2] = n >> 8;
-						_t[5] = t;
-						_t[4] = t >> 8;
-					}
-					else if (sscanf(val, "%u", &n) == 1) {
-						_t[3] = n;
-						_t[2] = n >> 8;
-					}
-					else tlen = 0;
-				}
-				if (!val || tlen) gf_isom_apple_set_tag(file, itag, val ? (u8 *)_t : NULL, tlen);
-			}
-			break;
-			case GF_ISOM_ITUNE_GAPLESS:
-			case GF_ISOM_ITUNE_COMPILATION:
-			{
-				u8 _t[1];
-				if (val && !stricmp(val, "yes")) _t[0] = 1;
-				else  _t[0] = 0;
-				gf_isom_apple_set_tag(file, itag, _t, 1);
-			}
-			break;
-			default:
-				gf_isom_apple_set_tag(file, itag, (u8 *)val, tlen);
-				break;
-			}
+
 			needSave = GF_TRUE;
 
 			if (sep) {
-				sep[0] = ':';
+				sep[0] = itunes_data ? '\n' : ':';
 				tags = sep+1;
 			} else {
 				tags = NULL;
 			}
 		}
+		if (itunes_data) gf_free(itunes_data);
 	}
 
 	if (movie_time) {

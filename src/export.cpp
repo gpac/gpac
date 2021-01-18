@@ -2282,6 +2282,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_itags_find_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_alt_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_itag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_itags_get_id3tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_itags_enum_tags) )

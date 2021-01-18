@@ -1488,30 +1488,56 @@ u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pix_fmt)
 
 static struct _itags {
 	const char *name;
+	const char *alt_name;
 	u32 itag;
 	u32 id3tag;
 	u32 type;
 } itunes_tags[] = {
 
-	{"album", GF_ISOM_ITUNE_ALBUM, GF_ID3V2_FRAME_TALB, GF_ITAG_STR},
-	{"artist", GF_ISOM_ITUNE_ARTIST, GF_ID3V2_FRAME_TPE1, GF_ITAG_STR},
-	{"comment", GF_ISOM_ITUNE_COMMENT, 0, GF_ITAG_SUBSTR},
-	{"complilation", GF_ISOM_ITUNE_COMPILATION, GF_ID3V2_FRAME_TCMP, GF_ITAG_BOOL},
-	{"composer", GF_ISOM_ITUNE_COMPOSER, GF_ID3V2_FRAME_TCOM, GF_ITAG_STR},
-	{"year", GF_ISOM_ITUNE_CREATED, GF_ID3V2_FRAME_TDRC, GF_ITAG_STR},
-	{"disk", GF_ISOM_ITUNE_DISK, GF_ID3V2_FRAME_TPOS, GF_ITAG_STR},
-	{"tool", GF_ISOM_ITUNE_TOOL, 0, GF_ITAG_STR},
-	{"genre", GF_ISOM_ITUNE_GENRE, GF_ID3V2_FRAME_TCON, GF_ITAG_STR},
-	{"contentgroup", GF_ISOM_ITUNE_GROUP, GF_ID3V2_FRAME_TIT1, GF_ITAG_STR},
-	{"title", GF_ISOM_ITUNE_NAME, GF_ID3V2_FRAME_TIT2, GF_ITAG_STR},
-	{"tempo", GF_ISOM_ITUNE_TEMPO, GF_ID3V2_FRAME_TBPM, GF_ITAG_STR},
-	{"track", GF_ISOM_ITUNE_TRACK, 0, GF_ITAG_STR},
-	{"tracknum", GF_ISOM_ITUNE_TRACKNUMBER, GF_ID3V2_FRAME_TRCK, GF_ITAG_STR},
-	{"writer", GF_ISOM_ITUNE_WRITER, GF_ID3V2_FRAME_TEXT, GF_ITAG_STR},
-	{"encoder", GF_ISOM_ITUNE_ENCODER, GF_ID3V2_FRAME_TSSE, GF_ITAG_STR},
-	{"album_artist", GF_ISOM_ITUNE_ALBUM_ARTIST, GF_ID3V2_FRAME_TPE2, GF_ITAG_SUBSTR},
-	{"gapless", GF_ISOM_ITUNE_GAPLESS, 0, GF_ITAG_BOOL},
-	{"conductor", GF_ISOM_ITUNE_CONDUCTOR, GF_ID3V2_FRAME_TPE3, GF_ITAG_STR},
+	{"title", "name", GF_ISOM_ITUNE_NAME, GF_ID3V2_FRAME_TIT2, GF_ITAG_STR},
+	{"artist", NULL, GF_ISOM_ITUNE_ARTIST, GF_ID3V2_FRAME_TPE1, GF_ITAG_STR},
+	{"album_artist", "albumArtist", GF_ISOM_ITUNE_ALBUM_ARTIST, GF_ID3V2_FRAME_TPE2, GF_ITAG_SUBSTR},
+	{"album", NULL, GF_ISOM_ITUNE_ALBUM, GF_ID3V2_FRAME_TALB, GF_ITAG_STR},
+	{"group", "grouping", GF_ISOM_ITUNE_GROUP, GF_ID3V2_FRAME_TIT1, GF_ITAG_STR},
+	{"composer", NULL, GF_ISOM_ITUNE_COMPOSER, GF_ID3V2_FRAME_TCOM, GF_ITAG_STR},
+	{"writer", NULL, GF_ISOM_ITUNE_WRITER, GF_ID3V2_FRAME_TEXT, GF_ITAG_STR},
+	{"conductor", NULL, GF_ISOM_ITUNE_CONDUCTOR, GF_ID3V2_FRAME_TPE3, GF_ITAG_STR},
+	{"comment", "comments", GF_ISOM_ITUNE_COMMENT, GF_ID3V2_FRAME_COMM, GF_ITAG_SUBSTR},
+	//mapped dynamically to GF_ISOM_ITUNE_GENRE or GF_ISOM_ITUNE_GENRE_USER
+	{"genre", NULL, GF_ISOM_ITUNE_GENRE, GF_ID3V2_FRAME_TCON, GF_ITAG_ID3_GENRE},
+	{"created", "releaseDate", GF_ISOM_ITUNE_CREATED, GF_ID3V2_FRAME_TYER, GF_ITAG_SUBSTR},
+	{"track", NULL, GF_ISOM_ITUNE_TRACK, 0, GF_ITAG_STR},
+	{"tracknum", NULL, GF_ISOM_ITUNE_TRACKNUMBER, GF_ID3V2_FRAME_TRCK, GF_ITAG_FRAC8},
+	{"disk", NULL, GF_ISOM_ITUNE_DISK, GF_ID3V2_FRAME_TPOS, GF_ITAG_FRAC6},
+	{"tempo", NULL, GF_ISOM_ITUNE_TEMPO, GF_ID3V2_FRAME_TBPM, GF_ITAG_INT16},
+	{"complilation", NULL, GF_ISOM_ITUNE_COMPILATION, GF_ID3V2_FRAME_TCMP, GF_ITAG_BOOL},
+	{"show", "tvShow", GF_ISOM_ITUNE_TV_SHOW, 0, GF_ITAG_STR},
+	{"episode_id", "tvEpisodeID", GF_ISOM_ITUNE_TV_EPISODE, 0, GF_ITAG_STR},
+	{"season", "tvSeason", GF_ISOM_ITUNE_TV_SEASON, 0, GF_ITAG_INT32},
+	{"episode", "tvEPisode", GF_ISOM_ITUNE_TV_EPISODE_NUM, 0, GF_ITAG_INT32},
+	{"network", "tvNetwork", GF_ISOM_ITUNE_TV_NETWORK, 0, GF_ITAG_STR},
+	{"sdesc", "description", GF_ISOM_ITUNE_DESCRIPTION, 0, GF_ITAG_STR},
+	{"ldesc", "longDescription", GF_ISOM_ITUNE_LONG_DESCRIPTION, GF_ID3V2_FRAME_TDES, GF_ITAG_STR},
+	{"lyrics", NULL, GF_ISOM_ITUNE_LYRICS, GF_ID3V2_FRAME_USLT, GF_ITAG_STR},
+	{"sort_name", "sortName", GF_ISOM_ITUNE_SORT_NAME, GF_ID3V2_FRAME_TSOT, GF_ITAG_STR},
+	{"sort_artist", "sortArtist", GF_ISOM_ITUNE_SORT_ARTIST, GF_ID3V2_FRAME_TSOP, GF_ITAG_STR},
+	{"sort_album_artist", "sortAlbumArtist", GF_ISOM_ITUNE_SORT_ALB_ARTIST, GF_ID3V2_FRAME_TSO2, GF_ITAG_STR},
+	{"sort_album", "sortAlbum", GF_ISOM_ITUNE_SORT_ALBUM, GF_ID3V2_FRAME_TSOA, GF_ITAG_STR},
+	{"sort_composer", "sortComposer", GF_ISOM_ITUNE_SORT_COMPOSER, GF_ID3V2_FRAME_TSOC, GF_ITAG_STR},
+	{"sort_show", "sortShow", GF_ISOM_ITUNE_SORT_SHOW, 0, GF_ITAG_STR},
+	{"cover", "artwork", GF_ISOM_ITUNE_COVER_ART, 0, GF_ITAG_FILE},
+	{"copyright", NULL, GF_ISOM_ITUNE_COPYRIGHT, GF_ID3V2_FRAME_TCOP, GF_ITAG_STR},
+	{"tool", "encodingTool", GF_ISOM_ITUNE_TOOL, 0, GF_ITAG_STR},
+	{"encoder", "encodedBy", GF_ISOM_ITUNE_ENCODER, GF_ID3V2_FRAME_TENC, GF_ITAG_STR},
+	{"pdate", "purchaseDate", GF_ISOM_ITUNE_PURCHASE_DATE, 0, GF_ITAG_STR},
+	{"podcast", NULL, GF_ISOM_ITUNE_PODCAST, 0, GF_ITAG_BOOL},
+	{"url", "podcastURL", GF_ISOM_ITUNE_PODCAST_URL, 0, GF_ITAG_STR},
+	{"keywords", NULL, GF_ISOM_ITUNE_KEYWORDS, GF_ID3V2_FRAME_TKWD, GF_ITAG_STR},
+	{"category", NULL, GF_ISOM_ITUNE_CATEGORY, GF_ID3V2_FRAME_TCAT, GF_ITAG_STR},
+	{"hdvideo", NULL, GF_ISOM_ITUNE_HD_VIDEO, 0, GF_ITAG_BOOL},
+	{"media", "mediaType", GF_ISOM_ITUNE_MEDIA_TYPE, 0, GF_ITAG_INT8},
+	{"rating", "contentRating", GF_ISOM_ITUNE_RATING, 0, GF_ITAG_INT8},
+	{"gapless", NULL, GF_ISOM_ITUNE_GAPLESS, 0, GF_ITAG_BOOL},
 };
 
 GF_EXPORT
@@ -1550,10 +1576,10 @@ s32 gf_itags_find_by_name(const char *tag_name)
 }
 
 GF_EXPORT
-u32 gf_itags_get_type(u32 tag_idx)
+s32 gf_itags_get_type(u32 tag_idx)
 {
 	u32 count = GF_ARRAY_LENGTH(itunes_tags);
-	if (tag_idx>=count) return 0;
+	if (tag_idx>=count) return -1;
 	return itunes_tags[tag_idx].type;
 }
 
@@ -1563,6 +1589,14 @@ const char *gf_itags_get_name(u32 tag_idx)
 	u32 count = GF_ARRAY_LENGTH(itunes_tags);
 	if (tag_idx>=count) return NULL;
 	return itunes_tags[tag_idx].name;
+}
+
+GF_EXPORT
+const char *gf_itags_get_alt_name(u32 tag_idx)
+{
+	u32 count = GF_ARRAY_LENGTH(itunes_tags);
+	if (tag_idx>=count) return NULL;
+	return itunes_tags[tag_idx].alt_name;
 }
 
 GF_EXPORT
