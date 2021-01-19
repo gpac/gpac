@@ -212,7 +212,7 @@ typedef struct
 	GF_Fraction idur;
 	u32 pack3gp, ctmode;
 	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband;
-	u32 xps_inband;
+	u32 xps_inband, moovpad;
 	u32 block_size;
 	u32 store, tktpl, mudta;
 	s32 subs_sidx;
@@ -5839,6 +5839,9 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 
 
 	if (ctx->owns_mov) {
+		if (ctx->moovpad)
+			gf_isom_set_inplace_padding(ctx->file, ctx->moovpad);
+
 		switch (ctx->store) {
 		case MP4MX_MODE_INTER:
 			if (ctx->cdur.num==0) {
@@ -6032,6 +6035,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 
 	{ OFFS(keep_utc), "force all new files and tracks to keep the source UTC creation and modification times", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pps_inband), "when xps_inband is set, inject PPS in each non SAP 1/2/3 sample", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(moovpad), "insert free box of given size after moov for future in-place editing", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

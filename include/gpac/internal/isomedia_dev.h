@@ -3936,6 +3936,10 @@ struct __tag_isom {
 	u32 block_buffer_size;
 
 	u32 nb_box_init_seg;
+
+	Bool no_inplace_rewrite;
+	u32 padding;
+	u64 original_moov_offset, original_meta_offset, first_data_toplevel_offset, first_data_toplevel_size;
 };
 
 /*time function*/

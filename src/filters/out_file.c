@@ -520,7 +520,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 						pos = cur_w;
 						block = gf_malloc(ctx->mvbk);
 						if (!block) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] unable to allocate blockof %d bytes\n", ctx->mvbk));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] unable to allocate block of %d bytes\n", ctx->mvbk));
 						} else {
 							while (cur_r > bo) {
 								u32 move_bytes = ctx->mvbk;

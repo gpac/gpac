@@ -1346,6 +1346,8 @@ GF_Err gf_isom_update_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 	if (e) return e;
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	gf_isom_disable_inplace_rewrite(movie);
 	return GF_OK;
 }
 
@@ -1444,6 +1446,8 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 	e = stbl_RemoveSampleGroup(trak->Media->information->sampleTable, sampleNumber);
 	if (e) return e;
 
+	gf_isom_disable_inplace_rewrite(movie);
+
 	return SetTrackDuration(trak);
 }
 
@@ -1466,6 +1470,7 @@ GF_Err gf_isom_set_final_name(GF_ISOFile *movie, char *filename)
 		if (movie->finalName) gf_free(movie->finalName);
 		movie->finalName = gf_strdup(filename);
 		if (!movie->finalName) return GF_OUT_OF_MEM;
+		gf_isom_disable_inplace_rewrite(movie);
 	}
 	return GF_OK;
 }
@@ -2358,6 +2363,8 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, GF_ISOStorageMode storageMode
 	case GF_ISOM_STORE_TIGHT:
 	case GF_ISOM_STORE_FASTSTART:
 		movie->storageMode = storageMode;
+		//specifying a storage mode disables inplace rewrite
+		gf_isom_disable_inplace_rewrite(movie);
 		return GF_OK;
 	default:
 		return GF_BAD_PARAM;
@@ -2740,6 +2747,8 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 			trak->References = NULL;
 		}
 	}
+
+	gf_isom_disable_inplace_rewrite(movie);
 
 	//delete the track
 	gf_isom_box_del_parent(&movie->moov->child_boxes, (GF_Box *)the_trak);
@@ -4022,7 +4031,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		return e;
 	}
 
-
+	gf_isom_disable_inplace_rewrite(dest_file);
 
 	/*create default boxes*/
 	stbl = new_tk->Media->information->sampleTable;
@@ -7715,4 +7724,33 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
+GF_EXPORT
+Bool gf_isom_is_inplace_rewrite(GF_ISOFile *movie)
+{
+	if (!movie) return GF_FALSE;
+	if (!movie->no_inplace_rewrite) {
+		//things where added to the file, no inplace rewrite
+		if (movie->editFileMap && gf_bs_get_size(movie->editFileMap->bs))
+			movie->no_inplace_rewrite = GF_TRUE;
+		//block redirect (used by mp4mx), no inplace rewrite
+		else if (movie->on_block_out || !strcmp(movie->finalName, "_gpac_isobmff_redirect"))
+			movie->no_inplace_rewrite = GF_TRUE;
+		//stdout redirect, no inplace rewrite
+		else if (!strcmp(movie->finalName, "std"))
+			movie->no_inplace_rewrite = GF_TRUE;
+		//new file, no inplace rewrite
+		else if (!movie->fileName)
+			movie->no_inplace_rewrite = GF_TRUE;
+	}
+	if (movie->no_inplace_rewrite) return GF_FALSE;
+
+	return GF_TRUE;
+}
+
+GF_EXPORT
+void gf_isom_disable_inplace_rewrite(GF_ISOFile *movie)
+{
+	if (movie)
+		movie->no_inplace_rewrite = GF_TRUE;
+}
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
