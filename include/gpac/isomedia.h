@@ -2595,6 +2595,35 @@ GF_Err gf_isom_set_write_callback(GF_ISOFile *isom_file,
  			void *usr_data,
  			u32 block_size);
 
+/*! checks if file will use in-place rewriting or not
+\param isom_file the target ISO file
+\return GF_TRUE if in-place rewrite is used, GF_FALSE otherwise
+*/
+Bool gf_isom_is_inplace_rewrite(GF_ISOFile *isom_file);
+
+/*! Disables inplace rewrite. Once in-place rewrite  is disabled, the file can no longer be rewrittten in place.
+
+ In-place rewriting allows editing the file structure (ftyp, moov and meta boxes) without modifying the media data size.
+
+ In-place rewriting is disabled for any of the following:
+ - specifying a storage mode using  \ref gf_isom_set_storage_mode
+ - removing or adding tracks or items
+ - removing, adding or updating samples
+ - using stdout, redirect file "_gpac_isobmff_redirect",  memory file " gmem://"
+
+In-place rewriting is enabled by default on files open in edit mode.
+
+\param isom_file the target ISO file
+*/
+void gf_isom_disable_inplace_rewrite(GF_ISOFile *isom_file);
+
+/*! sets amount of bytes to reserve after moov for future in-place editing. This may be ignored depending on the final write mode
+\param isom_file the target ISO file
+\param padding amount of bytes to reserve
+\return error if any
+*/
+GF_Err gf_isom_set_inplace_padding(GF_ISOFile *isom_file, u32 padding);
+
 /*! @} */
 
 #endif // GPAC_DISABLE_ISOM_WRITE
@@ -5990,11 +6019,11 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u
 \param data set to the tag data pointer - do not modify
 \param data_len set to the size of the tag data. Data is set to NULL and data_size to 1 if the associated tag has no data
 \param out_int_val set to the int/bool/frac numerator type for known tags, in which case data is set to NULL
-\param out_int_val set to the frac denominator for known tags, in which case data is set to NULL
+\param out_int_val2 set to the frac denominator for known tags, in which case data is set to NULL
 \param out_flags set to the flags value of the data container box
 \return error if any (GF_URL_ERROR if no more tags)
 */
-GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags);
+GF_Err gf_isom_apple_enum_tag(GF_ISOFile *isom_file, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! sets the given tag info.
@@ -6016,6 +6045,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u
 \return error if any
 */
 GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *isom_file, u32 trackNumber);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*! @} */

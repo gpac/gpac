@@ -340,6 +340,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->moov = (GF_MovieBox *)a;
+			mov->original_moov_offset = mov->current_top_box_start;
 			/*set our pointer to the movie*/
 			mov->moov->mov = mov;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -401,6 +402,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->meta = (GF_MetaBox *)a;
+			mov->original_meta_offset = mov->current_top_box_start;
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) {
 				return e;
@@ -413,6 +415,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 		/*we only keep the MDAT in READ for dump purposes*/
 		case GF_ISOM_BOX_TYPE_MDAT:
+			if (!mov->first_data_toplevel_offset) {
+				mov->first_data_toplevel_offset = mov->current_top_box_start;
+				mov->first_data_toplevel_size = a->size;
+			}
 			totSize += a->size;
 			if (mov->openMode == GF_ISOM_OPEN_READ) {
 				if (!mov->mdat) {
@@ -496,6 +502,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 		case GF_ISOM_BOX_TYPE_SIDX:
 		case GF_ISOM_BOX_TYPE_SSIX:
+			if (mov->moov && !mov->first_data_toplevel_offset) {
+				mov->first_data_toplevel_offset = mov->current_top_box_start;
+				mov->first_data_toplevel_size = a->size;
+			}
 			totSize += a->size;
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				e = gf_list_add(mov->TopBoxes, a);
@@ -531,6 +541,8 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			break;
 
 		case GF_ISOM_BOX_TYPE_MOOF:
+			//no support for inplace rewrite for fragmented files
+			gf_isom_disable_inplace_rewrite(mov);
 			if (!mov->moov) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Movie fragment but no moov (yet) - possibly broken parsing!\n"));
 			}

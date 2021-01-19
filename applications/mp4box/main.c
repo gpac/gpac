@@ -177,6 +177,8 @@ GF_GPACArg m4b_gen_args[] =
 			"   - `-edits=re0-5/1e5-3/1,100/25`: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track\n"
 			"   - `-edits=re0-4/1,0,2/1`: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 2\n"
 				, NULL, NULL, GF_ARG_INT, 0),
+ 	GF_DEF_ARG("moovpad", NULL, "specify amount of padding to keep after moov box for later inplace editing - if 0, moov padding is disabled", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("no-inplace", NULL, "disable inplace rewrite", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	{0}
 };
 
@@ -2661,6 +2663,7 @@ u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type;
 GF_ISOTrackID trackID;
 u32 do_flat, box_patch_trackID=0, print_info;
 Bool comp_lzma=GF_FALSE;
+Bool no_inplace = GF_FALSE;
 Bool merge_last_seg=GF_FALSE;
 Bool freeze_box_order=GF_FALSE;
 Bool chap_qt=GF_FALSE;
@@ -2676,6 +2679,7 @@ u32 dump_udta_track = 0;
 char **mpd_base_urls = NULL;
 u32 nb_mpd_base_urls = 0;
 u32 dash_scale = 1000;
+u32 moov_pading = 0;
 Bool insert_utc = GF_FALSE;
 const char *udp_dest = NULL;
 #ifndef GPAC_DISABLE_MPD
@@ -2982,6 +2986,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-iod")) regular_iod = 1;
 		else if (!stricmp(arg, "-flat")) {
 			open_edit = GF_TRUE;
+			no_inplace = GF_TRUE;
 			do_flat = 1;
 		}
 		else if (!stricmp(arg, "-keep-utc")) keep_utc = GF_TRUE;
@@ -4350,8 +4355,18 @@ Bool mp4box_parse_args(int argc, char **argv)
 			if (!interleaving_time) do_flat = 2;
 			open_edit = GF_TRUE;
 			needSave = GF_TRUE;
+			no_inplace = GF_TRUE;
 			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
 			i++;
+		}
+		else if (!stricmp(arg, "-moovpad")) {
+			CHECK_NEXT_ARG
+			moov_pading = atoi(argv[i+1]);
+			needSave = GF_TRUE;
+			i++;
+		}
+		else if (!stricmp(arg, "-no-inplace")) {
+			no_inplace = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-frag")) {
 			CHECK_NEXT_ARG
@@ -6047,6 +6062,10 @@ int mp4boxMain(int argc, char **argv)
 				meta->image_props->src_file = NULL;
 			} else if (!self_ref) {
 				gf_isom_remove_track(file, old_tk_count+1);
+				if (do_flat) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: -flat storage cannot be used when using -add-image on external file\n"));
+					e = GF_NOT_SUPPORTED;
+				}
 			}
 			needSave = GF_TRUE;
 		}
@@ -6735,49 +6754,64 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif /*!defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)*/
 
-	/*full interleave (sample-based) if just hinted*/
-	if (FullInter) {
-		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
-	} else if (do_flat) {
-		e = gf_isom_set_storage_mode(file, (do_flat==1) ? GF_ISOM_STORE_FLAT : GF_ISOM_STORE_STREAMABLE);
-		needSave = GF_TRUE;
-	} else {
-		e = gf_isom_make_interleave(file, interleaving_time);
-		if (!e && old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_INTERLEAVED);
-	}
 	if (force_co64)
 		gf_isom_force_64bit_chunk_offset(file, GF_TRUE);
 
 	if (compress_moov)
 		gf_isom_enable_compression(file, GF_ISO_COMP_MOOV, GF_FALSE);
 
+	if (no_inplace)
+		gf_isom_disable_inplace_rewrite(file);
+
+	if (moov_pading)
+		gf_isom_set_inplace_padding(file, moov_pading);
+
+	if (outName) {
+		gf_isom_set_final_name(file, outfile);
+	} else if (!encode && !force_new && !gf_isom_is_inplace_rewrite(file)) {
+		gf_isom_set_final_name(file, outfile);
+	}
+
+	Bool is_inplace = gf_isom_is_inplace_rewrite(file);
+
+
+	/*full interleave (sample-based) if just hinted*/
+	if (FullInter) {
+		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
+	} else if (do_flat) {
+		e = gf_isom_set_storage_mode(file, (do_flat==1) ? GF_ISOM_STORE_FLAT : GF_ISOM_STORE_STREAMABLE);
+		needSave = GF_TRUE;
+	}
+	//do not set storage mode unless inplace rewrite is disabled , either by user or due to operations on file
+	else if (!is_inplace) {
+		e = gf_isom_make_interleave(file, interleaving_time);
+		if (!e && old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_INTERLEAVED);
+	}
+
 	if (e) goto err_exit;
 
-	if (!encode && !force_new) gf_isom_set_final_name(file, outfile);
+
 	if (needSave) {
 
 		if (!gf_sys_is_quiet()) {
 			if (outName) {
-				gf_isom_set_final_name(file, outfile);
 			} else if (encode || pack_file) {
 				fprintf(stderr, "Saving to %s: ", gf_isom_get_filename(file) );
 			} else {
 				fprintf(stderr, "Saving %s: ", inName);
 			}
-			if (HintIt && FullInter) fprintf(stderr, "Hinted file - Full Interleaving\n");
+			if (is_inplace) fprintf(stderr, "In-place rewrite\n");
+			else if (HintIt && FullInter) fprintf(stderr, "Hinted file - Full Interleaving\n");
 			else if (FullInter) fprintf(stderr, "Full Interleaving\n");
 			else if ((force_new==2) && interleaving_time) fprintf(stderr, "Fast-start interleaved storage\n");
 			else if (do_flat || !interleaving_time) fprintf(stderr, "Flat storage\n");
 			else fprintf(stderr, "%.3f secs Interleaving%s\n", interleaving_time, old_interleave ? " - no drift control" : "");
-		} else {
-			if (outName)
-				gf_isom_set_final_name(file, outfile);
 		}
 
 		e = gf_isom_close(file);
 		file = NULL;
 
-		if (!e && !outName && !encode && !force_new && !pack_file) {
+		if (!e && !outName && !encode && !force_new && !pack_file && !is_inplace) {
 			if (gf_file_exists(inName)) {
 				e = gf_file_delete(inName);
 				if (e) {
