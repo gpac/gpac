@@ -84,11 +84,11 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_UINT:
 		if (value && !strcmp(value, "+I")) p.value.sint = 0xFFFFFFFF;
-		else if (!value) {
+		else if (!value && !enum_values) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		} else if (enum_values && strchr(enum_values, '|')) {
-			u32 a_len = (u32) strlen(value);
+			u32 a_len = value ? (u32) strlen(value) : 0;
 			u32 val = 0;
 			char *str_start = (char *) enum_values;
 			while (str_start) {
@@ -98,6 +98,12 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 					len = (u32) (sep - str_start);
 				} else {
 					len = (u32) strlen(str_start);
+				}
+				if (!a_len && len) {
+					char szVal[50];
+					gf_strlcpy(szVal, str_start, MIN(len+1, 50) );
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using `%s`\n", value, name, enum_values, szVal));
+					break;
 				}
 				if ((a_len == len) && !strncmp(str_start, value, len))
 					break;
@@ -110,7 +116,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 			if (!str_start) {
 				//special case for enums with default set to -1
-				if (!strcmp(value, "-1")) {
+				if (value && !strcmp(value, "-1")) {
 					p.value.uint = (u32) -1;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using 0\n", value, name, enum_values));
