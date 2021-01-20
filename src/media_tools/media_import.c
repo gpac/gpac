@@ -1246,7 +1246,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->filter_dst_opts)
-		e |= gf_dynstrcat(&args, importer->filter_dst_opts, ":");
+		e |= gf_dynstrcat(&args, importer->filter_dst_opts, ":gfloc:");
 
 	if (importer->flags & GF_IMPORT_FORCE_MPEG4)
 		e |= gf_dynstrcat(&args, "m4sys", ":");
