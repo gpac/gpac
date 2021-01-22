@@ -90,23 +90,29 @@ int main(int argc, char **argv) {\
 
 #endif //win32
 
-/*! structure holding a gpac arg (not a filter arg)*/
+/*! macro defining fields of a libgpac arg (not a filter arg)*/
+#define GF_GPAC_ARG_BASE \
+	/*! name of arg*/ \
+	const char *name; \
+	/*! alternate name of arg*/ \
+	const char *altname; \
+	/*! description of arg*/ \
+	const char *description; \
+	/*! default value of arg*/ \
+	const char *val; \
+	/*! possible value of arg*/ \
+	const char *values; \
+	/*! argument type for UI construction - note that argument values are not parsed and shall be set as strings*/ \
+	u16 type; \
+	/*! argument flags*/ \
+	u16 flags; \
+
+
+/*! structure holding a libgpac arg (not a filter arg)*/
 typedef struct
 {
-	/*! name of arg*/
-	const char *name;
-	/*! alternate name of arg*/
-	const char *altname;
-	/*! description of arg*/
-	const char *description;
-	/*! default value of arg*/
-	const char *val;
-	/*! possible value of arg*/
-	const char *values;
-	/*! argument type for UI construction - note that argument values are not parsed and shall be set as strings*/
-	u16 type;
-	/*! argument flags*/
-	u16 flags;
+	/*! base structure, shall always be placed first if you extend args in your application*/
+	GF_GPAC_ARG_BASE
 } GF_GPACArg;
 
 //these 3 values match argument hints of filters
@@ -146,6 +152,8 @@ typedef struct
 #define GF_ARG_STRING	3
 /*! argument is a camma-separated list of strings*/
 #define GF_ARG_STRINGS	4
+/*! argument is a custom arg, default value contains the syntax of the argument*/
+#define GF_ARG_CUSTOM	5
 
 /*! macros for defining a GF_GPACArg argument*/
 #define GF_DEF_ARG(_a, _b, _c, _d, _e, _f, _g) {_a, _b, _c, _d, _e, _f, _g}

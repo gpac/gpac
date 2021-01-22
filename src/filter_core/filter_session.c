@@ -2247,7 +2247,7 @@ void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
 			}
 		}
 
-		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Arg %s set but not used\n", argname));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Arg %s set but not used\n", argname));
 	}
 }
 
