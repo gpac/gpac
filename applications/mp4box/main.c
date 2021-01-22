@@ -255,23 +255,23 @@ Bool insert_utc=0, chunk_mode=0, HintCopy=0, hint_no_offset=0, do_bin_xml=0, fra
 Bool dump_iod=0, samplegroups_in_traf=0, mvex_after_traks=0, daisy_chain_sidx=0, use_ssix=0, single_segment=0, single_file=0, segment_timeline=0;
 char *do_mpd_conv=NULL;
 u32 MTUSize = 1450;
-const char *dash_start_date=NULL;
+char *dash_start_date=NULL;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = 0.0;
 GF_MemTrackerType mem_track = GF_MemTrackerNone;
 GF_DASHPSSHMode pssh_mode=0;
 
 GF_DashProfile dash_profile=GF_DASH_PROFILE_AUTO;
-const char *dash_profile_extension = NULL;
-const char *dash_cues = NULL;
+char *dash_profile_extension = NULL;
+char *dash_cues = NULL;
 Bool strict_cues=0, use_url_template=0, seg_at_rap=0, frag_at_rap=0, adjust_split_end=0, memory_frags=0, keep_utc=0, has_next_arg=0, no_cache=0, no_loop=0;
-const char *do_wget = NULL;
+char *do_wget = NULL;
 
 char *seg_ext = NULL;
 char *init_seg_ext = NULL;
-const char *dash_title = NULL;
-const char *dash_source = NULL;
-const char *dash_more_info = NULL;
+char *dash_title = NULL;
+char *dash_source = NULL;
+char *dash_more_info = NULL;
 
 FILE *logfile = NULL;
 u32 run_for=0, dash_cumulated_time=0, dash_prev_time=0, dash_now_time=0;
@@ -1560,7 +1560,7 @@ static void PrintHelp(char *arg_name, Bool search_desc, Bool no_match)
 }
 
 
-static u32 parse_sdp_ext(char *arg_val, u32 param)
+u32 parse_sdp_ext(char *arg_val, u32 param)
 {
 	char *id;
 	sdp_lines = gf_realloc(sdp_lines, sizeof(SDPLine) * (nb_sdp_ex + 1));
@@ -2306,14 +2306,14 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 	return GF_TRUE;
 }
 
-static u32 parse_track_dump(char *arg, u32 dump_type)
+u32 parse_track_dump(char *arg, u32 dump_type)
 {
 	if (!create_new_track_action(arg, TRAC_ACTION_RAW_EXTRACT, dump_type))
 		return 2;
 	track_dump_type = dump_type;
 	return 0;
 }
-static u32 parse_track_action(char *arg, u32 act_type)
+u32 parse_track_action(char *arg, u32 act_type)
 {
 	if (!create_new_track_action(arg, act_type, 0)) {
 		return 2;
@@ -2986,7 +2986,7 @@ u32 mp4box_parse_single_arg_class(int argc, char **argv, char *arg, u32 *arg_ind
 
 	if (arg_desc->type == GF_ARG_STRING) {
 		if (arg_desc->parse_flags & ARG_IS_4CC) {
-			u32 alen = strlen(arg_val);
+			u32 alen = (u32) strlen(arg_val);
 			if ((alen<3) || (alen>4)) {
 				fprintf(stderr, "Value for %s must be a 4CC, %s is not - please check usage\n", arg, arg_val);
 				arg_parse_res = 2;
@@ -3609,7 +3609,7 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName)
 {
 	FILE *in, *out;
 	u8 *buf;
-	u32 buf_alloc, comp_size, start_offset;
+	u32 buf_alloc, comp_size;
 	s32 bytes_comp=0;
 	s32 bytes_uncomp=0;
 	GF_Err e = GF_OK;
@@ -3618,10 +3618,8 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName)
 	u32 final_box_overhead;
 	u32 nb_added_box_bytes=0;
 	Bool has_mov = GF_FALSE;
-	u32 range_idx;
 	Bool replace_all = !strcmp(compress_top_boxes, "*");
 	GF_BitStream *bs_in, *bs_out;
-	u32 nb_moof;
 
 	if (!outName) {
 		fprintf(stderr, "Missing output file name\n");
@@ -3641,10 +3639,6 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName)
 
 	bs_out = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 
-	start_offset = 0;
-	nb_moof = 0;
-
-	range_idx = 0;
 	orig_box_overhead = 0;
 	final_box_overhead = 0;
 	while (gf_bs_available(bs_in)) {

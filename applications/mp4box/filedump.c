@@ -3427,7 +3427,8 @@ void DumpMovieInfo(GF_ISOFile *file)
 
 		while (1) {
 			const u8 *data;
-			u32 tag, data_len, int_val2, flags, itype;
+			u32 data_len, int_val2, flags, itype;
+			GF_ISOiTunesTag tag;
 			u64 int_val;
 			s32 tag_idx;
 			GF_Err e = gf_isom_apple_enum_tag(file, i, &tag, &data, &data_len, &int_val, &int_val2, &flags);
@@ -3460,7 +3461,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 				break;
 			case GF_ITAG_ID3_GENRE:
 				if (int_val) {
-					fprintf(stderr, "%s", gf_id3_get_genre(int_val) );
+					fprintf(stderr, "%s", gf_id3_get_genre((u32) int_val) );
 					break;
 				}
 				//fallthrough

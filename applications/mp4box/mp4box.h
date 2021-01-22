@@ -144,9 +144,9 @@ GF_Err rip_mpd(const char *mpd, const char *dst_file);
 GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
 
-static u32 parse_track_dump(char *arg, u32 dump_type);
-static u32 parse_track_action(char *arg, u32 act_type);
-static u32 parse_sdp_ext(char *arg_val, u32 param);
+u32 parse_track_dump(char *arg, u32 dump_type);
+u32 parse_track_action(char *arg, u32 act_type);
+u32 parse_sdp_ext(char *arg_val, u32 param);
 u32 parse_help(char *arg_val, u32 opt);
 u32 parse_gendoc(char *name, u32 opt);
 u32 parse_comp_box(char *arg_val, u32 opt);

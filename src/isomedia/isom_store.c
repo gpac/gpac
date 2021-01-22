@@ -1630,7 +1630,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 }
 
 
-static GF_Err write_blank_data(GF_BitStream *bs, u64 size)
+static GF_Err write_blank_data(GF_BitStream *bs, u32 size)
 {
 	u8 data[1000];
 
@@ -1649,7 +1649,7 @@ static GF_Err write_blank_data(GF_BitStream *bs, u64 size)
 	return GF_OK;
 }
 
-static GF_Err write_free_box(GF_BitStream *bs, u64 size)
+static GF_Err write_free_box(GF_BitStream *bs, u32 size)
 {
 	if (size<8) return GF_BAD_PARAM;
 	gf_bs_write_u32(bs, size);
@@ -1964,12 +1964,12 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 	if (movie->brand) {
 		e = gf_isom_box_size((GF_Box *)movie->brand);
 		if (e) return e;
-		mdat_offset += movie->brand->size;
+		mdat_offset += (u32) movie->brand->size;
 	}
 	if (movie->pdin) {
 		e = gf_isom_box_size((GF_Box *)movie->pdin);
 		if (e) return e;
-		mdat_offset += movie->pdin->size;
+		mdat_offset += (u32) movie->pdin->size;
 	}
 
 	i=0;
@@ -1989,7 +1989,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 			if ((moov_meta_pos<0) && (mdat_pos<0) ) {
 				e = gf_isom_box_size(a);
 				if (e) return e;
-				mdat_offset += a->size;
+				mdat_offset += (u32) a->size;
 			}
 			break;
 		}
@@ -2008,7 +2008,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 	if (moov_meta_offset > movie->first_data_toplevel_offset) {
 		moov_first = GF_FALSE;
 		if (mdat_offset < movie->first_data_toplevel_offset) {
-			rewind_meta = movie->first_data_toplevel_offset - mdat_offset;
+			rewind_meta = (u32) movie->first_data_toplevel_offset - mdat_offset;
 			if ((movie->first_data_toplevel_size<0xFFFFFFFFUL)
 				&& (movie->first_data_toplevel_size+rewind_meta > 0xFFFFFFFFUL)
 				&& (rewind_meta<8)
@@ -2016,7 +2016,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 				shift_meta = 8 - rewind_meta;
 			}
 		} else {
-			shift_meta = mdat_offset - movie->first_data_toplevel_offset;
+			shift_meta = mdat_offset - (u32) movie->first_data_toplevel_offset;
 		}
 
 		if (shift_meta) {
@@ -2054,7 +2054,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
 		default:
-			if ((i < moov_meta_pos) && (i < mdat_pos)) {
+			if (((s32) i < moov_meta_pos) && ((s32)i < mdat_pos)) {
 				e = gf_isom_box_write(a, bs);
 				if (e) return e;
 			}
@@ -2067,7 +2067,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 			//rewrite mdat header
 			u64 mdat_size = movie->first_data_toplevel_size + rewind_meta;
 			if (mdat_size>0xFFFFFFUL) gf_bs_write_u32(bs, 1);
-			else gf_bs_write_u32(bs, mdat_size);
+			else gf_bs_write_u32(bs, (u32) mdat_size);
 			gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
 			if (mdat_size>0xFFFFFFUL) gf_bs_write_u64(bs, mdat_size);
 		}
@@ -2120,7 +2120,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 
 	//move data
 	if (shift_offset) {
-		e = inplace_shift_mdat(mw, shift_offset, bs, GF_TRUE);
+		e = inplace_shift_mdat(mw, (u32) shift_offset, bs, GF_TRUE);
 		if (e) return e;
 	}
 	//write meta and moov
@@ -2134,7 +2134,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 	}
 	//insert a free box in-between
 	size = movie->first_data_toplevel_offset + shift_offset - gf_bs_get_position(bs);
-	return write_free_box(bs, size);
+	return write_free_box(bs, (u32) size);
 }
 
 

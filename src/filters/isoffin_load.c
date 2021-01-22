@@ -712,7 +712,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			u64 int_val;
 			const char *name;
 			const u8 *data;
-			u32 itag, itype = 0;
+			GF_ISOiTunesTag itag;
+			u32 itype = 0;
 			s32 tag_idx;
 
 			e = gf_isom_apple_enum_tag(read->mov, idx, &itag, &data, &data_len, &int_val, &int_val2, &flags);
