@@ -93,9 +93,9 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 #ifndef GPAC_DISABLE_SCENE_STATS
 void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 stat_level);
 #endif
-void PrintNode(const char *name, u32 graph_type);
-void PrintBuiltInNodes(u32 graph_type, Bool dump_all);
-void PrintBuiltInBoxes(Bool do_cov);
+u32 PrintNode(const char *name, u32 graph_type);
+u32 PrintBuiltInNodes(char *arg_val, u32 dump_type);
+u32 PrintBuiltInBoxes(char *arg_val, u32 do_cov);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, Bool skip_init, Bool skip_samples);
@@ -121,7 +121,7 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 
 void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num, Bool dump_m4sys);
 void DumpMovieInfo(GF_ISOFile *file);
-void PrintLanguages();
+u32 PrintLanguages(char *argv, u32 opt);
 
 #ifndef GPAC_DISABLE_MPEG2TS
 void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num);
@@ -142,6 +142,38 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
 GF_Err rip_mpd(const char *mpd, const char *dst_file);
 
 GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+
+
+static u32 parse_track_dump(char *arg, u32 dump_type);
+static u32 parse_track_action(char *arg, u32 act_type);
+static u32 parse_sdp_ext(char *arg_val, u32 param);
+u32 parse_help(char *arg_val, u32 opt);
+u32 parse_gendoc(char *name, u32 opt);
+u32 parse_comp_box(char *arg_val, u32 opt);
+u32 parse_dnal(char *arg_val, u32 opt);
+u32 parse_dsap(char *arg_val, u32 opt);
+u32 parse_bs_switch(char *arg_val, u32 opt);
+u32 parse_cp_loc(char *arg_val, u32 opt);
+u32 parse_pssh(char *arg_val, u32 opt);
+u32 parse_sdtp(char *arg_val, u32 opt);
+u32 parse_dash_profile(char *arg_val, u32 opt);
+u32 parse_rap_ref(char *arg_val, u32 opt);
+u32 parse_store_mode(char *arg_val, u32 opt);
+u32 parse_base_url(char *arg_val, u32 opt);
+u32 parse_multi_rtp(char *arg_val, u32 opt);
+u32 parse_senc_param(char *arg_val, u32 opt);
+u32 parse_cryp(char *arg_val, u32 opt);
+u32 parse_fps(char *arg_val, u32 opt);
+u32 parse_split(char *arg_val, u32 opt);
+u32 parse_brand(char *b, u32 opt);
+u32 parse_mpegu(char *arg_val, u32 opt);
+u32 parse_file_info(char *arg_val, u32 opt);
+u32 parse_boxpatch(char *arg_val, u32 opt);
+u32 parse_aviraw(char *arg_val, u32 opt);
+u32 parse_dump_udta(char *code, u32 opt);
+u32 parse_dump_ts(char *arg_val, u32 opt);
+u32 parse_ttxt(char *arg_val, u32 opt);
+u32 parse_dashlive(char *arg, char *arg_val, u32 opt);
 
 #endif // _MP4BOX_H
 

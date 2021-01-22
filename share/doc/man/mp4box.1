@@ -39,7 +39,7 @@ enable memory tracker
 enable memory tracker with stack dumping
 .br
 .TP
-.B \-p
+.B \-p (string)
 .br
 use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Works using -p=NAME or -p NAME
 .br
@@ -54,7 +54,7 @@ interleave file, producing track chunks with given duration in ms. A value of 0 
 same as .I inter but wihout drift correction
 .br
 .TP
-.B \-tight (number)
+.B \-tight
 .br
 tight interleaving (sample based) of the file. This reduces disk seek operations but increases file size
 .br
@@ -94,7 +94,7 @@ force creation of a new destination file
 force creation of a new destination file without temp file but interleaving support
 .br
 .TP
-.B \-no-sys
+.B \-no-sys,-nosys
 .br
 remove all MPEG-4 Systems info except IOD, kept for profiles. This is the default when creating regular AV content
 .br
@@ -172,12 +172,12 @@ set chapter information from given file. The following formats are supported (bu
 set chapter information from given file, using QT signaling for text tracks
 .br
 .TP
-.B \-set-track-id  id1:id2 (string)
+.B \-set-track-id id1:id2
 .br
 change id of track with id1 to id2
 .br
 .TP
-.B \-swap-track-id  id1:id2 (string)
+.B \-swap-track-id id1:id2
 .br
 swap the id between tracks with id1 to id2
 .br
@@ -212,17 +212,17 @@ disable given track
 set movie timescale to given value (ticks per second)
 .br
 .TP
-.B \-lang  [tkID=]LAN (string)
+.B \-lang [tkID=]LAN
 .br
 set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks
 .br
 .TP
-.B \-delay  tkID=TIME (string)
+.B \-delay tkID=TIME
 .br
 set track start delay in ms or in fractional seconds (N/D)
 .br
 .TP
-.B \-par  tkID=PAR (string)
+.B \-par tkID=PAR
 .br
 set visual track pixel aspect ratio. PAR is:
 .br
@@ -237,7 +237,7 @@ set visual track pixel aspect ratio. PAR is:
   * force: force 1:1 PAR in track, do not modify the bitstream
 .br
 .TP
-.B \-clap  tkID=CLAP (string)
+.B \-clap tkID=CLAP
 .br
 set visual track clean aperture. CLAP is Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd or none
 .br
@@ -248,19 +248,29 @@ set visual track clean aperture. CLAP is Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd or none
 
 .br
 .TP
-.B \-mx  tkID=MX (string)
+.B \-mx tkID=MX
 .br
 set track matrix, with MX is M1:M2:M3:M4:M5:M6:M7:M8:M9 in 16.16 fixed point intergers or hexa
 .br
 .TP
-.B \-name  tkID=NAME (string)
+.B \-kind tkID=schemeURI=value
+.br
+set kind for the track or for all tracks using all=schemeURI=value
+.br
+.TP
+.B \-kind-rem tkID=schemeURI=value
+.br
+remove kind if given schemeID for the track or for all tracks with all=schemeURI=value
+.br
+.TP
+.B \-name tkID=NAME
 .br
 set track handler name to NAME (UTF-8 string)
 .br
 .TP
-.B \-itags  tag1[:tag2] (string)
+.B \-itags (string)
 .br
-set iTunes tags to file, see .I tag-list
+set iTunes tags to file, see -h tags
 .br
 .TP
 .B \-group-add (string)
@@ -297,7 +307,7 @@ remove the track's group
 remove all group information from all tracks
 .br
 .TP
-.B \-ref  id:XXXX:refID (string)
+.B \-ref id:XXXX:refID
 .br
 add a reference of type 4CC from track ID to track refID
 .br
@@ -307,7 +317,7 @@ add a reference of type 4CC from track ID to track refID
 keep UTC timing in the file after edit
 .br
 .TP
-.B \-udta  tkID:[OPTS] (string)
+.B \-udta tkID:[OPTS]
 .br
 set udta for given track or movie if tkID is 0. OPTS is a colon separated list of:
 .br
@@ -328,7 +338,7 @@ Note: If no source is set, UDTA of type CODE will be removed
 
 .br
 .TP
-.B \-patch  [tkID=]FILE (string)
+.B \-patch [tkID=]FILE
 .br
 apply box patch described in FILE, for given trackID if set
 .br
@@ -348,7 +358,7 @@ use the given file as an init segment for dumping or for encryption
 compress movie box according to ISOBMFF box compression
 .br
 .TP
-.B \-edits  tkID=EDITS (int)
+.B \-edits tkID=EDITS
 .br
 set edit list. The following syntax is used (no separators between entries):
 .br
@@ -380,9 +390,19 @@ set edit list. The following syntax is used (no separators between entries):
 specify amount of padding to keep after moov box for later inplace editing - if 0, moov padding is disabled
 .br
 .TP
-.B \-no-inplace (int)
+.B \-no-inplace
 .br
 disable inplace rewrite
+.br
+.TP
+.B \-hdr (string)
+.br
+update HDR information based on given XML
+.br
+.TP
+.B \-time [tkID=]DAY/MONTH/YEAR-H:M:S
+.br
+set movie or track creation time
 .br
 .SH Extracting Options
 .LP
@@ -434,14 +454,14 @@ extract given track as raw media in experimental XML streaming instructions
 extract given track to an avi file
 .br
 .TP
-.B \-avi (int)
+.B \-qcp (int)
 .br
 same as .I raw but defaults to QCP file for EVRC/SMV
 .br
 .TP
-.B \-aviraw (string, values: video|audio)
+.B \-aviraw (string)
 .br
-extract AVI track in raw format; parameter can be video, audioor audioN
+extract AVI track in raw format; parameter can be video, audio or audioN
 .br
 .TP
 .B \-saf
@@ -462,6 +482,13 @@ same as .I raw but skips SVC/MVC/LHVC extractors when extracting
 .B \-diod
 .br
 extract file IOD in raw format
+.br
+.TP
+.B \-mpd (string)
+.br
+convert given HLS or smooth manifest (local or remote http) to MPD.  
+.br
+Warning: This is not compatible with other DASH options and does not convert associated segments
 .br
 .SH DASH Options
 .LP
@@ -553,21 +580,14 @@ Note: @f must be placed after all other options.
 .LP
 .br
 .TP
-.B \-mpd (string)
-.br
-convert given HLS or smooth manifest (local or remote http) to MPD.  
-.br
-Warning: This is not compatible with other DASH options and does not convert associated segments
-.br
-.TP
-.B \-dash,--dash-strict (number)
+.B \-dash (number)
 .br
 create DASH from input files with given segment (subsegment for onDemand profile) duration in ms
 .br
 .TP
 .B \-dash-live (number)
 .br
-generate a live DASH session using the given segment duration in ms; using -dash-live=Fwill also write the live context to F. MP4Box will run the live session until q is pressed or a fatal error occurs
+generate a live DASH session using the given segment duration in ms; using -dash-live=F will also write the live context to F. MP4Box will run the live session until q is pressed or a fatal error occurs
 .br
 .TP
 .B \-ddbg-live (number)
@@ -585,14 +605,9 @@ specify the fragment duration in ms. If not set, this is the DASH duration (one 
 specify the output MPD file name
 .br
 .TP
-.B \-tmp (string)
+.B \-profile,-dash-profile (string)
 .br
-specify directory for temporary file creation
-.br
-.TP
-.B \-profile (string, values: onDemand|live|main|simple|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll)
-.br
-specify the target DASH profile, and set default options to ensure conformance to the desired profile. Default profile is full in static mode, live in dynamic mode (old syntax using :live instead of .live as separator still possible)
+specify the target DASH profile, and set default options to ensure conformance to the desired profile. Default profile is full in static mode, live in dynamic mode (old syntax using :live instead of .live as separator still possible). Defined values are onDemand, live, main, simple, full, hbbtv1.5.live, dashavc264.live, dashavc264.onDemand, dashif.ll
 .br
 .TP
 .B \-profile-ext (string)
@@ -648,9 +663,9 @@ set the segment extension for init, index and bitstream switching segments, null
 use SegmentTimeline when generating segments
 .br
 .TP
-.B \-segment-marker  MARK (string)
+.B \-segment-marker (string)
 .br
-add a box of type MARK (4CC) at the end of each DASH segment
+add a box of given type (4CC) at the end of each DASH segment
 .br
 .TP
 .B \-insert-utc
@@ -695,12 +710,12 @@ store/restore DASH timing from indicated file
 use dynamic MPD type instead of static
 .br
 .TP
-.B \-last-dynamic (string)
+.B \-last-dynamic
 .br
 same as .I dynamic but close the period (insert lmsg brand if needed and update duration)
 .br
 .TP
-.B \-mpd-duration (number, default: 0)
+.B \-mpd-duration (number)
 .br
 set the duration in second of a live session (if 0, you must use .I mpd-refresh)
 .br
@@ -710,12 +725,12 @@ set the duration in second of a live session (if 0, you must use .I mpd-refresh)
 specify MPD update time in seconds
 .br
 .TP
-.B \-time-shift (number)
+.B \-time-shift (int)
 .br
 specify MPD time shift buffer depth in seconds, -1 to keep all files)
 .br
 .TP
-.B \-subdur (int)
+.B \-subdur (number)
 .br
 specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless .I no-loop is used which triggers a period end
 .br
@@ -730,14 +745,14 @@ run for given ms  the dash-live session then exits
 specify MPD min buffer time in ms
 .br
 .TP
-.B \-ast-offset (int, default: 0)
+.B \-ast-offset (int)
 .br
 specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative
 .br
 .TP
 .B \-dash-scale (int)
 .br
-specify that timing for .I dash and .I frag are expressed in given timexale (units per seconds)
+specify that timing for .I dash and .I do_frag are expressed in given timexale (units per seconds)
 .br
 .TP
 .B \-mem-frags
@@ -745,7 +760,7 @@ specify that timing for .I dash and .I frag are expressed in given timexale (uni
 fragmentation happens in memory rather than on disk before flushing to disk
 .br
 .TP
-.B \-pssh (Enum)
+.B \-pssh (int)
 .br
 set pssh store mode
 .br
@@ -770,7 +785,7 @@ store sample group descriptions in traf (duplicated for each traf). If not set, 
 store mvex box after trak boxes within the moov box. If not set, mvex is before
 .br
 .TP
-.B \-sdtp-traf (Enum)
+.B \-sdtp-traf (int)
 .br
 use sdtp box in traf (Smooth-like)
 .br
@@ -808,7 +823,7 @@ segmentation will always try to split before or at, but never after, the segment
 segmentation will use the closest frame to the segment boundary (before or after)
 .br
 .TP
-.B \-subsegs-per-sidx (int)
+.B \-subsegs-per-sidx,-frags-per-sidx (int)
 .br
 set the number of subsegments to be written in each SIDX box
 .br
@@ -825,6 +840,11 @@ enable SubsegmentIndexBox describing 2 ranges, first one from moof to end of fir
 .B \-url-template
 .br
 use SegmentTemplate instead of explicit sources in segments. Ignored if segments are stored in the output file
+.br
+.TP
+.B \-url-template-sim
+.br
+use SegmentTemplate simulation while converting HLS to MPD
 .br
 .TP
 .B \-daisy-chain
@@ -892,7 +912,7 @@ program_number to be considered in case of an MPTS input file
 when using fragments in live mode, flush fragments according to their timing
 .br
 .TP
-.B \-cp-location (string, values: as|repoth)
+.B \-cp-location (string)
 .br
 set ContentProtection element location
 .br
@@ -947,17 +967,17 @@ You can add media to a file and split it in the same pass. In this case, the des
 split in files of given max duration
 .br
 .TP
-.B \-split-size,-splits (string)
-.br
-split in files of given max size (in kb)
-.br
-.TP
 .B \-split-rap,-splitr (string)
 .br
 split in files at each new RAP
 .br
 .TP
-.B \-split-chunk,-splitx  VAL (string)
+.B \-split-size,-splits (string)
+.br
+split in files of given max size (in kb)
+.br
+.TP
+.B \-split-chunk,-splitx (string)
 .br
 extract a new file from source. VAL can be formated as:
 .br
@@ -966,7 +986,7 @@ extract a new file from source. VAL can be formated as:
 * `S-E`: start and end dates, each formatted as HH:MM:SS.ms or MM:SS.ms
 .br
 .TP
-.B \-splitz  S:E (string)
+.B \-splitz S:E
 .br
 same as -split-chunk, but adjust the end time to be before the next RAP sample, so that ranges A:B and B:C share exactly the same boundary B
 .br
@@ -982,14 +1002,14 @@ MP4Box has many dump functionalities, from simple track listing to more complete
 Options:
 .br
 .TP
-.B \-stdb
+.B \-std
 .br
 dump/write to stdout and assume stdout is opened in binary mode
 .br
 .TP
 .B \-stdb
 .br
-dump/write to stdout  and try to reopen stdout in binary mode
+dump/write to stdout and try to reopen stdout in binary mode
 .br
 .TP
 .B \-tracks
@@ -1007,7 +1027,7 @@ print movie info (no parameter) or track info with specified ID
 print track info for given track number, 1 being the first track in the file
 .br
 .TP
-.B \-diso
+.B \-diso,-dmp4
 .br
 dump IsoMedia file boxes in XML output
 .br
@@ -1047,7 +1067,7 @@ dump scene to VRML format
 dump scene to X3D XML format
 .br
 .TP
-.B \-x3dc
+.B \-x3dv
 .br
 dump scene to X3D VRML format
 .br
@@ -1055,6 +1075,11 @@ dump scene to X3D VRML format
 .B \-lsr
 .br
 dump scene to LASeR XML (XSR) format
+.br
+.TP
+.B \-svg
+.br
+dump scene to SVG
 .br
 .TP
 .B \-drtp
@@ -1124,7 +1149,7 @@ same as .I dsap but only print CTS
 .TP
 .B \-dsapd (int)
 .br
-same as .I dsap but only print DTS, -dsapp to only print presentation time
+same as .I dsap but only print DTS
 .br
 .TP
 .B \-dsapp (int)
@@ -1157,7 +1182,7 @@ extract chapter file as OGG format
 extract chapter file as zoom format
 .br
 .TP
-.B \-dump-udta  [tkID:]4cc (string)
+.B \-dump-udta [tkID:]4cc
 .br
 extract udta for the given 4CC. If tkID is given, dumps from UDTA of the given track ID, otherwise moov is used
 .br
@@ -1172,14 +1197,9 @@ merge vtt cues while dumping
 convert input subtitle to GPAC TTXT format if no parameter. Otherwise, dump given text track to GPAC TTXT format
 .br
 .TP
-.B \-srt
+.B \-srt (int)
 .br
 convert input subtitle to SRT format if no parameter. Otherwise, dump given text track to SRT format
-.br
-.TP
-.B \-rip-mpd
-.br
-download manifest and segments of an MPD. Does not work with live sessions
 .br
 .TP
 .B \-stat
@@ -1207,11 +1227,6 @@ generate SHA-1 Hash of the input file
 replace with compressed version all top level box types given as parameter, formated as orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]
 .br
 .TP
-.B \-bin
-.br
-convert input XML file using NHML bitstream syntax to binary
-.br
-.TP
 .B \-topcount (string)
 .br
 print to stdout the number of top-level boxes matching box types given as parameter, formated as 4cc_1,4cc_2N
@@ -1220,6 +1235,36 @@ print to stdout the number of top-level boxes matching box types given as parame
 .B \-topsize (string)
 .br
 print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N or all for all boxes
+.br
+.TP
+.B \-bin
+.br
+convert input XML file using NHML bitstream syntax to binary
+.br
+.TP
+.B \-mpd-rip
+.br
+fetch MPD and segment to disk
+.br
+.TP
+.B \-udp-write IP[:port]
+.br
+write input name to UDP (default port 2345)
+.br
+.TP
+.B \-raw-cat (string)
+.br
+raw concatenation of given file with input file
+.br
+.TP
+.B \-wget (string)
+.br
+fetch ressource from http(s) URL
+.br
+.TP
+.B \-dm2ts
+.br
+dump timing of an input MPEG-2 TS stream sample timing
 .br
 .SH Importing Options
 .LP
@@ -1852,12 +1897,12 @@ concatenate files listed in the given playlist file (one file per line, lines st
 Note: Each listed file is concatenated as if called with -cat
 .br
 .TP
-.B \-unalign-cat (string)
+.B \-unalign-cat
 .br
 do not attempt to align timestamps of samples inbetween tracks
 .br
 .TP
-.B \-force-cat (string)
+.B \-force-cat
 .br
 skip media configuration check when concatenating file.  
 .br
@@ -1876,7 +1921,7 @@ keep media data in original file using data referencing. The resulting file only
 Note: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (AVC or HEVC cannot use this option)
 .br
 .TP
-.B \-no-drop
+.B \-no-drop,-nodrop
 .br
 force constant FPS when importing AVI video
 .br
@@ -1911,9 +1956,9 @@ non-backward compatible signaling of AAC-PS
 oversample SBR import (SBR AAC, PS AAC and oversampled SBR cannot be detected at import time)
 .br
 .TP
-.B \-fps (string, default: 25)
+.B \-fps (string)
 .br
-force frame rate for video and SUB subtitles import to the given value, expressed as a number or as timescale-increment.  
+force frame rate for video and SUB subtitles import to the given value, expressed as a number, as TS-inc or TS/inc.  
 .br
 Note: For raw H263 import, default FPS is 15, otherwise 25. This is ignored for ISOBMFF import, use :rescale option for that
 .br
@@ -1956,7 +2001,7 @@ specify RTP MTU (max size) in bytes (this includes 12 bytes RTP header)
 copy media data to hint track rather than reference (speeds up server but takes much more space)
 .br
 .TP
-.B \-multi  [maxptime] (int)
+.B \-multi [maxptime]
 .br
 enable frame concatenation in RTP packets if possible (with max duration 100 ms or maxptime ms if given)
 .br
@@ -2064,7 +2109,7 @@ Options:
 .TP
 .B \-mp4
 .br
-specify input file is for encoding
+specify input file is for BIFS/LASeR encoding
 .br
 .TP
 .B \-def
@@ -2074,12 +2119,17 @@ encode DEF names in BIFS
 .TP
 .B \-sync (int)
 .br
-force BIFS sync sample generation every given time in ms (cannot be used with .I shadow )
+force BIFS sync sample generation every given time in ms (cannot be used with .I shadow or .I carousel )
 .br
 .TP
 .B \-shadow (int)
 .br
-force BIFS sync shadow sample generation every given time in ms (cannot be used with .I sync )
+force BIFS sync shadow sample generation every given time in ms (cannot be used with .I sync or .I carousel )
+.br
+.TP
+.B \-carousel (int)
+.br
+use bifs carousel (cannot be used with .I sync or .I shadow )
 .br
 .TP
 .B \-sclog
@@ -2121,6 +2171,11 @@ extra bits used for encoding truncated scales (0 to 4, default 0) (LASeR encodin
 .br
 resolution is given as if using -resolution but coord-bits and scale-bits are infered (LASeR encoding)
 .br
+.TP
+.B \-global-quant (int)
+.br
+resolution is given as if using -resolution but the res is inferred (BIFS encoding)
+.br
 .SH Encryption/Decryption Options
 .LP
 .br
@@ -2145,9 +2200,9 @@ encrypt the input file using the given CryptFile
 decrypt the input file, potentially using the given CryptFile. If CryptFile is not given, will fail if the key management system is not supported
 .br
 .TP
-.B \-set-kms (string)
+.B \-set-kms tkID=kms_uri
 .br
-change ISMA/OMA KMS location for all tracks, or for a given one if ID=kms_uri is used
+change ISMA/OMA KMS location for a given track or for all tracks if all= is used
 .br
 .SH Meta and HEIF Options
 .LP
@@ -2161,7 +2216,7 @@ These information can be stored at the file root level, as is the case for HEIF/
   
 .br
 .TP
-.B \-set-meta  ABCD[:tk=tkID] (string)
+.B \-set-meta ABCD[:tk=tkID]
 .br
 set meta box type, with ABCD the four char meta type (NULL or 0 to remove meta)
 .br
@@ -2247,32 +2302,32 @@ create an image grid item, with parameter syntax grid[:opt1:optN]
 
 .br
 .TP
-.B \-rem-item  item_ID[:tk=tkID] (string)
+.B \-rem-item item_ID[:tk=tkID]
 .br
 remove resource from meta
 .br
 .TP
-.B \-set-primary  item_ID[:tk=tkID] (string)
+.B \-set-primary item_ID[:tk=tkID]
 .br
 set item as primary for meta
 .br
 .TP
-.B \-set-xml  xml_file_path[:tk=tkID][:binary] (string)
+.B \-set-xml xml_file_path[:tk=tkID][:binary]
 .br
 set meta XML data
 .br
 .TP
-.B \-rem-xml  [tk=tkID] (string)
+.B \-rem-xml [tk=tkID]
 .br
 remove meta XML data
 .br
 .TP
-.B \-dump-xml  file_path[:tk=tkID] (string)
+.B \-dump-xml file_path[:tk=tkID]
 .br
 dump meta XML to file
 .br
 .TP
-.B \-dump-item  item_ID[:tk=tkID][:path=fileName] (string)
+.B \-dump-item item_ID[:tk=tkID][:path=fileName]
 .br
 dump item to file
 .br
@@ -2282,7 +2337,7 @@ dump item to file
 package input XML file into an ISO container, all media referenced except hyperlinks are added to file
 .br
 .TP
-.B \-package (string)
+.B \-mgt (string)
 .br
 package input XML file into an MPEG-U widget with ISO container, all files contained in the current folder are added to the widget package
 .br
@@ -2338,6 +2393,16 @@ use quadratic bezier curves instead of cubic ones
 .B \-xlp
 .br
 support for lines transparency and scalability
+.br
+.TP
+.B \-ic2d
+.br
+use indexed curve 2D hardcoded proto
+.br
+.TP
+.B \-same-app
+.br
+appearance nodes are reused
 .br
 .TP
 .B \-flatten (number)
@@ -2463,6 +2528,11 @@ Options:
 
 .br
 .TP
+.B \-live
+.br
+enable live BIFS/LASeR encoder
+.br
+.TP
 .B \-dst (string)
 .br
 destination IP
@@ -2541,7 +2611,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev449-g925d246a0-master
+build: 1.1.0-DEV-rev452-g9781fd41f-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -62,7 +62,7 @@ extern u32 fs_dump_flags;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
-void PrintLanguages()
+u32 PrintLanguages(char *val, u32 opt)
 {
 	u32 i=0, count = gf_lang_get_count();
 	fprintf(stderr, "Supported ISO 639 languages and codes:\n\n");
@@ -71,6 +71,7 @@ void PrintLanguages()
 			fprintf(stderr, "%s (%s - %s)\n", gf_lang_get_name(i), gf_lang_get_3cc(i), gf_lang_get_2cc(i));
 		}
 	}
+	return 1;
 }
 
 static const char *GetLanguage(char *lcode)
@@ -645,11 +646,11 @@ static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u3
 #endif
 
 
-void PrintNode(const char *name, u32 graph_type)
+u32 PrintNode(const char *name, u32 graph_type)
 {
 #ifdef GPAC_DISABLE_VRML
 	fprintf(stderr, "VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n");
-	return;
+	return 2;
 #else
 	const char *std_name;
 	GF_Node *node;
@@ -671,7 +672,7 @@ void PrintNode(const char *name, u32 graph_type)
 		std_name = "X3D";
 #else
 		fprintf(stderr, "X3D node printing is not supported (X3D support disabled)\n");
-		return;
+		return 2;
 #endif
 	} else {
 		tag = gf_node_mpeg4_type_by_class_name(name);
@@ -679,7 +680,7 @@ void PrintNode(const char *name, u32 graph_type)
 	}
 	if (!tag) {
 		fprintf(stderr, "Unknown %s node %s\n", std_name, name);
-		return;
+		return 2;
 	}
 
 	sg = gf_sg_new();
@@ -688,20 +689,27 @@ void PrintNode(const char *name, u32 graph_type)
 	name = gf_node_get_class_name(node);
 	if (!node) {
 		fprintf(stderr, "Node %s not supported in current built\n", name);
-		return;
+		return 2;
 	}
 	do_print_node(node, sg, name, graph_type, is_nodefield, GF_FALSE);
 
 	gf_node_unregister(node, NULL);
 	gf_sg_del(sg);
 #endif /*GPAC_DISABLE_VRML*/
+	return 1;
 }
 
-void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
+u32 PrintBuiltInNodes(char *arg_val, u32 dump_type)
 {
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 	GF_SceneGraph *sg;
 	u32 i, nb_in, nb_not_in, start_tag, end_tag;
+	u32 graph_type;
+	Bool dump_nodes = ((dump_type==1) || (dump_type==3)) ? 1 : 0;
+
+	if (dump_type==4) graph_type = 2;
+	else if ((dump_type==2) || (dump_type==3)) graph_type = 1;
+	else graph_type = 0;
 
 	if (graph_type==1) {
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D)
@@ -709,12 +717,12 @@ void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 		end_tag = TAG_LastImplementedX3D;
 #else
 		fprintf(stderr, "X3D scene graph disabled in this build of GPAC\n");
-		return;
+		return 2;
 #endif
 	} else if (graph_type==2) {
 #ifdef GPAC_DISABLE_SVG
 		fprintf(stderr, "SVG scene graph disabled in this build of GPAC\n");
-		return;
+		return 2;
 #else
 		start_tag = GF_NODE_RANGE_FIRST_SVG;
 		end_tag = GF_NODE_RANGE_LAST_SVG;
@@ -722,7 +730,7 @@ void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 	} else {
 #ifdef GPAC_DISABLE_VRML
 		fprintf(stderr, "VRML/MPEG-4 scene graph disabled in this build of GPAC\n");
-		return;
+		return 2;
 #else
 		start_tag = GF_NODE_RANGE_FIRST_MPEG4;
 		end_tag = TAG_LastImplementedMPEG4;
@@ -775,12 +783,14 @@ void PrintBuiltInNodes(u32 graph_type, Bool dump_nodes)
 #else
 	fprintf(stderr, "\nNo scene graph enabled in this MP4Box build\n");
 #endif
+	return 1;
 }
 
 
-void PrintBuiltInBoxes(Bool do_cov)
+u32 PrintBuiltInBoxes(char *argval, u32 do_cov)
 {
 	u32 i, count=gf_isom_get_num_supported_boxes();
+	
 	fprintf(stdout, "<Boxes>\n");
 	//index 0 is our internal unknown box handler
 	for (i=1; i<count; i++) {
@@ -797,6 +807,7 @@ void PrintBuiltInBoxes(Bool do_cov)
         }
 	}
 	fprintf(stdout, "</Boxes>\n");
+	return 1;
 }
 
 #if !defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_ISOM_DUMP)

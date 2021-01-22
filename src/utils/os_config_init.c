@@ -1637,7 +1637,10 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		gf_free(arg_name);
 	}
 
-	if (arg->type==GF_ARG_INT && arg->values && strchr(arg->values, '|')) {
+	if (arg->type==GF_ARG_CUSTOM) {
+		if (arg->val)
+			gf_sys_format_help(helpout, flags, " `%s`", arg->val);
+	} else if (arg->type==GF_ARG_INT && arg->values && strchr(arg->values, '|')) {
 		gf_sys_format_help(helpout, flags, " (Enum");
 		if (arg->val)
 			gf_sys_format_help(helpout, flags, ", default: **%s**", arg->val);
