@@ -42,7 +42,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool exporter, frame, split;
+	Bool exporter, frame, split, merge_region;
 	u32 sstart, send;
 	u32 pfmt, afmt, decinfo;
 	GF_Fraction dur;
@@ -586,19 +586,6 @@ static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 	gf_filter_pck_send(dst_pck);
 }
 
-static GF_XMLNode *ttml_get_div(GF_XMLNode *root)
-{
-	u32 i=0;
-	GF_XMLNode *child;
-	while (root && (child = gf_list_enum(root->content, &i)) ) {
-		GF_XMLNode *div;
-		if (child->type) continue;
-		if (!strcmp(child->name, "div")) return child;
-		div = ttml_get_div(child);
-		if (div) return div;
-	}
-	return NULL;
-}
 
 static GF_XMLAttribute *ttml_get_attr(GF_XMLNode *node, char *name)
 {
@@ -609,6 +596,40 @@ static GF_XMLAttribute *ttml_get_attr(GF_XMLNode *node, char *name)
 	}
 	return NULL;
 }
+static GF_XMLNode *ttml_locate_div(GF_XMLNode *body, const char *region_name, u32 div_idx)
+{
+	u32 i=0, loc_div_idx=0;
+	GF_XMLNode *div;
+	while ( (div = gf_list_enum(body->content, &i)) ) {
+		if (div->type) continue;
+		if (strcmp(div->name, "div")) continue;
+
+		if (!region_name) {
+			if (div_idx==loc_div_idx) return div;
+			loc_div_idx++;
+		} else {
+			GF_XMLAttribute *att = ttml_get_attr(div, "region");
+			if (att && att->value && !strcmp(att->value, region_name))
+				return div;
+		}
+	}
+	if (region_name) {
+		return ttml_locate_div(body, NULL, div_idx);
+	}
+	return NULL;
+}
+
+static GF_XMLNode *ttml_get_body(GF_XMLNode *root)
+{
+	u32 i=0;
+	GF_XMLNode *child;
+	while (root && (child = gf_list_enum(root->content, &i)) ) {
+		if (child->type) continue;
+		if (!strcmp(child->name, "body")) return child;
+	}
+	return NULL;
+}
+
 static Bool ttml_same_attr(GF_XMLNode *n1, GF_XMLNode *n2)
 {
 	u32 i=0;
@@ -760,12 +781,13 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	GF_Err e = GF_OK;
 	u32 ttml_text_size;
 	GF_DOMParser *dom;
-	u32 txt_size;
-	u32 i;
-	GF_XMLNode *div_global, *div_pck, *root_pck, *p_global, *p_pck;
+	u32 txt_size, nb_children;
+	u32 i, k, div_idx;
+	GF_XMLNode *root_pck, *p_global, *p_pck, *body_pck, *body_global;
 
 	if (subs) {
-		if (subs->value.data.size < 14) return GF_NON_COMPLIANT_BITSTREAM;
+		if (subs->value.data.size < 14)
+			return GF_NON_COMPLIANT_BITSTREAM;
 		txt_size = subs->value.data.ptr[4];
 		txt_size <<= 8;
 		txt_size |= subs->value.data.ptr[5];
@@ -773,7 +795,8 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 		txt_size |= subs->value.data.ptr[6];
 		txt_size <<= 8;
 		txt_size |= subs->value.data.ptr[7];
-		if (txt_size>data_size) return GF_NON_COMPLIANT_BITSTREAM;
+		if (txt_size>data_size)
+			return GF_NON_COMPLIANT_BITSTREAM;
 	} else {
 		txt_size = data_size;
 	}
@@ -788,9 +811,10 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	dom = gf_xml_dom_new();
 	if (!dom) return GF_OUT_OF_MEM;
 	e = gf_xml_dom_parse_string(dom, ttml_text);
-	if (e) goto exit;
-
-
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[XML] Invalid TTML doc: %s\n\tXML text was:\n%s", gf_xml_dom_get_error(dom), ttml_text));
+		goto exit;
+	}
 	root_pck = gf_xml_dom_get_root(dom);
 
 	//subsamples, replace all data embedded as subsample with base64 encoding
@@ -799,59 +823,78 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 		if (e) goto exit;
 	}
 
-	//merge input doc - for now we only support single div
-	div_global = ttml_get_div(ctx->ttml_root);
-	div_pck = ttml_get_div(root_pck);
-
-	if (!div_global) {
-		if (ctx->ttml_root) gf_xml_dom_node_del(ctx->ttml_root);
+	if (!ctx->ttml_root) {
 		ctx->ttml_root = gf_xml_dom_detach_root(dom);
 		goto exit;
 	}
-	if (!div_pck)
-		goto exit;
 
 
-	i=0;
-	while ( (p_pck = gf_list_enum(div_pck->content, &i)) ) {
-		s32 idx;
-		GF_XMLNode *txt;
-		u32 j=0;
-		Bool found = GF_FALSE;
-		if (p_pck->type) continue;
-		if (strcmp(p_pck->name, "p")) continue;
-		while ( (p_global = gf_list_enum(div_global->content, &j)) ) {
-			if (p_global->type) continue;
-			if (strcmp(p_global->name, "p")) continue;
+	body_pck = ttml_get_body(root_pck);
+	body_global = ttml_get_body(ctx->ttml_root);
+	div_idx = 0;
+	nb_children = body_pck ? gf_list_count(body_pck->content) : 0;
+	for (k=0; k<nb_children; k++) {
+		GF_XMLAttribute *div_reg = NULL;
+		GF_XMLNode *div_global, *div_pck;
+		div_pck = gf_list_get(body_pck->content, k);
+		if (div_pck->type) continue;
+		if (strcmp(div_pck->name, "div")) continue;
 
-			if (ttml_same_attr(p_pck, p_global)) {
-				found = GF_TRUE;
-				break;
+		if (ctx->merge_region)
+			div_reg = ttml_get_attr(div_pck, "region");
+
+		//merge input doc
+		div_global = ttml_locate_div(body_global, div_reg ? div_reg->value : NULL, div_idx);
+
+		if (!div_global) {
+			gf_list_rem(body_pck->content, k);
+			gf_list_insert(body_global->content, div_pck, div_idx+1);
+			div_idx++;
+			continue;
+		}
+		div_idx++;
+
+		i=0;
+		while ( (p_pck = gf_list_enum(div_pck->content, &i)) ) {
+			s32 idx;
+			GF_XMLNode *txt;
+			u32 j=0;
+			Bool found = GF_FALSE;
+			if (p_pck->type) continue;
+			if (strcmp(p_pck->name, "p")) continue;
+			while ( (p_global = gf_list_enum(div_global->content, &j)) ) {
+				if (p_global->type) continue;
+				if (strcmp(p_global->name, "p")) continue;
+
+				if (ttml_same_attr(p_pck, p_global)) {
+					found = GF_TRUE;
+					break;
+				}
 			}
-		}
-		if (found) continue;
+			if (found) continue;
 
-		//insert this p - if last entry in global div is text, insert before
-		txt = gf_list_last(div_global->content);
-		if (txt && txt->type) {
-			idx = gf_list_count(div_global->content) - 1;
-		} else {
-			idx = gf_list_count(div_global->content);
-		}
-
-		i--;
-		gf_list_rem(div_pck->content, i);
-		if (i) {
-			txt = gf_list_get(div_pck->content, i-1);
-			if (txt->type) {
-				i--;
-				gf_list_rem(div_pck->content, i);
-				gf_list_insert(div_global->content, txt, idx);
-				idx++;
+			//insert this p - if last entry in global div is text, insert before
+			txt = gf_list_last(div_global->content);
+			if (txt && txt->type) {
+				idx = gf_list_count(div_global->content) - 1;
+			} else {
+				idx = gf_list_count(div_global->content);
 			}
-		}
-		gf_list_insert(div_global->content, p_pck, idx);
 
+			i--;
+			gf_list_rem(div_pck->content, i);
+			if (i) {
+				txt = gf_list_get(div_pck->content, i-1);
+				if (txt->type) {
+					i--;
+					gf_list_rem(div_pck->content, i);
+					gf_list_insert(div_global->content, txt, idx);
+					idx++;
+				}
+			}
+			gf_list_insert(div_global->content, p_pck, idx);
+
+		}
 	}
 
 exit:
@@ -868,7 +911,28 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 	GF_FilterPacket *pck;
 	if (!ctx->ttml_root) return GF_OK;
 
-	data = gf_xml_dom_serialize(ctx->ttml_root, GF_FALSE);
+	if (ctx->merge_region) {
+		u32 i, count;
+		GF_XMLNode *body_global = ttml_get_body(ctx->ttml_root);
+		count = body_global ? gf_list_count(body_global->content) : 0;
+		for (i=0; i<count; i++) {
+			GF_XMLNode *child;
+			GF_XMLNode *div = gf_list_get(body_global->content, i);
+			if (div->type) continue;
+			if (strcmp(div->name, "div")) continue;
+			if (gf_list_count(div->content) > 1) continue;;
+
+			child = gf_list_get(div->content, 0);
+			if (child && !child->type) continue;;
+
+			gf_list_rem(body_global->content, i);
+			i--;
+			count--;
+			gf_xml_dom_node_del(div);
+		}
+	}
+
+	data = gf_xml_dom_serialize(ctx->ttml_root, GF_FALSE, GF_FALSE);
 	if (!data) return GF_OK;
 	size = (u32) strlen(data);
 	pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
@@ -1358,6 +1422,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	{ OFFS(sstart), "start number of frame to forward. If 0, all samples are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(send), "end number of frame to forward. If less than start frame, all samples after start are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(dur), "duration of media to forward after first sample. If 0, all samples are forwarded", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(merge_region), "merge TTML regions with same ID while reassembling TTML doc", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
