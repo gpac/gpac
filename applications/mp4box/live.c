@@ -391,7 +391,7 @@ int live_session(int argc, char **argv)
 		}
 	}
 	if (!filename) {
-		fprintf(stderr, "Missing filename\n");
+		M4_LOG(GF_LOG_ERROR, ("Missing filename\n"));
 		PrintLiveUsage();
 		return 1;
 	}
@@ -401,7 +401,7 @@ int live_session(int argc, char **argv)
 
 	livesess.seng = gf_seng_init(&livesess, filename, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
 	if (!livesess.seng) {
-		fprintf(stderr, "Cannot create scene engine\n");
+		M4_LOG(GF_LOG_ERROR, ("Cannot create scene engine\n"));
 		return 1;
 	}
 	if (livesess.streams) {
@@ -440,7 +440,7 @@ int live_session(int argc, char **argv)
 				sscanf(arg, "-rap=ESID=%u:%u", &id, &period);
 				e = gf_seng_enable_aggregation(livesess.seng, id, 1);
 				if (e) {
-					fprintf(stderr, "Cannot enable aggregation on stream %u: %s\n", id, gf_error_to_string(e));
+					M4_LOG(GF_LOG_ERROR, ("Cannot enable aggregation on stream %u: %s\n", id, gf_error_to_string(e)));
 					goto exit;
 				}
 			} else {
@@ -699,7 +699,9 @@ int live_session(int argc, char **argv)
 
 				if (update_length) {
 					e = gf_seng_encode_from_string(livesess.seng, es_id, aggregate_au ? 0 : 1, update_buffer, live_session_callback);
-					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
+					if (e) {
+						M4_LOG(GF_LOG_ERROR, ("Processing command failed: %s\n", gf_error_to_string(e)));
+					}
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 
 					update_context = 1;

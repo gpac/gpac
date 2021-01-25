@@ -24,6 +24,7 @@
  */
 
 #include <gpac/tools.h>
+#include <gpac/thread.h>
 
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
@@ -689,7 +690,6 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 
 
 
-#include <gpac/thread.h>
 static void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
