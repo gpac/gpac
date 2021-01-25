@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1877,7 +1877,7 @@ GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx)
 }
 
 
-static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char **str, u32 *alloc_size, u32 *size)
+static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape, char **str, u32 *alloc_size, u32 *size)
 {
 	u32 i, count, vlen;
 	char *name;
@@ -1903,7 +1903,39 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 		name = node->name;
 		if ((name[0]=='\r') && (name[1]=='\n'))
 			name++;
-		SET_STRING(name);
+
+		if (no_escape) {
+			SET_STRING(name);
+		} else {
+			u32 tlen;
+			char szChar[2];
+			szChar[1] = 0;
+			tlen = (u32) strlen(name);
+			for (i= 0; i<tlen; i++) {
+				switch (name[i]) {
+				case '&':
+					SET_STRING("&amp;");
+					break;
+				case '<':
+					SET_STRING("&lt;");
+					break;
+				case '>':
+					SET_STRING("&gt;");
+					break;
+				case '\'':
+					SET_STRING("&apos;");
+					break;
+				case '\"':
+					SET_STRING("&quot;");
+					break;
+
+				default:
+					szChar[0] = name[i];
+					SET_STRING(szChar);
+					break;
+				}
+			}
+		}
 		return;
 	}
 
@@ -1936,7 +1968,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 	count = gf_list_count(node->content);
 	for (i=0; i<count; i++) {
 		GF_XMLNode *child = (GF_XMLNode*)gf_list_get(node->content, i);
-		gf_xml_dom_node_serialize(child, GF_FALSE, str, alloc_size, size);
+		gf_xml_dom_node_serialize(child, GF_FALSE, GF_FALSE, str, alloc_size, size);
 	}
 	if (!content_only) {
 		SET_STRING("</");
@@ -1950,12 +1982,12 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 }
 
 GF_EXPORT
-char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only)
+char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape)
 {
 	u32 alloc_size = 0;
 	u32 size = 0;
 	char *str = NULL;
-	gf_xml_dom_node_serialize(node, content_only, &str, &alloc_size, &size);
+	gf_xml_dom_node_serialize(node, content_only, no_escape, &str, &alloc_size, &size);
 	return str;
 }
 

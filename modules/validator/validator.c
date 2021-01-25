@@ -632,7 +632,7 @@ static void validator_xvl_close(GF_Validator *validator)
 			char *xvl_content;
 			char result_filename[GF_MAX_PATH];
 			char *dot;
-			xvl_content = gf_xml_dom_serialize(validator->xvl_node, GF_FALSE);
+			xvl_content = gf_xml_dom_serialize(validator->xvl_node, GF_FALSE, GF_FALSE);
 			dot = gf_file_ext_start(validator->xvl_filename);
 			dot[0] = 0;
 			sprintf(result_filename, "%s-result.xml", validator->xvl_filename);
@@ -806,7 +806,7 @@ static void validator_xvs_close(GF_Validator *validator)
                     att->value = gf_strdup(validator->test_filename);
                 }
             }
-			xvs_content = gf_xml_dom_serialize(validator->xvs_node, GF_FALSE);
+			xvs_content = gf_xml_dom_serialize(validator->xvs_node, GF_FALSE, GF_FALSE);
 			xvs_fp = gf_fopen(validator->xvs_filename, "wt");
 			gf_fwrite(xvs_content, strlen(xvs_content), xvs_fp);
 			gf_fclose(xvs_fp);

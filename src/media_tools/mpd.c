@@ -2754,7 +2754,7 @@ static void gf_mpd_extensible_print_nodes(FILE *out, GF_List *children, s32 inde
 			return;
 		}
 
-		txt = gf_xml_dom_serialize(child, 0);
+		txt = gf_xml_dom_serialize(child, GF_FALSE, GF_TRUE);
 		gf_mpd_nl(out, indent+1);
 		gf_fprintf(out, "%s", txt);
 		gf_free(txt);

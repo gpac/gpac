@@ -306,9 +306,10 @@ GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
 /*! Serialize a node to a string
 \param node the node to flush
 \param content_only Whether to include or not the parent node
+\param no_escape if set, disable escape of XML reserved chars (<,>,",') in text nodes
 \return The resulting serialization. The string has to be freed with gf_free
  */
-char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
+char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape);
 
 /*! Get the root element -- the only top level element -- of the document.
 \param parser the DOM structure
