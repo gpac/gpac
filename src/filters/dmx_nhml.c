@@ -1051,7 +1051,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			e = nhml_sample_from_xml(ctx, xml_file, szXmlFrom, szXmlTo);
 		} else if (ctx->is_dims && !strlen(szMediaTemp)) {
 
-			char *content = gf_xml_dom_serialize(node, GF_TRUE);
+			char *content = gf_xml_dom_serialize(node, GF_TRUE, GF_FALSE);
 
 			ctx->samp_buffer_size = 3 + (u32) strlen(content);
 			if (ctx->samp_buffer_alloc < ctx->samp_buffer_size) {
