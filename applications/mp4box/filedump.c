@@ -62,6 +62,19 @@ extern u32 fs_dump_flags;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
+
+#ifdef GPAC_DISABLE_LOG
+void mp4box_log(const char *fmt, ...)
+{
+	va_list vl;
+	va_start(vl, fmt);
+	vfprintf(stderr, fmt, vlist);
+	fflush(stderr);
+	va_end(vl);
+}
+#endif
+
+
 u32 PrintLanguages(char *val, u32 opt)
 {
 	u32 i=0, count = gf_lang_get_count();
@@ -89,7 +102,7 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 	GF_Err e = gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COVER_ART, &tag, &tag_len);
 	if (e!=GF_OK) {
 		if (e==GF_URL_ERROR) {
-			fprintf(stderr, "No cover art found\n");
+			M4_LOG(GF_LOG_WARNING, ("No cover art found\n"));
 			return GF_OK;
 		}
 		return e;
@@ -104,7 +117,7 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 		}
 		t = gf_fopen(szName, "wb");
 		if (!t) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szName);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szName));
 			return GF_IO_ERR;
 		}
 	} else {
@@ -145,7 +158,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
 			e = gf_isom_last_error(NULL);
-			fprintf(stderr, "Error opening file: %s\n", gf_error_to_string(e));
+			M4_LOG(GF_LOG_ERROR, ("Error opening file: %s\n", gf_error_to_string(e)));
 			gf_sm_del(ctx);
 			gf_sg_del(sg);
 			return e;
@@ -161,12 +174,12 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 			e = import_file(load.isom, file, 0, _frac, 0, NULL, NULL, 0);
 		} else
 #else
-		fprintf(stderr, "Warning: GPAC was compiled without Media Import support\n");
+		M4_LOG(GF_LOG_WARNING, ("Warning: GPAC was compiled without Media Import support\n"));
 #endif
 			e = gf_isom_last_error(NULL);
 
 		if (e) {
-			fprintf(stderr, "Error importing file: %s\n", gf_error_to_string(e));
+			M4_LOG(GF_LOG_ERROR, ("Error importing file: %s\n", gf_error_to_string(e)));
 			gf_sm_del(ctx);
 			gf_sg_del(sg);
 			if (load.isom) gf_isom_delete(load.isom);
@@ -202,7 +215,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 
 	gf_sm_del(ctx);
 	gf_sg_del(sg);
-	if (e) fprintf(stderr, "Error loading scene: %s\n", gf_error_to_string(e));
+	if (e) M4_LOG(GF_LOG_ERROR, ("Error loading scene: %s\n", gf_error_to_string(e)));
 	if (load.isom) gf_isom_delete(load.isom);
 	return e;
 }
@@ -360,7 +373,7 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 	if (get_file_type_by_ext(file) == 1) {
 		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
-			fprintf(stderr, "Cannot open file: %s\n", gf_error_to_string(gf_isom_last_error(NULL)));
+			M4_LOG(GF_LOG_ERROR, ("Cannot open file: %s\n", gf_error_to_string(gf_isom_last_error(NULL))));
 			gf_sm_del(ctx);
 			gf_sg_del(scene_graph);
 			return;
@@ -377,7 +390,7 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 		if (!is_final_name) strcat(szBuf, "_stat.xml");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
 			return;
 		}
 		close = 1;
@@ -461,7 +474,7 @@ exit:
 	gf_sg_del(scene_graph);
 	if (load.isom) gf_isom_delete(load.isom);
 	if (e) {
-		fprintf(stderr, "%s\n", gf_error_to_string(e));
+		M4_LOG(GF_LOG_ERROR, ("Stats error: %s\n", gf_error_to_string(e)));
 	} else {
 		fprintf(dump, "</SceneStatistics>\n");
 	}
@@ -545,7 +558,7 @@ static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u3
 		char szField[1024];
 		u32 tfirst, tlast;
 		if (gf_node_get_field_by_name(node, szField, &f) != GF_OK) {
-			fprintf(stderr, "Field %s is not a member of node %s\n", szField, name);
+			M4_LOG(GF_LOG_ERROR, ("Field %s is not a member of node %s\n", szField, name));
 			return;
 		}
 		fprintf(stderr, "Allowed nodes in %s.%s:\n", name, szField);
@@ -649,7 +662,7 @@ static void do_print_node(GF_Node *node, GF_SceneGraph *sg, const char *name, u3
 u32 PrintNode(const char *name, u32 graph_type)
 {
 #ifdef GPAC_DISABLE_VRML
-	fprintf(stderr, "VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n");
+	M4_LOG(GF_LOG_ERROR, ("VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n"));
 	return 2;
 #else
 	const char *std_name;
@@ -671,7 +684,7 @@ u32 PrintNode(const char *name, u32 graph_type)
 		tag = gf_node_x3d_type_by_class_name(name);
 		std_name = "X3D";
 #else
-		fprintf(stderr, "X3D node printing is not supported (X3D support disabled)\n");
+		M4_LOG(GF_LOG_ERROR, ("X3D node printing is not supported (X3D support disabled)\n"));
 		return 2;
 #endif
 	} else {
@@ -679,7 +692,7 @@ u32 PrintNode(const char *name, u32 graph_type)
 		std_name = "MPEG4";
 	}
 	if (!tag) {
-		fprintf(stderr, "Unknown %s node %s\n", std_name, name);
+		M4_LOG(GF_LOG_ERROR, ("Unknown %s node %s\n", std_name, name));
 		return 2;
 	}
 
@@ -688,7 +701,7 @@ u32 PrintNode(const char *name, u32 graph_type)
 	gf_node_register(node, NULL);
 	name = gf_node_get_class_name(node);
 	if (!node) {
-		fprintf(stderr, "Node %s not supported in current built\n", name);
+		M4_LOG(GF_LOG_ERROR, ("Node %s not supported in current built\n", name));
 		return 2;
 	}
 	do_print_node(node, sg, name, graph_type, is_nodefield, GF_FALSE);
@@ -716,12 +729,12 @@ u32 PrintBuiltInNodes(char *arg_val, u32 dump_type)
 		start_tag = GF_NODE_RANGE_FIRST_X3D;
 		end_tag = TAG_LastImplementedX3D;
 #else
-		fprintf(stderr, "X3D scene graph disabled in this build of GPAC\n");
+		M4_LOG(GF_LOG_ERROR, ("X3D scene graph disabled in this build of GPAC\n"));
 		return 2;
 #endif
 	} else if (graph_type==2) {
 #ifdef GPAC_DISABLE_SVG
-		fprintf(stderr, "SVG scene graph disabled in this build of GPAC\n");
+		M4_LOG(GF_LOG_ERROR, ("SVG scene graph disabled in this build of GPAC\n"));
 		return 2;
 #else
 		start_tag = GF_NODE_RANGE_FIRST_SVG;
@@ -729,7 +742,7 @@ u32 PrintBuiltInNodes(char *arg_val, u32 dump_type)
 #endif
 	} else {
 #ifdef GPAC_DISABLE_VRML
-		fprintf(stderr, "VRML/MPEG-4 scene graph disabled in this build of GPAC\n");
+		M4_LOG(GF_LOG_ERROR, ("VRML/MPEG-4 scene graph disabled in this build of GPAC\n"));
 		return 2;
 #else
 		start_tag = GF_NODE_RANGE_FIRST_MPEG4;
@@ -781,7 +794,7 @@ u32 PrintBuiltInNodes(char *arg_val, u32 dump_type)
 
 	}
 #else
-	fprintf(stderr, "\nNo scene graph enabled in this MP4Box build\n");
+	M4_LOG(GF_LOG_ERROR, ("No scene graph enabled in this MP4Box build\n"));
 #endif
 	return 1;
 }
@@ -824,7 +837,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 		if (!is_final_name) strcat(szBuf, "_rtp.xml");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s\n", szBuf));
 			return;
 		}
 	} else {
@@ -876,7 +889,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 		if (!is_final_name) strcat(szBuf, "_ts.txt");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s\n", szBuf));
 			return;
 		}
 	} else {
@@ -975,7 +988,9 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	if (timings) gf_free(timings);
 
 	if (inName) gf_fclose(dump);
-	if (has_ctts_error) fprintf(stderr, "\tFile has CTTS table errors\n");
+	if (has_ctts_error) {
+		M4_LOG(GF_LOG_ERROR, ("\tFile has CTTS table errors\n"));
+	}
 }
 
 
@@ -1027,7 +1042,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 
 	nb_descs = gf_isom_get_sample_description_count(file, track);
 	if (!nb_descs) {
-		fprintf(stderr, "Error: Track #%d has no sample description so is likely not NALU-based!\n", trackID);
+		M4_LOG(GF_LOG_ERROR, ("Error: Track #%d has no sample description so is likely not NALU-based!\n", trackID));
 		return;
 	}
 
@@ -1103,7 +1118,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 		fprintf(dump, " <NALUConfig>\n");
 
 		if (!avccfg && !svccfg && !hevccfg && !lhvccfg && !vvccfg) {
-			fprintf(stderr, "Error: Track #%d is not NALU-based!\n", trackID);
+			M4_LOG(GF_LOG_ERROR, ("Error: Track #%d is not NALU or OBU based!\n", trackID));
 			return;
 		}
 
@@ -1333,7 +1348,7 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 		if (!is_final_name) sprintf(szBuf, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
 			return;
 		}
 	} else {
@@ -1370,7 +1385,7 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 	gf_av1_init_state(&av1);
 	av1.config = gf_isom_av1_config_get(file, track, 1);
 	if (!av1.config) {
-		fprintf(stderr, "Error: Track #%d is not AV1!\n", trackID);
+		M4_LOG(GF_LOG_ERROR, ("Error: Track #%d is not AV1!\n", trackID));
 		return;
 	}
 
@@ -1491,7 +1506,7 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 		if (!is_final_name) sprintf(szBuf, "%s_%d_cues.xml", inName, trackID);
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
 			return;
 		}
 	} else {
@@ -1571,7 +1586,7 @@ void dump_isom_ismacryp(GF_ISOFile *file, char *inName, Bool is_final_name)
 		if (!is_final_name) strcat(szBuf, "_ismacryp.xml");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
 			return;
 		}
 	} else {
@@ -1607,7 +1622,7 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 
 	track = gf_isom_get_track_by_id(file, trackID);
 	if (!track) {
-		fprintf(stderr, "Cannot find track ID %d\n", trackID);
+		M4_LOG(GF_LOG_ERROR, ("Cannot find track ID %d\n", trackID));
 		return;
 	}
 
@@ -1616,7 +1631,7 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 	case GF_ISOM_MEDIA_SUBT:
 		break;
 	default:
-		fprintf(stderr, "Track ID %d is not a 3GPP text track\n", trackID);
+		M4_LOG(GF_LOG_ERROR, ("Track ID %d is not a 3GPP text track\n", trackID));
 		return;
 	}
 
@@ -1633,7 +1648,7 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
 			return;
 		}
 	} else {
@@ -1642,8 +1657,11 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 	e = gf_isom_text_dump(file, track, dump, dump_type);
 	if (inName) gf_fclose(dump);
 
-	if (e) fprintf(stderr, "Conversion failed (%s)\n", gf_error_to_string(e));
-	else fprintf(stderr, "Conversion done\n");
+	if (e) {
+		M4_LOG(GF_LOG_ERROR, ("Conversion failed (%s)\n", gf_error_to_string(e)));
+	} else {
+		fprintf(stderr, "Conversion done\n");
+	}
 }
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
@@ -1666,7 +1684,7 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 		}
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
 			return;
 		}
 	} else {
@@ -1709,7 +1727,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 		}
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
-			fprintf(stderr, "Failed to open %s\n", szBuf);
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s\n", szBuf));
 			return GF_IO_ERR;
 		}
 		do_close=GF_TRUE;
@@ -1721,7 +1739,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	}
 	e = gf_isom_dump(file, dump, skip_init, skip_samples);
 	if (e) {
-		fprintf(stderr, "Error dumping ISO structure\n");
+		M4_LOG(GF_LOG_ERROR, ("Error dumping ISO structure\n"));
 	}
 
 	if (do_track_dump) {
@@ -1901,15 +1919,15 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 	memset(uuid, 0, 16);
 	count = gf_isom_get_user_data_count(file, dump_udta_track, dump_udta_type, uuid);
 	if (!count) {
-		fprintf(stderr, "No UDTA for type %s found\n", gf_4cc_to_str(dump_udta_type) );
-		return GF_OK;
+		M4_LOG(GF_LOG_ERROR, ("No UDTA for type %s found\n", gf_4cc_to_str(dump_udta_type) ));
+		return GF_NOT_FOUND;
 	}
 
 	data = NULL;
 	count = 0;
 	e = gf_isom_get_user_data(file, dump_udta_track, dump_udta_type, uuid, 0, &data, &count);
 	if (e) {
-		fprintf(stderr, "Error dumping UDTA %s: %s\n", gf_4cc_to_str(dump_udta_type), gf_error_to_string(e) );
+		M4_LOG(GF_LOG_ERROR, ("Error dumping UDTA %s: %s\n", gf_4cc_to_str(dump_udta_type), gf_error_to_string(e) ));
 		return e;
 	}
 	if (inName) {
@@ -1922,7 +1940,7 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 		t = gf_fopen(szName, "wb");
 		if (!t) {
 			gf_free(data);
-			fprintf(stderr, "Cannot open file %s\n", szName );
+			M4_LOG(GF_LOG_ERROR, ("Cannot open file %s\n", szName ));
 			return GF_IO_ERR;
 		}
 	} else {
@@ -1932,7 +1950,7 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 	if (inName) gf_fclose(t);
 	gf_free(data);
 	if (count-8 != res) {
-		fprintf(stderr, "Error writing udta to file\n");
+		M4_LOG(GF_LOG_ERROR, ("Error writing udta to file\n"));
 		return GF_IO_ERR;
 	}
 	return GF_OK;
@@ -1958,11 +1976,11 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 			}
 		}
 		if (!chap_tk) {
-			fprintf(stderr, "No chapters or chapters track found in file\n");
+			M4_LOG(GF_LOG_WARNING, ("No chapters or chapters track found in file\n"));
 			return GF_OK;
 		}
 
-		fprintf(stderr, "Chapter track found, dumping\n");
+		fprintf(stderr, "Dumping chapter track %d\n", chap_tk);
 		dump_isom_timed_text(file, gf_isom_get_track_id(file, chap_tk), inName, is_final_name, GF_FALSE, dump_mode);
 		return GF_OK;
 
@@ -2182,7 +2200,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 				}
 				fprintf(stderr, "\n");
 			} else {
-				fprintf(stderr, "\nFailed to read SPS: %s\n\n", gf_error_to_string((e) ));
+				M4_LOG(GF_LOG_ERROR, ("Failed to read SPS: %s\n\n", gf_error_to_string(e) ));
 			}
 		}
 	}
@@ -2272,7 +2290,7 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 				}
 				fprintf(stderr, "\n");
 			} else {
-				fprintf(stderr, "\nFailed to read SPS: %s\n\n", gf_error_to_string((e) ));
+				M4_LOG(GF_LOG_ERROR, ("\nFailed to read SPS: %s\n\n", gf_error_to_string(e) ));
 			}
 		}
 	}
@@ -2307,7 +2325,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		trackID = gf_isom_get_track_id(file, trackNum);
 	}
 	if (!trackNum) {
-		fprintf(stderr, "No track with ID %d found\n", trackID);
+		M4_LOG(GF_LOG_ERROR, ("No track with ID %d found\n", trackID));
 		return;
 	}
 
@@ -2322,7 +2340,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	fprintf(stderr, "\n");
 
 	if (gf_isom_check_data_reference(file, trackNum, 1) != GF_OK) {
-		fprintf(stderr, "Track uses external data reference not supported by GPAC!\n");
+		M4_LOG(GF_LOG_WARNING, ("Track uses external data reference not supported by GPAC!\n"));
 	}
 
 	nb_edits = gf_isom_get_edits_count(file, trackNum);
@@ -2425,7 +2443,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	   )  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
 		if (!esd || !esd->decoderConfig) {
-			fprintf(stderr, "WARNING: Broken MPEG-4 Track\n");
+			M4_LOG(GF_LOG_WARNING, ("WARNING: Broken MPEG-4 Track\n"));
 			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 		} else {
 			const char *st = gf_stream_type_name(esd->decoderConfig->streamType);
@@ -2453,7 +2471,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					fprintf(stderr, "MPEG-4 Visual Size %d x %d\n", w, h);
 #endif
-						fprintf(stderr, "\tNon-compliant MPEG-4 Visual track: video_object_layer infos not found in sample description\n");
+						M4_LOG(GF_LOG_WARNING, ("Non-compliant MPEG-4 Visual track: video_object_layer infos not found in sample description\n"));
 #ifndef GPAC_DISABLE_AV_PARSERS
 					} else {
 						GF_M4VDecSpecInfo dsi;
@@ -2480,7 +2498,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					svccfg = gf_isom_svc_config_get(file, trackNum, 1);
 					mvccfg = gf_isom_mvc_config_get(file, trackNum, 1);
 					if (!avccfg && !svccfg && !mvccfg) {
-						fprintf(stderr, "\n\n\tNon-compliant AVC track: SPS/PPS not found in sample description\n");
+						M4_LOG(GF_LOG_ERROR, ("\tNon-compliant AVC track: SPS/PPS not found in sample description\n"));
 					} else if (avccfg) {
 						fprintf(stderr, "\tAVC Info: %d SPS - %d PPS", gf_list_count(avccfg->sequenceParameterSets) , gf_list_count(avccfg->pictureParameterSets) );
 						fprintf(stderr, " - Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
@@ -2589,7 +2607,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 							fprintf(stderr, "\tHEVC Tile track without tiling info\n");
 						}
 					} else if (!hevccfg && !lhvccfg) {
-						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
+						M4_LOG(GF_LOG_ERROR, ("\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n"));
 					}
 
 					if (gf_isom_get_reference_count(file, trackNum, GF_ISOM_REF_SABT)) {
@@ -2681,8 +2699,9 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					else
 						e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 					if (full_dump) fprintf(stderr, "\t");
-					if (e) fprintf(stderr, "Corrupted AAC Config\n");
-					else {
+					if (e) {
+						M4_LOG(GF_LOG_ERROR, ("Corrupted AAC Config\n"));
+					} else {
 						char *signaling = "implicit";
 						char *heaac = "";
 						if (!is_mp2 && a_cfg.has_sbr) {
@@ -2723,7 +2742,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 							       );
 							gf_isom_sample_del(&samp);
 						} else {
-							fprintf(stderr, "\n\tError fetching sample: %s\n", gf_error_to_string(gf_isom_last_error(file)) );
+							M4_LOG(GF_LOG_ERROR, ("Error fetching sample: %s\n", gf_error_to_string(gf_isom_last_error(file)) ));
 						}
 #else
 						fprintf(stderr, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
@@ -2778,7 +2797,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_SYNTHESIZED_TEXTURE) {
 					fprintf(stderr, "Synthetized Texture stream stream\n");
 				} else {
-					fprintf(stderr, "Unknown Systems stream OTI %d\n", esd->decoderConfig->objectTypeIndication);
+					M4_LOG(GF_LOG_WARNING, ("Unknown Systems stream OTI %d\n", esd->decoderConfig->objectTypeIndication));
 				}
 			}
 
@@ -2989,7 +3008,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		vvccfg = gf_isom_vvc_config_get(file, trackNum, 1);
 
 		if (!vvccfg) {
-			fprintf(stderr, "\n\n\tNon-compliant VVC track: No vvcC found in sample description\n");
+			M4_LOG(GF_LOG_ERROR, ("Non-compliant VVC track: No vvcC found in sample description\n"));
 		} else {
 			dump_vvc_track_info(file, trackNum, vvccfg
 #if !defined(GPAC_DISABLE_AV_PARSERS)
@@ -3040,7 +3059,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			valid = GF_TRUE;
 		}
 		if (!valid) {
-			fprintf(stderr, "\tInvalid MPEG-H audio config\n");
+			M4_LOG(GF_LOG_ERROR, ("Invalid MPEG-H audio config\n"));
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 		compat_profiles = gf_isom_get_mpegh_compatible_profiles(file, trackNum, 1, &nb_compat_profiles);
@@ -3247,7 +3266,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 				samp = gf_isom_get_sample_info(file, trackNum, j+1, NULL, NULL);
 			}
 			if (!samp) {
-				fprintf(stderr, "Failed to fetch sample %d\n", j+1);
+				M4_LOG(GF_LOG_ERROR, ("Failed to fetch sample %d\n", j+1));
 				return;
 			}
 			dur = samp->DTS+samp->CTS_Offset;
@@ -3660,7 +3679,9 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					diff = (pck->DTS ? pck->DTS : pck->PTS) / 90000.0;
 					diff -= pes->last_pcr_value / (300.0 * 90000);
 					fprintf(dumper->timestamps_info_file, "\t%f\n", diff);
-					if (diff<0) fprintf(stderr, "Warning: detected PTS/DTS value less than current PCR of %g sec\n", diff);
+					if (diff<0) {
+						M4_LOG(GF_LOG_WARNING, ("Warning: detected PTS/DTS value less than current PCR of %g sec\n", diff));
+					}
 				} else {
 					fprintf(dumper->timestamps_info_file, "\t\n");
 				}
@@ -3726,7 +3747,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 	src = gf_fopen(mpeg2ts_file, "rb");
 	if (!src) {
-		fprintf(stderr, "Cannot open %s: no such file\n", mpeg2ts_file);
+		M4_LOG(GF_LOG_ERROR, ("Cannot open %s: no such file\n", mpeg2ts_file));
 		return;
 	}
 	ts = gf_m2ts_demux_new();
@@ -3782,7 +3803,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);
 		dumper.timestamps_info_file = gf_fopen(dumper.timestamps_info_name, "wt");
 		if (!dumper.timestamps_info_file) {
-			fprintf(stderr, "Cannot open file %s\n", dumper.timestamps_info_name);
+			M4_LOG(GF_LOG_ERROR, ("Cannot open file %s\n", dumper.timestamps_info_name));
 			return;
 		}
 		fprintf(dumper.timestamps_info_file, "PCK#\tPID\tPCR\tDTS\tPTS\tRAP\tDiscontinuity\tDTS-PCR Diff\n");
@@ -3900,7 +3921,7 @@ static void revert_cache_file(char *item_path)
 
 		gf_free(dst_name);
 	} else {
-		fprintf(stderr, "Failed to reverse %s cache file\n", item_path);
+		M4_LOG(GF_LOG_ERROR, ("Failed to reverse %s cache file\n", item_path));
 	}
 	gf_cfg_del(cached);
 	gf_file_delete(szPATH);

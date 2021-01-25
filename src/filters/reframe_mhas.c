@@ -394,6 +394,7 @@ static GFINLINE void mhas_dmx_update_cts(GF_MHASDmxCtx *ctx)
 	}
 }
 
+#ifndef GPAC_DISABLE_LOG
 static const char *mhas_pck_name(u32 pck_type)
 {
 	switch (pck_type) {
@@ -421,6 +422,7 @@ static const char *mhas_pck_name(u32 pck_type)
 	}
 	return "error";
 }
+#endif
 
 GF_Err mhas_dmx_process(GF_Filter *filter)
 {

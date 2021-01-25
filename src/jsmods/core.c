@@ -728,7 +728,11 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 	case JS_SYS_OLD_ARCH:
 		return JS_NewBool(ctx, gf_sys_old_arch_compat() );
 	case JS_SYS_LOG_COLOR:
+#ifdef GPAC_DISABLE_LOG
+		return JS_NewBool(ctx, GF_FALSE );
+#else
 		return JS_NewBool(ctx, gf_log_use_color() );
+#endif
 	case JS_SYS_QUIET:
 		return JS_NewBool(ctx, gf_sys_is_quiet() );
 	case JS_SYS_USERNAME:

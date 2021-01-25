@@ -1069,6 +1069,8 @@ const char *gf_log_level_name(GF_LOG_Level log_level);
 
 void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
+#ifndef GPAC_DISABLE_LOG
+
 #define RMT_LOG_SIZE	5000
 	char szMsg[RMT_LOG_SIZE];
 	u32 len;
@@ -1081,6 +1083,9 @@ void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, con
 	rmt_LogText(szMsg);
 
 #undef RMT_LOG_SIZE
+
+#endif
+
 }
 
 static void *rmt_udta = NULL;

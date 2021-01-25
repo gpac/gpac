@@ -1619,10 +1619,14 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 		}
 	}
 
-	for (k=0; k<gf_list_count(ctx->intervals); k++) {
-		TTMLInterval *ival = gf_list_get(ctx->intervals, k);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+		for (k=0; k<gf_list_count(ctx->intervals); k++) {
+			TTMLInterval *ival = gf_list_get(ctx->intervals, k);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
+		}
 	}
+#endif
 	return GF_OK;
 }
 

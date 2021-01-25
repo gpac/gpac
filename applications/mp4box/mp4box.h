@@ -37,6 +37,14 @@
 #include <gpac/scene_manager.h>
 #endif
 
+#ifndef GPAC_DISABLE_LOG
+#define M4_LOG(_a, _b)	GF_LOG(_a, GF_LOG_APP, _b)
+#else
+void mp4box_log(const char *fmt, ...);
+
+#define M4_LOG(_a, _b) mp4box_log _b
+#endif
+
 
 typedef enum {
 	GF_FILE_TYPE_NOT_SUPPORTED	= 0,
