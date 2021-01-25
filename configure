@@ -2626,7 +2626,7 @@ if test "$disable_crypto" = "yes" ; then
 fi
 
 if test "$disable_log" = "yes" ; then
-    echo "Lgging disabled"
+    echo "Logging disabled"
     echo "#define GPAC_DISABLE_LOG" >> $TMPH
 fi
 
