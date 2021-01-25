@@ -775,7 +775,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				moof_template = NULL;
 				moof_template_size = 0;
 			}
-			if (ent->nb_pack) {
+			if (ent->nb_pack>1) {
 				j+= ent->nb_pack-1;
 				traf_duration += ent->nb_pack*duration;
 				continue;

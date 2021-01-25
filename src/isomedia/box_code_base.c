@@ -7407,6 +7407,8 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
 		ptr->samples = gf_malloc(sizeof(GF_TrunEntry));
 		if (!ptr->samples) return GF_OUT_OF_MEM;
+		//memset to 0 !!
+		memset(ptr->samples, 0, sizeof(GF_TrunEntry));
 		ptr->sample_alloc = ptr->nb_samples = 1;
 		ptr->samples[0].nb_pack = ptr->sample_count;
 	} else {
@@ -7417,12 +7419,13 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->samples = gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
 		if (!ptr->samples) return GF_OUT_OF_MEM;
 		ptr->sample_alloc = ptr->nb_samples = ptr->sample_count;
+		//memset to 0 upfront
+		memset(ptr->samples, 0, ptr->sample_count * sizeof(GF_TrunEntry));
 
 		//read each entry (even though nothing may be written)
 		for (i=0; i<ptr->sample_count; i++) {
 			u32 trun_size = 0;
 			GF_TrunEntry *p = &ptr->samples[i];
-			memset(p, 0, sizeof(GF_TrunEntry));
 
 			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
 				p->Duration = gf_bs_read_u32(bs);
