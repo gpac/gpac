@@ -2446,7 +2446,7 @@ The filter supports the following formats:
 .br
 * SRT: https://en.wikipedia.org/wiki/SubRip
 .br
-* WebVTT: https://w3c.github.io/webvtt/
+* WebVTT: https://www.w3.org/TR/webvtt1/
 .br
 * TTXT: https://wiki.gpac.io/TTXT-Format-Documentation
 .br
@@ -2473,9 +2473,9 @@ The internal frame format is:
 .SH TTML Support
 .LP
 .br
-By default, TTML documents are split in independent time segments by inspecting all overlapping subtitles.
+By default, TTML documents are split in independent time segments by inspecting all overlapping subtitles in the body.
 .br
-Using .I ttml_single will force the input document to result in a single frame, using .I ttml_single.
+Using .I ttml_single will force the input document to result in a single frame.
 .br
 
 .br
@@ -3099,6 +3099,8 @@ sstart (uint, default: 0):     start number of frame to forward. If 0, all sampl
 send (uint, default: 0):       end number of frame to forward. If less than start frame, all samples after start are forwarded
 .br
 dur (frac, default: 0):        duration of media to forward after first sample. If 0, all samples are forwarded
+.br
+merge_region (bool, default: false): merge TTML regions with same ID while reassembling TTML doc
 .br
 
 .br
@@ -7305,7 +7307,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev452-g9781fd41f-master
+build: 1.1.0-DEV-rev458-g8d9aeb5fc-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

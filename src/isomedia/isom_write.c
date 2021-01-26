@@ -237,6 +237,18 @@ GF_Err gf_isom_set_track_creation_time(GF_ISOFile *movie,u32 trackNumber, u64 ct
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_media_creation_time(GF_ISOFile *movie,u32 trackNumber, u64 ctime, u64 mtime)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->Media || !trak->Media->mediaHeader) return GF_ISOM_INVALID_FILE;
+
+	trak->Media->mediaHeader->creationTime = ctime;
+	trak->Media->mediaHeader->modificationTime = mtime;
+	return GF_OK;
+}
 
 //sets the enable flag of a track
 GF_EXPORT
@@ -6131,11 +6143,11 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 /*for now not exported*/
 /*expands sampleGroup table for the given grouping type and sample_number. If sample_number is 0, just appends an entry at the end of the table*/
-static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, GF_List *parent)
+static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, GF_List *parent, GF_SampleTableBox *stbl)
 {
 	GF_SampleGroupBox *sgroup = NULL;
 	u32 i, count, last_sample_in_entry;
-
+	Bool all_samples = GF_FALSE;
 	assert(sampleGroups);
 	count = gf_list_count(sampleGroups);
 	for (i=0; i<count; i++) {
@@ -6162,6 +6174,9 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 				sample_number += sgroup->sample_entries[i].sample_count;
 			}
 		}
+	} else if (sample_number==(u32) -1) {
+		all_samples = GF_TRUE;
+		sample_number = 1;
 	}
 
 	if (!sgroup->entry_count) {
@@ -6176,6 +6191,15 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 		}
 		sgroup->sample_entries[idx].sample_count = 1;
 		sgroup->sample_entries[idx].group_description_index = sampleGroupDescriptionIndex;
+		if (all_samples && stbl) {
+			sgroup->sample_entries[idx].sample_count = stbl->SampleSize->sampleCount;
+		}
+		return GF_OK;
+	}
+	if (all_samples && stbl) {
+		sgroup->entry_count = 1;
+		sgroup->sample_entries[0].group_description_index = sampleGroupDescriptionIndex;
+		sgroup->sample_entries[0].sample_count = stbl->SampleSize->sampleCount;
 		return GF_OK;
 	}
 	last_sample_in_entry = 0;
@@ -6340,7 +6364,7 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 		parent = stbl->child_boxes;
 	}
 
-	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, grouping_type_parameter, entry_idx, parent);
+	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, grouping_type_parameter, entry_idx, parent, stbl);
 }
 
 /*for now not exported*/
@@ -6522,7 +6546,7 @@ GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, 
 		trak->Media->information->sampleTable->sampleGroups = gf_list_new();
 
 	groupList = trak->Media->information->sampleTable->sampleGroups;
-	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex, trak->Media->information->sampleTable->child_boxes);
+	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex, trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable);
 }
 
 void *sg_rap_create_entry(void *udta)
@@ -7008,7 +7032,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 
 
 			/*found our sample, add it to trak->sampleGroups*/
-			e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sg->grouping_type, sg->grouping_type_parameter, group_desc_index_dst, dst_trak->Media->information->sampleTable->child_boxes);
+			e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sg->grouping_type, sg->grouping_type_parameter, group_desc_index_dst, dst_trak->Media->information->sampleTable->child_boxes, NULL);
 			if (e) return e;
 			break;
 		}
