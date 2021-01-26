@@ -3138,6 +3138,9 @@ u32 mp4box_parse_args(int argc, char **argv)
 			M4_LOG(GF_LOG_ERROR, ("`-tag-list`option deprecated, use `-h tags`\n"));
 			return 2;
 		}
+		else if (!strncmp(arg, "-p=", 3)) {
+			continue;
+		}
 
 		//parse argument
 		else if (mp4box_parse_single_arg(argc, argv, arg, &i)) {
