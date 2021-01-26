@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Authoring Tools sub-project
@@ -403,10 +403,6 @@ typedef struct __track_import
 
 	/*! force mode for the created  ISOBMFF sample entry*/
 	GF_AudioSampleEntryImportMode asemode;
-	/*! set audio roll using audio_roll below*/
-	Bool audio_roll_change;
-	/*! audio_roll distance */
-	s16 audio_roll;
 
 	/*! indicate to tag the imported media as an alpha channel stream*/
 	Bool is_alpha;

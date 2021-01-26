@@ -136,6 +136,7 @@ typedef enum {
 	TRAC_ACTION_SET_MX,
 	TRAC_ACTION_SET_EDITS,
 	TRAC_ACTION_SET_TIME,
+	TRAC_ACTION_SET_MEDIA_TIME,
 } TrackActionType;
 
 typedef struct
@@ -441,6 +442,7 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG("no-inplace", "disable inplace rewrite", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &no_inplace, 0, 0),
  	MP4BOX_ARG("hdr", "update HDR information based on given XML", GF_ARG_STRING, GF_ARG_HINT_EXPERT, &high_dynamc_range_filename, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG_S("time", "[tkID=]DAY/MONTH/YEAR-H:M:S", "set movie or track creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRAC_ACTION_SET_TIME, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("mtime", "tkID=DAY/MONTH/YEAR-H:M:S", "set media creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRAC_ACTION_SET_MEDIA_TIME, ARG_IS_FUN),
 	{0}
 };
 
@@ -679,19 +681,20 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - positive float: specifies duration in seconds\n"
 		"  - fraction: specifies duration as NUM/DEN fraction\n"
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("lang", NULL, "set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("delay", NULL, "set imported media initial delay in ms or as fractionnal seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("par", NULL, "set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("clap", NULL, "set visual clean aperture (see [-clap](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("mx", NULL, "set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("name", NULL, "set track handler name", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("lang", NULL, "`S` set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("delay", NULL, "`S` set imported media initial delay in ms or as fractionnal seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("par", NULL, "`S` set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("clap", NULL, "`S` set visual clean aperture (see [-clap](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("mx", NULL, "`S` set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("name", NULL, "`S` set track handler name", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ext", NULL, "override file extension when importing", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("hdlr", NULL, "set track handler type to the given code point (4CC)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("disable", NULL, "disable imported track(s)", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("group", NULL, "add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("hdlr", NULL, "`S` set track handler type to the given code point (4CC)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("tkhd", NULL, "`S` set track header flags has hex integer. Use `tkhd+=FLAGS` to add flags and `tkhd-=FLAGS` to remove flags", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("disable", NULL, "`S` disable imported track(s), use `disable=no` to force enabling a disabled track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("group", NULL, "`S` add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("fps", NULL, "same as [-fps]()", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("rap", NULL, "`D` import only RAP samples", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("refs", NULL, "`D` import only reference pictures", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("rap", NULL, "`DS` import only RAP samples", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("refs", NULL, "`DS` import only reference pictures", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("trailing", NULL, "keep trailing 0-bytes in AVC/HEVC samples", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("agg", NULL, "`X` same as [-agg]()", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("dref", NULL, "`X` same as [-dref]()", NULL, NULL, GF_ARG_BOOL, 0),
@@ -703,29 +706,31 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("ovsbr", NULL, "same as [-ovsbr]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("ps", NULL, "same as [-ps]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("psx", NULL, "same as [-psx]()", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("asemode", NULL, "`X` set the mode to create the AudioSampleEntry. Value can be:\n"
+	GF_DEF_ARG("asemode", NULL, "`XS` set the mode to create the AudioSampleEntry. Value can be:\n"
 		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
 		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
 		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
 		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("audio_roll", NULL, "add a roll sample group with roll_distance `N`", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("audio_roll", NULL, "`S` add a roll sample group with roll_distance `N` for audio tracks", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("roll", NULL, "`S` add a roll sample group with roll_distance `N`", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("proll", NULL, "`S` add a preroll sample group with roll_distance `N`", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("mpeg4", NULL, "`X` same as [-mpeg4]() option", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("nosei", NULL, "discard all SEI messages during import", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("svc", NULL, "import SVC/LHVC with explicit signaling (no AVC base compatibility)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("nosvc", NULL, "discard SVC/LHVC data when importing", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("svcmode", NULL, "`D` set SVC/LHVC import mode. Value can be:\n"
+	GF_DEF_ARG("svcmode", NULL, "`DS` set SVC/LHVC import mode. Value can be:\n"
 		"  - split: each layer is in its own track\n"
 		"  - merge: all layers are merged in a single track\n"
 		"  - splitbase: all layers are merged in a track, and the AVC base in another\n"
 		"  - splitnox: each layer is in its own track, and no extractors are written\n"
 		"  - splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("temporal", NULL, "`D` set HEVC/LHVC temporal sublayer import mode. Value can be:\n"
+	GF_DEF_ARG("temporal", NULL, "`DS` set HEVC/LHVC temporal sublayer import mode. Value can be:\n"
 		"  - split: each sublayer is in its own track\n"
 		"  - splitbase: all sublayers are merged in a track, and the HEVC base in another\n"
 		"  - splitnox: each layer is in its own track, and no extractors are written", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("subsamples", NULL, "add SubSample information for AVC+SVC", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("deps", NULL, "import sample dependency information for AVC and HEVC", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("ccst", NULL, "add default HEIF ccst box to visual sample entry", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("ccst", NULL, "`S` add default HEIF ccst box to visual sample entry", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("forcesync", NULL, "force non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("xps_inband", NULL, "`X` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)", NULL, NULL, GF_ARG_BOOL, 0),
@@ -733,26 +738,23 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("au_delim", NULL, "keep AU delimiter NAL units in the imported file", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("max_lid", NULL, "set HEVC max layer ID to be imported to `N` (by default imports all layers)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("max_tid", NULL, "set HEVC max temporal ID to be imported to `N` (by default imports all temporal sublayers)", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("tiles", NULL, "add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("split_tiles", NULL, "`D` split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("negctts", NULL, "use negative CTS-DTS offsets (ISO4 brand)", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("chap", NULL, "specify the track is a chapter track", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("chapter", NULL, "add a single chapter (old nero format) with given name lasting the entire file", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("chapfile", NULL, "add a chapter file (old nero format)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("layout", NULL, "specify the track layout as WxHxXxY\n"
-		"  - if W (resp H) = 0: the max width (resp height) of the tracks in the file are used\n"
-		"  - if Y=-1: the layout is moved to the bottom of the track area\n"
-		"  - X and Y can be omitted: `:layout=WxH`", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("rescale", NULL, "force media timescale to TS  (int or fraction) and change the media duration", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("sampdur", NULL, "force all samples duration (`D`) or sample durations and media timescale (`D/TS`), used to patch CFR files with broken timings", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("timescale", NULL, "set imported media timescale to TS", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("moovts", NULL, "set movie timescale to TS. A negative value picks the media timescale of the first track imported", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("noedit", NULL, "`X` do not set edit list when importing B-frames video tracks", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("rvc", NULL, "set RVC configuration for the media", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("tiles", NULL, "`S` add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("split_tiles", NULL, "`DS` split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("negctts", NULL, "`S` use negative CTS-DTS offsets (ISO4 brand). Use `negctts=no` to force using postive offset on existing track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("chap", NULL, "`S` specify the track is a chapter track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("chapter", NULL, "`S` add a single chapter (old nero format) with given name lasting the entire file", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("chapfile", NULL, "`S` add a chapter file (old nero format)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("layout", NULL, "`S` specify the track layout as `WxH[xXxY][xLAYER]`. If `W` (resp `H`) is 0, the max width (resp height) of the tracks in the file are used", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("rescale", NULL, "`S` force media timescale to TS  (int or fraction) and change the media duration", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("sampdur", NULL, "`S` force all samples duration (`D`) or sample durations and media timescale (`D/TS`), used to patch CFR files with broken timings", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("timescale", NULL, "`S` set imported media timescale to TS", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("moovts", NULL, "`S` set movie timescale to TS. A negative value picks the media timescale of the first track imported", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("noedit", NULL, "`XS` do not set edit list when importing B-frames video tracks", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("rvc", NULL, "`S` set RVC configuration for the media", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("fmt", NULL, "override format detection with given format (cf BT/XMTA doc)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("profile", NULL, "override AVC profile. Integer value, or `high444`, `high`, `extended`, `main`, `baseline`", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("level", NULL, "override AVC level, if value < 6, interpreted as decimal expression", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("compat", NULL, "force the profile compatibity flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("profile", NULL, "`S` override AVC profile. Integer value, or `high444`, `high`, `extended`, `main`, `baseline`", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("level", NULL, "`S` override AVC level, if value < 6, interpreted as decimal expression", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("compat", NULL, "`S` force the profile compatibity flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("novpsext", NULL, "remove VPS extensions from HEVC VPS", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("keepav1t", NULL, "keep AV1 temporal delimiter OBU in samples, might help if source file had losses", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("font", NULL, "specify font name for text import (default `Serif`)", NULL, NULL, GF_ARG_STRING, 0),
@@ -772,28 +774,28 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("swf-ic2d", NULL, "use indexed curve 2D hardcoded proto", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("swf-same-app", NULL, "appearance nodes are reused", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("swf-flatten", NULL, "complementary angle below which 2 lines are merged, `0` means no flattening", NULL, NULL, GF_ARG_DOUBLE, 0),
-	GF_DEF_ARG("kind", NULL, "set kind for the track as `schemeURI=value`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("kind", NULL, "`S` set kind for the track as `schemeURI=value`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("txtflags", NULL, "set display flags (hexa number) of text track. Use `txtflags+=FLAGS` to add flags and `txtflags-=FLAGS` to remove flags", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("rate", NULL, "force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("stz2", NULL, "use compact size table (for low-bitrates)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("stz2", NULL, "`S` use compact size table (for low-bitrates)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("bitdepth", NULL, "set bit depth to VAL for imported video content (default is 24)", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("colr", NULL, "set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:\n"
+	GF_DEF_ARG("colr", NULL, "`S` set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:\n"
 		"  - nclc,p,t,m: with p colour primary (int or string), t transfer characteristics (int or string) and m matrix coef (int or string)\n"
 		"  - nclx,p,t,m,r: same as `nclx` with r full range flag (`yes`, `on` or `no`, `off`)\n"
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("dv-profile", NULL, "set the Dolby Vision profile", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("fullrange", NULL, "force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("videofmt", NULL, "force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("colorprim", NULL, "force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("colortfc", NULL, "force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("colormx", NULL, "force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("tc", NULL, "inject a single QT timecode. Value is formated as:\n"
+	GF_DEF_ARG("dv-profile", NULL, "`S` set the Dolby Vision profile", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("fullrange", NULL, "`S` force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("videofmt", NULL, "`S` force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("colorprim", NULL, "`S` force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("colortfc", NULL, "`S` force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("colormx", NULL, "`S` force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("tc", NULL, "`S` inject a single QT timecode. Value is formated as:\n"
 		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
 		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("edits", NULL, "override edit list, same syntax as [-edits]()", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("lastsampdur", NULL, "set duration of the last sample. Value is formated as:\n"
+	GF_DEF_ARG("edits", NULL, "`S` override edit list, same syntax as [-edits]()", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("lastsampdur", NULL, "`S` set duration of the last sample. Value is formated as:\n"
 		"  - no value: use the previous sample duration\n"
 		"  - integer: indicate the duration in milliseconds\n"
 		"  - N/D: indicate the duration as fractional second", NULL, NULL, GF_ARG_STRING, 0),
@@ -836,7 +838,16 @@ void PrintImportUsage()
 		"  \n"
 		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check [TTXT doc](Subtitling-with-GPAC).\n"
 		"  \n"
-		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`. Allowed per-file options:\n\n"
+		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`.\n"
+		"  \n"
+		"The import file name may be set to empty or `self`, indicating that the import options should be applied to the destination file track(s).\n"
+		"EX -add self:moovts=-1:noedit src.mp4\n"
+		"This will apply `moovts` and `noedit` option to all tracks in src.mp4\n"
+		"EX -add self#2:moovts=-1:noedit src.mp4\n"
+		"This will apply `moovts` and `noedit` option to track with `ID=2` in src.mp4\n"
+		"Only per-file options marked with a `S` are possible in this mode.\n"
+		"  \n"
+		"Allowed per-file options:\n\n"
 	);
 
 	i=0;
@@ -2246,7 +2257,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_TIME) {
+	if ((act_type==TRAC_ACTION_SET_TIME) || (act_type==TRAC_ACTION_SET_MEDIA_TIME)) {
 		struct tm time;
 		char *ext = strchr(arg_val, '=');
 		if (ext) {
@@ -5044,6 +5055,14 @@ static GF_Err do_track_act()
 				}
 			} else {
 				e = gf_isom_set_track_creation_time(file, track, tka->time, tka->time);
+			}
+			do_save = GF_TRUE;
+			break;
+		case TRAC_ACTION_SET_MEDIA_TIME:
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				if (track && (track != i+1)) continue;
+				e = gf_isom_set_media_creation_time(file, i+1, tka->time, tka->time);
+				if (e) return e;
 			}
 			do_save = GF_TRUE;
 			break;

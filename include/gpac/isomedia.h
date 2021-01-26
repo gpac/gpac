@@ -1710,7 +1710,7 @@ GF_Err gf_isom_set_track_enabled(GF_ISOFile *isom_file, u32 trackNumber, Bool en
 typedef enum
 {
 	/*! set flags, erasing previous value*/
-	GF_ISOM_TKFLAGS_SET = 0,
+	GF_ISOM_TKFLAGS_SET = 1,
 	/*! add flags*/
 	GF_ISOM_TKFLAGS_REM,
 	/*! remove flags*/
@@ -1741,7 +1741,16 @@ GF_Err gf_isom_set_creation_time(GF_ISOFile *isom_file, u64 create_time, u64 mod
 \param modif_time the new modification time
 \return error if any
 */
-GF_Err gf_isom_set_track_creation_time(GF_ISOFile *isom_file,u32 trackNumber, u64 create_time, u64 modif_time);
+GF_Err gf_isom_set_track_creation_time(GF_ISOFile *isom_file, u32 trackNumber, u64 create_time, u64 modif_time);
+
+/*! sets creationTime and modificationTime of the track media header to the specified dates
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param create_time the new creation time
+\param modif_time the new modification time
+\return error if any
+*/
+GF_Err gf_isom_set_media_creation_time(GF_ISOFile *isom_file, u32 trackNumber, u64 create_time, u64 modif_time);
 
 /*! changes the ID of a track - all track references present in the file are updated
 \param isom_file the target ISO file
@@ -6289,7 +6298,7 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *isom_file, u32 trackNumber, u32 
 \warning Sample group info MUST be added in order (no insertion in the tables)
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param sampleNumber the target sample number
+\param sampleNumber the target sample number. If 0, assumes last added sample. If 0xFFFFFFFF, marks all samples as belonging to the roll group
 \param roll_type indicates  the sample roll recovery type
 \param roll_distance indicates the roll distance before a correct decoding is produced
 \return error if any

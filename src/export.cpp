@@ -976,6 +976,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_creation_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_creation_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_media_creation_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_enabled) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_flags) )

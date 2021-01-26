@@ -404,6 +404,11 @@ update HDR information based on given XML
 .br
 set movie or track creation time
 .br
+.TP
+.B \-mtime tkID=DAY/MONTH/YEAR-H:M:S
+.br
+set media creation time
+.br
 .SH Extracting Options
 .LP
 .br
@@ -1322,7 +1327,33 @@ Note: When importing SRT or SUB files, MP4Box will choose default layout options
 .br
   
 .br
-When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax -add stream[:opt1:...:optN]. Allowed per-file options:
+When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax -add stream[:opt1:...:optN].
+.br
+  
+.br
+The import file name may be set to empty or self, indicating that the import options should be applied to the destination file track(s).
+.br
+Example
+.br
+-add self:moovts=-1:noedit src.mp4
+.br
+
+.br
+This will apply moovts and noedit option to all tracks in src.mp4
+.br
+Example
+.br
+-add self#2:moovts=-1:noedit src.mp4
+.br
+
+.br
+This will apply moovts and noedit option to track with ID=2 in src.mp4
+.br
+Only per-file options marked with a S are possible in this mode.
+.br
+  
+.br
+Allowed per-file options:
 .br
 
 .br
@@ -1340,32 +1371,32 @@ X import only the specified duration from the media. Value can be:
 .TP
 .B lang (string)
 .br
-set imported media language code
+S set imported media language code
 .br
 .TP
 .B delay (int)
 .br
-set imported media initial delay in ms or as fractionnal seconds (N/D)
+S set imported media initial delay in ms or as fractionnal seconds (N/D)
 .br
 .TP
 .B par (string)
 .br
-set visual pixel aspect ratio (see .I -par )
+S set visual pixel aspect ratio (see .I -par )
 .br
 .TP
 .B clap (string)
 .br
-set visual clean aperture (see .I -clap )
+S set visual clean aperture (see .I -clap )
 .br
 .TP
 .B mx (string)
 .br
-set track matrix (see .I -mx )
+S set track matrix (see .I -mx )
 .br
 .TP
 .B name (string)
 .br
-set track handler name
+S set track handler name
 .br
 .TP
 .B ext (string)
@@ -1375,17 +1406,22 @@ override file extension when importing
 .TP
 .B hdlr (string)
 .br
-set track handler type to the given code point (4CC)
+S set track handler type to the given code point (4CC)
+.br
+.TP
+.B tkhd (int)
+.br
+S set track header flags has hex integer. Use tkhd+=FLAGS to add flags and tkhd-=FLAGS to remove flags
 .br
 .TP
 .B disable
 .br
-disable imported track(s)
+S disable imported track(s), use disable=no to force enabling a disabled track
 .br
 .TP
 .B group (int)
 .br
-add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked
+S add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked
 .br
 .TP
 .B fps (string)
@@ -1395,12 +1431,12 @@ same as .I fps
 .TP
 .B rap
 .br
-D import only RAP samples
+DS import only RAP samples
 .br
 .TP
 .B refs
 .br
-D import only reference pictures
+DS import only reference pictures
 .br
 .TP
 .B trailing
@@ -1460,7 +1496,7 @@ same as .I psx
 .TP
 .B asemode (string)
 .br
-X set the mode to create the AudioSampleEntry. Value can be:
+XS set the mode to create the AudioSampleEntry. Value can be:
 .br
   * v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default
 .br
@@ -1473,7 +1509,17 @@ X set the mode to create the AudioSampleEntry. Value can be:
 .TP
 .B audio_roll (int)
 .br
-add a roll sample group with roll_distance N
+S add a roll sample group with roll_distance N for audio tracks
+.br
+.TP
+.B roll (int)
+.br
+S add a roll sample group with roll_distance N
+.br
+.TP
+.B proll (int)
+.br
+S add a preroll sample group with roll_distance N
 .br
 .TP
 .B mpeg4
@@ -1498,7 +1544,7 @@ discard SVC/LHVC data when importing
 .TP
 .B svcmode (string)
 .br
-D set SVC/LHVC import mode. Value can be:
+DS set SVC/LHVC import mode. Value can be:
 .br
   * split: each layer is in its own track
 .br
@@ -1513,7 +1559,7 @@ D set SVC/LHVC import mode. Value can be:
 .TP
 .B temporal (string)
 .br
-D set HEVC/LHVC temporal sublayer import mode. Value can be:
+DS set HEVC/LHVC temporal sublayer import mode. Value can be:
 .br
   * split: each sublayer is in its own track
 .br
@@ -1534,7 +1580,7 @@ import sample dependency information for AVC and HEVC
 .TP
 .B ccst
 .br
-add default HEIF ccst box to visual sample entry
+S add default HEIF ccst box to visual sample entry
 .br
 .TP
 .B forcesync
@@ -1571,73 +1617,67 @@ set HEVC max temporal ID to be imported to N (by default imports all temporal su
 .TP
 .B tiles
 .br
-add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks
+S add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks
 .br
 .TP
 .B split_tiles
 .br
-D split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track
+DS split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track
 .br
 .TP
 .B negctts
 .br
-use negative CTS-DTS offsets (ISO4 brand)
+S use negative CTS-DTS offsets (ISO4 brand). Use negctts=no to force using postive offset on existing track
 .br
 .TP
 .B chap
 .br
-specify the track is a chapter track
+S specify the track is a chapter track
 .br
 .TP
 .B chapter (string)
 .br
-add a single chapter (old nero format) with given name lasting the entire file
+S add a single chapter (old nero format) with given name lasting the entire file
 .br
 .TP
 .B chapfile (string)
 .br
-add a chapter file (old nero format)
+S add a chapter file (old nero format)
 .br
 .TP
 .B layout (string)
 .br
-specify the track layout as WxHxXxY
-.br
-  * if W (resp H) = 0: the max width (resp height) of the tracks in the file are used
-.br
-  * if Y=-1: the layout is moved to the bottom of the track area
-.br
-  * X and Y can be omitted: :layout=WxH
+S specify the track layout as WxH[xXxY][xLAYER]. If W (resp H) is 0, the max width (resp height) of the tracks in the file are used
 .br
 .TP
 .B rescale (int)
 .br
-force media timescale to TS  (int or fraction) and change the media duration
+S force media timescale to TS  (int or fraction) and change the media duration
 .br
 .TP
 .B sampdur (int)
 .br
-force all samples duration (D) or sample durations and media timescale (D/TS), used to patch CFR files with broken timings
+S force all samples duration (D) or sample durations and media timescale (D/TS), used to patch CFR files with broken timings
 .br
 .TP
 .B timescale (int)
 .br
-set imported media timescale to TS
+S set imported media timescale to TS
 .br
 .TP
 .B moovts (int)
 .br
-set movie timescale to TS. A negative value picks the media timescale of the first track imported
+S set movie timescale to TS. A negative value picks the media timescale of the first track imported
 .br
 .TP
 .B noedit
 .br
-X do not set edit list when importing B-frames video tracks
+XS do not set edit list when importing B-frames video tracks
 .br
 .TP
 .B rvc (string)
 .br
-set RVC configuration for the media
+S set RVC configuration for the media
 .br
 .TP
 .B fmt (string)
@@ -1647,17 +1687,17 @@ override format detection with given format (cf BT/XMTA doc)
 .TP
 .B profile (int)
 .br
-override AVC profile. Integer value, or high444, high, extended, main, baseline
+S override AVC profile. Integer value, or high444, high, extended, main, baseline
 .br
 .TP
 .B level (int)
 .br
-override AVC level, if value < 6, interpreted as decimal expression
+S override AVC level, if value < 6, interpreted as decimal expression
 .br
 .TP
 .B compat (int)
 .br
-force the profile compatibity flags for the H.264 content
+S force the profile compatibity flags for the H.264 content
 .br
 .TP
 .B novpsext
@@ -1748,7 +1788,7 @@ complementary angle below which 2 lines are merged, 0 means no flattening
 .TP
 .B kind (string)
 .br
-set kind for the track as schemeURI=value
+S set kind for the track as schemeURI=value
 .br
 .TP
 .B txtflags (int)
@@ -1763,7 +1803,7 @@ force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt 
 .TP
 .B stz2
 .br
-use compact size table (for low-bitrates)
+S use compact size table (for low-bitrates)
 .br
 .TP
 .B bitdepth (int)
@@ -1773,7 +1813,7 @@ set bit depth to VAL for imported video content (default is 24)
 .TP
 .B colr (string)
 .br
-set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:
+S set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:
 .br
   * nclc,p,t,m: with p colour primary (int or string), t transfer characteristics (int or string) and m matrix coef (int or string)
 .br
@@ -1786,37 +1826,37 @@ set color profile for imported video content (see ISO/IEC 23001-8). Value is for
 .TP
 .B dv-profile (int)
 .br
-set the Dolby Vision profile
+S set the Dolby Vision profile
 .br
 .TP
 .B fullrange (string)
 .br
-force the video fullrange type in VUI for the AVC|H264 content (value yes, on or no, off)
+S force the video fullrange type in VUI for the AVC|H264 content (value yes, on or no, off)
 .br
 .TP
 .B videofmt (string)
 .br
-force the video format in VUI for AVC|H264 and HEVC content, value can be component, pal, ntsc, secam, mac, undef
+S force the video format in VUI for AVC|H264 and HEVC content, value can be component, pal, ntsc, secam, mac, undef
 .br
 .TP
 .B colorprim (string)
 .br
-force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf -h cicp)
+S force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf -h cicp)
 .br
 .TP
 .B colortfc (string)
 .br
-force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf -h cicp)
+S force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf -h cicp)
 .br
 .TP
 .B colormx (string)
 .br
-force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf -h cicp)
+S force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf -h cicp)
 .br
 .TP
 .B tc (string)
 .br
-inject a single QT timecode. Value is formated as:
+S inject a single QT timecode. Value is formated as:
 .br
   * [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number
 .br
@@ -1827,12 +1867,12 @@ inject a single QT timecode. Value is formated as:
 .TP
 .B edits (string)
 .br
-override edit list, same syntax as .I edits
+S override edit list, same syntax as .I edits
 .br
 .TP
 .B lastsampdur (string)
 .br
-set duration of the last sample. Value is formated as:
+S set duration of the last sample. Value is formated as:
 .br
   * no value: use the previous sample duration
 .br
@@ -2611,7 +2651,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev452-g9781fd41f-master
+build: 1.1.0-DEV-rev458-g8d9aeb5fc-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
