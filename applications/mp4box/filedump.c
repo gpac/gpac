@@ -3494,6 +3494,36 @@ void DumpMovieInfo(GF_ISOFile *file)
 			fprintf(stderr, "\n");
 		}
 	}
+	i=0;
+	while (1) {
+		const u8 *data;
+		u32 data_len, type, version;
+		char *tag;
+		GF_Err e = gf_isom_wma_enum_tag(file, i, &tag, &data, &data_len, &version, &type);
+		if (e) break;
+		if (!i) {
+			fprintf(stderr, "\nWMA Info:\n");
+		}
+		i++;
+		fprintf(stderr, "\t%s", tag);
+		if (version!=1)
+			fprintf(stderr, " (version %d)", version);
+		fprintf(stderr, ": ");
+
+		if (type) {
+			fprintf(stderr, "unknown type %d\n", type);
+		} else {
+			u16 *src_str = (u16 *) data;
+			u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str);
+			char *utf8str = (char *)gf_malloc(len + 1);
+			u32 res_len = gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
+			utf8str[res_len] = 0;
+			fprintf(stderr, "%s\n", utf8str);
+
+			gf_free(utf8str);
+		}
+	}
+
 
 	print_udta(file, 0, has_itags);
 	fprintf(stderr, "\n");

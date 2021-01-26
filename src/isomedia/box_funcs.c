@@ -853,6 +853,7 @@ ISOM_BOX_IMPL_DECL(dfla)
 ISOM_BOX_IMPL_DECL(pcmC)
 ISOM_BOX_IMPL_DECL(chnl)
 
+ISOM_BOX_IMPL_DECL(xtra)
 
 
 #define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 0, 0, __par, "p12", GF_FALSE}
@@ -1502,6 +1503,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_FLAC, audio_sample_entry, "stsd", "Flac"),
 	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_DFLA, dfla, "fLaC enca", 0, "Flac"),
 
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_XTRA, xtra, "udta", "WMA"),
 };
 
 Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc)

@@ -6034,6 +6034,20 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u
 */
 GF_Err gf_isom_apple_enum_tag(GF_ISOFile *isom_file, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags);
 
+
+/*! enumerate WMA tags.
+
+\param isom_file the target ISO file
+\param idx 0-based index of the tag to get
+\param out_tag set to the tag name
+\param data set to the tag data pointer - do not modify
+\param data_len set to the size of the tag data
+\param version  set to the WMA tag version
+\param data_type set to the WMA data type
+\return error if any (GF_URL_ERROR if no more tags)
+*/
+GF_Err gf_isom_wma_enum_tag(GF_ISOFile *isom_file, u32 idx, char **out_tag, const u8 **data, u32 *data_len, u32 *version, u32 *data_type);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! sets the given tag info.
 
@@ -6046,6 +6060,16 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *isom_file, u32 idx, GF_ISOiTunesTag *o
 \return error if any
 */
 GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2);
+
+
+/*! sets the given WMA tag info (only string tags are supported).
+
+\param isom_file the target ISO file
+\param name name of the tag to set
+\param value string value to set
+\return error if any
+*/
+GF_Err gf_isom_wma_set_tag(GF_ISOFile *isom_file, char *name, char *value);
 
 
 /*! sets compatibility tag on AVC tracks (needed by iPod to play files... hurray for standards)

@@ -1255,6 +1255,8 @@ void PrintTags()
 	"- lines starting with `tag_name=value` specify the start of a tag\n"
 	"- other lines specify the remainer of the last declared tag\n"
 	"  \n"
+	"If tag name starts with `WM/`, the tag is added to `Xtra` box (WMA tag, string only).\n"
+	"  \n"
 	"Supported tag names, values, types, aliases:\n"
 	);
 
@@ -5090,6 +5092,7 @@ static GF_Err do_itunes_tag()
 	while (tags) {
 		char *val;
 		Bool clear = GF_FALSE;
+		Bool is_wma = GF_FALSE;
 		u32 tlen, tagtype, itag = 0;
 		s32 tag_idx;
 		char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags);
@@ -5111,6 +5114,8 @@ static GF_Err do_itunes_tag()
 		if (val) val[0] = 0;
 		if (!strcmp(tags, "clear") || !strcmp(tags, "reset")) {
 			clear = GF_TRUE;
+		} else if (!strncmp(tags, "WM/", 3) ) {
+			is_wma = GF_TRUE;
 		} else {
 			tag_idx = gf_itags_find_by_name(tags);
 			if ((tag_idx<0) && (strlen(tags)==4)) {
@@ -5122,7 +5127,7 @@ static GF_Err do_itunes_tag()
 			val[0] = '=';
 			val++;
 		}
-		if (!itag && !clear) {
+		if (!itag && !clear && !is_wma) {
 			if (tag_idx<0) {
 				M4_LOG(GF_LOG_WARNING, ("Invalid iTune tag name \"%s\" - ignoring\n", tags));
 				break;
@@ -5135,7 +5140,11 @@ static GF_Err do_itunes_tag()
 		tlen = val ? (u32) strlen(val) : 0;
 		if (clear) {
 			e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_RESET, NULL, 0, 0, 0);
-
+		}
+		else if (is_wma) {
+			if (val) val[-1] = 0;
+			e = gf_isom_wma_set_tag(file, tags, val);
+			if (val) val[-1] = '=';
 		}
 		else if (val && (tagtype==GF_ITAG_FILE)) {
 			u32 flen = (u32) strlen(val);
