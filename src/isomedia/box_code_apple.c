@@ -364,7 +364,7 @@ GF_Err wide_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
+GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 {
 	u32 i;
 	GF_UserDataMap *map;
@@ -372,25 +372,26 @@ GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 	if (!mov || !mov->moov) return NULL;
 
 	if (!mov->moov->udta) return NULL;
-	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
+	map = udta_getEntry(mov->moov->udta, for_xtra ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META, NULL);
 	if (!map) return NULL;
 
 	for(i = 0; i < gf_list_count(map->boxes); i++) {
 		GF_MetaBox *meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
+		if (for_xtra && (meta->type==GF_ISOM_BOX_TYPE_XTRA)) return (GF_Box *) meta;
 
-		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
+		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return (GF_Box *) meta;
 	}
-
 	return NULL;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
+GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 {
 	GF_Err e;
 	u32 i;
 	GF_MetaBox *meta;
 	GF_UserDataMap *map;
+	u32 udta_subtype = for_xtra ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META;
 
 	if (!mov || !mov->moov) return NULL;
 
@@ -399,30 +400,32 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 		if (e) return NULL;
 	}
 
-	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
+	map = udta_getEntry(mov->moov->udta, udta_subtype, NULL);
 	if (map) {
-		for(i = 0; i < gf_list_count(map->boxes); i++) {
+		for (i=0; i<gf_list_count(map->boxes); i++) {
 			meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
+			if (for_xtra) return (GF_Box *) meta;
 
-			if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
+			if (meta && meta->handler && (meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR)) return (GF_Box *) meta;
 		}
 	}
 
 	//udta handles children boxes through maps
-	meta = (GF_MetaBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_META);
+	meta = (GF_MetaBox *)gf_isom_box_new(udta_subtype);
 
-	if(meta != NULL) {
-		meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
-		if(meta->handler == NULL) {
-			gf_isom_box_del((GF_Box *)meta);
-			return NULL;
-		}
-		meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
-		gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
+	if (meta) {
 		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta);
+		if (!for_xtra) {
+			meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
+			if(meta->handler == NULL) {
+				gf_isom_box_del((GF_Box *)meta);
+				return NULL;
+			}
+			meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
+			gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
+		}
 	}
-
-	return meta;
+	return (GF_Box *) meta;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

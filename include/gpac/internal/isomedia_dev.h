@@ -501,6 +501,7 @@ enum
 	GF_QT_SUBTYPE_RAW_AUD 	= GF_4CC('Q','T','R','A'),
 	GF_QT_SUBTYPE_RAW_VID 	= GF_4CC('Q','T','R','V'),
 
+	GF_ISOM_BOX_TYPE_XTRA	= GF_4CC( 'X', 't', 'r', 'a' ),
 
 };
 
@@ -3698,6 +3699,25 @@ typedef struct
 } FDItemInformationBox;
 
 
+
+typedef struct
+{
+	char *name;
+	u32 flags;
+	u16 prop_type;
+
+	u32 prop_size;
+	u8 *prop_value; //most of the time, utf16 with trailing \0\0
+} GF_XtraTag;
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+	GF_List *tags;
+} GF_XtraBox;
+
+
 /*
 		Data Map (media storage) stuff
 */
@@ -4469,10 +4489,10 @@ GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace);
 void gf_isom_registry_disable(u32 boxCode, Bool disable);
 
 /*Apple extensions*/
-GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);
+GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, Bool for_xtra);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov);
+GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

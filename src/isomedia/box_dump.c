@@ -6159,5 +6159,37 @@ GF_Err iaux_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+#include <gpac/utf.h>
+
+GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_XtraBox *ptr = (GF_XtraBox *)a;
+	u32 i, count = gf_list_count(ptr->tags);
+
+	gf_isom_box_dump_start(a, "XtraBox", trace);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<count; i++) {
+		GF_XtraTag *tag = gf_list_get(ptr->tags, i);
+
+		gf_fprintf(trace, "<WMATag name=\"%s\" version=\"%d\" type=\"%d\"", tag->name, tag->flags, tag->prop_type);
+		if (!tag->prop_type) {
+			u16 *src_str = (u16 *) tag->prop_value;
+			u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str);
+			char *utf8str = (char *)gf_malloc(len + 1);
+			u32 res_len = gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
+			utf8str[res_len] = 0;
+
+			gf_fprintf(trace, " value=\"%s\">\n", utf8str);
+			gf_free(utf8str);
+		} else {
+			gf_fprintf(trace, " value=\"");
+			dump_data_hex(trace, tag->prop_value, tag->prop_size);
+			gf_fprintf(trace, "\">\n");
+		}
+	}
+	gf_isom_box_dump_done("XtraBox", a, trace);
+	return GF_OK;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

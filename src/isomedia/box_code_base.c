@@ -12447,4 +12447,115 @@ GF_Err dmlp_box_size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *xtra_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_XtraBox, GF_ISOM_BOX_TYPE_XTRA);
+	tmp->tags = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+void xtra_box_del(GF_Box *s)
+{
+	GF_XtraBox *ptr = (GF_XtraBox *)s;
+	while (gf_list_count(ptr->tags)) {
+		GF_XtraTag *tag = gf_list_pop_back(ptr->tags);
+		if (tag->name) gf_free(tag->name);
+		if (tag->prop_value) gf_free(tag->prop_value);
+		gf_free(tag);
+	}
+	gf_list_del(ptr->tags);
+	gf_free(s);
+}
+
+GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_XtraBox *ptr = (GF_XtraBox *)s;
+	while (ptr->size) {
+		GF_XtraTag *tag;
+		u32 prop_type = 0;
+
+		char *data=NULL, *data2=NULL;
+		ISOM_DECREASE_SIZE(ptr, 18)
+		s32 tag_size = gf_bs_read_u32(bs);
+		u32 name_size = gf_bs_read_u32(bs);
+		tag_size -= 8;
+
+		ISOM_DECREASE_SIZE(ptr, name_size)
+		data = gf_malloc(sizeof(char) * (name_size+1));
+		gf_bs_read_data(bs, data, name_size);
+		data[name_size] = 0;
+		tag_size-=name_size;
+
+		u32 flags = gf_bs_read_u32(bs);
+		u32 prop_size = gf_bs_read_u32(bs);
+		tag_size-=8;
+
+		if (prop_size>4) {
+			tag_size-=2;
+			prop_type = gf_bs_read_u16(bs);
+			prop_size -= 6;
+			ISOM_DECREASE_SIZE(ptr, prop_size)
+			data2 = gf_malloc(sizeof(char) * (prop_size));
+			gf_bs_read_data(bs, data2, prop_size);
+			tag_size-=prop_size;
+		}
+		GF_SAFEALLOC(tag, GF_XtraTag)
+		tag->flags = flags;
+		tag->name = data;
+		tag->prop_size = prop_size;
+		tag->prop_value = data2;
+		gf_list_add(ptr->tags, tag);
+
+		if (tag_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isom] invalid tag size in Xtra !\n"));
+		}
+	}
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err xtra_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_XtraBox *ptr = (GF_XtraBox *)s;
+	u32 i, count = gf_list_count(ptr->tags);
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	for (i=0; i<count; i++) {
+		GF_XtraTag *tag = gf_list_get(ptr->tags, i);
+		u32 tag_size = 16;
+		u32 name_len = tag->name ? (u32) strlen(tag->name) : 0;
+		tag_size += name_len;
+		if (tag->prop_value) {
+			tag_size += 2 + tag->prop_size;
+		}
+		gf_bs_write_u32(bs, tag_size);
+		gf_bs_write_u32(bs, name_len);
+		gf_bs_write_data(bs, tag->name, name_len);
+		gf_bs_write_u32(bs, tag->flags);
+		gf_bs_write_u32(bs, 6 + tag->prop_size);
+		gf_bs_write_u16(bs, tag->prop_type);
+		gf_bs_write_data(bs, tag->prop_value, tag->prop_size);
+	}
+	return GF_OK;
+}
+
+GF_Err xtra_box_size(GF_Box *s)
+{
+	GF_XtraBox *ptr = (GF_XtraBox *)s;
+	u32 i, count = gf_list_count(ptr->tags);
+	for (i=0; i<count; i++) {
+		GF_XtraTag *tag = gf_list_get(ptr->tags, i);
+		ptr->size += 18 + (u32) strlen(tag->name) + tag->prop_size;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 #endif /*GPAC_DISABLE_ISOM*/
