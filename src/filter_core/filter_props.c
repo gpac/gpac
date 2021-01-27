@@ -83,11 +83,18 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_UINT:
-		if (value && !strcmp(value, "+I")) p.value.sint = 0xFFFFFFFF;
-		else if (!value && !enum_values) {
+		if (value && !strcmp(value, "+I")) {
+			p.value.sint = 0xFFFFFFFF;
+			break;
+		}
+
+		if (!value && !enum_values) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
-		} else if (enum_values && strchr(enum_values, '|')) {
+			break;
+		}
+
+		if (enum_values && strchr(enum_values, '|')) {
 			u32 a_len = value ? (u32) strlen(value) : 0;
 			u32 val = 0;
 			char *str_start = (char *) enum_values;
@@ -105,7 +112,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using `%s`\n", value, name, enum_values, szVal));
 					break;
 				}
-				if ((a_len == len) && !strncmp(str_start, value, len))
+				if ((a_len == len) && value && !strncmp(str_start, value, len))
 					break;
 				if (!sep) {
 					str_start = NULL;
@@ -125,20 +132,24 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			} else {
 				p.value.uint = val;
 			}
-		} else if (!strnicmp(value, "0x", 2)) {
+		} else if (value && !strnicmp(value, "0x", 2)) {
 			if (sscanf(value, "0x%x", &p.value.uint)!=1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 			} else if (unit) {
 				p.value.uint *= unit;
 			}
-		} else if (sscanf(value, "%d", &p.value.uint)!=1) {
-			if (strlen(value)==4) {
-				p.value.uint = GF_4CC(value[0],value[1],value[2],value[3]);
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+		} else if (value) {
+			if (sscanf(value, "%d", &p.value.uint)!=1) {
+				if (strlen(value)==4) {
+					p.value.uint = GF_4CC(value[0],value[1],value[2],value[3]);
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+				}
+			} else if (unit) {
+				p.value.uint *= unit;
 			}
-		} else if (unit) {
-			p.value.uint *= unit;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing argument value for unsigned int arg %s - using 0\n", name));
 		}
 		break;
 	case GF_PROP_LSINT:

@@ -1406,18 +1406,28 @@ static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len
 	return GF_FALSE;
 }
 
-static u32 PrintHelpForArgs(char *arg_name, GF_GPACArg *args, u32 search_type)
+static u32 PrintHelpForArgs(char *arg_name, MP4BoxArg *args, GF_GPACArg *_args, u32 search_type)
 {
 	u32 res=0;
 	u32 i=0;
 	u32 alen = (u32) strlen(arg_name);
-	while (args[i].name) {
+
+	while (1) {
 		u32 flags=0;
-		GF_GPACArg *arg = &args[i];
+		GF_GPACArg *arg;
 		GF_GPACArg an_arg;
 		Bool do_match = GF_FALSE;
+		if (args) {
+			if (!args[i].name)
+				break;
+			arg = (GF_GPACArg *) &args[i];
+		} else {
+			if (!_args[i].name)
+				break;
+			arg = &_args[i];
+		}
 
-		if (args == (GF_GPACArg *) m4b_imp_fileopt_args) {
+		if (args == m4b_imp_fileopt_args) {
 			flags = GF_PRINTARG_COLON;
 			if (!strncmp(arg_name, arg->name, alen) && ((arg->name[alen]==0) || (arg->name[alen]=='=')))
 				do_match = GF_TRUE;
@@ -1448,7 +1458,7 @@ static u32 PrintHelpForArgs(char *arg_name, GF_GPACArg *args, u32 search_type)
 			an_arg.description = NULL;
 			an_arg.type = GF_ARG_BOOL;
 		}
-		gf_sys_print_arg(helpout, flags, &an_arg, "");
+		gf_sys_print_arg(helpout, flags, (GF_GPACArg *) &an_arg, "");
 		res++;
 		i++;
 	}
@@ -1461,21 +1471,21 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 	u32 i, count;
 	u32 res = 0;
 	u32 alen = (u32) strlen(arg_name);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_gen_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_split_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_dash_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_imp_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_imp_fileopt_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_senc_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_crypt_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_hint_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_extr_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_dump_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_meta_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_swf_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_liveenc_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) m4b_usage_args, search_type);
-	res += PrintHelpForArgs(arg_name, (GF_GPACArg *) gf_sys_get_options(), search_type);
+	res += PrintHelpForArgs(arg_name, m4b_gen_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_split_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_dash_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_imp_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_imp_fileopt_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_senc_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_crypt_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_hint_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_extr_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_dump_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_meta_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_swf_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_liveenc_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, m4b_usage_args, NULL, search_type);
+	res += PrintHelpForArgs(arg_name, NULL, (GF_GPACArg *) gf_sys_get_options(), search_type);
 
 	if (!fs) return res;
 
@@ -2244,7 +2254,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		tka->hdl_name = ext + 1;
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_HANDLER_NAME) {
+	if (act_type==TRAC_ACTION_SET_KMS_URI) {
 		char *ext = strchr(param, '=');
 
 		if (!strnicmp(param, "all=", 4)) {
@@ -3003,7 +3013,7 @@ u32 mp4box_parse_single_arg_class(int argc, char **argv, char *arg, u32 *arg_ind
 
 	if (arg_desc->type == GF_ARG_STRING) {
 		if (arg_desc->parse_flags & ARG_IS_4CC) {
-			u32 alen = (u32) strlen(arg_val);
+			u32 alen = arg_val ? (u32) strlen(arg_val) : 0;
 			if ((alen<3) || (alen>4)) {
 				M4_LOG(GF_LOG_ERROR, ("Value for %s must be a 4CC, %s is not - please check usage\n", arg, arg_val));
 				arg_parse_res = 2;
@@ -3016,6 +3026,12 @@ u32 mp4box_parse_single_arg_class(int argc, char **argv, char *arg, u32 *arg_ind
 		* (char **) arg_desc->arg_ptr = arg_val;
 		return GF_TRUE;
 	}
+	if (!arg_val) {
+		M4_LOG(GF_LOG_ERROR, ("Missing value for %s - please check usage\n", arg));
+		arg_parse_res = 2;
+		return GF_TRUE;
+	}
+
 	if (arg_desc->type == GF_ARG_DOUBLE) {
 		Double v = atof(arg_val);
 		if (arg_desc->parse_flags & ARG_DIV_1000) {
@@ -3927,11 +3943,11 @@ static u32 convert_mpd()
 
 static u32 do_import_sub()
 {
-	GF_Err e;
 	/* We import the subtitle file,
 	   i.e. we parse it and store the content as samples of a 3GPP Timed Text track in an ISO file,
 	   possibly for later export (e.g. when converting SRT to TTXT, ...) */
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
+	GF_Err e;
 	GF_MediaImporter import;
 	/* Prepare the importer */
 	file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
@@ -4572,8 +4588,8 @@ static GF_Err do_meta_act()
 {
 	u32 i;
 	for (i=0; i<nb_meta_act; i++) {
-		GF_Err e;
-		u32 j, tk = 0;
+		GF_Err e = GF_OK;
+		u32 tk = 0;
 #ifndef GPAC_DISABLE_ISOM_WRITE
 		Bool self_ref;
 #endif
@@ -4652,6 +4668,7 @@ static GF_Err do_meta_act()
 					}
 					if (e == GF_OK) {
 						if (!src_tk_id) {
+							u32 j;
 							for (j=0; j<gf_isom_get_track_count(fsrc); j++) {
 								if (gf_isom_is_video_handler_type (gf_isom_get_media_type(fsrc, j+1))) {
 									src_tk_id = gf_isom_get_track_id(fsrc, j+1);
@@ -4751,6 +4768,7 @@ static GF_Err do_meta_act()
 				do_save = GF_TRUE;
 			} else {
 				M4_LOG(GF_LOG_WARNING, ("No meta box in input file\n"));
+				e = GF_OK;
 			}
 			break;
 		case META_ACTION_DUMP_ITEM:
@@ -4758,6 +4776,7 @@ static GF_Err do_meta_act()
 				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, meta->szPath && strlen(meta->szPath) ? meta->szPath : NULL);
 			} else {
 				M4_LOG(GF_LOG_WARNING, ("No meta box in input file\n"));
+				e = GF_OK;
 			}
 			break;
 #endif // GPAC_DISABLE_ISOM_WRITE
@@ -4767,6 +4786,7 @@ static GF_Err do_meta_act()
 				e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
 			} else {
 				M4_LOG(GF_LOG_WARNING, ("No meta box in input file\n"));
+				e = GF_OK;
 			}
 			break;
 		default:
@@ -4882,9 +4902,10 @@ static void do_ipod_conv()
 
 static GF_Err do_track_act()
 {
-	u32 j, i;
-	GF_Err e;
+	u32 j;
 	for (j=0; j<nb_track_act; j++) {
+		u32 i;
+		GF_Err e = GF_OK;
 		TrackAction *tka = &tracks[j];
 		u32 track = tka->trackID ? gf_isom_get_track_by_id(file, tka->trackID) : 0;
 
@@ -4930,14 +4951,17 @@ static GF_Err do_track_act()
 			if (tka->delay.num && tka->delay.den) {
 				u64 tk_dur;
 
-				gf_isom_remove_edits(file, track);
+				e = gf_isom_remove_edits(file, track);
+				if (e) return e;
 				tk_dur = gf_isom_get_track_duration(file, track);
 				if (gf_isom_get_edits_count(file, track))
 					do_save = GF_TRUE;
 				if (tka->delay.num>0) {
 					//cast to u64, delay_ms * timescale can be quite big before / 1000
-					gf_isom_append_edit(file, track, ((u64) tka->delay.num) * timescale / tka->delay.den, 0, GF_ISOM_EDIT_EMPTY);
-					gf_isom_append_edit(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+					e = gf_isom_append_edit(file, track, ((u64) tka->delay.num) * timescale / tka->delay.den, 0, GF_ISOM_EDIT_EMPTY);
+					if (e) return e;
+					e = gf_isom_append_edit(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+					if (e) return e;
 					do_save = GF_TRUE;
 				} else {
 					//cast to u64, delay_ms * timescale can be quite big before / 1000
@@ -4945,14 +4969,16 @@ static GF_Err do_track_act()
 					if (to_skip<tk_dur) {
 						//cast to u64, delay_ms * timescale can be quite big before / 1000
 						u64 media_time = ((u64) -tka->delay.num) * gf_isom_get_media_timescale(file, track) / tka->delay.den;
-						gf_isom_append_edit(file, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+						e = gf_isom_append_edit(file, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+						if (e) return e;
 						do_save = GF_TRUE;
 					} else {
 						M4_LOG(GF_LOG_WARNING, ("Warning: request negative delay longer than track duration - ignoring\n"));
 					}
 				}
 			} else if (gf_isom_get_edits_count(file, track)) {
-				gf_isom_remove_edits(file, track);
+				e = gf_isom_remove_edits(file, track);
+				if (e) return e;
 				do_save = GF_TRUE;
 			}
 			break;
@@ -4978,6 +5004,7 @@ static GF_Err do_track_act()
 					M4_LOG(GF_LOG_WARNING, ("Cannot set track id with value %d because a track already exists - ignoring", tka->newTrackID));
 				} else {
 					e = gf_isom_set_track_id(file, track, tka->newTrackID);
+					if (e) return e;
 					do_save = GF_TRUE;
 				}
 			} else {
@@ -4993,8 +5020,11 @@ static GF_Err do_track_act()
 					M4_LOG(GF_LOG_WARNING, ("Error: Cannot swap track IDs because not existing - ignoring"));
 				} else {
 					e = gf_isom_set_track_id(file, tk2, 0);
-					if (!e) e = gf_isom_set_track_id(file, tk1, tka->newTrackID);
-					if (!e) e = gf_isom_set_track_id(file, tk2, tka->trackID);
+					if (e) return e;
+					e = gf_isom_set_track_id(file, tk1, tka->newTrackID);
+					if (e) return e;
+					e = gf_isom_set_track_id(file, tk2, tka->trackID);
+					if (e) return e;
 					do_save = GF_TRUE;
 				}
 			} else {
@@ -5043,7 +5073,6 @@ static GF_Err do_track_act()
 			break;
 		case TRAC_ACTION_SET_UDTA:
 			e = set_file_udta(file, track, tka->udta_type, tka->string ? tka->string : tka->src_name , tka->sample_num ? GF_TRUE : GF_FALSE, tka->string ? GF_TRUE : GF_FALSE);
-			if (e) return e;
 			do_save = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_EDITS:
@@ -5611,7 +5640,7 @@ int mp4boxMain(int argc, char **argv)
 
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
-				e = gf_isom_open_progressive(inName, 0, 0, GF_FALSE, &file, &missing_bytes);
+				gf_isom_open_progressive(inName, 0, 0, GF_FALSE, &file, &missing_bytes);
 				M4_LOG(GF_LOG_ERROR, ("Truncated file - missing "LLD" bytes\n", missing_bytes));
 			}
 

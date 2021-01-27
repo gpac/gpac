@@ -189,7 +189,10 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 
 void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 {
-	u32 i, count = gf_list_count(mov->moov->trackList);
+	u32 i, count;
+	if (!mov || !mov->moov) return;
+	
+	count = gf_list_count(mov->moov->trackList);
 	for (i=0; i<count; i++) {
 		u32 j;
 		GF_TrafToSampleMap *traf_map;
