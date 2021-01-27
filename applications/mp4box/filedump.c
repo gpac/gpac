@@ -3332,8 +3332,8 @@ void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
 	Bool dump_m4sys = GF_FALSE;
-	u32 i, brand, min, timescale, count, tag_len;
-	const u8 *tag;
+	u32 i, brand, min, timescale, count, data_len;
+	const u8 *data;
 	u64 create, modif;
 	Bool has_itags = GF_FALSE;
 	char szDur[50];
@@ -3439,14 +3439,13 @@ void DumpMovieInfo(GF_ISOFile *file)
 		}
 	}
 
-	if (gf_isom_apple_get_tag(file, 0, &tag, &tag_len) == GF_OK) {
-		u32 i=0;
+	if (gf_isom_apple_get_tag(file, 0, &data, &data_len) == GF_OK) {
 		has_itags = GF_TRUE;
 		fprintf(stderr, "\niTunes Info:\n");
 
+		i=0;
 		while (1) {
-			const u8 *data;
-			u32 data_len, int_val2, flags, itype;
+			u32 int_val2, flags, itype;
 			GF_ISOiTunesTag tag;
 			u64 int_val;
 			s32 tag_idx;
@@ -3496,16 +3495,15 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 	i=0;
 	while (1) {
-		const u8 *data;
-		u32 data_len, type, version;
-		char *tag;
-		GF_Err e = gf_isom_wma_enum_tag(file, i, &tag, &data, &data_len, &version, &type);
+		u32 type, version;
+		char *wmatag;
+		GF_Err e = gf_isom_wma_enum_tag(file, i, &wmatag, &data, &data_len, &version, &type);
 		if (e) break;
 		if (!i) {
 			fprintf(stderr, "\nWMA Info:\n");
 		}
 		i++;
-		fprintf(stderr, "\t%s", tag);
+		fprintf(stderr, "\t%s", wmatag);
 		if (version!=1)
 			fprintf(stderr, " (version %d)", version);
 		fprintf(stderr, ": ");

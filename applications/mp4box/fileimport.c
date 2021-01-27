@@ -674,7 +674,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			else track_flags_mode = GF_ISOM_TKFLAGS_SET;
 
 			if (!strnicmp(flags, "0x", 2)) flags += 2;
-			sscanf(ext+8, "%X", &track_flags);
+			sscanf(flags, "%X", &track_flags);
 		} else if (!strnicmp(ext+1, "disable", 7)) {
 			do_disable = !stricmp(ext+1, "disable=no") ? 2 : 1;
 		}

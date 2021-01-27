@@ -4064,18 +4064,21 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 
 	child_index = i = 0;
 	while ( (info=(GF_ListItemBox*)gf_list_enum(ilst->child_boxes, &i))) {
+		GF_DataBox *data_box = NULL;
 		if (gf_itags_find_by_itag(info->type)<0) {
 			if (info->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
-				dbox = (GF_DataBox *) gf_isom_box_find_child(info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
-				if (!dbox) continue;
+				data_box = (GF_DataBox *) gf_isom_box_find_child(info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+				if (!data_box) continue;
 				tag_val = ((GF_UnknownBox *)info)->original_4cc;
 			}
 		} else {
-			dbox = info->data;
+			data_box = info->data;
 			tag_val = info->type;
 		}
-		if (child_index==idx) break;
-		dbox = NULL;
+		if (child_index==idx) {
+			dbox = data_box;
+			break;
+		}
 		child_index++;
 	}
 	if (!dbox) return GF_URL_ERROR;

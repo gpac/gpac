@@ -12505,6 +12505,7 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		tag->name = data;
 		tag->prop_size = prop_size;
 		tag->prop_value = data2;
+		tag->prop_type = prop_type;
 		gf_list_add(ptr->tags, tag);
 
 		if (tag_size) {

@@ -433,10 +433,12 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 
 	if (ctx->fmt == GF_TXTIN_MODE_TTML) {
 		u32 i=0, k=0;
-		GF_XMLNode *node, *p_node, *div_node;
+		GF_XMLNode *div_node;
 
 		while ((div_node = gf_list_enum(ctx->div_nodes_list, &k))) {
+			GF_XMLNode *node;
 			while ((node = gf_list_enum(div_node->content, &i))) {
+				GF_XMLNode *p_node;
 				GF_XMLAttribute *att;
 				u32 h, m, s, ms, p_idx=0;
 				u64 ts_end=0;

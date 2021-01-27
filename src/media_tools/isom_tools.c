@@ -1167,6 +1167,8 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 			gf_isom_sample_del(&s);
 		} else {
 			e = gf_media_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+			if (e)
+				colour_primaries=0;
 		}
 		if (!colour_primaries) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
