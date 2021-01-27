@@ -1556,6 +1556,38 @@ const char *gf_cicp_color_matrix_name(u32 cicp_mx);
 */
 const char *gf_cicp_color_matrix_all_names();
 
+
+/*! stereo frame packing types */
+enum
+{
+	/*! monoscopic video*/
+	GF_STEREO_NONE = 0,
+	/*! left eye in top half of video, right eye in bottom half of video*/
+	GF_STEREO_TOP_BOTTOM,
+	/*! left eye in left half of video, right eye in right half of video*/
+	GF_STEREO_LEFT_RIGHT,
+	/*! stereo mapped through mesh*/
+	GF_STEREO_CUSTOM,
+	/*! left eye in right half of video, right eye in left half of video*/
+	GF_STEREO_RIGHT_LEFT,
+	/*! left eye in bottom half of video, right eye in top half of video*/
+	GF_STEREO_BOTTOM_TOP,
+};
+
+/*! 360 projection types */
+enum
+{
+	/*! flat video*/
+	GF_PROJ360_NONE = 0,
+	/*! cube map projection video is upper half: right, left, up, lower half: down, front, back*/
+	GF_PROJ360_CUBE_MAP,
+	/*! Equirectangular projection / video*/
+	GF_PROJ360_EQR,
+	/*! Mesh projection (not supported yet)*/
+	GF_PROJ360_MESH
+};
+
+
 /*! @} */
 
 #ifdef __cplusplus

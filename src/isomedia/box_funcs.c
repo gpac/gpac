@@ -855,6 +855,12 @@ ISOM_BOX_IMPL_DECL(chnl)
 
 ISOM_BOX_IMPL_DECL(xtra)
 
+ISOM_BOX_IMPL_DECL(st3d)
+ISOM_BOX_IMPL_DECL(svhd)
+ISOM_BOX_IMPL_DECL(prhd)
+ISOM_BOX_IMPL_DECL(proj_type)
+//ISOM_BOX_IMPL_DECL(mesh)
+
 
 #define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 0, 0, __par, "p12", GF_FALSE}
 
@@ -1504,6 +1510,24 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_DFLA, dfla, "fLaC enca", 0, "Flac"),
 
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_XTRA, xtra, "udta", "WMA"),
+
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_ST3D, st3d, "video_sample_entry", 0, "youtube"),
+
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_SV3D, def_parent, "video_sample_entry", "youtube"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_SVHD, svhd, "sv3d", 0, "youtube"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PROJ, def_parent, "sv3d", "youtube"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PRHD, prhd, "proj", 0, "youtube"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CBMP, proj_type, "proj", 0, "youtube"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EQUI, proj_type, "proj", 0, "youtube"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_MESH, proj_type, "proj", 0, "youtube"),
+
+/*
+	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
+	GF_ISOM_BOX_TYPE_EQUI	= GF_4CC( 'e', 'q', 'u', 'i' ),
+	GF_ISOM_BOX_TYPE_MSHP	= GF_4CC( 'm', 's', 'h', 'p' ),
+	GF_ISOM_BOX_TYPE_MESH	= GF_4CC( 'm', 'e', 's', 'h' ),
+*/
+
 };
 
 Bool gf_box_valid_in_parent(GF_Box *a, const char *parent_4cc)

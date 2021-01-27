@@ -362,10 +362,9 @@ GF_Err boxstring_box_dump(GF_Box *a, FILE * trace)
 		break;
 	}
 	gf_isom_box_dump_start(a, szName, trace);
-	gf_fprintf(trace, "><![CDATA[\n");
-	if (sbox->string)
-		gf_fprintf(trace, "%s", sbox->string);
-	gf_fprintf(trace, "\n]]>");
+	gf_fprintf(trace, ">");
+	if (sbox->string && strlen(sbox->string))
+		gf_fprintf(trace, "<![CDATA[\n%s\n]]>", sbox->string);
 	gf_isom_box_dump_done(szName, a, trace);
 	return GF_OK;
 }

@@ -1450,6 +1450,12 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ROUTE_CAROUSEL, "ROUTECarousel", "Carousel period in seconds of raw file in ROUTE session", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ROUTE_SENDTIME, "ROUTEUpload", "Upload time in seconds of raw file in ROUTE session", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
 
+	{ GF_PROP_PID_STEREO_TYPE, "Stereo", "Stereo type of video", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_PROJECTION_TYPE, "Projection", "Projection type of video", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_VR_POSE, "InitalPose", "Initial pose for 360 video, in degrees expressed as 16.16 bits (x is yaw, y is pitch, z is roll)", GF_PROP_VEC3I, GF_PROP_FLAG_GSF_REM},
+
+	{ GF_PROP_PID_CUBE_MAP_PAD, "CMPad", "Number of pixels to pad from egde of each face in cube map", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_EQR_CLAMP, "EQRClamp", "Clamping of frame for EQR as 0.32 fixed point (x is top, y is bottom, z is left and w is right)", GF_PROP_VEC4I, GF_PROP_FLAG_GSF_REM},
 };
 
 GF_EXPORT

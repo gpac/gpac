@@ -943,6 +943,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	w = h = 0;
 	gf_isom_get_visual_info(read->mov, track, stsd_idx, &w, &h);
 	if (w && h) {
+		GF_ISOM_Y3D_Info yt3d;
 		u32 hspace, vspace;
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_WIDTH, &PROP_UINT(w));
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HEIGHT, &PROP_UINT(h));
@@ -950,6 +951,36 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_isom_get_pixel_aspect_ratio(read->mov, track, stsd_idx, &hspace, &vspace);
 		if (hspace != vspace)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAR, &PROP_FRAC_INT(hspace, vspace) );
+
+
+		e = gf_isom_get_y3d_info(ch->owner->mov, ch->track, stsd_idx, &yt3d);
+		if (e==GF_OK) {
+			if (yt3d.stereo_type) {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_STEREO_TYPE, &PROP_UINT(yt3d.stereo_type));
+			} else {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_STEREO_TYPE, NULL);
+			}
+
+			if (yt3d.projection_type) {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROJECTION_TYPE, &PROP_UINT(yt3d.projection_type));
+				if (yt3d.projection_type==GF_PROJ360_CUBE_MAP) {
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CUBE_MAP_PAD, yt3d.padding ? &PROP_UINT(yt3d.padding) : NULL);
+				}
+				else if (yt3d.projection_type==GF_PROJ360_EQR) {
+					if (yt3d.top || yt3d.bottom || yt3d.left || yt3d.right)
+						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_EQR_CLAMP, &PROP_VEC4I_INT(yt3d.top, yt3d.bottom , yt3d.left , yt3d.right));
+					else
+						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_EQR_CLAMP, NULL);
+				}
+			} else {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROJECTION_TYPE, NULL);
+			}
+			if (yt3d.pose_present) {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VR_POSE, &PROP_VEC3I_INT(yt3d.yaw, yt3d.pitch, yt3d.roll) );
+			} else {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VR_POSE, NULL);
+			}
+		}
 	}
 	sr = nb_ch = nb_bps = 0;
 	gf_isom_get_audio_info(read->mov,track, stsd_idx, &sr, &nb_ch, &nb_bps);

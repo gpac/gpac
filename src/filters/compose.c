@@ -424,10 +424,18 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//scene is dynamic
 	if (scene->is_dynamic_scene) {
 		Bool reset = GF_FALSE;
+		u32 scene_vr_type = 0;
 		char *sep = scene->root_od->scene_ns->url_frag;
 		if (sep && ( !strnicmp(sep, "LIVE360", 7) || !strnicmp(sep, "360", 3) || !strnicmp(sep, "VR", 2) ) ) {
-			if (scene->vr_type != 1) reset = GF_TRUE;
-			scene->vr_type = 1;
+			scene_vr_type = 1;
+		}
+		if (!sep) {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROJECTION_TYPE);
+			if (prop && (prop->value.uint==GF_PROJ360_EQR)) scene_vr_type = 1;
+		}
+		if (scene_vr_type) {
+			if (scene->vr_type != scene_vr_type) reset = GF_TRUE;
+			scene->vr_type = scene_vr_type;
 		}
 		if (reset)
 			gf_sg_reset(scene->graph);

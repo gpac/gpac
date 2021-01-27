@@ -5,6 +5,7 @@ On-going: GPAC 1.1-DEV
 - support for IFF encryption
 - support for time range in -add-image
 - tile splitting now available as a filter 
+- In-place editing support for MP4Box 
 - playback improvements for SRD (HEVC tiling and independent streams)
 - more support for MPEG-H audio mux/demux/dashing
 - support for multiple filter chains per source in MP4Box dash or add syntax
@@ -33,6 +34,7 @@ On-going: GPAC 1.1-DEV
 - Support for TTML image embedding
 - Support for TTML sample merging while exporting
 - Support for subtitle zero in TTML
+- Support for youtube VR meta-data
 - Improved HTTP rate limiter and chunk-transfer rate estimator
 - Filter TAG
 - Improved -cat for ISOBMFF sources
