@@ -503,6 +503,15 @@ enum
 
 	GF_ISOM_BOX_TYPE_XTRA	= GF_4CC( 'X', 't', 'r', 'a' ),
 
+	GF_ISOM_BOX_TYPE_ST3D	= GF_4CC( 's', 't', '3', 'd' ),
+	GF_ISOM_BOX_TYPE_SV3D	= GF_4CC( 's', 'v', '3', 'd' ),
+	GF_ISOM_BOX_TYPE_SVHD	= GF_4CC( 's', 'v', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_PROJ	= GF_4CC( 'p', 'r', 'o', 'j' ),
+	GF_ISOM_BOX_TYPE_PRHD	= GF_4CC( 'p', 'r', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
+	GF_ISOM_BOX_TYPE_EQUI	= GF_4CC( 'e', 'q', 'u', 'i' ),
+	GF_ISOM_BOX_TYPE_MSHP	= GF_4CC( 'm', 's', 'h', 'p' ),
+	GF_ISOM_BOX_TYPE_MESH	= GF_4CC( 'm', 'e', 's', 'h' ),
 };
 
 enum
@@ -1554,6 +1563,42 @@ typedef struct
 	u8 *data;
 	u32 dataSize;
 } GF_FLACConfigBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 stereo_type;
+} GF_Stereo3DBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	char *string;
+} GF_SphericalVideoInfoBox;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	s32 yaw;
+	s32 pitch;
+	s32 roll;
+} GF_ProjectionHeaderBox;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	//cube map
+	u32 layout;
+	s32 padding;
+	//EQR
+	u32 bounds_top, bounds_bottom, bounds_left, bounds_right;
+	//mesh
+	u32 crc;
+	s32 encoding_4cc;
+
+} GF_ProjectionTypeBox;
 
 typedef struct
 {

@@ -3029,6 +3029,31 @@ Carousel period in seconds of raw file in ROUTE session
 .br
 Upload time in seconds of raw file in ROUTE session
 .br
+.TP
+.B Stereo (PSTT,uint,D )
+.br
+Stereo type of video
+.br
+.TP
+.B Projection (PPJT,uint,D )
+.br
+Projection type of video
+.br
+.TP
+.B InitalPose (PPOS,v3di,D )
+.br
+Initial pose for 360 video, in degrees expressed as 16.16 bits (x is yaw, y is pitch, z is roll)
+.br
+.TP
+.B CMPad (PCMP,uint,D )
+.br
+Number of pixels to pad from egde of each face in cube map
+.br
+.TP
+.B EQRClamp (PEQC,v4di,D )
+.br
+Clamping of frame for EQR as 0.32 fixed point (x is top, y is bottom, z is left and w is right)
+.br
 .SH Pixel formats
 .LP
 .br
@@ -3951,7 +3976,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev460-g9ead727b0-master
+build: 1.1.0-DEV-rev464-g3d507be9e-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

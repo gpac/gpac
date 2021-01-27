@@ -3685,6 +3685,65 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *isom_file, u32 trackNumber, cons
 */
 const u8 *gf_isom_get_mpegh_compatible_profiles(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *nb_compatible_profiles);
 
+
+
+/*! structure holding youtube 360 video info
+- cf https://github.com/google/spatial-media/blob/master/docs/spherical-video-v2-rfc.md#stereoscopic-3d-video-box-st3d
+ */
+typedef struct
+{
+	/*! stereo type  holding youtube 360 video info*/
+	u32 stereo_type;
+	/*! 0: unknown (not present), 1: cube map, 2: EQR, 3: mesh*/
+	u32 projection_type;
+	/*! metadata about 3D software creator*/
+	const char *meta_data;
+	/*! indicate default pause is present*/
+	Bool pose_present;
+	/*! default pause yaw as 16.16 fixed point*/
+	u32 yaw;
+	/*! default pause pitch as 16.16 fixed point*/
+	u32 pitch;
+	/*! default pause roll as 16.16 fixed point*/
+	u32 roll;
+
+	/*! cube map layout*/
+	u32 layout;
+	/*! cube map padding*/
+	u32 padding;
+
+	/*! EQR top crop pos in frame, in pixels*/
+	u32 top;
+	/*! EQR bottom crop pos in frame, in pixels*/
+	u32 bottom;
+	/*! EQR left crop pos in frame, in pixels*/
+	u32 left;
+	/*! EQR right crop pos in frame, in pixels*/
+	u32 right;
+
+} GF_ISOM_Y3D_Info;
+
+
+/*! gets youtube 3D/360 info
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param info filled with 3D info
+\return error if any, GF_NOT_FOUND if no 3D/360 or setero info
+*/
+GF_Err gf_isom_get_y3d_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_ISOM_Y3D_Info *info);
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*! sets youtube 3D/360 info
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param info  3D info to set
+\return error if any
+*/
+GF_Err gf_isom_set_y3d_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_ISOM_Y3D_Info *info);
+#endif
+
 /*! @} */
 
 

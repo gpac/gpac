@@ -2760,6 +2760,41 @@ sample_entry_done:
 		}
 	}
 
+	if (is_true_pid) {
+		const GF_PropertyValue *ster = gf_filter_pid_get_property(pid, GF_PROP_PID_STEREO_TYPE);
+		const GF_PropertyValue *proj = gf_filter_pid_get_property(pid, GF_PROP_PID_PROJECTION_TYPE);
+		const GF_PropertyValue *pose = gf_filter_pid_get_property(pid, GF_PROP_PID_VR_POSE);
+
+		if (ster || proj) {
+			GF_ISOM_Y3D_Info yt3d;
+			memset(&yt3d, 0, sizeof(GF_ISOM_Y3D_Info));
+			yt3d.projection_type = proj ? proj->value.uint : 0;
+			yt3d.stereo_type = ster ? ster->value.uint : 0;
+			if (pose) {
+				yt3d.pose_present = GF_TRUE;
+				yt3d.yaw = pose->value.vec3i.x;
+				yt3d.pitch = pose->value.vec3i.y;
+				yt3d.roll = pose->value.vec3i.z;
+				yt3d.stereo_type = ster ? ster->value.uint : 0;
+			}
+			if (yt3d.projection_type==GF_PROJ360_CUBE_MAP) {
+				proj = gf_filter_pid_get_property(pid, GF_PROP_PID_CUBE_MAP_PAD);
+				yt3d.padding = proj ? proj->value.uint : 0;
+			}
+			else if (yt3d.projection_type==GF_PROJ360_EQR) {
+				proj = gf_filter_pid_get_property(pid, GF_PROP_PID_EQR_CLAMP);
+				if (proj) {
+					yt3d.top = proj->value.vec4i.x;
+					yt3d.bottom = proj->value.vec4i.y;
+					yt3d.left = proj->value.vec4i.z;
+					yt3d.right = proj->value.vec4i.w;
+				}
+			}
+			gf_isom_set_y3d_info(ctx->file, tkw->track_num, tkw->stsd_idx, &yt3d);
+		}
+	}
+
+
 	if (is_true_pid && ctx->importer && !tkw->import_msg_header_done) {
 #ifndef GPAC_DISABLE_LOG
 		const char *dst_type = tkw->is_item ? "Item Importing" : "Track Importing";

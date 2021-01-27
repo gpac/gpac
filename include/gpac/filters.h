@@ -1157,6 +1157,12 @@ enum
 	GF_PROP_PID_ROUTE_CAROUSEL = GF_4CC('R','S','C','R'),
 	GF_PROP_PID_ROUTE_SENDTIME = GF_4CC('R','S','S','T'),
 
+	GF_PROP_PID_STEREO_TYPE = GF_4CC('P','S','T','T'),
+	GF_PROP_PID_PROJECTION_TYPE = GF_4CC('P','P','J','T'),
+	GF_PROP_PID_VR_POSE = GF_4CC('P','P','O','S'),
+	GF_PROP_PID_CUBE_MAP_PAD = GF_4CC('P','C','M','P'),
+	GF_PROP_PID_EQR_CLAMP = GF_4CC('P','E','Q','C'),
+
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
 	//internal for HLS low latency
@@ -1359,6 +1365,8 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 #define PROP_VEC3(_val) (GF_PropertyValue){.type=GF_PROP_VEC3, .value.vec3 = _val}
 /*! Helper macro to set 3D integer vector property */
 #define PROP_VEC3I(_val) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i = _val}
+/*! Helper macro to set 3D integer vector property from intergers*/
+#define PROP_VEC3I_INT(_x, _y, _z) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i.x = _x, .value.vec3i.y = _y, .value.vec3i.z = _z}
 /*! Helper macro to set 4D float vector property */
 #define PROP_VEC4(_val) (GF_PropertyValue){.type=GF_PROP_VEC4, .value.vec4 = _val}
 /*! Helper macro to set 4D integer vector property */

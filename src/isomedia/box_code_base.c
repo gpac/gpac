@@ -4310,6 +4310,7 @@ GF_Err video_sample_entry_box_write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err video_sample_entry_box_size(GF_Box *s)
 {
+	GF_Box *b;
 	u32 pos=0;
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	gf_isom_video_sample_entry_size((GF_VisualSampleEntryBox *)s);
@@ -4346,6 +4347,11 @@ GF_Err video_sample_entry_box_size(GF_Box *s)
 	/*DolbyVision*/
 	gf_isom_check_position(s, (GF_Box *)ptr->dovi_config, &pos);
 
+	b = gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_ST3D);
+	if (b) gf_isom_check_position(s, b, &pos);
+
+	b = gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_SV3D);
+	if (b) gf_isom_check_position(s, b, &pos);
 	return GF_OK;
 }
 
@@ -12554,6 +12560,225 @@ GF_Err xtra_box_size(GF_Box *s)
 		GF_XtraTag *tag = gf_list_get(ptr->tags, i);
 		ptr->size += 18 + (u32) strlen(tag->name) + tag->prop_size;
 	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+GF_Box *st3d_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_Stereo3DBox, GF_ISOM_BOX_TYPE_ST3D);
+	return (GF_Box *)tmp;
+}
+
+void st3d_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+
+GF_Err st3d_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Stereo3DBox *ptr = (GF_Stereo3DBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 1)
+	ptr->stereo_type = gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err st3d_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_Stereo3DBox *ptr = (GF_Stereo3DBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u8(bs, ptr->stereo_type);
+	return GF_OK;
+}
+
+GF_Err st3d_box_size(GF_Box *s)
+{
+	s->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+GF_Box *svhd_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_SphericalVideoInfoBox, GF_ISOM_BOX_TYPE_SVHD);
+	return (GF_Box *)tmp;
+}
+
+void svhd_box_del(GF_Box *s)
+{
+	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
+	if (ptr->string) gf_free(ptr->string);
+	gf_free(s);
+}
+
+
+GF_Err svhd_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
+	ptr->string = gf_malloc(sizeof(char) * (ptr->size+1));
+	if (!ptr->string) return GF_OUT_OF_MEM;
+	gf_bs_read_data(bs, ptr->string, ptr->size);
+	ptr->string[ptr->size] = 0;
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err svhd_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	if (ptr->string)
+		gf_bs_write_data(bs, ptr->string, (u32) strlen(ptr->string));
+	gf_bs_write_u8(bs, 0);
+	return GF_OK;
+}
+
+GF_Err svhd_box_size(GF_Box *s)
+{
+	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
+	if (ptr->string)
+		s->size += (u32) strlen(ptr->string);
+	s->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *prhd_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ProjectionHeaderBox, GF_ISOM_BOX_TYPE_PRHD);
+	return (GF_Box *)tmp;
+}
+
+void prhd_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+
+GF_Err prhd_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_ProjectionHeaderBox *ptr = (GF_ProjectionHeaderBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 12)
+	ptr->yaw = (s32) gf_bs_read_u32(bs);
+	ptr->pitch = (s32) gf_bs_read_u32(bs);
+	ptr->roll = (s32) gf_bs_read_u32(bs);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err prhd_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ProjectionHeaderBox *ptr = (GF_ProjectionHeaderBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->yaw);
+	gf_bs_write_u32(bs, ptr->pitch);
+	gf_bs_write_u32(bs, ptr->roll);
+	return GF_OK;
+}
+
+GF_Err prhd_box_size(GF_Box *s)
+{
+	s->size += 12;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *proj_type_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ProjectionTypeBox, GF_ISOM_BOX_TYPE_EQUI); //will be overwritten
+	return (GF_Box *)tmp;
+}
+
+void proj_type_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err proj_type_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_ProjectionTypeBox *ptr = (GF_ProjectionTypeBox *)s;
+
+	if (ptr->type==GF_ISOM_BOX_TYPE_CBMP) {
+		ISOM_DECREASE_SIZE(ptr, 8)
+		ptr->layout = gf_bs_read_u32(bs);
+		ptr->padding = gf_bs_read_u32(bs);
+	}
+	else if (ptr->type==GF_ISOM_BOX_TYPE_EQUI) {
+		ISOM_DECREASE_SIZE(ptr, 16)
+		ptr->bounds_top = gf_bs_read_u32(bs);
+		ptr->bounds_bottom = gf_bs_read_u32(bs);
+		ptr->bounds_left = gf_bs_read_u32(bs);
+		ptr->bounds_right = gf_bs_read_u32(bs);
+	} else {
+		ISOM_DECREASE_SIZE(ptr, 8)
+		ptr->crc = gf_bs_read_u32(bs);
+		ptr->encoding_4cc = gf_bs_read_u32(bs);
+	}
+	return gf_isom_box_array_read(s, bs, NULL);
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err proj_type_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ProjectionTypeBox *ptr = (GF_ProjectionTypeBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	if (ptr->type==GF_ISOM_BOX_TYPE_CBMP) {
+		gf_bs_write_u32(bs, ptr->layout);
+		gf_bs_write_u32(bs, ptr->padding);
+	}
+	else if (ptr->type==GF_ISOM_BOX_TYPE_EQUI) {
+		gf_bs_write_u32(bs, ptr->bounds_top);
+		gf_bs_write_u32(bs, ptr->bounds_bottom);
+		gf_bs_write_u32(bs, ptr->bounds_left);
+		gf_bs_write_u32(bs, ptr->bounds_right);
+	} else {
+		gf_bs_write_u32(bs, ptr->crc);
+		gf_bs_write_u32(bs, ptr->encoding_4cc);
+	}
+	return GF_OK;
+}
+
+GF_Err proj_type_box_size(GF_Box *s)
+{
+	GF_ProjectionTypeBox *ptr = (GF_ProjectionTypeBox *)s;
+	if (ptr->type==GF_ISOM_BOX_TYPE_CBMP)
+		s->size += 8;
+	else if (ptr->type==GF_ISOM_BOX_TYPE_EQUI)
+		s->size += 16;
+	else
+		s->size += 8;
+
 	return GF_OK;
 }
 

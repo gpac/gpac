@@ -3838,6 +3838,8 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 val, itype=0;
 	Bool no_dump = GF_FALSE;
+	Bool unknown = GF_FALSE;
+	GF_DataBox *dbox = NULL;
 	const char *name = "UnknownBox";
 	GF_ListItemBox *itune = (GF_ListItemBox *)a;
 
@@ -3845,21 +3847,26 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 	if (itune->type==GF_ISOM_BOX_TYPE_iTunesSpecificInfo) {
 		name = "iTunesSpecificBox";
 		no_dump = GF_TRUE;
+		dbox = itune->data;
+	} else if (itune->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
+		dbox = (GF_DataBox *) gf_isom_box_find_child(itune->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+		unknown = GF_TRUE;
 	} else {
 		s32 idx = gf_itags_find_by_itag(itune->type);
 		if (idx>=0) {
 			name = gf_itags_get_name((u32) idx);
 			itype = gf_itags_get_type((u32) idx);
 		}
+		dbox = itune->data;
 	}
 	gf_isom_box_dump_start(a, name, trace);
 
-	if (!no_dump && itune->data) {
+	if (!no_dump && dbox) {
 		GF_BitStream *bs;
 		switch (itune->type) {
 		case GF_ISOM_ITUNE_DISK:
 		case GF_ISOM_ITUNE_TRACKNUMBER:
-			bs = gf_bs_new(itune->data->data, itune->data->dataSize, GF_BITSTREAM_READ);
+			bs = gf_bs_new(dbox->data, dbox->dataSize, GF_BITSTREAM_READ);
 			gf_bs_read_int(bs, 16);
 			val = gf_bs_read_int(bs, 16);
 			if (itune->type==GF_ISOM_ITUNE_DISK) {
@@ -3870,26 +3877,26 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 			gf_bs_del(bs);
 			break;
 		case GF_ISOM_ITUNE_TEMPO:
-			bs = gf_bs_new(itune->data->data, itune->data->dataSize, GF_BITSTREAM_READ);
+			bs = gf_bs_new(dbox->data, dbox->dataSize, GF_BITSTREAM_READ);
 			gf_fprintf(trace, " BPM=\"%d\" ", gf_bs_read_int(bs, 16) );
 			gf_bs_del(bs);
 			break;
 		case GF_ISOM_ITUNE_COMPILATION:
-			gf_fprintf(trace, " IsCompilation=\"%s\" ", (itune->data && itune->data->data && itune->data->data[0]) ? "yes" : "no");
+			gf_fprintf(trace, " IsCompilation=\"%s\" ", (dbox && dbox->data && dbox->data[0]) ? "yes" : "no");
 			break;
 		case GF_ISOM_ITUNE_GAPLESS:
-			gf_fprintf(trace, " IsGapeless=\"%s\" ", (itune->data && itune->data->data && itune->data->data[0]) ? "yes" : "no");
+			gf_fprintf(trace, " IsGapeless=\"%s\" ", (dbox && dbox->data && itune->data->data[0]) ? "yes" : "no");
 			break;
 		default:
-			if (strcmp(name, "UnknownBox") && itune->data && itune->data->data) {
+			if (dbox && dbox->data) {
 				gf_fprintf(trace, " value=\"");
-				if (itype==GF_ITAG_STR) {
-					dump_data_string(trace, itune->data->data, itune->data->dataSize);
+				if (!unknown && (itype==GF_ITAG_STR)) {
+					dump_data_string(trace, dbox->data, dbox->dataSize);
 				}
-				else if (itune->data && itune->data->data[0]) {
-					dump_data_string(trace, itune->data->data, itune->data->dataSize);
+				else if (!unknown && dbox && dbox->data && gf_utf8_is_legal(dbox->data, dbox->dataSize) ) {
+					dump_data_string(trace, dbox->data, dbox->dataSize);
 				} else {
-					dump_data(trace, itune->data->data, itune->data->dataSize);
+					dump_data(trace, dbox->data, dbox->dataSize);
 				}
 				gf_fprintf(trace, "\" ");
 			}
@@ -5574,6 +5581,12 @@ GF_Err def_parent_box_dump(GF_Box *a, FILE *trace)
 	case GF_ISOM_BOX_TYPE_STRD:
 		name = "SubTrackDefinitionBox";
 		break;
+	case GF_ISOM_BOX_TYPE_SV3D:
+		name = "SphericalVideoBox";
+		break;
+	case GF_ISOM_BOX_TYPE_PROJ:
+		name = "ProjectionBox";
+		break;
 	}
 
 	gf_isom_box_dump_start(a, name, trace);
@@ -6191,5 +6204,57 @@ GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+
+GF_Err st3d_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_Stereo3DBox  *ptr = (GF_Stereo3DBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "Stereo3DBox", trace);
+	gf_fprintf(trace, " stereo_type=\"%d\">\n", ptr->stereo_type);
+	gf_isom_box_dump_done("Stereo3DBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err svhd_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "SphericalVideoInfoBox", trace);
+	gf_fprintf(trace, " info=\"%s\">\n", ptr->string);
+	gf_isom_box_dump_done("SphericalVideoInfoBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err prhd_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ProjectionHeaderBox *ptr = (GF_ProjectionHeaderBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ProjectionHeaderBox", trace);
+	gf_fprintf(trace, " yaw=\"%d\" pitch=\"%d\" roll=\"%d\">\n", ptr->yaw, ptr->pitch, ptr->roll);
+	gf_isom_box_dump_done("ProjectionHeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err proj_type_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ProjectionTypeBox *ptr = (GF_ProjectionTypeBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	if (ptr->type == GF_ISOM_BOX_TYPE_CBMP) {
+		gf_isom_box_dump_start(a, "CubemapProjectionBox", trace);
+		gf_fprintf(trace, " layout=\"%d\" padding=\"%d\">\n", ptr->layout, ptr->padding);
+		gf_isom_box_dump_done("CubemapProjectionBox", a, trace);
+	}
+	else if (ptr->type == GF_ISOM_BOX_TYPE_EQUI) {
+		gf_isom_box_dump_start(a, "EquirectangularProjectionBox", trace);
+		gf_fprintf(trace, " top=\"%d\" bottom=\"%d\" left=\"%d\" right=\"%d\">\n", ptr->bounds_top, ptr->bounds_bottom, ptr->bounds_left, ptr->bounds_right);
+		gf_isom_box_dump_done("EquirectangularProjectionBox", a, trace);
+	}
+	else if (ptr->type == GF_ISOM_BOX_TYPE_EQUI) {
+		gf_isom_box_dump_start(a, "MeshProjectionBox", trace);
+		gf_fprintf(trace, " crc=\"%08X\" encoding=\"%s\" left=\"%d\" right=\"%d\">\n", ptr->crc, gf_4cc_to_str(ptr->encoding_4cc) );
+		gf_isom_box_dump_done("MeshProjectionBox", a, trace);
+	}
+	return GF_OK;
+}
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
