@@ -82,6 +82,12 @@ Macro formatting a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 */
 const char *gf_4cc_to_str(u32 type);
 
+/*! converts a 4CC string to its 32 bits value
+\param val  four character string
+\return code value or 0 if error
+*/
+u32 gf_4cc_parse(const char *val);
+
 /*! @} */
 
 /*!

@@ -1653,6 +1653,8 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		case GF_ARG_DOUBLE: gf_sys_format_help(helpout, flags, "number"); break;
 		case GF_ARG_STRING: gf_sys_format_help(helpout, flags, "string"); break;
 		case GF_ARG_STRINGS: gf_sys_format_help(helpout, flags, "string list"); break;
+		case GF_ARG_4CC: gf_sys_format_help(helpout, flags, "4CC"); break;
+		case GF_ARG_4CCS: gf_sys_format_help(helpout, flags, "4CC list"); break;
 		default: break;
 		}
 		if (arg->val)

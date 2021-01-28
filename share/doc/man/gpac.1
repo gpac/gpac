@@ -1877,9 +1877,9 @@ boolean
 2D 32-bit integer vector
 .br
 .TP
-.B v2df
+.B v2d
 .br
-2D 32-bit float vector
+2D 64-bit float vector
 .br
 .TP
 .B v3di
@@ -1887,29 +1887,9 @@ boolean
 3D 32-bit integer vector
 .br
 .TP
-.B v3df
-.br
-3D 32-bit float vector
-.br
-.TP
 .B v4di
 .br
 4D 32-bit integer vector
-.br
-.TP
-.B v4df
-.br
-4D 32-bit float vector
-.br
-.TP
-.B pfmt
-.br
-raw pixel format
-.br
-.TP
-.B afmt
-.br
-raw audio format
 .br
 .TP
 .B str
@@ -1955,6 +1935,26 @@ signed 32 bit integer list
 .B v2il
 .br
 2D 32-bit integer vector list
+.br
+.TP
+.B 4cc
+.br
+Four character code
+.br
+.TP
+.B 4ccl
+.br
+four-character codes list
+.br
+.TP
+.B pfmt
+.br
+raw pixel format
+.br
+.TP
+.B afmt
+.br
+raw audio format
 .br
 .TP
 .B cprm
@@ -2073,12 +2073,12 @@ Provider of parent service
 Media stream type
 .br
 .TP
-.B StreamSubtype (PSST,uint,D )
+.B StreamSubtype (PSST,4cc,D )
 .br
 Media subtype 4CC (auxiliary, pic sequence, etc ..)
 .br
 .TP
-.B ISOMSubtype (PIST,uint,D )
+.B ISOMSubtype (PIST,4cc,D )
 .br
 ISOM media subtype 4CC (avc1 avc2...)
 .br
@@ -2427,7 +2427,7 @@ Byte range of resource
 indicates that some blocks in file need patching (replace or insertion) upon closing, potentially disabling progressive upload
 .br
 .TP
-.B IsoAltBrands (ABRD,uintl,D )
+.B IsoAltBrands (ABRD,4ccl,D )
 .br
 indicates ISOBMFF brands associated with PID/file
 .br
@@ -2487,7 +2487,7 @@ Balance/Pan of audio
 Audio thread priority
 .br
 .TP
-.B ProtectionScheme (SCHT,uint,  )
+.B ProtectionScheme (SCHT,4cc,  )
 .br
 Protection scheme type (4CC) used
 .br
@@ -2614,7 +2614,7 @@ nb_keys(u16);
 CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den
 .br
 .TP
-.B CENCStore (CSTR,uint,  )
+.B CENCStore (CSTR,4cc,  )
 .br
 Storage location 4CC of SAI data
 .br
@@ -3976,7 +3976,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev464-g3d507be9e-master
+build: 1.1.0-DEV-rev466-g98c5cfcf5-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

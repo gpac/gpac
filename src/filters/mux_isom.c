@@ -636,6 +636,7 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			e = gf_isom_apple_set_tag(ctx->file, itag, NULL, 0, tag->value.boolean, 0);
 			break;
 		case GF_PROP_UINT:
+		case GF_PROP_4CC:
 			e = gf_isom_apple_set_tag(ctx->file, itag, NULL, 0, tag->value.uint, 0);
 			break;
 		case GF_PROP_LUINT:
@@ -6038,7 +6039,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(saio32), "set single segment mode for dash", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(saio32), "use 32 bit offset for side data location instead of 64 bit offset", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 #ifdef GF_ENABLE_CTRN
 	{ OFFS(ctrn), "use compact track run (experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctrni), "use inheritance in compact track run for HEVC tile tracks (highly experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},

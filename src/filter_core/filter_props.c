@@ -28,6 +28,62 @@
 //for binxml parsing
 #include <gpac/xml.h>
 
+
+struct {
+	u32 type;
+	u32 (*cst_parse)(const char *val);
+	const char *(*cst_name)(u32 val);
+	const char *(*cst_all_names)();
+} EnumProps[] = {
+	{GF_PROP_PIXFMT, gf_pixel_fmt_parse, gf_pixel_fmt_name, gf_pixel_fmt_all_names},
+	{GF_PROP_PCMFMT, gf_audio_fmt_parse, gf_audio_fmt_name, gf_audio_fmt_all_names},
+	{GF_PROP_CICP_COL_PRIM, gf_cicp_parse_color_primaries, gf_cicp_color_primaries_name, gf_cicp_color_primaries_all_names},
+	{GF_PROP_CICP_COL_TFC, gf_cicp_parse_color_transfer, gf_cicp_color_transfer_name, gf_cicp_color_transfer_all_names},
+	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names},
+};
+
+GF_EXPORT
+u32 gf_props_parse_enum(u32 type, const char *value)
+{
+	u32 i, count = GF_ARRAY_LENGTH(EnumProps);
+	for (i=0; i<count; i++) {
+		if (EnumProps[i].type==type)
+			return EnumProps[i].cst_parse(value);
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized constant type %d\n", type));
+	return 0;
+}
+
+GF_EXPORT
+const char *gf_props_enum_name(u32 type, u32 value)
+{
+	u32 i, count = GF_ARRAY_LENGTH(EnumProps);
+	for (i=0; i<count; i++) {
+		if (EnumProps[i].type==type)
+			return EnumProps[i].cst_name(value);
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized constant type %d\n", type));
+	return NULL;
+}
+
+GF_EXPORT
+const char *gf_props_enum_all_names(u32 type)
+{
+	u32 i, count = GF_ARRAY_LENGTH(EnumProps);
+	for (i=0; i<count; i++) {
+		if (EnumProps[i].type==type)
+			return EnumProps[i].cst_all_names();
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized constant type %d\n", type));
+	return NULL;
+}
+GF_EXPORT
+Bool gf_props_type_is_enum(GF_PropType type)
+{
+	if ((type>=GF_PROP_FIRST_ENUM) && (type < GF_PROP_LAST_DEFINED)) return GF_TRUE;
+	return GF_FALSE;
+}
+
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
@@ -152,6 +208,15 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing argument value for unsigned int arg %s - using 0\n", name));
 		}
 		break;
+
+	case GF_PROP_4CC:
+		if (value && (strlen(value)==4) ) {
+			p.value.sint = GF_4CC(value[0], value[1], value[2], value[3]);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for 4CC arg %s - using 0\n", value, name));
+		}
+		break;
+
 	case GF_PROP_LSINT:
 		if (value && !strcmp(value, "+I")) p.value.longsint = 0x7FFFFFFFFFFFFFFFUL;
 		else if (value && !strcmp(value, "-I")) p.value.longsint = 0x8000000000000000UL;
@@ -277,38 +342,11 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.vec3i.x = p.value.vec3i.y = p.value.vec3i.z = 0;
 		}
 		break;
-	case GF_PROP_VEC3:
-		if (!value || (sscanf(value, "%lgx%lgx%lg", &p.value.vec3.x, &p.value.vec3.y, &p.value.vec3.z) != 3)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec3 arg %s - using {0,0,0}\n", value, name));
-			p.value.vec3.x = p.value.vec3.y = p.value.vec3.z = 0;
-		}
-		break;
 	case GF_PROP_VEC4I:
 		if (!value || (sscanf(value, "%dx%dx%dx%d", &p.value.vec4i.x, &p.value.vec4i.y, &p.value.vec4i.z, &p.value.vec4i.w) != 4)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4i arg %s - using {0,0,0}\n", value, name));
 			p.value.vec4i.x = p.value.vec4i.y = p.value.vec4i.z = p.value.vec4i.w = 0;
 		}
-		break;
-	case GF_PROP_VEC4:
-		if (!value || (sscanf(value, "%lgx%lgx%lgx%lg", &p.value.vec4.x, &p.value.vec4.y, &p.value.vec4.z, &p.value.vec4.w) != 4)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4 arg %s - using {0,0,0}\n", value, name));
-			p.value.vec4.x = p.value.vec4.y = p.value.vec4.z = p.value.vec4.w = 0;
-		}
-		break;
-	case GF_PROP_PIXFMT:
-		p.value.uint = gf_pixel_fmt_parse(value);
-		break;
-	case GF_PROP_PCMFMT:
-		p.value.uint = gf_audio_fmt_parse(value);
-		break;
-	case GF_PROP_CICP_COL_PRIM:
-		p.value.uint = gf_cicp_parse_color_primaries(value);
-		break;
-	case GF_PROP_CICP_COL_TFC:
-		p.value.uint = gf_cicp_parse_color_transfer(value);
-		break;
-	case GF_PROP_CICP_COL_MX:
-		p.value.uint = gf_cicp_parse_color_matrix(value);
 		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
@@ -460,6 +498,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	}
 		break;
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_4CC_LIST:
 	case GF_PROP_SINT_LIST:
 	case GF_PROP_VEC2I_LIST:
 	{
@@ -480,12 +519,16 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			if (p.type == GF_PROP_UINT_LIST) {
 				u32 val_uint;
 				if (sscanf(szV, "%u", &val_uint) != 1) {
-					if (strlen(szV)==4) {
-						val_uint = GF_4CC(szV[0],szV[1],szV[2],szV[3]);
-					} else {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for uint arg %s[%d] - using 0\n", value, name, p.value.uint_list.nb_items));
-						val_uint = 0;
-					}
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for uint arg %s[%d] - using 0\n", value, name, p.value.uint_list.nb_items));
+					val_uint = 0;
+				}
+				p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
+				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
+			} else if (p.type == GF_PROP_4CC_LIST) {
+				u32 val_uint = gf_4cc_parse(szV);
+				if (!val_uint) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for 4CC arg %s[%d] - using 0\n", value, name, p.value.uint_list.nb_items));
+					val_uint = 0;
 				}
 				p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
 				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
@@ -511,6 +554,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_FORBIDEN:
 	default:
+		if (gf_props_type_is_enum(type)) {
+			p.value.uint = gf_props_parse_enum(type, value);
+			break;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Forbidden property type %d for arg %s - ignoring\n", type, name));
 		p.type=GF_PROP_FORBIDEN;
 		break;
@@ -531,7 +578,16 @@ static u32 get_prop_base_type(u32 type)
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
 		return GF_PROP_DATA;
+	case GF_PROP_UINT:
+	case GF_PROP_4CC:
+		return GF_PROP_UINT;
+	case GF_PROP_4CC_LIST:
+	case GF_PROP_UINT_LIST:
+		return GF_PROP_UINT_LIST;
 	default:
+		//we declare const as UINT in caps
+		if (gf_props_type_is_enum(type))
+			return GF_PROP_UINT;
 		return type;
 	}
 }
@@ -548,12 +604,8 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 
 	switch (p1->type) {
 	case GF_PROP_SINT: return (p1->value.sint==p2->value.sint) ? GF_TRUE : GF_FALSE;
-	case GF_PROP_PIXFMT:
-	case GF_PROP_PCMFMT:
-	case GF_PROP_CICP_COL_PRIM:
-	case GF_PROP_CICP_COL_TFC:
-	case GF_PROP_CICP_COL_MX:
 	case GF_PROP_UINT:
+	case GF_PROP_4CC:
 	 	return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_LSINT: return (p1->value.longsint==p2->value.longsint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_LUINT: return (p1->value.longuint==p2->value.longuint) ? GF_TRUE : GF_FALSE;
@@ -571,13 +623,8 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 		return ((p1->value.vec2.x==p2->value.vec2.x) && (p1->value.vec2.y==p2->value.vec2.y)) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_VEC3I:
 		return ((p1->value.vec3i.x==p2->value.vec3i.x) && (p1->value.vec3i.y==p2->value.vec3i.y) && (p1->value.vec3i.z==p2->value.vec3i.z)) ? GF_TRUE : GF_FALSE;
-	case GF_PROP_VEC3:
-		return ((p1->value.vec3.x==p2->value.vec3.x) && (p1->value.vec3.y==p2->value.vec3.y) && (p1->value.vec3.z==p2->value.vec3.z)) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_VEC4I:
 		return ((p1->value.vec4i.x==p2->value.vec4i.x) && (p1->value.vec4i.y==p2->value.vec4i.y) && (p1->value.vec4i.z==p2->value.vec4i.z) && (p1->value.vec4i.w==p2->value.vec4i.w)) ? GF_TRUE : GF_FALSE;
-	case GF_PROP_VEC4:
-		return ((p1->value.vec4.x==p2->value.vec4.x) && (p1->value.vec4.y==p2->value.vec4.y) && (p1->value.vec4.z==p2->value.vec4.z) && (p1->value.vec4.w==p2->value.vec4.w)) ? GF_TRUE : GF_FALSE;
-
 
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
@@ -641,11 +688,13 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 		return GF_TRUE;
 	}
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_4CC_LIST:
 	case GF_PROP_SINT_LIST:
 	case GF_PROP_VEC2I_LIST:
 	{
 		size_t it_size = sizeof(u32);
 		if (p1->type==GF_PROP_UINT_LIST) it_size = sizeof(u32);
+		else if (p1->type==GF_PROP_4CC_LIST) it_size = sizeof(u32);
 		else if (p1->type==GF_PROP_SINT_LIST) it_size = sizeof(s32);
 		else if (p1->type==GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
 		//use uint list for checking
@@ -656,8 +705,13 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 	}
 
 	//user-managed pointer
-	case GF_PROP_POINTER: return (p1->value.ptr==p2->value.ptr) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_POINTER:
+		return (p1->value.ptr==p2->value.ptr) ? GF_TRUE : GF_FALSE;
 	default:
+		if (gf_props_type_is_enum(p1->type)) {
+			return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
+		}
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Comparing forbidden property type %d\n", p1->type));
 		break;
 	}
@@ -725,7 +779,7 @@ void gf_props_reset_single(GF_PropertyValue *p)
 		p->value.data.size = 0;
 	}
 	//use uint_list as base type for list
-	else if ((p->type==GF_PROP_UINT_LIST) || (p->type==GF_PROP_SINT_LIST) || (p->type==GF_PROP_VEC2I_LIST)) {
+	else if ((p->type==GF_PROP_UINT_LIST) || (p->type==GF_PROP_4CC_LIST) || (p->type==GF_PROP_SINT_LIST) || (p->type==GF_PROP_VEC2I_LIST)) {
 		gf_free(p->value.uint_list.vals);
 		p->value.uint_list.vals = NULL;
 		p->value.uint_list.nb_items = 0;
@@ -770,7 +824,7 @@ void gf_props_del_property(GF_PropertyEntry *it)
 			it->prop.value.string_list.nb_items = 0;
 		}
 		//use uint_list as base type for list
-		else if ((it->prop.type==GF_PROP_UINT_LIST) || (it->prop.type==GF_PROP_SINT_LIST) || (it->prop.type==GF_PROP_VEC2I_LIST)) {
+		else if ((it->prop.type==GF_PROP_UINT_LIST) || (it->prop.type==GF_PROP_4CC_LIST) || (it->prop.type==GF_PROP_SINT_LIST) || (it->prop.type==GF_PROP_VEC2I_LIST)) {
 			if (it->prop.value.uint_list.vals)
 				gf_free(it->prop.value.uint_list.vals);
 			it->prop.value.uint_list.nb_items = 0;
@@ -924,9 +978,10 @@ static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue
 		assert(prop->alloc_size);
 	}
 	//use uint_list as base type for list
-	else if ((prop->prop.type == GF_PROP_UINT_LIST) || (prop->prop.type == GF_PROP_SINT_LIST) || (prop->prop.type == GF_PROP_VEC2I_LIST)) {
+	else if ((prop->prop.type == GF_PROP_UINT_LIST) || (prop->prop.type == GF_PROP_4CC_LIST) || (prop->prop.type == GF_PROP_SINT_LIST) || (prop->prop.type == GF_PROP_VEC2I_LIST)) {
 		size_t it_size = sizeof(u32);
 		if (prop->prop.type == GF_PROP_UINT_LIST) it_size = sizeof(u32);
+		else if (prop->prop.type == GF_PROP_4CC_LIST) it_size = sizeof(u32);
 		else if (prop->prop.type == GF_PROP_SINT_LIST) it_size = sizeof(s32);
 		else if (prop->prop.type == GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
 		prop->prop.value.uint_list.vals = gf_malloc(it_size * value->value.uint_list.nb_items);
@@ -1159,6 +1214,7 @@ GF_PropTypeDef PropTypes[] =
 {
 	{GF_PROP_SINT, "sint", "signed 32 bit integer"},
 	{GF_PROP_UINT, "uint", "unsigned 32 bit integer"},
+	{GF_PROP_4CC, "4cc", "Four character code"},
 	{GF_PROP_LSINT, "lsint", "signed 64 bit integer"},
 	{GF_PROP_LUINT, "luint", "unsigned 32 bit integer"},
 	{GF_PROP_FRACTION, "frac", "32/32 bit fraction"},
@@ -1174,20 +1230,19 @@ GF_PropTypeDef PropTypes[] =
 	{GF_PROP_CONST_DATA, "cmem", "const data buffer"},
 	{GF_PROP_POINTER, "ptr", "32 or 64 bit pointer"},
 	{GF_PROP_VEC2I, "v2di", "2D 32-bit integer vector"},
-	{GF_PROP_VEC2, "v2df", "2D 32-bit float vector"},
+	{GF_PROP_VEC2, "v2d", "2D 64-bit float vector"},
 	{GF_PROP_VEC3I, "v3di", "3D 32-bit integer vector"},
-	{GF_PROP_VEC3, "v3df", "3D 32-bit float vector"},
 	{GF_PROP_VEC4I, "v4di", "4D 32-bit integer vector"},
-	{GF_PROP_VEC4, "v4df", "4D 32-bit float vector"},
+	{GF_PROP_STRING_LIST, "strl", "UTF-8 string list"},
+	{GF_PROP_UINT_LIST, "uintl", "unsigned 32 bit integer list"},
+	{GF_PROP_4CC_LIST, "4ccl", "four-character codes list"},
+	{GF_PROP_SINT_LIST, "sintl", "signed 32 bit integer list"},
+	{GF_PROP_VEC2I_LIST, "v2il", "2D 32-bit integer vector list"},
 	{GF_PROP_PIXFMT, "pfmt", "raw pixel format"},
 	{GF_PROP_PCMFMT, "afmt", "raw audio format"},
 	{GF_PROP_CICP_COL_PRIM, "cprm", "color primaries, string or int value from ISO/IEC 23091-2"},
 	{GF_PROP_CICP_COL_TFC, "ctfc", "color transfer characteristics, string or int value from ISO/IEC 23091-2"},
-	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"},
-	{GF_PROP_STRING_LIST, "strl", "UTF-8 string list"},
-	{GF_PROP_UINT_LIST, "uintl", "unsigned 32 bit integer list"},
-	{GF_PROP_SINT_LIST, "sintl", "signed 32 bit integer list"},
-	{GF_PROP_VEC2I_LIST, "v2il", "2D 32-bit integer vector list"}
+	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"}
 };
 
 GF_EXPORT
@@ -1242,8 +1297,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "Media stream type", GF_PROP_UINT},
-	{ GF_PROP_PID_SUBTYPE, "StreamSubtype", "Media subtype 4CC (auxiliary, pic sequence, etc ..)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_ISOM_SUBTYPE, "ISOMSubtype", "ISOM media subtype 4CC (avc1 avc2...)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_SUBTYPE, "StreamSubtype", "Media subtype 4CC (auxiliary, pic sequence, etc ..)", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_SUBTYPE, "ISOMSubtype", "ISOM media subtype 4CC (avc1 avc2...)", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ORIG_STREAM_TYPE, "OrigStreamType", "Original stream type before encryption", GF_PROP_UINT},
 	{ GF_PROP_PID_CODECID, "CodecID", "Codec ID (MPEG-4 OTI or ISOBMFF 4CC)", GF_PROP_UINT},
 	{ GF_PROP_PID_IN_IOD, "InitialObjectDescriptor", "Indicates if pid is declared in the IOD for MPEG-4", GF_PROP_BOOL},
@@ -1316,7 +1371,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "Number of bytes downloaded - changes are signaled through pid info (no reconfigure)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "Byte range of resource", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DISABLE_PROGRESSIVE, "DisableProgressive", "indicates that some blocks in file need patching (replace or insertion) upon closing, potentially disabling progressive upload", GF_PROP_UINT, 0},
-	{ GF_PROP_PID_ISOM_BRANDS, "IsoAltBrands", "indicates ISOBMFF brands associated with PID/file", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_BRANDS, "IsoAltBrands", "indicates ISOBMFF brands associated with PID/file", GF_PROP_4CC_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_MBRAND, "IsoBrand", "indicates ISOBMFF major brand associated with PID/file", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_MOVIE_TIME, "MovieTime", "indicates ISOBMFF movie header duration and timescale", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HAS_SYNC, "HasSync", "indicates ISOBMFF track has sync points", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
@@ -1329,7 +1384,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_AUDIO_VOLUME, "AudioVolume", "Volume of audio", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AUDIO_PAN, "AudioPan", "Balance/Pan of audio", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AUDIO_PRIORITY, "AudioPriority", "Audio thread priority", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_PROTECTION_SCHEME_TYPE, "ProtectionScheme", "Protection scheme type (4CC) used", GF_PROP_UINT},
+	{ GF_PROP_PID_PROTECTION_SCHEME_TYPE, "ProtectionScheme", "Protection scheme type (4CC) used", GF_PROP_4CC},
 	{ GF_PROP_PID_PROTECTION_SCHEME_VERSION, "SchemeVersion", "Protection scheme version used", GF_PROP_UINT},
 	{ GF_PROP_PID_PROTECTION_SCHEME_URI, "SchemeURI", "Protection scheme URI", GF_PROP_STRING},
 	{ GF_PROP_PID_PROTECTION_KMS_URI, "KMS_URI", "URI for key management system", GF_PROP_STRING},
@@ -1351,7 +1406,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PCK_CENC_SAI, "CENC_SAI", "CENC SAI for the packet, formated as (char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]", GF_PROP_DATA, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PID_CENC_KEY_INFO, "KeyInfo", "Multi key info formatted as:\n `is_mkey(u8);\nnb_keys(u16);\n[\n\tIV_size(u8);\n\tKID(bin128);\n\tif (!IV_size) {;\n\t\tconst_IV_size(u8);\n\t\tconstIV(const_IV_size);\n}\n]\n`", GF_PROP_DATA},
 	{ GF_PROP_PID_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den", GF_PROP_FRACTION},
-	{ GF_PROP_PID_CENC_STORE, "CENCStore", "Storage location 4CC of SAI data", GF_PROP_UINT},
+	{ GF_PROP_PID_CENC_STORE, "CENCStore", "Storage location 4CC of SAI data", GF_PROP_4CC},
 	{ GF_PROP_PID_CENC_STSD_MODE, "CENCstsdMode", "Mode for CENC sample description when using clear samples:\n"
 	"- 0: single sample description is used\n"
 	"- 1: a clear clone of the sample description is created, inserted before the CENC sample description\n"
@@ -1523,7 +1578,8 @@ Bool gf_props_4cc_check_props()
 	return res;
 }
 
-static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_type, const char *min_max_enum, Bool is_4cc)
+GF_EXPORT
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_type, const char *min_max_enum)
 {
 	switch (att->type) {
 	case GF_PROP_NAME:
@@ -1569,6 +1625,9 @@ static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[G
 			sprintf(dump, "%u", att->value.uint);
 		}
 		break;
+	case GF_PROP_4CC:
+		sprintf(dump, "%s", gf_4cc_to_str(att->value.uint) );
+		break;
 	case GF_PROP_LSINT:
 		sprintf(dump, ""LLD, att->value.longsint);
 		break;
@@ -1609,25 +1668,9 @@ static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[G
 	case GF_PROP_VEC3I:
 		sprintf(dump, "%dx%dx%d", att->value.vec3i.x, att->value.vec3i.y, att->value.vec3i.z);
 		break;
-	case GF_PROP_VEC3:
-		sprintf(dump, "%lgx%lgx%lg", att->value.vec3.x, att->value.vec3.y, att->value.vec3.y);
-		break;
 	case GF_PROP_VEC4I:
 		sprintf(dump, "%dx%dx%dx%d", att->value.vec4i.x, att->value.vec4i.y, att->value.vec4i.z, att->value.vec4i.w);
 		break;
-	case GF_PROP_VEC4:
-		sprintf(dump, "%lgx%lgx%lgx%lg", att->value.vec4.x, att->value.vec4.y, att->value.vec4.y, att->value.vec4.w);
-		break;
-	case GF_PROP_PIXFMT:
-		return gf_pixel_fmt_name(att->value.uint);
-	case GF_PROP_PCMFMT:
-		return gf_audio_fmt_name(att->value.uint);
-	case GF_PROP_CICP_COL_PRIM:
-		return gf_cicp_color_primaries_name(att->value.uint);
-	case GF_PROP_CICP_COL_TFC:
-		return gf_cicp_color_transfer_name(att->value.uint);
-	case GF_PROP_CICP_COL_MX:
-		return gf_cicp_color_matrix_name(att->value.uint);
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
@@ -1673,6 +1716,7 @@ static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[G
 		return dump;
 	}
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_4CC_LIST:
 	case GF_PROP_SINT_LIST:
 	case GF_PROP_VEC2I_LIST:
 	{
@@ -1682,11 +1726,9 @@ static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[G
 		for (i=0; i<count; i++) {
 			char szItem[1024];
 			if (att->type==GF_PROP_UINT_LIST) {
-				if (is_4cc) {
-					sprintf(szItem, "%s", gf_4cc_to_str(att->value.uint_list.vals[i]) );
-				} else {
-					sprintf(szItem, "%u", att->value.uint_list.vals[i]);
-				}
+				sprintf(szItem, "%u", att->value.uint_list.vals[i]);
+			} else if (att->type==GF_PROP_4CC_LIST) {
+				sprintf(szItem, "%s", gf_4cc_to_str(att->value.uint_list.vals[i]) );
 			} else if (att->type==GF_PROP_SINT_LIST) {
 				sprintf(szItem, "%d", att->value.sint_list.vals[i]);
 			} else {
@@ -1712,47 +1754,36 @@ static const char *gf_props_dump_val_ex(const GF_PropertyValue *att, char dump[G
 	case GF_PROP_LAST_DEFINED:
 		sprintf(dump, "lastDefined");
 		break;
+	default:
+		if (gf_props_type_is_enum(att->type)) {
+			return gf_props_enum_name(att->type, att->value.uint);
+		}
 	}
 	return dump;
 }
 
 GF_EXPORT
-const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_mode, const char *min_max_enum)
-{
-	return gf_props_dump_val_ex(att, dump, dump_data_mode, min_max_enum, GF_FALSE);
-}
-
-GF_EXPORT
 const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_mode)
 {
-	Bool is_4cc = GF_FALSE;
-
 	switch (p4cc) {
 	case GF_PROP_PID_STREAM_TYPE:
 	case GF_PROP_PID_ORIG_STREAM_TYPE:
 		return gf_stream_type_name(att->value.uint);
 	case GF_PROP_PID_CODECID:
 		return gf_codecid_name(att->value.uint);
-	case GF_PROP_PID_PIXFMT:
-		return gf_pixel_fmt_name(att->value.uint);
-	case GF_PROP_PID_AUDIO_FORMAT:
-		return gf_audio_fmt_name(att->value.uint);
-	case GF_PROP_PID_PROTECTION_SCHEME_TYPE:
-	case GF_PROP_PID_CENC_STORE:
-	case GF_PROP_PID_SUBTYPE:
-	case GF_PROP_PID_ISOM_SUBTYPE:
-	case GF_PROP_PID_ISOM_MBRAND:
-		return gf_4cc_to_str(att->value.uint);
+
 	case GF_PROP_PID_PLAYBACK_MODE:
 		if (att->value.uint == GF_PLAYBACK_MODE_SEEK) return "seek";
 		else if (att->value.uint == GF_PLAYBACK_MODE_REWIND) return "rewind";
 		else if (att->value.uint == GF_PLAYBACK_MODE_FASTFORWARD) return "forward";
 		else return "none";
-	case GF_PROP_PID_ISOM_BRANDS:
-		is_4cc = GF_TRUE;
-
 	default:
-		return gf_props_dump_val_ex(att, dump, dump_data_mode, NULL, is_4cc);
+		if (att->type==GF_PROP_UINT) {
+			u32 type = gf_props_4cc_get_type(p4cc);
+			if (gf_props_type_is_enum(type))
+				return gf_props_enum_name(type, att->value.uint);
+		}
+		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
 	}
 	return "";
 }

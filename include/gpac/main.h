@@ -153,7 +153,11 @@ typedef struct
 /*! argument is a camma-separated list of strings*/
 #define GF_ARG_STRINGS	4
 /*! argument is a custom arg, default value contains the syntax of the argument*/
-#define GF_ARG_CUSTOM	5
+#define GF_ARG_4CC		5
+/*! argument is a custom arg, default value contains the syntax of the argument*/
+#define GF_ARG_4CCS		6
+/*! argument is a custom arg, default value contains the syntax of the argument*/
+#define GF_ARG_CUSTOM	7
 
 /*! macros for defining a GF_GPACArg argument*/
 #define GF_DEF_ARG(_a, _b, _c, _d, _e, _f, _g) {_a, _b, _c, _d, _e, _f, _g}

@@ -336,12 +336,10 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 	switch (p->type) {
 	case GF_PROP_SINT:
 	case GF_PROP_UINT:
-	case GF_PROP_PIXFMT:
-	case GF_PROP_PCMFMT:
-	case GF_PROP_CICP_COL_PRIM:
-	case GF_PROP_CICP_COL_TFC:
-	case GF_PROP_CICP_COL_MX:
 		gsfmx_write_vlen(ctx, p->value.uint);
+		break;
+	case GF_PROP_4CC:
+		gf_bs_write_u32(ctx->bs_w, p->value.uint);
 		break;
 	case GF_PROP_LSINT:
 	case GF_PROP_LUINT:
@@ -377,22 +375,11 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 		gsfmx_write_vlen(ctx, p->value.vec3i.y);
 		gsfmx_write_vlen(ctx, p->value.vec3i.z);
 		break;
-	case GF_PROP_VEC3:
-		gf_bs_write_double(ctx->bs_w, p->value.vec3.x);
-		gf_bs_write_double(ctx->bs_w, p->value.vec3.y);
-		gf_bs_write_double(ctx->bs_w, p->value.vec3.z);
-		break;
 	case GF_PROP_VEC4I:
 		gsfmx_write_vlen(ctx, p->value.vec4i.x);
 		gsfmx_write_vlen(ctx, p->value.vec4i.y);
 		gsfmx_write_vlen(ctx, p->value.vec4i.z);
 		gsfmx_write_vlen(ctx, p->value.vec4i.w);
-		break;
-	case GF_PROP_VEC4:
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.x);
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.y);
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.z);
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.w);
 		break;
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
@@ -430,6 +417,13 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 			gsfmx_write_vlen(ctx, p->value.uint_list.vals[i] );
 		}
 		break;
+	case GF_PROP_4CC_LIST:
+		len = p->value.uint_list.nb_items;
+		gsfmx_write_vlen(ctx, len);
+		for (i=0; i<len; i++) {
+			gf_bs_write_u32(ctx->bs_w, p->value.uint_list.vals[i] );
+		}
+		break;
 	case GF_PROP_VEC2I_LIST:
 		len = p->value.v2i_list.nb_items;
 		gsfmx_write_vlen(ctx, len);
@@ -442,6 +436,10 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
 		break;
 	default:
+		if (gf_props_type_is_enum(p->type)) {
+			gsfmx_write_vlen(ctx, p->value.uint);
+			break;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize property of unknown type, ignoring !!\n"));
 		break;
 	}
@@ -635,7 +633,7 @@ static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx, Bool is_carousel
 	//header:signature
 	gf_bs_write_u32(ctx->bs_w, GF_4CC('G','S','5','F') );
 	//header protocol version
-	gf_bs_write_u8(ctx->bs_w, 1);
+	gf_bs_write_u8(ctx->bs_w, GF_GSF_VERSION);
 
 	if (ctx->crypt) {
 		gf_bs_write_data(ctx->bs_w, ctx->crypt_IV, 16);

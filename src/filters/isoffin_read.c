@@ -590,7 +590,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA((char *)metadata, (u32) strlen(metadata) ) );
 	}
 
-	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(scheme_type) );
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
 	if (scheme_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
 	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING((char*) kms_uri) );
@@ -612,7 +612,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 		gf_isom_cenc_get_default_info(ch->owner->mov, ch->track, stsd_idx, &container_type, &ch->pck_encrypted, &ch->crypt_byte_block, &ch->skip_byte_block, &key_info, &key_info_size);
 
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STORE, &PROP_UINT(container_type) );
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STORE, &PROP_4CC(container_type) );
 
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
 

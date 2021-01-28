@@ -1872,18 +1872,13 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				i++;
 			}
 
-			if (att->type==GF_PROP_UINT_LIST) {
+			if ((att->type==GF_PROP_UINT_LIST) || (att->type==GF_PROP_4CC_LIST)) {
 				for (k=0; k < att->value.uint_list.nb_items; k++) {
 					if (k) gf_fprintf(dump, ", ");
-					switch (p4cc) {
-					case GF_PROP_PID_ISOM_BRANDS:
-						if (! gf_sys_is_test_mode()) {
-							gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
-							break;
-						}
-					default:
+					if ((att->type==GF_PROP_4CC_LIST) && ! gf_sys_is_test_mode()) {
+						gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
+					} else {
 						gf_fprintf(dump, "%d", att->value.uint_list.vals[k]);
-						break;
 					}
 				}
 			} else if (att->type==GF_PROP_STRING_LIST) {
@@ -1912,19 +1907,14 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				gf_fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
 		}
 
-		if (att->type==GF_PROP_UINT_LIST) {
+		if ((att->type==GF_PROP_UINT_LIST) || (att->type==GF_PROP_4CC_LIST)) {
 			u32 k;
 			for (k=0; k < att->value.uint_list.nb_items; k++) {
 				if (k) gf_fprintf(dump, ", ");
-				switch (p4cc) {
-				case GF_PROP_PID_ISOM_BRANDS:
-					if (! gf_sys_is_test_mode()) {
-						gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
-						break;
-					}
-				default:
+				if ((att->type==GF_PROP_4CC_LIST) && ! gf_sys_is_test_mode()) {
+					gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
+				} else {
 					gf_fprintf(dump, "%d", att->value.uint_list.vals[k]);
-					break;
 				}
 			}
 		} else if (att->type==GF_PROP_STRING_LIST) {

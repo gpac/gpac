@@ -2936,6 +2936,7 @@ static void dump_all_props(void)
 		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
+			if ((i>=GF_PROP_LAST_NON_ENUM) && (i<GF_PROP_FIRST_ENUM)) continue;
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s  \n", gf_props_get_type_name(i), gf_props_get_type_desc(i) );
 		}
 
@@ -2952,6 +2953,7 @@ static void dump_all_props(void)
 		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
+			if ((i>=GF_PROP_LAST_NON_ENUM) && (i<GF_PROP_FIRST_ENUM)) continue;
 
 			if (gen_doc==2) {
 				gf_sys_format_help(helpout, help_flags, ".TP\n.B %s\n%s\n", gf_props_get_type_name(i), gf_props_get_type_desc(i));
@@ -3011,14 +3013,8 @@ static void dump_all_props(void)
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
 			} else if (prop_info->data_type==GF_PROP_PCMFMT) {
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
-			} else if (prop_info->data_type==GF_PROP_CICP_COL_PRIM) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_primaries_all_names() );
-			} else if (prop_info->data_type==GF_PROP_CICP_COL_TFC) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_transfer_all_names() );
-			} else if (prop_info->data_type==GF_PROP_CICP_COL_MX) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_matrix_all_names() );
-			} else if (prop_info->type==GF_PROP_PID_STREAM_TYPE) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_stream_type_all_names() );
+			} else if (gf_props_type_is_enum(prop_info->data_type)) {
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_props_enum_all_names(prop_info->data_type) );
 			}
 			gf_sys_format_help(helpout, help_flags, "\n");
 		}

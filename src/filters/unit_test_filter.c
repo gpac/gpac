@@ -343,12 +343,8 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','e'), &p);
 			p.type = GF_PROP_VEC2I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','f'), &p);
-			p.type = GF_PROP_VEC3;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','g'), &p);
 			p.type = GF_PROP_VEC3I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','h'), &p);
-			p.type = GF_PROP_VEC4;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','i'), &p);
 			p.type = GF_PROP_VEC4I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','j'), &p);
 			p.type = GF_PROP_STRING_LIST;
@@ -737,17 +733,9 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if ((p.value.vec3i.x != 1) || (p.value.vec3i.y != 1) || (p.value.vec3i.z != 1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec3i value\n"));
 		}
-		p = gf_props_parse_value(GF_PROP_VEC3, "prop", "1x1x1", NULL, 0);
-		if ((p.value.vec3.x != 1.0) || (p.value.vec3.y != 1.0) || (p.value.vec3.z != 1.0)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec3 value\n"));
-		}
 		p = gf_props_parse_value(GF_PROP_VEC4I, "prop", "1x1x1x1", NULL, 0);
 		if ((p.value.vec4i.x != 1) || (p.value.vec4i.y != 1) || (p.value.vec4i.z != 1) || (p.value.vec4i.w != 1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec4i value\n"));
-		}
-		p = gf_props_parse_value(GF_PROP_VEC4, "prop", "1x1x1x1", NULL, 0);
-		if ((p.value.vec4.x != 1.0) || (p.value.vec4.y != 1.0) || (p.value.vec4.z != 1.0) || (p.value.vec4.w != 1.0)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec4 value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_PIXFMT, "prop", "rgb", NULL, 0);
 		if (p.value.uint != GF_PIXEL_RGB) {
@@ -810,9 +798,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		gf_props_parse_value(GF_PROP_VEC2I, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_VEC2, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_VEC3I, "prop", NULL, NULL, 0);
-		gf_props_parse_value(GF_PROP_VEC3, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_VEC4I, "prop", NULL, NULL, 0);
-		gf_props_parse_value(GF_PROP_VEC4, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_STRING, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_DATA, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_CONST_DATA, "prop", NULL, NULL, 0);

@@ -53,11 +53,12 @@
 # - when setting a PropVec2i property, pass a PropVec2i object 
 # - when setting a PropVec2iList property, pass a python list of PropVec2i 
 #
+# 4CCs are handled as strings in python, and list of 4CCs are handled as list of strings
+#
 # The following builtin property types are always handled as strings in Python instead of int in libgpac :
 # - StreamType:  string containing the streamtype name
 # - CodecID:  string containing the codec name
-# - PixelFormat:  string containing the pixel format name
-# - AudioFormat:  string containing the audio format name
+# - Enumeration properties (PixelFormat, AudioFormat, ...):  string containing the corresponding name
 #
 # # Basic setup
 #
@@ -236,7 +237,7 @@ except OSError:
 
 #change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
 GF_ABI_MAJOR=10
-GF_ABI_MINOR=4
+GF_ABI_MINOR=6
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -294,6 +295,12 @@ _libgpac.gf_sys_clock_high_res.res = c_ulonglong
 _libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
 _libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
 _libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
+
+_libgpac.gf_4cc_to_str.argtypes = [c_uint]
+_libgpac.gf_4cc_to_str.res = c_char_p
+
+_libgpac.gf_4cc_parse.argtypes = [c_char_p]
+_libgpac.gf_4cc_parse.res = c_uint
 
 #\endcond
 
@@ -547,28 +554,10 @@ class PropVec3i(Structure):
     ## \endcond
 
 ## filter prop type, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_PropVec3
-class PropVec3(Structure):
-    ## \cond private
-    _fields_ = [ ("x", c_double), ("y", c_double), ("z", c_double)]
-    def __str__(self):
-        return str(self.x)+'x' + str(self.y)+'x' + str(self.z)
-    ## \endcond
-
-## filter prop type, as defined in libgpac and usable as a Python object
 #Fields have the same types, names and semantics as \ref GF_PropVec4i
 class PropVec4i(Structure):
     ## \cond private
     _fields_ = [("x", c_int), ("y", c_int), ("z", c_int), ("w", c_int)]
-    def __str__(self):
-        return str(self.x)+'x' + str(self.y)+'x' + str(self.z)+'x' + str(self.w)
-    ## \endcond
-
-## filter prop type, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_PropVec4
-class PropVec4(Structure):
-    ## \cond private
-    _fields_ = [("x", c_double), ("y", c_double), ("z", c_double), ("w", c_double)]
     def __str__(self):
         return str(self.x)+'x' + str(self.y)+'x' + str(self.z)+'x' + str(self.w)
     ## \endcond
@@ -949,63 +938,66 @@ GF_PROP_VEC2=11
 #see \ref GF_PROP_VEC3I
 GF_PROP_VEC3I=12
 ##\hideinitializer
-#see \ref GF_PROP_VEC3
-GF_PROP_VEC3=13
-##\hideinitializer
 #see \ref GF_PROP_VEC4I
-GF_PROP_VEC4I=14
-##\hideinitializer
-#see \ref GF_PROP_VEC4
-GF_PROP_VEC4=15
-##\hideinitializer
-#see \ref GF_PROP_PIXFMT
-GF_PROP_PIXFMT=16
-##\hideinitializer
-#see \ref GF_PROP_PCMFMT
-GF_PROP_PCMFMT=17
+GF_PROP_VEC4I=13
 ##\hideinitializer
 #see \ref GF_PROP_STRING
-GF_PROP_STRING=18
+GF_PROP_STRING=14
 ##\hideinitializer
 #see \ref GF_PROP_STRING_NO_COPY
-GF_PROP_STRING_NO_COPY=19
+GF_PROP_STRING_NO_COPY=15
 ##\hideinitializer
 #see \ref GF_PROP_DATA
-GF_PROP_DATA=20
+GF_PROP_DATA=16
 ##\hideinitializer
 #see \ref GF_PROP_NAME
-GF_PROP_NAME=21
+GF_PROP_NAME=17
 ##\hideinitializer
 #see \ref GF_PROP_DATA_NO_COPY
-GF_PROP_DATA_NO_COPY=22
+GF_PROP_DATA_NO_COPY=18
 ##\hideinitializer
 #see \ref GF_PROP_CONST_DATA
-GF_PROP_CONST_DATA=23
+GF_PROP_CONST_DATA=19
 ##\hideinitializer
 #see \ref GF_PROP_POINTER
-GF_PROP_POINTER=24
+GF_PROP_POINTER=20
 ##\hideinitializer
 #see \ref GF_PROP_STRING_LIST
-GF_PROP_STRING_LIST=25
+GF_PROP_STRING_LIST=21
 ##\hideinitializer
 #see \ref GF_PROP_UINT_LIST
-GF_PROP_UINT_LIST=26
+GF_PROP_UINT_LIST=22
 ##\hideinitializer
 #see \ref GF_PROP_SINT_LIST
-GF_PROP_SINT_LIST=27
+GF_PROP_SINT_LIST=23
 ##\hideinitializer
 #see \ref GF_PROP_VEC2I_LIST
-GF_PROP_VEC2I_LIST=28
+GF_PROP_VEC2I_LIST=24
+##\hideinitializer
+#see \ref GF_PROP_4CC
+GF_PROP_4CC=25
+##\hideinitializer
+#see \ref GF_PROP_4CC_LIST
+GF_PROP_4CC_LIST=26
+
+##\hideinitializer
+#see \ref GF_PROP_FIRST_ENUM
+GF_PROP_FIRST_ENUM=40
+##\hideinitializer
+#see \ref GF_PROP_PIXFMT
+GF_PROP_PIXFMT=GF_PROP_FIRST_ENUM
+##\hideinitializer
+#see \ref GF_PROP_PCMFMT
+GF_PROP_PCMFMT=GF_PROP_FIRST_ENUM+1
 ##\hideinitializer
 #see \ref GF_PROP_CICP_COL_PRIM
-GF_PROP_CICP_COL_PRIM=29
+GF_PROP_CICP_COL_PRIM=GF_PROP_FIRST_ENUM+2
 ##\hideinitializer
 #see \ref GF_PROP_CICP_COL_TFC
-GF_PROP_CICP_COL_TFC=30
+GF_PROP_CICP_COL_TFC=GF_PROP_FIRST_ENUM+3
 ##\hideinitializer
 #see \ref GF_PROP_CICP_COL_MX
-GF_PROP_CICP_COL_MX=31
-
+GF_PROP_CICP_COL_MX=GF_PROP_FIRST_ENUM+4
 
 ##\hideinitializer
 #see GF_FEVT_PLAY
@@ -1645,6 +1637,8 @@ _libgpac.gf_filter_pid_get_info_str.argtypes = [_gf_filter_pid, c_char_p, POINTE
 _libgpac.gf_filter_pid_get_info_str.restype = POINTER(PropertyValue)
 _libgpac.gf_filter_release_property.argtypes = [POINTER(_gf_property_entry)]
 
+_libgpac.gf_props_type_is_enum.argtypes = [c_uint]
+_libgpac.gf_props_type_is_enum.restype = c_int
 
 _libgpac.gf_pixel_fmt_name.argtypes = [c_uint]
 _libgpac.gf_pixel_fmt_name.restype = c_char_p
@@ -2042,11 +2036,9 @@ def _prop_to_python(pname, prop):
             cid = _libgpac.gf_codecid_file_ext(prop.value.uint).decode('utf-8')
             names=cid.split('|')
             return names[0]
-        if pname=="PixelFormat":
-            return _libgpac.gf_pixel_fmt_name(prop.value.uint).decode('utf-8')
-        if pname=="AudioFormat":
-            return _libgpac.gf_audio_fmt_name(prop.value.uint).decode('utf-8')
         return prop.value.uint
+    if type==GF_PROP_4CC:
+        return _libgpac.gf_4cc_to_str(prop.value.uint).decode('utf-8')
     if type==GF_PROP_LSINT:
         return prop.value.longsint
     if type==GF_PROP_LUINT:
@@ -2067,30 +2059,8 @@ def _prop_to_python(pname, prop):
         return prop.value.vec2
     if type==GF_PROP_VEC3I:
         return prop.value.vec3i
-    if type==GF_PROP_VEC3:
-        return prop.value.vec3
     if type==GF_PROP_VEC4I:
         return prop.value.vec4i
-    if type==GF_PROP_VEC4:
-        return prop.value.vec4
-    if type==GF_PROP_PIXFMT:
-        pname = _libgpac.gf_pixel_fmt_name(prop.value.uint)
-        return pname.decode('utf-8')
-    if type==GF_PROP_PCMFMT:
-        pname = _libgpac.gf_audio_fmt_name(prop.value.uint)
-        return pname.decode('utf-8')
-    if type==GF_PROP_CICP_COL_PRIM:
-        pname = _libgpac.gf_cicp_color_primaries_name(prop.value.uint)
-        return pname.decode('utf-8')
-    if type==GF_PROP_CICP_COL_TFC:
-        pname = _libgpac.gf_cicp_color_transfer_name(prop.value.uint)
-        return pname.decode('utf-8')
-    if type==GF_PROP_CICP_COL_MX:
-        pname = _libgpac.gf_cicp_color_matrix_name(prop.value.uint)
-        return pname.decode('utf-8')
-    if type==GF_PROP_CICP_COL_PRIM:
-        pname = _libgpac.gf_cicp_color_primaries_name(prop.value.uint)
-        return pname.decode('utf-8')
     if type==GF_PROP_STRING or type==GF_PROP_STRING_NO_COPY or type==GF_PROP_NAME:
         return prop.value.string.decode('utf-8')
     if type==GF_PROP_DATA or type==GF_PROP_DATA_NO_COPY or type==GF_PROP_CONST_DATA:
@@ -2109,6 +2079,12 @@ def _prop_to_python(pname, prop):
             val = prop.value.uint_list.vals[i]
             res.append(val)
         return res
+    if type==GF_PROP_4CC_LIST:
+        res = [];
+        for i in range(prop.value.uint_list.nb_items):
+            val = _libgpac.gf_4cc_to_str(prop.value.uint).decode('utf-8')
+            res.append(val)
+        return res
     if type==GF_PROP_SINT_LIST:
         res = [];
         for i in range(prop.value.uint_list.nb_items):
@@ -2121,6 +2097,10 @@ def _prop_to_python(pname, prop):
             val = prop.value.v2i_list.vals[i]
             res.append(val)
         return res
+
+    if _libgpac.gf_props_type_is_enum(type):
+        pname = _libgpac.gf_props_enum_name(type, prop.value.uint)
+        return pname.decode('utf-8')
 
     raise Exception('Unknown property type ' + str(type))
 
@@ -2460,26 +2440,13 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
     elif propname=="CodecID":
         prop_val.value.uint = _libgpac.gf_codecid_parse(prop.encode('utf-8'))
         return prop_val
-    elif propname=="PixelFormat":
-        prop_val.value.uint = _libgpac.gf_pixel_fmt_parse(prop.encode('utf-8'))
-        return prop_val
-    elif propname=="AudioFormat":
-        prop_val.value.uint = _libgpac.gf_audio_fmt_parse(prop.encode('utf-8'))
-        return prop_val
-    elif propname=="ColorPrimaries":
-        prop_val.value.uint = _libgpac.gf_cicp_parse_color_primaries(prop.encode('utf-8'))
-        return prop_val
-    elif propname=="ColorTransfer":
-        prop_val.value.uint = _libgpac.gf_cicp_parse_color_transfer(prop.encode('utf-8'))
-        return prop_val
-    elif propname=="ColorMatrix":
-        prop_val.value.uint = _libgpac.gf_cicp_parse_color_matrix(prop.encode('utf-8'))
-        return prop_val
 
     if type==GF_PROP_SINT:
         prop_val.value.sint = prop
     elif type==GF_PROP_UINT:
         prop_val.value.uint = prop
+    elif type==GF_PROP_4CC:
+        prop_val.value.uint = _libgpac.gf_4cc_parse(prop.encode('utf-8'))
     elif type==GF_PROP_LSINT:
         prop_val.value.longsint = prop
     elif type==GF_PROP_LUINT:
@@ -2529,13 +2496,6 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
             prop_val.value.vec3i.z = prop.z
         else:
             raise Exception('Invalid property value for vec3i: ' + str(prop))
-    elif type==GF_PROP_VEC3:
-        if hasattr(prop, 'x') and hasattr(prop, 'y') and hasattr(prop, 'z'):
-            prop_val.value.vec3i.x = prop.x
-            prop_val.value.vec3i.y = prop.y
-            prop_val.value.vec3i.z = prop.z
-        else:
-            raise Exception('Invalid property value for vec3: ' + str(prop))
     elif type==GF_PROP_VEC4I:
         if hasattr(prop, 'x') and hasattr(prop, 'y') and hasattr(prop, 'z') and hasattr(prop, 'w'):
             prop_val.value.vec4i.x = prop.x
@@ -2544,14 +2504,6 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
             prop_val.value.vec4i.w = prop.w
         else:
             raise Exception('Invalid property value for vec4i: ' + str(prop))
-    elif type==GF_PROP_VEC4:
-        if hasattr(prop, 'x') and hasattr(prop, 'y') and hasattr(prop, 'z') and hasattr(prop, 'w'):
-            prop_val.value.vec4.x = prop.x
-            prop_val.value.vec4.y = prop.y
-            prop_val.value.vec4.z = prop.z
-            prop_val.value.vec4.w = prop.w
-        else:
-            raise Exception('Invalid property value for vec4: ' + str(prop))
     elif type==GF_PROP_STRING or type==GF_PROP_STRING_NO_COPY or type==GF_PROP_NAME:
         prop_val.value.string = str(prop).encode('utf-8')
     elif type==GF_PROP_DATA or type==GF_PROP_DATA_NO_COPY or type==GF_PROP_CONST_DATA:
@@ -2572,6 +2524,15 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
             raise Exception('Property is not a list')
         prop_val.value.uint_list.nb_items = len(prop)
         prop_val.value.uint_list.vals = (ctypes.c_uint * len(prop))(*prop)
+    elif type==GF_PROP_4CC_LIST:
+        if isinstance(prop, list)==False:
+            raise Exception('Property is not a list')
+        prop_val.value.uint_list.nb_items = len(prop)
+        prop_val.value.uint_list.vals = (ctypes.c_uint * len(prop))
+        i=0
+        for str in list:
+            prop_val.value.uint_list.vals[i] = _libgpac.gf_4cc_parse( str.encode('utf-8') )
+            i+=1
     elif type==GF_PROP_SINT_LIST:
         if isinstance(prop, list)==False:
             raise Exception('Property is not a list')
@@ -2585,6 +2546,10 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
         for i in range (len(prop)):
             prop_val.value.v2i_list.vals[i].x = prop[i].x
             prop_val.value.v2i_list.vals[i].y = prop[i].y
+
+    elif _lingpac.gf_props_type_is_enum(type):
+        prop_val.value.uint = _libgpac.gf_props_parse_enum(prop.encode('utf-8'))
+        return prop_val
     else:
         raise Exception('Unsupported property type ' + str(type) )
 

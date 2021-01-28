@@ -317,14 +317,14 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	for (i=0; i<nb_tiles; i++) {
 		if (!ctx->opids[i].opid)
 			continue;
-		pval.type = GF_PROP_UINT_LIST;
+		pval.type = GF_PROP_4CC_LIST;
 		pval.value.uint_list.nb_items = 1;
 		pval.value.uint_list.vals = &ctx->base_id;
 		active_tiles ++;
 		gf_filter_pid_set_property_str(ctx->opids[i].opid, "isom:tbas", &pval);
 	}
 	//setup sabt track ref
-	pval.type = GF_PROP_UINT_LIST;
+	pval.type = GF_PROP_4CC_LIST;
 	pval.value.uint_list.nb_items = active_tiles;
 	pval.value.uint_list.vals = gf_malloc(sizeof(u32) * active_tiles);
 	active_tiles = 0;

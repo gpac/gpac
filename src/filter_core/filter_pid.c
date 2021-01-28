@@ -1431,6 +1431,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 			if (comp_type==2) is_equal = !is_equal;
 			break;
 		case GF_PROP_UINT:
+		case GF_PROP_4CC:
 			if (pent->prop.value.uint<prop_val.value.uint) is_equal = GF_TRUE;
 			if (comp_type==2) is_equal = !is_equal;
 			break;
@@ -3497,7 +3498,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				p.value.string_list.nb_items = 0;
 			}
 			//use uint_list as base type for lists
-			else if ((prop_type==GF_PROP_UINT_LIST) || (prop_type==GF_PROP_SINT_LIST) || (prop_type==GF_PROP_VEC2I_LIST)) {
+			else if ((prop_type==GF_PROP_UINT_LIST) || (prop_type==GF_PROP_SINT_LIST) || (prop_type==GF_PROP_VEC2I_LIST) || (prop_type==GF_PROP_4CC_LIST)) {
 				p.value.uint_list.vals = NULL;
 			}
 			gf_props_reset_single(&p);

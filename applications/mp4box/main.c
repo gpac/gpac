@@ -1528,6 +1528,12 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 				case GF_PROP_VEC2I_LIST:
 					an_arg.type = GF_ARG_STRINGS;
 					break;
+				case GF_PROP_4CC:
+					an_arg.type = GF_ARG_4CC;
+					break;
+				case GF_PROP_4CC_LIST:
+					an_arg.type = GF_ARG_4CCS;
+					break;
 				default:
 					an_arg.type = GF_ARG_STRING;
 					break;
