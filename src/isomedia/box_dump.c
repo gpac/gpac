@@ -3893,7 +3893,7 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 				if (!unknown && (itype==GF_ITAG_STR)) {
 					dump_data_string(trace, dbox->data, dbox->dataSize);
 				}
-				else if (!unknown && dbox && dbox->data && gf_utf8_is_legal(dbox->data, dbox->dataSize) ) {
+				else if (!unknown && gf_utf8_is_legal(dbox->data, dbox->dataSize) ) {
 					dump_data_string(trace, dbox->data, dbox->dataSize);
 				} else {
 					dump_data(trace, dbox->data, dbox->dataSize);
@@ -6249,7 +6249,7 @@ GF_Err proj_type_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, " top=\"%d\" bottom=\"%d\" left=\"%d\" right=\"%d\">\n", ptr->bounds_top, ptr->bounds_bottom, ptr->bounds_left, ptr->bounds_right);
 		gf_isom_box_dump_done("EquirectangularProjectionBox", a, trace);
 	}
-	else if (ptr->type == GF_ISOM_BOX_TYPE_EQUI) {
+	else if (ptr->type == GF_ISOM_BOX_TYPE_MSHP) {
 		gf_isom_box_dump_start(a, "MeshProjectionBox", trace);
 		gf_fprintf(trace, " crc=\"%08X\" encoding=\"%s\" left=\"%d\" right=\"%d\">\n", ptr->crc, gf_4cc_to_str(ptr->encoding_4cc) );
 		gf_isom_box_dump_done("MeshProjectionBox", a, trace);
