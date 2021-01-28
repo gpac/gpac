@@ -6187,9 +6187,9 @@ GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, "<WMATag name=\"%s\" version=\"%d\" type=\"%d\"", tag->name, tag->flags, tag->prop_type);
 		if (!tag->prop_type) {
 			u16 *src_str = (u16 *) tag->prop_value;
-			u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str);
+			u32 len = (u32) ( UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str) );
 			char *utf8str = (char *)gf_malloc(len + 1);
-			u32 res_len = gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
+			u32 res_len = (u32) gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
 			utf8str[res_len] = 0;
 
 			gf_fprintf(trace, " value=\"%s\">\n", utf8str);
