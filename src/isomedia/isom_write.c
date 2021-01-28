@@ -5874,13 +5874,13 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 	if (tag==GF_ISOM_ITUNE_COVER_ART) {
 		info->data->flags = 0;
 		/*check for PNG sig*/
-		if (data && (data_len>4) && (data[0] == 0x89) && (data[1] == 0x50) && (data[2] == 0x4E) && (data[3] == 0x47) ) {
+		if ((data_len>4) && (data[0] == 0x89) && (data[1] == 0x50) && (data[2] == 0x4E) && (data[3] == 0x47) ) {
 			info->data->flags = 14;
 		}
-		else if (data && (data_len>4) && (data[0] == 0xFF) && (data[1] == 0xD8) && (data[2] == 0xFF) && (data[3] == 0xE0) ) {
+		else if ((data_len>4) && (data[0] == 0xFF) && (data[1] == 0xD8) && (data[2] == 0xFF) && (data[3] == 0xE0) ) {
 			info->data->flags = 13;
 		}
-		else if (data && (data_len>3) && (data[0] == 'G') && (data[1] == 'I') && (data[2] == 'F') ) {
+		else if ((data_len>3) && (data[0] == 'G') && (data[1] == 'I') && (data[2] == 'F') ) {
 			info->data->flags = 12;
 		}
 	}
@@ -7872,7 +7872,7 @@ GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescri
 			gf_isom_box_del_parent(&ent->child_boxes, (GF_Box *) st3d);
 		}
 	} else if (info->stereo_type) {
-		GF_Stereo3DBox *st3d = (GF_Stereo3DBox *) gf_isom_box_new_parent(&ent->child_boxes, GF_ISOM_BOX_TYPE_ST3D);
+		st3d = (GF_Stereo3DBox *) gf_isom_box_new_parent(&ent->child_boxes, GF_ISOM_BOX_TYPE_ST3D);
 		if (!st3d) return GF_OUT_OF_MEM;
 		st3d->stereo_type = info->stereo_type;
 	}
@@ -7884,7 +7884,10 @@ GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescri
 		return GF_OK;
 	}
 
-	if (!sv3d && info->projection_type) {
+	if (!sv3d && !info->projection_type) {
+		return GF_OK;
+	}
+	if (!sv3d) {
 		sv3d = gf_isom_box_new_parent(&ent->child_boxes, GF_ISOM_BOX_TYPE_SV3D);
 		if (!sv3d) return GF_OUT_OF_MEM;
 	}
@@ -7931,6 +7934,18 @@ GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescri
 		projt->bounds_bottom = info->bottom;
 		projt->bounds_left = info->left;
 		projt->bounds_right = info->right;
+	}
+
+	//remove other ones
+	GF_Box *b = gf_isom_box_new_parent(&proj->child_boxes, GF_ISOM_BOX_TYPE_MSHP);
+	if (b) gf_isom_box_del_parent(&proj->child_boxes, b);
+	if (info->projection_type==GF_PROJ360_CUBE_MAP) {
+		b = gf_isom_box_new_parent(&proj->child_boxes, GF_ISOM_BOX_TYPE_EQUI);
+		if (b) gf_isom_box_del_parent(&proj->child_boxes, b);
+	} else {
+		b = gf_isom_box_new_parent(&proj->child_boxes, GF_ISOM_BOX_TYPE_EQUI);
+		if (b) gf_isom_box_del_parent(&proj->child_boxes, b);
+
 	}
 	return GF_OK;
 }
