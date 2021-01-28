@@ -28,15 +28,17 @@
 //for binxml parsing
 #include <gpac/xml.h>
 
+typedef u32(*cst_parse_proto)(const char *val);
+typedef const char *(*cst_name_proto)(u32 val);
 
-struct {
+static struct {
 	u32 type;
 	u32 (*cst_parse)(const char *val);
 	const char *(*cst_name)(u32 val);
 	const char *(*cst_all_names)();
-} EnumProps[] = {
-	{GF_PROP_PIXFMT, gf_pixel_fmt_parse, gf_pixel_fmt_name, gf_pixel_fmt_all_names},
-	{GF_PROP_PCMFMT, gf_audio_fmt_parse, gf_audio_fmt_name, gf_audio_fmt_all_names},
+} EnumProperties[] = {
+	{GF_PROP_PIXFMT, (cst_parse_proto) gf_pixel_fmt_parse, (cst_name_proto) gf_pixel_fmt_name, gf_pixel_fmt_all_names},
+	{GF_PROP_PCMFMT, (cst_parse_proto) gf_audio_fmt_parse, (cst_name_proto) gf_audio_fmt_name, gf_audio_fmt_all_names},
 	{GF_PROP_CICP_COL_PRIM, gf_cicp_parse_color_primaries, gf_cicp_color_primaries_name, gf_cicp_color_primaries_all_names},
 	{GF_PROP_CICP_COL_TFC, gf_cicp_parse_color_transfer, gf_cicp_color_transfer_name, gf_cicp_color_transfer_all_names},
 	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names},
@@ -45,10 +47,10 @@ struct {
 GF_EXPORT
 u32 gf_props_parse_enum(u32 type, const char *value)
 {
-	u32 i, count = GF_ARRAY_LENGTH(EnumProps);
+	u32 i, count = GF_ARRAY_LENGTH(EnumProperties);
 	for (i=0; i<count; i++) {
-		if (EnumProps[i].type==type)
-			return EnumProps[i].cst_parse(value);
+		if (EnumProperties[i].type==type)
+			return EnumProperties[i].cst_parse(value);
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized constant type %d\n", type));
 	return 0;
@@ -57,10 +59,10 @@ u32 gf_props_parse_enum(u32 type, const char *value)
 GF_EXPORT
 const char *gf_props_enum_name(u32 type, u32 value)
 {
-	u32 i, count = GF_ARRAY_LENGTH(EnumProps);
+	u32 i, count = GF_ARRAY_LENGTH(EnumProperties);
 	for (i=0; i<count; i++) {
-		if (EnumProps[i].type==type)
-			return EnumProps[i].cst_name(value);
+		if (EnumProperties[i].type==type)
+			return EnumProperties[i].cst_name(value);
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized constant type %d\n", type));
 	return NULL;
@@ -69,10 +71,10 @@ const char *gf_props_enum_name(u32 type, u32 value)
 GF_EXPORT
 const char *gf_props_enum_all_names(u32 type)
 {
-	u32 i, count = GF_ARRAY_LENGTH(EnumProps);
+	u32 i, count = GF_ARRAY_LENGTH(EnumProperties);
 	for (i=0; i<count; i++) {
-		if (EnumProps[i].type==type)
-			return EnumProps[i].cst_all_names();
+		if (EnumProperties[i].type==type)
+			return EnumProperties[i].cst_all_names();
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unrecognized constant type %d\n", type));
 	return NULL;

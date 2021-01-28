@@ -12628,9 +12628,9 @@ void svhd_box_del(GF_Box *s)
 GF_Err svhd_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
-	ptr->string = gf_malloc(sizeof(char) * (ptr->size+1));
+	ptr->string = gf_malloc(sizeof(char) * ((u32) ptr->size+1));
 	if (!ptr->string) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, ptr->string, ptr->size);
+	gf_bs_read_data(bs, ptr->string, (u32) ptr->size);
 	ptr->string[ptr->size] = 0;
 	return GF_OK;
 }

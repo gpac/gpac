@@ -2399,8 +2399,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_source) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_filter_creation_callback) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_fs_update_enum_defaults) )
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_update ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg_str ) )
