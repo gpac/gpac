@@ -509,7 +509,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (nb_refs) {
 				u32 j;
 				GF_PropertyValue prop;
-				prop.type = GF_PROP_UINT_LIST;
+				prop.type = GF_PROP_4CC_LIST;
 				prop.value.uint_list.nb_items = nb_refs;
 				prop.value.uint_list.vals = gf_malloc(sizeof(u32)*nb_refs);
 				for (j=0; j<nb_refs; j++) {
@@ -567,7 +567,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 		//set stream subtype
 		mtype = gf_isom_get_media_type(read->mov, track);
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SUBTYPE, &PROP_UINT(mtype) );
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SUBTYPE, &PROP_4CC(mtype) );
 
 		if (!read->mem_load_mode) {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MEDIA_DATA_SIZE, &PROP_LONGUINT(gf_isom_get_media_data_size(read->mov, track) ) );
@@ -590,12 +590,12 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 
 		GF_PropertyValue brands;
-		brands.type = GF_PROP_UINT_LIST;
+		brands.type = GF_PROP_4CC_LIST;
 		u32 major_brand=0;
 		gf_isom_get_brand_info(read->mov, &major_brand, NULL, &brands.value.uint_list.nb_items);
 		brands.value.uint_list.vals = (u32 *) gf_isom_get_brands(read->mov);
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_BRANDS, &brands);
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MBRAND, &PROP_UINT(major_brand) );
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MBRAND, &PROP_4CC(major_brand) );
 
 		//we cannot expose average size/dur in mem mode with fragmented files (sample_count=0)
 		if (sample_count) {
@@ -702,7 +702,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				}
 			}
 			if (tx3g_config_sdp) {
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_STRING_NO_COPY(tx3g_config_sdp) );
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(tx3g_config_sdp, (u32) strlen(tx3g_config_sdp)+1) );
 			}
 		}
 
@@ -1055,7 +1055,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(namespace) );
 	if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING(schemaloc) );
 
-	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_SUBTYPE, &PROP_UINT(m_subtype) );
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_SUBTYPE, &PROP_4CC(m_subtype) );
 	if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
 
 
@@ -1442,7 +1442,7 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 
 	//setup cenc
 	if (scheme_type) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(scheme_type) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(GF_TRUE) );
 

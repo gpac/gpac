@@ -932,12 +932,11 @@ interface JSCapDesc {
 
 GF_PROP_PID_CODECID: string containing the codec name\n
 GF_PROP_PID_STREAM_TYPE: string containing the stream type name\n
-GF_PROP_PID_AUDIO_FORMAT: string containing the audio format name\n
-GF_PROP_PID_PIXFMT: string containing the pixel format name\n
 \n
 Other properties are mapped by property type:\n
 GF_PROP_BOOL: boolean\n
 GF_PROP_UINT: integer\n
+GF_PROP_4CC: string\n
 GF_PROP_SINT: integer\n
 GF_PROP_LUINT: large integer\n
 GF_PROP_LSINT: large integer\n
@@ -947,14 +946,14 @@ GF_PROP_STRING: string\n
 GF_PROP_STRING_NO_COPY: string\n
 GF_PROP_VEC2: object with number properties "x" and "y"\n
 GF_PROP_VEC2I: object with integer properties "x" and "y"\n
-GF_PROP_VEC3: object with number properties "x", "y" and "z"\n
 GF_PROP_VEC3I: object with integer properties "x", "y" and "z"\n
-GF_PROP_VEC4: object with number properties "x", "y", "z" and "w"\n
 GF_PROP_VEC4I: object with integer properties "x", "y", "z" and "w"\n
 GF_PROP_FRACTION: object with integer properties "n" and "d", representing fraction n/d\n
 GF_PROP_FRACTION64: object with large integer properties "n" and "d", representing fraction n/d\n
 GF_PROP_UINT_LIST: array of integers\n
+GF_PROP_4CC_LIST: array of strings\n
 GF_PROP_STRING_LIST: array of strings\n
+All enumeration properties (pixel format, audio format, etc): string\n
 */
 typedef Object FilterProperty;
 

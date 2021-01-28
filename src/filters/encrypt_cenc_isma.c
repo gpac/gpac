@@ -836,7 +836,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 	//if constantIV and not using CENC subsample, no CENC auxiliary info
 	if (!cstr->tci->keys[0].constant_IV_size || cstr->use_subsamples) {
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STORE, &PROP_UINT(cstr->tci->sai_saved_box_type) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STORE, &PROP_4CC(cstr->tci->sai_saved_box_type) );
 	}
 
 	//parse pssh even if reinit since we need to reassign pssh property
@@ -966,7 +966,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (prop) cstr->codec_id = prop->value.uint;
 
 	if (cstr->tci) {
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(scheme_type) );
 
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);

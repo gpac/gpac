@@ -57,6 +57,13 @@ const char *gf_4cc_to_str(u32 type)
 	return (const char *) szTYPE;
 }
 
+GF_EXPORT
+u32 gf_4cc_parse(const char *val)
+{
+	if (val && strlen(val)==4) return GF_4CC(val[0], val[1], val[2], val[3]);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Value is not a properly defined 4CC", val));
+	return 0;
+}
 
 static const char *szProg[] =
 {

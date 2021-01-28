@@ -686,11 +686,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 		}
 		break;
 	case GF_PROP_UINT:
-	case GF_PROP_PIXFMT:
-	case GF_PROP_PCMFMT:
-	case GF_PROP_CICP_COL_PRIM:
-	case GF_PROP_CICP_COL_TFC:
-	case GF_PROP_CICP_COL_MX:
+	case GF_PROP_4CC:
 		if (a->offset_in_private + sizeof(u32) <= filter->freg->private_size) {
 			*(u32 *)ptr = argv->value.uint;
 			res = GF_TRUE;
@@ -750,21 +746,9 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 			res = GF_TRUE;
 		}
 		break;
-	case GF_PROP_VEC3:
-		if (a->offset_in_private + sizeof(GF_PropVec3) <= filter->freg->private_size) {
-			*(GF_PropVec3 *)ptr = argv->value.vec3;
-			res = GF_TRUE;
-		}
-		break;
 	case GF_PROP_VEC4I:
 		if (a->offset_in_private + sizeof(GF_PropVec4i) <= filter->freg->private_size) {
 			*(GF_PropVec4i *)ptr = argv->value.vec4i;
-			res = GF_TRUE;
-		}
-		break;
-	case GF_PROP_VEC4:
-		if (a->offset_in_private + sizeof(GF_PropVec4) <= filter->freg->private_size) {
-			*(GF_PropVec4 *)ptr = argv->value.vec4;
 			res = GF_TRUE;
 		}
 		break;
@@ -810,6 +794,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 		}
 		break;
 	case GF_PROP_UINT_LIST:
+	case GF_PROP_4CC_LIST:
 	case GF_PROP_SINT_LIST:
 	case GF_PROP_VEC2I_LIST:
 		//use uint_list as base type for lists
@@ -821,9 +806,15 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 		}
 		break;
 	default:
+		if (gf_props_type_is_enum(argv->type)) {
+			if (a->offset_in_private + sizeof(u32) <= filter->freg->private_size) {
+				*(u32 *)ptr = argv->value.uint;
+				res = GF_TRUE;
+			}
+			break;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property type %s not supported for filter argument\n", gf_props_get_type_name(argv->type) ));
 		return;
-		break;
 	}
 	if (!res) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to set argument %s: memory offset %d overwrite structure size %f\n", a->arg_name, a->offset_in_private, filter->freg->private_size));
@@ -3626,6 +3617,7 @@ static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, 
 			p.value.boolean = * (Bool *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_UINT:
+		case GF_PROP_4CC:
 			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_SINT:
@@ -3652,14 +3644,8 @@ static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, 
 		case GF_PROP_VEC3I:
 			p.value.vec3i = * (GF_PropVec3i *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
-		case GF_PROP_VEC3:
-			p.value.vec3 = * (GF_PropVec3 *) ((char *)filter->filter_udta + arg->offset_in_private);
-			break;
 		case GF_PROP_VEC4I:
 			p.value.vec4i = * (GF_PropVec4i *) ((char *)filter->filter_udta + arg->offset_in_private);
-			break;
-		case GF_PROP_VEC4:
-			p.value.vec4 = * (GF_PropVec4 *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
 		case GF_PROP_FRACTION:
 			p.value.frac = * (GF_Fraction *) ((char *)filter->filter_udta + arg->offset_in_private);
@@ -3683,18 +3669,16 @@ static Bool gf_filter_get_arg_internal(GF_Filter *filter, const char *arg_name, 
 		//use uint_list as base type for lists
 		case GF_PROP_STRING_LIST:
 		case GF_PROP_UINT_LIST:
+		case GF_PROP_4CC_LIST:
 		case GF_PROP_SINT_LIST:
 		case GF_PROP_VEC2I_LIST:
 			p.value.uint_list = * (GF_PropUIntList *) ((char *)filter->filter_udta + arg->offset_in_private);
 			break;
-		case GF_PROP_PIXFMT:
-		case GF_PROP_PCMFMT:
-		case GF_PROP_CICP_COL_PRIM:
-		case GF_PROP_CICP_COL_TFC:
-		case GF_PROP_CICP_COL_MX:
-			p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
-			break;
 		default:
+			if (gf_props_type_is_enum(arg->arg_type)) {
+				p.value.uint = * (u32 *) ((char *)filter->filter_udta + arg->offset_in_private);
+				break;
+			}
 			return GF_FALSE;
 		}
 		if (min_max_enum) *min_max_enum = arg->min_max_enum;
@@ -3711,17 +3695,6 @@ const char *gf_filter_get_arg_str(GF_Filter *filter, const char *arg_name, char 
 	const char *arg_min_max = NULL;
 	if (!dump || !gf_filter_get_arg_internal(filter, arg_name, &p, &arg_min_max))
 		return NULL;
-	if (p.type==GF_PROP_PIXFMT)
-		return gf_pixel_fmt_name(p.value.uint);
-	if (p.type==GF_PROP_PCMFMT)
-		return gf_audio_fmt_name(p.value.uint);
-	if (p.type==GF_PROP_CICP_COL_PRIM)
-		return gf_cicp_color_primaries_name(p.value.uint);
-	if (p.type==GF_PROP_CICP_COL_TFC)
-		return gf_cicp_color_transfer_name(p.value.uint);
-	if (p.type==GF_PROP_CICP_COL_MX)
-		return gf_cicp_color_matrix_name(p.value.uint);
-
 	return gf_props_dump_val(&p, dump, GF_PROP_DUMP_DATA_NONE, arg_min_max);
 }
 

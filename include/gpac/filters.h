@@ -685,81 +685,93 @@ Documents the property object used for PID and packets.
 /*! Property types*/
 
 //DO NOT MODIFY WITHOUT APPLYNG SIMILAR CHANGE TO share/python/libgpac.py
+//DO NOT CHANGE A VALUE ASSIGNMENT WITHOUT CHANGING GF_GSF_VERSION
+
 typedef enum
 {
 	/*! not allowed*/
-	GF_PROP_FORBIDEN=0,
+	GF_PROP_FORBIDEN	=	0,
 	/*! signed 32 bit integer*/
-	GF_PROP_SINT,
+	GF_PROP_SINT		=	1,
 	/*! unsigned 32 bit integer*/
-	GF_PROP_UINT,
+	GF_PROP_UINT		=	2,
 	/*! signed 64 bit integer*/
-	GF_PROP_LSINT,
+	GF_PROP_LSINT		=	3,
 	/*! unsigned 64 bit integer*/
-	GF_PROP_LUINT,
+	GF_PROP_LUINT		=	4,
 	/*! boolean*/
-	GF_PROP_BOOL,
+	GF_PROP_BOOL		=	5,
 	/*! 32 bit / 32 bit fraction*/
-	GF_PROP_FRACTION,
+	GF_PROP_FRACTION	=	6,
 	/*! 64 bit / 64 bit fraction*/
-	GF_PROP_FRACTION64,
+	GF_PROP_FRACTION64	=	7,
 	/*! float (Fixed) number*/
-	GF_PROP_FLOAT,
+	GF_PROP_FLOAT		=	8,
 	/*! double number*/
-	GF_PROP_DOUBLE,
+	GF_PROP_DOUBLE		=	9,
 	/*! 2D signed integer vector*/
-	GF_PROP_VEC2I,
+	GF_PROP_VEC2I		=	10,
 	/*! 2D double number vector*/
-	GF_PROP_VEC2,
+	GF_PROP_VEC2		=	11,
 	/*! 3D signed integer vector*/
-	GF_PROP_VEC3I,
-	/*! 3D double number vector*/
-	GF_PROP_VEC3,
+	GF_PROP_VEC3I		=	12,
 	/*! 4D signed integer vector*/
-	GF_PROP_VEC4I,
-	/*! 4D double number vector*/
-	GF_PROP_VEC4,
-	/*! Video Pixel format*/
-	GF_PROP_PIXFMT,
-	/*! Audio PCM format*/
-	GF_PROP_PCMFMT,
+	GF_PROP_VEC4I		=	13,
 	/*! string property, memory is duplicated when setting the property and managed internally*/
-	GF_PROP_STRING,
+	GF_PROP_STRING		=	14,
 	/*! string property, memory is NOT duplicated when setting the property but is then managed (and free) internally.
 	Only used when setting a property, the type then defaults to GF_PROP_STRING
 	DO NOT USE the associate string field upon return from setting the property, it might have been destroyed*/
-	GF_PROP_STRING_NO_COPY,
+	GF_PROP_STRING_NO_COPY=	15,
 	/*! data property, memory is duplicated when setting the property and managed internally*/
-	GF_PROP_DATA,
+	GF_PROP_DATA		=	16,
 	/*! const string property, memory is NOT duplicated when setting the property, stays user-managed*/
-	GF_PROP_NAME,
+	GF_PROP_NAME		=	17,
 	/*! data property, memory is NOT duplicated when setting the property but is then managed (and free) internally.
 	Only used when setting a property, the type then defaults to GF_PROP_DATA
 	DO NOT USE the associate data field upon return from setting the property, it might have been destroyed*/
-	GF_PROP_DATA_NO_COPY,
+	GF_PROP_DATA_NO_COPY=	18,
 	/*! const data property, memory is NOT duplicated when setting the property, stays user-managed*/
-	GF_PROP_CONST_DATA,
+	GF_PROP_CONST_DATA	=	19,
 	/*! user-managed pointer*/
-	GF_PROP_POINTER,
+	GF_PROP_POINTER		=	20,
 	/*! string list, memory is NOT duplicated when setting the property, the passed array is directly assigned to the new property and will be and managed internally (freed by the filter session)
 	DO NOT USE the associate string array field upon return from setting the property, it might have been destroyed*/
-	GF_PROP_STRING_LIST,
+	GF_PROP_STRING_LIST	=	21,
 	/*! unsigned 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
-	GF_PROP_UINT_LIST,
+	GF_PROP_UINT_LIST	=	22,
 	/*! signed 32 bit integer list, memory is ALWAYS duplicated when setting the property*/
-	GF_PROP_SINT_LIST,
+	GF_PROP_SINT_LIST	=	23,
 	/*! 2D signed integer vector list, memory is ALWAYS duplicated when setting the property*/
-	GF_PROP_VEC2I_LIST,
+	GF_PROP_VEC2I_LIST	=	24,
+	/*! 4CC on unsigned 32 bit integer*/
+	GF_PROP_4CC			=	25,
+	/*! 4CC list on unsigned 32 bit integer, memory is ALWAYS duplicated when setting the property*/
+	GF_PROP_4CC_LIST			=	26,
+
+	/*! last non-enum property*/
+	GF_PROP_LAST_NON_ENUM,
+
+	/*! All constants are defined after this - constants are stored as  u32*/
+	GF_PROP_FIRST_ENUM	=	40, //GSF will code prop type using vlen, try to keep all values between 1 and 127 to only use 1 byte
+
+	/*! Video Pixel format*/
+	GF_PROP_PIXFMT			=	GF_PROP_FIRST_ENUM,
+	/*! Audio PCM format*/
+	GF_PROP_PCMFMT			=	GF_PROP_FIRST_ENUM+1,
 	/*! CICP Color Primaries*/
-	GF_PROP_CICP_COL_PRIM,
+	GF_PROP_CICP_COL_PRIM	=	GF_PROP_FIRST_ENUM+2,
 	/*! CICP Color Transfer Characteristics*/
-	GF_PROP_CICP_COL_TFC,
+	GF_PROP_CICP_COL_TFC	=	GF_PROP_FIRST_ENUM+3,
 	/*! CICP Color Matrix*/
-	GF_PROP_CICP_COL_MX,
+	GF_PROP_CICP_COL_MX		=	GF_PROP_FIRST_ENUM+4,
 
 	/*! not allowed*/
 	GF_PROP_LAST_DEFINED
 } GF_PropType;
+
+/*! GSF version (coded on 8 bits in gsf format) */
+#define GF_GSF_VERSION	2
 
 /*! Data property*/
 typedef struct
@@ -800,17 +812,6 @@ typedef struct
 	s32 z;
 } GF_PropVec3i;
 
-/*! 3D double number vector property*/
-typedef struct
-{
-	/*! x coord */
-	Double x;
-	/*! y coord */
-	Double y;
-	/*! z coord */
-	Double z;
-} GF_PropVec3;
-
 /*! 4D signed integer vector property*/
 typedef struct
 {
@@ -824,18 +825,6 @@ typedef struct
 	s32 w;
 } GF_PropVec4i;
 
-/*! 4D double number vector property*/
-typedef struct
-{
-	/*! x coord */
-	Double x;
-	/*! y coord */
-	Double y;
-	/*! z coord */
-	Double z;
-	/*! w coord */
-	Double w;
-} GF_PropVec4;
 
 /*! List of strings property - do not change field order !*/
 typedef struct
@@ -904,12 +893,8 @@ struct __gf_prop_val
 		GF_PropVec2 vec2;
 		/*! 3D signed integer vector value of property */
 		GF_PropVec3i vec3i;
-		/*! 3D double vector value of property */
-		GF_PropVec3 vec3;
 		/*! 4D signed integer vector value of property */
 		GF_PropVec4i vec4i;
-		/*! 4D double vector value of property */
-		GF_PropVec4 vec4;
 		/*! data value of property. For non const data type, the memory is freed by filter session.
 		Otherwise caller is responsible to free it at end of filter/session*/
 		GF_PropData data;
@@ -1234,6 +1219,32 @@ const char *gf_props_get_type_desc(GF_PropType type);
 */
 GF_PropType gf_props_parse_type(const char *name);
 
+/*! Check if a property type is an enum type
+\param type  property type
+\return GF_TRUE if constant, GF_FALSE otherwise
+*/
+Bool gf_props_type_is_enum(GF_PropType type);
+
+/*! Parse a enum type property string
+\param type  property type
+\param value value to parse
+\return value, 0xFFFFFFFF if error
+*/
+u32 gf_props_parse_enum(u32 type, const char *value);
+
+/*! Get the name of a constant type property value
+\param type  property type
+\param value value of constant
+\return value, 0xFFFFFFFF if error
+*/
+const char *gf_props_enum_name(u32 type, u32 value);
+
+/*! Get the possible names of an enum type property
+\param type  property type
+\return comma-seperated list of possible values
+*/
+const char *gf_props_enum_all_names(u32 type);
+
 
 /*! Parses a property value from string
 \param type property type to parse
@@ -1319,10 +1330,15 @@ u32 gf_props_get_id(const char *name);
 */
 u8 gf_props_4cc_get_flags(u32 prop_4cc);
 
+
 /*! Helper macro to set signed int property */
 #define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
 /*! Helper macro to set unsigned int property */
 #define PROP_UINT(_val) (GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
+/*! Helper macro to set an enum  property */
+#define PROP_ENUM(_val, _type) (GF_PropertyValue){.type=_type, .value.uint = _val}
+/*! Helper macro to set 4CC unsigned int property */
+#define PROP_4CC(_val) (GF_PropertyValue){.type=GF_PROP_4CC, .value.uint = _val}
 /*! Helper macro to set long signed int property */
 #define PROP_LONGSINT(_val) (GF_PropertyValue){.type=GF_PROP_LSINT, .value.longsint = _val}
 /*! Helper macro to set long unsigned int property */
@@ -1361,14 +1377,10 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 #define PROP_VEC2I(_val) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i = _val}
 /*! Helper macro to set 2D integer vector property from intergers*/
 #define PROP_VEC2I_INT(_x, _y) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i.x = _x, .value.vec2i.y = _y}
-/*! Helper macro to set 3D float vector property */
-#define PROP_VEC3(_val) (GF_PropertyValue){.type=GF_PROP_VEC3, .value.vec3 = _val}
 /*! Helper macro to set 3D integer vector property */
 #define PROP_VEC3I(_val) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i = _val}
 /*! Helper macro to set 3D integer vector property from intergers*/
 #define PROP_VEC3I_INT(_x, _y, _z) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i.x = _x, .value.vec3i.y = _y, .value.vec3i.z = _z}
-/*! Helper macro to set 4D float vector property */
-#define PROP_VEC4(_val) (GF_PropertyValue){.type=GF_PROP_VEC4, .value.vec4 = _val}
 /*! Helper macro to set 4D integer vector property */
 #define PROP_VEC4I(_val) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i = _val}
 /*! Helper macro to set 4D integer vector property from integers */
@@ -1763,6 +1775,8 @@ typedef struct
 #define CAP_SINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_SINT, .value.sint = _b}, .flags=(_f) }
 /*! Shortcut macro to assign unsigned integer capability type*/
 #define CAP_UINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f) }
+/*! Shortcut macro to assign unsigned integer capability type*/
+#define CAP_4CC(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_4CC, .value.uint = _b}, .flags=(_f) }
 /*! Shortcut macro to assign signed long integer capability type*/
 #define CAP_LSINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_LSINT, .value.longsint = _b}, .flags=(_f) }
 /*! Shortcut macro to assign unsigned long integer capability type*/

@@ -87,6 +87,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dir_cleanup) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_4cc_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_error_to_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rand_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rand) )
@@ -2345,6 +2346,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_4cc_get_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_4cc_get_name) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_type_is_enum) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_parse_enum) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_enum_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_enum_all_names) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new_defaults) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_del) )
@@ -2393,6 +2399,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_source) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_filter_creation_callback) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_update_enum_defaults) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_update ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
