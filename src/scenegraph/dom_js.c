@@ -291,7 +291,8 @@ static void dom_js_define_document_ex(JSContext *c, JSValue global, GF_SceneGrap
 
 	if (doc->reference_count)
 		doc->reference_count++;
-	gf_node_register(doc->RootNode, NULL);
+	//no need to register root once more, it is already registered with graph
+//	gf_node_register(doc->RootNode, NULL);
 	par_sg = doc;
 	while (par_sg && !par_sg->get_document_class)
 		par_sg = par_sg->parent_scene;
@@ -327,7 +328,8 @@ JSValue dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 
 	if (sg->reference_count)
 		sg->reference_count++;
-	gf_node_register(sg->RootNode, NULL);
+	//no need to register root once more, it is already registered with graph
+//	gf_node_register(sg->RootNode, NULL);
 
 	while (par_sg && !par_sg->get_element_class) {
 		par_sg = par_sg->parent_scene;
@@ -1444,9 +1446,12 @@ void dom_document_finalize(JSRuntime *rt, JSValue obj)
 		gf_free(sg->js_data);
 		sg->js_data = NULL;
 	}
-	if (sg->RootNode) {
-		gf_node_unregister(sg->RootNode, NULL);
-	}
+
+	//no need to unregister root, we did not registered it in the constructor
+//	if (sg->RootNode) {
+//		gf_node_unregister(sg->RootNode, NULL);
+//	}
+
 	if (sg->reference_count) {
 		sg->reference_count--;
 		if (!sg->reference_count)
@@ -2774,6 +2779,7 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 	}
 	if (sg->js_data) {
 		if (!JS_IsUndefined(sg->js_data->document)) {
+			//detach sg from object and free it
 			JS_SetOpaque(sg->js_data->document, NULL);
 			JS_FreeValueRT(rt, sg->js_data->document);
 		}
