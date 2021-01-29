@@ -1640,6 +1640,14 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 		}
 	}
 
+	//empty doc
+	if (!gf_list_count(ctx->intervals)) {
+		TTMLInterval *interval;
+		GF_SAFEALLOC(interval, TTMLInterval);
+		interval->begin = interval->end = 0;
+		gf_list_add(ctx->intervals, interval);
+	}
+
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
 		for (k=0; k<gf_list_count(ctx->intervals); k++) {
@@ -1769,9 +1777,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		}
 	}
 	if (!body_node) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] \"body\" element not found. Abort.\n"));
-		ctx->non_compliant_ttml = GF_TRUE;
-		return GF_NON_COMPLIANT_BITSTREAM;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] \"body\" element not found, assuming empty doc\n"));
 	}
 
 	if (!ctx->div_nodes_list) {
@@ -1781,15 +1787,17 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		gf_list_reset(ctx->div_nodes_list);
 	}
 
-	i=0;
-	while ( (node = (GF_XMLNode*)gf_list_enum(body_node->content, &i))) {
-		if (!node->type) {
-			e = gf_xml_get_element_check_namespace(node, "div", root->ns);
-			if (e == GF_BAD_PARAM) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
+	if (body_node) {
+		i=0;
+		while ( (node = (GF_XMLNode*)gf_list_enum(body_node->content, &i))) {
+			if (!node->type) {
+				e = gf_xml_get_element_check_namespace(node, "div", root->ns);
+				if (e == GF_BAD_PARAM) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
+				}
 			}
+			gf_list_add(ctx->div_nodes_list, node);
 		}
-		gf_list_add(ctx->div_nodes_list, node);
 	}
 	file_size = ctx->end;
 	if (!ctx->timescale) ctx->timescale = 1000;
@@ -1815,10 +1823,14 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	ctx->root_working_copy = gf_xml_dom_get_root(ctx->parser_working_copy);
 	assert(ctx->root_working_copy);
 
-	/*remove all the sample entries (instances in body) entries from the working copy, we will add each sample in this clone DOM  to create full XML of each sample*/
-	ebu_ttd_remove_samples(ctx->root_working_copy, &ctx->body_node);
-	if (!ctx->body_node) {
-		return GF_NON_COMPLIANT_BITSTREAM;
+	if (body_node) {
+		/*remove all the sample entries (instances in body) entries from the working copy, we will add each sample in this clone DOM  to create full XML of each sample*/
+		ebu_ttd_remove_samples(ctx->root_working_copy, &ctx->body_node);
+		if (!ctx->body_node) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+	} else {
+		ctx->body_node = NULL;
 	}
 
 	ctx->current_tt_interval = 0;
@@ -1994,6 +2006,10 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			sample_empty = GF_FALSE;
 		}
 	}
+
+	//empty doc
+	if (!ctx->body_node)
+		sample_empty = GF_FALSE;
 
 	if (! sample_empty) {
 		samp_text = gf_xml_dom_serialize_root((GF_XMLNode*)ctx->root_working_copy, GF_FALSE, GF_FALSE);
