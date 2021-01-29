@@ -932,7 +932,7 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 		}
 	}
 
-	data = gf_xml_dom_serialize(ctx->ttml_root, GF_FALSE, GF_FALSE);
+	data = gf_xml_dom_serialize_root(ctx->ttml_root, GF_FALSE, GF_FALSE);
 	if (!data) return GF_OK;
 	size = (u32) strlen(data);
 	pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
