@@ -985,6 +985,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 				}
 			}
 			if (state==2) {
+				found_chap = GF_TRUE;
 				e = gf_isom_add_chapter(import->dest, 0, ts, szTitle);
 				if (e) goto err_exit;
 				state = 0;
