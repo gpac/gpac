@@ -2774,7 +2774,7 @@ void gf_sg_js_dom_pre_destroy(JSRuntime *rt, GF_SceneGraph *sg, GF_Node *n)
 	}
 	if (sg->js_data) {
 		if (!JS_IsUndefined(sg->js_data->document)) {
-//			dom_document_finalize(c, sg->document);
+			JS_SetOpaque(sg->js_data->document, NULL);
 			JS_FreeValueRT(rt, sg->js_data->document);
 		}
 		gf_free(sg->js_data);
