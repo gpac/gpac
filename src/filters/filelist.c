@@ -1074,6 +1074,7 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		if (data[0] != '#') {
 			for (i=0;i<line_size; i++) {
 				char c = (char) data[i];
+				if (!c) return NULL;
 				if ( isalnum(c)) continue;
 				//valid URL chars plus backslash for win path
 				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\", c))
