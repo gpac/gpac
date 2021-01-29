@@ -1050,6 +1050,50 @@ void filelist_finalize(GF_Filter *filter)
 	if (ctx->frag_url) gf_free(ctx->frag_url);
 }
 
+static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	if (!gf_utf8_is_legal(data, size)) {
+		return NULL;
+	}
+	while (data && size) {
+		u32 i, line_size;
+		Bool is_cr = GF_FALSE;
+		char *nl;
+		nl = memchr(data, '\r', size);
+		if (!nl)
+			nl = memchr(data, '\n', size);
+		else
+			is_cr = GF_TRUE;
+
+		if (nl)
+			line_size = (u32) (nl - (char *) data);
+		else
+			line_size = size-1;
+
+		//line is comment
+		if (data[0] != '#') {
+			for (i=0;i<line_size; i++) {
+				char c = (char) data[i];
+				if ( isalnum(c)) continue;
+				//valid URL chars plus backslash for win path
+				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\", c))
+					continue;
+
+				//not a valid URL
+				return NULL;
+			}
+		}
+		if (!nl) break;
+		size -= (u32) (nl+1 - (char *) data);
+		data = nl+1;
+		if (is_cr && (data[0]=='\n')) {
+			size --;
+			data++;
+		}
+	}
+	*score = GF_FPROBE_MAYBE_SUPPORTED;
+	return "application/x-gpac-playlist";
+}
 
 #define OFFS(_n)	#_n, offsetof(GF_FileListCtx, _n)
 static const GF_FilterArgs GF_FileListArgs[] =
@@ -1070,7 +1114,6 @@ static const GF_FilterArgs GF_FileListArgs[] =
 		, GF_PROP_UINT, "no", "no|name|size|date|datex", 0},
 
 	{ OFFS(sigcues), "inject CueStart property at each source begin (new or repeated) for DASHing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-
 	{0}
 };
 
@@ -1078,7 +1121,8 @@ static const GF_FilterArgs GF_FileListArgs[] =
 static const GF_FilterCapability FileListCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "txt|m3u"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "txt|m3u|pl"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-gpac-playlist"),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 };
 
@@ -1108,7 +1152,7 @@ GF_FilterRegister FileListRegister = {
 		"- the last frame is assigned the same duration as the previous one\n"
 		"\n"
 		"# Playlist mode\n"
-		"The playlist mode is activated when opening a playlist file (extension txt or m3u).\n"
+		"The playlist mode is activated when opening a playlist file (m3u format, utf-8 encoding, default extensions `m3u`, `txt` or `pl`).\n"
 		"In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.\n"
 		"The following directives, separated with space or comma, are supported:\n"
 		"- repeat=N: repeats N times the content (hence played N+1).\n"
@@ -1137,7 +1181,8 @@ GF_FilterRegister FileListRegister = {
 	SETCAPS(FileListCaps),
 	.configure_pid = filelist_configure_pid,
 	.process = filelist_process,
-	.process_event = filelist_process_event
+	.process_event = filelist_process_event,
+	.probe_data = filelist_probe_data
 };
 
 const GF_FilterRegister *filelist_register(GF_FilterSession *session)
