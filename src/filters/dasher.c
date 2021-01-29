@@ -6709,7 +6709,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				is_packet_split = GF_TRUE;
 			}
 
-			if (ds->splitable && !ds->split_dur_next) {
+			if (ds->splitable && !ds->split_dur_next && !ds->cues && !ds->inband_cues) {
 				Bool do_split = GF_FALSE;
 				//adding this sample would exceed the segment duration
 				if (gf_sys_old_arch_compat()) {
