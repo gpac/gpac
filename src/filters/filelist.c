@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -263,6 +263,10 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	// eg -i list.txt:#MyProp=toto to all PIDs coming from the sources
 	if (ctx->file_pid) {
 		gf_filter_pid_merge_properties(iopid->opid, ctx->file_pid, filelist_merge_prop, iopid->ipid);
+
+		p = gf_filter_pid_get_property(iopid->opid, GF_PROP_PID_MIME);
+		if (p && p->value.string && !strcmp(p->value.string, "application/x-gpac-playlist"))
+			gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_MIME, NULL);
 	}
 
 	//we could further optimize by querying the duration of all sources in the list
