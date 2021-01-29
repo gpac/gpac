@@ -41,6 +41,15 @@
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+#define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
+
+#define CHECK_STR(__str)	\
+	if (!__str) { \
+		e = gf_import_message(import, GF_BAD_PARAM, "Invalid XML formatting (line %d)", parser.line);	\
+		goto exit;	\
+	}
+
+
 typedef struct __txtin_ctx GF_TXTIn;
 
 struct __txtin_ctx
@@ -49,9 +58,10 @@ struct __txtin_ctx
 	u32 width, height, txtx, txty, fontsize;
 	s32 zorder;
 	const char *fontname, *lang, *ttml_zero;
-	Bool nodefbox, noflush, webvtt, ttml_single, ttml_embed;
+	Bool nodefbox, noflush, webvtt, ttml_embed;
 	u32 timescale;
 	GF_Fraction fps;
+	s32 ttml_dur;
 
 
 	GF_FilterPid *ipid, *opid;
@@ -301,10 +311,11 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 	}
 
 #ifdef GPAC_BIG_ENDIAN
-	if (unicode_type==3) {
+	if (unicode_type==3)
 #else
-	if (unicode_type==2) {
+	if (unicode_type==2)
 #endif
+	{
 		i=0;
 		while (1) {
 			char c;
@@ -1177,8 +1188,6 @@ static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **out_body_node)
 	}
 }
 
-#define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
-
 static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 {
 	u32 h, m, s, ms, f, sf;
@@ -1291,7 +1300,7 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval
 		interval = gf_list_get(ctx->intervals, i);
 
 		//generate a single sample for the input, merge interval
-		if (ctx->ttml_single) {
+		if (ctx->ttml_dur>=0) {
 			if (interval->begin > begin) interval->begin = begin;
 			if (interval->end < end) interval->end = end;
 			*out_interval = interval;
@@ -1987,7 +1996,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 
 	if (! sample_empty) {
-		samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE, GF_FALSE);
+		samp_text = gf_xml_dom_serialize_root((GF_XMLNode*)ctx->root_working_copy, GF_FALSE, GF_FALSE);
 
 		for (k=0; k<nb_div_nodes; k++) {
 			GF_XMLNode *copy_div_node = gf_list_get(ctx->body_node->content, k);
@@ -2041,7 +2050,17 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+res_len, &pck_data);
 			memcpy(pck_data, txt_str, txt_len);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-			gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
+
+			if (ctx->ttml_dur>0) {
+				gf_filter_pck_set_cts(pck, 0);
+				gf_filter_pck_set_duration(pck, (u32) ctx->ttml_dur);
+				ctx->last_sample_duration = (u64) ctx->ttml_dur * 1000 / ctx->timescale;
+			} else {
+				gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
+				if (interval->end >= interval->begin) {
+					gf_filter_pck_set_duration(pck, (ctx->timescale * (interval->end - interval->begin) )/1000);
+				}
+			}
 
 			if (res_len) {
 				GF_BitStream *subs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2352,12 +2371,6 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 }
 
 
-#define CHECK_STR(__str)	\
-	if (!__str) { \
-		e = gf_import_message(import, GF_BAD_PARAM, "Invalid XML formatting (line %d)", parser.line);	\
-		goto exit;	\
-	}	\
- 
 
 static u32 ttxt_get_color(char *val)
 {
@@ -3426,6 +3439,7 @@ GF_Err txtin_initialize(GF_Filter *filter)
 	char data[1];
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
+
 	return GF_OK;
 }
 
@@ -3541,7 +3555,7 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ttml_single), "force single sample - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_dur), "force single sample mode - see filter help", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ttml_embed), "force embedding TTML resources - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ttml_zero), "set subtitle zero time for TTML - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
@@ -3566,8 +3580,10 @@ GF_FilterRegister TXTInRegister = {
 	"- Others: 3GPP/QT Timed Text\n"
 	"\n"
 	"# TTML Support\n"
-	"By default, TTML documents are split in independent time segments by inspecting all overlapping subtitles in the body.\n"
-	"Using [-ttml_single]() will force the input document to result in a single frame.\n"
+	"The [-ttml_dur]() option controls how TTML are split into packets:\n"
+	"- if negative (default), TTML document is split in independent time segments by inspecting all overlapping subtitles in the body\n"
+	"- if 0, the input document is not split, forwarded as a single frame with `CTS` matching the first active time in document and a duration equal to the document duration\n"
+	"- if >0, the input document is not split, forwarded as a single frame with `CTS=0` and the specified duration in `timescale` units.\n"
 	"\n"
 	"By default, media resources are kept as declared in TTML2 documents.\n"
 	"[-ttml_embed]() can be used to embed inside the TTML sample the resources in `<head>` or `<body>`.\n"
