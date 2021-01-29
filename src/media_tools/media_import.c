@@ -750,6 +750,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	u32 state, offset;
 	u32 cur_chap;
 	u64 ts;
+	Bool found_chap = GF_FALSE;
 	u32 i, h, m, s, ms, fr, fps;
 	char line[1024];
 	char szTitle[1024];
@@ -992,6 +993,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		}
 		else continue;
 
+		found_chap = GF_TRUE;
 		if (strlen(szTitle)) {
 			e = gf_isom_add_chapter(import->dest, 0, ts, szTitle);
 		} else {
@@ -1002,6 +1004,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 
 err_exit:
 	gf_fclose(f);
+	if (!found_chap) return GF_NOT_FOUND;
 	return e;
 }
 
@@ -1118,8 +1121,14 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".s3d", 4) || !stricmp(fmt, "SC3DMC") )
 		return gf_import_afx_sc3dmc(importer, GF_TRUE);
 	/* chapter */
-	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") )
-		return gf_media_import_chapters_file(importer);
+	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") ) {
+		e =  gf_media_import_chapters_file(importer);
+		if (!strnicmp(ext, ".txt", 4) && (e==GF_NOT_FOUND)) {
+			e = GF_OK;
+		} else {
+			return e;
+		}
+	}
 
 #ifdef FILTER_FIXME
 	#error "importer TO CHECK: SAF, TS"
@@ -1475,7 +1484,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 	}
 
-	if (!e) gf_fs_print_unused_args(fsess, "index");
+	if (!e) gf_fs_print_unused_args(fsess, "index,fps");
 	gf_fs_print_non_connected(fsess);
 	if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
 	if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);
