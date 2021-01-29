@@ -702,7 +702,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				}
 			}
 			if (tx3g_config_sdp) {
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(tx3g_config_sdp, (u32) strlen(tx3g_config_sdp)+1) );
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_STRING_NO_COPY(tx3g_config_sdp) );
 			}
 		}
 

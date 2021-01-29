@@ -639,9 +639,7 @@ class PropertyValueUnion(Union):
 		("vec2i", PropVec2i),
 		("vec2", PropVec2),
 		("vec3i", PropVec3i),
-		("vec3", PropVec3),
 		("vec4i", PropVec3i),
-		("vec4", PropVec3),
 		("data", PropData),
 		("string", c_char_p),
 		("ptr", c_void_p),
@@ -649,7 +647,6 @@ class PropertyValueUnion(Union):
         ("uint_list", PropUIntList),
 		("int_list", PropIntList),
 		("v2i_list", PropVec2iList)
-		#todo, map string list ...
 	]
 
 ## filter property value, as defined in libgpac and usable as a Python object

@@ -882,7 +882,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 
 	enh_dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
-	if (enh_dsi) {
+	if (enh_dsi && (enh_dsi->type==GF_PROP_DATA) ) {
 		u32 cfg_crc = gf_crc_32(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
 		if (cfg_crc!=tkw->enh_cfg_crc) needs_sample_entry = 2;
 		tkw->enh_cfg_crc = cfg_crc;
