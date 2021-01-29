@@ -1991,6 +1991,19 @@ char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape)
 	return str;
 }
 
+GF_EXPORT
+char *gf_xml_dom_serialize_root(GF_XMLNode *node, Bool content_only, Bool no_escape)
+{
+	u32 alloc_size, size;
+	char *str = NULL;
+	gf_dynstrcat(&str, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", NULL);
+	if (!str) return NULL;
+
+	alloc_size = size = (u32) strlen(str) + 1;
+	gf_xml_dom_node_serialize(node, content_only, no_escape, &str, &alloc_size, &size);
+	return str;
+}
+
 #if 0 //unused
 GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, const char* value) {
 	GF_XMLAttribute *att;

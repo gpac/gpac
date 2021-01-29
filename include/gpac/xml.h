@@ -311,6 +311,15 @@ GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
  */
 char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape);
 
+
+/*! Serialize a root document node - same as \ref gf_xml_dom_serialize but insert \code <?xml version="1.0" encoding="UTF-8"?> \endcode at begining
+\param node the node to flush
+\param content_only Whether to include or not the parent node
+\param no_escape if set, disable escape of XML reserved chars (<,>,",') in text nodes
+\return The resulting serialization. The string has to be freed with gf_free
+ */
+char *gf_xml_dom_serialize_root(GF_XMLNode *node, Bool content_only, Bool no_escape);
+
 /*! Get the root element -- the only top level element -- of the document.
 \param parser the DOM structure
 \return The corresponding node if exists, otherwise NULL;
