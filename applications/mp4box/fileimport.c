@@ -559,12 +559,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	ext_start = gf_file_ext_start(szName);
 	ext = strrchr(ext_start ? ext_start : szName, '#');
+	if (!ext) ext = gf_url_colon_suffix(szName);
+	char c_sep = ext ? ext[0] : 0;
 	if (ext) ext[0] = 0;
-
-	if (!strlen(szName) || !strcmp(szName, "self")) {
+ 	if (!strlen(szName) || !strcmp(szName, "self")) {
 		fake_import = 2;
 	}
-	if (ext) ext[0] = '#';
+	if (ext) ext[0] = c_sep;
 
 	ext = gf_url_colon_suffix(szName);
 
