@@ -122,7 +122,7 @@ typedef struct
 	ROUTELCT *rlct;
 
 	u32 tsi, bandwidth, stream_type;
-
+	GF_Fraction dash_dur;
 	//we cannot hold a ref to the init segment packet, as this may lock the input waiting for its realease to dispatch next packets
 	u8 *init_seg_data;
 	u32 init_seg_size;
@@ -457,6 +457,14 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		rpid->stream_type = p->value.uint;
 	}
 
+	rpid->bandwidth = 0;
+	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_BITRATE);
+	if (p) rpid->bandwidth = p->value.uint;
+
+	rpid->dash_dur.num = 1;
+	rpid->dash_dur.den = 1;
+	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_DASH_DUR);
+	if (p) rpid->dash_dur = p->value.frac;
 
 	if (!rpid->manifest_type && !rpid->raw_file) {
 		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
@@ -896,6 +904,9 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 	//ATSC3: mbms enveloppe, service description, astcROUTE bundle
 	if (ctx->sock_atsc_lls) {
+		const GF_PropertyValue *p;
+		char *service_name;
+		ROUTEPid *rpid;
 		u32 service_id = serv->service_id;
 		if (!service_id) {
 			service_id = 1;
@@ -903,6 +914,8 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		gf_dynstrcat(&payload_text, "Content-Type: multipart/related; type=\"application/mbms-envelope+xml\"; boundary=\""MULTIPART_BOUNDARY"\"\r\n\r\n", NULL);
 
 		gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"\r\nContent-Type: application/mbms-envelope+xml\r\nContent-Location: envelope.xml\r\n\r\n", NULL);
+
+		//dump usd first, then S-TSID then manifest
 		gf_dynstrcat(&payload_text,
 			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 			"<metadataEnvelope xmlns=\"urn:3gpp:metadata:2005:MBMS:envelope\">\n"
@@ -917,12 +930,6 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			gf_dynstrcat(&payload_text, "application/route-usd+xml", NULL);
 		gf_dynstrcat(&payload_text, "\"/>\n", NULL);
 
-
-		if (serv->manifest) {
-			snprintf(temp, 1000, " <item metadataURI=\"%s\" version=\"%d\" contentType=\"%s\"/>\n", serv->manifest_name, serv->manifest_version, serv->manifest_mime);
-			gf_dynstrcat(&payload_text, temp, NULL);
-		}
-
 		gf_dynstrcat(&payload_text,
 			" <item metadataURI=\"stsid.xml\" version=\"", NULL);
 		snprintf(temp, 100, "%d", serv->stsid_version);
@@ -935,6 +942,12 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			gf_dynstrcat(&payload_text, "application/route-s-tsid+xml", NULL);
 		gf_dynstrcat(&payload_text, "\"/>\n", NULL);
 
+
+		if (serv->manifest) {
+			snprintf(temp, 1000, " <item metadataURI=\"%s\" version=\"%d\" contentType=\"%s\"/>\n", serv->manifest_name, serv->manifest_version, serv->manifest_mime);
+			gf_dynstrcat(&payload_text, temp, NULL);
+		}
+
 		gf_dynstrcat(&payload_text, "</metadataEnvelope>\n\r\n", NULL);
 
 		gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"\r\nContent-Type: ", NULL);
@@ -944,16 +957,23 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			gf_dynstrcat(&payload_text, "application/route-usd+xml", NULL);
 		gf_dynstrcat(&payload_text, "\r\nContent-Location: usbd.xml\r\n\r\n", NULL);
 
+		rpid = gf_list_get(serv->pids, 0);
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
+		if (p && p->value.string)
+			service_name = p->value.string;
+		else
+			service_name = "GPAC TV";
+
 		snprintf(temp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 				"<BundleDescriptionROUTE xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/ROUTEUSD/1.0/\">\n"
-				" <UserServiceDescription serviceId=\"%d\" globalServiceID=\"gpac://atsc30/us/%d/%d\" sTSIDUri=\"stsid.xml\">\n"
+				" <UserServiceDescription serviceId=\"%d\">\n"
+				"  <Name lang=\"eng\">%s</Name>\n"
 				"  <DeliveryMethod>\n"
-				"   <BroadcastAppService>\n", service_id, ctx->bsid, service_id);
+				"   <BroadcastAppService>\n", service_id, service_name);
 		gf_dynstrcat(&payload_text, temp, NULL);
 
 		for (i=0;i<count; i++) {
-			const GF_PropertyValue *p;
-			ROUTEPid *rpid = gf_list_get(serv->pids, i);
+			rpid = gf_list_get(serv->pids, i);
 			if (rpid->manifest_type) continue;
 			//set template
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
@@ -1012,7 +1032,15 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 	for (j=0; j<gf_list_count(serv->rlcts); j++) {
 		ROUTELCT *rlct = gf_list_get(serv->rlcts, j);
 
-		snprintf(temp, 1000, " <RS dIpAddr=\"%s\" dPort=\"%d\">\n", rlct->ip, rlct->port);
+		const char *src_ip;
+		char szIP[GF_MAX_IP_NAME_LEN];
+		src_ip = ctx->ifce;
+		if (!src_ip) {
+			gf_sk_get_local_ip(rlct->sock, szIP);
+			src_ip = szIP;
+		}
+
+		snprintf(temp, 1000, " <RS dIpAddr=\"%s\" dPort=\"%d\" sIpAddr=\"%s\">\n", rlct->ip, rlct->port, src_ip);
 		gf_dynstrcat(&payload_text, temp, NULL);
 
 		for (i=0; i<count; i++) {
@@ -1022,7 +1050,14 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			if (rpid->manifest_type) continue;
 			if (rpid->rlct != rlct) continue;
 
-			snprintf(temp, 100, "  <LS tsi=\"%d\" bw=\"%d\">\n", rpid->tsi, rpid->bandwidth);
+			if (rpid->bandwidth) {
+				u32 kbps = rpid->bandwidth / 1000;
+				kbps *= 110;
+				kbps /= 100;
+				snprintf(temp, 100, "  <LS tsi=\"%d\" bw=\"%d\">\n", rpid->tsi, kbps);
+			} else {
+				snprintf(temp, 100, "  <LS tsi=\"%d\">\n", rpid->tsi);
+			}
 			gf_dynstrcat(&payload_text, temp, NULL);
 
 			if (serv->manifest) {
@@ -1030,7 +1065,12 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			} else {
 				gf_dynstrcat(&payload_text, "   <SrcFlow rt=\"false\">\n", NULL);
 			}
-			gf_dynstrcat(&payload_text, "    <EFDT version=\"0\">\n", NULL);
+
+			if (ctx->korean) {
+				gf_dynstrcat(&payload_text, "    <EFDT version=\"0\">\n", NULL);
+			} else {
+				gf_dynstrcat(&payload_text, "    <EFDT>\n", NULL);
+			}
 
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
 			if (p) {
@@ -1053,13 +1093,30 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				}
 				gf_dynstrcat(&payload_text, "     <FDTParameters>\n", NULL);
 			} else {
+				u32 max_size = 0;
 				gf_dynstrcat(&payload_text, "     <FDT-Instance afdt:efdtVersion=\"0\"", NULL);
 				if (p) {
 					gf_dynstrcat(&payload_text, " afdt:fileTemplate=\"", NULL);
 					gf_dynstrcat(&payload_text, temp, NULL);
 					gf_dynstrcat(&payload_text, "\"", NULL);
 				}
-				gf_dynstrcat(&payload_text, ">\n", NULL);
+
+				if (!rpid->bandwidth || !rpid->dash_dur.den || !rpid->dash_dur.num) {
+					switch (rpid->stream_type) {
+					case GF_STREAM_VISUAL: max_size = 5000000; break;
+					case GF_STREAM_AUDIO: max_size = 1000000; break;
+					default: max_size = 100000; break;
+					}
+				} else {
+					max_size = rpid->bandwidth / 8;
+					max_size *= rpid->dash_dur.num;
+					max_size /= rpid->dash_dur.den;
+					//use 2x avg rate announced as safety
+					max_size *= 2;
+				}
+
+				snprintf(temp, 1000, " Expires=\"4294967295\" afdt:maxTransportSize=\"%d\">\n", max_size);
+				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 
 			if (rpid->init_seg_name) {
@@ -1096,35 +1153,36 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			}
 			gf_dynstrcat(&payload_text, "    </EFDT>\n", NULL);
 
-			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_REP_ID);
-			if (p && p->value.string) {
-				rep_id = p->value.string;
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing representation ID on PID (broken input filter), using \"1\"\n"));
-				rep_id = "1";
+			if (rpid->stream_type) {
+				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_REP_ID);
+				if (p && p->value.string) {
+					rep_id = p->value.string;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing representation ID on PID (broken input filter), using \"1\"\n"));
+					rep_id = "1";
+				}
+				gf_dynstrcat(&payload_text, "    <ContentInfo>\n", NULL);
+				gf_dynstrcat(&payload_text, "     <MediaInfo repId=\"", NULL);
+				gf_dynstrcat(&payload_text, rep_id, NULL);
+				gf_dynstrcat(&payload_text, "\"", NULL);
+				switch (rpid->stream_type) {
+				case GF_STREAM_VISUAL:
+					gf_dynstrcat(&payload_text, " contentType=\"video\"", NULL);
+					break;
+				case GF_STREAM_AUDIO:
+					gf_dynstrcat(&payload_text, " contentType=\"audio\"", NULL);
+					break;
+				case GF_STREAM_TEXT:
+					gf_dynstrcat(&payload_text, " contentType=\"subtitles\"", NULL);
+					break;
+				//other stream types are not mapped in ATSC3, do not set content type
+				}
+				gf_dynstrcat(&payload_text, "/>\n", NULL);
+				gf_dynstrcat(&payload_text, "    </ContentInfo>\n", NULL);
 			}
-			gf_dynstrcat(&payload_text, "    <ContentInfo>\n", NULL);
-			gf_dynstrcat(&payload_text, "     <MediaInfo repId=\"", NULL);
-			gf_dynstrcat(&payload_text, rep_id, NULL);
-			gf_dynstrcat(&payload_text, "\"", NULL);
-			switch (rpid->stream_type) {
-			case GF_STREAM_VISUAL:
-				gf_dynstrcat(&payload_text, " contentType=\"video\"", NULL);
-				break;
-			case GF_STREAM_AUDIO:
-				gf_dynstrcat(&payload_text, " contentType=\"audio\"", NULL);
-				break;
-			case GF_STREAM_TEXT:
-				gf_dynstrcat(&payload_text, " contentType=\"subtitles\"", NULL);
-				break;
-			//other stream types are not mapped in ATSC3, do not set content type
-			}
-			gf_dynstrcat(&payload_text, "/>\n", NULL);
-			gf_dynstrcat(&payload_text, "    </ContentInfo>\n", NULL);
-
-			//setup payload format
+			//setup payload format - we remove srcFecPayloadId=\"0\" as there is no FEC support yet
 			snprintf(temp, 1000,
-					"    <Payload codePoint=\"%d\" formatId=\"%d\" frag=\"0\" order=\"true\" srcFecPayloadId=\"0\"/>\n"
+					"    <Payload codePoint=\"%d\" formatId=\"%d\" frag=\"0\" order=\"true\"/>\n"
 					, rpid->fmtp, rpid->mode);
 
 			gf_dynstrcat(&payload_text, temp, NULL);
@@ -1854,26 +1912,33 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
-			const char *src_ip;
+			const char *src_ip, *service_name;
 			char szIP[GF_MAX_IP_NAME_LEN];
 			ROUTEPid *rpid;
 			ROUTEService *serv = gf_list_get(ctx->services, i);
-			u32 sid = serv->service_id;
+			u32 len, sid = serv->service_id;
 			if (!sid) sid = 1;
-			snprintf(tmp, 1000,
-				" <Service serviceId=\"%d\" sltSvcSeqNum=\"1\" serviceCategory=\"1\" globalServiceId=\"gpac://atsc30/us/%d/%d\" majorChannelNo=\"666\" minorChannelNo=\"666\" shortServiceName=\"", sid, ctx->bsid, sid);
-			gf_dynstrcat(&payload_text, tmp, NULL);
+
 			rpid = gf_list_get(serv->pids, 0);
-			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
-			gf_dynstrcat(&payload_text, p ? p->value.string : "GPAC", NULL);
+			p = gf_filter_pid_get_property_str(rpid->pid, "ShortServiceName");
+			if (!p)
+				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
+			service_name = (p && p->value.string) ? p->value.string : "GPAC";
+			len = (u32) strlen(service_name);
+			if (len>7) len = 7;
+			strncpy(szIP, service_name, len);
+			szIP[len] = 0;
+
+			snprintf(tmp, 1000,
+				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0	\" serviceCategory=\"1\" globalServiceId=\"urn:gpac:atsc:serviceid:%d.%d\" majorChannelNo=\"666\" minorChannelNo=\"666\" shortServiceName=\"%s\">\n", sid, ctx->bsid, sid, szIP);
+			gf_dynstrcat(&payload_text, tmp, NULL);
 
 			src_ip = ctx->ifce;
 			if (!src_ip) {
 				gf_sk_get_local_ip(serv->rlct_base->sock, szIP);
 				src_ip = szIP;
 			}
-			int res = snprintf(tmp, 1000, "\">\n"
-				"  <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n"
+			int res = snprintf(tmp, 1000, "  <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n"
 				" </Service>\n", serv->rlct_base->ip, serv->rlct_base->port, src_ip);
 			if (res<0) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] String truncated will trying to write: <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n", serv->rlct_base->ip, serv->rlct_base->port, src_ip));
@@ -2095,6 +2160,8 @@ GF_FilterRegister ROUTEOutRegister = {
 		"In this mode, the filter allows multiple service multiplexing, identified through the `ServiceID` property.\n"
 		"By default, a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
 		"The filter will look for `ROUTEIP` and `ROUTEPort` properties on the incoming PID. If not found, the default [-ip]() and [-port]() will be used.\n"
+		"\n"
+		"The ATSC short service name can be set using PID property `ShortServiceName`. If not found, `ServiceName` is checked, otherwise default to `GPAC`.\n"
 		"\n"
 		"# ROUTE mode\n"
 		"In this mode, only a single service can be distributed by the ROUTE session.\n"
