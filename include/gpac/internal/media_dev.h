@@ -283,6 +283,7 @@ u32 gf_media_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVC
 
 #ifndef GPAC_DISABLE_ISOM
 
+GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag);
 
 /*! VUI modification parameters*/
 typedef struct

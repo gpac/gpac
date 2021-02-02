@@ -391,6 +391,7 @@ enum
 
 	GF_ISOM_BOX_TYPE_STXT	= GF_4CC( 's', 't', 'x', 't' ),
 	GF_ISOM_BOX_TYPE_TXTC	= GF_4CC( 't', 'x', 't', 'C' ),
+	GF_ISOM_BOX_TYPE_MIME	= GF_4CC( 'm', 'i', 'm', 'e' ),
 
 	GF_ISOM_BOX_TYPE_PRFT   = GF_4CC( 'p', 'r', 'f', 't' ),
 
@@ -2607,6 +2608,7 @@ typedef struct
 	u8 IFrameSwitching;
 	u8 use_sdtp;
 	u8 truns_first;
+	u8 truns_v1;
 } GF_TrackFragmentBox;
 
 GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID);

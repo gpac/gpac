@@ -910,7 +910,7 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 	return GF_OK;
 }
 
-static GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag)
+GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 stype = gf_isom_get_media_subtype(file, track, sampleDescriptionIndex);

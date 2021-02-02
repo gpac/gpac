@@ -1090,7 +1090,58 @@ GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumbe
 	return GF_OK;
 }
 
+
+GF_EXPORT
+const char *gf_isom_subtitle_get_mime(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_TextConfigBox *mime;
+	GF_MetaDataSampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !StreamDescriptionIndex) return NULL;
+
+	entry = (GF_MetaDataSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
+	if (!entry) return NULL;
+
+	mime = (GF_TextConfigBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_MIME);
+	if (!mime) return NULL;
+	return mime->config;
+}
+
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_EXPORT
+GF_Err gf_isom_subtitle_set_mime(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const char *codec_params)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	GF_TextConfigBox *mime;
+	GF_MetaDataSampleEntryBox *entry;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
+
+	entry = (GF_MetaDataSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
+	if (!entry) return GF_BAD_PARAM;
+
+	mime = (GF_TextConfigBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_MIME);
+	if (!mime) {
+		if (!codec_params) return GF_OK;
+		mime = (GF_TextConfigBox *) gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MIME);
+		if (!mime) return GF_OUT_OF_MEM;
+	}
+	if (!codec_params) {
+		gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *)mime);
+		return GF_OK;
+	}
+	if (mime->config) gf_free(mime->config);
+	mime->config = gf_strdup(codec_params);
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,

@@ -80,7 +80,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 {
 	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt, pix_fmt;
 	GF_ESD *an_esd;
-	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc;
+	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc, *mime_cfg;
 #if !defined(GPAC_DISABLE_ISOM_WRITE)
 	u8 *tk_template;
 	u32 tk_template_size;
@@ -102,7 +102,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 
 	depends_on_id = avg_rate = max_rate = buffer_size = 0;
-	mime = encoding = stxtcfg = namespace = schemaloc = NULL;
+	mime = encoding = stxtcfg = namespace = schemaloc = mime_cfg = NULL;
 
 	if ( gf_isom_is_media_encrypted(read->mov, track, stsd_idx)) {
 		gf_isom_get_original_format_type(read->mov, track, stsd_idx, &m_subtype);
@@ -337,6 +337,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (dsi) gf_free(dsi);
 		return;
 	}
+
+	mime_cfg = gf_isom_subtitle_get_mime(read->mov, track, stsd_idx);
 
 	//first setup, creation of PID and channel
 	if (!ch) {
@@ -1054,6 +1056,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING(encoding) );
 	if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(namespace) );
 	if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING(schemaloc) );
+	if (mime_cfg) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime_cfg) );
+	else if ((m_subtype==GF_ISOM_SUBTYPE_STPP) && namespace && strstr(namespace, "ns/ttml")) {
+		mime_cfg = "application/ttml+xml;codecs=im1t";
+		if (gf_isom_sample_has_subsamples(read->mov, track, 0, 0) )
+			mime_cfg = "application/ttml+xml;codecs=im1i";
+		gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime_cfg) );
+	}
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_SUBTYPE, &PROP_4CC(m_subtype) );
 	if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));

@@ -4214,7 +4214,7 @@ GF_Err metx_box_dump(GF_Box *a, FILE * trace)
 GF_Err txtc_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TextConfigBox *ptr = (GF_TextConfigBox*)a;
-	const char *name = "TextConfigBox";
+	const char *name = (ptr->type==GF_ISOM_BOX_TYPE_TXTC) ?  "TextConfigBox" : "MIMEBox";
 
 	gf_isom_box_dump_start(a, name, trace);
 	gf_fprintf(trace, ">\n");

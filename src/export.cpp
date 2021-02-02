@@ -939,6 +939,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_av1_config_get ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_mvc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item_get_cenc_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_subtitle_get_mime) )
+
 
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
@@ -1137,6 +1139,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_magic) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_set_inband_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_subtitle_set_mime) )
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING

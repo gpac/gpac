@@ -111,6 +111,7 @@ struct __txtin_ctx
 	u32 tick_rate, ttml_fps_num, ttml_fps_den, ttml_sfps;
 	GF_List *ttml_resources;
 	GF_List *div_nodes_list;
+	Bool has_images;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	//SWF text
@@ -1473,6 +1474,8 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 			sprintf(szURN, "urn:mpeg:14496-30:%d", idx);
 			att->value = gf_strdup(szURN);
 			if (!att->value) return GF_OUT_OF_MEM;
+
+			ctx->has_images = GF_TRUE;
 		}
 	}
 
@@ -1505,6 +1508,7 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 				gf_list_add(parent_source_node->attributes, data_type);
 			}
 			gf_xml_dom_node_reset(parent_source_node, GF_FALSE, GF_TRUE);
+			ctx->has_images = GF_TRUE;
 			return GF_OK;
 		}
 
@@ -1554,6 +1558,7 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	else
 		ttml_reset_intervals(ctx);
 
+	ctx->has_images = GF_FALSE;
 	root = ctx->root_working_copy;
 	for (k=0; k<gf_list_count(root->content); k++) {
 		GF_XMLNode *head = (GF_XMLNode*)gf_list_get(root->content, k);
@@ -1841,7 +1846,16 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 	txtin_probe_duration(ctx);
 
-	return ttml_setup_intervals(ctx);
+	e = ttml_setup_intervals(ctx);
+	if (e) return e;
+
+	if (ctx->has_images) {
+		char *mime_cfg = "application/ttml+xml;codecs=im1i";
+		gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_cfg) );
+	} else {
+		gf_filter_pid_set_property_str(ctx->opid, "meta:mime", NULL);
+	}
+	return GF_OK;
 }
 
 static Bool ttml_check_range(TTMLInterval *interval, s64 ts_begin, s64 ts_end)
