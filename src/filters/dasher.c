@@ -118,6 +118,13 @@ enum
 	DASHER_SYNC_PRESENT,
 };
 
+enum
+{
+	DASHER_CMAF_NONE=0,
+	DASHER_CMAF_CMFC,
+	DASHER_CMAF_CMF2
+};
+
 typedef struct
 {
 	u32 bs_switch, profile, cp, ntp;
@@ -127,6 +134,7 @@ typedef struct
 	u32 mha_compat;
 	u32 strict_sap;
 	u32 pssh;
+	u32 cmaf;
 	GF_Fraction segdur;
 	u32 dmode;
 	char *template;
@@ -1022,6 +1030,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #endif
 			if (_sr > ds->sr) ds->sr = _sr;
 			if (_nb_ch > ds->nb_ch) ds->nb_ch = _nb_ch;
+		}
+
+
+		ds->pts_minus_cts = 0;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
+		if (p && p->value.longsint) {
+			ds->pts_minus_cts = p->value.longsint;
 		}
 
 		//only reload queues if we detected a period switch
@@ -2304,6 +2319,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	Bool has_subs=GF_FALSE;
 	Bool has_strun=GF_FALSE;
 	Bool has_vodcache=GF_FALSE;
+	Bool has_cmaf=GF_FALSE;
 	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
 	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
 	const char *dst_args, *trailer_args=NULL;
@@ -2375,6 +2391,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 		sprintf(szKey, "%cvodcache", sep_args);
 		if (strstr(dst_args, szKey)) has_vodcache = GF_TRUE;
+
+		sprintf(szKey, "%ccmaf", sep_args);
+		if (strstr(dst_args, szKey)) has_cmaf = GF_TRUE;
 	}
 
 	if (trash_init) {
@@ -2444,6 +2463,13 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cmoovts%c-1", sep_args, sep_name);
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
+
+	if (!has_cmaf && ctx->cmaf) {
+		sprintf(szSRC, "%ccmaf%c%s", sep_args, sep_name, (ctx->cmaf==DASHER_CMAF_CMF2) ? "cmf2" : "cmfc");
+		gf_dynstrcat(&szDST, szSRC, NULL);
+	}
+
+
 	if (trailer_args)
 		gf_dynstrcat(&szDST, trailer_args, NULL);
 		
@@ -5054,33 +5080,38 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 					a_ds->rep->dependency_id = gf_strdup(ds->rep->id);
 				}
 			}
-			if (!a_ds->muxed_base && !strcmp(a_ds->rep_id, ds->rep_id) && (ctx->muxtype!=DASHER_MUX_RAW) ) {
-				a_ds->muxed_base = ds;
-				a_ds->dash_dur = ds->dash_dur;
-				has_muxed_bases = GF_TRUE;
-				ds->nb_comp++;
+			//check if this rep should be muxed: same rep ID, not raw format, not CMAF
+			if (a_ds->muxed_base) continue;
+			if (ctx->muxtype==DASHER_MUX_RAW) continue;
+			if (ctx->cmaf) continue;
+			if (strcmp(a_ds->rep_id, ds->rep_id)) continue;
 
-				if (ctx->bs_switch==DASHER_BS_SWITCH_MULTI) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Bitstream Swicthing mode \"multi\" is not supported with multiplexed representations, disabling bitstream switching\n"));
-					ctx->bs_switch = DASHER_BS_SWITCH_OFF;
-				}
-				if (!ds->rep->codecs || !strstr(ds->rep->codecs, a_ds->rep->codecs)) {
-					gf_dynstrcat(&ds->rep->codecs, a_ds->rep->codecs, ",");
-				}
 
-				if (ctx->profile == GF_DASH_PROFILE_AVC264_LIVE) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
-					ctx->profile = GF_DASH_PROFILE_LIVE;
-				} else if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in HbbTV 1.5 ISOBMF live profile\n\tswitching to regular live profile\n"));
-					ctx->profile = GF_DASH_PROFILE_LIVE;
-				} else if (ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
-					ctx->profile = GF_DASH_PROFILE_ONDEMAND;
-				} else if (ctx->profile == GF_DASH_PROFILE_DASHIF_LL) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n"));
-					ctx->profile = GF_DASH_PROFILE_LIVE;
-				}
+			a_ds->muxed_base = ds;
+			a_ds->dash_dur = ds->dash_dur;
+			has_muxed_bases = GF_TRUE;
+			ds->nb_comp++;
+
+			if (ctx->bs_switch==DASHER_BS_SWITCH_MULTI) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Bitstream Swicthing mode \"multi\" is not supported with multiplexed representations, disabling bitstream switching\n"));
+				ctx->bs_switch = DASHER_BS_SWITCH_OFF;
+			}
+			if (!ds->rep->codecs || !strstr(ds->rep->codecs, a_ds->rep->codecs)) {
+				gf_dynstrcat(&ds->rep->codecs, a_ds->rep->codecs, ",");
+			}
+
+			if (ctx->profile == GF_DASH_PROFILE_AVC264_LIVE) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
+				ctx->profile = GF_DASH_PROFILE_LIVE;
+			} else if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in HbbTV 1.5 ISOBMF live profile\n\tswitching to regular live profile\n"));
+				ctx->profile = GF_DASH_PROFILE_LIVE;
+			} else if (ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
+				ctx->profile = GF_DASH_PROFILE_ONDEMAND;
+			} else if (ctx->profile == GF_DASH_PROFILE_DASHIF_LL) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n"));
+				ctx->profile = GF_DASH_PROFILE_LIVE;
 			}
 		}
 		//use video as main stream for segmentation of muxed sources
@@ -6617,13 +6648,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
-				const GF_PropertyValue *p;
 				if (!sap_type) {
 					dasher_drop_input(ctx, ds, GF_FALSE);
 					break;
 				}
-				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
-				if (p) ds->pts_minus_cts = p->value.longsint;
 
 				set_start_with_sap = ctx->sseg ? base_ds->set->subsegment_starts_with_sap : base_ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
@@ -6671,6 +6699,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->rep_init++;
 				has_init++;
 			}
+
 			nb_init++;
 
 			if (ds->ts_offset) {
@@ -6728,6 +6757,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 						split_dur = (u32) (base_ds->adjusted_next_seg_start * ds->timescale / base_ds->timescale - ds->last_cts);
 
 						if (gf_sys_old_arch_compat() && (split_dur==dur))
+							split_dur=0;
+
+						if (split_dur>=dur)
 							split_dur=0;
 					}
 				}
@@ -7660,14 +7692,13 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	if (ctx->sseg)
 		ctx->tpl = GF_FALSE;
 
-		//commented out, not sure why we had inband by default in live
 	if (ctx->bs_switch == DASHER_BS_SWITCH_DEF) {
-#if 0
-		ctx->bs_switch = DASHER_BS_SWITCH_INBAND;
-#else
 		ctx->bs_switch = DASHER_BS_SWITCH_ON;
-#endif
+	}
 
+	if (ctx->cmaf) {
+		ctx->align = GF_TRUE;
+		ctx->sap = GF_TRUE;
 	}
 
 	if (! ctx->align) {
@@ -7770,7 +7801,6 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 
 	if (!ctx->sap || ctx->sigfrag || ctx->cues)
 		ctx->sbound = DASHER_BOUNDS_OUT;
-
 
 	if ((ctx->tsb>=0) && (ctx->dmode!=GF_DASH_STATIC))
 		ctx->purge_segments = GF_TRUE;
@@ -7984,6 +8014,11 @@ static const GF_FilterArgs DasherArgs[] =
 		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cmaf), "use cmaf guidelines\n"
+		"- no: CMAF not enforced\n"
+		"- cmfc: use CMAF `cmfc` guidelines\n"
+		"- cmf2: use CMAF `cmf2` guidelines"
+		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

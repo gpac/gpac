@@ -521,6 +521,11 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 		if (!traf) return GF_BAD_PARAM;
 		traf->truns_first = Param;
 		break;
+	case GF_ISOM_TRAF_TRUN_V1:
+		traf = gf_isom_get_traf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->truns_v1 = Param;
+		break;
 	}
 	return GF_OK;
 }
@@ -2615,6 +2620,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		traf_2->use_sample_interleave = traf->use_sample_interleave;
 		traf_2->interleave_id = traf->interleave_id;
 		traf_2->truns_first = traf->truns_first;
+		traf_2->truns_v1 = traf->truns_v1;
 		traf_2->DataCache  = traf->DataCache;
 		traf_2->tfhd->sample_desc_index  = DescIndex;
 
@@ -2666,6 +2672,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		trun->ctso_multiplier = traf->trex->def_sample_duration;
 #endif
 		trun->interleave_id = traf->interleave_id;
+		if (traf->truns_v1)
+			trun->version = 1;
 
 		//if we use data caching, create a bitstream
 		if (traf->DataCache)

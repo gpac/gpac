@@ -469,6 +469,10 @@ enum
 	/* Subsegment Index Segment used to index MPEG-2 TS based Media Segments */
 	GF_ISOM_BRAND_SSSS = GF_4CC('s','s','s','s'),
 
+	/* CMAF brand */
+	GF_ISOM_BRAND_CMFC = GF_4CC('c','m','f','c'),
+	/* CMAF brand with neg ctts */
+	GF_ISOM_BRAND_CMF2 = GF_4CC('c','m','f','2'),
 
 	/* from ismacryp.c */
 	/* OMA DCF DRM Format 2.0 (OMA-TS-DRM-DCF-V2_0-20060303-A) */
@@ -4392,9 +4396,12 @@ typedef enum
 	This will enable data cache
 	param: interleave ID*/
 	GF_ISOM_TRUN_SET_INTERLEAVE_ID,
-	/*! store truns before sample groups and encryption info
- 	param: 1 to store before, 0, to store after*/
+	/*! store truns before sample encryption and sample groups info
+ 	param: 1 to store before and follow CMAF (recommended?) order, 0, to store after*/
 	GF_ISOM_TRAF_TRUNS_FIRST,
+	/*! forces trun v1
+	param: on/off (0/1)*/
+	GF_ISOM_TRAF_TRUN_V1
 } GF_ISOTrackFragmentOption;
 
 /*! sets a track fragment option. Options can be set at the beginning of each new fragment only, and for the
@@ -4919,6 +4926,26 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile *isom_file, u32 trackNumb
         const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
         u32 *outDescriptionIndex);
 #endif // GPAC_DISABLE_ISOM_WRITE
+
+
+/*! gets MIME parameters  (type/subtype + codecs and profiles) associated with a sample descritpion
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return MIME param if present, NULL otherwise
+*/
+const char *gf_isom_subtitle_get_mime(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*! gets MIME parameters associated with a sample descritpion
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param full_mime MIME param (type/subtype + codecs and profiles) to set, if NULL removes MIME parameter info
+\return error if any
+*/
+GF_Err gf_isom_subtitle_set_mime(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, const char *full_mime);
+#endif
 
 
 /*! gets XML metadata for a sample description
@@ -6230,7 +6257,7 @@ u8 *gf_isom_sample_get_subsamples_buffer(GF_ISOFile *isom_file, u32 trackNumber,
 /*! checks if a sample has subsample information
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param sampleNumber the target sample number
+\param sampleNumber the target sample number. Set to 0 to check for presence of subsample info (will return 1 or 0 in this case)
 \param flags the subsample flags to query (may be 0)
 \return the number of subsamples in the given sample for the given flags*/
 u32 gf_isom_sample_has_subsamples(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 flags);

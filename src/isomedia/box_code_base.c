@@ -3087,12 +3087,19 @@ GF_Err mdia_box_write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err mdia_box_size(GF_Box *s)
 {
+	GF_Box *elng;
 	u32 pos = 0;
 	GF_MediaBox *ptr = (GF_MediaBox *)s;
 	//Header first
 	gf_isom_check_position(s, (GF_Box*)ptr->mediaHeader, &pos);
 	//then handler
 	gf_isom_check_position(s, (GF_Box*)ptr->handler, &pos);
+
+	//elng before info for CMAF info
+	elng = gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_ELNG);
+	if (elng)
+		gf_isom_check_position(s, elng, &pos);
+
 	//then info
 	gf_isom_check_position(s, (GF_Box*)ptr->information, &pos);
 	return GF_OK;
@@ -6272,18 +6279,23 @@ GF_Err traf_box_size(GF_Box *s)
 
 	gf_isom_check_position(s, (GF_Box *)ptr->tfdt, &pos);
 
-	if (ptr->truns_first)
+	//cmaf-like
+	if (ptr->truns_first) {
 		gf_isom_check_position_list(s, ptr->TrackRuns, &pos);
-
-	gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
-	gf_isom_check_position_list(s, ptr->sampleGroups, &pos);
-	gf_isom_check_position_list(s, ptr->sai_sizes, &pos);
-	gf_isom_check_position_list(s, ptr->sai_offsets, &pos);
-
-	gf_isom_check_position(s, (GF_Box *)ptr->sample_encryption, &pos);
-
-	if (!ptr->truns_first)
+		gf_isom_check_position(s, (GF_Box *)ptr->sample_encryption, &pos);
+		gf_isom_check_position_list(s, ptr->sai_sizes, &pos);
+		gf_isom_check_position_list(s, ptr->sai_offsets, &pos);
+		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
+		gf_isom_check_position_list(s, ptr->sampleGroups, &pos);
+		//subsamples will be last
+	} else {
+		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
+		gf_isom_check_position_list(s, ptr->sampleGroups, &pos);
+		gf_isom_check_position_list(s, ptr->sai_sizes, &pos);
+		gf_isom_check_position_list(s, ptr->sai_offsets, &pos);
+		gf_isom_check_position(s, (GF_Box *)ptr->sample_encryption, &pos);
 		gf_isom_check_position_list(s, ptr->TrackRuns, &pos);
+	}
 
 	//when sdtp is present (smooth-like) write it after the trun box
 	gf_isom_check_position(s, (GF_Box *)ptr->sdtp, &pos);
