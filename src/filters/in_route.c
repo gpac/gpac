@@ -798,6 +798,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		ctx->route_dmx = gf_route_dmx_new(ctx->src+8, port, ctx->ifce, ctx->buffer, routein_on_event, ctx);
 		sep[0] = ':';
 	}
+	if (!ctx->route_dmx) return GF_SERVICE_ERROR;
 	
 	gf_route_set_allow_progressive_dispatch(ctx->route_dmx, !ctx->fullseg);
 

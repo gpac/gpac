@@ -987,7 +987,12 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 							if (sep) sep[0] = 0;
 						}
 						if (ctx->forward==DFWD_FILE) {
+							u32 dur, timescale;
 							gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, &PROP_STRING(q.ID) );
+
+							gf_dash_group_get_segment_duration(ctx->dash, group->idx, &dur, &timescale);
+							gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(dur, timescale) );
+
 						}
 					}
 				}

@@ -2568,6 +2568,9 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 			gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_REP_ID, &PROP_STRING( ds->rep->id ) );
+
+
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC( ds->dash_dur ) );
 	}
 
 	gf_filter_pid_require_source_id(ds->opid);
