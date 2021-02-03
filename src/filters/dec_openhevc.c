@@ -1216,6 +1216,8 @@ static GF_Err ohevcdec_initialize(GF_Filter *filter)
 		}
 	}
 	ctx->src_packets = gf_list_new();
+	ctx->sar.num = 1;
+	ctx->sar.den = 1;
 	return GF_OK;
 }
 
