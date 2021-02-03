@@ -464,14 +464,17 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (ctx->init_cts_setup) {
 		ctx->init_cts_setup = GF_FALSE;
 		if (ctx->frame->pts != pkt.pts) {
-			//check shift in PTS
+			//check shift in PTS - most of the time this is 0 (ffmpeg does not restamp video pts)
 			ctx->ts_shift = (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.pts;
 
 			//check shift in DTS
 			ctx->ts_shift += (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.dts;
 		}
+		//if ts_shift>0, this means we have a skip
 		if (ctx->ts_shift) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( ctx->ts_shift ) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -ctx->ts_shift ) );
+		} else {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
 		}
 	}
 
@@ -830,9 +833,9 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (ctx->frame->pts != pkt.pts) {
 			ctx->ts_shift = (s64) ctx->frame->pts - (s64) pkt.pts;
 		}
-//		if (ctx->ts_shift) {
-//			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_SINT( - ctx->ts_shift) );
-//		}
+		if (ctx->ts_shift) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( - ctx->ts_shift) );
+		}
 	}
 
 	//try to locate first source packet with cts greater than this packet cts and use it as source for properties
