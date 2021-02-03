@@ -2740,13 +2740,21 @@ sample_entry_done:
 			}
 
 			if ((ctx->prores_track == tkw) || force_colr) {
+				u32 colr_mode;
+
+				if ((ctx->prores_track == tkw) || ctx->make_qt)
+					colr_mode = GF_4CC('n','c','l','c');
+				else
+					colr_mode = GF_4CC('n','c','l','x');
+
+
 				//other conditions were set above, here we force 1:1 pasp box even if no sar or 1:1
 				if (!sar.den || (sar.num == 1)) {
 					gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, -1, -1, GF_TRUE);
 				}
 
 				if (colour_primaries || transfer_characteristics || matrix_coefficients) {
-					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE, NULL, 0);
+					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, colr_mode, colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE, NULL, 0);
 				} else {
 					e = gf_isom_get_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 					if (e==GF_NOT_FOUND) {
@@ -2765,11 +2773,7 @@ sample_entry_done:
 							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CMAF] No color info present in visual track, defaulting to BT709\n"));
 						}
 					}
-					if (ctx->make_qt==1) {
-						gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','c'), 1, 1, 1, GF_FALSE, NULL, 0);
-					} else {
-						gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','x'), 1, 1, 1, GF_FALSE, NULL, 0);
-					}
+					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, colr_mode, colour_primaries, transfer_characteristics, matrix_coefficients, full_range_flag, NULL, 0);
 				}
 
 				if (ctx->prores_track == tkw) {
