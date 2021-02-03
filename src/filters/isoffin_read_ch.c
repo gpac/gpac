@@ -371,7 +371,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 							u32 time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
 							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 							if (e==GF_OK) {
-								ch->sample = ch->static_sample;
+								if (ch->sample_num == prev_sample) {
+									ch->sample_time += time_diff;
+									ch->sample = NULL;
+									return;
+								} else {
+									ch->sample = ch->static_sample;
+								}
 							}
 						}
 					}
