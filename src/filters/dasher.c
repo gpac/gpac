@@ -842,10 +842,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 		dc_crc = 0;
 		dsi = p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-		if (p) dc_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+		if (p && (p->type==GF_PROP_DATA))
+			dc_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+
 		dc_enh_crc = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
-		if (p) dc_enh_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+		if (p && (p->type==GF_PROP_DATA)) dc_enh_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 
 		if (((dc_crc != ds->dsi_crc) && ds->dsi_crc)
 			|| ((dc_enh_crc != ds->dsi_enh_crc) && ds->dsi_enh_crc)
