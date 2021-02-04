@@ -707,6 +707,7 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 nb_frames=0;
 	u32 pos=0;
 	u32 prev_pos=0;
+	s32 init_pos = -1;
 	Bool has_id3 = GF_FALSE;
 
 	/* Check for ID3 */
@@ -728,6 +729,8 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	while (1) {
 		u32 hdr = gf_mp3_get_next_header_mem(data, size, &pos);
 		if (!hdr) break;
+
+		if (init_pos<0) init_pos = pos;
 
 		if (gf_mp3_version(hdr) > 3)
 			break;
@@ -754,7 +757,7 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	}
 
 	if (nb_frames>=2) {
-		*score = GF_FPROBE_SUPPORTED;
+		*score = (init_pos==0) ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
 		return "audio/mp3";
 	}
 	if (nb_frames && has_id3) {
