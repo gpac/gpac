@@ -75,7 +75,7 @@ typedef struct
 	GF_FilterCapability filter_caps[7];
 	//0: not loaded, 1: graph config requested but graph not loaded, 2: graph loaded
 	u32 configure_state;
-	u32 nb_v_out, nb_a_out;
+	u32 nb_v_out, nb_a_out, nb_inputs;
 
 	AVFilterInOut *outputs;
 	AVFrame *frame;
@@ -294,19 +294,20 @@ static GF_Err ffavf_initialize(GF_Filter *filter)
 		return GF_BAD_PARAM;
 	}
 
+	ctx->nb_inputs=0;
 	io = inputs;
 	while (io) {
 		if (io->filter_ctx->filter->flags & AVFILTER_FLAG_DYNAMIC_INPUTS)
 			dyn_inputs = GF_TRUE;
-		for (i=0; i<io->filter_ctx->nb_inputs; i++) {
-			enum AVMediaType mt = avfilter_pad_get_type(io->filter_ctx->input_pads, i);
-			u32 streamtype = ffmpeg_stream_type_to_gpac(mt);
 
-			switch (streamtype) {
-			case GF_STREAM_VISUAL: nb_v_in++; break;
-			case GF_STREAM_AUDIO: nb_a_in++; break;
-			}
+		enum AVMediaType mt = avfilter_pad_get_type(io->filter_ctx->input_pads, io->pad_idx);
+		u32 streamtype = ffmpeg_stream_type_to_gpac(mt);
+
+		switch (streamtype) {
+		case GF_STREAM_VISUAL: nb_v_in++; break;
+		case GF_STREAM_AUDIO: nb_a_in++; break;
 		}
+		ctx->nb_inputs++;
 		io = io->next;
 	}
 
@@ -461,6 +462,10 @@ static GF_Err ffavf_process(GF_Filter *filter)
 
 	//graph needs to be loaded
 	if (ctx->configure_state==1) {
+		if (gf_filter_connections_pending(filter))
+			return GF_OK;
+		if (ctx->nb_inputs > gf_list_count(ctx->ipids))
+			return GF_OK;
 		return ffavf_setup_filter(filter, ctx);
 	}
 
@@ -772,7 +777,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		pix_fmt = ffmpeg_pixfmt_from_gpac(gf_pfmt);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (p) sar = p->value.frac;
+		if (p && p->value.frac.num && p->value.frac.den) sar = p->value.frac;
 
 		pid_ctx->stride = pid_ctx->stride_uv = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
