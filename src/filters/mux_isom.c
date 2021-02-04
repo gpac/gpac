@@ -3234,7 +3234,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 				tkw->cenc_frag_protected = pck_is_encrypted;
 			} else {
 				if (tkw->cenc_frag_protected != pck_is_encrypted) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] CMAF forbids mixing protected and unprotected samples in a single fragment, please re-encrypt or change target segment duration\n", gf_error_to_string(e) ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] CMAF forbids mixing protected and unprotected samples in a single fragment, please re-encrypt or change target segment duration\n"));
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
 			}

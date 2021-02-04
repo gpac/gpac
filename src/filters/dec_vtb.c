@@ -2040,7 +2040,6 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	.finalize = vtbdec_finalize,
 	.configure_pid = vtbdec_configure_pid,
 	.process = vtbdec_process,
-	.max_extra_pids = 5,
 	.process_event = vtbdec_process_event,
 };
 
