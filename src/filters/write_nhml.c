@@ -405,12 +405,11 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	else if (ctx->sr && ctx->chan) {
 		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
-		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT);
-		if (p)
+		if (p) {
 			sprintf(nhml, "bitsPerSample=\"%d\" ", gf_audio_fmt_bit_depth(p->value.uint));
-		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		}
 	}
 
 	NHML_PRINT_4CC(0, "codec_vendor", "codecVendor")
