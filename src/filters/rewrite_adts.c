@@ -40,7 +40,7 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *opid;
 
-	u32 codecid, channels, sr_idx, aac_type;
+	u32 codecid, channels, sr_idx, aac_type, ch_cfg;
 
 	Bool is_latm;
 
@@ -48,6 +48,8 @@ typedef struct
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo acfg;
+	u8 *pce;
+	u32 pce_size;
 #else
 	u8 *dsi;
 	u32 dsi_size;
@@ -64,12 +66,9 @@ typedef struct
 
 GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 i, sr;
+	u32 i, sr, chan_cfg=0;
 	Bool patch_channels = GF_FALSE;
 	const GF_PropertyValue *p;
-#ifndef GPAC_DISABLE_AV_PARSERS
-	GF_M4ADecSpecInfo acfg;
-#endif
 	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -97,7 +96,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		ctx->channels = p->value.uint;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
+	memset(&ctx->acfg, 0, sizeof(GF_M4ADecSpecInfo));
 #endif
 
 	ctx->aac_type = 0;
@@ -120,31 +119,65 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		ctx->timescale = p->value.uint;
 
 	} else if (ctx->codecid==GF_CODECID_AAC_MPEG4) {
+		//setup default config
+		chan_cfg = ctx->channels;
+		if (chan_cfg==8)
+			chan_cfg = 7;
+
 		if (!ctx->mpeg2) {
-#ifndef GPAC_DISABLE_AV_PARSERS
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+#ifndef GPAC_DISABLE_AV_PARSERS
 			if (p) {
-				gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &acfg);
-				ctx->aac_type = acfg.base_object_type - 1;
-			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("RFADTS] no AAC decoder config, assuming AAC-LC\n"));
-				ctx->aac_type = GF_M4A_AAC_LC;
-			}
+				gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &ctx->acfg);
+				ctx->aac_type = ctx->acfg.base_object_type - 1;
+				chan_cfg = ctx->acfg.chan_cfg;
+				sr = ctx->acfg.base_sr;
+			} else
 #endif
+			{
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[RFADTS] no AAC decoder config, assuming AAC-LC\n"));
+				ctx->aac_type = GF_M4A_AAC_LC;
+
+				if (!ctx->channels) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] no channel config found for ADTS, forcing stereo\n"));
+					chan_cfg = ctx->channels = 2;
+					patch_channels = GF_TRUE;
+				}
+
+				if (!chan_cfg) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Unkown channel config, will not be able to signal it in ADTS\n"));
+				}
+			}
+		}
+
+		if (chan_cfg>7) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Unkown channel config, will not be able to signal it in ADTS\n"));
+			chan_cfg = 0;
 		}
 	} else {
 		ctx->aac_type = ctx->codecid - GF_CODECID_AAC_MPEG2_MP;
 	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (ctx->channels && acfg.nb_chan && (ctx->channels != acfg.nb_chan)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Mismatch betwwen container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, acfg.nb_chan));
-		ctx->channels = acfg.nb_chan;
+	if (ctx->channels && ctx->acfg.nb_chan && (ctx->channels != ctx->acfg.nb_chan)) {
+		//do not warn here, as most MP4 files will use nbChan=2 for multichan
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[RFADTS] Mismatch between container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, ctx->acfg.nb_chan));
+		ctx->channels = ctx->acfg.nb_chan;
 		patch_channels = GF_TRUE;
 	}
-	if ((acfg.base_object_type==2) && (acfg.base_sr!=sr)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Mismatch betwwen container samplerate (%d) and AAC config SBR base samplerate (%d), using AAC config\n", sr, acfg.base_sr));
-		sr = acfg.base_sr;
+	if ((ctx->acfg.base_object_type==2) && (ctx->acfg.base_sr!=sr)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Mismatch between container samplerate (%d) and AAC config SBR base samplerate (%d), using AAC config\n", sr, ctx->acfg.base_sr));
+		sr = ctx->acfg.base_sr;
+	}
+	if (!ctx->acfg.chan_cfg && ctx->acfg.program_config_element_present) {
+		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_m4a_write_program_config_element_bs(bs, &ctx->acfg);
+		if (ctx->pce) gf_free(ctx->pce);
+		ctx->pce = NULL;
+		gf_bs_get_content(bs, &ctx->pce, &ctx->pce_size);
+		gf_bs_del(bs);
+
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] ADTS will use multiple raw blocks to signal channel configuration\n"));
 	}
 #else
 
@@ -154,12 +187,8 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	ctx->dsi_size = p->value.data.size;
 #endif
 
-	if (ctx->channels>7) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] Invalid channel config %d for ADTS, forcing 7\n", ctx->channels));
-		ctx->channels = 7;
-	} else if (!ctx->channels) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("RFADTS] no channel config found for ADTS, forcing stereo\n"));
-	}
+
+	ctx->ch_cfg = chan_cfg;
 
 	for (i=0; i<16; i++) {
 		if (GF_M4ASampleRates[i] == (u32) sr) {
@@ -279,7 +308,14 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		output[2] = (size-3) & 0xFF;
 
 	} else {
+		u32 nb_blocks = 0;
 		size = pck_size+7;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if (! ctx->acfg.chan_cfg && ctx->pce_size) {
+			nb_blocks = 2;
+			size += ctx->pce_size;
+		}
+#endif
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 
 		if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
@@ -292,12 +328,21 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		gf_bs_write_int(ctx->bs_w, ctx->aac_type, 2);
 		gf_bs_write_int(ctx->bs_w, ctx->sr_idx, 4);
 		gf_bs_write_int(ctx->bs_w, 0, 1);
-		gf_bs_write_int(ctx->bs_w, ctx->channels, 3);
+		gf_bs_write_int(ctx->bs_w, ctx->ch_cfg, 3);
 		gf_bs_write_int(ctx->bs_w, 0, 4);
-		gf_bs_write_int(ctx->bs_w, 7+pck_size, 13);
+		gf_bs_write_int(ctx->bs_w, size, 13);
 		gf_bs_write_int(ctx->bs_w, 0x7FF, 11);
-		gf_bs_write_int(ctx->bs_w, 0, 2);
-		memcpy(output+7, data, pck_size);
+
+		gf_bs_write_int(ctx->bs_w, nb_blocks, 2);
+
+		output += 7;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if (nb_blocks) {
+			memcpy(output, ctx->pce, ctx->pce_size);
+			output += ctx->pce_size;
+		}
+#endif
+		memcpy(output, data, pck_size);
 	}
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
@@ -315,6 +360,7 @@ static void adtsmx_finalize(GF_Filter *filter)
 {
 	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
+	if (ctx->pce) gf_free(ctx->pce);
 }
 
 static const GF_FilterCapability ADTSMxCaps[] =

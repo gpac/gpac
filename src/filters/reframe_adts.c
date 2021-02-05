@@ -58,6 +58,7 @@ typedef struct
 //	Bool mpeg4;
 	Bool ovsbr;
 	Bool expart;
+	s32 aacchcfg;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -95,6 +96,8 @@ typedef struct
 	u8 *id3_buffer;
 	u32 id3_buffer_size, id3_buffer_alloc;
 	u32 nb_frames;
+
+	GF_M4ADecSpecInfo acfg;
 } GF_ADTSDmxCtx;
 
 
@@ -120,6 +123,10 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 		hdr->sr_idx = gf_bs_read_int(bs, 4);
 		gf_bs_read_int(bs, 1);
 		hdr->nb_ch = gf_bs_read_int(bs, 3);
+		//value 1->6 match channel number, value 7 is 7.1
+		if (hdr->nb_ch==7)
+			hdr->nb_ch = 8;
+
 		gf_bs_read_int(bs, 4);
 		hdr->frame_size = gf_bs_read_int(bs, 13);
 		gf_bs_read_int(bs, 11);
@@ -268,7 +275,7 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 {
 	GF_BitStream *dsi;
-	GF_M4ADecSpecInfo acfg;
+	Bool use_implicit=GF_FALSE;
 	u8 *dsi_b;
 	u32 i, sbr_sr_idx, dsi_s, sr, sbr_sr, codecid, timescale=0;
 
@@ -325,9 +332,9 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	ctx->dts_inc = ctx->frame_size;
 
-	sbr_sr = sr;
-	sbr_sr_idx = ctx->hdr.sr_idx;
 	if (!ctx->ovsbr) {
+		sbr_sr = 0;
+		sbr_sr_idx = 0;
 		for (i=0; i<16; i++) {
 			if (GF_M4ASampleRates[i] == (u32) 2*sr) {
 				sbr_sr_idx = i;
@@ -335,71 +342,75 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 				break;
 			}
 		}
+	} else {
+		sbr_sr = sr;
+		sbr_sr_idx = ctx->hdr.sr_idx;
 	}
 
-	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
-	acfg.base_object_type = ctx->hdr.profile;
-	acfg.base_sr = sr;
-	acfg.nb_chan = gf_m4a_get_channel_cfg(ctx->hdr.nb_ch);
-	acfg.sbr_object_type = 0;
-	if (ctx->sbr==AAC_SIGNAL_EXPLICIT) {
-		acfg.has_sbr = GF_TRUE;
-		acfg.base_object_type = 5;
-		acfg.sbr_object_type = ctx->hdr.profile;
+	ctx->acfg.base_object_type = ctx->hdr.profile;
+	ctx->acfg.base_sr = sr;
+	ctx->acfg.base_sr_index = ctx->hdr.sr_idx;
+	ctx->acfg.nb_chan = ctx->hdr.nb_ch;
+	ctx->acfg.sbr_object_type = 0;
 
-		/*for better interop, always store using full SR when using explict signaling*/
+	/*explicit PS signal (non backward-compatible), only for stereo ADTS*/
+	if  (ctx->acfg.nb_chan<=2) {
+		if (ctx->ps==AAC_SIGNAL_EXPLICIT) {
+			ctx->acfg.base_object_type = 29;
+			ctx->acfg.sbr_object_type = ctx->hdr.profile;
+			ctx->acfg.sbr_sr = sr;
+			ctx->acfg.sbr_sr_index = ctx->acfg.base_sr_index;
+		} else if (ctx->ps==AAC_SIGNAL_IMPLICIT) {
+			use_implicit = GF_TRUE;
+		}
+	}
+
+	if (ctx->sbr==AAC_SIGNAL_EXPLICIT) {
+		//don't overwrite obj type if explicit PS is used
+		if (ctx->acfg.base_object_type != 29)
+			ctx->acfg.base_object_type = 5;
+		ctx->acfg.sbr_object_type = ctx->hdr.profile;
+		ctx->acfg.sbr_sr = sbr_sr;
+		ctx->acfg.sbr_sr_index = sbr_sr_idx;
+	} else if (ctx->sbr==AAC_SIGNAL_IMPLICIT) {
+		sbr_sr = 0;
+		use_implicit = GF_TRUE;
+	} else {
+		sbr_sr = 0;
+	}
+	ctx->acfg.audioPL = gf_m4a_get_profile(&ctx->acfg);
+
+	/*for better interop, always store using full SR when using explict signaling*/
+	if (sbr_sr) {
 		ctx->dts_inc *= 2;
 		sr = sbr_sr;
-	} else if (ctx->sbr==AAC_SIGNAL_IMPLICIT) {
-		acfg.has_sbr = GF_TRUE;
-	}
-	if (ctx->ps==AAC_SIGNAL_EXPLICIT) {
-		acfg.has_ps = GF_TRUE;
-		acfg.base_object_type = 29;
-	} else if (ctx->ps==AAC_SIGNAL_IMPLICIT) {
-		acfg.has_ps = GF_TRUE;
 	}
 
-	acfg.audioPL = gf_m4a_get_profile(&acfg);
-	/*explicit SBR or PS signal (non backward-compatible)*/
-	if (ctx->ps==AAC_SIGNAL_EXPLICIT) {
-		gf_bs_write_int(dsi, 29, 5);
-		gf_bs_write_int(dsi, ctx->hdr.sr_idx, 4);
-		gf_bs_write_int(dsi, ctx->hdr.nb_ch, 4);
-		gf_bs_write_int(dsi, sbr_sr ? sbr_sr_idx : ctx->hdr.sr_idx, 4);
-		gf_bs_write_int(dsi, ctx->hdr.profile, 5);
-	}
-	/*explicit SBR signal (non backward-compatible)*/
-	else if (ctx->sbr==AAC_SIGNAL_EXPLICIT) {
-		gf_bs_write_int(dsi, 5, 5);
-		gf_bs_write_int(dsi, ctx->hdr.sr_idx, 4);
-		gf_bs_write_int(dsi, ctx->hdr.nb_ch, 4);
-		gf_bs_write_int(dsi, sbr_sr ? sbr_sr_idx : ctx->hdr.sr_idx, 4);
-		gf_bs_write_int(dsi, ctx->hdr.profile, 5);
-	} else {
-		/*regular AAC*/
-		gf_bs_write_int(dsi, ctx->hdr.profile, 5);
-		gf_bs_write_int(dsi, ctx->hdr.sr_idx, 4);
-		gf_bs_write_int(dsi, ctx->hdr.nb_ch, 4);
-		gf_bs_align(dsi);
+	gf_m4a_write_config_bs(dsi, &ctx->acfg);
+	gf_bs_align(dsi);
+
+	//implicit signaling, not written by gf_m4a_write_config_bs
+	if (use_implicit) {
+		gf_bs_write_int(dsi, 0x2b7, 11); /*sync extension type*/
+		gf_bs_write_int(dsi, 5, 5);	/*audio objectType*/
 		/*implicit AAC SBR signal*/
 		if (ctx->sbr==AAC_SIGNAL_IMPLICIT) {
-			gf_bs_write_int(dsi, 0x2b7, 11); /*sync extension type*/
-			gf_bs_write_int(dsi, 5, 5);	/*SBR objectType*/
 			gf_bs_write_int(dsi, 1, 1);	/*SBR present flag*/
 			gf_bs_write_int(dsi, sbr_sr_idx, 4);
+		} else {
+			gf_bs_write_int(dsi, 0, 1);	/*SBR present flag*/
 		}
 		if (ctx->ps==AAC_SIGNAL_IMPLICIT) {
 			gf_bs_write_int(dsi, 0x548, 11); /*sync extension type*/
 			gf_bs_write_int(dsi, 1, 1);	/* PS present flag */
 		}
+		gf_bs_align(dsi);
 	}
-	gf_bs_align(dsi);
 
 	gf_bs_get_content(dsi, &dsi_b, &dsi_s);
 	gf_bs_del(dsi);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi_b, dsi_s) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (acfg.audioPL) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (ctx->acfg.audioPL) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
 
 	timescale = sr;
@@ -576,7 +587,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 	while (remain) {
 		u8 *sync;
-		u32 sync_pos, size, offset, bytes_to_drop=0;
+		u32 sync_pos, size, offset, bytes_to_drop=0, nb_blocks_per_frame;
 
 		if (!ctx->tag_size && (remain>3)) {
 
@@ -652,21 +663,57 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		ctx->hdr.sr_idx = gf_bs_read_int(ctx->bs, 4);
 		gf_bs_read_int(ctx->bs, 1);
 		ctx->hdr.nb_ch = gf_bs_read_int(ctx->bs, 3);
+
 		gf_bs_read_int(ctx->bs, 4);
 		ctx->hdr.frame_size = gf_bs_read_int(ctx->bs, 13);
 		gf_bs_read_int(ctx->bs, 11);
-		gf_bs_read_int(ctx->bs, 2);
+		nb_blocks_per_frame = gf_bs_read_int(ctx->bs, 2);
 		ctx->hdr.hdr_size = 7;
 
 		if (!ctx->hdr.no_crc) {
-			ctx->hdr.hdr_size = 9;
+			u32 skip;
+			if (!nb_blocks_per_frame) {
+				skip = 2;
+			} else {
+				skip = 2 + 2*nb_blocks_per_frame; //and we have 2 bytes per raw_data_block
+			}
+			ctx->hdr.hdr_size += skip;
+			gf_bs_skip_bytes(ctx->bs, skip);
 		}
 
-		if (!ctx->hdr.frame_size || !GF_M4ASampleRates[ctx->hdr.sr_idx] || !ctx->hdr.nb_ch) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[ADTSDmx] invalid ADTS frame header, resyncing\n"));
+		if (!ctx->hdr.frame_size || !GF_M4ASampleRates[ctx->hdr.sr_idx]) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[ADTSDmx] Invalid ADTS frame header, resyncing\n"));
 			ctx->nb_frames = 0;
 			goto drop_byte;
 		}
+		if ((nb_blocks_per_frame>2) || (nb_blocks_per_frame && ctx->hdr.nb_ch)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[ADTSDmx] Unsupported multi-block ADTS frame header - patch welcome\n"));
+			ctx->nb_frames = 0;
+			goto drop_byte;
+		} else if (!nb_blocks_per_frame) {
+			if (ctx->aacchcfg<0)
+				ctx->hdr.nb_ch = -ctx->aacchcfg;
+			else if (!ctx->hdr.nb_ch)
+				ctx->hdr.nb_ch = ctx->aacchcfg;
+
+			if (!ctx->hdr.nb_ch) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] Missing channel configuration in ADTS frame header, defaulting to stereo - use `--aacchcfg` to force config\n"));
+				ctx->hdr.nb_ch = ctx->aacchcfg = 2;
+			}
+		}
+
+		if (nb_blocks_per_frame==2) {
+			u32 pos = (u32) gf_bs_get_position(ctx->bs);
+			gf_m4a_parse_program_config_element(ctx->bs, &ctx->acfg);
+			if (!ctx->hdr.no_crc)
+				gf_bs_skip_bytes(ctx->bs, 2);  //per block CRC
+
+			ctx->hdr.hdr_size += (u32) gf_bs_get_position(ctx->bs) - pos;
+		}
+		//value 1->6 match channel number, value 7 is 7.1
+		if (ctx->hdr.nb_ch==7)
+			ctx->hdr.nb_ch = 8;
+
 
 		//ready to send packet
 		if (ctx->hdr.frame_size + 1 < remain) {
@@ -696,6 +743,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		ctx->nb_frames++;
 		size = ctx->hdr.frame_size - ctx->hdr.hdr_size;
 		offset = ctx->hdr.hdr_size;
+		//per raw-block CRC
+		if ((nb_blocks_per_frame==2) && !ctx->hdr.no_crc)
+			size -= 2;
 
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = (u64) (ctx->start_range * GF_M4ASampleRates[ctx->sr_idx]);
@@ -716,6 +766,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, sync + offset, size);
+
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
@@ -819,9 +870,12 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 			break;
 		}
 		if ((hdr.hdr_size!=7) && (hdr.hdr_size!=9)) continue;
-		if (!hdr.nb_ch) continue;
+//		if (!hdr.nb_ch) continue;
 		pos = (u32) gf_bs_get_position(bs);
-		if ((next_pos + hdr.hdr_size == pos) && (hdr.sr_idx==prev_hdr.sr_idx) && (hdr.nb_ch==prev_hdr.nb_ch) ) {
+
+		if (!nb_frames) {
+			nb_frames = 1;
+		} else if ((next_pos + hdr.hdr_size == pos) && (hdr.sr_idx==prev_hdr.sr_idx) && (hdr.nb_ch==prev_hdr.nb_ch) ) {
 			nb_frames++;
 			if (max_consecutive_frames<nb_frames) max_consecutive_frames = nb_frames;
 			if (max_consecutive_frames>5)
@@ -883,6 +937,7 @@ static const GF_FilterArgs ADTSDmxArgs[] =
 				"- exp: explicit PS signaling (audio signaled as AAC-PS)"\
 				, GF_PROP_UINT, "no", "no|imp|exp", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(expart), "expose pictures as a dedicated video pid", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(aacchcfg), "set AAC channel configuration to this value if missing from ADTS header, use negative value to always override", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

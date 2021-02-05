@@ -486,7 +486,7 @@ static const u32 GF_M4ASampleRates[] =
 /*! AAC channel configurations*/
 static const u32 GF_M4ANumChannels[] =
 {
-	1, 2, 3, 4, 5, 6, 8, 2, 3, 4, 7, 8, 24, 8, 12, 10, 12, 14
+	1, 2, 3, 4, 5, 6, 8, 0, 0, 0, 7, 8, 0, 8, 0
 };
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -500,7 +500,7 @@ u32 gf_m4a_get_channel_cfg(u32 nb_chan);
 /*! MPEG-4 Audio decoder specific info*/
 typedef struct
 {
-	/*Number of channels*/
+	/*Number of channels (NOT AAC channel confgiuration), 0 if unknown in which case program_config_element must be set*/
 	u32 nb_chan;
 	/*base audio object type*/
 	u32 base_object_type;
@@ -520,6 +520,8 @@ typedef struct
 	Bool has_ps;
 	/*audio Profile level indication*/
 	u8 audioPL;
+	/*channel configuration, only set when parsing (when writing, recomputed from nb_chan)*/
+	u32 chan_cfg;
 
 	/*set if program config element is present - members until end of struct are ignored/invalid if this is not set*/
 	Bool program_config_element_present;
@@ -579,6 +581,8 @@ typedef struct
 	u8 comment_field_bytes;
 	/*comment field*/
 	u8 comments[255];
+	//set after parsing program_config_element
+	u32 cpe_channels;
 } GF_M4ADecSpecInfo;
 
 /*! parses MPEG-4 audio dsi
@@ -594,14 +598,14 @@ GF_Err gf_m4a_get_config(u8 *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg);
 */
 u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg);
 
-/*! writes MPEG-4 audio dsi in a byte buffer
+/*! writes MPEG-4 audio dsi in a byte buffer - backward-compatible signaling extensions are not written
 \param cfg the configuration to write
 \param dsi set to the encoded buffer (to be freed by caller)
 \param dsi_size set to the size of the encoded buffer
 \return error code if any
 */
 GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, u8 **dsi, u32 *dsi_size);
-/*! writes MPEG-4 audio dsi in a bitstream object
+/*! writes MPEG-4 audio dsi in a bitstream object - backward-compatible signaling extensions are not written
 \param bs the bitstream object to write to
 \param cfg the configuration to write
 \return error code if any
@@ -610,10 +614,25 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg);
 /*! parses MPEG-4 audio dsi from bitstream
 \param bs the bitstream object to use (shall start in the begining of the dsi)
 \param cfg will be filled with the parsed value
-\param size_known set to GF_TRUE if the bitstream contains the complete DSI (and only it)
+\param size_known set to GF_TRUE if the bitstream contains the complete DSI (and only it), to parse backward-compatible extensions
 \return error code if any
 */
 GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known);
+
+
+/*! reads program config element of MPEG-4 audio dsi
+\param bs the bitstream object to use (shall start in the begining of the dsi)
+\param cfg the config to fill
+\return error code if any
+*/
+GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg);
+
+/*! writes program config element of MPEG-4 audio dsi
+\param bs the bitstream object to use (shall start in the begining of the dsi)
+\param cfg the config to write
+\return error code if any
+*/
+GF_Err gf_m4a_write_program_config_element_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
