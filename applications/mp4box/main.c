@@ -2969,7 +2969,7 @@ u32 mp4box_parse_single_arg_class(int argc, char **argv, char *arg, u32 *arg_ind
 	if (!arg_desc->arg_ptr) return GF_TRUE;
 
 	if (arg_desc->parse_flags & (ARG_IS_FUN|ARG_IS_FUN2) ) {
-		Bool res;
+		u32 res;
 		if (arg_desc->parse_flags & ARG_PUSH_SYSARGS)
 			gf_sys_set_args(argc, (const char**) argv);
 

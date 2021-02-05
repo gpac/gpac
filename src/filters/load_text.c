@@ -2088,7 +2088,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 			} else {
 				gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
 				if (interval->end >= interval->begin) {
-					gf_filter_pck_set_duration(pck, (ctx->timescale * (interval->end - interval->begin) )/1000);
+					gf_filter_pck_set_duration(pck, (u32) ((ctx->timescale * (interval->end - interval->begin) )/1000) );
 				}
 			}
 

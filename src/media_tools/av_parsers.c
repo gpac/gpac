@@ -1184,7 +1184,7 @@ GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *
 GF_EXPORT
 GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known)
 {
-	u32 audio_obj_type, ext_chan_cfg=0;
+	u32 audio_obj_type;
 	memset(cfg, 0, sizeof(GF_M4ADecSpecInfo));
 	cfg->base_object_type = gf_bs_read_int_log(bs, 5, "base_object_type");
 	/*extended object type*/
@@ -1223,7 +1223,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			cfg->sbr_object_type = 32 + gf_bs_read_int_log(bs, 6, "audioObjectTypeExt");
 		audio_obj_type = cfg->sbr_object_type;
 		if (cfg->sbr_object_type==22) {
-			ext_chan_cfg = gf_bs_read_int_log(bs, 4, "channel_configuration");
+			/*ext_chan_cfg = */gf_bs_read_int_log(bs, 4, "channel_configuration");
 		}
 	}
 
