@@ -7560,9 +7560,9 @@ static s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc, u8 layer
 		if (/*overscan_info_present = */ gf_bs_read_int(bs, 1))
 			/*overscan_appropriate = */ gf_bs_read_int(bs, 1);
 
-		/*video_signal_type_present_flag = */flag = gf_bs_read_int(bs, 1);
-		if (flag) {
-			/*video_format = */gf_bs_read_int(bs, 3);
+		sps->vui_parameters_present_flag = gf_bs_read_int(bs, 1);
+		if (sps->vui_parameters_present_flag) {
+			sps->video_format = gf_bs_read_int(bs, 3);
 			sps->video_full_range_flag = gf_bs_read_int(bs, 1);
 			if ((sps->colour_description_present_flag = gf_bs_read_int(bs, 1))) {
 				sps->colour_primaries = gf_bs_read_int(bs, 8);

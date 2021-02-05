@@ -867,6 +867,119 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 	return GF_OK;
 }
 
+
+static GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag)
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 stype = gf_isom_get_media_subtype(file, track, sampleDescriptionIndex);
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC2_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC3_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC4_H264)
+	) {
+		AVCState avc;
+		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, sampleDescriptionIndex);
+		u32 i;
+		s32 idx;
+		GF_AVCConfigSlot *slc;
+
+		memset(&avc, 0, sizeof(AVCState));
+		avc.sps_active_idx = -1;
+
+		i=0;
+		while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
+			idx = gf_media_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
+
+			if (idx<0) continue;
+			if (! avc.sps[idx].vui_parameters_present_flag )
+				continue;
+
+			*colour_type = avc.sps[idx].vui.video_format;
+			*colour_primaries = avc.sps[idx].vui.colour_primaries;
+			*transfer_characteristics = avc.sps[idx].vui.transfer_characteristics;
+			*matrix_coefficients = avc.sps[idx].vui.matrix_coefficients;
+			*full_range_flag = avc.sps[idx].vui.video_full_range_flag;
+			break;
+		}
+		gf_odf_avc_cfg_del(avcc);
+		return GF_OK;
+	}
+	if ((stype==GF_ISOM_SUBTYPE_HEV1)
+			|| (stype==GF_ISOM_SUBTYPE_HEV2)
+			|| (stype==GF_ISOM_SUBTYPE_HVC1)
+			|| (stype==GF_ISOM_SUBTYPE_HVC2)
+			|| (stype==GF_ISOM_SUBTYPE_LHV1)
+			|| (stype==GF_ISOM_SUBTYPE_LHE1)
+	) {
+		HEVCState hvc;
+		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, sampleDescriptionIndex);
+		u32 i;
+		GF_HEVCParamArray *pa;
+
+		memset(&hvc, 0, sizeof(HEVCState));
+		hvc.sps_active_idx = -1;
+
+		i=0;
+		while ((pa = (GF_HEVCParamArray *)gf_list_enum(hvcc->param_array, &i))) {
+			GF_AVCConfigSlot *slc;
+			u32 j;
+			s32 idx;
+			if (pa->type != GF_HEVC_NALU_SEQ_PARAM) continue;
+
+			j=0;
+			while ((slc = (GF_AVCConfigSlot *)gf_list_enum(pa->nalus, &j))) {
+				idx = gf_media_hevc_read_sps(slc->data, slc->size, &hvc);
+
+				if (idx<0) continue;
+				if (! hvc.sps[idx].vui_parameters_present_flag)
+					continue;
+
+				*colour_type = hvc.sps[idx].video_format;
+				*colour_primaries = hvc.sps[idx].colour_primaries;
+				*transfer_characteristics = hvc.sps[idx].transfer_characteristic;
+				*matrix_coefficients = hvc.sps[idx].matrix_coeffs;
+				*full_range_flag = hvc.sps[idx].video_full_range_flag;
+				gf_odf_hevc_cfg_del(hvcc);
+				return GF_OK;
+			}
+		}
+		gf_odf_hevc_cfg_del(hvcc);
+		return GF_OK;
+	}
+	if (stype==GF_ISOM_SUBTYPE_AV01) {
+		AV1State av1;
+
+		gf_av1_reset_state(&av1);
+		av1.config = gf_isom_av1_config_get(file, track, sampleDescriptionIndex);
+		if (av1.config) {
+			u32 i;
+			for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
+				GF_BitStream *bs;
+				ObuType obu_type;
+				u32 hdr_size;
+				u64 obu_size;
+				GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
+				bs = gf_bs_new((const char *)obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+				gf_media_aom_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+				gf_bs_del(bs);
+
+				if (av1.color_description_present_flag) {
+					*colour_type = 0;
+					*colour_primaries = av1.color_primaries;
+					*transfer_characteristics = av1.transfer_characteristics;
+					*matrix_coefficients = av1.matrix_coefficients;
+					*full_range_flag = av1.color_range;
+					break;
+				}
+			}
+		}
+		if (av1.config) gf_odf_av1_cfg_del(av1.config);
+		return GF_OK;
+	}
+
+#endif
+	return GF_NOT_SUPPORTED;
+}
 GF_EXPORT
 GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 {
@@ -992,9 +1105,6 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	//todo: patch colr
 	e = gf_isom_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 	if (e==GF_NOT_FOUND) {
-		u32 color_primaries = 0;
-		u32 transfer_characteristics = 0;
-		u32 matrix_coefs = 0;
 		if (prores_type) {
 			u32 di;
 			GF_ISOSample *s = gf_isom_get_sample(mp4, video_tk, 1, &di);
@@ -1006,22 +1116,26 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 				gf_bs_read_u32(bs); //encoder id
 				gf_bs_read_u32(bs); //w and h
 				gf_bs_read_u16(bs); //bunch of flags
-				color_primaries = gf_bs_read_u8(bs);
+				colour_primaries = gf_bs_read_u8(bs);
 				transfer_characteristics = gf_bs_read_u8(bs);
-				matrix_coefs = gf_bs_read_u8(bs);
+				matrix_coefficients = gf_bs_read_u8(bs);
 				gf_bs_del(bs);
 			}
 			gf_isom_sample_del(&s);
-		}
-		if (!color_primaries) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
-			color_primaries = 1;
-			transfer_characteristics = 1;
-			matrix_coefs = 1;
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, extracting from first ProRes frame\n"));
+			e = gf_media_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+			if (e)
+				colour_primaries=0;
 		}
-		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), color_primaries, transfer_characteristics, matrix_coefs, GF_FALSE, NULL, 0);
+		if (!colour_primaries) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+			colour_primaries = 1;
+			transfer_characteristics = 1;
+			matrix_coefficients = 1;
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, extracting from %s\n", prores_type ? "first ProRes frame" : "sample description"));
+		}
+		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE, NULL, 0);
 	} else if (e) {
 		return e;
 	}
