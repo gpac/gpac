@@ -46,6 +46,7 @@ typedef struct
 	AVFilterContext *io_filter_ctx;
 	GF_FilterPid *io_pid;
 	u32 timescale, pfmt, width, height, sr, nb_ch, bps;
+	Bool planar;
 	u64 ch_layout;
 	GF_Fraction sar;
 	u32 stride, stride_uv, nb_planes;
@@ -550,6 +551,12 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				ctx->frame->sample_rate = ipid->sr;
 				ctx->frame->format = ipid->pfmt;
 				ctx->frame->nb_samples = data_size / ipid->nb_ch / ipid->bps;
+				if (ipid->planar) {
+					u32 ch_idx;
+					for (ch_idx=0; ch_idx<ipid->nb_ch; ch_idx++) {
+						ctx->frame->extended_data[ch_idx] = (uint8_t *) data + ctx->frame->nb_samples*ipid->bps*ch_idx;
+					}
+				}
 			}
 			/* push the decoded frame into the filtergraph */
 			ret = av_buffersrc_add_frame_flags(ipid->io_filter_ctx, ctx->frame, 0);
@@ -821,6 +828,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!p) return GF_OK; //not ready yet
 		afmt = ffmpeg_audio_fmt_from_gpac(p->value.uint);
 		pid_ctx->bps = gf_audio_fmt_bit_depth(p->value.uint) / 8;
+		pid_ctx->planar = gf_audio_fmt_is_planar(p->value.uint);
 
 		if (check_recfg) {
 			if (sr!=pid_ctx->sr) {}
