@@ -1473,13 +1473,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			switch (gf_isom_get_media_type(dest, track)) {
 			case GF_ISOM_MEDIA_AUDIO:
 				if (!rescale_override) {
-					M4_LOG(GF_LOG_ERROR, ("Cannot force media timescale for audio media types - ignoring\n"));
+					M4_LOG(GF_LOG_WARNING, ("Cannot force media timescale for audio media types - ignoring\n"));
 					break;
 				}
 			default:
 				e = gf_isom_set_media_timescale(dest, track, rescale_num, rescale_den, rescale_override ? 2 : 1);
                 if (e==GF_EOS) {
-					M4_LOG(GF_LOG_ERROR, ("Rescale ignored, same config in source file\n"));
+					M4_LOG(GF_LOG_WARNING, ("Rescale ignored, same config in source file\n"));
 					e = GF_OK;
 				}
 				GOTO_EXIT("rescaling media track")
