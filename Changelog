@@ -30,6 +30,7 @@ On-going: GPAC 1.1-DEV
 - support for multi-key per sample encryption
 - Improved raw video in ISOBMFF support
 - Improved bitstream dumping for inspect analyse mode
+- Improved multichannel AAC (>=8) support 
 - Support for TTML metrics
 - Support for TTML image embedding
 - Support for TTML sample merging while exporting

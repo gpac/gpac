@@ -419,7 +419,7 @@ GF_FilterRegister FAADRegister = {
 	GF_FS_SET_DESCRIPTION("FAAD decoder")
 	GF_FS_SET_HELP("This filter decodes AAC streams through faad library.")
 	.private_size = sizeof(GF_FAADCtx),
-	.priority = 1,
+	.priority = 200, //lower priority than ffdec, as faad support for multichannel is not really good
 	SETCAPS(FAADCaps),
 	.configure_pid = faaddec_configure_pid,
 	.finalize = faaddec_finalize,

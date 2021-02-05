@@ -1115,12 +1115,76 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 	}
 }
 
+GF_EXPORT
+GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
+{
+	u32 i;
 
+	cfg->program_config_element_present = 1;
+	cfg->cpe_channels = 0;
+
+	cfg->element_instance_tag = gf_bs_read_int_log(bs, 4, "element_instance_tag");
+	cfg->object_type = gf_bs_read_int_log(bs, 2, "object_type");
+	cfg->sampling_frequency_index = gf_bs_read_int_log(bs, 4, "sampling_frequency_index");
+	cfg->num_front_channel_elements = gf_bs_read_int_log(bs, 4, "num_front_channel_elements");
+	cfg->num_side_channel_elements = gf_bs_read_int_log(bs, 4, "num_side_channel_elements");
+	cfg->num_back_channel_elements = gf_bs_read_int_log(bs, 4, "num_back_channel_elements");
+	cfg->num_lfe_channel_elements = gf_bs_read_int_log(bs, 2, "num_lfe_channel_elements");
+	cfg->num_assoc_data_elements = gf_bs_read_int_log(bs, 3, "num_assoc_data_elements");
+	cfg->num_valid_cc_elements = gf_bs_read_int_log(bs, 4, "num_valid_cc_elements");
+	cfg->mono_mixdown_present = (Bool)gf_bs_read_int_log(bs, 1, "mono_mixdown_present");
+	if (cfg->mono_mixdown_present) {
+		cfg->mono_mixdown_element_number = gf_bs_read_int_log(bs, 4, "mono_mixdown_element_number");
+	}
+	cfg->stereo_mixdown_present = gf_bs_read_int_log(bs, 1, "stereo_mixdown_present");
+	if (cfg->stereo_mixdown_present) {
+		cfg->stereo_mixdown_element_number = gf_bs_read_int_log(bs, 4, "stereo_mixdown_element_number");
+	}
+	cfg->matrix_mixdown_idx_present = gf_bs_read_int_log(bs, 1, "matrix_mixdown_idx_present");
+	if (cfg->matrix_mixdown_idx_present) {
+		cfg->matrix_mixdown_idx = gf_bs_read_int_log(bs, 2, "matrix_mixdown_idx");
+		cfg->pseudo_surround_enable = gf_bs_read_int_log(bs, 1, "pseudo_surround_enable");
+	}
+	for (i = 0; i < cfg->num_front_channel_elements; i++) {
+		cfg->front_element_is_cpe[i] = gf_bs_read_int_log_idx(bs, 1, "front_element_is_cpe", i);
+		cfg->front_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "front_element_tag_select", i);
+		if (cfg->front_element_is_cpe[i]) cfg->cpe_channels++;
+	}
+	for (i = 0; i < cfg->num_side_channel_elements; i++) {
+		cfg->side_element_is_cpe[i] = gf_bs_read_int_log_idx(bs, 1, "side_element_is_cpe", i);
+		cfg->side_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "side_element_tag_select", i);
+		if (cfg->side_element_is_cpe[i]) cfg->cpe_channels++;
+	}
+	for (i = 0; i < cfg->num_back_channel_elements; i++) {
+		cfg->back_element_is_cpe[i] = gf_bs_read_int_log_idx(bs, 1, "back_element_is_cpe", i);
+		cfg->back_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "back_element_tag_select", i);
+		if (cfg->back_element_is_cpe[i]) cfg->cpe_channels++;
+	}
+	for (i = 0; i < cfg->num_lfe_channel_elements; i++) {
+		cfg->lfe_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "lfe_element_tag_select", i);
+	}
+	for (i = 0; i < cfg->num_assoc_data_elements; i++) {
+		cfg->assoc_data_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "assoc_data_element_tag_select", i);
+	}
+
+	for (i = 0; i < cfg->num_valid_cc_elements; i++) {
+		cfg->cc_element_is_ind_sw[i] = gf_bs_read_int_log_idx(bs, 1, "cc_element_is_ind_sw", i);
+		cfg->valid_cc_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "valid_cc_element_tag_select", i);
+	}
+	gf_bs_align(bs);
+	cfg->comment_field_bytes = gf_bs_read_int_log(bs, 8, "comment_field_bytes");
+	gf_bs_read_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
+
+	cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
+	cfg->nb_chan += cfg->cpe_channels;
+
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known)
 {
-	u32 channel_configuration = 0;
+	u32 audio_obj_type, ext_chan_cfg=0;
 	memset(cfg, 0, sizeof(GF_M4ADecSpecInfo));
 	cfg->base_object_type = gf_bs_read_int_log(bs, 5, "base_object_type");
 	/*extended object type*/
@@ -1135,12 +1199,12 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		cfg->base_sr = GF_M4ASampleRates[cfg->base_sr_index];
 	}
 
-	channel_configuration = gf_bs_read_int_log(bs, 4, "channel_configuration");
-
-	if (channel_configuration) {
-		cfg->nb_chan = GF_M4ANumChannels[channel_configuration - 1];
+	cfg->chan_cfg = gf_bs_read_int_log(bs, 4, "channel_configuration");
+	if (cfg->chan_cfg) {
+		cfg->nb_chan = GF_M4ANumChannels[cfg->chan_cfg - 1];
 	}
 
+	audio_obj_type = cfg->base_object_type;
 	if (cfg->base_object_type == 5 || cfg->base_object_type == 29) {
 		if (cfg->base_object_type == 29) {
 			cfg->has_ps = 1;
@@ -1155,10 +1219,16 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			cfg->sbr_sr = GF_M4ASampleRates[cfg->sbr_sr_index];
 		}
 		cfg->sbr_object_type = gf_bs_read_int_log(bs, 5, "sbr_object_type");
+		if (cfg->sbr_object_type==31)
+			cfg->sbr_object_type = 32 + gf_bs_read_int_log(bs, 6, "audioObjectTypeExt");
+		audio_obj_type = cfg->sbr_object_type;
+		if (cfg->sbr_object_type==22) {
+			ext_chan_cfg = gf_bs_read_int_log(bs, 4, "channel_configuration");
+		}
 	}
 
 	/*object cfg*/
-	switch (cfg->base_object_type) {
+	switch (audio_obj_type) {
 	case 1:
 	case 2:
 	case 3:
@@ -1179,63 +1249,8 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			gf_bs_read_int_log(bs, 14, "delay");
 		ext_flag = gf_bs_read_int_log(bs, 1, "extension_flag");
 
-		if (!channel_configuration) {
-			u32 i, cpe_channels=0;
-			cfg->program_config_element_present = 1;
-			cfg->element_instance_tag = gf_bs_read_int_log(bs, 4, "element_instance_tag");
-			cfg->object_type = gf_bs_read_int_log(bs, 2, "object_type");
-			cfg->sampling_frequency_index = gf_bs_read_int_log(bs, 4, "sampling_frequency_index");
-			cfg->num_front_channel_elements = gf_bs_read_int_log(bs, 4, "num_front_channel_elements");
-			cfg->num_side_channel_elements = gf_bs_read_int_log(bs, 4, "num_side_channel_elements");
-			cfg->num_back_channel_elements = gf_bs_read_int_log(bs, 4, "num_back_channel_elements");
-			cfg->num_lfe_channel_elements = gf_bs_read_int_log(bs, 2, "num_lfe_channel_elements");
-			cfg->num_assoc_data_elements = gf_bs_read_int_log(bs, 3, "num_assoc_data_elements");
-			cfg->num_valid_cc_elements = gf_bs_read_int_log(bs, 4, "num_valid_cc_elements");
-			cfg->mono_mixdown_present = (Bool)gf_bs_read_int_log(bs, 1, "mono_mixdown_present");
-			if (cfg->mono_mixdown_present) {
-				cfg->mono_mixdown_element_number = gf_bs_read_int_log(bs, 4, "mono_mixdown_element_number");
-			}
-			cfg->stereo_mixdown_present = gf_bs_read_int_log(bs, 1, "stereo_mixdown_present");
-			if (cfg->stereo_mixdown_present) {
-				cfg->stereo_mixdown_element_number = gf_bs_read_int_log(bs, 4, "stereo_mixdown_element_number");
-			}
-			cfg->matrix_mixdown_idx_present = gf_bs_read_int_log(bs, 1, "matrix_mixdown_idx_present");
-			if (cfg->matrix_mixdown_idx_present) {
-				cfg->matrix_mixdown_idx = gf_bs_read_int_log(bs, 2, "matrix_mixdown_idx");
-				cfg->pseudo_surround_enable = gf_bs_read_int_log(bs, 1, "pseudo_surround_enable");
-			}
-			for (i = 0; i < cfg->num_front_channel_elements; i++) {
-				cfg->front_element_is_cpe[i] = gf_bs_read_int_log_idx(bs, 1, "front_element_is_cpe", i);
-				cfg->front_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "front_element_tag_select", i);
-				if (cfg->front_element_is_cpe[i]) cpe_channels++;
-			}
-			for (i = 0; i < cfg->num_side_channel_elements; i++) {
-				cfg->side_element_is_cpe[i] = gf_bs_read_int_log_idx(bs, 1, "side_element_is_cpe", i);
-				cfg->side_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "side_element_tag_select", i);
-				if (cfg->side_element_is_cpe[i]) cpe_channels++;
-			}
-			for (i = 0; i < cfg->num_back_channel_elements; i++) {
-				cfg->back_element_is_cpe[i] = gf_bs_read_int_log_idx(bs, 1, "back_element_is_cpe", i);
-				cfg->back_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "back_element_tag_select", i);
-				if (cfg->back_element_is_cpe[i]) cpe_channels++;
-			}
-			for (i = 0; i < cfg->num_lfe_channel_elements; i++) {
-				cfg->lfe_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "lfe_element_tag_select", i);
-			}
-			for (i = 0; i < cfg->num_assoc_data_elements; i++) {
-				cfg->assoc_data_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "assoc_data_element_tag_select", i);
-			}
-
-			for (i = 0; i < cfg->num_valid_cc_elements; i++) {
-				cfg->cc_element_is_ind_sw[i] = gf_bs_read_int_log_idx(bs, 1, "cc_element_is_ind_sw", i);
-				cfg->valid_cc_element_tag_select[i] = gf_bs_read_int_log_idx(bs, 4, "valid_cc_element_tag_select", i);
-			}
-			gf_bs_align(bs);
-			cfg->comment_field_bytes = gf_bs_read_int_log(bs, 8, "comment_field_bytes");
-			gf_bs_read_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
-
-			cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
-			cfg->nb_chan += cpe_channels;
+		if (!cfg->chan_cfg) {
+			gf_m4a_parse_program_config_element(bs, cfg);
 		}
 
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
@@ -1261,7 +1276,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	break;
 	}
 	/*ER cfg*/
-	switch (cfg->base_object_type) {
+	switch (audio_obj_type) {
 	case 17:
 	case 19:
 	case 20:
@@ -1349,6 +1364,61 @@ u32 gf_m4a_get_channel_cfg(u32 nb_chan)
 }
 
 GF_EXPORT
+GF_Err gf_m4a_write_program_config_element_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
+{
+	u32 i;
+	gf_bs_write_int(bs, cfg->element_instance_tag, 4);
+	gf_bs_write_int(bs, cfg->object_type, 2);
+	gf_bs_write_int(bs, cfg->sampling_frequency_index, 4);
+	gf_bs_write_int(bs, cfg->num_front_channel_elements, 4);
+	gf_bs_write_int(bs, cfg->num_side_channel_elements, 4);
+	gf_bs_write_int(bs, cfg->num_back_channel_elements, 4);
+	gf_bs_write_int(bs, cfg->num_lfe_channel_elements, 2);
+	gf_bs_write_int(bs, cfg->num_assoc_data_elements, 3);
+	gf_bs_write_int(bs, cfg->num_valid_cc_elements, 4);
+	gf_bs_write_int(bs, cfg->mono_mixdown_present, 1);
+	if (cfg->mono_mixdown_present) {
+		gf_bs_write_int(bs, cfg->mono_mixdown_element_number, 4);
+	}
+	gf_bs_write_int(bs, cfg->stereo_mixdown_present, 1);
+	if (cfg->stereo_mixdown_present) {
+		gf_bs_write_int(bs, cfg->stereo_mixdown_element_number, 4);
+	}
+	gf_bs_write_int(bs, cfg->matrix_mixdown_idx_present, 1);
+	if (cfg->matrix_mixdown_idx_present) {
+		gf_bs_write_int(bs, cfg->matrix_mixdown_idx, 2);
+		gf_bs_write_int(bs, cfg->pseudo_surround_enable, 1);
+	}
+	for (i = 0; i < cfg->num_front_channel_elements; i++) {
+		gf_bs_write_int(bs, cfg->front_element_is_cpe[i], 1);
+		gf_bs_write_int(bs, cfg->front_element_tag_select[i], 4);
+	}
+	for (i = 0; i < cfg->num_side_channel_elements; i++) {
+		gf_bs_write_int(bs, cfg->side_element_is_cpe[i], 1);
+		gf_bs_write_int(bs, cfg->side_element_tag_select[i], 4);
+	}
+	for (i = 0; i < cfg->num_back_channel_elements; i++) {
+		gf_bs_write_int(bs, cfg->back_element_is_cpe[i], 1);
+		gf_bs_write_int(bs, cfg->back_element_tag_select[i], 4);
+	}
+	for (i = 0; i < cfg->num_lfe_channel_elements; i++) {
+		gf_bs_write_int(bs, cfg->lfe_element_tag_select[i], 4);
+	}
+	for (i = 0; i < cfg->num_assoc_data_elements; i++) {
+		gf_bs_write_int(bs, cfg->assoc_data_element_tag_select[i], 4);
+	}
+
+	for (i = 0; i < cfg->num_valid_cc_elements; i++) {
+		gf_bs_write_int(bs, cfg->cc_element_is_ind_sw[i], 1);
+		gf_bs_write_int(bs, cfg->valid_cc_element_tag_select[i], 4);
+	}
+	gf_bs_align(bs);
+	gf_bs_write_int(bs, cfg->comment_field_bytes, 8);
+	gf_bs_write_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 {
 	if (!cfg->base_sr_index) {
@@ -1381,9 +1451,13 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 
 	if (cfg->program_config_element_present) {
 		gf_bs_write_int(bs, 0, 4);
-	}
-	else {
-		gf_bs_write_int(bs, gf_m4a_get_channel_cfg(cfg->nb_chan), 4);
+	} else {
+		cfg->chan_cfg = gf_m4a_get_channel_cfg(cfg->nb_chan);
+		if (!cfg->chan_cfg) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AAC] Cannot write decoder config, ProgramConfigElement is missing and channel configuration is not a predefined one !\n"));
+			return GF_BAD_PARAM;
+		}
+		gf_bs_write_int(bs, cfg->chan_cfg, 4);
 	}
 
 	if (cfg->base_object_type == 5 || cfg->base_object_type == 29) {
@@ -1423,55 +1497,7 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 		gf_bs_write_int(bs, 0, 1);
 
 		if (cfg->program_config_element_present) {
-			u32 i;
-			gf_bs_write_int(bs, cfg->element_instance_tag, 4);
-			gf_bs_write_int(bs, cfg->object_type, 2);
-			gf_bs_write_int(bs, cfg->sampling_frequency_index, 4);
-			gf_bs_write_int(bs, cfg->num_front_channel_elements, 4);
-			gf_bs_write_int(bs, cfg->num_side_channel_elements, 4);
-			gf_bs_write_int(bs, cfg->num_back_channel_elements, 4);
-			gf_bs_write_int(bs, cfg->num_lfe_channel_elements, 2);
-			gf_bs_write_int(bs, cfg->num_assoc_data_elements, 3);
-			gf_bs_write_int(bs, cfg->num_valid_cc_elements, 4);
-			gf_bs_write_int(bs, cfg->mono_mixdown_present, 1);
-			if (cfg->mono_mixdown_present) {
-				gf_bs_write_int(bs, cfg->mono_mixdown_element_number, 4);
-			}
-			gf_bs_write_int(bs, cfg->stereo_mixdown_present, 1);
-			if (cfg->stereo_mixdown_present) {
-				gf_bs_write_int(bs, cfg->stereo_mixdown_element_number, 4);
-			}
-			gf_bs_write_int(bs, cfg->matrix_mixdown_idx_present, 1);
-			if (cfg->matrix_mixdown_idx_present) {
-				gf_bs_write_int(bs, cfg->matrix_mixdown_idx, 2);
-				gf_bs_write_int(bs, cfg->pseudo_surround_enable, 1);
-			}
-			for (i = 0; i < cfg->num_front_channel_elements; i++) {
-				gf_bs_write_int(bs, cfg->front_element_is_cpe[i], 1);
-				gf_bs_write_int(bs, cfg->front_element_tag_select[i], 4);
-			}
-			for (i = 0; i < cfg->num_side_channel_elements; i++) {
-				gf_bs_write_int(bs, cfg->side_element_is_cpe[i], 1);
-				gf_bs_write_int(bs, cfg->side_element_tag_select[i], 4);
-			}
-			for (i = 0; i < cfg->num_back_channel_elements; i++) {
-				gf_bs_write_int(bs, cfg->back_element_is_cpe[i], 1);
-				gf_bs_write_int(bs, cfg->back_element_tag_select[i], 4);
-			}
-			for (i = 0; i < cfg->num_lfe_channel_elements; i++) {
-				gf_bs_write_int(bs, cfg->lfe_element_tag_select[i], 4);
-			}
-			for (i = 0; i < cfg->num_assoc_data_elements; i++) {
-				gf_bs_write_int(bs, cfg->assoc_data_element_tag_select[i], 4);
-			}
-
-			for (i = 0; i < cfg->num_valid_cc_elements; i++) {
-				gf_bs_write_int(bs, cfg->cc_element_is_ind_sw[i], 1);
-				gf_bs_write_int(bs, cfg->valid_cc_element_tag_select[i], 4);
-			}
-			gf_bs_align(bs);
-			gf_bs_write_int(bs, cfg->comment_field_bytes, 8);
-			gf_bs_write_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
+			gf_m4a_write_program_config_element_bs(bs, cfg);
 		}
 
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
@@ -1482,24 +1508,7 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 	}
 	/*ER cfg - not supported*/
 
-	/*implicit sbr - not used yet*/
-#if 0
-	if ((cfg->base_object_type != 5) && (cfg->base_object_type != 29)) {
-		gf_bs_write_int(bs, 0x2b7, 11);
-		cfg->sbr_object_type = gf_bs_read_int(bs, 5);
-		cfg->has_sbr = gf_bs_read_int(bs, 1);
-		if (cfg->has_sbr) {
-			cfg->sbr_sr_index = gf_bs_read_int(bs, 4);
-			if (cfg->sbr_sr_index == 0x0F) {
-				cfg->sbr_sr = gf_bs_read_int(bs, 24);
-			}
-			else {
-				cfg->sbr_sr = GF_M4ASampleRates[cfg->sbr_sr_index];
-			}
-		}
-	}
-#endif
-
+	/*implicit sbr/ps signaling not written here, cf reframe_adts*/
 	return GF_OK;
 }
 
