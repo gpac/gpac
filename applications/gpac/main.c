@@ -189,7 +189,7 @@ const char *gpac_doc =
 "This will force decoding media from `file.mp4` and trash (send to `null`) the result (doing a decoder benchmark for example).\n"
 "\n"
 "When a filter uses an option defined as a string using the same separator character as gpac, you can either "
-"modify the set of separators, or escape the seperator by duplicating it. The options enclosed by duplicated "
+"modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated "
 "separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to subfilters "
 "such as libx264 (cf `x264opts` parameter).\n"
 "EX f:a=foo:b=bar\n"
