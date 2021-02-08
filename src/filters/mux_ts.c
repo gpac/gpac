@@ -478,9 +478,11 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 		if (cts != GF_FILTER_NO_TS) {
 			cts += tspid->loop_ts_offset;
+			es_pck.cts = cts;
+		} else {
+			es_pck.cts = 0;
 		}
 
-		es_pck.cts = cts;
 		if (tspid->temi_descs) {
 			u32 i, count=gf_list_count(tspid->temi_descs);
 
