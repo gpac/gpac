@@ -146,7 +146,7 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 	found = 0;
 	for (i=0; i<import.nb_tracks; i++) {
 		if (trackID && (trackID != import.tk_info[i].track_num)) continue;
-		if (!trackID) fprintf(stderr, "\tTrack %d type: ", import.tk_info[i].track_num);
+		if (!trackID) fprintf(stderr, "- Track %d type: ", import.tk_info[i].track_num);
 		else fprintf(stderr, "Track type: ");
 
 		switch (import.tk_info[i].stream_type) {
@@ -175,7 +175,7 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 			fprintf(stderr, "Other (%s)", gf_4cc_to_str(import.tk_info[i].stream_type));
 			break;
 		}
-		if (import.tk_info[i].codecid) fprintf(stderr, " Codec %s (ID %d)", gf_codecid_name(import.tk_info[i].codecid), import.tk_info[i].codecid);
+		if (import.tk_info[i].codecid) fprintf(stderr, " - Codec %s", gf_codecid_name(import.tk_info[i].codecid));
 
 		if (import.tk_info[i].lang) fprintf(stderr, " lang %s", gf_4cc_to_str(import.tk_info[i].lang));
 

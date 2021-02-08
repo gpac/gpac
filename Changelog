@@ -39,6 +39,7 @@ On-going: GPAC 1.1-DEV
 - Improved HTTP rate limiter and chunk-transfer rate estimator
 - Filter TAG
 - Improved -cat for ISOBMFF sources
+- support for muxing in MP4Box and track extract from non ISOBMF sources
 - support for windows long path
 - Moved to latest QuickJS (2020-11-08 rc2)
 - many bug fixes and security patches

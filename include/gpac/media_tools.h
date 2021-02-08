@@ -1131,12 +1131,12 @@ enum
 	GF_EXPORT_RAW_SAMPLES = (1<<1),
 	/*! NHNT format (any MPEG-4 media)*/
 	GF_EXPORT_NHNT = (1<<2),
-	/*! AVI (MPEG4 video and AVC tracks only)*/
-	GF_EXPORT_AVI = (1<<3),
+	/*! full remux of source file - equivalent to `gpac -i in_name:FID=1 reframer:FID=2:SID=1 -o out_name:SID=2` */
+	GF_EXPORT_REMUX = (1<<3),
 	/*! MP4 (all except OD)*/
 	GF_EXPORT_MP4 = (1<<4),
-	/*! AVI->RAW to dump video (trackID=1) or audio (trackID>=2)*/
-	GF_EXPORT_AVI_NATIVE = (1<<5),
+	/*! currently unused*/
+	GF_EXPORT_UNUSED = (1<<4),
 	/*! NHML format (any media)*/
 	GF_EXPORT_NHML = (1<<6),
 	/*! SAF format*/
@@ -1191,7 +1191,10 @@ typedef struct __track_exporter
 	char *in_name;
 	/*! optional FILE for output*/
 	FILE *dump_file;
+	/*! filter session dump flags*/
 	u32 print_stats_graph;
+	/*! track type: 0: none specified, 1: video, 2: audio*/
+	u32 track_type;
 } GF_MediaExporter;
 
 /*!

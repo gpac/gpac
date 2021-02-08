@@ -159,6 +159,7 @@ typedef struct
 	s32 clap_wnum, clap_wden, clap_hnum, clap_hden, clap_honum, clap_hoden, clap_vonum, clap_voden;
 	s32 mx[9];
 	u64 time;
+	u8 dump_track_type;
 } TrackAction;
 
 enum
@@ -267,7 +268,7 @@ char *dash_profile_extension = NULL;
 char *dash_cues = NULL;
 Bool strict_cues=0, use_url_template=0, seg_at_rap=0, frag_at_rap=0, adjust_split_end=0, memory_frags=0, keep_utc=0, has_next_arg=0, no_cache=0, no_loop=0;
 char *do_wget = NULL;
-
+char *mux_name = NULL;
 char *seg_ext = NULL;
 char *init_seg_ext = NULL;
 char *dash_title = NULL;
@@ -349,7 +350,7 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG("tight", "tight interleaving (sample based) of the file. This reduces disk seek operations but increases file size", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &full_interleave, 0, ARG_OPEN_EDIT|ARG_NEED_SAVE),
  	MP4BOX_ARG("flat", "store file with all media data first, non-interleaved. This speeds up writing time when creating new files", GF_ARG_BOOL, 0, &do_flat, 0, ARG_OPEN_EDIT| ARG_NO_INPLACE),
  	MP4BOX_ARG("frag", "fragment file, producing track fragments of given duration in ms. This disables interleaving", GF_ARG_DOUBLE, 0, parse_store_mode, 2, ARG_IS_FUN),
- 	MP4BOX_ARG("out", "specify output file name. By default input file is overwritten", GF_ARG_STRING, 0, &outName, 0, 0),
+ 	MP4BOX_ARG("out", "specify ISOBMFF output file name. By default input file is overwritten", GF_ARG_STRING, 0, &outName, 0, 0),
 	MP4BOX_ARG("tmp", "specify directory for temporary file creation", GF_ARG_STRING, 0, &tmpdir, 0, 0),
  	MP4BOX_ARG("co64","force usage of 64-bit chunk offsets for ISOBMF files", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &force_co64, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("new", "force creation of a new destination file", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &force_new, 0, 0),
@@ -993,9 +994,8 @@ MP4BoxArg m4b_extr_args[] =
  	MP4BOX_ARG("webvtt-raw", "extract given track as raw media in WebVTT as metadata. Use `tkID:embedded` to include media data in the WebVTT file", GF_ARG_STRING, 0, parse_track_dump, GF_EXPORT_WEBVTT_META, ARG_IS_FUN),
  	MP4BOX_ARG("single", "extract given track to a new mp4 file", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_MP4, ARG_IS_FUN),
  	MP4BOX_ARG("six", "extract given track as raw media in **experimental** XML streaming instructions", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_SIX, ARG_IS_FUN),
- 	MP4BOX_ARG("avi", "extract given track to an avi file", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_AVI, ARG_IS_FUN | ARG_EMPTY),
+ 	MP4BOX_ARG("mux", "mux input to given destination", GF_ARG_STRING, 0, &mux_name, 0, 0),
  	MP4BOX_ARG("qcp", "same as [-raw]() but defaults to QCP file for EVRC/SMV", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP, ARG_IS_FUN),
- 	MP4BOX_ARG("aviraw", "extract AVI track in raw format; parameter can be `video`, `audio` or `audioN`", GF_ARG_STRING, 0, parse_aviraw, 0, ARG_IS_FUN),
  	MP4BOX_ARG("saf", "remux file to SAF multiplex", GF_ARG_BOOL, 0, &do_saf, 0, 0),
  	MP4BOX_ARG("dvbhdemux", "demux DVB-H file into IP Datagrams sent on the network", GF_ARG_BOOL, 0, &dvbhdemux, 0, 0),
  	MP4BOX_ARG("raw-layer", "same as [-raw]() but skips SVC/MVC/LHVC extractors when extracting", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER, ARG_IS_FUN),
@@ -2329,7 +2329,18 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		if (!strcmp(arg_val, "*")) {
 			tka->trackID = (u32) -1;
 		} else {
-			tka->trackID = atoi(arg_val);
+			if (act_type==TRAC_ACTION_RAW_EXTRACT) {
+				if (!strncmp(arg_val, "video", 5)) {
+					arg_val += 5;
+					tka->dump_track_type = 1;
+				}
+				else if (!strncmp(arg_val, "audio", 5)) {
+					arg_val += 5;
+					tka->dump_track_type = 2;
+				}
+			}
+			if (arg_val[0])
+				tka->trackID = atoi(arg_val);
 		}
 	}
 	return GF_TRUE;
@@ -2654,19 +2665,6 @@ u32 parse_boxpatch(char *arg_val, u32 opt)
 	return 0;
 }
 
-u32 parse_aviraw(char *arg_val, u32 opt)
-{
-	if (arg_val && !stricmp(arg_val, "video")) trackID = 1;
-	else if (arg_val && !stricmp(arg_val, "audio")) {
-		if (strlen(arg_val) == 5) trackID = 2;
-		else trackID = 1 + atoi(arg_val + 5);
-	} else {
-		M4_LOG(GF_LOG_ERROR, ("Expected `-aviraw video` or `-aviraw audio`got %s\n", arg_val));
-		return 2;
-	}
-	track_dump_type = GF_EXPORT_AVI_NATIVE;
-	return 0;
-}
 
 u32 parse_dump_udta(char *code, u32 opt)
 {
@@ -3157,7 +3155,15 @@ u32 mp4box_parse_args(int argc, char **argv)
 			return 2;
 		}
 		else if (!stricmp(arg, "-tag-list")) {
-			M4_LOG(GF_LOG_ERROR, ("`-tag-list`option deprecated, use `-h tags`\n"));
+			M4_LOG(GF_LOG_ERROR, ("`-tag-list` option deprecated, use `-h tags`\n"));
+			return 2;
+		}
+		else if (!stricmp(arg, "-aviraw")) {
+			M4_LOG(GF_LOG_ERROR, ("`-aviraw` option deprecated, use `-raw`\n"));
+			return 2;
+		}
+		else if (!stricmp(arg, "-avi")) {
+			M4_LOG(GF_LOG_ERROR, ("`-avi` option deprecated, use `-mux`\n"));
 			return 2;
 		}
 		else if (!strncmp(arg, "-p=", 3)) {
@@ -4454,29 +4460,6 @@ static GF_Err do_dash()
 	return e;
 }
 
-static GF_Err do_export_avi()
-{
-	char szFile[GF_MAX_PATH+24];
-	GF_MediaExporter mdump;
-	memset(&mdump, 0, sizeof(mdump));
-	mdump.in_name = inName;
-	mdump.flags = GF_EXPORT_AVI_NATIVE;
-	mdump.trackID = trackID;
-	if (dump_std) {
-		mdump.out_name = "std";
-	} else if (outName) {
-		mdump.out_name = outName;
-	} else if (trackID>2) {
-		sprintf(szFile, "%s_audio%d", outfile, trackID-1);
-		mdump.out_name = szFile;
-	} else {
-		sprintf(szFile, "%s_%s", outfile, (trackID==1) ? "video" : "audio");
-		mdump.out_name = szFile;
-	}
-
-	mdump.print_stats_graph = fs_dump_flags;
-	return gf_media_export(&mdump);
-}
 
 static GF_Err do_export_tracks_non_isobmf()
 {
@@ -4492,8 +4475,13 @@ static GF_Err do_export_tracks_non_isobmf()
 		mdump.in_name = inName;
 		mdump.flags = tka->dump_type;
 		mdump.trackID = tka->trackID;
+		mdump.track_type = tka->dump_track_type;
 		mdump.sample_num = tka->sample_num;
-		if (outName) {
+
+		if (dump_std) {
+			mdump.out_name = "std";
+		}
+		else if (outName) {
 			mdump.out_name = outName;
 			mdump.flags |= GF_EXPORT_MERGE;
 		} else if (nb_track_act>1) {
@@ -5251,6 +5239,17 @@ static void set_sdp_ext()
 }
 #endif /*!defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)*/
 
+static GF_Err do_remux_file()
+{
+	GF_MediaExporter mdump;
+	memset(&mdump, 0, sizeof(GF_MediaExporter));
+	mdump.in_name = inName;
+	mdump.out_name = mux_name;
+	mdump.flags = GF_EXPORT_REMUX;
+	mdump.print_stats_graph = fs_dump_flags;
+	return gf_media_export(&mdump);
+}
+
 static u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
 		gf_free(mpd_base_urls);
@@ -5608,11 +5607,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	//need to open input
-	if (!file && !do_hash
-#ifndef GPAC_DISABLE_MEDIA_EXPORT
-	         && !(track_dump_type & GF_EXPORT_AVI_NATIVE)
-#endif
-	        ) {
+	if (!file && !do_hash) {
 		FILE *st = gf_fopen(inName, "rb");
 		Bool file_exists = 0;
 		GF_ISOOpenMode omode;
@@ -5728,8 +5723,15 @@ int mp4boxMain(int argc, char **argv)
 					convert_file_info(inName, info_track_id);
 #endif
 				} else {
-					M4_LOG(GF_LOG_ERROR, ("Input %s is not an MP4 file, operation not allowed\n", inName));
-					return mp4box_cleanup(1);
+					if (mux_name) {
+						e = do_remux_file();
+						if (e) goto err_exit;
+						if (file) gf_isom_delete(file);
+						goto exit;
+					} else {
+						M4_LOG(GF_LOG_ERROR, ("Input %s is not an MP4 file, operation not allowed\n", inName));
+						return mp4box_cleanup(1);
+					}
 				}
 				goto exit;
 			}
@@ -5738,7 +5740,7 @@ int mp4boxMain(int argc, char **argv)
 				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
 				if (!outName && file) outName = inName;
 			} else if (!file_exists) {
-				M4_LOG(GF_LOG_ERROR, ("Error creating file %s: %s\n", inName, gf_error_to_string(GF_URL_ERROR)));
+				M4_LOG(GF_LOG_ERROR, ("Error %s file %s: %s\n", force_new ? "creating" : "opening", inName, gf_error_to_string(GF_URL_ERROR)));
 				return mp4box_cleanup(1);
 			} else {
 				M4_LOG(GF_LOG_ERROR, ("Cannot open %s - extension not supported\n", inName));
@@ -5778,16 +5780,19 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
-	if (track_dump_type & GF_EXPORT_AVI_NATIVE) {
-		e = do_export_avi();
-		if (e) goto err_exit;
-		goto exit;
-	}
 	if (!open_edit && track_dump_type && !gf_isom_probe_file(inName)) {
 		e = do_export_tracks_non_isobmf();
 		if (e) goto err_exit;
 		goto exit;
 	}
+	if (mux_name) {
+		e = do_remux_file();
+		if (e) goto err_exit;
+		if (file) gf_isom_delete(file);
+		goto exit;
+	}
+
+
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 
