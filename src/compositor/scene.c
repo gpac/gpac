@@ -793,7 +793,7 @@ void gf_scene_buffering_info(GF_Scene *scene, Bool rebuffer_done)
 
 
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_event, GF_Err code, Bool no_queueing)
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_event, GF_Err code, Bool no_queuing)
 {
 	/*fire resize event*/
 #ifndef GPAC_DISABLE_SVG
@@ -834,14 +834,14 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 		evt.error_state = code;
 	}
 	if (n) {
-		if (no_queueing) {
+		if (no_queuing) {
 			gf_dom_event_fire(n, dom_event);
 		} else {
 			gf_sc_queue_dom_event(scene->compositor, n, dom_event);
 		}
 	} else {
 		if (root) {
-			if (no_queueing) {
+			if (no_queuing) {
 				gf_dom_event_fire(root, dom_event);
 			} else {
 				gf_sc_queue_dom_event(scene->compositor, root, dom_event);
@@ -851,7 +851,7 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 		count=scene->root_od->mo ? gf_mo_event_target_count(scene->root_od->mo) : 0;
 		for (i=0; i<count; i++) {
 			GF_Node *an = gf_event_target_get_node(gf_mo_event_target_get(scene->root_od->mo, i));
-			if (no_queueing) {
+			if (no_queuing) {
 				gf_dom_event_fire(an, dom_event);
 			} else {
 				gf_sc_queue_dom_event(scene->compositor, an, dom_event);
