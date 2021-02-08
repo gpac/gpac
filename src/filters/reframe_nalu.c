@@ -661,7 +661,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
-				if (ctx->importer) {
+				if (ctx->importer && ctx->cur_fps.den) {
 					poc = (s32) ( (s64) cts - (s64) dts);
 					if (poc<0) poc = -poc;
 					poc /= ctx->cur_fps.den;
