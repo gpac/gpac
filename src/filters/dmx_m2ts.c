@@ -848,7 +848,7 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	ctx->mux_tune_state = DMX_TUNE_DONE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
-	if (p && p->value.string && !ctx->duration.num) {
+	if (p && p->value.string && !ctx->duration.num && strncmp(p->value.string, "gmem://", 7)) {
 		stream = gf_fopen(p->value.string, "rb");
 	}
 

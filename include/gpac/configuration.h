@@ -140,6 +140,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_GLU
+#define GPAC_HAS_HTTP2
 
 #define GPAC_MEMORY_TRACKING
 

@@ -364,31 +364,22 @@ const char * gf_cache_get_cache_filename( const DownloadedCacheEntry entry )
 	return entry ? entry->cache_filename : NULL;
 }
 
-GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest)
+GF_Err gf_cache_get_http_headers(const DownloadedCacheEntry entry, const char **etag, const char **last_modif)
 {
-	char *etag, *last_modif;
-	if (!entry || !httpRequest)
+	if (!entry || !etag || !last_modif)
 		return GF_BAD_PARAM;
+
+	*etag = *last_modif = NULL;
 	if (entry->flags)
 		return GF_OK;
 	if (gf_cache_check_if_cache_file_is_corrupted(entry))
 		return GF_OK;
 
-	etag = entry->diskETag;
-	last_modif = entry->diskLastModified;
+	*etag = entry->diskETag;
+	*last_modif = entry->diskLastModified;
 	if (entry->persistent && entry->memory_stored) {
-		etag = entry->serverETag;
-		last_modif = entry->serverLastModified;
-	}
-	if (etag) {
-		strcat(httpRequest, "If-None-Match: ");
-		strcat(httpRequest, etag);
-		strcat(httpRequest, "\r\n");
-	}
-	if (last_modif) {
-		strcat(httpRequest, "If-Modified-Since: ");
-		strcat(httpRequest, last_modif);
-		strcat(httpRequest, "\r\n");
+		*etag = entry->serverETag;
+		*last_modif = entry->serverLastModified;
 	}
 	return GF_OK;
 }

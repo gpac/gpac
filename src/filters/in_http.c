@@ -453,6 +453,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			if (ctx->is_source_switch && !ctx->nb_read && ((e==GF_URL_REMOVED) || (e==GF_URL_ERROR)))
 				return GF_OK;
 
+			gf_dm_sess_abort(ctx->sess);
 			ctx->is_source_switch = GF_FALSE;
 			return e;
 		}
