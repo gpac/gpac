@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2020
+ *			Copyright (c) Telecom ParisTech 2007-2021
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript XmlHttpRequest bindings
@@ -743,7 +743,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_GET_CONTENT:
 		if (ctx->data) {
 			parameter->data = ctx->data;
-			parameter->size = (u32) strlen(ctx->data);
+			parameter->size = ctx->size;
 		}
 		goto exit;
 	case GF_NETIO_PARSE_HEADER:
@@ -929,6 +929,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	GF_JSAPIParam par;
 	GF_SceneGraph *scene;
 	const char *data = NULL;
+	u32 data_size = 0;
 	XMLHTTPContext *ctx = (XMLHTTPContext *) JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return JS_EXCEPTION;
 
@@ -947,20 +948,25 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 
 	if (argc) {
 		if (JS_IsNull(argv[0])) {
-		} else  if (JS_IsObject(argv[0])) {
-//			if (!GF_JS_InstanceOf(c, JSValue_TO_OBJECT(argv[0]), &documentClass, NULL) ) return JS_TRUE;
-
+		} else if (JS_IsArrayBuffer(c, argv[0])) {
+			size_t asize;
+			data = JS_GetArrayBuffer(c, &asize, argv[0] );
+			if (data) data_size = (u32) asize;
+		} else if (JS_IsObject(argv[0])) {
 			/*NOT SUPPORTED YET, we must serialize the sg*/
 			return JS_EXCEPTION;
 		} else {
 			if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
 			data = JS_ToCString(c, argv[0]);
+			data_size = (u32) strlen(ctx->data);
 		}
 	}
 
 	/*reset previous text*/
 	xml_http_del_data(ctx);
 	ctx->data = data ? gf_strdup(data) : NULL;
+	ctx->size = data_size;
+
 	JS_FreeCString(c, data);
 
 	if (!strncmp(ctx->url, "http://", 7)) {
@@ -1005,25 +1011,17 @@ static JSValue xml_http_abort(JSContext *c, JSValueConst obj, int argc, JSValueC
 
 	sess = ctx->sess;
 	ctx->sess = NULL;
-	if (sess) gf_dm_sess_del(sess);
+	if (sess) {
+		//abort first, so that on HTTP/2 this results in RST_STREAM
+		gf_dm_sess_abort(sess);
+		gf_dm_sess_del(sess);
+	}
 
 	xml_http_fire_event(ctx, GF_EVENT_ABORT);
 	xml_http_reset(ctx);
 	if (JS_IsFunction(c, ctx->onabort)) {
 		return JS_Call(ctx->c, ctx->onabort, ctx->_this, 0, NULL);
 	}
-	return JS_TRUE;
-}
-
-static JSValue xml_http_wait(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
-{
-	u32 ms = 1000;
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
-	if (argc)
-		JS_ToInt32(ctx->c, &ms, argv[0]);
-	if (ms>1000) ms=1000;
-	gf_sleep(ms);
 	return JS_TRUE;
 }
 
@@ -1374,7 +1372,6 @@ static const JSCFunctionListEntry xhr_Funcs[] =
 	JS_CFUNC_DEF("overrideMimeType", 1, xml_http_overrideMimeType),
 	JS_CFUNC_DEF("send", 0, xml_http_send),
 	JS_CFUNC_DEF("setRequestHeader", 2, xml_http_set_header),
-	JS_CFUNC_DEF("wait", 0, xml_http_wait),
 
 	/*eventTarget interface*/
 	JS_DOM3_EVENT_TARGET_INTERFACE

@@ -686,7 +686,7 @@ GF_Err gf_dash_set_segment_expiration_threshold(GF_DashClient *dash, u32 expire_
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
 */
-void gf_dash_debug_group(GF_DashClient *dash, s32 group_idx);
+void gf_dash_debug_groups(GF_DashClient *dash, const u32 *groups_idx, u32 nb_groups);
 
 /*! split all adatation sets so that they contain only one representation (quality)
 \param dash the target dash client
