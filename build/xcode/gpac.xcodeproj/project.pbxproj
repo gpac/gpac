@@ -491,10 +491,6 @@
 		92BD556D205AE99A007C4C06 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
 		92BD5571205AE9BD007C4C06 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92BD5570205AE9BD007C4C06 /* AppKit.framework */; };
 		92BE50A318D632DA00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
-		92BE50A818D6348A00AA59D8 /* filedump.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A418D6348A00AA59D8 /* filedump.c */; };
-		92BE50A918D6348A00AA59D8 /* fileimport.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A518D6348A00AA59D8 /* fileimport.c */; };
-		92BE50AA18D6348A00AA59D8 /* live.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A618D6348A00AA59D8 /* live.c */; };
-		92BE50AB18D6348A00AA59D8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A718D6348A00AA59D8 /* main.c */; };
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92C0F37E21EC7BB0002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37D21EC7BB0002961C8 /* out_rtp.c */; };
 		92C236DD25769BA500CD59A9 /* tilesplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C236DC25769BA500CD59A9 /* tilesplit.c */; };
@@ -509,6 +505,10 @@
 		92D6C5A02343BEFF00262217 /* svg_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C59D2343BEFF00262217 /* svg_js.c */; };
 		92D6C5A12343BEFF00262217 /* vrml_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C59E2343BEFF00262217 /* vrml_js.c */; };
 		92D6C5A22343BEFF00262217 /* dom_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D6C59F2343BEFF00262217 /* dom_js.c */; };
+		92D7A2E925D580DD00FD4034 /* fileimport.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D7A2E425D580DC00FD4034 /* fileimport.c */; };
+		92D7A2EA25D580DD00FD4034 /* live.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D7A2E525D580DD00FD4034 /* live.c */; };
+		92D7A2EB25D580DD00FD4034 /* filedump.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D7A2E725D580DD00FD4034 /* filedump.c */; };
+		92D7A2EC25D580DD00FD4034 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D7A2E825D580DD00FD4034 /* main.c */; };
 		92DB148D1E4F05B500382A81 /* filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148B1E4F05B500382A81 /* filters.h */; };
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
 		92E164AB20F8EBAE0024A9CA /* dec_nvdec_sdk.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E164A820F8EBAE0024A9CA /* dec_nvdec_sdk.c */; };
@@ -1154,10 +1154,6 @@
 		92BD556E205AE9B0007C4C06 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = System/Library/Frameworks/CoreImage.framework; sourceTree = SDKROOT; };
 		92BD5570205AE9BD007C4C06 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		92BE509018D6325E00AA59D8 /* MP4Box */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Box; sourceTree = BUILT_PRODUCTS_DIR; };
-		92BE50A418D6348A00AA59D8 /* filedump.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filedump.c; path = ../../applications/mp4box/filedump.c; sourceTree = SOURCE_ROOT; };
-		92BE50A518D6348A00AA59D8 /* fileimport.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fileimport.c; path = ../../applications/mp4box/fileimport.c; sourceTree = SOURCE_ROOT; };
-		92BE50A618D6348A00AA59D8 /* live.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = live.c; path = ../../applications/mp4box/live.c; sourceTree = SOURCE_ROOT; };
-		92BE50A718D6348A00AA59D8 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp4box/main.c; sourceTree = SOURCE_ROOT; };
 		92BE50C718D6D60100AA59D8 /* MP4Client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Client; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C0F37D21EC7BB0002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = filters/out_rtp.c; sourceTree = "<group>"; };
 		92C236DC25769BA500CD59A9 /* tilesplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tilesplit.c; path = filters/tilesplit.c; sourceTree = "<group>"; };
@@ -1171,6 +1167,11 @@
 		92D6C59D2343BEFF00262217 /* svg_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = svg_js.c; sourceTree = "<group>"; };
 		92D6C59E2343BEFF00262217 /* vrml_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vrml_js.c; sourceTree = "<group>"; };
 		92D6C59F2343BEFF00262217 /* dom_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dom_js.c; sourceTree = "<group>"; };
+		92D7A2E425D580DC00FD4034 /* fileimport.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fileimport.c; path = ../../applications/mp4box/fileimport.c; sourceTree = "<group>"; };
+		92D7A2E525D580DD00FD4034 /* live.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = live.c; path = ../../applications/mp4box/live.c; sourceTree = "<group>"; };
+		92D7A2E625D580DD00FD4034 /* mp4box.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mp4box.h; path = ../../applications/mp4box/mp4box.h; sourceTree = "<group>"; };
+		92D7A2E725D580DD00FD4034 /* filedump.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filedump.c; path = ../../applications/mp4box/filedump.c; sourceTree = "<group>"; };
+		92D7A2E825D580DD00FD4034 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp4box/main.c; sourceTree = "<group>"; };
 		92DB148B1E4F05B500382A81 /* filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filters.h; path = ../include/gpac/filters.h; sourceTree = "<group>"; };
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
 		92E164A820F8EBAE0024A9CA /* dec_nvdec_sdk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_nvdec_sdk.c; path = filters/dec_nvdec_sdk.c; sourceTree = "<group>"; };
@@ -1918,23 +1919,12 @@
 			path = ../include/gpac/modules;
 			sourceTree = "<group>";
 		};
-		92BE509218D6325E00AA59D8 /* MP4Box */ = {
-			isa = PBXGroup;
-			children = (
-				92BE50A418D6348A00AA59D8 /* filedump.c */,
-				92BE50A518D6348A00AA59D8 /* fileimport.c */,
-				92BE50A618D6348A00AA59D8 /* live.c */,
-				92BE50A718D6348A00AA59D8 /* main.c */,
-			);
-			path = MP4Box;
-			sourceTree = "<group>";
-		};
 		92BE50AC18D6375100AA59D8 /* applications */ = {
 			isa = PBXGroup;
 			children = (
+				92D7A2E325D580B200FD4034 /* MP4Box */,
 				9251CA871E9D3DFE0089DDC6 /* MP4Client */,
 				927AACF81E44ED5C008C8E69 /* gpac */,
-				92BE509218D6325E00AA59D8 /* MP4Box */,
 			);
 			name = applications;
 			sourceTree = "<group>";
@@ -1984,6 +1974,18 @@
 				92D6C59A2343BED700262217 /* xhr.c */,
 			);
 			name = jsmods;
+			sourceTree = "<group>";
+		};
+		92D7A2E325D580B200FD4034 /* MP4Box */ = {
+			isa = PBXGroup;
+			children = (
+				92D7A2E725D580DD00FD4034 /* filedump.c */,
+				92D7A2E425D580DC00FD4034 /* fileimport.c */,
+				92D7A2E525D580DD00FD4034 /* live.c */,
+				92D7A2E825D580DD00FD4034 /* main.c */,
+				92D7A2E625D580DD00FD4034 /* mp4box.h */,
+			);
+			name = MP4Box;
 			sourceTree = "<group>";
 		};
 		92E164AE20F8EBB60024A9CA /* nvdec */ = {
@@ -2908,10 +2910,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				92BE50A818D6348A00AA59D8 /* filedump.c in Sources */,
-				92BE50A918D6348A00AA59D8 /* fileimport.c in Sources */,
-				92BE50AA18D6348A00AA59D8 /* live.c in Sources */,
-				92BE50AB18D6348A00AA59D8 /* main.c in Sources */,
+				92D7A2EC25D580DD00FD4034 /* main.c in Sources */,
+				92D7A2EB25D580DD00FD4034 /* filedump.c in Sources */,
+				92D7A2E925D580DD00FD4034 /* fileimport.c in Sources */,
+				92D7A2EA25D580DD00FD4034 /* live.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
