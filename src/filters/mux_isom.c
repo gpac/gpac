@@ -330,6 +330,8 @@ typedef struct
 	u32 next_file_idx;
 	const char *next_file_suffix;
 
+	u32 nb_src_tracks;
+
 	//for route scheduling
 	u64 min_cts_plus_one, next_seg_start;
 	u64 min_cts_next_frag;
@@ -1096,7 +1098,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MUX_INDEX);
 		if (p) {
-			tk_idx = p->value.uint;
+			tk_idx = ctx->nb_src_tracks + p->value.uint;
 		}
 
 		if (ctx->keep_utc) {
@@ -5620,6 +5622,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			return GF_BAD_PARAM;
 		}
 		ctx->owns_mov = GF_FALSE;
+		ctx->nb_src_tracks = gf_isom_get_track_count(ctx->file);
 	} else {
 		u32 open_mode = GF_ISOM_OPEN_WRITE;
 		ctx->owns_mov = GF_TRUE;
