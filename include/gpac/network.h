@@ -114,6 +114,16 @@ Encodes URL by replacing special characters with their % encodings.
 char *gf_url_percent_encode(const char *path);
 
 /*!
+\brief URL decoding
+
+Decodes URL by  % encodings with the  special characters they correspond to
+\param path encoded URL of the service
+\return decoded path name , or NULL if error
+ \note the returned string must be freed by user
+ */
+char *gf_url_percent_decode(const char *path);
+
+/*!
 \brief URL to file system
 
 Converts a local URL to a file system value. Removes all white spaces and similar

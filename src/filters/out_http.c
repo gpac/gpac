@@ -603,7 +603,8 @@ static const char *get_method_name(u32 method)
 static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	char *rsp_buf = NULL;
-	const char *url="";
+	const char *durl="";
+	char *url=NULL;
 	char *full_path=NULL;
 	char *response = NULL;
 	char szFmt[100];
@@ -640,11 +641,13 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		gf_dynstrcat(&response_body, "Method is not supported by GPAC", NULL);
 		goto exit;
 	}
-	url = gf_dm_sess_get_resource_name(sess->http_sess);
-	if (!url || (url[0] != '/')) {
+	durl = gf_dm_sess_get_resource_name(sess->http_sess);
+	if (!durl || (durl[0] != '/')) {
 		response = "HTTP/1.1 400 Bad Request\r\n";
 		goto exit;
 	}
+	url = gf_url_percent_decode(durl);
+
 
 	sess->file_pos = 0;
 	sess->file_size = 0;
@@ -757,6 +760,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			}
 		}
 		sess->req_start_time = gf_sys_clock_high_res();
+		if (url) gf_free(url);
 		//send reply once we are done receiving
 		return;
 	}
@@ -1192,6 +1196,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	httpout_sess_send(sess, rsp_buf, (u32) strlen(rsp_buf));
 	gf_free(rsp_buf);
+	if (url) gf_free(url);
 	if (!sess->buffer) {
 		sess->buffer = gf_malloc(sizeof(u8)*sess->ctx->block_size);
 	}
@@ -1259,6 +1264,7 @@ exit:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s error %d\n", sess->req_id, sess->peer_address, get_method_name(parameter->reply), url+1, sess->reply_code));
 	}
 
+	if (url) gf_free(url);
 	sess->upload_type = 0;
 	httpout_reset_socket(sess);
 	return;
