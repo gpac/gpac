@@ -3670,6 +3670,7 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAK:
 		//set our pointer to this obj
 		((GF_TrackBox *)a)->moov = ptr;
+		((GF_TrackBox *)a)->index = gf_list_count(ptr->trackList);
 		return gf_list_add(ptr->trackList, a);
 	}
 	return GF_OK;
