@@ -65,6 +65,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_XVID
 #define GPAC_HAS_FFMPEG
 #define GPAC_HAS_DTAPI
+#define GPAC_HAS_HTTP2
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 

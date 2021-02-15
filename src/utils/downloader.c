@@ -44,8 +44,20 @@
 #endif
 
 #ifdef GPAC_HAS_HTTP2
-#include <nghttp2/nghttp2.h>
+#if defined(_MSC_VER)
+typedef SSIZE_T ssize_t;
+#define NGHTTP2_STATICLIB
 #endif
+#include <nghttp2/nghttp2.h>
+
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#pragma comment(lib, "nghttp2")
+# endif
+#endif
+
+#endif
+
 
 
 #ifdef __USE_POSIX
