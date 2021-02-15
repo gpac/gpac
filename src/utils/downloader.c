@@ -320,6 +320,7 @@ static void init_prng (void)
 /*HTTP2 callbacks*/
 #ifdef GPAC_HAS_HTTP2
 
+#ifdef GPAC_HAS_SSL
 /* NPN TLS extension client callback. We check that server advertised
    the HTTP/2 protocol the nghttp2 library supports. If not, exit
    the program. */
@@ -332,6 +333,7 @@ static int h2_select_next_proto_cb(SSL *ssl , unsigned char **out,
 	}
 	return SSL_TLSEXT_ERR_OK;
 }
+#endif
 
 void h2_detach_session(GF_H2_Session *h2_sess, GF_DownloadSession *sess)
 {
@@ -1782,7 +1784,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		if (sess->orig_url) gf_free(sess->orig_url);
 		sess->orig_url = gf_strdup(info.canonicalRepresentation);
 	}
-	
+
 	if (!sess->orig_url_before_redirect)
 		sess->orig_url_before_redirect = gf_strdup(url);
 
@@ -1864,7 +1866,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
                 sess->bytes_done = sess->total_size;
                 sess->status = GF_NETIO_DATA_TRANSFERED;
             }
-            
+
 			sess->total_time_since_req = gf_cache_get_downtime(sess->cache_entry);
 			if (sess->total_time_since_req)
 				sess->bytes_per_sec = (u32) ((1000 * (u64) sess->bytes_done) / sess->total_time_since_req);
@@ -3366,7 +3368,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
         }
         to_copy = data_size - sess->bytes_done;
         if (to_copy > buffer_size) to_copy = buffer_size;
-        
+
         memcpy(buffer, ptr + sess->bytes_done, to_copy);
         sess->bytes_done += to_copy;
         *read_size = to_copy;
@@ -4857,7 +4859,7 @@ void http_do_requests(GF_DownloadSession *sess)
 {
 	char sHTTP[GF_DOWNLOAD_BUFFER_SIZE+1];
 	sHTTP[0] = 0;
-	
+
 	if (sess->reused_cache_entry) {
 		//main session is done downloading, notify - to do we should send progress events on this session also ...
 		if (!gf_cache_is_in_progress(sess->cache_entry)) {
