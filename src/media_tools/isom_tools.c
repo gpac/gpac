@@ -3856,7 +3856,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 		}
 	}
 
-	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%u%c.%u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%02u%c.%02u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
 		av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M',
 		av1_state.bit_depth, av1_state.config->monochrome,
 		av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
@@ -3864,7 +3864,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 
 	if (av1_state.color_description_present_flag) {
 		char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
-		snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%01u.%01u.%01u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
+		snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%02u.%02u.%02u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
 		strcat(szCodec, tmp);
 	} else {
 		if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
