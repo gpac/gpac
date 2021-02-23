@@ -455,14 +455,14 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, temporal_id, 3);
 			/*pic-type - by default we signal all slice types possible*/
 			gf_bs_write_int(ctx->bs_w, 2, 3);
-			gf_bs_write_int(ctx->bs_w, 0, 5);
+			gf_bs_write_int(ctx->bs_w, 1, 1); //stop bit
+			gf_bs_write_int(ctx->bs_w, 0, 4); //4 bits to 0
 #endif
 		} else if (ctx->vtype==UFNAL_VVC) {
 			if (!layer_id)
 				layer_id=1;
 			if (!temporal_id)
 				temporal_id=1;
-#ifndef GPAC_DISABLE_HEVC
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, layer_id-1, 6); //we should pick the layerID of the following nalus ...
@@ -471,8 +471,9 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, sap ? 1 : 0, 1);
 			/*pic-type - by default we signal all slice types possible*/
 			gf_bs_write_int(ctx->bs_w, 2, 3);
-			gf_bs_write_int(ctx->bs_w, 0, 4);
-#endif
+
+			gf_bs_write_int(ctx->bs_w, 1, 1); //stop bit
+			gf_bs_write_int(ctx->bs_w, 0, 3); //3 bits to 0
 		} else {
 			gf_bs_write_int(ctx->bs_w, (avc_hdr & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
 			gf_bs_write_int(ctx->bs_w, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
