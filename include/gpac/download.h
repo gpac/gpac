@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -154,7 +154,12 @@ typedef enum
 	/*!signal that the session has been deconnected*/
 	GF_NETIO_DISCONNECTED,
 	/*!downloader session failed (error code set) or done/destroyed (no error code)*/
-	GF_NETIO_STATE_ERROR
+	GF_NETIO_STATE_ERROR,
+	/*!signal that a new session is being requested on that same connection (h2, h3)
+	This is only used for server sessions*/
+	GF_NETIO_REQUEST_SESSION,
+	/*! stream has been canceled by remote peer*/
+	GF_NETIO_CANCEL_STREAM,
 } GF_NetIOStatus;
 
 /*!session download flags*/

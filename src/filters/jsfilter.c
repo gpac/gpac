@@ -4579,7 +4579,7 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 	if (!arg_name && !new_val) {
 		gf_js_lock(jsf->ctx, GF_TRUE);
 		if (gf_opts_get_bool("temp", "helponly")) {
-			jsf->disable_filter = 1;
+			jsf->disable_filter = GF_TRUE;
 		} else if (JS_IsFunction(jsf->ctx, jsf->funcs[JSF_EVT_INITIALIZE]) ) {
 			ret = JS_Call(jsf->ctx, jsf->funcs[JSF_EVT_INITIALIZE], jsf->filter_obj, 0, NULL);
 			if (JS_IsException(ret)) {

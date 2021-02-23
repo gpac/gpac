@@ -112,6 +112,7 @@ has_joystick="no"
 has_hid="no"
 has_sock_un="no"
 has_lzma="no"
+has_nghttp2="no"
 enable_joystick="no"
 static_mp4box="no"
 disable_core_tools="no"
@@ -1704,6 +1705,48 @@ fi
 
 
 
+#look for nghttp2 support
+
+if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
+  if $pkg_config --exists libnghttp2 ; then
+    has_nghttp2="system"
+    nghttp2_cflags=`$pkg_config --cflags libnghttp2`
+    nghttp2_ldflags=`$pkg_config --libs libnghttp2`
+  fi
+fi
+
+if test "$has_nghttp2" = "no" ; then
+cat > $TMPC << EOF
+#include <stdio.h>
+#include <nghttp2/nghttp2.h>
+int main( void ) { return 0; }
+EOF
+
+if docc $LDFLAGS -lnghttp2 ; then
+    has_nghttp2="system"
+    nghttp2_ldflags="-lnghttp2"
+fi
+if test "$cross_prefix" = "" ; then
+    if test "$has_nghttp2" = "no" ; then
+        if test "$alt_macosx_dir" != "" ; then
+            if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lnghttp2 2>>$logs ; then
+                has_nghttp2="system"
+                nghttp2_ldflags="-lnghttp2"
+            fi
+        fi
+    fi
+fi
+
+if test "$has_nghttp2" = "no" ; then
+    if docc -I$local_inc -L$local_lib -lnghttp2 ; then
+        has_nghttp2="local"
+        nghttp2_ldflags="-lnghttp2"
+    fi
+fi
+
+fi
+
+
 
 #overwrite detection with manual settings
 for opt do
@@ -2689,6 +2732,7 @@ echo "A52 (AC3): $has_a52"
 echo "OpenSVCDecoder: $has_opensvc"
 echo "OpenHEVCDecoder: $has_openhevc"
 echo "Freenect: $has_freenect"
+echo "nghttp2: $has_nghttp2"
 
 
 if test "$enable_renoir" = "yes" ; then
@@ -3014,6 +3058,14 @@ fi
 if test "$want_gcov"  = "yes" ; then
     echo "#define GPAC_ENABLE_COVERAGE" >> $TMPH
 fi
+
+echo "CONFIG_NGHTTP2=$has_nghttp2" >> config.mak
+if test "$has_nghttp2" != "no" ; then
+    echo "NGHTTP2_CFLAGS=$nghttp2_cflags" >> config.mak
+    echo "NGHTTP2_LDFLAGS=$nghttp2_ldflags" >> config.mak
+    echo "#define GPAC_HAS_HTTP2" >> $TMPH
+fi
+
 
 echo "DISABLE_PLAYER=$disable_player" >> config.mak
 echo "DISABLE_STREAMING=$disable_streaming" >> config.mak

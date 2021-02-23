@@ -71,7 +71,7 @@ fragment file, producing track fragments of given duration in ms. This disables 
 .TP
 .B \-out (string)
 .br
-specify output file name. By default input file is overwritten
+specify ISOBMFF output file name. By default input file is overwritten
 .br
 .TP
 .B \-tmp (string)
@@ -454,19 +454,14 @@ extract given track to a new mp4 file
 extract given track as raw media in experimental XML streaming instructions
 .br
 .TP
-.B \-avi (int)
+.B \-mux (string)
 .br
-extract given track to an avi file
+mux input to given destination
 .br
 .TP
 .B \-qcp (int)
 .br
 same as .I raw but defaults to QCP file for EVRC/SMV
-.br
-.TP
-.B \-aviraw (string)
-.br
-extract AVI track in raw format; parameter can be video, audio or audioN
 .br
 .TP
 .B \-saf
@@ -2655,7 +2650,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev494-gb6505589f-master
+build: 1.1.0-DEV-rev509-g95f9e26d5-http2
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

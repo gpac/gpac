@@ -281,6 +281,15 @@ ifeq ($(CONFIG_VTB),yes)
 EXTRALIBS+=$(vtb_ldflags)
 endif
 
+ifneq ($(CONFIG_NGHTTP2),no)
+EXTRALIBS+=$(NGHTTP2_LDFLAGS)
+ifeq ($(CONFIG_NGHTTP2),local)
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
+else
+CFLAGS+=$(NGHTTP2_CFLAGS)
+endif
+endif
+
 
 
 ##libgpac library output

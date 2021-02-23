@@ -158,7 +158,8 @@ struct __dash_client
 	//in ms
 	u32 time_in_tsb, prev_time_in_tsb;
 	u32 tsb_exceeded;
-	s32 debug_group_index;
+	const u32 *dbg_grps_index;
+	u32 nb_dbg_grps;
 	Bool disable_speed_adaptation;
 
 	Bool period_groups_setup;
@@ -5662,10 +5663,6 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	/*setup all groups*/
 	gf_dash_setup_groups(dash);
 
-	if (dash->debug_group_index>=0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Debuging adaptation set #%d in period, ignoring other ones!\n\n", dash->debug_group_index + 1));
-	}
-
 	nb_groups_ok = 0;
 	for (group_i=0; group_i<gf_list_count(dash->groups); group_i++) {
 		GF_MPD_Representation *rep_sel;
@@ -5680,9 +5677,19 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		active_rep = 0;
 
-		if ((dash->debug_group_index>=0) && (group_i != (u32) dash->debug_group_index)) {
-			group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
-			continue;
+		if (dash->dbg_grps_index) {
+			Bool disable = GF_TRUE;
+			u32 gidx;
+			for (gidx=0; gidx<dash->nb_dbg_grps; gidx++) {
+				if (group_i == dash->dbg_grps_index[gidx]) {
+					disable = GF_FALSE;
+					break;
+				}
+			}
+			if (disable) {
+				group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
+				continue;
+			}
 		}
 
 		nb_rep = gf_list_count(group->adaptation_set->representations);
@@ -7898,7 +7905,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 	dash->first_select_mode = first_select_mode;
 	dash->min_timeout_between_404 = 500;
 	dash->segment_lost_after_ms = 100;
-	dash->debug_group_index = -1;
+	dash->dbg_grps_index = NULL;
 	dash->tile_rate_decrease = 100;
 	dash->route_ast_shift = 1000;
 	dash->initial_period_tunein = GF_TRUE;
@@ -8980,9 +8987,10 @@ GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height, u8
 }
 
 GF_EXPORT
-void gf_dash_debug_group(GF_DashClient *dash, s32 group_index)
+void gf_dash_debug_groups(GF_DashClient *dash, const u32 *groups_idx, u32 nb_groups)
 {
-	dash->debug_group_index = group_index;
+	dash->dbg_grps_index = groups_idx;
+	dash->nb_dbg_grps = nb_groups;
 }
 
 GF_EXPORT

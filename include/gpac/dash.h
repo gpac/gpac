@@ -682,11 +682,12 @@ GF_Err gf_dash_set_min_timeout_between_404(GF_DashClient *dash, u32 min_timeout_
 */
 GF_Err gf_dash_set_segment_expiration_threshold(GF_DashClient *dash, u32 expire_after_ms);
 
-/*! only enables the given group - this shall be set before calling \ref gf_dash_open. If group_idx is <0 (default) no groups will be disabled
+/*! only enables the given groups - this shall be set before calling \ref gf_dash_open. If NULL, no groups will be disabled
 \param dash the target dash client
-\param group_idx the 0-based index of the target group
+\param groups_idx list of  0-based index of the target groups to enable,
+\param nb_groups number of group indexes in list
 */
-void gf_dash_debug_group(GF_DashClient *dash, s32 group_idx);
+void gf_dash_debug_groups(GF_DashClient *dash, const u32 *groups_idx, u32 nb_groups);
 
 /*! split all adatation sets so that they contain only one representation (quality)
 \param dash the target dash client
@@ -1085,6 +1086,12 @@ typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group
 /*! Callback function for custom rate monitor, not final yet
 \param udta user data
 \param group_idx index of group to adapt
+\param bits_per_sec estimated download rate (not premultiplied by playback speed)
+\param total_bytes size of segment being downloaded, 0 if unknown
+\param bytes_done bytes received for segment
+\param us_since_start microseconds ellapse since segment was sheduled for download
+\param buffer_dur_ms current buffer duration in milliseconds
+\param current_seg_dur duration of segment being downloaded, 0 if unknown
 \return quality index (>=0) to switch to after abort, -1 to do nothing (no abort), -2 for internal algorithms having already setup the desired quality and requesting only abort
  */
 typedef s32 (*gf_dash_download_monitor)(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur);
