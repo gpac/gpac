@@ -330,11 +330,10 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 	}
 
 	bitrate = 0;
-	if (ctx->nb_frames && ctx->file_size) {
-		u64 dur = ctx->nb_frames * ctx->cur_fps.den / ctx->cur_fps.num;
+	if (ctx->nb_frames && ctx->file_size && ctx->cur_fps.den) {
 		bitrate = ctx->file_size * 8;
-		bitrate /= dur;
-		bitrate /= 1000000;
+		bitrate *= ctx->cur_fps.num;
+		bitrate /= ctx->nb_frames * ctx->cur_fps.den;
 	}
 	memcpy(&ctx->cur_cfg, finfo, sizeof(GF_ProResFrameInfo));
 	if (ctx->cid && (strlen(ctx->cid)>4)) {
