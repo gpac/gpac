@@ -341,17 +341,6 @@ GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value
  */
 GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child);
 
-/*!
-\brief Removes the node to the list of children of this node.
-
-Removes the node to the list of children of this node.
-\warning Doesn't free the memory of the removed children.
-
-\param node the GF_XMLNode node
-\param child the GF_XMLNode child to remove
-\return Error code if any, otherwise GF_OK
- */
-GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child);
 
 /*! Destroys a node, its attributes and its children
 

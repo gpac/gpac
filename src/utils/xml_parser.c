@@ -2057,6 +2057,17 @@ GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child) {
 	return gf_list_add(node->content, child);
 }
 
+#if 0
+/*!
+\brief Removes the node to the list of children of this node.
+
+Removes the node to the list of children of this node.
+\warning Doesn't free the memory of the removed children.
+
+\param node the GF_XMLNode node
+\param child the GF_XMLNode child to remove
+\return Error code if any, otherwise GF_OK
+ */
 GF_EXPORT
 GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
 	s32 idx;
@@ -2066,7 +2077,6 @@ GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
 	return gf_list_rem(node->content, idx);
 }
 
-#if 0
 GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	GF_XMLNode* node;
 	GF_SAFEALLOC(node, GF_XMLNode);

@@ -460,7 +460,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_create_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_append_child) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_rem_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_line) )
@@ -2314,9 +2313,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_all_shortnames) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_parse) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_dolby_chanmap) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_types_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_afx_name) )

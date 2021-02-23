@@ -434,9 +434,12 @@ u32 gf_stream_type_by_name(const char *val)
 	return GF_STREAM_UNKNOWN;
 }
 
+#if 0
 static char szAllStreamTypes[500] = {0};
 
-GF_EXPORT
+/*! Gets the list of names of all stream types defined
+\return names of all stream types defined
+ */
 const char *gf_stream_type_all_names()
 {
 	if (!szAllStreamTypes[0]) {
@@ -459,6 +462,8 @@ const char *gf_stream_type_all_names()
 	}
 	return szAllStreamTypes;
 }
+#endif
+
 
 GF_EXPORT
 u32 gf_stream_types_enum(u32 *idx, const char **name, const char **desc)
@@ -850,6 +855,7 @@ u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout)
 	return nb_chan;
 }
 
+GF_EXPORT
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 {
 	u16 res = 0;

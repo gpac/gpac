@@ -3575,6 +3575,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
 #ifdef GPAC_ENABLE_COVERAGE
 	u32 ucs4_buf[4];
+	u32 i;
 	u8 utf8_buf[7];
 
 	void *mem = gf_calloc(4, sizeof(u32));
@@ -3585,6 +3586,14 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gpac_fsess_task_help(); //for coverage
 	gf_dm_sess_last_error(NULL);
 	gf_log_use_color();
+	gf_4cc_parse("abcd");
+	gf_gpac_abi_micro();
+	gf_audio_fmt_get_layout_from_name("3/2.1");
+	gf_audio_fmt_get_dolby_chanmap(4);
+	gf_itags_get_id3tag(1);
+	i=0;
+	gf_itags_enum_tags(&i, NULL, NULL, NULL);
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
 
 	utf8_buf[0] = 'a';
