@@ -2500,6 +2500,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			e = gf_isom_copy_sample_info(dest, dst_tk, orig, i+1, j+1);
 			if (e) goto err_exit;
 
+			if (j+1==count) {
+				u32 sdur = gf_isom_get_sample_duration(orig, i+1, j+1);
+				gf_isom_set_last_sample_duration(dest, dst_tk, (u32) (ts_scale * sdur) );
+			}
+
 			gf_set_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}
