@@ -831,6 +831,10 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		/* No return, go till the end of the function */
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] Download error: %s\n", gf_error_to_string(parameter->error)));
 		break;
+	case GF_NETIO_REQUEST_SESSION:
+	case GF_NETIO_CANCEL_STREAM:
+		parameter->error = GF_NOT_SUPPORTED;
+		return;
 	}
 	if (ctx->async) {
 		xml_http_terminate(ctx, parameter->error);

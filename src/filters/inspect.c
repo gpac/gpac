@@ -119,6 +119,7 @@ typedef struct
 
 	Bool is_prober, probe_done, hdr_done, dump_pck;
 	Bool args_updated;
+	Bool has_seen_eos;
 } GF_InspectCtx;
 
 
@@ -3233,13 +3234,17 @@ static GF_Err inspect_process(GF_Filter *filter)
 		if (pctx->init_pid_config_done)
 			nb_hdr_done++;
 
-		if (!pck && !gf_filter_pid_is_eos(pctx->src_pid))
-			continue;
+		if (!pck) {
+			if (!gf_filter_pid_is_eos(pctx->src_pid))
+				continue;
+			else
+				ctx->has_seen_eos = GF_TRUE;
+		}
 		if (pctx->aborted)
 			continue;
 
 		if (!pctx->buffer_done) {
-			if (pck) {
+			if (pck && !ctx->has_seen_eos) {
 				u64 dur = gf_filter_pid_query_buffer_duration(pctx->src_pid, GF_FALSE);
 				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(pctx->src_pid)) {
 					continue;

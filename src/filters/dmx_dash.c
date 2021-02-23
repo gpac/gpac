@@ -363,6 +363,7 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 			group->eos_detected = GF_TRUE;
 		} else {
 			group->in_error = GF_TRUE;
+			group->seg_filter_src = NULL;
 		}
 	}
 }
