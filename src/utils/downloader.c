@@ -453,7 +453,7 @@ static int h2_header_callback(nghttp2_session *session,
 			return NGHTTP2_ERR_CALLBACK_FAILURE;
 		if (
 			(!sess->server_mode && (frame->headers.cat == NGHTTP2_HCAT_RESPONSE))
-			|| (sess->server_mode && ((frame->headers.cat == NGHTTP2_HEADERS) || (frame->headers.cat == NGHTTP2_HCAT_REQUEST)))
+			|| (sess->server_mode && ((frame->headers.cat == NGHTTP2_HCAT_HEADERS) || (frame->headers.cat == NGHTTP2_HCAT_REQUEST)))
 		) {
 			GF_HTTPHeader *hdrp;
 
@@ -522,7 +522,7 @@ static int h2_frame_recv_callback(nghttp2_session *session, const nghttp2_frame 
 
 		if (
 			(!sess->server_mode && (frame->headers.cat == NGHTTP2_HCAT_RESPONSE))
-			|| (sess->server_mode && ((frame->headers.cat == NGHTTP2_HEADERS) || (frame->headers.cat == NGHTTP2_HCAT_REQUEST)))
+			|| (sess->server_mode && ((frame->headers.cat == NGHTTP2_HCAT_HEADERS) || (frame->headers.cat == NGHTTP2_HCAT_REQUEST)))
 		) {
 			sess->h2_headers_seen = 1;
 			if (sess->server_mode) {
@@ -625,41 +625,36 @@ static int h2_error_callback(nghttp2_session *session, const char *msg, size_t l
 
 static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size_t length)
 {
-	ssize_t rv;
-
+	GF_Err e;
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		assert(length);
-		rv = SSL_write(sess->ssl, data, length);
-		if (rv <= 0) {
-			int err = SSL_get_error(sess->ssl, rv);
+		int res = SSL_write(sess->ssl, data, length);
+		if (res <= 0) {
+			int err = SSL_get_error(sess->ssl, res);
 			if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ) {
-				rv = NGHTTP2_ERR_WOULDBLOCK;
+				return NGHTTP2_ERR_WOULDBLOCK;
 			} else {
 				err = errno;
-				rv = NGHTTP2_ERR_SESSION_CLOSING;
+				return NGHTTP2_ERR_SESSION_CLOSING;
 			}
 		}
-		return rv;
+		return res;
 	}
 #endif
 
-	rv = gf_sk_send(sess->sock, data, length);
-	switch (rv) {
-	case GF_OK :
-		rv = length;
-		break;
-	case GF_IP_SOCK_WOULD_BLOCK :
-		rv = NGHTTP2_ERR_WOULDBLOCK;
-		break;
+	e = gf_sk_send(sess->sock, data, length);
+	switch (e) {
+	case GF_OK:
+		return length;
+	case GF_IP_SOCK_WOULD_BLOCK:
+		return NGHTTP2_ERR_WOULDBLOCK;
 	case GF_IP_CONNECTION_CLOSED:
-		rv = NGHTTP2_ERR_EOF;
-		break;
-	default :
-		rv = NGHTTP2_ERR_CALLBACK_FAILURE;
+		return NGHTTP2_ERR_EOF;
+	default:
 		break;
 	}
-	return rv;
+	return NGHTTP2_ERR_CALLBACK_FAILURE;
 }
 
 static ssize_t h2_send_callback(nghttp2_session *session, const uint8_t *data, size_t length, int flags, void *user_data)
@@ -729,13 +724,11 @@ static void h2_flush_send(GF_DownloadSession *sess)
 static char padding[256];
 
 static int h2_send_data_callback(nghttp2_session *session, nghttp2_frame *frame, const uint8_t *framehd, size_t length, nghttp2_data_source *source, void *user_data)
-{
-	u32 remain;
-	ssize_t rv;
+{	ssize_t rv;
 	GF_DownloadSession *sess = (GF_DownloadSession *) source->ptr;
-	remain = sess->h2_send_data_len;
-	assert(remain);
-	assert(remain>=length);
+
+	assert(sess->h2_send_data_len);
+	assert(sess->h2_send_data_len >= length);
 
 	rv = h2_write_data(sess, (u8 *) framehd, 9);
 	if (rv<0) goto err;
@@ -2502,7 +2495,9 @@ GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, u32 stre
 		return NULL;
 	}
 	gf_list_add(sess->h2_sess->sessions, sub_sess);
+#ifdef GPAC_HAS_SSL
 	sub_sess->ssl = sess->ssl;
+#endif
 	sub_sess->h2_sess = sess->h2_sess;
 	if (sub_sess->mx) gf_mx_del(sub_sess->mx);
 	sub_sess->mx = sess->h2_sess->mx;
@@ -4295,9 +4290,12 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	if (sess->h2_sess)
 		has_connection = GF_TRUE;
 
-	if (!has_connection && !sess->h2_sess && !sess->ssl
+	if (!has_connection && !sess->h2_sess
+#ifdef GPAC_HAS_SSL
+		&& !sess->ssl
+#endif
 		&& !sess->dm->disable_http2 && (sess->h2_upgrade_state!=2)
-		 && !gf_opts_get_bool("core", "no-h2c")
+		&& !gf_opts_get_bool("core", "no-h2c")
 	) {
 		u8 settings[HTTP2_BUFFER_SETTINGS_SIZE];
 		u32 settings_len;
@@ -4717,7 +4715,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	const char * mime_type;
 #ifdef GPAC_HAS_HTTP2
 	Bool upgrade_to_http2 = GF_FALSE;
-	Bool headers_seen = GF_FALSE;
 #endif
 
 
@@ -4729,7 +4726,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sess->use_cache_file = sess->dm->disable_cache ? GF_FALSE : GF_TRUE;
 		}
 	}
-	bytesRead = res = 0;
+	BodyStart = bytesRead = res = 0;
 	new_location = NULL;
 
 	if (sess->from_cache_only) {
@@ -4767,7 +4764,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		/* break as soon as we have a header frame*/
 		if (sess->h2_headers_seen) {
 			sess->h2_headers_seen = 0;
-			headers_seen = GF_TRUE;
 			res = 0;
 			bytesRead = 0;
 			e = GF_OK;
@@ -4863,7 +4859,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 	}
 
-	no_range = range = ContentLength = first_byte = last_byte = total_size = 0;
+	no_range = range = ContentLength = first_byte = last_byte = total_size = rsp_code = 0;
 
 #ifdef GPAC_HAS_HTTP2
 	if (!sess->h2_sess) {
@@ -4960,8 +4956,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 
 #ifdef GPAC_HAS_HTTP2
-	} else {
-		assert(headers_seen);
 	}
 #endif
 
@@ -6260,7 +6254,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 
 void gf_dm_sess_flush_h2(GF_DownloadSession *sess)
 {
-#ifdef GPAC_HAS_SSL
+#ifdef GPAC_HAS_HTTP2
 	u64 in_time;
 	u32 res;
 	char h2_flush[2024];

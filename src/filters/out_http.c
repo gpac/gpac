@@ -2511,7 +2511,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 
 	if (in->upload) {
 		char szChunkHdr[100];
-		u32 chunk_hdr_len;
+		u32 chunk_hdr_len=0;
 		GF_Err e;
 		u32 nb_retry = 0;
 		out = pck_size;
