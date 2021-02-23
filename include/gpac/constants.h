@@ -119,11 +119,6 @@ const char *gf_stream_type_name(u32 streamType);
  */
 u32 gf_stream_type_by_name(const char *name);
 
-/*! Gets the list of names of all stream types defined
-\return names of all stream types defined
- */
-const char *gf_stream_type_all_names();
-
 /*! Enumerates defined stream types
 \param idx index of the stream type, 0-based
 \param name name of the stream type (used when parsing stream type from textual definition)
