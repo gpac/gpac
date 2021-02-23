@@ -709,6 +709,21 @@ force using threads for async download requests rather than session scheduler
 set window analysis length in milliseconds for chunk-transfer encoding rate estimation
 .br
 .TP
+.B \-no-h2
+.br
+disable HTTP2
+.br
+.TP
+.B \-no-h2c
+.br
+disable HTTP2 upgrade (i.e. over non-TLS)
+.br
+.TP
+.B \-h2-copy
+.br
+enable intermediate copy of data in nghttp2 (default is disabled but may report as broken frames in wireshark)
+.br
+.TP
 .B \-dbg-edges
 .br
 log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
@@ -1302,7 +1317,7 @@ This will force decoding media from file.mp4 and trash (send to null) the result
 .br
 
 .br
-When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the seperator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to subfilters such as libx264 (cf x264opts parameter).
+When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to subfilters such as libx264 (cf x264opts parameter).
 .br
 Example
 .br
@@ -3976,7 +3991,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev494-gb6505589f-master
+build: 1.1.0-DEV-rev509-g95f9e26d5-http2
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -167,16 +167,17 @@ static GF_Err cenc_dec_get_gpac_kms(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[CENC/ISMA] Fetching ISMACryp key for channel %d\n", id) );
 
-	sess = gf_dm_sess_new(ctx->dm, kms_url, 0, cenc_dec_kms_netio, ctx, NULL);
+	sess = gf_dm_sess_new(ctx->dm, kms_url, GF_NETIO_SESSION_NOT_THREADED, cenc_dec_kms_netio, ctx, NULL);
 	if (!sess) return GF_IO_ERR;
-	/*start our download (threaded)*/
-	gf_dm_sess_process(sess);
 
 	while (1) {
-		e = gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, NULL);
+		GF_NetIOStatus status;
+		e = gf_dm_sess_process(sess);
 		if (e) break;
+		gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, &status);
+		if (status>=GF_NETIO_DATA_TRANSFERED) break;
 	}
-	if (e==GF_EOS) {
+	if (e=>GF_EOS) {
 		e = gf_ismacryp_gpac_get_info(id, (char *) gf_dm_sess_get_cache_name(sess), cstr->key, cstr->salt);
 	}
 	gf_dm_sess_del(sess);

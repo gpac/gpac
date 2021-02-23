@@ -65,7 +65,7 @@ struct __txtin_ctx
 
 
 	GF_FilterPid *ipid, *opid;
-	const char *file_name;
+	char *file_name;
 	u32 fmt;
 	u32 playstate;
 	//0: not seeking, 1: seek request pending, 2: seek configured, discarding packets up until start_range
@@ -3386,7 +3386,7 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		fevt.base.on_pid = ctx->ipid;
 		fevt.play.full_file_only = GF_TRUE;
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
-		ctx->file_name = src;
+		ctx->file_name = gf_strdup(src);
 	} else {
 		if (pid != ctx->ipid) {
 			return GF_REQUIRES_NEW_INSTANCE;
@@ -3395,7 +3395,8 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		ttxtin_reset(ctx);
 		ctx->is_setup = GF_FALSE;
-		ctx->file_name = src;
+		gf_free(ctx->file_name);
+		ctx->file_name = gf_strdup(src);
 	}
 	//guess type
 	e = gf_text_guess_format(ctx->file_name, &ctx->fmt);
@@ -3506,6 +3507,8 @@ void txtin_finalize(GF_Filter *filter)
 	}
 	if (ctx->div_nodes_list)
 		gf_list_del(ctx->div_nodes_list);
+
+	if (ctx->file_name) gf_free(ctx->file_name);
 }
 
 
