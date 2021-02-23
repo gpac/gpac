@@ -454,7 +454,7 @@ void PrintGeneralUsage()
 		"MP4Box is a multimedia packager, with a vast number of functionalities: conversion, splitting, hinting, dumping, DASH-ing, encryption, transcoding and others.\n"
 		"MP4Box provides a large set of options, classified by categories (see [-h]()). These options do not follow any particular ordering.\n"
 		"MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the [-out]() option.\n"
-		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov`...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use [-flat]() to change this behaviour.\n"
+		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov` ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use [-flat]() to change this behaviour.\n"
 		"MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with [-tmp]().\n"
 		"Note: Track operations identify tracks through their ID (usually refered as tkID in the help), not their order.\n"
 		"Option values:\n"
@@ -560,7 +560,7 @@ MP4BoxArg m4b_dash_args[] =
 	MP4BOX_ARG("mvex-after-traks", "store `mvex` box after `trak` boxes within the moov box. If not set, `mvex` is before", GF_ARG_BOOL, 0, &mvex_after_traks, 0, 0),
 	MP4BOX_ARG("sdtp-traf", "use `sdtp` box in `traf` (Smooth-like)\n"
 	"- no: do not use sdtp\n"
-	"- sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
+	"- sdtp: use sdtp box to indicate sample dependencies and do not write info in trun sample flags\n"
 	"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags\n", GF_ARG_INT, 0, parse_sdtp, 0, ARG_IS_FUN),
 	MP4BOX_ARG("no-cache", "disable file cache for dash inputs", GF_ARG_BOOL, 0, &no_cache, 0, 0),
 	MP4BOX_ARG("no-loop", "disable looping content in live mode and uses period switch instead", GF_ARG_BOOL, 0, &no_loop, 0, 0),
@@ -655,8 +655,8 @@ void PrintDASHUsage()
 
 MP4BoxArg m4b_imp_args[] =
 {
- 	MP4BOX_ARG("add", "add given file tracks to file. Multiple inputs can be specified using `+`, eg `-add url1+url2", GF_ARG_STRING, 0, &nb_add, 0, ARG_INT_INC),
- 	MP4BOX_ARG("cat", "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`(eg `-cat url1+url2).  \nNote: This aligns initial timestamp of the file to be concatenated", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
+ 	MP4BOX_ARG("add", "add given file tracks to file. Multiple inputs can be specified using `+`, eg `-add url1+url2`", GF_ARG_STRING, 0, &nb_add, 0, ARG_INT_INC),
+ 	MP4BOX_ARG("cat", "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`, eg `-cat url1+url2`.  \nNote: This aligns initial timestamp of the file to be concatenated", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("catx", "same as [-cat]() but new tracks can be imported before concatenation by specifying `+ADD_COMMAND` where `ADD_COMMAND` is a regular [-add]() syntax", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("catpl", "concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).  \nNote: Each listed file is concatenated as if called with -cat", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("unalign-cat", "do not attempt to align timestamps of samples inbetween tracks", GF_ARG_BOOL, 0, &align_cat, 0, ARG_BOOL_REV),
@@ -988,7 +988,7 @@ void PrintHintUsage()
 MP4BoxArg m4b_extr_args[] =
 {
  	MP4BOX_ARG("raw", "extract given track in raw format when supported. Use `tkID:output=FileName` to set output file name", GF_ARG_STRING, 0, parse_track_dump, GF_EXPORT_NATIVE, ARG_IS_FUN),
- 	MP4BOX_ARG("raws", "extract each sample of the given track to a file. Use `tkID:N`to extract the Nth sample", GF_ARG_STRING, 0, parse_track_dump, GF_EXPORT_RAW_SAMPLES, ARG_IS_FUN),
+ 	MP4BOX_ARG("raws", "extract each sample of the given track to a file. Use `tkID:N` to extract the Nth sample", GF_ARG_STRING, 0, parse_track_dump, GF_EXPORT_RAW_SAMPLES, ARG_IS_FUN),
  	MP4BOX_ARG("nhnt", "extract given track to [NHNT](nhntr) format", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_NHNT, ARG_IS_FUN),
  	MP4BOX_ARG("nhml", "extract given track to [NHML](nhmlr) format. Use `tkID:full` for full NHML dump with all packet properties", GF_ARG_STRING, 0, parse_track_dump, GF_EXPORT_NHML, ARG_IS_FUN),
  	MP4BOX_ARG("webvtt-raw", "extract given track as raw media in WebVTT as metadata. Use `tkID:embedded` to include media data in the WebVTT file", GF_ARG_STRING, 0, parse_track_dump, GF_EXPORT_WEBVTT_META, ARG_IS_FUN),
@@ -1114,7 +1114,7 @@ MP4BoxArg m4b_meta_args[] =
 		"- name, id, ref: see [-add-item]()\n"
 		"- primary: indicate that this item should be the primary item\n"
 		"- time=t[-e][/i]: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items\n"
-		" - If `e` is set (float, in sec), import all sync samples between `t`and `e`\n"
+		" - If `e` is set (float, in sec), import all sync samples between `t` and `e`\n"
 		" - If `i` is set (float, in sec), sets time increment between samples to import\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
 		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also\n"
@@ -1171,7 +1171,7 @@ MP4BoxArg m4b_swf_args[] =
  	MP4BOX_ARG("xlp", "support for lines transparency and scalability", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_SCALABLE_LINE, ARG_BIT_MASK),
 	MP4BOX_ARG("ic2d", "use indexed curve 2D hardcoded proto", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_USE_IC2D, ARG_BIT_MASK),
 	MP4BOX_ARG("same-app", "appearance nodes are reused", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_REUSE_APPEARANCE, ARG_BIT_MASK),
- 	MP4BOX_ARG("flatten", "complementary angle below which 2 lines are merged, value `0`means no flattening", GF_ARG_DOUBLE, 0, &swf_flatten_angle, 0, 0),
+ 	MP4BOX_ARG("flatten", "complementary angle below which 2 lines are merged, value `0` means no flattening", GF_ARG_DOUBLE, 0, &swf_flatten_angle, 0, 0),
 	{0}
 };
 

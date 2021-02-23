@@ -62,7 +62,7 @@ filter.set_help(
 +"The audio PID is assigned the name `audio` and ID `1`.\n"
 +"If a single video PID is produced, it is assigned the name `video` and ID `2`.\n"
 +"If multiple video PIDs are produced, they are assigned the names `videoN` and ID `N+1`, N in [1, sizes].\n"
-+"If multiple [-views]() are generated, they are assigned the names `videoN_vK` and ID `N*views+K-1, N in [1,sizes], K in [1, views].\n"
++"If multiple [-views]() are generated, they are assigned the names `videoN_vK` and ID `N*views+K-1`, N in [1, sizes], K in [1, views].\n"
 );
 
 filter.set_arg({ name: "type", desc: "output selection\n- a: audio only\n- v: video only\n- av: audio and video", type: GF_PROP_UINT, def: "av", minmax_enum: "a|v|av"} );

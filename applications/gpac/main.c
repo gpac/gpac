@@ -105,9 +105,9 @@ const char *gpac_doc =
 "  \nEach filter exposes a set of argument to configure itself, using property types and values described as strings formated with "
 "separators. This help is given with default separator sets `:=#,@` to specify filters, properties and options. Use [-seps](GPAC) to change them.\n"
 "# Property format\n"
-"- boolean: formatted as `yes`|`true`|`1` or `no`|`false`|`0`\n"
+"- boolean: formatted as `yes`,`true`,`1` or `no`,`false`,`0`\n"
 "- enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value `0` (first in enum) is assumed.\n"
-"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`|`K` (x 1000) or `m`|`M` (x 1000000) or `g`|`G` (x 1000000000) or `sec` (x 1000) or `min` (x 60000). "
+"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`,`K` (x 1000) or `m`,`M` (x 1000000) or `g`,`G` (x 1000000000) or `sec` (x 1000) or `min` (x 60000). "
 "For such properties, value `+I` means maximum possible value, `-I` minimum possible value.\n"
 "- fraction: formatted as `num/den` or `num-den` or `num`, in which case the denominator is 1 if `num` is an integer, or 1000000 if `num` is a floating-point value.\n"
 "- unsigned 32 bit integer: formated as number or hexadecimal using the format `0xAABBCCDD`.\n"
@@ -227,7 +227,7 @@ const char *gpac_doc =
 "A sourceID name can be further extended using fragment identifier (`#` by default):\n"
 "- name#PIDNAME: accepts only PID(s) with name `PIDNAME`\n"
 "- name#TYPE: accepts only PIDs of matching media type. TYPE can be `audio`, `video`, `scene`, `text`, `font`, `meta`\n"
-"- name#TYPEN: accepts only `N`th PID of matching type from source\n"
+"- name#TYPEN: accepts only `N` (1-based index) PID of matching type from source (eg `video2` to only accept second video PID)\n"
 "- name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching `VAL`\n"
 "- name#P4CC=VAL: accepts only PIDs with property matching `VAL`.\n"
 "- name#PName=VAL: same as above, using the builtin name corresponding to the property.\n"
@@ -286,7 +286,7 @@ const char *gpac_doc =
 "This will pass the `:OPTBAR` to all filters loaded between `file.mp4` source and `file.aac` destination, but not `OPTFOO`.\n"
 "Arguments inheriting can be stopped by using the keyword `gfloc`: arguments after the keyword will not be inherited.\n"
 "EX src=file.mp4 dst=file.aac:OPTFOO:gfloc:OPTBAR dst=file.264\n"
-"This will pass `:OPTFOO` to all filters loaded between `file.mp4`source and `file.aac` destination, but not `OPTBAR`\n"
+"This will pass `:OPTFOO` to all filters loaded between `file.mp4` source and `file.aac` destination, but not `OPTBAR`\n"
 "Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.\n"
 "It may be usefull to specify arguments which may not be consumed depending on the graph resolution; the specific keyword `gfopt` indicates that arguments after the keyword will not be tracked.\n"
 "EX src=file.mp4 dst=file.aac:OPTFOO:gfopt:OPTBAR dst=file.264\n"
@@ -571,7 +571,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("r", NULL, "enable reporting\n"
 			"- r: runtime reporting\n"
-			"- r=FA[,FB]: runtime reporting but only print given filters, eg `r=mp4mx`for ISOBMFF muxer only\n"
+			"- r=FA[,FB]: runtime reporting but only print given filters, eg `r=mp4mx` for ISOBMFF muxer only\n"
 			"- r=: only print final report"
 			, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("seps", NULL, "set the default character sets used to separate various arguments\n"\

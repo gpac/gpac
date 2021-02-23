@@ -91,7 +91,7 @@ enable reporting
 .br
 * r: runtime reporting
 .br
-* r=FA[,FB]: runtime reporting but only print given filters, eg r=mp4mxfor ISOBMFF muxer only
+* r=FA[,FB]: runtime reporting but only print given filters, eg r=mp4mx for ISOBMFF muxer only
 .br
 * r=: only print final report
 .br
@@ -1002,7 +1002,7 @@ set log tools and levels.
 .br
 You can independently log different tools involved in a session.  
 .br
-log_args is formatted as a ':'-separated list of toolX[:toolZ]@levelX  
+log_args is formatted as a colon (':') separated list of toolX[:toolZ]@levelX  
 .br
 levelX can be one of:
 .br
@@ -1108,11 +1108,11 @@ Each filter exposes a set of argument to configure itself, using property types 
 .SH Property format
 .LP
 .br
-* boolean: formatted as yes|true|1 or no|false|0
+* boolean: formatted as yes,true,1 or no,false,0
 .br
 * enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value 0 (first in enum) is assumed.
 .br
-* 1-dimension (numbers, floats, ints...): formatted as value[unit], where unit can be k|K (x 1000) or m|M (x 1000000) or g|G (x 1000000000) or sec (x 1000) or min (x 60000). For such properties, value +I means maximum possible value, -I minimum possible value.
+* 1-dimension (numbers, floats, ints...): formatted as value[unit], where unit can be k,K (x 1000) or m,M (x 1000000) or g,G (x 1000000000) or sec (x 1000) or min (x 60000). For such properties, value +I means maximum possible value, -I minimum possible value.
 .br
 * fraction: formatted as num/den or num-den or num, in which case the denominator is 1 if num is an integer, or 1000000 if num is a floating-point value.
 .br
@@ -1426,7 +1426,7 @@ A sourceID name can be further extended using fragment identifier (# by default)
 .br
 * name#TYPE: accepts only PIDs of matching media type. TYPE can be audio, video, scene, text, font, meta
 .br
-* name#TYPEN: accepts only Nth PID of matching type from source
+* name#TYPEN: accepts only N (1-based index) PID of matching type from source (eg video2 to only accept second video PID)
 .br
 * name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching VAL
 .br
@@ -1589,7 +1589,7 @@ src=file.mp4 dst=file.aac:OPTFOO:gfloc:OPTBAR dst=file.264
 .br
 
 .br
-This will pass :OPTFOO to all filters loaded between file.mp4source and file.aac destination, but not OPTBAR
+This will pass :OPTFOO to all filters loaded between file.mp4 source and file.aac destination, but not OPTBAR
 .br
 Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.
 .br
@@ -3991,7 +3991,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev509-g95f9e26d5-http2
+build: 1.1.0-DEV-rev524-gf9318eba6-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

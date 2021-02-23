@@ -1605,7 +1605,7 @@ GF_FilterRegister HEVCMergeRegister = {
 		"  \n"
 		"## Spatial Relationship Description (SRD)\n"
 		"\n"
-		"The filter will create an `SRDMap` property in the output PID if `SRDRef` and `SRD`or `CropOrigin` are set on all input PIDs.\n"
+		"The filter will create an `SRDMap` property in the output PID if `SRDRef` and `SRD` or `CropOrigin` are set on all input PIDs.\n"
 		"The `SRDMap` allows forwarding the logical sources `SRD` in the merged PID.\n"
 		"The output pid `SRDRef` is set to the output video size.\n"
 		"The input `SRDRef` and `SRD` are usually specified in DASH MPD, but can be manually assigned to inputs.\n"

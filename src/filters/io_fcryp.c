@@ -316,7 +316,7 @@ GF_FilterRegister CryptFinRegister = {
 	"The filter accepts URL with scheme `gcryp://URL`, where `URL` is the URL to decrypt.\n"
 	"\n"
 	"The filter can process http(s) and local file key URLs, and expects a full key (16 bytes) as result of resource fetching.\n"
-	"The special URL `urn:gpac:keys:value:VALUE` can also be used, with `VALUE`containing the 16 bytes of the key in hexadecimal.\n"
+	"The special URL `urn:gpac:keys:value:VALUE` can also be used, with `VALUE` containing the 16 bytes of the key in hexadecimal.\n"
 	)
 	.private_size = sizeof(GF_CryptFileCtx),
 	.args = CryptFinArgs,

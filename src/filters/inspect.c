@@ -3563,7 +3563,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(props), "dump packet properties, ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(dump_data), "enable full data dump (__WARNING__ heavy!), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(fmt), "set packet dump format (see filter help)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hdr), "print a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hdr), "print a header corresponding to fmt string without '$' or \"pid\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(allp), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
