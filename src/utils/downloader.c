@@ -798,18 +798,24 @@ static void h2_initialize_session(GF_DownloadSession *sess)
 	if (sess->server_mode) {
 		sess->h2_stream_id = 1;
 		if (sess->h2_upgrade_settings) {
-			int rv;
 			rv = nghttp2_session_upgrade2(sess->h2_sess->ng_sess, sess->h2_upgrade_settings, sess->h2_upgrade_settings_len, 0, sess);
-
 			gf_free(sess->h2_upgrade_settings);
 			sess->h2_upgrade_settings = NULL;
+
+			if (rv) {
+				sess->status = GF_NETIO_STATE_ERROR;
+				sess->last_error = (rv==NGHTTP2_ERR_NOMEM) ? GF_OUT_OF_MEM : GF_REMOTE_SERVICE_ERROR;
+				return;
+			}
 		}
 	}
 
 	/* client 24 bytes magic string will be sent by nghttp2 library */
 	rv = nghttp2_submit_settings(sess->h2_sess->ng_sess, NGHTTP2_FLAG_NONE, iv, GF_ARRAY_LENGTH(iv));
 	if (rv != 0) {
-
+		sess->status = GF_NETIO_STATE_ERROR;
+		sess->last_error = (rv==NGHTTP2_ERR_NOMEM) ? GF_OUT_OF_MEM : GF_SERVICE_ERROR;
+		return;
 	}
 	h2_session_send(sess);
 }
@@ -3745,7 +3751,7 @@ static void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 paylo
 	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
 		u64 run_time;
 
-#ifdef GPAC_HAS_HTTP2
+#if 0 //def GPAC_HAS_HTTP2
 		if (0 && sess->h2_sess && sess->h2_stream_id)
 			return;
 #endif
