@@ -21,7 +21,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv2 -ldl
-LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lz
+LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lnghttp2 -lz
 
 #ffmpeg
 LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale

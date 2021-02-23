@@ -123,6 +123,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
+#define GPAC_HAS_HTTP2
 
 /*Configuration for XCode OSX (not iOS) */
 #elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
