@@ -1031,6 +1031,20 @@ typedef struct
 	Double duration;
 } HLS_LLChunk;
 
+static void reset_attribs(s_accumulated_attributes *attribs)
+{
+	attribs->width = attribs->height = 0;
+#define RST_ATTR(_name) if (attribs->_name) { gf_free(attribs->_name); attribs->_name = NULL; }
+
+	RST_ATTR(codecs)
+	RST_ATTR(group.audio)
+	RST_ATTR(language)
+	RST_ATTR(title)
+	RST_ATTR(key_url)
+	RST_ATTR(init_url)
+	RST_ATTR(mediaURL)
+}
+
 
 GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playlist, const char *baseURL, Stream *in_stream, PlaylistElement *sub_playlist)
 {
@@ -1059,6 +1073,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 	}
 
 #define _CLEANUP \
+	reset_attribs(&attribs);\
 	if (f) gf_fclose(f); \
 	else if (release_blob) gf_blob_release(m3u8_file);
 
@@ -1147,6 +1162,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 					//find end quote
 					sep = strchr(file, '"');
 					if (!sep) {
+					fprintf(stderr, "error parsing LL manifest %s\n", m3u8_payload);
 						e = GF_NON_COMPLIANT_BITSTREAM;
 						_CLEANUP
 						return e;
@@ -1221,35 +1237,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 			//do not reset all attributes but at least set width/height/codecs to NULL, otherwise we may miss detection
 			//of audio-only playlists in av sequences
 
-			attribs.width = attribs.height = 0;
-			if (attribs.codecs) {
-				gf_free(attribs.codecs);
-				attribs.codecs = NULL;
-			}
-			if (attribs.group.audio) {
-				gf_free(attribs.group.audio);
-				attribs.group.audio=NULL;
-			}
-			if (attribs.language) {
-				gf_free(attribs.language);
-				attribs.language=NULL;
-			}
-			if (attribs.title) {
-				gf_free(attribs.title);
-				attribs.title=NULL;
-			}
-			if (attribs.key_url) {
-				gf_free(attribs.key_url);
-				attribs.key_url=NULL;
-			}
-			if (attribs.init_url) {
-				gf_free(attribs.init_url);
-				attribs.init_url = NULL;
-			}
-			if (attribs.mediaURL) {
-				gf_free(attribs.mediaURL);
-				attribs.mediaURL = NULL;
-			}
+			reset_attribs(&attribs);
 		}
 	}
 
@@ -1270,20 +1258,6 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 		}
 
 	}
-	if (attribs.key_url)
-		gf_free(attribs.key_url);
-	if (attribs.init_url)
-		gf_free(attribs.init_url);
-	if (attribs.codecs)
-		gf_free(attribs.codecs);
-	if (attribs.group.audio)
-		gf_free(attribs.group.audio);
-	if (attribs.language)
-		gf_free(attribs.language);
-	if (attribs.title)
-		gf_free(attribs.title);
-	if (attribs.mediaURL)
-		gf_free(attribs.mediaURL);
 
 	if (attribs.version < attribs.compatibility_version) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));

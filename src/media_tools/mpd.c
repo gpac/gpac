@@ -2268,7 +2268,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	e = gf_m3u8_parse_master_playlist(loc_file, &pl, rep->segment_list->xlink_href);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse playlist %s\n", rep->segment_list->xlink_href));
-		return GF_NON_COMPLIANT_BITSTREAM;
+		gf_m3u8_master_playlist_del(&pl);
+		return e;
 	}
 
 	assert(pl);
