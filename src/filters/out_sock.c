@@ -561,7 +561,7 @@ GF_FilterRegister SockOutRegister = {
 		"\n"
 		"When ports are specified in the URL and the default option separators are used (see `gpac -h doc`), the URL must either:\n"
 		"- have a trailing '/', eg `udp://localhost:1234/[:opts]`\n"
-		"- use `gpac` '/', eg `udp://localhost:1234[:gpac:opts]\n"
+		"- use `gpac` '/', eg `udp://localhost:1234[:gpac:opts]`\n"
 		"\n"
 		"The socket output can be configured to drop or revert packet order for test purposes.\n"
 		"For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator/\n"

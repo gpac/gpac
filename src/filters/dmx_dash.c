@@ -2873,7 +2873,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"EX gpac -i MANIFEST_URL:forward=segb cecrypt:cfile=DRM.xml @ -o encrypted/live.m3u8\n"
 	"This will encrypt an existing DASH session and republish it as HLS, using same segment names and boundaries.\n"
 	"\n"
-	"This mode will force [-noseek]() to `true` to ensure the first segment fetched is complete, and [-split_as]() to `true`to fetch all qualities.\n"
+	"This mode will force [-noseek]() to `true` to ensure the first segment fetched is complete, and [-split_as]() to `true` to fetch all qualities.\n"
 	"\n"
 	"Each first packet of a segment will have the following properties attached:\n"
 	"- `CueStart`: to indicate this is a segment start (set by demuxer if it offers `sigfrag` option)\n"

@@ -1802,7 +1802,7 @@ GF_FilterRegister ReframerRegister = {
 		"- 'T'H:M:S.MS: specify time in hours, minutes, seconds and milliseconds\n"
 		"- INT: specify time in millisecond\n"
 		"- NUM/DEN: specify time in seconds as fraction\n"
-		"- FNUM: specify time as frame number\n"
+		"- 'F'NUM: specify time as frame number\n"
 		"In this mode, the timestamps are rewritten to form a continuous timeline.\n"
 		"When multiple ranges are given, the filter will try to seek if supported by source."
 		"\n"

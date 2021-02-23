@@ -1130,7 +1130,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("logs", NULL, "set log tools and levels.  \n"\
 			"  \n"\
 			"You can independently log different tools involved in a session.  \n"\
-			"log_args is formatted as a ':'-separated list of `toolX[:toolZ]@levelX`  \n"\
+			"log_args is formatted as a colon (':') separated list of `toolX[:toolZ]@levelX`  \n"\
 	        "`levelX` can be one of:\n"\
 	        "- quiet: skip logs\n"\
 	        "- error: logs only error messages\n"\
@@ -1744,6 +1744,50 @@ static u32 nb_tokens = sizeof(Tokens) / sizeof(struct _token);
 
 static u32 line_pos = 0;
 
+//#define CHECK_BALANCED_SEPS
+
+#ifdef CHECK_BALANCED_SEPS
+static void check_char_balanced(char *buf, char c)
+{
+	char *txt = buf;
+	while (txt) {
+		char *bquote_next;
+		char *bquote = strchr(txt, c);
+		if (!bquote) break;
+		if (c=='\'') {
+			if ((bquote[1]=='s') && (bquote[2]==' ')) {
+				txt = bquote + 1;
+				continue;
+			}
+		}
+		bquote_next = strchr(bquote+1, c);
+		if (!bquote_next) {
+			fprintf(stderr, "Missing closing %c after %s\n", c, bquote);
+			exit(1);
+		}
+		switch (bquote_next[1] ) {
+		case 0:
+		case '\n':
+		case ' ':
+		case ',':
+		case '.':
+		case ')':
+		case ']':
+		case ':':
+			break;
+		default:
+			if (c=='\'') {
+				if ((bquote_next[1]>='A') && (bquote_next[1]<='Z'))
+					break;
+			}
+			fprintf(stderr, "Missing space after closing %c %s\n", c, bquote_next);
+			exit(1);
+		}
+		txt = bquote_next + 1;
+	}
+}
+#endif
+
 GF_EXPORT
 void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 {
@@ -1779,6 +1823,12 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 	vsprintf(help_buf, fmt, vlist);
 	va_end(vlist);
 
+#ifdef CHECK_BALANCED_SEPS
+	if (gen_doc) {
+		check_char_balanced(help_buf, '`');
+		check_char_balanced(help_buf, '\'');
+	}
+#endif
 
 	line = help_buf;
 	while (line[0]) {

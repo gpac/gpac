@@ -18,7 +18,7 @@ MP4Box provides a large set of options, classified by categories (see .I -h). Th
 .br
 MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the .I out option.
 .br
-MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use .I flat to change this behaviour.
+MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use .I flat to change this behaviour.
 .br
 MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with .I tmp.
 .br
@@ -426,7 +426,7 @@ extract given track in raw format when supported. Use tkID:output=FileName to se
 .TP
 .B \-raws (string)
 .br
-extract each sample of the given track to a file. Use tkID:Nto extract the Nth sample
+extract each sample of the given track to a file. Use tkID:N to extract the Nth sample
 .br
 .TP
 .B \-nhnt (int)
@@ -791,7 +791,7 @@ use sdtp box in traf (Smooth-like)
 .br
 * no: do not use sdtp
 .br
-* sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags
+* sdtp: use sdtp box to indicate sample dependencies and do not write info in trun sample flags
 .br
 * both: use sdtp box to indicate sample dependencies and also write info in trun sample flags
 .br
@@ -1915,7 +1915,7 @@ add given file tracks to file. Multiple inputs can be specified using +, eg -add
 .TP
 .B \-cat (string)
 .br
-concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using +(eg -cat url1+url2).  
+concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using +, eg -cat url1+url2.  
 .br
 Note: This aligns initial timestamp of the file to be concatenated
 .br
@@ -2295,7 +2295,7 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * time=t[-e][/i]: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items
 .br
- - If e is set (float, in sec), import all sync samples between tand e
+ - If e is set (float, in sec), import all sync samples between t and e
 .br
  - If i is set (float, in sec), sets time increment between samples to import
 .br
@@ -2442,7 +2442,7 @@ appearance nodes are reused
 .TP
 .B \-flatten (number)
 .br
-complementary angle below which 2 lines are merged, value 0means no flattening
+complementary angle below which 2 lines are merged, value 0 means no flattening
 .br
 .SH Tagging support
 .LP
@@ -2650,7 +2650,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev509-g95f9e26d5-http2
+build: 1.1.0-DEV-rev524-gf9318eba6-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

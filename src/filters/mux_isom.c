@@ -6151,7 +6151,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(mvex), "set mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sdtp_traf), "use sdtp in traf rather than using flags in trun sample entries\n"
 		"- no: do not use sdtp\n"
-		"- sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags\n"
+		"- sdtp: use sdtp box to indicate sample dependencies and do not write info in trun sample flags\n"
 		"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags", GF_PROP_UINT, "no", "no|sdtp|both", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(trackid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fragdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

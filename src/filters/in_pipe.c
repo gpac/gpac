@@ -493,7 +493,7 @@ GF_FilterRegister PipeInRegister = {
 		"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.\n"
 		"\n"
 		"# stdin pipe\n"
-		"The filter can handle reading from stdin, by using `-`or `stdin` as input file name.\n"
+		"The filter can handle reading from stdin, by using `-` or `stdin` as input file name.\n"
 		"EX gpac -i - vout\n"
 		"EX gpac -i stdin vout\n"
 		"\n"

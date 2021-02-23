@@ -149,7 +149,7 @@ dump_data (bool, default: false, updatable): enable full data dump (WARNING heav
 .br
 fmt (str, updatable):          set packet dump format (see filter help)
 .br
-hdr (bool, default: true):     print a header corresponding to fmt string without '$ 'or "pid."
+hdr (bool, default: true):     print a header corresponding to fmt string without '$' or "pid"
 .br
 allp (bool, default: false):   analyse for the entire duration, rather than stoping when all pids are found
 .br
@@ -247,7 +247,7 @@ dump_data (bool, default: false, updatable): enable full data dump (WARNING heav
 .br
 fmt (str, updatable):          set packet dump format (see filter help)
 .br
-hdr (bool, default: true):     print a header corresponding to fmt string without '$ 'or "pid."
+hdr (bool, default: true):     print a header corresponding to fmt string without '$' or "pid"
 .br
 allp (bool, default: false):   analyse for the entire duration, rather than stoping when all pids are found
 .br
@@ -1632,7 +1632,7 @@ This will encrypt an existing DASH session and republish it as HLS, using same s
 .br
 
 .br
-This mode will force .I noseek to true to ensure the first segment fetched is complete, and .I split_as to trueto fetch all qualities.
+This mode will force .I noseek to true to ensure the first segment fetched is complete, and .I split_as to true to fetch all qualities.
 .br
 
 .br
@@ -2144,7 +2144,7 @@ sdtp_traf (enum, default: no): use sdtp in traf rather than using flags in trun 
 .br
 * no: do not use sdtp
 .br
-* sdtp: use sdtp box to indicate sample dependencies and don't write info in trun sample flags
+* sdtp: use sdtp box to indicate sample dependencies and do not write info in trun sample flags
 .br
 * both: use sdtp box to indicate sample dependencies and also write info in trun sample flags
 .br
@@ -2960,7 +2960,7 @@ The formats allowed for times specifiers are:
 .br
 * NUM/DEN: specify time in seconds as fraction
 .br
-* FNUM: specify time as frame number
+* 'F'NUM: specify time as frame number
 .br
 In this mode, the timestamps are rewritten to form a continuous timeline.
 .br
@@ -4850,7 +4850,7 @@ Note: Unless disabled at session level (see .I -no-probe ), file extensions are 
 .SH stdin pipe
 .LP
 .br
-The filter can handle reading from stdin, by using -or stdin as input file name.
+The filter can handle reading from stdin, by using - or stdin as input file name.
 .br
 Example
 .br
@@ -5799,7 +5799,7 @@ When enabled, a GET on a directory will return a simple HTML listing of the cont
 .SH Simple HTTP server
 .LP
 .br
-In this mode, the filter doesn't need any input connection and exposes all files in the directories given by .I rdirs.
+In this mode, the filter does not need any input connection and exposes all files in the directories given by .I rdirs.
 .br
 PUT and POST methods are only supported if a write directory is specified by .I wdir option.
 .br
@@ -5838,7 +5838,7 @@ This sets up a read-write server running on .I port 8080.
 .br
 In this mode, the filter will forward input PIDs to connected clients, trashing the data if no client is connected unless .I hold is specified.
 .br
-The filter doesn't use any read directory in this mode.
+The filter does not use any read directory in this mode.
 .br
 This mode is mostly usefull to setup live HTTP streaming of media sessions such as MP3, MPEG-2 TS or other muxed representations:
 .br
@@ -6090,7 +6090,7 @@ Spatial Relationship Description (SRD)
 .br
 
 .br
-The filter will create an SRDMap property in the output PID if SRDRef and SRDor CropOrigin are set on all input PIDs.
+The filter will create an SRDMap property in the output PID if SRDRef and SRD or CropOrigin are set on all input PIDs.
 .br
 The SRDMap allows forwarding the logical sources SRD in the merged PID.
 .br
@@ -7080,7 +7080,7 @@ The filter accepts URL with scheme gcryp://URL, where URL is the URL to decrypt.
 .br
 The filter can process http(s) and local file key URLs, and expects a full key (16 bytes) as result of resource fetching.
 .br
-The special URL urn:gpac:keys:value:VALUE can also be used, with VALUEcontaining the 16 bytes of the key in hexadecimal.
+The special URL urn:gpac:keys:value:VALUE can also be used, with VALUE containing the 16 bytes of the key in hexadecimal.
 .br
 
 .br
@@ -7261,7 +7261,7 @@ If a single video PID is produced, it is assigned the name video and ID 2.
 .br
 If multiple video PIDs are produced, they are assigned the names videoN and ID N+1, N in [1, sizes].
 .br
-If multiple .I views are generated, they are assigned the names videoN_vK and ID N*views+K-1, N in [1,sizes], K in [1, views].
+If multiple .I views are generated, they are assigned the names videoN_vK and ID N*views+K-1, N in [1, sizes], K in [1, views].
 .br
 
 .br
@@ -7337,7 +7337,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev509-g95f9e26d5-http2
+build: 1.1.0-DEV-rev524-gf9318eba6-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
