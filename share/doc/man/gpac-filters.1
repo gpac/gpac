@@ -1781,7 +1781,7 @@ switch_count (uint, default: 1): indicate how many segments the client shall wai
 .br
 aggressive (bool, default: no): if enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)
 .br
-debug_as (uint, default: -1):  play only the adaptation set indicated by its index in the MPD; if negative, all sets are used
+debug_as (uintl):              play only the adaptation sets indicated by their indices (0-based) in the MPD
 .br
 speedadapt (bool, default: no): enable adaptation based on playback speed
 .br
@@ -5961,7 +5961,7 @@ The server currently only operates in either HTTPS or HTTP mode and cannot run b
 .br
 dst (cstr):                    location of destination resource - see filter help
 .br
-port (uint, default: 80):      server port
+port (uint, default: 0):       server port
 .br
 ifce (str):                    default network inteface to use
 .br
@@ -6013,7 +6013,7 @@ sutc (bool, default: false):   insert server UTC in response headers as Server-U
 .br
 cors (bool, default: false):   insert CORS header allowing all domains
 .br
-reqlog (str):                  provide short log of the requests indicated in this option (comma separated list, * for all) regardless of HTTP log settings. Value REClogs file writing start/end
+reqlog (str):                  provide short log of the requests indicated in this option (comma separated list, * for all) regardless of HTTP log settings. Value REC logs file writing start/end
 .br
 ice (bool, default: false):    insert ICE meta-data in response headers in sink mode - see filter help
 .br
@@ -7337,7 +7337,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev494-gb6505589f-master
+build: 1.1.0-DEV-rev509-g95f9e26d5-http2
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

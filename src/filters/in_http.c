@@ -532,7 +532,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
-		ctx->is_end = GF_TRUE;
+		if (net_status!=GF_NETIO_DATA_EXCHANGE)
+			ctx->is_end = GF_TRUE;
 	} else if (e==GF_EOS) {
 		ctx->is_end = GF_TRUE;
 	}
