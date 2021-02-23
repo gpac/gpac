@@ -707,6 +707,9 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 nb_frames=0;
 	u32 pos=0;
 	u32 prev_pos=0;
+	s32 prev_sr_idx=-1;
+	s32 prev_ch=-1;
+	s32 prev_layer=-1;
 	s32 init_pos = -1;
 	Bool has_id3 = GF_FALSE;
 
@@ -734,14 +737,41 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 		if (gf_mp3_version(hdr) > 3)
 			break;
-		u8 sampleRateIndex = (hdr >> 10) & 0x3;
-		if (sampleRateIndex>2)
+		//check sample rate
+		u8 val = (hdr >> 10) & 0x3;
+		if (val>2)
 			break;
 		u32 fsize = gf_mp3_frame_size(hdr);
 		if (prev_pos && pos) {
 			nb_frames=0;
 			break;
 		}
+
+		if (prev_sr_idx>=0) {
+			if ((u8) prev_sr_idx != val) {
+				nb_frames=0;
+				break;
+			}
+		}
+		prev_sr_idx = val;
+
+		val = gf_mp3_num_channels(hdr);
+		if (prev_ch>=0) {
+			if ((u8) prev_ch != val) {
+				nb_frames=0;
+				break;
+			}
+		}
+		prev_ch = val;
+
+		val = gf_mp3_layer(hdr);
+		if (prev_layer>=0) {
+			if ((u8) prev_layer != val) {
+				nb_frames=0;
+				break;
+			}
+		}
+		prev_layer = val;
 
 		if (fsize + pos > size) {
 			nb_frames++;
