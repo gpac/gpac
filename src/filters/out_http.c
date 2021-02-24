@@ -1250,6 +1250,12 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			sess->done = GF_TRUE;
 		}
 	}
+
+	if (e<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending reply: %s\n", gf_error_to_string(e)));
+		sess->done = GF_TRUE;
+	}
+
 	if (sess->done)
 		sess->headers_done = GF_FALSE;
 
@@ -1939,7 +1945,6 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	//upload session (PUT, POST)
 	if (sess->upload_type) {
 		u32 i, count;
-		char szDate[200];
 		GF_Err write_e=GF_OK;
 		assert(sess->path);
 		if (sess->done)
@@ -2003,6 +2008,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		if (sess->canceled) {
 			log_request_done(sess);
 		} else {
+			char szDate[200];
 
 			if (e==GF_EOS) {
 				if (sess->upload_type==2) {

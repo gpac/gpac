@@ -1072,6 +1072,8 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 		}
 	}
 
+	memset(&attribs, 0, sizeof(s_accumulated_attributes));
+
 #define _CLEANUP \
 	reset_attribs(&attribs);\
 	if (f) gf_fclose(f); \
@@ -1162,7 +1164,6 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 					//find end quote
 					sep = strchr(file, '"');
 					if (!sep) {
-					fprintf(stderr, "error parsing LL manifest %s\n", m3u8_payload);
 						e = GF_NON_COMPLIANT_BITSTREAM;
 						_CLEANUP
 						return e;

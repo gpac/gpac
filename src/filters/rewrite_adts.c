@@ -125,8 +125,8 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			chan_cfg = 7;
 
 		if (!ctx->mpeg2) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 #ifndef GPAC_DISABLE_AV_PARSERS
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 			if (p) {
 				gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &ctx->acfg);
 				ctx->aac_type = ctx->acfg.base_object_type - 1;

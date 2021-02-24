@@ -177,7 +177,7 @@ static GF_Err cenc_dec_get_gpac_kms(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, &status);
 		if (status>=GF_NETIO_DATA_TRANSFERED) break;
 	}
-	if (e=>GF_EOS) {
+	if (e >= GF_EOS) {
 		e = gf_ismacryp_gpac_get_info(id, (char *) gf_dm_sess_get_cache_name(sess), cstr->key, cstr->salt);
 	}
 	gf_dm_sess_del(sess);
@@ -806,7 +806,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	}
 
 	if (ctx->decrypt!=DECRYPT_FULL) return GF_OK;
-	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found, aboring!\n\tUse '--decrypt=nokey' to force decrypting\n"));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found, aborting!\n\tUse '--decrypt=nokey' to force decrypting\n"));
 	return GF_NOT_SUPPORTED;
 }
 
