@@ -142,6 +142,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_GLU
+#define GPAC_HAS_VTB
 #define GPAC_HAS_HTTP2
 
 #define GPAC_MEMORY_TRACKING
@@ -180,6 +181,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_SSL
 #define GPAC_DISABLE_OGG
 #define GPAC_HAS_STRLCPY
+#define GPAC_HAS_VTB
 #define GPAC_HAS_HTTP2
 
 /*Configuration for Symbian*/

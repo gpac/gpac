@@ -46,7 +46,7 @@ else
 EXT=
 PROG=MP4Box
 
-ifeq ($(MP4BOX_STATIC),yes)
+ifeq ($(STATIC_BINARY),yes)
 LINKFLAGS+= $(GPAC_SH_FLAGS)
 endif
 

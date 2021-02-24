@@ -498,6 +498,17 @@ void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait)
 	sock->usec_wait = (usec_wait>=1000000) ? 500 : usec_wait;
 }
 
+#ifdef GPAC_STATIC_BUILD
+struct hostent *gf_gethostbyname(const char *PeerName)
+{
+	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Static GPAC build has no DNS support, cannot resolve host %s !\n", PeerName));
+	return NULL;
+}
+#else
+#define gf_gethostbyname gethostbyname
+#endif
+
+
 //connects a socket to a remote peer on a given port
 GF_EXPORT
 GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *local_ip)
@@ -618,7 +629,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	sock->dest_addr.sin_addr.s_addr = inet_addr(PeerName);
 	if (sock->dest_addr.sin_addr.s_addr==INADDR_NONE) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Solving %s address\n", PeerName));
-		Host = gethostbyname(PeerName);
+		Host = gf_gethostbyname(PeerName);
 		if (Host == NULL) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to retrieve host %s address: %s\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
 			switch (LASTSOCKERROR) {
@@ -823,7 +834,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		buf[0] = 0;
 		ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
 		/*get the IP address*/
-		Host = gethostbyname(buf);
+		Host = gf_gethostbyname(buf);
 		if (Host != NULL) {
 			memcpy((char *) &LocalAdd.sin_addr, Host->h_addr_list[0], sizeof(LocalAdd.sin_addr));
 			ip_add = LocalAdd.sin_addr.s_addr;
@@ -872,7 +883,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		sock->dest_addr.sin_family = AF_INET;
 		sock->dest_addr.sin_addr.s_addr = inet_addr(peer_name);
 		if (sock->dest_addr.sin_addr.s_addr == INADDR_NONE) {
-			Host = gethostbyname(peer_name);
+			Host = gf_gethostbyname(peer_name);
 			if (Host == NULL) ret = GF_IP_ADDRESS_NOT_FOUND;
 			else memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 		}
@@ -1710,7 +1721,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 		//setup the address
 		remote_add.sin_port = htons(remotePort);
 		//get the server IP
-		Host = gethostbyname(remoteHost);
+		Host = gf_gethostbyname(remoteHost);
 		if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
 		memcpy((char *) &remote_add.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	} else {

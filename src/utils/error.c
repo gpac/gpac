@@ -1100,6 +1100,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_USE_GLES2
 	                       "GPAC_USE_GLES2 "
 #endif
+#ifdef GPAC_DISABLE_ZLIB
+	                       "GPAC_DISABLE_ZLIB "
+#endif
 #ifdef GPAC_DISABLE_SVG
 	                       "GPAC_DISABLE_SVG "
 #endif
