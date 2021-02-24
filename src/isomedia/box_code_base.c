@@ -8922,6 +8922,7 @@ GF_Err ssix_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size < ptr->subsegment_count*4)
 		return GF_ISOM_INVALID_FILE;
 
+	ptr->subsegment_alloc = ptr->subsegment_count;
 	GF_SAFE_ALLOC_N(ptr->subsegments, ptr->subsegment_count, GF_SubsegmentInfo);
 	if (!ptr->subsegments)
 	    return GF_OUT_OF_MEM;

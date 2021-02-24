@@ -1125,15 +1125,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") ) {
 		e =  gf_media_import_chapters_file(importer);
 		if (!strnicmp(ext, ".txt", 4) && (e==GF_NOT_FOUND)) {
-			e = GF_OK;
+
 		} else {
 			return e;
 		}
 	}
-
-#ifdef FILTER_FIXME
-	#error "importer TO CHECK: SAF, TS"
-#endif
 
 	e = GF_OK;
 	importer->last_error = GF_OK;

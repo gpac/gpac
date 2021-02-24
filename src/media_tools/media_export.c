@@ -1236,7 +1236,6 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		file_out = gf_fs_load_destination(fsess, dumper->out_name, NULL, NULL, &e);
 		if (!file_out) {
 			gf_fs_del(fsess);
-			if (args) gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot open destination %s\n", dumper->out_name));
 			return e;
 		}

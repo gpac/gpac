@@ -635,7 +635,7 @@ static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size
 			if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ) {
 				return NGHTTP2_ERR_WOULDBLOCK;
 			} else {
-				err = errno;
+				//err = errno;
 				return NGHTTP2_ERR_SESSION_CLOSING;
 			}
 		}
@@ -2616,7 +2616,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		size = SSL_read(sess->ssl, data, data_size);
 		if (size < 0) {
 			int err = SSL_get_error(sess->ssl, size);
-			e = GF_IO_ERR;
 			if (err==SSL_ERROR_SSL) {
 /*
 				char msg[1024];
@@ -4466,7 +4465,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	//serialize headers
 	count = gf_list_count(sess->headers);
 	for (i=0; i<count; i++) {
-		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
+		hdr = gf_list_get(sess->headers, i);
 		strcat(sHTTP, hdr->name);
 		strcat(sHTTP, ": ");
 		strcat(sHTTP, hdr->value);
@@ -4732,7 +4731,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sess->use_cache_file = sess->dm->disable_cache ? GF_FALSE : GF_TRUE;
 		}
 	}
-	BodyStart = bytesRead = res = 0;
+	bytesRead = res = 0;
 	new_location = NULL;
 
 	if (sess->from_cache_only) {
@@ -4772,6 +4771,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sess->h2_headers_seen = 0;
 			res = 0;
 			bytesRead = 0;
+			BodyStart = 0;
 			e = GF_OK;
 			break;
 		}
