@@ -22,7 +22,7 @@ LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=udptsseg$(EXE)
-ifeq ($(MP4BOX_STATIC),yes)
+ifeq ($(STATIC_BINARY),yes)
 LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac
@@ -30,7 +30,7 @@ endif
 else
 EXT=
 PROG=udptsseg
-ifeq ($(MP4BOX_STATIC),yes)
+ifeq ($(STATIC_BINARY),yes)
 LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac

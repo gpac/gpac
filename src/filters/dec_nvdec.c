@@ -28,7 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) 
+#if !defined(GPAC_STATIC_BUILD) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) 
 
 #include "dec_nvdec_sdk.h"
 
@@ -1505,6 +1505,6 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
+#endif // !defined(GPAC_STATIC_BUILD) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) 
 
 

@@ -12,7 +12,7 @@ vpath %.c $(SRC_PATH)
 all:	version
 	$(MAKE) -C src all
 	$(MAKE) -C applications all
-ifneq ($(MP4BOX_STATIC),yes)
+ifneq ($(STATIC_BINARY),yes)
 	$(MAKE) -C modules all
 endif
 
@@ -122,7 +122,7 @@ ifeq ($(DISABLE_ISOFF),no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
 endif
-ifneq ($(MP4BOX_STATIC),yes)
+ifneq ($(STATIC_BINARY),yes)
 ifeq ($(DISABLE_PLAYER),no)
 	if [ -f bin/gcc/MP4Client$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
@@ -130,7 +130,7 @@ ifeq ($(DISABLE_PLAYER),no)
 endif
 endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)/$(moddir)"
-ifneq ($(MP4BOX_STATIC),yes)
+ifneq ($(STATIC_BINARY),yes)
 	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(prefix)/$(lib_dir)/$(moddir)" || true
 	$(INSTALL) bin/gcc/gf_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(prefix)/$(lib_dir)/$(moddir)" || true
 ifeq ($(CONFIG_OPENHEVC),yes)
@@ -194,7 +194,7 @@ lninstall:
 ifeq ($(DISABLE_ISOFF),no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
 endif
-ifneq ($(MP4BOX_STATIC),yes)
+ifneq ($(STATIC_BINARY),yes)
 ifeq ($(DISABLE_PLAYER),no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
 endif
@@ -239,7 +239,7 @@ uninstall:
 
 
 installdylib:
-ifneq ($(MP4BOX_STATIC),yes)
+ifneq ($(STATIC_BINARY),yes)
 
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)"
 

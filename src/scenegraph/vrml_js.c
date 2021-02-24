@@ -218,6 +218,9 @@ int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_r
     return 0;
 }
 
+
+#ifndef GPAC_STATIC_BUILD
+
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
 #else
@@ -282,13 +285,20 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 	return m;
 }
 
+#endif // GPAC_STATIC_BUILD
+
 JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
 {
 	JSModuleDef *m;
 	const char *fext = gf_file_ext_start(module_name);
 
 	if (fext && (!strcmp(fext, ".so") || !strcmp(fext, ".dll") || !strcmp(fext, ".dylib")) )  {
+#ifndef GPAC_STATIC_BUILD
 		m = qjs_module_loader_dyn_lib(ctx, module_name);
+#else
+		JS_ThrowReferenceError(ctx, "could not load module filename '%s', dynamic library loading disabled in build", module_name);
+		m = NULL;
+#endif
 	} else {
 		u32 buf_len;
 		u8 *buf;

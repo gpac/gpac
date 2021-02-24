@@ -1290,6 +1290,7 @@ GF_FilterRegister OHEVCDecRegister = {
 
 #endif // defined(GPAC_HAS_OPENHEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 
+#ifdef GPAC_HAS_OPENHEVC
 
 #ifndef GPAC_OPENHEVC_STATIC
 
@@ -1306,3 +1307,5 @@ const GF_FilterRegister *ohevcdec_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
+
+#endif

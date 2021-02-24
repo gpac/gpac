@@ -1847,7 +1847,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 {
 	char *payload_text = NULL;
 	u8 *payload = NULL, *pay_start;
-	char tmp[1000];
+	char tmp[2000];
 	u32 i, count, len, comp_size;
 	s32 timezone, h, m;
 	u64 diff = ctx->clock - ctx->last_lls_clock;
@@ -1929,8 +1929,8 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			strncpy(szIP, service_name, len);
 			szIP[len] = 0;
 
-			snprintf(tmp, 1000,
-				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0	\" serviceCategory=\"1\" globalServiceId=\"urn:gpac:atsc:serviceid:%d.%d\" majorChannelNo=\"666\" minorChannelNo=\"666\" shortServiceName=\"%s\">\n", sid, ctx->bsid, sid, szIP);
+			snprintf(tmp, 2000,
+				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0 \" serviceCategory=\"1\" globalServiceId=\"urn:gpac:atsc:serviceid:%d.%d\" majorChannelNo=\"666\" minorChannelNo=\"666\" shortServiceName=\"%s\">\n", sid, ctx->bsid, sid, szIP);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
 			src_ip = ctx->ifce;

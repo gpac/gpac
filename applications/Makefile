@@ -2,7 +2,7 @@ include ../config.mak
 
 APPDIRS=gpac
 
-ifeq ($(MP4BOX_STATIC),yes)
+ifeq ($(STATIC_BINARY),yes)
 APPDIRS+=mp4box 
 else
 
@@ -30,7 +30,7 @@ ifeq ($(USE_WXWIDGETS),yes)
 #INSTDIRS+=osmo4_wx
 endif
 
-#MP4BOX_STATIC
+#STATIC_BINARY
 endif
 
 ALLDIRS=$(APPDIRS)
