@@ -2533,6 +2533,10 @@ void gf_dm_sess_server_reset(GF_DownloadSession *sess)
 	if (!sess->server_mode) return;
 
 	gf_dm_sess_clear_headers(sess);
+	sess->total_size = sess->bytes_done = 0;
+	sess->chunk_bytes = 0;
+	sess->chunk_header_bytes = 0;
+	sess->chunked = GF_FALSE;
 	sess->status = GF_NETIO_CONNECTED;
 }
 
