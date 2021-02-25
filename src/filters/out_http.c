@@ -626,6 +626,8 @@ GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, u32 stream_id)
 	if (!sub_sess) return GF_OUT_OF_MEM;
 	sub_sess->socket = sess->socket;
 	sub_sess->ctx = sess->ctx;
+	//mark the subsession as being h2 right away so that we can process it even if no pending data on socket (cf httpout_process_session)
+	sub_sess->is_h2 = GF_TRUE;
 	strcpy(sub_sess->peer_address, sess->peer_address);
 	sub_sess->http_sess = gf_dm_sess_new_subsession(sess->http_sess, stream_id, sub_sess, &e);
 	if (!sub_sess->http_sess) {
@@ -2097,9 +2099,10 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 
 	//other session: read incoming request and process headers
 	if (!sess->headers_done) {
-		if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
-			if (!sess->is_h2)
-				return;
+		//check we have something to read if not http2
+		//if http2, data might have been received on this session while processing another session
+		if (!sess->is_h2 && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
+			return;
 		}
 		e = gf_dm_sess_process(sess->http_sess);
 
