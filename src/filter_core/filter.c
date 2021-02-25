@@ -3318,11 +3318,20 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 		gf_filter_assign_id(link_from, NULL);
 	}
 	if (link_ext) {
-		char szID[1024];
-		sprintf(szID, "%s%c%s", link_from->id, link_from->session->sep_frag, link_ext);
-		gf_filter_set_sources(filter, szID);
+		char szSep[2];
+		char *id = NULL;
+		gf_dynstrcat(&id, link_from->id, NULL);
+		szSep[0] = link_from->session->sep_frag;
+		szSep[1] = 0;
+		gf_dynstrcat(&id, link_ext, szSep);
+		gf_filter_set_sources(filter, id);
+		gf_free(id);
 	} else {
 		gf_filter_set_sources(filter, link_from->id);
+	}
+	if (link_from->target_filter != filter) {
+		filter->target_filter = link_from->target_filter;
+		link_from->target_filter = NULL;
 	}
 	return GF_OK;
 }

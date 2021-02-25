@@ -3112,7 +3112,7 @@ GF_Err gf_filter_pid_negociate_property_dyn(GF_FilterPid *PID, char *name, const
 
 /*! Queries a negotiated built-in capability on an output PID
 Filters may check if a property negotiation was done on an output PID, and check the property value.
-This can be done on an output PID in a filter->reconfigure_output if the filter accpets caps negotiation
+This can be done on an output PID in a filter->reconfigure_output if the filter accepts caps negotiation
 This can be done on an input PID in a generic reconfigure_pid
 
 \param PID the target filter PID
